@@ -1,0 +1,17 @@
+{
+    "name": "tabui",
+    "version": "1.0.0",
+    "description": "Calculates UI dimensions for Tabber UI",
+    "main": "dist/index.ts",
+    "types": "dist/index.d.ts",
+    "files": [
+        "/dist"
+    ],
+    "scripts": {
+        "build": "tsc --build",
+        "clean": "tsc --build --clean"
+    },
+    "devDependencies": {
+        "typescript": "^5.4.5"
+    }
+}
