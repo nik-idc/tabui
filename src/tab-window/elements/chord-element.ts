@@ -1,87 +1,132 @@
 import { Chord } from "./../../models/chord";
 import { Rect } from "../shapes/rect";
 import { NoteElement } from "./note-element";
-import { BarElement } from "./bar-element";
 import { Point } from "../shapes/point";
-import { TabWindow } from "../tab-window";
-import { NoteDuration } from "./../../models/note-duration";
+import { TabWindowDim } from "../tab-window-dim";
+import { NoteDuration } from "../../models/note-duration";
 
+/**
+ * Class that handles drawing chord element in the tab
+ */
 export class ChordElement {
-  readonly tabWindow: TabWindow;
-  readonly barElement: BarElement;
+  /**
+   * Tab window dimensions
+   */
+  readonly dim: TabWindowDim;
+  /**
+   * This chord's note elements
+   */
   readonly noteElements: NoteElement[];
+  /**
+   * This chord's duration rectangle
+   */
   readonly durationRect: Rect;
-  // readonly durationCoords: Point;
+  /**
+   * This chord's rectangle
+   */
   readonly rect: Rect;
+  /**
+   * The chord
+   */
   readonly chord: Chord;
 
-  constructor(
-    tabWindow: TabWindow,
-    barElement: BarElement,
-    chordCoords: Point,
-    chord: Chord
-  ) {
-    this.tabWindow = tabWindow;
-    this.barElement = barElement;
-    this.noteElements = new Array<NoteElement>(
-      this.tabWindow.tab.guitar.stringsCount
-    );
+  constructor(dim: TabWindowDim, chordCoords: Point, chord: Chord) {
+    this.dim = dim;
+    this.noteElements = new Array<NoteElement>(chord.guitar.stringsCount);
     this.durationRect = new Rect();
-    // this.durationCoords = new Point();
     this.rect = new Rect(chordCoords.x, chordCoords.y);
     this.chord = chord;
 
     this.calc();
   }
 
-  calc(): void {
+  /**
+   * Calculate dimensions of the chord element
+   */
+  public calc(): void {
     // Calc chord rectangle
     // 1/32 - 100%, 1/16 - 110%, 1/8 - 120%, 1/4 - 130%, 1/2 - 140%, 1 - 150%
-    let chordWidth =
-      ((100 + Math.log2(this.chord.duration) * 10) / 100) *
-      this.tabWindow.dim.noteMinSize;
+    const add = Math.log2(this.chord.duration / NoteDuration.ThirtySecond);
+    const perc = (100 + add * 10) / 100;
+    let chordWidth = perc * this.dim.minNoteSize;
     this.rect.width = chordWidth;
-    this.rect.height = this.tabWindow.dim.barHeight;
+    this.rect.height = this.dim.lineHeight;
 
     // Calc note elements
     let notes = this.chord.notes;
     for (let strNum = 0; strNum < notes.length; strNum++) {
       this.noteElements[strNum] = new NoteElement(
-        this.tabWindow,
-        this,
+        this.dim,
+        this.rect,
         notes[strNum]
       );
     }
 
     // Calc duration position
-    this.durationRect.width = this.tabWindow.dim.durationWidth;
-    this.durationRect.height = this.tabWindow.dim.durationHeight;
-    this.durationRect.x =
-      this.rect.x + this.rect.width / 2 - this.durationRect.width / 2;
-    this.durationRect.y =
-      this.rect.y -
-      this.tabWindow.dim.durationsLineHeight -
-      this.durationRect.height / 2;
+    this.durationRect.width = this.rect.width;
+    this.durationRect.height = this.dim.durationsHeight;
+    this.durationRect.x = this.rect.x;
+    this.durationRect.y = this.rect.x;
   }
 
-  scaleChordHorBy(scale: number) {
+  /**
+   * Checks if it's possible to scale down without hurting readability
+   * @param scale Scale factor
+   * @returns True if can be scaled down, false otherwise
+   */
+  public canBeScaledDown(scale: number): boolean {
+    if (scale >= 1) {
+      return true;
+    }
+
+    for (let noteElement of this.noteElements) {
+      if (!noteElement.canBeScaledDown(scale)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Scales chord element horizontally
+   * @param scale Scale factor
+   * @returns True if can be scaled down, false otherwise
+   */
+  public scaleChordHorBy(scale: number): boolean {
     if (scale <= 0) {
       throw new Error(`${scale} is an invalid scale: scale must be positive`);
     }
 
+    // Check if can be scaled down
+    if (scale > 0 && scale < 1 && !this.canBeScaledDown(scale)) {
+      return false;
+    }
+
+    // Scale notes
+    for (let noteElement of this.noteElements) {
+      noteElement.scaleNoteHorBy(scale);
+    }
+
+    // Scale rectangle
     this.rect.width *= scale;
     this.rect.x *= scale;
     this.durationRect.width *= scale;
     this.durationRect.x *= scale;
 
-    for (let noteElement of this.noteElements) {
-      noteElement.scaleNoteHorBy(scale);
-    }
+    return true;
   }
 
-  translateBy(dx: number, dy: number) {
+  /**
+   * Translates chord element by a specified dstance
+   * @param dx Horizontal distance
+   * @param dy Vertical distance
+   */
+  public translateBy(dx: number, dy: number): void {
     this.rect.x += dx;
     this.rect.y += dy;
+    this.durationRect.x += dx;
+    this.durationRect.y += dy;
     for (let noteElement of this.noteElements) {
       noteElement.translateBy(dx, dy);
     }

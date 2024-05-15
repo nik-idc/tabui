@@ -3,24 +3,46 @@ import { Guitar } from "./guitar";
 import { GuitarNote } from "./guitar-note";
 import { NoteDuration } from "./note-duration";
 
+/**
+ * Class that represents a chord
+ */
 export class Chord {
+  /**
+   * Guitar on which the chord is played
+   */
   readonly guitar: Guitar;
-  private _duration: NoteDuration;
+  /**
+   * Note duration
+   */
+  public duration: NoteDuration;
+  /**
+   * Chord notes
+   */
   readonly notes: GuitarNote[];
 
+  /**
+   * Class that represents a chord
+   * @param guitar Guitar on which the chord is played
+   * @param duration Note duration
+   */
   constructor(guitar: Guitar, duration: NoteDuration) {
     this.guitar = guitar;
-    this._duration = duration;
-    this.notes = [];
-    for (let strNum = 1; strNum <= guitar.stringsCount; strNum++) {
-      this.notes.push(new GuitarNote(this.guitar, strNum, null));
-    }
+    this.duration = duration;
+    this.notes = Array.from(
+      { length: guitar.stringsCount },
+      (_, strNum) => new GuitarNote(this.guitar, strNum + 1, null)
+    );
   }
 
+  /**
+   * Parses a JSON object and returns a chord object
+   * @param obj Chord object
+   * @returns Parsed chord object
+   */
   static fromObject(obj: any): Chord {
     if (
       obj.guitar === undefined ||
-      obj._duration === undefined ||
+      obj.duration === undefined ||
       obj.notes === undefined
     ) {
       throw new Error("Invalid js object to parse to chord");
@@ -31,19 +53,7 @@ export class Chord {
     chord.notes.length = 0; // Delete default notes
     obj.notes.forEach((note: any) =>
       chord.notes.push(GuitarNote.fromObject(note))
-    ); // Parse notes
+    );
     return chord;
-  }
-
-  get duration(): NoteDuration {
-    return this._duration;
-  }
-
-  set duration(duration: NoteDuration) {
-    if (!Object.values(NoteDuration).includes(duration)) {
-      throw new Error(`${duration} is an invalid note duration`);
-    }
-
-    this._duration = duration;
   }
 }
