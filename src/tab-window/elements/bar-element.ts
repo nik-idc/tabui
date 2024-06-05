@@ -17,7 +17,7 @@ export class BarElement {
   /**
    * This bar's chord elements
    */
-  readonly chordElements: ChordElement[];
+  public chordElements: ChordElement[];
   /**
    * If signature is to be shown in the bar
    */
@@ -66,27 +66,24 @@ export class BarElement {
    * Calculates this bar element
    */
   calc(): void {
-    // Set signature rect and coords
+    // Tempo rectangle
+    this.tempoRect.x = this.rect.x + this.dim.minInfoWidth;
+    this.tempoRect.y = this.rect.y;
+    this.tempoRect.width = this.dim.minInfoWidth;
+    this.tempoRect.height = this.dim.durationsHeight;
+
+    // Time signature rectangle
     this.timeSigRect.x = this.rect.x;
     this.timeSigRect.y = this.rect.y + this.dim.durationsHeight;
-    if (this.showSignature) {
-      this.timeSigRect.width = this.dim.minInfoWidth;
-      this.timeSigRect.height = this.dim.barHeight;
-    }
-
-    // Set tempo coords
-    this.tempoRect.x = this.rect.x;
-    this.tempoRect.y = this.rect.y;
-    if (this.showTempo) {
-      this.tempoRect.width = this.dim.minInfoWidth;
-      this.tempoRect.height = this.dim.durationsHeight;
-    }
+    this.timeSigRect.width = this.dim.minInfoWidth;
+    this.timeSigRect.height = this.dim.barHeight + this.dim.durationsHeight;
 
     // Calculate chords
+    this.chordElements = [];
     let chordsWidth = 0;
     const chordCoords = new Point(
-      this.rect.x + this.timeSigRect.width,
-      this.rect.y
+      this.timeSigRect.rightTop.x,
+      this.timeSigRect.rightTop.y
     );
     for (let chord of this.bar.chords) {
       const chordElement = new ChordElement(this.dim, chordCoords, chord);
@@ -154,7 +151,7 @@ export class BarElement {
    * @param dx Horizontal distance
    * @param dy Vertical distance
    */
-  translateBy(dx: number, dy: number) {
+  public translateBy(dx: number, dy: number): void {
     // Translate bar rectangles
     this.timeSigRect.x += dx;
     this.timeSigRect.y += dy;
@@ -175,6 +172,8 @@ export class BarElement {
    */
   insertEmptyChord(index: number): void {
     this.bar.insertEmptyChord(index);
+
+    this.calc();
   }
 
   /**
@@ -182,6 +181,8 @@ export class BarElement {
    */
   prependChord(): void {
     this.bar.prependChord();
+
+    this.calc();
   }
 
   /**
@@ -189,6 +190,8 @@ export class BarElement {
    */
   appendChord(): void {
     this.bar.appendChord();
+
+    this.calc();
   }
 
   /**
@@ -197,6 +200,8 @@ export class BarElement {
    */
   removeChord(index: number): void {
     this.bar.removeChord(index);
+
+    this.calc();
   }
 
   /**
@@ -206,6 +211,8 @@ export class BarElement {
    */
   changeChordDuration(chord: Chord, duration: number): void {
     this.bar.changeChordDuration(chord, duration);
+
+    this.calc();
   }
 
   /**
