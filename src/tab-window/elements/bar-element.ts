@@ -5,6 +5,7 @@ import { TabWindow } from "../tab-window";
 import { Point } from "../shapes/point";
 import { Chord } from "./../../models/chord";
 import { TabWindowDim } from "../tab-window-dim";
+import { NoteDuration } from "../../models/note-duration";
 
 /**
  * Class that handles drawing chord element in the tab
@@ -21,23 +22,23 @@ export class BarElement {
   /**
    * If signature is to be shown in the bar
    */
-  readonly showSignature: boolean;
+  public showSignature: boolean;
   /**
    * If tempo is to be shown in the bar
    */
-  readonly showTempo: boolean;
+  public showTempo: boolean;
   /**
    * Tempo rectangle
    */
-  readonly tempoRect: Rect;
+  public tempoRect: Rect;
   /**
    * Time signature rectangle
    */
-  readonly timeSigRect: Rect;
+  public timeSigRect: Rect;
   /**
    * Bar element rectangle
    */
-  readonly rect: Rect;
+  public rect: Rect;
   /**
    * The bar
    */
@@ -66,17 +67,18 @@ export class BarElement {
    * Calculates this bar element
    */
   calc(): void {
+    // Time signature rectangle
+    const timeSigWidth = this.showSignature ? this.dim.minInfoWidth : 0;
+    this.timeSigRect.x = this.rect.x;
+    this.timeSigRect.y = this.rect.y + this.dim.minNoteSize;
+    this.timeSigRect.width = timeSigWidth;
+    this.timeSigRect.height = this.dim.barHeight;
+
     // Tempo rectangle
     this.tempoRect.x = this.rect.x + this.dim.minInfoWidth;
     this.tempoRect.y = this.rect.y;
     this.tempoRect.width = this.dim.minInfoWidth;
     this.tempoRect.height = this.dim.durationsHeight;
-
-    // Time signature rectangle
-    this.timeSigRect.x = this.rect.x;
-    this.timeSigRect.y = this.rect.y + this.dim.durationsHeight;
-    this.timeSigRect.width = this.dim.minInfoWidth;
-    this.timeSigRect.height = this.dim.barHeight + this.dim.durationsHeight;
 
     // Calculate chords
     this.chordElements = [];
@@ -218,25 +220,50 @@ export class BarElement {
   /**
    * Change bar's beats value
    * @param beats New beats value
+   * @param prevBar Bar preceding this element's bar
    */
-  changeBarBeats(beats: number): void {
+  changeBarBeats(beats: number, prevBar?: Bar): void {
     this.bar.beats = beats;
+
+    if (prevBar) {
+      this.showSignature = this.bar.beats !== prevBar.beats;
+    } else {
+      this.showSignature = true;
+    }
+
+    this.calc();
   }
 
   /**
    * Change bar duration
    * @param duration New bar duration
+   * @param prevBar Bar preceding this element's bar
    */
-  changeBarDuration(duration: number): void {
+  changeBarDuration(duration: NoteDuration, prevBar?: Bar): void {
     this.bar.duration = duration;
+
+    if (prevBar) {
+      this.showSignature = this.bar.duration !== prevBar.duration;
+    } else {
+      this.showSignature = true;
+    }
+
+    this.calc();
   }
 
   /**
    * Change bar tempo
    * @param tempo New tempo
+   * @param prevBar Bar preceding this element's bar
    */
-  changeTempo(tempo: number): void {
+  changeTempo(tempo: number, prevBar?: Bar): void {
     this.bar.tempo = tempo;
+
+    if (prevBar) {
+      this.showTempo = this.bar.tempo !== prevBar.tempo;
+    } else {
+      this.showTempo = true;
+    }
   }
 
   /**

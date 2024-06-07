@@ -36,7 +36,7 @@ const dim = new TabWindowDim(
 );
 
 describe("Bar element tests", () => {
-  describe("Bar element calc test", () => {
+  test("Bar element calc with time signature test", () => {
     // Expected width ratios where all of these
     // are multiplied by min note size
     const chords = [
@@ -47,51 +47,87 @@ describe("Bar element tests", () => {
     ];
     const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, chords);
     const barCoords = new Point(0, 0);
-    const regularBarElement = new BarElement(dim, barCoords, bar, false, false);
-    const tempoBarElement = new BarElement(dim, barCoords, bar, false, true);
-    const signBarElement = new BarElement(dim, barCoords, bar, true, false);
-    const bothBarElement = new BarElement(dim, barCoords, bar, true, true);
+    const barElement = new BarElement(dim, barCoords, bar, true, true);
 
-    const cases = [
-      { barElement: regularBarElement, name: "Regular (show none)" },
-      { barElement: tempoBarElement, name: "Show tempo" },
-      { barElement: signBarElement, name: "Show signature" },
-      { barElement: bothBarElement, name: "Show both" },
+    // Make expected results
+    const expectedSigRect = new Rect(
+      barCoords.x,
+      barCoords.y + dim.minNoteSize,
+      dim.minInfoWidth,
+      dim.barHeight
+    );
+    const expectedTempoRect = new Rect(
+      barCoords.x + dim.minInfoWidth,
+      barCoords.y,
+      dim.minInfoWidth,
+      dim.durationsHeight
+    );
+
+    let chordsWidth = 0;
+    for (const chordElement of barElement.chordElements) {
+      chordsWidth += chordElement.rect.width;
+    }
+    const expectedRect = new Rect(
+      barCoords.x,
+      barCoords.y,
+      expectedSigRect.width + chordsWidth,
+      dim.tabLineHeight
+    );
+
+    // Calc
+    barElement.calc();
+
+    // Test
+    expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
+    expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
+    expect(barElement.rect).toStrictEqual(expectedRect);
+  });
+
+  test("Bar element calc without time signature test", () => {
+    // Expected width ratios where all of these
+    // are multiplied by min note size
+    const chords = [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
     ];
-    test.each(cases)("%s bar element", ({ barElement, name }) => {
-      // Make expected results
-      const expectedSigRect = new Rect(
-        barCoords.x,
-        barCoords.y + dim.durationsHeight,
-        barElement.showSignature ? dim.minInfoWidth : 0,
-        barElement.showSignature ? dim.barHeight : 0
-      );
-      const expectedTempoRect = new Rect(
-        barCoords.x,
-        barCoords.y,
-        barElement.showTempo ? dim.minInfoWidth : 0,
-        barElement.showTempo ? dim.durationsHeight : 0
-      );
+    const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, chords);
+    const barCoords = new Point(0, 0);
+    const barElement = new BarElement(dim, barCoords, bar, false, true);
 
-      let chordsWidth = 0;
-      for (const chordElement of barElement.chordElements) {
-        chordsWidth += chordElement.rect.width;
-      }
-      const expectedRect = new Rect(
-        barCoords.x,
-        barCoords.y,
-        expectedSigRect.width + chordsWidth,
-        dim.tabLineHeight
-      );
+    // Make expected results
+    const expectedSigRect = new Rect(
+      barCoords.x,
+      barCoords.y + dim.minNoteSize,
+      0,
+      dim.barHeight
+    );
+    const expectedTempoRect = new Rect(
+      barCoords.x + dim.minInfoWidth,
+      barCoords.y,
+      dim.minInfoWidth,
+      dim.durationsHeight
+    );
 
-      // Calc
-      barElement.calc();
+    let chordsWidth = 0;
+    for (const chordElement of barElement.chordElements) {
+      chordsWidth += chordElement.rect.width;
+    }
+    const expectedRect = new Rect(
+      barCoords.x,
+      barCoords.y,
+      expectedSigRect.width + chordsWidth,
+      dim.tabLineHeight
+    );
 
-      // Test
-      expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
-      expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
-      expect(barElement.rect).toStrictEqual(expectedRect);
-    });
+    // Calc
+    barElement.calc();
+
+    // Test
+    expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
+    expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
+    expect(barElement.rect).toStrictEqual(expectedRect);
   });
 
   test("Can be scaled down test", () => {
@@ -376,5 +412,230 @@ describe("Bar element tests", () => {
     expect(barElement.chordElements[2].chord.duration).toBe(
       NoteDuration.Sixteenth
     );
+  });
+
+  test("Change bar beats test: no show -> show", () => {
+    const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const barCoords = new Point(0, 0);
+    const barElement = new BarElement(dim, barCoords, bar, false, true);
+
+    // Calc expected rect
+    const expectedSigRect = new Rect(
+      barCoords.x,
+      barCoords.y + dim.minNoteSize,
+      dim.minInfoWidth,
+      dim.barHeight
+    );
+    const expectedTempoRect = new Rect(
+      barCoords.x + dim.minInfoWidth,
+      barCoords.y,
+      dim.minInfoWidth,
+      dim.durationsHeight
+    );
+    const expectedRect = new Rect(
+      barElement.rect.x,
+      barElement.rect.y,
+      barElement.rect.width + dim.minInfoWidth,
+      barElement.rect.height
+    );
+
+    // Change chord duration
+    const newBeats = 3;
+    barElement.changeBarBeats(newBeats, prevBar);
+
+    // Test
+    expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
+    expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
+    expect(barElement.rect).toStrictEqual(expectedRect);
+    expect(barElement.bar.beats).toBe(newBeats);
+    expect(barElement.showSignature).toBe(true);
+  });
+
+  test("Change bar beats test: show -> no show", () => {
+    const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const bar = new Bar(guitar, 120, 3, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const barCoords = new Point(0, 0);
+    const barElement = new BarElement(dim, barCoords, bar, true, true);
+
+    // Calc expected rect
+    const expectedSigRect = new Rect(
+      barCoords.x,
+      barCoords.y + dim.minNoteSize,
+      0,
+      dim.barHeight
+    );
+    const expectedTempoRect = new Rect(
+      barCoords.x + dim.minInfoWidth,
+      barCoords.y,
+      dim.minInfoWidth,
+      dim.durationsHeight
+    );
+    const expectedRect = new Rect(
+      barElement.rect.x,
+      barElement.rect.y,
+      barElement.rect.width - dim.minInfoWidth,
+      barElement.rect.height
+    );
+
+    // Change chord duration
+    const newBeats = 4;
+    barElement.changeBarBeats(newBeats, prevBar);
+
+    // Test
+    expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
+    expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
+    expect(barElement.rect).toStrictEqual(expectedRect);
+    expect(barElement.bar.beats).toBe(newBeats);
+    expect(barElement.showSignature).toBe(false);
+  });
+
+  test("Change bar duration test: no show -> show", () => {
+    const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const barCoords = new Point(0, 0);
+    const barElement = new BarElement(dim, barCoords, bar, false, true);
+
+    // Calc expected rect
+    const expectedSigRect = new Rect(
+      barCoords.x,
+      barCoords.y + dim.minNoteSize,
+      dim.minInfoWidth,
+      dim.barHeight
+    );
+    const expectedTempoRect = new Rect(
+      barCoords.x + dim.minInfoWidth,
+      barCoords.y,
+      dim.minInfoWidth,
+      dim.durationsHeight
+    );
+    const expectedRect = new Rect(
+      barElement.rect.x,
+      barElement.rect.y,
+      barElement.rect.width + dim.minInfoWidth,
+      barElement.rect.height
+    );
+
+    // Change chord duration
+    const newDuration = NoteDuration.Eighth;
+    barElement.changeBarDuration(newDuration, prevBar);
+
+    // Test
+    expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
+    expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
+    expect(barElement.rect).toStrictEqual(expectedRect);
+    expect(barElement.bar.duration).toBe(newDuration);
+    expect(barElement.showSignature).toBe(true);
+  });
+
+  test("Change bar duration test: show -> no show", () => {
+    const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const bar = new Bar(guitar, 120, 4, NoteDuration.Eighth, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const barCoords = new Point(0, 0);
+    const barElement = new BarElement(dim, barCoords, bar, true, true);
+
+    // Calc expected rect
+    const expectedSigRect = new Rect(
+      barCoords.x,
+      barCoords.y + dim.minNoteSize,
+      0,
+      dim.barHeight
+    );
+    const expectedTempoRect = new Rect(
+      barCoords.x + dim.minInfoWidth,
+      barCoords.y,
+      dim.minInfoWidth,
+      dim.durationsHeight
+    );
+    const expectedRect = new Rect(
+      barElement.rect.x,
+      barElement.rect.y,
+      barElement.rect.width - dim.minInfoWidth,
+      barElement.rect.height
+    );
+
+    // Change chord duration
+    const newDuration = NoteDuration.Quarter;
+    barElement.changeBarDuration(newDuration, prevBar);
+
+    // Test
+    expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
+    expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
+    expect(barElement.rect).toStrictEqual(expectedRect);
+    expect(barElement.bar.duration).toBe(newDuration);
+    expect(barElement.showSignature).toBe(false);
+  });
+
+  test("Change bar tempo test", () => {
+    const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const bar = new Bar(guitar, 120, 4, NoteDuration.Eighth, [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ]);
+    const barCoords = new Point(0, 0);
+    const barElement = new BarElement(dim, barCoords, bar, true, true);
+
+    // Change tempo
+    let newTempo = 110;
+    barElement.changeTempo(newTempo, prevBar);
+
+    // Test
+    expect(barElement.bar.tempo).toBe(newTempo);
+    expect(barElement.showTempo).toBe(true);
+
+    // Change tempo
+    newTempo = 120;
+    barElement.changeTempo(newTempo, prevBar);
+
+    // Test
+    expect(barElement.bar.tempo).toBe(newTempo);
+    expect(barElement.showTempo).toBe(false);
   });
 });

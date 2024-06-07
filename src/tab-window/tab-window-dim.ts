@@ -19,7 +19,7 @@ export class TabWindowDim {
    */
   readonly gap: number;
   /**
-   * Height of one bar
+   * Height of one bar (without tempo and time sig. rectangles)
    */
   readonly barHeight: number;
   /**
