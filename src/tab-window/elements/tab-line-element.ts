@@ -42,7 +42,9 @@ export class TabLineElement {
    * @returns True if fits, false otherwise
    */
   public barElementFits(barElement: BarElement): boolean {
-    if (this.rect.rightTop.x + barElement.rect.width <= this.dim.width) {
+    const lastBar = this.barElements[this.barElements.length - 1];
+    const rightMostCornerX = lastBar ? lastBar.rect.rightTop.x : 0;
+    if (rightMostCornerX + barElement.rect.width <= this.dim.width) {
       return true;
     } else {
       return false;
@@ -60,8 +62,12 @@ export class TabLineElement {
     const barCoords = lastBarElement
       ? lastBarElement.rect.leftTop
       : this.rect.leftTop;
-    const showSignature = lastBarElement.bar.signature !== bar.signature;
-    const showTempo = lastBarElement.bar.tempo !== bar.tempo;
+    const showSignature = lastBarElement
+      ? lastBarElement.bar.signature !== bar.signature
+      : true;
+    const showTempo = lastBarElement
+      ? lastBarElement.bar.tempo !== bar.tempo
+      : true;
     const barElement = new BarElement(
       this.dim,
       barCoords,
@@ -70,14 +76,20 @@ export class TabLineElement {
       showTempo
     );
 
-    // Insert if fits
+    // If does not fit initially keep scaling the bar down until it fits
     let scale = 0.9;
     while (!this.barElementFits(barElement)) {
       const scaled = barElement.scaleBarHorBy(scale);
+      // The bar will not be scaled if scaling it down makes it too small
       if (!scaled) {
         return false;
       }
     }
+
+    if (lastBarElement) {
+      barElement.translateBy(lastBarElement.rect.rightTop.x, 0);
+    }
+
     this.barElements.push(barElement);
 
     return true;
@@ -87,6 +99,7 @@ export class TabLineElement {
    * Fills empty space after last bar (if such exists)
    */
   public justifyBars(): void {
+    // Calc width of empty space
     const gapWidth =
       this.rect.rightTop.x -
       this.barElements[this.barElements.length - 1].rect.rightTop.x;
@@ -95,15 +108,20 @@ export class TabLineElement {
       return;
     }
 
+    // Calc sum width of all bar elements
     let sumWidth = 0;
     for (const barElement of this.barElements) {
       sumWidth += barElement.rect.width;
     }
 
+    // Go through each bar element and increase their
+    // width according to how their current width relates
+    // to the width of the empty space
+    const scale = this.rect.width / sumWidth;
     for (const barElement of this.barElements) {
-      const percentage = barElement.rect.width / sumWidth;
-      const desiredWidth = barElement.rect.width + percentage * gapWidth;
-      const scale = desiredWidth / barElement.rect.width;
+      // const percentage = barElement.rect.width / sumWidth;
+      // const desiredWidth = barElement.rect.width + percentage * gapWidth;
+      // const scale = desiredWidth / barElement.rect.width;
       barElement.scaleBarHorBy(scale);
     }
   }
