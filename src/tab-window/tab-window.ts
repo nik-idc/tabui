@@ -52,33 +52,38 @@ export class TabWindow {
   }
 
   /**
+   * Calculate tab line elements of the tab
+   */
+  private calcTabLineElements(): void {
+    this._tabLineElements = [new TabLineElement(this.dim, new Point(0, 0))];
+    for (const bar of this.tab.bars) {
+      const tabLinesCount = this._tabLineElements.length;
+      const inserted =
+        this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
+      if (!inserted) {
+        const lineCoords = new Point(0, this.dim.lineHeight * tabLinesCount);
+        this._tabLineElements.push(new TabLineElement(this.dim, lineCoords));
+        this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
+        this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
+      }
+    }
+  }
+
+  /**
    * Calculate SVG string lines path
    */
   private calcPath(): void {
     // Create path
     this._linesPath = "";
-    for (let strId = 0; strId < this.tab.guitar.stringsCount; strId++) {
-      this._linesPath += `M0,${
-        this.dim.durationsHeight + strId * this.dim.minNoteSize
-      }H${this.dim.width}`;
-    }
-  }
-
-  /**
-   * Calculate tab line elements of the tab
-   */
-  private calcTabLineElements(): void {
-    let lineCoords = new Point(0, 0);
-    this._tabLineElements = [new TabLineElement(this.dim, lineCoords)];
-    for (const bar of this.tab.bars) {
-      lineCoords = new Point(0, lineCoords.y + this.dim.lineHeight);
-      const inserted =
-        this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
-      if (!inserted) {
-        this._tabLineElements.push(new TabLineElement(this.dim, lineCoords));
-        this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
+    for (const tabLineElement of this._tabLineElements) {
+      for (let strId = 0; strId < this.tab.guitar.stringsCount; strId++) {
+        // Move to cur string's Y level and draw a horizontal line
+        const y =
+          tabLineElement.rect.y +
+          this.dim.durationsHeight +
+          strId * this.dim.minNoteSize;
+        this._linesPath += `M0,${y}H${this.dim.width}`;
       }
-      this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
     }
   }
 
@@ -86,8 +91,8 @@ export class TabWindow {
    * Calculate tab window
    */
   public calc(): void {
-    this.calcPath();
     this.calcTabLineElements();
+    this.calcPath();
   }
 
   /**

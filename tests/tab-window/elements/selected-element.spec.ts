@@ -1,5 +1,15 @@
-import { Bar, Chord, Guitar, Note, NoteDuration, Tab } from "../../../src";
+import {
+  Bar,
+  Chord,
+  Guitar,
+  Note,
+  NoteDuration,
+  Point,
+  Tab,
+  TabWindowDim,
+} from "../../../src";
 import { SelectedElement } from "../../../src/tab-window/elements/selected-element";
+import { TabLineElement } from "../../../src/tab-window/elements/tab-line-element";
 
 const stringsCount = 6;
 const fretsCount = 24;
@@ -32,6 +42,23 @@ const tab = new Tab(tabId, tabName, tabArtist, tabSong, guitar, [
     new Chord(guitar, NoteDuration.Quarter),
   ]),
 ]);
+
+const coords = new Point(0, 0);
+
+const width = 1200;
+const minNoteSize = 12;
+const gap = 10;
+const durationsHeight = 50;
+const dim = new TabWindowDim(
+  width,
+  minNoteSize,
+  gap,
+  durationsHeight,
+  stringsCount
+);
+
+const tabLineElement = new TabLineElement(dim, coords);
+
 
 describe("Selected element tests", () => {
   test("Selected element move up test", () => {
