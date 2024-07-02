@@ -9,9 +9,19 @@
     ],
     "scripts": {
         "build": "tsc --build",
-        "clean": "tsc --build --clean"
+        "clean": "tsc --build --clean",
+        "test": "jest"
     },
     "devDependencies": {
+        "@babel/core": "^7.24.5",
+        "@babel/preset-env": "^7.24.5",
+        "@types/jest": "^29.5.12",
+        "babel-jest": "^29.7.0",
+        "jest": "^29.7.0",
+        "ts-node": "^10.9.2",
         "typescript": "^5.4.5"
+    },
+    "dependencies": {
+        "@babel/preset-typescript": "^7.24.1"
     }
 }

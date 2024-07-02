@@ -1,6 +1,6 @@
 // Tab window
 export { TabWindow } from "./tab-window/tab-window";
-export { TabLineDim } from "./tab-window/tab-line-dim";
+export { TabWindowDim } from "./tab-window/tab-window-dim";
 //      Elements
 export { BarElement } from "./tab-window/elements/bar-element";
 export { ChordElement } from "./tab-window/elements/chord-element";

@@ -1,21 +1,51 @@
 import { Chord } from "./chord";
 import { Guitar } from "./guitar";
+import { Note, NotesCalcArr } from "./note";
 
+/**
+ * Class that represents a guitar note
+ */
 export class GuitarNote {
+  /**
+   * Guitar on which the note is played
+   */
   readonly guitar: Guitar;
+  /**
+   * String number
+   */
   private _strNum: number = 0;
-  private _fret: string | null = null;
+  /**
+   * Fret number
+   */
+  private _fret: number | undefined;
+  /**
+   * Note value
+   */
+  private _note: Note;
 
-  constructor(guitar: Guitar, strNum: number, fret: string | null) {
+  /**
+   * Class that represents a guitar note
+   * @param guitar Guitar on which the note is played
+   * @param strNum String number
+   * @param fret Fret number
+   */
+  constructor(guitar: Guitar, strNum: number, fret: number | undefined) {
     this.guitar = guitar;
-    this.strNum = strNum;
-    this.fret = fret;
+    this._strNum = strNum;
+    this._fret = fret;
+    this.calcNote();
   }
 
+  /**
+   * Getter/setter for string number
+   */
   get strNum(): number {
     return this._strNum;
   }
 
+  /**
+   * Getter/setter for string number
+   */
   set strNum(val: number) {
     // Check string validity
     if (val <= 0 || val > this.guitar.stringsCount) {
@@ -24,25 +54,62 @@ export class GuitarNote {
     }
 
     this._strNum = val;
+    this.calcNote();
   }
 
-  get fret(): string | null {
+  /**
+   * Getter/setter for fret number
+   */
+  get fret(): string | number | undefined {
     return this._fret;
   }
 
-  set fret(val: string | null) {
-    // Check string validity
-    let fretsCount = this.guitar.fretsCount;
-    if (val != null && Number.isNaN(Number(val)) && val != "x") {
-      throw new Error(`${val} is an invalid fret symbol,
-				apart from numbers (0-${fretsCount}) the only symbol allowed is 'x'`);
+  /**
+   * Getter/setter for fret number
+   */
+  set fret(val: number | undefined) {
+    // Undefined means no note
+    if (val === undefined) {
+      this._fret = undefined;
+      this.calcNote();
+      return;
     }
 
-    if (!Number.isNaN(Number(val)) && Number(val) > fretsCount) {
-      this._fret = `${Number(val) % fretsCount}`;
-    } else {
-      this._fret = val;
+    if (typeof val === "number") {
+      if (val < 0) {
+        throw new Error("Negative numbers can't be fret values");
+      }
+
+      this._fret =
+        val <= this.guitar.fretsCount ? val : val % this.guitar.fretsCount;
+      this.calcNote();
     }
+  }
+
+  private calcNote(): void {
+    if (!this._fret) {
+      this._note = Note.None;
+      return;
+    }
+
+    if (typeof this._fret === "string") {
+      this._note = Note.Dead;
+      return;
+    }
+
+    const baseNote = this.guitar.tuning[this._strNum - 1];
+    const baseNoteId = NotesCalcArr.indexOf(baseNote);
+    const noteId = baseNoteId + (this._fret % 12);
+    const note = NotesCalcArr[noteId];
+
+    this._note = note;
+  }
+
+  /**
+   * Note value of the current note
+   */
+  get note(): Note {
+    return this._note;
   }
 
   static fromObject(obj: any): GuitarNote {

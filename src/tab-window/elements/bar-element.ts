@@ -4,148 +4,161 @@ import { ChordElement } from "./chord-element";
 import { TabWindow } from "../tab-window";
 import { Point } from "../shapes/point";
 import { Chord } from "./../../models/chord";
+import { TabWindowDim } from "../tab-window-dim";
+import { NoteDuration } from "../../models/note-duration";
 
+/**
+ * Class that handles drawing chord element in the tab
+ */
 export class BarElement {
-  readonly tabWindow: TabWindow;
-  readonly chordElements: ChordElement[];
-  readonly showMeasure: boolean;
-  readonly showTempo: boolean;
-  readonly measureRect: Rect;
-  readonly measureBeatsCoords: Point;
-  readonly measureDurationCoords: Point;
-  readonly tempoCoords: Point;
-  readonly prependRect: Rect;
-  readonly appendRect: Rect;
-  readonly rect: Rect;
+  /**
+   * Tab window dimensions
+   */
+  readonly dim: TabWindowDim;
+  /**
+   * This bar's chord elements
+   */
+  public chordElements: ChordElement[];
+  /**
+   * If signature is to be shown in the bar
+   */
+  public showSignature: boolean;
+  /**
+   * If tempo is to be shown in the bar
+   */
+  public showTempo: boolean;
+  /**
+   * Tempo rectangle
+   */
+  public tempoRect: Rect;
+  /**
+   * Time signature rectangle
+   */
+  public timeSigRect: Rect;
+  /**
+   * Bar element rectangle
+   */
+  public rect: Rect;
+  /**
+   * The bar
+   */
   readonly bar: Bar;
-  readonly beamsPath: string;
 
   constructor(
-    tabWindow: TabWindow,
+    dim: TabWindowDim,
     barCoords: Point,
     bar: Bar,
-    showMeasure: boolean,
+    showSignature: boolean,
     showTempo: boolean
   ) {
-    this.tabWindow = tabWindow;
+    this.dim = dim;
     this.chordElements = [];
-    this.showMeasure = showMeasure;
+    this.showSignature = showSignature;
     this.showTempo = showTempo;
-    this.measureRect = new Rect();
-    this.measureBeatsCoords = new Point();
-    this.measureDurationCoords = new Point();
-    this.tempoCoords = new Point();
-    this.prependRect = new Rect();
-    this.appendRect = new Rect();
+    this.tempoRect = new Rect();
+    this.timeSigRect = new Rect();
     this.rect = new Rect(barCoords.x, barCoords.y);
     this.bar = bar;
-    this.beamsPath = "";
 
     this.calc();
   }
 
+  /**
+   * Calculates this bar element
+   */
   calc(): void {
-    // Set measure rect and coords
-    if (this.showMeasure) {
-      this.measureRect.x = this.rect.x;
-      this.measureRect.y = this.rect.y;
-      this.measureRect.width = this.tabWindow.dim.noteMinSize / 2;
-      this.measureRect.height = this.tabWindow.dim.barHeight / 2;
+    // Time signature rectangle
+    const timeSigWidth = this.showSignature ? this.dim.minInfoWidth : 0;
+    this.timeSigRect.x = this.rect.x;
+    this.timeSigRect.y = this.rect.y + this.dim.minNoteSize;
+    this.timeSigRect.width = timeSigWidth;
+    this.timeSigRect.height = this.dim.barHeight;
 
-      this.measureBeatsCoords.x =
-        this.measureRect.x + this.measureRect.width / 2;
-      this.measureBeatsCoords.y =
-        this.measureRect.y + this.measureRect.height / 2;
-
-      this.measureDurationCoords.x =
-        this.measureRect.x + this.measureRect.width / 2;
-      this.measureDurationCoords.y =
-        this.measureRect.y + (3 * this.measureRect.height) / 2;
-    }
-
-    // Set tempo coords
-    if (this.showTempo) {
-      this.tempoCoords.x = this.rect.x;
-      this.tempoCoords.y = this.rect.y - this.tabWindow.dim.noteMinSize;
-    }
-
-    // Set prepend rect
-    this.prependRect.x = this.showMeasure
-      ? this.measureRect.x + this.measureRect.width
-      : this.rect.x;
-    this.prependRect.y = this.rect.y;
-    this.prependRect.width = this.tabWindow.dim.noteMinSize;
-    this.prependRect.height = this.tabWindow.dim.barHeight;
+    // Tempo rectangle
+    this.tempoRect.x = this.rect.x + this.dim.minInfoWidth;
+    this.tempoRect.y = this.rect.y;
+    this.tempoRect.width = this.dim.minInfoWidth;
+    this.tempoRect.height = this.dim.durationsHeight;
 
     // Calculate chords
-    let chordCoords = new Point(
-      this.prependRect.x + this.prependRect.width,
-      this.prependRect.y
-    );
+    this.chordElements = [];
     let chordsWidth = 0;
-
+    const chordCoords = new Point(
+      this.timeSigRect.rightTop.x,
+      this.timeSigRect.rightTop.y
+    );
     for (let chord of this.bar.chords) {
-      let chordElement = new ChordElement(
-        this.tabWindow,
-        this,
-        chordCoords,
-        chord
-      );
+      const chordElement = new ChordElement(this.dim, chordCoords, chord);
       this.chordElements.push(chordElement);
 
       chordCoords.x += chordElement.rect.width;
       chordsWidth += chordElement.rect.width;
     }
 
-    // Set append rectangles x coords
-    this.appendRect.x =
-      this.rect.x +
-      this.measureRect.width +
-      this.prependRect.width +
-      chordsWidth;
-    this.appendRect.y = this.rect.y;
-    this.appendRect.width = this.tabWindow.dim.noteMinSize;
-    this.appendRect.height = this.tabWindow.dim.barHeight;
-
-    this.rect.width =
-      this.measureRect.width +
-      this.prependRect.width +
-      chordsWidth +
-      this.appendRect.width;
-    this.rect.height = this.tabWindow.dim.barHeight;
+    // Set main rectangle
+    this.rect.width = this.timeSigRect.width + chordsWidth;
+    this.rect.height = this.dim.lineHeight;
   }
 
-  scaleBarHorBy(scale: number) {
+  /**
+   * Checks if it's possible to scale down without hurting readability
+   * @param scale Scale factor
+   * @returns True if can be scaled down, false otherwise
+   */
+  public canBeScaledDown(scale: number): boolean {
+    for (let chordElement of this.chordElements) {
+      if (!chordElement.canBeScaledDown(scale)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Scale bar horizontally
+   * @param scale Scale factor
+   * @returns True if scaled, false if no more room to scale
+   */
+  public scaleBarHorBy(scale: number): boolean {
     if (scale <= 0) {
       throw new Error(`${scale} is an invalid scale: scale must be positive`);
     }
 
-    // Scale rectangles
-    this.measureRect.width *= scale;
-    this.prependRect.width *= scale;
-    this.appendRect.width *= scale;
-    this.rect.width *= scale;
-
-    // Scale coords (except bar start x)
-    this.measureBeatsCoords.x *= scale;
-    this.measureDurationCoords.x *= scale;
-    this.tempoCoords.x *= scale;
-    this.prependRect.x *= scale;
-    this.appendRect.x *= scale;
-    this.rect.x *= scale;
+    // Check if can scale down
+    if (scale > 0 && scale < 1 && !this.canBeScaledDown(scale)) {
+      return false;
+    }
 
     // Scale chords
     for (let chordElement of this.chordElements) {
       chordElement.scaleChordHorBy(scale);
     }
+
+    // Scale rectangles
+    this.timeSigRect.width *= scale;
+    this.tempoRect.width *= scale;
+    this.rect.width *= scale;
+
+    // Scale coords (except bar start x)
+    this.timeSigRect.x *= scale;
+    this.tempoRect.x *= scale;
+    this.rect.x *= scale;
+
+    return true;
   }
 
-  translateBy(dx: number, dy: number) {
+  /**
+   * Translate bar
+   * @param dx Horizontal distance
+   * @param dy Vertical distance
+   */
+  public translateBy(dx: number, dy: number): void {
     // Translate bar rectangles
-    this.prependRect.x += dx;
-    this.prependRect.y += dy;
-    this.appendRect.x += dx;
-    this.appendRect.y += dy;
+    this.timeSigRect.x += dx;
+    this.timeSigRect.y += dy;
+    this.tempoRect.x += dx;
+    this.tempoRect.y += dy;
     this.rect.x += dx;
     this.rect.y += dy;
 
@@ -155,47 +168,108 @@ export class BarElement {
     }
   }
 
+  /**
+   * Insert empty chord
+   * @param index Insertion index
+   */
   insertEmptyChord(index: number): void {
     this.bar.insertEmptyChord(index);
-    this.tabWindow.calc();
+
+    this.calc();
   }
 
+  /**
+   * Prepend empty chord
+   */
   prependChord(): void {
     this.bar.prependChord();
-    this.tabWindow.calc();
+
+    this.calc();
   }
 
+  /**
+   * Append empty chord
+   */
   appendChord(): void {
     this.bar.appendChord();
-    this.tabWindow.calc();
+
+    this.calc();
   }
 
+  /**
+   * Remove chord at index
+   * @param index Removal index
+   */
   removeChord(index: number): void {
     this.bar.removeChord(index);
-    this.tabWindow.calc();
+
+    this.calc();
   }
 
+  /**
+   * Change chord's duration
+   * @param chord Chord
+   * @param duration New duration
+   */
   changeChordDuration(chord: Chord, duration: number): void {
     this.bar.changeChordDuration(chord, duration);
-    this.tabWindow.calc();
+
+    this.calc();
   }
 
-  changeBarBeats(beats: number): void {
+  /**
+   * Change bar's beats value
+   * @param beats New beats value
+   * @param prevBar Bar preceding this element's bar
+   */
+  changeBarBeats(beats: number, prevBar?: Bar): void {
     this.bar.beats = beats;
-    this.tabWindow.calc();
+
+    if (prevBar) {
+      this.showSignature = this.bar.beats !== prevBar.beats;
+    } else {
+      this.showSignature = true;
+    }
+
+    this.calc();
   }
 
-  changeBarDuration(duration: number): void {
+  /**
+   * Change bar duration
+   * @param duration New bar duration
+   * @param prevBar Bar preceding this element's bar
+   */
+  changeBarDuration(duration: NoteDuration, prevBar?: Bar): void {
     this.bar.duration = duration;
-    this.tabWindow.calc();
+
+    if (prevBar) {
+      this.showSignature = this.bar.duration !== prevBar.duration;
+    } else {
+      this.showSignature = true;
+    }
+
+    this.calc();
   }
 
-  changeTempo(tempo: number): void {
+  /**
+   * Change bar tempo
+   * @param tempo New tempo
+   * @param prevBar Bar preceding this element's bar
+   */
+  changeTempo(tempo: number, prevBar?: Bar): void {
     this.bar.tempo = tempo;
-    this.tabWindow.calc();
+
+    if (prevBar) {
+      this.showTempo = this.bar.tempo !== prevBar.tempo;
+    } else {
+      this.showTempo = true;
+    }
   }
 
-  get durationsFit(): boolean {
+  /**
+   * True if durations fit according to signature values
+   */
+  durationsFit(): boolean {
     return this.bar.durationsFit;
   }
 }
