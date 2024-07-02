@@ -16,7 +16,7 @@ export class TabWindow {
   /**
    * Tab object to get data from
    */
-  readonly tab: Tab;
+  private _tab: Tab;
   /**
    * Dimensions object
    */
@@ -40,15 +40,16 @@ export class TabWindow {
    * @param dim Tab window dimensions
    */
   constructor(tab: Tab, dim: TabWindowDim) {
-    this.tab = tab;
+    this._tab = tab;
     this.dim = dim;
     this._tabLineElements = [];
 
-    // Create path
-    this._linesPath = "";
-    for (let strId = 0; strId < this.tab.guitar.stringsCount; strId++) {
-      this._linesPath += `M0,${this.dim.lineHeight}H${this.dim.width}`;
-    }
+    // // Create path
+    // this._linesPath = "";
+    // for (let strId = 0; strId < this._tab.guitar.stringsCount; strId++) {
+    //   this._linesPath += `M0,${this.dim.lineHeight}H${this.dim.width}`;
+    // }
+    this.calc();
   }
 
   /**
@@ -56,7 +57,7 @@ export class TabWindow {
    */
   private calcTabLineElements(): void {
     this._tabLineElements = [new TabLineElement(this.dim, new Point(0, 0))];
-    for (const bar of this.tab.bars) {
+    for (const bar of this._tab.bars) {
       const tabLinesCount = this._tabLineElements.length;
       const inserted =
         this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
@@ -64,7 +65,7 @@ export class TabWindow {
         const lineCoords = new Point(0, this.dim.lineHeight * tabLinesCount);
         this._tabLineElements.push(new TabLineElement(this.dim, lineCoords));
         this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
-        this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
+        // this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
       }
     }
   }
@@ -76,7 +77,7 @@ export class TabWindow {
     // Create path
     this._linesPath = "";
     for (const tabLineElement of this._tabLineElements) {
-      for (let strId = 0; strId < this.tab.guitar.stringsCount; strId++) {
+      for (let strId = 0; strId < this._tab.guitar.stringsCount; strId++) {
         // Move to cur string's Y level and draw a horizontal line
         const y =
           tabLineElement.rect.y +
@@ -151,6 +152,15 @@ export class TabWindow {
     }
 
     this._selectedElement.moveRight();
+  }
+
+  public insertBar(bar: Bar): void {
+    this._tab.bars.push(bar);
+    this.calc();
+  }
+
+  public get tab(): Tab {
+    return this._tab;
   }
 
   /**

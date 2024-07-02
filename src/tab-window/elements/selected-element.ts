@@ -3,6 +3,8 @@ import { ChordElement } from "./chord-element";
 import { BarElement } from "./bar-element";
 import { TabLineElement } from "./tab-line-element";
 import { TabWindow } from "../tab-window";
+import { Bar } from "../../models/bar";
+import { Point } from "../shapes/point";
 
 /**
  * Class that contains all necessary information
@@ -34,7 +36,7 @@ export class SelectedElement {
     const strCount = this._noteElement.note.guitar.stringsCount;
     const newStrNum = strNum === 1 ? strCount : strNum - 1;
 
-    this._noteElement = this._chordElement.noteElements[newStrNum];
+    this._noteElement = this._chordElement.noteElements[newStrNum - 1];
   }
 
   /**
@@ -45,7 +47,7 @@ export class SelectedElement {
     const strCount = this._noteElement.note.guitar.stringsCount;
     const newStrNum = strNum === strCount ? 1 : strNum + 1;
 
-    this._noteElement = this._chordElement.noteElements[newStrNum];
+    this._noteElement = this._chordElement.noteElements[newStrNum - 1];
   }
 
   /**
@@ -71,7 +73,10 @@ export class SelectedElement {
       // move to that last chord of the last bar of the previous tab line
       if (barId !== 0) {
         this._barElement = this._tabLineElement.barElements[barId - 1];
-        this._chordElement = this._barElement.chordElements[chordId - 1];
+        this._chordElement =
+          this._barElement.chordElements[
+            this._barElement.chordElements.length - 1
+          ];
         // 'strNum - 1' because 'strNum' starts from 1
         this._noteElement = this._chordElement.noteElements[strNum - 1];
       } else {
@@ -121,17 +126,44 @@ export class SelectedElement {
         // 'strNum - 1' because 'strNum' starts from 1
         this._noteElement = this._chordElement.noteElements[strNum - 1];
       } else {
-        // Don't do anything if can't move right
-        if (tabLineId === this._tabWindow.tabLineElements.length - 1) return;
+        // Insert new bar (and new tab line if needed) if can't move right
+        if (tabLineId === this._tabWindow.tabLineElements.length - 1) {
+          const newBar = new Bar(
+            this._tabWindow.tab.guitar,
+            this._barElement.bar.tempo,
+            this._barElement.bar.beats,
+            this._barElement.bar.duration,
+            this._barElement.bar.chords
+          );
+          const tabLinesCount = this._tabWindow.tabLineElements.length;
+          this._tabWindow.insertBar(newBar);
 
-        const nextTabLine = this._tabWindow.tabLineElements[tabLineId + 1];
-        const nextTabLineFirstBar = nextTabLine.barElements[0];
-        const nextTabLineFirstChord = nextTabLineFirstBar.chordElements[0];
+          if (this._tabWindow.tabLineElements.length === tabLinesCount + 1) {
+            this._tabLineElement =
+              this._tabWindow.tabLineElements[
+                this._tabWindow.tabLineElements.length - 1
+              ];
+            this._barElement = this._tabLineElement.barElements[0];
+            this._chordElement = this._barElement.chordElements[0];
+            this._noteElement = this._chordElement.noteElements[strNum - 1];
+          } else {
+            this._barElement =
+              this._tabLineElement.barElements[
+                this._tabLineElement.barElements.length - 1
+              ];
+            this._chordElement = this._barElement.chordElements[0];
+            this._noteElement = this._chordElement.noteElements[strNum - 1];
+          }
+        } else {
+          const nextTabLine = this._tabWindow.tabLineElements[tabLineId + 1];
+          const nextTabLineFirstBar = nextTabLine.barElements[0];
+          const nextTabLineFirstChord = nextTabLineFirstBar.chordElements[0];
 
-        this._tabLineElement = nextTabLine;
-        this._barElement = nextTabLineFirstBar;
-        this._chordElement = nextTabLineFirstChord;
-        this._noteElement = nextTabLineFirstChord.noteElements[strNum - 1];
+          this._tabLineElement = nextTabLine;
+          this._barElement = nextTabLineFirstBar;
+          this._chordElement = nextTabLineFirstChord;
+          this._noteElement = nextTabLineFirstChord.noteElements[strNum - 1];
+        }
       }
     }
   }
