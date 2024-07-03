@@ -1,6 +1,6 @@
 {
     "name": "@atikincode/tabui",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "Calculates UI dimensions for Tabber UI",
     "main": "dist/index.ts",
     "types": "dist/index.d.ts",
