@@ -39,13 +39,24 @@ const bars = [
 
 describe("Tab Model Tests", () => {
   test("Tab from valid object test", () => {
-    const tabObj = {
+    const isPublic = false;
+    const data = {
       id,
       name,
       artist,
       song,
       guitar,
       bars,
+      isPublic,
+    };
+    const tabObj = {
+      id,
+      name,
+      artist,
+      song,
+      guitar,
+      isPublic,
+      data,
     };
 
     let parseError: Error | undefined;
