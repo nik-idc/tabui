@@ -92,19 +92,21 @@ export class Tab {
       obj.artist == undefined ||
       obj.song == undefined ||
       obj.guitar == undefined ||
-      obj.bars == undefined
+      obj.data == undefined
     ) {
       throw new Error("Invalid js obj to parse to tab");
     }
 
-    obj.guitar =
-      typeof obj.guitar === "string" ? JSON.parse(obj.guitar) : obj.guitar;
-    obj.bars = typeof obj.bars === "string" ? JSON.parse(obj.bars) : obj.bars;
+    return new Tab(obj.id, obj.name, obj.artist, obj.song, obj.guitar, obj.data.bars, obj.isPublic);
 
-    let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
-    let tab = new Tab(obj.id, obj.name, obj.artist, obj.song, guitar); // Create tab instance
-    tab.bars.length = 0; // Delete default bars
-    obj.bars.forEach((bar: any) => tab.bars.push(Bar.fromObject(bar))); // Parse bars
-    return tab;
+    // obj.guitar =
+    //   typeof obj.guitar === "string" ? JSON.parse(obj.guitar) : obj.guitar;
+    // obj.data = typeof obj.data === "string" ? JSON.parse(obj.data) : obj.data;
+
+    // let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
+    // let tab = new Tab(obj.id, obj.name, obj.artist, obj.song, guitar); // Create tab instance
+    // tab.bars.length = 0; // Delete default bars
+    // obj.bars.forEach((bar: any) => tab.bars.push(Bar.fromObject(bar))); // Parse bars
+    // return tab;
   }
 }
