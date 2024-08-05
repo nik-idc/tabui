@@ -7,21 +7,41 @@ export class TabWindowDim {
    */
   readonly width: number;
   /**
-   * Tab window height
+   * Size of note text
    */
-  readonly lineHeight: number;
+  readonly noteTextSize: number;
   /**
-   * Min size of a note
+   * Width of a whole note rectangle
    */
-  readonly minNoteSize: number;
+  readonly noteRectWidthWhole: number;
   /**
-   * Gap between tab lines
+   * Width of a half note rectangle
    */
-  readonly gap: number;
+  readonly noteRectWidthHalf: number;
   /**
-   * Height of one bar (without tempo and time sig. rectangles)
+   * Width of a quarter note rectangle
    */
-  readonly barHeight: number;
+  readonly noteRectWidthQuarter: number;
+  /**
+   * Width of a eighth note rectangle
+   */
+  readonly noteRectWidthEighth: number;
+  /**
+   * Width of a sixteenth note rectangle
+   */
+  readonly noteRectWidthSixteenth: number;
+  /**
+   * Width of a thirty-second note rectangle
+   */
+  readonly noteRectWidthThirtySecond: number;
+  /**
+   * Height of a note rectangle
+   */
+  readonly noteRectHeight: number;
+  /**
+   * Height of a time signature rectangle
+   */
+  readonly timeSigRectHeight: number;
   /**
    * Height of one tab line (bar + durations above it)
    */
@@ -31,34 +51,38 @@ export class TabWindowDim {
    */
   readonly durationsHeight: number;
   /**
-   * Min width of info block (time signature and/or tempo)
+   * Width of info block (time signature and/or tempo)
    */
-  readonly minInfoWidth: number;
+  readonly infoWidth: number;
 
   /**
    * Class that contains all the needed dim info of tab lines
    * @param width Tab window width
-   * @param minNoteSize Min size of a note
-   * @param gap Gap between tab lines
+   * @param noteTextSize Size of note text
    * @param durationsHeight Height of durations object above the notes
    * @param strCount Strings count
    */
   constructor(
     width: number,
-    minNoteSize: number,
-    gap: number,
+    noteTextSize: number,
     durationsHeight: number,
     strCount: number
   ) {
     this.width = width;
-    this.minNoteSize = minNoteSize;
-    this.gap = gap;
+
+    this.noteTextSize = noteTextSize;
+    this.noteRectHeight = this.noteTextSize * 2;
+    this.noteRectWidthThirtySecond = this.noteTextSize * 3;
+    this.noteRectWidthSixteenth = this.noteRectWidthThirtySecond * 1.1;
+    this.noteRectWidthEighth = this.noteRectWidthThirtySecond * 1.2;
+    this.noteRectWidthQuarter = this.noteRectWidthThirtySecond * 1.3;
+    this.noteRectWidthHalf = this.noteRectWidthThirtySecond * 1.4;
+    this.noteRectWidthWhole = this.noteRectWidthThirtySecond * 1.5;
+
     this.durationsHeight = durationsHeight;
+    this.timeSigRectHeight = this.noteRectHeight * (strCount - 1);
+    this.tabLineHeight = this.noteRectHeight * strCount + this.durationsHeight;
 
-    this.minInfoWidth = this.minNoteSize * 2;
-
-    this.barHeight = strCount * minNoteSize;
-    this.tabLineHeight = this.barHeight + this.durationsHeight;
-    this.lineHeight = durationsHeight + this.barHeight;
+    this.infoWidth = this.noteRectWidthThirtySecond;
   }
 }

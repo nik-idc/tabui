@@ -8,6 +8,7 @@
         "/dist"
     ],
     "scripts": {
+        "render": "npx tsx ./test-render/render.ts",
         "build": "tsc --build",
         "clean": "tsc --build --clean",
         "test": "jest"
@@ -22,6 +23,7 @@
         "typescript": "^5.4.5"
     },
     "dependencies": {
-        "@babel/preset-typescript": "^7.24.1"
+        "@babel/preset-typescript": "^7.24.1",
+        "tsx": "^4.16.5"
     }
 }

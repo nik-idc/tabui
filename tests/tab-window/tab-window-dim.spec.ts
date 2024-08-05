@@ -1,8 +1,7 @@
 import { TabWindowDim } from "../../src";
 
 const width = 1200;
-const minNoteSize = 12;
-const gap = 5;
+const noteTextSize = 12;
 const durationsHeight = 50;
 const strCount = 6;
 
@@ -10,24 +9,35 @@ describe("Tab window dim tests", () => {
   test("Tab window dim test", () => {
     const twd = new TabWindowDim(
       width,
-      minNoteSize,
-      gap,
+      noteTextSize,
       durationsHeight,
       strCount
     );
 
     const expected = {
-    minInfoWidth: minNoteSize * 2,
-      barHeight: strCount * minNoteSize,
-      tabLineHeight: strCount * minNoteSize + durationsHeight,
-      lineHeight: durationsHeight + strCount * minNoteSize,
+      noteRectHeight: noteTextSize * 2,
+      noteRectWidthThirtySecond: noteTextSize * 3,
+      noteRectWidthSixteenth: (noteTextSize * 3) * 1.1,
+      noteRectWidthEighth: (noteTextSize * 3) * 1.2,
+      noteRectWidthQuarter: (noteTextSize * 3) * 1.3,
+      noteRectWidthHalf: (noteTextSize * 3) * 1.4,
+      noteRectWidthWhole: (noteTextSize * 3) * 1.5,
+      timeSigRectHeight: (noteTextSize * 2) * (strCount - 1),
+      tabLineHeight: (noteTextSize * 2) * strCount + durationsHeight,
+      infoWidth: noteTextSize * 3,
     };
 
     const actual = {
-      minInfoWidth: twd.minInfoWidth,
-      barHeight: twd.barHeight,
+      noteRectHeight: twd.noteRectHeight,
+      noteRectWidthThirtySecond: twd.noteRectWidthThirtySecond,
+      noteRectWidthSixteenth: twd.noteRectWidthSixteenth,
+      noteRectWidthEighth: twd.noteRectWidthEighth,
+      noteRectWidthQuarter: twd.noteRectWidthQuarter,
+      noteRectWidthHalf: twd.noteRectWidthHalf,
+      noteRectWidthWhole: twd.noteRectWidthWhole,
+      timeSigRectHeight: twd.timeSigRectHeight,
       tabLineHeight: twd.tabLineHeight,
-      lineHeight: twd.lineHeight,
+      infoWidth: twd.infoWidth,
     };
 
     expect(actual).toStrictEqual(expected);

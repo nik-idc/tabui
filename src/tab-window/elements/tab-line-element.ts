@@ -32,7 +32,7 @@ export class TabLineElement {
       coords.x,
       coords.y,
       this.dim.width,
-      this.dim.lineHeight
+      this.dim.tabLineHeight
     );
   }
 
@@ -87,7 +87,7 @@ export class TabLineElement {
     }
 
     if (lastBarElement) {
-      barElement.translateBy(lastBarElement.rect.rightTop.x, 0);
+      barElement.translateBy(lastBarElement.rect.width, 0);
     }
 
     this.barElements.push(barElement);

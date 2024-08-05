@@ -23,13 +23,11 @@ const guitar = new Guitar(
 );
 
 const width = 1200;
-const minNoteSize = 12;
-const gap = 10;
+const noteTextSize = 12;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
-  minNoteSize,
-  gap,
+  noteTextSize,
   durationsHeight,
   stringsCount
 );
@@ -66,13 +64,13 @@ describe("Chord element tests", () => {
       let expectedRect = new Rect(
         chordCoords.x,
         chordCoords.y,
-        ratio * dim.minNoteSize,
-        dim.lineHeight
+        ratio * dim.noteRectWidthThirtySecond,
+        dim.tabLineHeight
       );
       let expectedDurationRect = new Rect(
         chordCoords.x,
         chordCoords.y,
-        ratio * dim.minNoteSize,
+        ratio * dim.noteRectWidthThirtySecond,
         dim.durationsHeight
       );
 
@@ -86,15 +84,17 @@ describe("Chord element tests", () => {
   });
 
   test("Can be scaled down test", () => {
+    const shrinkRatio = 0.25;
+
     // Should not be scalable considering default values
-    expect(chordElement.canBeScaledDown(0.75)).toBe(false);
+    expect(chordElement.canBeScaledDown(shrinkRatio)).toBe(false);
 
     // Reinit chord element
     chord = new Chord(guitar, NoteDuration.Whole);
     chordElement = new ChordElement(dim, chordCoords, chord);
 
     // Should be scalable considering now it's a whole note
-    expect(chordElement.canBeScaledDown(0.75)).toBe(true);
+    expect(chordElement.canBeScaledDown(shrinkRatio)).toBe(true);
 
     // Passing scale >= 1 should always be true
     expect(chordElement.canBeScaledDown(1)).toBe(true);

@@ -67,26 +67,27 @@ export class BarElement {
    * Calculates this bar element
    */
   calc(): void {
-    // Time signature rectangle
-    const timeSigWidth = this.showSignature ? this.dim.minInfoWidth : 0;
-    this.timeSigRect.x = this.rect.x;
-    this.timeSigRect.y = this.rect.y + this.dim.minNoteSize;
-    this.timeSigRect.width = timeSigWidth;
-    this.timeSigRect.height = this.dim.barHeight;
-
     // Tempo rectangle
-    this.tempoRect.x = this.rect.x + this.dim.minInfoWidth;
+    const tempoRectWidth = this.showTempo ? this.dim.infoWidth : 0;
+    this.tempoRect.x = this.rect.x;
     this.tempoRect.y = this.rect.y;
-    this.tempoRect.width = this.dim.minInfoWidth;
+    this.tempoRect.width = tempoRectWidth;
     this.tempoRect.height = this.dim.durationsHeight;
+
+    // Time signature rectangle
+    const timeSigWidth = this.showSignature ? this.dim.infoWidth : 0;
+    this.timeSigRect.x = this.rect.x;
+    this.timeSigRect.y =
+      this.rect.y + this.dim.durationsHeight + this.dim.noteRectHeight / 2;
+    this.timeSigRect.width = timeSigWidth;
+    this.timeSigRect.height = this.dim.timeSigRectHeight;
 
     // Calculate chords
     this.chordElements = [];
     let chordsWidth = 0;
-    const chordCoords = new Point(
-      this.timeSigRect.rightTop.x,
-      this.timeSigRect.rightTop.y
-    );
+    const anyInfo = tempoRectWidth !== 0 || timeSigWidth !== 0;
+    const startX = anyInfo ? this.rect.x + this.dim.infoWidth : this.rect.x;
+    const chordCoords = new Point(startX, this.tempoRect.rightTop.y);
     for (let chord of this.bar.chords) {
       const chordElement = new ChordElement(this.dim, chordCoords, chord);
       this.chordElements.push(chordElement);
@@ -96,8 +97,8 @@ export class BarElement {
     }
 
     // Set main rectangle
-    this.rect.width = this.timeSigRect.width + chordsWidth;
-    this.rect.height = this.dim.lineHeight;
+    this.rect.width = anyInfo ? this.dim.infoWidth + chordsWidth : chordsWidth;
+    this.rect.height = this.dim.tabLineHeight;
   }
 
   /**
@@ -271,5 +272,59 @@ export class BarElement {
    */
   durationsFit(): boolean {
     return this.bar.durationsFit;
+  }
+
+  /**
+   * Time signature beats rectangle
+   */
+  get beatsRect(): Rect {
+    return new Rect(
+      this.timeSigRect.x,
+      this.timeSigRect.y,
+      this.timeSigRect.width,
+      this.timeSigRect.height
+    );
+  }
+
+  /**
+   * Time signature beats text coords
+   */
+  get beatsTextCoords(): Point {
+    return new Point(
+      this.timeSigRect.x + this.timeSigRect.width / 2,
+      this.timeSigRect.y + this.timeSigRect.height / 4
+    );
+  }
+
+  /**
+   * Time signature measure text rectangle
+   */
+  get measureRect(): Rect {
+    return new Rect(
+      this.timeSigRect.x,
+      this.timeSigRect.y + this.timeSigRect.height / 2,
+      this.timeSigRect.width,
+      this.timeSigRect.height
+    );
+  }
+
+  /**
+   * Time signature measure text coords
+   */
+  get measureTextCoords(): Point {
+    return new Point(
+      this.timeSigRect.x + this.timeSigRect.width / 2,
+      this.timeSigRect.y + (this.timeSigRect.height * 3) / 4
+    );
+  }
+
+  /**
+   * Tempo text coords
+   */
+  get tempoTextCoords(): Point {
+    return new Point(
+      this.tempoRect.x + this.tempoRect.width / 2,
+      this.tempoRect.y + this.tempoRect.height / 2
+    );
   }
 }

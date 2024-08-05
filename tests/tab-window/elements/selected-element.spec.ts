@@ -60,23 +60,49 @@ const tab = new Tab(tabId, tabName, tabArtist, tabSong, guitar, [
     new Chord(guitar, NoteDuration.Quarter),
     new Chord(guitar, NoteDuration.Quarter),
   ]),
+  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+  ]),
+  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+  ]),
+  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+  ]),
+  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+  ]),
+  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+    new Chord(guitar, NoteDuration.Quarter),
+  ]),
 ]);
 
-const coords = new Point(0, 0);
-
 const width = 1200;
-const minNoteSize = 12;
-const gap = 10;
+const noteTextSize = 12;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
-  minNoteSize,
-  gap,
+  noteTextSize,
   durationsHeight,
   stringsCount
 );
 
-const tabWindow = new TabWindow(tab, dim);
+let tabWindow = new TabWindow(tab, dim);
 
 describe("Selected element tests", () => {
   test("Selected element move up test: any string", () => {
