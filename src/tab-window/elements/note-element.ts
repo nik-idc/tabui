@@ -24,13 +24,9 @@ export class NoteElement {
    */
   readonly rect: Rect = new Rect();
   /**
-   * Rectangle of the note input rectangle
+   * Rectangle of the note text rectangle
    */
-  readonly noteRect: Rect = new Rect();
-  /**
-   * Coords of the text
-   */
-  readonly textCoords: Point = new Point();
+  readonly textRect: Rect = new Rect();
 
   constructor(dim: TabWindowDim, chordRect: Rect, note: GuitarNote) {
     this.dim = dim;
@@ -45,20 +41,18 @@ export class NoteElement {
    */
   public calc(): void {
     this.rect.width = this.chordRect.width;
-    this.rect.height = this.dim.minNoteSize;
+    this.rect.height = this.dim.noteRectHeight;
     this.rect.x = this.chordRect.x;
-
-    const topY = this.chordRect.y - this.dim.minNoteSize / 2;
-    const stringYOffset = this.dim.minNoteSize * (this.note.strNum - 1);
+    const topY = this.chordRect.y + this.dim.durationsHeight;
+    const stringYOffset = this.dim.noteRectHeight * (this.note.strNum - 1);
     this.rect.y = topY + stringYOffset;
 
-    this.noteRect.x = this.rect.x + this.rect.width / 2;
-    this.noteRect.y = this.rect.y;
-    this.noteRect.width = this.dim.minNoteSize;
-    this.noteRect.height = this.rect.height;
-
-    this.textCoords.x = this.chordRect.x + this.chordRect.width / 2;
-    this.textCoords.y = this.rect.y + this.dim.minNoteSize / 2;
+    this.textRect.x =
+      this.rect.x + this.rect.width / 2 - this.dim.noteTextSize / 2;
+    this.textRect.y =
+      this.rect.y + this.rect.height / 2 - this.dim.noteTextSize / 2;
+    this.textRect.width = this.dim.noteTextSize;
+    this.textRect.height = this.dim.noteTextSize;
   }
 
   /**
@@ -67,7 +61,7 @@ export class NoteElement {
    * @returns True if can be scaled down, false otherwise
    */
   public canBeScaledDown(scale: number): boolean {
-    return this.rect.width * scale >= this.dim.minNoteSize;
+    return this.rect.width * scale >= this.dim.noteTextSize;
   }
 
   /**
@@ -86,9 +80,8 @@ export class NoteElement {
 
     this.rect.width *= scale;
     this.rect.x *= scale;
-    this.noteRect.width *= scale;
-    this.noteRect.x *= scale;
-    this.textCoords.x *= scale;
+    this.textRect.width *= scale;
+    this.textRect.x *= scale;
 
     return true;
   }
@@ -101,9 +94,7 @@ export class NoteElement {
   public translateBy(dx: number, dy: number): void {
     this.rect.x += Math.floor(dx);
     this.rect.y += Math.floor(dy);
-    this.noteRect.x += Math.floor(dx);
-    this.noteRect.y += Math.floor(dy);
-    this.textCoords.x += Math.floor(dx);
-    this.textCoords.y += Math.floor(dy);
+    this.textRect.x += Math.floor(dx);
+    this.textRect.y += Math.floor(dy);
   }
 }

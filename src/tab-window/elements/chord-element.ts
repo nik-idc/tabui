@@ -44,13 +44,29 @@ export class ChordElement {
    * Calculate dimensions of the chord element
    */
   public calc(): void {
-    // Calc chord rectangle
-    // 1/32 - 100%, 1/16 - 110%, 1/8 - 120%, 1/4 - 130%, 1/2 - 140%, 1 - 150%
-    const add = Math.log2(this.chord.duration / NoteDuration.ThirtySecond);
-    const perc = (100 + add * 10) / 100;
-    let chordWidth = perc * this.dim.minNoteSize;
-    this.rect.width = chordWidth;
-    this.rect.height = this.dim.lineHeight;
+    switch (this.chord.duration) {
+      case NoteDuration.ThirtySecond:
+        this.rect.width = this.dim.noteRectWidthThirtySecond;
+        break;
+      case NoteDuration.Sixteenth:
+        this.rect.width = this.dim.noteRectWidthSixteenth;
+        break;
+      case NoteDuration.Eighth:
+        this.rect.width = this.dim.noteRectWidthEighth;
+        break;
+      case NoteDuration.Quarter:
+        this.rect.width = this.dim.noteRectWidthQuarter;
+        break;
+      case NoteDuration.Half:
+        this.rect.width = this.dim.noteRectWidthHalf;
+        break;
+      case NoteDuration.Whole:
+        this.rect.width = this.dim.noteRectWidthWhole;
+        break;
+      default:
+        throw new Error(`${this.chord.duration} is an invalid chord duration`);
+    }
+    this.rect.height = this.dim.tabLineHeight;
 
     // Calc note elements
     let notes = this.chord.notes;
@@ -62,11 +78,11 @@ export class ChordElement {
       );
     }
 
-    // Calc duration position
+    // Calc duration transform
+    this.durationRect.x = this.rect.x;
+    this.durationRect.y = this.rect.y;
     this.durationRect.width = this.rect.width;
     this.durationRect.height = this.dim.durationsHeight;
-    this.durationRect.x = this.rect.x;
-    this.durationRect.y = this.rect.x;
   }
 
   /**

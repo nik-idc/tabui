@@ -24,13 +24,11 @@ const guitar = new Guitar(
 );
 
 const width = 1200;
-const minNoteSize = 12;
-const gap = 10;
+const noteTextSize = 12;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
-  minNoteSize,
-  gap,
+  noteTextSize,
   durationsHeight,
   stringsCount
 );
@@ -52,14 +50,14 @@ describe("Bar element tests", () => {
     // Make expected results
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.minNoteSize,
-      dim.minInfoWidth,
-      dim.barHeight
+      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
+      dim.infoWidth,
+      dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
-      barCoords.x + dim.minInfoWidth,
+      barCoords.x,
       barCoords.y,
-      dim.minInfoWidth,
+      dim.infoWidth,
       dim.durationsHeight
     );
 
@@ -99,14 +97,14 @@ describe("Bar element tests", () => {
     // Make expected results
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.minNoteSize,
+      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
       0,
-      dim.barHeight
+      dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
-      barCoords.x + dim.minInfoWidth,
+      barCoords.x,
       barCoords.y,
-      dim.minInfoWidth,
+      dim.infoWidth,
       dim.durationsHeight
     );
 
@@ -117,7 +115,7 @@ describe("Bar element tests", () => {
     const expectedRect = new Rect(
       barCoords.x,
       barCoords.y,
-      expectedSigRect.width + chordsWidth,
+      expectedTempoRect.width + chordsWidth,
       dim.tabLineHeight
     );
 
@@ -151,7 +149,7 @@ describe("Bar element tests", () => {
     // Should be scalable
     expect(barElement.canBeScaledDown(0.9)).toBe(true);
     // Should not be scalable
-    expect(barElement.canBeScaledDown(0.5)).toBe(false);
+    expect(barElement.canBeScaledDown(0.25)).toBe(false);
 
     // Passing scale >= 1 should always be true
     expect(barElement.canBeScaledDown(2)).toBe(true);
@@ -206,7 +204,7 @@ describe("Bar element tests", () => {
     expect(barElement.rect).toStrictEqual(expectedRect);
 
     // Scale (unsuccesful)
-    const scale2 = 0.25;
+    const scale2 = 0.15;
     result = barElement.scaleBarHorBy(scale2);
 
     // Test
@@ -433,20 +431,20 @@ describe("Bar element tests", () => {
     // Calc expected rect
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.minNoteSize,
-      dim.minInfoWidth,
-      dim.barHeight
+      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
+      dim.infoWidth,
+      dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
-      barCoords.x + dim.minInfoWidth,
+      barCoords.x,
       barCoords.y,
-      dim.minInfoWidth,
+      dim.infoWidth,
       dim.durationsHeight
     );
     const expectedRect = new Rect(
       barElement.rect.x,
       barElement.rect.y,
-      barElement.rect.width + dim.minInfoWidth,
+      barElement.rect.width,
       barElement.rect.height
     );
 
@@ -481,20 +479,20 @@ describe("Bar element tests", () => {
     // Calc expected rect
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.minNoteSize,
+      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
       0,
-      dim.barHeight
+      dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
-      barCoords.x + dim.minInfoWidth,
+      barCoords.x,
       barCoords.y,
-      dim.minInfoWidth,
+      dim.infoWidth,
       dim.durationsHeight
     );
     const expectedRect = new Rect(
       barElement.rect.x,
       barElement.rect.y,
-      barElement.rect.width - dim.minInfoWidth,
+      barElement.rect.width,
       barElement.rect.height
     );
 
@@ -529,20 +527,20 @@ describe("Bar element tests", () => {
     // Calc expected rect
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.minNoteSize,
-      dim.minInfoWidth,
-      dim.barHeight
+      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
+      dim.infoWidth,
+      dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
-      barCoords.x + dim.minInfoWidth,
+      barCoords.x,
       barCoords.y,
-      dim.minInfoWidth,
+      dim.infoWidth,
       dim.durationsHeight
     );
     const expectedRect = new Rect(
       barElement.rect.x,
       barElement.rect.y,
-      barElement.rect.width + dim.minInfoWidth,
+      barElement.rect.width,
       barElement.rect.height
     );
 
@@ -577,20 +575,20 @@ describe("Bar element tests", () => {
     // Calc expected rect
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.minNoteSize,
+      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
       0,
-      dim.barHeight
+      dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
-      barCoords.x + dim.minInfoWidth,
+      barCoords.x,
       barCoords.y,
-      dim.minInfoWidth,
+      dim.infoWidth,
       dim.durationsHeight
     );
     const expectedRect = new Rect(
       barElement.rect.x,
       barElement.rect.y,
-      barElement.rect.width - dim.minInfoWidth,
+      barElement.rect.width,
       barElement.rect.height
     );
 

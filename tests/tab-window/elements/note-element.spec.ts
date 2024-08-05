@@ -22,18 +22,16 @@ const guitar = new Guitar(
 );
 
 const width = 1200;
-const minNoteSize = 12;
-const gap = 10;
+const noteTextSize = 12;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
-  minNoteSize,
-  gap,
+  noteTextSize,
   durationsHeight,
   stringsCount
 );
 
-let chordRect = new Rect(0, 0, dim.width / 4, dim.lineHeight);
+let chordRect = new Rect(0, 0, dim.width / 4, dim.tabLineHeight);
 let strNum = 3;
 let fret = 5;
 let guitarNote = new GuitarNote(guitar, strNum, fret);
@@ -42,7 +40,7 @@ let noteElement = new NoteElement(dim, chordRect, guitarNote);
 describe("Note element tests", () => {
   beforeEach(() => {
     // Setup data before each test run
-    chordRect = new Rect(0, 0, dim.width / 4, dim.lineHeight);
+    chordRect = new Rect(0, 0, dim.width / 4, dim.tabLineHeight);
     strNum = 3;
     fret = 5;
     guitarNote = new GuitarNote(guitar, strNum, fret);
@@ -51,21 +49,19 @@ describe("Note element tests", () => {
 
   test("Note element calc test", () => {
     // Make expected results
+    const expectedY =
+      chordRect.y + dim.durationsHeight + (strNum - 1) * dim.noteRectHeight;
     const expectedRect = new Rect(
       chordRect.x,
-      -dim.minNoteSize / 2 + dim.minNoteSize * (strNum - 1),
+      expectedY,
       chordRect.width,
-      dim.minNoteSize
+      dim.noteRectHeight
     );
-    const expectedNoteRect = new Rect(
-      chordRect.x + chordRect.width / 2,
-      expectedRect.y,
-      dim.minNoteSize,
-      expectedRect.height
-    );
-    const expectedTextCoords = new Point(
-      chordRect.x + chordRect.width / 2,
-      noteElement.rect.y + dim.minNoteSize / 2
+    const expectedTextRect = new Rect(
+      chordRect.x + chordRect.width / 2 - dim.noteTextSize / 2,
+      expectedY + expectedRect.height / 2 - dim.noteTextSize / 2,
+      dim.noteTextSize,
+      dim.noteTextSize
     );
 
     // Calc
@@ -73,8 +69,7 @@ describe("Note element tests", () => {
 
     // Test
     expect(noteElement.rect).toStrictEqual(expectedRect);
-    expect(noteElement.noteRect).toStrictEqual(expectedNoteRect);
-    expect(noteElement.textCoords).toStrictEqual(expectedTextCoords);
+    expect(noteElement.textRect).toStrictEqual(expectedTextRect);
   });
 
   test("Note element can be scaled down test", () => {
@@ -83,7 +78,7 @@ describe("Note element tests", () => {
 
     // Can't be scaled down
     //  Resize to non down-scalable
-    chordRect = new Rect(0, 0, dim.minNoteSize, dim.lineHeight);
+    chordRect = new Rect(0, 0, dim.noteTextSize, dim.tabLineHeight);
     noteElement = new NoteElement(dim, chordRect, guitarNote);
 
     //  Test
@@ -99,15 +94,11 @@ describe("Note element tests", () => {
       noteElement.rect.width,
       noteElement.rect.height
     );
-    const expectedNoteRect = new Rect(
-      noteElement.noteRect.x,
-      noteElement.noteRect.y,
-      noteElement.noteRect.width,
-      noteElement.noteRect.height
-    );
-    const expectedTextCoords = new Point(
-      noteElement.textCoords.x,
-      noteElement.textCoords.y
+    const expectedTextRect = new Rect(
+      noteElement.textRect.x,
+      noteElement.textRect.y,
+      noteElement.textRect.width,
+      noteElement.textRect.height
     );
 
     let scaleError: Error | undefined;
@@ -120,8 +111,7 @@ describe("Note element tests", () => {
     } finally {
       //  Test
       expect(noteElement.rect).toStrictEqual(expectedRect);
-      expect(noteElement.noteRect).toStrictEqual(expectedNoteRect);
-      expect(noteElement.textCoords).toStrictEqual(expectedTextCoords);
+      expect(noteElement.textRect).toStrictEqual(expectedTextRect);
       expect(scaleError).toBeInstanceOf(Error);
     }
   });
@@ -136,15 +126,11 @@ describe("Note element tests", () => {
       noteElement.rect.width * scaleFactor,
       noteElement.rect.height
     );
-    let expectedNoteRect = new Rect(
-      noteElement.noteRect.x * scaleFactor,
-      noteElement.noteRect.y,
-      noteElement.noteRect.width * scaleFactor,
-      noteElement.noteRect.height
-    );
-    let expectedTextCoords = new Point(
-      noteElement.textCoords.x * scaleFactor,
-      noteElement.textCoords.y
+    let expectedTextRect = new Rect(
+      noteElement.textRect.x * scaleFactor,
+      noteElement.textRect.y,
+      noteElement.textRect.width * scaleFactor,
+      noteElement.textRect.height
     );
 
     //  Scale
@@ -153,12 +139,11 @@ describe("Note element tests", () => {
     //  Test
     expect(result).toBe(true);
     expect(noteElement.rect).toStrictEqual(expectedRect);
-    expect(noteElement.noteRect).toStrictEqual(expectedNoteRect);
-    expect(noteElement.textCoords).toStrictEqual(expectedTextCoords);
+    expect(noteElement.textRect).toStrictEqual(expectedTextRect);
 
     // Valid scale value: unsuccesfull scale
     //  Resize
-    chordRect = new Rect(0, 0, dim.minNoteSize, dim.lineHeight);
+    chordRect = new Rect(0, 0, dim.noteTextSize, dim.tabLineHeight);
     noteElement = new NoteElement(dim, chordRect, guitarNote);
 
     //  Remember prev values
@@ -168,15 +153,11 @@ describe("Note element tests", () => {
       noteElement.rect.width,
       noteElement.rect.height
     );
-    expectedNoteRect = new Rect(
-      noteElement.noteRect.x,
-      noteElement.noteRect.y,
-      noteElement.noteRect.width,
-      noteElement.noteRect.height
-    );
-    expectedTextCoords = new Point(
-      noteElement.textCoords.x,
-      noteElement.textCoords.y
+    expectedTextRect = new Rect(
+      noteElement.textRect.x,
+      noteElement.textRect.y,
+      noteElement.textRect.width,
+      noteElement.textRect.height
     );
 
     //  Scale
@@ -185,8 +166,7 @@ describe("Note element tests", () => {
     //  Test
     expect(result).toBe(false);
     expect(noteElement.rect).toStrictEqual(expectedRect);
-    expect(noteElement.noteRect).toStrictEqual(expectedNoteRect);
-    expect(noteElement.textCoords).toStrictEqual(expectedTextCoords);
+    expect(noteElement.textRect).toStrictEqual(expectedTextRect);
   });
 
   test("Note element translate by test", () => {
@@ -199,15 +179,11 @@ describe("Note element tests", () => {
       noteElement.rect.width,
       noteElement.rect.height
     );
-    const expectedNoteRect = new Rect(
-      noteElement.noteRect.x + dx,
-      noteElement.noteRect.y + dy,
-      noteElement.noteRect.width,
-      noteElement.noteRect.height
-    );
-    const expectedTextCoords = new Point(
-      noteElement.textCoords.x + dx,
-      noteElement.textCoords.y + dy
+    const expectedTextRect = new Rect(
+      noteElement.textRect.x + dx,
+      noteElement.textRect.y + dy,
+      noteElement.textRect.width,
+      noteElement.textRect.height
     );
 
     // Translate
@@ -215,7 +191,6 @@ describe("Note element tests", () => {
 
     // Test
     expect(noteElement.rect).toStrictEqual(expectedRect);
-    expect(noteElement.noteRect).toStrictEqual(expectedNoteRect);
-    expect(noteElement.textCoords).toStrictEqual(expectedTextCoords);
+    expect(noteElement.textRect).toStrictEqual(expectedTextRect);
   });
 });

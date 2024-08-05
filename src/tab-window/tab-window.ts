@@ -47,7 +47,7 @@ export class TabWindow {
     // // Create path
     // this._linesPath = "";
     // for (let strId = 0; strId < this._tab.guitar.stringsCount; strId++) {
-    //   this._linesPath += `M0,${this.dim.lineHeight}H${this.dim.width}`;
+    //   this._linesPath += `M0,${this.dim.tabLineHeight}H${this.dim.width}`;
     // }
     this.calc();
   }
@@ -62,7 +62,7 @@ export class TabWindow {
       const inserted =
         this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
       if (!inserted) {
-        const lineCoords = new Point(0, this.dim.lineHeight * tabLinesCount);
+        const lineCoords = new Point(0, this.dim.tabLineHeight * tabLinesCount);
         this._tabLineElements.push(new TabLineElement(this.dim, lineCoords));
         this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
         // this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
@@ -82,7 +82,8 @@ export class TabWindow {
         const y =
           tabLineElement.rect.y +
           this.dim.durationsHeight +
-          strId * this.dim.minNoteSize;
+          strId * this.dim.noteRectHeight +
+          this.dim.noteRectHeight / 2;
         this._linesPath += `M0,${y}H${this.dim.width}`;
       }
     }
