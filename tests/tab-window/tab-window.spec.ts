@@ -100,10 +100,12 @@ const coords = new Point(0, 0);
 
 const width = 1200;
 const noteTextSize = 12;
+const infoTextSize = 24;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
   noteTextSize,
+  infoTextSize,
   durationsHeight,
   stringsCount
 );
@@ -116,6 +118,12 @@ describe("Tab window tests", () => {
 
     // Prepare expected SVG path
     const expectedSVGPath =
+      `M0,${dim.durationsHeight + dim.noteRectHeight / 2}v${
+        dim.timeSigRectHeight
+      }` +
+      `M1200,${dim.durationsHeight + dim.noteRectHeight / 2}v${
+        dim.timeSigRectHeight
+      }` +
       `M0,${
         dim.durationsHeight + dim.noteRectHeight * 0 + dim.noteRectHeight / 2
       }H1200` +
@@ -134,6 +142,12 @@ describe("Tab window tests", () => {
       `M0,${
         dim.durationsHeight + dim.noteRectHeight * 5 + dim.noteRectHeight / 2
       }H1200` +
+      `M0,${dim.tabLineHeight + dim.durationsHeight + dim.noteRectHeight / 2}v${
+        dim.timeSigRectHeight
+      }` +
+      `M1200,${
+        dim.tabLineHeight + dim.durationsHeight + dim.noteRectHeight / 2
+      }v${dim.timeSigRectHeight}` +
       `M0,${
         dim.tabLineHeight +
         dim.durationsHeight +

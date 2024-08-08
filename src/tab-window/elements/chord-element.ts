@@ -86,37 +86,16 @@ export class ChordElement {
   }
 
   /**
-   * Checks if it's possible to scale down without hurting readability
-   * @param scale Scale factor
-   * @returns True if can be scaled down, false otherwise
-   */
-  public canBeScaledDown(scale: number): boolean {
-    if (scale >= 1) {
-      return true;
-    }
-
-    for (let noteElement of this.noteElements) {
-      if (!noteElement.canBeScaledDown(scale)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
    * Scales chord element horizontally
    * @param scale Scale factor
    * @returns True if can be scaled down, false otherwise
    */
   public scaleChordHorBy(scale: number): boolean {
-    if (scale <= 0) {
-      throw new Error(`${scale} is an invalid scale: scale must be positive`);
-    }
-
     // Check if can be scaled down
-    if (scale > 0 && scale < 1 && !this.canBeScaledDown(scale)) {
-      return false;
+    if (scale <= 0 || (scale > 0 && scale < 1)) {
+      throw new Error(
+        `${scale} is an invalid scale: scale must be positive AND >= 1`
+      );
     }
 
     // Scale notes

@@ -11,6 +11,10 @@ export class TabWindowDim {
    */
   readonly noteTextSize: number;
   /**
+   * Size of info text
+   */
+  readonly infoTextSize: number;
+  /**
    * Width of a whole note rectangle
    */
   readonly noteRectWidthWhole: number;
@@ -59,18 +63,21 @@ export class TabWindowDim {
    * Class that contains all the needed dim info of tab lines
    * @param width Tab window width
    * @param noteTextSize Size of note text
+   * @param infoTextSize Size of info text
    * @param durationsHeight Height of durations object above the notes
    * @param strCount Strings count
    */
   constructor(
     width: number,
     noteTextSize: number,
+    infoTextSize: number,
     durationsHeight: number,
     strCount: number
   ) {
     this.width = width;
 
     this.noteTextSize = noteTextSize;
+    this.infoTextSize = infoTextSize;
     this.noteRectHeight = this.noteTextSize * 2;
     this.noteRectWidthThirtySecond = this.noteTextSize * 3;
     this.noteRectWidthSixteenth = this.noteRectWidthThirtySecond * 1.1;

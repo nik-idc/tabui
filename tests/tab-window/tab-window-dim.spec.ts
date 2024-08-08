@@ -2,6 +2,7 @@ import { TabWindowDim } from "../../src";
 
 const width = 1200;
 const noteTextSize = 12;
+const infoTextSize = 12;
 const durationsHeight = 50;
 const strCount = 6;
 
@@ -10,6 +11,7 @@ describe("Tab window dim tests", () => {
     const twd = new TabWindowDim(
       width,
       noteTextSize,
+      infoTextSize,
       durationsHeight,
       strCount
     );

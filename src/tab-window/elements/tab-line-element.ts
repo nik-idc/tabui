@@ -60,7 +60,7 @@ export class TabLineElement {
     // Create bar element
     const lastBarElement = this.barElements[this.barElements.length - 1];
     const barCoords = lastBarElement
-      ? lastBarElement.rect.leftTop
+      ? lastBarElement.rect.rightTop
       : this.rect.leftTop;
     const showSignature = lastBarElement
       ? lastBarElement.bar.signature !== bar.signature
@@ -76,23 +76,27 @@ export class TabLineElement {
       showTempo
     );
 
-    // If does not fit initially keep scaling the bar down until it fits
-    let scale = 0.9;
-    while (!this.barElementFits(barElement)) {
-      const scaled = barElement.scaleBarHorBy(scale);
-      // The bar will not be scaled if scaling it down makes it too small
-      if (!scaled) {
-        return false;
-      }
+    // // If does not fit initially keep scaling the bar down until it fits
+    // let scale = 0.9;
+    // while (!this.barElementFits(barElement)) {
+    //   const scaled = barElement.scaleBarHorBy(scale);
+    //   // The bar will not be scaled if scaling it down makes it too small
+    //   if (!scaled) {
+    //     return false;
+    //   }
+    // }
+
+    // if (lastBarElement) {
+    //   // barElement.translateBy(lastBarElement.rect.width, 0);
+    //   barElement.setCoords(lastBarElement.rect.rightTop);
+    // }
+
+    if (this.barElementFits(barElement)) {
+      this.barElements.push(barElement);
+      return true;
+    } else {
+      return false;
     }
-
-    if (lastBarElement) {
-      barElement.translateBy(lastBarElement.rect.width, 0);
-    }
-
-    this.barElements.push(barElement);
-
-    return true;
   }
 
   /**
@@ -119,9 +123,6 @@ export class TabLineElement {
     // to the width of the empty space
     const scale = this.rect.width / sumWidth;
     for (const barElement of this.barElements) {
-      // const percentage = barElement.rect.width / sumWidth;
-      // const desiredWidth = barElement.rect.width + percentage * gapWidth;
-      // const scale = desiredWidth / barElement.rect.width;
       barElement.scaleBarHorBy(scale);
     }
   }

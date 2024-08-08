@@ -23,10 +23,12 @@ const guitar = new Guitar(
 
 const width = 1200;
 const noteTextSize = 12;
+const infoTextSize = 24;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
   noteTextSize,
+  infoTextSize,
   durationsHeight,
   stringsCount
 );
@@ -63,6 +65,10 @@ describe("Note element tests", () => {
       dim.noteTextSize,
       dim.noteTextSize
     );
+    const expectedTextCoords = new Point(
+      expectedTextRect.x + expectedTextRect.width / 2,
+      expectedTextRect.y + expectedTextRect.height / 2
+    );
 
     // Calc
     noteElement.calc();
@@ -70,19 +76,7 @@ describe("Note element tests", () => {
     // Test
     expect(noteElement.rect).toStrictEqual(expectedRect);
     expect(noteElement.textRect).toStrictEqual(expectedTextRect);
-  });
-
-  test("Note element can be scaled down test", () => {
-    // Can be scaled down (default values are down-scalable)
-    expect(noteElement.canBeScaledDown(0.5)).toBe(true);
-
-    // Can't be scaled down
-    //  Resize to non down-scalable
-    chordRect = new Rect(0, 0, dim.noteTextSize, dim.tabLineHeight);
-    noteElement = new NoteElement(dim, chordRect, guitarNote);
-
-    //  Test
-    expect(noteElement.canBeScaledDown(0.5)).toBe(false);
+    expect(noteElement.textCoords).toStrictEqual(expectedTextCoords);
   });
 
   test("Note scale horizontally test: invalid value", () => {
@@ -117,56 +111,32 @@ describe("Note element tests", () => {
   });
 
   test("Note scale horizontally test: valid value", () => {
-    // Valid scale value: succesfull scale
-    //  Make expected values values
-    const scaleFactor = 0.2;
-    let expectedRect = new Rect(
+    // Make expected values values
+    const scaleFactor = 1.2;
+    const expectedRect = new Rect(
       noteElement.rect.x * scaleFactor,
       noteElement.rect.y,
       noteElement.rect.width * scaleFactor,
       noteElement.rect.height
     );
-    let expectedTextRect = new Rect(
+    const expectedTextRect = new Rect(
       noteElement.textRect.x * scaleFactor,
-      noteElement.textRect.y,
-      noteElement.textRect.width * scaleFactor,
-      noteElement.textRect.height
-    );
-
-    //  Scale
-    let result = noteElement.scaleNoteHorBy(scaleFactor);
-
-    //  Test
-    expect(result).toBe(true);
-    expect(noteElement.rect).toStrictEqual(expectedRect);
-    expect(noteElement.textRect).toStrictEqual(expectedTextRect);
-
-    // Valid scale value: unsuccesfull scale
-    //  Resize
-    chordRect = new Rect(0, 0, dim.noteTextSize, dim.tabLineHeight);
-    noteElement = new NoteElement(dim, chordRect, guitarNote);
-
-    //  Remember prev values
-    expectedRect = new Rect(
-      noteElement.rect.x,
-      noteElement.rect.y,
-      noteElement.rect.width,
-      noteElement.rect.height
-    );
-    expectedTextRect = new Rect(
-      noteElement.textRect.x,
       noteElement.textRect.y,
       noteElement.textRect.width,
       noteElement.textRect.height
     );
+    const expectedTextCoords = new Point(
+      expectedTextRect.x + expectedTextRect.width / 2,
+      noteElement.textCoords.y
+    );
 
-    //  Scale
-    result = noteElement.scaleNoteHorBy(scaleFactor);
+    // Scale
+    noteElement.scaleNoteHorBy(scaleFactor);
 
-    //  Test
-    expect(result).toBe(false);
+    // Test
     expect(noteElement.rect).toStrictEqual(expectedRect);
     expect(noteElement.textRect).toStrictEqual(expectedTextRect);
+    expect(noteElement.textCoords).toStrictEqual(expectedTextCoords);
   });
 
   test("Note element translate by test", () => {

@@ -102,33 +102,14 @@ export class BarElement {
   }
 
   /**
-   * Checks if it's possible to scale down without hurting readability
-   * @param scale Scale factor
-   * @returns True if can be scaled down, false otherwise
-   */
-  public canBeScaledDown(scale: number): boolean {
-    for (let chordElement of this.chordElements) {
-      if (!chordElement.canBeScaledDown(scale)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
    * Scale bar horizontally
    * @param scale Scale factor
    * @returns True if scaled, false if no more room to scale
    */
   public scaleBarHorBy(scale: number): boolean {
-    if (scale <= 0) {
-      throw new Error(`${scale} is an invalid scale: scale must be positive`);
-    }
-
     // Check if can scale down
-    if (scale > 0 && scale < 1 && !this.canBeScaledDown(scale)) {
-      return false;
+    if (scale <= 0 || (scale > 0 && scale < 1)) {
+      throw new Error(`${scale} is an invalid scale: scale must be positive AND >= 1`);
     }
 
     // Scale chords
@@ -167,6 +148,17 @@ export class BarElement {
     for (let chordElement of this.chordElements) {
       chordElement.translateBy(dx, dy);
     }
+  }
+
+  /**
+   * Puts the whole bar element at specified coords
+   * @param coords Coords
+   */
+  public setCoords(coords: Point): void {
+    this.rect.x = coords.x;
+    this.rect.y = coords.y;
+
+    this.calc();
   }
 
   /**
@@ -282,7 +274,7 @@ export class BarElement {
       this.timeSigRect.x,
       this.timeSigRect.y,
       this.timeSigRect.width,
-      this.timeSigRect.height
+      this.timeSigRect.height / 2
     );
   }
 
@@ -292,7 +284,7 @@ export class BarElement {
   get beatsTextCoords(): Point {
     return new Point(
       this.timeSigRect.x + this.timeSigRect.width / 2,
-      this.timeSigRect.y + this.timeSigRect.height / 4
+      this.timeSigRect.y + this.timeSigRect.height / 3
     );
   }
 
@@ -304,7 +296,7 @@ export class BarElement {
       this.timeSigRect.x,
       this.timeSigRect.y + this.timeSigRect.height / 2,
       this.timeSigRect.width,
-      this.timeSigRect.height
+      this.timeSigRect.height / 2
     );
   }
 
@@ -314,7 +306,7 @@ export class BarElement {
   get measureTextCoords(): Point {
     return new Point(
       this.timeSigRect.x + this.timeSigRect.width / 2,
-      this.timeSigRect.y + (this.timeSigRect.height * 3) / 4
+      this.beatsRect.leftBottom.y + this.timeSigRect.height / 3
     );
   }
 
@@ -326,5 +318,25 @@ export class BarElement {
       this.tempoRect.x + this.tempoRect.width / 2,
       this.tempoRect.y + this.tempoRect.height / 2
     );
+  }
+
+  /**
+   * Bar left border line (array of 2 points)
+   */
+  get barLeftBorderLine(): Point[] {
+    return [
+      new Point(this.rect.x, this.beatsRect.y),
+      new Point(this.rect.x, this.measureRect.leftBottom.y),
+    ];
+  }
+
+  /**
+   * Bar right border line (array of 2 points)
+   */
+  get barRightBorderLine(): Point[] {
+    return [
+      new Point(this.rect.rightTop.x, this.beatsRect.y),
+      new Point(this.rect.rightTop.x, this.measureRect.leftBottom.y),
+    ];
   }
 }
