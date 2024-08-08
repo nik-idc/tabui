@@ -26,8 +26,15 @@ const guitar = new Guitar(
 
 const width = 1200;
 const noteTextSize = 12;
+const infoTextSize = 24;
 const durationsHeight = 50;
-const dim = new TabWindowDim(width, noteTextSize, durationsHeight, stringsCount);
+const dim = new TabWindowDim(
+  width,
+  noteTextSize,
+  infoTextSize,
+  durationsHeight,
+  stringsCount
+);
 
 describe("Tab line element tests", () => {
   test("Tab element fits test: should fit", () => {

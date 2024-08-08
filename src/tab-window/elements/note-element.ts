@@ -27,6 +27,10 @@ export class NoteElement {
    * Rectangle of the note text rectangle
    */
   readonly textRect: Rect = new Rect();
+  /**
+   * Rectangle of the note text rectangle
+   */
+  readonly textCoords: Point = new Point();
 
   constructor(dim: TabWindowDim, chordRect: Rect, note: GuitarNote) {
     this.dim = dim;
@@ -53,15 +57,9 @@ export class NoteElement {
       this.rect.y + this.rect.height / 2 - this.dim.noteTextSize / 2;
     this.textRect.width = this.dim.noteTextSize;
     this.textRect.height = this.dim.noteTextSize;
-  }
 
-  /**
-   * Checks if it's possible to scale down without hurting readability
-   * @param scale Scale factor
-   * @returns True if can be scaled down, false otherwise
-   */
-  public canBeScaledDown(scale: number): boolean {
-    return this.rect.width * scale >= this.dim.noteTextSize;
+    this.textCoords.x = this.textRect.x + this.dim.noteTextSize / 2;
+    this.textCoords.y = this.textRect.y + this.dim.noteTextSize / 2;
   }
 
   /**
@@ -69,21 +67,18 @@ export class NoteElement {
    * @param scale Scale factor
    * @returns True if scaled, false if no more room to scale
    */
-  public scaleNoteHorBy(scale: number): boolean {
-    if (scale <= 0) {
-      throw new Error(`${scale} is an invalid scale: scale must be positive`);
-    }
-
-    if (scale > 0 && scale < 1 && !this.canBeScaledDown(scale)) {
-      return false;
+  public scaleNoteHorBy(scale: number): void {
+    if (scale <= 0 || (scale > 0 && scale < 1)) {
+      throw new Error(
+        `${scale} is an invalid scale: scale must be positive AND >= 1`
+      );
     }
 
     this.rect.width *= scale;
     this.rect.x *= scale;
-    this.textRect.width *= scale;
+    // this.textRect.width *= scale;
     this.textRect.x *= scale;
-
-    return true;
+    this.textCoords.x = this.textRect.x + this.dim.noteTextSize / 2;
   }
 
   /**
@@ -96,5 +91,7 @@ export class NoteElement {
     this.rect.y += Math.floor(dy);
     this.textRect.x += Math.floor(dx);
     this.textRect.y += Math.floor(dy);
+    this.textCoords.x += Math.floor(dx);
+    this.textCoords.y += Math.floor(dy);
   }
 }

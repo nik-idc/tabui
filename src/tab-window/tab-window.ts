@@ -65,8 +65,15 @@ export class TabWindow {
         const lineCoords = new Point(0, this.dim.tabLineHeight * tabLinesCount);
         this._tabLineElements.push(new TabLineElement(this.dim, lineCoords));
         this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
-        // this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
+        this._tabLineElements[this._tabLineElements.length - 2].justifyBars();
       }
+    }
+
+    // Justify last bar
+    const lastTabLineElement =
+      this._tabLineElements[this._tabLineElements.length - 1];
+    if (lastTabLineElement.barElements.length >= 1) {
+      this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
     }
   }
 
@@ -77,6 +84,14 @@ export class TabWindow {
     // Create path
     this._linesPath = "";
     for (const tabLineElement of this._tabLineElements) {
+      const linesY =
+        tabLineElement.rect.y +
+        this.dim.durationsHeight +
+        this.dim.noteRectHeight / 2;
+      const startX = tabLineElement.rect.x;
+      const endX = tabLineElement.rect.rightTop.x;
+      this._linesPath += `M${startX},${linesY}v${this.dim.timeSigRectHeight}`;
+      this._linesPath += `M${endX},${linesY}v${this.dim.timeSigRectHeight}`;
       for (let strId = 0; strId < this._tab.guitar.stringsCount; strId++) {
         // Move to cur string's Y level and draw a horizontal line
         const y =

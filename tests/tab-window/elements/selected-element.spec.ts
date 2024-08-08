@@ -94,10 +94,12 @@ const tab = new Tab(tabId, tabName, tabArtist, tabSong, guitar, [
 
 const width = 1200;
 const noteTextSize = 12;
+const infoTextSize = 24;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
   noteTextSize,
+  infoTextSize,
   durationsHeight,
   stringsCount
 );

@@ -24,10 +24,12 @@ const guitar = new Guitar(
 
 const width = 1200;
 const noteTextSize = 12;
+const infoTextSize = 24;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
   noteTextSize,
+  infoTextSize,
   durationsHeight,
   stringsCount
 );
@@ -83,52 +85,32 @@ describe("Chord element tests", () => {
     });
   });
 
-  test("Can be scaled down test", () => {
-    const shrinkRatio = 0.25;
-
-    // Should not be scalable considering default values
-    expect(chordElement.canBeScaledDown(shrinkRatio)).toBe(false);
-
+  test("Scale horizontally test", () => {
+    const scale = 2;
     // Reinit chord element
     chord = new Chord(guitar, NoteDuration.Whole);
     chordElement = new ChordElement(dim, chordCoords, chord);
 
-    // Should be scalable considering now it's a whole note
-    expect(chordElement.canBeScaledDown(shrinkRatio)).toBe(true);
+    // Make expected data
+    const expectedRect = new Rect(
+      chordElement.rect.x * scale,
+      chordElement.rect.y,
+      chordElement.rect.width * scale,
+      chordElement.rect.height
+    );
+    const expectedDurationRect = new Rect(
+      chordElement.durationRect.x * scale,
+      chordElement.durationRect.y,
+      chordElement.durationRect.width * scale,
+      chordElement.durationRect.height
+    );
 
-    // Passing scale >= 1 should always be true
-    expect(chordElement.canBeScaledDown(1)).toBe(true);
-    expect(chordElement.canBeScaledDown(10)).toBe(true);
-  });
+    // Scale
+    chordElement.scaleChordHorBy(scale);
 
-  describe("Scale horizontally test", () => {
-    const cases = [2.0, 0.75];
-    test.each(cases)("Scale test: %d", (scale) => {
-      // Reinit chord element
-      chord = new Chord(guitar, NoteDuration.Whole);
-      chordElement = new ChordElement(dim, chordCoords, chord);
-
-      // Make expected data
-      const expectedRect = new Rect(
-        chordElement.rect.x * scale,
-        chordElement.rect.y,
-        chordElement.rect.width * scale,
-        chordElement.rect.height
-      );
-      const expectedDurationRect = new Rect(
-        chordElement.durationRect.x * scale,
-        chordElement.durationRect.y,
-        chordElement.durationRect.width * scale,
-        chordElement.durationRect.height
-      );
-
-      // Scale
-      chordElement.scaleChordHorBy(scale);
-
-      // Test
-      expect(chordElement.rect).toStrictEqual(expectedRect);
-      expect(chordElement.durationRect).toStrictEqual(expectedDurationRect);
-    });
+    // Test
+    expect(chordElement.rect).toStrictEqual(expectedRect);
+    expect(chordElement.durationRect).toStrictEqual(expectedDurationRect);
   });
 
   test("Transalate test", () => {

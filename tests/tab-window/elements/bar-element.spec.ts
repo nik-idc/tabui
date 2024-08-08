@@ -25,10 +25,12 @@ const guitar = new Guitar(
 
 const width = 1200;
 const noteTextSize = 12;
+const infoTextSize = 24;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
   noteTextSize,
+  infoTextSize,
   durationsHeight,
   stringsCount
 );
@@ -128,33 +130,6 @@ describe("Bar element tests", () => {
     expect(barElement.rect).toStrictEqual(expectedRect);
   });
 
-  test("Can be scaled down test", () => {
-    const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]);
-    const barCoords = new Point(0, 0);
-    let showSignature = true;
-    let showTempo = true;
-    const barElement = new BarElement(
-      dim,
-      barCoords,
-      bar,
-      showSignature,
-      showTempo
-    );
-
-    // Should be scalable
-    expect(barElement.canBeScaledDown(0.9)).toBe(true);
-    // Should not be scalable
-    expect(barElement.canBeScaledDown(0.25)).toBe(false);
-
-    // Passing scale >= 1 should always be true
-    expect(barElement.canBeScaledDown(2)).toBe(true);
-  });
-
   test("Scale horizontally test", () => {
     const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
       new Chord(guitar, NoteDuration.Quarter),
@@ -174,41 +149,31 @@ describe("Bar element tests", () => {
     );
 
     // Make expected results
-    const scale1 = 1.5;
+    const scale = 1.5;
     const expectedSigRect = new Rect(
-      barElement.timeSigRect.x * scale1,
+      barElement.timeSigRect.x * scale,
       barElement.timeSigRect.y,
-      barElement.timeSigRect.width * scale1,
+      barElement.timeSigRect.width * scale,
       barElement.timeSigRect.height
     );
     const expectedTempoRect = new Rect(
-      barElement.tempoRect.x * scale1,
+      barElement.tempoRect.x * scale,
       barElement.tempoRect.y,
-      barElement.tempoRect.width * scale1,
+      barElement.tempoRect.width * scale,
       barElement.tempoRect.height
     );
     const expectedRect = new Rect(
-      barElement.rect.x * scale1,
+      barElement.rect.x * scale,
       barElement.rect.y,
-      barElement.rect.width * scale1,
+      barElement.rect.width * scale,
       barElement.rect.height
     );
 
-    // Scale (succesful)
-    let result = barElement.scaleBarHorBy(scale1);
+    // Scale
+    let result = barElement.scaleBarHorBy(scale);
 
     // Test
     expect(result).toBe(true);
-    expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
-    expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
-    expect(barElement.rect).toStrictEqual(expectedRect);
-
-    // Scale (unsuccesful)
-    const scale2 = 0.15;
-    result = barElement.scaleBarHorBy(scale2);
-
-    // Test
-    expect(result).toBe(false);
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
     expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
     expect(barElement.rect).toStrictEqual(expectedRect);
