@@ -8,6 +8,7 @@ import { NoteDuration } from "./../models/note-duration";
 import { TabLineElement } from "./elements/tab-line-element";
 import { ChordElement } from "./elements/chord-element";
 import { SelectedElement } from "./elements/selected-element";
+import { Chord } from "../models/chord";
 
 /**
  * Class that handles creating a tab window
@@ -40,6 +41,13 @@ export class TabWindow {
    * @param dim Tab window dimensions
    */
   constructor(tab: Tab, dim: TabWindowDim) {
+    if (tab.bars.length === 0) {
+      tab.bars.push(
+        new Bar(tab.guitar, 120, 4, NoteDuration.Quarter, [
+          new Chord(tab.guitar, NoteDuration.Quarter),
+        ])
+      );
+    }
     this._tab = tab;
     this.dim = dim;
     this._tabLineElements = [];
@@ -168,6 +176,51 @@ export class TabWindow {
     }
 
     this._selectedElement.moveRight();
+  }
+
+  public changeSelectedBarTempo(newTempo: number): void {
+    // Check if a note is selected
+    if (!this._selectedElement) {
+      return;
+    }
+
+    this._selectedElement.barElement.changeTempo(newTempo);
+    this.calc();
+  }
+
+  public changeSelectedBarBeats(newBeats: number): void {
+    // Check if a note is selected
+    if (!this._selectedElement) {
+      return;
+    }
+
+    this._selectedElement.barElement.changeBarBeats(newBeats);
+    this.calc();
+  }
+
+  public changeSelectedBarDuration(newDuration: NoteDuration): void {
+    // Check if a note is selected
+    if (!this._selectedElement) {
+      return;
+    }
+
+    this._selectedElement.barElement.changeBarDuration(newDuration);
+    this.calc();
+  }
+
+  public changeSelectedChordDuration(newDuration: NoteDuration): void {
+    // Check if a note is selected
+    if (!this._selectedElement) {
+      return;
+    }
+
+    const chord = this._selectedElement.chordElement.chord;
+    this._selectedElement.barElement.changeChordDuration(chord, newDuration);
+    this.calc();
+  }
+
+  public changeSelectedNoteValue(newNoteValue: number): void {
+    this._selectedElement.noteElement.note.fret = newNoteValue;
   }
 
   public insertBar(bar: Bar): void {

@@ -98,7 +98,8 @@ function prepareTestCase1(): TabWindow {
   );
   const tabWindow = new TabWindow(tab, dim);
   tabWindow.calc();
-  selectNote(tabWindow, 0, 1, 2, 4);
+  selectNote(tabWindow, 0, 3, 3, 4);
+  tabWindow.moveSelectedNoteRight();
   return tabWindow;
 }
 
@@ -226,13 +227,17 @@ function prepareTestCase4(): TabWindow {
   const tuning = [Note.A, Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
   const fretsCount = 24;
   const guitar = new Guitar(stringsCount, tuning, fretsCount);
-  const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]);
-  const bars = Array(300).fill(bar);
+  let bars = new Array<Bar>();
+  for (let i = 0; i < 300; i++) {
+    bars.push(
+      new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+        new Chord(guitar, NoteDuration.Quarter),
+        new Chord(guitar, NoteDuration.Quarter),
+        new Chord(guitar, NoteDuration.Quarter),
+        new Chord(guitar, NoteDuration.Quarter),
+      ])
+    );
+  }
   const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
   randomFrets(tab);
 
@@ -270,19 +275,27 @@ function render(tabWindows: TabWindow[]): string {
     html.push(`<svg viewBox="0 0 ${tabWindow.dim.width} ${tabWindowHeight}"
                     width="${tabWindow.dim.width}"
                     height="${tabWindowHeight}">`);
-    html.push(`<path d="${tabWindow.linesPath}" stroke="black" />`);
+    // html.push(`<path d="${tabWindow.linesPath}" stroke="black" />`);
     for (const tabLineElement of tabWindow.tabLineElements) {
       html.push("<g>");
 
       for (const barElement of tabLineElement.barElements) {
-        html.push(`
-          <line x1="${barElement.barLeftBorderLine[0].x}"
+        html.push(`<line x1="${barElement.barLeftBorderLine[0].x}"
                 y1="${barElement.barLeftBorderLine[0].y}"
                 x2="${barElement.barLeftBorderLine[1].x}"
                 y2="${barElement.barLeftBorderLine[1].y}"
                 stroke="black" />`);
-        if (barElement.showSignature) {
-          html.push(`<g>
+
+        const strokeColor = !barElement.durationsFit() ? "red" : "black";
+        for (const line of barElement.lines) {
+          html.push(`<line x1="${line[0].x}"
+                          y1="${line[0].y}"
+                          x2="${line[1].x}"
+                          y2="${line[1].y}"
+                          stroke="${strokeColor}" />`);
+
+          if (barElement.showSignature) {
+            html.push(`<g>
                        <text x="${barElement.beatsTextCoords.x}"
                              y="${barElement.beatsTextCoords.y}"
                              text-anchor="middle"
@@ -299,32 +312,30 @@ function render(tabWindows: TabWindow[]): string {
                          ${1 / barElement.bar.duration}
                        </text>
                      </g>`);
-        }
+          }
 
-        if (barElement.showTempo) {
-          html.push(`<text x="${barElement.tempoTextCoords.x}"
+          if (barElement.showTempo) {
+            html.push(`<text x="${barElement.tempoTextCoords.x}"
                            y="${barElement.tempoTextCoords.y}"
                            text-anchor="middle"
                            >
                        ${barElement.bar.tempo}
                      </text>`);
+          }
         }
 
         for (const chordElement of barElement.chordElements) {
-          html.push(`
-            <image x="${chordElement.durationRect.x}"
-                   y="${chordElement.durationRect.y}"
-                   width="${chordElement.durationRect.width}"
-                   height="${chordElement.durationRect.height}"
-                   href="./assets/img/notes/${
-                     1 / chordElement.chord.duration
-                   }.svg" />`);
+          html.push(`<image x="${chordElement.durationRect.x}"
+                            y="${chordElement.durationRect.y}"
+                            width="${chordElement.durationRect.width}"
+                            height="${chordElement.durationRect.height}"
+                            href="./assets/img/notes/${
+                              1 / chordElement.chord.duration
+                            }.svg" />`);
 
           for (const noteElement of chordElement.noteElements) {
             if (noteElement.note.fret) {
               html.push("<g>");
-              // stroke-opacity="1"
-              // stroke="red"
               html.push(`<rect x="${noteElement.textRect.x}"
                                y="${noteElement.textRect.y}"
                                width="${noteElement.textRect.width}"
@@ -335,8 +346,7 @@ function render(tabWindows: TabWindow[]): string {
                 tabWindow.selectedElement &&
                 noteElement === tabWindow.selectedElement.noteElement
               ) {
-                html.push(`
-                           <text x="${noteElement.textCoords.x}"
+                html.push(`<text x="${noteElement.textCoords.x}"
                                  y="${noteElement.textCoords.y}"
                                  font-size="${tabWindow.dim.noteTextSize}px"
                                  text-anchor="middle"
@@ -358,12 +368,11 @@ function render(tabWindows: TabWindow[]): string {
           }
         }
 
-        html.push(`
-          <line x1="${barElement.barRightBorderLine[0].x}"
-                y1="${barElement.barRightBorderLine[0].y}"
-                x2="${barElement.barRightBorderLine[1].x}"
-                y2="${barElement.barRightBorderLine[1].y}"
-                stroke="black" />`);
+        html.push(`<line x1="${barElement.barRightBorderLine[0].x}"
+                         y1="${barElement.barRightBorderLine[0].y}"
+                         x2="${barElement.barRightBorderLine[1].x}"
+                         y2="${barElement.barRightBorderLine[1].y}"
+                         stroke="black" />`);
       }
 
       html.push("</g>");

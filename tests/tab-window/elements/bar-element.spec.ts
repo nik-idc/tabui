@@ -74,6 +74,17 @@ describe("Bar element tests", () => {
       dim.tabLineHeight
     );
 
+    let expectedLines = new Array<Array<Point>>();
+    let y = expectedSigRect.y;
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expectedLines.push([
+        new Point(expectedRect.x, y),
+        new Point(expectedRect.rightTop.x, y),
+      ]);
+
+      y += dim.noteRectHeight;
+    }
+
     // Calc
     barElement.calc();
 
@@ -81,6 +92,10 @@ describe("Bar element tests", () => {
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
     expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
     expect(barElement.rect).toStrictEqual(expectedRect);
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
+      expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
+    }
   });
 
   test("Bar element calc without time signature test", () => {
@@ -121,6 +136,17 @@ describe("Bar element tests", () => {
       dim.tabLineHeight
     );
 
+    let expectedLines = new Array<Array<Point>>();
+    let y = expectedSigRect.y;
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expectedLines.push([
+        new Point(expectedRect.x, y),
+        new Point(expectedRect.rightTop.x, y),
+      ]);
+
+      y += dim.noteRectHeight;
+    }
+
     // Calc
     barElement.calc();
 
@@ -128,6 +154,10 @@ describe("Bar element tests", () => {
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
     expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
     expect(barElement.rect).toStrictEqual(expectedRect);
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
+      expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
+    }
   });
 
   test("Scale horizontally test", () => {
@@ -168,6 +198,13 @@ describe("Bar element tests", () => {
       barElement.rect.width * scale,
       barElement.rect.height
     );
+    let expectedLines = new Array<Array<Point>>();
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expectedLines.push([
+        new Point(barElement.lines[i][0].x * scale, barElement.lines[i][0].y),
+        new Point(barElement.lines[i][1].x * scale, barElement.lines[i][1].y),
+      ]);
+    }
 
     // Scale
     let result = barElement.scaleBarHorBy(scale);
@@ -177,6 +214,10 @@ describe("Bar element tests", () => {
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
     expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
     expect(barElement.rect).toStrictEqual(expectedRect);
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
+      expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
+    }
   });
 
   test("Translate test", () => {
@@ -218,6 +259,13 @@ describe("Bar element tests", () => {
       barElement.rect.width,
       barElement.rect.height
     );
+    let expectedLines = new Array<Array<Point>>();
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expectedLines.push([
+        new Point(barElement.lines[i][0].x + dx, barElement.lines[i][0].y + dy),
+        new Point(barElement.lines[i][1].x + dx, barElement.lines[i][1].y + dy),
+      ]);
+    }
 
     // Scale (unsuccesful)
     barElement.translateBy(dx, dy);
@@ -226,6 +274,10 @@ describe("Bar element tests", () => {
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
     expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
     expect(barElement.rect).toStrictEqual(expectedRect);
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
+      expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
+    }
   });
 
   test("Insert chord test", () => {
@@ -412,6 +464,13 @@ describe("Bar element tests", () => {
       barElement.rect.width,
       barElement.rect.height
     );
+    let expectedLines = new Array<Array<Point>>();
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expectedLines.push([
+        new Point(barElement.lines[i][0].x, barElement.lines[i][0].y),
+        new Point(barElement.lines[i][1].x, barElement.lines[i][1].y),
+      ]);
+    }
 
     // Change chord duration
     const newBeats = 3;
@@ -421,6 +480,10 @@ describe("Bar element tests", () => {
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
     expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
     expect(barElement.rect).toStrictEqual(expectedRect);
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
+      expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
+    }
     expect(barElement.bar.beats).toBe(newBeats);
     expect(barElement.showSignature).toBe(true);
   });
@@ -460,6 +523,13 @@ describe("Bar element tests", () => {
       barElement.rect.width,
       barElement.rect.height
     );
+    let expectedLines = new Array<Array<Point>>();
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expectedLines.push([
+        new Point(barElement.lines[i][0].x, barElement.lines[i][0].y),
+        new Point(barElement.lines[i][1].x, barElement.lines[i][1].y),
+      ]);
+    }
 
     // Change chord duration
     const newBeats = 4;
@@ -469,6 +539,10 @@ describe("Bar element tests", () => {
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
     expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
     expect(barElement.rect).toStrictEqual(expectedRect);
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
+      expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
+    }
     expect(barElement.bar.beats).toBe(newBeats);
     expect(barElement.showSignature).toBe(false);
   });
@@ -508,6 +582,13 @@ describe("Bar element tests", () => {
       barElement.rect.width,
       barElement.rect.height
     );
+    let expectedLines = new Array<Array<Point>>();
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expectedLines.push([
+        new Point(barElement.lines[i][0].x, barElement.lines[i][0].y),
+        new Point(barElement.lines[i][1].x, barElement.lines[i][1].y),
+      ]);
+    }
 
     // Change chord duration
     const newDuration = NoteDuration.Eighth;
@@ -517,6 +598,10 @@ describe("Bar element tests", () => {
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
     expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
     expect(barElement.rect).toStrictEqual(expectedRect);
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
+      expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
+    }
     expect(barElement.bar.duration).toBe(newDuration);
     expect(barElement.showSignature).toBe(true);
   });
@@ -556,6 +641,13 @@ describe("Bar element tests", () => {
       barElement.rect.width,
       barElement.rect.height
     );
+    let expectedLines = new Array<Array<Point>>();
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expectedLines.push([
+        new Point(barElement.lines[i][0].x, barElement.lines[i][0].y),
+        new Point(barElement.lines[i][1].x, barElement.lines[i][1].y),
+      ]);
+    }
 
     // Change chord duration
     const newDuration = NoteDuration.Quarter;
@@ -565,6 +657,10 @@ describe("Bar element tests", () => {
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
     expect(barElement.tempoRect).toStrictEqual(expectedTempoRect);
     expect(barElement.rect).toStrictEqual(expectedRect);
+    for (let i = 0; i < guitar.stringsCount; i++) {
+      expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
+      expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
+    }
     expect(barElement.bar.duration).toBe(newDuration);
     expect(barElement.showSignature).toBe(false);
   });
