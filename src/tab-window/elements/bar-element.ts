@@ -40,6 +40,10 @@ export class BarElement {
    */
   public rect: Rect;
   /**
+   * Bar element's lines
+   */
+  public lines: Point[][];
+  /**
    * The bar
    */
   readonly bar: Bar;
@@ -58,6 +62,7 @@ export class BarElement {
     this.tempoRect = new Rect();
     this.timeSigRect = new Rect();
     this.rect = new Rect(barCoords.x, barCoords.y);
+    this.lines = new Array<Array<Point>>();
     this.bar = bar;
 
     this.calc();
@@ -99,6 +104,18 @@ export class BarElement {
     // Set main rectangle
     this.rect.width = anyInfo ? this.dim.infoWidth + chordsWidth : chordsWidth;
     this.rect.height = this.dim.tabLineHeight;
+
+    // Make lines
+    this.lines = [];
+    let y = this.timeSigRect.y;
+    for (let i = 0; i < this.bar.guitar.stringsCount; i++) {
+      this.lines.push([
+        new Point(this.rect.x, y),
+        new Point(this.rect.rightTop.x, y),
+      ]);
+
+      y += this.dim.noteRectHeight;
+    }
   }
 
   /**
@@ -109,7 +126,9 @@ export class BarElement {
   public scaleBarHorBy(scale: number): boolean {
     // Check if can scale down
     if (scale <= 0 || (scale > 0 && scale < 1)) {
-      throw new Error(`${scale} is an invalid scale: scale must be positive AND >= 1`);
+      throw new Error(
+        `${scale} is an invalid scale: scale must be positive AND >= 1`
+      );
     }
 
     // Scale chords
@@ -126,6 +145,10 @@ export class BarElement {
     this.timeSigRect.x *= scale;
     this.tempoRect.x *= scale;
     this.rect.x *= scale;
+    for (const line of this.lines) {
+      line[0].x *= scale;
+      line[1].x *= scale;
+    }
 
     return true;
   }
@@ -143,6 +166,12 @@ export class BarElement {
     this.tempoRect.y += dy;
     this.rect.x += dx;
     this.rect.y += dy;
+    for (const line of this.lines) {
+      line[0].x += dx;
+      line[0].y += dy;
+      line[1].x += dx;
+      line[1].y += dy;
+    }
 
     // Translate chord elements
     for (let chordElement of this.chordElements) {

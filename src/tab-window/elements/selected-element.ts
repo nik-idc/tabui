@@ -5,6 +5,7 @@ import { TabLineElement } from "./tab-line-element";
 import { TabWindow } from "../tab-window";
 import { Bar } from "../../models/bar";
 import { Point } from "../shapes/point";
+import { Chord } from "../../models/chord";
 
 /**
  * Class that contains all necessary information
@@ -133,7 +134,13 @@ export class SelectedElement {
             this._barElement.bar.tempo,
             this._barElement.bar.beats,
             this._barElement.bar.duration,
-            this._barElement.bar.chords
+            // this._barElement.bar.chords
+            [
+              new Chord(
+                this._tabWindow.tab.guitar,
+                this._chordElement.chord.duration
+              ),
+            ]
           );
           const tabLinesCount = this._tabWindow.tabLineElements.length;
           this._tabWindow.insertBar(newBar);
