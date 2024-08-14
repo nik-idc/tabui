@@ -30,7 +30,7 @@ export class Chord {
     this.duration = duration;
     this.notes = Array.from(
       { length: guitar.stringsCount },
-      (_, strNum) => new GuitarNote(this.guitar, strNum + 1, null)
+      (_, stringNum) => new GuitarNote(this.guitar, stringNum + 1, null)
     );
   }
 

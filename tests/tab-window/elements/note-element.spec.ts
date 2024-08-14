@@ -34,25 +34,25 @@ const dim = new TabWindowDim(
 );
 
 let chordRect = new Rect(0, 0, dim.width / 4, dim.tabLineHeight);
-let strNum = 3;
+let stringNum = 3;
 let fret = 5;
-let guitarNote = new GuitarNote(guitar, strNum, fret);
+let guitarNote = new GuitarNote(guitar, stringNum, fret);
 let noteElement = new NoteElement(dim, chordRect, guitarNote);
 
 describe("Note element tests", () => {
   beforeEach(() => {
     // Setup data before each test run
     chordRect = new Rect(0, 0, dim.width / 4, dim.tabLineHeight);
-    strNum = 3;
+    stringNum = 3;
     fret = 5;
-    guitarNote = new GuitarNote(guitar, strNum, fret);
+    guitarNote = new GuitarNote(guitar, stringNum, fret);
     noteElement = new NoteElement(dim, chordRect, guitarNote);
   });
 
   test("Note element calc test", () => {
     // Make expected results
     const expectedY =
-      chordRect.y + dim.durationsHeight + (strNum - 1) * dim.noteRectHeight;
+      chordRect.y + dim.durationsHeight + (stringNum - 1) * dim.noteRectHeight;
     const expectedRect = new Rect(
       chordRect.x,
       expectedY,

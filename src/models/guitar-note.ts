@@ -13,7 +13,7 @@ export class GuitarNote {
   /**
    * String number
    */
-  private _strNum: number = 0;
+  private _stringNum: number = 0;
   /**
    * Fret number
    */
@@ -26,12 +26,12 @@ export class GuitarNote {
   /**
    * Class that represents a guitar note
    * @param guitar Guitar on which the note is played
-   * @param strNum String number
+   * @param stringNum String number
    * @param fret Fret number
    */
-  constructor(guitar: Guitar, strNum: number, fret: number | undefined) {
+  constructor(guitar: Guitar, stringNum: number, fret: number | undefined) {
     this.guitar = guitar;
-    this._strNum = strNum;
+    this._stringNum = stringNum;
     this._fret = fret;
     this.calcNote();
   }
@@ -39,21 +39,21 @@ export class GuitarNote {
   /**
    * Getter/setter for string number
    */
-  get strNum(): number {
-    return this._strNum;
+  get stringNum(): number {
+    return this._stringNum;
   }
 
   /**
    * Getter/setter for string number
    */
-  set strNum(val: number) {
+  set stringNum(val: number) {
     // Check string validity
     if (val <= 0 || val > this.guitar.stringsCount) {
       throw new Error(`${val} is an invalid string number, only strings
 				1 to ${this.guitar.stringsCount} are allowed`);
     }
 
-    this._strNum = val;
+    this._stringNum = val;
     this.calcNote();
   }
 
@@ -97,7 +97,7 @@ export class GuitarNote {
       return;
     }
 
-    const baseNote = this.guitar.tuning[this._strNum - 1];
+    const baseNote = this.guitar.tuning[this._stringNum - 1];
     const baseNoteId = NotesCalcArr.indexOf(baseNote);
     const noteId = baseNoteId + (this._fret % 12);
     const note = NotesCalcArr[noteId];
@@ -115,14 +115,14 @@ export class GuitarNote {
   static fromObject(obj: any): GuitarNote {
     if (
       obj.guitar === undefined ||
-      obj._strNum === undefined ||
+      obj._stringNum === undefined ||
       obj._fret === undefined
     ) {
       throw new Error("Invalid js object to parse to guitar note");
     }
 
     let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
-    let guitarNote = new GuitarNote(guitar, obj._strNum, obj._fret); // Create guitar note instance
+    let guitarNote = new GuitarNote(guitar, obj._stringNum, obj._fret); // Create guitar note instance
     return guitarNote;
   }
 }

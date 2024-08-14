@@ -6,199 +6,260 @@ import { TabWindow } from "../tab-window";
 import { Bar } from "../../models/bar";
 import { Point } from "../shapes/point";
 import { Chord } from "../../models/chord";
+import { Note } from "../../models/note";
+import { GuitarNote } from "../../models/guitar-note";
+import { Tab } from "../../models/tab";
 
 /**
  * Class that contains all necessary information
  * about a selected element
  */
 export class SelectedElement {
+  private _tabLineElementId: number;
+  private _barElementId: number;
+  private _chordElementId: number;
+
   /**
    * Class that contains all necessary information
    * about a selected element
-   * @param _noteElement Note element
-   * @param _chordElement Chord element containing the note element
-   * @param _barElement Bar element containing the chord element
-   * @param _tabLineElement Tab line element containing the bar element
-   * @param _tabWindow Tab window containing the tab line element
+   * @param _tabWindow Tab window
+   * @param _barId Bar id
+   * @param _chordId Chord id
+   * @param _stringNum String number
    */
   constructor(
-    private _noteElement: NoteElement,
-    private _chordElement: ChordElement,
-    private _barElement: BarElement,
-    private _tabLineElement: TabLineElement,
-    private _tabWindow: TabWindow
-  ) {}
+    private _tabWindow: TabWindow,
+    private _barId: number,
+    private _chordId: number,
+    private _stringNum: number
+  ) {
+    this.calcElementIds();
+  }
+
+  /**
+   * Calculates UI elements' id's
+   */
+  public calcElementIds(): void {
+    // Calculate tab line and bar elements' id's
+    let barElementConsecutiveIndex = 0;
+    let barElementIndex = 0;
+    let tabLineElementIndex = 0;
+    let tabLineElement = this._tabWindow.tabLineElements[tabLineElementIndex];
+    while (tabLineElementIndex !== this._tabWindow.tabLineElements.length) {
+      tabLineElement = this._tabWindow.tabLineElements[tabLineElementIndex];
+      if (barElementConsecutiveIndex === this._barId) {
+        this._tabLineElementId = tabLineElementIndex;
+        this._barElementId = barElementIndex;
+        break;
+      }
+
+      barElementConsecutiveIndex++;
+      barElementIndex++;
+
+      if (barElementIndex === tabLineElement.barElements.length) {
+        // Reset in-tab-line bar element index and increase tab line element index
+        tabLineElementIndex++;
+        barElementIndex = 0;
+      }
+    }
+
+    this._chordElementId = this._chordId;
+  }
 
   /**
    * Move selected note up (or to the last string if current is the first)
    */
   public moveUp(): void {
-    const strNum = this._noteElement.note.strNum;
-    const strCount = this._noteElement.note.guitar.stringsCount;
-    const newStrNum = strNum === 1 ? strCount : strNum - 1;
+    const stringsCount = this._tabWindow.tab.guitar.stringsCount;
+    const newstringNum =
+      this._stringNum === 1 ? stringsCount : this._stringNum - 1;
 
-    this._noteElement = this._chordElement.noteElements[newStrNum - 1];
+    this._stringNum = newstringNum;
   }
 
   /**
    * Move selected note down (or to the first string if current is the last)
    */
   public moveDown(): void {
-    const strNum = this._noteElement.note.strNum;
-    const strCount = this._noteElement.note.guitar.stringsCount;
-    const newStrNum = strNum === strCount ? 1 : strNum + 1;
+    const stringsCount = this._tabWindow.tab.guitar.stringsCount;
+    const newstringNum =
+      this._stringNum === stringsCount ? 1 : this._stringNum + 1;
 
-    this._noteElement = this._chordElement.noteElements[newStrNum - 1];
+    this._stringNum = newstringNum;
   }
 
   /**
    * Move selected note left (or to the last note of the previous bar)
    */
   public moveLeft(): void {
-    const strNum = this._noteElement.note.strNum;
-    const chordId = this._barElement.chordElements.indexOf(this._chordElement);
-
-    // Move the chord left in the bar or move selected
-    // note to that last chord of the previous bar
-    if (chordId !== 0) {
-      this._chordElement = this._barElement.chordElements[chordId - 1];
-      // 'strNum - 1' because 'strNum' starts from 1
-      this._noteElement = this._chordElement.noteElements[strNum - 1];
-    } else {
-      const barId = this._tabLineElement.barElements.indexOf(this._barElement);
-      const tabLineId = this._tabWindow.tabLineElements.indexOf(
-        this._tabLineElement
-      );
-
-      // Move to the last chord of the previous bar on the same line or
-      // move to that last chord of the last bar of the previous tab line
-      if (barId !== 0) {
-        this._barElement = this._tabLineElement.barElements[barId - 1];
-        this._chordElement =
-          this._barElement.chordElements[
-            this._barElement.chordElements.length - 1
-          ];
-        // 'strNum - 1' because 'strNum' starts from 1
-        this._noteElement = this._chordElement.noteElements[strNum - 1];
-      } else {
-        // Don't do anything if can't move left
-        if (tabLineId === 0) return;
-
-        const prevTabLine = this._tabWindow.tabLineElements[tabLineId - 1];
-        const prevTabLineLastBar =
-          prevTabLine.barElements[prevTabLine.barElements.length - 1];
-        const prevTabLineLastChord =
-          prevTabLineLastBar.chordElements[
-            prevTabLineLastBar.chordElements.length - 1
-          ];
-
-        this._tabLineElement = prevTabLine;
-        this._barElement = prevTabLineLastBar;
-        this._chordElement = prevTabLineLastChord;
-        this._noteElement = prevTabLineLastChord.noteElements[strNum - 1];
-      }
+    // If not first bar chord
+    if (this._chordId !== 0) {
+      this._chordId--;
+      this.calcElementIds();
+      return;
     }
+
+    // Do nothing if last bar and last chord
+    if (this._barId === 0) {
+      return;
+    }
+
+    // Move to the left bar
+    this._barId--;
+    this._chordId = this.bar.chords.length - 1;
+    this.calcElementIds();
   }
 
   /**
    * Move selected note right (or to the first note of the next bar)
    */
   public moveRight(): void {
-    const strNum = this._noteElement.note.strNum;
-    const chordId = this._barElement.chordElements.indexOf(this._chordElement);
+    // Check if can add chords to the bar
+    if (
+      this._chordId === this.bar.chords.length - 1 &&
+      !this.bar.durationsFit &&
+      this.bar.actualDuration() < this.bar.beats * this.bar.duration
+    ) {
+      // If the current chord is not the last one of the bar AND
+      // If durations don't fit AND
+      // If currently actual bar duration is less than the correct one
+      // append a new chord and select it
+      this.bar.appendChord();
+      this._chordId++;
 
-    // Move the chord right in the bar or move selected
-    // note to the first chord of the next bar
-    if (chordId !== this._barElement.chordElements.length - 1) {
-      this._chordElement = this._barElement.chordElements[chordId + 1];
-      // 'strNum - 1' because 'strNum' starts from 1
-      this._noteElement = this._chordElement.noteElements[strNum - 1];
-    } else {
-      const barId = this._tabLineElement.barElements.indexOf(this._barElement);
-      const tabLineId = this._tabWindow.tabLineElements.indexOf(
-        this._tabLineElement
-      );
-
-      // Move to the first chord of the next bar on the same line or
-      // move to that first chord of the first bar of the next tab line
-      if (barId !== this._tabLineElement.barElements.length - 1) {
-        this._barElement = this._tabLineElement.barElements[barId + 1];
-        this._chordElement = this._barElement.chordElements[0];
-        // 'strNum - 1' because 'strNum' starts from 1
-        this._noteElement = this._chordElement.noteElements[strNum - 1];
-      } else {
-        // Insert new bar (and new tab line if needed) if can't move right
-        if (tabLineId === this._tabWindow.tabLineElements.length - 1) {
-          const newBar = new Bar(
-            this._tabWindow.tab.guitar,
-            this._barElement.bar.tempo,
-            this._barElement.bar.beats,
-            this._barElement.bar.duration,
-            // this._barElement.bar.chords
-            [
-              new Chord(
-                this._tabWindow.tab.guitar,
-                this._chordElement.chord.duration
-              ),
-            ]
-          );
-          const tabLinesCount = this._tabWindow.tabLineElements.length;
-          this._tabWindow.insertBar(newBar);
-
-          if (this._tabWindow.tabLineElements.length === tabLinesCount + 1) {
-            this._tabLineElement =
-              this._tabWindow.tabLineElements[
-                this._tabWindow.tabLineElements.length - 1
-              ];
-            this._barElement = this._tabLineElement.barElements[0];
-            this._chordElement = this._barElement.chordElements[0];
-            this._noteElement = this._chordElement.noteElements[strNum - 1];
-          } else {
-            this._barElement =
-              this._tabLineElement.barElements[
-                this._tabLineElement.barElements.length - 1
-              ];
-            this._chordElement = this._barElement.chordElements[0];
-            this._noteElement = this._chordElement.noteElements[strNum - 1];
-          }
-        } else {
-          const nextTabLine = this._tabWindow.tabLineElements[tabLineId + 1];
-          const nextTabLineFirstBar = nextTabLine.barElements[0];
-          const nextTabLineFirstChord = nextTabLineFirstBar.chordElements[0];
-
-          this._tabLineElement = nextTabLine;
-          this._barElement = nextTabLineFirstBar;
-          this._chordElement = nextTabLineFirstChord;
-          this._noteElement = nextTabLineFirstChord.noteElements[strNum - 1];
-        }
-      }
+      // Recalc tab window because added a chord
+      // 'calc' already calls 'calcElementIds'
+      this._tabWindow.calc();
+      return;
     }
+
+    if (this._chordId !== this.bar.chords.length - 1) {
+      // Can't add more chords but can move to the next chord
+      this._chordId++;
+
+      this.calcElementIds();
+      return;
+    }
+
+    // Can't move to next chord OR add more chords, move to the next bar
+    if (this._barId !== this._tabWindow.tab.bars.length - 1) {
+      this._barId++;
+      this._chordId = 0;
+
+      this.calcElementIds();
+      return;
+    }
+
+    // If current bar is the last one of the tab
+    const newBar = new Bar(
+      this._tabWindow.tab.guitar,
+      this.bar.tempo,
+      this.bar.beats,
+      this.bar.duration,
+      [new Chord(this._tabWindow.tab.guitar, this.chord.duration)]
+    );
+    this._tabWindow.tab.bars.push(newBar);
+    this._barId++;
+    this._chordId = 0;
+
+    // Recalc tab window because added a bar
+    // 'calc' already calls 'calcElementIds'
+    this._tabWindow.calc();
+  }
+
+  /**
+   * Selected note
+   */
+  public get note(): GuitarNote {
+    return this._tabWindow.tab.bars[this._barId].chords[this._chordId].notes[
+      this._stringNum - 1
+    ];
+  }
+
+  /**
+   * Selected chord
+   */
+  public get chord(): Chord {
+    return this._tabWindow.tab.bars[this._barId].chords[this._chordId];
+  }
+
+  /**
+   * Selected bar
+   */
+  public get bar(): Bar {
+    return this._tabWindow.tab.bars[this._barId];
+  }
+
+  /**
+   * Selected tab
+   */
+  public get tab(): Tab {
+    return this._tabWindow.tab;
+  }
+
+  /**
+   * Selected note's string number
+   */
+  public get stringNum(): number {
+    return this._stringNum;
+  }
+
+  /**
+   * Selected note element
+   */
+  public get noteElementId(): number {
+    return this._stringNum - 1;
+  }
+
+  /**
+   * Selected chord element
+   */
+  public get chordElementId(): number {
+    return this._chordElementId;
+  }
+
+  /**
+   * Selected bar element
+   */
+  public get barElementId(): number {
+    return this._barElementId;
+  }
+
+  /**
+   * Selected tab line element
+   */
+  public get tabLineElementId(): number {
+    return this._tabLineElementId;
   }
 
   /**
    * Selected note element
    */
   public get noteElement(): NoteElement {
-    return this._noteElement;
+    return this.chordElement.noteElements[this._stringNum - 1];
   }
+
   /**
    * Selected chord element
    */
   public get chordElement(): ChordElement {
-    return this._chordElement;
+    return this.barElement.chordElements[this._chordElementId];
   }
+
   /**
    * Selected bar element
    */
   public get barElement(): BarElement {
-    return this._barElement;
+    return this.tabLineElement.barElements[this._barElementId];
   }
+
   /**
    * Selected tab line element
    */
   public get tabLineElement(): TabLineElement {
-    return this._tabLineElement;
+    return this._tabWindow.tabLineElements[this._tabLineElementId];
   }
+
   /**
    * Selected tab window element
    */

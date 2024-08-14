@@ -66,6 +66,19 @@ export class Bar {
   }
 
   /**
+   * Gets actual duration of all the chords in the bar
+   * @returns Sum of all bar's chords' durations
+   */
+  public actualDuration(): number {
+    let durations = 0;
+    for (let chord of this.chords) {
+      durations += chord.duration;
+    }
+
+    return durations;
+  }
+
+  /**
    * Determines if all chords of the bar fit correctly inside of it
    */
   public calcDurationsFit(): void {
@@ -197,7 +210,7 @@ export class Bar {
    */
   static fromObject(obj: any): Bar {
     if (
-    obj.guitar === undefined ||
+      obj.guitar === undefined ||
       obj._beats === undefined ||
       obj.duration === undefined ||
       obj.chords === undefined ||
