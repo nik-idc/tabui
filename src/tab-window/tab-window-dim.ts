@@ -65,14 +65,14 @@ export class TabWindowDim {
    * @param noteTextSize Size of note text
    * @param infoTextSize Size of info text
    * @param durationsHeight Height of durations object above the notes
-   * @param strCount Strings count
+   * @param stringsCount Strings count
    */
   constructor(
     width: number,
     noteTextSize: number,
     infoTextSize: number,
     durationsHeight: number,
-    strCount: number
+    stringsCount: number
   ) {
     this.width = width;
 
@@ -87,8 +87,8 @@ export class TabWindowDim {
     this.noteRectWidthWhole = this.noteRectWidthThirtySecond * 1.5;
 
     this.durationsHeight = durationsHeight;
-    this.timeSigRectHeight = this.noteRectHeight * (strCount - 1);
-    this.tabLineHeight = this.noteRectHeight * strCount + this.durationsHeight;
+    this.timeSigRectHeight = this.noteRectHeight * (stringsCount - 1);
+    this.tabLineHeight = this.noteRectHeight * stringsCount + this.durationsHeight;
 
     this.infoWidth = this.noteRectWidthThirtySecond;
   }

@@ -11,43 +11,43 @@ const guitar = new Guitar(
 
 describe("Guitar Note Model Tests", () => {
   test("Guitar note set string number valid test", () => {
-    const strNum = 4;
+    const stringNum = 4;
     const fret = 12;
-    const guitarNote = new GuitarNote(guitar, strNum, fret);
+    const guitarNote = new GuitarNote(guitar, stringNum, fret);
 
-    const newStrNum = 5;
-    let setStrNumError: Error | undefined;
+    const newstringNum = 5;
+    let setstringNumError: Error | undefined;
     try {
-      guitarNote.strNum = newStrNum;
+      guitarNote.stringNum = newstringNum;
     } catch (error) {
-      setStrNumError = error;
+      setstringNumError = error;
     } finally {
-      expect(setStrNumError).toBe(undefined);
-      expect(guitarNote.strNum).toBe(newStrNum);
+      expect(setstringNumError).toBe(undefined);
+      expect(guitarNote.stringNum).toBe(newstringNum);
     }
   });
 
   test("Guitar note set string number invalid test", () => {
-    const strNum = 4;
+    const stringNum = 4;
     const fret = 12;
-    const guitarNote = new GuitarNote(guitar, strNum, fret);
+    const guitarNote = new GuitarNote(guitar, stringNum, fret);
 
-    const newStrNum = stringsCount + 1;
-    let setStrNumError: Error | undefined;
+    const newstringNum = stringsCount + 1;
+    let setstringNumError: Error | undefined;
     try {
-      guitarNote.strNum = newStrNum;
+      guitarNote.stringNum = newstringNum;
     } catch (error) {
-      setStrNumError = error;
+      setstringNumError = error;
     } finally {
-      expect(setStrNumError).toBeInstanceOf(Error);
-      expect(guitarNote.strNum).toBe(strNum);
+      expect(setstringNumError).toBeInstanceOf(Error);
+      expect(guitarNote.stringNum).toBe(stringNum);
     }
   });
 
   test("Guitar note set fret valid test: normal fret value", () => {
-    const strNum = 4;
+    const stringNum = 4;
     const fret = 12;
-    const guitarNote = new GuitarNote(guitar, strNum, fret);
+    const guitarNote = new GuitarNote(guitar, stringNum, fret);
 
     const newFret = 13;
     let setFretError: Error | undefined;
@@ -62,9 +62,9 @@ describe("Guitar Note Model Tests", () => {
   });
 
   test("Guitar note set fret valid test: frets count fret value", () => {
-    const strNum = 4;
+    const stringNum = 4;
     const fret = 12;
-    const guitarNote = new GuitarNote(guitar, strNum, fret);
+    const guitarNote = new GuitarNote(guitar, stringNum, fret);
 
     const newFret = fretCount;
     let setFretError: Error | undefined;
@@ -79,9 +79,9 @@ describe("Guitar Note Model Tests", () => {
   });
 
   test("Guitar note set fret valid test: big fret value", () => {
-    const strNum = 4;
+    const stringNum = 4;
     const fret = 12;
-    const guitarNote = new GuitarNote(guitar, strNum, fret);
+    const guitarNote = new GuitarNote(guitar, stringNum, fret);
 
     const newFret = 99;
     let setFretError: Error | undefined;
@@ -96,9 +96,9 @@ describe("Guitar Note Model Tests", () => {
   });
 
   test("Guitar note get note value test", () => {
-    const strNum = 4;
+    const stringNum = 4;
     const fret = 12;
-    const guitarNote = new GuitarNote(guitar, strNum, fret);
+    const guitarNote = new GuitarNote(guitar, stringNum, fret);
     expect(guitarNote.note).toBe(Note.D);
 
     guitarNote.fret = 14;
@@ -120,7 +120,7 @@ describe("Guitar Note Model Tests", () => {
     const guitar = Guitar.fromObject(guitarObj);
     const guitarNoteObj = {
       guitar: guitar,
-      _strNum: 1,
+      _stringNum: 1,
       _fret: 12,
     };
 
@@ -137,7 +137,7 @@ describe("Guitar Note Model Tests", () => {
   test("Guitar note from invalid object test", () => {
     const guitarNoteObj = {
       guitar: undefined,
-      _strNum: 1,
+      _stringNum: 1,
       _fret: 12,
     };
 

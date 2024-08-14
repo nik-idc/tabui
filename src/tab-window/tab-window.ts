@@ -83,6 +83,10 @@ export class TabWindow {
     if (lastTabLineElement.barElements.length >= 1) {
       this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
     }
+
+    if (this._selectedElement) {
+      this._selectedElement.calcElementIds();
+    }
   }
 
   /**
@@ -121,24 +125,31 @@ export class TabWindow {
   }
 
   /**
-   * Select note element
-   * @param noteElement Note element
-   * @param chordElement Chord element containing the note element
-   * @param barElement Bar element containing the chord element
-   * @param tabLineElement Tab line element containing the bar element
+   * Select new note element
+   * @param tabLineElementId Id of the tab line element containing the bar element
+   * @param barElementId Id of the bar element containing the chord element
+   * @param chordElementId Id of the chord element containing the note element
+   * @param noteElementId Id of the note element
    */
   public selectNoteElement(
-    noteElement: NoteElement,
-    chordElement: ChordElement,
-    barElement: BarElement,
-    tabLineElement: TabLineElement
+    tabLineElementId: number,
+    barElementId: number,
+    chordElementId: number,
+    noteElementId: number
   ): void {
+    const tabLineElement = this._tabLineElements[tabLineElementId];
+    const barElement = tabLineElement.barElements[barElementId];
+    const chordElement = barElement.chordElements[chordElementId];
+    const noteElement = chordElement.noteElements[noteElementId];
+
+    const barId = this.tab.bars.indexOf(barElement.bar);
+    const chordId = this.tab.bars[barId].chords.indexOf(chordElement.chord);
+    const stringNum = noteElement.note.stringNum;
     this._selectedElement = new SelectedElement(
-      noteElement,
-      chordElement,
-      barElement,
-      tabLineElement,
-      this
+      this,
+      barId,
+      chordId,
+      stringNum
     );
   }
 
@@ -149,6 +160,7 @@ export class TabWindow {
     }
 
     this._selectedElement.moveUp();
+    this.calc();
   }
 
   public moveSelectedNoteDown(): void {
@@ -158,6 +170,7 @@ export class TabWindow {
     }
 
     this._selectedElement.moveDown();
+    this.calc();
   }
 
   public moveSelectedNoteLeft(): void {
@@ -167,6 +180,7 @@ export class TabWindow {
     }
 
     this._selectedElement.moveLeft();
+    this.calc();
   }
 
   public moveSelectedNoteRight(): void {
@@ -176,6 +190,7 @@ export class TabWindow {
     }
 
     this._selectedElement.moveRight();
+    this.calc();
   }
 
   public changeSelectedBarTempo(newTempo: number): void {
@@ -225,6 +240,19 @@ export class TabWindow {
 
   public insertBar(bar: Bar): void {
     this._tab.bars.push(bar);
+    this.calc();
+  }
+
+  public insertChord(
+    barElement: BarElement,
+    prevChordElement: ChordElement
+  ): void {
+    const index = barElement.chordElements.indexOf(prevChordElement);
+    if (index < 0 || index >= barElement.chordElements.length) {
+      return;
+    }
+
+    barElement.insertEmptyChord(index);
     this.calc();
   }
 
