@@ -16,21 +16,17 @@ const noteTextSize = 12;
 const infoTextSize = 36;
 const durationsHeight = 50;
 
-function randomFrets(tab: Tab): void {
+function randomFrets(tab: Tab, allStrings: boolean = false): void {
   for (const bar of tab.bars) {
     for (const chord of bar.chords) {
-      chord.notes[0].fret =
-        Math.random() <= 0.2 ? Math.floor(Math.random() * 24) : undefined;
-      chord.notes[1].fret =
-        Math.random() <= 0.2 ? Math.floor(Math.random() * 24) : undefined;
-      chord.notes[2].fret =
-        Math.random() <= 0.2 ? Math.floor(Math.random() * 24) : undefined;
-      chord.notes[3].fret =
-        Math.random() <= 0.2 ? Math.floor(Math.random() * 24) : undefined;
-      chord.notes[4].fret =
-        Math.random() <= 0.2 ? Math.floor(Math.random() * 24) : undefined;
-      chord.notes[5].fret =
-        Math.random() <= 0.2 ? Math.floor(Math.random() * 24) : undefined;
+      for (const note of chord.notes) {
+        if (allStrings) {
+          note.fret = Math.floor(Math.random() * 24);
+        } else {
+          note.fret =
+            Math.random() <= 0.2 ? Math.floor(Math.random() * 24) : undefined;
+        }
+      }
     }
   }
 }
@@ -40,17 +36,17 @@ function selectNote(
   tabLineId: number,
   barElementId: number,
   chordElementId: number,
-  strNum: number
+  stringNum: number
 ): void {
-  const tabLineElement = tabWindow.tabLineElements[tabLineId];
-  const barElement = tabLineElement.barElements[barElementId];
-  const chordElement = barElement.chordElements[chordElementId];
-  const noteElement = chordElement.noteElements[strNum - 1];
+  // const tabLineElement = tabWindow.tabLineElements[tabLineId];
+  // const barElement = tabLineElement.barElements[barElementId];
+  // const chordElement = barElement.chordElements[chordElementId];
+  // const noteElement = chordElement.noteElements[stringNum - 1];
   tabWindow.selectNoteElement(
-    noteElement,
-    chordElement,
-    barElement,
-    tabLineElement
+    tabLineId,
+    barElementId,
+    chordElementId,
+    stringNum - 1
   );
 }
 
@@ -87,7 +83,6 @@ function prepareTestCase1(): TabWindow {
   ];
 
   const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-  randomFrets(tab);
 
   const dim = new TabWindowDim(
     width,
@@ -100,6 +95,17 @@ function prepareTestCase1(): TabWindow {
   tabWindow.calc();
   selectNote(tabWindow, 0, 3, 3, 4);
   tabWindow.moveSelectedNoteRight();
+  tabWindow.moveSelectedNoteRight();
+  tabWindow.moveSelectedNoteRight();
+  tabWindow.moveSelectedNoteRight();
+  tabWindow.moveSelectedNoteRight();
+  tabWindow.moveSelectedNoteRight();
+
+  randomFrets(tab, true);
+
+  tabWindow.moveSelectedNoteLeft();
+  tabWindow.moveSelectedNoteLeft();
+
   return tabWindow;
 }
 

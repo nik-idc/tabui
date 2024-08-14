@@ -48,7 +48,7 @@ export class NoteElement {
     this.rect.height = this.dim.noteRectHeight;
     this.rect.x = this.chordRect.x;
     const topY = this.chordRect.y + this.dim.durationsHeight;
-    const stringYOffset = this.dim.noteRectHeight * (this.note.strNum - 1);
+    const stringYOffset = this.dim.noteRectHeight * (this.note.stringNum - 1);
     this.rect.y = topY + stringYOffset;
 
     this.textRect.x =
