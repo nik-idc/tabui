@@ -23,12 +23,14 @@ const guitar = new Guitar(
 
 const width = 1200;
 const noteTextSize = 12;
-const infoTextSize = 24;
+const timeSigTextSize = 24;
+const tempoTextSize = 36;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
   noteTextSize,
-  infoTextSize,
+  timeSigTextSize,
+  tempoTextSize,
   durationsHeight,
   stringsCount
 );
@@ -120,7 +122,7 @@ describe("Note element tests", () => {
       noteElement.rect.height
     );
     const expectedTextRect = new Rect(
-      noteElement.textRect.x * scaleFactor,
+      expectedRect.x + expectedRect.width / 2 - dim.noteTextSize / 2,
       noteElement.textRect.y,
       noteElement.textRect.width,
       noteElement.textRect.height

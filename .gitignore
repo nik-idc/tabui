@@ -67,3 +67,4 @@ package-lock.json
 /lib/
 
 test-render/index.html
+test-render/index-detailed.html

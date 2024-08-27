@@ -25,12 +25,14 @@ const guitar = new Guitar(
 
 const width = 1200;
 const noteTextSize = 12;
-const infoTextSize = 24;
+const timeSigTextSize = 24;
+const tempoTextSize = 36;
 const durationsHeight = 50;
 const dim = new TabWindowDim(
   width,
   noteTextSize,
-  infoTextSize,
+  timeSigTextSize,
+  tempoTextSize,
   durationsHeight,
   stringsCount
 );
@@ -52,14 +54,17 @@ describe("Bar element tests", () => {
     // Make expected results
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
-      dim.infoWidth,
+      barCoords.y +
+        dim.tempoRectHeight +
+        dim.durationsHeight +
+        dim.noteRectHeight / 2,
+      dim.timeSigRectWidth,
       dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
       barCoords.x,
       barCoords.y,
-      dim.infoWidth,
+      dim.tempoRectWidth,
       dim.durationsHeight
     );
 
@@ -114,14 +119,17 @@ describe("Bar element tests", () => {
     // Make expected results
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
+      barCoords.y +
+        dim.tempoRectHeight +
+        dim.durationsHeight +
+        dim.noteRectHeight / 2,
       0,
       dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
       barCoords.x,
       barCoords.y,
-      dim.infoWidth,
+      dim.tempoRectWidth,
       dim.durationsHeight
     );
 
@@ -132,7 +140,7 @@ describe("Bar element tests", () => {
     const expectedRect = new Rect(
       barCoords.x,
       barCoords.y,
-      expectedTempoRect.width + chordsWidth,
+      chordsWidth,
       dim.tabLineHeight
     );
 
@@ -448,27 +456,33 @@ describe("Bar element tests", () => {
     // Calc expected rect
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
-      dim.infoWidth,
+      barCoords.y +
+        dim.tempoRectHeight +
+        dim.durationsHeight +
+        dim.noteRectHeight / 2,
+      dim.timeSigRectWidth,
       dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
       barCoords.x,
       barCoords.y,
-      dim.infoWidth,
+      dim.tempoRectWidth,
       dim.durationsHeight
     );
     const expectedRect = new Rect(
       barElement.rect.x,
       barElement.rect.y,
-      barElement.rect.width,
+      barElement.rect.width + expectedSigRect.width,
       barElement.rect.height
     );
     let expectedLines = new Array<Array<Point>>();
     for (let i = 0; i < guitar.stringsCount; i++) {
       expectedLines.push([
         new Point(barElement.lines[i][0].x, barElement.lines[i][0].y),
-        new Point(barElement.lines[i][1].x, barElement.lines[i][1].y),
+        new Point(
+          barElement.lines[i][1].x + expectedSigRect.width,
+          barElement.lines[i][1].y
+        ),
       ]);
     }
 
@@ -507,27 +521,33 @@ describe("Bar element tests", () => {
     // Calc expected rect
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
+      barCoords.y +
+        dim.tempoRectHeight +
+        dim.durationsHeight +
+        dim.noteRectHeight / 2,
       0,
       dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
       barCoords.x,
       barCoords.y,
-      dim.infoWidth,
+      dim.tempoRectWidth,
       dim.durationsHeight
     );
     const expectedRect = new Rect(
       barElement.rect.x,
       barElement.rect.y,
-      barElement.rect.width,
+      barElement.rect.width - dim.timeSigRectWidth,
       barElement.rect.height
     );
     let expectedLines = new Array<Array<Point>>();
     for (let i = 0; i < guitar.stringsCount; i++) {
       expectedLines.push([
         new Point(barElement.lines[i][0].x, barElement.lines[i][0].y),
-        new Point(barElement.lines[i][1].x, barElement.lines[i][1].y),
+        new Point(
+          barElement.lines[i][1].x - dim.timeSigRectWidth,
+          barElement.lines[i][1].y
+        ),
       ]);
     }
 
@@ -566,27 +586,33 @@ describe("Bar element tests", () => {
     // Calc expected rect
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
-      dim.infoWidth,
+      barCoords.y +
+        dim.tempoRectHeight +
+        dim.durationsHeight +
+        dim.noteRectHeight / 2,
+      dim.timeSigRectWidth,
       dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
       barCoords.x,
       barCoords.y,
-      dim.infoWidth,
+      dim.tempoRectWidth,
       dim.durationsHeight
     );
     const expectedRect = new Rect(
       barElement.rect.x,
       barElement.rect.y,
-      barElement.rect.width,
+      barElement.rect.width + dim.timeSigRectWidth,
       barElement.rect.height
     );
     let expectedLines = new Array<Array<Point>>();
     for (let i = 0; i < guitar.stringsCount; i++) {
       expectedLines.push([
         new Point(barElement.lines[i][0].x, barElement.lines[i][0].y),
-        new Point(barElement.lines[i][1].x, barElement.lines[i][1].y),
+        new Point(
+          barElement.lines[i][1].x + dim.timeSigRectWidth,
+          barElement.lines[i][1].y
+        ),
       ]);
     }
 
@@ -625,27 +651,33 @@ describe("Bar element tests", () => {
     // Calc expected rect
     const expectedSigRect = new Rect(
       barCoords.x,
-      barCoords.y + dim.durationsHeight + dim.noteRectHeight / 2,
+      barCoords.y +
+        dim.tempoRectHeight +
+        dim.durationsHeight +
+        dim.noteRectHeight / 2,
       0,
       dim.timeSigRectHeight
     );
     const expectedTempoRect = new Rect(
       barCoords.x,
       barCoords.y,
-      dim.infoWidth,
+      dim.tempoRectWidth,
       dim.durationsHeight
     );
     const expectedRect = new Rect(
       barElement.rect.x,
       barElement.rect.y,
-      barElement.rect.width,
+      barElement.rect.width - dim.timeSigRectWidth,
       barElement.rect.height
     );
     let expectedLines = new Array<Array<Point>>();
     for (let i = 0; i < guitar.stringsCount; i++) {
       expectedLines.push([
         new Point(barElement.lines[i][0].x, barElement.lines[i][0].y),
-        new Point(barElement.lines[i][1].x, barElement.lines[i][1].y),
+        new Point(
+          barElement.lines[i][1].x - dim.timeSigRectWidth,
+          barElement.lines[i][1].y
+        ),
       ]);
     }
 

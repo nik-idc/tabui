@@ -1,7 +1,6 @@
 import { NoteElement } from "./note-element";
 import { ChordElement } from "./chord-element";
 import { BarElement } from "./bar-element";
-import { TabLineElement } from "./tab-line-element";
 import { TabWindow } from "../tab-window";
 import { Bar } from "../../models/bar";
 import { Point } from "../shapes/point";
@@ -15,7 +14,7 @@ import { Tab } from "../../models/tab";
  * about a selected element
  */
 export class SelectedElement {
-  private _tabLineElementId: number;
+  private _barElementsLineId: number;
   private _barElementId: number;
   private _chordElementId: number;
 
@@ -43,12 +42,12 @@ export class SelectedElement {
     // Calculate tab line and bar elements' id's
     let barElementConsecutiveIndex = 0;
     let barElementIndex = 0;
-    let tabLineElementIndex = 0;
-    let tabLineElement = this._tabWindow.tabLineElements[tabLineElementIndex];
-    while (tabLineElementIndex !== this._tabWindow.tabLineElements.length) {
-      tabLineElement = this._tabWindow.tabLineElements[tabLineElementIndex];
+    let barElementsLineIndex = 0;
+    let barElementsLine = this._tabWindow.barElementLines[barElementsLineIndex];
+    while (barElementsLineIndex !== this._tabWindow.barElementLines.length) {
+      barElementsLine = this._tabWindow.barElementLines[barElementsLineIndex];
       if (barElementConsecutiveIndex === this._barId) {
-        this._tabLineElementId = tabLineElementIndex;
+        this._barElementsLineId = barElementsLineIndex;
         this._barElementId = barElementIndex;
         break;
       }
@@ -56,9 +55,9 @@ export class SelectedElement {
       barElementConsecutiveIndex++;
       barElementIndex++;
 
-      if (barElementIndex === tabLineElement.barElements.length) {
+      if (barElementIndex === barElementsLine.length) {
         // Reset in-tab-line bar element index and increase tab line element index
-        tabLineElementIndex++;
+        barElementsLineIndex++;
         barElementIndex = 0;
       }
     }
@@ -163,7 +162,8 @@ export class SelectedElement {
     this._chordId = 0;
 
     // Recalc tab window because added a bar
-    // 'calc' already calls 'calcElementIds'
+    // 'calc' is supposed to already call 'calcElementIds' &
+    // 'moveRight' is supposed to already call 'calc'
     this._tabWindow.calc();
   }
 
@@ -228,8 +228,8 @@ export class SelectedElement {
   /**
    * Selected tab line element
    */
-  public get tabLineElementId(): number {
-    return this._tabLineElementId;
+  public get barElementsLineId(): number {
+    return this._barElementsLineId;
   }
 
   /**
@@ -250,15 +250,22 @@ export class SelectedElement {
    * Selected bar element
    */
   public get barElement(): BarElement {
-    return this.tabLineElement.barElements[this._barElementId];
+    return this.barElementsLine[this._barElementId];
   }
 
   /**
-   * Selected tab line element
+   * Selected bar element
    */
-  public get tabLineElement(): TabLineElement {
-    return this._tabWindow.tabLineElements[this._tabLineElementId];
+  public get barElementsLine(): BarElement[] {
+    return this._tabWindow.barElementLines[this._barElementsLineId];
   }
+
+  // /**
+  //  * Selected tab line element
+  //  */
+  // public get tabLineElement(): TabLineElement {
+  //   return this._tabWindow.tabLineElements[this._tabLineElementId];
+  // }
 
   /**
    * Selected tab window element

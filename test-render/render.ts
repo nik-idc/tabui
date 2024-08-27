@@ -9,263 +9,13 @@ import { TabWindowDim } from "../src/tab-window/tab-window-dim";
 
 import * as fs from "fs";
 
-let calcSpeed: number | undefined = undefined;
+import { testData } from "./test-cases";
 
-const width = 1200;
-const noteTextSize = 12;
-const infoTextSize = 36;
-const durationsHeight = 50;
-
-function randomFrets(tab: Tab, allStrings: boolean = false): void {
-  for (const bar of tab.bars) {
-    for (const chord of bar.chords) {
-      for (const note of chord.notes) {
-        if (allStrings) {
-          note.fret = Math.floor(Math.random() * 24);
-        } else {
-          note.fret =
-            Math.random() <= 0.2 ? Math.floor(Math.random() * 24) : undefined;
-        }
-      }
-    }
-  }
-}
-
-function selectNote(
-  tabWindow: TabWindow,
-  tabLineId: number,
-  barElementId: number,
-  chordElementId: number,
-  stringNum: number
-): void {
-  // const tabLineElement = tabWindow.tabLineElements[tabLineId];
-  // const barElement = tabLineElement.barElements[barElementId];
-  // const chordElement = barElement.chordElements[chordElementId];
-  // const noteElement = chordElement.noteElements[stringNum - 1];
-  tabWindow.selectNoteElement(
-    tabLineId,
-    barElementId,
-    chordElementId,
-    stringNum - 1
-  );
-}
-
-function prepareTestCase1(): TabWindow {
-  const stringsCount = 6;
-  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
-
-  const bars = [
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-  ];
-
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-
-  const dim = new TabWindowDim(
-    width,
-    noteTextSize,
-    infoTextSize,
-    durationsHeight,
-    guitar.stringsCount
-  );
-  const tabWindow = new TabWindow(tab, dim);
-  tabWindow.calc();
-  selectNote(tabWindow, 0, 3, 3, 4);
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-
-  randomFrets(tab, true);
-
-  tabWindow.moveSelectedNoteLeft();
-  tabWindow.moveSelectedNoteLeft();
-
-  return tabWindow;
-}
-
-function prepareTestCase2(): TabWindow {
-  const stringsCount = 6;
-  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
-  const bars = [];
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-
-  const dim = new TabWindowDim(
-    width,
-    noteTextSize,
-    infoTextSize,
-    durationsHeight,
-    guitar.stringsCount
-  );
-  const tabWindow = new TabWindow(tab, dim);
-
-  tabWindow.calc();
-  return tabWindow;
-}
-
-function prepareTestCase3(): TabWindow {
-  const stringsCount = 6;
-  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
-  const bars = [
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 130, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 5, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-  ];
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-  randomFrets(tab);
-
-  const dim = new TabWindowDim(
-    width,
-    noteTextSize,
-    infoTextSize,
-    durationsHeight,
-    guitar.stringsCount
-  );
-  const tabWindow = new TabWindow(tab, dim);
-  tabWindow.calc();
-  selectNote(tabWindow, 0, 1, 2, 4);
-  return tabWindow;
-}
-
-function prepareTestCase4(): TabWindow {
-  const stringsCount = 7;
-  const tuning = [Note.A, Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
-  let bars = new Array<Bar>();
-  for (let i = 0; i < 300; i++) {
-    bars.push(
-      new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-      ])
-    );
-  }
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-  randomFrets(tab);
-
-  const dim = new TabWindowDim(
-    width,
-    noteTextSize,
-    infoTextSize,
-    durationsHeight,
-    guitar.stringsCount
-  );
-  const tabWindow = new TabWindow(tab, dim);
-
-  const before = performance.now();
-  tabWindow.calc();
-  const after = performance.now();
-  calcSpeed = after - before;
-
-  selectNote(tabWindow, 0, 1, 2, 4);
-  return tabWindow;
-}
-
-function render(tabWindows: TabWindow[]): string {
+function render(
+  tabWindows: TabWindow[],
+  calcSpeed: number | undefined,
+  detailed: boolean | undefined = false
+): string {
   const html = new Array<string>();
 
   if (calcSpeed) {
@@ -277,15 +27,15 @@ function render(tabWindows: TabWindow[]): string {
     html.push(`Test case ${tabWindows.indexOf(tabWindow) + 1}`);
     html.push("<div>");
     const tabWindowHeight =
-      tabWindow.dim.tabLineHeight * tabWindow.tabLineElements.length;
+      tabWindow.dim.tabLineHeight * tabWindow.barElementLines.length;
     html.push(`<svg viewBox="0 0 ${tabWindow.dim.width} ${tabWindowHeight}"
                     width="${tabWindow.dim.width}"
                     height="${tabWindowHeight}">`);
     // html.push(`<path d="${tabWindow.linesPath}" stroke="black" />`);
-    for (const tabLineElement of tabWindow.tabLineElements) {
+    for (const barElementLine of tabWindow.barElementLines) {
       html.push("<g>");
 
-      for (const barElement of tabLineElement.barElements) {
+      for (const barElement of barElementLine) {
         html.push(`<line x1="${barElement.barLeftBorderLine[0].x}"
                 y1="${barElement.barLeftBorderLine[0].y}"
                 x2="${barElement.barLeftBorderLine[1].x}"
@@ -295,42 +45,77 @@ function render(tabWindows: TabWindow[]): string {
         const strokeColor = !barElement.durationsFit() ? "red" : "black";
         for (const line of barElement.lines) {
           html.push(`<line x1="${line[0].x}"
-                          y1="${line[0].y}"
-                          x2="${line[1].x}"
-                          y2="${line[1].y}"
-                          stroke="${strokeColor}" />`);
+                           y1="${line[0].y}"
+                           x2="${line[1].x}"
+                           y2="${line[1].y}"
+                           stroke="${strokeColor}" />`);
 
           if (barElement.showSignature) {
+            if (detailed) {
+              html.push(`<rect x="${barElement.timeSigRect.x}"
+                               y="${barElement.timeSigRect.y}"
+                               width="${barElement.timeSigRect.width}"
+                               height="${barElement.timeSigRect.height}"
+                               fill="purple"
+                               fill-opacity="0.25"
+                               stroke="black"
+                               stroke-opacity="1" />`);
+            }
             html.push(`<g>
                        <text x="${barElement.beatsTextCoords.x}"
                              y="${barElement.beatsTextCoords.y}"
                              text-anchor="middle"
-                             font-size="${tabWindow.dim.infoTextSize}"
-                       >
+                             font-size="${tabWindow.dim.timeSigTextSize}">
                          ${barElement.bar.beats}
                        </text>
              
                        <text x="${barElement.measureTextCoords.x}"
                              y="${barElement.measureTextCoords.y}"
                              text-anchor="middle"
-                             font-size="${tabWindow.dim.infoTextSize}"
-                       >
+                             font-size="${tabWindow.dim.timeSigTextSize}">
                          ${1 / barElement.bar.duration}
                        </text>
                      </g>`);
           }
 
           if (barElement.showTempo) {
+            if (detailed) {
+              html.push(`<rect x="${barElement.tempoRect.x}"
+                               y="${barElement.tempoRect.y}"
+                               width="${barElement.tempoRect.width}"
+                               height="${barElement.tempoRect.height}"
+                               fill="green"
+                               fill-opacity="0.25"
+                               stroke="black"
+                               stroke-opacity="1" />`);
+            }
+
+            html.push(`<image x="${barElement.tempoImageRect.x}"
+                              y="${barElement.tempoImageRect.y}"
+                              width="${barElement.tempoImageRect.width}"
+                              height="${barElement.tempoImageRect.height}"
+                              href="./assets/img/notes/4.svg" />`);
             html.push(`<text x="${barElement.tempoTextCoords.x}"
-                           y="${barElement.tempoTextCoords.y}"
-                           text-anchor="middle"
-                           >
-                       ${barElement.bar.tempo}
+                             y="${barElement.tempoTextCoords.y}"
+                             text-anchor="start"
+                             font-size="${tabWindow.dim.tempoTextSize}">
+                       = ${barElement.bar.tempo}
                      </text>`);
           }
         }
 
         for (const chordElement of barElement.chordElements) {
+          if (detailed) {
+            html.push(`<rect x="${chordElement.durationRect.x}"
+                             y="${chordElement.durationRect.y}"
+                             width="${chordElement.durationRect.width}"
+                             height="${chordElement.durationRect.height}"
+                             fill="red"
+                             fill-opacity="0.25"
+                             stroke="black"
+                             stroke-opacity="1" />`);
+          }
+
           html.push(`<image x="${chordElement.durationRect.x}"
                             y="${chordElement.durationRect.y}"
                             width="${chordElement.durationRect.width}"
@@ -340,6 +125,17 @@ function render(tabWindows: TabWindow[]): string {
                             }.svg" />`);
 
           for (const noteElement of chordElement.noteElements) {
+            if (detailed) {
+              html.push(`<rect x="${noteElement.rect.x}"
+                               y="${noteElement.rect.y}"
+                               width="${noteElement.rect.width}"
+                               height="${noteElement.rect.height}"
+                               fill="orange"
+                               fill-opacity="0.25"
+                               stroke="blue"
+                               stroke-opacity="1" />`);
+            }
+
             if (noteElement.note.fret) {
               html.push("<g>");
               html.push(`<rect x="${noteElement.textRect.x}"
@@ -391,19 +187,16 @@ function render(tabWindows: TabWindow[]): string {
   return html.join("");
 }
 
-function saveHTML(html: string): void {
-  fs.writeFileSync("./test-render/index.html", html);
+function saveHTML(fileName: string, html: string): void {
+  fs.writeFileSync(`./test-render/${fileName}`, html);
 }
 
 function main(): void {
-  const tabWindows = [
-    prepareTestCase1(),
-    prepareTestCase2(),
-    prepareTestCase3(),
-    prepareTestCase4(),
-  ];
-  const html = render(tabWindows);
-  saveHTML(html);
+  const htmlNormal = render(testData.tabWindows, testData.calcSpeed, false);
+  saveHTML("index.html", htmlNormal);
+
+  const htmlDetailed = render(testData.tabWindows, testData.calcSpeed, true);
+  saveHTML("index-detailed.html", htmlDetailed);
 }
 
 main();

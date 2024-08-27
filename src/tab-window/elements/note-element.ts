@@ -77,7 +77,8 @@ export class NoteElement {
     this.rect.width *= scale;
     this.rect.x *= scale;
     // this.textRect.width *= scale;
-    this.textRect.x *= scale;
+    this.textRect.x =
+      this.rect.x + this.rect.width / 2 - this.dim.noteTextSize / 2;
     this.textCoords.x = this.textRect.x + this.dim.noteTextSize / 2;
   }
 
