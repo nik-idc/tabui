@@ -1,6 +1,6 @@
 {
     "name": "@atikincode/tabui",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "description": "Calculates UI dimensions for Tabber UI",
     "main": "dist/index.ts",
     "types": "dist/index.d.ts",
@@ -9,9 +9,7 @@
     ],
     "scripts": {
         "full_test": "npm run test && npm run render && start ./test-render/index.html",
-        "render-both": "npx tsx ./test-render/render.ts && npx tsx ./test-render/render-detailed.ts",
         "render": "npx tsx ./test-render/render.ts",
-        "render-d": "npx tsx ./test-render/render-detailed.ts",
         "build": "tsc --build",
         "clean": "tsc --build --clean",
         "test": "jest"
