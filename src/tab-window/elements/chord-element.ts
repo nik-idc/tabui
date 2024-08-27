@@ -70,11 +70,11 @@ export class ChordElement {
 
     // Calc note elements
     let notes = this.chord.notes;
-    for (let stringNum = 0; stringNum < notes.length; stringNum++) {
-      this.noteElements[stringNum] = new NoteElement(
+    for (let stringNum = 1; stringNum <= notes.length; stringNum++) {
+      this.noteElements[stringNum - 1] = new NoteElement(
         this.dim,
         this.rect,
-        notes[stringNum]
+        notes[stringNum - 1]
       );
     }
 

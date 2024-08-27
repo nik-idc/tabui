@@ -73,26 +73,29 @@ export class BarElement {
    */
   calc(): void {
     // Tempo rectangle
-    const tempoRectWidth = this.showTempo ? this.dim.infoWidth : 0;
+    const tempoRectWidth = this.showTempo ? this.dim.tempoRectWidth : 0;
     this.tempoRect.x = this.rect.x;
     this.tempoRect.y = this.rect.y;
     this.tempoRect.width = tempoRectWidth;
-    this.tempoRect.height = this.dim.durationsHeight;
+    this.tempoRect.height = this.dim.tempoRectHeight;
 
     // Time signature rectangle
-    const timeSigWidth = this.showSignature ? this.dim.infoWidth : 0;
+    const timeSigWidth = this.showSignature ? this.dim.timeSigRectWidth : 0;
     this.timeSigRect.x = this.rect.x;
     this.timeSigRect.y =
-      this.rect.y + this.dim.durationsHeight + this.dim.noteRectHeight / 2;
+      this.tempoRect.leftBottom.y +
+      this.dim.durationsHeight +
+      this.dim.noteRectHeight / 2;
     this.timeSigRect.width = timeSigWidth;
     this.timeSigRect.height = this.dim.timeSigRectHeight;
 
     // Calculate chords
     this.chordElements = [];
     let chordsWidth = 0;
-    const anyInfo = tempoRectWidth !== 0 || timeSigWidth !== 0;
-    const startX = anyInfo ? this.rect.x + this.dim.infoWidth : this.rect.x;
-    const chordCoords = new Point(startX, this.tempoRect.rightTop.y);
+    const startX = this.showSignature
+      ? this.timeSigRect.rightTop.x
+      : this.rect.x;
+    const chordCoords = new Point(startX, this.rect.y + this.tempoRect.height);
     for (let chord of this.bar.chords) {
       const chordElement = new ChordElement(this.dim, chordCoords, chord);
       this.chordElements.push(chordElement);
@@ -102,7 +105,9 @@ export class BarElement {
     }
 
     // Set main rectangle
-    this.rect.width = anyInfo ? this.dim.infoWidth + chordsWidth : chordsWidth;
+    this.rect.width = this.showSignature
+      ? this.timeSigRect.width + chordsWidth
+      : chordsWidth;
     this.rect.height = this.dim.tabLineHeight;
 
     // Make lines
@@ -340,12 +345,24 @@ export class BarElement {
   }
 
   /**
+   * Tempo image coords
+   */
+  get tempoImageRect(): Rect {
+    return new Rect(
+      this.tempoRect.x,
+      this.tempoRect.y + this.dim.tempoTextSize / 4,
+      this.dim.tempoTextSize,
+      this.dim.tempoTextSize
+    );
+  }
+
+  /**
    * Tempo text coords
    */
   get tempoTextCoords(): Point {
     return new Point(
-      this.tempoRect.x + this.tempoRect.width / 2,
-      this.tempoRect.y + this.tempoRect.height / 2
+      this.tempoRect.x + this.dim.tempoTextSize,
+      this.tempoRect.y + this.dim.tempoTextSize
     );
   }
 

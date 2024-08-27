@@ -3,7 +3,6 @@ export { TabWindow } from "./tab-window/tab-window";
 export { TabWindowDim } from "./tab-window/tab-window-dim";
 //      Elements
 export { SelectedElement } from "./tab-window/elements/selected-element";
-export { TabLineElement } from "./tab-window/elements/tab-line-element";
 export { BarElement } from "./tab-window/elements/bar-element";
 export { ChordElement } from "./tab-window/elements/chord-element";
 export { NoteElement } from "./tab-window/elements/note-element";

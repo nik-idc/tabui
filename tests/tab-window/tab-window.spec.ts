@@ -1,194 +1,67 @@
-import {
-  Bar,
-  Chord,
-  Guitar,
-  Note,
-  NoteDuration,
-  Point,
-  Tab,
-  TabWindowDim,
-} from "../../src";
-import { TabWindow } from "../../src";
-
-const stringsCount = 6;
-const fretsCount = 24;
-const guitar = new Guitar(
-  stringsCount,
-  [Note.E, Note.B, Note.G, Note.D, Note.A, Note.E],
-  fretsCount
-);
-const tabId = 1;
-const tabName = "Random";
-const tabArtist = "Me";
-const tabSong = "Song";
-const tab = new Tab(tabId, tabName, tabArtist, tabSong, guitar, [
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-  new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-    new Chord(guitar, NoteDuration.Quarter),
-  ]),
-]);
-
-const coords = new Point(0, 0);
-
-const width = 1200;
-const noteTextSize = 12;
-const infoTextSize = 24;
-const durationsHeight = 50;
-const dim = new TabWindowDim(
-  width,
-  noteTextSize,
-  infoTextSize,
-  durationsHeight,
-  stringsCount
-);
-
-let tabWindow: TabWindow;
+import { testData } from "./../../test-render/test-cases";
 
 describe("Tab window tests", () => {
-  test("Tab window calc test: calc SVG path", () => {
-    tabWindow = new TabWindow(tab, dim);
-
-    // Prepare expected SVG path
-    const expectedSVGPath =
-      `M0,${dim.durationsHeight + dim.noteRectHeight / 2}v${
-        dim.timeSigRectHeight
-      }` +
-      `M1200,${dim.durationsHeight + dim.noteRectHeight / 2}v${
-        dim.timeSigRectHeight
-      }` +
-      `M0,${
-        dim.durationsHeight + dim.noteRectHeight * 0 + dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.durationsHeight + dim.noteRectHeight * 1 + dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.durationsHeight + dim.noteRectHeight * 2 + dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.durationsHeight + dim.noteRectHeight * 3 + dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.durationsHeight + dim.noteRectHeight * 4 + dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.durationsHeight + dim.noteRectHeight * 5 + dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${dim.tabLineHeight + dim.durationsHeight + dim.noteRectHeight / 2}v${
-        dim.timeSigRectHeight
-      }` +
-      `M1200,${
-        dim.tabLineHeight + dim.durationsHeight + dim.noteRectHeight / 2
-      }v${dim.timeSigRectHeight}` +
-      `M0,${
-        dim.tabLineHeight +
-        dim.durationsHeight +
-        dim.noteRectHeight * 0 +
-        dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.tabLineHeight +
-        dim.durationsHeight +
-        dim.noteRectHeight * 1 +
-        dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.tabLineHeight +
-        dim.durationsHeight +
-        dim.noteRectHeight * 2 +
-        dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.tabLineHeight +
-        dim.durationsHeight +
-        dim.noteRectHeight * 3 +
-        dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.tabLineHeight +
-        dim.durationsHeight +
-        dim.noteRectHeight * 4 +
-        dim.noteRectHeight / 2
-      }H1200` +
-      `M0,${
-        dim.tabLineHeight +
-        dim.durationsHeight +
-        dim.noteRectHeight * 5 +
-        dim.noteRectHeight / 2
-      }H1200`;
-
-    // Calc
-    tabWindow.calc();
+  test("Tab window calc test: calc bar elements, test case 1", () => {
+    const expectedBarElementLinesCount = 2;
+    const expectedLine1BarCount = 5;
+    const expectedLine2BarCount = 1;
 
     // Test
-    expect(tabWindow.linesPath).toBe(expectedSVGPath);
+    expect(testData.tabWindows[0].barElementLines.length).toBe(
+      expectedBarElementLinesCount
+    );
+    expect(testData.tabWindows[0].barElementLines[0].length).toBe(
+      expectedLine1BarCount
+    );
+    expect(testData.tabWindows[0].barElementLines[1].length).toBe(
+      expectedLine2BarCount
+    );
+  });
+
+  test("Tab window calc test: calc bar elements, test case 2", () => {
+    const expectedBarElementLinesCount = 1;
+    const expectedLine1BarCount = 1;
+
+    // Test
+    expect(testData.tabWindows[1].barElementLines.length).toBe(
+      expectedBarElementLinesCount
+    );
+    expect(testData.tabWindows[1].barElementLines[0].length).toBe(
+      expectedLine1BarCount
+    );
+  });
+
+  test("Tab window calc test: calc bar elements, test case 3", () => {
+    const expectedBarElementLinesCount = 3;
+    const expectedLine1BarCount = 5;
+    const expectedLine2BarCount = 4;
+    const expectedLine3BarCount = 4;
+
+    // Test
+    expect(testData.tabWindows[2].barElementLines.length).toBe(
+      expectedBarElementLinesCount
+    );
+    expect(testData.tabWindows[2].barElementLines[0].length).toBe(
+      expectedLine1BarCount
+    );
+    expect(testData.tabWindows[2].barElementLines[1].length).toBe(
+      expectedLine2BarCount
+    );
+    expect(testData.tabWindows[2].barElementLines[2].length).toBe(
+      expectedLine3BarCount
+    );
+  });
+
+  test("Tab window calc test: calc bar elements, test case 4", () => {
+    const expectedBarElementLinesCount = 60;
+    const expectedLineBarCount = 5;
+
+    // Test
+    expect(testData.tabWindows[3].barElementLines.length).toBe(
+      expectedBarElementLinesCount
+    );
+    for (const barElementLine of testData.tabWindows[3].barElementLines) {
+      expect(barElementLine.length).toBe(expectedLineBarCount);
+    }
   });
 });

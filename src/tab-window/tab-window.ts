@@ -5,7 +5,6 @@ import { BarElement } from "./elements/bar-element";
 import { Point } from "./shapes/point";
 import { Bar } from "./../models/bar";
 import { NoteDuration } from "./../models/note-duration";
-import { TabLineElement } from "./elements/tab-line-element";
 import { ChordElement } from "./elements/chord-element";
 import { SelectedElement } from "./elements/selected-element";
 import { Chord } from "../models/chord";
@@ -22,10 +21,18 @@ export class TabWindow {
    * Dimensions object
    */
   readonly dim: TabWindowDim;
+  // /**
+  //  * Array of tab lines
+  //  */
+  // private _tabLineElements: TabLineElement[];
   /**
-   * Array of tab lines
+   * Bar elements
    */
-  private _tabLineElements: TabLineElement[];
+  private _barElements: BarElement[];
+  /**
+   * Lines of bar elements
+   */
+  private _barElementLines: BarElement[][];
   /**
    * Selected note element
    */
@@ -50,39 +57,162 @@ export class TabWindow {
     }
     this._tab = tab;
     this.dim = dim;
-    this._tabLineElements = [];
+    // this._tabLineElements = [];
+    this._barElements = [];
+    this._barElementLines = [];
 
-    // // Create path
-    // this._linesPath = "";
-    // for (let strId = 0; strId < this._tab.guitar.stringsCount; strId++) {
-    //   this._linesPath += `M0,${this.dim.tabLineHeight}H${this.dim.width}`;
-    // }
     this.calc();
   }
 
+  private justifyBarElementsLine(barElements: BarElement[]): void {
+    // Calc width of empty space
+    const gapWidth =
+      this.dim.width - barElements[barElements.length - 1].rect.rightTop.x;
+
+    if (gapWidth === 0) {
+      return;
+    }
+
+    // Calc sum width of all bar elements
+    let sumWidth = 0;
+    for (const barElement of barElements) {
+      sumWidth += barElement.rect.width;
+    }
+
+    // Go through each bar element and increase their
+    // width according to how their current width relates
+    // to the width of the empty space
+    const scale = this.dim.width / sumWidth;
+    for (const barElement of barElements) {
+      barElement.scaleBarHorBy(scale);
+    }
+  }
+
   /**
-   * Calculate tab line elements of the tab
+   * Calc, place and scale all bar elements
    */
-  private calcTabLineElements(): void {
-    this._tabLineElements = [new TabLineElement(this.dim, new Point(0, 0))];
-    for (const bar of this._tab.bars) {
-      const tabLinesCount = this._tabLineElements.length;
-      const inserted =
-        this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
-      if (!inserted) {
-        const lineCoords = new Point(0, this.dim.tabLineHeight * tabLinesCount);
-        this._tabLineElements.push(new TabLineElement(this.dim, lineCoords));
-        this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
-        this._tabLineElements[this._tabLineElements.length - 2].justifyBars();
+  private calcBarElements(): void {
+    this._barElements = [];
+    this._barElementLines = [];
+    
+    let coords = new Point(0, 0);
+
+    for (let i = 0; i < this._tab.bars.length; i++) {
+      const showSignature =
+        i > 0
+          ? this._tab.bars[i].signature !== this._tab.bars[i - 1].signature
+          : true;
+      const showTempo =
+        i > 0 ? this._tab.bars[i].tempo !== this._tab.bars[i - 1].tempo : true;
+
+      const barElement = new BarElement(
+        this.dim,
+        coords,
+        this._tab.bars[i],
+        showSignature,
+        showTempo
+      );
+
+      if (i === 0) {
+        this._barElements.push(barElement);
+        this._barElementLines.push([barElement]);
+      } else {
+        const lastBarElement = this._barElements[this._barElements.length - 1];
+
+        const barFits =
+          lastBarElement.rect.rightTop.x + barElement.rect.width <=
+          this.dim.width;
+        if (!barFits) {
+          coords = new Point(0, coords.y + this.dim.tabLineHeight);
+
+          this.justifyBarElementsLine(
+            this._barElementLines[this._barElementLines.length - 1]
+          );
+          this._barElementLines.push([]);
+        } else {
+          coords = new Point(lastBarElement.rect.rightTop.x, coords.y);
+        }
+
+        barElement.setCoords(coords);
+        this._barElements.push(barElement);
+        this._barElementLines[this._barElementLines.length - 1].push(
+          barElement
+        );
       }
     }
 
-    // Justify last bar
-    const lastTabLineElement =
-      this._tabLineElements[this._tabLineElements.length - 1];
-    if (lastTabLineElement.barElements.length >= 1) {
-      this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
-    }
+    // Justify last bar elements line
+    this.justifyBarElementsLine(
+      this._barElementLines[this._barElementLines.length - 1]
+    );
+  }
+
+  // /**
+  //  * Calculate tab line elements of the tab
+  //  */
+  // private calcTabLineElements(): void {
+  //   this._tabLineElements = [new TabLineElement(this.dim, new Point(0, 0))];
+  //   for (const bar of this._tab.bars) {
+  //     const tabLinesCount = this._tabLineElements.length;
+  //     const inserted =
+  //       this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
+  //     if (!inserted) {
+  //       const lineCoords = new Point(0, this.dim.tabLineHeight * tabLinesCount);
+  //       this._tabLineElements.push(new TabLineElement(this.dim, lineCoords));
+  //       this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
+  //       this._tabLineElements[this._tabLineElements.length - 2].justifyBars();
+  //     }
+  //   }
+
+  //   // Justify last bar
+  //   const lastTabLineElement =
+  //     this._tabLineElements[this._tabLineElements.length - 1];
+  //   if (lastTabLineElement.barElements.length >= 1) {
+  //     this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
+  //   }
+
+  //   if (this._selectedElement) {
+  //     this._selectedElement.calcElementIds();
+  //   }
+  // }
+
+  // /**
+  //  * Calculate SVG string lines path
+  //  */
+  // private calcPath(): void {
+  //   // Create path
+  //   this._linesPath = "";
+  //   for (const tabLineElement of this._tabLineElements) {
+  //     const linesY =
+  //       tabLineElement.rect.y +
+  //       this.dim.durationsHeight +
+  //       this.dim.noteRectHeight / 2;
+  //     const startX = tabLineElement.rect.x;
+  //     const endX = tabLineElement.rect.rightTop.x;
+  //     this._linesPath += `M${startX},${linesY}v${this.dim.timeSigRectHeight}`;
+  //     this._linesPath += `M${endX},${linesY}v${this.dim.timeSigRectHeight}`;
+  //     for (let strId = 0; strId < this._tab.guitar.stringsCount; strId++) {
+  //       // Move to cur string's Y level and draw a horizontal line
+  //       const y =
+  //         tabLineElement.rect.y +
+  //         this.dim.durationsHeight +
+  //         strId * this.dim.noteRectHeight +
+  //         this.dim.noteRectHeight / 2;
+  //       this._linesPath += `M0,${y}H${this.dim.width}`;
+  //     }
+  //   }
+  // }
+
+  // /**
+  //  * Calculate tab window
+  //  */
+  // public calcOld(): void {
+  //   this.calcTabLineElements();
+  //   this.calcPath();
+  // }
+
+  public calc(): void {
+    this.calcBarElements();
 
     if (this._selectedElement) {
       this._selectedElement.calcElementIds();
@@ -90,55 +220,20 @@ export class TabWindow {
   }
 
   /**
-   * Calculate SVG string lines path
-   */
-  private calcPath(): void {
-    // Create path
-    this._linesPath = "";
-    for (const tabLineElement of this._tabLineElements) {
-      const linesY =
-        tabLineElement.rect.y +
-        this.dim.durationsHeight +
-        this.dim.noteRectHeight / 2;
-      const startX = tabLineElement.rect.x;
-      const endX = tabLineElement.rect.rightTop.x;
-      this._linesPath += `M${startX},${linesY}v${this.dim.timeSigRectHeight}`;
-      this._linesPath += `M${endX},${linesY}v${this.dim.timeSigRectHeight}`;
-      for (let strId = 0; strId < this._tab.guitar.stringsCount; strId++) {
-        // Move to cur string's Y level and draw a horizontal line
-        const y =
-          tabLineElement.rect.y +
-          this.dim.durationsHeight +
-          strId * this.dim.noteRectHeight +
-          this.dim.noteRectHeight / 2;
-        this._linesPath += `M0,${y}H${this.dim.width}`;
-      }
-    }
-  }
-
-  /**
-   * Calculate tab window
-   */
-  public calc(): void {
-    this.calcTabLineElements();
-    this.calcPath();
-  }
-
-  /**
    * Select new note element
-   * @param tabLineElementId Id of the tab line element containing the bar element
+   * @param barElementsLineId Id of the bar elements' line containing the bar element
    * @param barElementId Id of the bar element containing the chord element
    * @param chordElementId Id of the chord element containing the note element
    * @param noteElementId Id of the note element
    */
   public selectNoteElement(
-    tabLineElementId: number,
+    barElementsLineId: number,
     barElementId: number,
     chordElementId: number,
     noteElementId: number
   ): void {
-    const tabLineElement = this._tabLineElements[tabLineElementId];
-    const barElement = tabLineElement.barElements[barElementId];
+    const barElementsLine = this._barElementLines[barElementsLineId];
+    const barElement = barElementsLine[barElementId];
     const chordElement = barElement.chordElements[chordElementId];
     const noteElement = chordElement.noteElements[noteElementId];
 
@@ -260,11 +355,15 @@ export class TabWindow {
     return this._tab;
   }
 
-  /**
-   * Array of tab lines
-   */
-  public get tabLineElements(): TabLineElement[] {
-    return this._tabLineElements;
+  // /**
+  //  * Array of tab lines
+  //  */
+  // public get tabLineElements(): TabLineElement[] {
+  //   return this._tabLineElements;
+  // }
+
+  public get barElementLines(): BarElement[][] {
+    return this._barElementLines;
   }
 
   /**

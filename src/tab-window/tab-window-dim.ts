@@ -11,9 +11,13 @@ export class TabWindowDim {
    */
   readonly noteTextSize: number;
   /**
-   * Size of info text
+   * Size of time signature text
    */
-  readonly infoTextSize: number;
+  readonly timeSigTextSize: number;
+  /**
+   * Size of tempo text
+   */
+  readonly tempoTextSize: number;
   /**
    * Width of a whole note rectangle
    */
@@ -43,10 +47,6 @@ export class TabWindowDim {
    */
   readonly noteRectHeight: number;
   /**
-   * Height of a time signature rectangle
-   */
-  readonly timeSigRectHeight: number;
-  /**
    * Height of one tab line (bar + durations above it)
    */
   readonly tabLineHeight: number;
@@ -55,29 +55,55 @@ export class TabWindowDim {
    */
   readonly durationsHeight: number;
   /**
-   * Width of info block (time signature and/or tempo)
+   * Height of a time signature rectangle
    */
-  readonly infoWidth: number;
+  readonly timeSigRectHeight: number;
+  /**
+   * Width of time signature block
+   */
+  readonly timeSigRectWidth: number;
+  /**
+   * Height of tempo block
+   */
+  readonly tempoRectHeight: number;
+  /**
+   * Width of tempo block
+   */
+  readonly tempoRectWidth: number;
+
+  /**
+   * Class that contains all the needed dim info of tab lines
+   * @param width Tab window width
+   * @param timeSigTextSize Size of note text
+   * @param tempoTextSize Size of note text
+   * @param infoTextSize Size of info text
+   * @param durationsHeight Height of durations object above the notes
+   * @param stringsCount Strings count
+   */
 
   /**
    * Class that contains all the needed dim info of tab lines
    * @param width Tab window width
    * @param noteTextSize Size of note text
-   * @param infoTextSize Size of info text
+   * @param timeSigTextSize Size of time signature text
+   * @param tempoTextSize Size of tempo text
    * @param durationsHeight Height of durations object above the notes
    * @param stringsCount Strings count
    */
   constructor(
     width: number,
     noteTextSize: number,
-    infoTextSize: number,
+    timeSigTextSize: number,
+    tempoTextSize: number,
     durationsHeight: number,
     stringsCount: number
   ) {
     this.width = width;
-
     this.noteTextSize = noteTextSize;
-    this.infoTextSize = infoTextSize;
+    this.timeSigTextSize = timeSigTextSize;
+    this.tempoTextSize = tempoTextSize;
+    this.durationsHeight = durationsHeight;
+
     this.noteRectHeight = this.noteTextSize * 2;
     this.noteRectWidthThirtySecond = this.noteTextSize * 3;
     this.noteRectWidthSixteenth = this.noteRectWidthThirtySecond * 1.1;
@@ -86,10 +112,15 @@ export class TabWindowDim {
     this.noteRectWidthHalf = this.noteRectWidthThirtySecond * 1.4;
     this.noteRectWidthWhole = this.noteRectWidthThirtySecond * 1.5;
 
-    this.durationsHeight = durationsHeight;
+    this.timeSigRectWidth = this.noteRectWidthThirtySecond;
     this.timeSigRectHeight = this.noteRectHeight * (stringsCount - 1);
-    this.tabLineHeight = this.noteRectHeight * stringsCount + this.durationsHeight;
+    // '= XXX' = 5 characters of 'tempoTextSize' size
+    this.tempoRectWidth = this.durationsHeight + this.tempoTextSize * 5;
+    this.tempoRectHeight = this.durationsHeight;
 
-    this.infoWidth = this.noteRectWidthThirtySecond;
+    this.tabLineHeight =
+      this.tempoRectHeight +
+      this.noteRectHeight * stringsCount +
+      this.durationsHeight;
   }
 }
