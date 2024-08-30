@@ -122,6 +122,30 @@ describe("Bar Model Tests", () => {
     }
   });
 
+  test("Bar insert chords test", () => {
+    const chords = [
+      new Chord(guitar, NoteDuration.Eighth),
+      new Chord(guitar, NoteDuration.Eighth),
+      new Chord(guitar, NoteDuration.Eighth),
+      new Chord(guitar, NoteDuration.Eighth),
+    ];
+    const chordsToInsert = [
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+      new Chord(guitar, NoteDuration.Sixteenth),
+    ];
+    const bar = new Bar(guitar, tempo, beats, duration, chords);
+
+    const insertIndex = 1;
+
+    bar.insertChords(insertIndex, chordsToInsert);
+    for (let i = 2; i < 6; i++) {
+      expect(bar.chords[i].duration).toBe(NoteDuration.Sixteenth);
+    }
+    expect(bar.durationsFit).toBe(false);
+  });
+
   test("Bar change chord duration test", () => {
     const chordTest = new Chord(guitar, NoteDuration.Quarter);
     const chords = [

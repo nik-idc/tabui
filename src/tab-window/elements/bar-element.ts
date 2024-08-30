@@ -48,6 +48,14 @@ export class BarElement {
    */
   readonly bar: Bar;
 
+  /**
+   * Class that handles drawing chord element in the tab
+   * @param dim Tab window dimensions
+   * @param barCoords Bar element coords
+   * @param bar Bar
+   * @param showSignature Whether to show signature
+   * @param showTempo Whether to show tempo
+   */
   constructor(
     dim: TabWindowDim,
     barCoords: Point,

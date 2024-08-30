@@ -260,13 +260,6 @@ export class SelectedElement {
     return this._tabWindow.barElementLines[this._barElementsLineId];
   }
 
-  // /**
-  //  * Selected tab line element
-  //  */
-  // public get tabLineElement(): TabLineElement {
-  //   return this._tabWindow.tabLineElements[this._tabLineElementId];
-  // }
-
   /**
    * Selected tab window element
    */

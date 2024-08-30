@@ -105,6 +105,10 @@ export class GuitarNote {
     this._note = note;
   }
 
+  public deepCopy(): GuitarNote {
+    return new GuitarNote(this.guitar, this._stringNum, this._fret);
+  }
+
   /**
    * Note value of the current note
    */

@@ -34,6 +34,16 @@ export class Chord {
     );
   }
 
+  public deepCopy(): Chord {
+    const chord = new Chord(this.guitar, this.duration);
+
+    for (let i = 0; i < this.notes.length; i++) {
+      chord.notes[i] = this.notes[i].deepCopy();
+    }
+
+    return chord;
+  }
+
   /**
    * Parses a JSON object and returns a chord object
    * @param obj Chord object

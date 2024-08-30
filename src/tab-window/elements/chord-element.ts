@@ -29,13 +29,25 @@ export class ChordElement {
    * The chord
    */
   readonly chord: Chord;
+  /**
+   * True if chord is in the selection array
+   */
+  public inSelection: boolean;
 
+  /**
+   * Class that handles drawing chord element in the tab
+   * @param dim Tab window dimensions
+   * @param chordCoords Chord element coords
+   * @param chord Chord
+   */
   constructor(dim: TabWindowDim, chordCoords: Point, chord: Chord) {
     this.dim = dim;
     this.noteElements = new Array<NoteElement>(chord.guitar.stringsCount);
     this.durationRect = new Rect();
     this.rect = new Rect(chordCoords.x, chordCoords.y);
     this.chord = chord;
+
+    this.inSelection = false;
 
     this.calc();
   }
