@@ -106,15 +106,26 @@ function render(
 
         for (const chordElement of barElement.chordElements) {
           if (detailed) {
-            html.push(`<rect x="${chordElement.durationRect.x}"
-                             y="${chordElement.durationRect.y}"
-                             width="${chordElement.durationRect.width}"
-                             height="${chordElement.durationRect.height}"
-                             fill="red"
+            const color = chordElement.inSelection ? "blue" : "red";
+            html.push(`<rect x="${chordElement.rect.x}"
+                             y="${chordElement.rect.y}"
+                             width="${chordElement.rect.width}"
+                             height="${chordElement.rect.height}"
+                             fill="${color}"
                              fill-opacity="0.25"
                              stroke="black"
                              stroke-opacity="1" />`);
           }
+          // else {
+          //   if (chordElement.inSelection) {
+          //     html.push(`<rect x="${chordElement.rect.x}"
+          //                      y="${chordElement.rect.y}"
+          //                      width="${chordElement.rect.width}"
+          //                      height="${chordElement.rect.height}"
+          //                      fill="blue"
+          //                      fill-opacity="0.25" />`);
+          //   }
+          // }
 
           html.push(`<image x="${chordElement.durationRect.x}"
                             y="${chordElement.durationRect.y}"
@@ -167,6 +178,16 @@ function render(
               }
               html.push("</g>");
             }
+
+          }
+          
+          if (!detailed && chordElement.inSelection) {
+            html.push(`<rect x="${chordElement.rect.x}"
+                             y="${chordElement.rect.y}"
+                             width="${chordElement.rect.width}"
+                             height="${chordElement.rect.height}"
+                             fill="blue"
+                             fill-opacity="0.25" />`);
           }
         }
 

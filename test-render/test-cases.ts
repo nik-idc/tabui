@@ -237,7 +237,7 @@ function prepareTestCase4(): TabWindow {
   const fretsCount = 24;
   const guitar = new Guitar(stringsCount, tuning, fretsCount);
   let bars = new Array<Bar>();
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 100; i++) {
     bars.push(
       new Bar(guitar, 120, 4, NoteDuration.Quarter, [
         new Chord(guitar, NoteDuration.Quarter),
@@ -269,12 +269,122 @@ function prepareTestCase4(): TabWindow {
   return tabWindow;
 }
 
+function prepareTestCase5(): TabWindow {
+  const stringsCount = 6;
+  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
+  const fretsCount = 24;
+  const guitar = new Guitar(stringsCount, tuning, fretsCount);
+
+  const bars = [
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+  ];
+
+  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+
+  const dim = new TabWindowDim(
+    width,
+    noteTextSize,
+    timeSigTextSize,
+    tempoTextSize,
+    durationsHeight,
+    guitar.stringsCount
+  );
+  const tabWindow = new TabWindow(tab, dim);
+  tabWindow.calc();
+  randomFrets(tab, true);
+
+  tabWindow.selectChord(0, 0, 3);
+  tabWindow.selectChord(0, 1, 0);
+  tabWindow.selectChord(0, 1, 1);
+  tabWindow.selectChord(0, 1, 2);
+
+  tabWindow.insertChordsAt(0, 1, 2);
+
+  tabWindow.selectChord(0, 0, 3);
+  tabWindow.selectChord(0, 1, 0);
+  tabWindow.selectChord(0, 1, 1);
+  tabWindow.selectChord(0, 1, 2);
+
+  return tabWindow;
+}
+
+function createBasicTabWindow(): TabWindow {
+  const stringsCount = 6;
+  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
+  const fretsCount = 24;
+  const guitar = new Guitar(stringsCount, tuning, fretsCount);
+
+  const bars = [
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+  ];
+
+  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+
+  const dim = new TabWindowDim(
+    width,
+    noteTextSize,
+    timeSigTextSize,
+    tempoTextSize,
+    durationsHeight,
+    guitar.stringsCount
+  );
+  const tabWindow = new TabWindow(tab, dim);
+  tabWindow.calc();
+  randomFrets(tab, true);
+  return tabWindow;
+}
+
 function prepareTestCases(): TabWindow[] {
   const tabWindows = [
     prepareTestCase1(),
     prepareTestCase2(),
     prepareTestCase3(),
     prepareTestCase4(),
+    prepareTestCase5(),
   ];
 
   return tabWindows;
@@ -283,4 +393,5 @@ function prepareTestCases(): TabWindow[] {
 export const testData = {
   tabWindows: prepareTestCases(),
   calcSpeed: calcSpeed,
+  createBasicTabWindow: createBasicTabWindow
 };

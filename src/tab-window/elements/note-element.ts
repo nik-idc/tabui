@@ -31,11 +31,23 @@ export class NoteElement {
    * Rectangle of the note text rectangle
    */
   readonly textCoords: Point = new Point();
+  /**
+   * True if note is selected
+   */
+  public isSelected: boolean;
 
+  /**
+   * Class that handles drawing note element in the tab
+   * @param dim Tab window dimensions
+   * @param chordRect Chord rectangle
+   * @param note Note
+   */
   constructor(dim: TabWindowDim, chordRect: Rect, note: GuitarNote) {
     this.dim = dim;
     this.chordRect = chordRect;
     this.note = note;
+
+    this.isSelected = false;
 
     this.calc();
   }

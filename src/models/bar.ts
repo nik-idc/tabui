@@ -140,6 +140,19 @@ export class Bar {
   }
 
   /**
+   * Insert chords after specified chord
+   * @param chordId Id of the chord after which to insert
+   * @param chords Chords to insert
+   */
+  public insertChords(chordId: number, chords: Chord[]) {
+    // Insert chords at specified position
+    this.chords.splice(chordId + 1, 0, ...chords);
+
+    // Check if durations fit after inserting
+    this.calcDurationsFit();
+  }
+
+  /**
    * Changes duration of a chord
    * @param chord Chord to change the duration of
    * @param duration New chord duration

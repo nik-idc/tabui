@@ -8,6 +8,7 @@ import { NoteDuration } from "./../models/note-duration";
 import { ChordElement } from "./elements/chord-element";
 import { SelectedElement } from "./elements/selected-element";
 import { Chord } from "../models/chord";
+import { SelectionElement } from "./elements/selection-element";
 
 /**
  * Class that handles creating a tab window
@@ -21,10 +22,6 @@ export class TabWindow {
    * Dimensions object
    */
   readonly dim: TabWindowDim;
-  // /**
-  //  * Array of tab lines
-  //  */
-  // private _tabLineElements: TabLineElement[];
   /**
    * Bar elements
    */
@@ -38,9 +35,9 @@ export class TabWindow {
    */
   private _selectedElement: SelectedElement | undefined;
   /**
-   * SVG Path for entire tab window
+   * Selection elements
    */
-  private _linesPath: string;
+  private _selectionElements: SelectionElement[];
 
   /**
    * Class that handles creating a tab window
@@ -57,9 +54,9 @@ export class TabWindow {
     }
     this._tab = tab;
     this.dim = dim;
-    // this._tabLineElements = [];
     this._barElements = [];
     this._barElementLines = [];
+    this._selectionElements = [];
 
     this.calc();
   }
@@ -94,7 +91,7 @@ export class TabWindow {
   private calcBarElements(): void {
     this._barElements = [];
     this._barElementLines = [];
-    
+
     let coords = new Point(0, 0);
 
     for (let i = 0; i < this._tab.bars.length; i++) {
@@ -147,70 +144,6 @@ export class TabWindow {
     );
   }
 
-  // /**
-  //  * Calculate tab line elements of the tab
-  //  */
-  // private calcTabLineElements(): void {
-  //   this._tabLineElements = [new TabLineElement(this.dim, new Point(0, 0))];
-  //   for (const bar of this._tab.bars) {
-  //     const tabLinesCount = this._tabLineElements.length;
-  //     const inserted =
-  //       this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
-  //     if (!inserted) {
-  //       const lineCoords = new Point(0, this.dim.tabLineHeight * tabLinesCount);
-  //       this._tabLineElements.push(new TabLineElement(this.dim, lineCoords));
-  //       this._tabLineElements[this._tabLineElements.length - 1].insertBar(bar);
-  //       this._tabLineElements[this._tabLineElements.length - 2].justifyBars();
-  //     }
-  //   }
-
-  //   // Justify last bar
-  //   const lastTabLineElement =
-  //     this._tabLineElements[this._tabLineElements.length - 1];
-  //   if (lastTabLineElement.barElements.length >= 1) {
-  //     this._tabLineElements[this._tabLineElements.length - 1].justifyBars();
-  //   }
-
-  //   if (this._selectedElement) {
-  //     this._selectedElement.calcElementIds();
-  //   }
-  // }
-
-  // /**
-  //  * Calculate SVG string lines path
-  //  */
-  // private calcPath(): void {
-  //   // Create path
-  //   this._linesPath = "";
-  //   for (const tabLineElement of this._tabLineElements) {
-  //     const linesY =
-  //       tabLineElement.rect.y +
-  //       this.dim.durationsHeight +
-  //       this.dim.noteRectHeight / 2;
-  //     const startX = tabLineElement.rect.x;
-  //     const endX = tabLineElement.rect.rightTop.x;
-  //     this._linesPath += `M${startX},${linesY}v${this.dim.timeSigRectHeight}`;
-  //     this._linesPath += `M${endX},${linesY}v${this.dim.timeSigRectHeight}`;
-  //     for (let strId = 0; strId < this._tab.guitar.stringsCount; strId++) {
-  //       // Move to cur string's Y level and draw a horizontal line
-  //       const y =
-  //         tabLineElement.rect.y +
-  //         this.dim.durationsHeight +
-  //         strId * this.dim.noteRectHeight +
-  //         this.dim.noteRectHeight / 2;
-  //       this._linesPath += `M0,${y}H${this.dim.width}`;
-  //     }
-  //   }
-  // }
-
-  // /**
-  //  * Calculate tab window
-  //  */
-  // public calcOld(): void {
-  //   this.calcTabLineElements();
-  //   this.calcPath();
-  // }
-
   public calc(): void {
     this.calcBarElements();
 
@@ -232,20 +165,94 @@ export class TabWindow {
     chordElementId: number,
     noteElementId: number
   ): void {
+    // Dispose of selection
+    for (const selectionElement of this._selectionElements) {
+      selectionElement.chordElement.inSelection = false;
+    }
+    this._selectionElements = [];
+
+    // Get current note element's info
     const barElementsLine = this._barElementLines[barElementsLineId];
     const barElement = barElementsLine[barElementId];
     const chordElement = barElement.chordElements[chordElementId];
     const noteElement = chordElement.noteElements[noteElementId];
+    noteElement.isSelected = true;
 
     const barId = this.tab.bars.indexOf(barElement.bar);
     const chordId = this.tab.bars[barId].chords.indexOf(chordElement.chord);
     const stringNum = noteElement.note.stringNum;
+
+    // Select
     this._selectedElement = new SelectedElement(
       this,
       barId,
       chordId,
       stringNum
     );
+  }
+
+  /**
+   *  Add new chord to selection elements array
+   * @param barElementsLineId Id of the bar elements' line containing the bar element
+   * @param barElementId Id of the bar element containing the chord element
+   * @param chordElementId Id of the chord element containing the note element
+   */
+  public selectChord(
+    barElementsLineId: number,
+    barElementId: number,
+    chordElementId: number
+  ): void {
+    // Unselect currently selected note element
+    if (this._selectedElement !== undefined) {
+      this._selectedElement.noteElement.isSelected = false;
+      this._selectedElement = undefined;
+    }
+
+    // Get current chord element's info
+    const barElementsLine = this._barElementLines[barElementsLineId];
+    const barElement = barElementsLine[barElementId];
+    const chordElement = barElement.chordElements[chordElementId];
+    if (chordElement.inSelection) {
+      // Already in selection, do nothing
+      return;
+    }
+
+    const barId = this.tab.bars.indexOf(barElement.bar);
+    const chordId = this.tab.bars[barId].chords.indexOf(chordElement.chord);
+
+    // Mark as selected
+    chordElement.inSelection = true;
+
+    // Add to selection
+    this._selectionElements.push(new SelectionElement(this, barId, chordId));
+  }
+
+  /**
+   * Insert chords into bar element
+   * @param barElementsLineId Id of the bar elements' line containing the bar element
+   * @param barElementId Id of the bar element containing the chord element
+   * @param chordElementId Id of the chord element after which to insert
+   * @returns 
+   */
+  public insertChordsAt(
+    barElementsLineId: number,
+    barElementId: number,
+    chordElementId: number
+  ): void {
+    if (this._selectionElements.length === 0) {
+      // Return because nothing to insert
+      return;
+    }
+
+    // Insert selection chords after specified chord
+    const barElement = this._barElementLines[barElementsLineId][barElementId];
+    const chords = this._selectionElements.map((se) => {
+      return se.chord;
+    });
+    barElement.bar.insertChords(chordElementId, chords);
+
+    // Recalc
+    this.calc();
   }
 
   public moveSelectedNoteUp(): void {
@@ -255,7 +262,6 @@ export class TabWindow {
     }
 
     this._selectedElement.moveUp();
-    this.calc();
   }
 
   public moveSelectedNoteDown(): void {
@@ -265,7 +271,6 @@ export class TabWindow {
     }
 
     this._selectedElement.moveDown();
-    this.calc();
   }
 
   public moveSelectedNoteLeft(): void {
@@ -275,7 +280,6 @@ export class TabWindow {
     }
 
     this._selectedElement.moveLeft();
-    this.calc();
   }
 
   public moveSelectedNoteRight(): void {
@@ -285,7 +289,6 @@ export class TabWindow {
     }
 
     this._selectedElement.moveRight();
-    this.calc();
   }
 
   public changeSelectedBarTempo(newTempo: number): void {
@@ -355,13 +358,6 @@ export class TabWindow {
     return this._tab;
   }
 
-  // /**
-  //  * Array of tab lines
-  //  */
-  // public get tabLineElements(): TabLineElement[] {
-  //   return this._tabLineElements;
-  // }
-
   public get barElementLines(): BarElement[][] {
     return this._barElementLines;
   }
@@ -374,9 +370,9 @@ export class TabWindow {
   }
 
   /**
-   * SVG Tag lines path string
+   * Selected note element
    */
-  public get linesPath(): string {
-    return this._linesPath;
+  public get selectionElements(): SelectionElement[] {
+    return this._selectionElements;
   }
 }
