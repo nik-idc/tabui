@@ -212,13 +212,12 @@ export class TabWindow {
     const barElementsLine = this._barElementLines[barElementsLineId];
     const barElement = barElementsLine[barElementId];
     const chordElement = barElement.chordElements[chordElementId];
+    const barId = this.tab.bars.indexOf(barElement.bar);
+    const chordId = this.tab.bars[barId].chords.indexOf(chordElement.chord);
     if (chordElement.inSelection) {
       // Already in selection, do nothing
       return;
     }
-
-    const barId = this.tab.bars.indexOf(barElement.bar);
-    const chordId = this.tab.bars[barId].chords.indexOf(chordElement.chord);
 
     // Mark as selected
     chordElement.inSelection = true;
@@ -227,12 +226,39 @@ export class TabWindow {
     this._selectionElements.push(new SelectionElement(this, barId, chordId));
   }
 
+  public unselectChord(
+    barElementsLineId: number,
+    barElementId: number,
+    chordElementId: number
+  ) {
+    // Get current chord element's info
+    const barElementsLine = this._barElementLines[barElementsLineId];
+    const barElement = barElementsLine[barElementId];
+    const chordElement = barElement.chordElements[chordElementId];
+    if (!chordElement.inSelection) {
+      // Already not in selection, do nothing
+      return;
+    }
+
+    // Mark as selected
+    chordElement.inSelection = false;
+
+    const index = this._selectionElements.findIndex((se) => {
+      return (
+        se.barElementsLineId === barElementsLineId &&
+        se.barElementId === barElementId &&
+        se.chordElementId === chordElementId
+      );
+    });
+    this._selectionElements.splice(index, 1);
+  }
+
   /**
    * Insert chords into bar element
    * @param barElementsLineId Id of the bar elements' line containing the bar element
    * @param barElementId Id of the bar element containing the chord element
    * @param chordElementId Id of the chord element after which to insert
-   * @returns 
+   * @returns
    */
   public insertChordsAt(
     barElementsLineId: number,
