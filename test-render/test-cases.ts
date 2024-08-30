@@ -326,6 +326,7 @@ function prepareTestCase5(): TabWindow {
   tabWindow.selectChord(0, 1, 0);
   tabWindow.selectChord(0, 1, 1);
   tabWindow.selectChord(0, 1, 2);
+  tabWindow.unselectChord(0, 1, 2);
 
   return tabWindow;
 }

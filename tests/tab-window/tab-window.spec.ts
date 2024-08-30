@@ -109,6 +109,39 @@ describe("Tab window tests", () => {
     expect(basicTabWindow.selectedElement).toBe(undefined);
   });
 
+  test("Tab window unselect chord test", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    const barElementsLineId = 0;
+    const barElementId = 1;
+    const chordElementId = 0;
+    basicTabWindow.selectChord(barElementsLineId, barElementId, chordElementId);
+    basicTabWindow.selectChord(
+      barElementsLineId,
+      barElementId,
+      chordElementId + 1
+    );
+    basicTabWindow.unselectChord(
+      barElementsLineId,
+      barElementId,
+      chordElementId + 1
+    );
+
+    // Test
+    expect(basicTabWindow.selectionElements.length).toBe(1);
+    expect(basicTabWindow.selectionElements[0].barElementsLineId).toBe(
+      barElementsLineId
+    );
+    expect(basicTabWindow.selectionElements[0].barElementId).toBe(barElementId);
+    expect(basicTabWindow.selectionElements[0].chordElementId).toBe(
+      chordElementId
+    );
+    expect(basicTabWindow.selectionElements[0].chordElement.inSelection).toBe(
+      true
+    );
+    expect(basicTabWindow.selectedElement).toBe(undefined);
+  });
+
   test("Tab window insert chords test", () => {
     const basicTabWindow = testData.createBasicTabWindow();
 
