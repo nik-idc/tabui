@@ -165,11 +165,7 @@ export class TabWindow {
     chordElementId: number,
     noteElementId: number
   ): void {
-    // Dispose of selection
-    for (const selectionElement of this._selectionElements) {
-      selectionElement.chordElement.inSelection = false;
-    }
-    this._selectionElements = [];
+    this.clearSelection();
 
     // Get current note element's info
     const barElementsLine = this._barElementLines[barElementsLineId];
@@ -189,6 +185,80 @@ export class TabWindow {
       chordId,
       stringNum
     );
+  }
+
+  /**
+   * Selects all chords in between specified two chords (including them both)
+   * @param barElementsLineId1 Line id of the first chord element
+   * @param barElementId1 Bar id the first chord element
+   * @param chordElementId1 Id the first chord element
+   * @param barElementsLineId2 Line id of the second chord element
+   * @param barElementId2 Bar id the second chord element
+   * @param chordElementId2 Id the second chord element
+   * @returns 
+   */
+  public selectChordsInBetween(
+    barElementsLineId1: number,
+    barElementId1: number,
+    chordElementId1: number,
+    barElementsLineId2: number,
+    barElementId2: number,
+    chordElementId2: number
+  ): void {
+    if (barElementsLineId1 === barElementsLineId2) {
+      const lineId = barElementsLineId1;
+      for (let i = barElementId1; i <= barElementId2; i++) {
+        const barElement = this._barElementLines[lineId][i];
+        let start = i === barElementId1 ? chordElementId1 : 0;
+        let end =
+          i === barElementId2
+            ? chordElementId2 + 1
+            : barElement.chordElements.length;
+        for (let j = start; j < end; j++) {
+          this.selectChord(lineId, i, j);
+        }
+      }
+      return;
+    }
+
+    if (barElementsLineId1 < barElementsLineId2) {
+      for (let i = 0; i < this.barElementLines.length; i++) {
+        const barElementsLine = this.barElementLines[i];
+        for (let j = 0; j < barElementsLine.length; j++) {
+          const barElement = barElementsLine[j];
+          for (let k = 0; k < barElement.chordElements.length; k++) {
+            if (
+              i === barElementsLineId1 &&
+              j === barElementId1 &&
+              k >= chordElementId1
+            ) {
+              this.selectChord(i, j, k);
+            } else if (i === barElementsLineId1 && j > barElementId1) {
+              this.selectChord(i, j, k);
+            } else if (i > barElementsLineId1 && i < barElementsLineId2) {
+              this.selectChord(i, j, k);
+            } else if (i === barElementsLineId2 && j < barElementId2) {
+              this.selectChord(i, j, k);
+            } else if (
+              i === barElementsLineId2 &&
+              j === barElementId2 &&
+              k <= chordElementId2
+            ) {
+              this.selectChord(i, j, k);
+            }
+          }
+        }
+      }
+    } else {
+      this.selectChordsInBetween(
+        barElementsLineId2,
+        barElementId2,
+        chordElementId2,
+        barElementsLineId1,
+        barElementId1,
+        chordElementId1
+      );
+    }
   }
 
   /**
@@ -252,6 +322,26 @@ export class TabWindow {
     });
     this._selectionElements.splice(index, 1);
   }
+
+  public clearSelection(): void {
+    // Dispose of selection
+    for (const selectionElement of this._selectionElements) {
+      selectionElement.chordElement.inSelection = false;
+    }
+    this._selectionElements = [];
+  }
+
+  // public nextChordElementIds(
+  //   barElementsLineId: number,
+  //   barElementId: number,
+  //   chordElementId: number
+  // ): number[] {}
+
+  // public prevChordElementIds(
+  //   barElementsLineId: number,
+  //   barElementId: number,
+  //   chordElementId: number
+  // ): number[] {}
 
   /**
    * Insert chords into bar element
