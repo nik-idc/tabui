@@ -331,6 +331,17 @@ function prepareTestCase5(): TabWindow {
   return tabWindow;
 }
 
+function prepareTestCase6(): TabWindow {
+  const tabWindow = createBasicTabWindow();
+  tabWindow.calc();
+  randomFrets(tabWindow.tab, true);
+
+  tabWindow.selectChordsInBetween(0, 1, 2, 1, 2, 2);
+  tabWindow.unselectChord(1, 2, 2);
+
+  return tabWindow;
+}
+
 function createBasicTabWindow(): TabWindow {
   const stringsCount = 6;
   const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
@@ -350,12 +361,49 @@ function createBasicTabWindow(): TabWindow {
       new Chord(guitar, NoteDuration.Quarter),
       new Chord(guitar, NoteDuration.Quarter),
     ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
       new Chord(guitar, NoteDuration.Quarter),
       new Chord(guitar, NoteDuration.Quarter),
       new Chord(guitar, NoteDuration.Quarter),
     ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
       new Chord(guitar, NoteDuration.Quarter),
       new Chord(guitar, NoteDuration.Quarter),
       new Chord(guitar, NoteDuration.Quarter),
@@ -386,6 +434,7 @@ function prepareTestCases(): TabWindow[] {
     prepareTestCase3(),
     prepareTestCase4(),
     prepareTestCase5(),
+    prepareTestCase6()
   ];
 
   return tabWindows;
@@ -394,5 +443,5 @@ function prepareTestCases(): TabWindow[] {
 export const testData = {
   tabWindows: prepareTestCases(),
   calcSpeed: calcSpeed,
-  createBasicTabWindow: createBasicTabWindow
+  createBasicTabWindow: createBasicTabWindow,
 };
