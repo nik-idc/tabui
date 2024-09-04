@@ -308,6 +308,7 @@ export class TabWindow {
       );
     });
     if (index === 0) {
+      this._firstSelectionElement.chordElement.inSelection = false;
       this._firstSelectionElement = this._selectionElements[1];
     }
     this._selectionElements.splice(index, 1);
