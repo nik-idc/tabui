@@ -68,12 +68,10 @@ describe("Tab window tests", () => {
   test("Tab window select note element test", () => {
     const basicTabWindow = testData.createBasicTabWindow();
 
-    const barElementsLineId = 0;
     const barElementId = 1;
     const chordElementId = 0;
     const noteElementId = 3;
     basicTabWindow.selectNoteElement(
-      barElementsLineId,
       barElementId,
       chordElementId,
       noteElementId
@@ -81,9 +79,6 @@ describe("Tab window tests", () => {
 
     // Test
     expect(basicTabWindow.selectionElements.length).toBe(0);
-    expect(basicTabWindow.selectedElement.barElementsLineId).toBe(
-      barElementsLineId
-    );
     expect(basicTabWindow.selectedElement.barElementId).toBe(barElementId);
     expect(basicTabWindow.selectedElement.chordElementId).toBe(chordElementId);
     expect(basicTabWindow.selectedElement.noteElementId).toBe(noteElementId);
@@ -91,152 +86,413 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window select chord in between test", () => {
-    const btw = testData.createBasicTabWindow();
+    const basicTabWindow = testData.createBasicTabWindow();
 
-    const barElementsLineId1 = 0;
     const barElementId1 = 1;
     const chordElementId1 = 0;
-    const barElementsLineId2 = 1;
-    const barElementId2 = 2;
+    const barElementId2 = 7;
     const chordElementId2 = 2;
-    btw.selectChordsInBetween(
-      barElementsLineId1,
+    basicTabWindow.selectChordsInBetween(
       barElementId1,
       chordElementId1,
-      barElementsLineId2,
       barElementId2,
       chordElementId2
     );
 
     // Test
-    expect(btw.barElementLines[0][0].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[0][0].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[0][0].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[0][0].chordElements[3].inSelection).toBe(false);
+    const lines = basicTabWindow.barElementLines;
+    expect(lines[0][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[3].inSelection).toBe(false);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[0][1].chordElements[0].inSelection).toBe(true);
-    expect(btw.barElementLines[0][1].chordElements[1].inSelection).toBe(true);
-    expect(btw.barElementLines[0][1].chordElements[2].inSelection).toBe(true);
-    expect(btw.barElementLines[0][1].chordElements[3].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[0][2].chordElements[0].inSelection).toBe(true);
-    expect(btw.barElementLines[0][2].chordElements[1].inSelection).toBe(true);
-    expect(btw.barElementLines[0][2].chordElements[2].inSelection).toBe(true);
-    expect(btw.barElementLines[0][2].chordElements[3].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[0][3].chordElements[0].inSelection).toBe(true);
-    expect(btw.barElementLines[0][3].chordElements[1].inSelection).toBe(true);
-    expect(btw.barElementLines[0][3].chordElements[2].inSelection).toBe(true);
-    expect(btw.barElementLines[0][3].chordElements[3].inSelection).toBe(true);
+    expect(lines[0][3].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][3].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][3].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][3].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[0][4].chordElements[0].inSelection).toBe(true);
-    expect(btw.barElementLines[0][4].chordElements[1].inSelection).toBe(true);
-    expect(btw.barElementLines[0][4].chordElements[2].inSelection).toBe(true);
-    expect(btw.barElementLines[0][4].chordElements[3].inSelection).toBe(true);
+    expect(lines[0][4].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][4].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][4].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][4].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][0].chordElements[0].inSelection).toBe(true);
-    expect(btw.barElementLines[1][0].chordElements[1].inSelection).toBe(true);
-    expect(btw.barElementLines[1][0].chordElements[2].inSelection).toBe(true);
-    expect(btw.barElementLines[1][0].chordElements[3].inSelection).toBe(true);
+    expect(lines[1][0].chordElements[0].inSelection).toBe(true);
+    expect(lines[1][0].chordElements[1].inSelection).toBe(true);
+    expect(lines[1][0].chordElements[2].inSelection).toBe(true);
+    expect(lines[1][0].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][1].chordElements[0].inSelection).toBe(true);
-    expect(btw.barElementLines[1][1].chordElements[1].inSelection).toBe(true);
-    expect(btw.barElementLines[1][1].chordElements[2].inSelection).toBe(true);
-    expect(btw.barElementLines[1][1].chordElements[3].inSelection).toBe(true);
+    expect(lines[1][1].chordElements[0].inSelection).toBe(true);
+    expect(lines[1][1].chordElements[1].inSelection).toBe(true);
+    expect(lines[1][1].chordElements[2].inSelection).toBe(true);
+    expect(lines[1][1].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][2].chordElements[0].inSelection).toBe(true);
-    expect(btw.barElementLines[1][2].chordElements[1].inSelection).toBe(true);
-    expect(btw.barElementLines[1][2].chordElements[2].inSelection).toBe(true);
-    expect(btw.barElementLines[1][2].chordElements[3].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[0].inSelection).toBe(true);
+    expect(lines[1][2].chordElements[1].inSelection).toBe(true);
+    expect(lines[1][2].chordElements[2].inSelection).toBe(true);
+    expect(lines[1][2].chordElements[3].inSelection).toBe(false);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][3].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[1][3].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[1][3].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[1][3].chordElements[3].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[3].inSelection).toBe(false);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][4].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[1][4].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[1][4].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[1][4].chordElements[3].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[3].inSelection).toBe(false);
   });
 
-  test("Tab window select chord in between test: same line", () => {
-    const btw = testData.createBasicTabWindow();
+  test("Tab window select chord in between reverse lines test", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
 
-    const barElementsLineId1 = 0;
-    const barElementId1 = 1;
-    const chordElementId1 = 0;
-    const barElementsLineId2 = 0;
-    const barElementId2 = 2;
-    const chordElementId2 = 2;
-    btw.selectChordsInBetween(
-      barElementsLineId1,
+    const barElementId1 = 7;
+    const chordElementId1 = 2;
+    const barElementId2 = 1;
+    const chordElementId2 = 0;
+    basicTabWindow.selectChordsInBetween(
       barElementId1,
       chordElementId1,
-      barElementsLineId2,
       barElementId2,
       chordElementId2
     );
 
     // Test
-    expect(btw.barElementLines[0][0].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[0][0].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[0][0].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[0][0].chordElements[3].inSelection).toBe(false);
+    const lines = basicTabWindow.barElementLines;
+    expect(lines[0][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[3].inSelection).toBe(false);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[0][1].chordElements[0].inSelection).toBe(true);
-    expect(btw.barElementLines[0][1].chordElements[1].inSelection).toBe(true);
-    expect(btw.barElementLines[0][1].chordElements[2].inSelection).toBe(true);
-    expect(btw.barElementLines[0][1].chordElements[3].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[0][2].chordElements[0].inSelection).toBe(true);
-    expect(btw.barElementLines[0][2].chordElements[1].inSelection).toBe(true);
-    expect(btw.barElementLines[0][2].chordElements[2].inSelection).toBe(true);
-    expect(btw.barElementLines[0][2].chordElements[3].inSelection).toBe(false);
+    expect(lines[0][2].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[0][3].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[0][3].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[0][3].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[0][3].chordElements[3].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][3].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][3].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][3].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[0][4].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[0][4].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[0][4].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[0][4].chordElements[3].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][4].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][4].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][4].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][0].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[1][0].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[1][0].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[1][0].chordElements[3].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[0].inSelection).toBe(true);
+    expect(lines[1][0].chordElements[1].inSelection).toBe(true);
+    expect(lines[1][0].chordElements[2].inSelection).toBe(true);
+    expect(lines[1][0].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][1].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[1][1].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[1][1].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[1][1].chordElements[3].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[0].inSelection).toBe(true);
+    expect(lines[1][1].chordElements[1].inSelection).toBe(true);
+    expect(lines[1][1].chordElements[2].inSelection).toBe(true);
+    expect(lines[1][1].chordElements[3].inSelection).toBe(true);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][2].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[1][2].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[1][2].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[1][2].chordElements[3].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[0].inSelection).toBe(true);
+    expect(lines[1][2].chordElements[1].inSelection).toBe(true);
+    expect(lines[1][2].chordElements[2].inSelection).toBe(true);
+    expect(lines[1][2].chordElements[3].inSelection).toBe(false);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][3].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[1][3].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[1][3].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[1][3].chordElements[3].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[3].inSelection).toBe(false);
     // ------------------------------------------------------------------------
-    expect(btw.barElementLines[1][4].chordElements[0].inSelection).toBe(false);
-    expect(btw.barElementLines[1][4].chordElements[1].inSelection).toBe(false);
-    expect(btw.barElementLines[1][4].chordElements[2].inSelection).toBe(false);
-    expect(btw.barElementLines[1][4].chordElements[3].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[3].inSelection).toBe(false);
+  });
+
+  test("Tab window select chord in between same line test", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    const barElementId1 = 1;
+    const chordElementId1 = 0;
+    const barElementId2 = 2;
+    const chordElementId2 = 2;
+    basicTabWindow.selectChordsInBetween(
+      barElementId1,
+      chordElementId1,
+      barElementId2,
+      chordElementId2
+    );
+
+    // Test
+    const lines = basicTabWindow.barElementLines;
+    expect(lines[0][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][1].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[3].inSelection).toBe(true);
+    // ------------------------------------------------------------------------
+    expect(lines[0][2].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][1].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][2].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[3].inSelection).toBe(false);
+  });
+
+  test("Tab window select chord in between same line reverse bars test", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    const barElementId1 = 2;
+    const chordElementId1 = 2;
+    const barElementId2 = 1;
+    const chordElementId2 = 0;
+    basicTabWindow.selectChordsInBetween(
+      barElementId1,
+      chordElementId1,
+      barElementId2,
+      chordElementId2
+    );
+
+    // Test
+    const lines = basicTabWindow.barElementLines;
+    expect(lines[0][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][1].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[3].inSelection).toBe(true);
+    // ------------------------------------------------------------------------
+    expect(lines[0][2].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][2].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][1].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][2].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[3].inSelection).toBe(false);
+  });
+
+  test("Tab window select chord in between same bar test", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    const barElementId1 = 1;
+    const chordElementId1 = 0;
+    const barElementId2 = 1;
+    const chordElementId2 = 2;
+    basicTabWindow.selectChordsInBetween(
+      barElementId1,
+      chordElementId1,
+      barElementId2,
+      chordElementId2
+    );
+
+    // Test
+    const lines = basicTabWindow.barElementLines;
+    expect(lines[0][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][1].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][2].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][2].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][2].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][2].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][1].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][2].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[3].inSelection).toBe(false);
+  });
+
+  test("Tab window select chord in between same bar reverse chords test", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    const barElementId1 = 1;
+    const chordElementId1 = 2;
+    const barElementId2 = 1;
+    const chordElementId2 = 0;
+    basicTabWindow.selectChordsInBetween(
+      barElementId1,
+      chordElementId1,
+      barElementId2,
+      chordElementId2
+    );
+
+    // Test
+    const lines = basicTabWindow.barElementLines;
+    expect(lines[0][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][0].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][1].chordElements[0].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[1].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[2].inSelection).toBe(true);
+    expect(lines[0][1].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][2].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][2].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][2].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][2].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][3].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[0][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[0][4].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][0].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][0].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][1].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][1].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][2].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][2].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][3].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][3].chordElements[3].inSelection).toBe(false);
+    // ------------------------------------------------------------------------
+    expect(lines[1][4].chordElements[0].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[1].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[2].inSelection).toBe(false);
+    expect(lines[1][4].chordElements[3].inSelection).toBe(false);
   });
 
   test("Tab window select chord test", () => {
     const basicTabWindow = testData.createBasicTabWindow();
 
-    const barElementsLineId = 0;
     const barElementId = 1;
     const chordElementId = 0;
-    basicTabWindow.selectChord(barElementsLineId, barElementId, chordElementId);
+    basicTabWindow.selectChord(barElementId, chordElementId);
 
     // Test
     expect(basicTabWindow.selectionElements.length).toBe(1);
@@ -252,26 +508,15 @@ describe("Tab window tests", () => {
   test("Tab window unselect chord test", () => {
     const basicTabWindow = testData.createBasicTabWindow();
 
-    const barElementsLineId = 0;
     const barElementId = 1;
     const chordElementId = 0;
-    basicTabWindow.selectChord(barElementsLineId, barElementId, chordElementId);
-    basicTabWindow.selectChord(
-      barElementsLineId,
-      barElementId,
-      chordElementId + 1
-    );
-    basicTabWindow.unselectChord(
-      barElementsLineId,
-      barElementId,
-      chordElementId + 1
-    );
+    basicTabWindow.selectChord(barElementId, chordElementId);
+    basicTabWindow.selectChord(barElementId, chordElementId + 1);
+    basicTabWindow.unselectChord(barElementId, chordElementId + 1);
 
     // Test
     expect(basicTabWindow.selectionElements.length).toBe(1);
-    expect(basicTabWindow.selectionElements[0].barElementsLineId).toBe(
-      barElementsLineId
-    );
+
     expect(basicTabWindow.selectionElements[0].barElementId).toBe(barElementId);
     expect(basicTabWindow.selectionElements[0].chordElementId).toBe(
       chordElementId
@@ -285,12 +530,12 @@ describe("Tab window tests", () => {
   test("Tab window insert chords test", () => {
     const basicTabWindow = testData.createBasicTabWindow();
 
-    basicTabWindow.selectChord(0, 1, 0);
-    basicTabWindow.selectChord(0, 1, 1);
-    basicTabWindow.selectChord(0, 1, 2);
+    basicTabWindow.selectChord(1, 0);
+    basicTabWindow.selectChord(1, 1);
+    basicTabWindow.selectChord(1, 2);
     const insertChordId = 2;
 
-    basicTabWindow.insertChordsAt(0, 1, insertChordId);
+    basicTabWindow.insertChordsAt(1, insertChordId);
 
     // Test
     for (let i = 0; i < 3; i++) {

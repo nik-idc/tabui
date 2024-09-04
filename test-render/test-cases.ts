@@ -13,6 +13,9 @@ const width = 1200;
 const noteTextSize = 14;
 const timeSigTextSize = 42;
 const tempoTextSize = 28;
+// const noteTextSize = 12;
+// const timeSigTextSize = 36;
+// const tempoTextSize = 24;
 const durationsHeight = 50;
 
 function randomFrets(tab: Tab, allStrings: boolean = false): void {
@@ -32,7 +35,6 @@ function randomFrets(tab: Tab, allStrings: boolean = false): void {
 
 function selectNote(
   tabWindow: TabWindow,
-  tabLineId: number,
   barElementId: number,
   chordElementId: number,
   stringNum: number
@@ -41,12 +43,7 @@ function selectNote(
   // const barElement = tabLineElement.barElements[barElementId];
   // const chordElement = barElement.chordElements[chordElementId];
   // const noteElement = chordElement.noteElements[stringNum - 1];
-  tabWindow.selectNoteElement(
-    tabLineId,
-    barElementId,
-    chordElementId,
-    stringNum - 1
-  );
+  tabWindow.selectNoteElement(barElementId, chordElementId, stringNum - 1);
 }
 
 function prepareTestCase1(): TabWindow {
@@ -93,7 +90,7 @@ function prepareTestCase1(): TabWindow {
   );
   const tabWindow = new TabWindow(tab, dim);
   tabWindow.calc();
-  selectNote(tabWindow, 0, 3, 3, 4);
+  selectNote(tabWindow, 3, 3, 4);
   tabWindow.moveSelectedNoteRight();
   tabWindow.moveSelectedNoteRight();
   tabWindow.moveSelectedNoteRight();
@@ -265,7 +262,7 @@ function prepareTestCase4(): TabWindow {
   const after = performance.now();
   calcSpeed = after - before;
 
-  selectNote(tabWindow, 0, 1, 2, 4);
+  selectNote(tabWindow, 1, 2, 4);
   return tabWindow;
 }
 
@@ -315,18 +312,18 @@ function prepareTestCase5(): TabWindow {
   tabWindow.calc();
   randomFrets(tab, true);
 
-  tabWindow.selectChord(0, 0, 3);
-  tabWindow.selectChord(0, 1, 0);
-  tabWindow.selectChord(0, 1, 1);
-  tabWindow.selectChord(0, 1, 2);
+  tabWindow.selectChord(0, 3);
+  tabWindow.selectChord(1, 0);
+  tabWindow.selectChord(1, 1);
+  tabWindow.selectChord(1, 2);
 
-  tabWindow.insertChordsAt(0, 1, 2);
+  tabWindow.insertChordsAt(1, 2);
 
-  tabWindow.selectChord(0, 0, 3);
-  tabWindow.selectChord(0, 1, 0);
-  tabWindow.selectChord(0, 1, 1);
-  tabWindow.selectChord(0, 1, 2);
-  tabWindow.unselectChord(0, 1, 2);
+  tabWindow.selectChord(0, 3);
+  tabWindow.selectChord(1, 0);
+  tabWindow.selectChord(1, 1);
+  tabWindow.selectChord(1, 2);
+  tabWindow.unselectChord(1, 2);
 
   return tabWindow;
 }
@@ -336,8 +333,8 @@ function prepareTestCase6(): TabWindow {
   tabWindow.calc();
   randomFrets(tabWindow.tab, true);
 
-  tabWindow.selectChordsInBetween(0, 1, 2, 1, 2, 2);
-  tabWindow.unselectChord(1, 2, 2);
+  tabWindow.selectChordsInBetween(1, 2, 7, 2);
+  tabWindow.unselectChord(7, 2);
 
   return tabWindow;
 }
@@ -434,7 +431,7 @@ function prepareTestCases(): TabWindow[] {
     prepareTestCase3(),
     prepareTestCase4(),
     prepareTestCase5(),
-    prepareTestCase6()
+    prepareTestCase6(),
   ];
 
   return tabWindows;

@@ -14,10 +14,6 @@ import { Tab } from "../../models/tab";
  * about a selected element
  */
 export class SelectedElement {
-  private _barElementsLineId: number;
-  private _barElementId: number;
-  private _chordElementId: number;
-
   /**
    * Class that contains all necessary information
    * about a selected element
@@ -31,39 +27,7 @@ export class SelectedElement {
     private _barId: number,
     private _chordId: number,
     private _stringNum: number
-  ) {
-    this.calcElementIds();
-  }
-
-  /**
-   * Calculates UI elements' id's
-   */
-  public calcElementIds(): void {
-    // Calculate tab line and bar elements' id's
-    let barElementConsecutiveIndex = 0;
-    let barElementIndex = 0;
-    let barElementsLineIndex = 0;
-    let barElementsLine = this._tabWindow.barElementLines[barElementsLineIndex];
-    while (barElementsLineIndex !== this._tabWindow.barElementLines.length) {
-      barElementsLine = this._tabWindow.barElementLines[barElementsLineIndex];
-      if (barElementConsecutiveIndex === this._barId) {
-        this._barElementsLineId = barElementsLineIndex;
-        this._barElementId = barElementIndex;
-        break;
-      }
-
-      barElementConsecutiveIndex++;
-      barElementIndex++;
-
-      if (barElementIndex === barElementsLine.length) {
-        // Reset in-tab-line bar element index and increase tab line element index
-        barElementsLineIndex++;
-        barElementIndex = 0;
-      }
-    }
-
-    this._chordElementId = this._chordId;
-  }
+  ) {}
 
   /**
    * Move selected note up (or to the last string if current is the first)
@@ -94,7 +58,6 @@ export class SelectedElement {
     // If not first bar chord
     if (this._chordId !== 0) {
       this._chordId--;
-      this.calcElementIds();
       return;
     }
 
@@ -106,7 +69,6 @@ export class SelectedElement {
     // Move to the left bar
     this._barId--;
     this._chordId = this.bar.chords.length - 1;
-    this.calcElementIds();
   }
 
   /**
@@ -126,8 +88,7 @@ export class SelectedElement {
       this.bar.appendChord();
       this._chordId++;
 
-      // Recalc tab window because added a chord
-      // 'calc' already calls 'calcElementIds'
+      // Recalc tab window
       this._tabWindow.calc();
       return;
     }
@@ -136,7 +97,6 @@ export class SelectedElement {
       // Can't add more chords but can move to the next chord
       this._chordId++;
 
-      this.calcElementIds();
       return;
     }
 
@@ -145,7 +105,6 @@ export class SelectedElement {
       this._barId++;
       this._chordId = 0;
 
-      this.calcElementIds();
       return;
     }
 
@@ -161,9 +120,7 @@ export class SelectedElement {
     this._barId++;
     this._chordId = 0;
 
-    // Recalc tab window because added a bar
-    // 'calc' is supposed to already call 'calcElementIds' &
-    // 'moveRight' is supposed to already call 'calc'
+    // Recalc tab window
     this._tabWindow.calc();
   }
 
@@ -215,49 +172,52 @@ export class SelectedElement {
    * Selected chord element
    */
   public get chordElementId(): number {
-    return this._chordElementId;
+    return this._chordId;
   }
 
   /**
    * Selected bar element
    */
   public get barElementId(): number {
-    return this._barElementId;
+    return this._barId;
   }
 
   /**
    * Selected tab line element
    */
   public get barElementsLineId(): number {
-    return this._barElementsLineId;
+    return Math.floor(
+      this._tabWindow.barElements[this._barId].rect.y /
+        this._tabWindow.dim.tabLineHeight
+    );
   }
 
   /**
    * Selected note element
    */
   public get noteElement(): NoteElement {
-    return this.chordElement.noteElements[this._stringNum - 1];
+    return this.chordElement.noteElements[this.noteElementId];
   }
 
   /**
    * Selected chord element
    */
   public get chordElement(): ChordElement {
-    return this.barElement.chordElements[this._chordElementId];
+    return this.barElement.chordElements[this.chordElementId];
   }
 
   /**
    * Selected bar element
    */
   public get barElement(): BarElement {
-    return this.barElementsLine[this._barElementId];
+    return this._tabWindow.barElements[this.barElementId];
   }
 
   /**
-   * Selected bar element
+   * Selected bar elements line
    */
   public get barElementsLine(): BarElement[] {
-    return this._tabWindow.barElementLines[this._barElementsLineId];
+    return this._tabWindow.barElementLines[this.barElementsLineId];
   }
 
   /**

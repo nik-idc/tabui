@@ -10,10 +10,6 @@ import { ChordElement } from "./chord-element";
  * about a selection element
  */
 export class SelectionElement {
-  private _barElementsLineId: number;
-  private _barElementId: number;
-  private _chordElementId: number;
-
   /**
    * Class that contains all necessary information
    * about a selection element
@@ -25,39 +21,7 @@ export class SelectionElement {
     private _tabWindow: TabWindow,
     private _barId: number,
     private _chordId: number
-  ) {
-    this.calcElementIds();
-  }
-
-  /**
-   * Calculates UI elements' id's
-   */
-  public calcElementIds(): void {
-    // Calculate tab line and bar elements' id's
-    let barElementConsecutiveIndex = 0;
-    let barElementIndex = 0;
-    let barElementsLineIndex = 0;
-    let barElementsLine = this._tabWindow.barElementLines[barElementsLineIndex];
-    while (barElementsLineIndex !== this._tabWindow.barElementLines.length) {
-      barElementsLine = this._tabWindow.barElementLines[barElementsLineIndex];
-      if (barElementConsecutiveIndex === this._barId) {
-        this._barElementsLineId = barElementsLineIndex;
-        this._barElementId = barElementIndex;
-        break;
-      }
-
-      barElementConsecutiveIndex++;
-      barElementIndex++;
-
-      if (barElementIndex === barElementsLine.length) {
-        // Reset in-tab-line bar element index and increase tab line element index
-        barElementsLineIndex++;
-        barElementIndex = 0;
-      }
-    }
-
-    this._chordElementId = this._chordId;
-  }
+  ) {}
 
   /**
    * Selected chord
@@ -84,42 +48,45 @@ export class SelectionElement {
    * Selected chord element
    */
   public get chordElementId(): number {
-    return this._chordElementId;
+    return this._chordId;
   }
 
   /**
    * Selected bar element
    */
   public get barElementId(): number {
-    return this._barElementId;
+    return this._barId;
   }
 
   /**
    * Selected tab line element
    */
   public get barElementsLineId(): number {
-    return this._barElementsLineId;
+    return Math.floor(
+      this._tabWindow.barElements[this._barId].rect.y /
+        this._tabWindow.dim.tabLineHeight
+    );
   }
 
   /**
    * Selected chord element
    */
   public get chordElement(): ChordElement {
-    return this.barElement.chordElements[this._chordElementId];
+    return this.barElement.chordElements[this._chordId];
   }
 
   /**
    * Selected bar element
    */
   public get barElement(): BarElement {
-    return this.barElementsLine[this._barElementId];
+    return this.tabWindow.barElements[this._barId];
   }
 
   /**
    * Selected bar element
    */
   public get barElementsLine(): BarElement[] {
-    return this._tabWindow.barElementLines[this._barElementsLineId];
+    return this._tabWindow.barElementLines[this.barElementsLineId];
   }
 
   /**
