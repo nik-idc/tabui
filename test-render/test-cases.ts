@@ -323,7 +323,7 @@ function prepareTestCase5(): TabWindow {
   tabWindow.selectChord(1, 0);
   tabWindow.selectChord(1, 1);
   tabWindow.selectChord(1, 2);
-  tabWindow.unselectChord(1, 2);
+  tabWindow.unselectLastChord();
 
   return tabWindow;
 }
@@ -333,8 +333,20 @@ function prepareTestCase6(): TabWindow {
   tabWindow.calc();
   randomFrets(tabWindow.tab, true);
 
-  tabWindow.selectChordsInBetween(1, 2, 7, 2);
-  tabWindow.unselectChord(7, 2);
+  tabWindow.selectChord(1, 0);
+  tabWindow.selectChord(6, 2);
+
+  return tabWindow;
+}
+
+function prepareTestCase7(): TabWindow {
+  const tabWindow = createBasicTabWindow();
+  tabWindow.calc();
+  randomFrets(tabWindow.tab, true);
+
+  tabWindow.selectChord(1, 0);
+  tabWindow.selectChord(6, 2);
+  tabWindow.selectChord(0, 1);
 
   return tabWindow;
 }
@@ -432,6 +444,7 @@ function prepareTestCases(): TabWindow[] {
     prepareTestCase4(),
     prepareTestCase5(),
     prepareTestCase6(),
+    prepareTestCase7(),
   ];
 
   return tabWindows;

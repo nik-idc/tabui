@@ -23,6 +23,10 @@ export class TabWindow {
    */
   readonly dim: TabWindowDim;
   /**
+   * Chord elements
+   */
+  private _chordElementsSeq: ChordElement[];
+  /**
    * Bar elements
    */
   private _barElements: BarElement[];
@@ -39,9 +43,13 @@ export class TabWindow {
    */
   private _selectionElements: SelectionElement[];
   /**
-   * First element of selection
+   * Base element of selection
    */
-  private _firstSelectionElement: SelectionElement | undefined;
+  private _baseSelectionElement: SelectionElement | undefined;
+  /**
+   * True if selection is to the right of the first selected element
+   */
+  private _selectionToRight: boolean;
 
   /**
    * Class that handles creating a tab window
@@ -146,6 +154,11 @@ export class TabWindow {
     this.justifyBarElementsLine(
       this._barElementLines[this._barElementLines.length - 1]
     );
+
+    // Get a singular array of all chord elements
+    this._chordElementsSeq = this._barElements.flatMap((be) => {
+      return be.chordElements;
+    });
   }
 
   public calc(): void {
@@ -184,154 +197,120 @@ export class TabWindow {
     );
   }
 
-  public selectChordsInBetween(
-    barElementId1: number,
-    chordElementId1: number,
-    barElementId2: number,
-    chordElementId2: number
-  ) {
-    let startBarElementId: number;
-    let startChordElementId: number;
-    let endBarElementId: number;
-    let endChordElementId: number;
-
-    if (barElementId1 < barElementId2) {
-      startBarElementId = barElementId1;
-      startChordElementId = chordElementId1;
-      endBarElementId = barElementId2;
-      endChordElementId = chordElementId2;
-    } else if (barElementId1 > barElementId2) {
-      startBarElementId = barElementId2;
-      startChordElementId = chordElementId2;
-      endBarElementId = barElementId1;
-      endChordElementId = chordElementId1;
-    } else {
-      if (chordElementId1 < chordElementId2) {
-        startBarElementId = barElementId1;
-        startChordElementId = chordElementId1;
-        endBarElementId = barElementId1;
-        endChordElementId = chordElementId2;
-      } else if (chordElementId1 > chordElementId2) {
-        startBarElementId = barElementId1;
-        startChordElementId = chordElementId2;
-        endBarElementId = barElementId1;
-        endChordElementId = chordElementId1;
-      } else {
-        this.selectChord(barElementId1, chordElementId1);
-        return;
-      }
+  private selectChordsInBetween(
+    startBarElementId: number,
+    startChordElementId: number,
+    endBarElementId: number,
+    endChordElementId: number
+  ): void {
+    if (
+      startBarElementId > endBarElementId ||
+      (startBarElementId === endBarElementId &&
+        startChordElementId > endChordElementId)
+    ) {
+      throw Error("Selection order incorrect");
     }
 
-    for (let i = 0; i < this._barElements.length; i++) {
+    if (
+      startBarElementId === endBarElementId &&
+      startChordElementId === endChordElementId
+    ) {
+      throw Error("Can't select in between the same chord");
+    }
+
+    let seqIndex = this._chordElementsSeq.indexOf(
+      this._barElements[startBarElementId].chordElements[0]
+    );
+
+    for (let i = startBarElementId; i <= endBarElementId; i++) {
       for (let j = 0; j < this._barElements[i].chordElements.length; j++) {
-        if (startBarElementId === endBarElementId && i === startBarElementId) {
+        if (startBarElementId === endBarElementId) {
           if (j >= startChordElementId && j <= endChordElementId) {
-            this.selectChord(i, j);
+            this._selectionElements.push(new SelectionElement(i, j, seqIndex));
+            this._chordElementsSeq[seqIndex].inSelection = true;
           }
-        } else if (startBarElementId !== endBarElementId) {
+        } else {
           if (i === startBarElementId && j >= startChordElementId) {
-            this.selectChord(i, j);
+            this._selectionElements.push(new SelectionElement(i, j, seqIndex));
+            this._chordElementsSeq[seqIndex].inSelection = true;
           } else if (i > startBarElementId && i < endBarElementId) {
-            this.selectChord(i, j);
+            this._selectionElements.push(new SelectionElement(i, j, seqIndex));
+            this._chordElementsSeq[seqIndex].inSelection = true;
           } else if (i === endBarElementId && j <= endChordElementId) {
-            this.selectChord(i, j);
+            this._selectionElements.push(new SelectionElement(i, j, seqIndex));
+            this._chordElementsSeq[seqIndex].inSelection = true;
           }
         }
+
+        seqIndex++;
       }
     }
   }
 
-  /**
-   * Add new chord to selection elements array
-   * @param barElementId Id of the bar element containing the chord element
-   * @param chordElementId Id of the chord element containing the note element
-   */
   public selectChord(barElementId: number, chordElementId: number): void {
-    // Unselect currently selected note element
-    if (this._selectedElement !== undefined) {
-      this._selectedElement.noteElement.isSelected = false;
-      this._selectedElement = undefined;
-    }
+    const chordElement =
+      this._barElements[barElementId].chordElements[chordElementId];
+    const seqIndex = this._chordElementsSeq.indexOf(chordElement);
 
-    // Get current chord element's info
-    const barElement = this._barElements[barElementId];
-    const chordElement = barElement.chordElements[chordElementId];
-    const barId = this.tab.bars.indexOf(barElement.bar);
-    const chordId = this.tab.bars[barId].chords.indexOf(chordElement.chord);
-    if (chordElement.inSelection) {
-      // Already in selection, do nothing
-      return;
-    }
-
-    // Mark as selected
-    chordElement.inSelection = true;
-
-    // Add to selection
     if (this._selectionElements.length === 0) {
-      // Mark first selection element
-      this._firstSelectionElement = new SelectionElement(this, barId, chordId);
-      this._selectionElements.push(this._firstSelectionElement);
+      // Mark base selection element
+      this._baseSelectionElement = new SelectionElement(
+        barElementId,
+        chordElementId,
+        seqIndex
+      );
+      this._selectionElements = [this._baseSelectionElement];
+      chordElement.inSelection = true;
       return;
     }
-    
-    const lastSelectedElement =
-      this._selectionElements[this._selectionElements.length - 1];
 
-    const indexDiff = Math.abs(barElementId - lastSelectedElement.barElementId);
-    if (indexDiff > 1) {
+    if (this._baseSelectionElement.chordElementSeqId === seqIndex) {
+      throw Error("Can't select the base element the second time");
+    }
+
+    // Unselect every element except the base selection element
+    for (const selectionElement of this._selectionElements) {
+      if (selectionElement !== this._baseSelectionElement) {
+        this._chordElementsSeq[selectionElement.chordElementSeqId].inSelection =
+          false;
+      }
+    }
+    this._selectionElements = [];
+
+    if (seqIndex > this._baseSelectionElement.chordElementSeqId) {
+      this.selectChordsInBetween(
+        this._baseSelectionElement.barElementId,
+        this._baseSelectionElement.chordElementId,
+        barElementId,
+        chordElementId
+      );
+    } else {
       this.selectChordsInBetween(
         barElementId,
         chordElementId,
-        lastSelectedElement.barElementId,
-        lastSelectedElement.chordElementId
+        this._baseSelectionElement.barElementId,
+        this._baseSelectionElement.chordElementId
       );
-    } else if (indexDiff === 1) {
-      this._selectionElements.push(new SelectionElement(this, barId, chordId));
     }
   }
 
-  public unselectChord(barElementId: number, chordElementId: number) {
-    // Get current chord element's info
-    const barElement = this._barElements[barElementId];
-    const chordElement = barElement.chordElements[chordElementId];
-    if (!chordElement.inSelection) {
-      // Already not in selection, do nothing
-      return;
-    }
-
-    // Mark as selected
-    chordElement.inSelection = false;
-
-    const index = this._selectionElements.findIndex((se) => {
-      return (
-        se.barElementId === barElementId && se.chordElementId === chordElementId
-      );
-    });
-    if (index === 0) {
-      this._firstSelectionElement = this._selectionElements[1];
-    }
-    this._selectionElements.splice(index, 1);
+  public unselectLastChord() {
+    const lastSelectionElement =
+      this._selectionElements[this._selectionElements.length - 1];
+    const lastSelectionChordElement =
+      this._chordElementsSeq[lastSelectionElement.chordElementSeqId];
+    lastSelectionChordElement.inSelection = false;
+    this._selectionElements.pop();
   }
 
   public clearSelection(): void {
-    // Dispose of selection
     for (const selectionElement of this._selectionElements) {
-      selectionElement.chordElement.inSelection = false;
+      this._chordElementsSeq[selectionElement.chordElementSeqId].inSelection =
+        false;
     }
+    this._baseSelectionElement = undefined;
     this._selectionElements = [];
   }
-
-  // public nextChordElementIds(
-  //   barElementsLineId: number,
-  //   barElementId: number,
-  //   chordElementId: number
-  // ): number[] {}
-
-  // public prevChordElementIds(
-  //   barElementsLineId: number,
-  //   barElementId: number,
-  //   chordElementId: number
-  // ): number[] {}
 
   /**
    * Insert chords into bar element
@@ -348,86 +327,76 @@ export class TabWindow {
     // Insert selection chords after specified chord
     const barElement = this._barElements[barElementId];
     const chords = this._selectionElements.map((se) => {
-      return se.chord;
+      return this._chordElementsSeq[se.chordElementSeqId].chord;
     });
     barElement.bar.insertChords(chordElementId, chords);
 
     // Recalc
+    this.clearSelection();
     this.calc();
   }
 
   public moveSelectedNoteUp(): void {
-    // Check if a note is selected
-    if (!this._selectedElement) {
-      return;
-    }
-
+    this.clearSelection();
     this._selectedElement.moveUp();
   }
 
   public moveSelectedNoteDown(): void {
-    // Check if a note is selected
-    if (!this._selectedElement) {
-      return;
-    }
-
+    this.clearSelection();
     this._selectedElement.moveDown();
   }
 
   public moveSelectedNoteLeft(): void {
-    // Check if a note is selected
-    if (!this._selectedElement) {
-      return;
+    if (this._selectionElements.length !== 0) {
+      // Select left most element of selection
+      const leftMostElementId = this._selectionElements[0];
+      this._selectedElement = new SelectedElement(
+        this,
+        leftMostElementId.barElementId,
+        leftMostElementId.chordElementId,
+        this._selectedElement ? this._selectedElement.stringNum : 1
+      );
+
+      this.clearSelection();
     }
 
     this._selectedElement.moveLeft();
   }
 
   public moveSelectedNoteRight(): void {
-    // Check if a note is selected
-    if (!this._selectedElement) {
-      return;
+    if (this._selectionElements.length !== 0) {
+      // Select right most element of selection
+      const rightMostElement =
+        this._selectionElements[this._selectionElements.length - 1];
+      this._selectedElement = new SelectedElement(
+        this,
+        rightMostElement.barElementId,
+        rightMostElement.chordElementId,
+        this._selectedElement ? this._selectedElement.stringNum : 1
+      );
+
+      this.clearSelection();
     }
 
     this._selectedElement.moveRight();
   }
 
   public changeSelectedBarTempo(newTempo: number): void {
-    // Check if a note is selected
-    if (!this._selectedElement) {
-      return;
-    }
-
     this._selectedElement.barElement.changeTempo(newTempo);
     this.calc();
   }
 
   public changeSelectedBarBeats(newBeats: number): void {
-    // Check if a note is selected
-    if (!this._selectedElement) {
-      return;
-    }
-
     this._selectedElement.barElement.changeBarBeats(newBeats);
     this.calc();
   }
 
   public changeSelectedBarDuration(newDuration: NoteDuration): void {
-    // Check if a note is selected
-    if (!this._selectedElement) {
-      return;
-    }
-
     this._selectedElement.barElement.changeBarDuration(newDuration);
     this.calc();
   }
 
   public changeSelectedChordDuration(newDuration: NoteDuration): void {
-    // Check if a note is selected
-    if (!this._selectedElement) {
-      return;
-    }
-
     const chord = this._selectedElement.chordElement.chord;
     this._selectedElement.barElement.changeChordDuration(chord, newDuration);
     this.calc();
@@ -479,5 +448,9 @@ export class TabWindow {
    */
   public get selectionElements(): SelectionElement[] {
     return this._selectionElements;
+  }
+
+  public get chordElementsSeq(): ChordElement[] {
+    return this._chordElementsSeq;
   }
 }

@@ -92,12 +92,8 @@ describe("Tab window tests", () => {
     const chordElementId1 = 0;
     const barElementId2 = 7;
     const chordElementId2 = 2;
-    basicTabWindow.selectChordsInBetween(
-      barElementId1,
-      chordElementId1,
-      barElementId2,
-      chordElementId2
-    );
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
 
     // Test
     const lines = basicTabWindow.barElementLines;
@@ -159,12 +155,8 @@ describe("Tab window tests", () => {
     const chordElementId1 = 2;
     const barElementId2 = 1;
     const chordElementId2 = 0;
-    basicTabWindow.selectChordsInBetween(
-      barElementId1,
-      chordElementId1,
-      barElementId2,
-      chordElementId2
-    );
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
 
     // Test
     const lines = basicTabWindow.barElementLines;
@@ -226,12 +218,8 @@ describe("Tab window tests", () => {
     const chordElementId1 = 0;
     const barElementId2 = 2;
     const chordElementId2 = 2;
-    basicTabWindow.selectChordsInBetween(
-      barElementId1,
-      chordElementId1,
-      barElementId2,
-      chordElementId2
-    );
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
 
     // Test
     const lines = basicTabWindow.barElementLines;
@@ -293,12 +281,8 @@ describe("Tab window tests", () => {
     const chordElementId1 = 2;
     const barElementId2 = 1;
     const chordElementId2 = 0;
-    basicTabWindow.selectChordsInBetween(
-      barElementId1,
-      chordElementId1,
-      barElementId2,
-      chordElementId2
-    );
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
 
     // Test
     const lines = basicTabWindow.barElementLines;
@@ -360,12 +344,8 @@ describe("Tab window tests", () => {
     const chordElementId1 = 0;
     const barElementId2 = 1;
     const chordElementId2 = 2;
-    basicTabWindow.selectChordsInBetween(
-      barElementId1,
-      chordElementId1,
-      barElementId2,
-      chordElementId2
-    );
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
 
     // Test
     const lines = basicTabWindow.barElementLines;
@@ -427,12 +407,8 @@ describe("Tab window tests", () => {
     const chordElementId1 = 2;
     const barElementId2 = 1;
     const chordElementId2 = 0;
-    basicTabWindow.selectChordsInBetween(
-      barElementId1,
-      chordElementId1,
-      barElementId2,
-      chordElementId2
-    );
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
 
     // Test
     const lines = basicTabWindow.barElementLines;
@@ -496,13 +472,117 @@ describe("Tab window tests", () => {
 
     // Test
     expect(basicTabWindow.selectionElements.length).toBe(1);
-    expect(basicTabWindow.selectionElements[0].barElementsLineId).toBe(0);
     expect(basicTabWindow.selectionElements[0].barElementId).toBe(1);
     expect(basicTabWindow.selectionElements[0].chordElementId).toBe(0);
-    expect(basicTabWindow.selectionElements[0].chordElement.inSelection).toBe(
-      true
-    );
     expect(basicTabWindow.selectedElement).toBe(undefined);
+  });
+
+  test("Tab window move left with selected to right", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    const barElementId1 = 1;
+    const chordElementId1 = 0;
+    const barElementId2 = 2;
+    const chordElementId2 = 3;
+
+    const expectedBarElementId = 0;
+    const expectedChordElementId = 3;
+    const expectedNoteElementId = 0; // 0 by default
+
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
+    basicTabWindow.moveSelectedNoteLeft();
+
+    expect(basicTabWindow.selectedElement.barElementId).toBe(
+      expectedBarElementId
+    );
+    expect(basicTabWindow.selectedElement.chordElementId).toBe(
+      expectedChordElementId
+    );
+    expect(basicTabWindow.selectedElement.noteElementId).toBe(
+      expectedNoteElementId
+    );
+  });
+
+  test("Tab window move left with selected to left", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    const barElementId1 = 1;
+    const chordElementId1 = 0;
+    const barElementId2 = 2;
+    const chordElementId2 = 3;
+
+    const expectedBarElementId = 0;
+    const expectedChordElementId = 3;
+    const expectedNoteElementId = 0; // 0 by default
+
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.moveSelectedNoteLeft();
+
+    expect(basicTabWindow.selectedElement.barElementId).toBe(
+      expectedBarElementId
+    );
+    expect(basicTabWindow.selectedElement.chordElementId).toBe(
+      expectedChordElementId
+    );
+    expect(basicTabWindow.selectedElement.noteElementId).toBe(
+      expectedNoteElementId
+    );
+  });
+
+  test("Tab window move right with selected to right", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    const barElementId1 = 1;
+    const chordElementId1 = 0;
+    const barElementId2 = 2;
+    const chordElementId2 = 3;
+
+    const expectedBarElementId = 3;
+    const expectedChordElementId = 0;
+    const expectedNoteElementId = 0; // 0 by default
+
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
+    basicTabWindow.moveSelectedNoteRight();
+
+    expect(basicTabWindow.selectedElement.barElementId).toBe(
+      expectedBarElementId
+    );
+    expect(basicTabWindow.selectedElement.chordElementId).toBe(
+      expectedChordElementId
+    );
+    expect(basicTabWindow.selectedElement.noteElementId).toBe(
+      expectedNoteElementId
+    );
+  });
+
+  test("Tab window move right with selected to left", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    const barElementId1 = 1;
+    const chordElementId1 = 0;
+    const barElementId2 = 2;
+    const chordElementId2 = 3;
+
+    const expectedBarElementId = 3;
+    const expectedChordElementId = 0;
+    const expectedNoteElementId = 0; // 0 by default
+
+    basicTabWindow.selectChord(barElementId2, chordElementId2);
+    basicTabWindow.selectChord(barElementId1, chordElementId1);
+    basicTabWindow.moveSelectedNoteRight();
+
+    expect(basicTabWindow.selectedElement.barElementId).toBe(
+      expectedBarElementId
+    );
+    expect(basicTabWindow.selectedElement.chordElementId).toBe(
+      expectedChordElementId
+    );
+    expect(basicTabWindow.selectedElement.noteElementId).toBe(
+      expectedNoteElementId
+    );
   });
 
   test("Tab window unselect chord test", () => {
@@ -512,19 +592,14 @@ describe("Tab window tests", () => {
     const chordElementId = 0;
     basicTabWindow.selectChord(barElementId, chordElementId);
     basicTabWindow.selectChord(barElementId, chordElementId + 1);
-    basicTabWindow.unselectChord(barElementId, chordElementId + 1);
+    basicTabWindow.unselectLastChord();
 
     // Test
     expect(basicTabWindow.selectionElements.length).toBe(1);
-
     expect(basicTabWindow.selectionElements[0].barElementId).toBe(barElementId);
     expect(basicTabWindow.selectionElements[0].chordElementId).toBe(
       chordElementId
     );
-    expect(basicTabWindow.selectionElements[0].chordElement.inSelection).toBe(
-      true
-    );
-    expect(basicTabWindow.selectedElement).toBe(undefined);
   });
 
   test("Tab window insert chords test", () => {
