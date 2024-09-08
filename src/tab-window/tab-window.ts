@@ -197,6 +197,13 @@ export class TabWindow {
     );
   }
 
+  /**
+   * Selects all chords in between (including both start and end chords)
+   * @param startBarElementId Start bar element id
+   * @param startChordElementId Start chord element id
+   * @param endBarElementId End bar element id
+   * @param endChordElementId End chord element id
+   */
   private selectChordsInBetween(
     startBarElementId: number,
     startChordElementId: number,
@@ -213,9 +220,14 @@ export class TabWindow {
 
     if (
       startBarElementId === endBarElementId &&
-      startChordElementId === endChordElementId
+      startChordElementId === endChordElementId &&
+      (startBarElementId !== this._baseSelectionElement.barElementId ||
+        (startBarElementId === this._baseSelectionElement.barElementId &&
+          startChordElementId !== this._baseSelectionElement.chordElementId))
     ) {
-      throw Error("Can't select in between the same chord");
+      throw Error(
+        "Selecting in between the same element only allowed for base selection element"
+      );
     }
 
     let seqIndex = this._chordElementsSeq.indexOf(
@@ -247,12 +259,24 @@ export class TabWindow {
     }
   }
 
+  /**
+   * Selects specified chord and all the chords between it and base selection element
+   * @param barElementId Bar element id
+   * @param chordElementId Chord element id
+   * @returns
+   */
   public selectChord(barElementId: number, chordElementId: number): void {
     const chordElement =
       this._barElements[barElementId].chordElements[chordElementId];
     const seqIndex = this._chordElementsSeq.indexOf(chordElement);
 
     if (this._selectionElements.length === 0) {
+      // Unselect selected element
+      if (this._selectedElement) {
+        this._selectedElement.noteElement.isSelected = false;
+        this._selectedElement = undefined;
+      }
+
       // Mark base selection element
       this._baseSelectionElement = new SelectionElement(
         barElementId,
@@ -262,10 +286,6 @@ export class TabWindow {
       this._selectionElements = [this._baseSelectionElement];
       chordElement.inSelection = true;
       return;
-    }
-
-    if (this._baseSelectionElement.chordElementSeqId === seqIndex) {
-      throw Error("Can't select the base element the second time");
     }
 
     // Unselect every element except the base selection element
@@ -294,6 +314,9 @@ export class TabWindow {
     }
   }
 
+  /**
+   * Unselects last selected chord
+   */
   public unselectLastChord() {
     const lastSelectionElement =
       this._selectionElements[this._selectionElements.length - 1];
@@ -303,6 +326,9 @@ export class TabWindow {
     this._selectionElements.pop();
   }
 
+  /**
+   * Clears all selection
+   */
   public clearSelection(): void {
     for (const selectionElement of this._selectionElements) {
       this._chordElementsSeq[selectionElement.chordElementSeqId].inSelection =
