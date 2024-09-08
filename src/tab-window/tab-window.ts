@@ -176,6 +176,10 @@ export class TabWindow {
     chordElementId: number,
     noteElementId: number
   ): void {
+    if (this._selectedElement) {
+      this._selectedElement.noteElement.isSelected = false;
+    }
+
     this.clearSelection();
 
     // Get current note element's info
