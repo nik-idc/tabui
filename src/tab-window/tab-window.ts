@@ -367,13 +367,27 @@ export class TabWindow {
   }
 
   public moveSelectedNoteUp(): void {
+    if (this._selectedElement === undefined) {
+      throw Error("No note selected");
+    }
+
     this.clearSelection();
+
+    this._selectedElement.noteElement.isSelected = false;
     this._selectedElement.moveUp();
+    this._selectedElement.noteElement.isSelected = true;
   }
 
   public moveSelectedNoteDown(): void {
+    if (this._selectedElement === undefined) {
+      throw Error("No note selected");
+    }
+
     this.clearSelection();
+
+    this._selectedElement.noteElement.isSelected = false;
     this._selectedElement.moveDown();
+    this._selectedElement.noteElement.isSelected = true;
   }
 
   public moveSelectedNoteLeft(): void {
@@ -390,7 +404,16 @@ export class TabWindow {
       this.clearSelection();
     }
 
+    if (
+      this._selectionElements.length === 0 &&
+      this._selectedElement === undefined
+    ) {
+      throw Error("No note selected");
+    }
+
+    this._selectedElement.noteElement.isSelected = false;
     this._selectedElement.moveLeft();
+    this._selectedElement.noteElement.isSelected = true;
   }
 
   public moveSelectedNoteRight(): void {
@@ -408,7 +431,16 @@ export class TabWindow {
       this.clearSelection();
     }
 
+    if (
+      this._selectionElements.length === 0 &&
+      this._selectedElement === undefined
+    ) {
+      throw Error("No note selected");
+    }
+
+    this._selectedElement.noteElement.isSelected = false;
     this._selectedElement.moveRight();
+    this._selectedElement.noteElement.isSelected = true;
   }
 
   public changeSelectedBarTempo(newTempo: number): void {
