@@ -29,10 +29,6 @@ export class ChordElement {
    * The chord
    */
   readonly chord: Chord;
-  /**
-   * True if chord is in the selection array
-   */
-  public inSelection: boolean;
 
   /**
    * Class that handles drawing chord element in the tab
@@ -46,8 +42,6 @@ export class ChordElement {
     this.durationRect = new Rect();
     this.rect = new Rect(chordCoords.x, chordCoords.y);
     this.chord = chord;
-
-    this.inSelection = false;
 
     this.calc();
   }
