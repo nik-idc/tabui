@@ -176,11 +176,13 @@ export class TabWindow {
 
   /**
    * Select new note element
+   * @param barElementLineId Id of the bar elements line containing the chord element
    * @param barElementId Id of the bar element containing the chord element
    * @param chordElementId Id of the chord element containing the note element
    * @param noteElementId Id of the note element
    */
   public selectNoteElement(
+    barElementLineId: number,
     barElementId: number,
     chordElementId: number,
     noteElementId: number
@@ -188,7 +190,7 @@ export class TabWindow {
     this.clearSelection();
 
     // Get current note element's info
-    const barElement = this._barElements[barElementId];
+    const barElement = this._barElementLines[barElementLineId][barElementId];
     const chordElement = barElement.chordElements[chordElementId];
     const noteElement = chordElement.noteElements[noteElementId];
 
