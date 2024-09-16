@@ -312,18 +312,17 @@ function prepareTestCase5(): TabWindow {
   tabWindow.calc();
   randomFrets(tab, true);
 
-  tabWindow.selectChord(0, 3);
-  tabWindow.selectChord(1, 0);
-  tabWindow.selectChord(1, 1);
-  tabWindow.selectChord(1, 2);
+  tabWindow.selectChord(0, 0, 3);
+  tabWindow.selectChord(0, 1, 0);
+  tabWindow.selectChord(0, 1, 1);
+  tabWindow.selectChord(0, 1, 2);
 
-  tabWindow.insertChordsAt(1, 2);
+  tabWindow.insertChordsAt(0, 1, 2);
 
-  tabWindow.selectChord(0, 3);
-  tabWindow.selectChord(1, 0);
-  tabWindow.selectChord(1, 1);
-  tabWindow.selectChord(1, 2);
-  tabWindow.unselectLastChord();
+  tabWindow.selectChord(0, 0, 3);
+  tabWindow.selectChord(0, 1, 0);
+  tabWindow.selectChord(0, 1, 1);
+  tabWindow.selectChord(0, 1, 2);
 
   return tabWindow;
 }
@@ -333,8 +332,8 @@ function prepareTestCase6(): TabWindow {
   tabWindow.calc();
   randomFrets(tabWindow.tab, true);
 
-  tabWindow.selectChord(1, 0);
-  tabWindow.selectChord(6, 2);
+  tabWindow.selectChord(0, 1, 0);
+  tabWindow.selectChord(1, 0, 2);
 
   return tabWindow;
 }
@@ -344,9 +343,9 @@ function prepareTestCase7(): TabWindow {
   tabWindow.calc();
   randomFrets(tabWindow.tab, true);
 
-  tabWindow.selectChord(1, 0);
-  tabWindow.selectChord(6, 2);
-  tabWindow.selectChord(0, 1);
+  tabWindow.selectChord(0, 1, 0);
+  tabWindow.selectChord(1, 0, 2);
+  tabWindow.selectChord(0, 0, 1);
 
   return tabWindow;
 }

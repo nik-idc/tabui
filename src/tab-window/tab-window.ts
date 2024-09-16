@@ -9,6 +9,8 @@ import { ChordElement } from "./elements/chord-element";
 import { SelectedElement } from "./elements/selected-element";
 import { Chord } from "../models/chord";
 import { SelectionElement } from "./elements/selection-element";
+import { Rect } from "./shapes/rect";
+import { TabLineElement } from "./elements/tab-line-element";
 
 /**
  * Class that handles creating a tab window
@@ -43,13 +45,13 @@ export class TabWindow {
    */
   private _selectionElements: SelectionElement[];
   /**
+   * Selection rectangles
+   */
+  private _selectionRects: (Rect | undefined)[];
+  /**
    * Base element of selection
    */
-  private _baseSelectionElement: SelectionElement | undefined;
-  /**
-   * True if selection is to the right of the first selected element
-   */
-  private _selectionToRight: boolean;
+  private _baseSelectionElement?: SelectionElement;
 
   /**
    * Class that handles creating a tab window
@@ -69,6 +71,7 @@ export class TabWindow {
     this._barElements = [];
     this._barElementLines = [];
     this._selectionElements = [];
+    this._selectionRects = [];
 
     this.calc();
   }
@@ -159,6 +162,12 @@ export class TabWindow {
     this._chordElementsSeq = this._barElements.flatMap((be) => {
       return be.chordElements;
     });
+
+    // Build a selection rects array for every tab line
+    this._selectionRects = [];
+    for (const barElementLine of this._barElementLines) {
+      this._selectionRects.push(undefined);
+    }
   }
 
   public calc(): void {
@@ -176,17 +185,12 @@ export class TabWindow {
     chordElementId: number,
     noteElementId: number
   ): void {
-    if (this._selectedElement) {
-      this._selectedElement.noteElement.isSelected = false;
-    }
-
     this.clearSelection();
 
     // Get current note element's info
     const barElement = this._barElements[barElementId];
     const chordElement = barElement.chordElements[chordElementId];
     const noteElement = chordElement.noteElements[noteElementId];
-    noteElement.isSelected = true;
 
     const barId = this.tab.bars.indexOf(barElement.bar);
     const chordId = this.tab.bars[barId].chords.indexOf(chordElement.chord);
@@ -202,160 +206,188 @@ export class TabWindow {
   }
 
   /**
-   * Selects all chords in between (including both start and end chords)
-   * @param startBarElementId Start bar element id
-   * @param startChordElementId Start chord element id
-   * @param endBarElementId End bar element id
-   * @param endChordElementId End chord element id
+   * Adds chord to selection & update selection rects
+   * @param barElementsLineId Bar elements line id
+   * @param barElementId Bar element id
+   * @param chordElementId Chord element id
+   * @param chordElementSeqId Sequential chord element id
    */
+  private addChordToSelection(
+    barElementsLineId: number,
+    barElementId: number,
+    chordElementId: number,
+    chordElementSeqId: number
+  ): void {
+    const newSelectionElement = new SelectionElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      chordElementSeqId
+    );
+
+    if (this._selectionElements.length === 0) {
+      this._baseSelectionElement = newSelectionElement;
+    }
+
+    this._selectionElements.push(newSelectionElement);
+
+    const barElementLine = this._barElementLines[barElementsLineId];
+    const barElement = barElementLine[barElementId];
+    const chordElement = this._chordElementsSeq[chordElementSeqId];
+
+    if (this._selectionRects[barElementsLineId] === undefined) {
+      this._selectionRects[barElementsLineId] = new Rect(
+        chordElement === barElement.chordElements[0]
+          ? barElement.rect.x
+          : chordElement.rect.x,
+        chordElement.rect.y,
+        chordElement.rect.width,
+        chordElement.rect.height
+      );
+    } else {
+      this._selectionRects[barElementsLineId].width =
+        chordElement.rect.rightTop.x -
+        this._selectionRects[barElementsLineId].x;
+    }
+  }
+
   private selectChordsInBetween(
+    startBarElementsLineId: number,
     startBarElementId: number,
     startChordElementId: number,
+    endBarElementsLineId: number,
     endBarElementId: number,
     endChordElementId: number
   ): void {
-    if (
-      startBarElementId > endBarElementId ||
-      (startBarElementId === endBarElementId &&
-        startChordElementId > endChordElementId)
-    ) {
-      throw Error("Selection order incorrect");
-    }
-
-    if (
-      startBarElementId === endBarElementId &&
-      startChordElementId === endChordElementId &&
-      (startBarElementId !== this._baseSelectionElement.barElementId ||
-        (startBarElementId === this._baseSelectionElement.barElementId &&
-          startChordElementId !== this._baseSelectionElement.chordElementId))
-    ) {
-      throw Error(
-        "Selecting in between the same element only allowed for base selection element"
-      );
-    }
-
+    const startChordElementSeqId = this._chordElementsSeq.indexOf(
+      this._barElementLines[startBarElementsLineId][startBarElementId]
+        .chordElements[startChordElementId]
+    );
+    const endChordElementSeqId = this._chordElementsSeq.indexOf(
+      this._barElementLines[endBarElementsLineId][endBarElementId]
+        .chordElements[endChordElementId]
+    );
     let seqIndex = this._chordElementsSeq.indexOf(
-      this._barElements[startBarElementId].chordElements[0]
+      this._barElementLines[startBarElementsLineId][0].chordElements[0]
     );
 
-    for (let i = startBarElementId; i <= endBarElementId; i++) {
-      for (let j = 0; j < this._barElements[i].chordElements.length; j++) {
-        if (startBarElementId === endBarElementId) {
-          if (j >= startChordElementId && j <= endChordElementId) {
-            this._selectionElements.push(new SelectionElement(i, j, seqIndex));
-            this._chordElementsSeq[seqIndex].inSelection = true;
+    for (let i = startBarElementsLineId; i <= endBarElementsLineId; i++) {
+      const linesCount = this._barElementLines[i].length;
+      for (let j = 0; j < linesCount; j++) {
+        const lineBarsCount = this._barElementLines[i][j].chordElements.length;
+        for (let k = 0; k < lineBarsCount; k++) {
+          if (
+            seqIndex >= startChordElementSeqId &&
+            seqIndex <= endChordElementSeqId
+          ) {
+            this.addChordToSelection(i, j, k, seqIndex);
           }
-        } else {
-          if (i === startBarElementId && j >= startChordElementId) {
-            this._selectionElements.push(new SelectionElement(i, j, seqIndex));
-            this._chordElementsSeq[seqIndex].inSelection = true;
-          } else if (i > startBarElementId && i < endBarElementId) {
-            this._selectionElements.push(new SelectionElement(i, j, seqIndex));
-            this._chordElementsSeq[seqIndex].inSelection = true;
-          } else if (i === endBarElementId && j <= endChordElementId) {
-            this._selectionElements.push(new SelectionElement(i, j, seqIndex));
-            this._chordElementsSeq[seqIndex].inSelection = true;
-          }
+          seqIndex++;
         }
-
-        seqIndex++;
       }
     }
   }
 
   /**
    * Selects specified chord and all the chords between it and base selection element
+   * @param barElementsLineId Id of the line of bar elements
    * @param barElementId Bar element id
    * @param chordElementId Chord element id
    * @returns
    */
-  public selectChord(barElementId: number, chordElementId: number): void {
+  public selectChord(
+    barElementsLineId: number,
+    barElementId: number,
+    chordElementId: number
+  ): void {
     const chordElement =
-      this._barElements[barElementId].chordElements[chordElementId];
-    const seqIndex = this._chordElementsSeq.indexOf(chordElement);
-
-    if (this._selectionElements.length === 0) {
-      // Unselect selected element
-      if (this._selectedElement) {
-        this._selectedElement.noteElement.isSelected = false;
-        this._selectedElement = undefined;
-      }
-
-      // Mark base selection element
-      this._baseSelectionElement = new SelectionElement(
-        barElementId,
-        chordElementId,
-        seqIndex
-      );
-      this._selectionElements = [this._baseSelectionElement];
-      chordElement.inSelection = true;
-      return;
-    }
-
-    // Unselect every element except the base selection element
-    for (const selectionElement of this._selectionElements) {
-      if (selectionElement !== this._baseSelectionElement) {
-        this._chordElementsSeq[selectionElement.chordElementSeqId].inSelection =
-          false;
-      }
-    }
-    this._selectionElements = [];
-
-    if (seqIndex > this._baseSelectionElement.chordElementSeqId) {
-      this.selectChordsInBetween(
-        this._baseSelectionElement.barElementId,
-        this._baseSelectionElement.chordElementId,
-        barElementId,
+      this._barElementLines[barElementsLineId][barElementId].chordElements[
         chordElementId
-      );
-    } else {
-      this.selectChordsInBetween(
-        barElementId,
-        chordElementId,
-        this._baseSelectionElement.barElementId,
-        this._baseSelectionElement.chordElementId
-      );
-    }
-  }
+      ];
+    const chordElementSeqId = this._chordElementsSeq.indexOf(chordElement);
 
-  /**
-   * Unselects last selected chord
-   */
-  public unselectLastChord() {
-    const lastSelectionElement =
-      this._selectionElements[this._selectionElements.length - 1];
-    const lastSelectionChordElement =
-      this._chordElementsSeq[lastSelectionElement.chordElementSeqId];
-    lastSelectionChordElement.inSelection = false;
-    this._selectionElements.pop();
+    let startBarElementsLineId: number;
+    let startBarElementId: number;
+    let startChordElementId: number;
+    let endBarElementsLineId: number;
+    let endBarElementId: number;
+    let endChordElementId: number;
+
+    if (
+      this._baseSelectionElement === undefined ||
+      chordElementSeqId === this._baseSelectionElement.chordElementSeqId
+    ) {
+      startBarElementsLineId = barElementsLineId;
+      startBarElementId = barElementId;
+      startChordElementId = chordElementId;
+      endBarElementsLineId = barElementsLineId;
+      endBarElementId = barElementId;
+      endChordElementId = chordElementId;
+    } else if (
+      chordElementSeqId > this._baseSelectionElement.chordElementSeqId
+    ) {
+      startBarElementsLineId = this._baseSelectionElement.barElementsLineId;
+      startBarElementId = this._baseSelectionElement.barElementId;
+      startChordElementId = this._baseSelectionElement.chordElementId;
+      endBarElementsLineId = barElementsLineId;
+      endBarElementId = barElementId;
+      endChordElementId = chordElementId;
+    } else {
+      startBarElementsLineId = barElementsLineId;
+      startBarElementId = barElementId;
+      startChordElementId = chordElementId;
+      endBarElementsLineId = this._baseSelectionElement.barElementsLineId;
+      endBarElementId = this._baseSelectionElement.barElementId;
+      endChordElementId = this._baseSelectionElement.chordElementId;
+    }
+
+    // Clear selection rects
+    this._selectionElements = [];
+    for (let i = 0; i < this._selectionRects.length; i++) {
+      this._selectionRects[i] = undefined;
+    }
+
+    // Select all chords in new selection
+    this.selectChordsInBetween(
+      startBarElementsLineId,
+      startBarElementId,
+      startChordElementId,
+      endBarElementsLineId,
+      endBarElementId,
+      endChordElementId
+    );
   }
 
   /**
    * Clears all selection
    */
   public clearSelection(): void {
-    for (const selectionElement of this._selectionElements) {
-      this._chordElementsSeq[selectionElement.chordElementSeqId].inSelection =
-        false;
-    }
     this._baseSelectionElement = undefined;
     this._selectionElements = [];
+    for (let i = 0; i < this._selectionRects.length; i++) {
+      this._selectionRects[i] = undefined;
+    }
   }
 
   /**
    * Insert chords into bar element
+   * @param barElementLineId Id of the bar element line containing the chord element
    * @param barElementId Id of the bar element containing the chord element
    * @param chordElementId Id of the chord element after which to insert
    * @returns
    */
-  public insertChordsAt(barElementId: number, chordElementId: number): void {
+  public insertChordsAt(
+    barElementLineId: number,
+    barElementId: number,
+    chordElementId: number
+  ): void {
     if (this._selectionElements.length === 0) {
       // Return because nothing to insert
       return;
     }
 
     // Insert selection chords after specified chord
-    const barElement = this._barElements[barElementId];
+    const barElement = this._barElementLines[barElementLineId][barElementId];
     const chords = this._selectionElements.map((se) => {
       return this._chordElementsSeq[se.chordElementSeqId].chord;
     });
@@ -373,9 +405,7 @@ export class TabWindow {
 
     this.clearSelection();
 
-    this._selectedElement.noteElement.isSelected = false;
     this._selectedElement.moveUp();
-    this._selectedElement.noteElement.isSelected = true;
   }
 
   public moveSelectedNoteDown(): void {
@@ -385,9 +415,7 @@ export class TabWindow {
 
     this.clearSelection();
 
-    this._selectedElement.noteElement.isSelected = false;
     this._selectedElement.moveDown();
-    this._selectedElement.noteElement.isSelected = true;
   }
 
   public moveSelectedNoteLeft(): void {
@@ -411,9 +439,7 @@ export class TabWindow {
       throw Error("No note selected");
     }
 
-    this._selectedElement.noteElement.isSelected = false;
     this._selectedElement.moveLeft();
-    this._selectedElement.noteElement.isSelected = true;
   }
 
   public moveSelectedNoteRight(): void {
@@ -438,9 +464,7 @@ export class TabWindow {
       throw Error("No note selected");
     }
 
-    this._selectedElement.noteElement.isSelected = false;
     this._selectedElement.moveRight();
-    this._selectedElement.noteElement.isSelected = true;
   }
 
   public changeSelectedBarTempo(newTempo: number): void {
@@ -510,6 +534,13 @@ export class TabWindow {
    */
   public get selectionElements(): SelectionElement[] {
     return this._selectionElements;
+  }
+
+  /**
+   * Selection rectangles
+   */
+  public get selectionRects(): (Rect | undefined)[] {
+    return this._selectionRects;
   }
 
   public get chordElementsSeq(): ChordElement[] {

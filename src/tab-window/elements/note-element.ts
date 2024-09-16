@@ -31,10 +31,6 @@ export class NoteElement {
    * Rectangle of the note text rectangle
    */
   readonly textCoords: Point = new Point();
-  /**
-   * True if note is selected
-   */
-  public isSelected: boolean;
 
   /**
    * Class that handles drawing note element in the tab
@@ -46,8 +42,6 @@ export class NoteElement {
     this.dim = dim;
     this.chordRect = chordRect;
     this.note = note;
-
-    this.isSelected = false;
 
     this.calc();
   }
