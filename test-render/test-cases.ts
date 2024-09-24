@@ -35,6 +35,7 @@ function randomFrets(tab: Tab, allStrings: boolean = false): void {
 
 function selectNote(
   tabWindow: TabWindow,
+  barElementLineId: number,
   barElementId: number,
   chordElementId: number,
   stringNum: number
@@ -43,7 +44,12 @@ function selectNote(
   // const barElement = tabLineElement.barElements[barElementId];
   // const chordElement = barElement.chordElements[chordElementId];
   // const noteElement = chordElement.noteElements[stringNum - 1];
-  tabWindow.selectNoteElement(barElementId, chordElementId, stringNum - 1);
+  tabWindow.selectNoteElement(
+    barElementLineId,
+    barElementId,
+    chordElementId,
+    stringNum - 1
+  );
 }
 
 function prepareTestCase1(): TabWindow {
@@ -90,7 +96,7 @@ function prepareTestCase1(): TabWindow {
   );
   const tabWindow = new TabWindow(tab, dim);
   tabWindow.calc();
-  selectNote(tabWindow, 3, 3, 4);
+  selectNote(tabWindow, 0, 3, 3, 4);
   tabWindow.moveSelectedNoteRight();
   tabWindow.moveSelectedNoteRight();
   tabWindow.moveSelectedNoteRight();
@@ -262,7 +268,7 @@ function prepareTestCase4(): TabWindow {
   const after = performance.now();
   calcSpeed = after - before;
 
-  selectNote(tabWindow, 1, 2, 4);
+  selectNote(tabWindow, 0, 1, 2, 4);
   return tabWindow;
 }
 
@@ -345,6 +351,9 @@ function prepareTestCase7(): TabWindow {
 
   tabWindow.selectChord(0, 1, 0);
   tabWindow.selectChord(1, 0, 2);
+  // tabWindow.selectChord(0, 0, 1);
+  tabWindow.selectChord(0, 0, 3);
+  tabWindow.selectChord(0, 0, 2);
   tabWindow.selectChord(0, 0, 1);
 
   return tabWindow;

@@ -68,10 +68,12 @@ describe("Tab window tests", () => {
   test("Tab window select note element test", () => {
     const basicTabWindow = testData.createBasicTabWindow();
 
+    const barElementLineId = 0;
     const barElementId = 1;
     const chordElementId = 0;
     const noteElementId = 3;
     basicTabWindow.selectNoteElement(
+      barElementLineId,
       barElementId,
       chordElementId,
       noteElementId

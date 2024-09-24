@@ -227,7 +227,10 @@ export class TabWindow {
       chordElementSeqId
     );
 
-    if (this._selectionElements.length === 0) {
+    if (
+      this._selectionElements.length === 0 &&
+      this._baseSelectionElement === undefined
+    ) {
       this._baseSelectionElement = newSelectionElement;
     }
 
@@ -274,10 +277,10 @@ export class TabWindow {
     );
 
     for (let i = startBarElementsLineId; i <= endBarElementsLineId; i++) {
-      const linesCount = this._barElementLines[i].length;
-      for (let j = 0; j < linesCount; j++) {
-        const lineBarsCount = this._barElementLines[i][j].chordElements.length;
-        for (let k = 0; k < lineBarsCount; k++) {
+      const barsCount = this._barElementLines[i].length;
+      for (let j = 0; j < barsCount; j++) {
+        const chordsCount = this._barElementLines[i][j].chordElements.length;
+        for (let k = 0; k < chordsCount; k++) {
           if (
             seqIndex >= startChordElementSeqId &&
             seqIndex <= endChordElementSeqId
