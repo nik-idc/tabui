@@ -22,7 +22,7 @@ describe("Selected element tests", () => {
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 4;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newSelectedNoteElementId = 3;
@@ -60,7 +60,7 @@ describe("Selected element tests", () => {
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 0;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newSelectedNoteElementId = 5;
@@ -98,7 +98,7 @@ describe("Selected element tests", () => {
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 4;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newSelectedNoteElementId = 5;
@@ -135,7 +135,7 @@ describe("Selected element tests", () => {
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newSelectedNoteElementId = 0;
@@ -172,7 +172,7 @@ describe("Selected element tests", () => {
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newSelectedChordElementId = 0;
@@ -215,7 +215,7 @@ describe("Selected element tests", () => {
     const barElementId = 1;
     const chordElementId = 0;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newSelectedBarElementId = 0;
@@ -258,10 +258,10 @@ describe("Selected element tests", () => {
     const tabWindow = testData.createBasicTabWindow();
     // Select note element
     const barElementsLineId = 1;
-    const barElementId = 5;
+    const barElementId = 0;
     const chordElementId = 0;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newBarElementsLineId = 0;
@@ -307,7 +307,7 @@ describe("Selected element tests", () => {
     const barElementId = 0;
     const chordElementId = 0;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Expected result is nothing changing
     // Move selected note up
@@ -340,7 +340,7 @@ describe("Selected element tests", () => {
     const barElementId = 0;
     const chordElementId = 0;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newSelectedChordElementId = 1;
@@ -383,7 +383,7 @@ describe("Selected element tests", () => {
     const barElementId = 0;
     const chordElementId = 3;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newSelectedBarElementId = 1;
@@ -429,7 +429,7 @@ describe("Selected element tests", () => {
     const barElementId = 4;
     const chordElementId = 3;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Create expected result
     const newBarElementsLineId = 1;
@@ -477,10 +477,10 @@ describe("Selected element tests", () => {
 
     // Select note element
     const barElementsLineId = 1;
-    const barElementId = 8;
+    const barElementId = 3;
     const chordElementId = 3;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Move selected note up (one note right in this case should be a new bar)
     tabWindow.moveSelectedNoteRight();
@@ -523,10 +523,10 @@ describe("Selected element tests", () => {
     const tabWindow = testData.createBasicTabWindow();
     // Select note element
     const barElementsLineId = 1;
-    const barElementId = 9;
+    const barElementId = 4;
     const chordElementId = 3;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
 
     // Move notes to the right until a new tab line is created
     tabWindow.moveSelectedNoteRight();
