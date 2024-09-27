@@ -135,6 +135,10 @@ export class Bar {
     // Remove chord
     this.chords.splice(index, 1);
 
+    if (this.chords.length === 0) {
+      this.insertEmptyChord(0);
+    }
+
     // Check if durations fit after removing
     this.calcDurationsFit();
   }

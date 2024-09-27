@@ -495,4 +495,19 @@ describe("Tab window tests", () => {
       basicTabWindow.barElementLines[0][1].chordElements[5].chord
     );
   });
+
+  test("Tab window delete chords test", () => {
+    const basicTabWindow = testData.createBasicTabWindow();
+
+    basicTabWindow.selectChord(0, 1, 0);
+    basicTabWindow.selectChord(0, 2, 1);
+
+    basicTabWindow.deleteChords();
+
+    // Test
+    // length is 1 because when all chords of a bar are deleted we add an empty
+    // chord so that it's not actually empty
+    expect(basicTabWindow.barElementLines[0][1].chordElements.length).toBe(1);
+    expect(basicTabWindow.barElementLines[0][2].chordElements.length).toBe(2);
+  });
 });

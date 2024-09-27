@@ -41,6 +41,10 @@ export class TabWindow {
    */
   private _selectedElement: SelectedElement | undefined;
   /**
+   * Selection elements before selection was cleared
+   */
+  private _lastSelectionElements: SelectionElement[];
+  /**
    * Selection elements
    */
   private _selectionElements: SelectionElement[];
@@ -305,6 +309,10 @@ export class TabWindow {
     barElementId: number,
     chordElementId: number
   ): void {
+    if (this._selectedElement) {
+      this._selectedElement = undefined;
+    }
+
     const chordElement =
       this._barElementLines[barElementsLineId][barElementId].chordElements[
         chordElementId
@@ -368,6 +376,7 @@ export class TabWindow {
    */
   public clearSelection(): void {
     this._baseSelectionElement = undefined;
+    this._lastSelectionElements = this._selectionElements;
     this._selectionElements = [];
     for (let i = 0; i < this._selectionRects.length; i++) {
       this._selectionRects[i] = undefined;
@@ -401,6 +410,30 @@ export class TabWindow {
     // Recalc
     this.clearSelection();
     this.calc();
+  }
+
+  /**
+   * Delete every selected chord
+   * @param chords
+   */
+  public deleteChords(): void {
+    for (const se of this._selectionElements) {
+      const barElementsLine = this._barElementLines[se.barElementsLineId];
+      const barElement = barElementsLine[se.barElementId];
+      const chord = this._chordElementsSeq[se.chordElementSeqId].chord;
+      const chordId = barElement.bar.chords.indexOf(chord);
+      barElement.removeChord(chordId);
+    }
+
+    // Recalc
+    this.clearSelection();
+    this.calc();
+  }
+
+  public getSelectionChords(): Chord[] {
+    return this._selectionElements.map((se) => {
+      return this._chordElementsSeq[se.chordElementSeqId].chord;
+    });
   }
 
   public moveSelectedNoteUp(): void {

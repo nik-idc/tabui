@@ -273,50 +273,9 @@ function prepareTestCase4(): TabWindow {
 }
 
 function prepareTestCase5(): TabWindow {
-  const stringsCount = 6;
-  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
-
-  const bars = [
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-  ];
-
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-
-  const dim = new TabWindowDim(
-    width,
-    noteTextSize,
-    timeSigTextSize,
-    tempoTextSize,
-    durationsHeight,
-    guitar.stringsCount
-  );
-  const tabWindow = new TabWindow(tab, dim);
+  const tabWindow = createBasicTabWindow();
   tabWindow.calc();
-  randomFrets(tab, true);
+  randomFrets(tabWindow.tab, true);
 
   tabWindow.selectChord(0, 0, 3);
   tabWindow.selectChord(0, 1, 0);
@@ -355,6 +314,19 @@ function prepareTestCase7(): TabWindow {
   tabWindow.selectChord(0, 0, 3);
   tabWindow.selectChord(0, 0, 2);
   tabWindow.selectChord(0, 0, 1);
+
+  return tabWindow;
+}
+
+function prepareTestCase8(): TabWindow {
+  const tabWindow = createBasicTabWindow();
+  tabWindow.calc();
+  randomFrets(tabWindow.tab, true);
+
+  tabWindow.selectChord(0, 1, 0);
+  tabWindow.selectChord(0, 2, 2);
+
+  tabWindow.deleteChords();
 
   return tabWindow;
 }
@@ -453,6 +425,7 @@ function prepareTestCases(): TabWindow[] {
     prepareTestCase5(),
     prepareTestCase6(),
     prepareTestCase7(),
+    prepareTestCase8(),
   ];
 
   return tabWindows;
