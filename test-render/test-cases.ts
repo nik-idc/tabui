@@ -13,17 +13,15 @@ const width = 1200;
 const noteTextSize = 14;
 const timeSigTextSize = 42;
 const tempoTextSize = 28;
-// const noteTextSize = 12;
-// const timeSigTextSize = 36;
-// const tempoTextSize = 24;
 const durationsHeight = 50;
 
-function randomFrets(tab: Tab, allStrings: boolean = false): void {
+function randomFrets(tab: Tab, allNotes: boolean = false): void {
   for (const bar of tab.bars) {
     for (const chord of bar.chords) {
       for (const note of chord.notes) {
-        if (allStrings) {
-          note.fret = Math.floor(Math.random() * 24);
+        if (allNotes) {
+          const newFret = Math.floor(Math.random() * 24);
+          note.fret = newFret;
         } else {
           note.fret =
             Math.random() <= 0.2 ? Math.floor(Math.random() * 24) : undefined;
@@ -40,10 +38,6 @@ function selectNote(
   chordElementId: number,
   stringNum: number
 ): void {
-  // const tabLineElement = tabWindow.tabLineElements[tabLineId];
-  // const barElement = tabLineElement.barElements[barElementId];
-  // const chordElement = barElement.chordElements[chordElementId];
-  // const noteElement = chordElement.noteElements[stringNum - 1];
   tabWindow.selectNoteElement(
     barElementLineId,
     barElementId,
@@ -52,286 +46,7 @@ function selectNote(
   );
 }
 
-function prepareTestCase1(): TabWindow {
-  const stringsCount = 6;
-  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
-
-  const bars = [
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-  ];
-
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-
-  const dim = new TabWindowDim(
-    width,
-    noteTextSize,
-    timeSigTextSize,
-    tempoTextSize,
-    durationsHeight,
-    guitar.stringsCount
-  );
-  const tabWindow = new TabWindow(tab, dim);
-  tabWindow.calc();
-  selectNote(tabWindow, 0, 3, 3, 4);
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-  tabWindow.moveSelectedNoteRight();
-
-  randomFrets(tab, true);
-
-  tabWindow.moveSelectedNoteLeft();
-  tabWindow.moveSelectedNoteLeft();
-
-  return tabWindow;
-}
-
-function prepareTestCase2(): TabWindow {
-  const stringsCount = 6;
-  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
-  const bars = [];
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-
-  const dim = new TabWindowDim(
-    width,
-    noteTextSize,
-    timeSigTextSize,
-    tempoTextSize,
-    durationsHeight,
-    guitar.stringsCount
-  );
-  const tabWindow = new TabWindow(tab, dim);
-
-  tabWindow.calc();
-  // tabWindow.calcNew();
-  return tabWindow;
-}
-
-function prepareTestCase3(): TabWindow {
-  const stringsCount = 6;
-  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
-  const bars = [
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 130, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 5, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-    new Bar(guitar, 180, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-    ]),
-  ];
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-  randomFrets(tab);
-
-  const dim = new TabWindowDim(
-    width,
-    noteTextSize,
-    timeSigTextSize,
-    tempoTextSize,
-    durationsHeight,
-    guitar.stringsCount
-  );
-  const tabWindow = new TabWindow(tab, dim);
-  tabWindow.calc();
-  // selectNote(tabWindow, 0, 1, 2, 4);
-  return tabWindow;
-}
-
-function prepareTestCase4(): TabWindow {
-  const stringsCount = 7;
-  const tuning = [Note.A, Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
-  let bars = new Array<Bar>();
-  for (let i = 0; i < 100; i++) {
-    bars.push(
-      new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-      ])
-    );
-  }
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
-  randomFrets(tab);
-
-  const dim = new TabWindowDim(
-    width,
-    noteTextSize,
-    timeSigTextSize,
-    tempoTextSize,
-    durationsHeight,
-    guitar.stringsCount
-  );
-  const tabWindow = new TabWindow(tab, dim);
-
-  const before = performance.now();
-  tabWindow.calc();
-  const after = performance.now();
-  calcSpeed = after - before;
-
-  selectNote(tabWindow, 0, 1, 2, 4);
-  return tabWindow;
-}
-
-function prepareTestCase5(): TabWindow {
-  const tabWindow = createBasicTabWindow();
-  tabWindow.calc();
-  randomFrets(tabWindow.tab, true);
-
-  tabWindow.selectChord(0, 0, 3);
-  tabWindow.selectChord(0, 1, 0);
-  tabWindow.selectChord(0, 1, 1);
-  tabWindow.selectChord(0, 1, 2);
-
-  tabWindow.insertChordsAt(0, 1, 2);
-
-  tabWindow.selectChord(0, 0, 3);
-  tabWindow.selectChord(0, 1, 0);
-  tabWindow.selectChord(0, 1, 1);
-  tabWindow.selectChord(0, 1, 2);
-
-  return tabWindow;
-}
-
-function prepareTestCase6(): TabWindow {
-  const tabWindow = createBasicTabWindow();
-  tabWindow.calc();
-  randomFrets(tabWindow.tab, true);
-
-  tabWindow.selectChord(0, 1, 0);
-  tabWindow.selectChord(1, 0, 2);
-
-  return tabWindow;
-}
-
-function prepareTestCase7(): TabWindow {
-  const tabWindow = createBasicTabWindow();
-  tabWindow.calc();
-  randomFrets(tabWindow.tab, true);
-
-  tabWindow.selectChord(0, 1, 0);
-  tabWindow.selectChord(1, 0, 2);
-  // tabWindow.selectChord(0, 0, 1);
-  tabWindow.selectChord(0, 0, 3);
-  tabWindow.selectChord(0, 0, 2);
-  tabWindow.selectChord(0, 0, 1);
-
-  return tabWindow;
-}
-
-function prepareTestCase8(): TabWindow {
-  const tabWindow = createBasicTabWindow();
-  tabWindow.calc();
-  randomFrets(tabWindow.tab, true);
-
-  tabWindow.selectChord(0, 1, 0);
-  tabWindow.selectChord(0, 2, 2);
-
-  tabWindow.deleteChords();
-
-  return tabWindow;
-}
-
-function createBasicTabWindow(): TabWindow {
+export function createBasicTabWindow(): TabWindow {
   const stringsCount = 6;
   const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
   const fretsCount = 24;
@@ -412,27 +127,213 @@ function createBasicTabWindow(): TabWindow {
   );
   const tabWindow = new TabWindow(tab, dim);
   tabWindow.calc();
-  randomFrets(tab, true);
   return tabWindow;
 }
 
-function prepareTestCases(): TabWindow[] {
+export interface TestCase {
+  tabWindow: TabWindow;
+  caption: string;
+}
+
+function prepareTestCases(): TestCase[] {
   const tabWindows = [
-    prepareTestCase1(),
-    prepareTestCase2(),
-    prepareTestCase3(),
-    prepareTestCase4(),
-    prepareTestCase5(),
-    prepareTestCase6(),
-    prepareTestCase7(),
-    prepareTestCase8(),
+    (() => {
+      const tabWindow = createBasicTabWindow();
+
+      selectNote(tabWindow, 1, 4, 3, 4);
+
+      // Move right thus creating new notes
+      tabWindow.moveSelectedNoteRight();
+      tabWindow.moveSelectedNoteRight();
+      tabWindow.moveSelectedNoteRight();
+      tabWindow.moveSelectedNoteRight();
+      tabWindow.moveSelectedNoteRight();
+      tabWindow.moveSelectedNoteRight();
+
+      // Move selected note left to see if it's at the right place
+      tabWindow.moveSelectedNoteLeft();
+      tabWindow.moveSelectedNoteLeft();
+
+      // Fill frets
+      randomFrets(tabWindow.tab, true);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Move selected note",
+      };
+    })(),
+    (() => {
+      const stringsCount = 6;
+      const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
+      const fretsCount = 24;
+      const guitar = new Guitar(stringsCount, tuning, fretsCount);
+      const bars = [];
+      const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+
+      const dim = new TabWindowDim(
+        width,
+        noteTextSize,
+        timeSigTextSize,
+        tempoTextSize,
+        durationsHeight,
+        guitar.stringsCount
+      );
+      const tabWindow = new TabWindow(tab, dim);
+
+      tabWindow.calc();
+      return {
+        tabWindow: tabWindow,
+        caption: "Empty bars array creates tab with 1 bar",
+      };
+    })(),
+    (() => {
+      const stringsCount = 7;
+      const tuning = [Note.A, Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
+      const fretsCount = 24;
+      const guitar = new Guitar(stringsCount, tuning, fretsCount);
+      let bars = new Array<Bar>();
+      for (let i = 0; i < 100; i++) {
+        bars.push(
+          new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+            new Chord(guitar, NoteDuration.Quarter),
+            new Chord(guitar, NoteDuration.Quarter),
+            new Chord(guitar, NoteDuration.Quarter),
+            new Chord(guitar, NoteDuration.Quarter),
+          ])
+        );
+      }
+      const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+      randomFrets(tab);
+
+      const dim = new TabWindowDim(
+        width,
+        noteTextSize,
+        timeSigTextSize,
+        tempoTextSize,
+        durationsHeight,
+        guitar.stringsCount
+      );
+      const tabWindow = new TabWindow(tab, dim);
+
+      const before = performance.now();
+      tabWindow.calc();
+      const after = performance.now();
+      calcSpeed = after - before;
+
+      selectNote(tabWindow, 0, 1, 2, 4);
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "7 string guitar + a single 'TabWindow.calc' " +
+          `on 100 bars performance measuring: calc speed is ${calcSpeed}`,
+      };
+    })(),
+    (() => {
+      // select chords left-to-right
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      tabWindow.selectChord(0, 1, 0);
+      tabWindow.selectChord(1, 0, 2);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Select chords left-to-right",
+      };
+    })(),
+    (() => {
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      tabWindow.selectChord(0, 1, 0);
+      tabWindow.selectChord(1, 0, 2);
+      tabWindow.selectChord(0, 0, 3);
+      tabWindow.selectChord(0, 0, 2);
+      tabWindow.selectChord(0, 0, 1);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Select chords from left-to-right to then right-to-left",
+      };
+    })(),
+    (() => {
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      tabWindow.selectChord(1, 0, 2);
+      tabWindow.selectChord(0, 1, 0);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Select chords right-to-left",
+      };
+    })(),
+    (() => {
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      tabWindow.selectChord(1, 0, 2);
+      tabWindow.selectChord(0, 1, 0);
+      tabWindow.selectChord(1, 0, 3);
+      tabWindow.selectChord(1, 1, 0);
+      tabWindow.selectChord(1, 1, 1);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Select chords from right-to-left to left-to-right",
+      };
+    })(),
+    (() => {
+      const tabWindow = createBasicTabWindow();
+
+      // Select chords first
+      tabWindow.selectChord(1, 0, 2);
+      tabWindow.selectChord(0, 1, 0);
+      // Select note element should clear all selected chords
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectedElement.note.fret = Math.floor(Math.random() * 24);
+
+      // Copy selected note
+      tabWindow.copy();
+
+      // Select note to paste value into & paste
+      tabWindow.selectNoteElement(0, 2, 3, 5);
+      tabWindow.paste();
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Copy paste selected note: from 0-1-1-2 to 0-2-3-5",
+      };
+    })(),
+    (() => {
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      // Select note element first
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      // Select chords clears selected element
+      tabWindow.selectChord(0, 2, 3);
+      tabWindow.selectChord(0, 1, 0);
+
+      // Copy selected chords
+      tabWindow.copy();
+
+      // Select note element where chords will be pasted & paste
+      tabWindow.selectNoteElement(1, 0, 1, 2);
+      tabWindow.paste();
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Copy paste selected chords: " +
+          "chords from 1-0-2 to 0-1-0 pasted at 1-0-1-2",
+      };
+    })(),
   ];
 
   return tabWindows;
 }
 
 export const testData = {
-  tabWindows: prepareTestCases(),
-  calcSpeed: calcSpeed,
-  createBasicTabWindow: createBasicTabWindow,
+  testCases: prepareTestCases(),
 };

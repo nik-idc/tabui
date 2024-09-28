@@ -9,6 +9,12 @@ import { Note } from "../../models/note";
 import { GuitarNote } from "../../models/guitar-note";
 import { Tab } from "../../models/tab";
 
+export function isSelectedElement(
+  element: SelectedElement | any
+): element is SelectedElement {
+  return (element as SelectedElement).stringNum !== undefined;
+}
+
 /**
  * Class that contains all necessary information
  * about a selected element
@@ -176,10 +182,20 @@ export class SelectedElement {
   }
 
   /**
-   * Selected bar element
+   * Selected bar element id (sequential)
+   */
+  public get barElementSeqId(): number {
+    return this._barId;
+  }
+
+  /**
+   * Selected bar element id (in the tab line)
    */
   public get barElementId(): number {
-    return this._barId;
+    const barElement = this._tabWindow.barElementsSeq[this._barId];
+    return this._tabWindow.barElementLines[this.barElementsLineId].indexOf(
+      barElement
+    );
   }
 
   /**
@@ -187,7 +203,7 @@ export class SelectedElement {
    */
   public get barElementsLineId(): number {
     return Math.floor(
-      this._tabWindow.barElements[this._barId].rect.y /
+      this._tabWindow.barElementsSeq[this._barId].rect.y /
         this._tabWindow.dim.tabLineHeight
     );
   }
@@ -210,7 +226,7 @@ export class SelectedElement {
    * Selected bar element
    */
   public get barElement(): BarElement {
-    return this._tabWindow.barElements[this.barElementId];
+    return this._tabWindow.barElementsSeq[this._barId];
   }
 
   /**

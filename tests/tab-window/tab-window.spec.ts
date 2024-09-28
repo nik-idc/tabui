@@ -1,72 +1,8 @@
-import { testData } from "./../../test-render/test-cases";
+import { testData, createBasicTabWindow } from "./../../test-render/test-cases";
 
 describe("Tab window tests", () => {
-  test("Tab window calc test: calc bar elements, test case 1", () => {
-    const expectedBarElementLinesCount = 2;
-    const expectedLine1BarCount = 5;
-    const expectedLine2BarCount = 1;
-
-    // Test
-    expect(testData.tabWindows[0].barElementLines.length).toBe(
-      expectedBarElementLinesCount
-    );
-    expect(testData.tabWindows[0].barElementLines[0].length).toBe(
-      expectedLine1BarCount
-    );
-    expect(testData.tabWindows[0].barElementLines[1].length).toBe(
-      expectedLine2BarCount
-    );
-  });
-
-  test("Tab window calc test: calc bar elements, test case 2", () => {
-    const expectedBarElementLinesCount = 1;
-    const expectedLine1BarCount = 1;
-
-    // Test
-    expect(testData.tabWindows[1].barElementLines.length).toBe(
-      expectedBarElementLinesCount
-    );
-    expect(testData.tabWindows[1].barElements.length).toBe(
-      expectedLine1BarCount
-    );
-  });
-
-  test("Tab window calc test: calc bar elements, test case 3", () => {
-    const expectedBarElementLinesCount = 3;
-    const expectedLine1BarCount = 5;
-    const expectedLine2BarCount = 4;
-    const expectedLine3BarCount = 4;
-
-    // Test
-    expect(testData.tabWindows[2].barElementLines.length).toBe(
-      expectedBarElementLinesCount
-    );
-    expect(testData.tabWindows[2].barElementLines[0].length).toBe(
-      expectedLine1BarCount
-    );
-    expect(testData.tabWindows[2].barElementLines[1].length).toBe(
-      expectedLine2BarCount
-    );
-    expect(testData.tabWindows[2].barElementLines[2].length).toBe(
-      expectedLine3BarCount
-    );
-  });
-
-  test("Tab window calc test: calc bar elements, test case 4", () => {
-    const expectedBarElementLinesCount = 20;
-    const expectedLineBarCount = 5;
-
-    // Test
-    expect(testData.tabWindows[3].barElementLines.length).toBe(
-      expectedBarElementLinesCount
-    );
-    for (const barElementLine of testData.tabWindows[3].barElementLines) {
-      expect(barElementLine.length).toBe(expectedLineBarCount);
-    }
-  });
-
   test("Tab window select note element test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId = 0;
     const barElementId = 1;
@@ -87,7 +23,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window select chord in between test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 0;
     const barElementId1 = 1;
@@ -134,7 +70,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window select chord in between reverse lines test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 1;
     const barElementId1 = 1;
@@ -181,7 +117,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window select chord in between same line test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 0;
     const barElementId1 = 1;
@@ -212,7 +148,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window select chord in between same line reverse bars test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 0;
     const barElementId1 = 2;
@@ -243,7 +179,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window select chord in between same bar test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 0;
     const barElementId1 = 1;
@@ -270,7 +206,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window select chord in between same bar reverse chords test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 0;
     const barElementId1 = 1;
@@ -297,7 +233,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window select end up with only base selection element", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     basicTabWindow.selectChord(0, 1, 1);
     basicTabWindow.selectChord(0, 4, 2);
@@ -311,7 +247,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window select chord test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId = 0;
     const barElementId = 1;
@@ -326,7 +262,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window move left with selected to right", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 0;
     const barElementId1 = 1;
@@ -363,7 +299,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window move left with selected to left", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 0;
     const barElementId1 = 1;
@@ -400,7 +336,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window move right with selected to right", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 0;
     const barElementId1 = 1;
@@ -437,7 +373,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window move right with selected to left", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     const barElementLineId1 = 0;
     const barElementId1 = 1;
@@ -474,14 +410,18 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window insert chords test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     basicTabWindow.selectChord(0, 1, 0);
     basicTabWindow.selectChord(0, 1, 1);
     basicTabWindow.selectChord(0, 1, 2);
 
+    basicTabWindow.copy();
+
+    basicTabWindow.selectNoteElement(0, 1, 2, 4);
     const prevChordsLength = basicTabWindow.chordElementsSeq.length;
-    basicTabWindow.insertChordsAt(0, 1, 2);
+    basicTabWindow.paste();
+
 
     // Test
     expect(basicTabWindow.chordElementsSeq.length).toBe(prevChordsLength + 3);
@@ -497,7 +437,7 @@ describe("Tab window tests", () => {
   });
 
   test("Tab window delete chords test", () => {
-    const basicTabWindow = testData.createBasicTabWindow();
+    const basicTabWindow = createBasicTabWindow();
 
     basicTabWindow.selectChord(0, 1, 0);
     basicTabWindow.selectChord(0, 2, 1);

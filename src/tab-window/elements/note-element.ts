@@ -74,7 +74,8 @@ export class NoteElement {
    * @returns True if scaled, false if no more room to scale
    */
   public scaleNoteHorBy(scale: number): void {
-    if (scale <= 0 || (scale > 0 && scale < 1)) {
+    if (scale <= 0) {
+      // if (scale <= 0 || (scale > 0 && scale < 1)) {
       throw new Error(
         `${scale} is an invalid scale: scale must be positive AND >= 1`
       );
