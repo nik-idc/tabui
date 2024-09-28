@@ -6,7 +6,10 @@ import { Point } from "./shapes/point";
 import { Bar } from "./../models/bar";
 import { NoteDuration } from "./../models/note-duration";
 import { ChordElement } from "./elements/chord-element";
-import { SelectedElement } from "./elements/selected-element";
+import {
+  SelectedElement,
+  isSelectedElement,
+} from "./elements/selected-element";
 import { Chord } from "../models/chord";
 import { SelectionElement } from "./elements/selection-element";
 import { Rect } from "./shapes/rect";
@@ -31,7 +34,7 @@ export class TabWindow {
   /**
    * Bar elements
    */
-  private _barElements: BarElement[];
+  private _barElementsSeq: BarElement[];
   /**
    * Lines of bar elements
    */
@@ -44,6 +47,10 @@ export class TabWindow {
    * Selection elements before selection was cleared
    */
   private _lastSelectionElements: SelectionElement[];
+  /**
+   * Copied data
+   */
+  private _copiedData: SelectedElement | SelectionElement[];
   /**
    * Selection elements
    */
@@ -72,7 +79,7 @@ export class TabWindow {
     }
     this._tab = tab;
     this.dim = dim;
-    this._barElements = [];
+    this._barElementsSeq = [];
     this._barElementLines = [];
     this._selectionElements = [];
     this._selectionRects = [];
@@ -108,7 +115,7 @@ export class TabWindow {
    * Calc, place and scale all bar elements
    */
   private calcBarElements(): void {
-    this._barElements = [];
+    this._barElementsSeq = [];
     this._barElementLines = [];
 
     let coords = new Point(0, 0);
@@ -130,10 +137,11 @@ export class TabWindow {
       );
 
       if (i === 0) {
-        this._barElements.push(barElement);
+        this._barElementsSeq.push(barElement);
         this._barElementLines.push([barElement]);
       } else {
-        const lastBarElement = this._barElements[this._barElements.length - 1];
+        const lastBarElement =
+          this._barElementsSeq[this._barElementsSeq.length - 1];
 
         const barFits =
           lastBarElement.rect.rightTop.x + barElement.rect.width <=
@@ -150,7 +158,7 @@ export class TabWindow {
         }
 
         barElement.setCoords(coords);
-        this._barElements.push(barElement);
+        this._barElementsSeq.push(barElement);
         this._barElementLines[this._barElementLines.length - 1].push(
           barElement
         );
@@ -163,7 +171,7 @@ export class TabWindow {
     );
 
     // Get a singular array of all chord elements
-    this._chordElementsSeq = this._barElements.flatMap((be) => {
+    this._chordElementsSeq = this._barElementsSeq.flatMap((be) => {
       return be.chordElements;
     });
 
@@ -395,14 +403,14 @@ export class TabWindow {
     barElementId: number,
     chordElementId: number
   ): void {
-    if (this._selectionElements.length === 0) {
+    if (this._lastSelectionElements.length === 0) {
       // Return because nothing to insert
       return;
     }
 
     // Insert selection chords after specified chord
     const barElement = this._barElementLines[barElementLineId][barElementId];
-    const chords = this._selectionElements.map((se) => {
+    const chords = this._lastSelectionElements.map((se) => {
       return this._chordElementsSeq[se.chordElementSeqId].chord;
     });
     barElement.bar.insertChords(chordElementId, chords);
@@ -410,6 +418,24 @@ export class TabWindow {
     // Recalc
     this.clearSelection();
     this.calc();
+  }
+
+  public copy(): void {
+    this._copiedData = this._selectedElement
+      ? this._selectedElement
+      : this._selectionElements;
+  }
+
+  public paste(): void {
+    if (!isSelectedElement(this._copiedData)) {
+      this.insertChordsAt(
+        this._selectedElement.barElementsLineId,
+        this._selectedElement.barElementId,
+        this._selectedElement.chordElementId
+      );
+    } else {
+      this._selectedElement.note.fret = this._copiedData.note.fret;
+    }
   }
 
   /**
@@ -552,8 +578,8 @@ export class TabWindow {
     return this._tab;
   }
 
-  public get barElements(): BarElement[] {
-    return this._barElements;
+  public get barElementsSeq(): BarElement[] {
+    return this._barElementsSeq;
   }
 
   public get barElementLines(): BarElement[][] {

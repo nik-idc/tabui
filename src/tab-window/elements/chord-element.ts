@@ -98,7 +98,8 @@ export class ChordElement {
    */
   public scaleChordHorBy(scale: number): boolean {
     // Check if can be scaled down
-    if (scale <= 0 || (scale > 0 && scale < 1)) {
+    if (scale <= 0) {
+    // if (scale <= 0 || (scale > 0 && scale < 1)) {
       throw new Error(
         `${scale} is an invalid scale: scale must be positive AND >= 1`
       );

@@ -138,7 +138,8 @@ export class BarElement {
    */
   public scaleBarHorBy(scale: number): boolean {
     // Check if can scale down
-    if (scale <= 0 || (scale > 0 && scale < 1)) {
+    if (scale <= 0) {
+      // if (scale <= 0 || (scale > 0 && scale < 1)) {
       throw new Error(
         `${scale} is an invalid scale: scale must be positive AND >= 1`
       );

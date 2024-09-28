@@ -9,22 +9,21 @@ import { TabWindowDim } from "../src/tab-window/tab-window-dim";
 
 import * as fs from "fs";
 
-import { testData } from "./test-cases";
+import { testData, TestCase } from "./test-cases";
 
 function render(
-  tabWindows: TabWindow[],
-  calcSpeed: number | undefined,
+  testCases: TestCase[],
   detailed: boolean | undefined = false
 ): string {
   const html = new Array<string>();
 
-  if (calcSpeed) {
-    html.push(`<div>Test case 4 calc speed: ${calcSpeed}ms</div>`);
-  }
+  for (const testCase of testCases) {
+    const tabWindow = testCase.tabWindow;
 
-  for (const tabWindow of tabWindows) {
     html.push("<div>");
-    html.push(`Test case ${tabWindows.indexOf(tabWindow) + 1}`);
+    html.push(
+      `Test case №${testCases.indexOf(testCase) + 1}: ${testCase.caption}`
+    );
     html.push("<div>");
     const tabWindowHeight =
       tabWindow.dim.tabLineHeight * tabWindow.barElementLines.length;
@@ -137,7 +136,7 @@ function render(
                                stroke-opacity="1" />`);
             }
 
-            if (noteElement.note.fret) {
+            if (noteElement.note.fret !== undefined) {
               html.push("<g>");
               html.push(`<rect x="${noteElement.textRect.x}"
                                y="${noteElement.textRect.y}"
@@ -204,10 +203,10 @@ function saveHTML(fileName: string, html: string): void {
 }
 
 function main(): void {
-  const htmlNormal = render(testData.tabWindows, testData.calcSpeed, false);
+  const htmlNormal = render(testData.testCases, false);
   saveHTML("index.html", htmlNormal);
 
-  const htmlDetailed = render(testData.tabWindows, testData.calcSpeed, true);
+  const htmlDetailed = render(testData.testCases, true);
   saveHTML("index-detailed.html", htmlDetailed);
 }
 

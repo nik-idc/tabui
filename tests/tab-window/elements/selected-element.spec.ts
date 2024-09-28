@@ -11,18 +11,23 @@ import {
 } from "../../../src";
 import { SelectedElement } from "../../../src/tab-window/elements/selected-element";
 
-import { testData } from "../../../test-render/test-cases";
+import { createBasicTabWindow } from "../../../test-render/test-cases";
 
 describe("Selected element tests", () => {
   test("Selected element move up test: any string", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
 
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 4;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newSelectedNoteElementId = 3;
@@ -32,14 +37,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
-        .noteElements[newSelectedNoteElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ].noteElements[newSelectedNoteElementId]
     );
     expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ]
     );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[barElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
       tabWindow.barElementLines[barElementsLineId]
@@ -53,14 +61,19 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move up test: 0th string", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
 
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 0;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newSelectedNoteElementId = 5;
@@ -70,14 +83,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
-        .noteElements[newSelectedNoteElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ].noteElements[newSelectedNoteElementId]
     );
     expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ]
     );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[barElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
       tabWindow.barElementLines[barElementsLineId]
@@ -91,14 +107,19 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move down test: any string", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
 
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 4;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newSelectedNoteElementId = 5;
@@ -108,14 +129,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
-        .noteElements[newSelectedNoteElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ].noteElements[newSelectedNoteElementId]
     );
     expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ]
     );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[barElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
       tabWindow.barElementLines[barElementsLineId]
@@ -129,13 +153,18 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move down test: 0th string", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newSelectedNoteElementId = 0;
@@ -145,14 +174,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
-        .noteElements[newSelectedNoteElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ].noteElements[newSelectedNoteElementId]
     );
     expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ]
     );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[barElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
       tabWindow.barElementLines[barElementsLineId]
@@ -166,13 +198,18 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move left test: any chord", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 0;
     const chordElementId = 1;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newSelectedChordElementId = 0;
@@ -183,17 +220,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
         newSelectedChordElementId
       ].noteElements[newSelectedNoteElementId]
     );
     expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
         newSelectedChordElementId
       ]
     );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[barElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
       tabWindow.barElementLines[barElementsLineId]
@@ -209,13 +246,18 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move left test: 0th chord in not first bar", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 1;
     const chordElementId = 0;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newSelectedBarElementId = 0;
@@ -227,17 +269,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
-      ].noteElements[newSelectedNoteElementId]
-    );
-    expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
+      tabWindow.barElementLines[barElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId].noteElements[
+        newSelectedNoteElementId
       ]
     );
+    expect(tabWindow.selectedElement.chordElement).toBe(
+      tabWindow.barElementLines[barElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId]
+    );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId]
+      tabWindow.barElementLines[barElementsLineId][newSelectedBarElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
       tabWindow.barElementLines[barElementsLineId]
@@ -255,13 +297,18 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move left test: 0th chord in first bar in not first tab line", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
     // Select note element
     const barElementsLineId = 1;
     const barElementId = 0;
     const chordElementId = 0;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newBarElementsLineId = 0;
@@ -274,17 +321,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
-      ].noteElements[newSelectedNoteElementId]
-    );
-    expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId].noteElements[
+        newSelectedNoteElementId
       ]
     );
+    expect(tabWindow.selectedElement.chordElement).toBe(
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId]
+    );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId]
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
     );
     expect(tabWindow.selectedElement.noteElementId).toBe(
       newSelectedNoteElementId
@@ -301,13 +348,18 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move left test: 0th chord in first bar in first tab line", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 0;
     const chordElementId = 0;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Expected result is nothing changing
     // Move selected note up
@@ -315,14 +367,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
-        .noteElements[noteElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ].noteElements[noteElementId]
     );
     expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[chordElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
+        chordElementId
+      ]
     );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[barElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
       tabWindow.barElementLines[barElementsLineId]
@@ -334,13 +389,18 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move right test: any chord", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 0;
     const chordElementId = 0;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newSelectedChordElementId = 1;
@@ -351,17 +411,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
         newSelectedChordElementId
       ].noteElements[newSelectedNoteElementId]
     );
     expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[barElementId].chordElements[
+      tabWindow.barElementLines[barElementsLineId][barElementId].chordElements[
         newSelectedChordElementId
       ]
     );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[barElementId]
+      tabWindow.barElementLines[barElementsLineId][barElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
       tabWindow.barElementLines[barElementsLineId]
@@ -377,13 +437,18 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move right test: last chord in not last bar", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 0;
     const chordElementId = 3;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newSelectedBarElementId = 1;
@@ -395,17 +460,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
-      ].noteElements[newSelectedNoteElementId]
-    );
-    expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
+      tabWindow.barElementLines[barElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId].noteElements[
+        newSelectedNoteElementId
       ]
     );
+    expect(tabWindow.selectedElement.chordElement).toBe(
+      tabWindow.barElementLines[barElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId]
+    );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId]
+      tabWindow.barElementLines[barElementsLineId][newSelectedBarElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
       tabWindow.barElementLines[barElementsLineId]
@@ -423,17 +488,22 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move right test: last chord in last bar in not last line", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
     // Select note element
     const barElementsLineId = 0;
     const barElementId = 4;
     const chordElementId = 3;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Create expected result
     const newBarElementsLineId = 1;
-    const newSelectedBarElementId = 5;
+    const newSelectedBarElementId = 0;
     const newSelectedChordElementId = 0;
     const newSelectedNoteElementId = 5;
 
@@ -442,17 +512,17 @@ describe("Selected element tests", () => {
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
-      ].noteElements[newSelectedNoteElementId]
-    );
-    expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId].noteElements[
+        newSelectedNoteElementId
       ]
     );
+    expect(tabWindow.selectedElement.chordElement).toBe(
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId]
+    );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId]
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
     );
 
     expect(tabWindow.selectedElement.noteElementId).toBe(
@@ -470,7 +540,7 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move right test: last chord in last bar in last line, new bar", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
 
     tabWindow.tab.bars.splice(tabWindow.tab.bars.length - 1, 1);
     tabWindow.calc();
@@ -480,32 +550,38 @@ describe("Selected element tests", () => {
     const barElementId = 3;
     const chordElementId = 3;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Move selected note up (one note right in this case should be a new bar)
     tabWindow.moveSelectedNoteRight();
 
     // Expected result is a new bar/tab line element
-    const newSelectedBarElementId = 9;
+    const newBarElementsLineId = 1;
+    const newSelectedBarElementId = 4;
     const newSelectedChordElementId = 0;
     const newSelectedNoteElementId = 5;
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
-      ].noteElements[newSelectedNoteElementId]
-    );
-    expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId].noteElements[
+        newSelectedNoteElementId
       ]
     );
+    expect(tabWindow.selectedElement.chordElement).toBe(
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId]
+    );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId]
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
     );
     expect(tabWindow.selectedElement.barElementsLine).toBe(
-      tabWindow.barElementLines[barElementsLineId]
+      tabWindow.barElementLines[newBarElementsLineId]
     );
     expect(tabWindow.selectedElement.noteElementId).toBe(
       newSelectedNoteElementId
@@ -520,15 +596,21 @@ describe("Selected element tests", () => {
   });
 
   test("Selected element move right test: last chord in last bar in last line, new tab line", () => {
-    const tabWindow = testData.createBasicTabWindow();
+    const tabWindow = createBasicTabWindow();
     // Select note element
     const barElementsLineId = 1;
     const barElementId = 4;
     const chordElementId = 3;
     const noteElementId = 5;
-    tabWindow.selectNoteElement(barElementsLineId, barElementId, chordElementId, noteElementId);
+    tabWindow.selectNoteElement(
+      barElementsLineId,
+      barElementId,
+      chordElementId,
+      noteElementId
+    );
 
     // Move notes to the right until a new tab line is created
+    tabWindow.moveSelectedNoteRight();
     tabWindow.moveSelectedNoteRight();
     tabWindow.moveSelectedNoteRight();
     tabWindow.moveSelectedNoteRight();
@@ -536,23 +618,23 @@ describe("Selected element tests", () => {
 
     // Expected result is a new bar/tab line element
     const newBarElementsLineId = 2;
-    const newSelectedBarElementId = 10;
-    const newSelectedChordElementId = 3;
+    const newSelectedBarElementId = 1;
+    const newSelectedChordElementId = 0;
     const newSelectedNoteElementId = 5;
 
     // Test
     expect(tabWindow.selectedElement.noteElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
-      ].noteElements[newSelectedNoteElementId]
-    );
-    expect(tabWindow.selectedElement.chordElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId].chordElements[
-        newSelectedChordElementId
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId].noteElements[
+        newSelectedNoteElementId
       ]
     );
+    expect(tabWindow.selectedElement.chordElement).toBe(
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
+        .chordElements[newSelectedChordElementId]
+    );
     expect(tabWindow.selectedElement.barElement).toBe(
-      tabWindow.barElements[newSelectedBarElementId]
+      tabWindow.barElementLines[newBarElementsLineId][newSelectedBarElementId]
     );
     expect(tabWindow.selectedElement.noteElementId).toBe(
       newSelectedNoteElementId

@@ -60,7 +60,7 @@ export class GuitarNote {
   /**
    * Getter/setter for fret number
    */
-  get fret(): string | number | undefined {
+  get fret(): number | undefined {
     return this._fret;
   }
 
@@ -87,7 +87,7 @@ export class GuitarNote {
   }
 
   private calcNote(): void {
-    if (!this._fret) {
+    if (this._fret === undefined) {
       this._note = Note.None;
       return;
     }
@@ -119,8 +119,7 @@ export class GuitarNote {
   static fromObject(obj: any): GuitarNote {
     if (
       obj.guitar === undefined ||
-      obj._stringNum === undefined ||
-      obj._fret === undefined
+      obj._stringNum === undefined
     ) {
       throw new Error("Invalid js object to parse to guitar note");
     }
