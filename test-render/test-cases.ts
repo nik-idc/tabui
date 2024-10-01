@@ -343,9 +343,52 @@ function prepareTestCases(): TestCase[] {
       return {
         tabWindow: tabWindow,
         caption:
-          "Copy paste selected note: from " +
+          "Copy paste selected note after 'click': from " +
           `${copiedNote[0]}-${copiedNote[1]}-${copiedNote[2]}-${copiedNote[3]} to ` +
           `${pastedNote[0]}-${pastedNote[1]}-${pastedNote[2]}-${pastedNote[3]}`,
+      };
+    })(),
+    (() => {
+      const copiedNote = [0, 1, 1, 2];
+
+      const tabWindow = createBasicTabWindow();
+
+      // Select chords first
+      tabWindow.selectChord(1, 0, 2);
+      tabWindow.selectChord(0, 1, 0);
+      // Select note element should clear all selected chords
+      tabWindow.selectNoteElement(
+        copiedNote[0],
+        copiedNote[1],
+        copiedNote[2],
+        copiedNote[3]
+      );
+      tabWindow.selectedElement.note.fret = Math.floor(Math.random() * 24);
+
+      // Copy selected note
+      tabWindow.copy();
+
+      tabWindow.moveSelectedNoteUp();
+      tabWindow.paste();
+
+      tabWindow.moveSelectedNoteRight();
+      tabWindow.moveSelectedNoteDown();
+      tabWindow.paste();
+
+      tabWindow.moveSelectedNoteDown();
+      tabWindow.moveSelectedNoteLeft();
+      tabWindow.paste();
+
+      tabWindow.moveSelectedNoteLeft();
+      tabWindow.moveSelectedNoteUp();
+      tabWindow.paste();
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Copy paste selected note after 'moving': from " +
+          `${copiedNote[0]}-${copiedNote[1]}-${copiedNote[2]}-${copiedNote[3]} ` +
+          `to all directions (up, right, down, left)`,
       };
     })(),
     (() => {
