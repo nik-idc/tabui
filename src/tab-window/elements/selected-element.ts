@@ -30,9 +30,9 @@ export class SelectedElement {
    */
   constructor(
     private _tabWindow: TabWindow,
-    private _barId: number,
-    private _chordId: number,
-    private _stringNum: number
+    private _barId: number = 0,
+    private _chordId: number = 0,
+    private _stringNum: number = 1
   ) {}
 
   /**
