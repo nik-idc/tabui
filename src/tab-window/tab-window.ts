@@ -87,6 +87,11 @@ export class TabWindow {
     this.calc();
   }
 
+  /**
+   * Justifies elements in a bar line
+   * @param barElements Elements of a bar line
+   * @returns
+   */
   private justifyBarElementsLine(barElements: BarElement[]): void {
     // Calc width of empty space
     const gapWidth =
@@ -182,6 +187,10 @@ export class TabWindow {
     }
   }
 
+  /**
+   * Calc tab window. Goes through every bar of a tab and calculates
+   * the resulting window with multiple bar lines
+   */
   public calc(): void {
     this.calcBarElements();
   }
@@ -268,6 +277,15 @@ export class TabWindow {
     }
   }
 
+  /**
+   * Selects chords in between the two specified chords (including them)
+   * @param startBarElementsLineId Bar line id of the starting chord
+   * @param startBarElementId Bar element id of the starting chord
+   * @param startChordElementId Chord element id of the starting chord
+   * @param endBarElementsLineId Bar line id of the end chord
+   * @param endBarElementId Bar element id of the end chord
+   * @param endChordElementId Chord element id of the end chord
+   */
   private selectChordsInBetween(
     startBarElementsLineId: number,
     startBarElementId: number,
@@ -384,7 +402,6 @@ export class TabWindow {
    */
   public clearSelection(): void {
     this._baseSelectionElement = undefined;
-    this._lastSelectionElements = this._selectionElements;
     this._selectionElements = [];
     for (let i = 0; i < this._selectionRects.length; i++) {
       this._selectionRects[i] = undefined;
@@ -392,47 +409,82 @@ export class TabWindow {
   }
 
   /**
-   * Insert chords into bar element
-   * @param barElementLineId Id of the bar element line containing the chord element
-   * @param barElementId Id of the bar element containing the chord element
-   * @param chordElementId Id of the chord element after which to insert
-   * @returns
+   * Copy selected note/chords (depending on which is currently selected)
    */
-  public insertChordsAt(
-    barElementLineId: number,
-    barElementId: number,
-    chordElementId: number
-  ): void {
-    if (this._lastSelectionElements.length === 0) {
-      // Return because nothing to insert
-      return;
-    }
-
-    // Insert selection chords after specified chord
-    const barElement = this._barElementLines[barElementLineId][barElementId];
-    const chords = this._lastSelectionElements.map((se) => {
-      return this._chordElementsSeq[se.chordElementSeqId].chord;
-    });
-    barElement.bar.insertChords(chordElementId, chords);
-
-    // Recalc
-    this.clearSelection();
-    this.calc();
-  }
-
   public copy(): void {
     this._copiedData = this._selectedElement
       ? this._selectedElement
       : this._selectionElements;
   }
 
+  private insertChords(): void {
+    if (isSelectedElement(this._copiedData)) {
+      return;
+    }
+
+    // Get indices
+    const barElementLineId = this._selectedElement.barElementsLineId;
+    const barElementId = this._selectedElement.barElementId;
+    const chordElementId = this._selectedElement.chordElementId;
+
+    // Insert selection chords after specified chord
+    const barElement = this._barElementLines[barElementLineId][barElementId];
+    const chords = this._copiedData.map((se) => {
+      return this._chordElementsSeq[se.chordElementSeqId].chord;
+    });
+    barElement.bar.insertChords(chordElementId, chords);
+
+    // Recalc
+    // this.clearSelection();
+    this.calc();
+  }
+
+  private replaceChords(): void {
+    if (isSelectedElement(this._copiedData)) {
+      return;
+    }
+
+    // Delete every chord in selection
+    for (const se of this._selectionElements) {
+      const barElementsLine = this._barElementLines[se.barElementsLineId];
+      const barElement = barElementsLine[se.barElementId];
+      const chord = this._chordElementsSeq[se.chordElementSeqId].chord;
+      const chordId = barElement.bar.chords.indexOf(chord);
+      barElement.removeChord(chordId);
+    }
+
+    const barElement =
+      this.barElementLines[this._selectionElements[0].barElementsLineId][
+        this._selectionElements[0].barElementId
+      ];
+    const chords = this._copiedData.map((se) => {
+      return this._chordElementsSeq[se.chordElementSeqId].chord;
+    });
+    barElement.bar.insertChords(barElement.bar.chords.length - 1, chords);
+
+    // Recalc
+    this.clearSelection();
+    this.calc();
+  }
+
+  /**
+   * Paste copied data:
+   * Paste chords after selected note if selected chords OR
+   * Paste note, i.e., change fret value of selected note to that of selected
+   * @returns
+   */
   public paste(): void {
     if (!isSelectedElement(this._copiedData)) {
-      this.insertChordsAt(
-        this._selectedElement.barElementsLineId,
-        this._selectedElement.barElementId,
-        this._selectedElement.chordElementId
-      );
+      // Return if nothing to paste
+      if (this._copiedData.length === 0) {
+        return;
+      }
+
+      if (this._selectionElements.length === 0) {
+        this.insertChords();
+      } else {
+        this.replaceChords();
+      }
     } else {
       this._selectedElement.note.fret = this._copiedData.note.fret;
     }
@@ -456,12 +508,19 @@ export class TabWindow {
     this.calc();
   }
 
+  /**
+   * Gets chords from selection (as a get function because this is a .map wrapper)
+   * @returns Selected chords ('Chord' class)
+   */
   public getSelectionChords(): Chord[] {
     return this._selectionElements.map((se) => {
       return this._chordElementsSeq[se.chordElementSeqId].chord;
     });
   }
 
+  /**
+   * Move selected note up
+   */
   public moveSelectedNoteUp(): void {
     if (this._selectedElement === undefined) {
       throw Error("No note selected");
@@ -472,6 +531,9 @@ export class TabWindow {
     this._selectedElement.moveUp();
   }
 
+  /**
+   * Move selected note down
+   */
   public moveSelectedNoteDown(): void {
     if (this._selectedElement === undefined) {
       throw Error("No note selected");
@@ -482,6 +544,9 @@ export class TabWindow {
     this._selectedElement.moveDown();
   }
 
+  /**
+   * Move selected note left
+   */
   public moveSelectedNoteLeft(): void {
     if (this._selectionElements.length !== 0) {
       // Select left most element of selection
@@ -506,6 +571,9 @@ export class TabWindow {
     this._selectedElement.moveLeft();
   }
 
+  /**
+   * Move selected note right
+   */
   public moveSelectedNoteRight(): void {
     if (this._selectionElements.length !== 0) {
       // Select right most element of selection

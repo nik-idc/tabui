@@ -229,104 +229,214 @@ function prepareTestCases(): TestCase[] {
       };
     })(),
     (() => {
-      // select chords left-to-right
+      const firstChord = [0, 1, 0];
+      const secondChord = [1, 0, 2];
+
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectChord(0, 1, 0);
-      tabWindow.selectChord(1, 0, 2);
+      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
+      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
 
       return {
         tabWindow: tabWindow,
-        caption: "Select chords left-to-right",
+        caption:
+          "Select chords left-to-right: from " +
+          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
+          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
       };
     })(),
     (() => {
+      const firstChord = [0, 1, 0];
+      const secondChord = [1, 0, 2];
+      const thirdChord = [0, 0, 1];
+
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectChord(0, 1, 0);
-      tabWindow.selectChord(1, 0, 2);
-      tabWindow.selectChord(0, 0, 3);
-      tabWindow.selectChord(0, 0, 2);
-      tabWindow.selectChord(0, 0, 1);
+      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
+      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
+      // tabWindow.selectChord(0, 0, 3);
+      // tabWindow.selectChord(0, 0, 2);
+      tabWindow.selectChord(thirdChord[0], thirdChord[1], thirdChord[2]);
 
       return {
         tabWindow: tabWindow,
-        caption: "Select chords from left-to-right to then right-to-left",
+        caption:
+          "Select chords from left-to-right to then right-to-left:" +
+          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
+          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} to ` +
+          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
       };
     })(),
     (() => {
+      const firstChord = [1, 0, 2];
+      const secondChord = [0, 1, 0];
+
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectChord(1, 0, 2);
-      tabWindow.selectChord(0, 1, 0);
+      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
+      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
 
       return {
         tabWindow: tabWindow,
-        caption: "Select chords right-to-left",
+        caption:
+          "Select chords right-to-left" +
+          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
+          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
       };
     })(),
     (() => {
+      const firstChord = [1, 0, 2];
+      const secondChord = [0, 1, 0];
+      const thirdChord = [1, 1, 1];
+
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectChord(1, 0, 2);
-      tabWindow.selectChord(0, 1, 0);
-      tabWindow.selectChord(1, 0, 3);
-      tabWindow.selectChord(1, 1, 0);
-      tabWindow.selectChord(1, 1, 1);
+      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
+      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
+      // tabWindow.selectChord(1, 0, 3);
+      // tabWindow.selectChord(1, 1, 0);
+      tabWindow.selectChord(thirdChord[0], thirdChord[1], thirdChord[2]);
 
       return {
         tabWindow: tabWindow,
-        caption: "Select chords from right-to-left to left-to-right",
+        caption:
+          "Select chords from right-to-left to left-to-right" +
+          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
+          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} to ` +
+          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
       };
     })(),
     (() => {
+      const copiedNote = [0, 1, 1, 2];
+      const pastedNote = [0, 2, 3, 5];
+
       const tabWindow = createBasicTabWindow();
 
       // Select chords first
       tabWindow.selectChord(1, 0, 2);
       tabWindow.selectChord(0, 1, 0);
       // Select note element should clear all selected chords
-      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElement(
+        copiedNote[0],
+        copiedNote[1],
+        copiedNote[2],
+        copiedNote[3]
+      );
       tabWindow.selectedElement.note.fret = Math.floor(Math.random() * 24);
 
       // Copy selected note
       tabWindow.copy();
 
       // Select note to paste value into & paste
-      tabWindow.selectNoteElement(0, 2, 3, 5);
+      tabWindow.selectNoteElement(
+        pastedNote[0],
+        pastedNote[1],
+        pastedNote[2],
+        pastedNote[3]
+      );
       tabWindow.paste();
 
       return {
         tabWindow: tabWindow,
-        caption: "Copy paste selected note: from 0-1-1-2 to 0-2-3-5",
+        caption:
+          "Copy paste selected note: from " +
+          `${copiedNote[0]}-${copiedNote[1]}-${copiedNote[2]}-${copiedNote[3]} to ` +
+          `${pastedNote[0]}-${pastedNote[1]}-${pastedNote[2]}-${pastedNote[3]}`,
       };
     })(),
     (() => {
+      const firstChord = [0, 2, 3];
+      const secondChord = [0, 1, 0];
+      const pastedAtNote = [1, 0, 1, 2];
+
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
       // Select chords clears selected element
-      tabWindow.selectChord(0, 2, 3);
-      tabWindow.selectChord(0, 1, 0);
+      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
+      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
 
       // Copy selected chords
       tabWindow.copy();
 
       // Select note element where chords will be pasted & paste
-      tabWindow.selectNoteElement(1, 0, 1, 2);
+      tabWindow.selectNoteElement(
+        pastedAtNote[0],
+        pastedAtNote[1],
+        pastedAtNote[2],
+        pastedAtNote[3]
+      );
       tabWindow.paste();
 
       return {
         tabWindow: tabWindow,
         caption:
-          "Copy paste selected chords: " +
-          "chords from 1-0-2 to 0-1-0 pasted at 1-0-1-2",
+          "Copy paste selected chords: chords from " +
+          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
+          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} pasted at ` +
+          `${pastedAtNote[0]}-${pastedAtNote[1]}-${pastedAtNote[2]}-${pastedAtNote[3]}`,
+      };
+    })(),
+    (() => {
+      const copiedChords = [
+        [0, 2, 3],
+        [0, 1, 0],
+      ];
+      const pasteIntoChords = [
+        [1, 0, 3],
+        [1, 2, 2],
+      ];
+
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      // Select note element first
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      // Select chords clears selected element
+      tabWindow.selectChord(
+        copiedChords[0][0],
+        copiedChords[0][1],
+        copiedChords[0][2]
+      );
+      tabWindow.selectChord(
+        copiedChords[1][0],
+        copiedChords[1][1],
+        copiedChords[1][2]
+      );
+
+      // Copy selected chords
+      tabWindow.copy();
+
+      // Select note element where chords will be pasted & paste
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElement(0, 1, 2, 2);
+      tabWindow.selectChord(
+        pasteIntoChords[0][0],
+        pasteIntoChords[0][1],
+        pasteIntoChords[0][2]
+      );
+      tabWindow.selectChord(
+        pasteIntoChords[1][0],
+        pasteIntoChords[1][1],
+        pasteIntoChords[1][2]
+      );
+      tabWindow.paste();
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Copy paste selected chords while selection not empty: copied chords from " +
+          `${copiedChords[0][0]}-${copiedChords[0][1]}-${copiedChords[0][2]} to ` +
+          `${copiedChords[1][0]}-${copiedChords[1][1]}-${copiedChords[1][2]} ` +
+          `pasted into chords from ` +
+          `${pasteIntoChords[0][0]}-${pasteIntoChords[0][1]}-${pasteIntoChords[0][2]} to ` +
+          `${pasteIntoChords[1][0]}-${pasteIntoChords[1][1]}-${pasteIntoChords[1][2]}`,
       };
     })(),
   ];
