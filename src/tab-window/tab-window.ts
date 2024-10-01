@@ -413,7 +413,12 @@ export class TabWindow {
    */
   public copy(): void {
     this._copiedData = this._selectedElement
-      ? this._selectedElement
+      ? new SelectedElement(
+          this,
+          this._selectedElement.barElementId,
+          this._selectedElement.chordElementId,
+          this._selectedElement.stringNum
+        )
       : this._selectionElements;
   }
 
