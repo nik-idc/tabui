@@ -435,7 +435,7 @@ export class TabWindow {
     // Insert selection chords after specified chord
     const barElement = this._barElementLines[barElementLineId][barElementId];
     const chords = this._copiedData.map((se) => {
-      return this._chordElementsSeq[se.chordElementSeqId].chord;
+      return this._chordElementsSeq[se.chordElementSeqId].chord.deepCopy();
     });
     barElement.bar.insertChords(chordElementId, chords);
 
@@ -449,25 +449,14 @@ export class TabWindow {
       return;
     }
 
-    // Delete every chord in selection
-    for (const se of this._selectionElements) {
-      const barElementsLine = this._barElementLines[se.barElementsLineId];
-      const barElement = barElementsLine[se.barElementId];
-      const chord = this._chordElementsSeq[se.chordElementSeqId].chord;
-      const chordId = barElement.bar.chords.indexOf(chord);
-      barElement.removeChord(chordId);
-    }
-
-    const barElement =
-      this.barElementLines[this._selectionElements[0].barElementsLineId][
-        this._selectionElements[0].barElementId
-      ];
-    const chords = this._copiedData.map((se) => {
+    const selChords = this._selectionElements.map((se) => {
       return this._chordElementsSeq[se.chordElementSeqId].chord;
     });
-    barElement.bar.insertChords(barElement.bar.chords.length - 1, chords);
+    const copiedChords = this._copiedData.map((se) => {
+      return this._chordElementsSeq[se.chordElementSeqId].chord;
+    });
+    this.tab.replaceChords(selChords, copiedChords);
 
-    // Recalc
     this.clearSelection();
     this.calc();
   }

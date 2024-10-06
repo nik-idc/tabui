@@ -2,11 +2,15 @@ import { Chord } from "./chord";
 import { Guitar } from "./guitar";
 import { NoteDuration } from "./note-duration";
 import { Tab } from "./tab";
-
+import { randomInt } from "../misc/random-int";
 /**
  * Class that represents a musical bar
  */
 export class Bar {
+  /**
+   * Bar's unqiue identifier
+   */
+  readonly uuid: number;
   /**
    * Guitar on which the bar is played
    */
@@ -48,6 +52,7 @@ export class Bar {
     duration: NoteDuration,
     chords: Chord[] | undefined
   ) {
+    this.uuid = randomInt();
     this.guitar = guitar;
     this._tempo = tempo;
     this._beats = beats;
@@ -148,7 +153,7 @@ export class Bar {
    * @param chordId Id of the chord after which to insert
    * @param chords Chords to insert
    */
-  public insertChords(chordId: number, chords: Chord[]) {
+  public insertChords(chordId: number, chords: Chord[]): void {
     // Insert chords at specified position
     this.chords.splice(chordId + 1, 0, ...chords);
 
@@ -245,5 +250,34 @@ export class Bar {
     );
     bar.calcDurationsFit();
     return bar;
+  }
+
+  /**
+   * Compares two bars for equality (ignores uuid)
+   * @param bar1 Bar 1
+   * @param bar2 Bar 2
+   * @returns True if equal (ignoring uuid)
+   */
+  static compare(bar1: Bar, bar2: Bar): boolean {
+    if (
+      bar1.guitar !== bar2.guitar ||
+      bar1._tempo !== bar2._tempo ||
+      bar1._beats !== bar2._beats ||
+      bar1.duration !== bar2.duration ||
+      bar1._durationsFit !== bar2._durationsFit ||
+      bar1.chords.length !== bar2.chords.length
+    ) {
+      return false;
+    }
+
+    // Compare chords
+    for (let i = 0; i < bar1.chords.length; i++) {
+      if (!Chord.compare(bar1.chords[i], bar2.chords[i])) {
+        return false;
+      }
+    }
+
+    // Equal if all is the same
+    return true;
   }
 }

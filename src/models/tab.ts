@@ -73,11 +73,71 @@ export class Tab {
     }
   }
 
+  public removeChord(chordToRemove: Chord): void {
+    // remove chord based on the bar id
+    // get bar id using chord uuid
+    const bar = this.bars.filter((bar) => {
+      return bar.chords.some((chord) => {
+        return chord.uuid === chordToRemove.uuid;
+      });
+    })[0];
+    const insideBarIndex = bar.chords.findIndex(
+      (chord) => chord.uuid === chordToRemove.uuid
+    );
+    bar.removeChord(insideBarIndex);
+  }
+
+  public removeChords(chords: Chord[]): void {
+    for (const chord of chords) {
+      this.removeChord(chord);
+    }
+  }
+
+  public replaceChords(selChords: Chord[], newChords: Chord[]): void {
+    if (selChords.length > newChords.length) {
+      // Replace chords' notes values
+      for (let i = 0; i < newChords.length; i++) {
+        for (let j = 0; j < this.guitar.stringsCount; j++) {
+          selChords[i].notes[j].fret = newChords[i].notes[j].fret;
+        }
+      }
+
+      // Remove 'excess' chords
+      this.removeChords(selChords.slice(newChords.length, selChords.length));
+    } else if (selChords.length < newChords.length) {
+      // Get starting bar for later usage
+      const bar = this.bars.filter((bar) => {
+        return bar.chords.some((chord) => {
+          return chord.uuid === selChords[0].uuid;
+        });
+      })[0];
+
+      // Remove selected chords
+      this.removeChords(selChords);
+
+      // Paste copied data into bar
+      bar.insertChords(bar.chords.length - 1, newChords);
+    } else {
+      // Replace all notes in selection with copied chords
+      for (let i = 0; i < selChords.length; i++) {
+        for (let j = 0; j < this.guitar.stringsCount; j++) {
+          selChords[i].notes[j].fret = newChords[i].notes[j].fret;
+        }
+      }
+    }
+  }
+
   /**
    * Full song name
    */
   get fullSongName(): string {
     return this.artist + "-" + this.song;
+  }
+
+  get chordsSeq(): Chord[] {
+    return this.bars.flatMap((bar) => {
+      return bar.chords;
+    });
   }
 
   /**
@@ -97,7 +157,15 @@ export class Tab {
       throw new Error("Invalid js obj to parse to tab");
     }
 
-    return new Tab(obj.id, obj.name, obj.artist, obj.song, obj.guitar, obj.data.bars, obj.isPublic);
+    return new Tab(
+      obj.id,
+      obj.name,
+      obj.artist,
+      obj.song,
+      obj.guitar,
+      obj.data.bars,
+      obj.isPublic
+    );
 
     // obj.guitar =
     //   typeof obj.guitar === "string" ? JSON.parse(obj.guitar) : obj.guitar;
