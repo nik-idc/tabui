@@ -1,11 +1,16 @@
 import { Chord } from "./chord";
 import { Guitar } from "./guitar";
 import { Note, NotesCalcArr } from "./note";
+import { randomInt } from "../misc/random-int";
 
 /**
  * Class that represents a guitar note
  */
 export class GuitarNote {
+  /**
+   * Guitar note's unique identifier
+   */
+  readonly uuid: number;
   /**
    * Guitar on which the note is played
    */
@@ -30,6 +35,7 @@ export class GuitarNote {
    * @param fret Fret number
    */
   constructor(guitar: Guitar, stringNum: number, fret: number | undefined) {
+    this.uuid = randomInt();
     this.guitar = guitar;
     this._stringNum = stringNum;
     this._fret = fret;
@@ -117,15 +123,27 @@ export class GuitarNote {
   }
 
   static fromObject(obj: any): GuitarNote {
-    if (
-      obj.guitar === undefined ||
-      obj._stringNum === undefined
-    ) {
+    if (obj.guitar === undefined || obj._stringNum === undefined) {
       throw new Error("Invalid js object to parse to guitar note");
     }
 
     let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
     let guitarNote = new GuitarNote(guitar, obj._stringNum, obj._fret); // Create guitar note instance
     return guitarNote;
+  }
+
+  /**
+   * Compares two guitar notes for equality (ignores uuid)
+   * @param note1 Note 1
+   * @param note2 Note 2
+   * @returns True if equal (ignoring uuid)
+   */
+  static compare(note1: GuitarNote, note2: GuitarNote): boolean {
+    return (
+      note1._fret === note2._fret &&
+      note1._note === note2._note &&
+      note1._stringNum === note2._stringNum &&
+      note1.guitar === note2.guitar
+    );
   }
 }

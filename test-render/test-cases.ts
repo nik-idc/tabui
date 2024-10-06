@@ -482,6 +482,144 @@ function prepareTestCases(): TestCase[] {
           `${pasteIntoChords[1][0]}-${pasteIntoChords[1][1]}-${pasteIntoChords[1][2]}`,
       };
     })(),
+    (() => {
+      const copiedChord = [0, 2, 1];
+      const pastedIntoChord = [0, 3, 3];
+
+      const tabWindow = createBasicTabWindow();
+      // Set chord notes value
+      tabWindow.barElementLines[copiedChord[0]][copiedChord[1]].chordElements[
+        copiedChord[2]
+      ].noteElements[3].note.fret = 20;
+
+      // Select note element first
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      // Select chords clears selected element
+      tabWindow.selectChord(copiedChord[0], copiedChord[1], copiedChord[2]);
+
+      // Copy selected chords
+      tabWindow.copy();
+
+      // Select note element first
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      // Select note element where chords will be pasted & paste
+      tabWindow.selectChord(
+        pastedIntoChord[0],
+        pastedIntoChord[1],
+        pastedIntoChord[2]
+      );
+      tabWindow.paste();
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Copy paste chords replacing an equal number of selected chords: " +
+          "copied chord from " +
+          `${copiedChord[0]}-${copiedChord[1]}-${copiedChord[2]} ` +
+          `replacing chord at ` +
+          `${pastedIntoChord[0]}-${pastedIntoChord[1]}-${pastedIntoChord[2]}`,
+      };
+    })(),
+    (() => {
+      const copiedChords = [
+        [0, 2, 1],
+        [0, 2, 2],
+      ];
+      const pastedIntoChord = [0, 3, 3];
+
+      const tabWindow = createBasicTabWindow();
+      // Set chord notes value
+      tabWindow.barElementLines[copiedChords[0][0]][
+        copiedChords[0][1]
+      ].chordElements[copiedChords[0][2]].noteElements[3].note.fret = 20;
+      tabWindow.barElementLines[copiedChords[1][0]][
+        copiedChords[1][1]
+      ].chordElements[copiedChords[1][2]].noteElements[3].note.fret = 19;
+
+      // Select note element first
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      // Select chords to copy
+      tabWindow.selectChord(
+        copiedChords[0][0],
+        copiedChords[0][1],
+        copiedChords[0][2]
+      );
+      tabWindow.selectChord(
+        copiedChords[1][0],
+        copiedChords[1][1],
+        copiedChords[1][2]
+      );
+
+      // Copy selected chords
+      tabWindow.copy();
+
+      // Select note element first
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      // Select note element where chords will be pasted & paste
+      tabWindow.selectChord(
+        pastedIntoChord[0],
+        pastedIntoChord[1],
+        pastedIntoChord[2]
+      );
+      tabWindow.paste();
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Copy paste more chords than selected chords: copied chords from " +
+          `${copiedChords[0][0]}-${copiedChords[0][1]}-${copiedChords[0][2]} to ` +
+          `${copiedChords[1][0]}-${copiedChords[1][1]}-${copiedChords[1][2]} ` +
+          `replacing chord at ` +
+          `${pastedIntoChord[0]}-${pastedIntoChord[1]}-${pastedIntoChord[2]}`,
+      };
+    })(),
+    (() => {
+      const copiedChord = [0, 2, 1];
+      const pastedIntoChords = [
+        [0, 3, 2],
+        [0, 3, 3],
+      ];
+
+      const tabWindow = createBasicTabWindow();
+      // Set chord notes value
+      tabWindow.barElementLines[copiedChord[0]][copiedChord[1]].chordElements[
+        copiedChord[2]
+      ].noteElements[3].note.fret = 20;
+
+      // Select note element first
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      // Select chords clears selected element
+      tabWindow.selectChord(copiedChord[0], copiedChord[1], copiedChord[2]);
+
+      // Copy selected chords
+      tabWindow.copy();
+
+      // Select note element first
+      tabWindow.selectNoteElement(0, 1, 1, 2);
+      // Select note element where chords will be pasted & paste
+      tabWindow.selectChord(
+        pastedIntoChords[0][0],
+        pastedIntoChords[0][1],
+        pastedIntoChords[0][2]
+      );
+      tabWindow.selectChord(
+        pastedIntoChords[1][0],
+        pastedIntoChords[1][1],
+        pastedIntoChords[1][2]
+      );
+      tabWindow.paste();
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Copy paste 1 chord replacing multiple selected chords: " +
+          "copied chord from " +
+          `${copiedChord[0]}-${copiedChord[1]}-${copiedChord[2]} to ` +
+          `replacing chords from ` +
+          `${pastedIntoChords[0][0]}-${pastedIntoChords[0][1]}-${pastedIntoChords[0][2]} to ` +
+          `${pastedIntoChords[1][0]}-${pastedIntoChords[1][1]}-${pastedIntoChords[1][2]}`,
+      };
+    })(),
   ];
 
   return tabWindows;

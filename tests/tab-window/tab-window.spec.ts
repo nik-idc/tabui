@@ -1,3 +1,4 @@
+import { Chord } from "../../src/models/chord";
 import { testData, createBasicTabWindow } from "./../../test-render/test-cases";
 
 describe("Tab window tests", () => {
@@ -422,18 +423,201 @@ describe("Tab window tests", () => {
     const prevChordsLength = basicTabWindow.chordElementsSeq.length;
     basicTabWindow.paste();
 
-
     // Test
     expect(basicTabWindow.chordElementsSeq.length).toBe(prevChordsLength + 3);
-    expect(basicTabWindow.barElementLines[0][1].chordElements[0].chord).toBe(
-      basicTabWindow.barElementLines[0][1].chordElements[3].chord
-    );
-    expect(basicTabWindow.barElementLines[0][1].chordElements[1].chord).toBe(
-      basicTabWindow.barElementLines[0][1].chordElements[4].chord
-    );
-    expect(basicTabWindow.barElementLines[0][1].chordElements[2].chord).toBe(
-      basicTabWindow.barElementLines[0][1].chordElements[5].chord
-    );
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[0][1].chordElements[0].chord,
+        basicTabWindow.barElementLines[0][1].chordElements[3].chord
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[0][1].chordElements[1].chord,
+        basicTabWindow.barElementLines[0][1].chordElements[4].chord
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[0][1].chordElements[2].chord,
+        basicTabWindow.barElementLines[0][1].chordElements[5].chord
+      )
+    ).toBe(true);
+  });
+
+  test("Tab window replace chords: selection > copied", () => {
+    const basicTabWindow = createBasicTabWindow();
+
+    // Select chords to copy
+    const copiedChords = [
+      basicTabWindow.barElementLines[0][1].chordElements[0].chord,
+      basicTabWindow.barElementLines[0][1].chordElements[1].chord,
+      basicTabWindow.barElementLines[0][1].chordElements[2].chord,
+    ];
+    basicTabWindow.selectChord(0, 1, 0);
+    basicTabWindow.selectChord(0, 1, 2);
+    // Copy
+    basicTabWindow.copy();
+    // Select to reset current selection
+    basicTabWindow.selectNoteElement(0, 1, 1, 1);
+    // Select chords to replace
+    basicTabWindow.selectChord(1, 1, 0);
+    basicTabWindow.selectChord(1, 2, 0);
+
+    // Replace chords
+    const prevChords = basicTabWindow.tab.bars.flatMap((bar) => {
+      return bar.chords;
+    });
+    const prevChordsLength = prevChords.length;
+    basicTabWindow.paste();
+
+    // Pasted chords should be the ones we copied
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[0].chord,
+        copiedChords[0]
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[1].chord,
+        copiedChords[1]
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[2].chord,
+        copiedChords[2]
+      )
+    ).toBe(true);
+    // Expect total chords count to be 2 less than before
+    const chords = basicTabWindow.tab.bars.flatMap((bar) => {
+      return bar.chords;
+    });
+    const chordsLength = chords.length;
+    expect(chordsLength).toBe(prevChordsLength - 2);
+  });
+
+  test("Tab window replace chords: selection === copied", () => {
+    const basicTabWindow = createBasicTabWindow();
+
+    // Select chords to copy
+    const copiedChords = [
+      basicTabWindow.barElementLines[0][1].chordElements[0].chord,
+      basicTabWindow.barElementLines[0][1].chordElements[1].chord,
+      basicTabWindow.barElementLines[0][1].chordElements[2].chord,
+      basicTabWindow.barElementLines[0][1].chordElements[3].chord,
+    ];
+    basicTabWindow.selectChord(0, 1, 0);
+    basicTabWindow.selectChord(0, 1, 3);
+    // Copy
+    basicTabWindow.copy();
+    // Select to reset current selection
+    basicTabWindow.selectNoteElement(0, 1, 1, 1);
+    // Select chords to replace
+    basicTabWindow.selectChord(1, 1, 0);
+    basicTabWindow.selectChord(1, 1, 3);
+
+    // Replace chords
+    const prevChords = basicTabWindow.tab.bars.flatMap((bar) => {
+      return bar.chords;
+    });
+    basicTabWindow.paste();
+
+    // Pasted chords should be the ones we copied
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[0].chord,
+        copiedChords[0]
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[1].chord,
+        copiedChords[1]
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[2].chord,
+        copiedChords[2]
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[3].chord,
+        copiedChords[3]
+      )
+    ).toBe(true);
+    // Expect total chords count to be 1 less than before
+    const chords = basicTabWindow.tab.bars.flatMap((bar) => {
+      return bar.chords;
+    });
+    expect(chords.length).toBe(prevChords.length);
+  });
+
+  test("Tab window replace chords: selection < copied", () => {
+    const basicTabWindow = createBasicTabWindow();
+
+    // Select chords to copy
+    const copiedChords = [
+      basicTabWindow.barElementLines[0][1].chordElements[0].chord,
+      basicTabWindow.barElementLines[0][1].chordElements[1].chord,
+      basicTabWindow.barElementLines[0][1].chordElements[2].chord,
+      basicTabWindow.barElementLines[0][1].chordElements[3].chord,
+    ];
+    basicTabWindow.selectChord(0, 1, 0);
+    basicTabWindow.selectChord(0, 1, 3);
+    // Copy
+    basicTabWindow.copy();
+    // Select to reset current selection
+    basicTabWindow.selectNoteElement(0, 1, 1, 1);
+    // Select chords to replace
+    basicTabWindow.selectChord(1, 1, 0);
+    basicTabWindow.selectChord(1, 1, 2);
+
+    // Replace chords
+    const prevChords = basicTabWindow.tab.bars.flatMap((bar) => {
+      return bar.chords;
+    });
+    const prevChordsLength = prevChords.length;
+    basicTabWindow.paste();
+
+    // Pasted chords should be the ones we copied
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[0].chord,
+        copiedChords[0]
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[1].chord,
+        copiedChords[1]
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[2].chord,
+        copiedChords[2]
+      )
+    ).toBe(true);
+    expect(
+      Chord.compare(
+        basicTabWindow.barElementLines[1][1].chordElements[3].chord,
+        copiedChords[3]
+      )
+    ).toBe(true);
+    // Since inserted 4 chords when selected 3 length should now be 5
+    expect(basicTabWindow.barElementLines[1][1].chordElements.length).toBe(5);
+    // Since inserted more bar duration should not fit
+    expect(basicTabWindow.barElementLines[1][1].durationsFit()).toBe(false);
+    // Expect total chords count to be 1 less than before
+    const chords = basicTabWindow.tab.bars.flatMap((bar) => {
+      return bar.chords;
+    });
+    const chordsLength = chords.length;
+    expect(chordsLength).toBe(prevChordsLength + 1);
   });
 
   test("Tab window delete chords test", () => {
