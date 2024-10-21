@@ -449,13 +449,13 @@ export class TabWindow {
       return;
     }
 
-    const selChords = this._selectionElements.map((se) => {
+    const oldChords = this._selectionElements.map((se) => {
       return this._chordElementsSeq[se.chordElementSeqId].chord;
     });
     const copiedChords = this._copiedData.map((se) => {
       return this._chordElementsSeq[se.chordElementSeqId].chord;
     });
-    this.tab.replaceChords(selChords, copiedChords);
+    this.tab.replaceChords(oldChords, copiedChords);
 
     this.clearSelection();
     this.calc();

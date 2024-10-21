@@ -2,6 +2,11 @@ import { Chord } from "./chord";
 import { Guitar } from "./guitar";
 import { Note, NotesCalcArr } from "./note";
 import { randomInt } from "../misc/random-int";
+import {
+  GuitarEffect,
+  GuitarEffectType,
+  effectsIncompatibility,
+} from "./guitar-effect";
 
 /**
  * Class that represents a guitar note
@@ -27,6 +32,10 @@ export class GuitarNote {
    * Note value
    */
   private _note: Note;
+  /**
+   * Effects currently applied to the note
+   */
+  private _effects: GuitarEffect[];
 
   /**
    * Class that represents a guitar note
@@ -40,6 +49,7 @@ export class GuitarNote {
     this._stringNum = stringNum;
     this._fret = fret;
     this.calcNote();
+    this._effects = [];
   }
 
   /**
@@ -92,6 +102,10 @@ export class GuitarNote {
     }
   }
 
+  /**
+   * Calculate musical note value based on the fret & string number
+   * @returns
+   */
   private calcNote(): void {
     if (this._fret === undefined) {
       this._note = Note.None;
@@ -103,14 +117,50 @@ export class GuitarNote {
       return;
     }
 
-    const baseNote = this.guitar.tuning[this._stringNum - 1];
-    const baseNoteId = NotesCalcArr.indexOf(baseNote);
-    const noteId = baseNoteId + (this._fret % 12);
+    const openStringNote = this.guitar.tuning[this._stringNum - 1];
+    const openStringNoteId = NotesCalcArr.indexOf(openStringNote);
+    const noteId = openStringNoteId + (this._fret % 12);
     const note = NotesCalcArr[noteId];
 
     this._note = note;
   }
 
+  /**
+   * Adds new effect to the note
+   * @param guitarEffect Guitar effect to add
+   * @returns True if effect added succesfully, false if can't add this effect
+   */
+  public addEffect(guitarEffect: GuitarEffect): boolean {
+    // Check if effect to be added is compatible with all the other effects
+    for (const effect of this._effects) {
+      const curIncompatibility = effectsIncompatibility[effect.effectType];
+      if (
+        curIncompatibility.some((incompatibleType) => {
+          return incompatibleType === guitarEffect.effectType;
+        })
+      ) {
+        // One of the effects is incompatible with the
+        // to be added effect => discard and return false
+        return false;
+      }
+    }
+
+    // All effects are compatible with each
+    // other => add new effect and return true
+    this._effects.push(guitarEffect);
+    return true;
+  }
+
+  public removeEffect(effectType: GuitarEffectType): void {}
+
+  public clearEffects(): void {
+    this._effects = [];
+  }
+
+  /**
+   * Deep copy of the guitar note
+   * @returns Deep copy of the guitar note
+   */
   public deepCopy(): GuitarNote {
     return new GuitarNote(this.guitar, this._stringNum, this._fret);
   }
@@ -118,10 +168,22 @@ export class GuitarNote {
   /**
    * Note value of the current note
    */
-  get note(): Note {
+  public get note(): Note {
     return this._note;
   }
 
+  /**
+   * Effects array
+   */
+  public get effects(): GuitarEffect[] {
+    return this._effects;
+  }
+
+  /**
+   * Parse from object
+   * @param obj Object
+   * @returns Parsed guitar note
+   */
   static fromObject(obj: any): GuitarNote {
     if (obj.guitar === undefined || obj._stringNum === undefined) {
       throw new Error("Invalid js object to parse to guitar note");
