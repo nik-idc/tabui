@@ -76,7 +76,7 @@ export class NoteElement {
   public scaleNoteHorBy(scale: number): void {
     if (scale <= 0) {
       // if (scale <= 0 || (scale > 0 && scale < 1)) {
-      throw new Error(
+      throw Error(
         `${scale} is an invalid scale: scale must be positive AND >= 1`
       );
     }

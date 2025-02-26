@@ -15,7 +15,7 @@ export class Guitar {
       obj.tuning === undefined ||
       obj.fretsCount === undefined
     ) {
-      throw new Error("Invalid js object to parse to guitar");
+      throw Error("Invalid js object to parse to guitar");
     }
 
     // Return parsed guitar

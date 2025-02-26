@@ -65,7 +65,7 @@ export class GuitarNote {
   set stringNum(val: number) {
     // Check string validity
     if (val <= 0 || val > this.guitar.stringsCount) {
-      throw new Error(`${val} is an invalid string number, only strings
+      throw Error(`${val} is an invalid string number, only strings
 				1 to ${this.guitar.stringsCount} are allowed`);
     }
 
@@ -93,7 +93,7 @@ export class GuitarNote {
 
     if (typeof val === "number") {
       if (val < 0) {
-        throw new Error("Negative numbers can't be fret values");
+        throw Error("Negative numbers can't be fret values");
       }
 
       this._fret =
@@ -186,7 +186,7 @@ export class GuitarNote {
    */
   static fromObject(obj: any): GuitarNote {
     if (obj.guitar === undefined || obj._stringNum === undefined) {
-      throw new Error("Invalid js object to parse to guitar note");
+      throw Error("Invalid js object to parse to guitar note");
     }
 
     let guitar = Guitar.fromObject(obj.guitar); // Parse guitar

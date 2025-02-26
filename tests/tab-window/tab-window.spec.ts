@@ -5,12 +5,12 @@ describe("Tab window tests", () => {
   test("Tab window select note element test", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId = 0;
+    const tabLineElementId = 0;
     const barElementId = 1;
     const chordElementId = 0;
     const noteElementId = 3;
     basicTabWindow.selectNoteElement(
-      barElementLineId,
+      tabLineElementId,
       barElementId,
       chordElementId,
       noteElementId
@@ -18,27 +18,29 @@ describe("Tab window tests", () => {
 
     // Test
     expect(basicTabWindow.selectionElements.length).toBe(0);
-    expect(basicTabWindow.selectedElement.barElementId).toBe(barElementId);
-    expect(basicTabWindow.selectedElement.chordElementId).toBe(chordElementId);
-    expect(basicTabWindow.selectedElement.noteElementId).toBe(noteElementId);
+    const ids = basicTabWindow.getSelectedNoteElementIds();
+    expect(ids.tabLineElementId).toBe(tabLineElementId);
+    expect(ids.barElementId).toBe(barElementId);
+    expect(ids.chordElementId).toBe(chordElementId);
+    expect(ids.stringNum).toBe(noteElementId + 1);
   });
 
   test("Tab window select chord in between test", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 0;
+    const tabLineElementId1 = 0;
     const barElementId1 = 1;
     const chordElementId1 = 0;
-    const barElementLineId2 = 1;
+    const tabLineElementId2 = 1;
     const barElementId2 = 1;
     const chordElementId2 = 2;
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId2,
       chordElementId2
     );
@@ -73,19 +75,19 @@ describe("Tab window tests", () => {
   test("Tab window select chord in between reverse lines test", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 1;
+    const tabLineElementId1 = 1;
     const barElementId1 = 1;
     const chordElementId1 = 2;
-    const barElementLineId2 = 0;
+    const tabLineElementId2 = 0;
     const barElementId2 = 1;
     const chordElementId2 = 0;
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId2,
       chordElementId2
     );
@@ -120,19 +122,19 @@ describe("Tab window tests", () => {
   test("Tab window select chord in between same line test", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 0;
+    const tabLineElementId1 = 0;
     const barElementId1 = 1;
     const chordElementId1 = 0;
-    const barElementLineId2 = 0;
+    const tabLineElementId2 = 0;
     const barElementId2 = 2;
     const chordElementId2 = 2;
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId2,
       chordElementId2
     );
@@ -151,19 +153,19 @@ describe("Tab window tests", () => {
   test("Tab window select chord in between same line reverse bars test", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 0;
+    const tabLineElementId1 = 0;
     const barElementId1 = 2;
     const chordElementId1 = 2;
-    const barElementLineId2 = 0;
+    const tabLineElementId2 = 0;
     const barElementId2 = 1;
     const chordElementId2 = 0;
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId2,
       chordElementId2
     );
@@ -182,19 +184,19 @@ describe("Tab window tests", () => {
   test("Tab window select chord in between same bar test", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 0;
+    const tabLineElementId1 = 0;
     const barElementId1 = 1;
     const chordElementId1 = 0;
-    const barElementLineId2 = 0;
+    const tabLineElementId2 = 0;
     const barElementId2 = 1;
     const chordElementId2 = 2;
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId2,
       chordElementId2
     );
@@ -209,19 +211,19 @@ describe("Tab window tests", () => {
   test("Tab window select chord in between same bar reverse chords test", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 0;
+    const tabLineElementId1 = 0;
     const barElementId1 = 1;
     const chordElementId1 = 2;
-    const barElementLineId2 = 0;
+    const tabLineElementId2 = 0;
     const barElementId2 = 1;
     const chordElementId2 = 0;
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId2,
       chordElementId2
     );
@@ -250,10 +252,10 @@ describe("Tab window tests", () => {
   test("Tab window select chord test", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId = 0;
+    const tabLineElementId = 0;
     const barElementId = 1;
     const chordElementId = 0;
-    basicTabWindow.selectChord(barElementLineId, barElementId, chordElementId);
+    basicTabWindow.selectChord(tabLineElementId, barElementId, chordElementId);
 
     // Test
     expect(basicTabWindow.selectionElements.length).toBe(1);
@@ -265,10 +267,10 @@ describe("Tab window tests", () => {
   test("Tab window move left with selected to right", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 0;
+    const tabLineElementId1 = 0;
     const barElementId1 = 1;
     const chordElementId1 = 0;
-    const barElementLineId2 = 0;
+    const tabLineElementId2 = 0;
     const barElementId2 = 2;
     const chordElementId2 = 3;
 
@@ -277,35 +279,30 @@ describe("Tab window tests", () => {
     const expectedNoteElementId = 0; // 0 by default
 
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId2,
       chordElementId2
     );
     basicTabWindow.moveSelectedNoteLeft();
 
-    expect(basicTabWindow.selectedElement.barElementId).toBe(
-      expectedBarElementId
-    );
-    expect(basicTabWindow.selectedElement.chordElementId).toBe(
-      expectedChordElementId
-    );
-    expect(basicTabWindow.selectedElement.noteElementId).toBe(
-      expectedNoteElementId
-    );
+    const ids = basicTabWindow.getSelectedNoteElementIds();
+    expect(ids.barElementId).toBe(expectedBarElementId);
+    expect(ids.chordElementId).toBe(expectedChordElementId);
+    expect(ids.stringNum).toBe(expectedNoteElementId + 1);
   });
 
   test("Tab window move left with selected to left", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 0;
+    const tabLineElementId1 = 0;
     const barElementId1 = 1;
     const chordElementId1 = 0;
-    const barElementLineId2 = 0;
+    const tabLineElementId2 = 0;
     const barElementId2 = 2;
     const chordElementId2 = 3;
 
@@ -314,35 +311,30 @@ describe("Tab window tests", () => {
     const expectedNoteElementId = 0; // 0 by default
 
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId2,
       chordElementId2
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.moveSelectedNoteLeft();
 
-    expect(basicTabWindow.selectedElement.barElementId).toBe(
-      expectedBarElementId
-    );
-    expect(basicTabWindow.selectedElement.chordElementId).toBe(
-      expectedChordElementId
-    );
-    expect(basicTabWindow.selectedElement.noteElementId).toBe(
-      expectedNoteElementId
-    );
+    const ids = basicTabWindow.getSelectedNoteElementIds();
+    expect(ids.barElementId).toBe(expectedBarElementId);
+    expect(ids.chordElementId).toBe(expectedChordElementId);
+    expect(ids.stringNum).toBe(expectedNoteElementId + 1);
   });
 
   test("Tab window move right with selected to right", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 0;
+    const tabLineElementId1 = 0;
     const barElementId1 = 1;
     const chordElementId1 = 0;
-    const barElementLineId2 = 0;
+    const tabLineElementId2 = 0;
     const barElementId2 = 2;
     const chordElementId2 = 3;
 
@@ -351,35 +343,30 @@ describe("Tab window tests", () => {
     const expectedNoteElementId = 0; // 0 by default
 
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId2,
       chordElementId2
     );
     basicTabWindow.moveSelectedNoteRight();
 
-    expect(basicTabWindow.selectedElement.barElementId).toBe(
-      expectedBarElementId
-    );
-    expect(basicTabWindow.selectedElement.chordElementId).toBe(
-      expectedChordElementId
-    );
-    expect(basicTabWindow.selectedElement.noteElementId).toBe(
-      expectedNoteElementId
-    );
+    const ids = basicTabWindow.getSelectedNoteElementIds();
+    expect(ids.barElementId).toBe(expectedBarElementId);
+    expect(ids.chordElementId).toBe(expectedChordElementId);
+    expect(ids.stringNum).toBe(expectedNoteElementId + 1);
   });
 
   test("Tab window move right with selected to left", () => {
     const basicTabWindow = createBasicTabWindow();
 
-    const barElementLineId1 = 0;
+    const tabLineElementId1 = 0;
     const barElementId1 = 1;
     const chordElementId1 = 0;
-    const barElementLineId2 = 0;
+    const tabLineElementId2 = 0;
     const barElementId2 = 2;
     const chordElementId2 = 3;
 
@@ -388,26 +375,21 @@ describe("Tab window tests", () => {
     const expectedNoteElementId = 0; // 0 by default
 
     basicTabWindow.selectChord(
-      barElementLineId1,
+      tabLineElementId1,
       barElementId2,
       chordElementId2
     );
     basicTabWindow.selectChord(
-      barElementLineId2,
+      tabLineElementId2,
       barElementId1,
       chordElementId1
     );
     basicTabWindow.moveSelectedNoteRight();
 
-    expect(basicTabWindow.selectedElement.barElementId).toBe(
-      expectedBarElementId
-    );
-    expect(basicTabWindow.selectedElement.chordElementId).toBe(
-      expectedChordElementId
-    );
-    expect(basicTabWindow.selectedElement.noteElementId).toBe(
-      expectedNoteElementId
-    );
+    const ids = basicTabWindow.getSelectedNoteElementIds();
+    expect(ids.barElementId).toBe(expectedBarElementId);
+    expect(ids.chordElementId).toBe(expectedChordElementId);
+    expect(ids.stringNum).toBe(expectedNoteElementId + 1);
   });
 
   test("Tab window insert chords test", () => {
@@ -420,27 +402,28 @@ describe("Tab window tests", () => {
     basicTabWindow.copy();
 
     basicTabWindow.selectNoteElement(0, 1, 2, 4);
-    const prevChordsLength = basicTabWindow.chordElementsSeq.length;
+    const prevChordsLength = basicTabWindow.tab.getChordsSeq().length;
+    // const prevChordsLength = basicTabWindow.chordElementsSeq.length;
     basicTabWindow.paste();
 
     // Test
-    expect(basicTabWindow.chordElementsSeq.length).toBe(prevChordsLength + 3);
+    expect(basicTabWindow.tab.getChordsSeq().length).toBe(prevChordsLength + 3);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[0][1].chordElements[0].chord,
-        basicTabWindow.barElementLines[0][1].chordElements[3].chord
+        basicTabWindow.tabLineElements[0].barElements[1].chordElements[0].chord,
+        basicTabWindow.tabLineElements[0].barElements[1].chordElements[3].chord
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[0][1].chordElements[1].chord,
-        basicTabWindow.barElementLines[0][1].chordElements[4].chord
+        basicTabWindow.tabLineElements[0].barElements[1].chordElements[1].chord,
+        basicTabWindow.tabLineElements[0].barElements[1].chordElements[4].chord
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[0][1].chordElements[2].chord,
-        basicTabWindow.barElementLines[0][1].chordElements[5].chord
+        basicTabWindow.tabLineElements[0].barElements[1].chordElements[2].chord,
+        basicTabWindow.tabLineElements[0].barElements[1].chordElements[5].chord
       )
     ).toBe(true);
   });
@@ -450,9 +433,9 @@ describe("Tab window tests", () => {
 
     // Select chords to copy
     const copiedChords = [
-      basicTabWindow.barElementLines[0][1].chordElements[0].chord,
-      basicTabWindow.barElementLines[0][1].chordElements[1].chord,
-      basicTabWindow.barElementLines[0][1].chordElements[2].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[0].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[1].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[2].chord,
     ];
     basicTabWindow.selectChord(0, 1, 0);
     basicTabWindow.selectChord(0, 1, 2);
@@ -474,19 +457,19 @@ describe("Tab window tests", () => {
     // Pasted chords should be the ones we copied
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[0].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[0].chord,
         copiedChords[0]
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[1].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[1].chord,
         copiedChords[1]
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[2].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[2].chord,
         copiedChords[2]
       )
     ).toBe(true);
@@ -503,10 +486,10 @@ describe("Tab window tests", () => {
 
     // Select chords to copy
     const copiedChords = [
-      basicTabWindow.barElementLines[0][1].chordElements[0].chord,
-      basicTabWindow.barElementLines[0][1].chordElements[1].chord,
-      basicTabWindow.barElementLines[0][1].chordElements[2].chord,
-      basicTabWindow.barElementLines[0][1].chordElements[3].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[0].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[1].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[2].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[3].chord,
     ];
     basicTabWindow.selectChord(0, 1, 0);
     basicTabWindow.selectChord(0, 1, 3);
@@ -527,25 +510,25 @@ describe("Tab window tests", () => {
     // Pasted chords should be the ones we copied
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[0].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[0].chord,
         copiedChords[0]
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[1].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[1].chord,
         copiedChords[1]
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[2].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[2].chord,
         copiedChords[2]
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[3].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[3].chord,
         copiedChords[3]
       )
     ).toBe(true);
@@ -561,10 +544,10 @@ describe("Tab window tests", () => {
 
     // Select chords to copy
     const copiedChords = [
-      basicTabWindow.barElementLines[0][1].chordElements[0].chord,
-      basicTabWindow.barElementLines[0][1].chordElements[1].chord,
-      basicTabWindow.barElementLines[0][1].chordElements[2].chord,
-      basicTabWindow.barElementLines[0][1].chordElements[3].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[0].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[1].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[2].chord,
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements[3].chord,
     ];
     basicTabWindow.selectChord(0, 1, 0);
     basicTabWindow.selectChord(0, 1, 3);
@@ -586,32 +569,36 @@ describe("Tab window tests", () => {
     // Pasted chords should be the ones we copied
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[0].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[0].chord,
         copiedChords[0]
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[1].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[1].chord,
         copiedChords[1]
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[2].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[2].chord,
         copiedChords[2]
       )
     ).toBe(true);
     expect(
       Chord.compare(
-        basicTabWindow.barElementLines[1][1].chordElements[3].chord,
+        basicTabWindow.tabLineElements[1].barElements[1].chordElements[3].chord,
         copiedChords[3]
       )
     ).toBe(true);
     // Since inserted 4 chords when selected 3 length should now be 5
-    expect(basicTabWindow.barElementLines[1][1].chordElements.length).toBe(5);
+    expect(
+      basicTabWindow.tabLineElements[1].barElements[1].chordElements.length
+    ).toBe(5);
     // Since inserted more bar duration should not fit
-    expect(basicTabWindow.barElementLines[1][1].durationsFit()).toBe(false);
+    expect(
+      basicTabWindow.tabLineElements[1].barElements[1].durationsFit()
+    ).toBe(false);
     // Expect total chords count to be 1 less than before
     const chords = basicTabWindow.tab.bars.flatMap((bar) => {
       return bar.chords;
@@ -631,7 +618,11 @@ describe("Tab window tests", () => {
     // Test
     // length is 1 because when all chords of a bar are deleted we add an empty
     // chord so that it's not actually empty
-    expect(basicTabWindow.barElementLines[0][1].chordElements.length).toBe(1);
-    expect(basicTabWindow.barElementLines[0][2].chordElements.length).toBe(2);
+    expect(
+      basicTabWindow.tabLineElements[0].barElements[1].chordElements.length
+    ).toBe(1);
+    expect(
+      basicTabWindow.tabLineElements[0].barElements[2].chordElements.length
+    ).toBe(2);
   });
 });

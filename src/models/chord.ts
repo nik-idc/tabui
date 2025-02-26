@@ -60,7 +60,7 @@ export class Chord {
       obj.duration === undefined ||
       obj.notes === undefined
     ) {
-      throw new Error("Invalid js object to parse to chord");
+      throw Error("Invalid js object to parse to chord");
     }
 
     let guitar = Guitar.fromObject(obj.guitar); // Parse guitar

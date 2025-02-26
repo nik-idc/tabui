@@ -33,13 +33,13 @@ function randomFrets(tab: Tab, allNotes: boolean = false): void {
 
 function selectNote(
   tabWindow: TabWindow,
-  barElementLineId: number,
+  tabLineElementId: number,
   barElementId: number,
   chordElementId: number,
   stringNum: number
 ): void {
   tabWindow.selectNoteElement(
-    barElementLineId,
+    tabLineElementId,
     barElementId,
     chordElementId,
     stringNum - 1
@@ -130,6 +130,48 @@ export function createBasicTabWindow(): TabWindow {
   return tabWindow;
 }
 
+export function createBasicTabWindowTest(): TabWindow {
+  const stringsCount = 6;
+  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
+  const fretsCount = 24;
+  const guitar = new Guitar(stringsCount, tuning, fretsCount);
+
+  const bars = [
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+      new Chord(guitar, NoteDuration.Quarter),
+    ]),
+    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
+      new Chord(guitar, NoteDuration.Quarter),
+      // new Chord(guitar, NoteDuration.Quarter),
+      // new Chord(guitar, NoteDuration.Quarter),
+      // new Chord(guitar, NoteDuration.Quarter),
+    ]),
+  ];
+
+  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+
+  const dim = new TabWindowDim(
+    width,
+    noteTextSize,
+    timeSigTextSize,
+    tempoTextSize,
+    durationsHeight,
+    guitar.stringsCount
+  );
+  const tabWindow = new TabWindow(tab, dim);
+  tabWindow.calc();
+  return tabWindow;
+}
+
 export interface TestCase {
   tabWindow: TabWindow;
   caption: string;
@@ -137,6 +179,17 @@ export interface TestCase {
 
 function prepareTestCases(): TestCase[] {
   const tabWindows = [
+    (() => {
+      const tabWindow = createBasicTabWindow();
+
+      // Fill frets
+      randomFrets(tabWindow.tab, true);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Draw tab window",
+      };
+    })(),
     (() => {
       const tabWindow = createBasicTabWindow();
 
@@ -263,10 +316,10 @@ function prepareTestCases(): TestCase[] {
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords from left-to-right to then right-to-left:" +
+          "Select chords from left-to-right to then right-to-left: " +
           `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
           `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} to ` +
-          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
+          `${thirdChord[0]}-${thirdChord[1]}-${thirdChord[2]}`,
       };
     })(),
     (() => {
@@ -282,7 +335,7 @@ function prepareTestCases(): TestCase[] {
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords right-to-left" +
+          "Select chords right-to-left: " +
           `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
           `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
       };
@@ -304,10 +357,10 @@ function prepareTestCases(): TestCase[] {
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords from right-to-left to left-to-right" +
+          "Select chords from right-to-left to left-to-right: " +
           `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
           `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} to ` +
-          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
+          `${thirdChord[0]}-${thirdChord[1]}-${thirdChord[2]}`,
       };
     })(),
     (() => {
@@ -488,9 +541,9 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set chord notes value
-      tabWindow.barElementLines[copiedChord[0]][copiedChord[1]].chordElements[
-        copiedChord[2]
-      ].noteElements[3].note.fret = 20;
+      tabWindow.tabLineElements[copiedChord[0]].barElements[
+        copiedChord[1]
+      ].chordElements[copiedChord[2]].noteElements[3].note.fret = 20;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
@@ -529,10 +582,10 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set chord notes value
-      tabWindow.barElementLines[copiedChords[0][0]][
+      tabWindow.tabLineElements[copiedChords[0][0]].barElements[
         copiedChords[0][1]
       ].chordElements[copiedChords[0][2]].noteElements[3].note.fret = 20;
-      tabWindow.barElementLines[copiedChords[1][0]][
+      tabWindow.tabLineElements[copiedChords[1][0]].barElements[
         copiedChords[1][1]
       ].chordElements[copiedChords[1][2]].noteElements[3].note.fret = 19;
 
@@ -582,9 +635,9 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set chord notes value
-      tabWindow.barElementLines[copiedChord[0]][copiedChord[1]].chordElements[
-        copiedChord[2]
-      ].noteElements[3].note.fret = 20;
+      tabWindow.tabLineElements[copiedChord[0]].barElements[
+        copiedChord[1]
+      ].chordElements[copiedChord[2]].noteElements[3].note.fret = 20;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);

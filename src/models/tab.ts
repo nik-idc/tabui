@@ -562,7 +562,7 @@ export class Tab {
       obj.guitar == undefined ||
       obj.data == undefined
     ) {
-      throw new Error("Invalid js obj to parse to tab");
+      throw Error("Invalid js obj to parse to tab");
     }
 
     return new Tab(
