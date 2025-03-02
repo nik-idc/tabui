@@ -136,6 +136,12 @@ function render(
                                stroke-opacity="1" />`);
             }
 
+            for (const effectElement of noteElement.guitarEffectElements) {
+              if (effectElement.pathFullHTML !== undefined) {
+                html.push(effectElement.pathFullHTML);
+              }
+            }
+
             if (noteElement.note.fret !== undefined) {
               html.push("<g>");
               html.push(`<rect x="${noteElement.textRect.x}"

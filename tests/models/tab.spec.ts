@@ -60,6 +60,17 @@ function getTab(): Tab {
   return new Tab(1, name, artist, song, guitar, bars);
 }
 
+function randomFrets(tab: Tab): void {
+  for (const bar of tab.bars) {
+    for (const chord of bar.chords) {
+      for (const note of chord.notes) {
+        const newFret = Math.floor(Math.random() * tab.guitar.fretsCount);
+        note.fret = newFret;
+      }
+    }
+  }
+}
+
 describe("Tab Model Tests", () => {
   test("Tab from valid object test", () => {
     const { id, name, artist, song, guitar, bars } = getTabData();
@@ -194,6 +205,7 @@ describe("Tab Model Tests", () => {
 
     const options = { bendPitch: 1.5 };
     const bendEffect = new GuitarEffect(GuitarEffectType.Bend, options);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, bendEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(bendEffect);
@@ -210,6 +222,7 @@ describe("Tab Model Tests", () => {
       GuitarEffectType.BendAndRelease,
       options
     );
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, bendandReleaseEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
@@ -225,6 +238,7 @@ describe("Tab Model Tests", () => {
 
     const options = { prebendPitch: 1.5 };
     const prebendEffect = new GuitarEffect(GuitarEffectType.Prebend, options);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, prebendEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
@@ -243,6 +257,7 @@ describe("Tab Model Tests", () => {
       GuitarEffectType.PrebendAndRelease,
       options
     );
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, prebendAndReleaseEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
@@ -257,6 +272,7 @@ describe("Tab Model Tests", () => {
     const tab = getTab();
 
     const vibratoEffect = new GuitarEffect(GuitarEffectType.Vibrato);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, vibratoEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
@@ -268,6 +284,7 @@ describe("Tab Model Tests", () => {
     const tab = getTab();
 
     const slideEffect = new GuitarEffect(GuitarEffectType.SlideStart);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, slideEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
@@ -283,6 +300,7 @@ describe("Tab Model Tests", () => {
     const tab = getTab();
 
     const hammerOnEffect = new GuitarEffect(GuitarEffectType.HammerOnStart);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, hammerOnEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
@@ -298,6 +316,7 @@ describe("Tab Model Tests", () => {
     const tab = getTab();
 
     const pullOffEffect = new GuitarEffect(GuitarEffectType.PullOffStart);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, pullOffEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
@@ -313,6 +332,7 @@ describe("Tab Model Tests", () => {
     const tab = getTab();
 
     const phEffect = new GuitarEffect(GuitarEffectType.PinchHarmonic);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, phEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
@@ -324,6 +344,7 @@ describe("Tab Model Tests", () => {
     const tab = getTab();
 
     const nhEffect = new GuitarEffect(GuitarEffectType.NaturalHarmonic);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, nhEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
@@ -335,6 +356,7 @@ describe("Tab Model Tests", () => {
     const tab = getTab();
 
     const pmEffect = new GuitarEffect(GuitarEffectType.PalmMute);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, pmEffect);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
@@ -348,6 +370,7 @@ describe("Tab Model Tests", () => {
     const options = { bendPitch: 1.5 };
     const bendEffect = new GuitarEffect(GuitarEffectType.Bend, options);
     const nhEffect = new GuitarEffect(GuitarEffectType.NaturalHarmonic);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, bendEffect);
     const nhApplyResult = tab.applyEffectToNote(0, 2, 3, nhEffect);
 
@@ -361,6 +384,7 @@ describe("Tab Model Tests", () => {
     const options = { bendPitch: 1.5 };
     const bendEffect = new GuitarEffect(GuitarEffectType.Bend, options);
     const phEffect = new GuitarEffect(GuitarEffectType.PinchHarmonic);
+    randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, bendEffect);
     const phApplyResult = tab.applyEffectToNote(0, 2, 3, phEffect);
 

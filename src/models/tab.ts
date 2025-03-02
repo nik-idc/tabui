@@ -447,6 +447,8 @@ export class Tab {
    * @param chordIndex Chord index
    * @param stringNum String number
    * @param effect Effect to apply
+   * @returns True if effect applied or no note to apply effect to, false
+   * if effect inapplicable to specified note
    */
   public applyEffectToNote(
     barIndex: number,
@@ -454,6 +456,16 @@ export class Tab {
     stringNum: number,
     effect: GuitarEffect
   ): boolean {
+    if (
+      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1].note ===
+        Note.None ||
+      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1].note ===
+        Note.Dead
+    ) {
+      // No effects can be applied to a dead note or an abscense of a note
+      return true;
+    }
+
     switch (effect.effectType) {
       case GuitarEffectType.Bend:
         return this.applyBend(
@@ -500,6 +512,42 @@ export class Tab {
       case GuitarEffectType.PalmMute:
         return this.applyPalmMute(barIndex, chordIndex, stringNum);
     }
+  }
+
+  /**
+   * Applies effects to all notes in specified chords
+   * @param chords Chords array
+   * @param effect Effect to apply
+   * @returns True if the effect applied to all notes
+   */
+  public applyEffectToChords(chords: Chord[], effect: GuitarEffect): boolean {
+    let appliedToAll = true;
+    for (const chord of chords) {
+      let barIndex: number;
+      let chordIndex: number;
+      this.bars.findIndex((b, i) => {
+        return b.chords.some((c, j) => {
+          barIndex = i;
+          chordIndex = j;
+          return c.uuid === chord.uuid;
+        });
+      });
+
+      for (const note of chord.notes) {
+        const applyRes = this.applyEffectToNote(
+          barIndex,
+          chordIndex,
+          note.stringNum,
+          effect
+        );
+
+        if (!applyRes) {
+          appliedToAll = false;
+        }
+      }
+    }
+
+    return appliedToAll;
   }
 
   /**

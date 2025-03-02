@@ -197,6 +197,51 @@ export const effectsIncompatibility: IncompatibilityList = {
 };
 
 /**
+ * Effects that are applicable to multiple notes/chords at once
+ */
+export const applyToMultipleEffects = [
+  GuitarEffectType.Vibrato,
+  // GuitarEffectType.SlideStart,
+  // GuitarEffectType.SlideEnd,
+  // GuitarEffectType.HammerOnStart,
+  // GuitarEffectType.HammerOnEnd,
+  // GuitarEffectType.PullOffStart,
+  // GuitarEffectType.PullOffEnd,
+  GuitarEffectType.PalmMute,
+];
+
+/**
+ * Effects that require options
+ */
+export const optionsDemandingEffects = [
+  GuitarEffectType.Bend,
+  GuitarEffectType.BendAndRelease,
+  GuitarEffectType.Prebend,
+  GuitarEffectType.PrebendAndRelease,
+];
+
+/**
+ * Options per guitar effect (order matters due to how
+ * 'GuitarEffectOptions' c-tor works)
+ */
+export const optionsPerEffectType = {
+  [GuitarEffectType.Bend]: ["bendPitch"],
+  [GuitarEffectType.BendAndRelease]: ["bendPitch", "bendReleasePitch"],
+  [GuitarEffectType.Prebend]: ["prebendPitch"],
+  [GuitarEffectType.PrebendAndRelease]: ["bendReleasePitch", "prebendPitch"],
+  [GuitarEffectType.Vibrato]: [],
+  [GuitarEffectType.SlideStart]: [],
+  [GuitarEffectType.SlideEnd]: [],
+  [GuitarEffectType.HammerOnStart]: [],
+  [GuitarEffectType.HammerOnEnd]: [],
+  [GuitarEffectType.PullOffStart]: [],
+  [GuitarEffectType.PullOffEnd]: [],
+  [GuitarEffectType.PinchHarmonic]: [],
+  [GuitarEffectType.NaturalHarmonic]: [],
+  [GuitarEffectType.PalmMute]: [],
+};
+
+/**
  * Class that represents guitar effect options
  */
 export class GuitarEffectOptions {
@@ -211,6 +256,19 @@ export class GuitarEffectOptions {
     readonly bendReleasePitch?: number,
     readonly prebendPitch?: number
   ) {}
+
+  /**
+   * Parse from object
+   * @param obj Object
+   * @returns Parsed guitar effect options
+   */
+  static fromObject(obj: any): GuitarEffectOptions {
+    return new GuitarEffectOptions(
+      obj.bendPitch,
+      obj.bendReleasePitch,
+      obj.prebendPitch
+    );
+  }
 }
 
 /**
@@ -225,5 +283,70 @@ export class GuitarEffect {
   constructor(
     readonly effectType: GuitarEffectType,
     readonly options?: GuitarEffectOptions
-  ) {}
+  ) {
+    // Nothing else to do if the provided effect does not demand effects
+    if (!optionsDemandingEffects.includes(effectType)) {
+      if (options === undefined) {
+        return;
+      } else {
+        throw Error("Options provided for effect not demanding options");
+      }
+    }
+
+    // Check if effect has options
+    if (options === undefined) {
+      throw Error("Option demanding effect without options");
+    }
+
+    // Strip undefined properties from the options
+    Object.keys(options).forEach(
+      (key) =>
+        options[key as keyof GuitarEffectOptions] === undefined &&
+        delete options[key as keyof GuitarEffectOptions]
+    );
+    const actualKeys = Object.keys(options);
+    const expectedKeys = optionsPerEffectType[effectType];
+    const areEqual =
+      actualKeys.length === expectedKeys.length &&
+      actualKeys.every((key) => {
+        return expectedKeys.includes(key);
+      });
+
+    // Check if provided options are correct for specified effect type
+    if (optionsDemandingEffects.includes(effectType)) {
+      if (!areEqual) {
+        throw Error(
+          "Option demanding effect was provided the wrong options: " +
+            `Required options: ${expectedKeys}; provided: ${actualKeys}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Parse from object
+   * @param obj Object
+   * @returns Parsed guitar effect
+   */
+  static fromObject(obj: any): GuitarEffect {
+    if (obj.effectType === undefined) {
+      throw Error(
+        "Invalid js object to parse to guitar effect: no effect type"
+      );
+    } else if (
+      optionsDemandingEffects.includes(obj.effectType) &&
+      obj.options === undefined
+    ) {
+      throw Error(
+        "Invalid js object to parse to guitar effect: effect type demands options, but no option provided"
+      );
+    }
+
+    return new GuitarEffect(
+      obj.effectType,
+      obj.options !== undefined
+        ? GuitarEffectOptions.fromObject(obj.options)
+        : undefined
+    );
+  }
 }
