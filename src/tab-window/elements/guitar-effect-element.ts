@@ -37,7 +37,11 @@ export class GuitarEffectElement {
    */
   private _startPoint: Point;
   /**
-   * Effect rect
+   * Note's rect
+   */
+  private _noteRect?: Rect;
+  /**
+   * Effect element's rect
    */
   private _rect?: Rect;
   /**
@@ -48,29 +52,30 @@ export class GuitarEffectElement {
    * SVG path (full path HTML including styling,
    * i.e. transparent/non-transparent)
    */
-  private _pathFullHTML?: string;
+  private _fullHTML?: string;
 
   /**
    * Class that represents a guitar effect
    * @param effect Effect
    * @param stringNum String number
-   * @param rect Rect
+   * @param noteRect Note rectangle
    * @param dim Tab window dimensions
    */
   constructor(
     effect: GuitarEffect,
     stringNum: number,
-    rect: Rect,
+    noteRect: Rect,
     dim: TabWindowDim
   ) {
     this.effect = effect;
     this.stringNum = stringNum;
-    this._rect = rect;
+    this._noteRect = noteRect;
+    this._rect = undefined;
     this.dim = dim;
 
     this._startPoint = new Point(
-      this._rect.x + this._rect.width / 2,
-      this._rect.y + this._rect.height / 2
+      this._noteRect.x + this._noteRect.width / 2,
+      this._noteRect.y + this._noteRect.height / 2
     );
 
     this.calc();
@@ -116,7 +121,7 @@ export class GuitarEffectElement {
     width: number,
     verticalOffset: number
   ): string {
-    // const curveBeginX = dx + this._rect.width / 2;
+    // const curveBeginX = dx + this._noteRect.width / 2;
     const curveBeginX = dx + width;
     const curveBeginY = dy;
     const curveMiddleX = curveBeginX;
@@ -172,6 +177,37 @@ export class GuitarEffectElement {
   }
 
   /**
+   * Builds a path for a horizontal curve (used for hammer-ons/pull-offs)
+   * @param dx How much to move on the X-axis prior to building
+   * @param dy How much to move on the Y-axis prior to building
+   * @param width Width of the effect
+   * @param height Height for the curve building
+   * @returns Constructed SVG path HTML element
+   */
+  private horizontalCurve(
+    dx: number,
+    dy: number,
+    width: number,
+    height: number
+  ): string {
+    const curveBeginX = dx;
+    const curveBeginY = dy - height;
+    const curveMiddleX = curveBeginX + width;
+    const curveMiddleY = curveBeginY;
+    const curveEndX = curveMiddleX;
+    const curveEndY = curveMiddleY + height;
+
+    return (
+      '<path d="' +
+      `m ${dx} ${dy} ` +
+      ` C ${curveBeginX} ${curveBeginY} ` +
+      ` ${curveMiddleX} ${curveMiddleY} ` +
+      ` ${curveEndX} ${curveEndY}` +
+      '" stroke="black" fill="transparent"/>'
+    );
+  }
+
+  /**
    * Builds a regular straight line
    * @param dx How much to move on the X-axis prior to building
    * @param dy How much to move on the Y-axis prior to building
@@ -196,21 +232,115 @@ export class GuitarEffectElement {
   }
 
   /**
+   * Builds a straight line
+   * @param dx1 Point 1 X (start)
+   * @param dy1 Point 1 Y (start)
+   * @param dx2 Point 2 X (end)
+   * @param dy2 Point 2 Y (end)
+   * @returns Constructed SVG path HTML element
+   */
+  private line(dx1: number, dy1: number, dx2: number, dy2: number): string {
+    return (
+      '<path d="' +
+      `m ${dx1} ${dy1} ` +
+      `L ${dx2} ${dy2} ` +
+      '" stroke="black" fill="transparent" stroke-linecap="round"/>'
+    );
+  }
+
+  /**
+   * Builds a harmonic shape
+   * @param dx How much to move on the X-axis prior to building
+   * @param dy How much to move on the Y-axis prior to building
+   * @param width Width of the effect
+   * @param height Height for the curve building
+   * @param fill True if the shape should be filled, false otherwise
+   * @returns Constructed SVG path HTML element
+   */
+  private harmonicShape(
+    dx: number,
+    dy: number,
+    width: number,
+    height: number,
+    fill: boolean
+  ): string {
+    const line1X = dx + width / 2;
+    const line1Y = dy - height / 2;
+    const line2X = line1X + width / 2;
+    const line2Y = line1Y + height / 2;
+    const line3X = line2X - width / 2;
+    const line3Y = line2Y + height / 2;
+    const line4X = line3X - width / 2;
+    const line4Y = line3Y - height / 2;
+    const fillColor = fill ? "black" : "transparent";
+
+    return (
+      '<path d="' +
+      `m ${dx} ${dy} ` +
+      ` L ${line1X} ${line1Y} ` +
+      ` L ${line2X} ${line2Y} ` +
+      ` L ${line3X} ${line3Y} ` +
+      ` L ${line4X} ${line4Y}` +
+      `" stroke="black" fill="${fillColor}"/>`
+    );
+  }
+
+  /**
+   * Builds a vibrato shape
+   * @param dx How much to move on the X-axis prior to building
+   * @param dy How much to move on the Y-axis prior to building
+   * @param width Width of the effect
+   * @param height Height for the curve building
+   * @returns Constructed SVG path HTML element
+   */
+  private vibratoShape(
+    dx: number,
+    dy: number,
+    width: number,
+    height: number
+  ): string {
+    const lines = [
+      [dx + width / 8, dy - height / 2],
+      [dx + 2 * (width / 8), dy + height / 2],
+      [dx + 3 * (width / 8), dy - height / 2],
+      [dx + 4 * (width / 8), dy + height / 2],
+      [dx + 5 * (width / 8), dy - height / 2],
+      [dx + 6 * (width / 8), dy + height / 2],
+      [dx + 7 * (width / 8), dy - height / 2],
+      [dx + 8 * (width / 8), dy + height / 2],
+    ];
+
+    return (
+      '<path d="' +
+      `m ${dx} ${dy + height / 2} ` +
+      ` L ${lines[0][0]} ${lines[0][1]} ` +
+      ` L ${lines[1][0]} ${lines[1][1]} ` +
+      ` L ${lines[2][0]} ${lines[2][1]} ` +
+      ` L ${lines[3][0]} ${lines[3][1]} ` +
+      ` L ${lines[4][0]} ${lines[4][1]} ` +
+      ` L ${lines[5][0]} ${lines[5][1]} ` +
+      ` L ${lines[6][0]} ${lines[6][1]} ` +
+      ` L ${lines[7][0]} ${lines[7][1]}` +
+      '" stroke="black" fill="transparent" stroke-linecap="round"/>'
+    );
+  }
+
+  /**
    * Build a regular bend path SVG path HTML element
    */
   private calcBendPath(): void {
     const verticalOffset =
-      this._rect.height * (this.stringNum - 1) + this._rect.height / 2;
+      this._noteRect.height * (this.stringNum - 1) + this._noteRect.height / 2;
 
     const x = this._startPoint.x;
     const y = this._startPoint.y;
-    const curve = this.upCurve(x, y, this._rect.width / 2, verticalOffset);
+    const curve = this.upCurve(x, y, this._noteRect.width / 2, verticalOffset);
 
-    const arrowX = x + this._rect.width / 2;
+    const arrowX = x + this._noteRect.width / 2;
     const arrowY = y - verticalOffset;
     const arrow = this.verticalArrowSVGHTML(arrowX, arrowY);
 
-    this._pathFullHTML = curve + arrow;
+    this._fullHTML = curve + arrow;
   }
 
   /**
@@ -218,7 +348,7 @@ export class GuitarEffectElement {
    */
   private calcBendAndReleasePath(): void {
     const verticalOffset =
-      this._rect.height * (this.stringNum - 1) + this._rect.height / 2;
+      this._noteRect.height * (this.stringNum - 1) + this._noteRect.height / 2;
 
     // Step 1: build bend curve
     const bendX = this._startPoint.x;
@@ -226,28 +356,28 @@ export class GuitarEffectElement {
     const bendCurve = this.upCurve(
       bendX,
       bendY,
-      this._rect.width / 2,
+      this._noteRect.width / 2,
       verticalOffset
     );
 
     // Step 2: build bend arrow
-    const bendArrowX = bendX + this._rect.width / 2;
+    const bendArrowX = bendX + this._noteRect.width / 2;
     const bendArrowY = bendY - verticalOffset;
     const bendArrow = this.verticalArrowSVGHTML(bendArrowX, bendArrowY);
 
     // Step 3: build release curve
-    const releaseX = bendX + this._rect.width / 2;
+    const releaseX = bendX + this._noteRect.width / 2;
     const releaseY = bendY - verticalOffset;
     const releaseCurve = this.downCurve(
       releaseX,
       releaseY,
-      this._rect.width / 4,
-      this._rect.height / 4,
+      this._noteRect.width / 4,
+      this._noteRect.height / 4,
       verticalOffset
     );
 
     // Step 4: build release arrow
-    const releaseArrowX = releaseX + this._rect.width / 4;
+    const releaseArrowX = releaseX + this._noteRect.width / 4;
     const releaseArrowY = releaseY + verticalOffset;
     const releaseArrow = this.verticalArrowSVGHTML(
       releaseArrowX,
@@ -255,7 +385,7 @@ export class GuitarEffectElement {
       false
     );
 
-    this._pathFullHTML = bendCurve + bendArrow + releaseCurve + releaseArrow;
+    this._fullHTML = bendCurve + bendArrow + releaseCurve + releaseArrow;
   }
 
   /**
@@ -263,10 +393,10 @@ export class GuitarEffectElement {
    */
   private calcPrebendPath(): void {
     const verticalOffset =
-      this._rect.height * (this.stringNum - 1) + this._rect.height / 2;
+      this._noteRect.height * (this.stringNum - 1) + this._noteRect.height / 2;
 
     // Step 1: build line
-    const prebendLineX = this._startPoint.x + this._rect.width / 4;
+    const prebendLineX = this._startPoint.x + this._noteRect.width / 4;
     const prebendLineY = this._startPoint.y;
     const lineHeight = verticalOffset;
     const prebendLine = this.vertLine(prebendLineX, prebendLineY, lineHeight);
@@ -276,7 +406,7 @@ export class GuitarEffectElement {
     const lineArrowY = prebendLineY - lineHeight;
     const lineArrow = this.verticalArrowSVGHTML(lineArrowX, lineArrowY);
 
-    this._pathFullHTML = prebendLine + lineArrow;
+    this._fullHTML = prebendLine + lineArrow;
   }
 
   /**
@@ -284,10 +414,10 @@ export class GuitarEffectElement {
    */
   private calcPrebendAndReleasePath(): void {
     const verticalOffset =
-      this._rect.height * (this.stringNum - 1) + this._rect.height / 2;
+      this._noteRect.height * (this.stringNum - 1) + this._noteRect.height / 2;
 
     // Step 1: build line
-    const prebendLineX = this._startPoint.x + this._rect.width / 4;
+    const prebendLineX = this._startPoint.x + this._noteRect.width / 4;
     const prebendLineY = this._startPoint.y;
     const lineHeight = verticalOffset;
     const prebendLine = this.vertLine(prebendLineX, prebendLineY, lineHeight);
@@ -303,13 +433,13 @@ export class GuitarEffectElement {
     const releaseCurve = this.downCurve(
       releaseX,
       releaseY,
-      this._rect.width / 4,
-      this._rect.height / 4,
+      this._noteRect.width / 4,
+      this._noteRect.height / 4,
       verticalOffset
     );
 
     // Step 4: build release arrow
-    const releaseArrowX = releaseX + this._rect.width / 4;
+    const releaseArrowX = releaseX + this._noteRect.width / 4;
     const releaseArrowY = releaseY + verticalOffset;
     const releaseArrow = this.verticalArrowSVGHTML(
       releaseArrowX,
@@ -317,7 +447,138 @@ export class GuitarEffectElement {
       false
     );
 
-    this._pathFullHTML = prebendLine + lineArrow + releaseCurve + releaseArrow;
+    this._fullHTML = prebendLine + lineArrow + releaseCurve + releaseArrow;
+  }
+
+  /**
+   * Calc vibrato path
+   */
+  private calcVibratoPath(): void {
+    const vibratoWidth = this.dim.noteTextSize * 2;
+    const vibratoHeight = this.dim.noteTextSize / 4;
+    const vibratoStartX = this._startPoint.x + (3 * this.dim.noteTextSize) / 4;
+    const vibratoStartY = this._startPoint.y;
+    const vibratoLine = this.vibratoShape(
+      vibratoStartX,
+      vibratoStartY,
+      vibratoWidth,
+      vibratoHeight
+    );
+
+    this._rect = new Rect(
+      vibratoStartX,
+      vibratoStartY - vibratoHeight / 2,
+      vibratoWidth,
+      vibratoHeight
+    );
+
+    this._fullHTML = vibratoLine;
+  }
+
+  /**
+   * Calc slide path
+   */
+  private calcSlidePath(): void {
+    if (
+      this.effect.options === undefined ||
+      this.effect.options.nextHigher === undefined
+    ) {
+      throw Error("Slide effect has no options or next note pitch indicator");
+    }
+
+    const upCoef = this.effect.options.nextHigher ? 1 : -1;
+
+    const slideWidth = this._noteRect.width - this.dim.noteTextSize;
+    const slideHeight = this._noteRect.height / 3;
+    const slideStartX = this._startPoint.x + this.dim.noteTextSize / 2;
+    const slideStartY = this._startPoint.y - (slideHeight / 2) * upCoef;
+    const slideEndX = slideStartX + slideWidth;
+    const slideEndY = slideStartY + slideHeight * upCoef;
+    const slideLine = this.line(slideStartX, slideStartY, slideEndX, slideEndY);
+
+    this._fullHTML = slideLine;
+  }
+
+  /**
+   * Calc hammer-on or pull-off path
+   */
+  private calcHammerOnOrPullOffPath(): void {
+    const hpStartX = this._startPoint.x;
+    const hpStartY = this._startPoint.y;
+    const hpWidth = this._noteRect.width;
+    const hpHeight = this._noteRect.height / 2;
+    const slideLine = this.horizontalCurve(
+      hpStartX,
+      hpStartY,
+      hpWidth,
+      hpHeight
+    );
+
+    this._rect = new Rect(hpStartX, hpStartY, hpWidth, hpHeight);
+
+    this._fullHTML = slideLine;
+  }
+
+  /**
+   * Calc natural harmonic path
+   */
+  private calcNaturalHarmonicPath(): void {
+    const nhStartX = this._startPoint.x - 5 * (this.dim.noteTextSize / 4);
+    const nhStartY = this._startPoint.y;
+    const nhWidth = this.dim.noteTextSize / 2;
+    const nhHeight = this.dim.noteTextSize / 2;
+    const nhLine = this.harmonicShape(
+      nhStartX,
+      nhStartY,
+      nhWidth,
+      nhHeight,
+      false
+    );
+
+    this._rect = new Rect(nhStartX, nhStartY - nhHeight / 2, nhWidth, nhHeight);
+
+    this._fullHTML = nhLine;
+  }
+
+  /**
+   * Calc pinch harmonic path
+   */
+  private calcPinchHarmonicPath(): void {
+    const phStartX = this._startPoint.x - 5 * (this.dim.noteTextSize / 4);
+    const phStartY = this._startPoint.y;
+    const phWidth = this.dim.noteTextSize / 2;
+    const phHeight = this.dim.noteTextSize / 2;
+    const phLine = this.harmonicShape(
+      phStartX,
+      phStartY,
+      phWidth,
+      phHeight,
+      true
+    );
+
+    this._rect = new Rect(phStartX, phStartY - phHeight / 2, phWidth, phHeight);
+
+    this._fullHTML = phLine;
+  }
+
+  /**
+   * Calc palm mute HTML
+   */
+  private calcPalmMuteHTML(): void {
+    const pmX = this._startPoint.x + this.dim.noteTextSize;
+    const pmY = this._startPoint.y - this.dim.noteTextSize / 2;
+
+    this._rect = new Rect(
+      pmX,
+      pmY,
+      this.dim.noteTextSize * 2,
+      this.dim.noteTextSize
+    );
+
+    this._fullHTML =
+      `<text x="${pmX}" y="${pmY}" ` +
+      ` fill="black" font-size="${this.dim.noteTextSize}" font-style="oblique"` +
+      `text-anchor="start" dominant-baseline="hanging">P.M.</text>`;
   }
 
   /**
@@ -339,37 +600,22 @@ export class GuitarEffectElement {
         this.calcPrebendAndReleasePath();
         break;
       case GuitarEffectType.Vibrato:
-        throw Error(`Guitar effect ${this.effect} not implemented yet`);
+        this.calcVibratoPath();
         break;
-      case GuitarEffectType.SlideStart:
-        throw Error(`Guitar effect ${this.effect} not implemented yet`);
+      case GuitarEffectType.Slide:
+        this.calcSlidePath();
         break;
-      case GuitarEffectType.SlideEnd:
-        this._rect = undefined;
-        this._src = undefined;
-        break;
-      case GuitarEffectType.HammerOnStart:
-        throw Error(`Guitar effect ${this.effect} not implemented yet`);
-        break;
-      case GuitarEffectType.HammerOnEnd:
-        this._rect = undefined;
-        this._src = undefined;
-        break;
-      case GuitarEffectType.PullOffStart:
-        throw Error(`Guitar effect ${this.effect} not implemented yet`);
-        break;
-      case GuitarEffectType.PullOffEnd:
-        this._rect = undefined;
-        this._src = undefined;
+      case GuitarEffectType.HammerOnOrPullOff:
+        this.calcHammerOnOrPullOffPath();
         break;
       case GuitarEffectType.PinchHarmonic:
-        throw Error(`Guitar effect ${this.effect} not implemented yet`);
+        this.calcPinchHarmonicPath();
         break;
       case GuitarEffectType.NaturalHarmonic:
-        throw Error(`Guitar effect ${this.effect} not implemented yet`);
+        this.calcNaturalHarmonicPath();
         break;
       case GuitarEffectType.PalmMute:
-        throw Error(`Guitar effect ${this.effect} not implemented yet`);
+        this.calcPalmMuteHTML();
         break;
     }
   }
@@ -407,7 +653,7 @@ export class GuitarEffectElement {
   /**
    * SVG Path
    */
-  public get pathFullHTML(): string | undefined {
-    return this._pathFullHTML;
+  public get fullHTML(): string | undefined {
+    return this._fullHTML;
   }
 }

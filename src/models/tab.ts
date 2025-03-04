@@ -1,7 +1,11 @@
 import { Bar } from "./bar";
 import { Chord } from "./chord";
 import { Guitar } from "./guitar";
-import { GuitarEffect, GuitarEffectType } from "./guitar-effect";
+import {
+  GuitarEffect,
+  GuitarEffectOptions,
+  GuitarEffectType,
+} from "./guitar-effect";
 import { GuitarNote } from "./guitar-note";
 import { Note } from "./note";
 import { NoteDuration } from "./note-duration";
@@ -288,30 +292,30 @@ export class Tab {
       return false;
     }
 
-    // Create slide effects
-    const slideStartEffect = new GuitarEffect(GuitarEffectType.SlideStart);
-    const slideEndEffect = new GuitarEffect(GuitarEffectType.SlideEnd);
-
-    // First apply slide start
-    const slideStart = guitarNote.addEffect(slideStartEffect);
-
-    // If start can't be applied, no point going further => return false
-    if (!slideStart) {
+    // Can't apply slide to two same notes
+    if (nextNote.fret === guitarNote.fret) {
       return false;
     }
 
-    // Apply slide end
-    return nextNote.addEffect(slideEndEffect);
+    // Create slide effect
+    const nextHigher = nextNote.fret > guitarNote.fret;
+    const slideEffect = new GuitarEffect(
+      GuitarEffectType.Slide,
+      new GuitarEffectOptions(undefined, undefined, undefined, nextHigher)
+    );
+
+    // Apply slide
+    return guitarNote.addEffect(slideEffect);
   }
 
   /**
-   * Applies hammer-on to a note
+   * Applies hammer-on/pull-off to a note
    * @param barIndex Bar index
    * @param chordIndex Chord index
    * @param stringNum String number
    * @returns True if applied, false otherwise
    */
-  private applyHammerOn(
+  private applyHammerOnOrPullOff(
     barIndex: number,
     chordIndex: number,
     stringNum: number
@@ -329,59 +333,11 @@ export class Tab {
 
     // Create hammer-on effects
     const hammerOnStartEffect = new GuitarEffect(
-      GuitarEffectType.HammerOnStart
+      GuitarEffectType.HammerOnOrPullOff
     );
-    const hammerOnEndEffect = new GuitarEffect(GuitarEffectType.HammerOnEnd);
 
     // First apply hammer-on start
-    const hammerOnStart = guitarNote.addEffect(hammerOnStartEffect);
-
-    // If start can't be applied, no point going further => return false
-    if (!hammerOnStart) {
-      return false;
-    }
-
-    // Apply hammer-on end
-    return nextNote.addEffect(hammerOnEndEffect);
-  }
-
-  /**
-   * Applies pull-off to a note
-   * @param barIndex Bar index
-   * @param chordIndex Chord index
-   * @param stringNum String number
-   * @returns True if applied, false otherwise
-   */
-  private applyPullOff(
-    barIndex: number,
-    chordIndex: number,
-    stringNum: number
-  ): boolean {
-    const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
-    const nextChord = this.getNextChord(barIndex, chordIndex);
-    const nextNote =
-      nextChord === undefined ? undefined : nextChord.notes[stringNum - 1];
-
-    // Can't apply pull-off if current note is the last one
-    if (nextNote === undefined) {
-      return false;
-    }
-
-    // Create pull-off effects
-    const pullOffStartEffect = new GuitarEffect(GuitarEffectType.PullOffStart);
-    const pullOffEndEffect = new GuitarEffect(GuitarEffectType.PullOffEnd);
-
-    // First apply pull-off start
-    const pullOffStart = guitarNote.addEffect(pullOffStartEffect);
-
-    // If start can't be applied, no point going further => return false
-    if (!pullOffStart) {
-      return false;
-    }
-
-    // Apply pull-off end
-    return nextNote.addEffect(pullOffEndEffect);
+    return guitarNote.addEffect(hammerOnStartEffect);
   }
 
   /**
@@ -454,7 +410,8 @@ export class Tab {
     barIndex: number,
     chordIndex: number,
     stringNum: number,
-    effect: GuitarEffect
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
   ): boolean {
     if (
       this.bars[barIndex].chords[chordIndex].notes[stringNum - 1].note ===
@@ -466,45 +423,43 @@ export class Tab {
       return true;
     }
 
-    switch (effect.effectType) {
+    switch (effectType) {
       case GuitarEffectType.Bend:
         return this.applyBend(
           barIndex,
           chordIndex,
           stringNum,
-          effect.options.bendPitch
+          effectOptions.bendPitch
         );
       case GuitarEffectType.BendAndRelease:
         return this.applyBendAndRelease(
           barIndex,
           chordIndex,
           stringNum,
-          effect.options.bendPitch,
-          effect.options.bendReleasePitch
+          effectOptions.bendPitch,
+          effectOptions.bendReleasePitch
         );
       case GuitarEffectType.Prebend:
         return this.applyPrebend(
           barIndex,
           chordIndex,
           stringNum,
-          effect.options.prebendPitch
+          effectOptions.prebendPitch
         );
       case GuitarEffectType.PrebendAndRelease:
         return this.applyPrebendAndRelease(
           barIndex,
           chordIndex,
           stringNum,
-          effect.options.prebendPitch,
-          effect.options.bendReleasePitch
+          effectOptions.prebendPitch,
+          effectOptions.bendReleasePitch
         );
       case GuitarEffectType.Vibrato:
         return this.applyVibrato(barIndex, chordIndex, stringNum);
-      case GuitarEffectType.SlideStart:
+      case GuitarEffectType.Slide:
         return this.applySlide(barIndex, chordIndex, stringNum);
-      case GuitarEffectType.HammerOnStart:
-        return this.applyHammerOn(barIndex, chordIndex, stringNum);
-      case GuitarEffectType.PullOffStart:
-        return this.applyPullOff(barIndex, chordIndex, stringNum);
+      case GuitarEffectType.HammerOnOrPullOff:
+        return this.applyHammerOnOrPullOff(barIndex, chordIndex, stringNum);
       case GuitarEffectType.PinchHarmonic:
         return this.applyPinchHarmonic(barIndex, chordIndex, stringNum);
       case GuitarEffectType.NaturalHarmonic:
@@ -520,7 +475,11 @@ export class Tab {
    * @param effect Effect to apply
    * @returns True if the effect applied to all notes
    */
-  public applyEffectToChords(chords: Chord[], effect: GuitarEffect): boolean {
+  public applyEffectToChords(
+    chords: Chord[],
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
     let appliedToAll = true;
     for (const chord of chords) {
       let barIndex: number;
@@ -538,7 +497,8 @@ export class Tab {
           barIndex,
           chordIndex,
           note.stringNum,
-          effect
+          effectType,
+          effectOptions
         );
 
         if (!applyRes) {

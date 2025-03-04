@@ -137,8 +137,16 @@ function render(
             }
 
             for (const effectElement of noteElement.guitarEffectElements) {
-              if (effectElement.pathFullHTML !== undefined) {
-                html.push(effectElement.pathFullHTML);
+              if (effectElement.rect !== undefined) {
+                html.push(`<rect x="${effectElement.rect.x}"
+                                 y="${effectElement.rect.y}"
+                                 width="${effectElement.rect.width}"
+                                 height="${effectElement.rect.height}"
+                                 fill="white"
+                                 stroke-opacity="0" />`);
+              }
+              if (effectElement.fullHTML !== undefined) {
+                html.push(effectElement.fullHTML);
               }
             }
 

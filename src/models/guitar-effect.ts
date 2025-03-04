@@ -7,12 +7,8 @@ export enum GuitarEffectType {
   Prebend,
   PrebendAndRelease,
   Vibrato,
-  SlideStart,
-  SlideEnd,
-  HammerOnStart,
-  HammerOnEnd,
-  PullOffStart,
-  PullOffEnd,
+  Slide,
+  HammerOnOrPullOff,
   PinchHarmonic,
   NaturalHarmonic,
   PalmMute,
@@ -37,10 +33,9 @@ export const effectsIncompatibility: IncompatibilityList = {
     GuitarEffectType.BendAndRelease,
     GuitarEffectType.Prebend,
     GuitarEffectType.PrebendAndRelease,
-    GuitarEffectType.HammerOnStart,
-    GuitarEffectType.PullOffEnd,
+    GuitarEffectType.HammerOnOrPullOff,
     GuitarEffectType.NaturalHarmonic,
-    GuitarEffectType.SlideStart,
+    GuitarEffectType.Slide,
     GuitarEffectType.Vibrato,
   ],
   /**
@@ -51,10 +46,9 @@ export const effectsIncompatibility: IncompatibilityList = {
     GuitarEffectType.BendAndRelease,
     GuitarEffectType.Prebend,
     GuitarEffectType.PrebendAndRelease,
-    GuitarEffectType.HammerOnStart,
-    GuitarEffectType.PullOffEnd,
+    GuitarEffectType.HammerOnOrPullOff,
     GuitarEffectType.NaturalHarmonic,
-    GuitarEffectType.SlideStart,
+    GuitarEffectType.Slide,
     GuitarEffectType.Vibrato,
   ],
   /**
@@ -65,10 +59,9 @@ export const effectsIncompatibility: IncompatibilityList = {
     GuitarEffectType.BendAndRelease,
     GuitarEffectType.Prebend,
     GuitarEffectType.PrebendAndRelease,
-    GuitarEffectType.HammerOnStart,
-    GuitarEffectType.PullOffEnd,
+    GuitarEffectType.HammerOnOrPullOff,
     GuitarEffectType.NaturalHarmonic,
-    GuitarEffectType.SlideStart,
+    GuitarEffectType.Slide,
     GuitarEffectType.Vibrato,
   ],
   /**
@@ -79,10 +72,9 @@ export const effectsIncompatibility: IncompatibilityList = {
     GuitarEffectType.BendAndRelease,
     GuitarEffectType.Prebend,
     GuitarEffectType.PrebendAndRelease,
-    GuitarEffectType.HammerOnStart,
-    GuitarEffectType.PullOffEnd,
+    GuitarEffectType.HammerOnOrPullOff,
     GuitarEffectType.NaturalHarmonic,
-    GuitarEffectType.SlideStart,
+    GuitarEffectType.Slide,
     GuitarEffectType.Vibrato,
   ],
   /**
@@ -94,75 +86,29 @@ export const effectsIncompatibility: IncompatibilityList = {
     GuitarEffectType.BendAndRelease,
     GuitarEffectType.Prebend,
     GuitarEffectType.PrebendAndRelease,
-    GuitarEffectType.HammerOnStart,
-    GuitarEffectType.PullOffEnd,
+    GuitarEffectType.HammerOnOrPullOff,
     GuitarEffectType.NaturalHarmonic,
-    GuitarEffectType.SlideStart,
+    GuitarEffectType.Slide,
   ],
   /**
    * Effects incompatible with start of a slide
    */
-  [GuitarEffectType.SlideStart]: [
-    GuitarEffectType.SlideStart,
+  [GuitarEffectType.Slide]: [
+    GuitarEffectType.Slide,
     GuitarEffectType.Bend,
     GuitarEffectType.BendAndRelease,
     GuitarEffectType.Prebend,
     GuitarEffectType.PrebendAndRelease,
     GuitarEffectType.Vibrato,
-    GuitarEffectType.HammerOnStart,
-    GuitarEffectType.HammerOnEnd,
-    GuitarEffectType.PullOffStart,
-    GuitarEffectType.PullOffEnd,
-    GuitarEffectType.NaturalHarmonic,
-  ],
-  /**
-   * Effects incompatible with end of a slide
-   */
-  [GuitarEffectType.SlideEnd]: [
-    GuitarEffectType.SlideEnd,
-    GuitarEffectType.Bend,
-    GuitarEffectType.BendAndRelease,
-    GuitarEffectType.Prebend,
-    GuitarEffectType.PrebendAndRelease,
-    GuitarEffectType.Vibrato,
-    GuitarEffectType.HammerOnEnd,
-    GuitarEffectType.PullOffEnd,
+    GuitarEffectType.HammerOnOrPullOff,
     GuitarEffectType.NaturalHarmonic,
   ],
   /**
    * Effects incompatible with start of a hammer-on
    */
-  [GuitarEffectType.HammerOnStart]: [
-    GuitarEffectType.HammerOnStart,
-    GuitarEffectType.SlideStart,
-    GuitarEffectType.PullOffStart,
-    GuitarEffectType.NaturalHarmonic,
-  ],
-  /**
-   * Effects incompatible with end of a hammer-on
-   */
-  [GuitarEffectType.HammerOnEnd]: [
-    GuitarEffectType.HammerOnEnd,
-    GuitarEffectType.SlideEnd,
-    GuitarEffectType.PullOffEnd,
-    GuitarEffectType.NaturalHarmonic,
-  ],
-  /**
-   * Effects incompatible with start of a pull-off
-   */
-  [GuitarEffectType.PullOffStart]: [
-    GuitarEffectType.PullOffStart,
-    GuitarEffectType.SlideStart,
-    GuitarEffectType.HammerOnStart,
-    GuitarEffectType.NaturalHarmonic,
-  ],
-  /**
-   * Effects incompatible with end of a pull-off
-   */
-  [GuitarEffectType.PullOffEnd]: [
-    GuitarEffectType.PullOffEnd,
-    GuitarEffectType.SlideEnd,
-    GuitarEffectType.HammerOnEnd,
+  [GuitarEffectType.HammerOnOrPullOff]: [
+    GuitarEffectType.HammerOnOrPullOff,
+    GuitarEffectType.Slide,
     GuitarEffectType.NaturalHarmonic,
   ],
   /**
@@ -183,12 +129,8 @@ export const effectsIncompatibility: IncompatibilityList = {
     GuitarEffectType.Prebend,
     GuitarEffectType.PrebendAndRelease,
     GuitarEffectType.Vibrato,
-    GuitarEffectType.SlideStart,
-    GuitarEffectType.SlideEnd,
-    GuitarEffectType.HammerOnStart,
-    GuitarEffectType.HammerOnEnd,
-    GuitarEffectType.PullOffStart,
-    GuitarEffectType.PullOffEnd,
+    GuitarEffectType.Slide,
+    GuitarEffectType.HammerOnOrPullOff,
   ],
   /**
    * Effects incompatible with palm mute
@@ -201,12 +143,12 @@ export const effectsIncompatibility: IncompatibilityList = {
  */
 export const applyToMultipleEffects = [
   GuitarEffectType.Vibrato,
-  // GuitarEffectType.SlideStart,
+  // GuitarEffectType.Slide,
   // GuitarEffectType.SlideEnd,
-  // GuitarEffectType.HammerOnStart,
+  // GuitarEffectType.HammerOn,
   // GuitarEffectType.HammerOnEnd,
   // GuitarEffectType.PullOffStart,
-  // GuitarEffectType.PullOffEnd,
+  // GuitarEffectType.PullOff,
   GuitarEffectType.PalmMute,
 ];
 
@@ -218,6 +160,7 @@ export const optionsDemandingEffects = [
   GuitarEffectType.BendAndRelease,
   GuitarEffectType.Prebend,
   GuitarEffectType.PrebendAndRelease,
+  GuitarEffectType.Slide,
 ];
 
 /**
@@ -230,12 +173,8 @@ export const optionsPerEffectType = {
   [GuitarEffectType.Prebend]: ["prebendPitch"],
   [GuitarEffectType.PrebendAndRelease]: ["bendReleasePitch", "prebendPitch"],
   [GuitarEffectType.Vibrato]: [],
-  [GuitarEffectType.SlideStart]: [],
-  [GuitarEffectType.SlideEnd]: [],
-  [GuitarEffectType.HammerOnStart]: [],
-  [GuitarEffectType.HammerOnEnd]: [],
-  [GuitarEffectType.PullOffStart]: [],
-  [GuitarEffectType.PullOffEnd]: [],
+  [GuitarEffectType.Slide]: ["nextHigher"],
+  [GuitarEffectType.HammerOnOrPullOff]: [],
   [GuitarEffectType.PinchHarmonic]: [],
   [GuitarEffectType.NaturalHarmonic]: [],
   [GuitarEffectType.PalmMute]: [],
@@ -250,11 +189,13 @@ export class GuitarEffectOptions {
    * @param bendPitch Bend pitch
    * @param bendReleasePitch Bend release pitch
    * @param prebendPitch Prebend pitch
+   * @param nextHigher True if slide/HO-PO into a higher note, false otherwise
    */
   constructor(
     readonly bendPitch?: number,
     readonly bendReleasePitch?: number,
-    readonly prebendPitch?: number
+    readonly prebendPitch?: number,
+    readonly nextHigher?: boolean
   ) {}
 
   /**
@@ -289,13 +230,19 @@ export class GuitarEffect {
       if (options === undefined) {
         return;
       } else {
-        throw Error("Options provided for effect not demanding options");
+        throw Error(
+          "Options provided for effect not demanding options. " +
+            `Effect type: ${effectType}, options: ${options}`
+        );
       }
     }
 
     // Check if effect has options
     if (options === undefined) {
-      throw Error("Option demanding effect without options");
+      throw Error(
+        "Option demanding effect without options. " +
+          `Effect type: ${effectType}`
+      );
     }
 
     // Strip undefined properties from the options

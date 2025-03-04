@@ -15,7 +15,11 @@ import { Chord } from "../models/chord";
 import { SelectionElement } from "./elements/selection-element";
 import { Rect } from "./shapes/rect";
 import { TabLineElement } from "./elements/tab-line-element";
-import { GuitarEffect } from "../models/guitar-effect";
+import {
+  GuitarEffect,
+  GuitarEffectOptions,
+  GuitarEffectType,
+} from "../models/guitar-effect";
 
 /**
  * Tab window specific selected element ids
@@ -729,7 +733,10 @@ export class TabWindow {
     noteElement.note.fret = newNoteValue;
   }
 
-  public applyEffect(effect: GuitarEffect): boolean {
+  public applyEffect(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
     let applyRes: boolean = false;
     if (this._selectedElement !== undefined) {
       // Apply effect to selected element
@@ -737,7 +744,8 @@ export class TabWindow {
         this._selectedElement.barId,
         this._selectedElement.chordId,
         this._selectedElement.stringNum,
-        effect
+        effectType,
+        effectOptions
       );
 
       if (applyRes) {
@@ -756,7 +764,11 @@ export class TabWindow {
           se.barElementId
         ].chordElements[se.chordElementId].chord;
       });
-      applyRes = this._tab.applyEffectToChords(chords, effect);
+      applyRes = this._tab.applyEffectToChords(
+        chords,
+        effectType,
+        effectOptions
+      );
 
       if (applyRes) {
         // Effects applied to all selected chord elements => recalc every affected chord element
