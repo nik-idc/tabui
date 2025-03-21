@@ -8,12 +8,35 @@ import { Chord } from "../../models/chord";
 import { Note } from "../../models/note";
 import { GuitarNote } from "../../models/guitar-note";
 import { Tab } from "../../models/tab";
+import { TabLineElement } from "./tab-line-element";
 
+/**
+ * Tests if a specified element is a 'SelectedElement' instance
+ * @param element Element
+ * @returns True if is an instance, false otherwise
+ */
 export function isSelectedElement(
   element: SelectedElement | any
 ): element is SelectedElement {
   return (element as SelectedElement).stringNum !== undefined;
 }
+
+/**
+ * Types of outcomes for moving a note right
+ */
+export enum MoveRightResult {
+  Nothing,
+  AddedChord,
+  AddedBar,
+}
+
+/**
+ * Move right output type
+ */
+export type MoveRightOutput = {
+  result: MoveRightResult;
+  addedBar?: Bar;
+};
 
 /**
  * Class that contains all necessary information
@@ -23,13 +46,13 @@ export class SelectedElement {
   /**
    * Class that contains all necessary information
    * about a selected element
-   * @param _tabWindow Tab window
+   * @param _tab Tab
    * @param _barId Bar id
-   * @param _chordId Chord id
+   * @param _chordId Chord id (chord element id at the same time)
    * @param _stringNum String number
    */
   constructor(
-    private _tabWindow: TabWindow,
+    private _tab: Tab,
     private _barId: number = 0,
     private _chordId: number = 0,
     private _stringNum: number = 1
@@ -39,7 +62,7 @@ export class SelectedElement {
    * Move selected note up (or to the last string if current is the first)
    */
   public moveUp(): void {
-    const stringsCount = this._tabWindow.tab.guitar.stringsCount;
+    const stringsCount = this._tab.guitar.stringsCount;
     const newstringNum =
       this._stringNum === 1 ? stringsCount : this._stringNum - 1;
 
@@ -50,7 +73,7 @@ export class SelectedElement {
    * Move selected note down (or to the first string if current is the last)
    */
   public moveDown(): void {
-    const stringsCount = this._tabWindow.tab.guitar.stringsCount;
+    const stringsCount = this._tab.guitar.stringsCount;
     const newstringNum =
       this._stringNum === stringsCount ? 1 : this._stringNum + 1;
 
@@ -79,8 +102,9 @@ export class SelectedElement {
 
   /**
    * Move selected note right (or to the first note of the next bar)
+   * @returns A move right result
    */
-  public moveRight(): void {
+  public moveRight(): MoveRightOutput {
     // Check if can add chords to the bar
     if (
       this._chordId === this.bar.chords.length - 1 &&
@@ -91,50 +115,62 @@ export class SelectedElement {
       // If durations don't fit AND
       // If currently actual bar duration is less than the correct one
       // append a new chord and select it
-      this.bar.appendChord();
+      // !!
+      // -- commented this because tab manipulations will be done
+      // -- outside of this class
+      // this.bar.appendChord();
+      // !!
       this._chordId++;
 
       // Recalc tab window
-      this._tabWindow.calc();
-      return;
+      // this._tabWindow.calc();
+      return { result: MoveRightResult.AddedChord };
     }
 
     if (this._chordId !== this.bar.chords.length - 1) {
       // Can't add more chords but can move to the next chord
       this._chordId++;
 
-      return;
+      // return false;
+      return { result: MoveRightResult.Nothing };
     }
 
     // Can't move to next chord OR add more chords, move to the next bar
-    if (this._barId !== this._tabWindow.tab.bars.length - 1) {
+    if (this._barId !== this._tab.bars.length - 1) {
       this._barId++;
       this._chordId = 0;
 
-      return;
+      // return false;
+      return { result: MoveRightResult.Nothing };
     }
 
     // If current bar is the last one of the tab
     const newBar = new Bar(
-      this._tabWindow.tab.guitar,
+      this._tab.guitar,
       this.bar.tempo,
       this.bar.beats,
       this.bar.duration,
-      [new Chord(this._tabWindow.tab.guitar, this.chord.duration)]
+      [new Chord(this._tab.guitar, this.chord.duration)]
     );
-    this._tabWindow.tab.bars.push(newBar);
+    // !!
+    // -- commented this because tab manipulations will be done
+    // -- outside of this class
+    // this._tab.bars.push(newBar);
+    // !!
     this._barId++;
     this._chordId = 0;
 
     // Recalc tab window
-    this._tabWindow.calc();
+    // this._tabWindow.calc();
+    // return true;
+    return { result: MoveRightResult.AddedBar, addedBar: newBar };
   }
 
   /**
    * Selected note
    */
   public get note(): GuitarNote {
-    return this._tabWindow.tab.bars[this._barId].chords[this._chordId].notes[
+    return this._tab.bars[this._barId].chords[this._chordId].notes[
       this._stringNum - 1
     ];
   }
@@ -143,21 +179,21 @@ export class SelectedElement {
    * Selected chord
    */
   public get chord(): Chord {
-    return this._tabWindow.tab.bars[this._barId].chords[this._chordId];
+    return this._tab.bars[this._barId].chords[this._chordId];
   }
 
   /**
    * Selected bar
    */
   public get bar(): Bar {
-    return this._tabWindow.tab.bars[this._barId];
+    return this._tab.bars[this._barId];
   }
 
   /**
    * Selected tab
    */
   public get tab(): Tab {
-    return this._tabWindow.tab;
+    return this._tab;
   }
 
   /**
@@ -168,78 +204,93 @@ export class SelectedElement {
   }
 
   /**
-   * Selected note element
+   * Selected chord id
    */
-  public get noteElementId(): number {
-    return this._stringNum - 1;
-  }
-
-  /**
-   * Selected chord element
-   */
-  public get chordElementId(): number {
+  public get chordId(): number {
     return this._chordId;
   }
 
   /**
-   * Selected bar element id (sequential)
+   * Selected bar id
    */
-  public get barElementSeqId(): number {
+  public get barId(): number {
     return this._barId;
   }
 
-  /**
-   * Selected bar element id (in the tab line)
-   */
-  public get barElementId(): number {
-    const barElement = this._tabWindow.barElementsSeq[this._barId];
-    return this._tabWindow.barElementLines[this.barElementsLineId].indexOf(
-      barElement
-    );
-  }
+  // /**
+  //  * Selected note element
+  //  */
+  // public get noteElementId(): number {
+  //   return this._stringNum - 1;
+  // }
 
-  /**
-   * Selected tab line element
-   */
-  public get barElementsLineId(): number {
-    return Math.floor(
-      this._tabWindow.barElementsSeq[this._barId].rect.y /
-        this._tabWindow.dim.tabLineHeight
-    );
-  }
+  // /**
+  //  * Selected chord element
+  //  */
+  // public get chordElementId(): number {
+  //   return this._chordId;
+  // }
 
-  /**
-   * Selected note element
-   */
-  public get noteElement(): NoteElement {
-    return this.chordElement.noteElements[this.noteElementId];
-  }
+  // /**
+  //  * Selected bar element id (sequential)
+  //  */
+  // public get barElementSeqId(): number {
+  //   return this._barId;
+  // }
 
-  /**
-   * Selected chord element
-   */
-  public get chordElement(): ChordElement {
-    return this.barElement.chordElements[this.chordElementId];
-  }
+  // /**
+  //  * Selected bar element id (in the tab line)
+  //  */
+  // public get barElementId(): number {
+  //   const barElement = this._tabWindow.barElementsSeq[this._barId];
+  //   return this._tabWindow.tabLineElements[
+  //     this.tabLineElementId
+  //   ].barElements.indexOf(barElement);
+  // }
 
-  /**
-   * Selected bar element
-   */
-  public get barElement(): BarElement {
-    return this._tabWindow.barElementsSeq[this._barId];
-  }
+  // /**
+  //  * Selected tab line element
+  //  */
+  // public get tabLineElementId(): number {
+  //   const a = this._tabWindow.
+  //   return Math.floor(
+  //     this._tabWindow.tabLineElements[this._].rect.y /
+  //       this._tabWindow.dim.tabLineHeight
+  //   );
+  // }
 
-  /**
-   * Selected bar elements line
-   */
-  public get barElementsLine(): BarElement[] {
-    return this._tabWindow.barElementLines[this.barElementsLineId];
-  }
+  // /**
+  //  * Selected note element
+  //  */
+  // public get noteElement(): NoteElement {
+  //   return this.chordElement.noteElements[this.noteElementId];
+  // }
 
-  /**
-   * Selected tab window element
-   */
-  public get tabWindow(): TabWindow {
-    return this._tabWindow;
-  }
+  // /**
+  //  * Selected chord element
+  //  */
+  // public get chordElement(): ChordElement {
+  //   return this.barElement.chordElements[this.chordElementId];
+  // }
+
+  // /**
+  //  * Selected bar element
+  //  */
+  // public get barElement(): BarElement {
+  //   return this._tabWindow.barElementsSeq[this._barId];
+  // }
+
+  // /**
+  //  * Selected bar elements line
+  //  */
+  // public get tabLineElements(): TabLineElement {
+  //   return this._tabWindow.tabLineElements[this.tabLineElementId];
+  // }
+
+  // /**
+  //  * Selected tab window element
+  //  */
+  // public get tabWindow(): TabWindow {
+  //   return this._tabWindow;
+  // }
 }

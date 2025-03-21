@@ -1,6 +1,9 @@
 import { Bar } from "../src/models/bar";
 import { Chord } from "../src/models/chord";
 import { Guitar } from "../src/models/guitar";
+import { GuitarEffect } from "../src/models/guitar-effect/guitar-effect";
+import { GuitarEffectOptions } from "../src/models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "..//src/models/guitar-effect/guitar-effect-type";
 import { Note } from "../src/models/note";
 import { NoteDuration } from "../src/models/note-duration";
 import { Tab } from "../src/models/tab";
@@ -33,13 +36,13 @@ function randomFrets(tab: Tab, allNotes: boolean = false): void {
 
 function selectNote(
   tabWindow: TabWindow,
-  barElementLineId: number,
+  tabLineElementId: number,
   barElementId: number,
   chordElementId: number,
   stringNum: number
 ): void {
   tabWindow.selectNoteElement(
-    barElementLineId,
+    tabLineElementId,
     barElementId,
     chordElementId,
     stringNum - 1
@@ -130,6 +133,42 @@ export function createBasicTabWindow(): TabWindow {
   return tabWindow;
 }
 
+export function createCustomTabWindow(
+  barsCount: number,
+  barBeats: number,
+  barDuration: NoteDuration
+): TabWindow {
+  const stringsCount = 6;
+  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
+  const fretsCount = 24;
+  const guitar = new Guitar(stringsCount, tuning, fretsCount);
+
+  const bars: Bar[] = [];
+  for (let i = 0; i < barsCount; i++) {
+    const chords: Chord[] = [];
+
+    for (let j = 0; j < barBeats; j++) {
+      chords.push(new Chord(guitar, barDuration));
+    }
+
+    bars.push(new Bar(guitar, 120, barBeats, barDuration, chords));
+  }
+
+  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+
+  const dim = new TabWindowDim(
+    width,
+    noteTextSize,
+    timeSigTextSize,
+    tempoTextSize,
+    durationsHeight,
+    guitar.stringsCount
+  );
+  const tabWindow = new TabWindow(tab, dim);
+  tabWindow.calc();
+  return tabWindow;
+}
+
 export interface TestCase {
   tabWindow: TabWindow;
   caption: string;
@@ -137,6 +176,17 @@ export interface TestCase {
 
 function prepareTestCases(): TestCase[] {
   const tabWindows = [
+    (() => {
+      const tabWindow = createBasicTabWindow();
+
+      // Fill frets
+      randomFrets(tabWindow.tab, true);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Draw tab window",
+      };
+    })(),
     (() => {
       const tabWindow = createBasicTabWindow();
 
@@ -263,10 +313,10 @@ function prepareTestCases(): TestCase[] {
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords from left-to-right to then right-to-left:" +
+          "Select chords from left-to-right to then right-to-left: " +
           `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
           `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} to ` +
-          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
+          `${thirdChord[0]}-${thirdChord[1]}-${thirdChord[2]}`,
       };
     })(),
     (() => {
@@ -282,7 +332,7 @@ function prepareTestCases(): TestCase[] {
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords right-to-left" +
+          "Select chords right-to-left: " +
           `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
           `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
       };
@@ -304,10 +354,10 @@ function prepareTestCases(): TestCase[] {
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords from right-to-left to left-to-right" +
+          "Select chords from right-to-left to left-to-right: " +
           `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
           `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} to ` +
-          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
+          `${thirdChord[0]}-${thirdChord[1]}-${thirdChord[2]}`,
       };
     })(),
     (() => {
@@ -488,9 +538,9 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set chord notes value
-      tabWindow.barElementLines[copiedChord[0]][copiedChord[1]].chordElements[
-        copiedChord[2]
-      ].noteElements[3].note.fret = 20;
+      tabWindow.tabLineElements[copiedChord[0]].barElements[
+        copiedChord[1]
+      ].chordElements[copiedChord[2]].noteElements[3].note.fret = 20;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
@@ -529,10 +579,10 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set chord notes value
-      tabWindow.barElementLines[copiedChords[0][0]][
+      tabWindow.tabLineElements[copiedChords[0][0]].barElements[
         copiedChords[0][1]
       ].chordElements[copiedChords[0][2]].noteElements[3].note.fret = 20;
-      tabWindow.barElementLines[copiedChords[1][0]][
+      tabWindow.tabLineElements[copiedChords[1][0]].barElements[
         copiedChords[1][1]
       ].chordElements[copiedChords[1][2]].noteElements[3].note.fret = 19;
 
@@ -582,9 +632,9 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set chord notes value
-      tabWindow.barElementLines[copiedChord[0]][copiedChord[1]].chordElements[
-        copiedChord[2]
-      ].noteElements[3].note.fret = 20;
+      tabWindow.tabLineElements[copiedChord[0]].barElements[
+        copiedChord[1]
+      ].chordElements[copiedChord[2]].noteElements[3].note.fret = 20;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
@@ -618,6 +668,178 @@ function prepareTestCases(): TestCase[] {
           `replacing chords from ` +
           `${pastedIntoChords[0][0]}-${pastedIntoChords[0][1]}-${pastedIntoChords[0][2]} to ` +
           `${pastedIntoChords[1][0]}-${pastedIntoChords[1][1]}-${pastedIntoChords[1][2]}`,
+      };
+    })(),
+    (() => {
+      const effectsToTry = [
+        [
+          [
+            [0, 0, 0, 0],
+            [0, 0, 1, 1],
+            [0, 0, 2, 2],
+            [0, 0, 3, 3],
+            [0, 0, 4, 4],
+            [0, 0, 5, 5],
+          ],
+          GuitarEffectType.Bend,
+          new GuitarEffectOptions(1.5, undefined, undefined),
+        ],
+        [
+          [
+            [0, 1, 0, 0],
+            [0, 1, 1, 1],
+            [0, 1, 2, 2],
+            [0, 1, 3, 3],
+            [0, 1, 4, 4],
+            [0, 1, 5, 5],
+          ],
+          GuitarEffectType.BendAndRelease,
+          new GuitarEffectOptions(1.5, 0.5, undefined),
+        ],
+        [
+          [
+            [0, 2, 0, 0],
+            [0, 2, 1, 1],
+            [0, 2, 2, 2],
+            [0, 2, 3, 3],
+            [0, 2, 4, 4],
+            [0, 2, 5, 5],
+          ],
+          GuitarEffectType.Prebend,
+          new GuitarEffectOptions(undefined, undefined, 0.5),
+        ],
+        [
+          [
+            [1, 0, 0, 0],
+            [1, 0, 1, 1],
+            [1, 0, 2, 2],
+            [1, 0, 3, 3],
+            [1, 0, 4, 4],
+            [1, 0, 5, 5],
+          ],
+          GuitarEffectType.PrebendAndRelease,
+          new GuitarEffectOptions(undefined, 1.5, 0.5),
+        ],
+      ];
+
+      const tabWindow = createCustomTabWindow(4, 6, NoteDuration.Quarter);
+      randomFrets(tabWindow.tab, true);
+
+      for (const effectToTry of effectsToTry) {
+        const effectNotes = effectToTry[0] as number[][];
+        for (const effectNote of effectNotes) {
+          tabWindow.selectNoteElement(
+            effectNote[0],
+            effectNote[1],
+            effectNote[2],
+            effectNote[3]
+          );
+
+          tabWindow.applyEffect(
+            effectToTry[1] as GuitarEffectType,
+            effectToTry[2] as GuitarEffectOptions
+          );
+        }
+      }
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Apply all existing types of bend effects on notes: ",
+      };
+    })(),
+    (() => {
+      const effectsToTry = [
+        [
+          [
+            [0, 0, 0, 0],
+            [0, 0, 1, 1],
+            [0, 0, 2, 2],
+            [0, 0, 3, 3],
+            [0, 0, 4, 4],
+            [0, 0, 5, 5],
+          ],
+          GuitarEffectType.Vibrato,
+        ],
+        [
+          [
+            [0, 1, 0, 0],
+            [0, 1, 1, 1],
+            [0, 1, 2, 2],
+            [0, 1, 3, 3],
+            [0, 1, 4, 4],
+            [0, 1, 5, 5],
+          ],
+          GuitarEffectType.Slide,
+        ],
+        [
+          [
+            [0, 2, 0, 0],
+            [0, 2, 1, 1],
+            [0, 2, 2, 2],
+            [0, 2, 3, 3],
+            [0, 2, 4, 4],
+            [0, 2, 5, 5],
+          ],
+          GuitarEffectType.HammerOnOrPullOff,
+        ],
+        [
+          [
+            [1, 0, 0, 0],
+            [1, 0, 1, 1],
+            [1, 0, 2, 2],
+            [1, 0, 3, 3],
+            [1, 0, 4, 4],
+            [1, 0, 5, 5],
+          ],
+          GuitarEffectType.PinchHarmonic,
+        ],
+        [
+          [
+            [1, 1, 0, 0],
+            [1, 1, 1, 1],
+            [1, 1, 2, 2],
+            [1, 1, 3, 3],
+            [1, 1, 4, 4],
+            [1, 1, 5, 5],
+          ],
+          GuitarEffectType.NaturalHarmonic,
+        ],
+        [
+          [
+            [1, 2, 0, 0],
+            [1, 2, 1, 1],
+            [1, 2, 2, 2],
+            [1, 2, 3, 3],
+            [1, 2, 4, 4],
+            [1, 2, 5, 5],
+          ],
+          GuitarEffectType.PalmMute,
+        ],
+      ];
+
+      const tabWindow = createCustomTabWindow(6, 6, NoteDuration.Quarter);
+      randomFrets(tabWindow.tab, true);
+
+      for (const effectToTry of effectsToTry) {
+        const effectNotes = effectToTry[0] as number[][];
+        for (const effectNote of effectNotes) {
+          tabWindow.selectNoteElement(
+            effectNote[0],
+            effectNote[1],
+            effectNote[2],
+            effectNote[3]
+          );
+
+          tabWindow.applyEffect(
+            effectToTry[1] as GuitarEffectType,
+            effectToTry[2] as GuitarEffectOptions
+          );
+        }
+      }
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Apply all existing types of bend effects on notes: ",
       };
     })(),
   ];

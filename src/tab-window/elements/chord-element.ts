@@ -70,7 +70,7 @@ export class ChordElement {
         this.rect.width = this.dim.noteRectWidthWhole;
         break;
       default:
-        throw new Error(`${this.chord.duration} is an invalid chord duration`);
+        throw Error(`${this.chord.duration} is an invalid chord duration`);
     }
     this.rect.height = this.dim.tabLineHeight;
 
@@ -100,7 +100,7 @@ export class ChordElement {
     // Check if can be scaled down
     if (scale <= 0) {
     // if (scale <= 0 || (scale > 0 && scale < 1)) {
-      throw new Error(
+      throw Error(
         `${scale} is an invalid scale: scale must be positive AND >= 1`
       );
     }

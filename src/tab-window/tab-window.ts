@@ -7,6 +7,7 @@ import { Bar } from "./../models/bar";
 import { NoteDuration } from "./../models/note-duration";
 import { ChordElement } from "./elements/chord-element";
 import {
+  MoveRightResult,
   SelectedElement,
   isSelectedElement,
 } from "./elements/selected-element";
@@ -14,6 +15,33 @@ import { Chord } from "../models/chord";
 import { SelectionElement } from "./elements/selection-element";
 import { Rect } from "./shapes/rect";
 import { TabLineElement } from "./elements/tab-line-element";
+import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
+import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
+
+
+/**
+ * Tab window specific selected element ids
+ */
+export type SelectedElementWindowIds = {
+  /**
+   * Id of the tab line element
+   */
+  tabLineElementId: number;
+  /**
+   * If of the bar element (within the tab line element)
+   */
+  barElementId: number;
+  /**
+   * Id of the chord element, same as chord id, in here just
+   * for consistency's sake
+   */
+  chordElementId: number;
+  /**
+   * String number
+   */
+  stringNum: number;
+};
 
 /**
  * Class that handles creating a tab window
@@ -28,17 +56,9 @@ export class TabWindow {
    */
   readonly dim: TabWindowDim;
   /**
-   * Chord elements
+   * Tab line elements
    */
-  private _chordElementsSeq: ChordElement[];
-  /**
-   * Bar elements
-   */
-  private _barElementsSeq: BarElement[];
-  /**
-   * Lines of bar elements
-   */
-  private _barElementLines: BarElement[][];
+  private _tabLineElements: TabLineElement[];
   /**
    * Selected note element
    */
@@ -79,112 +99,56 @@ export class TabWindow {
     }
     this._tab = tab;
     this.dim = dim;
-    this._barElementsSeq = [];
-    this._barElementLines = [];
+    this._tabLineElements = [];
     this._selectionElements = [];
     this._selectionRects = [];
 
     this.calc();
   }
 
-  /**
-   * Justifies elements in a bar line
-   * @param barElements Elements of a bar line
-   * @returns
-   */
-  private justifyBarElementsLine(barElements: BarElement[]): void {
-    // Calc width of empty space
-    const gapWidth =
-      this.dim.width - barElements[barElements.length - 1].rect.rightTop.x;
+  private createBarElement(bar: Bar, prevBar?: Bar): BarElement {
+    /**
+     * TODO: THIS FUNCTION HAS TO GO TO 'BarElement' CLASS
+     * AS A STATIC METHOD
+     */
 
-    if (gapWidth === 0) {
-      return;
-    }
+    const showSignature =
+      prevBar !== undefined ? bar.signature !== prevBar.signature : true;
+    const showTempo =
+      prevBar !== undefined ? bar.tempo !== prevBar.tempo : true;
 
-    // Calc sum width of all bar elements
-    let sumWidth = 0;
-    for (const barElement of barElements) {
-      sumWidth += barElement.rect.width;
-    }
+    const coords = new Point(0, 0);
+    const barElement = new BarElement(
+      this.dim,
+      coords,
+      bar,
+      showSignature,
+      showTempo
+    );
 
-    // Go through each bar element and increase their
-    // width according to how their current width relates
-    // to the width of the empty space
-    const scale = this.dim.width / sumWidth;
-    for (const barElement of barElements) {
-      barElement.scaleBarHorBy(scale);
-    }
+    return barElement;
   }
 
   /**
-   * Calc, place and scale all bar elements
+   * Adds new bar element to
+   * @param barIndex Index of the bar
+   * @param coords Coords of the current tab line element (top-left)
    */
-  private calcBarElements(): void {
-    this._barElementsSeq = [];
-    this._barElementLines = [];
+  public addBarElement(barIndex: number, coords: Point): void {
+    let curTabLine = this._tabLineElements[this._tabLineElements.length - 1];
 
-    let coords = new Point(0, 0);
-
-    for (let i = 0; i < this._tab.bars.length; i++) {
-      const showSignature =
-        i > 0
-          ? this._tab.bars[i].signature !== this._tab.bars[i - 1].signature
-          : true;
-      const showTempo =
-        i > 0 ? this._tab.bars[i].tempo !== this._tab.bars[i - 1].tempo : true;
-
-      const barElement = new BarElement(
-        this.dim,
-        coords,
-        this._tab.bars[i],
-        showSignature,
-        showTempo
-      );
-
-      if (i === 0) {
-        this._barElementsSeq.push(barElement);
-        this._barElementLines.push([barElement]);
-      } else {
-        const lastBarElement =
-          this._barElementsSeq[this._barElementsSeq.length - 1];
-
-        const barFits =
-          lastBarElement.rect.rightTop.x + barElement.rect.width <=
-          this.dim.width;
-        if (!barFits) {
-          coords = new Point(0, coords.y + this.dim.tabLineHeight);
-
-          this.justifyBarElementsLine(
-            this._barElementLines[this._barElementLines.length - 1]
-          );
-          this._barElementLines.push([]);
-        } else {
-          coords = new Point(lastBarElement.rect.rightTop.x, coords.y);
-        }
-
-        barElement.setCoords(coords);
-        this._barElementsSeq.push(barElement);
-        this._barElementLines[this._barElementLines.length - 1].push(
-          barElement
-        );
-      }
-    }
-
-    // Justify last bar elements line
-    this.justifyBarElementsLine(
-      this._barElementLines[this._barElementLines.length - 1]
+    const barElement = this.createBarElement(
+      this._tab.bars[barIndex],
+      this._tab.bars[barIndex - 1]
     );
 
-    // Get a singular array of all chord elements
-    this._chordElementsSeq = this._barElementsSeq.flatMap((be) => {
-      return be.chordElements;
-    });
-
-    // Build a selection rects array for every tab line
-    this._selectionRects = [];
-    for (const barElementLine of this._barElementLines) {
-      this._selectionRects.push(undefined);
+    if (!curTabLine.barElementFits(barElement)) {
+      coords.y += this.dim.tabLineHeight;
+      this._tabLineElements.push(new TabLineElement(this.dim, coords));
+      curTabLine = this._tabLineElements[this._tabLineElements.length - 1];
     }
+
+    curTabLine.addBarElement(barElement);
   }
 
   /**
@@ -192,18 +156,22 @@ export class TabWindow {
    * the resulting window with multiple bar lines
    */
   public calc(): void {
-    this.calcBarElements();
+    const coords = new Point(0, 0);
+    this._tabLineElements = [new TabLineElement(this.dim, coords)];
+    for (let barIndex = 0; barIndex < this._tab.bars.length; barIndex++) {
+      this.addBarElement(barIndex, coords);
+    }
   }
 
   /**
    * Select new note element
-   * @param barElementLineId Id of the bar elements line containing the chord element
+   * @param tabLineElementId Id of the bar elements line containing the chord element
    * @param barElementId Id of the bar element containing the chord element
    * @param chordElementId Id of the chord element containing the note element
    * @param noteElementId Id of the note element
    */
   public selectNoteElement(
-    barElementLineId: number,
+    tabLineElementId: number,
     barElementId: number,
     chordElementId: number,
     noteElementId: number
@@ -211,17 +179,18 @@ export class TabWindow {
     this.clearSelection();
 
     // Get current note element's info
-    const barElement = this._barElementLines[barElementLineId][barElementId];
+    const tabLineElement = this._tabLineElements[tabLineElementId];
+    const barElement = tabLineElement.barElements[barElementId];
     const chordElement = barElement.chordElements[chordElementId];
     const noteElement = chordElement.noteElements[noteElementId];
 
-    const barId = this.tab.bars.indexOf(barElement.bar);
-    const chordId = this.tab.bars[barId].chords.indexOf(chordElement.chord);
+    const barId = this._tab.bars.indexOf(barElement.bar);
+    const chordId = this._tab.bars[barId].chords.indexOf(chordElement.chord);
     const stringNum = noteElement.note.stringNum;
 
     // Select
     this._selectedElement = new SelectedElement(
-      this,
+      this._tab,
       barId,
       chordId,
       stringNum
@@ -230,19 +199,19 @@ export class TabWindow {
 
   /**
    * Adds chord to selection & update selection rects
-   * @param barElementsLineId Bar elements line id
+   * @param tabLineElementId Bar elements line id
    * @param barElementId Bar element id
    * @param chordElementId Chord element id
    * @param chordElementSeqId Sequential chord element id
    */
   private addChordToSelection(
-    barElementsLineId: number,
+    tabLineElementId: number,
     barElementId: number,
     chordElementId: number,
     chordElementSeqId: number
   ): void {
     const newSelectionElement = new SelectionElement(
-      barElementsLineId,
+      tabLineElementId,
       barElementId,
       chordElementId,
       chordElementSeqId
@@ -257,12 +226,12 @@ export class TabWindow {
 
     this._selectionElements.push(newSelectionElement);
 
-    const barElementLine = this._barElementLines[barElementsLineId];
-    const barElement = barElementLine[barElementId];
-    const chordElement = this._chordElementsSeq[chordElementSeqId];
+    const tabLineElement = this._tabLineElements[tabLineElementId];
+    const barElement = tabLineElement.barElements[barElementId];
+    const chordElement = barElement.chordElements[chordElementId];
 
-    if (this._selectionRects[barElementsLineId] === undefined) {
-      this._selectionRects[barElementsLineId] = new Rect(
+    if (this._selectionRects[tabLineElementId] === undefined) {
+      this._selectionRects[tabLineElementId] = new Rect(
         chordElement === barElement.chordElements[0]
           ? barElement.rect.x
           : chordElement.rect.x,
@@ -271,45 +240,49 @@ export class TabWindow {
         chordElement.rect.height
       );
     } else {
-      this._selectionRects[barElementsLineId].width =
-        chordElement.rect.rightTop.x -
-        this._selectionRects[barElementsLineId].x;
+      this._selectionRects[tabLineElementId].width =
+        chordElement.rect.rightTop.x - this._selectionRects[tabLineElementId].x;
     }
   }
 
   /**
    * Selects chords in between the two specified chords (including them)
-   * @param startBarElementsLineId Bar line id of the starting chord
+   * @param startTabLineElementId Bar line id of the starting chord
    * @param startBarElementId Bar element id of the starting chord
    * @param startChordElementId Chord element id of the starting chord
-   * @param endBarElementsLineId Bar line id of the end chord
+   * @param endTabLineElementId Bar line id of the end chord
    * @param endBarElementId Bar element id of the end chord
    * @param endChordElementId Chord element id of the end chord
    */
   private selectChordsInBetween(
-    startBarElementsLineId: number,
+    startTabLineElementId: number,
     startBarElementId: number,
     startChordElementId: number,
-    endBarElementsLineId: number,
+    endTabLineElementId: number,
     endBarElementId: number,
     endChordElementId: number
   ): void {
-    const startChordElementSeqId = this._chordElementsSeq.indexOf(
-      this._barElementLines[startBarElementsLineId][startBarElementId]
-        .chordElements[startChordElementId]
+    const chordsSeq = this._tab.getChordsSeq();
+
+    const startChordElementSeqId = chordsSeq.indexOf(
+      this._tabLineElements[startTabLineElementId].barElements[
+        startBarElementId
+      ].chordElements[startChordElementId].chord
     );
-    const endChordElementSeqId = this._chordElementsSeq.indexOf(
-      this._barElementLines[endBarElementsLineId][endBarElementId]
-        .chordElements[endChordElementId]
+    const endChordElementSeqId = chordsSeq.indexOf(
+      this._tabLineElements[endTabLineElementId].barElements[endBarElementId]
+        .chordElements[endChordElementId].chord
     );
-    let seqIndex = this._chordElementsSeq.indexOf(
-      this._barElementLines[startBarElementsLineId][0].chordElements[0]
+    let seqIndex = chordsSeq.indexOf(
+      this._tabLineElements[startTabLineElementId].barElements[0]
+        .chordElements[0].chord
     );
 
-    for (let i = startBarElementsLineId; i <= endBarElementsLineId; i++) {
-      const barsCount = this._barElementLines[i].length;
+    for (let i = startTabLineElementId; i <= endTabLineElementId; i++) {
+      const barsCount = this._tabLineElements[i].barElements.length;
       for (let j = 0; j < barsCount; j++) {
-        const chordsCount = this._barElementLines[i][j].chordElements.length;
+        const chordsCount =
+          this._tabLineElements[i].barElements[j].chordElements.length;
         for (let k = 0; k < chordsCount; k++) {
           if (
             seqIndex >= startChordElementSeqId &&
@@ -325,13 +298,13 @@ export class TabWindow {
 
   /**
    * Selects specified chord and all the chords between it and base selection element
-   * @param barElementsLineId Id of the line of bar elements
+   * @param tabLineElementId Id of the line of bar elements
    * @param barElementId Bar element id
    * @param chordElementId Chord element id
    * @returns
    */
   public selectChord(
-    barElementsLineId: number,
+    tabLineElementId: number,
     barElementId: number,
     chordElementId: number
   ): void {
@@ -340,42 +313,40 @@ export class TabWindow {
     }
 
     const chordElement =
-      this._barElementLines[barElementsLineId][barElementId].chordElements[
-        chordElementId
-      ];
-    const chordElementSeqId = this._chordElementsSeq.indexOf(chordElement);
+      this._tabLineElements[tabLineElementId].barElements[barElementId]
+        .chordElements[chordElementId];
+    const chordSeqId = this._tab.getChordsSeq().indexOf(chordElement.chord);
+    // const chordElementSeqId = this._chordElementsSeq.indexOf(chordElement);
 
-    let startBarElementsLineId: number;
+    let startTabLineElementId: number;
     let startBarElementId: number;
     let startChordElementId: number;
-    let endBarElementsLineId: number;
+    let endTabLineElementId: number;
     let endBarElementId: number;
     let endChordElementId: number;
 
     if (
       this._baseSelectionElement === undefined ||
-      chordElementSeqId === this._baseSelectionElement.chordElementSeqId
+      chordSeqId === this._baseSelectionElement.chordElementSeqId
     ) {
-      startBarElementsLineId = barElementsLineId;
+      startTabLineElementId = tabLineElementId;
       startBarElementId = barElementId;
       startChordElementId = chordElementId;
-      endBarElementsLineId = barElementsLineId;
+      endTabLineElementId = tabLineElementId;
       endBarElementId = barElementId;
       endChordElementId = chordElementId;
-    } else if (
-      chordElementSeqId > this._baseSelectionElement.chordElementSeqId
-    ) {
-      startBarElementsLineId = this._baseSelectionElement.barElementsLineId;
+    } else if (chordSeqId > this._baseSelectionElement.chordElementSeqId) {
+      startTabLineElementId = this._baseSelectionElement.tabLineElementId;
       startBarElementId = this._baseSelectionElement.barElementId;
       startChordElementId = this._baseSelectionElement.chordElementId;
-      endBarElementsLineId = barElementsLineId;
+      endTabLineElementId = tabLineElementId;
       endBarElementId = barElementId;
       endChordElementId = chordElementId;
     } else {
-      startBarElementsLineId = barElementsLineId;
+      startTabLineElementId = tabLineElementId;
       startBarElementId = barElementId;
       startChordElementId = chordElementId;
-      endBarElementsLineId = this._baseSelectionElement.barElementsLineId;
+      endTabLineElementId = this._baseSelectionElement.tabLineElementId;
       endBarElementId = this._baseSelectionElement.barElementId;
       endChordElementId = this._baseSelectionElement.chordElementId;
     }
@@ -388,10 +359,10 @@ export class TabWindow {
 
     // Select all chords in new selection
     this.selectChordsInBetween(
-      startBarElementsLineId,
+      startTabLineElementId,
       startBarElementId,
       startChordElementId,
-      endBarElementsLineId,
+      endTabLineElementId,
       endBarElementId,
       endChordElementId
     );
@@ -414,9 +385,9 @@ export class TabWindow {
   public copy(): void {
     this._copiedData = this._selectedElement
       ? new SelectedElement(
-          this,
-          this._selectedElement.barElementId,
-          this._selectedElement.chordElementId,
+          this._tab,
+          this._selectedElement.barId,
+          this._selectedElement.chordId,
           this._selectedElement.stringNum
         )
       : this._selectionElements;
@@ -427,17 +398,15 @@ export class TabWindow {
       return;
     }
 
-    // Get indices
-    const barElementLineId = this._selectedElement.barElementsLineId;
-    const barElementId = this._selectedElement.barElementId;
-    const chordElementId = this._selectedElement.chordElementId;
-
     // Insert selection chords after specified chord
-    const barElement = this._barElementLines[barElementLineId][barElementId];
+    const chordSeqId = this._tab.getChordsSeq();
     const chords = this._copiedData.map((se) => {
-      return this._chordElementsSeq[se.chordElementSeqId].chord.deepCopy();
+      return chordSeqId[se.chordElementSeqId].deepCopy();
     });
-    barElement.bar.insertChords(chordElementId, chords);
+    this._selectedElement.bar.insertChords(
+      this._selectedElement.chordId,
+      chords
+    );
 
     // Recalc
     // this.clearSelection();
@@ -449,13 +418,14 @@ export class TabWindow {
       return;
     }
 
-    const selChords = this._selectionElements.map((se) => {
-      return this._chordElementsSeq[se.chordElementSeqId].chord;
+    const chordSeqId = this._tab.getChordsSeq();
+    const oldChords = this._selectionElements.map((se) => {
+      return chordSeqId[se.chordElementSeqId];
     });
     const copiedChords = this._copiedData.map((se) => {
-      return this._chordElementsSeq[se.chordElementSeqId].chord;
+      return chordSeqId[se.chordElementSeqId];
     });
-    this.tab.replaceChords(selChords, copiedChords);
+    this._tab.replaceChords(oldChords, copiedChords);
 
     this.clearSelection();
     this.calc();
@@ -489,13 +459,24 @@ export class TabWindow {
    * @param chords
    */
   public deleteChords(): void {
-    for (const se of this._selectionElements) {
-      const barElementsLine = this._barElementLines[se.barElementsLineId];
-      const barElement = barElementsLine[se.barElementId];
-      const chord = this._chordElementsSeq[se.chordElementSeqId].chord;
-      const chordId = barElement.bar.chords.indexOf(chord);
-      barElement.removeChord(chordId);
-    }
+    // PROBLEM: Removing chords individually by id leads to issues
+    // SOLUTION #1: Use chords uuid instead
+
+    const chords = this._selectionElements.map((se) => {
+      const tabLineElement = this._tabLineElements[se.tabLineElementId];
+      const barElement = tabLineElement.barElements[se.barElementId];
+      const chordElement = barElement.chordElements[se.chordElementId];
+      return chordElement.chord;
+    });
+
+    this._tab.removeChords(chords);
+
+    // for (const se of this._selectionElements) {
+    //   const tabLineElement = this._tabLineElements[se.tabLineElementId];
+    //   const barElement = tabLineElement.barElements[se.barElementId];
+    //   const chordElement = barElement.chordElements[se.chordElementId];
+    //   barElement.removeChordByUUID(chordElement.chord.uuid);
+    // }
 
     // Recalc
     this.clearSelection();
@@ -507,9 +488,40 @@ export class TabWindow {
    * @returns Selected chords ('Chord' class)
    */
   public getSelectionChords(): Chord[] {
+    const chordSeqId = this._tab.getChordsSeq();
     return this._selectionElements.map((se) => {
-      return this._chordElementsSeq[se.chordElementSeqId].chord;
+      return chordSeqId[se.chordElementSeqId];
     });
+  }
+
+  /**
+   * Checks if note element is the selected element
+   * @param noteElement Note element to check
+   * @returns True if selected, false otherwise
+   */
+  public isNoteElementSelected(noteElement: NoteElement): boolean {
+    return this._selectedElement.note.uuid === noteElement.note.uuid;
+  }
+
+  /**
+   * Gets all UI ids of the selected element
+   * @returns Ids: tabLineElementId, barElementId, chordElementId, stringNum
+   */
+  public getSelectedNoteElementIds(): SelectedElementWindowIds {
+    let barElementId = -1;
+    const tabLineElementId = this._tabLineElements.findIndex((tle) => {
+      barElementId = tle.barElements.findIndex((be) => {
+        return be.bar.uuid === this._selectedElement.bar.uuid;
+      });
+      return barElementId !== -1;
+    });
+
+    return {
+      tabLineElementId: tabLineElementId,
+      barElementId: barElementId,
+      chordElementId: this._selectedElement.chordId,
+      stringNum: this._selectedElement.stringNum,
+    };
   }
 
   /**
@@ -544,11 +556,16 @@ export class TabWindow {
   public moveSelectedNoteLeft(): void {
     if (this._selectionElements.length !== 0) {
       // Select left most element of selection
-      const leftMostElementId = this._selectionElements[0];
+      const leftMostElement = this._selectionElements[0];
+      const barElement =
+        this._tabLineElements[leftMostElement.tabLineElementId].barElements[
+          leftMostElement.barElementId
+        ];
+      const barId = this._tab.bars.indexOf(barElement.bar);
       this._selectedElement = new SelectedElement(
-        this,
-        leftMostElementId.barElementId,
-        leftMostElementId.chordElementId,
+        this._tab,
+        barId,
+        leftMostElement.chordElementId,
         this._selectedElement ? this._selectedElement.stringNum : 1
       );
 
@@ -566,6 +583,59 @@ export class TabWindow {
   }
 
   /**
+   * Handles added chord after moving right
+   */
+  private handleAddedChord(): void {
+    // Find bar element
+    let tabLineElement: TabLineElement;
+    let barElement: BarElement;
+    let barElementId: number;
+    this._tabLineElements.find((tle) => {
+      return tle.barElements.some((be, beIndex) => {
+        tabLineElement = tle;
+        barElement = be;
+        barElementId = beIndex;
+        return be.bar.uuid === this._selectedElement.bar.uuid;
+      });
+    });
+
+    // Check if the bar element fits after appending new chord
+    if (
+      tabLineElement === this._tabLineElements[this._tabLineElements.length - 1]
+    ) {
+      // If at the last then simply remove bar element from current line,
+      // create and add new tab line and push the bar element there
+
+      tabLineElement.removeBarElement(barElementId);
+      // Append empty chord
+      barElement.appendChord();
+      // tabLineElement.barElements.splice(barElementId, 1);
+
+      const barIndex = this._tab.bars.indexOf(barElement.bar);
+      this.addBarElement(barIndex, tabLineElement.rect.leftTop);
+    } else {
+      // Otherwise just redraw the whole thing since might need to
+      // recalc every tab line below the current one anyway
+      barElement.appendChord();
+      this.calc();
+    }
+  }
+
+  /**
+   * Handles added bar after moving right
+   * @param addedBar Added bar
+   */
+  private handleAddedBar(addedBar: Bar): void {
+    // Add bar
+    this._tab.bars.push(addedBar);
+
+    // Compute UI
+    const coords =
+      this._tabLineElements[this._tabLineElements.length - 1].rect.leftTop;
+    this.addBarElement(this._tab.bars.length - 1, coords);
+  }
+
+  /**
    * Move selected note right
    */
   public moveSelectedNoteRight(): void {
@@ -573,9 +643,14 @@ export class TabWindow {
       // Select right most element of selection
       const rightMostElement =
         this._selectionElements[this._selectionElements.length - 1];
+      const barElement =
+        this._tabLineElements[rightMostElement.tabLineElementId].barElements[
+          rightMostElement.barElementId
+        ];
+      const barId = this._tab.bars.indexOf(barElement.bar);
       this._selectedElement = new SelectedElement(
-        this,
-        rightMostElement.barElementId,
+        this._tab,
+        barId,
         rightMostElement.chordElementId,
         this._selectedElement ? this._selectedElement.stringNum : 1
       );
@@ -590,32 +665,121 @@ export class TabWindow {
       throw Error("No note selected");
     }
 
-    this._selectedElement.moveRight();
+    const moveRightOutput = this._selectedElement.moveRight();
+    switch (moveRightOutput.result) {
+      case MoveRightResult.Nothing:
+        break;
+      case MoveRightResult.AddedChord:
+        this.handleAddedChord();
+        break;
+      case MoveRightResult.AddedBar:
+        this.handleAddedBar(moveRightOutput.addedBar);
+        break;
+      default:
+        throw Error("Unexpected outcome after moving note right");
+    }
   }
 
   public changeSelectedBarTempo(newTempo: number): void {
-    this._selectedElement.barElement.changeTempo(newTempo);
+    const ids = this.getSelectedNoteElementIds();
+    const { tabLineElementId, barElementId } = ids;
+    const tabLineElement = this._tabLineElements[tabLineElementId];
+    const barElement = tabLineElement.barElements[barElementId];
+
+    barElement.changeTempo(newTempo);
     this.calc();
   }
 
   public changeSelectedBarBeats(newBeats: number): void {
-    this._selectedElement.barElement.changeBarBeats(newBeats);
+    const ids = this.getSelectedNoteElementIds();
+    const { tabLineElementId, barElementId } = ids;
+    const tabLineElement = this._tabLineElements[tabLineElementId];
+    const barElement = tabLineElement.barElements[barElementId];
+
+    barElement.changeBarBeats(newBeats);
     this.calc();
   }
 
   public changeSelectedBarDuration(newDuration: NoteDuration): void {
-    this._selectedElement.barElement.changeBarDuration(newDuration);
+    const ids = this.getSelectedNoteElementIds();
+    const { tabLineElementId, barElementId } = ids;
+    const tabLineElement = this._tabLineElements[tabLineElementId];
+    const barElement = tabLineElement.barElements[barElementId];
+
+    barElement.changeBarDuration(newDuration);
     this.calc();
   }
 
   public changeSelectedChordDuration(newDuration: NoteDuration): void {
-    const chord = this._selectedElement.chordElement.chord;
-    this._selectedElement.barElement.changeChordDuration(chord, newDuration);
+    const ids = this.getSelectedNoteElementIds();
+    const { tabLineElementId, barElementId, chordElementId } = ids;
+    const tabLineElement = this._tabLineElements[tabLineElementId];
+    const barElement = tabLineElement.barElements[barElementId];
+    const chordElement = barElement.chordElements[chordElementId];
+
+    barElement.changeChordDuration(chordElement.chord, newDuration);
     this.calc();
   }
 
   public changeSelectedNoteValue(newNoteValue: number): void {
-    this._selectedElement.noteElement.note.fret = newNoteValue;
+    const ids = this.getSelectedNoteElementIds();
+    const { tabLineElementId, barElementId, chordElementId, stringNum } = ids;
+    const tabLineElement = this._tabLineElements[tabLineElementId];
+    const barElement = tabLineElement.barElements[barElementId];
+    const chordElement = barElement.chordElements[chordElementId];
+    const noteElement = chordElement.noteElements[stringNum - 1];
+
+    noteElement.note.fret = newNoteValue;
+  }
+
+  public applyEffect(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    let applyRes: boolean = false;
+    if (this._selectedElement !== undefined) {
+      // Apply effect to selected element
+      applyRes = this._tab.applyEffectToNote(
+        this._selectedElement.barId,
+        this._selectedElement.chordId,
+        this._selectedElement.stringNum,
+        effectType,
+        effectOptions
+      );
+
+      if (applyRes) {
+        // Effect applied => need to recalc the affected note element
+        const ids = this.getSelectedNoteElementIds();
+        this._tabLineElements[ids.tabLineElementId].barElements[
+          ids.barElementId
+        ].chordElements[ids.chordElementId].noteElements[
+          ids.stringNum - 1
+        ].calc();
+      }
+    } else if (this._selectionElements.length !== 0) {
+      // Apply effect to all elements in selection
+      const chords = this._selectionElements.map((se) => {
+        return this._tabLineElements[se.tabLineElementId].barElements[
+          se.barElementId
+        ].chordElements[se.chordElementId].chord;
+      });
+      applyRes = this._tab.applyEffectToChords(
+        chords,
+        effectType,
+        effectOptions
+      );
+
+      if (applyRes) {
+        // Effects applied to all selected chord elements => recalc every affected chord element
+        for (const selectionElement of this._selectionElements) {
+          this._tabLineElements[selectionElement.tabLineElementId].barElements[
+            selectionElement.barElementId
+          ].chordElements[selectionElement.chordElementId].calc();
+        }
+      }
+    }
+
+    return applyRes;
   }
 
   public insertBar(bar: Bar): void {
@@ -640,12 +804,8 @@ export class TabWindow {
     return this._tab;
   }
 
-  public get barElementsSeq(): BarElement[] {
-    return this._barElementsSeq;
-  }
-
-  public get barElementLines(): BarElement[][] {
-    return this._barElementLines;
+  public get tabLineElements(): TabLineElement[] {
+    return this._tabLineElements;
   }
 
   /**
@@ -667,9 +827,5 @@ export class TabWindow {
    */
   public get selectionRects(): (Rect | undefined)[] {
     return this._selectionRects;
-  }
-
-  public get chordElementsSeq(): ChordElement[] {
-    return this._chordElementsSeq;
   }
 }

@@ -2,6 +2,7 @@ import { Rect } from "../shapes/rect";
 import { Point } from "../shapes/point";
 import { GuitarNote } from "./../../models/guitar-note";
 import { TabWindowDim } from "../tab-window-dim";
+import { GuitarEffectElement } from "./guitar-effect-element";
 
 /**
  * Class that handles drawing note element in the tab
@@ -31,6 +32,10 @@ export class NoteElement {
    * Rectangle of the note text rectangle
    */
   readonly textCoords: Point = new Point();
+  /**
+   * Array of guitar effect elements
+   */
+  private _guitarEffectElements: GuitarEffectElement[];
 
   /**
    * Class that handles drawing note element in the tab
@@ -66,6 +71,18 @@ export class NoteElement {
 
     this.textCoords.x = this.textRect.x + this.dim.noteTextSize / 2;
     this.textCoords.y = this.textRect.y + this.dim.noteTextSize / 2;
+
+    this._guitarEffectElements = [];
+    for (const effect of this.note.effects) {
+      this._guitarEffectElements.push(
+        new GuitarEffectElement(
+          effect,
+          this.note.stringNum,
+          this.rect,
+          this.dim
+        )
+      );
+    }
   }
 
   /**
@@ -76,7 +93,7 @@ export class NoteElement {
   public scaleNoteHorBy(scale: number): void {
     if (scale <= 0) {
       // if (scale <= 0 || (scale > 0 && scale < 1)) {
-      throw new Error(
+      throw Error(
         `${scale} is an invalid scale: scale must be positive AND >= 1`
       );
     }
@@ -101,5 +118,9 @@ export class NoteElement {
     this.textRect.y += Math.floor(dy);
     this.textCoords.x += Math.floor(dx);
     this.textCoords.y += Math.floor(dy);
+  }
+
+  public get guitarEffectElements(): GuitarEffectElement[] {
+    return this._guitarEffectElements;
   }
 }

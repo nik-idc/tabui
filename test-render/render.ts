@@ -26,14 +26,14 @@ function render(
     );
     html.push("<div>");
     const tabWindowHeight =
-      tabWindow.dim.tabLineHeight * tabWindow.barElementLines.length;
+      tabWindow.dim.tabLineHeight * tabWindow.tabLineElements.length;
     html.push(`<svg viewBox="0 0 ${tabWindow.dim.width} ${tabWindowHeight}"
                     width="${tabWindow.dim.width}"
                     height="${tabWindowHeight}">`);
     // html.push(`<path d="${tabWindow.linesPath}" stroke="black" />`);
-    // for (const barElementLine of tabWindow.barElementLines) {
-    for (let i = 0; i < tabWindow.barElementLines.length; i++) {
-      for (const barElement of tabWindow.barElementLines[i]) {
+    // for (const tabLineElement of tabWindow.tabLineElements) {
+    for (let i = 0; i < tabWindow.tabLineElements.length; i++) {
+      for (const barElement of tabWindow.tabLineElements[i].barElements) {
         html.push("<g>");
         html.push(`<line x1="${barElement.barLeftBorderLine[0].x}"
                          y1="${barElement.barLeftBorderLine[0].y}"
@@ -136,6 +136,20 @@ function render(
                                stroke-opacity="1" />`);
             }
 
+            for (const effectElement of noteElement.guitarEffectElements) {
+              if (effectElement.rect !== undefined) {
+                html.push(`<rect x="${effectElement.rect.x}"
+                                 y="${effectElement.rect.y}"
+                                 width="${effectElement.rect.width}"
+                                 height="${effectElement.rect.height}"
+                                 fill="white"
+                                 stroke-opacity="0" />`);
+              }
+              if (effectElement.fullHTML !== undefined) {
+                html.push(effectElement.fullHTML);
+              }
+            }
+
             if (noteElement.note.fret !== undefined) {
               html.push("<g>");
               html.push(`<rect x="${noteElement.textRect.x}"
@@ -146,7 +160,7 @@ function render(
                                stroke-opacity="0" />`);
               if (
                 tabWindow.selectedElement &&
-                noteElement === tabWindow.selectedElement.noteElement
+                tabWindow.isNoteElementSelected(noteElement)
               ) {
                 html.push(`<text x="${noteElement.textCoords.x}"
                                  y="${noteElement.textCoords.y}"

@@ -13,27 +13,23 @@ export class SelectionElement {
   /**
    * Class that contains all necessary information
    * about a selection element
-   * @param barElementsLineId Id of the line of bar elements
+   * @param tabLineElementId Id of the tab line of bar elements
    * @param barElementId Bar element id
    * @param chordElementId Chord element id (inside the bar)
    * @param chordElementSeqId Chord element id (among all chord elements)
    */
   constructor(
-    readonly barElementsLineId: number,
+    readonly tabLineElementId: number,
     readonly barElementId: number,
     readonly chordElementId: number,
     readonly chordElementSeqId: number
   ) {}
 
   /**
-   * 
-   * @returns 
+   *
+   * @returns
    */
   public ids(): number[] {
-    return [
-      this.barElementsLineId,
-      this.barElementId,
-      this.chordElementId,
-    ]
+    return [this.tabLineElementId, this.barElementId, this.chordElementId];
   }
 }

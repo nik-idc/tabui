@@ -102,7 +102,7 @@ export class Bar {
   public insertEmptyChord(index: number): void {
     // Check index validity
     if (index < 0 || index > this.chords.length) {
-      throw new Error(`${index} is invalid chord index`);
+      throw Error(`${index} is invalid chord index`);
     }
 
     // Insert chord in the data model
@@ -134,7 +134,7 @@ export class Bar {
   public removeChord(index: number): void {
     // Check index validity
     if (index < 0 || index > this.chords.length) {
-      throw new Error(`${index} is invalid chord index`);
+      throw Error(`${index} is invalid chord index`);
     }
 
     // Remove chord
@@ -146,6 +146,18 @@ export class Bar {
 
     // Check if durations fit after removing
     this.calcDurationsFit();
+  }
+
+  /**
+   * Uses UUID to delete chord
+   * @param uuid Chord's UUID
+   */
+  public removeChordByUUID(uuid: number): void {
+    const chordIndex = this.chords.findIndex((chord) => {
+      return chord.uuid === uuid;
+    });
+
+    this.removeChord(chordIndex);
   }
 
   /**
@@ -184,7 +196,7 @@ export class Bar {
    */
   set beats(newBeats: number) {
     if (newBeats < 1 || newBeats > 32) {
-      throw new Error(`${newBeats} is invalid beats value`);
+      throw Error(`${newBeats} is invalid beats value`);
     }
 
     this._beats = newBeats;
@@ -196,7 +208,7 @@ export class Bar {
    */
   set tempo(newTempo: number) {
     if (newTempo <= 0) {
-      throw new Error(
+      throw Error(
         `${newTempo} is an invalid tempo value: tempo can't be 0 or less`
       );
     }
@@ -239,7 +251,7 @@ export class Bar {
       obj._durationsFit === undefined ||
       obj._tempo === undefined
     ) {
-      throw new Error("Invalid js object to parse to bar");
+      throw Error("Invalid js object to parse to bar");
     }
 
     let guitar = Guitar.fromObject(obj.guitar); // Parse guitar

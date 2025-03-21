@@ -1,3 +1,6 @@
+/**
+ * Musical notes
+ */
 export enum Note {
   A = "A", // 1
   ASharp = "A#", // 2
@@ -15,6 +18,9 @@ export enum Note {
   None = "",
 }
 
+/**
+ * Array of 2 octaves of notes ordered from A to G#
+ */
 export const NotesCalcArr = [
   // First
   Note.A,
@@ -44,6 +50,9 @@ export const NotesCalcArr = [
   Note.GSharp,
 ];
 
+/**
+ * All possible note values as array
+ */
 export const NotesArr = [
   Note.A,
   Note.ASharp,
