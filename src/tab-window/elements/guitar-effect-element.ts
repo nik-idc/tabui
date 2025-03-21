@@ -1,4 +1,5 @@
-import { GuitarEffect, GuitarEffectType } from "../../models/guitar-effect";
+import { GuitarEffect } from "../../models/guitar-effect/guitar-effect";
+import { GuitarEffectType } from "../../models/guitar-effect/guitar-effect-type";
 import { Point } from "../shapes/point";
 import { Rect } from "../shapes/rect";
 import { TabWindowDim } from "../tab-window-dim";

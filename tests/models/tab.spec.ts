@@ -1,6 +1,8 @@
 import { Bar, Chord, NoteDuration, Tab, TabWindow } from "../../src/index";
 import { Guitar, GuitarNote, Note } from "../../src/index";
-import { GuitarEffect, GuitarEffectType } from "../../src/models/guitar-effect";
+import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
+import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
 
 function getTabData(): {
   stringsCount: number;
@@ -282,10 +284,19 @@ describe("Tab Model Tests", () => {
 
   test("Tab apply note effect: slide", () => {
     const tab = getTab();
-
-    const slideEffect = new GuitarEffect(GuitarEffectType.Slide);
     randomFrets(tab);
-    tab.applyEffectToNote(0, 2, 3, GuitarEffectType.Slide);
+
+    const nextHigher =
+      tab.bars[0].chords[2].notes[2].fret! <
+      tab.bars[0].chords[3].notes[2].fret!;
+    const options = new GuitarEffectOptions(
+      undefined,
+      undefined,
+      undefined,
+      nextHigher
+    );
+    const slideEffect = new GuitarEffect(GuitarEffectType.Slide, options);
+    tab.applyEffectToNote(0, 2, 3, GuitarEffectType.Slide, options);
     expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
     expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
       slideEffect

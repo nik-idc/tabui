@@ -1,10 +1,8 @@
 import { TabWindow } from "../../src/index";
 import { Guitar, GuitarNote, Note } from "../../src/index";
-import {
-  GuitarEffect,
-  GuitarEffectOptions,
-  GuitarEffectType,
-} from "../../src/models/guitar-effect";
+import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
+import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
 
 describe("Guitar Effect Model Tests", () => {
   test("Valid vibrato", () => {

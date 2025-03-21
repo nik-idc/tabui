@@ -15,11 +15,10 @@ import { Chord } from "../models/chord";
 import { SelectionElement } from "./elements/selection-element";
 import { Rect } from "./shapes/rect";
 import { TabLineElement } from "./elements/tab-line-element";
-import {
-  GuitarEffect,
-  GuitarEffectOptions,
-  GuitarEffectType,
-} from "../models/guitar-effect";
+import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
+import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
+
 
 /**
  * Tab window specific selected element ids

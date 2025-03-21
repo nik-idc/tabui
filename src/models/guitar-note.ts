@@ -2,11 +2,10 @@ import { Chord } from "./chord";
 import { Guitar } from "./guitar";
 import { Note, NotesCalcArr } from "./note";
 import { randomInt } from "../misc/random-int";
-import {
-  GuitarEffect,
-  GuitarEffectType,
-  effectsIncompatibility,
-} from "./guitar-effect";
+import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
+import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
+import { EFFECTS_INCOMPATIBILITY } from "./guitar-effect/guitar-effect-lists";
 
 /**
  * Class that represents a guitar note
@@ -133,7 +132,7 @@ export class GuitarNote {
   public addEffect(guitarEffect: GuitarEffect): boolean {
     // Check if effect to be added is compatible with all the other effects
     for (const effect of this._effects) {
-      const curIncompatibility = effectsIncompatibility[effect.effectType];
+      const curIncompatibility = EFFECTS_INCOMPATIBILITY[effect.effectType];
       if (
         curIncompatibility.some((incompatibleType) => {
           return incompatibleType === guitarEffect.effectType;

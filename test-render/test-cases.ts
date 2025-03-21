@@ -1,11 +1,9 @@
 import { Bar } from "../src/models/bar";
 import { Chord } from "../src/models/chord";
 import { Guitar } from "../src/models/guitar";
-import {
-  GuitarEffect,
-  GuitarEffectOptions,
-  GuitarEffectType,
-} from "../src/models/guitar-effect";
+import { GuitarEffect } from "../src/models/guitar-effect/guitar-effect";
+import { GuitarEffectOptions } from "../src/models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "..//src/models/guitar-effect/guitar-effect-type";
 import { Note } from "../src/models/note";
 import { NoteDuration } from "../src/models/note-duration";
 import { Tab } from "../src/models/tab";
