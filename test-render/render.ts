@@ -93,7 +93,7 @@ function render(
                               y="${barElement.tempoImageRect.y}"
                               width="${barElement.tempoImageRect.width}"
                               height="${barElement.tempoImageRect.height}"
-                              href="./assets/img/notes/4.svg" />`);
+                              href="../assets/img/notes/4.svg" />`);
             html.push(`<text x="${barElement.tempoTextCoords.x}"
                              y="${barElement.tempoTextCoords.y}"
                              text-anchor="start"
@@ -120,7 +120,7 @@ function render(
                             y="${beatElement.durationRect.y}"
                             width="${beatElement.durationRect.width}"
                             height="${beatElement.durationRect.height}"
-                            href="./assets/img/notes/${
+                            href="../assets/img/notes/${
                               1 / beatElement.beat.duration
                             }.svg" />`);
 
@@ -213,7 +213,7 @@ function render(
 }
 
 function saveHTML(fileName: string, html: string): void {
-  fs.writeFileSync(`./test-render/${fileName}`, html);
+  fs.writeFileSync(`./test-render/result/${fileName}`, html);
 }
 
 function main(): void {

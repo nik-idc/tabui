@@ -8,7 +8,6 @@
         "/dist"
     ],
     "scripts": {
-        "full_test": "npm run test && npm run render && start ./test-render/index.html",
         "render": "npx tsx ./test-render/render.ts",
         "build": "tsc --build",
         "clean": "tsc --build --clean",
