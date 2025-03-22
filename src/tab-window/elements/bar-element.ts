@@ -1,14 +1,14 @@
 import { Bar } from "./../../models/bar";
 import { Rect } from "../shapes/rect";
-import { ChordElement } from "./chord-element";
+import { BeatElement } from "./beat-element";
 import { TabWindow } from "../tab-window";
 import { Point } from "../shapes/point";
-import { Chord } from "./../../models/chord";
+import { Beat } from "./../../models/beat";
 import { TabWindowDim } from "../tab-window-dim";
 import { NoteDuration } from "../../models/note-duration";
 
 /**
- * Class that handles drawing chord element in the tab
+ * Class that handles drawing beat element in the tab
  */
 export class BarElement {
   /**
@@ -16,9 +16,9 @@ export class BarElement {
    */
   readonly dim: TabWindowDim;
   /**
-   * This bar's chord elements
+   * This bar's beat elements
    */
-  public chordElements: ChordElement[];
+  public beatElements: BeatElement[];
   /**
    * If signature is to be shown in the bar
    */
@@ -49,7 +49,7 @@ export class BarElement {
   readonly bar: Bar;
 
   /**
-   * Class that handles drawing chord element in the tab
+   * Class that handles drawing beat element in the tab
    * @param dim Tab window dimensions
    * @param barCoords Bar element coords
    * @param bar Bar
@@ -64,7 +64,7 @@ export class BarElement {
     showTempo: boolean
   ) {
     this.dim = dim;
-    this.chordElements = [];
+    this.beatElements = [];
     this.showSignature = showSignature;
     this.showTempo = showTempo;
     this.tempoRect = new Rect();
@@ -97,25 +97,25 @@ export class BarElement {
     this.timeSigRect.width = timeSigWidth;
     this.timeSigRect.height = this.dim.timeSigRectHeight;
 
-    // Calculate chords
-    this.chordElements = [];
-    let chordsWidth = 0;
+    // Calculate beats
+    this.beatElements = [];
+    let beatsWidth = 0;
     const startX = this.showSignature
       ? this.timeSigRect.rightTop.x
       : this.rect.x;
-    const chordCoords = new Point(startX, this.rect.y + this.tempoRect.height);
-    for (let chord of this.bar.chords) {
-      const chordElement = new ChordElement(this.dim, chordCoords, chord);
-      this.chordElements.push(chordElement);
+    const beatCoords = new Point(startX, this.rect.y + this.tempoRect.height);
+    for (let beat of this.bar.beats) {
+      const beatElement = new BeatElement(this.dim, beatCoords, beat);
+      this.beatElements.push(beatElement);
 
-      chordCoords.x += chordElement.rect.width;
-      chordsWidth += chordElement.rect.width;
+      beatCoords.x += beatElement.rect.width;
+      beatsWidth += beatElement.rect.width;
     }
 
     // Set main rectangle
     this.rect.width = this.showSignature
-      ? this.timeSigRect.width + chordsWidth
-      : chordsWidth;
+      ? this.timeSigRect.width + beatsWidth
+      : beatsWidth;
     this.rect.height = this.dim.tabLineHeight;
 
     // Make lines
@@ -145,9 +145,9 @@ export class BarElement {
       );
     }
 
-    // Scale chords
-    for (let chordElement of this.chordElements) {
-      chordElement.scaleChordHorBy(scale);
+    // Scale beats
+    for (let beatElement of this.beatElements) {
+      beatElement.scaleBeatHorBy(scale);
     }
 
     // Scale rectangles
@@ -187,9 +187,9 @@ export class BarElement {
       line[1].y += dy;
     }
 
-    // Translate chord elements
-    for (let chordElement of this.chordElements) {
-      chordElement.translateBy(dx, dy);
+    // Translate beat elements
+    for (let beatElement of this.beatElements) {
+      beatElement.translateBy(dx, dy);
     }
   }
 
@@ -205,74 +205,74 @@ export class BarElement {
   }
 
   /**
-   * Insert empty chord
+   * Insert empty beat
    * @param index Insertion index
    */
-  insertEmptyChord(index: number): void {
-    this.bar.insertEmptyChord(index);
+  insertEmptyBeat(index: number): void {
+    this.bar.insertEmptyBeat(index);
 
     this.calc();
   }
 
   /**
-   * Prepend empty chord
+   * Prepend empty beat
    */
-  prependChord(): void {
-    this.bar.prependChord();
+  prependBeat(): void {
+    this.bar.prependBeat();
 
     this.calc();
   }
 
   /**
-   * Append empty chord
+   * Append empty beat
    */
-  appendChord(): void {
-    this.bar.appendChord();
+  appendBeat(): void {
+    this.bar.appendBeat();
 
     this.calc();
   }
 
   /**
-   * Remove chord at index
+   * Remove beat at index
    * @param index Removal index
    */
-  removeChord(index: number): void {
-    this.bar.removeChord(index);
+  removeBeat(index: number): void {
+    this.bar.removeBeat(index);
 
     this.calc();
   }
 
   /**
-   * Remove chord using its UUID
-   * @param uuid Chord's UUID
+   * Remove beat using its UUID
+   * @param uuid Beat's UUID
    */
-  removeChordByUUID(uuid: number): void {
-    this.bar.removeChordByUUID(uuid);
+  removeBeatByUUID(uuid: number): void {
+    this.bar.removeBeatByUUID(uuid);
 
     this.calc();
   }
 
   /**
-   * Change chord's duration
-   * @param chord Chord
+   * Change beat's duration
+   * @param beat Beat
    * @param duration New duration
    */
-  changeChordDuration(chord: Chord, duration: number): void {
-    this.bar.changeChordDuration(chord, duration);
+  changeBeatDuration(beat: Beat, duration: number): void {
+    this.bar.changeBeatDuration(beat, duration);
 
     this.calc();
   }
 
   /**
    * Change bar's beats value
-   * @param beats New beats value
+   * @param beatsCount New beats value
    * @param prevBar Bar preceding this element's bar
    */
-  changeBarBeats(beats: number, prevBar?: Bar): void {
-    this.bar.beats = beats;
+  changeBarBeats(beatsCount: number, prevBar?: Bar): void {
+    this.bar.beatsCount = beatsCount;
 
     if (prevBar) {
-      this.showSignature = this.bar.beats !== prevBar.beats;
+      this.showSignature = this.bar.beatsCount !== prevBar.beatsCount;
     } else {
       this.showSignature = true;
     }

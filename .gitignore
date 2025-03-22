@@ -66,5 +66,4 @@ package-lock.json
 *v8.log
 /lib/
 
-test-render/index.html
-test-render/index-detailed.html
+test-render/result/*

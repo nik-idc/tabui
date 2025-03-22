@@ -1,6 +1,6 @@
 import {
   Bar,
-  Chord,
+  Beat,
   Guitar,
   Note,
   NoteDuration,
@@ -21,12 +21,12 @@ describe("Selected element tests", () => {
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 0;
-    const chordElementId = 1;
+    const beatElementId = 1;
     const noteElementId = 4;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
@@ -41,7 +41,7 @@ describe("Selected element tests", () => {
     //  Check if selected note actually moved up
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
     //  Sanity tests
-    expect(ids.chordElementId).toBe(chordElementId);
+    expect(ids.beatElementId).toBe(beatElementId);
     expect(ids.barElementId).toBe(tabLineElementId);
     expect(ids.tabLineElementId).toBe(barElementId);
   });
@@ -52,12 +52,12 @@ describe("Selected element tests", () => {
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 0;
-    const chordElementId = 1;
+    const beatElementId = 1;
     const noteElementId = 0;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
@@ -72,7 +72,7 @@ describe("Selected element tests", () => {
     //  Check if selected note actually moved up
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
     //  Sanity tests
-    expect(ids.chordElementId).toBe(chordElementId);
+    expect(ids.beatElementId).toBe(beatElementId);
     expect(ids.barElementId).toBe(tabLineElementId);
     expect(ids.tabLineElementId).toBe(barElementId);
   });
@@ -83,12 +83,12 @@ describe("Selected element tests", () => {
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 0;
-    const chordElementId = 1;
+    const beatElementId = 1;
     const noteElementId = 4;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
@@ -103,7 +103,7 @@ describe("Selected element tests", () => {
     //  Check if selected note actually moved down
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
     //  Sanity tests
-    expect(ids.chordElementId).toBe(chordElementId);
+    expect(ids.beatElementId).toBe(beatElementId);
     expect(ids.barElementId).toBe(tabLineElementId);
     expect(ids.tabLineElementId).toBe(barElementId);
   });
@@ -113,12 +113,12 @@ describe("Selected element tests", () => {
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 0;
-    const chordElementId = 1;
+    const beatElementId = 1;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
@@ -133,27 +133,27 @@ describe("Selected element tests", () => {
     //  Check if selected note actually moved down
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
     //  Sanity tests
-    expect(ids.chordElementId).toBe(chordElementId);
+    expect(ids.beatElementId).toBe(beatElementId);
     expect(ids.barElementId).toBe(tabLineElementId);
     expect(ids.tabLineElementId).toBe(barElementId);
   });
 
-  test("Selected element move left test: any chord", () => {
+  test("Selected element move left test: any beat", () => {
     const tabWindow = createBasicTabWindow();
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 0;
-    const chordElementId = 1;
+    const beatElementId = 1;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
     // Create expected result
-    const newSelectedChordElementId = 0;
+    const newSelectedBeatElementId = 0;
     const newSelectedNoteElementId = 5;
 
     // Move selected note up
@@ -163,29 +163,29 @@ describe("Selected element tests", () => {
     const ids = tabWindow.getSelectedNoteElementIds();
     //  Check if selected note actually moved left
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
-    expect(ids.chordElementId).toBe(newSelectedChordElementId);
+    expect(ids.beatElementId).toBe(newSelectedBeatElementId);
     //  Sanity tests
     expect(ids.barElementId).toBe(tabLineElementId);
     expect(ids.tabLineElementId).toBe(barElementId);
   });
 
-  test("Selected element move left test: 0th chord in not first bar", () => {
+  test("Selected element move left test: 0th beat in not first bar", () => {
     const tabWindow = createBasicTabWindow();
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 1;
-    const chordElementId = 0;
+    const beatElementId = 0;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
     // Create expected result
     const newSelectedBarElementId = 0;
-    const newSelectedChordElementId = 3;
+    const newSelectedBeatElementId = 3;
     const newSelectedNoteElementId = 5;
 
     // Move selected note up
@@ -195,30 +195,30 @@ describe("Selected element tests", () => {
     const ids = tabWindow.getSelectedNoteElementIds();
     //  Check if selected note actually moved left
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
-    expect(ids.chordElementId).toBe(newSelectedChordElementId);
+    expect(ids.beatElementId).toBe(newSelectedBeatElementId);
     expect(ids.barElementId).toBe(newSelectedBarElementId);
     //  Sanity tests
     expect(ids.tabLineElementId).toBe(tabLineElementId);
   });
 
-  test("Selected element move left test: 0th chord in first bar in not first tab line", () => {
+  test("Selected element move left test: 0th beat in first bar in not first tab line", () => {
     const tabWindow = createBasicTabWindow();
     // Select note element
     const tabLineElementId = 1;
     const barElementId = 0;
-    const chordElementId = 0;
+    const beatElementId = 0;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
     // Create expected result
     const newTabLineElementId = 0;
     const newSelectedBarElementId = 4;
-    const newSelectedChordElementId = 3;
+    const newSelectedBeatElementId = 3;
     const newSelectedNoteElementId = 5;
 
     // Move selected note up
@@ -228,22 +228,22 @@ describe("Selected element tests", () => {
     const ids = tabWindow.getSelectedNoteElementIds();
     //  Check if selected note actually moved left
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
-    expect(ids.chordElementId).toBe(newSelectedChordElementId);
+    expect(ids.beatElementId).toBe(newSelectedBeatElementId);
     expect(ids.barElementId).toBe(newSelectedBarElementId);
     expect(ids.tabLineElementId).toBe(newTabLineElementId);
   });
 
-  test("Selected element move left test: 0th chord in first bar in first tab line", () => {
+  test("Selected element move left test: 0th beat in first bar in first tab line", () => {
     const tabWindow = createBasicTabWindow();
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 0;
-    const chordElementId = 0;
+    const beatElementId = 0;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
@@ -255,27 +255,27 @@ describe("Selected element tests", () => {
     const ids = tabWindow.getSelectedNoteElementIds();
     //  Check if selected note actually didn't change
     expect(ids.stringNum).toBe(noteElementId + 1);
-    expect(ids.chordElementId).toBe(chordElementId);
+    expect(ids.beatElementId).toBe(beatElementId);
     expect(ids.barElementId).toBe(barElementId);
     expect(ids.tabLineElementId).toBe(tabLineElementId);
   });
 
-  test("Selected element move right test: any chord", () => {
+  test("Selected element move right test: any beat", () => {
     const tabWindow = createBasicTabWindow();
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 0;
-    const chordElementId = 0;
+    const beatElementId = 0;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
     // Create expected result
-    const newSelectedChordElementId = 1;
+    const newSelectedBeatElementId = 1;
     const newSelectedNoteElementId = 5;
 
     // Move selected note up
@@ -285,29 +285,29 @@ describe("Selected element tests", () => {
     const ids = tabWindow.getSelectedNoteElementIds();
     //  Check if selected note actually moved right
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
-    expect(ids.chordElementId).toBe(newSelectedChordElementId);
+    expect(ids.beatElementId).toBe(newSelectedBeatElementId);
     //  Sanity tests
     expect(ids.barElementId).toBe(barElementId);
     expect(ids.tabLineElementId).toBe(barElementId);
   });
 
-  test("Selected element move right test: last chord in not last bar", () => {
+  test("Selected element move right test: last beat in not last bar", () => {
     const tabWindow = createBasicTabWindow();
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 0;
-    const chordElementId = 3;
+    const beatElementId = 3;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
     // Create expected result
     const newSelectedBarElementId = 1;
-    const newSelectedChordElementId = 0;
+    const newSelectedBeatElementId = 0;
     const newSelectedNoteElementId = 5;
 
     // Move selected note up
@@ -317,30 +317,30 @@ describe("Selected element tests", () => {
     const ids = tabWindow.getSelectedNoteElementIds();
     //  Check if selected note actually moved right
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
-    expect(ids.chordElementId).toBe(newSelectedChordElementId);
+    expect(ids.beatElementId).toBe(newSelectedBeatElementId);
     expect(ids.barElementId).toBe(newSelectedBarElementId);
     //  Sanity tests
     expect(ids.tabLineElementId).toBe(barElementId);
   });
 
-  test("Selected element move right test: last chord in last bar in not last line", () => {
+  test("Selected element move right test: last beat in last bar in not last line", () => {
     const tabWindow = createBasicTabWindow();
     // Select note element
     const tabLineElementId = 0;
     const barElementId = 4;
-    const chordElementId = 3;
+    const beatElementId = 3;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
     // Create expected result
     const newTabLineElementId = 1;
     const newSelectedBarElementId = 0;
-    const newSelectedChordElementId = 0;
+    const newSelectedBeatElementId = 0;
     const newSelectedNoteElementId = 5;
 
     // Move selected note up
@@ -350,12 +350,12 @@ describe("Selected element tests", () => {
     const ids = tabWindow.getSelectedNoteElementIds();
     //  Check if selected note actually moved right
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
-    expect(ids.chordElementId).toBe(newSelectedChordElementId);
+    expect(ids.beatElementId).toBe(newSelectedBeatElementId);
     expect(ids.barElementId).toBe(newSelectedBarElementId);
     expect(ids.tabLineElementId).toBe(newTabLineElementId);
   });
 
-  test("Selected element move right test: last chord in last bar in last line, new bar", () => {
+  test("Selected element move right test: last beat in last bar in last line, new bar", () => {
     const tabWindow = createBasicTabWindow();
 
     tabWindow.tab.bars.splice(tabWindow.tab.bars.length - 1, 1);
@@ -364,12 +364,12 @@ describe("Selected element tests", () => {
     // Select note element
     const tabLineElementId = 1;
     const barElementId = 3;
-    const chordElementId = 3;
+    const beatElementId = 3;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
@@ -379,29 +379,29 @@ describe("Selected element tests", () => {
     // Expected result is a new bar/tab line element
     const newTabLineElementId = 1;
     const newSelectedBarElementId = 4;
-    const newSelectedChordElementId = 0;
+    const newSelectedBeatElementId = 0;
     const newSelectedNoteElementId = 5;
 
     // Test
     const ids = tabWindow.getSelectedNoteElementIds();
     //  Check if selected note actually moved right
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
-    expect(ids.chordElementId).toBe(newSelectedChordElementId);
+    expect(ids.beatElementId).toBe(newSelectedBeatElementId);
     expect(ids.barElementId).toBe(newSelectedBarElementId);
     expect(ids.tabLineElementId).toBe(newTabLineElementId);
   });
 
-  test("Selected element move right test: last chord in last bar in last line, new tab line", () => {
+  test("Selected element move right test: last beat in last bar in last line, new tab line", () => {
     const tabWindow = createBasicTabWindow();
     // Select note element
     const tabLineElementId = 1;
     const barElementId = 4;
-    const chordElementId = 3;
+    const beatElementId = 3;
     const noteElementId = 5;
     tabWindow.selectNoteElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
+      beatElementId,
       noteElementId
     );
 
@@ -415,14 +415,14 @@ describe("Selected element tests", () => {
     // Expected result is a new bar/tab line element
     const newTabLineElementId = 2;
     const newSelectedBarElementId = 1;
-    const newSelectedChordElementId = 0;
+    const newSelectedBeatElementId = 0;
     const newSelectedNoteElementId = 5;
 
     // Test
     const ids = tabWindow.getSelectedNoteElementIds();
     //  Check if selected note actually moved right
     expect(ids.stringNum).toBe(newSelectedNoteElementId + 1);
-    expect(ids.chordElementId).toBe(newSelectedChordElementId);
+    expect(ids.beatElementId).toBe(newSelectedBeatElementId);
     expect(ids.barElementId).toBe(newSelectedBarElementId);
     expect(ids.tabLineElementId).toBe(newTabLineElementId);
   });

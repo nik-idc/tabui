@@ -1,5 +1,5 @@
 import { Bar } from "./bar";
-import { Chord } from "./chord";
+import { Beat } from "./beat";
 import { Guitar } from "./guitar";
 import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
 import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
@@ -77,67 +77,67 @@ export class Tab {
   }
 
   /**
-   * Removes chord from tab
-   * @param chordToRemove Chord to remove
+   * Removes beat from tab
+   * @param beatToRemove Beat to remove
    */
-  public removeChord(chordToRemove: Chord): void {
-    // remove chord based on the bar id
-    // get bar id using chord uuid
+  public removeBeat(beatToRemove: Beat): void {
+    // remove beat based on the bar id
+    // get bar id using beat uuid
     const bar = this.bars.filter((bar) => {
-      return bar.chords.some((chord) => {
-        return chord.uuid === chordToRemove.uuid;
+      return bar.beats.some((beat) => {
+        return beat.uuid === beatToRemove.uuid;
       });
     })[0];
-    const insideBarIndex = bar.chords.findIndex(
-      (chord) => chord.uuid === chordToRemove.uuid
+    const insideBarIndex = bar.beats.findIndex(
+      (beat) => beat.uuid === beatToRemove.uuid
     );
-    bar.removeChord(insideBarIndex);
+    bar.removeBeat(insideBarIndex);
   }
 
   /**
-   * Removes chords from tab
-   * @param chords Chords to remove
+   * Removes beats from tab
+   * @param beats Beats to remove
    */
-  public removeChords(chords: Chord[]): void {
-    for (const chord of chords) {
-      this.removeChord(chord);
+  public removeBeats(beats: Beat[]): void {
+    for (const beat of beats) {
+      this.removeBeat(beat);
     }
   }
 
   /**
-   * Replaces chord section with another chord section
-   * @param oldChords Old chords
-   * @param newChords New chords
+   * Replaces beat section with another beat section
+   * @param oldBeats Old beats
+   * @param newBeats New beats
    */
-  public replaceChords(oldChords: Chord[], newChords: Chord[]): void {
-    if (oldChords.length > newChords.length) {
-      // Replace chords' notes values
-      for (let i = 0; i < newChords.length; i++) {
+  public replaceBeats(oldBeats: Beat[], newBeats: Beat[]): void {
+    if (oldBeats.length > newBeats.length) {
+      // Replace beats' notes values
+      for (let i = 0; i < newBeats.length; i++) {
         for (let j = 0; j < this.guitar.stringsCount; j++) {
-          oldChords[i].notes[j].fret = newChords[i].notes[j].fret;
+          oldBeats[i].notes[j].fret = newBeats[i].notes[j].fret;
         }
       }
 
-      // Remove 'excess' chords
-      this.removeChords(oldChords.slice(newChords.length, oldChords.length));
-    } else if (oldChords.length < newChords.length) {
+      // Remove 'excess' beats
+      this.removeBeats(oldBeats.slice(newBeats.length, oldBeats.length));
+    } else if (oldBeats.length < newBeats.length) {
       // Get starting bar for later usage
       const bar = this.bars.filter((bar) => {
-        return bar.chords.some((chord) => {
-          return chord.uuid === oldChords[0].uuid;
+        return bar.beats.some((beat) => {
+          return beat.uuid === oldBeats[0].uuid;
         });
       })[0];
 
-      // Remove selected chords
-      this.removeChords(oldChords);
+      // Remove selected beats
+      this.removeBeats(oldBeats);
 
       // Paste copied data into bar
-      bar.insertChords(bar.chords.length - 1, newChords);
+      bar.insertBeats(bar.beats.length - 1, newBeats);
     } else {
-      // Replace all notes in selection with copied chords
-      for (let i = 0; i < oldChords.length; i++) {
+      // Replace all notes in selection with copied beats
+      for (let i = 0; i < oldBeats.length; i++) {
         for (let j = 0; j < this.guitar.stringsCount; j++) {
-          oldChords[i].notes[j].fret = newChords[i].notes[j].fret;
+          oldBeats[i].notes[j].fret = newBeats[i].notes[j].fret;
         }
       }
     }
@@ -146,19 +146,19 @@ export class Tab {
   /**
    * Applies bend to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @param bendPitch Bend pitch
    * @returns True if applied, false otherwise
    */
   private applyBend(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number,
     bendPitch: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     // Create & apply bend
     const bendEffect = new GuitarEffect(GuitarEffectType.Bend, {
@@ -170,7 +170,7 @@ export class Tab {
   /**
    * Applies bend to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @param bendPitch Bend pitch
    * @param bendReleasePitch Bend release pitch
@@ -178,13 +178,13 @@ export class Tab {
    */
   private applyBendAndRelease(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number,
     bendPitch: number,
     bendReleasePitch: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     // Create & apply bend-and-release
     const bendEffect = new GuitarEffect(GuitarEffectType.BendAndRelease, {
@@ -197,19 +197,19 @@ export class Tab {
   /**
    * Applies bend to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @param prebendPitch Prebend pitch
    * @returns True if applied, false otherwise
    */
   private applyPrebend(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number,
     prebendPitch: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     // Create & apply prebend
     const prebendEffect = new GuitarEffect(GuitarEffectType.Prebend, {
@@ -221,7 +221,7 @@ export class Tab {
   /**
    * Applies bend to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @param prebendPitch Prebend pitch
    * @param bendReleasePitch Bend release pitch
@@ -229,13 +229,13 @@ export class Tab {
    */
   private applyPrebendAndRelease(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number,
     prebendPitch: number,
     bendReleasePitch: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     // Create & apply prebend-and-release
     const prebendAndReleaseEffect = new GuitarEffect(
@@ -251,17 +251,17 @@ export class Tab {
   /**
    * Applies vibrato to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @returns True if applied, false otherwise
    */
   private applyVibrato(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     const vibratoEffect = new GuitarEffect(GuitarEffectType.Vibrato);
     return guitarNote.addEffect(vibratoEffect);
@@ -270,20 +270,20 @@ export class Tab {
   /**
    * Applies slide to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @returns True if applied, false otherwise
    */
   private applySlide(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
-    const nextChord = this.getNextChord(barIndex, chordIndex);
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+    const nextBeat = this.getNextBeat(barIndex, beatIndex);
     const nextNote =
-      nextChord === undefined ? undefined : nextChord.notes[stringNum - 1];
+      nextBeat === undefined ? undefined : nextBeat.notes[stringNum - 1];
 
     // Can't apply slide if current note is the last one
     if (nextNote === undefined) {
@@ -309,20 +309,20 @@ export class Tab {
   /**
    * Applies hammer-on/pull-off to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @returns True if applied, false otherwise
    */
   private applyHammerOnOrPullOff(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
-    const nextChord = this.getNextChord(barIndex, chordIndex);
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+    const nextBeat = this.getNextBeat(barIndex, beatIndex);
     const nextNote =
-      nextChord === undefined ? undefined : nextChord.notes[stringNum - 1];
+      nextBeat === undefined ? undefined : nextBeat.notes[stringNum - 1];
 
     // Can't apply hammer-on if current note is the last one
     if (nextNote === undefined) {
@@ -341,17 +341,17 @@ export class Tab {
   /**
    * Applies pinch harmonic to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @returns True if applied, false otherwise
    */
   private applyPinchHarmonic(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     const phEffect = new GuitarEffect(GuitarEffectType.PinchHarmonic);
     return guitarNote.addEffect(phEffect);
@@ -360,17 +360,17 @@ export class Tab {
   /**
    * Applies natural harmonic to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @returns True if applied, false otherwise
    */
   private applyNaturalHarmonic(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     const nhEffect = new GuitarEffect(GuitarEffectType.NaturalHarmonic);
     return guitarNote.addEffect(nhEffect);
@@ -379,17 +379,17 @@ export class Tab {
   /**
    * Applies palm mute to a note
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @returns True if applied, false otherwise
    */
   private applyPalmMute(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1];
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     const pmEffect = new GuitarEffect(GuitarEffectType.PalmMute);
     return guitarNote.addEffect(pmEffect);
@@ -398,7 +398,7 @@ export class Tab {
   /**
    * Applies specified effect
    * @param barIndex Bar index
-   * @param chordIndex Chord index
+   * @param beatIndex Beat index
    * @param stringNum String number
    * @param effect Effect to apply
    * @returns True if effect applied or no note to apply effect to, false
@@ -406,15 +406,15 @@ export class Tab {
    */
   public applyEffectToNote(
     barIndex: number,
-    chordIndex: number,
+    beatIndex: number,
     stringNum: number,
     effectType: GuitarEffectType,
     effectOptions?: GuitarEffectOptions
   ): boolean {
     if (
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1].note ===
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1].note ===
         Note.None ||
-      this.bars[barIndex].chords[chordIndex].notes[stringNum - 1].note ===
+      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1].note ===
         Note.Dead
     ) {
       // No effects can be applied to a dead note or an abscense of a note
@@ -425,14 +425,14 @@ export class Tab {
       case GuitarEffectType.Bend:
         return this.applyBend(
           barIndex,
-          chordIndex,
+          beatIndex,
           stringNum,
           effectOptions.bendPitch
         );
       case GuitarEffectType.BendAndRelease:
         return this.applyBendAndRelease(
           barIndex,
-          chordIndex,
+          beatIndex,
           stringNum,
           effectOptions.bendPitch,
           effectOptions.bendReleasePitch
@@ -440,60 +440,60 @@ export class Tab {
       case GuitarEffectType.Prebend:
         return this.applyPrebend(
           barIndex,
-          chordIndex,
+          beatIndex,
           stringNum,
           effectOptions.prebendPitch
         );
       case GuitarEffectType.PrebendAndRelease:
         return this.applyPrebendAndRelease(
           barIndex,
-          chordIndex,
+          beatIndex,
           stringNum,
           effectOptions.prebendPitch,
           effectOptions.bendReleasePitch
         );
       case GuitarEffectType.Vibrato:
-        return this.applyVibrato(barIndex, chordIndex, stringNum);
+        return this.applyVibrato(barIndex, beatIndex, stringNum);
       case GuitarEffectType.Slide:
-        return this.applySlide(barIndex, chordIndex, stringNum);
+        return this.applySlide(barIndex, beatIndex, stringNum);
       case GuitarEffectType.HammerOnOrPullOff:
-        return this.applyHammerOnOrPullOff(barIndex, chordIndex, stringNum);
+        return this.applyHammerOnOrPullOff(barIndex, beatIndex, stringNum);
       case GuitarEffectType.PinchHarmonic:
-        return this.applyPinchHarmonic(barIndex, chordIndex, stringNum);
+        return this.applyPinchHarmonic(barIndex, beatIndex, stringNum);
       case GuitarEffectType.NaturalHarmonic:
-        return this.applyNaturalHarmonic(barIndex, chordIndex, stringNum);
+        return this.applyNaturalHarmonic(barIndex, beatIndex, stringNum);
       case GuitarEffectType.PalmMute:
-        return this.applyPalmMute(barIndex, chordIndex, stringNum);
+        return this.applyPalmMute(barIndex, beatIndex, stringNum);
     }
   }
 
   /**
-   * Applies effects to all notes in specified chords
-   * @param chords Chords array
+   * Applies effects to all notes in specified beats
+   * @param beats Beats array
    * @param effect Effect to apply
    * @returns True if the effect applied to all notes
    */
-  public applyEffectToChords(
-    chords: Chord[],
+  public applyEffectToBeats(
+    beats: Beat[],
     effectType: GuitarEffectType,
     effectOptions?: GuitarEffectOptions
   ): boolean {
     let appliedToAll = true;
-    for (const chord of chords) {
+    for (const beat of beats) {
       let barIndex: number;
-      let chordIndex: number;
+      let beatIndex: number;
       this.bars.findIndex((b, i) => {
-        return b.chords.some((c, j) => {
+        return b.beats.some((c, j) => {
           barIndex = i;
-          chordIndex = j;
-          return c.uuid === chord.uuid;
+          beatIndex = j;
+          return c.uuid === beat.uuid;
         });
       });
 
-      for (const note of chord.notes) {
+      for (const note of beat.notes) {
         const applyRes = this.applyEffectToNote(
           barIndex,
-          chordIndex,
+          beatIndex,
           note.stringNum,
           effectType,
           effectOptions
@@ -509,41 +509,41 @@ export class Tab {
   }
 
   /**
-   * Get next chord in the tab
+   * Get next beat in the tab
    * @param barIndex Bar index
-   * @param chordIndex Chord index (inside the bar)
-   * @returns Chord (or undefined if can't get next chord)
+   * @param beatIndex Beat index (inside the bar)
+   * @returns Beat (or undefined if can't get next beat)
    */
-  public getNextChord(barIndex: number, chordIndex: number): Chord | undefined {
-    const chordsSeq = this.getChordsSeq();
-    const chordSeqIndex = chordsSeq.indexOf(
-      this.bars[barIndex].chords[chordIndex]
+  public getNextBeat(barIndex: number, beatIndex: number): Beat | undefined {
+    const beatsSeq = this.getBeatsSeq();
+    const beatSeqIndex = beatsSeq.indexOf(
+      this.bars[barIndex].beats[beatIndex]
     );
-    return chordSeqIndex === chordsSeq.length - 1
+    return beatSeqIndex === beatsSeq.length - 1
       ? undefined
-      : chordsSeq[chordIndex + 1];
+      : beatsSeq[beatIndex + 1];
   }
 
   /**
-   * Get next chord in the tab
+   * Get next beat in the tab
    * @param barIndex Bar index
-   * @param chordIndex Chord index (inside the bar)
-   * @returns Chord (or undefined if can't get next chord)
+   * @param beatIndex Beat index (inside the bar)
+   * @returns Beat (or undefined if can't get next beat)
    */
-  public getPrevChord(barIndex: number, chordIndex: number): Chord | undefined {
-    const chordsSeq = this.getChordsSeq();
-    const chordSeqIndex = chordsSeq.indexOf(
-      this.bars[barIndex].chords[chordIndex]
+  public getPrevBeat(barIndex: number, beatIndex: number): Beat | undefined {
+    const beatsSeq = this.getBeatsSeq();
+    const beatSeqIndex = beatsSeq.indexOf(
+      this.bars[barIndex].beats[beatIndex]
     );
-    return chordSeqIndex === 0 ? undefined : chordsSeq[chordIndex - 1];
+    return beatSeqIndex === 0 ? undefined : beatsSeq[beatIndex - 1];
   }
 
   /**
-   * All the chords as an array. Does a flat map, so consider performance
+   * All the beats as an array. Does a flat map, so consider performance
    */
-  public getChordsSeq(): Chord[] {
+  public getBeatsSeq(): Beat[] {
     return this.bars.flatMap((bar) => {
-      return bar.chords;
+      return bar.beats;
     });
   }
 

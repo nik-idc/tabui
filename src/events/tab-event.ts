@@ -13,7 +13,7 @@ export enum TabEventType {
  *   3. Selection DEFINITELY needs to be moved to its own class, like
  *      'SelectionManager' or something like that
  *   4. Other non-related stuff:
- *      4.1 Rename 'Chord' to 'Beat' because that is much more appropriate
+ *      4.1 Rename 'Beat' to 'Beat' because that is much more appropriate
  * 
  * Main takeaway is that the 'Element' approach is currently the best but the way
  * it's implemented is not the best. It's too tightly coupled with the rendering

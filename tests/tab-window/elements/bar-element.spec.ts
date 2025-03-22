@@ -1,8 +1,8 @@
 import {
   Bar,
   BarElement,
-  Chord,
-  ChordElement,
+  Beat,
+  BeatElement,
   Guitar,
   GuitarNote,
   Note,
@@ -41,13 +41,13 @@ describe("Bar element tests", () => {
   test("Bar element calc with time signature test", () => {
     // Expected width ratios where all of these
     // are multiplied by min note size
-    const chords = [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+    const beats = [
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ];
-    const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, chords);
+    const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, beats);
     const barCoords = new Point(0, 0);
     const barElement = new BarElement(dim, barCoords, bar, true, true);
 
@@ -68,14 +68,14 @@ describe("Bar element tests", () => {
       dim.durationsHeight
     );
 
-    let chordsWidth = 0;
-    for (const chordElement of barElement.chordElements) {
-      chordsWidth += chordElement.rect.width;
+    let beatsWidth = 0;
+    for (const beatElement of barElement.beatElements) {
+      beatsWidth += beatElement.rect.width;
     }
     const expectedRect = new Rect(
       barCoords.x,
       barCoords.y,
-      expectedSigRect.width + chordsWidth,
+      expectedSigRect.width + beatsWidth,
       dim.tabLineHeight
     );
 
@@ -106,13 +106,13 @@ describe("Bar element tests", () => {
   test("Bar element calc without time signature test", () => {
     // Expected width ratios where all of these
     // are multiplied by min note size
-    const chords = [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+    const beats = [
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ];
-    const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, chords);
+    const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, beats);
     const barCoords = new Point(0, 0);
     const barElement = new BarElement(dim, barCoords, bar, false, true);
 
@@ -133,14 +133,14 @@ describe("Bar element tests", () => {
       dim.durationsHeight
     );
 
-    let chordsWidth = 0;
-    for (const chordElement of barElement.chordElements) {
-      chordsWidth += chordElement.rect.width;
+    let beatsWidth = 0;
+    for (const beatElement of barElement.beatElements) {
+      beatsWidth += beatElement.rect.width;
     }
     const expectedRect = new Rect(
       barCoords.x,
       barCoords.y,
-      chordsWidth,
+      beatsWidth,
       dim.tabLineHeight
     );
 
@@ -170,10 +170,10 @@ describe("Bar element tests", () => {
 
   test("Scale horizontally test", () => {
     const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]);
     const barCoords = new Point(0, 0);
     let showSignature = true;
@@ -230,10 +230,10 @@ describe("Bar element tests", () => {
 
   test("Translate test", () => {
     const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]);
     const barCoords = new Point(0, 0);
     let showSignature = true;
@@ -288,167 +288,167 @@ describe("Bar element tests", () => {
     }
   });
 
-  test("Insert chord test", () => {
+  test("Insert beat test", () => {
     const bar1 = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar1Coords = new Point(0, 0);
     const barElement1 = new BarElement(dim, bar1Coords, bar1, true, true);
     const bar2 = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar2Coords = new Point(barElement1.rect.x, 0);
     const barElement2 = new BarElement(dim, bar2Coords, bar2, true, true);
 
     // Insert at index
-    barElement1.insertEmptyChord(2);
+    barElement1.insertEmptyBeat(2);
 
     // Test
     expect(barElement1.rect).toStrictEqual(barElement2.rect);
-    expect(barElement1.chordElements[2].chord.duration).toBe(
-      barElement2.chordElements[2].chord.duration
+    expect(barElement1.beatElements[2].beat.duration).toBe(
+      barElement2.beatElements[2].beat.duration
     );
   });
 
-  test("Prepend chord test", () => {
+  test("Prepend beat test", () => {
     const bar1 = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar1Coords = new Point(0, 0);
     const barElement1 = new BarElement(dim, bar1Coords, bar1, true, true);
     const bar2 = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar2Coords = new Point(barElement1.rect.x, 0);
     const barElement2 = new BarElement(dim, bar2Coords, bar2, true, true);
 
     // Prepend
-    barElement1.prependChord();
+    barElement1.prependBeat();
 
     // Test
     expect(barElement1.rect).toStrictEqual(barElement2.rect);
-    expect(barElement1.chordElements[0].chord.duration).toBe(
-      barElement2.chordElements[0].chord.duration
+    expect(barElement1.beatElements[0].beat.duration).toBe(
+      barElement2.beatElements[0].beat.duration
     );
   });
 
-  test("Append chord test", () => {
+  test("Append beat test", () => {
     const bar1 = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar1Coords = new Point(0, 0);
     const barElement1 = new BarElement(dim, bar1Coords, bar1, true, true);
     const bar2 = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
     ]);
     const bar2Coords = new Point(barElement1.rect.x, 0);
     const barElement2 = new BarElement(dim, bar2Coords, bar2, true, true);
 
     // Append
-    barElement1.appendChord();
+    barElement1.appendBeat();
 
     // Test
     expect(barElement1.rect).toStrictEqual(barElement2.rect);
-    expect(barElement1.chordElements[4].chord.duration).toBe(
-      barElement2.chordElements[4].chord.duration
+    expect(barElement1.beatElements[4].beat.duration).toBe(
+      barElement2.beatElements[4].beat.duration
     );
   });
 
-  test("Remove chord test", () => {
+  test("Remove beat test", () => {
     const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const barCoords = new Point(0, 0);
     const barElement = new BarElement(dim, barCoords, bar, true, true);
 
     // Calc expected width
-    const chordElement = new ChordElement(
+    const beatElement = new BeatElement(
       dim,
       new Point(0, 0),
-      new Chord(guitar, NoteDuration.Quarter)
+      new Beat(guitar, NoteDuration.Quarter)
     );
-    const expectedWidth = barElement.rect.width - chordElement.rect.width;
+    const expectedWidth = barElement.rect.width - beatElement.rect.width;
 
     // Remove at index
-    barElement.removeChord(2);
+    barElement.removeBeat(2);
 
     // Test
     expect(barElement.rect.width).toBeCloseTo(expectedWidth);
-    expect(barElement.chordElements.length).toBe(3);
-    expect(barElement.chordElements[2].chord.duration).toBe(
+    expect(barElement.beatElements.length).toBe(3);
+    expect(barElement.beatElements[2].beat.duration).toBe(
       NoteDuration.Sixteenth
     );
   });
 
-  test("Change chord duration test", () => {
+  test("Change beat duration test", () => {
     const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const barCoords = new Point(0, 0);
     const barElement = new BarElement(dim, barCoords, bar, true, true);
 
     // Calc expected width
-    const prevWidth = barElement.chordElements[2].rect.width;
-    const chordElement = new ChordElement(
+    const prevWidth = barElement.beatElements[2].rect.width;
+    const beatElement = new BeatElement(
       dim,
       new Point(0, 0),
-      new Chord(guitar, NoteDuration.Sixteenth)
+      new Beat(guitar, NoteDuration.Sixteenth)
     );
     const expectedWidth =
-      barElement.rect.width - prevWidth + chordElement.rect.width;
+      barElement.rect.width - prevWidth + beatElement.rect.width;
 
-    // Change chord duration
-    barElement.changeChordDuration(
-      barElement.chordElements[2].chord,
+    // Change beat duration
+    barElement.changeBeatDuration(
+      barElement.beatElements[2].beat,
       NoteDuration.Sixteenth
     );
 
     // Test
     expect(barElement.rect.width).toBeCloseTo(expectedWidth);
-    expect(barElement.chordElements[2].chord.duration).toBe(
+    expect(barElement.beatElements[2].beat.duration).toBe(
       NoteDuration.Sixteenth
     );
   });
 
   test("Change bar beats test: no show -> show", () => {
     const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const barCoords = new Point(0, 0);
     const barElement = new BarElement(dim, barCoords, bar, false, true);
@@ -486,9 +486,9 @@ describe("Bar element tests", () => {
       ]);
     }
 
-    // Change chord duration
-    const newBeats = 3;
-    barElement.changeBarBeats(newBeats, prevBar);
+    // Change beat duration
+    const newBeatsCount = 3;
+    barElement.changeBarBeats(newBeatsCount, prevBar);
 
     // Test
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
@@ -498,22 +498,22 @@ describe("Bar element tests", () => {
       expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
       expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
     }
-    expect(barElement.bar.beats).toBe(newBeats);
+    expect(barElement.bar.beatsCount).toBe(newBeatsCount);
     expect(barElement.showSignature).toBe(true);
   });
 
   test("Change bar beats test: show -> no show", () => {
     const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar = new Bar(guitar, 120, 3, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const barCoords = new Point(0, 0);
     const barElement = new BarElement(dim, barCoords, bar, true, true);
@@ -551,9 +551,9 @@ describe("Bar element tests", () => {
       ]);
     }
 
-    // Change chord duration
-    const newBeats = 4;
-    barElement.changeBarBeats(newBeats, prevBar);
+    // Change beat duration
+    const newBeatsCount = 4;
+    barElement.changeBarBeats(newBeatsCount, prevBar);
 
     // Test
     expect(barElement.timeSigRect).toStrictEqual(expectedSigRect);
@@ -563,22 +563,22 @@ describe("Bar element tests", () => {
       expect(barElement.lines[i][0]).toStrictEqual(expectedLines[i][0]);
       expect(barElement.lines[i][1]).toStrictEqual(expectedLines[i][1]);
     }
-    expect(barElement.bar.beats).toBe(newBeats);
+    expect(barElement.bar.beatsCount).toBe(newBeatsCount);
     expect(barElement.showSignature).toBe(false);
   });
 
   test("Change bar duration test: no show -> show", () => {
     const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const barCoords = new Point(0, 0);
     const barElement = new BarElement(dim, barCoords, bar, false, true);
@@ -616,7 +616,7 @@ describe("Bar element tests", () => {
       ]);
     }
 
-    // Change chord duration
+    // Change beat duration
     const newDuration = NoteDuration.Eighth;
     barElement.changeBarDuration(newDuration, prevBar);
 
@@ -634,16 +634,16 @@ describe("Bar element tests", () => {
 
   test("Change bar duration test: show -> no show", () => {
     const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar = new Bar(guitar, 120, 4, NoteDuration.Eighth, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const barCoords = new Point(0, 0);
     const barElement = new BarElement(dim, barCoords, bar, true, true);
@@ -681,7 +681,7 @@ describe("Bar element tests", () => {
       ]);
     }
 
-    // Change chord duration
+    // Change beat duration
     const newDuration = NoteDuration.Quarter;
     barElement.changeBarDuration(newDuration, prevBar);
 
@@ -699,16 +699,16 @@ describe("Bar element tests", () => {
 
   test("Change bar tempo test", () => {
     const prevBar = new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const bar = new Bar(guitar, 120, 4, NoteDuration.Eighth, [
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Sixteenth),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Sixteenth),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Sixteenth),
     ]);
     const barCoords = new Point(0, 0);
     const barElement = new BarElement(dim, barCoords, bar, true, true);
