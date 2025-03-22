@@ -1,4 +1,4 @@
-import { Chord } from "./chord";
+import { Beat } from "./beat";
 import { Guitar } from "./guitar";
 import { NoteDuration } from "./note-duration";
 import { Tab } from "./tab";
@@ -22,18 +22,18 @@ export class Bar {
   /**
    * Number of beats for the bar (upper number in time signature)
    */
-  private _beats: number;
+  private _beatsCount: number;
   /**
    * The duration of the note that constitutes a whole bar
    * (upper number in time signature)
    */
   public duration: NoteDuration;
   /**
-   * Array of all chords in the bar
+   * Array of all beats in the bar
    */
-  readonly chords: Chord[];
+  readonly beats: Beat[];
   /**
-   * Indicates if all chords in the bar fit
+   * Indicates if all beats in the bar fit
    */
   private _durationsFit: boolean;
 
@@ -41,107 +41,107 @@ export class Bar {
    * Class that represents a musical bar
    * @param guitar Guitar on which the bar is played
    * @param tempo Tempo of the bar
-   * @param beats Number of beats for the bar
+   * @param beatsCount Number of beats for the bar
    * @param duration The duration of the note that constitutes a whole bar
-   * @param chords Array of all chords in the bar
+   * @param beats Array of all beats in the bar
    */
   constructor(
     guitar: Guitar,
     tempo: number,
-    beats: number,
+    beatsCount: number,
     duration: NoteDuration,
-    chords: Chord[] | undefined
+    beats: Beat[] | undefined
   ) {
     this.uuid = randomInt();
     this.guitar = guitar;
     this._tempo = tempo;
-    this._beats = beats;
+    this._beatsCount = beatsCount;
     this.duration = duration;
     this._durationsFit = true;
-    if (chords === undefined) {
-      this.chords = [];
-      for (let i = 0; i < this._beats; i++) {
-        this.chords.push(new Chord(this.guitar, this.duration));
+    if (beats === undefined) {
+      this.beats = [];
+      for (let i = 0; i < this._beatsCount; i++) {
+        this.beats.push(new Beat(this.guitar, this.duration));
       }
     } else {
-      this.chords = chords;
+      this.beats = beats;
     }
 
     this.calcDurationsFit();
   }
 
   /**
-   * Gets actual duration of all the chords in the bar
-   * @returns Sum of all bar's chords' durations
+   * Gets actual duration of all the beats in the bar
+   * @returns Sum of all bar's beats' durations
    */
   public actualDuration(): number {
     let durations = 0;
-    for (let chord of this.chords) {
-      durations += chord.duration;
+    for (let beat of this.beats) {
+      durations += beat.duration;
     }
 
     return durations;
   }
 
   /**
-   * Determines if all chords of the bar fit correctly inside of it
+   * Determines if all beats of the bar fit correctly inside of it
    */
   public calcDurationsFit(): void {
     let durations = 0;
-    for (let chord of this.chords) {
-      durations += chord.duration;
+    for (let beat of this.beats) {
+      durations += beat.duration;
     }
 
-    this._durationsFit = durations == this._beats * this.duration;
+    this._durationsFit = durations == this._beatsCount * this.duration;
   }
 
   /**
-   * Inserts empty chord in the bar before chord with index 'index'
-   * @param index Index of the chord that will be prepended by the new chord
+   * Inserts empty beat in the bar before beat with index 'index'
+   * @param index Index of the beat that will be prepended by the new beat
    */
-  public insertEmptyChord(index: number): void {
+  public insertEmptyBeat(index: number): void {
     // Check index validity
-    if (index < 0 || index > this.chords.length) {
-      throw Error(`${index} is invalid chord index`);
+    if (index < 0 || index > this.beats.length) {
+      throw Error(`${index} is invalid beat index`);
     }
 
-    // Insert chord in the data model
-    let newChord = new Chord(this.guitar, NoteDuration.Quarter);
-    this.chords.splice(index, 0, newChord);
+    // Insert beat in the data model
+    let newBeat = new Beat(this.guitar, NoteDuration.Quarter);
+    this.beats.splice(index, 0, newBeat);
 
     // Check if durations fit after inserting
     this.calcDurationsFit();
   }
 
   /**
-   * Prepends chord to the beginning of the bar
+   * Prepends beat to the beginning of the bar
    */
-  public prependChord(): void {
-    this.insertEmptyChord(0);
+  public prependBeat(): void {
+    this.insertEmptyBeat(0);
   }
 
   /**
-   * Appends chord to the end of the bar
+   * Appends beat to the end of the bar
    */
-  public appendChord(): void {
-    this.insertEmptyChord(this.chords.length);
+  public appendBeat(): void {
+    this.insertEmptyBeat(this.beats.length);
   }
 
   /**
-   * Removes chord at index
-   * @param index Index of the chord to be removed
+   * Removes beat at index
+   * @param index Index of the beat to be removed
    */
-  public removeChord(index: number): void {
+  public removeBeat(index: number): void {
     // Check index validity
-    if (index < 0 || index > this.chords.length) {
-      throw Error(`${index} is invalid chord index`);
+    if (index < 0 || index > this.beats.length) {
+      throw Error(`${index} is invalid beat index`);
     }
 
-    // Remove chord
-    this.chords.splice(index, 1);
+    // Remove beat
+    this.beats.splice(index, 1);
 
-    if (this.chords.length === 0) {
-      this.insertEmptyChord(0);
+    if (this.beats.length === 0) {
+      this.insertEmptyBeat(0);
     }
 
     // Check if durations fit after removing
@@ -149,57 +149,57 @@ export class Bar {
   }
 
   /**
-   * Uses UUID to delete chord
-   * @param uuid Chord's UUID
+   * Uses UUID to delete beat
+   * @param uuid Beat's UUID
    */
-  public removeChordByUUID(uuid: number): void {
-    const chordIndex = this.chords.findIndex((chord) => {
-      return chord.uuid === uuid;
+  public removeBeatByUUID(uuid: number): void {
+    const beatIndex = this.beats.findIndex((beat) => {
+      return beat.uuid === uuid;
     });
 
-    this.removeChord(chordIndex);
+    this.removeBeat(beatIndex);
   }
 
   /**
-   * Insert chords after specified chord
-   * @param chordId Id of the chord after which to insert
-   * @param chords Chords to insert
+   * Insert beats after specified beat
+   * @param beatId Id of the beat after which to insert
+   * @param beats Beats to insert
    */
-  public insertChords(chordId: number, chords: Chord[]): void {
-    // Insert chords at specified position
-    this.chords.splice(chordId + 1, 0, ...chords);
+  public insertBeats(beatId: number, beats: Beat[]): void {
+    // Insert beats at specified position
+    this.beats.splice(beatId + 1, 0, ...beats);
 
     // Check if durations fit after inserting
     this.calcDurationsFit();
   }
 
   /**
-   * Changes duration of a chord
-   * @param chord Chord to change the duration of
-   * @param duration New chord duration
+   * Changes duration of a beat
+   * @param beat Beat to change the duration of
+   * @param duration New beat duration
    */
-  public changeChordDuration(chord: Chord, duration: NoteDuration): void {
-    let index = this.chords.indexOf(chord);
-    this.chords[index].duration = duration;
+  public changeBeatDuration(beat: Beat, duration: NoteDuration): void {
+    let index = this.beats.indexOf(beat);
+    this.beats[index].duration = duration;
     this.calcDurationsFit();
   }
 
   /**
    * Beats (upper number in time signature) getter/setter
    */
-  get beats(): number {
-    return this._beats;
+  get beatsCount(): number {
+    return this._beatsCount;
   }
 
   /**
    * Beats (upper number in time signature) getter/setter
    */
-  set beats(newBeats: number) {
+  set beatsCount(newBeats: number) {
     if (newBeats < 1 || newBeats > 32) {
       throw Error(`${newBeats} is invalid beats value`);
     }
 
-    this._beats = newBeats;
+    this._beatsCount = newBeats;
     this.calcDurationsFit();
   }
 
@@ -224,7 +224,7 @@ export class Bar {
   }
 
   /**
-   * Indicates if all chords in the bar fit
+   * Indicates if all beats in the bar fit
    */
   get durationsFit(): boolean {
     return this._durationsFit;
@@ -234,7 +234,7 @@ export class Bar {
    * Time signature value
    */
   get signature() {
-    return this.beats * this.duration;
+    return this._beatsCount * this.duration;
   }
 
   /**
@@ -245,9 +245,9 @@ export class Bar {
   static fromObject(obj: any): Bar {
     if (
       obj.guitar === undefined ||
-      obj._beats === undefined ||
+      obj._beatsCount === undefined ||
       obj.duration === undefined ||
-      obj.chords === undefined ||
+      obj.beats === undefined ||
       obj._durationsFit === undefined ||
       obj._tempo === undefined
     ) {
@@ -256,10 +256,8 @@ export class Bar {
 
     let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
     let bar = new Bar(guitar, obj._tempo, obj._beats, obj._duration, undefined); // Create bar instance
-    bar.chords.length = 0; // Delete default chords
-    obj.chords.forEach((chord: any) =>
-      bar.chords.push(Chord.fromObject(chord))
-    );
+    bar.beats.length = 0; // Delete default beats
+    obj.beats.forEach((beat: any) => bar.beats.push(Beat.fromObject(beat)));
     bar.calcDurationsFit();
     return bar;
   }
@@ -274,17 +272,17 @@ export class Bar {
     if (
       bar1.guitar !== bar2.guitar ||
       bar1._tempo !== bar2._tempo ||
-      bar1._beats !== bar2._beats ||
+      bar1._beatsCount !== bar2._beatsCount ||
       bar1.duration !== bar2.duration ||
       bar1._durationsFit !== bar2._durationsFit ||
-      bar1.chords.length !== bar2.chords.length
+      bar1.beats.length !== bar2.beats.length
     ) {
       return false;
     }
 
-    // Compare chords
-    for (let i = 0; i < bar1.chords.length; i++) {
-      if (!Chord.compare(bar1.chords[i], bar2.chords[i])) {
+    // Compare beats
+    for (let i = 0; i < bar1.beats.length; i++) {
+      if (!Beat.compare(bar1.beats[i], bar2.beats[i])) {
         return false;
       }
     }

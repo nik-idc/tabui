@@ -1,5 +1,5 @@
 import { Bar } from "../src/models/bar";
-import { Chord } from "../src/models/chord";
+import { Beat } from "../src/models/beat";
 import { Guitar } from "../src/models/guitar";
 import { GuitarEffect } from "../src/models/guitar-effect/guitar-effect";
 import { GuitarEffectOptions } from "../src/models/guitar-effect/guitar-effect-options";
@@ -20,8 +20,8 @@ const durationsHeight = 50;
 
 function randomFrets(tab: Tab, allNotes: boolean = false): void {
   for (const bar of tab.bars) {
-    for (const chord of bar.chords) {
-      for (const note of chord.notes) {
+    for (const beat of bar.beats) {
+      for (const note of beat.notes) {
         if (allNotes) {
           const newFret = Math.floor(Math.random() * 24);
           note.fret = newFret;
@@ -38,13 +38,13 @@ function selectNote(
   tabWindow: TabWindow,
   tabLineElementId: number,
   barElementId: number,
-  chordElementId: number,
+  beatElementId: number,
   stringNum: number
 ): void {
   tabWindow.selectNoteElement(
     tabLineElementId,
     barElementId,
-    chordElementId,
+    beatElementId,
     stringNum - 1
   );
 }
@@ -57,64 +57,64 @@ export function createBasicTabWindow(): TabWindow {
 
   const bars = [
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
-      new Chord(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter),
     ]),
   ];
 
@@ -145,13 +145,13 @@ export function createCustomTabWindow(
 
   const bars: Bar[] = [];
   for (let i = 0; i < barsCount; i++) {
-    const chords: Chord[] = [];
+    const beats: Beat[] = [];
 
     for (let j = 0; j < barBeats; j++) {
-      chords.push(new Chord(guitar, barDuration));
+      beats.push(new Beat(guitar, barDuration));
     }
 
-    bars.push(new Bar(guitar, 120, barBeats, barDuration, chords));
+    bars.push(new Bar(guitar, 120, barBeats, barDuration, beats));
   }
 
   const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
@@ -245,10 +245,10 @@ function prepareTestCases(): TestCase[] {
       for (let i = 0; i < 100; i++) {
         bars.push(
           new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-            new Chord(guitar, NoteDuration.Quarter),
-            new Chord(guitar, NoteDuration.Quarter),
-            new Chord(guitar, NoteDuration.Quarter),
-            new Chord(guitar, NoteDuration.Quarter),
+            new Beat(guitar, NoteDuration.Quarter),
+            new Beat(guitar, NoteDuration.Quarter),
+            new Beat(guitar, NoteDuration.Quarter),
+            new Beat(guitar, NoteDuration.Quarter),
           ])
         );
       }
@@ -279,85 +279,85 @@ function prepareTestCases(): TestCase[] {
       };
     })(),
     (() => {
-      const firstChord = [0, 1, 0];
-      const secondChord = [1, 0, 2];
+      const firstBeat = [0, 1, 0];
+      const secondBeat = [1, 0, 2];
 
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
-      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
+      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
 
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords left-to-right: from " +
-          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
-          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
+          "Select beats left-to-right: from " +
+          `${firstBeat[0]}-${firstBeat[1]}-${firstBeat[2]} to ` +
+          `${secondBeat[0]}-${secondBeat[1]}-${secondBeat[2]}`,
       };
     })(),
     (() => {
-      const firstChord = [0, 1, 0];
-      const secondChord = [1, 0, 2];
-      const thirdChord = [0, 0, 1];
+      const firstBeat = [0, 1, 0];
+      const secondBeat = [1, 0, 2];
+      const thirdBeat = [0, 0, 1];
 
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
-      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
-      // tabWindow.selectChord(0, 0, 3);
-      // tabWindow.selectChord(0, 0, 2);
-      tabWindow.selectChord(thirdChord[0], thirdChord[1], thirdChord[2]);
+      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
+      // tabWindow.selectBeat(0, 0, 3);
+      // tabWindow.selectBeat(0, 0, 2);
+      tabWindow.selectBeat(thirdBeat[0], thirdBeat[1], thirdBeat[2]);
 
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords from left-to-right to then right-to-left: " +
-          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
-          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} to ` +
-          `${thirdChord[0]}-${thirdChord[1]}-${thirdChord[2]}`,
+          "Select beats from left-to-right to then right-to-left: " +
+          `${firstBeat[0]}-${firstBeat[1]}-${firstBeat[2]} to ` +
+          `${secondBeat[0]}-${secondBeat[1]}-${secondBeat[2]} to ` +
+          `${thirdBeat[0]}-${thirdBeat[1]}-${thirdBeat[2]}`,
       };
     })(),
     (() => {
-      const firstChord = [1, 0, 2];
-      const secondChord = [0, 1, 0];
+      const firstBeat = [1, 0, 2];
+      const secondBeat = [0, 1, 0];
 
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
-      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
+      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
 
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords right-to-left: " +
-          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
-          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]}`,
+          "Select beats right-to-left: " +
+          `${firstBeat[0]}-${firstBeat[1]}-${firstBeat[2]} to ` +
+          `${secondBeat[0]}-${secondBeat[1]}-${secondBeat[2]}`,
       };
     })(),
     (() => {
-      const firstChord = [1, 0, 2];
-      const secondChord = [0, 1, 0];
-      const thirdChord = [1, 1, 1];
+      const firstBeat = [1, 0, 2];
+      const secondBeat = [0, 1, 0];
+      const thirdBeat = [1, 1, 1];
 
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
-      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
-      // tabWindow.selectChord(1, 0, 3);
-      // tabWindow.selectChord(1, 1, 0);
-      tabWindow.selectChord(thirdChord[0], thirdChord[1], thirdChord[2]);
+      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
+      // tabWindow.selectBeat(1, 0, 3);
+      // tabWindow.selectBeat(1, 1, 0);
+      tabWindow.selectBeat(thirdBeat[0], thirdBeat[1], thirdBeat[2]);
 
       return {
         tabWindow: tabWindow,
         caption:
-          "Select chords from right-to-left to left-to-right: " +
-          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
-          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} to ` +
-          `${thirdChord[0]}-${thirdChord[1]}-${thirdChord[2]}`,
+          "Select beats from right-to-left to left-to-right: " +
+          `${firstBeat[0]}-${firstBeat[1]}-${firstBeat[2]} to ` +
+          `${secondBeat[0]}-${secondBeat[1]}-${secondBeat[2]} to ` +
+          `${thirdBeat[0]}-${thirdBeat[1]}-${thirdBeat[2]}`,
       };
     })(),
     (() => {
@@ -366,10 +366,10 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
 
-      // Select chords first
-      tabWindow.selectChord(1, 0, 2);
-      tabWindow.selectChord(0, 1, 0);
-      // Select note element should clear all selected chords
+      // Select beats first
+      tabWindow.selectBeat(1, 0, 2);
+      tabWindow.selectBeat(0, 1, 0);
+      // Select note element should clear all selected beats
       tabWindow.selectNoteElement(
         copiedNote[0],
         copiedNote[1],
@@ -403,10 +403,10 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
 
-      // Select chords first
-      tabWindow.selectChord(1, 0, 2);
-      tabWindow.selectChord(0, 1, 0);
-      // Select note element should clear all selected chords
+      // Select beats first
+      tabWindow.selectBeat(1, 0, 2);
+      tabWindow.selectBeat(0, 1, 0);
+      // Select note element should clear all selected beats
       tabWindow.selectNoteElement(
         copiedNote[0],
         copiedNote[1],
@@ -442,8 +442,8 @@ function prepareTestCases(): TestCase[] {
       };
     })(),
     (() => {
-      const firstChord = [0, 2, 3];
-      const secondChord = [0, 1, 0];
+      const firstBeat = [0, 2, 3];
+      const secondBeat = [0, 1, 0];
       const pastedAtNote = [1, 0, 1, 2];
 
       const tabWindow = createBasicTabWindow();
@@ -451,14 +451,14 @@ function prepareTestCases(): TestCase[] {
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
-      // Select chords clears selected element
-      tabWindow.selectChord(firstChord[0], firstChord[1], firstChord[2]);
-      tabWindow.selectChord(secondChord[0], secondChord[1], secondChord[2]);
+      // Select beats clears selected element
+      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
 
-      // Copy selected chords
+      // Copy selected beats
       tabWindow.copy();
 
-      // Select note element where chords will be pasted & paste
+      // Select note element where beats will be pasted & paste
       tabWindow.selectNoteElement(
         pastedAtNote[0],
         pastedAtNote[1],
@@ -470,18 +470,18 @@ function prepareTestCases(): TestCase[] {
       return {
         tabWindow: tabWindow,
         caption:
-          "Copy paste selected chords: chords from " +
-          `${firstChord[0]}-${firstChord[1]}-${firstChord[2]} to ` +
-          `${secondChord[0]}-${secondChord[1]}-${secondChord[2]} pasted at ` +
+          "Copy paste selected beats: beats from " +
+          `${firstBeat[0]}-${firstBeat[1]}-${firstBeat[2]} to ` +
+          `${secondBeat[0]}-${secondBeat[1]}-${secondBeat[2]} pasted at ` +
           `${pastedAtNote[0]}-${pastedAtNote[1]}-${pastedAtNote[2]}-${pastedAtNote[3]}`,
       };
     })(),
     (() => {
-      const copiedChords = [
+      const copiedBeats = [
         [0, 2, 3],
         [0, 1, 0],
       ];
-      const pasteIntoChords = [
+      const pasteIntoBeats = [
         [1, 0, 3],
         [1, 2, 2],
       ];
@@ -491,183 +491,183 @@ function prepareTestCases(): TestCase[] {
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
-      // Select chords clears selected element
-      tabWindow.selectChord(
-        copiedChords[0][0],
-        copiedChords[0][1],
-        copiedChords[0][2]
+      // Select beats clears selected element
+      tabWindow.selectBeat(
+        copiedBeats[0][0],
+        copiedBeats[0][1],
+        copiedBeats[0][2]
       );
-      tabWindow.selectChord(
-        copiedChords[1][0],
-        copiedChords[1][1],
-        copiedChords[1][2]
+      tabWindow.selectBeat(
+        copiedBeats[1][0],
+        copiedBeats[1][1],
+        copiedBeats[1][2]
       );
 
-      // Copy selected chords
+      // Copy selected beats
       tabWindow.copy();
 
-      // Select note element where chords will be pasted & paste
+      // Select note element where beats will be pasted & paste
       tabWindow.selectNoteElement(0, 1, 1, 2);
       tabWindow.selectNoteElement(0, 1, 2, 2);
-      tabWindow.selectChord(
-        pasteIntoChords[0][0],
-        pasteIntoChords[0][1],
-        pasteIntoChords[0][2]
+      tabWindow.selectBeat(
+        pasteIntoBeats[0][0],
+        pasteIntoBeats[0][1],
+        pasteIntoBeats[0][2]
       );
-      tabWindow.selectChord(
-        pasteIntoChords[1][0],
-        pasteIntoChords[1][1],
-        pasteIntoChords[1][2]
+      tabWindow.selectBeat(
+        pasteIntoBeats[1][0],
+        pasteIntoBeats[1][1],
+        pasteIntoBeats[1][2]
       );
       tabWindow.paste();
 
       return {
         tabWindow: tabWindow,
         caption:
-          "Copy paste selected chords while selection not empty: copied chords from " +
-          `${copiedChords[0][0]}-${copiedChords[0][1]}-${copiedChords[0][2]} to ` +
-          `${copiedChords[1][0]}-${copiedChords[1][1]}-${copiedChords[1][2]} ` +
-          `pasted into chords from ` +
-          `${pasteIntoChords[0][0]}-${pasteIntoChords[0][1]}-${pasteIntoChords[0][2]} to ` +
-          `${pasteIntoChords[1][0]}-${pasteIntoChords[1][1]}-${pasteIntoChords[1][2]}`,
+          "Copy paste selected beats while selection not empty: copied beats from " +
+          `${copiedBeats[0][0]}-${copiedBeats[0][1]}-${copiedBeats[0][2]} to ` +
+          `${copiedBeats[1][0]}-${copiedBeats[1][1]}-${copiedBeats[1][2]} ` +
+          `pasted into beats from ` +
+          `${pasteIntoBeats[0][0]}-${pasteIntoBeats[0][1]}-${pasteIntoBeats[0][2]} to ` +
+          `${pasteIntoBeats[1][0]}-${pasteIntoBeats[1][1]}-${pasteIntoBeats[1][2]}`,
       };
     })(),
     (() => {
-      const copiedChord = [0, 2, 1];
-      const pastedIntoChord = [0, 3, 3];
+      const copiedBeat = [0, 2, 1];
+      const pastedIntoBeat = [0, 3, 3];
 
       const tabWindow = createBasicTabWindow();
-      // Set chord notes value
-      tabWindow.tabLineElements[copiedChord[0]].barElements[
-        copiedChord[1]
-      ].chordElements[copiedChord[2]].noteElements[3].note.fret = 20;
+      // Set beat notes value
+      tabWindow.tabLineElements[copiedBeat[0]].barElements[
+        copiedBeat[1]
+      ].beatElements[copiedBeat[2]].noteElements[3].note.fret = 20;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
-      // Select chords clears selected element
-      tabWindow.selectChord(copiedChord[0], copiedChord[1], copiedChord[2]);
+      // Select beats clears selected element
+      tabWindow.selectBeat(copiedBeat[0], copiedBeat[1], copiedBeat[2]);
 
-      // Copy selected chords
+      // Copy selected beats
       tabWindow.copy();
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
-      // Select note element where chords will be pasted & paste
-      tabWindow.selectChord(
-        pastedIntoChord[0],
-        pastedIntoChord[1],
-        pastedIntoChord[2]
+      // Select note element where beats will be pasted & paste
+      tabWindow.selectBeat(
+        pastedIntoBeat[0],
+        pastedIntoBeat[1],
+        pastedIntoBeat[2]
       );
       tabWindow.paste();
 
       return {
         tabWindow: tabWindow,
         caption:
-          "Copy paste chords replacing an equal number of selected chords: " +
-          "copied chord from " +
-          `${copiedChord[0]}-${copiedChord[1]}-${copiedChord[2]} ` +
-          `replacing chord at ` +
-          `${pastedIntoChord[0]}-${pastedIntoChord[1]}-${pastedIntoChord[2]}`,
+          "Copy paste beats replacing an equal number of selected beats: " +
+          "copied beat from " +
+          `${copiedBeat[0]}-${copiedBeat[1]}-${copiedBeat[2]} ` +
+          `replacing beat at ` +
+          `${pastedIntoBeat[0]}-${pastedIntoBeat[1]}-${pastedIntoBeat[2]}`,
       };
     })(),
     (() => {
-      const copiedChords = [
+      const copiedBeats = [
         [0, 2, 1],
         [0, 2, 2],
       ];
-      const pastedIntoChord = [0, 3, 3];
+      const pastedIntoBeat = [0, 3, 3];
 
       const tabWindow = createBasicTabWindow();
-      // Set chord notes value
-      tabWindow.tabLineElements[copiedChords[0][0]].barElements[
-        copiedChords[0][1]
-      ].chordElements[copiedChords[0][2]].noteElements[3].note.fret = 20;
-      tabWindow.tabLineElements[copiedChords[1][0]].barElements[
-        copiedChords[1][1]
-      ].chordElements[copiedChords[1][2]].noteElements[3].note.fret = 19;
+      // Set beat notes value
+      tabWindow.tabLineElements[copiedBeats[0][0]].barElements[
+        copiedBeats[0][1]
+      ].beatElements[copiedBeats[0][2]].noteElements[3].note.fret = 20;
+      tabWindow.tabLineElements[copiedBeats[1][0]].barElements[
+        copiedBeats[1][1]
+      ].beatElements[copiedBeats[1][2]].noteElements[3].note.fret = 19;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
-      // Select chords to copy
-      tabWindow.selectChord(
-        copiedChords[0][0],
-        copiedChords[0][1],
-        copiedChords[0][2]
+      // Select beats to copy
+      tabWindow.selectBeat(
+        copiedBeats[0][0],
+        copiedBeats[0][1],
+        copiedBeats[0][2]
       );
-      tabWindow.selectChord(
-        copiedChords[1][0],
-        copiedChords[1][1],
-        copiedChords[1][2]
+      tabWindow.selectBeat(
+        copiedBeats[1][0],
+        copiedBeats[1][1],
+        copiedBeats[1][2]
       );
 
-      // Copy selected chords
+      // Copy selected beats
       tabWindow.copy();
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
-      // Select note element where chords will be pasted & paste
-      tabWindow.selectChord(
-        pastedIntoChord[0],
-        pastedIntoChord[1],
-        pastedIntoChord[2]
+      // Select note element where beats will be pasted & paste
+      tabWindow.selectBeat(
+        pastedIntoBeat[0],
+        pastedIntoBeat[1],
+        pastedIntoBeat[2]
       );
       tabWindow.paste();
 
       return {
         tabWindow: tabWindow,
         caption:
-          "Copy paste more chords than selected chords: copied chords from " +
-          `${copiedChords[0][0]}-${copiedChords[0][1]}-${copiedChords[0][2]} to ` +
-          `${copiedChords[1][0]}-${copiedChords[1][1]}-${copiedChords[1][2]} ` +
-          `replacing chord at ` +
-          `${pastedIntoChord[0]}-${pastedIntoChord[1]}-${pastedIntoChord[2]}`,
+          "Copy paste more beats than selected beats: copied beats from " +
+          `${copiedBeats[0][0]}-${copiedBeats[0][1]}-${copiedBeats[0][2]} to ` +
+          `${copiedBeats[1][0]}-${copiedBeats[1][1]}-${copiedBeats[1][2]} ` +
+          `replacing beat at ` +
+          `${pastedIntoBeat[0]}-${pastedIntoBeat[1]}-${pastedIntoBeat[2]}`,
       };
     })(),
     (() => {
-      const copiedChord = [0, 2, 1];
-      const pastedIntoChords = [
+      const copiedBeat = [0, 2, 1];
+      const pastedIntoBeats = [
         [0, 3, 2],
         [0, 3, 3],
       ];
 
       const tabWindow = createBasicTabWindow();
-      // Set chord notes value
-      tabWindow.tabLineElements[copiedChord[0]].barElements[
-        copiedChord[1]
-      ].chordElements[copiedChord[2]].noteElements[3].note.fret = 20;
+      // Set beat notes value
+      tabWindow.tabLineElements[copiedBeat[0]].barElements[
+        copiedBeat[1]
+      ].beatElements[copiedBeat[2]].noteElements[3].note.fret = 20;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
-      // Select chords clears selected element
-      tabWindow.selectChord(copiedChord[0], copiedChord[1], copiedChord[2]);
+      // Select beats clears selected element
+      tabWindow.selectBeat(copiedBeat[0], copiedBeat[1], copiedBeat[2]);
 
-      // Copy selected chords
+      // Copy selected beats
       tabWindow.copy();
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
-      // Select note element where chords will be pasted & paste
-      tabWindow.selectChord(
-        pastedIntoChords[0][0],
-        pastedIntoChords[0][1],
-        pastedIntoChords[0][2]
+      // Select note element where beats will be pasted & paste
+      tabWindow.selectBeat(
+        pastedIntoBeats[0][0],
+        pastedIntoBeats[0][1],
+        pastedIntoBeats[0][2]
       );
-      tabWindow.selectChord(
-        pastedIntoChords[1][0],
-        pastedIntoChords[1][1],
-        pastedIntoChords[1][2]
+      tabWindow.selectBeat(
+        pastedIntoBeats[1][0],
+        pastedIntoBeats[1][1],
+        pastedIntoBeats[1][2]
       );
       tabWindow.paste();
 
       return {
         tabWindow: tabWindow,
         caption:
-          "Copy paste 1 chord replacing multiple selected chords: " +
-          "copied chord from " +
-          `${copiedChord[0]}-${copiedChord[1]}-${copiedChord[2]} to ` +
-          `replacing chords from ` +
-          `${pastedIntoChords[0][0]}-${pastedIntoChords[0][1]}-${pastedIntoChords[0][2]} to ` +
-          `${pastedIntoChords[1][0]}-${pastedIntoChords[1][1]}-${pastedIntoChords[1][2]}`,
+          "Copy paste 1 beat replacing multiple selected beats: " +
+          "copied beat from " +
+          `${copiedBeat[0]}-${copiedBeat[1]}-${copiedBeat[2]} to ` +
+          `replacing beats from ` +
+          `${pastedIntoBeats[0][0]}-${pastedIntoBeats[0][1]}-${pastedIntoBeats[0][2]} to ` +
+          `${pastedIntoBeats[1][0]}-${pastedIntoBeats[1][1]}-${pastedIntoBeats[1][2]}`,
       };
     })(),
     (() => {

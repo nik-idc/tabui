@@ -5,13 +5,13 @@ import { BarElement } from "./elements/bar-element";
 import { Point } from "./shapes/point";
 import { Bar } from "./../models/bar";
 import { NoteDuration } from "./../models/note-duration";
-import { ChordElement } from "./elements/chord-element";
+import { BeatElement } from "./elements/beat-element";
 import {
   MoveRightResult,
   SelectedElement,
   isSelectedElement,
 } from "./elements/selected-element";
-import { Chord } from "../models/chord";
+import { Beat } from "../models/beat";
 import { SelectionElement } from "./elements/selection-element";
 import { Rect } from "./shapes/rect";
 import { TabLineElement } from "./elements/tab-line-element";
@@ -33,10 +33,10 @@ export type SelectedElementWindowIds = {
    */
   barElementId: number;
   /**
-   * Id of the chord element, same as chord id, in here just
+   * Id of the beat element, same as beat id, in here just
    * for consistency's sake
    */
-  chordElementId: number;
+  beatElementId: number;
   /**
    * String number
    */
@@ -93,7 +93,7 @@ export class TabWindow {
     if (tab.bars.length === 0) {
       tab.bars.push(
         new Bar(tab.guitar, 120, 4, NoteDuration.Quarter, [
-          new Chord(tab.guitar, NoteDuration.Quarter),
+          new Beat(tab.guitar, NoteDuration.Quarter),
         ])
       );
     }
@@ -165,15 +165,15 @@ export class TabWindow {
 
   /**
    * Select new note element
-   * @param tabLineElementId Id of the bar elements line containing the chord element
-   * @param barElementId Id of the bar element containing the chord element
-   * @param chordElementId Id of the chord element containing the note element
+   * @param tabLineElementId Id of the bar elements line containing the beat element
+   * @param barElementId Id of the bar element containing the beat element
+   * @param beatElementId Id of the beat element containing the note element
    * @param noteElementId Id of the note element
    */
   public selectNoteElement(
     tabLineElementId: number,
     barElementId: number,
-    chordElementId: number,
+    beatElementId: number,
     noteElementId: number
   ): void {
     this.clearSelection();
@@ -181,40 +181,40 @@ export class TabWindow {
     // Get current note element's info
     const tabLineElement = this._tabLineElements[tabLineElementId];
     const barElement = tabLineElement.barElements[barElementId];
-    const chordElement = barElement.chordElements[chordElementId];
-    const noteElement = chordElement.noteElements[noteElementId];
+    const beatElement = barElement.beatElements[beatElementId];
+    const noteElement = beatElement.noteElements[noteElementId];
 
     const barId = this._tab.bars.indexOf(barElement.bar);
-    const chordId = this._tab.bars[barId].chords.indexOf(chordElement.chord);
+    const beatId = this._tab.bars[barId].beats.indexOf(beatElement.beat);
     const stringNum = noteElement.note.stringNum;
 
     // Select
     this._selectedElement = new SelectedElement(
       this._tab,
       barId,
-      chordId,
+      beatId,
       stringNum
     );
   }
 
   /**
-   * Adds chord to selection & update selection rects
+   * Adds beat to selection & update selection rects
    * @param tabLineElementId Bar elements line id
    * @param barElementId Bar element id
-   * @param chordElementId Chord element id
-   * @param chordElementSeqId Sequential chord element id
+   * @param beatElementId Beat element id
+   * @param beatElementSeqId Sequential beat element id
    */
-  private addChordToSelection(
+  private addBeatToSelection(
     tabLineElementId: number,
     barElementId: number,
-    chordElementId: number,
-    chordElementSeqId: number
+    beatElementId: number,
+    beatElementSeqId: number
   ): void {
     const newSelectionElement = new SelectionElement(
       tabLineElementId,
       barElementId,
-      chordElementId,
-      chordElementSeqId
+      beatElementId,
+      beatElementSeqId
     );
 
     if (
@@ -228,67 +228,67 @@ export class TabWindow {
 
     const tabLineElement = this._tabLineElements[tabLineElementId];
     const barElement = tabLineElement.barElements[barElementId];
-    const chordElement = barElement.chordElements[chordElementId];
+    const beatElement = barElement.beatElements[beatElementId];
 
     if (this._selectionRects[tabLineElementId] === undefined) {
       this._selectionRects[tabLineElementId] = new Rect(
-        chordElement === barElement.chordElements[0]
+        beatElement === barElement.beatElements[0]
           ? barElement.rect.x
-          : chordElement.rect.x,
-        chordElement.rect.y,
-        chordElement.rect.width,
-        chordElement.rect.height
+          : beatElement.rect.x,
+        beatElement.rect.y,
+        beatElement.rect.width,
+        beatElement.rect.height
       );
     } else {
       this._selectionRects[tabLineElementId].width =
-        chordElement.rect.rightTop.x - this._selectionRects[tabLineElementId].x;
+        beatElement.rect.rightTop.x - this._selectionRects[tabLineElementId].x;
     }
   }
 
   /**
-   * Selects chords in between the two specified chords (including them)
-   * @param startTabLineElementId Bar line id of the starting chord
-   * @param startBarElementId Bar element id of the starting chord
-   * @param startChordElementId Chord element id of the starting chord
-   * @param endTabLineElementId Bar line id of the end chord
-   * @param endBarElementId Bar element id of the end chord
-   * @param endChordElementId Chord element id of the end chord
+   * Selects beats in between the two specified beats (including them)
+   * @param startTabLineElementId Bar line id of the starting beat
+   * @param startBarElementId Bar element id of the starting beat
+   * @param startBeatElementId Beat element id of the starting beat
+   * @param endTabLineElementId Bar line id of the end beat
+   * @param endBarElementId Bar element id of the end beat
+   * @param endBeatElementId Beat element id of the end beat
    */
-  private selectChordsInBetween(
+  private selectBeatsInBetween(
     startTabLineElementId: number,
     startBarElementId: number,
-    startChordElementId: number,
+    startBeatElementId: number,
     endTabLineElementId: number,
     endBarElementId: number,
-    endChordElementId: number
+    endBeatElementId: number
   ): void {
-    const chordsSeq = this._tab.getChordsSeq();
+    const beatsSeq = this._tab.getBeatsSeq();
 
-    const startChordElementSeqId = chordsSeq.indexOf(
+    const startBeatElementSeqId = beatsSeq.indexOf(
       this._tabLineElements[startTabLineElementId].barElements[
         startBarElementId
-      ].chordElements[startChordElementId].chord
+      ].beatElements[startBeatElementId].beat
     );
-    const endChordElementSeqId = chordsSeq.indexOf(
+    const endBeatElementSeqId = beatsSeq.indexOf(
       this._tabLineElements[endTabLineElementId].barElements[endBarElementId]
-        .chordElements[endChordElementId].chord
+        .beatElements[endBeatElementId].beat
     );
-    let seqIndex = chordsSeq.indexOf(
+    let seqIndex = beatsSeq.indexOf(
       this._tabLineElements[startTabLineElementId].barElements[0]
-        .chordElements[0].chord
+        .beatElements[0].beat
     );
 
     for (let i = startTabLineElementId; i <= endTabLineElementId; i++) {
       const barsCount = this._tabLineElements[i].barElements.length;
       for (let j = 0; j < barsCount; j++) {
-        const chordsCount =
-          this._tabLineElements[i].barElements[j].chordElements.length;
-        for (let k = 0; k < chordsCount; k++) {
+        const beatsCount =
+          this._tabLineElements[i].barElements[j].beatElements.length;
+        for (let k = 0; k < beatsCount; k++) {
           if (
-            seqIndex >= startChordElementSeqId &&
-            seqIndex <= endChordElementSeqId
+            seqIndex >= startBeatElementSeqId &&
+            seqIndex <= endBeatElementSeqId
           ) {
-            this.addChordToSelection(i, j, k, seqIndex);
+            this.addBeatToSelection(i, j, k, seqIndex);
           }
           seqIndex++;
         }
@@ -297,58 +297,58 @@ export class TabWindow {
   }
 
   /**
-   * Selects specified chord and all the chords between it and base selection element
+   * Selects specified beat and all the beats between it and base selection element
    * @param tabLineElementId Id of the line of bar elements
    * @param barElementId Bar element id
-   * @param chordElementId Chord element id
+   * @param beatElementId Beat element id
    * @returns
    */
-  public selectChord(
+  public selectBeat(
     tabLineElementId: number,
     barElementId: number,
-    chordElementId: number
+    beatElementId: number
   ): void {
     if (this._selectedElement) {
       this._selectedElement = undefined;
     }
 
-    const chordElement =
+    const beatElement =
       this._tabLineElements[tabLineElementId].barElements[barElementId]
-        .chordElements[chordElementId];
-    const chordSeqId = this._tab.getChordsSeq().indexOf(chordElement.chord);
-    // const chordElementSeqId = this._chordElementsSeq.indexOf(chordElement);
+        .beatElements[beatElementId];
+    const beatSeqId = this._tab.getBeatsSeq().indexOf(beatElement.beat);
+    // const beatElementSeqId = this._beatElementsSeq.indexOf(beatElement);
 
     let startTabLineElementId: number;
     let startBarElementId: number;
-    let startChordElementId: number;
+    let startBeatElementId: number;
     let endTabLineElementId: number;
     let endBarElementId: number;
-    let endChordElementId: number;
+    let endBeatElementId: number;
 
     if (
       this._baseSelectionElement === undefined ||
-      chordSeqId === this._baseSelectionElement.chordElementSeqId
+      beatSeqId === this._baseSelectionElement.beatElementSeqId
     ) {
       startTabLineElementId = tabLineElementId;
       startBarElementId = barElementId;
-      startChordElementId = chordElementId;
+      startBeatElementId = beatElementId;
       endTabLineElementId = tabLineElementId;
       endBarElementId = barElementId;
-      endChordElementId = chordElementId;
-    } else if (chordSeqId > this._baseSelectionElement.chordElementSeqId) {
+      endBeatElementId = beatElementId;
+    } else if (beatSeqId > this._baseSelectionElement.beatElementSeqId) {
       startTabLineElementId = this._baseSelectionElement.tabLineElementId;
       startBarElementId = this._baseSelectionElement.barElementId;
-      startChordElementId = this._baseSelectionElement.chordElementId;
+      startBeatElementId = this._baseSelectionElement.beatElementId;
       endTabLineElementId = tabLineElementId;
       endBarElementId = barElementId;
-      endChordElementId = chordElementId;
+      endBeatElementId = beatElementId;
     } else {
       startTabLineElementId = tabLineElementId;
       startBarElementId = barElementId;
-      startChordElementId = chordElementId;
+      startBeatElementId = beatElementId;
       endTabLineElementId = this._baseSelectionElement.tabLineElementId;
       endBarElementId = this._baseSelectionElement.barElementId;
-      endChordElementId = this._baseSelectionElement.chordElementId;
+      endBeatElementId = this._baseSelectionElement.beatElementId;
     }
 
     // Clear selection rects
@@ -357,14 +357,14 @@ export class TabWindow {
       this._selectionRects[i] = undefined;
     }
 
-    // Select all chords in new selection
-    this.selectChordsInBetween(
+    // Select all beats in new selection
+    this.selectBeatsInBetween(
       startTabLineElementId,
       startBarElementId,
-      startChordElementId,
+      startBeatElementId,
       endTabLineElementId,
       endBarElementId,
-      endChordElementId
+      endBeatElementId
     );
   }
 
@@ -380,32 +380,32 @@ export class TabWindow {
   }
 
   /**
-   * Copy selected note/chords (depending on which is currently selected)
+   * Copy selected note/beats (depending on which is currently selected)
    */
   public copy(): void {
     this._copiedData = this._selectedElement
       ? new SelectedElement(
           this._tab,
           this._selectedElement.barId,
-          this._selectedElement.chordId,
+          this._selectedElement.beatId,
           this._selectedElement.stringNum
         )
       : this._selectionElements;
   }
 
-  private insertChords(): void {
+  private insertBeats(): void {
     if (isSelectedElement(this._copiedData)) {
       return;
     }
 
-    // Insert selection chords after specified chord
-    const chordSeqId = this._tab.getChordsSeq();
-    const chords = this._copiedData.map((se) => {
-      return chordSeqId[se.chordElementSeqId].deepCopy();
+    // Insert selection beats after specified beat
+    const beatSeqId = this._tab.getBeatsSeq();
+    const beats = this._copiedData.map((se) => {
+      return beatSeqId[se.beatElementSeqId].deepCopy();
     });
-    this._selectedElement.bar.insertChords(
-      this._selectedElement.chordId,
-      chords
+    this._selectedElement.bar.insertBeats(
+      this._selectedElement.beatId,
+      beats
     );
 
     // Recalc
@@ -413,19 +413,19 @@ export class TabWindow {
     this.calc();
   }
 
-  private replaceChords(): void {
+  private replaceBeats(): void {
     if (isSelectedElement(this._copiedData)) {
       return;
     }
 
-    const chordSeqId = this._tab.getChordsSeq();
-    const oldChords = this._selectionElements.map((se) => {
-      return chordSeqId[se.chordElementSeqId];
+    const beatSeqId = this._tab.getBeatsSeq();
+    const oldBeats = this._selectionElements.map((se) => {
+      return beatSeqId[se.beatElementSeqId];
     });
-    const copiedChords = this._copiedData.map((se) => {
-      return chordSeqId[se.chordElementSeqId];
+    const copiedBeats = this._copiedData.map((se) => {
+      return beatSeqId[se.beatElementSeqId];
     });
-    this._tab.replaceChords(oldChords, copiedChords);
+    this._tab.replaceBeats(oldBeats, copiedBeats);
 
     this.clearSelection();
     this.calc();
@@ -433,7 +433,7 @@ export class TabWindow {
 
   /**
    * Paste copied data:
-   * Paste chords after selected note if selected chords OR
+   * Paste beats after selected note if selected beats OR
    * Paste note, i.e., change fret value of selected note to that of selected
    * @returns
    */
@@ -445,9 +445,9 @@ export class TabWindow {
       }
 
       if (this._selectionElements.length === 0) {
-        this.insertChords();
+        this.insertBeats();
       } else {
-        this.replaceChords();
+        this.replaceBeats();
       }
     } else {
       this._selectedElement.note.fret = this._copiedData.note.fret;
@@ -455,27 +455,27 @@ export class TabWindow {
   }
 
   /**
-   * Delete every selected chord
-   * @param chords
+   * Delete every selected beat
+   * @param beats
    */
-  public deleteChords(): void {
-    // PROBLEM: Removing chords individually by id leads to issues
-    // SOLUTION #1: Use chords uuid instead
+  public deleteBeats(): void {
+    // PROBLEM: Removing beats individually by id leads to issues
+    // SOLUTION #1: Use beats uuid instead
 
-    const chords = this._selectionElements.map((se) => {
+    const beats = this._selectionElements.map((se) => {
       const tabLineElement = this._tabLineElements[se.tabLineElementId];
       const barElement = tabLineElement.barElements[se.barElementId];
-      const chordElement = barElement.chordElements[se.chordElementId];
-      return chordElement.chord;
+      const beatElement = barElement.beatElements[se.beatElementId];
+      return beatElement.beat;
     });
 
-    this._tab.removeChords(chords);
+    this._tab.removeBeats(beats);
 
     // for (const se of this._selectionElements) {
     //   const tabLineElement = this._tabLineElements[se.tabLineElementId];
     //   const barElement = tabLineElement.barElements[se.barElementId];
-    //   const chordElement = barElement.chordElements[se.chordElementId];
-    //   barElement.removeChordByUUID(chordElement.chord.uuid);
+    //   const beatElement = barElement.beatElements[se.beatElementId];
+    //   barElement.removeBeatByUUID(beatElement.beat.uuid);
     // }
 
     // Recalc
@@ -484,13 +484,13 @@ export class TabWindow {
   }
 
   /**
-   * Gets chords from selection (as a get function because this is a .map wrapper)
-   * @returns Selected chords ('Chord' class)
+   * Gets beats from selection (as a get function because this is a .map wrapper)
+   * @returns Selected beats ('Beat' class)
    */
-  public getSelectionChords(): Chord[] {
-    const chordSeqId = this._tab.getChordsSeq();
+  public getSelectionBeats(): Beat[] {
+    const beatSeqId = this._tab.getBeatsSeq();
     return this._selectionElements.map((se) => {
-      return chordSeqId[se.chordElementSeqId];
+      return beatSeqId[se.beatElementSeqId];
     });
   }
 
@@ -505,7 +505,7 @@ export class TabWindow {
 
   /**
    * Gets all UI ids of the selected element
-   * @returns Ids: tabLineElementId, barElementId, chordElementId, stringNum
+   * @returns Ids: tabLineElementId, barElementId, beatElementId, stringNum
    */
   public getSelectedNoteElementIds(): SelectedElementWindowIds {
     let barElementId = -1;
@@ -519,7 +519,7 @@ export class TabWindow {
     return {
       tabLineElementId: tabLineElementId,
       barElementId: barElementId,
-      chordElementId: this._selectedElement.chordId,
+      beatElementId: this._selectedElement.beatId,
       stringNum: this._selectedElement.stringNum,
     };
   }
@@ -565,7 +565,7 @@ export class TabWindow {
       this._selectedElement = new SelectedElement(
         this._tab,
         barId,
-        leftMostElement.chordElementId,
+        leftMostElement.beatElementId,
         this._selectedElement ? this._selectedElement.stringNum : 1
       );
 
@@ -583,9 +583,9 @@ export class TabWindow {
   }
 
   /**
-   * Handles added chord after moving right
+   * Handles added beat after moving right
    */
-  private handleAddedChord(): void {
+  private handleAddedBeat(): void {
     // Find bar element
     let tabLineElement: TabLineElement;
     let barElement: BarElement;
@@ -599,7 +599,7 @@ export class TabWindow {
       });
     });
 
-    // Check if the bar element fits after appending new chord
+    // Check if the bar element fits after appending new beat
     if (
       tabLineElement === this._tabLineElements[this._tabLineElements.length - 1]
     ) {
@@ -607,8 +607,8 @@ export class TabWindow {
       // create and add new tab line and push the bar element there
 
       tabLineElement.removeBarElement(barElementId);
-      // Append empty chord
-      barElement.appendChord();
+      // Append empty beat
+      barElement.appendBeat();
       // tabLineElement.barElements.splice(barElementId, 1);
 
       const barIndex = this._tab.bars.indexOf(barElement.bar);
@@ -616,7 +616,7 @@ export class TabWindow {
     } else {
       // Otherwise just redraw the whole thing since might need to
       // recalc every tab line below the current one anyway
-      barElement.appendChord();
+      barElement.appendBeat();
       this.calc();
     }
   }
@@ -651,7 +651,7 @@ export class TabWindow {
       this._selectedElement = new SelectedElement(
         this._tab,
         barId,
-        rightMostElement.chordElementId,
+        rightMostElement.beatElementId,
         this._selectedElement ? this._selectedElement.stringNum : 1
       );
 
@@ -669,8 +669,8 @@ export class TabWindow {
     switch (moveRightOutput.result) {
       case MoveRightResult.Nothing:
         break;
-      case MoveRightResult.AddedChord:
-        this.handleAddedChord();
+      case MoveRightResult.AddedBeat:
+        this.handleAddedBeat();
         break;
       case MoveRightResult.AddedBar:
         this.handleAddedBar(moveRightOutput.addedBar);
@@ -710,24 +710,24 @@ export class TabWindow {
     this.calc();
   }
 
-  public changeSelectedChordDuration(newDuration: NoteDuration): void {
+  public changeSelectedBeatDuration(newDuration: NoteDuration): void {
     const ids = this.getSelectedNoteElementIds();
-    const { tabLineElementId, barElementId, chordElementId } = ids;
+    const { tabLineElementId, barElementId, beatElementId } = ids;
     const tabLineElement = this._tabLineElements[tabLineElementId];
     const barElement = tabLineElement.barElements[barElementId];
-    const chordElement = barElement.chordElements[chordElementId];
+    const beatElement = barElement.beatElements[beatElementId];
 
-    barElement.changeChordDuration(chordElement.chord, newDuration);
+    barElement.changeBeatDuration(beatElement.beat, newDuration);
     this.calc();
   }
 
   public changeSelectedNoteValue(newNoteValue: number): void {
     const ids = this.getSelectedNoteElementIds();
-    const { tabLineElementId, barElementId, chordElementId, stringNum } = ids;
+    const { tabLineElementId, barElementId, beatElementId, stringNum } = ids;
     const tabLineElement = this._tabLineElements[tabLineElementId];
     const barElement = tabLineElement.barElements[barElementId];
-    const chordElement = barElement.chordElements[chordElementId];
-    const noteElement = chordElement.noteElements[stringNum - 1];
+    const beatElement = barElement.beatElements[beatElementId];
+    const noteElement = beatElement.noteElements[stringNum - 1];
 
     noteElement.note.fret = newNoteValue;
   }
@@ -741,7 +741,7 @@ export class TabWindow {
       // Apply effect to selected element
       applyRes = this._tab.applyEffectToNote(
         this._selectedElement.barId,
-        this._selectedElement.chordId,
+        this._selectedElement.beatId,
         this._selectedElement.stringNum,
         effectType,
         effectOptions
@@ -752,29 +752,29 @@ export class TabWindow {
         const ids = this.getSelectedNoteElementIds();
         this._tabLineElements[ids.tabLineElementId].barElements[
           ids.barElementId
-        ].chordElements[ids.chordElementId].noteElements[
+        ].beatElements[ids.beatElementId].noteElements[
           ids.stringNum - 1
         ].calc();
       }
     } else if (this._selectionElements.length !== 0) {
       // Apply effect to all elements in selection
-      const chords = this._selectionElements.map((se) => {
+      const beats = this._selectionElements.map((se) => {
         return this._tabLineElements[se.tabLineElementId].barElements[
           se.barElementId
-        ].chordElements[se.chordElementId].chord;
+        ].beatElements[se.beatElementId].beat;
       });
-      applyRes = this._tab.applyEffectToChords(
-        chords,
+      applyRes = this._tab.applyEffectToBeats(
+        beats,
         effectType,
         effectOptions
       );
 
       if (applyRes) {
-        // Effects applied to all selected chord elements => recalc every affected chord element
+        // Effects applied to all selected beat elements => recalc every affected beat element
         for (const selectionElement of this._selectionElements) {
           this._tabLineElements[selectionElement.tabLineElementId].barElements[
             selectionElement.barElementId
-          ].chordElements[selectionElement.chordElementId].calc();
+          ].beatElements[selectionElement.beatElementId].calc();
         }
       }
     }
@@ -787,16 +787,16 @@ export class TabWindow {
     this.calc();
   }
 
-  public insertChord(
+  public insertBeat(
     barElement: BarElement,
-    prevChordElement: ChordElement
+    prevBeatElement: BeatElement
   ): void {
-    const index = barElement.chordElements.indexOf(prevChordElement);
-    if (index < 0 || index >= barElement.chordElements.length) {
+    const index = barElement.beatElements.indexOf(prevBeatElement);
+    if (index < 0 || index >= barElement.beatElements.length) {
       return;
     }
 
-    barElement.insertEmptyChord(index);
+    barElement.insertEmptyBeat(index);
     this.calc();
   }
 

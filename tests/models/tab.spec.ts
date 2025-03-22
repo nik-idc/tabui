@@ -1,4 +1,4 @@
-import { Bar, Chord, NoteDuration, Tab, TabWindow } from "../../src/index";
+import { Bar, Beat, NoteDuration, Tab, TabWindow } from "../../src/index";
 import { Guitar, GuitarNote, Note } from "../../src/index";
 import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
 import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
@@ -31,26 +31,26 @@ function getTabData(): {
     song: "Interesting song",
     bars: [
       new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
       ]),
       new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
       ]),
       new Bar(guitar, 120, 2, NoteDuration.Quarter, [
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
       ]),
       new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
-        new Chord(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
+        new Beat(guitar, NoteDuration.Quarter),
       ]),
     ],
   };
@@ -64,8 +64,8 @@ function getTab(): Tab {
 
 function randomFrets(tab: Tab): void {
   for (const bar of tab.bars) {
-    for (const chord of bar.chords) {
-      for (const note of chord.notes) {
+    for (const beat of bar.beats) {
+      for (const note of beat.notes) {
         const newFret = Math.floor(Math.random() * tab.guitar.fretsCount);
         note.fret = newFret;
       }
@@ -125,81 +125,81 @@ describe("Tab Model Tests", () => {
     }
   });
 
-  test("Tab replace chords: sel > new", () => {
+  test("Tab replace beats: sel > new", () => {
     const tab = getTab();
 
-    // Selected - 3 chords
-    const oldChords = tab.getChordsSeq().slice(3, 5);
-    // New chords - 2 chords
-    const newChords = tab.getChordsSeq().slice(6, 7);
-    const prevChordsCount = tab.getChordsSeq().length;
-    tab.replaceChords(oldChords, newChords);
+    // Selected - 3 beats
+    const oldBeats = tab.getBeatsSeq().slice(3, 5);
+    // New beats - 2 beats
+    const newBeats = tab.getBeatsSeq().slice(6, 7);
+    const prevBeatsCount = tab.getBeatsSeq().length;
+    tab.replaceBeats(oldBeats, newBeats);
 
-    const chordsCount = tab.getChordsSeq().length;
-    expect(chordsCount).toBe(prevChordsCount - 1);
-    expect(Chord.compare(tab.getChordsSeq()[3], tab.getChordsSeq()[6])).toBe(
+    const beatsCount = tab.getBeatsSeq().length;
+    expect(beatsCount).toBe(prevBeatsCount - 1);
+    expect(Beat.compare(tab.getBeatsSeq()[3], tab.getBeatsSeq()[6])).toBe(
       true
     );
-    expect(Chord.compare(tab.getChordsSeq()[4], tab.getChordsSeq()[7])).toBe(
+    expect(Beat.compare(tab.getBeatsSeq()[4], tab.getBeatsSeq()[7])).toBe(
       true
     );
   });
 
-  test("Tab replace chords: sel === new", () => {
+  test("Tab replace beats: sel === new", () => {
     const tab = getTab();
 
-    // Selected - 3 chords
-    const oldChords = tab.getChordsSeq().slice(3, 5);
-    // New chords - 3 chords
-    const newChords = tab.getChordsSeq().slice(6, 8);
-    const prevChordsCount = tab.getChordsSeq().length;
-    tab.replaceChords(oldChords, newChords);
+    // Selected - 3 beats
+    const oldBeats = tab.getBeatsSeq().slice(3, 5);
+    // New beats - 3 beats
+    const newBeats = tab.getBeatsSeq().slice(6, 8);
+    const prevBeatsCount = tab.getBeatsSeq().length;
+    tab.replaceBeats(oldBeats, newBeats);
 
-    const chordsCount = tab.getChordsSeq().length;
-    expect(chordsCount).toBe(prevChordsCount);
-    expect(Chord.compare(tab.getChordsSeq()[3], tab.getChordsSeq()[6])).toBe(
+    const beatsCount = tab.getBeatsSeq().length;
+    expect(beatsCount).toBe(prevBeatsCount);
+    expect(Beat.compare(tab.getBeatsSeq()[3], tab.getBeatsSeq()[6])).toBe(
       true
     );
-    expect(Chord.compare(tab.getChordsSeq()[4], tab.getChordsSeq()[7])).toBe(
+    expect(Beat.compare(tab.getBeatsSeq()[4], tab.getBeatsSeq()[7])).toBe(
       true
     );
-    expect(Chord.compare(tab.getChordsSeq()[5], tab.getChordsSeq()[8])).toBe(
+    expect(Beat.compare(tab.getBeatsSeq()[5], tab.getBeatsSeq()[8])).toBe(
       true
     );
   });
 
-  test("Tab replace chords: sel > new", () => {
+  test("Tab replace beats: sel > new", () => {
     const tab = getTab();
 
-    // Selected - 2 chords
-    const oldChords = tab.getChordsSeq().slice(3, 4);
-    // New chords - 3 chords
-    const newChords = tab.getChordsSeq().slice(6, 8);
-    const prevChordsCount = tab.getChordsSeq().length;
-    tab.replaceChords(oldChords, newChords);
+    // Selected - 2 beats
+    const oldBeats = tab.getBeatsSeq().slice(3, 4);
+    // New beats - 3 beats
+    const newBeats = tab.getBeatsSeq().slice(6, 8);
+    const prevBeatsCount = tab.getBeatsSeq().length;
+    tab.replaceBeats(oldBeats, newBeats);
 
-    const chordsCount = tab.getChordsSeq().length;
-    expect(chordsCount).toBe(prevChordsCount + 1);
-    expect(Chord.compare(tab.bars[0].chords[3], tab.getChordsSeq()[6])).toBe(
+    const beatsCount = tab.getBeatsSeq().length;
+    expect(beatsCount).toBe(prevBeatsCount + 1);
+    expect(Beat.compare(tab.bars[0].beats[3], tab.getBeatsSeq()[6])).toBe(
       true
     );
-    expect(Chord.compare(tab.bars[1].chords[0], tab.getChordsSeq()[7])).toBe(
+    expect(Beat.compare(tab.bars[1].beats[0], tab.getBeatsSeq()[7])).toBe(
       true
     );
-    expect(Chord.compare(tab.bars[1].chords[1], tab.getChordsSeq()[8])).toBe(
+    expect(Beat.compare(tab.bars[1].beats[1], tab.getBeatsSeq()[8])).toBe(
       true
     );
   });
 
-  test("Tab remove chords", () => {
+  test("Tab remove beats", () => {
     const tab = getTab();
 
-    const prevChordsCount = tab.getChordsSeq().length;
-    // Removing 2 chords
-    tab.removeChords(tab.getChordsSeq().slice(2, 4));
+    const prevBeatsCount = tab.getBeatsSeq().length;
+    // Removing 2 beats
+    tab.removeBeats(tab.getBeatsSeq().slice(2, 4));
 
-    const chordsCount = tab.getChordsSeq().length;
-    expect(chordsCount).toBe(prevChordsCount - 2);
+    const beatsCount = tab.getBeatsSeq().length;
+    expect(beatsCount).toBe(prevBeatsCount - 2);
   });
 
   test("Tab apply note effect: bend", () => {
@@ -209,9 +209,9 @@ describe("Tab Model Tests", () => {
     const bendEffect = new GuitarEffect(GuitarEffectType.Bend, options);
     randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.Bend, options);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(bendEffect);
-    expect(tab.bars[0].chords[2].notes[2].effects[0].options).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(bendEffect);
+    expect(tab.bars[0].beats[2].notes[2].effects[0].options).toStrictEqual(
       options
     );
   });
@@ -226,11 +226,11 @@ describe("Tab Model Tests", () => {
     );
     randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.BendAndRelease, options);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(
       bendAndReleaseEffect
     );
-    expect(tab.bars[0].chords[2].notes[2].effects[0].options).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects[0].options).toStrictEqual(
       options
     );
   });
@@ -242,11 +242,11 @@ describe("Tab Model Tests", () => {
     const prebendEffect = new GuitarEffect(GuitarEffectType.Prebend, options);
     randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.Prebend, options);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(
       prebendEffect
     );
-    expect(tab.bars[0].chords[2].notes[2].effects[0].options).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects[0].options).toStrictEqual(
       options
     );
   });
@@ -261,11 +261,11 @@ describe("Tab Model Tests", () => {
     );
     randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.PrebendAndRelease, options);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(
       prebendAndReleaseEffect
     );
-    expect(tab.bars[0].chords[2].notes[2].effects[0].options).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects[0].options).toStrictEqual(
       options
     );
   });
@@ -276,8 +276,8 @@ describe("Tab Model Tests", () => {
     const vibratoEffect = new GuitarEffect(GuitarEffectType.Vibrato);
     randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.Vibrato);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(
       vibratoEffect
     );
   });
@@ -287,8 +287,8 @@ describe("Tab Model Tests", () => {
     randomFrets(tab);
 
     const nextHigher =
-      tab.bars[0].chords[2].notes[2].fret! <
-      tab.bars[0].chords[3].notes[2].fret!;
+      tab.bars[0].beats[2].notes[2].fret! <
+      tab.bars[0].beats[3].notes[2].fret!;
     const options = new GuitarEffectOptions(
       undefined,
       undefined,
@@ -297,11 +297,11 @@ describe("Tab Model Tests", () => {
     );
     const slideEffect = new GuitarEffect(GuitarEffectType.Slide, options);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.Slide, options);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(
       slideEffect
     );
-    expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
+    expect(tab.bars[0].beats[2].notes[2].effects[0].effectType).toBe(
       GuitarEffectType.Slide
     );
   });
@@ -312,11 +312,11 @@ describe("Tab Model Tests", () => {
     const hammerOnEffect = new GuitarEffect(GuitarEffectType.HammerOnOrPullOff);
     randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.HammerOnOrPullOff);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(
       hammerOnEffect
     );
-    expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
+    expect(tab.bars[0].beats[2].notes[2].effects[0].effectType).toBe(
       GuitarEffectType.HammerOnOrPullOff
     );
   });
@@ -327,9 +327,9 @@ describe("Tab Model Tests", () => {
     const phEffect = new GuitarEffect(GuitarEffectType.PinchHarmonic);
     randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.PinchHarmonic);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(phEffect);
-    expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(phEffect);
+    expect(tab.bars[0].beats[2].notes[2].effects[0].effectType).toBe(
       GuitarEffectType.PinchHarmonic
     );
   });
@@ -340,9 +340,9 @@ describe("Tab Model Tests", () => {
     const nhEffect = new GuitarEffect(GuitarEffectType.NaturalHarmonic);
     randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.NaturalHarmonic);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(nhEffect);
-    expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(nhEffect);
+    expect(tab.bars[0].beats[2].notes[2].effects[0].effectType).toBe(
       GuitarEffectType.NaturalHarmonic
     );
   });
@@ -353,9 +353,9 @@ describe("Tab Model Tests", () => {
     const pmEffect = new GuitarEffect(GuitarEffectType.PalmMute);
     randomFrets(tab);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.PalmMute);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(pmEffect);
-    expect(tab.bars[0].chords[2].notes[2].effects[0].effectType).toBe(
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(pmEffect);
+    expect(tab.bars[0].beats[2].notes[2].effects[0].effectType).toBe(
       GuitarEffectType.PalmMute
     );
   });
@@ -376,8 +376,8 @@ describe("Tab Model Tests", () => {
     );
 
     expect(nhApplyResult).toBe(false);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(bendEffect);
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(bendEffect);
   });
 
   test("Tab apply compatible effects: pinch harmonic + bend", () => {
@@ -396,8 +396,8 @@ describe("Tab Model Tests", () => {
     );
 
     expect(phApplyResult).toBe(true);
-    expect(tab.bars[0].chords[2].notes[2].effects.length).toBe(2);
-    expect(tab.bars[0].chords[2].notes[2].effects[0]).toStrictEqual(bendEffect);
-    expect(tab.bars[0].chords[2].notes[2].effects[1]).toStrictEqual(phEffect);
+    expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(2);
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(bendEffect);
+    expect(tab.bars[0].beats[2].notes[2].effects[1]).toStrictEqual(phEffect);
   });
 });

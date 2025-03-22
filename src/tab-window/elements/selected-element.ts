@@ -1,10 +1,10 @@
 import { NoteElement } from "./note-element";
-import { ChordElement } from "./chord-element";
+import { BeatElement } from "./beat-element";
 import { BarElement } from "./bar-element";
 import { TabWindow } from "../tab-window";
 import { Bar } from "../../models/bar";
 import { Point } from "../shapes/point";
-import { Chord } from "../../models/chord";
+import { Beat } from "../../models/beat";
 import { Note } from "../../models/note";
 import { GuitarNote } from "../../models/guitar-note";
 import { Tab } from "../../models/tab";
@@ -26,7 +26,7 @@ export function isSelectedElement(
  */
 export enum MoveRightResult {
   Nothing,
-  AddedChord,
+  AddedBeat,
   AddedBar,
 }
 
@@ -48,13 +48,13 @@ export class SelectedElement {
    * about a selected element
    * @param _tab Tab
    * @param _barId Bar id
-   * @param _chordId Chord id (chord element id at the same time)
+   * @param _beatId Beat id (beat element id at the same time)
    * @param _stringNum String number
    */
   constructor(
     private _tab: Tab,
     private _barId: number = 0,
-    private _chordId: number = 0,
+    private _beatId: number = 0,
     private _stringNum: number = 1
   ) {}
 
@@ -84,20 +84,20 @@ export class SelectedElement {
    * Move selected note left (or to the last note of the previous bar)
    */
   public moveLeft(): void {
-    // If not first bar chord
-    if (this._chordId !== 0) {
-      this._chordId--;
+    // If not first bar beat
+    if (this._beatId !== 0) {
+      this._beatId--;
       return;
     }
 
-    // Do nothing if last bar and last chord
+    // Do nothing if last bar and last beat
     if (this._barId === 0) {
       return;
     }
 
     // Move to the left bar
     this._barId--;
-    this._chordId = this.bar.chords.length - 1;
+    this._beatId = this.bar.beats.length - 1;
   }
 
   /**
@@ -105,40 +105,40 @@ export class SelectedElement {
    * @returns A move right result
    */
   public moveRight(): MoveRightOutput {
-    // Check if can add chords to the bar
+    // Check if can add beats to the bar
     if (
-      this._chordId === this.bar.chords.length - 1 &&
+      this._beatId === this.bar.beats.length - 1 &&
       !this.bar.durationsFit &&
-      this.bar.actualDuration() < this.bar.beats * this.bar.duration
+      this.bar.actualDuration() < this.bar.beatsCount * this.bar.duration
     ) {
-      // If the current chord is not the last one of the bar AND
+      // If the current beat is not the last one of the bar AND
       // If durations don't fit AND
       // If currently actual bar duration is less than the correct one
-      // append a new chord and select it
+      // append a new beat and select it
       // !!
       // -- commented this because tab manipulations will be done
       // -- outside of this class
-      // this.bar.appendChord();
+      // this.bar.appendBeat();
       // !!
-      this._chordId++;
+      this._beatId++;
 
       // Recalc tab window
       // this._tabWindow.calc();
-      return { result: MoveRightResult.AddedChord };
+      return { result: MoveRightResult.AddedBeat };
     }
 
-    if (this._chordId !== this.bar.chords.length - 1) {
-      // Can't add more chords but can move to the next chord
-      this._chordId++;
+    if (this._beatId !== this.bar.beats.length - 1) {
+      // Can't add more beats but can move to the next beat
+      this._beatId++;
 
       // return false;
       return { result: MoveRightResult.Nothing };
     }
 
-    // Can't move to next chord OR add more chords, move to the next bar
+    // Can't move to next beat OR add more beats, move to the next bar
     if (this._barId !== this._tab.bars.length - 1) {
       this._barId++;
-      this._chordId = 0;
+      this._beatId = 0;
 
       // return false;
       return { result: MoveRightResult.Nothing };
@@ -148,9 +148,9 @@ export class SelectedElement {
     const newBar = new Bar(
       this._tab.guitar,
       this.bar.tempo,
-      this.bar.beats,
+      this.bar.beatsCount,
       this.bar.duration,
-      [new Chord(this._tab.guitar, this.chord.duration)]
+      [new Beat(this._tab.guitar, this.beat.duration)]
     );
     // !!
     // -- commented this because tab manipulations will be done
@@ -158,7 +158,7 @@ export class SelectedElement {
     // this._tab.bars.push(newBar);
     // !!
     this._barId++;
-    this._chordId = 0;
+    this._beatId = 0;
 
     // Recalc tab window
     // this._tabWindow.calc();
@@ -170,16 +170,16 @@ export class SelectedElement {
    * Selected note
    */
   public get note(): GuitarNote {
-    return this._tab.bars[this._barId].chords[this._chordId].notes[
+    return this._tab.bars[this._barId].beats[this._beatId].notes[
       this._stringNum - 1
     ];
   }
 
   /**
-   * Selected chord
+   * Selected beat
    */
-  public get chord(): Chord {
-    return this._tab.bars[this._barId].chords[this._chordId];
+  public get beat(): Beat {
+    return this._tab.bars[this._barId].beats[this._beatId];
   }
 
   /**
@@ -204,10 +204,10 @@ export class SelectedElement {
   }
 
   /**
-   * Selected chord id
+   * Selected beat id
    */
-  public get chordId(): number {
-    return this._chordId;
+  public get beatId(): number {
+    return this._beatId;
   }
 
   /**
@@ -225,10 +225,10 @@ export class SelectedElement {
   // }
 
   // /**
-  //  * Selected chord element
+  //  * Selected beat element
   //  */
-  // public get chordElementId(): number {
-  //   return this._chordId;
+  // public get beatElementId(): number {
+  //   return this._beatId;
   // }
 
   // /**
@@ -263,14 +263,14 @@ export class SelectedElement {
   //  * Selected note element
   //  */
   // public get noteElement(): NoteElement {
-  //   return this.chordElement.noteElements[this.noteElementId];
+  //   return this.beatElement.noteElements[this.noteElementId];
   // }
 
   // /**
-  //  * Selected chord element
+  //  * Selected beat element
   //  */
-  // public get chordElement(): ChordElement {
-  //   return this.barElement.chordElements[this.chordElementId];
+  // public get beatElement(): BeatElement {
+  //   return this.barElement.beatElements[this.beatElementId];
   // }
 
   // /**

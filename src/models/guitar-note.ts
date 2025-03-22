@@ -1,4 +1,3 @@
-import { Chord } from "./chord";
 import { Guitar } from "./guitar";
 import { Note, NotesCalcArr } from "./note";
 import { randomInt } from "../misc/random-int";

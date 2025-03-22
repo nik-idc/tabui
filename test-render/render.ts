@@ -1,5 +1,5 @@
 import { Bar } from "../src/models/bar";
-import { Chord } from "../src/models/chord";
+import { Beat } from "../src/models/beat";
 import { Guitar } from "../src/models/guitar";
 import { Note } from "../src/models/note";
 import { NoteDuration } from "../src/models/note-duration";
@@ -65,7 +65,7 @@ function render(
                                y="${barElement.beatsTextCoords.y}"
                                text-anchor="middle"
                                font-size="${tabWindow.dim.timeSigTextSize}">
-                           ${barElement.bar.beats}
+                           ${barElement.bar.beatsCount}
                          </text>
                
                          <text x="${barElement.measureTextCoords.x}"
@@ -103,28 +103,28 @@ function render(
           }
         }
 
-        for (const chordElement of barElement.chordElements) {
+        for (const beatElement of barElement.beatElements) {
           if (detailed) {
-            // const color = chordElement ? "blue" : "red";
-            html.push(`<rect x="${chordElement.rect.x}"
-                             y="${chordElement.rect.y}"
-                             width="${chordElement.rect.width}"
-                             height="${chordElement.rect.height}"
+            // const color = beatElement ? "blue" : "red";
+            html.push(`<rect x="${beatElement.rect.x}"
+                             y="${beatElement.rect.y}"
+                             width="${beatElement.rect.width}"
+                             height="${beatElement.rect.height}"
                              fill="red"
                              fill-opacity="0.25"
                              stroke="black"
                              stroke-opacity="1" />`);
           }
 
-          html.push(`<image x="${chordElement.durationRect.x}"
-                            y="${chordElement.durationRect.y}"
-                            width="${chordElement.durationRect.width}"
-                            height="${chordElement.durationRect.height}"
+          html.push(`<image x="${beatElement.durationRect.x}"
+                            y="${beatElement.durationRect.y}"
+                            width="${beatElement.durationRect.width}"
+                            height="${beatElement.durationRect.height}"
                             href="./assets/img/notes/${
-                              1 / chordElement.chord.duration
+                              1 / beatElement.beat.duration
                             }.svg" />`);
 
-          for (const noteElement of chordElement.noteElements) {
+          for (const noteElement of beatElement.noteElements) {
             if (detailed) {
               html.push(`<rect x="${noteElement.rect.x}"
                                y="${noteElement.rect.y}"
