@@ -2,7 +2,7 @@ import { Rect } from "../shapes/rect";
 import { Point } from "../shapes/point";
 import { GuitarNote } from "./../../models/guitar-note";
 import { TabWindowDim } from "../tab-window-dim";
-import { GuitarEffectElement } from "./guitar-effect-element";
+import { GuitarEffectElement } from "./effects/guitar-effect-element";
 
 /**
  * Class that handles drawing note element in the tab
@@ -118,6 +118,10 @@ export class NoteElement {
     this.textRect.y += Math.floor(dy);
     this.textCoords.x += Math.floor(dx);
     this.textCoords.y += Math.floor(dy);
+
+    for (const effectElement of this._guitarEffectElements) {
+      effectElement.translateBy(dx, dy);
+    }
   }
 
   public get guitarEffectElements(): GuitarEffectElement[] {

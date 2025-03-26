@@ -18,7 +18,7 @@ import { TabLineElement } from "./elements/tab-line-element";
 import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
 import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
-
+import { tabEvent, TabEventArgs, TabEventType } from "../events/tab-event";
 
 /**
  * Tab window specific selected element ids
@@ -58,7 +58,7 @@ export class TabWindow {
   /**
    * Tab line elements
    */
-  private _tabLineElements: TabLineElement[];
+  private _tabLineElements: TabLineElement[] = [];
   /**
    * Selected note element
    */
@@ -74,11 +74,11 @@ export class TabWindow {
   /**
    * Selection elements
    */
-  private _selectionElements: SelectionElement[];
+  private _selectionElements: SelectionElement[] = [];
   /**
    * Selection rectangles
    */
-  private _selectionRects: (Rect | undefined)[];
+  private _selectionRects: (Rect | undefined)[] = [];
   /**
    * Base element of selection
    */
@@ -90,65 +90,29 @@ export class TabWindow {
    * @param dim Tab window dimensions
    */
   constructor(tab: Tab, dim: TabWindowDim) {
-    if (tab.bars.length === 0) {
-      tab.bars.push(
-        new Bar(tab.guitar, 120, 4, NoteDuration.Quarter, [
-          new Beat(tab.guitar, NoteDuration.Quarter),
-        ])
-      );
-    }
     this._tab = tab;
     this.dim = dim;
-    this._tabLineElements = [];
-    this._selectionElements = [];
-    this._selectionRects = [];
+
+    tabEvent.on(TabEventType.LineMovementTriggered, (args) => {
+      this.onEffectLabelAdded(args);
+    });
 
     this.calc();
   }
 
-  private createBarElement(bar: Bar, prevBar?: Bar): BarElement {
-    /**
-     * TODO: THIS FUNCTION HAS TO GO TO 'BarElement' CLASS
-     * AS A STATIC METHOD
-     */
+  private addBar(bar: Bar, prevBar: Bar): void {
+    const lastTabLine = this._tabLineElements[this._tabLineElements.length - 1];
+    const addRes = lastTabLine.addBar(bar, prevBar);
 
-    const showSignature =
-      prevBar !== undefined ? bar.signature !== prevBar.signature : true;
-    const showTempo =
-      prevBar !== undefined ? bar.tempo !== prevBar.tempo : true;
-
-    const coords = new Point(0, 0);
-    const barElement = new BarElement(
-      this.dim,
-      coords,
-      bar,
-      showSignature,
-      showTempo
-    );
-
-    return barElement;
-  }
-
-  /**
-   * Adds new bar element to
-   * @param barIndex Index of the bar
-   * @param coords Coords of the current tab line element (top-left)
-   */
-  public addBarElement(barIndex: number, coords: Point): void {
-    let curTabLine = this._tabLineElements[this._tabLineElements.length - 1];
-
-    const barElement = this.createBarElement(
-      this._tab.bars[barIndex],
-      this._tab.bars[barIndex - 1]
-    );
-
-    if (!curTabLine.barElementFits(barElement)) {
-      coords.y += this.dim.tabLineHeight;
-      this._tabLineElements.push(new TabLineElement(this.dim, coords));
-      curTabLine = this._tabLineElements[this._tabLineElements.length - 1];
+    if (!addRes) {
+      const newTabLine = new TabLineElement(
+        this.tab,
+        this.dim,
+        lastTabLine.rect.leftBottom
+      );
+      this._tabLineElements.push(newTabLine);
+      newTabLine.addBar(bar, prevBar);
     }
-
-    curTabLine.addBarElement(barElement);
   }
 
   /**
@@ -156,10 +120,23 @@ export class TabWindow {
    * the resulting window with multiple bar lines
    */
   public calc(): void {
-    const coords = new Point(0, 0);
-    this._tabLineElements = [new TabLineElement(this.dim, coords)];
+    this._tabLineElements = [
+      new TabLineElement(this.tab, this.dim, new Point(0, 0)),
+    ];
     for (let barIndex = 0; barIndex < this._tab.bars.length; barIndex++) {
-      this.addBarElement(barIndex, coords);
+      this.addBar(this._tab.bars[barIndex], this._tab.bars[barIndex - 1]);
+
+      // const addedRes = curTabLine.addBar(
+      //   this._tab.bars[barIndex],
+      //   this._tab.bars[barIndex - 1]
+      // );
+
+      // if (addedRes) {
+      //   this._tabLineElements.push(
+      //     new TabLineElement(this.dim, curTabLine.rect.leftBottom)
+      //   );
+      //   curTabLine = this._tabLineElements[this._tabLineElements.length - 1];
+      // }
     }
   }
 
@@ -403,10 +380,7 @@ export class TabWindow {
     const beats = this._copiedData.map((se) => {
       return beatSeqId[se.beatElementSeqId].deepCopy();
     });
-    this._selectedElement.bar.insertBeats(
-      this._selectedElement.beatId,
-      beats
-    );
+    this._selectedElement.bar.insertBeats(this._selectedElement.beatId, beats);
 
     // Recalc
     // this.clearSelection();
@@ -612,7 +586,9 @@ export class TabWindow {
       // tabLineElement.barElements.splice(barElementId, 1);
 
       const barIndex = this._tab.bars.indexOf(barElement.bar);
-      this.addBarElement(barIndex, tabLineElement.rect.leftTop);
+      const bar = this._tab.bars[barIndex];
+      const prevBar = this._tab.bars[barIndex - 1];
+      this.addBar(bar, prevBar);
     } else {
       // Otherwise just redraw the whole thing since might need to
       // recalc every tab line below the current one anyway
@@ -630,9 +606,9 @@ export class TabWindow {
     this._tab.bars.push(addedBar);
 
     // Compute UI
-    const coords =
-      this._tabLineElements[this._tabLineElements.length - 1].rect.leftTop;
-    this.addBarElement(this._tab.bars.length - 1, coords);
+    const bar = this._tab.bars[this._tab.bars.length - 1];
+    const prevBar = this._tab.bars[this._tab.bars.length - 2];
+    this.addBar(bar, prevBar);
   }
 
   /**
@@ -732,6 +708,22 @@ export class TabWindow {
     noteElement.note.fret = newNoteValue;
   }
 
+  private onEffectLabelAdded(
+    args: TabEventArgs[TabEventType.LineMovementTriggered]
+  ): void {
+    const affectedTabLineIndex = this._tabLineElements.findIndex((tle) => {
+      return tle.barElements.some((barEl) => {
+        return barEl.beatElements.some((beatEl) => {
+          return beatEl.beat.uuid === args.beatUUID;
+        });
+      });
+    });
+
+    for (let i = affectedTabLineIndex; i < this._tabLineElements.length; i++) {
+      this._tabLineElements[i].rect.y += args.distance;
+    }
+  }
+
   public applyEffect(
     effectType: GuitarEffectType,
     effectOptions?: GuitarEffectOptions
@@ -752,9 +744,7 @@ export class TabWindow {
         const ids = this.getSelectedNoteElementIds();
         this._tabLineElements[ids.tabLineElementId].barElements[
           ids.barElementId
-        ].beatElements[ids.beatElementId].noteElements[
-          ids.stringNum - 1
-        ].calc();
+        ].beatElements[ids.beatElementId].calc();
       }
     } else if (this._selectionElements.length !== 0) {
       // Apply effect to all elements in selection
@@ -763,11 +753,7 @@ export class TabWindow {
           se.barElementId
         ].beatElements[se.beatElementId].beat;
       });
-      applyRes = this._tab.applyEffectToBeats(
-        beats,
-        effectType,
-        effectOptions
-      );
+      applyRes = this._tab.applyEffectToBeats(beats, effectType, effectOptions);
 
       if (applyRes) {
         // Effects applied to all selected beat elements => recalc every affected beat element

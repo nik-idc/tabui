@@ -76,7 +76,7 @@ describe("Bar element tests", () => {
       barCoords.x,
       barCoords.y,
       expectedSigRect.width + beatsWidth,
-      dim.tabLineHeight
+      dim.tabLineMinHeight
     );
 
     let expectedLines = new Array<Array<Point>>();
@@ -141,7 +141,7 @@ describe("Bar element tests", () => {
       barCoords.x,
       barCoords.y,
       beatsWidth,
-      dim.tabLineHeight
+      dim.tabLineMinHeight
     );
 
     let expectedLines = new Array<Array<Point>>();

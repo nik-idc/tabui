@@ -4,6 +4,9 @@ import { NoteElement } from "./note-element";
 import { Point } from "../shapes/point";
 import { TabWindowDim } from "../tab-window-dim";
 import { NoteDuration } from "../../models/note-duration";
+import { EffectLabelElement } from "./effects/effect-label-element";
+import { EFFECT_TYPE_TO_LABEL } from "./effects/guitar-effect-element-lists";
+import { tabEvent, TabEventType } from "../../events/tab-event";
 
 /**
  * Class that handles drawing beat element in the tab
@@ -29,6 +32,7 @@ export class BeatElement {
    * The beat
    */
   readonly beat: Beat;
+  private _effectLabelElements: EffectLabelElement[];
 
   /**
    * Class that handles drawing beat element in the tab
@@ -46,10 +50,7 @@ export class BeatElement {
     this.calc();
   }
 
-  /**
-   * Calculate dimensions of the beat element
-   */
-  public calc(): void {
+  private calcRectDims(): void {
     switch (this.beat.duration) {
       case NoteDuration.ThirtySecond:
         this.rect.width = this.dim.noteRectWidthThirtySecond;
@@ -72,8 +73,10 @@ export class BeatElement {
       default:
         throw Error(`${this.beat.duration} is an invalid beat duration`);
     }
-    this.rect.height = this.dim.tabLineHeight;
+    this.rect.height = this.dim.tabLineMinHeight;
+  }
 
+  private calcNoteElements(): void {
     // Calc note elements
     let notes = this.beat.notes;
     for (let stringNum = 1; stringNum <= notes.length; stringNum++) {
@@ -83,12 +86,72 @@ export class BeatElement {
         notes[stringNum - 1]
       );
     }
+  }
 
+  private calcDurationDims(): void {
     // Calc duration transform
     this.durationRect.x = this.rect.x;
     this.durationRect.y = this.rect.y;
     this.durationRect.width = this.rect.width;
     this.durationRect.height = this.dim.durationsHeight;
+  }
+
+  private calcEffectLabels(): void {
+    this._effectLabelElements = [];
+    for (const noteElement of this.noteElements) {
+      for (const effect of noteElement.note.effects) {
+        if (!EFFECT_TYPE_TO_LABEL[effect.effectType]) {
+          continue;
+        }
+
+        // Add effect label
+        const x = this.rect.x;
+        const y =
+          this.rect.y + noteElement.note.stringNum * this.dim.noteRectHeight;
+        const width = this.rect.width;
+        const height = this.dim.effectLabelHeight;
+        const rect = new Rect(x, y, width, height);
+        this._effectLabelElements.push(
+          new EffectLabelElement(this.dim, rect, effect)
+        );
+
+        // Update this label's rect
+        this.rect.height += height;
+
+        // Emit event
+        let totalLabelsHeight = 0;
+        for (const label of this._effectLabelElements) {
+          totalLabelsHeight += label.rect.height;
+        }
+        tabEvent.emit(TabEventType.EffectLabelAdded, {
+          beatUUID: this.beat.uuid,
+          totalLabelsHeight: totalLabelsHeight,
+          newLabelHeight: height,
+        });
+      }
+    }
+  }
+
+  /**
+   * Calculate dimensions of the beat element and its' child elements
+   */
+  public calc(): void {
+    this.calcRectDims();
+    this.calcNoteElements();
+    this.calcDurationDims();
+    this.calcEffectLabels();
+  }
+
+  /**
+   * Changes the height of the element
+   * @param dHeight Height by which to change
+   */
+  public changeHeight(dHeight: number): void {
+    this.rect.height += dHeight;
+
+    for (const noteElement of this.noteElements) {
+      noteElement.translateBy(0, dHeight);
+    }
   }
 
   /**
@@ -99,7 +162,7 @@ export class BeatElement {
   public scaleBeatHorBy(scale: number): boolean {
     // Check if can be scaled down
     if (scale <= 0) {
-    // if (scale <= 0 || (scale > 0 && scale < 1)) {
+      // if (scale <= 0 || (scale > 0 && scale < 1)) {
       throw Error(
         `${scale} is an invalid scale: scale must be positive AND >= 1`
       );
@@ -132,5 +195,9 @@ export class BeatElement {
     for (let noteElement of this.noteElements) {
       noteElement.translateBy(dx, dy);
     }
+  }
+
+  public get effectLabelElements(): EffectLabelElement[] {
+    return this._effectLabelElements;
   }
 }

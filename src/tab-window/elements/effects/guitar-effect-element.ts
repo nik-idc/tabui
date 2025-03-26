@@ -1,16 +1,13 @@
-import { GuitarEffect } from "../../models/guitar-effect/guitar-effect";
-import { GuitarEffectType } from "../../models/guitar-effect/guitar-effect-type";
-import { Point } from "../shapes/point";
-import { Rect } from "../shapes/rect";
-import { TabWindowDim } from "../tab-window-dim";
+import { GuitarEffect } from "../../../models/guitar-effect/guitar-effect";
+import { GuitarEffectType } from "../../../models/guitar-effect/guitar-effect-type";
+import { Point } from "../../shapes/point";
+import { Rect } from "../../shapes/rect";
+import { TabWindowDim } from "../../tab-window-dim";
 
 /**
  * Class that represents a guitar effect.
- * Note that this '-Element' class does not have tests
- * That is because 100% of this class is building svg paths
- * which amounts to placing numbers into predetermined path strings.
- * The checking of whether this element class works correctly happens
- * when examining render results
+ * Represents specifically a UI element near the note
+ * to which the effect is applied
  */
 export class GuitarEffectElement {
   /**
@@ -287,46 +284,6 @@ export class GuitarEffectElement {
   }
 
   /**
-   * Builds a vibrato shape
-   * @param dx How much to move on the X-axis prior to building
-   * @param dy How much to move on the Y-axis prior to building
-   * @param width Width of the effect
-   * @param height Height for the curve building
-   * @returns Constructed SVG path HTML element
-   */
-  private vibratoShape(
-    dx: number,
-    dy: number,
-    width: number,
-    height: number
-  ): string {
-    const lines = [
-      [dx + width / 8, dy - height / 2],
-      [dx + 2 * (width / 8), dy + height / 2],
-      [dx + 3 * (width / 8), dy - height / 2],
-      [dx + 4 * (width / 8), dy + height / 2],
-      [dx + 5 * (width / 8), dy - height / 2],
-      [dx + 6 * (width / 8), dy + height / 2],
-      [dx + 7 * (width / 8), dy - height / 2],
-      [dx + 8 * (width / 8), dy + height / 2],
-    ];
-
-    return (
-      '<path d="' +
-      `m ${dx} ${dy + height / 2} ` +
-      ` L ${lines[0][0]} ${lines[0][1]} ` +
-      ` L ${lines[1][0]} ${lines[1][1]} ` +
-      ` L ${lines[2][0]} ${lines[2][1]} ` +
-      ` L ${lines[3][0]} ${lines[3][1]} ` +
-      ` L ${lines[4][0]} ${lines[4][1]} ` +
-      ` L ${lines[5][0]} ${lines[5][1]} ` +
-      ` L ${lines[6][0]} ${lines[6][1]} ` +
-      ` L ${lines[7][0]} ${lines[7][1]}` +
-      '" stroke="black" fill="transparent" stroke-linecap="round"/>'
-    );
-  }
-
-  /**
    * Build a regular bend path SVG path HTML element
    */
   private calcBendPath(): void {
@@ -452,31 +409,6 @@ export class GuitarEffectElement {
   }
 
   /**
-   * Calc vibrato path
-   */
-  private calcVibratoPath(): void {
-    const vibratoWidth = this.dim.noteTextSize * 2;
-    const vibratoHeight = this.dim.noteTextSize / 4;
-    const vibratoStartX = this._startPoint.x + (3 * this.dim.noteTextSize) / 4;
-    const vibratoStartY = this._startPoint.y;
-    const vibratoLine = this.vibratoShape(
-      vibratoStartX,
-      vibratoStartY,
-      vibratoWidth,
-      vibratoHeight
-    );
-
-    this._rect = new Rect(
-      vibratoStartX,
-      vibratoStartY - vibratoHeight / 2,
-      vibratoWidth,
-      vibratoHeight
-    );
-
-    this._fullHTML = vibratoLine;
-  }
-
-  /**
    * Calc slide path
    */
   private calcSlidePath(): void {
@@ -563,26 +495,6 @@ export class GuitarEffectElement {
   }
 
   /**
-   * Calc palm mute HTML
-   */
-  private calcPalmMuteHTML(): void {
-    const pmX = this._startPoint.x + this.dim.noteTextSize;
-    const pmY = this._startPoint.y - this.dim.noteTextSize / 2;
-
-    this._rect = new Rect(
-      pmX,
-      pmY,
-      this.dim.noteTextSize * 2,
-      this.dim.noteTextSize
-    );
-
-    this._fullHTML =
-      `<text x="${pmX}" y="${pmY}" ` +
-      ` fill="black" font-size="${this.dim.noteTextSize}" font-style="oblique"` +
-      `text-anchor="start" dominant-baseline="hanging">P.M.</text>`;
-  }
-
-  /**
    * Calculates rectangle depending on effect type
    */
   private calc(): void {
@@ -600,9 +512,6 @@ export class GuitarEffectElement {
       case GuitarEffectType.PrebendAndRelease:
         this.calcPrebendAndReleasePath();
         break;
-      case GuitarEffectType.Vibrato:
-        this.calcVibratoPath();
-        break;
       case GuitarEffectType.Slide:
         this.calcSlidePath();
         break;
@@ -615,8 +524,8 @@ export class GuitarEffectElement {
       case GuitarEffectType.NaturalHarmonic:
         this.calcNaturalHarmonicPath();
         break;
-      case GuitarEffectType.PalmMute:
-        this.calcPalmMuteHTML();
+      default:
+        this._fullHTML = undefined;
         break;
     }
   }
@@ -635,6 +544,16 @@ export class GuitarEffectElement {
 
     this.rect.x *= scale;
     this.rect.width *= scale;
+  }
+
+  /**
+   * Translates guitar effect element by a specified dstance
+   */
+  public translateBy(dx: number, dy: number): void {
+    this.rect.x += Math.floor(dx);
+    this.rect.y += Math.floor(dy);
+
+    this.calc();
   }
 
   /**

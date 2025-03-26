@@ -30,7 +30,7 @@ describe("Tab window dim tests", () => {
       timeSigRectHeight: noteTextSize * 2 * (stringsCount - 1),
       tempoRectWidth: durationsHeight + 5 * tempoTextSize,
       tempoRectHeight: durationsHeight,
-      tabLineHeight:
+      tabLineMinHeight:
         durationsHeight + noteTextSize * 2 * stringsCount + durationsHeight,
     };
 
@@ -46,7 +46,7 @@ describe("Tab window dim tests", () => {
       timeSigRectHeight: twd.timeSigRectHeight,
       tempoRectWidth: twd.tempoRectWidth,
       tempoRectHeight: twd.tempoRectHeight,
-      tabLineHeight: twd.tabLineHeight,
+      tabLineMinHeight: twd.tabLineMinHeight,
     };
 
     expect(actual).toStrictEqual(expected);

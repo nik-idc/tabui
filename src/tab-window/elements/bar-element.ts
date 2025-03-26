@@ -41,8 +41,12 @@ export class BarElement {
   public rect: Rect;
   /**
    * Bar element's lines
+   * The reason they are here and not in 'TabLineElement' is
+   * because, if a bar's durations don't fit the lines of that
+   * specific bar, then they need to be red. No way to do that
+   * in 'TabLineElement'
    */
-  public lines: Point[][];
+  public staffLines: Point[][];
   /**
    * The bar
    */
@@ -58,7 +62,7 @@ export class BarElement {
    */
   constructor(
     dim: TabWindowDim,
-    barCoords: Point,
+    // barCoords: Point,
     bar: Bar,
     showSignature: boolean,
     showTempo: boolean
@@ -69,24 +73,28 @@ export class BarElement {
     this.showTempo = showTempo;
     this.tempoRect = new Rect();
     this.timeSigRect = new Rect();
-    this.rect = new Rect(barCoords.x, barCoords.y);
-    this.lines = new Array<Array<Point>>();
+    this.rect = new Rect();
     this.bar = bar;
+    this.staffLines = [];
 
     this.calc();
   }
 
   /**
-   * Calculates this bar element
+   * TODO: Change all elements except TabLineElement to use local coords
+   * Later adjust the render function
    */
-  calc(): void {
+
+  private calcTempoRect(): void {
     // Tempo rectangle
     const tempoRectWidth = this.showTempo ? this.dim.tempoRectWidth : 0;
     this.tempoRect.x = this.rect.x;
     this.tempoRect.y = this.rect.y;
     this.tempoRect.width = tempoRectWidth;
     this.tempoRect.height = this.dim.tempoRectHeight;
+  }
 
+  private calcTimeSigRect(): void {
     // Time signature rectangle
     const timeSigWidth = this.showSignature ? this.dim.timeSigRectWidth : 0;
     this.timeSigRect.x = this.rect.x;
@@ -96,7 +104,9 @@ export class BarElement {
       this.dim.noteRectHeight / 2;
     this.timeSigRect.width = timeSigWidth;
     this.timeSigRect.height = this.dim.timeSigRectHeight;
+  }
 
+  private calcBeatsAndRect(): void {
     // Calculate beats
     this.beatElements = [];
     let beatsWidth = 0;
@@ -116,18 +126,48 @@ export class BarElement {
     this.rect.width = this.showSignature
       ? this.timeSigRect.width + beatsWidth
       : beatsWidth;
-    this.rect.height = this.dim.tabLineHeight;
+    this.rect.height = this.dim.tabLineMinHeight;
+  }
 
+  private calcStaffLines(): void {
     // Make lines
-    this.lines = [];
-    let y = this.timeSigRect.y;
+    this.staffLines = [];
+    let y =
+      this.rect.leftBottom.y -
+      this.dim.timeSigRectHeight -
+      this.dim.noteRectHeight / 2;
     for (let i = 0; i < this.bar.guitar.stringsCount; i++) {
-      this.lines.push([
+      this.staffLines.push([
         new Point(this.rect.x, y),
         new Point(this.rect.rightTop.x, y),
       ]);
 
       y += this.dim.noteRectHeight;
+    }
+  }
+
+  /**
+   * Calculates this bar element
+   */
+  calc(): void {
+    this.calcTempoRect();
+    this.calcTimeSigRect();
+    this.calcBeatsAndRect();
+    this.calcStaffLines();
+  }
+
+  /**
+   * Changes the height of the encapsulating and beats rectangles
+   * @param dHeight Height by which to change
+   */
+  public changeHeight(dHeight: number): void {
+    this.rect.height += dHeight;
+    this.timeSigRect.y += dHeight; // Time sig height doesn't change, just move it down
+
+    this.calcStaffLines();
+
+    for (const beatElement of this.beatElements) {
+      beatElement.changeHeight(dHeight);
     }
   }
 
@@ -159,7 +199,7 @@ export class BarElement {
     this.timeSigRect.x *= scale;
     this.tempoRect.x *= scale;
     this.rect.x *= scale;
-    for (const line of this.lines) {
+    for (const line of this.staffLines) {
       line[0].x *= scale;
       line[1].x *= scale;
     }
@@ -180,7 +220,7 @@ export class BarElement {
     this.tempoRect.y += dy;
     this.rect.x += dx;
     this.rect.y += dy;
-    for (const line of this.lines) {
+    for (const line of this.staffLines) {
       line[0].x += dx;
       line[0].y += dy;
       line[1].x += dx;
@@ -403,5 +443,27 @@ export class BarElement {
       new Point(this.rect.rightTop.x, this.beatsRect.y),
       new Point(this.rect.rightTop.x, this.measureRect.leftBottom.y),
     ];
+  }
+
+  /**
+   * Creates a new bar element
+   * @param dim Tab window dimensions
+   * @param bar Bar
+   * @param prevBar Previous bar
+   * @returns Created bar element
+   */
+  static createBarElement(
+    dim: TabWindowDim,
+    bar: Bar,
+    prevBar?: Bar
+  ): BarElement {
+    const showSignature =
+      prevBar !== undefined ? bar.signature !== prevBar.signature : true;
+    const showTempo =
+      prevBar !== undefined ? bar.tempo !== prevBar.tempo : true;
+
+    const barElement = new BarElement(dim, bar, showSignature, showTempo);
+
+    return barElement;
   }
 }
