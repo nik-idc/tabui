@@ -65,7 +65,8 @@ export class BarElement {
     // barCoords: Point,
     bar: Bar,
     showSignature: boolean,
-    showTempo: boolean
+    showTempo: boolean,
+    horizontalBarOffset: number = 0
   ) {
     this.dim = dim;
     this.beatElements = [];
@@ -73,7 +74,7 @@ export class BarElement {
     this.showTempo = showTempo;
     this.tempoRect = new Rect();
     this.timeSigRect = new Rect();
-    this.rect = new Rect();
+    this.rect = new Rect(horizontalBarOffset, 0);
     this.bar = bar;
     this.staffLines = [];
 
@@ -88,8 +89,8 @@ export class BarElement {
   private calcTempoRect(): void {
     // Tempo rectangle
     const tempoRectWidth = this.showTempo ? this.dim.tempoRectWidth : 0;
-    this.tempoRect.x = this.rect.x;
-    this.tempoRect.y = this.rect.y;
+    this.tempoRect.x = 0;
+    this.tempoRect.y = 0;
     this.tempoRect.width = tempoRectWidth;
     this.tempoRect.height = this.dim.tempoRectHeight;
   }
@@ -97,7 +98,7 @@ export class BarElement {
   private calcTimeSigRect(): void {
     // Time signature rectangle
     const timeSigWidth = this.showSignature ? this.dim.timeSigRectWidth : 0;
-    this.timeSigRect.x = this.rect.x;
+    this.timeSigRect.x = 0;
     this.timeSigRect.y =
       this.tempoRect.leftBottom.y +
       this.dim.durationsHeight +
@@ -107,26 +108,31 @@ export class BarElement {
   }
 
   private calcBeatsAndRect(): void {
+    // Set main rectangle
+    this.rect.width = this.showSignature ? this.timeSigRect.width : 0;
+    this.rect.height = this.dim.tabLineMinHeight;
+
     // Calculate beats
     this.beatElements = [];
-    let beatsWidth = 0;
     const startX = this.showSignature
       ? this.timeSigRect.rightTop.x
-      : this.rect.x;
+      : 0;
     const beatCoords = new Point(startX, this.rect.y + this.tempoRect.height);
     for (let beat of this.bar.beats) {
       const beatElement = new BeatElement(this.dim, beatCoords, beat);
+
+      if (beatElement.rect.height > this.rect.height) {
+        // If the current beat ends up taller
+        // go through all the beat elements
+        // (except the current one since it's not added yet)
+        this.setHeight(beatElement.rect.height);
+      }
+
       this.beatElements.push(beatElement);
 
       beatCoords.x += beatElement.rect.width;
-      beatsWidth += beatElement.rect.width;
+      this.rect.width += beatElement.rect.width;
     }
-
-    // Set main rectangle
-    this.rect.width = this.showSignature
-      ? this.timeSigRect.width + beatsWidth
-      : beatsWidth;
-    this.rect.height = this.dim.tabLineMinHeight;
   }
 
   private calcStaffLines(): void {
@@ -138,8 +144,8 @@ export class BarElement {
       this.dim.noteRectHeight / 2;
     for (let i = 0; i < this.bar.guitar.stringsCount; i++) {
       this.staffLines.push([
-        new Point(this.rect.x, y),
-        new Point(this.rect.rightTop.x, y),
+        new Point(0, y),
+        new Point(this.rect.width, y),
       ]);
 
       y += this.dim.noteRectHeight;
@@ -156,18 +162,14 @@ export class BarElement {
     this.calcStaffLines();
   }
 
-  /**
-   * Changes the height of the encapsulating and beats rectangles
-   * @param dHeight Height by which to change
-   */
-  public changeHeight(dHeight: number): void {
-    this.rect.height += dHeight;
-    this.timeSigRect.y += dHeight; // Time sig height doesn't change, just move it down
+  public setHeight(height: number): void {
+    this.rect.height = height;
 
-    this.calcStaffLines();
+    const diff = height - this.rect.height;
+    this.timeSigRect.y += diff;
 
     for (const beatElement of this.beatElements) {
-      beatElement.changeHeight(dHeight);
+      beatElement.setHeight(height);
     }
   }
 
@@ -430,8 +432,8 @@ export class BarElement {
    */
   get barLeftBorderLine(): Point[] {
     return [
-      new Point(this.rect.x, this.beatsRect.y),
-      new Point(this.rect.x, this.measureRect.leftBottom.y),
+      new Point(0, this.beatsRect.y),
+      new Point(0, this.measureRect.leftBottom.y),
     ];
   }
 
@@ -440,8 +442,8 @@ export class BarElement {
    */
   get barRightBorderLine(): Point[] {
     return [
-      new Point(this.rect.rightTop.x, this.beatsRect.y),
-      new Point(this.rect.rightTop.x, this.measureRect.leftBottom.y),
+      new Point(this.rect.width, this.beatsRect.y),
+      new Point(this.rect.width, this.measureRect.leftBottom.y),
     ];
   }
 
@@ -455,14 +457,21 @@ export class BarElement {
   static createBarElement(
     dim: TabWindowDim,
     bar: Bar,
-    prevBar?: Bar
+    prevBar?: Bar,
+    horizontalBarOffset: number = 0
   ): BarElement {
     const showSignature =
       prevBar !== undefined ? bar.signature !== prevBar.signature : true;
     const showTempo =
       prevBar !== undefined ? bar.tempo !== prevBar.tempo : true;
 
-    const barElement = new BarElement(dim, bar, showSignature, showTempo);
+    const barElement = new BarElement(
+      dim,
+      bar,
+      showSignature,
+      showTempo,
+      horizontalBarOffset
+    );
 
     return barElement;
   }

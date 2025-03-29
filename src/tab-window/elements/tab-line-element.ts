@@ -45,39 +45,39 @@ export class TabLineElement {
     this.effectLabelsRect = new Rect(coords.x, coords.y, 0, 0);
     this.barElements = [];
 
-    tabEvent.on(TabEventType.EffectLabelAdded, (args) =>
-      this.onEffectLabelAdded(args)
-    );
+    // tabEvent.on(TabEventType.EffectLabelAdded, (args) =>
+    //   this.onEffectLabelAdded(args)
+    // );
   }
 
-  /**
-   * Fires when an effect label has been added
-   * @param args Event args
-   */
-  private onEffectLabelAdded(
-    args: TabEventArgs[TabEventType.EffectLabelAdded]
-  ): void {
-    const addedOnThisLine = this.barElements.some((be) => {
-      return be.bar.uuid === args.beatUUID;
-    });
-    if (!addedOnThisLine) {
-      return;
-    }
+  // /**
+  //  * Fires when an effect label has been added
+  //  * @param args Event args
+  //  */
+  // private onEffectLabelAdded(
+  //   args: TabEventArgs[TabEventType.EffectLabelAdded]
+  // ): void {
+  //   const addedOnThisLine = this.barElements.some((be) => {
+  //     return be.bar.uuid === args.beatUUID;
+  //   });
+  //   if (!addedOnThisLine) {
+  //     return;
+  //   }
 
-    // Do nothing if the total height of the label line didn't increase
-    if (args.totalLabelsHeight <= this.effectLabelsRect.height) {
-      return;
-    }
+  //   // Do nothing if the total height of the label line didn't increase
+  //   if (args.totalLabelsHeight <= this.effectLabelsRect.height) {
+  //     return;
+  //   }
 
-    this.changeHeight(args.newLabelHeight);
+  //   this.changeHeight(args.newLabelHeight);
 
-    // Since the height of the line changed this line
-    // and all lines below it need to have their 'y' adjusted
-    tabEvent.emit(TabEventType.LineMovementTriggered, {
-      beatUUID: args.beatUUID,
-      distance: args.newLabelHeight,
-    });
-  }
+  //   // Since the height of the line changed this line
+  //   // and all lines below it need to have their 'y' adjusted
+  //   tabEvent.emit(TabEventType.LineMovementTriggered, {
+  //     beatUUID: args.beatUUID,
+  //     distance: args.newLabelHeight,
+  //   });
+  // }
 
   /**
    * Justifies elements by scaling all their widths
@@ -125,16 +125,14 @@ export class TabLineElement {
     this.effectLabelsRect.width += dWidth;
   }
 
-  /**
-   * Changes the height of the encapsulating and effects rectangles
-   * @param dHeight Height by which to change
-   */
-  private changeHeight(dHeight: number): void {
-    this.rect.height += dHeight;
-    this.effectLabelsRect.height += dHeight;
+  private setHeight(height: number): void {
+    const diff = height - this.rect.height;
+
+    this.rect.height += diff;
+    this.effectLabelsRect.height += diff;
 
     for (const barElement of this.barElements) {
-      barElement.changeHeight(dHeight);
+      barElement.setHeight(height);
     }
   }
 
@@ -145,15 +143,21 @@ export class TabLineElement {
    * @returns True if added succesfully, false otherwise
    */
   public addBar(bar: Bar, prevBar?: Bar): boolean {
-    const barElement = BarElement.createBarElement(this.dim, bar, prevBar);
+    const barElement = BarElement.createBarElement(
+      this.dim,
+      bar,
+      prevBar,
+      this.rect.rightTop.x
+    );
 
     if (!this.barElementFits(barElement)) {
       return false;
     }
 
-    barElement.rect.x = this.rect.rightTop.x;
-    barElement.rect.y = 0;
-    barElement.calc();
+    if (barElement.rect.height > this.rect.height) {
+      this.setHeight(barElement.rect.height);
+    }
+
     this.barElements.push(barElement);
 
     this.changeWidth(barElement.rect.width);

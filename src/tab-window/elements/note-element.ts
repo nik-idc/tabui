@@ -13,10 +13,6 @@ export class NoteElement {
    */
   readonly dim: TabWindowDim;
   /**
-   * Rectangle of the beat the note belongs to
-   */
-  readonly beatRect: Rect;
-  /**
    * The note
    */
   readonly note: GuitarNote;
@@ -40,13 +36,18 @@ export class NoteElement {
   /**
    * Class that handles drawing note element in the tab
    * @param dim Tab window dimensions
-   * @param beatRect Beat rectangle
+   * @param width Width of the beat element
    * @param note Note
    */
-  constructor(dim: TabWindowDim, beatRect: Rect, note: GuitarNote) {
+  constructor(dim: TabWindowDim, width: number, note: GuitarNote) {
     this.dim = dim;
-    this.beatRect = beatRect;
     this.note = note;
+    this.rect = new Rect(
+      0,
+      this.dim.noteRectHeight * (this.note.stringNum - 1),
+      width,
+      this.dim.noteRectHeight
+    );
 
     this.calc();
   }
@@ -55,13 +56,6 @@ export class NoteElement {
    * Calculate dimensions of the note element
    */
   public calc(): void {
-    this.rect.width = this.beatRect.width;
-    this.rect.height = this.dim.noteRectHeight;
-    this.rect.x = this.beatRect.x;
-    const topY = this.beatRect.y + this.dim.durationsHeight;
-    const stringYOffset = this.dim.noteRectHeight * (this.note.stringNum - 1);
-    this.rect.y = topY + stringYOffset;
-
     this.textRect.x =
       this.rect.x + this.rect.width / 2 - this.dim.noteTextSize / 2;
     this.textRect.y =

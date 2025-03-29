@@ -550,6 +550,10 @@ export class GuitarEffectElement {
    * Translates guitar effect element by a specified dstance
    */
   public translateBy(dx: number, dy: number): void {
+    if (this.rect === undefined) {
+      return;
+    }
+
     this.rect.x += Math.floor(dx);
     this.rect.y += Math.floor(dy);
 

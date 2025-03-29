@@ -93,9 +93,9 @@ export class TabWindow {
     this._tab = tab;
     this.dim = dim;
 
-    tabEvent.on(TabEventType.LineMovementTriggered, (args) => {
-      this.onEffectLabelAdded(args);
-    });
+    // tabEvent.on(TabEventType.LineMovementTriggered, (args) => {
+    //   this.onEffectLabelAdded(args);
+    // });
 
     this.calc();
   }
@@ -159,7 +159,8 @@ export class TabWindow {
     const tabLineElement = this._tabLineElements[tabLineElementId];
     const barElement = tabLineElement.barElements[barElementId];
     const beatElement = barElement.beatElements[beatElementId];
-    const noteElement = beatElement.noteElements[noteElementId];
+    const noteElement =
+      beatElement.beatNotesElement.noteElements[noteElementId];
 
     const barId = this._tab.bars.indexOf(barElement.bar);
     const beatId = this._tab.bars[barId].beats.indexOf(beatElement.beat);
@@ -703,26 +704,27 @@ export class TabWindow {
     const tabLineElement = this._tabLineElements[tabLineElementId];
     const barElement = tabLineElement.barElements[barElementId];
     const beatElement = barElement.beatElements[beatElementId];
-    const noteElement = beatElement.noteElements[stringNum - 1];
+    const noteElement =
+      beatElement.beatNotesElement.noteElements[stringNum - 1];
 
     noteElement.note.fret = newNoteValue;
   }
 
-  private onEffectLabelAdded(
-    args: TabEventArgs[TabEventType.LineMovementTriggered]
-  ): void {
-    const affectedTabLineIndex = this._tabLineElements.findIndex((tle) => {
-      return tle.barElements.some((barEl) => {
-        return barEl.beatElements.some((beatEl) => {
-          return beatEl.beat.uuid === args.beatUUID;
-        });
-      });
-    });
+  // private onEffectLabelAdded(
+  //   args: TabEventArgs[TabEventType.LineMovementTriggered]
+  // ): void {
+  //   const affectedTabLineIndex = this._tabLineElements.findIndex((tle) => {
+  //     return tle.barElements.some((barEl) => {
+  //       return barEl.beatElements.some((beatEl) => {
+  //         return beatEl.beat.uuid === args.beatUUID;
+  //       });
+  //     });
+  //   });
 
-    for (let i = affectedTabLineIndex; i < this._tabLineElements.length; i++) {
-      this._tabLineElements[i].rect.y += args.distance;
-    }
-  }
+  //   for (let i = affectedTabLineIndex; i < this._tabLineElements.length; i++) {
+  //     this._tabLineElements[i].rect.y += args.distance;
+  //   }
+  // }
 
   public applyEffect(
     effectType: GuitarEffectType,
