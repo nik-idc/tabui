@@ -6,6 +6,9 @@ import { BarElement } from "./bar-element";
 import { SelectionElement } from "./selection-element";
 import { tabEvent, TabEventArgs, TabEventType } from "../../events/tab-event";
 import { Tab } from "../../models/tab";
+import { GuitarEffectType } from "../../models/guitar-effect/guitar-effect-type";
+import { GuitarEffectOptions } from "../../models/guitar-effect/guitar-effect-options";
+import { EFFECT_TYPE_TO_LABEL } from "./effects/guitar-effect-element-lists";
 
 /**
  * Class that handles a tab line element
@@ -129,6 +132,16 @@ export class TabLineElement {
   //   }
   // }
 
+  public setHeight(newHeight: number): void {
+    for (const barElement of this.barElements) {
+      barElement.setHeight(newHeight);
+    }
+
+    const diff = newHeight - this.rect.height;
+    this.rect.height += diff;
+    this.effectLabelsRect.height += diff;
+  }
+
   public insertEffectGap(gapHeight: number): void {
     for (const barElement of this.barElements) {
       barElement.insertEffectGap(gapHeight);
@@ -190,6 +203,47 @@ export class TabLineElement {
     this.barElements.splice(barElementId, 1);
 
     this.changeWidth(-barElement.rect.width);
+  }
+
+  public applyEffectSingle(
+    barElementId: number,
+    beatElementId: number,
+    stringNum: number,
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    const beatElement =
+      this.barElements[barElementId].beatElements[beatElementId];
+    let beatId = 0;
+    const barId = this.tab.bars.findIndex((bar) => {
+      return bar.beats.some((beat, index) => {
+        beatId = index;
+        return beat === beatElement.beat;
+      });
+    });
+
+    // Apply effect to selected element
+    const applyRes = this.tab.applyEffectToNote(
+      barId,
+      beatId,
+      stringNum,
+      effectType,
+      effectOptions
+    );
+
+    if (!applyRes) {
+      return false;
+    }
+
+    // Calc new beat gap height and apply the gap increase across the tab line
+    const prevHeight = beatElement.rect.height;
+    beatElement.calc();
+    const newHeight = beatElement.rect.height;
+    if (newHeight !== prevHeight) {
+      this.setHeight(this.rect.height + (newHeight - prevHeight));
+    }
+
+    return true;
   }
 
   public getFitToScale(): number {

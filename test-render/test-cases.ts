@@ -890,6 +890,52 @@ function prepareTestCases(): TestCase[] {
         caption: "Create tab window from tab with preset effects",
       };
     })(),
+    (() => {
+      const tab = createBasicTab();
+      randomFrets(tab, true);
+      const tabWindow = createTabWindowFromTab(tab);
+
+      tabWindow.selectNoteElement(0, 3, 1, 3);
+      tabWindow.tabLineElements[0].applyEffectSingle(
+        3,
+        1,
+        4,
+        GuitarEffectType.PalmMute
+      );
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Create tab window and apply effects later",
+      };
+    })(),
+    (() => {
+      const tab = createBasicTab();
+      randomFrets(tab, true);
+      tab.bars[0].beats[1].notes[4].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+      tab.bars[3].beats[1].notes[4].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+      tab.bars[5].beats[1].notes[4].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+      const tabWindow = createTabWindowFromTab(tab);
+
+      tabWindow.selectNoteElement(0, 3, 1, 3);
+      tabWindow.tabLineElements[0].applyEffectSingle(
+        3,
+        1,
+        4,
+        GuitarEffectType.PalmMute
+      );
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Create tab window from tab with preset effects and apply effects later",
+      };
+    })(),
   ];
 
   return tabWindows;

@@ -131,21 +131,12 @@ export class BeatElement {
           new EffectLabelElement(this.dim, rect, effect)
         );
 
-        // TODO: Effect gap may already be present by this time
-        // Need to just add effect elements and increase the gap
-        // ONLY IF NEEDED
         totalLabelsHeight += height;
 
         if (totalLabelsHeight > this._effectLabelsRect.height) {
           const gapHeight = totalLabelsHeight - this._effectLabelsRect.height;
           this.insertEffectGap(gapHeight);
         }
-
-        // tabEvent.emit(TabEventType.EffectLabelAdded, {
-        //   beatUUID: this.beat.uuid,
-        //   totalLabelsHeight: totalLabelsHeight,
-        //   newLabelHeight: height,
-        // });
       }
     }
   }
@@ -159,17 +150,12 @@ export class BeatElement {
     this.calcEffectLabels();
   }
 
-  // public setHeight(height: number): void {
-  //   // The new height is:
-  //   //    durations height (doesn't change, set in dim)
-  //   //  + effect labels height
-  //   //  + beat note elements height ((strings count - 1) * note rect height)
-
-  //   const diff = height - this.rect.height;
-  //   this.rect.height += diff;
-  //   this._effectLabelsRect.height += diff;
-  //   this._beatNotesElement.rect.y += diff;
-  // }
+  public setHeight(newHeight: number): void {
+    const diff = newHeight - this.rect.height;
+    this._effectLabelsRect.height += diff;
+    this._beatNotesElement.rect.y += diff;
+    this.rect.height += diff;
+  }
 
   /**
    * Inserts a gap between the durations rectangle and beat notes.

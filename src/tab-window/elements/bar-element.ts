@@ -187,6 +187,18 @@ export class BarElement {
   //   }
   // }
 
+  public setHeight(newHeight: number): void {
+    for (const beatElement of this.beatElements) {
+      beatElement.setHeight(newHeight);
+    }
+
+    const diff = newHeight - this.rect.height;
+    this._labelsGapHeight += diff;
+    this.rect.height += diff;
+    this.timeSigRect.y += diff;
+    this.calcStaffLines();
+  }
+
   public insertEffectGap(gapHeight: number): void {
     for (const beatElement of this.beatElements) {
       beatElement.insertEffectGap(gapHeight);
