@@ -7,11 +7,6 @@ export enum TabEventType {
    * Triggers when an effect label has been removed
    */
   EffectLabelRemoved,
-  /**
-   * Triggers when there is a need to move lines. This
-   * can be triggered when an effect label has been added
-   */
-  LineMovementTriggered,
 }
 
 // Define a mapping of event types to argument types
@@ -25,10 +20,6 @@ export type TabEventArgs = {
     beatUUID: number;
     totalLabelsHeight: number;
     newLabelHeight: number;
-  };
-  [TabEventType.LineMovementTriggered]: {
-    beatUUID: number;
-    distance: number;
   };
 };
 

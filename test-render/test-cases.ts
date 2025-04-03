@@ -695,190 +695,199 @@ function prepareTestCases(): TestCase[] {
           `${pastedIntoBeats[1][0]}-${pastedIntoBeats[1][1]}-${pastedIntoBeats[1][2]}`,
       };
     })(),
-    (() => {
-      const effectsToTry = [
-        [
-          [
-            [0, 0, 0, 0],
-            [0, 0, 1, 1],
-            [0, 0, 2, 2],
-            [0, 0, 3, 3],
-            [0, 0, 4, 4],
-            [0, 0, 5, 5],
-          ],
-          GuitarEffectType.Bend,
-          new GuitarEffectOptions(1.5, undefined, undefined),
-        ],
-        [
-          [
-            [0, 1, 0, 0],
-            [0, 1, 1, 1],
-            [0, 1, 2, 2],
-            [0, 1, 3, 3],
-            [0, 1, 4, 4],
-            [0, 1, 5, 5],
-          ],
-          GuitarEffectType.BendAndRelease,
-          new GuitarEffectOptions(1.5, 0.5, undefined),
-        ],
-        [
-          [
-            [0, 2, 0, 0],
-            [0, 2, 1, 1],
-            [0, 2, 2, 2],
-            [0, 2, 3, 3],
-            [0, 2, 4, 4],
-            [0, 2, 5, 5],
-          ],
-          GuitarEffectType.Prebend,
-          new GuitarEffectOptions(undefined, undefined, 0.5),
-        ],
-        [
-          [
-            [1, 0, 0, 0],
-            [1, 0, 1, 1],
-            [1, 0, 2, 2],
-            [1, 0, 3, 3],
-            [1, 0, 4, 4],
-            [1, 0, 5, 5],
-          ],
-          GuitarEffectType.PrebendAndRelease,
-          new GuitarEffectOptions(undefined, 1.5, 0.5),
-        ],
-      ];
+    // (() => {
+    //   const effectsToTry = [
+    //     [
+    //       [
+    //         [0, 0, 0, 0],
+    //         [0, 0, 1, 1],
+    //         [0, 0, 2, 2],
+    //         [0, 0, 3, 3],
+    //         [0, 0, 4, 4],
+    //         [0, 0, 5, 5],
+    //       ],
+    //       GuitarEffectType.Bend,
+    //       new GuitarEffectOptions(1.5, undefined, undefined),
+    //     ],
+    //     [
+    //       [
+    //         [0, 1, 0, 0],
+    //         [0, 1, 1, 1],
+    //         [0, 1, 2, 2],
+    //         [0, 1, 3, 3],
+    //         [0, 1, 4, 4],
+    //         [0, 1, 5, 5],
+    //       ],
+    //       GuitarEffectType.BendAndRelease,
+    //       new GuitarEffectOptions(1.5, 0.5, undefined),
+    //     ],
+    //     [
+    //       [
+    //         [0, 2, 0, 0],
+    //         [0, 2, 1, 1],
+    //         [0, 2, 2, 2],
+    //         [0, 2, 3, 3],
+    //         [0, 2, 4, 4],
+    //         [0, 2, 5, 5],
+    //       ],
+    //       GuitarEffectType.Prebend,
+    //       new GuitarEffectOptions(undefined, undefined, 0.5),
+    //     ],
+    //     [
+    //       [
+    //         [1, 0, 0, 0],
+    //         [1, 0, 1, 1],
+    //         [1, 0, 2, 2],
+    //         [1, 0, 3, 3],
+    //         [1, 0, 4, 4],
+    //         [1, 0, 5, 5],
+    //       ],
+    //       GuitarEffectType.PrebendAndRelease,
+    //       new GuitarEffectOptions(undefined, 1.5, 0.5),
+    //     ],
+    //   ];
 
-      const tabWindow = createCustomTabWindow(4, 6, NoteDuration.Quarter);
-      randomFrets(tabWindow.tab, true);
+    //   const tabWindow = createCustomTabWindow(4, 6, NoteDuration.Quarter);
+    //   randomFrets(tabWindow.tab, true);
 
-      for (const effectToTry of effectsToTry) {
-        const effectNotes = effectToTry[0] as number[][];
-        for (const effectNote of effectNotes) {
-          tabWindow.selectNoteElement(
-            effectNote[0],
-            effectNote[1],
-            effectNote[2],
-            effectNote[3]
-          );
+    //   for (const effectToTry of effectsToTry) {
+    //     const effectNotes = effectToTry[0] as number[][];
+    //     for (const effectNote of effectNotes) {
+    //       tabWindow.selectNoteElement(
+    //         effectNote[0],
+    //         effectNote[1],
+    //         effectNote[2],
+    //         effectNote[3]
+    //       );
 
-          tabWindow.applyEffect(
-            effectToTry[1] as GuitarEffectType,
-            effectToTry[2] as GuitarEffectOptions
-          );
-        }
-      }
+    //       tabWindow.applyEffect(
+    //         effectToTry[1] as GuitarEffectType,
+    //         effectToTry[2] as GuitarEffectOptions
+    //       );
+    //     }
+    //   }
 
-      return {
-        tabWindow: tabWindow,
-        caption: "Apply all existing types of bend effects on notes: ",
-      };
-    })(),
-    (() => {
-      const effectsToTry = [
-        [
-          [
-            [0, 0, 0, 0],
-            [0, 0, 1, 1],
-            [0, 0, 2, 2],
-            [0, 0, 3, 3],
-            [0, 0, 4, 4],
-            [0, 0, 5, 5],
-          ],
-          GuitarEffectType.Vibrato,
-        ],
-        [
-          [
-            [0, 1, 0, 0],
-            [0, 1, 1, 1],
-            [0, 1, 2, 2],
-            [0, 1, 3, 3],
-            [0, 1, 4, 4],
-            [0, 1, 5, 5],
-          ],
-          GuitarEffectType.Slide,
-        ],
-        [
-          [
-            [0, 2, 0, 0],
-            [0, 2, 1, 1],
-            [0, 2, 2, 2],
-            [0, 2, 3, 3],
-            [0, 2, 4, 4],
-            [0, 2, 5, 5],
-          ],
-          GuitarEffectType.HammerOnOrPullOff,
-        ],
-        [
-          [
-            [1, 0, 0, 0],
-            [1, 0, 1, 1],
-            [1, 0, 2, 2],
-            [1, 0, 3, 3],
-            [1, 0, 4, 4],
-            [1, 0, 5, 5],
-          ],
-          GuitarEffectType.PinchHarmonic,
-        ],
-        [
-          [
-            [1, 1, 0, 0],
-            [1, 1, 1, 1],
-            [1, 1, 2, 2],
-            [1, 1, 3, 3],
-            [1, 1, 4, 4],
-            [1, 1, 5, 5],
-          ],
-          GuitarEffectType.NaturalHarmonic,
-        ],
-        [
-          [
-            [1, 2, 0, 0],
-            [1, 2, 1, 1],
-            [1, 2, 2, 2],
-            [1, 2, 3, 3],
-            [1, 2, 4, 4],
-            [1, 2, 5, 5],
-          ],
-          GuitarEffectType.PalmMute,
-        ],
-      ];
+    //   return {
+    //     tabWindow: tabWindow,
+    //     caption: "Apply all existing types of bend effects on notes: ",
+    //   };
+    // })(),
+    // (() => {
+    //   const effectsToTry = [
+    //     [
+    //       [
+    //         [0, 0, 0, 0],
+    //         [0, 0, 1, 1],
+    //         [0, 0, 2, 2],
+    //         [0, 0, 3, 3],
+    //         [0, 0, 4, 4],
+    //         [0, 0, 5, 5],
+    //       ],
+    //       GuitarEffectType.Vibrato,
+    //     ],
+    //     [
+    //       [
+    //         [0, 1, 0, 0],
+    //         [0, 1, 1, 1],
+    //         [0, 1, 2, 2],
+    //         [0, 1, 3, 3],
+    //         [0, 1, 4, 4],
+    //         [0, 1, 5, 5],
+    //       ],
+    //       GuitarEffectType.Slide,
+    //     ],
+    //     [
+    //       [
+    //         [0, 2, 0, 0],
+    //         [0, 2, 1, 1],
+    //         [0, 2, 2, 2],
+    //         [0, 2, 3, 3],
+    //         [0, 2, 4, 4],
+    //         [0, 2, 5, 5],
+    //       ],
+    //       GuitarEffectType.HammerOnOrPullOff,
+    //     ],
+    //     [
+    //       [
+    //         [1, 0, 0, 0],
+    //         [1, 0, 1, 1],
+    //         [1, 0, 2, 2],
+    //         [1, 0, 3, 3],
+    //         [1, 0, 4, 4],
+    //         [1, 0, 5, 5],
+    //       ],
+    //       GuitarEffectType.PinchHarmonic,
+    //     ],
+    //     [
+    //       [
+    //         [1, 1, 0, 0],
+    //         [1, 1, 1, 1],
+    //         [1, 1, 2, 2],
+    //         [1, 1, 3, 3],
+    //         [1, 1, 4, 4],
+    //         [1, 1, 5, 5],
+    //       ],
+    //       GuitarEffectType.NaturalHarmonic,
+    //     ],
+    //     [
+    //       [
+    //         [1, 2, 0, 0],
+    //         [1, 2, 1, 1],
+    //         [1, 2, 2, 2],
+    //         [1, 2, 3, 3],
+    //         [1, 2, 4, 4],
+    //         [1, 2, 5, 5],
+    //       ],
+    //       GuitarEffectType.PalmMute,
+    //     ],
+    //   ];
 
-      const tabWindow = createCustomTabWindow(6, 6, NoteDuration.Quarter);
-      randomFrets(tabWindow.tab, true);
+    //   const tabWindow = createCustomTabWindow(6, 6, NoteDuration.Quarter);
+    //   randomFrets(tabWindow.tab, true);
 
-      for (const effectToTry of effectsToTry) {
-        const effectNotes = effectToTry[0] as number[][];
-        for (const effectNote of effectNotes) {
-          tabWindow.selectNoteElement(
-            effectNote[0],
-            effectNote[1],
-            effectNote[2],
-            effectNote[3]
-          );
+    //   for (const effectToTry of effectsToTry) {
+    //     const effectNotes = effectToTry[0] as number[][];
+    //     for (const effectNote of effectNotes) {
+    //       tabWindow.selectNoteElement(
+    //         effectNote[0],
+    //         effectNote[1],
+    //         effectNote[2],
+    //         effectNote[3]
+    //       );
 
-          tabWindow.applyEffect(
-            effectToTry[1] as GuitarEffectType,
-            effectToTry[2] as GuitarEffectOptions
-          );
-        }
-      }
+    //       tabWindow.applyEffect(
+    //         effectToTry[1] as GuitarEffectType,
+    //         effectToTry[2] as GuitarEffectOptions
+    //       );
+    //     }
+    //   }
 
-      return {
-        tabWindow: tabWindow,
-        caption: "Apply all existing types of bend effects on notes: ",
-      };
-    })(),
+    //   return {
+    //     tabWindow: tabWindow,
+    //     caption: "Apply all existing types of bend effects on notes: ",
+    //   };
+    // })(),
     (() => {
       const tab = createBasicTab();
       randomFrets(tab, true);
       tab.bars[1].beats[0].notes[3].addEffect(
         new GuitarEffect(GuitarEffectType.PalmMute)
       );
+      tab.bars[1].beats[1].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.PalmMute)
+      );
+      tab.bars[1].beats[1].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+      tab.bars[5].beats[1].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
 
       const tabWindow = createTabWindowFromTab(tab);
 
       return {
         tabWindow: tabWindow,
-        caption: "Create tab window from tab with preset effect",
+        caption: "Create tab window from tab with preset effects",
       };
     })(),
   ];

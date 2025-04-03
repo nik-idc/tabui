@@ -69,14 +69,7 @@ export class TabLineElement {
   //     return;
   //   }
 
-  //   this.changeHeight(args.newLabelHeight);
-
-  //   // Since the height of the line changed this line
-  //   // and all lines below it need to have their 'y' adjusted
-  //   tabEvent.emit(TabEventType.LineMovementTriggered, {
-  //     beatUUID: args.beatUUID,
-  //     distance: args.newLabelHeight,
-  //   });
+  //   this.setHeight(args.newLabelHeight);
   // }
 
   /**
@@ -125,15 +118,33 @@ export class TabLineElement {
     this.effectLabelsRect.width += dWidth;
   }
 
-  private setHeight(height: number): void {
-    const diff = height - this.rect.height;
+  // private setHeight(height: number): void {
+  //   const diff = height - this.rect.height;
 
-    this.rect.height += diff;
-    this.effectLabelsRect.height += diff;
+  //   this.rect.height += diff;
+  //   this.effectLabelsRect.height += diff;
 
+  //   for (const barElement of this.barElements) {
+  //     barElement.setHeight(height);
+  //   }
+  // }
+
+  public insertEffectGap(gapHeight: number): void {
     for (const barElement of this.barElements) {
-      barElement.setHeight(height);
+      barElement.insertEffectGap(gapHeight);
     }
+
+    this.rect.height += gapHeight;
+    this.effectLabelsRect.height += gapHeight;
+  }
+
+  public removeEffectGap(): void {
+    for (const barElement of this.barElements) {
+      barElement.removeEffectGap();
+    }
+
+    this.rect.height += this.dim.effectLabelHeight;
+    this.effectLabelsRect.height += this.dim.effectLabelHeight;
   }
 
   /**
@@ -147,7 +158,8 @@ export class TabLineElement {
       this.dim,
       bar,
       prevBar,
-      this.rect.rightTop.x
+      this.rect.rightTop.x,
+      this.effectLabelsRect.height
     );
 
     if (!this.barElementFits(barElement)) {
@@ -155,7 +167,8 @@ export class TabLineElement {
     }
 
     if (barElement.rect.height > this.rect.height) {
-      this.setHeight(barElement.rect.height);
+      const gapHeight = barElement.rect.height - this.rect.height;
+      this.insertEffectGap(gapHeight);
     }
 
     this.barElements.push(barElement);

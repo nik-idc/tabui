@@ -64,6 +64,10 @@ export class TabWindowDim {
    */
   readonly durationsHeight: number;
   /**
+   * Height of all staff lines combined
+   */
+  readonly staffLinesHeight: number;
+  /**
    * Height of a time signature rectangle
    */
   readonly timeSigRectHeight: number;
@@ -113,8 +117,10 @@ export class TabWindowDim {
 
     this.effectLabelHeight = this.noteRectHeight;
 
+    this.staffLinesHeight = this.noteRectHeight * (stringsCount - 1);
+
     this.timeSigRectWidth = this.noteRectWidthThirtySecond;
-    this.timeSigRectHeight = this.noteRectHeight * (stringsCount - 1);
+    this.timeSigRectHeight = this.staffLinesHeight;
     // '= XXX' = 5 characters of 'tempoTextSize' size
     this.tempoRectWidth = this.durationsHeight + this.tempoTextSize * 5;
     this.tempoRectHeight = this.durationsHeight;

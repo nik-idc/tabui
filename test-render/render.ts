@@ -141,7 +141,7 @@ export class TestRenderer {
                        y="${beatOffset.y + effectLabelElement.rect.y}"
                        width="${effectLabelElement.rect.width}"
                        height="${effectLabelElement.rect.height}"
-                       fill="red"`);
+                       fill="red" />`);
     }
 
     if (this._detailed) {
@@ -302,12 +302,16 @@ export class TestRenderer {
     const html: string[] = [];
 
     const tabWindow = testCase.tabWindow;
+    // const tabWindowHeight =
+    //   tabWindow.dim.tabLineMinHeight * tabWindow.tabLineElements.length;
+    let tabWindowHeight = 0;
+    for (const tabLineElement of tabWindow.tabLineElements) {
+      tabWindowHeight += tabLineElement.rect.height;
+    }
 
     html.push("<div>");
     html.push(`Test case №${testCaseIndex + 1}: ${testCase.caption}`);
     html.push("<div>");
-    const tabWindowHeight =
-      tabWindow.dim.tabLineMinHeight * tabWindow.tabLineElements.length;
     html.push(`<svg viewBox="0 0 ${tabWindow.dim.width} ${tabWindowHeight}"
                     width="${tabWindow.dim.width}"
                     height="${tabWindowHeight}">`);

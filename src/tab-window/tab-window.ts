@@ -93,10 +93,6 @@ export class TabWindow {
     this._tab = tab;
     this.dim = dim;
 
-    // tabEvent.on(TabEventType.LineMovementTriggered, (args) => {
-    //   this.onEffectLabelAdded(args);
-    // });
-
     this.calc();
   }
 
@@ -709,22 +705,6 @@ export class TabWindow {
 
     noteElement.note.fret = newNoteValue;
   }
-
-  // private onEffectLabelAdded(
-  //   args: TabEventArgs[TabEventType.LineMovementTriggered]
-  // ): void {
-  //   const affectedTabLineIndex = this._tabLineElements.findIndex((tle) => {
-  //     return tle.barElements.some((barEl) => {
-  //       return barEl.beatElements.some((beatEl) => {
-  //         return beatEl.beat.uuid === args.beatUUID;
-  //       });
-  //     });
-  //   });
-
-  //   for (let i = affectedTabLineIndex; i < this._tabLineElements.length; i++) {
-  //     this._tabLineElements[i].rect.y += args.distance;
-  //   }
-  // }
 
   public applyEffect(
     effectType: GuitarEffectType,

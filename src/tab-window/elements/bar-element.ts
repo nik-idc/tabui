@@ -36,6 +36,10 @@ export class BarElement {
    */
   public timeSigRect: Rect;
   /**
+   * The height of the gap between durations and notes for effect labels
+   */
+  private _labelsGapHeight: number;
+  /**
    * Bar element rectangle
    */
   public rect: Rect;
@@ -60,13 +64,15 @@ export class BarElement {
    * @param showSignature Whether to show signature
    * @param showTempo Whether to show tempo
    */
+
   constructor(
     dim: TabWindowDim,
     // barCoords: Point,
     bar: Bar,
     showSignature: boolean,
     showTempo: boolean,
-    horizontalBarOffset: number = 0
+    horizontalBarOffset: number = 0,
+    labelGapHeight: number = 0
   ) {
     this.dim = dim;
     this.beatElements = [];
@@ -74,7 +80,13 @@ export class BarElement {
     this.showTempo = showTempo;
     this.tempoRect = new Rect();
     this.timeSigRect = new Rect();
-    this.rect = new Rect(horizontalBarOffset, 0);
+    this._labelsGapHeight = labelGapHeight;
+    this.rect = new Rect(
+      horizontalBarOffset,
+      0,
+      0,
+      this.dim.tabLineMinHeight + this._labelsGapHeight
+    );
     this.bar = bar;
     this.staffLines = [];
 
@@ -102,6 +114,7 @@ export class BarElement {
     this.timeSigRect.y =
       this.tempoRect.leftBottom.y +
       this.dim.durationsHeight +
+      this._labelsGapHeight +
       this.dim.noteRectHeight / 2;
     this.timeSigRect.width = timeSigWidth;
     this.timeSigRect.height = this.dim.timeSigRectHeight;
@@ -110,22 +123,26 @@ export class BarElement {
   private calcBeatsAndRect(): void {
     // Set main rectangle
     this.rect.width = this.showSignature ? this.timeSigRect.width : 0;
-    this.rect.height = this.dim.tabLineMinHeight;
+    // this.rect.height = this.dim.tabLineMinHeight;
 
     // Calculate beats
     this.beatElements = [];
-    const startX = this.showSignature
-      ? this.timeSigRect.rightTop.x
-      : 0;
+    const startX = this.showSignature ? this.timeSigRect.rightTop.x : 0;
     const beatCoords = new Point(startX, this.rect.y + this.tempoRect.height);
     for (let beat of this.bar.beats) {
-      const beatElement = new BeatElement(this.dim, beatCoords, beat);
+      const beatElement = new BeatElement(
+        this.dim,
+        beatCoords,
+        beat,
+        this._labelsGapHeight
+      );
 
       if (beatElement.rect.height > this.rect.height) {
         // If the current beat ends up taller
         // go through all the beat elements
         // (except the current one since it's not added yet)
-        this.setHeight(beatElement.rect.height);
+        const gapHeight = beatElement.rect.height - this.rect.height;
+        this.insertEffectGap(gapHeight);
       }
 
       this.beatElements.push(beatElement);
@@ -143,10 +160,7 @@ export class BarElement {
       this.dim.timeSigRectHeight -
       this.dim.noteRectHeight / 2;
     for (let i = 0; i < this.bar.guitar.stringsCount; i++) {
-      this.staffLines.push([
-        new Point(0, y),
-        new Point(this.rect.width, y),
-      ]);
+      this.staffLines.push([new Point(0, y), new Point(this.rect.width, y)]);
 
       y += this.dim.noteRectHeight;
     }
@@ -162,15 +176,37 @@ export class BarElement {
     this.calcStaffLines();
   }
 
-  public setHeight(height: number): void {
-    this.rect.height = height;
+  // public setHeight(height: number): void {
+  //   this.rect.height = height;
 
-    const diff = height - this.rect.height;
-    this.timeSigRect.y += diff;
+  //   const diff = height - this.rect.height;
+  //   this.timeSigRect.y += diff;
 
+  //   for (const beatElement of this.beatElements) {
+  //     beatElement.setHeight(height);
+  //   }
+  // }
+
+  public insertEffectGap(gapHeight: number): void {
     for (const beatElement of this.beatElements) {
-      beatElement.setHeight(height);
+      beatElement.insertEffectGap(gapHeight);
     }
+
+    this._labelsGapHeight += gapHeight;
+    this.rect.height += gapHeight;
+    this.timeSigRect.y += gapHeight;
+    this.calcStaffLines();
+  }
+
+  public removeEffectGap(): void {
+    for (const beatElement of this.beatElements) {
+      beatElement.removeEffectGap();
+    }
+
+    this._labelsGapHeight -= this.dim.effectLabelHeight;
+    this.rect.height -= this.dim.effectLabelHeight;
+    this.timeSigRect.y -= this.dim.effectLabelHeight;
+    this.calcStaffLines();
   }
 
   /**
@@ -458,7 +494,8 @@ export class BarElement {
     dim: TabWindowDim,
     bar: Bar,
     prevBar?: Bar,
-    horizontalBarOffset: number = 0
+    horizontalBarOffset: number = 0,
+    labelGapHeight: number = 0
   ): BarElement {
     const showSignature =
       prevBar !== undefined ? bar.signature !== prevBar.signature : true;
@@ -470,7 +507,8 @@ export class BarElement {
       bar,
       showSignature,
       showTempo,
-      horizontalBarOffset
+      horizontalBarOffset,
+      labelGapHeight
     );
 
     return barElement;

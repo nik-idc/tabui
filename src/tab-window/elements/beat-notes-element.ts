@@ -29,13 +29,19 @@ export class BeatNotesElement {
    * @param dim Tab window dimensions
    * @param beat Beat
    * @param width Width of the beat element
+   * @param labelsGapHeight Height of the labels gap. Dictates the y-axis of the rect
    */
-  constructor(dim: TabWindowDim, beat: Beat, width: number) {
+  constructor(
+    dim: TabWindowDim,
+    beat: Beat,
+    width: number,
+    labelsGapHeight: number = 0
+  ) {
     this.dim = dim;
     this.beat = beat;
     this.rect = new Rect(
       0,
-      this.dim.durationsHeight,
+      this.dim.durationsHeight + labelsGapHeight,
       width,
       this.dim.noteRectHeight * this.beat.guitar.stringsCount
     );
