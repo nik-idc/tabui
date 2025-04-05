@@ -795,7 +795,7 @@ function prepareTestCases(): TestCase[] {
             [0, 0, 5, 5],
           ],
           GuitarEffectType.Bend,
-          new GuitarEffectOptions(1.5, undefined, undefined),
+          new GuitarEffectOptions(1, undefined, undefined),
         ],
         [
           [
