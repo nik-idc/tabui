@@ -706,49 +706,49 @@ export class TabWindow {
     noteElement.note.fret = newNoteValue;
   }
 
-  public applyEffect(
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
-  ): boolean {
-    let applyRes: boolean = false;
-    if (this._selectedElement !== undefined) {
-      // Apply effect to selected element
-      applyRes = this._tab.applyEffectToNote(
-        this._selectedElement.barId,
-        this._selectedElement.beatId,
-        this._selectedElement.stringNum,
-        effectType,
-        effectOptions
-      );
+  // public applyEffect(
+  //   effectType: GuitarEffectType,
+  //   effectOptions?: GuitarEffectOptions
+  // ): boolean {
+  //   let applyRes: boolean = false;
+  //   if (this._selectedElement !== undefined) {
+  //     // Apply effect to selected element
+  //     applyRes = this._tab.applyEffectToNote(
+  //       this._selectedElement.barId,
+  //       this._selectedElement.beatId,
+  //       this._selectedElement.stringNum,
+  //       effectType,
+  //       effectOptions
+  //     );
 
-      if (applyRes) {
-        // Effect applied => need to recalc the affected note element
-        const ids = this.getSelectedNoteElementIds();
-        this._tabLineElements[ids.tabLineElementId].barElements[
-          ids.barElementId
-        ].beatElements[ids.beatElementId].calc();
-      }
-    } else if (this._selectionElements.length !== 0) {
-      // Apply effect to all elements in selection
-      const beats = this._selectionElements.map((se) => {
-        return this._tabLineElements[se.tabLineElementId].barElements[
-          se.barElementId
-        ].beatElements[se.beatElementId].beat;
-      });
-      applyRes = this._tab.applyEffectToBeats(beats, effectType, effectOptions);
+  //     if (applyRes) {
+  //       // Effect applied => need to recalc the affected note element
+  //       const ids = this.getSelectedNoteElementIds();
+  //       this._tabLineElements[ids.tabLineElementId].barElements[
+  //         ids.barElementId
+  //       ].beatElements[ids.beatElementId].calc();
+  //     }
+  //   } else if (this._selectionElements.length !== 0) {
+  //     // Apply effect to all elements in selection
+  //     const beats = this._selectionElements.map((se) => {
+  //       return this._tabLineElements[se.tabLineElementId].barElements[
+  //         se.barElementId
+  //       ].beatElements[se.beatElementId].beat;
+  //     });
+  //     applyRes = this._tab.applyEffectToBeats(beats, effectType, effectOptions);
 
-      if (applyRes) {
-        // Effects applied to all selected beat elements => recalc every affected beat element
-        for (const selectionElement of this._selectionElements) {
-          this._tabLineElements[selectionElement.tabLineElementId].barElements[
-            selectionElement.barElementId
-          ].beatElements[selectionElement.beatElementId].calc();
-        }
-      }
-    }
+  //     if (applyRes) {
+  //       // Effects applied to all selected beat elements => recalc every affected beat element
+  //       for (const selectionElement of this._selectionElements) {
+  //         this._tabLineElements[selectionElement.tabLineElementId].barElements[
+  //           selectionElement.barElementId
+  //         ].beatElements[selectionElement.beatElementId].calc();
+  //       }
+  //     }
+  //   }
 
-    return applyRes;
-  }
+  //   return applyRes;
+  // }
 
   public insertBar(bar: Bar): void {
     this._tab.bars.push(bar);

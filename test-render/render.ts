@@ -54,7 +54,11 @@ export class TestRenderer {
                          stroke-opacity="0" />`);
       }
       if (effectElement.fullHTML !== undefined) {
+        html.push(
+          `<g transform="translate(${noteOffset.x}, ${noteOffset.y})">`
+        );
         html.push(effectElement.fullHTML);
+        html.push(`</g>`);
       }
     }
 
@@ -137,11 +141,14 @@ export class TestRenderer {
       barOffset.y + beatElement.rect.y
     );
     for (const effectLabelElement of beatElement.effectLabelElements) {
-      html.push(`<rect x="${beatOffset.x + effectLabelElement.rect.x}"
-                       y="${beatOffset.y + effectLabelElement.rect.y}"
-                       width="${effectLabelElement.rect.width}"
-                       height="${effectLabelElement.rect.height}"
-                       fill="red" />`);
+      html.push(`<g transform="translate(${beatOffset.x}, ${beatOffset.y})">`);
+      html.push(effectLabelElement.fullHTML);
+      // html.push(`<rect x="${beatOffset.x + effectLabelElement.rect.x}"
+      //   y="${beatOffset.y + effectLabelElement.rect.y}"
+      //   width="${effectLabelElement.rect.width}"
+      //   height="${effectLabelElement.rect.height}"
+      //   fill="red" />`);
+      html.push(`</g>`);
     }
 
     if (this._detailed) {

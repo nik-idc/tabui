@@ -115,7 +115,7 @@ export class TabWindowDim {
     this.noteRectWidthHalf = this.noteRectWidthThirtySecond * 1.4;
     this.noteRectWidthWhole = this.noteRectWidthThirtySecond * 1.5;
 
-    this.effectLabelHeight = this.noteTextSize;
+    this.effectLabelHeight = this.noteTextSize * 2;
 
     this.staffLinesHeight = this.noteRectHeight * (stringsCount - 1);
 

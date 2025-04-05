@@ -25,15 +25,15 @@ export class TabLineElement {
   /**
    * Line encapsulating rectangle
    */
-  readonly rect: Rect;
+  public rect: Rect;
   /**
    * Effects encapsulating rectangle (horizontal, as wide as 'rect')
    */
-  readonly effectLabelsRect: Rect;
+  public effectLabelsRect: Rect;
   /**
    * Bar elements on this line
    */
-  readonly barElements: BarElement[];
+  public barElements: BarElement[];
 
   /**
    * Class that handles a tab line element
@@ -191,6 +191,27 @@ export class TabLineElement {
     return true;
   }
 
+  public calc(): void {
+    const bars = this.barElements.map((be) => be.bar);
+    this.rect = new Rect(
+      this.rect.x,
+      this.rect.y,
+      0,
+      this.dim.tabLineMinHeight
+    );
+    this.effectLabelsRect = new Rect(this.rect.x, this.rect.y, 0, 0);
+    this.barElements = [];
+
+    for (let i = 0; i < bars.length; i++) {
+      const prevBarIndex = this.tab.bars.findIndex(
+        (bar) => bar.uuid === bars[i].uuid
+      );
+      const prevBar =
+        prevBarIndex === 0 ? undefined : this.tab.bars[prevBarIndex - 1];
+      this.addBar(bars[i], prevBar);
+    }
+  }
+
   /**
    * Removes bar element
    * @param barElementId Index of the bar element in this line
@@ -235,15 +256,66 @@ export class TabLineElement {
       return false;
     }
 
-    // Calc new beat gap height and apply the gap increase across the tab line
-    const prevHeight = beatElement.rect.height;
-    beatElement.calc();
-    const newHeight = beatElement.rect.height;
-    if (newHeight !== prevHeight) {
-      this.setHeight(this.rect.height + (newHeight - prevHeight));
-    }
+    // // Calc new beat gap height and apply the gap increase across the tab line
+    // const prevHeight = beatElement.rect.height;
+    // beatElement.calc();
+    // const newHeight = beatElement.rect.height;
+    // if (newHeight !== prevHeight) {
+    //   this.setHeight(this.rect.height + (newHeight - prevHeight));
+    // }
+
+    this.calc();
 
     return true;
+  }
+
+  private getMaxBeatHeight(): number {
+    let maxHeight = 0;
+    for (const barElement of this.barElements) {
+      for (const beatElement of barElement.beatElements) {
+        if (beatElement.rect.height > maxHeight) {
+          maxHeight = beatElement.rect.height;
+        }
+      }
+    }
+
+    return maxHeight;
+  }
+
+  public removeEffectSingle(
+    barElementId: number,
+    beatElementId: number,
+    stringNum: number,
+    effectIndex: number
+  ): void {
+    const beatElement =
+      this.barElements[barElementId].beatElements[beatElementId];
+    let beatId = 0;
+    const barId = this.tab.bars.findIndex((bar) => {
+      return bar.beats.some((beat, index) => {
+        beatId = index;
+        return beat === beatElement.beat;
+      });
+    });
+
+    this.tab.removeEffectFromNote(barId, beatId, stringNum, effectIndex);
+
+    // Compare max heights before and after calculating the beat element
+    // If the max height of beats decreased, decrease entire tab line height
+
+    // TODO: Explore basic recalc upon applying/removing effects
+    // since when height changes we need to go trough the entire tab line
+    // anyway PLUS effect application is unlikely to be done quickly in
+    // succession so even if recalc is slow it probably wouldn'matter anyway
+
+    // const prevMaxHeight = this.getMaxBeatHeight();
+    // beatElement.calc();
+    // const newMaxHeight = this.getMaxBeatHeight();
+    // if (newMaxHeight < prevMaxHeight) {
+    //   this.setHeight(this.rect.height - (prevMaxHeight - newMaxHeight));
+    // }
+
+    this.calc();
   }
 
   public getFitToScale(): number {
