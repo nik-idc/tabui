@@ -175,49 +175,6 @@ export class BeatElement {
     this.rect.height -= this.dim.effectLabelHeight;
   }
 
-  /**
-   * Scales beat element horizontally
-   * @param scale Scale factor
-   * @returns True if can be scaled down, false otherwise
-   */
-  public scaleBeatHorBy(scale: number): boolean {
-    // Check if can be scaled down
-    if (scale <= 0) {
-      // if (scale <= 0 || (scale > 0 && scale < 1)) {
-      throw Error(
-        `${scale} is an invalid scale: scale must be positive AND >= 1`
-      );
-    }
-
-    // Scale notes
-    for (let noteElement of this._beatNotesElement.noteElements) {
-      noteElement.scaleNoteHorBy(scale);
-    }
-
-    // Scale rectangle
-    this.rect.width *= scale;
-    this.rect.x *= scale;
-    this.durationRect.width *= scale;
-    this.durationRect.x *= scale;
-
-    return true;
-  }
-
-  /**
-   * Translates beat element by a specified dstance
-   * @param dx Horizontal distance
-   * @param dy Vertical distance
-   */
-  public translateBy(dx: number, dy: number): void {
-    this.rect.x += dx;
-    this.rect.y += dy;
-    this.durationRect.x += dx;
-    this.durationRect.y += dy;
-    for (let noteElement of this._beatNotesElement.noteElements) {
-      noteElement.translateBy(dx, dy);
-    }
-  }
-
   public get beatNotesElement(): BeatNotesElement {
     return this._beatNotesElement;
   }

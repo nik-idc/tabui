@@ -79,45 +79,6 @@ export class NoteElement {
     }
   }
 
-  /**
-   * Scales note element horizontally
-   * @param scale Scale factor
-   * @returns True if scaled, false if no more room to scale
-   */
-  public scaleNoteHorBy(scale: number): void {
-    if (scale <= 0) {
-      // if (scale <= 0 || (scale > 0 && scale < 1)) {
-      throw Error(
-        `${scale} is an invalid scale: scale must be positive AND >= 1`
-      );
-    }
-
-    this.rect.width *= scale;
-    this.rect.x *= scale;
-    // this.textRect.width *= scale;
-    this.textRect.x =
-      this.rect.x + this.rect.width / 2 - this.dim.noteTextSize / 2;
-    this.textCoords.x = this.textRect.x + this.dim.noteTextSize / 2;
-  }
-
-  /**
-   * Translates note element by a specified dstance
-   * @param dx Horizontal distance
-   * @param dy Vertical distance
-   */
-  public translateBy(dx: number, dy: number): void {
-    this.rect.x += Math.floor(dx);
-    this.rect.y += Math.floor(dy);
-    this.textRect.x += Math.floor(dx);
-    this.textRect.y += Math.floor(dy);
-    this.textCoords.x += Math.floor(dx);
-    this.textCoords.y += Math.floor(dy);
-
-    for (const effectElement of this._guitarEffectElements) {
-      effectElement.translateBy(dx, dy);
-    }
-  }
-
   public get guitarEffectElements(): GuitarEffectElement[] {
     return this._guitarEffectElements;
   }

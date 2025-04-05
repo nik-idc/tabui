@@ -47,61 +47,35 @@ export class TabLineElement {
     this.rect = new Rect(coords.x, coords.y, 0, dim.tabLineMinHeight);
     this.effectLabelsRect = new Rect(coords.x, coords.y, 0, 0);
     this.barElements = [];
-
-    // tabEvent.on(TabEventType.EffectLabelAdded, (args) =>
-    //   this.onEffectLabelAdded(args)
-    // );
   }
 
   // /**
-  //  * Fires when an effect label has been added
-  //  * @param args Event args
+  //  * Justifies elements by scaling all their widths
   //  */
-  // private onEffectLabelAdded(
-  //   args: TabEventArgs[TabEventType.EffectLabelAdded]
-  // ): void {
-  //   const addedOnThisLine = this.barElements.some((be) => {
-  //     return be.bar.uuid === args.beatUUID;
-  //   });
-  //   if (!addedOnThisLine) {
+  // public justifyElements(): void {
+  //   // Calc width of empty space
+  //   const gapWidth =
+  //     this.dim.width -
+  //     this.barElements[this.barElements.length - 1].rect.rightTop.x;
+
+  //   if (gapWidth === 0) {
   //     return;
   //   }
 
-  //   // Do nothing if the total height of the label line didn't increase
-  //   if (args.totalLabelsHeight <= this.effectLabelsRect.height) {
-  //     return;
+  //   // Calc sum width of all bar elements
+  //   let sumWidth = 0;
+  //   for (const barElement of this.barElements) {
+  //     sumWidth += barElement.rect.width;
   //   }
 
-  //   this.setHeight(args.newLabelHeight);
+  //   // Go through each bar element and increase their
+  //   // width according to how their current width relates
+  //   // to the width of the empty space
+  //   const scale = this.dim.width / sumWidth;
+  //   for (const barElement of this.barElements) {
+  //     barElement.scaleBarHorBy(scale);
+  //   }
   // }
-
-  /**
-   * Justifies elements by scaling all their widths
-   */
-  public justifyElements(): void {
-    // Calc width of empty space
-    const gapWidth =
-      this.dim.width -
-      this.barElements[this.barElements.length - 1].rect.rightTop.x;
-
-    if (gapWidth === 0) {
-      return;
-    }
-
-    // Calc sum width of all bar elements
-    let sumWidth = 0;
-    for (const barElement of this.barElements) {
-      sumWidth += barElement.rect.width;
-    }
-
-    // Go through each bar element and increase their
-    // width according to how their current width relates
-    // to the width of the empty space
-    const scale = this.dim.width / sumWidth;
-    for (const barElement of this.barElements) {
-      barElement.scaleBarHorBy(scale);
-    }
-  }
 
   /**
    * True if the bar element fits in this line, false otherwise
@@ -120,17 +94,6 @@ export class TabLineElement {
     this.rect.width += dWidth;
     this.effectLabelsRect.width += dWidth;
   }
-
-  // private setHeight(height: number): void {
-  //   const diff = height - this.rect.height;
-
-  //   this.rect.height += diff;
-  //   this.effectLabelsRect.height += diff;
-
-  //   for (const barElement of this.barElements) {
-  //     barElement.setHeight(height);
-  //   }
-  // }
 
   public setHeight(newHeight: number): void {
     for (const barElement of this.barElements) {
