@@ -47,13 +47,26 @@ export class TabWindowDim {
    */
   readonly noteRectHeight: number;
   /**
-   * Height of one tab line (bar + durations above it)
+   * Height of an effect label above the beat
    */
-  readonly tabLineHeight: number;
+  readonly effectLabelHeight: number;
+  /**
+   * Minimum height of one tab line (bar + durations above it).
+   * NOTE: Each tab line may have a different height due to the
+   * labels above the notes. Since each tab line has its own
+   * unique number of elements, the height of the tab line
+   * is calculated dynamically and stored in the 'TabLineElement' class
+   * within the 'rect' property. This is just the min height
+   */
+  readonly tabLineMinHeight: number;
   /**
    * Height of durations object above the notes
    */
   readonly durationsHeight: number;
+  /**
+   * Height of all staff lines combined
+   */
+  readonly staffLinesHeight: number;
   /**
    * Height of a time signature rectangle
    */
@@ -70,16 +83,6 @@ export class TabWindowDim {
    * Width of tempo block
    */
   readonly tempoRectWidth: number;
-
-  /**
-   * Class that contains all the needed dim info of tab lines
-   * @param width Tab window width
-   * @param timeSigTextSize Size of note text
-   * @param tempoTextSize Size of note text
-   * @param infoTextSize Size of info text
-   * @param durationsHeight Height of durations object above the notes
-   * @param stringsCount Strings count
-   */
 
   /**
    * Class that contains all the needed dim info of tab lines
@@ -112,13 +115,17 @@ export class TabWindowDim {
     this.noteRectWidthHalf = this.noteRectWidthThirtySecond * 1.4;
     this.noteRectWidthWhole = this.noteRectWidthThirtySecond * 1.5;
 
+    this.effectLabelHeight = this.noteTextSize * 2;
+
+    this.staffLinesHeight = this.noteRectHeight * (stringsCount - 1);
+
     this.timeSigRectWidth = this.noteRectWidthThirtySecond;
-    this.timeSigRectHeight = this.noteRectHeight * (stringsCount - 1);
+    this.timeSigRectHeight = this.staffLinesHeight;
     // '= XXX' = 5 characters of 'tempoTextSize' size
     this.tempoRectWidth = this.durationsHeight + this.tempoTextSize * 5;
     this.tempoRectHeight = this.durationsHeight;
 
-    this.tabLineHeight =
+    this.tabLineMinHeight =
       this.tempoRectHeight +
       this.noteRectHeight * stringsCount +
       this.durationsHeight;

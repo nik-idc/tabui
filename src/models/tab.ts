@@ -1,9 +1,9 @@
 import { Bar } from "./bar";
 import { Beat } from "./beat";
 import { Guitar } from "./guitar";
-import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
-import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
+import { GuitarEffect } from "./guitar-effect/guitar-effect";
+import { GuitarEffectOptions } from "./guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "./guitar-effect/guitar-effect-type";
 import { GuitarNote } from "./guitar-note";
 import { Note } from "./note";
 import { NoteDuration } from "./note-duration";
@@ -467,6 +467,20 @@ export class Tab {
     }
   }
 
+  public removeEffectFromNote(
+    barIndex: number,
+    beatIndex: number,
+    stringNum: number,
+    effectIndex: number
+  ): void {
+    const note = this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+    if (note.effects.length === 0) {
+      return;
+    }
+
+    note.effects.splice(effectIndex, 1);
+  }
+
   /**
    * Applies effects to all notes in specified beats
    * @param beats Beats array
@@ -516,9 +530,7 @@ export class Tab {
    */
   public getNextBeat(barIndex: number, beatIndex: number): Beat | undefined {
     const beatsSeq = this.getBeatsSeq();
-    const beatSeqIndex = beatsSeq.indexOf(
-      this.bars[barIndex].beats[beatIndex]
-    );
+    const beatSeqIndex = beatsSeq.indexOf(this.bars[barIndex].beats[beatIndex]);
     return beatSeqIndex === beatsSeq.length - 1
       ? undefined
       : beatsSeq[beatIndex + 1];
@@ -532,9 +544,7 @@ export class Tab {
    */
   public getPrevBeat(barIndex: number, beatIndex: number): Beat | undefined {
     const beatsSeq = this.getBeatsSeq();
-    const beatSeqIndex = beatsSeq.indexOf(
-      this.bars[barIndex].beats[beatIndex]
-    );
+    const beatSeqIndex = beatsSeq.indexOf(this.bars[barIndex].beats[beatIndex]);
     return beatSeqIndex === 0 ? undefined : beatsSeq[beatIndex - 1];
   }
 

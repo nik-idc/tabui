@@ -255,7 +255,7 @@ export class SelectedElement {
   //   const a = this._tabWindow.
   //   return Math.floor(
   //     this._tabWindow.tabLineElements[this._].rect.y /
-  //       this._tabWindow.dim.tabLineHeight
+  //       this._tabWindow.dim.tabLineMinHeight
   //   );
   // }
 

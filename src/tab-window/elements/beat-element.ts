@@ -4,6 +4,10 @@ import { NoteElement } from "./note-element";
 import { Point } from "../shapes/point";
 import { TabWindowDim } from "../tab-window-dim";
 import { NoteDuration } from "../../models/note-duration";
+import { EffectLabelElement } from "./effects/effect-label-element";
+import { EFFECT_TYPE_TO_LABEL } from "./effects/guitar-effect-element-lists";
+import { tabEvent, TabEventType } from "../../events/tab-event";
+import { BeatNotesElement } from "./beat-notes-element";
 
 /**
  * Class that handles drawing beat element in the tab
@@ -13,10 +17,10 @@ export class BeatElement {
    * Tab window dimensions
    */
   readonly dim: TabWindowDim;
-  /**
-   * This beat's note elements
-   */
-  readonly noteElements: NoteElement[];
+  // /**
+  //  * This beat's note elements
+  //  */
+  private _beatNotesElement: BeatNotesElement;
   /**
    * This beat's duration rectangle
    */
@@ -29,6 +33,14 @@ export class BeatElement {
    * The beat
    */
   readonly beat: Beat;
+  /**
+   * Effect label elements
+   */
+  private _effectLabelElements: EffectLabelElement[];
+  /**
+   * Effect labels rectangle
+   */
+  private _effectLabelsRect: Rect;
 
   /**
    * Class that handles drawing beat element in the tab
@@ -36,20 +48,27 @@ export class BeatElement {
    * @param beatCoords Beat element coords
    * @param beat Beat
    */
-  constructor(dim: TabWindowDim, beatCoords: Point, beat: Beat) {
+  constructor(
+    dim: TabWindowDim,
+    beatCoords: Point,
+    beat: Beat,
+    labelsGapHeight: number = 0
+  ) {
     this.dim = dim;
-    this.noteElements = new Array<NoteElement>(beat.guitar.stringsCount);
     this.durationRect = new Rect();
     this.rect = new Rect(beatCoords.x, beatCoords.y);
     this.beat = beat;
+    this._effectLabelsRect = new Rect(
+      0,
+      this.dim.durationsHeight,
+      0,
+      labelsGapHeight
+    );
 
     this.calc();
   }
 
-  /**
-   * Calculate dimensions of the beat element
-   */
-  public calc(): void {
+  private calcRectAndNotes(): void {
     switch (this.beat.duration) {
       case NoteDuration.ThirtySecond:
         this.rect.width = this.dim.noteRectWidthThirtySecond;
@@ -72,65 +91,95 @@ export class BeatElement {
       default:
         throw Error(`${this.beat.duration} is an invalid beat duration`);
     }
-    this.rect.height = this.dim.tabLineHeight;
+    this.rect.height =
+      this.dim.tabLineMinHeight + this._effectLabelsRect.height;
 
-    // Calc note elements
-    let notes = this.beat.notes;
-    for (let stringNum = 1; stringNum <= notes.length; stringNum++) {
-      this.noteElements[stringNum - 1] = new NoteElement(
-        this.dim,
-        this.rect,
-        notes[stringNum - 1]
-      );
-    }
+    this._effectLabelsRect.width = this.rect.width;
 
+    this._beatNotesElement = new BeatNotesElement(
+      this.dim,
+      this.beat,
+      this.rect.width,
+      this._effectLabelsRect.height
+    );
+  }
+
+  private calcDurationDims(): void {
     // Calc duration transform
-    this.durationRect.x = this.rect.x;
-    this.durationRect.y = this.rect.y;
+    this.durationRect.x = 0;
+    this.durationRect.y = 0;
     this.durationRect.width = this.rect.width;
     this.durationRect.height = this.dim.durationsHeight;
   }
 
-  /**
-   * Scales beat element horizontally
-   * @param scale Scale factor
-   * @returns True if can be scaled down, false otherwise
-   */
-  public scaleBeatHorBy(scale: number): boolean {
-    // Check if can be scaled down
-    if (scale <= 0) {
-    // if (scale <= 0 || (scale > 0 && scale < 1)) {
-      throw Error(
-        `${scale} is an invalid scale: scale must be positive AND >= 1`
-      );
+  private calcEffectLabels(): void {
+    this._effectLabelElements = [];
+    let totalLabelsHeight = 0;
+    for (const noteElement of this._beatNotesElement.noteElements) {
+      for (const effect of noteElement.note.effects) {
+        if (!EFFECT_TYPE_TO_LABEL[effect.effectType]) {
+          continue;
+        }
+
+        // Add effect label
+        const x = 0;
+        const y = this.durationRect.leftBottom.y + totalLabelsHeight;
+        const width = this.rect.width;
+        const height = this.dim.effectLabelHeight;
+        const rect = new Rect(x, y, width, height);
+        this._effectLabelElements.push(
+          new EffectLabelElement(this.dim, rect, effect)
+        );
+
+        totalLabelsHeight += height;
+
+        if (totalLabelsHeight > this._effectLabelsRect.height) {
+          const gapHeight = totalLabelsHeight - this._effectLabelsRect.height;
+          this.insertEffectGap(gapHeight);
+        }
+      }
     }
-
-    // Scale notes
-    for (let noteElement of this.noteElements) {
-      noteElement.scaleNoteHorBy(scale);
-    }
-
-    // Scale rectangle
-    this.rect.width *= scale;
-    this.rect.x *= scale;
-    this.durationRect.width *= scale;
-    this.durationRect.x *= scale;
-
-    return true;
   }
 
   /**
-   * Translates beat element by a specified dstance
-   * @param dx Horizontal distance
-   * @param dy Vertical distance
+   * Calculate dimensions of the beat element and its' child elements
    */
-  public translateBy(dx: number, dy: number): void {
-    this.rect.x += dx;
-    this.rect.y += dy;
-    this.durationRect.x += dx;
-    this.durationRect.y += dy;
-    for (let noteElement of this.noteElements) {
-      noteElement.translateBy(dx, dy);
-    }
+  public calc(): void {
+    this.calcRectAndNotes();
+    this.calcDurationDims();
+    this.calcEffectLabels();
+  }
+
+  public setHeight(newHeight: number): void {
+    const diff = newHeight - this.rect.height;
+    this._effectLabelsRect.height += diff;
+    this._beatNotesElement.rect.y += diff;
+    this.rect.height += diff;
+  }
+
+  /**
+   * Inserts a gap between the durations rectangle and beat notes.
+   * The result is that the beat element is taller, beat notes are
+   * moved down and the gap between durations and notes is increased
+   * (or created if there was none)
+   */
+  public insertEffectGap(gapHeight: number): void {
+    this._effectLabelsRect.height += gapHeight;
+    this._beatNotesElement.rect.y += gapHeight;
+    this.rect.height += gapHeight;
+  }
+
+  public removeEffectGap(): void {
+    this._effectLabelsRect.height -= this.dim.effectLabelHeight;
+    this._beatNotesElement.rect.y -= this.dim.effectLabelHeight;
+    this.rect.height -= this.dim.effectLabelHeight;
+  }
+
+  public get beatNotesElement(): BeatNotesElement {
+    return this._beatNotesElement;
+  }
+
+  public get effectLabelElements(): EffectLabelElement[] {
+    return this._effectLabelElements;
   }
 }

@@ -49,7 +49,7 @@ function selectNote(
   );
 }
 
-export function createBasicTabWindow(): TabWindow {
+export function createBasicTab(): Tab {
   const stringsCount = 6;
   const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
   const fretsCount = 24;
@@ -119,6 +119,11 @@ export function createBasicTabWindow(): TabWindow {
   ];
 
   const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+  return tab;
+}
+
+export function createBasicTabWindow(): TabWindow {
+  const tab: Tab = createBasicTab();
 
   const dim = new TabWindowDim(
     width,
@@ -126,7 +131,7 @@ export function createBasicTabWindow(): TabWindow {
     timeSigTextSize,
     tempoTextSize,
     durationsHeight,
-    guitar.stringsCount
+    tab.guitar.stringsCount
   );
   const tabWindow = new TabWindow(tab, dim);
   tabWindow.calc();
@@ -167,6 +172,18 @@ export function createCustomTabWindow(
   const tabWindow = new TabWindow(tab, dim);
   tabWindow.calc();
   return tabWindow;
+}
+
+export function createTabWindowFromTab(tab: Tab): TabWindow {
+  const dim = new TabWindowDim(
+    width,
+    noteTextSize,
+    timeSigTextSize,
+    tempoTextSize,
+    durationsHeight,
+    tab.guitar.stringsCount
+  );
+  return new TabWindow(tab, dim);
 }
 
 export interface TestCase {
@@ -540,7 +557,9 @@ function prepareTestCases(): TestCase[] {
       // Set beat notes value
       tabWindow.tabLineElements[copiedBeat[0]].barElements[
         copiedBeat[1]
-      ].beatElements[copiedBeat[2]].noteElements[3].note.fret = 20;
+      ].beatElements[
+        copiedBeat[2]
+      ].beatNotesElement.noteElements[3].note.fret = 20;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
@@ -581,10 +600,14 @@ function prepareTestCases(): TestCase[] {
       // Set beat notes value
       tabWindow.tabLineElements[copiedBeats[0][0]].barElements[
         copiedBeats[0][1]
-      ].beatElements[copiedBeats[0][2]].noteElements[3].note.fret = 20;
+      ].beatElements[
+        copiedBeats[0][2]
+      ].beatNotesElement.noteElements[3].note.fret = 20;
       tabWindow.tabLineElements[copiedBeats[1][0]].barElements[
         copiedBeats[1][1]
-      ].beatElements[copiedBeats[1][2]].noteElements[3].note.fret = 19;
+      ].beatElements[
+        copiedBeats[1][2]
+      ].beatNotesElement.noteElements[3].note.fret = 19;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
@@ -634,7 +657,9 @@ function prepareTestCases(): TestCase[] {
       // Set beat notes value
       tabWindow.tabLineElements[copiedBeat[0]].barElements[
         copiedBeat[1]
-      ].beatElements[copiedBeat[2]].noteElements[3].note.fret = 20;
+      ].beatElements[
+        copiedBeat[2]
+      ].beatNotesElement.noteElements[3].note.fret = 20;
 
       // Select note element first
       tabWindow.selectNoteElement(0, 1, 1, 2);
@@ -671,6 +696,94 @@ function prepareTestCases(): TestCase[] {
       };
     })(),
     (() => {
+      const tab = createBasicTab();
+      randomFrets(tab, true);
+      tab.bars[1].beats[0].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.PalmMute)
+      );
+      tab.bars[1].beats[1].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.PalmMute)
+      );
+      tab.bars[1].beats[1].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+      tab.bars[5].beats[1].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+
+      const tabWindow = createTabWindowFromTab(tab);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Create tab window from tab with preset effects",
+      };
+    })(),
+    (() => {
+      const tab = createBasicTab();
+      randomFrets(tab, true);
+      const tabWindow = createTabWindowFromTab(tab);
+
+      tabWindow.selectNoteElement(0, 3, 1, 3);
+      tabWindow.tabLineElements[0].applyEffectSingle(
+        3,
+        1,
+        4,
+        GuitarEffectType.PalmMute
+      );
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Create tab window and apply effects later",
+      };
+    })(),
+    (() => {
+      const tab = createBasicTab();
+      randomFrets(tab, true);
+      tab.bars[0].beats[1].notes[4].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+      tab.bars[3].beats[1].notes[4].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+      tab.bars[5].beats[1].notes[4].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+      const tabWindow = createTabWindowFromTab(tab);
+
+      tabWindow.selectNoteElement(0, 3, 1, 3);
+      tabWindow.tabLineElements[0].applyEffectSingle(
+        3,
+        1,
+        4,
+        GuitarEffectType.PalmMute
+      );
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Create tab window from tab with preset effects and apply effects later",
+      };
+    })(),
+    (() => {
+      const tab = createBasicTab();
+      randomFrets(tab, true);
+      const tabWindow = createTabWindowFromTab(tab);
+
+      tabWindow.selectNoteElement(0, 3, 1, 3);
+      tabWindow.tabLineElements[0].applyEffectSingle(
+        3,
+        1,
+        4,
+        GuitarEffectType.PalmMute
+      );
+      tabWindow.tabLineElements[0].removeEffectSingle(3, 1, 4, 0);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Create tab window, apply effect and then remove it",
+      };
+    })(),
+    (() => {
       const effectsToTry = [
         [
           [
@@ -682,7 +795,7 @@ function prepareTestCases(): TestCase[] {
             [0, 0, 5, 5],
           ],
           GuitarEffectType.Bend,
-          new GuitarEffectOptions(1.5, undefined, undefined),
+          new GuitarEffectOptions(1, undefined, undefined),
         ],
         [
           [
@@ -694,7 +807,7 @@ function prepareTestCases(): TestCase[] {
             [0, 1, 5, 5],
           ],
           GuitarEffectType.BendAndRelease,
-          new GuitarEffectOptions(1.5, 0.5, undefined),
+          new GuitarEffectOptions(1.75, 1.5, undefined),
         ],
         [
           [
@@ -718,7 +831,7 @@ function prepareTestCases(): TestCase[] {
             [1, 0, 5, 5],
           ],
           GuitarEffectType.PrebendAndRelease,
-          new GuitarEffectOptions(undefined, 1.5, 0.5),
+          new GuitarEffectOptions(undefined, 1.75, 1.5),
         ],
       ];
 
@@ -735,7 +848,10 @@ function prepareTestCases(): TestCase[] {
             effectNote[3]
           );
 
-          tabWindow.applyEffect(
+          tabWindow.tabLineElements[effectNote[0]].applyEffectSingle(
+            effectNote[1],
+            effectNote[2],
+            effectNote[3] + 1,
             effectToTry[1] as GuitarEffectType,
             effectToTry[2] as GuitarEffectOptions
           );
@@ -830,7 +946,10 @@ function prepareTestCases(): TestCase[] {
             effectNote[3]
           );
 
-          tabWindow.applyEffect(
+          tabWindow.tabLineElements[effectNote[0]].applyEffectSingle(
+            effectNote[1],
+            effectNote[2],
+            effectNote[3] + 1,
             effectToTry[1] as GuitarEffectType,
             effectToTry[2] as GuitarEffectOptions
           );
@@ -839,7 +958,7 @@ function prepareTestCases(): TestCase[] {
 
       return {
         tabWindow: tabWindow,
-        caption: "Apply all existing types of bend effects on notes: ",
+        caption: "Apply all existing types of effects on notes: ",
       };
     })(),
   ];

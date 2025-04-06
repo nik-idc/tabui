@@ -35,7 +35,7 @@ const dim = new TabWindowDim(
   stringsCount
 );
 
-let beatRect = new Rect(0, 0, dim.width / 4, dim.tabLineHeight);
+let beatRect = new Rect(0, 0, dim.width / 4, dim.tabLineMinHeight);
 let stringNum = 3;
 let fret = 5;
 let guitarNote = new GuitarNote(guitar, stringNum, fret);
@@ -44,7 +44,7 @@ let noteElement = new NoteElement(dim, beatRect, guitarNote);
 describe("Note element tests", () => {
   beforeEach(() => {
     // Setup data before each test run
-    beatRect = new Rect(0, 0, dim.width / 4, dim.tabLineHeight);
+    beatRect = new Rect(0, 0, dim.width / 4, dim.tabLineMinHeight);
     stringNum = 3;
     fret = 5;
     guitarNote = new GuitarNote(guitar, stringNum, fret);
