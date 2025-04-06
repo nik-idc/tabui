@@ -143,11 +143,6 @@ export class TestRenderer {
     for (const effectLabelElement of beatElement.effectLabelElements) {
       html.push(`<g transform="translate(${beatOffset.x}, ${beatOffset.y})">`);
       html.push(effectLabelElement.fullHTML);
-      // html.push(`<rect x="${beatOffset.x + effectLabelElement.rect.x}"
-      //   y="${beatOffset.y + effectLabelElement.rect.y}"
-      //   width="${effectLabelElement.rect.width}"
-      //   height="${effectLabelElement.rect.height}"
-      //   fill="red" />`);
       html.push(`</g>`);
     }
 
