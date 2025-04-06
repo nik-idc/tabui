@@ -1,9 +1,9 @@
 import { Bar } from "./bar";
 import { Beat } from "./beat";
 import { Guitar } from "./guitar";
-import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
-import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
+import { GuitarEffect } from "./guitar-effect/guitar-effect";
+import { GuitarEffectOptions } from "./guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "./guitar-effect/guitar-effect-type";
 import { GuitarNote } from "./guitar-note";
 import { Note } from "./note";
 import { NoteDuration } from "./note-duration";

@@ -1,10 +1,9 @@
 import { Guitar } from "./guitar";
 import { Note, NotesCalcArr } from "./note";
 import { randomInt } from "../misc/random-int";
-import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
-import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
 import { EFFECTS_INCOMPATIBILITY } from "./guitar-effect/guitar-effect-lists";
+import { GuitarEffect } from "./guitar-effect/guitar-effect";
+import { GuitarEffectType } from "./guitar-effect/guitar-effect-type";
 
 /**
  * Class that represents a guitar note
