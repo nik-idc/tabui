@@ -152,6 +152,11 @@ export class TabWindow {
     return this._selectionManager.isNoteElementSelected(noteElement);
   }
 
+  public clearSelection(): void {
+    this._selectionManager.clearSelection();
+    this._tabElement.resetSelection();
+  }
+
   public selectBeat(beatElement: BeatElement): void {
     this._selectionManager.selectBeat(beatElement.beat);
 

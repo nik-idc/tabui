@@ -203,6 +203,16 @@ export class TabElement {
     };
   }
 
+  public resetSelection(): void {
+    for (const tabLineElement of this._tabLineElements) {
+      for (const barElement of tabLineElement.barElements) {
+        for (const beatElement of barElement.beatElements) {
+          beatElement.selected = false;
+        }
+      }
+    }
+  }
+
   public recalcBeatElementSelection(selectionUUIDs: number[]): void {
     for (const tabLineElement of this._tabLineElements) {
       for (const barElement of tabLineElement.barElements) {
