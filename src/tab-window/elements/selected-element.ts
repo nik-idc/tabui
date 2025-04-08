@@ -21,6 +21,13 @@ export function isSelectedElement(
   return (element as SelectedElement).stringNum !== undefined;
 }
 
+export enum SelectedMoveDirection {
+  Left,
+  Right,
+  Up,
+  Down,
+}
+
 /**
  * Types of outcomes for moving a note right
  */
@@ -43,20 +50,28 @@ export type MoveRightOutput = {
  * about a selected element
  */
 export class SelectedElement {
+  private _barId: number = 0;
+  private _beatId: number = 0;
+  private _stringNum: number = 1;
+
   /**
    * Class that contains all necessary information
    * about a selected element
    * @param _tab Tab
-   * @param _barId Bar id
-   * @param _beatId Beat id (beat element id at the same time)
-   * @param _stringNum String number
+   * @param _noteUUID Note UUID
    */
-  constructor(
-    private _tab: Tab,
-    private _barId: number = 0,
-    private _beatId: number = 0,
-    private _stringNum: number = 1
-  ) {}
+  constructor(private _tab: Tab, private _noteUUID: number) {
+    this.tab.bars.some((bar, barIndex) => {
+      return bar.beats.some((beat, beatIndex) => {
+        return beat.notes.some((note, noteIndex) => {
+          this._barId = barIndex;
+          this._beatId = beatIndex;
+          this._stringNum = note.stringNum;
+          return note.uuid === this._noteUUID;
+        });
+      });
+    });
+  }
 
   /**
    * Move selected note up (or to the last string if current is the first)

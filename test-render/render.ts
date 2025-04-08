@@ -71,7 +71,7 @@ export class TestRenderer {
                        fill="white"
                        fill-opacity="1" />`);
       if (
-        tabWindow.selectedElement &&
+        tabWindow.selectionManager.selectedElement &&
         tabWindow.isNoteElementSelected(noteElement)
       ) {
         html.push(`<text x="${noteOffset.x + noteElement.textCoords.x}"
@@ -173,6 +173,15 @@ export class TestRenderer {
         beatElement.beatNotesElement
       )
     );
+
+    if (beatElement.selected) {
+      html.push(`<rect x="${barOffset.x + beatElement.rect.x}"
+        y="${barOffset.y + beatElement.rect.y}"
+        width="${beatElement.rect.width}"
+        height="${beatElement.rect.height}"
+        fill="blue"
+        fill-opacity="0.25" />`);
+    }
 
     return html.join("");
   }
@@ -277,14 +286,14 @@ export class TestRenderer {
   ): string {
     const html: string[] = [];
 
-    const tle = tabWindow.tabLineElements[tabLineElementIndex];
+    const tle = tabWindow.tabElement.tabLineElements[tabLineElementIndex];
     const tleOffset = new Point(0, tle.rect.y);
 
     for (const barElement of tle.barElements) {
       html.push(this.renderBarElement(tabWindow, tleOffset, barElement));
     }
 
-    const rect = tabWindow.selectionRects[tabLineElementIndex];
+    const rect = tabWindow.tabElement.selectionRects[tabLineElementIndex];
     if (rect) {
       html.push(`<rect x="${rect.x}"
                        y="${rect.y}"
@@ -307,7 +316,7 @@ export class TestRenderer {
     // const tabWindowHeight =
     //   tabWindow.dim.tabLineMinHeight * tabWindow.tabLineElements.length;
     let tabWindowHeight = 0;
-    for (const tabLineElement of tabWindow.tabLineElements) {
+    for (const tabLineElement of tabWindow.tabElement.tabLineElements) {
       tabWindowHeight += tabLineElement.rect.height;
     }
 
@@ -317,7 +326,7 @@ export class TestRenderer {
     html.push(`<svg viewBox="0 0 ${tabWindow.dim.width} ${tabWindowHeight}"
                     width="${tabWindow.dim.width}"
                     height="${tabWindowHeight}">`);
-    for (let i = 0; i < tabWindow.tabLineElements.length; i++) {
+    for (let i = 0; i < tabWindow.tabElement.tabLineElements.length; i++) {
       html.push(this.renderTabLine(tabWindow, i));
     }
 
