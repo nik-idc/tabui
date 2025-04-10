@@ -135,7 +135,7 @@ export class Tab {
       // Paste copied data into bar
       const newBeatsCopies = [];
       for (const beat of newBeats) {
-        newBeats.push(beat.deepCopy());
+        newBeatsCopies.push(beat.deepCopy());
       }
       bar.insertBeats(bar.beats.length - 1, newBeatsCopies);
     } else {
