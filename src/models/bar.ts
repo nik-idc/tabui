@@ -148,7 +148,7 @@ export class Bar {
     }
 
     // Insert beats at specified position
-    this.beats.splice(beatId + 1, 0, ...beats);
+    this.beats.splice(beatId + 1, 0, ...beatsCopies);
   }
 
   /**
