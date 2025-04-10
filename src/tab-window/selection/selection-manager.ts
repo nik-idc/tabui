@@ -1,5 +1,6 @@
 import { Beat } from "../../models/beat";
 import { GuitarNote } from "../../models/guitar-note";
+import { NoteDuration } from "../../models/note-duration";
 import { Tab } from "../../models/tab";
 import { NoteElement } from "../elements/note-element";
 import {
@@ -16,12 +17,15 @@ export class SelectionManager {
    * Selected note element
    */
   private _selectedElement: SelectedElement | undefined;
-  private _baseSelectionElementUUID?: number;
-  private _selectionElementsUUIDs: number[];
+  private _baseSelectionBeat?: Beat;
+  /**
+   * Selection beats
+   */
+  private _selectionBeats: Beat[];
   /**
    * Copied data
    */
-  private _copiedData: SelectedElement | number[];
+  private _copiedData: SelectedElement | Beat[];
   constructor(tab: Tab) {
     this.tab = tab;
   }
@@ -69,25 +73,18 @@ export class SelectionManager {
    * Move selected note left
    */
   public moveSelectedNoteLeft(): void {
-    if (this.selectionElementsUUIDs.length !== 0) {
+    if (this._selectionBeats.length !== 0) {
       // Select left most element of selection
-      const leftMostElementUUID = this.selectedElement[0];
-      let leftMostNote: GuitarNote;
-      this.tab.bars.findIndex((bar) => {
-        return bar.beats.some((beat) => {
-          leftMostNote =
-            beat.notes[
-              this.selectedElement ? this.selectedElement.stringNum : 1
-            ];
-          return beat.uuid === leftMostElementUUID;
-        });
-      });
+      const leftMostNote =
+        this.selectedElement[0].notes[
+          this.selectedElement ? this.selectedElement.stringNum : 1
+        ];
 
       this.selectNote(leftMostNote);
     }
 
     if (
-      this.selectionElementsUUIDs.length === 0 &&
+      this._selectionBeats.length === 0 &&
       this.selectedElement === undefined
     ) {
       throw Error("No note selected");
@@ -100,26 +97,18 @@ export class SelectionManager {
    * Move selected note right
    */
   public moveSelectedNoteRight(): MoveRightOutput {
-    if (this.selectionElementsUUIDs.length !== 0) {
+    if (this._selectionBeats.length !== 0) {
       // Select right most element of selection
-      const rightMostElement =
-        this.selectionElementsUUIDs[this.selectionElementsUUIDs.length - 1];
-      let rightMostNote: GuitarNote;
-      this.tab.bars.findIndex((bar) => {
-        return bar.beats.some((beat) => {
-          rightMostNote =
-            beat.notes[
-              this.selectedElement ? this.selectedElement.stringNum : 1
-            ];
-          return beat.uuid === rightMostElement;
-        });
-      });
+      const rightMostNote =
+        this._selectionBeats[this._selectionBeats.length - 1].notes[
+          this.selectedElement ? this.selectedElement.stringNum : 1
+        ];
 
       this.selectNote(rightMostNote);
     }
 
     if (
-      this.selectionElementsUUIDs.length === 0 &&
+      this._selectionBeats.length === 0 &&
       this.selectedElement === undefined
     ) {
       throw Error("No note selected");
@@ -136,16 +125,20 @@ export class SelectionManager {
   private selectBeatsInBetween(beat1UUID: number, beat2UUID: number): void {
     const beatsSeq = this.tab.getBeatsSeq();
 
-    const startBeatElementSeqId = beatsSeq.findIndex((beat) => {
-      return beat.uuid === beat1UUID;
-    });
-    const endBeatElementSeqId = beatsSeq.findIndex((beat) => {
-      return beat.uuid === beat2UUID;
-    });
+    let startBeatElementSeqId: number;
+    let endBeatElementSeqId: number;
+    for (let i = 0; i < beatsSeq.length; i++) {
+      if (beatsSeq[i].uuid === beat1UUID) {
+        startBeatElementSeqId = i;
+      }
+      if (beatsSeq[i].uuid === beat2UUID) {
+        endBeatElementSeqId = i;
+      }
+    }
 
     for (let i = startBeatElementSeqId; i <= endBeatElementSeqId; i++) {
       if (i >= startBeatElementSeqId && i <= endBeatElementSeqId) {
-        this._selectionElementsUUIDs.push(beatsSeq[i].uuid);
+        this._selectionBeats.push(beatsSeq[i]);
       }
     }
   }
@@ -160,27 +153,35 @@ export class SelectionManager {
     }
 
     const beatsSeq = this.tab.getBeatsSeq();
-    const beatSeqId = beatsSeq.indexOf(beat);
-    const baseBeatSeqId = beatsSeq.findIndex((beat) => {
-      return beat.uuid === this._baseSelectionElementUUID;
-    });
+    let beatSeqId: number;
+    let baseBeatSeqId: number = -1;
+    for (let i = 0; i < beatsSeq.length; i++) {
+      if (beatsSeq[i].uuid === beat.uuid) {
+        beatSeqId = i;
+      } else if (
+        this._baseSelectionBeat !== undefined &&
+        beatsSeq[i].uuid === this._baseSelectionBeat.uuid
+      ) {
+        baseBeatSeqId = i;
+      }
+    }
 
     let startBeatUUID: number;
     let endBeatUUID: number;
     if (baseBeatSeqId === -1 || beatSeqId === baseBeatSeqId) {
-      this._baseSelectionElementUUID = beat.uuid;
+      this._baseSelectionBeat = beat;
       startBeatUUID = beat.uuid;
       endBeatUUID = beat.uuid;
     } else if (beatSeqId > baseBeatSeqId) {
-      startBeatUUID = this._baseSelectionElementUUID;
+      startBeatUUID = this._baseSelectionBeat.uuid;
       endBeatUUID = beat.uuid;
     } else {
       startBeatUUID = beat.uuid;
-      endBeatUUID = this._baseSelectionElementUUID;
+      endBeatUUID = this._baseSelectionBeat.uuid;
     }
 
     // Clear selection rects
-    this._selectionElementsUUIDs = [];
+    this._selectionBeats = [];
 
     // Select all beats in new selection
     this.selectBeatsInBetween(startBeatUUID, endBeatUUID);
@@ -190,8 +191,18 @@ export class SelectionManager {
    * Clears all selection
    */
   public clearSelection(): void {
-    this._baseSelectionElementUUID = undefined;
-    this._selectionElementsUUIDs = [];
+    this._baseSelectionBeat = undefined;
+    this._selectionBeats = [];
+  }
+
+  /**
+   * Changes duration of all selected beats
+   * @param newDuration New duration to set
+   */
+  public changeSelectionDuration(newDuration: NoteDuration): void {
+    for (const beat of this._selectionBeats) {
+      beat.duration = newDuration;
+    }
   }
 
   /**
@@ -200,7 +211,7 @@ export class SelectionManager {
   public copy(): void {
     this._copiedData = this._selectedElement
       ? new SelectedElement(this.tab, this._selectedElement.note.uuid)
-      : this._selectionElementsUUIDs;
+      : this._selectionBeats;
   }
 
   /**
@@ -230,17 +241,14 @@ export class SelectionManager {
         return;
       }
 
-      if (this._selectionElementsUUIDs.length === 0) {
+      if (this._selectionBeats.length === 0) {
         // Insert if currently not selecting
-        const copiedBeats = this.beatsFromUUIDs(this._copiedData);
         this._selectedElement.bar.insertBeats(
           this._selectedElement.beatId,
-          copiedBeats
+          this._copiedData
         );
       } else {
-        const selectedBeats = this.beatsFromUUIDs(this._copiedData);
-        const oldBeats = this.beatsFromUUIDs(this._selectionElementsUUIDs);
-        this.tab.replaceBeats(oldBeats, selectedBeats);
+        this.tab.replaceBeats(this._selectionBeats, this._copiedData);
         this.clearSelection();
       }
     } else {
@@ -249,16 +257,8 @@ export class SelectionManager {
   }
 
   public deleteSelected(): void {
-    this.tab.removeBeats(this.beatsFromUUIDs(this._selectionElementsUUIDs));
+    this.tab.removeBeats(this._selectionBeats);
     this.clearSelection();
-  }
-
-  /**
-   * Gets beats from selection (as a get function because this is a .map wrapper)
-   * @returns Selected beats ('Beat' class)
-   */
-  public getSelectionBeats(): Beat[] {
-    return this.beatsFromUUIDs(this._selectionElementsUUIDs);
   }
 
   /**
@@ -280,7 +280,7 @@ export class SelectionManager {
   /**
    *
    */
-  public get selectionElementsUUIDs(): number[] {
-    return this._selectionElementsUUIDs;
+  public get selectionBeats(): Beat[] {
+    return this._selectionBeats;
   }
 }

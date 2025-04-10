@@ -559,6 +559,7 @@ function prepareTestCases(): TestCase[] {
       const pastedIntoBeat = [0, 3, 3];
 
       const tabWindow = createBasicTabWindow();
+      // randomFrets(tabWindow.tab, true);
 
       tabWindow.selectNoteElementUsingIds(
         copiedBeat[0],
@@ -706,6 +707,63 @@ function prepareTestCases(): TestCase[] {
           `replacing beats from ` +
           `${pastedIntoBeats[0][0]}-${pastedIntoBeats[0][1]}-${pastedIntoBeats[0][2]} to ` +
           `${pastedIntoBeats[1][0]}-${pastedIntoBeats[1][1]}-${pastedIntoBeats[1][2]}`,
+      };
+    })(),
+    (() => {
+      const copiedBeats = [
+        [0, 2, 1],
+        [0, 2, 2],
+      ];
+      const pastedIntoBeats = [
+        [0, 3, 1],
+        [0, 3, 2],
+        [0, 3, 3],
+      ];
+
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      // Set beat notes value
+      tabWindow.selectBeatUsingIds(
+        copiedBeats[0][0],
+        copiedBeats[0][1],
+        copiedBeats[0][2]
+      );
+      tabWindow.selectBeatUsingIds(
+        copiedBeats[1][0],
+        copiedBeats[1][1],
+        copiedBeats[1][2]
+      );
+      tabWindow.changeSelectionDuration(NoteDuration.Sixteenth);
+
+      // Copy selected beats
+      tabWindow.copy();
+
+      // Select note element first
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
+      // Select note element where beats will be pasted & paste
+      tabWindow.selectBeatUsingIds(
+        pastedIntoBeats[0][0],
+        pastedIntoBeats[0][1],
+        pastedIntoBeats[0][2]
+      );
+      tabWindow.selectBeatUsingIds(
+        pastedIntoBeats[2][0],
+        pastedIntoBeats[2][1],
+        pastedIntoBeats[2][2]
+      );
+      tabWindow.paste();
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Copy paste 2 beats replacing 3 selected beats: " +
+          "copied beat from " +
+          `${copiedBeats[0][0]}-${copiedBeats[0][1]}-${copiedBeats[0][2]} to ` +
+          `${copiedBeats[1][0]}-${copiedBeats[1][1]}-${copiedBeats[1][2]} ` +
+          `replacing beats from ` +
+          `${pastedIntoBeats[0][0]}-${pastedIntoBeats[0][1]}-${pastedIntoBeats[0][2]} to ` +
+          `${pastedIntoBeats[2][0]}-${pastedIntoBeats[2][1]}-${pastedIntoBeats[2][2]}`,
       };
     })(),
     (() => {

@@ -113,6 +113,7 @@ export class Tab {
     if (oldBeats.length > newBeats.length) {
       // Replace beats' notes values
       for (let i = 0; i < newBeats.length; i++) {
+        oldBeats[i].duration = newBeats[i].duration;
         for (let j = 0; j < this.guitar.stringsCount; j++) {
           oldBeats[i].notes[j].fret = newBeats[i].notes[j].fret;
         }

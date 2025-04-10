@@ -332,7 +332,7 @@ export class BarElement {
   /**
    * True if durations fit according to signature values
    */
-  durationsFit(): boolean {
+  public get durationsFit(): boolean {
     return this.bar.durationsFit;
   }
 
