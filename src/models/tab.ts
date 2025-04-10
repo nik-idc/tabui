@@ -67,12 +67,12 @@ export class Tab {
     this.guitar = guitar;
     this.isPublic = isPublic;
 
-    if (bars) {
-      this.bars = bars;
-    } else {
+    if (bars === undefined || bars.length === 0) {
       this.bars = [
         new Bar(this.guitar, 120, 4, NoteDuration.Quarter, undefined),
       ];
+    } else {
+      this.bars = bars;
     }
   }
 
@@ -554,6 +554,33 @@ export class Tab {
   public getBeatsSeq(): Beat[] {
     return this.bars.flatMap((bar) => {
       return bar.beats;
+    });
+  }
+
+  public getNotesSeq(): GuitarNote[] {
+    const beatsSeq = this.getBeatsSeq();
+    return beatsSeq.flatMap((beat) => {
+      return beat.notes;
+    });
+  }
+
+  public findBarByUUID(barUUID: number): Bar | undefined {
+    return this.bars.find((bar) => {
+      return bar.uuid === barUUID;
+    });
+  }
+
+  public findBeatByUUID(beatUUID: number): Beat | undefined {
+    const beatsSeq = this.getBeatsSeq();
+    return beatsSeq.find((beat) => {
+      return beat.uuid === beatUUID;
+    });
+  }
+
+  public findNoteByUUID(noteUUID: number): GuitarNote | undefined {
+    const notesSeq = this.getNotesSeq();
+    return notesSeq.find((note) => {
+      return note.uuid === noteUUID;
     });
   }
 

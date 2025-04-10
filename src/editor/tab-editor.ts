@@ -1,16 +1,18 @@
+import { Tab } from "../models/tab";
 import { TabWindow } from "../tab-window/tab-window";
 
 /**
  * Class that handles editing a tab and displaying the changes
  */
 export class TabEditor {
-  readonly tabWindow: TabWindow;
+  readonly tab: Tab;
 
   /**
    * Class that handles editing a tab and displaying the changes
    */
-  constructor(tabWindow: TabWindow) {
-    this.tabWindow = tabWindow;
+  constructor(tab: Tab) {
+    this.tab = tab;
   }
+
   
 }

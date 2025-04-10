@@ -17,9 +17,13 @@ export class BeatElement {
    * Tab window dimensions
    */
   readonly dim: TabWindowDim;
-  // /**
-  //  * This beat's note elements
-  //  */
+  /**
+   * Inidicates whether this beat element is selected
+   */
+  public selected: boolean = false;
+  /**
+   * This beat's note elements
+   */
   private _beatNotesElement: BeatNotesElement;
   /**
    * This beat's duration rectangle

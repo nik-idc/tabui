@@ -9,6 +9,7 @@ import { NoteDuration } from "../src/models/note-duration";
 import { Tab } from "../src/models/tab";
 import { TabWindow } from "../src/tab-window/tab-window";
 import { TabWindowDim } from "../src/tab-window/tab-window-dim";
+import { SelectedMoveDirection } from "../src/tab-window/elements/selected-element";
 
 let calcSpeed: number | undefined = undefined;
 
@@ -41,7 +42,7 @@ function selectNote(
   beatElementId: number,
   stringNum: number
 ): void {
-  tabWindow.selectNoteElement(
+  tabWindow.selectNoteElementUsingIds(
     tabLineElementId,
     barElementId,
     beatElementId,
@@ -134,7 +135,7 @@ export function createBasicTabWindow(): TabWindow {
     tab.guitar.stringsCount
   );
   const tabWindow = new TabWindow(tab, dim);
-  tabWindow.calc();
+  tabWindow.calcTabElement();
   return tabWindow;
 }
 
@@ -170,7 +171,7 @@ export function createCustomTabWindow(
     guitar.stringsCount
   );
   const tabWindow = new TabWindow(tab, dim);
-  tabWindow.calc();
+  tabWindow.calcTabElement();
   return tabWindow;
 }
 
@@ -210,16 +211,16 @@ function prepareTestCases(): TestCase[] {
       selectNote(tabWindow, 1, 4, 3, 4);
 
       // Move right thus creating new notes
-      tabWindow.moveSelectedNoteRight();
-      tabWindow.moveSelectedNoteRight();
-      tabWindow.moveSelectedNoteRight();
-      tabWindow.moveSelectedNoteRight();
-      tabWindow.moveSelectedNoteRight();
-      tabWindow.moveSelectedNoteRight();
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
 
       // Move selected note left to see if it's at the right place
-      tabWindow.moveSelectedNoteLeft();
-      tabWindow.moveSelectedNoteLeft();
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Left);
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Left);
 
       // Fill frets
       randomFrets(tabWindow.tab, true);
@@ -247,7 +248,7 @@ function prepareTestCases(): TestCase[] {
       );
       const tabWindow = new TabWindow(tab, dim);
 
-      tabWindow.calc();
+      tabWindow.calcTabElement();
       return {
         tabWindow: tabWindow,
         caption: "Empty bars array creates tab with 1 bar",
@@ -283,7 +284,7 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = new TabWindow(tab, dim);
 
       const before = performance.now();
-      tabWindow.calc();
+      tabWindow.calcTabElement();
       const after = performance.now();
       calcSpeed = after - before;
 
@@ -291,7 +292,7 @@ function prepareTestCases(): TestCase[] {
       return {
         tabWindow: tabWindow,
         caption:
-          "7 string guitar + a single 'TabWindow.calc' " +
+          "7 string guitar + a single 'tabWindow.calcTabElement' " +
           `on 100 bars performance measuring: calc speed is ${calcSpeed}`,
       };
     })(),
@@ -302,8 +303,8 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
-      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
+      tabWindow.selectBeatUsingIds(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeatUsingIds(secondBeat[0], secondBeat[1], secondBeat[2]);
 
       return {
         tabWindow: tabWindow,
@@ -321,11 +322,11 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
-      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
-      // tabWindow.selectBeat(0, 0, 3);
-      // tabWindow.selectBeat(0, 0, 2);
-      tabWindow.selectBeat(thirdBeat[0], thirdBeat[1], thirdBeat[2]);
+      tabWindow.selectBeatUsingIds(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeatUsingIds(secondBeat[0], secondBeat[1], secondBeat[2]);
+      // tabWindow.selectBeatUsingIds(0, 0, 3);
+      // tabWindow.selectBeatUsingIds(0, 0, 2);
+      tabWindow.selectBeatUsingIds(thirdBeat[0], thirdBeat[1], thirdBeat[2]);
 
       return {
         tabWindow: tabWindow,
@@ -343,8 +344,8 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
-      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
+      tabWindow.selectBeatUsingIds(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeatUsingIds(secondBeat[0], secondBeat[1], secondBeat[2]);
 
       return {
         tabWindow: tabWindow,
@@ -362,11 +363,11 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = createBasicTabWindow();
       randomFrets(tabWindow.tab, true);
 
-      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
-      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
-      // tabWindow.selectBeat(1, 0, 3);
-      // tabWindow.selectBeat(1, 1, 0);
-      tabWindow.selectBeat(thirdBeat[0], thirdBeat[1], thirdBeat[2]);
+      tabWindow.selectBeatUsingIds(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeatUsingIds(secondBeat[0], secondBeat[1], secondBeat[2]);
+      // tabWindow.selectBeatUsingIds(1, 0, 3);
+      // tabWindow.selectBeatUsingIds(1, 1, 0);
+      tabWindow.selectBeatUsingIds(thirdBeat[0], thirdBeat[1], thirdBeat[2]);
 
       return {
         tabWindow: tabWindow,
@@ -384,22 +385,24 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = createBasicTabWindow();
 
       // Select beats first
-      tabWindow.selectBeat(1, 0, 2);
-      tabWindow.selectBeat(0, 1, 0);
+      tabWindow.selectBeatUsingIds(1, 0, 2);
+      tabWindow.selectBeatUsingIds(0, 1, 0);
       // Select note element should clear all selected beats
-      tabWindow.selectNoteElement(
+      tabWindow.selectNoteElementUsingIds(
         copiedNote[0],
         copiedNote[1],
         copiedNote[2],
         copiedNote[3]
       );
-      tabWindow.selectedElement.note.fret = Math.floor(Math.random() * 24);
+      tabWindow.selectionManager.selectedElement!.note.fret = Math.floor(
+        Math.random() * 24
+      );
 
       // Copy selected note
       tabWindow.copy();
 
       // Select note to paste value into & paste
-      tabWindow.selectNoteElement(
+      tabWindow.selectNoteElementUsingIds(
         pastedNote[0],
         pastedNote[1],
         pastedNote[2],
@@ -421,33 +424,35 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = createBasicTabWindow();
 
       // Select beats first
-      tabWindow.selectBeat(1, 0, 2);
-      tabWindow.selectBeat(0, 1, 0);
+      tabWindow.selectBeatUsingIds(1, 0, 2);
+      tabWindow.selectBeatUsingIds(0, 1, 0);
       // Select note element should clear all selected beats
-      tabWindow.selectNoteElement(
+      tabWindow.selectNoteElementUsingIds(
         copiedNote[0],
         copiedNote[1],
         copiedNote[2],
         copiedNote[3]
       );
-      tabWindow.selectedElement.note.fret = Math.floor(Math.random() * 24);
+      tabWindow.selectionManager.selectedElement!.note.fret = Math.floor(
+        Math.random() * 24
+      );
 
       // Copy selected note
       tabWindow.copy();
 
-      tabWindow.moveSelectedNoteUp();
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Up);
       tabWindow.paste();
 
-      tabWindow.moveSelectedNoteRight();
-      tabWindow.moveSelectedNoteDown();
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Down);
       tabWindow.paste();
 
-      tabWindow.moveSelectedNoteDown();
-      tabWindow.moveSelectedNoteLeft();
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Down);
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Left);
       tabWindow.paste();
 
-      tabWindow.moveSelectedNoteLeft();
-      tabWindow.moveSelectedNoteUp();
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Left);
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Up);
       tabWindow.paste();
 
       return {
@@ -467,16 +472,16 @@ function prepareTestCases(): TestCase[] {
       randomFrets(tabWindow.tab, true);
 
       // Select note element first
-      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select beats clears selected element
-      tabWindow.selectBeat(firstBeat[0], firstBeat[1], firstBeat[2]);
-      tabWindow.selectBeat(secondBeat[0], secondBeat[1], secondBeat[2]);
+      tabWindow.selectBeatUsingIds(firstBeat[0], firstBeat[1], firstBeat[2]);
+      tabWindow.selectBeatUsingIds(secondBeat[0], secondBeat[1], secondBeat[2]);
 
       // Copy selected beats
       tabWindow.copy();
 
       // Select note element where beats will be pasted & paste
-      tabWindow.selectNoteElement(
+      tabWindow.selectNoteElementUsingIds(
         pastedAtNote[0],
         pastedAtNote[1],
         pastedAtNote[2],
@@ -507,14 +512,14 @@ function prepareTestCases(): TestCase[] {
       randomFrets(tabWindow.tab, true);
 
       // Select note element first
-      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select beats clears selected element
-      tabWindow.selectBeat(
+      tabWindow.selectBeatUsingIds(
         copiedBeats[0][0],
         copiedBeats[0][1],
         copiedBeats[0][2]
       );
-      tabWindow.selectBeat(
+      tabWindow.selectBeatUsingIds(
         copiedBeats[1][0],
         copiedBeats[1][1],
         copiedBeats[1][2]
@@ -524,14 +529,14 @@ function prepareTestCases(): TestCase[] {
       tabWindow.copy();
 
       // Select note element where beats will be pasted & paste
-      tabWindow.selectNoteElement(0, 1, 1, 2);
-      tabWindow.selectNoteElement(0, 1, 2, 2);
-      tabWindow.selectBeat(
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
+      tabWindow.selectNoteElementUsingIds(0, 1, 2, 2);
+      tabWindow.selectBeatUsingIds(
         pasteIntoBeats[0][0],
         pasteIntoBeats[0][1],
         pasteIntoBeats[0][2]
       );
-      tabWindow.selectBeat(
+      tabWindow.selectBeatUsingIds(
         pasteIntoBeats[1][0],
         pasteIntoBeats[1][1],
         pasteIntoBeats[1][2]
@@ -554,25 +559,33 @@ function prepareTestCases(): TestCase[] {
       const pastedIntoBeat = [0, 3, 3];
 
       const tabWindow = createBasicTabWindow();
-      // Set beat notes value
-      tabWindow.tabLineElements[copiedBeat[0]].barElements[
-        copiedBeat[1]
-      ].beatElements[
-        copiedBeat[2]
-      ].beatNotesElement.noteElements[3].note.fret = 20;
+
+      tabWindow.selectNoteElementUsingIds(
+        copiedBeat[0],
+        copiedBeat[1],
+        copiedBeat[2],
+        3
+      );
+      tabWindow.setSelectedNoteFret(20);
+      // // Set beat notes value
+      // tabWindow.tabElement.tabLineElements[copiedBeat[0]].barElements[
+      //   copiedBeat[1]
+      // ].beatElements[
+      //   copiedBeat[2]
+      // ].beatNotesElement.noteElements[3].note.fret = 20;
 
       // Select note element first
-      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select beats clears selected element
-      tabWindow.selectBeat(copiedBeat[0], copiedBeat[1], copiedBeat[2]);
+      tabWindow.selectBeatUsingIds(copiedBeat[0], copiedBeat[1], copiedBeat[2]);
 
       // Copy selected beats
       tabWindow.copy();
 
       // Select note element first
-      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select note element where beats will be pasted & paste
-      tabWindow.selectBeat(
+      tabWindow.selectBeatUsingIds(
         pastedIntoBeat[0],
         pastedIntoBeat[1],
         pastedIntoBeat[2]
@@ -598,26 +611,26 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set beat notes value
-      tabWindow.tabLineElements[copiedBeats[0][0]].barElements[
+      tabWindow.tabElement.tabLineElements[copiedBeats[0][0]].barElements[
         copiedBeats[0][1]
       ].beatElements[
         copiedBeats[0][2]
       ].beatNotesElement.noteElements[3].note.fret = 20;
-      tabWindow.tabLineElements[copiedBeats[1][0]].barElements[
+      tabWindow.tabElement.tabLineElements[copiedBeats[1][0]].barElements[
         copiedBeats[1][1]
       ].beatElements[
         copiedBeats[1][2]
       ].beatNotesElement.noteElements[3].note.fret = 19;
 
       // Select note element first
-      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select beats to copy
-      tabWindow.selectBeat(
+      tabWindow.selectBeatUsingIds(
         copiedBeats[0][0],
         copiedBeats[0][1],
         copiedBeats[0][2]
       );
-      tabWindow.selectBeat(
+      tabWindow.selectBeatUsingIds(
         copiedBeats[1][0],
         copiedBeats[1][1],
         copiedBeats[1][2]
@@ -627,9 +640,9 @@ function prepareTestCases(): TestCase[] {
       tabWindow.copy();
 
       // Select note element first
-      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select note element where beats will be pasted & paste
-      tabWindow.selectBeat(
+      tabWindow.selectBeatUsingIds(
         pastedIntoBeat[0],
         pastedIntoBeat[1],
         pastedIntoBeat[2]
@@ -655,29 +668,29 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set beat notes value
-      tabWindow.tabLineElements[copiedBeat[0]].barElements[
+      tabWindow.tabElement.tabLineElements[copiedBeat[0]].barElements[
         copiedBeat[1]
       ].beatElements[
         copiedBeat[2]
       ].beatNotesElement.noteElements[3].note.fret = 20;
 
       // Select note element first
-      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select beats clears selected element
-      tabWindow.selectBeat(copiedBeat[0], copiedBeat[1], copiedBeat[2]);
+      tabWindow.selectBeatUsingIds(copiedBeat[0], copiedBeat[1], copiedBeat[2]);
 
       // Copy selected beats
       tabWindow.copy();
 
       // Select note element first
-      tabWindow.selectNoteElement(0, 1, 1, 2);
+      tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select note element where beats will be pasted & paste
-      tabWindow.selectBeat(
+      tabWindow.selectBeatUsingIds(
         pastedIntoBeats[0][0],
         pastedIntoBeats[0][1],
         pastedIntoBeats[0][2]
       );
-      tabWindow.selectBeat(
+      tabWindow.selectBeatUsingIds(
         pastedIntoBeats[1][0],
         pastedIntoBeats[1][1],
         pastedIntoBeats[1][2]
@@ -723,8 +736,8 @@ function prepareTestCases(): TestCase[] {
       randomFrets(tab, true);
       const tabWindow = createTabWindowFromTab(tab);
 
-      tabWindow.selectNoteElement(0, 3, 1, 3);
-      tabWindow.tabLineElements[0].applyEffectSingle(
+      tabWindow.selectNoteElementUsingIds(0, 3, 1, 3);
+      tabWindow.tabElement.tabLineElements[0].applyEffectSingle(
         3,
         1,
         4,
@@ -750,8 +763,8 @@ function prepareTestCases(): TestCase[] {
       );
       const tabWindow = createTabWindowFromTab(tab);
 
-      tabWindow.selectNoteElement(0, 3, 1, 3);
-      tabWindow.tabLineElements[0].applyEffectSingle(
+      tabWindow.selectNoteElementUsingIds(0, 3, 1, 3);
+      tabWindow.tabElement.tabLineElements[0].applyEffectSingle(
         3,
         1,
         4,
@@ -769,14 +782,14 @@ function prepareTestCases(): TestCase[] {
       randomFrets(tab, true);
       const tabWindow = createTabWindowFromTab(tab);
 
-      tabWindow.selectNoteElement(0, 3, 1, 3);
-      tabWindow.tabLineElements[0].applyEffectSingle(
+      tabWindow.selectNoteElementUsingIds(0, 3, 1, 3);
+      tabWindow.tabElement.tabLineElements[0].applyEffectSingle(
         3,
         1,
         4,
         GuitarEffectType.PalmMute
       );
-      tabWindow.tabLineElements[0].removeEffectSingle(3, 1, 4, 0);
+      tabWindow.tabElement.tabLineElements[0].removeEffectSingle(3, 1, 4, 0);
 
       return {
         tabWindow: tabWindow,
@@ -841,14 +854,14 @@ function prepareTestCases(): TestCase[] {
       for (const effectToTry of effectsToTry) {
         const effectNotes = effectToTry[0] as number[][];
         for (const effectNote of effectNotes) {
-          tabWindow.selectNoteElement(
+          tabWindow.selectNoteElementUsingIds(
             effectNote[0],
             effectNote[1],
             effectNote[2],
             effectNote[3]
           );
 
-          tabWindow.tabLineElements[effectNote[0]].applyEffectSingle(
+          tabWindow.tabElement.tabLineElements[effectNote[0]].applyEffectSingle(
             effectNote[1],
             effectNote[2],
             effectNote[3] + 1,
@@ -939,14 +952,14 @@ function prepareTestCases(): TestCase[] {
       for (const effectToTry of effectsToTry) {
         const effectNotes = effectToTry[0] as number[][];
         for (const effectNote of effectNotes) {
-          tabWindow.selectNoteElement(
+          tabWindow.selectNoteElementUsingIds(
             effectNote[0],
             effectNote[1],
             effectNote[2],
             effectNote[3]
           );
 
-          tabWindow.tabLineElements[effectNote[0]].applyEffectSingle(
+          tabWindow.tabElement.tabLineElements[effectNote[0]].applyEffectSingle(
             effectNote[1],
             effectNote[2],
             effectNote[3] + 1,

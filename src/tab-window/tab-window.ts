@@ -9,6 +9,7 @@ import { BeatElement } from "./elements/beat-element";
 import {
   MoveRightResult,
   SelectedElement,
+  SelectedMoveDirection,
   isSelectedElement,
 } from "./elements/selected-element";
 import { Beat } from "../models/beat";
@@ -19,29 +20,9 @@ import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
 import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
 import { tabEvent, TabEventArgs, TabEventType } from "../events/tab-event";
-
-/**
- * Tab window specific selected element ids
- */
-export type SelectedElementWindowIds = {
-  /**
-   * Id of the tab line element
-   */
-  tabLineElementId: number;
-  /**
-   * If of the bar element (within the tab line element)
-   */
-  barElementId: number;
-  /**
-   * Id of the beat element, same as beat id, in here just
-   * for consistency's sake
-   */
-  beatElementId: number;
-  /**
-   * String number
-   */
-  stringNum: number;
-};
+import { SelectionManager } from "./selection/selection-manager";
+import { GuitarNote } from "../models/guitar-note";
+import { SelectedElementsAndIds, TabElement } from "./elements/tab-element";
 
 /**
  * Class that handles creating a tab window
@@ -50,39 +31,13 @@ export class TabWindow {
   /**
    * Tab object to get data from
    */
-  private _tab: Tab;
+  readonly tab: Tab;
   /**
    * Dimensions object
    */
   readonly dim: TabWindowDim;
-  /**
-   * Tab line elements
-   */
-  private _tabLineElements: TabLineElement[] = [];
-  /**
-   * Selected note element
-   */
-  private _selectedElement: SelectedElement | undefined;
-  /**
-   * Selection elements before selection was cleared
-   */
-  private _lastSelectionElements: SelectionElement[];
-  /**
-   * Copied data
-   */
-  private _copiedData: SelectedElement | SelectionElement[];
-  /**
-   * Selection elements
-   */
-  private _selectionElements: SelectionElement[] = [];
-  /**
-   * Selection rectangles
-   */
-  private _selectionRects: (Rect | undefined)[] = [];
-  /**
-   * Base element of selection
-   */
-  private _baseSelectionElement?: SelectionElement;
+  private _selectionManager: SelectionManager;
+  private _tabElement: TabElement;
 
   /**
    * Class that handles creating a tab window
@@ -90,379 +45,102 @@ export class TabWindow {
    * @param dim Tab window dimensions
    */
   constructor(tab: Tab, dim: TabWindowDim) {
-    this._tab = tab;
+    this.tab = tab;
     this.dim = dim;
-
-    this.calc();
+    this._selectionManager = new SelectionManager(this.tab);
+    this._tabElement = new TabElement(this.tab, this.dim);
   }
 
-  private addBar(bar: Bar, prevBar: Bar): void {
-    const lastTabLine = this._tabLineElements[this._tabLineElements.length - 1];
-    const addRes = lastTabLine.addBar(bar, prevBar);
-
-    if (!addRes) {
-      const newTabLine = new TabLineElement(
-        this.tab,
-        this.dim,
-        lastTabLine.rect.leftBottom
-      );
-      this._tabLineElements.push(newTabLine);
-      newTabLine.addBar(bar, prevBar);
-    }
+  public calcTabElement(): void {
+    this._tabElement.calc();
   }
 
-  /**
-   * Calc tab window. Goes through every bar of a tab and calculates
-   * the resulting window with multiple bar lines
-   */
-  public calc(): void {
-    this._tabLineElements = [
-      new TabLineElement(this.tab, this.dim, new Point(0, 0)),
-    ];
-    for (let barIndex = 0; barIndex < this._tab.bars.length; barIndex++) {
-      this.addBar(this._tab.bars[barIndex], this._tab.bars[barIndex - 1]);
-
-      // const addedRes = curTabLine.addBar(
-      //   this._tab.bars[barIndex],
-      //   this._tab.bars[barIndex - 1]
-      // );
-
-      // if (addedRes) {
-      //   this._tabLineElements.push(
-      //     new TabLineElement(this.dim, curTabLine.rect.leftBottom)
-      //   );
-      //   curTabLine = this._tabLineElements[this._tabLineElements.length - 1];
-      // }
-    }
+  public selectNoteElement(noteElement: NoteElement): void {
+    this._selectionManager.selectNote(noteElement.note);
   }
 
-  /**
-   * Select new note element
-   * @param tabLineElementId Id of the bar elements line containing the beat element
-   * @param barElementId Id of the bar element containing the beat element
-   * @param beatElementId Id of the beat element containing the note element
-   * @param noteElementId Id of the note element
-   */
-  public selectNoteElement(
+  public selectNoteElementUsingIds(
     tabLineElementId: number,
     barElementId: number,
     beatElementId: number,
     noteElementId: number
   ): void {
-    this.clearSelection();
-
-    // Get current note element's info
-    const tabLineElement = this._tabLineElements[tabLineElementId];
-    const barElement = tabLineElement.barElements[barElementId];
-    const beatElement = barElement.beatElements[beatElementId];
     const noteElement =
-      beatElement.beatNotesElement.noteElements[noteElementId];
+      this._tabElement.tabLineElements[tabLineElementId].barElements[
+        barElementId
+      ].beatElements[beatElementId].beatNotesElement.noteElements[
+        noteElementId
+      ];
+    this._selectionManager.selectNote(noteElement.note);
+  }
 
-    const barId = this._tab.bars.indexOf(barElement.bar);
-    const beatId = this._tab.bars[barId].beats.indexOf(beatElement.beat);
-    const stringNum = noteElement.note.stringNum;
-
-    // Select
-    this._selectedElement = new SelectedElement(
-      this._tab,
-      barId,
-      beatId,
-      stringNum
+  private moveSelectedNoteRight(): void {
+    const moveRightOutput = this._selectionManager.moveSelectedNoteRight();
+    this._tabElement.handleMoveRight(
+      moveRightOutput,
+      this._selectionManager.selectedElement
     );
   }
 
-  /**
-   * Adds beat to selection & update selection rects
-   * @param tabLineElementId Bar elements line id
-   * @param barElementId Bar element id
-   * @param beatElementId Beat element id
-   * @param beatElementSeqId Sequential beat element id
-   */
-  private addBeatToSelection(
-    tabLineElementId: number,
-    barElementId: number,
-    beatElementId: number,
-    beatElementSeqId: number
-  ): void {
-    const newSelectionElement = new SelectionElement(
-      tabLineElementId,
-      barElementId,
-      beatElementId,
-      beatElementSeqId
-    );
-
-    if (
-      this._selectionElements.length === 0 &&
-      this._baseSelectionElement === undefined
-    ) {
-      this._baseSelectionElement = newSelectionElement;
-    }
-
-    this._selectionElements.push(newSelectionElement);
-
-    const tabLineElement = this._tabLineElements[tabLineElementId];
-    const barElement = tabLineElement.barElements[barElementId];
-    const beatElement = barElement.beatElements[beatElementId];
-
-    if (this._selectionRects[tabLineElementId] === undefined) {
-      this._selectionRects[tabLineElementId] = new Rect(
-        beatElement === barElement.beatElements[0]
-          ? barElement.rect.x
-          : beatElement.rect.x,
-        beatElement.rect.y,
-        beatElement.rect.width,
-        beatElement.rect.height
-      );
-    } else {
-      this._selectionRects[tabLineElementId].width =
-        beatElement.rect.rightTop.x - this._selectionRects[tabLineElementId].x;
+  public moveSelectedNote(direction: SelectedMoveDirection): void {
+    switch (direction) {
+      case SelectedMoveDirection.Left:
+        this._selectionManager.moveSelectedNoteLeft();
+        break;
+      case SelectedMoveDirection.Right:
+        // this._selectionManager.moveSelectedNoteRight();
+        this.moveSelectedNoteRight();
+        break;
+      case SelectedMoveDirection.Up:
+        this._selectionManager.moveSelectedNoteUp();
+        break;
+      case SelectedMoveDirection.Down:
+        this._selectionManager.moveSelectedNoteDown();
+        break;
+      default:
+        break;
     }
   }
 
-  /**
-   * Selects beats in between the two specified beats (including them)
-   * @param startTabLineElementId Bar line id of the starting beat
-   * @param startBarElementId Bar element id of the starting beat
-   * @param startBeatElementId Beat element id of the starting beat
-   * @param endTabLineElementId Bar line id of the end beat
-   * @param endBarElementId Bar element id of the end beat
-   * @param endBeatElementId Beat element id of the end beat
-   */
-  private selectBeatsInBetween(
-    startTabLineElementId: number,
-    startBarElementId: number,
-    startBeatElementId: number,
-    endTabLineElementId: number,
-    endBarElementId: number,
-    endBeatElementId: number
-  ): void {
-    const beatsSeq = this._tab.getBeatsSeq();
-
-    const startBeatElementSeqId = beatsSeq.indexOf(
-      this._tabLineElements[startTabLineElementId].barElements[
-        startBarElementId
-      ].beatElements[startBeatElementId].beat
-    );
-    const endBeatElementSeqId = beatsSeq.indexOf(
-      this._tabLineElements[endTabLineElementId].barElements[endBarElementId]
-        .beatElements[endBeatElementId].beat
-    );
-    let seqIndex = beatsSeq.indexOf(
-      this._tabLineElements[startTabLineElementId].barElements[0]
-        .beatElements[0].beat
-    );
-
-    for (let i = startTabLineElementId; i <= endTabLineElementId; i++) {
-      const barsCount = this._tabLineElements[i].barElements.length;
-      for (let j = 0; j < barsCount; j++) {
-        const beatsCount =
-          this._tabLineElements[i].barElements[j].beatElements.length;
-        for (let k = 0; k < beatsCount; k++) {
-          if (
-            seqIndex >= startBeatElementSeqId &&
-            seqIndex <= endBeatElementSeqId
-          ) {
-            this.addBeatToSelection(i, j, k, seqIndex);
-          }
-          seqIndex++;
-        }
-      }
-    }
-  }
-
-  /**
-   * Selects specified beat and all the beats between it and base selection element
-   * @param tabLineElementId Id of the line of bar elements
-   * @param barElementId Bar element id
-   * @param beatElementId Beat element id
-   * @returns
-   */
-  public selectBeat(
-    tabLineElementId: number,
-    barElementId: number,
-    beatElementId: number
-  ): void {
-    if (this._selectedElement) {
-      this._selectedElement = undefined;
-    }
-
-    const beatElement =
-      this._tabLineElements[tabLineElementId].barElements[barElementId]
-        .beatElements[beatElementId];
-    const beatSeqId = this._tab.getBeatsSeq().indexOf(beatElement.beat);
-    // const beatElementSeqId = this._beatElementsSeq.indexOf(beatElement);
-
-    let startTabLineElementId: number;
-    let startBarElementId: number;
-    let startBeatElementId: number;
-    let endTabLineElementId: number;
-    let endBarElementId: number;
-    let endBeatElementId: number;
-
-    if (
-      this._baseSelectionElement === undefined ||
-      beatSeqId === this._baseSelectionElement.beatElementSeqId
-    ) {
-      startTabLineElementId = tabLineElementId;
-      startBarElementId = barElementId;
-      startBeatElementId = beatElementId;
-      endTabLineElementId = tabLineElementId;
-      endBarElementId = barElementId;
-      endBeatElementId = beatElementId;
-    } else if (beatSeqId > this._baseSelectionElement.beatElementSeqId) {
-      startTabLineElementId = this._baseSelectionElement.tabLineElementId;
-      startBarElementId = this._baseSelectionElement.barElementId;
-      startBeatElementId = this._baseSelectionElement.beatElementId;
-      endTabLineElementId = tabLineElementId;
-      endBarElementId = barElementId;
-      endBeatElementId = beatElementId;
-    } else {
-      startTabLineElementId = tabLineElementId;
-      startBarElementId = barElementId;
-      startBeatElementId = beatElementId;
-      endTabLineElementId = this._baseSelectionElement.tabLineElementId;
-      endBarElementId = this._baseSelectionElement.barElementId;
-      endBeatElementId = this._baseSelectionElement.beatElementId;
-    }
-
-    // Clear selection rects
-    this._selectionElements = [];
-    for (let i = 0; i < this._selectionRects.length; i++) {
-      this._selectionRects[i] = undefined;
-    }
-
-    // Select all beats in new selection
-    this.selectBeatsInBetween(
-      startTabLineElementId,
-      startBarElementId,
-      startBeatElementId,
-      endTabLineElementId,
-      endBarElementId,
-      endBeatElementId
+  public getSelectedNoteElementsAndIds(): SelectedElementsAndIds {
+    return this._tabElement.getSelectedNoteElementsAndIds(
+      this._selectionManager.selectedElement
     );
   }
 
-  /**
-   * Clears all selection
-   */
-  public clearSelection(): void {
-    this._baseSelectionElement = undefined;
-    this._selectionElements = [];
-    for (let i = 0; i < this._selectionRects.length; i++) {
-      this._selectionRects[i] = undefined;
-    }
+  public setSelectedNoteFret(newFret: number): void {
+    this._selectionManager.selectedElement.note.fret = newFret;
   }
 
-  /**
-   * Copy selected note/beats (depending on which is currently selected)
-   */
-  public copy(): void {
-    this._copiedData = this._selectedElement
-      ? new SelectedElement(
-          this._tab,
-          this._selectedElement.barId,
-          this._selectedElement.beatId,
-          this._selectedElement.stringNum
-        )
-      : this._selectionElements;
+  public changeSelectedBarTempo(newTempo: number): void {
+    const { barElement } = this.getSelectedNoteElementsAndIds();
+
+    barElement.changeTempo(newTempo);
+    this._tabElement.calc();
   }
 
-  private insertBeats(): void {
-    if (isSelectedElement(this._copiedData)) {
-      return;
-    }
+  public changeSelectedBarBeats(newBeats: number): void {
+    const { barElement } = this.getSelectedNoteElementsAndIds();
 
-    // Insert selection beats after specified beat
-    const beatSeqId = this._tab.getBeatsSeq();
-    const beats = this._copiedData.map((se) => {
-      return beatSeqId[se.beatElementSeqId].deepCopy();
-    });
-    this._selectedElement.bar.insertBeats(this._selectedElement.beatId, beats);
-
-    // Recalc
-    // this.clearSelection();
-    this.calc();
+    barElement.changeBarBeats(newBeats);
+    this._tabElement.calc();
   }
 
-  private replaceBeats(): void {
-    if (isSelectedElement(this._copiedData)) {
-      return;
-    }
+  public changeSelectedBarDuration(newDuration: NoteDuration): void {
+    const { barElement } = this.getSelectedNoteElementsAndIds();
 
-    const beatSeqId = this._tab.getBeatsSeq();
-    const oldBeats = this._selectionElements.map((se) => {
-      return beatSeqId[se.beatElementSeqId];
-    });
-    const copiedBeats = this._copiedData.map((se) => {
-      return beatSeqId[se.beatElementSeqId];
-    });
-    this._tab.replaceBeats(oldBeats, copiedBeats);
-
-    this.clearSelection();
-    this.calc();
+    barElement.changeBarDuration(newDuration);
+    this._tabElement.calc();
   }
 
-  /**
-   * Paste copied data:
-   * Paste beats after selected note if selected beats OR
-   * Paste note, i.e., change fret value of selected note to that of selected
-   * @returns
-   */
-  public paste(): void {
-    if (!isSelectedElement(this._copiedData)) {
-      // Return if nothing to paste
-      if (this._copiedData.length === 0) {
-        return;
-      }
+  public changeSelectedBeatDuration(newDuration: NoteDuration): void {
+    const { barElement } = this.getSelectedNoteElementsAndIds();
 
-      if (this._selectionElements.length === 0) {
-        this.insertBeats();
-      } else {
-        this.replaceBeats();
-      }
-    } else {
-      this._selectedElement.note.fret = this._copiedData.note.fret;
-    }
-  }
-
-  /**
-   * Delete every selected beat
-   * @param beats
-   */
-  public deleteBeats(): void {
-    // PROBLEM: Removing beats individually by id leads to issues
-    // SOLUTION #1: Use beats uuid instead
-
-    const beats = this._selectionElements.map((se) => {
-      const tabLineElement = this._tabLineElements[se.tabLineElementId];
-      const barElement = tabLineElement.barElements[se.barElementId];
-      const beatElement = barElement.beatElements[se.beatElementId];
-      return beatElement.beat;
-    });
-
-    this._tab.removeBeats(beats);
-
-    // for (const se of this._selectionElements) {
-    //   const tabLineElement = this._tabLineElements[se.tabLineElementId];
-    //   const barElement = tabLineElement.barElements[se.barElementId];
-    //   const beatElement = barElement.beatElements[se.beatElementId];
-    //   barElement.removeBeatByUUID(beatElement.beat.uuid);
-    // }
-
-    // Recalc
-    this.clearSelection();
-    this.calc();
-  }
-
-  /**
-   * Gets beats from selection (as a get function because this is a .map wrapper)
-   * @returns Selected beats ('Beat' class)
-   */
-  public getSelectionBeats(): Beat[] {
-    const beatSeqId = this._tab.getBeatsSeq();
-    return this._selectionElements.map((se) => {
-      return beatSeqId[se.beatElementSeqId];
-    });
+    barElement.changeBeatDuration(
+      this._selectionManager.selectedElement.beat,
+      newDuration
+    );
+    this._tabElement.calc();
   }
 
   /**
@@ -471,288 +149,59 @@ export class TabWindow {
    * @returns True if selected, false otherwise
    */
   public isNoteElementSelected(noteElement: NoteElement): boolean {
-    return this._selectedElement.note.uuid === noteElement.note.uuid;
+    return this._selectionManager.isNoteElementSelected(noteElement);
+  }
+
+  public clearSelection(): void {
+    this._selectionManager.clearSelection();
+    this._tabElement.resetSelection();
+  }
+
+  public selectBeat(beatElement: BeatElement): void {
+    this._selectionManager.selectBeat(beatElement.beat);
+
+    this._tabElement.recalcBeatElementSelection(
+      this._selectionManager.selectionElementsUUIDs
+    );
+  }
+
+  public selectBeatUsingIds(
+    tabLineElementId: number,
+    barElementId: number,
+    beatElementId: number
+  ): void {
+    const beatElement =
+      this._tabElement.tabLineElements[tabLineElementId].barElements[
+        barElementId
+      ].beatElements[beatElementId];
+    this._selectionManager.selectBeat(beatElement.beat);
+
+    this._tabElement.recalcBeatElementSelection(
+      this._selectionManager.selectionElementsUUIDs
+    );
+  }
+
+  public copy(): void {
+    this._selectionManager.copy();
+  }
+
+  public paste(): void {
+    this._selectionManager.paste();
+    this._tabElement.calc();
   }
 
   /**
-   * Gets all UI ids of the selected element
-   * @returns Ids: tabLineElementId, barElementId, beatElementId, stringNum
+   * Delete every selected beat
+   * @param beats
    */
-  public getSelectedNoteElementIds(): SelectedElementWindowIds {
-    let barElementId = -1;
-    const tabLineElementId = this._tabLineElements.findIndex((tle) => {
-      barElementId = tle.barElements.findIndex((be) => {
-        return be.bar.uuid === this._selectedElement.bar.uuid;
-      });
-      return barElementId !== -1;
-    });
-
-    return {
-      tabLineElementId: tabLineElementId,
-      barElementId: barElementId,
-      beatElementId: this._selectedElement.beatId,
-      stringNum: this._selectedElement.stringNum,
-    };
+  public deleteBeats(): void {
+    this._selectionManager.deleteSelected();
+    this._tabElement.calc();
   }
-
-  /**
-   * Move selected note up
-   */
-  public moveSelectedNoteUp(): void {
-    if (this._selectedElement === undefined) {
-      throw Error("No note selected");
-    }
-
-    this.clearSelection();
-
-    this._selectedElement.moveUp();
-  }
-
-  /**
-   * Move selected note down
-   */
-  public moveSelectedNoteDown(): void {
-    if (this._selectedElement === undefined) {
-      throw Error("No note selected");
-    }
-
-    this.clearSelection();
-
-    this._selectedElement.moveDown();
-  }
-
-  /**
-   * Move selected note left
-   */
-  public moveSelectedNoteLeft(): void {
-    if (this._selectionElements.length !== 0) {
-      // Select left most element of selection
-      const leftMostElement = this._selectionElements[0];
-      const barElement =
-        this._tabLineElements[leftMostElement.tabLineElementId].barElements[
-          leftMostElement.barElementId
-        ];
-      const barId = this._tab.bars.indexOf(barElement.bar);
-      this._selectedElement = new SelectedElement(
-        this._tab,
-        barId,
-        leftMostElement.beatElementId,
-        this._selectedElement ? this._selectedElement.stringNum : 1
-      );
-
-      this.clearSelection();
-    }
-
-    if (
-      this._selectionElements.length === 0 &&
-      this._selectedElement === undefined
-    ) {
-      throw Error("No note selected");
-    }
-
-    this._selectedElement.moveLeft();
-  }
-
-  /**
-   * Handles added beat after moving right
-   */
-  private handleAddedBeat(): void {
-    // Find bar element
-    let tabLineElement: TabLineElement;
-    let barElement: BarElement;
-    let barElementId: number;
-    this._tabLineElements.find((tle) => {
-      return tle.barElements.some((be, beIndex) => {
-        tabLineElement = tle;
-        barElement = be;
-        barElementId = beIndex;
-        return be.bar.uuid === this._selectedElement.bar.uuid;
-      });
-    });
-
-    // Check if the bar element fits after appending new beat
-    if (
-      tabLineElement === this._tabLineElements[this._tabLineElements.length - 1]
-    ) {
-      // If at the last then simply remove bar element from current line,
-      // create and add new tab line and push the bar element there
-
-      tabLineElement.removeBarElement(barElementId);
-      // Append empty beat
-      barElement.appendBeat();
-      // tabLineElement.barElements.splice(barElementId, 1);
-
-      const barIndex = this._tab.bars.indexOf(barElement.bar);
-      const bar = this._tab.bars[barIndex];
-      const prevBar = this._tab.bars[barIndex - 1];
-      this.addBar(bar, prevBar);
-    } else {
-      // Otherwise just redraw the whole thing since might need to
-      // recalc every tab line below the current one anyway
-      barElement.appendBeat();
-      this.calc();
-    }
-  }
-
-  /**
-   * Handles added bar after moving right
-   * @param addedBar Added bar
-   */
-  private handleAddedBar(addedBar: Bar): void {
-    // Add bar
-    this._tab.bars.push(addedBar);
-
-    // Compute UI
-    const bar = this._tab.bars[this._tab.bars.length - 1];
-    const prevBar = this._tab.bars[this._tab.bars.length - 2];
-    this.addBar(bar, prevBar);
-  }
-
-  /**
-   * Move selected note right
-   */
-  public moveSelectedNoteRight(): void {
-    if (this._selectionElements.length !== 0) {
-      // Select right most element of selection
-      const rightMostElement =
-        this._selectionElements[this._selectionElements.length - 1];
-      const barElement =
-        this._tabLineElements[rightMostElement.tabLineElementId].barElements[
-          rightMostElement.barElementId
-        ];
-      const barId = this._tab.bars.indexOf(barElement.bar);
-      this._selectedElement = new SelectedElement(
-        this._tab,
-        barId,
-        rightMostElement.beatElementId,
-        this._selectedElement ? this._selectedElement.stringNum : 1
-      );
-
-      this.clearSelection();
-    }
-
-    if (
-      this._selectionElements.length === 0 &&
-      this._selectedElement === undefined
-    ) {
-      throw Error("No note selected");
-    }
-
-    const moveRightOutput = this._selectedElement.moveRight();
-    switch (moveRightOutput.result) {
-      case MoveRightResult.Nothing:
-        break;
-      case MoveRightResult.AddedBeat:
-        this.handleAddedBeat();
-        break;
-      case MoveRightResult.AddedBar:
-        this.handleAddedBar(moveRightOutput.addedBar);
-        break;
-      default:
-        throw Error("Unexpected outcome after moving note right");
-    }
-  }
-
-  public changeSelectedBarTempo(newTempo: number): void {
-    const ids = this.getSelectedNoteElementIds();
-    const { tabLineElementId, barElementId } = ids;
-    const tabLineElement = this._tabLineElements[tabLineElementId];
-    const barElement = tabLineElement.barElements[barElementId];
-
-    barElement.changeTempo(newTempo);
-    this.calc();
-  }
-
-  public changeSelectedBarBeats(newBeats: number): void {
-    const ids = this.getSelectedNoteElementIds();
-    const { tabLineElementId, barElementId } = ids;
-    const tabLineElement = this._tabLineElements[tabLineElementId];
-    const barElement = tabLineElement.barElements[barElementId];
-
-    barElement.changeBarBeats(newBeats);
-    this.calc();
-  }
-
-  public changeSelectedBarDuration(newDuration: NoteDuration): void {
-    const ids = this.getSelectedNoteElementIds();
-    const { tabLineElementId, barElementId } = ids;
-    const tabLineElement = this._tabLineElements[tabLineElementId];
-    const barElement = tabLineElement.barElements[barElementId];
-
-    barElement.changeBarDuration(newDuration);
-    this.calc();
-  }
-
-  public changeSelectedBeatDuration(newDuration: NoteDuration): void {
-    const ids = this.getSelectedNoteElementIds();
-    const { tabLineElementId, barElementId, beatElementId } = ids;
-    const tabLineElement = this._tabLineElements[tabLineElementId];
-    const barElement = tabLineElement.barElements[barElementId];
-    const beatElement = barElement.beatElements[beatElementId];
-
-    barElement.changeBeatDuration(beatElement.beat, newDuration);
-    this.calc();
-  }
-
-  public changeSelectedNoteValue(newNoteValue: number): void {
-    const ids = this.getSelectedNoteElementIds();
-    const { tabLineElementId, barElementId, beatElementId, stringNum } = ids;
-    const tabLineElement = this._tabLineElements[tabLineElementId];
-    const barElement = tabLineElement.barElements[barElementId];
-    const beatElement = barElement.beatElements[beatElementId];
-    const noteElement =
-      beatElement.beatNotesElement.noteElements[stringNum - 1];
-
-    noteElement.note.fret = newNoteValue;
-  }
-
-  // public applyEffect(
-  //   effectType: GuitarEffectType,
-  //   effectOptions?: GuitarEffectOptions
-  // ): boolean {
-  //   let applyRes: boolean = false;
-  //   if (this._selectedElement !== undefined) {
-  //     // Apply effect to selected element
-  //     applyRes = this._tab.applyEffectToNote(
-  //       this._selectedElement.barId,
-  //       this._selectedElement.beatId,
-  //       this._selectedElement.stringNum,
-  //       effectType,
-  //       effectOptions
-  //     );
-
-  //     if (applyRes) {
-  //       // Effect applied => need to recalc the affected note element
-  //       const ids = this.getSelectedNoteElementIds();
-  //       this._tabLineElements[ids.tabLineElementId].barElements[
-  //         ids.barElementId
-  //       ].beatElements[ids.beatElementId].calc();
-  //     }
-  //   } else if (this._selectionElements.length !== 0) {
-  //     // Apply effect to all elements in selection
-  //     const beats = this._selectionElements.map((se) => {
-  //       return this._tabLineElements[se.tabLineElementId].barElements[
-  //         se.barElementId
-  //       ].beatElements[se.beatElementId].beat;
-  //     });
-  //     applyRes = this._tab.applyEffectToBeats(beats, effectType, effectOptions);
-
-  //     if (applyRes) {
-  //       // Effects applied to all selected beat elements => recalc every affected beat element
-  //       for (const selectionElement of this._selectionElements) {
-  //         this._tabLineElements[selectionElement.tabLineElementId].barElements[
-  //           selectionElement.barElementId
-  //         ].beatElements[selectionElement.beatElementId].calc();
-  //       }
-  //     }
-  //   }
-
-  //   return applyRes;
-  // }
 
   public insertBar(bar: Bar): void {
-    this._tab.bars.push(bar);
-    this.calc();
+    this.tab.bars.push(bar);
+    this._tabElement.calc();
   }
 
   public insertBeat(
@@ -765,35 +214,14 @@ export class TabWindow {
     }
 
     barElement.insertEmptyBeat(index);
-    this.calc();
+    this._tabElement.calc();
   }
 
-  public get tab(): Tab {
-    return this._tab;
+  public get selectionManager(): SelectionManager {
+    return this._selectionManager;
   }
 
-  public get tabLineElements(): TabLineElement[] {
-    return this._tabLineElements;
-  }
-
-  /**
-   * Selected note element
-   */
-  public get selectedElement(): SelectedElement {
-    return this._selectedElement;
-  }
-
-  /**
-   * Selected note element
-   */
-  public get selectionElements(): SelectionElement[] {
-    return this._selectionElements;
-  }
-
-  /**
-   * Selection rectangles
-   */
-  public get selectionRects(): (Rect | undefined)[] {
-    return this._selectionRects;
+  public get tabElement(): TabElement {
+    return this._tabElement;
   }
 }
