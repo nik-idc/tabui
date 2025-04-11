@@ -161,7 +161,7 @@ export class TabWindow {
     this._selectionManager.selectBeat(beatElement.beat);
 
     this._tabElement.recalcBeatElementSelection(
-      this._selectionManager.selectionElementsUUIDs
+      this._selectionManager.selectionBeats
     );
   }
 
@@ -177,8 +177,13 @@ export class TabWindow {
     this._selectionManager.selectBeat(beatElement.beat);
 
     this._tabElement.recalcBeatElementSelection(
-      this._selectionManager.selectionElementsUUIDs
+      this._selectionManager.selectionBeats
     );
+  }
+
+  public changeSelectionDuration(newDuration: NoteDuration): void {
+    this._selectionManager.changeSelectionDuration(newDuration);
+    this._tabElement.calc();
   }
 
   public copy(): void {

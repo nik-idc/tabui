@@ -204,7 +204,7 @@ export class TestRenderer {
                      stroke="black" />`);
 
     for (const line of barElement.staffLines) {
-      const strokeColor = barElement.durationsFit() ? "black" : "red";
+      const strokeColor = barElement.durationsFit ? "black" : "red";
       html.push(`<line x1="${barOffset.x + line[0].x}"
                        y1="${barOffset.y + line[0].y}"
                        x2="${barOffset.x + line[1].x}"

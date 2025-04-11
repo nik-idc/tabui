@@ -84,6 +84,20 @@ export class GuitarEffect {
   }
 
   /**
+   * Creates a deep copy of the effect
+   * @returns Copy of the effect
+   */
+  public deepCopy(): GuitarEffect {
+    const optionsCopy = new GuitarEffectOptions(
+      this.options.bendPitch,
+      this.options.bendReleasePitch,
+      this.options.prebendPitch,
+      this.options.nextHigher
+    );
+    return new GuitarEffect(this.effectType, optionsCopy);
+  }
+
+  /**
    * Parse from object
    * @param obj Object
    * @returns Parsed guitar effect

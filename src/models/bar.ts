@@ -32,10 +32,6 @@ export class Bar {
    * Array of all beats in the bar
    */
   readonly beats: Beat[];
-  /**
-   * Indicates if all beats in the bar fit
-   */
-  private _durationsFit: boolean;
 
   /**
    * Class that represents a musical bar
@@ -57,7 +53,7 @@ export class Bar {
     this._tempo = tempo;
     this._beatsCount = beatsCount;
     this.duration = duration;
-    this._durationsFit = true;
+    // this._durationsFit = true;
     if (beats === undefined) {
       this.beats = [];
       for (let i = 0; i < this._beatsCount; i++) {
@@ -66,8 +62,6 @@ export class Bar {
     } else {
       this.beats = beats;
     }
-
-    this.calcDurationsFit();
   }
 
   /**
@@ -84,18 +78,6 @@ export class Bar {
   }
 
   /**
-   * Determines if all beats of the bar fit correctly inside of it
-   */
-  public calcDurationsFit(): void {
-    let durations = 0;
-    for (let beat of this.beats) {
-      durations += beat.duration;
-    }
-
-    this._durationsFit = durations == this._beatsCount * this.duration;
-  }
-
-  /**
    * Inserts empty beat in the bar before beat with index 'index'
    * @param index Index of the beat that will be prepended by the new beat
    */
@@ -108,9 +90,6 @@ export class Bar {
     // Insert beat in the data model
     let newBeat = new Beat(this.guitar, NoteDuration.Quarter);
     this.beats.splice(index, 0, newBeat);
-
-    // Check if durations fit after inserting
-    this.calcDurationsFit();
   }
 
   /**
@@ -143,9 +122,6 @@ export class Bar {
     if (this.beats.length === 0) {
       this.insertEmptyBeat(0);
     }
-
-    // Check if durations fit after removing
-    this.calcDurationsFit();
   }
 
   /**
@@ -166,11 +142,13 @@ export class Bar {
    * @param beats Beats to insert
    */
   public insertBeats(beatId: number, beats: Beat[]): void {
-    // Insert beats at specified position
-    this.beats.splice(beatId + 1, 0, ...beats);
+    const beatsCopies = [];
+    for (const beat of beats) {
+      beatsCopies.push(beat.deepCopy());
+    }
 
-    // Check if durations fit after inserting
-    this.calcDurationsFit();
+    // Insert beats at specified position
+    this.beats.splice(beatId + 1, 0, ...beatsCopies);
   }
 
   /**
@@ -181,7 +159,6 @@ export class Bar {
   public changeBeatDuration(beat: Beat, duration: NoteDuration): void {
     let index = this.beats.indexOf(beat);
     this.beats[index].duration = duration;
-    this.calcDurationsFit();
   }
 
   /**
@@ -200,7 +177,6 @@ export class Bar {
     }
 
     this._beatsCount = newBeats;
-    this.calcDurationsFit();
   }
 
   /**
@@ -227,7 +203,12 @@ export class Bar {
    * Indicates if all beats in the bar fit
    */
   get durationsFit(): boolean {
-    return this._durationsFit;
+    let durations = 0;
+    for (let beat of this.beats) {
+      durations += beat.duration;
+    }
+
+    return durations == this._beatsCount * this.duration;
   }
 
   /**
@@ -258,7 +239,6 @@ export class Bar {
     let bar = new Bar(guitar, obj._tempo, obj._beats, obj._duration, undefined); // Create bar instance
     bar.beats.length = 0; // Delete default beats
     obj.beats.forEach((beat: any) => bar.beats.push(Beat.fromObject(beat)));
-    bar.calcDurationsFit();
     return bar;
   }
 
@@ -274,7 +254,7 @@ export class Bar {
       bar1._tempo !== bar2._tempo ||
       bar1._beatsCount !== bar2._beatsCount ||
       bar1.duration !== bar2.duration ||
-      bar1._durationsFit !== bar2._durationsFit ||
+      bar1.durationsFit !== bar2.durationsFit ||
       bar1.beats.length !== bar2.beats.length
     ) {
       return false;

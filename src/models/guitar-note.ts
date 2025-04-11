@@ -159,7 +159,13 @@ export class GuitarNote {
    * @returns Deep copy of the guitar note
    */
   public deepCopy(): GuitarNote {
-    return new GuitarNote(this.guitar, this._stringNum, this._fret);
+    const note = new GuitarNote(this.guitar, this._stringNum, this._fret);
+
+    for (const effect of note._effects) {
+      note.addEffect(effect.deepCopy());
+    }
+
+    return note;
   }
 
   /**

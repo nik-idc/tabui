@@ -1,4 +1,5 @@
 import { Bar } from "../../models/bar";
+import { Beat } from "../../models/beat";
 import { Tab } from "../../models/tab";
 import { Point } from "../shapes/point";
 import { Rect } from "../shapes/rect";
@@ -213,11 +214,13 @@ export class TabElement {
     }
   }
 
-  public recalcBeatElementSelection(selectionUUIDs: number[]): void {
+  public recalcBeatElementSelection(selectionBeats: Beat[]): void {
     for (const tabLineElement of this._tabLineElements) {
       for (const barElement of tabLineElement.barElements) {
         for (const beatElement of barElement.beatElements) {
-          beatElement.selected = selectionUUIDs.includes(beatElement.beat.uuid);
+          beatElement.selected = selectionBeats.some((beat) => {
+            return beat.uuid === beatElement.beat.uuid;
+          });
         }
       }
     }

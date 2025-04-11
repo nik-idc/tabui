@@ -113,6 +113,7 @@ export class Tab {
     if (oldBeats.length > newBeats.length) {
       // Replace beats' notes values
       for (let i = 0; i < newBeats.length; i++) {
+        oldBeats[i].duration = newBeats[i].duration;
         for (let j = 0; j < this.guitar.stringsCount; j++) {
           oldBeats[i].notes[j].fret = newBeats[i].notes[j].fret;
         }
@@ -132,10 +133,15 @@ export class Tab {
       this.removeBeats(oldBeats);
 
       // Paste copied data into bar
-      bar.insertBeats(bar.beats.length - 1, newBeats);
+      const newBeatsCopies = [];
+      for (const beat of newBeats) {
+        newBeatsCopies.push(beat.deepCopy());
+      }
+      bar.insertBeats(bar.beats.length - 1, newBeatsCopies);
     } else {
       // Replace all notes in selection with copied beats
       for (let i = 0; i < oldBeats.length; i++) {
+        oldBeats[i].duration = newBeats[i].duration;
         for (let j = 0; j < this.guitar.stringsCount; j++) {
           oldBeats[i].notes[j].fret = newBeats[i].notes[j].fret;
         }
