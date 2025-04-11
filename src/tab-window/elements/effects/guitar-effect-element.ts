@@ -351,6 +351,12 @@ export class GuitarEffectElement {
     }
   }
 
+  public scaleHorBy(scale: number): void {
+    this._startPoint.x *= scale;
+
+    this.calc();
+  }
+
   /**
    * Effect rect
    */

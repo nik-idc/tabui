@@ -63,4 +63,13 @@ export class BeatNotesElement {
       );
     }
   }
+
+  public scaleHorBy(scale: number): void {
+    this.rect.x *= scale;
+    this.rect.width *= scale;
+
+    for (const noteElement of this.noteElements) {
+      noteElement.scaleHorBy(scale);
+    }
+  }
 }

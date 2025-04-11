@@ -2,26 +2,13 @@ import { Tab } from "./../models/tab";
 import { TabWindowDim } from "./tab-window-dim";
 import { NoteElement } from "./elements/note-element";
 import { BarElement } from "./elements/bar-element";
-import { Point } from "./shapes/point";
 import { Bar } from "./../models/bar";
 import { NoteDuration } from "./../models/note-duration";
 import { BeatElement } from "./elements/beat-element";
-import {
-  MoveRightResult,
-  SelectedElement,
-  SelectedMoveDirection,
-  isSelectedElement,
-} from "./elements/selected-element";
-import { Beat } from "../models/beat";
-import { SelectionElement } from "./elements/selection-element";
-import { Rect } from "./shapes/rect";
-import { TabLineElement } from "./elements/tab-line-element";
-import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
-import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
-import { tabEvent, TabEventArgs, TabEventType } from "../events/tab-event";
+import { SelectedMoveDirection } from "./elements/selected-element";
+import { GuitarEffectOptions } from "../models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "../models/guitar-effect/guitar-effect-type";
 import { SelectionManager } from "./selection/selection-manager";
-import { GuitarNote } from "../models/guitar-note";
 import { SelectedElementsAndIds, TabElement } from "./elements/tab-element";
 
 /**
@@ -141,6 +128,68 @@ export class TabWindow {
       newDuration
     );
     this._tabElement.calc();
+  }
+
+  public applyEffectSingle(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    const elsAndIds = this.getSelectedNoteElementsAndIds();
+
+    const result = elsAndIds.tabLineElement.applyEffectSingle(
+      elsAndIds.barElementId,
+      elsAndIds.beatElementId,
+      elsAndIds.stringNum,
+      effectType,
+      effectOptions
+    );
+
+    if (!result) {
+      return false;
+    }
+
+    if (
+      elsAndIds.tabLineElementId !==
+      this._tabElement.tabLineElements.length - 1
+    ) {
+      elsAndIds.tabLineElement.justifyElements();
+    }
+
+    return true;
+  }
+
+  public removeEffectSingle(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): void {
+    const elsAndIds = this.getSelectedNoteElementsAndIds();
+
+    const effectIndex = elsAndIds.noteElement.guitarEffectElements.findIndex(
+      (gfe) => {
+        return (
+          gfe.effect.effectType === effectType &&
+          gfe.effect.options === effectOptions
+        );
+      }
+    );
+
+    if (effectIndex === -1) {
+      return;
+    }
+
+    elsAndIds.tabLineElement.removeEffectSingle(
+      elsAndIds.barElementId,
+      elsAndIds.beatElementId,
+      elsAndIds.stringNum,
+      effectIndex
+    );
+
+    if (
+      elsAndIds.tabLineElementId !==
+      this._tabElement.tabLineElements.length - 1
+    ) {
+      elsAndIds.tabLineElement.justifyElements();
+    }
   }
 
   /**
