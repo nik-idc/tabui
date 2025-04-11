@@ -49,33 +49,34 @@ export class TabLineElement {
     this.barElements = [];
   }
 
-  // /**
-  //  * Justifies elements by scaling all their widths
-  //  */
-  // public justifyElements(): void {
-  //   // Calc width of empty space
-  //   const gapWidth =
-  //     this.dim.width -
-  //     this.barElements[this.barElements.length - 1].rect.rightTop.x;
+  /**
+   * Justifies elements by scaling all their widths
+   */
+  public justifyElements(): void {
+    // Calc width of empty space
+    const gapWidth =
+      this.dim.width -
+      this.barElements[this.barElements.length - 1].rect.rightTop.x;
 
-  //   if (gapWidth === 0) {
-  //     return;
-  //   }
+    if (gapWidth === 0) {
+      return;
+    }
 
-  //   // Calc sum width of all bar elements
-  //   let sumWidth = 0;
-  //   for (const barElement of this.barElements) {
-  //     sumWidth += barElement.rect.width;
-  //   }
+    // Calc sum width of all bar elements
+    let sumWidth = 0;
+    for (const barElement of this.barElements) {
+      sumWidth += barElement.rect.width;
+    }
 
-  //   // Go through each bar element and increase their
-  //   // width according to how their current width relates
-  //   // to the width of the empty space
-  //   const scale = this.dim.width / sumWidth;
-  //   for (const barElement of this.barElements) {
-  //     barElement.scaleBarHorBy(scale);
-  //   }
-  // }
+    // Go through each bar element and increase their
+    // width according to how their current width relates
+    // to the width of the empty space
+    // const scale = this.dim.width / this.rect.width;
+    const scale = this.dim.width / sumWidth;
+    for (const barElement of this.barElements) {
+      barElement.scaleHorBy(scale);
+    }
+  }
 
   /**
    * True if the bar element fits in this line, false otherwise
@@ -139,6 +140,7 @@ export class TabLineElement {
     );
 
     if (!this.barElementFits(barElement)) {
+      this.justifyElements();
       return false;
     }
 
@@ -173,6 +175,7 @@ export class TabLineElement {
         prevBarIndex === 0 ? undefined : this.tab.bars[prevBarIndex - 1];
       this.addBar(bars[i], prevBar);
     }
+    // this.justifyElements();
   }
 
   /**
@@ -230,19 +233,6 @@ export class TabLineElement {
     this.calc();
 
     return true;
-  }
-
-  private getMaxBeatHeight(): number {
-    let maxHeight = 0;
-    for (const barElement of this.barElements) {
-      for (const beatElement of barElement.beatElements) {
-        if (beatElement.rect.height > maxHeight) {
-          maxHeight = beatElement.rect.height;
-        }
-      }
-    }
-
-    return maxHeight;
   }
 
   public removeEffectSingle(
