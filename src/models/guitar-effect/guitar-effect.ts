@@ -88,12 +88,15 @@ export class GuitarEffect {
    * @returns Copy of the effect
    */
   public deepCopy(): GuitarEffect {
-    const optionsCopy = new GuitarEffectOptions(
-      this.options.bendPitch,
-      this.options.bendReleasePitch,
-      this.options.prebendPitch,
-      this.options.nextHigher
-    );
+    const optionsCopy =
+      this.options === undefined
+        ? undefined
+        : new GuitarEffectOptions(
+            this.options.bendPitch,
+            this.options.bendReleasePitch,
+            this.options.prebendPitch,
+            this.options.nextHigher
+          );
     return new GuitarEffect(this.effectType, optionsCopy);
   }
 

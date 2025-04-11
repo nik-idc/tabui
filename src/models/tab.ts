@@ -590,6 +590,23 @@ export class Tab {
     });
   }
 
+  public deepCopy(): Tab {
+    const barsCopies = [];
+    for (const bar of this.bars) {
+      barsCopies.push(bar.deepCopy());
+    }
+
+    return new Tab(
+      this.id,
+      this.name,
+      this.artist,
+      this.song,
+      this.guitar,
+      barsCopies,
+      this.isPublic
+    );
+  }
+
   /**
    * Full song name
    */
