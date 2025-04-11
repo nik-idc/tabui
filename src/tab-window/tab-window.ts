@@ -143,6 +143,68 @@ export class TabWindow {
     this._tabElement.calc();
   }
 
+  public applyEffectSingle(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    const elsAndIds = this.getSelectedNoteElementsAndIds();
+
+    const result = elsAndIds.tabLineElement.applyEffectSingle(
+      elsAndIds.barElementId,
+      elsAndIds.beatElementId,
+      elsAndIds.stringNum,
+      effectType,
+      effectOptions
+    );
+
+    if (!result) {
+      return false;
+    }
+
+    if (
+      elsAndIds.tabLineElementId !==
+      this._tabElement.tabLineElements.length - 1
+    ) {
+      elsAndIds.tabLineElement.justifyElements();
+    }
+
+    return true;
+  }
+
+  public removeEffectSingle(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): void {
+    const elsAndIds = this.getSelectedNoteElementsAndIds();
+
+    const effectIndex = elsAndIds.noteElement.guitarEffectElements.findIndex(
+      (gfe) => {
+        return (
+          gfe.effect.effectType === effectType &&
+          gfe.effect.options === effectOptions
+        );
+      }
+    );
+
+    if (effectIndex === -1) {
+      return;
+    }
+
+    elsAndIds.tabLineElement.removeEffectSingle(
+      elsAndIds.barElementId,
+      elsAndIds.beatElementId,
+      elsAndIds.stringNum,
+      effectIndex
+    );
+
+    if (
+      elsAndIds.tabLineElementId !==
+      this._tabElement.tabLineElements.length - 1
+    ) {
+      elsAndIds.tabLineElement.justifyElements();
+    }
+  }
+
   /**
    * Checks if note element is the selected element
    * @param noteElement Note element to check

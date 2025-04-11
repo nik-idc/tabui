@@ -233,6 +233,13 @@ export class EffectLabelElement {
     }
   }
 
+  public scaleHorBy(scale: number): void {
+    this._rect.x *= scale;
+    this._rect.width *= scale;
+
+    this.calc();
+  }
+
   /**
    * Outer rectangle
    */

@@ -179,6 +179,21 @@ export class BeatElement {
     this.rect.height -= this.dim.effectLabelHeight;
   }
 
+  public scaleHorBy(scale: number): void {
+    this.rect.x *= scale;
+    this.rect.width *= scale;
+    this.durationRect.x *= scale;
+    this.durationRect.width *= scale;
+    this._effectLabelsRect.x *= scale;
+    this._effectLabelsRect.width *= scale;
+
+    for (const effectLabelElement of this._effectLabelElements) {
+      effectLabelElement.scaleHorBy(scale);
+    }
+
+    this._beatNotesElement.scaleHorBy(scale);
+  }
+
   public get beatNotesElement(): BeatNotesElement {
     return this._beatNotesElement;
   }

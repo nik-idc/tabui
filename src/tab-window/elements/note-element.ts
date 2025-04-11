@@ -79,6 +79,21 @@ export class NoteElement {
     }
   }
 
+  public scaleHorBy(scale: number): void {
+    this.rect.x *= scale;
+    this.rect.width *= scale;
+
+    this.textRect.x =
+      this.rect.x + this.rect.width / 2 - this.dim.noteTextSize / 2;
+    // this.textRect.x *= scale;
+    // this.textRect.width *= scale;
+    this.textCoords.x *= scale;
+
+    for (const effectElement of this._guitarEffectElements) {
+      effectElement.scaleHorBy(scale);
+    }
+  }
+
   public get guitarEffectElements(): GuitarEffectElement[] {
     return this._guitarEffectElements;
   }

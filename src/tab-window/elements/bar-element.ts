@@ -221,6 +221,24 @@ export class BarElement {
     this.calcStaffLines();
   }
 
+  public scaleHorBy(scale: number): void {
+    this.rect.x *= scale;
+    this.tempoRect.x *= scale;
+    this.timeSigRect.x *= scale;
+    this.rect.width *= scale;
+    this.tempoRect.width *= scale;
+    this.timeSigRect.width *= scale;
+
+    for (const line of this.staffLines) {
+      line[0].x *= scale;
+      line[1].x *= scale;
+    }
+
+    for (const beatElement of this.beatElements) {
+      beatElement.scaleHorBy(scale);
+    }
+  }
+
   /**
    * Insert empty beat
    * @param index Insertion index

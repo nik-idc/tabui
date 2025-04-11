@@ -795,12 +795,8 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = createTabWindowFromTab(tab);
 
       tabWindow.selectNoteElementUsingIds(0, 3, 1, 3);
-      tabWindow.tabElement.tabLineElements[0].applyEffectSingle(
-        3,
-        1,
-        4,
-        GuitarEffectType.PalmMute
-      );
+
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
 
       return {
         tabWindow: tabWindow,
@@ -822,12 +818,8 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = createTabWindowFromTab(tab);
 
       tabWindow.selectNoteElementUsingIds(0, 3, 1, 3);
-      tabWindow.tabElement.tabLineElements[0].applyEffectSingle(
-        3,
-        1,
-        4,
-        GuitarEffectType.PalmMute
-      );
+
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
 
       return {
         tabWindow: tabWindow,
@@ -841,13 +833,9 @@ function prepareTestCases(): TestCase[] {
       const tabWindow = createTabWindowFromTab(tab);
 
       tabWindow.selectNoteElementUsingIds(0, 3, 1, 3);
-      tabWindow.tabElement.tabLineElements[0].applyEffectSingle(
-        3,
-        1,
-        4,
-        GuitarEffectType.PalmMute
-      );
-      tabWindow.tabElement.tabLineElements[0].removeEffectSingle(3, 1, 4, 0);
+
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
+      tabWindow.removeEffectSingle(GuitarEffectType.PalmMute);
 
       return {
         tabWindow: tabWindow,
@@ -919,10 +907,7 @@ function prepareTestCases(): TestCase[] {
             effectNote[3]
           );
 
-          tabWindow.tabElement.tabLineElements[effectNote[0]].applyEffectSingle(
-            effectNote[1],
-            effectNote[2],
-            effectNote[3] + 1,
+          tabWindow.applyEffectSingle(
             effectToTry[1] as GuitarEffectType,
             effectToTry[2] as GuitarEffectOptions
           );
@@ -1017,10 +1002,7 @@ function prepareTestCases(): TestCase[] {
             effectNote[3]
           );
 
-          tabWindow.tabElement.tabLineElements[effectNote[0]].applyEffectSingle(
-            effectNote[1],
-            effectNote[2],
-            effectNote[3] + 1,
+          tabWindow.applyEffectSingle(
             effectToTry[1] as GuitarEffectType,
             effectToTry[2] as GuitarEffectOptions
           );
