@@ -161,6 +161,21 @@ export class Bar {
     this.beats[index].duration = duration;
   }
 
+  public deepCopy(): Bar {
+    const beatsCopies = [];
+    for (const beat of this.beats) {
+      beatsCopies.push(beat.deepCopy());
+    }
+
+    return new Bar(
+      this.guitar,
+      this._tempo,
+      this._beatsCount,
+      this.duration,
+      beatsCopies
+    );
+  }
+
   /**
    * Beats (upper number in time signature) getter/setter
    */

@@ -5,7 +5,10 @@ import { BarElement } from "./elements/bar-element";
 import { Bar } from "./../models/bar";
 import { NoteDuration } from "./../models/note-duration";
 import { BeatElement } from "./elements/beat-element";
-import { SelectedMoveDirection } from "./elements/selected-element";
+import {
+  MoveRightResult,
+  SelectedMoveDirection,
+} from "./elements/selected-element";
 import { GuitarEffectOptions } from "../models/guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "../models/guitar-effect/guitar-effect-type";
 import { SelectionManager } from "./selection/selection-manager";
@@ -18,7 +21,9 @@ export class TabWindow {
   /**
    * Tab object to get data from
    */
-  readonly tab: Tab;
+  private _tab: Tab;
+  readonly undoStack: Tab[];
+  readonly redoStack: Tab[];
   /**
    * Dimensions object
    */
@@ -32,10 +37,12 @@ export class TabWindow {
    * @param dim Tab window dimensions
    */
   constructor(tab: Tab, dim: TabWindowDim) {
-    this.tab = tab;
+    this._tab = tab;
+    this.undoStack = [];
+    this.redoStack = [];
     this.dim = dim;
-    this._selectionManager = new SelectionManager(this.tab);
-    this._tabElement = new TabElement(this.tab, this.dim);
+    this._selectionManager = new SelectionManager(this._tab);
+    this._tabElement = new TabElement(this._tab, this.dim);
   }
 
   public calcTabElement(): void {
@@ -62,7 +69,13 @@ export class TabWindow {
   }
 
   private moveSelectedNoteRight(): void {
+    const beforeMoveRight = this._tab.deepCopy();
     const moveRightOutput = this._selectionManager.moveSelectedNoteRight();
+
+    if (moveRightOutput.result !== MoveRightResult.Nothing) {
+      this.undoStack.push(beforeMoveRight);
+    }
+
     this._tabElement.handleMoveRight(
       moveRightOutput,
       this._selectionManager.selectedElement
@@ -96,10 +109,14 @@ export class TabWindow {
   }
 
   public setSelectedNoteFret(newFret: number): void {
+    this.undoStack.push(this._tab.deepCopy());
+
     this._selectionManager.selectedElement.note.fret = newFret;
   }
 
   public changeSelectedBarTempo(newTempo: number): void {
+    this.undoStack.push(this._tab.deepCopy());
+
     const { barElement } = this.getSelectedNoteElementsAndIds();
 
     barElement.changeTempo(newTempo);
@@ -107,6 +124,8 @@ export class TabWindow {
   }
 
   public changeSelectedBarBeats(newBeats: number): void {
+    this.undoStack.push(this._tab.deepCopy());
+
     const { barElement } = this.getSelectedNoteElementsAndIds();
 
     barElement.changeBarBeats(newBeats);
@@ -114,6 +133,8 @@ export class TabWindow {
   }
 
   public changeSelectedBarDuration(newDuration: NoteDuration): void {
+    this.undoStack.push(this._tab.deepCopy());
+
     const { barElement } = this.getSelectedNoteElementsAndIds();
 
     barElement.changeBarDuration(newDuration);
@@ -121,6 +142,8 @@ export class TabWindow {
   }
 
   public changeSelectedBeatDuration(newDuration: NoteDuration): void {
+    this.undoStack.push(this._tab.deepCopy());
+
     const { barElement } = this.getSelectedNoteElementsAndIds();
 
     barElement.changeBeatDuration(
@@ -136,6 +159,7 @@ export class TabWindow {
   ): boolean {
     const elsAndIds = this.getSelectedNoteElementsAndIds();
 
+    const beforeApply = this._tab.deepCopy();
     const result = elsAndIds.tabLineElement.applyEffectSingle(
       elsAndIds.barElementId,
       elsAndIds.beatElementId,
@@ -146,6 +170,10 @@ export class TabWindow {
 
     if (!result) {
       return false;
+    }
+
+    if (result) {
+      this.undoStack.push(beforeApply);
     }
 
     if (
@@ -176,6 +204,8 @@ export class TabWindow {
     if (effectIndex === -1) {
       return;
     }
+
+    this.undoStack.push(this._tab.deepCopy());
 
     elsAndIds.tabLineElement.removeEffectSingle(
       elsAndIds.barElementId,
@@ -231,6 +261,8 @@ export class TabWindow {
   }
 
   public changeSelectionDuration(newDuration: NoteDuration): void {
+    this.undoStack.push(this._tab.deepCopy());
+
     this._selectionManager.changeSelectionDuration(newDuration);
     this._tabElement.calc();
   }
@@ -254,7 +286,7 @@ export class TabWindow {
   }
 
   public insertBar(bar: Bar): void {
-    this.tab.bars.push(bar);
+    this._tab.bars.push(bar);
     this._tabElement.calc();
   }
 
@@ -269,6 +301,36 @@ export class TabWindow {
 
     barElement.insertEmptyBeat(index);
     this._tabElement.calc();
+  }
+
+  public undo(): void {
+    if (this.undoStack.length === 0) {
+      return;
+    }
+
+    const prevTab = this.undoStack.pop();
+    this.redoStack.push(this._tab.deepCopy());
+    this._tab = prevTab;
+
+    this._selectionManager = new SelectionManager(this._tab);
+    this._tabElement = new TabElement(this._tab, this.dim);
+  }
+
+  public redo(): void {
+    if (this.redoStack.length === 0) {
+      return;
+    }
+
+    const nextTab = this.redoStack.pop();
+    this.undoStack.push(nextTab.deepCopy());
+    this._tab = nextTab;
+
+    this._selectionManager = new SelectionManager(this._tab);
+    this._tabElement = new TabElement(this._tab, this.dim);
+  }
+
+  public get tab(): Tab {
+    return this._tab;
   }
 
   public get selectionManager(): SelectionManager {

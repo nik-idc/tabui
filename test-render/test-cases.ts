@@ -1014,6 +1014,63 @@ function prepareTestCases(): TestCase[] {
         caption: "Apply all existing types of effects on notes: ",
       };
     })(),
+    (() => {
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      tabWindow.selectNoteElementUsingIds(0, 3, 1, 3);
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
+
+      tabWindow.undo();
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Test undo: apply palm mute and then undo it",
+      };
+    })(),
+    (() => {
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      tabWindow.selectNoteElementUsingIds(0, 3, 1, 3);
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
+
+      tabWindow.undo();
+      tabWindow.redo();
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Test undo: apply palm mute, then undo it and then redo it",
+      };
+    })(),
+    (() => {
+      const tabWindow = createBasicTabWindow();
+      randomFrets(tabWindow.tab, true);
+
+      tabWindow.selectNoteElementUsingIds(0, 3, 1, 3);
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
+      tabWindow.selectNoteElementUsingIds(0, 3, 2, 3);
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
+      tabWindow.selectNoteElementUsingIds(0, 3, 3, 3);
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
+      tabWindow.selectNoteElementUsingIds(0, 4, 0, 3);
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
+      tabWindow.selectNoteElementUsingIds(0, 4, 1, 3);
+      tabWindow.applyEffectSingle(GuitarEffectType.PalmMute);
+
+      tabWindow.undo();
+      tabWindow.undo();
+      tabWindow.undo();
+      tabWindow.redo();
+      tabWindow.redo();
+
+      return {
+        tabWindow: tabWindow,
+        caption:
+          "Test undo: 3 undo's and 2 redo's. " +
+          "Result should be 4 palm mutes",
+      };
+    })(),
   ];
 
   return tabWindows;
