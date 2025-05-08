@@ -11,6 +11,7 @@
         "render": "npx tsx ./test-render/render.ts",
         "build": "tsc --build",
         "clean": "tsc --build --clean",
+        "vite_serve": "npx vite",
         "test": "jest"
     },
     "devDependencies": {
@@ -20,10 +21,12 @@
         "babel-jest": "^29.7.0",
         "jest": "^29.7.0",
         "ts-node": "^10.9.2",
-        "typescript": "^5.4.5"
+        "typescript": "^5.4.5",
+        "vite": "^6.3.1"
     },
     "dependencies": {
         "@babel/preset-typescript": "^7.24.1",
+        "tone": "^15.0.4",
         "tsx": "^4.16.5"
     }
 }

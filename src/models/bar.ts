@@ -161,6 +161,24 @@ export class Bar {
     this.beats[index].duration = duration;
   }
 
+  public beatPlayable(beatToCheck: Beat): boolean {
+    if (!this.beats.includes(beatToCheck)) {
+      throw Error("Beat is not this bar");
+    }
+
+    const barDuration = this._beatsCount * this.duration;
+    let duration = 0;
+    for (const beat of this.beats) {
+      duration += beat.duration;
+
+      if (duration <= barDuration && beat === beatToCheck) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   public deepCopy(): Bar {
     const beatsCopies = [];
     for (const beat of this.beats) {

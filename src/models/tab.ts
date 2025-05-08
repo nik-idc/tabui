@@ -2,10 +2,11 @@ import { Bar } from "./bar";
 import { Beat } from "./beat";
 import { Guitar } from "./guitar";
 import { GuitarEffect } from "./guitar-effect/guitar-effect";
+import { OPTIONS_DEMANDING_EFFECTS } from "./guitar-effect/guitar-effect-lists";
 import { GuitarEffectOptions } from "./guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "./guitar-effect/guitar-effect-type";
 import { GuitarNote } from "./guitar-note";
-import { Note } from "./note";
+import { Note, NoteValue } from "./note";
 import { NoteDuration } from "./note-duration";
 
 /**
@@ -301,6 +302,11 @@ export class Tab {
       return false;
     }
 
+    // Can't apply slide to non-existent notes
+    if (nextNote.fret === undefined || guitarNote.fret === undefined) {
+      return false;
+    }
+
     // Create slide effect
     const nextHigher = nextNote.fret > guitarNote.fret;
     const slideEffect = new GuitarEffect(
@@ -417,46 +423,47 @@ export class Tab {
     effectType: GuitarEffectType,
     effectOptions?: GuitarEffectOptions
   ): boolean {
+    const note = this.bars[barIndex].beats[beatIndex].notes[stringNum - 1].note;
     if (
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1].note ===
-        Note.None ||
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1].note ===
-        Note.Dead
+      note.noteValue === NoteValue.None ||
+      note.noteValue === NoteValue.Dead
     ) {
       // No effects can be applied to a dead note or an abscense of a note
       return true;
     }
 
+    // Below exclamation marks are used
+    // This is bad, need to refactor
     switch (effectType) {
       case GuitarEffectType.Bend:
         return this.applyBend(
           barIndex,
           beatIndex,
           stringNum,
-          effectOptions.bendPitch
+          effectOptions!.bendPitch!
         );
       case GuitarEffectType.BendAndRelease:
         return this.applyBendAndRelease(
           barIndex,
           beatIndex,
           stringNum,
-          effectOptions.bendPitch,
-          effectOptions.bendReleasePitch
+          effectOptions!.bendPitch!,
+          effectOptions!.bendReleasePitch!
         );
       case GuitarEffectType.Prebend:
         return this.applyPrebend(
           barIndex,
           beatIndex,
           stringNum,
-          effectOptions.prebendPitch
+          effectOptions!.prebendPitch!
         );
       case GuitarEffectType.PrebendAndRelease:
         return this.applyPrebendAndRelease(
           barIndex,
           beatIndex,
           stringNum,
-          effectOptions.prebendPitch,
-          effectOptions.bendReleasePitch
+          effectOptions!.prebendPitch!,
+          effectOptions!.bendReleasePitch!
         );
       case GuitarEffectType.Vibrato:
         return this.applyVibrato(barIndex, beatIndex, stringNum);
@@ -500,8 +507,8 @@ export class Tab {
   ): boolean {
     let appliedToAll = true;
     for (const beat of beats) {
-      let barIndex: number;
-      let beatIndex: number;
+      let barIndex: number = -1;
+      let beatIndex: number = -1;
       this.bars.findIndex((b, i) => {
         return b.beats.some((c, j) => {
           barIndex = i;
@@ -509,6 +516,10 @@ export class Tab {
           return c.uuid === beat.uuid;
         });
       });
+
+      if (barIndex === -1 || beatIndex === -1) {
+        throw Error("Could not find beat indices");
+      }
 
       for (const note of beat.notes) {
         const applyRes = this.applyEffectToNote(
@@ -588,6 +599,36 @@ export class Tab {
     return notesSeq.find((note) => {
       return note.uuid === noteUUID;
     });
+  }
+
+  public findBeatsBar(beat: Beat): Bar {
+    const bar = this.bars.find((b) => {
+      return b.beats.includes(beat);
+    });
+
+    if (bar === undefined) {
+      throw Error("Beat is not in the tab");
+    }
+
+    return bar;
+  }
+
+  public findNotesBeat(note: GuitarNote): Beat {
+    const beatsSeq = this.getBeatsSeq();
+
+    const beat = beatsSeq.find((b) => {
+      return b.notes.includes(note);
+    });
+
+    if (beat === undefined) {
+      throw Error("Note is not in the tab");
+    }
+
+    return beat;
+  }
+
+  public findNotesBar(note: GuitarNote): Bar {
+    return this.findBeatsBar(this.findNotesBeat(note));
   }
 
   public deepCopy(): Tab {

@@ -40,10 +40,14 @@ export enum MoveRightResult {
 /**
  * Move right output type
  */
-export type MoveRightOutput = {
-  result: MoveRightResult;
-  addedBar?: Bar;
-};
+// export type MoveRightOutput = {
+//   result: MoveRightResult;
+//   addedBar?: Bar;
+// };
+export type MoveRightOutput =
+  | { result: MoveRightResult.Nothing; addedBar?: undefined }
+  | { result: MoveRightResult.AddedBeat; addedBar?: undefined }
+  | { result: MoveRightResult.AddedBar; addedBar: Bar };
 
 /**
  * Class that contains all necessary information

@@ -7,29 +7,34 @@ import { NoteDuration } from "./../models/note-duration";
 import { BeatElement } from "./elements/beat-element";
 import {
   MoveRightResult,
+  SelectedElement,
   SelectedMoveDirection,
 } from "./elements/selected-element";
 import { GuitarEffectOptions } from "../models/guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "../models/guitar-effect/guitar-effect-type";
 import { SelectionManager } from "./selection/selection-manager";
 import { SelectedElementsAndIds, TabElement } from "./elements/tab-element";
+import { TabPlayer } from "./player/tab-player";
+import { TabEditor } from "./editor/tab-editor";
+import { Beat } from "../models/beat";
+import { TabLineElement } from "./elements/tab-line-element";
+import { Point } from "./shapes/point";
 
 /**
- * Class that handles creating a tab window
+ * Class that handles creating a tab window.
  */
 export class TabWindow {
   /**
    * Tab object to get data from
    */
   private _tab: Tab;
-  readonly undoStack: Tab[];
-  readonly redoStack: Tab[];
   /**
    * Dimensions object
    */
   readonly dim: TabWindowDim;
-  private _selectionManager: SelectionManager;
   private _tabElement: TabElement;
+  private _tabEditor: TabEditor;
+  private _tabPlayer: TabPlayer | undefined;
 
   /**
    * Class that handles creating a tab window
@@ -38,19 +43,52 @@ export class TabWindow {
    */
   constructor(tab: Tab, dim: TabWindowDim) {
     this._tab = tab;
-    this.undoStack = [];
-    this.redoStack = [];
     this.dim = dim;
-    this._selectionManager = new SelectionManager(this._tab);
     this._tabElement = new TabElement(this._tab, this.dim);
+    this._tabEditor = new TabEditor(this._tab, this._tabElement);
+
+    if (typeof window !== "undefined") {
+      this._tabPlayer = new TabPlayer(this._tab);
+    } else {
+      this._tabPlayer = undefined;
+    }
   }
 
   public calcTabElement(): void {
     this._tabElement.calc();
   }
 
+  public getTabLineElements(): TabLineElement[] {
+    return this._tabElement.tabLineElements;
+  }
+
+  public getBeatElementGlobalCoords(beatElement: BeatElement): Point {
+    return this._tabElement.getBeatElementGlobalCoords(beatElement);
+  }
+
+  public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
+    return this._tabElement.getBeatElementByUUID(beatUUID);
+  }
+
+  public recalcBeatElementSelection(): void {
+    this._tabElement.recalcBeatElementSelection(
+      this._tabEditor.selectionManager.selectionBeats
+    );
+  }
+
   public selectNoteElement(noteElement: NoteElement): void {
-    this._selectionManager.selectNote(noteElement.note);
+    if (this._tabPlayer === undefined) {
+      return;
+    }
+
+    this._tabEditor.selectNoteElement(noteElement);
+
+    const selectedElement = this._tabEditor.selectionManager.selectedElement;
+    if (selectedElement === undefined) {
+      throw Error("Selected element undefined after selection");
+    }
+
+    this._tabPlayer.setCurrentBeat(selectedElement.beat);
   }
 
   public selectNoteElementUsingIds(
@@ -59,189 +97,75 @@ export class TabWindow {
     beatElementId: number,
     noteElementId: number
   ): void {
-    const noteElement =
-      this._tabElement.tabLineElements[tabLineElementId].barElements[
-        barElementId
-      ].beatElements[beatElementId].beatNotesElement.noteElements[
-        noteElementId
-      ];
-    this._selectionManager.selectNote(noteElement.note);
-  }
+    this._tabEditor.selectNoteElementUsingIds(
+      tabLineElementId,
+      barElementId,
+      beatElementId,
+      noteElementId
+    );
 
-  private moveSelectedNoteRight(): void {
-    const beforeMoveRight = this._tab.deepCopy();
-    const moveRightOutput = this._selectionManager.moveSelectedNoteRight();
-
-    if (moveRightOutput.result !== MoveRightResult.Nothing) {
-      this.undoStack.push(beforeMoveRight);
+    const selectedElement = this._tabEditor.selectionManager.selectedElement;
+    if (selectedElement === undefined) {
+      throw Error("Selected element undefined after selection");
     }
 
-    this._tabElement.handleMoveRight(
-      moveRightOutput,
-      this._selectionManager.selectedElement
-    );
-  }
-
-  public moveSelectedNote(direction: SelectedMoveDirection): void {
-    switch (direction) {
-      case SelectedMoveDirection.Left:
-        this._selectionManager.moveSelectedNoteLeft();
-        break;
-      case SelectedMoveDirection.Right:
-        // this._selectionManager.moveSelectedNoteRight();
-        this.moveSelectedNoteRight();
-        break;
-      case SelectedMoveDirection.Up:
-        this._selectionManager.moveSelectedNoteUp();
-        break;
-      case SelectedMoveDirection.Down:
-        this._selectionManager.moveSelectedNoteDown();
-        break;
-      default:
-        break;
+    if (this._tabPlayer !== undefined) {
+      this._tabPlayer.setCurrentBeat(selectedElement.beat);
     }
   }
 
-  public getSelectedNoteElementsAndIds(): SelectedElementsAndIds {
-    return this._tabElement.getSelectedNoteElementsAndIds(
-      this._selectionManager.selectedElement
-    );
+  public moveSelectedNote(moveDirection: SelectedMoveDirection): void {
+    this._tabEditor.moveSelectedNote(moveDirection);
   }
 
-  public setSelectedNoteFret(newFret: number): void {
-    this.undoStack.push(this._tab.deepCopy());
-
-    this._selectionManager.selectedElement.note.fret = newFret;
+  public setSelectedElementFret(newFret: number): void {
+    this._tabEditor.setSelectedNoteFret(newFret);
   }
 
   public changeSelectedBarTempo(newTempo: number): void {
-    this.undoStack.push(this._tab.deepCopy());
-
-    const { barElement } = this.getSelectedNoteElementsAndIds();
-
-    barElement.changeTempo(newTempo);
-    this._tabElement.calc();
+    this._tabEditor.changeSelectedBarTempo(newTempo);
   }
 
   public changeSelectedBarBeats(newBeats: number): void {
-    this.undoStack.push(this._tab.deepCopy());
-
-    const { barElement } = this.getSelectedNoteElementsAndIds();
-
-    barElement.changeBarBeats(newBeats);
-    this._tabElement.calc();
+    this._tabEditor.changeSelectedBarBeats(newBeats);
   }
 
   public changeSelectedBarDuration(newDuration: NoteDuration): void {
-    this.undoStack.push(this._tab.deepCopy());
-
-    const { barElement } = this.getSelectedNoteElementsAndIds();
-
-    barElement.changeBarDuration(newDuration);
-    this._tabElement.calc();
+    this._tabEditor.changeSelectedBarDuration(newDuration);
   }
 
   public changeSelectedBeatDuration(newDuration: NoteDuration): void {
-    this.undoStack.push(this._tab.deepCopy());
-
-    const { barElement } = this.getSelectedNoteElementsAndIds();
-
-    barElement.changeBeatDuration(
-      this._selectionManager.selectedElement.beat,
-      newDuration
-    );
-    this._tabElement.calc();
+    this._tabEditor.changeSelectedBeatDuration(newDuration);
   }
 
   public applyEffectSingle(
     effectType: GuitarEffectType,
     effectOptions?: GuitarEffectOptions
   ): boolean {
-    const elsAndIds = this.getSelectedNoteElementsAndIds();
-
-    const beforeApply = this._tab.deepCopy();
-    const result = elsAndIds.tabLineElement.applyEffectSingle(
-      elsAndIds.barElementId,
-      elsAndIds.beatElementId,
-      elsAndIds.stringNum,
-      effectType,
-      effectOptions
-    );
-
-    if (!result) {
-      return false;
-    }
-
-    if (result) {
-      this.undoStack.push(beforeApply);
-    }
-
-    if (
-      elsAndIds.tabLineElementId !==
-      this._tabElement.tabLineElements.length - 1
-    ) {
-      elsAndIds.tabLineElement.justifyElements();
-    }
-
-    return true;
+    return this._tabEditor.applyEffectSingle(effectType, effectOptions);
   }
 
   public removeEffectSingle(
     effectType: GuitarEffectType,
     effectOptions?: GuitarEffectOptions
   ): void {
-    const elsAndIds = this.getSelectedNoteElementsAndIds();
-
-    const effectIndex = elsAndIds.noteElement.guitarEffectElements.findIndex(
-      (gfe) => {
-        return (
-          gfe.effect.effectType === effectType &&
-          gfe.effect.options === effectOptions
-        );
-      }
-    );
-
-    if (effectIndex === -1) {
-      return;
-    }
-
-    this.undoStack.push(this._tab.deepCopy());
-
-    elsAndIds.tabLineElement.removeEffectSingle(
-      elsAndIds.barElementId,
-      elsAndIds.beatElementId,
-      elsAndIds.stringNum,
-      effectIndex
-    );
-
-    if (
-      elsAndIds.tabLineElementId !==
-      this._tabElement.tabLineElements.length - 1
-    ) {
-      elsAndIds.tabLineElement.justifyElements();
-    }
+    this._tabEditor.removeEffectSingle(effectType, effectOptions);
   }
 
-  /**
-   * Checks if note element is the selected element
-   * @param noteElement Note element to check
-   * @returns True if selected, false otherwise
-   */
+  public getSelectedElement(): SelectedElement | undefined {
+    return this._tabEditor.getSelectedElement();
+  }
+
   public isNoteElementSelected(noteElement: NoteElement): boolean {
-    return this._selectionManager.isNoteElementSelected(noteElement);
+    return this._tabEditor.isNoteElementSelected(noteElement);
   }
 
   public clearSelection(): void {
-    this._selectionManager.clearSelection();
-    this._tabElement.resetSelection();
+    this._tabEditor.clearSelection();
   }
 
   public selectBeat(beatElement: BeatElement): void {
-    this._selectionManager.selectBeat(beatElement.beat);
-
-    this._tabElement.recalcBeatElementSelection(
-      this._selectionManager.selectionBeats
-    );
+    this._tabEditor.selectBeat(beatElement);
   }
 
   public selectBeatUsingIds(
@@ -249,95 +173,97 @@ export class TabWindow {
     barElementId: number,
     beatElementId: number
   ): void {
-    const beatElement =
-      this._tabElement.tabLineElements[tabLineElementId].barElements[
-        barElementId
-      ].beatElements[beatElementId];
-    this._selectionManager.selectBeat(beatElement.beat);
-
-    this._tabElement.recalcBeatElementSelection(
-      this._selectionManager.selectionBeats
+    this._tabEditor.selectBeatUsingIds(
+      tabLineElementId,
+      barElementId,
+      beatElementId
     );
   }
 
-  public changeSelectionDuration(newDuration: NoteDuration): void {
-    this.undoStack.push(this._tab.deepCopy());
-
-    this._selectionManager.changeSelectionDuration(newDuration);
-    this._tabElement.calc();
+  public deleteSelectedBeats(): void {
+    this._tabEditor.deleteBeats();
   }
 
   public copy(): void {
-    this._selectionManager.copy();
+    this._tabEditor.copy();
   }
 
   public paste(): void {
-    this._selectionManager.paste();
-    this._tabElement.calc();
+    this._tabEditor.paste();
   }
 
-  /**
-   * Delete every selected beat
-   * @param beats
-   */
-  public deleteBeats(): void {
-    this._selectionManager.deleteSelected();
-    this._tabElement.calc();
+  public changeSelectionDuration(newDuration: NoteDuration): void {
+    this._tabEditor.changeSelectionDuration(newDuration);
   }
 
-  public insertBar(bar: Bar): void {
-    this._tab.bars.push(bar);
-    this._tabElement.calc();
-  }
-
-  public insertBeat(
-    barElement: BarElement,
-    prevBeatElement: BeatElement
-  ): void {
-    const index = barElement.beatElements.indexOf(prevBeatElement);
-    if (index < 0 || index >= barElement.beatElements.length) {
-      return;
-    }
-
-    barElement.insertEmptyBeat(index);
-    this._tabElement.calc();
+  public getSelectionBeats(): Beat[] {
+    return this._tabEditor.selectionManager.selectionBeats;
   }
 
   public undo(): void {
-    if (this.undoStack.length === 0) {
-      return;
-    }
-
-    const prevTab = this.undoStack.pop();
-    this.redoStack.push(this._tab.deepCopy());
-    this._tab = prevTab;
-
-    this._selectionManager = new SelectionManager(this._tab);
-    this._tabElement = new TabElement(this._tab, this.dim);
+    this._tabEditor.undo();
   }
 
   public redo(): void {
-    if (this.redoStack.length === 0) {
+    this._tabEditor.redo();
+  }
+
+  public startPlayer(): void {
+    if (this._tabPlayer === undefined) {
       return;
     }
 
-    const nextTab = this.redoStack.pop();
-    this.undoStack.push(nextTab.deepCopy());
-    this._tab = nextTab;
+    this._tabPlayer.start();
+  }
 
-    this._selectionManager = new SelectionManager(this._tab);
-    this._tabElement = new TabElement(this._tab, this.dim);
+  public stopPlayer(): void {
+    if (this._tabPlayer === undefined) {
+      return;
+    }
+
+    this._tabPlayer.stop();
+  }
+
+  public getSelectedBeat(): Beat | undefined {
+    const selectedElement = this._tabEditor.selectionManager.selectedElement;
+    if (selectedElement === undefined) {
+      return undefined;
+    }
+
+    return selectedElement.beat;
+  }
+
+  public getSelectedBeatElement(): BeatElement | undefined {
+    const selectedElement = this._tabEditor.selectionManager.selectedElement;
+    if (selectedElement === undefined) {
+      return undefined;
+    }
+
+    return this._tabEditor.getSelectedNoteElementsAndIds().beatElement;
+  }
+
+  public getPlayerCurrentBeatElement(): BeatElement | undefined {
+    if (this._tabPlayer === undefined) {
+      // throw Error("Tab player undefined");
+      return undefined;
+    }
+
+    if (this._tabPlayer.currentBeat === undefined) {
+      throw Error("Tab player current beat undefined");
+    }
+
+    const beatElement = this._tabElement.findCorrespondingBeatElement(
+      this._tabPlayer.currentBeat
+    );
+
+    if (beatElement === undefined) {
+      throw Error("Failed to find corresponding beat element");
+    }
+
+    return beatElement;
   }
 
   public get tab(): Tab {
     return this._tab;
-  }
-
-  public get selectionManager(): SelectionManager {
-    return this._selectionManager;
-  }
-
-  public get tabElement(): TabElement {
-    return this._tabElement;
   }
 }

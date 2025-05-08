@@ -4,7 +4,7 @@ import { Guitar } from "../src/models/guitar";
 import { GuitarEffect } from "../src/models/guitar-effect/guitar-effect";
 import { GuitarEffectOptions } from "../src/models/guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "..//src/models/guitar-effect/guitar-effect-type";
-import { Note } from "../src/models/note";
+import { Note, NoteValue } from "../src/models/note";
 import { NoteDuration } from "../src/models/note-duration";
 import { Tab } from "../src/models/tab";
 import { TabWindow } from "../src/tab-window/tab-window";
@@ -52,7 +52,14 @@ function selectNote(
 
 export function createBasicTab(): Tab {
   const stringsCount = 6;
-  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
+  const tuning = [
+    new Note(NoteValue.E, 4),
+    new Note(NoteValue.B, 3),
+    new Note(NoteValue.G, 3),
+    new Note(NoteValue.D, 3),
+    new Note(NoteValue.A, 2),
+    new Note(NoteValue.D, 2),
+  ];
   const fretsCount = 24;
   const guitar = new Guitar(stringsCount, tuning, fretsCount);
 
@@ -145,9 +152,7 @@ export function createCustomTabWindow(
   barDuration: NoteDuration
 ): TabWindow {
   const stringsCount = 6;
-  const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-  const fretsCount = 24;
-  const guitar = new Guitar(stringsCount, tuning, fretsCount);
+  const guitar = new Guitar(stringsCount);
 
   const bars: Bar[] = [];
   for (let i = 0; i < barsCount; i++) {
@@ -232,9 +237,7 @@ function prepareTestCases(): TestCase[] {
     })(),
     (() => {
       const stringsCount = 6;
-      const tuning = [Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
-      const fretsCount = 24;
-      const guitar = new Guitar(stringsCount, tuning, fretsCount);
+      const guitar = new Guitar(stringsCount);
       const bars = [];
       const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
 
@@ -256,7 +259,15 @@ function prepareTestCases(): TestCase[] {
     })(),
     (() => {
       const stringsCount = 7;
-      const tuning = [Note.A, Note.E, Note.A, Note.D, Note.G, Note.B, Note.E];
+      const tuning = [
+        new Note(NoteValue.E, 4),
+        new Note(NoteValue.B, 3),
+        new Note(NoteValue.G, 3),
+        new Note(NoteValue.D, 3),
+        new Note(NoteValue.A, 2),
+        new Note(NoteValue.E, 2),
+        new Note(NoteValue.A, 1),
+      ];
       const fretsCount = 24;
       const guitar = new Guitar(stringsCount, tuning, fretsCount);
       let bars = new Array<Bar>();
@@ -324,8 +335,8 @@ function prepareTestCases(): TestCase[] {
 
       tabWindow.selectBeatUsingIds(firstBeat[0], firstBeat[1], firstBeat[2]);
       tabWindow.selectBeatUsingIds(secondBeat[0], secondBeat[1], secondBeat[2]);
-      // tabWindow.selectBeatUsingIds(0, 0, 3);
-      // tabWindow.selectBeatUsingIds(0, 0, 2);
+      // tabWindow.tabEditor!.selectBeatUsingIds(0, 0, 3);
+      // tabWindow.tabEditor!.selectBeatUsingIds(0, 0, 2);
       tabWindow.selectBeatUsingIds(thirdBeat[0], thirdBeat[1], thirdBeat[2]);
 
       return {
@@ -365,8 +376,8 @@ function prepareTestCases(): TestCase[] {
 
       tabWindow.selectBeatUsingIds(firstBeat[0], firstBeat[1], firstBeat[2]);
       tabWindow.selectBeatUsingIds(secondBeat[0], secondBeat[1], secondBeat[2]);
-      // tabWindow.selectBeatUsingIds(1, 0, 3);
-      // tabWindow.selectBeatUsingIds(1, 1, 0);
+      // tabWindow.tabEditor!.selectBeatUsingIds(1, 0, 3);
+      // tabWindow.tabEditor!.selectBeatUsingIds(1, 1, 0);
       tabWindow.selectBeatUsingIds(thirdBeat[0], thirdBeat[1], thirdBeat[2]);
 
       return {
@@ -394,9 +405,7 @@ function prepareTestCases(): TestCase[] {
         copiedNote[2],
         copiedNote[3]
       );
-      tabWindow.selectionManager.selectedElement!.note.fret = Math.floor(
-        Math.random() * 24
-      );
+      tabWindow.setSelectedElementFret(Math.floor(Math.random() * 24));
 
       // Copy selected note
       tabWindow.copy();
@@ -433,9 +442,7 @@ function prepareTestCases(): TestCase[] {
         copiedNote[2],
         copiedNote[3]
       );
-      tabWindow.selectionManager.selectedElement!.note.fret = Math.floor(
-        Math.random() * 24
-      );
+      tabWindow.setSelectedElementFret(Math.floor(Math.random() * 24));
 
       // Copy selected note
       tabWindow.copy();
@@ -567,7 +574,7 @@ function prepareTestCases(): TestCase[] {
         copiedBeat[2],
         3
       );
-      tabWindow.setSelectedNoteFret(20);
+      tabWindow.setSelectedElementFret(20);
       // // Set beat notes value
       // tabWindow.tabElement.tabLineElements[copiedBeat[0]].barElements[
       //   copiedBeat[1]
@@ -612,16 +619,20 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set beat notes value
-      tabWindow.tabElement.tabLineElements[copiedBeats[0][0]].barElements[
-        copiedBeats[0][1]
-      ].beatElements[
-        copiedBeats[0][2]
-      ].beatNotesElement.noteElements[3].note.fret = 20;
-      tabWindow.tabElement.tabLineElements[copiedBeats[1][0]].barElements[
-        copiedBeats[1][1]
-      ].beatElements[
-        copiedBeats[1][2]
-      ].beatNotesElement.noteElements[3].note.fret = 19;
+      tabWindow.selectNoteElementUsingIds(
+        copiedBeats[0][0],
+        copiedBeats[0][1],
+        copiedBeats[0][2],
+        3
+      );
+      tabWindow.setSelectedElementFret(20);
+      tabWindow.selectNoteElementUsingIds(
+        copiedBeats[1][0],
+        copiedBeats[1][1],
+        copiedBeats[1][2],
+        3
+      );
+      tabWindow.setSelectedElementFret(19);
 
       // Select note element first
       tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
@@ -669,16 +680,22 @@ function prepareTestCases(): TestCase[] {
 
       const tabWindow = createBasicTabWindow();
       // Set beat notes value
-      tabWindow.tabElement.tabLineElements[copiedBeat[0]].barElements[
-        copiedBeat[1]
-      ].beatElements[
-        copiedBeat[2]
-      ].beatNotesElement.noteElements[3].note.fret = 20;
+      tabWindow.selectNoteElementUsingIds(
+        copiedBeat[0],
+        copiedBeat[0],
+        copiedBeat[0],
+        3
+      );
+      tabWindow.setSelectedElementFret(20);
 
       // Select note element first
       tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select beats clears selected element
-      tabWindow.selectBeatUsingIds(copiedBeat[0], copiedBeat[1], copiedBeat[2]);
+      tabWindow.selectBeatUsingIds(
+        copiedBeat[0],
+        copiedBeat[1],
+        copiedBeat[2]
+      );
 
       // Copy selected beats
       tabWindow.copy();

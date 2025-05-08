@@ -1,5 +1,6 @@
 import { Bar } from "../../models/bar";
 import { Beat } from "../../models/beat";
+import { GuitarNote } from "../../models/guitar-note";
 import { Tab } from "../../models/tab";
 import { Point } from "../shapes/point";
 import { Rect } from "../shapes/rect";
@@ -38,11 +39,11 @@ export type SelectedElementsAndIds = {
   /**
    * Id of the tab line element
    */
-  tabLineElement: TabLineElement | undefined;
+  tabLineElement: TabLineElement;
   /**
    * If of the bar element (within the tab line element)
    */
-  barElement: BarElement | undefined;
+  barElement: BarElement;
   /**
    * Id of the beat element, same as beat id, in here just
    * for consistency's sake
@@ -72,6 +73,7 @@ export class TabElement {
   constructor(tab: Tab, dim: TabWindowDim) {
     this._tab = tab;
     this.dim = dim;
+    this._selectionRects = [];
 
     this.calc();
   }
@@ -171,10 +173,10 @@ export class TabElement {
   public getSelectedNoteElementsAndIds(
     selectedElement: SelectedElement
   ): SelectedElementsAndIds {
-    let tabLineElement: TabLineElement;
-    let barElement: BarElement;
-    let tabLineElementId: number;
-    let barElementId: number;
+    let tabLineElement: TabLineElement | undefined;
+    let barElement: BarElement | undefined;
+    let tabLineElementId: number = -1;
+    let barElementId: number = -1;
     this._tabLineElements.some((tle, tleIndex) => {
       return tle.barElements.some((be, beIndex) => {
         tabLineElement = tle;
@@ -185,13 +187,18 @@ export class TabElement {
       });
     });
 
+    if (tabLineElement === undefined || barElement === undefined) {
+      throw Error("Could not find elements");
+    }
+
     const beatElement = barElement.beatElements[selectedElement.beatId];
     const noteElement =
-      beatElement !== undefined
-        ? beatElement.beatNotesElement.noteElements[
+      beatElement === undefined
+        ? undefined
+        : beatElement.beatNotesElement.noteElements[
             selectedElement.stringNum - 1
-          ]
-        : undefined;
+          ];
+
     return {
       tabLineElementId: tabLineElementId,
       barElementId: barElementId,
@@ -224,6 +231,98 @@ export class TabElement {
         }
       }
     }
+  }
+
+  public resetTab(newTab: Tab): void {
+    this._tab = newTab;
+    this.calc();
+  }
+
+  public findCorrespondingBarElement(bar: Bar): BarElement | undefined {
+    for (const tabLineElement of this._tabLineElements) {
+      for (const barElement of tabLineElement.barElements) {
+        if (barElement.bar.uuid === bar.uuid) {
+          return barElement;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  public findCorrespondingBeatElement(beat: Beat): BeatElement | undefined {
+    for (const tabLineElement of this._tabLineElements) {
+      for (const barElement of tabLineElement.barElements) {
+        for (const beatElement of barElement.beatElements) {
+          if (beatElement.beat.uuid === beat.uuid) {
+            return beatElement;
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  public findCorrespondingNoteElement(
+    note: GuitarNote
+  ): NoteElement | undefined {
+    for (const tabLineElement of this._tabLineElements) {
+      for (const barElement of tabLineElement.barElements) {
+        for (const beatElement of barElement.beatElements) {
+          for (const noteElement of beatElement.beatNotesElement.noteElements)
+            if (noteElement.note.uuid === note.uuid) {
+              return noteElement;
+            }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
+    for (const tabLineElement of this._tabLineElements) {
+      for (const barElement of tabLineElement.barElements) {
+        for (const beatElement of barElement.beatElements) {
+          if (beatElement.beat.uuid === beatUUID) {
+            return beatElement;
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  public getBeatElementGlobalCoords(neededBeatElement: BeatElement): Point {
+    let foundTabLineElement: TabLineElement | undefined;
+    let foundBarElement: BarElement | undefined;
+    for (const tabLineElement of this._tabLineElements) {
+      for (const barElement of tabLineElement.barElements) {
+        for (const beatElement of barElement.beatElements) {
+          if (beatElement.beat.uuid === neededBeatElement.beat.uuid) {
+            foundTabLineElement = tabLineElement;
+            foundBarElement = barElement;
+            break;
+          }
+        }
+      }
+    }
+
+    if (foundTabLineElement === undefined || foundBarElement === undefined) {
+      throw Error(
+        "Could not find beat element's tab line element or bar element"
+      );
+    }
+
+    const tleOffset = new Point(0, foundTabLineElement.rect.y);
+    const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
+
+    return new Point(
+      barOffset.x + neededBeatElement.rect.x,
+      barOffset.y + neededBeatElement.rect.y
+    );
   }
 
   public get tabLineElements(): TabLineElement[] {

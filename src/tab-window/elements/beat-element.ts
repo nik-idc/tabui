@@ -68,6 +68,13 @@ export class BeatElement {
       0,
       labelsGapHeight
     );
+    this._effectLabelElements = [];
+    this._beatNotesElement = new BeatNotesElement(
+      this.dim,
+      this.beat,
+      this.rect.width,
+      this._effectLabelsRect.height
+    );
 
     this.calc();
   }

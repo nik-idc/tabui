@@ -48,6 +48,7 @@ export class NoteElement {
       width,
       this.dim.noteRectHeight
     );
+    this._guitarEffectElements = [];
 
     this.calc();
   }

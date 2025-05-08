@@ -1,9 +1,12 @@
 {
     "compilerOptions": {
-      "module": "commonjs",
-      "target": "es2019",
-      "declaration": true,
-      "outDir": "./dist"
+      "sourceMap": true,
+      "target": "ESNext",
+      "module": "ESNext",
+      "moduleResolution": "Node",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true
     },
     "ts-node": {
       "esm": true
@@ -11,4 +14,4 @@
     "include": [
       "src/**/*"
     ]
-  }
+}
