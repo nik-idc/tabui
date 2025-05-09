@@ -106,7 +106,7 @@ export class TabEditor {
     );
   }
 
-  public setSelectedNoteFret(newFret: number): void {
+  public setSelectedNoteFret(newFret: number | undefined): void {
     if (this._selectionManager.selectedElement === undefined) {
       throw Error("Selected note is undefined");
     }

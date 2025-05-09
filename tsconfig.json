@@ -1,18 +1,20 @@
 {
-    "compilerOptions": {
-      "sourceMap": true,
-      "target": "ESNext",
-      "module": "ESNext",
-      "moduleResolution": "Node",
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "outDir": "dist"
-    },
-    "ts-node": {
-      "esm": true
-    },
-    "include": [
-      "src/**/*"
-    ]
+  "compilerOptions": {
+    "sourceMap": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "declaration": true,
+    "declarationDir": "dist"
+  },
+  "ts-node": {
+    "esm": true
+  },
+  "include": [
+    "src/**/*"
+  ]
 }

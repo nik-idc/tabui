@@ -118,7 +118,7 @@ export class TabWindow {
     this._tabEditor.moveSelectedNote(moveDirection);
   }
 
-  public setSelectedElementFret(newFret: number): void {
+  public setSelectedElementFret(newFret: number | undefined): void {
     this._tabEditor.setSelectedNoteFret(newFret);
   }
 
