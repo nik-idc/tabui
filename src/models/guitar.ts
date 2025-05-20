@@ -45,7 +45,12 @@ export class Guitar {
       throw Error("Invalid js object to parse to guitar");
     }
 
+    const tuning: Note[] = [];
+    for (const note of obj.tuning) {
+      tuning.push(new Note(note.noteValue, note.octave));
+    }
+
     // Return parsed guitar
-    return new Guitar(obj.stringsCount, obj.tuning, obj.fretsCount);
+    return new Guitar(obj.stringsCount, tuning, obj.fretsCount);
   }
 }

@@ -8,27 +8,24 @@ import { GuitarEffectType } from "./guitar-effect/guitar-effect-type";
 import { GuitarNote } from "./guitar-note";
 import { Note, NoteValue } from "./note";
 import { NoteDuration } from "./note-duration";
+import { randomInt } from "../misc/random-int";
 
 /**
  * Class that represents a guitar tab
  */
 export class Tab {
   /**
-   * Tab id
+   * Unique identifier
    */
-  readonly id: number | undefined;
+  readonly uuid: number;
   /**
    * Tab name
    */
   public name: string;
   /**
-   * Artist
+   * Instrument name
    */
-  public artist: string;
-  /**
-   * Song
-   */
-  public song: string;
+  public instrumentName: string;
   /**
    * Guitar
    */
@@ -37,38 +34,28 @@ export class Tab {
    * Bars of the tab
    */
   readonly bars: Bar[];
-  /**
-   * Public status
-   */
-  readonly isPublic: boolean;
 
   /**
    * Class that represents a guitar tab
-   * @param id Tab id
    * @param name Tab name
-   * @param artist Artist
-   * @param song Song
+   * @param instrumentName Instrument name
    * @param guitar Guitar
    * @param bars Bars of the tab
-   * @param isPublic Public status
    */
   constructor(
-    id: number | undefined = undefined,
     name: string = "Unnamed",
-    artist: string = "Unknown artist",
-    song: string = "Unknown song",
+    instrumentName: string = "Unknown instrument",
     guitar: Guitar = new Guitar(),
-    bars: Bar[] | undefined = undefined,
-    isPublic: boolean = false
+    bars: Bar[] = []
   ) {
-    this.id = id;
-    this.name = name;
-    this.artist = artist;
-    this.song = song;
-    this.guitar = guitar;
-    this.isPublic = isPublic;
+    this.uuid = randomInt();
 
-    if (bars === undefined || bars.length === 0) {
+    this.name = name;
+    this.instrumentName = instrumentName;
+    this.guitar = guitar;
+    this.bars = bars;
+
+    if (bars.length === 0) {
       this.bars = [
         new Bar(this.guitar, 120, 4, NoteDuration.Quarter, undefined),
       ];
@@ -637,22 +624,7 @@ export class Tab {
       barsCopies.push(bar.deepCopy());
     }
 
-    return new Tab(
-      this.id,
-      this.name,
-      this.artist,
-      this.song,
-      this.guitar,
-      barsCopies,
-      this.isPublic
-    );
-  }
-
-  /**
-   * Full song name
-   */
-  get fullSongName(): string {
-    return this.artist + "-" + this.song;
+    return new Tab(this.name, this.instrumentName, this.guitar, barsCopies);
   }
 
   /**
@@ -662,24 +634,43 @@ export class Tab {
    */
   static fromObject(obj: any): Tab {
     if (
-      obj.id == undefined ||
-      obj.name == undefined ||
-      obj.artist == undefined ||
-      obj.song == undefined ||
-      obj.guitar == undefined ||
-      obj.data == undefined
+      obj.name === undefined ||
+      obj.instrumentName === undefined ||
+      obj.guitar === undefined ||
+      obj.bars === undefined
     ) {
       throw Error("Invalid js obj to parse to tab");
     }
 
-    return new Tab(
-      obj.id,
-      obj.name,
-      obj.artist,
-      obj.song,
-      obj.guitar,
-      obj.data.bars,
-      obj.isPublic
-    );
+    const guitar = Guitar.fromObject(obj.guitar);
+
+    const bars: Bar[] = [];
+    for (const bar of obj.bars) {
+      const barBeats: Beat[] = [];
+      for (const beat of bar.beats) {
+        const notesLength = beat.guitarNotes.length;
+        const beatNotes: GuitarNote[] = [];
+        for (let noteIndex = 0; noteIndex < notesLength; noteIndex++) {
+          const fret =
+            beat.guitarNotes[noteIndex] === null
+              ? undefined
+              : beat.guitarNotes[noteIndex].guitarNote.fret;
+          beatNotes.push(new GuitarNote(guitar, noteIndex + 1, fret));
+        }
+        barBeats.push(new Beat(guitar, beat.duration, beatNotes));
+      }
+
+      bars.push(
+        new Bar(
+          guitar,
+          bar.tempo,
+          bar.timeSignature.beats,
+          bar.timeSignature.duration as NoteDuration,
+          barBeats
+        )
+      );
+    }
+
+    return new Tab(obj.name, obj.instrumentName, guitar, bars);
   }
 }

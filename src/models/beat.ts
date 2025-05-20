@@ -28,15 +28,21 @@ export class Beat {
    * Class that represents a beat
    * @param guitar Guitar on which the beat is played
    * @param duration Note duration
+   * @param notes Notes array
    */
-  constructor(guitar: Guitar, duration: NoteDuration) {
+  constructor(guitar: Guitar, duration: NoteDuration, notes?: GuitarNote[]) {
     this.uuid = randomInt();
     this.guitar = guitar;
     this.duration = duration;
-    this.notes = Array.from(
-      { length: guitar.stringsCount },
-      (_, stringNum) => new GuitarNote(this.guitar, stringNum + 1, undefined)
-    );
+
+    if (notes !== undefined) {
+      this.notes = notes;
+    } else {
+      this.notes = Array.from(
+        { length: guitar.stringsCount },
+        (_, stringNum) => new GuitarNote(this.guitar, stringNum + 1, undefined)
+      );
+    }
   }
 
   public deepCopy(): Beat {
@@ -80,10 +86,7 @@ export class Beat {
    */
   static compare(beat1: Beat, beat2: Beat): boolean {
     // Definitely not the same with different guitars/durations
-    if (
-      beat1.guitar !== beat2.guitar ||
-      beat1.duration !== beat2.duration
-    ) {
+    if (beat1.guitar !== beat2.guitar || beat1.duration !== beat2.duration) {
       return false;
     }
 

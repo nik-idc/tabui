@@ -10,6 +10,7 @@ import { Tab } from "../src/models/tab";
 import { TabWindow } from "../src/tab-window/tab-window";
 import { TabWindowDim } from "../src/tab-window/tab-window-dim";
 import { SelectedMoveDirection } from "../src/tab-window/elements/selected-element";
+import { Score } from "../src";
 
 let calcSpeed: number | undefined = undefined;
 
@@ -126,7 +127,7 @@ export function createBasicTab(): Tab {
     ]),
   ];
 
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+  const tab = new Tab("Unknown", "Guitar", guitar, bars);
   return tab;
 }
 
@@ -165,7 +166,7 @@ export function createCustomTabWindow(
     bars.push(new Bar(guitar, 120, barBeats, barDuration, beats));
   }
 
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+  const tab = new Tab("Unknown", "Guitar", guitar, bars);
 
   const dim = new TabWindowDim(
     width,
@@ -199,6 +200,30 @@ export interface TestCase {
 
 function prepareTestCases(): TestCase[] {
   const tabWindows = [
+    (() => {
+      // const tabWindow = createBasicTabWindow();
+      const scoreObj = require("../test-data/tab-gp-5.json");
+      // const tab = Tab.fromObject(tabObj);
+      const score = Score.fromObject(scoreObj);
+
+      // console.log(score);
+      const tabWindow = new TabWindow(
+        score.tracks![0],
+        new TabWindowDim(
+          width,
+          noteTextSize,
+          timeSigTextSize,
+          tempoTextSize,
+          durationsHeight,
+          score.tracks![0].guitar.stringsCount
+        )
+      );
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Parse test, look at the console",
+      };
+    })(),
     (() => {
       const tabWindow = createBasicTabWindow();
 
@@ -239,7 +264,7 @@ function prepareTestCases(): TestCase[] {
       const stringsCount = 6;
       const guitar = new Guitar(stringsCount);
       const bars = [];
-      const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+      const tab = new Tab("Unknown", "Guitar", guitar, bars);
 
       const dim = new TabWindowDim(
         width,
@@ -281,7 +306,7 @@ function prepareTestCases(): TestCase[] {
           ])
         );
       }
-      const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+      const tab = new Tab("Unknown", "Guitar", guitar, bars);
       randomFrets(tab);
 
       const dim = new TabWindowDim(
@@ -691,11 +716,7 @@ function prepareTestCases(): TestCase[] {
       // Select note element first
       tabWindow.selectNoteElementUsingIds(0, 1, 1, 2);
       // Select beats clears selected element
-      tabWindow.selectBeatUsingIds(
-        copiedBeat[0],
-        copiedBeat[1],
-        copiedBeat[2]
-      );
+      tabWindow.selectBeatUsingIds(copiedBeat[0], copiedBeat[1], copiedBeat[2]);
 
       // Copy selected beats
       tabWindow.copy();

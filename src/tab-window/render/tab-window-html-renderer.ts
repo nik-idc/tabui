@@ -487,11 +487,11 @@ export class TabWindowHTMLRenderer {
   ): string {
     const creds = [];
 
-    if (showTabCredits) {
-      creds.push(`
-          <p>${this._tabWindow.tab.artist} - ${this._tabWindow.tab.song}</p>
-        `);
-    }
+    // if (showTabCredits) {
+    //   creds.push(`
+    //       <p>${this._tabWindow.tab.artist} - ${this._tabWindow.tab.song}</p>
+    //     `);
+    // }
 
     if (showTabName) {
       creds.push(`

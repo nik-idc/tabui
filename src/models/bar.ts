@@ -241,7 +241,7 @@ export class Bar {
       durations += beat.duration;
     }
 
-    return durations == this._beatsCount * this.duration;
+    return durations === this._beatsCount * this.duration;
   }
 
   /**

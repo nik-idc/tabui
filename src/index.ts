@@ -27,6 +27,7 @@ export { Point } from "./tab-window/shapes/point";
 export { Rect } from "./tab-window/shapes/rect";
 
 // Models
+export { Score } from "./models/score";
 export { Tab } from "./models/tab";
 export { Bar } from "./models/bar";
 export { Beat } from "./models/beat";
