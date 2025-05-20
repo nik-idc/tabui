@@ -20,7 +20,7 @@ export class Score {
   /**
    * Score's song name
    */
-  public songName: string;
+  public song: string;
   /**
    * Public status
    */
@@ -39,14 +39,14 @@ export class Score {
     id: number = -1,
     name: string = "Unknown",
     artist: string = "Unknown artist",
-    songName: string = "Unknown song",
+    song: string = "Unknown song",
     isPublic: boolean = false,
     tracks: Tab[] = [new Tab()]
   ) {
     this.id = id;
     this.name = name;
     this.artist = artist;
-    this.songName = songName;
+    this.song = song;
     this.isPublic = isPublic;
     this.tracks = tracks;
   }
@@ -59,7 +59,7 @@ export class Score {
     if (
       obj.id === undefined ||
       obj.artist === undefined ||
-      obj.songName === undefined ||
+      obj.song === undefined ||
       obj.isPublic === undefined
     ) {
       throw Error("Invalid js obj to parse to score");
@@ -77,7 +77,7 @@ export class Score {
     return new Score(
       obj.id,
       obj.artist,
-      obj.songName,
+      obj.song,
       obj.isPublic,
       obj.name,
       tracks
