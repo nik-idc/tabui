@@ -41,7 +41,7 @@ export class Score {
     artist: string = "Unknown artist",
     songName: string = "Unknown song",
     isPublic: boolean = false,
-    tracks: Tab[] = []
+    tracks: Tab[] = [new Tab()]
   ) {
     this.id = id;
     this.name = name;
