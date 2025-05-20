@@ -47,7 +47,7 @@ export class Guitar {
 
     const tuning: Note[] = [];
     for (const note of obj.tuning) {
-      tuning.push(new Note(note.noteValue, note.octave));
+      tuning.push(new Note(note._noteValue, note._octave));
     }
 
     // Return parsed guitar
