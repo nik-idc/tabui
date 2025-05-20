@@ -12,29 +12,29 @@ export class Score {
     /**
      * Score's id
      */
-    readonly id: number,
-    /**
-     * Score's song artist
-     */
-    public artist: string,
-    /**
-     * Score's song name
-     */
-    public songName: string,
-    /**
-     * Public status
-     */
-    readonly isPublic: boolean,
+    readonly id: number = -1,
     /**
      * Score's name
      */
-    public name?: string,
+    public name: string = "Unknown",
+    /**
+     * Score's song artist
+     */
+    public artist: string = "Unknown artist",
+    /**
+     * Score's song name
+     */
+    public songName: string = "Unknown song",
+    /**
+     * Public status
+     */
+    readonly isPublic: boolean = false,
     /**
      * Score's trakcs. NOTE: For now only support guitar tabs.
      * In the far, far future support for classical musical notation &
      * thus non-guitar tracks will be added (hopefully)
      */
-    readonly tracks?: Tab[]
+    readonly tracks: Tab[]
   ) {}
 
   /**
