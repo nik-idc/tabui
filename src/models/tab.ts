@@ -648,13 +648,13 @@ export class Tab {
     for (const bar of obj.bars) {
       const barBeats: Beat[] = [];
       for (const beat of bar.beats) {
-        const notesLength = beat.guitarNotes.length;
+        const notesLength = beat.notes.length;
         const beatNotes: GuitarNote[] = [];
         for (let noteIndex = 0; noteIndex < notesLength; noteIndex++) {
           const fret =
-            beat.guitarNotes[noteIndex] === null
+            beat.notes[noteIndex] === null
               ? undefined
-              : beat.guitarNotes[noteIndex].guitarNote.fret;
+              : beat.notes[noteIndex].guitarNote.fret;
           beatNotes.push(new GuitarNote(guitar, noteIndex + 1, fret));
         }
         barBeats.push(new Beat(guitar, beat.duration, beatNotes));
