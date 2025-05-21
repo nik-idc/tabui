@@ -58,9 +58,11 @@ export class Score {
   static fromObject(obj: any): Score {
     if (
       obj.id === undefined ||
+      obj.name === undefined ||
       obj.artist === undefined ||
       obj.song === undefined ||
-      obj.isPublic === undefined
+      obj.isPublic === undefined ||
+      obj.tracks === undefined
     ) {
       throw Error("Invalid js obj to parse to score");
     }
@@ -68,10 +70,8 @@ export class Score {
     // TODO: Check types but I'm lazy and in a hurry
 
     const tracks: Tab[] = [];
-    if (obj.tracks !== undefined) {
-      for (const track of obj.tracks) {
-        tracks.push(Tab.fromObject(track));
-      }
+    for (const track of obj.tracks) {
+      tracks.push(Tab.fromObject(track));
     }
 
     return new Score(

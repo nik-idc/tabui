@@ -646,29 +646,35 @@ export class Tab {
 
     const bars: Bar[] = [];
     for (const bar of obj.bars) {
-      const barBeats: Beat[] = [];
-      for (const beat of bar.beats) {
-        const notesLength = beat.notes.length;
-        const beatNotes: GuitarNote[] = [];
-        for (let noteIndex = 0; noteIndex < notesLength; noteIndex++) {
-          const fret =
-            beat.notes[noteIndex] === null
-              ? undefined
-              : beat.notes[noteIndex].guitarNote.fret;
-          beatNotes.push(new GuitarNote(guitar, noteIndex + 1, fret));
-        }
-        barBeats.push(new Beat(guitar, beat.duration, beatNotes));
-      }
+      // const barBeats: Beat[] = [];
+      // for (const beat of bar.beats) {
+      //   const notesLength = beat.notes.length;
+      //   const beatNotes: GuitarNote[] = [];
+      //   for (let noteIndex = 0; noteIndex < notesLength; noteIndex++) {
+      //     if (beat.notes[noteIndex] === null) {
+      //       continue;
+      //     }
 
-      bars.push(
-        new Bar(
-          guitar,
-          bar.tempo,
-          bar.timeSignature.beats,
-          bar.timeSignature.duration as NoteDuration,
-          barBeats
-        )
-      );
+      //     const fret =
+      //       beat.notes[noteIndex] === null
+      //         ? undefined
+      //         : beat.notes[noteIndex]._fret;
+      //     beatNotes.push(new GuitarNote(guitar, noteIndex + 1, fret));
+      //   }
+      //   barBeats.push(new Beat(guitar, beat.duration, beatNotes));
+      // }
+
+      // bars.push(
+      //   new Bar(
+      //     guitar,
+      //     bar.tempo,
+      //     bar.timeSignature.beats,
+      //     bar.timeSignature.duration as NoteDuration,
+      //     barBeats
+      //   )
+      // );
+
+      bars.push(Bar.fromObject(bar));
     }
 
     return new Tab(obj.name, obj.instrumentName, guitar, bars);

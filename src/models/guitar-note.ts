@@ -189,13 +189,21 @@ export class GuitarNote {
    * @returns Parsed guitar note
    */
   static fromObject(obj: any): GuitarNote {
-    if (obj.guitar === undefined || obj._stringNum === undefined) {
+    if (obj.guitar === undefined || obj._note === undefined) {
       throw Error("Invalid js object to parse to guitar note");
     }
 
-    let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
-    let guitarNote = new GuitarNote(guitar, obj._stringNum, obj._fret); // Create guitar note instance
-    return guitarNote;
+    const guitar = Guitar.fromObject(obj.guitar);
+
+    const effects: GuitarEffect[] = [];
+    for (const effect of obj._effects) {
+      effects.push(GuitarEffect.fromObject(effect));
+    }
+
+    const stringNum = obj._stringNum === undefined ? 0 : obj._stringNum;
+    const fret = obj._fret;
+    return new GuitarNote(guitar, stringNum, fret);
+    // let guitarNote = new GuitarNote(guitar, obj._stringNum, obj._fret); // Create guitar note instance
   }
 
   /**

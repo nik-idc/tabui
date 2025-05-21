@@ -259,20 +259,25 @@ export class Bar {
   static fromObject(obj: any): Bar {
     if (
       obj.guitar === undefined ||
+      obj._tempo === undefined ||
       obj._beatsCount === undefined ||
       obj.duration === undefined ||
-      obj.beats === undefined ||
-      obj._durationsFit === undefined ||
-      obj._tempo === undefined
+      obj.beats === undefined
     ) {
       throw Error("Invalid js object to parse to bar");
     }
 
-    let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
-    let bar = new Bar(guitar, obj._tempo, obj._beats, obj._duration, undefined); // Create bar instance
-    bar.beats.length = 0; // Delete default beats
-    obj.beats.forEach((beat: any) => bar.beats.push(Beat.fromObject(beat)));
-    return bar;
+    const guitar = Guitar.fromObject(obj.guitar);
+
+    const beats: Beat[] = [];
+    for (const beat of obj.beats) {
+      beats.push(Beat.fromObject(beat));
+    }
+
+    return new Bar(guitar, obj._tempo, obj._beatsCount, obj.duration, beats);
+    // let bar = new Bar(guitar, obj._tempo, obj._beats, obj._duration, undefined); // Create bar instance
+    // bar.beats.length = 0; // Delete default beats
+    // obj.beats.forEach((beat: any) => bar.beats.push(Beat.fromObject(beat)));
   }
 
   /**

@@ -11,6 +11,7 @@ import { TabWindow } from "../src/tab-window/tab-window";
 import { TabWindowDim } from "../src/tab-window/tab-window-dim";
 import { SelectedMoveDirection } from "../src/tab-window/elements/selected-element";
 import { Score } from "../src";
+import fs from "fs";
 
 let calcSpeed: number | undefined = undefined;
 
@@ -201,12 +202,47 @@ export interface TestCase {
 function prepareTestCases(): TestCase[] {
   const tabWindows = [
     (() => {
-      // const tabWindow = createBasicTabWindow();
+      const tab = createBasicTab();
+      randomFrets(tab, true);
+      tab.bars[1].beats[0].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.PalmMute)
+      );
+      tab.bars[1].beats[1].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.PalmMute)
+      );
+      tab.bars[1].beats[1].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+      tab.bars[5].beats[1].notes[3].addEffect(
+        new GuitarEffect(GuitarEffectType.Vibrato)
+      );
+
+      const score = new Score(
+        -1,
+        "rand name",
+        "rand artist",
+        "rand song",
+        true,
+        [tab]
+      );
+      fs.writeFileSync("test-data/tabber-to-json.json", JSON.stringify(score));
+
+      const parsedScore = Score.fromObject(
+        require("../test-data/tabber-to-json.json")
+      );
+      console.log(parsedScore);
+
+      const tabWindow = createTabWindowFromTab(tab);
+      return {
+        tabWindow: tabWindow,
+        caption: "Parse score to json",
+      };
+    })(),
+    (() => {
       const scoreObj = require("../test-data/tab-gp-5.json");
-      // const tab = Tab.fromObject(tabObj);
       const score = Score.fromObject(scoreObj);
 
-      // console.log(score);
+      console.log(score);
       const tabWindow = new TabWindow(
         score.tracks![0],
         new TabWindowDim(
@@ -215,7 +251,7 @@ function prepareTestCases(): TestCase[] {
           timeSigTextSize,
           tempoTextSize,
           durationsHeight,
-          score.tracks![0].guitar.stringsCount
+          score.tracks![1].guitar.stringsCount
         )
       );
 

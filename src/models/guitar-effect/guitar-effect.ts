@@ -123,13 +123,20 @@ export class GuitarEffect {
       throw Error(
         "Invalid js object to parse to guitar effect: effect type demands options, but no option provided"
       );
+    } else if (
+      !OPTIONS_DEMANDING_EFFECTS.includes(obj.effectType) &&
+      obj.options !== undefined
+    ) {
+      throw Error(
+        "Invalid js object to parse to guitar effect: effect type does not demands options, but has them"
+      );
     }
 
-    return new GuitarEffect(
-      obj.effectType,
-      obj.options !== undefined
-        ? GuitarEffectOptions.fromObject(obj.options)
-        : undefined
-    );
+    const options =
+      obj.options === undefined
+        ? undefined
+        : GuitarEffectOptions.fromObject(obj.options);
+
+    return new GuitarEffect(obj.effectType, options);
   }
 }

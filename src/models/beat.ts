@@ -69,13 +69,19 @@ export class Beat {
       throw Error("Invalid js object to parse to beat");
     }
 
-    let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
-    let beat = new Beat(guitar, obj._duration); // Craete beat instance
-    beat.notes.length = 0; // Delete default notes
-    obj.notes.forEach((note: any) =>
-      beat.notes.push(GuitarNote.fromObject(note))
-    );
-    return beat;
+    const guitar = Guitar.fromObject(obj.guitar);
+
+    const notes: GuitarNote[] = [];
+    for (const note of obj.notes) {
+      notes.push(GuitarNote.fromObject(note));
+    }
+
+    return new Beat(guitar, obj.duration, notes);
+    // let beat = new Beat(guitar, obj._duration); // Craete beat instance
+    // beat.notes.length = 0; // Delete default notes
+    // obj.notes.forEach((note: any) =>
+    //   beat.notes.push(GuitarNote.fromObject(note))
+    // );
   }
 
   /**
