@@ -76,10 +76,10 @@ export class Score {
 
     return new Score(
       obj.id,
+      obj.name,
       obj.artist,
       obj.song,
       obj.isPublic,
-      obj.name,
       tracks
     );
   }
