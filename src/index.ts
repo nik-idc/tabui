@@ -32,7 +32,7 @@ export { Tab } from "./models/tab";
 export { Bar } from "./models/bar";
 export { Beat } from "./models/beat";
 export { Note, NoteValue } from "./models/note";
-export { NoteDuration } from "./models/note-duration";
+export { NoteDuration, DURATION_TO_NAME } from "./models/note-duration";
 export { Guitar } from "./models/guitar";
 export { GuitarNote } from "./models/guitar-note";
 export { GuitarEffect } from "./models/guitar-effect/guitar-effect";
