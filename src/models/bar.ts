@@ -233,9 +233,14 @@ export class Bar {
   }
 
   /**
-   * Indicates if all beats in the bar fit
+   * Indicates if all beats in the bar fit.
+   * Returns true if durations fit OR no beats in the bar
    */
   get durationsFit(): boolean {
+    if (this.beats.length === 0) {
+      return true;
+    }
+
     let durations = 0;
     for (let beat of this.beats) {
       durations += beat.duration;
@@ -307,5 +312,24 @@ export class Bar {
 
     // Equal if all is the same
     return true;
+  }
+
+  /**
+   * Creates a default bar with 1 beat and no notes
+   * @param guitar Guitar
+   * @param tempo BPM
+   * @param beatsCount Beats count
+   * @param duration Duration
+   * @returns Default bar with 1 beat and no notes
+   */
+  static defaultBar(
+    guitar: Guitar,
+    tempo: number,
+    beatsCount: number,
+    duration: NoteDuration
+  ): Bar {
+    return new Bar(guitar, tempo, beatsCount, duration, [
+      new Beat(guitar, duration),
+    ]);
   }
 }

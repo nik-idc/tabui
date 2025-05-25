@@ -19,11 +19,13 @@ import { TabEditor } from "./editor/tab-editor";
 import { Beat } from "../models/beat";
 import { TabLineElement } from "./elements/tab-line-element";
 import { Point } from "./shapes/point";
+import { Score } from "../models/score";
 
 /**
  * Class that handles creating a tab window.
  */
 export class TabWindow {
+  private _score: Score;
   /**
    * Tab object to get data from
    */
@@ -38,14 +40,18 @@ export class TabWindow {
 
   /**
    * Class that handles creating a tab window
+   * @param score Score object
    * @param tab Tab object
    * @param dim Tab window dimensions
    */
-  constructor(tab: Tab, dim: TabWindowDim) {
+  constructor(score: Score, tab: Tab, dim: TabWindowDim) {
+    this._score = score;
     this._tab = tab;
     this.dim = dim;
-    this._tabElement = new TabElement(this._tab, this.dim);
-    this._tabEditor = new TabEditor(this._tab, this._tabElement);
+
+    const tabIndex = this._score.tracks.indexOf(this._tab);
+    this._tabElement = new TabElement(this._score, tabIndex, this.dim);
+    this._tabEditor = new TabEditor(this._score, tabIndex, this._tabElement);
 
     if (typeof window !== "undefined") {
       this._tabPlayer = new TabPlayer(this._tab);
@@ -182,6 +188,27 @@ export class TabWindow {
 
   public deleteSelectedBeats(): void {
     this._tabEditor.deleteBeats();
+  }
+
+  public prependBar(): void {
+    this._tabEditor.prependBar();
+  }
+
+  public appendBar(): void {
+    this._tabEditor.appendBar();
+  }
+
+  public insertBar(barIndex: number): void {
+    this._tabEditor.insertBar(barIndex);
+  }
+
+  public removeBar(barIndex: number): void {
+    const selectedElement = this._tabEditor.getSelectedElement();
+    if (selectedElement !== undefined && selectedElement.barId === barIndex) {
+      this._tabEditor.clearSelectedElement();
+    }
+
+    this._tabEditor.removeBar(barIndex);
   }
 
   public copy(): void {

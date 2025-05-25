@@ -210,6 +210,13 @@ export class SelectionManager {
   }
 
   /**
+   * Clears selected element
+   */
+  public clearSelectedElement(): void {
+    this._selectedElement = undefined;
+  }
+
+  /**
    * Changes duration of all selected beats
    * @param newDuration New duration to set
    */

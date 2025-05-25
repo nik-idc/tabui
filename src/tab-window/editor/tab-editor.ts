@@ -2,6 +2,7 @@ import { Bar } from "../../models/bar";
 import { GuitarEffectOptions } from "../../models/guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "../../models/guitar-effect/guitar-effect-type";
 import { NoteDuration } from "../../models/note-duration";
+import { Score } from "../../models/score";
 import { Tab } from "../../models/tab";
 import { BarElement } from "../elements/bar-element";
 import { BeatElement } from "../elements/beat-element";
@@ -15,14 +16,18 @@ import { SelectedElementsAndIds, TabElement } from "../elements/tab-element";
 import { SelectionManager } from "../selection/selection-manager";
 
 export class TabEditor {
+  private _score: Score;
+  private _tabIndex: number;
   private _tab: Tab;
   readonly undoStack: Tab[];
   readonly redoStack: Tab[];
   private _selectionManager: SelectionManager;
   readonly tabElement: TabElement;
 
-  constructor(tab: Tab, tabElement: TabElement) {
-    this._tab = tab;
+  constructor(score: Score, tabIndex: number, tabElement: TabElement) {
+    this._score = score;
+    this._tabIndex = tabIndex;
+    this._tab = this._score.tracks[this._tabIndex];
     this.undoStack = [];
     this.redoStack = [];
     this._selectionManager = new SelectionManager(this._tab);
@@ -245,6 +250,13 @@ export class TabEditor {
     this.tabElement.resetSelection();
   }
 
+    /**
+   * Clears selected element
+   */
+  public clearSelectedElement(): void {
+    this._selectionManager.clearSelectedElement();
+  }
+
   public selectBeat(beatElement: BeatElement): void {
     this._selectionManager.selectBeat(beatElement.beat);
 
@@ -294,8 +306,49 @@ export class TabEditor {
     this.tabElement.calc();
   }
 
-  public insertBar(bar: Bar): void {
-    this._tab.bars.push(bar);
+  /**
+   * Prepends a bar to the tab and all the score tracks
+   * @param bar Bar to prepend
+   */
+  public prependBar(bar?: Bar): void {
+    this._score.prependBar(this._tabIndex, bar);
+    this.tabElement.calc();
+  }
+
+  /**
+   * Appends a bar to the tab and all the score tracks
+   * @param bar Bar to append
+   */
+  public appendBar(bar?: Bar): void {
+    this._score.appendBar(this._tabIndex, bar);
+    this.tabElement.calc();
+  }
+
+  /**
+   * Inserts a bar to the tab at specified index and all the score tracks
+   * @param bar Bar to insert
+   */
+  public insertBar(barIndex: number, bar?: Bar): void {
+    if (barIndex < 0 || barIndex > this._tab.bars.length) {
+      throw Error(`Invalid bar index: '${barIndex}'`);
+    }
+
+    // this._tab.bars.push(bar);
+    this._score.insertBar(this._tabIndex, barIndex, bar);
+    this.tabElement.calc();
+  }
+
+  /**
+   * Removes bar from the score
+   * @param barIndex Index of the bar to remove
+   */
+  public removeBar(barIndex: number): void {
+    if (barIndex < 0 || barIndex > this._tab.bars.length) {
+      throw Error(`Invalid bar index: '${barIndex}'`);
+    }
+
+    this._score.removeBar(barIndex);
+
     this.tabElement.calc();
   }
 

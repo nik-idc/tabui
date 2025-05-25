@@ -36,6 +36,10 @@ export class Beat {
     this.duration = duration;
 
     if (notes !== undefined) {
+      if (notes.length !== guitar.stringsCount) {
+        throw Error(`Notes provided to a beat were not full: ${notes}`);
+      }
+      
       this.notes = notes;
     } else {
       this.notes = Array.from(

@@ -1,6 +1,7 @@
 import { Bar } from "../../models/bar";
 import { Beat } from "../../models/beat";
 import { GuitarNote } from "../../models/guitar-note";
+import { Score } from "../../models/score";
 import { Tab } from "../../models/tab";
 import { Point } from "../shapes/point";
 import { Rect } from "../shapes/rect";
@@ -56,6 +57,11 @@ export type SelectedElementsAndIds = {
 };
 
 export class TabElement {
+  private _score: Score;
+  /**
+   * Tab object to get data from
+   */
+  private _tabIndex: number;
   /**
    * Tab object to get data from
    */
@@ -70,8 +76,10 @@ export class TabElement {
   private _tabLineElements: TabLineElement[] = [];
   private _selectionRects: Rect[];
 
-  constructor(tab: Tab, dim: TabWindowDim) {
-    this._tab = tab;
+  constructor(score: Score, tabIndex: number, dim: TabWindowDim) {
+    this._score = score;
+    this._tabIndex = tabIndex;
+    this._tab = this._score.tracks[this._tabIndex];
     this.dim = dim;
     this._selectionRects = [];
 
@@ -111,7 +119,7 @@ export class TabElement {
   /**
    * Handles added beat after moving right
    */
-  public handleAddedBeat(selectedElement: SelectedElement): void {
+  private handleAddedBeat(selectedElement: SelectedElement): void {
     const { tabLineElementId, barElementId } =
       this.getSelectedNoteElementsAndIds(selectedElement);
     const tabLineElement = this._tabLineElements[tabLineElementId];
@@ -142,9 +150,10 @@ export class TabElement {
    * Handles added bar after moving right
    * @param addedBar Added bar
    */
-  public handleAddedBar(addedBar: Bar): void {
+  private handleAddedBar(addedBar: Bar): void {
     // Add bar
-    this._tab.bars.push(addedBar);
+    // this._tab.bars.push(addedBar);
+    this._score.appendBar(this._tabIndex, addedBar);
 
     // Compute UI
     const bar = this._tab.bars[this._tab.bars.length - 1];

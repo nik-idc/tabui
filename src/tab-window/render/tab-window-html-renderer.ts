@@ -1,3 +1,4 @@
+import { DURATION_TO_NAME } from "../../models/note-duration";
 import { BarElement } from "../elements/bar-element";
 import { BeatElement } from "../elements/beat-element";
 import { BeatNotesElement } from "../elements/beat-notes-element";
@@ -261,7 +262,7 @@ export class TabWindowHTMLRenderer {
     beatOffset: Point,
     beatElement: BeatElement
   ): string {
-    const refName = 1 / beatElement.beat.duration;
+    const refName = DURATION_TO_NAME[beatElement.beat.duration];
     return `
       <image x="${beatOffset.x + beatElement.durationRect.x}"
              y="${beatOffset.y + beatElement.durationRect.y}"
