@@ -125,25 +125,8 @@ export class TabElement {
     const tabLineElement = this._tabLineElements[tabLineElementId];
     const barElement = tabLineElement.barElements[barElementId];
 
-    // Check if the bar element fits after appending new beat
-    if (tabLineElementId === this._tabLineElements.length - 1) {
-      // If at the last then simply remove bar element from current line,
-      // create and add new tab line and push the bar element there
-      tabLineElement.removeBarElement(barElementId);
-      // Append empty beat
-      barElement.appendBeat();
-      // tabLineElement.barElements.splice(barElementId, 1);
-
-      const barId = selectedElement.barId;
-      const bar = this._tab.bars[barId];
-      const prevBar = this._tab.bars[barId - 1];
-      this.addBar(bar, prevBar);
-    } else {
-      // Otherwise just redraw the whole thing since might need to
-      // recalc every tab line below the current one anyway
-      barElement.appendBeat();
-      this.calc();
-    }
+    barElement.appendBeat();
+    this.calc();
   }
 
   /**

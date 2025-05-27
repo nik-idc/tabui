@@ -420,6 +420,30 @@ function prepareTestCases(): TestCase[] {
       };
     })(),
     (() => {
+      const tab = createBasicTab();
+      randomFrets(tab, true);
+      // tab.bars[9].beats.splice(1, 3); // Last bar
+      // tab.bars[1].beats.splice(1, 3); // Random bar in line 1
+      tab.bars[6].beats.splice(1, 3); // Random bar in line 2
+
+      const score = new Score();
+      score.tracks[0] = tab;
+
+      const tabWindow = createTabWindowFromTab(score, tab);
+
+      // selectNote(tabWindow, 1, 4, 0, 3); // Last bar
+      // selectNote(tabWindow, 0, 1, 0, 3); // Random bar in line 1
+      selectNote(tabWindow, 1, 1, 0, 3); // Random bar in line 2
+
+      // Move right thus creating a new beat
+      tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
+
+      return {
+        tabWindow: tabWindow,
+        caption: "Move selected note: add beat",
+      };
+    })(),
+    (() => {
       const stringsCount = 6;
       const guitar = new Guitar(stringsCount);
       const bars = [];
