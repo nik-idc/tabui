@@ -1,4 +1,4 @@
-import { Bar, Beat, NoteDuration, Tab, TabWindow } from "../../src/index";
+import { Bar, Beat, NoteDuration, Tab } from "../../src/index";
 import { Guitar, GuitarNote, Note } from "../../src/index";
 import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
 import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
@@ -14,16 +14,10 @@ function getTabData(): {
   song: string;
   bars: Bar[];
 } {
-  const stringsCount = 6;
-  const fretCount = 24;
-  const guitar = new Guitar(
-    stringsCount,
-    [Note.E, Note.B, Note.G, Note.D, Note.A, Note.E],
-    fretCount
-  );
+  const guitar = new Guitar();
   return {
-    stringsCount: stringsCount,
-    fretCount: fretCount,
+    stringsCount: guitar.stringsCount,
+    fretCount: guitar.fretsCount,
     guitar: guitar,
     id: 1,
     name: "Wonderful name",
@@ -137,12 +131,8 @@ describe("Tab Model Tests", () => {
 
     const beatsCount = tab.getBeatsSeq().length;
     expect(beatsCount).toBe(prevBeatsCount - 1);
-    expect(Beat.compare(tab.getBeatsSeq()[3], tab.getBeatsSeq()[6])).toBe(
-      true
-    );
-    expect(Beat.compare(tab.getBeatsSeq()[4], tab.getBeatsSeq()[7])).toBe(
-      true
-    );
+    expect(Beat.compare(tab.getBeatsSeq()[3], tab.getBeatsSeq()[6])).toBe(true);
+    expect(Beat.compare(tab.getBeatsSeq()[4], tab.getBeatsSeq()[7])).toBe(true);
   });
 
   test("Tab replace beats: sel === new", () => {
@@ -157,15 +147,9 @@ describe("Tab Model Tests", () => {
 
     const beatsCount = tab.getBeatsSeq().length;
     expect(beatsCount).toBe(prevBeatsCount);
-    expect(Beat.compare(tab.getBeatsSeq()[3], tab.getBeatsSeq()[6])).toBe(
-      true
-    );
-    expect(Beat.compare(tab.getBeatsSeq()[4], tab.getBeatsSeq()[7])).toBe(
-      true
-    );
-    expect(Beat.compare(tab.getBeatsSeq()[5], tab.getBeatsSeq()[8])).toBe(
-      true
-    );
+    expect(Beat.compare(tab.getBeatsSeq()[3], tab.getBeatsSeq()[6])).toBe(true);
+    expect(Beat.compare(tab.getBeatsSeq()[4], tab.getBeatsSeq()[7])).toBe(true);
+    expect(Beat.compare(tab.getBeatsSeq()[5], tab.getBeatsSeq()[8])).toBe(true);
   });
 
   test("Tab replace beats: sel > new", () => {
@@ -180,15 +164,9 @@ describe("Tab Model Tests", () => {
 
     const beatsCount = tab.getBeatsSeq().length;
     expect(beatsCount).toBe(prevBeatsCount + 1);
-    expect(Beat.compare(tab.bars[0].beats[3], tab.getBeatsSeq()[6])).toBe(
-      true
-    );
-    expect(Beat.compare(tab.bars[1].beats[0], tab.getBeatsSeq()[7])).toBe(
-      true
-    );
-    expect(Beat.compare(tab.bars[1].beats[1], tab.getBeatsSeq()[8])).toBe(
-      true
-    );
+    expect(Beat.compare(tab.bars[0].beats[3], tab.getBeatsSeq()[6])).toBe(true);
+    expect(Beat.compare(tab.bars[1].beats[0], tab.getBeatsSeq()[7])).toBe(true);
+    expect(Beat.compare(tab.bars[1].beats[1], tab.getBeatsSeq()[8])).toBe(true);
   });
 
   test("Tab remove beats", () => {
@@ -287,8 +265,7 @@ describe("Tab Model Tests", () => {
     randomFrets(tab);
 
     const nextHigher =
-      tab.bars[0].beats[2].notes[2].fret! <
-      tab.bars[0].beats[3].notes[2].fret!;
+      tab.bars[0].beats[2].notes[2].fret! < tab.bars[0].beats[3].notes[2].fret!;
     const options = new GuitarEffectOptions(
       undefined,
       undefined,
@@ -298,9 +275,7 @@ describe("Tab Model Tests", () => {
     const slideEffect = new GuitarEffect(GuitarEffectType.Slide, options);
     tab.applyEffectToNote(0, 2, 3, GuitarEffectType.Slide, options);
     expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(1);
-    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(
-      slideEffect
-    );
+    expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(slideEffect);
     expect(tab.bars[0].beats[2].notes[2].effects[0].effectType).toBe(
       GuitarEffectType.Slide
     );
@@ -399,5 +374,18 @@ describe("Tab Model Tests", () => {
     expect(tab.bars[0].beats[2].notes[2].effects.length).toBe(2);
     expect(tab.bars[0].beats[2].notes[2].effects[0]).toStrictEqual(bendEffect);
     expect(tab.bars[0].beats[2].notes[2].effects[1]).toStrictEqual(phEffect);
+  });
+
+  test("Test from object after transcription", () => {
+    const tabObj = require("./test-data/tab-gp-4.json");
+
+    let parseError: Error | undefined;
+    try {
+      const tab = Tab.fromObject(tabObj);
+    } catch (error) {
+      parseError = error;
+    } finally {
+      expect(parseError).toBe(undefined);
+    }
   });
 });

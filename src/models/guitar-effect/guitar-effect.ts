@@ -6,6 +6,7 @@ import {
   OPTIONS_PER_EFFECT_TYPE,
 } from "./guitar-effect-lists";
 import { GuitarEffectScope } from "./guitar-effect-scope";
+import { randomInt } from "../../misc/random-int";
 
 /**
  * Class that represents a guitar effect
@@ -15,6 +16,10 @@ export class GuitarEffect {
    * Effect's scope
    */
   readonly scope: GuitarEffectScope;
+  /**
+   * Global unique identifier
+   */
+  readonly uuid: number;
 
   /**
    * Class that represents a guitar effect
@@ -27,6 +32,7 @@ export class GuitarEffect {
   ) {
     // Set effect scope
     this.scope = EFFECT_TYPE_TO_SCOPE[effectType];
+    this.uuid = randomInt();
 
     this.validateOptions();
   }
@@ -117,13 +123,20 @@ export class GuitarEffect {
       throw Error(
         "Invalid js object to parse to guitar effect: effect type demands options, but no option provided"
       );
+    } else if (
+      !OPTIONS_DEMANDING_EFFECTS.includes(obj.effectType) &&
+      obj.options !== undefined
+    ) {
+      throw Error(
+        "Invalid js object to parse to guitar effect: effect type does not demands options, but has them"
+      );
     }
 
-    return new GuitarEffect(
-      obj.effectType,
-      obj.options !== undefined
-        ? GuitarEffectOptions.fromObject(obj.options)
-        : undefined
-    );
+    const options =
+      obj.options === undefined
+        ? undefined
+        : GuitarEffectOptions.fromObject(obj.options);
+
+    return new GuitarEffect(obj.effectType, options);
   }
 }

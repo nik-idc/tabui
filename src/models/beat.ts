@@ -28,15 +28,25 @@ export class Beat {
    * Class that represents a beat
    * @param guitar Guitar on which the beat is played
    * @param duration Note duration
+   * @param notes Notes array
    */
-  constructor(guitar: Guitar, duration: NoteDuration) {
+  constructor(guitar: Guitar, duration: NoteDuration, notes?: GuitarNote[]) {
     this.uuid = randomInt();
     this.guitar = guitar;
     this.duration = duration;
-    this.notes = Array.from(
-      { length: guitar.stringsCount },
-      (_, stringNum) => new GuitarNote(this.guitar, stringNum + 1, undefined)
-    );
+
+    if (notes !== undefined) {
+      if (notes.length !== guitar.stringsCount) {
+        throw Error(`Notes provided to a beat were not full: ${notes}`);
+      }
+      
+      this.notes = notes;
+    } else {
+      this.notes = Array.from(
+        { length: guitar.stringsCount },
+        (_, stringNum) => new GuitarNote(this.guitar, stringNum + 1, undefined)
+      );
+    }
   }
 
   public deepCopy(): Beat {
@@ -63,13 +73,19 @@ export class Beat {
       throw Error("Invalid js object to parse to beat");
     }
 
-    let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
-    let beat = new Beat(guitar, obj._duration); // Craete beat instance
-    beat.notes.length = 0; // Delete default notes
-    obj.notes.forEach((note: any) =>
-      beat.notes.push(GuitarNote.fromObject(note))
-    );
-    return beat;
+    const guitar = Guitar.fromObject(obj.guitar);
+
+    const notes: GuitarNote[] = [];
+    for (const note of obj.notes) {
+      notes.push(GuitarNote.fromObject(note));
+    }
+
+    return new Beat(guitar, obj.duration, notes);
+    // let beat = new Beat(guitar, obj._duration); // Craete beat instance
+    // beat.notes.length = 0; // Delete default notes
+    // obj.notes.forEach((note: any) =>
+    //   beat.notes.push(GuitarNote.fromObject(note))
+    // );
   }
 
   /**
@@ -80,10 +96,7 @@ export class Beat {
    */
   static compare(beat1: Beat, beat2: Beat): boolean {
     // Definitely not the same with different guitars/durations
-    if (
-      beat1.guitar !== beat2.guitar ||
-      beat1.duration !== beat2.duration
-    ) {
+    if (beat1.guitar !== beat2.guitar || beat1.duration !== beat2.duration) {
       return false;
     }
 

@@ -28,6 +28,8 @@ export class SelectionManager {
   private _copiedData: SelectedElement | Beat[];
   constructor(tab: Tab) {
     this.tab = tab;
+    this._selectionBeats = [];
+    this._copiedData = [];
   }
 
   /**
@@ -73,10 +75,14 @@ export class SelectionManager {
    * Move selected note left
    */
   public moveSelectedNoteLeft(): void {
+    if (this._selectedElement === undefined) {
+      throw Error("No note selected");
+    }
+
     if (this._selectionBeats.length !== 0) {
       // Select left most element of selection
       const leftMostNote =
-        this.selectedElement[0].notes[
+        this._selectionBeats[0].notes[
           this.selectedElement ? this.selectedElement.stringNum : 1
         ];
 
@@ -90,13 +96,17 @@ export class SelectionManager {
       throw Error("No note selected");
     }
 
-    this.selectedElement.moveLeft();
+    this._selectedElement.moveLeft();
   }
 
   /**
    * Move selected note right
    */
   public moveSelectedNoteRight(): MoveRightOutput {
+    if (this._selectedElement === undefined) {
+      throw Error("No note selected");
+    }
+
     if (this._selectionBeats.length !== 0) {
       // Select right most element of selection
       const rightMostNote =
@@ -114,7 +124,7 @@ export class SelectionManager {
       throw Error("No note selected");
     }
 
-    return this.selectedElement.moveRight();
+    return this._selectedElement.moveRight();
   }
 
   /**
@@ -125,8 +135,8 @@ export class SelectionManager {
   private selectBeatsInBetween(beat1UUID: number, beat2UUID: number): void {
     const beatsSeq = this.tab.getBeatsSeq();
 
-    let startBeatElementSeqId: number;
-    let endBeatElementSeqId: number;
+    let startBeatElementSeqId: number = -1;
+    let endBeatElementSeqId: number = -1;
     for (let i = 0; i < beatsSeq.length; i++) {
       if (beatsSeq[i].uuid === beat1UUID) {
         startBeatElementSeqId = i;
@@ -134,6 +144,10 @@ export class SelectionManager {
       if (beatsSeq[i].uuid === beat2UUID) {
         endBeatElementSeqId = i;
       }
+    }
+
+    if (startBeatElementSeqId === -1 || endBeatElementSeqId === -1) {
+      throw Error("Could not find start and beat elements' ids");
     }
 
     for (let i = startBeatElementSeqId; i <= endBeatElementSeqId; i++) {
@@ -153,7 +167,7 @@ export class SelectionManager {
     }
 
     const beatsSeq = this.tab.getBeatsSeq();
-    let beatSeqId: number;
+    let beatSeqId: number = -1;
     let baseBeatSeqId: number = -1;
     for (let i = 0; i < beatsSeq.length; i++) {
       if (beatsSeq[i].uuid === beat.uuid) {
@@ -168,7 +182,7 @@ export class SelectionManager {
 
     let startBeatUUID: number;
     let endBeatUUID: number;
-    if (baseBeatSeqId === -1 || beatSeqId === baseBeatSeqId) {
+    if (this._baseSelectionBeat === undefined || beatSeqId === baseBeatSeqId) {
       this._baseSelectionBeat = beat;
       startBeatUUID = beat.uuid;
       endBeatUUID = beat.uuid;
@@ -193,6 +207,13 @@ export class SelectionManager {
   public clearSelection(): void {
     this._baseSelectionBeat = undefined;
     this._selectionBeats = [];
+  }
+
+  /**
+   * Clears selected element
+   */
+  public clearSelectedElement(): void {
+    this._selectedElement = undefined;
   }
 
   /**
@@ -241,7 +262,7 @@ export class SelectionManager {
         return;
       }
 
-      if (this._selectionBeats.length === 0) {
+      if (this._selectedElement !== undefined) {
         // Insert if currently not selecting
         this._selectedElement.bar.insertBeats(
           this._selectedElement.beatId,
@@ -252,6 +273,12 @@ export class SelectionManager {
         this.clearSelection();
       }
     } else {
+      if (this._selectedElement === undefined) {
+        throw Error(
+          "Attempting to paste a note value but selected element is undefined"
+        );
+      }
+
       this._selectedElement.note.fret = this._copiedData.note.fret;
     }
   }
@@ -267,6 +294,10 @@ export class SelectionManager {
    * @returns True if selected, false otherwise
    */
   public isNoteElementSelected(noteElement: NoteElement): boolean {
+    if (this._selectedElement === undefined) {
+      throw Error("No note selected");
+    }
+
     return this._selectedElement.note.uuid === noteElement.note.uuid;
   }
 

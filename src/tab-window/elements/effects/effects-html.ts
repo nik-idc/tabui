@@ -242,7 +242,7 @@ export class SVGUtils {
 
     let wholePartX = 0;
     let wholePartY = 0;
-    let wholePartHTML: string;
+    let wholePartHTML: string = "";
     if (wholePart !== 0) {
       wholePartX = x;
       wholePartY = y;

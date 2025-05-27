@@ -68,13 +68,13 @@ describe("Beat element tests", () => {
       let expectedRect = new Rect(
         beatCoords.x,
         beatCoords.y,
-        ratio * dim.noteRectWidthThirtySecond,
+        ratio * dim.noteRectWidth32,
         dim.tabLineMinHeight
       );
       let expectedDurationRect = new Rect(
         beatCoords.x,
         beatCoords.y,
-        ratio * dim.noteRectWidthThirtySecond,
+        ratio * dim.noteRectWidth32,
         dim.durationsHeight
       );
 

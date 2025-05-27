@@ -124,12 +124,12 @@ export const OPTIONS_PER_EFFECT_TYPE = {
   [GuitarEffectType.BendAndRelease]: ["bendPitch", "bendReleasePitch"],
   [GuitarEffectType.Prebend]: ["prebendPitch"],
   [GuitarEffectType.PrebendAndRelease]: ["bendReleasePitch", "prebendPitch"],
-  [GuitarEffectType.Vibrato]: [],
+  [GuitarEffectType.Vibrato]: new Array<string>(),
   [GuitarEffectType.Slide]: ["nextHigher"],
-  [GuitarEffectType.HammerOnOrPullOff]: [],
-  [GuitarEffectType.PinchHarmonic]: [],
-  [GuitarEffectType.NaturalHarmonic]: [],
-  [GuitarEffectType.PalmMute]: [],
+  [GuitarEffectType.HammerOnOrPullOff]: new Array<string>(),
+  [GuitarEffectType.PinchHarmonic]: new Array<string>(),
+  [GuitarEffectType.NaturalHarmonic]: new Array<string>(),
+  [GuitarEffectType.PalmMute]: new Array<string>(),
 };
 
 /**

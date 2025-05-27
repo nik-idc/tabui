@@ -1,5 +1,5 @@
 import { Guitar } from "./guitar";
-import { Note, NotesCalcArr } from "./note";
+import { Note, NoteValue, NotesArr } from "./note";
 import { randomInt } from "../misc/random-int";
 import { EFFECTS_INCOMPATIBILITY } from "./guitar-effect/guitar-effect-lists";
 import { GuitarEffect } from "./guitar-effect/guitar-effect";
@@ -45,8 +45,10 @@ export class GuitarNote {
     this.guitar = guitar;
     this._stringNum = stringNum;
     this._fret = fret;
-    this.calcNote();
     this._effects = [];
+    this._note = new Note(NoteValue.None);
+
+    this.calcNote();
   }
 
   /**
@@ -105,20 +107,19 @@ export class GuitarNote {
    */
   private calcNote(): void {
     if (this._fret === undefined) {
-      this._note = Note.None;
+      this._note = new Note(NoteValue.None);
       return;
     }
 
     if (typeof this._fret === "string") {
-      this._note = Note.Dead;
+      this._note = new Note(NoteValue.Dead);
       return;
     }
 
-    const openStringNote = this.guitar.tuning[this._stringNum - 1];
-    const openStringNoteId = NotesCalcArr.indexOf(openStringNote);
-    const noteId = openStringNoteId + (this._fret % 12);
-    const note = NotesCalcArr[noteId];
-
+    const tuning = this.guitar.tuning;
+    const openStringNote = tuning[this._stringNum - 1];
+    const note = new Note(openStringNote.noteValue, openStringNote.octave);
+    note.raiseNote(this._fret);
     this._note = note;
   }
 
@@ -188,13 +189,21 @@ export class GuitarNote {
    * @returns Parsed guitar note
    */
   static fromObject(obj: any): GuitarNote {
-    if (obj.guitar === undefined || obj._stringNum === undefined) {
+    if (obj.guitar === undefined || obj._note === undefined) {
       throw Error("Invalid js object to parse to guitar note");
     }
 
-    let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
-    let guitarNote = new GuitarNote(guitar, obj._stringNum, obj._fret); // Create guitar note instance
-    return guitarNote;
+    const guitar = Guitar.fromObject(obj.guitar);
+
+    const effects: GuitarEffect[] = [];
+    for (const effect of obj._effects) {
+      effects.push(GuitarEffect.fromObject(effect));
+    }
+
+    const stringNum = obj._stringNum === undefined ? 0 : obj._stringNum;
+    const fret = obj._fret;
+    return new GuitarNote(guitar, stringNum, fret);
+    // let guitarNote = new GuitarNote(guitar, obj._stringNum, obj._fret); // Create guitar note instance
   }
 
   /**

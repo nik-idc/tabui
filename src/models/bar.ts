@@ -161,6 +161,24 @@ export class Bar {
     this.beats[index].duration = duration;
   }
 
+  public beatPlayable(beatToCheck: Beat): boolean {
+    if (!this.beats.includes(beatToCheck)) {
+      throw Error("Beat is not this bar");
+    }
+
+    const barDuration = this._beatsCount * this.duration;
+    let duration = 0;
+    for (const beat of this.beats) {
+      duration += beat.duration;
+
+      if (duration <= barDuration && beat === beatToCheck) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   public deepCopy(): Bar {
     const beatsCopies = [];
     for (const beat of this.beats) {
@@ -215,15 +233,20 @@ export class Bar {
   }
 
   /**
-   * Indicates if all beats in the bar fit
+   * Indicates if all beats in the bar fit.
+   * Returns true if durations fit OR no beats in the bar
    */
   get durationsFit(): boolean {
+    if (this.beats.length === 0) {
+      return true;
+    }
+
     let durations = 0;
     for (let beat of this.beats) {
       durations += beat.duration;
     }
 
-    return durations == this._beatsCount * this.duration;
+    return durations === this._beatsCount * this.duration;
   }
 
   /**
@@ -241,20 +264,25 @@ export class Bar {
   static fromObject(obj: any): Bar {
     if (
       obj.guitar === undefined ||
+      obj._tempo === undefined ||
       obj._beatsCount === undefined ||
       obj.duration === undefined ||
-      obj.beats === undefined ||
-      obj._durationsFit === undefined ||
-      obj._tempo === undefined
+      obj.beats === undefined
     ) {
       throw Error("Invalid js object to parse to bar");
     }
 
-    let guitar = Guitar.fromObject(obj.guitar); // Parse guitar
-    let bar = new Bar(guitar, obj._tempo, obj._beats, obj._duration, undefined); // Create bar instance
-    bar.beats.length = 0; // Delete default beats
-    obj.beats.forEach((beat: any) => bar.beats.push(Beat.fromObject(beat)));
-    return bar;
+    const guitar = Guitar.fromObject(obj.guitar);
+
+    const beats: Beat[] = [];
+    for (const beat of obj.beats) {
+      beats.push(Beat.fromObject(beat));
+    }
+
+    return new Bar(guitar, obj._tempo, obj._beatsCount, obj.duration, beats);
+    // let bar = new Bar(guitar, obj._tempo, obj._beats, obj._duration, undefined); // Create bar instance
+    // bar.beats.length = 0; // Delete default beats
+    // obj.beats.forEach((beat: any) => bar.beats.push(Beat.fromObject(beat)));
   }
 
   /**
@@ -284,5 +312,24 @@ export class Bar {
 
     // Equal if all is the same
     return true;
+  }
+
+  /**
+   * Creates a default bar with 1 beat and no notes
+   * @param guitar Guitar
+   * @param tempo BPM
+   * @param beatsCount Beats count
+   * @param duration Duration
+   * @returns Default bar with 1 beat and no notes
+   */
+  static defaultBar(
+    guitar: Guitar,
+    tempo: number,
+    beatsCount: number,
+    duration: NoteDuration
+  ): Bar {
+    return new Bar(guitar, tempo, beatsCount, duration, [
+      new Beat(guitar, duration),
+    ]);
   }
 }

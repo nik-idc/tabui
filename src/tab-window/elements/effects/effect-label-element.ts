@@ -53,7 +53,8 @@ export class EffectLabelElement {
    * Generates bend pitch HTML
    */
   private bendPitchHTML(): void {
-    const nums = getPitchRatioNums(this.effect.options.bendPitch);
+    // Using exclamation marks here. Very bad!!!
+    const nums = getPitchRatioNums(this.effect.options!.bendPitch!);
     const bigNumSize = this.dim.noteTextSize;
     const x = this._rect.x + this._rect.width - bigNumSize / 2;
     const y = this._rect.y + this._rect.height / 2 - bigNumSize / 2;
@@ -82,7 +83,7 @@ export class EffectLabelElement {
    * Generates prebend pitch HTML
    */
   private prebendPitchHTML(): void {
-    const nums = getPitchRatioNums(this.effect.options.prebendPitch);
+    const nums = getPitchRatioNums(this.effect.options!.prebendPitch!);
 
     const bigNumSize = this.dim.noteTextSize;
     const x = this._rect.x + this._rect.width / 2;
@@ -102,7 +103,7 @@ export class EffectLabelElement {
    */
   private bendAndReleasePitchHTML(): void {
     if (
-      this.effect.options.bendPitch === this.effect.options.bendReleasePitch
+      this.effect.options!.bendPitch === this.effect.options!.bendReleasePitch
     ) {
       this.bendPitchHTML();
       return;
@@ -113,7 +114,7 @@ export class EffectLabelElement {
     const xRelease = xBend + bigNumSize * 1.5;
     const y = this._rect.y + this._rect.height / 2 - this.dim.noteTextSize / 2;
 
-    const bendNums = getPitchRatioNums(this.effect.options.bendPitch);
+    const bendNums = getPitchRatioNums(this.effect.options!.bendPitch!);
     const bendHTML = this._svgUtils.ratioSVGHTML(
       bendNums[0],
       bendNums[1],
@@ -123,7 +124,9 @@ export class EffectLabelElement {
       bigNumSize
     );
 
-    const releaseNums = getPitchRatioNums(this.effect.options.bendReleasePitch);
+    const releaseNums = getPitchRatioNums(
+      this.effect.options!.bendReleasePitch!
+    );
     const releaseHTML = this._svgUtils.ratioSVGHTML(
       releaseNums[0],
       releaseNums[1],
@@ -141,7 +144,8 @@ export class EffectLabelElement {
    */
   private prebendAndReleasePitchHTML(): void {
     if (
-      this.effect.options.prebendPitch === this.effect.options.bendReleasePitch
+      this.effect.options!.prebendPitch ===
+      this.effect.options!.bendReleasePitch
     ) {
       this.prebendPitchHTML();
       return;
@@ -152,7 +156,7 @@ export class EffectLabelElement {
     const xRelease = xPrebend + bigNumSize * 1.5;
     const y = this._rect.y + this._rect.height / 2 - this.dim.noteTextSize / 2;
 
-    const prebendNums = getPitchRatioNums(this.effect.options.prebendPitch);
+    const prebendNums = getPitchRatioNums(this.effect.options!.prebendPitch!);
     const prebendHTML = this._svgUtils.ratioSVGHTML(
       prebendNums[0],
       prebendNums[1],
@@ -162,7 +166,9 @@ export class EffectLabelElement {
       bigNumSize
     );
 
-    const releaseNums = getPitchRatioNums(this.effect.options.bendReleasePitch);
+    const releaseNums = getPitchRatioNums(
+      this.effect.options!.bendReleasePitch!
+    );
     const releaseHTML = this._svgUtils.ratioSVGHTML(
       releaseNums[0],
       releaseNums[1],
@@ -250,7 +256,7 @@ export class EffectLabelElement {
   /**
    * SVG path (full path HTML including styling, i.e. transparent/non-transparent)
    */
-  public get fullHTML(): string {
+  public get fullHTML(): string | undefined {
     return this._fullHTML;
   }
 }

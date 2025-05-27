@@ -68,33 +68,48 @@ export class BeatElement {
       0,
       labelsGapHeight
     );
+    this._effectLabelElements = [];
+    this._beatNotesElement = new BeatNotesElement(
+      this.dim,
+      this.beat,
+      this.rect.width,
+      this._effectLabelsRect.height
+    );
 
     this.calc();
   }
 
   private calcRectAndNotes(): void {
-    switch (this.beat.duration) {
-      case NoteDuration.ThirtySecond:
-        this.rect.width = this.dim.noteRectWidthThirtySecond;
-        break;
-      case NoteDuration.Sixteenth:
-        this.rect.width = this.dim.noteRectWidthSixteenth;
-        break;
-      case NoteDuration.Eighth:
-        this.rect.width = this.dim.noteRectWidthEighth;
-        break;
-      case NoteDuration.Quarter:
-        this.rect.width = this.dim.noteRectWidthQuarter;
-        break;
-      case NoteDuration.Half:
-        this.rect.width = this.dim.noteRectWidthHalf;
-        break;
-      case NoteDuration.Whole:
-        this.rect.width = this.dim.noteRectWidthWhole;
-        break;
-      default:
-        throw Error(`${this.beat.duration} is an invalid beat duration`);
+    // switch (this.beat.duration) {
+    //   case NoteDuration.ThirtySecond:
+    //     this.rect.width = this.dim.noteRectWidth32;
+    //     break;
+    //   case NoteDuration.Sixteenth:
+    //     this.rect.width = this.dim.noteRectWidth16;
+    //     break;
+    //   case NoteDuration.Eighth:
+    //     this.rect.width = this.dim.noteRectWidth8;
+    //     break;
+    //   case NoteDuration.Quarter:
+    //     this.rect.width = this.dim.noteRectWidth4;
+    //     break;
+    //   case NoteDuration.Half:
+    //     this.rect.width = this.dim.noteRectWidth2;
+    //     break;
+    //   case NoteDuration.Whole:
+    //     this.rect.width = this.dim.noteRectWidth1;
+    //     break;
+    //   default:
+    //     throw Error(`${this.beat.duration} is an invalid beat duration`);
+    // }
+    const mappingWidth = this.dim.widthMapping.get(this.beat.duration);
+    if (mappingWidth === undefined) {
+      throw Error(
+        `${this.beat.duration} is an invalid beat duration OR error in mapping`
+      );
     }
+    this.rect.width = mappingWidth;
+
     this.rect.height =
       this.dim.tabLineMinHeight + this._effectLabelsRect.height;
 

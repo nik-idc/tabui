@@ -30,7 +30,7 @@ export class GuitarEffectElement {
   /**
    * Note's rect
    */
-  private _noteRect?: Rect;
+  private _noteRect: Rect;
   /**
    * Effect element's rect
    */
@@ -65,7 +65,7 @@ export class GuitarEffectElement {
     this.effect = effect;
     this.stringNum = stringNum;
     this._noteRect = noteRect;
-    this._rect = undefined;
+    this._rect = new Rect();
     this.dim = dim;
     this._svgUtils = new SVGUtils();
 
@@ -360,14 +360,14 @@ export class GuitarEffectElement {
   /**
    * Effect rect
    */
-  public get rect(): Rect {
+  public get rect(): Rect | undefined {
     return this._rect;
   }
 
   /**
    * Image source
    */
-  public get src(): string {
+  public get src(): string | undefined {
     return this._src;
   }
 

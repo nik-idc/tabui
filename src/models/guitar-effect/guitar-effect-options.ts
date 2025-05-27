@@ -22,10 +22,20 @@ export class GuitarEffectOptions {
    * @returns Parsed guitar effect options
    */
   static fromObject(obj: any): GuitarEffectOptions {
+    if (
+      obj.bendPitch === undefined &&
+      obj.bendReleasePitch === undefined &&
+      obj.prebendPitch === undefined &&
+      obj.nextHigher === undefined
+    ) {
+      throw Error("Invalid js object to parse to guitar effect options");
+    }
+
     return new GuitarEffectOptions(
       obj.bendPitch,
       obj.bendReleasePitch,
-      obj.prebendPitch
+      obj.prebendPitch,
+      obj.nextHigher
     );
   }
 }

@@ -2,32 +2,30 @@ import { Bar } from "./bar";
 import { Beat } from "./beat";
 import { Guitar } from "./guitar";
 import { GuitarEffect } from "./guitar-effect/guitar-effect";
+import { OPTIONS_DEMANDING_EFFECTS } from "./guitar-effect/guitar-effect-lists";
 import { GuitarEffectOptions } from "./guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "./guitar-effect/guitar-effect-type";
 import { GuitarNote } from "./guitar-note";
-import { Note } from "./note";
+import { Note, NoteValue } from "./note";
 import { NoteDuration } from "./note-duration";
+import { randomInt } from "../misc/random-int";
 
 /**
  * Class that represents a guitar tab
  */
 export class Tab {
   /**
-   * Tab id
+   * Unique identifier
    */
-  readonly id: number | undefined;
+  readonly uuid: number;
   /**
    * Tab name
    */
   public name: string;
   /**
-   * Artist
+   * Instrument name
    */
-  public artist: string;
-  /**
-   * Song
-   */
-  public song: string;
+  public instrumentName: string;
   /**
    * Guitar
    */
@@ -35,45 +33,114 @@ export class Tab {
   /**
    * Bars of the tab
    */
-  readonly bars: Bar[];
-  /**
-   * Public status
-   */
-  readonly isPublic: boolean;
+  private _bars: Bar[];
 
   /**
    * Class that represents a guitar tab
-   * @param id Tab id
    * @param name Tab name
-   * @param artist Artist
-   * @param song Song
+   * @param instrumentName Instrument name
    * @param guitar Guitar
    * @param bars Bars of the tab
-   * @param isPublic Public status
    */
   constructor(
-    id: number | undefined = undefined,
     name: string = "Unnamed",
-    artist: string = "Unknown artist",
-    song: string = "Unknown song",
+    instrumentName: string = "Unknown instrument",
     guitar: Guitar = new Guitar(),
-    bars: Bar[] | undefined = undefined,
-    isPublic: boolean = false
+    bars: Bar[] = []
   ) {
-    this.id = id;
-    this.name = name;
-    this.artist = artist;
-    this.song = song;
-    this.guitar = guitar;
-    this.isPublic = isPublic;
+    this.uuid = randomInt();
 
-    if (bars === undefined || bars.length === 0) {
-      this.bars = [
+    this.name = name;
+    this.instrumentName = instrumentName;
+    this.guitar = guitar;
+    this._bars = bars;
+
+    if (bars.length === 0) {
+      this._bars = [
         new Bar(this.guitar, 120, 4, NoteDuration.Quarter, undefined),
       ];
     } else {
-      this.bars = bars;
+      this._bars = bars;
     }
+  }
+
+  /**
+   * Prepends a bar to the tab. If no bar provided an empty one is created.
+   * DO NOT USE THIS ANYWHERE OUTSIDE OF THE SCORE CLASS
+   * OTHERWISE THE UI WILL BE MESSED UP
+   * @param bar Bar to append
+   */
+  public prependBar(bar?: Bar): void {
+    if (bar === undefined) {
+      const firstBar = this._bars[0];
+      bar = Bar.defaultBar(
+        firstBar.guitar,
+        firstBar.tempo,
+        firstBar.beatsCount,
+        firstBar.duration
+      );
+    }
+
+    this._bars.unshift(bar);
+  }
+
+  /**
+   * Appends a bar to the tab. If no bar provided an empty one is created.
+   * DO NOT USE THIS ANYWHERE OUTSIDE OF THE SCORE CLASS
+   * OTHERWISE THE UI WILL BE MESSED UP
+   * @param bar Bar to append
+   */
+  public appendBar(bar?: Bar): void {
+    if (bar === undefined) {
+      const lastBar = this._bars[this._bars.length - 1];
+      bar = Bar.defaultBar(
+        lastBar.guitar,
+        lastBar.tempo,
+        lastBar.beatsCount,
+        lastBar.duration
+      );
+    }
+
+    this._bars.push(bar);
+  }
+
+  /**
+   * Inserts a bar to the tab. If no bar provided an empty one is created.
+   * Inserts BEFORE specified index.
+   * DO NOT USE THIS ANYWHERE OUTSIDE OF THE SCORE CLASS
+   * OTHERWISE THE UI WILL BE MESSED UP
+   * @param bar Bar to append
+   */
+  public insertBar(barIndex: number, bar?: Bar): void {
+    if (barIndex < 0 || barIndex > this.bars.length) {
+      throw Error(`Invalid bar index: '${barIndex}'`);
+    }
+
+    if (bar === undefined) {
+      const prevBar = this._bars[barIndex];
+      bar = Bar.defaultBar(
+        prevBar.guitar,
+        prevBar.tempo,
+        prevBar.beatsCount,
+        prevBar.duration
+      );
+    }
+
+    this._bars.splice(barIndex, 0, bar);
+  }
+
+  /**
+   * Removes bar from the tab.
+   * DO NOT USE THIS ANYWHERE OUTSIDE OF THE SCORE CLASS
+   * OTHERWISE THE UI WILL BE MESSED UP
+   * @param barIndex Index of the bar to remove
+   */
+  public removeBar(barIndex: number): void {
+    if (barIndex < 0 || barIndex > this._bars.length - 1) {
+      throw Error(`Can't remove bar at index ${barIndex}`);
+    }
+
+    this._bars.splice(barIndex, 1);
   }
 
   /**
@@ -83,7 +150,7 @@ export class Tab {
   public removeBeat(beatToRemove: Beat): void {
     // remove beat based on the bar id
     // get bar id using beat uuid
-    const bar = this.bars.filter((bar) => {
+    const bar = this._bars.filter((bar) => {
       return bar.beats.some((beat) => {
         return beat.uuid === beatToRemove.uuid;
       });
@@ -123,7 +190,7 @@ export class Tab {
       this.removeBeats(oldBeats.slice(newBeats.length, oldBeats.length));
     } else if (oldBeats.length < newBeats.length) {
       // Get starting bar for later usage
-      const bar = this.bars.filter((bar) => {
+      const bar = this._bars.filter((bar) => {
         return bar.beats.some((beat) => {
           return beat.uuid === oldBeats[0].uuid;
         });
@@ -164,7 +231,7 @@ export class Tab {
     bendPitch: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     // Create & apply bend
     const bendEffect = new GuitarEffect(GuitarEffectType.Bend, {
@@ -190,7 +257,7 @@ export class Tab {
     bendReleasePitch: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     // Create & apply bend-and-release
     const bendEffect = new GuitarEffect(GuitarEffectType.BendAndRelease, {
@@ -215,7 +282,7 @@ export class Tab {
     prebendPitch: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     // Create & apply prebend
     const prebendEffect = new GuitarEffect(GuitarEffectType.Prebend, {
@@ -241,7 +308,7 @@ export class Tab {
     bendReleasePitch: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     // Create & apply prebend-and-release
     const prebendAndReleaseEffect = new GuitarEffect(
@@ -267,7 +334,7 @@ export class Tab {
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     const vibratoEffect = new GuitarEffect(GuitarEffectType.Vibrato);
     return guitarNote.addEffect(vibratoEffect);
@@ -286,7 +353,7 @@ export class Tab {
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
     const nextBeat = this.getNextBeat(barIndex, beatIndex);
     const nextNote =
       nextBeat === undefined ? undefined : nextBeat.notes[stringNum - 1];
@@ -298,6 +365,11 @@ export class Tab {
 
     // Can't apply slide to two same notes
     if (nextNote.fret === guitarNote.fret) {
+      return false;
+    }
+
+    // Can't apply slide to non-existent notes
+    if (nextNote.fret === undefined || guitarNote.fret === undefined) {
       return false;
     }
 
@@ -325,7 +397,7 @@ export class Tab {
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
     const nextBeat = this.getNextBeat(barIndex, beatIndex);
     const nextNote =
       nextBeat === undefined ? undefined : nextBeat.notes[stringNum - 1];
@@ -357,7 +429,7 @@ export class Tab {
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     const phEffect = new GuitarEffect(GuitarEffectType.PinchHarmonic);
     return guitarNote.addEffect(phEffect);
@@ -376,7 +448,7 @@ export class Tab {
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     const nhEffect = new GuitarEffect(GuitarEffectType.NaturalHarmonic);
     return guitarNote.addEffect(nhEffect);
@@ -395,7 +467,7 @@ export class Tab {
     stringNum: number
   ): boolean {
     const guitarNote =
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
 
     const pmEffect = new GuitarEffect(GuitarEffectType.PalmMute);
     return guitarNote.addEffect(pmEffect);
@@ -417,46 +489,48 @@ export class Tab {
     effectType: GuitarEffectType,
     effectOptions?: GuitarEffectOptions
   ): boolean {
+    const note =
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1].note;
     if (
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1].note ===
-        Note.None ||
-      this.bars[barIndex].beats[beatIndex].notes[stringNum - 1].note ===
-        Note.Dead
+      note.noteValue === NoteValue.None ||
+      note.noteValue === NoteValue.Dead
     ) {
       // No effects can be applied to a dead note or an abscense of a note
       return true;
     }
 
+    // Below exclamation marks are used
+    // This is bad, need to refactor
     switch (effectType) {
       case GuitarEffectType.Bend:
         return this.applyBend(
           barIndex,
           beatIndex,
           stringNum,
-          effectOptions.bendPitch
+          effectOptions!.bendPitch!
         );
       case GuitarEffectType.BendAndRelease:
         return this.applyBendAndRelease(
           barIndex,
           beatIndex,
           stringNum,
-          effectOptions.bendPitch,
-          effectOptions.bendReleasePitch
+          effectOptions!.bendPitch!,
+          effectOptions!.bendReleasePitch!
         );
       case GuitarEffectType.Prebend:
         return this.applyPrebend(
           barIndex,
           beatIndex,
           stringNum,
-          effectOptions.prebendPitch
+          effectOptions!.prebendPitch!
         );
       case GuitarEffectType.PrebendAndRelease:
         return this.applyPrebendAndRelease(
           barIndex,
           beatIndex,
           stringNum,
-          effectOptions.prebendPitch,
-          effectOptions.bendReleasePitch
+          effectOptions!.prebendPitch!,
+          effectOptions!.bendReleasePitch!
         );
       case GuitarEffectType.Vibrato:
         return this.applyVibrato(barIndex, beatIndex, stringNum);
@@ -479,7 +553,7 @@ export class Tab {
     stringNum: number,
     effectIndex: number
   ): void {
-    const note = this.bars[barIndex].beats[beatIndex].notes[stringNum - 1];
+    const note = this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
     if (note.effects.length === 0) {
       return;
     }
@@ -500,15 +574,19 @@ export class Tab {
   ): boolean {
     let appliedToAll = true;
     for (const beat of beats) {
-      let barIndex: number;
-      let beatIndex: number;
-      this.bars.findIndex((b, i) => {
+      let barIndex: number = -1;
+      let beatIndex: number = -1;
+      this._bars.findIndex((b, i) => {
         return b.beats.some((c, j) => {
           barIndex = i;
           beatIndex = j;
           return c.uuid === beat.uuid;
         });
       });
+
+      if (barIndex === -1 || beatIndex === -1) {
+        throw Error("Could not find beat indices");
+      }
 
       for (const note of beat.notes) {
         const applyRes = this.applyEffectToNote(
@@ -536,7 +614,9 @@ export class Tab {
    */
   public getNextBeat(barIndex: number, beatIndex: number): Beat | undefined {
     const beatsSeq = this.getBeatsSeq();
-    const beatSeqIndex = beatsSeq.indexOf(this.bars[barIndex].beats[beatIndex]);
+    const beatSeqIndex = beatsSeq.indexOf(
+      this._bars[barIndex].beats[beatIndex]
+    );
     return beatSeqIndex === beatsSeq.length - 1
       ? undefined
       : beatsSeq[beatIndex + 1];
@@ -550,7 +630,9 @@ export class Tab {
    */
   public getPrevBeat(barIndex: number, beatIndex: number): Beat | undefined {
     const beatsSeq = this.getBeatsSeq();
-    const beatSeqIndex = beatsSeq.indexOf(this.bars[barIndex].beats[beatIndex]);
+    const beatSeqIndex = beatsSeq.indexOf(
+      this._bars[barIndex].beats[beatIndex]
+    );
     return beatSeqIndex === 0 ? undefined : beatsSeq[beatIndex - 1];
   }
 
@@ -558,7 +640,7 @@ export class Tab {
    * All the beats as an array. Does a flat map, so consider performance
    */
   public getBeatsSeq(): Beat[] {
-    return this.bars.flatMap((bar) => {
+    return this._bars.flatMap((bar) => {
       return bar.beats;
     });
   }
@@ -571,7 +653,7 @@ export class Tab {
   }
 
   public findBarByUUID(barUUID: number): Bar | undefined {
-    return this.bars.find((bar) => {
+    return this._bars.find((bar) => {
       return bar.uuid === barUUID;
     });
   }
@@ -590,28 +672,47 @@ export class Tab {
     });
   }
 
+  public findBeatsBar(beat: Beat): Bar {
+    const bar = this._bars.find((b) => {
+      return b.beats.includes(beat);
+    });
+
+    if (bar === undefined) {
+      throw Error("Beat is not in the tab");
+    }
+
+    return bar;
+  }
+
+  public findNotesBeat(note: GuitarNote): Beat {
+    const beatsSeq = this.getBeatsSeq();
+
+    const beat = beatsSeq.find((b) => {
+      return b.notes.includes(note);
+    });
+
+    if (beat === undefined) {
+      throw Error("Note is not in the tab");
+    }
+
+    return beat;
+  }
+
+  public findNotesBar(note: GuitarNote): Bar {
+    return this.findBeatsBar(this.findNotesBeat(note));
+  }
+
   public deepCopy(): Tab {
     const barsCopies = [];
-    for (const bar of this.bars) {
+    for (const bar of this._bars) {
       barsCopies.push(bar.deepCopy());
     }
 
-    return new Tab(
-      this.id,
-      this.name,
-      this.artist,
-      this.song,
-      this.guitar,
-      barsCopies,
-      this.isPublic
-    );
+    return new Tab(this.name, this.instrumentName, this.guitar, barsCopies);
   }
 
-  /**
-   * Full song name
-   */
-  get fullSongName(): string {
-    return this.artist + "-" + this.song;
+  public get bars(): ReadonlyArray<Bar> {
+    return this._bars;
   }
 
   /**
@@ -621,24 +722,21 @@ export class Tab {
    */
   static fromObject(obj: any): Tab {
     if (
-      obj.id == undefined ||
-      obj.name == undefined ||
-      obj.artist == undefined ||
-      obj.song == undefined ||
-      obj.guitar == undefined ||
-      obj.data == undefined
+      obj.name === undefined ||
+      obj.instrumentName === undefined ||
+      obj.guitar === undefined ||
+      obj._bars === undefined
     ) {
       throw Error("Invalid js obj to parse to tab");
     }
 
-    return new Tab(
-      obj.id,
-      obj.name,
-      obj.artist,
-      obj.song,
-      obj.guitar,
-      obj.data.bars,
-      obj.isPublic
-    );
+    const guitar = Guitar.fromObject(obj.guitar);
+
+    const bars: Bar[] = [];
+    for (const bar of obj._bars) {
+      bars.push(Bar.fromObject(bar));
+    }
+
+    return new Tab(obj.name, obj.instrumentName, guitar, bars);
   }
 }

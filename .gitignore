@@ -67,3 +67,4 @@ package-lock.json
 /lib/
 
 test-render/result/*
+test-data
