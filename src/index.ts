@@ -36,3 +36,4 @@ export { NoteDuration, DURATION_TO_NAME } from "./models/note-duration";
 export { Guitar } from "./models/guitar";
 export { GuitarNote } from "./models/guitar-note";
 export { GuitarEffect } from "./models/guitar-effect/guitar-effect";
+export { GuitarEffectType } from "./models/guitar-effect/guitar-effect-type";
