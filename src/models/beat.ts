@@ -39,7 +39,7 @@ export class Beat {
       if (notes.length !== guitar.stringsCount) {
         throw Error(`Notes provided to a beat were not full: ${notes}`);
       }
-      
+
       this.notes = notes;
     } else {
       this.notes = Array.from(
@@ -60,32 +60,53 @@ export class Beat {
   }
 
   /**
+   * Parses beat into simple object
+   * @returns Simple parsed object
+   */
+  public toJSONObj(): Object {
+    const notesJSON = [];
+    for (const note of this.notes) {
+      notesJSON.push(note.toJSONObj());
+    }
+
+    return {
+      duration: this.duration,
+      notes: notesJSON,
+    };
+  }
+
+  /**
+   * Parses beat into JSON string
+   * @returns Parsed JSON string
+   */
+  public toJSON(): string {
+    return JSON.stringify(this.toJSONObj());
+  }
+
+  /**
    * Parses a JSON object and returns a beat object
+   * @param guitar Guitar of the track
    * @param obj Beat object
    * @returns Parsed beat object
    */
-  static fromObject(obj: any): Beat {
-    if (
-      obj.guitar === undefined ||
-      obj.duration === undefined ||
-      obj.notes === undefined
-    ) {
-      throw Error("Invalid js object to parse to beat");
+  static fromJSON(guitar: Guitar, obj: any): Beat {
+    if (obj.duration === undefined || obj.notes === undefined) {
+      throw Error(
+        `Invalid JSON to parse into beat, obj: ${JSON.stringify(obj)}`
+      );
     }
 
-    const guitar = Guitar.fromObject(obj.guitar);
-
     const notes: GuitarNote[] = [];
-    for (const note of obj.notes) {
-      notes.push(GuitarNote.fromObject(note));
+    for (let i = 1; i <= guitar.stringsCount; i++) {
+      const note = obj.notes.find((n: any) => n?.stringNum === i);
+      if (note === undefined) {
+        notes.push(new GuitarNote(guitar, i, undefined));
+      } else {
+        notes.push(GuitarNote.fromJSON(guitar, note));
+      }
     }
 
     return new Beat(guitar, obj.duration, notes);
-    // let beat = new Beat(guitar, obj._duration); // Craete beat instance
-    // beat.notes.length = 0; // Delete default notes
-    // obj.notes.forEach((note: any) =>
-    //   beat.notes.push(GuitarNote.fromObject(note))
-    // );
   }
 
   /**

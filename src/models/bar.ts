@@ -257,32 +257,55 @@ export class Bar {
   }
 
   /**
+   * Parses bar into simple object
+   * @returns Simple parsed object
+   */
+  public toJSONObj(): Object {
+    const beatsJSON = [];
+    for (const beat of this.beats) {
+      beatsJSON.push(beat.toJSONObj());
+    }
+
+    return {
+      tempo: this._tempo,
+      beatsCount: this._beatsCount,
+      duration: this.duration,
+      beats: beatsJSON,
+    };
+  }
+
+  /**
+   * Parses bar into JSON string
+   * @returns Parsed JSON string
+   */
+  public toJSON(): string {
+    return JSON.stringify(this.toJSONObj());
+  }
+
+  /**
    * Parses a JSON object into a Bar class object
+   * @param guitar Guitar of the track
    * @param obj JSON object to parse
    * @returns Parsed Bar object
    */
-  static fromObject(obj: any): Bar {
+  static fromJSON(guitar: Guitar, obj: any): Bar {
     if (
-      obj.guitar === undefined ||
-      obj._tempo === undefined ||
-      obj._beatsCount === undefined ||
+      obj.tempo === undefined ||
+      obj.beatsCount === undefined ||
       obj.duration === undefined ||
       obj.beats === undefined
     ) {
-      throw Error("Invalid js object to parse to bar");
+      throw Error(
+        `Invalid JSON to parse into bar, obj: ${JSON.stringify(obj)}`
+      );
     }
-
-    const guitar = Guitar.fromObject(obj.guitar);
 
     const beats: Beat[] = [];
     for (const beat of obj.beats) {
-      beats.push(Beat.fromObject(beat));
+      beats.push(Beat.fromJSON(guitar, beat));
     }
 
-    return new Bar(guitar, obj._tempo, obj._beatsCount, obj.duration, beats);
-    // let bar = new Bar(guitar, obj._tempo, obj._beats, obj._duration, undefined); // Create bar instance
-    // bar.beats.length = 0; // Delete default beats
-    // obj.beats.forEach((beat: any) => bar.beats.push(Beat.fromObject(beat)));
+    return new Bar(guitar, obj.tempo, obj.beatsCount, obj.duration, beats);
   }
 
   /**

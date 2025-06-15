@@ -246,12 +246,10 @@ function prepareTestCases(): TestCase[] {
         true,
         [tab]
       );
-      fs.writeFileSync("test-data/tabber-to-json.json", JSON.stringify(score));
-
-      const parsedScore = Score.fromObject(
-        require("../test-data/tabber-to-json.json")
+      fs.writeFileSync(
+        "test-data/tabber-to-json.json",
+        JSON.stringify(score.toJSONObj())
       );
-      console.log(parsedScore);
 
       const tabWindow = createTabWindowFromTab(score, tab);
       return {
@@ -260,8 +258,8 @@ function prepareTestCases(): TestCase[] {
       };
     })(),
     (() => {
-      const scoreObj = require("../test-data/tab-output2.json");
-      const score = Score.fromObject(scoreObj);
+      const scoreObj = require("../test-data/tabber-to-json.json");
+      const score = Score.fromJSON(scoreObj);
 
       console.log(score);
       const tabWindow = new TabWindow(
@@ -273,7 +271,7 @@ function prepareTestCases(): TestCase[] {
           timeSigTextSize,
           tempoTextSize,
           durationsHeight,
-          score.tracks[1].guitar.stringsCount
+          score.tracks[0].guitar.stringsCount
         )
       );
 

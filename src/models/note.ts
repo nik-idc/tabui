@@ -51,8 +51,8 @@ export const NoteValuesArr: NoteValue[] = [
 ];
 
 export const NOTES_PER_OCTAVE = NotesArr.length;
-export const LOWEST_OCTAVE = 1;
-export const HIGHEST_OCTAVE = 7;
+export const LOWEST_OCTAVE = 0;
+export const HIGHEST_OCTAVE = 9;
 
 export class Note {
   private _noteValue: NoteValue;
@@ -136,6 +136,25 @@ export class Note {
     }
 
     return `${this._noteValue}${this._octave}`;
+  }
+
+  /**
+   * Parses note into simple object
+   * @returns Simple parsed object
+   */
+  public toJSONObj(): Object {
+    return {
+      noteValue: this._noteValue,
+      octave: this.octave,
+    };
+  }
+
+  /**
+   * Parses note into JSON string
+   * @returns Parsed JSON string
+   */
+  public toJSON(): string {
+    return JSON.stringify(this.toJSONObj());
   }
 }
 
