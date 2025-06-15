@@ -716,25 +716,53 @@ export class Tab {
   }
 
   /**
+   * Parses tab into simple object
+   * @returns Simple parsed object
+   */
+  public toJSONObj(): Object {
+    const barsJSON = [];
+    for (const bar of this._bars) {
+      barsJSON.push(bar.toJSONObj());
+    }
+
+    return {
+      name: this.name,
+      instrumentName: this.instrumentName,
+      guitar: this.guitar.toJSONObj(),
+      bars: barsJSON,
+    };
+  }
+
+  /**
+   * Parses tab into JSON string
+   * @returns Parsed JSON string
+   */
+  public toJSON(): string {
+    return JSON.stringify(this.toJSONObj());
+  }
+
+  /**
    * Parses a JSON object into a Tab class object
    * @param obj JSON object to parse
    * @returns Parsed Tab object
    */
-  static fromObject(obj: any): Tab {
+  static fromJSON(obj: any): Tab {
     if (
       obj.name === undefined ||
       obj.instrumentName === undefined ||
       obj.guitar === undefined ||
-      obj._bars === undefined
+      obj.bars === undefined
     ) {
-      throw Error("Invalid js obj to parse to tab");
+      throw Error(
+        `Invalid JSON to parse into tab, obj: ${JSON.stringify(obj)}`
+      );
     }
 
-    const guitar = Guitar.fromObject(obj.guitar);
+    const guitar = Guitar.fromJSON(obj.guitar);
 
     const bars: Bar[] = [];
-    for (const bar of obj._bars) {
-      bars.push(Bar.fromObject(bar));
+    for (const bar of obj.bars) {
+      bars.push(Bar.fromJSON(guitar, bar));
     }
 
     return new Tab(obj.name, obj.instrumentName, guitar, bars);

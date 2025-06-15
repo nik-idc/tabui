@@ -40,12 +40,17 @@ export class GuitarNote {
    * @param stringNum String number
    * @param fret Fret number
    */
-  constructor(guitar: Guitar, stringNum: number, fret: number | undefined) {
+  constructor(
+    guitar: Guitar,
+    stringNum: number,
+    fret?: number,
+    effects: GuitarEffect[] = []
+  ) {
     this.uuid = randomInt();
     this.guitar = guitar;
     this._stringNum = stringNum;
     this._fret = fret;
-    this._effects = [];
+    this._effects = effects;
     this._note = new Note(NoteValue.None);
 
     this.calcNote();
@@ -56,20 +61,6 @@ export class GuitarNote {
    */
   get stringNum(): number {
     return this._stringNum;
-  }
-
-  /**
-   * Getter/setter for string number
-   */
-  set stringNum(val: number) {
-    // Check string validity
-    if (val <= 0 || val > this.guitar.stringsCount) {
-      throw Error(`${val} is an invalid string number, only strings
-				1 to ${this.guitar.stringsCount} are allowed`);
-    }
-
-    this._stringNum = val;
-    this.calcNote();
   }
 
   /**
@@ -184,26 +175,65 @@ export class GuitarNote {
   }
 
   /**
+   * Parses guitar note into simple object
+   * @returns Simple parsed object
+   */
+  public toJSONObj(): Object | null {
+    if (this._fret === undefined) {
+      return null;
+    }
+
+    const fxJSON = [];
+    for (const effect of this._effects) {
+      fxJSON.push(effect.toJSONObj());
+    }
+
+    return {
+      stringNum: this._stringNum,
+      fret: this._fret,
+      note: this._note.toJSONObj(),
+      effects: fxJSON,
+    };
+  }
+
+  /**
+   * Parses guitar note into JSON string
+   * @returns Parsed JSON string
+   */
+  public toJSON(): string {
+    return JSON.stringify(this.toJSONObj());
+  }
+
+  /**
    * Parse from object
+   * @param guitar Guitar for the track
    * @param obj Object
    * @returns Parsed guitar note
    */
-  static fromObject(obj: any): GuitarNote {
-    if (obj.guitar === undefined || obj._note === undefined) {
-      throw Error("Invalid js object to parse to guitar note");
+  static fromJSON(guitar: Guitar, obj: any): GuitarNote {
+    if (obj === null && obj === "null") {
+      throw Error("Can't parse a null guitar note");
     }
 
-    const guitar = Guitar.fromObject(obj.guitar);
+    if (
+      obj.stringNum === undefined ||
+      obj.fret === undefined ||
+      obj.note === undefined ||
+      obj.effects === undefined
+    ) {
+      throw Error(
+        `Invalid JSON to parse into guitar note, obj: ${JSON.stringify(obj)}`
+      );
+    }
 
     const effects: GuitarEffect[] = [];
-    for (const effect of obj._effects) {
-      effects.push(GuitarEffect.fromObject(effect));
+    for (const effect of obj.effects) {
+      effects.push(GuitarEffect.fromJSON(effect));
     }
 
-    const stringNum = obj._stringNum === undefined ? 0 : obj._stringNum;
-    const fret = obj._fret;
-    return new GuitarNote(guitar, stringNum, fret);
-    // let guitarNote = new GuitarNote(guitar, obj._stringNum, obj._fret); // Create guitar note instance
+    const stringNum = obj.stringNum === undefined ? 0 : obj.stringNum;
+    const fret = obj.fret;
+    return new GuitarNote(guitar, stringNum, fret, effects);
   }
 
   /**

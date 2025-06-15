@@ -36,18 +36,45 @@ export class Guitar {
     return tuningStrArr.join("");
   }
 
-  static fromObject(obj: any): Guitar {
+  /**
+   * Parses guitar into simple object
+   * @returns Simple parsed object
+   */
+  public toJSONObj(): Object {
+    const tuningJSON = [];
+    for (const note of this.tuning) {
+      tuningJSON.push(note.toJSONObj());
+    }
+
+    return {
+      stringsCount: this.stringsCount,
+      tuning: tuningJSON,
+      fretsCount: this.fretsCount,
+    };
+  }
+
+  /**
+   * Parses guitar into JSON string
+   * @returns Parsed JSON string
+   */
+  public toJSON(): string {
+    return JSON.stringify(this.toJSONObj());
+  }
+
+  static fromJSON(obj: any): Guitar {
     if (
       obj.stringsCount === undefined ||
       obj.tuning === undefined ||
       obj.fretsCount === undefined
     ) {
-      throw Error("Invalid js object to parse to guitar");
+      throw Error(
+        `Invalid JSON to parse into tab, obj: ${JSON.stringify(obj)}`
+      );
     }
 
     const tuning: Note[] = [];
     for (const note of obj.tuning) {
-      tuning.push(new Note(note._noteValue, note._octave));
+      tuning.push(new Note(note.noteValue, note.octave));
     }
 
     // Return parsed guitar

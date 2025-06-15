@@ -107,11 +107,30 @@ export class GuitarEffect {
   }
 
   /**
+   * Parses guitar effect into simple object
+   * @returns Simple parsed object
+   */
+  public toJSONObj(): Object {
+    return {
+      effectType: this.effectType,
+      options: this.options,
+    };
+  }
+
+  /**
+   * Parses guitar effect into JSON string
+   * @returns Parsed JSON string
+   */
+  public toJSON(): string {
+    return JSON.stringify(this.toJSONObj());
+  }
+
+  /**
    * Parse from object
    * @param obj Object
    * @returns Parsed guitar effect
    */
-  static fromObject(obj: any): GuitarEffect {
+  static fromJSON(obj: any): GuitarEffect {
     if (obj.effectType === undefined) {
       throw Error(
         "Invalid js object to parse to guitar effect: no effect type"
@@ -135,7 +154,7 @@ export class GuitarEffect {
     const options =
       obj.options === undefined
         ? undefined
-        : GuitarEffectOptions.fromObject(obj.options);
+        : GuitarEffectOptions.fromJSON(obj.options);
 
     return new GuitarEffect(obj.effectType, options);
   }

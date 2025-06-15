@@ -170,11 +170,31 @@ export class Score {
     }
   }
 
+  public toJSONObj(): Object {
+    const tracksJSON = [];
+    for (const track of this.tracks) {
+      tracksJSON.push(track.toJSONObj());
+    }
+
+    return {
+      id: this.id,
+      name: this.name,
+      artist: this.artist,
+      song: this.song,
+      isPublic: this.isPublic,
+      tracks: tracksJSON,
+    };
+  }
+
+  public toJSON(): string {
+    return JSON.stringify(this.toJSONObj());
+  }
+
   /**
    * Create a Score object from a JSON object
    * @param obj JSON object to parse into Score
    */
-  static fromObject(obj: any): Score {
+  static fromJSON(obj: any): Score {
     if (
       obj.id === undefined ||
       obj.name === undefined ||
@@ -183,14 +203,14 @@ export class Score {
       obj.isPublic === undefined ||
       obj.tracks === undefined
     ) {
-      throw Error("Invalid js obj to parse to score");
+      `Invalid JSON to parse into tab, obj: ${JSON.stringify(obj)}`;
     }
 
     // TODO: Check types but I'm lazy and in a hurry
 
     const tracks: Tab[] = [];
     for (const track of obj.tracks) {
-      tracks.push(Tab.fromObject(track));
+      tracks.push(Tab.fromJSON(track));
     }
 
     return new Score(

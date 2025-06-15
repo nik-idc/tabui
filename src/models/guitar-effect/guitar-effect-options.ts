@@ -21,7 +21,7 @@ export class GuitarEffectOptions {
    * @param obj Object
    * @returns Parsed guitar effect options
    */
-  static fromObject(obj: any): GuitarEffectOptions {
+  static fromJSON(obj: any): GuitarEffectOptions {
     if (
       obj.bendPitch === undefined &&
       obj.bendReleasePitch === undefined &&

@@ -137,6 +137,25 @@ export class Note {
 
     return `${this._noteValue}${this._octave}`;
   }
+
+  /**
+   * Parses note into simple object
+   * @returns Simple parsed object
+   */
+  public toJSONObj(): Object {
+    return {
+      noteValue: this._noteValue,
+      octave: this.octave,
+    };
+  }
+
+  /**
+   * Parses note into JSON string
+   * @returns Parsed JSON string
+   */
+  public toJSON(): string {
+    return JSON.stringify(this.toJSONObj());
+  }
 }
 
 // /**
