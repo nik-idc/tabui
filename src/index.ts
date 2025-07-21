@@ -21,6 +21,8 @@ export { TabPlayerSVGAnimator } from "./tab-window/player/tab-player-svg-animato
 //      Renderer
 export { TabWindowRenderer } from "./tab-window/render/tab-window-renderer";
 export { TabWindowHTMLRenderer } from "./tab-window/render/tab-window-html-renderer";
+export { TabWindowSVGRenderer } from "./tab-window/render/tab-window-svg-renderer";
+export { TabWindowCallbackBinder } from "./tab-window/render/callbacks/tab-window-callback-binder";
 
 //      Shapes
 export { Point } from "./tab-window/shapes/point";

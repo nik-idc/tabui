@@ -9,11 +9,16 @@ import { Tab } from "../../models/tab";
 import { GuitarEffectType } from "../../models/guitar-effect/guitar-effect-type";
 import { GuitarEffectOptions } from "../../models/guitar-effect/guitar-effect-options";
 import { EFFECT_TYPE_TO_LABEL } from "./effects/guitar-effect-element-lists";
+import { randomInt } from "../../misc/random-int";
 
 /**
  * Class that handles a tab line element
  */
 export class TabLineElement {
+  /**
+   * Unique identifier for the line element
+   */
+  readonly uuid: number;
   /**
    * Tab
    */
@@ -42,6 +47,7 @@ export class TabLineElement {
    * @param coords Tab line coordinates
    */
   constructor(tab: Tab, dim: TabWindowDim, coords: Point) {
+    this.uuid = randomInt();
     this.tab = tab;
     this.dim = dim;
     this.rect = new Rect(coords.x, coords.y, 0, dim.tabLineMinHeight);

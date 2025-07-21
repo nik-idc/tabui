@@ -4,6 +4,8 @@ import {
   TabWindowHTMLRenderer,
   TabPlayerSVGAnimator,
   BeatElement,
+  TabWindowSVGRenderer,
+  TabWindowCallbackBinder,
 } from "../src/index";
 import { createBasicTabWindow, fillTestTab } from "./data";
 
@@ -26,32 +28,48 @@ const jumpToSecondBeatButton = getEl<HTMLButtonElement>(
 const editorContainer = getEl<HTMLDivElement>("mainEditorContainer");
 const credentialsContainer = getEl<HTMLDivElement>("credentialsContainer");
 const svgContainer = getEl<HTMLDivElement>("svgContainer");
+const svgRoot = document.getElementById("svgRoot") as SVGSVGElement | null;
+if (svgRoot === null) {
+  throw Error("Error getting SVG root element");
+}
 
 // Initialize and prepare tab window
 const tabWindow = createBasicTabWindow();
 fillTestTab(tabWindow);
 tabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
+let tabWindowHeight = 0;
+const tabLineElements = tabWindow.getTabLineElements();
+for (const tabLineElement of tabLineElements) {
+  tabWindowHeight += tabLineElement.rect.height;
+}
 
-// Render
-const htmlRenderer = new TabWindowHTMLRenderer(
-  tabWindow,
-  "assets",
-  editorContainer
-);
-htmlRenderer.render();
+// Set SVG root properties
+const svgRootVB = `0 0 ${tabWindow.dim.width} ${tabWindowHeight}`;
+const svgRootWidth = `${tabWindow.dim.width}`;
+const svgRootHeight = `${tabWindowHeight}`;
+svgRoot.setAttribute("viewBox", svgRootVB);
+svgRoot.setAttribute("width", svgRootWidth);
+svgRoot.setAttribute("height", svgRootHeight);
 
-// Setup player cursor
-const playerCursor = getEl<SVGRectElement>("playerCursor");
-const playerAnimator = new TabPlayerSVGAnimator(playerCursor, tabWindow);
-playerAnimator.bindToBeatChanged();
+const svgRenderer = new TabWindowSVGRenderer(tabWindow, "assets", svgRoot);
+svgRenderer.render();
+
+const binder = new TabWindowCallbackBinder(svgRenderer);
+binder.bind()
+
+// // Setup player cursor
+// const playerAnimator = new TabPlayerSVGAnimator(tabWindow);
+// playerAnimator.bindToBeatChanged();
 
 // Handlers
 function onPlay(): void {
   tabWindow.startPlayer();
+  svgRenderer.render();
 }
 
 function onStop(): void {
   tabWindow.stopPlayer();
+  svgRenderer.render();
 }
 
 function onStartOver(): void {
