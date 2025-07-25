@@ -1,0 +1,189 @@
+import { KeyChecker } from "../../../../misc/key-checker";
+import { GuitarEffectOptions } from "../../../../models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "../../../../models/guitar-effect/guitar-effect-type";
+import { SelectedMoveDirection } from "../../../elements/selected-element";
+import { TabWindowSVGRenderer } from "../../tab-window-svg-renderer";
+import { TabWindowKeyboardCallbacks } from "../tab-window-keyboard-callbacks";
+
+export class TabWindowKeyboardDefCallbacks
+  implements TabWindowKeyboardCallbacks
+{
+  readonly eventsTimeEpsilon: number = 250;
+
+  private _renderer: TabWindowSVGRenderer;
+
+  private _prevKeyPress?: { time: number; key: string };
+
+  constructor(renderer: TabWindowSVGRenderer) {
+    this._renderer = renderer;
+  }
+
+  public ctrlCEvent(event: KeyboardEvent): void {
+    console.log("ctrCEvent");
+    this._renderer.tabWindow.copy();
+  }
+
+  public ctrlVEvent(event: KeyboardEvent): void {
+    console.log("ctrlVEvent");
+    this._renderer.tabWindow.paste();
+    this._renderer.render();
+  }
+
+  public ctrlZEvent(event: KeyboardEvent): void {
+    console.log("ctrlZEvent");
+    /**
+     * select beats -> copy with ctrl-c -> paste with ctrl-v ->
+     * undo with ctrl-z -> error stating that tab window could not find
+     * beat element corresponding to the current tab player beat
+     */
+    this._renderer.tabWindow.undo();
+    this._renderer.render();
+  }
+
+  public ctrlYEvent(event: KeyboardEvent): void {
+    console.log("ctrlYEvent");
+    this._renderer.tabWindow.redo();
+    this._renderer.render();
+  }
+
+  public deleteEvent(event: KeyboardEvent): void {
+    this._renderer.tabWindow.deleteSelectedBeats();
+    this._renderer.render();
+  }
+
+  public applyOrRemoveEffect(
+    effectType: GuitarEffectType,
+    options?: GuitarEffectOptions
+  ): void {
+    const selected = this._renderer.tabWindow.getSelectedElement();
+
+    if (selected === undefined) {
+      return;
+    }
+
+    const effectIndex = selected.note.effects.findIndex((e) => {
+      return e.effectType === effectType;
+    });
+
+    if (effectIndex === -1) {
+      console.log("APPLYING EFFECT");
+      const result = this._renderer.tabWindow.applyEffectSingle(
+        effectType,
+        options
+      );
+      console.log(`APPLY RESULT: ${result}`);
+    } else {
+      this._renderer.tabWindow.removeEffectSingle(effectType, options);
+    }
+
+    this._renderer.render();
+  }
+
+  public shiftVEvent(event: KeyboardEvent): void {
+    this.applyOrRemoveEffect(GuitarEffectType.Vibrato);
+  }
+
+  public shiftPEvent(event: KeyboardEvent): void {
+    this.applyOrRemoveEffect(GuitarEffectType.PalmMute);
+  }
+
+  public shiftBEvent(event: KeyboardEvent): void {
+    this.applyOrRemoveEffect(GuitarEffectType.Bend, new GuitarEffectOptions(1));
+  }
+
+  public spaceEvent(event: KeyboardEvent): void {
+    if (this._renderer.tabWindow.getIsPlaying()) {
+      this._renderer.tabWindow.stopPlayer();
+    } else {
+      this._renderer.tabWindow.startPlayer();
+    }
+    this._renderer.render();
+  }
+
+  public onNumberDown(key: string): void {
+    // Check if any note is selected
+    if (!this._renderer.tabWindow.getSelectedElement()) {
+      return;
+    }
+
+    // Check if a valid key has been pressed
+    let newFret = Number.parseInt(key);
+    if (Number.isNaN(newFret)) {
+      return;
+    }
+
+    // Check if this is the first note click
+    if (!this._prevKeyPress) {
+      this._prevKeyPress = { time: new Date().getTime(), key: key };
+      this._renderer.tabWindow.setSelectedElementFret(newFret);
+      return;
+    }
+
+    // Calculate time difference
+    let now = new Date().getTime();
+    let timeDiff = now - this._prevKeyPress.time;
+    let combFret = Number.parseInt(this._prevKeyPress.key + key);
+    newFret = timeDiff < this.eventsTimeEpsilon ? combFret : newFret;
+    // Set fret
+    this._renderer.tabWindow.setSelectedElementFret(newFret);
+
+    // Update prev tab key press object
+    this._prevKeyPress.time = now;
+    this._prevKeyPress.key = key;
+  }
+
+  public onArrowDown(key: string): void {
+    // Check if a note is selected
+    if (!this._renderer.tabWindow.getSelectedElement()) {
+      return;
+    }
+
+    switch (key) {
+      case "ArrowDown":
+        this._renderer.tabWindow.moveSelectedNote(SelectedMoveDirection.Down);
+        break;
+      case "ArrowUp":
+        this._renderer.tabWindow.moveSelectedNote(SelectedMoveDirection.Up);
+        break;
+      case "ArrowLeft":
+        this._renderer.tabWindow.moveSelectedNote(SelectedMoveDirection.Left);
+        break;
+      case "ArrowRight":
+        this._renderer.tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
+        break;
+    }
+  }
+
+  public onBackspacePress(): void {
+    const selected = this._renderer.tabWindow.getSelectedElement();
+
+    if (!selected) {
+      return;
+    }
+
+    if (!selected.note.fret) {
+      return;
+    }
+
+    this._renderer.tabWindow.setSelectedElementFret(undefined);
+  }
+
+  public onCtrlDel(): void {
+    // Delete selected note beat
+  }
+
+  public onKeyDown(event: KeyboardEvent): void {
+    event.preventDefault();
+    let key = event.key;
+
+    if (KeyChecker.isNumber(key)) {
+      this.onNumberDown(key);
+    } else if (KeyChecker.isArrow(key)) {
+      this.onArrowDown(key);
+    } else if (KeyChecker.isBackspace(key)) {
+      this.onBackspacePress();
+    }
+
+    this._renderer.render();
+  }
+}

@@ -3,124 +3,93 @@ import { NoteElement } from "../../elements/note-element";
 import { Point } from "../../shapes/point";
 import { TabWindowRenderer } from "../tab-window-renderer";
 import { TabWindowSVGRenderer } from "../tab-window-svg-renderer";
+import { TabWindowKeyboardCallbacks } from "./tab-window-keyboard-callbacks";
+import { TabWindowMouseCallbacks } from "./tab-window-mouse-callbacks";
 
 export class TabWindowCallbackBinder {
   private _renderer: TabWindowSVGRenderer;
+  private _mouseCallbacks: TabWindowMouseCallbacks;
+  private _keyboardCallbacks: TabWindowKeyboardCallbacks;
 
-  // TEST TERRITORY, NEEDS TO BE EXTRACTED LATER
-  private _selectingBeats: boolean = false;
-  private _selectionStartPoint?: Point;
-
-  /**
-   *
-   */
-  constructor(renderer: TabWindowSVGRenderer) {
+  constructor(
+    renderer: TabWindowSVGRenderer,
+    mouseCallbacks: TabWindowMouseCallbacks,
+    keyboardCallbacks: TabWindowKeyboardCallbacks
+  ) {
     this._renderer = renderer;
+    this._mouseCallbacks = mouseCallbacks;
+    this._keyboardCallbacks = keyboardCallbacks;
   }
 
-  private onNoteClickTest(event: MouseEvent, noteElement: NoteElement): void {
-    console.log("onNoteClickTest");
-
-    this._renderer.tabWindow.selectNoteElement(noteElement);
-    this._renderer.render();
-  }
-
-  private onBeatMouseDownTest(
-    event: MouseEvent,
-    beatElement: BeatElement
-  ): void {
-    console.log("onBeatMouseDownTest");
-
-    this._renderer.tabWindow.clearSelection();
-    this._renderer.tabWindow.recalcBeatElementSelection();
-    this._selectingBeats = true;
-
-    this._renderer.render();
-  }
-
-  private onBeatMouseEnterTest(
-    event: MouseEvent,
-    beatElement: BeatElement
-  ): void {
-    console.log("onBeatMouseEnterTest");
-
-    if (this._selectingBeats) {
-      this._renderer.tabWindow.selectBeat(beatElement);
-      this._renderer.render();
-    }
-  }
-
-  private onBeatMouseMoveTest(
-    event: MouseEvent,
-    beatElement: BeatElement
-  ): void {
-    console.log("onBeatMouseMove");
-
-    if (
-      !this._selectingBeats ||
-      this._renderer.tabWindow.getSelectionBeats().length !== 0
-    ) {
-      return;
-    }
-
-    if (this._selectionStartPoint === undefined) {
-      this._selectionStartPoint = new Point(event.pageX, event.pageY);
-      return;
-    }
-
-    const dx = event.pageX - this._selectionStartPoint.x;
-    const dy = event.pageY - this._selectionStartPoint.y;
-    const distMoved = Math.sqrt(dx * dx + dy * dy);
-
-    const rect = beatElement.rect;
-
-    if (distMoved >= rect.width / 4) {
-      this._renderer.tabWindow.selectBeat(beatElement);
-    }
-
-    this._renderer.render();
-  }
-
-  private onBeatMouseUpTest(): void {
-    console.log("onBeatMouseMove");
-
-    this._selectingBeats = false;
-    this._selectionStartPoint = undefined;
-
-    this._renderer.render();
-  }
-
-  public bind(): void {
+  private bindMouseEvents(): void {
     for (const tleRenderer of this._renderer.lineRenderers) {
       for (const barRenderer of tleRenderer.barRenderers) {
         for (const beatRenderer of barRenderer.beatRenderers) {
           // Beat level mouse events
           beatRenderer.attachMouseEvent(
             "mousedown",
-            this.onBeatMouseDownTest.bind(this)
+            this._mouseCallbacks.onBeatMouseDown.bind(this)
           );
           beatRenderer.attachMouseEvent(
             "mouseenter",
-            this.onBeatMouseEnterTest.bind(this)
+            this._mouseCallbacks.onBeatMouseEnter.bind(this)
           );
           beatRenderer.attachMouseEvent(
             "mousemove",
-            this.onBeatMouseMoveTest.bind(this)
+            this._mouseCallbacks.onBeatMouseMove.bind(this)
           );
           beatRenderer.attachMouseEvent(
             "mouseup",
-            this.onBeatMouseUpTest.bind(this)
+            this._mouseCallbacks.onBeatMouseUp.bind(this)
           );
 
           for (const noteRenderer of beatRenderer.noteRenderers) {
             // Note level mouse events
             noteRenderer.attachMouseEvent(
               "click",
-              this.onNoteClickTest.bind(this)
+              this._mouseCallbacks.onNoteClick.bind(this)
             );
           }
         }
       }
     }
+  }
+
+  private bindKeyboardEvents(): void {
+    document.addEventListener("keydown", (event: KeyboardEvent) => {
+      console.log(event.key);
+      if (event.ctrlKey && !event.shiftKey) {
+        if (event.key === "c") {
+          this._keyboardCallbacks.ctrlCEvent(event);
+        } else if (event.key === "v") {
+          this._keyboardCallbacks.ctrlVEvent(event);
+        } else if (event.key === "z") {
+          this._keyboardCallbacks.ctrlZEvent(event);
+        } else if (event.key === "y") {
+          this._keyboardCallbacks.ctrlYEvent(event);
+        }
+      } else if (!event.ctrlKey && event.shiftKey) {
+        if (event.key === "v") {
+          this._keyboardCallbacks.shiftVEvent(event);
+        } else if (event.key === "p") {
+          this._keyboardCallbacks.shiftPEvent(event);
+        } else if (event.key === "b") {
+          this._keyboardCallbacks.shiftBEvent(event);
+        }
+      } else if (!event.ctrlKey && !event.shiftKey) {
+        if (event.key === "Delete") {
+          this._keyboardCallbacks.deleteEvent(event);
+        } else if (event.key === " ") {
+          this._keyboardCallbacks.spaceEvent(event);
+        } else {
+          this._keyboardCallbacks.onKeyDown(event);
+        }
+      }
+    });
+  }
+
+  public bind(): void {
+    this.bindMouseEvents();
+    this.bindKeyboardEvents();
   }
 }

@@ -6,8 +6,12 @@ import {
   BeatElement,
   TabWindowSVGRenderer,
   TabWindowCallbackBinder,
+  TabWindowMouseDefCallbacks,
+  TabWindowKeyboardCallbacks,
+  TabWindowKeyboardDefCallbacks,
 } from "../src/index";
 import { createBasicTabWindow, fillTestTab } from "./data";
+import { data2TabWindow } from "./data2";
 
 // Utility: Get element or throw
 function getEl<T extends Element>(id: string): T {
@@ -34,63 +38,69 @@ if (svgRoot === null) {
 }
 
 // Initialize and prepare tab window
-const tabWindow = createBasicTabWindow();
-fillTestTab(tabWindow);
-tabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
+// const tabWindow = createBasicTabWindow();
+// fillTestTab(data2TabWindow);
+data2TabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
 let tabWindowHeight = 0;
-const tabLineElements = tabWindow.getTabLineElements();
+const tabLineElements = data2TabWindow.getTabLineElements();
 for (const tabLineElement of tabLineElements) {
   tabWindowHeight += tabLineElement.rect.height;
 }
 
 // Set SVG root properties
-const svgRootVB = `0 0 ${tabWindow.dim.width} ${tabWindowHeight}`;
-const svgRootWidth = `${tabWindow.dim.width}`;
+const svgRootVB = `0 0 ${data2TabWindow.dim.width} ${tabWindowHeight}`;
+const svgRootWidth = `${data2TabWindow.dim.width}`;
 const svgRootHeight = `${tabWindowHeight}`;
 svgRoot.setAttribute("viewBox", svgRootVB);
 svgRoot.setAttribute("width", svgRootWidth);
 svgRoot.setAttribute("height", svgRootHeight);
 
-const svgRenderer = new TabWindowSVGRenderer(tabWindow, "assets", svgRoot);
+const svgRenderer = new TabWindowSVGRenderer(data2TabWindow, "assets", svgRoot);
 svgRenderer.render();
 
-const binder = new TabWindowCallbackBinder(svgRenderer);
-binder.bind()
+const mouseCallbacks = new TabWindowMouseDefCallbacks(svgRenderer);
+const keyboardCallbacks = new TabWindowKeyboardDefCallbacks(svgRenderer);
+const binder = new TabWindowCallbackBinder(
+  svgRenderer,
+  mouseCallbacks,
+  keyboardCallbacks
+);
+binder.bind();
 
 // // Setup player cursor
-// const playerAnimator = new TabPlayerSVGAnimator(tabWindow);
+// const playerAnimator = new TabPlayerSVGAnimator(data2TabWindow);
 // playerAnimator.bindToBeatChanged();
 
 // Handlers
 function onPlay(): void {
-  tabWindow.startPlayer();
+  data2TabWindow.startPlayer();
   svgRenderer.render();
 }
 
 function onStop(): void {
-  tabWindow.stopPlayer();
+  data2TabWindow.stopPlayer();
   svgRenderer.render();
 }
 
 function onStartOver(): void {
-  tabWindow.stopPlayer();
-  tabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
-  tabWindow.startPlayer();
+  data2TabWindow.stopPlayer();
+  data2TabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
+  data2TabWindow.startPlayer();
 }
 
 function onJumpToSecondBeat(): void {
-  tabWindow.selectNoteElementUsingIds(0, 0, 1, 0);
+  data2TabWindow.selectNoteElementUsingIds(0, 0, 1, 0);
 }
 
 function onBeatClicked(beatElement: BeatElement): void {
   console.log(`On beat clicked: ${beatElement.beat.uuid}`);
 
   const notes = beatElement.beatNotesElement.noteElements;
-  tabWindow.selectNoteElement(notes[0]);
+  data2TabWindow.selectNoteElement(notes[0]);
 }
 
 function bindOnClickedToBeats(): void {
-  const lines = tabWindow.getTabLineElements();
+  const lines = data2TabWindow.getTabLineElements();
   for (const line of lines) {
     for (const bar of line.barElements) {
       for (const beat of bar.beatElements) {
