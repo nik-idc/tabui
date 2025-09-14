@@ -364,8 +364,9 @@ export class SVGBarRenderer {
 
   /**
    * Render bar element
+   * @param newTLEOffset New optinal tab line element offset
    */
-  public renderBarElement(): void {
+  public renderBarElement(newTLEOffset?: Point): (SVGBeatRenderer | SVGNoteRenderer)[] {
     this.renderGroup();
 
     if (this._groupSVG === undefined) {
@@ -373,6 +374,9 @@ export class SVGBarRenderer {
     }
 
     // Calc offset for every element inside this bar
+    if (newTLEOffset !== undefined) {
+      this._tleOffset = new Point(newTLEOffset.x, newTLEOffset.y);
+    }
     const barOffset = new Point(this._barElement.rect.x, this._tleOffset.y);
 
     // Render bar stuff
@@ -381,6 +385,8 @@ export class SVGBarRenderer {
     this.renderBarSig(barOffset);
     this.renderBarTempoImage(barOffset);
     this.renderBarTempoText(barOffset);
+
+    const newRenderers: (SVGBeatRenderer | SVGNoteRenderer)[] = [];
 
     // Check if there are any beat elements to remove
     const curBeatElementUUIDs = new Set(
@@ -406,12 +412,14 @@ export class SVGBarRenderer {
           this._assetsPath,
           this._groupSVG
         );
-        renderer.renderBeatElement();
+        newRenderers.push(renderer);
+        newRenderers.push(...renderer.renderBeatElement());
         this._renderedBeatElements.set(beatElement.beat.uuid, renderer);
       } else {
-        renderedBeat.renderBeatElement();
+        newRenderers.push(...renderedBeat.renderBeatElement(barOffset));
       }
     }
+    return newRenderers;
   }
 
   /**

@@ -28,6 +28,8 @@ export class SVGBeatRenderer {
   private _beatDurationSVG?: SVGImageElement;
   private _beatSelectionSVG?: SVGRectElement;
 
+  private _attachedEvents: Map<string, EventListener> = new Map();
+
   /**
    * Class for rendering a beat element using SVG
    * @param tabWindow Tab window
@@ -51,6 +53,7 @@ export class SVGBeatRenderer {
 
     this._renderedLabels = new Map();
     this._renderedNoteElements = new Map();
+    this._attachedEvents = new Map();
   }
 
   /**
@@ -136,6 +139,7 @@ export class SVGBeatRenderer {
       // Set only-set-once attributes
       this._beatSelectionSVG.setAttribute("fill", "blue");
       this._beatSelectionSVG.setAttribute("fill-opacity", "0.25");
+      this._beatSelectionSVG.setAttribute("pointer-events", "none");
 
       // Set id
       this._beatSelectionSVG.setAttribute("id", `beat-sel-${beatUUID}`);
@@ -228,14 +232,12 @@ export class SVGBeatRenderer {
     }
   }
 
-  private renderNoteElements(beatOffset: Point): void {
+  private renderNoteElements(beatOffset: Point): SVGNoteRenderer[] {
     if (this._groupSVG === undefined) {
       throw Error("Tried to render note elements when SVG group undefined");
     }
 
-    /**
-     * DONT ADD TO THE ROOT ELEMENT, ADD TO THE PARENT ELEMENT
-     */
+    const newRenderers: SVGNoteRenderer[] = [];
 
     const beatNotesOffset = new Point(
       beatOffset.x + this._beatElement.beatNotesElement.rect.x,
@@ -268,10 +270,12 @@ export class SVGBeatRenderer {
         );
         renderer.renderNoteElement();
         this._renderedNoteElements.set(noteElement.note.uuid, renderer);
+        newRenderers.push(renderer);
       } else {
-        renderedNote.renderNoteElement();
+        renderedNote.renderNoteElement(beatNotesOffset);
       }
     }
+    return newRenderers;
   }
 
   /**
@@ -289,18 +293,22 @@ export class SVGBeatRenderer {
 
   /**
    * Render a full beat
+   * @param newBarOffset Optional new bar offset
    */
-  public renderBeatElement(): void {
+  public renderBeatElement(newBarOffset?: Point): (SVGNoteRenderer | SVGBeatRenderer)[] {
     this.renderGroup();
 
     // Calc offset for each element inside of this beat element
+    if (newBarOffset !== undefined) {
+      this._barOffset = new Point(newBarOffset.x, newBarOffset.y);
+    }
     const beatOffset = new Point(
       this._barOffset.x + this._beatElement.rect.x,
       this._barOffset.y + this._beatElement.rect.y
     );
 
     this.renderLabels(beatOffset);
-    this.renderNoteElements(beatOffset);
+    const newNoteRenderers = this.renderNoteElements(beatOffset);
 
     this.renderBeatDuration(beatOffset);
     if (this._beatElement.selected) {
@@ -308,6 +316,8 @@ export class SVGBeatRenderer {
     } else {
       this.unrenderBeatSelection();
     }
+
+    return newNoteRenderers;
   }
 
   /**
@@ -343,9 +353,19 @@ export class SVGBeatRenderer {
       throw Error("Tried to add beat click event when SVG group undefined");
     }
 
-    this._groupSVG.addEventListener(eventType, (event) => {
-      eventHandler(event, this._beatElement);
-    });
+    const listener = (event: Event) => {
+      eventHandler(event as SVGElementEventMap[K], this._beatElement);
+    };
+
+    if (this._attachedEvents.has(eventType)) {
+      this._groupSVG.removeEventListener(
+        eventType,
+        this._attachedEvents.get(eventType)!
+      );
+    }
+
+    this._groupSVG.addEventListener(eventType, listener);
+    this._attachedEvents.set(eventType, listener);
   }
 
   public get noteRenderers(): SVGNoteRenderer[] {

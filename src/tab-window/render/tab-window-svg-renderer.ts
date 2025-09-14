@@ -4,6 +4,9 @@ import { SVGTabLineRenderer } from "./svg/svg-tab-line-renderer";
 import { Rect } from "../shapes/rect";
 import { createSVGRect } from "../../misc/svg-creators";
 import { TabPlayerSVGAnimator } from "../player/tab-player-svg-animator";
+import { SVGBarRenderer } from "./svg/svg-bar-renderer";
+import { SVGBeatRenderer } from "./svg/svg-beat-renderer";
+import { SVGNoteRenderer } from "./svg/svg-note-renderer";
 
 /**
  * Render a tab window using SVG
@@ -39,7 +42,7 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
   /**
    * Render all tab lines
    */
-  public renderTabLines(): void {
+  public renderTabLines(): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
     const tabLineElements = this.tabWindow.getTabLineElements();
 
     // Check if there are any bar elements to remove
@@ -50,6 +53,8 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
         this._renderedTabLineElements.delete(uuid);
       }
     }
+
+    const newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] = [];
 
     // Add & render new bar elements
     for (const tabLineElement of tabLineElements) {
@@ -63,12 +68,13 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
           this._assetsPath,
           this._svgRoot
         );
-        renderer.renderTabLine();
+        newRenderers.push(...renderer.renderTabLine());
         this._renderedTabLineElements.set(tabLineElement.uuid, renderer);
       } else {
-        renderedTLE.renderTabLine();
+        newRenderers.push(...renderedTLE.renderTabLine());
       }
     }
+    return newRenderers;
   }
 
   /**
@@ -140,17 +146,17 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
   /**
    * Render tab window using SVG
    */
-  public render(): void {
+  public render(): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
     // Render lines first
-    this.renderTabLines();
+    const newRenderers = this.renderTabLines();
 
     // Player overlay rect
-    this.renderPlayerOverlay();
     if (this.tabWindow.getIsPlaying()) {
       this.renderPlayerOverlay();
     } else {
       this.hidePlayerOverlay();
     }
+    return newRenderers;
   }
 
   public get lineRenderers(): SVGTabLineRenderer[] {

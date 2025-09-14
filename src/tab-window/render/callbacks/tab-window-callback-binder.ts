@@ -3,6 +3,9 @@ import { NoteElement } from "../../elements/note-element";
 import { Point } from "../../shapes/point";
 import { TabWindowRenderer } from "../tab-window-renderer";
 import { TabWindowSVGRenderer } from "../tab-window-svg-renderer";
+import { SVGBarRenderer } from "../svg/svg-bar-renderer";
+import { SVGBeatRenderer } from "../svg/svg-beat-renderer";
+import { SVGNoteRenderer } from "../svg/svg-note-renderer";
 import { TabWindowKeyboardCallbacks } from "./tab-window-keyboard-callbacks";
 import { TabWindowMouseCallbacks } from "./tab-window-mouse-callbacks";
 
@@ -10,6 +13,7 @@ export class TabWindowCallbackBinder {
   private _renderer: TabWindowSVGRenderer;
   private _mouseCallbacks: TabWindowMouseCallbacks;
   private _keyboardCallbacks: TabWindowKeyboardCallbacks;
+  private _keyboardBound = false;
 
   constructor(
     renderer: TabWindowSVGRenderer,
@@ -21,41 +25,38 @@ export class TabWindowCallbackBinder {
     this._keyboardCallbacks = keyboardCallbacks;
   }
 
-  private bindMouseEvents(): void {
-    for (const tleRenderer of this._renderer.lineRenderers) {
-      for (const barRenderer of tleRenderer.barRenderers) {
-        for (const beatRenderer of barRenderer.beatRenderers) {
-          // Beat level mouse events
-          beatRenderer.attachMouseEvent(
-            "mousedown",
-            this._mouseCallbacks.onBeatMouseDown.bind(this)
-          );
-          beatRenderer.attachMouseEvent(
-            "mouseenter",
-            this._mouseCallbacks.onBeatMouseEnter.bind(this)
-          );
-          beatRenderer.attachMouseEvent(
-            "mousemove",
-            this._mouseCallbacks.onBeatMouseMove.bind(this)
-          );
-          beatRenderer.attachMouseEvent(
-            "mouseup",
-            this._mouseCallbacks.onBeatMouseUp.bind(this)
-          );
-
-          for (const noteRenderer of beatRenderer.noteRenderers) {
-            // Note level mouse events
-            noteRenderer.attachMouseEvent(
-              "click",
-              this._mouseCallbacks.onNoteClick.bind(this)
-            );
-          }
-        }
+  private bindMouseEvents(renderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]): void {
+    for (const renderer of renderers) {
+      if (renderer instanceof SVGBeatRenderer) {
+        renderer.attachMouseEvent(
+          "mousedown",
+          this._mouseCallbacks.onBeatMouseDown.bind(this._mouseCallbacks)
+        );
+        renderer.attachMouseEvent(
+          "mouseenter",
+          this._mouseCallbacks.onBeatMouseEnter.bind(this._mouseCallbacks)
+        );
+        renderer.attachMouseEvent(
+          "mousemove",
+          this._mouseCallbacks.onBeatMouseMove.bind(this._mouseCallbacks)
+        );
+        renderer.attachMouseEvent(
+          "mouseup",
+          this._mouseCallbacks.onBeatMouseUp.bind(this._mouseCallbacks)
+        );
+      } else if (renderer instanceof SVGNoteRenderer) {
+        renderer.attachMouseEvent(
+          "click",
+          this._mouseCallbacks.onNoteClick.bind(this._mouseCallbacks)
+        );
       }
     }
   }
 
   private bindKeyboardEvents(): void {
+    if (this._keyboardBound) {
+      return;
+    }
     document.addEventListener("keydown", (event: KeyboardEvent) => {
       console.log(event.key);
       if (event.ctrlKey && !event.shiftKey) {
@@ -86,10 +87,11 @@ export class TabWindowCallbackBinder {
         }
       }
     });
+    this._keyboardBound = true;
   }
 
-  public bind(): void {
-    this.bindMouseEvents();
+  public bind(renderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]): void {
+    this.bindMouseEvents(renderers);
     this.bindKeyboardEvents();
   }
 }

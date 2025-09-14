@@ -52,7 +52,7 @@ export class SVGTabLineRenderer {
   /**
    * Render tab line element
    */
-  public renderTabLine(): void {
+  public renderTabLine(): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
     const tleOffset = new Point(0, this._tabLineElement.rect.y);
 
     // Check if there are any bar elements to remove
@@ -66,6 +66,8 @@ export class SVGTabLineRenderer {
       }
     }
 
+    const newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] = [];
+
     // Add & render new bar elements AND re-render existing bar elements
     for (const barElement of this._tabLineElement.barElements) {
       const renderedBar = this._renderedBarElements.get(barElement.bar.uuid);
@@ -77,12 +79,15 @@ export class SVGTabLineRenderer {
           this._assetsPath,
           this._svgRoot
         );
-        renderer.renderBarElement();
+        newRenderers.push(renderer);
+        newRenderers.push(...renderer.renderBarElement());
         this._renderedBarElements.set(barElement.bar.uuid, renderer);
       } else {
-        renderedBar.renderBarElement();
+        newRenderers.push(...renderedBar.renderBarElement(tleOffset));
       }
     }
+
+    return newRenderers;
   }
 
   /**

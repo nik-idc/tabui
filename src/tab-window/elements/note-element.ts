@@ -3,11 +3,13 @@ import { Point } from "../shapes/point";
 import { GuitarNote } from "./../../models/guitar-note";
 import { TabWindowDim } from "../tab-window-dim";
 import { GuitarEffectElement } from "./effects/guitar-effect-element";
+import { randomInt } from "../../misc/random-int";
 
 /**
  * Class that handles drawing note element in the tab
  */
 export class NoteElement {
+  readonly uuid: number;
   /**
    * Tab window dimensions
    */
@@ -19,15 +21,15 @@ export class NoteElement {
   /**
    * Rectangle of the main clickable-area rectangle
    */
-  readonly rect: Rect = new Rect();
+  public rect: Rect = new Rect();
   /**
    * Rectangle of the note text rectangle
    */
-  readonly textRect: Rect = new Rect();
+  public textRect: Rect = new Rect();
   /**
    * Rectangle of the note text rectangle
    */
-  readonly textCoords: Point = new Point();
+  public textCoords: Point = new Point();
   /**
    * Array of guitar effect elements
    */
@@ -40,6 +42,7 @@ export class NoteElement {
    * @param note Note
    */
   constructor(dim: TabWindowDim, width: number, note: GuitarNote) {
+    this.uuid = randomInt();
     this.dim = dim;
     this.note = note;
     this.rect = new Rect(
@@ -67,17 +70,33 @@ export class NoteElement {
     this.textCoords.x = this.textRect.x + this.dim.noteTextSize / 2;
     this.textCoords.y = this.textRect.y + this.dim.noteTextSize / 2;
 
-    this._guitarEffectElements = [];
+    const newGuitarEffectElements: GuitarEffectElement[] = [];
+    const oldGuitarEffectElements = [...this._guitarEffectElements];
+
     for (const effect of this.note.effects) {
-      this._guitarEffectElements.push(
-        new GuitarEffectElement(
+      const oldElementIndex = oldGuitarEffectElements.findIndex(
+        (e) => e.effect.uuid === effect.uuid
+      );
+      let element: GuitarEffectElement;
+
+      if (oldElementIndex !== -1) {
+        // Effect already applied to the note and calc-ed,
+        // so just need to update the effect's dimensions
+        element = oldGuitarEffectElements.splice(oldElementIndex, 1)[0];
+        element.update(this.rect);
+      } else {
+        // Effect applied but not calc-ed yet,
+        // so need to create a new guitar effect element
+        element = new GuitarEffectElement(
           effect,
           this.note.stringNum,
           this.rect,
           this.dim
-        )
-      );
+        );
+      }
+      newGuitarEffectElements.push(element);
     }
+    this._guitarEffectElements = newGuitarEffectElements;
   }
 
   public scaleHorBy(scale: number): void {

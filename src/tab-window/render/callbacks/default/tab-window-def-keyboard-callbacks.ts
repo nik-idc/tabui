@@ -4,6 +4,9 @@ import { GuitarEffectType } from "../../../../models/guitar-effect/guitar-effect
 import { SelectedMoveDirection } from "../../../elements/selected-element";
 import { TabWindowSVGRenderer } from "../../tab-window-svg-renderer";
 import { TabWindowKeyboardCallbacks } from "../tab-window-keyboard-callbacks";
+import { SVGBarRenderer } from "../../svg/svg-bar-renderer";
+import { SVGBeatRenderer } from "../../svg/svg-beat-renderer";
+import { SVGNoteRenderer } from "../../svg/svg-note-renderer";
 
 export class TabWindowKeyboardDefCallbacks
   implements TabWindowKeyboardCallbacks
@@ -11,11 +14,20 @@ export class TabWindowKeyboardDefCallbacks
   readonly eventsTimeEpsilon: number = 250;
 
   private _renderer: TabWindowSVGRenderer;
+  private _renderAndBind: (
+    newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+  ) => void;
 
   private _prevKeyPress?: { time: number; key: string };
 
-  constructor(renderer: TabWindowSVGRenderer) {
+  constructor(
+    renderer: TabWindowSVGRenderer,
+    renderAndBind: (
+      newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+    ) => void
+  ) {
     this._renderer = renderer;
+    this._renderAndBind = renderAndBind;
   }
 
   public ctrlCEvent(event: KeyboardEvent): void {
@@ -26,7 +38,7 @@ export class TabWindowKeyboardDefCallbacks
   public ctrlVEvent(event: KeyboardEvent): void {
     console.log("ctrlVEvent");
     this._renderer.tabWindow.paste();
-    this._renderer.render();
+    this._renderAndBind(this._renderer.render());
   }
 
   public ctrlZEvent(event: KeyboardEvent): void {
@@ -37,18 +49,18 @@ export class TabWindowKeyboardDefCallbacks
      * beat element corresponding to the current tab player beat
      */
     this._renderer.tabWindow.undo();
-    this._renderer.render();
+    this._renderAndBind(this._renderer.render());
   }
 
   public ctrlYEvent(event: KeyboardEvent): void {
     console.log("ctrlYEvent");
     this._renderer.tabWindow.redo();
-    this._renderer.render();
+    this._renderAndBind(this._renderer.render());
   }
 
   public deleteEvent(event: KeyboardEvent): void {
     this._renderer.tabWindow.deleteSelectedBeats();
-    this._renderer.render();
+    this._renderAndBind(this._renderer.render());
   }
 
   public applyOrRemoveEffect(
@@ -76,7 +88,7 @@ export class TabWindowKeyboardDefCallbacks
       this._renderer.tabWindow.removeEffectSingle(effectType, options);
     }
 
-    this._renderer.render();
+    this._renderAndBind(this._renderer.render());
   }
 
   public shiftVEvent(event: KeyboardEvent): void {
@@ -97,7 +109,7 @@ export class TabWindowKeyboardDefCallbacks
     } else {
       this._renderer.tabWindow.startPlayer();
     }
-    this._renderer.render();
+    this._renderAndBind(this._renderer.render());
   }
 
   public onNumberDown(key: string): void {
@@ -116,6 +128,7 @@ export class TabWindowKeyboardDefCallbacks
     if (!this._prevKeyPress) {
       this._prevKeyPress = { time: new Date().getTime(), key: key };
       this._renderer.tabWindow.setSelectedElementFret(newFret);
+      this._renderAndBind(this._renderer.render());
       return;
     }
 
@@ -130,6 +143,7 @@ export class TabWindowKeyboardDefCallbacks
     // Update prev tab key press object
     this._prevKeyPress.time = now;
     this._prevKeyPress.key = key;
+    this._renderAndBind(this._renderer.render());
   }
 
   public onArrowDown(key: string): void {
@@ -152,6 +166,7 @@ export class TabWindowKeyboardDefCallbacks
         this._renderer.tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
         break;
     }
+    this._renderAndBind(this._renderer.render());
   }
 
   public onBackspacePress(): void {
@@ -166,6 +181,7 @@ export class TabWindowKeyboardDefCallbacks
     }
 
     this._renderer.tabWindow.setSelectedElementFret(undefined);
+    this._renderAndBind(this._renderer.render());
   }
 
   public onCtrlDel(): void {
@@ -184,6 +200,7 @@ export class TabWindowKeyboardDefCallbacks
       this.onBackspacePress();
     }
 
-    this._renderer.render();
+    // This render call is now handled by the individual key handlers
+    // this._renderAndBind(this._renderer.render());
   }
 }

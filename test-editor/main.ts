@@ -9,6 +9,9 @@ import {
   TabWindowMouseDefCallbacks,
   TabWindowKeyboardCallbacks,
   TabWindowKeyboardDefCallbacks,
+  SVGBarRenderer,
+  SVGBeatRenderer,
+  SVGNoteRenderer,
 } from "../src/index";
 import { createBasicTabWindow, fillTestTab } from "./data";
 import { data2TabWindow } from "./data2";
@@ -56,16 +59,20 @@ svgRoot.setAttribute("width", svgRootWidth);
 svgRoot.setAttribute("height", svgRootHeight);
 
 const svgRenderer = new TabWindowSVGRenderer(data2TabWindow, "assets", svgRoot);
-svgRenderer.render();
 
-const mouseCallbacks = new TabWindowMouseDefCallbacks(svgRenderer);
-const keyboardCallbacks = new TabWindowKeyboardDefCallbacks(svgRenderer);
 const binder = new TabWindowCallbackBinder(
   svgRenderer,
-  mouseCallbacks,
-  keyboardCallbacks
+  new TabWindowMouseDefCallbacks(svgRenderer, renderAndBind),
+  new TabWindowKeyboardDefCallbacks(svgRenderer, renderAndBind)
 );
-binder.bind();
+
+function renderAndBind(
+  newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+): void {
+  binder.bind(newRenderers);
+}
+
+renderAndBind(svgRenderer.render());
 
 // // Setup player cursor
 // const playerAnimator = new TabPlayerSVGAnimator(data2TabWindow);
@@ -74,50 +81,24 @@ binder.bind();
 // Handlers
 function onPlay(): void {
   data2TabWindow.startPlayer();
-  svgRenderer.render();
+  renderAndBind(svgRenderer.render());
 }
 
 function onStop(): void {
   data2TabWindow.stopPlayer();
-  svgRenderer.render();
+  renderAndBind(svgRenderer.render());
 }
 
 function onStartOver(): void {
   data2TabWindow.stopPlayer();
   data2TabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
   data2TabWindow.startPlayer();
+  renderAndBind(svgRenderer.render());
 }
 
 function onJumpToSecondBeat(): void {
   data2TabWindow.selectNoteElementUsingIds(0, 0, 1, 0);
-}
-
-function onBeatClicked(beatElement: BeatElement): void {
-  console.log(`On beat clicked: ${beatElement.beat.uuid}`);
-
-  const notes = beatElement.beatNotesElement.noteElements;
-  data2TabWindow.selectNoteElement(notes[0]);
-}
-
-function bindOnClickedToBeats(): void {
-  const lines = data2TabWindow.getTabLineElements();
-  for (const line of lines) {
-    for (const bar of line.barElements) {
-      for (const beat of bar.beatElements) {
-        const beatGroup = document.getElementById(
-          `beat-${beat.beat.uuid}`
-        ) as SVGGElement | null;
-
-        if (beatGroup === null) {
-          continue;
-        }
-
-        beatGroup.addEventListener("click", (ev: MouseEvent) => {
-          onBeatClicked(beat);
-        });
-      }
-    }
-  }
+  renderAndBind(svgRenderer.render());
 }
 
 // Bind events
@@ -125,5 +106,3 @@ playButton.addEventListener("click", onPlay);
 stopButton.addEventListener("click", onStop);
 startOverButton.addEventListener("click", onStartOver);
 jumpToSecondBeatButton.addEventListener("click", onJumpToSecondBeat);
-
-bindOnClickedToBeats();

@@ -15,6 +15,7 @@ import {
   SelectedElement,
 } from "./selected-element";
 import { TabLineElement } from "./tab-line-element";
+import { randomInt } from "../../misc/random-int";
 
 /**
  * Tab window specific selected element ids
@@ -57,6 +58,7 @@ export type SelectedElementsAndIds = {
 };
 
 export class TabElement {
+  readonly uuid: number;
   private _score: Score;
   /**
    * Tab object to get data from
@@ -77,6 +79,7 @@ export class TabElement {
   private _selectionRects: Rect[];
 
   constructor(score: Score, tabIndex: number, dim: TabWindowDim) {
+    this.uuid = randomInt();
     this._score = score;
     this._tabIndex = tabIndex;
     this._tab = this._score.tracks[this._tabIndex];
@@ -108,11 +111,59 @@ export class TabElement {
   public calc(): void {
     this._selectionRects = [];
 
-    this._tabLineElements = [
-      new TabLineElement(this._tab, this.dim, new Point(0, 0)),
-    ];
+    const oldBarElements = this._tabLineElements.flatMap(
+      (line) => line.barElements
+    );
+
+    const oldLines = this._tabLineElements;
+    this._tabLineElements = [];
+
+    let currentLine = oldLines.shift() || new TabLineElement(this._tab, this.dim, new Point(0, 0));
+    currentLine.barElements = [];
+    currentLine.rect.width = 0;
+    currentLine.rect.height = this.dim.tabLineMinHeight;
+    currentLine.effectLabelsRect.width = 0;
+    currentLine.effectLabelsRect.height = 0;
+    currentLine.rect.x = 0;
+    currentLine.rect.y = 0;
+    this._tabLineElements.push(currentLine);
+
     for (let barIndex = 0; barIndex < this._tab.bars.length; barIndex++) {
-      this.addBar(this._tab.bars[barIndex], this._tab.bars[barIndex - 1]);
+      const bar = this._tab.bars[barIndex];
+      const prevBar = this._tab.bars[barIndex - 1];
+
+      const oldElementIndex = oldBarElements.findIndex(
+        (e) => e.bar.uuid === bar.uuid
+      );
+      let barElement: BarElement;
+
+      if (oldElementIndex > -1) {
+        barElement = oldBarElements.splice(oldElementIndex, 1)[0];
+      } else {
+        barElement = BarElement.createBarElement(
+          this.dim,
+          bar,
+          prevBar,
+          0,
+          0
+        );
+      }
+
+      if (!currentLine.barElementFits(barElement)) {
+        currentLine.justifyElements();
+        const prevLine = currentLine;
+        currentLine = oldLines.shift() || new TabLineElement(this._tab, this.dim, new Point(0, 0));
+        currentLine.barElements = [];
+        currentLine.rect.width = 0;
+        currentLine.rect.height = this.dim.tabLineMinHeight;
+        currentLine.effectLabelsRect.width = 0;
+        currentLine.effectLabelsRect.height = 0;
+        currentLine.rect.x = 0;
+        currentLine.rect.y = prevLine.rect.leftBottom.y;
+        this._tabLineElements.push(currentLine);
+      }
+
+      currentLine.addBar(bar, prevBar, barElement);
     }
   }
 

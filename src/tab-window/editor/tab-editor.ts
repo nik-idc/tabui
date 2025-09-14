@@ -183,6 +183,8 @@ export class TabEditor {
       this.undoStack.push(beforeApply);
     }
 
+    this.tabElement.calc();
+
     if (
       elsAndIds.tabLineElementId !==
       this.tabElement.tabLineElements.length - 1
@@ -223,6 +225,8 @@ export class TabEditor {
       elsAndIds.stringNum,
       effectIndex
     );
+
+    this.tabElement.calc();
 
     if (
       elsAndIds.tabLineElementId !==

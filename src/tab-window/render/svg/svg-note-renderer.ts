@@ -25,6 +25,9 @@ export class SVGNoteRenderer {
   private _rectSVG?: SVGRectElement;
   private _textSVG?: SVGTextElement;
   private _backgroundSVG?: SVGRectElement;
+  private _selectionRectSVG?: SVGRectElement;
+
+  private _attachedEvents: Map<string, EventListener> = new Map();
 
   /**
    * Class for rendering a note element using SVG
@@ -48,6 +51,7 @@ export class SVGNoteRenderer {
     this._parentElement = parentElement;
 
     this._renderedEffects = new Map();
+    this._attachedEvents = new Map();
   }
 
   /**
@@ -117,14 +121,64 @@ export class SVGNoteRenderer {
   }
 
   /**
+   * Renders the selection rectangle for the note
+   */
+  private renderSelectionRect(): void {
+    if (this._groupSVG === undefined) {
+      throw Error(
+        "Tried to render note selection rect when SVG group undefined"
+      );
+    }
+    if (this._selectionRectSVG === undefined) {
+      this._selectionRectSVG = createSVGRect();
+      this._selectionRectSVG.setAttribute(
+        "id",
+        `note-selection-${this._noteElement.note.uuid}`
+      );
+      this._selectionRectSVG.setAttribute("fill", "white");
+      this._selectionRectSVG.setAttribute("stroke", "orange");
+      this._selectionRectSVG.setAttribute("stroke-width", "1");
+      this._selectionRectSVG.setAttribute("rx", "3");
+      this._selectionRectSVG.setAttribute("ry", "3");
+      this._groupSVG.appendChild(this._selectionRectSVG);
+    }
+    const padding = 2;
+    const x = `${
+      this._beatNotesOffset.x + this._noteElement.textRect.x - padding
+    }`;
+    const y = `${
+      this._beatNotesOffset.y + this._noteElement.textRect.y - padding
+    }`;
+    const width = `${this._noteElement.textRect.width + padding * 2}`;
+    const height = `${this._noteElement.textRect.height + padding * 2}`;
+    this._selectionRectSVG.setAttribute("x", x);
+    this._selectionRectSVG.setAttribute("y", y);
+    this._selectionRectSVG.setAttribute("width", width);
+    this._selectionRectSVG.setAttribute("height", height);
+  }
+
+  /**
+   * Unrenders the selection rectangle for the note
+   */
+  private unrenderSelectionRect(): void {
+    if (this._selectionRectSVG !== undefined) {
+      if (this._groupSVG === undefined) {
+        throw Error(
+          "Tried to unrender note selection rect when SVG group undefined"
+        );
+      }
+      this._groupSVG.removeChild(this._selectionRectSVG);
+      this._selectionRectSVG = undefined;
+    }
+  }
+
+  /**
    * Render the rect behind note's text
    * @param noteOffset Note elements global offset
    */
   private renderNoteBackground(noteOffset: Point): void {
     if (this._groupSVG === undefined) {
-      throw Error(
-        "Tried to unrender note background when SVG group undefined"
-      );
+      throw Error("Tried to unrender note background when SVG group undefined");
     }
 
     if (this._noteElement.note.fret === undefined) {
@@ -154,6 +208,7 @@ export class SVGNoteRenderer {
     this._backgroundSVG.setAttribute("y", y);
     this._backgroundSVG.setAttribute("width", width);
     this._backgroundSVG.setAttribute("height", height);
+    this._groupSVG.appendChild(this._backgroundSVG);
   }
 
   /**
@@ -178,7 +233,7 @@ export class SVGNoteRenderer {
    * @param noteElement Note element
    * @param selected True if note is selected, false otherwise
    */
-  private renderNoteText(noteOffset: Point, selected: boolean): void {
+  private renderNoteText(noteOffset: Point): void {
     if (this._groupSVG === undefined) {
       throw Error("Tried to render note text when SVG group undefined");
     }
@@ -196,6 +251,7 @@ export class SVGNoteRenderer {
       this._textSVG.setAttribute("font-size", fontSize);
       this._textSVG.setAttribute("text-anchor", "middle");
       this._textSVG.setAttribute("dominant-baseline", "middle");
+      this._textSVG.setAttribute("fill", "black");
 
       // Set id
       this._textSVG.setAttribute("id", `note-text-${noteUUID}`);
@@ -209,11 +265,7 @@ export class SVGNoteRenderer {
     this._textSVG.setAttribute("x", x);
     this._textSVG.setAttribute("y", y);
     this._textSVG.textContent = `${this._noteElement.note.fret}`;
-    if (selected) {
-      this._textSVG.setAttribute("stroke", "orange");
-    } else {
-      this._textSVG.setAttribute("stroke", "none");
-    }
+    this._groupSVG.appendChild(this._textSVG);
   }
 
   /**
@@ -234,14 +286,21 @@ export class SVGNoteRenderer {
 
   /**
    * Render the full note element
+   * @param newBeatNotesOffset Optional new beat notes offset
    */
-  public renderNoteElement(): void {
+  public renderNoteElement(newBeatNotesOffset?: Point): void {
     this.renderGroup();
 
     if (this._groupSVG === undefined) {
       throw Error("Note group SVG undefined after render attempt");
     }
 
+    if (newBeatNotesOffset !== undefined) {
+      this._beatNotesOffset = new Point(
+        newBeatNotesOffset.x,
+        newBeatNotesOffset.y
+      );
+    }
     const noteOffset = new Point(
       this._beatNotesOffset.x,
       this._beatNotesOffset.y
@@ -249,14 +308,20 @@ export class SVGNoteRenderer {
 
     this.renderNoteRect();
 
+    const selected =
+      this._tabWindow.getSelectedElement()?.note.uuid ===
+      this._noteElement.note.uuid;
+
+    if (selected) {
+      this.renderSelectionRect();
+    } else {
+      this.unrenderSelectionRect();
+    }
+
     // Render note value stuff if note value defined, remove it otherwise
     if (this._noteElement.note.fret !== undefined) {
       this.renderNoteBackground(noteOffset);
-      this.renderNoteText(
-        noteOffset,
-        this._tabWindow.getSelectedElement()?.note.uuid ===
-          this._noteElement.note.uuid
-      );
+      this.renderNoteText(noteOffset);
     } else {
       this.unrenderNoteBackground();
       this.unrenderNoteText();
@@ -306,6 +371,7 @@ export class SVGNoteRenderer {
       renderer.unrender();
     }
 
+    this.unrenderSelectionRect();
     this.unrenderNoteRect();
     this.unrenderNoteBackground();
     this.unrenderNoteText();
@@ -330,8 +396,18 @@ export class SVGNoteRenderer {
       throw Error("Tried to add note click event when SVG group undefined");
     }
 
-    this._groupSVG.addEventListener(eventType, (event) => {
-      eventHandler(event, this._noteElement);
-    });
+    const listener = (event: Event) => {
+      eventHandler(event as SVGElementEventMap[K], this._noteElement);
+    };
+
+    if (this._attachedEvents.has(eventType)) {
+      this._groupSVG.removeEventListener(
+        eventType,
+        this._attachedEvents.get(eventType)!
+      );
+    }
+
+    this._groupSVG.addEventListener(eventType, listener);
+    this._attachedEvents.set(eventType, listener);
   }
 }

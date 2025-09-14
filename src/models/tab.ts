@@ -196,6 +196,8 @@ export class Tab {
         });
       })[0];
 
+      const beatIndex = bar.beats.findIndex((b) => b.uuid === oldBeats[0].uuid);
+
       // Remove selected beats
       this.removeBeats(oldBeats);
 
@@ -204,7 +206,10 @@ export class Tab {
       for (const beat of newBeats) {
         newBeatsCopies.push(beat.deepCopy());
       }
-      bar.insertBeats(bar.beats.length - 1, newBeatsCopies);
+      // Error: need to provide the index
+      // of the beat AFTER WHICH the new beats
+      // should be inserted
+      bar.insertBeats(beatIndex - 1, newBeatsCopies);
     } else {
       // Replace all notes in selection with copied beats
       for (let i = 0; i < oldBeats.length; i++) {

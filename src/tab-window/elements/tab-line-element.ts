@@ -136,14 +136,22 @@ export class TabLineElement {
    * @param prevBar Previous bar
    * @returns True if added succesfully, false otherwise
    */
-  public addBar(bar: Bar, prevBar?: Bar): boolean {
-    const barElement = BarElement.createBarElement(
-      this.dim,
-      bar,
-      prevBar,
-      this.rect.rightTop.x,
-      this.effectLabelsRect.height
-    );
+  public addBar(bar: Bar, prevBar?: Bar, barElement?: BarElement): boolean {
+    if (barElement === undefined) {
+      barElement = BarElement.createBarElement(
+        this.dim,
+        bar,
+        prevBar,
+        this.rect.rightTop.x,
+        this.effectLabelsRect.height
+      );
+    } else {
+      barElement.update(
+        prevBar,
+        this.rect.rightTop.x,
+        this.effectLabelsRect.height
+      );
+    }
 
     if (!this.barElementFits(barElement)) {
       this.justifyElements();
@@ -162,27 +170,45 @@ export class TabLineElement {
     return true;
   }
 
-  public calc(): void {
-    const bars = this.barElements.map((be) => be.bar);
-    this.rect = new Rect(
-      this.rect.x,
-      this.rect.y,
-      0,
-      this.dim.tabLineMinHeight
-    );
-    this.effectLabelsRect = new Rect(this.rect.x, this.rect.y, 0, 0);
-    this.barElements = [];
+  // /**
+  //  * Attempts to insert a bar to the line
+  //  * @param bar Bar to insert
+  //  * @param prevBar Bar before which to insert
+  //  * @returns True if inserted succesfully, false otherwise
+  //  */
+  // public insertBar(bar: Bar, prevBar?: Bar): boolean {
+  //   const prevBarElementIndex = this.barElements.findIndex(
+  //     (be) => be.bar.uuid === prevBar?.uuid
+  //   );
+  //   const prevBarElement = this.barElements[prevBarElementIndex];
+  //   const barElement = BarElement.createBarElement(
+  //     this.dim,
+  //     bar,
+  //     prevBar,
+  //     prevBarElement.rect.rightTop.x,
+  //     this.effectLabelsRect.height
+  //   );
 
-    for (let i = 0; i < bars.length; i++) {
-      const prevBarIndex = this.tab.bars.findIndex(
-        (bar) => bar.uuid === bars[i].uuid
-      );
-      const prevBar =
-        prevBarIndex === 0 ? undefined : this.tab.bars[prevBarIndex - 1];
-      this.addBar(bars[i], prevBar);
-    }
-    // this.justifyElements();
-  }
+  //   if (!this.barElementFits(barElement)) {
+  //     return false;
+  //   }
+
+  //   if (barElement.rect.height > this.rect.height) {
+  //     const gapHeight = barElement.rect.height - this.rect.height;
+  //     this.insertEffectGap(gapHeight);
+  //   }
+
+  //   this.barElements.splice(prevBarElementIndex, 0, barElement);
+  //   for (let i = prevBarElementIndex + 2; i < this.barElements.length; i++) {
+  //     this.barElements[i].rect.x
+  //   }
+
+  //   this.changeWidth(barElement.rect.width);
+
+  //   return true;
+  // }
+
+  
 
   /**
    * Removes bar element
@@ -236,8 +262,6 @@ export class TabLineElement {
     //   this.setHeight(this.rect.height + (newHeight - prevHeight));
     // }
 
-    this.calc();
-
     return true;
   }
 
@@ -273,11 +297,13 @@ export class TabLineElement {
     // if (newMaxHeight < prevMaxHeight) {
     //   this.setHeight(this.rect.height - (prevMaxHeight - newMaxHeight));
     // }
-
-    this.calc();
   }
 
   public getFitToScale(): number {
     return this.rect.width / this.dim.width;
+  }
+
+  public findBarElementByUUID(barUUID: number): BarElement | undefined {
+    return this.barElements.find((be) => be.bar.uuid === barUUID);
   }
 }

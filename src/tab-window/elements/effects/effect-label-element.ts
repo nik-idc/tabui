@@ -49,6 +49,14 @@ export class EffectLabelElement {
     this.calc();
   }
 
+  public update(rect: Rect): void {
+    this._rect.x = rect.x;
+    this._rect.y = rect.y;
+    this._rect.width = rect.width;
+    this._rect.height = rect.height;
+    this.calc();
+  }
+
   /**
    * Generates bend pitch HTML
    */
