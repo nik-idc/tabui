@@ -10,6 +10,7 @@ import {
   TabWindowDim,
   TabWindowRenderer,
   Score,
+  GuitarNote,
 } from "../src/index";
 
 // Tab window dim
@@ -35,16 +36,72 @@ export function createBasicTab() {
 
   const bars = [
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Beat(guitar, NoteDuration.Quarter),
-      new Beat(guitar, NoteDuration.Quarter),
-      new Beat(guitar, NoteDuration.Quarter),
-      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter, [
+        new GuitarNote(guitar, 1, 8),
+        new GuitarNote(guitar, 2),
+        new GuitarNote(guitar, 3),
+        new GuitarNote(guitar, 4),
+        new GuitarNote(guitar, 5),
+        new GuitarNote(guitar, 6),
+      ]),
+      new Beat(guitar, NoteDuration.Quarter, [
+        new GuitarNote(guitar, 1, 10),
+        new GuitarNote(guitar, 2),
+        new GuitarNote(guitar, 3),
+        new GuitarNote(guitar, 4),
+        new GuitarNote(guitar, 5),
+        new GuitarNote(guitar, 6),
+      ]),
+      new Beat(guitar, NoteDuration.Quarter, [
+        new GuitarNote(guitar, 1, 12),
+        new GuitarNote(guitar, 2),
+        new GuitarNote(guitar, 3),
+        new GuitarNote(guitar, 4),
+        new GuitarNote(guitar, 5),
+        new GuitarNote(guitar, 6),
+      ]),
+      new Beat(guitar, NoteDuration.Quarter, [
+        new GuitarNote(guitar, 1, 13),
+        new GuitarNote(guitar, 2),
+        new GuitarNote(guitar, 3),
+        new GuitarNote(guitar, 4),
+        new GuitarNote(guitar, 5),
+        new GuitarNote(guitar, 6),
+      ]),
     ]),
     new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Beat(guitar, NoteDuration.Quarter),
-      new Beat(guitar, NoteDuration.Quarter),
-      new Beat(guitar, NoteDuration.Quarter),
-      new Beat(guitar, NoteDuration.Quarter),
+      new Beat(guitar, NoteDuration.Quarter, [
+        new GuitarNote(guitar, 1),
+        new GuitarNote(guitar, 2),
+        new GuitarNote(guitar, 3),
+        new GuitarNote(guitar, 4),
+        new GuitarNote(guitar, 5),
+        new GuitarNote(guitar, 6),
+      ]),
+      new Beat(guitar, NoteDuration.Quarter, [
+        new GuitarNote(guitar, 1),
+        new GuitarNote(guitar, 2),
+        new GuitarNote(guitar, 3),
+        new GuitarNote(guitar, 4),
+        new GuitarNote(guitar, 5),
+        new GuitarNote(guitar, 6),
+      ]),
+      new Beat(guitar, NoteDuration.Quarter, [
+        new GuitarNote(guitar, 1),
+        new GuitarNote(guitar, 2),
+        new GuitarNote(guitar, 3),
+        new GuitarNote(guitar, 4),
+        new GuitarNote(guitar, 5),
+        new GuitarNote(guitar, 6),
+      ]),
+      new Beat(guitar, NoteDuration.Quarter, [
+        new GuitarNote(guitar, 1),
+        new GuitarNote(guitar, 2),
+        new GuitarNote(guitar, 3),
+        new GuitarNote(guitar, 4),
+        new GuitarNote(guitar, 5),
+        new GuitarNote(guitar, 6),
+      ]),
     ]),
   ];
 
@@ -72,17 +129,17 @@ export function createBasicTabWindow() {
   return tabWindow;
 }
 
-export function fillTestTab(tabWindow: TabWindow): void {
-  // First string
-  tabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
-  tabWindow.setSelectedElementFret(8);
-  tabWindow.selectNoteElementUsingIds(0, 0, 1, 0);
-  tabWindow.setSelectedElementFret(10);
-  tabWindow.selectNoteElementUsingIds(0, 0, 2, 0);
-  tabWindow.setSelectedElementFret(12);
-  tabWindow.selectNoteElementUsingIds(0, 0, 3, 0);
-  tabWindow.setSelectedElementFret(13);
-}
+// export function fillTestTab(tabWindow: TabWindow): void {
+//   // First string
+//   tabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
+//   tabWindow.setSelectedElementFret(8);
+//   tabWindow.selectNoteElementUsingIds(0, 0, 1, 0);
+//   tabWindow.setSelectedElementFret(10);
+//   tabWindow.selectNoteElementUsingIds(0, 0, 2, 0);
+//   tabWindow.setSelectedElementFret(12);
+//   tabWindow.selectNoteElementUsingIds(0, 0, 3, 0);
+//   tabWindow.setSelectedElementFret(13);
+// }
 
 export const data2TabWindow = createBasicTabWindow();
-fillTestTab(data2TabWindow);
+// fillTestTab(data2TabWindow);

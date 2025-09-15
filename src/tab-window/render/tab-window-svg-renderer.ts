@@ -42,7 +42,11 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
   /**
    * Render all tab lines
    */
-  public renderTabLines(): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
+  public renderTabLines(): (
+    | SVGBarRenderer
+    | SVGBeatRenderer
+    | SVGNoteRenderer
+  )[] {
     const tabLineElements = this.tabWindow.getTabLineElements();
 
     // Check if there are any bar elements to remove
@@ -54,7 +58,8 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
       }
     }
 
-    const newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] = [];
+    const newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] =
+      [];
 
     // Add & render new bar elements
     for (const tabLineElement of tabLineElements) {
@@ -156,6 +161,13 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
     } else {
       this.hidePlayerOverlay();
     }
+
+    // Update SVG root height
+    const tabWindowHeight = this.tabWindow.getWindowHeight();
+    const VB = `0 0 ${this.tabWindow.dim.width} ${tabWindowHeight}`;
+    this._svgRoot.setAttribute("viewBox", VB);
+    this._svgRoot.setAttribute("height", `${tabWindowHeight}`);
+
     return newRenderers;
   }
 

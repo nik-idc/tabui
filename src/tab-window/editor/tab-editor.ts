@@ -297,6 +297,8 @@ export class TabEditor {
   }
 
   public paste(): void {
+    this.undoStack.push(this._tab.deepCopy());
+
     this._selectionManager.paste();
     this.tabElement.calc();
   }
