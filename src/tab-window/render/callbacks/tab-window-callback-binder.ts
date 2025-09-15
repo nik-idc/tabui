@@ -25,7 +25,9 @@ export class TabWindowCallbackBinder {
     this._keyboardCallbacks = keyboardCallbacks;
   }
 
-  private bindMouseEvents(renderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]): void {
+  private bindMouseEvents(
+    renderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+  ): void {
     for (const renderer of renderers) {
       if (renderer instanceof SVGBeatRenderer) {
         renderer.attachMouseEvent(
@@ -58,29 +60,31 @@ export class TabWindowCallbackBinder {
       return;
     }
     document.addEventListener("keydown", (event: KeyboardEvent) => {
-      console.log(event.key);
+      // console.log(event.key);
+      const key = event.key.toLowerCase(); // normalize
+
       if (event.ctrlKey && !event.shiftKey) {
-        if (event.key === "c") {
+        if (key === "c") {
           this._keyboardCallbacks.ctrlCEvent(event);
-        } else if (event.key === "v") {
+        } else if (key === "v") {
           this._keyboardCallbacks.ctrlVEvent(event);
-        } else if (event.key === "z") {
+        } else if (key === "z") {
           this._keyboardCallbacks.ctrlZEvent(event);
-        } else if (event.key === "y") {
+        } else if (key === "y") {
           this._keyboardCallbacks.ctrlYEvent(event);
         }
       } else if (!event.ctrlKey && event.shiftKey) {
-        if (event.key === "v") {
+        if (key === "v") {
           this._keyboardCallbacks.shiftVEvent(event);
-        } else if (event.key === "p") {
+        } else if (key === "p") {
           this._keyboardCallbacks.shiftPEvent(event);
-        } else if (event.key === "b") {
+        } else if (key === "b") {
           this._keyboardCallbacks.shiftBEvent(event);
         }
       } else if (!event.ctrlKey && !event.shiftKey) {
-        if (event.key === "Delete") {
+        if (key === "Delete") {
           this._keyboardCallbacks.deleteEvent(event);
-        } else if (event.key === " ") {
+        } else if (key === " ") {
           this._keyboardCallbacks.spaceEvent(event);
         } else {
           this._keyboardCallbacks.onKeyDown(event);
@@ -90,7 +94,9 @@ export class TabWindowCallbackBinder {
     this._keyboardBound = true;
   }
 
-  public bind(renderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]): void {
+  public bind(
+    renderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+  ): void {
     this.bindMouseEvents(renderers);
     this.bindKeyboardEvents();
   }

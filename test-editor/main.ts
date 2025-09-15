@@ -39,6 +39,7 @@ const svgRoot = document.getElementById("svgRoot") as SVGSVGElement | null;
 if (svgRoot === null) {
   throw Error("Error getting SVG root element");
 }
+const bendGraphModal = getEl<HTMLDivElement>("bend-graph-modal");
 
 // Initialize and prepare tab window
 // const tabWindow = createBasicTabWindow();
@@ -63,7 +64,7 @@ const svgRenderer = new TabWindowSVGRenderer(data2TabWindow, "assets", svgRoot);
 const binder = new TabWindowCallbackBinder(
   svgRenderer,
   new TabWindowMouseDefCallbacks(svgRenderer, renderAndBind),
-  new TabWindowKeyboardDefCallbacks(svgRenderer, renderAndBind)
+  new TabWindowKeyboardDefCallbacks(svgRenderer, renderAndBind, bendGraphModal)
 );
 
 function renderAndBind(
@@ -106,3 +107,4 @@ playButton.addEventListener("click", onPlay);
 stopButton.addEventListener("click", onStop);
 startOverButton.addEventListener("click", onStartOver);
 jumpToSecondBeatButton.addEventListener("click", onJumpToSecondBeat);
+

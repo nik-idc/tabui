@@ -32,3 +32,19 @@ export function createSVGLine(): SVGLineElement {
     "line"
   ) as SVGLineElement;
 }
+
+export function createSVGPath(): SVGPathElement {
+  return document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "path"
+  ) as SVGPathElement;
+}
+
+export function createSVGCircle(): SVGCircleElement {
+  return document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "circle"
+  ) as SVGCircleElement;
+}
+
+

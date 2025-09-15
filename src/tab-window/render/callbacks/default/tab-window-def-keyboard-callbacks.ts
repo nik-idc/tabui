@@ -2,6 +2,7 @@ import { KeyChecker } from "../../../../misc/key-checker";
 import { GuitarEffectOptions } from "../../../../models/guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "../../../../models/guitar-effect/guitar-effect-type";
 import { SelectedMoveDirection } from "../../../elements/selected-element";
+import { BendSelectorManager } from "../../bend-selectors/bend-selector-manager";
 import { TabWindowSVGRenderer } from "../../tab-window-svg-renderer";
 import { TabWindowKeyboardCallbacks } from "../tab-window-keyboard-callbacks";
 import { SVGBarRenderer } from "../../svg/svg-bar-renderer";
@@ -17,6 +18,7 @@ export class TabWindowKeyboardDefCallbacks
   private _renderAndBind: (
     newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
   ) => void;
+  private _bendSelectorManager: BendSelectorManager;
 
   private _prevKeyPress?: { time: number; key: string };
 
@@ -24,10 +26,12 @@ export class TabWindowKeyboardDefCallbacks
     renderer: TabWindowSVGRenderer,
     renderAndBind: (
       newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
-    ) => void
+    ) => void,
+    bendGraphModal: HTMLElement
   ) {
     this._renderer = renderer;
     this._renderAndBind = renderAndBind;
+    this._bendSelectorManager = new BendSelectorManager(bendGraphModal);
   }
 
   public ctrlCEvent(event: KeyboardEvent): void {
@@ -43,11 +47,6 @@ export class TabWindowKeyboardDefCallbacks
 
   public ctrlZEvent(event: KeyboardEvent): void {
     console.log("ctrlZEvent");
-    /**
-     * select beats -> copy with ctrl-c -> paste with ctrl-v ->
-     * undo with ctrl-z -> error stating that tab window could not find
-     * beat element corresponding to the current tab player beat
-     */
     this._renderer.tabWindow.undo();
     this._renderAndBind(this._renderer.render());
   }
@@ -100,7 +99,8 @@ export class TabWindowKeyboardDefCallbacks
   }
 
   public shiftBEvent(event: KeyboardEvent): void {
-    this.applyOrRemoveEffect(GuitarEffectType.Bend, new GuitarEffectOptions(1));
+    event.preventDefault();
+    this._bendSelectorManager.show();
   }
 
   public spaceEvent(event: KeyboardEvent): void {
@@ -113,42 +113,36 @@ export class TabWindowKeyboardDefCallbacks
   }
 
   public onNumberDown(key: string): void {
-    // Check if any note is selected
-    if (!this._renderer.tabWindow.getSelectedElement()) {
+    if (this._renderer.tabWindow.getSelectedElement() === undefined) {
       return;
     }
 
-    // Check if a valid key has been pressed
     let newFret = Number.parseInt(key);
     if (Number.isNaN(newFret)) {
       return;
     }
 
-    // Check if this is the first note click
-    if (!this._prevKeyPress) {
+    if (this._prevKeyPress === undefined) {
       this._prevKeyPress = { time: new Date().getTime(), key: key };
       this._renderer.tabWindow.setSelectedElementFret(newFret);
       this._renderAndBind(this._renderer.render());
       return;
     }
 
-    // Calculate time difference
     let now = new Date().getTime();
     let timeDiff = now - this._prevKeyPress.time;
     let combFret = Number.parseInt(this._prevKeyPress.key + key);
     newFret = timeDiff < this.eventsTimeEpsilon ? combFret : newFret;
-    // Set fret
+
     this._renderer.tabWindow.setSelectedElementFret(newFret);
 
-    // Update prev tab key press object
     this._prevKeyPress.time = now;
     this._prevKeyPress.key = key;
     this._renderAndBind(this._renderer.render());
   }
 
   public onArrowDown(key: string): void {
-    // Check if a note is selected
-    if (!this._renderer.tabWindow.getSelectedElement()) {
+    if (this._renderer.tabWindow.getSelectedElement() === undefined) {
       return;
     }
 
@@ -172,11 +166,11 @@ export class TabWindowKeyboardDefCallbacks
   public onBackspacePress(): void {
     const selected = this._renderer.tabWindow.getSelectedElement();
 
-    if (!selected) {
+    if (selected === undefined) {
       return;
     }
 
-    if (!selected.note.fret) {
+    if (selected.note.fret === undefined) {
       return;
     }
 
@@ -199,8 +193,5 @@ export class TabWindowKeyboardDefCallbacks
     } else if (KeyChecker.isBackspace(key)) {
       this.onBackspacePress();
     }
-
-    // This render call is now handled by the individual key handlers
-    // this._renderAndBind(this._renderer.render());
   }
 }
