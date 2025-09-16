@@ -27,11 +27,11 @@ export class TabWindowKeyboardDefCallbacks
     renderAndBind: (
       newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
     ) => void,
-    bendGraphModal: HTMLElement
+    bendSelectorManager: BendSelectorManager
   ) {
     this._renderer = renderer;
     this._renderAndBind = renderAndBind;
-    this._bendSelectorManager = new BendSelectorManager(bendGraphModal);
+    this._bendSelectorManager = bendSelectorManager;
   }
 
   public ctrlCEvent(event: KeyboardEvent): void {

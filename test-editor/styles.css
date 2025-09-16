@@ -28,6 +28,16 @@ body {
   background-color: white;
   padding: 20px;
   border-radius: 5px;
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .bend-type-list {
@@ -53,6 +63,65 @@ body {
 .bend-type-list li.selected {
   background-color: #ddd;
   font-weight: 500;
+}
+
+.play-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin: 10px auto;
+  width: fit-content;
+}
+
+.play-controls img {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+}
+
+.main-container {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.side-controls {
+  position: sticky;
+  top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 180px;
+}
+
+.side-controls .control-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.control-group img {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+}
+
+.control-group img:hover {
+  background-color: #eee;
+}
+
+.separator {
+  width: 100%;
+  border: 1px solid #ccc;
 }
 
 

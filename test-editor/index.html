@@ -3,32 +3,127 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tabber Vite test</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="playerContainer">
-      <button id="playButton">Play</button>
-      <button id="stopButton">Stop</button>
-      <button id="startOverButton">Start over</button>
-      <button id="jumpToSecondBeatButton">Jump to second beat</button>
+    <div class="play-controls" id="play-controls">
+      <img id="playButton" src="./assets/img/ui/play.svg" alt="Play" />
+      <img
+        id="pauseButton"
+        src="./assets/img/ui/pause.svg"
+        alt="Pause"
+        style="display: none"
+      />
+      <img id="stopButton" src="./assets/img/ui/stop.svg" alt="Stop" />
     </div>
 
-    <div id="mainEditorContainer" class="editorContainer">
-      <div id="credentialsContainer"></div>
-      <div id="svgContainer">
-        <svg id="svgRoot" class="tabSVG">
-          <!-- <rect id="playerCursor"></rect> -->
-        </svg>
+    <div class="main-container" id="main-container">
+      <div class="side-controls" id="side-controls">
+        <div class="control-group" id="control-group">
+          <img
+            src="./assets/img/notes/1.svg"
+            data-duration="1"
+            alt="Whole note"
+          />
+          <img
+            src="./assets/img/notes/2.svg"
+            data-duration="2"
+            alt="Half note"
+          />
+          <img
+            src="./assets/img/notes/4.svg"
+            data-duration="4"
+            alt="Quarter note"
+          />
+          <img
+            src="./assets/img/notes/8.svg"
+            data-duration="8"
+            alt="Eighth note"
+          />
+          <img
+            src="./assets/img/notes/16.svg"
+            data-duration="16"
+            alt="Sixteenth note"
+          />
+          <img
+            src="./assets/img/notes/32.svg"
+            data-duration="32"
+            alt="Thirty-second note"
+          />
+          <img
+            src="./assets/img/notes/64.svg"
+            data-duration="64"
+            alt="Sixty-fourth note"
+          />
+        </div>
+        <hr class="separator" />
+        <div class="control-group">
+          <img
+            src="./assets/img/effects/vibrato.svg"
+            data-effect="vibrato"
+            alt="Vibrato"
+          />
+          <img
+            src="./assets/img/effects/pm.svg"
+            data-effect="palm-mute"
+            alt="Palm Mute"
+          />
+          <img
+            src="./assets/img/effects/nh.svg"
+            data-effect="natural-harmonic"
+            alt="Natural Harmonic"
+          />
+          <img
+            src="./assets/img/effects/ph.svg"
+            data-effect="pinch-harmonic"
+            alt="Pinch Harmonic"
+          />
+          <img
+            src="./assets/img/effects/hammer-on.svg"
+            data-effect="hammer-on"
+            alt="Hammer-on"
+          />
+          <img
+            src="./assets/img/effects/pull-off.svg"
+            data-effect="pull-off"
+            alt="Pull-off"
+          />
+          <img
+            src="./assets/img/effects/slide-up.svg"
+            data-effect="slide-up"
+            alt="Slide Up"
+          />
+          <img
+            src="./assets/img/effects/slide-down.svg"
+            data-effect="slide-down"
+            alt="Slide Down"
+          />
+          <img
+            src="./assets/img/effects/bend.svg"
+            data-effect="bend"
+            alt="Bend"
+          />
+        </div>
+      </div>
+      <div id="mainEditorContainer" class="editorContainer">
+        <div id="credentialsContainer"></div>
+        <div id="svgContainer">
+          <svg id="svgRoot" class="tabSVG"></svg>
+        </div>
       </div>
     </div>
 
     <script src="main.ts" type="module" defer></script>
 
-    <div id="bend-graph-modal" class="modal-overlay" style="display: none;">
+    <div id="bend-graph-modal" class="modal-overlay" style="display: none">
       <div class="modal-content">
+        <span class="close-button">&times;</span>
         <ul class="bend-type-list">
           <li data-bend-type="bend">Bend</li>
           <li data-bend-type="bend-release">Bend-Release</li>

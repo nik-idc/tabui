@@ -46,3 +46,4 @@ export { Guitar } from "./models/guitar";
 export { GuitarNote } from "./models/guitar-note";
 export { GuitarEffect } from "./models/guitar-effect/guitar-effect";
 export { GuitarEffectType } from "./models/guitar-effect/guitar-effect-type";
+export { GuitarEffectOptions } from "./models/guitar-effect/guitar-effect-options";

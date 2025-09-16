@@ -32,6 +32,11 @@ export class BendSelectorManager {
                 this.hide();
             }
         });
+
+        const closeButton = this._bendGraphModal.querySelector(".close-button") as HTMLElement;
+        if (closeButton) {
+            closeButton.addEventListener("click", () => this.hide());
+        }
     }
 
     public show() {
