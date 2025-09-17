@@ -171,6 +171,15 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
     return newRenderers;
   }
 
+  /**
+   * Unrender the entire tab window
+   */
+  public unrender(): void {
+    for (const [uuid, renderer] of this._renderedTabLineElements) {
+      renderer.unrender();
+    }
+  }
+
   public get lineRenderers(): SVGTabLineRenderer[] {
     return this._renderedTabLineElements.values().toArray();
   }

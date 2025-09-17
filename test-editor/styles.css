@@ -65,6 +65,20 @@ body {
   font-weight: 500;
 }
 
+.top-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin: 10px auto;
+}
+
+.track-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .play-controls {
   display: flex;
   justify-content: center;
@@ -73,7 +87,6 @@ body {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
-  margin: 10px auto;
   width: fit-content;
 }
 
@@ -152,5 +165,3 @@ body {
   justify-content: flex-end;
   gap: 10px;
 }
-
-
