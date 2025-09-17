@@ -124,4 +124,33 @@ body {
   border: 1px solid #ccc;
 }
 
+#input-modal .modal-content {
+  flex-direction: column;
+  gap: 10px;
+}
+
+#input-modal-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+#input-modal-inputs .input-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
+#input-modal-inputs label {
+  min-width: 100px;
+}
+
+.modal-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 

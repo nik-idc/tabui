@@ -110,6 +110,11 @@
             alt="Bend"
           />
         </div>
+        <hr class="separator" />
+        <div class="control-group">
+          <img id="tempoButton" src="./assets/img/ui/tempo.svg" alt="Tempo" />
+          <img id="measureButton" src="./assets/img/ui/measure.svg" alt="Time Signature" />
+        </div>
       </div>
       <div id="mainEditorContainer" class="editorContainer">
         <div id="credentialsContainer"></div>
@@ -131,6 +136,17 @@
           <li data-bend-type="prebend-release">Pre-bend-Release</li>
         </ul>
         <svg id="bend-graph-svg" width="400" height="300"></svg>
+      </div>
+    </div>
+
+    <div id="input-modal" class="modal-overlay" style="display: none">
+      <div class="modal-content">
+        <h3 id="input-modal-title"></h3>
+        <div id="input-modal-inputs"></div>
+        <div class="modal-buttons">
+          <button id="input-modal-confirm">Confirm</button>
+          <button id="input-modal-cancel">Cancel</button>
+        </div>
       </div>
     </div>
   </body>
