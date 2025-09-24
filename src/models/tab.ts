@@ -484,8 +484,7 @@ export class Tab {
    * @param beatIndex Beat index
    * @param stringNum String number
    * @param effect Effect to apply
-   * @returns True if effect applied or no note to apply effect to, false
-   * if effect inapplicable to specified note
+   * @returns True if effect applied, false if effect inapplicable to specified note
    */
   public applyEffectToNote(
     barIndex: number,
@@ -494,6 +493,8 @@ export class Tab {
     effectType: GuitarEffectType,
     effectOptions?: GuitarEffectOptions
   ): boolean {
+    const guitarNote =
+      this._bars[barIndex].beats[beatIndex].notes[stringNum - 1];
     const note =
       this._bars[barIndex].beats[beatIndex].notes[stringNum - 1].note;
     if (
@@ -501,55 +502,71 @@ export class Tab {
       note.noteValue === NoteValue.Dead
     ) {
       // No effects can be applied to a dead note or an abscense of a note
-      return true;
+      return false;
     }
 
     // Below exclamation marks are used
     // This is bad, need to refactor
+    let applyRes: boolean = false;
     switch (effectType) {
       case GuitarEffectType.Bend:
-        return this.applyBend(
+        applyRes = this.applyBend(
           barIndex,
           beatIndex,
           stringNum,
           effectOptions!.bendPitch!
         );
+        break;
       case GuitarEffectType.BendAndRelease:
-        return this.applyBendAndRelease(
+        applyRes = this.applyBendAndRelease(
           barIndex,
           beatIndex,
           stringNum,
           effectOptions!.bendPitch!,
           effectOptions!.bendReleasePitch!
         );
+        break;
       case GuitarEffectType.Prebend:
-        return this.applyPrebend(
+        applyRes = this.applyPrebend(
           barIndex,
           beatIndex,
           stringNum,
           effectOptions!.prebendPitch!
         );
+        break;
       case GuitarEffectType.PrebendAndRelease:
-        return this.applyPrebendAndRelease(
+        applyRes = this.applyPrebendAndRelease(
           barIndex,
           beatIndex,
           stringNum,
           effectOptions!.prebendPitch!,
           effectOptions!.bendReleasePitch!
         );
+        break;
       case GuitarEffectType.Vibrato:
-        return this.applyVibrato(barIndex, beatIndex, stringNum);
+        applyRes = this.applyVibrato(barIndex, beatIndex, stringNum);
+        break;
       case GuitarEffectType.Slide:
-        return this.applySlide(barIndex, beatIndex, stringNum);
+        applyRes = this.applySlide(barIndex, beatIndex, stringNum);
+        break;
       case GuitarEffectType.HammerOnOrPullOff:
-        return this.applyHammerOnOrPullOff(barIndex, beatIndex, stringNum);
+        applyRes = this.applyHammerOnOrPullOff(barIndex, beatIndex, stringNum);
+        break;
       case GuitarEffectType.PinchHarmonic:
-        return this.applyPinchHarmonic(barIndex, beatIndex, stringNum);
+        applyRes = this.applyPinchHarmonic(barIndex, beatIndex, stringNum);
+        break;
       case GuitarEffectType.NaturalHarmonic:
-        return this.applyNaturalHarmonic(barIndex, beatIndex, stringNum);
+        applyRes = this.applyNaturalHarmonic(barIndex, beatIndex, stringNum);
+        break;
       case GuitarEffectType.PalmMute:
-        return this.applyPalmMute(barIndex, beatIndex, stringNum);
+        applyRes = this.applyPalmMute(barIndex, beatIndex, stringNum);
+        break;
     }
+
+    // Sort all effects to keep effect labels in same order
+    guitarNote.effects.sort((a, b) => b.effectType - a.effectType);
+
+    return applyRes;
   }
 
   public removeEffectFromNote(

@@ -60,7 +60,7 @@ function init(trackIndex: number) {
     tab.guitar.stringsCount
   );
   tabWindow = new TabWindow(score, tab, dim);
-  tabWindow.calcTabElement();
+  // tabWindow.calcTabElement();
   tabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
 
   // Set SVG root properties

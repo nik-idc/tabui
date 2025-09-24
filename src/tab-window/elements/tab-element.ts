@@ -91,7 +91,14 @@ export class TabElement {
 
   private addBar(bar: Bar, prevBar: Bar): void {
     const lastTabLine = this._tabLineElements[this._tabLineElements.length - 1];
-    const addRes = lastTabLine.addBar(bar, prevBar);
+    const barElement = BarElement.createBarElement(
+      this.dim,
+      bar,
+      prevBar,
+      lastTabLine.rect.rightTop.x,
+      lastTabLine.effectLabelsRect.height
+    );
+    const addRes = lastTabLine.addBar(bar, barElement, prevBar);
 
     if (!addRes) {
       const newTabLine = new TabLineElement(
@@ -100,7 +107,8 @@ export class TabElement {
         lastTabLine.rect.leftBottom
       );
       this._tabLineElements.push(newTabLine);
-      newTabLine.addBar(bar, prevBar);
+      barElement.update(prevBar, 0);
+      newTabLine.addBar(bar, barElement, prevBar);
     }
   }
 
@@ -118,14 +126,12 @@ export class TabElement {
     const oldLines = this._tabLineElements;
     this._tabLineElements = [];
 
-    let currentLine = oldLines.shift() || new TabLineElement(this._tab, this.dim, new Point(0, 0));
+    let currentLine =
+      oldLines.shift() ||
+      new TabLineElement(this._tab, this.dim, new Point(0, 0));
     currentLine.barElements = [];
-    currentLine.rect.width = 0;
-    currentLine.rect.height = this.dim.tabLineMinHeight;
-    currentLine.effectLabelsRect.width = 0;
-    currentLine.effectLabelsRect.height = 0;
-    currentLine.rect.x = 0;
-    currentLine.rect.y = 0;
+    currentLine.rect.set(0, 0, 0, this.dim.tabLineMinHeight);
+    currentLine.effectLabelsRect.setDimensions(0, 0);
     this._tabLineElements.push(currentLine);
 
     for (let barIndex = 0; barIndex < this._tab.bars.length; barIndex++) {
@@ -140,31 +146,35 @@ export class TabElement {
       if (oldElementIndex > -1) {
         barElement = oldBarElements.splice(oldElementIndex, 1)[0];
       } else {
-        barElement = BarElement.createBarElement(
-          this.dim,
-          bar,
-          prevBar,
-          0,
-          0
-        );
+        barElement = BarElement.createBarElement(this.dim, bar, prevBar, 0, 0);
       }
+      barElement.update(prevBar, currentLine.rect.rightTop.x);
 
       if (!currentLine.barElementFits(barElement)) {
+        barElement.update(prevBar, 0);
+
         currentLine.justifyElements();
+        currentLine.calcEffectGap();
+
         const prevLine = currentLine;
-        currentLine = oldLines.shift() || new TabLineElement(this._tab, this.dim, new Point(0, 0));
+        currentLine =
+          oldLines.shift() ||
+          new TabLineElement(this._tab, this.dim, new Point(0, 0));
         currentLine.barElements = [];
-        currentLine.rect.width = 0;
-        currentLine.rect.height = this.dim.tabLineMinHeight;
-        currentLine.effectLabelsRect.width = 0;
-        currentLine.effectLabelsRect.height = 0;
-        currentLine.rect.x = 0;
-        currentLine.rect.y = prevLine.rect.leftBottom.y;
+        currentLine.rect.set(
+          0,
+          prevLine.rect.bottom,
+          0,
+          this.dim.tabLineMinHeight + prevLine.effectLabelsRect.height
+        );
+        currentLine.effectLabelsRect.setDimensions(0, 0);
         this._tabLineElements.push(currentLine);
       }
 
-      currentLine.addBar(bar, prevBar, barElement);
+      currentLine.addBar(bar, barElement, prevBar);
     }
+
+    currentLine.calcEffectGap();
   }
 
   /**
@@ -176,7 +186,8 @@ export class TabElement {
     const tabLineElement = this._tabLineElements[tabLineElementId];
     const barElement = tabLineElement.barElements[barElementId];
 
-    barElement.appendBeat();
+    barElement.bar.appendBeat();
+    // barElement.appendBeat();
     this.calc();
   }
 

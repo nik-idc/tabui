@@ -254,7 +254,7 @@ export class TabEditor {
     this.tabElement.resetSelection();
   }
 
-    /**
+  /**
    * Clears selected element
    */
   public clearSelectedElement(): void {

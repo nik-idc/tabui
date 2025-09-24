@@ -354,7 +354,7 @@ export class SVGNoteRenderer {
         renderer.renderEffect();
         this._renderedEffects.set(effectElement.effect.uuid, renderer);
       } else {
-        renderedEffect.renderEffect();
+        renderedEffect.renderEffect(noteOffset);
       }
     }
   }

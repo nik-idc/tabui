@@ -1,5 +1,5 @@
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
 }
 
 .tabSVG {
@@ -22,11 +22,20 @@ body {
   align-items: center;
 }
 
+.modal-container {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  position: relative;
+}
+
 .modal-content {
   display: flex;
   flex-direction: row;
   background-color: white;
-  padding: 20px;
+  /* padding: 20px; */
   border-radius: 5px;
   position: relative;
 }
@@ -164,4 +173,5 @@ body {
   flex-direction: row;
   justify-content: flex-end;
   gap: 10px;
+  padding-top: 20px;
 }

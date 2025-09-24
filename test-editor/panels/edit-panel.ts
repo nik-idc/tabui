@@ -112,7 +112,11 @@ export class EditPanel {
 
   private handleEffectClick(effect: string): void {
     if (effect === "bend") {
-      this.bendSelectorManager.show();
+      this.bendSelectorManager.show(
+        (effectType: GuitarEffectType, options: GuitarEffectOptions) => {
+          this.applyOrRemoveEffect(effectType, options);
+        }
+      );
       return;
     }
 

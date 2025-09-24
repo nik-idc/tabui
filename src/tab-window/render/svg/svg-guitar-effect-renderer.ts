@@ -154,7 +154,11 @@ export class SVGEffectRenderer {
   /**
    * Render a note's effect
    */
-  public renderEffect(): void {
+  public renderEffect(newNoteOffset?: Point): void {
+    if (newNoteOffset !== undefined) {
+      this._noteOffset = newNoteOffset;
+    }
+
     this.renderGroup();
 
     // The reason for 2 ifs: bends DO NOT have a rect, but DO have full HTML

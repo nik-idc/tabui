@@ -69,16 +69,15 @@ export class TabLineElement {
     }
 
     // Calc sum width of all bar elements
-    let sumWidth = 0;
-    for (const barElement of this.barElements) {
-      sumWidth += barElement.rect.width;
-    }
+    let sumWidth =
+      this.barElements[this.barElements.length - 1].rect.rightTop.x;
 
     // Go through each bar element and increase their
     // width according to how their current width relates
     // to the width of the empty space
     // const scale = this.dim.width / this.rect.width;
     const scale = this.dim.width / sumWidth;
+    this.effectLabelsRect.width *= scale;
     for (const barElement of this.barElements) {
       barElement.scaleHorBy(scale);
     }
@@ -102,113 +101,65 @@ export class TabLineElement {
     this.effectLabelsRect.width += dWidth;
   }
 
-  public setHeight(newHeight: number): void {
-    for (const barElement of this.barElements) {
-      barElement.setHeight(newHeight);
-    }
-
-    const diff = newHeight - this.rect.height;
-    this.rect.height += diff;
-    this.effectLabelsRect.height += diff;
-  }
-
-  public insertEffectGap(gapHeight: number): void {
-    for (const barElement of this.barElements) {
-      barElement.insertEffectGap(gapHeight);
-    }
-
-    this.rect.height += gapHeight;
-    this.effectLabelsRect.height += gapHeight;
-  }
-
-  public removeEffectGap(): void {
-    for (const barElement of this.barElements) {
-      barElement.removeEffectGap();
-    }
-
-    this.rect.height += this.dim.effectLabelHeight;
-    this.effectLabelsRect.height += this.dim.effectLabelHeight;
-  }
-
   /**
    * Attempts to add a bar to the line
    * @param bar Bar to add
+   * @param barElement Bar element for the bar
    * @param prevBar Previous bar
    * @returns True if added succesfully, false otherwise
    */
-  public addBar(bar: Bar, prevBar?: Bar, barElement?: BarElement): boolean {
-    if (barElement === undefined) {
-      barElement = BarElement.createBarElement(
-        this.dim,
-        bar,
-        prevBar,
-        this.rect.rightTop.x,
-        this.effectLabelsRect.height
-      );
-    } else {
-      barElement.update(
-        prevBar,
-        this.rect.rightTop.x,
-        this.effectLabelsRect.height
-      );
-    }
-
+  public addBar(bar: Bar, barElement: BarElement, prevBar?: Bar): boolean {
     if (!this.barElementFits(barElement)) {
       this.justifyElements();
+      this.calcEffectGap();
       return false;
     }
 
-    if (barElement.rect.height > this.rect.height) {
-      const gapHeight = barElement.rect.height - this.rect.height;
-      this.insertEffectGap(gapHeight);
-    }
-
     this.barElements.push(barElement);
-
     this.changeWidth(barElement.rect.width);
-
     return true;
   }
 
-  // /**
-  //  * Attempts to insert a bar to the line
-  //  * @param bar Bar to insert
-  //  * @param prevBar Bar before which to insert
-  //  * @returns True if inserted succesfully, false otherwise
-  //  */
-  // public insertBar(bar: Bar, prevBar?: Bar): boolean {
-  //   const prevBarElementIndex = this.barElements.findIndex(
-  //     (be) => be.bar.uuid === prevBar?.uuid
-  //   );
-  //   const prevBarElement = this.barElements[prevBarElementIndex];
-  //   const barElement = BarElement.createBarElement(
-  //     this.dim,
-  //     bar,
-  //     prevBar,
-  //     prevBarElement.rect.rightTop.x,
-  //     this.effectLabelsRect.height
-  //   );
+  public calcEffectGap(): void {
+    // Reset effect label gap height to 0
+    this.effectLabelsRect.height = 0;
+    this.rect.height = this.dim.tabLineMinHeight;
 
-  //   if (!this.barElementFits(barElement)) {
-  //     return false;
-  //   }
+    // Figure out the tallest bar
+    let tallestBar = 0;
+    for (const barElement of this.barElements) {
+      barElement.calcEffectGap();
+      if (barElement.rect.height > tallestBar) {
+        tallestBar = barElement.rect.height;
+      }
+    }
 
-  //   if (barElement.rect.height > this.rect.height) {
-  //     const gapHeight = barElement.rect.height - this.rect.height;
-  //     this.insertEffectGap(gapHeight);
-  //   }
+    // Figure out & apply new gap height
+    const gapHeight = tallestBar - this.rect.height;
+    this.rect.height += gapHeight;
+    this.effectLabelsRect.height = gapHeight;
 
-  //   this.barElements.splice(prevBarElementIndex, 0, barElement);
-  //   for (let i = prevBarElementIndex + 2; i < this.barElements.length; i++) {
-  //     this.barElements[i].rect.x
-  //   }
+    for (const barElement of this.barElements) {
+      barElement.setEffectGap(gapHeight);
+    }
+  }
 
-  //   this.changeWidth(barElement.rect.width);
+  public calc(): void {
+    let horizontalBarOffset = 0;
 
-  //   return true;
-  // }
+    let barTabIndex = this.tab.bars.indexOf(this.barElements[0].bar);
+    for (let i = 0; i < this.barElements.length; i++, barTabIndex++) {
+      const barElement = this.barElements[i];
+      const prevBar =
+        barTabIndex > 0 ? this.tab.bars[barTabIndex - 1] : undefined;
 
-  
+      barElement.update(prevBar, horizontalBarOffset);
+
+      horizontalBarOffset += barElement.rect.width;
+    }
+
+    this.calcEffectGap();
+  }
 
   /**
    * Removes bar element
@@ -254,14 +205,6 @@ export class TabLineElement {
       return false;
     }
 
-    // // Calc new beat gap height and apply the gap increase across the tab line
-    // const prevHeight = beatElement.rect.height;
-    // beatElement.calc();
-    // const newHeight = beatElement.rect.height;
-    // if (newHeight !== prevHeight) {
-    //   this.setHeight(this.rect.height + (newHeight - prevHeight));
-    // }
-
     return true;
   }
 
@@ -282,21 +225,6 @@ export class TabLineElement {
     });
 
     this.tab.removeEffectFromNote(barId, beatId, stringNum, effectIndex);
-
-    // Compare max heights before and after calculating the beat element
-    // If the max height of beats decreased, decrease entire tab line height
-
-    // TODO: Explore basic recalc upon applying/removing effects
-    // since when height changes we need to go trough the entire tab line
-    // anyway PLUS effect application is unlikely to be done quickly in
-    // succession so even if recalc is slow it probably wouldn'matter anyway
-
-    // const prevMaxHeight = this.getMaxBeatHeight();
-    // beatElement.calc();
-    // const newMaxHeight = this.getMaxBeatHeight();
-    // if (newMaxHeight < prevMaxHeight) {
-    //   this.setHeight(this.rect.height - (prevMaxHeight - newMaxHeight));
-    // }
   }
 
   public getFitToScale(): number {

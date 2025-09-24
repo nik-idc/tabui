@@ -100,7 +100,11 @@ export class TabWindowKeyboardDefCallbacks
 
   public shiftBEvent(event: KeyboardEvent): void {
     event.preventDefault();
-    this._bendSelectorManager.show();
+    this._bendSelectorManager.show(
+      (effectType: GuitarEffectType, options: GuitarEffectOptions) => {
+        this.applyOrRemoveEffect(effectType, options);
+      }
+    );
   }
 
   public spaceEvent(event: KeyboardEvent): void {

@@ -340,7 +340,7 @@ export class SVGBarRenderer {
     }
 
     const textX = `${barOffset.x + this._barElement.tempoTextCoords.x}`;
-    const textY = `${barOffset.x + this._barElement.tempoTextCoords.x}`;
+    const textY = `${barOffset.y + this._barElement.tempoTextCoords.y}`;
     this._barTempoTextSVG.setAttribute("x", textX);
     this._barTempoTextSVG.setAttribute("y", textY);
     this._barTempoTextSVG.textContent = `= ${this._barElement.bar.tempo}`;
@@ -366,7 +366,9 @@ export class SVGBarRenderer {
    * Render bar element
    * @param newTLEOffset New optinal tab line element offset
    */
-  public renderBarElement(newTLEOffset?: Point): (SVGBeatRenderer | SVGNoteRenderer)[] {
+  public renderBarElement(
+    newTLEOffset?: Point
+  ): (SVGBeatRenderer | SVGNoteRenderer)[] {
     this.renderGroup();
 
     if (this._groupSVG === undefined) {

@@ -46,7 +46,7 @@ export class BendReleaseSelectorRenderer {
     // Draw bend path
     this._bendPath = createSVGPath();
     this.updatePath(200, 150, 300, 225);
-    this._bendPath.setAttribute("stroke", "blue");
+    this._bendPath.setAttribute("stroke", "black");
     this._bendPath.setAttribute("stroke-width", "2");
     this._bendPath.setAttribute("fill", "none");
     this._svg.appendChild(this._bendPath);
@@ -56,7 +56,7 @@ export class BendReleaseSelectorRenderer {
     this._peakCircle.setAttribute("cx", "200");
     this._peakCircle.setAttribute("cy", "150");
     this._peakCircle.setAttribute("r", "8");
-    this._peakCircle.setAttribute("fill", "red");
+    this._peakCircle.setAttribute("fill", "black");
     this._peakCircle.style.cursor = "pointer";
     this._svg.appendChild(this._peakCircle);
 
@@ -64,7 +64,7 @@ export class BendReleaseSelectorRenderer {
     this._releaseCircle.setAttribute("cx", "300");
     this._releaseCircle.setAttribute("cy", "225");
     this._releaseCircle.setAttribute("r", "8");
-    this._releaseCircle.setAttribute("fill", "orange");
+    this._releaseCircle.setAttribute("fill", "black");
     this._releaseCircle.style.cursor = "pointer";
     this._svg.appendChild(this._releaseCircle);
 
