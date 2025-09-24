@@ -192,6 +192,7 @@ export class SVGNoteRenderer {
       // Set only-set-once attributes
       this._backgroundSVG.setAttribute("fill", "white");
       this._backgroundSVG.setAttribute("fill-opacity", "1");
+      this._backgroundSVG.setAttribute("pointer-events", "none");
 
       // Set id
       this._backgroundSVG.setAttribute("id", `note-bck-${noteUUID}`);
@@ -251,6 +252,8 @@ export class SVGNoteRenderer {
       this._textSVG.setAttribute("font-size", fontSize);
       this._textSVG.setAttribute("text-anchor", "middle");
       this._textSVG.setAttribute("dominant-baseline", "middle");
+      this._textSVG.setAttribute("fill", "black");
+      this._textSVG.setAttribute("pointer-events", "none");
       this._textSVG.setAttribute("fill", "black");
 
       // Set id

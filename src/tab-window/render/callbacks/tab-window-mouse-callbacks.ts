@@ -7,6 +7,16 @@ export abstract class TabWindowMouseCallbacks {
     noteElement: NoteElement
   ): void;
 
+  public abstract onNoteMouseEnter(
+    event: MouseEvent,
+    noteElement: NoteElement
+  ): void;
+
+  public abstract onNoteMouseLeave(
+    event: MouseEvent,
+    noteElement: NoteElement
+  ): void;
+
   public abstract onBeatMouseDown(
     event: MouseEvent,
     beatElement: BeatElement
@@ -24,3 +34,4 @@ export abstract class TabWindowMouseCallbacks {
 
   public abstract onBeatMouseUp(): void;
 }
+

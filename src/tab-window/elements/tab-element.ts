@@ -379,6 +379,95 @@ export class TabElement {
     );
   }
 
+  public getNoteElementGlobalCoords(neededNoteElement: NoteElement): Point {
+    let foundTabLineElement: TabLineElement | undefined;
+    let foundBarElement: BarElement | undefined;
+    let foundBeatElement: BeatElement | undefined;
+    for (const tabLineElement of this._tabLineElements) {
+      for (const barElement of tabLineElement.barElements) {
+        for (const beatElement of barElement.beatElements) {
+          for (const noteElement of beatElement.beatNotesElement.noteElements) {
+            if (noteElement.note.uuid === neededNoteElement.note.uuid) {
+              foundTabLineElement = tabLineElement;
+              foundBarElement = barElement;
+              foundBeatElement = beatElement;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (
+      foundTabLineElement === undefined ||
+      foundBarElement === undefined ||
+      foundBeatElement === undefined
+    ) {
+      throw Error(
+        "Could not find note element's tab line OR bar OR note element"
+      );
+    }
+
+    const tleOffset = new Point(0, foundTabLineElement.rect.y);
+    const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
+    const beatOffset = new Point(
+      barOffset.x + foundBeatElement.rect.x,
+      barOffset.y + foundBeatElement.rect.y
+    );
+
+    const noteX = beatOffset.x;
+    const noteY =
+      beatOffset.y +
+      foundBeatElement.beatNotesElement.rect.y +
+      neededNoteElement.rect.y;
+
+    return new Point(noteX, noteY);
+  }
+  public getNoteTextGlobalCoords(neededNoteElement: NoteElement): Point {
+    let foundTabLineElement: TabLineElement | undefined;
+    let foundBarElement: BarElement | undefined;
+    let foundBeatElement: BeatElement | undefined;
+    for (const tabLineElement of this._tabLineElements) {
+      for (const barElement of tabLineElement.barElements) {
+        for (const beatElement of barElement.beatElements) {
+          for (const noteElement of beatElement.beatNotesElement.noteElements) {
+            if (noteElement.note.uuid === neededNoteElement.note.uuid) {
+              foundTabLineElement = tabLineElement;
+              foundBarElement = barElement;
+              foundBeatElement = beatElement;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (
+      foundTabLineElement === undefined ||
+      foundBarElement === undefined ||
+      foundBeatElement === undefined
+    ) {
+      throw Error(
+        "Could not find note element's tab line OR bar OR note element"
+      );
+    }
+
+    const tleOffset = new Point(0, foundTabLineElement.rect.y);
+    const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
+    const beatOffset = new Point(
+      barOffset.x + foundBeatElement.rect.x,
+      barOffset.y + foundBeatElement.rect.y
+    );
+
+    const noteTextX = beatOffset.x + neededNoteElement.textRect.x;
+    const noteTextY =
+      beatOffset.y +
+      foundBeatElement.beatNotesElement.rect.y +
+      neededNoteElement.textRect.y;
+
+    return new Point(noteTextX, noteTextY);
+  }
+
   public get tabLineElements(): TabLineElement[] {
     return this._tabLineElements;
   }

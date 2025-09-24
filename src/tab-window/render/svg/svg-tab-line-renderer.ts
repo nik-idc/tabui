@@ -66,7 +66,7 @@ export class SVGTabLineRenderer {
       }
     }
 
-    const newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] = [];
+    const activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] = [];
 
     // Add & render new bar elements AND re-render existing bar elements
     for (const barElement of this._tabLineElement.barElements) {
@@ -79,15 +79,16 @@ export class SVGTabLineRenderer {
           this._assetsPath,
           this._svgRoot
         );
-        newRenderers.push(renderer);
-        newRenderers.push(...renderer.renderBarElement());
+        activeRenderers.push(renderer);
+        activeRenderers.push(...renderer.renderBarElement());
         this._renderedBarElements.set(barElement.bar.uuid, renderer);
       } else {
-        newRenderers.push(...renderedBar.renderBarElement(tleOffset));
+        activeRenderers.push(renderedBar);
+        activeRenderers.push(...renderedBar.renderBarElement(tleOffset));
       }
     }
 
-    return newRenderers;
+    return activeRenderers;
   }
 
   /**

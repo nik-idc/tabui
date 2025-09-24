@@ -39,10 +39,10 @@ let editPanel: EditPanel;
 let bendSelectorManager: BendSelectorManager;
 
 function renderAndBind(
-  newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+  activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
 ): void {
   if (binder) {
-    binder.bind(newRenderers);
+    binder.bind(activeRenderers);
   }
 }
 

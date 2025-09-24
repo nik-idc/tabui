@@ -10,7 +10,7 @@ import { SVGNoteRenderer } from "../../svg/svg-note-renderer";
 export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
   private _renderer: TabWindowSVGRenderer;
   private _renderAndBind: (
-    newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+    activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
   ) => void;
 
   private _selectingBeats: boolean = false;
@@ -19,7 +19,7 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
   constructor(
     renderer: TabWindowSVGRenderer,
     renderAndBind: (
-      newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+      activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
     ) => void
   ) {
     this._renderer = renderer;
@@ -27,17 +27,20 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
   }
 
   public onNoteClick(event: MouseEvent, noteElement: NoteElement): void {
-    console.log("Default note click event");
-    console.log(
-      `Selected element is ${
-        this._renderer.tabWindow.getSelectedElement() === undefined
-          ? "undefined"
-          : "defined"
-      }`
-    );
-
+    this._renderer.hideSelectionPreview();
     this._renderer.tabWindow.selectNoteElement(noteElement);
     this._renderAndBind(this._renderer.render());
+  }
+
+  public onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void {
+    if (this._selectingBeats) {
+      return;
+    }
+    this._renderer.showSelectionPreview(noteElement);
+  }
+
+  public onNoteMouseLeave(event: MouseEvent, noteElement: NoteElement): void {
+    this._renderer.hideSelectionPreview();
   }
 
   public onBeatMouseDown(event: MouseEvent, beatElement: BeatElement): void {

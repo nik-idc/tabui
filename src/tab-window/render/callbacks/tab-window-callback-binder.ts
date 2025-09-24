@@ -51,6 +51,14 @@ export class TabWindowCallbackBinder {
           "click",
           this._mouseCallbacks.onNoteClick.bind(this._mouseCallbacks)
         );
+        renderer.attachMouseEvent(
+          "mouseenter",
+          this._mouseCallbacks.onNoteMouseEnter.bind(this._mouseCallbacks)
+        );
+        renderer.attachMouseEvent(
+          "mouseleave",
+          this._mouseCallbacks.onNoteMouseLeave.bind(this._mouseCallbacks)
+        );
       }
     }
   }

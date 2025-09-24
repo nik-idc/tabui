@@ -72,6 +72,14 @@ export class TabWindow {
     return this._tabElement.getBeatElementGlobalCoords(beatElement);
   }
 
+  public getNoteElementGlobalCoords(noteElement: NoteElement): Point {
+    return this._tabElement.getNoteElementGlobalCoords(noteElement);
+  }
+
+  public getNoteTextGlobalCoords(noteElement: NoteElement): Point {
+    return this._tabElement.getNoteTextGlobalCoords(noteElement);
+  }
+
   public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
     return this._tabElement.getBeatElementByUUID(beatUUID);
   }

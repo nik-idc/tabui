@@ -16,7 +16,7 @@ export class TabWindowKeyboardDefCallbacks
 
   private _renderer: TabWindowSVGRenderer;
   private _renderAndBind: (
-    newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+    activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
   ) => void;
   private _bendSelectorManager: BendSelectorManager;
 
@@ -25,7 +25,7 @@ export class TabWindowKeyboardDefCallbacks
   constructor(
     renderer: TabWindowSVGRenderer,
     renderAndBind: (
-      newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+      activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
     ) => void,
     bendSelectorManager: BendSelectorManager
   ) {

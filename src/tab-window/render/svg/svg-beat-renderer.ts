@@ -237,7 +237,7 @@ export class SVGBeatRenderer {
       throw Error("Tried to render note elements when SVG group undefined");
     }
 
-    const newRenderers: SVGNoteRenderer[] = [];
+    const activeRenderers: SVGNoteRenderer[] = [];
 
     const beatNotesOffset = new Point(
       beatOffset.x + this._beatElement.beatNotesElement.rect.x,
@@ -270,12 +270,13 @@ export class SVGBeatRenderer {
         );
         renderer.renderNoteElement();
         this._renderedNoteElements.set(noteElement.note.uuid, renderer);
-        newRenderers.push(renderer);
+        activeRenderers.push(renderer);
       } else {
+        activeRenderers.push(renderedNote);
         renderedNote.renderNoteElement(beatNotesOffset);
       }
     }
-    return newRenderers;
+    return activeRenderers;
   }
 
   /**

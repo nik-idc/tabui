@@ -1,3 +1,4 @@
+import { NoteElement } from "../elements/note-element";
 import { TabWindow } from "../tab-window";
 import { TabWindowRenderer } from "./tab-window-renderer";
 import { SVGTabLineRenderer } from "./svg/svg-tab-line-renderer";
@@ -16,6 +17,7 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
   private _assetsPath: string;
   private _svgRoot: SVGSVGElement;
   private _playerCursor?: SVGRectElement;
+  private _selectionPreviewRect?: SVGRectElement;
 
   private _renderedTabLineElements: Map<number, SVGTabLineRenderer>;
 
@@ -58,8 +60,11 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
       }
     }
 
-    const newRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] =
-      [];
+    const activeRenderers: (
+      | SVGBarRenderer
+      | SVGBeatRenderer
+      | SVGNoteRenderer
+    )[] = [];
 
     // Add & render new bar elements
     for (const tabLineElement of tabLineElements) {
@@ -73,13 +78,50 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
           this._assetsPath,
           this._svgRoot
         );
-        newRenderers.push(...renderer.renderTabLine());
+        activeRenderers.push(...renderer.renderTabLine());
         this._renderedTabLineElements.set(tabLineElement.uuid, renderer);
       } else {
-        newRenderers.push(...renderedTLE.renderTabLine());
+        activeRenderers.push(...renderedTLE.renderTabLine());
       }
     }
-    return newRenderers;
+    return activeRenderers;
+  }
+
+  public showSelectionPreview(noteElement: NoteElement) {
+    const selectedElement = this.tabWindow.getSelectedElement();
+    if (selectedElement && selectedElement.note.uuid === noteElement.note.uuid) {
+      return;
+    }
+
+    if (this._selectionPreviewRect === undefined) {
+      this._selectionPreviewRect = createSVGRect();
+      this._selectionPreviewRect.setAttribute("id", "selectionPreview");
+      this._selectionPreviewRect.setAttribute("fill", "white");
+      this._selectionPreviewRect.setAttribute("stroke", "orange");
+      this._selectionPreviewRect.setAttribute("stroke-width", "1");
+      this._selectionPreviewRect.setAttribute("rx", "3");
+      this._selectionPreviewRect.setAttribute("ry", "3");
+      this._selectionPreviewRect.setAttribute("fill-opacity", "0.5");
+      this._selectionPreviewRect.setAttribute("stroke-opacity", "0.5");
+      this._selectionPreviewRect.setAttribute("pointer-events", "none");
+      this._svgRoot.appendChild(this._selectionPreviewRect);
+    }
+
+    const noteTextCoords = this.tabWindow.getNoteTextGlobalCoords(noteElement);
+    const padding = 2;
+    const width = `${noteElement.textRect.width + padding * 2}`;
+    const height = `${noteElement.textRect.height + padding * 2}`;
+    this._selectionPreviewRect.setAttribute("x", `${noteTextCoords.x - padding}`);
+    this._selectionPreviewRect.setAttribute("y", `${noteTextCoords.y - padding}`);
+    this._selectionPreviewRect.setAttribute("width", width);
+    this._selectionPreviewRect.setAttribute("height", height);
+    this._selectionPreviewRect.setAttribute("display", "block");
+  }
+
+  public hideSelectionPreview() {
+    if (this._selectionPreviewRect) {
+      this._selectionPreviewRect.setAttribute("display", "none");
+    }
   }
 
   /**
@@ -153,7 +195,7 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
    */
   public render(): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
     // Render lines first
-    const newRenderers = this.renderTabLines();
+    const activeRenderers = this.renderTabLines();
 
     // Player overlay rect
     if (this.tabWindow.getIsPlaying()) {
@@ -168,7 +210,7 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
     this._svgRoot.setAttribute("viewBox", VB);
     this._svgRoot.setAttribute("height", `${tabWindowHeight}`);
 
-    return newRenderers;
+    return activeRenderers;
   }
 
   /**

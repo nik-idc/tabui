@@ -388,7 +388,7 @@ export class SVGBarRenderer {
     this.renderBarTempoImage(barOffset);
     this.renderBarTempoText(barOffset);
 
-    const newRenderers: (SVGBeatRenderer | SVGNoteRenderer)[] = [];
+    const activeRenderers: (SVGBeatRenderer | SVGNoteRenderer)[] = [];
 
     // Check if there are any beat elements to remove
     const curBeatElementUUIDs = new Set(
@@ -414,14 +414,15 @@ export class SVGBarRenderer {
           this._assetsPath,
           this._groupSVG
         );
-        newRenderers.push(renderer);
-        newRenderers.push(...renderer.renderBeatElement());
+        activeRenderers.push(renderer);
+        activeRenderers.push(...renderer.renderBeatElement());
         this._renderedBeatElements.set(beatElement.beat.uuid, renderer);
       } else {
-        newRenderers.push(...renderedBeat.renderBeatElement(barOffset));
+        activeRenderers.push(renderedBeat);
+        activeRenderers.push(...renderedBeat.renderBeatElement(barOffset));
       }
     }
-    return newRenderers;
+    return activeRenderers;
   }
 
   /**
