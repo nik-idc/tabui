@@ -21,6 +21,15 @@ export { TabPlayerSVGAnimator } from "./tab-window/player/tab-player-svg-animato
 //      Renderer
 export { TabWindowRenderer } from "./tab-window/render/tab-window-renderer";
 export { TabWindowHTMLRenderer } from "./tab-window/render/tab-window-html-renderer";
+export { TabWindowSVGRenderer } from "./tab-window/render/tab-window-svg-renderer";
+export { SVGBarRenderer } from "./tab-window/render/svg/svg-bar-renderer";
+export { SVGBeatRenderer } from "./tab-window/render/svg/svg-beat-renderer";
+export { SVGNoteRenderer } from "./tab-window/render/svg/svg-note-renderer";
+export { TabWindowCallbackBinder } from "./tab-window/render/callbacks/tab-window-callback-binder";
+export { TabWindowMouseCallbacks } from "./tab-window/render/callbacks/tab-window-mouse-callbacks";
+export { TabWindowMouseDefCallbacks } from "./tab-window/render/callbacks/default/tab-window-def-mouse-callbacks";
+export { TabWindowKeyboardCallbacks } from "./tab-window/render/callbacks/tab-window-keyboard-callbacks";
+export { TabWindowKeyboardDefCallbacks } from "./tab-window/render/callbacks/default/tab-window-def-keyboard-callbacks";
 
 //      Shapes
 export { Point } from "./tab-window/shapes/point";
@@ -37,3 +46,4 @@ export { Guitar } from "./models/guitar";
 export { GuitarNote } from "./models/guitar-note";
 export { GuitarEffect } from "./models/guitar-effect/guitar-effect";
 export { GuitarEffectType } from "./models/guitar-effect/guitar-effect-type";
+export { GuitarEffectOptions } from "./models/guitar-effect/guitar-effect-options";

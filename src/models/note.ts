@@ -91,7 +91,7 @@ export class Note {
 
   private transpose(semitones: number): void {
     if (this._octave === undefined) {
-      throw Error("Attempted to transpose a non-transposable note");
+      throw Error("Tried to transpose a non-transposable note");
     }
 
     const currentIndex = NotesArr.indexOf(this._noteValue);
@@ -244,7 +244,7 @@ export class Note {
 
 //   public raiseNote(semitones: number): void {
 //     if (semitones <0 ) {
-//       throw Error("Attempted to raise a note with a negative semitones value")
+//       throw Error("Tried to raise a note with a negative semitones value")
 //     }
 
 //     if (semitones === 0) {

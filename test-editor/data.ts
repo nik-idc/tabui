@@ -9,6 +9,7 @@ import {
   TabWindow,
   TabWindowDim,
   TabWindowRenderer,
+  Score,
 } from "../src/index";
 
 // Tab window dim
@@ -95,12 +96,16 @@ export function createBasicTab() {
     ]),
   ];
 
-  const tab = new Tab(1, "test", "Unknown", "Unknown", guitar, bars, true);
+  const tab = new Tab("test tab", "guitar", guitar, bars);
   return tab;
 }
 
 export function createBasicTabWindow() {
   const tab = createBasicTab();
+
+  const score = new Score(-1, "test score", "test artist", "test song", true, [
+    tab,
+  ]);
 
   const dim = new TabWindowDim(
     width,
@@ -110,7 +115,7 @@ export function createBasicTabWindow() {
     durationsHeight,
     tab.guitar.stringsCount
   );
-  const tabWindow = new TabWindow(tab, dim);
+  const tabWindow = new TabWindow(score, tab, dim);
   tabWindow.calcTabElement();
   return tabWindow;
 }

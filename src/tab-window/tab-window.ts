@@ -72,6 +72,14 @@ export class TabWindow {
     return this._tabElement.getBeatElementGlobalCoords(beatElement);
   }
 
+  public getNoteElementGlobalCoords(noteElement: NoteElement): Point {
+    return this._tabElement.getNoteElementGlobalCoords(noteElement);
+  }
+
+  public getNoteTextGlobalCoords(noteElement: NoteElement): Point {
+    return this._tabElement.getNoteTextGlobalCoords(noteElement);
+  }
+
   public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
     return this._tabElement.getBeatElementByUUID(beatUUID);
   }
@@ -251,6 +259,14 @@ export class TabWindow {
     this._tabPlayer.stop();
   }
 
+  public getIsPlaying(): boolean {
+    if (this._tabPlayer === undefined) {
+      return false;
+    }
+
+    return this._tabPlayer.isPlaying;
+  }
+
   public getSelectedBeat(): Beat | undefined {
     const selectedElement = this._tabEditor.selectionManager.selectedElement;
     if (selectedElement === undefined) {
@@ -290,7 +306,21 @@ export class TabWindow {
     return beatElement;
   }
 
+  public getWindowHeight(): number {
+    let tabWindowHeight = 0;
+    const tabLineElements = this._tabElement.tabLineElements;
+    for (const tabLineElement of tabLineElements) {
+      tabWindowHeight += tabLineElement.rect.height;
+    }
+
+    return tabWindowHeight;
+  }
+
   public get tab(): Tab {
     return this._tab;
+  }
+
+  public get tabPlayer(): TabPlayer | undefined {
+    return this._tabPlayer;
   }
 }

@@ -183,6 +183,8 @@ export class TabEditor {
       this.undoStack.push(beforeApply);
     }
 
+    this.tabElement.calc();
+
     if (
       elsAndIds.tabLineElementId !==
       this.tabElement.tabLineElements.length - 1
@@ -224,6 +226,8 @@ export class TabEditor {
       effectIndex
     );
 
+    this.tabElement.calc();
+
     if (
       elsAndIds.tabLineElementId !==
       this.tabElement.tabLineElements.length - 1
@@ -250,7 +254,7 @@ export class TabEditor {
     this.tabElement.resetSelection();
   }
 
-    /**
+  /**
    * Clears selected element
    */
   public clearSelectedElement(): void {
@@ -293,6 +297,8 @@ export class TabEditor {
   }
 
   public paste(): void {
+    this.undoStack.push(this._tab.deepCopy());
+
     this._selectionManager.paste();
     this.tabElement.calc();
   }

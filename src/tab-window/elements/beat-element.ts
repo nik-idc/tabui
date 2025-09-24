@@ -8,11 +8,13 @@ import { EffectLabelElement } from "./effects/effect-label-element";
 import { EFFECT_TYPE_TO_LABEL } from "./effects/guitar-effect-element-lists";
 import { tabEvent, TabEventType } from "../../events/tab-event";
 import { BeatNotesElement } from "./beat-notes-element";
+import { randomInt } from "../../misc/random-int";
 
 /**
  * Class that handles drawing beat element in the tab
  */
 export class BeatElement {
+  readonly uuid: number;
   /**
    * Tab window dimensions
    */
@@ -32,7 +34,7 @@ export class BeatElement {
   /**
    * This beat's rectangle
    */
-  readonly rect: Rect;
+  rect: Rect;
   /**
    * The beat
    */
@@ -58,6 +60,7 @@ export class BeatElement {
     beat: Beat,
     labelsGapHeight: number = 0
   ) {
+    this.uuid = randomInt();
     this.dim = dim;
     this.durationRect = new Rect();
     this.rect = new Rect(beatCoords.x, beatCoords.y);
@@ -80,28 +83,6 @@ export class BeatElement {
   }
 
   private calcRectAndNotes(): void {
-    // switch (this.beat.duration) {
-    //   case NoteDuration.ThirtySecond:
-    //     this.rect.width = this.dim.noteRectWidth32;
-    //     break;
-    //   case NoteDuration.Sixteenth:
-    //     this.rect.width = this.dim.noteRectWidth16;
-    //     break;
-    //   case NoteDuration.Eighth:
-    //     this.rect.width = this.dim.noteRectWidth8;
-    //     break;
-    //   case NoteDuration.Quarter:
-    //     this.rect.width = this.dim.noteRectWidth4;
-    //     break;
-    //   case NoteDuration.Half:
-    //     this.rect.width = this.dim.noteRectWidth2;
-    //     break;
-    //   case NoteDuration.Whole:
-    //     this.rect.width = this.dim.noteRectWidth1;
-    //     break;
-    //   default:
-    //     throw Error(`${this.beat.duration} is an invalid beat duration`);
-    // }
     const mappingWidth = this.dim.widthMapping.get(this.beat.duration);
     if (mappingWidth === undefined) {
       throw Error(
@@ -115,12 +96,12 @@ export class BeatElement {
 
     this._effectLabelsRect.width = this.rect.width;
 
-    this._beatNotesElement = new BeatNotesElement(
-      this.dim,
-      this.beat,
-      this.rect.width,
-      this._effectLabelsRect.height
-    );
+    this._beatNotesElement.rect.width = this.rect.width;
+    this._beatNotesElement.rect.y =
+      this.dim.durationsHeight + this._effectLabelsRect.height;
+    this._beatNotesElement.rect.height =
+      this.dim.noteRectHeight * this.beat.guitar.stringsCount;
+    this._beatNotesElement.calc();
   }
 
   private calcDurationDims(): void {
@@ -132,32 +113,49 @@ export class BeatElement {
   }
 
   private calcEffectLabels(): void {
-    this._effectLabelElements = [];
+    const newEffectLabelElements: EffectLabelElement[] = [];
+    const oldEffectLabelElements = [...this._effectLabelElements];
+
     let totalLabelsHeight = 0;
     for (const noteElement of this._beatNotesElement.noteElements) {
+      if (!noteElement) continue; // !!?? Not sure if this is needed
       for (const effect of noteElement.note.effects) {
         if (!EFFECT_TYPE_TO_LABEL[effect.effectType]) {
           continue;
         }
 
-        // Add effect label
+        const oldElementIndex = oldEffectLabelElements.findIndex(
+          (e) => e.effect.uuid === effect.uuid
+        );
+        let element: EffectLabelElement;
+
         const x = 0;
         const y = this.durationRect.leftBottom.y + totalLabelsHeight;
         const width = this.rect.width;
         const height = this.dim.effectLabelHeight;
         const rect = new Rect(x, y, width, height);
-        this._effectLabelElements.push(
-          new EffectLabelElement(this.dim, rect, effect)
-        );
+
+        if (oldElementIndex !== -1) {
+          // Current label element is already present and calc-ed,
+          // so just need to update it's dimensions
+          element = oldEffectLabelElements.splice(oldElementIndex, 1)[0];
+          element.update(rect);
+        } else {
+          // New label element has been just added,
+          // need to create a new effect label element
+          element = new EffectLabelElement(this.dim, rect, effect);
+        }
+        newEffectLabelElements.push(element);
 
         totalLabelsHeight += height;
-
-        if (totalLabelsHeight > this._effectLabelsRect.height) {
-          const gapHeight = totalLabelsHeight - this._effectLabelsRect.height;
-          this.insertEffectGap(gapHeight);
-        }
       }
     }
+    if (totalLabelsHeight > 0) {
+      // const gapHeight = totalLabelsHeight - this._effectLabelsRect.height;
+      // this.setEffectGap(gapHeight);
+      this.setEffectGap(totalLabelsHeight);
+    }
+    this._effectLabelElements = newEffectLabelElements;
   }
 
   /**
@@ -176,16 +174,25 @@ export class BeatElement {
     this.rect.height += diff;
   }
 
+  public setEffectGap(newGapHeight: number): void {
+    const oldGapHeight = this._effectLabelsRect.height;
+
+    this._beatNotesElement.rect.y += newGapHeight - oldGapHeight;
+    this.rect.height += newGapHeight - oldGapHeight;
+
+    this._effectLabelsRect.height = newGapHeight;
+  }
+
   /**
    * Inserts a gap between the durations rectangle and beat notes.
    * The result is that the beat element is taller, beat notes are
    * moved down and the gap between durations and notes is increased
    * (or created if there was none)
    */
-  public insertEffectGap(gapHeight: number): void {
-    this._effectLabelsRect.height += gapHeight;
-    this._beatNotesElement.rect.y += gapHeight;
-    this.rect.height += gapHeight;
+  public insertEffectGap(): void {
+    this._effectLabelsRect.height += this.dim.effectLabelHeight;
+    this._beatNotesElement.rect.y += this.dim.effectLabelHeight;
+    this.rect.height += this.dim.effectLabelHeight;
   }
 
   public removeEffectGap(): void {

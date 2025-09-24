@@ -6,11 +6,13 @@ import { Point } from "../shapes/point";
 import { Beat } from "./../../models/beat";
 import { TabWindowDim } from "../tab-window-dim";
 import { NoteDuration } from "../../models/note-duration";
+import { randomInt } from "../../misc/random-int";
 
 /**
  * Class that handles drawing beat element in the tab
  */
 export class BarElement {
+  readonly uuid: number;
   /**
    * Tab window dimensions
    */
@@ -74,6 +76,7 @@ export class BarElement {
     horizontalBarOffset: number = 0,
     labelGapHeight: number = 0
   ) {
+    this.uuid = randomInt();
     this.dim = dim;
     this.beatElements = [];
     this.showSignature = showSignature;
@@ -90,6 +93,15 @@ export class BarElement {
     this.bar = bar;
     this.staffLines = [];
 
+    this.calc();
+  }
+
+  public update(prevBar?: Bar, horizontalBarOffset: number = 0): void {
+    this.showSignature =
+      prevBar !== undefined ? this.bar.signature !== prevBar.signature : true;
+    this.showTempo =
+      prevBar !== undefined ? this.bar.tempo !== prevBar.tempo : true;
+    this.rect.x = horizontalBarOffset;
     this.calc();
   }
 
@@ -123,33 +135,45 @@ export class BarElement {
   private calcBeatsAndRect(): void {
     // Set main rectangle
     this.rect.width = this.showSignature ? this.timeSigRect.width : 0;
-    // this.rect.height = this.dim.tabLineMinHeight;
 
     // Calculate beats
-    this.beatElements = [];
+    const newBeatElements: BeatElement[] = [];
+    const oldBeatElements = [...this.beatElements];
+
     const startX = this.showSignature ? this.timeSigRect.rightTop.x : 0;
     const beatCoords = new Point(startX, this.rect.y + this.tempoRect.height);
-    for (let beat of this.bar.beats) {
-      const beatElement = new BeatElement(
-        this.dim,
-        beatCoords,
-        beat,
-        this._labelsGapHeight
+    for (const beat of this.bar.beats) {
+      const oldElementIndex = oldBeatElements.findIndex(
+        (e) => e.beat.uuid === beat.uuid
       );
+      let beatElement: BeatElement;
 
-      if (beatElement.rect.height > this.rect.height) {
-        // If the current beat ends up taller
-        // go through all the beat elements
-        // (except the current one since it's not added yet)
-        const gapHeight = beatElement.rect.height - this.rect.height;
-        this.insertEffectGap(gapHeight);
+      if (oldElementIndex !== -1) {
+        // Beat already present in the bar and calc-ed,
+        // need to just update it
+        beatElement = oldBeatElements.splice(oldElementIndex, 1)[0];
+        beatElement.rect.x = beatCoords.x;
+        beatElement.rect.y = beatCoords.y;
+        beatElement.calc();
+      } else {
+        // New beat added to the bar, not yet calc-ed,
+        // so need to create a new beat element and add it
+        beatElement = new BeatElement(
+          this.dim,
+          beatCoords,
+          beat,
+          this._labelsGapHeight
+        );
       }
 
-      this.beatElements.push(beatElement);
+      newBeatElements.push(beatElement);
 
       beatCoords.x += beatElement.rect.width;
       this.rect.width += beatElement.rect.width;
     }
+    this.beatElements = newBeatElements;
+
+    // this.calcEffectGap();
   }
 
   private calcStaffLines(): void {
@@ -176,48 +200,53 @@ export class BarElement {
     this.calcStaffLines();
   }
 
-  // public setHeight(height: number): void {
-  //   this.rect.height = height;
+  public setEffectGap(newGapHeight: number): void {
+    // Apply the necessary gap height
+    const oldGapHeight = this._labelsGapHeight;
 
-  //   const diff = height - this.rect.height;
-  //   this.timeSigRect.y += diff;
+    this.rect.height += newGapHeight - oldGapHeight;
+    this.timeSigRect.y += newGapHeight - oldGapHeight;
 
-  //   for (const beatElement of this.beatElements) {
-  //     beatElement.setHeight(height);
-  //   }
-  // }
+    this._labelsGapHeight = newGapHeight;
 
-  public setHeight(newHeight: number): void {
     for (const beatElement of this.beatElements) {
-      beatElement.setHeight(newHeight);
+      beatElement.setEffectGap(newGapHeight);
     }
 
-    const diff = newHeight - this.rect.height;
-    this._labelsGapHeight += diff;
-    this.rect.height += diff;
-    this.timeSigRect.y += diff;
     this.calcStaffLines();
   }
 
-  public insertEffectGap(gapHeight: number): void {
+  /**
+   * Calculates & applies the effect gap of the current
+   * bar element
+   */
+  public calcEffectGap(): void {
+    // Reset labels gap height to 0
+    this.timeSigRect.y -= this._labelsGapHeight
+    this.rect.height -= this._labelsGapHeight;
+    this._labelsGapHeight = 0;
+
+    // Figure out which beat element
+    // is supposed to be the tallest one
+    let mostLabelsBeatHeight = this.rect.height;
+    let mostLabelsCount = 0;
     for (const beatElement of this.beatElements) {
-      beatElement.insertEffectGap(gapHeight);
+      if (beatElement.effectLabelElements.length > mostLabelsCount) {
+        mostLabelsCount = beatElement.effectLabelElements.length;
+        mostLabelsBeatHeight = beatElement.rect.height;
+      }
     }
 
-    this._labelsGapHeight += gapHeight;
-    this.rect.height += gapHeight;
-    this.timeSigRect.y += gapHeight;
-    this.calcStaffLines();
-  }
+    // Apply the necessary gap height
+    const newGapHeight = mostLabelsBeatHeight - this.rect.height;
+    this._labelsGapHeight = newGapHeight;
+    this.rect.height += this._labelsGapHeight;
+    this.timeSigRect.y += this._labelsGapHeight;
 
-  public removeEffectGap(): void {
     for (const beatElement of this.beatElements) {
-      beatElement.removeEffectGap();
+      beatElement.setEffectGap(newGapHeight);
     }
 
-    this._labelsGapHeight -= this.dim.effectLabelHeight;
-    this.rect.height -= this.dim.effectLabelHeight;
-    this.timeSigRect.y -= this.dim.effectLabelHeight;
     this.calcStaffLines();
   }
 

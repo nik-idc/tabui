@@ -1,7 +1,177 @@
+body {
+  font-family: "Roboto", sans-serif;
+}
+
 .tabSVG {
   background-color: var(--tab-div-color);
   margin: auto;
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
   user-select: none; /* Standard syntax */
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-container {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  position: relative;
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: row;
+  background-color: white;
+  /* padding: 20px; */
+  border-radius: 5px;
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.bend-type-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bend-type-list li {
+  cursor: pointer;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.bend-type-list li:hover {
+  background-color: #eee;
+}
+
+.bend-type-list li.selected {
+  background-color: #ddd;
+  font-weight: 500;
+}
+
+.top-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin: 10px auto;
+}
+
+.track-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.play-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: fit-content;
+}
+
+.play-controls img {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+}
+
+.main-container {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.side-controls {
+  position: sticky;
+  top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 180px;
+}
+
+.side-controls .control-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.control-group img {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+}
+
+.control-group img:hover {
+  background-color: #eee;
+}
+
+.separator {
+  width: 100%;
+  border: 1px solid #ccc;
+}
+
+#input-modal .modal-content {
+  flex-direction: column;
+  gap: 10px;
+}
+
+#input-modal-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+#input-modal-inputs .input-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
+#input-modal-inputs label {
+  min-width: 100px;
+}
+
+.modal-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 20px;
 }

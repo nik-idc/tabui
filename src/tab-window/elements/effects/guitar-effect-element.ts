@@ -4,6 +4,7 @@ import { Point } from "../../shapes/point";
 import { Rect } from "../../shapes/rect";
 import { TabWindowDim } from "../../tab-window-dim";
 import { SVGUtils } from "./effects-html";
+import { randomInt } from "../../../misc/random-int";
 
 /**
  * Class that represents a guitar effect.
@@ -11,6 +12,7 @@ import { SVGUtils } from "./effects-html";
  * to which the effect is applied
  */
 export class GuitarEffectElement {
+  readonly uuid: number;
   /**
    * Effect
    */
@@ -62,6 +64,7 @@ export class GuitarEffectElement {
     noteRect: Rect,
     dim: TabWindowDim
   ) {
+    this.uuid = randomInt();
     this.effect = effect;
     this.stringNum = stringNum;
     this._noteRect = noteRect;
@@ -74,6 +77,15 @@ export class GuitarEffectElement {
       this._noteRect.y + this._noteRect.height / 2
     );
 
+    this.calc();
+  }
+
+  public update(noteRect: Rect): void {
+    this._noteRect = noteRect;
+    this._startPoint = new Point(
+      this._noteRect.x + this._noteRect.width / 2,
+      this._noteRect.y + this._noteRect.height / 2
+    );
     this.calc();
   }
 
