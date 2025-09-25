@@ -121,6 +121,19 @@ export class TabEditor {
     this._selectionManager.selectedElement.note.fret = newFret;
   }
 
+  public setSelectedBeatDots(newDots: number): void {
+    if (this._selectionManager.selectedElement === undefined) {
+      throw Error("Selected note is undefined");
+    }
+
+    this.undoStack.push(this._tab.deepCopy());
+
+    const barIndex = this._selectionManager.selectedElement.barId;
+    const beatIndex = this._selectionManager.selectedElement.beatId;
+    this._tab.setDots(barIndex, beatIndex, newDots);
+    this.tabElement.calc();
+  }
+
   public changeSelectedBarTempo(newTempo: number): void {
     this.undoStack.push(this._tab.deepCopy());
 

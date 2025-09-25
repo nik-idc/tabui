@@ -136,6 +136,10 @@ export class TabWindow {
     this._tabEditor.setSelectedNoteFret(newFret);
   }
 
+  public setSelectedBeatDots(newDots: number): void {
+    this._tabEditor.setSelectedBeatDots(newDots);
+  }
+
   public changeSelectedBarTempo(newTempo: number): void {
     this._tabEditor.changeSelectedBarTempo(newTempo);
   }

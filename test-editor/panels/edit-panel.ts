@@ -60,6 +60,12 @@ export class EditPanel {
         return;
       }
 
+      const dot = target.dataset.dot;
+      if (dot !== undefined) {
+        this.handleDotClick(dot);
+        return;
+      }
+
       const effect = target.dataset.effect;
       if (effect) {
         this.handleEffectClick(effect);
@@ -107,6 +113,11 @@ export class EditPanel {
   private handleDurationClick(duration: string): void {
     const newDuration = 1 / parseInt(duration, 10);
     this.tabWindow.changeSelectedBeatDuration(newDuration as NoteDuration);
+    this.renderAndBind();
+  }
+
+  private handleDotClick(newDots: string): void {
+    this.tabWindow.setSelectedBeatDots(Number(newDots));
     this.renderAndBind();
   }
 

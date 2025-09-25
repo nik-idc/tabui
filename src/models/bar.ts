@@ -243,7 +243,8 @@ export class Bar {
 
     let durations = 0;
     for (let beat of this.beats) {
-      durations += beat.duration;
+      // durations += beat.duration;
+      durations += beat.getFullDuration();
     }
 
     return durations === this._beatsCount * this.duration;

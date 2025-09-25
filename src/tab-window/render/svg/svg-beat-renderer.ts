@@ -26,6 +26,7 @@ export class SVGBeatRenderer {
 
   private _groupSVG?: SVGGElement;
   private _beatDurationSVG?: SVGImageElement;
+  private _beatDotSVG?: SVGImageElement;
   private _beatSelectionSVG?: SVGRectElement;
 
   private _attachedEvents: Map<string, EventListener> = new Map();
@@ -118,6 +119,54 @@ export class SVGBeatRenderer {
 
     this._groupSVG.removeChild(this._beatDurationSVG);
     this._beatDurationSVG = undefined;
+  }
+
+  /**
+   * Render a beat's dots
+   * @param beatOffset Global offset of the beat
+   */
+  private renderBeatDots(beatOffset: Point): void {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to render beat duration when SVG group undefined");
+    }
+
+    const beatUUID = this._beatElement.beat.uuid;
+    if (this._beatDotSVG === undefined) {
+      this._beatDotSVG = createSVGImage();
+
+      // Set id
+      this._beatDotSVG.setAttribute("id", `beat-dot-${beatUUID}`);
+
+      // Add element to group SVG element
+      this._groupSVG.appendChild(this._beatDotSVG);
+    }
+
+    const x = `${beatOffset.x + this._beatElement.dotRect.x}`;
+    const y = `${beatOffset.y + this._beatElement.dotRect.y}`;
+    const width = `${this._beatElement.dotRect.width}`;
+    const height = `${this._beatElement.dotRect.height}`;
+    const href = `${this._assetsPath}/img/notes/dot${this._beatElement.beat.dots}.svg`;
+    this._beatDotSVG.setAttribute("x", x);
+    this._beatDotSVG.setAttribute("y", y);
+    this._beatDotSVG.setAttribute("width", width);
+    this._beatDotSVG.setAttribute("height", height);
+    this._beatDotSVG.setAttribute("href", href);
+  }
+
+  /**
+   * Unrender beat dots
+   */
+  private unrenderBeatDots(): void {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to unrender beat duration when SVG group undefined");
+    }
+
+    if (this._beatDotSVG === undefined) {
+      return;
+    }
+
+    this._groupSVG.removeChild(this._beatDotSVG);
+    this._beatDotSVG = undefined;
   }
 
   /**
@@ -296,7 +345,9 @@ export class SVGBeatRenderer {
    * Render a full beat
    * @param newBarOffset Optional new bar offset
    */
-  public renderBeatElement(newBarOffset?: Point): (SVGNoteRenderer | SVGBeatRenderer)[] {
+  public renderBeatElement(
+    newBarOffset?: Point
+  ): (SVGNoteRenderer | SVGBeatRenderer)[] {
     this.renderGroup();
 
     // Calc offset for each element inside of this beat element
@@ -312,6 +363,12 @@ export class SVGBeatRenderer {
     const newNoteRenderers = this.renderNoteElements(beatOffset);
 
     this.renderBeatDuration(beatOffset);
+    if (this._beatElement.beat.dots > 0) {
+      this.renderBeatDots(beatOffset);
+    } else {
+      this.unrenderBeatDots();
+    }
+
     if (this._beatElement.selected) {
       this.renderBeatSelection();
     } else {
@@ -332,6 +389,7 @@ export class SVGBeatRenderer {
     this.unrenderLabels();
     this.unrenderNoteElements();
     this.unrenderBeatDuration();
+    this.unrenderBeatDots();
     this.unrenderBeatSelection();
 
     this._parentElement.removeChild(this._groupSVG);
