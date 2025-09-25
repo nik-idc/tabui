@@ -32,6 +32,10 @@ export class BeatElement {
    */
   readonly durationRect: Rect;
   /**
+   * This beat's dot rectangle (is defined if dot count > 0)
+   */
+  readonly dotRect: Rect;
+  /**
    * This beat's rectangle
    */
   rect: Rect;
@@ -63,6 +67,7 @@ export class BeatElement {
     this.uuid = randomInt();
     this.dim = dim;
     this.durationRect = new Rect();
+    this.dotRect = new Rect();
     this.rect = new Rect(beatCoords.x, beatCoords.y);
     this.beat = beat;
     this._effectLabelsRect = new Rect(
@@ -83,11 +88,19 @@ export class BeatElement {
   }
 
   private calcRectAndNotes(): void {
-    const mappingWidth = this.dim.widthMapping.get(this.beat.duration);
+    let mappingWidth = this.dim.widthMapping.get(this.beat.duration);
     if (mappingWidth === undefined) {
       throw Error(
         `${this.beat.duration} is an invalid beat duration OR error in mapping`
       );
+    }
+    for (let i = 0; i < this.beat.dots; i++) {
+      const currentDotDuration = this.beat.duration / Math.pow(2, i);
+      let dotMappingWidth = this.dim.widthMapping.get(currentDotDuration);
+      if (dotMappingWidth === undefined) {
+        dotMappingWidth = this.dim.noteRectWidth64;
+      }
+      mappingWidth += dotMappingWidth;
     }
     this.rect.width = mappingWidth;
 
@@ -105,11 +118,28 @@ export class BeatElement {
   }
 
   private calcDurationDims(): void {
-    // Calc duration transform
-    this.durationRect.x = 0;
-    this.durationRect.y = 0;
-    this.durationRect.width = this.rect.width;
-    this.durationRect.height = this.dim.durationsHeight;
+    if (this.beat.dots === 0) {
+      // Calc duration transform
+      this.durationRect.x = 0;
+      this.durationRect.y = 0;
+      this.durationRect.width = this.rect.width;
+      this.durationRect.height = this.dim.durationsHeight;
+
+      this.dotRect.set(0, 0, 0, 0);
+    } else {
+      // Calc duration transform
+      this.durationRect.x = 0;
+      this.durationRect.y = 0;
+      this.durationRect.width = this.rect.width / 2;
+      this.durationRect.height = this.dim.durationsHeight;
+
+      this.dotRect.set(
+        this.durationRect.width,
+        0,
+        this.rect.width / 2,
+        this.dim.durationsHeight
+      );
+    }
   }
 
   private calcEffectLabels(): void {

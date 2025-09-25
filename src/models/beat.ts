@@ -20,6 +20,10 @@ export class Beat {
    */
   public duration: NoteDuration;
   /**
+   * Dots applied to the beat (0 = no dots, 1 = 1 dot, 2 = 2 dots)
+   */
+  private _dots: number;
+  /**
    * Beat notes
    */
   readonly notes: GuitarNote[];
@@ -29,11 +33,18 @@ export class Beat {
    * @param guitar Guitar on which the beat is played
    * @param duration Note duration
    * @param notes Notes array
+   * @param dots Number of dots to apply
    */
-  constructor(guitar: Guitar, duration: NoteDuration, notes?: GuitarNote[]) {
+  constructor(
+    guitar: Guitar,
+    duration: NoteDuration,
+    notes?: GuitarNote[],
+    dots?: number
+  ) {
     this.uuid = randomInt();
     this.guitar = guitar;
     this.duration = duration;
+    this._dots = dots === undefined ? 0 : dots;
 
     if (notes !== undefined) {
       if (notes.length !== guitar.stringsCount) {
@@ -47,6 +58,18 @@ export class Beat {
         (_, stringNum) => new GuitarNote(this.guitar, stringNum + 1, undefined)
       );
     }
+  }
+
+  /**
+   * Set beat's dot count (or reset it if setting the same dot)
+   * @param newDots New dots value (can't be anything other than 0, 1 and 2)
+   */
+  public setDots(newDots: number): void {
+    if (newDots !== 0 && newDots !== 1 && newDots !== 2) {
+      throw Error(`${newDots} is an invalid dots value`);
+    }
+
+    this._dots = newDots === this._dots ? 0 : newDots;
   }
 
   public deepCopy(): Beat {
@@ -130,5 +153,26 @@ export class Beat {
 
     // If all is the same then beats are equal
     return true;
+  }
+
+  /**
+   * Gets full duration taking applied dots into accounr
+   * @returns
+   */
+  public getFullDuration(): number {
+    switch (this._dots) {
+      case 0:
+        return this.duration;
+      case 1:
+        return this.duration + this.duration / 2;
+      case 2:
+        return this.duration + this.duration / 2 + this.duration / 4;
+      default:
+        throw Error(`Beat dots value is not in [0, 1, 2] - ${this._dots}`);
+    }
+  }
+
+  public get dots(): number {
+    return this._dots;
   }
 }

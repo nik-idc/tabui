@@ -222,6 +222,26 @@ export class Tab {
   }
 
   /**
+   * Sets dots value for a beat and recalculates whether bar's durations fit
+   * @param barIndex Bar index
+   * @param beatIndex Beat index
+   * @param newDots New dots
+   */
+  public setDots(barIndex: number, beatIndex: number, newDots: number): void {
+    const bar = this._bars[barIndex];
+    if (bar === undefined) {
+      throw Error("Attempted to set dots of beat inside undefined bar");
+    }
+    const beat = bar.beats[beatIndex];
+    if (beat === undefined) {
+      throw Error("Attempted to set dots of undefined beat");
+    }
+
+    beat.setDots(newDots);
+    bar.durationsFit;
+  }
+
+  /**
    * Applies bend to a note
    * @param barIndex Bar index
    * @param beatIndex Beat index
