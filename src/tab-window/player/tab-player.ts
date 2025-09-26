@@ -59,12 +59,14 @@ export class TabPlayer {
   private _currentBeat?: Beat;
   private _synth: Tone.PolySynth;
   private _isPlaying: boolean;
+  private _isLooped: boolean;
 
   constructor(tab: Tab) {
     this._tab = tab;
     this._currentBeat = undefined;
     this._synth = new Tone.PolySynth(Tone.Synth).toDestination();
     this._isPlaying = false;
+    this._isLooped = false;
   }
 
   public start(): void {
@@ -95,7 +97,7 @@ export class TabPlayer {
     let restartRepeat: boolean = false;
     for (let i = currentBeatIndex; i < beatsSeq.length; i++) {
       if (restartRepeat) {
-        i = repeatStartBeatIndex!; // Minus one because the needed beat is the next
+        i = repeatStartBeatIndex!;
         restartRepeat = false;
       }
 
@@ -140,7 +142,6 @@ export class TabPlayer {
         );
       }
 
-      // const tonejsDuration = TonejsDurationMap[beatsSeq[i].duration];
       const tonejsDuration = bpmDurationToSeconds(
         bar.tempo,
         bar.duration,
@@ -157,16 +158,11 @@ export class TabPlayer {
             continue;
           }
 
-          console.log(`Leftover duration: ${leftoverDuration} seconds`);
-          console.log(`Duration: ${tonejsDuration} seconds`);
-          console.log(`Beat ${i + 1}, played note ${note.note.noteStr}`);
-
           this._synth.triggerAttackRelease(
             note.note.noteStr,
             tonejsDuration,
             t
           );
-
           this._synth.blockTime;
         }
 
@@ -179,6 +175,21 @@ export class TabPlayer {
 
       time += Tone.Time(tonejsDuration + leftoverDuration).toSeconds();
     }
+
+    Tone.getTransport().scheduleOnce((t) => {
+      if (!this._isPlaying) return;
+
+      if (this._isLooped) {
+        this.setCurrentBeat(this._tab.getBeatsSeq()[0]);
+      } else {
+        const firstBeat = this._tab.getBeatsSeq()[0];
+        this.stop();
+        this._currentBeat = firstBeat;
+        tabEvent.emit(TabEventType.PlayerCurBeatChanged, {
+          beatUUID: this._currentBeat.uuid,
+        });
+      }
+    }, time);
 
     // Slight offset for browser scheduling safety
     Tone.getTransport().start("+0.1");
@@ -203,8 +214,16 @@ export class TabPlayer {
     Tone.getTransport().cancel(); // Unschedules all events
   }
 
+  public setLooped(): void {
+    this._isLooped = !this._isLooped;
+  }
+
   public get isPlaying(): boolean {
     return this._isPlaying;
+  }
+
+  public get isLooped(): boolean {
+    return this._isLooped;
   }
 
   public get currentBeat(): Beat | undefined {

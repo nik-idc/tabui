@@ -271,12 +271,28 @@ export class TabWindow {
     this._tabPlayer.stop();
   }
 
+  public setLooped(): void {
+    if (this._tabPlayer === undefined) {
+      return;
+    }
+
+    this._tabPlayer.setLooped();
+  }
+
   public getIsPlaying(): boolean {
     if (this._tabPlayer === undefined) {
       return false;
     }
 
     return this._tabPlayer.isPlaying;
+  }
+
+  public getIsLooped(): boolean {
+    if (this._tabPlayer === undefined) {
+      return false;
+    }
+
+    return this._tabPlayer.isLooped;
   }
 
   public getSelectedBeat(): Beat | undefined {
