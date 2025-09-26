@@ -27,6 +27,7 @@ const trackSelector = getEl<HTMLSelectElement>("track-selector");
 const playButton = getEl<HTMLImageElement>("playButton");
 const pauseButton = getEl<HTMLImageElement>("pauseButton");
 const stopButton = getEl<HTMLImageElement>("stopButton");
+const loopButton = getEl<HTMLImageElement>("loopButton");
 const svgRoot = getEl<SVGSVGElement>("svgRoot");
 const bendGraphModal = getEl<HTMLDivElement>("bend-graph-modal");
 const sideControls = getEl<HTMLDivElement>("side-controls");
@@ -140,9 +141,18 @@ function onStop(): void {
   pauseButton.style.display = "none";
 }
 
+function onLoopClick(): void {
+  tabWindow.setLooped();
+  loopButton.setAttribute(
+    "class",
+    tabWindow.getIsLooped() ? "loop-icon-active" : "loop-icon"
+  );
+}
+
 playButton.addEventListener("click", onPlay);
 pauseButton.addEventListener("click", onPause);
 stopButton.addEventListener("click", onStop);
+loopButton.addEventListener("click", onLoopClick);
 
 // Initial load
 init(0);

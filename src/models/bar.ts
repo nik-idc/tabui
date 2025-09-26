@@ -3,6 +3,13 @@ import { Guitar } from "./guitar";
 import { NoteDuration } from "./note-duration";
 import { Tab } from "./tab";
 import { randomInt } from "../misc/random-int";
+
+export enum BarRepeatStatus {
+  None,
+  Start,
+  End,
+}
+
 /**
  * Class that represents a musical bar
  */
@@ -29,6 +36,15 @@ export class Bar {
    */
   public duration: NoteDuration;
   /**
+   * Whether this bar is a repeat start, repeat end or a regular bar
+   */
+  private _repeatStatus: BarRepeatStatus;
+  /**
+   * How many times a repeat section should repeat
+   * (only defined for bars with _repeatStatus === BarRepeatStatus.End)
+   */
+  private _repeatCount?: number;
+  /**
    * Array of all beats in the bar
    */
   readonly beats: Beat[];
@@ -40,20 +56,25 @@ export class Bar {
    * @param beatsCount Number of beats for the bar
    * @param duration The duration of the note that constitutes a whole bar
    * @param beats Array of all beats in the bar
+   * @param repeatStatus Array of all beats in the bar
    */
   constructor(
     guitar: Guitar,
     tempo: number,
     beatsCount: number,
     duration: NoteDuration,
-    beats: Beat[] | undefined
+    beats: Beat[] | undefined,
+    repeatStatus: BarRepeatStatus = BarRepeatStatus.None
   ) {
     this.uuid = randomInt();
     this.guitar = guitar;
     this._tempo = tempo;
     this._beatsCount = beatsCount;
     this.duration = duration;
+    // this._isRepeatStart = false;
+    // this._isRepeatEnd = false;
     // this._durationsFit = true;
+    this._repeatStatus = repeatStatus;
     if (beats === undefined) {
       this.beats = [];
       for (let i = 0; i < this._beatsCount; i++) {
@@ -161,6 +182,25 @@ export class Bar {
     this.beats[index].duration = duration;
   }
 
+  public setRepeatStart(): void {
+    this._repeatStatus =
+      this._repeatStatus === BarRepeatStatus.Start
+        ? BarRepeatStatus.None
+        : BarRepeatStatus.Start;
+  }
+
+  public setRepeatEnd(repeatsCount: number = 2): void {
+    this._repeatStatus =
+      this._repeatStatus === BarRepeatStatus.End
+        ? BarRepeatStatus.None
+        : BarRepeatStatus.End;
+    this._repeatCount = repeatsCount;
+  }
+
+  public setRepeatNone(): void {
+    this._repeatStatus = BarRepeatStatus.None;
+  }
+
   public beatPlayable(beatToCheck: Beat): boolean {
     if (!this.beats.includes(beatToCheck)) {
       throw Error("Beat is not this bar");
@@ -255,6 +295,21 @@ export class Bar {
    */
   get signature() {
     return this._beatsCount * this.duration;
+  }
+
+  /**
+   * Whether this bar is a repeat start, repeat end or a regular bar
+   */
+  public get repeatStatus(): BarRepeatStatus {
+    return this._repeatStatus;
+  }
+
+  /**
+   * How many times a repeat section should repeat
+   * (only defined for bars with _repeatStatus === BarRepeatStatus.End)
+   */
+  public get repeatCount(): number | undefined {
+    return this._repeatCount;
   }
 
   /**

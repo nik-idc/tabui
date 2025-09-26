@@ -175,3 +175,19 @@ body {
   gap: 10px;
   padding-top: 20px;
 }
+
+.loop-icon:hover {
+  background-color: #eee;
+}
+
+.loop-icon.active {
+  background-color: #ddd;
+}
+
+.loop-icon-active {
+  background-color: #b1e6ff;
+}
+
+.loop-icon-active:hover {
+  background-color: #91bcd1;
+}
