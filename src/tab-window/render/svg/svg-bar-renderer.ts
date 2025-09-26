@@ -5,6 +5,7 @@ import {
   createSVGRect,
   createSVGText,
 } from "../../../misc/svg-creators";
+import { BarRepeatStatus } from "../../../models/bar";
 import { DURATION_TO_NAME } from "../../../models/note-duration";
 import { BarElement } from "../../elements/bar-element";
 import { BeatElement } from "../../elements/beat-element";
@@ -30,6 +31,7 @@ export class SVGBarRenderer {
   private _groupSVG?: SVGGElement;
   private _barStaffLinesSVG?: SVGLineElement[];
   private _barBorderLinesSVG?: SVGLineElement[];
+  private _barRepeatSign?: SVGImageElement;
   private _barSigSVG?: SVGTextElement[];
   private _barTempoImageSVG?: SVGImageElement;
   private _barTempoTextSVG?: SVGTextElement;
@@ -191,6 +193,61 @@ export class SVGBarRenderer {
     this._groupSVG.removeChild(this._barBorderLinesSVG[0]);
     this._groupSVG.removeChild(this._barBorderLinesSVG[1]);
     this._barBorderLinesSVG = undefined;
+  }
+
+  /**
+   * Render bar's repeat sign
+   * @param barOffset Global offset of the bar
+   */
+  private renderBarRepeat(barOffset: Point): void {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to render bar sig when SVG group undefined");
+    }
+
+    if (this._barElement.bar.repeatStatus === BarRepeatStatus.None) {
+      return;
+    }
+
+    const barUUID = this._barElement.bar.uuid;
+    if (this._barRepeatSign === undefined) {
+      this._barRepeatSign = createSVGImage();
+
+      // Set id
+      this._barRepeatSign.setAttribute("id", `bar-repeat-${barUUID}`);
+
+      // Add elements to root SVG element
+      this._groupSVG.appendChild(this._barRepeatSign);
+    }
+
+    const x = `${barOffset.x + this._barElement.repeatRect.x}`;
+    const y = `${barOffset.y + this._barElement.repeatRect.y}`;
+    const width = `${this._barElement.repeatRect.width}`;
+    const height = `${this._barElement.repeatRect.height}`;
+    const href =
+      this._barElement.bar.repeatStatus === BarRepeatStatus.Start
+        ? `${this._assetsPath}/img/ui/repeat-start.svg`
+        : `${this._assetsPath}/img/ui/repeat-end.svg`;
+    this._barRepeatSign.setAttribute("x", x);
+    this._barRepeatSign.setAttribute("y", y);
+    this._barRepeatSign.setAttribute("width", width);
+    this._barRepeatSign.setAttribute("height", height);
+    this._barRepeatSign.setAttribute("href", href);
+  }
+
+  /**
+   * Unrender all bar repeat sign
+   */
+  private unrenderBarRepeat(): void {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to unrender bar sig when SVG group undefined");
+    }
+
+    if (this._barRepeatSign === undefined) {
+      return;
+    }
+
+    this._groupSVG.removeChild(this._barRepeatSign);
+    this._barRepeatSign = undefined;
   }
 
   /**
@@ -384,7 +441,16 @@ export class SVGBarRenderer {
     // Render bar stuff
     this.renderBarStaffLines(barOffset);
     this.renderBarBorderLines(barOffset);
-    this.renderBarSig(barOffset);
+    if (this._barElement.showSignature) {
+      this.renderBarSig(barOffset);
+    } else {
+      this.unrenderBarSig();
+    }
+    if (this._barElement.bar.repeatStatus !== BarRepeatStatus.None) {
+      this.renderBarRepeat(barOffset);
+    } else {
+      this.unrenderBarRepeat();
+    }
     this.renderBarTempoImage(barOffset);
     this.renderBarTempoText(barOffset);
 

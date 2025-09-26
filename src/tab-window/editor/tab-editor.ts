@@ -161,6 +161,30 @@ export class TabEditor {
     this.tabElement.calc();
   }
 
+  public setSelectedBarRepeatStart(): void {
+    this.undoStack.push(this._tab.deepCopy());
+
+    const barIndex = this._selectionManager.selectedElement?.barId;
+    if (barIndex === undefined) {
+      throw Error("Bar index undefined at set selected bar repeat start");
+    }
+    this._tab.setRepeatStart(barIndex);
+
+    this.tabElement.calc();
+  }
+
+  public setSelectedBarRepeatEnd(): void {
+    this.undoStack.push(this._tab.deepCopy());
+
+    const barIndex = this._selectionManager.selectedElement?.barId;
+    if (barIndex === undefined) {
+      throw Error("Bar index undefined at set selected bar repeat end");
+    }
+    this._tab.setRepeatEnd(barIndex, 2);
+
+    this.tabElement.calc();
+  }
+
   public changeSelectedBeatDuration(newDuration: NoteDuration): void {
     this.undoStack.push(this._tab.deepCopy());
 

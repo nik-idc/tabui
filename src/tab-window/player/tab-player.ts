@@ -1,4 +1,5 @@
 import { tabEvent, TabEventType } from "../../events/tab-event";
+import { Bar, BarRepeatStatus } from "../../models/bar";
 import { Beat } from "../../models/beat";
 import { NoteDuration } from "../../models/note-duration";
 import { Tab } from "../../models/tab";
@@ -89,8 +90,40 @@ export class TabPlayer {
 
     // Start scheduling playback
     let time = 0;
+    let repeatStartBeatIndex: number | undefined;
+    let repeatsCount: number = 0;
+    let restartRepeat: boolean = false;
     for (let i = currentBeatIndex; i < beatsSeq.length; i++) {
+      if (restartRepeat) {
+        i = repeatStartBeatIndex!; // Minus one because the needed beat is the next
+        restartRepeat = false;
+      }
+
       const bar = this._tab.findBeatsBar(beatsSeq[i]);
+
+      if (
+        bar.repeatStatus === BarRepeatStatus.Start &&
+        repeatStartBeatIndex === undefined
+      ) {
+        // First time encounter with a beat inside a repeat start bar, mark it
+        repeatStartBeatIndex = i;
+      }
+
+      if (
+        bar.repeatStatus === BarRepeatStatus.End &&
+        bar.beats.indexOf(beatsSeq[i]) === bar.beats.length - 1
+      ) {
+        // Last beat of the repeat end bar, starting over
+        if (repeatsCount < bar.repeatCount! - 1) {
+          restartRepeat = true;
+          repeatsCount++;
+        } else {
+          restartRepeat = false;
+          repeatsCount = 0;
+          repeatStartBeatIndex = undefined;
+        }
+      }
+
       if (!bar.beatPlayable(beatsSeq[i])) {
         continue;
       }

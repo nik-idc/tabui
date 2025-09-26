@@ -165,6 +165,14 @@ export class TabWindowDim {
    * Width of tempo block
    */
   readonly tempoRectWidth: number;
+  /**
+   * Width of repeat sign
+   */
+  readonly repeatSignWidth: number;
+    /**
+   * Height of repeat sign
+   */
+  readonly repeatSignHeight: number;
 
   /**
    * Class that contains all the needed dim info of tab lines
@@ -252,6 +260,9 @@ export class TabWindowDim {
     // '= XXX' = 5 characters of 'tempoTextSize' size
     this.tempoRectWidth = this.durationsHeight + this.tempoTextSize * 5;
     this.tempoRectHeight = this.durationsHeight;
+
+    this.repeatSignWidth = this.noteRectWidth64 / 2;
+    this.repeatSignHeight = this.timeSigRectHeight;
 
     this.tabLineMinHeight =
       this.tempoRectHeight +

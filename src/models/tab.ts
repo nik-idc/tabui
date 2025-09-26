@@ -241,6 +241,30 @@ export class Tab {
     bar.durationsFit;
   }
 
+  public setRepeatStart(barIndex: number): void {
+    if (barIndex < 0 || barIndex >= this._bars.length) {
+      throw Error("Invalid bar index when setting bar repeat start");
+    }
+
+    this._bars[barIndex].setRepeatStart();
+  }
+
+  public setRepeatEnd(barIndex: number, repeatsCount: number): void {
+    if (barIndex < 0 || barIndex >= this._bars.length) {
+      throw Error("Invalid bar index when setting bar repeat end");
+    }
+
+    this._bars[barIndex].setRepeatEnd(repeatsCount);
+  }
+
+  public setRepeatNone(barIndex: number): void {
+    if (barIndex < 0 || barIndex >= this._bars.length) {
+      throw Error("Invalid bar index when setting bar repeat none");
+    }
+
+    this._bars[barIndex].setRepeatNone();
+  }
+
   /**
    * Applies bend to a note
    * @param barIndex Bar index

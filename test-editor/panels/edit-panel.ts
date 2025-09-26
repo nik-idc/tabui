@@ -54,6 +54,16 @@ export class EditPanel {
         return;
       }
 
+      if (target.id === "repeatStartButton") {
+        this.handleRepeatStartClick();
+        return;
+      }
+
+      if (target.id === "repeatEndButton") {
+        this.handleRepeatEndClick();
+        return;
+      }
+
       const duration = target.dataset.duration;
       if (duration) {
         this.handleDurationClick(duration);
@@ -108,6 +118,16 @@ export class EditPanel {
         }
       }
     );
+  }
+
+  private handleRepeatStartClick(): void {
+    this.tabWindow.setSelectedBarRepeatStart();
+    this.renderAndBind();
+  }
+
+  private handleRepeatEndClick(): void {
+    this.tabWindow.setSelectedBarRepeatEnd();
+    this.renderAndBind();
   }
 
   private handleDurationClick(duration: string): void {

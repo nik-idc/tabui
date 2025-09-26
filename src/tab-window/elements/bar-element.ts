@@ -1,4 +1,4 @@
-import { Bar } from "./../../models/bar";
+import { Bar, BarRepeatStatus } from "./../../models/bar";
 import { Rect } from "../shapes/rect";
 import { BeatElement } from "./beat-element";
 import { TabWindow } from "../tab-window";
@@ -37,6 +37,10 @@ export class BarElement {
    * Time signature rectangle
    */
   public timeSigRect: Rect;
+  /**
+   * Repeat sign rectangle
+   */
+  public repeatRect: Rect;
   /**
    * The height of the gap between durations and notes for effect labels
    */
@@ -83,6 +87,7 @@ export class BarElement {
     this.showTempo = showTempo;
     this.tempoRect = new Rect();
     this.timeSigRect = new Rect();
+    this.repeatRect = new Rect();
     this._labelsGapHeight = labelGapHeight;
     this.rect = new Rect(
       horizontalBarOffset,
@@ -122,7 +127,10 @@ export class BarElement {
   private calcTimeSigRect(): void {
     // Time signature rectangle
     const timeSigWidth = this.showSignature ? this.dim.timeSigRectWidth : 0;
-    this.timeSigRect.x = 0;
+    this.timeSigRect.x =
+      this.bar.repeatStatus === BarRepeatStatus.Start
+        ? this.dim.repeatSignWidth
+        : 0;
     this.timeSigRect.y =
       this.tempoRect.leftBottom.y +
       this.dim.durationsHeight +
@@ -134,13 +142,24 @@ export class BarElement {
 
   private calcBeatsAndRect(): void {
     // Set main rectangle
-    this.rect.width = this.showSignature ? this.timeSigRect.width : 0;
+    this.rect.width =
+      this.bar.repeatStatus === BarRepeatStatus.Start
+        ? this.dim.repeatSignWidth
+        : 0;
+    this.rect.width += this.showSignature ? this.timeSigRect.width : 0;
 
     // Calculate beats
     const newBeatElements: BeatElement[] = [];
     const oldBeatElements = [...this.beatElements];
 
-    const startX = this.showSignature ? this.timeSigRect.rightTop.x : 0;
+    let startX = 0;
+    if (this.bar.repeatStatus === BarRepeatStatus.Start) {
+      startX += this.dim.repeatSignWidth;
+    }
+    if (this.showSignature) {
+      startX += this.dim.timeSigRectWidth;
+    }
+
     const beatCoords = new Point(startX, this.rect.y + this.tempoRect.height);
     for (const beat of this.bar.beats) {
       const oldElementIndex = oldBeatElements.findIndex(
@@ -174,6 +193,29 @@ export class BarElement {
     this.beatElements = newBeatElements;
 
     // this.calcEffectGap();
+    if (this.bar.repeatStatus === BarRepeatStatus.End) {
+      this.rect.width += this.dim.repeatSignWidth;
+    }
+  }
+
+  private calcRepeatRect(): void {
+    if (this.bar.repeatStatus === BarRepeatStatus.None) {
+      this.repeatRect.reset();
+    } else if (this.bar.repeatStatus === BarRepeatStatus.Start) {
+      this.repeatRect.set(
+        0,
+        this.timeSigRect.y,
+        this.dim.repeatSignWidth,
+        this.dim.repeatSignHeight
+      );
+    } else if (this.bar.repeatStatus === BarRepeatStatus.End) {
+      this.repeatRect.set(
+        this.rect.width - this.dim.repeatSignWidth,
+        this.timeSigRect.y,
+        this.dim.repeatSignWidth,
+        this.dim.repeatSignHeight
+      );
+    }
   }
 
   private calcStaffLines(): void {
@@ -197,6 +239,7 @@ export class BarElement {
     this.calcTempoRect();
     this.calcTimeSigRect();
     this.calcBeatsAndRect();
+    this.calcRepeatRect();
     this.calcStaffLines();
   }
 
@@ -222,7 +265,7 @@ export class BarElement {
    */
   public calcEffectGap(): void {
     // Reset labels gap height to 0
-    this.timeSigRect.y -= this._labelsGapHeight
+    this.timeSigRect.y -= this._labelsGapHeight;
     this.rect.height -= this._labelsGapHeight;
     this._labelsGapHeight = 0;
 
@@ -253,9 +296,11 @@ export class BarElement {
   public scaleHorBy(scale: number): void {
     this.rect.x *= scale;
     this.tempoRect.x *= scale;
+    this.repeatRect.x *= scale;
     this.timeSigRect.x *= scale;
     this.rect.width *= scale;
     this.tempoRect.width *= scale;
+    this.repeatRect.width *= scale;
     this.timeSigRect.width *= scale;
 
     for (const line of this.staffLines) {

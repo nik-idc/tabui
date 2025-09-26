@@ -152,6 +152,14 @@ export class TabWindow {
     this._tabEditor.changeSelectedBarDuration(newDuration);
   }
 
+  public setSelectedBarRepeatStart(): void {
+    this._tabEditor.setSelectedBarRepeatStart();
+  }
+
+  public setSelectedBarRepeatEnd(): void {
+    this._tabEditor.setSelectedBarRepeatEnd();
+  }
+
   public changeSelectedBeatDuration(newDuration: NoteDuration): void {
     this._tabEditor.changeSelectedBeatDuration(newDuration);
   }
