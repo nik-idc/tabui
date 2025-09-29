@@ -16,6 +16,11 @@ import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { SVGEffectLabelRenderer } from "./svg-effect-label-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 
+type BeamSegmentSVG = {
+  longSVG: SVGImageElement;
+  shortSVG?: SVGImageElement;
+};
+
 /**
  * Class for rendering a bar element using SVG
  */
@@ -35,6 +40,7 @@ export class SVGBarRenderer {
   private _barSigSVG?: SVGTextElement[];
   private _barTempoImageSVG?: SVGImageElement;
   private _barTempoTextSVG?: SVGTextElement;
+  private _barBeamsSegmentsSVG?: BeamSegmentSVG[];
 
   /**
    * Class for rendering a beat element using SVG
@@ -420,6 +426,135 @@ export class SVGBarRenderer {
   }
 
   /**
+   * Render bar tempo image
+   * @param barOffset Global offset of the bar
+   */
+  private renderBarBeamSegments(barOffset: Point): void {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to render bar tempo img when SVG group undefined");
+    }
+
+    // VERY TEMPORARY VERY BAD!!!!
+    this.unrenderBarBeamSegments();
+
+    if (this._barElement.beamSegments.length === 0) {
+      return;
+    }
+
+    const barUUID = this._barElement.bar.uuid;
+    if (this._barBeamsSegmentsSVG === undefined) {
+      this._barBeamsSegmentsSVG = [];
+      for (let i = 0; i < this._barElement.beamSegments.length; i++) {
+        const curBeamSegment = this._barElement.beamSegments[i];
+        const curBeamSegmentLongSVG = createSVGImage();
+
+        // Set id
+        curBeamSegmentLongSVG.setAttribute(
+          "id",
+          `bar-beam-${i}-${barUUID}-long`
+        );
+        curBeamSegmentLongSVG.setAttribute("preserveAspectRatio", "none");
+
+        // Add elements to root SVG element
+        // this._barBeamsSegmentsSVG.push(curBeamSegmentLongSVG);
+        this._groupSVG.appendChild(curBeamSegmentLongSVG);
+
+        if (curBeamSegment.shortRect === undefined) {
+          this._barBeamsSegmentsSVG.push({ longSVG: curBeamSegmentLongSVG });
+          continue;
+        }
+
+        const curBeamSegmentShortSVG = createSVGImage();
+
+        // Set id
+        curBeamSegmentShortSVG.setAttribute(
+          "id",
+          `bar-beam-${i}-${barUUID}-short`
+        );
+        curBeamSegmentShortSVG.setAttribute("preserveAspectRatio", "none");
+
+        // Add elements to root SVG element
+        this._barBeamsSegmentsSVG.push({
+          longSVG: curBeamSegmentLongSVG,
+          shortSVG: curBeamSegmentShortSVG,
+        });
+        this._groupSVG.appendChild(curBeamSegmentShortSVG);
+      }
+    }
+
+    for (let i = 0; i < this._barBeamsSegmentsSVG.length; i++) {
+      const curBeamSegment = this._barElement.beamSegments[i];
+      const curBeamSegmentSVG = this._barBeamsSegmentsSVG[i];
+
+      const longBeamX = `${barOffset.x + curBeamSegment.longRect.x}`;
+      const longBeamY = `${barOffset.y + curBeamSegment.longRect.y}`;
+      const longBeamWidth = `${curBeamSegment.longRect.width}`;
+      const longBeamHeight = `${curBeamSegment.longRect.height}`;
+      // let href = `${this._assetsPath}/img/notes/8-beam.svg`;
+      let longHref;
+      if (curBeamSegment.shortRect === undefined) {
+        longHref = `${this._assetsPath}/img/notes/${
+          1 / curBeamSegment.curBeatElement.beat.duration
+        }-beam.svg`;
+      } else {
+        longHref = `${this._assetsPath}/img/notes/${
+          1 / curBeamSegment.nextBeatElement.beat.duration
+        }-beam.svg`;
+      }
+      curBeamSegmentSVG.longSVG.setAttribute("x", longBeamX);
+      curBeamSegmentSVG.longSVG.setAttribute("y", longBeamY);
+      curBeamSegmentSVG.longSVG.setAttribute("width", longBeamWidth);
+      curBeamSegmentSVG.longSVG.setAttribute("height", longBeamHeight);
+      curBeamSegmentSVG.longSVG.setAttribute("href", longHref);
+
+      if (
+        curBeamSegment.shortRect === undefined ||
+        curBeamSegmentSVG.shortSVG === undefined
+      ) {
+        continue;
+      }
+
+      const shortBeamX = `${barOffset.x + curBeamSegment.shortRect.x}`;
+      const shortBeamY = `${barOffset.y + curBeamSegment.shortRect.y}`;
+      const shortBeamWidth = `${curBeamSegment.shortRect.width}`;
+      const shortBeamHeight = `${curBeamSegment.shortRect.height}`;
+      const shortHref = `${this._assetsPath}/img/notes/${
+        1 / curBeamSegment.curBeatElement.beat.duration
+      }-beam.svg`;
+      curBeamSegmentSVG.shortSVG.setAttribute("x", shortBeamX);
+      curBeamSegmentSVG.shortSVG.setAttribute("y", shortBeamY);
+      curBeamSegmentSVG.shortSVG.setAttribute("width", shortBeamWidth);
+      curBeamSegmentSVG.shortSVG.setAttribute("height", shortBeamHeight);
+      curBeamSegmentSVG.shortSVG.setAttribute("href", shortHref);
+    }
+  }
+
+  /**
+   * Unrender bar tempo image
+   */
+  private unrenderBarBeamSegments(): void {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to unrender bar tempo img when SVG group undefined");
+    }
+
+    if (this._barBeamsSegmentsSVG === undefined) {
+      return;
+    }
+
+    for (let i = 0; i < this._barBeamsSegmentsSVG.length; i++) {
+      const longSVG = this._barBeamsSegmentsSVG[i].longSVG;
+      const shortSVG = this._barBeamsSegmentsSVG[i].shortSVG;
+      this._groupSVG.removeChild(longSVG);
+      if (shortSVG === undefined) {
+        continue;
+      }
+      this._groupSVG.removeChild(shortSVG);
+    }
+
+    this._barBeamsSegmentsSVG = undefined;
+  }
+
+  /**
    * Render bar element
    * @param newTLEOffset New optinal tab line element offset
    */
@@ -453,6 +588,7 @@ export class SVGBarRenderer {
     }
     this.renderBarTempoImage(barOffset);
     this.renderBarTempoText(barOffset);
+    this.renderBarBeamSegments(barOffset);
 
     const activeRenderers: (SVGBeatRenderer | SVGNoteRenderer)[] = [];
 
@@ -505,6 +641,7 @@ export class SVGBarRenderer {
     this.unrenderBarSig();
     this.unrenderBarTempoImage();
     this.unrenderBarTempoText();
+    this.unrenderBarBeamSegments();
   }
 
   public get beatRenderers(): SVGBeatRenderer[] {

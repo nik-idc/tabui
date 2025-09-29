@@ -7,6 +7,7 @@ import { Beat } from "./../../models/beat";
 import { TabWindowDim } from "../tab-window-dim";
 import { NoteDuration } from "../../models/note-duration";
 import { randomInt } from "../../misc/random-int";
+import { BeamSegmentElement } from "./beam-segment-element";
 
 /**
  * Class that handles drawing beat element in the tab
@@ -45,6 +46,10 @@ export class BarElement {
    * The height of the gap between durations and notes for effect labels
    */
   private _labelsGapHeight: number;
+  /**
+   * Beam segments of this bar element
+   */
+  public beamSegments: BeamSegmentElement[];
   /**
    * Bar element rectangle
    */
@@ -88,6 +93,7 @@ export class BarElement {
     this.tempoRect = new Rect();
     this.timeSigRect = new Rect();
     this.repeatRect = new Rect();
+    this.beamSegments = [];
     this._labelsGapHeight = labelGapHeight;
     this.rect = new Rect(
       horizontalBarOffset,
@@ -195,6 +201,30 @@ export class BarElement {
     // this.calcEffectGap();
     if (this.bar.repeatStatus === BarRepeatStatus.End) {
       this.rect.width += this.dim.repeatSignWidth;
+    }
+
+    this.beamSegments = [];
+    for (let i = 0; i < this.bar.beamingGroups.length; i++) {
+      const beamGroupBeats = this.beatElements.filter(
+        (beatEl) => beatEl.beat.beamGroupId === i
+      );
+
+      if (beamGroupBeats.length <= 1) {
+        continue;
+      }
+
+      for (let j = 0; j < beamGroupBeats.length - 1; j++) {
+        const curBeatElement = beamGroupBeats[j];
+        const nextBeatElement = beamGroupBeats[j + 1];
+        const prevBeatElement = j === 0 ? undefined : beamGroupBeats[j - 1];
+        this.beamSegments.push(
+          new BeamSegmentElement(
+            curBeatElement,
+            nextBeatElement,
+            prevBeatElement
+          )
+        );
+      }
     }
   }
 
@@ -311,6 +341,11 @@ export class BarElement {
     for (const beatElement of this.beatElements) {
       beatElement.scaleHorBy(scale);
     }
+
+    for (const beamSegment of this.beamSegments) {
+      // beamSegment.scaleHorBy(scale);
+      beamSegment.calc();
+    }
   }
 
   /**
@@ -370,55 +405,6 @@ export class BarElement {
     this.bar.changeBeatDuration(beat, duration);
 
     this.calc();
-  }
-
-  /**
-   * Change bar's beats value
-   * @param beatsCount New beats value
-   * @param prevBar Bar preceding this element's bar
-   */
-  changeBarBeats(beatsCount: number, prevBar?: Bar): void {
-    this.bar.beatsCount = beatsCount;
-
-    if (prevBar) {
-      this.showSignature = this.bar.beatsCount !== prevBar.beatsCount;
-    } else {
-      this.showSignature = true;
-    }
-
-    this.calc();
-  }
-
-  /**
-   * Change bar duration
-   * @param duration New bar duration
-   * @param prevBar Bar preceding this element's bar
-   */
-  changeBarDuration(duration: NoteDuration, prevBar?: Bar): void {
-    this.bar.duration = duration;
-
-    if (prevBar) {
-      this.showSignature = this.bar.duration !== prevBar.duration;
-    } else {
-      this.showSignature = true;
-    }
-
-    this.calc();
-  }
-
-  /**
-   * Change bar tempo
-   * @param tempo New tempo
-   * @param prevBar Bar preceding this element's bar
-   */
-  changeTempo(tempo: number, prevBar?: Bar): void {
-    this.bar.tempo = tempo;
-
-    if (prevBar) {
-      this.showTempo = this.bar.tempo !== prevBar.tempo;
-    } else {
-      this.showTempo = true;
-    }
   }
 
   /**

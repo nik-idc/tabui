@@ -142,6 +142,10 @@ export class TabWindowDim {
    */
   readonly tabLineMinHeight: number;
   /**
+   * Width of durations object above the notes
+   */
+  readonly durationsWidth: number;
+  /**
    * Height of durations object above the notes
    */
   readonly durationsHeight: number;
@@ -169,7 +173,7 @@ export class TabWindowDim {
    * Width of repeat sign
    */
   readonly repeatSignWidth: number;
-    /**
+  /**
    * Height of repeat sign
    */
   readonly repeatSignHeight: number;
@@ -195,6 +199,7 @@ export class TabWindowDim {
     this.noteTextSize = noteTextSize;
     this.timeSigTextSize = timeSigTextSize;
     this.tempoTextSize = tempoTextSize;
+    this.durationsWidth = 1.25 * durationsHeight;
     this.durationsHeight = durationsHeight;
 
     this.noteRectHeight = this.noteTextSize * 2;

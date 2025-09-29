@@ -11,6 +11,148 @@ export enum BarRepeatStatus {
 }
 
 /**
+ * Build beaming for an irregular tempo
+ * @param beatsCount Number of beats in a bar
+ * @param duration Duration of a single bar beat
+ * @returns
+ */
+function buildIrregularBeams(beatsCount: number, duration: number): number[] {
+  // Adjust beats count and duration to the provided duration
+  // (anything below 8 gets multiplied by 8/x: for 4 multiply by 2, for 2 - by 4)
+  let adjBeatsCount = beatsCount;
+  let adjDuration = duration;
+  if (duration < 8) {
+    adjBeatsCount *= 8 / duration;
+    adjDuration *= 8 / duration;
+  }
+
+  // Create all possible counts for when the max num of notes per beam is:
+  //
+  const counts = [
+    [Array(Math.floor(adjBeatsCount / 12)).fill(12), adjBeatsCount % 12],
+    [Array(Math.floor(adjBeatsCount / 8)).fill(8), adjBeatsCount % 8],
+    [Array(Math.floor(adjBeatsCount / 6)).fill(6), adjBeatsCount % 6],
+    [Array(Math.floor(adjBeatsCount / 4)).fill(4), adjBeatsCount % 4],
+    [Array(Math.floor(adjBeatsCount / 2)).fill(2), adjBeatsCount % 2],
+  ]
+    .filter((v) => (v[0] as number[]).length > 0)
+    .sort((a, b) => (a[0] as number[]).length - (b[0] as number[]).length);
+
+  let biggestBeamNotesCount = (counts[0][0] as number[])[0];
+  const biggestBeamsCount = (counts[0][0] as number[]).length;
+  let remainderBeamNotesCount = counts[0][1] as number;
+
+  // Adjust the biggest beam count by moving notes to the remainder beam
+  // The goal is:
+  // - Keep each beam group reasonably sized (>4 notes difference)
+  // - Prefer multiples of 4 when biggestBeamNotesCount > 8
+  while (
+    biggestBeamNotesCount - remainderBeamNotesCount > 4 &&
+    (biggestBeamNotesCount <= 8 || biggestBeamNotesCount % 4 !== 0)
+  ) {
+    biggestBeamNotesCount -= 2;
+    remainderBeamNotesCount += 2;
+  }
+
+  const finalBiggsetBeams = Array(biggestBeamsCount).fill(
+    biggestBeamNotesCount
+  );
+
+  const curBeaming = [...finalBiggsetBeams, remainderBeamNotesCount];
+  let pulseBase;
+  let pulsesCount;
+  if (duration === 2) {
+    return curBeaming;
+  } else {
+    pulseBase = buildIrregularBeams(beatsCount, 2);
+    pulsesCount = pulseBase.length;
+  }
+
+  const result = Array(pulsesCount).fill(0);
+  for (let i = 0; i < pulsesCount; i++) {
+    result[i] = pulseBase[i];
+  }
+
+  for (let i = 0; i < Math.log2(duration) - 1; i++) {
+    for (let j = 0; j < pulsesCount; j++) {
+      if (result[j] % 2 !== 0) {
+        continue;
+      }
+      result[j] /= 2;
+    }
+  }
+  result[result.length - 1] -= duration === 4 ? 2 : 0;
+
+  const factor = duration === 4 ? 2 : 1;
+  let resultSum = 0;
+  for (const el of result) {
+    resultSum += el;
+  }
+  if (resultSum === beatsCount * factor) {
+    return result;
+  }
+
+  for (let i = result.length - 1; i >= 0; i++) {
+    if (resultSum > beatsCount * factor) {
+      result[i] -= 1 * factor;
+      resultSum -= 1 * factor;
+    } else {
+      result[i] += 1 * factor;
+      resultSum += 1 * factor;
+    }
+
+    if (resultSum === beatsCount * factor) {
+      return result;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Returns beaming rules for a given time signature.
+ * @param beatsCount - top number of the time signature (e.g., 4 in 4/4, 7 in 7/8)
+ * @param duration - bottom number of the time signature (e.g., 4 = quarter note, 8 = eighth note)
+ * @returns Array of group sizes in "duration" subdivisions (e.g., [2,2,2,2] for 4/4 eighths)
+ */
+function getBeaming(beatsCount: number, duration: number) {
+  const isSimple = beatsCount === 2 || beatsCount === 3 || beatsCount === 4;
+  const isCompound = beatsCount % 3 === 0 && beatsCount !== 3 && duration === 8;
+  const isIrregular = !isSimple && !isCompound;
+
+  // Handle irregular meters first
+  if (isIrregular) {
+    return buildIrregularBeams(beatsCount, duration);
+  }
+
+  // Compound meter: top divisible by 3 but not 3 itself (6/8, 9/8, 12/8)
+  if (isCompound) {
+    // Example: 6/8 → [3,3], 9/8 → [3,3,3]
+    const groups = [];
+    const groupsCount = beatsCount / 3;
+    for (let i = 0; i < groupsCount; i++) {
+      groups.push(3);
+    }
+    return groups;
+  }
+
+  // Simple meter: top = 2, 3, or 4
+  if (isSimple) {
+    // Group by 2 or 4 subdivisions, depending on duration
+    // Example: 4/4 (quarter) → [2,2,2,2] eighth notes
+    //          3/4 (quarter) → [2,2,2] eighth notes
+    const groups = [];
+    for (let i = 0; i < beatsCount; i++) {
+      groups.push(2); // each beat = 2 subdivisions (eighths)
+    }
+    return groups;
+  }
+
+  // Default fallback: no grouping
+  return [beatsCount];
+}
+
+/**
  * Class that represents a musical bar
  */
 export class Bar {
@@ -32,9 +174,9 @@ export class Bar {
   private _beatsCount: number;
   /**
    * The duration of the note that constitutes a whole bar
-   * (upper number in time signature)
+   * (lower number in time signature)
    */
-  public duration: NoteDuration;
+  private _duration: NoteDuration;
   /**
    * Whether this bar is a repeat start, repeat end or a regular bar
    */
@@ -48,6 +190,10 @@ export class Bar {
    * Array of all beats in the bar
    */
   readonly beats: Beat[];
+  /**
+   * Beaming groups
+   */
+  private _beamingGroups: number[];
 
   /**
    * Class that represents a musical bar
@@ -70,7 +216,7 @@ export class Bar {
     this.guitar = guitar;
     this._tempo = tempo;
     this._beatsCount = beatsCount;
-    this.duration = duration;
+    this._duration = duration;
     // this._isRepeatStart = false;
     // this._isRepeatEnd = false;
     // this._durationsFit = true;
@@ -78,11 +224,74 @@ export class Bar {
     if (beats === undefined) {
       this.beats = [];
       for (let i = 0; i < this._beatsCount; i++) {
-        this.beats.push(new Beat(this.guitar, this.duration));
+        this.beats.push(new Beat(this.guitar, this._duration));
       }
     } else {
       this.beats = beats;
     }
+    this._beamingGroups = [];
+
+    this.setBeaming();
+  }
+
+  public setBeaming(): void {
+    for (const beat of this.beats) {
+      beat.setBeamGroupId(undefined);
+      beat.setIsLastInBeamGroup(false);
+    }
+
+    if (this.beats.length === 1) {
+      return;
+    }
+
+    const beamingGroups = getBeaming(this._beatsCount, 1 / this._duration);
+    const factor = 1 / this._duration < 8 ? 8 : 1 / this._duration;
+
+    let currentBeamGroupId = 0;
+    let currentBeamGroup = beamingGroups[currentBeamGroupId]; // Number of notes per group
+    let currentBeamGroupDur = currentBeamGroup; // Remaining duration for the current group
+    let remainingDuration = currentBeamGroup / factor;
+    for (const beat of this.beats) {
+      // if (beat.duration > NoteDuration.Eighth) {
+      if (beat.getFullDuration() > NoteDuration.Eighth) {
+        currentBeamGroupId++;
+        currentBeamGroup = beamingGroups[currentBeamGroupId];
+        currentBeamGroupDur = currentBeamGroup;
+        remainingDuration = currentBeamGroup / factor;
+        continue;
+      }
+
+      if (remainingDuration > 0) {
+        beat.setBeamGroupId(currentBeamGroupId);
+        // remainingDuration -= beat.duration;pId);
+        remainingDuration -= beat.getFullDuration();
+      }
+
+      if (remainingDuration <= 0) {
+        const isOnlyOneInGroup =
+          this.beats.filter((b) => b.beamGroupId === currentBeamGroupId)
+            .length === 1;
+        beat.setIsLastInBeamGroup(!isOnlyOneInGroup);
+        currentBeamGroupId++;
+        currentBeamGroup = beamingGroups[currentBeamGroupId];
+        currentBeamGroupDur = currentBeamGroup;
+        remainingDuration = currentBeamGroup / factor;
+      }
+    }
+
+    // Un-beam beats that are in single-beat beam groups
+    for (let i = 0; i < beamingGroups.length; i++) {
+      const beamGroupBeats = this.beats.filter((b) => b.beamGroupId === i);
+
+      if (beamGroupBeats.length === 0 || beamGroupBeats.length > 1) {
+        continue;
+      }
+
+      beamGroupBeats[0].setBeamGroupId(undefined);
+      beamGroupBeats[0].setIsLastInBeamGroup(false);
+    }
+
+    this._beamingGroups = beamingGroups;
   }
 
   /**
@@ -98,6 +307,19 @@ export class Bar {
     return durations;
   }
 
+  public insertBeat(index: number, beat: Beat): void {
+    // Check index validity
+    if (index < 0 || index > this.beats.length) {
+      throw Error(`${index} is invalid beat index`);
+    }
+
+    // Insert beat in the data model
+    this.beats.splice(index, 0, beat);
+
+    // Recalc beaming
+    this.setBeaming();
+  }
+
   /**
    * Inserts empty beat in the bar before beat with index 'index'
    * @param index Index of the beat that will be prepended by the new beat
@@ -109,8 +331,13 @@ export class Bar {
     }
 
     // Insert beat in the data model
-    let newBeat = new Beat(this.guitar, NoteDuration.Quarter);
+    const duration =
+      index === 0 ? NoteDuration.Quarter : this.beats[index - 1].duration;
+    let newBeat = new Beat(this.guitar, duration);
     this.beats.splice(index, 0, newBeat);
+
+    // Recalc beaming
+    this.setBeaming();
   }
 
   /**
@@ -143,6 +370,9 @@ export class Bar {
     if (this.beats.length === 0) {
       this.insertEmptyBeat(0);
     }
+
+    // Recalc beaming
+    this.setBeaming();
   }
 
   /**
@@ -155,6 +385,9 @@ export class Bar {
     });
 
     this.removeBeat(beatIndex);
+
+    // Recalc beaming
+    this.setBeaming();
   }
 
   /**
@@ -170,6 +403,9 @@ export class Bar {
 
     // Insert beats at specified position
     this.beats.splice(beatId + 1, 0, ...beatsCopies);
+
+    // Recalc beaming
+    this.setBeaming();
   }
 
   /**
@@ -206,7 +442,7 @@ export class Bar {
       throw Error("Beat is not this bar");
     }
 
-    const barDuration = this._beatsCount * this.duration;
+    const barDuration = this._beatsCount * this._duration;
     let duration = 0;
     for (const beat of this.beats) {
       duration += beat.duration;
@@ -219,6 +455,41 @@ export class Bar {
     return false;
   }
 
+  /**
+   * Beats (upper number in time signature) getter/setter
+   */
+  public setBeatsCount(newBeats: number) {
+    if (newBeats < 1 || newBeats > 32) {
+      throw Error(`${newBeats} is invalid beats value`);
+    }
+
+    this._beatsCount = newBeats;
+
+    this.setBeaming();
+  }
+
+  /**
+   * Beats (upper number in time signature) getter/setter
+   */
+  public setDuration(newDuration: NoteDuration) {
+    this._duration = newDuration;
+
+    this.setBeaming();
+  }
+
+  /**
+   * Tempo getter/setter
+   */
+  public setTempo(newTempo: number) {
+    if (newTempo <= 0) {
+      throw Error(
+        `${newTempo} is an invalid tempo value: tempo can't be 0 or less`
+      );
+    }
+
+    this._tempo = newTempo;
+  }
+
   public deepCopy(): Bar {
     const beatsCopies = [];
     for (const beat of this.beats) {
@@ -229,7 +500,7 @@ export class Bar {
       this.guitar,
       this._tempo,
       this._beatsCount,
-      this.duration,
+      this._duration,
       beatsCopies
     );
   }
@@ -244,25 +515,8 @@ export class Bar {
   /**
    * Beats (upper number in time signature) getter/setter
    */
-  set beatsCount(newBeats: number) {
-    if (newBeats < 1 || newBeats > 32) {
-      throw Error(`${newBeats} is invalid beats value`);
-    }
-
-    this._beatsCount = newBeats;
-  }
-
-  /**
-   * Tempo getter/setter
-   */
-  set tempo(newTempo: number) {
-    if (newTempo <= 0) {
-      throw Error(
-        `${newTempo} is an invalid tempo value: tempo can't be 0 or less`
-      );
-    }
-
-    this._tempo = newTempo;
+  get duration(): number {
+    return this._duration;
   }
 
   /**
@@ -287,14 +541,14 @@ export class Bar {
       durations += beat.getFullDuration();
     }
 
-    return durations === this._beatsCount * this.duration;
+    return durations === this._beatsCount * this._duration;
   }
 
   /**
    * Time signature value
    */
   get signature() {
-    return this._beatsCount * this.duration;
+    return this._beatsCount * this._duration;
   }
 
   /**
@@ -312,6 +566,10 @@ export class Bar {
     return this._repeatCount;
   }
 
+  public get beamingGroups(): number[] {
+    return this._beamingGroups;
+  }
+
   /**
    * Parses bar into simple object
    * @returns Simple parsed object
@@ -325,7 +583,7 @@ export class Bar {
     return {
       tempo: this._tempo,
       beatsCount: this._beatsCount,
-      duration: this.duration,
+      duration: this._duration,
       beats: beatsJSON,
     };
   }
@@ -375,7 +633,7 @@ export class Bar {
       bar1.guitar !== bar2.guitar ||
       bar1._tempo !== bar2._tempo ||
       bar1._beatsCount !== bar2._beatsCount ||
-      bar1.duration !== bar2.duration ||
+      bar1._duration !== bar2._duration ||
       bar1.durationsFit !== bar2.durationsFit ||
       bar1.beats.length !== bar2.beats.length
     ) {

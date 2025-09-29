@@ -24,6 +24,14 @@ export class Beat {
    */
   private _dots: number;
   /**
+   * Index of the beam group the beat belongs to (undefined if not in any group)
+   */
+  private _beamGroupId?: number;
+  /**
+   * True only if part of a beam group and is the last beat of that group
+   */
+  private _lastInBeamGroup: boolean;
+  /**
    * Beat notes
    */
   readonly notes: GuitarNote[];
@@ -45,6 +53,7 @@ export class Beat {
     this.guitar = guitar;
     this.duration = duration;
     this._dots = dots === undefined ? 0 : dots;
+    this._lastInBeamGroup = false;
 
     if (notes !== undefined) {
       if (notes.length !== guitar.stringsCount) {
@@ -70,6 +79,17 @@ export class Beat {
     }
 
     this._dots = newDots === this._dots ? 0 : newDots;
+  }
+
+  public setBeamGroupId(newBeamGroupId: number | undefined): void {
+    this._beamGroupId = newBeamGroupId;
+    if (this._beamGroupId === undefined) {
+      this._lastInBeamGroup = false;
+    }
+  }
+
+  public setIsLastInBeamGroup(newIsLastInBeamGroup: boolean): void {
+    this._lastInBeamGroup = newIsLastInBeamGroup;
   }
 
   public deepCopy(): Beat {
@@ -172,7 +192,24 @@ export class Beat {
     }
   }
 
+  /**
+   * Dots applied to the beat (0 = no dots, 1 = 1 dot, 2 = 2 dots)
+   */
   public get dots(): number {
     return this._dots;
+  }
+
+  /**
+   * Index of the beam group the beat belongs to (undefined if not in any group)
+   */
+  public get beamGroupId(): number | undefined {
+    return this._beamGroupId;
+  }
+
+  /**
+   * True only if part of a beam group and is the last beat of that group
+   */
+  public get lastInBeamGroup(): boolean {
+    return this._lastInBeamGroup;
   }
 }

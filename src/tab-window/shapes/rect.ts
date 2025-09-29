@@ -88,6 +88,14 @@ export class Rect {
     return this.y + this.height;
   }
 
+  public get middleX(): number {
+    return this.x + this.width / 2;
+  }
+
+  public get middleY(): number {
+    return this.y + this.height / 2;
+  }
+
   /**
    * Returns a point with left top corner coords
    */
@@ -114,5 +122,9 @@ export class Rect {
    */
   public get rightBottom(): Point {
     return new Point(this.x + this.width, this.y + this.height);
+  }
+
+  public get middle(): Point {
+    return new Point(this.middleX, this.middleY);
   }
 }
