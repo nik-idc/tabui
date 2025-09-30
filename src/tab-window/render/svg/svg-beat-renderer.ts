@@ -87,6 +87,7 @@ export class SVGBeatRenderer {
 
       // Set id
       this._beatDurationSVG.setAttribute("id", `beat-duration-${beatUUID}`);
+      this._beatDurationSVG.setAttribute("preserveAspectRatio", "none");
 
       // Add element to group SVG element
       this._groupSVG.appendChild(this._beatDurationSVG);
@@ -97,7 +98,10 @@ export class SVGBeatRenderer {
     const width = `${this._beatElement.durationRect.width}`;
     const height = `${this._beatElement.durationRect.height}`;
     const refName = DURATION_TO_NAME[this._beatElement.beat.duration];
-    const href = `${this._assetsPath}/img/notes/${refName}.svg`;
+    const href =
+      this._beatElement.beat.beamGroupId !== undefined
+        ? `${this._assetsPath}/img/notes/no-flag.svg`
+        : `${this._assetsPath}/img/notes/${refName}.svg`;
     this._beatDurationSVG.setAttribute("x", x);
     this._beatDurationSVG.setAttribute("y", y);
     this._beatDurationSVG.setAttribute("width", width);
@@ -186,7 +190,7 @@ export class SVGBeatRenderer {
       this._beatSelectionSVG = createSVGRect();
 
       // Set only-set-once attributes
-      this._beatSelectionSVG.setAttribute("fill", "blue");
+      this._beatSelectionSVG.setAttribute("fill", "gray");
       this._beatSelectionSVG.setAttribute("fill-opacity", "0.25");
       this._beatSelectionSVG.setAttribute("pointer-events", "none");
 

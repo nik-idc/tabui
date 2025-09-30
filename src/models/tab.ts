@@ -65,6 +65,27 @@ export class Tab {
   }
 
   /**
+   * Appends a beat to the last bar
+   * @param beat Beat to append
+   * (if undefined, an empty beat of the same duration
+   * as the last beat will be appended)
+   */
+  public appendBeat(beat?: Beat): void {
+    const lastBar = this._bars[this._bars.length - 1];
+    if (beat === undefined) {
+      const lastBeat = lastBar.beats[lastBar.beats.length - 1];
+      beat = new Beat(
+        lastBeat.guitar,
+        lastBeat.duration,
+        undefined,
+        lastBeat.dots
+      );
+    }
+
+    lastBar.appendBeat();
+  }
+
+  /**
    * Prepends a bar to the tab. If no bar provided an empty one is created.
    * DO NOT USE THIS ANYWHERE OUTSIDE OF THE SCORE CLASS
    * OTHERWISE THE UI WILL BE MESSED UP
@@ -238,7 +259,8 @@ export class Tab {
     }
 
     beat.setDots(newDots);
-    bar.durationsFit;
+    bar.setBeaming();
+    // bar.durationsFit;
   }
 
   public setRepeatStart(barIndex: number): void {
@@ -263,6 +285,15 @@ export class Tab {
     }
 
     this._bars[barIndex].setRepeatNone();
+  }
+
+  public setBeatDuration(
+    barIndex: number,
+    beatIndex: number,
+    newDuration: NoteDuration
+  ): void {
+    this._bars[barIndex].beats[beatIndex].duration = newDuration;
+    this._bars[barIndex].setBeaming();
   }
 
   /**

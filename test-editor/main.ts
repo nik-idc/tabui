@@ -57,7 +57,7 @@ function init(trackIndex: number) {
     14, // noteTextSize
     42, // timeSigTextSize
     28, // tempoTextSize
-    50, // durationsHeight
+    40, // durationsHeight
     tab.guitar.stringsCount
   );
   tabWindow = new TabWindow(score, tab, dim);

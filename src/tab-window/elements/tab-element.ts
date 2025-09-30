@@ -181,13 +181,7 @@ export class TabElement {
    * Handles added beat after moving right
    */
   private handleAddedBeat(selectedElement: SelectedElement): void {
-    const { tabLineElementId, barElementId } =
-      this.getSelectedNoteElementsAndIds(selectedElement);
-    const tabLineElement = this._tabLineElements[tabLineElementId];
-    const barElement = tabLineElement.barElements[barElementId];
-
-    barElement.bar.appendBeat();
-    // barElement.appendBeat();
+    selectedElement.bar.appendBeat();
     this.calc();
   }
 
@@ -197,7 +191,6 @@ export class TabElement {
    */
   private handleAddedBar(addedBar: Bar): void {
     // Add bar
-    // this._tab.bars.push(addedBar);
     this._score.appendBar(this._tabIndex, addedBar);
 
     // Compute UI

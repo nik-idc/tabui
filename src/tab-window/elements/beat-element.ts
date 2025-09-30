@@ -10,6 +10,9 @@ import { tabEvent, TabEventType } from "../../events/tab-event";
 import { BeatNotesElement } from "./beat-notes-element";
 import { randomInt } from "../../misc/random-int";
 
+const dotScale1Dot = 1.05;
+const dotScale2Dot = 1.1;
+
 /**
  * Class that handles drawing beat element in the tab
  */
@@ -57,6 +60,7 @@ export class BeatElement {
    * @param dim Tab window dimensions
    * @param beatCoords Beat element coords
    * @param beat Beat
+   * @param labelsGapHeight Gap height for effect labels
    */
   constructor(
     dim: TabWindowDim,
@@ -68,6 +72,7 @@ export class BeatElement {
     this.dim = dim;
     this.durationRect = new Rect();
     this.dotRect = new Rect();
+    // this.beamRect = new Rect();
     this.rect = new Rect(beatCoords.x, beatCoords.y);
     this.beat = beat;
     this._effectLabelsRect = new Rect(
@@ -94,15 +99,25 @@ export class BeatElement {
         `${this.beat.duration} is an invalid beat duration OR error in mapping`
       );
     }
-    for (let i = 0; i < this.beat.dots; i++) {
-      const currentDotDuration = this.beat.duration / Math.pow(2, i);
-      let dotMappingWidth = this.dim.widthMapping.get(currentDotDuration);
-      if (dotMappingWidth === undefined) {
-        dotMappingWidth = this.dim.noteRectWidth64;
-      }
-      mappingWidth += dotMappingWidth;
-    }
     this.rect.width = mappingWidth;
+
+    // By how much the rect width should multiply depending on the number of dots
+    let dotsScaling = 1;
+    switch (this.beat.dots) {
+      case 0:
+        dotsScaling = 1;
+        break;
+      case 1:
+        dotsScaling = dotScale1Dot;
+        break;
+      case 2:
+        dotsScaling = dotScale2Dot;
+        break;
+      default:
+        dotsScaling = 1;
+        break;
+    }
+    this.rect.width *= dotsScaling;
 
     this.rect.height =
       this.dim.tabLineMinHeight + this._effectLabelsRect.height;
@@ -118,28 +133,26 @@ export class BeatElement {
   }
 
   private calcDurationDims(): void {
-    if (this.beat.dots === 0) {
-      // Calc duration transform
-      this.durationRect.x = 0;
-      this.durationRect.y = 0;
-      this.durationRect.width = this.rect.width;
-      this.durationRect.height = this.dim.durationsHeight;
+    // 140 - radius of ellipse in SVG files, 827 - viewBox
+    const magicNumber = 140 / 827; // some bullshit
+    const offset =
+      this.beat.beamGroupId === undefined
+        ? 0
+        : magicNumber * this.dim.durationsWidth * 2;
+    this.durationRect.x =
+      this.rect.width / 2 - this.dim.durationsWidth / 2 - offset;
+    this.durationRect.y = 0;
+    this.durationRect.width = this.dim.durationsWidth;
+    this.durationRect.height = this.dim.durationsHeight;
+  }
 
-      this.dotRect.set(0, 0, 0, 0);
-    } else {
-      // Calc duration transform
-      this.durationRect.x = 0;
-      this.durationRect.y = 0;
-      this.durationRect.width = this.rect.width / 2;
-      this.durationRect.height = this.dim.durationsHeight;
-
-      this.dotRect.set(
-        this.durationRect.width,
-        0,
-        this.rect.width / 2,
-        this.dim.durationsHeight
-      );
-    }
+  private calcBeamRect(): void {
+    this.dotRect.set(
+      this.durationRect.right,
+      0,
+      this.dim.durationsWidth,
+      this.dim.durationsHeight
+    );
   }
 
   private calcEffectLabels(): void {
@@ -194,6 +207,7 @@ export class BeatElement {
   public calc(): void {
     this.calcRectAndNotes();
     this.calcDurationDims();
+    this.calcBeamRect();
     this.calcEffectLabels();
   }
 
@@ -232,10 +246,18 @@ export class BeatElement {
   }
 
   public scaleHorBy(scale: number): void {
+    if (this.beat.beamGroupId !== undefined) {
+      const diff = this.rect.width * scale - this.durationRect.width;
+      this.durationRect.x += diff / 2;
+    } else {
+      this.durationRect.x =
+        (this.rect.width * scale) / 2 - this.durationRect.width / 2;
+    }
+    this.dotRect.x = this.durationRect.right;
+
     this.rect.x *= scale;
     this.rect.width *= scale;
-    this.durationRect.x *= scale;
-    this.durationRect.width *= scale;
+
     this._effectLabelsRect.x *= scale;
     this._effectLabelsRect.width *= scale;
 

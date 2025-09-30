@@ -137,27 +137,36 @@ export class TabEditor {
   public changeSelectedBarTempo(newTempo: number): void {
     this.undoStack.push(this._tab.deepCopy());
 
-    const { barElement } = this.getSelectedNoteElementsAndIds();
+    const selectedElement = this._selectionManager.selectedElement;
+    if (selectedElement === undefined) {
+      return;
+    }
 
-    barElement.changeTempo(newTempo);
+    selectedElement.bar.setTempo(newTempo);
     this.tabElement.calc();
   }
 
   public changeSelectedBarBeats(newBeats: number): void {
     this.undoStack.push(this._tab.deepCopy());
 
-    const { barElement } = this.getSelectedNoteElementsAndIds();
+    const selectedElement = this._selectionManager.selectedElement;
+    if (selectedElement === undefined) {
+      return;
+    }
 
-    barElement.changeBarBeats(newBeats);
+    selectedElement.bar.setBeatsCount(newBeats);
     this.tabElement.calc();
   }
 
   public changeSelectedBarDuration(newDuration: NoteDuration): void {
     this.undoStack.push(this._tab.deepCopy());
 
-    const { barElement } = this.getSelectedNoteElementsAndIds();
+    const selectedElement = this._selectionManager.selectedElement;
+    if (selectedElement === undefined) {
+      return;
+    }
 
-    barElement.changeBarDuration(newDuration);
+    selectedElement.bar.setDuration(newDuration);
     this.tabElement.calc();
   }
 
@@ -188,12 +197,17 @@ export class TabEditor {
   public changeSelectedBeatDuration(newDuration: NoteDuration): void {
     this.undoStack.push(this._tab.deepCopy());
 
-    const { barElement, beatElement } = this.getSelectedNoteElementsAndIds();
-    if (beatElement === undefined) {
+    const selectedElement = this._selectionManager.selectedElement;
+    if (selectedElement === undefined) {
       return;
     }
 
-    barElement.changeBeatDuration(beatElement.beat, newDuration);
+    // barElement.changeBeatDuration(beatElement.beat, newDuration);
+    this._tab.setBeatDuration(
+      selectedElement.barId,
+      selectedElement.beatId,
+      newDuration
+    );
     this.tabElement.calc();
   }
 

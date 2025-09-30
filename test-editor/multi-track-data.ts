@@ -10,6 +10,30 @@ import {
   GuitarNote,
 } from "../src/index";
 
+function getBeats(
+  count: number,
+  guitar: Guitar,
+  duration: NoteDuration,
+  type: string,
+  notes: number[]
+): Beat[] {
+  let beats = [];
+  for (let i = 0; i < count; i++) {
+    beats.push(
+      new Beat(guitar, duration, [
+        new GuitarNote(guitar, 1, type === "lead" ? notes[i % 4] : undefined),
+        new GuitarNote(guitar, 2),
+        new GuitarNote(guitar, 3),
+        new GuitarNote(guitar, 4),
+        new GuitarNote(guitar, 5, type === "rhythm" ? notes[i % 4] : undefined),
+        new GuitarNote(guitar, 6, type === "bass" ? notes[i % 4] : undefined),
+      ])
+    );
+  }
+
+  return beats;
+}
+
 function createTrack(name: string, type: string): Tab {
   const stringsCount = 6;
   const tuning = [
@@ -39,82 +63,35 @@ function createTrack(name: string, type: string): Tab {
   }
 
   const bars = [
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Beat(guitar, NoteDuration.Quarter, [
-        new GuitarNote(guitar, 1, type === "lead" ? notes[0] : undefined),
-        new GuitarNote(guitar, 2),
-        new GuitarNote(guitar, 3),
-        new GuitarNote(guitar, 4),
-        new GuitarNote(guitar, 5, type === "rhythm" ? notes[0] : undefined),
-        new GuitarNote(guitar, 6, type === "bass" ? notes[0] : undefined),
-      ]),
-      new Beat(guitar, NoteDuration.Quarter, [
-        new GuitarNote(guitar, 1, type === "lead" ? notes[1] : undefined),
-        new GuitarNote(guitar, 2),
-        new GuitarNote(guitar, 3),
-        new GuitarNote(guitar, 4),
-        new GuitarNote(guitar, 5, type === "rhythm" ? notes[1] : undefined),
-        new GuitarNote(guitar, 6, type === "bass" ? notes[1] : undefined),
-      ]),
-      new Beat(guitar, NoteDuration.Quarter, [
-        new GuitarNote(guitar, 1, type === "lead" ? notes[2] : undefined),
-        new GuitarNote(guitar, 2),
-        new GuitarNote(guitar, 3),
-        new GuitarNote(guitar, 4),
-        new GuitarNote(guitar, 5, type === "rhythm" ? notes[2] : undefined),
-        new GuitarNote(guitar, 6, type === "bass" ? notes[2] : undefined),
-      ]),
-      new Beat(guitar, NoteDuration.Quarter, [
-        new GuitarNote(guitar, 1, type === "lead" ? notes[3] : undefined),
-        new GuitarNote(guitar, 2),
-        new GuitarNote(guitar, 3),
-        new GuitarNote(guitar, 4),
-        new GuitarNote(guitar, 5, type === "rhythm" ? notes[3] : undefined),
-        new GuitarNote(guitar, 6, type === "bass" ? notes[3] : undefined),
-      ]),
-    ]),
-    new Bar(guitar, 120, 4, NoteDuration.Quarter, [
-      new Beat(guitar, NoteDuration.Quarter, [
-        new GuitarNote(guitar, 1),
-        new GuitarNote(guitar, 2),
-        new GuitarNote(guitar, 3),
-        new GuitarNote(guitar, 4),
-        new GuitarNote(guitar, 5),
-        new GuitarNote(guitar, 6),
-      ]),
-      new Beat(guitar, NoteDuration.Quarter, [
-        new GuitarNote(guitar, 1),
-        new GuitarNote(guitar, 2),
-        new GuitarNote(guitar, 3),
-        new GuitarNote(guitar, 4),
-        new GuitarNote(guitar, 5),
-        new GuitarNote(guitar, 6),
-      ]),
-      new Beat(guitar, NoteDuration.Quarter, [
-        new GuitarNote(guitar, 1),
-        new GuitarNote(guitar, 2),
-        new GuitarNote(guitar, 3),
-        new GuitarNote(guitar, 4),
-        new GuitarNote(guitar, 5),
-        new GuitarNote(guitar, 6),
-      ]),
-      new Beat(guitar, NoteDuration.Quarter, [
-        new GuitarNote(guitar, 1),
-        new GuitarNote(guitar, 2),
-        new GuitarNote(guitar, 3),
-        new GuitarNote(guitar, 4),
-        new GuitarNote(guitar, 5),
-        new GuitarNote(guitar, 6),
-      ]),
-    ]),
+    new Bar(
+      guitar,
+      120,
+      4,
+      NoteDuration.Quarter,
+      getBeats(4, guitar, NoteDuration.Quarter, type, notes)
+    ),
+    new Bar(
+      guitar,
+      120,
+      4,
+      NoteDuration.Quarter,
+      getBeats(8, guitar, NoteDuration.Eighth, type, notes)
+    ),
+    new Bar(
+      guitar,
+      120,
+      4,
+      NoteDuration.Quarter,
+      getBeats(16, guitar, NoteDuration.Sixteenth, type, notes)
+    ),
   ];
 
   return new Tab(name, "guitar", guitar, bars);
 }
 
-const leadTrack = createTrack("Lead Guitar", 'lead');
-const rhythmTrack = createTrack("Rhythm Guitar", 'rhythm');
-const bassTrack = createTrack("Bass", 'bass');
+const leadTrack = createTrack("Lead Guitar", "lead");
+const rhythmTrack = createTrack("Rhythm Guitar", "rhythm");
+const bassTrack = createTrack("Bass", "bass");
 
 export const score = new Score(
   -1,
