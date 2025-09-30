@@ -434,7 +434,9 @@ export class SVGBarRenderer {
       throw Error("Tried to render bar tempo img when SVG group undefined");
     }
 
-    // VERY TEMPORARY VERY BAD!!!!
+    // TODO: Structure beam segment rendering the same way
+    // other child element renders work (i.e. bar's beats rendering).
+    // But for now this will do
     this.unrenderBarBeamSegments();
 
     if (this._barElement.beamSegments.length === 0) {

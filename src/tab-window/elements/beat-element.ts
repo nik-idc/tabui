@@ -10,6 +10,9 @@ import { tabEvent, TabEventType } from "../../events/tab-event";
 import { BeatNotesElement } from "./beat-notes-element";
 import { randomInt } from "../../misc/random-int";
 
+const dotScale1Dot = 1.05;
+const dotScale2Dot = 1.1;
+
 /**
  * Class that handles drawing beat element in the tab
  */
@@ -105,10 +108,10 @@ export class BeatElement {
         dotsScaling = 1;
         break;
       case 1:
-        dotsScaling = 1.05;
+        dotsScaling = dotScale1Dot;
         break;
       case 2:
-        dotsScaling = 1.1;
+        dotsScaling = dotScale2Dot;
         break;
       default:
         dotsScaling = 1;
@@ -243,15 +246,17 @@ export class BeatElement {
   }
 
   public scaleHorBy(scale: number): void {
-    const diff = this.rect.width * scale - this.durationRect.width;
-    this.durationRect.x += diff / 2;
+    if (this.beat.beamGroupId !== undefined) {
+      const diff = this.rect.width * scale - this.durationRect.width;
+      this.durationRect.x += diff / 2;
+    } else {
+      this.durationRect.x =
+        (this.rect.width * scale) / 2 - this.durationRect.width / 2;
+    }
     this.dotRect.x = this.durationRect.right;
 
     this.rect.x *= scale;
     this.rect.width *= scale;
-
-    // this.durationRect.x *= scale;
-    // this.durationRect.width *= scale;
 
     this._effectLabelsRect.x *= scale;
     this._effectLabelsRect.width *= scale;
