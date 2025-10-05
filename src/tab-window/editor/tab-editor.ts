@@ -1,4 +1,5 @@
 import { Bar } from "../../models/bar";
+import { Beat } from "../../models/beat";
 import { GuitarEffectOptions } from "../../models/guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "../../models/guitar-effect/guitar-effect-type";
 import { NoteDuration } from "../../models/note-duration";
@@ -131,6 +132,28 @@ export class TabEditor {
     const barIndex = this._selectionManager.selectedElement.barId;
     const beatIndex = this._selectionManager.selectedElement.beatId;
     this._tab.setDots(barIndex, beatIndex, newDots);
+    this.tabElement.calc();
+  }
+
+  public setSelectedBeatsTuplet(
+    normalCount: number,
+    tupletCount: number
+  ): void {
+    if (normalCount === tupletCount) {
+      return;
+    }
+
+    this.undoStack.push(this._tab.deepCopy());
+    let beats: Beat[];
+    if (this._selectionManager.selectedElement === undefined) {
+      // If selected multiple beats
+      beats = this._selectionManager.selectionBeats;
+    } else {
+      // If only one beat (note) is selected
+      beats = [this._selectionManager.selectedElement.beat];
+    }
+    this._tab.setTupletBeats(beats, normalCount, tupletCount);
+
     this.tabElement.calc();
   }
 

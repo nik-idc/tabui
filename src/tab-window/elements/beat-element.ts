@@ -119,6 +119,17 @@ export class BeatElement {
     }
     this.rect.width *= dotsScaling;
 
+    if (this.beat.tupletSettings !== undefined) {
+      const tupletScale =
+        this.beat.tupletSettings.tupletCount /
+        this.beat.tupletSettings.normalCount;
+      this.rect.width *= tupletScale;
+      if (this.rect.width < this.dim.noteRectWidthMin) {
+        // To make sure beats don't get too small causing UI errors
+        this.rect.width = this.dim.noteRectWidthMin;
+      }
+    }
+
     this.rect.height =
       this.dim.tabLineMinHeight + this._effectLabelsRect.height;
 

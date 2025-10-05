@@ -1,8 +1,9 @@
-import { Beat } from "./beat";
+import { Beat, TupletSettings } from "./beat";
 import { Guitar } from "./guitar";
 import { NoteDuration } from "./note-duration";
 import { Tab } from "./tab";
 import { randomInt } from "../misc/random-int";
+import { TupletGroup } from "./tuplet-group";
 
 export enum BarRepeatStatus {
   None,
@@ -152,6 +153,13 @@ function getBeaming(beatsCount: number, duration: number) {
   return [beatsCount];
 }
 
+function tupletSettingsEqual(beat1: Beat, beat2: Beat): boolean {
+  return (
+    beat1.tupletSettings?.normalCount === beat2.tupletSettings?.normalCount &&
+    beat1.tupletSettings?.tupletCount === beat2.tupletSettings?.tupletCount
+  );
+}
+
 /**
  * Class that represents a musical bar
  */
@@ -194,6 +202,10 @@ export class Bar {
    * Beaming groups
    */
   private _beamingGroups: number[];
+  /**
+   * Tuplet groups
+   */
+  private _tupletGroups: TupletGroup[];
 
   /**
    * Class that represents a musical bar
@@ -230,11 +242,12 @@ export class Bar {
       this.beats = beats;
     }
     this._beamingGroups = [];
+    this._tupletGroups = [];
 
-    this.setBeaming();
+    this.computeBeaming();
   }
 
-  public setBeaming(): void {
+  public computeBeaming(): void {
     for (const beat of this.beats) {
       beat.setBeamGroupId(undefined);
       beat.setIsLastInBeamGroup(false);
@@ -295,6 +308,143 @@ export class Bar {
   }
 
   /**
+   * Computes bar's tuplet groups from scratch beat-by-beat
+   */
+  public computeTupletGroups(): void {
+    this._tupletGroups = [];
+    let curGroupBeats: Beat[] = [];
+    let curTupletSettings: TupletSettings | undefined = undefined;
+    let prevBeat: Beat | undefined = undefined;
+    for (const beat of this.beats) {
+      if (prevBeat === undefined) {
+        // If on first beat
+        if (beat.tupletSettings !== undefined) {
+          // If current beat in tuplet, start
+          // filling up the current tuplet group
+          curGroupBeats.push(beat);
+          curTupletSettings = {
+            normalCount: beat.tupletSettings.normalCount,
+            tupletCount: beat.tupletSettings.tupletCount,
+          };
+        }
+        prevBeat = beat;
+        continue;
+      }
+
+      if (beat.tupletSettings === undefined) {
+        // If current beat not in a tuplet
+        if (prevBeat.tupletSettings !== undefined) {
+          // If current beat marks the end of a current tuplet
+          if (curTupletSettings === undefined) {
+            throw Error(
+              "Current tuplet settings undefined at the end of current tuplet"
+            );
+          }
+          this._tupletGroups.push(
+            new TupletGroup(
+              curGroupBeats,
+              curTupletSettings.normalCount,
+              curTupletSettings.tupletCount
+            )
+          );
+          curGroupBeats = [];
+          curTupletSettings = undefined;
+        }
+        prevBeat = beat;
+        continue;
+      }
+
+      // // By this point current tuplet settings must be defined
+      // if (curTupletSettings === undefined) {
+      //   throw Error("Current tuplet settings undefined");
+      // }
+
+      if (curTupletSettings === undefined) {
+        curTupletSettings = {
+          normalCount: beat.tupletSettings.normalCount,
+          tupletCount: beat.tupletSettings.tupletCount,
+        };
+      }
+      if (tupletSettingsEqual(beat, prevBeat)) {
+        // If settings are equal, *check if current beat fits*
+        // and either push to existing tuplet group or create a new one
+        // with the same settings
+        if (curTupletSettings.normalCount === curGroupBeats.length) {
+          this._tupletGroups.push(
+            new TupletGroup(
+              curGroupBeats,
+              curTupletSettings.normalCount,
+              curTupletSettings.tupletCount
+            )
+          );
+          curGroupBeats = [beat];
+        } else {
+          curGroupBeats.push(beat);
+        }
+      } else {
+        if (curGroupBeats.length !== 0) {
+          this._tupletGroups.push(
+            new TupletGroup(
+              curGroupBeats,
+              curTupletSettings.normalCount,
+              curTupletSettings.tupletCount
+            )
+          );
+        }
+        curGroupBeats = [beat];
+        curTupletSettings = {
+          normalCount: beat.tupletSettings.normalCount,
+          tupletCount: beat.tupletSettings.tupletCount,
+        };
+      }
+
+      prevBeat = beat;
+    }
+
+    // If current tuplet group has elements, make a new last tuplet group out of it
+    if (curGroupBeats.length !== 0) {
+      if (curTupletSettings === undefined) {
+        throw Error("Current tuplet beats count > 0 but settings undefined");
+      }
+      this._tupletGroups.push(
+        new TupletGroup(
+          curGroupBeats,
+          curTupletSettings.normalCount,
+          curTupletSettings.tupletCount
+        )
+      );
+    }
+
+    this.computeBeaming();
+  }
+
+  public setTuplet(
+    beats: Beat[],
+    normalCount: number,
+    tupletCount: number
+  ): void {
+    const startIndex = this.beats.indexOf(beats[0]);
+    const endIndex = this.beats.indexOf(beats[beats.length - 1]);
+    if (startIndex === -1 || endIndex === -1) {
+      throw Error("Beats array includes at least one beat outside the bar");
+    }
+    if (endIndex < startIndex) {
+      throw Error(
+        "Beats provided in non-seqeuential order, something must have went wrong"
+      );
+    }
+
+    for (let i = startIndex; i <= endIndex; i++) {
+      this.beats[i].setTupletGroupSettings({
+        normalCount: normalCount,
+        tupletCount: tupletCount,
+      });
+    }
+
+    this.computeTupletGroups();
+  }
+
+  /**
    * Gets actual duration of all the beats in the bar
    * @returns Sum of all bar's beats' durations
    */
@@ -317,7 +467,7 @@ export class Bar {
     this.beats.splice(index, 0, beat);
 
     // Recalc beaming
-    this.setBeaming();
+    this.computeBeaming();
   }
 
   /**
@@ -337,7 +487,7 @@ export class Bar {
     this.beats.splice(index, 0, newBeat);
 
     // Recalc beaming
-    this.setBeaming();
+    this.computeBeaming();
   }
 
   /**
@@ -372,7 +522,7 @@ export class Bar {
     }
 
     // Recalc beaming
-    this.setBeaming();
+    this.computeBeaming();
   }
 
   /**
@@ -387,7 +537,7 @@ export class Bar {
     this.removeBeat(beatIndex);
 
     // Recalc beaming
-    this.setBeaming();
+    this.computeBeaming();
   }
 
   /**
@@ -405,7 +555,7 @@ export class Bar {
     this.beats.splice(beatId + 1, 0, ...beatsCopies);
 
     // Recalc beaming
-    this.setBeaming();
+    this.computeBeaming();
   }
 
   /**
@@ -465,7 +615,7 @@ export class Bar {
 
     this._beatsCount = newBeats;
 
-    this.setBeaming();
+    this.computeBeaming();
   }
 
   /**
@@ -474,7 +624,7 @@ export class Bar {
   public setDuration(newDuration: NoteDuration) {
     this._duration = newDuration;
 
-    this.setBeaming();
+    this.computeBeaming();
   }
 
   /**
@@ -566,8 +716,18 @@ export class Bar {
     return this._repeatCount;
   }
 
+  /**
+   * Beaming groups
+   */
   public get beamingGroups(): number[] {
     return this._beamingGroups;
+  }
+
+  /**
+   * Tuplet groups
+   */
+  public get tupletGroups(): TupletGroup[] {
+    return this._tupletGroups;
   }
 
   /**

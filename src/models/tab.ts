@@ -259,8 +259,36 @@ export class Tab {
     }
 
     beat.setDots(newDots);
-    bar.setBeaming();
+    bar.computeBeaming();
     // bar.durationsFit;
+  }
+
+  public setTupletBeats(
+    beats: Beat[],
+    normalCount: number,
+    tupletCount: number
+  ): void {
+    const tupletBars = this._bars
+      .map((bar) => {
+        return {
+          bar: bar,
+          beats: bar.beats.filter((beat) => beats.includes(beat)),
+        };
+      })
+      .filter((tupBar) => tupBar.beats.length !== 0);
+
+    for (const tupletBar of tupletBars) {
+      tupletBar.bar.setTuplet(tupletBar.beats, normalCount, tupletCount);
+    }
+
+    // console.log("===========================================");
+    // for (let i = 0; i < this._bars.length; i++) {
+    //   const bar = this._bars[i];
+    //   for (let j = 0; j < bar.beats.length; j++) {
+    //     const beat = bar.beats[j];
+    //     console.log(`Beat ${i}-${j} tuplet settings:`, beat.tupletSettings);
+    //   }
+    // }
   }
 
   public setRepeatStart(barIndex: number): void {
@@ -293,7 +321,7 @@ export class Tab {
     newDuration: NoteDuration
   ): void {
     this._bars[barIndex].beats[beatIndex].duration = newDuration;
-    this._bars[barIndex].setBeaming();
+    this._bars[barIndex].computeBeaming();
   }
 
   /**
