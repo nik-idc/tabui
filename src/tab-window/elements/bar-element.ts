@@ -8,6 +8,7 @@ import { TabWindowDim } from "../tab-window-dim";
 import { NoteDuration } from "../../models/note-duration";
 import { randomInt } from "../../misc/random-int";
 import { BeamSegmentElement } from "./beam-segment-element";
+import { TupletElement } from "./tuplet-element";
 
 /**
  * Class that handles drawing beat element in the tab
@@ -50,6 +51,10 @@ export class BarElement {
    * Beam segments of this bar element
    */
   public beamSegments: BeamSegmentElement[];
+  /**
+   * All tuplet elements
+   */
+  public tupletElements: TupletElement[];
   /**
    * Bar element rectangle
    */
@@ -94,6 +99,7 @@ export class BarElement {
     this.timeSigRect = new Rect();
     this.repeatRect = new Rect();
     this.beamSegments = [];
+    this.tupletElements = [];
     this._labelsGapHeight = labelGapHeight;
     this.rect = new Rect(
       horizontalBarOffset,
@@ -139,6 +145,7 @@ export class BarElement {
         : 0;
     this.timeSigRect.y =
       this.tempoRect.leftBottom.y +
+      this.dim.tupletRectHeight +
       this.dim.durationsHeight +
       this._labelsGapHeight +
       this.dim.noteRectHeight / 2;
@@ -166,7 +173,10 @@ export class BarElement {
       startX += this.dim.timeSigRectWidth;
     }
 
-    const beatCoords = new Point(startX, this.rect.y + this.tempoRect.height);
+    const beatCoords = new Point(
+      startX,
+      this.rect.y + this.tempoRect.height + this.dim.tupletRectHeight
+    );
     for (const beat of this.bar.beats) {
       const oldElementIndex = oldBeatElements.findIndex(
         (e) => e.beat.uuid === beat.uuid
@@ -198,11 +208,12 @@ export class BarElement {
     }
     this.beatElements = newBeatElements;
 
-    // this.calcEffectGap();
     if (this.bar.repeatStatus === BarRepeatStatus.End) {
       this.rect.width += this.dim.repeatSignWidth;
     }
+  }
 
+  private calcBeamGroups(): void {
     this.beamSegments = [];
     for (let i = 0; i < this.bar.beamingGroups.length; i++) {
       const beamGroupBeats = this.beatElements.filter(
@@ -226,6 +237,38 @@ export class BarElement {
         );
       }
     }
+  }
+
+  private calcTupletElements(): void {
+    this.tupletElements = [];
+    for (const tupletGroup of this.bar.tupletGroups) {
+      const startBeatElement = this.beatElements.find((be) => {
+        return be.beat.uuid === tupletGroup.beats[0].actualBeat.uuid;
+      });
+      if (startBeatElement === undefined) {
+        throw Error("Could not find starting beat element of tuplet group");
+      }
+
+      const tupletGroupCoords = new Point(
+        startBeatElement.rect.x,
+        startBeatElement.rect.y
+      );
+
+      const tupletBeatElements = this.beatElements.filter((b) =>
+        tupletGroup.beats.some((tb) => tb.actualBeat.uuid === b.beat.uuid)
+      );
+
+      this.tupletElements.push(
+        new TupletElement(
+          this.dim,
+          tupletGroup,
+          tupletBeatElements,
+          tupletGroupCoords
+        )
+      );
+    }
+
+    // console.log(this.tupletElements);
   }
 
   private calcRepeatRect(): void {
@@ -269,6 +312,8 @@ export class BarElement {
     this.calcTempoRect();
     this.calcTimeSigRect();
     this.calcBeatsAndRect();
+    this.calcBeamGroups();
+    this.calcTupletElements();
     this.calcRepeatRect();
     this.calcStaffLines();
   }
@@ -345,6 +390,10 @@ export class BarElement {
     for (const beamSegment of this.beamSegments) {
       // beamSegment.scaleHorBy(scale);
       beamSegment.calc();
+    }
+
+    for (const tupletElement of this.tupletElements) {
+      tupletElement.scaleHorBy(scale);
     }
   }
 

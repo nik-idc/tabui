@@ -3,6 +3,12 @@ import { Guitar } from "./guitar";
 import { GuitarNote } from "./guitar-note";
 import { NoteDuration } from "./note-duration";
 import { randomInt } from "../misc/random-int";
+
+export type TupletSettings = {
+  normalCount: number;
+  tupletCount: number;
+};
+
 /**
  * Class that represents a beat
  */
@@ -27,6 +33,10 @@ export class Beat {
    * Index of the beam group the beat belongs to (undefined if not in any group)
    */
   private _beamGroupId?: number;
+  /**
+   * Tuplet settings of the beat
+   */
+  private _tupletSettings?: TupletSettings;
   /**
    * True only if part of a beam group and is the last beat of that group
    */
@@ -90,6 +100,22 @@ export class Beat {
 
   public setIsLastInBeamGroup(newIsLastInBeamGroup: boolean): void {
     this._lastInBeamGroup = newIsLastInBeamGroup;
+  }
+
+  /**
+   * Sets (or unsets) tuplet settings
+   * @param newSettings Tuplet settings (unsets tuplet if undefined)
+   */
+  public setTupletGroupSettings(newSettings?: TupletSettings): void {
+    if (newSettings === undefined) {
+      this._tupletSettings = undefined;
+      return;
+    }
+
+    this._tupletSettings = {
+      normalCount: newSettings.normalCount,
+      tupletCount: newSettings.tupletCount,
+    };
   }
 
   public deepCopy(): Beat {
@@ -180,16 +206,29 @@ export class Beat {
    * @returns
    */
   public getFullDuration(): number {
+    let duration = this.duration;
     switch (this._dots) {
       case 0:
-        return this.duration;
+        duration = this.duration;
+        break;
       case 1:
-        return this.duration + this.duration / 2;
+        duration = this.duration + this.duration / 2;
+        break;
       case 2:
-        return this.duration + this.duration / 2 + this.duration / 4;
+        duration = this.duration + this.duration / 2 + this.duration / 4;
+        break;
       default:
         throw Error(`Beat dots value is not in [0, 1, 2] - ${this._dots}`);
+        break;
     }
+
+    if (this._tupletSettings !== undefined) {
+      duration =
+        duration *
+        (this._tupletSettings.tupletCount / this._tupletSettings.normalCount);
+    }
+
+    return duration;
   }
 
   /**
@@ -211,5 +250,12 @@ export class Beat {
    */
   public get lastInBeamGroup(): boolean {
     return this._lastInBeamGroup;
+  }
+
+  /**
+   * UUID of the tuplet group the beat is part of. Undefined if not in a tuplet
+   */
+  public get tupletSettings(): TupletSettings | undefined {
+    return this._tupletSettings;
   }
 }

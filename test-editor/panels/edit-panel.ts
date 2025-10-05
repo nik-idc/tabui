@@ -76,6 +76,12 @@ export class EditPanel {
         return;
       }
 
+      const tuplet = target.dataset.tuplet;
+      if (tuplet !== undefined) {
+        this.handleTupletClick(tuplet);
+        return;
+      }
+
       const effect = target.dataset.effect;
       if (effect) {
         this.handleEffectClick(effect);
@@ -178,6 +184,34 @@ export class EditPanel {
     if (effectType !== undefined) {
       this.applyOrRemoveEffect(effectType);
     }
+  }
+
+  private handleTupletClick(tuplet: string): void {
+    if (tuplet === "3") {
+      this.tabWindow.setSelectedBeatsTuplet(3, 2);
+      this.renderAndBind();
+      return;
+    } else if (tuplet === "2") {
+      this.tabWindow.setSelectedBeatsTuplet(2, 1);
+      this.renderAndBind();
+      return;
+    }
+
+    this.inputModal.show(
+      "Set tuplet",
+      [
+        { label: "Normal count:", id: "normalCount", value: "3" },
+        { label: "Tuplet count:", id: "tupletCount", value: "2" },
+      ],
+      (values) => {
+        const newNormalCount = parseInt(values["normalCount"], 10);
+        const newTupletCount = parseInt(values["tupletCount"], 10);
+        if (!isNaN(newNormalCount) && !isNaN(newTupletCount)) {
+          this.tabWindow.setSelectedBeatsTuplet(newNormalCount, newTupletCount);
+          this.renderAndBind();
+        }
+      }
+    );
   }
 
   private applyOrRemoveEffect(

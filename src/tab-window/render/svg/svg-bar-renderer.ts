@@ -10,11 +10,14 @@ import { DURATION_TO_NAME } from "../../../models/note-duration";
 import { BarElement } from "../../elements/bar-element";
 import { BeatElement } from "../../elements/beat-element";
 import { EffectLabelElement } from "../../elements/effects/effect-label-element";
+import { TupletElement } from "../../elements/tuplet-element";
 import { Point } from "../../shapes/point";
 import { TabWindow } from "../../tab-window";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { SVGEffectLabelRenderer } from "./svg-effect-label-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
+import { SVGTupletRenderer } from "./tuplet/svg-tuplet-renderer";
+import { SVGTupletSegmentRenderer } from "./tuplet/svg-tuplet-segment-renderer";
 
 type BeamSegmentSVG = {
   longSVG: SVGImageElement;
@@ -32,6 +35,7 @@ export class SVGBarRenderer {
   private _parentElement: SVGGElement;
 
   private _renderedBeatElements: Map<number, SVGBeatRenderer>;
+  private _renderedTupletElements: Map<number, SVGTupletRenderer>;
 
   private _groupSVG?: SVGGElement;
   private _barStaffLinesSVG?: SVGLineElement[];
@@ -64,6 +68,7 @@ export class SVGBarRenderer {
     this._parentElement = parentElement;
 
     this._renderedBeatElements = new Map();
+    this._renderedTupletElements = new Map();
   }
 
   /**
@@ -556,6 +561,62 @@ export class SVGBarRenderer {
     this._barBeamsSegmentsSVG = undefined;
   }
 
+  private renderTuplets(
+    barOffset: Point
+  ): (SVGTupletRenderer | SVGTupletSegmentRenderer)[] {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to render tuplets when SVG group undefined");
+    }
+
+    const activeRenderers: (SVGTupletRenderer | SVGTupletSegmentRenderer)[] =
+      [];
+
+    // Check if there are any beat elements to remove
+    const curTupletGroupUUIDs = new Set(
+      this._barElement.tupletElements.map((b) => b.tupletGroup.uuid)
+    );
+    for (const [uuid, renderer] of this._renderedTupletElements) {
+      if (!curTupletGroupUUIDs.has(uuid)) {
+        renderer.unrender();
+        this._renderedTupletElements.delete(uuid);
+      }
+    }
+
+    // Add & render new beat elements AND re-render existing beats
+    for (const tupletElement of this._barElement.tupletElements) {
+      const renderedTuplet = this._renderedTupletElements.get(
+        tupletElement.tupletGroup.uuid
+      );
+      if (renderedTuplet === undefined) {
+        const renderer = new SVGTupletRenderer(
+          this._tabWindow,
+          tupletElement,
+          barOffset,
+          this._assetsPath,
+          this._groupSVG
+        );
+        activeRenderers.push(renderer);
+        activeRenderers.push(...renderer.render());
+        this._renderedTupletElements.set(tupletElement.tupletGroup.uuid, renderer);
+      } else {
+        activeRenderers.push(renderedTuplet);
+        activeRenderers.push(...renderedTuplet.render(barOffset));
+      }
+    }
+    return activeRenderers;
+  }
+
+  private unrenderTuplets(): void {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to unrender tuplets when SVG group undefined");
+    }
+
+    for (const [uuid, renderer] of this._renderedTupletElements) {
+      renderer.unrender();
+      this._renderedTupletElements.delete(uuid);
+    }
+  }
+
   /**
    * Render bar element
    * @param newTLEOffset New optinal tab line element offset
@@ -591,6 +652,7 @@ export class SVGBarRenderer {
     this.renderBarTempoImage(barOffset);
     this.renderBarTempoText(barOffset);
     this.renderBarBeamSegments(barOffset);
+    this.renderTuplets(barOffset);
 
     const activeRenderers: (SVGBeatRenderer | SVGNoteRenderer)[] = [];
 
@@ -644,6 +706,7 @@ export class SVGBarRenderer {
     this.unrenderBarTempoImage();
     this.unrenderBarTempoText();
     this.unrenderBarBeamSegments();
+    this.unrenderTuplets();
   }
 
   public get beatRenderers(): SVGBeatRenderer[] {

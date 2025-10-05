@@ -140,6 +140,13 @@ export class TabWindow {
     this._tabEditor.setSelectedBeatDots(newDots);
   }
 
+  public setSelectedBeatsTuplet(
+    normalCount: number,
+    tupletCount: number
+  ): void {
+    this._tabEditor.setSelectedBeatsTuplet(normalCount, tupletCount);
+  }
+
   public changeSelectedBarTempo(newTempo: number): void {
     this._tabEditor.changeSelectedBarTempo(newTempo);
   }
