@@ -396,7 +396,7 @@ export class SVGBarRenderer {
       this._barTempoTextSVG = createSVGText();
 
       // Set only-set-once attributes
-      const fontSize = `${this._tabWindow.dim.timeSigTextSize}`;
+      const fontSize = `${this._tabWindow.dim.tempoTextSize}`;
       this._barTempoTextSVG.setAttribute("text-anchor", "start");
       this._barTempoTextSVG.setAttribute("font-size", fontSize);
 
