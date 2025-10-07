@@ -168,7 +168,7 @@ export class TabWindowDim {
     this.tempoRectWidth = this.durationsHeight + this.tempoTextSize * 5;
     this.tempoRectHeight = this.durationsHeight;
 
-    this.repeatSignWidth = this.noteRectWidth64 / 2;
+    this.repeatSignWidth = 0.75 * this.noteRectWidth64;
     this.repeatSignHeight = this.timeSigRectHeight;
 
     this.tabLineMinHeight =

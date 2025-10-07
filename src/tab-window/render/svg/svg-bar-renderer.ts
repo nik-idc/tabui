@@ -227,19 +227,31 @@ export class SVGBarRenderer {
 
       // Set id
       this._barRepeatSign.setAttribute("id", `bar-repeat-${barUUID}`);
+      this._barRepeatSign.setAttribute("preserveAspectRatio", "none");
 
       // Add elements to root SVG element
       this._groupSVG.appendChild(this._barRepeatSign);
     }
 
-    const x = `${barOffset.x + this._barElement.repeatRect.x}`;
+    // Holy shit this is scuffed. Refactor is unconditional
+    let x: string;
+    if (this._barElement.bar.repeatStatus === BarRepeatStatus.Start) {
+      x = `${barOffset.x + this._barElement.repeatRect.x}`;
+    } else {
+      x = `${
+        barOffset.x +
+        this._barElement.repeatRect.right -
+        this._barElement.dim.repeatSignWidth
+      }`;
+    }
     const y = `${barOffset.y + this._barElement.repeatRect.y}`;
-    const width = `${this._barElement.repeatRect.width}`;
+    // const width = `${this._barElement.repeatRect.width}`;
+    const width = `${this._barElement.dim.repeatSignWidth}`;
     const height = `${this._barElement.repeatRect.height}`;
     const href =
       this._barElement.bar.repeatStatus === BarRepeatStatus.Start
-        ? `${this._assetsPath}/img/ui/repeat-start.svg`
-        : `${this._assetsPath}/img/ui/repeat-end.svg`;
+        ? `${this._assetsPath}/img/ui/repeat-start-applied_.svg`
+        : `${this._assetsPath}/img/ui/repeat-end-applied_.svg`;
     this._barRepeatSign.setAttribute("x", x);
     this._barRepeatSign.setAttribute("y", y);
     this._barRepeatSign.setAttribute("width", width);
