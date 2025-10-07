@@ -202,7 +202,7 @@ export class SVGBeatRenderer {
     }
 
     const x = `${this._barOffset.x + this._beatElement.rect.x}`;
-    const y = `${this._barOffset.y + this._beatElement.rect.y}`;
+    const y = `${this._barOffset.y}`;
     const width = `${this._beatElement.rect.width}`;
     const height = `${this._beatElement.rect.height}`;
     this._beatSelectionSVG.setAttribute("x", x);
