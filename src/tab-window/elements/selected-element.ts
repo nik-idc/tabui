@@ -127,7 +127,7 @@ export class SelectedElement {
     // Check if can add beats to the bar
     if (
       this._beatId === this.bar.beats.length - 1 &&
-      !this.bar.durationsFit &&
+      (!this.bar.durationsFit || this.bar.isEmpty()) &&
       this.bar.actualDuration() < this.bar.beatsCount * this.bar.duration
     ) {
       // If the current beat is not the last one of the bar AND

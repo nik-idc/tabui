@@ -65,6 +65,23 @@ export class Tab {
   }
 
   /**
+   * Sets note's fret
+   * @param barIndex Index of the bar
+   * @param beatIndex Index of the beat within the bar
+   * @param stringNum String number
+   * @param newFret New fret value
+   */
+  public setNoteFret(
+    barIndex: number,
+    beatIndex: number,
+    stringNum: number,
+    newFret: number | undefined
+  ): void {
+    this._bars[barIndex].beats[beatIndex].notes[stringNum - 1].fret = newFret;
+    this._bars[barIndex].computeBeaming();
+  }
+
+  /**
    * Appends a beat to the last bar
    * @param beat Beat to append
    * (if undefined, an empty beat of the same duration
@@ -280,15 +297,6 @@ export class Tab {
     for (const tupletBar of tupletBars) {
       tupletBar.bar.setTuplet(tupletBar.beats, normalCount, tupletCount);
     }
-
-    // console.log("===========================================");
-    // for (let i = 0; i < this._bars.length; i++) {
-    //   const bar = this._bars[i];
-    //   for (let j = 0; j < bar.beats.length; j++) {
-    //     const beat = bar.beats[j];
-    //     console.log(`Beat ${i}-${j} tuplet settings:`, beat.tupletSettings);
-    //   }
-    // }
   }
 
   public setRepeatStart(barIndex: number): void {

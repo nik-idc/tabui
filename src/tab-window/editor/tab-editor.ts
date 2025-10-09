@@ -119,7 +119,13 @@ export class TabEditor {
 
     this.undoStack.push(this._tab.deepCopy());
 
-    this._selectionManager.selectedElement.note.fret = newFret;
+    // this._selectionManager.selectedElement.note.fret = newFret;
+    this._tab.setNoteFret(
+      this._selectionManager.selectedElement.barId,
+      this._selectionManager.selectedElement.beatId,
+      this._selectionManager.selectedElement.stringNum,
+      newFret
+    );
   }
 
   public setSelectedBeatDots(newDots: number): void {

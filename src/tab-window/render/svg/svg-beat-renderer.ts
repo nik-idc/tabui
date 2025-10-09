@@ -98,10 +98,15 @@ export class SVGBeatRenderer {
     const width = `${this._beatElement.durationRect.width}`;
     const height = `${this._beatElement.durationRect.height}`;
     const refName = DURATION_TO_NAME[this._beatElement.beat.duration];
-    const href =
-      this._beatElement.beat.beamGroupId !== undefined
-        ? `${this._assetsPath}/img/notes/no-flag.svg`
-        : `${this._assetsPath}/img/notes/${refName}.svg`;
+    let href: string;
+    if (this._beatElement.beat.isEmpty()) {
+      href = `${this._assetsPath}/img/notes/rest-${refName}.svg`;
+    } else {
+      href =
+        this._beatElement.beat.beamGroupId !== undefined
+          ? `${this._assetsPath}/img/notes/no-flag.svg`
+          : `${this._assetsPath}/img/notes/${refName}.svg`;
+    }
     this._beatDurationSVG.setAttribute("x", x);
     this._beatDurationSVG.setAttribute("y", y);
     this._beatDurationSVG.setAttribute("width", width);

@@ -232,6 +232,13 @@ export class Beat {
   }
 
   /**
+   * Returns true if no notes are present in the beat
+   */
+  public isEmpty(): boolean {
+    return !this.notes.some((gn) => gn.fret !== undefined);
+  }
+
+  /**
    * Dots applied to the beat (0 = no dots, 1 = 1 dot, 2 = 2 dots)
    */
   public get dots(): number {

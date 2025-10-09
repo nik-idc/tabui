@@ -269,21 +269,34 @@ export class Bar {
 
     for (let i = 0; i < this.beats.length; i++) {
       const beat = this.beats[i];
-      const tupletGroup = this._tupletGroups.find(tg => tg.beats.some(tb => tb.actualBeat === beat));
+      const tupletGroup = this._tupletGroups.find((tg) =>
+        tg.beats.some((tb) => tb.actualBeat === beat)
+      );
 
       // If we find the first beat of a complete tuplet group...
-      if (tupletGroup && tupletGroup.complete && tupletGroup.beats[0].actualBeat === beat) {
-        const tupletBeats = tupletGroup.beats.map(tb => tb.actualBeat);
+      if (
+        tupletGroup &&
+        tupletGroup.complete &&
+        tupletGroup.beats[0].actualBeat === beat
+      ) {
+        const tupletBeats = tupletGroup.beats.map((tb) => tb.actualBeat);
         const baseDuration = tupletBeats[0].duration;
-        
+
         // ...create M "pretend" beats to stand in for the N real tuplet notes.
-        const pretendBeatPrototypes = Array(tupletGroup.tupletCount).fill(new Beat(this.guitar, baseDuration));
-        
+        const pretendBeatPrototypes = Array(tupletGroup.tupletCount).fill(
+          new Beat(this.guitar, baseDuration)
+        );
+
         // Map all N real beats to their corresponding M pretend beats.
         for (let j = 0; j < tupletGroup.normalCount; j++) {
-            const realBeat = tupletBeats[j];
-            const correspondingPretendBeat = pretendBeatPrototypes[Math.floor(j / tupletGroup.normalCount * tupletGroup.tupletCount)];
-            realToPretendMap.set(realBeat, correspondingPretendBeat);
+          const realBeat = tupletBeats[j];
+          const correspondingPretendBeat =
+            pretendBeatPrototypes[
+              Math.floor(
+                (j / tupletGroup.normalCount) * tupletGroup.tupletCount
+              )
+            ];
+          realToPretendMap.set(realBeat, correspondingPretendBeat);
         }
         pretendBeats.push(...pretendBeatPrototypes);
         i += tupletGroup.normalCount - 1; // Skip the already processed real tuplet beats.
@@ -305,7 +318,7 @@ export class Bar {
     let remainingDuration = currentBeamGroup ? currentBeamGroup / factor : 0;
 
     for (const beat of pretendBeats) {
-      if (beat.getFullDuration() > NoteDuration.Eighth) {
+      if (beat.getFullDuration() > NoteDuration.Eighth || beat.isEmpty()) {
         currentBeamGroupId++;
         beamingGroupIndex = (beamingGroupIndex + 1) % beamingGroups.length;
         currentBeamGroup = beamingGroups[beamingGroupIndex];
@@ -319,7 +332,9 @@ export class Bar {
       }
 
       if (remainingDuration <= 0) {
-        const groupBeats = pretendBeats.filter(b => b.beamGroupId === currentBeamGroupId);
+        const groupBeats = pretendBeats.filter(
+          (b) => b.beamGroupId === currentBeamGroupId
+        );
         if (groupBeats.length > 0) {
           groupBeats[groupBeats.length - 1].setIsLastInBeamGroup(true);
         }
@@ -333,51 +348,61 @@ export class Bar {
 
     // 4. Map the beaming information from the pretend beats back to the real beats.
     for (const realBeat of this.beats) {
-        const pretendBeat = realToPretendMap.get(realBeat);
-        if (pretendBeat) {
-            realBeat.setBeamGroupId(pretendBeat.beamGroupId);
-            realBeat.setIsLastInBeamGroup(pretendBeat.lastInBeamGroup);
-        }
+      const pretendBeat = realToPretendMap.get(realBeat);
+      if (pretendBeat) {
+        realBeat.setBeamGroupId(pretendBeat.beamGroupId);
+        realBeat.setIsLastInBeamGroup(pretendBeat.lastInBeamGroup);
+      }
     }
 
     // 5. Isolate the tuplets into their own beam groups.
     // This ensures that a tuplet is always a visually distinct group.
-    let maxGroupId = Math.max(...this.beats.map(b => b.beamGroupId).filter(id => id !== undefined).map(id => id as number), 0);
+    let maxGroupId = Math.max(
+      ...this.beats
+        .map((b) => b.beamGroupId)
+        .filter((id) => id !== undefined)
+        .map((id) => id as number),
+      0
+    );
 
     for (const tupletGroup of this._tupletGroups) {
-        if (!tupletGroup.complete) continue;
+      if (!tupletGroup.complete) continue;
 
-        const realBeats = tupletGroup.beats.map(tb => tb.actualBeat);
-        const firstBeat = realBeats[0];
-        const beatBefore = this.beats[this.beats.indexOf(firstBeat) - 1];
+      const realBeats = tupletGroup.beats.map((tb) => tb.actualBeat);
+      const firstBeat = realBeats[0];
+      const beatBefore = this.beats[this.beats.indexOf(firstBeat) - 1];
 
-        // A tuplet needs its own group if it's currently beamed with a preceding note...
-        let needsNewGroup = false;
-        if (beatBefore && beatBefore.beamGroupId === firstBeat.beamGroupId) {
-            needsNewGroup = true;
+      // A tuplet needs its own group if it's currently beamed with a preceding note...
+      let needsNewGroup = false;
+      if (beatBefore && beatBefore.beamGroupId === firstBeat.beamGroupId) {
+        needsNewGroup = true;
+      }
+
+      // ...or if it's beamed with a succeeding note.
+      if (!needsNewGroup) {
+        const lastBeat = realBeats[realBeats.length - 1];
+        const beatAfter = this.beats[this.beats.indexOf(lastBeat) + 1];
+        if (beatAfter && beatAfter.beamGroupId === lastBeat.beamGroupId) {
+          needsNewGroup = true;
         }
+      }
 
-        // ...or if it's beamed with a succeeding note.
-        if (!needsNewGroup) {
-            const lastBeat = realBeats[realBeats.length - 1];
-            const beatAfter = this.beats[this.beats.indexOf(lastBeat) + 1];
-            if (beatAfter && beatAfter.beamGroupId === lastBeat.beamGroupId) {
-                needsNewGroup = true;
-            }
+      if (needsNewGroup) {
+        maxGroupId++;
+        for (const realBeat of realBeats) {
+          realBeat.setBeamGroupId(maxGroupId);
         }
-
-        if (needsNewGroup) {
-            maxGroupId++;
-            for (const realBeat of realBeats) {
-                realBeat.setBeamGroupId(maxGroupId);
-            }
-        }
+      }
     }
 
     // 6. Final cleanup: un-beam any groups that have only one beat.
-    const allGroupIds = [...new Set(this.beats.map(b => b.beamGroupId).filter(id => id !== undefined))];
+    const allGroupIds = [
+      ...new Set(
+        this.beats.map((b) => b.beamGroupId).filter((id) => id !== undefined)
+      ),
+    ];
     for (const id of allGroupIds) {
-      const groupBeats = this.beats.filter(b => b.beamGroupId === id);
+      const groupBeats = this.beats.filter((b) => b.beamGroupId === id);
       if (groupBeats.length === 1) {
         groupBeats[0].setBeamGroupId(undefined);
         groupBeats[0].setIsLastInBeamGroup(false);
@@ -738,6 +763,14 @@ export class Bar {
     );
   }
 
+  public isEmpty(): boolean {
+    if (this.beats.length > 1) {
+      return false;
+    }
+
+    return this.beats[0].isEmpty();
+  }
+
   /**
    * Beats (upper number in time signature) getter/setter
    */
@@ -765,6 +798,10 @@ export class Bar {
    */
   get durationsFit(): boolean {
     if (this.beats.length === 0) {
+      return true;
+    }
+
+    if (this.beats.length === 1 && this.beats[0].isEmpty()) {
       return true;
     }
 
