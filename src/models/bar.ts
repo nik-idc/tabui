@@ -245,6 +245,7 @@ export class Bar {
     this._tupletGroups = [];
 
     this.computeBeaming();
+    this.computeTupletGroups();
   }
 
   public computeBeaming(): void {
@@ -576,6 +577,7 @@ export class Bar {
 
     // Recalc beaming
     this.computeBeaming();
+    this.computeTupletGroups();
   }
 
   /**
@@ -596,6 +598,7 @@ export class Bar {
 
     // Recalc beaming
     this.computeBeaming();
+    this.computeTupletGroups();
   }
 
   /**
@@ -631,6 +634,7 @@ export class Bar {
 
     // Recalc beaming
     this.computeBeaming();
+    this.computeTupletGroups();
   }
 
   /**
@@ -646,6 +650,7 @@ export class Bar {
 
     // Recalc beaming
     this.computeBeaming();
+    this.computeTupletGroups();
   }
 
   /**
@@ -664,6 +669,7 @@ export class Bar {
 
     // Recalc beaming
     this.computeBeaming();
+    this.computeTupletGroups();
   }
 
   /**
@@ -724,6 +730,7 @@ export class Bar {
     this._beatsCount = newBeats;
 
     this.computeBeaming();
+    this.computeTupletGroups();
   }
 
   /**
@@ -733,6 +740,7 @@ export class Bar {
     this._duration = newDuration;
 
     this.computeBeaming();
+    this.computeTupletGroups();
   }
 
   /**
