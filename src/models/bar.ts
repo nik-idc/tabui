@@ -566,6 +566,14 @@ export class Bar {
     return durations;
   }
 
+  /**
+   * Gets maximum duration this bar can fit
+   * @returns Maximum duration this bar can fit
+   */
+  public getMaxDuration(): number {
+    return this._beatsCount * this._duration;
+  }
+
   public insertBeat(index: number, beat: Beat): void {
     // Check index validity
     if (index < 0 || index > this.beats.length) {
