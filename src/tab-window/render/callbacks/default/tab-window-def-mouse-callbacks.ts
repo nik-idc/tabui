@@ -54,6 +54,11 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
   }
 
   public onBeatMouseEnter(event: MouseEvent, beatElement: BeatElement): void {
+    const isLeftPressed = (event.buttons & 1) === 1;
+    if (isLeftPressed && !this._selectingBeats) {
+      this.onBeatMouseDown(event, beatElement);
+    }
+
     if (this._selectingBeats) {
       this._renderer.tabWindow.selectBeat(beatElement);
       this._renderAndBind(this._renderer.render());
@@ -91,5 +96,9 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
     this._selectionStartPoint = undefined;
 
     this._renderAndBind(this._renderer.render());
+  }
+
+  public onWindowMouseUp(): void {
+    this.onBeatMouseUp();
   }
 }

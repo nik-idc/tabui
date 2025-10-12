@@ -33,5 +33,6 @@ export abstract class TabWindowMouseCallbacks {
   ): void;
 
   public abstract onBeatMouseUp(): void;
-}
 
+  public abstract onWindowMouseUp(): void;
+}

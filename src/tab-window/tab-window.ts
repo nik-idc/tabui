@@ -134,6 +134,8 @@ export class TabWindow {
 
   public setSelectedElementFret(newFret: number | undefined): void {
     this._tabEditor.setSelectedNoteFret(newFret);
+
+    this._tabElement.calc();
   }
 
   public setSelectedBeatDots(newDots: number): void {

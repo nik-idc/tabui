@@ -10,19 +10,26 @@ import { TabWindowKeyboardCallbacks } from "./tab-window-keyboard-callbacks";
 import { TabWindowMouseCallbacks } from "./tab-window-mouse-callbacks";
 
 export class TabWindowCallbackBinder {
-  private _renderer: TabWindowSVGRenderer;
   private _mouseCallbacks: TabWindowMouseCallbacks;
   private _keyboardCallbacks: TabWindowKeyboardCallbacks;
   private _keyboardBound = false;
+  private _globalMouseEventsBound = false;
 
   constructor(
-    renderer: TabWindowSVGRenderer,
     mouseCallbacks: TabWindowMouseCallbacks,
     keyboardCallbacks: TabWindowKeyboardCallbacks
   ) {
-    this._renderer = renderer;
     this._mouseCallbacks = mouseCallbacks;
     this._keyboardCallbacks = keyboardCallbacks;
+  }
+
+  private bindGlobalMouseEvents(): void {
+    window.addEventListener(
+      "mouseup",
+      this._mouseCallbacks.onWindowMouseUp.bind(this._mouseCallbacks)
+    );
+
+    this._globalMouseEventsBound = true;
   }
 
   private bindMouseEvents(
@@ -68,8 +75,10 @@ export class TabWindowCallbackBinder {
       return;
     }
     document.addEventListener("keydown", (event: KeyboardEvent) => {
-      // console.log(event.key);
       const key = event.key.toLowerCase(); // normalize
+      if (key.length !== 1 && key[0] === "f") {
+        return;
+      }
 
       if (event.ctrlKey && !event.shiftKey) {
         if (key === "c") {
@@ -105,6 +114,10 @@ export class TabWindowCallbackBinder {
   public bind(
     renderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
   ): void {
+    if (!this._globalMouseEventsBound) {
+      this.bindGlobalMouseEvents();
+    }
+
     this.bindMouseEvents(renderers);
     this.bindKeyboardEvents();
   }

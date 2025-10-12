@@ -74,6 +74,7 @@ export class TabEditor {
 
     if (moveRightOutput.result !== MoveRightResult.Nothing) {
       this.undoStack.push(beforeMoveRight);
+      this.redoStack.splice(0, this.redoStack.length);
     }
 
     this.tabElement.handleMoveRight(
@@ -118,8 +119,15 @@ export class TabEditor {
     }
 
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
-    this._selectionManager.selectedElement.note.fret = newFret;
+    // this._selectionManager.selectedElement.note.fret = newFret;
+    this._tab.setNoteFret(
+      this._selectionManager.selectedElement.barId,
+      this._selectionManager.selectedElement.beatId,
+      this._selectionManager.selectedElement.stringNum,
+      newFret
+    );
   }
 
   public setSelectedBeatDots(newDots: number): void {
@@ -128,6 +136,7 @@ export class TabEditor {
     }
 
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     const barIndex = this._selectionManager.selectedElement.barId;
     const beatIndex = this._selectionManager.selectedElement.beatId;
@@ -144,6 +153,7 @@ export class TabEditor {
     }
 
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
     let beats: Beat[];
     if (this._selectionManager.selectedElement === undefined) {
       // If selected multiple beats
@@ -159,6 +169,7 @@ export class TabEditor {
 
   public changeSelectedBarTempo(newTempo: number): void {
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     const selectedElement = this._selectionManager.selectedElement;
     if (selectedElement === undefined) {
@@ -171,6 +182,7 @@ export class TabEditor {
 
   public changeSelectedBarBeats(newBeats: number): void {
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     const selectedElement = this._selectionManager.selectedElement;
     if (selectedElement === undefined) {
@@ -183,6 +195,7 @@ export class TabEditor {
 
   public changeSelectedBarDuration(newDuration: NoteDuration): void {
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     const selectedElement = this._selectionManager.selectedElement;
     if (selectedElement === undefined) {
@@ -195,6 +208,7 @@ export class TabEditor {
 
   public setSelectedBarRepeatStart(): void {
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     const barIndex = this._selectionManager.selectedElement?.barId;
     if (barIndex === undefined) {
@@ -207,6 +221,7 @@ export class TabEditor {
 
   public setSelectedBarRepeatEnd(): void {
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     const barIndex = this._selectionManager.selectedElement?.barId;
     if (barIndex === undefined) {
@@ -219,6 +234,7 @@ export class TabEditor {
 
   public changeSelectedBeatDuration(newDuration: NoteDuration): void {
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     const selectedElement = this._selectionManager.selectedElement;
     if (selectedElement === undefined) {
@@ -255,6 +271,7 @@ export class TabEditor {
 
     if (result) {
       this.undoStack.push(beforeApply);
+      this.redoStack.splice(0, this.redoStack.length);
     }
 
     this.tabElement.calc();
@@ -292,6 +309,7 @@ export class TabEditor {
     }
 
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     elsAndIds.tabLineElement.removeEffectSingle(
       elsAndIds.barElementId,
@@ -361,6 +379,7 @@ export class TabEditor {
 
   public changeSelectionDuration(newDuration: NoteDuration): void {
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     this._selectionManager.changeSelectionDuration(newDuration);
     this.tabElement.calc();
@@ -372,6 +391,7 @@ export class TabEditor {
 
   public paste(): void {
     this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
 
     this._selectionManager.paste();
     this.tabElement.calc();
@@ -464,7 +484,7 @@ export class TabEditor {
       return;
     }
 
-    this.undoStack.push(nextTab.deepCopy());
+    this.undoStack.push(this._tab.deepCopy());
     this._tab = nextTab;
 
     this._selectionManager = new SelectionManager(this._tab);

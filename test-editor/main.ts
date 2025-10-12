@@ -85,7 +85,6 @@ function init(trackIndex: number) {
   bendSelectorManager = new BendSelectorManager(bendGraphModal);
 
   binder = new TabWindowCallbackBinder(
-    svgRenderer,
     new TabWindowMouseDefCallbacks(svgRenderer, () =>
       renderAndBind(svgRenderer.render())
     ),
