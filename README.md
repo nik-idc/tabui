@@ -2,6 +2,9 @@
 
 Guitar tab editor library.
 
+## Demo
+![tabber-demo](https://github.com/user-attachments/assets/a4104460-0666-4ce3-99b4-0fd9f2615049)
+
 ## Features
 
 *   **Interactive Tab Editor:** Create and edit guitar tablature with an intuitive graphical interface.
