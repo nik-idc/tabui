@@ -10,17 +10,9 @@ import {
   SVGNoteRenderer,
 } from "../src/index";
 import { BendSelectorManager } from "../src/tab-window/render/bend-selectors/bend-selector-manager";
+import { getEl } from "./misc/utils";
 import { score } from "./multi-track-data";
 import { EditPanel } from "./panels/edit-panel";
-
-// Utility: Get element or throw
-function getEl<T extends Element>(id: string): T {
-  const el = document.getElementById(id);
-  if (!el) {
-    throw Error(`Missing HTML element: ${id}`);
-  }
-  return el as unknown as T;
-}
 
 // Get DOM references
 const trackSelector = getEl<HTMLSelectElement>("track-selector");

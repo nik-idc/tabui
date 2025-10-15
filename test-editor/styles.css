@@ -82,27 +82,27 @@ body {
   margin: 10px auto;
 }
 
-.track-selector-container {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
 .play-controls {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 9px 12px;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  background-color: #ffffff;
   width: fit-content;
 }
 
 .play-controls img {
   cursor: pointer;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.play-controls img:hover {
+  background-color: #eee;
 }
 
 .main-container {
@@ -135,6 +135,7 @@ body {
   cursor: pointer;
   width: 32px;
   height: 32px;
+  border-radius: 4px;
 }
 
 .control-group img:hover {
@@ -146,34 +147,94 @@ body {
   border: 1px solid #ccc;
 }
 
+#input-modal .modal-container {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 400px;
+  border: 1px solid #000000;
+}
+
 #input-modal .modal-content {
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  padding: 24px;
+}
+
+#input-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0;
+  padding: 0;
 }
 
 #input-modal-inputs {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 12px;
 }
 
 #input-modal-inputs .input-row {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 100px 1fr;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
 }
 
 #input-modal-inputs label {
-  min-width: 100px;
+  font-size: 14px;
+  color: #000000;
+}
+
+#input-modal-inputs input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#input-modal-inputs input:focus {
+  border-color: #000000;
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25);
 }
 
 .modal-buttons {
   display: flex;
-  flex-direction: row;
   justify-content: flex-end;
-  gap: 10px;
-  padding-top: 20px;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.modal-buttons button {
+  padding: 8px 16px;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+#input-modal-confirm {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+#input-modal-confirm:hover {
+  background-color: #333333;
+}
+
+#input-modal-cancel {
+  background-color: #eeeeee;
+  color: #000000;
+}
+
+#input-modal-cancel:hover {
+  background-color: #dddddd;
 }
 
 .loop-icon:hover {
@@ -185,9 +246,54 @@ body {
 }
 
 .loop-icon-active {
-  background-color: #b1e6ff;
+  background-color: #dddddd;
 }
 
 .loop-icon-active:hover {
-  background-color: #91bcd1;
+  background-color: #cccccc;
+}
+
+/* Track Selector Styles */
+.track-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background-color: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 8px;
+}
+
+.track-selector-container label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000000;
+}
+
+#track-selector {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  padding: 6px 30px 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23000000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 16px 12px;
+}
+
+#track-selector:focus {
+  border-color: #000000;
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25);
+}
+
+.pitch-label {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
 }

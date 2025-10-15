@@ -49,11 +49,11 @@ export class BendSelectorManager {
       }
     });
 
-    const confirmButton = document.getElementById("input-modal-confirm");
+    const confirmButton = document.getElementById("bend-modal-confirm");
     if (confirmButton) {
       confirmButton.addEventListener("click", () => this.apply());
     }
-    const cancelButton = document.getElementById("input-modal-cancel");
+    const cancelButton = document.getElementById("bend-modal-cancel");
     if (cancelButton) {
       cancelButton.addEventListener("click", () => this.hide());
     }
@@ -77,90 +77,46 @@ export class BendSelectorManager {
     }
   }
 
-  private applyBend(): void {
-    const bendCircle = document.getElementById("bendCircle");
-    if (bendCircle === null) {
-      throw Error("Bend circle null on apply bend");
-    }
-
-    const bendDuration = Number(bendCircle.getAttribute("cx"));
-    const bendPitch = 300 / (300 - Number(bendCircle.getAttribute("cy")));
-    const options = new GuitarEffectOptions(bendPitch);
-
-    if (this._onApply !== undefined) {
-      this._onApply(GuitarEffectType.Bend, options);
-    }
-  }
-
-  private applyBendAndRelease(): void {
-    const bendCircle = document.getElementById("bendCircle");
-    if (bendCircle === null) {
-      throw Error("Bend circle null on apply bend");
-    }
-    const releaseCircle = document.getElementById("releaseCircle");
-    if (releaseCircle === null) {
-      throw Error("Release circle null on apply bend");
-    }
-
-    const bendDuration = Number(bendCircle.getAttribute("cx"));
-    const bendPitch = 300 / (300 - Number(bendCircle.getAttribute("cy")));
-    const releaseDuration = Number(releaseCircle.getAttribute("cx"));
-    const releasePitch = 300 / (300 - Number(releaseCircle.getAttribute("cy")));
-    const options = new GuitarEffectOptions(bendPitch, releasePitch);
-
-    if (this._onApply !== undefined) {
-      this._onApply(GuitarEffectType.BendAndRelease, options);
-    }
-  }
-
-  private applyPrebend(): void {
-    const prebendCircle = document.getElementById("prebendCircle");
-    if (prebendCircle === null) {
-      throw Error("Bend circle null on apply bend");
-    }
-
-    const prebendDuration = Number(prebendCircle.getAttribute("cx"));
-    const prebendPitch = 300 / (300 - Number(prebendCircle.getAttribute("cy")));
-    const options = new GuitarEffectOptions(undefined, undefined, prebendPitch);
-
-    if (this._onApply !== undefined) {
-      this._onApply(GuitarEffectType.Prebend, options);
-    }
-  }
-
-  private applyPrebendAndRelease(): void {
-    const prebendCircle = document.getElementById("prebendCircle");
-    if (prebendCircle === null) {
-      throw Error("Bend circle null on apply bend");
-    }
-    const releaseCircle = document.getElementById("releaseCircle");
-    if (releaseCircle === null) {
-      throw Error("Release circle null on apply bend");
-    }
-
-    const prebendDuration = Number(prebendCircle.getAttribute("cx"));
-    const prebendPitch = 300 / (300 - Number(prebendCircle.getAttribute("cy")));
-    const releaseDuration = Number(releaseCircle.getAttribute("cx"));
-    const releasePitch = 300 / (300 - Number(releaseCircle.getAttribute("cy")));
-    const options = new GuitarEffectOptions(prebendPitch, releasePitch);
-
-    if (this._onApply !== undefined) {
-      this._onApply(GuitarEffectType.PrebendAndRelease, options);
-    }
-  }
-
   public apply(): void {
-    // Get bend circle's cx and cy attributes
+    if (!this._currentRenderer) {
+      return;
+    }
+
+    let effectType: GuitarEffectType | undefined;
+    let options: GuitarEffectOptions | undefined;
+
     if (this._currentRenderer instanceof BendSelectorRenderer) {
-      this.applyBend();
+      const values = this._currentRenderer.getValues();
+      effectType = GuitarEffectType.Bend;
+      options = new GuitarEffectOptions(values.pitch);
     } else if (this._currentRenderer instanceof BendReleaseSelectorRenderer) {
-      this.applyBendAndRelease();
+      const values = this._currentRenderer.getValues();
+      effectType = GuitarEffectType.BendAndRelease;
+      options = new GuitarEffectOptions(
+        values.peak.pitch,
+        values.release.pitch
+      );
     } else if (this._currentRenderer instanceof PrebendSelectorRenderer) {
-      this.applyPrebend();
+      const values = this._currentRenderer.getValues();
+      effectType = GuitarEffectType.Prebend;
+      options = new GuitarEffectOptions(undefined, undefined, values.pitch);
     } else if (
       this._currentRenderer instanceof PrebendReleaseSelectorRenderer
     ) {
-      this.applyPrebendAndRelease();
+      const values = this._currentRenderer.getValues();
+      effectType = GuitarEffectType.PrebendAndRelease;
+      options = new GuitarEffectOptions(
+        values.start.pitch,
+        values.release.pitch
+      );
+    }
+
+    if (
+      effectType !== undefined &&
+      options !== undefined &&
+      this._onApply !== undefined
+    ) {
+      this._onApply(effectType, options);
     }
 
     this.hide();

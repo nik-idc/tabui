@@ -67,12 +67,27 @@ export class EffectLabelElement {
     const x = this._rect.x + this._rect.width - bigNumSize / 2;
     const y = this._rect.y + this._rect.height / 2 - bigNumSize / 2;
 
-    if (nums[0] === 1 && nums[1] === 0) {
+    if ([1, 2, 3].includes(nums[0]) && nums[1] === 0) {
+      let text: string;
+      switch (nums[0]) {
+        case 1:
+          text = "full";
+          break;
+        case 2:
+          text = "2";
+          break;
+        case 3:
+          text = "3";
+          break;
+        default:
+          text = "full";
+          break;
+      }
       this._fullHTML = this._svgUtils.textSVGHTML(
         x,
         y,
         this.dim.noteTextSize,
-        "full"
+        text
       );
       return;
     }
