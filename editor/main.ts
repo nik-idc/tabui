@@ -1,18 +1,6 @@
-import {
-  TabWindow,
-  TabWindowDim,
-  TabWindowSVGRenderer,
-  TabWindowCallbackBinder,
-  TabWindowMouseDefCallbacks,
-  TabWindowKeyboardDefCallbacks,
-  SVGBarRenderer,
-  SVGBeatRenderer,
-  SVGNoteRenderer,
-} from "../src/index";
-import { BendSelectorManager } from "../src/tab-window/render/bend-selectors/bend-selector-manager";
-import { getEl } from "./misc/utils";
+import { Tabber } from "../src/tabber";
+import { getEl } from "../src/tab-window/editor/misc/utils";
 import { score } from "./multi-track-data";
-import { EditPanel } from "./panels/edit-panel";
 
 // Get DOM references
 const trackSelector = getEl<HTMLSelectElement>("track-selector");
@@ -24,80 +12,12 @@ const svgRoot = getEl<SVGSVGElement>("svgRoot");
 const bendGraphModal = getEl<HTMLDivElement>("bend-graph-modal");
 const sideControls = getEl<HTMLDivElement>("side-controls");
 
-let currentTrackIndex = 0;
-let tabWindow: TabWindow;
-let svgRenderer: TabWindowSVGRenderer;
-let binder: TabWindowCallbackBinder;
-let editPanel: EditPanel;
-let bendSelectorManager: BendSelectorManager;
-
-function renderAndBind(
-  activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
-): void {
-  if (binder) {
-    binder.bind(activeRenderers);
-  }
-}
-
-function init(trackIndex: number) {
-  currentTrackIndex = trackIndex;
-  const tab = score.tracks[currentTrackIndex];
-
-  // Create TabWindow
-  const dim = new TabWindowDim(
-    1200, // width
-    14, // noteTextSize
-    42, // timeSigTextSize
-    28, // tempoTextSize
-    40, // durationsHeight
-    tab.guitar.stringsCount
-  );
-  tabWindow = new TabWindow(score, tab, dim);
-  // tabWindow.calcTabElement();
-  tabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
-
-  // Set SVG root properties
-  let tabWindowHeight = 0;
-  const tabLineElements = tabWindow.getTabLineElements();
-  for (const tabLineElement of tabLineElements) {
-    tabWindowHeight += tabLineElement.rect.height;
-  }
-  const svgRootVB = `0 0 ${tabWindow.dim.width} ${tabWindowHeight}`;
-  svgRoot.setAttribute("viewBox", svgRootVB);
-  svgRoot.setAttribute("width", `${tabWindow.dim.width}`);
-  svgRoot.setAttribute("height", `${tabWindowHeight}`);
-
-  // Unrender what's been already rendered
-  if (svgRenderer !== undefined) {
-    svgRenderer.unrender();
-  }
-
-  // Create renderers and binders
-  svgRenderer = new TabWindowSVGRenderer(tabWindow, "assets", svgRoot);
-  bendSelectorManager = new BendSelectorManager(bendGraphModal);
-
-  binder = new TabWindowCallbackBinder(
-    new TabWindowMouseDefCallbacks(svgRenderer, () =>
-      renderAndBind(svgRenderer.render())
-    ),
-    new TabWindowKeyboardDefCallbacks(
-      svgRenderer,
-      () => renderAndBind(svgRenderer.render()),
-      bendSelectorManager
-    )
-  );
-
-  renderAndBind(svgRenderer.render());
-
-  // Create edit panel
-  editPanel = new EditPanel(
-    tabWindow,
-    sideControls,
-    () => renderAndBind(svgRenderer.render()),
-    bendSelectorManager
-  );
-  editPanel.bind();
-}
+const tabber = new Tabber(score, {
+  svgRoot,
+  bendGraphModal,
+  sideControls,
+  assetsPath: "assets",
+});
 
 // Populate track selector
 score.tracks.forEach((track, index) => {
@@ -110,33 +30,33 @@ score.tracks.forEach((track, index) => {
 // Track selector event listener
 trackSelector.addEventListener("change", () => {
   const newTrackIndex = parseInt(trackSelector.value, 10);
-  init(newTrackIndex);
+  tabber.loadTrack(newTrackIndex);
 });
 
 // Player controls
 function onPlay(): void {
-  tabWindow.startPlayer();
+  tabber.play();
   playButton.style.display = "none";
   pauseButton.style.display = "inline";
 }
 
 function onPause(): void {
-  tabWindow.stopPlayer();
+  tabber.pause();
   playButton.style.display = "inline";
   pauseButton.style.display = "none";
 }
 
 function onStop(): void {
-  tabWindow.stopPlayer();
+  tabber.stop();
   playButton.style.display = "inline";
   pauseButton.style.display = "none";
 }
 
 function onLoopClick(): void {
-  tabWindow.setLooped();
+  tabber.setLooped();
   loopButton.setAttribute(
     "class",
-    tabWindow.getIsLooped() ? "loop-icon-active" : "loop-icon"
+    tabber.getIsLooped() ? "loop-icon-active" : "loop-icon"
   );
 }
 
@@ -146,4 +66,4 @@ stopButton.addEventListener("click", onStop);
 loopButton.addEventListener("click", onLoopClick);
 
 // Initial load
-init(0);
+tabber.loadTrack(0);

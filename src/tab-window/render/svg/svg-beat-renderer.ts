@@ -437,6 +437,6 @@ export class SVGBeatRenderer {
   }
 
   public get noteRenderers(): SVGNoteRenderer[] {
-    return this._renderedNoteElements.values().toArray();
+    return Array.from(this.noteRenderers.values());
   }
 }
