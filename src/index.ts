@@ -1,3 +1,6 @@
+export { Tabber } from "./tabber";
+export { EditPanel } from "./tab-window/editor/panels/edit-panel";
+export { InputModal } from "./tab-window/editor/panels/input-modal";
 // Tab window
 export { TabWindow } from "./tab-window/tab-window";
 export { TabWindowDim } from "./tab-window/tab-window-dim";

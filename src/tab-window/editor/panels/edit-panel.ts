@@ -1,10 +1,15 @@
-import {
-  GuitarEffectOptions,
-  GuitarEffectType,
-  NoteDuration,
-  TabWindow,
-} from "../../src/index";
-import { BendSelectorManager } from "../../src/tab-window/render/bend-selectors/bend-selector-manager";
+// import {
+//   // GuitarEffectOptions,
+//   GuitarEffectType,
+//   NoteDuration,
+//   TabWindow,
+// } from "../../../index";
+// import { GuitarEffectOptions } from "../../../index";
+import { GuitarEffectOptions } from "../../../models/guitar-effect/guitar-effect-options";
+import { GuitarEffectType } from "../../../models/guitar-effect/guitar-effect-type";
+import { NoteDuration } from "../../../models/note-duration";
+import { TabWindow } from "../../../tab-window/tab-window";
+import { BendSelectorManager } from "../../render/bend-selectors/bend-selector-manager";
 import { InputModal } from "./input-modal";
 
 const NAME_TO_DURATION: { [key: string]: NoteDuration } = {

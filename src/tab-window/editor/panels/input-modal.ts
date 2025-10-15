@@ -1,28 +1,31 @@
-export class InputModal {
-  private modal: HTMLElement;
-  private titleElement: HTMLElement;
-  private inputsContainer: HTMLElement;
-  private confirmButton: HTMLElement;
-  private cancelButton: HTMLElement;
+import { getEl } from "../misc/utils";
 
-  private confirmCallback: ((values: { [id: string]: string }) => void) | null = null;
+export class InputModal {
+  private modal: HTMLDivElement;
+  private titleElement: HTMLHeadingElement;
+  private inputsContainer: HTMLDivElement;
+  private confirmButton: HTMLButtonElement;
+  private cancelButton: HTMLButtonElement;
+
+  private confirmCallback: ((values: { [id: string]: string }) => void) | null =
+    null;
   private keydownHandler: (event: KeyboardEvent) => void;
 
   constructor() {
-    this.modal = document.getElementById("input-modal")!;
-    this.titleElement = document.getElementById("input-modal-title")!;
-    this.inputsContainer = document.getElementById("input-modal-inputs")!;
-    this.confirmButton = document.getElementById("input-modal-confirm")!;
-    this.cancelButton = document.getElementById("input-modal-cancel")!;
+    this.modal = getEl<HTMLDivElement>("input-modal");
+    this.titleElement = getEl<HTMLHeadingElement>("input-modal-title");
+    this.inputsContainer = getEl<HTMLDivElement>("input-modal-inputs");
+    this.confirmButton = getEl<HTMLButtonElement>("input-modal-confirm");
+    this.cancelButton = getEl<HTMLButtonElement>("input-modal-cancel");
 
     this.confirmButton.addEventListener("click", () => this.confirm());
     this.cancelButton.addEventListener("click", () => this.hide());
     this.keydownHandler = (event: KeyboardEvent) => {
       event.stopPropagation();
-      if (event.key === 'Enter') {
+      if (event.key === "Enter") {
         this.confirm();
       }
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         this.hide();
       }
     };
@@ -51,8 +54,8 @@ export class InputModal {
 
     this.confirmCallback = confirmCallback;
     this.modal.style.display = "flex";
-    this.modal.addEventListener('keydown', this.keydownHandler);
-    const firstInput = this.inputsContainer.querySelector('input');
+    this.modal.addEventListener("keydown", this.keydownHandler);
+    const firstInput = this.inputsContainer.querySelector("input");
     if (firstInput) {
       firstInput.focus();
     }
@@ -61,7 +64,7 @@ export class InputModal {
   hide() {
     this.modal.style.display = "none";
     this.confirmCallback = null;
-    this.modal.removeEventListener('keydown', this.keydownHandler);
+    this.modal.removeEventListener("keydown", this.keydownHandler);
   }
 
   private confirm() {

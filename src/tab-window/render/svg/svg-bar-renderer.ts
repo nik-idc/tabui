@@ -844,6 +844,6 @@ export class SVGBarRenderer {
   }
 
   public get beatRenderers(): SVGBeatRenderer[] {
-    return this._renderedBeatElements.values().toArray();
+    return Array.from(this.beatRenderers.values());
   }
 }
