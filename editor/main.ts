@@ -12,11 +12,13 @@ const svgRoot = getEl<SVGSVGElement>("svgRoot");
 const bendGraphModal = getEl<HTMLDivElement>("bend-graph-modal");
 const sideControls = getEl<HTMLDivElement>("side-controls");
 
+const base = import.meta.env.BASE_URL;
 const tabui = new TabUI(score, {
   svgRoot,
   bendGraphModal,
   sideControls,
-  assetsPath: "assets",
+  assetsPath: base,
+  // assetsPath: "assets",
 });
 
 // Populate track selector
