@@ -2,6 +2,33 @@ body {
   font-family: "Roboto", sans-serif;
 }
 
+.header {
+  max-width: 900px; /* keeps lines readable on wide screens */
+  margin: 40px auto; /* centers the header block */
+  padding: 10px 20px; /* comfortable spacing inside */
+  background-color: #f8f9fa; /* subtle light background */
+  border-radius: 12px; /* smooth corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* soft shadow for “card” effect */
+  text-align: justify; /* full-width justified text */
+  line-height: 1.6; /* nice spacing for paragraphs */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* clean modern font */
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  margin: 5px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  text-align: center; /* heading still centered */
+  color: #222;
+}
+
+.header p {
+  font-size: 1.1rem;
+  color: #333;
+  text-align: justify; /* ensures the paragraph is fully justified */
+}
+
 .tabSVG {
   background-color: var(--tab-div-color);
   margin: auto;
