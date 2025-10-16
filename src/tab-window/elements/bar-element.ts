@@ -1,11 +1,9 @@
-import { Bar, BarRepeatStatus } from "./../../models/bar";
+import { Bar, BarRepeatStatus } from "./../../models/index";
 import { Rect } from "../shapes/rect";
 import { BeatElement } from "./beat-element";
-import { TabWindow } from "../tab-window";
 import { Point } from "../shapes/point";
-import { Beat } from "./../../models/beat";
+import { Beat } from "./../../models/index";
 import { TabWindowDim } from "../tab-window-dim";
-import { NoteDuration } from "../../models/note-duration";
 import { randomInt } from "../../misc/random-int";
 import { BeamSegmentElement } from "./beam-segment-element";
 import { TupletElement } from "./tuplet-element";

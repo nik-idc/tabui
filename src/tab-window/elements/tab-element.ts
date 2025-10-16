@@ -1,8 +1,8 @@
-import { Bar } from "../../models/bar";
-import { Beat } from "../../models/beat";
-import { GuitarNote } from "../../models/guitar-note";
-import { Score } from "../../models/score";
-import { Tab } from "../../models/tab";
+import { Bar } from "../../models/index";
+import { Beat } from "../../models/index";
+import { GuitarNote } from "../../models/index";
+import { Score } from "../../models/index";
+import { Tab } from "../../models/index";
 import { Point } from "../shapes/point";
 import { Rect } from "../shapes/rect";
 import { TabWindowDim } from "../tab-window-dim";

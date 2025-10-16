@@ -8,7 +8,7 @@ import {
   Guitar,
   Score,
   GuitarNote,
-} from "../src/index";
+} from "@/index";
 
 function getBeats(
   count: number,

@@ -2,19 +2,18 @@ import { defineConfig } from "vite";
 import path from "path";
 
 export default defineConfig({
-  root: "editor",
-  publicDir: false,
+  root: path.resolve(__dirname, "editor"),
+  base: "/tabui/",
   build: {
-    sourcemap: true,
-    outDir: "public", // 🔁 formerly dist, now public
+    outDir: path.resolve(__dirname, "editor/dist"),
     emptyOutDir: true,
-    rollupOptions: {
-      input: path.resolve(__dirname, "editor/index.html")
-    }
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src")
-    }
-  }
+      "@": path.resolve(__dirname, "src"),
+    },
+  },
+  server: {
+    open: true,
+  },
 });

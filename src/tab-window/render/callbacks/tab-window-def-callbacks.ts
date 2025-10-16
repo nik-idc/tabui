@@ -1,5 +1,5 @@
-import { GuitarEffectOptions } from "../../../models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../../models/guitar-effect/guitar-effect-type";
+import { GuitarEffectOptions } from "../../../models/index";
+import { GuitarEffectType } from "../../../models/index";
 import { SelectedMoveDirection } from "../../elements/selected-element";
 import { Point } from "../../shapes/point";
 import { TabWindow } from "../../tab-window";

@@ -3,9 +3,8 @@ import {
   createSVGImage,
   createSVGRect,
 } from "../../../misc/svg-creators";
-import { DURATION_TO_NAME } from "../../../models/note-duration";
+import { DURATION_TO_NAME } from "../../../models/index";
 import { BeatElement } from "../../elements/beat-element";
-import { EffectLabelElement } from "../../elements/effects/effect-label-element";
 import { Point } from "../../shapes/point";
 import { TabWindow } from "../../tab-window";
 import { SVGEffectLabelRenderer } from "./svg-effect-label-renderer";

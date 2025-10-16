@@ -1,13 +1,6 @@
-// import {
-//   // GuitarEffectOptions,
-//   GuitarEffectType,
-//   NoteDuration,
-//   TabWindow,
-// } from "../../../index";
-// import { GuitarEffectOptions } from "../../../index";
-import { GuitarEffectOptions } from "../../../models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../../models/guitar-effect/guitar-effect-type";
-import { NoteDuration } from "../../../models/note-duration";
+import { GuitarEffectOptions } from "../../../models/index";
+import { GuitarEffectType } from "../../../models/index";
+import { NoteDuration } from "../../../models/index";
 import { TabWindow } from "../../../tab-window/tab-window";
 import { BendSelectorManager } from "../../render/bend-selectors/bend-selector-manager";
 import { InputModal } from "./input-modal";

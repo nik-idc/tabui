@@ -1,6 +1,5 @@
-import { GuitarEffectOptions } from "../../../models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../../models/guitar-effect/guitar-effect-type";
-import { TabWindow } from "../../tab-window";
+import { GuitarEffectOptions } from "../../../models/index";
+import { GuitarEffectType } from "../../../models/index";
 import { BendReleaseSelectorRenderer } from "./bend-release-selector-renderer";
 import { BendSelectorRenderer } from "./bend-selector-renderer";
 import { PrebendReleaseSelectorRenderer } from "./prebend-release-selector-renderer";

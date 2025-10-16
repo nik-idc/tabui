@@ -1,14 +1,11 @@
-import { Bar } from "../../models/bar";
+import { Bar } from "../../models/index";
+import { GuitarEffectType } from "../../models/index";
+import { GuitarEffectOptions } from "../../models/index";
+import { Tab } from "../../models/index";
 import { Point } from "../shapes/point";
 import { Rect } from "../shapes/rect";
 import { TabWindowDim } from "../tab-window-dim";
 import { BarElement } from "./bar-element";
-import { SelectionElement } from "./selection-element";
-import { tabEvent, TabEventArgs, TabEventType } from "../../events/tab-event";
-import { Tab } from "../../models/tab";
-import { GuitarEffectType } from "../../models/guitar-effect/guitar-effect-type";
-import { GuitarEffectOptions } from "../../models/guitar-effect/guitar-effect-options";
-import { EFFECT_TYPE_TO_LABEL } from "./effects/guitar-effect-element-lists";
 import { randomInt } from "../../misc/random-int";
 
 /**

@@ -1,4 +1,4 @@
-import { GuitarEffectType } from "../../../models/guitar-effect/guitar-effect-type";
+import { GuitarEffectType } from "../../../models/index";
 
 /**
  * If the value is true, then the effect requires labels

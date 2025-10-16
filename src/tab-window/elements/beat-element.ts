@@ -1,12 +1,9 @@
-import { Beat } from "../../models/beat";
+import { Beat } from "../../models/index";
 import { Rect } from "../shapes/rect";
-import { NoteElement } from "./note-element";
 import { Point } from "../shapes/point";
 import { TabWindowDim } from "../tab-window-dim";
-import { NoteDuration } from "../../models/note-duration";
 import { EffectLabelElement } from "./effects/effect-label-element";
 import { EFFECT_TYPE_TO_LABEL } from "./effects/guitar-effect-element-lists";
-import { tabEvent, TabEventType } from "../../events/tab-event";
 import { BeatNotesElement } from "./beat-notes-element";
 import { randomInt } from "../../misc/random-int";
 

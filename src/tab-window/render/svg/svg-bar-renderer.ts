@@ -5,16 +5,11 @@ import {
   createSVGRect,
   createSVGText,
 } from "../../../misc/svg-creators";
-import { BarRepeatStatus } from "../../../models/bar";
-import { DURATION_TO_NAME } from "../../../models/note-duration";
+import { BarRepeatStatus } from "../../../models/index";
 import { BarElement } from "../../elements/bar-element";
-import { BeatElement } from "../../elements/beat-element";
-import { EffectLabelElement } from "../../elements/effects/effect-label-element";
-import { TupletElement } from "../../elements/tuplet-element";
 import { Point } from "../../shapes/point";
 import { TabWindow } from "../../tab-window";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
-import { SVGEffectLabelRenderer } from "./svg-effect-label-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGTupletRenderer } from "./tuplet/svg-tuplet-renderer";
 import { SVGTupletSegmentRenderer } from "./tuplet/svg-tuplet-segment-renderer";

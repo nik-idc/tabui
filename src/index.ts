@@ -1,6 +1,10 @@
-export { Tabber } from "./tabber";
-export { EditPanel } from "./tab-window/editor/panels/edit-panel";
-export { InputModal } from "./tab-window/editor/panels/input-modal";
+// TabUI
+export { TabUI } from "./tabui";
+export { EditPanel } from "./tab-window/render/panels/edit-panel";
+export { InputModal } from "./tab-window/render/panels/input-modal";
+//  Misc
+export { getEl } from "./tab-window/render/misc/utils";
+
 // Tab window
 export { TabWindow } from "./tab-window/tab-window";
 export { TabWindowDim } from "./tab-window/tab-window-dim";
@@ -39,14 +43,4 @@ export { Point } from "./tab-window/shapes/point";
 export { Rect } from "./tab-window/shapes/rect";
 
 // Models
-export { Score } from "./models/score";
-export { Tab } from "./models/tab";
-export { Bar } from "./models/bar";
-export { Beat } from "./models/beat";
-export { Note, NoteValue } from "./models/note";
-export { NoteDuration, DURATION_TO_NAME } from "./models/note-duration";
-export { Guitar } from "./models/guitar";
-export { GuitarNote } from "./models/guitar-note";
-export { GuitarEffect } from "./models/guitar-effect/guitar-effect";
-export { GuitarEffectType } from "./models/guitar-effect/guitar-effect-type";
-export { GuitarEffectOptions } from "./models/guitar-effect/guitar-effect-options";
+export * from "./models/index";

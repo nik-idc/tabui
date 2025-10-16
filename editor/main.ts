@@ -1,5 +1,5 @@
-import { Tabber } from "../src/tabber";
-import { getEl } from "../src/tab-window/editor/misc/utils";
+import { TabUI } from "@/index";
+import { getEl } from "@/index";
 import { score } from "./multi-track-data";
 
 // Get DOM references
@@ -12,7 +12,7 @@ const svgRoot = getEl<SVGSVGElement>("svgRoot");
 const bendGraphModal = getEl<HTMLDivElement>("bend-graph-modal");
 const sideControls = getEl<HTMLDivElement>("side-controls");
 
-const tabber = new Tabber(score, {
+const tabui = new TabUI(score, {
   svgRoot,
   bendGraphModal,
   sideControls,
@@ -30,33 +30,33 @@ score.tracks.forEach((track, index) => {
 // Track selector event listener
 trackSelector.addEventListener("change", () => {
   const newTrackIndex = parseInt(trackSelector.value, 10);
-  tabber.loadTrack(newTrackIndex);
+  tabui.loadTrack(newTrackIndex);
 });
 
 // Player controls
 function onPlay(): void {
-  tabber.play();
+  tabui.play();
   playButton.style.display = "none";
   pauseButton.style.display = "inline";
 }
 
 function onPause(): void {
-  tabber.pause();
+  tabui.pause();
   playButton.style.display = "inline";
   pauseButton.style.display = "none";
 }
 
 function onStop(): void {
-  tabber.stop();
+  tabui.stop();
   playButton.style.display = "inline";
   pauseButton.style.display = "none";
 }
 
 function onLoopClick(): void {
-  tabber.setLooped();
+  tabui.setLooped();
   loopButton.setAttribute(
     "class",
-    tabber.getIsLooped() ? "loop-icon-active" : "loop-icon"
+    tabui.getIsLooped() ? "loop-icon-active" : "loop-icon"
   );
 }
 
@@ -66,4 +66,4 @@ stopButton.addEventListener("click", onStop);
 loopButton.addEventListener("click", onLoopClick);
 
 // Initial load
-tabber.loadTrack(0);
+tabui.loadTrack(0);
