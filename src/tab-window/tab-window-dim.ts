@@ -1,4 +1,4 @@
-import { NoteDuration } from "../models/note-duration";
+import { NoteDuration } from "../models/index";
 
 /**
  * Class that contains all the needed dim info of tab lines

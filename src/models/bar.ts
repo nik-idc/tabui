@@ -1,4 +1,5 @@
-import { Beat, TupletSettings } from "./beat";
+import { Beat } from "./beat";
+import type { TupletSettings } from "./beat";
 import { Guitar } from "./guitar";
 import { NoteDuration } from "./note-duration";
 import { Tab } from "./tab";

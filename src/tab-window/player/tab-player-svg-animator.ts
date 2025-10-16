@@ -1,5 +1,4 @@
 import { tabEvent, TabEventArgs, TabEventType } from "../../events/tab-event";
-import { Tab } from "../../models/tab";
 import { TabWindow } from "../tab-window";
 
 import * as Tone from "tone";

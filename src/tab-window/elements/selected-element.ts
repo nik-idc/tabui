@@ -1,14 +1,7 @@
-import { NoteElement } from "./note-element";
-import { BeatElement } from "./beat-element";
-import { BarElement } from "./bar-element";
-import { TabWindow } from "../tab-window";
-import { Bar } from "../../models/bar";
-import { Point } from "../shapes/point";
-import { Beat } from "../../models/beat";
-import { Note } from "../../models/note";
-import { GuitarNote } from "../../models/guitar-note";
-import { Tab } from "../../models/tab";
-import { TabLineElement } from "./tab-line-element";
+import { GuitarNote } from "../../models/index";
+import { Beat } from "../../models/index";
+import { Bar } from "../../models/index";
+import { Tab } from "../../models/index";
 
 /**
  * Tests if a specified element is a 'SelectedElement' instance

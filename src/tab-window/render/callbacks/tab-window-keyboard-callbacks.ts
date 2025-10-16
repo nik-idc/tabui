@@ -1,5 +1,5 @@
-import { GuitarEffectOptions } from "../../../models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../../models/guitar-effect/guitar-effect-type";
+import { GuitarEffectOptions } from "../../../models/index";
+import { GuitarEffectType } from "../../../models/index";
 
 export abstract class TabWindowKeyboardCallbacks {
   public abstract ctrlCEvent(event: KeyboardEvent): void;

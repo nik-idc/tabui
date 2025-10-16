@@ -1,9 +1,6 @@
 import { getPitchRatioNums } from "../../../misc/ratio-nums";
-import { GuitarEffect } from "../../../models/guitar-effect/guitar-effect";
-import { EFFECT_TYPE_TO_SCOPE } from "../../../models/guitar-effect/guitar-effect-lists";
-import { GuitarEffectScope } from "../../../models/guitar-effect/guitar-effect-scope";
-import { GuitarEffectType } from "../../../models/guitar-effect/guitar-effect-type";
-import { Point } from "../../shapes/point";
+import { GuitarEffect } from "../../../models/index";
+import { GuitarEffectType } from "../../../models/index";
 import { Rect } from "../../shapes/rect";
 import { TabWindowDim } from "../../tab-window-dim";
 import { SVGUtils } from "./effects-html";

@@ -1,4 +1,4 @@
-import { Beat } from "../../models/beat";
+import { Beat } from "../../models/index";
 import { Rect } from "../shapes/rect";
 import { TabWindowDim } from "../tab-window-dim";
 import { NoteElement } from "./note-element";

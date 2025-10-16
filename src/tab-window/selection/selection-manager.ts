@@ -1,7 +1,7 @@
-import { Beat } from "../../models/beat";
-import { GuitarNote } from "../../models/guitar-note";
-import { NoteDuration } from "../../models/note-duration";
-import { Tab } from "../../models/tab";
+import { Beat } from "../../models/index";
+import { GuitarNote } from "../../models/index";
+import { NoteDuration } from "../../models/index";
+import { Tab } from "../../models/index";
 import { NoteElement } from "../elements/note-element";
 import {
   isSelectedElement,
@@ -9,7 +9,6 @@ import {
   MoveRightResult,
   SelectedElement,
 } from "../elements/selected-element";
-import { SelectionElement } from "../elements/selection-element";
 
 export class SelectionManager {
   readonly tab: Tab;

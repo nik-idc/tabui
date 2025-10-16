@@ -1,20 +1,8 @@
-import {
-  createSVGG,
-  createSVGImage,
-  createSVGLine,
-  createSVGRect,
-  createSVGText,
-} from "../../../misc/svg-creators";
-import { DURATION_TO_NAME } from "../../../models/note-duration";
-import { BarElement } from "../../elements/bar-element";
-import { BeatElement } from "../../elements/beat-element";
-import { EffectLabelElement } from "../../elements/effects/effect-label-element";
 import { TabLineElement } from "../../elements/tab-line-element";
 import { Point } from "../../shapes/point";
 import { TabWindow } from "../../tab-window";
 import { SVGBarRenderer } from "./svg-bar-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
-import { SVGEffectLabelRenderer } from "./svg-effect-label-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 
 /**
@@ -52,7 +40,11 @@ export class SVGTabLineRenderer {
   /**
    * Render tab line element
    */
-  public renderTabLine(): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
+  public renderTabLine(): (
+    | SVGBarRenderer
+    | SVGBeatRenderer
+    | SVGNoteRenderer
+  )[] {
     const tleOffset = new Point(0, this._tabLineElement.rect.y);
 
     // Check if there are any bar elements to remove
@@ -66,7 +58,11 @@ export class SVGTabLineRenderer {
       }
     }
 
-    const activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] = [];
+    const activeRenderers: (
+      | SVGBarRenderer
+      | SVGBeatRenderer
+      | SVGNoteRenderer
+    )[] = [];
 
     // Add & render new bar elements AND re-render existing bar elements
     for (const barElement of this._tabLineElement.barElements) {

@@ -1,4 +1,4 @@
-import { DURATION_TO_NAME } from "../../models/note-duration";
+import { DURATION_TO_NAME } from "../../models/index";
 import { BarElement } from "../elements/bar-element";
 import { BeatElement } from "../elements/beat-element";
 import { BeatNotesElement } from "../elements/beat-notes-element";

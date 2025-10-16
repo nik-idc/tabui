@@ -1,10 +1,10 @@
-import { Bar } from "../../models/bar";
-import { Beat } from "../../models/beat";
-import { GuitarEffectOptions } from "../../models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../models/guitar-effect/guitar-effect-type";
-import { NoteDuration } from "../../models/note-duration";
-import { Score } from "../../models/score";
-import { Tab } from "../../models/tab";
+import { Bar } from "../../models/index";
+import { Beat } from "../../models/index";
+import { GuitarEffectOptions } from "../../models/index";
+import { GuitarEffectType } from "../../models/index";
+import { NoteDuration } from "../../models/index";
+import { Score } from "../../models/index";
+import { Tab } from "../../models/index";
 import { BarElement } from "../elements/bar-element";
 import { BeatElement } from "../elements/beat-element";
 import { NoteElement } from "../elements/note-element";

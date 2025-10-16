@@ -1,5 +1,5 @@
 import { randomInt } from "../../misc/random-int";
-import { TupletGroup } from "../../models/tuplet-group";
+import { TupletGroup } from "../../models/index";
 import { Point } from "../shapes/point";
 import { Rect } from "../shapes/rect";
 import { TabWindowDim } from "../tab-window-dim";

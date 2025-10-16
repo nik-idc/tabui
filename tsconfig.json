@@ -9,12 +9,19 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "declaration": true,
-    "declarationDir": "dist"
+    "declarationDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    }
   },
   "ts-node": {
     "esm": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "editor/**/*"
   ]
 }

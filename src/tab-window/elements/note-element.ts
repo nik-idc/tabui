@@ -1,6 +1,6 @@
 import { Rect } from "../shapes/rect";
 import { Point } from "../shapes/point";
-import { GuitarNote } from "./../../models/guitar-note";
+import { GuitarNote } from "./../../models/index";
 import { TabWindowDim } from "../tab-window-dim";
 import { GuitarEffectElement } from "./effects/guitar-effect-element";
 import { randomInt } from "../../misc/random-int";

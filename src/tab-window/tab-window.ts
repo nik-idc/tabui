@@ -1,25 +1,21 @@
-import { Tab } from "./../models/tab";
-import { TabWindowDim } from "./tab-window-dim";
+import { GuitarEffectOptions } from "../models/index";
+import { GuitarEffectType } from "../models/index";
+import { Beat } from "../models/index";
+import { Tab } from "./../models/index";
+import { Score } from "../models/index";
 import { NoteElement } from "./elements/note-element";
-import { BarElement } from "./elements/bar-element";
-import { Bar } from "./../models/bar";
-import { NoteDuration } from "./../models/note-duration";
 import { BeatElement } from "./elements/beat-element";
 import {
-  MoveRightResult,
   SelectedElement,
   SelectedMoveDirection,
 } from "./elements/selected-element";
-import { GuitarEffectOptions } from "../models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../models/guitar-effect/guitar-effect-type";
-import { SelectionManager } from "./selection/selection-manager";
-import { SelectedElementsAndIds, TabElement } from "./elements/tab-element";
+import { TabElement } from "./elements/tab-element";
+import { TabLineElement } from "./elements/tab-line-element";
+import { TabWindowDim } from "./tab-window-dim";
+import { NoteDuration } from "./../models/index";
 import { TabPlayer } from "./player/tab-player";
 import { TabEditor } from "./editor/tab-editor";
-import { Beat } from "../models/beat";
-import { TabLineElement } from "./elements/tab-line-element";
 import { Point } from "./shapes/point";
-import { Score } from "../models/score";
 
 /**
  * Class that handles creating a tab window.

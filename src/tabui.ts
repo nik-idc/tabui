@@ -1,4 +1,3 @@
-
 import {
   TabWindow,
   TabWindowDim,
@@ -12,16 +11,16 @@ import {
   Score,
 } from ".";
 import { BendSelectorManager } from "./tab-window/render/bend-selectors/bend-selector-manager";
-import { EditPanel } from "./tab-window/editor/panels/edit-panel";
+import { EditPanel } from "./tab-window/render/panels/edit-panel";
 
-export interface TabberOptions {
+export interface TabUIOptions {
   svgRoot: SVGSVGElement;
   bendGraphModal: HTMLDivElement;
   sideControls: HTMLDivElement;
   assetsPath: string;
 }
 
-export class Tabber {
+export class TabUI {
   private score: Score;
   private tabWindow!: TabWindow;
   private svgRenderer!: TabWindowSVGRenderer;
@@ -29,7 +28,7 @@ export class Tabber {
   private bendSelectorManager!: BendSelectorManager;
   private editPanel!: EditPanel;
 
-  constructor(score: Score, private options: TabberOptions) {
+  constructor(score: Score, private options: TabUIOptions) {
     this.score = score;
   }
 

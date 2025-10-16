@@ -1,8 +1,8 @@
 import { tabEvent, TabEventType } from "../../events/tab-event";
-import { Bar, BarRepeatStatus } from "../../models/bar";
-import { Beat } from "../../models/beat";
-import { NoteDuration } from "../../models/note-duration";
-import { Tab } from "../../models/tab";
+import { Bar, BarRepeatStatus } from "../../models/index";
+import { Beat } from "../../models/index";
+import { NoteDuration } from "../../models/index";
+import { Tab } from "../../models/index";
 
 import * as Tone from "tone";
 
@@ -14,24 +14,6 @@ export const TonejsDurationMap = {
   [NoteDuration.Sixteenth]: "16n",
   [NoteDuration.ThirtySecond]: "32n",
   [NoteDuration.SixtyFourth]: "32n",
-  // [NoteDuration.HalfDotted]: "2n.",
-  // [NoteDuration.QuarterDotted]: "4n.",
-  // [NoteDuration.EighthDotted]: "8n.",
-  // [NoteDuration.SixteenthDotted]: "16n.",
-  // [NoteDuration.ThirtySecondDotted]: "32n.",
-  // [NoteDuration.SixtyFourthDotted]: "32n.",
-  // [NoteDuration.HalfDoubleDotted]: "2n..",
-  // [NoteDuration.QuarterDoubleDotted]: "4n..",
-  // [NoteDuration.EighthDoubleDotted]: "8n..",
-  // [NoteDuration.SixteenthDoubleDotted]: "16n..",
-  // [NoteDuration.ThirtySecondDoubleDotted]: "32n..",
-  // [NoteDuration.SixtyFourthDoubleDotted]: "32n..",
-  // [NoteDuration.HalfTriplet]: "2t",
-  // [NoteDuration.QuarterTriplet]: "4t",
-  // [NoteDuration.EighthTriplet]: "8t",
-  // [NoteDuration.SixteenthTriplet]: "16t",
-  // [NoteDuration.ThirtySecondTriplet]: "32t",
-  // [NoteDuration.SixtyFourthTriplet]: "32t",
 };
 
 /**

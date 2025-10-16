@@ -1,6 +1,6 @@
 import { KeyChecker } from "../../../../misc/key-checker";
-import { GuitarEffectOptions } from "../../../../models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../../../models/guitar-effect/guitar-effect-type";
+import { GuitarEffectOptions } from "../../../../models/index";
+import { GuitarEffectType } from "../../../../models/index";
 import { SelectedMoveDirection } from "../../../elements/selected-element";
 import { BendSelectorManager } from "../../bend-selectors/bend-selector-manager";
 import { TabWindowSVGRenderer } from "../../tab-window-svg-renderer";

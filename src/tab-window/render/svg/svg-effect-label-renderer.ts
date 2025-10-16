@@ -1,14 +1,7 @@
-import {
-  createSVGG,
-  createSVGImage,
-  createSVGRect,
-} from "../../../misc/svg-creators";
-import { DURATION_TO_NAME } from "../../../models/note-duration";
-import { BeatElement } from "../../elements/beat-element";
+import { createSVGG } from "../../../misc/svg-creators";
 import { EffectLabelElement } from "../../elements/effects/effect-label-element";
 import { Point } from "../../shapes/point";
 import { TabWindow } from "../../tab-window";
-import { SVGNoteRenderer } from "./svg-note-renderer";
 
 /**
  * Class for rendering an effect label using SVG
