@@ -68,3 +68,4 @@ package-lock.json
 
 test-render/result/*
 test-data
+/editor/dist/*

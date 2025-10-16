@@ -12,179 +12,158 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="top-controls">
-      <div class="track-selector-container">
-        <label for="track-selector">Track:</label>
-        <select id="track-selector"></select>
-      </div>
-      <div class="play-controls" id="play-controls">
-        <img id="playButton" src="./assets/img/ui/play.svg" alt="Play" />
-        <img
-          id="pauseButton"
-          src="./assets/img/ui/pause.svg"
-          alt="Pause"
-          style="display: none"
-        />
-        <img id="stopButton" src="./assets/img/ui/stop.svg" alt="Stop" />
-        <img
-          id="loopButton"
-          src="./assets/img/ui/loop.svg"
-          alt="Loop"
-          class="loop-icon"
-        />
-      </div>
+    <div class="header">
+      <h1>TabUI Demo</h1>
+      <p>
+        This is a demo of a guitar tab editor library. This is still an early,
+        unfinished version. While the editor is currently embedded directly in
+        this page, it can be fully integrated into any JavaScript or TypeScript
+        project once a dynamic template builder is added.
+      </p>
     </div>
-
-    <div class="main-container" id="main-container">
-      <div class="side-controls" id="side-controls">
-        <div class="control-group" id="control-group">
-          <img
-            src="./assets/img/notes/1.svg"
-            data-duration="1"
-            alt="Whole note"
-          />
-          <img
-            src="./assets/img/notes/2.svg"
-            data-duration="2"
-            alt="Half note"
-          />
-          <img
-            src="./assets/img/notes/4.svg"
-            data-duration="4"
-            alt="Quarter note"
-          />
-          <img
-            src="./assets/img/notes/8.svg"
-            data-duration="8"
-            alt="Eighth note"
-          />
-          <img
-            src="./assets/img/notes/16.svg"
-            data-duration="16"
-            alt="Sixteenth note"
-          />
-          <img
-            src="./assets/img/notes/32.svg"
-            data-duration="32"
-            alt="Thirty-second note"
-          />
-          <img src="./assets/img/ui/dot1.svg" data-dot="1" alt="Dot" />
-          <img src="./assets/img/ui/dot2.svg" data-dot="2" alt="Double dot" />
-          <img
-            src="./assets/img/ui/tuplet-3.svg"
-            data-tuplet="3"
-            alt="Triplet"
-          />
-          <img
-            src="./assets/img/ui/tuplet-2.svg"
-            data-tuplet="2"
-            alt="Tuplet"
-          />
-          <img
-            src="./assets/img/ui/tuplet.svg"
-            data-tuplet="0"
-            alt="Custom tuplet"
-          />
+    <div id="tabui-editor">
+      <div class="top-controls">
+        <div class="track-selector-container">
+          <label for="track-selector">Track:</label>
+          <select id="track-selector"></select>
         </div>
-        <hr class="separator" />
-        <div class="control-group">
+        <div class="play-controls" id="play-controls">
+          <img id="playButton" src="/img/ui/play.svg" alt="Play" />
           <img
-            src="./assets/img/effects/vibrato.svg"
-            data-effect="vibrato"
-            alt="Vibrato"
+            id="pauseButton"
+            src="/img/ui/pause.svg"
+            alt="Pause"
+            style="display: none"
           />
+          <img id="stopButton" src="/img/ui/stop.svg" alt="Stop" />
           <img
-            src="./assets/img/effects/pm.svg"
-            data-effect="palm-mute"
-            alt="Palm Mute"
-          />
-          <img
-            src="./assets/img/effects/nh.svg"
-            data-effect="natural-harmonic"
-            alt="Natural Harmonic"
-          />
-          <img
-            src="./assets/img/effects/ph.svg"
-            data-effect="pinch-harmonic"
-            alt="Pinch Harmonic"
-          />
-          <img
-            src="./assets/img/effects/hammer-on.svg"
-            data-effect="hammer-on"
-            alt="Hammer-on"
-          />
-          <img
-            src="./assets/img/effects/pull-off.svg"
-            data-effect="pull-off"
-            alt="Pull-off"
-          />
-          <img
-            src="./assets/img/effects/slide-up.svg"
-            data-effect="slide"
-            alt="Slide"
-          />
-          <img
-            src="./assets/img/effects/bend.svg"
-            data-effect="bend"
-            alt="Bend"
-          />
-        </div>
-        <hr class="separator" />
-        <div class="control-group">
-          <img id="tempoButton" src="./assets/img/ui/tempo.svg" alt="Tempo" />
-          <img
-            id="measureButton"
-            src="./assets/img/ui/measure.svg"
-            alt="Time Signature"
-          />
-          <img
-            id="repeatStartButton"
-            src="./assets/img/ui/repeat-start.svg"
-            alt="Repeat start"
-          />
-          <img
-            id="repeatEndButton"
-            src="./assets/img/ui/repeat-end.svg"
-            alt="Repeat end"
+            id="loopButton"
+            src="/img/ui/loop.svg"
+            alt="Loop"
+            class="loop-icon"
           />
         </div>
       </div>
-      <div id="mainEditorContainer" class="editorContainer">
-        <div id="credentialsContainer"></div>
-        <div id="svgContainer">
-          <svg id="svgRoot" class="tabSVG"></svg>
+
+      <div class="main-container" id="main-container">
+        <div class="side-controls" id="side-controls">
+          <div class="control-group" id="control-group">
+            <img src="/img/notes/1.svg" data-duration="1" alt="Whole note" />
+            <img src="/img/notes/2.svg" data-duration="2" alt="Half note" />
+            <img src="/img/notes/4.svg" data-duration="4" alt="Quarter note" />
+            <img src="/img/notes/8.svg" data-duration="8" alt="Eighth note" />
+            <img
+              src="/img/notes/16.svg"
+              data-duration="16"
+              alt="Sixteenth note"
+            />
+            <img
+              src="/img/notes/32.svg"
+              data-duration="32"
+              alt="Thirty-second note"
+            />
+            <img src="/img/ui/dot1.svg" data-dot="1" alt="Dot" />
+            <img src="/img/ui/dot2.svg" data-dot="2" alt="Double dot" />
+            <img src="/img/ui/tuplet-3.svg" data-tuplet="3" alt="Triplet" />
+            <img src="/img/ui/tuplet-2.svg" data-tuplet="2" alt="Tuplet" />
+            <img src="/img/ui/tuplet.svg" data-tuplet="0" alt="Custom tuplet" />
+          </div>
+          <hr class="separator" />
+          <div class="control-group">
+            <img
+              src="/img/effects/vibrato.svg"
+              data-effect="vibrato"
+              alt="Vibrato"
+            />
+            <img
+              src="/img/effects/pm.svg"
+              data-effect="palm-mute"
+              alt="Palm Mute"
+            />
+            <img
+              src="/img/effects/nh.svg"
+              data-effect="natural-harmonic"
+              alt="Natural Harmonic"
+            />
+            <img
+              src="/img/effects/ph.svg"
+              data-effect="pinch-harmonic"
+              alt="Pinch Harmonic"
+            />
+            <img
+              src="/img/effects/hammer-on.svg"
+              data-effect="hammer-on"
+              alt="Hammer-on"
+            />
+            <img
+              src="/img/effects/pull-off.svg"
+              data-effect="pull-off"
+              alt="Pull-off"
+            />
+            <img
+              src="/img/effects/slide-up.svg"
+              data-effect="slide"
+              alt="Slide"
+            />
+            <img src="/img/effects/bend.svg" data-effect="bend" alt="Bend" />
+          </div>
+          <hr class="separator" />
+          <div class="control-group">
+            <img id="tempoButton" src="/img/ui/tempo.svg" alt="Tempo" />
+            <img
+              id="measureButton"
+              src="/img/ui/measure.svg"
+              alt="Time Signature"
+            />
+            <img
+              id="repeatStartButton"
+              src="/img/ui/repeat-start.svg"
+              alt="Repeat start"
+            />
+            <img
+              id="repeatEndButton"
+              src="/img/ui/repeat-end.svg"
+              alt="Repeat end"
+            />
+          </div>
+        </div>
+        <div id="mainEditorContainer" class="editorContainer">
+          <div id="credentialsContainer"></div>
+          <div id="svgContainer">
+            <svg id="svgRoot" class="tabSVG"></svg>
+          </div>
         </div>
       </div>
-    </div>
 
-    <script src="main.ts" type="module" defer></script>
+      <script src="main.ts" type="module" defer></script>
 
-    <div id="bend-graph-modal" class="modal-overlay" style="display: none">
-      <div class="modal-container">
+      <div id="bend-graph-modal" class="modal-overlay" style="display: none">
+        <div class="modal-container">
+          <div class="modal-content">
+            <!-- <span class="close-button">&times;</span> -->
+            <ul class="bend-type-list">
+              <li data-bend-type="bend">Bend</li>
+              <li data-bend-type="bend-release">Bend-Release</li>
+              <li data-bend-type="prebend">Pre-bend</li>
+              <li data-bend-type="prebend-release">Pre-bend-Release</li>
+            </ul>
+            <svg id="bend-graph-svg" width="400" height="300"></svg>
+          </div>
+          <div class="modal-buttons">
+            <button id="bend-modal-confirm">Confirm</button>
+            <button id="bend-modal-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="input-modal" class="modal-overlay" style="display: none">
         <div class="modal-content">
-          <!-- <span class="close-button">&times;</span> -->
-          <ul class="bend-type-list">
-            <li data-bend-type="bend">Bend</li>
-            <li data-bend-type="bend-release">Bend-Release</li>
-            <li data-bend-type="prebend">Pre-bend</li>
-            <li data-bend-type="prebend-release">Pre-bend-Release</li>
-          </ul>
-          <svg id="bend-graph-svg" width="400" height="300"></svg>
-        </div>
-        <div class="modal-buttons">
-          <button id="bend-modal-confirm">Confirm</button>
-          <button id="bend-modal-cancel">Cancel</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="input-modal" class="modal-overlay" style="display: none">
-      <div class="modal-content">
-        <h3 id="input-modal-title"></h3>
-        <div id="input-modal-inputs"></div>
-        <div class="modal-buttons">
-          <button id="input-modal-confirm">Confirm</button>
-          <button id="input-modal-cancel">Cancel</button>
+          <h3 id="input-modal-title"></h3>
+          <div id="input-modal-inputs"></div>
+          <div class="modal-buttons">
+            <button id="input-modal-confirm">Confirm</button>
+            <button id="input-modal-cancel">Cancel</button>
+          </div>
         </div>
       </div>
     </div>
