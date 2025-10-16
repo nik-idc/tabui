@@ -3,7 +3,7 @@
 Guitar tab editor library.
 
 ## Demo
-[GitHubPages Demo](https://nik-idc.github.io/tabui/)
+[GitHub Pages Demo](https://nik-idc.github.io/tabui/)
 
 ## Features
 
