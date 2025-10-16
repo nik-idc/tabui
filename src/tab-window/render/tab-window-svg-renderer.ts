@@ -89,7 +89,10 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
 
   public showSelectionPreview(noteElement: NoteElement) {
     const selectedElement = this.tabWindow.getSelectedElement();
-    if (selectedElement && selectedElement.note.uuid === noteElement.note.uuid) {
+    if (
+      selectedElement &&
+      selectedElement.note.uuid === noteElement.note.uuid
+    ) {
       return;
     }
 
@@ -111,8 +114,14 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
     const padding = 2;
     const width = `${noteElement.textRect.width + padding * 2}`;
     const height = `${noteElement.textRect.height + padding * 2}`;
-    this._selectionPreviewRect.setAttribute("x", `${noteTextCoords.x - padding}`);
-    this._selectionPreviewRect.setAttribute("y", `${noteTextCoords.y - padding}`);
+    this._selectionPreviewRect.setAttribute(
+      "x",
+      `${noteTextCoords.x - padding}`
+    );
+    this._selectionPreviewRect.setAttribute(
+      "y",
+      `${noteTextCoords.y - padding}`
+    );
     this._selectionPreviewRect.setAttribute("width", width);
     this._selectionPreviewRect.setAttribute("height", height);
     this._selectionPreviewRect.setAttribute("display", "block");
@@ -217,9 +226,18 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
    * Unrender the entire tab window
    */
   public unrender(): void {
-    for (const [uuid, renderer] of this._renderedTabLineElements) {
+    for (const renderer of this._renderedTabLineElements.values()) {
       renderer.unrender();
     }
+    this._renderedTabLineElements.clear();
+    if (this._playerCursor) {
+      this._playerCursor.remove();
+    }
+    if (this._selectionPreviewRect) {
+      this._selectionPreviewRect.remove();
+    }
+
+    this._svgRoot.replaceChildren();
   }
 
   public get lineRenderers(): SVGTabLineRenderer[] {

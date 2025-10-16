@@ -15,18 +15,57 @@ export class TabWindowCallbackBinder {
   private _keyboardBound = false;
   private _globalMouseEventsBound = false;
 
+  private _boundOnWindowMouseUp: (this: TabWindowMouseCallbacks, ev: MouseEvent) => any;
+  private _boundOnKeyDown: (event: KeyboardEvent) => void;
+
   constructor(
     mouseCallbacks: TabWindowMouseCallbacks,
     keyboardCallbacks: TabWindowKeyboardCallbacks
   ) {
     this._mouseCallbacks = mouseCallbacks;
     this._keyboardCallbacks = keyboardCallbacks;
+
+    this._boundOnWindowMouseUp = this._mouseCallbacks.onWindowMouseUp.bind(this._mouseCallbacks);
+    this._boundOnKeyDown = (event: KeyboardEvent) => {
+        const key = event.key.toLowerCase(); // normalize
+        if (key.length !== 1 && key[0] === "f") {
+            return;
+        }
+
+        if (event.ctrlKey && !event.shiftKey) {
+            if (key === "c") {
+            this._keyboardCallbacks.ctrlCEvent(event);
+            } else if (key === "v") {
+            this._keyboardCallbacks.ctrlVEvent(event);
+            } else if (key === "z") {
+            this._keyboardCallbacks.ctrlZEvent(event);
+            } else if (key === "y") {
+            this._keyboardCallbacks.ctrlYEvent(event);
+            }
+        } else if (!event.ctrlKey && event.shiftKey) {
+            if (key === "v") {
+            this._keyboardCallbacks.shiftVEvent(event);
+            } else if (key === "p") {
+            this._keyboardCallbacks.shiftPEvent(event);
+            } else if (key === "b") {
+            this._keyboardCallbacks.shiftBEvent(event);
+            }
+        } else if (!event.ctrlKey && !event.shiftKey) {
+            if (key === "Delete") {
+            this._keyboardCallbacks.deleteEvent(event);
+            } else if (key === " ") {
+            this._keyboardCallbacks.spaceEvent(event);
+            } else {
+            this._keyboardCallbacks.onKeyDown(event);
+            }
+        }
+    };
   }
 
   private bindGlobalMouseEvents(): void {
     window.addEventListener(
       "mouseup",
-      this._mouseCallbacks.onWindowMouseUp.bind(this._mouseCallbacks)
+      this._boundOnWindowMouseUp
     );
 
     this._globalMouseEventsBound = true;
@@ -74,40 +113,7 @@ export class TabWindowCallbackBinder {
     if (this._keyboardBound) {
       return;
     }
-    document.addEventListener("keydown", (event: KeyboardEvent) => {
-      const key = event.key.toLowerCase(); // normalize
-      if (key.length !== 1 && key[0] === "f") {
-        return;
-      }
-
-      if (event.ctrlKey && !event.shiftKey) {
-        if (key === "c") {
-          this._keyboardCallbacks.ctrlCEvent(event);
-        } else if (key === "v") {
-          this._keyboardCallbacks.ctrlVEvent(event);
-        } else if (key === "z") {
-          this._keyboardCallbacks.ctrlZEvent(event);
-        } else if (key === "y") {
-          this._keyboardCallbacks.ctrlYEvent(event);
-        }
-      } else if (!event.ctrlKey && event.shiftKey) {
-        if (key === "v") {
-          this._keyboardCallbacks.shiftVEvent(event);
-        } else if (key === "p") {
-          this._keyboardCallbacks.shiftPEvent(event);
-        } else if (key === "b") {
-          this._keyboardCallbacks.shiftBEvent(event);
-        }
-      } else if (!event.ctrlKey && !event.shiftKey) {
-        if (key === "Delete") {
-          this._keyboardCallbacks.deleteEvent(event);
-        } else if (key === " ") {
-          this._keyboardCallbacks.spaceEvent(event);
-        } else {
-          this._keyboardCallbacks.onKeyDown(event);
-        }
-      }
-    });
+    document.addEventListener("keydown", this._boundOnKeyDown);
     this._keyboardBound = true;
   }
 
@@ -120,5 +126,16 @@ export class TabWindowCallbackBinder {
 
     this.bindMouseEvents(renderers);
     this.bindKeyboardEvents();
+  }
+
+  public dispose(): void {
+    if (this._globalMouseEventsBound) {
+        window.removeEventListener("mouseup", this._boundOnWindowMouseUp);
+        this._globalMouseEventsBound = false;
+    }
+    if (this._keyboardBound) {
+        document.removeEventListener("keydown", this._boundOnKeyDown);
+        this._keyboardBound = false;
+    }
   }
 }

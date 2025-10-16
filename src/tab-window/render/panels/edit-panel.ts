@@ -21,6 +21,7 @@ export class EditPanel {
   private renderAndBind: () => void;
   private bendSelectorManager: BendSelectorManager;
   private inputModal: InputModal;
+  private boundSideControlsClickHandler: (event: MouseEvent) => void;
 
   constructor(
     tabWindow: TabWindow,
@@ -33,10 +34,8 @@ export class EditPanel {
     this.renderAndBind = renderAndBind;
     this.bendSelectorManager = bendSelectorManager;
     this.inputModal = new InputModal();
-  }
 
-  public bind(): void {
-    this.sideControls.addEventListener("click", (event) => {
+    this.boundSideControlsClickHandler = (event) => {
       const target = event.target as HTMLElement;
       if (target.tagName !== "IMG") {
         return;
@@ -84,7 +83,15 @@ export class EditPanel {
       if (effect) {
         this.handleEffectClick(effect);
       }
-    });
+    };
+  }
+
+  public bind(): void {
+    this.sideControls.addEventListener("click", this.boundSideControlsClickHandler);
+  }
+
+  public dispose(): void {
+    this.sideControls.removeEventListener("click", this.boundSideControlsClickHandler);
   }
 
   private handleTempoButtonClick(): void {

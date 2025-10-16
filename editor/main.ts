@@ -1,6 +1,7 @@
 import { TabUI } from "@/index";
 import { getEl } from "@/index";
-import { score } from "./multi-track-data";
+// import { score } from "./multi-track-data";
+import { score } from "./data/full-score";
 
 // Get DOM references
 const trackSelector = getEl<HTMLSelectElement>("track-selector");
@@ -18,7 +19,6 @@ const tabui = new TabUI(score, {
   bendGraphModal,
   sideControls,
   assetsPath: base,
-  // assetsPath: "assets",
 });
 
 // Populate track selector

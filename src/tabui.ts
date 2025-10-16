@@ -63,6 +63,16 @@ export class TabUI {
       this.svgRenderer.unrender();
     }
 
+    // Dispose old binder
+    if (this.binder !== undefined) {
+      this.binder.dispose();
+    }
+
+    // Dispose old edit panel
+    if (this.editPanel !== undefined) {
+      this.editPanel.dispose();
+    }
+
     // Create renderers and binders
     this.svgRenderer = new TabWindowSVGRenderer(
       this.tabWindow,
