@@ -1,4 +1,4 @@
-import { TabWindow, TabLineElement } from "@/notation/element";
+import { TabController, TabLineElement } from "@/notation/element";
 import { Point } from "@/shared";
 import { SVGBarRenderer } from "./svg-bar-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
@@ -8,7 +8,7 @@ import { SVGNoteRenderer } from "./svg-note-renderer";
  * Class for rendering a bar element using SVG
  */
 export class SVGTabLineRenderer {
-  private _tabWindow: TabWindow;
+  private _tabWindow: TabController;
   private _tabLineElement: TabLineElement;
   private _assetsPath: string;
   private _svgRoot: SVGSVGElement;
@@ -17,18 +17,18 @@ export class SVGTabLineRenderer {
 
   /**
    * Class for rendering a beat element using SVG
-   * @param tabWindow Tab window
+   * @param tabController Tab window
    * @param tabLineElement Tab line element
    * @param assetsPath Path to assets
    * @param svgRoot SVG root element
    */
   constructor(
-    tabWindow: TabWindow,
+    tabController: TabController,
     tabLineElement: TabLineElement,
     assetsPath: string,
     svgRoot: SVGSVGElement
   ) {
-    this._tabWindow = tabWindow;
+    this._tabWindow = tabController;
     this._tabLineElement = tabLineElement;
     this._assetsPath = assetsPath;
     this._svgRoot = svgRoot;

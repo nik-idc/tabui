@@ -1,6 +1,6 @@
 import { GuitarEffect, GuitarEffectType } from "@/notation/model";
 import { Rect, getPitchRatioNums } from "@/shared";
-import { TabWindowDim } from "../../tab-window";
+import { TabControllerDim } from "../../controller";
 import { SVGUtils } from "./effects-html";
 
 /**
@@ -10,7 +10,7 @@ export class EffectLabelElement {
   /**
    * Tab window dimensions
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   /**
    * Outer rectangle
    */
@@ -35,7 +35,7 @@ export class EffectLabelElement {
    * @param rect Outer rectangle
    * @param effect Effect
    */
-  constructor(dim: TabWindowDim, rect: Rect, effect: GuitarEffect) {
+  constructor(dim: TabControllerDim, rect: Rect, effect: GuitarEffect) {
     this.dim = dim;
     this._rect = new Rect(rect.x, rect.y, rect.width, rect.height);
     this.effect = effect;

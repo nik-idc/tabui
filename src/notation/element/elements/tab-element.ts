@@ -1,6 +1,6 @@
 import { Score, Tab, Bar, Beat, GuitarNote } from "@/notation/model";
 import { Rect, randomInt, Point } from "@/shared";
-import { TabWindowDim } from "../tab-window";
+import { TabControllerDim } from "../controller";
 import { BarElement } from "./bar-element";
 import { BeatElement } from "./beat-element";
 import { NoteElement } from "./note-element";
@@ -65,14 +65,14 @@ export class TabElement {
   /**
    * Dimensions object
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   /**
    * Tab line elements
    */
   private _tabLineElements: TabLineElement[] = [];
   private _selectionRects: Rect[];
 
-  constructor(score: Score, tabIndex: number, dim: TabWindowDim) {
+  constructor(score: Score, tabIndex: number, dim: TabControllerDim) {
     this.uuid = randomInt();
     this._score = score;
     this._tabIndex = tabIndex;

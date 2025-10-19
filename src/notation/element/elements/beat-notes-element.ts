@@ -1,6 +1,6 @@
 import { Beat } from "@/notation/model";
 import { Rect, randomInt } from "@/shared";
-import { TabWindowDim } from "../tab-window";
+import { TabControllerDim } from "../controller";
 import { NoteElement } from "./note-element";
 
 /**
@@ -11,7 +11,7 @@ export class BeatNotesElement {
   /**
    * Tab window dimensions
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   /**
    * Beat
    */
@@ -33,7 +33,7 @@ export class BeatNotesElement {
    * @param labelsGapHeight Height of the labels gap. Dictates the y-axis of the rect
    */
   constructor(
-    dim: TabWindowDim,
+    dim: TabControllerDim,
     beat: Beat,
     width: number,
     labelsGapHeight: number = 0

@@ -1,15 +1,15 @@
 import { NoteElement, BeatElement } from "@/notation/element";
 import { Point } from "@/shared";
 import {
-  TabWindowSVGRenderer,
+  EditorSVGRenderer,
   SVGBarRenderer,
   SVGBeatRenderer,
   SVGNoteRenderer,
 } from "../../svg";
-import { TabWindowMouseCallbacks } from "../tab-window-mouse-callbacks";
+import { EditorMouseCallbacks } from "../editor-mouse-callbacks";
 
-export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
-  private _renderer: TabWindowSVGRenderer;
+export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
+  private _renderer: EditorSVGRenderer;
   private _renderAndBind: (
     activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
   ) => void;
@@ -18,7 +18,7 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
   private _selectionStartPoint?: Point;
 
   constructor(
-    renderer: TabWindowSVGRenderer,
+    renderer: EditorSVGRenderer,
     renderAndBind: (
       activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
     ) => void
@@ -29,7 +29,7 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
 
   public onNoteClick(event: MouseEvent, noteElement: NoteElement): void {
     this._renderer.hideSelectionPreview();
-    this._renderer.tabWindow.selectNoteElement(noteElement);
+    this._renderer.tabController.selectNoteElement(noteElement);
     this._renderAndBind(this._renderer.render());
   }
 
@@ -47,8 +47,8 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
   public onBeatMouseDown(event: MouseEvent, beatElement: BeatElement): void {
     // console.log("Default beat mouse down event");
 
-    this._renderer.tabWindow.clearSelection();
-    this._renderer.tabWindow.recalcBeatElementSelection();
+    this._renderer.tabController.clearSelection();
+    this._renderer.tabController.recalcBeatElementSelection();
     this._selectingBeats = true;
 
     this._renderAndBind(this._renderer.render());
@@ -61,7 +61,7 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
     }
 
     if (this._selectingBeats) {
-      this._renderer.tabWindow.selectBeat(beatElement);
+      this._renderer.tabController.selectBeat(beatElement);
       this._renderAndBind(this._renderer.render());
     }
   }
@@ -69,7 +69,7 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
   public onBeatMouseMove(event: MouseEvent, beatElement: BeatElement): void {
     if (
       !this._selectingBeats ||
-      this._renderer.tabWindow.getSelectionBeats().length !== 0
+      this._renderer.tabController.getSelectionBeats().length !== 0
     ) {
       return;
     }
@@ -86,7 +86,7 @@ export class TabWindowMouseDefCallbacks implements TabWindowMouseCallbacks {
     const rect = beatElement.rect;
 
     if (distMoved >= rect.width / 4) {
-      this._renderer.tabWindow.selectBeat(beatElement);
+      this._renderer.tabController.selectBeat(beatElement);
     }
 
     this._renderAndBind(this._renderer.render());

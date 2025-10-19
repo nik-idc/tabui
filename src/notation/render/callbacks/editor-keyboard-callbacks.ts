@@ -1,6 +1,6 @@
 import { GuitarEffectType, GuitarEffectOptions } from "@/notation/model";
 
-export abstract class TabWindowKeyboardCallbacks {
+export abstract class EditorKeyboardCallbacks {
   public abstract ctrlCEvent(event: KeyboardEvent): void;
   public abstract ctrlVEvent(event: KeyboardEvent): void;
   public abstract ctrlZEvent(event: KeyboardEvent): void;

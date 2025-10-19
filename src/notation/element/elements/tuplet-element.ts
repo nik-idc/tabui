@@ -1,6 +1,6 @@
 import { TupletGroup } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabWindowDim } from "../tab-window";
+import { TabControllerDim } from "../controller";
 import { BeatElement } from "./beat-element";
 
 export class TupletElement {
@@ -11,7 +11,7 @@ export class TupletElement {
   /**
    * Tab window dimensions
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   /**
    * Tuplet group this element represents
    */
@@ -26,7 +26,7 @@ export class TupletElement {
   readonly rect: Rect;
 
   constructor(
-    dim: TabWindowDim,
+    dim: TabControllerDim,
     tupletGroup: TupletGroup,
     beatElements: BeatElement[],
     coords: Point

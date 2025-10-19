@@ -1,11 +1,11 @@
-import { TabWindow, GuitarEffectElement } from "@/notation/element";
+import { TabController, GuitarEffectElement } from "@/notation/element";
 import { Point, createSVGG, createSVGRect } from "@/shared";
 
 /**
  * Class for rendering a guitar effect element using SVG
  */
 export class SVGEffectRenderer {
-  private _tabWindow: TabWindow;
+  private _tabWindow: TabController;
   private _effectElement: GuitarEffectElement;
   private _noteOffset: Point;
   private _assetsPath: string;
@@ -17,20 +17,20 @@ export class SVGEffectRenderer {
 
   /**
    * Class for rendering a guitar effect element using SVG
-   * @param tabWindow Tab window
+   * @param tabController Tab window
    * @param effectElement Guitar effect element
    * @param noteOffset Global offset of the beat notes element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a note element in this case)
    */
   constructor(
-    tabWindow: TabWindow,
+    tabController: TabController,
     effectElement: GuitarEffectElement,
     noteOffset: Point,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._tabWindow = tabWindow;
+    this._tabWindow = tabController;
     this._effectElement = effectElement;
     this._noteOffset = noteOffset;
     this._assetsPath = assetsPath;

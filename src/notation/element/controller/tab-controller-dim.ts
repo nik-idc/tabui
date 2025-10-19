@@ -3,7 +3,7 @@ import { NoteDuration } from "@/notation/model";
 /**
  * Class that contains all the needed dim info of tab lines
  */
-export class TabWindowDim {
+export class TabControllerDim {
   /**
    * Tab window width
    */

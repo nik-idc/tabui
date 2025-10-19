@@ -17,12 +17,12 @@ import {
   SelectedMoveDirection,
   SelectedElement,
 } from "../elements";
-import { TabWindowDim } from "./tab-window-dim";
+import { TabControllerDim } from "./tab-controller-dim";
 
 /**
  * Class that handles creating a tab window.
  */
-export class TabWindow {
+export class TabController {
   private _score: Score;
   /**
    * Tab object to get data from
@@ -31,7 +31,7 @@ export class TabWindow {
   /**
    * Dimensions object
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   private _tabElement: TabElement;
   private _tabEditor: TabEditor;
   private _tabPlayer: TabPlayer | undefined;
@@ -42,7 +42,7 @@ export class TabWindow {
    * @param tab Tab object
    * @param dim Tab window dimensions
    */
-  constructor(score: Score, tab: Tab, dim: TabWindowDim) {
+  constructor(score: Score, tab: Tab, dim: TabControllerDim) {
     this._score = score;
     this._tab = tab;
     this.dim = dim;

@@ -1,2 +1,2 @@
-export * from "./tab-window-def-keyboard-callbacks";
-export * from "./tab-window-def-mouse-callbacks";
+export * from "./editor-def-keyboard-callbacks";
+export * from "./editor-def-mouse-callbacks";

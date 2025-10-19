@@ -299,7 +299,7 @@ export class SelectedElement {
   // /**
   //  * Selected tab window element
   //  */
-  // public get tabWindow(): TabWindow {
+  // public get tabController(): TabController {
   //   return this._tabWindow;
   // }
 }

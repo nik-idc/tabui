@@ -3,19 +3,19 @@ import { GuitarEffectType, GuitarEffectOptions } from "@/notation/model";
 import { KeyChecker } from "@/shared";
 import { BendSelectorManager } from "@/ui/bend-selectors";
 import {
-  TabWindowSVGRenderer,
+  EditorSVGRenderer,
   SVGBarRenderer,
   SVGBeatRenderer,
   SVGNoteRenderer,
 } from "../../svg";
-import { TabWindowKeyboardCallbacks } from "../tab-window-keyboard-callbacks";
+import { EditorKeyboardCallbacks } from "../editor-keyboard-callbacks";
 
-export class TabWindowKeyboardDefCallbacks
-  implements TabWindowKeyboardCallbacks
+export class EditorKeyboardDefCallbacks
+  implements EditorKeyboardCallbacks
 {
   readonly eventsTimeEpsilon: number = 250;
 
-  private _renderer: TabWindowSVGRenderer;
+  private _renderer: EditorSVGRenderer;
   private _renderAndBind: (
     activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
   ) => void;
@@ -24,7 +24,7 @@ export class TabWindowKeyboardDefCallbacks
   private _prevKeyPress?: { time: number; key: string };
 
   constructor(
-    renderer: TabWindowSVGRenderer,
+    renderer: EditorSVGRenderer,
     renderAndBind: (
       activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
     ) => void,
@@ -37,29 +37,29 @@ export class TabWindowKeyboardDefCallbacks
 
   public ctrlCEvent(event: KeyboardEvent): void {
     console.log("ctrCEvent");
-    this._renderer.tabWindow.copy();
+    this._renderer.tabController.copy();
   }
 
   public ctrlVEvent(event: KeyboardEvent): void {
     console.log("ctrlVEvent");
-    this._renderer.tabWindow.paste();
+    this._renderer.tabController.paste();
     this._renderAndBind(this._renderer.render());
   }
 
   public ctrlZEvent(event: KeyboardEvent): void {
     console.log("ctrlZEvent");
-    this._renderer.tabWindow.undo();
+    this._renderer.tabController.undo();
     this._renderAndBind(this._renderer.render());
   }
 
   public ctrlYEvent(event: KeyboardEvent): void {
     console.log("ctrlYEvent");
-    this._renderer.tabWindow.redo();
+    this._renderer.tabController.redo();
     this._renderAndBind(this._renderer.render());
   }
 
   public deleteEvent(event: KeyboardEvent): void {
-    this._renderer.tabWindow.deleteSelectedBeats();
+    this._renderer.tabController.deleteSelectedBeats();
     this._renderAndBind(this._renderer.render());
   }
 
@@ -67,7 +67,7 @@ export class TabWindowKeyboardDefCallbacks
     effectType: GuitarEffectType,
     options?: GuitarEffectOptions
   ): void {
-    const selected = this._renderer.tabWindow.getSelectedElement();
+    const selected = this._renderer.tabController.getSelectedElement();
 
     if (selected === undefined) {
       return;
@@ -79,13 +79,13 @@ export class TabWindowKeyboardDefCallbacks
 
     if (effectIndex === -1) {
       console.log("APPLYING EFFECT");
-      const result = this._renderer.tabWindow.applyEffectSingle(
+      const result = this._renderer.tabController.applyEffectSingle(
         effectType,
         options
       );
       console.log(`APPLY RESULT: ${result}`);
     } else {
-      this._renderer.tabWindow.removeEffectSingle(effectType, options);
+      this._renderer.tabController.removeEffectSingle(effectType, options);
     }
 
     this._renderAndBind(this._renderer.render());
@@ -109,16 +109,16 @@ export class TabWindowKeyboardDefCallbacks
   }
 
   public spaceEvent(event: KeyboardEvent): void {
-    if (this._renderer.tabWindow.getIsPlaying()) {
-      this._renderer.tabWindow.stopPlayer();
+    if (this._renderer.tabController.getIsPlaying()) {
+      this._renderer.tabController.stopPlayer();
     } else {
-      this._renderer.tabWindow.startPlayer();
+      this._renderer.tabController.startPlayer();
     }
     this._renderAndBind(this._renderer.render());
   }
 
   public onNumberDown(key: string): void {
-    if (this._renderer.tabWindow.getSelectedElement() === undefined) {
+    if (this._renderer.tabController.getSelectedElement() === undefined) {
       return;
     }
 
@@ -129,7 +129,7 @@ export class TabWindowKeyboardDefCallbacks
 
     if (this._prevKeyPress === undefined) {
       this._prevKeyPress = { time: new Date().getTime(), key: key };
-      this._renderer.tabWindow.setSelectedElementFret(newFret);
+      this._renderer.tabController.setSelectedElementFret(newFret);
       this._renderAndBind(this._renderer.render());
       return;
     }
@@ -139,7 +139,7 @@ export class TabWindowKeyboardDefCallbacks
     let combFret = Number.parseInt(this._prevKeyPress.key + key);
     newFret = timeDiff < this.eventsTimeEpsilon ? combFret : newFret;
 
-    this._renderer.tabWindow.setSelectedElementFret(newFret);
+    this._renderer.tabController.setSelectedElementFret(newFret);
 
     this._prevKeyPress.time = now;
     this._prevKeyPress.key = key;
@@ -147,29 +147,29 @@ export class TabWindowKeyboardDefCallbacks
   }
 
   public onArrowDown(key: string): void {
-    if (this._renderer.tabWindow.getSelectedElement() === undefined) {
+    if (this._renderer.tabController.getSelectedElement() === undefined) {
       return;
     }
 
     switch (key) {
       case "ArrowDown":
-        this._renderer.tabWindow.moveSelectedNote(SelectedMoveDirection.Down);
+        this._renderer.tabController.moveSelectedNote(SelectedMoveDirection.Down);
         break;
       case "ArrowUp":
-        this._renderer.tabWindow.moveSelectedNote(SelectedMoveDirection.Up);
+        this._renderer.tabController.moveSelectedNote(SelectedMoveDirection.Up);
         break;
       case "ArrowLeft":
-        this._renderer.tabWindow.moveSelectedNote(SelectedMoveDirection.Left);
+        this._renderer.tabController.moveSelectedNote(SelectedMoveDirection.Left);
         break;
       case "ArrowRight":
-        this._renderer.tabWindow.moveSelectedNote(SelectedMoveDirection.Right);
+        this._renderer.tabController.moveSelectedNote(SelectedMoveDirection.Right);
         break;
     }
     this._renderAndBind(this._renderer.render());
   }
 
   public onBackspacePress(): void {
-    const selected = this._renderer.tabWindow.getSelectedElement();
+    const selected = this._renderer.tabController.getSelectedElement();
 
     if (selected === undefined) {
       return;
@@ -179,7 +179,7 @@ export class TabWindowKeyboardDefCallbacks
       return;
     }
 
-    this._renderer.tabWindow.setSelectedElementFret(undefined);
+    this._renderer.tabController.setSelectedElementFret(undefined);
     this._renderAndBind(this._renderer.render());
   }
 

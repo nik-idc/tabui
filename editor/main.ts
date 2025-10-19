@@ -1,5 +1,5 @@
 import { getEl } from "@/shared/misc/get-dom-element";
-import { TabUI } from "@/tabui";
+import { Editor } from "@/core";
 import { score } from "./data/full-score";
 
 // Get DOM references
@@ -13,7 +13,7 @@ const bendGraphModal = getEl<HTMLDivElement>("bend-graph-modal");
 const sideControls = getEl<HTMLDivElement>("side-controls");
 
 const base = import.meta.env.BASE_URL;
-const tabui = new TabUI(score, {
+const tabui = new Editor(score, {
   svgRoot,
   bendGraphModal,
   sideControls,

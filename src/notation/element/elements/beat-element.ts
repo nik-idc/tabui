@@ -1,6 +1,6 @@
 import { Beat } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabWindowDim } from "../tab-window";
+import { TabControllerDim } from "../controller";
 import { BeatNotesElement } from "./beat-notes-element";
 import { EffectLabelElement, EFFECT_TYPE_TO_LABEL } from "./effects";
 
@@ -15,7 +15,7 @@ export class BeatElement {
   /**
    * Tab window dimensions
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   /**
    * Inidicates whether this beat element is selected
    */
@@ -57,7 +57,7 @@ export class BeatElement {
    * @param labelsGapHeight Gap height for effect labels
    */
   constructor(
-    dim: TabWindowDim,
+    dim: TabControllerDim,
     beatCoords: Point,
     beat: Beat,
     labelsGapHeight: number = 0

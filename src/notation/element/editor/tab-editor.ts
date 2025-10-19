@@ -43,7 +43,7 @@ export class TabEditor {
    * Selects note element using element ids.
    * NOTE: This function does not inform TabPlayer class of the change
    * of the current beat so if you are using TabPlayer class, use
-   * TabWindow.selectNoteElementUsingIds instead
+   * TabController.selectNoteElementUsingIds instead
    * @param tabLineElementId Tab Line Element Id
    * @param barElementId Bar Element Id
    * @param beatElementId Beat Element Id

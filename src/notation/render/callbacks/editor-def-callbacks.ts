@@ -1,22 +1,22 @@
-import { TabWindow, SelectedMoveDirection } from "@/notation/element";
+import { TabController, SelectedMoveDirection } from "@/notation/element";
 import { GuitarEffectType, GuitarEffectOptions } from "@/notation/model";
 import { Point, KeyChecker } from "@/shared";
 
 /**
  *
  */
-export class TabWindowDefCallbacks {
+export class EditorDefCallbacks {
   readonly eventsTimeEpsilon: number = 250;
 
-  private _tabWindow: TabWindow;
+  private _tabWindow: TabController;
 
   private _selectionStartPoint?: Point;
   private _selectingBeats: boolean;
 
   private _prevKeyPress?: { time: number; key: string };
 
-  constructor(tabWindow: TabWindow) {
-    this._tabWindow = tabWindow;
+  constructor(tabController: TabController) {
+    this._tabWindow = tabController;
 
     this._selectingBeats = false;
   }

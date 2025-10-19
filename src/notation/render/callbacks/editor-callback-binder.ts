@@ -1,22 +1,22 @@
 import { SVGBarRenderer, SVGBeatRenderer, SVGNoteRenderer } from "../svg";
-import { TabWindowKeyboardCallbacks } from "./tab-window-keyboard-callbacks";
-import { TabWindowMouseCallbacks } from "./tab-window-mouse-callbacks";
+import { EditorKeyboardCallbacks } from "./editor-keyboard-callbacks";
+import { EditorMouseCallbacks } from "./editor-mouse-callbacks";
 
-export class TabWindowCallbackBinder {
-  private _mouseCallbacks: TabWindowMouseCallbacks;
-  private _keyboardCallbacks: TabWindowKeyboardCallbacks;
+export class EditorCallbackBinder {
+  private _mouseCallbacks: EditorMouseCallbacks;
+  private _keyboardCallbacks: EditorKeyboardCallbacks;
   private _keyboardBound = false;
   private _globalMouseEventsBound = false;
 
   private _boundOnWindowMouseUp: (
-    this: TabWindowMouseCallbacks,
+    this: EditorMouseCallbacks,
     ev: MouseEvent
   ) => any;
   private _boundOnKeyDown: (event: KeyboardEvent) => void;
 
   constructor(
-    mouseCallbacks: TabWindowMouseCallbacks,
-    keyboardCallbacks: TabWindowKeyboardCallbacks
+    mouseCallbacks: EditorMouseCallbacks,
+    keyboardCallbacks: EditorKeyboardCallbacks
   ) {
     this._mouseCallbacks = mouseCallbacks;
     this._keyboardCallbacks = keyboardCallbacks;

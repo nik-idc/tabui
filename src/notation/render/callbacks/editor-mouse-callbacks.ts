@@ -1,6 +1,6 @@
 import { NoteElement, BeatElement } from "@/notation/element";
 
-export abstract class TabWindowMouseCallbacks {
+export abstract class EditorMouseCallbacks {
   public abstract onNoteClick(
     event: MouseEvent,
     noteElement: NoteElement

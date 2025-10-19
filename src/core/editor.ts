@@ -1,41 +1,60 @@
+// export interface TabUIOptions {
+//   svgRoot: SVGSVGElement;
+//   bendGraphModal: HTMLDivElement;
+//   sideControls: HTMLDivElement;
+//   assetsPath: string;
+// }
+
+// /**
+//  * Host of the editor. Accepts a div element inside of which
+//  * the tab editor will be constructed
+//  */
+// export class EditorHost {
+//   private _rootDiv: HTMLDivElement;
+
+//   constructor(rootDiv: HTMLDivElement) {
+//     this._rootDiv = rootDiv;
+//   }
+// }
+
 import {
   Score,
-  TabWindow,
-  TabWindowSVGRenderer,
-  TabWindowCallbackBinder,
-  TabWindowDim,
-  TabWindowMouseDefCallbacks,
-  TabWindowKeyboardDefCallbacks,
+  TabController,
+  EditorSVGRenderer,
+  EditorCallbackBinder,
+  TabControllerDim,
+  EditorMouseDefCallbacks,
+  EditorKeyboardDefCallbacks,
   SVGBarRenderer,
   SVGBeatRenderer,
   SVGNoteRenderer,
-} from "./notation";
-import { BendSelectorManager, EditPanel } from "./ui";
+} from "@/notation";
+import { BendSelectorManager, EditPanel } from "@/ui";
 
-export interface TabUIOptions {
+export interface EditorOptions {
   svgRoot: SVGSVGElement;
   bendGraphModal: HTMLDivElement;
   sideControls: HTMLDivElement;
   assetsPath: string;
 }
 
-export class TabUI {
+export class Editor {
   private score: Score;
-  private tabWindow!: TabWindow;
-  private svgRenderer!: TabWindowSVGRenderer;
-  private binder!: TabWindowCallbackBinder;
+  private tabController!: TabController;
+  private svgRenderer!: EditorSVGRenderer;
+  private binder!: EditorCallbackBinder;
   private bendSelectorManager!: BendSelectorManager;
   private editPanel!: EditPanel;
 
-  constructor(score: Score, private options: TabUIOptions) {
+  constructor(score: Score, private options: EditorOptions) {
     this.score = score;
   }
 
   public loadTrack(trackIndex: number): void {
     const tab = this.score.tracks[trackIndex];
 
-    // Create TabWindow
-    const dim = new TabWindowDim(
+    // Create TabController
+    const dim = new TabControllerDim(
       1200, // width
       14, // noteTextSize
       42, // timeSigTextSize
@@ -43,18 +62,21 @@ export class TabUI {
       40, // durationsHeight
       tab.guitar.stringsCount
     );
-    this.tabWindow = new TabWindow(this.score, tab, dim);
-    this.tabWindow.selectNoteElementUsingIds(0, 0, 0, 0);
+    this.tabController = new TabController(this.score, tab, dim);
+    this.tabController.selectNoteElementUsingIds(0, 0, 0, 0);
 
     // Set SVG root properties
     let tabWindowHeight = 0;
-    const tabLineElements = this.tabWindow.getTabLineElements();
+    const tabLineElements = this.tabController.getTabLineElements();
     for (const tabLineElement of tabLineElements) {
       tabWindowHeight += tabLineElement.rect.height;
     }
-    const svgRootVB = `0 0 ${this.tabWindow.dim.width} ${tabWindowHeight}`;
+    const svgRootVB = `0 0 ${this.tabController.dim.width} ${tabWindowHeight}`;
     this.options.svgRoot.setAttribute("viewBox", svgRootVB);
-    this.options.svgRoot.setAttribute("width", `${this.tabWindow.dim.width}`);
+    this.options.svgRoot.setAttribute(
+      "width",
+      `${this.tabController.dim.width}`
+    );
     this.options.svgRoot.setAttribute("height", `${tabWindowHeight}`);
 
     // Unrender what's been already rendered
@@ -73,8 +95,8 @@ export class TabUI {
     }
 
     // Create renderers and binders
-    this.svgRenderer = new TabWindowSVGRenderer(
-      this.tabWindow,
+    this.svgRenderer = new EditorSVGRenderer(
+      this.tabController,
       this.options.assetsPath,
       this.options.svgRoot
     );
@@ -82,11 +104,11 @@ export class TabUI {
       this.options.bendGraphModal
     );
 
-    this.binder = new TabWindowCallbackBinder(
-      new TabWindowMouseDefCallbacks(this.svgRenderer, () =>
+    this.binder = new EditorCallbackBinder(
+      new EditorMouseDefCallbacks(this.svgRenderer, () =>
         this.renderAndBind(this.svgRenderer.render())
       ),
-      new TabWindowKeyboardDefCallbacks(
+      new EditorKeyboardDefCallbacks(
         this.svgRenderer,
         () => this.renderAndBind(this.svgRenderer.render()),
         this.bendSelectorManager
@@ -97,7 +119,7 @@ export class TabUI {
 
     // Create edit panel
     this.editPanel = new EditPanel(
-      this.tabWindow,
+      this.tabController,
       this.options.sideControls,
       () => this.renderAndBind(this.svgRenderer.render()),
       this.bendSelectorManager
@@ -114,22 +136,22 @@ export class TabUI {
   }
 
   public play(): void {
-    this.tabWindow.startPlayer();
+    this.tabController.startPlayer();
   }
 
   public pause(): void {
-    this.tabWindow.stopPlayer();
+    this.tabController.stopPlayer();
   }
 
   public stop(): void {
-    this.tabWindow.stopPlayer();
+    this.tabController.stopPlayer();
   }
 
   public setLooped(): void {
-    this.tabWindow.setLooped();
+    this.tabController.setLooped();
   }
 
   public getIsLooped(): boolean {
-    return this.tabWindow.getIsLooped();
+    return this.tabController.getIsLooped();
   }
 }

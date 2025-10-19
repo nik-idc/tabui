@@ -1,8 +1,8 @@
-import { TabWindow, BeatElement } from "@/notation/element";
+import { TabController, BeatElement } from "@/notation/element";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 
 export class SVGTupletSegmentRenderer {
-  private _tabWindow: TabWindow;
+  private _tabWindow: TabController;
   private _beatElement: BeatElement;
   private _barOffset: Point;
   private _assetsPath: string;
@@ -14,20 +14,20 @@ export class SVGTupletSegmentRenderer {
 
   /**
    * Class for rendering a beat element using SVG
-   * @param tabWindow Tab window
+   * @param tabController Tab window
    * @param beatElement Beat element
    * @param barOffset Global offset of the bar element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a bar element in this case)
    */
   constructor(
-    tabWindow: TabWindow,
+    tabController: TabController,
     beatElement: BeatElement,
     barOffset: Point,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._tabWindow = tabWindow;
+    this._tabWindow = tabController;
     this._beatElement = beatElement;
     this._barOffset = barOffset;
     this._assetsPath = assetsPath;

@@ -1,4 +1,4 @@
-import { TabWindow } from "@/notation/element";
+import { TabController } from "@/notation/element";
 import { TonejsDurationMap } from "@/notation/model";
 import { Point } from "@/shared";
 import * as Tone from "tone";
@@ -11,18 +11,18 @@ import { tabEvent, TabEventType, TabEventArgs } from "../events";
 export class TabPlayerSVGAnimator {
   private _bound: boolean;
   private _cursorElement: SVGRectElement;
-  private _tabWindow: TabWindow;
+  private _tabWindow: TabController;
   private _isAnimating: boolean;
   private _prevCoords: Point;
   private _nextCoords: Point | undefined;
   private _startTime: number;
   private _duration: number;
 
-  constructor(cursorElement: SVGRectElement, tabWindow: TabWindow) {
+  constructor(cursorElement: SVGRectElement, tabController: TabController) {
     this._bound = false;
     this._cursorElement = cursorElement;
     this._isAnimating = false;
-    this._tabWindow = tabWindow;
+    this._tabWindow = tabController;
     this._prevCoords = new Point(
       cursorElement.getAttribute("x") as unknown as number,
       cursorElement.getAttribute("y") as unknown as number

@@ -1,4 +1,4 @@
-import { TabWindow, NoteElement } from "@/notation/element";
+import { TabController, NoteElement } from "@/notation/element";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { SVGEffectRenderer } from "./svg-guitar-effect-renderer";
 
@@ -6,7 +6,7 @@ import { SVGEffectRenderer } from "./svg-guitar-effect-renderer";
  * Class for rendering a note element using SVG
  */
 export class SVGNoteRenderer {
-  private _tabWindow: TabWindow;
+  private _tabWindow: TabController;
   private _noteElement: NoteElement;
   private _beatNotesOffset: Point;
   private _assetsPath: string;
@@ -24,20 +24,20 @@ export class SVGNoteRenderer {
 
   /**
    * Class for rendering a note element using SVG
-   * @param tabWindow Tab window
+   * @param tabController Tab window
    * @param noteElement Note element
    * @param beatNotesOffset Global offset of the beat notes element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a beat element in this case)
    */
   constructor(
-    tabWindow: TabWindow,
+    tabController: TabController,
     noteElement: NoteElement,
     beatNotesOffset: Point,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._tabWindow = tabWindow;
+    this._tabWindow = tabController;
     this._noteElement = noteElement;
     this._beatNotesOffset = beatNotesOffset;
     this._assetsPath = assetsPath;

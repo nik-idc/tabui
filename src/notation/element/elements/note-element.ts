@@ -1,6 +1,6 @@
 import { GuitarNote } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabWindowDim } from "../tab-window";
+import { TabControllerDim } from "../controller";
 import { GuitarEffectElement } from "./effects";
 
 /**
@@ -11,7 +11,7 @@ export class NoteElement {
   /**
    * Tab window dimensions
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   /**
    * The note
    */
@@ -39,7 +39,7 @@ export class NoteElement {
    * @param width Width of the beat element
    * @param note Note
    */
-  constructor(dim: TabWindowDim, width: number, note: GuitarNote) {
+  constructor(dim: TabControllerDim, width: number, note: GuitarNote) {
     this.uuid = randomInt();
     this.dim = dim;
     this.note = note;

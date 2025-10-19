@@ -1,6 +1,6 @@
 import { Bar, BarRepeatStatus, Beat } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabWindowDim } from "../tab-window";
+import { TabControllerDim } from "../controller";
 import { BeamSegmentElement } from "./beam-segment-element";
 import { BeatElement } from "./beat-element";
 import { TupletElement } from "./tuplet-element";
@@ -13,7 +13,7 @@ export class BarElement {
   /**
    * Tab window dimensions
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   /**
    * This bar's beat elements
    */
@@ -77,7 +77,7 @@ export class BarElement {
    */
 
   constructor(
-    dim: TabWindowDim,
+    dim: TabControllerDim,
     // barCoords: Point,
     bar: Bar,
     showSignature: boolean,
@@ -552,7 +552,7 @@ export class BarElement {
    * @returns Created bar element
    */
   static createBarElement(
-    dim: TabWindowDim,
+    dim: TabControllerDim,
     bar: Bar,
     prevBar?: Bar,
     horizontalBarOffset: number = 0,

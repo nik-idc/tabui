@@ -5,7 +5,7 @@ import {
   GuitarEffectOptions,
 } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabWindowDim } from "../tab-window";
+import { TabControllerDim } from "../controller";
 import { BarElement } from "./bar-element";
 
 /**
@@ -23,7 +23,7 @@ export class TabLineElement {
   /**
    * Tab window dimensions
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   /**
    * Line encapsulating rectangle
    */
@@ -43,7 +43,7 @@ export class TabLineElement {
    * @param dim Tab window dimensions
    * @param coords Tab line coordinates
    */
-  constructor(tab: Tab, dim: TabWindowDim, coords: Point) {
+  constructor(tab: Tab, dim: TabControllerDim, coords: Point) {
     this.uuid = randomInt();
     this.tab = tab;
     this.dim = dim;

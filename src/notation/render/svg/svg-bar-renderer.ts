@@ -1,4 +1,4 @@
-import { TabWindow, BarElement } from "@/notation/element";
+import { TabController, BarElement } from "@/notation/element";
 import { BarRepeatStatus } from "@/notation/model";
 import {
   Point,
@@ -21,7 +21,7 @@ type BeamSegmentSVG = {
  * Class for rendering a bar element using SVG
  */
 export class SVGBarRenderer {
-  private _tabWindow: TabWindow;
+  private _tabWindow: TabController;
   private _barElement: BarElement;
   private _tleOffset: Point;
   private _assetsPath: string;
@@ -43,20 +43,20 @@ export class SVGBarRenderer {
 
   /**
    * Class for rendering a beat element using SVG
-   * @param tabWindow Tab window
+   * @param tabController Tab window
    * @param barElement Bar element
    * @param tleOffset Global offset of the tab line element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a tab line element in this case)
    */
   constructor(
-    tabWindow: TabWindow,
+    tabController: TabController,
     barElement: BarElement,
     tleOffset: Point,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._tabWindow = tabWindow;
+    this._tabWindow = tabController;
     this._barElement = barElement;
     this._tleOffset = tleOffset;
     this._assetsPath = assetsPath;

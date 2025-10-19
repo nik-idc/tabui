@@ -1,11 +1,11 @@
-import { TabWindow, EffectLabelElement } from "@/notation/element";
+import { TabController, EffectLabelElement } from "@/notation/element";
 import { Point, createSVGG } from "@/shared";
 
 /**
  * Class for rendering an effect label using SVG
  */
 export class SVGEffectLabelRenderer {
-  private _tabWindow: TabWindow;
+  private _tabWindow: TabController;
   private _effectLabelElement: EffectLabelElement;
   private _beatOffset: Point;
   private _assetsPath: string;
@@ -16,20 +16,20 @@ export class SVGEffectLabelRenderer {
 
   /**
    * Class for rendering an effect label using SVG
-   * @param tabWindow Tab window
+   * @param tabController Tab window
    * @param effectLabelElement Effect label element
    * @param beatOffset Global offset of the beat element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a beat element in this case)
    */
   constructor(
-    tabWindow: TabWindow,
+    tabController: TabController,
     effectLabelElement: EffectLabelElement,
     beatOffset: Point,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._tabWindow = tabWindow;
+    this._tabWindow = tabController;
     this._effectLabelElement = effectLabelElement;
     this._beatOffset = beatOffset;
     this._assetsPath = assetsPath;

@@ -1,6 +1,6 @@
 import { GuitarEffect, GuitarEffectType } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
-import { TabWindowDim } from "../../tab-window";
+import { TabControllerDim } from "../../controller";
 import { SVGUtils } from "./effects-html";
 
 /**
@@ -21,7 +21,7 @@ export class GuitarEffectElement {
   /**
    * Tab window dimensions
    */
-  readonly dim: TabWindowDim;
+  readonly dim: TabControllerDim;
   /**
    * Starting point (center of the provided rect)
    */
@@ -59,7 +59,7 @@ export class GuitarEffectElement {
     effect: GuitarEffect,
     stringNum: number,
     noteRect: Rect,
-    dim: TabWindowDim
+    dim: TabControllerDim
   ) {
     this.uuid = randomInt();
     this.effect = effect;

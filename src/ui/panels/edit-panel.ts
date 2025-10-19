@@ -1,4 +1,4 @@
-import { TabWindow } from "@/notation/element";
+import { TabController } from "@/notation/element";
 import {
   NoteDuration,
   GuitarEffectType,
@@ -18,7 +18,7 @@ const NAME_TO_DURATION: { [key: string]: NoteDuration } = {
 };
 
 export class EditPanel {
-  private tabWindow: TabWindow;
+  private tabController: TabController;
   private sideControls: HTMLElement;
   private renderAndBind: () => void;
   private bendSelectorManager: BendSelectorManager;
@@ -26,12 +26,12 @@ export class EditPanel {
   private boundSideControlsClickHandler: (event: MouseEvent) => void;
 
   constructor(
-    tabWindow: TabWindow,
+    tabController: TabController,
     sideControls: HTMLElement,
     renderAndBind: () => void,
     bendSelectorManager: BendSelectorManager
   ) {
-    this.tabWindow = tabWindow;
+    this.tabController = tabController;
     this.sideControls = sideControls;
     this.renderAndBind = renderAndBind;
     this.bendSelectorManager = bendSelectorManager;
@@ -109,7 +109,7 @@ export class EditPanel {
       (values) => {
         const newTempo = parseInt(values["tempo"], 10);
         if (!isNaN(newTempo)) {
-          this.tabWindow.changeSelectedBarTempo(newTempo);
+          this.tabController.changeSelectedBarTempo(newTempo);
           this.renderAndBind();
         }
       }
@@ -131,8 +131,8 @@ export class EditPanel {
         const newBeats = parseInt(values["beats"], 10);
         const newDuration = NAME_TO_DURATION[values["duration"]];
         if (!isNaN(newBeats) && newDuration) {
-          this.tabWindow.changeSelectedBarBeats(newBeats);
-          this.tabWindow.changeSelectedBarDuration(newDuration);
+          this.tabController.changeSelectedBarBeats(newBeats);
+          this.tabController.changeSelectedBarDuration(newDuration);
           this.renderAndBind();
         }
       }
@@ -140,23 +140,23 @@ export class EditPanel {
   }
 
   private handleRepeatStartClick(): void {
-    this.tabWindow.setSelectedBarRepeatStart();
+    this.tabController.setSelectedBarRepeatStart();
     this.renderAndBind();
   }
 
   private handleRepeatEndClick(): void {
-    this.tabWindow.setSelectedBarRepeatEnd();
+    this.tabController.setSelectedBarRepeatEnd();
     this.renderAndBind();
   }
 
   private handleDurationClick(duration: string): void {
     const newDuration = 1 / parseInt(duration, 10);
-    this.tabWindow.changeSelectedBeatDuration(newDuration as NoteDuration);
+    this.tabController.changeSelectedBeatDuration(newDuration as NoteDuration);
     this.renderAndBind();
   }
 
   private handleDotClick(newDots: string): void {
-    this.tabWindow.setSelectedBeatDots(Number(newDots));
+    this.tabController.setSelectedBeatDots(Number(newDots));
     this.renderAndBind();
   }
 
@@ -201,11 +201,11 @@ export class EditPanel {
 
   private handleTupletClick(tuplet: string): void {
     if (tuplet === "3") {
-      this.tabWindow.setSelectedBeatsTuplet(3, 2);
+      this.tabController.setSelectedBeatsTuplet(3, 2);
       this.renderAndBind();
       return;
     } else if (tuplet === "2") {
-      this.tabWindow.setSelectedBeatsTuplet(2, 1);
+      this.tabController.setSelectedBeatsTuplet(2, 1);
       this.renderAndBind();
       return;
     }
@@ -220,7 +220,7 @@ export class EditPanel {
         const newNormalCount = parseInt(values["normalCount"], 10);
         const newTupletCount = parseInt(values["tupletCount"], 10);
         if (!isNaN(newNormalCount) && !isNaN(newTupletCount)) {
-          this.tabWindow.setSelectedBeatsTuplet(newNormalCount, newTupletCount);
+          this.tabController.setSelectedBeatsTuplet(newNormalCount, newTupletCount);
           this.renderAndBind();
         }
       }
@@ -231,7 +231,7 @@ export class EditPanel {
     effectType: GuitarEffectType,
     options?: GuitarEffectOptions
   ): void {
-    const selected = this.tabWindow.getSelectedElement();
+    const selected = this.tabController.getSelectedElement();
 
     if (selected === undefined) {
       return;
@@ -242,9 +242,9 @@ export class EditPanel {
     });
 
     if (effectIndex === -1) {
-      this.tabWindow.applyEffectSingle(effectType, options);
+      this.tabController.applyEffectSingle(effectType, options);
     } else {
-      this.tabWindow.removeEffectSingle(effectType, options);
+      this.tabController.removeEffectSingle(effectType, options);
     }
 
     this.renderAndBind();

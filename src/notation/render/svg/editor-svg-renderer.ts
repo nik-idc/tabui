@@ -1,17 +1,17 @@
-import { TabWindow, NoteElement } from "@/notation/element";
+import { TabController, NoteElement } from "@/notation/element";
 import { createSVGRect, Rect } from "@/shared";
-import { TabWindowRenderer } from "../tab-window-renderer";
+import { EditorRenderer } from "../editor-renderer";
 import { SVGBarRenderer } from "./svg-bar-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGTabLineRenderer } from "./svg-tab-line-renderer";
-import { TabPlayerSVGAnimator } from "./tab-player-svg-animator";
+import { TabPlayerSVGAnimator } from "./player-svg-animator";
 
 /**
  * Render a tab window using SVG
  */
-export class TabWindowSVGRenderer implements TabWindowRenderer {
-  readonly tabWindow: TabWindow;
+export class EditorSVGRenderer implements EditorRenderer {
+  readonly tabController: TabController;
   private _assetsPath: string;
   private _svgRoot: SVGSVGElement;
   private _playerCursor?: SVGRectElement;
@@ -23,16 +23,16 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
 
   /**
    * Render a tab window using SVG
-   * @param tabWindow Tab window
+   * @param tabController Tab window
    * @param assetsPath Path to assets
    * @param svgRoot SVG root element
    */
   constructor(
-    tabWindow: TabWindow,
+    tabController: TabController,
     assetsPath: string,
     svgRoot: SVGSVGElement
   ) {
-    this.tabWindow = tabWindow;
+    this.tabController = tabController;
     this._assetsPath = assetsPath;
     this._svgRoot = svgRoot;
 
@@ -47,7 +47,7 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
     | SVGBeatRenderer
     | SVGNoteRenderer
   )[] {
-    const tabLineElements = this.tabWindow.getTabLineElements();
+    const tabLineElements = this.tabController.getTabLineElements();
 
     // Check if there are any bar elements to remove
     const curBarElementUUIDs = new Set(tabLineElements.map((t) => t.uuid));
@@ -71,7 +71,7 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
       );
       if (renderedTLE === undefined) {
         const renderer = new SVGTabLineRenderer(
-          this.tabWindow,
+          this.tabController,
           tabLineElement,
           this._assetsPath,
           this._svgRoot
@@ -86,7 +86,7 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
   }
 
   public showSelectionPreview(noteElement: NoteElement) {
-    const selectedElement = this.tabWindow.getSelectedElement();
+    const selectedElement = this.tabController.getSelectedElement();
     if (
       selectedElement &&
       selectedElement.note.uuid === noteElement.note.uuid
@@ -108,7 +108,7 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
       this._svgRoot.appendChild(this._selectionPreviewRect);
     }
 
-    const noteTextCoords = this.tabWindow.getNoteTextGlobalCoords(noteElement);
+    const noteTextCoords = this.tabController.getNoteTextGlobalCoords(noteElement);
     const padding = 2;
     const width = `${noteElement.textRect.width + padding * 2}`;
     const height = `${noteElement.textRect.height + padding * 2}`;
@@ -150,19 +150,19 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
     if (this._playerAnimator === undefined) {
       this._playerAnimator = new TabPlayerSVGAnimator(
         this._playerCursor,
-        this.tabWindow
+        this.tabController
       );
       this._playerAnimator.bindToBeatChanged();
     }
 
-    const currentBeatElement = this.tabWindow.getPlayerCurrentBeatElement();
+    const currentBeatElement = this.tabController.getPlayerCurrentBeatElement();
 
     let cursorRect: Rect;
     if (currentBeatElement === undefined) {
       cursorRect = new Rect(0, 0, 0, 0);
     } else {
       const beatElementCoords =
-        this.tabWindow.getBeatElementGlobalCoords(currentBeatElement);
+        this.tabController.getBeatElementGlobalCoords(currentBeatElement);
 
       const playerCursorWidth = 5;
       const playerCursorAddHeight = 10;
@@ -205,15 +205,15 @@ export class TabWindowSVGRenderer implements TabWindowRenderer {
     const activeRenderers = this.renderTabLines();
 
     // Player overlay rect
-    if (this.tabWindow.getIsPlaying()) {
+    if (this.tabController.getIsPlaying()) {
       this.renderPlayerOverlay();
     } else {
       this.hidePlayerOverlay();
     }
 
     // Update SVG root height
-    const tabWindowHeight = this.tabWindow.getWindowHeight();
-    const VB = `0 0 ${this.tabWindow.dim.width} ${tabWindowHeight}`;
+    const tabWindowHeight = this.tabController.getWindowHeight();
+    const VB = `0 0 ${this.tabController.dim.width} ${tabWindowHeight}`;
     this._svgRoot.setAttribute("viewBox", VB);
     this._svgRoot.setAttribute("height", `${tabWindowHeight}`);
 
