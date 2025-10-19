@@ -10,8 +10,8 @@ import {
   SVGNoteRenderer,
   Score,
 } from ".";
-import { BendSelectorManager } from "./tab-window/render/bend-selectors/bend-selector-manager";
-import { EditPanel } from "./tab-window/render/panels/edit-panel";
+import { BendSelectorManager } from "./render/svg/bend-selectors/bend-selector-manager";
+import { EditPanel } from "./render/panels/edit-panel";
 
 export interface TabUIOptions {
   svgRoot: SVGSVGElement;

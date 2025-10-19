@@ -3,19 +3,19 @@ import { GuitarEffectType } from "../models/index";
 import { Beat } from "../models/index";
 import { Tab } from "./../models/index";
 import { Score } from "../models/index";
-import { NoteElement } from "./elements/note-element";
-import { BeatElement } from "./elements/beat-element";
+import { NoteElement } from "../elements/note-element";
+import { BeatElement } from "../elements/beat-element";
 import {
   SelectedElement,
   SelectedMoveDirection,
-} from "./elements/selected-element";
-import { TabElement } from "./elements/tab-element";
-import { TabLineElement } from "./elements/tab-line-element";
+} from "../elements/selected-element";
+import { TabElement } from "../elements/tab-element";
+import { TabLineElement } from "../elements/tab-line-element";
 import { TabWindowDim } from "./tab-window-dim";
 import { NoteDuration } from "./../models/index";
-import { TabPlayer } from "./player/tab-player";
-import { TabEditor } from "./editor/tab-editor";
-import { Point } from "./shapes/point";
+import { TabPlayer } from "../player/tab-player";
+import { TabEditor } from "../editor/tab-editor";
+import { Point } from "../shapes/point";
 
 /**
  * Class that handles creating a tab window.
