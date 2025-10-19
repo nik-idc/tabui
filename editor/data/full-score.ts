@@ -1,4 +1,4 @@
-import { Score } from "@/models";
+import { Score } from "@/index";
 import { leadTrack } from "./lead";
 import { rhythmTrack } from "./rhythm";
 import { bassTrack } from "./bass";

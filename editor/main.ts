@@ -1,6 +1,5 @@
-import { TabUI } from "@/index";
-import { getEl } from "@/index";
-// import { score } from "./multi-track-data";
+import { getEl } from "@/shared/misc/get-dom-element";
+import { TabUI } from "@/tabui";
 import { score } from "./data/full-score";
 
 // Get DOM references

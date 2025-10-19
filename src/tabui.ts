@@ -1,17 +1,16 @@
 import {
+  Score,
   TabWindow,
-  TabWindowDim,
   TabWindowSVGRenderer,
   TabWindowCallbackBinder,
+  TabWindowDim,
   TabWindowMouseDefCallbacks,
   TabWindowKeyboardDefCallbacks,
   SVGBarRenderer,
   SVGBeatRenderer,
   SVGNoteRenderer,
-  Score,
-} from ".";
-import { BendSelectorManager } from "./render/svg/bend-selectors/bend-selector-manager";
-import { EditPanel } from "./render/panels/edit-panel";
+} from "./notation";
+import { BendSelectorManager, EditPanel } from "./ui";
 
 export interface TabUIOptions {
   svgRoot: SVGSVGElement;
