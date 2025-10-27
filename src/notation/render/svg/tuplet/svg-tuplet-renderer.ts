@@ -1,8 +1,9 @@
 import { TabController, TupletElement } from "@/notation/element";
 import { Point, createSVGG, createSVGPath, createSVGText } from "@/shared";
 import { SVGTupletSegmentRenderer } from "./svg-tuplet-segment-renderer";
+import { ElementRenderer } from "../../element-renderer";
 
-export class SVGTupletRenderer {
+export class SVGTupletRenderer implements ElementRenderer {
   private _tabWindow: TabController;
   private _tupletElement: TupletElement;
   private _barOffset: Point;

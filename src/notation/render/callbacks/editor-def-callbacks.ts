@@ -303,14 +303,45 @@ export class EditorDefCallbacks {
 
   onKeyDown(event: KeyboardEvent): void {
     event.preventDefault();
-    let key = event.key;
+    const key = event.key.toLowerCase(); // normalize
 
-    if (KeyChecker.isNumber(key)) {
-      this.onNumberDown(key);
-    } else if (KeyChecker.isArrow(key)) {
-      this.onArrowDown(key);
-    } else if (KeyChecker.isBackspace(key)) {
-      this.onBackspacePress();
+    if (key.length !== 1 && key[0] === "f") {
+      return;
+    }
+
+    if (event.ctrlKey && !event.shiftKey) {
+      // CTRL+Key actions
+      if (key === "c") {
+        this.ctrlCEvent(event);
+      } else if (key === "v") {
+        this.ctrlVEvent(event);
+      } else if (key === "z") {
+        this.ctrlZEvent(event);
+      } else if (key === "y") {
+        this.ctrlYEvent(event);
+      }
+    } else if (!event.ctrlKey && event.shiftKey) {
+      // SHIFT+Key actions
+      if (key === "v") {
+        this.shiftVEvent(event);
+      } else if (key === "p") {
+        this.shiftPEvent(event);
+      } else if (key === "b") {
+        this.shiftBEvent(event);
+      }
+    } else if (!event.ctrlKey && !event.shiftKey) {
+      // Key actions
+      if (key === "Delete") {
+        this.deleteEvent(event);
+      } else if (key === " ") {
+        this.spaceEvent(event);
+      } else if (KeyChecker.isNumber(key)) {
+        this.onNumberDown(key);
+      } else if (KeyChecker.isArrow(key)) {
+        this.onArrowDown(key);
+      } else if (KeyChecker.isBackspace(key)) {
+        this.onBackspacePress();
+      }
     }
   }
 }

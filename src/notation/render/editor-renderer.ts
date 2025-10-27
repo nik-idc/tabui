@@ -1,3 +1,15 @@
-export abstract class EditorRenderer {
-  public abstract render(): void;
+import { NoteElement, TabController } from "../element";
+import { EditorCallbackBinder } from "./callbacks";
+import { ElementRenderer } from "./element-renderer";
+
+export interface EditorRenderer {
+  render(tabController: TabController): ElementRenderer[];
+
+  hideSelectionPreview(): void;
+  showSelectionPreview(
+    tabController: TabController,
+    noteElement: NoteElement
+  ): void;
+
+  unrender(): void;
 }

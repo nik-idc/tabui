@@ -1,73 +1,71 @@
-import { SelectedMoveDirection } from "@/notation/element";
+import { SelectedMoveDirection, TabController } from "@/notation/element";
 import { GuitarEffectType, GuitarEffectOptions } from "@/notation/model";
 import { KeyChecker } from "@/shared";
 import { BendSelectorManager } from "@/ui/bend-selectors";
-import {
-  EditorSVGRenderer,
-  SVGBarRenderer,
-  SVGBeatRenderer,
-  SVGNoteRenderer,
-} from "../../svg";
 import { EditorKeyboardCallbacks } from "../editor-keyboard-callbacks";
+import { EditorRenderer } from "../../editor-renderer";
+import { ElementRenderer } from "../../element-renderer";
 
-export class EditorKeyboardDefCallbacks
-  implements EditorKeyboardCallbacks
-{
+export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   readonly eventsTimeEpsilon: number = 250;
 
-  private _renderer: EditorSVGRenderer;
-  private _renderAndBind: (
-    activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
-  ) => void;
-  private _bendSelectorManager: BendSelectorManager;
+  readonly renderer: EditorRenderer;
+  readonly controller: TabController;
+  readonly bindAfterRender: (activeRenderers: ElementRenderer[]) => void;
+
+  private _bendSelectorManager?: BendSelectorManager;
 
   private _prevKeyPress?: { time: number; key: string };
 
   constructor(
-    renderer: EditorSVGRenderer,
-    renderAndBind: (
-      activeRenderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
-    ) => void,
-    bendSelectorManager: BendSelectorManager
+    renderer: EditorRenderer,
+    controller: TabController,
+    bindAfterRender: (activeRenderers: ElementRenderer[]) => void,
+    bendSelectorManager?: BendSelectorManager
   ) {
-    this._renderer = renderer;
-    this._renderAndBind = renderAndBind;
+    this.renderer = renderer;
+    this.controller = controller;
+    this.bindAfterRender = bindAfterRender;
     this._bendSelectorManager = bendSelectorManager;
   }
 
   public ctrlCEvent(event: KeyboardEvent): void {
     console.log("ctrCEvent");
-    this._renderer.tabController.copy();
+    this.controller.copy();
   }
 
   public ctrlVEvent(event: KeyboardEvent): void {
     console.log("ctrlVEvent");
-    this._renderer.tabController.paste();
-    this._renderAndBind(this._renderer.render());
+    this.controller.paste();
+
+    this.bindAfterRender(this.renderer.render(this.controller));
   }
 
   public ctrlZEvent(event: KeyboardEvent): void {
     console.log("ctrlZEvent");
-    this._renderer.tabController.undo();
-    this._renderAndBind(this._renderer.render());
+    this.controller.undo();
+
+    this.bindAfterRender(this.renderer.render(this.controller));
   }
 
   public ctrlYEvent(event: KeyboardEvent): void {
     console.log("ctrlYEvent");
-    this._renderer.tabController.redo();
-    this._renderAndBind(this._renderer.render());
+    this.controller.redo();
+
+    this.bindAfterRender(this.renderer.render(this.controller));
   }
 
   public deleteEvent(event: KeyboardEvent): void {
-    this._renderer.tabController.deleteSelectedBeats();
-    this._renderAndBind(this._renderer.render());
+    this.controller.deleteSelectedBeats();
+
+    this.bindAfterRender(this.renderer.render(this.controller));
   }
 
   public applyOrRemoveEffect(
     effectType: GuitarEffectType,
     options?: GuitarEffectOptions
   ): void {
-    const selected = this._renderer.tabController.getSelectedElement();
+    const selected = this.controller.getSelectedElement();
 
     if (selected === undefined) {
       return;
@@ -78,17 +76,12 @@ export class EditorKeyboardDefCallbacks
     });
 
     if (effectIndex === -1) {
-      console.log("APPLYING EFFECT");
-      const result = this._renderer.tabController.applyEffectSingle(
-        effectType,
-        options
-      );
-      console.log(`APPLY RESULT: ${result}`);
+      const result = this.controller.applyEffectSingle(effectType, options);
     } else {
-      this._renderer.tabController.removeEffectSingle(effectType, options);
+      this.controller.removeEffectSingle(effectType, options);
     }
 
-    this._renderAndBind(this._renderer.render());
+    this.bindAfterRender(this.renderer.render(this.controller));
   }
 
   public shiftVEvent(event: KeyboardEvent): void {
@@ -101,6 +94,11 @@ export class EditorKeyboardDefCallbacks
 
   public shiftBEvent(event: KeyboardEvent): void {
     event.preventDefault();
+
+    if (this._bendSelectorManager === undefined) {
+      return;
+    }
+
     this._bendSelectorManager.show(
       (effectType: GuitarEffectType, options: GuitarEffectOptions) => {
         this.applyOrRemoveEffect(effectType, options);
@@ -109,16 +107,17 @@ export class EditorKeyboardDefCallbacks
   }
 
   public spaceEvent(event: KeyboardEvent): void {
-    if (this._renderer.tabController.getIsPlaying()) {
-      this._renderer.tabController.stopPlayer();
+    if (this.controller.getIsPlaying()) {
+      this.controller.stopPlayer();
     } else {
-      this._renderer.tabController.startPlayer();
+      this.controller.startPlayer();
     }
-    this._renderAndBind(this._renderer.render());
+
+    this.bindAfterRender(this.renderer.render(this.controller));
   }
 
   public onNumberDown(key: string): void {
-    if (this._renderer.tabController.getSelectedElement() === undefined) {
+    if (this.controller.getSelectedElement() === undefined) {
       return;
     }
 
@@ -129,8 +128,9 @@ export class EditorKeyboardDefCallbacks
 
     if (this._prevKeyPress === undefined) {
       this._prevKeyPress = { time: new Date().getTime(), key: key };
-      this._renderer.tabController.setSelectedElementFret(newFret);
-      this._renderAndBind(this._renderer.render());
+      this.controller.setSelectedElementFret(newFret);
+
+      this.bindAfterRender(this.renderer.render(this.controller));
       return;
     }
 
@@ -139,37 +139,39 @@ export class EditorKeyboardDefCallbacks
     let combFret = Number.parseInt(this._prevKeyPress.key + key);
     newFret = timeDiff < this.eventsTimeEpsilon ? combFret : newFret;
 
-    this._renderer.tabController.setSelectedElementFret(newFret);
+    this.controller.setSelectedElementFret(newFret);
 
     this._prevKeyPress.time = now;
     this._prevKeyPress.key = key;
-    this._renderAndBind(this._renderer.render());
+
+    this.bindAfterRender(this.renderer.render(this.controller));
   }
 
   public onArrowDown(key: string): void {
-    if (this._renderer.tabController.getSelectedElement() === undefined) {
+    if (this.controller.getSelectedElement() === undefined) {
       return;
     }
 
     switch (key) {
-      case "ArrowDown":
-        this._renderer.tabController.moveSelectedNote(SelectedMoveDirection.Down);
+      case "arrowdown":
+        this.controller.moveSelectedNote(SelectedMoveDirection.Down);
         break;
-      case "ArrowUp":
-        this._renderer.tabController.moveSelectedNote(SelectedMoveDirection.Up);
+      case "arrowup":
+        this.controller.moveSelectedNote(SelectedMoveDirection.Up);
         break;
-      case "ArrowLeft":
-        this._renderer.tabController.moveSelectedNote(SelectedMoveDirection.Left);
+      case "arrowleft":
+        this.controller.moveSelectedNote(SelectedMoveDirection.Left);
         break;
-      case "ArrowRight":
-        this._renderer.tabController.moveSelectedNote(SelectedMoveDirection.Right);
+      case "arrowright":
+        this.controller.moveSelectedNote(SelectedMoveDirection.Right);
         break;
     }
-    this._renderAndBind(this._renderer.render());
+
+    this.bindAfterRender(this.renderer.render(this.controller));
   }
 
   public onBackspacePress(): void {
-    const selected = this._renderer.tabController.getSelectedElement();
+    const selected = this.controller.getSelectedElement();
 
     if (selected === undefined) {
       return;
@@ -179,8 +181,9 @@ export class EditorKeyboardDefCallbacks
       return;
     }
 
-    this._renderer.tabController.setSelectedElementFret(undefined);
-    this._renderAndBind(this._renderer.render());
+    this.controller.setSelectedElementFret(undefined);
+
+    this.bindAfterRender(this.renderer.render(this.controller));
   }
 
   public onCtrlDel(): void {
@@ -189,14 +192,41 @@ export class EditorKeyboardDefCallbacks
 
   public onKeyDown(event: KeyboardEvent): void {
     event.preventDefault();
-    let key = event.key;
+    const key = event.key.toLowerCase(); // normalize
+    if (key.length !== 1 && key[0] === "f") {
+      return;
+    }
 
-    if (KeyChecker.isNumber(key)) {
-      this.onNumberDown(key);
-    } else if (KeyChecker.isArrow(key)) {
-      this.onArrowDown(key);
-    } else if (KeyChecker.isBackspace(key)) {
-      this.onBackspacePress();
+    if (event.ctrlKey && !event.shiftKey) {
+      if (key === "c") {
+        this.ctrlCEvent(event);
+      } else if (key === "v") {
+        this.ctrlVEvent(event);
+      } else if (key === "z") {
+        this.ctrlZEvent(event);
+      } else if (key === "y") {
+        this.ctrlYEvent(event);
+      }
+    } else if (!event.ctrlKey && event.shiftKey) {
+      if (key === "v") {
+        this.shiftVEvent(event);
+      } else if (key === "p") {
+        this.shiftPEvent(event);
+      } else if (key === "b") {
+        this.shiftBEvent(event);
+      }
+    } else if (!event.ctrlKey && !event.shiftKey) {
+      if (key === "Delete") {
+        this.deleteEvent(event);
+      } else if (key === " ") {
+        this.spaceEvent(event);
+      } else if (KeyChecker.isNumber(key)) {
+        this.onNumberDown(key);
+      } else if (KeyChecker.isArrow(key)) {
+        this.onArrowDown(key);
+      } else if (KeyChecker.isBackspace(key)) {
+        this.onBackspacePress();
+      }
     }
   }
 }

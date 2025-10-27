@@ -1,22 +1,29 @@
+import { TabController } from "@/notation/element";
 import { GuitarEffectType, GuitarEffectOptions } from "@/notation/model";
+import { EditorRenderer } from "../editor-renderer";
+import { ElementRenderer } from "../element-renderer";
 
-export abstract class EditorKeyboardCallbacks {
-  public abstract ctrlCEvent(event: KeyboardEvent): void;
-  public abstract ctrlVEvent(event: KeyboardEvent): void;
-  public abstract ctrlZEvent(event: KeyboardEvent): void;
-  public abstract ctrlYEvent(event: KeyboardEvent): void;
-  public abstract deleteEvent(event: KeyboardEvent): void;
-  public abstract applyOrRemoveEffect(
+export interface EditorKeyboardCallbacks {
+  readonly renderer: EditorRenderer;
+  readonly controller: TabController;
+  readonly bindAfterRender: (activeRenderers: ElementRenderer[]) => void;
+
+  ctrlCEvent(event: KeyboardEvent): void;
+  ctrlVEvent(event: KeyboardEvent): void;
+  ctrlZEvent(event: KeyboardEvent): void;
+  ctrlYEvent(event: KeyboardEvent): void;
+  deleteEvent(event: KeyboardEvent): void;
+  applyOrRemoveEffect(
     effectType: GuitarEffectType,
     options?: GuitarEffectOptions
   ): void;
-  public abstract shiftVEvent(event: KeyboardEvent): void;
-  public abstract shiftPEvent(event: KeyboardEvent): void;
-  public abstract shiftBEvent(event: KeyboardEvent): void;
-  public abstract spaceEvent(event: KeyboardEvent): void;
-  public abstract onNumberDown(key: string): void;
-  public abstract onArrowDown(key: string): void;
-  public abstract onBackspacePress(): void;
-  public abstract onCtrlDel(): void;
-  public abstract onKeyDown(event: KeyboardEvent): void;
+  shiftVEvent(event: KeyboardEvent): void;
+  shiftPEvent(event: KeyboardEvent): void;
+  shiftBEvent(event: KeyboardEvent): void;
+  spaceEvent(event: KeyboardEvent): void;
+  onNumberDown(key: string): void;
+  onArrowDown(key: string): void;
+  onBackspacePress(): void;
+  onCtrlDel(): void;
+  onKeyDown(event: KeyboardEvent): void;
 }

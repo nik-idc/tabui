@@ -109,7 +109,7 @@ body {
   margin: 10px auto;
 }
 
-.play-controls {
+.play-controls-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -121,14 +121,14 @@ body {
   width: fit-content;
 }
 
-.play-controls img {
+.play-controls-container img {
   cursor: pointer;
   width: 24px;
   height: 24px;
   border-radius: 4px;
 }
 
-.play-controls img:hover {
+.play-controls-container img:hover {
   background-color: #eee;
 }
 

@@ -1,13 +1,14 @@
 import { TabController, BeatElement } from "@/notation/element";
-import { DURATION_TO_NAME } from "@/notation/model";
+import { DURATION_TO_NAME, NoteDuration } from "@/notation/model";
 import { Point, createSVGG, createSVGImage, createSVGRect } from "@/shared";
 import { SVGEffectLabelRenderer } from "./svg-effect-label-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
+import { ElementRenderer } from "../element-renderer";
 
 /**
  * Class for rendering a beat element using SVG
  */
-export class SVGBeatRenderer {
+export class SVGBeatRenderer implements ElementRenderer {
   private _tabWindow: TabController;
   private _beatElement: BeatElement;
   private _barOffset: Point;
@@ -262,10 +263,10 @@ export class SVGBeatRenderer {
           this._assetsPath,
           this._groupSVG
         );
-        renderer.renderEffectLabel();
+        renderer.render();
         this._renderedLabels.set(effectLabelElement.effect.uuid, renderer);
       } else {
-        renderedLabel.renderEffectLabel();
+        renderedLabel.render();
       }
     }
   }
@@ -319,12 +320,12 @@ export class SVGBeatRenderer {
           this._assetsPath,
           this._groupSVG
         );
-        renderer.renderNoteElement();
+        renderer.render();
         this._renderedNoteElements.set(noteElement.note.uuid, renderer);
         activeRenderers.push(renderer);
       } else {
         activeRenderers.push(renderedNote);
-        renderedNote.renderNoteElement(beatNotesOffset);
+        renderedNote.render(beatNotesOffset);
       }
     }
     return activeRenderers;
@@ -347,9 +348,7 @@ export class SVGBeatRenderer {
    * Render a full beat
    * @param newBarOffset Optional new bar offset
    */
-  public renderBeatElement(
-    newBarOffset?: Point
-  ): (SVGNoteRenderer | SVGBeatRenderer)[] {
+  public render(newBarOffset?: Point): (SVGNoteRenderer | SVGBeatRenderer)[] {
     this.renderGroup();
 
     // Calc offset for each element inside of this beat element

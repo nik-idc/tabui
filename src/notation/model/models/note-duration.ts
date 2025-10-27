@@ -17,3 +17,13 @@ export const DURATION_TO_NAME = {
   [NoteDuration.ThirtySecond]: "32",
   [NoteDuration.SixtyFourth]: "64",
 };
+
+export const DURATION_TO_DESC = {
+  [NoteDuration.Whole]: "Whole",
+  [NoteDuration.Half]: "Half",
+  [NoteDuration.Quarter]: "Quarter",
+  [NoteDuration.Eighth]: "Eighth",
+  [NoteDuration.Sixteenth]: "Sixteenth",
+  [NoteDuration.ThirtySecond]: "Thirty-second",
+  [NoteDuration.SixtyFourth]: "Sixty-fourth",
+};

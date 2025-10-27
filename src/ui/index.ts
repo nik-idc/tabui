@@ -1,3 +1,4 @@
 export * from "./bend-selectors";
-export * from "./panels";
-export * from "./template";
+export * from "../shared/misc/deprecated/events";
+export * from "../shared/misc/deprecated/template";
+export * from "./builder";

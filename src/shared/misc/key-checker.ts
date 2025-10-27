@@ -5,19 +5,19 @@ export class KeyChecker {
 
   static isArrow(key: string): boolean {
     return (
-      key == "ArrowDown" ||
-      key == "ArrowUp" ||
-      key == "ArrowRight" ||
-      key == "ArrowLeft"
+      key == "arrowdown" ||
+      key == "arrowup" ||
+      key == "arrowright" ||
+      key == "arrowleft"
     );
   }
 
   static isBackspace(key: string): boolean {
-    return key == "Backspace";
+    return key == "backspace";
   }
 
   static isDel(key: string): boolean {
-    return key == "Delete";
+    return key == "delete";
   }
 
   static isLetter(key: string): boolean {

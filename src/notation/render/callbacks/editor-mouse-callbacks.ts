@@ -1,37 +1,25 @@
-import { NoteElement, BeatElement } from "@/notation/element";
+import { NoteElement, BeatElement, TabController } from "@/notation/element";
+import { EditorRenderer } from "../editor-renderer";
+import { ElementRenderer } from "../element-renderer";
 
-export abstract class EditorMouseCallbacks {
-  public abstract onNoteClick(
-    event: MouseEvent,
-    noteElement: NoteElement
-  ): void;
+export interface EditorMouseCallbacks {
+  readonly renderer: EditorRenderer;
+  readonly controller: TabController;
+  readonly bindAfterRender: (activeRenderers: ElementRenderer[]) => void;
 
-  public abstract onNoteMouseEnter(
-    event: MouseEvent,
-    noteElement: NoteElement
-  ): void;
+  onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
 
-  public abstract onNoteMouseLeave(
-    event: MouseEvent,
-    noteElement: NoteElement
-  ): void;
+  onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void;
 
-  public abstract onBeatMouseDown(
-    event: MouseEvent,
-    beatElement: BeatElement
-  ): void;
+  onNoteMouseLeave(event: MouseEvent, noteElement: NoteElement): void;
 
-  public abstract onBeatMouseEnter(
-    event: MouseEvent,
-    beatElement: BeatElement
-  ): void;
+  onBeatMouseDown(event: MouseEvent, beatElement: BeatElement): void;
 
-  public abstract onBeatMouseMove(
-    event: MouseEvent,
-    beatElement: BeatElement
-  ): void;
+  onBeatMouseEnter(event: MouseEvent, beatElement: BeatElement): void;
 
-  public abstract onBeatMouseUp(): void;
+  onBeatMouseMove(event: MouseEvent, beatElement: BeatElement): void;
 
-  public abstract onWindowMouseUp(): void;
+  onBeatMouseUp(): void;
+
+  onWindowMouseUp(): void;
 }

@@ -3,11 +3,12 @@ import { Point } from "@/shared";
 import { SVGBarRenderer } from "./svg-bar-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
+import { ElementRenderer } from "../element-renderer";
 
 /**
  * Class for rendering a bar element using SVG
  */
-export class SVGTabLineRenderer {
+export class SVGTabLineRenderer implements ElementRenderer {
   private _tabWindow: TabController;
   private _tabLineElement: TabLineElement;
   private _assetsPath: string;
@@ -39,11 +40,7 @@ export class SVGTabLineRenderer {
   /**
    * Render tab line element
    */
-  public renderTabLine(): (
-    | SVGBarRenderer
-    | SVGBeatRenderer
-    | SVGNoteRenderer
-  )[] {
+  public render(): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
     const tleOffset = new Point(0, this._tabLineElement.rect.y);
 
     // Check if there are any bar elements to remove
@@ -75,11 +72,11 @@ export class SVGTabLineRenderer {
           this._svgRoot
         );
         activeRenderers.push(renderer);
-        activeRenderers.push(...renderer.renderBarElement());
+        activeRenderers.push(...renderer.render());
         this._renderedBarElements.set(barElement.bar.uuid, renderer);
       } else {
         activeRenderers.push(renderedBar);
-        activeRenderers.push(...renderedBar.renderBarElement(tleOffset));
+        activeRenderers.push(...renderedBar.render(tleOffset));
       }
     }
 

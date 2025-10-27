@@ -1,7 +1,8 @@
 import { TabController, BeatElement } from "@/notation/element";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
+import { ElementRenderer } from "../../element-renderer";
 
-export class SVGTupletSegmentRenderer {
+export class SVGTupletSegmentRenderer implements ElementRenderer {
   private _tabWindow: TabController;
   private _beatElement: BeatElement;
   private _barOffset: Point;

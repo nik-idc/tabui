@@ -1,11 +1,12 @@
 import { TabController, NoteElement } from "@/notation/element";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { SVGEffectRenderer } from "./svg-guitar-effect-renderer";
+import { ElementRenderer } from "../element-renderer";
 
 /**
  * Class for rendering a note element using SVG
  */
-export class SVGNoteRenderer {
+export class SVGNoteRenderer implements ElementRenderer {
   private _tabWindow: TabController;
   private _noteElement: NoteElement;
   private _beatNotesOffset: Point;
@@ -284,7 +285,7 @@ export class SVGNoteRenderer {
    * Render the full note element
    * @param newBeatNotesOffset Optional new beat notes offset
    */
-  public renderNoteElement(newBeatNotesOffset?: Point): void {
+  public render(newBeatNotesOffset?: Point): void {
     this.renderGroup();
 
     if (this._groupSVG === undefined) {
@@ -347,10 +348,10 @@ export class SVGNoteRenderer {
           this._assetsPath,
           this._groupSVG
         );
-        renderer.renderEffect();
+        renderer.render();
         this._renderedEffects.set(effectElement.effect.uuid, renderer);
       } else {
-        renderedEffect.renderEffect(noteOffset);
+        renderedEffect.render(noteOffset);
       }
     }
   }

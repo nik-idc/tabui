@@ -4,7 +4,7 @@ import {
   GuitarEffectType,
   GuitarEffectOptions,
 } from "@/notation/model";
-import { BendSelectorManager } from "../bend-selectors";
+import { BendSelectorManager } from "../../../../ui/bend-selectors";
 import { InputModal } from "./input-modal";
 
 const NAME_TO_DURATION: { [key: string]: NoteDuration } = {
@@ -20,7 +20,7 @@ const NAME_TO_DURATION: { [key: string]: NoteDuration } = {
 export class EditPanel {
   private tabController: TabController;
   private sideControls: HTMLElement;
-  private renderAndBind: () => void;
+  private bindAfterRender: () => void;
   private bendSelectorManager: BendSelectorManager;
   private inputModal: InputModal;
   private boundSideControlsClickHandler: (event: MouseEvent) => void;
@@ -28,12 +28,12 @@ export class EditPanel {
   constructor(
     tabController: TabController,
     sideControls: HTMLElement,
-    renderAndBind: () => void,
+    bindAfterRender: () => void,
     bendSelectorManager: BendSelectorManager
   ) {
     this.tabController = tabController;
     this.sideControls = sideControls;
-    this.renderAndBind = renderAndBind;
+    this.bindAfterRender = bindAfterRender;
     this.bendSelectorManager = bendSelectorManager;
     this.inputModal = new InputModal();
 
@@ -110,7 +110,7 @@ export class EditPanel {
         const newTempo = parseInt(values["tempo"], 10);
         if (!isNaN(newTempo)) {
           this.tabController.changeSelectedBarTempo(newTempo);
-          this.renderAndBind();
+          this.bindAfterRender();
         }
       }
     );
@@ -133,7 +133,7 @@ export class EditPanel {
         if (!isNaN(newBeats) && newDuration) {
           this.tabController.changeSelectedBarBeats(newBeats);
           this.tabController.changeSelectedBarDuration(newDuration);
-          this.renderAndBind();
+          this.bindAfterRender();
         }
       }
     );
@@ -141,23 +141,23 @@ export class EditPanel {
 
   private handleRepeatStartClick(): void {
     this.tabController.setSelectedBarRepeatStart();
-    this.renderAndBind();
+    this.bindAfterRender();
   }
 
   private handleRepeatEndClick(): void {
     this.tabController.setSelectedBarRepeatEnd();
-    this.renderAndBind();
+    this.bindAfterRender();
   }
 
   private handleDurationClick(duration: string): void {
     const newDuration = 1 / parseInt(duration, 10);
     this.tabController.changeSelectedBeatDuration(newDuration as NoteDuration);
-    this.renderAndBind();
+    this.bindAfterRender();
   }
 
   private handleDotClick(newDots: string): void {
     this.tabController.setSelectedBeatDots(Number(newDots));
-    this.renderAndBind();
+    this.bindAfterRender();
   }
 
   private handleEffectClick(effect: string): void {
@@ -178,7 +178,7 @@ export class EditPanel {
       case "palm-mute":
         effectType = GuitarEffectType.PalmMute;
         break;
-      case "natural-harmonic":
+      case "nat-harmonic":
         effectType = GuitarEffectType.NaturalHarmonic;
         break;
       case "pinch-harmonic":
@@ -202,11 +202,11 @@ export class EditPanel {
   private handleTupletClick(tuplet: string): void {
     if (tuplet === "3") {
       this.tabController.setSelectedBeatsTuplet(3, 2);
-      this.renderAndBind();
+      this.bindAfterRender();
       return;
     } else if (tuplet === "2") {
       this.tabController.setSelectedBeatsTuplet(2, 1);
-      this.renderAndBind();
+      this.bindAfterRender();
       return;
     }
 
@@ -221,7 +221,7 @@ export class EditPanel {
         const newTupletCount = parseInt(values["tupletCount"], 10);
         if (!isNaN(newNormalCount) && !isNaN(newTupletCount)) {
           this.tabController.setSelectedBeatsTuplet(newNormalCount, newTupletCount);
-          this.renderAndBind();
+          this.bindAfterRender();
         }
       }
     );
@@ -247,6 +247,6 @@ export class EditPanel {
       this.tabController.removeEffectSingle(effectType, options);
     }
 
-    this.renderAndBind();
+    this.bindAfterRender();
   }
 }

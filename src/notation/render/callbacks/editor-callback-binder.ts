@@ -1,141 +1,101 @@
+import { ElementRenderer } from "../element-renderer";
 import { SVGBarRenderer, SVGBeatRenderer, SVGNoteRenderer } from "../svg";
 import { EditorKeyboardCallbacks } from "./editor-keyboard-callbacks";
 import { EditorMouseCallbacks } from "./editor-mouse-callbacks";
 
 export class EditorCallbackBinder {
-  private _mouseCallbacks: EditorMouseCallbacks;
-  private _keyboardCallbacks: EditorKeyboardCallbacks;
-  private _keyboardBound = false;
   private _globalMouseEventsBound = false;
+  private _keyboardBound = false;
+  private _boundOnWindowMouseUp?: (event: MouseEvent) => void;
+  private _boundOnKeyDown?: (event: KeyboardEvent) => void;
 
-  private _boundOnWindowMouseUp: (
-    this: EditorMouseCallbacks,
-    ev: MouseEvent
-  ) => any;
-  private _boundOnKeyDown: (event: KeyboardEvent) => void;
+  private bindGlobalMouseEvents(mouseCallbacks: EditorMouseCallbacks): void {
+    if (this._globalMouseEventsBound) {
+      return;
+    }
 
-  constructor(
-    mouseCallbacks: EditorMouseCallbacks,
-    keyboardCallbacks: EditorKeyboardCallbacks
-  ) {
-    this._mouseCallbacks = mouseCallbacks;
-    this._keyboardCallbacks = keyboardCallbacks;
-
-    this._boundOnWindowMouseUp = this._mouseCallbacks.onWindowMouseUp.bind(
-      this._mouseCallbacks
-    );
-    this._boundOnKeyDown = (event: KeyboardEvent) => {
-      const key = event.key.toLowerCase(); // normalize
-      if (key.length !== 1 && key[0] === "f") {
-        return;
-      }
-
-      if (event.ctrlKey && !event.shiftKey) {
-        if (key === "c") {
-          this._keyboardCallbacks.ctrlCEvent(event);
-        } else if (key === "v") {
-          this._keyboardCallbacks.ctrlVEvent(event);
-        } else if (key === "z") {
-          this._keyboardCallbacks.ctrlZEvent(event);
-        } else if (key === "y") {
-          this._keyboardCallbacks.ctrlYEvent(event);
-        }
-      } else if (!event.ctrlKey && event.shiftKey) {
-        if (key === "v") {
-          this._keyboardCallbacks.shiftVEvent(event);
-        } else if (key === "p") {
-          this._keyboardCallbacks.shiftPEvent(event);
-        } else if (key === "b") {
-          this._keyboardCallbacks.shiftBEvent(event);
-        }
-      } else if (!event.ctrlKey && !event.shiftKey) {
-        if (key === "Delete") {
-          this._keyboardCallbacks.deleteEvent(event);
-        } else if (key === " ") {
-          this._keyboardCallbacks.spaceEvent(event);
-        } else {
-          this._keyboardCallbacks.onKeyDown(event);
-        }
-      }
-    };
-  }
-
-  private bindGlobalMouseEvents(): void {
-    window.addEventListener(
-      "mouseup",
-      this._boundOnWindowMouseUp.bind(this._mouseCallbacks)
-    );
-
+    this._boundOnWindowMouseUp =
+      mouseCallbacks.onWindowMouseUp.bind(mouseCallbacks);
+    window.addEventListener("mouseup", this._boundOnWindowMouseUp);
     this._globalMouseEventsBound = true;
   }
 
   private bindMouseEvents(
-    renderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+    mouseCallbacks: EditorMouseCallbacks,
+    renderers: ElementRenderer[]
   ): void {
     for (const renderer of renderers) {
       if (renderer instanceof SVGBeatRenderer) {
         renderer.attachMouseEvent(
           "mousedown",
-          this._mouseCallbacks.onBeatMouseDown.bind(this._mouseCallbacks)
+          mouseCallbacks.onBeatMouseDown.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
           "mouseenter",
-          this._mouseCallbacks.onBeatMouseEnter.bind(this._mouseCallbacks)
+          mouseCallbacks.onBeatMouseEnter.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
           "mousemove",
-          this._mouseCallbacks.onBeatMouseMove.bind(this._mouseCallbacks)
+          mouseCallbacks.onBeatMouseMove.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
           "mouseup",
-          this._mouseCallbacks.onBeatMouseUp.bind(this._mouseCallbacks)
+          mouseCallbacks.onBeatMouseUp.bind(mouseCallbacks)
         );
       } else if (renderer instanceof SVGNoteRenderer) {
         renderer.attachMouseEvent(
           "click",
-          this._mouseCallbacks.onNoteClick.bind(this._mouseCallbacks)
+          mouseCallbacks.onNoteClick.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
           "mouseenter",
-          this._mouseCallbacks.onNoteMouseEnter.bind(this._mouseCallbacks)
+          mouseCallbacks.onNoteMouseEnter.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
           "mouseleave",
-          this._mouseCallbacks.onNoteMouseLeave.bind(this._mouseCallbacks)
+          mouseCallbacks.onNoteMouseLeave.bind(mouseCallbacks)
         );
       }
     }
   }
 
-  private bindKeyboardEvents(): void {
+  private bindKeyboardEvents(keyboardCallbacks: EditorKeyboardCallbacks): void {
     if (this._keyboardBound) {
       return;
     }
+
+    this._boundOnKeyDown = keyboardCallbacks.onKeyDown.bind(keyboardCallbacks);
     document.addEventListener("keydown", this._boundOnKeyDown);
     this._keyboardBound = true;
   }
 
   public bind(
-    renderers: (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[]
+    mouseCallbacks: EditorMouseCallbacks,
+    keyboardCallbacks: EditorKeyboardCallbacks,
+    renderers: ElementRenderer[]
   ): void {
     if (!this._globalMouseEventsBound) {
-      this.bindGlobalMouseEvents();
+      this.bindGlobalMouseEvents(mouseCallbacks);
     }
 
-    this.bindMouseEvents(renderers);
-    this.bindKeyboardEvents();
+    this.bindMouseEvents(mouseCallbacks, renderers);
+    this.bindKeyboardEvents(keyboardCallbacks);
   }
 
   public dispose(): void {
-    if (this._globalMouseEventsBound) {
-      window.removeEventListener(
-        "mouseup",
-        this._boundOnWindowMouseUp.bind(this._mouseCallbacks)
-      );
+    if (
+      this._globalMouseEventsBound &&
+      this._boundOnWindowMouseUp !== undefined
+    ) {
+      window.removeEventListener("mouseup", this._boundOnWindowMouseUp);
+
+      this._boundOnWindowMouseUp = undefined;
       this._globalMouseEventsBound = false;
     }
-    if (this._keyboardBound) {
+    if (this._keyboardBound && this._boundOnKeyDown !== undefined) {
       document.removeEventListener("keydown", this._boundOnKeyDown);
+
+      this._boundOnKeyDown = undefined;
       this._keyboardBound = false;
     }
   }

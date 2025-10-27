@@ -1,10 +1,11 @@
 import { TabController, EffectLabelElement } from "@/notation/element";
 import { Point, createSVGG } from "@/shared";
+import { ElementRenderer } from "../element-renderer";
 
 /**
  * Class for rendering an effect label using SVG
  */
-export class SVGEffectLabelRenderer {
+export class SVGEffectLabelRenderer implements ElementRenderer {
   private _tabWindow: TabController;
   private _effectLabelElement: EffectLabelElement;
   private _beatOffset: Point;
@@ -56,7 +57,7 @@ export class SVGEffectLabelRenderer {
    * @param beatOffset Global offset of the beat
    * @param this._effectLabelElement Effect label element to render
    */
-  public renderEffectLabel(): void {
+  public render(): void {
     this.renderGroup();
 
     if (this._groupSVG === undefined) {

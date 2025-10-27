@@ -11,6 +11,7 @@ import {
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGTupletRenderer, SVGTupletSegmentRenderer } from "./tuplet";
+import { ElementRenderer } from "../element-renderer";
 
 type BeamSegmentSVG = {
   longSVG: SVGImageElement;
@@ -20,7 +21,7 @@ type BeamSegmentSVG = {
 /**
  * Class for rendering a bar element using SVG
  */
-export class SVGBarRenderer {
+export class SVGBarRenderer implements ElementRenderer {
   private _tabWindow: TabController;
   private _barElement: BarElement;
   private _tleOffset: Point;
@@ -726,9 +727,7 @@ export class SVGBarRenderer {
    * Render bar element
    * @param newTLEOffset New optinal tab line element offset
    */
-  public renderBarElement(
-    newTLEOffset?: Point
-  ): (SVGBeatRenderer | SVGNoteRenderer)[] {
+  public render(newTLEOffset?: Point): (SVGBeatRenderer | SVGNoteRenderer)[] {
     this.renderGroup();
 
     if (this._groupSVG === undefined) {
@@ -808,11 +807,11 @@ export class SVGBarRenderer {
           this._groupSVG
         );
         activeRenderers.push(renderer);
-        activeRenderers.push(...renderer.renderBeatElement());
+        activeRenderers.push(...renderer.render());
         this._renderedBeatElements.set(beatElement.beat.uuid, renderer);
       } else {
         activeRenderers.push(renderedBeat);
-        activeRenderers.push(...renderedBeat.renderBeatElement(barOffset));
+        activeRenderers.push(...renderedBeat.render(barOffset));
       }
     }
     return activeRenderers;

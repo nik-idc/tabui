@@ -1,10 +1,11 @@
 import { TabController, GuitarEffectElement } from "@/notation/element";
 import { Point, createSVGG, createSVGRect } from "@/shared";
+import { ElementRenderer } from "../element-renderer";
 
 /**
  * Class for rendering a guitar effect element using SVG
  */
-export class SVGEffectRenderer {
+export class SVGEffectRenderer implements ElementRenderer {
   private _tabWindow: TabController;
   private _effectElement: GuitarEffectElement;
   private _noteOffset: Point;
@@ -151,7 +152,7 @@ export class SVGEffectRenderer {
   /**
    * Render a note's effect
    */
-  public renderEffect(newNoteOffset?: Point): void {
+  public render(newNoteOffset?: Point): void {
     if (newNoteOffset !== undefined) {
       this._noteOffset = newNoteOffset;
     }
