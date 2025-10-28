@@ -144,6 +144,26 @@ export class TabEditor {
     this.tabElement.calc();
   }
 
+  public setSelectionDots(newDots: number): void {
+    if (this._selectionManager.selectedElement !== undefined) {
+      throw Error("Can't set selection dots, selected note is defined");
+    }
+
+    this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
+
+    this._tab.setMultipleDots(this._selectionManager.selectionBeats, newDots);
+    this.tabElement.calc();
+  }
+
+  public setDots(newDots: number): void {
+    if (this._selectionManager.selectedElement === undefined) {
+      this.setSelectionDots(newDots);
+    } else {
+      this.setSelectedBeatDots(newDots);
+    }
+  }
+
   public setSelectedBeatsTuplet(
     normalCount: number,
     tupletCount: number
@@ -328,6 +348,61 @@ export class TabEditor {
     }
   }
 
+  private setEffectSingle(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    const selectedElement = this._selectionManager.selectedElement;
+    if (selectedElement === undefined) {
+      throw Error("Set effect single called but selected element undefined");
+    }
+
+    const applyRes = this._tab.setEffectNote(
+      selectedElement.barId,
+      selectedElement.beatId,
+      selectedElement.stringNum,
+      effectType,
+      effectOptions
+    );
+
+    this.tabElement.calc();
+
+    return applyRes;
+  }
+
+  private setEffectMultiple(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    if (this._selectionManager.selectedElement !== undefined) {
+      throw new Error(
+        "Can't set effect for multiple notes, selected element defined"
+      );
+    }
+
+    this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
+
+    const applyRes = this._tab.setEffectBeats(
+      this._selectionManager.selectionBeats,
+      effectType,
+      effectOptions
+    );
+
+    this.tabElement.calc();
+
+    return applyRes;
+  }
+
+  public setEffect(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    return this._selectionManager.selectedElement !== undefined
+      ? this.setEffectSingle(effectType, effectOptions)
+      : this.setEffectMultiple(effectType, effectOptions);
+  }
+
   public getSelectedElement(): SelectedElement | undefined {
     return this._selectionManager.selectedElement;
   }
@@ -382,6 +457,19 @@ export class TabEditor {
     this.redoStack.splice(0, this.redoStack.length);
 
     this._selectionManager.changeSelectionDuration(newDuration);
+    this.tabElement.calc();
+  }
+
+  public changeDuration(newDuration: NoteDuration): void {
+    this.undoStack.push(this._tab.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
+
+    if (this._selectionManager.selectedElement !== undefined) {
+      this.changeSelectedBeatDuration(newDuration);
+    } else {
+      this.changeSelectionDuration(newDuration);
+    }
+
     this.tabElement.calc();
   }
 

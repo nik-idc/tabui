@@ -18,7 +18,7 @@ export function bindNoteControlsEvents(
   template.dot1Button.addEventListener("click", () =>
     eventHandlers.onDotClicked(1, notationView)
   );
-  template.dot1Button.addEventListener("click", () =>
+  template.dot2Button.addEventListener("click", () =>
     eventHandlers.onDotClicked(2, notationView)
   );
 

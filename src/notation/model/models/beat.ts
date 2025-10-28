@@ -106,7 +106,11 @@ export class Beat {
    * @param newSettings Tuplet settings (unsets tuplet if undefined)
    */
   public setTupletGroupSettings(newSettings?: TupletSettings): void {
-    if (newSettings === undefined) {
+    const sameSettings =
+      newSettings?.normalCount === this._tupletSettings?.normalCount ||
+      newSettings?.tupletCount === this._tupletSettings?.tupletCount;
+
+    if (newSettings === undefined || sameSettings) {
       this._tupletSettings = undefined;
       return;
     }

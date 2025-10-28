@@ -1,6 +1,11 @@
 import { Bar } from "./bar";
 import { Beat } from "./beat";
 import { Guitar } from "./guitar";
+import {
+  EFFECT_TYPE_MULTI_NOTE_MAP,
+  EFFECT_TYPE_TO_SCOPE,
+  GuitarEffectScope,
+} from "./guitar-effect";
 import { GuitarEffect } from "./guitar-effect/guitar-effect";
 import { GuitarEffectOptions } from "./guitar-effect/guitar-effect-options";
 import { GuitarEffectType } from "./guitar-effect/guitar-effect-type";
@@ -277,6 +282,13 @@ export class Tab {
     beat.setDots(newDots);
     bar.computeBeaming();
     // bar.durationsFit;
+  }
+
+  public setMultipleDots(beats: Beat[], newDots: number): void {
+    for (const beat of beats) {
+      const [barIndex, beatIndex] = this.findBeatsBarIndices(beat);
+      this.setDots(barIndex, beatIndex, newDots);
+    }
   }
 
   public setTupletBeats(
@@ -693,6 +705,137 @@ export class Tab {
     note.effects.splice(effectIndex, 1);
   }
 
+  private beatHasNoteWithEffect(
+    barIndex: number,
+    beatIndex: number,
+    effectType: GuitarEffectType
+  ): boolean {
+    const beat = this._bars[barIndex].beats[beatIndex];
+
+    for (const note of beat.notes) {
+      for (const effect of note.effects) {
+        if (effect.effectType === effectType) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private removeEffectFromBeat(
+    barIndex: number,
+    beatIndex: number,
+    effectType: GuitarEffectType
+  ): void {
+    const beat = this._bars[barIndex].beats[beatIndex];
+
+    for (const note of beat.notes) {
+      const effectIndex = note.effects.findIndex(
+        (e) => e.effectType === effectType
+      );
+      if (note.effects.length === 0 || effectIndex === -1) {
+        continue;
+      }
+
+      note.effects.splice(effectIndex, 1);
+    }
+  }
+
+  /**
+   * Sets effect, i.e. applies/removes it.
+   * @param barIndex Bar index
+   * @param beatIndex Beat index
+   * @param stringNum String number
+   * @param effectType Effect type
+   * @param effectOptions Effect options
+   * @returns True if effect applied, false if not applied/removed
+   */
+  public setEffectNote(
+    barIndex: number,
+    beatIndex: number,
+    stringNum: number,
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    const beat = this._bars[barIndex].beats[beatIndex];
+    const note = beat.notes[stringNum - 1];
+
+    const effectIndex = note.effects.findIndex(
+      (e) => e.effectType === effectType
+    );
+    const beatHasEffect = this.beatHasNoteWithEffect(
+      barIndex,
+      beatIndex,
+      effectType
+    );
+    if (effectIndex === -1 && !beatHasEffect) {
+      return this.applyEffectToNote(
+        barIndex,
+        beatIndex,
+        stringNum,
+        effectType,
+        effectOptions
+      );
+    } else {
+      if (EFFECT_TYPE_MULTI_NOTE_MAP[effectType]) {
+        this.removeEffectFromBeat(barIndex, beatIndex, effectType);
+      } else {
+        this.removeEffectFromNote(barIndex, beatIndex, stringNum, effectIndex);
+      }
+      return false;
+    }
+  }
+
+  public setEffectBeats(
+    beats: Beat[],
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    if (!EFFECT_TYPE_MULTI_NOTE_MAP[effectType]) {
+      throw new Error(
+        "Attempted to set effect to beats that can only be set to single note"
+      );
+    }
+
+    let result = true;
+    let prevApplyResult: boolean | undefined;
+
+    for (let i = 0; i < beats.length; i++) {
+      const beat = beats[i];
+      const [barIndex, beatIndex] = this.findBeatsBarIndices(beat);
+      for (let j = 0; j < beat.notes.length; j++) {
+        const note = beat.notes[j];
+        const curApplyResult = this.setEffectNote(
+          barIndex,
+          beatIndex,
+          note.stringNum,
+          effectType,
+          effectOptions
+        );
+
+        // This is really really bad
+        // Will have to implement effects as 2:
+        // - Note level effects (note.effects)
+        // - Beat level effects (beat.effects)
+        if (EFFECT_TYPE_MULTI_NOTE_MAP[effectType]) {
+          break;
+        }
+
+        if (prevApplyResult === undefined) {
+          prevApplyResult = curApplyResult;
+          continue;
+        }
+
+        if (curApplyResult !== prevApplyResult) {
+          result = false;
+        }
+      }
+    }
+
+    return result;
+  }
+
   /**
    * Applies effects to all notes in specified beats
    * @param beats Beats array
@@ -802,6 +945,28 @@ export class Tab {
     return notesSeq.find((note) => {
       return note.uuid === noteUUID;
     });
+  }
+
+  /**
+   * Finds beat's bar index and its own index inside the bar
+   * @param beat Beat
+   * @returns Array of indices: [0] - barIndex, [1] - beatIndex within bar
+   */
+  public findBeatsBarIndices(beat: Beat): number[] {
+    const barIndex = this._bars.findIndex((b) => {
+      return b.beats.includes(beat);
+    });
+
+    if (barIndex === -1) {
+      throw Error("Beat is not in the tab");
+    }
+
+    const beatIndex = this._bars[barIndex].beats.indexOf(beat);
+    if (beatIndex === -1) {
+      throw Error("Beat is not in the tab");
+    }
+
+    return [barIndex, beatIndex];
   }
 
   public findBeatsBar(beat: Beat): Bar {

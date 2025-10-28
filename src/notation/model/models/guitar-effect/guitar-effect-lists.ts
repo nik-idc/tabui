@@ -147,3 +147,20 @@ export const EFFECT_TYPE_TO_SCOPE = {
   [GuitarEffectType.NaturalHarmonic]: GuitarEffectScope.NoteLevelEffect,
   [GuitarEffectType.PalmMute]: GuitarEffectScope.PhraseLevelEffect,
 };
+
+/**
+ * Maps effect type to possibility of applying it to multiple
+ * notes at the same time
+ */
+export const EFFECT_TYPE_MULTI_NOTE_MAP = {
+  [GuitarEffectType.Bend]: false,
+  [GuitarEffectType.BendAndRelease]: false,
+  [GuitarEffectType.Prebend]: false,
+  [GuitarEffectType.PrebendAndRelease]: false,
+  [GuitarEffectType.Vibrato]: true,
+  [GuitarEffectType.Slide]: true,
+  [GuitarEffectType.HammerOnOrPullOff]: true,
+  [GuitarEffectType.PinchHarmonic]: false,
+  [GuitarEffectType.NaturalHarmonic]: false,
+  [GuitarEffectType.PalmMute]: true,
+};

@@ -140,6 +140,10 @@ export class TabController {
     this._tabEditor.setSelectedBeatDots(newDots);
   }
 
+  public setDots(newDots: number): void {
+    this._tabEditor.setDots(newDots);
+  }
+
   public setSelectedBeatsTuplet(
     normalCount: number,
     tupletCount: number
@@ -183,6 +187,13 @@ export class TabController {
     effectOptions?: GuitarEffectOptions
   ): void {
     this._tabEditor.removeEffectSingle(effectType, effectOptions);
+  }
+
+  public setEffect(
+    effectType: GuitarEffectType,
+    effectOptions?: GuitarEffectOptions
+  ): boolean {
+    return this._tabEditor.setEffect(effectType, effectOptions);
   }
 
   public getSelectedElement(): SelectedElement | undefined {
@@ -248,6 +259,10 @@ export class TabController {
 
   public changeSelectionDuration(newDuration: NoteDuration): void {
     this._tabEditor.changeSelectionDuration(newDuration);
+  }
+
+  public changeDuration(newDuration: NoteDuration): void {
+    this._tabEditor.changeDuration(newDuration);
   }
 
   public getSelectionBeats(): Beat[] {

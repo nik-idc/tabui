@@ -10,15 +10,29 @@ export class NoteControlsDefaultEventHandler
     noteDuration: NoteDuration,
     notationView: NotationView
   ): void {
-    notationView.tabController.changeSelectedBeatDuration(noteDuration);
+    // notationView.tabController.changeSelectedBeatDuration(noteDuration);
+    // notationView.tabController.changeSelectionDuration(noteDuration);
+    notationView.tabController.changeDuration(noteDuration);
     notationView.renderAndBind();
   }
+
   onDotClicked(dots: number, notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+    // notationView.tabController.setSelectedBeatDots(dots);
+    notationView.tabController.setDots(dots);
+    notationView.renderAndBind();
   }
+
   onTupletNormalClicked(normalCount: number, notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+    if (normalCount < 2) {
+      throw Error("Tuplet normal count has to be >= 2");
+    }
+    notationView.tabController.setSelectedBeatsTuplet(
+      normalCount,
+      normalCount - 1
+    );
+    notationView.renderAndBind();
   }
+
   onTupletClicked(notationView: NotationView): void {
     throw new Error("Method not implemented.");
   }
