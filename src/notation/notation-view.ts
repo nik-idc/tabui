@@ -1,4 +1,3 @@
-import { TemplateBuilder, BendSelectorManager, EditPanel } from "@/ui";
 import { TabController, TabControllerDim } from "./element";
 import { Score, Tab } from "./model";
 import {
@@ -6,14 +5,10 @@ import {
   EditorCallbackBinder,
   EditorMouseDefCallbacks,
   EditorKeyboardDefCallbacks,
-  SVGBarRenderer,
-  SVGBeatRenderer,
-  SVGNoteRenderer,
   EditorMouseCallbacks,
   EditorKeyboardCallbacks,
   EditorRenderer,
 } from "./render";
-import { createSVG } from "@/shared";
 import { ElementRenderer } from "./render/element-renderer";
 
 /**

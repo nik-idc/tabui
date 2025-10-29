@@ -12,9 +12,13 @@ export class MeasureControlsDefaultEventHandler
     throw new Error("Method not implemented.");
   }
   onRepeatStartClicked(notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+    // throw new Error("Method not implemented.");
+    notationView.tabController.setSelectedBarRepeatStart();
+    notationView.renderAndBind();
   }
   onRepeatEndClicked(notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+    // throw new Error("Method not implemented.");
+    notationView.tabController.setSelectedBarRepeatEnd();
+    notationView.renderAndBind();
   }
 }
