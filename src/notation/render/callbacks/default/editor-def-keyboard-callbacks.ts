@@ -1,7 +1,7 @@
 import { SelectedMoveDirection, TabController } from "@/notation/element";
 import { GuitarEffectType, GuitarEffectOptions } from "@/notation/model";
 import { KeyChecker } from "@/shared";
-import { BendSelectorManager } from "@/ui/bend-selectors";
+import { BendSelectorManager } from "@/ui/side-controls/effect-controls/bend-controls/bend-selectors";
 import { EditorKeyboardCallbacks } from "../editor-keyboard-callbacks";
 import { EditorRenderer } from "../../editor-renderer";
 import { ElementRenderer } from "../../element-renderer";

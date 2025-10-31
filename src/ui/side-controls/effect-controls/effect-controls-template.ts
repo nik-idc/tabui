@@ -1,3 +1,5 @@
+import { BendControlsTemplate } from "./bend-controls/bend-controls-template";
+
 /**
  * Interface defining the template of effect controls:
  * - Vibrato
@@ -20,4 +22,6 @@ export interface EffectControlsTemplate {
   readonly pullOffButton: HTMLImageElement;
   readonly slideButton: HTMLImageElement;
   readonly bendButton: HTMLImageElement;
+
+  readonly bendControlsTemplate: BendControlsTemplate;
 }

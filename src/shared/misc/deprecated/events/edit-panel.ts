@@ -4,7 +4,7 @@ import {
   GuitarEffectType,
   GuitarEffectOptions,
 } from "@/notation/model";
-import { BendSelectorManager } from "../../../../ui/bend-selectors";
+import { BendSelectorManager } from "../../../../ui/side-controls/effect-controls/bend-controls/bend-selectors";
 import { InputModal } from "./input-modal";
 
 const NAME_TO_DURATION: { [key: string]: NoteDuration } = {

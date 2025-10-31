@@ -1,4 +1,3 @@
-
 import { EffectControlsTemplate } from "./effect-controls-template";
 import { EffectControlsEventHandler } from "./effect-controls-event-handler";
 import { NotationView } from "@/notation/notation-view";
@@ -30,6 +29,6 @@ export function bindEffectControlsEvents(
     eventHandlers.onSlideClicked(notationView)
   );
   template.bendButton.addEventListener("click", () =>
-    eventHandlers.onBendClicked(notationView)
+    eventHandlers.onBendClicked(notationView, template.bendControlsTemplate)
   );
 }

@@ -38,6 +38,10 @@ export function createSVG(): SVGSVGElement {
   return document.createElementNS("http://www.w3.org/2000/svg", "svg");
 }
 
+export function createDialog(): HTMLDialogElement {
+  return document.createElement("dialog");
+}
+
 export function createScript(): HTMLScriptElement {
   return document.createElement("script");
 }

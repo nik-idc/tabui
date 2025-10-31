@@ -5,9 +5,16 @@ import {
   MeasureControlsTemplate,
 } from "./measure-controls";
 import { initNoteControls, NoteControlsTemplate } from "./note-controls";
-import { createDiv, createImage } from "@/shared";
+import {
+  createButton,
+  createDialog,
+  createDiv,
+  createImage,
+  createSVG,
+} from "@/shared";
 import { SideControlsTemplate } from "./side-controls-template";
 import { setupSideControls } from "./side-controls-template-setup";
+import { BendControlsTemplate } from "./effect-controls/bend-controls/bend-controls-template";
 
 function getNoteControlsTemplate(): NoteControlsTemplate {
   return {
@@ -28,6 +35,28 @@ function getNoteControlsTemplate(): NoteControlsTemplate {
   };
 }
 
+function getBendControlsTemplate(): BendControlsTemplate {
+  return {
+    bendControlsDialog: createDialog(),
+    bendControlsDialogContent: createDiv(),
+
+    bendSelectorContent: createDiv(),
+    bendTypeListContainer: createDiv(),
+    bendTypesButtons: [
+      createButton(), // Regular bend button
+      createButton(), // Prebend button
+      createButton(), // Bend & release button
+      createButton(), // Prebend & release button
+    ],
+
+    bendSelectorGraphSVG: createSVG(),
+
+    bendActionsContent: createDiv(),
+    confirmButton: createButton(),
+    cancelButton: createButton(),
+  };
+}
+
 function getEffectControlsTemplate(): EffectControlsTemplate {
   return {
     effectControlsContainer: createDiv(),
@@ -39,6 +68,7 @@ function getEffectControlsTemplate(): EffectControlsTemplate {
     pullOffButton: createImage(),
     slideButton: createImage(),
     bendButton: createImage(),
+    bendControlsTemplate: getBendControlsTemplate(),
   };
 }
 

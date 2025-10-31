@@ -4,7 +4,6 @@
  * - Play controls
  */
 export interface TopControlsTemplate {
-  // TODO: Implement top controls container
   readonly topControlsContainer: HTMLDivElement;
 
   readonly trackSelectorContainer: HTMLDivElement;

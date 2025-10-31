@@ -1,5 +1,5 @@
-
 import { NotationView } from "@/notation/notation-view";
+import { BendControlsTemplate } from "./bend-controls/bend-controls-template";
 
 export interface EffectControlsEventHandler {
   onVibratoClicked(notationView: NotationView): void;
@@ -9,5 +9,8 @@ export interface EffectControlsEventHandler {
   onHammerOnClicked(notationView: NotationView): void;
   onPullOffClicked(notationView: NotationView): void;
   onSlideClicked(notationView: NotationView): void;
-  onBendClicked(notationView: NotationView): void;
+  onBendClicked(
+    notationView: NotationView,
+    template: BendControlsTemplate
+  ): void;
 }

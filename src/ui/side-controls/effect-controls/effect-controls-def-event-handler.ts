@@ -2,6 +2,8 @@ import { GuitarEffectType, NoteDuration } from "@/notation";
 
 import { EffectControlsEventHandler } from "./effect-controls-event-handler";
 import { NotationView } from "@/notation/notation-view";
+import { showBendControls } from "./bend-controls/bend-controls";
+import { BendControlsTemplate } from "./bend-controls/bend-controls-template";
 
 export class EffectControlsDefaultEventHandler
   implements EffectControlsEventHandler
@@ -41,7 +43,11 @@ export class EffectControlsDefaultEventHandler
     notationView.renderAndBind();
   }
 
-  onBendClicked(notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+  onBendClicked(
+    notationView: NotationView,
+    template: BendControlsTemplate
+  ): void {
+    showBendControls(template);
+    template.bendControlsDialog.showModal();
   }
 }

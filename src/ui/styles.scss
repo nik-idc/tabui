@@ -91,6 +91,41 @@
     -moz-user-select: none; // Firefox
     -ms-user-select: none; // Old IE
   }
+
+  .tu-bend-controls-dialog {
+    @extend %tu-modal-dialog;
+    width: fit-content;
+
+    .tu-bend-controls-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+
+      .tu-bend-controls-selector-content {
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+
+        .tu-bend-types {
+          display: flex;
+          flex-direction: column;
+
+          button {
+            width: 200px;
+          }
+        }
+
+        .tu-bend-controls-svg {
+          // border: 1px solid black;
+          // border-radius: 5px;
+        }
+      }
+
+      .tu-bend-controls-actions-content {
+        display: flex;
+      }
+    }
+  }
 }
 
 %side-controls-layout {
@@ -116,4 +151,14 @@
   &::after {
     background: #ccc; // or currentColor for adaptive styling
   }
+}
+
+%tu-modal-dialog {
+  border-radius: 3px;
+  border: 0;
+  padding: 0;
+}
+
+%tu-modal-dialog-content {
+  padding: 20px;
 }
