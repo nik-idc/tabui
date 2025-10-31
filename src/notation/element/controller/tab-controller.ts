@@ -370,6 +370,10 @@ export class TabController {
     return this._tab;
   }
 
+  public get score(): Score {
+    return this._score;
+  }
+
   public get tabPlayer(): TabPlayer | undefined {
     return this._tabPlayer;
   }

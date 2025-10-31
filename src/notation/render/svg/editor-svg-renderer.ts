@@ -93,7 +93,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   public showSelectionPreview(
     tabController: TabController,
     noteElement: NoteElement
-  ) {
+  ): void {
     const selectedElement = tabController.getSelectedElement();
     if (
       selectedElement &&
@@ -133,10 +133,18 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._selectionPreviewRect.setAttribute("display", "block");
   }
 
-  public hideSelectionPreview() {
+  public hideSelectionPreview(): void {
     if (this._selectionPreviewRect) {
       this._selectionPreviewRect.setAttribute("display", "none");
     }
+  }
+
+  public unrenderSelectionPreview(): void {
+    if (this._selectionPreviewRect === undefined) {
+      return;
+    }
+    this._svgRoot.removeChild(this._selectionPreviewRect);
+    this._selectionPreviewRect = undefined;
   }
 
   /**
@@ -242,9 +250,11 @@ export class EditorSVGRenderer implements EditorRenderer {
     if (this._playerCursor) {
       this._playerCursor.remove();
     }
-    if (this._selectionPreviewRect) {
-      this._selectionPreviewRect.remove();
-    }
+    // if (this._selectionPreviewRect) {
+    //   this._selectionPreviewRect.remove();
+    // }
+
+    this.unrenderSelectionPreview();
 
     this._svgRoot.replaceChildren();
   }

@@ -42,6 +42,10 @@ export function createDialog(): HTMLDialogElement {
   return document.createElement("dialog");
 }
 
+export function createOption(): HTMLOptionElement {
+  return document.createElement("option");
+}
+
 export function createScript(): HTMLScriptElement {
   return document.createElement("script");
 }

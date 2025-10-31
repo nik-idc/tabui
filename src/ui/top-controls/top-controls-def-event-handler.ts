@@ -1,22 +1,27 @@
-import { NoteDuration } from "@/notation";
+import { NoteDuration, TabController } from "@/notation";
 
 import { TopControlsEventHandler } from "./top-controls-event-handler";
 import { NotationView } from "@/notation/notation-view";
 
 export class TopControlsDefaultEventHandler implements TopControlsEventHandler {
   onTrackChanged(trackValue: number, notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+    const newTabController = new TabController(
+      notationView.tabController.score,
+      notationView.tabController.score.tracks[trackValue],
+      notationView.tabController.dim
+    );
+    notationView.loadTrack(newTabController);
   }
   onPlayClicked(notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+    notationView.tabController.startPlayer();
   }
   onPauseClicked(notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+    notationView.tabController.stopPlayer();
   }
   onStopClicked(notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+    notationView.tabController.stopPlayer();
   }
   onLoopClicked(notationView: NotationView): void {
-    throw new Error("Method not implemented.");
+    notationView.tabController.setLooped();
   }
 }

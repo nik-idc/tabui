@@ -22,7 +22,7 @@ function getTemplate(): TopControlsTemplate {
 export function initTopControls(notationView: NotationView): void {
   const topControlsTemplate = getTemplate();
 
-  setupTopControls(notationView.rootDiv, topControlsTemplate);
+  setupTopControls(notationView.rootDiv, notationView, topControlsTemplate);
 
   const defEventHandlers = new TopControlsDefaultEventHandler();
   bindTopControlsEvents(notationView, topControlsTemplate, defEventHandlers);
