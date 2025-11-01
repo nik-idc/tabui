@@ -1,62 +1,54 @@
 import { NoteDuration, TabController } from "@/notation";
-
-import { TopControlsEventHandler } from "./top-controls-event-handler";
 import { NotationView } from "@/notation/notation-view";
+import { TopControlsEventHandler } from "./top-controls-event-handler";
 import { TopControlsTemplate } from "./top-controls-template";
-import { createOption } from "@/shared";
+import { initTrackControls } from "./score-controls/track-controls";
+import { TrackControlsTemplate } from "./score-controls/track-controls/track-controls-template";
+import {
+  createButton,
+  createDiv,
+  createImage,
+  createInput,
+  createParagraph,
+} from "@/shared";
+
+function getTrackControlTemplate(): TrackControlsTemplate {
+  return {
+    trackControlsContainer: createDiv(),
+    removeButton: createImage(),
+    trackName: createButton(),
+    volumeInput: createInput(),
+    panningInput: createInput(),
+    muteButton: createImage(),
+    soloButton: createImage(),
+    settingsButton: createImage(),
+  };
+}
 
 export class TopControlsDefaultEventHandler implements TopControlsEventHandler {
-  private template: TopControlsTemplate | undefined;
+  private _tracksDisplayed: boolean = true;
 
-  constructor(template?: TopControlsTemplate) {
-    this.template = template;
-  }
+  onShowButtonClicked(
+    template: TopControlsTemplate,
+    notationView: NotationView
+  ): void {
+    this._tracksDisplayed = !this._tracksDisplayed;
 
-  onTrackChanged(trackValue: number, notationView: NotationView): void {
-    const newTabController = new TabController(
-      notationView.tabController.score,
-      notationView.tabController.score.tracks[trackValue],
-      notationView.tabController.dim
-    );
-    notationView.loadTrack(newTabController);
-  }
-  onNewTrackClicked(notationView: NotationView): void {
-    // Add a new tab/track using the current tab's guitar and instrument name
-    const score = notationView.tabController.score;
-    const currentTab = notationView.tabController.tab;
-    score.addTab(currentTab.guitar, "New tab", currentTab.instrumentName);
+    if (this._tracksDisplayed) {
+      template.scoreControlsTemplate.tracksContainer.replaceChildren();
+      template.scoreControlsTemplate.tracksTemplates = [];
 
-    // Load the newly added track
-    const newIndex = score.tracks.length - 1;
-    const newTabController = new TabController(
-      score,
-      score.tracks[newIndex],
-      notationView.tabController.dim
-    );
-    notationView.loadTrack(newTabController);
-    // Update track selector in UI if we have the template
-    if (this.template !== undefined) {
-      try {
-        const opt = createOption();
-        opt.text = score.tracks[newIndex].name;
-        opt.value = `${newIndex}`;
-        this.template.trackSelector.add(opt);
-        this.template.trackSelector.value = `${newIndex}`;
-      } catch (e) {
-        // Ignore errors updating UI (e.g., server-side rendering or missing elements)
-      }
+      return;
     }
-  }
-  onPlayClicked(notationView: NotationView): void {
-    notationView.tabController.startPlayer();
-  }
-  onPauseClicked(notationView: NotationView): void {
-    notationView.tabController.stopPlayer();
-  }
-  onStopClicked(notationView: NotationView): void {
-    notationView.tabController.stopPlayer();
-  }
-  onLoopClicked(notationView: NotationView): void {
-    notationView.tabController.setLooped();
+
+    for (const track of notationView.tabController.score.tracks) {
+      const trackTemplate = getTrackControlTemplate();
+      template.scoreControlsTemplate.tracksTemplates.push(trackTemplate);
+
+      initTrackControls(notationView, trackTemplate, track);
+      template.scoreControlsTemplate.tracksContainer.appendChild(
+        trackTemplate.trackControlsContainer
+      );
+    }
   }
 }

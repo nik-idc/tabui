@@ -1,11 +1,9 @@
-
 import { NotationView } from "@/notation/notation-view";
+import { TopControlsTemplate } from "./top-controls-template";
 
 export interface TopControlsEventHandler {
-  onTrackChanged(trackValue: number, notationView: NotationView): void;
-  onNewTrackClicked(notationView: NotationView): void;
-  onPlayClicked(notationView: NotationView): void;
-  onPauseClicked(notationView: NotationView): void;
-  onStopClicked(notationView: NotationView): void;
-  onLoopClicked(notationView: NotationView): void;
+  onShowButtonClicked(
+    template: TopControlsTemplate,
+    notationView: NotationView
+  ): void;
 }

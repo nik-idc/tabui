@@ -1,19 +1,16 @@
+import { PlayControlsTemplate } from "./play-controls";
+import { ScoreControlsTemplate } from "./score-controls";
+
 /**
  * Interface defining the template of top controls:
- * - Track selector
+ * - Score/track controls
  * - Play controls
  */
 export interface TopControlsTemplate {
   readonly topControlsContainer: HTMLDivElement;
 
-  readonly trackSelectorContainer: HTMLDivElement;
-  readonly trackSelectorLabel: HTMLLabelElement;
-  readonly trackSelector: HTMLSelectElement;
-  readonly newTrackButton: HTMLButtonElement;
+  readonly showTracksButton: HTMLButtonElement;
 
-  readonly playControlsContainer: HTMLDivElement;
-  readonly playButton: HTMLImageElement;
-  readonly pauseButton: HTMLImageElement;
-  readonly stopButton: HTMLImageElement;
-  readonly loopButton: HTMLImageElement;
+  readonly scoreControlsTemplate: ScoreControlsTemplate;
+  readonly playControlsTemplate: PlayControlsTemplate;
 }

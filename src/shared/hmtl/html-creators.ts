@@ -46,6 +46,14 @@ export function createOption(): HTMLOptionElement {
   return document.createElement("option");
 }
 
+export function createInput(): HTMLInputElement {
+  return document.createElement("input");
+}
+
+export function createParagraph(): HTMLParagraphElement {
+  return document.createElement("p");
+}
+
 export function createScript(): HTMLScriptElement {
   return document.createElement("script");
 }
