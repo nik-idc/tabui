@@ -29,12 +29,15 @@ function setupTrackControls(
   template.trackSelector.value = template.trackSelector.options[0].value;
   const trackSelectorCSSClass = "tu-track-selector";
   template.trackSelector.classList.add(trackSelectorCSSClass);
-
+  // Remove the visible label and add a "New" button next to the selector
   template.trackSelectorLabel.setAttribute("for", "tu-track-selector");
-  // template.trackSelectorLabel.textContent = "Track";
+
+  template.newTrackButton.setAttribute("id", "tu-new-track");
+  template.newTrackButton.textContent = "New";
+  template.newTrackButton.classList.add("tu-new-track-button");
 
   template.trackSelectorContainer.append(
-    template.trackSelectorLabel,
+    template.newTrackButton,
     template.trackSelector
   );
   template.topControlsContainer.appendChild(template.trackSelectorContainer);

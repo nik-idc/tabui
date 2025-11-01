@@ -1,4 +1,4 @@
-import { createDiv, createImage, createLabel, createSelect } from "@/shared";
+import { createDiv, createImage, createLabel, createSelect, createButton } from "@/shared";
 import { TopControlsTemplate } from "./top-controls-template";
 import { setupTopControls } from "./top-controls-template-setup";
 import { bindTopControlsEvents } from "./top-controls-event-binder";
@@ -11,6 +11,7 @@ function getTemplate(): TopControlsTemplate {
     trackSelectorContainer: createDiv(),
     trackSelectorLabel: createLabel(),
     trackSelector: createSelect(),
+    newTrackButton: createButton(),
     playControlsContainer: createDiv(),
     playButton: createImage(),
     pauseButton: createImage(),
@@ -24,6 +25,6 @@ export function initTopControls(notationView: NotationView): void {
 
   setupTopControls(notationView.rootDiv, notationView, topControlsTemplate);
 
-  const defEventHandlers = new TopControlsDefaultEventHandler();
+  const defEventHandlers = new TopControlsDefaultEventHandler(topControlsTemplate);
   bindTopControlsEvents(notationView, topControlsTemplate, defEventHandlers);
 }

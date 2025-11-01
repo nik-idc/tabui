@@ -9,6 +9,7 @@ export interface TopControlsTemplate {
   readonly trackSelectorContainer: HTMLDivElement;
   readonly trackSelectorLabel: HTMLLabelElement;
   readonly trackSelector: HTMLSelectElement;
+  readonly newTrackButton: HTMLButtonElement;
 
   readonly playControlsContainer: HTMLDivElement;
   readonly playButton: HTMLImageElement;

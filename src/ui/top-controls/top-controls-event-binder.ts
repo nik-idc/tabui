@@ -14,6 +14,9 @@ export function bindTopControlsEvents(
       notationView
     )
   );
+  template.newTrackButton.addEventListener("click", () =>
+    eventHandlers.onNewTrackClicked(notationView)
+  );
   template.playButton.addEventListener("click", () =>
     eventHandlers.onPlayClicked(notationView)
   );
