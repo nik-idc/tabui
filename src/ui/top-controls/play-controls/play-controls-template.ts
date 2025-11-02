@@ -1,3 +1,5 @@
+import { createDiv, createImage } from "@/shared";
+
 /**
  * Interface defining the template of play controls:
  * - First bar button
@@ -6,13 +8,12 @@
  * - Next bar button
  * - Last bar button
  */
-export interface PlayControlsTemplate {
-  readonly playControlsContainer: HTMLDivElement;
-
-  readonly firstButton: HTMLImageElement;
-  readonly prevButton: HTMLImageElement;
-  readonly playButton: HTMLImageElement;
-  readonly nextButton: HTMLImageElement;
-  readonly lastButton: HTMLImageElement;
-  readonly loopButton: HTMLImageElement
+export class PlayControlsTemplate {
+  readonly playControlsContainer: HTMLDivElement = createDiv();
+  readonly firstButton: HTMLImageElement = createImage();
+  readonly prevButton: HTMLImageElement = createImage();
+  readonly playButton: HTMLImageElement = createImage();
+  readonly nextButton: HTMLImageElement = createImage();
+  readonly lastButton: HTMLImageElement = createImage();
+  readonly loopButton: HTMLImageElement = createImage();
 }

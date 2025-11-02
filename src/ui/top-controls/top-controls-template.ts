@@ -1,3 +1,4 @@
+import { createButton, createDiv } from "@/shared";
 import { PlayControlsTemplate } from "./play-controls";
 import { ScoreControlsTemplate } from "./score-controls";
 
@@ -6,11 +7,11 @@ import { ScoreControlsTemplate } from "./score-controls";
  * - Score/track controls
  * - Play controls
  */
-export interface TopControlsTemplate {
-  readonly topControlsContainer: HTMLDivElement;
+export class TopControlsTemplate {
+  readonly topControlsContainer: HTMLDivElement = createDiv();
 
-  readonly showTracksButton: HTMLButtonElement;
-
-  readonly scoreControlsTemplate: ScoreControlsTemplate;
-  readonly playControlsTemplate: PlayControlsTemplate;
+  readonly scoreControlsTemplate: ScoreControlsTemplate =
+    new ScoreControlsTemplate();
+  readonly playControlsTemplate: PlayControlsTemplate =
+    new PlayControlsTemplate();
 }

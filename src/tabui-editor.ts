@@ -6,9 +6,9 @@ import {
   TabController,
   TabControllerDim,
 } from "./notation";
-import { NotationView } from "./notation/notation-view";
+import { NotationComponent } from "./notation/notation-component";
 import { ElementRenderer } from "./notation/render/element-renderer";
-import { initUI } from "./ui/ui-view";
+import { UIComponent } from "./ui";
 
 function buildDefaultDim(tab: Tab): TabControllerDim {
   const dim = new TabControllerDim(
@@ -37,17 +37,19 @@ export class TabUIEditor {
   readonly score: Score;
   readonly rootDiv: HTMLDivElement;
 
-  private _notationView: NotationView;
+  private _notationView: NotationComponent;
+  private _uiComponent: UIComponent;
   private _initialized: boolean;
 
   constructor(rootDiv: HTMLDivElement, score: Score) {
     this.score = score;
     this.rootDiv = rootDiv;
 
-    this._notationView = new NotationView(
+    this._notationView = new NotationComponent(
       buildTabController(this.score, 0),
       this.rootDiv
     );
+    this._uiComponent = new UIComponent(this.rootDiv, this._notationView);
 
     this._initialized = false;
   }
@@ -57,7 +59,7 @@ export class TabUIEditor {
       throw new Error("TabUIEditor already initialized");
     }
 
-    initUI(this._notationView);
+    this._uiComponent.render();
     this._notationView.loadTrack(buildTabController(this.score, 0));
 
     this._initialized = true;

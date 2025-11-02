@@ -1,4 +1,12 @@
+import {
+  createDiv,
+  createImage,
+  createDialog,
+  createButton,
+  createSVG,
+} from "@/shared";
 import { EffectControlsTemplate } from "./effect-controls";
+import { BendControlsTemplate } from "./effect-controls/bend-controls/bend-controls-template";
 import { MeasureControlsTemplate } from "./measure-controls";
 import { NoteControlsTemplate } from "./note-controls";
 
@@ -8,10 +16,13 @@ import { NoteControlsTemplate } from "./note-controls";
  * - Effect controls
  * - Measure controls
  */
-export interface SideControlsTemplate {
-  readonly sideControlsContainer: HTMLDivElement;
+export class SideControlsTemplate {
+  readonly sideControlsContainer: HTMLDivElement = createDiv();
 
-  readonly noteControlsTemplate: NoteControlsTemplate;
-  readonly effectControlsTemplate: EffectControlsTemplate;
-  readonly measureControlsTemplate: MeasureControlsTemplate;
+  readonly noteControlsTemplate: NoteControlsTemplate =
+    new NoteControlsTemplate();
+  readonly effectControlsTemplate: EffectControlsTemplate =
+    new EffectControlsTemplate();
+  readonly measureControlsTemplate: MeasureControlsTemplate =
+    new MeasureControlsTemplate();
 }

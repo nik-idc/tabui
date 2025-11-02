@@ -1,17 +1,18 @@
+import { createButton, createDiv, createImage, createInput } from "@/shared";
+
 /**
  * Interface defining the template of track controls:
  * - Track name
  * - Volume input
  * - Panning input
  */
-export interface TrackControlsTemplate {
-  readonly trackControlsContainer: HTMLDivElement;
-
-  readonly trackName: HTMLButtonElement;
-  readonly removeButton: HTMLImageElement;
-  readonly volumeInput: HTMLInputElement;
-  readonly panningInput: HTMLInputElement;
-  readonly muteButton: HTMLImageElement;
-  readonly soloButton: HTMLImageElement;
-  readonly settingsButton: HTMLImageElement;
+export class TrackControlsTemplate {
+  readonly trackControlsContainer: HTMLDivElement = createDiv();
+  readonly trackName: HTMLButtonElement = createButton();
+  readonly removeButton: HTMLImageElement = createImage();
+  readonly volumeInput: HTMLInputElement = createInput();
+  readonly panningInput: HTMLInputElement = createInput();
+  readonly muteButton: HTMLImageElement = createImage();
+  readonly soloButton: HTMLImageElement = createImage();
+  readonly settingsButton: HTMLImageElement = createImage();
 }

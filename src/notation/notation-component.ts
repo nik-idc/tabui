@@ -34,7 +34,7 @@ function buildDefaultDim(tab: Tab): TabControllerDim {
 /**
  * Responsible for controllong everything notation-wise
  */
-export class NotationView {
+export class NotationComponent {
   private _tabController: TabController;
 
   readonly rootDiv: HTMLDivElement;

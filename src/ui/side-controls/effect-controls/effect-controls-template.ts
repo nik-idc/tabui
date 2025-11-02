@@ -1,3 +1,4 @@
+import { createDiv, createImage } from "@/shared";
 import { BendControlsTemplate } from "./bend-controls/bend-controls-template";
 
 /**
@@ -11,17 +12,18 @@ import { BendControlsTemplate } from "./bend-controls/bend-controls-template";
  * - Slide
  * - Bend
  */
-export interface EffectControlsTemplate {
-  readonly effectControlsContainer: HTMLDivElement;
+export class EffectControlsTemplate {
+  readonly effectControlsContainer: HTMLDivElement = createDiv();
 
-  readonly vibratoButton: HTMLImageElement;
-  readonly palmMuteButton: HTMLImageElement;
-  readonly nhButton: HTMLImageElement;
-  readonly phButton: HTMLImageElement;
-  readonly hammerOnButton: HTMLImageElement;
-  readonly pullOffButton: HTMLImageElement;
-  readonly slideButton: HTMLImageElement;
-  readonly bendButton: HTMLImageElement;
+  readonly vibratoButton: HTMLImageElement = createImage();
+  readonly palmMuteButton: HTMLImageElement = createImage();
+  readonly nhButton: HTMLImageElement = createImage();
+  readonly phButton: HTMLImageElement = createImage();
+  readonly hammerOnButton: HTMLImageElement = createImage();
+  readonly pullOffButton: HTMLImageElement = createImage();
+  readonly slideButton: HTMLImageElement = createImage();
+  readonly bendButton: HTMLImageElement = createImage();
 
-  readonly bendControlsTemplate: BendControlsTemplate;
+  readonly bendControlsTemplate: BendControlsTemplate =
+    new BendControlsTemplate();
 }
