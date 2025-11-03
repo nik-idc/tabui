@@ -3,6 +3,7 @@ import { MeasureControlsDefaultEventHandler } from "./measure-controls-event-han
 import { MeasureControlsEventHandler } from "./measure-controls-event-handler";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import { MeasureControlsTemplateRenderer } from "./measure-controls-template-renderer";
+import { TimeSigControlsComponent } from "../effect-controls/time-sig-controls";
 
 export class MeasureControlsComponent {
   readonly rootDiv: HTMLDivElement;
@@ -11,6 +12,8 @@ export class MeasureControlsComponent {
   readonly template: MeasureControlsTemplate;
   readonly templateRenderer: MeasureControlsTemplateRenderer;
   readonly eventHandler: MeasureControlsEventHandler;
+
+  private _timeSigControlsComponent: TimeSigControlsComponent;
 
   private _eventsBound: boolean;
 
@@ -26,6 +29,11 @@ export class MeasureControlsComponent {
     );
     this.eventHandler = new MeasureControlsDefaultEventHandler();
 
+    this._timeSigControlsComponent = new TimeSigControlsComponent(
+      this.rootDiv,
+      this.notationComponent
+    );
+
     this._eventsBound = false;
   }
 
@@ -34,7 +42,10 @@ export class MeasureControlsComponent {
       this.eventHandler.onTempoClicked(this.notationComponent)
     );
     this.template.timeSignatureButton.addEventListener("click", () =>
-      this.eventHandler.onTimeSignatureClicked(this.notationComponent)
+      this.eventHandler.onTimeSignatureClicked(
+        this.notationComponent,
+        this._timeSigControlsComponent
+      )
     );
     this.template.repeatStartButton.addEventListener("click", () =>
       this.eventHandler.onRepeatStartClicked(this.notationComponent)
@@ -47,6 +58,7 @@ export class MeasureControlsComponent {
   public render(): void {
     // 1. Set up template
     this.templateRenderer.render();
+    this._timeSigControlsComponent.render();
 
     // 2. Bind events
     if (!this._eventsBound) {

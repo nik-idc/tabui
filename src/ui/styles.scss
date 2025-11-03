@@ -186,6 +186,55 @@
       }
     }
   }
+
+  .tu-time-sig-dialog {
+    .tu-time-sig-inputs {
+      display: flex;
+      flex-direction: column;
+
+      .tu-time-sig-text {
+        padding: 3px;
+        text-align: center;
+        font-size: 20px;
+      }
+
+      .tu-time-sig-beats-input {
+        @extend %tu-input-number-style;
+      }
+
+      .tu-time-sig-beats-error {
+        color: lightcoral;
+        min-height: 1em;
+        max-height: 1em;
+      }
+
+      .tu-time-sig-duration-input {
+        @extend %tu-input-number-style;
+      }
+
+      .tu-time-sig-duration-error {
+        color: lightcoral;
+        min-height: 1em;
+        max-height: 1em;
+      }
+    }
+
+    .tu-time-sig-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+
+      .tu-time-sig-confirm-button {
+      }
+
+      .tu-time-sig-cancel-button {
+      }
+
+      button {
+        @extend %tu-button-style;
+      }
+    }
+  }
 }
 
 %tu-side-controls-layout {
@@ -218,4 +267,10 @@
   &:hover {
     background-color: var(--hover-color);
   }
+}
+
+%tu-input-number-style {
+  padding: 5px;
+  border: 2px solid black;
+  border-radius: 5px;
 }

@@ -7,6 +7,7 @@ import {
 import { EffectControlsTemplate } from "./effect-controls-template";
 import { EffectControlsTemplateRenderer } from "./effect-controls-template-renderer";
 import { BendControlsComponent } from "./bend-controls/bend-controls-component";
+import { TimeSigControlsComponent } from "./time-sig-controls";
 
 export class EffectControlsComponent {
   readonly rootDiv: HTMLDivElement;
