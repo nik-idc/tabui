@@ -1,8 +1,12 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { TimeSigControlsComponent } from "../effect-controls/time-sig-controls";
+import { TempoControlsComponent } from "../effect-controls/tempo-controls";
 
 export interface MeasureControlsEventHandler {
-  onTempoClicked(notationComponent: NotationComponent): void;
+  onTempoClicked(
+    notationComponent: NotationComponent,
+    tempoControlsComponent: TempoControlsComponent
+  ): void;
   onTimeSignatureClicked(
     notationComponent: NotationComponent,
     timeSigComponent: TimeSigControlsComponent
@@ -14,14 +18,16 @@ export interface MeasureControlsEventHandler {
 export class MeasureControlsDefaultEventHandler
   implements MeasureControlsEventHandler
 {
-  onTempoClicked(notationComponent: NotationComponent): void {
-    throw new Error("Method not implemented.");
+  onTempoClicked(
+    notationComponent: NotationComponent,
+    tempoControlsComponent: TempoControlsComponent
+  ): void {
+    tempoControlsComponent.template.tempoDialog.showModal();
   }
   onTimeSignatureClicked(
     notationComponent: NotationComponent,
     timeSigComponent: TimeSigControlsComponent
   ): void {
-    // throw new Error("Method not implemented.");
     timeSigComponent.template.timeSigDialog.showModal();
   }
   onRepeatStartClicked(notationComponent: NotationComponent): void {
