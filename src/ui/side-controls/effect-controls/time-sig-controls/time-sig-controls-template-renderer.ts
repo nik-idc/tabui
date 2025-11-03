@@ -26,12 +26,17 @@ export class TimeSigControlsTemplateRenderer {
   private assembleContainer(): void {
     const dialogCSSClass = "tu-time-sig-dialog";
     this.template.timeSigDialog.classList.add(dialogCSSClass);
+    const dialogContentCSSClass = "tu-time-sig-dialog-content";
+    this.template.timeSigDialogContent.classList.add(dialogContentCSSClass);
     const inputContainerCSSClass = "tu-time-sig-inputs";
     this.template.timeSigInputContent.classList.add(inputContainerCSSClass);
     const actionsCSSClass = "tu-time-sig-actions";
     this.template.timeSigActionsContent.classList.add(actionsCSSClass);
 
     this.template.timeSigDialog.append(
+      this.template.timeSigDialogContent,
+    );
+    this.template.timeSigDialogContent.append(
       this.template.timeSigInputContent,
       this.template.timeSigActionsContent
     );

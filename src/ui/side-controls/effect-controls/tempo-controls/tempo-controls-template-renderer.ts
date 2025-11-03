@@ -26,12 +26,17 @@ export class TempoControlsTemplateRenderer {
   private assembleContainer(): void {
     const dialogCSSClass = "tu-tempo-dialog";
     this.template.tempoDialog.classList.add(dialogCSSClass);
+    const dialogContentCSSClass = "tu-tempo-dialog-content";
+    this.template.tempoDialogContent.classList.add(dialogContentCSSClass);
     const inputContainerCSSClass = "tu-tempo-inputs";
     this.template.tempoInputContent.classList.add(inputContainerCSSClass);
     const actionsCSSClass = "tu-tempo-actions";
     this.template.tempoActionsContent.classList.add(actionsCSSClass);
 
     this.template.tempoDialog.append(
+      this.template.tempoDialogContent,
+    );
+    this.template.tempoDialogContent.append(
       this.template.tempoInputContent,
       this.template.tempoActionsContent
     );
