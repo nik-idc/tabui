@@ -18,7 +18,11 @@ export class TrackControlsComponent {
 
   private _eventsBound: boolean;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent, track: Tab) {
+  constructor(
+    rootDiv: HTMLDivElement,
+    notationComponent: NotationComponent,
+    track: Tab
+  ) {
     this.rootDiv = rootDiv;
     this.notationComponent = notationComponent;
     this.track = track;
@@ -30,26 +34,42 @@ export class TrackControlsComponent {
       this.template,
       this.track
     );
-    this.eventHandler = new TrackControlsDefaultEventHandler();
+    this.eventHandler = new TrackControlsDefaultEventHandler(this.track);
 
     this._eventsBound = false;
   }
 
   private bind(): void {
     this.template.volumeInput.addEventListener("change", () => {
-      this.eventHandler.onTrackVolumeChanged(this.template, this.notationComponent);
+      this.eventHandler.onTrackVolumeChanged(
+        this.template,
+        this.notationComponent
+      );
     });
 
-    this.template.panningInput.addEventListener("change", () => {
-      this.eventHandler.onTrackPanningChanged(this.template, this.notationComponent);
+    this.template.volumeInput.addEventListener("change", () => {
+      this.eventHandler.onTrackVolumeChanged(
+        this.template,
+        this.notationComponent
+      );
+    });
+
+    this.template.trackButton.addEventListener("click", () => {
+      this.eventHandler.onTrackClicked(this.template, this.notationComponent);
     });
 
     this.template.muteButton.addEventListener("click", () => {
-      this.eventHandler.onMuteButtonClicked(this.template, this.notationComponent);
+      this.eventHandler.onMuteButtonClicked(
+        this.template,
+        this.notationComponent
+      );
     });
 
     this.template.soloButton.addEventListener("click", () => {
-      this.eventHandler.onSoloButtonClicked(this.template, this.notationComponent);
+      this.eventHandler.onSoloButtonClicked(
+        this.template,
+        this.notationComponent
+      );
     });
 
     this.template.settingsButton.addEventListener("click", () => {

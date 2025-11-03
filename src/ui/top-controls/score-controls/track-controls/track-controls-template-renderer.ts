@@ -45,7 +45,7 @@ export class TrackControlsTemplateRenderer {
 
     this.template.trackControlsContainer.append(
       this.template.removeButton,
-      this.template.trackName,
+      this.template.trackButton,
       this.template.volumeInput,
       this.template.panningInput,
       this.template.muteButton,
@@ -56,9 +56,9 @@ export class TrackControlsTemplateRenderer {
   }
 
   private renderTrackName(): void {
-    const cssClass = "tu-track-name";
-    this.template.trackName.classList.add(cssClass);
-    this.template.trackName.textContent = this.track.name;
+    const cssClass = "tu-track-button";
+    this.template.trackButton.classList.add(cssClass);
+    this.template.trackButton.textContent = this.track.name;
   }
 
   private renderRemoveButton(): void {

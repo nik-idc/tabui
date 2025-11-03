@@ -1,8 +1,13 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { TrackControlsTemplate } from "./track-controls-template";
+import { Tab, TabController } from "@/notation";
 
 export interface TrackControlsEventHandler {
   onTrackVolumeChanged(
+    template: TrackControlsTemplate,
+    notationComponent: NotationComponent
+  ): void;
+  onTrackClicked(
     template: TrackControlsTemplate,
     notationComponent: NotationComponent
   ): void;
@@ -27,11 +32,29 @@ export interface TrackControlsEventHandler {
 export class TrackControlsDefaultEventHandler
   implements TrackControlsEventHandler
 {
+  private _track: Tab;
+
+  constructor(track: Tab) {
+    this._track = track;
+  }
+
   onTrackVolumeChanged(
     template: TrackControlsTemplate,
     notationComponent: NotationComponent
   ): void {
     throw new Error("Method not implemented");
+  }
+
+  onTrackClicked(
+    template: TrackControlsTemplate,
+    notationComponent: NotationComponent
+  ): void {
+    const tabController = new TabController(
+      notationComponent.tabController.score,
+      this._track,
+      notationComponent.tabController.dim
+    );
+    notationComponent.loadTrack(tabController);
   }
 
   onTrackPanningChanged(
