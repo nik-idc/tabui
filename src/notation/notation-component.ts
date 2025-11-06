@@ -1,14 +1,13 @@
-import { TabController, TabControllerDim } from "./element";
-import { Score, Tab } from "./model";
 import {
-  EditorSVGRenderer,
+  EditorMouseCallbacks,
+  EditorKeyboardCallbacks,
   EditorCallbackBinder,
   EditorMouseDefCallbacks,
   EditorKeyboardDefCallbacks,
-  EditorMouseCallbacks,
-  EditorKeyboardCallbacks,
-  EditorRenderer,
-} from "./render";
+} from "@/callbacks/editor";
+import { TabController, TabControllerDim } from "./element";
+import { Score, Tab } from "./model";
+import { EditorSVGRenderer, EditorRenderer } from "./render";
 import { ElementRenderer } from "./render/element-renderer";
 
 /**
@@ -40,16 +39,16 @@ export class NotationComponent {
   readonly rootDiv: HTMLDivElement;
   readonly renderer: EditorRenderer;
 
-  private _mouseCallbacks: EditorMouseCallbacks;
-  private _keyboardCallbacks: EditorKeyboardCallbacks;
-  private _callbacksBinder: EditorCallbackBinder;
+  // private _mouseCallbacks: EditorMouseCallbacks;
+  // private _keyboardCallbacks: EditorKeyboardCallbacks;
+  // private _callbacksBinder: EditorCallbackBinder;
 
   constructor(
     tabController: TabController,
     rootDiv: HTMLDivElement,
-    renderer?: EditorRenderer,
-    mouseCallbacks?: EditorMouseCallbacks,
-    keyboardCallbacks?: EditorKeyboardCallbacks
+    renderer?: EditorRenderer
+    // mouseCallbacks?: EditorMouseCallbacks,
+    // keyboardCallbacks?: EditorKeyboardCallbacks
   ) {
     this._tabController = tabController;
 
@@ -60,73 +59,83 @@ export class NotationComponent {
         ? new EditorSVGRenderer(this.rootDiv, import.meta.env.BASE_URL)
         : renderer;
 
-    this._mouseCallbacks =
-      mouseCallbacks === undefined
-        ? new EditorMouseDefCallbacks(
-            this.renderer,
-            this._tabController,
-            this.bindAfterRender.bind(this)
-          )
-        : mouseCallbacks;
-    this._keyboardCallbacks =
-      keyboardCallbacks === undefined
-        ? new EditorKeyboardDefCallbacks(
-            this.renderer,
-            this._tabController,
-            this.bindAfterRender.bind(this)
-          )
-        : keyboardCallbacks;
-    this._callbacksBinder = new EditorCallbackBinder();
+    // this._mouseCallbacks =
+    //   mouseCallbacks === undefined
+    //     ? new EditorMouseDefCallbacks(
+    //         this.renderer,
+    //         this._tabController,
+    //         this.bindAfterRender.bind(this)
+    //       )
+    //     : mouseCallbacks;
+    // this._keyboardCallbacks =
+    //   keyboardCallbacks === undefined
+    //     ? new EditorKeyboardDefCallbacks(
+    //         this.renderer,
+    //         this._tabController,
+    //         this.bindAfterRender.bind(this)
+    //       )
+    //     : keyboardCallbacks;
+    // this._callbacksBinder = new EditorCallbackBinder();
   }
 
-  public bindAfterRender(activeRenderers: ElementRenderer[]): void {
-    this._callbacksBinder.dispose();
-    this._callbacksBinder.bind(
-      this._mouseCallbacks,
-      this._keyboardCallbacks,
-      activeRenderers
-    );
+  // public bindAfterRender(activeRenderers: ElementRenderer[]): void {
+  //   this._callbacksBinder.dispose();
+  //   this._callbacksBinder.bind(
+  //     this._mouseCallbacks,
+  //     this._keyboardCallbacks,
+  //     activeRenderers
+  //   );
+  // }
+
+  // public renderAndBind(): void {
+  //   const activeRenderers = this.renderer.render(this._tabController);
+
+  //   // Dispose old events & bind new ones
+  //   this._callbacksBinder.dispose();
+  //   this._callbacksBinder.bind(
+  //     this._mouseCallbacks,
+  //     this._keyboardCallbacks,
+  //     activeRenderers
+  //   );
+  // }
+
+  public render(): ElementRenderer[] {
+    return this.renderer.render(this._tabController);
   }
 
-  public renderAndBind(): void {
-    const activeRenderers = this.renderer.render(this._tabController);
-
-    // Dispose old events & bind new ones
-    this._callbacksBinder.dispose();
-    this._callbacksBinder.bind(
-      this._mouseCallbacks,
-      this._keyboardCallbacks,
-      activeRenderers
-    );
-  }
-
-  public loadTrack(newTabController: TabController): void {
+  // public loadTrack(newTabController: TabController): ElementRenderer[] {
+  public loadTrack(newTrack: Tab): ElementRenderer[] {
     this.renderer.unrender();
 
     // Render new stuff
     // const controller = this.buildTabController(trackIndex);
+    const newTabController = new TabController(
+      this._tabController.score,
+      newTrack,
+      this._tabController.dim
+    );
     this._tabController = newTabController;
-    const activeRenderers = this.renderer.render(this._tabController);
+    return this.renderer.render(this._tabController);
 
-    this._mouseCallbacks = new EditorMouseDefCallbacks(
-      this.renderer,
-      this._tabController,
-      this.bindAfterRender.bind(this)
-    );
+    // this._mouseCallbacks = new EditorMouseDefCallbacks(
+    //   this.renderer,
+    //   this._tabController,
+    //   this.bindAfterRender.bind(this)
+    // );
 
-    this._keyboardCallbacks = new EditorKeyboardDefCallbacks(
-      this.renderer,
-      this._tabController,
-      this.bindAfterRender.bind(this)
-    );
+    // this._keyboardCallbacks = new EditorKeyboardDefCallbacks(
+    //   this.renderer,
+    //   this._tabController,
+    //   this.bindAfterRender.bind(this)
+    // );
 
-    this._callbacksBinder.dispose();
-    this._callbacksBinder = new EditorCallbackBinder();
-    this._callbacksBinder.bind(
-      this._mouseCallbacks,
-      this._keyboardCallbacks,
-      activeRenderers
-    );
+    // this._callbacksBinder.dispose();
+    // this._callbacksBinder = new EditorCallbackBinder();
+    // this._callbacksBinder.bind(
+    //   this._mouseCallbacks,
+    //   this._keyboardCallbacks,
+    //   activeRenderers
+    // );
   }
 
   public get tabController(): TabController {

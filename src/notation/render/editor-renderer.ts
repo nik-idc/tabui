@@ -1,5 +1,4 @@
 import { NoteElement, TabController } from "../element";
-import { EditorCallbackBinder } from "./callbacks";
 import { ElementRenderer } from "./element-renderer";
 
 export interface EditorRenderer {

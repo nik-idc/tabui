@@ -1,5 +1,11 @@
+import { TabUICallbacks } from "./callbacks/tabui-callbacks";
 import {
+  EditorKeyboardCallbacks,
+  EditorKeyboardDefCallbacks,
+  EditorMouseCallbacks,
   EditorMouseDefCallbacks,
+} from "./callbacks/editor";
+import {
   EditorSVGRenderer,
   Score,
   Tab,
@@ -33,23 +39,37 @@ function buildTabController(score: Score, trackIndex: number): TabController {
   return new TabController(score, tab, defDim);
 }
 
+// TODO: 
+// 1. Tuplet dialog
+// 2. New track dialog
+// 3. Delete track/Yes or No dialog
+// 4. Score settings dialog
+// 5. Track settings dialog
+// 6. Score name input field (like in Google Docs)
+
 export class TabUIEditor {
   readonly score: Score;
   readonly rootDiv: HTMLDivElement;
 
-  private _notationView: NotationComponent;
+  private _notationComponent: NotationComponent;
   private _uiComponent: UIComponent;
+  private _callbacks: TabUICallbacks;
   private _initialized: boolean;
 
   constructor(rootDiv: HTMLDivElement, score: Score) {
     this.score = score;
     this.rootDiv = rootDiv;
 
-    this._notationView = new NotationComponent(
+    this._notationComponent = new NotationComponent(
       buildTabController(this.score, 0),
       this.rootDiv
     );
-    this._uiComponent = new UIComponent(this.rootDiv, this._notationView);
+    this._uiComponent = new UIComponent(this.rootDiv, this._notationComponent);
+
+    this._callbacks = new TabUICallbacks(
+      this._uiComponent,
+      this._notationComponent
+    );
 
     this._initialized = false;
   }
@@ -60,7 +80,12 @@ export class TabUIEditor {
     }
 
     this._uiComponent.render();
-    this._notationView.loadTrack(buildTabController(this.score, 0));
+    this._notationComponent.loadTrack(this.score.tracks[0]);
+    this._callbacks = new TabUICallbacks(
+      this._uiComponent,
+      this._notationComponent
+    );
+    this._callbacks.bind();
 
     this._initialized = true;
   }

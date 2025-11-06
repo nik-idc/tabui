@@ -1,6 +1,4 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { MeasureControlsDefaultEventHandler } from "./measure-controls-event-handler";
-import { MeasureControlsEventHandler } from "./measure-controls-event-handler";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import { MeasureControlsTemplateRenderer } from "./measure-controls-template-renderer";
 import { TimeSigControlsComponent } from "../effect-controls/time-sig-controls";
@@ -12,12 +10,9 @@ export class MeasureControlsComponent {
 
   readonly template: MeasureControlsTemplate;
   readonly templateRenderer: MeasureControlsTemplateRenderer;
-  readonly eventHandler: MeasureControlsEventHandler;
 
-  private _timeSigControlsComponent: TimeSigControlsComponent;
-  private _tempoControlsComponent: TempoControlsComponent;
-
-  private _eventsBound: boolean;
+  readonly timeSigControlsComponent: TimeSigControlsComponent;
+  readonly tempoControlsComponent: TempoControlsComponent;
 
   constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
     this.rootDiv = rootDiv;
@@ -29,51 +24,20 @@ export class MeasureControlsComponent {
       this.notationComponent,
       this.template
     );
-    this.eventHandler = new MeasureControlsDefaultEventHandler();
 
-    this._timeSigControlsComponent = new TimeSigControlsComponent(
+    this.timeSigControlsComponent = new TimeSigControlsComponent(
       this.rootDiv,
       this.notationComponent
     );
-    this._tempoControlsComponent = new TempoControlsComponent(
+    this.tempoControlsComponent = new TempoControlsComponent(
       this.rootDiv,
       this.notationComponent
-    );
-
-    this._eventsBound = false;
-  }
-
-  private bind(): void {
-    this.template.tempoButton.addEventListener("click", () =>
-      this.eventHandler.onTempoClicked(
-        this.notationComponent,
-        this._tempoControlsComponent
-      )
-    );
-    this.template.timeSignatureButton.addEventListener("click", () =>
-      this.eventHandler.onTimeSignatureClicked(
-        this.notationComponent,
-        this._timeSigControlsComponent
-      )
-    );
-    this.template.repeatStartButton.addEventListener("click", () =>
-      this.eventHandler.onRepeatStartClicked(this.notationComponent)
-    );
-    this.template.repeatEndButton.addEventListener("click", () =>
-      this.eventHandler.onRepeatEndClicked(this.notationComponent)
     );
   }
 
   public render(): void {
-    // 1. Set up template
     this.templateRenderer.render();
-    this._timeSigControlsComponent.render();
-    this._tempoControlsComponent.render();
-
-    // 2. Bind events
-    if (!this._eventsBound) {
-      this.bind();
-      this._eventsBound = true;
-    }
+    this.timeSigControlsComponent.render();
+    this.tempoControlsComponent.render();
   }
 }

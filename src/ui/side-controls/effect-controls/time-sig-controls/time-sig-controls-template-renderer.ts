@@ -33,9 +33,7 @@ export class TimeSigControlsTemplateRenderer {
     const actionsCSSClass = "tu-time-sig-actions";
     this.template.timeSigActionsContent.classList.add(actionsCSSClass);
 
-    this.template.timeSigDialog.append(
-      this.template.timeSigDialogContent,
-    );
+    this.template.timeSigDialog.append(this.template.timeSigDialogContent);
     this.template.timeSigDialogContent.append(
       this.template.timeSigInputContent,
       this.template.timeSigActionsContent
@@ -70,7 +68,7 @@ export class TimeSigControlsTemplateRenderer {
       const selectedBar =
         this.notationComponent.tabController.tab.findBeatsBar(selectedElement);
       beatsInitValue = `${selectedBar.beatsCount}`;
-      durationInitValue = `${selectedBar.duration}`;
+      durationInitValue = `${1 / selectedBar.duration}`;
     } else {
       beatsInitValue = "4";
       durationInitValue = "4";

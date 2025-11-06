@@ -7,18 +7,18 @@ export class UIComponent {
   readonly rootDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
-  private _topComponent: TopControlsComponent;
-  private _sideComponent: SideControlsComponent;
+  readonly topComponent: TopControlsComponent;
+  readonly sideComponent: SideControlsComponent;
 
   constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
     this.rootDiv = rootDiv;
     this.notationComponent = notationComponent;
 
-    this._topComponent = new TopControlsComponent(
+    this.topComponent = new TopControlsComponent(
       this.rootDiv,
       this.notationComponent
     );
-    this._sideComponent = new SideControlsComponent(
+    this.sideComponent = new SideControlsComponent(
       this.rootDiv,
       this.notationComponent
     );
@@ -27,8 +27,8 @@ export class UIComponent {
   public render(): void {
     this.notationComponent.rootDiv.classList.add("tu-editor");
 
-    this._topComponent.render();
-    this._sideComponent.render();
+    this.topComponent.render();
+    this.sideComponent.render();
   }
 }
 

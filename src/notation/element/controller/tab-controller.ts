@@ -7,7 +7,7 @@ import {
   GuitarEffectOptions,
   Beat,
 } from "@/notation/model";
-import { Point } from "@/shared";
+import { Point, randomInt } from "@/shared";
 import { TabEditor } from "../editor";
 import {
   TabElement,
@@ -23,6 +23,7 @@ import { TabControllerDim } from "./tab-controller-dim";
  * Class that handles creating a tab window.
  */
 export class TabController {
+  readonly uuid: number;
   private _score: Score;
   /**
    * Tab object to get data from
@@ -43,6 +44,8 @@ export class TabController {
    * @param dim Tab window dimensions
    */
   constructor(score: Score, tab: Tab, dim: TabControllerDim) {
+    this.uuid = randomInt();
+
     this._score = score;
     this._tab = tab;
     this.dim = dim;

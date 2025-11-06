@@ -1,5 +1,6 @@
-import { ElementRenderer } from "../element-renderer";
-import { SVGBarRenderer, SVGBeatRenderer, SVGNoteRenderer } from "../svg";
+
+import { SVGBeatRenderer, SVGNoteRenderer } from "@/notation";
+import { ElementRenderer } from "@/notation/render/element-renderer";
 import { EditorKeyboardCallbacks } from "./editor-keyboard-callbacks";
 import { EditorMouseCallbacks } from "./editor-mouse-callbacks";
 
@@ -20,7 +21,7 @@ export class EditorCallbackBinder {
     this._globalMouseEventsBound = true;
   }
 
-  private bindMouseEvents(
+  public bindMouseEvents(
     mouseCallbacks: EditorMouseCallbacks,
     renderers: ElementRenderer[]
   ): void {
@@ -59,7 +60,7 @@ export class EditorCallbackBinder {
     }
   }
 
-  private bindKeyboardEvents(keyboardCallbacks: EditorKeyboardCallbacks): void {
+  public bindKeyboardEvents(keyboardCallbacks: EditorKeyboardCallbacks): void {
     if (this._keyboardBound) {
       return;
     }
