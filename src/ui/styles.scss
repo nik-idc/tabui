@@ -5,6 +5,7 @@
   --primary-color: #ffffff;
   --secondary-color: #e0e0e0;
   --tertiary-color: #cccccc;
+  --applied-color: #21212114;
   --font-color: #333333;
   --hover-color: #d1d1d1;
   --border-radius: 8px;
@@ -125,11 +126,8 @@
     }
 
     img {
-      // width: calc(25% - 10px);
-      // height: auto;
       width: 20%;
       height: 35px;
-      // margin: 5px;
       padding: 5px;
       border-radius: var(--border-radius);
       transition: background-color var(--transition-speed) ease;
@@ -329,4 +327,15 @@
   color: lightcoral;
   min-height: 1em;
   max-height: 1em;
+}
+
+.tu-applied-img {
+  background-color: var(--applied-color);
+  border-radius: var(--border-radius);
+}
+
+.tu-disabled-img {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: default;
 }

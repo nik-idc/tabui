@@ -1,5 +1,6 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { MeasureControlsTemplate } from "./measure-controls-template";
+import { BarRepeatStatus } from "@/notation";
 
 export class MeasureControlsTemplateRenderer {
   readonly rootDiv: HTMLDivElement;
@@ -37,6 +38,38 @@ export class MeasureControlsTemplateRenderer {
     this.rootDiv.appendChild(this.template.measureControlsContainer);
   }
 
+  private renderRepeatButtonsState(): void {
+    const selectedElement =
+      this.notationComponent.tabController.getSelectedElement();
+    const appliedCssClass = "tu-applied-img";
+    const disabledCssClass = "tu-disabled-img";
+
+    if (selectedElement === undefined) {
+      this.template.repeatStartButton.classList.remove(appliedCssClass);
+      this.template.repeatStartButton.classList.add(disabledCssClass);
+      this.template.repeatEndButton.classList.remove(appliedCssClass);
+      this.template.repeatEndButton.classList.add(disabledCssClass);
+    } else {
+      const repeatStatus = selectedElement.bar.repeatStatus;
+      switch (repeatStatus) {
+        case BarRepeatStatus.Start:
+          this.template.repeatStartButton.classList.add(appliedCssClass);
+          this.template.repeatStartButton.classList.remove(disabledCssClass);
+          break;
+        case BarRepeatStatus.End:
+          this.template.repeatEndButton.classList.add(appliedCssClass);
+          this.template.repeatEndButton.classList.remove(disabledCssClass);
+          break;
+        default:
+          this.template.repeatStartButton.classList.remove(appliedCssClass);
+          this.template.repeatStartButton.classList.remove(disabledCssClass);
+          this.template.repeatEndButton.classList.remove(appliedCssClass);
+          this.template.repeatEndButton.classList.remove(disabledCssClass);
+          break;
+      }
+    }
+  }
+
   private renderMeasureButtons(): void {
     const tempoSrc = `${this.assetsPath}/img/ui/tempo.svg`;
     this.template.tempoButton.setAttribute("src", tempoSrc);
@@ -53,6 +86,8 @@ export class MeasureControlsTemplateRenderer {
     const repeatEndSrc = `${this.assetsPath}/img/ui/repeat-end.svg`;
     this.template.repeatEndButton.setAttribute("src", repeatEndSrc);
     this.template.repeatEndButton.setAttribute("alt", "Repeat Start");
+
+    this.renderRepeatButtonsState();
   }
 
   public render(): void {

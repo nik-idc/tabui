@@ -142,6 +142,16 @@ export class GuitarNote {
 
   public removeEffect(effectType: GuitarEffectType): void {}
 
+  public effectApplicable(effectType: GuitarEffectType): boolean {
+    return !this._effects.some((e) =>
+      EFFECTS_INCOMPATIBILITY[e.effectType].includes(effectType)
+    );
+  }
+
+  public hasEffect(effectType: GuitarEffectType): boolean {
+    return this._effects.some((ge) => ge.effectType === effectType);
+  }
+
   public clearEffects(): void {
     this._effects = [];
   }

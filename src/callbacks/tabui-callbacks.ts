@@ -26,7 +26,8 @@ export class TabUICallbacks {
     );
     this._keyboardCallbacks = new EditorKeyboardDefCallbacks(
       this._uiComponent,
-      this._notationComponent
+      this._notationComponent,
+      this.renderAndBind.bind(this)
     );
     this._uiCallbacks = new UICallbacks(
       this._uiComponent,
@@ -36,13 +37,14 @@ export class TabUICallbacks {
   }
 
   private renderAndBind(): void {
-    this._mouseCallbacks.bind();
+    this._mouseCallbacks.renderAndBind();
+    this._uiComponent.render();
   }
 
   private render(): void {}
 
   public bind(): void {
-    this._mouseCallbacks.bind();
+    this._mouseCallbacks.renderAndBind();
     this._keyboardCallbacks.bind();
     this._uiCallbacks.bind();
   }

@@ -203,6 +203,20 @@ export class TabController {
     return this._tabEditor.getSelectedElement();
   }
 
+  /**
+   * Returns selection as array:
+   * - If not selecting beats, then returns an array containg just the selected element
+   * - If selecting beats, then returns the selection array
+   */
+  public getSelectionAsArray(): Beat[] {
+    const selectedElement = this._tabEditor.getSelectedElement();
+    if (selectedElement === undefined) {
+      return this._tabEditor.selectionManager.selectionBeats;
+    } else {
+      return [selectedElement.beat];
+    }
+  }
+
   public isNoteElementSelected(noteElement: NoteElement): boolean {
     return this._tabEditor.isNoteElementSelected(noteElement);
   }

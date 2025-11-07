@@ -53,21 +53,39 @@ export class NoteControlsTemplateRenderer {
       { num: 16, alt: "Sixteenth" },
       { num: 32, alt: "Thirty-second" },
     ];
+    const selection =
+      this.notationComponent.tabController.getSelectionAsArray();
+    const appliedCssClass = "tu-applied-img";
+
     for (let i = 0; i < notes.length; i++) {
+      const button = this.template.noteDurationButtons[i];
+
+      // Image attributes
       const src = `${this.assetsPath}/img/notes/${notes[i].num}.svg`;
       const dataDuration = `${notes[i].num}`;
       const alt = `${notes[i].alt} note`;
+      button.setAttribute("src", src);
+      button.setAttribute("data-duration", dataDuration);
+      button.setAttribute("alt", alt);
 
-      this.template.noteDurationButtons[i].setAttribute("src", src);
-      this.template.noteDurationButtons[i].setAttribute(
-        "data-duration",
-        dataDuration
+      // Mark applied status
+      const beatsOfCurDuration = selection.find(
+        (b) => b.duration === 1 / notes[i].num
       );
-      this.template.noteDurationButtons[i].setAttribute("alt", alt);
+      if (beatsOfCurDuration !== undefined) {
+        button.classList.add(appliedCssClass);
+      } else {
+        button.classList.remove(appliedCssClass);
+      }
     }
   }
 
   private renderDotButtons(): void {
+    const selection =
+      this.notationComponent.tabController.getSelectionAsArray();
+    const appliedCssClass = "tu-applied-img";
+
+    // Image attributes
     const dot1Src = `${this.assetsPath}/img/ui/dot1.svg`;
     this.template.dot1Button.setAttribute("src", dot1Src);
     this.template.dot1Button.setAttribute("data-dot", "1");
@@ -77,9 +95,29 @@ export class NoteControlsTemplateRenderer {
     this.template.dot2Button.setAttribute("src", dot2Src);
     this.template.dot2Button.setAttribute("data-dot", "2");
     this.template.dot2Button.setAttribute("alt", "Double dot");
+
+    // Mark singular dot applied status
+    const beatsDot1 = selection.find((b) => b.dots === 1);
+    if (beatsDot1 !== undefined) {
+      this.template.dot1Button.classList.add(appliedCssClass);
+    } else {
+      this.template.dot1Button.classList.remove(appliedCssClass);
+    }
+
+    // Mark double dot applied status
+    const beatsDot2 = selection.find((b) => b.dots === 2);
+    if (beatsDot2 !== undefined) {
+      this.template.dot2Button.classList.add(appliedCssClass);
+    } else {
+      this.template.dot2Button.classList.remove(appliedCssClass);
+    }
   }
 
   private renderTupletButtons(): void {
+    const selection =
+      this.notationComponent.tabController.getSelectionAsArray();
+    const appliedCssClass = "tu-applied-img";
+
     const tuplet2Src = `${this.assetsPath}/img/ui/tuplet-2.svg`;
     this.template.tuplet2Button.setAttribute("src", tuplet2Src);
     this.template.tuplet2Button.setAttribute("data-tuplet", "2");
@@ -94,6 +132,47 @@ export class NoteControlsTemplateRenderer {
     this.template.tupletButton.setAttribute("src", tupletSrc);
     this.template.tupletButton.setAttribute("data-tuplet", "0");
     this.template.tupletButton.setAttribute("alt", "Custom tuplet");
+
+    let hasTuplet2: boolean = false;
+    let hasTuplet3: boolean = false;
+    let hasTuplet: boolean = false;
+    for (const beat of selection) {
+      if (beat.tupletSettings === undefined) {
+        continue;
+      }
+
+      if (
+        beat.tupletSettings.normalCount === 2 &&
+        beat.tupletSettings.tupletCount === 1
+      ) {
+        hasTuplet2 = true;
+      } else if (
+        beat.tupletSettings.normalCount === 3 &&
+        beat.tupletSettings.tupletCount === 2
+      ) {
+        hasTuplet3 = true;
+      } else {
+        hasTuplet = true;
+      }
+    }
+
+    if (hasTuplet2) {
+      this.template.tuplet2Button.classList.add(appliedCssClass);
+    } else {
+      this.template.tuplet2Button.classList.remove(appliedCssClass);
+    }
+
+    if (hasTuplet3) {
+      this.template.tuplet3Button.classList.add(appliedCssClass);
+    } else {
+      this.template.tuplet3Button.classList.remove(appliedCssClass);
+    }
+
+    if (hasTuplet) {
+      this.template.tupletButton.classList.add(appliedCssClass);
+    } else {
+      this.template.tupletButton.classList.remove(appliedCssClass);
+    }
   }
 
   /**

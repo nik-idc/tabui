@@ -7,13 +7,6 @@ import { KeyChecker } from "@/shared";
 import { UIComponent } from "@/ui";
 
 export interface EditorKeyboardCallbacks {
-  // readonly renderer: EditorRenderer;
-  // readonly controller: TabController;
-  // readonly bindAfterRender: (activeRenderers: ElementRenderer[]) => void;
-
-  readonly uiComponent: UIComponent;
-  readonly notationComponent: NotationComponent;
-
   ctrlCEvent(event: KeyboardEvent): void;
   ctrlVEvent(event: KeyboardEvent): void;
   ctrlZEvent(event: KeyboardEvent): void;
@@ -38,85 +31,52 @@ export interface EditorKeyboardCallbacks {
 export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   readonly eventsTimeEpsilon: number = 250;
 
-  // readonly renderer: EditorRenderer;
-  // readonly controller: TabController;
-  // readonly bindAfterRender: (activeRenderers: ElementRenderer[]) => void;
-
-  readonly uiComponent: UIComponent;
-  readonly notationComponent: NotationComponent;
-
-  // private _bendSelectorManager?: BendSelectorManager;
+  private _uiComponent: UIComponent;
+  private _notationComponent: NotationComponent;
+  private _renderFunc: () => void;
 
   private _bound: boolean = false;
   private _prevKeyPress?: { time: number; key: string };
 
   constructor(
-    // renderer: EditorRenderer,
-    // controller: TabController,
-    // bindAfterRender: (activeRenderers: ElementRenderer[]) => void,
-    // bendSelectorManager?: BendSelectorManager
-
     uiComponent: UIComponent,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    renderFunc: () => void
   ) {
-    this.uiComponent = uiComponent;
-    this.notationComponent = notationComponent;
-
-    // this.renderer = renderer;
-    // this.controller = controller;
-    // this.bindAfterRender = bindAfterRender;
-    // this._bendSelectorManager = bendSelectorManager;
+    this._uiComponent = uiComponent;
+    this._notationComponent = notationComponent;
+    this._renderFunc = renderFunc;
   }
 
   public ctrlCEvent(event: KeyboardEvent): void {
-    this.notationComponent.tabController.copy();
-
-    // this.controller.copy();
+    this._notationComponent.tabController.copy();
   }
 
   public ctrlVEvent(event: KeyboardEvent): void {
-    this.notationComponent.tabController.paste();
-    this.notationComponent.render();
-
-    // this.controller.paste();
-
-    // this.bindAfterRender(this.renderer.render(this.controller));
+    this._notationComponent.tabController.paste();
+    this._renderFunc();
   }
 
   public ctrlZEvent(event: KeyboardEvent): void {
-    this.notationComponent.tabController.undo();
-    this.notationComponent.render();
-
-    // this.controller.undo();
-
-    // this.bindAfterRender(this.renderer.render(this.controller));
+    this._notationComponent.tabController.undo();
+    this._renderFunc();
   }
 
   public ctrlYEvent(event: KeyboardEvent): void {
-    this.notationComponent.tabController.redo();
-    this.notationComponent.render();
-
-    // this.controller.redo();
-
-    // this.bindAfterRender(this.renderer.render(this.controller));
+    this._notationComponent.tabController.redo();
+    this._renderFunc();
   }
 
   public deleteEvent(event: KeyboardEvent): void {
-    this.notationComponent.tabController.deleteSelectedBeats();
-    this.notationComponent.render();
-
-    // this.controller.deleteSelectedBeats();
-
-    // this.bindAfterRender(this.renderer.render(this.controller));
+    this._notationComponent.tabController.deleteSelectedBeats();
+    this._renderFunc();
   }
 
   public applyOrRemoveEffect(
     effectType: GuitarEffectType,
     options?: GuitarEffectOptions
   ): void {
-    const selected = this.notationComponent.tabController.getSelectedElement();
-
-    // const selected = this.controller.getSelectedElement();
+    const selected = this._notationComponent.tabController.getSelectedElement();
 
     if (selected === undefined) {
       return;
@@ -127,24 +87,18 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     });
 
     if (effectIndex === -1) {
-      const result = this.notationComponent.tabController.applyEffectSingle(
+      const result = this._notationComponent.tabController.applyEffectSingle(
         effectType,
         options
       );
-
-      // const result = this.controller.applyEffectSingle(effectType, options);
     } else {
-      this.notationComponent.tabController.removeEffectSingle(
+      this._notationComponent.tabController.removeEffectSingle(
         effectType,
         options
       );
-
-      // this.controller.removeEffectSingle(effectType, options);
     }
 
-    this.notationComponent.render();
-
-    // this.bindAfterRender(this.renderer.render(this.controller));
+    this._renderFunc();
   }
 
   public shiftVEvent(event: KeyboardEvent): void {
@@ -156,42 +110,22 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public shiftBEvent(event: KeyboardEvent): void {
-    // event.preventDefault();
-
-    // if (this._bendSelectorManager === undefined) {
-    //   return;
-    // }
-
-    // this._bendSelectorManager.show(
-    //   (effectType: GuitarEffectType, options: GuitarEffectOptions) => {
-    //     this.applyOrRemoveEffect(effectType, options);
-    //   }
-    // );
     throw new Error("Method not implemented yet");
   }
 
   public spaceEvent(event: KeyboardEvent): void {
-    if (this.notationComponent.tabController.getIsPlaying()) {
-      this.notationComponent.tabController.stopPlayer();
+    if (this._notationComponent.tabController.getIsPlaying()) {
+      this._notationComponent.tabController.stopPlayer();
     } else {
-      this.notationComponent.tabController.startPlayer();
+      this._notationComponent.tabController.startPlayer();
     }
 
-    this.notationComponent.render();
-
-    // if (this.controller.getIsPlaying()) {
-    //   this.controller.stopPlayer();
-    // } else {
-    //   this.controller.startPlayer();
-    // }
-
-    // this.bindAfterRender(this.renderer.render(this.controller));
+    this._renderFunc();
   }
 
   public onNumberDown(key: string): void {
-    // if (this.controller.getSelectedElement() === undefined) {
     if (
-      this.notationComponent.tabController.getSelectedElement() === undefined
+      this._notationComponent.tabController.getSelectedElement() === undefined
     ) {
       return;
     }
@@ -203,12 +137,9 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     if (this._prevKeyPress === undefined) {
       this._prevKeyPress = { time: new Date().getTime(), key: key };
-      this.notationComponent.tabController.setSelectedElementFret(newFret);
+      this._notationComponent.tabController.setSelectedElementFret(newFret);
 
-      // this.controller.setSelectedElementFret(newFret);
-
-      this.notationComponent.render();
-      // this.bindAfterRender(this.renderer.render(this.controller));
+      this._renderFunc();
       return;
     }
 
@@ -217,61 +148,49 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     let combFret = Number.parseInt(this._prevKeyPress.key + key);
     newFret = timeDiff < this.eventsTimeEpsilon ? combFret : newFret;
 
-    this.notationComponent.tabController.setSelectedElementFret(newFret);
-
-    // this.controller.setSelectedElementFret(newFret);
+    this._notationComponent.tabController.setSelectedElementFret(newFret);
 
     this._prevKeyPress.time = now;
     this._prevKeyPress.key = key;
 
-    this.notationComponent.render();
-
-    // this.bindAfterRender(this.renderer.render(this.controller));
+    this._renderFunc();
   }
 
   public onArrowDown(key: string): void {
-    // if (this.controller.getSelectedElement() === undefined) {
     if (
-      this.notationComponent.tabController.getSelectedElement() === undefined
+      this._notationComponent.tabController.getSelectedElement() === undefined
     ) {
       return;
     }
 
     switch (key) {
       case "arrowdown":
-        // this.controller.moveSelectedNote(SelectedMoveDirection.Down);
-        this.notationComponent.tabController.moveSelectedNote(
+        this._notationComponent.tabController.moveSelectedNote(
           SelectedMoveDirection.Down
         );
         break;
       case "arrowup":
-        // this.controller.moveSelectedNote(SelectedMoveDirection.Up);
-        this.notationComponent.tabController.moveSelectedNote(
+        this._notationComponent.tabController.moveSelectedNote(
           SelectedMoveDirection.Up
         );
         break;
       case "arrowleft":
-        // this.controller.moveSelectedNote(SelectedMoveDirection.Left);
-        this.notationComponent.tabController.moveSelectedNote(
+        this._notationComponent.tabController.moveSelectedNote(
           SelectedMoveDirection.Left
         );
         break;
       case "arrowright":
-        // this.controller.moveSelectedNote(SelectedMoveDirection.Right);
-        this.notationComponent.tabController.moveSelectedNote(
+        this._notationComponent.tabController.moveSelectedNote(
           SelectedMoveDirection.Right
         );
         break;
     }
 
-    this.notationComponent.render();
-
-    // this.bindAfterRender(this.renderer.render(this.controller));
+    this._renderFunc();
   }
 
   public onBackspacePress(): void {
-    const selected = this.notationComponent.tabController.getSelectedElement();
-    // const selected = this.controller.getSelectedElement();
+    const selected = this._notationComponent.tabController.getSelectedElement();
 
     if (selected === undefined) {
       return;
@@ -281,18 +200,12 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
 
-    this.notationComponent.tabController.setSelectedElementFret(undefined);
+    this._notationComponent.tabController.setSelectedElementFret(undefined);
 
-    // this.controller.setSelectedElementFret(undefined);
-
-    this.notationComponent.render();
-
-    // this.bindAfterRender(this.renderer.render(this.controller));
+    this._renderFunc();
   }
 
-  public onCtrlDel(): void {
-    // Delete selected note beat
-  }
+  public onCtrlDel(): void {}
 
   public onKeyDown(event: KeyboardEvent): void {
     const key = event.key.toLowerCase(); // normalize

@@ -1,4 +1,5 @@
 import { Guitar } from "./guitar";
+import { GuitarEffectType } from "./guitar-effect";
 import { GuitarNote } from "./guitar-note";
 import { NoteDuration } from "./note-duration";
 import { randomInt } from "@/shared";
@@ -119,6 +120,10 @@ export class Beat {
       normalCount: newSettings.normalCount,
       tupletCount: newSettings.tupletCount,
     };
+  }
+
+  public hasEffect(effectType: GuitarEffectType): boolean {
+    return this.notes.some((n) => n.hasEffect(effectType));
   }
 
   public deepCopy(): Beat {
