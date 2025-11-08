@@ -1,8 +1,8 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import { MeasureControlsTemplateRenderer } from "./measure-controls-template-renderer";
-import { TimeSigControlsComponent } from "../effect-controls/time-sig-controls";
-import { TempoControlsComponent } from "../effect-controls/tempo-controls";
+import { TimeSigControlsComponent } from "./time-sig-controls";
+import { TempoControlsComponent } from "./tempo-controls";
 
 export class MeasureControlsComponent {
   readonly rootDiv: HTMLDivElement;
@@ -39,5 +39,13 @@ export class MeasureControlsComponent {
     this.templateRenderer.render();
     this.timeSigControlsComponent.render();
     this.tempoControlsComponent.render();
+  }
+
+  public showTempoControls(): void {
+    this.tempoControlsComponent.template.tempoDialog.showModal();
+  }
+
+  public showTimeSigControls(): void {
+    this.timeSigControlsComponent.template.timeSigDialog.showModal();
   }
 }

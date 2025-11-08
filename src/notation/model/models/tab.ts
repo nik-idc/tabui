@@ -620,8 +620,9 @@ export class Tab {
     const note =
       this._bars[barIndex].beats[beatIndex].notes[stringNum - 1].note;
     if (
-      note.noteValue === NoteValue.None ||
-      note.noteValue === NoteValue.Dead
+      (note.noteValue === NoteValue.None ||
+        note.noteValue === NoteValue.Dead) &&
+      EFFECT_TYPE_TO_SCOPE[effectType] === GuitarEffectScope.NoteLevelEffect
     ) {
       // No effects can be applied to a dead note or an abscense of a note
       return false;

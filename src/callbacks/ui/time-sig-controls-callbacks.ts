@@ -3,7 +3,7 @@ import { NotationComponent } from "@/notation/notation-component";
 import {
   TimeSigControlsComponent,
   TimeSigControlsTemplate,
-} from "@/ui/side-controls/effect-controls/time-sig-controls";
+} from "@/ui/side-controls/measure-controls/time-sig-controls";
 
 export interface TimeSigControlsCallbacks {
   readonly beatsCountErrorText: string;

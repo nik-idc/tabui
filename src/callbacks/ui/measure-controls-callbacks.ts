@@ -4,11 +4,11 @@ import { MeasureControlsComponent, MeasureControlsTemplate } from "@/ui";
 import {
   TempoControlsComponent,
   TempoControlsTemplate,
-} from "@/ui/side-controls/effect-controls/tempo-controls";
+} from "@/ui/side-controls/measure-controls/tempo-controls";
 import {
   TimeSigControlsComponent,
   TimeSigControlsTemplate,
-} from "@/ui/side-controls/effect-controls/time-sig-controls";
+} from "@/ui/side-controls/measure-controls/time-sig-controls";
 import {
   TempoControlsCallbacks,
   TempoControlsDefaultCallbacks,
@@ -58,10 +58,10 @@ export class MeasureControlsDefaultCallbacks
   }
 
   onTempoClicked(): void {
-    this._measureComponent.tempoControlsComponent.template.tempoDialog.showModal();
+    this._measureComponent.showTempoControls();
   }
   onTimeSignatureClicked(): void {
-    this._measureComponent.timeSigControlsComponent.template.timeSigDialog.showModal();
+    this._measureComponent.showTimeSigControls();
   }
   onRepeatStartClicked(): void {
     this._notationComponent.tabController.setSelectedBarRepeatStart();

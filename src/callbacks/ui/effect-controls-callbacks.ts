@@ -90,7 +90,7 @@ export class EffectControlsDefaultCallbacks implements EffectControlsCallbacks {
   }
 
   public onBendClicked(): void {
-    this._effectsComponent.bendControlsComponent.template.bendControlsDialog.showModal();
+    this._effectsComponent.showBendControls();
   }
 
   public bind(): void {

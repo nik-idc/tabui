@@ -4,7 +4,7 @@ import { MeasureControlsComponent } from "@/ui";
 import {
   TempoControlsComponent,
   TempoControlsTemplate,
-} from "@/ui/side-controls/effect-controls/tempo-controls";
+} from "@/ui/side-controls/measure-controls/tempo-controls";
 
 export interface TempoControlsCallbacks {
   readonly beatsCountErrorText: string;

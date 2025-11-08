@@ -73,9 +73,13 @@ export class EffectControlsTemplateRenderer {
       }
 
       button.classList.remove(appliedCssClass);
-      button.classList.add(disabledCssClass);
+      button.classList.remove(disabledCssClass);
     } else {
-      if (selectedElement.note.fret === undefined) {
+      if (
+        EFFECT_TYPE_TO_SCOPE[effectType] ===
+          GuitarEffectScope.NoteLevelEffect &&
+        selectedElement.note.fret === undefined
+      ) {
         button.classList.remove(appliedCssClass);
         button.classList.add(disabledCssClass);
         return;

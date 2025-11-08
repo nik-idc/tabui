@@ -59,6 +59,14 @@ export class TabController {
     } else {
       this._tabPlayer = undefined;
     }
+
+    // Select the first note by default
+    // (this is probably not the best way to do this
+    //  but as of now idc)
+    this._tabEditor.selectNoteElement(
+      this._tabElement.tabLineElements[0].barElements[0].beatElements[0]
+        .beatNotesElement.noteElements[0]
+    );
   }
 
   public calcTabElement(): void {

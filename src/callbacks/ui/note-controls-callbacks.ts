@@ -1,6 +1,10 @@
 import { NoteDuration, TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import { NoteControlsComponent, NoteControlsTemplate } from "@/ui";
+import {
+  TupletControlsCallbacks,
+  TupletControlsDefaultCallbacks,
+} from "./tuplet-controls-callbacks";
 
 export interface NoteControlsCallbacks {
   onDurationClicked(noteDuration: NoteDuration): void;
@@ -15,6 +19,8 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
 
+  private _tupletCallbacks: TupletControlsCallbacks;
+
   constructor(
     noteComponent: NoteControlsComponent,
     notationComponent: NotationComponent,
@@ -23,6 +29,12 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._noteComponent = noteComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+
+    this._tupletCallbacks = new TupletControlsDefaultCallbacks(
+      this._noteComponent.tupletComponent,
+      this._notationComponent,
+      this._renderFunc
+    );
   }
 
   onDurationClicked(noteDuration: NoteDuration): void {
@@ -48,7 +60,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   }
 
   onTupletClicked(): void {
-    throw new Error("Method not implemented.");
+    this._noteComponent.showTupletControls();
   }
 
   bind(): void {
@@ -76,5 +88,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._noteComponent.template.tupletButton.addEventListener("click", () =>
       this.onTupletClicked()
     );
+
+    this._tupletCallbacks.bind();
   }
 }

@@ -1,6 +1,7 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NoteControlsTemplateRenderer } from "./note-controls-template-renderer";
+import { TupletControlsComponent } from "./tuplet-controls";
 
 export class NoteControlsComponent {
   readonly rootDiv: HTMLDivElement;
@@ -8,6 +9,8 @@ export class NoteControlsComponent {
 
   readonly template: NoteControlsTemplate;
   readonly templateRenderer: NoteControlsTemplateRenderer;
+
+  readonly tupletComponent: TupletControlsComponent;
 
   constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
     this.rootDiv = rootDiv;
@@ -19,9 +22,20 @@ export class NoteControlsComponent {
       this.notationComponent,
       this.template
     );
+
+    this.tupletComponent = new TupletControlsComponent(
+      this.rootDiv,
+      this.notationComponent
+    );
   }
 
   public render(): void {
     this.templateRenderer.render();
+
+    this.tupletComponent.render();
+  }
+
+  public showTupletControls(): void {
+    this.tupletComponent.template.tupletDialog.showModal();
   }
 }
