@@ -15,7 +15,9 @@ export interface ScoreControlsCallbacks {
   onNewTrackButtonClicked(): void;
   onMasterVolumeChanged(): void;
   onMasterPanningChanged(): void;
-  onScoreSettingsClicked(): void;
+  onScoreNameChanged(): void;
+  onScoreNameFocusGained(): void;
+  onScoreNameFocusLost(): void;
   bind(): void;
   unbind(): void;
 }
@@ -31,6 +33,8 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   private _newTrackCallbacks: NewTrackControlsCallbacks;
 
   private _listeners = new ListenerManager();
+  private _minTrackNameLength = 1;
+  private _maxTrackNameLength = 32;
 
   constructor(
     scoreComponent: ScoreControlsComponent,
@@ -76,8 +80,17 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     throw new Error("Method not implemented");
   }
 
-  onScoreSettingsClicked(): void {
-    throw new Error("Method not implemented");
+  onScoreNameChanged(): void {
+    this._scoreComponent.score.name =
+      this._scoreComponent.template.scoreNameInput.value;
+  }
+
+  onScoreNameFocusGained(): void {
+    this._captureKeyboard();
+  }
+
+  onScoreNameFocusLost(): void {
+    this._freeKeyboard();
   }
 
   private bindTracksCallbacks(): void {
@@ -119,9 +132,19 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
         handler: () => this.onMasterPanningChanged(),
       },
       {
-        element: this._scoreComponent.template.scoreSettingsButton,
-        event: "click",
-        handler: () => this.onScoreSettingsClicked(),
+        element: this._scoreComponent.template.scoreNameInput,
+        event: "input",
+        handler: () => this.onScoreNameChanged(),
+      },
+      {
+        element: this._scoreComponent.template.scoreNameInput,
+        event: "focus",
+        handler: () => this.onScoreNameFocusGained(),
+      },
+      {
+        element: this._scoreComponent.template.scoreNameInput,
+        event: "focusout",
+        handler: () => this.onScoreNameFocusLost(),
       },
     ]);
 

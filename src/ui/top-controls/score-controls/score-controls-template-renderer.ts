@@ -1,6 +1,7 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { createOption } from "@/shared";
 import { ScoreControlsTemplate } from "./score-controls-template";
+import { Score } from "@/notation";
 
 const assetsPath = import.meta.env.BASE_URL;
 
@@ -20,6 +21,8 @@ export class ScoreControlsTemplateRenderer {
   readonly assetsPath: string;
 
   private _assembled: boolean;
+
+  private _currentScoreName: string = "Score name";
 
   constructor(
     rootDiv: HTMLDivElement,
@@ -41,14 +44,14 @@ export class ScoreControlsTemplateRenderer {
 
     this.template.scoreControlsContainer.append(
       this.template.masterContainer,
+      this.template.scoreNameInput,
       this.template.tracksContainer
     );
     this.template.masterContainer.append(
       this.template.showTracksButton,
       this.template.newTrackButton,
       this.template.masterVolumeInput,
-      this.template.masterPanningInput,
-      this.template.scoreSettingsButton
+      this.template.masterPanningInput
     );
 
     this.rootDiv.appendChild(this.template.scoreControlsContainer);
@@ -95,12 +98,10 @@ export class ScoreControlsTemplateRenderer {
     this.template.masterPanningInput.value = `${0}`;
   }
 
-  private renderScoreSettingsButton(): void {
-    const cssClass = "tu-score-settings-button";
-    this.template.scoreSettingsButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/settings.svg`;
-    this.template.scoreSettingsButton.src = src;
-    this.template.scoreSettingsButton.alt = "Score settings";
+  private renderScoreNameInput(): void {
+    const cssClass = "tu-score-name-input";
+    this.template.scoreNameInput.classList.add(cssClass);
+    this.template.scoreNameInput.value = this._currentScoreName;
   }
 
   private renderTracksContainer(): void {
@@ -108,13 +109,15 @@ export class ScoreControlsTemplateRenderer {
     this.template.tracksContainer.classList.add(cssClass);
   }
 
-  public render(): void {
+  public render(score: Score): void {
+    this._currentScoreName = score.name;
+
     this.renderShowButton();
     this.renderMasterContainer();
     this.renderNewTrackButton();
     this.renderMasterVolumeInput();
     this.renderMasterPanningInput();
-    this.renderScoreSettingsButton();
+    this.renderScoreNameInput();
     this.renderTracksContainer();
 
     if (!this._assembled) {

@@ -4,10 +4,12 @@ import { ScoreControlsTemplateRenderer } from "./score-controls-template-rendere
 import { TrackControlsTemplate } from "./track-controls";
 import { TrackControlsComponent } from "./track-controls/track-controls-component";
 import { NewTrackControlsComponent } from "./new-track/new-track-controls-component";
+import { Score } from "@/notation";
 
 export class ScoreControlsComponent {
   readonly rootDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
+  readonly score: Score;
 
   readonly template: ScoreControlsTemplate;
   readonly templateRenderer: ScoreControlsTemplateRenderer;
@@ -20,6 +22,7 @@ export class ScoreControlsComponent {
   constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
     this.rootDiv = rootDiv;
     this.notationComponent = notationComponent;
+    this.score = this.notationComponent.tabController.score;
 
     this.template = new ScoreControlsTemplate();
     this.templateRenderer = new ScoreControlsTemplateRenderer(
@@ -41,7 +44,7 @@ export class ScoreControlsComponent {
   }
 
   public render(): void {
-    this.templateRenderer.render();
+    this.templateRenderer.render(this.score);
 
     this.newTrackComponent.render();
 

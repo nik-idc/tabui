@@ -13,7 +13,7 @@ export class ScoreControlsTemplate {
   readonly newTrackButton: HTMLImageElement = createImage();
   readonly masterVolumeInput: HTMLInputElement = createInput();
   readonly masterPanningInput: HTMLInputElement = createInput();
-  readonly scoreSettingsButton: HTMLImageElement = createImage();
   readonly tracksContainer: HTMLDivElement = createDiv();
+  readonly scoreNameInput: HTMLInputElement = createInput();
   tracksTemplates: TrackControlsTemplate[] = [];
 }

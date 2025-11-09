@@ -23,12 +23,10 @@ export class TopControlsComponent {
 
     this.template = new TopControlsTemplate();
     this.scoreComponent = new ScoreControlsComponent(
-      // this.rootDiv,
       this.template.topControlsContainer,
       this.notationComponent
     );
     this.playComponent = new PlayControlsComponent(
-      // this.rootDiv,
       this.template.topControlsContainer,
       this.notationComponent
     );
