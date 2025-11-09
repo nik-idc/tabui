@@ -15,7 +15,8 @@
     "preview_vite": "vite preview",
     "deploy_vite": "npm run build && git subtree push --prefix editor/dist origin gh-pages",
     "serve_vite": "npx vite",
-    "test": "jest"
+    "test": "jest",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@babel/core": "^7.24.5",
