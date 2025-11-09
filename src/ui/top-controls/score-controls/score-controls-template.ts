@@ -8,7 +8,7 @@ import { TrackControlsTemplate } from "./track-controls/track-controls-template"
  */
 export class ScoreControlsTemplate {
   readonly scoreControlsContainer: HTMLDivElement = createDiv();
-  readonly showTracksButton: HTMLButtonElement = createButton()
+  readonly showTracksButton: HTMLButtonElement = createButton();
   readonly masterContainer: HTMLDivElement = createDiv();
   readonly newTrackButton: HTMLImageElement = createImage();
   readonly masterVolumeInput: HTMLInputElement = createInput();

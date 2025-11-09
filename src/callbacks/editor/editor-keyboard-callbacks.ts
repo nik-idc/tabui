@@ -26,6 +26,7 @@ export interface EditorKeyboardCallbacks {
   onCtrlDel(): void;
   onKeyDown(event: KeyboardEvent): void;
   bind(): void;
+  unbind(): void;
 }
 
 export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
@@ -37,6 +38,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
   private _bound: boolean = false;
   private _prevKeyPress?: { time: number; key: string };
+  private _boundOnKeyDown?: (event: KeyboardEvent) => void;
 
   constructor(
     uiComponent: UIComponent,
@@ -254,9 +256,16 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
 
-    // this._boundOnKeyDown = keyboardCallbacks.onKeyDown.bind(keyboardCallbacks);
-    document.addEventListener("keydown", this.onKeyDown.bind(this));
-    // this._keyboardBound = true;
+    this._boundOnKeyDown = this.onKeyDown.bind(this);
+    document.addEventListener("keydown", this._boundOnKeyDown);
     this._bound = true;
+  }
+
+  public unbind(): void {
+    if (this._bound && this._boundOnKeyDown !== undefined) {
+      document.removeEventListener("keydown", this._boundOnKeyDown);
+      this._boundOnKeyDown = undefined;
+      this._bound = false;
+    }
   }
 }

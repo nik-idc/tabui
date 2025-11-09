@@ -220,7 +220,10 @@ export class EditPanel {
         const newNormalCount = parseInt(values["normalCount"], 10);
         const newTupletCount = parseInt(values["tupletCount"], 10);
         if (!isNaN(newNormalCount) && !isNaN(newTupletCount)) {
-          this.tabController.setSelectedBeatsTuplet(newNormalCount, newTupletCount);
+          this.tabController.setSelectedBeatsTuplet(
+            newNormalCount,
+            newTupletCount
+          );
           this.bindAfterRender();
         }
       }

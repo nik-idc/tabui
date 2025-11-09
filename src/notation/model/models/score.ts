@@ -63,7 +63,7 @@ export class Score {
     guitar: Guitar,
     name: string = "New tab",
     instrumentName: string = "Guitar"
-  ): void {
+  ): Tab {
     // THIS IS VERY BAD FOR FOLLOWING REASONS:
     //  1. This assumes that appending/inserting/deleting bars from the Score class
     //     will work correctly EVERY TIME which I can't ever be 100% sure in
@@ -86,7 +86,10 @@ export class Score {
       );
     }
 
-    this.tracks.push(new Tab(name, instrumentName, guitar, emptyBars));
+    const newTab = new Tab(name, instrumentName, guitar, emptyBars);
+    this.tracks.push(newTab);
+
+    return newTab;
   }
 
   /**

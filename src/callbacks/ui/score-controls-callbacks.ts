@@ -1,16 +1,23 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { ScoreControlsComponent } from "@/ui";
+import { ListenerManager } from "@/shared/misc";
 import {
   TrackControlsCallbacks,
   TrackControlsDefaultCallbacks,
 } from "./track-controls-callbacks";
+import {
+  NewTrackControlsCallbacks,
+  NewTrackControlsDefaultCallbacks,
+} from "./new-track-controls-callbacks";
 
 export interface ScoreControlsCallbacks {
   onShowTracksButtonClicked(): void;
+  onNewTrackButtonClicked(): void;
   onMasterVolumeChanged(): void;
   onMasterPanningChanged(): void;
   onScoreSettingsClicked(): void;
   bind(): void;
+  unbind(): void;
 }
 
 export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
@@ -19,6 +26,9 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   private _renderFunc: () => void;
 
   private _trackCallbacks: TrackControlsCallbacks[] = [];
+  private _newTrackCallbacks: NewTrackControlsCallbacks;
+
+  private _listeners = new ListenerManager();
 
   constructor(
     scoreComponent: ScoreControlsComponent,
@@ -28,6 +38,12 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     this._scoreComponent = scoreComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+
+    this._newTrackCallbacks = new NewTrackControlsDefaultCallbacks(
+      this._scoreComponent.newTrackComponent,
+      this._notationComponent,
+      this._renderFunc.bind(this)
+    );
   }
 
   onShowTracksButtonClicked(): void {
@@ -37,6 +53,10 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     if (this._scoreComponent.tracksAreDisplayed) {
       this.bindTracksCallbacks();
     }
+  }
+
+  onNewTrackButtonClicked(): void {
+    this._scoreComponent.showNewTrackDialog();
   }
 
   onMasterVolumeChanged(): void {
@@ -66,34 +86,44 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   bind(): void {
-    this._scoreComponent.template.showTracksButton.addEventListener(
-      "click",
-      () => {
-        this.onShowTracksButtonClicked();
-      }
-    );
-
-    this._scoreComponent.template.masterVolumeInput.addEventListener(
-      "change",
-      () => {
-        this.onMasterVolumeChanged();
-      }
-    );
-
-    this._scoreComponent.template.masterPanningInput.addEventListener(
-      "change",
-      () => {
-        this.onMasterPanningChanged();
-      }
-    );
-
-    this._scoreComponent.template.scoreSettingsButton.addEventListener(
-      "click",
-      () => {
-        this.onScoreSettingsClicked();
-      }
-    );
+    this._listeners.bindAll([
+      {
+        element: this._scoreComponent.template.showTracksButton,
+        event: "click",
+        handler: () => this.onShowTracksButtonClicked(),
+      },
+      {
+        element: this._scoreComponent.template.newTrackButton,
+        event: "click",
+        handler: () => this.onNewTrackButtonClicked(),
+      },
+      {
+        element: this._scoreComponent.template.masterVolumeInput,
+        event: "change",
+        handler: () => this.onMasterVolumeChanged(),
+      },
+      {
+        element: this._scoreComponent.template.masterPanningInput,
+        event: "change",
+        handler: () => this.onMasterPanningChanged(),
+      },
+      {
+        element: this._scoreComponent.template.scoreSettingsButton,
+        event: "click",
+        handler: () => this.onScoreSettingsClicked(),
+      },
+    ]);
 
     this.bindTracksCallbacks();
+
+    this._newTrackCallbacks.bind();
+  }
+
+  unbind(): void {
+    this._listeners.unbindAll();
+    for (const trackCallbacks of this._trackCallbacks) {
+      trackCallbacks.unbind();
+    }
+    this._newTrackCallbacks.unbind();
   }
 }

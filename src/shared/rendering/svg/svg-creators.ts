@@ -46,5 +46,3 @@ export function createSVGCircle(): SVGCircleElement {
     "circle"
   ) as SVGCircleElement;
 }
-
-

@@ -1,4 +1,3 @@
-
 import { SVGBeatRenderer, SVGNoteRenderer } from "@/notation";
 import { ElementRenderer } from "@/notation/render/element-renderer";
 import { EditorKeyboardCallbacks } from "./editor-keyboard-callbacks";

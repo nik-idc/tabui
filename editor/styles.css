@@ -11,7 +11,8 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* soft shadow for “card” effect */
   text-align: justify; /* full-width justified text */
   line-height: 1.6; /* nice spacing for paragraphs */
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* clean modern font */
+  font-family:
+    "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* clean modern font */
 }
 
 .header h1 {
@@ -220,7 +221,9 @@ body {
   border: 1px solid #000000;
   border-radius: 4px;
   font-size: 14px;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
 }
 
 #input-modal-inputs input:focus {

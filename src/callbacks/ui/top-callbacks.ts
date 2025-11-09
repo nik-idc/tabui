@@ -43,4 +43,9 @@ export class TopControlsCallbacks {
     this._scoreCallbacks.bind();
     this._playCallbacks.bind();
   }
+
+  public unbind(): void {
+    this._scoreCallbacks.unbind();
+    // this._playCallbacks.unbind();
+  }
 }

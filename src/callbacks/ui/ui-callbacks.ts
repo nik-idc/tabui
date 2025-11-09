@@ -37,4 +37,9 @@ export class UICallbacks {
     this._topCallbacks.bind();
     this._sideCallbacks.bind();
   }
+
+  public unbind(): void {
+    this._topCallbacks.unbind();
+    this._sideCallbacks.unbind();
+  }
 }

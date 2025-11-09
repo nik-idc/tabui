@@ -39,6 +39,10 @@ export class TabEditor {
     this._selectionManager.selectNote(noteElement.note);
   }
 
+  public selectFirstNote(): void {
+    this._selectionManager.selectNote(this._tab.bars[0].beats[0].notes[0]);
+  }
+
   /**
    * Selects note element using element ids.
    * NOTE: This function does not inform TabPlayer class of the change

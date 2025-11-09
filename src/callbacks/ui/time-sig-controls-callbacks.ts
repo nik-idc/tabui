@@ -4,6 +4,7 @@ import {
   TimeSigControlsComponent,
   TimeSigControlsTemplate,
 } from "@/ui/side-controls/measure-controls/time-sig-controls";
+import { ListenerManager } from "@/shared/misc";
 
 export interface TimeSigControlsCallbacks {
   readonly beatsCountErrorText: string;
@@ -15,6 +16,7 @@ export interface TimeSigControlsCallbacks {
   onConfirmClicked(): void;
   onCancelClicked(): void;
   bind(): void;
+  unbind(): void;
 }
 
 export class TimeSigControlsDefaultCallbacks
@@ -23,6 +25,7 @@ export class TimeSigControlsDefaultCallbacks
   private _timeSigComponent: TimeSigControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _listeners = new ListenerManager();
 
   readonly beatsCountErrorText: string = "Invalid beats count";
   readonly durationErrorText: string = "Invalid duration";
@@ -121,25 +124,36 @@ export class TimeSigControlsDefaultCallbacks
   }
 
   bind(): void {
-    this._timeSigComponent.template.timeSigDialogContent.addEventListener(
-      "click",
-      (event: Event) => this.onDialogClicked(event as MouseEvent)
-    );
-    this._timeSigComponent.template.beatsInput.addEventListener(
-      "input",
-      (event: Event) => this.onBeatsChanged(event as InputEvent)
-    );
-    this._timeSigComponent.template.durationInput.addEventListener(
-      "input",
-      (event: Event) => this.onDurationChanged(event as InputEvent)
-    );
-    this._timeSigComponent.template.confirmButton.addEventListener(
-      "click",
-      (event: Event) => this.onConfirmClicked()
-    );
-    this._timeSigComponent.template.cancelButton.addEventListener(
-      "click",
-      (event: Event) => this.onCancelClicked()
-    );
+    this._listeners.bindAll([
+      {
+        element: this._timeSigComponent.template.timeSigDialogContent,
+        event: "click",
+        handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
+      },
+      {
+        element: this._timeSigComponent.template.beatsInput,
+        event: "input",
+        handler: (event: Event) => this.onBeatsChanged(event as InputEvent),
+      },
+      {
+        element: this._timeSigComponent.template.durationInput,
+        event: "input",
+        handler: (event: Event) => this.onDurationChanged(event as InputEvent),
+      },
+      {
+        element: this._timeSigComponent.template.confirmButton,
+        event: "click",
+        handler: () => this.onConfirmClicked(),
+      },
+      {
+        element: this._timeSigComponent.template.cancelButton,
+        event: "click",
+        handler: () => this.onCancelClicked(),
+      },
+    ]);
+  }
+
+  unbind(): void {
+    this._listeners.unbindAll();
   }
 }

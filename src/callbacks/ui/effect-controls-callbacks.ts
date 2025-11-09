@@ -10,6 +10,7 @@ import {
   BendControlsCallbacks,
   BendControlsDefaultCallbacks,
 } from "./bend-controls-callbacks";
+import { ListenerManager } from "@/shared/misc";
 
 export interface EffectControlsCallbacks {
   onVibratoClicked(): void;
@@ -21,12 +22,15 @@ export interface EffectControlsCallbacks {
   onSlideClicked(): void;
   onBendClicked(): void;
   bind(): void;
+  unbind(): void;
 }
 
 export class EffectControlsDefaultCallbacks implements EffectControlsCallbacks {
   private _effectsComponent: EffectControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+
+  private _listeners = new ListenerManager();
 
   private _bendCallbacks: BendControlsCallbacks;
 
@@ -94,35 +98,54 @@ export class EffectControlsDefaultCallbacks implements EffectControlsCallbacks {
   }
 
   public bind(): void {
-    this._effectsComponent.template.vibratoButton.addEventListener(
-      "click",
-      () => this.onVibratoClicked()
-    );
-    this._effectsComponent.template.palmMuteButton.addEventListener(
-      "click",
-      () => this.onPalmMuteClicked()
-    );
-    this._effectsComponent.template.nhButton.addEventListener("click", () =>
-      this.onNHClicked()
-    );
-    this._effectsComponent.template.phButton.addEventListener("click", () =>
-      this.onPHClicked()
-    );
-    this._effectsComponent.template.hammerOnButton.addEventListener(
-      "click",
-      () => this.onHammerOnClicked()
-    );
-    this._effectsComponent.template.pullOffButton.addEventListener(
-      "click",
-      () => this.onPullOffClicked()
-    );
-    this._effectsComponent.template.slideButton.addEventListener("click", () =>
-      this.onSlideClicked()
-    );
-    this._effectsComponent.template.bendButton.addEventListener("click", () =>
-      this.onBendClicked()
-    );
+    this._listeners.bindAll([
+      {
+        element: this._effectsComponent.template.vibratoButton,
+        event: "click",
+        handler: () => this.onVibratoClicked(),
+      },
+      {
+        element: this._effectsComponent.template.palmMuteButton,
+        event: "click",
+        handler: () => this.onPalmMuteClicked(),
+      },
+      {
+        element: this._effectsComponent.template.nhButton,
+        event: "click",
+        handler: () => this.onNHClicked(),
+      },
+      {
+        element: this._effectsComponent.template.phButton,
+        event: "click",
+        handler: () => this.onPHClicked(),
+      },
+      {
+        element: this._effectsComponent.template.hammerOnButton,
+        event: "click",
+        handler: () => this.onHammerOnClicked(),
+      },
+      {
+        element: this._effectsComponent.template.pullOffButton,
+        event: "click",
+        handler: () => this.onPullOffClicked(),
+      },
+      {
+        element: this._effectsComponent.template.slideButton,
+        event: "click",
+        handler: () => this.onSlideClicked(),
+      },
+      {
+        element: this._effectsComponent.template.bendButton,
+        event: "click",
+        handler: () => this.onBendClicked(),
+      },
+    ]);
 
     this._bendCallbacks.bind();
+  }
+
+  public unbind(): void {
+    this._listeners.unbindAll();
+    this._bendCallbacks.unbind();
   }
 }

@@ -1,6 +1,7 @@
 import { NoteDuration, TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import { NoteControlsComponent, NoteControlsTemplate } from "@/ui";
+import { ListenerConfig, ListenerManager } from "@/shared/misc";
 import {
   TupletControlsCallbacks,
   TupletControlsDefaultCallbacks,
@@ -12,12 +13,14 @@ export interface NoteControlsCallbacks {
   onTupletNormalClicked(normalCount: number): void;
   onTupletClicked(): void;
   bind(): void;
+  unbind(): void;
 }
 
 export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   private _noteComponent: NoteControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _listeners = new ListenerManager();
 
   private _tupletCallbacks: TupletControlsCallbacks;
 
@@ -64,31 +67,54 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   }
 
   bind(): void {
-    for (const durationButton of this._noteComponent.template
-      .noteDurationButtons) {
-      const duration = 1 / Number(durationButton.dataset["duration"]);
-      durationButton.addEventListener("click", () =>
-        this.onDurationClicked(duration)
+    // Bind duration buttons
+    const durationConfigs =
+      this._noteComponent.template.noteDurationButtons.map(
+        (button) =>
+          ({
+            element: button,
+            event: "click",
+            handler: () =>
+              this.onDurationClicked(1 / Number(button.dataset["duration"])),
+          }) as ListenerConfig
       );
-    }
 
-    this._noteComponent.template.dot1Button.addEventListener("click", () =>
-      this.onDotClicked(1)
-    );
-    this._noteComponent.template.dot2Button.addEventListener("click", () =>
-      this.onDotClicked(2)
-    );
+    // Bind dot and tuplet buttons
+    const otherConfigs: ListenerConfig[] = [
+      {
+        element: this._noteComponent.template.dot1Button,
+        event: "click",
+        handler: () => this.onDotClicked(1),
+      },
+      {
+        element: this._noteComponent.template.dot2Button,
+        event: "click",
+        handler: () => this.onDotClicked(2),
+      },
+      {
+        element: this._noteComponent.template.tuplet2Button,
+        event: "click",
+        handler: () => this.onTupletNormalClicked(2),
+      },
+      {
+        element: this._noteComponent.template.tuplet3Button,
+        event: "click",
+        handler: () => this.onTupletNormalClicked(3),
+      },
+      {
+        element: this._noteComponent.template.tupletButton,
+        event: "click",
+        handler: () => this.onTupletClicked(),
+      },
+    ];
 
-    this._noteComponent.template.tuplet2Button.addEventListener("click", () =>
-      this.onTupletNormalClicked(2)
-    );
-    this._noteComponent.template.tuplet3Button.addEventListener("click", () =>
-      this.onTupletNormalClicked(3)
-    );
-    this._noteComponent.template.tupletButton.addEventListener("click", () =>
-      this.onTupletClicked()
-    );
+    this._listeners.bindAll([...durationConfigs, ...otherConfigs]);
 
     this._tupletCallbacks.bind();
+  }
+
+  unbind(): void {
+    this._listeners.unbindAll();
+    this._tupletCallbacks.unbind();
   }
 }

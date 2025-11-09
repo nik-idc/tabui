@@ -1,4 +1,8 @@
-import { GuitarEffectType, GuitarEffectOptions, GuitarEffect } from "@/notation/model";
+import {
+  GuitarEffectType,
+  GuitarEffectOptions,
+  GuitarEffect,
+} from "@/notation/model";
 import { createSVGLine, createSVGText } from "@/shared";
 import { BendData, Selector } from "./selector";
 import { BendReleaseSelector } from "./bend-release-selector";

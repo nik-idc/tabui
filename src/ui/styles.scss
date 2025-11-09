@@ -329,6 +329,88 @@
       }
     }
   }
+
+  .tu-nt-dialog {
+    @extend %tu-modal-dialog;
+    width: 400px;
+
+    .tu-nt-content {
+      @extend %tu-modal-dialog-content;
+
+      .tu-nt-settings-container {
+        display: flex;
+        flex-direction: column;
+
+        .tu-nt-kinds-container {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+
+          img {
+            width: 75px;
+            height: 75px;
+            border-radius: 20px;
+          }
+        }
+
+        .tu-nt-instr-settings-container {
+          display: flex;
+          justify-content: space-between;
+
+          .tu-nt-types-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-right: 3px;
+          }
+
+          .tu-nt-presets-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-left: 3px;
+          }
+
+          margin-bottom: 5px;
+        }
+
+        .tu-nt-track-info-container {
+          display: flex;
+          flex-direction: column;
+
+          .tu-nt-input {
+            @extend %tu-input-number-style;
+          }
+
+          .tu-nt-error {
+            @extend %tu-input-error-text;
+          }
+        }
+      }
+
+      .tu-nt-actions-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+
+        .tu-nt-confirm-button {
+          margin-right: 3px;
+        }
+
+        .tu-nt-cancel-button {
+          margin-left: 3px;
+        }
+      }
+
+      button {
+        @extend %tu-button-style;
+        width: 100%;
+        box-sizing: border-box; /* ensures borders/padding don’t overflow */
+      }
+    }
+  }
 }
 
 %tu-side-controls-layout {

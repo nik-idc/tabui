@@ -37,7 +37,7 @@ type BendTypesButtons = [
   HTMLButtonElement, // Regular bend button
   HTMLButtonElement, // Prebend button
   HTMLButtonElement, // Bend & release button
-  HTMLButtonElement // Prebend & release button
+  HTMLButtonElement, // Prebend & release button
 ];
 
 export class BendControlsTemplate {

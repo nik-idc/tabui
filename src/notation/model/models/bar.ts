@@ -4,6 +4,7 @@ import { Guitar } from "./guitar";
 import { NoteDuration } from "./note-duration";
 import { randomInt } from "@/shared";
 import { TupletGroup } from "./tuplet-group";
+import { GuitarNote } from "./guitar-note";
 
 export enum BarRepeatStatus {
   None,
@@ -221,7 +222,7 @@ export class Bar {
     tempo: number,
     beatsCount: number,
     duration: NoteDuration,
-    beats: Beat[] | undefined,
+    beats: Beat[] = [],
     repeatStatus: BarRepeatStatus = BarRepeatStatus.None
   ) {
     this.uuid = randomInt();
@@ -229,15 +230,9 @@ export class Bar {
     this._tempo = tempo;
     this._beatsCount = beatsCount;
     this._duration = duration;
-    // this._isRepeatStart = false;
-    // this._isRepeatEnd = false;
-    // this._durationsFit = true;
     this._repeatStatus = repeatStatus;
-    if (beats === undefined) {
-      this.beats = [];
-      for (let i = 0; i < this._beatsCount; i++) {
-        this.beats.push(new Beat(this.guitar, this._duration));
-      }
+    if (beats.length === 0) {
+      this.beats = [new Beat(this.guitar, NoteDuration.Quarter)];
     } else {
       this.beats = beats;
     }

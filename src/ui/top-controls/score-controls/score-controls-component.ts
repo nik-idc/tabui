@@ -3,6 +3,7 @@ import { ScoreControlsTemplate } from "./score-controls-template";
 import { ScoreControlsTemplateRenderer } from "./score-controls-template-renderer";
 import { TrackControlsTemplate } from "./track-controls";
 import { TrackControlsComponent } from "./track-controls/track-controls-component";
+import { NewTrackControlsComponent } from "./new-track/new-track-controls-component";
 
 export class ScoreControlsComponent {
   readonly rootDiv: HTMLDivElement;
@@ -12,6 +13,7 @@ export class ScoreControlsComponent {
   readonly templateRenderer: ScoreControlsTemplateRenderer;
 
   private _trackComponents: TrackControlsComponent[];
+  readonly newTrackComponent: NewTrackControlsComponent;
 
   private _tracksAreDisplayed: boolean = false;
 
@@ -27,6 +29,11 @@ export class ScoreControlsComponent {
     );
 
     this._trackComponents = [];
+
+    this.newTrackComponent = new NewTrackControlsComponent(
+      this.rootDiv,
+      this.notationComponent
+    );
   }
 
   public changeTracksAreDisplayed(): void {
@@ -35,6 +42,8 @@ export class ScoreControlsComponent {
 
   public render(): void {
     this.templateRenderer.render();
+
+    this.newTrackComponent.render();
 
     this._trackComponents = [];
     this.template.tracksContainer.replaceChildren();
@@ -52,6 +61,10 @@ export class ScoreControlsComponent {
 
       this._trackComponents.push(trackComponent);
     }
+  }
+
+  public showNewTrackDialog(): void {
+    this.newTrackComponent.template.newTrackDialog.showModal();
   }
 
   public get trackComponents(): TrackControlsComponent[] {

@@ -39,9 +39,9 @@ function buildTabController(score: Score, trackIndex: number): TabController {
   return new TabController(score, tab, defDim);
 }
 
-// TODO: 
+// TODO:
 // 0. Dynamic button enabled/disabled status -- done
-// 1. Tuplet dialog
+// 1. Tuplet dialog -- done
 // 2. New track dialog
 // 3. Delete track/Yes or No dialog
 // 4. Score settings dialog

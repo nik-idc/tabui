@@ -17,6 +17,7 @@ import {
   TimeSigControlsCallbacks,
   TimeSigControlsDefaultCallbacks,
 } from "./time-sig-controls-callbacks";
+import { ListenerManager } from "@/shared/misc";
 
 export interface MeasureControlsCallbacks {
   onTempoClicked(): void;
@@ -24,6 +25,7 @@ export interface MeasureControlsCallbacks {
   onRepeatStartClicked(): void;
   onRepeatEndClicked(): void;
   bind(): void;
+  unbind(): void;
 }
 
 export class MeasureControlsDefaultCallbacks
@@ -32,6 +34,8 @@ export class MeasureControlsDefaultCallbacks
   private _measureComponent: MeasureControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+
+  private _listeners = new ListenerManager();
 
   private _tempoCallbacks: TempoControlsCallbacks;
   private _timeSigCallbacks: TimeSigControlsCallbacks;
@@ -73,23 +77,36 @@ export class MeasureControlsDefaultCallbacks
   }
 
   public bind(): void {
-    this._measureComponent.template.tempoButton.addEventListener("click", () =>
-      this.onTempoClicked()
-    );
-    this._measureComponent.template.timeSignatureButton.addEventListener(
-      "click",
-      () => this.onTimeSignatureClicked()
-    );
-    this._measureComponent.template.repeatStartButton.addEventListener(
-      "click",
-      () => this.onRepeatStartClicked()
-    );
-    this._measureComponent.template.repeatEndButton.addEventListener(
-      "click",
-      () => this.onRepeatEndClicked()
-    );
+    this._listeners.bindAll([
+      {
+        element: this._measureComponent.template.tempoButton,
+        event: "click",
+        handler: () => this.onTempoClicked(),
+      },
+      {
+        element: this._measureComponent.template.timeSignatureButton,
+        event: "click",
+        handler: () => this.onTimeSignatureClicked(),
+      },
+      {
+        element: this._measureComponent.template.repeatStartButton,
+        event: "click",
+        handler: () => this.onRepeatStartClicked(),
+      },
+      {
+        element: this._measureComponent.template.repeatEndButton,
+        event: "click",
+        handler: () => this.onRepeatEndClicked(),
+      },
+    ]);
 
     this._tempoCallbacks.bind();
     this._timeSigCallbacks.bind();
+  }
+
+  public unbind(): void {
+    this._listeners.unbindAll();
+    this._tempoCallbacks.unbind();
+    this._timeSigCallbacks.unbind();
   }
 }

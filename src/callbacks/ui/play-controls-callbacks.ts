@@ -1,6 +1,7 @@
 import { TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import { PlayControlsComponent, PlayControlsTemplate } from "@/ui";
+import { ListenerManager } from "@/shared/misc";
 
 export interface PlayControlsCallbacks {
   onFirstClicked(): void;
@@ -16,6 +17,7 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
   private _playComponent: PlayControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _listeners = new ListenerManager();
 
   constructor(
     playComponent: PlayControlsComponent,
@@ -47,23 +49,41 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
   }
 
   bind(): void {
-    this._playComponent.template.firstButton.addEventListener("click", () =>
-      this.onFirstClicked()
-    );
-    this._playComponent.template.prevButton.addEventListener("click", () =>
-      this.onPrevClicked()
-    );
-    this._playComponent.template.playButton.addEventListener("click", () =>
-      this.onPlayClicked()
-    );
-    this._playComponent.template.nextButton.addEventListener("click", () =>
-      this.onNextClicked()
-    );
-    this._playComponent.template.lastButton.addEventListener("click", () =>
-      this.onLastClicked()
-    );
-    this._playComponent.template.loopButton.addEventListener("click", () =>
-      this.onLoopClicked()
-    );
+    this._listeners.bindAll([
+      {
+        element: this._playComponent.template.firstButton,
+        event: "click",
+        handler: () => this.onFirstClicked(),
+      },
+      {
+        element: this._playComponent.template.prevButton,
+        event: "click",
+        handler: () => this.onPrevClicked(),
+      },
+      {
+        element: this._playComponent.template.playButton,
+        event: "click",
+        handler: () => this.onPlayClicked(),
+      },
+      {
+        element: this._playComponent.template.nextButton,
+        event: "click",
+        handler: () => this.onNextClicked(),
+      },
+      {
+        element: this._playComponent.template.lastButton,
+        event: "click",
+        handler: () => this.onLastClicked(),
+      },
+      {
+        element: this._playComponent.template.loopButton,
+        event: "click",
+        handler: () => this.onLoopClicked(),
+      },
+    ]);
+  }
+
+  unbind(): void {
+    this._listeners.unbindAll();
   }
 }

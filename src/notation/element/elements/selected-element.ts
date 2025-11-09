@@ -54,7 +54,10 @@ export class SelectedElement {
    * @param _tab Tab
    * @param _noteUUID Note UUID
    */
-  constructor(private _tab: Tab, private _noteUUID: number) {
+  constructor(
+    private _tab: Tab,
+    private _noteUUID: number
+  ) {
     this.tab.bars.some((bar, barIndex) => {
       return bar.beats.some((beat, beatIndex) => {
         return beat.notes.some((note, noteIndex) => {

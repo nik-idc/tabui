@@ -56,8 +56,8 @@ export class Beat {
   constructor(
     guitar: Guitar,
     duration: NoteDuration,
-    notes?: GuitarNote[],
-    dots?: number
+    notes: GuitarNote[] = [],
+    dots: number = 0
   ) {
     this.uuid = randomInt();
     this.guitar = guitar;
@@ -65,7 +65,7 @@ export class Beat {
     this._dots = dots === undefined ? 0 : dots;
     this._lastInBeamGroup = false;
 
-    if (notes !== undefined) {
+    if (notes.length !== 0) {
       if (notes.length !== guitar.stringsCount) {
         throw Error(`Notes provided to a beat were not full: ${notes}`);
       }

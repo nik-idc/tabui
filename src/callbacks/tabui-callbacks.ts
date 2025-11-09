@@ -38,14 +38,19 @@ export class TabUICallbacks {
 
   private renderAndBind(): void {
     this._mouseCallbacks.renderAndBind();
-    this._uiComponent.render();
-  }
 
-  private render(): void {}
+    this._uiCallbacks.unbind();
+    this._uiComponent.render();
+    this._uiCallbacks.bind();
+  }
 
   public bind(): void {
     this._mouseCallbacks.renderAndBind();
     this._keyboardCallbacks.bind();
     this._uiCallbacks.bind();
+  }
+
+  public unbind(): void {
+    this._uiCallbacks.unbind();
   }
 }

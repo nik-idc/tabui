@@ -33,9 +33,7 @@ export class TempoControlsTemplateRenderer {
     const actionsCSSClass = "tu-tempo-actions";
     this.template.tempoActionsContent.classList.add(actionsCSSClass);
 
-    this.template.tempoDialog.append(
-      this.template.tempoDialogContent,
-    );
+    this.template.tempoDialog.append(this.template.tempoDialogContent);
     this.template.tempoDialogContent.append(
       this.template.tempoInputContent,
       this.template.tempoActionsContent

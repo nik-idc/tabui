@@ -5,6 +5,7 @@ import {
   TimeSigControlsTemplate,
 } from "@/ui/side-controls/measure-controls/time-sig-controls";
 import { TupletControlsComponent } from "@/ui/side-controls/note-controls/tuplet-controls";
+import { ListenerConfig, ListenerManager } from "@/shared/misc";
 
 export interface TupletControlsCallbacks {
   readonly normalCountErrorText: string;
@@ -16,14 +17,14 @@ export interface TupletControlsCallbacks {
   onConfirmClicked(): void;
   onCancelClicked(): void;
   bind(): void;
+  unbind(): void;
 }
 
-export class TupletControlsDefaultCallbacks
-  implements TupletControlsCallbacks
-{
+export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   private _tupletComponent: TupletControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _listeners = new ListenerManager();
 
   readonly normalCountErrorText: string = "Invalid normal count";
   readonly tupletCountErrorText: string = "Invalid tuplet count";
@@ -122,25 +123,38 @@ export class TupletControlsDefaultCallbacks
   }
 
   bind(): void {
-    this._tupletComponent.template.tupletDialogContent.addEventListener(
-      "click",
-      (event: Event) => this.onDialogClicked(event as MouseEvent)
-    );
-    this._tupletComponent.template.normalInput.addEventListener(
-      "input",
-      (event: Event) => this.onNormalCountChanged(event as InputEvent)
-    );
-    this._tupletComponent.template.tupletInput.addEventListener(
-      "input",
-      (event: Event) => this.onTupletCountChanged(event as InputEvent)
-    );
-    this._tupletComponent.template.confirmButton.addEventListener(
-      "click",
-      (event: Event) => this.onConfirmClicked()
-    );
-    this._tupletComponent.template.cancelButton.addEventListener(
-      "click",
-      (event: Event) => this.onCancelClicked()
-    );
+    this._listeners.bindAll([
+      {
+        element: this._tupletComponent.template.tupletDialogContent,
+        event: "click",
+        handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
+      },
+      {
+        element: this._tupletComponent.template.normalInput,
+        event: "input",
+        handler: (event: Event) =>
+          this.onNormalCountChanged(event as InputEvent),
+      },
+      {
+        element: this._tupletComponent.template.tupletInput,
+        event: "input",
+        handler: (event: Event) =>
+          this.onTupletCountChanged(event as InputEvent),
+      },
+      {
+        element: this._tupletComponent.template.confirmButton,
+        event: "click",
+        handler: () => this.onConfirmClicked(),
+      },
+      {
+        element: this._tupletComponent.template.cancelButton,
+        event: "click",
+        handler: () => this.onCancelClicked(),
+      },
+    ]);
+  }
+
+  unbind(): void {
+    this._listeners.unbindAll();
   }
 }

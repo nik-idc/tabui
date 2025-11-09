@@ -54,4 +54,10 @@ export class SideControlsCallbacks {
     this._effectCallbacks.bind();
     this._measureCallbacks.bind();
   }
+
+  public unbind(): void {
+    this._noteCallbacks.unbind();
+    this._effectCallbacks.unbind();
+    this._measureCallbacks.unbind();
+  }
 }

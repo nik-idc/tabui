@@ -5,6 +5,7 @@ import {
   BendControlsTemplate,
   BendSelectorManager,
 } from "@/ui";
+import { ListenerManager } from "@/shared/misc";
 
 export interface BendControlsCallbacks {
   onDialogClicked(event: MouseEvent): void;
@@ -14,12 +15,14 @@ export interface BendControlsCallbacks {
   onConfirmClicked(): void;
   onCancelClicked(): void;
   bind(): void;
+  unbind(): void;
 }
 
 export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
   private _bendComponent: BendControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _listeners = new ListenerManager();
 
   constructor(
     bendComponent: BendControlsComponent,
@@ -55,11 +58,6 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
       effect.options
     );
     this._renderFunc();
-    // Problem:
-    // Need to render AND bind
-    // Rendering can be called from the notation component
-    // But the binding happens at the top level
-    // Possible solution: move UI event handlers to the top as well
 
     this._bendComponent.template.bendControlsDialog.close();
   }
@@ -69,43 +67,60 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
   }
 
   public bind(): void {
-    this._bendComponent.template.bendControlsDialog.addEventListener(
-      "click",
-      (event: MouseEvent) => {
-        this.onDialogClicked(event);
-      }
-    );
+    this._listeners.bindAll([
+      {
+        element: this._bendComponent.template.bendControlsDialog,
+        event: "click",
+        handler: (event: MouseEvent) => {
+          this.onDialogClicked(event);
+        },
+      },
+      {
+        element: this._bendComponent.template.bendTypesButtons[0],
+        event: "click",
+        handler: () => {
+          this.onBendTypeClicked("bend");
+        },
+      },
+      {
+        element: this._bendComponent.template.bendTypesButtons[1],
+        event: "click",
+        handler: () => {
+          this.onBendTypeClicked("prebend");
+        },
+      },
+      {
+        element: this._bendComponent.template.bendTypesButtons[2],
+        event: "click",
+        handler: () => {
+          this.onBendTypeClicked("bend-release");
+        },
+      },
+      {
+        element: this._bendComponent.template.bendTypesButtons[3],
+        event: "click",
+        handler: () => {
+          this.onBendTypeClicked("prebend-release");
+        },
+      },
+      {
+        element: this._bendComponent.template.confirmButton,
+        event: "click",
+        handler: () => {
+          this.onConfirmClicked();
+        },
+      },
+      {
+        element: this._bendComponent.template.cancelButton,
+        event: "click",
+        handler: () => {
+          this.onCancelClicked();
+        },
+      },
+    ]);
+  }
 
-    this._bendComponent.template.bendTypesButtons[0].addEventListener(
-      "click",
-      () => {
-        this.onBendTypeClicked("bend");
-      }
-    );
-    this._bendComponent.template.bendTypesButtons[1].addEventListener(
-      "click",
-      () => {
-        this.onBendTypeClicked("prebend");
-      }
-    );
-    this._bendComponent.template.bendTypesButtons[2].addEventListener(
-      "click",
-      () => {
-        this.onBendTypeClicked("bend-release");
-      }
-    );
-    this._bendComponent.template.bendTypesButtons[3].addEventListener(
-      "click",
-      () => {
-        this.onBendTypeClicked("prebend-release");
-      }
-    );
-
-    this._bendComponent.template.confirmButton.addEventListener("click", () => {
-      this.onConfirmClicked();
-    });
-    this._bendComponent.template.cancelButton.addEventListener("click", () => {
-      this.onCancelClicked();
-    });
+  public unbind(): void {
+    this._listeners.unbindAll();
   }
 }

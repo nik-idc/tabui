@@ -10,4 +10,4 @@ const tuning = [
   new Note(NoteValue.A, 2),
   new Note(NoteValue.E, 2),
 ];
-export const leadTrack = createTrack("Lead Guitar", 6, tuning, [1,3]);
+export const leadTrack = createTrack("Lead Guitar", 6, tuning, [1, 3]);

@@ -5,6 +5,7 @@ import {
   TempoControlsComponent,
   TempoControlsTemplate,
 } from "@/ui/side-controls/measure-controls/tempo-controls";
+import { ListenerManager } from "@/shared/misc";
 
 export interface TempoControlsCallbacks {
   readonly beatsCountErrorText: string;
@@ -15,12 +16,14 @@ export interface TempoControlsCallbacks {
   onConfirmClicked(): void;
   onCancelClicked(): void;
   bind(): void;
+  unbind(): void;
 }
 
 export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   private _tempoComponent: TempoControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _listeners = new ListenerManager();
 
   readonly beatsCountErrorText: string = "Invalid beats count";
   readonly durationErrorText: string = "Invalid duration";
@@ -86,21 +89,31 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   }
 
   bind(): void {
-    this._tempoComponent.template.tempoDialogContent.addEventListener(
-      "click",
-      (event: Event) => this.onDialogClicked(event as MouseEvent)
-    );
-    this._tempoComponent.template.tempoInput.addEventListener(
-      "input",
-      (event: Event) => this.onTempoChanged(event as InputEvent)
-    );
-    this._tempoComponent.template.confirmButton.addEventListener(
-      "click",
-      (event: Event) => this.onConfirmClicked()
-    );
-    this._tempoComponent.template.cancelButton.addEventListener(
-      "click",
-      (event: Event) => this.onCancelClicked()
-    );
+    this._listeners.bindAll([
+      {
+        element: this._tempoComponent.template.tempoDialogContent,
+        event: "click",
+        handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
+      },
+      {
+        element: this._tempoComponent.template.tempoInput,
+        event: "input",
+        handler: (event: Event) => this.onTempoChanged(event as InputEvent),
+      },
+      {
+        element: this._tempoComponent.template.confirmButton,
+        event: "click",
+        handler: () => this.onConfirmClicked(),
+      },
+      {
+        element: this._tempoComponent.template.cancelButton,
+        event: "click",
+        handler: () => this.onCancelClicked(),
+      },
+    ]);
+  }
+
+  unbind(): void {
+    this._listeners.unbindAll();
   }
 }

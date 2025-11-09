@@ -6,7 +6,7 @@ type NoteDurationButtons = readonly [
   HTMLImageElement, // Quarter
   HTMLImageElement, // Eighth
   HTMLImageElement, // Sixteenth
-  HTMLImageElement // Thirty-second
+  HTMLImageElement, // Thirty-second
 ];
 
 /**
