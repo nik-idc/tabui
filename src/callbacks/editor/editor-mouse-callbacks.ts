@@ -16,12 +16,12 @@ export interface EditorMouseCallbacks {
   onBeatMouseUp(): void;
   onWindowMouseUp(): void;
   bind(activeRenderers: ElementRenderer[]): void;
-  renderAndBind(): void;
 }
 
 export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private _uiComponent: UIComponent;
   private _notationComponent: NotationComponent;
+  private _renderFunc: () => void;
 
   private _binder: EditorCallbackBinder;
   private _selectingBeats: boolean = false;
@@ -37,9 +37,14 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * passing this reference so that all new events can be bound to
    * the bar/beat/note etc
    */
-  constructor(uiComponent: UIComponent, notationComponent: NotationComponent) {
+  constructor(
+    uiComponent: UIComponent,
+    notationComponent: NotationComponent,
+    renderFunc: () => void
+  ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
+    this._renderFunc = renderFunc;
 
     this._binder = new EditorCallbackBinder();
   }
@@ -48,9 +53,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this._notationComponent.renderer.hideSelectionPreview();
     this._notationComponent.tabController.selectNoteElement(noteElement);
 
-    this.renderAndBind();
-
-    this._uiComponent.render();
+    this._renderFunc();
   }
 
   public onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void {
@@ -74,9 +77,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
     this._selectingBeats = true;
 
-    this.renderAndBind();
-
-    this._uiComponent.render();
+    this._renderFunc();
   }
 
   public onBeatMouseEnter(event: MouseEvent, beatElement: BeatElement): void {
@@ -88,8 +89,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     if (this._selectingBeats) {
       this._notationComponent.tabController.selectBeat(beatElement);
 
-      this.renderAndBind();
-      this._uiComponent.render();
+      this._renderFunc();
     }
   }
 
@@ -114,18 +114,16 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
     if (distMoved >= rect.width / 4) {
       this._notationComponent.tabController.selectBeat(beatElement);
-
-      this._uiComponent.render();
     }
 
-    this.renderAndBind();
+    this._renderFunc();
   }
 
   public onBeatMouseUp(): void {
     this._selectingBeats = false;
     this._selectionStartPoint = undefined;
 
-    this.renderAndBind();
+    this._renderFunc();
   }
 
   public onWindowMouseUp(): void {
@@ -133,8 +131,6 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   }
 
   public bind(activeRenderers: ElementRenderer[]): void {
-    // const activeRenderers = this._notationComponent.render();
-
     for (const renderer of activeRenderers) {
       if (renderer instanceof SVGBeatRenderer) {
         renderer.attachMouseEvent("mousedown", this.onBeatMouseDown.bind(this));
@@ -156,10 +152,5 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         );
       }
     }
-  }
-
-  public renderAndBind(): void {
-    const activeRenderers = this._notationComponent.render();
-    this.bind(activeRenderers);
   }
 }
