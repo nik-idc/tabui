@@ -26,6 +26,6 @@ export class NewTrackControlsTemplate {
   /********/ readonly tuningInput: HTMLInputElement = createInput();
   /********/ readonly tuningError: HTMLDivElement = createDiv();
   /****/ readonly newTrackActionsContainer: HTMLDivElement = createDiv();
-  /****/ readonly confirmButton: HTMLButtonElement = createButton();
-  /****/ readonly cancelButton: HTMLButtonElement = createButton();
+  /******/ readonly confirmButton: HTMLButtonElement = createButton();
+  /******/ readonly cancelButton: HTMLButtonElement = createButton();
 }

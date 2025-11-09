@@ -3,6 +3,10 @@ import { Tab, TabController } from "@/notation";
 import { TrackControlsComponent, TrackControlsTemplate } from "@/ui";
 import { ListenerManager } from "@/shared/misc";
 import { YesNoCallbacks, YesNoDefaultCallbacks } from "./yes-no-callbacks";
+import {
+  TrackSettingsControlsCallbacks,
+  TrackSettingsControlsDefaultCallbacks,
+} from "./track-settings-callbacks";
 
 export interface TrackControlsCallbacks {
   onTrackRemoveClicked(): void;
@@ -26,6 +30,7 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   private _listeners = new ListenerManager();
 
   private _yesNoCallbacks: YesNoCallbacks;
+  private _trackSettingsCallbacks: TrackSettingsControlsCallbacks;
 
   constructor(
     trackComponent: TrackControlsComponent,
@@ -47,6 +52,14 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
       this._captureKeyboard,
       this._freeKeyboard,
       () => this._notationComponent.removeTrack(this._trackComponent.track)
+    );
+
+    this._trackSettingsCallbacks = new TrackSettingsControlsDefaultCallbacks(
+      this._trackComponent.trackSettingsComponent,
+      this._notationComponent,
+      this._renderFunc,
+      this._captureKeyboard,
+      this._freeKeyboard
     );
   }
 
@@ -79,7 +92,8 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   onTrackSettingsClicked(): void {
-    throw new Error("Method not implemented");
+    this._captureKeyboard();
+    this._trackComponent.showTrackSettings();
   }
 
   bind(): void {
@@ -117,10 +131,12 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     ]);
 
     this._yesNoCallbacks.bind();
+    this._trackSettingsCallbacks.bind();
   }
 
   unbind(): void {
     this._listeners.unbindAll();
     this._yesNoCallbacks.unbind();
+    this._trackSettingsCallbacks.unbind();
   }
 }

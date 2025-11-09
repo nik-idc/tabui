@@ -448,6 +448,45 @@
       }
     }
   }
+
+  .tu-ts-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-ts-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+
+      .tu-ts-track-info-container {
+        display: flex;
+        flex-direction: column;
+
+        .tu-ts-input {
+          @extend %tu-input-number-style;
+        }
+
+        .tu-ts-error {
+          @extend %tu-input-error-text;
+        }
+      }
+
+      .tu-ts-actions-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+
+        .tu-ts-confirm-button {
+        }
+
+        .tu-ts-cancel-button {
+        }
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
+  }
 }
 
 %tu-side-controls-layout {
