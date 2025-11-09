@@ -88,12 +88,12 @@ export class TupletControlsTemplateRenderer {
   }
 
   private renderButtons(): void {
-    const confirmCssClass = "tu-tuplet-confirm-button";
-    this.template.confirmButton.classList.add(confirmCssClass);
+    const confirmCSSClass = "tu-tuplet-confirm-button";
+    this.template.confirmButton.classList.add(confirmCSSClass);
     this.template.confirmButton.textContent = "Confirm";
 
-    const cancelCssClass = "tu-tuplet-cancel-button";
-    this.template.cancelButton.classList.add(cancelCssClass);
+    const cancelCSSClass = "tu-tuplet-cancel-button";
+    this.template.cancelButton.classList.add(cancelCSSClass);
     this.template.cancelButton.textContent = "Cancel";
   }
 

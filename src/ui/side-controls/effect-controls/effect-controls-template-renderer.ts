@@ -54,51 +54,51 @@ export class EffectControlsTemplateRenderer {
       this.notationComponent.tabController.getSelectionAsArray();
     const selectedElement =
       this.notationComponent.tabController.getSelectedElement();
-    const appliedCssClass = "tu-applied-img";
-    const disabledCssClass = "tu-disabled-img";
+    const appliedCSSClass = "tu-applied-img";
+    const disabledCSSClass = "tu-disabled-img";
 
     if (selectedElement === undefined) {
       if (
         EFFECT_TYPE_TO_SCOPE[effectType] === GuitarEffectScope.NoteLevelEffect
       ) {
-        button.classList.remove(appliedCssClass);
-        button.classList.add(disabledCssClass);
+        button.classList.remove(appliedCSSClass);
+        button.classList.add(disabledCSSClass);
         return;
       }
 
       if (selection.some((b) => b.hasEffect(effectType))) {
-        button.classList.add(appliedCssClass);
-        button.classList.remove(disabledCssClass);
+        button.classList.add(appliedCSSClass);
+        button.classList.remove(disabledCSSClass);
         return;
       }
 
-      button.classList.remove(appliedCssClass);
-      button.classList.remove(disabledCssClass);
+      button.classList.remove(appliedCSSClass);
+      button.classList.remove(disabledCSSClass);
     } else {
       if (
         EFFECT_TYPE_TO_SCOPE[effectType] ===
           GuitarEffectScope.NoteLevelEffect &&
         selectedElement.note.fret === undefined
       ) {
-        button.classList.remove(appliedCssClass);
-        button.classList.add(disabledCssClass);
+        button.classList.remove(appliedCSSClass);
+        button.classList.add(disabledCSSClass);
         return;
       }
 
       if (selectedElement.note.hasEffect(effectType)) {
-        button.classList.add(appliedCssClass);
-        button.classList.remove(disabledCssClass);
+        button.classList.add(appliedCSSClass);
+        button.classList.remove(disabledCSSClass);
         return;
       }
 
       if (selectedElement.note.effectApplicable(effectType)) {
-        button.classList.remove(appliedCssClass);
-        button.classList.remove(disabledCssClass);
+        button.classList.remove(appliedCSSClass);
+        button.classList.remove(disabledCSSClass);
         return;
       }
 
-      button.classList.remove(appliedCssClass);
-      button.classList.add(disabledCssClass);
+      button.classList.remove(appliedCSSClass);
+      button.classList.add(disabledCSSClass);
     }
   }
 

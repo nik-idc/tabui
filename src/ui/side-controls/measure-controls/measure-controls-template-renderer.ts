@@ -41,30 +41,30 @@ export class MeasureControlsTemplateRenderer {
   private renderRepeatButtonsState(): void {
     const selectedElement =
       this.notationComponent.tabController.getSelectedElement();
-    const appliedCssClass = "tu-applied-img";
-    const disabledCssClass = "tu-disabled-img";
+    const appliedCSSClass = "tu-applied-img";
+    const disabledCSSClass = "tu-disabled-img";
 
     if (selectedElement === undefined) {
-      this.template.repeatStartButton.classList.remove(appliedCssClass);
-      this.template.repeatStartButton.classList.add(disabledCssClass);
-      this.template.repeatEndButton.classList.remove(appliedCssClass);
-      this.template.repeatEndButton.classList.add(disabledCssClass);
+      this.template.repeatStartButton.classList.remove(appliedCSSClass);
+      this.template.repeatStartButton.classList.add(disabledCSSClass);
+      this.template.repeatEndButton.classList.remove(appliedCSSClass);
+      this.template.repeatEndButton.classList.add(disabledCSSClass);
     } else {
       const repeatStatus = selectedElement.bar.repeatStatus;
       switch (repeatStatus) {
         case BarRepeatStatus.Start:
-          this.template.repeatStartButton.classList.add(appliedCssClass);
-          this.template.repeatStartButton.classList.remove(disabledCssClass);
+          this.template.repeatStartButton.classList.add(appliedCSSClass);
+          this.template.repeatStartButton.classList.remove(disabledCSSClass);
           break;
         case BarRepeatStatus.End:
-          this.template.repeatEndButton.classList.add(appliedCssClass);
-          this.template.repeatEndButton.classList.remove(disabledCssClass);
+          this.template.repeatEndButton.classList.add(appliedCSSClass);
+          this.template.repeatEndButton.classList.remove(disabledCSSClass);
           break;
         default:
-          this.template.repeatStartButton.classList.remove(appliedCssClass);
-          this.template.repeatStartButton.classList.remove(disabledCssClass);
-          this.template.repeatEndButton.classList.remove(appliedCssClass);
-          this.template.repeatEndButton.classList.remove(disabledCssClass);
+          this.template.repeatStartButton.classList.remove(appliedCSSClass);
+          this.template.repeatStartButton.classList.remove(disabledCSSClass);
+          this.template.repeatEndButton.classList.remove(appliedCSSClass);
+          this.template.repeatEndButton.classList.remove(disabledCSSClass);
           break;
       }
     }

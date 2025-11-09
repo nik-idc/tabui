@@ -93,6 +93,19 @@ export class Score {
   }
 
   /**
+   * Removes tab from score
+   * @param tab Tab to remove
+   */
+  public removeTab(tab: Tab): void {
+    const tabIndex = this.tracks.indexOf(tab);
+    if (tabIndex === -1) {
+      throw new Error("Tab not in score");
+    }
+
+    this.tracks.splice(tabIndex, 1);
+  }
+
+  /**
    * Prepends the provided bar to the tab at index 'tabIndex'
    * and prepends a new empty bar to every other track
    * @param tabIndex Tab index

@@ -411,6 +411,43 @@
       }
     }
   }
+
+  .tu-yes-no-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-yes-no-dialog-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+
+      .tu-yes-no-info-container {
+        display: flex;
+        flex-direction: column;
+
+        .tu-yes-no-text {
+          padding: 3px;
+          text-align: center;
+          font-size: 20px;
+        }
+      }
+
+      .tu-yes-no-actions-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+
+        .tu-yes-no-confirm-button {
+        }
+
+        .tu-yes-no-cancel-button {
+        }
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
+  }
 }
 
 %tu-side-controls-layout {

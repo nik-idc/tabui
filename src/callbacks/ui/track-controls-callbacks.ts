@@ -2,10 +2,12 @@ import { NotationComponent } from "@/notation/notation-component";
 import { Tab, TabController } from "@/notation";
 import { TrackControlsComponent, TrackControlsTemplate } from "@/ui";
 import { ListenerManager } from "@/shared/misc";
+import { YesNoCallbacks, YesNoDefaultCallbacks } from "./yes-no-callbacks";
 
 export interface TrackControlsCallbacks {
-  onTrackVolumeChanged(): void;
+  onTrackRemoveClicked(): void;
   onTrackClicked(): void;
+  onTrackVolumeChanged(): void;
   onTrackPanningChanged(): void;
   onMuteButtonClicked(): void;
   onSoloButtonClicked(): void;
@@ -20,7 +22,10 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   private _renderFunc: () => void;
   private _captureKeyboard: () => void;
   private _freeKeyboard: () => void;
+
   private _listeners = new ListenerManager();
+
+  private _yesNoCallbacks: YesNoCallbacks;
 
   constructor(
     trackComponent: TrackControlsComponent,
@@ -34,18 +39,31 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     this._renderFunc = renderFunc;
     this._captureKeyboard = captureKeyboard;
     this._freeKeyboard = freeKeyboard;
+
+    this._yesNoCallbacks = new YesNoDefaultCallbacks(
+      this._trackComponent.yesNoComponent,
+      this._notationComponent,
+      this._renderFunc,
+      this._captureKeyboard,
+      this._freeKeyboard,
+      () => this._notationComponent.removeTrack(this._trackComponent.track)
+    );
+  }
+
+  onTrackRemoveClicked(): void {
+    this._captureKeyboard();
+    this._trackComponent.showRemoveDialog();
+  }
+
+  onTrackClicked(): void {
+    console.log(this._trackComponent.track.name, "CLICKED!!");
+
+    this._notationComponent.loadTrack(this._trackComponent.track);
+    this._renderFunc();
   }
 
   onTrackVolumeChanged(): void {
     throw new Error("Method not implemented");
-  }
-
-  onTrackClicked(): void {
-    this._notationComponent.loadTrack(this._trackComponent.track);
-    this._renderFunc();
-
-    // this._notationComponent.loadTrack(notationComponent);
-    // throw new Error("Method not implemented");
   }
 
   onTrackPanningChanged(): void {
@@ -67,14 +85,19 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._trackComponent.template.volumeInput,
-        event: "change",
-        handler: () => this.onTrackVolumeChanged(),
+        element: this._trackComponent.template.removeButton,
+        event: "click",
+        handler: () => this.onTrackRemoveClicked(),
       },
       {
         element: this._trackComponent.template.trackButton,
         event: "click",
         handler: () => this.onTrackClicked(),
+      },
+      {
+        element: this._trackComponent.template.volumeInput,
+        event: "change",
+        handler: () => this.onTrackVolumeChanged(),
       },
       {
         element: this._trackComponent.template.muteButton,
@@ -92,9 +115,12 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
         handler: () => this.onTrackSettingsClicked(),
       },
     ]);
+
+    this._yesNoCallbacks.bind();
   }
 
   unbind(): void {
     this._listeners.unbindAll();
+    this._yesNoCallbacks.unbind();
   }
 }

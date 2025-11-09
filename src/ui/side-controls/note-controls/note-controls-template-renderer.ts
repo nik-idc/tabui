@@ -55,7 +55,7 @@ export class NoteControlsTemplateRenderer {
     ];
     const selection =
       this.notationComponent.tabController.getSelectionAsArray();
-    const appliedCssClass = "tu-applied-img";
+    const appliedCSSClass = "tu-applied-img";
 
     for (let i = 0; i < notes.length; i++) {
       const button = this.template.noteDurationButtons[i];
@@ -73,9 +73,9 @@ export class NoteControlsTemplateRenderer {
         (b) => b.duration === 1 / notes[i].num
       );
       if (beatsOfCurDuration !== undefined) {
-        button.classList.add(appliedCssClass);
+        button.classList.add(appliedCSSClass);
       } else {
-        button.classList.remove(appliedCssClass);
+        button.classList.remove(appliedCSSClass);
       }
     }
   }
@@ -83,7 +83,7 @@ export class NoteControlsTemplateRenderer {
   private renderDotButtons(): void {
     const selection =
       this.notationComponent.tabController.getSelectionAsArray();
-    const appliedCssClass = "tu-applied-img";
+    const appliedCSSClass = "tu-applied-img";
 
     // Image attributes
     const dot1Src = `${this.assetsPath}/img/ui/dot1.svg`;
@@ -99,24 +99,24 @@ export class NoteControlsTemplateRenderer {
     // Mark singular dot applied status
     const beatsDot1 = selection.find((b) => b.dots === 1);
     if (beatsDot1 !== undefined) {
-      this.template.dot1Button.classList.add(appliedCssClass);
+      this.template.dot1Button.classList.add(appliedCSSClass);
     } else {
-      this.template.dot1Button.classList.remove(appliedCssClass);
+      this.template.dot1Button.classList.remove(appliedCSSClass);
     }
 
     // Mark double dot applied status
     const beatsDot2 = selection.find((b) => b.dots === 2);
     if (beatsDot2 !== undefined) {
-      this.template.dot2Button.classList.add(appliedCssClass);
+      this.template.dot2Button.classList.add(appliedCSSClass);
     } else {
-      this.template.dot2Button.classList.remove(appliedCssClass);
+      this.template.dot2Button.classList.remove(appliedCSSClass);
     }
   }
 
   private renderTupletButtons(): void {
     const selection =
       this.notationComponent.tabController.getSelectionAsArray();
-    const appliedCssClass = "tu-applied-img";
+    const appliedCSSClass = "tu-applied-img";
 
     const tuplet2Src = `${this.assetsPath}/img/ui/tuplet-2.svg`;
     this.template.tuplet2Button.setAttribute("src", tuplet2Src);
@@ -157,21 +157,21 @@ export class NoteControlsTemplateRenderer {
     }
 
     if (hasTuplet2) {
-      this.template.tuplet2Button.classList.add(appliedCssClass);
+      this.template.tuplet2Button.classList.add(appliedCSSClass);
     } else {
-      this.template.tuplet2Button.classList.remove(appliedCssClass);
+      this.template.tuplet2Button.classList.remove(appliedCSSClass);
     }
 
     if (hasTuplet3) {
-      this.template.tuplet3Button.classList.add(appliedCssClass);
+      this.template.tuplet3Button.classList.add(appliedCSSClass);
     } else {
-      this.template.tuplet3Button.classList.remove(appliedCssClass);
+      this.template.tuplet3Button.classList.remove(appliedCSSClass);
     }
 
     if (hasTuplet) {
-      this.template.tupletButton.classList.add(appliedCssClass);
+      this.template.tupletButton.classList.add(appliedCSSClass);
     } else {
-      this.template.tupletButton.classList.remove(appliedCssClass);
+      this.template.tupletButton.classList.remove(appliedCSSClass);
     }
   }
 

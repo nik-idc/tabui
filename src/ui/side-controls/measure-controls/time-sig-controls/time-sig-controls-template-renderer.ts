@@ -90,12 +90,12 @@ export class TimeSigControlsTemplateRenderer {
   }
 
   private renderButtons(): void {
-    const confirmCssClass = "tu-time-sig-confirm-button";
-    this.template.confirmButton.classList.add(confirmCssClass);
+    const confirmCSSClass = "tu-time-sig-confirm-button";
+    this.template.confirmButton.classList.add(confirmCSSClass);
     this.template.confirmButton.textContent = "Confirm";
 
-    const cancelCssClass = "tu-time-sig-cancel-button";
-    this.template.cancelButton.classList.add(cancelCssClass);
+    const cancelCSSClass = "tu-time-sig-cancel-button";
+    this.template.cancelButton.classList.add(cancelCSSClass);
     this.template.cancelButton.textContent = "Cancel";
   }
 

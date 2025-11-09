@@ -37,7 +37,7 @@ export class NewTrackControlsTemplateRenderer {
 
   private assembleContainer(): void {
     const dialogCSSClass = "tu-nt-dialog";
-    const dialogContentCssClass = "tu-nt-content";
+    const dialogContentCSSClass = "tu-nt-content";
     const settingsCSSClass = "tu-nt-settings-container";
     const kindsCSSClass = "tu-nt-kinds-container";
     const instrSelectCSSClass = "tu-nt-instr-settings-container";
@@ -47,7 +47,7 @@ export class NewTrackControlsTemplateRenderer {
     const actionsCSSClass = "tu-nt-actions-container";
 
     this.template.newTrackDialog.classList.add(dialogCSSClass);
-    this.template.newTrackDialogContent.classList.add(dialogContentCssClass);
+    this.template.newTrackDialogContent.classList.add(dialogContentCSSClass);
     this.template.newTrackSettingsContainer.classList.add(settingsCSSClass);
     this.template.instrKindsContainer.classList.add(kindsCSSClass);
     this.template.instrSelectContainer.classList.add(instrSelectCSSClass);

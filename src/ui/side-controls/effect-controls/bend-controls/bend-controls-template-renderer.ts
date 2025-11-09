@@ -27,9 +27,9 @@ export class BendControlsTemplateRenderer {
     const dialogCSSClass = "tu-bend-controls-dialog";
     this.template.bendControlsDialog.classList.add(dialogCSSClass);
 
-    const dialogContentCssClass = "tu-bend-controls-content";
+    const dialogContentCSSClass = "tu-bend-controls-content";
     this.template.bendControlsDialogContent.classList.add(
-      dialogContentCssClass
+      dialogContentCSSClass
     );
     const selectorCSSClass = "tu-bend-controls-selector-content";
     this.template.bendSelectorContent.classList.add(selectorCSSClass);
@@ -107,8 +107,8 @@ function setupBendControlsDialog(template: BendControlsTemplate): void {
   const dialogCSSClass = "tu-bend-controls-dialog";
   template.bendControlsDialog.classList.add(dialogCSSClass);
 
-  const dialogContentCssClass = "tu-bend-controls-content";
-  template.bendControlsDialogContent.classList.add(dialogContentCssClass);
+  const dialogContentCSSClass = "tu-bend-controls-content";
+  template.bendControlsDialogContent.classList.add(dialogContentCSSClass);
   const selectorCSSClass = "tu-bend-controls-selector-content";
   template.bendSelectorContent.classList.add(selectorCSSClass);
   const actionsCSSClass = "tu-bend-controls-actions-content";
