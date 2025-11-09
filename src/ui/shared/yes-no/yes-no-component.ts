@@ -26,9 +26,8 @@ export class YesNoComponent {
       this.rootDiv,
       this.notationComponent,
       this.template,
-      this._text 
+      this._text
     );
-
   }
 
   public render(): void {
