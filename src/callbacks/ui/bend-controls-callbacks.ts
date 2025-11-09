@@ -22,16 +22,23 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
   private _bendComponent: BendControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _captureKeyboard: () => void;
+  private _freeKeyboard: () => void;
+
   private _listeners = new ListenerManager();
 
   constructor(
     bendComponent: BendControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void
+    renderFunc: () => void,
+    captureKeyboard: () => void,
+    freeKeyboard: () => void
   ) {
     this._bendComponent = bendComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._captureKeyboard = captureKeyboard;
+    this._freeKeyboard = freeKeyboard;
   }
 
   onDialogClicked(event: MouseEvent): void {
@@ -41,6 +48,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
       )
     ) {
       this._bendComponent.template.bendControlsDialog.close();
+      this._freeKeyboard();
     }
   }
 
@@ -60,10 +68,12 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     this._renderFunc();
 
     this._bendComponent.template.bendControlsDialog.close();
+    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._bendComponent.template.bendControlsDialog.close();
+    this._freeKeyboard();
   }
 
   public bind(): void {

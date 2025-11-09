@@ -32,7 +32,9 @@ export class TabUICallbacks {
     this._uiCallbacks = new UICallbacks(
       this._uiComponent,
       this._notationComponent,
-      this.renderAndBind.bind(this)
+      this.renderAndBind.bind(this),
+      this.captureKeyboard.bind(this),
+      this.freeKeyboard.bind(this)
     );
   }
 
@@ -44,6 +46,14 @@ export class TabUICallbacks {
     this._uiCallbacks.bind();
   }
 
+  private captureKeyboard(): void {
+    this._keyboardCallbacks.unbind();
+  }
+
+  private freeKeyboard(): void {
+    this._keyboardCallbacks.bind();
+  }
+
   public bind(): void {
     this._mouseCallbacks.renderAndBind();
     this._keyboardCallbacks.bind();
@@ -51,6 +61,8 @@ export class TabUICallbacks {
   }
 
   public unbind(): void {
+    // this._mouseCallbacks.unbind();
+    this._keyboardCallbacks.unbind();
     this._uiCallbacks.unbind();
   }
 }

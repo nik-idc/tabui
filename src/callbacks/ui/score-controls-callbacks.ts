@@ -24,6 +24,8 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   private _scoreComponent: ScoreControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _captureKeyboard: () => void;
+  private _freeKeyboard: () => void;
 
   private _trackCallbacks: TrackControlsCallbacks[] = [];
   private _newTrackCallbacks: NewTrackControlsCallbacks;
@@ -33,16 +35,22 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   constructor(
     scoreComponent: ScoreControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void
+    renderFunc: () => void,
+    captureKeyboard: () => void,
+    freeKeyboard: () => void
   ) {
     this._scoreComponent = scoreComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._captureKeyboard = captureKeyboard;
+    this._freeKeyboard = freeKeyboard;
 
     this._newTrackCallbacks = new NewTrackControlsDefaultCallbacks(
       this._scoreComponent.newTrackComponent,
       this._notationComponent,
-      this._renderFunc.bind(this)
+      this._renderFunc,
+      this._captureKeyboard,
+      this._freeKeyboard
     );
   }
 
@@ -56,6 +64,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   onNewTrackButtonClicked(): void {
+    this._captureKeyboard();
     this._scoreComponent.showNewTrackDialog();
   }
 
@@ -77,7 +86,9 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
       const callbacks = new TrackControlsDefaultCallbacks(
         trackComponent,
         this._notationComponent,
-        this._renderFunc
+        this._renderFunc,
+        this._captureKeyboard,
+        this._freeKeyboard
       );
       callbacks.bind();
 

@@ -29,6 +29,8 @@ export class EffectControlsDefaultCallbacks implements EffectControlsCallbacks {
   private _effectsComponent: EffectControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _captureKeyboard: () => void;
+  private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
 
@@ -37,16 +39,22 @@ export class EffectControlsDefaultCallbacks implements EffectControlsCallbacks {
   constructor(
     effectsComponent: EffectControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void
+    renderFunc: () => void,
+    captureKeyboard: () => void,
+    freeKeyboard: () => void
   ) {
     this._effectsComponent = effectsComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._captureKeyboard = captureKeyboard;
+    this._freeKeyboard = freeKeyboard;
 
     this._bendCallbacks = new BendControlsDefaultCallbacks(
       this._effectsComponent.bendControlsComponent,
       this._notationComponent,
-      this._renderFunc
+      this._renderFunc,
+      this._captureKeyboard,
+      this._freeKeyboard
     );
   }
 

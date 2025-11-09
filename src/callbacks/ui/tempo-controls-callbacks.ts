@@ -23,6 +23,8 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   private _tempoComponent: TempoControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _captureKeyboard: () => void;
+  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   readonly beatsCountErrorText: string = "Invalid beats count";
@@ -35,11 +37,15 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   constructor(
     tempoComponent: TempoControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void
+    renderFunc: () => void,
+    captureKeyboard: () => void,
+    freeKeyboard: () => void
   ) {
     this._tempoComponent = tempoComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._captureKeyboard = captureKeyboard;
+    this._freeKeyboard = freeKeyboard;
   }
 
   private tempoValid(tempoValue: string): boolean {
@@ -62,6 +68,7 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
       )
     ) {
       this._tempoComponent.template.tempoDialog.close();
+      this._freeKeyboard();
     }
   }
 
@@ -82,10 +89,12 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
     this._renderFunc();
 
     this._tempoComponent.template.tempoDialog.close();
+    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._tempoComponent.template.tempoDialog.close();
+    this._freeKeyboard();
   }
 
   bind(): void {

@@ -18,16 +18,22 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   private _trackComponent: TrackControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _captureKeyboard: () => void;
+  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   constructor(
     trackComponent: TrackControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void
+    renderFunc: () => void,
+    captureKeyboard: () => void,
+    freeKeyboard: () => void
   ) {
     this._trackComponent = trackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._captureKeyboard = captureKeyboard;
+    this._freeKeyboard = freeKeyboard;
   }
 
   onTrackVolumeChanged(): void {

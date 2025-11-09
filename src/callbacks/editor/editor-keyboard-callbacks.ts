@@ -252,7 +252,6 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
   public bind(): void {
     if (this._bound) {
-      // if (this._keyboardBound) {
       return;
     }
 

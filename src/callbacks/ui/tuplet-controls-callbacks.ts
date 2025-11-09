@@ -24,6 +24,9 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   private _tupletComponent: TupletControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _captureKeyboard: () => void;
+  private _freeKeyboard: () => void;
+
   private _listeners = new ListenerManager();
 
   readonly normalCountErrorText: string = "Invalid normal count";
@@ -39,11 +42,15 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   constructor(
     tupletComponent: TupletControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void
+    renderFunc: () => void,
+    captureKeyboard: () => void,
+    freeKeyboard: () => void
   ) {
     this._tupletComponent = tupletComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._captureKeyboard = captureKeyboard;
+    this._freeKeyboard = freeKeyboard;
   }
 
   private normalCountValid(normalCountValue: string): boolean {
@@ -79,6 +86,7 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
       )
     ) {
       this._tupletComponent.template.tupletDialog.close();
+      this._freeKeyboard();
     }
   }
 
@@ -116,10 +124,12 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     this._renderFunc();
 
     this._tupletComponent.template.tupletDialog.close();
+    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._tupletComponent.template.tupletDialog.close();
+    this._freeKeyboard();
   }
 
   bind(): void {

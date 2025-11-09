@@ -35,6 +35,8 @@ export class NewTrackControlsDefaultCallbacks
   private _newTrackComponent: NewTrackControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _captureKeyboard: () => void;
+  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   readonly stringCountErrorText: string = "Invalid string count";
@@ -49,11 +51,15 @@ export class NewTrackControlsDefaultCallbacks
   constructor(
     newTrackComponent: NewTrackControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void
+    renderFunc: () => void,
+    captureKeyboard: () => void,
+    freeKeyboard: () => void
   ) {
     this._newTrackComponent = newTrackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._captureKeyboard = captureKeyboard;
+    this._freeKeyboard = freeKeyboard;
   }
 
   private stringCountValid(stringCountValue: string): boolean {
@@ -76,6 +82,7 @@ export class NewTrackControlsDefaultCallbacks
       )
     ) {
       this._newTrackComponent.template.newTrackDialog.close();
+      this._freeKeyboard();
     }
   }
 
@@ -153,10 +160,12 @@ export class NewTrackControlsDefaultCallbacks
     this._renderFunc();
 
     this._newTrackComponent.template.newTrackDialog.close();
+    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._newTrackComponent.template.newTrackDialog.close();
+    this._freeKeyboard();
   }
 
   bind(): void {
