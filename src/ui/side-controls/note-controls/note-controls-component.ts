@@ -24,7 +24,7 @@ export class NoteControlsComponent {
     );
 
     this.tupletComponent = new TupletControlsComponent(
-      this.parentDiv,
+      this.template.container,
       this.notationComponent
     );
   }

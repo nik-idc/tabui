@@ -21,7 +21,12 @@ export class TopControlsComponent {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new TopControlsTemplate();
+  this.template = new TopControlsTemplate();
+    this.templateRenderer = new TopControlsTemplateRenderer(
+      this.parentDiv,
+      this.notationComponent,
+      this.template
+    );
     this.scoreComponent = new ScoreControlsComponent(
       this.template.container,
       this.notationComponent
@@ -29,11 +34,6 @@ export class TopControlsComponent {
     this.playComponent = new PlayControlsComponent(
       this.template.container,
       this.notationComponent
-    );
-    this.templateRenderer = new TopControlsTemplateRenderer(
-      this.parentDiv,
-      this.notationComponent,
-      this.template
     );
   }
 

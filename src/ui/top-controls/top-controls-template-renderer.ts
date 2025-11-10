@@ -32,10 +32,6 @@ export class TopControlsTemplateRenderer {
     const cssClass = "tu-top-controls";
     this.template.container.classList.add(cssClass);
 
-    this.template.container.append(
-      this.template.scoreControlsTemplate.container,
-      this.template.playControlsTemplate.container
-    );
     this.parentDiv.appendChild(this.template.container);
   }
 

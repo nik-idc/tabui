@@ -23,7 +23,4 @@ export class EffectControlsTemplate {
   readonly pullOffButton: HTMLImageElement = createImage();
   readonly slideButton: HTMLImageElement = createImage();
   readonly bendButton: HTMLImageElement = createImage();
-
-  // readonly bendControlsTemplate: BendControlsTemplate =
-  //   new BendControlsTemplate();
 }

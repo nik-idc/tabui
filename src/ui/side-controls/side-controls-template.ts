@@ -18,11 +18,4 @@ import { NoteControlsTemplate } from "./note-controls";
  */
 export class SideControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
-
-  readonly noteControlsTemplate: NoteControlsTemplate =
-    new NoteControlsTemplate();
-  readonly effectControlsTemplate: EffectControlsTemplate =
-    new EffectControlsTemplate();
-  readonly measureControlsTemplate: MeasureControlsTemplate =
-    new MeasureControlsTemplate();
 }

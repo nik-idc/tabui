@@ -9,9 +9,4 @@ import { ScoreControlsTemplate } from "./score-controls";
  */
 export class TopControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
-
-  readonly scoreControlsTemplate: ScoreControlsTemplate =
-    new ScoreControlsTemplate();
-  readonly playControlsTemplate: PlayControlsTemplate =
-    new PlayControlsTemplate();
 }

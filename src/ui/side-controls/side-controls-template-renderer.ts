@@ -27,12 +27,6 @@ export class SideControlsTemplateRenderer {
     const cssClass = "tu-side-controls";
     this.template.container.classList.add(cssClass);
 
-    this.template.container.append(
-      this.template.noteControlsTemplate.container,
-      this.template.effectControlsTemplate.container,
-      this.template.measureControlsTemplate.container
-    );
-
     this.parentDiv.appendChild(this.template.container);
   }
 

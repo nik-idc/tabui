@@ -1,10 +1,5 @@
-let count = 0;
-
 export function createDiv(): HTMLDivElement {
-  const div = document.createElement("div");
-  div.dataset["count"] = `${count}`;
-  count++;
-  return div;
+  return document.createElement("div");
 }
 
 export function createImage(): HTMLImageElement {

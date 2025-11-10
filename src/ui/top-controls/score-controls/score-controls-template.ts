@@ -16,5 +16,4 @@ export class ScoreControlsTemplate {
   /******/ readonly masterPanningInput: HTMLInputElement = createInput();
   /****/ readonly scoreNameInput: HTMLInputElement = createInput();
   /**/ readonly tracksContainer: HTMLDivElement = createDiv();
-  /****/ tracksTemplates: TrackControlsTemplate[] = [];
 }
