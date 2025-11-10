@@ -77,11 +77,11 @@ export class NewTrackControlsDefaultCallbacks
 
   onDialogClicked(event: MouseEvent): void {
     if (
-      !this._newTrackComponent.template.newTrackDialogContent.contains(
+      !this._newTrackComponent.template.dialogContent.contains(
         event.target as Node
       )
     ) {
-      this._newTrackComponent.template.newTrackDialog.close();
+      this._newTrackComponent.template.dialog.close();
       this._freeKeyboard();
     }
   }
@@ -159,12 +159,12 @@ export class NewTrackControlsDefaultCallbacks
     this._notationComponent.loadTrack(this._newTrackComponent.makeTrack());
     this._renderFunc();
 
-    this._newTrackComponent.template.newTrackDialog.close();
+    this._newTrackComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   onCancelClicked(): void {
-    this._newTrackComponent.template.newTrackDialog.close();
+    this._newTrackComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
@@ -172,7 +172,7 @@ export class NewTrackControlsDefaultCallbacks
     const configs: ListenerConfig[] = [];
 
     configs.push({
-      element: this._newTrackComponent.template.newTrackDialog as HTMLElement,
+      element: this._newTrackComponent.template.dialog as HTMLElement,
       event: "click",
       handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
     });

@@ -4,20 +4,20 @@ import { BendControlsTemplateRenderer } from "./bend-controls-template-renderer"
 import { BendSelectorManager } from "./bend-selectors";
 
 export class BendControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: BendControlsTemplate;
   readonly templateRenderer: BendControlsTemplateRenderer;
   readonly bendSelectorManager: BendSelectorManager;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new BendControlsTemplate();
     this.templateRenderer = new BendControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );

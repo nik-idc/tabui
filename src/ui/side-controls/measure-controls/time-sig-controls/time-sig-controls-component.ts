@@ -4,19 +4,19 @@ import { BendControlsComponent } from "../../effect-controls/bend-controls";
 import { TimeSigControlsTemplate } from "./time-sig-controls-template";
 import { TimeSigControlsTemplateRenderer } from "./time-sig-controls-template-renderer";
 export class TimeSigControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: TimeSigControlsTemplate;
   readonly templateRenderer: TimeSigControlsTemplateRenderer;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new TimeSigControlsTemplate();
     this.templateRenderer = new TimeSigControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );

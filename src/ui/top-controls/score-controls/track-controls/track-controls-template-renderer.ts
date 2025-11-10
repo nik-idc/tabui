@@ -15,7 +15,7 @@ const panningStep = 0.05;
 // VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 
 export class TrackControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TrackControlsTemplate;
   readonly assetsPath: string;
@@ -24,13 +24,13 @@ export class TrackControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TrackControlsTemplate,
     track: Tab,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.track = track;
@@ -41,9 +41,9 @@ export class TrackControlsTemplateRenderer {
 
   private assembleContainer(): void {
     const cssClass = "tu-track-controls";
-    this.template.trackControlsContainer.classList.add(cssClass);
+    this.template.container.classList.add(cssClass);
 
-    this.template.trackControlsContainer.append(
+    this.template.container.append(
       this.template.removeButton,
       this.template.trackButton,
       this.template.volumeInput,
@@ -52,7 +52,7 @@ export class TrackControlsTemplateRenderer {
       this.template.soloButton,
       this.template.settingsButton
     );
-    this.rootDiv.appendChild(this.template.trackControlsContainer);
+    this.parentDiv.appendChild(this.template.container);
   }
 
   private renderTrackName(): void {

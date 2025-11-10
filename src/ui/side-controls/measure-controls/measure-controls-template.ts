@@ -9,7 +9,7 @@ import { TempoControlsTemplate } from "./tempo-controls";
  * - Repeat start/end
  */
 export class MeasureControlsTemplate {
-  readonly measureControlsContainer: HTMLDivElement = createDiv();
+  readonly container: HTMLDivElement = createDiv();
 
   readonly tempoButton: HTMLImageElement = createImage();
   readonly timeSignatureButton: HTMLImageElement = createImage();

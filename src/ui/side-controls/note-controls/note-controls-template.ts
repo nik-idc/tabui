@@ -14,8 +14,8 @@ type NoteDurationButtons = readonly [
  * Duration change, Tuplets and Dots
  */
 export class NoteControlsTemplate {
-  readonly noteControlsContainer: HTMLDivElement = createDiv();
-  readonly noteDurationButtons: NoteDurationButtons = [
+  readonly container: HTMLDivElement = createDiv();
+  readonly durationButtons: NoteDurationButtons = [
     createImage(), // Whole
     createImage(), // Half
     createImage(), // Quarter

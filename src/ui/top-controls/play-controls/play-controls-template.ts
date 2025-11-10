@@ -9,7 +9,7 @@ import { createDiv, createImage } from "@/shared";
  * - Last bar button
  */
 export class PlayControlsTemplate {
-  readonly playControlsContainer: HTMLDivElement = createDiv();
+  readonly container: HTMLDivElement = createDiv();
   readonly firstButton: HTMLImageElement = createImage();
   readonly prevButton: HTMLImageElement = createImage();
   readonly playButton: HTMLImageElement = createImage();

@@ -6,7 +6,7 @@ import { YesNoComponent } from "@/ui/shared/yes-no";
 import { TrackSettingsControlsComponent } from "./track-settings";
 
 export class TrackControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly track: Tab;
 
@@ -17,29 +17,29 @@ export class TrackControlsComponent {
   readonly trackSettingsComponent: TrackSettingsControlsComponent;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     track: Tab
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.track = track;
 
     this.template = new TrackControlsTemplate();
     this.templateRenderer = new TrackControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template,
       this.track
     );
 
     this.yesNoComponent = new YesNoComponent(
-      this.rootDiv,
+      this.template.container,
       this.notationComponent,
       `Are you sure you want to delete track "${this.track.name}"?`
     );
     this.trackSettingsComponent = new TrackSettingsControlsComponent(
-      this.rootDiv,
+      this.template.container,
       this.notationComponent,
       this.track
     );
@@ -57,6 +57,6 @@ export class TrackControlsComponent {
   }
 
   public showTrackSettings(): void {
-    this.trackSettingsComponent.template.trackSettingsDialog.showModal();
+    this.trackSettingsComponent.template.dialog.showModal();
   }
 }

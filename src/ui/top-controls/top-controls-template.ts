@@ -8,7 +8,7 @@ import { ScoreControlsTemplate } from "./score-controls";
  * - Play controls
  */
 export class TopControlsTemplate {
-  readonly topControlsContainer: HTMLDivElement = createDiv();
+  readonly container: HTMLDivElement = createDiv();
 
   readonly scoreControlsTemplate: ScoreControlsTemplate =
     new ScoreControlsTemplate();

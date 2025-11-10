@@ -3,7 +3,7 @@ import { MeasureControlsTemplate } from "./measure-controls-template";
 import { BarRepeatStatus } from "@/notation";
 
 export class MeasureControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: MeasureControlsTemplate;
   readonly assetsPath: string;
@@ -11,12 +11,12 @@ export class MeasureControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: MeasureControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -26,16 +26,16 @@ export class MeasureControlsTemplateRenderer {
 
   private assembleContainer(): void {
     const cssClass = "tu-measure-controls";
-    this.template.measureControlsContainer.classList.add(cssClass);
+    this.template.container.classList.add(cssClass);
 
-    this.template.measureControlsContainer.append(
+    this.template.container.append(
       this.template.tempoButton,
       this.template.timeSignatureButton,
       this.template.repeatStartButton,
       this.template.repeatEndButton
     );
 
-    this.rootDiv.appendChild(this.template.measureControlsContainer);
+    this.parentDiv.appendChild(this.template.container);
   }
 
   private renderRepeatButtonsState(): void {

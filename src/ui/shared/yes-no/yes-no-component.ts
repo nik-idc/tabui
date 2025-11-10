@@ -3,7 +3,7 @@ import { YesNoTemplateRenderer } from "./yes-no-template-renderer";
 import { YesNoTemplate } from "./yes-no-template";
 
 export class YesNoComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: YesNoTemplate;
@@ -12,18 +12,18 @@ export class YesNoComponent {
   private _text: string;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     text: string = "Are you sure?"
   ) {
     this._text = text;
 
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new YesNoTemplate();
     this.templateRenderer = new YesNoTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template,
       this._text

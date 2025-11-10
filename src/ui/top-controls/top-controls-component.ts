@@ -8,7 +8,7 @@ import { ScoreControlsComponent } from "./score-controls/score-controls-componen
 import { PlayControlsComponent } from "./play-controls";
 
 export class TopControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: TopControlsTemplate;
@@ -17,21 +17,21 @@ export class TopControlsComponent {
   readonly scoreComponent: ScoreControlsComponent;
   readonly playComponent: PlayControlsComponent;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new TopControlsTemplate();
     this.scoreComponent = new ScoreControlsComponent(
-      this.template.topControlsContainer,
+      this.template.container,
       this.notationComponent
     );
     this.playComponent = new PlayControlsComponent(
-      this.template.topControlsContainer,
+      this.template.container,
       this.notationComponent
     );
     this.templateRenderer = new TopControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );

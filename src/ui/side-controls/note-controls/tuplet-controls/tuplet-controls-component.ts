@@ -4,19 +4,19 @@ import { TupletControlsTemplate } from "./tuplet-controls-template";
 import { TupletControlsTemplateRenderer } from "./tuplet-controls-template-renderer";
 
 export class TupletControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: TupletControlsTemplate;
   readonly templateRenderer: TupletControlsTemplateRenderer;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new TupletControlsTemplate();
     this.templateRenderer = new TupletControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );

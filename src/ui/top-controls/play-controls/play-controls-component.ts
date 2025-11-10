@@ -3,19 +3,19 @@ import { PlayControlsTemplate } from "./play-controls-template";
 import { PlayControlsTemplateRenderer } from "./play-controls-template-renderer";
 
 export class PlayControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: PlayControlsTemplate;
   readonly templateRenderer: PlayControlsTemplateRenderer;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new PlayControlsTemplate();
     this.templateRenderer = new PlayControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );

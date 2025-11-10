@@ -16,7 +16,7 @@ export const INSTRUMENT_KINDS: Record<string, Record<string, string[]>> = {
 };
 
 export class NewTrackControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: NewTrackControlsTemplate;
@@ -32,13 +32,13 @@ export class NewTrackControlsComponent {
   private _stringCount: number = 6;
   private _tuning: string = "E A D G B E";
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new NewTrackControlsTemplate();
     this.templateRenderer = new NewTrackControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );

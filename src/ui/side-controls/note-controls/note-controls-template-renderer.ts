@@ -3,7 +3,7 @@ import { NoteControlsTemplate } from "./note-controls-template";
 import { NotationComponent } from "@/notation/notation-component";
 
 export class NoteControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: NoteControlsTemplate;
   readonly assetsPath: string;
@@ -11,12 +11,12 @@ export class NoteControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: NoteControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -26,22 +26,18 @@ export class NoteControlsTemplateRenderer {
 
   private assembleContainer(): void {
     const cssClass = "tu-note-controls";
-    this.template.noteControlsContainer.classList.add(cssClass);
+    this.template.container.classList.add(cssClass);
 
-    this.template.noteControlsContainer.append(
-      ...this.template.noteDurationButtons
-    );
-    this.template.noteControlsContainer.append(
+    this.template.container.append(...this.template.durationButtons);
+    this.template.container.append(
       this.template.dot1Button,
-      this.template.dot2Button
-    );
-    this.template.noteControlsContainer.append(
+      this.template.dot2Button,
       this.template.tuplet2Button,
       this.template.tuplet3Button,
       this.template.tupletButton
     );
 
-    this.rootDiv.appendChild(this.template.noteControlsContainer);
+    this.parentDiv.appendChild(this.template.container);
   }
 
   private renderDurationButtons(): void {
@@ -58,7 +54,7 @@ export class NoteControlsTemplateRenderer {
     const appliedCSSClass = "tu-applied-img";
 
     for (let i = 0; i < notes.length; i++) {
-      const button = this.template.noteDurationButtons[i];
+      const button = this.template.durationButtons[i];
 
       // Image attributes
       const src = `${this.assetsPath}/img/notes/${notes[i].num}.svg`;

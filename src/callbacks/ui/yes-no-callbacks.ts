@@ -39,7 +39,9 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
 
   onDialogClicked(event: MouseEvent): void {
     if (
-      !this._yesNoComponent.template.yesNoDialog.contains(event.target as Node)
+      !this._yesNoComponent.template.yesNoDialogContent.contains(
+        event.target as Node
+      )
     ) {
       this._yesNoComponent.template.yesNoDialog.close();
       this._freeKeyboard();

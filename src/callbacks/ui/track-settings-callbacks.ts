@@ -71,11 +71,11 @@ export class TrackSettingsControlsDefaultCallbacks
 
   onDialogClicked(event: MouseEvent): void {
     if (
-      !this._trackSettingsComponent.template.trackSettingsDialogContent.contains(
+      !this._trackSettingsComponent.template.dialogContent.contains(
         event.target as Node
       )
     ) {
-      this._trackSettingsComponent.template.trackSettingsDialog.close();
+      this._trackSettingsComponent.template.dialog.close();
       this._freeKeyboard();
     }
   }
@@ -142,12 +142,12 @@ export class TrackSettingsControlsDefaultCallbacks
     // TODO: IMPLEMENT TRACK EDITING IN THE MODEL UPDATE!!
     this._renderFunc();
 
-    this._trackSettingsComponent.template.trackSettingsDialog.close();
+    this._trackSettingsComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   onCancelClicked(): void {
-    this._trackSettingsComponent.template.trackSettingsDialog.close();
+    this._trackSettingsComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
@@ -155,7 +155,7 @@ export class TrackSettingsControlsDefaultCallbacks
     this._listeners.bindAll([
       {
         element: this._trackSettingsComponent.template
-          .trackSettingsDialog as HTMLElement,
+          .dialog as HTMLElement,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },

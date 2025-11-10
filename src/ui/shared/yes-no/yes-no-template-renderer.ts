@@ -2,7 +2,7 @@ import { NotationComponent } from "@/notation/notation-component";
 import { YesNoTemplate } from "./yes-no-template";
 
 export class YesNoTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: YesNoTemplate;
   readonly assetsPath: string;
@@ -12,13 +12,13 @@ export class YesNoTemplateRenderer {
   private _text: string;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: YesNoTemplate,
     text: string,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -48,7 +48,7 @@ export class YesNoTemplateRenderer {
       this.template.confirmButton,
       this.template.cancelButton
     );
-    this.rootDiv.appendChild(this.template.yesNoDialog);
+    this.parentDiv.appendChild(this.template.yesNoDialog);
   }
 
   private renderText(): void {

@@ -1,15 +1,15 @@
 import { createButton, createDialog, createDiv, createInput } from "@/shared";
 
 export class TempoControlsTemplate {
-  readonly tempoDialog: HTMLDialogElement = createDialog();
-  readonly tempoDialogContent: HTMLDivElement = createDiv();
+  readonly dialog: HTMLDialogElement = createDialog();
+  readonly dialogContent: HTMLDivElement = createDiv();
 
-  readonly tempoInputContent: HTMLDivElement = createDiv();
+  readonly inputContent: HTMLDivElement = createDiv();
   readonly textContainer: HTMLDivElement = createDiv();
-  readonly tempoInput: HTMLInputElement = createInput();
-  readonly tempoErrorText: HTMLDivElement = createDiv();
+  readonly input: HTMLInputElement = createInput();
+  readonly errorText: HTMLDivElement = createDiv();
 
-  readonly tempoActionsContent: HTMLDivElement = createDiv();
+  readonly actionsContent: HTMLDivElement = createDiv();
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
 }

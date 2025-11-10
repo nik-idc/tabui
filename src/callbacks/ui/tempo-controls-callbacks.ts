@@ -63,24 +63,24 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
 
   onDialogClicked(event: MouseEvent): void {
     if (
-      !this._tempoComponent.template.tempoDialogContent.contains(
+      !this._tempoComponent.template.dialogContent.contains(
         event.target as Node
       )
     ) {
-      this._tempoComponent.template.tempoDialog.close();
+      this._tempoComponent.template.dialog.close();
       this._freeKeyboard();
     }
   }
 
   onTempoChanged(event: InputEvent): void {
-    if (!this.tempoValid(this._tempoComponent.template.tempoInput.value)) {
-      this._tempoComponent.template.tempoErrorText.textContent =
+    if (!this.tempoValid(this._tempoComponent.template.input.value)) {
+      this._tempoComponent.template.errorText.textContent =
         this.beatsCountErrorText;
       this._tempoComponent.template.confirmButton.disabled = true;
     } else {
-      this._tempoComponent.template.tempoErrorText.textContent = " ";
+      this._tempoComponent.template.errorText.textContent = " ";
       this._tempoComponent.template.confirmButton.disabled = false;
-      this._tempo = Number(this._tempoComponent.template.tempoInput.value);
+      this._tempo = Number(this._tempoComponent.template.input.value);
     }
   }
 
@@ -88,24 +88,24 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
     this._notationComponent.tabController.changeSelectedBarTempo(this._tempo);
     this._renderFunc();
 
-    this._tempoComponent.template.tempoDialog.close();
+    this._tempoComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   onCancelClicked(): void {
-    this._tempoComponent.template.tempoDialog.close();
+    this._tempoComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._tempoComponent.template.tempoDialogContent,
+        element: this._tempoComponent.template.dialog,
         event: "click",
         handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
       },
       {
-        element: this._tempoComponent.template.tempoInput,
+        element: this._tempoComponent.template.input,
         event: "input",
         handler: (event: Event) => this.onTempoChanged(event as InputEvent),
       },

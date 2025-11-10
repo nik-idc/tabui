@@ -7,7 +7,7 @@ import {
 } from "./score-controls/track-controls";
 
 export class TopControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TopControlsTemplate;
   readonly assetsPath: string;
@@ -15,12 +15,12 @@ export class TopControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TopControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -30,13 +30,13 @@ export class TopControlsTemplateRenderer {
 
   private assembleContainer(): void {
     const cssClass = "tu-top-controls";
-    this.template.topControlsContainer.classList.add(cssClass);
+    this.template.container.classList.add(cssClass);
 
-    this.template.topControlsContainer.append(
-      this.template.scoreControlsTemplate.scoreControlsContainer,
-      this.template.playControlsTemplate.playControlsContainer
+    this.template.container.append(
+      this.template.scoreControlsTemplate.container,
+      this.template.playControlsTemplate.container
     );
-    this.rootDiv.appendChild(this.template.topControlsContainer);
+    this.parentDiv.appendChild(this.template.container);
   }
 
   public render(): void {

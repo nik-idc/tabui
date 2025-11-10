@@ -7,7 +7,7 @@ import { createButton, createDiv, createImage, createInput } from "@/shared";
  * - Panning input
  */
 export class TrackControlsTemplate {
-  readonly trackControlsContainer: HTMLDivElement = createDiv();
+  readonly container: HTMLDivElement = createDiv();
   readonly trackButton: HTMLButtonElement = createButton();
   readonly removeButton: HTMLImageElement = createImage();
   readonly volumeInput: HTMLInputElement = createInput();

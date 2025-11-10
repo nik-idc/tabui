@@ -5,7 +5,7 @@ import { TimeSigControlsComponent } from "./time-sig-controls";
 import { TempoControlsComponent } from "./tempo-controls";
 
 export class MeasureControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: MeasureControlsTemplate;
@@ -14,23 +14,23 @@ export class MeasureControlsComponent {
   readonly timeSigControlsComponent: TimeSigControlsComponent;
   readonly tempoControlsComponent: TempoControlsComponent;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new MeasureControlsTemplate();
     this.templateRenderer = new MeasureControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );
 
     this.timeSigControlsComponent = new TimeSigControlsComponent(
-      this.rootDiv,
+      this.template.container,
       this.notationComponent
     );
     this.tempoControlsComponent = new TempoControlsComponent(
-      this.rootDiv,
+      this.template.container,
       this.notationComponent
     );
   }
@@ -42,10 +42,10 @@ export class MeasureControlsComponent {
   }
 
   public showTempoControls(): void {
-    this.tempoControlsComponent.template.tempoDialog.showModal();
+    this.tempoControlsComponent.template.dialog.showModal();
   }
 
   public showTimeSigControls(): void {
-    this.timeSigControlsComponent.template.timeSigDialog.showModal();
+    this.timeSigControlsComponent.template.dialog.showModal();
   }
 }

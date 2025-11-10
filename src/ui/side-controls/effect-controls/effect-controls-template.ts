@@ -13,7 +13,7 @@ import { BendControlsTemplate } from "./bend-controls/bend-controls-template";
  * - Bend
  */
 export class EffectControlsTemplate {
-  readonly effectControlsContainer: HTMLDivElement = createDiv();
+  readonly container: HTMLDivElement = createDiv();
 
   readonly vibratoButton: HTMLImageElement = createImage();
   readonly palmMuteButton: HTMLImageElement = createImage();

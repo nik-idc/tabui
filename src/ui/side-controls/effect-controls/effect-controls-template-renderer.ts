@@ -8,7 +8,7 @@ import {
 } from "@/notation";
 
 export class EffectControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: EffectControlsTemplate;
   readonly assetsPath: string;
@@ -16,12 +16,12 @@ export class EffectControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: EffectControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -31,9 +31,9 @@ export class EffectControlsTemplateRenderer {
 
   private assembleContainer(): void {
     const cssClass = "tu-effect-controls";
-    this.template.effectControlsContainer.classList.add(cssClass);
+    this.template.container.classList.add(cssClass);
 
-    this.template.effectControlsContainer.append(
+    this.template.container.append(
       this.template.vibratoButton,
       this.template.palmMuteButton,
       this.template.nhButton,
@@ -43,7 +43,7 @@ export class EffectControlsTemplateRenderer {
       this.template.slideButton,
       this.template.bendButton
     );
-    this.rootDiv.appendChild(this.template.effectControlsContainer);
+    this.parentDiv.appendChild(this.template.container);
   }
 
   private renderEffectButtonState(

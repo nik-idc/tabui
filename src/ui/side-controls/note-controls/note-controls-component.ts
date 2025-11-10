@@ -4,7 +4,7 @@ import { NoteControlsTemplateRenderer } from "./note-controls-template-renderer"
 import { TupletControlsComponent } from "./tuplet-controls";
 
 export class NoteControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: NoteControlsTemplate;
@@ -12,19 +12,19 @@ export class NoteControlsComponent {
 
   readonly tupletComponent: TupletControlsComponent;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new NoteControlsTemplate();
     this.templateRenderer = new NoteControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );
 
     this.tupletComponent = new TupletControlsComponent(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent
     );
   }
@@ -36,6 +36,6 @@ export class NoteControlsComponent {
   }
 
   public showTupletControls(): void {
-    this.tupletComponent.template.tupletDialog.showModal();
+    this.tupletComponent.template.dialog.showModal();
   }
 }

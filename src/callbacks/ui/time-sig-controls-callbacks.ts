@@ -79,11 +79,11 @@ export class TimeSigControlsDefaultCallbacks
 
   onDialogClicked(event: MouseEvent): void {
     if (
-      !this._timeSigComponent.template.timeSigDialogContent.contains(
+      !this._timeSigComponent.template.dialogContent.contains(
         event.target as Node
       )
     ) {
-      this._timeSigComponent.template.timeSigDialog.close();
+      this._timeSigComponent.template.dialog.close();
       this._freeKeyboard();
     }
   }
@@ -123,19 +123,19 @@ export class TimeSigControlsDefaultCallbacks
     );
     this._renderFunc();
 
-    this._timeSigComponent.template.timeSigDialog.close();
+    this._timeSigComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   onCancelClicked(): void {
-    this._timeSigComponent.template.timeSigDialog.close();
+    this._timeSigComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._timeSigComponent.template.timeSigDialogContent,
+        element: this._timeSigComponent.template.dialog,
         event: "click",
         handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
       },

@@ -42,35 +42,34 @@
     .tu-score-controls {
       width: 40vw;
       display: flex;
-      gap: 50px;
+      flex-direction: column;
 
       .tu-master-controls {
         display: flex;
         justify-content: space-around;
         gap: 10px;
-      }
 
-      .tu-score-name-input {
-        border: none;
-        outline: none;
-        background: transparent;
-        // font-size: 1.2rem;
-        // font-weight: 500;
-        // padding: 2px 4px;
-        border-radius: 4px;
-        transition:
-          background-color 0.15s ease,
-          box-shadow 0.15s ease;
-        // width: 100%;
-
-        &:focus {
-          background-color: var(--applied-color);
-          cursor: text;
+        .tu-settings {
+          display: flex;
+          gap: 10px;
         }
 
-        &:hover {
-          background-color: var(--primary-color);
-          box-shadow: 0 0 0 2px var(--secondary-color);
+        .tu-score-name-input {
+          border: none;
+          outline: none;
+          background: transparent;
+          border-radius: 4px;
+          transition: background-color 0.15s ease, box-shadow 0.15s ease;
+
+          &:focus {
+            background-color: var(--applied-color);
+            cursor: text;
+          }
+
+          &:hover {
+            background-color: var(--primary-color);
+            box-shadow: 0 0 0 2px var(--secondary-color);
+          }
         }
       }
 

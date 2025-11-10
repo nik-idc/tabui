@@ -16,7 +16,7 @@ export const INSTRUMENT_KINDS: Record<string, Record<string, string[]>> = {
 };
 
 export class TrackSettingsControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly track: Tab;
 
@@ -28,17 +28,17 @@ export class TrackSettingsControlsComponent {
   private _tuning: string;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     track: Tab
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.track = track;
 
     this.template = new TrackSettingsControlsTemplate();
     this.templateRenderer = new TrackSettingsControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );

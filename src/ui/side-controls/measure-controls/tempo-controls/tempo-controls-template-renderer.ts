@@ -2,7 +2,7 @@ import { NotationComponent } from "@/notation/notation-component";
 import { TempoControlsTemplate } from "./tempo-controls-template";
 
 export class TempoControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TempoControlsTemplate;
   readonly assetsPath: string;
@@ -10,12 +10,12 @@ export class TempoControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TempoControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -25,29 +25,29 @@ export class TempoControlsTemplateRenderer {
 
   private assembleContainer(): void {
     const dialogCSSClass = "tu-tempo-dialog";
-    this.template.tempoDialog.classList.add(dialogCSSClass);
+    this.template.dialog.classList.add(dialogCSSClass);
     const dialogContentCSSClass = "tu-tempo-dialog-content";
-    this.template.tempoDialogContent.classList.add(dialogContentCSSClass);
+    this.template.dialogContent.classList.add(dialogContentCSSClass);
     const inputContainerCSSClass = "tu-tempo-inputs";
-    this.template.tempoInputContent.classList.add(inputContainerCSSClass);
+    this.template.inputContent.classList.add(inputContainerCSSClass);
     const actionsCSSClass = "tu-tempo-actions";
-    this.template.tempoActionsContent.classList.add(actionsCSSClass);
+    this.template.actionsContent.classList.add(actionsCSSClass);
 
-    this.template.tempoDialog.append(this.template.tempoDialogContent);
-    this.template.tempoDialogContent.append(
-      this.template.tempoInputContent,
-      this.template.tempoActionsContent
+    this.template.dialog.append(this.template.dialogContent);
+    this.template.dialogContent.append(
+      this.template.inputContent,
+      this.template.actionsContent
     );
-    this.template.tempoInputContent.append(
+    this.template.inputContent.append(
       this.template.textContainer,
-      this.template.tempoInput,
-      this.template.tempoErrorText
+      this.template.input,
+      this.template.errorText
     );
-    this.template.tempoActionsContent.append(
+    this.template.actionsContent.append(
       this.template.confirmButton,
       this.template.cancelButton
     );
-    this.rootDiv.appendChild(this.template.tempoDialog);
+    this.parentDiv.appendChild(this.template.dialog);
   }
 
   private renderTextContainer(): void {
@@ -70,11 +70,11 @@ export class TempoControlsTemplateRenderer {
     }
 
     const beatsCSSClass = "tu-tempo-input";
-    this.template.tempoInput.classList.add(beatsCSSClass);
-    this.template.tempoInput.type = "number";
-    this.template.tempoInput.value = tempoInitValue;
+    this.template.input.classList.add(beatsCSSClass);
+    this.template.input.type = "number";
+    this.template.input.value = tempoInitValue;
     const beatsErrorCSSClass = "tu-tempo-error";
-    this.template.tempoErrorText.classList.add(beatsErrorCSSClass);
+    this.template.errorText.classList.add(beatsErrorCSSClass);
   }
 
   private renderButtons(): void {

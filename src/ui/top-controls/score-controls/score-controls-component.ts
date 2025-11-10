@@ -7,7 +7,7 @@ import { NewTrackControlsComponent } from "./new-track/new-track-controls-compon
 import { Score } from "@/notation";
 
 export class ScoreControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly score: Score;
 
@@ -19,14 +19,14 @@ export class ScoreControlsComponent {
 
   private _tracksAreDisplayed: boolean = false;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.score = this.notationComponent.tabController.score;
 
     this.template = new ScoreControlsTemplate();
     this.templateRenderer = new ScoreControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );
@@ -34,7 +34,7 @@ export class ScoreControlsComponent {
     this._trackComponents = [];
 
     this.newTrackComponent = new NewTrackControlsComponent(
-      this.rootDiv,
+      this.template.container,
       this.notationComponent
     );
   }
@@ -67,7 +67,7 @@ export class ScoreControlsComponent {
   }
 
   public showNewTrackDialog(): void {
-    this.newTrackComponent.template.newTrackDialog.showModal();
+    this.newTrackComponent.template.dialog.showModal();
   }
 
   public get trackComponents(): TrackControlsComponent[] {

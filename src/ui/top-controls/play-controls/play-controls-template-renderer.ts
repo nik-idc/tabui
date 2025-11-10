@@ -6,7 +6,7 @@ const assetsPath = import.meta.env.BASE_URL;
 const buttonSize = `30px`;
 
 export class PlayControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: PlayControlsTemplate;
   readonly assetsPath: string;
@@ -14,12 +14,12 @@ export class PlayControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: PlayControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -29,9 +29,9 @@ export class PlayControlsTemplateRenderer {
 
   private assembleContainer(): void {
     const cssClass = "tu-play-controls";
-    this.template.playControlsContainer.classList.add(cssClass);
+    this.template.container.classList.add(cssClass);
 
-    this.template.playControlsContainer.append(
+    this.template.container.append(
       this.template.firstButton,
       this.template.prevButton,
       this.template.playButton,
@@ -39,7 +39,7 @@ export class PlayControlsTemplateRenderer {
       this.template.lastButton,
       this.template.loopButton
     );
-    this.rootDiv.appendChild(this.template.playControlsContainer);
+    this.parentDiv.appendChild(this.template.container);
   }
 
   private renderPlayButtons(): void {

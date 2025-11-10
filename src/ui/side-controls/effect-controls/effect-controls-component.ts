@@ -7,7 +7,7 @@ import { BendControlsComponent } from "./bend-controls/bend-controls-component";
 import { TimeSigControlsComponent } from "../measure-controls/time-sig-controls";
 
 export class EffectControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: EffectControlsTemplate;
@@ -15,19 +15,19 @@ export class EffectControlsComponent {
 
   readonly bendControlsComponent: BendControlsComponent;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new EffectControlsTemplate();
     this.templateRenderer = new EffectControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );
 
     this.bendControlsComponent = new BendControlsComponent(
-      this.template.effectControlsContainer,
+      this.template.container,
       this.notationComponent
     );
   }
@@ -38,6 +38,6 @@ export class EffectControlsComponent {
   }
 
   public showBendControls(): void {
-    this.bendControlsComponent.template.bendControlsDialog.showModal();
+    this.bendControlsComponent.template.dialog.showModal();
   }
 }

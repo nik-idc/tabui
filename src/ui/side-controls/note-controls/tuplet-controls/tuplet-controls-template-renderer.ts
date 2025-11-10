@@ -2,7 +2,7 @@ import { NotationComponent } from "@/notation/notation-component";
 import { TupletControlsTemplate } from "./tuplet-controls-template";
 
 export class TupletControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TupletControlsTemplate;
   readonly assetsPath: string;
@@ -10,12 +10,12 @@ export class TupletControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TupletControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -25,31 +25,31 @@ export class TupletControlsTemplateRenderer {
 
   private assembleContainer(): void {
     const dialogCSSClass = "tu-tuplet-dialog";
-    this.template.tupletDialog.classList.add(dialogCSSClass);
+    this.template.dialog.classList.add(dialogCSSClass);
     const dialogContentCSSClass = "tu-tuplet-dialog-content";
-    this.template.tupletDialogContent.classList.add(dialogContentCSSClass);
+    this.template.dialogContent.classList.add(dialogContentCSSClass);
     const inputContainerCSSClass = "tu-tuplet-inputs";
-    this.template.tupletInputContent.classList.add(inputContainerCSSClass);
+    this.template.inputContent.classList.add(inputContainerCSSClass);
     const actionsCSSClass = "tu-tuplet-actions";
-    this.template.tupletActionsContent.classList.add(actionsCSSClass);
+    this.template.actionsContent.classList.add(actionsCSSClass);
 
-    this.template.tupletDialog.append(this.template.tupletDialogContent);
-    this.template.tupletDialogContent.append(
-      this.template.tupletInputContent,
-      this.template.tupletActionsContent
+    this.template.dialog.append(this.template.dialogContent);
+    this.template.dialogContent.append(
+      this.template.inputContent,
+      this.template.actionsContent
     );
-    this.template.tupletInputContent.append(
+    this.template.inputContent.append(
       this.template.textContainer,
       this.template.normalInput,
       this.template.normalErrorText,
-      this.template.tupletInput,
+      this.template.input,
       this.template.tupletErrorText
     );
-    this.template.tupletActionsContent.append(
+    this.template.actionsContent.append(
       this.template.confirmButton,
       this.template.cancelButton
     );
-    this.rootDiv.appendChild(this.template.tupletDialog);
+    this.parentDiv.appendChild(this.template.dialog);
   }
 
   private renderTextContainer(): void {
@@ -81,9 +81,9 @@ export class TupletControlsTemplateRenderer {
     this.template.normalInput.type = "number";
     this.template.normalInput.value = tupletInitValue;
     this.template.normalErrorText.classList.add(tupletErrorCSSClass);
-    this.template.tupletInput.classList.add(inputCSSClass);
-    this.template.tupletInput.type = "number";
-    this.template.tupletInput.value = tupletInitValue;
+    this.template.input.classList.add(inputCSSClass);
+    this.template.input.type = "number";
+    this.template.input.value = tupletInitValue;
     this.template.tupletErrorText.classList.add(tupletErrorCSSClass);
   }
 

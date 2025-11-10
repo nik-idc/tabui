@@ -8,9 +8,9 @@ import {
 } from "@/shared";
 
 export class NewTrackControlsTemplate {
-  readonly newTrackDialog: HTMLDialogElement = createDialog();
-  /**/ readonly newTrackDialogContent: HTMLDivElement = createDiv();
-  /****/ readonly newTrackSettingsContainer: HTMLDivElement = createDiv();
+  readonly dialog: HTMLDialogElement = createDialog();
+  /**/ readonly dialogContent: HTMLDivElement = createDiv();
+  /****/ readonly settingsContainer: HTMLDivElement = createDiv();
   /******/ readonly instrKindsContainer: HTMLDivElement = createDiv();
   /********/ readonly instrKindsButtons: HTMLImageElement[] = [];
   /******/ readonly instrSelectContainer: HTMLDivElement = createDiv();
@@ -25,7 +25,7 @@ export class NewTrackControlsTemplate {
   /********/ readonly stringCountError: HTMLDivElement = createDiv();
   /********/ readonly tuningInput: HTMLInputElement = createInput();
   /********/ readonly tuningError: HTMLDivElement = createDiv();
-  /****/ readonly newTrackActionsContainer: HTMLDivElement = createDiv();
+  /****/ readonly actionsContainer: HTMLDivElement = createDiv();
   /******/ readonly confirmButton: HTMLButtonElement = createButton();
   /******/ readonly cancelButton: HTMLButtonElement = createButton();
 }

@@ -6,7 +6,7 @@ import { EffectControlsComponent } from "./effect-controls";
 import { MeasureControlsComponent } from "./measure-controls";
 
 export class SideControlsComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly template: SideControlsTemplate;
@@ -16,27 +16,27 @@ export class SideControlsComponent {
   readonly effectControlsComponent: EffectControlsComponent;
   readonly measureControlsComponent: MeasureControlsComponent;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.template = new SideControlsTemplate();
     this.templateRenderer = new SideControlsTemplateRenderer(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent,
       this.template
     );
 
     this.noteControlsComponent = new NoteControlsComponent(
-      this.template.sideControlsContainer,
+      this.template.container,
       this.notationComponent
     );
     this.effectControlsComponent = new EffectControlsComponent(
-      this.template.sideControlsContainer,
+      this.template.container,
       this.notationComponent
     );
     this.measureControlsComponent = new MeasureControlsComponent(
-      this.template.sideControlsContainer,
+      this.template.container,
       this.notationComponent
     );
   }

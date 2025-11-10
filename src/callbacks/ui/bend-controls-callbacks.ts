@@ -43,11 +43,9 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
 
   onDialogClicked(event: MouseEvent): void {
     if (
-      !this._bendComponent.template.bendControlsDialogContent.contains(
-        event.target as Node
-      )
+      !this._bendComponent.template.dialogContent.contains(event.target as Node)
     ) {
-      this._bendComponent.template.bendControlsDialog.close();
+      this._bendComponent.template.dialog.close();
       this._freeKeyboard();
     }
   }
@@ -67,19 +65,19 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     );
     this._renderFunc();
 
-    this._bendComponent.template.bendControlsDialog.close();
+    this._bendComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   onCancelClicked(): void {
-    this._bendComponent.template.bendControlsDialog.close();
+    this._bendComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   public bind(): void {
     this._listeners.bindAll([
       {
-        element: this._bendComponent.template.bendControlsDialog,
+        element: this._bendComponent.template.dialog,
         event: "click",
         handler: (event: MouseEvent) => {
           this.onDialogClicked(event);

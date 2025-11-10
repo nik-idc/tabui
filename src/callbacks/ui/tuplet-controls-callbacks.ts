@@ -81,11 +81,11 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
 
   onDialogClicked(event: MouseEvent): void {
     if (
-      !this._tupletComponent.template.tupletDialogContent.contains(
+      !this._tupletComponent.template.dialogContent.contains(
         event.target as Node
       )
     ) {
-      this._tupletComponent.template.tupletDialog.close();
+      this._tupletComponent.template.dialog.close();
       this._freeKeyboard();
     }
   }
@@ -104,7 +104,7 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   }
 
   onTupletCountChanged(event: InputEvent): void {
-    const inputValue = this._tupletComponent.template.tupletInput.value;
+    const inputValue = this._tupletComponent.template.input.value;
     if (!this.tupletCountValid(inputValue)) {
       this._tupletComponent.template.tupletErrorText.textContent =
         this.tupletCountErrorText;
@@ -123,19 +123,19 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     );
     this._renderFunc();
 
-    this._tupletComponent.template.tupletDialog.close();
+    this._tupletComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   onCancelClicked(): void {
-    this._tupletComponent.template.tupletDialog.close();
+    this._tupletComponent.template.dialog.close();
     this._freeKeyboard();
   }
 
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._tupletComponent.template.tupletDialogContent,
+        element: this._tupletComponent.template.dialog,
         event: "click",
         handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
       },
@@ -146,7 +146,7 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
           this.onNormalCountChanged(event as InputEvent),
       },
       {
-        element: this._tupletComponent.template.tupletInput,
+        element: this._tupletComponent.template.input,
         event: "input",
         handler: (event: Event) =>
           this.onTupletCountChanged(event as InputEvent),

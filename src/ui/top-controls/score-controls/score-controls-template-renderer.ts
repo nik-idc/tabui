@@ -15,7 +15,7 @@ const panningStep = 0.05;
 // VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 
 export class ScoreControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: ScoreControlsTemplate;
   readonly assetsPath: string;
@@ -25,12 +25,12 @@ export class ScoreControlsTemplateRenderer {
   private _currentScoreName: string = "Score name";
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: ScoreControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -39,33 +39,38 @@ export class ScoreControlsTemplateRenderer {
   }
 
   private assembleContainer(): void {
-    const cssClass = "tu-score-controls";
-    this.template.scoreControlsContainer.classList.add(cssClass);
+    const containerCSSClass = "tu-score-controls";
+    const masterCSSClass = "tu-master-controls";
+    const settingsCSSClass = "tu-settings";
+    const tracksCSSClass = "tu-tracks";
 
-    this.template.scoreControlsContainer.append(
+    this.template.container.classList.add(containerCSSClass);
+    this.template.masterContainer.classList.add(masterCSSClass);
+    this.template.settingsContainer.classList.add(settingsCSSClass);
+    this.template.tracksContainer.classList.add(tracksCSSClass);
+
+    this.template.container.append(
       this.template.masterContainer,
-      this.template.scoreNameInput,
       this.template.tracksContainer
     );
     this.template.masterContainer.append(
+      this.template.settingsContainer,
+      this.template.scoreNameInput
+    );
+    this.template.settingsContainer.append(
       this.template.showTracksButton,
       this.template.newTrackButton,
       this.template.masterVolumeInput,
       this.template.masterPanningInput
     );
 
-    this.rootDiv.appendChild(this.template.scoreControlsContainer);
+    this.parentDiv.appendChild(this.template.container);
   }
 
   private renderShowButton(): void {
     const cssClass = "tu-show-tracks-button";
     this.template.showTracksButton.classList.add(cssClass);
     this.template.showTracksButton.textContent = "Tracks";
-  }
-
-  private renderMasterContainer(): void {
-    const cssClass = "tu-master-controls";
-    this.template.masterContainer.classList.add(cssClass);
   }
 
   private renderNewTrackButton(): void {
@@ -113,7 +118,6 @@ export class ScoreControlsTemplateRenderer {
     this._currentScoreName = score.name;
 
     this.renderShowButton();
-    this.renderMasterContainer();
     this.renderNewTrackButton();
     this.renderMasterVolumeInput();
     this.renderMasterPanningInput();

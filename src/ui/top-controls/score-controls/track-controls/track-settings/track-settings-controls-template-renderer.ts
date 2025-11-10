@@ -4,7 +4,7 @@ import { createButton, createImage } from "@/shared";
 import { INSTRUMENT_KINDS } from "./track-settings-controls-component";
 
 export class TrackSettingsControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TrackSettingsControlsTemplate;
   readonly assetsPath: string;
@@ -16,12 +16,12 @@ export class TrackSettingsControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TrackSettingsControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -35,19 +35,19 @@ export class TrackSettingsControlsTemplateRenderer {
     const trackInfoCSSClass = "tu-ts-track-info-container";
     const actionsCSSClass = "tu-ts-actions-container";
 
-    this.template.trackSettingsDialog.classList.add(dialogCSSClass);
-    this.template.trackSettingsDialogContent.classList.add(
+    this.template.dialog.classList.add(dialogCSSClass);
+    this.template.dialogContent.classList.add(
       dialogContentCSSClass
     );
     this.template.trackInfoContainer.classList.add(trackInfoCSSClass);
-    this.template.trackSettingsActionsContainer.classList.add(actionsCSSClass);
+    this.template.actionsContainer.classList.add(actionsCSSClass);
 
-    this.template.trackSettingsDialog.appendChild(
-      this.template.trackSettingsDialogContent
+    this.template.dialog.appendChild(
+      this.template.dialogContent
     );
-    this.template.trackSettingsDialogContent.append(
+    this.template.dialogContent.append(
       this.template.trackInfoContainer,
-      this.template.trackSettingsActionsContainer
+      this.template.actionsContainer
     );
     this.template.trackInfoContainer.append(
       this.template.trackNameInput,
@@ -57,11 +57,11 @@ export class TrackSettingsControlsTemplateRenderer {
       this.template.tuningInput,
       this.template.tuningError
     );
-    this.template.trackSettingsActionsContainer.append(
+    this.template.actionsContainer.append(
       this.template.confirmButton,
       this.template.cancelButton
     );
-    this.rootDiv.appendChild(this.template.trackSettingsDialog);
+    this.parentDiv.appendChild(this.template.dialog);
   }
 
   private renderInputs(): void {

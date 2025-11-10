@@ -4,22 +4,22 @@ import { TopControlsComponent } from "./top-controls";
 import "./styles.scss";
 
 export class UIComponent {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
   readonly topComponent: TopControlsComponent;
   readonly sideComponent: SideControlsComponent;
 
-  constructor(rootDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.rootDiv = rootDiv;
+  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
     this.topComponent = new TopControlsComponent(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent
     );
     this.sideComponent = new SideControlsComponent(
-      this.rootDiv,
+      this.parentDiv,
       this.notationComponent
     );
   }
@@ -41,7 +41,7 @@ export class UIComponent {
 //  * @param notationComponent Notation view (for event binding)
 //  */
 // export function initUI(notationComponent: NotationComponent): void {
-//   notationComponent.rootDiv.classList.add("tu-editor");
+//   notationComponent.parentDiv.classList.add("tu-editor");
 
 //   initTopControls(notationComponent);
 //   initSideControls(notationComponent);
@@ -51,17 +51,17 @@ export class UIComponent {
 //   // readonly score: Score;
 //   private _tabController: TabController;
 
-//   readonly rootDiv: HTMLDivElement;
+//   readonly parentDiv: HTMLDivElement;
 
 //   constructor(
 //     // score: Score,
 //     tabController: TabController,
-//     rootDiv: HTMLDivElement
+//     parentDiv: HTMLDivElement
 //   ) {
 //     this._tabController = tabController;
 //     // this.score = score;
 
-//     this.rootDiv = rootDiv;
+//     this.parentDiv = parentDiv;
 //   }
 
 //   public init(): void {
@@ -74,14 +74,14 @@ export class UIComponent {
 //  * Responsible for initializing UI, renderers, events etc
 //  */
 // export class TabUIEditor {
-//   readonly rootDiv: HTMLDivElement;
+//   readonly parentDiv: HTMLDivElement;
 //   readonly score: Score;
 //   readonly notationComponent: NotationComponent;
 
-//   constructor(rootDiv: HTMLDivElement, score: Score) {
-//     this.rootDiv = rootDiv;
+//   constructor(parentDiv: HTMLDivElement, score: Score) {
+//     this.parentDiv = parentDiv;
 //     this.score = score;
-//     this.editor = new Editor(rootDiv, this.score);
+//     this.editor = new Editor(parentDiv, this.score);
 //   }
 
 //   /**

@@ -4,7 +4,7 @@ import { createButton, createImage } from "@/shared";
 import { INSTRUMENT_KINDS } from "./new-track-controls-component";
 
 export class NewTrackControlsTemplateRenderer {
-  readonly rootDiv: HTMLDivElement;
+  readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: NewTrackControlsTemplate;
   readonly assetsPath: string;
@@ -22,12 +22,12 @@ export class NewTrackControlsTemplateRenderer {
   private _assembled: boolean;
 
   constructor(
-    rootDiv: HTMLDivElement,
+    parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: NewTrackControlsTemplate,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
-    this.rootDiv = rootDiv;
+    this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
     this.assetsPath = assetsPath;
@@ -46,24 +46,24 @@ export class NewTrackControlsTemplateRenderer {
     const trackInfoCSSClass = "tu-nt-track-info-container";
     const actionsCSSClass = "tu-nt-actions-container";
 
-    this.template.newTrackDialog.classList.add(dialogCSSClass);
-    this.template.newTrackDialogContent.classList.add(dialogContentCSSClass);
-    this.template.newTrackSettingsContainer.classList.add(settingsCSSClass);
+    this.template.dialog.classList.add(dialogCSSClass);
+    this.template.dialogContent.classList.add(dialogContentCSSClass);
+    this.template.settingsContainer.classList.add(settingsCSSClass);
     this.template.instrKindsContainer.classList.add(kindsCSSClass);
     this.template.instrSelectContainer.classList.add(instrSelectCSSClass);
     this.template.instrTypesContainer.classList.add(typesCSSClass);
     this.template.instrPresetsContainer.classList.add(presetsCSSClass);
     this.template.trackInfoContainer.classList.add(trackInfoCSSClass);
-    this.template.newTrackActionsContainer.classList.add(actionsCSSClass);
+    this.template.actionsContainer.classList.add(actionsCSSClass);
 
-    this.template.newTrackDialog.appendChild(
-      this.template.newTrackDialogContent
+    this.template.dialog.appendChild(
+      this.template.dialogContent
     );
-    this.template.newTrackDialogContent.append(
-      this.template.newTrackSettingsContainer,
-      this.template.newTrackActionsContainer
+    this.template.dialogContent.append(
+      this.template.settingsContainer,
+      this.template.actionsContainer
     );
-    this.template.newTrackSettingsContainer.append(
+    this.template.settingsContainer.append(
       this.template.instrKindsContainer,
       this.template.instrSelectContainer,
       this.template.trackInfoContainer
@@ -89,11 +89,11 @@ export class NewTrackControlsTemplateRenderer {
       this.template.tuningInput,
       this.template.tuningError
     );
-    this.template.newTrackActionsContainer.append(
+    this.template.actionsContainer.append(
       this.template.confirmButton,
       this.template.cancelButton
     );
-    this.rootDiv.appendChild(this.template.newTrackDialog);
+    this.parentDiv.appendChild(this.template.dialog);
   }
 
   private renderInstrumentKindsButtons(): void {

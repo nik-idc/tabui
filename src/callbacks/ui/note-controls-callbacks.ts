@@ -78,16 +78,15 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
 
   bind(): void {
     // Bind duration buttons
-    const durationConfigs =
-      this._noteComponent.template.noteDurationButtons.map(
-        (button) =>
-          ({
-            element: button,
-            event: "click",
-            handler: () =>
-              this.onDurationClicked(1 / Number(button.dataset["duration"])),
-          }) as ListenerConfig
-      );
+    const durationConfigs = this._noteComponent.template.durationButtons.map(
+      (button) =>
+        ({
+          element: button,
+          event: "click",
+          handler: () =>
+            this.onDurationClicked(1 / Number(button.dataset["duration"])),
+        } as ListenerConfig)
+    );
 
     // Bind dot and tuplet buttons
     const otherConfigs: ListenerConfig[] = [
