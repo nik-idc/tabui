@@ -15,6 +15,7 @@ import {
 import { NotationComponent } from "./notation/notation-component";
 import { ElementRenderer } from "./notation/render/element-renderer";
 import { UIComponent } from "./ui";
+import "./styles.scss";
 
 function buildDefaultDim(tab: Tab): TabControllerDim {
   const dim = new TabControllerDim(
@@ -47,7 +48,8 @@ function buildTabController(score: Score, trackIndex: number): TabController {
 // 4. Score settings dialog -x- not needed
 // 5. Track settings dialog -- done
 // 6. Score name input field (like in Google Docs) -- done
-// 7. Fix empty divs, i.e. fix component parenthood issues
+// 7. Fix empty divs, i.e. fix component parenthood issues -- done
+// 8. Major model update
 
 export class TabUIEditor {
   readonly score: Score;

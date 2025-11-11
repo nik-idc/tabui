@@ -1,7 +1,6 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { SideControlsComponent } from "./side-controls/side-contros-component";
 import { TopControlsComponent } from "./top-controls";
-import "./styles.scss";
 
 export class UIComponent {
   readonly parentDiv: HTMLDivElement;
