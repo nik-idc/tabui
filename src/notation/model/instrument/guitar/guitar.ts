@@ -1,4 +1,4 @@
-import { Note, NoteValue } from "../../note/note";
+import { Note, NoteJSON, NoteType, NoteValue } from "../../note";
 import { MusicInstrument, MusicInstrumentJSON } from "../instrument";
 import { MusicInstrumentKind } from "../instrument-kind";
 import {
@@ -25,7 +25,7 @@ export interface GuitarJSON {
   preset: MusicInstrumentPreset;
   name: string;
   program: number;
-  tuning: Note[];
+  tuning: NoteType[];
   stringsCount: number;
   fretsCount: number;
 }
@@ -38,7 +38,8 @@ export class Guitar implements MusicInstrument {
   readonly kind: MusicInstrumentKind = MusicInstrumentKind.String;
 
   /** Type of instrument */
-  private _type: StringMusicInstrumentType = StringMusicInstrumentType.ElectricGuitar;
+  private _type: StringMusicInstrumentType =
+    StringMusicInstrumentType.ElectricGuitar;
   /** MusicInstrument preset */
   private _preset: StringMusicInstrumentPreset = ElectricGuitarPreset.Clean;
   /** Name of the instrument */
@@ -48,7 +49,7 @@ export class Guitar implements MusicInstrument {
   /** String count. Default value is 6 */
   private _stringsCount: number = 6;
   /** Guitar tuning. IMPORTANT: the first element should be the first string tuning */
-  private _tuning: Note[] = DEFAULT_TUNINGS[6].Standard;
+  private _tuning: NoteType[] = DEFAULT_TUNINGS[6].Standard;
   /** Frets count. Default value is 24 */
   private _fretsCount: number = 24;
 
@@ -66,13 +67,12 @@ export class Guitar implements MusicInstrument {
     preset: StringMusicInstrumentPreset = ElectricGuitarPreset.Clean,
     name: string = "Electric Guitar",
     stringsCount: number = 6,
-    tuning: Note[] = DEFAULT_TUNINGS[6].Standard,
+    tuning: NoteType[] = DEFAULT_TUNINGS[6].Standard,
     fretsCount: number = 24
   ) {
     this._type = type;
     this._preset = preset;
     this._name = name;
-    this._tuning;
     this._program = PRESET_TO_MIDI[this._preset];
 
     this._stringsCount = stringsCount;
@@ -99,23 +99,6 @@ export class Guitar implements MusicInstrument {
     }
 
     return tuningStrArr.join("");
-  }
-
-  /**
-   * Parses guitar into simple object
-   * @returns Simple parsed object
-   */
-  public toJSONObj(): Object {
-    const tuningJSON = [];
-    for (const note of this._tuning) {
-      tuningJSON.push(note.toJSON());
-    }
-
-    return {
-      stringsCount: this._stringsCount,
-      tuning: tuningJSON,
-      fretsCount: this._fretsCount,
-    };
   }
 
   /**
@@ -203,24 +186,6 @@ export class Guitar implements MusicInstrument {
     };
   }
 
-  /**
-   * Parses guitar from JSON
-   * @param obj JSON object
-   * @returns Parsed guitar
-   */
-  static fromJSON(obj: Record<string, unknown>): Guitar {
-    const guitarJson = Guitar.validateGuitarJSON(obj);
-
-    return new Guitar(
-      guitarJson.type,
-      guitarJson.preset,
-      guitarJson.name,
-      guitarJson.stringsCount,
-      guitarJson.tuning,
-      guitarJson.fretsCount
-    );
-  }
-
   /** Type of instrument */
   public get type(): StringMusicInstrumentType {
     return this._type;
@@ -247,7 +212,7 @@ export class Guitar implements MusicInstrument {
   }
 
   /** Guitar tuning. IMPORTANT: the first element should be the first string tuning */
-  public get tuning(): Note[] {
+  public get tuning(): NoteType[] {
     return this._tuning;
   }
 

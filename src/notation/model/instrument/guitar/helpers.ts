@@ -1,4 +1,10 @@
-import { Note, NoteValue } from "../../note/note";
+import { INSTRUMENT_KINDS } from "@/ui/top-controls/score-controls/new-track";
+import { Note, NoteType, NoteValue } from "../../note";
+import {
+  INSTRUMENT_TYPES,
+  StringMusicInstrumentType,
+} from "../instrument-type";
+import { MusicInstrumentKind } from "../instrument-kind";
 
 /**
  * 🚨🚨🚨 !!! AI SLOP !!! 🚨🚨🚨
@@ -57,7 +63,7 @@ export function isValidGuitarTuning(
  * @param tuning Tuning string
  * @returns Parsed array of note objects
  */
-export function parseTuning(tuning: string): Note[] {
+export function parseTuning(tuning: string): NoteType[] {
   const notes = tuning.trim().split(/\s+/);
 
   const normalize = (n: string): keyof typeof NoteValue => {
@@ -110,6 +116,6 @@ export function parseTuning(tuning: string): Note[] {
   return notes.map((n, i) => {
     const noteValue = NoteValue[normalize(n)];
     const octave = octaveForString(i);
-    return new Note(noteValue, octave);
+    return { noteValue, octave };
   });
 }

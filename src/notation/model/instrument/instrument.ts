@@ -1,4 +1,4 @@
-import { Note } from "../note/note";
+import { Note, NoteJSON, NoteType } from "../note";
 import { MusicInstrumentKind } from "./instrument-kind";
 import { MusicInstrumentPreset } from "./instrument-preset";
 import { MusicInstrumentType } from "./instrument-type";
@@ -9,7 +9,7 @@ export interface MusicInstrumentJSON {
   preset: MusicInstrumentPreset;
   name: string;
   program: number;
-  tuning: Note[];
+  tuning: NoteType[];
 }
 
 /**
@@ -27,7 +27,7 @@ export interface MusicInstrument {
   /* MIDI program or custom sound ID for playback */
   program: number;
   /** Tuning for instruments with tuning possibility */
-  tuning?: Note[];
+  tuning?: NoteType[];
 
   /**
    * Serialize the instrument
