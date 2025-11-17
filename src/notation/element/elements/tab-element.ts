@@ -90,7 +90,7 @@ export class TabElement {
       bar,
       prevBar,
       lastTabLine.rect.rightTop.x,
-      lastTabLine.effectLabelsRect.height
+      lastTabLine.techniqueLabelsRect.height
     );
     const addRes = lastTabLine.addBar(bar, barElement, prevBar);
 
@@ -125,7 +125,7 @@ export class TabElement {
       new TabLineElement(this._tab, this.dim, new Point(0, 0));
     currentLine.barElements = [];
     currentLine.rect.set(0, 0, 0, this.dim.tabLineMinHeight);
-    currentLine.effectLabelsRect.setDimensions(0, 0);
+    currentLine.techniqueLabelsRect.setDimensions(0, 0);
     this._tabLineElements.push(currentLine);
 
     for (let barIndex = 0; barIndex < this._tab.bars.length; barIndex++) {
@@ -148,7 +148,7 @@ export class TabElement {
         barElement.update(prevBar, 0);
 
         currentLine.justifyElements();
-        currentLine.calcEffectGap();
+        currentLine.calcTechniqueGap();
 
         const prevLine = currentLine;
         currentLine =
@@ -159,16 +159,16 @@ export class TabElement {
           0,
           prevLine.rect.bottom,
           0,
-          this.dim.tabLineMinHeight + prevLine.effectLabelsRect.height
+          this.dim.tabLineMinHeight + prevLine.techniqueLabelsRect.height
         );
-        currentLine.effectLabelsRect.setDimensions(0, 0);
+        currentLine.techniqueLabelsRect.setDimensions(0, 0);
         this._tabLineElements.push(currentLine);
       }
 
       currentLine.addBar(bar, barElement, prevBar);
     }
 
-    currentLine.calcEffectGap();
+    currentLine.calcTechniqueGap();
   }
 
   /**

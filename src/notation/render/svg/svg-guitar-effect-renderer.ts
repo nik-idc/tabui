@@ -1,38 +1,38 @@
-import { TabController, GuitarEffectElement } from "@/notation/element";
+import { TabController, GuitarTechniqueElement } from "@/notation/element";
 import { Point, createSVGG, createSVGRect } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 
 /**
- * Class for rendering a guitar effect element using SVG
+ * Class for rendering a guitar technique element using SVG
  */
-export class SVGEffectRenderer implements ElementRenderer {
+export class SVGTechniqueRenderer implements ElementRenderer {
   private _tabWindow: TabController;
-  private _effectElement: GuitarEffectElement;
+  private _techniqueElement: GuitarTechniqueElement;
   private _noteOffset: Point;
   private _assetsPath: string;
   private _parentElement: SVGGElement;
 
   private _groupSVG?: SVGGElement;
-  private _effectRectSVG?: SVGRectElement;
-  private _effectHTMLSVG?: SVGGElement;
+  private _techniqueRectSVG?: SVGRectElement;
+  private _techniqueHTMLSVG?: SVGGElement;
 
   /**
-   * Class for rendering a guitar effect element using SVG
+   * Class for rendering a guitar technique element using SVG
    * @param tabController Tab window
-   * @param effectElement Guitar effect element
+   * @param techniqueElement Guitar technique element
    * @param noteOffset Global offset of the beat notes element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a note element in this case)
    */
   constructor(
     tabController: TabController,
-    effectElement: GuitarEffectElement,
+    techniqueElement: GuitarTechniqueElement,
     noteOffset: Point,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
     this._tabWindow = tabController;
-    this._effectElement = effectElement;
+    this._techniqueElement = techniqueElement;
     this._noteOffset = noteOffset;
     this._assetsPath = assetsPath;
     this._parentElement = parentElement;
@@ -40,117 +40,117 @@ export class SVGEffectRenderer implements ElementRenderer {
 
   /**
    * Renders the group element which will contain all the
-   * data about the effect
+   * data about the technique
    */
   private renderGroup(): void {
     if (this._groupSVG !== undefined) {
       return;
     }
 
-    const noteUUID = this._effectElement.effect.uuid;
+    const noteUUID = this._techniqueElement.technique.uuid;
     this._groupSVG = createSVGG();
-    this._groupSVG.setAttribute("id", `effect-${noteUUID}`);
+    this._groupSVG.setAttribute("id", `technique-${noteUUID}`);
     this._parentElement.appendChild(this._groupSVG);
   }
 
   /**
-   * Render effect's outer rect
+   * Render technique's outer rect
    */
-  private renderEffectRect(): void {
+  private renderTechniqueRect(): void {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to render effect rect when SVG group undefined");
+      throw Error("Tried to render technique rect when SVG group undefined");
     }
 
-    if (this._effectElement.rect === undefined) {
-      throw Error("Tried to render effect rect with undefined rect");
+    if (this._techniqueElement.rect === undefined) {
+      throw Error("Tried to render technique rect with undefined rect");
     }
 
-    const effectUUID = this._effectElement.effect.uuid;
-    if (this._effectRectSVG === undefined) {
-      this._effectRectSVG = createSVGRect();
+    const techniqueUUID = this._techniqueElement.technique.uuid;
+    if (this._techniqueRectSVG === undefined) {
+      this._techniqueRectSVG = createSVGRect();
       // Set only-set-once attributes
-      this._effectRectSVG.setAttribute("fill", "white");
-      this._effectRectSVG.setAttribute("stroke-opacity", "0");
+      this._techniqueRectSVG.setAttribute("fill", "white");
+      this._techniqueRectSVG.setAttribute("stroke-opacity", "0");
 
       // Set id
-      this._effectRectSVG.setAttribute("id", `effect-rect-${effectUUID}`);
+      this._techniqueRectSVG.setAttribute("id", `technique-rect-${techniqueUUID}`);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._effectRectSVG);
+      this._groupSVG.appendChild(this._techniqueRectSVG);
     }
 
-    const x = `${this._noteOffset.x + this._effectElement.rect.x}`;
-    const y = `${this._noteOffset.y + this._effectElement.rect.y}`;
-    const width = `${this._effectElement.rect.width}`;
-    const height = `${this._effectElement.rect.height}`;
-    this._effectRectSVG.setAttribute("x", x);
-    this._effectRectSVG.setAttribute("y", y);
-    this._effectRectSVG.setAttribute("width", width);
-    this._effectRectSVG.setAttribute("height", height);
+    const x = `${this._noteOffset.x + this._techniqueElement.rect.x}`;
+    const y = `${this._noteOffset.y + this._techniqueElement.rect.y}`;
+    const width = `${this._techniqueElement.rect.width}`;
+    const height = `${this._techniqueElement.rect.height}`;
+    this._techniqueRectSVG.setAttribute("x", x);
+    this._techniqueRectSVG.setAttribute("y", y);
+    this._techniqueRectSVG.setAttribute("width", width);
+    this._techniqueRectSVG.setAttribute("height", height);
   }
 
   /**
-   * Unrenders effect rect
+   * Unrenders technique rect
    */
-  private unrenderEffectRect(): void {
+  private unrenderTechniqueRect(): void {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender effect rect when SVG group undefined");
+      throw Error("Tried to unrender technique rect when SVG group undefined");
     }
 
-    if (this._effectRectSVG === undefined) {
+    if (this._techniqueRectSVG === undefined) {
       return;
     }
 
-    this._groupSVG.removeChild(this._effectRectSVG);
-    this._effectRectSVG = undefined;
+    this._groupSVG.removeChild(this._techniqueRectSVG);
+    this._techniqueRectSVG = undefined;
   }
 
   /**
-   * Render effect's raw SVG
+   * Render technique's raw SVG
    */
-  private renderEffectHTML(): void {
+  private renderTechniqueHTML(): void {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to render effect HTML when SVG group undefined");
+      throw Error("Tried to render technique HTML when SVG group undefined");
     }
 
-    if (this._effectElement.fullHTML === undefined) {
-      throw Error("Tried to render effect HTML with undefined HTML");
+    if (this._techniqueElement.fullHTML === undefined) {
+      throw Error("Tried to render technique HTML with undefined HTML");
     }
 
-    const effectUUID = this._effectElement.effect.uuid;
-    if (this._effectHTMLSVG === undefined) {
-      this._effectHTMLSVG = createSVGG();
+    const techniqueUUID = this._techniqueElement.technique.uuid;
+    if (this._techniqueHTMLSVG === undefined) {
+      this._techniqueHTMLSVG = createSVGG();
 
       // Set id
-      this._effectHTMLSVG.setAttribute("id", `effect-html-${effectUUID}`);
+      this._techniqueHTMLSVG.setAttribute("id", `technique-html-${techniqueUUID}`);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._effectHTMLSVG);
+      this._groupSVG.appendChild(this._techniqueHTMLSVG);
     }
 
     const transform = `translate(${this._noteOffset.x}, ${this._noteOffset.y})`;
-    this._effectHTMLSVG.setAttribute("transform", transform);
-    this._effectHTMLSVG.innerHTML = this._effectElement.fullHTML; // May lead to performance issues
+    this._techniqueHTMLSVG.setAttribute("transform", transform);
+    this._techniqueHTMLSVG.innerHTML = this._techniqueElement.fullHTML; // May lead to performance issues
   }
 
   /**
-   * Unrender effect's custom HTML (like bend curves, palm mute text etc)
+   * Unrender technique's custom HTML (like bend curves, palm mute text etc)
    */
-  private unrenderEffectHTML(): void {
+  private unrenderTechniqueHTML(): void {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender effect HTML when SVG group undefined");
+      throw Error("Tried to unrender technique HTML when SVG group undefined");
     }
 
-    if (this._effectHTMLSVG === undefined) {
+    if (this._techniqueHTMLSVG === undefined) {
       return;
     }
 
-    this._groupSVG.removeChild(this._effectHTMLSVG);
-    this._effectHTMLSVG = undefined;
+    this._groupSVG.removeChild(this._techniqueHTMLSVG);
+    this._techniqueHTMLSVG = undefined;
   }
 
   /**
-   * Render a note's effect
+   * Render a note's technique
    */
   public render(newNoteOffset?: Point): void {
     if (newNoteOffset !== undefined) {
@@ -161,31 +161,31 @@ export class SVGEffectRenderer implements ElementRenderer {
 
     // The reason for 2 ifs: bends DO NOT have a rect, but DO have full HTML
 
-    // Render effect rect if necessary, remove it otherwise
-    if (this._effectElement.rect !== undefined) {
-      this.renderEffectRect();
+    // Render technique rect if necessary, remove it otherwise
+    if (this._techniqueElement.rect !== undefined) {
+      this.renderTechniqueRect();
     } else {
-      this.unrenderEffectRect();
+      this.unrenderTechniqueRect();
     }
 
-    // Render effect custom HTML if necessary, remove it otherwise
-    if (this._effectElement.fullHTML !== undefined) {
-      this.renderEffectHTML();
+    // Render technique custom HTML if necessary, remove it otherwise
+    if (this._techniqueElement.fullHTML !== undefined) {
+      this.renderTechniqueHTML();
     } else {
-      this.unrenderEffectHTML();
+      this.unrenderTechniqueHTML();
     }
   }
 
   /**
-   * Unrender all effect element's DOM elements
+   * Unrender all technique element's DOM elements
    */
   public unrender(): void {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender effect when SVG group undefined");
+      throw Error("Tried to unrender technique when SVG group undefined");
     }
 
-    this.unrenderEffectRect();
-    this.unrenderEffectHTML();
+    this.unrenderTechniqueRect();
+    this.unrenderTechniqueHTML();
 
     this._parentElement.removeChild(this._groupSVG);
     this._groupSVG = undefined;

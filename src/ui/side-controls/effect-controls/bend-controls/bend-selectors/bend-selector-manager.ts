@@ -1,7 +1,7 @@
 import {
-  GuitarEffectType,
-  GuitarEffectOptions,
-  GuitarEffect,
+  GuitarTechniqueType,
+  GuitarTechniqueOptions,
+  GuitarTechnique,
 } from "@/notation/model";
 import { createSVGLine, createSVGText } from "@/shared";
 import { BendData, Selector } from "./selector";
@@ -9,7 +9,7 @@ import { BendReleaseSelector } from "./bend-release-selector";
 import { BendSelector } from "./bend-selector";
 import { PrebendReleaseSelector } from "./prebend-release-selector";
 import { PrebendSelector } from "./prebend-selector";
-import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
+import { BendSelectorManagerOptions } from "./bend-selector-manager-bendOptions";
 
 type BendType = "bend" | "bend-release" | "prebend" | "prebend-release";
 
@@ -40,13 +40,13 @@ export class BendSelectorManager {
 
   constructor(
     bendGraphSVG: SVGSVGElement,
-    options?: BendSelectorManagerOptions,
+    bendOptions?: BendSelectorManagerOptions,
     bendType?: BendType
   ) {
     this._bendGraphSVG = bendGraphSVG;
 
     this._currentOptions =
-      options === undefined
+      bendOptions === undefined
         ? {
             width: 420,
             height: 300,
@@ -54,7 +54,7 @@ export class BendSelectorManager {
             rowsCount: 12,
             colsCount: 12,
           }
-        : options;
+        : bendOptions;
 
     const SelectorType =
       bendType === undefined ? BendSelector : selectorMap[bendType];
@@ -142,7 +142,7 @@ export class BendSelectorManager {
     this._currentSelector.init();
   }
 
-  public getCurrentEffect(): GuitarEffect {
-    return this._currentSelector.getBendEffect();
+  public getCurrentTechnique(): GuitarTechnique {
+    return this._currentSelector.getBendTechnique();
   }
 }

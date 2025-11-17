@@ -61,9 +61,9 @@ export class TabControllerDim {
    */
   readonly noteRectHeight: number;
   /**
-   * Height of an effect label above the beat
+   * Height of an technique label above the beat
    */
-  readonly effectLabelHeight: number;
+  readonly techniqueLabelHeight: number;
   /**
    * Minimum height of one tab line (bar + durations above it).
    * NOTE: Each tab line may have a different height due to the
@@ -158,7 +158,7 @@ export class TabControllerDim {
       [NoteDuration.Whole, this.noteRectWidth1],
     ]);
 
-    this.effectLabelHeight = this.noteTextSize * 2;
+    this.techniqueLabelHeight = this.noteTextSize * 2;
 
     this.staffLinesHeight = this.noteRectHeight * (stringsCount - 1);
 

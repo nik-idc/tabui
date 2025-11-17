@@ -1,5 +1,5 @@
 /**
- * Class that handles effects and their labels' HTMLs
+ * Class that handles techniques and their labels' HTMLs
  */
 export class SVGUtils {
   /**
@@ -41,7 +41,7 @@ export class SVGUtils {
    * Builds a path for an up aimed curve (used for bends)
    * @param dx How much to move on the X-axis prior to building
    * @param dy How much to move on the Y-axis prior to building
-   * @param width Width of the effect
+   * @param width Width of the technique
    * @param verticalOffset Vertical distance to the top string line
    * @returns Constructed SVG path HTML element
    */
@@ -76,7 +76,7 @@ export class SVGUtils {
    * Builds a path for a down aimed curve (used for bends)
    * @param dx How much to move on the X-axis prior to building
    * @param dy How much to move on the Y-axis prior to building
-   * @param width Width of the effect
+   * @param width Width of the technique
    * @param height Height for the curve building
    * @param verticalOffset Vertical distance to the top string line
    * @returns Constructed SVG path HTML element
@@ -110,7 +110,7 @@ export class SVGUtils {
    * Builds a path for a horizontal curve (used for hammer-ons/pull-offs)
    * @param dx How much to move on the X-axis prior to building
    * @param dy How much to move on the Y-axis prior to building
-   * @param width Width of the effect
+   * @param width Width of the technique
    * @param height Height for the curve building
    * @returns Constructed SVG path HTML element
    */
@@ -187,7 +187,7 @@ export class SVGUtils {
    * Builds a harmonic shape
    * @param dx How much to move on the X-axis prior to building
    * @param dy How much to move on the Y-axis prior to building
-   * @param width Width of the effect
+   * @param width Width of the technique
    * @param height Height for the curve building
    * @param fill True if the shape should be filled, false otherwise
    * @returns Constructed SVG path HTML element

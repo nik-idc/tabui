@@ -1,7 +1,7 @@
 import { TabController, BeatElement } from "@/notation/element";
 import { DURATION_TO_NAME, NoteDuration } from "@/notation/model";
 import { Point, createSVGG, createSVGImage, createSVGRect } from "@/shared";
-import { SVGEffectLabelRenderer } from "./svg-effect-label-renderer";
+import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { ElementRenderer } from "../element-renderer";
 
@@ -15,7 +15,7 @@ export class SVGBeatRenderer implements ElementRenderer {
   private _assetsPath: string;
   private _parentElement: SVGGElement;
 
-  private _renderedLabels: Map<number, SVGEffectLabelRenderer>;
+  private _renderedLabels: Map<number, SVGTechniqueLabelRenderer>;
   private _renderedNoteElements: Map<number, SVGNoteRenderer>;
 
   private _groupSVG?: SVGGElement;
@@ -239,32 +239,32 @@ export class SVGBeatRenderer implements ElementRenderer {
      * DONT ADD TO THE ROOT ELEMENT, ADD TO THE PARENT ELEMENT
      */
 
-    // Check if there are any effect labels to remove
-    const curEffectLabelUUIDs = new Set(
-      this._beatElement.effectLabelElements.map((e) => e.effect.uuid)
+    // Check if there are any technique labels to remove
+    const curTechniqueLabelUUIDs = new Set(
+      this._beatElement.techniqueLabelElements.map((e) => e.technique.uuid)
     );
     for (const [uuid, renderer] of this._renderedLabels) {
-      if (!curEffectLabelUUIDs.has(uuid)) {
+      if (!curTechniqueLabelUUIDs.has(uuid)) {
         renderer.unrender();
         this._renderedLabels.delete(uuid);
       }
     }
 
-    // Add & render new effect label elements
-    for (const effectLabelElement of this._beatElement.effectLabelElements) {
+    // Add & render new technique label elements
+    for (const techniqueLabelElement of this._beatElement.techniqueLabelElements) {
       const renderedLabel = this._renderedLabels.get(
-        effectLabelElement.effect.uuid
+        techniqueLabelElement.technique.uuid
       );
       if (renderedLabel === undefined) {
-        const renderer = new SVGEffectLabelRenderer(
+        const renderer = new SVGTechniqueLabelRenderer(
           this._tabWindow,
-          effectLabelElement,
+          techniqueLabelElement,
           beatOffset,
           this._assetsPath,
           this._groupSVG
         );
         renderer.render();
-        this._renderedLabels.set(effectLabelElement.effect.uuid, renderer);
+        this._renderedLabels.set(techniqueLabelElement.technique.uuid, renderer);
       } else {
         renderedLabel.render();
       }
@@ -272,7 +272,7 @@ export class SVGBeatRenderer implements ElementRenderer {
   }
 
   /**
-   * Unrender all effect labels
+   * Unrender all technique labels
    */
   private unrenderLabels(): void {
     if (this._groupSVG === undefined) {

@@ -2,7 +2,7 @@ import { TabController } from "@/notation/element";
 import { TonejsDurationMap } from "@/notation/model";
 import { Point } from "@/shared";
 import * as Tone from "tone";
-import { tabEvent, TabEventType, TabEventArgs } from "../events";
+import { tabEvent, TabEventType, TabEventArgs } from "../../../shared/events";
 
 /**
  * Animates an SVG rectangle moving across beats while

@@ -1,4 +1,4 @@
 export * from "./bend-controls";
-export * from "./effect-controls-component";
-export * from "./effect-controls-template";
-export * from "./effect-controls-template-renderer";
+export * from "./technique-controls-component";
+export * from "./technique-controls-template";
+export * from "./technique-controls-template-renderer";

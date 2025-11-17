@@ -39,7 +39,7 @@ export class BarElement {
    */
   public repeatRect: Rect;
   /**
-   * The height of the gap between durations and notes for effect labels
+   * The height of the gap between durations and notes for technique labels
    */
   private _labelsGapHeight: number;
   /**
@@ -313,7 +313,7 @@ export class BarElement {
     this.calcStaffLines();
   }
 
-  public setEffectGap(newGapHeight: number): void {
+  public setTechniqueGap(newGapHeight: number): void {
     // Apply the necessary gap height
     const oldGapHeight = this._labelsGapHeight;
 
@@ -323,17 +323,17 @@ export class BarElement {
     this._labelsGapHeight = newGapHeight;
 
     for (const beatElement of this.beatElements) {
-      beatElement.setEffectGap(newGapHeight);
+      beatElement.setTechniqueGap(newGapHeight);
     }
 
     this.calcStaffLines();
   }
 
   /**
-   * Calculates & applies the effect gap of the current
+   * Calculates & applies the technique gap of the current
    * bar element
    */
-  public calcEffectGap(): void {
+  public calcTechniqueGap(): void {
     // Reset labels gap height to 0
     this.timeSigRect.y -= this._labelsGapHeight;
     this.rect.height -= this._labelsGapHeight;
@@ -344,8 +344,8 @@ export class BarElement {
     let mostLabelsBeatHeight = this.rect.height;
     let mostLabelsCount = 0;
     for (const beatElement of this.beatElements) {
-      if (beatElement.effectLabelElements.length > mostLabelsCount) {
-        mostLabelsCount = beatElement.effectLabelElements.length;
+      if (beatElement.techniqueLabelElements.length > mostLabelsCount) {
+        mostLabelsCount = beatElement.techniqueLabelElements.length;
         mostLabelsBeatHeight = beatElement.rect.height;
       }
     }
@@ -357,7 +357,7 @@ export class BarElement {
     this.timeSigRect.y += this._labelsGapHeight;
 
     for (const beatElement of this.beatElements) {
-      beatElement.setEffectGap(newGapHeight);
+      beatElement.setTechniqueGap(newGapHeight);
     }
 
     this.calcStaffLines();

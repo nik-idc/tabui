@@ -57,11 +57,11 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
   }
 
   onConfirmClicked(): void {
-    const effect = this._bendComponent.bendSelectorManager.getCurrentEffect();
+    const technique = this._bendComponent.bendSelectorManager.getCurrentTechnique();
 
-    this._notationComponent.tabController.setEffect(
-      effect.effectType,
-      effect.options
+    this._notationComponent.tabController.setTechnique(
+      technique.type,
+      technique.bendOptions
     );
     this._renderFunc();
 

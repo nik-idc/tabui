@@ -1,7 +1,7 @@
 import { GuitarNote } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { TabControllerDim } from "../controller";
-import { GuitarEffectElement } from "./effects";
+import { GuitarTechniqueElement } from "./techniques";
 
 /**
  * Class that handles drawing note element in the tab
@@ -29,9 +29,9 @@ export class NoteElement {
    */
   public textCoords: Point = new Point();
   /**
-   * Array of guitar effect elements
+   * Array of guitar technique elements
    */
-  private _guitarEffectElements: GuitarEffectElement[];
+  private _guitarTechniqueElements: GuitarTechniqueElement[];
 
   /**
    * Class that handles drawing note element in the tab
@@ -49,7 +49,7 @@ export class NoteElement {
       width,
       this.dim.noteRectHeight
     );
-    this._guitarEffectElements = [];
+    this._guitarTechniqueElements = [];
 
     this.calc();
   }
@@ -68,33 +68,33 @@ export class NoteElement {
     this.textCoords.x = this.textRect.x + this.dim.noteTextSize / 2;
     this.textCoords.y = this.textRect.y + this.dim.noteTextSize / 2;
 
-    const newGuitarEffectElements: GuitarEffectElement[] = [];
-    const oldGuitarEffectElements = [...this._guitarEffectElements];
+    const newGuitarTechniqueElements: GuitarTechniqueElement[] = [];
+    const oldGuitarTechniqueElements = [...this._guitarTechniqueElements];
 
-    for (const effect of this.note.effects) {
-      const oldElementIndex = oldGuitarEffectElements.findIndex(
-        (e) => e.effect.uuid === effect.uuid
+    for (const technique of this.note.techniques) {
+      const oldElementIndex = oldGuitarTechniqueElements.findIndex(
+        (e) => e.technique.uuid === technique.uuid
       );
-      let element: GuitarEffectElement;
+      let element: GuitarTechniqueElement;
 
       if (oldElementIndex !== -1) {
-        // Effect already applied to the note and calc-ed,
-        // so just need to update the effect's dimensions
-        element = oldGuitarEffectElements.splice(oldElementIndex, 1)[0];
+        // Technique already applied to the note and calc-ed,
+        // so just need to update the technique's dimensions
+        element = oldGuitarTechniqueElements.splice(oldElementIndex, 1)[0];
         element.update(this.rect);
       } else {
-        // Effect applied but not calc-ed yet,
-        // so need to create a new guitar effect element
-        element = new GuitarEffectElement(
-          effect,
+        // Technique applied but not calc-ed yet,
+        // so need to create a new guitar technique element
+        element = new GuitarTechniqueElement(
+          technique,
           this.note.stringNum,
           this.rect,
           this.dim
         );
       }
-      newGuitarEffectElements.push(element);
+      newGuitarTechniqueElements.push(element);
     }
-    this._guitarEffectElements = newGuitarEffectElements;
+    this._guitarTechniqueElements = newGuitarTechniqueElements;
   }
 
   public scaleHorBy(scale: number): void {
@@ -107,12 +107,12 @@ export class NoteElement {
     // this.textRect.width *= scale;
     this.textCoords.x *= scale;
 
-    for (const effectElement of this._guitarEffectElements) {
-      effectElement.scaleHorBy(scale);
+    for (const techniqueElement of this._guitarTechniqueElements) {
+      techniqueElement.scaleHorBy(scale);
     }
   }
 
-  public get guitarEffectElements(): GuitarEffectElement[] {
-    return this._guitarEffectElements;
+  public get guitarTechniqueElements(): GuitarTechniqueElement[] {
+    return this._guitarTechniqueElements;
   }
 }

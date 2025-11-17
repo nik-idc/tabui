@@ -1,4 +1,4 @@
-export * from "./effects";
+export * from "./techniques";
 export * from "./bar-element";
 export * from "./beam-segment-element";
 export * from "./beat-element";

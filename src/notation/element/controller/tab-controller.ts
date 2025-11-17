@@ -3,8 +3,8 @@ import {
   Tab,
   TabPlayer,
   NoteDuration,
-  GuitarEffectType,
-  GuitarEffectOptions,
+  GuitarTechniqueType,
+  GuitarTechniqueOptions,
   Beat,
 } from "@/notation/model";
 import { Point, randomInt } from "@/shared";
@@ -180,25 +180,25 @@ export class TabController {
     this._tabEditor.changeSelectedBeatDuration(newDuration);
   }
 
-  public applyEffectSingle(
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
+  public applyTechniqueSingle(
+    type: GuitarTechniqueType,
+    techniqueOptions?: GuitarTechniqueOptions
   ): boolean {
-    return this._tabEditor.applyEffectSingle(effectType, effectOptions);
+    return this._tabEditor.applyTechniqueSingle(type, techniqueOptions);
   }
 
-  public removeEffectSingle(
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
+  public removeTechniqueSingle(
+    type: GuitarTechniqueType,
+    techniqueOptions?: GuitarTechniqueOptions
   ): void {
-    this._tabEditor.removeEffectSingle(effectType, effectOptions);
+    this._tabEditor.removeTechniqueSingle(type, techniqueOptions);
   }
 
-  public setEffect(
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
+  public setTechnique(
+    type: GuitarTechniqueType,
+    techniqueOptions?: GuitarTechniqueOptions
   ): boolean {
-    return this._tabEditor.setEffect(effectType, effectOptions);
+    return this._tabEditor.setTechnique(type, techniqueOptions);
   }
 
   public getSelectedElement(): SelectedElement | undefined {

@@ -1,10 +1,10 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { GuitarEffectType, TabController } from "@/notation";
+import { GuitarTechniqueType, TabController } from "@/notation";
 import {
   BendControlsTemplate,
   BendSelectorManager,
-  EffectControlsComponent,
-  EffectControlsTemplate,
+  TechniqueControlsComponent,
+  TechniqueControlsTemplate,
 } from "@/ui";
 import {
   BendControlsCallbacks,
@@ -12,7 +12,7 @@ import {
 } from "./bend-controls-callbacks";
 import { ListenerManager } from "@/shared/misc";
 
-export interface EffectControlsCallbacks {
+export interface TechniqueControlsCallbacks {
   onVibratoClicked(): void;
   onPalmMuteClicked(): void;
   onNHClicked(): void;
@@ -25,8 +25,8 @@ export interface EffectControlsCallbacks {
   unbind(): void;
 }
 
-export class EffectControlsDefaultCallbacks implements EffectControlsCallbacks {
-  private _effectsComponent: EffectControlsComponent;
+export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallbacks {
+  private _techniquesComponent: TechniqueControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
   private _captureKeyboard: () => void;
@@ -37,20 +37,20 @@ export class EffectControlsDefaultCallbacks implements EffectControlsCallbacks {
   private _bendCallbacks: BendControlsCallbacks;
 
   constructor(
-    effectsComponent: EffectControlsComponent,
+    techniquesComponent: TechniqueControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
     captureKeyboard: () => void,
     freeKeyboard: () => void
   ) {
-    this._effectsComponent = effectsComponent;
+    this._techniquesComponent = techniquesComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
     this._captureKeyboard = captureKeyboard;
     this._freeKeyboard = freeKeyboard;
 
     this._bendCallbacks = new BendControlsDefaultCallbacks(
-      this._effectsComponent.bendControlsComponent,
+      this._techniquesComponent.bendControlsComponent,
       this._notationComponent,
       this._renderFunc,
       this._captureKeyboard,
@@ -59,91 +59,91 @@ export class EffectControlsDefaultCallbacks implements EffectControlsCallbacks {
   }
 
   public onVibratoClicked(): void {
-    this._notationComponent.tabController.setEffect(GuitarEffectType.Vibrato);
+    this._notationComponent.tabController.setTechnique(GuitarTechniqueType.Vibrato);
     this._renderFunc();
   }
 
   public onPalmMuteClicked(): void {
-    this._notationComponent.tabController.setEffect(GuitarEffectType.PalmMute);
+    this._notationComponent.tabController.setTechnique(GuitarTechniqueType.PalmMute);
     this._renderFunc();
   }
 
   public onNHClicked(): void {
-    this._notationComponent.tabController.setEffect(
-      GuitarEffectType.NaturalHarmonic
+    this._notationComponent.tabController.setTechnique(
+      GuitarTechniqueType.NaturalHarmonic
     );
     this._renderFunc();
   }
 
   public onPHClicked(): void {
-    this._notationComponent.tabController.setEffect(
-      GuitarEffectType.PinchHarmonic
+    this._notationComponent.tabController.setTechnique(
+      GuitarTechniqueType.PinchHarmonic
     );
     this._renderFunc();
   }
 
   public onHammerOnClicked(): void {
-    this._notationComponent.tabController.setEffect(
-      GuitarEffectType.HammerOnOrPullOff
+    this._notationComponent.tabController.setTechnique(
+      GuitarTechniqueType.HammerOnOrPullOff
     );
     this._renderFunc();
   }
 
   public onPullOffClicked(): void {
-    this._notationComponent.tabController.setEffect(
-      GuitarEffectType.HammerOnOrPullOff
+    this._notationComponent.tabController.setTechnique(
+      GuitarTechniqueType.HammerOnOrPullOff
     );
     this._renderFunc();
   }
 
   public onSlideClicked(): void {
-    this._notationComponent.tabController.setEffect(GuitarEffectType.Slide);
+    this._notationComponent.tabController.setTechnique(GuitarTechniqueType.Slide);
     this._renderFunc();
   }
 
   public onBendClicked(): void {
-    this._effectsComponent.showBendControls();
+    this._techniquesComponent.showBendControls();
   }
 
   public bind(): void {
     this._listeners.bindAll([
       {
-        element: this._effectsComponent.template.vibratoButton,
+        element: this._techniquesComponent.template.vibratoButton,
         event: "click",
         handler: () => this.onVibratoClicked(),
       },
       {
-        element: this._effectsComponent.template.palmMuteButton,
+        element: this._techniquesComponent.template.palmMuteButton,
         event: "click",
         handler: () => this.onPalmMuteClicked(),
       },
       {
-        element: this._effectsComponent.template.nhButton,
+        element: this._techniquesComponent.template.nhButton,
         event: "click",
         handler: () => this.onNHClicked(),
       },
       {
-        element: this._effectsComponent.template.phButton,
+        element: this._techniquesComponent.template.phButton,
         event: "click",
         handler: () => this.onPHClicked(),
       },
       {
-        element: this._effectsComponent.template.hammerOnButton,
+        element: this._techniquesComponent.template.hammerOnButton,
         event: "click",
         handler: () => this.onHammerOnClicked(),
       },
       {
-        element: this._effectsComponent.template.pullOffButton,
+        element: this._techniquesComponent.template.pullOffButton,
         event: "click",
         handler: () => this.onPullOffClicked(),
       },
       {
-        element: this._effectsComponent.template.slideButton,
+        element: this._techniquesComponent.template.slideButton,
         event: "click",
         handler: () => this.onSlideClicked(),
       },
       {
-        element: this._effectsComponent.template.bendButton,
+        element: this._techniquesComponent.template.bendButton,
         event: "click",
         handler: () => this.onBendClicked(),
       },

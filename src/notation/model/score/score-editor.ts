@@ -1,0 +1,557 @@
+import { Score, Track, TupletSettings } from "..";
+import { Bar } from "../bar/bar";
+import { MasterBar, MasterBarData } from "../bar/master-bar";
+import { Beat } from "../beat";
+import { Guitar } from "../instrument/guitar/guitar";
+import { MusicInstrument } from "../instrument/instrument";
+import { GuitarNote } from "../note/guitar-note";
+import {
+  NOTES_ARR,
+  NOTES_PER_OCTAVE,
+  LOWEST_OCTAVE,
+  HIGHEST_OCTAVE,
+  Note,
+  NoteValue,
+} from "../note/note";
+import { NoteDuration } from "../note/note-duration";
+import {
+  NoteGuitarTechnique,
+  NOTE_TECHNIQUES_INCOMPATIBILITY,
+  NoteTechniqueType,
+  NoteTechnique,
+  BendOptionsData,
+  NoteGuitarTechniqueType,
+  BendTechniqueOptions,
+  BeatTechniqueType,
+  BeatGuitarTechnique,
+} from "../technique";
+import { Tab } from "../track/_tab";
+
+export class ScoreEditor {
+  /**
+   * Transposes note value by the specified semitone count
+   * @param semitones Semitone count
+   */
+  public transpose<I extends MusicInstrument>(
+    note: Note<I>,
+    semitones: number
+  ): void {
+    if (note.octave === null) {
+      throw Error("Tried to transpose a non-transposable note");
+    }
+
+    const currentIndex = NOTES_ARR.indexOf(note.noteValue);
+    const totalSemitones =
+      note.octave * NOTES_PER_OCTAVE + currentIndex + semitones;
+
+    const newOctave = Math.floor(totalSemitones / NOTES_PER_OCTAVE);
+    const newIndex =
+      ((totalSemitones % NOTES_PER_OCTAVE) + NOTES_PER_OCTAVE) %
+      NOTES_PER_OCTAVE;
+
+    if (newOctave < LOWEST_OCTAVE || newOctave > HIGHEST_OCTAVE) {
+      throw new Error("Octave out of range");
+    }
+
+    note.noteValue = NOTES_ARR[newIndex];
+    note.octave = newOctave;
+  }
+
+  /**
+   * Raise note by the specified semitone count
+   * @param semitones Semitone count
+   */
+  public raiseNote<I extends MusicInstrument>(
+    note: Note<I>,
+    semitones: number
+  ): void {
+    this.transpose(note, semitones);
+  }
+
+  /**
+   * Lower note by the specified semitone count
+   * @param semitones Semitone count
+   */
+  public lowerNote<I extends MusicInstrument>(
+    note: Note<I>,
+    semitones: number
+  ): void {
+    this.transpose(note, -semitones);
+  }
+
+  /**
+   * Sets note fret value
+   * @param note Note
+   * @param fret New fret value
+   */
+  public setNoteFret(note: GuitarNote, fret: number): void {
+    note.fret = fret;
+    note.beat.bar.computeBeaming();
+  }
+
+  /**
+   * Apply bend technique to a guitar note
+   * @param note Note
+   * @param bendOptions Bend options
+   */
+  public applyBend(note: GuitarNote, bendOptions?: BendOptionsData): void {}
+
+  /**
+   * Apply technique to note
+   * @param note Note
+   * @param techniqueType Technique type
+   * @param bendOptions Bend options (if applicable)
+   * @returns True if technique applied, false otherwise
+   */
+  public applyTechniqueToNote<I extends MusicInstrument>(
+    note: Note<I>,
+    techniqueType: NoteTechniqueType,
+    bendOptions: BendTechniqueOptions | null
+  ): boolean {
+    // TEMPORARY LACK OF SUPPORT FOR NON-GUITAR NOTES
+    if (!(note instanceof GuitarNote)) {
+      throw Error("No support for non guitar notes");
+    }
+
+    if (
+      note.noteValue === NoteValue.None ||
+      note.noteValue === NoteValue.Dead
+    ) {
+      // No techniques can be applied to a dead note or an abscense of a note
+      return false;
+    }
+
+    note.addTechnique(
+      new NoteGuitarTechnique(note, techniqueType, bendOptions)
+    );
+    note.sortTechniques();
+
+    return true;
+  }
+
+  /**
+   * Adds new technique to the note
+   * @param technique Technique to add
+   * @returns True if technique added succesfully, false if can't add this technique
+   */
+  public addTechniqueToNote<I extends MusicInstrument>(
+    note: Note<I>,
+    technique: NoteTechnique
+  ): boolean {
+    // Check if technique to be added is compatible with all the other techniques
+    for (const technique of note.techniques) {
+      const curIncompatibility =
+        NOTE_TECHNIQUES_INCOMPATIBILITY[technique.type];
+      if (
+        curIncompatibility.some((incompatibleType) => {
+          return incompatibleType === technique.type;
+        })
+      ) {
+        // One of the techniques is incompatible with the
+        // to be added technique => discard and return false
+        return false;
+      }
+    }
+
+    // All techniques are compatible with each
+    // other => add new technique and return true
+    note.addTechnique(technique);
+    return true;
+  }
+
+  /**
+   * Removes technique from the note
+   * @param type Technique type
+   */
+  public removeTechniqueFromNote<I extends MusicInstrument>(
+    note: Note<I>,
+    type: NoteTechniqueType
+  ): void {
+    note.removeTechnique(type);
+  }
+
+  /**
+   * Sets (applies/removes) technique from notes
+   * @param notes Notes
+   * @param type Technique type
+   */
+  public setTechniqueNotes<I extends MusicInstrument>(
+    notes: Note<I>[],
+    type: NoteTechniqueType
+  ): void {
+    const hasAnyWithTechnique = notes.some((n) => n.hasTechnique(type));
+    if (hasAnyWithTechnique) {
+      for (const note of notes) {
+        note.removeTechnique(type);
+      }
+    } else {
+      for (const note of notes) {
+        note.addTechnique(new NoteGuitarTechnique(note, type));
+      }
+    }
+  }
+
+  /**
+   * Remove all note techniques from a note
+   * @param note Note
+   */
+  public clearNoteTechniques<I extends MusicInstrument>(note: Note<I>): void {
+    note.clearTechniques();
+  }
+
+  /**
+   * Applies technique to beat
+   * @param beat Beat
+   * @param type Technique type
+   */
+  public applyTechniqueToBeat<I extends MusicInstrument>(
+    beat: Beat<I>,
+    type: BeatTechniqueType
+  ): void {
+    beat.addTechnique(new BeatGuitarTechnique(beat, type));
+  }
+
+  /**
+   * Removes technique from a beat
+   * @param beat Beat
+   * @param type Technique type
+   */
+  public removeTechniqueFromBeat<I extends MusicInstrument>(
+    beat: Beat<I>,
+    type: BeatTechniqueType
+  ): void {
+    beat.removeTechnique(type);
+  }
+
+  /**
+   * Sets (applies/removes) technique from beats
+   * @param beats Beats
+   * @param type Technique type
+   */
+  public setTechniqueBeats<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    type: BeatTechniqueType
+  ): void {
+    const hasAnyWithTechnique = beats.some((b) => b.hasBeatTechnique(type));
+    if (hasAnyWithTechnique) {
+      for (const beat of beats) {
+        beat.removeTechnique(type);
+      }
+    } else {
+      for (const beat of beats) {
+        beat.addTechnique(new BeatGuitarTechnique(beat, type));
+      }
+    }
+  }
+
+  /**
+   * Applies techniques to all notes in specified beats
+   * @param beats Beats array
+   * @param technique Technique to apply
+   * @returns True if the technique applied to all notes
+   */
+  public applyTechniqueToBeatsNotes<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    type: NoteTechniqueType
+  ): void {
+    const notesArr: Note<I>[] = beats.flatMap((b) => b.notes);
+    this.setTechniqueNotes(notesArr, type);
+  }
+
+  /**
+   * Set beat duration
+   * @param beat Beat
+   * @param newDuration New duration
+   */
+  public setDuration<I extends MusicInstrument>(
+    beat: Beat<I>,
+    newDuration: NoteDuration
+  ) {
+    beat.baseDuration = newDuration;
+    beat.bar.computeBeaming();
+  }
+
+  /**
+   * Set beat's dot count (or reset it if setting the same dot)
+   * @param newDots New dots value (can't be anything other than 0, 1 and 2)
+   */
+  public setDots<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    newDots: number
+  ): void {
+    if (newDots !== 0 && newDots !== 1 && newDots !== 2) {
+      throw Error(`${newDots} is an invalid dots value`);
+    }
+
+    for (const beat of beats) {
+      beat.dots = newDots === beat.dots ? 0 : newDots;
+      beat.bar.computeBeaming();
+    }
+  }
+
+  /**
+   * Sets (or unsets) tuplet settings
+   * @param newSettings Tuplet settings (unsets tuplet if undefined)
+   */
+  public setTupletGroupSettings<I extends MusicInstrument>(
+    beat: Beat<I>,
+    newSettings: TupletSettings | null = null
+  ): void {
+    const sameSettings =
+      newSettings?.normalCount === beat.tupletSettings?.normalCount ||
+      newSettings?.tupletCount === beat.tupletSettings?.tupletCount;
+
+    if (newSettings === null || sameSettings) {
+      beat.tupletSettings = null;
+      return;
+    }
+
+    beat.tupletSettings = {
+      normalCount: newSettings.normalCount,
+      tupletCount: newSettings.tupletCount,
+    };
+  }
+
+  /**
+   * Sets beam group id
+   * @param newBeamGroupId New beam group id
+   */
+  public setBeamGroupId<I extends MusicInstrument>(
+    beat: Beat<I>,
+    newBeamGroupId: number | null = null
+  ): void {
+    beat.beamGroupId = newBeamGroupId;
+  }
+
+  /**
+   * Sets if the beat is the last one in a beam group
+   */
+  public setIsLastInBeamGroup<I extends MusicInstrument>(
+    beat: Beat<I>,
+    newIsLastInBeamGroup: boolean
+  ): void {
+    beat.lastInBeamGroup = newIsLastInBeamGroup;
+  }
+
+  /**
+   * Sets tuplet settings for specified beats
+   * @param beats Beats to apply tuplet settings for
+   * @param normalCount Normal count
+   * @param tupletCount Tuplet count
+   */
+  public setTuplet<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    normalCount: number,
+    tupletCount: number
+  ): void {
+    for (const beat of beats) {
+      beat.tupletSettings = {
+        normalCount: normalCount,
+        tupletCount: tupletCount,
+      };
+      beat.bar.computeBarTupletGroups();
+    }
+  }
+
+  /**
+   * Insert a beat
+   * @param bar Bar to modify
+   * @param index Index after which to insert the beat
+   * @param beat Beat to insert
+   */
+  public insertBeat<I extends MusicInstrument>(
+    bar: Bar<I>,
+    index: number,
+    beat: Beat<I>
+  ): void {
+    bar.insertBeats(index, [beat]);
+  }
+
+  /**
+   * Inserts empty beat in the bar before beat with index 'index'
+   * @param bar Bar to modify
+   * @param index Index of the beat that will be prepended by the new beat
+   */
+  public insertEmptyBeat<I extends MusicInstrument>(
+    bar: Bar<I>,
+    index: number
+  ): void {
+    const duration =
+      index === 0 ? NoteDuration.Quarter : bar.beats[index - 1].baseDuration;
+    const newBeat = new Beat(bar, bar.trackContext, [], [], duration);
+    bar.insertBeats(index, [newBeat]);
+  }
+
+  /**
+   * Prepends beat to the beginning of the bar
+   * @param bar Bar to modify
+   */
+  public prependBeat<I extends MusicInstrument>(bar: Bar<I>): void {
+    this.insertEmptyBeat(bar, 0);
+  }
+
+  /**
+   * Appends beat to the end of the bar
+   * @param bar Bar to modify
+   */
+  public appendBeat<I extends MusicInstrument>(bar: Bar<I>): void {
+    this.insertEmptyBeat(bar, bar.beats.length);
+  }
+
+  /**
+   * Removes beat at index
+   * @param bar Bar to modify
+   * @param index Index of the beat to be removed
+   */
+  public removeBeat<I extends MusicInstrument>(
+    bar: Bar<I>,
+    index: number
+  ): void {
+    // Check index validity
+    if (index < 0 || index > bar.beats.length) {
+      throw Error(`${index} is invalid beat index`);
+    }
+
+    // Remove beat
+    bar.removeBeat(index);
+
+    if (bar.beats.length === 0) {
+      this.insertEmptyBeat(bar, 0);
+    }
+  }
+
+  /**
+   * Insert beats after specified beat
+   * @param index Index of the beat after which to insert
+   * @param beats Beats to insert
+   */
+  public insertBeats<I extends MusicInstrument>(
+    bar: Bar<I>,
+    index: number,
+    beats: Beat<I>[]
+  ): void {
+    bar.insertBeats(index, beats);
+  }
+
+  /**
+   * Removes beats from tab
+   * @param beats Beats to remove
+   */
+  public removeBeats<I extends MusicInstrument>(beats: Beat<I>[]): void {
+    for (const beat of beats) {
+      const beatIndex = beat.bar.beats.indexOf(beat);
+      this.removeBeat(beat.bar, beatIndex);
+    }
+  }
+
+  /**
+   * Replaces beat section with another beat section
+   * @param oldBeats Old beats
+   * @param newBeats New beats
+   */
+  public replaceBeats<I extends MusicInstrument>(
+    oldBeats: Beat<I>[],
+    newBeats: Beat<I>[]
+  ): void {
+    if (oldBeats.length === 0 || newBeats.length === 0) {
+      return;
+    }
+
+    const smallerNoteCount =
+      oldBeats[0].notes.length > newBeats[0].notes.length
+        ? newBeats[0].notes.length
+        : oldBeats[0].notes.length;
+
+    if (oldBeats.length > newBeats.length) {
+      // Replace beats' notes values
+      for (let i = 0; i < newBeats.length; i++) {
+        oldBeats[i].baseDuration = newBeats[i].baseDuration;
+        for (let j = 0; j < smallerNoteCount; j++) {
+          oldBeats[i].notes[j].noteValue = newBeats[i].notes[j].noteValue;
+          oldBeats[i].notes[j].octave = newBeats[i].notes[j].octave;
+        }
+      }
+
+      // Remove 'excess' beats
+      this.removeBeats(oldBeats.slice(newBeats.length, oldBeats.length));
+    } else if (oldBeats.length < newBeats.length) {
+      const bar = oldBeats[0].bar;
+      const beatIndex = bar.beats.indexOf(oldBeats[0]);
+
+      // Remove selected beats
+      this.removeBeats(oldBeats);
+
+      // Paste copied data into bar
+      const newBeatsCopies = [];
+      for (const beat of newBeats) {
+        newBeatsCopies.push(beat.deepCopy());
+      }
+      // Beats inserted AFTER the index
+      bar.insertBeats(beatIndex - 1, newBeatsCopies);
+    } else {
+      // Replace all notes in selection with copied beats
+      for (let i = 0; i < oldBeats.length; i++) {
+        oldBeats[i].baseDuration = newBeats[i].baseDuration;
+        for (let j = 0; j < smallerNoteCount; j++) {
+          oldBeats[i].notes[j].noteValue = newBeats[i].notes[j].noteValue;
+          oldBeats[i].notes[j].octave = newBeats[i].notes[j].octave;
+        }
+      }
+    }
+  }
+
+  /**
+   * Inserts a new master bar & inserts a bar to every staff of every track
+   * @param score Score
+   * @param index Index after which to insert the bar
+   * @param masterBarData Master bar data
+   */
+  public insertMasterBar(
+    score: Score,
+    index: number,
+    masterBarData: MasterBarData
+  ): void {
+    score.insertMasterBar(index, masterBarData);
+  }
+
+  /**
+   * Prepend a master bar to a score & all it's tracks' bars
+   * @param score Score
+   * @param masterBarData Master bar data
+   */
+  public prependMasterBar(score: Score, masterBarData: MasterBarData): void {
+    score.prependMasterBar(masterBarData);
+  }
+
+  /**
+   * Append a master bar to a score & all it's tracks' bars
+   * @param score Score
+   * @param masterBarData Master bar data
+   */
+  public appendMasterBar(score: Score, masterBarData: MasterBarData): void {
+    score.appendMasterBar(masterBarData);
+  }
+
+  /**
+   * Adds a new track
+   * @param score Score to add a track to
+   * @param instrument Track instrument
+   * @param name Track name
+   */
+  public addTrack<I extends MusicInstrument>(
+    score: Score,
+    instrument: I,
+    name: string
+  ): void {
+    score.addTrack(instrument, name);
+  }
+
+  /**
+   * Remove track from the score
+   * @param score Score to add a track to
+   * @param index Index of the score to remove
+   */
+  public removeTrack(score: Score, index: number): void {
+    score.removeTrack(index);
+  }
+}

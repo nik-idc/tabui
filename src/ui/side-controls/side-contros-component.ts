@@ -2,7 +2,7 @@ import { NotationComponent } from "@/notation/notation-component";
 import { NoteControlsComponent } from "./note-controls/note-controls-component";
 import { SideControlsTemplate } from "./side-controls-template";
 import { SideControlsTemplateRenderer } from "./side-controls-template-renderer";
-import { EffectControlsComponent } from "./effect-controls";
+import { TechniqueControlsComponent } from "./technique-controls";
 import { MeasureControlsComponent } from "./measure-controls";
 
 export class SideControlsComponent {
@@ -13,7 +13,7 @@ export class SideControlsComponent {
   readonly templateRenderer: SideControlsTemplateRenderer;
 
   readonly noteControlsComponent: NoteControlsComponent;
-  readonly effectControlsComponent: EffectControlsComponent;
+  readonly techniqueControlsComponent: TechniqueControlsComponent;
   readonly measureControlsComponent: MeasureControlsComponent;
 
   constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
@@ -31,7 +31,7 @@ export class SideControlsComponent {
       this.template.container,
       this.notationComponent
     );
-    this.effectControlsComponent = new EffectControlsComponent(
+    this.techniqueControlsComponent = new TechniqueControlsComponent(
       this.template.container,
       this.notationComponent
     );
@@ -45,7 +45,7 @@ export class SideControlsComponent {
     this.templateRenderer.render();
 
     this.noteControlsComponent.render();
-    this.effectControlsComponent.render();
+    this.techniqueControlsComponent.render();
     this.measureControlsComponent.render();
   }
 }

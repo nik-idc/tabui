@@ -139,13 +139,13 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
     .tu-note-controls,
-    .tu-effect-controls,
+    .tu-technique-controls,
     .tu-measure-controls {
       @extend %tu-side-controls-layout;
     }
 
     .tu-note-controls,
-    .tu-effect-controls {
+    .tu-technique-controls {
       margin-bottom: 1rem;
       padding-bottom: 1rem;
       border-bottom: 1px solid var(--secondary-color);

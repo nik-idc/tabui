@@ -1,7 +1,7 @@
 import { Bar } from "../../model/models/index";
 import { Beat } from "../../model/models/index";
-import { GuitarEffectOptions } from "../../model/models/index";
-import { GuitarEffectType } from "../../model/models/index";
+import { GuitarTechniqueOptions } from "../../model/models/index";
+import { GuitarTechniqueType } from "../../model/models/index";
 import { NoteDuration } from "../../model/models/index";
 import { Score } from "../../model/models/index";
 import { Tab } from "../../model/models/index";
@@ -186,7 +186,7 @@ export class TabEditor {
       // If only one beat (note) is selected
       beats = [this._selectionManager.selectedElement.beat];
     }
-    this._tab.setTupletBeats(beats, normalCount, tupletCount);
+    this._tab.setBarTupletBeats(beats, normalCount, tupletCount);
 
     this.tabElement.calc();
   }
@@ -274,19 +274,19 @@ export class TabEditor {
     this.tabElement.calc();
   }
 
-  public applyEffectSingle(
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
+  public applyTechniqueSingle(
+    type: GuitarTechniqueType,
+    techniqueOptions?: GuitarTechniqueOptions
   ): boolean {
     const elsAndIds = this.getSelectedNoteElementsAndIds();
 
     const beforeApply = this._tab.deepCopy();
-    const result = elsAndIds.tabLineElement.applyEffectSingle(
+    const result = elsAndIds.tabLineElement.applyTechniqueSingle(
       elsAndIds.barElementId,
       elsAndIds.beatElementId,
       elsAndIds.stringNum,
-      effectType,
-      effectOptions
+      type,
+      techniqueOptions
     );
 
     if (!result) {
@@ -310,36 +310,36 @@ export class TabEditor {
     return true;
   }
 
-  public removeEffectSingle(
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
+  public removeTechniqueSingle(
+    type: GuitarTechniqueType,
+    techniqueOptions?: GuitarTechniqueOptions
   ): void {
     const elsAndIds = this.getSelectedNoteElementsAndIds();
     if (elsAndIds.noteElement === undefined) {
       return;
     }
 
-    const effectIndex = elsAndIds.noteElement.guitarEffectElements.findIndex(
+    const techniqueIndex = elsAndIds.noteElement.guitarTechniqueElements.findIndex(
       (gfe) => {
         return (
-          gfe.effect.effectType === effectType &&
-          gfe.effect.options === effectOptions
+          gfe.technique.type === type &&
+          gfe.technique.bendOptions === techniqueOptions
         );
       }
     );
 
-    if (effectIndex === -1) {
+    if (techniqueIndex === -1) {
       return;
     }
 
     this.undoStack.push(this._tab.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
 
-    elsAndIds.tabLineElement.removeEffectSingle(
+    elsAndIds.tabLineElement.removeTechniqueSingle(
       elsAndIds.barElementId,
       elsAndIds.beatElementId,
       elsAndIds.stringNum,
-      effectIndex
+      techniqueIndex
     );
 
     this.tabElement.calc();
@@ -352,21 +352,21 @@ export class TabEditor {
     }
   }
 
-  private setEffectSingle(
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
+  private setTechniqueSingle(
+    type: GuitarTechniqueType,
+    techniqueOptions?: GuitarTechniqueOptions
   ): boolean {
     const selectedElement = this._selectionManager.selectedElement;
     if (selectedElement === undefined) {
-      throw Error("Set effect single called but selected element undefined");
+      throw Error("Set technique single called but selected element undefined");
     }
 
-    const applyRes = this._tab.setEffectNote(
+    const applyRes = this._tab.setTechniqueNote(
       selectedElement.barId,
       selectedElement.beatId,
       selectedElement.stringNum,
-      effectType,
-      effectOptions
+      type,
+      techniqueOptions
     );
 
     this.tabElement.calc();
@@ -374,23 +374,23 @@ export class TabEditor {
     return applyRes;
   }
 
-  private setEffectMultiple(
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
+  private setTechniqueMultiple(
+    type: GuitarTechniqueType,
+    techniqueOptions?: GuitarTechniqueOptions
   ): boolean {
     if (this._selectionManager.selectedElement !== undefined) {
       throw new Error(
-        "Can't set effect for multiple notes, selected element defined"
+        "Can't set technique for multiple notes, selected element defined"
       );
     }
 
     this.undoStack.push(this._tab.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
 
-    const applyRes = this._tab.setEffectBeats(
+    const applyRes = this._tab.setTechniqueBeats(
       this._selectionManager.selectionBeats,
-      effectType,
-      effectOptions
+      type,
+      techniqueOptions
     );
 
     this.tabElement.calc();
@@ -398,13 +398,13 @@ export class TabEditor {
     return applyRes;
   }
 
-  public setEffect(
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
+  public setTechnique(
+    type: GuitarTechniqueType,
+    techniqueOptions?: GuitarTechniqueOptions
   ): boolean {
     return this._selectionManager.selectedElement !== undefined
-      ? this.setEffectSingle(effectType, effectOptions)
-      : this.setEffectMultiple(effectType, effectOptions);
+      ? this.setTechniqueSingle(type, techniqueOptions)
+      : this.setTechniqueMultiple(type, techniqueOptions);
   }
 
   public getSelectedElement(): SelectedElement | undefined {

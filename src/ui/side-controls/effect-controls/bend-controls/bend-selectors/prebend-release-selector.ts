@@ -5,8 +5,8 @@ import {
   createSVGCircle,
 } from "@/shared";
 import { BendData, Selector } from "./selector";
-import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
-import { GuitarEffect, GuitarEffectType } from "@/notation";
+import { BendSelectorManagerOptions } from "./bend-selector-manager-bendOptions";
+import { GuitarTechnique, GuitarTechniqueType } from "@/notation";
 
 export class PrebendReleaseSelector implements Selector {
   readonly bendGraphSVG: SVGSVGElement;
@@ -67,7 +67,7 @@ export class PrebendReleaseSelector implements Selector {
     );
   }
 
-  public getBendEffect(): GuitarEffect {
+  public getBendTechnique(): GuitarTechnique {
     const pitchUnitHeight =
       this.bendManagerOptions.height / this.bendManagerOptions.rowsCount;
 
@@ -81,7 +81,7 @@ export class PrebendReleaseSelector implements Selector {
     const releasePitch =
       (this.bendManagerOptions.height - releaseY) / (pitchUnitHeight * 4);
 
-    return new GuitarEffect(GuitarEffectType.PrebendAndRelease, {
+    return new GuitarTechnique(GuitarTechniqueType.PrebendAndRelease, {
       prebendPitch: startPitch,
       bendReleasePitch: releasePitch,
     });

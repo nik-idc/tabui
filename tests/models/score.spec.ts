@@ -1,8 +1,8 @@
 import { Bar, Beat, NoteDuration, Tab } from "../../src/index";
 import { Guitar, GuitarNote, Note } from "../../src/index";
-import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
-import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
+import { GuitarTechnique } from "../../src/models/guitar-technique/guitar-technique";
+import { GuitarTechniqueOptions } from "../../src/models/guitar-technique/guitar-technique-bendOptions";
+import { GuitarTechniqueType } from "../../src/models/guitar-technique/guitar-technique-type";
 
 function getTabData(): {
   stringsCount: number;

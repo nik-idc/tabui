@@ -2,9 +2,9 @@ import { SideControlsComponent } from "@/ui";
 import { TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import {
-  EffectControlsCallbacks,
-  EffectControlsDefaultCallbacks,
-} from "./effect-controls-callbacks";
+  TechniqueControlsCallbacks,
+  TechniqueControlsDefaultCallbacks,
+} from "./technique-controls-callbacks";
 import {
   MeasureControlsCallbacks,
   MeasureControlsDefaultCallbacks,
@@ -16,7 +16,7 @@ import {
 
 export class SideControlsCallbacks {
   private _noteCallbacks: NoteControlsCallbacks;
-  private _effectCallbacks: EffectControlsCallbacks;
+  private _techniqueCallbacks: TechniqueControlsCallbacks;
   private _measureCallbacks: MeasureControlsCallbacks;
 
   private _sideComponent: SideControlsComponent;
@@ -45,8 +45,8 @@ export class SideControlsCallbacks {
       this._captureKeyboard,
       this._freeKeyboard
     );
-    this._effectCallbacks = new EffectControlsDefaultCallbacks(
-      this._sideComponent.effectControlsComponent,
+    this._techniqueCallbacks = new TechniqueControlsDefaultCallbacks(
+      this._sideComponent.techniqueControlsComponent,
       this._notationComponent,
       this._renderFunc,
       this._captureKeyboard,
@@ -63,13 +63,13 @@ export class SideControlsCallbacks {
 
   public bind(): void {
     this._noteCallbacks.bind();
-    this._effectCallbacks.bind();
+    this._techniqueCallbacks.bind();
     this._measureCallbacks.bind();
   }
 
   public unbind(): void {
     this._noteCallbacks.unbind();
-    this._effectCallbacks.unbind();
+    this._techniqueCallbacks.unbind();
     this._measureCallbacks.unbind();
   }
 }

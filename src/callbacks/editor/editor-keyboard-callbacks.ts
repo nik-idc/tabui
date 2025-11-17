@@ -1,6 +1,6 @@
 import { EditorRenderer } from "@/notation";
 import { SelectedMoveDirection, TabController } from "@/notation/element";
-import { GuitarEffectType, GuitarEffectOptions } from "@/notation/model";
+import { GuitarTechniqueType, GuitarTechniqueOptions } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import { ElementRenderer } from "@/notation/render/element-renderer";
 import { KeyChecker } from "@/shared";
@@ -12,9 +12,9 @@ export interface EditorKeyboardCallbacks {
   ctrlZEvent(event: KeyboardEvent): void;
   ctrlYEvent(event: KeyboardEvent): void;
   deleteEvent(event: KeyboardEvent): void;
-  applyOrRemoveEffect(
-    effectType: GuitarEffectType,
-    options?: GuitarEffectOptions
+  applyOrRemoveTechnique(
+    type: GuitarTechniqueType,
+    bendOptions?: GuitarTechniqueOptions
   ): void;
   shiftVEvent(event: KeyboardEvent): void;
   shiftPEvent(event: KeyboardEvent): void;
@@ -74,9 +74,9 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._renderFunc();
   }
 
-  public applyOrRemoveEffect(
-    effectType: GuitarEffectType,
-    options?: GuitarEffectOptions
+  public applyOrRemoveTechnique(
+    type: GuitarTechniqueType,
+    bendOptions?: GuitarTechniqueOptions
   ): void {
     const selected = this._notationComponent.tabController.getSelectedElement();
 
@@ -84,19 +84,19 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
 
-    const effectIndex = selected.note.effects.findIndex((e) => {
-      return e.effectType === effectType;
+    const techniqueIndex = selected.note.techniques.findIndex((e) => {
+      return e.type === type;
     });
 
-    if (effectIndex === -1) {
-      const result = this._notationComponent.tabController.applyEffectSingle(
-        effectType,
-        options
+    if (techniqueIndex === -1) {
+      const result = this._notationComponent.tabController.applyTechniqueSingle(
+        type,
+        bendOptions
       );
     } else {
-      this._notationComponent.tabController.removeEffectSingle(
-        effectType,
-        options
+      this._notationComponent.tabController.removeTechniqueSingle(
+        type,
+        bendOptions
       );
     }
 
@@ -104,11 +104,11 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public shiftVEvent(event: KeyboardEvent): void {
-    this.applyOrRemoveEffect(GuitarEffectType.Vibrato);
+    this.applyOrRemoveTechnique(GuitarTechniqueType.Vibrato);
   }
 
   public shiftPEvent(event: KeyboardEvent): void {
-    this.applyOrRemoveEffect(GuitarEffectType.PalmMute);
+    this.applyOrRemoveTechnique(GuitarTechniqueType.PalmMute);
   }
 
   public shiftBEvent(event: KeyboardEvent): void {

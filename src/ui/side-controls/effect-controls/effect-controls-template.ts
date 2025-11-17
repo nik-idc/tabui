@@ -2,7 +2,7 @@ import { createDiv, createImage } from "@/shared";
 import { BendControlsTemplate } from "./bend-controls/bend-controls-template";
 
 /**
- * Interface defining the template of effect controls:
+ * Interface defining the template of technique controls:
  * - Vibrato
  * - P.M.
  * - NH
@@ -12,7 +12,7 @@ import { BendControlsTemplate } from "./bend-controls/bend-controls-template";
  * - Slide
  * - Bend
  */
-export class EffectControlsTemplate {
+export class TechniqueControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
 
   readonly vibratoButton: HTMLImageElement = createImage();

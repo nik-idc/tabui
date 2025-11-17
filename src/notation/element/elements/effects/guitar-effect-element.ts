@@ -1,19 +1,19 @@
-import { GuitarEffect, GuitarEffectType } from "@/notation/model";
+import { GuitarTechnique, GuitarTechniqueType } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
 import { TabControllerDim } from "../../controller";
-import { SVGUtils } from "./effects-html";
+import { SVGUtils } from "./techniques-html";
 
 /**
- * Class that represents a guitar effect.
+ * Class that represents a guitar technique.
  * Represents specifically a UI element near the note
- * to which the effect is applied
+ * to which the technique is applied
  */
-export class GuitarEffectElement {
+export class GuitarTechniqueElement {
   readonly uuid: number;
   /**
-   * Effect
+   * Technique
    */
-  readonly effect: GuitarEffect;
+  readonly technique: GuitarTechnique;
   /**
    * String number (for bends)
    */
@@ -31,7 +31,7 @@ export class GuitarEffectElement {
    */
   private _noteRect: Rect;
   /**
-   * Effect element's rect
+   * Technique element's rect
    */
   private _rect?: Rect;
   /**
@@ -44,25 +44,25 @@ export class GuitarEffectElement {
    */
   private _fullHTML?: string;
   /**
-   * Effects HTML generator
+   * Techniques HTML generator
    */
   private _svgUtils: SVGUtils;
 
   /**
-   * Class that represents a guitar effect
-   * @param effect Effect
+   * Class that represents a guitar technique
+   * @param technique Technique
    * @param stringNum String number
    * @param noteRect Note rectangle
    * @param dim Tab window dimensions
    */
   constructor(
-    effect: GuitarEffect,
+    technique: GuitarTechnique,
     stringNum: number,
     noteRect: Rect,
     dim: TabControllerDim
   ) {
     this.uuid = randomInt();
-    this.effect = effect;
+    this.technique = technique;
     this.stringNum = stringNum;
     this._noteRect = noteRect;
     this._rect = new Rect();
@@ -238,13 +238,13 @@ export class GuitarEffectElement {
    */
   private calcSlidePath(): void {
     if (
-      this.effect.options === undefined ||
-      this.effect.options.nextHigher === undefined
+      this.technique.bendOptions === undefined ||
+      this.technique.bendOptions.nextHigher === undefined
     ) {
-      throw Error("Slide effect has no options or next note pitch indicator");
+      throw Error("Slide technique has no bendOptions or next note pitch indicator");
     }
 
-    const upCoef = this.effect.options.nextHigher ? 1 : -1;
+    const upCoef = this.technique.bendOptions.nextHigher ? 1 : -1;
 
     const slideWidth = this._noteRect.width - this.dim.noteTextSize;
     const slideHeight = this._noteRect.height / 3;
@@ -325,33 +325,33 @@ export class GuitarEffectElement {
   }
 
   /**
-   * Calculates rectangle depending on effect type
+   * Calculates rectangle depending on technique type
    */
   private calc(): void {
     // Calc offsets & assign image paths
-    switch (this.effect.effectType) {
-      case GuitarEffectType.Bend:
+    switch (this.technique.type) {
+      case GuitarTechniqueType.Bend:
         this.calcBendPath();
         break;
-      case GuitarEffectType.BendAndRelease:
+      case GuitarTechniqueType.BendAndRelease:
         this.calcBendAndReleasePath();
         break;
-      case GuitarEffectType.Prebend:
+      case GuitarTechniqueType.Prebend:
         this.calcPrebendPath();
         break;
-      case GuitarEffectType.PrebendAndRelease:
+      case GuitarTechniqueType.PrebendAndRelease:
         this.calcPrebendAndReleasePath();
         break;
-      case GuitarEffectType.Slide:
+      case GuitarTechniqueType.Slide:
         this.calcSlidePath();
         break;
-      case GuitarEffectType.HammerOnOrPullOff:
+      case GuitarTechniqueType.HammerOnOrPullOff:
         this.calcHammerOnOrPullOffPath();
         break;
-      case GuitarEffectType.PinchHarmonic:
+      case GuitarTechniqueType.PinchHarmonic:
         this.calcPinchHarmonicPath();
         break;
-      case GuitarEffectType.NaturalHarmonic:
+      case GuitarTechniqueType.NaturalHarmonic:
         this.calcNaturalHarmonicPath();
         break;
       default:
@@ -367,7 +367,7 @@ export class GuitarEffectElement {
   }
 
   /**
-   * Effect rect
+   * Technique rect
    */
   public get rect(): Rect | undefined {
     return this._rect;

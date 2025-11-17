@@ -580,11 +580,11 @@ export class SVGBarRenderer implements ElementRenderer {
       [];
 
     // Check if there are any beat elements to remove
-    const curTupletGroupUUIDs = new Set(
+    const curBarTupletGroupUUIDs = new Set(
       this._barElement.tupletElements.map((b) => b.tupletGroup.uuid)
     );
     for (const [uuid, renderer] of this._renderedTupletElements) {
-      if (!curTupletGroupUUIDs.has(uuid)) {
+      if (!curBarTupletGroupUUIDs.has(uuid)) {
         renderer.unrender();
         this._renderedTupletElements.delete(uuid);
       }

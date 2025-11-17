@@ -96,7 +96,7 @@ export class NewTrackControlsTemplateRenderer {
     this.parentDiv.appendChild(this.template.dialog);
   }
 
-  private renderInstrumentKindsButtons(): void {
+  private renderMusicInstrumentKindsButtons(): void {
     const kinds = Object.keys(INSTRUMENT_KINDS);
     if (this.template.instrKindsButtons.length === 0) {
       for (const kind of kinds) {
@@ -113,7 +113,7 @@ export class NewTrackControlsTemplateRenderer {
     }
   }
 
-  private renderInstrumentTypesButtons(): void {
+  private renderMusicInstrumentTypesButtons(): void {
     const types = Object.keys(INSTRUMENT_KINDS[this._currentKind]);
     if (this.template.instrTypesButtons.length === 0) {
       for (const type of types) {
@@ -132,7 +132,7 @@ export class NewTrackControlsTemplateRenderer {
     }
   }
 
-  private renderInstrumentPresetsButtons(): void {
+  private renderMusicInstrumentPresetsButtons(): void {
     const presets = INSTRUMENT_KINDS[this._currentKind][this._currentType];
 
     if (this.template.instrPresetsButtons.length === 0) {
@@ -203,9 +203,9 @@ export class NewTrackControlsTemplateRenderer {
     this._currentStringCount = currentStringCount;
     this._currentTuning = currentTuning;
 
-    this.renderInstrumentKindsButtons();
-    this.renderInstrumentTypesButtons();
-    this.renderInstrumentPresetsButtons();
+    this.renderMusicInstrumentKindsButtons();
+    this.renderMusicInstrumentTypesButtons();
+    this.renderMusicInstrumentPresetsButtons();
     this.renderInputs();
     this.renderActionButtons();
 

@@ -1,4 +1,4 @@
-import { TupletGroup } from "@/notation/model";
+import { BarTupletGroup } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { TabControllerDim } from "../controller";
 import { BeatElement } from "./beat-element";
@@ -15,7 +15,7 @@ export class TupletElement {
   /**
    * Tuplet group this element represents
    */
-  readonly tupletGroup: TupletGroup;
+  readonly tupletGroup: BarTupletGroup;
   /**
    * Array of beat elements included in this tuplet group
    */
@@ -27,7 +27,7 @@ export class TupletElement {
 
   constructor(
     dim: TabControllerDim,
-    tupletGroup: TupletGroup,
+    tupletGroup: BarTupletGroup,
     beatElements: BeatElement[],
     coords: Point
   ) {

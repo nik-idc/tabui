@@ -1,6 +1,6 @@
 import { TabController, NoteElement } from "@/notation/element";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
-import { SVGEffectRenderer } from "./svg-guitar-effect-renderer";
+import { SVGTechniqueRenderer } from "./svg-guitar-technique-renderer";
 import { ElementRenderer } from "../element-renderer";
 
 /**
@@ -13,7 +13,7 @@ export class SVGNoteRenderer implements ElementRenderer {
   private _assetsPath: string;
   private _parentElement: SVGGElement;
 
-  private _renderedEffects: Map<number, SVGEffectRenderer>;
+  private _renderedTechniques: Map<number, SVGTechniqueRenderer>;
 
   private _groupSVG?: SVGGElement;
   private _rectSVG?: SVGRectElement;
@@ -44,7 +44,7 @@ export class SVGNoteRenderer implements ElementRenderer {
     this._assetsPath = assetsPath;
     this._parentElement = parentElement;
 
-    this._renderedEffects = new Map();
+    this._renderedTechniques = new Map();
     this._attachedEvents = new Map();
   }
 
@@ -324,34 +324,34 @@ export class SVGNoteRenderer implements ElementRenderer {
       this.unrenderNoteText();
     }
 
-    // Check if there are any effects to remove
-    const curEffectElementUUIDs = new Set(
-      this._noteElement.guitarEffectElements.map((e) => e.effect.uuid)
+    // Check if there are any techniques to remove
+    const curTechniqueElementUUIDs = new Set(
+      this._noteElement.guitarTechniqueElements.map((e) => e.technique.uuid)
     );
-    for (const [uuid, renderer] of this._renderedEffects) {
-      if (!curEffectElementUUIDs.has(uuid)) {
+    for (const [uuid, renderer] of this._renderedTechniques) {
+      if (!curTechniqueElementUUIDs.has(uuid)) {
         renderer.unrender();
-        this._renderedEffects.delete(uuid);
+        this._renderedTechniques.delete(uuid);
       }
     }
 
-    // Add & render new guitar effect elements
-    for (const effectElement of this._noteElement.guitarEffectElements) {
-      const renderedEffect = this._renderedEffects.get(
-        effectElement.effect.uuid
+    // Add & render new guitar technique elements
+    for (const techniqueElement of this._noteElement.guitarTechniqueElements) {
+      const renderedTechnique = this._renderedTechniques.get(
+        techniqueElement.technique.uuid
       );
-      if (renderedEffect === undefined) {
-        const renderer = new SVGEffectRenderer(
+      if (renderedTechnique === undefined) {
+        const renderer = new SVGTechniqueRenderer(
           this._tabWindow,
-          effectElement,
+          techniqueElement,
           noteOffset,
           this._assetsPath,
           this._groupSVG
         );
         renderer.render();
-        this._renderedEffects.set(effectElement.effect.uuid, renderer);
+        this._renderedTechniques.set(techniqueElement.technique.uuid, renderer);
       } else {
-        renderedEffect.render(noteOffset);
+        renderedTechnique.render(noteOffset);
       }
     }
   }
@@ -364,7 +364,7 @@ export class SVGNoteRenderer implements ElementRenderer {
       throw Error("Tried to unrender note elem when SVG group undefined");
     }
 
-    for (const [uuid, renderer] of this._renderedEffects) {
+    for (const [uuid, renderer] of this._renderedTechniques) {
       renderer.unrender();
     }
 

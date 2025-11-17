@@ -1,5 +1,5 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { BendControlsComponent } from "../../effect-controls/bend-controls";
+import { BendControlsComponent } from "../../technique-controls/bend-controls";
 import { TupletControlsTemplate } from "./tuplet-controls-template";
 import { TupletControlsTemplateRenderer } from "./tuplet-controls-template-renderer";
 

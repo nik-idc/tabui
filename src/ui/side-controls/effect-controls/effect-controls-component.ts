@@ -1,17 +1,17 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { template } from "@babel/core";
 
-import { EffectControlsTemplate } from "./effect-controls-template";
-import { EffectControlsTemplateRenderer } from "./effect-controls-template-renderer";
+import { TechniqueControlsTemplate } from "./technique-controls-template";
+import { TechniqueControlsTemplateRenderer } from "./technique-controls-template-renderer";
 import { BendControlsComponent } from "./bend-controls/bend-controls-component";
 import { TimeSigControlsComponent } from "../measure-controls/time-sig-controls";
 
-export class EffectControlsComponent {
+export class TechniqueControlsComponent {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
-  readonly template: EffectControlsTemplate;
-  readonly templateRenderer: EffectControlsTemplateRenderer;
+  readonly template: TechniqueControlsTemplate;
+  readonly templateRenderer: TechniqueControlsTemplateRenderer;
 
   readonly bendControlsComponent: BendControlsComponent;
 
@@ -19,8 +19,8 @@ export class EffectControlsComponent {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new EffectControlsTemplate();
-    this.templateRenderer = new EffectControlsTemplateRenderer(
+    this.template = new TechniqueControlsTemplate();
+    this.templateRenderer = new TechniqueControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,
       this.template

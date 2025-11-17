@@ -1,8 +1,8 @@
 import {
   Tab,
   Bar,
-  GuitarEffectType,
-  GuitarEffectOptions,
+  GuitarTechniqueType,
+  GuitarTechniqueOptions,
 } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { TabControllerDim } from "../controller";
@@ -29,9 +29,9 @@ export class TabLineElement {
    */
   public rect: Rect;
   /**
-   * Effects encapsulating rectangle (horizontal, as wide as 'rect')
+   * Techniques encapsulating rectangle (horizontal, as wide as 'rect')
    */
-  public effectLabelsRect: Rect;
+  public techniqueLabelsRect: Rect;
   /**
    * Bar elements on this line
    */
@@ -48,7 +48,7 @@ export class TabLineElement {
     this.tab = tab;
     this.dim = dim;
     this.rect = new Rect(coords.x, coords.y, 0, dim.tabLineMinHeight);
-    this.effectLabelsRect = new Rect(coords.x, coords.y, 0, 0);
+    this.techniqueLabelsRect = new Rect(coords.x, coords.y, 0, 0);
     this.barElements = [];
   }
 
@@ -74,7 +74,7 @@ export class TabLineElement {
     // to the width of the empty space
     // const scale = this.dim.width / this.rect.width;
     const scale = this.dim.width / sumWidth;
-    this.effectLabelsRect.width *= scale;
+    this.techniqueLabelsRect.width *= scale;
     for (const barElement of this.barElements) {
       barElement.scaleHorBy(scale);
     }
@@ -90,12 +90,12 @@ export class TabLineElement {
   }
 
   /**
-   * Changes the width of the encapsulating and effects rectangles
+   * Changes the width of the encapsulating and techniques rectangles
    * @param dWidth Width by which to change
    */
   private changeWidth(dWidth: number): void {
     this.rect.width += dWidth;
-    this.effectLabelsRect.width += dWidth;
+    this.techniqueLabelsRect.width += dWidth;
   }
 
   /**
@@ -108,7 +108,7 @@ export class TabLineElement {
   public addBar(bar: Bar, barElement: BarElement, prevBar?: Bar): boolean {
     if (!this.barElementFits(barElement)) {
       this.justifyElements();
-      this.calcEffectGap();
+      this.calcTechniqueGap();
       return false;
     }
 
@@ -117,15 +117,15 @@ export class TabLineElement {
     return true;
   }
 
-  public calcEffectGap(): void {
-    // Reset effect label gap height to 0
-    this.effectLabelsRect.height = 0;
+  public calcTechniqueGap(): void {
+    // Reset technique label gap height to 0
+    this.techniqueLabelsRect.height = 0;
     this.rect.height = this.dim.tabLineMinHeight;
 
     // Figure out the tallest bar
     let tallestBar = 0;
     for (const barElement of this.barElements) {
-      barElement.calcEffectGap();
+      barElement.calcTechniqueGap();
       if (barElement.rect.height > tallestBar) {
         tallestBar = barElement.rect.height;
       }
@@ -134,10 +134,10 @@ export class TabLineElement {
     // Figure out & apply new gap height
     const gapHeight = tallestBar - this.rect.height;
     this.rect.height += gapHeight;
-    this.effectLabelsRect.height = gapHeight;
+    this.techniqueLabelsRect.height = gapHeight;
 
     for (const barElement of this.barElements) {
-      barElement.setEffectGap(gapHeight);
+      barElement.setTechniqueGap(gapHeight);
     }
   }
 
@@ -155,7 +155,7 @@ export class TabLineElement {
       horizontalBarOffset += barElement.rect.width;
     }
 
-    this.calcEffectGap();
+    this.calcTechniqueGap();
   }
 
   /**
@@ -172,12 +172,12 @@ export class TabLineElement {
     this.changeWidth(-barElement.rect.width);
   }
 
-  public applyEffectSingle(
+  public applyTechniqueSingle(
     barElementId: number,
     beatElementId: number,
     stringNum: number,
-    effectType: GuitarEffectType,
-    effectOptions?: GuitarEffectOptions
+    type: GuitarTechniqueType,
+    techniqueOptions?: GuitarTechniqueOptions
   ): boolean {
     const beatElement =
       this.barElements[barElementId].beatElements[beatElementId];
@@ -189,13 +189,13 @@ export class TabLineElement {
       });
     });
 
-    // Apply effect to selected element
-    const applyRes = this.tab.applyEffectToNote(
+    // Apply technique to selected element
+    const applyRes = this.tab.applyTechniqueToNote(
       barId,
       beatId,
       stringNum,
-      effectType,
-      effectOptions
+      type,
+      techniqueOptions
     );
 
     if (!applyRes) {
@@ -205,11 +205,11 @@ export class TabLineElement {
     return true;
   }
 
-  public removeEffectSingle(
+  public removeTechniqueSingle(
     barElementId: number,
     beatElementId: number,
     stringNum: number,
-    effectIndex: number
+    techniqueIndex: number
   ): void {
     const beatElement =
       this.barElements[barElementId].beatElements[beatElementId];
@@ -221,7 +221,7 @@ export class TabLineElement {
       });
     });
 
-    this.tab.removeEffectFromNote(barId, beatId, stringNum, effectIndex);
+    this.tab.removeTechniqueFromNote(barId, beatId, stringNum, techniqueIndex);
   }
 
   public getFitToScale(): number {

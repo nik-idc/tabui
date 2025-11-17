@@ -1,18 +1,18 @@
-import { GuitarEffectType } from "@/notation/model";
+import { GuitarTechniqueType } from "@/notation/model";
 
 /**
- * If the value is true, then the effect requires labels
+ * If the value is true, then the technique requires labels
  * If false, then no labels needed
  */
-export const EFFECT_TYPE_TO_LABEL = {
-  [GuitarEffectType.Bend]: true,
-  [GuitarEffectType.BendAndRelease]: true,
-  [GuitarEffectType.Prebend]: true,
-  [GuitarEffectType.PrebendAndRelease]: true,
-  [GuitarEffectType.Vibrato]: true,
-  [GuitarEffectType.Slide]: false,
-  [GuitarEffectType.HammerOnOrPullOff]: false,
-  [GuitarEffectType.PinchHarmonic]: false,
-  [GuitarEffectType.NaturalHarmonic]: false,
-  [GuitarEffectType.PalmMute]: true,
+export const TECHNIQUE_TYPE_TO_LABEL = {
+  [GuitarTechniqueType.Bend]: true,
+  [GuitarTechniqueType.BendAndRelease]: true,
+  [GuitarTechniqueType.Prebend]: true,
+  [GuitarTechniqueType.PrebendAndRelease]: true,
+  [GuitarTechniqueType.Vibrato]: true,
+  [GuitarTechniqueType.Slide]: false,
+  [GuitarTechniqueType.HammerOnOrPullOff]: false,
+  [GuitarTechniqueType.PinchHarmonic]: false,
+  [GuitarTechniqueType.NaturalHarmonic]: false,
+  [GuitarTechniqueType.PalmMute]: true,
 };

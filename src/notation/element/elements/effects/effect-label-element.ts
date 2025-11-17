@@ -1,12 +1,12 @@
-import { GuitarEffect, GuitarEffectType } from "@/notation/model";
+import { GuitarTechnique, GuitarTechniqueType } from "@/notation/model";
 import { Rect, getPitchRatioNums } from "@/shared";
 import { TabControllerDim } from "../../controller";
-import { SVGUtils } from "./effects-html";
+import { SVGUtils } from "./techniques-html";
 
 /**
- * Class that contains an effect label
+ * Class that contains an technique label
  */
-export class EffectLabelElement {
+export class TechniqueLabelElement {
   /**
    * Tab window dimensions
    */
@@ -16,29 +16,29 @@ export class EffectLabelElement {
    */
   private _rect: Rect;
   /**
-   * Effect
+   * Technique
    */
-  readonly effect: GuitarEffect;
+  readonly technique: GuitarTechnique;
   /**
    * SVG path (full path HTML including styling,
    * i.e. transparent/non-transparent)
    */
   private _fullHTML?: string;
   /**
-   * Effects HTML generator
+   * Techniques HTML generator
    */
   private _svgUtils: SVGUtils;
 
   /**
-   * Class that contains an effect label
+   * Class that contains an technique label
    * @param dim Tab window dimensions
    * @param rect Outer rectangle
-   * @param effect Effect
+   * @param technique Technique
    */
-  constructor(dim: TabControllerDim, rect: Rect, effect: GuitarEffect) {
+  constructor(dim: TabControllerDim, rect: Rect, technique: GuitarTechnique) {
     this.dim = dim;
     this._rect = new Rect(rect.x, rect.y, rect.width, rect.height);
-    this.effect = effect;
+    this.technique = technique;
     this._svgUtils = new SVGUtils();
 
     this.calc();
@@ -57,7 +57,7 @@ export class EffectLabelElement {
    */
   private bendPitchHTML(): void {
     // Using exclamation marks here. Very bad!!!
-    const nums = getPitchRatioNums(this.effect.options!.bendPitch!);
+    const nums = getPitchRatioNums(this.technique.bendOptions!.bendPitch!);
     const bigNumSize = this.dim.noteTextSize;
     const x = this._rect.x + this._rect.width - bigNumSize / 2;
     const y = this._rect.y + this._rect.height / 2 - bigNumSize / 2;
@@ -101,7 +101,7 @@ export class EffectLabelElement {
    * Generates prebend pitch HTML
    */
   private prebendPitchHTML(): void {
-    const nums = getPitchRatioNums(this.effect.options!.prebendPitch!);
+    const nums = getPitchRatioNums(this.technique.bendOptions!.prebendPitch!);
 
     const bigNumSize = this.dim.noteTextSize;
     const x = this._rect.x + this._rect.width / 2;
@@ -121,7 +121,7 @@ export class EffectLabelElement {
    */
   private bendAndReleasePitchHTML(): void {
     if (
-      this.effect.options!.bendPitch === this.effect.options!.bendReleasePitch
+      this.technique.bendOptions!.bendPitch === this.technique.bendOptions!.bendReleasePitch
     ) {
       this.bendPitchHTML();
       return;
@@ -132,7 +132,7 @@ export class EffectLabelElement {
     const xRelease = xBend + bigNumSize * 1.5;
     const y = this._rect.y + this._rect.height / 2 - this.dim.noteTextSize / 2;
 
-    const bendNums = getPitchRatioNums(this.effect.options!.bendPitch!);
+    const bendNums = getPitchRatioNums(this.technique.bendOptions!.bendPitch!);
     const bendHTML = this._svgUtils.ratioSVGHTML(
       bendNums[0],
       bendNums[1],
@@ -143,7 +143,7 @@ export class EffectLabelElement {
     );
 
     const releaseNums = getPitchRatioNums(
-      this.effect.options!.bendReleasePitch!
+      this.technique.bendOptions!.bendReleasePitch!
     );
     const releaseHTML = this._svgUtils.ratioSVGHTML(
       releaseNums[0],
@@ -162,8 +162,8 @@ export class EffectLabelElement {
    */
   private prebendAndReleasePitchHTML(): void {
     if (
-      this.effect.options!.prebendPitch ===
-      this.effect.options!.bendReleasePitch
+      this.technique.bendOptions!.prebendPitch ===
+      this.technique.bendOptions!.bendReleasePitch
     ) {
       this.prebendPitchHTML();
       return;
@@ -174,7 +174,7 @@ export class EffectLabelElement {
     const xRelease = xPrebend + bigNumSize * 1.5;
     const y = this._rect.y + this._rect.height / 2 - this.dim.noteTextSize / 2;
 
-    const prebendNums = getPitchRatioNums(this.effect.options!.prebendPitch!);
+    const prebendNums = getPitchRatioNums(this.technique.bendOptions!.prebendPitch!);
     const prebendHTML = this._svgUtils.ratioSVGHTML(
       prebendNums[0],
       prebendNums[1],
@@ -185,7 +185,7 @@ export class EffectLabelElement {
     );
 
     const releaseNums = getPitchRatioNums(
-      this.effect.options!.bendReleasePitch!
+      this.technique.bendOptions!.bendReleasePitch!
     );
     const releaseHTML = this._svgUtils.ratioSVGHTML(
       releaseNums[0],
@@ -230,26 +230,26 @@ export class EffectLabelElement {
   }
 
   /**
-   * Calc effect label element
+   * Calc technique label element
    */
   public calc(): void {
-    switch (this.effect.effectType) {
-      case GuitarEffectType.Bend:
+    switch (this.technique.type) {
+      case GuitarTechniqueType.Bend:
         this.bendPitchHTML();
         break;
-      case GuitarEffectType.Prebend:
+      case GuitarTechniqueType.Prebend:
         this.prebendPitchHTML();
         break;
-      case GuitarEffectType.BendAndRelease:
+      case GuitarTechniqueType.BendAndRelease:
         this.bendAndReleasePitchHTML();
         break;
-      case GuitarEffectType.PrebendAndRelease:
+      case GuitarTechniqueType.PrebendAndRelease:
         this.prebendAndReleasePitchHTML();
         break;
-      case GuitarEffectType.Vibrato:
+      case GuitarTechniqueType.Vibrato:
         this.vibratoHTML();
         break;
-      case GuitarEffectType.PalmMute:
+      case GuitarTechniqueType.PalmMute:
         this.palmMuteHTML();
         break;
       default:

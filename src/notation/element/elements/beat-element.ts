@@ -2,7 +2,7 @@ import { Beat } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { TabControllerDim } from "../controller";
 import { BeatNotesElement } from "./beat-notes-element";
-import { EffectLabelElement, EFFECT_TYPE_TO_LABEL } from "./effects";
+import { TechniqueLabelElement, TECHNIQUE_TYPE_TO_LABEL } from "./techniques";
 
 const dotScale1Dot = 1.05;
 const dotScale2Dot = 1.1;
@@ -41,20 +41,20 @@ export class BeatElement {
    */
   readonly beat: Beat;
   /**
-   * Effect label elements
+   * Technique label elements
    */
-  private _effectLabelElements: EffectLabelElement[];
+  private _techniqueLabelElements: TechniqueLabelElement[];
   /**
-   * Effect labels rectangle
+   * Technique labels rectangle
    */
-  private _effectLabelsRect: Rect;
+  private _techniqueLabelsRect: Rect;
 
   /**
    * Class that handles drawing beat element in the tab
    * @param dim Tab window dimensions
    * @param beatCoords Beat element coords
    * @param beat Beat
-   * @param labelsGapHeight Gap height for effect labels
+   * @param labelsGapHeight Gap height for technique labels
    */
   constructor(
     dim: TabControllerDim,
@@ -69,18 +69,18 @@ export class BeatElement {
     // this.beamRect = new Rect();
     this.rect = new Rect(beatCoords.x, beatCoords.y);
     this.beat = beat;
-    this._effectLabelsRect = new Rect(
+    this._techniqueLabelsRect = new Rect(
       0,
       this.dim.durationsHeight,
       0,
       labelsGapHeight
     );
-    this._effectLabelElements = [];
+    this._techniqueLabelElements = [];
     this._beatNotesElement = new BeatNotesElement(
       this.dim,
       this.beat,
       this.rect.width,
-      this._effectLabelsRect.height
+      this._techniqueLabelsRect.height
     );
 
     this.calc();
@@ -125,13 +125,13 @@ export class BeatElement {
     }
 
     this.rect.height =
-      this.dim.tabLineMinHeight + this._effectLabelsRect.height;
+      this.dim.tabLineMinHeight + this._techniqueLabelsRect.height;
 
-    this._effectLabelsRect.width = this.rect.width;
+    this._techniqueLabelsRect.width = this.rect.width;
 
     this._beatNotesElement.rect.width = this.rect.width;
     this._beatNotesElement.rect.y =
-      this.dim.durationsHeight + this._effectLabelsRect.height;
+      this.dim.durationsHeight + this._techniqueLabelsRect.height;
     this._beatNotesElement.rect.height =
       this.dim.noteRectHeight * this.beat.guitar.stringsCount;
     this._beatNotesElement.calc();
@@ -160,50 +160,50 @@ export class BeatElement {
     );
   }
 
-  private calcEffectLabels(): void {
-    const newEffectLabelElements: EffectLabelElement[] = [];
-    const oldEffectLabelElements = [...this._effectLabelElements];
+  private calcTechniqueLabels(): void {
+    const newTechniqueLabelElements: TechniqueLabelElement[] = [];
+    const oldTechniqueLabelElements = [...this._techniqueLabelElements];
 
     let totalLabelsHeight = 0;
     for (const noteElement of this._beatNotesElement.noteElements) {
       if (!noteElement) continue; // !!?? Not sure if this is needed
-      for (const effect of noteElement.note.effects) {
-        if (!EFFECT_TYPE_TO_LABEL[effect.effectType]) {
+      for (const technique of noteElement.note.techniques) {
+        if (!TECHNIQUE_TYPE_TO_LABEL[technique.type]) {
           continue;
         }
 
-        const oldElementIndex = oldEffectLabelElements.findIndex(
-          (e) => e.effect.uuid === effect.uuid
+        const oldElementIndex = oldTechniqueLabelElements.findIndex(
+          (e) => e.technique.uuid === technique.uuid
         );
-        let element: EffectLabelElement;
+        let element: TechniqueLabelElement;
 
         const x = 0;
         const y = this.durationRect.leftBottom.y + totalLabelsHeight;
         const width = this.rect.width;
-        const height = this.dim.effectLabelHeight;
+        const height = this.dim.techniqueLabelHeight;
         const rect = new Rect(x, y, width, height);
 
         if (oldElementIndex !== -1) {
           // Current label element is already present and calc-ed,
           // so just need to update it's dimensions
-          element = oldEffectLabelElements.splice(oldElementIndex, 1)[0];
+          element = oldTechniqueLabelElements.splice(oldElementIndex, 1)[0];
           element.update(rect);
         } else {
           // New label element has been just added,
-          // need to create a new effect label element
-          element = new EffectLabelElement(this.dim, rect, effect);
+          // need to create a new technique label element
+          element = new TechniqueLabelElement(this.dim, rect, technique);
         }
-        newEffectLabelElements.push(element);
+        newTechniqueLabelElements.push(element);
 
         totalLabelsHeight += height;
       }
     }
     if (totalLabelsHeight > 0) {
-      // const gapHeight = totalLabelsHeight - this._effectLabelsRect.height;
-      // this.setEffectGap(gapHeight);
-      this.setEffectGap(totalLabelsHeight);
+      // const gapHeight = totalLabelsHeight - this._techniqueLabelsRect.height;
+      // this.setTechniqueGap(gapHeight);
+      this.setTechniqueGap(totalLabelsHeight);
     }
-    this._effectLabelElements = newEffectLabelElements;
+    this._techniqueLabelElements = newTechniqueLabelElements;
   }
 
   /**
@@ -213,23 +213,23 @@ export class BeatElement {
     this.calcRectAndNotes();
     this.calcDurationDims();
     this.calcBeamRect();
-    this.calcEffectLabels();
+    this.calcTechniqueLabels();
   }
 
   public setHeight(newHeight: number): void {
     const diff = newHeight - this.rect.height;
-    this._effectLabelsRect.height += diff;
+    this._techniqueLabelsRect.height += diff;
     this._beatNotesElement.rect.y += diff;
     this.rect.height += diff;
   }
 
-  public setEffectGap(newGapHeight: number): void {
-    const oldGapHeight = this._effectLabelsRect.height;
+  public setTechniqueGap(newGapHeight: number): void {
+    const oldGapHeight = this._techniqueLabelsRect.height;
 
     this._beatNotesElement.rect.y += newGapHeight - oldGapHeight;
     this.rect.height += newGapHeight - oldGapHeight;
 
-    this._effectLabelsRect.height = newGapHeight;
+    this._techniqueLabelsRect.height = newGapHeight;
   }
 
   /**
@@ -238,16 +238,16 @@ export class BeatElement {
    * moved down and the gap between durations and notes is increased
    * (or created if there was none)
    */
-  public insertEffectGap(): void {
-    this._effectLabelsRect.height += this.dim.effectLabelHeight;
-    this._beatNotesElement.rect.y += this.dim.effectLabelHeight;
-    this.rect.height += this.dim.effectLabelHeight;
+  public insertTechniqueGap(): void {
+    this._techniqueLabelsRect.height += this.dim.techniqueLabelHeight;
+    this._beatNotesElement.rect.y += this.dim.techniqueLabelHeight;
+    this.rect.height += this.dim.techniqueLabelHeight;
   }
 
-  public removeEffectGap(): void {
-    this._effectLabelsRect.height -= this.dim.effectLabelHeight;
-    this._beatNotesElement.rect.y -= this.dim.effectLabelHeight;
-    this.rect.height -= this.dim.effectLabelHeight;
+  public removeTechniqueGap(): void {
+    this._techniqueLabelsRect.height -= this.dim.techniqueLabelHeight;
+    this._beatNotesElement.rect.y -= this.dim.techniqueLabelHeight;
+    this.rect.height -= this.dim.techniqueLabelHeight;
   }
 
   public scaleHorBy(scale: number): void {
@@ -263,11 +263,11 @@ export class BeatElement {
     this.rect.x *= scale;
     this.rect.width *= scale;
 
-    this._effectLabelsRect.x *= scale;
-    this._effectLabelsRect.width *= scale;
+    this._techniqueLabelsRect.x *= scale;
+    this._techniqueLabelsRect.width *= scale;
 
-    for (const effectLabelElement of this._effectLabelElements) {
-      effectLabelElement.scaleHorBy(scale);
+    for (const techniqueLabelElement of this._techniqueLabelElements) {
+      techniqueLabelElement.scaleHorBy(scale);
     }
 
     this._beatNotesElement.scaleHorBy(scale);
@@ -277,7 +277,7 @@ export class BeatElement {
     return this._beatNotesElement;
   }
 
-  public get effectLabelElements(): EffectLabelElement[] {
-    return this._effectLabelElements;
+  public get techniqueLabelElements(): TechniqueLabelElement[] {
+    return this._techniqueLabelElements;
   }
 }
