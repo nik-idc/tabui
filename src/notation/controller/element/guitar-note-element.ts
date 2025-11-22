@@ -23,7 +23,7 @@ export class GuitarNoteElement implements NoteElement {
   private _textRect: Rect = new Rect();
   /** Rectangle of the note text rectangle */
   private _textCoords: Point = new Point();
-  /** Array of guitar technique elements */
+  /** Array of guitar technique element */
   private _guitarTechniqueElements: GuitarTechniqueElement[];
 
   /**
@@ -110,7 +110,7 @@ export class GuitarNoteElement implements NoteElement {
     return this._textCoords;
   }
 
-  /** Array of guitar technique elements */
+  /** Array of guitar technique element */
   public get guitarTechniqueElements(): GuitarTechniqueElement[] {
     return this._guitarTechniqueElements;
   }

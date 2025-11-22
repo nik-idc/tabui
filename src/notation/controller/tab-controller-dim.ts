@@ -274,7 +274,7 @@ export class TabControllerDim {
    * Minimum height of one tab line (bar + durations above it).
    * NOTE: Each tab line may have a different height due to the
    * labels above the notes. Since each tab line has its own
-   * unique number of elements, the height of the tab line
+   * unique number of element, the height of the tab line
    * is calculated dynamically and stored in the 'TabLineElement' class
    * within the 'rect' property. This is just the min height
    */

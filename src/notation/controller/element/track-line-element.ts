@@ -1,6 +1,5 @@
-import { Bar, GuitarTechniqueType, MasterBar, Track } from "@/notation/model";
-import { Rect, Point, randomInt } from "@/shared";
-import { BarElement } from "./bar-element";
+import { Track } from "@/notation/model";
+import { Rect, randomInt } from "@/shared";
 import { StaffLineElement } from "./staff-line-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import { TrackElement } from "./track-element";
@@ -16,7 +15,7 @@ export class TrackLineElement {
   /** Parent track element */
   readonly trackElement: TrackElement;
 
-  /** Staff line elements on this track line */
+  /** Staff line element on this track line */
   private _staffLineElements: StaffLineElement[];
   /** Track line encapsulating rectangle */
   private _rect: Rect;
@@ -70,7 +69,7 @@ export class TrackLineElement {
   }
 
   /**
-   * Justifies elements by scaling all their widths
+   * Justifies element by scaling all their widths
    */
   public justifyStaves(): void {
     for (const staffLineElement of this._staffLineElements) {
@@ -126,7 +125,7 @@ export class TrackLineElement {
     return prevStaff ?? null;
   }
 
-  /** Staff line elements on this track line */
+  /** Staff line element on this track line */
   public get staffLineElements(): StaffLineElement[] {
     return this._staffLineElements;
   }

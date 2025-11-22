@@ -17,11 +17,11 @@ export class BarElement {
   /** Parent staff line element */
   readonly staffLineElement: StaffLineElement;
 
-  /** This bar's beat elements */
+  /** This bar's beat element */
   private _beatElements: BeatElement[];
   /** Beam segments of this bar element */
   private _beamSegments: BeamSegmentElement[];
-  /** All tuplet elements */
+  /** All tuplet element */
   private _tupletElements: BarTupletGroupElement[];
   /** Bar element rectangle */
   private _rect: Rect;
@@ -120,7 +120,7 @@ export class BarElement {
   }
 
   /**
-   * Calculates the bar outer rectangle & beat elements
+   * Calculates the bar outer rectangle & beat element
    */
   private calcRectAndBeats(): void {
     // Set main rectangle
@@ -178,7 +178,7 @@ export class BarElement {
   }
 
   /**
-   * Calculates tuplet elements
+   * Calculates tuplet element
    */
   private calcBarTupletGroupElements(): void {
     this._tupletElements = [];
@@ -404,7 +404,7 @@ export class BarElement {
     ];
   }
 
-  /** This bar's beat elements */
+  /** This bar's beat element */
   public get beatElements(): BeatElement[] {
     return this._beatElements;
   }
@@ -414,7 +414,7 @@ export class BarElement {
     return this._beamSegments;
   }
 
-  /** All tuplet elements */
+  /** All tuplet element */
   public get tupletElements(): BarTupletGroupElement[] {
     return this._tupletElements;
   }

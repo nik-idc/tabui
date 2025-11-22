@@ -7,7 +7,7 @@ import {
 import { Point, Rect, randomInt } from "@/shared";
 import { SVGUtils } from "./guitar-technique-html";
 import { GuitarNoteElement } from "../../guitar-note-element";
-import { TabLayoutDimensions } from "@/notation/element/tab-controller-dim";
+import { TabLayoutDimensions } from "@/notation/controller/tab-controller-dim";
 import { TechniqueElement } from "../technique-element";
 
 /**

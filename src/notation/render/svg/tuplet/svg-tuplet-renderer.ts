@@ -1,4 +1,4 @@
-import { TabController, TupletElement } from "@/notation/element";
+import { TabController, TupletElement } from "@/notation/controller";
 import { Point, createSVGG, createSVGPath, createSVGText } from "@/shared";
 import { SVGTupletSegmentRenderer } from "./svg-tuplet-segment-renderer";
 import { ElementRenderer } from "../../element-renderer";
@@ -73,7 +73,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       const id = `tuplet-path-${tupletUUID}`;
       this._completeTupletPath.setAttribute("id", id);
 
-      // Add elements to root SVG element
+      // Add element to root SVG element
       this._groupSVG.appendChild(this._completeTupletPath);
     }
 
@@ -119,7 +119,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       const id = `tuplet-text-${tupletUUID}`;
       this._completeTupletTextSVG.setAttribute("id", id);
 
-      // Add elements to root SVG element
+      // Add element to root SVG element
       this._groupSVG.appendChild(this._completeTupletTextSVG);
     }
 
@@ -153,7 +153,7 @@ export class SVGTupletRenderer implements ElementRenderer {
 
     const activeRenderers: SVGTupletSegmentRenderer[] = [];
 
-    // Check if there are any beat elements to remove
+    // Check if there are any beat element to remove
     const curBeatElementUUIDs = new Set(
       this._tupletElement.beatElements.map((b) => b.beat.uuid)
     );

@@ -1,4 +1,4 @@
-import { TabController } from "@/notation/element";
+import { TabController } from "@/notation/controller";
 import { TonejsDurationMap } from "@/notation/model";
 import { Point } from "@/shared";
 import * as Tone from "tone";

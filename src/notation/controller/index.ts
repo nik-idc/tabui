@@ -1,5 +1,5 @@
 export * from "./editor";
-export * from "./elements";
+export * from "./element";
 export * from "./selection";
-export * from "./tab-controller";
+export * from "./track-controller";
 export * from "./tab-controller-dim";

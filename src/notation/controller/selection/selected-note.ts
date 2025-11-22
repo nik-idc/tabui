@@ -1,4 +1,4 @@
-import { Bar, Track, Staff, Beat, GuitarNote, Note } from "@/notation/model";
+import { Bar, Staff, Beat, Note } from "@/notation/model";
 
 export enum SelectedMoveDirection {
   Left,
@@ -256,7 +256,7 @@ export class SelectedNote {
   // }
 
   // /**
-  //  * Selected bar elements line
+  //  * Selected bar element line
   //  */
   // public get staffLineElements(): StaffLineElement {
   //   return this.staffWindow.staffLineElements[this.staffLineElementIndex];

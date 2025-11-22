@@ -1,5 +1,5 @@
 import { EditorRenderer, SVGBeatRenderer, SVGNoteRenderer } from "@/notation";
-import { NoteElement, BeatElement, TabController } from "@/notation/element";
+import { NoteElement, BeatElement, TabController } from "@/notation/controller";
 import { NotationComponent } from "@/notation/notation-component";
 import { ElementRenderer } from "@/notation/render/element-renderer";
 import { Point } from "@/shared";

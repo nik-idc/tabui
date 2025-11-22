@@ -1,4 +1,4 @@
-import { TabController, BeatElement } from "@/notation/element";
+import { TabController, BeatElement } from "@/notation/controller";
 import { DURATION_TO_NAME, NoteDuration } from "@/notation/model";
 import { Point, createSVGG, createSVGImage, createSVGRect } from "@/shared";
 import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
@@ -250,7 +250,7 @@ export class SVGBeatRenderer implements ElementRenderer {
       }
     }
 
-    // Add & render new technique label elements
+    // Add & render new technique label element
     for (const techniqueLabelElement of this._beatElement.techniqueLabelElements) {
       const renderedLabel = this._renderedLabels.get(
         techniqueLabelElement.technique.uuid
@@ -286,7 +286,7 @@ export class SVGBeatRenderer implements ElementRenderer {
 
   private renderNoteElements(beatOffset: Point): SVGNoteRenderer[] {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to render note elements when SVG group undefined");
+      throw Error("Tried to render note element when SVG group undefined");
     }
 
     const activeRenderers: SVGNoteRenderer[] = [];
@@ -307,7 +307,7 @@ export class SVGBeatRenderer implements ElementRenderer {
       }
     }
 
-    // Add & render new note elements AND re-render existing notes
+    // Add & render new note element AND re-render existing notes
     for (const noteElement of this._beatElement.beatNotesElement.noteElements) {
       const renderedNote = this._renderedNoteElements.get(
         noteElement.note.uuid
@@ -332,11 +332,11 @@ export class SVGBeatRenderer implements ElementRenderer {
   }
 
   /**
-   * Unrender all note elements
+   * Unrender all note element
    */
   private unrenderNoteElements(): void {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender note elements when SVG group undefined");
+      throw Error("Tried to unrender note element when SVG group undefined");
     }
 
     for (const [uuid, renderer] of this._renderedNoteElements) {
@@ -380,7 +380,7 @@ export class SVGBeatRenderer implements ElementRenderer {
   }
 
   /**
-   * Unrender all beat element's DOM elements
+   * Unrender all beat element's DOM element
    */
   public unrender(): void {
     if (this._groupSVG === undefined) {

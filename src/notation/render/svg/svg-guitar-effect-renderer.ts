@@ -1,4 +1,4 @@
-import { TabController, GuitarTechniqueElement } from "@/notation/element";
+import { TabController, GuitarTechniqueElement } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 
@@ -177,7 +177,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
   }
 
   /**
-   * Unrender all technique element's DOM elements
+   * Unrender all technique element's DOM element
    */
   public unrender(): void {
     if (this._groupSVG === undefined) {

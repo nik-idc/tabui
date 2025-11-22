@@ -13,10 +13,10 @@ import {
   MasterBar,
   MasterBarData,
 } from "@/notation/model";
-import { SelectedNotesAndIds, TrackElement } from "../elements";
-import { BarElement } from "../elements/bar-element";
-import { BeatElement } from "../elements/beat-element";
-import { NoteElement } from "../elements/note-element";
+import { SelectedNotesAndIds, TrackElement } from "../element";
+import { BarElement } from "../element/bar-element";
+import { BeatElement } from "../element/beat-element";
+import { NoteElement } from "../element/note-element";
 import {
   MoveRightResult,
   SelectedNote,

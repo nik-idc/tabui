@@ -1,1 +1,1 @@
-export * from "./track-player";
+export * from "./score-player";

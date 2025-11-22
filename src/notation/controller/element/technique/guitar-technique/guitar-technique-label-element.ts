@@ -7,7 +7,7 @@ import {
 import { Rect, getPitchRatioNums, randomInt } from "@/shared";
 import { BeatElement } from "../../beat-element";
 import { SVGUtils } from "./guitar-technique-html";
-import { TabLayoutDimensions } from "@/notation/element/tab-controller-dim";
+import { TabLayoutDimensions } from "@/notation/controller/tab-controller-dim";
 import { TechniqueLabelElement } from "../technique-label-element";
 
 /**

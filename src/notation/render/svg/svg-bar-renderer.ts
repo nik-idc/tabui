@@ -1,4 +1,4 @@
-import { TabController, BarElement } from "@/notation/element";
+import { TabController, BarElement } from "@/notation/controller";
 import { BarRepeatStatus } from "@/notation/model";
 import {
   Point,
@@ -161,7 +161,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this._barBorderLinesSVG[0].setAttribute("id", `bar-border-${barUUID}-0`);
       this._barBorderLinesSVG[1].setAttribute("id", `bar-border-${barUUID}-1`);
 
-      // Add elements to root SVG element
+      // Add element to root SVG element
       this._groupSVG.appendChild(this._barBorderLinesSVG[0]);
       this._groupSVG.appendChild(this._barBorderLinesSVG[1]);
     }
@@ -223,7 +223,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this._barRepeatSign.setAttribute("id", `bar-repeat-${barUUID}`);
       this._barRepeatSign.setAttribute("preserveAspectRatio", "none");
 
-      // Add elements to root SVG element
+      // Add element to root SVG element
       this._groupSVG.appendChild(this._barRepeatSign);
     }
 
@@ -297,7 +297,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this._barSigSVG[0].setAttribute("id", `bar-sig-${barUUID}-0`);
       this._barSigSVG[1].setAttribute("id", `bar-sig-${barUUID}-1`);
 
-      // Add elements to root SVG element
+      // Add element to root SVG element
       this._groupSVG.appendChild(this._barSigSVG[0]);
       this._groupSVG.appendChild(this._barSigSVG[1]);
     }
@@ -356,7 +356,7 @@ export class SVGBarRenderer implements ElementRenderer {
       // Set id
       this._barTempoImageSVG.setAttribute("id", `bar-tempo-${barUUID}-image`);
 
-      // Add elements to root SVG element
+      // Add element to root SVG element
       this._groupSVG.appendChild(this._barTempoImageSVG);
     }
 
@@ -411,7 +411,7 @@ export class SVGBarRenderer implements ElementRenderer {
       // Set id
       this._barTempoTextSVG.setAttribute("id", `bar-tempo-${barUUID}-text`);
 
-      // Add elements to root SVG element
+      // Add element to root SVG element
       this._groupSVG.appendChild(this._barTempoTextSVG);
     }
 
@@ -470,7 +470,7 @@ export class SVGBarRenderer implements ElementRenderer {
         );
         curBeamSegmentLongSVG.setAttribute("preserveAspectRatio", "none");
 
-        // Add elements to root SVG element
+        // Add element to root SVG element
         // this._barBeamsSegmentsSVG.push(curBeamSegmentLongSVG);
         this._groupSVG.appendChild(curBeamSegmentLongSVG);
 
@@ -488,7 +488,7 @@ export class SVGBarRenderer implements ElementRenderer {
         );
         curBeamSegmentShortSVG.setAttribute("preserveAspectRatio", "none");
 
-        // Add elements to root SVG element
+        // Add element to root SVG element
         this._barBeamsSegmentsSVG.push({
           longSVG: curBeamSegmentLongSVG,
           shortSVG: curBeamSegmentShortSVG,
@@ -579,7 +579,7 @@ export class SVGBarRenderer implements ElementRenderer {
     const activeRenderers: (SVGTupletRenderer | SVGTupletSegmentRenderer)[] =
       [];
 
-    // Check if there are any beat elements to remove
+    // Check if there are any beat element to remove
     const curBarTupletGroupUUIDs = new Set(
       this._barElement.tupletElements.map((b) => b.tupletGroup.uuid)
     );
@@ -590,7 +590,7 @@ export class SVGBarRenderer implements ElementRenderer {
       }
     }
 
-    // Add & render new beat elements AND re-render existing beats
+    // Add & render new beat element AND re-render existing beats
     for (const tupletElement of this._barElement.tupletElements) {
       const renderedTuplet = this._renderedTupletElements.get(
         tupletElement.tupletGroup.uuid
@@ -782,7 +782,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this.unrenderSelectionEndGap();
     }
 
-    // Check if there are any beat elements to remove
+    // Check if there are any beat element to remove
     const curBeatElementUUIDs = new Set(
       this._barElement.beatElements.map((b) => b.beat.uuid)
     );
@@ -793,7 +793,7 @@ export class SVGBarRenderer implements ElementRenderer {
       }
     }
 
-    // Add & render new beat elements AND re-render existing beats
+    // Add & render new beat element AND re-render existing beats
     for (const beatElement of this._barElement.beatElements) {
       const renderedBeat = this._renderedBeatElements.get(
         beatElement.beat.uuid
@@ -818,7 +818,7 @@ export class SVGBarRenderer implements ElementRenderer {
   }
 
   /**
-   * Unrender all bar element's DOM elements
+   * Unrender all bar element's DOM element
    */
   public unrender(): void {
     for (const [uuid, renderer] of this._renderedBeatElements) {

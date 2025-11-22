@@ -15,7 +15,7 @@ export class StaffLineElement {
   /** Parent track line element */
   readonly trackLineElement: TrackLineElement;
 
-  /** Bar elements on this line */
+  /** Bar element on this line */
   private _barElements: BarElement[];
   /** Line encapsulating rectangle */
   private _rect: Rect;
@@ -40,7 +40,7 @@ export class StaffLineElement {
   }
 
   /**
-   * Justifies elements by scaling all their widths
+   * Justifies element by scaling all their widths
    */
   public justifyElements(): void {
     // Calc width of empty space
@@ -52,7 +52,7 @@ export class StaffLineElement {
       return;
     }
 
-    // Calc sum width of all bar elements
+    // Calc sum width of all bar element
     let sumWidth =
       this._barElements[this._barElements.length - 1].rect.rightTop.x;
 
@@ -220,7 +220,7 @@ export class StaffLineElement {
     return this._barElements.find((be) => be.bar.uuid === barUUID);
   }
 
-  /** Bar elements on this line getter */
+  /** Bar element on this line getter */
   public get barElements(): BarElement[] {
     return this._barElements;
   }

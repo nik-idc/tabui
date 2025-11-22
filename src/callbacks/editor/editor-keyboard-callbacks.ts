@@ -1,5 +1,5 @@
 import { EditorRenderer } from "@/notation";
-import { SelectedMoveDirection, TabController } from "@/notation/element";
+import { SelectedMoveDirection, TabController } from "@/notation/controller";
 import { GuitarTechniqueType, GuitarTechniqueOptions } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import { ElementRenderer } from "@/notation/render/element-renderer";

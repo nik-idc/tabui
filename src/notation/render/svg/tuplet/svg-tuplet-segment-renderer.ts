@@ -1,4 +1,4 @@
-import { TabController, BeatElement } from "@/notation/element";
+import { TabController, BeatElement } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { ElementRenderer } from "../../element-renderer";
 
@@ -64,7 +64,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
       this._tupletSegmentRectSVG.setAttribute("id", id);
       this._tupletSegmentRectSVG.setAttribute("fill", "black");
 
-      // Add elements to root SVG element
+      // Add element to root SVG element
       this._groupSVG.appendChild(this._tupletSegmentRectSVG);
     }
 
@@ -119,7 +119,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
       this._tupletSegmentTextSVG.setAttribute("dominant-baseline", "middle");
       this._tupletSegmentTextSVG.setAttribute("font-size", fontSize);
 
-      // Add elements to root SVG element
+      // Add element to root SVG element
       this._groupSVG.appendChild(this._tupletSegmentTextSVG);
     }
 

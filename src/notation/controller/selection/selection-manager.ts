@@ -1,5 +1,5 @@
 import { Staff, Beat, NoteDuration, Note, Track } from "@/notation/model";
-import { SelectedNote, MoveRightOutput, NoteElement } from "../elements";
+import { SelectedNote, MoveRightOutput, NoteElement } from "../element";
 
 /**
  * Class that manages selection state
@@ -136,7 +136,7 @@ export class SelectionManager {
     }
 
     if (startBeatElementSeqIndex === -1 || endBeatElementSeqIndex === -1) {
-      throw Error("Could not find start and beat elements' ids");
+      throw Error("Could not find start and beat element' ids");
     }
 
     for (let i = startBeatElementSeqIndex; i <= endBeatElementSeqIndex; i++) {

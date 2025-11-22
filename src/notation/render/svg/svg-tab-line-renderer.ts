@@ -1,4 +1,4 @@
-import { TabController, TabLineElement } from "@/notation/element";
+import { TabController, TabLineElement } from "@/notation/controller";
 import { Point } from "@/shared";
 import { SVGBarRenderer } from "./svg-bar-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
@@ -43,7 +43,7 @@ export class SVGTabLineRenderer implements ElementRenderer {
   public render(): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
     const tleOffset = new Point(0, this._tabLineElement.rect.y);
 
-    // Check if there are any bar elements to remove
+    // Check if there are any bar element to remove
     const curBarElementUUIDs = new Set(
       this._tabLineElement.barElements.map((b) => b.bar.uuid)
     );
@@ -60,7 +60,7 @@ export class SVGTabLineRenderer implements ElementRenderer {
       | SVGNoteRenderer
     )[] = [];
 
-    // Add & render new bar elements AND re-render existing bar elements
+    // Add & render new bar element AND re-render existing bar element
     for (const barElement of this._tabLineElement.barElements) {
       const renderedBar = this._renderedBarElements.get(barElement.bar.uuid);
       if (renderedBar === undefined) {
@@ -84,7 +84,7 @@ export class SVGTabLineRenderer implements ElementRenderer {
   }
 
   /**
-   * Unrender all tab line element's DOM elements
+   * Unrender all tab line element's DOM element
    */
   public unrender(): void {
     for (const [uuid, renderer] of this._renderedBarElements) {

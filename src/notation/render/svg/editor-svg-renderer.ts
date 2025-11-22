@@ -1,4 +1,4 @@
-import { TabController, NoteElement } from "@/notation/element";
+import { TabController, NoteElement } from "@/notation/controller";
 import { createSVG, createSVGRect, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
 import { SVGBarRenderer } from "./svg-bar-renderer";
@@ -54,7 +54,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   ): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
     const tabLineElements = tabController.getTabLineElements();
 
-    // Check if there are any bar elements to remove
+    // Check if there are any bar element to remove
     const curBarElementUUIDs = new Set(tabLineElements.map((t) => t.uuid));
     for (const [uuid, renderer] of this._renderedTabLineElements) {
       if (!curBarElementUUIDs.has(uuid)) {
@@ -69,7 +69,7 @@ export class EditorSVGRenderer implements EditorRenderer {
       | SVGNoteRenderer
     )[] = [];
 
-    // Add & render new bar elements
+    // Add & render new bar element
     for (const tabLineElement of tabLineElements) {
       const renderedTLE = this._renderedTabLineElements.get(
         tabLineElement.uuid

@@ -24,9 +24,9 @@ export class BeatElement {
   /** Parent bar element */
   readonly barElement: BarElement;
 
-  /** This beat's note elements */
+  /** This beat's note element */
   private _beatNotesElement: BeatNotesElement;
-  /** Technique label elements */
+  /** Technique label element */
   private _techniqueLabelElements: TechniqueLabelElement[];
   /** This beat's rectangle */
   private _rect: Rect;
@@ -185,7 +185,7 @@ export class BeatElement {
   }
 
   /**
-   * Calculate dimensions of the beat element and its' child elements
+   * Calculate dimensions of the beat element and its' child element
    */
   public calc(): void {
     this.calcRectAndNotes();
@@ -267,12 +267,12 @@ export class BeatElement {
     this._beatNotesElement.scaleHorBy(scale);
   }
 
-  /** Beat's note elements */
+  /** Beat's note element */
   public get beatNotesElement(): BeatNotesElement {
     return this._beatNotesElement;
   }
 
-  /** Technique label elements */
+  /** Technique label element */
   public get techniqueLabelElements(): TechniqueLabelElement[] {
     return this._techniqueLabelElements;
   }

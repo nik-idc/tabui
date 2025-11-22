@@ -1,4 +1,4 @@
-import { TabController, TechniqueLabelElement } from "@/notation/element";
+import { TabController, TechniqueLabelElement } from "@/notation/controller";
 import { Point, createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 
@@ -85,7 +85,7 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   }
 
   /**
-   * Unrender all technique label element's DOM elements
+   * Unrender all technique label element's DOM element
    */
   public unrender(): void {
     if (this._groupSVG === undefined) {

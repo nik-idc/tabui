@@ -1,4 +1,4 @@
-import { TabController, NoteElement } from "@/notation/element";
+import { TabController, NoteElement } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { SVGTechniqueRenderer } from "./svg-guitar-technique-renderer";
 import { ElementRenderer } from "../element-renderer";
@@ -168,7 +168,7 @@ export class SVGNoteRenderer implements ElementRenderer {
 
   /**
    * Render the rect behind note's text
-   * @param noteOffset Note elements global offset
+   * @param noteOffset Note element global offset
    */
   private renderNoteBackground(noteOffset: Point): void {
     if (this._groupSVG === undefined) {
@@ -224,7 +224,7 @@ export class SVGNoteRenderer implements ElementRenderer {
 
   /**
    * Render note's value as text
-   * @param noteOffset Note elements global offset
+   * @param noteOffset Note element global offset
    * @param noteElement Note element
    * @param selected True if note is selected, false otherwise
    */
@@ -335,7 +335,7 @@ export class SVGNoteRenderer implements ElementRenderer {
       }
     }
 
-    // Add & render new guitar technique elements
+    // Add & render new guitar technique element
     for (const techniqueElement of this._noteElement.guitarTechniqueElements) {
       const renderedTechnique = this._renderedTechniques.get(
         techniqueElement.technique.uuid
@@ -357,7 +357,7 @@ export class SVGNoteRenderer implements ElementRenderer {
   }
 
   /**
-   * Unrender all note element's DOM elements
+   * Unrender all note element's DOM element
    */
   public unrender(): void {
     if (this._groupSVG === undefined) {

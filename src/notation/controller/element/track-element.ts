@@ -1,19 +1,7 @@
-import {
-  Score,
-  Track,
-  Bar,
-  Beat,
-  GuitarNote,
-  MasterBar,
-} from "@/notation/model";
-import { Rect, randomInt, Point } from "@/shared";
+import { Score, Track, Bar, Beat } from "@/notation/model";
+import { randomInt, Point } from "@/shared";
 import { BarElement } from "./bar-element";
 import { BeatElement } from "./beat-element";
-import {
-  SelectedNote,
-  MoveRightOutput,
-  MoveRightResult,
-} from "../selection/selected-note";
 import { TrackLineElement } from "./track-line-element";
 import { NoteElement } from "./note-element";
 import { GuitarNoteElement } from "./guitar-note-element";
@@ -49,7 +37,7 @@ export class TrackElement {
   /** Track */
   readonly track: Track;
 
-  /** Track line elements */
+  /** Track line element */
   private _trackLineElements: TrackLineElement[] = [];
 
   /**
@@ -70,7 +58,7 @@ export class TrackElement {
   public calc(): void {
     // Fuck it we ball - raw dog everything from scratch
     // Event binding being a problem is an issue in and of itself
-    // since the render layer should track the models, not the elements
+    // since the render layer should track the models, not the element
     // And if I'm wrong I'll fix it so whatever
 
     this._trackLineElements = []; // Clear track lines
@@ -445,7 +433,7 @@ export class TrackElement {
 //     });
 
 //     if (trackLineElement === undefined || barElement === undefined) {
-//       throw Error("Could not find elements");
+//       throw Error("Could not find element");
 //     }
 
 //     const beatElement = barElement.beatElements[selectedNote.beatId];
@@ -496,7 +484,7 @@ export class TrackElement {
 //    * the resulting window with multiple bar lines
 //    */
 //   public calc_(): void {
-//     // Main idea: only create new elements if needed
+//     // Main idea: only create new element if needed
 //     // If an element has already been created, just recalc it
 
 //     // A list of new bars means that a score has a list of new master bars

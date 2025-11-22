@@ -14,7 +14,7 @@ export class BarTupletGroupElement {
   readonly tupletGroup: BarTupletGroup;
   /** Parent bar element */
   readonly barElement: BarElement;
-  /** Array of beat elements included in this tuplet group */
+  /** Array of beat element included in this tuplet group */
   readonly beatElements: BeatElement[];
 
   /** Tuplet element's outer rectangle */
@@ -24,7 +24,7 @@ export class BarTupletGroupElement {
    * Class that handles geometry & visually relevant info of a bar tuplet group
    * @param tupletGroup Tuplet group
    * @param barElement Bar element
-   * @param beatElements Beat elements
+   * @param beatElements Beat element
    */
   constructor(
     tupletGroup: BarTupletGroup,

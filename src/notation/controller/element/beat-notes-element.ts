@@ -6,7 +6,7 @@ import { NoteElement } from "./note-element";
 import { GuitarNoteElement } from "./guitar-note-element";
 
 /**
- * In-between class for containing only note elements of a beat element
+ * In-between class for containing only note element of a beat element
  */
 export class BeatNotesElement {
   /** Beat-notes element's unique identifier */
@@ -18,11 +18,11 @@ export class BeatNotesElement {
 
   /** Rectangle */
   private _rect: Rect;
-  /** Note elements */
+  /** Note element */
   private _noteElements: NoteElement[];
 
   /**
-   * In-between class for containing only note elements of a beat element
+   * In-between class for containing only note element of a beat element
    * @param beat Beat
    * @param beatElement Parent beat element
    */
@@ -48,7 +48,7 @@ export class BeatNotesElement {
   }
 
   /**
-   * Calculate the note elements
+   * Calculate the note element
    */
   public calc(): void {
     const newNoteElements = new Array<NoteElement>(
@@ -100,7 +100,7 @@ export class BeatNotesElement {
     return this._rect;
   }
 
-  /** Note elements */
+  /** Note element */
   public get noteElements(): NoteElement[] {
     return this._noteElements;
   }

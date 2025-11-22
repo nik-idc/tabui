@@ -1,4 +1,4 @@
-import { TabController } from "@/notation/element";
+import { TabController } from "@/notation/controller";
 import {
   NoteDuration,
   GuitarEffectType,
