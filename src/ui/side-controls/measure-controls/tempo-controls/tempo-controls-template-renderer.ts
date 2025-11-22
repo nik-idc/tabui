@@ -57,13 +57,13 @@ export class TempoControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const selectedElement =
+    const selectedNote =
       this.notationComponent.tabController.getSelectedBeat();
 
     let tempoInitValue: string;
-    if (selectedElement !== undefined) {
+    if (selectedNote !== undefined) {
       const selectedBar =
-        this.notationComponent.tabController.tab.findBeatsBar(selectedElement);
+        this.notationComponent.tabController.tab.findBeatsBar(selectedNote);
       tempoInitValue = `${selectedBar.tempo}`;
     } else {
       tempoInitValue = "120";

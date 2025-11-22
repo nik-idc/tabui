@@ -26,6 +26,8 @@ export interface MusicInstrument {
   name: string;
   /* MIDI program or custom sound ID for playback */
   program: number;
+  /** Describes the maximum amount of notes per beat */
+  maxPolyphony: number;
   /** Tuning for instruments with tuning possibility */
   tuning?: NoteType[];
 

@@ -55,6 +55,23 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
+   * Creates full deep copy of the track
+   */
+  public deepCopy(): Track<I> {
+    const stavesCopy: Staff<I>[] = [];
+    for (const staff of this.staves) {
+      stavesCopy.push(staff.deepCopy());
+    }
+
+    return new Track<I>(
+      this.score,
+      this.context.instrument,
+      this._name,
+      stavesCopy
+    );
+  }
+
+  /**
    * Converts track to JSON format
    * @returns Track in JSON format
    */

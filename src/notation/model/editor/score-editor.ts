@@ -30,7 +30,7 @@ export class ScoreEditor {
    * Transposes note value by the specified semitone count
    * @param semitones Semitone count
    */
-  public transpose<I extends MusicInstrument>(
+  public static transpose<I extends MusicInstrument>(
     note: Note<I>,
     semitones: number
   ): void {
@@ -59,7 +59,7 @@ export class ScoreEditor {
    * Raise note by the specified semitone count
    * @param semitones Semitone count
    */
-  public raiseNote<I extends MusicInstrument>(
+  public static raiseNote<I extends MusicInstrument>(
     note: Note<I>,
     semitones: number
   ): void {
@@ -70,7 +70,7 @@ export class ScoreEditor {
    * Lower note by the specified semitone count
    * @param semitones Semitone count
    */
-  public lowerNote<I extends MusicInstrument>(
+  public static lowerNote<I extends MusicInstrument>(
     note: Note<I>,
     semitones: number
   ): void {
@@ -82,7 +82,7 @@ export class ScoreEditor {
    * @param note Note
    * @param fret New fret value
    */
-  public setNoteFret(note: GuitarNote, fret: number): void {
+  public static setNoteFret(note: GuitarNote, fret: number): void {
     note.fret = fret;
     note.beat.bar.computeBeaming();
   }
@@ -92,7 +92,10 @@ export class ScoreEditor {
    * @param note Note
    * @param bendOptions Bend options
    */
-  public applyBend(note: GuitarNote, bendOptions?: BendOptionsData): void {}
+  public static applyBend(
+    note: GuitarNote,
+    bendOptions?: BendOptionsData
+  ): void {}
 
   /**
    * Apply technique to note
@@ -101,7 +104,7 @@ export class ScoreEditor {
    * @param bendOptions Bend options (if applicable)
    * @returns True if technique applied, false otherwise
    */
-  public applyTechniqueToNote<I extends MusicInstrument>(
+  public static applyTechniqueToNote<I extends MusicInstrument>(
     note: Note<I>,
     techniqueType: TechniqueType,
     bendOptions: BendTechniqueOptions | null
@@ -130,7 +133,7 @@ export class ScoreEditor {
    * @param technique Technique to add
    * @returns True if technique added succesfully, false if can't add this technique
    */
-  public addTechniqueToNote<I extends MusicInstrument>(
+  public static addTechniqueToNote<I extends MusicInstrument>(
     note: Note<I>,
     technique: Technique
   ): boolean {
@@ -158,7 +161,7 @@ export class ScoreEditor {
    * Removes technique from the note
    * @param type Technique type
    */
-  public removeTechniqueFromNote<I extends MusicInstrument>(
+  public static removeTechniqueFromNote<I extends MusicInstrument>(
     note: Note<I>,
     type: TechniqueType
   ): void {
@@ -169,28 +172,43 @@ export class ScoreEditor {
    * Sets (applies/removes) technique from notes
    * @param notes Notes
    * @param type Technique type
+   * @param bendOptions Bend options
+   * @returns True if any changes had been made
    */
-  public setTechniqueNotes<I extends MusicInstrument>(
+  public static setTechniqueNotes<I extends MusicInstrument>(
     notes: Note<I>[],
-    type: TechniqueType
-  ): void {
+    type: TechniqueType,
+    bendOptions: BendTechniqueOptions | null = null
+  ): boolean {
+    let changesMade = false;
+
     const hasAnyWithTechnique = notes.some((n) => n.hasTechnique(type));
     if (hasAnyWithTechnique) {
       for (const note of notes) {
-        note.removeTechnique(type);
+        if (note.removeTechnique(type)) {
+          changesMade = true;
+        }
       }
     } else {
       for (const note of notes) {
-        note.addTechnique(new GuitarTechnique(note, type));
+        if (note instanceof GuitarNote) {
+          if (note.addTechnique(new GuitarTechnique(note, type, bendOptions))) {
+            changesMade = true;
+          }
+        }
       }
     }
+
+    return changesMade;
   }
 
   /**
    * Remove all note techniques from a note
    * @param note Note
    */
-  public clearTechniques<I extends MusicInstrument>(note: Note<I>): void {
+  public static clearTechniques<I extends MusicInstrument>(
+    note: Note<I>
+  ): void {
     note.clearTechniques();
   }
 
@@ -200,7 +218,7 @@ export class ScoreEditor {
    * @param technique Technique to apply
    * @returns True if the technique applied to all notes
    */
-  public applyTechniqueToBeatsNotes<I extends MusicInstrument>(
+  public static applyTechniqueToBeatsNotes<I extends MusicInstrument>(
     beats: Beat<I>[],
     type: TechniqueType
   ): void {
@@ -213,7 +231,7 @@ export class ScoreEditor {
    * @param beat Beat
    * @param newDuration New duration
    */
-  public setDuration<I extends MusicInstrument>(
+  public static setDuration<I extends MusicInstrument>(
     beat: Beat<I>,
     newDuration: NoteDuration
   ) {
@@ -225,7 +243,7 @@ export class ScoreEditor {
    * Set beat's dot count (or reset it if setting the same dot)
    * @param newDots New dots value (can't be anything other than 0, 1 and 2)
    */
-  public setDots<I extends MusicInstrument>(
+  public static setDots<I extends MusicInstrument>(
     beats: Beat<I>[],
     newDots: number
   ): void {
@@ -243,7 +261,7 @@ export class ScoreEditor {
    * Sets (or unsets) tuplet settings
    * @param newSettings Tuplet settings (unsets tuplet if undefined)
    */
-  public setTupletGroupSettings<I extends MusicInstrument>(
+  public static setTupletGroupSettings<I extends MusicInstrument>(
     beat: Beat<I>,
     newSettings: TupletSettings | null = null
   ): void {
@@ -266,7 +284,7 @@ export class ScoreEditor {
    * Sets beam group id
    * @param newBeamGroupId New beam group id
    */
-  public setBeamGroupId<I extends MusicInstrument>(
+  public static setBeamGroupId<I extends MusicInstrument>(
     beat: Beat<I>,
     newBeamGroupId: number | null = null
   ): void {
@@ -276,7 +294,7 @@ export class ScoreEditor {
   /**
    * Sets if the beat is the last one in a beam group
    */
-  public setIsLastInBeamGroup<I extends MusicInstrument>(
+  public static setIsLastInBeamGroup<I extends MusicInstrument>(
     beat: Beat<I>,
     newIsLastInBeamGroup: boolean
   ): void {
@@ -289,7 +307,7 @@ export class ScoreEditor {
    * @param normalCount Normal count
    * @param tupletCount Tuplet count
    */
-  public setTuplet<I extends MusicInstrument>(
+  public static setTuplet<I extends MusicInstrument>(
     beats: Beat<I>[],
     normalCount: number,
     tupletCount: number
@@ -309,11 +327,14 @@ export class ScoreEditor {
    * @param index Index after which to insert the beat
    * @param beat Beat to insert
    */
-  public insertBeat<I extends MusicInstrument>(
+  public static insertBeat<I extends MusicInstrument>(
     bar: Bar<I>,
     index: number,
-    beat: Beat<I>
+    beat?: Beat<I>
   ): void {
+    if (beat === undefined) {
+      beat = new Beat(bar, bar.trackContext);
+    }
     bar.insertBeats(index, [beat]);
   }
 
@@ -322,7 +343,7 @@ export class ScoreEditor {
    * @param bar Bar to modify
    * @param index Index of the beat that will be prepended by the new beat
    */
-  public insertEmptyBeat<I extends MusicInstrument>(
+  public static insertEmptyBeat<I extends MusicInstrument>(
     bar: Bar<I>,
     index: number
   ): void {
@@ -336,7 +357,7 @@ export class ScoreEditor {
    * Prepends beat to the beginning of the bar
    * @param bar Bar to modify
    */
-  public prependBeat<I extends MusicInstrument>(bar: Bar<I>): void {
+  public static prependBeat<I extends MusicInstrument>(bar: Bar<I>): void {
     this.insertEmptyBeat(bar, 0);
   }
 
@@ -344,7 +365,7 @@ export class ScoreEditor {
    * Appends beat to the end of the bar
    * @param bar Bar to modify
    */
-  public appendBeat<I extends MusicInstrument>(bar: Bar<I>): void {
+  public static appendBeat<I extends MusicInstrument>(bar: Bar<I>): void {
     this.insertEmptyBeat(bar, bar.beats.length);
   }
 
@@ -353,7 +374,7 @@ export class ScoreEditor {
    * @param bar Bar to modify
    * @param index Index of the beat to be removed
    */
-  public removeBeat<I extends MusicInstrument>(
+  public static removeBeat<I extends MusicInstrument>(
     bar: Bar<I>,
     index: number
   ): void {
@@ -375,7 +396,7 @@ export class ScoreEditor {
    * @param index Index of the beat after which to insert
    * @param beats Beats to insert
    */
-  public insertBeats<I extends MusicInstrument>(
+  public static insertBeats<I extends MusicInstrument>(
     bar: Bar<I>,
     index: number,
     beats: Beat<I>[]
@@ -387,7 +408,7 @@ export class ScoreEditor {
    * Removes beats from tab
    * @param beats Beats to remove
    */
-  public removeBeats<I extends MusicInstrument>(beats: Beat<I>[]): void {
+  public static removeBeats<I extends MusicInstrument>(beats: Beat<I>[]): void {
     for (const beat of beats) {
       const beatIndex = beat.bar.beats.indexOf(beat);
       this.removeBeat(beat.bar, beatIndex);
@@ -399,7 +420,7 @@ export class ScoreEditor {
    * @param oldBeats Old beats
    * @param newBeats New beats
    */
-  public replaceBeats<I extends MusicInstrument>(
+  public static replaceBeats<I extends MusicInstrument>(
     oldBeats: Beat<I>[],
     newBeats: Beat<I>[]
   ): void {
@@ -456,7 +477,7 @@ export class ScoreEditor {
    * @param index Index after which to insert the bar
    * @param masterBarData Master bar data
    */
-  public insertMasterBar(
+  public static insertMasterBar(
     score: Score,
     index: number,
     masterBarData: MasterBarData
@@ -469,7 +490,10 @@ export class ScoreEditor {
    * @param score Score
    * @param masterBarData Master bar data
    */
-  public prependMasterBar(score: Score, masterBarData: MasterBarData): void {
+  public static prependMasterBar(
+    score: Score,
+    masterBarData: MasterBarData
+  ): void {
     score.prependMasterBar(masterBarData);
   }
 
@@ -478,7 +502,10 @@ export class ScoreEditor {
    * @param score Score
    * @param masterBarData Master bar data
    */
-  public appendMasterBar(score: Score, masterBarData: MasterBarData): void {
+  public static appendMasterBar(
+    score: Score,
+    masterBarData: MasterBarData
+  ): void {
     score.appendMasterBar(masterBarData);
   }
 
@@ -488,7 +515,7 @@ export class ScoreEditor {
    * @param instrument Track instrument
    * @param name Track name
    */
-  public addTrack<I extends MusicInstrument>(
+  public static addTrack<I extends MusicInstrument>(
     score: Score,
     instrument: I,
     name: string
@@ -501,7 +528,7 @@ export class ScoreEditor {
    * @param score Score to add a track to
    * @param index Index of the score to remove
    */
-  public removeTrack(score: Score, index: number): void {
+  public static removeTrack(score: Score, index: number): void {
     score.removeTrack(index);
   }
 }

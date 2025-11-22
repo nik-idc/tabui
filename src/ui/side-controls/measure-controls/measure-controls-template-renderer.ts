@@ -39,18 +39,18 @@ export class MeasureControlsTemplateRenderer {
   }
 
   private renderRepeatButtonsState(): void {
-    const selectedElement =
-      this.notationComponent.tabController.getSelectedElement();
+    const selectedNote =
+      this.notationComponent.tabController.getSelectedNote();
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
 
-    if (selectedElement === undefined) {
+    if (selectedNote === undefined) {
       this.template.repeatStartButton.classList.remove(appliedCSSClass);
       this.template.repeatStartButton.classList.add(disabledCSSClass);
       this.template.repeatEndButton.classList.remove(appliedCSSClass);
       this.template.repeatEndButton.classList.add(disabledCSSClass);
     } else {
-      const repeatStatus = selectedElement.bar.repeatStatus;
+      const repeatStatus = selectedNote.bar.repeatStatus;
       switch (repeatStatus) {
         case BarRepeatStatus.Start:
           this.template.repeatStartButton.classList.add(appliedCSSClass);

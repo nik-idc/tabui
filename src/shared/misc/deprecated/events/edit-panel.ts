@@ -234,7 +234,7 @@ export class EditPanel {
     effectType: GuitarEffectType,
     options?: GuitarEffectOptions
   ): void {
-    const selected = this.tabController.getSelectedElement();
+    const selected = this.tabController.getSelectedNote();
 
     if (selected === undefined) {
       return;

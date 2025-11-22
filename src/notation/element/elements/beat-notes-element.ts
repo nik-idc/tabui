@@ -1,53 +1,48 @@
-import { Beat } from "@/notation/model";
+import { Beat, GuitarNote } from "@/notation/model";
 import { Rect, randomInt } from "@/shared";
-import { TabControllerDim } from "../controller";
+import { BeatElement } from "./beat-element";
+import { TabLayoutDimensions } from "../tab-controller-dim";
 import { NoteElement } from "./note-element";
+import { GuitarNoteElement } from "./guitar-note-element";
 
 /**
- * Class that handles drawing note elements of the beat
+ * In-between class for containing only note elements of a beat element
  */
 export class BeatNotesElement {
+  /** Beat-notes element's unique identifier */
   readonly uuid: number;
-  /**
-   * Tab window dimensions
-   */
-  readonly dim: TabControllerDim;
-  /**
-   * Beat
-   */
+  /** The beat */
   readonly beat: Beat;
-  /**
-   * Rectangle
-   */
-  rect: Rect;
-  /**
-   * Note elements
-   */
-  noteElements: NoteElement[];
+  /** Parent beat element */
+  readonly beatElement: BeatElement;
+
+  /** Rectangle */
+  private _rect: Rect;
+  /** Note elements */
+  private _noteElements: NoteElement[];
 
   /**
-   * Class that handles drawing note elements of the beat
-   * @param dim Tab window dimensions
+   * In-between class for containing only note elements of a beat element
    * @param beat Beat
-   * @param width Width of the beat element
-   * @param labelsGapHeight Height of the labels gap. Dictates the y-axis of the rect
+   * @param beatElement Parent beat element
    */
-  constructor(
-    dim: TabControllerDim,
-    beat: Beat,
-    width: number,
-    labelsGapHeight: number = 0
-  ) {
+  constructor(beat: Beat, beatElement: BeatElement) {
     this.uuid = randomInt();
-    this.dim = dim;
     this.beat = beat;
-    this.rect = new Rect(
+    this.beatElement = beatElement;
+
+    TabLayoutDimensions.DURATIONS_HEIGHT;
+    this._rect = new Rect(
       0,
-      this.dim.durationsHeight + labelsGapHeight,
-      width,
-      this.dim.noteRectHeight * this.beat.guitar.stringsCount
+      TabLayoutDimensions.DURATIONS_HEIGHT +
+        this.beatElement.techniqueLabelsRect.height,
+      beatElement.rect.width,
+      TabLayoutDimensions.NOTE_RECT_HEIGHT *
+        this.beat.trackContext.instrument.maxPolyphony
     );
-    this.noteElements = new Array<NoteElement>(this.beat.guitar.stringsCount);
+    this._noteElements = new Array<NoteElement>(
+      this.beat.trackContext.instrument.maxPolyphony
+    );
 
     this.calc();
   }
@@ -57,42 +52,56 @@ export class BeatNotesElement {
    */
   public calc(): void {
     const newNoteElements = new Array<NoteElement>(
-      this.beat.guitar.stringsCount
+      this.beat.trackContext.instrument.maxPolyphony
     );
-    const oldNoteElements = this.noteElements;
+    const oldNoteElements = this._noteElements;
 
     for (let i = 0; i < this.beat.notes.length; i++) {
       const note = this.beat.notes[i];
       if (note === undefined) continue; // !! Not sure if this is necessary
 
-      const stringNum = note.stringNum;
-      const oldElement = oldNoteElements[stringNum - 1];
+      const oldElement = oldNoteElements[i];
 
       if (oldElement !== undefined && oldElement.note.uuid === note.uuid) {
         // If the current note is the same note as before,
         // just update it's dimensions
-        oldElement.rect.width = this.rect.width;
+        oldElement.rect.width = this._rect.width;
         oldElement.calc();
-        newNoteElements[stringNum - 1] = oldElement;
+        newNoteElements[i] = oldElement;
       } else {
         // If the current note is new,
         // create a new note element for it
-        newNoteElements[stringNum - 1] = new NoteElement(
-          this.dim,
-          this.rect.width,
-          note
-        );
+
+        // VERY BAD!!! but for now will do. as always lol
+        if (note instanceof GuitarNote) {
+          newNoteElements[i] = new GuitarNoteElement(note, this);
+        }
       }
     }
-    this.noteElements = newNoteElements;
+
+    this._noteElements = newNoteElements;
   }
 
+  /**
+   * Scales the element & it's children horizontally by the factor
+   * @param scale Scale factor
+   */
   public scaleHorBy(scale: number): void {
-    this.rect.x *= scale;
-    this.rect.width *= scale;
+    this._rect.x *= scale;
+    this._rect.width *= scale;
 
-    for (const noteElement of this.noteElements) {
+    for (const noteElement of this._noteElements) {
       noteElement.scaleHorBy(scale);
     }
+  }
+
+  /** Beat-notes element main rectangle */
+  public get rect(): Rect {
+    return this._rect;
+  }
+
+  /** Note elements */
+  public get noteElements(): NoteElement[] {
+    return this._noteElements;
   }
 }

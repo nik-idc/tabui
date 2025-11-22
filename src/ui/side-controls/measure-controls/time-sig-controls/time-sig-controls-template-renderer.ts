@@ -60,14 +60,14 @@ export class TimeSigControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const selectedElement =
+    const selectedNote =
       this.notationComponent.tabController.getSelectedBeat();
 
     let beatsInitValue: string;
     let durationInitValue: string;
-    if (selectedElement !== undefined) {
+    if (selectedNote !== undefined) {
       const selectedBar =
-        this.notationComponent.tabController.tab.findBeatsBar(selectedElement);
+        this.notationComponent.tabController.tab.findBeatsBar(selectedNote);
       beatsInitValue = `${selectedBar.beatsCount}`;
       durationInitValue = `${1 / selectedBar.duration}`;
     } else {

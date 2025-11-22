@@ -52,12 +52,12 @@ export class TechniqueControlsTemplateRenderer {
   ): void {
     const selection =
       this.notationComponent.tabController.getSelectionAsArray();
-    const selectedElement =
-      this.notationComponent.tabController.getSelectedElement();
+    const selectedNote =
+      this.notationComponent.tabController.getSelectedNote();
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
 
-    if (selectedElement === undefined) {
+    if (selectedNote === undefined) {
       if (
         TECHNIQUE_TYPE_TO_SCOPE[type] === GuitarTechniqueScope.NoteLevelTechnique
       ) {
@@ -78,20 +78,20 @@ export class TechniqueControlsTemplateRenderer {
       if (
         TECHNIQUE_TYPE_TO_SCOPE[type] ===
           GuitarTechniqueScope.NoteLevelTechnique &&
-        selectedElement.note.fret === undefined
+        selectedNote.note.fret === undefined
       ) {
         button.classList.remove(appliedCSSClass);
         button.classList.add(disabledCSSClass);
         return;
       }
 
-      if (selectedElement.note.hasTechnique(type)) {
+      if (selectedNote.note.hasTechnique(type)) {
         button.classList.add(appliedCSSClass);
         button.classList.remove(disabledCSSClass);
         return;
       }
 
-      if (selectedElement.note.techniqueApplicable(type)) {
+      if (selectedNote.note.techniqueApplicable(type)) {
         button.classList.remove(appliedCSSClass);
         button.classList.remove(disabledCSSClass);
         return;

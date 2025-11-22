@@ -1,217 +1,159 @@
 import { Bar, BarRepeatStatus, Beat } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabControllerDim } from "../controller";
 import { BeamSegmentElement } from "./beam-segment-element";
 import { BeatElement } from "./beat-element";
-import { TupletElement } from "./tuplet-element";
+import { BarTupletGroupElement } from "./bar-tuplet-group-element";
+import { TabLayoutDimensions } from "../tab-controller-dim";
+import { StaffLineElement } from "./staff-line-element";
 
 /**
- * Class that handles drawing beat element in the tab
+ * Class that handles geometry & visually relevant info of a bar
  */
 export class BarElement {
+  /** Unique identifier for the bar element */
   readonly uuid: number;
-  /**
-   * Tab window dimensions
-   */
-  readonly dim: TabControllerDim;
-  /**
-   * This bar's beat elements
-   */
-  public beatElements: BeatElement[];
-  /**
-   * If signature is to be shown in the bar
-   */
-  public showSignature: boolean;
-  /**
-   * If tempo is to be shown in the bar
-   */
-  public showTempo: boolean;
-  /**
-   * Tempo rectangle
-   */
-  public tempoRect: Rect;
-  /**
-   * Time signature rectangle
-   */
-  public timeSigRect: Rect;
-  /**
-   * Repeat sign rectangle
-   */
-  public repeatRect: Rect;
-  /**
-   * The height of the gap between durations and notes for technique labels
-   */
-  private _labelsGapHeight: number;
-  /**
-   * Beam segments of this bar element
-   */
-  public beamSegments: BeamSegmentElement[];
-  /**
-   * All tuplet elements
-   */
-  public tupletElements: TupletElement[];
-  /**
-   * Bar element rectangle
-   */
-  public rect: Rect;
-  /**
-   * Bar element's lines
-   * The reason they are here and not in 'TabLineElement' is
-   * because, if a bar's durations don't fit the lines of that
-   * specific bar, then they need to be red. No way to do that
-   * in 'TabLineElement'
-   */
-  public staffLines: Point[][];
-  /**
-   * The bar
-   */
+  /** The bar */
   readonly bar: Bar;
+  /** Parent staff line element */
+  readonly staffLineElement: StaffLineElement;
+
+  /** This bar's beat elements */
+  private _beatElements: BeatElement[];
+  /** Beam segments of this bar element */
+  private _beamSegments: BeamSegmentElement[];
+  /** All tuplet elements */
+  private _tupletElements: BarTupletGroupElement[];
+  /** Bar element rectangle */
+  private _rect: Rect;
+  /** Bar element's lines */
+  private _staffLines: Point[][];
+  /** Tempo rectangle */
+  private _tempoRect: Rect;
+  /** Time signature rectangle */
+  private _timeSigRect: Rect;
+  /** Repeat sign rectangle */
+  private _repeatRect: Rect;
+  /** If signature is to be shown in the bar */
+  private _showSignature: boolean;
+  /** If tempo is to be shown in the bar */
+  private _showTempo: boolean;
+  /** Technique label gap height */
+  private _labelsGapHeight: number;
 
   /**
-   * Class that handles drawing beat element in the tab
-   * @param dim Tab window dimensions
-   * @param barCoords Bar element coords
+   * Class that handles geometry & visually relevant info of a bar
    * @param bar Bar
-   * @param showSignature Whether to show signature
-   * @param showTempo Whether to show tempo
+   * @param staffLineElement Parent staff line element
    */
-
-  constructor(
-    dim: TabControllerDim,
-    // barCoords: Point,
-    bar: Bar,
-    showSignature: boolean,
-    showTempo: boolean,
-    horizontalBarOffset: number = 0,
-    labelGapHeight: number = 0
-  ) {
+  constructor(bar: Bar, staffLineElement: StaffLineElement) {
     this.uuid = randomInt();
-    this.dim = dim;
-    this.beatElements = [];
-    this.showSignature = showSignature;
-    this.showTempo = showTempo;
-    this.tempoRect = new Rect();
-    this.timeSigRect = new Rect();
-    this.repeatRect = new Rect();
-    this.beamSegments = [];
-    this.tupletElements = [];
-    this._labelsGapHeight = labelGapHeight;
-    this.rect = new Rect(
-      horizontalBarOffset,
-      0,
-      0,
-      this.dim.tabLineMinHeight + this._labelsGapHeight
-    );
     this.bar = bar;
-    this.staffLines = [];
+    this.staffLineElement = staffLineElement;
 
-    this.calc();
-  }
+    this._beatElements = [];
+    this._showSignature = false;
+    this._showTempo = false;
+    this._tempoRect = new Rect();
+    this._timeSigRect = new Rect();
+    this._repeatRect = new Rect();
+    this._beamSegments = [];
+    this._tupletElements = [];
+    this._labelsGapHeight = 0;
+    this._rect = new Rect();
+    this._staffLines = [];
 
-  public update(prevBar?: Bar, horizontalBarOffset: number = 0): void {
-    this.showSignature =
-      prevBar !== undefined ? this.bar.signature !== prevBar.signature : true;
-    this.showTempo =
-      prevBar !== undefined ? this.bar.tempo !== prevBar.tempo : true;
-    this.rect.x = horizontalBarOffset;
     this.calc();
   }
 
   /**
-   * TODO: Change all elements except TabLineElement to use local coords
-   * Later adjust the render function
+   * Calculates time sig & tempo visibility
    */
+  private calcVisibility(): void {
+    const prevBar = this.bar.staff.getPrevBar(this.bar);
 
+    this._showSignature =
+      prevBar !== null
+        ? this.bar.masterBar.maxDuration !== this.bar.masterBar.maxDuration
+        : true;
+    this._showTempo =
+      prevBar !== null
+        ? this.bar.masterBar.tempo !== prevBar.masterBar.tempo
+        : true;
+  }
+
+  /**
+   * Calc tempo rectangle
+   */
   private calcTempoRect(): void {
     // Tempo rectangle
-    const tempoRectWidth = this.showTempo ? this.dim.tempoRectWidth : 0;
-    this.tempoRect.x = 0;
-    this.tempoRect.y = 0;
-    this.tempoRect.width = tempoRectWidth;
-    this.tempoRect.height = this.dim.tempoRectHeight;
+    const tempoRectWidth = this._showTempo
+      ? TabLayoutDimensions.TEMPO_RECT_WIDTH
+      : 0;
+    this._tempoRect.x = 0;
+    this._tempoRect.y = 0;
+    this._tempoRect.width = tempoRectWidth;
+    this._tempoRect.height = TabLayoutDimensions.TEMPO_RECT_HEIGHT;
   }
 
+  /**
+   * Calc time signature rectangle
+   */
   private calcTimeSigRect(): void {
     // Time signature rectangle
-    const timeSigWidth = this.showSignature ? this.dim.timeSigRectWidth : 0;
-    this.timeSigRect.x =
-      this.bar.repeatStatus === BarRepeatStatus.Start
-        ? this.dim.repeatSignWidth
+    const timeSigWidth = this._showSignature
+      ? TabLayoutDimensions.TIME_SIG_RECT_WIDTH
+      : 0;
+    this._timeSigRect.x =
+      this.bar.masterBar.repeatStatus === BarRepeatStatus.Start
+        ? TabLayoutDimensions.REPEAT_SIGN_WIDTH
         : 0;
-    this.timeSigRect.y =
-      this.tempoRect.leftBottom.y +
-      this.dim.tupletRectHeight +
-      this.dim.durationsHeight +
+    this._timeSigRect.y =
+      this._tempoRect.leftBottom.y +
+      TabLayoutDimensions.TUPLET_RECT_HEIGHT +
+      TabLayoutDimensions.DURATIONS_HEIGHT +
       this._labelsGapHeight +
-      this.dim.noteRectHeight / 2;
-    this.timeSigRect.width = timeSigWidth;
-    this.timeSigRect.height = this.dim.timeSigRectHeight;
+      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2;
+    this._timeSigRect.width = timeSigWidth;
+    this._timeSigRect.height = TabLayoutDimensions.getStaffHeight(
+      this.bar.trackContext.instrument
+    );
   }
 
-  private calcBeatsAndRect(): void {
+  /**
+   * Calculates the bar outer rectangle & beat elements
+   */
+  private calcRectAndBeats(): void {
     // Set main rectangle
-    this.rect.width =
-      this.bar.repeatStatus === BarRepeatStatus.Start
-        ? this.dim.repeatSignWidth
+    const prevBarElement = this.staffLineElement.getPrevBarElement(this);
+    this._rect.x = prevBarElement?._rect.x ?? 0;
+    this._rect.y = 0;
+    this._rect.width =
+      this.bar.masterBar.repeatStatus === BarRepeatStatus.Start
+        ? TabLayoutDimensions.REPEAT_SIGN_WIDTH
         : 0;
-    this.rect.width += this.showSignature ? this.timeSigRect.width : 0;
+    this._rect.width += this._showSignature ? this._timeSigRect.width : 0;
 
     // Calculate beats
-    const newBeatElements: BeatElement[] = [];
-    const oldBeatElements = [...this.beatElements];
-
-    let startX = 0;
-    if (this.bar.repeatStatus === BarRepeatStatus.Start) {
-      startX += this.dim.repeatSignWidth;
-    }
-    if (this.showSignature) {
-      startX += this.dim.timeSigRectWidth;
-    }
-
-    const beatCoords = new Point(
-      startX,
-      this.rect.y + this.tempoRect.height + this.dim.tupletRectHeight
-    );
+    this._beatElements = [];
     for (const beat of this.bar.beats) {
-      const oldElementIndex = oldBeatElements.findIndex(
-        (e) => e.beat.uuid === beat.uuid
-      );
-      let beatElement: BeatElement;
+      const beatElement = new BeatElement(beat, this);
+      this._beatElements.push(beatElement);
 
-      if (oldElementIndex !== -1) {
-        // Beat already present in the bar and calc-ed,
-        // need to just update it
-        beatElement = oldBeatElements.splice(oldElementIndex, 1)[0];
-        beatElement.rect.x = beatCoords.x;
-        beatElement.rect.y = beatCoords.y;
-        beatElement.calc();
-      } else {
-        // New beat added to the bar, not yet calc-ed,
-        // so need to create a new beat element and add it
-        beatElement = new BeatElement(
-          this.dim,
-          beatCoords,
-          beat,
-          this._labelsGapHeight
-        );
-      }
-
-      newBeatElements.push(beatElement);
-
-      beatCoords.x += beatElement.rect.width;
-      this.rect.width += beatElement.rect.width;
+      this._rect.width += beatElement.rect.width;
     }
-    this.beatElements = newBeatElements;
 
-    if (this.bar.repeatStatus === BarRepeatStatus.End) {
-      this.rect.width += this.dim.repeatSignWidth;
+    if (this.bar.masterBar.repeatStatus === BarRepeatStatus.End) {
+      this._rect.width += TabLayoutDimensions.REPEAT_SIGN_WIDTH;
     }
   }
 
+  /**
+   * Calculates beaming groups
+   */
   private calcBeamGroups(): void {
-    this.beamSegments = [];
+    this._beamSegments = [];
     for (let i = 0; i < this.bar.beamingGroups.length; i++) {
-      const beamGroupBeats = this.beatElements.filter(
+      const beamGroupBeats = this._beatElements.filter(
         (beatEl) => beatEl.beat.beamGroupId === i
       );
 
@@ -223,8 +165,9 @@ export class BarElement {
         const curBeatElement = beamGroupBeats[j];
         const nextBeatElement = beamGroupBeats[j + 1];
         const prevBeatElement = j === 0 ? undefined : beamGroupBeats[j - 1];
-        this.beamSegments.push(
+        this._beamSegments.push(
           new BeamSegmentElement(
+            this,
             curBeatElement,
             nextBeatElement,
             prevBeatElement
@@ -234,69 +177,59 @@ export class BarElement {
     }
   }
 
-  private calcTupletElements(): void {
-    this.tupletElements = [];
+  /**
+   * Calculates tuplet elements
+   */
+  private calcBarTupletGroupElements(): void {
+    this._tupletElements = [];
     for (const tupletGroup of this.bar.tupletGroups) {
-      const startBeatElement = this.beatElements.find((be) => {
-        return be.beat.uuid === tupletGroup.beats[0].actualBeat.uuid;
-      });
-      if (startBeatElement === undefined) {
-        throw Error("Could not find starting beat element of tuplet group");
-      }
-
-      const tupletGroupCoords = new Point(
-        startBeatElement.rect.x,
-        startBeatElement.rect.y
-      );
-
-      const tupletBeatElements = this.beatElements.filter((b) =>
+      const tupletBeatElements = this._beatElements.filter((b) =>
         tupletGroup.beats.some((tb) => tb.actualBeat.uuid === b.beat.uuid)
       );
 
-      this.tupletElements.push(
-        new TupletElement(
-          this.dim,
-          tupletGroup,
-          tupletBeatElements,
-          tupletGroupCoords
-        )
+      this._tupletElements.push(
+        new BarTupletGroupElement(tupletGroup, this, tupletBeatElements)
       );
     }
-
-    // console.log(this.tupletElements);
   }
 
+  /**
+   * Calculates repeat rectangle
+   */
   private calcRepeatRect(): void {
-    if (this.bar.repeatStatus === BarRepeatStatus.None) {
-      this.repeatRect.reset();
-    } else if (this.bar.repeatStatus === BarRepeatStatus.Start) {
-      this.repeatRect.set(
+    if (this.bar.masterBar.repeatStatus === BarRepeatStatus.None) {
+      this._repeatRect.reset();
+    } else if (this.bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
+      this._repeatRect.set(
         0,
-        this.timeSigRect.y,
-        this.dim.repeatSignWidth,
-        this.dim.repeatSignHeight
+        this._timeSigRect.y,
+        TabLayoutDimensions.REPEAT_SIGN_WIDTH,
+        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
       );
-    } else if (this.bar.repeatStatus === BarRepeatStatus.End) {
-      this.repeatRect.set(
-        this.rect.width - this.dim.repeatSignWidth,
-        this.timeSigRect.y,
-        this.dim.repeatSignWidth,
-        this.dim.repeatSignHeight
+    } else if (this.bar.masterBar.repeatStatus === BarRepeatStatus.End) {
+      this._repeatRect.set(
+        this._rect.width - TabLayoutDimensions.REPEAT_SIGN_WIDTH,
+        this._timeSigRect.y,
+        TabLayoutDimensions.REPEAT_SIGN_WIDTH,
+        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
       );
     }
   }
 
+  /**
+   * Calculates bar's staff lines
+   */
   private calcStaffLines(): void {
     // Make lines
-    this.staffLines = [];
+    this._staffLines = [];
     let y =
-      this.rect.leftBottom.y -
-      this.dim.timeSigRectHeight -
-      this.dim.noteRectHeight / 2;
-    for (let i = 0; i < this.bar.guitar.stringsCount; i++) {
-      this.staffLines.push([new Point(0, y), new Point(this.rect.width, y)]);
+      this._rect.leftBottom.y -
+      TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument) -
+      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2;
+    for (let i = 0; i < this.bar.trackContext.instrument.maxPolyphony; i++) {
+      this._staffLines.push([new Point(0, y), new Point(this._rect.width, y)]);
 
-      y += this.dim.noteRectHeight;
+      y += TabLayoutDimensions.NOTE_RECT_HEIGHT;
     }
   }
 
@@ -304,25 +237,30 @@ export class BarElement {
    * Calculates this bar element
    */
   calc(): void {
+    this.calcVisibility();
     this.calcTempoRect();
     this.calcTimeSigRect();
-    this.calcBeatsAndRect();
+    this.calcRectAndBeats();
     this.calcBeamGroups();
-    this.calcTupletElements();
+    this.calcBarTupletGroupElements();
     this.calcRepeatRect();
     this.calcStaffLines();
   }
 
+  /**
+   * Sets technique gap height to the new provided value
+   * @param newGapHeight New gap height
+   */
   public setTechniqueGap(newGapHeight: number): void {
     // Apply the necessary gap height
     const oldGapHeight = this._labelsGapHeight;
 
-    this.rect.height += newGapHeight - oldGapHeight;
-    this.timeSigRect.y += newGapHeight - oldGapHeight;
+    this._rect.height += newGapHeight - oldGapHeight;
+    this._timeSigRect.y += newGapHeight - oldGapHeight;
 
     this._labelsGapHeight = newGapHeight;
 
-    for (const beatElement of this.beatElements) {
+    for (const beatElement of this._beatElements) {
       beatElement.setTechniqueGap(newGapHeight);
     }
 
@@ -335,15 +273,15 @@ export class BarElement {
    */
   public calcTechniqueGap(): void {
     // Reset labels gap height to 0
-    this.timeSigRect.y -= this._labelsGapHeight;
-    this.rect.height -= this._labelsGapHeight;
+    this._timeSigRect.y -= this._labelsGapHeight;
+    this._rect.height -= this._labelsGapHeight;
     this._labelsGapHeight = 0;
 
     // Figure out which beat element
     // is supposed to be the tallest one
-    let mostLabelsBeatHeight = this.rect.height;
+    let mostLabelsBeatHeight = this._rect.height;
     let mostLabelsCount = 0;
-    for (const beatElement of this.beatElements) {
+    for (const beatElement of this._beatElements) {
       if (beatElement.techniqueLabelElements.length > mostLabelsCount) {
         mostLabelsCount = beatElement.techniqueLabelElements.length;
         mostLabelsBeatHeight = beatElement.rect.height;
@@ -351,182 +289,106 @@ export class BarElement {
     }
 
     // Apply the necessary gap height
-    const newGapHeight = mostLabelsBeatHeight - this.rect.height;
+    const newGapHeight = mostLabelsBeatHeight - this._rect.height;
     this._labelsGapHeight = newGapHeight;
-    this.rect.height += this._labelsGapHeight;
-    this.timeSigRect.y += this._labelsGapHeight;
+    this._rect.height += this._labelsGapHeight;
+    this._timeSigRect.y += this._labelsGapHeight;
 
-    for (const beatElement of this.beatElements) {
+    for (const beatElement of this._beatElements) {
       beatElement.setTechniqueGap(newGapHeight);
     }
 
     this.calcStaffLines();
   }
 
+  /**
+   * Scales the element & its children horizontally by the factor
+   * @param scale Scale factor
+   */
   public scaleHorBy(scale: number): void {
-    this.rect.x *= scale;
-    this.tempoRect.x *= scale;
-    this.repeatRect.x *= scale;
-    this.timeSigRect.x *= scale;
-    this.rect.width *= scale;
-    this.tempoRect.width *= scale;
-    this.repeatRect.width *= scale;
-    this.timeSigRect.width *= scale;
+    this._rect.x *= scale;
+    this._tempoRect.x *= scale;
+    this._repeatRect.x *= scale;
+    this._timeSigRect.x *= scale;
+    this._rect.width *= scale;
+    this._tempoRect.width *= scale;
+    this._repeatRect.width *= scale;
+    this._timeSigRect.width *= scale;
 
-    for (const line of this.staffLines) {
+    for (const line of this._staffLines) {
       line[0].x *= scale;
       line[1].x *= scale;
     }
 
-    for (const beatElement of this.beatElements) {
+    for (const beatElement of this._beatElements) {
       beatElement.scaleHorBy(scale);
     }
 
-    for (const beamSegment of this.beamSegments) {
+    for (const beamSegment of this._beamSegments) {
       // beamSegment.scaleHorBy(scale);
       beamSegment.calc();
     }
 
-    for (const tupletElement of this.tupletElements) {
+    for (const tupletElement of this._tupletElements) {
       tupletElement.scaleHorBy(scale);
     }
   }
 
-  /**
-   * Insert empty beat
-   * @param index Insertion index
-   */
-  insertEmptyBeat(index: number): void {
-    this.bar.insertEmptyBeat(index);
-
-    this.calc();
-  }
-
-  /**
-   * Prepend empty beat
-   */
-  prependBeat(): void {
-    this.bar.prependBeat();
-
-    this.calc();
-  }
-
-  /**
-   * Append empty beat
-   */
-  appendBeat(): void {
-    this.bar.appendBeat();
-
-    this.calc();
-  }
-
-  /**
-   * Remove beat at index
-   * @param index Removal index
-   */
-  removeBeat(index: number): void {
-    this.bar.removeBeat(index);
-
-    this.calc();
-  }
-
-  /**
-   * Remove beat using its UUID
-   * @param uuid Beat's UUID
-   */
-  removeBeatByUUID(uuid: number): void {
-    this.bar.removeBeatByUUID(uuid);
-
-    this.calc();
-  }
-
-  /**
-   * Change beat's duration
-   * @param beat Beat
-   * @param duration New duration
-   */
-  changeBeatDuration(beat: Beat, duration: number): void {
-    this.bar.changeBeatDuration(beat, duration);
-
-    this.calc();
-  }
-
-  /**
-   * True if durations fit according to signature values
-   */
-  public get durationsFit(): boolean {
-    return this.bar.durationsFit;
-  }
-
-  /**
-   * Time signature beats rectangle
-   */
+  /** Time signature beats rectangle */
   get beatsRect(): Rect {
     return new Rect(
-      this.timeSigRect.x,
-      this.timeSigRect.y,
-      this.timeSigRect.width,
-      this.timeSigRect.height / 2
+      this._timeSigRect.x,
+      this._timeSigRect.y,
+      this._timeSigRect.width,
+      this._timeSigRect.height / 2
     );
   }
 
-  /**
-   * Time signature beats text coords
-   */
+  /** Time signature beats text coords */
   get beatsTextCoords(): Point {
     return new Point(
-      this.timeSigRect.x + this.timeSigRect.width / 2,
-      this.timeSigRect.y + this.timeSigRect.height / 3
+      this._timeSigRect.x + this._timeSigRect.width / 2,
+      this._timeSigRect.y + this._timeSigRect.height / 3
     );
   }
 
-  /**
-   * Time signature measure text rectangle
-   */
+  /** Time signature measure text rectangle */
   get measureRect(): Rect {
     return new Rect(
-      this.timeSigRect.x,
-      this.timeSigRect.y + this.timeSigRect.height / 2,
-      this.timeSigRect.width,
-      this.timeSigRect.height / 2
+      this._timeSigRect.x,
+      this._timeSigRect.y + this._timeSigRect.height / 2,
+      this._timeSigRect.width,
+      this._timeSigRect.height / 2
     );
   }
 
-  /**
-   * Time signature measure text coords
-   */
+  /** Time signature measure text coords */
   get measureTextCoords(): Point {
     return new Point(
-      this.timeSigRect.x + this.timeSigRect.width / 2,
-      this.beatsRect.leftBottom.y + this.timeSigRect.height / 3
+      this._timeSigRect.x + this._timeSigRect.width / 2,
+      this.beatsRect.leftBottom.y + this._timeSigRect.height / 3
     );
   }
 
-  /**
-   * Tempo image coords
-   */
+  /** Tempo image coords */
   get tempoImageRect(): Rect {
     return new Rect(
-      this.tempoRect.x,
-      this.tempoRect.y + this.dim.tempoTextSize / 4,
-      this.dim.tempoTextSize,
-      this.dim.tempoTextSize
+      this._tempoRect.x,
+      this._tempoRect.y + TabLayoutDimensions.TEMPO_TEXT_SIZE / 4,
+      TabLayoutDimensions.TEMPO_TEXT_SIZE,
+      TabLayoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 
-  /**
-   * Tempo text coords
-   */
+  /** Tempo text coords */
   get tempoTextCoords(): Point {
     return new Point(
-      this.tempoRect.x + this.dim.tempoTextSize,
-      this.tempoRect.y + this.dim.tempoTextSize
+      this._tempoRect.x + TabLayoutDimensions.TEMPO_TEXT_SIZE,
+      this._tempoRect.y + TabLayoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 
-  /**
-   * Bar left border line (array of 2 points)
-   */
+  /** Bar left border line (array of 2 points) */
   get barLeftBorderLine(): Point[] {
     return [
       new Point(0, this.beatsRect.y),
@@ -534,44 +396,66 @@ export class BarElement {
     ];
   }
 
-  /**
-   * Bar right border line (array of 2 points)
-   */
+  /** Bar right border line (array of 2 points) */
   get barRightBorderLine(): Point[] {
     return [
-      new Point(this.rect.width, this.beatsRect.y),
-      new Point(this.rect.width, this.measureRect.leftBottom.y),
+      new Point(this._rect.width, this.beatsRect.y),
+      new Point(this._rect.width, this.measureRect.leftBottom.y),
     ];
   }
 
-  /**
-   * Creates a new bar element
-   * @param dim Tab window dimensions
-   * @param bar Bar
-   * @param prevBar Previous bar
-   * @returns Created bar element
-   */
-  static createBarElement(
-    dim: TabControllerDim,
-    bar: Bar,
-    prevBar?: Bar,
-    horizontalBarOffset: number = 0,
-    labelGapHeight: number = 0
-  ): BarElement {
-    const showSignature =
-      prevBar !== undefined ? bar.signature !== prevBar.signature : true;
-    const showTempo =
-      prevBar !== undefined ? bar.tempo !== prevBar.tempo : true;
+  /** This bar's beat elements */
+  public get beatElements(): BeatElement[] {
+    return this._beatElements;
+  }
 
-    const barElement = new BarElement(
-      dim,
-      bar,
-      showSignature,
-      showTempo,
-      horizontalBarOffset,
-      labelGapHeight
-    );
+  /** Beam segments of this bar element */
+  public get beamSegments(): BeamSegmentElement[] {
+    return this._beamSegments;
+  }
 
-    return barElement;
+  /** All tuplet elements */
+  public get tupletElements(): BarTupletGroupElement[] {
+    return this._tupletElements;
+  }
+
+  /** Bar element rectangle */
+  public get rect(): Rect {
+    return this._rect;
+  }
+
+  /** Bar element's lines */
+  public get staffLines(): Point[][] {
+    return this._staffLines;
+  }
+
+  /** Tempo rectangle */
+  public get tempoRect(): Rect {
+    return this._tempoRect;
+  }
+
+  /** Time signature rectangle */
+  public get timeSigRect(): Rect {
+    return this._timeSigRect;
+  }
+
+  /** Repeat sign rectangle */
+  public get repeatRect(): Rect {
+    return this._repeatRect;
+  }
+
+  /** If signature is to be shown in the bar */
+  public get showSignature(): boolean {
+    return this._showSignature;
+  }
+
+  /** If tempo is to be shown in the bar */
+  public get showTempo(): boolean {
+    return this._showTempo;
+  }
+
+  /** Technique label gap height */
+  public get labelsGapHeight(): number {
+    return this._labelsGapHeight;
   }
 }

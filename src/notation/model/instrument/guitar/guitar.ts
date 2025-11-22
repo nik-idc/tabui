@@ -211,6 +211,11 @@ export class Guitar implements MusicInstrument {
     return this._stringsCount;
   }
 
+  /** Describes the maximum amount of notes per beat. Same as string count */
+  public get maxPolyphony(): number {
+    return this._stringsCount;
+  }
+
   /** Guitar tuning. IMPORTANT: the first element should be the first string tuning */
   public get tuning(): NoteType[] {
     return this._tuning;

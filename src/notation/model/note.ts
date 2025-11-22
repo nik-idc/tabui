@@ -49,8 +49,8 @@ export interface Note<I extends MusicInstrument = MusicInstrument> {
 
   getNoteStr(): string;
 
-  addTechnique(technique: Technique): void;
-  removeTechnique(type: TechniqueType): void;
+  addTechnique(technique: Technique): boolean;
+  removeTechnique(type: TechniqueType): boolean;
   clearTechniques(): void;
   sortTechniques(): void;
   hasTechnique(type: TechniqueType): boolean;

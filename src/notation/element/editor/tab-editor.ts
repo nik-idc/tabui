@@ -1,79 +1,135 @@
-import { Bar } from "../../model/models/index";
-import { Beat } from "../../model/models/index";
-import { GuitarTechniqueOptions } from "../../model/models/index";
-import { GuitarTechniqueType } from "../../model/models/index";
-import { NoteDuration } from "../../model/models/index";
-import { Score } from "../../model/models/index";
-import { Tab } from "../../model/models/index";
+import {
+  Score,
+  Beat,
+  NoteDuration,
+  GuitarTechniqueType,
+  Bar,
+  Track,
+  ScoreEditor,
+  GuitarNote,
+  BarRepeatStatus,
+  TechniqueType,
+  BendTechniqueOptions,
+  MasterBar,
+  MasterBarData,
+} from "@/notation/model";
+import { SelectedNotesAndIds, TrackElement } from "../elements";
 import { BarElement } from "../elements/bar-element";
 import { BeatElement } from "../elements/beat-element";
 import { NoteElement } from "../elements/note-element";
 import {
   MoveRightResult,
-  SelectedElement,
+  SelectedNote,
   SelectedMoveDirection,
-} from "../elements/selected-element";
-import { SelectedElementsAndIds, TabElement } from "../elements/tab-element";
+  MoveRightOutput,
+} from "../selection/selected-note";
 import { SelectionManager } from "../selection/selection-manager";
 
-export class TabEditor {
-  private _score: Score;
-  private _tabIndex: number;
-  private _tab: Tab;
-  readonly undoStack: Tab[];
-  readonly redoStack: Tab[];
-  private _selectionManager: SelectionManager;
-  readonly tabElement: TabElement;
+/**
+ * Class responsible for managing editing & element state
+ */
+export class TrackControllerEditor {
+  /** Undo stack */
+  readonly undoStack: Track[];
+  /** Redo stackD */
+  readonly redoStack: Track[];
 
-  constructor(score: Score, tabIndex: number, tabElement: TabElement) {
-    this._score = score;
-    this._tabIndex = tabIndex;
-    this._tab = this._score.tracks[this._tabIndex];
+  /** Track element */
+  private _trackElement: TrackElement;
+  /** Selection manager */
+  private _selectionManager: SelectionManager;
+
+  /**
+   * Class responsible for managing editing & element state
+   * @param trackElement Track element
+   */
+  constructor(trackElement: TrackElement) {
+    this._trackElement = trackElement;
     this.undoStack = [];
     this.redoStack = [];
-    this._selectionManager = new SelectionManager(this._tab);
-    this.tabElement = tabElement;
+
+    this._selectionManager = new SelectionManager(this._trackElement.track);
   }
 
+  /**
+   * Selectes note using note element
+   * @param noteElement
+   */
   public selectNoteElement(noteElement: NoteElement): void {
     this._selectionManager.selectNote(noteElement.note);
   }
 
+  /**
+   * Selects first note
+   */
   public selectFirstNote(): void {
-    this._selectionManager.selectNote(this._tab.bars[0].beats[0].notes[0]);
+    const note = this._trackElement.track.staves[0].bars[0].beats[0].notes[0];
+    this._selectionManager.selectNote(note);
   }
 
   /**
-   * Selects note element using element ids.
-   * NOTE: This function does not inform TabPlayer class of the change
-   * of the current beat so if you are using TabPlayer class, use
-   * TabController.selectNoteElementUsingIds instead
-   * @param tabLineElementId Tab Line Element Id
-   * @param barElementId Bar Element Id
-   * @param beatElementId Beat Element Id
-   * @param noteElementId Note Element Id
+   * Handles added beat after moving right
    */
-  public selectNoteElementUsingIds(
-    tabLineElementId: number,
-    barElementId: number,
-    beatElementId: number,
-    noteElementId: number
-  ): void {
-    const noteElement =
-      this.tabElement.tabLineElements[tabLineElementId].barElements[
-        barElementId
-      ].beatElements[beatElementId].beatNotesElement.noteElements[
-        noteElementId
-      ];
-    this._selectionManager.selectNote(noteElement.note);
+  private handleAddedBeat(): void {
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote === undefined) {
+      throw Error("Handling added beat when selected note undefined");
+    }
+
+    ScoreEditor.appendBeat(selectedNote.bar);
+
+    this._trackElement.calc();
+  }
+  /**
+   * Handles added bar after moving right
+   */
+  private handleAddedBar(): void {
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote === undefined) {
+      throw Error("Handling added beat when selected note undefined");
+    }
+
+    this._trackElement.track.score.appendMasterBar({
+      tempo: selectedNote.bar.masterBar.tempo,
+      beatsCount: selectedNote.bar.masterBar.beatsCount,
+      duration: selectedNote.bar.masterBar.duration,
+      repeatStatus: selectedNote.bar.masterBar.repeatStatus,
+      repeatCount: selectedNote.bar.masterBar.repeatCount,
+    });
+    selectedNote.afterAddedBar();
+
+    this._trackElement.calc();
   }
 
+  /**
+   *
+   * @param moveRightOutput Output of a move right operation
+   * @param selectedNote Selected
+   */
+  private handleMoveRight(moveRightOutput: MoveRightOutput): void {
+    switch (moveRightOutput.result) {
+      case MoveRightResult.Nothing:
+        break;
+      case MoveRightResult.AddedBeat:
+        this.handleAddedBeat();
+        break;
+      case MoveRightResult.AddedBar:
+        this.handleAddedBar();
+        break;
+      default:
+        throw Error("Unexpected outcome after moving note right");
+    }
+  }
+
+  /**
+   * Moves selected note right
+   */
   private moveSelectedNoteRight(): void {
-    if (this._selectionManager.selectedElement === undefined) {
+    if (this._selectionManager.selectedNote === undefined) {
       throw Error("Can't move right, selected note is undefined");
     }
 
-    const beforeMoveRight = this._tab.deepCopy();
+    const beforeMoveRight = this._trackElement.track.deepCopy();
     const moveRightOutput = this._selectionManager.moveSelectedNoteRight();
 
     if (moveRightOutput.result !== MoveRightResult.Nothing) {
@@ -81,19 +137,19 @@ export class TabEditor {
       this.redoStack.splice(0, this.redoStack.length);
     }
 
-    this.tabElement.handleMoveRight(
-      moveRightOutput,
-      this._selectionManager.selectedElement
-    );
+    this.handleMoveRight(moveRightOutput);
   }
 
+  /**
+   * Move selected note in specified direction
+   * @param direction Move direction
+   */
   public moveSelectedNote(direction: SelectedMoveDirection): void {
     switch (direction) {
       case SelectedMoveDirection.Left:
         this._selectionManager.moveSelectedNoteLeft();
         break;
       case SelectedMoveDirection.Right:
-        // this._selectionManager.moveSelectedNoteRight();
         this.moveSelectedNoteRight();
         break;
       case SelectedMoveDirection.Up:
@@ -107,67 +163,47 @@ export class TabEditor {
     }
   }
 
-  public getSelectedNoteElementsAndIds(): SelectedElementsAndIds {
-    if (this._selectionManager.selectedElement === undefined) {
+  /**
+   * Set selected note's fret
+   * @param newFret New fret value
+   */
+  public setSelectedNoteFret(newFret: number): void {
+    if (this._selectionManager.selectedNote === undefined) {
       throw Error("Selected note is undefined");
     }
-
-    return this.tabElement.getSelectedNoteElementsAndIds(
-      this._selectionManager.selectedElement
-    );
-  }
-
-  public setSelectedNoteFret(newFret: number | undefined): void {
-    if (this._selectionManager.selectedElement === undefined) {
-      throw Error("Selected note is undefined");
+    if (!(this._selectionManager.selectedNote.note instanceof GuitarNote)) {
+      throw Error("Can't set fret of a non-guitar note");
     }
 
-    this.undoStack.push(this._tab.deepCopy());
+    this.undoStack.push(this._trackElement.track.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
 
-    // this._selectionManager.selectedElement.note.fret = newFret;
-    this._tab.setNoteFret(
-      this._selectionManager.selectedElement.barId,
-      this._selectionManager.selectedElement.beatId,
-      this._selectionManager.selectedElement.stringNum,
-      newFret
-    );
+    ScoreEditor.setNoteFret(this._selectionManager.selectedNote.note, newFret);
   }
 
-  public setSelectedBeatDots(newDots: number): void {
-    if (this._selectionManager.selectedElement === undefined) {
-      throw Error("Selected note is undefined");
-    }
-
-    this.undoStack.push(this._tab.deepCopy());
-    this.redoStack.splice(0, this.redoStack.length);
-
-    const barIndex = this._selectionManager.selectedElement.barId;
-    const beatIndex = this._selectionManager.selectedElement.beatId;
-    this._tab.setDots(barIndex, beatIndex, newDots);
-    this.tabElement.calc();
-  }
-
-  public setSelectionDots(newDots: number): void {
-    if (this._selectionManager.selectedElement !== undefined) {
+  /**
+   * Set dots
+   * @param newDots New dots count
+   */
+  public setDots(newDots: number): void {
+    if (this._selectionManager.selectedNote !== undefined) {
       throw Error("Can't set selection dots, selected note is defined");
     }
 
-    this.undoStack.push(this._tab.deepCopy());
+    this.undoStack.push(this._trackElement.track.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
 
-    this._tab.setMultipleDots(this._selectionManager.selectionBeats, newDots);
-    this.tabElement.calc();
+    const selection = this._selectionManager.selectionAsBeats;
+    ScoreEditor.setDots(selection, newDots);
+
+    this._trackElement.calc();
   }
 
-  public setDots(newDots: number): void {
-    if (this._selectionManager.selectedElement === undefined) {
-      this.setSelectionDots(newDots);
-    } else {
-      this.setSelectedBeatDots(newDots);
-    }
-  }
-
+  /**
+   * Sets selection beat/beats tuplet
+   * @param normalCount Normal count
+   * @param tupletCount Tuplet count
+   */
   public setSelectedBeatsTuplet(
     normalCount: number,
     tupletCount: number
@@ -176,239 +212,129 @@ export class TabEditor {
       return;
     }
 
-    this.undoStack.push(this._tab.deepCopy());
+    this.undoStack.push(this._trackElement.track.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
-    let beats: Beat[];
-    if (this._selectionManager.selectedElement === undefined) {
-      // If selected multiple beats
-      beats = this._selectionManager.selectionBeats;
-    } else {
-      // If only one beat (note) is selected
-      beats = [this._selectionManager.selectedElement.beat];
-    }
-    this._tab.setBarTupletBeats(beats, normalCount, tupletCount);
 
-    this.tabElement.calc();
+    const selection = this._selectionManager.selectionAsBeats;
+    ScoreEditor.setTuplet(selection, normalCount, tupletCount);
+
+    this._trackElement.calc();
   }
 
-  public changeSelectedBarTempo(newTempo: number): void {
-    this.undoStack.push(this._tab.deepCopy());
+  /**
+   * Set selected bar's tempo
+   * @param newTempo New tempo value
+   */
+  public setSelectedBarTempo(newTempo: number): void {
+    this.undoStack.push(this._trackElement.track.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
 
-    const selectedElement = this._selectionManager.selectedElement;
-    if (selectedElement === undefined) {
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote === undefined) {
       return;
     }
 
-    selectedElement.bar.setTempo(newTempo);
-    this.tabElement.calc();
-  }
-
-  public changeSelectedBarBeats(newBeats: number): void {
-    this.undoStack.push(this._tab.deepCopy());
-    this.redoStack.splice(0, this.redoStack.length);
-
-    const selectedElement = this._selectionManager.selectedElement;
-    if (selectedElement === undefined) {
+    if (selectedNote.bar.masterBar.tempo === newTempo) {
       return;
     }
 
-    selectedElement.bar.setBeatsCount(newBeats);
-    this.tabElement.calc();
+    selectedNote.bar.masterBar.tempo = newTempo;
+    this._trackElement.calc();
   }
 
-  public changeSelectedBarDuration(newDuration: NoteDuration): void {
-    this.undoStack.push(this._tab.deepCopy());
-    this.redoStack.splice(0, this.redoStack.length);
-
-    const selectedElement = this._selectionManager.selectedElement;
-    if (selectedElement === undefined) {
-      return;
-    }
-
-    selectedElement.bar.setDuration(newDuration);
-    this.tabElement.calc();
-  }
-
-  public setSelectedBarRepeatStart(): void {
-    this.undoStack.push(this._tab.deepCopy());
-    this.redoStack.splice(0, this.redoStack.length);
-
-    const barIndex = this._selectionManager.selectedElement?.barId;
-    if (barIndex === undefined) {
-      throw Error("Bar index undefined at set selected bar repeat start");
-    }
-    this._tab.setRepeatStart(barIndex);
-
-    this.tabElement.calc();
-  }
-
-  public setSelectedBarRepeatEnd(): void {
-    this.undoStack.push(this._tab.deepCopy());
-    this.redoStack.splice(0, this.redoStack.length);
-
-    const barIndex = this._selectionManager.selectedElement?.barId;
-    if (barIndex === undefined) {
-      throw Error("Bar index undefined at set selected bar repeat end");
-    }
-    this._tab.setRepeatEnd(barIndex, 2);
-
-    this.tabElement.calc();
-  }
-
-  public changeSelectedBeatDuration(newDuration: NoteDuration): void {
-    this.undoStack.push(this._tab.deepCopy());
-    this.redoStack.splice(0, this.redoStack.length);
-
-    const selectedElement = this._selectionManager.selectedElement;
-    if (selectedElement === undefined) {
-      return;
-    }
-
-    // barElement.changeBeatDuration(beatElement.beat, newDuration);
-    this._tab.setBeatDuration(
-      selectedElement.barId,
-      selectedElement.beatId,
-      newDuration
-    );
-    this.tabElement.calc();
-  }
-
-  public applyTechniqueSingle(
-    type: GuitarTechniqueType,
-    techniqueOptions?: GuitarTechniqueOptions
-  ): boolean {
-    const elsAndIds = this.getSelectedNoteElementsAndIds();
-
-    const beforeApply = this._tab.deepCopy();
-    const result = elsAndIds.tabLineElement.applyTechniqueSingle(
-      elsAndIds.barElementId,
-      elsAndIds.beatElementId,
-      elsAndIds.stringNum,
-      type,
-      techniqueOptions
-    );
-
-    if (!result) {
-      return false;
-    }
-
-    if (result) {
-      this.undoStack.push(beforeApply);
-      this.redoStack.splice(0, this.redoStack.length);
-    }
-
-    this.tabElement.calc();
-
-    if (
-      elsAndIds.tabLineElementId !==
-      this.tabElement.tabLineElements.length - 1
-    ) {
-      elsAndIds.tabLineElement.justifyElements();
-    }
-
-    return true;
-  }
-
-  public removeTechniqueSingle(
-    type: GuitarTechniqueType,
-    techniqueOptions?: GuitarTechniqueOptions
+  /**
+   * Set selected bar's time signature
+   * @param beatsCount Beats count
+   * @param duration Duration
+   */
+  public setSelectedBarTimeSignature(
+    beatsCount?: number,
+    duration?: NoteDuration
   ): void {
-    const elsAndIds = this.getSelectedNoteElementsAndIds();
-    if (elsAndIds.noteElement === undefined) {
-      return;
+    if (beatsCount === undefined && duration === undefined) {
+      throw Error("Set bar time signature with both values undefined");
     }
 
-    const techniqueIndex = elsAndIds.noteElement.guitarTechniqueElements.findIndex(
-      (gfe) => {
-        return (
-          gfe.technique.type === type &&
-          gfe.technique.bendOptions === techniqueOptions
-        );
-      }
-    );
-
-    if (techniqueIndex === -1) {
-      return;
-    }
-
-    this.undoStack.push(this._tab.deepCopy());
+    this.undoStack.push(this._trackElement.track.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
 
-    elsAndIds.tabLineElement.removeTechniqueSingle(
-      elsAndIds.barElementId,
-      elsAndIds.beatElementId,
-      elsAndIds.stringNum,
-      techniqueIndex
-    );
-
-    this.tabElement.calc();
-
-    if (
-      elsAndIds.tabLineElementId !==
-      this.tabElement.tabLineElements.length - 1
-    ) {
-      elsAndIds.tabLineElement.justifyElements();
-    }
-  }
-
-  private setTechniqueSingle(
-    type: GuitarTechniqueType,
-    techniqueOptions?: GuitarTechniqueOptions
-  ): boolean {
-    const selectedElement = this._selectionManager.selectedElement;
-    if (selectedElement === undefined) {
-      throw Error("Set technique single called but selected element undefined");
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote === undefined) {
+      return;
     }
 
-    const applyRes = this._tab.setTechniqueNote(
-      selectedElement.barId,
-      selectedElement.beatId,
-      selectedElement.stringNum,
-      type,
-      techniqueOptions
-    );
+    if (beatsCount !== undefined) {
+      selectedNote.bar.masterBar.beatsCount = beatsCount;
+    }
+    if (duration !== undefined) {
+      selectedNote.bar.masterBar.duration = duration;
+    }
 
-    this.tabElement.calc();
-
-    return applyRes;
+    this._trackElement.calc();
   }
 
-  private setTechniqueMultiple(
-    type: GuitarTechniqueType,
-    techniqueOptions?: GuitarTechniqueOptions
-  ): boolean {
-    if (this._selectionManager.selectedElement !== undefined) {
-      throw new Error(
-        "Can't set technique for multiple notes, selected element defined"
+  /**
+   * Set selected bar repeat status
+   * @param status New status
+   */
+  public setSelectedBarRepeatStatus(status: BarRepeatStatus): void {
+    this.undoStack.push(this._trackElement.track.deepCopy());
+    this.redoStack.splice(0, this.redoStack.length);
+
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote === undefined) {
+      throw Error(
+        "Set selected bar repeat status called when selected note undefined"
       );
     }
+    selectedNote.bar.masterBar.repeatStatus = status;
 
-    this.undoStack.push(this._tab.deepCopy());
+    this._trackElement.calc();
+  }
+
+  /**
+   * Sets selected beat duration
+   * @param newDuration New duration
+   */
+  public setSelectedBeatDuration(newDuration: NoteDuration): void {
+    this.undoStack.push(this._trackElement.track.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
 
-    const applyRes = this._tab.setTechniqueBeats(
-      this._selectionManager.selectionBeats,
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote === undefined) {
+      return;
+    }
+
+    selectedNote.beat.baseDuration = newDuration;
+
+    this._trackElement.calc();
+  }
+
+  /**
+   * Sets technique
+   * @param type Type of technique
+   * @param bendOptions Potenital bend gutiar technique options
+   */
+  public setTechnique(
+    type: TechniqueType,
+    bendOptions?: BendTechniqueOptions
+  ): void {
+    const before = this._trackElement.track.deepCopy();
+
+    const selectionNotes = this._selectionManager.selectionAsBeats.flatMap(
+      (b) => b.notes
+    );
+    const changesMade = ScoreEditor.setTechniqueNotes(
+      selectionNotes,
       type,
-      techniqueOptions
+      bendOptions
     );
 
-    this.tabElement.calc();
-
-    return applyRes;
-  }
-
-  public setTechnique(
-    type: GuitarTechniqueType,
-    techniqueOptions?: GuitarTechniqueOptions
-  ): boolean {
-    return this._selectionManager.selectedElement !== undefined
-      ? this.setTechniqueSingle(type, techniqueOptions)
-      : this.setTechniqueMultiple(type, techniqueOptions);
-  }
-
-  public getSelectedElement(): SelectedElement | undefined {
-    return this._selectionManager.selectedElement;
+    if (changesMade) {
+      this.undoStack.push(before);
+      this.redoStack.splice(0, this.redoStack.length);
+      this._trackElement.calc();
+    }
   }
 
   /**
@@ -420,114 +346,145 @@ export class TabEditor {
     return this._selectionManager.isNoteElementSelected(noteElement);
   }
 
+  /**
+   * Clears selection
+   */
   public clearSelection(): void {
     this._selectionManager.clearSelection();
-    this.tabElement.resetSelection();
+    this._trackElement.resetSelection();
   }
 
   /**
    * Clears selected element
    */
-  public clearSelectedElement(): void {
-    this._selectionManager.clearSelectedElement();
+  public clearSelectedNote(): void {
+    this._selectionManager.clearSelectedNote();
   }
 
+  /**
+   * Selects beat
+   * @param beatElement Beat element
+   */
   public selectBeat(beatElement: BeatElement): void {
     this._selectionManager.selectBeat(beatElement.beat);
 
-    this.tabElement.recalcBeatElementSelection(
+    this._trackElement.recalcBeatElementSelection(
       this._selectionManager.selectionBeats
     );
   }
 
-  public selectBeatUsingIds(
-    tabLineElementId: number,
-    barElementId: number,
-    beatElementId: number
-  ): void {
-    const beatElement =
-      this.tabElement.tabLineElements[tabLineElementId].barElements[
-        barElementId
-      ].beatElements[beatElementId];
-    this._selectionManager.selectBeat(beatElement.beat);
-
-    this.tabElement.recalcBeatElementSelection(
-      this._selectionManager.selectionBeats
-    );
-  }
-
-  public changeSelectionDuration(newDuration: NoteDuration): void {
-    this.undoStack.push(this._tab.deepCopy());
+  /**
+   * Sets selection duration
+   * @param newDuration New duration
+   */
+  public setDuration(newDuration: NoteDuration): void {
+    this.undoStack.push(this._trackElement.track.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
 
-    this._selectionManager.changeSelectionDuration(newDuration);
-    this.tabElement.calc();
-  }
-
-  public changeDuration(newDuration: NoteDuration): void {
-    this.undoStack.push(this._tab.deepCopy());
-    this.redoStack.splice(0, this.redoStack.length);
-
-    if (this._selectionManager.selectedElement !== undefined) {
-      this.changeSelectedBeatDuration(newDuration);
-    } else {
-      this.changeSelectionDuration(newDuration);
+    const selection = this._selectionManager.selectionAsBeats;
+    for (const beat of selection) {
+      ScoreEditor.setDuration(beat, newDuration);
     }
 
-    this.tabElement.calc();
+    this._trackElement.calc();
   }
 
+  /**
+   * Copy selected data
+   */
   public copy(): void {
     this._selectionManager.copy();
   }
 
+  /**
+   * Paste copied data:
+   * Paste beats after selected note if selected beats OR
+   * Paste note, i.e., set fret value of selected note to that of selected
+   * @returns
+   */
   public paste(): void {
-    this.undoStack.push(this._tab.deepCopy());
+    this.undoStack.push(this._trackElement.track.deepCopy());
     this.redoStack.splice(0, this.redoStack.length);
 
-    this._selectionManager.paste();
-    this.tabElement.calc();
+    const clipboard = this._selectionManager.clipboard;
+    const selectedNote = this._selectionManager.selectedNote;
+    const selectionBeats = this._selectionManager.selectionBeats;
+    if (clipboard instanceof Array) {
+      // Return if nothing to paste
+      if (clipboard.length === 0) {
+        return;
+      }
+
+      if (selectedNote !== undefined) {
+        // Insert if currently not selecting
+        ScoreEditor.insertBeats(
+          selectedNote.bar,
+          selectedNote.beatIndex,
+          clipboard
+        );
+      } else {
+        ScoreEditor.replaceBeats(selectionBeats, clipboard);
+        this.clearSelection();
+      }
+    } else if (clipboard !== undefined) {
+      if (selectedNote === undefined) {
+        throw Error(
+          "Attempting to paste a note value but selected element is undefined"
+        );
+      }
+
+      selectedNote.note.noteValue = clipboard.noteValue;
+      selectedNote.note.octave = clipboard.octave;
+    }
+
+    this._trackElement.calc();
   }
 
   /**
-   * Delete every selected beat
-   * @param beats
+   * Delete selected beats
    */
-  public deleteBeats(): void {
-    this._selectionManager.deleteSelected();
-    this.tabElement.calc();
+  public deleteSelectedBeats(): void {
+    ScoreEditor.removeBeats(this._selectionManager.selectionBeats);
+    this.clearSelection();
+
+    this._trackElement.calc();
   }
 
   /**
-   * Prepends a bar to the tab and all the score tracks
-   * @param bar Bar to prepend
-   */
-  public prependBar(bar?: Bar): void {
-    this._score.prependBar(this._tabIndex, bar);
-    this.tabElement.calc();
-  }
-
-  /**
-   * Appends a bar to the tab and all the score tracks
+   * Appends a bar to the track and all the score tracks
    * @param bar Bar to append
    */
-  public appendBar(bar?: Bar): void {
-    this._score.appendBar(this._tabIndex, bar);
-    this.tabElement.calc();
+  public appendBar(masterBarData?: MasterBarData): void {
+    this._trackElement.track.score.appendMasterBar(masterBarData);
+
+    this._trackElement.calc();
   }
 
   /**
-   * Inserts a bar to the tab at specified index and all the score tracks
+   * Prepends a bar to the track and all the score tracks
+   * @param bar Bar to prepend
+   */
+  public prependBar(masterBarData?: MasterBarData): void {
+    this._trackElement.track.score.prependMasterBar(masterBarData);
+
+    this._trackElement.calc();
+  }
+
+  /**
+   * Inserts a bar to the track at specified index and all the score tracks
    * @param bar Bar to insert
    */
-  public insertBar(barIndex: number, bar?: Bar): void {
-    if (barIndex < 0 || barIndex > this._tab.bars.length) {
+  public insertBar(barIndex: number, masterBarData?: MasterBarData): void {
+    if (
+      barIndex < 0 ||
+      barIndex > this._trackElement.track.score.masterBars.length
+    ) {
       throw Error(`Invalid bar index: '${barIndex}'`);
     }
 
-    // this._tab.bars.push(bar);
-    this._score.insertBar(this._tabIndex, barIndex, bar);
-    this.tabElement.calc();
+    this._trackElement.track.score.insertMasterBar(barIndex, masterBarData);
+
+    this._trackElement.calc();
   }
 
   /**
@@ -535,15 +492,24 @@ export class TabEditor {
    * @param barIndex Index of the bar to remove
    */
   public removeBar(barIndex: number): void {
-    if (barIndex < 0 || barIndex > this._tab.bars.length) {
+    if (
+      barIndex < 0 ||
+      barIndex > this._trackElement.track.score.masterBars.length
+    ) {
       throw Error(`Invalid bar index: '${barIndex}'`);
     }
 
-    this._score.removeBar(barIndex);
+    this._trackElement.track.score.removeMasterBar(barIndex);
 
-    this.tabElement.calc();
+    this._trackElement.calc();
   }
 
+  /**
+   * Insert beat
+   * @param barElement Bar element
+   * @param prevBeatElement Previous beat element
+   * @returns
+   */
   public insertBeat(
     barElement: BarElement,
     prevBeatElement: BeatElement
@@ -553,37 +519,186 @@ export class TabEditor {
       return;
     }
 
-    barElement.insertEmptyBeat(index);
-    this.tabElement.calc();
+    ScoreEditor.insertBeat(barElement.bar, index);
+
+    this._trackElement.calc();
   }
 
-  public undo(): void {
-    const prevTab = this.undoStack.pop();
-    if (prevTab === undefined) {
-      return;
-    }
+  // /**
+  //  * Undo (reestablish previous state)
+  //  */
+  // public undo(): void {
+  //   const prevTrack = this.undoStack.pop();
+  //   if (prevTrack === undefined) {
+  //     return;
+  //   }
 
-    this.redoStack.push(this._tab.deepCopy());
-    this._tab = prevTab;
+  //   IMPLEMENT USING COMMAND PATTERN
+  //   IMPLEMENT USING COMMAND PATTERN
+  //   IMPLEMENT USING COMMAND PATTERN
+  //   IMPLEMENT USING COMMAND PATTERN
+  //   IMPLEMENT USING COMMAND PATTERN
 
-    this._selectionManager = new SelectionManager(this._tab);
-    this.tabElement.resetTab(this._tab);
-  }
+  //   this.redoStack.push(this._trackElement.track.deepCopy());
+  //   this._trackElement = new TrackElement(prevTrack)
+  //   this._selectionManager = new SelectionManager(this._trackElement.track);
+  // }
 
-  public redo(): void {
-    const nextTab = this.redoStack.pop();
-    if (nextTab === undefined) {
-      return;
-    }
+  // public redo(): void {
+  //   const nextTrack = this.redoStack.pop();
+  //   if (nextTrack === undefined) {
+  //     return;
+  //   }
 
-    this.undoStack.push(this._tab.deepCopy());
-    this._tab = nextTab;
+  //   IMPLEMENT USING COMMAND PATTERN
+  //   IMPLEMENT USING COMMAND PATTERN
+  //   IMPLEMENT USING COMMAND PATTERN
+  //   IMPLEMENT USING COMMAND PATTERN
+  //   IMPLEMENT USING COMMAND PATTERN
 
-    this._selectionManager = new SelectionManager(this._tab);
-    this.tabElement.resetTab(this._tab);
-  }
+  //   this.undoStack.push(this._trackElement.track.deepCopy());
+  //   this._trackElement.track = nextTrack;
+
+  //   this._selectionManager = new SelectionManager(this._trackElement.track);
+  //   this._trackElement.resetTrack(this._trackElement.track);
+  // }
 
   public get selectionManager(): SelectionManager {
     return this._selectionManager;
   }
 }
+
+// // =========================================
+// // ==== TOO AFRAID TO COMPLETELY DELETE ====
+
+//   /**
+//    * Applies
+//    * @param type
+//    * @param techniqueOptions
+//    * @returns
+//    */
+//   public applyTechniqueSingle(
+//     type: GuitarTechniqueType,
+//     techniqueOptions?: GuitarTechniqueOptions
+//   ): boolean {
+//     const elsAndIds = this.getSelectedNoteElementsAndIds();
+
+//     const beforeApply = this._trackElement.track.deepCopy();
+//     const result = elsAndIds.trackLineElement.applyTechniqueSingle(
+//       elsAndIds.barElementId,
+//       elsAndIds.beatElementId,
+//       elsAndIds.stringNum,
+//       type,
+//       techniqueOptions
+//     );
+
+//     if (!result) {
+//       return false;
+//     }
+
+//     if (result) {
+//       this.undoStack.push(beforeApply);
+//       this.redoStack.splice(0, this.redoStack.length);
+//     }
+
+//     this._trackElement.calc();
+
+//     if (
+//       elsAndIds.trackLineElementId !==
+//       this._trackElement.trackLineElements.length - 1
+//     ) {
+//       elsAndIds.trackLineElement.justifyElements();
+//     }
+
+//     return true;
+//   }
+
+//   public removeTechniqueSingle(
+//     type: GuitarTechniqueType,
+//     techniqueOptions?: GuitarTechniqueOptions
+//   ): void {
+//     const elsAndIds = this.getSelectedNoteElementsAndIds();
+//     if (elsAndIds.noteElement === undefined) {
+//       return;
+//     }
+
+//     const techniqueIndex =
+//       elsAndIds.noteElement.guitarTechniqueElements.findIndex((gfe) => {
+//         return (
+//           gfe.technique.type === type &&
+//           gfe.technique.bendOptions === techniqueOptions
+//         );
+//       });
+
+//     if (techniqueIndex === -1) {
+//       return;
+//     }
+
+//     this.undoStack.push(this._trackElement.track.deepCopy());
+//     this.redoStack.splice(0, this.redoStack.length);
+
+//     elsAndIds.trackLineElement.removeTechniqueSingle(
+//       elsAndIds.barElementId,
+//       elsAndIds.beatElementId,
+//       elsAndIds.stringNum,
+//       techniqueIndex
+//     );
+
+//     this._trackElement.calc();
+
+//     if (
+//       elsAndIds.trackLineElementId !==
+//       this._trackElement.trackLineElements.length - 1
+//     ) {
+//       elsAndIds.trackLineElement.justifyElements();
+//     }
+//   }
+
+//   private setTechniqueSingle(
+//     type: GuitarTechniqueType,
+//     techniqueOptions?: GuitarTechniqueOptions
+//   ): boolean {
+//     const selectedNote = this._selectionManager.selectedNote;
+//     if (selectedNote === undefined) {
+//       throw Error("Set technique single called but selected element undefined");
+//     }
+
+//     const applyRes = this._trackElement.track.setTechniqueNote(
+//       selectedNote.barId,
+//       selectedNote.beatId,
+//       selectedNote.stringNum,
+//       type,
+//       techniqueOptions
+//     );
+
+//     this._trackElement.calc();
+
+//     return applyRes;
+//   }
+
+//   private setTechniqueMultiple(
+//     type: GuitarTechniqueType,
+//     techniqueOptions?: GuitarTechniqueOptions
+//   ): boolean {
+//     if (this._selectionManager.selectedNote !== undefined) {
+//       throw new Error(
+//         "Can't set technique for multiple notes, selected element defined"
+//       );
+//     }
+
+//     this.undoStack.push(this._trackElement.track.deepCopy());
+//     this.redoStack.splice(0, this.redoStack.length);
+
+//     const applyRes = this._trackElement.track.setTechniqueBeats(
+//       this._selectionManager.selectionBeats,
+//       type,
+//       techniqueOptions
+//     );
+
+//     this._trackElement.calc();
+
+//     return applyRes;
+//   }
+
+//   // ==== TOO AFRAID TO COMPLETELY DELETE ====
+//   // =========================================

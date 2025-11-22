@@ -94,10 +94,10 @@ export class EditorSVGRenderer implements EditorRenderer {
     tabController: TabController,
     noteElement: NoteElement
   ): void {
-    const selectedElement = tabController.getSelectedElement();
+    const selectedNote = tabController.getSelectedNote();
     if (
-      selectedElement &&
-      selectedElement.note.uuid === noteElement.note.uuid
+      selectedNote &&
+      selectedNote.note.uuid === noteElement.note.uuid
     ) {
       return;
     }

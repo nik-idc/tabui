@@ -78,7 +78,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     type: GuitarTechniqueType,
     bendOptions?: GuitarTechniqueOptions
   ): void {
-    const selected = this._notationComponent.tabController.getSelectedElement();
+    const selected = this._notationComponent.tabController.getSelectedNote();
 
     if (selected === undefined) {
       return;
@@ -127,7 +127,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
   public onNumberDown(key: string): void {
     if (
-      this._notationComponent.tabController.getSelectedElement() === undefined
+      this._notationComponent.tabController.getSelectedNote() === undefined
     ) {
       return;
     }
@@ -139,7 +139,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     if (this._prevKeyPress === undefined) {
       this._prevKeyPress = { time: new Date().getTime(), key: key };
-      this._notationComponent.tabController.setSelectedElementFret(newFret);
+      this._notationComponent.tabController.setSelectedNoteFret(newFret);
 
       this._renderFunc();
       return;
@@ -150,7 +150,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     let combFret = Number.parseInt(this._prevKeyPress.key + key);
     newFret = timeDiff < this.eventsTimeEpsilon ? combFret : newFret;
 
-    this._notationComponent.tabController.setSelectedElementFret(newFret);
+    this._notationComponent.tabController.setSelectedNoteFret(newFret);
 
     this._prevKeyPress.time = now;
     this._prevKeyPress.key = key;
@@ -160,7 +160,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
   public onArrowDown(key: string): void {
     if (
-      this._notationComponent.tabController.getSelectedElement() === undefined
+      this._notationComponent.tabController.getSelectedNote() === undefined
     ) {
       return;
     }
@@ -192,7 +192,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public onBackspacePress(): void {
-    const selected = this._notationComponent.tabController.getSelectedElement();
+    const selected = this._notationComponent.tabController.getSelectedNote();
 
     if (selected === undefined) {
       return;
@@ -202,7 +202,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
 
-    this._notationComponent.tabController.setSelectedElementFret(undefined);
+    this._notationComponent.tabController.setSelectedNoteFret(undefined);
 
     this._renderFunc();
   }

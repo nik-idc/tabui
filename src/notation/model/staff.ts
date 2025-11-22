@@ -109,30 +109,6 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Converts staff to JSON format
-   */
-  public toJSON(): StaffJSON {
-    const barsJSON: BarJSON[] = [];
-    for (const bar of this._bars) {
-      barsJSON.push(bar.toJSON());
-    }
-
-    return {
-      bars: barsJSON,
-      clefType: this._clefType,
-      showTablature: this._showTablature,
-      showClassicNotation: this._showClassicNotation,
-    };
-  }
-
-  /**
-   * Get next beat in the tab
-   * @param barIndex Bar index
-   * @param beatIndex Beat index (inside the bar)
-   * @returns Beat (or null if current beat is last one)
-   */
-
-  /**
    * Get next beat in the staff
    * @param beat Beat after which to find the next beat
    * @returns Next beat or null if passed beat is the last one
@@ -181,6 +157,64 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     return this._bars.flatMap((bar) => {
       return bar.beats;
     });
+  }
+
+  /**
+   * Get next bar in the staff
+   * @param bar Bar after which to find the next bar
+   * @returns Next bar or null if passed bar is the last one
+   */
+  public getNextBar(bar: Bar<I>): Bar<I> | null {
+    const barIndex = this._bars.indexOf(bar);
+    const nextBar = this._bars[barIndex + 1];
+    return nextBar ?? null;
+  }
+
+  /**
+   * Get prev bar in the staff
+   * @param bar Bar before which to find the prev bar
+   * @returns Prev bar or null if passed bar is the first one
+   */
+  public getPrevBar(bar: Bar<I>): Bar | null {
+    const barIndex = this._bars.indexOf(bar);
+    const prevBar = this._bars[barIndex - 1];
+    return prevBar ?? null;
+  }
+
+  /**
+   * Creates full deep copy of the staff
+   */
+  public deepCopy(): Staff<I> {
+    const barsCopy: Bar<I>[] = [];
+    for (const bar of this._bars) {
+      barsCopy.push(bar.deepCopy());
+    }
+
+    return new Staff<I>(
+      this.track,
+      this.trackContext,
+      barsCopy,
+      this._clefType,
+      this._showTablature,
+      this._showClassicNotation
+    );
+  }
+
+  /**
+   * Converts staff to JSON format
+   */
+  public toJSON(): StaffJSON {
+    const barsJSON: BarJSON[] = [];
+    for (const bar of this._bars) {
+      barsJSON.push(bar.toJSON());
+    }
+
+    return {
+      bars: barsJSON,
+      clefType: this._clefType,
+      showTablature: this._showTablature,
+      showClassicNotation: this._showClassicNotation,
+    };
   }
 
   /** Bars getter */

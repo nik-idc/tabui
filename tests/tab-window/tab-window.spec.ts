@@ -213,7 +213,7 @@ describe("Tab window tests", () => {
     expect(basicTabWindow.selectionElements.length).toBe(1);
     expect(basicTabWindow.selectionElements[0].barElementId).toBe(1);
     expect(basicTabWindow.selectionElements[0].beatElementId).toBe(0);
-    expect(basicTabWindow.selectedElement).toBe(undefined);
+    expect(basicTabWindow.selectedNote).toBe(undefined);
   });
 
   test("Tab window move left with selected to right", () => {

@@ -10,6 +10,14 @@ export type MasterBarData = {
   repeatCount: number | null;
 };
 
+export const DEFAULT_MASTER_BAR: MasterBarData = {
+  tempo: 120,
+  beatsCount: 4,
+  duration: NoteDuration.Quarter,
+  repeatStatus: BarRepeatStatus.None,
+  repeatCount: null,
+};
+
 /**
  * Single source of truth of what's happening in a bar.
  * Each track's bars ALL have a reference to the respective master bar.

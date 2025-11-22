@@ -208,14 +208,16 @@ export class GuitarNote implements Note<Guitar> {
   /**
    * Removes technique from the note
    * @param type Technique type
+   * @returns True if removed
    */
-  public removeTechnique(type: GuitarTechniqueType): void {
+  public removeTechnique(type: GuitarTechniqueType): boolean {
     const techniqueIndex = this._techniques.findIndex((t) => t.type === type);
     if (techniqueIndex === -1) {
-      return;
+      return false;
     }
 
     this._techniques.splice(techniqueIndex, 1);
+    return true
   }
 
   /**

@@ -15,7 +15,7 @@ import {
   BeatElement,
   NoteElement,
   SelectedMoveDirection,
-  SelectedElement,
+  SelectedNote,
 } from "../elements";
 import { TabControllerDim } from "./tab-controller-dim";
 
@@ -100,12 +100,12 @@ export class TabController {
 
     this._tabEditor.selectNoteElement(noteElement);
 
-    const selectedElement = this._tabEditor.selectionManager.selectedElement;
-    if (selectedElement === undefined) {
+    const selectedNote = this._tabEditor.selectionManager.selectedNote;
+    if (selectedNote === undefined) {
       throw Error("Selected element undefined after selection");
     }
 
-    this._tabPlayer.setCurrentBeat(selectedElement.beat);
+    this._tabPlayer.setCurrentBeat(selectedNote.beat);
   }
 
   public selectNoteElementUsingIds(
@@ -121,13 +121,13 @@ export class TabController {
       noteElementId
     );
 
-    const selectedElement = this._tabEditor.selectionManager.selectedElement;
-    if (selectedElement === undefined) {
+    const selectedNote = this._tabEditor.selectionManager.selectedNote;
+    if (selectedNote === undefined) {
       throw Error("Selected element undefined after selection");
     }
 
     if (this._tabPlayer !== undefined) {
-      this._tabPlayer.setCurrentBeat(selectedElement.beat);
+      this._tabPlayer.setCurrentBeat(selectedNote.beat);
     }
   }
 
@@ -135,7 +135,7 @@ export class TabController {
     this._tabEditor.moveSelectedNote(moveDirection);
   }
 
-  public setSelectedElementFret(newFret: number | undefined): void {
+  public setSelectedNoteFret(newFret: number | undefined): void {
     this._tabEditor.setSelectedNoteFret(newFret);
 
     this._tabElement.calc();
@@ -201,8 +201,8 @@ export class TabController {
     return this._tabEditor.setTechnique(type, techniqueOptions);
   }
 
-  public getSelectedElement(): SelectedElement | undefined {
-    return this._tabEditor.getSelectedElement();
+  public getSelectedNote(): SelectedNote | undefined {
+    return this._tabEditor.getSelectedNote();
   }
 
   /**
@@ -211,11 +211,11 @@ export class TabController {
    * - If selecting beats, then returns the selection array
    */
   public getSelectionAsArray(): Beat[] {
-    const selectedElement = this._tabEditor.getSelectedElement();
-    if (selectedElement === undefined) {
+    const selectedNote = this._tabEditor.getSelectedNote();
+    if (selectedNote === undefined) {
       return this._tabEditor.selectionManager.selectionBeats;
     } else {
-      return [selectedElement.beat];
+      return [selectedNote.beat];
     }
   }
 
@@ -260,9 +260,9 @@ export class TabController {
   }
 
   public removeBar(barIndex: number): void {
-    const selectedElement = this._tabEditor.getSelectedElement();
-    if (selectedElement !== undefined && selectedElement.barId === barIndex) {
-      this._tabEditor.clearSelectedElement();
+    const selectedNote = this._tabEditor.getSelectedNote();
+    if (selectedNote !== undefined && selectedNote.barId === barIndex) {
+      this._tabEditor.clearSelectedNote();
     }
 
     this._tabEditor.removeBar(barIndex);
@@ -337,17 +337,17 @@ export class TabController {
   }
 
   public getSelectedBeat(): Beat | undefined {
-    const selectedElement = this._tabEditor.selectionManager.selectedElement;
-    if (selectedElement === undefined) {
+    const selectedNote = this._tabEditor.selectionManager.selectedNote;
+    if (selectedNote === undefined) {
       return undefined;
     }
 
-    return selectedElement.beat;
+    return selectedNote.beat;
   }
 
   public getSelectedBeatElement(): BeatElement | undefined {
-    const selectedElement = this._tabEditor.selectionManager.selectedElement;
-    if (selectedElement === undefined) {
+    const selectedNote = this._tabEditor.selectionManager.selectedNote;
+    if (selectedNote === undefined) {
       return undefined;
     }
 

@@ -2,14 +2,10 @@
  * Class that handles techniques and their labels' HTMLs
  */
 export class SVGUtils {
-  /**
-   * Width of an arrow (applicable to bends)
-   */
-  readonly arrowWidth: number = 5;
-  /**
-   * Height of an arrow (applicable to bends)
-   */
-  readonly arrowHeight: number = 8;
+  /** Width of an arrow (applicable to bends)*/
+  static readonly arrowWidth: number = 5;
+  /** * Height of an arrow (applicable to bends) */
+  static readonly arrowHeight: number = 8;
 
   /**
    * Builds a full HTML SVG path of a vertical arrow
@@ -18,7 +14,7 @@ export class SVGUtils {
    * @param pointTop True if arrow points up, false otherwise. Defaults to true
    * @returns A full HTML SVG path of a vertical arrow
    */
-  public verticalArrowSVGHTML(
+  public static verticalArrowSVGHTML(
     dx: number,
     dy: number,
     pointTop: boolean = true
@@ -45,7 +41,7 @@ export class SVGUtils {
    * @param verticalOffset Vertical distance to the top string line
    * @returns Constructed SVG path HTML element
    */
-  public upCurveSVGHTML(
+  public static upCurveSVGHTML(
     dx: number,
     dy: number,
     width: number,
@@ -81,7 +77,7 @@ export class SVGUtils {
    * @param verticalOffset Vertical distance to the top string line
    * @returns Constructed SVG path HTML element
    */
-  public downCurveSVGHTML(
+  public static downCurveSVGHTML(
     dx: number,
     dy: number,
     width: number,
@@ -114,7 +110,7 @@ export class SVGUtils {
    * @param height Height for the curve building
    * @returns Constructed SVG path HTML element
    */
-  public horizontalCurveSVGHTML(
+  public static horizontalCurveSVGHTML(
     dx: number,
     dy: number,
     width: number,
@@ -145,7 +141,7 @@ export class SVGUtils {
    * @param pointTop Where should the line point to, i.e. where to draw: up or down
    * @returns Constructed SVG path HTML element
    */
-  public vertLineSVGHTML(
+  public static vertLineSVGHTML(
     dx: number,
     dy: number,
     height: number,
@@ -169,7 +165,7 @@ export class SVGUtils {
    * @param dy2 Point 2 Y (end)
    * @returns Constructed SVG path HTML element
    */
-  public lineSVGHTML(
+  public static lineSVGHTML(
     dx1: number,
     dy1: number,
     dx2: number,
@@ -192,7 +188,7 @@ export class SVGUtils {
    * @param fill True if the shape should be filled, false otherwise
    * @returns Constructed SVG path HTML element
    */
-  public harmonicShapeSVGHTML(
+  public static harmonicShapeSVGHTML(
     dx: number,
     dy: number,
     width: number,
@@ -230,7 +226,7 @@ export class SVGUtils {
    * @param bigNumSize Size of the whole part number
    * @returns SVG HTML of a ratio
    */
-  public ratioSVGHTML(
+  public static ratioSVGHTML(
     wholePart: number,
     topNum: number,
     bottomNum: number,
@@ -299,7 +295,7 @@ export class SVGUtils {
    * @param width Width
    * @returns Squiggly SVG HTMLА
    */
-  public horizontalSquigglySVGHTML(
+  public static horizontalSquigglySVGHTML(
     x: number,
     y: number,
     height: number,
@@ -329,7 +325,7 @@ export class SVGUtils {
    * @param text Text to display
    * @returns SVG HTML of the specified text
    */
-  public textSVGHTML(
+  public static textSVGHTML(
     x: number,
     y: number,
     fontSize: number,

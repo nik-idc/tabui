@@ -1,5 +1,5 @@
 import { Bar } from "./bar";
-import { MasterBar, MasterBarData } from "./master-bar";
+import { DEFAULT_MASTER_BAR, MasterBar, MasterBarData } from "./master-bar";
 import { MusicInstrument } from "./instrument/instrument";
 import { Note } from "./note";
 import { Staff } from "./staff";
@@ -67,7 +67,10 @@ export class Score {
    * Inserts a new master bar & inserts a bar to every staff of every track
    * @param index Index after which to insert the bar
    */
-  public insertMasterBar(index: number, masterBarData: MasterBarData): void {
+  public insertMasterBar(
+    index: number,
+    masterBarData: MasterBarData = DEFAULT_MASTER_BAR
+  ): void {
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.splice(index, 0, newMasterBar);
 
@@ -82,7 +85,9 @@ export class Score {
    * Appends a new master bar & appends a bar to every staff of every track
    * @param masterBarData Master bar data
    */
-  public appendMasterBar(masterBarData: MasterBarData): void {
+  public appendMasterBar(
+    masterBarData: MasterBarData = DEFAULT_MASTER_BAR
+  ): void {
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.push(newMasterBar);
 
@@ -97,7 +102,9 @@ export class Score {
    * Prepends a new master bar & prepends a bar to every staff of every track
    * @param masterBarData Master bar data
    */
-  public prependMasterBar(masterBarData: MasterBarData): void {
+  public prependMasterBar(
+    masterBarData: MasterBarData = DEFAULT_MASTER_BAR
+  ): void {
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.unshift(newMasterBar);
 

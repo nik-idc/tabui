@@ -306,7 +306,7 @@ export class SVGNoteRenderer implements ElementRenderer {
     this.renderNoteRect();
 
     const selected =
-      this._tabWindow.getSelectedElement()?.note.uuid ===
+      this._tabWindow.getSelectedNote()?.note.uuid ===
       this._noteElement.note.uuid;
 
     if (selected) {
