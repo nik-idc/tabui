@@ -9,7 +9,7 @@ import {
   Track,
   TupletSettings,
 } from "..";
-import { Bar } from "../bar";
+import { Bar, BeatArrayOperationOutput } from "../bar";
 import { MasterBar, MasterBarData } from "../master-bar";
 import { Beat } from "../beat";
 import { Guitar } from "../instrument/guitar/guitar";
@@ -25,6 +25,10 @@ import {
 } from "../note";
 import { NoteDuration } from "../note-duration";
 
+/**
+ * Static class containing complex editing methods,
+ * like replace beats across the staff, transpose note etc
+ */
 export class ScoreEditor {
   /**
    * Transposes note value by the specified semitone count
@@ -158,17 +162,6 @@ export class ScoreEditor {
   }
 
   /**
-   * Removes technique from the note
-   * @param type Technique type
-   */
-  public static removeTechniqueFromNote<I extends MusicInstrument>(
-    note: Note<I>,
-    type: TechniqueType
-  ): void {
-    note.removeTechnique(type);
-  }
-
-  /**
    * Sets (applies/removes) technique from notes
    * @param notes Notes
    * @param type Technique type
@@ -200,16 +193,6 @@ export class ScoreEditor {
     }
 
     return changesMade;
-  }
-
-  /**
-   * Remove all note techniques from a note
-   * @param note Note
-   */
-  public static clearTechniques<I extends MusicInstrument>(
-    note: Note<I>
-  ): void {
-    note.clearTechniques();
   }
 
   /**
@@ -281,27 +264,6 @@ export class ScoreEditor {
   }
 
   /**
-   * Sets beam group id
-   * @param newBeamGroupId New beam group id
-   */
-  public static setBeamGroupId<I extends MusicInstrument>(
-    beat: Beat<I>,
-    newBeamGroupId: number | null = null
-  ): void {
-    beat.beamGroupId = newBeamGroupId;
-  }
-
-  /**
-   * Sets if the beat is the last one in a beam group
-   */
-  public static setIsLastInBeamGroup<I extends MusicInstrument>(
-    beat: Beat<I>,
-    newIsLastInBeamGroup: boolean
-  ): void {
-    beat.lastInBeamGroup = newIsLastInBeamGroup;
-  }
-
-  /**
    * Sets tuplet settings for specified beats
    * @param beats Beats to apply tuplet settings for
    * @param normalCount Normal count
@@ -309,110 +271,34 @@ export class ScoreEditor {
    */
   public static setTuplet<I extends MusicInstrument>(
     beats: Beat<I>[],
-    normalCount: number,
-    tupletCount: number
+    tupletSettings: TupletSettings | null
   ): void {
     for (const beat of beats) {
-      beat.tupletSettings = {
-        normalCount: normalCount,
-        tupletCount: tupletCount,
-      };
+      beat.tupletSettings =
+        tupletSettings !== null
+          ? {
+              normalCount: tupletSettings.normalCount,
+              tupletCount: tupletSettings.tupletCount,
+            }
+          : null;
       beat.bar.computeBarTupletGroups();
     }
-  }
-
-  /**
-   * Insert a beat
-   * @param bar Bar to modify
-   * @param index Index after which to insert the beat
-   * @param beat Beat to insert
-   */
-  public static insertBeat<I extends MusicInstrument>(
-    bar: Bar<I>,
-    index: number,
-    beat?: Beat<I>
-  ): void {
-    if (beat === undefined) {
-      beat = new Beat(bar, bar.trackContext);
-    }
-    bar.insertBeats(index, [beat]);
-  }
-
-  /**
-   * Inserts empty beat in the bar before beat with index 'index'
-   * @param bar Bar to modify
-   * @param index Index of the beat that will be prepended by the new beat
-   */
-  public static insertEmptyBeat<I extends MusicInstrument>(
-    bar: Bar<I>,
-    index: number
-  ): void {
-    const duration =
-      index === 0 ? NoteDuration.Quarter : bar.beats[index - 1].baseDuration;
-    const newBeat = new Beat(bar, bar.trackContext, [], duration);
-    bar.insertBeats(index, [newBeat]);
-  }
-
-  /**
-   * Prepends beat to the beginning of the bar
-   * @param bar Bar to modify
-   */
-  public static prependBeat<I extends MusicInstrument>(bar: Bar<I>): void {
-    this.insertEmptyBeat(bar, 0);
-  }
-
-  /**
-   * Appends beat to the end of the bar
-   * @param bar Bar to modify
-   */
-  public static appendBeat<I extends MusicInstrument>(bar: Bar<I>): void {
-    this.insertEmptyBeat(bar, bar.beats.length);
-  }
-
-  /**
-   * Removes beat at index
-   * @param bar Bar to modify
-   * @param index Index of the beat to be removed
-   */
-  public static removeBeat<I extends MusicInstrument>(
-    bar: Bar<I>,
-    index: number
-  ): void {
-    // Check index validity
-    if (index < 0 || index > bar.beats.length) {
-      throw Error(`${index} is invalid beat index`);
-    }
-
-    // Remove beat
-    bar.removeBeat(index);
-
-    if (bar.beats.length === 0) {
-      this.insertEmptyBeat(bar, 0);
-    }
-  }
-
-  /**
-   * Insert beats after specified beat
-   * @param index Index of the beat after which to insert
-   * @param beats Beats to insert
-   */
-  public static insertBeats<I extends MusicInstrument>(
-    bar: Bar<I>,
-    index: number,
-    beats: Beat<I>[]
-  ): void {
-    bar.insertBeats(index, beats);
   }
 
   /**
    * Removes beats from tab
    * @param beats Beats to remove
    */
-  public static removeBeats<I extends MusicInstrument>(beats: Beat<I>[]): void {
+  public static removeBeats<I extends MusicInstrument>(
+    beats: Beat<I>[]
+  ): BeatArrayOperationOutput<I>[][] {
+    const outputs: BeatArrayOperationOutput<I>[][] = [];
     for (const beat of beats) {
       const beatIndex = beat.bar.beats.indexOf(beat);
-      this.removeBeat(beat.bar, beatIndex);
+      outputs.push(beat.bar.removeBeat(beatIndex));
     }
+
+    return outputs;
   }
 
   /**
@@ -469,66 +355,5 @@ export class ScoreEditor {
         }
       }
     }
-  }
-
-  /**
-   * Inserts a new master bar & inserts a bar to every staff of every track
-   * @param score Score
-   * @param index Index after which to insert the bar
-   * @param masterBarData Master bar data
-   */
-  public static insertMasterBar(
-    score: Score,
-    index: number,
-    masterBarData: MasterBarData
-  ): void {
-    score.insertMasterBar(index, masterBarData);
-  }
-
-  /**
-   * Prepend a master bar to a score & all it's tracks' bars
-   * @param score Score
-   * @param masterBarData Master bar data
-   */
-  public static prependMasterBar(
-    score: Score,
-    masterBarData: MasterBarData
-  ): void {
-    score.prependMasterBar(masterBarData);
-  }
-
-  /**
-   * Append a master bar to a score & all it's tracks' bars
-   * @param score Score
-   * @param masterBarData Master bar data
-   */
-  public static appendMasterBar(
-    score: Score,
-    masterBarData: MasterBarData
-  ): void {
-    score.appendMasterBar(masterBarData);
-  }
-
-  /**
-   * Adds a new track
-   * @param score Score to add a track to
-   * @param instrument Track instrument
-   * @param name Track name
-   */
-  public static addTrack<I extends MusicInstrument>(
-    score: Score,
-    instrument: I,
-    name: string
-  ): void {
-    score.addTrack(instrument, name);
-  }
-
-  /**
-   * Remove track from the score
-   * @param score Score to add a track to
-   * @param index Index of the score to remove
-   */
-  public static removeTrack(score: Score, index: number): void {
-    score.removeTrack(index);
   }
 }

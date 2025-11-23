@@ -66,6 +66,18 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
+   * Inserts a ready bar (mostly for commands)
+   * @param index Index
+   * @param bar Bar
+   * @returns Inserted bar
+   */
+  public insertReadyBar(index: number, bar: Bar<I>): Bar<I> {
+    this._bars.splice(index, 0, bar);
+
+    return bar;
+  }
+
+  /**
    * Inserts a bar to the staff after the specified index
    * @param index Index after which to insert the bar
    * @param masterBar Master bar
@@ -75,9 +87,11 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     index: number,
     masterBar: MasterBar,
     beats: Beat<I>[] = []
-  ): void {
+  ): Bar<I> {
     const newBar = new Bar<I>(this, this.trackContext, masterBar, beats);
     this._bars.splice(index, 0, newBar);
+
+    return newBar;
   }
 
   /**
@@ -85,9 +99,11 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * @param masterBar Master bar
    * @param beats Beats
    */
-  public appendBar(masterBar: MasterBar, beats: Beat<I>[] = []): void {
+  public appendBar(masterBar: MasterBar, beats: Beat<I>[] = []): Bar<I> {
     const newBar = new Bar<I>(this, this.trackContext, masterBar, beats);
     this._bars.push(newBar);
+
+    return newBar;
   }
 
   /**
@@ -95,17 +111,22 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * @param masterBar Master bar
    * @param beats Beats
    */
-  public prependBar(masterBar: MasterBar, beats: Beat<I>[] = []): void {
+  public prependBar(masterBar: MasterBar, beats: Beat<I>[] = []): Bar<I> {
     const newBar = new Bar<I>(this, this.trackContext, masterBar, beats);
     this._bars.unshift(newBar);
+
+    return newBar;
   }
 
   /**
    * Removes a bar from the staff at the specified index
    * @param index Index of the bar to remove
    */
-  public removeBar(index: number): void {
+  public removeBar(index: number): Bar<I> {
+    const removedBar = this._bars[index];
     this._bars.splice(index, 1);
+
+    return removedBar;
   }
 
   /**

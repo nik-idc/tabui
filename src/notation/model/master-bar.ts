@@ -125,6 +125,17 @@ export class MasterBar {
     return this._beatsCount * this._duration;
   }
 
+  /** Gets essential master bar data */
+  public get barData(): MasterBarData {
+    return {
+      tempo: this._tempo,
+      beatsCount: this._beatsCount,
+      duration: this._duration,
+      repeatStatus: this._repeatStatus,
+      repeatCount: this._repeatCount,
+    };
+  }
+
   /**
    * Creates a deep copy of the master bar
    * @returns Deep copy of the master bar

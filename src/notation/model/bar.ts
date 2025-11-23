@@ -12,6 +12,13 @@ import { Staff } from "./staff";
 import { BarTupletGroup } from "./tuplet-group";
 import { TupletSettings, tupletSettingsEqual } from "./tuplet-settings";
 
+export type BeatArrayOperationOutput<
+  I extends MusicInstrument = MusicInstrument
+> = {
+  index: number;
+  beats: Beat<I>[];
+};
+
 /**
  * Bar JSON format
  */
@@ -415,21 +422,91 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
+   * Insert a beat
+   * @param bar Bar to modify
+   * @param index Index after which to insert the beat
+   * @param beat Beat to insert
+   */
+  public insertBeat(
+    index: number,
+    beat?: Beat<I>
+  ): BeatArrayOperationOutput<I> {
+    if (beat === undefined) {
+      beat = new Beat<I>(this, this.trackContext);
+    }
+    this.insertBeats(index, [beat]);
+
+    return { index: index, beats: [beat] };
+  }
+
+  /**
+   * Inserts empty beat in the bar before beat with index 'index'
+   * @param bar Bar to modify
+   * @param index Index of the beat that will be prepended by the new beat
+   */
+  public insertEmptyBeat(index: number): BeatArrayOperationOutput<I> {
+    const duration =
+      index === 0 ? NoteDuration.Quarter : this.beats[index - 1].baseDuration;
+    const newBeat = new Beat(this, this.trackContext, [], duration);
+    this.insertBeats(index, [newBeat]);
+
+    return { index: index, beats: [newBeat] };
+  }
+
+  /**
+   * Prepends beat to the beginning of the bar
+   * @param bar Bar to modify
+   */
+  public prependBeat(beat?: Beat<I>): BeatArrayOperationOutput<I> {
+    return this.insertEmptyBeat(0);
+  }
+
+  /**
+   * Appends beat to the end of the bar
+   * @param bar Bar to modify
+   */
+  public appendBeat(beat?: Beat<I>): BeatArrayOperationOutput<I> {
+    return this.insertEmptyBeat(this.beats.length);
+  }
+
+  /**
    * Remove beat from beats array
    * @param index Index of the beat
    */
-  public removeBeat(index: number): void {
+  public removeBeat(index: number): BeatArrayOperationOutput<I>[] {
     // Check index validity
     if (index < 0 || index > this.beats.length) {
       throw Error(`${index} is invalid beat index`);
     }
 
     // Remove beat
-    this.beats.splice(index, 1);
+    const outputs: BeatArrayOperationOutput<I>[] = [];
+    outputs.push({ index: index, beats: this.beats.splice(index, 1) });
+
+    // Insert empty beat if bar beats count drops to 0
+    if (this.beats.length === 0) {
+      outputs.push(this.insertEmptyBeat(0));
+    }
 
     // Recalc beaming
     this.computeBeaming();
     this.computeBarTupletGroups();
+
+    return outputs;
+  }
+
+  /**
+   * Removes beats from bar
+   * @param beats Beats to remove
+   */
+  public removeBeats(beats: Beat<I>[]): BeatArrayOperationOutput<I>[][] {
+    const outputs: BeatArrayOperationOutput<I>[][] = [];
+    for (const beat of beats) {
+      const beatIndex = this.beats.indexOf(beat);
+      outputs.push(this.removeBeat(beatIndex));
+    }
+
+    return outputs;
   }
 
   /**

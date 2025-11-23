@@ -17,6 +17,12 @@ export type NoteLocation = {
 export type BeatLocation = Omit<NoteLocation, "note">;
 export type BarLocation = Omit<BeatLocation, "beat">;
 
+export type MasterBarArrayOperationOutput = {
+  index: number;
+  masterBar: MasterBar;
+  bars: Map<number, Bar>;
+};
+
 /**
  * Staff JSON format
  */
@@ -64,21 +70,49 @@ export class Score {
   }
 
   /**
+   * Inserts an existing master bar & associated bars into the score
+   * @param index Index
+   * @param masterBar Master bar
+   * @param bars Bars map (staff UUID -> bar)
+   */
+  public insertReadyMasterBar(
+    index: number,
+    masterBar: MasterBar,
+    bars: Map<number, Bar>
+  ): void {
+    this._masterBars.push(masterBar);
+
+    for (const track of this._tracks) {
+      for (const staff of track.staves) {
+        const staffBar = bars.get(staff.uuid);
+        if (staffBar === undefined) {
+          staff.insertBar(index, masterBar);
+        } else {
+          staff.insertReadyBar(index, staffBar);
+        }
+      }
+    }
+  }
+
+  /**
    * Inserts a new master bar & inserts a bar to every staff of every track
    * @param index Index after which to insert the bar
    */
   public insertMasterBar(
     index: number,
     masterBarData: MasterBarData = DEFAULT_MASTER_BAR
-  ): void {
+  ): MasterBarArrayOperationOutput {
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.splice(index, 0, newMasterBar);
 
+    const staffBars: Map<number, Bar> = new Map();
     for (const track of this._tracks) {
       for (const staff of track.staves) {
-        staff.insertBar(index, newMasterBar);
+        staffBars.set(staff.uuid, staff.insertBar(index, newMasterBar));
       }
     }
+
+    return { index: index + 1, masterBar: newMasterBar, bars: staffBars };
   }
 
   /**
@@ -87,15 +121,22 @@ export class Score {
    */
   public appendMasterBar(
     masterBarData: MasterBarData = DEFAULT_MASTER_BAR
-  ): void {
+  ): MasterBarArrayOperationOutput {
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.push(newMasterBar);
 
+    const staffBars: Map<number, Bar> = new Map();
     for (const track of this._tracks) {
       for (const staff of track.staves) {
-        staff.appendBar(newMasterBar);
+        staffBars.set(staff.uuid, staff.appendBar(newMasterBar));
       }
     }
+
+    return {
+      index: this._masterBars.length - 1,
+      masterBar: newMasterBar,
+      bars: staffBars,
+    };
   }
 
   /**
@@ -104,29 +145,40 @@ export class Score {
    */
   public prependMasterBar(
     masterBarData: MasterBarData = DEFAULT_MASTER_BAR
-  ): void {
+  ): MasterBarArrayOperationOutput {
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.unshift(newMasterBar);
 
+    const staffBars: Map<number, Bar> = new Map();
     for (const track of this._tracks) {
       for (const staff of track.staves) {
-        staff.prependBar(newMasterBar);
+        staffBars.set(staff.uuid, staff.prependBar(newMasterBar));
       }
     }
+
+    return {
+      index: 0,
+      masterBar: newMasterBar,
+      bars: staffBars,
+    };
   }
 
   /**
    * Removes a master and all the track's bars at the specified index
    * @param index Index of the bar to remove
    */
-  public removeMasterBar(index: number): void {
+  public removeMasterBar(index: number): MasterBarArrayOperationOutput {
+    const removedStaffBars: Map<number, Bar> = new Map();
     for (const track of this._tracks) {
       for (const staff of track.staves) {
-        staff.removeBar(index);
+        removedStaffBars.set(staff.uuid, staff.removeBar(index));
       }
     }
 
+    const removedBar = this._masterBars[index];
     this._masterBars.splice(index, 1);
+
+    return { index: index, masterBar: removedBar, bars: removedStaffBars };
   }
 
   /**
