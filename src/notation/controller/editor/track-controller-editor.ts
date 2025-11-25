@@ -66,7 +66,17 @@ export class TrackControllerEditor {
    * @param noteElement
    */
   public selectNoteElement(noteElement: NoteElement): void {
+    if (this._selectionManager.selectedNote !== undefined) {
+      const curSelectedNoteElement = this._trackElement.getNoteElementByUUID(
+        this._selectionManager.selectedNote.note.uuid
+      );
+      if (curSelectedNoteElement !== undefined) {
+        curSelectedNoteElement.selected = false;
+      }
+    }
+
     this._selectionManager.selectNote(noteElement.note);
+    noteElement.selected = true;
   }
 
   /**

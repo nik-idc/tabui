@@ -1,14 +1,8 @@
-import { NoteElement, TabController } from "../element";
+import { TrackController } from "../controller";
 import { ElementRenderer } from "./element-renderer";
 
 export interface EditorRenderer {
-  render(tabController: TabController): ElementRenderer[];
-
-  hideSelectionPreview(): void;
-  showSelectionPreview(
-    tabController: TabController,
-    noteElement: NoteElement
-  ): void;
+  render(trackController: TrackController): ElementRenderer[];
 
   unrender(): void;
 }

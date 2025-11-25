@@ -1,5 +1,5 @@
 import { GuitarTechnique } from "@/notation/model";
-import { Rect } from "@/shared";
+import { Point, Rect } from "@/shared";
 import { BeatElement } from "../beat-element";
 
 /**
@@ -15,4 +15,6 @@ export interface TechniqueLabelElement {
 
   calc(): void;
   scaleHorBy(scale: number): void;
+
+  get globalCoords(): Point;
 }

@@ -387,4 +387,19 @@ export class GuitarTechniqueElement implements TechniqueElement {
   public get svgPath(): string | undefined {
     return this._svgPath;
   }
+
+  /** Global coords of the guitar technique element */
+  public get globalCoords(): Point {
+    if (this._rect === undefined) {
+      return new Point(
+        this.guitarNoteElement.globalCoords.x,
+        this.guitarNoteElement.globalCoords.y
+      );
+    }
+
+    return new Point(
+      this.guitarNoteElement.globalCoords.x + this._rect.x,
+      this.guitarNoteElement.globalCoords.y + this._rect.y
+    );
+  }
 }

@@ -234,4 +234,12 @@ export class StaffLineElement {
   public get techniqueLabelsRect(): Rect {
     return this._techniqueLabelsRect;
   }
+
+  /** Global coords of the staff line element (in most cases X will be 0) */
+  public get globalCoords(): Point {
+    return new Point(
+      this.trackLineElement.globalCoords.x + this._rect.x,
+      this.trackLineElement.globalCoords.y + this._rect.y
+    );
+  }
 }

@@ -196,7 +196,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._baseDuration = newDuration;
   }
   /** Base duration getter */
-  public get baseDuration(): number {
+  public get baseDuration(): NoteDuration {
     return this._baseDuration;
   }
   /** Full beat duration getter */

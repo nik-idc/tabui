@@ -4,7 +4,7 @@ import {
   GuitarTechniqueType,
   Technique,
 } from "@/notation/model";
-import { Rect, getPitchRatioNums, randomInt } from "@/shared";
+import { Point, Rect, getPitchRatioNums, randomInt } from "@/shared";
 import { BeatElement } from "../../beat-element";
 import { SVGUtils } from "./guitar-technique-html";
 import { TabLayoutDimensions } from "@/notation/controller/tab-controller-dim";
@@ -344,5 +344,13 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    */
   public get svgPath(): string | undefined {
     return this._svgPath;
+  }
+
+  /** Global coords of the guitar technique label element */
+  public get globalCoords(): Point {
+    return new Point(
+      this.beatElement.globalCoords.x + this._rect.x,
+      this.beatElement.globalCoords.y + this._rect.y
+    );
   }
 }

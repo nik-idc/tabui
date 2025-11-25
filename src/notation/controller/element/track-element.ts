@@ -167,6 +167,30 @@ export class TrackElement {
   }
 
   /**
+   * Finds note element by note UUID
+   * @param noteUUID Note UUID
+   * @returns Note element (or undefined if not found)
+   */
+  public getNoteElementByUUID(noteUUID: number): NoteElement | undefined {
+    for (const trackLineElement of this._trackLineElements) {
+      for (const staffLineElement of trackLineElement.staffLineElements) {
+        for (const barElement of staffLineElement.barElements) {
+          for (const beatElement of barElement.beatElements) {
+            const noteElements = beatElement.beatNotesElement.noteElements;
+            for (const noteElement of noteElements) {
+              if (noteElement.note.uuid === noteUUID) {
+                return noteElement;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
    * Finds beat element by beat UUID
    * @param beatUUID Beat UUID
    * @returns Beat element (or undefined if not found)
@@ -361,8 +385,15 @@ export class TrackElement {
     return prevTrack ?? null;
   }
 
+  /** Track line elements getter */
   public get trackLineElements(): TrackLineElement[] {
     return this._trackLineElements;
+  }
+
+  /** Global coords of the track element (in most cases X=0, Y=0) */
+  public get globalCoords(): Point {
+    const firstLine = this._trackLineElements[0];
+    return new Point(firstLine.rect.x, firstLine.rect.y);
   }
 }
 

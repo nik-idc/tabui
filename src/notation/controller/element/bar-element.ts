@@ -458,4 +458,12 @@ export class BarElement {
   public get labelsGapHeight(): number {
     return this._labelsGapHeight;
   }
+
+  /** Global coords of the bar element */
+  public get globalCoords(): Point {
+    return new Point(
+      this.staffLineElement.globalCoords.x + this._rect.x,
+      this.staffLineElement.globalCoords.y + this._rect.y
+    );
+  }
 }

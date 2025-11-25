@@ -1,4 +1,4 @@
-import { Rect, randomInt } from "@/shared";
+import { Point, Rect, randomInt } from "@/shared";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "./bar-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
@@ -109,5 +109,13 @@ export class BeamSegmentElement {
   /** Rectangle of the short rect */
   public get shortRect(): Rect | undefined {
     return this._shortRect;
+  }
+
+  /** Global coords of the beam segment element */
+  public get globalCoords(): Point {
+    return new Point(
+      this.barElement.globalCoords.x + this._longRect.x,
+      this.barElement.globalCoords.y + this._longRect.y
+    );
   }
 }

@@ -1,39 +1,44 @@
-import { TabController, TupletElement } from "@/notation/controller";
 import { Point, createSVGG, createSVGPath, createSVGText } from "@/shared";
 import { SVGTupletSegmentRenderer } from "./svg-tuplet-segment-renderer";
 import { ElementRenderer } from "../../element-renderer";
+import {
+  BarTupletGroupElement,
+  TabLayoutDimensions,
+} from "@/notation/controller";
 
+/**
+ * Class for rendering a tuplet element using SVG
+ */
 export class SVGTupletRenderer implements ElementRenderer {
-  private _tabWindow: TabController;
-  private _tupletElement: TupletElement;
-  private _barOffset: Point;
+  /** Tuplet element */
+  private _tupletElement: BarTupletGroupElement;
+  /** Path to any assets */
   private _assetsPath: string;
+  /** Parent SVG group element */
   private _parentElement: SVGGElement;
 
+  /** Rendered segments map */
   private _renderedTupletSegments: Map<number, SVGTupletSegmentRenderer>;
 
+  /** Container SVG group */
   private _groupSVG?: SVGGElement;
+  /** SVG path for if the tuplet is complete */
   private _completeTupletPath?: SVGPathElement;
+  /** SVG text for if the tuplet is complete */
   private _completeTupletTextSVG?: SVGTextElement;
 
   /**
-   * Class for rendering a beat element using SVG
-   * @param tabController Tab window
+   * Class for rendering a tuplet element using SVG
    * @param tupletElement Tuplet element
-   * @param barOffset Global offset of the bar element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a bar element in this case)
    */
   constructor(
-    tabController: TabController,
-    tupletElement: TupletElement,
-    barOffset: Point,
+    tupletElement: BarTupletGroupElement,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._tabWindow = tabController;
     this._tupletElement = tupletElement;
-    this._barOffset = barOffset;
     this._assetsPath = assetsPath;
     this._parentElement = parentElement;
 
@@ -79,14 +84,21 @@ export class SVGTupletRenderer implements ElementRenderer {
 
     const pathWidth = this._tupletElement.rect.width;
     const pathHeight = 7;
-    const startX = this._barOffset.x + this._tupletElement.rect.x;
-    const startY = this._barOffset.y + this._tupletElement.rect.y - pathHeight;
+    const startX =
+      this._tupletElement.globalCoords.x + this._tupletElement.rect.x;
+    const startY =
+      this._tupletElement.globalCoords.y +
+      this._tupletElement.rect.y -
+      pathHeight;
     const pathD = `
       M ${startX} ${startY} l 0 -${pathHeight} l ${pathWidth} 0 l 0 ${pathHeight}
     `.trim();
     this._completeTupletPath.setAttribute("d", pathD);
   }
 
+  /**
+   * Unender the group
+   */
   private unrenderCompleteTupletPath(): void {
     if (this._groupSVG === undefined) {
       throw Error("Tried to unrender tuplet text when SVG group undefined");
@@ -100,6 +112,9 @@ export class SVGTupletRenderer implements ElementRenderer {
     this._completeTupletPath = undefined;
   }
 
+  /**
+   * Render complete-tuplet text
+   */
   private renderCompleteTupletText(): void {
     if (this._groupSVG === undefined) {
       throw Error("Tried to render tuplet text when SVG group undefined");
@@ -110,7 +125,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._completeTupletTextSVG = createSVGText();
 
       // Set only-set-once attributes
-      const fontSize = `${this._tabWindow.dim.tempoTextSize}`;
+      const fontSize = `${TabLayoutDimensions.TEMPO_TEXT_SIZE}`;
       this._completeTupletTextSVG.setAttribute("text-anchor", "middle");
       this._completeTupletTextSVG.setAttribute("dominant-baseline", "middle");
       this._completeTupletTextSVG.setAttribute("font-size", fontSize);
@@ -123,8 +138,12 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._groupSVG.appendChild(this._completeTupletTextSVG);
     }
 
-    const x = `${this._barOffset.x + this._tupletElement.rect.middleX}`;
-    const y = `${this._barOffset.y + this._tupletElement.rect.height}`;
+    const x = `${
+      this._tupletElement.globalCoords.x + this._tupletElement.rect.middleX
+    }`;
+    const y = `${
+      this._tupletElement.globalCoords.y + this._tupletElement.rect.height
+    }`;
     const tupletGroup = this._tupletElement.tupletGroup;
     this._completeTupletTextSVG.setAttribute("x", x);
     this._completeTupletTextSVG.setAttribute("y", y);
@@ -133,6 +152,9 @@ export class SVGTupletRenderer implements ElementRenderer {
       : `${tupletGroup.normalCount}:${tupletGroup.tupletCount}`;
   }
 
+  /**
+   * Unrender complete-tuplet text
+   */
   private unrenderCompleteTupletText(): void {
     if (this._groupSVG === undefined) {
       throw Error("Tried to unrender tuplet text when SVG group undefined");
@@ -146,6 +168,9 @@ export class SVGTupletRenderer implements ElementRenderer {
     this._completeTupletTextSVG = undefined;
   }
 
+  /**
+   * Render tuplet segments
+   */
   private renderTupletSegments(): SVGTupletSegmentRenderer[] {
     if (this._groupSVG === undefined) {
       throw Error("Tried to render tuplet segments when SVG group undefined");
@@ -171,9 +196,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       );
       if (renderedTupletSegment === undefined) {
         const renderer = new SVGTupletSegmentRenderer(
-          this._tabWindow,
           beatElement,
-          this._barOffset,
           this._assetsPath,
           this._groupSVG
         );
@@ -194,6 +217,9 @@ export class SVGTupletRenderer implements ElementRenderer {
     return activeRenderers;
   }
 
+  /**
+   * Unrender tuplet segments
+   */
   private unrenderTupletSegments(): void {
     if (this._groupSVG === undefined) {
       throw Error("Tried to unrender tuplet segments when SVG group undefined");
@@ -205,11 +231,11 @@ export class SVGTupletRenderer implements ElementRenderer {
     }
   }
 
-  public render(newBarOffset?: Point): SVGTupletSegmentRenderer[] {
-    if (newBarOffset !== undefined) {
-      this._barOffset = new Point(newBarOffset.x, newBarOffset.y);
-    }
-
+  /**
+   * Render tuplet using SVG
+   * @returns Active renderers
+   */
+  public render(): SVGTupletSegmentRenderer[] {
     this.renderGroup();
 
     if (this._tupletElement.tupletGroup.complete) {
@@ -223,6 +249,9 @@ export class SVGTupletRenderer implements ElementRenderer {
     return this.renderTupletSegments();
   }
 
+  /**
+   * Unrender tuplet
+   */
   public unrender(): void {
     if (this._groupSVG === undefined) {
       throw Error("Tried to unrender tuplet elem when SVG group undefined");

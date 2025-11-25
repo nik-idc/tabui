@@ -167,7 +167,7 @@ export class BeatElement {
         if (!TECHNIQUE_TYPE_TO_LABEL[technique.type]) {
           continue;
         }
-        
+
         if (this.beat.trackContext.instrument instanceof Guitar) {
           const labelElement = new GuitarTechniqueLabelElement(
             technique as GuitarTechnique,
@@ -304,5 +304,13 @@ export class BeatElement {
   /** Selection status getter */
   public get selected(): boolean {
     return this._selected;
+  }
+
+  /** Global coords of the beat element */
+  public get globalCoords(): Point {
+    return new Point(
+      this.barElement.globalCoords.x + this._rect.x,
+      this.barElement.globalCoords.y + this._rect.y
+    );
   }
 }

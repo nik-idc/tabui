@@ -1,88 +1,82 @@
-import { TabController, NoteElement } from "@/notation/controller";
+import {
+  NoteElement,
+  TabLayoutDimensions,
+  TrackController,
+} from "@/notation/controller";
 import { createSVG, createSVGRect, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
-import { SVGBarRenderer } from "./svg-bar-renderer";
-import { SVGBeatRenderer } from "./svg-beat-renderer";
-import { SVGNoteRenderer } from "./svg-note-renderer";
-import { SVGTabLineRenderer } from "./svg-tab-line-renderer";
-import { TabPlayerSVGAnimator } from "./player-svg-animator";
+import { TrackPlayerSVGAnimator } from "./player-svg-animator";
+import { SVGTrackLineRenderer } from "./svg-track-line-renderer";
+import { GuitarNoteElement } from "@/notation/controller/element/guitar-note-element";
+import { ElementRenderer } from "../element-renderer";
 
 /**
- * Render a tab window using SVG
+ * Render a track window using SVG
  */
 export class EditorSVGRenderer implements EditorRenderer {
-  // readonly tabController: TabController;
+  /** Root DIV element */
   readonly rootDiv: HTMLDivElement;
+
+  /** Path to any assets */
   private _assetsPath: string;
-  private _svgRoot: SVGSVGElement;
-  private _playerCursor?: SVGRectElement;
-  private _selectionPreviewRect?: SVGRectElement;
+  /** Parent SVG group element */
+  private _groupSVG: SVGSVGElement;
+  /** Player cursor SVG rectangle */
+  private _playerCursorRect?: SVGRectElement;
 
-  private _renderedTabLineElements: Map<number, SVGTabLineRenderer>;
 
-  private _playerAnimator?: TabPlayerSVGAnimator;
+  /** Rendered track line elements */
+  private _renderedTrackLineElements: Map<number, SVGTrackLineRenderer>;
+
+  /** Player animator */
+  private _playerAnimator?: TrackPlayerSVGAnimator;
 
   /**
-   * Render a tab window using SVG
-   * @param tabController Tab window
+   * Render a track window using SVG
    * @param assetsPath Path to assets
    * @param svgRoot SVG root element
    */
-  constructor(
-    // tabController: TabController,
-    rootDiv: HTMLDivElement,
-    assetsPath: string
-    // svgRoot: SVGSVGElement
-  ) {
-    // this.tabController = tabController;
-
+  constructor(rootDiv: HTMLDivElement, assetsPath: string) {
     this.rootDiv = rootDiv;
-    this._svgRoot = createSVG();
-    this._svgRoot.classList.add("tu-root-svg");
-    this.rootDiv.appendChild(this._svgRoot);
+    this._groupSVG = createSVG();
+    this._groupSVG.classList.add("tu-root-svg");
+    this.rootDiv.appendChild(this._groupSVG);
 
     this._assetsPath = assetsPath;
 
-    this._renderedTabLineElements = new Map();
+    this._renderedTrackLineElements = new Map();
   }
 
   /**
-   * Render all tab lines
+   * Render all track lines
    */
-  public renderTabLines(
-    tabController: TabController
-  ): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
-    const tabLineElements = tabController.getTabLineElements();
+  public renderTrackLines(trackController: TrackController): ElementRenderer[] {
+    const trackLineElements = trackController.trackElement.trackLineElements;
 
     // Check if there are any bar element to remove
-    const curBarElementUUIDs = new Set(tabLineElements.map((t) => t.uuid));
-    for (const [uuid, renderer] of this._renderedTabLineElements) {
+    const curBarElementUUIDs = new Set(trackLineElements.map((t) => t.uuid));
+    for (const [uuid, renderer] of this._renderedTrackLineElements) {
       if (!curBarElementUUIDs.has(uuid)) {
         renderer.unrender();
-        this._renderedTabLineElements.delete(uuid);
+        this._renderedTrackLineElements.delete(uuid);
       }
     }
 
-    const activeRenderers: (
-      | SVGBarRenderer
-      | SVGBeatRenderer
-      | SVGNoteRenderer
-    )[] = [];
+    const activeRenderers: ElementRenderer[] = [];
 
     // Add & render new bar element
-    for (const tabLineElement of tabLineElements) {
-      const renderedTLE = this._renderedTabLineElements.get(
-        tabLineElement.uuid
+    for (const trackLineElement of trackLineElements) {
+      const renderedTLE = this._renderedTrackLineElements.get(
+        trackLineElement.uuid
       );
       if (renderedTLE === undefined) {
-        const renderer = new SVGTabLineRenderer(
-          tabController,
-          tabLineElement,
+        const renderer = new SVGTrackLineRenderer(
+          trackLineElement,
           this._assetsPath,
-          this._svgRoot
+          this._groupSVG
         );
         activeRenderers.push(...renderer.render());
-        this._renderedTabLineElements.set(tabLineElement.uuid, renderer);
+        this._renderedTrackLineElements.set(trackLineElement.uuid, renderer);
       } else {
         activeRenderers.push(...renderedTLE.render());
       }
@@ -90,95 +84,38 @@ export class EditorSVGRenderer implements EditorRenderer {
     return activeRenderers;
   }
 
-  public showSelectionPreview(
-    tabController: TabController,
-    noteElement: NoteElement
-  ): void {
-    const selectedNote = tabController.getSelectedNote();
-    if (
-      selectedNote &&
-      selectedNote.note.uuid === noteElement.note.uuid
-    ) {
-      return;
-    }
-
-    if (this._selectionPreviewRect === undefined) {
-      this._selectionPreviewRect = createSVGRect();
-      this._selectionPreviewRect.setAttribute("id", "selectionPreview");
-      this._selectionPreviewRect.setAttribute("fill", "white");
-      this._selectionPreviewRect.setAttribute("stroke", "orange");
-      this._selectionPreviewRect.setAttribute("stroke-width", "1");
-      this._selectionPreviewRect.setAttribute("rx", "3");
-      this._selectionPreviewRect.setAttribute("ry", "3");
-      this._selectionPreviewRect.setAttribute("fill-opacity", "0.5");
-      this._selectionPreviewRect.setAttribute("stroke-opacity", "0.5");
-      this._selectionPreviewRect.setAttribute("pointer-events", "none");
-      this._svgRoot.appendChild(this._selectionPreviewRect);
-    }
-
-    const noteTextCoords = tabController.getNoteTextGlobalCoords(noteElement);
-    const padding = 2;
-    const width = `${noteElement.textRect.width + padding * 2}`;
-    const height = `${noteElement.textRect.height + padding * 2}`;
-    this._selectionPreviewRect.setAttribute(
-      "x",
-      `${noteTextCoords.x - padding}`
-    );
-    this._selectionPreviewRect.setAttribute(
-      "y",
-      `${noteTextCoords.y - padding}`
-    );
-    this._selectionPreviewRect.setAttribute("width", width);
-    this._selectionPreviewRect.setAttribute("height", height);
-    this._selectionPreviewRect.setAttribute("display", "block");
-  }
-
-  public hideSelectionPreview(): void {
-    if (this._selectionPreviewRect) {
-      this._selectionPreviewRect.setAttribute("display", "none");
-    }
-  }
-
-  public unrenderSelectionPreview(): void {
-    if (this._selectionPreviewRect === undefined) {
-      return;
-    }
-    this._svgRoot.removeChild(this._selectionPreviewRect);
-    this._selectionPreviewRect = undefined;
-  }
 
   /**
    * Render player overlay
    */
-  public renderPlayerOverlay(tabController: TabController): void {
+  public renderPlayerOverlay(trackController: TrackController): void {
     /**
      * TODO: PLAYER CURSOR NEEDS TO BE RENDERED ON TOP OF
      * EVERYTHING ELSE. THAT MEANS THAT EVERY PAUSE UNRENDERS IT
      * AND EVERY START RENDERS IT
      */
 
-    if (this._playerCursor === undefined) {
-      this._playerCursor = createSVGRect();
-      this._playerCursor.setAttribute("id", "playerCursor");
+    if (this._playerCursorRect === undefined) {
+      this._playerCursorRect = createSVGRect();
+      this._playerCursorRect.setAttribute("id", "playerCursor");
     }
-    this._svgRoot.appendChild(this._playerCursor);
+    this._groupSVG.appendChild(this._playerCursorRect);
 
     if (this._playerAnimator === undefined) {
-      this._playerAnimator = new TabPlayerSVGAnimator(
-        this._playerCursor,
-        tabController
+      this._playerAnimator = new TrackPlayerSVGAnimator(
+        this._playerCursorRect,
+        trackController
       );
       this._playerAnimator.bindToBeatChanged();
     }
 
-    const currentBeatElement = tabController.getPlayerCurrentBeatElement();
+    const currentBeatElement = trackController.playerCurrentBeatElement;
 
     let cursorRect: Rect;
     if (currentBeatElement === undefined) {
       cursorRect = new Rect(0, 0, 0, 0);
     } else {
-      const beatElementCoords =
-        tabController.getBeatElementGlobalCoords(currentBeatElement);
+      const beatElementCoords = currentBeatElement.globalCoords;
 
       const playerCursorWidth = 5;
       const playerCursorAddHeight = 10;
@@ -191,75 +128,69 @@ export class EditorSVGRenderer implements EditorRenderer {
       );
     }
 
-    this._playerCursor.setAttribute("x", `${cursorRect.x}`);
-    this._playerCursor.setAttribute("y", `${cursorRect.y}`);
-    this._playerCursor.setAttribute("width", `${cursorRect.width}`);
-    this._playerCursor.setAttribute("height", `${cursorRect.height}`);
-    this._playerCursor.setAttribute("stroke", "black");
-    this._playerCursor.setAttribute("fill", "purple");
+    this._playerCursorRect.setAttribute("x", `${cursorRect.x}`);
+    this._playerCursorRect.setAttribute("y", `${cursorRect.y}`);
+    this._playerCursorRect.setAttribute("width", `${cursorRect.width}`);
+    this._playerCursorRect.setAttribute("height", `${cursorRect.height}`);
+    this._playerCursorRect.setAttribute("stroke", "black");
+    this._playerCursorRect.setAttribute("fill", "purple");
   }
 
   /**
    * Hide player overlay when not playing
    */
-  public hidePlayerOverlay(tabController: TabController): void {
-    if (this._playerCursor === undefined) {
-      this._playerCursor = createSVGRect();
-      this._playerCursor.setAttribute("id", "playerCursor");
+  public hidePlayerOverlay(trackController: TrackController): void {
+    if (this._playerCursorRect === undefined) {
+      this._playerCursorRect = createSVGRect();
+      this._playerCursorRect.setAttribute("id", "playerCursor");
     }
-    this._svgRoot.appendChild(this._playerCursor);
+    this._groupSVG.appendChild(this._playerCursorRect);
 
-    this._playerCursor.setAttribute("width", "0");
-    this._playerCursor.setAttribute("height", "0");
+    this._playerCursorRect.setAttribute("width", "0");
+    this._playerCursorRect.setAttribute("height", "0");
   }
 
   /**
-   * Render tab window using SVG
+   * Render track window using SVG
    */
-  public render(
-    tabController: TabController
-  ): (SVGBarRenderer | SVGBeatRenderer | SVGNoteRenderer)[] {
+  public render(trackController: TrackController): ElementRenderer[] {
     // Render lines first
-    const activeRenderers = this.renderTabLines(tabController);
+    const activeRenderers = this.renderTrackLines(trackController);
 
     // Player overlay rect
-    if (tabController.getIsPlaying()) {
-      this.renderPlayerOverlay(tabController);
+    if (trackController.isPlaying) {
+      this.renderPlayerOverlay(trackController);
     } else {
-      this.hidePlayerOverlay(tabController);
+      this.hidePlayerOverlay(trackController);
     }
 
     // Update SVG root dimensions
-    const tabWindowHeight = tabController.getWindowHeight();
-    const VB = `0 0 ${tabController.dim.width} ${tabWindowHeight}`;
-    this._svgRoot.setAttribute("viewBox", VB);
-    this._svgRoot.setAttribute("width", `${tabController.dim.width}`);
-    this._svgRoot.setAttribute("height", `${tabWindowHeight}`);
+    const trackWindowHeight = trackController.trackElement;
+    const VB = `0 0 ${TabLayoutDimensions.WIDTH} ${trackWindowHeight}`;
+    this._groupSVG.setAttribute("viewBox", VB);
+    this._groupSVG.setAttribute("width", `${TabLayoutDimensions.WIDTH}`);
+    this._groupSVG.setAttribute("height", `${trackWindowHeight}`);
 
     return activeRenderers;
   }
 
   /**
-   * Unrender the entire tab window
+   * Unrender the entire track window
    */
   public unrender(): void {
-    for (const renderer of this._renderedTabLineElements.values()) {
+    for (const renderer of this._renderedTrackLineElements.values()) {
       renderer.unrender();
     }
-    this._renderedTabLineElements.clear();
-    if (this._playerCursor) {
-      this._playerCursor.remove();
+    this._renderedTrackLineElements.clear();
+    if (this._playerCursorRect) {
+      this._playerCursorRect.remove();
     }
-    // if (this._selectionPreviewRect) {
-    //   this._selectionPreviewRect.remove();
-    // }
 
-    this.unrenderSelectionPreview();
-
-    this._svgRoot.replaceChildren();
+    this._groupSVG.replaceChildren();
   }
 
-  public get lineRenderers(): SVGTabLineRenderer[] {
-    return this._renderedTabLineElements.values().toArray();
+  /** Track line renderers getter */
+  public get lineRenderers(): SVGTrackLineRenderer[] {
+    return this._renderedTrackLineElements.values().toArray();
   }
 }

@@ -1,4 +1,4 @@
-import { TabController, TechniqueLabelElement } from "@/notation/controller";
+import { TechniqueLabelElement } from "@/notation/controller";
 import { Point, createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 
@@ -6,33 +6,30 @@ import { ElementRenderer } from "../element-renderer";
  * Class for rendering an technique label using SVG
  */
 export class SVGTechniqueLabelRenderer implements ElementRenderer {
-  private _tabWindow: TabController;
+  /** Technique label element */
   private _techniqueLabelElement: TechniqueLabelElement;
-  private _beatOffset: Point;
+  /** Path to any assets */
   private _assetsPath: string;
+  /** Parent SVG group element */
   private _parentElement: SVGGElement;
 
+  /** Container SVG group */
   private _groupSVG?: SVGGElement;
+  /** Technique label SVG group */
   private _techniqueLabelSVG?: SVGGElement;
 
   /**
    * Class for rendering an technique label using SVG
-   * @param tabController Tab window
    * @param techniqueLabelElement Technique label element
-   * @param beatOffset Global offset of the beat element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a beat element in this case)
    */
   constructor(
-    tabController: TabController,
     techniqueLabelElement: TechniqueLabelElement,
-    beatOffset: Point,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._tabWindow = tabController;
     this._techniqueLabelElement = techniqueLabelElement;
-    this._beatOffset = beatOffset;
     this._assetsPath = assetsPath;
     this._parentElement = parentElement;
   }
@@ -64,7 +61,7 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
       throw Error("Tried to render technique label when SVG group undefined");
     }
 
-    if (this._techniqueLabelElement.fullHTML === undefined) {
+    if (this._techniqueLabelElement.svgPath === undefined) {
       throw Error("Technique label render error: technique HTML undefined");
     }
 
@@ -73,15 +70,20 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
       this._techniqueLabelSVG = createSVGG();
 
       // Set id
-      this._techniqueLabelSVG.setAttribute("id", `technique-label-${techniqueUUID}`);
+      this._techniqueLabelSVG.setAttribute(
+        "id",
+        `technique-label-${techniqueUUID}`
+      );
 
       // Add element to root SVG element
       this._groupSVG.appendChild(this._techniqueLabelSVG);
     }
 
-    const transform = `translate(${this._beatOffset.x}, ${this._beatOffset.y})`;
+    const x = this._techniqueLabelElement.globalCoords.x;
+    const y = this._techniqueLabelElement.globalCoords.y;
+    const transform = `translate(${x}, ${y})`;
     this._techniqueLabelSVG.setAttribute("transform", transform);
-    this._techniqueLabelSVG.innerHTML = `${this._techniqueLabelElement.fullHTML}`;
+    this._techniqueLabelSVG.innerHTML = `${this._techniqueLabelElement.svgPath}`;
   }
 
   /**

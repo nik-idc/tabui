@@ -80,4 +80,12 @@ export class BarTupletGroupElement {
   public get rect(): Rect {
     return this._rect;
   }
+
+  /** Global coords of the bar tuplet group element */
+  public get globalCoords(): Point {
+    return new Point(
+      this.barElement.globalCoords.x + this._rect.x,
+      this.barElement.globalCoords.y + this._rect.y
+    );
+  }
 }

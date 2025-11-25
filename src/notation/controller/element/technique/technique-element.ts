@@ -1,6 +1,6 @@
 import { Technique } from "@/notation/model";
 import { NoteElement } from "../note-element";
-import { Rect } from "@/shared";
+import { Point, Rect } from "@/shared";
 
 /**
  * Class that handles geometry & visually relevant info
@@ -16,4 +16,6 @@ export interface TechniqueElement {
 
   calc(): void;
   scaleHorBy(scale: number): void;
+
+  get globalCoords(): Point;
 }

@@ -17,6 +17,8 @@ export class GuitarNoteElement implements NoteElement {
   /** Parent beat element */
   readonly beatNotesElement: BeatNotesElement;
 
+  /** True if selected, false otherwise */
+  private _selected: boolean = false;
   /** Rectangle of the main clickable-area rectangle */
   private _rect: Rect = new Rect();
   /** Rectangle of the note text rectangle */
@@ -95,6 +97,15 @@ export class GuitarNoteElement implements NoteElement {
     }
   }
 
+  /** Selected setter */
+  public set selected(newSelectedValue: boolean) {
+    this._selected = newSelectedValue;
+  }
+  /** Selected getter */
+  public get selected(): boolean {
+    return this._selected;
+  }
+
   /** Rectangle of the main clickable-area rectangle */
   public get rect(): Rect {
     return this._rect;
@@ -113,5 +124,13 @@ export class GuitarNoteElement implements NoteElement {
   /** Array of guitar technique element */
   public get guitarTechniqueElements(): GuitarTechniqueElement[] {
     return this._guitarTechniqueElements;
+  }
+
+  /** Global coords of the note element */
+  public get globalCoords(): Point {
+    return new Point(
+      this.beatNotesElement.globalCoords.x + this._rect.x,
+      this.beatNotesElement.globalCoords.y + this._rect.y
+    );
   }
 }

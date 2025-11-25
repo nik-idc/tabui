@@ -1,5 +1,5 @@
 import { Track } from "@/notation/model";
-import { Rect, randomInt } from "@/shared";
+import { Point, Rect, randomInt } from "@/shared";
 import { StaffLineElement } from "./staff-line-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import { TrackElement } from "./track-element";
@@ -133,5 +133,13 @@ export class TrackLineElement {
   /** Track line encapsulating rectangle */
   public get rect(): Rect {
     return this._rect;
+  }
+
+  /** Global coords of the track line element (in most cases X will be 0) */
+  public get globalCoords(): Point {
+    return new Point(
+      this.trackElement.globalCoords.x + this._rect.x,
+      this.trackElement.globalCoords.y + this._rect.y
+    );
   }
 }

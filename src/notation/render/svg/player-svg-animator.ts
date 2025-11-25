@@ -1,28 +1,28 @@
-import { TabController } from "@/notation/controller";
-import { TonejsDurationMap } from "@/notation/model";
+import { TrackController } from "@/notation/controller";
+import { TonejsDurationMap } from "@/player/staff-player";
 import { Point } from "@/shared";
+import { trackEvent, TrackEventType, TrackEventArgs } from "@/shared/events";
 import * as Tone from "tone";
-import { tabEvent, TabEventType, TabEventArgs } from "../../../shared/events";
 
 /**
  * Animates an SVG rectangle moving across beats while
  * playback is active
  */
-export class TabPlayerSVGAnimator {
+export class TrackPlayerSVGAnimator {
   private _bound: boolean;
   private _cursorElement: SVGRectElement;
-  private _tabWindow: TabController;
+  private _trackController: TrackController;
   private _isAnimating: boolean;
   private _prevCoords: Point;
   private _nextCoords: Point | undefined;
   private _startTime: number;
   private _duration: number;
 
-  constructor(cursorElement: SVGRectElement, tabController: TabController) {
+  constructor(cursorElement: SVGRectElement, trackController: TrackController) {
     this._bound = false;
     this._cursorElement = cursorElement;
     this._isAnimating = false;
-    this._tabWindow = tabController;
+    this._trackController = trackController;
     this._prevCoords = new Point(
       cursorElement.getAttribute("x") as unknown as number,
       cursorElement.getAttribute("y") as unknown as number
@@ -36,24 +36,31 @@ export class TabPlayerSVGAnimator {
       return;
     }
 
-    tabEvent.on(
-      TabEventType.PlayerCurBeatChanged,
+    trackEvent.on(
+      TrackEventType.PlayerCurBeatChanged,
       this.onBeatChanged.bind(this)
     );
     this._bound = true;
   }
 
-  private onBeatChanged(args: TabEventArgs[TabEventType.PlayerCurBeatChanged]) {
-    const beatElement = this._tabWindow.getBeatElementByUUID(args.beatUUID);
+  private onBeatChanged(
+    args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
+  ) {
+    const beatElement = this._trackController.trackElement.getBeatElementByUUID(
+      args.beatUUID
+    );
     if (beatElement === undefined) {
       throw Error("Could not find beat element");
     }
 
-    const coords = this._tabWindow.getBeatElementGlobalCoords(beatElement);
+    const coords =
+      this._trackController.trackElement.getBeatElementGlobalCoords(
+        beatElement
+      );
     // Adjust to fix the playback feeling as if it's behind 1 beat
     coords.x += beatElement.rect.width / 2;
     const durationSeconds = Tone.Time(
-      TonejsDurationMap[beatElement.beat.duration]
+      TonejsDurationMap[beatElement.beat.baseDuration]
     ).toSeconds();
 
     this._prevCoords =

@@ -1,5 +1,5 @@
 import { Beat, GuitarNote } from "@/notation/model";
-import { Rect, randomInt } from "@/shared";
+import { Point, Rect, randomInt } from "@/shared";
 import { BeatElement } from "./beat-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import { NoteElement } from "./note-element";
@@ -103,5 +103,13 @@ export class BeatNotesElement {
   /** Note element */
   public get noteElements(): NoteElement[] {
     return this._noteElements;
+  }
+
+  /** Global coords of the beat notes element */
+  public get globalCoords(): Point {
+    return new Point(
+      this.beatElement.globalCoords.x + this._rect.x,
+      this.beatElement.globalCoords.y + this._rect.y
+    );
   }
 }

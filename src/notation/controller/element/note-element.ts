@@ -1,6 +1,6 @@
 import { Note } from "@/notation/model";
 import { BeatNotesElement } from "./beat-notes-element";
-import { Rect } from "@/shared";
+import { Point, Rect } from "@/shared";
 import { GuitarTechniqueElement } from "./technique";
 
 /**
@@ -13,7 +13,9 @@ export interface NoteElement {
   readonly beatNotesElement: BeatNotesElement;
   readonly rect: Rect;
   readonly guitarTechniqueElements: GuitarTechniqueElement[];
+  selected: boolean;
 
   calc(): void;
   scaleHorBy(scale: number): void;
+  get globalCoords(): Point;
 }

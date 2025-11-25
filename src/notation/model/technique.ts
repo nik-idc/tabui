@@ -12,6 +12,7 @@ export interface TechniqueJSON {
  * Note level technique
  */
 export interface Technique {
+  readonly uuid: number;
   readonly type: TechniqueType;
   readonly note: Note;
 
