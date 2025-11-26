@@ -1,96 +1,79 @@
-import {
-  EditorMouseCallbacks,
-  EditorKeyboardCallbacks,
-  EditorCallbackBinder,
-  EditorMouseDefCallbacks,
-  EditorKeyboardDefCallbacks,
-} from "@/callbacks/editor";
-import { TabController, TabControllerDim } from "./element";
-import { Score, Tab } from "./model";
+import { Score, Track } from "./model";
 import { EditorSVGRenderer, EditorRenderer } from "./render";
 import { ElementRenderer } from "./render/element-renderer";
+import { TrackController } from "./controller";
 
 /**
  * Responsible for controllong everything notation-wise
  */
 export class NotationComponent {
-  private _tabController: TabController;
-
+  /** Root div element */
   readonly rootDiv: HTMLDivElement;
+  /** Score */
+  readonly score: Score;
+  /** Renderer */
   readonly renderer: EditorRenderer;
 
+  /** Track controller */
+  private _trackController: TrackController;
+
+  /**
+   * Responsible for controllong everything notation-wise
+   * @param rootDiv Root div element
+   * @param score Score
+   * @param renderer Renderer
+   */
   constructor(
-    tabController: TabController,
     rootDiv: HTMLDivElement,
+    score: Score,
     renderer?: EditorRenderer
   ) {
-    this._tabController = tabController;
-
+    this.score = score;
     this.rootDiv = rootDiv;
-
     this.renderer =
       renderer === undefined
         ? new EditorSVGRenderer(this.rootDiv, import.meta.env.BASE_URL)
         : renderer;
+
+    this._trackController = new TrackController(this.score.tracks[0]);
   }
 
+  /**
+   * Render current track
+   * @returns Active renderers
+   */
   public render(): ElementRenderer[] {
-    return this.renderer.render(this._tabController);
+    return this.renderer.render(this._trackController);
   }
 
-  public loadTrack(newTrack: Tab): ElementRenderer[] {
+  /**
+   * Loads & renders new track
+   * @param newTrack New track
+   * @returns Active renderers
+   */
+  public loadTrack(newTrack: Track): ElementRenderer[] {
     this.renderer.unrender();
 
     // Render new stuff
-    const newTabController = new TabController(
-      this._tabController.score,
-      newTrack,
-      this._tabController.dim
-    );
-    this._tabController = newTabController;
-    return this.renderer.render(this._tabController);
+    const newTrackController = new TrackController(newTrack);
+    this._trackController = newTrackController;
+    return this.renderer.render(this._trackController);
   }
 
-  public removeTrack(track: Tab): ElementRenderer[] {
-    // Reaaaallly bad, but until the model is fixed, this is how it will be
-    const trackIndex = this._tabController.score.tracks.indexOf(track);
-    if (trackIndex === -1) {
-      throw new Error("Track not in score");
-    }
-
-    const trackBefore = this._tabController.score.tracks[trackIndex - 1];
-    const trackAfter = this._tabController.score.tracks[trackIndex + 1];
-    if (trackBefore === undefined && trackAfter === undefined) {
-      throw new Error("Empty score currently unhandled");
-    }
-    const newTrack = trackBefore !== undefined ? trackBefore : trackAfter;
-
-    this._tabController.score.removeTab(track);
+  /**
+   * Removes track & renders the track before/after the removed one
+   * @param track Track to remove
+   * @returns Active renderers
+   */
+  public removeTrack(track: Track): ElementRenderer[] {
+    const trackIndex = this.score.tracks.indexOf(track);
+    const newTrack = this.score.removeTrack(trackIndex);
 
     return this.loadTrack(newTrack);
   }
 
-  public get tabController(): TabController {
-    return this._tabController;
+  /** Track controller */
+  public get trackController(): TrackController {
+    return this._trackController;
   }
-}
-
-/**
- * This class should handle
- * - Rendering SVG
- * - Editing model data
- * - Bind event handlers
- */
-
-function buildDefaultDim(tab: Tab): TabControllerDim {
-  const dim = new TabControllerDim(
-    1200, // width
-    14, // noteTextSize
-    42, // timeSigTextSize
-    28, // tempoTextSize
-    40, // durationsHeight
-    tab.guitar.stringsCount
-  );
-
-  return dim;
 }

@@ -5,8 +5,13 @@ import {
   createSVGCircle,
 } from "@/shared";
 import { BendData, Selector } from "./selector";
-import { BendSelectorManagerOptions } from "./bend-selector-manager-bendOptions";
-import { GuitarTechnique, GuitarTechniqueType } from "@/notation";
+import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
+import {
+  BendOptionsData,
+  BendType,
+  GuitarTechnique,
+  GuitarTechniqueType,
+} from "@/notation";
 
 export class PrebendSelector implements Selector {
   readonly bendGraphSVG: SVGSVGElement;
@@ -62,12 +67,16 @@ export class PrebendSelector implements Selector {
     this.bendGraphSVG.innerHTML = "";
   }
 
-  public getBendTechnique(): GuitarTechnique {
+  public getBendTechnique(): BendOptionsData {
     const pitchUnitHeight =
       this.bendManagerOptions.height / this.bendManagerOptions.rowsCount;
     const y = Number(this._bendCircle.getAttribute("cy"));
     const pitch = (this.bendManagerOptions.height - y) / (pitchUnitHeight * 4);
-    return new GuitarTechnique(GuitarTechniqueType.Prebend, { prebendPitch: pitch });
+
+    return {
+      type: BendType.Prebend,
+      prebendPitch: pitch,
+    };
   }
 
   private onCircleMouseDown(event: MouseEvent) {

@@ -3,6 +3,12 @@ import { Track } from "../model";
 import { TrackElement, BeatElement } from "./element";
 import { TrackControllerEditor } from ".";
 
+// TODO:
+// Figure out if this class is even necessary
+// and if it is, figure out how to fix the
+// "controller.controllerEditor.ohMyGodBruh.whereTfIsThisFunction"
+// problem
+
 /**
  * Class that handles editing, playing & calculating geometry of a track
  */
@@ -75,6 +81,16 @@ export class TrackController {
     }
 
     this._scorePlayer.toggleLoop();
+  }
+
+  /** Undo previous action */
+  public undo(): void {
+    this._trackControllerEditor.commandManager.undo();
+  }
+
+  /** Redo previous action */
+  public redo(): void {
+    this._trackControllerEditor.commandManager.undo();
   }
 
   /** True if playing, false if not/player undefined */

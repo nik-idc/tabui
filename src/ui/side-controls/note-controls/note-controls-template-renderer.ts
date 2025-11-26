@@ -50,7 +50,8 @@ export class NoteControlsTemplateRenderer {
       { num: 32, alt: "Thirty-second" },
     ];
     const selection =
-      this.notationComponent.tabController.getSelectionAsArray();
+      this.notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectionAsBeats;
     const appliedCSSClass = "tu-applied-img";
 
     for (let i = 0; i < notes.length; i++) {
@@ -66,7 +67,7 @@ export class NoteControlsTemplateRenderer {
 
       // Mark applied status
       const beatsOfCurDuration = selection.find(
-        (b) => b.duration === 1 / notes[i].num
+        (b) => b.baseDuration === 1 / notes[i].num
       );
       if (beatsOfCurDuration !== undefined) {
         button.classList.add(appliedCSSClass);
@@ -78,7 +79,8 @@ export class NoteControlsTemplateRenderer {
 
   private renderDotButtons(): void {
     const selection =
-      this.notationComponent.tabController.getSelectionAsArray();
+      this.notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectionAsBeats;
     const appliedCSSClass = "tu-applied-img";
 
     // Image attributes
@@ -111,7 +113,8 @@ export class NoteControlsTemplateRenderer {
 
   private renderTupletButtons(): void {
     const selection =
-      this.notationComponent.tabController.getSelectionAsArray();
+      this.notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectionAsBeats;
     const appliedCSSClass = "tu-applied-img";
 
     const tuplet2Src = `${this.assetsPath}/img/ui/tuplet-2.svg`;
@@ -133,7 +136,7 @@ export class NoteControlsTemplateRenderer {
     let hasTuplet3: boolean = false;
     let hasTuplet: boolean = false;
     for (const beat of selection) {
-      if (beat.tupletSettings === undefined) {
+      if (beat.tupletSettings === null) {
         continue;
       }
 

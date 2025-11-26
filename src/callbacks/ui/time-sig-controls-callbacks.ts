@@ -1,4 +1,4 @@
-import { NoteDuration, TabController } from "@/notation";
+import { NoteDuration } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import {
   TimeSigControlsComponent,
@@ -115,10 +115,8 @@ export class TimeSigControlsDefaultCallbacks
   }
 
   onConfirmClicked(): void {
-    this._notationComponent.tabController.changeSelectedBarBeats(
-      this._beatsCount
-    );
-    this._notationComponent.tabController.changeSelectedBarDuration(
+    this._notationComponent.trackController.trackControllerEditor.setSelectedBarTimeSignature(
+      this._beatsCount,
       this._duration
     );
     this._renderFunc();

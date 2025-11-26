@@ -1,4 +1,3 @@
-import { TabController } from "@/notation";
 import { TopControlsComponent } from "@/ui";
 import { NotationComponent } from "@/notation/notation-component";
 import {

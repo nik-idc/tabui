@@ -1,5 +1,5 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { GuitarTechniqueType, TabController } from "@/notation";
+import { GuitarTechniqueType } from "@/notation";
 import {
   BendControlsTemplate,
   BendSelectorManager,
@@ -25,7 +25,9 @@ export interface TechniqueControlsCallbacks {
   unbind(): void;
 }
 
-export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallbacks {
+export class TechniqueControlsDefaultCallbacks
+  implements TechniqueControlsCallbacks
+{
   private _techniquesComponent: TechniqueControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
@@ -59,45 +61,51 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
   }
 
   public onVibratoClicked(): void {
-    this._notationComponent.tabController.setTechnique(GuitarTechniqueType.Vibrato);
+    this._notationComponent.trackController.trackControllerEditor.setTechnique(
+      GuitarTechniqueType.Vibrato
+    );
     this._renderFunc();
   }
 
   public onPalmMuteClicked(): void {
-    this._notationComponent.tabController.setTechnique(GuitarTechniqueType.PalmMute);
+    this._notationComponent.trackController.trackControllerEditor.setTechnique(
+      GuitarTechniqueType.PalmMute
+    );
     this._renderFunc();
   }
 
   public onNHClicked(): void {
-    this._notationComponent.tabController.setTechnique(
+    this._notationComponent.trackController.trackControllerEditor.setTechnique(
       GuitarTechniqueType.NaturalHarmonic
     );
     this._renderFunc();
   }
 
   public onPHClicked(): void {
-    this._notationComponent.tabController.setTechnique(
+    this._notationComponent.trackController.trackControllerEditor.setTechnique(
       GuitarTechniqueType.PinchHarmonic
     );
     this._renderFunc();
   }
 
   public onHammerOnClicked(): void {
-    this._notationComponent.tabController.setTechnique(
+    this._notationComponent.trackController.trackControllerEditor.setTechnique(
       GuitarTechniqueType.HammerOnOrPullOff
     );
     this._renderFunc();
   }
 
   public onPullOffClicked(): void {
-    this._notationComponent.tabController.setTechnique(
+    this._notationComponent.trackController.trackControllerEditor.setTechnique(
       GuitarTechniqueType.HammerOnOrPullOff
     );
     this._renderFunc();
   }
 
   public onSlideClicked(): void {
-    this._notationComponent.tabController.setTechnique(GuitarTechniqueType.Slide);
+    this._notationComponent.trackController.trackControllerEditor.setTechnique(
+      GuitarTechniqueType.Slide
+    );
     this._renderFunc();
   }
 

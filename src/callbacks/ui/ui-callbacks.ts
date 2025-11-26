@@ -1,7 +1,6 @@
 import { UIComponent } from "@/ui";
 import { SideControlsCallbacks } from "./side-callbacks";
 import { TopControlsCallbacks } from "./top-callbacks";
-import { TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 
 export class UICallbacks {

@@ -1,4 +1,3 @@
-import { TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import { MeasureControlsComponent, MeasureControlsTemplate } from "@/ui";
 import {
@@ -18,6 +17,7 @@ import {
   TimeSigControlsDefaultCallbacks,
 } from "./time-sig-controls-callbacks";
 import { ListenerManager } from "@/shared/misc";
+import { BarRepeatStatus } from "@/notation";
 
 export interface MeasureControlsCallbacks {
   onTempoClicked(): void;
@@ -82,12 +82,16 @@ export class MeasureControlsDefaultCallbacks
   }
 
   onRepeatStartClicked(): void {
-    this._notationComponent.tabController.setSelectedBarRepeatStart();
+    this._notationComponent.trackController.trackControllerEditor.setSelectedBarRepeatStatus(
+      BarRepeatStatus.Start
+    );
     this._renderFunc();
   }
 
   onRepeatEndClicked(): void {
-    this._notationComponent.tabController.setSelectedBarRepeatEnd();
+    this._notationComponent.trackController.trackControllerEditor.setSelectedBarRepeatStatus(
+      BarRepeatStatus.End
+    );
     this._renderFunc();
   }
 

@@ -1,14 +1,14 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { TrackControlsTemplate } from "./track-controls-template";
 import { TrackControlsTemplateRenderer } from "./track-controls-template-renderer";
-import { Tab } from "@/notation";
+import { Track } from "@/notation";
 import { YesNoComponent } from "@/ui/shared/yes-no";
 import { TrackSettingsControlsComponent } from "./track-settings";
 
 export class TrackControlsComponent {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
-  readonly track: Tab;
+  readonly track: Track;
 
   readonly template: TrackControlsTemplate;
   readonly templateRenderer: TrackControlsTemplateRenderer;
@@ -19,7 +19,7 @@ export class TrackControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
-    track: Tab
+    track: Track
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;

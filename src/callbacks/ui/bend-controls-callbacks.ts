@@ -1,4 +1,8 @@
-import { TabController } from "@/notation";
+import {
+  BendTechniqueOptions,
+  BendType,
+  GuitarTechniqueType,
+} from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import {
   BendControlsComponent,
@@ -9,9 +13,7 @@ import { ListenerManager } from "@/shared/misc";
 
 export interface BendControlsCallbacks {
   onDialogClicked(event: MouseEvent): void;
-  onBendTypeClicked(
-    bendType: "bend" | "prebend" | "bend-release" | "prebend-release"
-  ): void;
+  onBendTypeClicked(bendType: BendType): void;
   onConfirmClicked(): void;
   onCancelClicked(): void;
   bind(): void;
@@ -50,18 +52,17 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     }
   }
 
-  onBendTypeClicked(
-    bendType: "bend" | "prebend" | "bend-release" | "prebend-release"
-  ): void {
+  onBendTypeClicked(bendType: BendType): void {
     this._bendComponent.bendSelectorManager.changeBendType(bendType);
   }
 
   onConfirmClicked(): void {
-    const technique = this._bendComponent.bendSelectorManager.getCurrentTechnique();
+    const bendOptions =
+      this._bendComponent.bendSelectorManager.getCurrentTechnique();
 
-    this._notationComponent.tabController.setTechnique(
-      technique.type,
-      technique.bendOptions
+    this._notationComponent.trackController.trackControllerEditor.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions(bendOptions)
     );
     this._renderFunc();
 
@@ -87,28 +88,28 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
         element: this._bendComponent.template.bendTypesButtons[0],
         event: "click",
         handler: () => {
-          this.onBendTypeClicked("bend");
+          this.onBendTypeClicked(BendType.Bend);
         },
       },
       {
         element: this._bendComponent.template.bendTypesButtons[1],
         event: "click",
         handler: () => {
-          this.onBendTypeClicked("prebend");
+          this.onBendTypeClicked(BendType.Prebend);
         },
       },
       {
         element: this._bendComponent.template.bendTypesButtons[2],
         event: "click",
         handler: () => {
-          this.onBendTypeClicked("bend-release");
+          this.onBendTypeClicked(BendType.BendAndRelease);
         },
       },
       {
         element: this._bendComponent.template.bendTypesButtons[3],
         event: "click",
         handler: () => {
-          this.onBendTypeClicked("prebend-release");
+          this.onBendTypeClicked(BendType.PrebendAndRelease);
         },
       },
       {

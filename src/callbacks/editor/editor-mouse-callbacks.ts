@@ -1,5 +1,10 @@
-import { EditorRenderer, SVGBeatRenderer, SVGNoteRenderer } from "@/notation";
-import { NoteElement, BeatElement, TabController } from "@/notation/controller";
+import {
+  EditorRenderer,
+  SVGBeatRenderer,
+  SVGGuitarNoteRenderer,
+  SVGNoteRenderer,
+} from "@/notation";
+import { NoteElement, BeatElement } from "@/notation/controller";
 import { NotationComponent } from "@/notation/notation-component";
 import { ElementRenderer } from "@/notation/render/element-renderer";
 import { Point } from "@/shared";
@@ -51,7 +56,9 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
   public onNoteClick(event: MouseEvent, noteElement: NoteElement): void {
     this._notationComponent.renderer.hideSelectionPreview();
-    this._notationComponent.tabController.selectNoteElement(noteElement);
+    this._notationComponent.trackController.trackControllerEditor.selectNoteElement(
+      noteElement
+    );
 
     this._renderFunc();
   }
@@ -61,10 +68,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
-    this._notationComponent.renderer.showSelectionPreview(
-      this._notationComponent.tabController,
-      noteElement
-    );
+    this._notationComponent.renderer.showSelectionPreview(noteElement);
   }
 
   public onNoteMouseLeave(event: MouseEvent, noteElement: NoteElement): void {
@@ -72,8 +76,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   }
 
   public onBeatMouseDown(event: MouseEvent, beatElement: BeatElement): void {
-    this._notationComponent.tabController.clearSelection();
-    this._notationComponent.tabController.recalcBeatElementSelection();
+    this._notationComponent.trackController.trackControllerEditor.clearSelection();
 
     this._selectingBeats = true;
 
@@ -87,17 +90,19 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     if (this._selectingBeats) {
-      this._notationComponent.tabController.selectBeat(beatElement);
+      this._notationComponent.trackController.trackControllerEditor.selectBeat(
+        beatElement
+      );
 
       this._renderFunc();
     }
   }
 
   public onBeatMouseMove(event: MouseEvent, beatElement: BeatElement): void {
-    if (
-      !this._selectingBeats ||
-      this._notationComponent.tabController.getSelectionBeats().length !== 0
-    ) {
+    const selection =
+      this._notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectionAsBeats;
+    if (!this._selectingBeats || selection.length !== 0) {
       return;
     }
 
@@ -113,7 +118,9 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const rect = beatElement.rect;
 
     if (distMoved >= rect.width / 4) {
-      this._notationComponent.tabController.selectBeat(beatElement);
+      this._notationComponent.trackController.trackControllerEditor.selectBeat(
+        beatElement
+      );
     }
 
     this._renderFunc();
@@ -140,7 +147,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         );
         renderer.attachMouseEvent("mousemove", this.onBeatMouseMove.bind(this));
         renderer.attachMouseEvent("mouseup", this.onBeatMouseUp.bind(this));
-      } else if (renderer instanceof SVGNoteRenderer) {
+      } else if (renderer instanceof SVGGuitarNoteRenderer) {
         renderer.attachMouseEvent("click", this.onNoteClick.bind(this));
         renderer.attachMouseEvent(
           "mouseenter",

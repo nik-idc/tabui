@@ -6,6 +6,13 @@ import { Staff } from "./staff";
 import { Track, TrackJSON } from "./track";
 import { Beat } from "./beat";
 
+export type TrackArrayOperationOutput<
+  I extends MusicInstrument = MusicInstrument,
+> = {
+  index: number;
+  tracks: Track<I>[];
+};
+
 export type NoteLocation = {
   track: Track;
   staff: Staff;
@@ -186,7 +193,10 @@ export class Score {
    * @param instrument Track's instrument
    * @param name Track name
    */
-  public addTrack(instrument: MusicInstrument, name: string): void {
+  public addTrack(
+    instrument: MusicInstrument,
+    name: string
+  ): TrackArrayOperationOutput {
     const newTrack = new Track(this, instrument, name);
 
     for (const masterBar of this.masterBars) {
@@ -196,14 +206,31 @@ export class Score {
     }
 
     this._tracks.push(newTrack);
+
+    return { index: this._tracks.length - 1, tracks: [newTrack] };
   }
 
   /**
    * Remove track from the score
    * @param index Index of the score to remove
+   * @returns Track before the deleted track or
+   * track after, depending on the index
    */
-  public removeTrack(index: number): void {
+  public removeTrack(index: number): Track {
+    if (index < 0 || index >= this._tracks.length) {
+      throw new Error("Track not in score");
+    }
+
+    const trackBefore = this.tracks[index - 1];
+    const trackAfter = this.tracks[index + 1];
+    if (trackBefore === undefined && trackAfter === undefined) {
+      throw new Error("Empty score currently unhandled");
+    }
+    const newTrack = trackBefore !== undefined ? trackBefore : trackAfter;
+
     this._tracks.splice(index);
+
+    return newTrack;
   }
 
   /** Name setter */

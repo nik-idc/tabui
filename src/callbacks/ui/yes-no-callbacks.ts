@@ -1,5 +1,4 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { Tab, TabController } from "@/notation";
 import { ListenerManager } from "@/shared/misc";
 import { YesNoComponent } from "@/ui/shared/yes-no";
 

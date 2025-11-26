@@ -1,10 +1,10 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { template } from "@babel/core";
 
-import { TechniqueControlsTemplate } from "./technique-controls-template";
-import { TechniqueControlsTemplateRenderer } from "./technique-controls-template-renderer";
 import { BendControlsComponent } from "./bend-controls/bend-controls-component";
 import { TimeSigControlsComponent } from "../measure-controls/time-sig-controls";
+import { TechniqueControlsTemplate } from "./technique-controls-template";
+import { TechniqueControlsTemplateRenderer } from "./technique-controls-template-renderer";
 
 export class TechniqueControlsComponent {
   readonly parentDiv: HTMLDivElement;

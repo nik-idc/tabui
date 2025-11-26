@@ -1,5 +1,4 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { BendControlsComponent } from "../../technique-controls/bend-controls";
 import { TempoControlsTemplate } from "./tempo-controls-template";
 import { TempoControlsTemplateRenderer } from "./tempo-controls-template-renderer";
 

@@ -1,5 +1,5 @@
-import { GuitarTechnique } from "@/notation";
-import { BendSelectorManagerOptions } from "./bend-selector-manager-bendOptions";
+import { BendOptionsData } from "@/notation";
+import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
 
 export interface BendData {
   position: number;
@@ -15,6 +15,6 @@ export interface Selector {
   readonly bendManagerOptions: BendSelectorManagerOptions;
 
   init(): void;
-  getBendTechnique(): GuitarTechnique;
+  getBendTechnique(): BendOptionsData;
   dispose(): void;
 }

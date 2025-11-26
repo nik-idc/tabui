@@ -1,10 +1,9 @@
 import { SideControlsComponent } from "@/ui";
-import { TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import {
   TechniqueControlsCallbacks,
   TechniqueControlsDefaultCallbacks,
-} from "./technique-controls-callbacks";
+} from "./effect-controls-callbacks";
 import {
   MeasureControlsCallbacks,
   MeasureControlsDefaultCallbacks,

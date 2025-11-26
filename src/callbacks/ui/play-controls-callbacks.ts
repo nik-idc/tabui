@@ -1,4 +1,3 @@
-import { TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import { PlayControlsComponent, PlayControlsTemplate } from "@/ui";
 import { ListenerManager } from "@/shared/misc";
@@ -43,7 +42,7 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     throw new Error("Method not implemented");
   }
   onPlayClicked(): void {
-    this._notationComponent.tabController.startPlayer();
+    this._notationComponent.trackController.startPlayer();
   }
   onNextClicked(): void {
     throw new Error("Method not implemented");
@@ -52,7 +51,7 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     throw new Error("Method not implemented");
   }
   onLoopClicked(): void {
-    this._notationComponent.tabController.setLooped();
+    this._notationComponent.trackController.toggleLoop();
   }
 
   bind(): void {

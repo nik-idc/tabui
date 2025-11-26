@@ -1,11 +1,6 @@
-import { NoteDuration, TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
-import {
-  TimeSigControlsComponent,
-  TimeSigControlsTemplate,
-} from "@/ui/side-controls/measure-controls/time-sig-controls";
 import { TupletControlsComponent } from "@/ui/side-controls/note-controls/tuplet-controls";
-import { ListenerConfig, ListenerManager } from "@/shared/misc";
+import { ListenerManager } from "@/shared/misc";
 
 export interface TupletControlsCallbacks {
   readonly normalCountErrorText: string;
@@ -117,7 +112,7 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   }
 
   onConfirmClicked(): void {
-    this._notationComponent.tabController.setSelectedBeatsTuplet(
+    this._notationComponent.trackController.trackControllerEditor.setSelectedBeatsTuplet(
       this._normalCount,
       this._tupletCount
     );

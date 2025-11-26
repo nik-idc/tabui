@@ -22,7 +22,7 @@ export class ScoreControlsComponent {
   constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
-    this.score = this.notationComponent.tabController.score;
+    this.score = this.notationComponent.score;
 
     this.template = new ScoreControlsTemplate();
     this.templateRenderer = new ScoreControlsTemplateRenderer(
@@ -54,7 +54,7 @@ export class ScoreControlsComponent {
       return;
     }
 
-    for (const track of this.notationComponent.tabController.score.tracks) {
+    for (const track of this.notationComponent.score.tracks) {
       const trackComponent = new TrackControlsComponent(
         this.template.tracksContainer,
         this.notationComponent,

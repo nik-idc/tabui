@@ -1,4 +1,4 @@
-import { SVGBeatRenderer, SVGNoteRenderer } from "@/notation";
+import { SVGBeatRenderer, SVGGuitarNoteRenderer } from "@/notation";
 import { ElementRenderer } from "@/notation/render/element-renderer";
 import { EditorKeyboardCallbacks } from "./editor-keyboard-callbacks";
 import { EditorMouseCallbacks } from "./editor-mouse-callbacks";
@@ -42,7 +42,7 @@ export class EditorCallbackBinder {
           "mouseup",
           mouseCallbacks.onBeatMouseUp.bind(mouseCallbacks)
         );
-      } else if (renderer instanceof SVGNoteRenderer) {
+      } else if (renderer instanceof SVGGuitarNoteRenderer) {
         renderer.attachMouseEvent(
           "click",
           mouseCallbacks.onNoteClick.bind(mouseCallbacks)

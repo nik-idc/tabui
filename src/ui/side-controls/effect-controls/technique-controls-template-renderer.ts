@@ -1,11 +1,8 @@
 import { createDiv, createImage } from "@/shared";
-import { TechniqueControlsTemplate } from "./technique-controls-template";
 import { NotationComponent } from "@/notation/notation-component";
-import {
-  TECHNIQUE_TYPE_TO_SCOPE,
-  GuitarTechniqueScope,
-  GuitarTechniqueType,
-} from "@/notation";
+import { GuitarTechniqueType, NoteValue } from "@/notation";
+import { TechniqueControlsTemplate } from "./technique-controls-template";
+import { TECHNIQUE_TYPE_TO_LABEL } from "@/notation/controller";
 
 export class TechniqueControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -50,17 +47,17 @@ export class TechniqueControlsTemplateRenderer {
     type: GuitarTechniqueType,
     button: HTMLImageElement
   ): void {
-    const selection =
-      this.notationComponent.tabController.getSelectionAsArray();
-    const selectedNote =
-      this.notationComponent.tabController.getSelectedNote();
+    const selectionManager =
+      this.notationComponent.trackController.trackControllerEditor
+        .selectionManager;
+
+    const selection = selectionManager.selectionAsBeats;
+    const selectedNote = selectionManager.selectedNote;
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
 
     if (selectedNote === undefined) {
-      if (
-        TECHNIQUE_TYPE_TO_SCOPE[type] === GuitarTechniqueScope.NoteLevelTechnique
-      ) {
+      if (TECHNIQUE_TYPE_TO_LABEL[type]) {
         button.classList.remove(appliedCSSClass);
         button.classList.add(disabledCSSClass);
         return;
@@ -76,9 +73,8 @@ export class TechniqueControlsTemplateRenderer {
       button.classList.remove(disabledCSSClass);
     } else {
       if (
-        TECHNIQUE_TYPE_TO_SCOPE[type] ===
-          GuitarTechniqueScope.NoteLevelTechnique &&
-        selectedNote.note.fret === undefined
+        TECHNIQUE_TYPE_TO_LABEL[type] &&
+        selectedNote.note.noteValue === NoteValue.None
       ) {
         button.classList.remove(appliedCSSClass);
         button.classList.add(disabledCSSClass);

@@ -1,5 +1,5 @@
 export * from "./bend-controls-callbacks";
-export * from "./technique-controls-callbacks";
+export * from "./effect-controls-callbacks";
 export * from "./measure-controls-callbacks";
 export * from "./note-controls-callbacks";
 export * from "./play-controls-callbacks";

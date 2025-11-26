@@ -61,19 +61,17 @@ export class TimeSigControlsTemplateRenderer {
 
   private renderInputs(): void {
     const selectedNote =
-      this.notationComponent.tabController.getSelectedBeat();
+      this.notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectedNote;
 
-    let beatsInitValue: string;
-    let durationInitValue: string;
-    if (selectedNote !== undefined) {
-      const selectedBar =
-        this.notationComponent.tabController.tab.findBeatsBar(selectedNote);
-      beatsInitValue = `${selectedBar.beatsCount}`;
-      durationInitValue = `${1 / selectedBar.duration}`;
-    } else {
-      beatsInitValue = "4";
-      durationInitValue = "4";
-    }
+    const beatsInitValue =
+      selectedNote !== undefined
+        ? `${selectedNote.bar.masterBar.beatsCount}`
+        : "4";
+    const durationInitValue =
+      selectedNote !== undefined
+        ? `${1 / selectedNote.bar.masterBar.duration}`
+        : "4";
 
     const beatsCSSClass = "tu-time-sig-beats-input";
     this.template.beatsInput.classList.add(beatsCSSClass);

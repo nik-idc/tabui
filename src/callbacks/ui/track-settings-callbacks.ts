@@ -1,10 +1,4 @@
-import {
-  Guitar,
-  isValidGuitarTuning,
-  NoteDuration,
-  Tab,
-  TabController,
-} from "@/notation";
+import { isValidGuitarTuning } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";
 import { TrackSettingsControlsComponent } from "@/ui/top-controls/score-controls/track-controls/track-settings";
@@ -154,8 +148,7 @@ export class TrackSettingsControlsDefaultCallbacks
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._trackSettingsComponent.template
-          .dialog as HTMLElement,
+        element: this._trackSettingsComponent.template.dialog as HTMLElement,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },

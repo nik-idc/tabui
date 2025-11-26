@@ -1,23 +1,20 @@
-import {
-  GuitarTechniqueType,
-  GuitarTechniqueOptions,
-  GuitarTechnique,
-} from "@/notation/model";
+import { BendOptionsData, BendType, GuitarTechnique } from "@/notation/model";
 import { createSVGLine, createSVGText } from "@/shared";
 import { BendData, Selector } from "./selector";
 import { BendReleaseSelector } from "./bend-release-selector";
 import { BendSelector } from "./bend-selector";
 import { PrebendReleaseSelector } from "./prebend-release-selector";
 import { PrebendSelector } from "./prebend-selector";
-import { BendSelectorManagerOptions } from "./bend-selector-manager-bendOptions";
-
-type BendType = "bend" | "bend-release" | "prebend" | "prebend-release";
+import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
 
 const selectorMap = {
-  bend: BendSelector,
-  "bend-release": BendReleaseSelector,
-  prebend: PrebendSelector,
-  "prebend-release": PrebendReleaseSelector,
+  [BendType.Bend]: BendSelector,
+  [BendType.BendAndRelease]: BendReleaseSelector,
+  [BendType.Hold]: null,
+  [BendType.Prebend]: PrebendSelector,
+  [BendType.PrebendAndRelease]: PrebendReleaseSelector,
+  [BendType.PrebendBend]: null,
+  [BendType.Release]: null,
 } as const;
 
 function getPitchLabel(pitch: number): string {
@@ -58,7 +55,9 @@ export class BendSelectorManager {
 
     const SelectorType =
       bendType === undefined ? BendSelector : selectorMap[bendType];
-    this._currentSelector = new SelectorType(
+
+    // BAD BAD BAD!!! SHOULD BE HANDLING ALL TYPES OF BENDS!!! AAAAA
+    this._currentSelector = new SelectorType!(
       this._bendGraphSVG,
       this._currentOptions
     );
@@ -135,14 +134,15 @@ export class BendSelectorManager {
 
     const SelectorType =
       bendType === undefined ? BendSelector : selectorMap[bendType];
-    this._currentSelector = new SelectorType(
+    // BAD BAD BAD!!! SHOULD BE HANDLING ALL TYPES OF BENDS!!! AAAAA
+    this._currentSelector = new SelectorType!(
       this._bendGraphSVG,
       this._currentOptions
     );
     this._currentSelector.init();
   }
 
-  public getCurrentTechnique(): GuitarTechnique {
+  public getCurrentTechnique(): BendOptionsData {
     return this._currentSelector.getBendTechnique();
   }
 }

@@ -1,6 +1,10 @@
-import { EditorRenderer } from "@/notation";
-import { SelectedMoveDirection, TabController } from "@/notation/controller";
-import { GuitarTechniqueType, GuitarTechniqueOptions } from "@/notation/model";
+import {
+  BendTechniqueOptions,
+  EditorRenderer,
+  GuitarTechniqueType,
+  NoteValue,
+} from "@/notation";
+import { SelectedMoveDirection } from "@/notation/controller";
 import { NotationComponent } from "@/notation/notation-component";
 import { ElementRenderer } from "@/notation/render/element-renderer";
 import { KeyChecker } from "@/shared";
@@ -12,9 +16,9 @@ export interface EditorKeyboardCallbacks {
   ctrlZEvent(event: KeyboardEvent): void;
   ctrlYEvent(event: KeyboardEvent): void;
   deleteEvent(event: KeyboardEvent): void;
-  applyOrRemoveTechnique(
+  setTechnique(
     type: GuitarTechniqueType,
-    bendOptions?: GuitarTechniqueOptions
+    bendOptions?: BendTechniqueOptions
   ): void;
   shiftVEvent(event: KeyboardEvent): void;
   shiftPEvent(event: KeyboardEvent): void;
@@ -51,64 +55,55 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public ctrlCEvent(event: KeyboardEvent): void {
-    this._notationComponent.tabController.copy();
+    this._notationComponent.trackController.trackControllerEditor.copy();
   }
 
   public ctrlVEvent(event: KeyboardEvent): void {
-    this._notationComponent.tabController.paste();
+    this._notationComponent.trackController.trackControllerEditor.paste();
     this._renderFunc();
   }
 
   public ctrlZEvent(event: KeyboardEvent): void {
-    this._notationComponent.tabController.undo();
+    this._notationComponent.trackController.undo();
     this._renderFunc();
   }
 
   public ctrlYEvent(event: KeyboardEvent): void {
-    this._notationComponent.tabController.redo();
+    this._notationComponent.trackController.redo();
     this._renderFunc();
   }
 
   public deleteEvent(event: KeyboardEvent): void {
-    this._notationComponent.tabController.deleteSelectedBeats();
+    this._notationComponent.trackController.trackControllerEditor.deleteSelectedBeats();
     this._renderFunc();
   }
 
-  public applyOrRemoveTechnique(
+  public setTechnique(
     type: GuitarTechniqueType,
-    bendOptions?: GuitarTechniqueOptions
+    bendOptions?: BendTechniqueOptions
   ): void {
-    const selected = this._notationComponent.tabController.getSelectedNote();
+    const selected =
+      this._notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectedNote;
 
     if (selected === undefined) {
       return;
     }
 
-    const techniqueIndex = selected.note.techniques.findIndex((e) => {
-      return e.type === type;
-    });
-
-    if (techniqueIndex === -1) {
-      const result = this._notationComponent.tabController.applyTechniqueSingle(
-        type,
-        bendOptions
-      );
-    } else {
-      this._notationComponent.tabController.removeTechniqueSingle(
-        type,
-        bendOptions
-      );
-    }
+    this._notationComponent.trackController.trackControllerEditor.setTechnique(
+      type,
+      bendOptions
+    );
 
     this._renderFunc();
   }
 
   public shiftVEvent(event: KeyboardEvent): void {
-    this.applyOrRemoveTechnique(GuitarTechniqueType.Vibrato);
+    this.setTechnique(GuitarTechniqueType.Vibrato);
   }
 
   public shiftPEvent(event: KeyboardEvent): void {
-    this.applyOrRemoveTechnique(GuitarTechniqueType.PalmMute);
+    this.setTechnique(GuitarTechniqueType.PalmMute);
   }
 
   public shiftBEvent(event: KeyboardEvent): void {
@@ -116,19 +111,20 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public spaceEvent(event: KeyboardEvent): void {
-    if (this._notationComponent.tabController.getIsPlaying()) {
-      this._notationComponent.tabController.stopPlayer();
+    if (this._notationComponent.trackController.isPlaying) {
+      this._notationComponent.trackController.stopPlayer();
     } else {
-      this._notationComponent.tabController.startPlayer();
+      this._notationComponent.trackController.startPlayer();
     }
 
     this._renderFunc();
   }
 
   public onNumberDown(key: string): void {
-    if (
-      this._notationComponent.tabController.getSelectedNote() === undefined
-    ) {
+    const selected =
+      this._notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectedNote;
+    if (selected === undefined) {
       return;
     }
 
@@ -139,7 +135,9 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     if (this._prevKeyPress === undefined) {
       this._prevKeyPress = { time: new Date().getTime(), key: key };
-      this._notationComponent.tabController.setSelectedNoteFret(newFret);
+      this._notationComponent.trackController.trackControllerEditor.setSelectedNoteFret(
+        newFret
+      );
 
       this._renderFunc();
       return;
@@ -150,7 +148,9 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     let combFret = Number.parseInt(this._prevKeyPress.key + key);
     newFret = timeDiff < this.eventsTimeEpsilon ? combFret : newFret;
 
-    this._notationComponent.tabController.setSelectedNoteFret(newFret);
+    this._notationComponent.trackController.trackControllerEditor.setSelectedNoteFret(
+      newFret
+    );
 
     this._prevKeyPress.time = now;
     this._prevKeyPress.key = key;
@@ -159,30 +159,31 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public onArrowDown(key: string): void {
-    if (
-      this._notationComponent.tabController.getSelectedNote() === undefined
-    ) {
+    const selected =
+      this._notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectedNote;
+    if (selected === undefined) {
       return;
     }
 
     switch (key) {
       case "arrowdown":
-        this._notationComponent.tabController.moveSelectedNote(
+        this._notationComponent.trackController.trackControllerEditor.moveSelectedNote(
           SelectedMoveDirection.Down
         );
         break;
       case "arrowup":
-        this._notationComponent.tabController.moveSelectedNote(
+        this._notationComponent.trackController.trackControllerEditor.moveSelectedNote(
           SelectedMoveDirection.Up
         );
         break;
       case "arrowleft":
-        this._notationComponent.tabController.moveSelectedNote(
+        this._notationComponent.trackController.trackControllerEditor.moveSelectedNote(
           SelectedMoveDirection.Left
         );
         break;
       case "arrowright":
-        this._notationComponent.tabController.moveSelectedNote(
+        this._notationComponent.trackController.trackControllerEditor.moveSelectedNote(
           SelectedMoveDirection.Right
         );
         break;
@@ -192,17 +193,21 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public onBackspacePress(): void {
-    const selected = this._notationComponent.tabController.getSelectedNote();
+    const selected =
+      this._notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectedNote;
 
     if (selected === undefined) {
       return;
     }
 
-    if (selected.note.fret === undefined) {
+    if (selected.note.noteValue === NoteValue.None) {
       return;
     }
 
-    this._notationComponent.tabController.setSelectedNoteFret(undefined);
+    this._notationComponent.trackController.trackControllerEditor.setSelectedNoteFret(
+      null
+    );
 
     this._renderFunc();
   }

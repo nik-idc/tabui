@@ -1,5 +1,4 @@
 import { createDiv, createImage } from "@/shared";
-import { BendControlsTemplate } from "./bend-controls/bend-controls-template";
 
 /**
  * Interface defining the template of technique controls:

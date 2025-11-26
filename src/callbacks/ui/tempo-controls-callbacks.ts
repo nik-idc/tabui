@@ -1,4 +1,3 @@
-import { NoteDuration, TabController } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import { MeasureControlsComponent } from "@/ui";
 import {
@@ -85,7 +84,9 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   }
 
   onConfirmClicked(): void {
-    this._notationComponent.tabController.changeSelectedBarTempo(this._tempo);
+    this._notationComponent.trackController.trackControllerEditor.setSelectedBarTempo(
+      this._tempo
+    );
     this._renderFunc();
 
     this._tempoComponent.template.dialog.close();

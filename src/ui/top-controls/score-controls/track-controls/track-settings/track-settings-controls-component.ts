@@ -1,6 +1,6 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { TupletControlsComponent } from "@/ui/side-controls/note-controls/tuplet-controls";
-import { Tab, Guitar } from "@/notation";
+import { Track, Guitar } from "@/notation";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
 import { TrackSettingsControlsTemplateRenderer } from "./track-settings-controls-template-renderer";
 
@@ -18,7 +18,7 @@ export const INSTRUMENT_KINDS: Record<string, Record<string, string[]>> = {
 export class TrackSettingsControlsComponent {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
-  readonly track: Tab;
+  readonly track: Track;
 
   readonly template: TrackSettingsControlsTemplate;
   readonly templateRenderer: TrackSettingsControlsTemplateRenderer;
@@ -30,7 +30,7 @@ export class TrackSettingsControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
-    track: Tab
+    track: Track
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -44,8 +44,8 @@ export class TrackSettingsControlsComponent {
     );
 
     this._trackName = track.name;
-    this._stringCount = track.guitar.stringsCount;
-    this._tuning = track.guitar.tuning
+    this._stringCount = (track.context.instrument as Guitar).stringsCount;
+    this._tuning = (track.context.instrument as Guitar).tuning
       .map((n) => n.noteValue)
       .reverse()
       .join(" ");

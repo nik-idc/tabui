@@ -1,4 +1,4 @@
-import { NoteDuration, TabController } from "@/notation";
+import { NoteDuration } from "@/notation";
 import { NotationComponent } from "@/notation/notation-component";
 import { NoteControlsComponent, NoteControlsTemplate } from "@/ui";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";
@@ -50,13 +50,15 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   }
 
   onDurationClicked(noteDuration: NoteDuration): void {
-    this._notationComponent.tabController.changeDuration(noteDuration);
+    this._notationComponent.trackController.trackControllerEditor.setDuration(
+      noteDuration
+    );
     this._renderFunc();
   }
 
   onDotClicked(dots: number): void {
     // notationComponent.notationComponent.setSelectedBeatDots(dots);
-    this._notationComponent.tabController.setDots(dots);
+    this._notationComponent.trackController.trackControllerEditor.setDots(dots);
     this._renderFunc();
   }
 
@@ -64,7 +66,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     if (normalCount < 2) {
       throw Error("Tuplet normal count has to be >= 2");
     }
-    this._notationComponent.tabController.setSelectedBeatsTuplet(
+    this._notationComponent.trackController.trackControllerEditor.setSelectedBeatsTuplet(
       normalCount,
       normalCount - 1
     );
@@ -85,7 +87,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
           event: "click",
           handler: () =>
             this.onDurationClicked(1 / Number(button.dataset["duration"])),
-        } as ListenerConfig)
+        }) as ListenerConfig
     );
 
     // Bind dot and tuplet buttons

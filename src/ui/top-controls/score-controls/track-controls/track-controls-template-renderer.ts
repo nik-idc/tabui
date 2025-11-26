@@ -1,7 +1,7 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { createOption } from "@/shared";
 import { TrackControlsTemplate } from "./track-controls-template";
-import { Tab, Track } from "@/notation";
+import { Track } from "@/notation";
 
 const assetsPath = import.meta.env.BASE_URL;
 
@@ -19,7 +19,7 @@ export class TrackControlsTemplateRenderer {
   readonly notationComponent: NotationComponent;
   readonly template: TrackControlsTemplate;
   readonly assetsPath: string;
-  readonly track: Tab;
+  readonly track: Track;
 
   private _assembled: boolean;
 
@@ -27,7 +27,7 @@ export class TrackControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TrackControlsTemplate,
-    track: Tab,
+    track: Track,
     assetsPath: string = import.meta.env.BASE_URL
   ) {
     this.parentDiv = parentDiv;

@@ -27,8 +27,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
   private _textSVG?: SVGTextElement;
   /** SVG background rectangle */
   private _backgroundSVG?: SVGRectElement;
-  /** Selection preview SVG rectangle */
-  private _selectionPreviewRect?: SVGRectElement;
+
   /** SVG selection rectangle */
   private _selectionRectSVG?: SVGRectElement;
 
@@ -118,80 +117,6 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
 
     this._groupSVG.removeChild(this._rectSVG);
     this._rectSVG = undefined;
-  }
-
-  /**
-   * Shows note selection preview
-   */
-  public showSelectionPreview(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to show selection preview when SVG group undefined");
-    }
-
-    if (this._selectionPreviewRect === undefined) {
-      this._selectionPreviewRect = createSVGRect();
-      this._selectionPreviewRect.setAttribute("id", "selectionPreview");
-      this._selectionPreviewRect.setAttribute("fill", "white");
-      this._selectionPreviewRect.setAttribute("stroke", "orange");
-      this._selectionPreviewRect.setAttribute("stroke-width", "1");
-      this._selectionPreviewRect.setAttribute("rx", "3");
-      this._selectionPreviewRect.setAttribute("ry", "3");
-      this._selectionPreviewRect.setAttribute("fill-opacity", "0.5");
-      this._selectionPreviewRect.setAttribute("stroke-opacity", "0.5");
-      this._selectionPreviewRect.setAttribute("pointer-events", "none");
-      this._groupSVG.appendChild(this._selectionPreviewRect);
-    }
-
-    const noteTextCoords = this._noteElement.globalCoords;
-    const padding = 2;
-
-    let width: string;
-    let height: string;
-    if (this._noteElement instanceof GuitarNoteElement) {
-      width = `${this._noteElement.textRect.width + padding * 2}`;
-      height = `${this._noteElement.textRect.height + padding * 2}`;
-    } else {
-      width = `${TabLayoutDimensions.NOTE_RECT_HEIGHT + padding * 2}`;
-      height = `${TabLayoutDimensions.NOTE_RECT_HEIGHT + padding * 2}`;
-    }
-
-    this._selectionPreviewRect.setAttribute(
-      "x",
-      `${noteTextCoords.x - padding}`
-    );
-    this._selectionPreviewRect.setAttribute(
-      "y",
-      `${noteTextCoords.y - padding}`
-    );
-    this._selectionPreviewRect.setAttribute("width", width);
-    this._selectionPreviewRect.setAttribute("height", height);
-    this._selectionPreviewRect.setAttribute("display", "block");
-  }
-
-  /**
-   * Hide selectin preview (but keep in the DOM)
-   */
-  public hideSelectionPreview(): void {
-    if (this._selectionPreviewRect) {
-      this._selectionPreviewRect.setAttribute("display", "none");
-    }
-  }
-
-  /**
-   * Remove selection preview rectangle from the DOM
-   */
-  public unrenderSelectionPreview(): void {
-    if (this._groupSVG === undefined) {
-      throw Error(
-        "Tried to unrender selection preview when SVG group undefined"
-      );
-    }
-
-    if (this._selectionPreviewRect === undefined) {
-      return;
-    }
-    this._groupSVG.removeChild(this._selectionPreviewRect);
-    this._selectionPreviewRect = undefined;
   }
 
   /**

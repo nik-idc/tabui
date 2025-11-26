@@ -58,16 +58,13 @@ export class TempoControlsTemplateRenderer {
 
   private renderInputs(): void {
     const selectedNote =
-      this.notationComponent.tabController.getSelectedBeat();
+      this.notationComponent.trackController.trackControllerEditor
+        .selectionManager.selectedNote;
 
-    let tempoInitValue: string;
-    if (selectedNote !== undefined) {
-      const selectedBar =
-        this.notationComponent.tabController.tab.findBeatsBar(selectedNote);
-      tempoInitValue = `${selectedBar.tempo}`;
-    } else {
-      tempoInitValue = "120";
-    }
+    const tempoInitValue =
+      selectedNote !== undefined
+        ? `${selectedNote.bar.masterBar.tempo}`
+        : "120";
 
     const beatsCSSClass = "tu-tempo-input";
     this.template.input.classList.add(beatsCSSClass);
