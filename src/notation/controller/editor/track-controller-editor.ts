@@ -66,25 +66,17 @@ export class TrackControllerEditor {
    * @param noteElement
    */
   public selectNoteElement(noteElement: NoteElement): void {
-    if (this._selectionManager.selectedNote !== undefined) {
-      const curSelectedNoteElement = this._trackElement.getNoteElementByUUID(
-        this._selectionManager.selectedNote.note.uuid
-      );
-      if (curSelectedNoteElement !== undefined) {
-        curSelectedNoteElement.selected = false;
-      }
-    }
-
     this._selectionManager.selectNote(noteElement.note);
-    noteElement.selected = true;
   }
 
   /**
    * Selects first note
    */
   public selectFirstNote(): void {
-    const note = this._trackElement.track.staves[0].bars[0].beats[0].notes[0];
-    this._selectionManager.selectNote(note);
+    const firstNoteElement =
+      this._trackElement.trackLineElements[0].staffLineElements[0]
+        .barElements[0].beatElements[0].beatNotesElement.noteElements[0];
+    this.selectNoteElement(firstNoteElement);
   }
 
   /**

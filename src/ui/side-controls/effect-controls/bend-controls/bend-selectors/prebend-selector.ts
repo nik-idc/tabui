@@ -76,6 +76,7 @@ export class PrebendSelector implements Selector {
     return {
       type: BendType.Prebend,
       prebendPitch: pitch,
+      bendDuration: 1,
     };
   }
 

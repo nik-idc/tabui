@@ -27,13 +27,33 @@ const barsInfo = [
     beatsDuration: NoteDuration.Quarter,
   },
   {
-    beatsCount: 8,
-    beatsDuration: NoteDuration.Eighth,
+    beatsCount: 4,
+    beatsDuration: NoteDuration.Quarter,
   },
   {
-    beatsCount: 16,
-    beatsDuration: NoteDuration.Sixteenth,
+    beatsCount: 4,
+    beatsDuration: NoteDuration.Quarter,
   },
+  {
+    beatsCount: 4,
+    beatsDuration: NoteDuration.Quarter,
+  },
+  {
+    beatsCount: 4,
+    beatsDuration: NoteDuration.Quarter,
+  },
+  {
+    beatsCount: 4,
+    beatsDuration: NoteDuration.Quarter,
+  },
+  // {
+  //   beatsCount: 8,
+  //   beatsDuration: NoteDuration.Eighth,
+  // },
+  // {
+  //   beatsCount: 16,
+  //   beatsDuration: NoteDuration.Sixteenth,
+  // },
 ];
 
 export const score = createScore(

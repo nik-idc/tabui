@@ -13,7 +13,6 @@ export interface NoteElement {
   readonly beatNotesElement: BeatNotesElement;
   readonly rect: Rect;
   readonly guitarTechniqueElements: GuitarTechniqueElement[];
-  selected: boolean;
 
   calc(): void;
   scaleHorBy(scale: number): void;

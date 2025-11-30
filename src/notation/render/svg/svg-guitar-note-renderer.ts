@@ -1,4 +1,4 @@
-import { TabLayoutDimensions } from "@/notation/controller";
+import { TabLayoutDimensions, TrackController } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 import { GuitarNoteElement } from "@/notation/controller/element/guitar-note-element";
@@ -9,8 +9,11 @@ import { SVGNoteRenderer } from "./svg-note-renderer";
  * Class for rendering a note element using SVG
  */
 export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
+  /** Track controller */
+  readonly trackController: TrackController;
   /** Guitar note element */
-  private _noteElement: GuitarNoteElement;
+  readonly noteElement: GuitarNoteElement;
+
   /** Path to any assets */
   private _assetsPath: string;
   /** Parent SVG group element */
@@ -36,16 +39,20 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
 
   /**
    * Class for rendering a note element using SVG
+   * @param trackController Track controller
    * @param noteElement Note element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a beat element in this case)
    */
   constructor(
+    trackController: TrackController,
     noteElement: GuitarNoteElement,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._noteElement = noteElement;
+    this.trackController = trackController;
+    this.noteElement = noteElement;
+
     this._assetsPath = assetsPath;
     this._parentElement = parentElement;
 
@@ -62,7 +69,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       return;
     }
 
-    const noteUUID = this._noteElement.note.uuid;
+    const noteUUID = this.noteElement.note.uuid;
     this._groupSVG = createSVGG();
     this._groupSVG.setAttribute("id", `note-${noteUUID}`);
     this._parentElement.appendChild(this._groupSVG);
@@ -76,7 +83,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       throw Error("Tried to render note rect when SVG group undefined");
     }
 
-    const noteUUID = this._noteElement.note.uuid;
+    const noteUUID = this.noteElement.note.uuid;
     if (this._rectSVG === undefined) {
       this._rectSVG = createSVGRect();
 
@@ -93,10 +100,10 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       this._groupSVG.appendChild(this._rectSVG);
     }
 
-    const x = `${this._noteElement.globalCoords.x}`;
-    const y = `${this._noteElement.globalCoords.y}`;
-    const width = `${this._noteElement.rect.width}`;
-    const height = `${this._noteElement.rect.height}`;
+    const x = `${this.noteElement.globalCoords.x}`;
+    const y = `${this.noteElement.globalCoords.y}`;
+    const width = `${this.noteElement.rect.width}`;
+    const height = `${this.noteElement.rect.height}`;
     this._rectSVG.setAttribute("x", x);
     this._rectSVG.setAttribute("y", y);
     this._rectSVG.setAttribute("width", width);
@@ -132,7 +139,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       this._selectionRectSVG = createSVGRect();
       this._selectionRectSVG.setAttribute(
         "id",
-        `note-selection-${this._noteElement.note.uuid}`
+        `note-selection-${this.noteElement.note.uuid}`
       );
       this._selectionRectSVG.setAttribute("fill", "white");
       this._selectionRectSVG.setAttribute("stroke", "orange");
@@ -143,13 +150,13 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
     }
     const padding = 2;
     const x = `${
-      this._noteElement.globalCoords.x + this._noteElement.textRect.x - padding
+      this.noteElement.globalCoords.x + this.noteElement.textRect.x - padding
     }`;
     const y = `${
-      this._noteElement.globalCoords.y + this._noteElement.textRect.y - padding
+      this.noteElement.globalCoords.y + this.noteElement.textRect.y - padding
     }`;
-    const width = `${this._noteElement.textRect.width + padding * 2}`;
-    const height = `${this._noteElement.textRect.height + padding * 2}`;
+    const width = `${this.noteElement.textRect.width + padding * 2}`;
+    const height = `${this.noteElement.textRect.height + padding * 2}`;
     this._selectionRectSVG.setAttribute("x", x);
     this._selectionRectSVG.setAttribute("y", y);
     this._selectionRectSVG.setAttribute("width", width);
@@ -180,11 +187,11 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       throw Error("Tried to unrender note background when SVG group undefined");
     }
 
-    if (this._noteElement.note.fret === undefined) {
+    if (this.noteElement.note.fret === null) {
       throw Error("Tried to render note bckg when note value is undefined");
     }
 
-    const noteUUID = this._noteElement.note.uuid;
+    const noteUUID = this.noteElement.note.uuid;
     if (this._backgroundSVG === undefined) {
       this._backgroundSVG = createSVGRect();
 
@@ -201,13 +208,13 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
     }
 
     const x = `${
-      this._noteElement.globalCoords.x + this._noteElement.textRect.x
+      this.noteElement.globalCoords.x + this.noteElement.textRect.x
     }`;
     const y = `${
-      this._noteElement.globalCoords.y + this._noteElement.textRect.y
+      this.noteElement.globalCoords.y + this.noteElement.textRect.y
     }`;
-    const width = `${this._noteElement.textRect.width}`;
-    const height = `${this._noteElement.textRect.height}`;
+    const width = `${this.noteElement.textRect.width}`;
+    const height = `${this.noteElement.textRect.height}`;
     this._backgroundSVG.setAttribute("x", x);
     this._backgroundSVG.setAttribute("y", y);
     this._backgroundSVG.setAttribute("width", width);
@@ -239,11 +246,11 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       throw Error("Tried to render note text when SVG group undefined");
     }
 
-    if (this._noteElement.note.fret === undefined) {
+    if (this.noteElement.note.fret === null) {
       throw Error("Tried to render note text when note value is undefined");
     }
 
-    const noteUUID = this._noteElement.note.uuid;
+    const noteUUID = this.noteElement.note.uuid;
     if (this._textSVG === undefined) {
       this._textSVG = createSVGText();
 
@@ -264,14 +271,14 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
     }
 
     const x = `${
-      this._noteElement.globalCoords.x + this._noteElement.textCoords.x
+      this.noteElement.globalCoords.x + this.noteElement.textCoords.x
     }`;
     const y = `${
-      this._noteElement.globalCoords.y + this._noteElement.textCoords.y
+      this.noteElement.globalCoords.y + this.noteElement.textCoords.y
     }`;
     this._textSVG.setAttribute("x", x);
     this._textSVG.setAttribute("y", y);
-    this._textSVG.textContent = `${this._noteElement.note.fret}`;
+    this._textSVG.textContent = `${this.noteElement.note.fret}`;
     this._groupSVG.appendChild(this._textSVG);
   }
 
@@ -303,14 +310,16 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
 
     this.renderNoteRect();
 
-    if (this._noteElement.selected) {
+    const selectedNote =
+      this.trackController.trackControllerEditor.selectionManager.selectedNote;
+    if (this.noteElement.note === selectedNote?.note) {
       this.renderSelectionRect();
     } else {
       this.unrenderSelectionRect();
     }
 
     // Render note value stuff if note value defined, remove it otherwise
-    if (this._noteElement.note.fret !== undefined) {
+    if (this.noteElement.note.fret !== null) {
       this.renderNoteBackground();
       this.renderNoteText();
     } else {
@@ -320,7 +329,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
 
     // Check if there are any techniques to remove
     const curTechniqueElementUUIDs = new Set(
-      this._noteElement.guitarTechniqueElements.map((e) => e.technique.uuid)
+      this.noteElement.guitarTechniqueElements.map((e) => e.technique.uuid)
     );
     for (const [uuid, renderer] of this._renderedTechniques) {
       if (!curTechniqueElementUUIDs.has(uuid)) {
@@ -330,12 +339,13 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
     }
 
     // Add & render new guitar technique element
-    for (const techniqueElement of this._noteElement.guitarTechniqueElements) {
+    for (const techniqueElement of this.noteElement.guitarTechniqueElements) {
       const renderedTechnique = this._renderedTechniques.get(
         techniqueElement.technique.uuid
       );
       if (renderedTechnique === undefined) {
         const renderer = new SVGTechniqueRenderer(
+          this.trackController,
           techniqueElement,
           this._assetsPath,
           this._groupSVG
@@ -360,7 +370,6 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       renderer.unrender();
     }
 
-    this.unrenderSelectionPreview();
     this.unrenderSelectionRect();
     this.unrenderNoteRect();
     this.unrenderNoteBackground();
@@ -387,7 +396,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
     }
 
     const listener = (event: Event) => {
-      eventHandler(event as SVGElementEventMap[K], this._noteElement);
+      eventHandler(event as SVGElementEventMap[K], this.noteElement);
     };
 
     if (this._attachedEvents.has(eventType)) {

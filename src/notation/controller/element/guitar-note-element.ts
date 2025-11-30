@@ -17,8 +17,6 @@ export class GuitarNoteElement implements NoteElement {
   /** Parent beat element */
   readonly beatNotesElement: BeatNotesElement;
 
-  /** True if selected, false otherwise */
-  private _selected: boolean = false;
   /** Rectangle of the main clickable-area rectangle */
   private _rect: Rect = new Rect();
   /** Rectangle of the note text rectangle */
@@ -54,13 +52,9 @@ export class GuitarNoteElement implements NoteElement {
    */
   public calc(): void {
     this._textRect.x =
-      this._rect.x +
-      this._rect.width / 2 -
-      TabLayoutDimensions.NOTE_TEXT_SIZE / 2;
+      this._rect.width / 2 - TabLayoutDimensions.NOTE_TEXT_SIZE / 2;
     this._textRect.y =
-      this._rect.y +
-      this._rect.height / 2 -
-      TabLayoutDimensions.NOTE_TEXT_SIZE / 2;
+      this._rect.height / 2 - TabLayoutDimensions.NOTE_TEXT_SIZE / 2;
     this._textRect.width = TabLayoutDimensions.NOTE_TEXT_SIZE;
     this._textRect.height = TabLayoutDimensions.NOTE_TEXT_SIZE;
 
@@ -95,15 +89,6 @@ export class GuitarNoteElement implements NoteElement {
     for (const techniqueElement of this._guitarTechniqueElements) {
       techniqueElement.scaleHorBy(scale);
     }
-  }
-
-  /** Selected setter */
-  public set selected(newSelectedValue: boolean) {
-    this._selected = newSelectedValue;
-  }
-  /** Selected getter */
-  public get selected(): boolean {
-    return this._selected;
   }
 
   /** Rectangle of the main clickable-area rectangle */

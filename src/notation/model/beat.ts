@@ -6,6 +6,15 @@ import { NoteJSON, Note, NoteValue } from "./note";
 import { NoteDuration } from "./note-duration";
 import { TupletSettingsJSON, TupletSettings } from "./tuplet-settings";
 import { TechniqueType } from "./technique-type";
+import { Guitar } from "./instrument";
+import { GuitarNote } from "./guitar-note";
+
+export type NoteArrayOperationOutput<
+  I extends MusicInstrument = MusicInstrument,
+> = {
+  index: number;
+  notes: Note<I>[];
+};
 
 export type BeatDots = 0 | 1 | 2;
 
@@ -78,15 +87,21 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._beamGroupId = beamGroupId;
     this._lastInBeamGroup = lastInBeamGroup;
 
+    const maxPolyphony = this.trackContext.instrument.maxPolyphony;
     if (notes.length !== 0) {
+      if (notes.length !== maxPolyphony) {
+        throw Error("Beat notes count is different from max polyphony");
+      }
+
       this._notes = notes;
     } else {
-      // TODO: !! DEFAULT NOTES !!
-      //
-      // this._notes = Array.from(
-      //   { length: this.trackContext.instrument.stringsCount },
-      //   (_, stringNum) => new GuitarNote(this.guitar, stringNum + 1, undefined)
-      // );
+      for (let i = 0; i < maxPolyphony; i++) {
+        const note = this.trackContext.instrument.createDefaultNote(
+          this,
+          i
+        ) as Note<I>;
+        this._notes.push(note);
+      }
     }
   }
 
@@ -97,6 +112,24 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
    */
   public hasTechnique(type: TechniqueType): boolean {
     return this._notes.some((n) => n.hasTechnique(type));
+  }
+
+  /**
+   * Sets a beat's note
+   * @param index Index of the note to set
+   * @param note Note value to set
+   */
+  public setNote(index: number, note: Note<I>): NoteArrayOperationOutput<I> {
+    if (index < 0 || index > this._notes.length) {
+      throw Error(`${index} is invalid note index`);
+    }
+
+    this._notes[index] = note.deepCopy();
+
+    return {
+      index: index,
+      notes: [this._notes[index]],
+    };
   }
 
   /**

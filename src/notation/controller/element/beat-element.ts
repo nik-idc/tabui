@@ -52,7 +52,10 @@ export class BeatElement {
 
     this._beatNotesElement = new BeatNotesElement(this.beat, this);
     this._techniqueLabelElements = [];
-    this._rect = new Rect(barElement.rect.x, barElement.rect.y);
+    this._rect = new Rect(
+      barElement.timeSigRect.width,
+      barElement.rect.y + TabLayoutDimensions.TEMPO_RECT_HEIGHT
+    );
     this._durationRect = new Rect();
     this._dotRect = new Rect();
     this._techniqueLabelsRect = new Rect(
@@ -69,6 +72,10 @@ export class BeatElement {
    * Calculates main rectangle & notes within the beat
    */
   private calcRectAndNotes(): void {
+    const prevBarElement =
+      this.barElement.beatElements[this.barElement.beatElements.length - 1];
+    this._rect.x = prevBarElement?._rect.right ?? this._rect.x;
+
     let mappingWidth = TabLayoutDimensions.WIDTH_MAPPING.get(
       this.beat.baseDuration
     );
@@ -108,10 +115,8 @@ export class BeatElement {
       }
     }
 
-    const minHeight = TabLayoutDimensions.getStaffLineMinHeight(
-      this.beat.trackContext.instrument
-    );
-    this._rect.height = minHeight + this._techniqueLabelsRect.height;
+    this._rect.height =
+      this.barElement.rect.height - this.barElement.tempoRect.height;
 
     this._techniqueLabelsRect.width = this._rect.width;
 
@@ -131,12 +136,10 @@ export class BeatElement {
   private calcDurationRect(): void {
     // 140 - radius of ellipse in SVG files, 827 - viewBox
     const magicNumber = 140 / 827; // some bullshit
-    const offset =
-      this.beat.beamGroupId === undefined
-        ? 0
-        : magicNumber * TabLayoutDimensions.DURATIONS_WIDTH * 2;
-    this._durationRect.x =
+    const offset = magicNumber * TabLayoutDimensions.DURATIONS_WIDTH * 2;
+    const beamingX =
       this._rect.width / 2 - TabLayoutDimensions.DURATIONS_WIDTH / 2 - offset;
+    this._durationRect.x = this.beat.beamGroupId === null ? 0 : beamingX;
     this._durationRect.y = 0;
     this._durationRect.width = TabLayoutDimensions.DURATIONS_WIDTH;
     this._durationRect.height = TabLayoutDimensions.DURATIONS_HEIGHT;

@@ -1,7 +1,8 @@
-import { NoteElement } from "@/notation/controller";
+import { NoteElement, TrackController } from "@/notation/controller";
 import { ElementRenderer } from "../element-renderer";
 
 export interface SVGNoteRenderer {
+  readonly trackController: TrackController;
   render(...params: any): ElementRenderer[] | void;
   unrender(): void;
 

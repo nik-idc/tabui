@@ -87,7 +87,7 @@ export class GuitarTechnique implements Technique {
 
     if (!areEqual) {
       throw Error(
-        `Option demanding technique was provided the wrong bendOptions: Required bendOptions: ${expectedKeys}; provided: ${actualKeys}`
+        `Option demanding technique was provided the wrong bend options: Required bend options: ${expectedKeys}; provided: ${actualKeys}`
       );
     }
   }

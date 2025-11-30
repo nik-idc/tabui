@@ -16,15 +16,21 @@ export enum BendType {
  * 'GuitarTechniqueOptions' c-tor works)
  */
 export const OPTIONS_PER_BEND_TYPE = {
-  [BendType.Bend]: ["bendPitch", "bendDuration"],
-  [BendType.BendAndRelease]: ["bendPitch", "releasePitch", "bendDuration"],
-  [BendType.Hold]: ["holdPitch", "bendDuration"],
-  [BendType.Prebend]: ["prebendPitch"],
+  [BendType.Bend]: ["type", "bendPitch", "bendDuration"],
+  [BendType.BendAndRelease]: [
+    "type",
+    "bendPitch",
+    "releasePitch",
+    "bendDuration",
+  ],
+  [BendType.Hold]: ["type", "holdPitch", "bendDuration"],
+  [BendType.Prebend]: ["type", "prebendPitch"],
   [BendType.PrebendAndRelease]: [
+    "type",
     "releasePitch",
     "prebendPitch",
     "bendDuration",
   ],
-  [BendType.PrebendBend]: ["prebendPitch", "bendPitch", "bendDuration"],
-  [BendType.Release]: ["releasePitch", "bendDuration"],
+  [BendType.PrebendBend]: ["type", "prebendPitch", "bendPitch", "bendDuration"],
+  [BendType.Release]: ["type", "releasePitch", "bendDuration"],
 };

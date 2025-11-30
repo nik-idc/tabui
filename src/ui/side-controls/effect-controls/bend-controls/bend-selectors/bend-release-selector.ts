@@ -99,6 +99,7 @@ export class BendReleaseSelector implements Selector {
       type: BendType.BendAndRelease,
       bendPitch: peakPitch,
       releasePitch: releasePitch,
+      bendDuration: 1,
     };
   }
 

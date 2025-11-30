@@ -1,4 +1,4 @@
-import { StaffLineElement } from "@/notation/controller";
+import { StaffLineElement, TrackController } from "@/notation/controller";
 import { Point } from "@/shared";
 import { SVGBarRenderer } from "./svg-bar-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
@@ -9,8 +9,11 @@ import { SVGNoteRenderer } from "./svg-note-renderer";
  * Class for rendering a staff line element using SVG
  */
 export class SVGStaffLineRenderer implements ElementRenderer {
+  /** Track controller */
+  readonly trackController: TrackController;
   /** Staff line element */
-  private _staffLineElement: StaffLineElement;
+  readonly staffLineElement: StaffLineElement;
+
   /** Path to any assets */
   private _assetsPath: string;
   /** Parent SVG group element */
@@ -21,16 +24,20 @@ export class SVGStaffLineRenderer implements ElementRenderer {
 
   /**
    * Class for rendering a staff line element using SVG
+   * @param trackController Track controller
    * @param staffLineElement Staff line element
    * @param assetsPath Path to assets
    * @param svgRoot SVG root element
    */
   constructor(
+    trackController: TrackController,
     staffLineElement: StaffLineElement,
     assetsPath: string,
     svgRoot: SVGSVGElement
   ) {
-    this._staffLineElement = staffLineElement;
+    this.trackController = trackController;
+    this.staffLineElement = staffLineElement;
+
     this._assetsPath = assetsPath;
     this._groupSVG = svgRoot;
 
@@ -43,7 +50,7 @@ export class SVGStaffLineRenderer implements ElementRenderer {
   public render(): ElementRenderer[] {
     // Check if there are any bar element to remove
     const curBarElementUUIDs = new Set(
-      this._staffLineElement.barElements.map((b) => b.bar.uuid)
+      this.staffLineElement.barElements.map((b) => b.bar.uuid)
     );
     for (const [uuid, renderer] of this._renderedBarElements) {
       if (!curBarElementUUIDs.has(uuid)) {
@@ -55,10 +62,11 @@ export class SVGStaffLineRenderer implements ElementRenderer {
     const activeRenderers: ElementRenderer[] = [];
 
     // Add & render new bar element AND re-render existing bar element
-    for (const barElement of this._staffLineElement.barElements) {
+    for (const barElement of this.staffLineElement.barElements) {
       const renderedBar = this._renderedBarElements.get(barElement.bar.uuid);
       if (renderedBar === undefined) {
         const renderer = new SVGBarRenderer(
+          this.trackController,
           barElement,
           this._assetsPath,
           this._groupSVG

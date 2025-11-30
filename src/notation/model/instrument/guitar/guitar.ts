@@ -1,3 +1,5 @@
+import { Beat } from "../../beat";
+import { GuitarNote } from "../../guitar-note";
 import { Note, NoteJSON, NoteType, NoteValue } from "../../note";
 import { MusicInstrument, MusicInstrumentJSON } from "../instrument";
 import { MusicInstrumentKind } from "../instrument-kind";
@@ -116,6 +118,14 @@ export class Guitar implements MusicInstrument {
       stringsCount: this._stringsCount,
       fretsCount: this._fretsCount,
     };
+  }
+
+  /**
+   * Creates a note
+   * @param voiceIndex Voice index
+   */
+  public createDefaultNote(beat: Beat<Guitar>, voiceIndex: number): GuitarNote {
+    return new GuitarNote(beat, beat.trackContext, voiceIndex + 1, null);
   }
 
   /**

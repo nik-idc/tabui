@@ -17,5 +17,6 @@ export interface TechniqueElement {
   calc(): void;
   scaleHorBy(scale: number): void;
 
+  get startPoint(): Point;
   get globalCoords(): Point;
 }

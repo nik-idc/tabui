@@ -77,6 +77,7 @@ export class BendSelector implements Selector {
     return {
       type: BendType.Bend,
       bendPitch: pitch,
+      bendDuration: 1,
     };
   }
 

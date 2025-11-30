@@ -90,6 +90,7 @@ export class PrebendReleaseSelector implements Selector {
       type: BendType.PrebendAndRelease,
       prebendPitch: startPitch,
       releasePitch: releasePitch,
+      bendDuration: 1,
     };
   }
 

@@ -1,6 +1,15 @@
 import { getEl } from "@/shared/misc/get-dom-element";
 import { score } from "./data/full-score";
 import { TabUIEditor } from "@/tabui-editor";
+import { TabLayoutDimensions } from "@/notation";
+
+TabLayoutDimensions.configure({
+  width: 1200,
+  noteTextSize: 12,
+  timeSigTextSize: 48,
+  tempoTextSize: 24,
+  durationsHeight: 50,
+});
 
 const rootDiv = document.getElementById(
   "tabui-editor"

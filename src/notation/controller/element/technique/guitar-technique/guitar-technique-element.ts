@@ -336,8 +336,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
    */
   public calc(): void {
     this._startPoint = new Point(
-      this.guitarNoteElement.rect.x + this.guitarNoteElement.rect.width / 2,
-      this.guitarNoteElement.rect.y + this.guitarNoteElement.rect.height / 2
+      this.guitarNoteElement.rect.width / 2,
+      this.guitarNoteElement.rect.height / 2
     );
 
     // Calc offsets & assign image paths
@@ -371,6 +371,11 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this._startPoint.x *= scale;
 
     this.calc();
+  }
+
+  /** Start point */
+  public get startPoint(): Point {
+    return this._startPoint;
   }
 
   /** Technique rect */

@@ -21,7 +21,7 @@ export class SelectionManager {
 
   /**
    * Class that manages selection state
-   * @param staff Staff
+   * @param track Track
    */
   constructor(track: Track) {
     this.track = track;

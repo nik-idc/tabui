@@ -1,32 +1,10 @@
-import { Score, Track, Bar, Beat } from "@/notation/model";
+import { Score, Track, Bar, Beat, Note } from "@/notation/model";
 import { randomInt, Point } from "@/shared";
 import { BarElement } from "./bar-element";
 import { BeatElement } from "./beat-element";
 import { TrackLineElement } from "./track-line-element";
 import { NoteElement } from "./note-element";
 import { GuitarNoteElement } from "./guitar-note-element";
-
-/**
- * Track window specific selected element ids
- */
-export type SelectedNotesAndIds = {
-  /** Id of the track line element */
-  trackLineElementId: number;
-  /** If of the bar element (within the track line element) */
-  barElementId: number;
-  /** Id of the beat element, same as beat id, in here just for consistency's sake */
-  beatElementId: number;
-  /** String number */
-  stringNum: number;
-  /** Id of the track line element */
-  trackLineElement: TrackLineElement;
-  /** If of the bar element (within the track line element) */
-  barElement: BarElement;
-  /** Id of the beat element, same as beat id, in here just for consistency's sake */
-  beatElement: BeatElement | undefined;
-  /** String number */
-  noteElement: NoteElement | undefined;
-};
 
 /**
  * Class that handles all geometry & visually relevant info of a track
@@ -61,9 +39,8 @@ export class TrackElement {
     // since the render layer should track the models, not the element
     // And if I'm wrong I'll fix it so whatever
 
-    this._trackLineElements = []; // Clear track lines
-
     // Go through all the master bars
+    this._trackLineElements = []; // Clear track lines
     const masterBars = this.track.score.masterBars;
     let curLine = new TrackLineElement(this.track, this);
     for (let mBarIndex = 0; mBarIndex < masterBars.length; mBarIndex++) {
@@ -79,10 +56,15 @@ export class TrackElement {
       // Create new line & add first bar
       curLine = new TrackLineElement(this.track, this);
       if (!curLine.addBar(mBarIndex)) {
-        // A line must ALWAYS be able to hold at least 1 bar
         throw Error("Could not fit first bar in an empty track line");
       }
     }
+
+    if (!this._trackLineElements.includes(curLine)) {
+      this._trackLineElements.push(curLine);
+    }
+
+    console.log(this);
   }
 
   /**
@@ -395,6 +377,16 @@ export class TrackElement {
     const firstLine = this._trackLineElements[0];
     return new Point(firstLine.rect.x, firstLine.rect.y);
   }
+
+  /** Calculates the total height of the track element */
+  public get height(): number {
+    let height = 0;
+    for (const line of this._trackLineElements) {
+      height += line.rect.height;
+    }
+
+    return height;
+  }
 }
 
 // // ===================================
@@ -445,6 +437,28 @@ export class TrackElement {
 
 // // ==== RE-EVALUATE NECESSITY ====
 // // ===============================
+//
+// /**
+//  * Track window specific selected element ids
+//  */
+// export type SelectedNotesAndIds = {
+//   /** Id of the track line element */
+//   trackLineElementId: number;
+//   /** If of the bar element (within the track line element) */
+//   barElementId: number;
+//   /** Id of the beat element, same as beat id, in here just for consistency's sake */
+//   beatElementId: number;
+//   /** String number */
+//   stringNum: number;
+//   /** Id of the track line element */
+//   trackLineElement: TrackLineElement;
+//   /** If of the bar element (within the track line element) */
+//   barElement: BarElement;
+//   /** Id of the beat element, same as beat id, in here just for consistency's sake */
+//   beatElement: BeatElement | undefined;
+//   /** String number */
+//   noteElement: NoteElement | undefined;
+// };
 
 //   public getSelectedNoteElementsAndIds(
 //     selectedNote: SelectedNote

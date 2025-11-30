@@ -1,13 +1,17 @@
 import { ElementRenderer } from "../element-renderer";
 import { TrackLineElement } from "@/notation/controller/element/track-line-element";
 import { SVGStaffLineRenderer } from "./svg-staff-line-renderer";
+import { TrackController } from "@/notation/controller";
 
 /**
  * Class for rendering a track element using SVG
  */
 export class SVGTrackLineRenderer implements ElementRenderer {
+  /** Track controller */
+  readonly trackController: TrackController;
   /** Track line element */
-  private _trackLineElement: TrackLineElement;
+  readonly trackLineElement: TrackLineElement;
+
   /** Path to any assets */
   private _assetsPath: string;
   /** Parent SVG group element */
@@ -18,16 +22,20 @@ export class SVGTrackLineRenderer implements ElementRenderer {
 
   /**
    * Class for rendering a track element using SVG
+   * @param trackController Track controller
    * @param trackLineElement Track line element
    * @param assetsPath Path to assets
    * @param svgRoot SVG root element
    */
   constructor(
+    trackController: TrackController,
     trackLineElement: TrackLineElement,
     assetsPath: string,
     svgRoot: SVGSVGElement
   ) {
-    this._trackLineElement = trackLineElement;
+    this.trackController = trackController;
+    this.trackLineElement = trackLineElement;
+
     this._assetsPath = assetsPath;
     this._groupSVG = svgRoot;
 
@@ -40,7 +48,7 @@ export class SVGTrackLineRenderer implements ElementRenderer {
   public render(): ElementRenderer[] {
     // Check if there are any staff element to remove
     const curStaffLineElementUUIDs = new Set(
-      this._trackLineElement.staffLineElements.map((s) => s.staff.uuid)
+      this.trackLineElement.staffLineElements.map((s) => s.staff.uuid)
     );
     for (const [uuid, renderer] of this._renderedStaffLines) {
       if (!curStaffLineElementUUIDs.has(uuid)) {
@@ -52,12 +60,13 @@ export class SVGTrackLineRenderer implements ElementRenderer {
     const activeRenderers: ElementRenderer[] = [];
 
     // Add & render new staff element AND re-render existing staff element
-    for (const staffLineElement of this._trackLineElement.staffLineElements) {
+    for (const staffLineElement of this.trackLineElement.staffLineElements) {
       const renderedStaff = this._renderedStaffLines.get(
         staffLineElement.staff.uuid
       );
       if (renderedStaff === undefined) {
         const renderer = new SVGStaffLineRenderer(
+          this.trackController,
           staffLineElement,
           this._assetsPath,
           this._groupSVG

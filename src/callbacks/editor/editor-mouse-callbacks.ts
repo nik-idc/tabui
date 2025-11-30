@@ -99,10 +99,13 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   }
 
   public onBeatMouseMove(event: MouseEvent, beatElement: BeatElement): void {
-    const selection =
+    // const selection =
+    //   this._notationComponent.trackController.trackControllerEditor
+    //     .selectionManager.selectionAsBeats;
+    const selectedNote =
       this._notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectionAsBeats;
-    if (!this._selectingBeats || selection.length !== 0) {
+        .selectionManager.selectedNote;
+    if (!this._selectingBeats || selectedNote === undefined) {
       return;
     }
 
@@ -121,9 +124,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       this._notationComponent.trackController.trackControllerEditor.selectBeat(
         beatElement
       );
+      this._renderFunc();
     }
-
-    this._renderFunc();
   }
 
   public onBeatMouseUp(): void {

@@ -1,6 +1,7 @@
 import {
   GuitarTechniqueElement,
   TechniqueElement,
+  TrackController,
 } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
@@ -9,8 +10,11 @@ import { ElementRenderer } from "../element-renderer";
  * Class for rendering a guitar technique element using SVG
  */
 export class SVGTechniqueRenderer implements ElementRenderer {
+  /** Track controller */
+  readonly trackController: TrackController;
   /** Technique element to render */
-  private _techniqueElement: TechniqueElement;
+  readonly techniqueElement: TechniqueElement;
+
   /** Path to any assets */
   private _assetsPath: string;
   /** Parent SVG group element */
@@ -25,16 +29,20 @@ export class SVGTechniqueRenderer implements ElementRenderer {
 
   /**
    * Class for rendering a guitar technique element using SVG
+   * @param trackController Track controller
    * @param techniqueElement Guitar technique element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a note element in this case)
    */
   constructor(
+    trackController: TrackController,
     techniqueElement: GuitarTechniqueElement,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._techniqueElement = techniqueElement;
+    this.trackController = trackController;
+    this.techniqueElement = techniqueElement;
+
     this._assetsPath = assetsPath;
     this._parentElement = parentElement;
   }
@@ -48,7 +56,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       return;
     }
 
-    const noteUUID = this._techniqueElement.technique.uuid;
+    const noteUUID = this.techniqueElement.technique.uuid;
     this._groupSVG = createSVGG();
     this._groupSVG.setAttribute("id", `technique-${noteUUID}`);
     this._parentElement.appendChild(this._groupSVG);
@@ -62,11 +70,11 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       throw Error("Tried to render technique rect when SVG group undefined");
     }
 
-    if (this._techniqueElement.rect === undefined) {
+    if (this.techniqueElement.rect === undefined) {
       throw Error("Tried to render technique rect with undefined rect");
     }
 
-    const techniqueUUID = this._techniqueElement.technique.uuid;
+    const techniqueUUID = this.techniqueElement.technique.uuid;
     if (this._techniqueRectSVG === undefined) {
       this._techniqueRectSVG = createSVGRect();
       // Set only-set-once attributes
@@ -83,10 +91,10 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       this._groupSVG.appendChild(this._techniqueRectSVG);
     }
 
-    const x = `${this._techniqueElement.globalCoords.x}`;
-    const y = `${this._techniqueElement.globalCoords.y}`;
-    const width = `${this._techniqueElement.rect.width}`;
-    const height = `${this._techniqueElement.rect.height}`;
+    const x = `${this.techniqueElement.globalCoords.x}`;
+    const y = `${this.techniqueElement.globalCoords.y}`;
+    const width = `${this.techniqueElement.rect.width}`;
+    const height = `${this.techniqueElement.rect.height}`;
     this._techniqueRectSVG.setAttribute("x", x);
     this._techniqueRectSVG.setAttribute("y", y);
     this._techniqueRectSVG.setAttribute("width", width);
@@ -117,11 +125,11 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       throw Error("Tried to render technique HTML when SVG group undefined");
     }
 
-    if (this._techniqueElement.svgPath === undefined) {
+    if (this.techniqueElement.svgPath === undefined) {
       throw Error("Tried to render technique HTML with undefined HTML");
     }
 
-    const techniqueUUID = this._techniqueElement.technique.uuid;
+    const techniqueUUID = this.techniqueElement.technique.uuid;
     if (this._techniqueSVGPath === undefined) {
       this._techniqueSVGPath = createSVGG();
 
@@ -135,11 +143,13 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       this._groupSVG.appendChild(this._techniqueSVGPath);
     }
 
-    const x = `${this._techniqueElement.globalCoords.x}`;
-    const y = `${this._techniqueElement.globalCoords.y}`;
+    // const x = `${this.techniqueElement.globalCoords.x}`;
+    // const y = `${this.techniqueElement.globalCoords.y}`;
+    const x = `${this.techniqueElement.guitarNoteElement.globalCoords.x}`;
+    const y = `${this.techniqueElement.guitarNoteElement.globalCoords.y}`;
     const transform = `translate(${x}, ${y})`;
     this._techniqueSVGPath.setAttribute("transform", transform);
-    this._techniqueSVGPath.innerHTML = this._techniqueElement.svgPath; // May lead to performance issues
+    this._techniqueSVGPath.innerHTML = this.techniqueElement.svgPath; // May lead to performance issues
   }
 
   /**
@@ -167,14 +177,14 @@ export class SVGTechniqueRenderer implements ElementRenderer {
     // The reason for 2 ifs: bends DO NOT have a rect, but DO have full HTML
 
     // Render technique rect if necessary, remove it otherwise
-    if (this._techniqueElement.rect !== undefined) {
+    if (this.techniqueElement.rect !== undefined) {
       this.renderTechniqueRect();
     } else {
       this.unrenderTechniqueRect();
     }
 
     // Render technique custom HTML if necessary, remove it otherwise
-    if (this._techniqueElement.svgPath !== undefined) {
+    if (this.techniqueElement.svgPath !== undefined) {
       this.renderTechniqueHTML();
     } else {
       this.unrenderTechniqueHTML();

@@ -163,7 +163,7 @@ export class SelectedNote {
   /** Selected note */
   public get note(): Note {
     return this.staff.bars[this._barIndex].beats[this._beatIndex].notes[
-      this._noteIndex - 1
+      this._noteIndex
     ];
   }
 

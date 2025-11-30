@@ -1,3 +1,4 @@
+import { Beat } from "../beat";
 import { Note, NoteJSON, NoteType } from "../note";
 import { MusicInstrumentKind } from "./instrument-kind";
 import { MusicInstrumentPreset } from "./instrument-preset";
@@ -35,4 +36,10 @@ export interface MusicInstrument {
    * Serialize the instrument
    */
   toJSON(): MusicInstrumentJSON;
+  /**
+   * Creates a note
+   * @param beat Parent beat
+   * @param voiceIndex Voice index (string num for guitar)
+   */
+  createDefaultNote(beat: Beat, voiceIndex: number): Note;
 }

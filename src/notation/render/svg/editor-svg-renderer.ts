@@ -72,6 +72,7 @@ export class EditorSVGRenderer implements EditorRenderer {
       );
       if (renderedTLE === undefined) {
         const renderer = new SVGTrackLineRenderer(
+          trackController,
           trackLineElement,
           this._assetsPath,
           this._groupSVG
@@ -108,27 +109,25 @@ export class EditorSVGRenderer implements EditorRenderer {
       this._groupSVG.appendChild(this._selectionPreviewRect);
     }
 
-    const noteTextCoords = noteElement.globalCoords;
     const padding = 2;
-
+    let x: string;
+    let y: string;
     let width: string;
     let height: string;
     if (noteElement instanceof GuitarNoteElement) {
+      x = `${noteElement.globalCoords.x + noteElement.textRect.x - padding}`;
+      y = `${noteElement.globalCoords.y + noteElement.textRect.y - padding}`;
       width = `${noteElement.textRect.width + padding * 2}`;
       height = `${noteElement.textRect.height + padding * 2}`;
     } else {
+      x = `${noteElement.globalCoords.x - padding}`;
+      y = `${noteElement.globalCoords.y - padding}`;
       width = `${TabLayoutDimensions.NOTE_RECT_HEIGHT + padding * 2}`;
       height = `${TabLayoutDimensions.NOTE_RECT_HEIGHT + padding * 2}`;
     }
 
-    this._selectionPreviewRect.setAttribute(
-      "x",
-      `${noteTextCoords.x - padding}`
-    );
-    this._selectionPreviewRect.setAttribute(
-      "y",
-      `${noteTextCoords.y - padding}`
-    );
+    this._selectionPreviewRect.setAttribute("x", x);
+    this._selectionPreviewRect.setAttribute("y", y);
     this._selectionPreviewRect.setAttribute("width", width);
     this._selectionPreviewRect.setAttribute("height", height);
     this._selectionPreviewRect.setAttribute("display", "block");
@@ -240,7 +239,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     // Update SVG root dimensions
-    const trackWindowHeight = trackController.trackElement;
+    const trackWindowHeight = trackController.trackElement.height;
     const VB = `0 0 ${TabLayoutDimensions.WIDTH} ${trackWindowHeight}`;
     this._groupSVG.setAttribute("viewBox", VB);
     this._groupSVG.setAttribute("width", `${TabLayoutDimensions.WIDTH}`);
@@ -253,6 +252,8 @@ export class EditorSVGRenderer implements EditorRenderer {
    * Unrender the entire track window
    */
   public unrender(): void {
+    console.log("UNRENDER TRIGGERED");
+
     for (const renderer of this._renderedTrackLineElements.values()) {
       renderer.unrender();
     }

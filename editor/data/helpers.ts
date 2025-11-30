@@ -20,20 +20,28 @@ type BarsInfo = {
   beatsDuration: NoteDuration;
 };
 
+const excludedStrings = [1, 5, 6];
+
 export function fillBar(bar: Bar, barsInfo: BarsInfo): void {
-  for (let i = 0; i < barsInfo.beatsCount; i++) {
+  for (let i = 0; i < barsInfo.beatsCount - 1; i++) {
     const result = bar.appendBeat();
     const beat = result.beats[0];
+  }
 
+  for (let i = 0; i < barsInfo.beatsCount; i++) {
+    const beat = bar.beats[i];
     for (let j = 0; j < bar.trackContext.instrument.maxPolyphony; j++) {
-      beat.notes.push(
-        new GuitarNote(
-          beat as Beat<Guitar>,
-          bar.trackContext as TrackContext<Guitar>,
-          j + 1,
-          j + i
-        )
+      if (excludedStrings.includes(j + 1)) {
+        continue;
+      }
+
+      const note = new GuitarNote(
+        beat as Beat<Guitar>,
+        beat.trackContext as TrackContext<Guitar>,
+        j + 1,
+        j + i
       );
+      bar.beats[i].setNote(j, note);
     }
   }
 }

@@ -1,7 +1,11 @@
 import { DURATION_TO_NAME, GuitarNote, NoteDuration } from "@/notation/model";
 import { Point, createSVGG, createSVGImage, createSVGRect } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
-import { BeatElement } from "@/notation/controller";
+import {
+  BeatElement,
+  TabLayoutDimensions,
+  TrackController,
+} from "@/notation/controller";
 import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGGuitarNoteRenderer } from "./svg-guitar-note-renderer";
@@ -11,8 +15,11 @@ import { GuitarNoteElement } from "@/notation/controller/element/guitar-note-ele
  * Class for rendering a beat element using SVG
  */
 export class SVGBeatRenderer implements ElementRenderer {
+  /** Track controller */
+  readonly trackController: TrackController;
   /** Beat element */
-  private _beatElement: BeatElement;
+  readonly beatElement: BeatElement;
+
   /** Path to any assets */
   private _assetsPath: string;
   /** Parent SVG group element */
@@ -37,16 +44,20 @@ export class SVGBeatRenderer implements ElementRenderer {
 
   /**
    * Class for rendering a beat element using SVG
+   * @param trackController Track controller
    * @param beatElement Beat element
    * @param assetsPath Path to assets
    * @param parentElement SVG parent element (a bar element in this case)
    */
   constructor(
+    trackController: TrackController,
     beatElement: BeatElement,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
-    this._beatElement = beatElement;
+    this.trackController = trackController;
+    this.beatElement = beatElement;
+
     this._assetsPath = assetsPath;
     this._parentElement = parentElement;
 
@@ -64,7 +75,7 @@ export class SVGBeatRenderer implements ElementRenderer {
       return;
     }
 
-    const beatUUID = this._beatElement.beat.uuid;
+    const beatUUID = this.beatElement.beat.uuid;
     this._groupSVG = createSVGG();
     this._groupSVG.setAttribute("id", `beat-${beatUUID}`);
     this._parentElement.appendChild(this._groupSVG);
@@ -78,7 +89,7 @@ export class SVGBeatRenderer implements ElementRenderer {
       throw Error("Tried to render beat duration when SVG group undefined");
     }
 
-    const beatUUID = this._beatElement.beat.uuid;
+    const beatUUID = this.beatElement.beat.uuid;
     if (this._beatDurationSVG === undefined) {
       this._beatDurationSVG = createSVGImage();
 
@@ -91,20 +102,20 @@ export class SVGBeatRenderer implements ElementRenderer {
     }
 
     const x = `${
-      this._beatElement.globalCoords.x + this._beatElement.durationRect.x
+      this.beatElement.globalCoords.x + this.beatElement.durationRect.x
     }`;
     const y = `${
-      this._beatElement.globalCoords.y + this._beatElement.durationRect.y
+      this.beatElement.globalCoords.y + this.beatElement.durationRect.y
     }`;
-    const width = `${this._beatElement.durationRect.width}`;
-    const height = `${this._beatElement.durationRect.height}`;
-    const refName = DURATION_TO_NAME[this._beatElement.beat.baseDuration];
+    const width = `${this.beatElement.durationRect.width}`;
+    const height = `${this.beatElement.durationRect.height}`;
+    const refName = DURATION_TO_NAME[this.beatElement.beat.baseDuration];
     let href: string;
-    if (this._beatElement.beat.isEmpty()) {
+    if (this.beatElement.beat.isEmpty()) {
       href = `${this._assetsPath}/img/notes/rest-${refName}.svg`;
     } else {
       href =
-        this._beatElement.beat.beamGroupId !== undefined
+        this.beatElement.beat.beamGroupId !== null
           ? `${this._assetsPath}/img/notes/no-flag.svg`
           : `${this._assetsPath}/img/notes/${refName}.svg`;
     }
@@ -139,7 +150,7 @@ export class SVGBeatRenderer implements ElementRenderer {
       throw Error("Tried to render beat duration when SVG group undefined");
     }
 
-    const beatUUID = this._beatElement.beat.uuid;
+    const beatUUID = this.beatElement.beat.uuid;
     if (this._beatDotSVG === undefined) {
       this._beatDotSVG = createSVGImage();
 
@@ -150,15 +161,11 @@ export class SVGBeatRenderer implements ElementRenderer {
       this._groupSVG.appendChild(this._beatDotSVG);
     }
 
-    const x = `${
-      this._beatElement.globalCoords.x + this._beatElement.dotRect.x
-    }`;
-    const y = `${
-      this._beatElement.globalCoords.y + this._beatElement.dotRect.y
-    }`;
-    const width = `${this._beatElement.dotRect.width}`;
-    const height = `${this._beatElement.dotRect.height}`;
-    const href = `${this._assetsPath}/img/notes/dot${this._beatElement.beat.dots}.svg`;
+    const x = `${this.beatElement.globalCoords.x + this.beatElement.dotRect.x}`;
+    const y = `${this.beatElement.globalCoords.y + this.beatElement.dotRect.y}`;
+    const width = `${this.beatElement.dotRect.width}`;
+    const height = `${this.beatElement.dotRect.height}`;
+    const href = `${this._assetsPath}/img/notes/dot${this.beatElement.beat.dots}.svg`;
     this._beatDotSVG.setAttribute("x", x);
     this._beatDotSVG.setAttribute("y", y);
     this._beatDotSVG.setAttribute("width", width);
@@ -190,11 +197,11 @@ export class SVGBeatRenderer implements ElementRenderer {
       throw Error("Tried to render beat selection when SVG group undefined");
     }
 
-    if (!this._beatElement.selected) {
+    if (!this.beatElement.selected) {
       throw Error("Tried to render selection of an unselected beat element");
     }
 
-    const beatUUID = this._beatElement.beat.uuid;
+    const beatUUID = this.beatElement.beat.uuid;
     if (this._beatSelectionSVG === undefined) {
       this._beatSelectionSVG = createSVGRect();
 
@@ -210,10 +217,10 @@ export class SVGBeatRenderer implements ElementRenderer {
       this._groupSVG.appendChild(this._beatSelectionSVG);
     }
 
-    const x = `${this._beatElement.globalCoords.x + this._beatElement.rect.x}`;
-    const y = `${this._beatElement.globalCoords.y}`;
-    const width = `${this._beatElement.rect.width}`;
-    const height = `${this._beatElement.rect.height}`;
+    const x = `${this.beatElement.globalCoords.x}`;
+    const y = `${this.beatElement.globalCoords.y}`;
+    const width = `${this.beatElement.rect.width}`;
+    const height = `${this.beatElement.rect.height}`;
     this._beatSelectionSVG.setAttribute("x", x);
     this._beatSelectionSVG.setAttribute("y", y);
     this._beatSelectionSVG.setAttribute("width", width);
@@ -251,7 +258,7 @@ export class SVGBeatRenderer implements ElementRenderer {
 
     // Check if there are any technique labels to remove
     const curTechniqueLabelUUIDs = new Set(
-      this._beatElement.techniqueLabelElements.map((e) => e.technique.uuid)
+      this.beatElement.techniqueLabelElements.map((e) => e.technique.uuid)
     );
     for (const [uuid, renderer] of this._renderedLabels) {
       if (!curTechniqueLabelUUIDs.has(uuid)) {
@@ -261,13 +268,14 @@ export class SVGBeatRenderer implements ElementRenderer {
     }
 
     // Add & render new technique label element
-    for (const techniqueLabelElement of this._beatElement
+    for (const techniqueLabelElement of this.beatElement
       .techniqueLabelElements) {
       const renderedLabel = this._renderedLabels.get(
         techniqueLabelElement.technique.uuid
       );
       if (renderedLabel === undefined) {
         const renderer = new SVGTechniqueLabelRenderer(
+          this.trackController,
           techniqueLabelElement,
           this._assetsPath,
           this._groupSVG
@@ -305,7 +313,7 @@ export class SVGBeatRenderer implements ElementRenderer {
 
     // Check if there are any notes to remove
     const curNoteUUIDs = new Set(
-      this._beatElement.beatNotesElement.noteElements.map((n) => n.note.uuid)
+      this.beatElement.beatNotesElement.noteElements.map((n) => n.note.uuid)
     );
     for (const [uuid, renderer] of this._renderedNoteElements) {
       if (!curNoteUUIDs.has(uuid)) {
@@ -315,13 +323,14 @@ export class SVGBeatRenderer implements ElementRenderer {
     }
 
     // Add & render new note element AND re-render existing notes
-    for (const noteElement of this._beatElement.beatNotesElement.noteElements) {
+    for (const noteElement of this.beatElement.beatNotesElement.noteElements) {
       const renderedNote = this._renderedNoteElements.get(
         noteElement.note.uuid
       );
       if (renderedNote === undefined) {
         if (noteElement instanceof GuitarNoteElement) {
           const renderer = new SVGGuitarNoteRenderer(
+            this.trackController,
             noteElement,
             this._assetsPath,
             this._groupSVG
@@ -361,13 +370,13 @@ export class SVGBeatRenderer implements ElementRenderer {
     const newNoteRenderers = this.renderNoteElements();
 
     this.renderBeatDuration();
-    if (this._beatElement.beat.dots > 0) {
+    if (this.beatElement.beat.dots > 0) {
       this.renderBeatDots();
     } else {
       this.unrenderBeatDots();
     }
 
-    if (this._beatElement.selected) {
+    if (this.beatElement.selected) {
       this.renderBeatSelection();
     } else {
       this.unrenderBeatSelection();
@@ -411,7 +420,7 @@ export class SVGBeatRenderer implements ElementRenderer {
     }
 
     const listener = (event: Event) => {
-      eventHandler(event as SVGElementEventMap[K], this._beatElement);
+      eventHandler(event as SVGElementEventMap[K], this.beatElement);
     };
 
     if (this._attachedEvents.has(eventType)) {

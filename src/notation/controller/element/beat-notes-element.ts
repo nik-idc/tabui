@@ -31,51 +31,34 @@ export class BeatNotesElement {
     this.beat = beat;
     this.beatElement = beatElement;
 
-    TabLayoutDimensions.DURATIONS_HEIGHT;
-    this._rect = new Rect(
-      0,
-      TabLayoutDimensions.DURATIONS_HEIGHT +
-        this.beatElement.techniqueLabelsRect.height,
-      beatElement.rect.width,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT *
-        this.beat.trackContext.instrument.maxPolyphony
-    );
+    this._rect = new Rect();
     this._noteElements = new Array<NoteElement>(
       this.beat.trackContext.instrument.maxPolyphony
     );
 
-    this.calc();
+    // this.calc();
   }
 
   /**
    * Calculate the note element
    */
   public calc(): void {
-    const newNoteElements = new Array<NoteElement>(
-      this.beat.trackContext.instrument.maxPolyphony
+    this._rect = new Rect(
+      0,
+      TabLayoutDimensions.DURATIONS_HEIGHT +
+        this.beatElement.techniqueLabelsRect.height,
+      this.beatElement.rect.width,
+      TabLayoutDimensions.NOTE_RECT_HEIGHT *
+        this.beat.trackContext.instrument.maxPolyphony
     );
-    const oldNoteElements = this._noteElements;
+
+    const newNoteElements = new Array<NoteElement>(this.beat.notes.length);
 
     for (let i = 0; i < this.beat.notes.length; i++) {
       const note = this.beat.notes[i];
-      if (note === undefined) continue; // !! Not sure if this is necessary
-
-      const oldElement = oldNoteElements[i];
-
-      if (oldElement !== undefined && oldElement.note.uuid === note.uuid) {
-        // If the current note is the same note as before,
-        // just update it's dimensions
-        oldElement.rect.width = this._rect.width;
-        oldElement.calc();
-        newNoteElements[i] = oldElement;
-      } else {
-        // If the current note is new,
-        // create a new note element for it
-
-        // VERY BAD!!! but for now will do. as always lol
-        if (note instanceof GuitarNote) {
-          newNoteElements[i] = new GuitarNoteElement(note, this);
-        }
+      // VERY BAD!!! but for now will do. as always lol
+      if (note instanceof GuitarNote) {
+        newNoteElements[i] = new GuitarNoteElement(note, this);
       }
     }
 

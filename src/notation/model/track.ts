@@ -57,8 +57,8 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
     };
 
     this._name = name;
-    this._staves =
-      staves.length !== 0 ? staves : [new Staff(this, this.context)];
+    this._staves = staves;
+    // staves.length !== 0 ? staves : [new Staff(this, this.context)];
   }
 
   /**

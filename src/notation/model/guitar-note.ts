@@ -44,7 +44,7 @@ export class GuitarNote implements Note<Guitar> {
   /** Octave */
   private _octave: number | null = null;
   /** String number */
-  private _stringNum: number = 0;
+  private _stringNum: number = 1;
   /**  Fret number */
   private _fret: number | null;
   /** Techniques applied to the note */
@@ -217,7 +217,7 @@ export class GuitarNote implements Note<Guitar> {
     }
 
     this._techniques.splice(techniqueIndex, 1);
-    return true
+    return true;
   }
 
   /**
@@ -382,7 +382,12 @@ export class GuitarNote implements Note<Guitar> {
 
   /** String number setter */
   public set fret(newFret: number | null) {
-    this._fret = newFret;
+    const fretsCount = this.trackContext.instrument.fretsCount;
+    if (newFret !== null) {
+      this._fret = newFret > fretsCount ? newFret % fretsCount : newFret;
+    } else {
+      this._fret = null;
+    }
     this.calcNoteFromFret();
   }
   /** Fret number */

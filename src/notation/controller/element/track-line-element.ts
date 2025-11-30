@@ -1,4 +1,4 @@
-import { Track } from "@/notation/model";
+import { Guitar, Track } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
 import { StaffLineElement } from "./staff-line-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
@@ -60,9 +60,10 @@ export class TrackLineElement {
       return false;
     }
 
-    // Magic ...
     for (const staffLineElement of this._staffLineElements) {
-      staffLineElement.addBar(masterBarIndex);
+      if (!staffLineElement.addBar(masterBarIndex)) {
+        return false;
+      }
     }
 
     return true;
@@ -82,13 +83,14 @@ export class TrackLineElement {
    */
   public calc(): void {
     const prevTrackLineElement =
-      this.trackElement.getPrevTrackLineElement(this);
-    const x = prevTrackLineElement?._rect.x ?? 0;
-    const y = prevTrackLineElement?._rect.y ?? 0;
+      this.trackElement.trackLineElements[
+        this.trackElement.trackLineElements.length - 1
+      ];
+    const y = prevTrackLineElement?._rect.bottom ?? 0;
     this._rect = new Rect(
-      x,
-      y,
       0,
+      y,
+      TabLayoutDimensions.WIDTH,
       TabLayoutDimensions.getStaffLineMinHeight(this.track.context.instrument)
     );
 

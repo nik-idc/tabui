@@ -65,7 +65,7 @@ export class TabLayoutDimensions {
     this._NOTE_TEXT_SIZE = config.noteTextSize;
     this._TIME_SIG_TEXT_SIZE = config.timeSigTextSize;
     this._TEMPO_TEXT_SIZE = config.tempoTextSize;
-    this._DURATIONS_WIDTH = 1.25 * config.durationsHeight;
+    this._DURATIONS_WIDTH = config.durationsHeight; // 1.25 * config.durationsHeight;
     this._DURATIONS_HEIGHT = config.durationsHeight;
     this._TUPLET_RECT_HEIGHT = this._DURATIONS_HEIGHT;
 
@@ -90,7 +90,7 @@ export class TabLayoutDimensions {
     // this._TIME_SIG_RECT_HEIGHT = this._STAFF_LINES_HEIGHT;
     // '= XXX' = 5 characters of 'TEMPO_TEXT_SIZE' size
     this._TEMPO_RECT_WIDTH = this._DURATIONS_HEIGHT + this._TEMPO_TEXT_SIZE * 5;
-    // this._TEMPO_RECT_HEIGHT = this._DURATIONS_HEIGHT;
+    this._TEMPO_RECT_HEIGHT = this._DURATIONS_HEIGHT;
 
     this._REPEAT_SIGN_WIDTH =
       0.75 * this._WIDTH_MAPPING.get(NoteDuration.SixtyFourth)!;
@@ -111,7 +111,9 @@ export class TabLayoutDimensions {
    */
   public static getStaffLineMinHeight(instrument: MusicInstrument): number {
     return (
-      this._NOTE_RECT_HEIGHT * instrument.maxPolyphony + this._DURATIONS_HEIGHT
+      this._NOTE_RECT_HEIGHT * instrument.maxPolyphony +
+      this._DURATIONS_HEIGHT +
+      this._TUPLET_RECT_HEIGHT
     );
   }
 
@@ -121,7 +123,7 @@ export class TabLayoutDimensions {
    * @returns Staff height
    */
   public static getStaffHeight(instrument: MusicInstrument): number {
-    return this._NOTE_RECT_HEIGHT * instrument.maxPolyphony;
+    return this._NOTE_RECT_HEIGHT * (instrument.maxPolyphony - 1);
   }
 
   static get WIDTH(): number {

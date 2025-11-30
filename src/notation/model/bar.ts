@@ -13,7 +13,7 @@ import { BarTupletGroup } from "./tuplet-group";
 import { TupletSettings, tupletSettingsEqual } from "./tuplet-settings";
 
 export type BeatArrayOperationOutput<
-  I extends MusicInstrument = MusicInstrument
+  I extends MusicInstrument = MusicInstrument,
 > = {
   index: number;
   beats: Beat<I>[];
@@ -67,7 +67,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
       // this.beats = [new Beat<I>(this, this.trackContext, NoteDuration.Quarter)];
 
       // TODO: Figure out behavior for when passed beats is empty
-      this.beats = [];
+      this.beats = [new Beat<I>(this, this.trackContext)];
     } else {
       this.beats = beats;
     }

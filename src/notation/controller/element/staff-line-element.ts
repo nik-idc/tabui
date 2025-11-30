@@ -166,11 +166,11 @@ export class StaffLineElement {
     );
     this._techniqueLabelsRect = new Rect(x, y, 0, 0);
 
-    this._barElements = [];
-    for (const bar of this.staff.bars) {
-      const barElement = new BarElement(bar, this);
-      this._barElements.push(barElement);
-    }
+    // this._barElements = [];
+    // for (const bar of this.staff.bars) {
+    //   const barElement = new BarElement(bar, this);
+    //   this._barElements.push(barElement);
+    // }
 
     this.calcTechniqueGap();
   }

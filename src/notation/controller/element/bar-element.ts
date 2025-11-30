@@ -59,7 +59,14 @@ export class BarElement {
     this._beamSegments = [];
     this._tupletElements = [];
     this._labelsGapHeight = 0;
-    this._rect = new Rect();
+    this._rect = new Rect(
+      0,
+      0,
+      0,
+      TabLayoutDimensions.getStaffLineMinHeight(
+        this.bar.trackContext.instrument
+      )
+    );
     this._staffLines = [];
 
     this.calc();
@@ -108,10 +115,8 @@ export class BarElement {
         ? TabLayoutDimensions.REPEAT_SIGN_WIDTH
         : 0;
     this._timeSigRect.y =
-      this._tempoRect.leftBottom.y +
-      TabLayoutDimensions.TUPLET_RECT_HEIGHT +
-      TabLayoutDimensions.DURATIONS_HEIGHT +
-      this._labelsGapHeight +
+      this._rect.leftBottom.y -
+      TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument) -
       TabLayoutDimensions.NOTE_RECT_HEIGHT / 2;
     this._timeSigRect.width = timeSigWidth;
     this._timeSigRect.height = TabLayoutDimensions.getStaffHeight(
@@ -120,19 +125,53 @@ export class BarElement {
   }
 
   /**
-   * Calculates the bar outer rectangle & beat element
+   * Calculates repeat rectangle
    */
-  private calcRectAndBeats(): void {
+  private calcRepeatRect(): void {
+    if (this.bar.masterBar.repeatStatus === BarRepeatStatus.None) {
+      this._repeatRect.reset();
+    } else if (this.bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
+      this._repeatRect.set(
+        0,
+        this._timeSigRect.y,
+        TabLayoutDimensions.REPEAT_SIGN_WIDTH,
+        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+      );
+    } else if (this.bar.masterBar.repeatStatus === BarRepeatStatus.End) {
+      this._repeatRect.set(
+        this._rect.width - TabLayoutDimensions.REPEAT_SIGN_WIDTH,
+        this._timeSigRect.y,
+        TabLayoutDimensions.REPEAT_SIGN_WIDTH,
+        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+      );
+    }
+  }
+
+  /**
+   * Calc main outer rectangle
+   */
+  private calcRect(): void {
     // Set main rectangle
-    const prevBarElement = this.staffLineElement.getPrevBarElement(this);
-    this._rect.x = prevBarElement?._rect.x ?? 0;
+    const prevBarElement =
+      this.staffLineElement.barElements[
+        this.staffLineElement.barElements.length - 1
+      ];
+    this._rect.x = prevBarElement?._rect.right ?? 0;
     this._rect.y = 0;
     this._rect.width =
       this.bar.masterBar.repeatStatus === BarRepeatStatus.Start
         ? TabLayoutDimensions.REPEAT_SIGN_WIDTH
         : 0;
     this._rect.width += this._showSignature ? this._timeSigRect.width : 0;
+    this._rect.height = TabLayoutDimensions.getStaffLineMinHeight(
+      this.bar.trackContext.instrument
+    );
+  }
 
+  /**
+   * Calculates beat elements
+   */
+  private calcBeats(): void {
     // Calculate beats
     this._beatElements = [];
     for (const beat of this.bar.beats) {
@@ -194,29 +233,6 @@ export class BarElement {
   }
 
   /**
-   * Calculates repeat rectangle
-   */
-  private calcRepeatRect(): void {
-    if (this.bar.masterBar.repeatStatus === BarRepeatStatus.None) {
-      this._repeatRect.reset();
-    } else if (this.bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
-      this._repeatRect.set(
-        0,
-        this._timeSigRect.y,
-        TabLayoutDimensions.REPEAT_SIGN_WIDTH,
-        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
-      );
-    } else if (this.bar.masterBar.repeatStatus === BarRepeatStatus.End) {
-      this._repeatRect.set(
-        this._rect.width - TabLayoutDimensions.REPEAT_SIGN_WIDTH,
-        this._timeSigRect.y,
-        TabLayoutDimensions.REPEAT_SIGN_WIDTH,
-        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
-      );
-    }
-  }
-
-  /**
    * Calculates bar's staff lines
    */
   private calcStaffLines(): void {
@@ -240,10 +256,11 @@ export class BarElement {
     this.calcVisibility();
     this.calcTempoRect();
     this.calcTimeSigRect();
-    this.calcRectAndBeats();
+    this.calcRepeatRect();
+    this.calcRect();
+    this.calcBeats();
     this.calcBeamGroups();
     this.calcBarTupletGroupElements();
-    this.calcRepeatRect();
     this.calcStaffLines();
   }
 
@@ -334,6 +351,28 @@ export class BarElement {
     }
   }
 
+  /**
+   * Gets next beat element
+   * @param beatElement Beat element
+   * @returns Next beat element or null
+   */
+  public getNextBeatElement(beatElement: BeatElement): BeatElement | null {
+    const beatIndex = this._beatElements.indexOf(beatElement);
+    const nextBeat = this._beatElements[beatIndex + 1];
+    return nextBeat ?? null;
+  }
+
+  /**
+   * Gets prev beat element
+   * @param beatElement Beat element
+   * @returns Prev beat element or null
+   */
+  public getPrevBeatElement(beatElement: BeatElement): BeatElement | null {
+    const beatIndex = this._beatElements.indexOf(beatElement);
+    const prevBeat = this._beatElements[beatIndex - 1];
+    return prevBeat ?? null;
+  }
+
   /** Time signature beats rectangle */
   get beatsRect(): Rect {
     return new Rect(
@@ -391,17 +430,52 @@ export class BarElement {
   /** Bar left border line (array of 2 points) */
   get barLeftBorderLine(): Point[] {
     return [
-      new Point(0, this.beatsRect.y),
-      new Point(0, this.measureRect.leftBottom.y),
+      new Point(0, this._timeSigRect.y),
+      new Point(
+        0,
+        this._timeSigRect.y +
+          TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+      ),
     ];
   }
 
   /** Bar right border line (array of 2 points) */
   get barRightBorderLine(): Point[] {
     return [
-      new Point(this._rect.width, this.beatsRect.y),
-      new Point(this._rect.width, this.measureRect.leftBottom.y),
+      new Point(this._rect.width, this._timeSigRect.y),
+      new Point(
+        this._rect.width,
+        this._timeSigRect.y +
+          TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+      ),
     ];
+  }
+
+  /** Gap at the fron of the bar (time sig. and/or repeat start) */
+  get startGap(): Rect {
+    const x = 0;
+    const y = this._showTempo ? TabLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    let width = 0;
+    if (this._showSignature) {
+      width += this._timeSigRect.width;
+    }
+    if (this.bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
+      width += TabLayoutDimensions.REPEAT_SIGN_WIDTH;
+    }
+    const height = this._rect.height;
+    return new Rect(x, y, width, height);
+  }
+
+  /** Gap at the fron of the bar (repeat end) */
+  get endGap(): Rect {
+    let width = 0;
+    if (this.bar.masterBar.repeatStatus === BarRepeatStatus.End) {
+      width += TabLayoutDimensions.REPEAT_SIGN_WIDTH;
+    }
+    const height = this._rect.height;
+    const x = this._rect.right - width;
+    const y = this._showTempo ? TabLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    return new Rect(x, y, width, height);
   }
 
   /** This bar's beat element */
