@@ -3,7 +3,7 @@ import { Point, createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 
 /**
- * Class for rendering an technique label using SVG
+ * Class for rendering a technique label using SVG
  */
 export class SVGTechniqueLabelRenderer implements ElementRenderer {
   /** Track controller */
@@ -22,7 +22,7 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   private _techniqueLabelSVG?: SVGGElement;
 
   /**
-   * Class for rendering an technique label using SVG
+   * Class for rendering a technique label using SVG
    * @param trackController Track controller
    * @param techniqueLabelElement Technique label element
    * @param assetsPath Path to assets

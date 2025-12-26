@@ -16,11 +16,9 @@ import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { SVGTupletRenderer, SVGTupletSegmentRenderer } from "./tuplet";
 import { ElementRenderer } from "../element-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
-
-type SVGBeamSegment = {
-  longSVG: SVGImageElement;
-  shortSVG?: SVGImageElement;
-};
+import { TabBeatElement } from "@/notation/controller/element/tab-beat-element";
+import { SVGTabBeatRenderer } from "./svg-tab-beat-renderer";
+import { SVGBeamSegmentRenderer } from "./svg-beam-segment-renderer";
 
 /**
  * Class for rendering a bar element using SVG
@@ -38,29 +36,23 @@ export class SVGBarRenderer implements ElementRenderer {
 
   /** Rendered beat elements map */
   private _renderedBeatElements: Map<number, SVGBeatRenderer>;
+  /** Rendered beam segments map */
+  private _renderedBeamSegments: Map<number, SVGBeamSegmentRenderer>;
   /** Rendered tuplet elements map */
   private _renderedTupletElements: Map<number, SVGTupletRenderer>;
 
   /** Container SVG group */
   private _groupSVG?: SVGGElement;
   /** Array of bar staffs as SVG line elements */
-  private _barStaffLinesSVG?: SVGLineElement[];
+  private _staffLinesSVG?: SVGLineElement[];
   /** Array of bar border lines as SVG line elements */
-  private _barBorderLinesSVG?: SVGLineElement[];
+  private _borderLinesSVG?: SVGLineElement[];
   /** Bar repeat sign SVG image */
-  private _barRepeatSign?: SVGImageElement;
+  private _repeatStartSVG?: SVGImageElement;
+  /** Bar repeat sign SVG image */
+  private _repeatEndSVG?: SVGImageElement;
   /** Array of bar time signature text elements (beats count + duration) */
-  private _barSigSVG?: SVGTextElement[];
-  /** Bar tempo SVG image */
-  private _barTempoImageSVG?: SVGImageElement;
-  /** Bar tempo SVG text */
-  private _barTempoTextSVG?: SVGTextElement;
-  /** Bar beam segments array */
-  private _barBeamSegmentsSVG?: SVGBeamSegment[];
-  /** Selection gap start SVG rectangle (time sig/repeat start) */
-  private _barSelectionStartGapRect?: SVGRectElement;
-  /** Selection gap end SVG rectangle (repeat end) */
-  private _barSelectionEndGapRect?: SVGRectElement;
+  private _timeSigTextsSVG?: SVGTextElement[];
 
   /**
    * Class for rendering a beat element using SVG
@@ -83,6 +75,7 @@ export class SVGBarRenderer implements ElementRenderer {
 
     this._renderedBeatElements = new Map();
     this._renderedTupletElements = new Map();
+    this._renderedBeamSegments = new Map();
   }
 
   /**
@@ -109,17 +102,17 @@ export class SVGBarRenderer implements ElementRenderer {
     }
 
     const barUUID = this.barElement.bar.uuid;
-    if (this._barStaffLinesSVG === undefined) {
-      this._barStaffLinesSVG = [];
+    if (this._staffLinesSVG === undefined) {
+      this._staffLinesSVG = [];
       for (let i = 0; i < this.barElement.staffLines.length; i++) {
-        this._barStaffLinesSVG.push(createSVGLine());
+        this._staffLinesSVG.push(createSVGLine());
 
         // Set id
         const id = `bar-staff-${barUUID}-${i}`;
-        this._barStaffLinesSVG[i].setAttribute("id", id);
+        this._staffLinesSVG[i].setAttribute("id", id);
 
         // Add element to root SVG element
-        this._groupSVG.appendChild(this._barStaffLinesSVG[i]);
+        this._groupSVG.appendChild(this._staffLinesSVG[i]);
       }
     }
 
@@ -127,17 +120,12 @@ export class SVGBarRenderer implements ElementRenderer {
       ? "black"
       : "red";
     for (let i = 0; i < this.barElement.staffLines.length; i++) {
-      const line = this.barElement.staffLines[i];
-
-      const x1 = `${this.barElement.globalCoords.x + line[0].x}`;
-      const y1 = `${this.barElement.globalCoords.y + line[0].y}`;
-      const x2 = `${this.barElement.globalCoords.x + line[1].x}`;
-      const y2 = `${this.barElement.globalCoords.y + line[1].y}`;
-      this._barStaffLinesSVG[i].setAttribute("x1", x1);
-      this._barStaffLinesSVG[i].setAttribute("y1", y1);
-      this._barStaffLinesSVG[i].setAttribute("x2", x2);
-      this._barStaffLinesSVG[i].setAttribute("y2", y2);
-      this._barStaffLinesSVG[i].setAttribute("stroke", strokeColor);
+      const lineGlobal = this.barElement.staffLinesGlobal[i];
+      this._staffLinesSVG[i].setAttribute("x1", `${lineGlobal.x1}`);
+      this._staffLinesSVG[i].setAttribute("y1", `${lineGlobal.y}`);
+      this._staffLinesSVG[i].setAttribute("x2", `${lineGlobal.x2}`);
+      this._staffLinesSVG[i].setAttribute("y2", `${lineGlobal.y}`);
+      this._staffLinesSVG[i].setAttribute("stroke", strokeColor);
     }
   }
 
@@ -149,14 +137,14 @@ export class SVGBarRenderer implements ElementRenderer {
       throw Error("Tried to unrender bar staff when SVG group undefined");
     }
 
-    if (this._barStaffLinesSVG === undefined) {
+    if (this._staffLinesSVG === undefined) {
       return;
     }
 
     for (let i = 0; i < this.barElement.staffLines.length; i++) {
-      this._groupSVG.removeChild(this._barStaffLinesSVG[i]);
+      this._groupSVG.removeChild(this._staffLinesSVG[i]);
     }
-    this._barStaffLinesSVG = undefined;
+    this._staffLinesSVG = undefined;
   }
 
   /**
@@ -168,55 +156,33 @@ export class SVGBarRenderer implements ElementRenderer {
     }
 
     const barUUID = this.barElement.bar.uuid;
-    if (this._barBorderLinesSVG === undefined) {
-      this._barBorderLinesSVG = [createSVGLine(), createSVGLine()];
+    if (this._borderLinesSVG === undefined) {
+      this._borderLinesSVG = [createSVGLine(), createSVGLine()];
 
       // Set only-set-once attributes
-      this._barBorderLinesSVG[0].setAttribute("stroke", "black");
-      this._barBorderLinesSVG[1].setAttribute("stroke", "black");
+      this._borderLinesSVG[0].setAttribute("stroke", "black");
+      this._borderLinesSVG[1].setAttribute("stroke", "black");
 
       // Set id
-      this._barBorderLinesSVG[0].setAttribute("id", `bar-border-${barUUID}-0`);
-      this._barBorderLinesSVG[1].setAttribute("id", `bar-border-${barUUID}-1`);
+      this._borderLinesSVG[0].setAttribute("id", `bar-border-${barUUID}-0`);
+      this._borderLinesSVG[1].setAttribute("id", `bar-border-${barUUID}-1`);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._barBorderLinesSVG[0]);
-      this._groupSVG.appendChild(this._barBorderLinesSVG[1]);
+      this._groupSVG.appendChild(this._borderLinesSVG[0]);
+      this._groupSVG.appendChild(this._borderLinesSVG[1]);
     }
 
-    const leftX1 = `${
-      this.barElement.globalCoords.x + this.barElement.barLeftBorderLine[0].x
-    }`;
-    const leftY1 = `${
-      this.barElement.globalCoords.y + this.barElement.barLeftBorderLine[0].y
-    }`;
-    const leftX2 = `${
-      this.barElement.globalCoords.x + this.barElement.barLeftBorderLine[1].x
-    }`;
-    const leftY2 = `${
-      this.barElement.globalCoords.y + this.barElement.barLeftBorderLine[1].y
-    }`;
-    this._barBorderLinesSVG[0].setAttribute("x1", leftX1);
-    this._barBorderLinesSVG[0].setAttribute("y1", leftY1);
-    this._barBorderLinesSVG[0].setAttribute("x2", leftX2);
-    this._barBorderLinesSVG[0].setAttribute("y2", leftY2);
+    const leftGlobal = this.barElement.barLeftBorderLineGlobal;
+    this._borderLinesSVG[0].setAttribute("x1", `${leftGlobal.x}`);
+    this._borderLinesSVG[0].setAttribute("y1", `${leftGlobal.y1}`);
+    this._borderLinesSVG[0].setAttribute("x2", `${leftGlobal.x}`);
+    this._borderLinesSVG[0].setAttribute("y2", `${leftGlobal.y2}`);
 
-    const rightX1 = `${
-      this.barElement.globalCoords.x + this.barElement.barRightBorderLine[0].x
-    }`;
-    const rightY1 = `${
-      this.barElement.globalCoords.y + this.barElement.barRightBorderLine[0].y
-    }`;
-    const rightX2 = `${
-      this.barElement.globalCoords.x + this.barElement.barRightBorderLine[1].x
-    }`;
-    const rightY2 = `${
-      this.barElement.globalCoords.y + this.barElement.barRightBorderLine[1].y
-    }`;
-    this._barBorderLinesSVG[1].setAttribute("x1", rightX1);
-    this._barBorderLinesSVG[1].setAttribute("y1", rightY1);
-    this._barBorderLinesSVG[1].setAttribute("x2", rightX2);
-    this._barBorderLinesSVG[1].setAttribute("y2", rightY2);
+    const rightGlobal = this.barElement.barRightBorderLineGlobal;
+    this._borderLinesSVG[1].setAttribute("x1", `${rightGlobal.x}`);
+    this._borderLinesSVG[1].setAttribute("y1", `${rightGlobal.y1}`);
+    this._borderLinesSVG[1].setAttribute("x2", `${rightGlobal.x}`);
+    this._borderLinesSVG[1].setAttribute("y2", `${rightGlobal.y2}`);
   }
 
   /**
@@ -227,81 +193,13 @@ export class SVGBarRenderer implements ElementRenderer {
       throw Error("Tried to unrender bar borders when SVG group undefined");
     }
 
-    if (this._barBorderLinesSVG === undefined) {
+    if (this._borderLinesSVG === undefined) {
       return;
     }
 
-    this._groupSVG.removeChild(this._barBorderLinesSVG[0]);
-    this._groupSVG.removeChild(this._barBorderLinesSVG[1]);
-    this._barBorderLinesSVG = undefined;
-  }
-
-  /**
-   * Render bar's repeat sign
-   */
-  private renderBarRepeat(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to render bar sig when SVG group undefined");
-    }
-
-    if (this.barElement.bar.masterBar.repeatStatus === BarRepeatStatus.None) {
-      return;
-    }
-
-    const barUUID = this.barElement.bar.uuid;
-    if (this._barRepeatSign === undefined) {
-      this._barRepeatSign = createSVGImage();
-
-      // Set id
-      this._barRepeatSign.setAttribute("id", `bar-repeat-${barUUID}`);
-      this._barRepeatSign.setAttribute("preserveAspectRatio", "none");
-
-      // Add element to root SVG element
-      this._groupSVG.appendChild(this._barRepeatSign);
-    }
-
-    // Holy shit this is scuffed. Refactor is unconditional
-    let x: string;
-    if (this.barElement.bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
-      x = `${this.barElement.globalCoords.x + this.barElement.repeatRect.x}`;
-    } else {
-      x = `${
-        this.barElement.globalCoords.x +
-        this.barElement.repeatRect.right -
-        TabLayoutDimensions.REPEAT_SIGN_WIDTH
-      }`;
-    }
-    const y = `${
-      this.barElement.globalCoords.y + this.barElement.repeatRect.y
-    }`;
-    // const width = `${this.barElement.repeatRect.width}`;
-    const width = `${TabLayoutDimensions.REPEAT_SIGN_WIDTH}`;
-    const height = `${this.barElement.repeatRect.height}`;
-    const href =
-      this.barElement.bar.masterBar.repeatStatus === BarRepeatStatus.Start
-        ? `${this._assetsPath}/img/ui/repeat-start-applied_.svg`
-        : `${this._assetsPath}/img/ui/repeat-end-applied_.svg`;
-    this._barRepeatSign.setAttribute("x", x);
-    this._barRepeatSign.setAttribute("y", y);
-    this._barRepeatSign.setAttribute("width", width);
-    this._barRepeatSign.setAttribute("height", height);
-    this._barRepeatSign.setAttribute("href", href);
-  }
-
-  /**
-   * Unrender all bar repeat sign
-   */
-  private unrenderBarRepeat(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender bar sig when SVG group undefined");
-    }
-
-    if (this._barRepeatSign === undefined) {
-      return;
-    }
-
-    this._groupSVG.removeChild(this._barRepeatSign);
-    this._barRepeatSign = undefined;
+    this._groupSVG.removeChild(this._borderLinesSVG[0]);
+    this._groupSVG.removeChild(this._borderLinesSVG[1]);
+    this._borderLinesSVG = undefined;
   }
 
   /**
@@ -312,49 +210,46 @@ export class SVGBarRenderer implements ElementRenderer {
       throw Error("Tried to render bar sig when SVG group undefined");
     }
 
-    if (!this.barElement.showSignature) {
+    if (
+      this.barElement.timeSigBeatsTextCoordsGlobal === undefined ||
+      this.barElement.timeSigDurationTextCoordsGlobal === undefined
+    ) {
       return;
     }
 
     const barUUID = this.barElement.bar.uuid;
-    if (this._barSigSVG === undefined) {
-      this._barSigSVG = [createSVGText(), createSVGText()];
+    if (this._timeSigTextsSVG === undefined) {
+      this._timeSigTextsSVG = [createSVGText(), createSVGText()];
 
       // Set only-set-once attributes
       const fontSize = `${TabLayoutDimensions.TIME_SIG_TEXT_SIZE}`;
-      this._barSigSVG[0].setAttribute("text-anchor", "middle");
-      this._barSigSVG[0].setAttribute("font-size", fontSize);
-      this._barSigSVG[1].setAttribute("text-anchor", "middle");
-      this._barSigSVG[1].setAttribute("font-size", fontSize);
+      this._timeSigTextsSVG[0].setAttribute("text-anchor", "start");
+      this._timeSigTextsSVG[0].setAttribute("dominant-baseline", "hanging");
+      this._timeSigTextsSVG[0].setAttribute("font-size", fontSize);
+      this._timeSigTextsSVG[1].setAttribute("text-anchor", "start");
+      this._timeSigTextsSVG[1].setAttribute("dominant-baseline", "hanging");
+      this._timeSigTextsSVG[1].setAttribute("font-size", fontSize);
 
       // Set id
-      this._barSigSVG[0].setAttribute("id", `bar-sig-${barUUID}-0`);
-      this._barSigSVG[1].setAttribute("id", `bar-sig-${barUUID}-1`);
+      this._timeSigTextsSVG[0].setAttribute("id", `bar-sig-${barUUID}-0`);
+      this._timeSigTextsSVG[1].setAttribute("id", `bar-sig-${barUUID}-1`);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._barSigSVG[0]);
-      this._groupSVG.appendChild(this._barSigSVG[1]);
+      this._groupSVG.appendChild(this._timeSigTextsSVG[0]);
+      this._groupSVG.appendChild(this._timeSigTextsSVG[1]);
     }
 
-    const topX = `${
-      this.barElement.globalCoords.x + this.barElement.beatsTextCoords.x
-    }`;
-    const topY = `${
-      this.barElement.globalCoords.y + this.barElement.beatsTextCoords.y
-    }`;
-    this._barSigSVG[0].setAttribute("x", topX);
-    this._barSigSVG[0].setAttribute("y", topY);
-    this._barSigSVG[0].textContent = `${this.barElement.bar.masterBar.beatsCount}`;
+    const beatsX = `${this.barElement.timeSigBeatsTextCoordsGlobal.x}`;
+    const beatsY = `${this.barElement.timeSigBeatsTextCoordsGlobal.y}`;
+    this._timeSigTextsSVG[0].setAttribute("x", beatsX);
+    this._timeSigTextsSVG[0].setAttribute("y", beatsY);
+    this._timeSigTextsSVG[0].textContent = `${this.barElement.bar.masterBar.beatsCount}`;
 
-    const bottomX = `${
-      this.barElement.globalCoords.x + this.barElement.measureTextCoords.x
-    }`;
-    const bottomY = `${
-      this.barElement.globalCoords.y + this.barElement.measureTextCoords.y
-    }`;
-    this._barSigSVG[1].setAttribute("x", bottomX);
-    this._barSigSVG[1].setAttribute("y", bottomY);
-    this._barSigSVG[1].textContent = `${
+    const measureX = `${this.barElement.timeSigDurationTextCoordsGlobal.x}`;
+    const measureY = `${this.barElement.timeSigDurationTextCoordsGlobal.y}`;
+    this._timeSigTextsSVG[1].setAttribute("x", measureX);
+    this._timeSigTextsSVG[1].setAttribute("y", measureY);
+    this._timeSigTextsSVG[1].textContent = `${
       1 / this.barElement.bar.masterBar.duration
     }`;
   }
@@ -367,266 +262,156 @@ export class SVGBarRenderer implements ElementRenderer {
       throw Error("Tried to unrender bar sig when SVG group undefined");
     }
 
-    if (this._barSigSVG === undefined) {
+    if (this._timeSigTextsSVG === undefined) {
       return;
     }
 
-    this._groupSVG.removeChild(this._barSigSVG[0]);
-    this._groupSVG.removeChild(this._barSigSVG[1]);
-    this._barSigSVG = undefined;
+    this._groupSVG.removeChild(this._timeSigTextsSVG[0]);
+    this._groupSVG.removeChild(this._timeSigTextsSVG[1]);
+    this._timeSigTextsSVG = undefined;
   }
 
   /**
-   * Render bar tempo image
-   * @param barOffset Global offset of the bar
+   * Renders repeat signs (if there any to render)
    */
-  private renderBarTempoImage(): void {
+  private renderRepeats(): void {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to render bar tempo img when SVG group undefined");
+      throw Error("Tried to render bar repeats when SVG group undefined");
     }
 
-    if (!this.barElement.showTempo) {
-      return;
-    }
-
-    const barUUID = this.barElement.bar.uuid;
-    if (this._barTempoImageSVG === undefined) {
-      this._barTempoImageSVG = createSVGImage();
-
-      // Set only-set-once attributes
-      const href = `${this._assetsPath}/img/notes/4.svg`;
-      this._barTempoImageSVG.setAttribute("href", href);
-
-      // Set id
-      this._barTempoImageSVG.setAttribute("id", `bar-tempo-${barUUID}-image`);
-
-      // Add element to root SVG element
-      this._groupSVG.appendChild(this._barTempoImageSVG);
-    }
-
-    const imageX = `${
-      this.barElement.globalCoords.x + this.barElement.tempoImageRect.x
-    }`;
-    const imageY = `${
-      this.barElement.globalCoords.y + this.barElement.tempoImageRect.y
-    }`;
-    const imageWidth = `${this.barElement.tempoImageRect.width}`;
-    const imageHeight = `${this.barElement.tempoImageRect.height}`;
-    this._barTempoImageSVG.setAttribute("x", imageX);
-    this._barTempoImageSVG.setAttribute("y", imageY);
-    this._barTempoImageSVG.setAttribute("width", imageWidth);
-    this._barTempoImageSVG.setAttribute("height", imageHeight);
-  }
-
-  /**
-   * Unrender bar tempo image
-   */
-  private unrenderBarTempoImage(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender bar tempo img when SVG group undefined");
-    }
-
-    if (this._barTempoImageSVG === undefined) {
-      return;
-    }
-
-    this._groupSVG.removeChild(this._barTempoImageSVG);
-    this._barTempoImageSVG = undefined;
-  }
-
-  /**
-   * Render bar tempo text
-   * @param barOffset Global offset of the bar
-   */
-  private renderBarTempoText(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to render bar tempo text when SVG group undefined");
-    }
-
-    if (!this.barElement.showTempo) {
+    const repStartGlobal = this.barElement.repeatStartRectGlobal;
+    const repEndGlobal = this.barElement.repeatEndRectGlobal;
+    if (repStartGlobal === undefined && repEndGlobal === undefined) {
       return;
     }
 
     const barUUID = this.barElement.bar.uuid;
-    if (this._barTempoTextSVG === undefined) {
-      this._barTempoTextSVG = createSVGText();
-
+    if (
+      this._repeatStartSVG === undefined &&
+      this.barElement.repeatStartRectGlobal !== undefined
+    ) {
       // Set only-set-once attributes
-      const fontSize = `${TabLayoutDimensions.TEMPO_TEXT_SIZE}`;
-      this._barTempoTextSVG.setAttribute("text-anchor", "start");
-      this._barTempoTextSVG.setAttribute("font-size", fontSize);
+      this._repeatStartSVG = createSVGImage();
 
-      // Set id
-      this._barTempoTextSVG.setAttribute("id", `bar-tempo-${barUUID}-text`);
+      const href = `${this._assetsPath}/img/ui/repeat-start-applied_.svg`;
+      this._repeatStartSVG.setAttribute("href", href);
+      this._repeatStartSVG.setAttribute("id", `bar-rep-start-${barUUID}`);
 
-      // Add element to root SVG element
-      this._groupSVG.appendChild(this._barTempoTextSVG);
+      this._groupSVG.appendChild(this._repeatStartSVG);
+    }
+    if (
+      this._repeatEndSVG === undefined &&
+      this.barElement.repeatEndRectGlobal !== undefined
+    ) {
+      this._repeatEndSVG = createSVGImage();
+
+      const href = `${this._assetsPath}/img/ui/repeat-end-applied_.svg`;
+      this._repeatEndSVG.setAttribute("href", href);
+      this._repeatEndSVG.setAttribute("id", `bar-rep-end-${barUUID}`);
+
+      this._groupSVG.appendChild(this._repeatEndSVG);
     }
 
-    const textX = `${
-      this.barElement.globalCoords.x + this.barElement.tempoTextCoords.x
-    }`;
-    const textY = `${
-      this.barElement.globalCoords.y + this.barElement.tempoTextCoords.y
-    }`;
-    this._barTempoTextSVG.setAttribute("x", textX);
-    this._barTempoTextSVG.setAttribute("y", textY);
-    this._barTempoTextSVG.textContent = `= ${this.barElement.bar.masterBar.tempo}`;
+    if (this._repeatStartSVG !== undefined && repStartGlobal !== undefined) {
+      const x = `${repStartGlobal.x}`;
+      const y = `${repStartGlobal.y}`;
+      const width = `${repStartGlobal.width}`;
+      const height = `${repStartGlobal.height}`;
+      this._repeatStartSVG.setAttribute("x", x);
+      this._repeatStartSVG.setAttribute("y", y);
+      this._repeatStartSVG.setAttribute("width", width);
+      this._repeatStartSVG.setAttribute("height", height);
+    }
+
+    if (this._repeatEndSVG !== undefined && repEndGlobal !== undefined) {
+      const x = `${repEndGlobal.x}`;
+      const y = `${repEndGlobal.y}`;
+      const width = `${repEndGlobal.width}`;
+      const height = `${repEndGlobal.height}`;
+      this._repeatEndSVG.setAttribute("x", x);
+      this._repeatEndSVG.setAttribute("y", y);
+      this._repeatEndSVG.setAttribute("width", width);
+      this._repeatEndSVG.setAttribute("height", height);
+    }
   }
 
   /**
-   * Unrender bar tempo image
+   * Unrenders repeat signs (if there any to render)
    */
-  private unrenderBarTempoText(): void {
+  private unrenderRepeats(): void {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender bar tempo text when SVG group undefined");
+      throw Error("Tried to unrender bar repeats when SVG group undefined");
     }
 
-    if (this._barTempoTextSVG === undefined) {
-      return;
+    if (this._repeatStartSVG !== undefined) {
+      this._groupSVG.removeChild(this._repeatStartSVG);
+      this._repeatStartSVG = undefined;
     }
-
-    this._groupSVG.removeChild(this._barTempoTextSVG);
-    this._barTempoTextSVG = undefined;
+    if (this._repeatEndSVG !== undefined) {
+      this._groupSVG.removeChild(this._repeatEndSVG);
+      this._repeatEndSVG = undefined;
+    }
   }
 
   /**
-   * Render bar tempo image
-   * @param barOffset Global offset of the bar
+   * Render beam segments
+   * @returns Active beam segment renderers
    */
-  private renderBarBeamSegments(): void {
+  private renderBarBeamSegments(): ElementRenderer[] {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to render bar tempo img when SVG group undefined");
+      throw Error("Tried to render tuplets when SVG group undefined");
     }
-
-    // TODO: Structure beam segment rendering the same way
-    // other child element renders work (i.e. bar's beats rendering).
-    // But for now this will do
-    this.unrenderBarBeamSegments();
 
     if (this.barElement.beamSegments.length === 0) {
-      return;
+      return [];
     }
 
-    const barUUID = this.barElement.bar.uuid;
-    if (this._barBeamSegmentsSVG === undefined) {
-      this._barBeamSegmentsSVG = [];
-      for (let i = 0; i < this.barElement.beamSegments.length; i++) {
-        const curBeamSegment = this.barElement.beamSegments[i];
-        const curBeamSegmentLongSVG = createSVGImage();
+    const activeRenderers: ElementRenderer[] = [];
 
-        // Set id
-        curBeamSegmentLongSVG.setAttribute(
-          "id",
-          `bar-beam-${i}-${barUUID}-long`
-        );
-        curBeamSegmentLongSVG.setAttribute("preserveAspectRatio", "none");
-
-        // Add element to root SVG element
-        // this._barBeamSegmentsSVG.push(curBeamSegmentLongSVG);
-        this._groupSVG.appendChild(curBeamSegmentLongSVG);
-
-        if (curBeamSegment.shortRect === undefined) {
-          this._barBeamSegmentsSVG.push({ longSVG: curBeamSegmentLongSVG });
-          continue;
-        }
-
-        const curBeamSegmentShortSVG = createSVGImage();
-
-        // Set id
-        curBeamSegmentShortSVG.setAttribute(
-          "id",
-          `bar-beam-${i}-${barUUID}-short`
-        );
-        curBeamSegmentShortSVG.setAttribute("preserveAspectRatio", "none");
-
-        // Add element to root SVG element
-        this._barBeamSegmentsSVG.push({
-          longSVG: curBeamSegmentLongSVG,
-          shortSVG: curBeamSegmentShortSVG,
-        });
-        this._groupSVG.appendChild(curBeamSegmentShortSVG);
+    // Check if there are any beam segments to remove
+    const curBarBeamSegmetsUUIDs = new Set(
+      this.barElement.beamSegments.map((bs) => bs.uuid)
+    );
+    for (const [uuid, renderer] of this._renderedBeamSegments) {
+      if (!curBarBeamSegmetsUUIDs.has(uuid)) {
+        renderer.unrender();
+        this._renderedBeamSegments.delete(uuid);
       }
     }
 
-    for (let i = 0; i < this._barBeamSegmentsSVG.length; i++) {
-      const curBeamSegment = this.barElement.beamSegments[i];
-      const curSVGBeamSegment = this._barBeamSegmentsSVG[i];
-
-      const longBeamX = `${
-        this.barElement.globalCoords.x + curBeamSegment.longRect.x
-      }`;
-      const longBeamY = `${
-        this.barElement.globalCoords.y + curBeamSegment.longRect.y
-      }`;
-      const longBeamWidth = `${curBeamSegment.longRect.width}`;
-      const longBeamHeight = `${curBeamSegment.longRect.height}`;
-      // let href = `${this._assetsPath}/img/notes/8-beam.svg`;
-      let longHref;
-      if (curBeamSegment.shortRect === undefined) {
-        longHref = `${this._assetsPath}/img/notes/${
-          1 / curBeamSegment.curBeatElement.beat.baseDuration
-        }-beam.svg`;
+    // Add & render new segments AND re-render existing segments
+    for (const beamSegment of this.barElement.beamSegments) {
+      const renderedSegment = this._renderedBeamSegments.get(beamSegment.uuid);
+      if (renderedSegment === undefined) {
+        const renderer = new SVGBeamSegmentRenderer(
+          this.trackController,
+          beamSegment,
+          this._assetsPath,
+          this._groupSVG
+        );
+        activeRenderers.push(renderer);
+        renderer.render();
+        this._renderedBeamSegments.set(beamSegment.uuid, renderer);
       } else {
-        longHref = `${this._assetsPath}/img/notes/${
-          1 / curBeamSegment.nextBeatElement.beat.baseDuration
-        }-beam.svg`;
+        activeRenderers.push(renderedSegment);
+        renderedSegment.render();
       }
-      curSVGBeamSegment.longSVG.setAttribute("x", longBeamX);
-      curSVGBeamSegment.longSVG.setAttribute("y", longBeamY);
-      curSVGBeamSegment.longSVG.setAttribute("width", longBeamWidth);
-      curSVGBeamSegment.longSVG.setAttribute("height", longBeamHeight);
-      curSVGBeamSegment.longSVG.setAttribute("href", longHref);
-
-      if (
-        curBeamSegment.shortRect === undefined ||
-        curSVGBeamSegment.shortSVG === undefined
-      ) {
-        continue;
-      }
-
-      const shortBeamX = `${
-        this.barElement.globalCoords.x + curBeamSegment.shortRect.x
-      }`;
-      const shortBeamY = `${
-        this.barElement.globalCoords.y + curBeamSegment.shortRect.y
-      }`;
-      const shortBeamWidth = `${curBeamSegment.shortRect.width}`;
-      const shortBeamHeight = `${curBeamSegment.shortRect.height}`;
-      const shortHref = `${this._assetsPath}/img/notes/${
-        1 / curBeamSegment.curBeatElement.beat.baseDuration
-      }-beam.svg`;
-      curSVGBeamSegment.shortSVG.setAttribute("x", shortBeamX);
-      curSVGBeamSegment.shortSVG.setAttribute("y", shortBeamY);
-      curSVGBeamSegment.shortSVG.setAttribute("width", shortBeamWidth);
-      curSVGBeamSegment.shortSVG.setAttribute("height", shortBeamHeight);
-      curSVGBeamSegment.shortSVG.setAttribute("href", shortHref);
     }
+    return activeRenderers;
   }
 
   /**
-   * Unrender bar tempo image
+   * Unrender tuplets
    */
   private unrenderBarBeamSegments(): void {
     if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender bar tempo img when SVG group undefined");
+      throw Error("Tried to unrender tuplets when SVG group undefined");
     }
 
-    if (this._barBeamSegmentsSVG === undefined) {
-      return;
+    for (const [uuid, renderer] of this._renderedBeamSegments) {
+      renderer.unrender();
+      this._renderedBeamSegments.delete(uuid);
     }
-
-    for (let i = 0; i < this._barBeamSegmentsSVG.length; i++) {
-      const longSVG = this._barBeamSegmentsSVG[i].longSVG;
-      const shortSVG = this._barBeamSegmentsSVG[i].shortSVG;
-      this._groupSVG.removeChild(longSVG);
-      if (shortSVG === undefined) {
-        continue;
-      }
-      this._groupSVG.removeChild(shortSVG);
-    }
-
-    this._barBeamSegmentsSVG = undefined;
   }
 
   /**
@@ -664,14 +449,14 @@ export class SVGBarRenderer implements ElementRenderer {
           this._groupSVG
         );
         activeRenderers.push(renderer);
-        activeRenderers.push(...renderer.render());
+        renderer.render();
         this._renderedTupletElements.set(
           tupletElement.tupletGroup.uuid,
           renderer
         );
       } else {
         activeRenderers.push(renderedTuplet);
-        activeRenderers.push(...renderedTuplet.render());
+        renderedTuplet.render();
       }
     }
     return activeRenderers;
@@ -692,121 +477,6 @@ export class SVGBarRenderer implements ElementRenderer {
   }
 
   /**
-   * Render selection start gap
-   */
-  private renderSelectionStartGap(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to render selection gap when SVG group undefined");
-    }
-
-    const barUUID = this.barElement.bar.uuid;
-    if (this._barSelectionStartGapRect === undefined) {
-      this._barSelectionStartGapRect = createSVGRect();
-
-      // Set only-set-once attributes
-      this._barSelectionStartGapRect.setAttribute("fill", "gray");
-      this._barSelectionStartGapRect.setAttribute("fill-opacity", "0.25");
-      this._barSelectionStartGapRect.setAttribute("pointer-events", "none");
-
-      // Set id
-      this._barSelectionStartGapRect.setAttribute(
-        "id",
-        `bar-sel-gap-${barUUID}`
-      );
-
-      // Add element to group SVG element
-      this._groupSVG.appendChild(this._barSelectionStartGapRect);
-    }
-
-    const x = `${
-      this.barElement.staffLineElement.globalCoords.x +
-      this.barElement.startGap.x
-    }`;
-    const y = `${
-      this.barElement.staffLineElement.globalCoords.y +
-      this.barElement.startGap.y
-    }`;
-    const width = `${this.barElement.startGap.width}`;
-    const height = `${this.barElement.beatElements[0].rect.height}`;
-    this._barSelectionStartGapRect.setAttribute("x", x);
-    this._barSelectionStartGapRect.setAttribute("y", y);
-    this._barSelectionStartGapRect.setAttribute("width", width);
-    this._barSelectionStartGapRect.setAttribute("height", height);
-  }
-
-  /**
-   * Unrender selection start gap
-   */
-  private unrenderSelectionStartGap(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender selection gap when SVG group undefined");
-    }
-
-    if (this._barSelectionStartGapRect === undefined) {
-      return;
-    }
-
-    this._groupSVG.removeChild(this._barSelectionStartGapRect);
-    this._barSelectionStartGapRect = undefined;
-  }
-
-  /**
-   * Render selection end gap
-   */
-  private renderSelectionEndGap(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to render selection gap when SVG group undefined");
-    }
-
-    const barUUID = this.barElement.bar.uuid;
-    if (this._barSelectionEndGapRect === undefined) {
-      this._barSelectionEndGapRect = createSVGRect();
-
-      // Set only-set-once attributes
-      this._barSelectionEndGapRect.setAttribute("fill", "gray");
-      this._barSelectionEndGapRect.setAttribute("fill-opacity", "0.25");
-      this._barSelectionEndGapRect.setAttribute("pointer-events", "none");
-
-      // Set id
-      this._barSelectionEndGapRect.setAttribute("id", `bar-sel-gap-${barUUID}`);
-
-      // Add element to group SVG element
-      this._groupSVG.appendChild(this._barSelectionEndGapRect);
-    }
-
-    const x = `${
-      this.barElement.staffLineElement.globalCoords.x +
-      this.barElement.rect.x +
-      this.barElement.repeatRect.x
-    }`;
-    const y = `${
-      this.barElement.staffLineElement.globalCoords.y + this.barElement.rect.y
-    }`;
-    const width = `${this.barElement.repeatRect.width}`;
-    const height = `${this.barElement.beatElements[0].rect.height}`;
-    this._barSelectionEndGapRect.setAttribute("x", x);
-    this._barSelectionEndGapRect.setAttribute("y", y);
-    this._barSelectionEndGapRect.setAttribute("width", width);
-    this._barSelectionEndGapRect.setAttribute("height", height);
-  }
-
-  /**
-   * Unrender selection end gap
-   */
-  private unrenderSelectionEndGap(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender selection gap when SVG group undefined");
-    }
-
-    if (this._barSelectionEndGapRect === undefined) {
-      return;
-    }
-
-    this._groupSVG.removeChild(this._barSelectionEndGapRect);
-    this._barSelectionEndGapRect = undefined;
-  }
-
-  /**
    * Render bar element
    */
   public render(): ElementRenderer[] {
@@ -816,47 +486,32 @@ export class SVGBarRenderer implements ElementRenderer {
       throw Error("Bar group SVG undefined after render group call");
     }
 
-    // Render bar stuff
-    this.renderBarStaffLines();
-    this.renderBarBorderLines();
-    if (this.barElement.showSignature) {
-      this.renderBarSig();
-    } else {
-      this.unrenderBarSig();
-    }
-    if (this.barElement.bar.masterBar.repeatStatus !== BarRepeatStatus.None) {
-      this.renderBarRepeat();
-    } else {
-      this.unrenderBarRepeat();
-    }
-    this.renderBarTempoImage();
-    this.renderBarTempoText();
-    this.renderBarBeamSegments();
-    this.renderTuplets();
-
     const activeRenderers: ElementRenderer[] = [];
 
-    // Time sig and/or repeat start => render gap at the start
-    if (
-      this.barElement.beatElements.length !== 0 &&
-      this.barElement.beatElements[0].rect.x !== 0 &&
-      this.barElement.beatElements[0].selected
-    ) {
-      this.renderSelectionStartGap();
-    } else {
-      this.unrenderSelectionStartGap();
-    }
+    this.renderBarStaffLines();
+    this.renderBarBorderLines();
+    this.renderBarSig();
+    this.renderRepeats();
+    activeRenderers.push(...this.renderBarBeamSegments());
+    activeRenderers.push(...this.renderTuplets());
 
-    // Time sig and/or repeat start => render gap at the start
-    if (
-      this.barElement.bar.masterBar.repeatStatus === BarRepeatStatus.End &&
-      this.barElement.beatElements[this.barElement.beatElements.length - 1]
-        .selected
-    ) {
-      this.renderSelectionEndGap();
-    } else {
-      this.unrenderSelectionEndGap();
-    }
+    // // Time sig and/or repeat start => render gap at the start
+    // if (this.barElement.startGap.width > 0) {
+    //   this.renderSelectionStartGap();
+    // } else {
+    //   this.unrenderSelectionStartGap();
+    // }
+
+    // // Time sig and/or repeat start => render gap at the start
+    // if (
+    //   this.barElement.bar.masterBar.repeatStatus === BarRepeatStatus.End &&
+    //   this.barElement.beatElements[this.barElement.beatElements.length - 1]
+    //     .selected
+    // ) {
+    //   this.renderSelectionEndGap();
+    // } else {
+    //   this.unrenderSelectionEndGap();
+    // }
 
     // Check if there are any beat element to remove
     const curBeatElementUUIDs = new Set(
@@ -875,9 +530,9 @@ export class SVGBarRenderer implements ElementRenderer {
         beatElement.beat.uuid
       );
       if (renderedBeat === undefined) {
-        const renderer = new SVGBeatRenderer(
+        const renderer = new SVGTabBeatRenderer(
           this.trackController,
-          beatElement,
+          beatElement as TabBeatElement,
           this._assetsPath,
           this._groupSVG
         );
@@ -908,8 +563,7 @@ export class SVGBarRenderer implements ElementRenderer {
     this.unrenderBarStaffLines();
     this.unrenderBarBorderLines();
     this.unrenderBarSig();
-    this.unrenderBarTempoImage();
-    this.unrenderBarTempoText();
+    this.unrenderRepeats();
     this.unrenderBarBeamSegments();
     this.unrenderTuplets();
 
@@ -922,3 +576,116 @@ export class SVGBarRenderer implements ElementRenderer {
     return Array.from(this.beatRenderers.values());
   }
 }
+
+// =============================
+// ==== MAYBE USEFULL LATER ====
+//
+// /**
+//  * Render selection start gap
+//  */
+// private renderSelectionStartGap(): void {
+//   if (this._groupSVG === undefined) {
+//     throw Error("Tried to render selection gap when SVG group undefined");
+//   }
+
+//   const barUUID = this.barElement.bar.uuid;
+//   if (this._selectionStartGapRect === undefined) {
+//     this._selectionStartGapRect = createSVGRect();
+
+//     // Set only-set-once attributes
+//     this._selectionStartGapRect.setAttribute("fill", "gray");
+//     this._selectionStartGapRect.setAttribute("fill-opacity", "0.25");
+//     this._selectionStartGapRect.setAttribute("pointer-events", "none");
+
+//     // Set id
+//     this._selectionStartGapRect.setAttribute("id", `bar-sel-gap-${barUUID}`);
+
+//     // Add element to group SVG element
+//     this._groupSVG.appendChild(this._selectionStartGapRect);
+//   }
+
+//   const startGapGlobal = this.barElement.startGapGlobal;
+//   const x = `${startGapGlobal.x}`;
+//   const y = `${startGapGlobal.y}`;
+//   const width = `${startGapGlobal.width}`;
+//   const tabBeatHeight = startGapGlobal.height;
+//   const sheetBeatHeight =
+//     this.barElement.sheetBeatElements[0]?.rect.height ?? 0;
+//   const height = `${tabBeatHeight + sheetBeatHeight}`;
+//   this._selectionStartGapRect.setAttribute("x", x);
+//   this._selectionStartGapRect.setAttribute("y", y);
+//   this._selectionStartGapRect.setAttribute("width", width);
+//   this._selectionStartGapRect.setAttribute("height", height);
+// }
+
+// /**
+//  * Unrender selection start gap
+//  */
+// private unrenderSelectionStartGap(): void {
+//   if (this._groupSVG === undefined) {
+//     throw Error("Tried to unrender selection gap when SVG group undefined");
+//   }
+
+//   if (this._selectionStartGapRect === undefined) {
+//     return;
+//   }
+
+//   this._groupSVG.removeChild(this._selectionStartGapRect);
+//   this._selectionStartGapRect = undefined;
+// }
+
+// /**
+//  * Render selection end gap
+//  */
+// private renderSelectionEndGap(): void {
+//   if (this._groupSVG === undefined) {
+//     throw Error("Tried to render selection gap when SVG group undefined");
+//   }
+
+//   const barUUID = this.barElement.bar.uuid;
+//   if (this._barSelectionEndGapRect === undefined) {
+//     this._barSelectionEndGapRect = createSVGRect();
+
+//     // Set only-set-once attributes
+//     this._barSelectionEndGapRect.setAttribute("fill", "gray");
+//     this._barSelectionEndGapRect.setAttribute("fill-opacity", "0.25");
+//     this._barSelectionEndGapRect.setAttribute("pointer-events", "none");
+
+//     // Set id
+//     this._barSelectionEndGapRect.setAttribute("id", `bar-sel-gap-${barUUID}`);
+
+//     // Add element to group SVG element
+//     this._groupSVG.appendChild(this._barSelectionEndGapRect);
+//   }
+
+//   const globalCoords = this.barElement.staffLineElement.globalCoords;
+//   const x = `${globalCoords.x + this.barElement.endGap.x}`;
+//   const y = `${globalCoords.y + this.barElement.endGap.y}`;
+//   const width = `${this.barElement.repeatRect.width}`;
+//   const tabBeatHeight = this.barElement.tabBeatElements[0]?.rect.height ?? 0;
+//   const sheetBeatHeight =
+//     this.barElement.sheetBeatElements[0]?.rect.height ?? 0;
+//   const height = `${tabBeatHeight + sheetBeatHeight}`;
+//   this._barSelectionEndGapRect.setAttribute("x", x);
+//   this._barSelectionEndGapRect.setAttribute("y", y);
+//   this._barSelectionEndGapRect.setAttribute("width", width);
+//   this._barSelectionEndGapRect.setAttribute("height", height);
+// }
+
+// /**
+//  * Unrender selection end gap
+//  */
+// private unrenderSelectionEndGap(): void {
+//   if (this._groupSVG === undefined) {
+//     throw Error("Tried to unrender selection gap when SVG group undefined");
+//   }
+
+//   if (this._barSelectionEndGapRect === undefined) {
+//     return;
+//   }
+
+//   this._groupSVG.removeChild(this._barSelectionEndGapRect);
+//   this._barSelectionEndGapRect = undefined;
+// }
+// ==== MAYBE USEFULL LATER ====
+// =============================

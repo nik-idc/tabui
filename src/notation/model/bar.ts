@@ -67,7 +67,8 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
       // this.beats = [new Beat<I>(this, this.trackContext, NoteDuration.Quarter)];
 
       // TODO: Figure out behavior for when passed beats is empty
-      this.beats = [new Beat<I>(this, this.trackContext)];
+      // this.beats = [new Beat<I>(this, this.trackContext)];
+      this.beats = [];
     } else {
       this.beats = beats;
     }
@@ -81,8 +82,15 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
 
   /**
    * Computes beaming for all the beats inside of this bar
+   * AI SLOP AI SLOP I HAVE NO IDEA HOW THIS WORKS AI SLOP AI SLOP
+   * NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
    */
   public computeBeaming(): void {
+    // NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
+    // NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
+    // NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
+    // NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
+
     // 1. Reset all beaming information on the actual beats.
     for (const beat of this.beats) {
       beat.beamGroupId = null;
@@ -157,7 +165,8 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     let remainingDuration = currentBeamGroup ? currentBeamGroup / factor : 0;
 
     for (const beat of pretendBeats) {
-      if (beat.fullDuration > NoteDuration.Eighth || beat.isEmpty()) {
+      // if (beat.fullDuration > NoteDuration.Eighth || beat.isEmpty()) {
+      if (beat.fullDuration > NoteDuration.Eighth) {
         currentBeamGroupId++;
         beamingGroupIndex = (beamingGroupIndex + 1) % beamingGroups.length;
         currentBeamGroup = beamingGroups[beamingGroupIndex];
@@ -188,7 +197,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     // 4. Map the beaming information from the pretend beats back to the real beats.
     for (const realBeat of this.beats) {
       const pretendBeat = realToPretendMap.get(realBeat);
-      if (pretendBeat) {
+      if (pretendBeat && realBeat.baseDuration <= NoteDuration.Eighth) {
         realBeat.beamGroupId = pretendBeat.beamGroupId;
         realBeat.lastInBeamGroup = pretendBeat.lastInBeamGroup;
       }
@@ -205,7 +214,16 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     );
 
     for (const tupletGroup of this._tupletGroups) {
-      if (!tupletGroup.complete) continue;
+      if (!tupletGroup.complete) {
+        continue;
+      }
+
+      const tupletIsUnbeamable = tupletGroup.beats.every(
+        (b) => b.actualBeat.baseDuration > NoteDuration.Eighth
+      );
+      if (tupletIsUnbeamable) {
+        continue;
+      }
 
       const realBeats = tupletGroup.beats.map((tb) => tb.actualBeat);
       const firstBeat = realBeats[0];
@@ -227,7 +245,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
       }
 
       if (needsNewGroup) {
-        maxGroupId++;
+        // maxGroupId++; // I have no idea why this is here
         for (const realBeat of realBeats) {
           realBeat.beamGroupId = maxGroupId;
         }
@@ -312,7 +330,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
           tupletCount: beat.tupletSettings.tupletCount,
         };
       }
-      if (tupletSettingsEqual(beat, prevBeat)) {
+      if (tupletSettingsEqual(beat.tupletSettings, prevBeat.tupletSettings)) {
         // If settings are equal, *check if current beat fits*
         // and either push to existing tuplet group or create a new one
         // with the same settings
@@ -466,7 +484,13 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    * @param bar Bar to modify
    */
   public appendBeat(beat?: Beat<I>): BeatArrayOperationOutput<I> {
-    return this.insertEmptyBeat(this.beats.length);
+    if (beat === undefined) {
+      return this.insertEmptyBeat(this.beats.length);
+    } else {
+      const index =
+        this.beats.length === 0 ? this.beats.length : this.beats.length - 1;
+      return this.insertBeat(index, beat);
+    }
   }
 
   /**

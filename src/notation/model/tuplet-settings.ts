@@ -22,12 +22,22 @@ export function isTupletSettings(
   );
 }
 
-export function tupletSettingsEqual<I extends MusicInstrument>(
+export function beatsTupletSettingsEqual<I extends MusicInstrument>(
   beat1: Beat<I>,
   beat2: Beat<I>
 ): boolean {
   return (
     beat1.tupletSettings?.normalCount === beat2.tupletSettings?.normalCount &&
     beat1.tupletSettings?.tupletCount === beat2.tupletSettings?.tupletCount
+  );
+}
+
+export function tupletSettingsEqual(
+  settings1: TupletSettings | null,
+  settings2: TupletSettings | null
+): boolean {
+  return (
+    settings1?.normalCount === settings2?.normalCount &&
+    settings1?.tupletCount === settings2?.tupletCount
   );
 }

@@ -1,7 +1,8 @@
-import { SVGBeatRenderer, SVGGuitarNoteRenderer } from "@/notation";
+import { SVGGuitarNoteRenderer } from "@/notation";
 import { ElementRenderer } from "@/notation/render/element-renderer";
 import { EditorKeyboardCallbacks } from "./editor-keyboard-callbacks";
 import { EditorMouseCallbacks } from "./editor-mouse-callbacks";
+import { SVGTabBeatRenderer } from "@/notation/render/svg/svg-tab-beat-renderer";
 
 export class EditorCallbackBinder {
   private _globalMouseEventsBound = false;
@@ -25,7 +26,7 @@ export class EditorCallbackBinder {
     renderers: ElementRenderer[]
   ): void {
     for (const renderer of renderers) {
-      if (renderer instanceof SVGBeatRenderer) {
+      if (renderer instanceof SVGTabBeatRenderer) {
         renderer.attachMouseEvent(
           "mousedown",
           mouseCallbacks.onBeatMouseDown.bind(mouseCallbacks)

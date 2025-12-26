@@ -1,9 +1,7 @@
 import { StaffLineElement, TrackController } from "@/notation/controller";
-import { Point } from "@/shared";
-import { SVGBarRenderer } from "./svg-bar-renderer";
-import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { ElementRenderer } from "../element-renderer";
-import { SVGNoteRenderer } from "./svg-note-renderer";
+import { SVGStyleLineRenderer } from "./svg-style-line-renderer";
+import { createSVGG } from "@/shared";
 
 /**
  * Class for rendering a staff line element using SVG
@@ -17,66 +15,75 @@ export class SVGStaffLineRenderer implements ElementRenderer {
   /** Path to any assets */
   private _assetsPath: string;
   /** Parent SVG group element */
-  private _groupSVG: SVGSVGElement;
+  private _parentElement: SVGGElement;
 
-  /** Rendered bar elements map */
-  private _renderedBarElements: Map<number, SVGBarRenderer>;
+  /** Rendered style lines map: style line UUID -> style line renderer */
+  private _renderedStyleLines: Map<number, SVGStyleLineRenderer>;
+
+  /** Parent SVG group element */
+  private _groupSVG?: SVGGElement;
 
   /**
    * Class for rendering a staff line element using SVG
    * @param trackController Track controller
    * @param staffLineElement Staff line element
    * @param assetsPath Path to assets
-   * @param svgRoot SVG root element
+   * @param parentElement SVG parent element
    */
   constructor(
     trackController: TrackController,
     staffLineElement: StaffLineElement,
     assetsPath: string,
-    svgRoot: SVGSVGElement
+    parentElement: SVGGElement
   ) {
     this.trackController = trackController;
     this.staffLineElement = staffLineElement;
 
     this._assetsPath = assetsPath;
-    this._groupSVG = svgRoot;
+    this._parentElement = parentElement;
 
-    this._renderedBarElements = new Map();
+    this._renderedStyleLines = new Map();
   }
 
   /**
    * Render staff line element
    */
   public render(): ElementRenderer[] {
-    // Check if there are any bar element to remove
-    const curBarElementUUIDs = new Set(
-      this.staffLineElement.barElements.map((b) => b.bar.uuid)
-    );
-    for (const [uuid, renderer] of this._renderedBarElements) {
-      if (!curBarElementUUIDs.has(uuid)) {
+    if (this._groupSVG === undefined) {
+      const gapLineUUID = this.staffLineElement.uuid;
+      this._groupSVG = createSVGG();
+      this._groupSVG.setAttribute("id", `staff-line-${gapLineUUID}`);
+      this._parentElement.appendChild(this._groupSVG);
+    }
+
+    const styleLinesArr = this.staffLineElement.styleLinesAsArray;
+
+    // Check if there are any style lines to remove
+    const curStyleLinesUUIDs = new Set(styleLinesArr.map((sl) => sl.uuid));
+    for (const [uuid, renderer] of this._renderedStyleLines) {
+      if (!curStyleLinesUUIDs.has(uuid)) {
         renderer.unrender();
-        this._renderedBarElements.delete(uuid);
+        this._renderedStyleLines.delete(uuid);
       }
     }
 
     const activeRenderers: ElementRenderer[] = [];
-
     // Add & render new bar element AND re-render existing bar element
-    for (const barElement of this.staffLineElement.barElements) {
-      const renderedBar = this._renderedBarElements.get(barElement.bar.uuid);
-      if (renderedBar === undefined) {
-        const renderer = new SVGBarRenderer(
+    for (const styleLine of styleLinesArr) {
+      const renderedLine = this._renderedStyleLines.get(styleLine.uuid);
+      if (renderedLine === undefined) {
+        const renderer = new SVGStyleLineRenderer(
           this.trackController,
-          barElement,
+          styleLine,
           this._assetsPath,
           this._groupSVG
         );
         activeRenderers.push(renderer);
         activeRenderers.push(...renderer.render());
-        this._renderedBarElements.set(barElement.bar.uuid, renderer);
+        this._renderedStyleLines.set(styleLine.uuid, renderer);
       } else {
-        activeRenderers.push(renderedBar);
-        activeRenderers.push(...renderedBar.render());
+        activeRenderers.push(renderedLine);
+        activeRenderers.push(...renderedLine.render());
       }
     }
 
@@ -87,14 +94,14 @@ export class SVGStaffLineRenderer implements ElementRenderer {
    * Unrender all staff line element's DOM element
    */
   public unrender(): void {
-    for (const [uuid, renderer] of this._renderedBarElements) {
+    for (const [uuid, renderer] of this._renderedStyleLines) {
       renderer.unrender();
-      this._renderedBarElements.delete(uuid);
+      this._renderedStyleLines.delete(uuid);
     }
   }
 
-  /** Bar renderers getter */
-  public get barRenderers(): SVGBarRenderer[] {
-    return this._renderedBarElements.values().toArray();
+  /** Style lines renderers getter */
+  public get styleLinesRenderers(): SVGStyleLineRenderer[] {
+    return this._renderedStyleLines.values().toArray();
   }
 }

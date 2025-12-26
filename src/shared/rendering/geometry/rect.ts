@@ -60,70 +60,57 @@ export class Rect {
     this.height = 0;
   }
 
-  /**
-   * Returns the leftmost X coordinate
-   */
+  /** Returns the leftmost X coordinate */
   public get left(): number {
     return this.x;
   }
 
-  /**
-   * Returns the rightmost X coordinate
-   */
+  /** Returns the rightmost X coordinate */
   public get right(): number {
     return this.x + this.width;
   }
 
-  /**
-   * Returns the top Y coordinate
-   */
+  /** Returns the top Y coordinate */
   public get top(): number {
     return this.y;
   }
 
-  /**
-   * Returns the bottom Y coordinate
-   */
+  /** Returns the bottom Y coordinate */
   public get bottom(): number {
     return this.y + this.height;
   }
 
+  /** Middle X coordinate */
   public get middleX(): number {
     return this.x + this.width / 2;
   }
 
+  /** Middle Y coordinate */
   public get middleY(): number {
     return this.y + this.height / 2;
   }
 
-  /**
-   * Returns a point with left top corner coords
-   */
+  /** Returns a point with left top corner coords */
   public get leftTop(): Point {
     return new Point(this.x, this.y);
   }
 
-  /**
-   * Returns a point with left bottom corner coords
-   */
+  /** Returns a point with left bottom corner coords */
   public get leftBottom(): Point {
     return new Point(this.x, this.y + this.height);
   }
 
-  /**
-   * Returns a point with right top corner coords
-   */
+  /** Returns a point with right top corner coords */
   public get rightTop(): Point {
     return new Point(this.x + this.width, this.y);
   }
 
-  /**
-   * Returns a point with right bottom corner coords
-   */
+  /** Returns a point with right bottom corner coords */
   public get rightBottom(): Point {
     return new Point(this.x + this.width, this.y + this.height);
   }
 
+  /** Returns the middle point */
   public get middle(): Point {
     return new Point(this.middleX, this.middleY);
   }

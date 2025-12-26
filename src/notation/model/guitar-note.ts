@@ -46,7 +46,7 @@ export class GuitarNote implements Note<Guitar> {
   /** String number */
   private _stringNum: number = 1;
   /**  Fret number */
-  private _fret: number | null;
+  private _fret: number | null = null;
   /** Techniques applied to the note */
   private _techniques: GuitarTechnique[];
 
@@ -70,7 +70,7 @@ export class GuitarNote implements Note<Guitar> {
     this.trackContext = trackContext;
 
     this._stringNum = stringNum;
-    this._fret = fret;
+    this.fret = fret;
     this._techniques = techniques;
 
     this.calcNoteFromFret();

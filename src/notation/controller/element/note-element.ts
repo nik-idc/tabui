@@ -1,7 +1,7 @@
 import { Note } from "@/notation/model";
-import { BeatNotesElement } from "./beat-notes-element";
 import { Point, Rect } from "@/shared";
 import { GuitarTechniqueElement } from "./technique";
+import { BeatElement } from "./beat-element";
 
 /**
  * Interface describing the basic visually relevant
@@ -10,11 +10,15 @@ import { GuitarTechniqueElement } from "./technique";
 export interface NoteElement {
   readonly uuid: number;
   readonly note: Note;
-  readonly beatNotesElement: BeatNotesElement;
-  readonly rect: Rect;
-  readonly guitarTechniqueElements: GuitarTechniqueElement[];
+  readonly beatElement: BeatElement;
 
-  calc(): void;
+  build(): void;
+  measure(): void;
+  layout(): void;
+
   scaleHorBy(scale: number): void;
+
+  get rect(): Rect;
+  get guitarTechniqueElements(): GuitarTechniqueElement[];
   get globalCoords(): Point;
 }

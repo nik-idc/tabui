@@ -8,6 +8,7 @@ import {
   TechniqueType,
   Track,
   TupletSettings,
+  tupletSettingsEqual,
 } from "..";
 import { Bar, BeatArrayOperationOutput } from "../bar";
 import { MasterBar, MasterBarData } from "../master-bar";
@@ -219,7 +220,7 @@ export class ScoreEditor {
     newDuration: NoteDuration
   ) {
     beat.baseDuration = newDuration;
-    beat.bar.computeBeaming();
+    beat.bar.computeBarTupletGroups();
   }
 
   /**
@@ -274,13 +275,18 @@ export class ScoreEditor {
     tupletSettings: TupletSettings | null
   ): void {
     for (const beat of beats) {
-      beat.tupletSettings =
-        tupletSettings !== null
-          ? {
-              normalCount: tupletSettings.normalCount,
-              tupletCount: tupletSettings.tupletCount,
-            }
-          : null;
+      if (tupletSettingsEqual(beat.tupletSettings, tupletSettings)) {
+        beat.tupletSettings = null;
+      } else {
+        beat.tupletSettings =
+          tupletSettings !== null
+            ? {
+                normalCount: tupletSettings.normalCount,
+                tupletCount: tupletSettings.tupletCount,
+              }
+            : null;
+      }
+
       beat.bar.computeBarTupletGroups();
     }
   }

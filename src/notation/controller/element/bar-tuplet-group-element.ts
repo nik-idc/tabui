@@ -3,6 +3,7 @@ import { Rect, Point, randomInt } from "@/shared";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "./bar-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
+import { TabBeatElement } from "./tab-beat-element";
 
 /**
  * Class that handles geometry & visually relevant info of a bar tuplet group
@@ -15,21 +16,23 @@ export class BarTupletGroupElement {
   /** Parent bar element */
   readonly barElement: BarElement;
   /** Array of beat element included in this tuplet group */
-  readonly beatElements: BeatElement[];
+  readonly beatElements: TabBeatElement[];
 
   /** Tuplet element's outer rectangle */
   private _rect: Rect;
+  /** Individual tuplet signs if the tuplet group is incomplete */
+  private _incompleteRects?: Rect[];
 
   /**
    * Class that handles geometry & visually relevant info of a bar tuplet group
    * @param tupletGroup Tuplet group
    * @param barElement Bar element
-   * @param beatElements Beat element
+   * @param beatElements Beat elements
    */
   constructor(
     tupletGroup: BarTupletGroup,
     barElement: BarElement,
-    beatElements: BeatElement[]
+    beatElements: TabBeatElement[]
   ) {
     this.uuid = randomInt();
     this.tupletGroup = tupletGroup;
@@ -38,33 +41,94 @@ export class BarTupletGroupElement {
 
     this._rect = new Rect();
 
-    this.calc();
+    this.build();
   }
 
   /**
-   * Calculates the bar tuplet group element
+   * Initializes the incomplete rects to an array or undefined,
+   * depending if the tuplet group is complete
    */
-  public calc(): void {
-    // This may be potentially wrong
-    this._rect = new Rect(
-      this.beatElements[0].rect.x,
-      this.beatElements[0].rect.y,
-      0,
-      0
-    );
+  public build(): void {
+    if (!this.tupletGroup.complete) {
+      this._incompleteRects = [];
+      for (const _ of this.beatElements) {
+        this._incompleteRects.push(new Rect());
+      }
+    } else {
+      this._incompleteRects = undefined;
+    }
+  }
 
-    // First calculate the total width of all tuplet's beats
-    this._rect.height = TabLayoutDimensions.TUPLET_RECT_HEIGHT;
+  /**
+   * Calculates the dimensions of this bar tuplet group element
+   */
+  public measure(): void {
     let sumWidth = 0;
     for (const beatElement of this.beatElements) {
       sumWidth += beatElement.rect.width;
     }
-    this._rect.width = sumWidth;
 
-    // Adjust the coords and dimensions for better UI/UX
-    this._rect.x += this.beatElements[0].rect.width / 2;
-    this._rect.width -=
-      this.beatElements[this.beatElements.length - 1].rect.width * (3 / 4);
+    // // Adjust the coords and dimensions for better UI/UX
+    // sumWidth -=
+    //   this.beatElements[this.beatElements.length - 1].rect.width * (3 / 4);
+
+    const height = TabLayoutDimensions.TUPLET_RECT_HEIGHT;
+    this._rect.setDimensions(sumWidth, height);
+
+    if (this._incompleteRects === undefined) {
+      return;
+    }
+    for (let i = 0; i < this.beatElements.length; i++) {
+      this._incompleteRects[i].setDimensions(
+        this.beatElements[i].rect.width,
+        height
+      );
+    }
+  }
+
+  /**
+   * Calculate the coordinates of this bar tuplet group element
+   */
+  public layuot(): void {
+    const x = this.beatElements[0].rect.x;
+    const y =
+      this.barElement.rect.height - TabLayoutDimensions.TUPLET_RECT_HEIGHT;
+
+    this._rect.setCoords(x, y);
+
+    if (this._incompleteRects === undefined) {
+      return;
+    }
+    for (let i = 0; i < this.beatElements.length; i++) {
+      const x = this._incompleteRects[i - 1]?.right ?? 0;
+      const y = this._rect.y;
+
+      this._incompleteRects[i].setCoords(x, y);
+    }
+  }
+
+  /**
+   * Returns tuplet string. A single number if complete, full otherwise
+   * @param beatIndex Index of the beat element
+   */
+  public getTupletString(beatIndex: number): string {
+    if (this.tupletGroup.complete) {
+      return this.tupletGroup.isStandard
+        ? `${this.tupletGroup.normalCount}`
+        : `${this.tupletGroup.normalCount}:${this.tupletGroup.tupletCount}`;
+    }
+
+    if (beatIndex < 0 || beatIndex >= this.beatElements.length) {
+      throw Error(`Get tuplet string invalid index: ${beatIndex}`);
+    }
+
+    const beatElementTuplet = this.beatElements[beatIndex].beat.tupletSettings;
+    if (beatElementTuplet === null) {
+      throw Error("Non-tuplet beat inside tuplet element");
+    }
+    return this.tupletGroup.isStandard
+      ? `${beatElementTuplet.normalCount}`
+      : `${beatElementTuplet.normalCount}:${beatElementTuplet.tupletCount}`;
   }
 
   /**
@@ -74,11 +138,118 @@ export class BarTupletGroupElement {
   public scaleHorBy(scale: number): void {
     this._rect.x *= scale;
     this._rect.width *= scale;
+
+    if (this._incompleteRects === undefined) {
+      return;
+    }
+    for (const incompleteRect of this._incompleteRects) {
+      incompleteRect.x *= scale;
+      incompleteRect.width *= scale;
+    }
   }
 
   /** Tuplet element's outer rectangle */
   public get rect(): Rect {
     return this._rect;
+  }
+
+  /** Tuplet element's incomplete rectangles (defined if tuplet group is complete) */
+  public get incompleteRects(): Rect[] | undefined {
+    return this._incompleteRects;
+  }
+
+  /** Tuplet element's incomplete rectangles (defined if tuplet group is complete) in global coords */
+  public get incompleteRectsGlobal(): Rect[] | undefined {
+    if (this._incompleteRects === undefined) {
+      return this._incompleteRects;
+    }
+
+    const result = [];
+    for (const rect of this._incompleteRects) {
+      result.push(
+        new Rect(
+          this.globalCoords.x + rect.x,
+          this.globalCoords.y + rect.y,
+          rect.width,
+          rect.height
+        )
+      );
+    }
+
+    return result;
+  }
+
+  /** Global coords of incomplete texts */
+  public get incompleteTextsCoordsGlobal(): Point[] | undefined {
+    if (this._incompleteRects === undefined) {
+      return this._incompleteRects;
+    }
+
+    const result = [];
+    for (const rect of this._incompleteRects) {
+      result.push(
+        new Point(
+          this.globalCoords.x + rect.middleX,
+          this.globalCoords.y +
+            rect.height / 2 +
+            TabLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        )
+      );
+    }
+
+    return result;
+  }
+
+  /** Text for a complete tuplet */
+  public get completeText(): string {
+    return this.tupletGroup.isStandard
+      ? `${this.tupletGroup.normalCount}`
+      : `${this.tupletGroup.normalCount}:${this.tupletGroup.tupletCount}`;
+  }
+
+  /** Complete tuplet group text coordinates (or undefined if tuplet group incomplete) */
+  public get comleteTextCoords(): Point | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    return this._rect.middle;
+  }
+
+  /** Complete tuplet group text coordinates (or undefined if tuplet group incomplete) */
+  public get comleteTextCoordsGlobal(): Point | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    return new Point(
+      this.globalCoords.x + this._rect.width / 2,
+      this.globalCoords.y +
+        this._rect.height / 2 +
+        TabLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+    );
+  }
+
+  /** Rect in global coords for the SVG path (if the tuplet is complete) */
+  public get completePathRectGlobal(): Rect | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    const firstBeatElement = this.beatElements[0];
+    const lastBeatElement = this.beatElements[this.beatElements.length - 1];
+
+    const width =
+      this._rect.width -
+      lastBeatElement.rect.width / 2 -
+      firstBeatElement.rect.width / 2;
+    const height = TabLayoutDimensions.TUPLET_PATH_HEIGHT;
+    return new Rect(
+      this.globalCoords.x + firstBeatElement.rect.width / 2,
+      this.globalCoords.y + height, // '- height' is due to SVG path calculation
+      width,
+      height
+    );
   }
 
   /** Global coords of the bar tuplet group element */

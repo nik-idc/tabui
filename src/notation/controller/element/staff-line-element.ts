@@ -1,8 +1,32 @@
-import { Bar, GuitarTechniqueType, Staff } from "@/notation/model";
+import { Bar, Staff } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { BarElement } from "./bar-element";
-import { TabLayoutDimensions } from "../tab-controller-dim";
 import { TrackLineElement } from "./track-line-element";
+import { NotationStyleLineElement } from "./notation-style-line-element";
+
+/**
+ * Supported notation styles
+ */
+export enum NotationStyle {
+  Classic,
+  Tablature,
+}
+
+/**
+ * Data needed to build a staff line bar:
+ * Width to match & the bar itself
+ */
+export type StaffLineBarData = {
+  largestBarWidth: number;
+  bar: Bar;
+};
+
+/**
+ * Data needed to build a staff line:
+ * Array of objects: Largest width for the bar at the specified index
+ */
+export type StaffLineData = StaffLineBarData[];
+
+// TODO: Implement showing selection somehow
 
 /**
  * Class that handles all geometry & visually relevant info of a staff line
@@ -14,225 +38,155 @@ export class StaffLineElement {
   readonly staff: Staff;
   /** Parent track line element */
   readonly trackLineElement: TrackLineElement;
+  /** Data necessary to build a staff line */
+  readonly staffLineData: StaffLineData;
 
-  /** Bar element on this line */
-  private _barElements: BarElement[];
+  /** Notation style line elements of this staff line */
+  private _notationStyleLineElements: Record<
+    NotationStyle,
+    NotationStyleLineElement | null
+  >;
+
   /** Line encapsulating rectangle */
   private _rect: Rect;
-  /** Techniques encapsulating rectangle (horizontal, as wide as 'rect') */
-  private _techniqueLabelsRect: Rect;
 
   /**
    * Class that handles all geometry & visually relevant info of a staff line
    * @param staff Staff
    * @param trackLineElement Parent track line element
+   * @param staffLineData Data necessary to build a staff line
    */
-  constructor(staff: Staff, trackLineElement: TrackLineElement) {
+  constructor(
+    staff: Staff,
+    trackLineElement: TrackLineElement,
+    staffLineData: StaffLineData
+  ) {
     this.uuid = randomInt();
     this.staff = staff;
     this.trackLineElement = trackLineElement;
+    this.staffLineData = staffLineData;
+
+    this._notationStyleLineElements = {
+      [NotationStyle.Classic]: null,
+      [NotationStyle.Tablature]: null,
+    };
 
     this._rect = new Rect();
-    this._techniqueLabelsRect = new Rect();
-    this._barElements = [];
 
-    this.calc();
+    this.build();
   }
 
   /**
-   * Justifies element by scaling all their widths
+   * Fills the notation style lines array
    */
-  public justifyElements(): void {
-    // Calc width of empty space
-    const gapWidth =
-      TabLayoutDimensions.WIDTH -
-      this._barElements[this._barElements.length - 1].rect.rightTop.x;
+  public build(): void {
+    this._notationStyleLineElements[NotationStyle.Classic] = this.staff
+      .showClassicNotation
+      ? new NotationStyleLineElement(this, NotationStyle.Classic)
+      : null;
 
-    if (gapWidth === 0) {
-      return;
+    this._notationStyleLineElements[NotationStyle.Tablature] = this.staff
+      .showTablature
+      ? new NotationStyleLineElement(this, NotationStyle.Tablature)
+      : null;
+  }
+
+  /**
+   * Calculates the dimensions of all sub elements of this staff line element
+   */
+  public measure(): void {
+    const classicNot = this._notationStyleLineElements[NotationStyle.Classic];
+    const tablatureNot =
+      this._notationStyleLineElements[NotationStyle.Tablature];
+    if (classicNot === null && tablatureNot === null) {
+      throw Error("Both classic & tablature notations null at measure");
     }
 
-    // Calc sum width of all bar element
-    let sumWidth =
-      this._barElements[this._barElements.length - 1].rect.rightTop.x;
+    this._notationStyleLineElements[NotationStyle.Classic]?.measure();
+    tablatureNot?.measure();
 
-    // Go through each bar element and increase their
-    // width according to how their current width relates
-    // to the width of the empty space
-    // const scale = TabLayoutDimensions.WIDTH / this._rect.width;
-    const scale = TabLayoutDimensions.WIDTH / sumWidth;
-    this._techniqueLabelsRect.width *= scale;
-    for (const barElement of this._barElements) {
-      barElement.scaleHorBy(scale);
+    let width = 0;
+    if (classicNot !== null) {
+      width = classicNot.rect.width;
+    } else if (tablatureNot !== null) {
+      width = tablatureNot.rect.width;
     }
+    const height =
+      (classicNot?.rect.height ?? 0) + (tablatureNot?.rect.height ?? 0);
+    this._rect.setDimensions(width, height);
   }
 
   /**
-   * Changes the width of the encapsulating and techniques rectangles
-   * @param dWidth Width by which to change
+   * Calculates layout for all child elements, i.e. their X and Y coordinates
    */
-  private changeWidth(dWidth: number): void {
-    this._rect.width += dWidth;
-    this._techniqueLabelsRect.width += dWidth;
-  }
-
-  /**
-   * Checks if bar fits
-   * @param masterBarIndex Index of the master bar
-   * @returns True if fits, false otherwise
-   */
-  public masterBarFits(masterBarIndex: number): boolean {
-    const barElement = new BarElement(this.staff.bars[masterBarIndex], this);
-    return this.barElementFits(barElement);
-  }
-
-  /**
-   * Checks if bar element fits
-   * @param barElement Bar element
-   * @returns True if fits, false otherwise
-   */
-  private barElementFits(barElement: BarElement): boolean {
-    return (
-      this._rect.rightTop.x + barElement.rect.width <= TabLayoutDimensions.WIDTH
-    );
-  }
-
-  /**
-   * Add master bar to the line
-   * @param masterBarIndex Index of the master bar to add
-   */
-  public addBar(masterBarIndex: number): boolean {
-    const barElement = new BarElement(this.staff.bars[masterBarIndex], this);
-    if (!this.masterBarFits(masterBarIndex)) {
-      return false;
+  public layout(): void {
+    const classicNot = this._notationStyleLineElements[NotationStyle.Classic];
+    const tablatureNot =
+      this._notationStyleLineElements[NotationStyle.Tablature];
+    if (classicNot === null && tablatureNot === null) {
+      throw Error("Both classic & tablature notations null at layout");
     }
 
-    if (!this.barElementFits(barElement)) {
-      this.justifyElements();
-      this.calcTechniqueGap();
-      return false;
+    const prevStaffLine = this.trackLineElement.getPrevStaffLineElement(this);
+    const y =
+      prevStaffLine?.rect.bottom ??
+      this.trackLineElement.trackLineInfoElement?.rect.bottom ??
+      0;
+    this._rect.setCoords(0, y);
+
+    this._notationStyleLineElements[NotationStyle.Classic]?.layout();
+    this._notationStyleLineElements[NotationStyle.Tablature]?.layout();
+
+    // this.justifyStyleLines();
+  }
+
+  /**
+   * Justifies all the present lines
+   */
+  public justifyStyleLines(): void {
+    const classicNot = this._notationStyleLineElements[NotationStyle.Classic];
+    const tablatureNot =
+      this._notationStyleLineElements[NotationStyle.Tablature];
+    if (classicNot === null && tablatureNot === null) {
+      throw Error("Both classic & tablature notations null at layout");
     }
 
-    this._barElements.push(barElement);
-    this.changeWidth(barElement.rect.width);
-    return true;
+    this._notationStyleLineElements[NotationStyle.Classic]?.justifyElements();
+    this._notationStyleLineElements[NotationStyle.Tablature]?.justifyElements();
+
+    let width = 0;
+    if (classicNot !== null) {
+      width = classicNot.rect.width;
+    } else if (tablatureNot !== null) {
+      width = tablatureNot.rect.width;
+    }
+    this._rect.width = width;
   }
 
-  /**
-   * Calculates technique label gap
-   */
-  public calcTechniqueGap(): void {
-    // Reset technique label gap height to 0
-    this._techniqueLabelsRect.height = 0;
-    this._rect.height = TabLayoutDimensions.getStaffLineMinHeight(
-      this.staff.trackContext.instrument
-    );
+  /** Style line elements record object */
+  public get notationStyleLineElements(): Record<
+    NotationStyle,
+    NotationStyleLineElement | null
+  > {
+    return this._notationStyleLineElements;
+  }
 
-    // Figure out the tallest bar
-    let tallestBar = 0;
-    for (const barElement of this._barElements) {
-      barElement.calcTechniqueGap();
-      if (barElement.rect.height > tallestBar) {
-        tallestBar = barElement.rect.height;
-      }
+  /** Style line elements as array */
+  public get styleLinesAsArray(): NotationStyleLineElement[] {
+    const result = [];
+    if (this._notationStyleLineElements[NotationStyle.Classic] !== null) {
+      result.push(this._notationStyleLineElements[NotationStyle.Classic]);
+    }
+    if (this._notationStyleLineElements[NotationStyle.Tablature] !== null) {
+      result.push(this._notationStyleLineElements[NotationStyle.Tablature]);
     }
 
-    // Figure out & apply new gap height
-    const gapHeight = tallestBar - this._rect.height;
-    this._rect.height += gapHeight;
-    this._techniqueLabelsRect.height = gapHeight;
-
-    for (const barElement of this._barElements) {
-      barElement.setTechniqueGap(gapHeight);
-    }
-  }
-
-  /**
-   * Calc staff line element
-   */
-  public calc(): void {
-    const prevStaffLineElement =
-      this.trackLineElement.getPrevStaffLineElement(this);
-    const x = prevStaffLineElement?._rect.x ?? 0;
-    const y = prevStaffLineElement?._rect.y ?? 0;
-
-    this._rect = new Rect(
-      x,
-      y,
-      0,
-      TabLayoutDimensions.getStaffLineMinHeight(
-        this.staff.trackContext.instrument
-      )
-    );
-    this._techniqueLabelsRect = new Rect(x, y, 0, 0);
-
-    // this._barElements = [];
-    // for (const bar of this.staff.bars) {
-    //   const barElement = new BarElement(bar, this);
-    //   this._barElements.push(barElement);
-    // }
-
-    this.calcTechniqueGap();
-  }
-
-  /**
-   * Removes bar element
-   * @param barElementId Index of the bar element in this line
-   */
-  public removeBarElement(barElementId: number): void {
-    const barElement = this._barElements[barElementId];
-
-    barElement.rect.x = 0;
-    barElement.rect.y = 0;
-    this._barElements.splice(barElementId, 1);
-
-    this.changeWidth(-barElement.rect.width);
-  }
-
-  /**
-   * Gets next bar element
-   * @param barElement Bar element
-   * @returns Next bar element or null
-   */
-  public getNextBarElement(barElement: BarElement): BarElement | null {
-    const barIndex = this._barElements.indexOf(barElement);
-    const nextBar = this._barElements[barIndex + 1];
-    return nextBar ?? null;
-  }
-
-  /**
-   * Gets prev bar element
-   * @param barElement Bar element
-   * @returns Prev bar element or null
-   */
-  public getPrevBarElement(barElement: BarElement): BarElement | null {
-    const barIndex = this._barElements.indexOf(barElement);
-    const prevBar = this._barElements[barIndex - 1];
-    return prevBar ?? null;
-  }
-
-  /**
-   * Finds bar element by it's bar's UUID
-   * @param barUUID Bar element's bar UUID
-   * @returns Bar element if found, undefined otherwise
-   */
-  public findBarElementByUUID(barUUID: number): BarElement | undefined {
-    return this._barElements.find((be) => be.bar.uuid === barUUID);
-  }
-
-  /** Bar element on this line getter */
-  public get barElements(): BarElement[] {
-    return this._barElements;
+    return result;
   }
 
   /** Line encapsulating rectangle getter */
   public get rect(): Rect {
     return this._rect;
-  }
-
-  /** Techniques encapsulating rectangle getter */
-  public get techniqueLabelsRect(): Rect {
-    return this._techniqueLabelsRect;
   }
 
   /** Global coords of the staff line element (in most cases X will be 0) */
@@ -243,3 +197,71 @@ export class StaffLineElement {
     );
   }
 }
+
+// // ==== MAYBE WILL BE USEFULL LATER ====
+// /**
+//  * Calc staff line element
+//  */
+// public calc(): void {
+//   const prevStaffLineElement =
+//     this.trackLineElement.getPrevStaffLineElement(this);
+//   const x = prevStaffLineElement?._rect.x ?? 0;
+//   const y = prevStaffLineElement?._rect.y ?? 0;
+
+//   this._rect = new Rect(
+//     x,
+//     y,
+//     0,
+//     TabLayoutDimensions.getStaffLineMinHeight(
+//       this.staff.trackContext.instrument
+//     )
+//   );
+//   this._techniqueLabelsRect = new Rect(x, y, 0, 0);
+
+//   // this._barElements = [];
+//   // for (const bar of this.staff.bars) {
+//   //   const barElement = new BarElement(bar, this);
+//   //   this._barElements.push(barElement);
+//   // }
+
+//   this.calcTechniqueGap();
+// }
+// /**
+//  * Justifies element by scaling all their widths
+//  */
+// public justifyElements(): void {
+//   for (const barsLine of this._barElements) {
+//     barsLine.justifyElements();
+//   }
+// }
+
+// /**
+//  * Checks if bar fits
+//  * @param bar Bar
+//  * @returns True if fits, false otherwise
+//  */
+// public barFits(bar: Bar): boolean {
+//   const barWidth = getBarWidth(bar);
+//   return this._rect.rightTop.x + barWidth <= TabLayoutDimensions.WIDTH;
+// }
+
+// /**
+//  * Add master bar to the line (assumes the bar fits)
+//  * @param masterBarIndex Index of the master bar to add
+//  */
+// public addBar(masterBarIndex: number): boolean {
+//   const bar = this.staff.bars[masterBarIndex];
+//   if (!this.barFits(bar)) {
+//     for (const barsLine of this._barElements) {
+//       barsLine.justifyElements();
+//       barsLine.calcTechniqueGap();
+//     }
+//     return false;
+//   }
+
+//   for (const barsLine of this._barElements) {
+//     barsLine.addBar(bar);
+//   }
+
+//   return true;
+// }

@@ -1,5 +1,10 @@
 import { Staff, Beat, NoteDuration, Note, Track } from "@/notation/model";
-import { SelectedNote, MoveRightOutput, NoteElement } from "../element";
+import {
+  SelectedNote,
+  MoveRightOutput,
+  NoteElement,
+  BeatElement,
+} from "../element";
 
 /**
  * Class that manages selection state
@@ -153,6 +158,14 @@ export class SelectionManager {
   public selectBeat(beat: Beat): void {
     if (this._selectedNote) {
       this._selectedNote = undefined;
+    }
+
+    if (
+      this._baseSelectionBeat !== undefined &&
+      beat.bar.staff !== this._baseSelectionBeat.bar.staff
+    ) {
+      // Don't add beats from a different staff to selection
+      return;
     }
 
     if (beat.bar.staff !== this._staff) {

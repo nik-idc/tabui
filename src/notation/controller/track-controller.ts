@@ -2,6 +2,7 @@ import { ScorePlayer } from "@/player";
 import { Track } from "../model";
 import { TrackElement, BeatElement } from "./element";
 import { TrackControllerEditor } from ".";
+import { Rect } from "@/shared";
 
 // TODO:
 // Figure out if this class is even necessary
@@ -130,6 +131,16 @@ export class TrackController {
     }
 
     return beatElement;
+  }
+
+  /**
+   * Returns an array of selection rectangles
+   * @returns Array of selection rectangles
+   */
+  public getSelectionRects(): Rect[] {
+    return this._trackElement.getSelectionRects(
+      this._trackControllerEditor.selectionManager.selectionBeats
+    );
   }
 
   /** Height of the controller window */

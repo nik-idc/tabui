@@ -8,7 +8,7 @@ TabLayoutDimensions.configure({
   noteTextSize: 12,
   timeSigTextSize: 48,
   tempoTextSize: 24,
-  durationsHeight: 50,
+  durationsHeight: 30,
 });
 
 const rootDiv = document.getElementById(

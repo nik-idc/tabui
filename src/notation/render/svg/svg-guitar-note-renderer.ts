@@ -1,7 +1,7 @@
 import { TabLayoutDimensions, TrackController } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
-import { GuitarNoteElement } from "@/notation/controller/element/guitar-note-element";
+import { TabNoteElement } from "@/notation/controller/element/tab-note-element";
 import { SVGTechniqueRenderer } from "./svg-technique-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 
@@ -12,7 +12,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Guitar note element */
-  readonly noteElement: GuitarNoteElement;
+  readonly noteElement: TabNoteElement;
 
   /** Path to any assets */
   private _assetsPath: string;
@@ -46,7 +46,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
    */
   constructor(
     trackController: TrackController,
-    noteElement: GuitarNoteElement,
+    noteElement: TabNoteElement,
     assetsPath: string,
     parentElement: SVGGElement
   ) {
@@ -148,15 +148,11 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       this._selectionRectSVG.setAttribute("ry", "3");
       this._groupSVG.appendChild(this._selectionRectSVG);
     }
-    const padding = 2;
-    const x = `${
-      this.noteElement.globalCoords.x + this.noteElement.textRect.x - padding
-    }`;
-    const y = `${
-      this.noteElement.globalCoords.y + this.noteElement.textRect.y - padding
-    }`;
-    const width = `${this.noteElement.textRect.width + padding * 2}`;
-    const height = `${this.noteElement.textRect.height + padding * 2}`;
+
+    const x = `${this.noteElement.selectionRect.x}`;
+    const y = `${this.noteElement.selectionRect.y}`;
+    const width = `${this.noteElement.selectionRect.width}`;
+    const height = `${this.noteElement.selectionRect.height}`;
     this._selectionRectSVG.setAttribute("x", x);
     this._selectionRectSVG.setAttribute("y", y);
     this._selectionRectSVG.setAttribute("width", width);
@@ -207,12 +203,8 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       this._groupSVG.appendChild(this._backgroundSVG);
     }
 
-    const x = `${
-      this.noteElement.globalCoords.x + this.noteElement.textRect.x
-    }`;
-    const y = `${
-      this.noteElement.globalCoords.y + this.noteElement.textRect.y
-    }`;
+    const x = `${this.noteElement.textRectGlobal.x}`;
+    const y = `${this.noteElement.textRectGlobal.y}`;
     const width = `${this.noteElement.textRect.width}`;
     const height = `${this.noteElement.textRect.height}`;
     this._backgroundSVG.setAttribute("x", x);
@@ -270,12 +262,8 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       this._groupSVG.appendChild(this._textSVG);
     }
 
-    const x = `${
-      this.noteElement.globalCoords.x + this.noteElement.textCoords.x
-    }`;
-    const y = `${
-      this.noteElement.globalCoords.y + this.noteElement.textCoords.y
-    }`;
+    const x = `${this.noteElement.textCoordsGlobal.x}`;
+    const y = `${this.noteElement.textCoordsGlobal.y}`;
     this._textSVG.setAttribute("x", x);
     this._textSVG.setAttribute("y", y);
     this._textSVG.textContent = `${this.noteElement.note.fret}`;
@@ -388,7 +376,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
     eventType: K,
     eventHandler: (
       event: SVGElementEventMap[K],
-      noteElement: GuitarNoteElement
+      noteElement: TabNoteElement
     ) => void
   ): void {
     if (this._groupSVG === undefined) {

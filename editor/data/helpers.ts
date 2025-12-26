@@ -22,10 +22,15 @@ type BarsInfo = {
 
 const excludedStrings = [1, 5, 6];
 
-export function fillBar(bar: Bar, barsInfo: BarsInfo): void {
-  for (let i = 0; i < barsInfo.beatsCount - 1; i++) {
-    const result = bar.appendBeat();
-    const beat = result.beats[0];
+export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
+  for (let i = 0; i < barsInfo.beatsCount; i++) {
+    const newBeat = new Beat<Guitar>(
+      bar,
+      bar.trackContext,
+      [],
+      barsInfo.beatsDuration
+    );
+    bar.appendBeat(newBeat);
   }
 
   for (let i = 0; i < barsInfo.beatsCount; i++) {
@@ -46,7 +51,7 @@ export function fillBar(bar: Bar, barsInfo: BarsInfo): void {
   }
 }
 
-export function fillStaff(staff: Staff, barsInfo: BarsInfo[]): void {
+export function fillStaff(staff: Staff<Guitar>, barsInfo: BarsInfo[]): void {
   for (let i = 0; i < barsInfo.length; i++) {
     const result = staff.appendBar(staff.track.score.masterBars[i]);
 
@@ -55,16 +60,19 @@ export function fillStaff(staff: Staff, barsInfo: BarsInfo[]): void {
 }
 
 export function fillTrack(
-  track: Track,
-  stavesCount: number = 1,
-  barsInfo: BarsInfo[]
+  track: Track<Guitar>,
+  info: {
+    instrument: MusicInstrument;
+    stavesInfo: BarsInfo[][];
+    name: string;
+  }
 ): void {
-  for (let i = 0; i < stavesCount; i++) {
+  for (let i = 0; i < info.stavesInfo.length; i++) {
     const result = track.insertStaff(
       track.staves.length === 0 ? 0 : track.staves.length
     );
 
-    fillStaff(result.staves[0], barsInfo);
+    fillStaff(result.staves[0], info.stavesInfo[i]);
   }
 }
 
@@ -72,18 +80,23 @@ export function createScore(
   scoreName: string,
   artist: string,
   songName: string,
-  tracksInfo: { instrument: MusicInstrument; name: string }[],
-  barsInfo: BarsInfo[]
+  masterBarsCount: number,
+  tracksInfo: {
+    instrument: MusicInstrument;
+    stavesInfo: BarsInfo[][];
+    name: string;
+  }[]
+  // barsInfo: BarsInfo[]
 ): Score {
   const score = new Score([], scoreName, artist, songName);
 
-  for (let i = 0; i < barsInfo.length; i++) {
+  for (let i = 0; i < masterBarsCount; i++) {
     score.appendMasterBar();
   }
 
   for (const info of tracksInfo) {
     const result = score.addTrack(info.instrument, info.name);
-    fillTrack(result.tracks[0], 1, barsInfo);
+    fillTrack(result.tracks[0] as Track<Guitar>, info);
   }
 
   return score;

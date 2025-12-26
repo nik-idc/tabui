@@ -3,6 +3,7 @@ import { ElementRenderer } from "../element-renderer";
 
 export interface SVGNoteRenderer {
   readonly trackController: TrackController;
+
   render(...params: any): ElementRenderer[] | void;
   unrender(): void;
 

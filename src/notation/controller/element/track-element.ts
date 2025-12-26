@@ -1,10 +1,10 @@
-import { Score, Track, Bar, Beat, Note } from "@/notation/model";
-import { randomInt, Point } from "@/shared";
-import { BarElement } from "./bar-element";
+import { Beat, Track } from "@/notation/model";
+import { randomInt, Point, Rect } from "@/shared";
+import { getBarWidth } from "./bar-element";
+import { TrackLineData, TrackLineElement } from "./track-line-element";
+import { TabLayoutDimensions } from "../tab-controller-dim";
 import { BeatElement } from "./beat-element";
-import { TrackLineElement } from "./track-line-element";
-import { NoteElement } from "./note-element";
-import { GuitarNoteElement } from "./guitar-note-element";
+import { StaffLineElement } from "./staff-line-element";
 
 /**
  * Class that handles all geometry & visually relevant info of a track
@@ -16,7 +16,7 @@ export class TrackElement {
   readonly track: Track;
 
   /** Track line element */
-  private _trackLineElements: TrackLineElement[] = [];
+  private _trackLineElements: TrackLineElement[];
 
   /**
    * Class that handles all geometry & visually relevant info of a track
@@ -26,319 +26,110 @@ export class TrackElement {
     this.uuid = randomInt();
     this.track = track;
 
-    this.calc();
+    this._trackLineElements = [];
+
+    this.build();
   }
 
   /**
-   * Calculates the entire track element & it's geometry
-   * and visual info
+   * Calculates how many lines are needed & which bars go into which lines.
+   * Populates the "_trackLineElements" array
    */
-  public calc(): void {
-    // Fuck it we ball - raw dog everything from scratch
-    // Event binding being a problem is an issue in and of itself
-    // since the render layer should track the models, not the element
-    // And if I'm wrong I'll fix it so whatever
-
-    // Go through all the master bars
-    this._trackLineElements = []; // Clear track lines
+  public build(): void {
+    // Step 1: Organize bars into lines
+    let width = 0;
+    let largestBarWidth = 0;
+    let curLineData: TrackLineData = [];
+    let allFit = true;
+    const linesData: TrackLineData[] = [];
     const masterBars = this.track.score.masterBars;
-    let curLine = new TrackLineElement(this.track, this);
-    for (let mBarIndex = 0; mBarIndex < masterBars.length; mBarIndex++) {
-      if (curLine.addBar(mBarIndex)) {
-        // If bar fits & succesfully added, just go to the next bar
-        continue;
+    for (let i = 0; i < masterBars.length; i++) {
+      largestBarWidth = 0;
+
+      // Check if current bar fits in all the staves
+      // AND find the largest bar amonng the staves
+      for (const staff of this.track.staves) {
+        const bar = staff.bars[i];
+        const barWidth = getBarWidth(bar);
+
+        if (width + barWidth > 1200) {
+          allFit = false;
+        }
+
+        if (barWidth > largestBarWidth) {
+          largestBarWidth = barWidth;
+        }
       }
 
-      // Bar doesn't fit, so justify current line & move further down
-      curLine.justifyStaves();
-      this._trackLineElements.push(curLine);
-
-      // Create new line & add first bar
-      curLine = new TrackLineElement(this.track, this);
-      if (!curLine.addBar(mBarIndex)) {
-        throw Error("Could not fit first bar in an empty track line");
+      if (allFit) {
+        // If fits, continue trying to fit the next master bar
+        curLineData.push({
+          largestBarWidth: largestBarWidth,
+          masterBarIndex: i,
+        });
+        width += largestBarWidth;
+      } else {
+        // If doesn't fit, assume that current master bar fits
+        // on the next line and continue
+        width = largestBarWidth;
+        if (curLineData.length === 1) {
+          curLineData[0].largestBarWidth = TabLayoutDimensions.WIDTH;
+        }
+        linesData.push(curLineData);
+        allFit = true;
+        curLineData = [{ largestBarWidth: largestBarWidth, masterBarIndex: i }];
       }
     }
 
-    if (!this._trackLineElements.includes(curLine)) {
-      this._trackLineElements.push(curLine);
+    // Push remaining bars
+    if (curLineData.length !== 0) {
+      linesData.push(curLineData);
     }
 
+    // Step 2: Use the 'linesData' array to build track line elements
+    this._trackLineElements = [];
+    for (const data of linesData) {
+      this._trackLineElements.push(
+        new TrackLineElement(this.track, this, data)
+      );
+    }
+  }
+
+  /**
+   * Calculates the dimensions of all sub elements of this track element
+   */
+  public measure(): void {
+    for (const trackLine of this._trackLineElements) {
+      trackLine.measure();
+    }
+  }
+
+  /**
+   * Calculates coordinates for all child elements
+   */
+  public layout(): void {
+    for (let i = 0; i < this._trackLineElements.length; i++) {
+      this._trackLineElements[i].layout();
+      // Don't justfiy the last line
+      if (i < this._trackLineElements.length - 1) {
+        this._trackLineElements[i].justifyElements();
+      }
+    }
+
+    console.log("Track Element is ready");
     console.log(this);
   }
 
   /**
-   * Returns note element's indices
-   * @returns Array of note element's indices
+   * Updates the entire state of the track element in 3 steps:
+   * - Build
+   * - Measure
+   * - Layout
    */
-  public getNoteElementIndices(): number[] {
-    return [-1];
-  }
-
-  /**
-   * Resets beat selection for the entire track
-   */
-  public resetSelection(): void {
-    for (const trackLineElement of this._trackLineElements) {
-      for (const staffLineElement of trackLineElement.staffLineElements) {
-        for (const barElement of staffLineElement.barElements) {
-          for (const beatElement of barElement.beatElements) {
-            beatElement.selected = false;
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Recalculates beat element selection
-   * @param selectionBeats Selection beats
-   */
-  public recalcBeatElementSelection(selectionBeats: Beat[]): void {
-    for (const trackLineElement of this._trackLineElements) {
-      for (const staffLineElement of trackLineElement.staffLineElements) {
-        for (const barElement of staffLineElement.barElements) {
-          for (const beatElement of barElement.beatElements) {
-            beatElement.selected = selectionBeats.some((beat) => {
-              return beat.uuid === beatElement.beat.uuid;
-            });
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Finds corresponding bar element
-   * @param bar Bar
-   * @returns Corresponding bar element
-   */
-  public findCorrespondingBarElement(bar: Bar): BarElement | undefined {
-    for (const trackLineElement of this._trackLineElements) {
-      for (const staffLineElement of trackLineElement.staffLineElements) {
-        for (const barElement of staffLineElement.barElements) {
-          if (barElement.bar.uuid === bar.uuid) {
-            return barElement;
-          }
-        }
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Finds corresponding beat element
-   * @param beat Beat
-   * @returns Corresponding beat element
-   */
-  public findCorrespondingBeatElement(beat: Beat): BeatElement | undefined {
-    for (const trackLineElement of this._trackLineElements) {
-      for (const staffLineElement of trackLineElement.staffLineElements) {
-        for (const barElement of staffLineElement.barElements) {
-          for (const beatElement of barElement.beatElements) {
-            if (beatElement.beat.uuid === beat.uuid) {
-              return beatElement;
-            }
-          }
-        }
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Finds note element by note UUID
-   * @param noteUUID Note UUID
-   * @returns Note element (or undefined if not found)
-   */
-  public getNoteElementByUUID(noteUUID: number): NoteElement | undefined {
-    for (const trackLineElement of this._trackLineElements) {
-      for (const staffLineElement of trackLineElement.staffLineElements) {
-        for (const barElement of staffLineElement.barElements) {
-          for (const beatElement of barElement.beatElements) {
-            const noteElements = beatElement.beatNotesElement.noteElements;
-            for (const noteElement of noteElements) {
-              if (noteElement.note.uuid === noteUUID) {
-                return noteElement;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Finds beat element by beat UUID
-   * @param beatUUID Beat UUID
-   * @returns Beat element (or undefined if not found)
-   */
-  public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
-    for (const trackLineElement of this._trackLineElements) {
-      for (const staffLineElement of trackLineElement.staffLineElements) {
-        for (const barElement of staffLineElement.barElements) {
-          for (const beatElement of barElement.beatElements) {
-            if (beatElement.beat.uuid === beatUUID) {
-              return beatElement;
-            }
-          }
-        }
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Gets beat element's global coords
-   * @param neededBeatElement Beat element whose coords to find
-   * @returns Beat element global coords
-   */
-  public getBeatElementGlobalCoords(neededBeatElement: BeatElement): Point {
-    let foundTrackLineElement: TrackLineElement | undefined;
-    let foundBarElement: BarElement | undefined;
-    for (const trackLineElement of this._trackLineElements) {
-      for (const staffLineElement of trackLineElement.staffLineElements) {
-        for (const barElement of staffLineElement.barElements) {
-          for (const beatElement of barElement.beatElements) {
-            if (beatElement.beat.uuid === neededBeatElement.beat.uuid) {
-              foundTrackLineElement = trackLineElement;
-              foundBarElement = barElement;
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    if (foundTrackLineElement === undefined || foundBarElement === undefined) {
-      throw Error(
-        "Could not find beat element's track line element or bar element"
-      );
-    }
-
-    const tleOffset = new Point(0, foundTrackLineElement.rect.y);
-    const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
-
-    return new Point(
-      barOffset.x + neededBeatElement.rect.x,
-      barOffset.y + neededBeatElement.rect.y
-    );
-  }
-
-  /**
-   * Gets note element global coords
-   * @param neededNoteElement Note element whose coords to find
-   * @returns Note element global coords
-   */
-  public getNoteElementGlobalCoords(neededNoteElement: NoteElement): Point {
-    let foundTrackLineElement: TrackLineElement | undefined;
-    let foundBarElement: BarElement | undefined;
-    let foundBeatElement: BeatElement | undefined;
-    for (const trackLineElement of this._trackLineElements) {
-      for (const staffLineElement of trackLineElement.staffLineElements) {
-        for (const barElement of staffLineElement.barElements) {
-          for (const beatElement of barElement.beatElements) {
-            const noteElements = beatElement.beatNotesElement.noteElements;
-            for (const noteElement of noteElements) {
-              if (noteElement.note.uuid === neededNoteElement.note.uuid) {
-                foundTrackLineElement = trackLineElement;
-                foundBarElement = barElement;
-                foundBeatElement = beatElement;
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    if (
-      foundTrackLineElement === undefined ||
-      foundBarElement === undefined ||
-      foundBeatElement === undefined
-    ) {
-      throw Error(
-        "Could not find note element's track line OR bar OR note element"
-      );
-    }
-
-    const tleOffset = new Point(0, foundTrackLineElement.rect.y);
-    const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
-    const beatOffset = new Point(
-      barOffset.x + foundBeatElement.rect.x,
-      barOffset.y + foundBeatElement.rect.y
-    );
-
-    const noteX = beatOffset.x;
-    const noteY =
-      beatOffset.y +
-      foundBeatElement.beatNotesElement.rect.y +
-      neededNoteElement.rect.y;
-
-    return new Point(noteX, noteY);
-  }
-
-  /**
-   * Gets note element text global coords
-   * @param neededNoteElement Note element whose text coords to find
-   * @returns Note element text global coords
-   */
-  public getGuitarNoteTextGlobalCoords(
-    guitarNoteElement: GuitarNoteElement
-  ): Point {
-    let foundTrackLineElement: TrackLineElement | undefined;
-    let foundBarElement: BarElement | undefined;
-    let foundBeatElement: BeatElement | undefined;
-    for (const trackLineElement of this._trackLineElements) {
-      for (const staffLineElement of trackLineElement.staffLineElements) {
-        for (const barElement of staffLineElement.barElements) {
-          for (const beatElement of barElement.beatElements) {
-            const noteElements = beatElement.beatNotesElement.noteElements;
-            for (const noteElement of noteElements) {
-              if (
-                (noteElement as GuitarNoteElement).note.uuid ===
-                guitarNoteElement.note.uuid
-              ) {
-                foundTrackLineElement = trackLineElement;
-                foundBarElement = barElement;
-                foundBeatElement = beatElement;
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    if (
-      foundTrackLineElement === undefined ||
-      foundBarElement === undefined ||
-      foundBeatElement === undefined
-    ) {
-      throw Error(
-        "Could not find note element's track line OR bar OR note element"
-      );
-    }
-
-    const tleOffset = new Point(0, foundTrackLineElement.rect.y);
-    const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
-    const beatOffset = new Point(
-      barOffset.x + foundBeatElement.rect.x,
-      barOffset.y + foundBeatElement.rect.y
-    );
-
-    const noteTextX = beatOffset.x + guitarNoteElement.textRect.x;
-    const noteTextY =
-      beatOffset.y +
-      foundBeatElement.beatNotesElement.rect.y +
-      guitarNoteElement.textRect.y;
-
-    return new Point(noteTextX, noteTextY);
+  public update(): void {
+    this.build();
+    this.measure();
+    this.layout();
   }
 
   /**
@@ -365,6 +156,52 @@ export class TrackElement {
     const trackIndex = this._trackLineElements.indexOf(trackLineElement);
     const prevTrack = this._trackLineElements[trackIndex - 1];
     return prevTrack ?? null;
+  }
+
+  /**
+   * Returns an array of selection rectangles:
+   * Rectangle per staff line
+   * @param beats All tracked selected beats
+   */
+  public getSelectionRects(beats: Beat[]): Rect[] {
+    if (beats.length === 0) {
+      return [];
+    }
+
+    const rects: Rect[] = [];
+    let curLineRect: Rect | undefined;
+
+    for (const trackLine of this._trackLineElements) {
+      for (const staffLine of trackLine.staffLineElements) {
+        if (curLineRect !== undefined) {
+          rects.push(curLineRect);
+        }
+        curLineRect = undefined;
+
+        for (const barElement of staffLine.styleLinesAsArray[0].barElements) {
+          for (const beatElement of barElement.beatElements) {
+            if (!beats.includes(beatElement.beat)) {
+              continue;
+            }
+
+            if (curLineRect === undefined) {
+              curLineRect = new Rect(
+                beatElement.globalCoords.x,
+                beatElement.globalCoords.y,
+                beatElement.rect.width,
+                staffLine.rect.height
+              );
+              continue;
+            }
+
+            curLineRect.width +=
+              beatElement.rectGlobal.right - curLineRect.right;
+          }
+        }
+      }
+    }
+
+    return rects;
   }
 
   /** Track line elements getter */
@@ -614,6 +451,318 @@ export class TrackElement {
 
 //     currentLine.calcTechniqueGap();
 //   }
+//
+//
+// /**
+//  * Resets beat selection for the entire track
+//  */
+// public resetSelection(): void {
+//   for (const trackLineElement of this._trackLineElements) {
+//     for (const staffLineElement of trackLineElement.staffLineElements) {
+//       for (const barElement of staffLineElement.barElements) {
+//         for (const beatElement of barElement.beatElements) {
+//           beatElement.selected = false;
+//         }
+//       }
+//     }
+//   }
+// }
+
+// /**
+//  * Recalculates beat element selection
+//  * @param selectionBeats Selection beats
+//  */
+// public recalcBeatElementSelection(selectionBeats: Beat[]): void {
+//   for (const trackLineElement of this._trackLineElements) {
+//     for (const staffLineElement of trackLineElement.staffLineElements) {
+//       for (const barElement of staffLineElement.barElements) {
+//         for (const beatElement of barElement.beatElements) {
+//           beatElement.selected = selectionBeats.some((beat) => {
+//             return beat.uuid === beatElement.beat.uuid;
+//           });
+//         }
+//       }
+//     }
+//   }
+// }
+
+// /**
+//  * Finds corresponding bar element
+//  * @param bar Bar
+//  * @returns Corresponding bar element
+//  */
+// public findCorrespondingBarElement(bar: Bar): BarElement | undefined {
+//   for (const trackLineElement of this._trackLineElements) {
+//     for (const staffLineElement of trackLineElement.staffLineElements) {
+//       for (const barElement of staffLineElement.barElements) {
+//         if (barElement.bar.uuid === bar.uuid) {
+//           return barElement;
+//         }
+//       }
+//     }
+//   }
+
+//   return undefined;
+// }
+
+// /**
+//  * Finds corresponding beat element
+//  * @param beat Beat
+//  * @returns Corresponding beat element
+//  */
+// public findCorrespondingBeatElement(beat: Beat): BeatElement | undefined {
+//   for (const trackLineElement of this._trackLineElements) {
+//     for (const staffLineElement of trackLineElement.staffLineElements) {
+//       for (const barElement of staffLineElement.barElements) {
+//         for (const beatElement of barElement.beatElements) {
+//           if (beatElement.beat.uuid === beat.uuid) {
+//             return beatElement;
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   return undefined;
+// }
+
+// /**
+//  * Finds note element by note UUID
+//  * @param noteUUID Note UUID
+//  * @returns Note element (or undefined if not found)
+//  */
+// public getNoteElementByUUID(noteUUID: number): NoteElement | undefined {
+//   for (const trackLineElement of this._trackLineElements) {
+//     for (const staffLineElement of trackLineElement.staffLineElements) {
+//       for (const barElement of staffLineElement.barElements) {
+//         for (const beatElement of barElement.beatElements) {
+//           const noteElements = beatElement.beatNotesElement.noteElements;
+//           for (const noteElement of noteElements) {
+//             if (noteElement.note.uuid === noteUUID) {
+//               return noteElement;
+//             }
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   return undefined;
+// }
+
+// /**
+//  * Finds beat element by beat UUID
+//  * @param beatUUID Beat UUID
+//  * @returns Beat element (or undefined if not found)
+//  */
+// public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
+//   for (const trackLineElement of this._trackLineElements) {
+//     for (const staffLineElement of trackLineElement.staffLineElements) {
+//       for (const barElement of staffLineElement.barElements) {
+//         for (const beatElement of barElement.beatElements) {
+//           if (beatElement.beat.uuid === beatUUID) {
+//             return beatElement;
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   return undefined;
+// }
+
+// /**
+//  * Gets beat element's global coords
+//  * @param neededBeatElement Beat element whose coords to find
+//  * @returns Beat element global coords
+//  */
+// public getBeatElementGlobalCoords(neededBeatElement: BeatElement): Point {
+//   let foundTrackLineElement: TrackLineElement | undefined;
+//   let foundBarElement: BarElement | undefined;
+//   for (const trackLineElement of this._trackLineElements) {
+//     for (const staffLineElement of trackLineElement.staffLineElements) {
+//       for (const barElement of staffLineElement.barElements) {
+//         for (const beatElement of barElement.beatElements) {
+//           if (beatElement.beat.uuid === neededBeatElement.beat.uuid) {
+//             foundTrackLineElement = trackLineElement;
+//             foundBarElement = barElement;
+//             break;
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   if (foundTrackLineElement === undefined || foundBarElement === undefined) {
+//     throw Error(
+//       "Could not find beat element's track line element or bar element"
+//     );
+//   }
+
+//   const tleOffset = new Point(0, foundTrackLineElement.rect.y);
+//   const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
+
+//   return new Point(
+//     barOffset.x + neededBeatElement.rect.x,
+//     barOffset.y + neededBeatElement.rect.y
+//   );
+// }
+
+// /**
+//  * Gets note element global coords
+//  * @param neededNoteElement Note element whose coords to find
+//  * @returns Note element global coords
+//  */
+// public getNoteElementGlobalCoords(neededNoteElement: NoteElement): Point {
+//   let foundTrackLineElement: TrackLineElement | undefined;
+//   let foundBarElement: BarElement | undefined;
+//   let foundBeatElement: BeatElement | undefined;
+//   for (const trackLineElement of this._trackLineElements) {
+//     for (const staffLineElement of trackLineElement.staffLineElements) {
+//       for (const barElement of staffLineElement.barElements) {
+//         for (const beatElement of barElement.beatElements) {
+//           const noteElements = beatElement.beatNotesElement.noteElements;
+//           for (const noteElement of noteElements) {
+//             if (noteElement.note.uuid === neededNoteElement.note.uuid) {
+//               foundTrackLineElement = trackLineElement;
+//               foundBarElement = barElement;
+//               foundBeatElement = beatElement;
+//               break;
+//             }
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   if (
+//     foundTrackLineElement === undefined ||
+//     foundBarElement === undefined ||
+//     foundBeatElement === undefined
+//   ) {
+//     throw Error(
+//       "Could not find note element's track line OR bar OR note element"
+//     );
+//   }
+
+//   const tleOffset = new Point(0, foundTrackLineElement.rect.y);
+//   const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
+//   const beatOffset = new Point(
+//     barOffset.x + foundBeatElement.rect.x,
+//     barOffset.y + foundBeatElement.rect.y
+//   );
+
+//   const noteX = beatOffset.x;
+//   const noteY =
+//     beatOffset.y +
+//     foundBeatElement.beatNotesElement.rect.y +
+//     neededNoteElement.rect.y;
+
+//   return new Point(noteX, noteY);
+// }
+
+// /**
+//  * Gets note element text global coords
+//  * @param neededNoteElement Note element whose text coords to find
+//  * @returns Note element text global coords
+//  */
+// public getGuitarNoteTextGlobalCoords(TabNoteElement: TabNoteElement): Point {
+//   let foundTrackLineElement: TrackLineElement | undefined;
+//   let foundBarElement: BarElement | undefined;
+//   let foundBeatElement: BeatElement | undefined;
+//   for (const trackLineElement of this._trackLineElements) {
+//     for (const staffLineElement of trackLineElement.staffLineElements) {
+//       for (const barElement of staffLineElement.barElements) {
+//         for (const beatElement of barElement.beatElements) {
+//           const noteElements = beatElement.beatNotesElement.noteElements;
+//           for (const noteElement of noteElements) {
+//             if (
+//               (noteElement as TabNoteElement).note.uuid ===
+//               TabNoteElement.note.uuid
+//             ) {
+//               foundTrackLineElement = trackLineElement;
+//               foundBarElement = barElement;
+//               foundBeatElement = beatElement;
+//               break;
+//             }
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   if (
+//     foundTrackLineElement === undefined ||
+//     foundBarElement === undefined ||
+//     foundBeatElement === undefined
+//   ) {
+//     throw Error(
+//       "Could not find note element's track line OR bar OR note element"
+//     );
+//   }
+
+//   const tleOffset = new Point(0, foundTrackLineElement.rect.y);
+//   const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
+//   const beatOffset = new Point(
+//     barOffset.x + foundBeatElement.rect.x,
+//     barOffset.y + foundBeatElement.rect.y
+//   );
+
+//   const noteTextX = beatOffset.x + TabNoteElement.textRect.x;
+//   const noteTextY =
+//     beatOffset.y +
+//     foundBeatElement.beatNotesElement.rect.y +
+//     TabNoteElement.textRect.y;
+
+//   return new Point(noteTextX, noteTextY);
+// }
+//
+//
+// /**
+//  * Calculates the entire track element & it's geometry
+//  * and visual info
+//  */
+// public calc(): void {
+//   // Fuck it we ball - raw dog everything from scratch
+//   // Event binding being a problem is an issue in and of itself
+//   // since the render layer should track the models, not the element
+//   // And if I'm wrong I'll fix it so whatever
+
+//   // // Go through all the master bars
+//   // this._trackLineElements = []; // Clear track lines
+//   // const masterBars = this.track.score.masterBars;
+//   // let curLine = new TrackLineElement(this.track, this);
+//   // for (let mBarIndex = 0; mBarIndex < masterBars.length; mBarIndex++) {
+//   //   if (curLine.addBar(mBarIndex)) {
+//   //     // If bar fits & succesfully added, just go to the next bar
+//   //     continue;
+//   //   }
+
+//   //   // Bar doesn't fit, so justify current line & move further down
+//   //   curLine.justifyStaves();
+//   //   this._trackLineElements.push(curLine);
+
+//   //   // Create new line & add first bar
+//   //   curLine = new TrackLineElement(this.track, this);
+//   //   if (!curLine.addBar(mBarIndex)) {
+//   //     throw Error("Could not fit first bar in an empty track line");
+//   //   }
+//   // }
+
+//   // if (!this._trackLineElements.includes(curLine)) {
+//   //   this._trackLineElements.push(curLine);
+//   // }
+
+//   console.log(this);
+// }
+
+// /**
+//  * Returns note element's indices
+//  * @returns Array of note element's indices
+//  */
+// public getNoteElementIndices(): number[] {
+//   return [-1];
+// }
 
 //   // ==== ARGUABLY REALLY DUMB & UNNECESSARY ====
 //   // ============================================

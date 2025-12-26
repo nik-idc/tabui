@@ -56,8 +56,12 @@ export class MeasureControlsTemplateRenderer {
         case BarRepeatStatus.Start:
           this.template.repeatStartButton.classList.add(appliedCSSClass);
           this.template.repeatStartButton.classList.remove(disabledCSSClass);
+          this.template.repeatEndButton.classList.remove(appliedCSSClass);
+          this.template.repeatEndButton.classList.remove(disabledCSSClass);
           break;
         case BarRepeatStatus.End:
+          this.template.repeatStartButton.classList.remove(appliedCSSClass);
+          this.template.repeatStartButton.classList.remove(disabledCSSClass);
           this.template.repeatEndButton.classList.add(appliedCSSClass);
           this.template.repeatEndButton.classList.remove(disabledCSSClass);
           break;

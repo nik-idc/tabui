@@ -1,15 +1,11 @@
-import {
-  EditorRenderer,
-  SVGBeatRenderer,
-  SVGGuitarNoteRenderer,
-  SVGNoteRenderer,
-} from "@/notation";
+import { SVGGuitarNoteRenderer } from "@/notation";
 import { NoteElement, BeatElement } from "@/notation/controller";
 import { NotationComponent } from "@/notation/notation-component";
 import { ElementRenderer } from "@/notation/render/element-renderer";
 import { Point } from "@/shared";
 import { UIComponent } from "@/ui";
 import { EditorCallbackBinder } from "./editor-callback-binder";
+import { SVGTabBeatRenderer } from "@/notation/render/svg/svg-tab-beat-renderer";
 
 export interface EditorMouseCallbacks {
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
@@ -141,7 +137,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
   public bind(activeRenderers: ElementRenderer[]): void {
     for (const renderer of activeRenderers) {
-      if (renderer instanceof SVGBeatRenderer) {
+      if (renderer instanceof SVGTabBeatRenderer) {
         renderer.attachMouseEvent("mousedown", this.onBeatMouseDown.bind(this));
         renderer.attachMouseEvent(
           "mouseenter",

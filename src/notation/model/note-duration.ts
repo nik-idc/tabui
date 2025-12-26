@@ -28,3 +28,14 @@ export const DURATION_TO_DESC: Record<NoteDuration, string> = {
   [NoteDuration.ThirtySecond]: "Thirty-second",
   [NoteDuration.SixtyFourth]: "Sixty-fourth",
 };
+
+export const MAX_FLAG_COUNT = 4;
+export const DURATION_TO_FLAG_COUNT: Record<NoteDuration, number> = {
+  [NoteDuration.Whole]: 0,
+  [NoteDuration.Half]: 0,
+  [NoteDuration.Quarter]: 0,
+  [NoteDuration.Eighth]: 1,
+  [NoteDuration.Sixteenth]: 2,
+  [NoteDuration.ThirtySecond]: 3,
+  [NoteDuration.SixtyFourth]: 4,
+};

@@ -2,13 +2,13 @@ import {
   BendType,
   GuitarTechnique,
   GuitarTechniqueType,
-  Technique,
 } from "@/notation/model";
 import { Point, Rect, getPitchRatioNums, randomInt } from "@/shared";
-import { BeatElement } from "../../beat-element";
 import { SVGUtils } from "./guitar-technique-html";
 import { TabLayoutDimensions } from "@/notation/controller/tab-controller-dim";
 import { TechniqueLabelElement } from "../technique-label-element";
+import { BeatElement } from "../../beat-element";
+import { TechGapLineElement } from "../../tech-gap-line-element";
 
 /**
  * Class that contains a guitar technique label
@@ -18,6 +18,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   readonly uuid: number;
   /** Technique */
   readonly technique: GuitarTechnique;
+  /** Parent tech gap line element */
+  readonly gapLineElement: TechGapLineElement;
   /** Parent beat element */
   readonly beatElement: BeatElement;
 
@@ -28,21 +30,27 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
   /**
    * Class that contains an technique label
+   * @param technique Technique
+   * @param beatElement Corresponding beat element
+   * @param gapLineElement Parent gap line element
    */
-  constructor(technique: GuitarTechnique, beatElement: BeatElement) {
+  constructor(
+    technique: GuitarTechnique,
+    gapLineElement: TechGapLineElement,
+    beatElement: BeatElement
+  ) {
     this.uuid = randomInt();
     this.technique = technique;
+    this.gapLineElement = gapLineElement;
     this.beatElement = beatElement;
 
     this._rect = new Rect();
-
-    this.calc();
   }
 
   /**
    * Generates bend pitch HTML
    */
-  private bendPitchHTML(): void {
+  private createBendPitchPath(): void {
     if (this.technique.bendOptions === null) {
       throw Error("Can't do bend label element - no bend options");
     }
@@ -93,7 +101,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /**
    * Generates prebend pitch HTML
    */
-  private prebendPitchHTML(): void {
+  private createPrebendPitchPath(): void {
     if (this.technique.bendOptions === null) {
       throw Error("Can't do prebend label element - no bend options");
     }
@@ -119,7 +127,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /**
    * Generates bend-and-release pitch HTML
    */
-  private bendAndReleasePitchHTML(): void {
+  private createBendAndReleasePitchPath(): void {
     if (this.technique.bendOptions === null) {
       throw Error(
         "Attempting to do bend & release label when bend options null"
@@ -138,7 +146,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       this.technique.bendOptions.bendPitch ===
       this.technique.bendOptions.releasePitch
     ) {
-      this.bendPitchHTML();
+      this.createBendPitchPath();
       return;
     }
 
@@ -178,7 +186,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /**
    * Generates prebend-and-release pitch HTMLА
    */
-  private prebendAndReleasePitchHTML(): void {
+  private createPrebendAndReleasePitchPath(): void {
     if (this.technique.bendOptions === null) {
       throw Error(
         "Attempting to do prebend & release label when bend options null"
@@ -197,7 +205,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       this.technique.bendOptions.prebendPitch ===
       this.technique.bendOptions.releasePitch
     ) {
-      this.prebendPitchHTML();
+      this.createPrebendPitchPath();
       return;
     }
 
@@ -239,7 +247,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /**
    * Generates regular vibrato HTML
    */
-  private vibratoHTML(): void {
+  private createVibratoPath(): void {
     const x = this._rect.x + this._rect.width / 2 - this._rect.width / 4;
     const y = this._rect.y + this._rect.height / 2;
     const vibratoHeight = this.rect.height / 6;
@@ -255,7 +263,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /**
    * Generates Palm Mute HTML
    */
-  private palmMuteHTML(): void {
+  private createPalmMutePath(): void {
     const x =
       this._rect.x + this._rect.width / 2 - TabLayoutDimensions.NOTE_TEXT_SIZE;
     const y = this._rect.y + this._rect.height / 2;
@@ -270,7 +278,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /**
    * Figures out which bend type label to generate
    */
-  private calcBendLabel(): void {
+  private createBendLabelPath(): void {
     if (this.technique.bendOptions === null) {
       throw Error(
         "Attempting to do prebend & release label when bend options null"
@@ -279,16 +287,16 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
     switch (this.technique.bendOptions.type) {
       case BendType.Bend:
-        this.bendPitchHTML();
+        this.createBendPitchPath();
         break;
       case BendType.Prebend:
-        this.prebendPitchHTML();
+        this.createPrebendPitchPath();
         break;
       case BendType.BendAndRelease:
-        this.bendAndReleasePitchHTML();
+        this.createBendAndReleasePitchPath();
         break;
       case BendType.PrebendAndRelease:
-        this.prebendAndReleasePitchHTML();
+        this.createPrebendAndReleasePitchPath();
         break;
       default:
         break;
@@ -296,27 +304,40 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /**
-   * Calc technique label element
+   * Calculates the dimensions of the outer rectangle
    */
-  public calc(): void {
-    this._rect = new Rect(
-      this.beatElement.rect.x,
-      this.beatElement.rect.y,
-      this.beatElement.techniqueLabelsRect.width,
-      this.beatElement.techniqueLabelsRect.height
+  public measure(): void {
+    this._rect.setDimensions(
+      this.beatElement.rect.width,
+      TabLayoutDimensions.TECH_LABEL_HEIGHT
     );
+  }
 
+  /**
+   * Calculates the coordinates of the outer rectangle & the path
+   */
+  public layout(): void {
+    // Setting to beat element's global coords since
+    // the label element is inside the tech gap line
+    // whose rect is always (0, 0, {track line width}, {gap line height})
+    this._rect.setCoords(this.beatElement.globalCoords.x, 0);
+
+    this.createPath();
+  }
+
+  /**
+   * Builds technique label element path
+   */
+  public createPath(): void {
     switch (this.technique.type) {
       case GuitarTechniqueType.Bend:
-        this.calcBendLabel();
+        this.createBendLabelPath();
         break;
       case GuitarTechniqueType.Vibrato:
-        this.vibratoHTML();
+        this.createVibratoPath();
         break;
       case GuitarTechniqueType.PalmMute:
-        this.palmMuteHTML();
-        break;
-      default:
+        this.createPalmMutePath();
         break;
     }
   }
@@ -329,7 +350,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._rect.x *= scale;
     this._rect.width *= scale;
 
-    this.calc();
+    this.createPath();
   }
 
   /**
@@ -354,3 +375,31 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     );
   }
 }
+
+// ==== TOO AFRAID TO DELETE ====
+// /**
+//  * Calculates the outer rectangle
+//  */
+// private createRect(): void {
+//   const existingLabels = this.techniqueLabelElements;
+
+//   let y = 0;
+//   const siblingLabel = existingLabels.find(
+//     (l) => l.technique.type === this.technique.type
+//   );
+//   if (
+//     TECHNIQUE_ALLOWS_STACKING[this.technique.type] &&
+//     siblingLabel !== undefined
+//   ) {
+//     y = siblingLabel.rect.y;
+//   } else {
+//     y = existingLabels[existingLabels.length - 1]?.rect.y ?? 0;
+//   }
+
+//   this._rect.set(
+//     0,
+//     y,
+//     this.rect.width,
+//     TabLayoutDimensions.TECH_LABEL_HEIGHT
+//   );
+// }

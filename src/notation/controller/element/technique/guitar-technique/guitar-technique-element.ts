@@ -6,9 +6,10 @@ import {
 } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
 import { SVGUtils } from "./guitar-technique-html";
-import { GuitarNoteElement } from "../../guitar-note-element";
 import { TabLayoutDimensions } from "@/notation/controller/tab-controller-dim";
 import { TechniqueElement } from "../technique-element";
+import { TabNoteElement } from "../../tab-note-element";
+import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
 
 /**
  * Class that handles geometry & visually relevant
@@ -22,59 +23,50 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /** Technique */
   readonly technique: GuitarTechnique;
   /** Parent guitar note element */
-  readonly guitarNoteElement: GuitarNoteElement;
+  readonly noteElement: TabNoteElement;
 
   /** Starting point (center of the provided rect) */
   private _startPoint: Point;
-  /** Technique element's rect */
-  private _rect?: Rect;
-  /** Image source */
-  private _src?: string;
   /** SVG path */
   private _svgPath?: string;
 
   /**
    * Class that represents a guitar technique
    * @param technique Technique
-   * @param guitarNoteElement Parent note element
+   * @param noteElement Parent note element
    */
-  constructor(
-    technique: GuitarTechnique,
-    guitarNoteElement: GuitarNoteElement
-  ) {
+  constructor(technique: GuitarTechnique, noteElement: TabNoteElement) {
     this.uuid = randomInt();
     this.technique = technique;
-    this.guitarNoteElement = guitarNoteElement;
-
-    this._rect = new Rect();
+    this.noteElement = noteElement;
 
     this._startPoint = new Point(
-      this.guitarNoteElement.rect.x + this.guitarNoteElement.rect.width / 2,
-      this.guitarNoteElement.rect.y + this.guitarNoteElement.rect.height / 2
+      this.noteElement.rect.x + this.noteElement.rect.width / 2,
+      this.noteElement.rect.y + this.noteElement.rect.height / 2
     );
 
-    this.calc();
+    this.createPath();
   }
 
   /**
    * Build a regular bend path SVG path HTML element
    */
-  private calcBendPath(): void {
-    const stringNum = this.guitarNoteElement.note.stringNum;
+  private createBendPath(): void {
+    const stringNum = this.noteElement.note.stringNum;
     const verticalOffset =
-      this.guitarNoteElement.rect.height * (stringNum - 1) +
-      this.guitarNoteElement.rect.height / 2;
+      this.noteElement.rect.height * (stringNum - 1) +
+      this.noteElement.rect.height / 2;
 
     const x = this._startPoint.x;
     const y = this._startPoint.y;
     const curve = SVGUtils.upCurveSVGHTML(
       x,
       y,
-      this.guitarNoteElement.rect.width / 2,
+      this.noteElement.rect.width / 2,
       verticalOffset
     );
 
-    const arrowX = x + this.guitarNoteElement.rect.width / 2;
+    const arrowX = x + this.noteElement.rect.width / 2;
     const arrowY = y - verticalOffset;
     const arrow = SVGUtils.verticalArrowSVGHTML(arrowX, arrowY);
 
@@ -84,11 +76,11 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /**
    * Build a bend-and-release path SVG path HTML element
    */
-  private calcBendAndReleasePath(): void {
-    const stringNum = this.guitarNoteElement.note.stringNum;
+  private createBendAndReleasePath(): void {
+    const stringNum = this.noteElement.note.stringNum;
     const verticalOffset =
-      this.guitarNoteElement.rect.height * (stringNum - 1) +
-      this.guitarNoteElement.rect.height / 2;
+      this.noteElement.rect.height * (stringNum - 1) +
+      this.noteElement.rect.height / 2;
 
     // Step 1: build bend curve
     const bendX = this._startPoint.x;
@@ -96,28 +88,28 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const bendCurve = SVGUtils.upCurveSVGHTML(
       bendX,
       bendY,
-      this.guitarNoteElement.rect.width / 2,
+      this.noteElement.rect.width / 2,
       verticalOffset
     );
 
     // Step 2: build bend arrow
-    const bendArrowX = bendX + this.guitarNoteElement.rect.width / 2;
+    const bendArrowX = bendX + this.noteElement.rect.width / 2;
     const bendArrowY = bendY - verticalOffset;
     const bendArrow = SVGUtils.verticalArrowSVGHTML(bendArrowX, bendArrowY);
 
     // Step 3: build release curve
-    const releaseX = bendX + this.guitarNoteElement.rect.width / 2;
+    const releaseX = bendX + this.noteElement.rect.width / 2;
     const releaseY = bendY - verticalOffset;
     const releaseCurve = SVGUtils.downCurveSVGHTML(
       releaseX,
       releaseY,
-      this.guitarNoteElement.rect.width / 4,
-      this.guitarNoteElement.rect.height / 4,
+      this.noteElement.rect.width / 4,
+      this.noteElement.rect.height / 4,
       verticalOffset
     );
 
     // Step 4: build release arrow
-    const releaseArrowX = releaseX + this.guitarNoteElement.rect.width / 4;
+    const releaseArrowX = releaseX + this.noteElement.rect.width / 4;
     const releaseArrowY = releaseY + verticalOffset;
     const releaseArrow = SVGUtils.verticalArrowSVGHTML(
       releaseArrowX,
@@ -131,15 +123,14 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /**
    * Build a prebend path SVG path HTML element
    */
-  private calcPrebendPath(): void {
-    const stringNum = this.guitarNoteElement.note.stringNum;
+  private createPrebendPath(): void {
+    const stringNum = this.noteElement.note.stringNum;
     const verticalOffset =
-      this.guitarNoteElement.rect.height * (stringNum - 1) +
-      this.guitarNoteElement.rect.height / 2;
+      this.noteElement.rect.height * (stringNum - 1) +
+      this.noteElement.rect.height / 2;
 
     // Step 1: build line
-    const prebendLineX =
-      this._startPoint.x + this.guitarNoteElement.rect.width / 4;
+    const prebendLineX = this._startPoint.x + this.noteElement.rect.width / 4;
     const prebendLineY = this._startPoint.y;
     const lineHeight = verticalOffset;
     const prebendLine = SVGUtils.vertLineSVGHTML(
@@ -159,15 +150,14 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /**
    * Build a prebend-and-release path SVG path HTML element
    */
-  private calcPrebendAndReleasePath(): void {
-    const stringNum = this.guitarNoteElement.note.stringNum;
+  private createPrebendAndReleasePath(): void {
+    const stringNum = this.noteElement.note.stringNum;
     const verticalOffset =
-      this.guitarNoteElement.rect.height * (stringNum - 1) +
-      this.guitarNoteElement.rect.height / 2;
+      this.noteElement.rect.height * (stringNum - 1) +
+      this.noteElement.rect.height / 2;
 
     // Step 1: build line
-    const prebendLineX =
-      this._startPoint.x + this.guitarNoteElement.rect.width / 4;
+    const prebendLineX = this._startPoint.x + this.noteElement.rect.width / 4;
     const prebendLineY = this._startPoint.y;
     const lineHeight = verticalOffset;
     const prebendLine = SVGUtils.vertLineSVGHTML(
@@ -187,13 +177,13 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const releaseCurve = SVGUtils.downCurveSVGHTML(
       releaseX,
       releaseY,
-      this.guitarNoteElement.rect.width / 4,
-      this.guitarNoteElement.rect.height / 4,
+      this.noteElement.rect.width / 4,
+      this.noteElement.rect.height / 4,
       verticalOffset
     );
 
     // Step 4: build release arrow
-    const releaseArrowX = releaseX + this.guitarNoteElement.rect.width / 4;
+    const releaseArrowX = releaseX + this.noteElement.rect.width / 4;
     const releaseArrowY = releaseY + verticalOffset;
     const releaseArrow = SVGUtils.verticalArrowSVGHTML(
       releaseArrowX,
@@ -207,29 +197,29 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /**
    * Calc slide path
    */
-  private calcSlidePath(): void {
-    if (this.guitarNoteElement.note.fret === null) {
+  private createSlidePath(): void {
+    if (this.noteElement.note.fret === null) {
       return;
     }
 
-    const staff = this.guitarNoteElement.note.beat.bar.staff;
-    const nextBeat = staff.getNextBeat(this.guitarNoteElement.note.beat);
+    const staff = this.noteElement.note.beat.bar.staff;
+    const nextBeat = staff.getNextBeat(this.noteElement.note.beat);
     if (nextBeat === null) {
       return;
     }
 
     const nextNote = nextBeat.notes[
-      this.guitarNoteElement.note.stringNum - 1
+      this.noteElement.note.stringNum - 1
     ] as GuitarNote;
     if (nextNote.fret === null) {
       return;
     }
 
-    const upCoef = nextNote.fret >= this.guitarNoteElement.note.fret ? 1 : -1;
+    const upCoef = nextNote.fret >= this.noteElement.note.fret ? 1 : -1;
 
     const slideWidth =
-      this.guitarNoteElement.rect.width - TabLayoutDimensions.NOTE_TEXT_SIZE;
-    const slideHeight = this.guitarNoteElement.rect.height / 3;
+      this.noteElement.rect.width - TabLayoutDimensions.NOTE_TEXT_SIZE;
+    const slideHeight = this.noteElement.rect.height / 3;
     const slideStartX =
       this._startPoint.x + TabLayoutDimensions.NOTE_TEXT_SIZE / 2;
     const slideStartY = this._startPoint.y - (slideHeight / 2) * upCoef;
@@ -248,11 +238,11 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /**
    * Calc hammer-on or pull-off path
    */
-  private calcHammerOnOrPullOffPath(): void {
+  private createHammerOnOrPullOffPath(): void {
     const hpStartX = this._startPoint.x;
     const hpStartY = this._startPoint.y;
-    const hpWidth = this.guitarNoteElement.rect.width;
-    const hpHeight = this.guitarNoteElement.rect.height / 2;
+    const hpWidth = this.noteElement.rect.width;
+    const hpHeight = this.noteElement.rect.height / 2;
     const slideLine = SVGUtils.horizontalCurveSVGHTML(
       hpStartX,
       hpStartY,
@@ -260,7 +250,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       hpHeight
     );
 
-    this._rect = new Rect(hpStartX, hpStartY, hpWidth, hpHeight);
+    // this._rect = new Rect(hpStartX, hpStartY, hpWidth, hpHeight);
 
     this._svgPath = slideLine;
   }
@@ -268,7 +258,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /**
    * Calc natural harmonic path
    */
-  private calcNaturalHarmonicPath(): void {
+  private createNaturalHarmonicPath(): void {
     const nhStartX =
       this._startPoint.x - 5 * (TabLayoutDimensions.NOTE_TEXT_SIZE / 4);
     const nhStartY = this._startPoint.y;
@@ -282,7 +272,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       false
     );
 
-    this._rect = new Rect(nhStartX, nhStartY - nhHeight / 2, nhWidth, nhHeight);
+    // this._rect = new Rect(nhStartX, nhStartY - nhHeight / 2, nhWidth, nhHeight);
 
     this._svgPath = nhLine;
   }
@@ -290,7 +280,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /**
    * Calc pinch harmonic path
    */
-  private calcPinchHarmonicPath(): void {
+  private createPinchHarmonicPath(): void {
     const phStartX =
       this._startPoint.x - 5 * (TabLayoutDimensions.NOTE_TEXT_SIZE / 4);
     const phStartY = this._startPoint.y;
@@ -304,7 +294,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       true
     );
 
-    this._rect = new Rect(phStartX, phStartY - phHeight / 2, phWidth, phHeight);
+    // this._rect = new Rect(phStartX, phStartY - phHeight / 2, phWidth, phHeight);
 
     this._svgPath = phLine;
   }
@@ -312,19 +302,19 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /**
    * Calculate path for a specific bend type
    */
-  private calcBendTechPath(): void {
+  private createBendTechPath(): void {
     switch (this.technique.bendOptions?.type) {
       case BendType.Bend:
-        this.calcBendPath();
+        this.createBendPath();
         break;
       case BendType.BendAndRelease:
-        this.calcBendAndReleasePath();
+        this.createBendAndReleasePath();
         break;
       case BendType.Prebend:
-        this.calcPrebendPath();
+        this.createPrebendPath();
         break;
       case BendType.PrebendAndRelease:
-        this.calcPrebendAndReleasePath();
+        this.createPrebendAndReleasePath();
         break;
       default:
         throw Error("Bend without optoons");
@@ -332,35 +322,53 @@ export class GuitarTechniqueElement implements TechniqueElement {
   }
 
   /**
-   * Calculates rectangle depending on technique type
+   * Creates technique SVG path
    */
-  public calc(): void {
-    this._startPoint = new Point(
-      this.guitarNoteElement.rect.width / 2,
-      this.guitarNoteElement.rect.height / 2
-    );
-
+  private createPath(): void {
     // Calc offsets & assign image paths
     switch (this.technique.type) {
       case GuitarTechniqueType.Bend:
-        this.calcBendTechPath();
+        this.createBendTechPath();
         break;
       case GuitarTechniqueType.Slide:
-        this.calcSlidePath();
+        this.createSlidePath();
         break;
       case GuitarTechniqueType.HammerOnOrPullOff:
-        this.calcHammerOnOrPullOffPath();
+        this.createHammerOnOrPullOffPath();
         break;
       case GuitarTechniqueType.PinchHarmonic:
-        this.calcPinchHarmonicPath();
+        this.createPinchHarmonicPath();
         break;
       case GuitarTechniqueType.NaturalHarmonic:
-        this.calcNaturalHarmonicPath();
+        this.createNaturalHarmonicPath();
         break;
       default:
         this._svgPath = undefined;
         break;
     }
+  }
+
+  /**
+   * Initializes the svgPath to either a string or undefined
+   */
+  build(): void {
+    if (TECHNIQUE_IS_INLINE[this.technique.type]) {
+      this._svgPath = "";
+    } else {
+      this._svgPath = undefined;
+    }
+  }
+
+  /**
+   * Calculates the coordinates of the technique & it's path string
+   */
+  layout(): void {
+    this._startPoint = new Point(
+      this.noteElement.rect.width / 2,
+      this.noteElement.rect.height / 2
+    );
+
+    this.createPath();
   }
 
   /**
@@ -370,7 +378,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
   public scaleHorBy(scale: number): void {
     this._startPoint.x *= scale;
 
-    this.calc();
+    this.layout();
   }
 
   /** Start point */
@@ -378,33 +386,21 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return this._startPoint;
   }
 
-  /** Technique rect */
-  public get rect(): Rect | undefined {
-    return this._rect;
-  }
-
-  /** Image source */
-  public get src(): string | undefined {
-    return this._src;
-  }
-
   /** SVG Path */
   public get svgPath(): string | undefined {
     return this._svgPath;
   }
 
+  /** SVG Path coords */
+  public get svgPathGlobalCoords(): Point {
+    return this.noteElement.globalCoords;
+  }
+
   /** Global coords of the guitar technique element */
   public get globalCoords(): Point {
-    if (this._rect === undefined) {
-      return new Point(
-        this.guitarNoteElement.globalCoords.x,
-        this.guitarNoteElement.globalCoords.y
-      );
-    }
-
     return new Point(
-      this.guitarNoteElement.globalCoords.x + this._rect.x,
-      this.guitarNoteElement.globalCoords.y + this._rect.y
+      this.noteElement.globalCoords.x + this._startPoint.x,
+      this.noteElement.globalCoords.y + this._startPoint.y
     );
   }
 }

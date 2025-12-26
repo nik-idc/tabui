@@ -7,8 +7,8 @@ import { createSVG, createSVGRect, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
 import { TrackPlayerSVGAnimator } from "./player-svg-animator";
 import { SVGTrackLineRenderer } from "./svg-track-line-renderer";
-import { GuitarNoteElement } from "@/notation/controller/element/guitar-note-element";
 import { ElementRenderer } from "../element-renderer";
+import { TabNoteElement } from "@/notation/controller/element/tab-note-element";
 
 /**
  * Render a track window using SVG
@@ -25,6 +25,8 @@ export class EditorSVGRenderer implements EditorRenderer {
   private _playerCursorRect?: SVGRectElement;
   /** Selection preview SVG rectangle */
   private _selectionPreviewRect?: SVGRectElement;
+  /** Beat selection rectangles */
+  private _selectionRects?: SVGRectElement[];
 
   /** Rendered track line elements */
   private _renderedTrackLineElements: Map<number, SVGTrackLineRenderer>;
@@ -109,21 +111,17 @@ export class EditorSVGRenderer implements EditorRenderer {
       this._groupSVG.appendChild(this._selectionPreviewRect);
     }
 
-    const padding = 2;
     let x: string;
     let y: string;
     let width: string;
     let height: string;
-    if (noteElement instanceof GuitarNoteElement) {
-      x = `${noteElement.globalCoords.x + noteElement.textRect.x - padding}`;
-      y = `${noteElement.globalCoords.y + noteElement.textRect.y - padding}`;
-      width = `${noteElement.textRect.width + padding * 2}`;
-      height = `${noteElement.textRect.height + padding * 2}`;
+    if (noteElement instanceof TabNoteElement) {
+      x = `${noteElement.selectionRect.x}`;
+      y = `${noteElement.selectionRect.y}`;
+      width = `${noteElement.selectionRect.width}`;
+      height = `${noteElement.selectionRect.height}`;
     } else {
-      x = `${noteElement.globalCoords.x - padding}`;
-      y = `${noteElement.globalCoords.y - padding}`;
-      width = `${TabLayoutDimensions.NOTE_RECT_HEIGHT + padding * 2}`;
-      height = `${TabLayoutDimensions.NOTE_RECT_HEIGHT + padding * 2}`;
+      throw Error("Unsupported note style");
     }
 
     this._selectionPreviewRect.setAttribute("x", x);
@@ -157,6 +155,72 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
     this._groupSVG.removeChild(this._selectionPreviewRect);
     this._selectionPreviewRect = undefined;
+  }
+
+  /**
+   * Renders track elements selection rects
+   * @param trackController Track controller
+   */
+  public renderSelectionRects(trackController: TrackController): void {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to render selection rects when SVG group undefined");
+    }
+
+    this.unrenderSelectionRects();
+
+    const selectionRects = trackController.getSelectionRects();
+    if (selectionRects.length === 0) {
+      return;
+    }
+
+    if (this._selectionRects === undefined) {
+      this._selectionRects = Array.from({ length: selectionRects.length }, () =>
+        createSVGRect()
+      );
+
+      for (let i = 0; i < this._selectionRects.length; i++) {
+        const id = `selection-rect-${i + 1}`;
+        this._selectionRects[i].setAttribute("id", id);
+
+        this._selectionRects[i].setAttribute("fill", "gray");
+        this._selectionRects[i].setAttribute("stroke-width", "1");
+        this._selectionRects[i].setAttribute("fill-opacity", "0.5");
+        this._selectionRects[i].setAttribute("stroke-opacity", "0.5");
+        this._selectionRects[i].setAttribute("pointer-events", "none");
+        this._groupSVG.appendChild(this._selectionRects[i]);
+      }
+    }
+
+    for (let i = 0; i < this._selectionRects.length; i++) {
+      const x = `${selectionRects[i].x}`;
+      const y = `${selectionRects[i].y}`;
+      const width = `${selectionRects[i].width}`;
+      const height = `${selectionRects[i].height}`;
+      this._selectionRects[i].setAttribute("x", x);
+      this._selectionRects[i].setAttribute("y", y);
+      this._selectionRects[i].setAttribute("width", width);
+      this._selectionRects[i].setAttribute("height", height);
+      // this._selectionRects[i].setAttribute("display", "block");
+    }
+  }
+
+  /**
+   * Unrenders track elements selection rects
+   */
+  public unrenderSelectionRects(): void {
+    if (this._groupSVG === undefined) {
+      throw Error("Tried to unrender selection rects when SVG group undefined");
+    }
+
+    if (this._selectionRects === undefined) {
+      return;
+    }
+
+    for (let i = 0; i < this._selectionRects.length; i++) {
+      this._groupSVG.removeChild(this._selectionRects[i]);
+    }
+
+    this._selectionRects = undefined;
   }
 
   /**
@@ -237,6 +301,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     } else {
       this.hidePlayerOverlay(trackController);
     }
+    this.renderSelectionRects(trackController);
 
     // Update SVG root dimensions
     const trackWindowHeight = trackController.trackElement.height;
@@ -261,6 +326,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     if (this._playerCursorRect) {
       this._playerCursorRect.remove();
     }
+    this.unrenderSelectionRects();
 
     this._groupSVG.replaceChildren();
   }

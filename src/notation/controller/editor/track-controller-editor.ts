@@ -75,7 +75,7 @@ export class TrackControllerEditor {
   public selectFirstNote(): void {
     const firstNoteElement =
       this._trackElement.trackLineElements[0].staffLineElements[0]
-        .barElements[0].beatElements[0].beatNotesElement.noteElements[0];
+        .styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0];
     this.selectNoteElement(firstNoteElement);
   }
 
@@ -90,7 +90,7 @@ export class TrackControllerEditor {
 
     this.commandManager.execute(new AppendBeatCommand(selectedNote.bar));
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -110,7 +110,7 @@ export class TrackControllerEditor {
     );
     selectedNote.afterAddedBar();
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -194,7 +194,7 @@ export class TrackControllerEditor {
     }
     this.commandManager.execute(new SetDotsCommand(selection, newDots));
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -209,7 +209,7 @@ export class TrackControllerEditor {
 
     this.commandManager.execute(new SetDurationCommand(selection, newDuration));
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -232,7 +232,7 @@ export class TrackControllerEditor {
     const settings: TupletSettings = { normalCount, tupletCount };
     this.commandManager.execute(new SetTupletCommand(selection, settings));
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -253,7 +253,7 @@ export class TrackControllerEditor {
       new SetTempoCommand(selectedNote.bar.masterBar, newTempo)
     );
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -285,7 +285,7 @@ export class TrackControllerEditor {
       new SetTimeSigCommand(selectedNote.bar.masterBar, beatsCount, duration)
     );
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -300,15 +300,11 @@ export class TrackControllerEditor {
       );
     }
 
-    if (selectedNote.bar.masterBar.repeatStatus === status) {
-      return;
-    }
-
     this.commandManager.execute(
       new SetRepeatStatusCommand(selectedNote.bar.masterBar, status)
     );
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -320,8 +316,6 @@ export class TrackControllerEditor {
     type: TechniqueType,
     bendOptions?: BendTechniqueOptions
   ): void {
-    const before = this._trackElement.track.deepCopy();
-
     const selectedNote = this._selectionManager.selectedNote;
     const selectionNotes =
       selectedNote !== undefined
@@ -332,7 +326,7 @@ export class TrackControllerEditor {
     this.commandManager.execute(command);
 
     if (command.executed) {
-      this._trackElement.calc();
+      this._trackElement.update();
     }
   }
 
@@ -350,7 +344,7 @@ export class TrackControllerEditor {
    */
   public clearSelection(): void {
     this._selectionManager.clearSelection();
-    this._trackElement.resetSelection();
+    // this._trackElement.resetSelection();
   }
 
   /**
@@ -367,9 +361,9 @@ export class TrackControllerEditor {
   public selectBeat(beatElement: BeatElement): void {
     this._selectionManager.selectBeat(beatElement.beat);
 
-    this._trackElement.recalcBeatElementSelection(
-      this._selectionManager.selectionBeats
-    );
+    // this._trackElement.recalcBeatElementSelection(
+    //   this._selectionManager.selectionBeats
+    // );
   }
 
   /**
@@ -428,7 +422,7 @@ export class TrackControllerEditor {
       );
     }
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -440,7 +434,7 @@ export class TrackControllerEditor {
     );
     this.clearSelection();
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -452,7 +446,7 @@ export class TrackControllerEditor {
       new AppendBarCommand(this._trackElement.track.score, masterBarData)
     );
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -464,7 +458,7 @@ export class TrackControllerEditor {
       new PrependBarCommand(this._trackElement.track.score, masterBarData)
     );
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -490,7 +484,7 @@ export class TrackControllerEditor {
       )
     );
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   /**
@@ -509,7 +503,7 @@ export class TrackControllerEditor {
       new RemoveBarCommand(this._trackElement.track.score, barIndex)
     );
 
-    this._trackElement.calc();
+    this._trackElement.update();
   }
 
   // /**
@@ -683,7 +677,7 @@ export class TrackControllerEditor {
 //       techniqueOptions
 //     );
 
-//     this._trackElement.calc();
+//     this._trackElement.measure();
 
 //     return applyRes;
 //   }

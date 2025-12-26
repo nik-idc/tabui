@@ -1,6 +1,7 @@
 import { GuitarTechnique } from "@/notation/model";
 import { Point, Rect } from "@/shared";
 import { BeatElement } from "../beat-element";
+import { TechGapLineElement } from "../tech-gap-line-element";
 
 /**
  * Interface describing a technique label element.
@@ -9,12 +10,16 @@ import { BeatElement } from "../beat-element";
 export interface TechniqueLabelElement {
   readonly uuid: number;
   readonly technique: GuitarTechnique;
+  readonly gapLineElement: TechGapLineElement;
   readonly beatElement: BeatElement;
-  readonly rect: Rect;
-  readonly svgPath?: string;
 
-  calc(): void;
+  measure(): void;
+  layout(): void;
+  createPath(): void;
+
   scaleHorBy(scale: number): void;
 
   get globalCoords(): Point;
+  get rect(): Rect;
+  get svgPath(): string | undefined;
 }
