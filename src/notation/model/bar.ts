@@ -45,6 +45,8 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
   private _beamingGroups: number[];
   /** Tuplet groups */
   private _tupletGroups: BarTupletGroup<I>[];
+  /** Ticks offset of the bar */
+  private _ticksOffset: number;
 
   /**
    * Class that represents a musical bar
@@ -75,6 +77,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
 
     this._beamingGroups = [];
     this._tupletGroups = [];
+    this._ticksOffset = 0;
 
     this.computeBeaming();
     this.computeBarTupletGroups();
@@ -437,6 +440,8 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
 
     this.computeBeaming();
     this.computeBarTupletGroups();
+
+    this.staff.calcTicks(this);
   }
 
   /**
@@ -516,6 +521,8 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     this.computeBeaming();
     this.computeBarTupletGroups();
 
+    this.staff.calcTicks(this);
+
     return outputs;
   }
 
@@ -592,6 +599,32 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
   /** Tuplet groups getter*/
   public get tupletGroups(): BarTupletGroup[] {
     return this._tupletGroups;
+  }
+
+  /** Sets ticks offset for this bar & all of it's beats */
+  public set ticksOffset(newTicksOffset: number) {
+    this._ticksOffset = newTicksOffset;
+
+    let beatsTicksOffset = 0;
+    for (const beat of this.beats) {
+      beat.ticksOffset = this._ticksOffset + beatsTicksOffset;
+
+      beatsTicksOffset += beat.fullDurationTicks;
+    }
+  }
+  /** Gets ticks offset for this bar */
+  public get ticksOffset(): number {
+    return this._ticksOffset;
+  }
+
+  /** Entire bar's duration in ticks */
+  public get barDurationTicks(): number {
+    let result = 0;
+    for (const beat of this.beats) {
+      result += beat.fullDurationTicks;
+    }
+
+    return result;
   }
 
   /**

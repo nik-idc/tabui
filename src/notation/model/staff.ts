@@ -74,6 +74,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   public insertReadyBar(index: number, bar: Bar<I>): Bar<I> {
     this._bars.splice(index, 0, bar);
 
+    this.calcTicks(bar);
+
     return bar;
   }
 
@@ -91,6 +93,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     const newBar = new Bar<I>(this, this.trackContext, masterBar, beats);
     this._bars.splice(index, 0, newBar);
 
+    this.calcTicks(newBar);
+
     return newBar;
   }
 
@@ -102,6 +106,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   public appendBar(masterBar: MasterBar, beats: Beat<I>[] = []): Bar<I> {
     const newBar = new Bar<I>(this, this.trackContext, masterBar, beats);
     this._bars.push(newBar);
+
+    this.calcTicks(newBar);
 
     return newBar;
   }
@@ -115,6 +121,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     const newBar = new Bar<I>(this, this.trackContext, masterBar, beats);
     this._bars.unshift(newBar);
 
+    this.calcTicks(newBar);
+
     return newBar;
   }
 
@@ -126,7 +134,29 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     const removedBar = this._bars[index];
     this._bars.splice(index, 1);
 
+    this.calcTicks(this._bars[index]);
+
     return removedBar;
+  }
+
+  /**
+   * Calculates ticks for every bar & beat of the staff
+   * @param startBar Bar from which to start calculating ticks
+   */
+  public calcTicks(startBar: Bar): void {
+    let barsOffset = 0;
+    let reachedStartBar = false;
+    for (const bar of this._bars) {
+      if (bar !== startBar && !reachedStartBar) {
+        barsOffset += bar.barDurationTicks;
+        continue;
+      } else if (bar === startBar) {
+        reachedStartBar = true;
+      }
+
+      bar.ticksOffset = barsOffset;
+      barsOffset += bar.barDurationTicks;
+    }
   }
 
   /**

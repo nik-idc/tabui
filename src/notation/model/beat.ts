@@ -53,6 +53,8 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   private _beamGroupId: number | null = null;
   /** * True only if part of a beam group and is the last beat of that group */
   private _lastInBeamGroup: boolean;
+  /** Ticks offset of the beat within the bar */
+  private _ticksOffset: number = 0;
 
   /**
    * Class that represents a beat
@@ -257,6 +259,30 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     return duration;
   }
 
+  /** Full beat duration in ticks */
+  public get fullDurationTicks(): number {
+    const ppq = 480; // BAD VERY BAD FUCK THIS IS REALLY BAD AAAAAAAAAAAAAAAAAAA
+
+    const denominator = 1 / this.baseDuration;
+    let ticks = (ppq * 4) / denominator;
+
+    if (this._dots > 0) {
+      let augmentation = 0;
+      for (let i = 1; i <= this._dots; i++) {
+        augmentation += ticks / Math.pow(2, i);
+      }
+      ticks += augmentation;
+    }
+
+    if (this._tupletSettings !== null) {
+      ticks =
+        (ticks * this._tupletSettings.normalCount) /
+        this._tupletSettings.tupletCount;
+    }
+
+    return Math.round(ticks);
+  }
+
   /** Dots setter */
   public set dots(newDots: BeatDots) {
     this._dots = newDots;
@@ -294,5 +320,18 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   /** Last in beam group getter */
   public get lastInBeamGroup(): boolean {
     return this._lastInBeamGroup;
+  }
+
+  /** Ticks offset setter */
+  public set ticksOffset(newTicksValue: number) {
+    this._ticksOffset = newTicksValue;
+  }
+  /** Ticks offset getter */
+  public get ticksOffset(): number {
+    return this._ticksOffset;
+  }
+  /** Global ticks offset */
+  public get globalTicksOffset(): number {
+    return this.bar.ticksOffset + this._ticksOffset;
   }
 }

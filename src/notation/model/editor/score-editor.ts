@@ -218,7 +218,7 @@ export class ScoreEditor {
   public static setDuration<I extends MusicInstrument>(
     beat: Beat<I>,
     newDuration: NoteDuration
-  ) {
+  ): void {
     beat.baseDuration = newDuration;
     beat.bar.computeBarTupletGroups();
   }
