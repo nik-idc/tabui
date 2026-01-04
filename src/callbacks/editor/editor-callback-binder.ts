@@ -45,8 +45,8 @@ export class EditorCallbackBinder {
         );
       } else if (renderer instanceof SVGGuitarNoteRenderer) {
         renderer.attachMouseEvent(
-          "click",
-          mouseCallbacks.onNoteClick.bind(mouseCallbacks)
+          "mousedown",
+          mouseCallbacks.onNoteMouseDown.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
           "mouseenter",

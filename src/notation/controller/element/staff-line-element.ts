@@ -1,7 +1,8 @@
-import { Bar, Staff } from "@/notation/model";
+import { Bar, Beat, Staff } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { TrackLineElement } from "./track-line-element";
 import { NotationStyleLineElement } from "./notation-style-line-element";
+import { BeatElement } from "./beat-element";
 
 /**
  * Supported notation styles
@@ -163,6 +164,108 @@ export class StaffLineElement {
     this._rect.width = width;
   }
 
+  /**
+   * Returns a selection rectangle for this line
+   * @param selectionStart First beat of the selection
+   * @param selectionEnd Last beat of the selection
+   * @returns Selection rectangle if part of the line is selected, undefined otherwise
+   */
+  public getSelectionRect(
+    selectionStart: Beat,
+    selectionEnd: Beat
+  ): Rect | undefined {
+    if (selectionStart.bar.staff !== this.staff) {
+      return undefined;
+    }
+
+    let firstStyleLine: NotationStyleLineElement | undefined;
+    if (this._notationStyleLineElements[NotationStyle.Classic] !== null) {
+      firstStyleLine = this._notationStyleLineElements[NotationStyle.Classic];
+    } else if (
+      this._notationStyleLineElements[NotationStyle.Tablature] !== null
+    ) {
+      firstStyleLine = this._notationStyleLineElements[NotationStyle.Tablature];
+    } else {
+      throw Error("First style line in get selection rect undefined");
+    }
+
+    const firstBar = this.staffLineData[0].bar;
+    const lastBar = this.staffLineData[this.staffLineData.length - 1].bar;
+
+    const lineStartTicks = firstBar.beats[0].globalTicksOffset;
+    const lineEndTicks =
+      lastBar.beats[lastBar.beats.length - 1].globalTicksOffset;
+
+    if (
+      lineEndTicks < selectionStart.globalTicksOffset ||
+      lineStartTicks > selectionEnd.globalTicksOffset
+    ) {
+      // Line outside selection
+      return undefined;
+    }
+
+    if (
+      lineStartTicks >= selectionStart.globalTicksOffset &&
+      lineEndTicks <= selectionEnd.globalTicksOffset
+    ) {
+      // Entire line is selected
+      return this.globalRect;
+    }
+
+    let selectionStartX = 0;
+    if (lineStartTicks < selectionStart.globalTicksOffset) {
+      // Find the X coords of the first beat in selection on this line
+      let selectionStartBeatElement: BeatElement | undefined;
+      for (const barElement of firstStyleLine.barElements) {
+        for (const beatElement of barElement.beatElements) {
+          if (beatElement.beat === selectionStart) {
+            selectionStartBeatElement = beatElement;
+            break;
+          }
+        }
+
+        if (selectionStartBeatElement !== undefined) {
+          break;
+        }
+      }
+
+      if (selectionStartBeatElement === undefined) {
+        throw Error("Could not find selection start beat element");
+      }
+      selectionStartX = selectionStartBeatElement.rectGlobal.x;
+    }
+
+    let selectionEndX = this._rect.width;
+    if (lineEndTicks > selectionEnd.globalTicksOffset) {
+      // Find the X coords of the last beat in selection on this line
+      let selectionEndBeatElement: BeatElement | undefined;
+      for (const barElement of firstStyleLine.barElements) {
+        for (const beatElement of barElement.beatElements) {
+          if (beatElement.beat === selectionEnd) {
+            selectionEndBeatElement = beatElement;
+            break;
+          }
+        }
+
+        if (selectionEndBeatElement !== undefined) {
+          break;
+        }
+      }
+
+      if (selectionEndBeatElement === undefined) {
+        throw Error("Could not find selection end beat element");
+      }
+      selectionEndX = selectionEndBeatElement.rectGlobal.right;
+    }
+
+    return new Rect(
+      this.globalCoords.x + selectionStartX,
+      this.globalCoords.y,
+      selectionEndX - selectionStartX,
+      this._rect.height
+    );
+  }
+
   /** Style line elements record object */
   public get notationStyleLineElements(): Record<
     NotationStyle,
@@ -187,6 +290,16 @@ export class StaffLineElement {
   /** Line encapsulating rectangle getter */
   public get rect(): Rect {
     return this._rect;
+  }
+
+  /** Line encapsulating rectangle in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.trackLineElement.globalCoords.x + this._rect.x,
+      this.trackLineElement.globalCoords.y + this._rect.y,
+      this._rect.width,
+      this._rect.height
+    );
   }
 
   /** Global coords of the staff line element (in most cases X will be 0) */

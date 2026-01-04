@@ -4,14 +4,21 @@ import {
   MoveRightOutput,
   NoteElement,
   BeatElement,
+  StaffLineElement,
+  TrackElement,
 } from "../element";
+
+enum SelectionDirection {
+  Left = -1,
+  Right = 1,
+}
 
 /**
  * Class that manages selection state
  */
 export class SelectionManager {
-  /** Track */
-  readonly track: Track;
+  /** Track element */
+  readonly trackElement: TrackElement;
 
   /** Current staff */
   private _staff: Staff;
@@ -19,6 +26,8 @@ export class SelectionManager {
   private _selectedNote?: SelectedNote;
   /** Base beat of the selection */
   private _baseSelectionBeat?: Beat;
+  /** Beat that leads the selection  */
+  private _leadSelectionBeat?: Beat;
   /** Selection beats */
   private _selectionBeats: Beat[];
   /** Copied data */
@@ -26,12 +35,12 @@ export class SelectionManager {
 
   /**
    * Class that manages selection state
-   * @param track Track
+   * @param trackElement Track element
    */
-  constructor(track: Track) {
-    this.track = track;
+  constructor(trackElement: TrackElement) {
+    this.trackElement = trackElement;
 
-    this._staff = this.track.staves[0];
+    this._staff = this.trackElement.track.staves[0];
     this._selectionBeats = [];
     this._clipboard = [];
   }
@@ -155,7 +164,10 @@ export class SelectionManager {
    * Selects specified beat and all the beats between it and base selection element
    * @param beat Beat to select
    */
-  public selectBeat(beat: Beat): void {
+  public selectBeat_(beatElement: BeatElement): void {
+    const beat = beatElement.beat;
+    // this.selectBeat_(beatElement);
+
     if (this._selectedNote) {
       this._selectedNote = undefined;
     }
@@ -209,6 +221,34 @@ export class SelectionManager {
 
     // Select all beats in new selection
     this.selectBeatsInBetween(startBeatUUID, endBeatUUID);
+  }
+
+  public selectBeat(beatElement: BeatElement): void {
+    const beat = beatElement.beat;
+
+    if (this._selectedNote) {
+      this._selectedNote = undefined;
+    }
+
+    if (this._baseSelectionBeat === undefined) {
+      this._baseSelectionBeat = beat;
+      this._selectionBeats = [this._baseSelectionBeat, this._baseSelectionBeat];
+      return;
+    }
+
+    if (beat.bar.staff !== this._baseSelectionBeat.bar.staff) {
+      return;
+    }
+
+    this._leadSelectionBeat = beatElement.beat;
+    if (
+      this._baseSelectionBeat.globalTicksOffset >
+      this._leadSelectionBeat.globalTicksOffset
+    ) {
+      this._selectionBeats = [this._leadSelectionBeat, this._baseSelectionBeat];
+    } else {
+      this._selectionBeats = [this._baseSelectionBeat, this._leadSelectionBeat];
+    }
   }
 
   /**

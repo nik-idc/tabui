@@ -605,12 +605,12 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
   public set ticksOffset(newTicksOffset: number) {
     this._ticksOffset = newTicksOffset;
 
-    let beatsTicksOffset = 0;
-    for (const beat of this.beats) {
-      beat.ticksOffset = this._ticksOffset + beatsTicksOffset;
+    // let beatsTicksOffset = 0;
+    // for (const beat of this.beats) {
+    //   beat.ticksOffset = this._ticksOffset + beatsTicksOffset;
 
-      beatsTicksOffset += beat.fullDurationTicks;
-    }
+    //   beatsTicksOffset += beat.fullDurationTicks;
+    // }
   }
   /** Gets ticks offset for this bar */
   public get ticksOffset(): number {

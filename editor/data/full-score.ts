@@ -32,6 +32,30 @@ const stavesInfo = [
       beatsCount: 32,
       beatsDuration: NoteDuration.ThirtySecond,
     },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
   ],
   [
     {
@@ -57,6 +81,30 @@ const stavesInfo = [
     {
       beatsCount: 8,
       beatsDuration: NoteDuration.Eighth,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
+    },
+    {
+      beatsCount: 32,
+      beatsDuration: NoteDuration.ThirtySecond,
     },
   ],
 ];
@@ -130,7 +178,7 @@ export const score = createScore(
   "Test Score",
   "Test Artist",
   "Test Song",
-  6,
+  12,
   tracksInfo
   // barsInfo
 );

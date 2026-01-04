@@ -58,7 +58,7 @@ export class TrackControllerEditor {
     this.commandManager = new CommandManager();
 
     this._trackElement = trackElement;
-    this._selectionManager = new SelectionManager(this._trackElement.track);
+    this._selectionManager = new SelectionManager(this._trackElement);
   }
 
   /**
@@ -359,7 +359,7 @@ export class TrackControllerEditor {
    * @param beatElement Beat element
    */
   public selectBeat(beatElement: BeatElement): void {
-    this._selectionManager.selectBeat(beatElement.beat);
+    this._selectionManager.selectBeat(beatElement);
 
     // this._trackElement.recalcBeatElementSelection(
     //   this._selectionManager.selectionBeats

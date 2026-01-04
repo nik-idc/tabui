@@ -11,6 +11,11 @@ import { ElementRenderer } from "../element-renderer";
 import { TabNoteElement } from "@/notation/controller/element/tab-note-element";
 
 /**
+ * TODO: Update to re-render everything ONLY
+ * after an update. Use dirty markers
+ */
+
+/**
  * Render a track window using SVG
  */
 export class EditorSVGRenderer implements EditorRenderer {
@@ -161,7 +166,7 @@ export class EditorSVGRenderer implements EditorRenderer {
    * Renders track elements selection rects
    * @param trackController Track controller
    */
-  public renderSelectionRects(trackController: TrackController): void {
+  private renderSelectionRects(trackController: TrackController): void {
     if (this._groupSVG === undefined) {
       throw Error("Tried to render selection rects when SVG group undefined");
     }
@@ -207,7 +212,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   /**
    * Unrenders track elements selection rects
    */
-  public unrenderSelectionRects(): void {
+  private unrenderSelectionRects(): void {
     if (this._groupSVG === undefined) {
       throw Error("Tried to unrender selection rects when SVG group undefined");
     }
@@ -288,12 +293,19 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._playerCursorRect.setAttribute("height", "0");
   }
 
+  activeRenderers: ElementRenderer[] = [];
   /**
    * Render track window using SVG
    */
   public render(trackController: TrackController): ElementRenderer[] {
+    console.log("RENDER TRIGGERED", trackController.track);
+
     // Render lines first
-    const activeRenderers = this.renderTrackLines(trackController);
+    if (trackController.trackElement.isDirty) {
+      this.activeRenderers = [];
+      this.activeRenderers.push(...this.renderTrackLines(trackController));
+      trackController.trackElement.isDirty = false;
+    }
 
     // Player overlay rect
     if (trackController.isPlaying) {
@@ -301,7 +313,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     } else {
       this.hidePlayerOverlay(trackController);
     }
-    this.renderSelectionRects(trackController);
+    // this.renderSelectionRects(trackController);
 
     // Update SVG root dimensions
     const trackWindowHeight = trackController.trackElement.height;
@@ -310,14 +322,14 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._groupSVG.setAttribute("width", `${TabLayoutDimensions.WIDTH}`);
     this._groupSVG.setAttribute("height", `${trackWindowHeight}`);
 
-    return activeRenderers;
+    return this.activeRenderers;
   }
 
   /**
    * Unrender the entire track window
    */
   public unrender(): void {
-    console.log("UNRENDER TRIGGERED");
+    // console.log("UNRENDER TRIGGERED");
 
     for (const renderer of this._renderedTrackLineElements.values()) {
       renderer.unrender();
@@ -326,7 +338,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     if (this._playerCursorRect) {
       this._playerCursorRect.remove();
     }
-    this.unrenderSelectionRects();
+    // this.unrenderSelectionRects();
 
     this._groupSVG.replaceChildren();
   }

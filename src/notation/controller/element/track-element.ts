@@ -17,6 +17,8 @@ export class TrackElement {
 
   /** Track line element */
   private _trackLineElements: TrackLineElement[];
+  /** Dirty flag. When true triggers a re-render */
+  private _isDirty: boolean = true;
 
   /**
    * Class that handles all geometry & visually relevant info of a track
@@ -207,6 +209,15 @@ export class TrackElement {
   /** Track line elements getter */
   public get trackLineElements(): TrackLineElement[] {
     return this._trackLineElements;
+  }
+
+  /** Dirty flag. When true triggers a re-render */
+  public get isDirty(): boolean {
+    return this._isDirty;
+  }
+  /** FOR TESTING */
+  public set isDirty(newValue: boolean) {
+    this._isDirty = newValue;
   }
 
   /** Global coords of the track element (in most cases X=0, Y=0) */

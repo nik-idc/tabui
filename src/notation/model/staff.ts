@@ -33,6 +33,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
 
   /** Bars belonging to the staff */
   private _bars: Bar<I>[];
+  /** Flat array of all the beats within the staff */
+  private _beatsSeq: Beat<I>[];
   /** Clef type for the staff */
   private _clefType: ClefType;
   /** Indicates whether to display guitar tablature  */
@@ -60,6 +62,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     this.trackContext = trackContext;
 
     this._bars = bars;
+    this._beatsSeq = [];
     this._clefType = clefType;
     this._showTablature = showTablature;
     this._showClassicNotation = showClassicNotation;
@@ -144,6 +147,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * @param startBar Bar from which to start calculating ticks
    */
   public calcTicks(startBar: Bar): void {
+    this._beatsSeq = [];
+
     let barsOffset = 0;
     let reachedStartBar = false;
     for (const bar of this._bars) {
@@ -155,6 +160,13 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
       }
 
       bar.ticksOffset = barsOffset;
+      let beatsTicksOffset = 0;
+      for (const beat of bar.beats) {
+        beat.ticksOffset = bar.ticksOffset + beatsTicksOffset;
+        beatsTicksOffset += beat.fullDurationTicks;
+        this._beatsSeq.push(beat);
+      }
+
       barsOffset += bar.barDurationTicks;
     }
   }
@@ -271,6 +283,11 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   /** Bars getter */
   public get bars(): Bar<I>[] {
     return this._bars;
+  }
+
+  /** Flat array of all the beats within the staff */
+  public get beatsSeq(): Beat<I>[] {
+    return this._beatsSeq;
   }
 
   /** Clef type for the staff */
