@@ -67,14 +67,16 @@ export class NotationStyleLineElement {
    * Calculates the dimensions for all bar elements & their children
    */
   public measure(): void {
+    this._rect.width = TabLayoutDimensions.WIDTH;
+
     let sumWidth = 0;
     for (const barElement of this._barElements) {
       barElement.measure();
       sumWidth += barElement.rect.width;
     }
-    // Set width BEFORE measure tech gap since gap's width = parent notation
-    // style line's width
-    this._rect.width = sumWidth;
+    // // Set width BEFORE measure tech gap since gap's width = parent notation
+    // // style line's width
+    // this._rect.width = sumWidth;
 
     this._techGapElement.measure();
     // Set height AFTER tech gap measure since notation style line height
@@ -87,17 +89,17 @@ export class NotationStyleLineElement {
    * Calculates the coordinates for all bar elements & their children
    */
   public layout(): void {
+    // // Setting rect width in layout since
+    // // bar element's layout justifies it to fit.
+    // // This is NOT ideal
+    // this._rect.width = sumWidth;
+
     let sumWidth = 0;
+    this._techGapElement.layout();
     for (const barElement of this._barElements) {
       barElement.layout();
       sumWidth += barElement.rect.width;
     }
-    // Setting rect width in layout since
-    // bar element's layout justifies it to fit.
-    // This is NOT ideal
-    this._rect.width = sumWidth;
-
-    this._techGapElement.layout();
   }
 
   /**

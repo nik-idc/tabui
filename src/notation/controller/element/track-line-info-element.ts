@@ -90,6 +90,23 @@ export class TrackLineInfoElement {
   }
 
   /**
+   * Gets a tempo rectangle for a specific bar element
+   */
+  public getBarTempoRectGlobal(barElement: BarElement): Rect | undefined {
+    const barRect = this._barTempoRectsMap.get(barElement);
+    if (barRect === undefined) {
+      return undefined;
+    }
+
+    return new Rect(
+      barRect.x,
+      this.trackLineElement.globalCoords.y,
+      barRect.width,
+      barRect.height
+    );
+  }
+
+  /**
    * Gets tempo text coordinates for a specific bar element
    */
   public getBarTempoTextCoords(barElement: BarElement): Point | undefined {
@@ -100,7 +117,24 @@ export class TrackLineInfoElement {
 
     return new Point(
       barTempoRect.x + barTempoRect.width,
-      barTempoRect.y + TabLayoutDimensions.TEMPO_TEXT_SIZE
+      TabLayoutDimensions.TEMPO_TEXT_SIZE
+    );
+  }
+
+  /**
+   * Gets tempo text coordinates for a specific bar element
+   */
+  public getBarTempoTextCoordsGlobal(
+    barElement: BarElement
+  ): Point | undefined {
+    const barTempoRect = this._barTempoRectsMap.get(barElement);
+    if (barTempoRect === undefined) {
+      return undefined;
+    }
+
+    return new Point(
+      barTempoRect.x + barTempoRect.width,
+      this.trackLineElement.globalCoords.y + TabLayoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 

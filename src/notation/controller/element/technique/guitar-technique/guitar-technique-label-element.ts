@@ -320,7 +320,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     // Setting to beat element's global coords since
     // the label element is inside the tech gap line
     // whose rect is always (0, 0, {track line width}, {gap line height})
-    this._rect.setCoords(this.beatElement.globalCoords.x, 0);
+    // this._rect.setCoords(this.beatElement.globalCoords.x, 0);
+    this._rect.setCoords(0, 0);
 
     this.createPath();
   }

@@ -99,9 +99,10 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       this._groupSVG.appendChild(renderedTempo.text);
     }
 
-    const tempoRect = this.trackLineInfoElement.getBarTempoRect(barElement);
+    const tempoRect =
+      this.trackLineInfoElement.getBarTempoRectGlobal(barElement);
     const tempoTextCoords =
-      this.trackLineInfoElement.getBarTempoTextCoords(barElement);
+      this.trackLineInfoElement.getBarTempoTextCoordsGlobal(barElement);
     const tempoText = this.trackLineInfoElement.getBarTempoText(barElement);
     if (
       tempoRect === undefined ||

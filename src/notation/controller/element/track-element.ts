@@ -7,6 +7,13 @@ import { BeatElement } from "./beat-element";
 import { StaffLineElement } from "./staff-line-element";
 
 /**
+ * TODO:
+ * 0. Rewrite AGENTS.md myself - [x]
+ * 1. Find and fix existing bugs - [x]
+ * 2. Optimize what actually matters: the renderer layer - [ ]
+ */
+
+/**
  * Class that handles all geometry & visually relevant info of a track
  */
 export class TrackElement {

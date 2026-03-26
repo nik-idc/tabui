@@ -313,7 +313,8 @@ export class BarElement {
     const prevBarElement =
       this.notationStyleLineElement.getPrevBarElement(this);
     const x = prevBarElement?.rect.right ?? 0;
-    this._rect.setCoords(x, 0);
+    const y = this.notationStyleLineElement.techGapElement.rect.bottom;
+    this._rect.setCoords(x, y);
   }
 
   /**

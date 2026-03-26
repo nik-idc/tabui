@@ -61,9 +61,9 @@ export class TechGapElement {
     }
 
     const height =
-      (this._techGapLines[1]?.rect.height ?? 0) +
-      (this._techGapLines[2]?.rect.height ?? 0) +
-      (this._techGapLines[3]?.rect.height ?? 0);
+      (this._techGapLines[1]?.rect?.height ?? 0) +
+      (this._techGapLines[2]?.rect?.height ?? 0) +
+      (this._techGapLines[3]?.rect?.height ?? 0);
     this._rect.setDimensions(this.notationStyleLineElement.rect.width, height);
   }
 

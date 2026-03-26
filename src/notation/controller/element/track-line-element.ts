@@ -161,7 +161,9 @@ export class TrackLineElement {
     const y1 =
       this._trackLineInfoElement.rect.bottom +
       // Since visually the staff lines begin a bit lower than the element
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2;
+      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this._staffLineElements[0].styleLinesAsArray[0].techGapElement.rect
+        .bottom;
     const y2 =
       this._staffLineElements[this._staffLineElements.length - 1].rect.bottom -
       TabLayoutDimensions.TUPLET_RECT_HEIGHT -
