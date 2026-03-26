@@ -68,8 +68,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   onTrackClicked(): void {
-    // console.log(this._trackComponent.track.name, "CLICKED!!");
-
     this._notationComponent.loadTrack(this._trackComponent.track);
     this._renderFunc();
   }

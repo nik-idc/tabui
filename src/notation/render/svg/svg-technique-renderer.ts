@@ -13,15 +13,16 @@ export class SVGTechniqueRenderer implements ElementRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Technique element to render */
-  readonly techniqueElement: TechniqueElement;
+  techniqueElement: TechniqueElement;
 
-  /** Path to any assets */
-  private _assetsPath: string;
-  /** Parent SVG group element */
-  private _parentElement: SVGGElement;
+  // /** Path to any assets */
+  // private _assetsPath: string;
+  // /** Parent SVG group element */
+  // private _parentElement: SVGGElement;
 
   /** Container SVG group  */
-  private _groupSVG?: SVGGElement;
+  private _containerGroupSVG?: SVGGElement;
+
   /** Technique SVG path */
   private _techniqueSVGPath?: SVGGElement;
 
@@ -29,20 +30,40 @@ export class SVGTechniqueRenderer implements ElementRenderer {
    * Class for rendering a guitar technique element using SVG
    * @param trackController Track controller
    * @param techniqueElement Guitar technique element
-   * @param assetsPath Path to assets
-   * @param parentElement SVG parent element (a note element in this case)
+   * @param assetsPath Unused. Kept for uniform renderer constructor signature.
    */
   constructor(
     trackController: TrackController,
     techniqueElement: GuitarTechniqueElement,
-    assetsPath: string,
-    parentElement: SVGGElement
+    assetsPath: string
   ) {
     this.trackController = trackController;
     this.techniqueElement = techniqueElement;
+    void assetsPath;
+  }
 
-    this._assetsPath = assetsPath;
-    this._parentElement = parentElement;
+  /**
+   * Ensures renderer's container group exists and returns it.
+   * @returns Renderer's container SVG group element
+   */
+  public ensureContainerGroup(): SVGGElement {
+    if (this._containerGroupSVG !== undefined) {
+      return this._containerGroupSVG;
+    }
+
+    const techniqueUUID = this.techniqueElement.technique.uuid;
+    this._containerGroupSVG = createSVGG();
+    this._containerGroupSVG.setAttribute("id", `technique-${techniqueUUID}`);
+
+    return this._containerGroupSVG;
+  }
+
+  public detachContainerGroup(): void {
+    if (this._containerGroupSVG === undefined) {
+      return;
+    }
+
+    this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
   /**
@@ -50,21 +71,14 @@ export class SVGTechniqueRenderer implements ElementRenderer {
    * data about the technique
    */
   private renderGroup(): void {
-    if (this._groupSVG !== undefined) {
-      return;
-    }
-
-    const noteUUID = this.techniqueElement.technique.uuid;
-    this._groupSVG = createSVGG();
-    this._groupSVG.setAttribute("id", `technique-${noteUUID}`);
-    this._parentElement.appendChild(this._groupSVG);
+    this.ensureContainerGroup();
   }
 
   /**
    * Render technique's raw SVG
    */
   private renderTechniquePath(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render technique HTML when SVG group undefined");
     }
 
@@ -83,7 +97,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       );
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._techniqueSVGPath);
+      this._containerGroupSVG.appendChild(this._techniqueSVGPath);
     }
 
     const x = `${this.techniqueElement.svgPathGlobalCoords.x}`;
@@ -97,7 +111,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
    * Unrender technique's custom HTML (like bend curves, palm mute text etc)
    */
   private unrenderTechniquePath(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender technique HTML when SVG group undefined");
     }
 
@@ -105,7 +119,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._techniqueSVGPath);
+    this._containerGroupSVG.removeChild(this._techniqueSVGPath);
     this._techniqueSVGPath = undefined;
   }
 
@@ -129,14 +143,11 @@ export class SVGTechniqueRenderer implements ElementRenderer {
    * Unrender all technique element's DOM element
    */
   public unrender(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender technique when SVG group undefined");
+    if (this._containerGroupSVG === undefined) {
+      return;
     }
 
     this.unrenderTechniquePath();
-
-    this._parentElement.removeChild(this._groupSVG);
-    this._groupSVG = undefined;
   }
 }
 
@@ -147,7 +158,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
 //  * Render technique's outer rect
 //  */
 // private renderTechniqueRect(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to render technique rect when SVG group undefined");
 //   }
 
@@ -169,7 +180,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
 //     );
 
 //     // Add element to root SVG element
-//     this._groupSVG.appendChild(this._techniqueRectSVG);
+//     this._containerGroupSVG.appendChild(this._techniqueRectSVG);
 //   }
 
 //   const x = `${this.techniqueElement.globalCoords.x}`;
@@ -186,7 +197,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
 //  * Unrenders technique rect
 //  */
 // private unrenderTechniqueRect(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to unrender technique rect when SVG group undefined");
 //   }
 
@@ -194,7 +205,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
 //     return;
 //   }
 
-//   this._groupSVG.removeChild(this._techniqueRectSVG);
+//   this._containerGroupSVG.removeChild(this._techniqueRectSVG);
 //   this._techniqueRectSVG = undefined;
 // }
 //

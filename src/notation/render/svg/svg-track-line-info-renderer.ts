@@ -20,53 +20,71 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Tech gap line element */
-  readonly trackLineInfoElement: TrackLineInfoElement;
-
+  trackLineInfoElement: TrackLineInfoElement;
   /** Path to any assets */
-  private _assetsPath: string;
-  /** Parent SVG group element */
-  private _parentElement: SVGGElement;
-  /** Map of tempo svg text element */
-  private _temposSVG: Map<BarElement, TempoSVG>;
+  readonly assetsPath: string;
 
   /** Container SVG group */
-  private _groupSVG?: SVGGElement;
+  private _containerGroupSVG?: SVGGElement;
+
+  // /** Parent SVG group element */
+  // private _parentElement: SVGGElement;
+  /** Map of tempo svg text element */
+  private _temposSVG: Map<BarElement, TempoSVG>;
 
   /**
    * Class for rendering a tech gap line element using SVG
    * @param trackController Track controller
    * @param trackLineInfoElement Tech gap line element
    * @param assetsPath Path to assets
-   * @param parentElement SVG parent element
    */
   constructor(
     trackController: TrackController,
     trackLineInfoElement: TrackLineInfoElement,
-    assetsPath: string,
-    parentElement: SVGGElement
+    assetsPath: string
   ) {
     this.trackController = trackController;
     this.trackLineInfoElement = trackLineInfoElement;
 
-    this._assetsPath = assetsPath;
-    this._parentElement = parentElement;
-
+    this.assetsPath = assetsPath;
+    // this._parentElement = parentElement;
+    //
     this._temposSVG = new Map();
   }
 
   /**
-   * Renders the group element which will contain all the
-   * data about the technique gap
+   * Ensures renderer's container group exists and returns it.
+   * @returns Renderer's container SVG group element
    */
-  private renderGroup(): void {
-    if (this._groupSVG !== undefined) {
+  public ensureContainerGroup(): SVGGElement {
+    if (this._containerGroupSVG !== undefined) {
+      return this._containerGroupSVG;
+    }
+
+    const trackLineInfoUUID = this.trackLineInfoElement.uuid;
+    this._containerGroupSVG = createSVGG();
+    this._containerGroupSVG.setAttribute(
+      "id",
+      `track-line-info-${trackLineInfoUUID}`
+    );
+
+    return this._containerGroupSVG;
+  }
+
+  public detachContainerGroup(): void {
+    if (this._containerGroupSVG === undefined) {
       return;
     }
 
-    const gapLineUUID = this.trackLineInfoElement.uuid;
-    this._groupSVG = createSVGG();
-    this._groupSVG.setAttribute("id", `tech-gap-${gapLineUUID}`);
-    this._parentElement.appendChild(this._groupSVG);
+    this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  /**
+   * Renders the group element which will contain all the
+   * data about the track line info element
+   */
+  private renderGroup(): void {
+    this.ensureContainerGroup();
   }
 
   /**
@@ -74,7 +92,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
    * @param barElement Bar element whose tempo to render
    */
   private renderTempoText(barElement: BarElement): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render bar sig when SVG group undefined");
     }
 
@@ -95,8 +113,8 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       renderedTempo.text.setAttribute("id", `tempo-text-${barUUID}`);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(renderedTempo.image);
-      this._groupSVG.appendChild(renderedTempo.text);
+      this._containerGroupSVG.appendChild(renderedTempo.image);
+      this._containerGroupSVG.appendChild(renderedTempo.text);
     }
 
     const tempoRect =
@@ -112,7 +130,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       throw Error("Bar tempo elements undefined");
     }
 
-    const href = `${this._assetsPath}/img/notes/4.svg`;
+    const href = `${this.assetsPath}/img/notes/4.svg`;
     renderedTempo.image.setAttribute("x", `${tempoRect.x}`);
     renderedTempo.image.setAttribute("y", `${tempoRect.y}`);
     renderedTempo.image.setAttribute("width", `${tempoRect.width}`);
@@ -129,7 +147,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
    * @param barElement Bar element whose tempo to unrender
    */
   private unrenderTempoText(barElement: BarElement): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render bar sig when SVG group undefined");
     }
 
@@ -138,8 +156,8 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(renderedTempo.image);
-    this._groupSVG.removeChild(renderedTempo.text);
+    this._containerGroupSVG.removeChild(renderedTempo.image);
+    this._containerGroupSVG.removeChild(renderedTempo.text);
     this._temposSVG.delete(barElement);
   }
 
@@ -167,7 +185,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
    * Unrenders all tempo texts
    */
   private unrenderTempoTexts(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render bar sig when SVG group undefined");
     }
 
@@ -190,13 +208,13 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
    * Unenders the technique gap line element
    */
   public unrender(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender note elem when SVG group undefined");
+    if (this._containerGroupSVG === undefined) {
+      return;
     }
 
     this.unrenderTempoTexts();
 
-    this._parentElement.removeChild(this._groupSVG);
-    this._groupSVG = undefined;
+    // this._parentElement.removeChild(this._containerGroupSVG);
+    // this._containerGroupSVG = undefined;
   }
 }

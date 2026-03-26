@@ -9,6 +9,7 @@ import { Circle } from "@/shared/rendering/geometry/circle";
 import { VertLine, HorLine } from "@/shared/rendering/geometry/line";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "./bar-element";
+import { TrackElement } from "./track-element";
 
 // TO BE IMPLEMENTED
 // TO BE IMPLEMENTED
@@ -25,6 +26,8 @@ export class SheetBeatElement implements BeatElement {
   readonly beat: Beat;
   /** Parent beat element */
   readonly barElement: BarElement;
+  /** Reference to track element */
+  readonly trackElement: TrackElement;
 
   /** Note elements */
   private _noteElements: NoteElement[];
@@ -53,6 +56,7 @@ export class SheetBeatElement implements BeatElement {
     this.uuid = randomInt();
     this.beat = beat;
     this.barElement = barElement;
+    this.trackElement = barElement.trackElement;
 
     this._noteElements = [];
     this._techniqueLabelElements = [];
@@ -122,5 +126,28 @@ export class SheetBeatElement implements BeatElement {
       this.barElement.globalCoords.x + this._rect.x,
       this.barElement.globalCoords.y + this._rect.y
     );
+  }
+
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect.width,
+      this._rect.height
+    );
+  }
+
+  public get stateHash(): string {
+    return this.uuid.toString();
+  }
+
+  public update(): void {}
+
+  public getNextNoteElement(noteElement: NoteElement): NoteElement | null {
+    return null;
+  }
+
+  public getPrevNoteElement(noteElement: NoteElement): NoteElement | null {
+    return null;
   }
 }

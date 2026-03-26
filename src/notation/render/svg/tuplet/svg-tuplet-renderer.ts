@@ -14,17 +14,18 @@ export class SVGTupletRenderer implements ElementRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Tuplet element */
-  readonly tupletElement: BarTupletGroupElement;
+  tupletElement: BarTupletGroupElement;
   /** Path to any assets */
-  private _assetsPath: string;
-  /** Parent SVG group element */
-  private _parentElement: SVGGElement;
+  readonly assetsPath: string;
 
-  /** Rendered segments map */
-  private _renderedTupletSegments: Map<number, SVGTupletSegmentRenderer>;
+  // /** Parent SVG group element */
+  // private _parentElement: SVGGElement;
+
+  // /** Rendered segments map */
+  // private _renderedTupletSegments: Map<number, SVGTupletSegmentRenderer>;
 
   /** Container SVG group */
-  private _groupSVG?: SVGGElement;
+  private _containerGroupSVG?: SVGGElement;
   /** SVG path for if the tuplet is complete */
   private _completeTupletPath?: SVGPathElement;
   /** SVG text for if the tuplet is complete */
@@ -37,40 +38,49 @@ export class SVGTupletRenderer implements ElementRenderer {
    * @param trackController Track controller
    * @param tupletElement Tuplet element
    * @param assetsPath Path to assets
-   * @param parentElement SVG parent element (a bar element in this case)
    */
   constructor(
     trackController: TrackController,
     tupletElement: BarTupletGroupElement,
-    assetsPath: string,
-    parentElement: SVGGElement
+    assetsPath: string
   ) {
     this.trackController = trackController;
     this.tupletElement = tupletElement;
 
-    this._assetsPath = assetsPath;
-    this._parentElement = parentElement;
-
-    this._renderedTupletSegments = new Map();
+    this.assetsPath = assetsPath;
+    // this._parentElement = parentElement;
+    //
+    // this._renderedTupletSegments = new Map();
   }
 
-  /**
-   * Renders the group element which will contain all the
-   * data about the bar
-   */
-  private renderGroup(): void {
-    if (this._groupSVG !== undefined) {
-      return;
+  public ensureContainerGroup(): SVGGElement {
+    if (this._containerGroupSVG !== undefined) {
+      return this._containerGroupSVG;
     }
 
     const tupletUUID = this.tupletElement.tupletGroup.uuid;
-    this._groupSVG = createSVGG();
-    this._groupSVG.setAttribute("id", `tuplet-${tupletUUID}`);
-    this._parentElement.appendChild(this._groupSVG);
+    this._containerGroupSVG = createSVGG();
+    this._containerGroupSVG.setAttribute("id", `tuplet-${tupletUUID}`);
+    return this._containerGroupSVG;
+  }
+
+  public detachContainerGroup(): void {
+    if (this._containerGroupSVG === undefined) {
+      return;
+    }
+
+    this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  /**
+   * Renders the group element which will contain all the data about the tuplet
+   */
+  private renderGroup(): void {
+    this.ensureContainerGroup();
   }
 
   private renderCompleteTupletPath(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render tuplet text when SVG group undefined");
     }
 
@@ -88,7 +98,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._completeTupletPath.setAttribute("id", id);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._completeTupletPath);
+      this._containerGroupSVG.appendChild(this._completeTupletPath);
     }
 
     const completeRect = this.tupletElement.completePathRectGlobal;
@@ -107,7 +117,7 @@ export class SVGTupletRenderer implements ElementRenderer {
    * Unender the group
    */
   private unrenderCompleteTupletPath(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender tuplet text when SVG group undefined");
     }
 
@@ -115,7 +125,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._completeTupletPath);
+    this._containerGroupSVG.removeChild(this._completeTupletPath);
     this._completeTupletPath = undefined;
   }
 
@@ -123,7 +133,7 @@ export class SVGTupletRenderer implements ElementRenderer {
    * Render complete-tuplet text
    */
   private renderCompleteTupletText(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render tuplet text when SVG group undefined");
     }
 
@@ -142,7 +152,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._completeTupletTextSVG.setAttribute("id", id);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._completeTupletTextSVG);
+      this._containerGroupSVG.appendChild(this._completeTupletTextSVG);
     }
 
     const coords = this.tupletElement.comleteTextCoordsGlobal;
@@ -159,7 +169,7 @@ export class SVGTupletRenderer implements ElementRenderer {
    * Unrender complete-tuplet text
    */
   private unrenderCompleteTupletText(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender tuplet text when SVG group undefined");
     }
 
@@ -167,7 +177,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._completeTupletTextSVG);
+    this._containerGroupSVG.removeChild(this._completeTupletTextSVG);
     this._completeTupletTextSVG = undefined;
   }
 
@@ -175,10 +185,7 @@ export class SVGTupletRenderer implements ElementRenderer {
    * Render incomplete tuplet text
    */
   private renderIncompleteTupletText(index: number): void {
-    //console.log(
-    //   `RENDERING TUPLET FOR BEAT ${this.tupletElement.beatElements[0].uuid}`
-    // );
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render tuplet text when SVG group undefined");
     }
 
@@ -203,7 +210,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       renderedText.setAttribute("id", id);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(renderedText);
+      this._containerGroupSVG.appendChild(renderedText);
     }
 
     const textCoordsArray = this.tupletElement.incompleteTextsCoordsGlobal;
@@ -225,7 +232,7 @@ export class SVGTupletRenderer implements ElementRenderer {
    * @param index Index of the tuplet text
    */
   private unrenderIncompleteTupletText(index: number): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender tuplet text when SVG group undefined");
     }
 
@@ -233,14 +240,14 @@ export class SVGTupletRenderer implements ElementRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._incompleteTupletTextsSVG[index]);
+    this._containerGroupSVG.removeChild(this._incompleteTupletTextsSVG[index]);
   }
 
   /**
    * Renders all incomplete texts
    */
   private renderIncompleteTexts(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render duration flags when SVG group undefined");
     }
 
@@ -248,8 +255,16 @@ export class SVGTupletRenderer implements ElementRenderer {
       throw Error("Tried to render incomplete texts when tuplet is complete");
     }
 
-    this._incompleteTupletTextsSVG = [];
+    if (this._incompleteTupletTextsSVG === undefined) {
+      this._incompleteTupletTextsSVG = [];
+    }
+
     const length = this.tupletElement.tupletGroup.beats.length;
+    while (this._incompleteTupletTextsSVG.length > length) {
+      this.unrenderIncompleteTupletText(this._incompleteTupletTextsSVG.length - 1);
+      this._incompleteTupletTextsSVG.pop();
+    }
+
     for (let i = 0; i < length; i++) {
       this.renderIncompleteTupletText(i);
     }
@@ -259,7 +274,7 @@ export class SVGTupletRenderer implements ElementRenderer {
    * Unrenders all incomplete texts
    */
   private unrenderIncompleteTexts(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender duration flags when SVG group undefined");
     }
 
@@ -294,20 +309,16 @@ export class SVGTupletRenderer implements ElementRenderer {
    * Unrender tuplet
    */
   public unrender(): void {
-    //console.log(
-    //   `UNRENDERING TUPLET FOR BEAT ${this.tupletElement.beatElements[0].uuid}`
-    // );
-
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender tuplet elem when SVG group undefined");
+    if (this._containerGroupSVG === undefined) {
+      return;
     }
 
     this.unrenderCompleteTupletText();
     this.unrenderCompleteTupletPath();
     this.unrenderIncompleteTexts();
 
-    this._parentElement.removeChild(this._groupSVG);
-    this._groupSVG = undefined;
+    // this._parentElement.removeChild(this._containerGroupSVG);
+    // this._containerGroupSVG = undefined;
   }
 }
 
@@ -318,7 +329,7 @@ export class SVGTupletRenderer implements ElementRenderer {
 //  * Render tuplet segments
 //  */
 // private renderTupletSegments(): SVGTupletSegmentRenderer[] {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to render tuplet segments when SVG group undefined");
 //   }
 
@@ -344,8 +355,8 @@ export class SVGTupletRenderer implements ElementRenderer {
 //       const renderer = new SVGTupletSegmentRenderer(
 //         this.trackController,
 //         beatElement,
-//         this._assetsPath,
-//         this._groupSVG
+//         this.assetsPath,
+//         this._containerGroupSVG
 //       );
 //       renderer.render(
 //         this.tupletElement.tupletGroup.complete,
@@ -368,7 +379,7 @@ export class SVGTupletRenderer implements ElementRenderer {
 //  * Unrender tuplet segments
 //  */
 // private unrenderTupletSegments(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to unrender tuplet segments when SVG group undefined");
 //   }
 

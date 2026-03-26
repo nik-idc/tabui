@@ -286,13 +286,72 @@ export class TrackLineElement implements NotationElement {
     return prevStaff ?? null;
   }
 
+  /**
+   * HACK: Transitional flattened traversal for viewport element collection.
+   * Current approach manually walks nested children to collect all notation
+   * elements, which is brittle and tightly coupled to hierarchy shape.
+   *
+   * Proposed fix:
+   * 1) Prefer TrackLineElement-owned registry (readonly Map/Set) of all
+   *    descendant NotationElements; alternative is TrackElement-level map
+   *    of track line -> elements.
+   * 2) Promote TrackLineElement as the highest hierarchical owner by giving
+   *    every NotationElement a direct TrackLineElement reference.
+   *    TrackElement then remains an orchestrator/builder rather than
+   *    traversal owner.
+   */
+  public getAllNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    if (this._trackLineInfoElement !== null) {
+      elements.push(this._trackLineInfoElement);
+    }
+
+    for (const staffLine of this._staffLineElements) {
+      elements.push(staffLine);
+
+      for (const styleLine of staffLine.styleLinesAsArray) {
+        elements.push(styleLine);
+
+        const techGap = styleLine.techGapElement;
+        elements.push(techGap);
+
+        for (const techGapLine of techGap.techGapLinesAsArray) {
+          elements.push(techGapLine);
+          elements.push(...techGapLine.labelElements);
+        }
+
+        for (const barElement of styleLine.barElements) {
+          elements.push(barElement);
+          elements.push(...barElement.beamSegments);
+          elements.push(...barElement.tupletElements);
+
+          for (const beatElement of barElement.beatElements) {
+            elements.push(beatElement);
+
+            for (const noteElement of beatElement.noteElements) {
+              elements.push(noteElement);
+              elements.push(...noteElement.guitarTechniqueElements);
+            }
+          }
+        }
+      }
+    }
+
+    return elements;
+  }
+
   /** String encoding the state of this element */
   public get stateHash(): string {
     return this._stateHash;
   }
 
   public getModelUUID(): number {
-    return this.track.uuid;
+    const firstMasterBarIndex = this._trackLineData[0]?.masterBarIndex ?? 0;
+    const lastMasterBarIndex =
+      this._trackLineData[this._trackLineData.length - 1]?.masterBarIndex ?? 0;
+
+    return this.track.uuid + firstMasterBarIndex + lastMasterBarIndex;
   }
 
   /** Staff line element on this track line */

@@ -239,7 +239,7 @@ export class StaffLineElement implements NotationElement {
   }
 
   public getModelUUID(): number {
-    return this.staff.uuid;
+    return this.trackLineElement.getModelUUID() + this.staff.uuid;
   }
 
   /** Style line elements record object */

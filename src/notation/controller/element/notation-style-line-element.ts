@@ -237,8 +237,7 @@ export class NotationStyleLineElement implements NotationElement {
   }
 
   public getModelUUID(): number {
-    // EXPERIMENTAL: Represents notation for a specific staff
-    return this.staffLineElement.staff.uuid;
+    return this.staffLineElement.getModelUUID() + this.notationStyle;
   }
 
   /** Bar elements on this line */

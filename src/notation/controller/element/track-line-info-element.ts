@@ -224,9 +224,7 @@ export class TrackLineInfoElement implements NotationElement {
   }
 
   public getModelUUID(): number {
-    // EXPERIMENTAL: This element displays tempo info which spans multiple masterBars.
-    // Using track.uuid as the primary model reference since tempo is track-level.
-    return this.trackElement.track.uuid;
+    return this.trackLineElement.getModelUUID() + 1000001;
   }
 
   /** Track line encapsulating rectangle */

@@ -19,7 +19,6 @@ import {
   TabLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
-import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGGuitarNoteRenderer } from "./svg-guitar-note-renderer";
 import { TabNoteElement } from "@/notation/controller/element/tab-note-element";
@@ -33,20 +32,14 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Beat element */
-  readonly beatElement: TabBeatElement;
+  beatElement: TabBeatElement;
 
-  /** Path to any assets */
-  private _assetsPath: string;
-  /** Parent SVG group element */
-  private _parentElement: SVGGElement;
-
-  /** Rendered labels map */
-  private _renderedLabels: Map<number, SVGTechniqueLabelRenderer>;
-  /** Rendered note elements map */
-  private _renderedNoteElements: Map<number, SVGNoteRenderer>;
+  // /** Rendered note elements map (legacy only, disabled in new flow) */
+  // private _renderedNoteElements: Map<number, SVGNoteRenderer>;
 
   /** Container SVG group */
-  private _groupSVG?: SVGGElement;
+  private _containerGroupSVG?: SVGGElement;
+
   /** Beat duration SVG line */
   private _durationStemSVG?: SVGLineElement;
   /** Beat duration SVG flag lines*/
@@ -65,24 +58,42 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
    * Class for rendering a beat element using SVG
    * @param trackController Track controller
    * @param beatElement Beat element
-   * @param assetsPath Path to assets
-   * @param parentElement SVG parent element (a bar element in this case)
+   * @param assetsPath Unused. Kept for uniform renderer constructor signature.
    */
   constructor(
     trackController: TrackController,
     beatElement: TabBeatElement,
-    assetsPath: string,
-    parentElement: SVGGElement
+    assetsPath: string
   ) {
     this.trackController = trackController;
     this.beatElement = beatElement;
+    void assetsPath;
 
-    this._assetsPath = assetsPath;
-    this._parentElement = parentElement;
-
-    this._renderedLabels = new Map();
-    this._renderedNoteElements = new Map();
+    // this._renderedNoteElements = new Map();
     this._attachedEvents = new Map();
+  }
+
+  /**
+   * Ensures renderer's container group exists and returns it.
+   * @returns Renderer's container SVG group element
+   */
+  public ensureContainerGroup(): SVGGElement {
+    if (this._containerGroupSVG !== undefined) {
+      return this._containerGroupSVG;
+    }
+
+    const beatUUID = this.beatElement.beat.uuid;
+    this._containerGroupSVG = createSVGG();
+    this._containerGroupSVG.setAttribute("id", `beat-${beatUUID}`);
+    return this._containerGroupSVG;
+  }
+
+  public detachContainerGroup(): void {
+    if (this._containerGroupSVG === undefined) {
+      return;
+    }
+
+    this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
   /**
@@ -90,21 +101,14 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
    * data about the beat
    */
   private renderGroup(): void {
-    if (this._groupSVG !== undefined) {
-      return;
-    }
-
-    const beatUUID = this.beatElement.beat.uuid;
-    this._groupSVG = createSVGG();
-    this._groupSVG.setAttribute("id", `beat-${beatUUID}`);
-    this._parentElement.appendChild(this._groupSVG);
+    this.ensureContainerGroup();
   }
 
   /**
    * Renders duration stem
    */
   private renderDurationStem(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render beat duration when SVG group undefined");
     }
 
@@ -122,7 +126,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       this._durationStemSVG.setAttribute("stroke", "black");
 
       // Add element to group SVG element
-      this._groupSVG.appendChild(this._durationStemSVG);
+      this._containerGroupSVG.appendChild(this._durationStemSVG);
     }
 
     const x = `${stemGlobal.x}`;
@@ -138,7 +142,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
    * Unrender duration stem
    */
   private unrenderDurationStem(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender duration stem when SVG group undefined");
     }
 
@@ -146,7 +150,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._durationStemSVG);
+    this._containerGroupSVG.removeChild(this._durationStemSVG);
     this._durationStemSVG = undefined;
   }
 
@@ -155,7 +159,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
    * @param flagIndex Index of the flag
    */
   private renderDurationFlag(flagIndex: number): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render beat duration when SVG group undefined");
     }
 
@@ -180,7 +184,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       this._durationFlagsSVG[flagIndex].setAttribute("stroke", "black");
 
       // Add element to group SVG element
-      this._groupSVG.appendChild(this._durationFlagsSVG[flagIndex]);
+      this._containerGroupSVG.appendChild(this._durationFlagsSVG[flagIndex]);
     }
 
     const x1 = `${flagLinesGlobal[flagIndex].x1}`;
@@ -197,7 +201,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
    * @param flagIndex Index of the flag
    */
   private unrenderDurationFlag(flagIndex: number): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender beat duration when SVG group undefined");
     }
 
@@ -209,7 +213,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._durationFlagsSVG[flagIndex]);
+    this._containerGroupSVG.removeChild(this._durationFlagsSVG[flagIndex]);
     this._durationFlagsSVG.splice(flagIndex, 1);
   }
 
@@ -217,7 +221,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
    * Renders all duration flags
    */
   private renderDurationFlags(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render duration flags when SVG group undefined");
     }
 
@@ -225,15 +229,18 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
-    this._durationFlagsSVG = [];
+    if (this._durationFlagsSVG === undefined) {
+      this._durationFlagsSVG = [];
+    }
+
     const beatFlagCount =
       DURATION_TO_FLAG_COUNT[this.beatElement.beat.baseDuration];
+    while (this._durationFlagsSVG.length > beatFlagCount) {
+      this.unrenderDurationFlag(this._durationFlagsSVG.length - 1);
+    }
+
     for (let i = 0; i < beatFlagCount; i++) {
-      if (i <= beatFlagCount) {
-        this.renderDurationFlag(i);
-      } else {
-        this.unrenderDurationFlag(i);
-      }
+      this.renderDurationFlag(i);
     }
   }
 
@@ -241,7 +248,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
    * Unrenders all duration flags
    */
   private unrenderDurationFlags(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender duration flags when SVG group undefined");
     }
 
@@ -265,7 +272,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
   private renderDotCircle(dot1: boolean): void {
     let dotCircle = dot1 ? this._dot1CircleSVG : this._dot2CircleSVG;
 
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render dot circle when SVG group undefined");
     }
 
@@ -275,7 +282,13 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
       dotCircle.setAttribute("id", `beat-dot-${dot1 ? 1 : 2}-${beatUUID}`);
 
-      this._groupSVG.appendChild(dotCircle);
+      this._containerGroupSVG.appendChild(dotCircle);
+
+      if (dot1) {
+        this._dot1CircleSVG = dotCircle;
+      } else {
+        this._dot2CircleSVG = dotCircle;
+      }
     }
 
     const circle = dot1
@@ -293,8 +306,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
    * Unrender duration stem
    */
   private unrenderDotCircle(dot1: boolean): void {
-    let dotCircle = dot1 ? this._dot1CircleSVG : this._dot2CircleSVG;
-    if (this._groupSVG === undefined) {
+    const dotCircle = dot1 ? this._dot1CircleSVG : this._dot2CircleSVG;
+    if (this._containerGroupSVG === undefined) {
       throw Error(
         "Tried to unrender duration dot circle when SVG group undefined"
       );
@@ -304,73 +317,88 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(dotCircle);
-    dotCircle = undefined;
-  }
-
-  private renderNoteElements(): SVGNoteRenderer[] {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to render note element when SVG group undefined");
-    }
-
-    const activeRenderers: SVGNoteRenderer[] = [];
-
-    // Check if there are any notes to remove
-    const curNoteUUIDs = new Set(
-      this.beatElement.noteElements.map((n) => n.note.uuid)
-    );
-    for (const [uuid, renderer] of this._renderedNoteElements) {
-      if (!curNoteUUIDs.has(uuid)) {
-        renderer.unrender();
-        this._renderedNoteElements.delete(uuid);
-      }
-    }
-
-    // Add & render new note element AND re-render existing notes
-    for (const noteElement of this.beatElement.noteElements) {
-      const renderedNote = this._renderedNoteElements.get(
-        noteElement.note.uuid
-      );
-      if (renderedNote === undefined) {
-        if (noteElement instanceof TabNoteElement) {
-          const renderer = new SVGGuitarNoteRenderer(
-            this.trackController,
-            noteElement,
-            this._assetsPath,
-            this._groupSVG
-          );
-          renderer.render();
-          this._renderedNoteElements.set(noteElement.note.uuid, renderer);
-          activeRenderers.push(renderer);
-        }
-      } else {
-        activeRenderers.push(renderedNote);
-        renderedNote.render();
-      }
-    }
-    return activeRenderers;
-  }
-
-  /**
-   * Unrender all note element
-   */
-  private unrenderNoteElements(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender note element when SVG group undefined");
-    }
-
-    for (const [uuid, renderer] of this._renderedNoteElements) {
-      renderer.unrender();
+    this._containerGroupSVG.removeChild(dotCircle);
+    if (dot1) {
+      this._dot1CircleSVG = undefined;
+    } else {
+      this._dot2CircleSVG = undefined;
     }
   }
+
+  // private renderNoteElements(): SVGNoteRenderer[] {
+  //   if (SVGTabBeatRenderer.useIndependentNoteLifecycle) {
+  //     if (this._renderedNoteElements.size > 0) {
+  //       for (const [uuid, renderer] of this._renderedNoteElements) {
+  //         renderer.unrender();
+  //         this._renderedNoteElements.delete(uuid);
+  //       }
+  //     }
+  //     return [];
+  //   }
+  //
+  //   if (this._containerGroupSVG === undefined) {
+  //     throw Error("Tried to render note element when SVG group undefined");
+  //   }
+  //
+  //   const activeRenderers: SVGNoteRenderer[] = [];
+  //
+  //   // Check if there are any notes to remove
+  //   const curNoteUUIDs = new Set(
+  //     this.beatElement.noteElements.map((n) => n.note.uuid)
+  //   );
+  //   for (const [uuid, renderer] of this._renderedNoteElements) {
+  //     if (!curNoteUUIDs.has(uuid)) {
+  //       renderer.unrender();
+  //       this._renderedNoteElements.delete(uuid);
+  //     }
+  //   }
+  //
+  //   // Add & render new note element AND re-render existing notes
+  //   for (const noteElement of this.beatElement.noteElements) {
+  //     const renderedNote = this._renderedNoteElements.get(
+  //       noteElement.note.uuid
+  //     );
+  //     if (renderedNote === undefined) {
+  //       if (noteElement instanceof TabNoteElement) {
+  //         const renderer = new SVGGuitarNoteRenderer(
+  //           this.trackController,
+  //           noteElement
+  //         );
+  //         renderer.render();
+  //         this._renderedNoteElements.set(noteElement.note.uuid, renderer);
+  //         activeRenderers.push(renderer);
+  //       }
+  //     } else {
+  //       activeRenderers.push(renderedNote);
+  //       renderedNote.render();
+  //     }
+  //   }
+  //   return activeRenderers;
+  // }
+  //
+  // /**
+  //  * Unrender all note element
+  //  */
+  // private unrenderNoteElements(): void {
+  //   if (SVGTabBeatRenderer.useIndependentNoteLifecycle) {
+  //     this._renderedNoteElements.clear();
+  //     return;
+  //   }
+  //
+  //   if (this._containerGroupSVG === undefined) {
+  //     throw Error("Tried to unrender note element when SVG group undefined");
+  //   }
+  //
+  //   for (const [uuid, renderer] of this._renderedNoteElements) {
+  //     renderer.unrender();
+  //   }
+  // }
 
   /**
    * Render a full beat
    */
-  public render(): ElementRenderer[] {
+  public render(): void {
     this.renderGroup();
-
-    const newNoteRenderers = this.renderNoteElements();
 
     this.renderDurationStem();
     this.renderDurationFlags();
@@ -389,28 +417,22 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     // } else {
     //   this.unrenderBeatSelection();
     // }
-
-    return newNoteRenderers;
   }
 
   /**
    * Unrender all beat element's DOM element
    */
   public unrender(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender beat elem when SVG group undefined");
+    if (this._containerGroupSVG === undefined) {
+      return;
     }
 
     // this.unrenderLabels();
-    this.unrenderNoteElements();
     this.unrenderDurationStem();
     this.unrenderDurationFlags();
     this.unrenderDotCircle(true);
     this.unrenderDotCircle(false);
     // this.unrenderBeatSelection();
-
-    this._parentElement.removeChild(this._groupSVG);
-    this._groupSVG = undefined;
   }
 
   /**
@@ -425,7 +447,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       beatElement: BeatElement
     ) => void
   ): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to add beat click event when SVG group undefined");
     }
 
@@ -434,13 +456,13 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     };
 
     if (this._attachedEvents.has(eventType)) {
-      this._groupSVG.removeEventListener(
+      this._containerGroupSVG.removeEventListener(
         eventType,
         this._attachedEvents.get(eventType)!
       );
     }
 
-    this._groupSVG.addEventListener(eventType, listener);
+    this._containerGroupSVG.addEventListener(eventType, listener);
     this._attachedEvents.set(eventType, listener);
   }
 
@@ -456,7 +478,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 //  * Render beat selection
 //  */
 // private renderBeatSelection(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to render beat selection when SVG group undefined");
 //   }
 
@@ -477,7 +499,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 //     this._beatSelectionSVG.setAttribute("id", `beat-sel-${beatUUID}`);
 
 //     // Add element to group SVG element
-//     this._groupSVG.appendChild(this._beatSelectionSVG);
+//     this._containerGroupSVG.appendChild(this._beatSelectionSVG);
 //   }
 
 //   const x = `${this.beatElement.globalCoords.x}`;
@@ -494,7 +516,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 //  * Unrender beat selection
 //  */
 // private unrenderBeatSelection(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to unrender beat selection when SVG group undefined");
 //   }
 
@@ -502,7 +524,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 //     return;
 //   }
 
-//   this._groupSVG.removeChild(this._beatSelectionSVG);
+//   this._containerGroupSVG.removeChild(this._beatSelectionSVG);
 //   this._beatSelectionSVG = undefined;
 // }
 
@@ -511,7 +533,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 //  * @param beatOffset Global offset of the beat element
 //  */
 // private renderLabels(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to render beat labels when SVG group undefined");
 //   }
 
@@ -541,7 +563,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 //         this.trackController,
 //         techniqueLabelElement,
 //         this._assetsPath,
-//         this._groupSVG
+//         this._containerGroupSVG
 //       );
 //       renderer.render();
 //       this._renderedLabels.set(
@@ -558,7 +580,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 //  * Unrender all technique labels
 //  */
 // private unrenderLabels(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to unrender beat labels when SVG group undefined");
 //   }
 

@@ -9,15 +9,15 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Technique label element */
-  readonly techniqueLabelElement: TechniqueLabelElement;
-
+  techniqueLabelElement: TechniqueLabelElement;
   /** Path to any assets */
-  private _assetsPath: string;
-  /** Parent SVG group element */
-  private _parentElement: SVGGElement;
+  readonly assetsPath: string;
+
+  // /** Parent SVG group element */
+  // private _parentElement: SVGGElement;
 
   /** Container SVG group */
-  private _groupSVG?: SVGGElement;
+  private _containerGroupSVG?: SVGGElement;
   /** Technique label SVG group */
   private _techniqueLabelSVG?: SVGGElement;
 
@@ -26,19 +26,44 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
    * @param trackController Track controller
    * @param techniqueLabelElement Technique label element
    * @param assetsPath Path to assets
-   * @param parentElement SVG parent element (a beat element in this case)
    */
   constructor(
     trackController: TrackController,
     techniqueLabelElement: TechniqueLabelElement,
-    assetsPath: string,
-    parentElement: SVGGElement
+    assetsPath: string
   ) {
     this.trackController = trackController;
     this.techniqueLabelElement = techniqueLabelElement;
 
-    this._assetsPath = assetsPath;
-    this._parentElement = parentElement;
+    this.assetsPath = assetsPath;
+    // this._parentElement = parentElement;
+  }
+
+  /**
+   * Ensures renderer's container group exists and returns it.
+   * @returns Renderer's container SVG group element
+   */
+  public ensureContainerGroup(): SVGGElement {
+    if (this._containerGroupSVG !== undefined) {
+      return this._containerGroupSVG;
+    }
+
+    const techLabelUUID = this.techniqueLabelElement.uuid;
+    this._containerGroupSVG = createSVGG();
+    this._containerGroupSVG.setAttribute(
+      "id",
+      `technique-label-${techLabelUUID}`
+    );
+
+    return this._containerGroupSVG;
+  }
+
+  public detachContainerGroup(): void {
+    if (this._containerGroupSVG === undefined) {
+      return;
+    }
+
+    this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
   /**
@@ -46,14 +71,7 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
    * data about the technique label
    */
   private renderGroup(): void {
-    if (this._groupSVG !== undefined) {
-      return;
-    }
-
-    const noteUUID = this.techniqueLabelElement.technique.uuid;
-    this._groupSVG = createSVGG();
-    this._groupSVG.setAttribute("id", `technique-label-${noteUUID}`);
-    this._parentElement.appendChild(this._groupSVG);
+    this.ensureContainerGroup();
   }
 
   /**
@@ -64,7 +82,7 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   public render(): void {
     this.renderGroup();
 
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render technique label when SVG group undefined");
     }
 
@@ -79,11 +97,11 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
       // Set id
       this._techniqueLabelSVG.setAttribute(
         "id",
-        `technique-label-${techniqueUUID}`
+        `technique-label-group-${techniqueUUID}`
       );
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._techniqueLabelSVG);
+      this._containerGroupSVG.appendChild(this._techniqueLabelSVG);
     }
 
     const x = this.techniqueLabelElement.globalCoords.x;
@@ -97,15 +115,15 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
    * Unrender all technique label element's DOM element
    */
   public unrender(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender technique label when SVG group undefined");
+    if (this._containerGroupSVG === undefined) {
+      return;
     }
 
     if (this._techniqueLabelSVG === undefined) {
-      throw Error("Tried to unrender technique label when label SVG undefined");
+      return;
     }
 
-    this._parentElement.removeChild(this._groupSVG);
-    this._groupSVG = undefined;
+    this._containerGroupSVG.removeChild(this._techniqueLabelSVG);
+    // this._containerGroupSVG = undefined;
   }
 }

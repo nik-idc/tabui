@@ -14,14 +14,15 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Beam segment element */
-  readonly beamSegment: BeamSegmentElement;
+  beamSegment: BeamSegmentElement;
   /** Path to any assets */
-  private _assetsPath: string;
-  /** Parent SVG group element */
-  private _parentElement: SVGGElement;
+  readonly assetsPath: string;
+
+  // /** Parent SVG group element */
+  // private _parentElement: SVGGElement;
 
   /** Container SVG group */
-  private _groupSVG?: SVGGElement;
+  private _containerGroupSVG?: SVGGElement;
   /** Long beam rectangle */
   private _longRectSVG?: SVGRectElement[];
   /** Short beam rectangle */
@@ -32,19 +33,41 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    * @param trackController Track controller
    * @param beamSegment Beam segment element
    * @param assetsPath Path to assets
-   * @param parentElement SVG parent element (a bar element in this case)
    */
   constructor(
     trackController: TrackController,
     beamSegment: BeamSegmentElement,
-    assetsPath: string,
-    parentElement: SVGGElement
+    assetsPath: string
   ) {
     this.trackController = trackController;
     this.beamSegment = beamSegment;
 
-    this._assetsPath = assetsPath;
-    this._parentElement = parentElement;
+    this.assetsPath = assetsPath;
+    // this._parentElement = parentElement;
+  }
+
+  public detachContainerGroup(): void {
+    if (this._containerGroupSVG === undefined) {
+      return;
+    }
+
+    this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  /**
+   * Ensures renderer's container group exists and returns it.
+   * @returns Renderer's container SVG group element
+   */
+  public ensureContainerGroup(): SVGGElement {
+    if (this._containerGroupSVG !== undefined) {
+      return this._containerGroupSVG;
+    }
+
+    const beamUUID = this.beamSegment.uuid;
+    this._containerGroupSVG = createSVGG();
+    this._containerGroupSVG.setAttribute("id", `beam-segment-${beamUUID}`);
+
+    return this._containerGroupSVG;
   }
 
   /**
@@ -52,21 +75,14 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    * data about the bar
    */
   private renderGroup(): void {
-    if (this._groupSVG !== undefined) {
-      return;
-    }
-
-    const beamUUID = this.beamSegment.uuid;
-    this._groupSVG = createSVGG();
-    this._groupSVG.setAttribute("id", `beam-segment-${beamUUID}`);
-    this._parentElement.appendChild(this._groupSVG);
+    this.ensureContainerGroup();
   }
 
   /**
    * Renders beam segment's long rectangle
    */
   private renderLongRect(index: number): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render beam long rect when SVG group undefined");
     }
 
@@ -84,7 +100,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this._longRectSVG[index].setAttribute("fill", "black");
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._longRectSVG[index]);
+      this._containerGroupSVG.appendChild(this._longRectSVG[index]);
     }
 
     const x = `${this.beamSegment.longRectsGlobal[index].x}`;
@@ -101,7 +117,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    * Unrenders beam segment's long rectangle
    */
   private unrenderLongRect(index: number): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender beam long rect when SVG group undefined");
     }
 
@@ -112,7 +128,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._longRectSVG[index]);
+    this._containerGroupSVG.removeChild(this._longRectSVG[index]);
     this._longRectSVG.splice(index, 1);
   }
 
@@ -120,11 +136,18 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    * Renders beam segment's long rectangles
    */
   private renderLongRects(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render beam long rect when SVG group undefined");
     }
 
-    this._longRectSVG = [];
+    if (this._longRectSVG === undefined) {
+      this._longRectSVG = [];
+    }
+
+    while (this._longRectSVG.length > this.beamSegment.longRects.length) {
+      this.unrenderLongRect(this._longRectSVG.length - 1);
+    }
+
     for (let i = 0; i < this.beamSegment.longRects.length; i++) {
       this.renderLongRect(i);
     }
@@ -134,7 +157,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    * Unrenders beam segment's long rectangles
    */
   private unrenderLongRects(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender beam long rect when SVG group undefined");
     }
 
@@ -153,7 +176,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    * Renders beam segment's short rectangle
    */
   private renderShortRect(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render beam short rect when SVG group undefined");
     }
 
@@ -171,7 +194,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this._shortRectSVG.setAttribute("fill", "black");
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._shortRectSVG);
+      this._containerGroupSVG.appendChild(this._shortRectSVG);
     }
 
     const x = `${this.beamSegment.shortRectGlobal.x}`;
@@ -188,7 +211,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    * Renders beam segment's short rectangle
    */
   private unrenderShortRect(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender tuplet segment when SVG group undefined");
     }
 
@@ -200,7 +223,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._shortRectSVG);
+    this._containerGroupSVG.removeChild(this._shortRectSVG);
     this._shortRectSVG = undefined;
   }
 
@@ -219,8 +242,8 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    * Unrender everything
    */
   public unrender(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender tuplet elem when SVG group undefined");
+    if (this._containerGroupSVG === undefined) {
+      return;
     }
 
     this.unrenderLongRects();
@@ -228,7 +251,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this.unrenderShortRect();
     }
 
-    this._parentElement.removeChild(this._groupSVG);
-    this._groupSVG = undefined;
+    // this._parentElement.removeChild(this._containerGroupSVG);
+    // this._containerGroupSVG = undefined;
   }
 }

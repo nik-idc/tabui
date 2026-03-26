@@ -410,7 +410,11 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   public getModelUUID(): number {
-    return this.technique.uuid;
+    return (
+      this.gapLineElement.getModelUUID() +
+      this.technique.uuid +
+      this.beatElement.beat.uuid
+    );
   }
 
   /**

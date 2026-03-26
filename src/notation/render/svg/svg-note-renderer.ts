@@ -1,10 +1,12 @@
 import { NoteElement, TrackController } from "@/notation/controller";
-import { ElementRenderer } from "../element-renderer";
 
 export interface SVGNoteRenderer {
   readonly trackController: TrackController;
 
-  render(...params: any): ElementRenderer[] | void;
+  ensureContainerGroup(): SVGGElement;
+  detachContainerGroup(): void;
+
+  render(): void;
   unrender(): void;
 
   attachMouseEvent<K extends keyof SVGElementEventMap>(

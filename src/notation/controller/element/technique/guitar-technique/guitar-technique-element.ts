@@ -450,9 +450,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
 
   /** Element's rect */
   public get rect(): Rect {
-    // FIX: This rect is for interface compliance only.
-    // Will need to implement storing this._rect just like
-    // all other elements
+    // Placeholder rect used to satisfy the notation element interface.
+    // This element currently does not persist a dedicated _rect.
     return new Rect(this._startPoint.x, this._startPoint.y, 0, 0);
   }
 
@@ -466,9 +465,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
 
   /** Element's rect */
   public get globalRect(): Rect {
-    // FIX: This rect is for interface compliance only.
-    // Will need to implement storing this._rect just like
-    // all other elements
+    // Placeholder rect used to satisfy the notation element interface.
+    // This element currently does not persist a dedicated _rect.
     return new Rect(this.globalCoords.x, this.globalCoords.y, 0, 0);
   }
 }

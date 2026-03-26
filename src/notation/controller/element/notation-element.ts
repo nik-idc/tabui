@@ -20,3 +20,5 @@ export interface NotationElement {
 
   getModelUUID(): number;
 }
+
+export type NotationElementClass = new (...args: any[]) => NotationElement;

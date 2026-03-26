@@ -1,5 +1,6 @@
 import { getEl } from "@/shared/misc/get-dom-element";
 import { score } from "./data/full-score";
+import { selectionPerfScore } from "./data/selection-perf-score";
 import { TabUIEditor } from "@/tabui-editor";
 import { TabLayoutDimensions } from "@/notation";
 
@@ -17,7 +18,15 @@ const rootDiv = document.getElementById(
 if (rootDiv === null) {
   throw new Error("Could not get root div element");
 }
-const tabuiEditor = new TabUIEditor(rootDiv, score);
+const searchParams = new URLSearchParams(window.location.search);
+const isSelectionPerfMode = searchParams.get("perf") === "selection";
+
+const selectedScore = isSelectionPerfMode ? selectionPerfScore : score;
+if (isSelectionPerfMode) {
+  console.log("=== PERF MODE ===", "Selection stress score enabled");
+}
+
+const tabuiEditor = new TabUIEditor(rootDiv, selectedScore);
 tabuiEditor.init();
 
 // Get DOM references

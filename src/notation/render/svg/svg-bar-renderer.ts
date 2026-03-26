@@ -27,22 +27,24 @@ export class SVGBarRenderer implements ElementRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Bar element */
-  readonly barElement: BarElement;
+  barElement: BarElement;
+  /** Assets path */
+  readonly assetsPath: string;
 
-  /** Path to any assets */
-  private _assetsPath: string;
-  /** Parent SVG group element */
-  private _parentElement: SVGGElement;
+  // /** Path to any assets */
+  // private assetsPath: string;
+  // /** Parent SVG group element */
+  // private _parentElement: SVGGElement;
 
-  /** Rendered beat elements map */
-  private _renderedBeatElements: Map<number, SVGBeatRenderer>;
-  /** Rendered beam segments map */
-  private _renderedBeamSegments: Map<number, SVGBeamSegmentRenderer>;
-  /** Rendered tuplet elements map */
-  private _renderedTupletElements: Map<number, SVGTupletRenderer>;
+  // /** Rendered beat elements map */
+  // private _renderedBeatElements: Map<number, SVGBeatRenderer>;
+  // /** Rendered beam segments map */
+  // private _renderedBeamSegments: Map<number, SVGBeamSegmentRenderer>;
+  // /** Rendered tuplet elements map */
+  // private _renderedTupletElements: Map<number, SVGTupletRenderer>;
 
   /** Container SVG group */
-  private _groupSVG?: SVGGElement;
+  private _containerGroupSVG?: SVGGElement;
   /** Array of bar staffs as SVG line elements */
   private _staffLinesSVG?: SVGLineElement[];
   /** Array of bar border lines as SVG line elements */
@@ -58,24 +60,40 @@ export class SVGBarRenderer implements ElementRenderer {
    * Class for rendering a beat element using SVG
    * @param trackController Track controller
    * @param barElement Bar element
-   * @param assetsPath Path to assets
-   * @param parentElement SVG parent element (a tab line element in this case)
+   * @param assetsPath Assets paths
    */
   constructor(
     trackController: TrackController,
     barElement: BarElement,
-    assetsPath: string,
-    parentElement: SVGGElement
+    assetsPath: string
   ) {
     this.trackController = trackController;
     this.barElement = barElement;
+    this.assetsPath = assetsPath;
+  }
 
-    this._assetsPath = assetsPath;
-    this._parentElement = parentElement;
+  /**
+   * Ensures renderer's container group exists and returns it.
+   * @returns Renderer's container SVG group element
+   */
+  public ensureContainerGroup(): SVGGElement {
+    if (this._containerGroupSVG !== undefined) {
+      return this._containerGroupSVG;
+    }
 
-    this._renderedBeatElements = new Map();
-    this._renderedTupletElements = new Map();
-    this._renderedBeamSegments = new Map();
+    const barUUID = this.barElement.bar.uuid;
+    this._containerGroupSVG = createSVGG();
+    this._containerGroupSVG.setAttribute("id", `bar-${barUUID}`);
+
+    return this._containerGroupSVG;
+  }
+
+  public detachContainerGroup(): void {
+    if (this._containerGroupSVG === undefined) {
+      return;
+    }
+
+    this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
   /**
@@ -83,21 +101,14 @@ export class SVGBarRenderer implements ElementRenderer {
    * data about the bar
    */
   private renderGroup(): void {
-    if (this._groupSVG !== undefined) {
-      return;
-    }
-
-    const beatUUID = this.barElement.bar.uuid;
-    this._groupSVG = createSVGG();
-    this._groupSVG.setAttribute("id", `bar-${beatUUID}`);
-    this._parentElement.appendChild(this._groupSVG);
+    this.ensureContainerGroup();
   }
 
   /**
    * Render bar staff lines
    */
   private renderBarStaffLines(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render bar staff when SVG group undefined");
     }
 
@@ -112,7 +123,7 @@ export class SVGBarRenderer implements ElementRenderer {
         this._staffLinesSVG[i].setAttribute("id", id);
 
         // Add element to root SVG element
-        this._groupSVG.appendChild(this._staffLinesSVG[i]);
+        this._containerGroupSVG.appendChild(this._staffLinesSVG[i]);
       }
     }
 
@@ -133,7 +144,7 @@ export class SVGBarRenderer implements ElementRenderer {
    * Unrender all bar staff lines
    */
   private unrenderBarStaffLines(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender bar staff when SVG group undefined");
     }
 
@@ -142,7 +153,7 @@ export class SVGBarRenderer implements ElementRenderer {
     }
 
     for (let i = 0; i < this.barElement.staffLines.length; i++) {
-      this._groupSVG.removeChild(this._staffLinesSVG[i]);
+      this._containerGroupSVG.removeChild(this._staffLinesSVG[i]);
     }
     this._staffLinesSVG = undefined;
   }
@@ -151,7 +162,7 @@ export class SVGBarRenderer implements ElementRenderer {
    * Render bar border lines (left and right)
    */
   private renderBarBorderLines(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render bar borders when SVG group undefined");
     }
 
@@ -168,8 +179,8 @@ export class SVGBarRenderer implements ElementRenderer {
       this._borderLinesSVG[1].setAttribute("id", `bar-border-${barUUID}-1`);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._borderLinesSVG[0]);
-      this._groupSVG.appendChild(this._borderLinesSVG[1]);
+      this._containerGroupSVG.appendChild(this._borderLinesSVG[0]);
+      this._containerGroupSVG.appendChild(this._borderLinesSVG[1]);
     }
 
     const leftGlobal = this.barElement.barLeftBorderLineGlobal;
@@ -189,7 +200,7 @@ export class SVGBarRenderer implements ElementRenderer {
    * Unrender all bar border lines
    */
   private unrenderBarBorderLines(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender bar borders when SVG group undefined");
     }
 
@@ -197,8 +208,8 @@ export class SVGBarRenderer implements ElementRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._borderLinesSVG[0]);
-    this._groupSVG.removeChild(this._borderLinesSVG[1]);
+    this._containerGroupSVG.removeChild(this._borderLinesSVG[0]);
+    this._containerGroupSVG.removeChild(this._borderLinesSVG[1]);
     this._borderLinesSVG = undefined;
   }
 
@@ -206,7 +217,7 @@ export class SVGBarRenderer implements ElementRenderer {
    * Render bar time signature info
    */
   private renderBarSig(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render bar sig when SVG group undefined");
     }
 
@@ -235,8 +246,8 @@ export class SVGBarRenderer implements ElementRenderer {
       this._timeSigTextsSVG[1].setAttribute("id", `bar-sig-${barUUID}-1`);
 
       // Add element to root SVG element
-      this._groupSVG.appendChild(this._timeSigTextsSVG[0]);
-      this._groupSVG.appendChild(this._timeSigTextsSVG[1]);
+      this._containerGroupSVG.appendChild(this._timeSigTextsSVG[0]);
+      this._containerGroupSVG.appendChild(this._timeSigTextsSVG[1]);
     }
 
     const beatsX = `${this.barElement.timeSigBeatsTextCoordsGlobal.x}`;
@@ -258,7 +269,7 @@ export class SVGBarRenderer implements ElementRenderer {
    * Unrender all bar sig info
    */
   private unrenderBarSig(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender bar sig when SVG group undefined");
     }
 
@@ -266,8 +277,8 @@ export class SVGBarRenderer implements ElementRenderer {
       return;
     }
 
-    this._groupSVG.removeChild(this._timeSigTextsSVG[0]);
-    this._groupSVG.removeChild(this._timeSigTextsSVG[1]);
+    this._containerGroupSVG.removeChild(this._timeSigTextsSVG[0]);
+    this._containerGroupSVG.removeChild(this._timeSigTextsSVG[1]);
     this._timeSigTextsSVG = undefined;
   }
 
@@ -275,7 +286,7 @@ export class SVGBarRenderer implements ElementRenderer {
    * Renders repeat signs (if there any to render)
    */
   private renderRepeats(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render bar repeats when SVG group undefined");
     }
 
@@ -293,11 +304,11 @@ export class SVGBarRenderer implements ElementRenderer {
       // Set only-set-once attributes
       this._repeatStartSVG = createSVGImage();
 
-      const href = `${this._assetsPath}/img/ui/repeat-start-applied_.svg`;
+      const href = `${this.assetsPath}/img/ui/repeat-start-applied_.svg`;
       this._repeatStartSVG.setAttribute("href", href);
       this._repeatStartSVG.setAttribute("id", `bar-rep-start-${barUUID}`);
 
-      this._groupSVG.appendChild(this._repeatStartSVG);
+      this._containerGroupSVG.appendChild(this._repeatStartSVG);
     }
     if (
       this._repeatEndSVG === undefined &&
@@ -305,11 +316,11 @@ export class SVGBarRenderer implements ElementRenderer {
     ) {
       this._repeatEndSVG = createSVGImage();
 
-      const href = `${this._assetsPath}/img/ui/repeat-end-applied_.svg`;
+      const href = `${this.assetsPath}/img/ui/repeat-end-applied_.svg`;
       this._repeatEndSVG.setAttribute("href", href);
       this._repeatEndSVG.setAttribute("id", `bar-rep-end-${barUUID}`);
 
-      this._groupSVG.appendChild(this._repeatEndSVG);
+      this._containerGroupSVG.appendChild(this._repeatEndSVG);
     }
 
     if (this._repeatStartSVG !== undefined && repStartGlobal !== undefined) {
@@ -339,150 +350,150 @@ export class SVGBarRenderer implements ElementRenderer {
    * Unrenders repeat signs (if there any to render)
    */
   private unrenderRepeats(): void {
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender bar repeats when SVG group undefined");
     }
 
     if (this._repeatStartSVG !== undefined) {
-      this._groupSVG.removeChild(this._repeatStartSVG);
+      this._containerGroupSVG.removeChild(this._repeatStartSVG);
       this._repeatStartSVG = undefined;
     }
     if (this._repeatEndSVG !== undefined) {
-      this._groupSVG.removeChild(this._repeatEndSVG);
+      this._containerGroupSVG.removeChild(this._repeatEndSVG);
       this._repeatEndSVG = undefined;
     }
   }
 
-  /**
-   * Render beam segments
-   * @returns Active beam segment renderers
-   */
-  private renderBarBeamSegments(): ElementRenderer[] {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to render tuplets when SVG group undefined");
-    }
-
-    if (this.barElement.beamSegments.length === 0) {
-      return [];
-    }
-
-    const activeRenderers: ElementRenderer[] = [];
-
-    // Check if there are any beam segments to remove
-    const curBarBeamSegmetsUUIDs = new Set(
-      this.barElement.beamSegments.map((bs) => bs.uuid)
-    );
-    for (const [uuid, renderer] of this._renderedBeamSegments) {
-      if (!curBarBeamSegmetsUUIDs.has(uuid)) {
-        renderer.unrender();
-        this._renderedBeamSegments.delete(uuid);
-      }
-    }
-
-    // Add & render new segments AND re-render existing segments
-    for (const beamSegment of this.barElement.beamSegments) {
-      const renderedSegment = this._renderedBeamSegments.get(beamSegment.uuid);
-      if (renderedSegment === undefined) {
-        const renderer = new SVGBeamSegmentRenderer(
-          this.trackController,
-          beamSegment,
-          this._assetsPath,
-          this._groupSVG
-        );
-        activeRenderers.push(renderer);
-        renderer.render();
-        this._renderedBeamSegments.set(beamSegment.uuid, renderer);
-      } else {
-        activeRenderers.push(renderedSegment);
-        renderedSegment.render();
-      }
-    }
-    return activeRenderers;
-  }
-
-  /**
-   * Unrender tuplets
-   */
-  private unrenderBarBeamSegments(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender tuplets when SVG group undefined");
-    }
-
-    for (const [uuid, renderer] of this._renderedBeamSegments) {
-      renderer.unrender();
-      this._renderedBeamSegments.delete(uuid);
-    }
-  }
-
-  /**
-   * Render tuplets
-   * @returns Active tuplet renderers
-   */
-  private renderTuplets(): ElementRenderer[] {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to render tuplets when SVG group undefined");
-    }
-
-    const activeRenderers: ElementRenderer[] = [];
-
-    // Check if there are any beat element to remove
-    const curBarTupletGroupUUIDs = new Set(
-      this.barElement.tupletElements.map((b) => b.tupletGroup.uuid)
-    );
-    for (const [uuid, renderer] of this._renderedTupletElements) {
-      if (!curBarTupletGroupUUIDs.has(uuid)) {
-        renderer.unrender();
-        this._renderedTupletElements.delete(uuid);
-      }
-    }
-
-    // Add & render new beat element AND re-render existing beats
-    for (const tupletElement of this.barElement.tupletElements) {
-      const renderedTuplet = this._renderedTupletElements.get(
-        tupletElement.tupletGroup.uuid
-      );
-      if (renderedTuplet === undefined) {
-        const renderer = new SVGTupletRenderer(
-          this.trackController,
-          tupletElement,
-          this._assetsPath,
-          this._groupSVG
-        );
-        activeRenderers.push(renderer);
-        renderer.render();
-        this._renderedTupletElements.set(
-          tupletElement.tupletGroup.uuid,
-          renderer
-        );
-      } else {
-        activeRenderers.push(renderedTuplet);
-        renderedTuplet.render();
-      }
-    }
-    return activeRenderers;
-  }
-
-  /**
-   * Unrender tuplets
-   */
-  private unrenderTuplets(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender tuplets when SVG group undefined");
-    }
-
-    for (const [uuid, renderer] of this._renderedTupletElements) {
-      renderer.unrender();
-      this._renderedTupletElements.delete(uuid);
-    }
-  }
+  // /**
+  //  * Render beam segments
+  //  * @returns Active beam segment renderers
+  //  */
+  // private renderBarBeamSegments(): ElementRenderer[] {
+  //   if (this._containerGroupSVG === undefined) {
+  //     throw Error("Tried to render tuplets when SVG group undefined");
+  //   }
+  //
+  //   if (this.barElement.beamSegments.length === 0) {
+  //     return [];
+  //   }
+  //
+  //   const activeRenderers: ElementRenderer[] = [];
+  //
+  //   // Check if there are any beam segments to remove
+  //   const curBarBeamSegmetsUUIDs = new Set(
+  //     this.barElement.beamSegments.map((bs) => bs.uuid)
+  //   );
+  //   for (const [uuid, renderer] of this._renderedBeamSegments) {
+  //     if (!curBarBeamSegmetsUUIDs.has(uuid)) {
+  //       renderer.unrender();
+  //       this._renderedBeamSegments.delete(uuid);
+  //     }
+  //   }
+  //
+  //   // Add & render new segments AND re-render existing segments
+  //   for (const beamSegment of this.barElement.beamSegments) {
+  //     const renderedSegment = this._renderedBeamSegments.get(beamSegment.uuid);
+  //     if (renderedSegment === undefined) {
+  //       const renderer = new SVGBeamSegmentRenderer(
+  //         this.trackController,
+  //         beamSegment,
+  //         this.assetsPath,
+  //         this._containerGroupSVG
+  //       );
+  //       activeRenderers.push(renderer);
+  //       renderer.render();
+  //       this._renderedBeamSegments.set(beamSegment.uuid, renderer);
+  //     } else {
+  //       activeRenderers.push(renderedSegment);
+  //       renderedSegment.render();
+  //     }
+  //   }
+  //   return activeRenderers;
+  // }
+  //
+  // /**
+  //  * Unrender tuplets
+  //  */
+  // private unrenderBarBeamSegments(): void {
+  //   if (this._containerGroupSVG === undefined) {
+  //     throw Error("Tried to unrender tuplets when SVG group undefined");
+  //   }
+  //
+  //   for (const [uuid, renderer] of this._renderedBeamSegments) {
+  //     renderer.unrender();
+  //     this._renderedBeamSegments.delete(uuid);
+  //   }
+  // }
+  //
+  // /**
+  //  * Render tuplets
+  //  * @returns Active tuplet renderers
+  //  */
+  // private renderTuplets(): ElementRenderer[] {
+  //   if (this._containerGroupSVG === undefined) {
+  //     throw Error("Tried to render tuplets when SVG group undefined");
+  //   }
+  //
+  //   const activeRenderers: ElementRenderer[] = [];
+  //
+  //   // Check if there are any beat element to remove
+  //   const curBarTupletGroupUUIDs = new Set(
+  //     this.barElement.tupletElements.map((b) => b.tupletGroup.uuid)
+  //   );
+  //   for (const [uuid, renderer] of this._renderedTupletElements) {
+  //     if (!curBarTupletGroupUUIDs.has(uuid)) {
+  //       renderer.unrender();
+  //       this._renderedTupletElements.delete(uuid);
+  //     }
+  //   }
+  //
+  //   // Add & render new beat element AND re-render existing beats
+  //   for (const tupletElement of this.barElement.tupletElements) {
+  //     const renderedTuplet = this._renderedTupletElements.get(
+  //       tupletElement.tupletGroup.uuid
+  //     );
+  //     if (renderedTuplet === undefined) {
+  //       const renderer = new SVGTupletRenderer(
+  //         this.trackController,
+  //         tupletElement,
+  //         this.assetsPath,
+  //         this._containerGroupSVG
+  //       );
+  //       activeRenderers.push(renderer);
+  //       renderer.render();
+  //       this._renderedTupletElements.set(
+  //         tupletElement.tupletGroup.uuid,
+  //         renderer
+  //       );
+  //     } else {
+  //       activeRenderers.push(renderedTuplet);
+  //       renderedTuplet.render();
+  //     }
+  //   }
+  //   return activeRenderers;
+  // }
+  //
+  // /**
+  //  * Unrender tuplets
+  //  */
+  // private unrenderTuplets(): void {
+  //   if (this._containerGroupSVG === undefined) {
+  //     throw Error("Tried to unrender tuplets when SVG group undefined");
+  //   }
+  //
+  //   for (const [uuid, renderer] of this._renderedTupletElements) {
+  //     renderer.unrender();
+  //     this._renderedTupletElements.delete(uuid);
+  //   }
+  // }
 
   /**
    * Render bar element
    */
-  public render(): ElementRenderer[] {
+  public render(): void {
     this.renderGroup();
 
-    if (this._groupSVG === undefined) {
+    if (this._containerGroupSVG === undefined) {
       throw Error("Bar group SVG undefined after render group call");
     }
 
@@ -492,8 +503,8 @@ export class SVGBarRenderer implements ElementRenderer {
     this.renderBarBorderLines();
     this.renderBarSig();
     this.renderRepeats();
-    activeRenderers.push(...this.renderBarBeamSegments());
-    activeRenderers.push(...this.renderTuplets());
+    // this.renderBarBeamSegments();
+    // this.renderTuplets();
 
     // // Time sig and/or repeat start => render gap at the start
     // if (this.barElement.startGap.width > 0) {
@@ -513,67 +524,67 @@ export class SVGBarRenderer implements ElementRenderer {
     //   this.unrenderSelectionEndGap();
     // }
 
-    // Check if there are any beat element to remove
-    const curBeatElementUUIDs = new Set(
-      this.barElement.beatElements.map((b) => b.beat.uuid)
-    );
-    for (const [uuid, renderer] of this._renderedBeatElements) {
-      if (!curBeatElementUUIDs.has(uuid)) {
-        renderer.unrender();
-        this._renderedBeatElements.delete(uuid);
-      }
-    }
-
-    // Add & render new beat element AND re-render existing beats
-    for (const beatElement of this.barElement.beatElements) {
-      const renderedBeat = this._renderedBeatElements.get(
-        beatElement.beat.uuid
-      );
-      if (renderedBeat === undefined) {
-        const renderer = new SVGTabBeatRenderer(
-          this.trackController,
-          beatElement as TabBeatElement,
-          this._assetsPath,
-          this._groupSVG
-        );
-        activeRenderers.push(renderer);
-        activeRenderers.push(...renderer.render());
-        this._renderedBeatElements.set(beatElement.beat.uuid, renderer);
-      } else {
-        activeRenderers.push(renderedBeat);
-        activeRenderers.push(...renderedBeat.render());
-      }
-    }
-    return activeRenderers;
+    // // Check if there are any beat element to remove
+    // const curBeatElementUUIDs = new Set(
+    //   this.barElement.beatElements.map((b) => b.beat.uuid)
+    // );
+    // for (const [uuid, renderer] of this._renderedBeatElements) {
+    //   if (!curBeatElementUUIDs.has(uuid)) {
+    //     renderer.unrender();
+    //     this._renderedBeatElements.delete(uuid);
+    //   }
+    // }
+    //
+    // // Add & render new beat element AND re-render existing beats
+    // for (const beatElement of this.barElement.beatElements) {
+    //   const renderedBeat = this._renderedBeatElements.get(
+    //     beatElement.beat.uuid
+    //   );
+    //   if (renderedBeat === undefined) {
+    //     const renderer = new SVGTabBeatRenderer(
+    //       this.trackController,
+    //       beatElement as TabBeatElement,
+    //       this.assetsPath,
+    //       this._containerGroupSVG
+    //     );
+    //     activeRenderers.push(renderer);
+    //     activeRenderers.push(...renderer.render());
+    //     this._renderedBeatElements.set(beatElement.beat.uuid, renderer);
+    //   } else {
+    //     activeRenderers.push(renderedBeat);
+    //     activeRenderers.push(...renderedBeat.render());
+    //   }
+    // }
+    // return activeRenderers;
   }
 
   /**
    * Unrender all bar element's DOM element
    */
   public unrender(): void {
-    if (this._groupSVG === undefined) {
-      throw Error("Tried to unrender note elem when SVG group undefined");
+    if (this._containerGroupSVG === undefined) {
+      return;
     }
 
-    for (const [uuid, renderer] of this._renderedBeatElements) {
-      renderer.unrender();
-      this._renderedBeatElements.delete(uuid);
-    }
+    // for (const [uuid, renderer] of this._renderedBeatElements) {
+    //   renderer.unrender();
+    //   this._renderedBeatElements.delete(uuid);
+    // }
 
     this.unrenderBarStaffLines();
     this.unrenderBarBorderLines();
     this.unrenderBarSig();
     this.unrenderRepeats();
-    this.unrenderBarBeamSegments();
-    this.unrenderTuplets();
+    // this.unrenderBarBeamSegments();
+    // this.unrenderTuplets();
 
-    this._parentElement.removeChild(this._groupSVG);
-    this._groupSVG = undefined;
+    // this._parentElement.removeChild(this._containerGroupSVG);
+    // this._containerGroupSVG = undefined;
   }
 
   /** Beat renderers getter */
   public get beatRenderers(): SVGBeatRenderer[] {
-    return Array.from(this.beatRenderers.values());
+    return [];
   }
 }
 
@@ -584,7 +595,7 @@ export class SVGBarRenderer implements ElementRenderer {
 //  * Render selection start gap
 //  */
 // private renderSelectionStartGap(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to render selection gap when SVG group undefined");
 //   }
 
@@ -601,7 +612,7 @@ export class SVGBarRenderer implements ElementRenderer {
 //     this._selectionStartGapRect.setAttribute("id", `bar-sel-gap-${barUUID}`);
 
 //     // Add element to group SVG element
-//     this._groupSVG.appendChild(this._selectionStartGapRect);
+//     this._containerGroupSVG.appendChild(this._selectionStartGapRect);
 //   }
 
 //   const startGapGlobal = this.barElement.startGapGlobal;
@@ -622,7 +633,7 @@ export class SVGBarRenderer implements ElementRenderer {
 //  * Unrender selection start gap
 //  */
 // private unrenderSelectionStartGap(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to unrender selection gap when SVG group undefined");
 //   }
 
@@ -630,7 +641,7 @@ export class SVGBarRenderer implements ElementRenderer {
 //     return;
 //   }
 
-//   this._groupSVG.removeChild(this._selectionStartGapRect);
+//   this._containerGroupSVG.removeChild(this._selectionStartGapRect);
 //   this._selectionStartGapRect = undefined;
 // }
 
@@ -638,7 +649,7 @@ export class SVGBarRenderer implements ElementRenderer {
 //  * Render selection end gap
 //  */
 // private renderSelectionEndGap(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to render selection gap when SVG group undefined");
 //   }
 
@@ -655,7 +666,7 @@ export class SVGBarRenderer implements ElementRenderer {
 //     this._barSelectionEndGapRect.setAttribute("id", `bar-sel-gap-${barUUID}`);
 
 //     // Add element to group SVG element
-//     this._groupSVG.appendChild(this._barSelectionEndGapRect);
+//     this._containerGroupSVG.appendChild(this._barSelectionEndGapRect);
 //   }
 
 //   const globalCoords = this.barElement.staffLineElement.globalCoords;
@@ -676,7 +687,7 @@ export class SVGBarRenderer implements ElementRenderer {
 //  * Unrender selection end gap
 //  */
 // private unrenderSelectionEndGap(): void {
-//   if (this._groupSVG === undefined) {
+//   if (this._containerGroupSVG === undefined) {
 //     throw Error("Tried to unrender selection gap when SVG group undefined");
 //   }
 
@@ -684,7 +695,7 @@ export class SVGBarRenderer implements ElementRenderer {
 //     return;
 //   }
 
-//   this._groupSVG.removeChild(this._barSelectionEndGapRect);
+//   this._containerGroupSVG.removeChild(this._barSelectionEndGapRect);
 //   this._barSelectionEndGapRect = undefined;
 // }
 // ==== MAYBE USEFULL LATER ====

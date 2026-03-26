@@ -5,7 +5,7 @@ import { TrackLineData, TrackLineElement } from "./track-line-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import { BeatElement } from "./beat-element";
 import { StaffLineElement } from "./staff-line-element";
-import { NotationElement } from "./notation-element";
+import { NotationElement, NotationElementClass } from "./notation-element";
 import { TabNoteElement } from "./tab-note-element";
 import { TabBeatElement } from "./tab-beat-element";
 import { NotationStyleLineElement } from "./notation-style-line-element";
@@ -21,7 +21,7 @@ import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar
  * ELEMENT_ORDER defines the order in which element types are rendered.
  * Parents must render before children.
  */
-const ELEMENT_ORDER: Array<Function> = [
+export const ELEMENT_ORDER: Array<NotationElementClass> = [
   TrackLineElement,
   TrackLineInfoElement,
   StaffLineElement,
@@ -36,6 +36,12 @@ const ELEMENT_ORDER: Array<Function> = [
   BarTupletGroupElement,
   TechGapLineElement,
 ];
+
+export interface ElementDiff {
+  added: Map<NotationElementClass, Map<number, NotationElement>>;
+  updated: Map<NotationElementClass, Map<number, NotationElement>>;
+  removed: Map<NotationElementClass, Set<number>>;
+}
 
 /**
  * Class that handles all geometry & visually relevant info of a track
@@ -54,7 +60,12 @@ export class TrackElement {
   /** Keeps track of all elements' hash strings */
   private _elementHashes: Map<number, string>;
   /** Keeps track of changed elements grouped by type */
-  private _dirtyElements: Map<Function, Map<number, NotationElement>>;
+  private _dirtyElements: Map<
+    NotationElementClass,
+    Map<number, NotationElement>
+  >;
+  /** Structural diff between previous and current update cycles */
+  private _elementDiff: ElementDiff;
 
   // Purely for testing
   public counts: any = {};
@@ -71,6 +82,7 @@ export class TrackElement {
     this._elementRegistry = new Map();
     this._elementHashes = new Map();
     this._dirtyElements = new Map();
+    this._elementDiff = this.createEmptyDiff();
 
     this.build();
   }
@@ -162,9 +174,6 @@ export class TrackElement {
       const isLastLine = i === lastIndex;
       this._trackLineElements[i].justifyElements(isLastLine);
     }
-
-    //console.log("Track Element is ready");
-    //console.log(this);
   }
 
   /**
@@ -174,9 +183,15 @@ export class TrackElement {
    * - Layout
    */
   public update(): void {
+    const prevRegistry = new Map(this._elementRegistry);
+    const prevHashes = new Map(this._elementHashes);
+
     this.build();
     this.measure();
     this.layout();
+
+    this.computeElementDiff(prevRegistry, prevHashes);
+
     this.checkAllDirty();
   }
 
@@ -201,7 +216,7 @@ export class TrackElement {
       const curHash = element.stateHash;
 
       if (prevHash === undefined || prevHash !== curHash) {
-        const ElementClass = element.constructor as Function;
+        const ElementClass = element.constructor as NotationElementClass;
 
         if (!this._dirtyElements.has(ElementClass)) {
           this._dirtyElements.set(ElementClass, new Map());
@@ -213,12 +228,32 @@ export class TrackElement {
     }
   }
 
-  public getDirtyElements(): Map<Function, Map<number, NotationElement>> {
+  public getDirtyElements(): Map<
+    NotationElementClass,
+    Map<number, NotationElement>
+  > {
     return this._dirtyElements;
   }
 
-  public getElementOrder(): Array<Function> {
+  public getElementDiff(): ElementDiff {
+    return this._elementDiff;
+  }
+
+  public getElementOrder(): Array<NotationElementClass> {
     return ELEMENT_ORDER;
+  }
+
+  /** Read-only registry view for model UUID lookups. */
+  public getElementRegistry(): ReadonlyMap<number, NotationElement> {
+    return this._elementRegistry;
+  }
+
+  public getRegisteredElements(): NotationElement[] {
+    return Array.from(this._elementRegistry.values());
+  }
+
+  public getElementByModelUUID(modelUUID: number): NotationElement | undefined {
+    return this._elementRegistry.get(modelUUID);
   }
 
   public clearDirtyElements(): void {
@@ -226,6 +261,68 @@ export class TrackElement {
       map.clear();
     }
     this.counts = {};
+  }
+
+  public clearElementDiff(): void {
+    this._elementDiff = this.createEmptyDiff();
+  }
+
+  private createEmptyDiff(): ElementDiff {
+    return {
+      added: new Map(),
+      updated: new Map(),
+      removed: new Map(),
+    };
+  }
+
+  private addToDiff(
+    diffMap: Map<NotationElementClass, Map<number, NotationElement>>,
+    element: NotationElement
+  ): void {
+    const elementClass = element.constructor as NotationElementClass;
+    if (!diffMap.has(elementClass)) {
+      diffMap.set(elementClass, new Map());
+    }
+    diffMap.get(elementClass)!.set(element.getModelUUID(), element);
+  }
+
+  private addToRemovedDiff(
+    removedMap: Map<NotationElementClass, Set<number>>,
+    element: NotationElement
+  ): void {
+    const elementClass = element.constructor as NotationElementClass;
+    if (!removedMap.has(elementClass)) {
+      removedMap.set(elementClass, new Set());
+    }
+    removedMap.get(elementClass)!.add(element.getModelUUID());
+  }
+
+  private computeElementDiff(
+    prevRegistry: Map<number, NotationElement>,
+    prevHashes: Map<number, string>
+  ): void {
+    this._elementDiff = this.createEmptyDiff();
+
+    for (const [modelUUID, element] of this._elementRegistry) {
+      const prevElement = prevRegistry.get(modelUUID);
+      if (prevElement === undefined) {
+        this.addToDiff(this._elementDiff.added, element);
+        continue;
+      }
+
+      const prevHash = prevHashes.get(modelUUID);
+      const curHash = element.stateHash;
+      if (prevHash === undefined || prevHash !== curHash) {
+        this.addToDiff(this._elementDiff.updated, element);
+      }
+    }
+
+    for (const [modelUUID, element] of prevRegistry) {
+      if (this._elementRegistry.has(modelUUID)) {
+        continue;
+      }
+      this.addToRemovedDiff(this._elementDiff.removed, element);
+    }
   }
 
   /**
@@ -264,6 +361,8 @@ export class TrackElement {
       return [];
     }
 
+    const selectedBeats = new Set<Beat>(beats);
+
     const rects: Rect[] = [];
     let curLineRect: Rect | undefined;
 
@@ -276,7 +375,7 @@ export class TrackElement {
 
         for (const barElement of staffLine.styleLinesAsArray[0].barElements) {
           for (const beatElement of barElement.beatElements) {
-            if (!beats.includes(beatElement.beat)) {
+            if (!selectedBeats.has(beatElement.beat)) {
               continue;
             }
 
@@ -295,6 +394,10 @@ export class TrackElement {
           }
         }
       }
+    }
+
+    if (curLineRect !== undefined) {
+      rects.push(curLineRect);
     }
 
     return rects;
@@ -849,7 +952,6 @@ export class TrackElement {
 //   //   this._trackLineElements.push(curLine);
 //   // }
 
-//   console.log(this);
 // }
 
 // /**

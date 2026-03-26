@@ -66,7 +66,7 @@ export class TechGapElement implements NotationElement {
 
             let gapLine = this._techGapLines[lineNumber];
             if (gapLine === null) {
-              gapLine = new TechGapLineElement(this);
+              gapLine = new TechGapLineElement(this, lineNumber);
               this._techGapLines[lineNumber] = gapLine;
             }
 
@@ -146,8 +146,7 @@ export class TechGapElement implements NotationElement {
   }
 
   public getModelUUID(): number {
-    // EXPERIMENTAL: Gap belongs to a specific staff via parent chain
-    return this.notationStyleLineElement.staffLineElement.staff.uuid;
+    return this.notationStyleLineElement.getModelUUID() + 1000002;
   }
 
   /** This tech gap line's global coords */

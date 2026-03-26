@@ -1,23 +1,19 @@
-import { DURATION_TO_NAME, GuitarNote, NoteDuration } from "@/notation/model";
-import { Point, createSVGG, createSVGImage, createSVGRect } from "@/shared";
-import { ElementRenderer } from "../element-renderer";
 import {
   BeatElement,
-  TabLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
-import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
-import { SVGNoteRenderer } from "./svg-note-renderer";
-import { SVGGuitarNoteRenderer } from "./svg-guitar-note-renderer";
 
 /**
  * Class for rendering a beat element using SVG
  */
 export interface SVGBeatRenderer {
   readonly trackController: TrackController;
-  readonly beatElement: BeatElement;
+  beatElement: BeatElement;
 
-  render(): ElementRenderer[];
+  ensureContainerGroup(): SVGGElement;
+  detachContainerGroup(): void;
+
+  render(): void;
   unrender(): void;
 
   attachMouseEvent<K extends keyof SVGElementEventMap>(

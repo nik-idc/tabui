@@ -4,6 +4,7 @@ import { TabLayoutDimensions } from "../tab-controller-dim";
 import {
   GuitarTechniqueLabelElement,
   TECHNIQUE_ALLOWS_STACKING,
+  TechLineNumber,
   TechniqueLabelElement,
 } from "./technique";
 import { BeatElement } from "./beat-element";
@@ -20,6 +21,8 @@ export class TechGapLineElement implements NotationElement {
   readonly uuid: number;
   /** Parent staff gap element */
   readonly techGapElement: TechGapElement;
+  /** Line number in tech gap (1/2/3) */
+  readonly techLineNumber: TechLineNumber;
   /** Root track element */
   readonly trackElement: TrackElement;
 
@@ -38,10 +41,12 @@ export class TechGapLineElement implements NotationElement {
    * Class representing a single line of a staff line's
    * technique label gap
    * @param techGapElement Tech gap element
+   * @param techLineNumber Line number in the gap
    */
-  constructor(techGapElement: TechGapElement) {
+  constructor(techGapElement: TechGapElement, techLineNumber: TechLineNumber) {
     this.uuid = randomInt();
     this.techGapElement = techGapElement;
+    this.techLineNumber = techLineNumber;
     this.trackElement = this.techGapElement.trackElement;
 
     this._stateHash = "";
@@ -171,9 +176,7 @@ export class TechGapLineElement implements NotationElement {
   }
 
   public getModelUUID(): number {
-    // EXPERIMENTAL: Gap line belongs to a specific staff via parent chain
-    return this.techGapElement.notationStyleLineElement.staffLineElement.staff
-      .uuid;
+    return this.techGapElement.getModelUUID() + this.techLineNumber;
   }
 
   /** Global coords of the notation style line element */
@@ -186,7 +189,7 @@ export class TechGapLineElement implements NotationElement {
 
   /** Line outer rectangle */
   public get rect(): Rect {
-    // FIX: This is kinda terrible
+    // Fallback keeps interface contract for not-yet-measured instances.
     return this._rect ?? new Rect();
   }
 

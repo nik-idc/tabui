@@ -227,8 +227,7 @@ export class BeamSegmentElement implements NotationElement {
   }
 
   public getModelUUID(): number {
-    // EXPERIMENTAL: Beam segment is fundamentally about connecting two beats
-    return this.curBeatElement.beat.uuid;
+    return this.curBeatElement.beat.uuid + this.nextBeatElement.beat.uuid;
   }
 
   /** Bar element rectangle */
