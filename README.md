@@ -2,6 +2,13 @@
 
 Guitar tab editor library.
 
+## Project Status
+`master` is currently outdated compared to `tu-69-refactor-and-optimization`, which contains the latest refactor and performance work.
+### Latest Branch Highlights (`tu-69-refactor-and-optimization`)
+- Model/rendering refactor
+- Dirty-state hashing and tracking optimization
+- Selection/rendering optimization with related visual fixes
+
 ## Demo
 [GitHub Pages Demo](https://nik-idc.github.io/tabui/)
 
