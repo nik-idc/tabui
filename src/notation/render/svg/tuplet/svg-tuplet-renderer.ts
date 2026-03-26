@@ -175,9 +175,9 @@ export class SVGTupletRenderer implements ElementRenderer {
    * Render incomplete tuplet text
    */
   private renderIncompleteTupletText(index: number): void {
-    console.log(
-      `RENDERING TUPLET FOR BEAT ${this.tupletElement.beatElements[0].uuid}`
-    );
+    //console.log(
+    //   `RENDERING TUPLET FOR BEAT ${this.tupletElement.beatElements[0].uuid}`
+    // );
     if (this._groupSVG === undefined) {
       throw Error("Tried to render tuplet text when SVG group undefined");
     }
@@ -294,9 +294,9 @@ export class SVGTupletRenderer implements ElementRenderer {
    * Unrender tuplet
    */
   public unrender(): void {
-    console.log(
-      `UNRENDERING TUPLET FOR BEAT ${this.tupletElement.beatElements[0].uuid}`
-    );
+    //console.log(
+    //   `UNRENDERING TUPLET FOR BEAT ${this.tupletElement.beatElements[0].uuid}`
+    // );
 
     if (this._groupSVG === undefined) {
       throw Error("Tried to unrender tuplet elem when SVG group undefined");

@@ -1,17 +1,41 @@
 import { Beat, Track } from "@/notation/model";
 import { randomInt, Point, Rect } from "@/shared";
-import { getBarWidth } from "./bar-element";
+import { BarElement, getBarWidth } from "./bar-element";
 import { TrackLineData, TrackLineElement } from "./track-line-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import { BeatElement } from "./beat-element";
 import { StaffLineElement } from "./staff-line-element";
+import { NotationElement } from "./notation-element";
+import { TabNoteElement } from "./tab-note-element";
+import { TabBeatElement } from "./tab-beat-element";
+import { NotationStyleLineElement } from "./notation-style-line-element";
+import { BeamSegmentElement } from "./beam-segment-element";
+import { BarTupletGroupElement } from "./bar-tuplet-group-element";
+import { TechGapElement } from "./tech-gap-element";
+import { TechGapLineElement } from "./tech-gap-line-element";
+import { TrackLineInfoElement } from "./track-line-info-element";
+import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
+import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
 
 /**
- * TODO:
- * 0. Rewrite AGENTS.md myself - [x]
- * 1. Find and fix existing bugs - [x]
- * 2. Optimize what actually matters: the renderer layer - [ ]
+ * ELEMENT_ORDER defines the order in which element types are rendered.
+ * Parents must render before children.
  */
+const ELEMENT_ORDER: Array<Function> = [
+  TrackLineElement,
+  TrackLineInfoElement,
+  StaffLineElement,
+  NotationStyleLineElement,
+  TechGapElement,
+  BarElement,
+  TabBeatElement,
+  TabNoteElement,
+  GuitarTechniqueElement,
+  GuitarTechniqueLabelElement,
+  BeamSegmentElement,
+  BarTupletGroupElement,
+  TechGapLineElement,
+];
 
 /**
  * Class that handles all geometry & visually relevant info of a track
@@ -25,6 +49,16 @@ export class TrackElement {
   /** Track line element */
   private _trackLineElements: TrackLineElement[];
 
+  /** Registry of all elements (modelUUID -> element) */
+  private _elementRegistry: Map<number, NotationElement>;
+  /** Keeps track of all elements' hash strings */
+  private _elementHashes: Map<number, string>;
+  /** Keeps track of changed elements grouped by type */
+  private _dirtyElements: Map<Function, Map<number, NotationElement>>;
+
+  // Purely for testing
+  public counts: any = {};
+
   /**
    * Class that handles all geometry & visually relevant info of a track
    * @param track Track
@@ -34,6 +68,9 @@ export class TrackElement {
     this.track = track;
 
     this._trackLineElements = [];
+    this._elementRegistry = new Map();
+    this._elementHashes = new Map();
+    this._dirtyElements = new Map();
 
     this.build();
   }
@@ -43,6 +80,9 @@ export class TrackElement {
    * Populates the "_trackLineElements" array
    */
   public build(): void {
+    // Clear element registry to avoid duplicates on rebuild
+    this._elementRegistry.clear();
+
     // Step 1: Organize bars into lines
     let width = 0;
     let largestBarWidth = 0;
@@ -115,16 +155,16 @@ export class TrackElement {
    * Calculates coordinates for all child elements
    */
   public layout(): void {
+    const lastIndex = this._trackLineElements.length - 1;
     for (let i = 0; i < this._trackLineElements.length; i++) {
       this._trackLineElements[i].layout();
-      // Don't justfiy the last line
-      if (i < this._trackLineElements.length - 1) {
-        this._trackLineElements[i].justifyElements();
-      }
+      // Last line uses fake justify (scale = 1) to ensure state hash captures final positions
+      const isLastLine = i === lastIndex;
+      this._trackLineElements[i].justifyElements(isLastLine);
     }
 
-    console.log("Track Element is ready");
-    console.log(this);
+    //console.log("Track Element is ready");
+    //console.log(this);
   }
 
   /**
@@ -137,6 +177,55 @@ export class TrackElement {
     this.build();
     this.measure();
     this.layout();
+    this.checkAllDirty();
+  }
+
+  public checkIfDirty(element: NotationElement): void {
+    // DEPRECATED - replaced by checkAllDirty()
+    // Keeping for backward compatibility during transition
+  }
+
+  public registerElement(element: NotationElement): void {
+    this._elementRegistry.set(element.getModelUUID(), element);
+  }
+
+  public checkAllDirty(): void {
+    // Clear all dirty maps
+    for (const map of this._dirtyElements.values()) {
+      map.clear();
+    }
+
+    for (const element of this._elementRegistry.values()) {
+      const modelUUID = element.getModelUUID();
+      const prevHash = this._elementHashes.get(modelUUID);
+      const curHash = element.stateHash;
+
+      if (prevHash === undefined || prevHash !== curHash) {
+        const ElementClass = element.constructor as Function;
+
+        if (!this._dirtyElements.has(ElementClass)) {
+          this._dirtyElements.set(ElementClass, new Map());
+        }
+
+        this._dirtyElements.get(ElementClass)!.set(modelUUID, element);
+        this._elementHashes.set(modelUUID, curHash);
+      }
+    }
+  }
+
+  public getDirtyElements(): Map<Function, Map<number, NotationElement>> {
+    return this._dirtyElements;
+  }
+
+  public getElementOrder(): Array<Function> {
+    return ELEMENT_ORDER;
+  }
+
+  public clearDirtyElements(): void {
+    for (const map of this._dirtyElements.values()) {
+      map.clear();
+    }
+    this.counts = {};
   }
 
   /**
@@ -202,7 +291,7 @@ export class TrackElement {
             }
 
             curLineRect.width +=
-              beatElement.rectGlobal.right - curLineRect.right;
+              beatElement.globalRect.right - curLineRect.right;
           }
         }
       }

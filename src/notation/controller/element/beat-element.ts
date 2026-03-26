@@ -3,28 +3,19 @@ import { Rect, Point } from "@/shared";
 import { BarElement } from "./bar-element";
 import { NoteElement } from "./note-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
+import { NotationElement } from "./notation-element";
 
 /**
  * Interface representing a specific notation styleА beat element
  */
-export interface BeatElement {
-  readonly uuid: number;
+export interface BeatElement extends NotationElement {
   readonly beat: Beat;
   readonly barElement: BarElement;
-
-  build(): void;
-  measure(): void;
-  layout(): void;
-
-  scaleHorBy(scale: number): void;
 
   getNextNoteElement(noteElement: NoteElement): NoteElement | null;
   getPrevNoteElement(noteElement: NoteElement): NoteElement | null;
 
   get noteElements(): NoteElement[];
-  get rect(): Rect;
-  get rectGlobal(): Rect;
-  get globalCoords(): Point;
 }
 
 /**
@@ -52,7 +43,6 @@ export function getBeatWidth(beat: Beat): number {
 
   return width;
 }
-
 
 // import { Beat, Technique, TechniqueType } from "@/notation/model";
 // import { BarElement } from "./bar-element";

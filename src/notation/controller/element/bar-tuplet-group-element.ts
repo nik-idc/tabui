@@ -4,11 +4,13 @@ import { BeatElement } from "./beat-element";
 import { BarElement } from "./bar-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import { TabBeatElement } from "./tab-beat-element";
+import { NotationElement } from "./notation-element";
+import { TrackElement } from "./track-element";
 
 /**
  * Class that handles geometry & visually relevant info of a bar tuplet group
  */
-export class BarTupletGroupElement {
+export class BarTupletGroupElement implements NotationElement {
   /** UUID of the tuplet element */
   readonly uuid: number;
   /** Tuplet group this element represents */
@@ -17,11 +19,15 @@ export class BarTupletGroupElement {
   readonly barElement: BarElement;
   /** Array of beat element included in this tuplet group */
   readonly beatElements: TabBeatElement[];
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Tuplet element's outer rectangle */
   private _rect: Rect;
   /** Individual tuplet signs if the tuplet group is incomplete */
   private _incompleteRects?: Rect[];
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that handles geometry & visually relevant info of a bar tuplet group
@@ -37,11 +43,16 @@ export class BarTupletGroupElement {
     this.uuid = randomInt();
     this.tupletGroup = tupletGroup;
     this.barElement = barElement;
+    this.trackElement = this.barElement.trackElement;
     this.beatElements = beatElements;
 
     this._rect = new Rect();
 
+    this._stateHash = "";
+
     this.build();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -87,9 +98,35 @@ export class BarTupletGroupElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [
+      `${this.globalRect.x}` +
+        `${this.globalRect.y}` +
+        `${this.globalRect.width}` +
+        `${this.globalRect.height}`,
+    ];
+
+    if (this._incompleteRects !== undefined) {
+      for (const rect of this._incompleteRects) {
+        hashArr.push(`${rect.x}`);
+        hashArr.push(`${rect.y}`);
+        hashArr.push(`${rect.width}`);
+        hashArr.push(`${rect.height}`);
+      }
+    }
+
+    this._stateHash = hashArr.join("");
+
+    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Calculate the coordinates of this bar tuplet group element
    */
-  public layuot(): void {
+  public layout(): void {
     const x = this.beatElements[0].rect.x;
     const y =
       this.barElement.rect.height - TabLayoutDimensions.TUPLET_RECT_HEIGHT;
@@ -105,6 +142,19 @@ export class BarTupletGroupElement {
 
       this._incompleteRects[i].setCoords(x, y);
     }
+
+    // Calculating state hash moved to scaleHorBy
+    // this.calcStateHash();
+  }
+
+  /**
+   * Updates the element fully
+   */
+  public update(): void {
+    this.build();
+
+    this.measure();
+    this.layout();
   }
 
   /**
@@ -146,11 +196,34 @@ export class BarTupletGroupElement {
       incompleteRect.x *= scale;
       incompleteRect.width *= scale;
     }
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    return this.tupletGroup.uuid;
   }
 
   /** Tuplet element's outer rectangle */
   public get rect(): Rect {
     return this._rect;
+  }
+
+  /** This bar's rect in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect.width,
+      this._rect.height
+    );
   }
 
   /** Tuplet element's incomplete rectangles (defined if tuplet group is complete) */

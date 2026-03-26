@@ -1,4 +1,4 @@
-import { randomInt, Rect } from "@/shared";
+import { Point, randomInt, Rect } from "@/shared";
 import { GuitarTechnique, Technique, TechniqueType } from "@/notation/model";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import {
@@ -9,15 +9,19 @@ import {
 import { BeatElement } from "./beat-element";
 import { TabBeatElement } from "./tab-beat-element";
 import { TechGapElement } from "./tech-gap-element";
+import { NotationElement } from "./notation-element";
+import { TrackElement } from "./track-element";
 
 /**
  * Class representing a single line of a staff line's technique label gap
  */
-export class TechGapLineElement {
+export class TechGapLineElement implements NotationElement {
   /** Technique label element's unique identifier */
   readonly uuid: number;
   /** Parent staff gap element */
   readonly techGapElement: TechGapElement;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Maps each BeatElement instance to a Set of TechniqueType labels
    * already processed or drawn for that specific beat element */
@@ -27,6 +31,8 @@ export class TechGapLineElement {
 
   /** Outer rectangle */
   private _rect?: Rect;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class representing a single line of a staff line's
@@ -36,9 +42,14 @@ export class TechGapLineElement {
   constructor(techGapElement: TechGapElement) {
     this.uuid = randomInt();
     this.techGapElement = techGapElement;
+    this.trackElement = this.techGapElement.trackElement;
+
+    this._stateHash = "";
 
     this._beatsLabelsMap = new Map();
     this._labelElements = [];
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -84,6 +95,11 @@ export class TechGapLineElement {
     }
   }
 
+  /** Dummy build function to comply with the interface
+   * TODO: Rethink this element's update process
+   */
+  public build(): void {}
+
   /**
    * Goes through all the technique labels and sets their dimensions
    */
@@ -94,12 +110,40 @@ export class TechGapLineElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [];
+
+    if (this.globalRect.width !== undefined) {
+      hashArr.push(`${this.globalRect.x}`);
+      hashArr.push(`${this.globalRect.y}`);
+      hashArr.push(`${this.globalRect.width}`);
+      hashArr.push(`${this.globalRect.height}`);
+    }
+
+    this._stateHash = hashArr.join("");
+
+    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Goes through all the technique labels and sets their coordinates
    */
   public layout(): void {
     for (const label of this._labelElements) {
       label.layout();
     }
+
+    // Calculating state hash moved to scaleHorBy
+    // this.calcStateHash();
+  }
+
+  public update(): void {
+    this.build();
+    this.measure();
+    this.layout();
   }
 
   /**
@@ -115,11 +159,45 @@ export class TechGapLineElement {
     for (const label of this._labelElements) {
       label.scaleHorBy(scale);
     }
+
+    // // Calculating state hash at the last step of
+    // // element's update process - layout
+    // this.calcStateHash();
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    // EXPERIMENTAL: Gap line belongs to a specific staff via parent chain
+    return this.techGapElement.notationStyleLineElement.staffLineElement.staff
+      .uuid;
+  }
+
+  /** Global coords of the notation style line element */
+  public get globalCoords(): Point {
+    return new Point(
+      this.techGapElement.globalCoords.x + (this._rect?.x ?? 0),
+      this.techGapElement.globalCoords.y + (this._rect?.y ?? 0)
+    );
   }
 
   /** Line outer rectangle */
-  public get rect(): Rect | undefined {
-    return this._rect;
+  public get rect(): Rect {
+    // FIX: This is kinda terrible
+    return this._rect ?? new Rect();
+  }
+
+  /** This element's rect in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect?.width,
+      this._rect?.height
+    );
   }
 
   /** Maps each BeatElement instance to a Set of TechniqueType labels already processed or drawn for that specific beat elemen */

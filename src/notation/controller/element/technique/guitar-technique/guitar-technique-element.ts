@@ -10,6 +10,7 @@ import { TabLayoutDimensions } from "@/notation/controller/tab-controller-dim";
 import { TechniqueElement } from "../technique-element";
 import { TabNoteElement } from "../../tab-note-element";
 import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
+import { TrackElement } from "../../track-element";
 
 /**
  * Class that handles geometry & visually relevant
@@ -24,11 +25,15 @@ export class GuitarTechniqueElement implements TechniqueElement {
   readonly technique: GuitarTechnique;
   /** Parent guitar note element */
   readonly noteElement: TabNoteElement;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Starting point (center of the provided rect) */
   private _startPoint: Point;
   /** SVG path */
   private _svgPath?: string;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that represents a guitar technique
@@ -39,13 +44,18 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this.uuid = randomInt();
     this.technique = technique;
     this.noteElement = noteElement;
+    this.trackElement = this.noteElement.trackElement;
 
     this._startPoint = new Point(
       this.noteElement.rect.x + this.noteElement.rect.width / 2,
       this.noteElement.rect.y + this.noteElement.rect.height / 2
     );
 
+    this._stateHash = "";
+
     this.createPath();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -360,6 +370,26 @@ export class GuitarTechniqueElement implements TechniqueElement {
   }
 
   /**
+   * Empty measure to comply with the TechniqueElement & NotationElement interfaces
+   */
+  measure(): void {}
+
+  /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    this._stateHash =
+      `${this.globalRect.x}` +
+      `${this.globalRect.y}` +
+      `${this._startPoint.x}` +
+      `${this._startPoint.y}` +
+      `${this._svgPath}`;
+
+    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Calculates the coordinates of the technique & it's path string
    */
   layout(): void {
@@ -369,6 +399,19 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     this.createPath();
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
+  }
+
+  /**
+   * Updates the guitar technique element fully
+   */
+  update(): void {
+    this.build();
+    this.measure();
+    this.layout();
   }
 
   /**
@@ -379,6 +422,15 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this._startPoint.x *= scale;
 
     this.layout();
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    return this.technique.uuid;
   }
 
   /** Start point */
@@ -396,11 +448,27 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return this.noteElement.globalCoords;
   }
 
+  /** Element's rect */
+  public get rect(): Rect {
+    // FIX: This rect is for interface compliance only.
+    // Will need to implement storing this._rect just like
+    // all other elements
+    return new Rect(this._startPoint.x, this._startPoint.y, 0, 0);
+  }
+
   /** Global coords of the guitar technique element */
   public get globalCoords(): Point {
     return new Point(
       this.noteElement.globalCoords.x + this._startPoint.x,
       this.noteElement.globalCoords.y + this._startPoint.y
     );
+  }
+
+  /** Element's rect */
+  public get globalRect(): Rect {
+    // FIX: This rect is for interface compliance only.
+    // Will need to implement storing this._rect just like
+    // all other elements
+    return new Rect(this.globalCoords.x, this.globalCoords.y, 0, 0);
   }
 }

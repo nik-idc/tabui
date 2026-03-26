@@ -1,5 +1,6 @@
 import {
   NoteElement,
+  NotationElement,
   TabLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
@@ -34,6 +35,11 @@ export class EditorSVGRenderer implements EditorRenderer {
   /** Player animator */
   private _playerAnimator?: TrackPlayerSVGAnimator;
 
+  /** Registry mapping model UUID to renderer (for selective rendering) */
+  private _rendererRegistry: Map<number, ElementRenderer>;
+  /** Registry mapping model UUID to element */
+  private _elementRegistry: Map<number, NotationElement>;
+
   /**
    * Render a track window using SVG
    * @param assetsPath Path to assets
@@ -48,6 +54,68 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._assetsPath = assetsPath;
 
     this._renderedTrackLineElements = new Map();
+    this._rendererRegistry = new Map();
+    this._elementRegistry = new Map();
+  }
+
+  /**
+   * Registers a renderer for selective rendering support
+   * @param element The element being rendered
+   * @param renderer The renderer instance
+   */
+  public registerRenderer(
+    element: NotationElement,
+    renderer: ElementRenderer
+  ): void {
+    const modelUUID = element.getModelUUID();
+    this._rendererRegistry.set(modelUUID, renderer);
+    this._elementRegistry.set(modelUUID, element);
+  }
+
+  /**
+   * Renders only the dirty elements (selective rendering)
+   * @param trackController Track controller
+   * @param dirtyElements Set of dirty elements
+   * @returns Empty array (no cascading children to track)
+   */
+  private renderDirty(
+    trackController: TrackController,
+    dirtyElements: Map<Function, Map<number, NotationElement>>,
+    renderOrder: Array<Function>
+  ): ElementRenderer[] {
+    for (const [elementType, dirtyMap] of dirtyElements) {
+      console.log(
+        `=== TESTING ${elementType.name} ===`,
+        dirtyMap.values().toArray().length,
+        dirtyMap.values().toArray()
+      );
+    }
+
+    // Iterate in render order (parents before children)
+    for (const ElementClass of renderOrder) {
+      const dirtyMap = dirtyElements.get(ElementClass);
+      if (dirtyMap) {
+        for (const [, element] of dirtyMap) {
+          const modelUUID = element.getModelUUID();
+          const renderer = this._rendererRegistry.get(modelUUID);
+          if (renderer) {
+            renderer.render();
+          }
+        }
+      }
+    }
+
+    trackController.trackElement.clearDirtyElements();
+    return [];
+  }
+
+  /**
+   * Renders all elements (full render)
+   * @param trackController Track controller
+   * @returns Active renderers from full render
+   */
+  private renderFull(trackController: TrackController): ElementRenderer[] {
+    return this.renderTrackLines(trackController);
   }
 
   /**
@@ -292,8 +360,31 @@ export class EditorSVGRenderer implements EditorRenderer {
    * Render track window using SVG
    */
   public render(trackController: TrackController): ElementRenderer[] {
-    // Render lines first
-    const activeRenderers = this.renderTrackLines(trackController);
+    const dirtyElements = trackController.trackElement.getDirtyElements();
+    const renderOrder = trackController.trackElement.getElementOrder();
+
+    let activeRenderers: ElementRenderer[];
+
+    // Check if any dirty elements exist
+    let hasDirty = false;
+    for (const map of dirtyElements.values()) {
+      if (map.size > 0) {
+        hasDirty = true;
+        break;
+      }
+    }
+
+    if (hasDirty) {
+      activeRenderers = this.renderDirty(
+        trackController,
+        dirtyElements,
+        renderOrder
+      );
+    } else {
+      activeRenderers = this.renderFull(trackController);
+      // Clear dirty elements after full render to reset state
+      trackController.trackElement.clearDirtyElements();
+    }
 
     // Player overlay rect
     if (trackController.isPlaying) {
@@ -317,7 +408,7 @@ export class EditorSVGRenderer implements EditorRenderer {
    * Unrender the entire track window
    */
   public unrender(): void {
-    console.log("UNRENDER TRIGGERED");
+    //console.log("UNRENDER TRIGGERED");
 
     for (const renderer of this._renderedTrackLineElements.values()) {
       renderer.unrender();

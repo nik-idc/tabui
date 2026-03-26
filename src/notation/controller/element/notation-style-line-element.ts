@@ -8,6 +8,8 @@ import {
 } from "./staff-line-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import { TechGapElement } from "./tech-gap-element";
+import { NotationElement } from "./notation-element";
+import { TrackElement } from "./track-element";
 
 /**
  * Class that handles geometry of a single notation style line in the staff
@@ -15,13 +17,15 @@ import { TechGapElement } from "./tech-gap-element";
  * case the StaffLineElement will contain 2 notation style line elements -
  * NotationStyleLineElement for the tab and the other for sheet notation
  */
-export class NotationStyleLineElement {
+export class NotationStyleLineElement implements NotationElement {
   /** Unique identifier for the staff line element */
   readonly uuid: number;
   /** Parent staff line element */
   readonly staffLineElement: StaffLineElement;
   /** Notation style for this particular line */
   readonly notationStyle: NotationStyle;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Bar elements on this line */
   private _barElements: BarElement[];
@@ -30,6 +34,8 @@ export class NotationStyleLineElement {
 
   /** Line encapsulating rectangle */
   private _rect: Rect;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that handles geometry of a single notation style line in the staff line
@@ -42,6 +48,7 @@ export class NotationStyleLineElement {
   ) {
     this.uuid = randomInt();
     this.staffLineElement = staffLineElement;
+    this.trackElement = this.staffLineElement.trackElement;
     this.notationStyle = notationStyle;
 
     this._barElements = [];
@@ -49,7 +56,11 @@ export class NotationStyleLineElement {
 
     this._rect = new Rect();
 
+    this._stateHash = "";
+
     this.build();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -86,6 +97,23 @@ export class NotationStyleLineElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [
+      `${this.globalRect.x}` +
+        `${this.globalRect.y}` +
+        `${this.globalRect.width}` +
+        `${this.globalRect.height}`,
+    ];
+
+    this._stateHash = hashArr.join("");
+
+    // Prompt the track element to check if this element has changed
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Calculates the coordinates for all bar elements & their children
    */
   public layout(): void {
@@ -100,12 +128,59 @@ export class NotationStyleLineElement {
       barElement.layout();
       sumWidth += barElement.rect.width;
     }
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    // this.calcStateHash();
+  }
+
+  /**
+   * Updates the element fully
+   */
+  public update(): void {
+    this.build();
+
+    this.measure();
+    this.layout();
+  }
+
+  /**
+   * Scales the element & its children horizontally by the factor
+   * @param scale Scale factor
+   */
+  public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
+    if (scaleOuterX) {
+      this._rect.x *= scale;
+    }
+    this._rect.width *= scale;
+
+    for (const barElement of this._barElements) {
+      barElement.scaleHorBy(scale);
+    }
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
   }
 
   /**
    * Justifies element by scaling all their widths
    */
-  public justifyElements(): void {
+  public justifyElements(fakeJustify: boolean = false): void {
+    if (fakeJustify) {
+      // For fake justify, use scale 1 (no actual scaling)
+      // but still calculate state hash to capture final positions
+      for (const barElement of this._barElements) {
+        barElement.scaleHorBy(1);
+      }
+      this._techGapElement.scaleHorBy(1);
+
+      // Calculating state hash at the last step of
+      // element's update process - layout
+      this.calcStateHash();
+      return;
+    }
+
     // Calc width of empty space
     const gapWidth =
       TabLayoutDimensions.WIDTH -
@@ -128,6 +203,10 @@ export class NotationStyleLineElement {
     }
     this._techGapElement.scaleHorBy(scale);
     this._rect.width *= scale;
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
   }
 
   /**
@@ -152,6 +231,16 @@ export class NotationStyleLineElement {
     return prevBar ?? null;
   }
 
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    // EXPERIMENTAL: Represents notation for a specific staff
+    return this.staffLineElement.staff.uuid;
+  }
+
   /** Bar elements on this line */
   public get barElements(): BarElement[] {
     return this._barElements;
@@ -165,6 +254,16 @@ export class NotationStyleLineElement {
   /** Line encapsulating rectangle */
   public get rect(): Rect {
     return this._rect;
+  }
+
+  /** This element's rect in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect.width,
+      this._rect.height
+    );
   }
 
   /** Global coords of the notation style line element */

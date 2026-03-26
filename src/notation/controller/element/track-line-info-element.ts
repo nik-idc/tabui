@@ -3,20 +3,27 @@ import { Point, Rect, randomInt } from "@/shared";
 import { BarElement } from "./bar-element";
 import { TrackLineBarData, TrackLineElement } from "./track-line-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
+import { NotationElement } from "./notation-element";
+import { TrackElement } from "./track-element";
 
 /**
  * Class representing the visual info about all
  * info that needs to be on this track line element
  */
-export class TrackLineInfoElement {
+export class TrackLineInfoElement implements NotationElement {
   /** Unique identifier for the track line element */
   readonly uuid: number;
   /** Parent track line element */
   readonly trackLineElement: TrackLineElement;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Track line encapsulating rectangle */
-  private _rect: Rect; /** Stores all the bars whose tempo to display & the tempo rect */
+  private _rect: Rect;
+  /** Stores all the bars whose tempo to display & the tempo rect */
   private _barTempoRectsMap: Map<BarElement, Rect>;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class representing the visual info about all
@@ -27,11 +34,16 @@ export class TrackLineInfoElement {
   constructor(trackLineElement: TrackLineElement) {
     this.uuid = randomInt();
     this.trackLineElement = trackLineElement;
+    this.trackElement = this.trackLineElement.trackElement;
 
     this._rect = new Rect(0, 0, TabLayoutDimensions.WIDTH, 0);
     this._barTempoRectsMap = new Map();
 
+    this._stateHash = "";
+
     this.build();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -72,6 +84,31 @@ export class TrackLineInfoElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [
+      `${this.globalRect.x}` +
+        `${this.globalRect.y}` +
+        `${this.globalRect.width}` +
+        `${this.globalRect.height}`,
+    ];
+
+    const barRectsEntries = this._barTempoRectsMap.entries();
+    for (const [barElement, rect] of barRectsEntries) {
+      hashArr.push(`${rect.x}`);
+      hashArr.push(`${rect.y}`);
+      hashArr.push(`${rect.width}`);
+      hashArr.push(`${rect.height}`);
+    }
+
+    this._stateHash = hashArr.join("");
+
+    // // Prompt the track element to check if this element has changed
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Sets the coordinates of the outer rectangle & all the tempo rectangles
    */
   public layout(): void {
@@ -80,6 +117,37 @@ export class TrackLineInfoElement {
     for (const [barElement, rect] of this._barTempoRectsMap) {
       rect.setCoords(barElement.rect.x, 0);
     }
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
+  }
+
+  public update(): void {
+    this.build();
+
+    this.measure();
+    this.layout();
+  }
+
+  /**
+   * Scales the element & its children horizontally by the factor
+   * @param scale Scale factor
+   */
+  public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
+    if (scaleOuterX) {
+      this._rect.x *= scale;
+    }
+    this._rect.width *= scale;
+
+    for (const [barElement, rect] of this._barTempoRectsMap) {
+      rect.x *= scale;
+      rect.width *= scale;
+    }
+
+    // // Calculating state hash at the last step of
+    // // element's update process - layout
+    // this.calcStateHash();
   }
 
   /**
@@ -150,9 +218,38 @@ export class TrackLineInfoElement {
     return `=${barElement.bar.masterBar.tempo}`;
   }
 
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    // EXPERIMENTAL: This element displays tempo info which spans multiple masterBars.
+    // Using track.uuid as the primary model reference since tempo is track-level.
+    return this.trackElement.track.uuid;
+  }
+
   /** Track line encapsulating rectangle */
   public get rect(): Rect {
     return this._rect;
+  }
+
+  /** Global coords of the track line element (in most cases X will be 0) */
+  public get globalCoords(): Point {
+    return new Point(
+      this.trackElement.globalCoords.x + this._rect.x,
+      this.trackElement.globalCoords.y + this._rect.y
+    );
+  }
+
+  /** This element's rect in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect.width,
+      this._rect.height
+    );
   }
 
   /** Stores all the bars whose tempo to display & the tempo rect */

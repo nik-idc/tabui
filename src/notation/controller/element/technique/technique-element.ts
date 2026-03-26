@@ -1,22 +1,16 @@
 import { Technique } from "@/notation/model";
 import { NoteElement } from "../note-element";
 import { Point, Rect } from "@/shared";
+import { NotationElement } from "../notation-element";
 
 /**
  * Class that handles geometry & visually relevant info
  * of a note technique. Represents specifically a UI element
  * near the note to which the technique is applied
  */
-export interface TechniqueElement {
-  readonly uuid: number;
+export interface TechniqueElement extends NotationElement {
   readonly technique: Technique;
   readonly noteElement: NoteElement;
-
-  build(): void;
-  // measure(): void;
-  // layout(): void;
-
-  scaleHorBy(scale: number): void;
 
   get svgPath(): string | undefined;
   get startPoint(): Point;

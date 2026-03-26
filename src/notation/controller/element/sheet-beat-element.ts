@@ -92,6 +92,11 @@ export class SheetBeatElement implements BeatElement {
   public get rect(): Rect {
     return this._rect;
   }
+
+  public getModelUUID(): number {
+    return this.beat.uuid;
+  }
+
   public get durationRect(): Rect {
     return this._durationRect;
   }

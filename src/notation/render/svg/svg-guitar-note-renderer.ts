@@ -290,6 +290,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
    * Render the full note element
    */
   public render(): void {
+    //console.log("### TESTING DIRTY RENDER OF NOTE ###");
     this.renderGroup();
 
     if (this._groupSVG === undefined) {

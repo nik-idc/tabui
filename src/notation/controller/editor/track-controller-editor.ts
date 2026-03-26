@@ -172,6 +172,7 @@ export class TrackControllerEditor {
    * @param newFret New fret value
    */
   public setSelectedNoteFret(newFret: number | null): void {
+    //console.log("=== TESTING NEW FRET ===", newFret);
     const selectedNote = this._selectionManager.selectedNote;
     if (selectedNote === undefined) {
       throw Error("Selected note is undefined");
@@ -181,6 +182,8 @@ export class TrackControllerEditor {
     }
 
     this.commandManager.execute(new SetFretCommand(selectedNote.note, newFret));
+
+    this._trackElement.update();
   }
 
   /**

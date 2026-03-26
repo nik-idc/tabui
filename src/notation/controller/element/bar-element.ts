@@ -12,15 +12,17 @@ import { TabControllerDim, TabLayoutDimensions } from "../tab-controller-dim";
 import { TabBeatElement } from "./tab-beat-element";
 import { SheetBeatElement } from "./sheet-beat-element";
 import { BeatElement, getBeatWidth } from "./beat-element";
-import { BeatElement_old } from "./tab-beat-element_old";
+// import { BeatElement_old } from "./tab-beat-element_old";
 import { NotationStyle, StaffLineElement } from "./staff-line-element";
 import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
 import { NotationStyleLineElement } from "./notation-style-line-element";
+import { NotationElement } from "./notation-element";
+import { TrackElement } from "./track-element";
 
 /**
  * Class that handles geometry & visually relevant info of a bar
  */
-export class BarElement {
+export class BarElement implements NotationElement {
   /** Unique identifier for the bar element */
   readonly uuid: number;
   /** The bar */
@@ -29,6 +31,8 @@ export class BarElement {
   readonly notationStyleLineElement: NotationStyleLineElement;
   /** Desired width for this bar's master bar as determined in the TrackElement */
   readonly desiredWidth: number;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** This bar's beat elements */
   private _beatElements: BeatElement[];
@@ -51,6 +55,8 @@ export class BarElement {
   private _repeatEndRect?: Rect;
   /** If tempo is to be shown in the bar */
   private _showTempo: boolean;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that handles geometry & visually relevant info of a bar
@@ -67,6 +73,7 @@ export class BarElement {
     this.uuid = randomInt();
     this.bar = bar;
     this.notationStyleLineElement = notationStyleLineElement;
+    this.trackElement = this.notationStyleLineElement.trackElement;
     this.desiredWidth = desiredWidth;
 
     this._beatElements = [];
@@ -83,7 +90,11 @@ export class BarElement {
     this._repeatEndRect = new Rect();
     this._showTempo = false;
 
+    this._stateHash = "";
+
     this.build();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -369,6 +380,48 @@ export class BarElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [
+      `${this.globalRect.x}` +
+        `${this.globalRect.y}` +
+        `${this.globalRect.width}` +
+        `${this.globalRect.height}`,
+    ];
+
+    hashArr.push(`${this._showTempo}`);
+
+    if (this._repeatEndRect !== undefined) {
+      hashArr.push(`${this._repeatEndRect.x}`);
+      hashArr.push(`${this._repeatEndRect.y}`);
+      hashArr.push(`${this._repeatEndRect.width}`);
+      hashArr.push(`${this._repeatEndRect.height}`);
+    }
+    if (this._repeatStartRect !== undefined) {
+      hashArr.push(`${this._repeatStartRect.x}`);
+      hashArr.push(`${this._repeatStartRect.y}`);
+      hashArr.push(`${this._repeatStartRect.width}`);
+      hashArr.push(`${this._repeatStartRect.height}`);
+    }
+    if (this._timeSigRect !== undefined) {
+      hashArr.push(`${this._timeSigRect.x}`);
+      hashArr.push(`${this._timeSigRect.y}`);
+      hashArr.push(`${this._timeSigRect.width}`);
+      hashArr.push(`${this._timeSigRect.height}`);
+    }
+
+    for (const line of this._staffLines) {
+      hashArr.push(`${line.x1}${line.x2}${line.y}`);
+    }
+
+    this._stateHash = hashArr.join("");
+
+    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Calculates layout for all child elements, i.e. their X and Y coordinates
    */
   public layout(): void {
@@ -386,10 +439,23 @@ export class BarElement {
     }
 
     for (const tupletElement of this._tupletElements) {
-      tupletElement.layuot();
+      tupletElement.layout();
     }
 
     this.justifyToFit();
+
+    // Calculating state hash moved to scaleHorBy
+    // this.calcStateHash();
+  }
+
+  /**
+   * Updates the element fully
+   */
+  public update(): void {
+    this.build();
+
+    this.measure();
+    this.layout();
   }
 
   /**
@@ -444,6 +510,10 @@ export class BarElement {
     for (const tupletElement of this._tupletElements) {
       tupletElement.scaleHorBy(scale);
     }
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
   }
 
   /**
@@ -466,6 +536,15 @@ export class BarElement {
     const beatIndex = this._beatElements.indexOf(beatElement);
     const prevBeat = this._beatElements[beatIndex - 1];
     return prevBeat ?? null;
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    return this.bar.uuid;
   }
 
   /** Time signature beats rectangle */
@@ -664,6 +743,16 @@ export class BarElement {
   /** Bar element rectangle */
   public get rect(): Rect {
     return this._rect;
+  }
+
+  /** This bar's rect in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect.width,
+      this._rect.height
+    );
   }
 
   /** Bar element's staff lines */

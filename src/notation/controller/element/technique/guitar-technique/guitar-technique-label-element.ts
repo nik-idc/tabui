@@ -9,6 +9,7 @@ import { TabLayoutDimensions } from "@/notation/controller/tab-controller-dim";
 import { TechniqueLabelElement } from "../technique-label-element";
 import { BeatElement } from "../../beat-element";
 import { TechGapLineElement } from "../../tech-gap-line-element";
+import { TrackElement } from "../../track-element";
 
 /**
  * Class that contains a guitar technique label
@@ -22,11 +23,15 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   readonly gapLineElement: TechGapLineElement;
   /** Parent beat element */
   readonly beatElement: BeatElement;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Outer rectangle */
   private _rect: Rect;
   /** SVG path */
   private _svgPath?: string;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that contains an technique label
@@ -42,9 +47,14 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this.uuid = randomInt();
     this.technique = technique;
     this.gapLineElement = gapLineElement;
+    this.trackElement = this.gapLineElement.trackElement;
     this.beatElement = beatElement;
 
+    this._stateHash = "";
+
     this._rect = new Rect();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -304,6 +314,12 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /**
+   * Dummy build function (for now)
+   * TODO: Rethink how this element is done
+   */
+  public build(): void {}
+
+  /**
    * Calculates the dimensions of the outer rectangle
    */
   public measure(): void {
@@ -311,6 +327,23 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       this.beatElement.rect.width,
       TabLayoutDimensions.TECH_LABEL_HEIGHT
     );
+  }
+
+  /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [
+      `${this.globalRect.x}` +
+        `${this.globalRect.y}` +
+        `${this.globalRect.width}` +
+        `${this.globalRect.height}`,
+    ];
+
+    this._stateHash = hashArr.join("");
+
+    // // Prompt the track element to check if this element has changed
+    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -324,6 +357,19 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._rect.setCoords(0, 0);
 
     this.createPath();
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
+  }
+
+  /**
+   * Updates the element fully
+   */
+  public update(): void {
+    this.build();
+    this.measure();
+    this.layout();
   }
 
   /**
@@ -352,6 +398,19 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._rect.width *= scale;
 
     this.createPath();
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    return this.technique.uuid;
   }
 
   /**
@@ -359,6 +418,16 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    */
   public get rect(): Rect {
     return this._rect;
+  }
+
+  /** This element's rect in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect.width,
+      this._rect.height
+    );
   }
 
   /**

@@ -6,6 +6,7 @@ import { TrackElement } from "./track-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
 import { getBarWidth } from "./bar-element";
 import { VertLine } from "@/shared/rendering/geometry/line";
+import { NotationElement } from "./notation-element";
 
 /**
  * Data needed to build a track bar:
@@ -30,7 +31,7 @@ type OutlineLines = {
 /**
  * Class that handles all geometry & visually relevant info of a track line
  */
-export class TrackLineElement {
+export class TrackLineElement implements NotationElement {
   /** Unique identifier for the track line element */
   readonly uuid: number;
   /** Track */
@@ -49,6 +50,8 @@ export class TrackLineElement {
   private _outlineLines?: OutlineLines;
   /** Data necessary to build a track line */
   private _trackLineData: TrackLineData;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that handles all geometry & visually relevant info of a track line
@@ -71,7 +74,11 @@ export class TrackLineElement {
     this._rect = new Rect();
     this._trackLineData = trackLineData;
 
+    this._stateHash = "";
+
     this.build();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -129,6 +136,23 @@ export class TrackLineElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [
+      `${this.globalRect.x}` +
+        `${this.globalRect.y}` +
+        `${this.globalRect.width}` +
+        `${this.globalRect.height}`,
+    ];
+
+    this._stateHash = hashArr.join("");
+
+    // // Prompt the track element to check if this element has changed
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Calculates coordinates for this & all child elements
    */
   public layout(): void {
@@ -172,12 +196,42 @@ export class TrackLineElement {
 
     this._outlineLines.left.set(xLeft, y1, y2);
     this._outlineLines.right.set(xRight, y1, y2);
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
+  }
+
+  public update(): void {
+    this.build();
+
+    this.measure();
+    this.layout();
+  }
+
+  /**
+   * Scales the element & its children horizontally by the factor
+   * @param scale Scale factor
+   */
+  public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
+    if (scaleOuterX) {
+      this._rect.x *= scale;
+    }
+    this._rect.width *= scale;
+
+    for (const staffLineElement of this._staffLineElements) {
+      staffLineElement.scaleHorBy(scale);
+    }
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
   }
 
   /**
    * Justifies the info element & staff lines
    */
-  public justifyElements(): void {
+  public justifyElements(fakeJustify: boolean = false): void {
     if (this._staffLineElements.length === 0) {
       throw Error("Empty track line element's staff lines array at justify");
     }
@@ -187,7 +241,7 @@ export class TrackLineElement {
     }
 
     for (const staffLine of this._staffLineElements) {
-      staffLine.justifyStyleLines();
+      staffLine.justifyStyleLines(fakeJustify);
     }
 
     // Calling layout since for info line that will have the same effect
@@ -200,6 +254,10 @@ export class TrackLineElement {
       return;
     }
     this._outlineLines.right.x = this._rect.width;
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
   }
 
   /**
@@ -226,6 +284,15 @@ export class TrackLineElement {
     const staffIndex = this._staffLineElements.indexOf(staffLineElement);
     const prevStaff = this._staffLineElements[staffIndex - 1];
     return prevStaff ?? null;
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    return this.track.uuid;
   }
 
   /** Staff line element on this track line */
@@ -269,17 +336,27 @@ export class TrackLineElement {
     return this._rect;
   }
 
-  /** Data necessary to build a track line */
-  public get trackLineData(): TrackLineData {
-    return this._trackLineData;
-  }
-
   /** Global coords of the track line element (in most cases X will be 0) */
   public get globalCoords(): Point {
     return new Point(
       this.trackElement.globalCoords.x + this._rect.x,
       this.trackElement.globalCoords.y + this._rect.y
     );
+  }
+
+  /** This element's rect in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect.width,
+      this._rect.height
+    );
+  }
+
+  /** Data necessary to build a track line */
+  public get trackLineData(): TrackLineData {
+    return this._trackLineData;
   }
 }
 

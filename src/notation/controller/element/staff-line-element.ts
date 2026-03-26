@@ -2,6 +2,8 @@ import { Bar, Staff } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { TrackLineElement } from "./track-line-element";
 import { NotationStyleLineElement } from "./notation-style-line-element";
+import { NotationElement } from "./notation-element";
+import { TrackElement } from "./track-element";
 
 /**
  * Supported notation styles
@@ -31,7 +33,7 @@ export type StaffLineData = StaffLineBarData[];
 /**
  * Class that handles all geometry & visually relevant info of a staff line
  */
-export class StaffLineElement {
+export class StaffLineElement implements NotationElement {
   /** Unique identifier for the staff line element */
   readonly uuid: number;
   /** Staff */
@@ -40,6 +42,8 @@ export class StaffLineElement {
   readonly trackLineElement: TrackLineElement;
   /** Data necessary to build a staff line */
   readonly staffLineData: StaffLineData;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Notation style line elements of this staff line */
   private _notationStyleLineElements: Record<
@@ -49,6 +53,8 @@ export class StaffLineElement {
 
   /** Line encapsulating rectangle */
   private _rect: Rect;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that handles all geometry & visually relevant info of a staff line
@@ -64,6 +70,7 @@ export class StaffLineElement {
     this.uuid = randomInt();
     this.staff = staff;
     this.trackLineElement = trackLineElement;
+    this.trackElement = this.trackLineElement.trackElement;
     this.staffLineData = staffLineData;
 
     this._notationStyleLineElements = {
@@ -73,7 +80,11 @@ export class StaffLineElement {
 
     this._rect = new Rect();
 
+    this._stateHash = "";
+
     this.build();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -117,6 +128,23 @@ export class StaffLineElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [
+      `${this.globalRect.x}` +
+        `${this.globalRect.y}` +
+        `${this.globalRect.width}` +
+        `${this.globalRect.height}`,
+    ];
+
+    this._stateHash = hashArr.join("");
+
+    // // Prompt the track element to check if this element has changed
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Calculates layout for all child elements, i.e. their X and Y coordinates
    */
   public layout(): void {
@@ -138,12 +166,46 @@ export class StaffLineElement {
     this._notationStyleLineElements[NotationStyle.Tablature]?.layout();
 
     // this.justifyStyleLines();
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    // this.calcStateHash();
+  }
+
+  public update(): void {
+    this.build();
+
+    this.measure();
+    this.layout();
+  }
+
+  /**
+   * Scales the element & its children horizontally by the factor
+   * @param scale Scale factor
+   */
+  public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
+    if (scaleOuterX) {
+      this._rect.x *= scale;
+    }
+    this._rect.width *= scale;
+
+    const styleLinesEntries = Object.entries(this._notationStyleLineElements);
+    for (const [style, styleLine] of styleLinesEntries) {
+      if (styleLine === null) {
+        continue;
+      }
+      styleLine.scaleHorBy(scale);
+    }
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
   }
 
   /**
    * Justifies all the present lines
    */
-  public justifyStyleLines(): void {
+  public justifyStyleLines(fakeJustify: boolean = false): void {
     const classicNot = this._notationStyleLineElements[NotationStyle.Classic];
     const tablatureNot =
       this._notationStyleLineElements[NotationStyle.Tablature];
@@ -151,8 +213,12 @@ export class StaffLineElement {
       throw Error("Both classic & tablature notations null at layout");
     }
 
-    this._notationStyleLineElements[NotationStyle.Classic]?.justifyElements();
-    this._notationStyleLineElements[NotationStyle.Tablature]?.justifyElements();
+    this._notationStyleLineElements[NotationStyle.Classic]?.justifyElements(
+      fakeJustify
+    );
+    this._notationStyleLineElements[NotationStyle.Tablature]?.justifyElements(
+      fakeJustify
+    );
 
     let width = 0;
     if (classicNot !== null) {
@@ -161,6 +227,19 @@ export class StaffLineElement {
       width = tablatureNot.rect.width;
     }
     this._rect.width = width;
+
+    // // Calculating state hash at the last step of
+    // // element's update process - layout
+    // this.calcStateHash();
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    return this.staff.uuid;
   }
 
   /** Style line elements record object */
@@ -194,6 +273,16 @@ export class StaffLineElement {
     return new Point(
       this.trackLineElement.globalCoords.x + this._rect.x,
       this.trackLineElement.globalCoords.y + this._rect.y
+    );
+  }
+
+  /** This element's rect in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect.width,
+      this._rect.height
     );
   }
 }

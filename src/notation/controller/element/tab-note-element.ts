@@ -4,6 +4,7 @@ import { TabLayoutDimensions } from "../tab-controller-dim";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
 import { NoteElement } from "./note-element";
 import { TabBeatElement } from "./tab-beat-element";
+import { TrackElement } from "./track-element";
 
 /**
  * Class that handles geometry & visually relevant info of a tab note
@@ -15,6 +16,8 @@ export class TabNoteElement implements NoteElement {
   readonly note: GuitarNote;
   /** Parent beat element */
   readonly beatElement: TabBeatElement;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Array of guitar technique element */
   private _guitarTechniqueElements: GuitarTechniqueElement[];
@@ -25,6 +28,8 @@ export class TabNoteElement implements NoteElement {
   private _textRect: Rect = new Rect();
   /** Coordinates of the note text */
   private _textCoords: Point = new Point();
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that handles geometry & visually relevant info of a guitar note
@@ -35,11 +40,16 @@ export class TabNoteElement implements NoteElement {
     this.uuid = randomInt();
     this.note = note;
     this.beatElement = beatElement;
+    this.trackElement = this.beatElement.trackElement;
 
     this._rect = new Rect();
     this._guitarTechniqueElements = [];
 
+    this._stateHash = "";
+
     this.build();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -69,6 +79,27 @@ export class TabNoteElement implements NoteElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    this._stateHash =
+      `${this.note.fret}` +
+      `${this.globalRect.x}` +
+      `${this.globalRect.y}` +
+      `${this.globalRect.width}` +
+      `${this.globalRect.height}` +
+      `${this._textRect.x}` +
+      `${this._textRect.y}` +
+      `${this._textRect.width}` +
+      `${this._textRect.height}` +
+      `${this._textCoords.x}` +
+      `${this._textCoords.y}`;
+
+    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Calculates the coordinates for the note element and it's children
    */
   public layout(): void {
@@ -89,6 +120,19 @@ export class TabNoteElement implements NoteElement {
     for (const techniqueElement of this._guitarTechniqueElements) {
       techniqueElement.layout();
     }
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    // this.calcStateHash();
+  }
+
+  /**
+   * Updates the guitar technique element fully
+   */
+  public update(): void {
+    this.build();
+    this.measure();
+    this.layout();
   }
 
   /**
@@ -110,11 +154,32 @@ export class TabNoteElement implements NoteElement {
     for (const techniqueElement of this._guitarTechniqueElements) {
       techniqueElement.scaleHorBy(scale);
     }
+
+    this.calcStateHash();
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    return this.note.uuid;
   }
 
   /** Rectangle of the main clickable-area rectangle */
   public get rect(): Rect {
     return this._rect;
+  }
+
+  /** Element's rect */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this._rect.width,
+      this._rect.height
+    );
   }
 
   /** Rectangle of the note text rectangle */

@@ -12,6 +12,7 @@ import { TabNoteElement } from "./tab-note-element";
 import { BeatElement, getBeatWidth } from "./beat-element";
 import { BarElement } from "./bar-element";
 import { NoteElement } from "./note-element";
+import { TrackElement } from "./track-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
@@ -23,6 +24,8 @@ export class TabBeatElement implements BeatElement {
   readonly beat: Beat;
   /** Parent bar element */
   readonly barElement: BarElement;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Note elements */
   private _noteElements: TabNoteElement[];
@@ -37,6 +40,8 @@ export class TabBeatElement implements BeatElement {
   private _dot1Circle?: Circle;
   /** This beat's dot rect */
   private _dot2Circle?: Circle;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that handles geometry & visually relevant info of a beat
@@ -47,13 +52,18 @@ export class TabBeatElement implements BeatElement {
     this.uuid = randomInt();
     this.beat = beat;
     this.barElement = barElement;
+    this.trackElement = this.barElement.trackElement;
 
     this._noteElements = [];
 
     const width = getBeatWidth(this.beat);
     this._rect = new Rect(0, 0, width, 0);
 
+    this._stateHash = "";
+
     this.build();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -202,6 +212,44 @@ export class TabBeatElement implements BeatElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [
+      `${this.globalRect.x}` +
+        `${this.globalRect.y}` +
+        `${this.globalRect.width}` +
+        `${this.globalRect.height}`,
+    ];
+
+    if (this._dot1Circle !== undefined) {
+      hashArr.push(`${this._dot1Circle.centerX}`);
+      hashArr.push(`${this._dot1Circle.centerY}`);
+      hashArr.push(`${this._dot1Circle.diameter}`);
+    }
+    if (this._dot2Circle !== undefined) {
+      hashArr.push(`${this._dot2Circle.centerX}`);
+      hashArr.push(`${this._dot2Circle.centerY}`);
+      hashArr.push(`${this._dot2Circle.diameter}`);
+    }
+    if (this._durationStemLine !== undefined) {
+      hashArr.push(`${this._durationStemLine.x}`);
+      hashArr.push(`${this._durationStemLine.y1}`);
+      hashArr.push(`${this._durationStemLine.y2}`);
+    }
+    if (this._durationFlagLines !== undefined) {
+      for (const line of this._durationFlagLines) {
+        hashArr.push(`${line.x1}${line.x2}${line.y}`);
+      }
+    }
+
+    this._stateHash = hashArr.join("");
+
+    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Calculates the coordinates of tab beat element & it's child note elements
    */
   public layout(): void {
@@ -210,6 +258,20 @@ export class TabBeatElement implements BeatElement {
     this.layoutDots();
 
     this.layoutNotes();
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    // this.calcStateHash();
+  }
+
+  /**
+   * Updates the element fully
+   */
+  public update(): void {
+    this.build();
+
+    this.measure();
+    this.layout();
   }
 
   /**
@@ -242,6 +304,19 @@ export class TabBeatElement implements BeatElement {
     for (const noteElement of this._noteElements) {
       noteElement.scaleHorBy(scale);
     }
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    return this.beat.uuid;
   }
 
   /**
@@ -281,7 +356,7 @@ export class TabBeatElement implements BeatElement {
   }
 
   /** This beat's rect in global coords */
-  public get rectGlobal(): Rect {
+  public get globalRect(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
@@ -376,7 +451,6 @@ export class TabBeatElement implements BeatElement {
     );
   }
 }
-
 
 // import { Beat, Guitar, GuitarTechnique } from "@/notation/model";
 // import { Rect, Point, randomInt } from "@/shared";

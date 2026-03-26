@@ -4,11 +4,13 @@ import { BarElement } from "./bar-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import { TabBeatElement } from "./tab-beat-element";
 import { DURATION_TO_FLAG_COUNT, MAX_FLAG_COUNT } from "@/notation/model";
+import { NotationElement } from "./notation-element";
+import { TrackElement } from "./track-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beam segment
  */
-export class BeamSegmentElement {
+export class BeamSegmentElement implements NotationElement {
   /** Unique identifier for the beam segment element */
   readonly uuid: number;
   /** Parent bar element */
@@ -19,11 +21,15 @@ export class BeamSegmentElement {
   readonly curBeatElement: TabBeatElement;
   /** Next beat element */
   readonly nextBeatElement: TabBeatElement;
+  /** Root track element */
+  readonly trackElement: TrackElement;
 
   /** Rectangle of the long beam */
   private _longRects: Rect[];
   /** Rectangle of the short rect */
   private _shortRect?: Rect;
+  /** String encoding the state of this element */
+  private _stateHash: string;
 
   /**
    * Class that handles geometry & visually relevant info of a beam segment
@@ -44,13 +50,18 @@ export class BeamSegmentElement {
 
     this.uuid = randomInt();
     this.barElement = barElement;
+    this.trackElement = this.barElement.trackElement;
     this.prevBeatElement = prevBeatElement;
     this.curBeatElement = curBeatElement;
     this.nextBeatElement = nextBeatElement;
 
     this._longRects = [];
 
+    this._stateHash = "";
+
     this.build();
+
+    this.trackElement.registerElement(this);
   }
 
   /**
@@ -100,6 +111,37 @@ export class BeamSegmentElement {
   }
 
   /**
+   * Calculates the state hash of the element
+   * */
+  private calcStateHash(): void {
+    const hashArr: string[] = [
+      `${this.globalRect.x}` +
+        `${this.globalRect.y}` +
+        `${this.globalRect.width}` +
+        `${this.globalRect.height}`,
+    ];
+
+    for (const longRect of this._longRects) {
+      hashArr.push(`${longRect.x}`);
+      hashArr.push(`${longRect.y}`);
+      hashArr.push(`${longRect.width}`);
+      hashArr.push(`${longRect.height}`);
+    }
+
+    if (this._shortRect !== undefined) {
+      hashArr.push(`${this._shortRect.x}`);
+      hashArr.push(`${this._shortRect.y}`);
+      hashArr.push(`${this._shortRect.width}`);
+      hashArr.push(`${this._shortRect.height}`);
+    }
+
+    this._stateHash = hashArr.join("");
+
+    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
+    // this.trackElement.checkIfDirty(this);
+  }
+
+  /**
    * Calculates the coordinates of long & short rectangles.
    *
    * In case when current beat duration is < next beat duration:
@@ -141,6 +183,20 @@ export class BeamSegmentElement {
     const shortX =
       this.prevBeatElement !== undefined ? longX - shortWidth : longX;
     this._shortRect.setCoords(shortX, y);
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    // this.calcStateHash();
+  }
+
+  /**
+   * Updates the element fully
+   */
+  public update(): void {
+    this.build();
+
+    this.measure();
+    this.layout();
   }
 
   /**
@@ -159,6 +215,40 @@ export class BeamSegmentElement {
 
     this._shortRect.x *= scale;
     this._shortRect.width *= scale;
+
+    // Calculating state hash at the last step of
+    // element's update process - layout
+    this.calcStateHash();
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
+    return this._stateHash;
+  }
+
+  public getModelUUID(): number {
+    // EXPERIMENTAL: Beam segment is fundamentally about connecting two beats
+    return this.curBeatElement.beat.uuid;
+  }
+
+  /** Bar element rectangle */
+  public get rect(): Rect {
+    return new Rect(
+      this._longRects[0].x,
+      this._longRects[0].y,
+      this._longRects[0].width,
+      TabLayoutDimensions.DURATION_FLAG_HEIGHT * this._longRects.length
+    );
+  }
+
+  /** This bar's rect in global coords */
+  public get globalRect(): Rect {
+    return new Rect(
+      this.globalCoords.x,
+      this.globalCoords.y,
+      this.rect.width,
+      this.rect.height
+    );
   }
 
   /** Rectangle of the long beam */
