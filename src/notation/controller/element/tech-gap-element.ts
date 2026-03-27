@@ -67,10 +67,13 @@ export class TechGapElement implements NotationElement {
             let gapLine = this._techGapLines[lineNumber];
             if (gapLine === null) {
               gapLine = new TechGapLineElement(this, lineNumber);
+              gapLine.build();
+              gapLine.measure();
               this._techGapLines[lineNumber] = gapLine;
             }
 
             gapLine.addTechnique(beatElement, technique);
+            gapLine.measure();
           }
         }
       }
@@ -138,6 +141,32 @@ export class TechGapElement implements NotationElement {
     // // Calculating state hash at the last step of
     // // element's update process - layout
     // this.calcStateHash();
+  }
+
+  public getPrevGapLine(
+    techGapLine: TechGapLineElement
+  ): TechGapLineElement | null {
+    switch (techGapLine.techLineNumber) {
+      case 1:
+        return null;
+      case 2:
+        return this._techGapLines[1];
+      case 3:
+        return this._techGapLines[2];
+    }
+  }
+
+  public getNextGapLine(
+    techGapLine: TechGapLineElement
+  ): TechGapLineElement | null {
+    switch (techGapLine.techLineNumber) {
+      case 1:
+        return this._techGapLines[2];
+      case 2:
+        return this._techGapLines[3];
+      case 3:
+        return null;
+    }
   }
 
   /** String encoding the state of this element */

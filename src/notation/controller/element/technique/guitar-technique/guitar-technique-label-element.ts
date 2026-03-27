@@ -445,7 +445,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   public get globalCoords(): Point {
     return new Point(
       this.beatElement.globalCoords.x + this._rect.x,
-      this.beatElement.globalCoords.y + this._rect.y
+      this.gapLineElement.globalCoords.y
     );
   }
 }

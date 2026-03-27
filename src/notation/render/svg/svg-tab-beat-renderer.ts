@@ -114,6 +114,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
     const stemGlobal = this.beatElement.durationStemLineGlobal;
     if (stemGlobal === undefined) {
+      this.unrenderDurationStem();
       return;
     }
 
@@ -213,8 +214,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
+    console.log("=== TAB RENDER", this._durationFlagsSVG[flagIndex]);
     this._containerGroupSVG.removeChild(this._durationFlagsSVG[flagIndex]);
-    this._durationFlagsSVG.splice(flagIndex, 1);
   }
 
   /**
@@ -224,6 +225,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render duration flags when SVG group undefined");
     }
+
+    this.unrenderDurationFlags();
 
     if (this.beatElement.durationFlagLines === undefined) {
       return;
@@ -235,10 +238,6 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
     const beatFlagCount =
       DURATION_TO_FLAG_COUNT[this.beatElement.beat.baseDuration];
-    while (this._durationFlagsSVG.length > beatFlagCount) {
-      this.unrenderDurationFlag(this._durationFlagsSVG.length - 1);
-    }
-
     for (let i = 0; i < beatFlagCount; i++) {
       this.renderDurationFlag(i);
     }
@@ -402,15 +401,19 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
     this.renderDurationStem();
     this.renderDurationFlags();
+
+    this.unrenderDotCircle(true);
+    this.unrenderDotCircle(false);
     if (this.beatElement.beat.dots > 0) {
       this.renderDotCircle(true);
       if (this.beatElement.beat.dots === 2) {
         this.renderDotCircle(false);
       }
-    } else {
-      this.unrenderDotCircle(true);
-      this.unrenderDotCircle(false);
     }
+    // else {
+    //   this.unrenderDotCircle(true);
+    //   this.unrenderDotCircle(false);
+    // }
 
     // if (this.beatElement.selected) {
     //   this.renderBeatSelection();

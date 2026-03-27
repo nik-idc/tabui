@@ -19,6 +19,8 @@ import { NotationStyleLineElement } from "./notation-style-line-element";
 import { NotationElement } from "./notation-element";
 import { TrackElement } from "./track-element";
 
+// TODO:: Fix repeat rects shifting when there are multple staves
+
 /**
  * Class that handles geometry & visually relevant info of a bar
  */
@@ -187,6 +189,17 @@ export class BarElement implements NotationElement {
           )
         );
       }
+
+      const lastBeatElement = beamGroupBeats[beamGroupBeats.length - 1];
+      const prevLastBeatElement = beamGroupBeats[beamGroupBeats.length - 2];
+      this._beamSegments.push(
+        new BeamSegmentElement(
+          this,
+          lastBeatElement as TabBeatElement,
+          undefined,
+          prevLastBeatElement as TabBeatElement
+        )
+      );
     }
   }
 
@@ -414,6 +427,8 @@ export class BarElement implements NotationElement {
     for (const line of this._staffLines) {
       hashArr.push(`${line.x1}${line.x2}${line.y}`);
     }
+
+    hashArr.push(`${this.bar.checkDurationsFit() ? 1 : 0}`);
 
     this._stateHash = hashArr.join("");
 

@@ -252,6 +252,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     visibleElements: NotationElement[]
   ): ElementRenderer[] {
     const diff = trackController.trackElement.getElementDiff();
+    console.log("=== RENDER RECONCILED - DIFF ===", diff);
     const visibleModelUUIDs = new Set(
       visibleElements.map((element) => element.getModelUUID())
     );

@@ -290,6 +290,8 @@ export class SVGBarRenderer implements ElementRenderer {
       throw Error("Tried to render bar repeats when SVG group undefined");
     }
 
+    this.unrenderRepeats();
+
     const repStartGlobal = this.barElement.repeatStartRectGlobal;
     const repEndGlobal = this.barElement.repeatEndRectGlobal;
     if (repStartGlobal === undefined && repEndGlobal === undefined) {

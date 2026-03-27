@@ -25,8 +25,8 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
   private _containerGroupSVG?: SVGGElement;
   /** Long beam rectangle */
   private _longRectSVG?: SVGRectElement[];
-  /** Short beam rectangle */
-  private _shortRectSVG?: SVGRectElement;
+  /** Short beam rectangles */
+  private _shortRectSVG?: SVGRectElement[];
 
   /**
    * Class for rendering a tuplet segment using SVG
@@ -165,8 +165,8 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       return;
     }
 
-    for (let i = 0; i < this.beamSegment.longRects.length; i++) {
-      this.unrenderLongRect(i);
+    while (this._longRectSVG.length > 0) {
+      this.unrenderLongRect(this._longRectSVG.length - 1);
     }
 
     this._longRectSVG = undefined;
@@ -175,55 +175,94 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
   /**
    * Renders beam segment's short rectangle
    */
-  private renderShortRect(): void {
+  private renderShortRect(index: number): void {
     if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render beam short rect when SVG group undefined");
     }
 
-    if (this.beamSegment.shortRectGlobal === undefined) {
-      throw Error("Tried to render undefined short rect");
+    if (this._shortRectSVG === undefined) {
+      throw Error("Tried to render beam short rect when SVG group undefined");
     }
 
     const beamUUID = this.beamSegment.uuid;
-    if (this._shortRectSVG === undefined) {
-      this._shortRectSVG = createSVGRect();
+    if (this._shortRectSVG[index] === undefined) {
+      this._shortRectSVG[index] = createSVGRect();
 
       // Set id
-      const id = `beam-short-rect-${beamUUID}-rect`;
-      this._shortRectSVG.setAttribute("id", id);
-      this._shortRectSVG.setAttribute("fill", "black");
+      const id = `beam-short-rect-${beamUUID}-rect-${index}`;
+      this._shortRectSVG[index].setAttribute("id", id);
+      this._shortRectSVG[index].setAttribute("fill", "black");
 
       // Add element to root SVG element
-      this._containerGroupSVG.appendChild(this._shortRectSVG);
+      this._containerGroupSVG.appendChild(this._shortRectSVG[index]);
     }
 
-    const x = `${this.beamSegment.shortRectGlobal.x}`;
-    const y = `${this.beamSegment.shortRectGlobal.y}`;
-    const width = `${this.beamSegment.shortRectGlobal.width}`;
-    const height = `${this.beamSegment.shortRectGlobal.height}`;
-    this._shortRectSVG.setAttribute("x", x);
-    this._shortRectSVG.setAttribute("y", y);
-    this._shortRectSVG.setAttribute("width", width);
-    this._shortRectSVG.setAttribute("height", height);
+    const x = `${this.beamSegment.shortRectsGlobal[index].x}`;
+    const y = `${this.beamSegment.shortRectsGlobal[index].y}`;
+    const width = `${this.beamSegment.shortRectsGlobal[index].width}`;
+    const height = `${this.beamSegment.shortRectsGlobal[index].height}`;
+    this._shortRectSVG[index].setAttribute("x", x);
+    this._shortRectSVG[index].setAttribute("y", y);
+    this._shortRectSVG[index].setAttribute("width", width);
+    this._shortRectSVG[index].setAttribute("height", height);
   }
 
   /**
    * Renders beam segment's short rectangle
    */
-  private unrenderShortRect(): void {
+  private unrenderShortRect(index: number): void {
     if (this._containerGroupSVG === undefined) {
       throw Error("Tried to unrender tuplet segment when SVG group undefined");
     }
 
-    if (this.beamSegment.shortRect === undefined) {
-      throw Error("Tried to unrender undefined short rect");
+    if (
+      this._shortRectSVG === undefined ||
+      this._shortRectSVG[index] === undefined
+    ) {
+      return;
+    }
+
+    this._containerGroupSVG.removeChild(this._shortRectSVG[index]);
+    this._shortRectSVG.splice(index, 1);
+  }
+
+  /**
+   * Renders beam segment's short rectangles
+   */
+  private renderShortRects(): void {
+    if (this._containerGroupSVG === undefined) {
+      throw Error("Tried to render beam short rect when SVG group undefined");
+    }
+
+    if (this._shortRectSVG === undefined) {
+      this._shortRectSVG = [];
+    }
+
+    while (this._shortRectSVG.length > this.beamSegment.shortRects.length) {
+      this.unrenderShortRect(this._shortRectSVG.length - 1);
+    }
+
+    for (let i = 0; i < this.beamSegment.shortRects.length; i++) {
+      this.renderShortRect(i);
+    }
+  }
+
+  /**
+   * Unrenders beam segment's short rectangles
+   */
+  private unrenderShortRects(): void {
+    if (this._containerGroupSVG === undefined) {
+      throw Error("Tried to render beam short rect when SVG group undefined");
     }
 
     if (this._shortRectSVG === undefined) {
       return;
     }
 
-    this._containerGroupSVG.removeChild(this._shortRectSVG);
+    while (this._shortRectSVG.length > 0) {
+      this.unrenderShortRect(this._shortRectSVG.length - 1);
+    }
+
     this._shortRectSVG = undefined;
   }
 
@@ -232,10 +271,11 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    */
   public render(): void {
     this.renderGroup();
+
+    this.unrenderLongRects();
     this.renderLongRects();
-    if (this.beamSegment.shortRect !== undefined) {
-      this.renderShortRect();
-    }
+    this.unrenderShortRects();
+    this.renderShortRects();
   }
 
   /**
@@ -247,9 +287,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
     }
 
     this.unrenderLongRects();
-    if (this.beamSegment.shortRect !== undefined) {
-      this.unrenderShortRect();
-    }
+    this.unrenderShortRects();
 
     // this._parentElement.removeChild(this._containerGroupSVG);
     // this._containerGroupSVG = undefined;

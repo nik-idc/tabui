@@ -137,6 +137,10 @@ export class TechGapLineElement implements NotationElement {
    * Goes through all the technique labels and sets their coordinates
    */
   public layout(): void {
+    const prevLine = this.techGapElement.getPrevGapLine(this);
+    const y = prevLine?.rect.bottom ?? 0;
+    this._rect?.setCoords(0, y);
+
     for (const label of this._labelElements) {
       label.layout();
     }

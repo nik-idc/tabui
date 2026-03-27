@@ -1,11 +1,12 @@
 import { Point, Rect, randomInt } from "@/shared";
-import { BeatElement } from "./beat-element";
 import { BarElement } from "./bar-element";
 import { TabLayoutDimensions } from "../tab-controller-dim";
 import { TabBeatElement } from "./tab-beat-element";
-import { DURATION_TO_FLAG_COUNT, MAX_FLAG_COUNT } from "@/notation/model";
+import { DURATION_TO_FLAG_COUNT } from "@/notation/model";
 import { NotationElement } from "./notation-element";
 import { TrackElement } from "./track-element";
+
+type ShortTailDirection = "left" | "right";
 
 /**
  * Class that handles geometry & visually relevant info of a beam segment
@@ -20,14 +21,14 @@ export class BeamSegmentElement implements NotationElement {
   /** Current beat element */
   readonly curBeatElement: TabBeatElement;
   /** Next beat element */
-  readonly nextBeatElement: TabBeatElement;
+  readonly nextBeatElement?: TabBeatElement;
   /** Root track element */
   readonly trackElement: TrackElement;
 
   /** Rectangle of the long beam */
   private _longRects: Rect[];
-  /** Rectangle of the short rect */
-  private _shortRect?: Rect;
+  /** Rectangles of short tails */
+  private _shortRects: Rect[];
   /** String encoding the state of this element */
   private _stateHash: string;
 
@@ -41,7 +42,7 @@ export class BeamSegmentElement implements NotationElement {
   constructor(
     barElement: BarElement,
     curBeatElement: TabBeatElement,
-    nextBeatElement: TabBeatElement,
+    nextBeatElement?: TabBeatElement,
     prevBeatElement?: TabBeatElement
   ) {
     if (DURATION_TO_FLAG_COUNT[curBeatElement.beat.baseDuration] === 0) {
@@ -56,6 +57,7 @@ export class BeamSegmentElement implements NotationElement {
     this.nextBeatElement = nextBeatElement;
 
     this._longRects = [];
+    this._shortRects = [];
 
     this._stateHash = "";
 
@@ -65,20 +67,81 @@ export class BeamSegmentElement implements NotationElement {
   }
 
   /**
-   * Initializes the long rectangles and the short rectangle
+   * Gets the amount of flag levels for a beat element
    */
-  public build(): void {
-    const count = DURATION_TO_FLAG_COUNT[this.curBeatElement.beat.baseDuration];
-    for (let i = 0; i < count; i++) {
-      this._longRects.push(new Rect());
+  private getFlagCount(beatElement?: TabBeatElement): number {
+    if (beatElement === undefined) {
+      return 0;
     }
 
-    const curDuration = this.curBeatElement.beat.baseDuration;
-    const nextDuration = this.nextBeatElement.beat.baseDuration;
-    if (curDuration >= nextDuration) {
-      this._shortRect = undefined;
-    } else {
-      this._shortRect = new Rect();
+    return DURATION_TO_FLAG_COUNT[beatElement.beat.baseDuration];
+  }
+
+  /**
+   * Determines the direction of short tails for this segment
+   */
+  private getShortTailDirection(): ShortTailDirection {
+    if (this.nextBeatElement === undefined) {
+      return "left";
+    }
+
+    const prevFlags = this.getFlagCount(this.prevBeatElement);
+    const nextFlags = this.getFlagCount(this.nextBeatElement);
+
+    if (prevFlags > nextFlags) {
+      return "left";
+    }
+
+    return "right";
+  }
+
+  /**
+   * Checks if beam level should be rendered as long rectangle
+   */
+  private isLongRectLevel(level: number): boolean {
+    if (this.nextBeatElement === undefined) {
+      return false;
+    }
+
+    const nextFlags = this.getFlagCount(this.nextBeatElement);
+    return level <= nextFlags;
+  }
+
+  /**
+   * Checks if beam level should be rendered as short tail
+   */
+  private isShortRectLevel(level: number): boolean {
+    const prevFlags = this.getFlagCount(this.prevBeatElement);
+
+    if (this.isLongRectLevel(level)) {
+      return false;
+    }
+
+    // Beam level already represented by previous segment
+    if (level <= prevFlags) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Initializes the long and short rectangles for this segment
+   */
+  public build(): void {
+    this._longRects = [];
+    this._shortRects = [];
+
+    const curFlags = this.getFlagCount(this.curBeatElement);
+    for (let level = 1; level <= curFlags; level++) {
+      if (this.isLongRectLevel(level)) {
+        this._longRects.push(new Rect());
+        continue;
+      }
+
+      if (this.isShortRectLevel(level)) {
+        this._shortRects.push(new Rect());
+      }
     }
   }
 
@@ -89,25 +152,27 @@ export class BeamSegmentElement implements NotationElement {
     if (this.curBeatElement.durationStemLine === undefined) {
       throw Error("Cur duration stem line undefined in beam segment element");
     }
-    if (this.nextBeatElement.durationStemLine === undefined) {
+
+    if (
+      this.nextBeatElement !== undefined &&
+      this.nextBeatElement.durationStemLine === undefined
+    ) {
       throw Error("Next duration stem line undefined in beam segment element");
     }
 
-    const longWidth =
-      this.curBeatElement.rect.width / 2 + this.nextBeatElement.rect.width / 2;
-    for (const rect of this._longRects) {
-      rect.setDimensions(longWidth, TabLayoutDimensions.DURATION_FLAG_HEIGHT);
-    }
-
-    if (this._shortRect === undefined) {
-      return;
+    if (this.nextBeatElement !== undefined) {
+      const longWidth =
+        this.curBeatElement.rect.width / 2 +
+        this.nextBeatElement.rect.width / 2;
+      for (const rect of this._longRects) {
+        rect.setDimensions(longWidth, TabLayoutDimensions.DURATION_FLAG_HEIGHT);
+      }
     }
 
     const shortWidth = 10; // Should put this in tab layout dimensions
-    this._shortRect.setDimensions(
-      shortWidth,
-      TabLayoutDimensions.DURATION_FLAG_HEIGHT
-    );
+    for (const rect of this._shortRects) {
+      rect.setDimensions(shortWidth, TabLayoutDimensions.DURATION_FLAG_HEIGHT);
+    }
   }
 
   /**
@@ -128,11 +193,11 @@ export class BeamSegmentElement implements NotationElement {
       hashArr.push(`${longRect.height}`);
     }
 
-    if (this._shortRect !== undefined) {
-      hashArr.push(`${this._shortRect.x}`);
-      hashArr.push(`${this._shortRect.y}`);
-      hashArr.push(`${this._shortRect.width}`);
-      hashArr.push(`${this._shortRect.height}`);
+    for (const shortRect of this._shortRects) {
+      hashArr.push(`${shortRect.x}`);
+      hashArr.push(`${shortRect.y}`);
+      hashArr.push(`${shortRect.width}`);
+      hashArr.push(`${shortRect.height}`);
     }
 
     this._stateHash = hashArr.join("");
@@ -142,47 +207,56 @@ export class BeamSegmentElement implements NotationElement {
   }
 
   /**
-   * Calculates the coordinates of long & short rectangles.
+   * Calculates the coordinates of long and short beam rectangles.
    *
-   * In case when current beat duration is < next beat duration:
-   * - the SHORT BEAM displays current beat's duration
-   * - the LONG BEAM connects and/or displays the next beat's duration
-   * - Example: current is 16th, next is 8th
-   *
-   * In case when current beat duration is >= next beat duration:
-   * - the LONG BEAM displays current beat's duration
-   * - the SHORT BEAM is undefined
-   * - Example: current is 8th, next is 32nd
+   * Beam levels are processed from first to last flag level:
+   * - Shared with next beat -> long rectangle
+   * - Already shared by previous segment -> skipped
+   * - Otherwise -> short tail rectangle
    */
   public layout(): void {
     if (this.curBeatElement.durationStemLine === undefined) {
       throw Error("Cur duration stem line undefined in beam segment element");
     }
-    if (this.nextBeatElement.durationStemLine === undefined) {
+
+    if (
+      this.nextBeatElement !== undefined &&
+      this.nextBeatElement.durationStemLine === undefined
+    ) {
       throw Error("Next duration stem line undefined in beam segment element");
     }
 
-    const prevRightX =
+    const longX =
       this.curBeatElement.rect.x + this.curBeatElement.durationStemLine.x;
-    const longX = prevRightX;
-    let y =
+    const shortTailDirection = this.getShortTailDirection();
+    const shortWidth = 10;
+
+    const baseY =
       this.barElement.rect.height -
       TabLayoutDimensions.TUPLET_RECT_HEIGHT -
-      this._longRects[0].height;
-    for (const rect of this._longRects) {
-      rect.setCoords(longX, y);
-      y -= TabLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
-    }
+      TabLayoutDimensions.DURATION_FLAG_HEIGHT;
 
-    if (this._shortRect === undefined) {
-      return;
-    }
+    const curFlags = this.getFlagCount(this.curBeatElement);
+    let longRectIndex = 0;
+    let shortRectIndex = 0;
+    for (let level = 1; level <= curFlags; level++) {
+      const y =
+        baseY - (level - 1) * TabLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
 
-    // DEFINITELY Not the best way to do this
-    const shortWidth = 10;
-    const shortX =
-      this.prevBeatElement !== undefined ? longX - shortWidth : longX;
-    this._shortRect.setCoords(shortX, y);
+      if (this.isLongRectLevel(level)) {
+        this._longRects[longRectIndex]?.setCoords(longX, y);
+        longRectIndex++;
+        continue;
+      }
+
+      if (!this.isShortRectLevel(level)) {
+        continue;
+      }
+
+      const shortX = shortTailDirection === "left" ? longX - shortWidth : longX;
+      this._shortRects[shortRectIndex]?.setCoords(shortX, y);
+      shortRectIndex++;
+    }
 
     // Calculating state hash at the last step of
     // element's update process - layout
@@ -209,12 +283,10 @@ export class BeamSegmentElement implements NotationElement {
       rect.width *= scale;
     }
 
-    if (this._shortRect === undefined) {
-      return;
+    for (const rect of this._shortRects) {
+      rect.x *= scale;
+      rect.width *= scale;
     }
-
-    this._shortRect.x *= scale;
-    this._shortRect.width *= scale;
 
     // Calculating state hash at the last step of
     // element's update process - layout
@@ -227,17 +299,41 @@ export class BeamSegmentElement implements NotationElement {
   }
 
   public getModelUUID(): number {
-    return this.curBeatElement.beat.uuid + this.nextBeatElement.beat.uuid;
+    const prevUUID = this.prevBeatElement?.beat.uuid ?? 0;
+    const curUUID = this.curBeatElement.beat.uuid;
+    const nextUUID = this.nextBeatElement?.beat.uuid ?? 0;
+    const terminalFlag = this.nextBeatElement === undefined ? 1 : 0;
+
+    return prevUUID + curUUID * 3 + nextUUID * 5 + terminalFlag * 7;
   }
 
   /** Bar element rectangle */
   public get rect(): Rect {
-    return new Rect(
-      this._longRects[0].x,
-      this._longRects[0].y,
-      this._longRects[0].width,
-      TabLayoutDimensions.DURATION_FLAG_HEIGHT * this._longRects.length
-    );
+    const allRects = [...this._longRects, ...this._shortRects];
+    if (allRects.length === 0) {
+      return new Rect();
+    }
+
+    let minX = allRects[0].x;
+    let minY = allRects[0].y;
+    let maxX = allRects[0].right;
+    let maxY = allRects[0].bottom;
+    for (const rect of allRects) {
+      if (rect.x < minX) {
+        minX = rect.x;
+      }
+      if (rect.y < minY) {
+        minY = rect.y;
+      }
+      if (rect.right > maxX) {
+        maxX = rect.right;
+      }
+      if (rect.bottom > maxY) {
+        maxY = rect.bottom;
+      }
+    }
+
+    return new Rect(minX, minY, maxX - minX, maxY - minY);
   }
 
   /** This bar's rect in global coords */
@@ -271,30 +367,32 @@ export class BeamSegmentElement implements NotationElement {
     return result;
   }
 
-  /** Rectangle of the short rect */
-  public get shortRect(): Rect | undefined {
-    return this._shortRect;
+  /** Rectangles of the short tails */
+  public get shortRects(): Rect[] {
+    return this._shortRects;
   }
 
-  /** Rectangle of the short beam in global coords */
-  public get shortRectGlobal(): Rect | undefined {
-    if (this._shortRect === undefined) {
-      return undefined;
+  /** Rectangles of the short tails in global coords */
+  public get shortRectsGlobal(): Rect[] {
+    const result = [];
+    for (const rect of this._shortRects) {
+      result.push(
+        new Rect(
+          this.barElement.globalCoords.x + rect.x,
+          this.barElement.globalCoords.y + rect.y,
+          rect.width,
+          rect.height
+        )
+      );
     }
-
-    return new Rect(
-      this.barElement.globalCoords.x + this._shortRect.x,
-      this.barElement.globalCoords.y + this._shortRect.y,
-      this._shortRect.width,
-      this._shortRect.height
-    );
+    return result;
   }
 
   /** Global coords of the beam segment element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._longRects[0].x,
-      this.barElement.globalCoords.y + this._longRects[0].y
+      this.barElement.globalCoords.x + this.rect.x,
+      this.barElement.globalCoords.y + this.rect.y
     );
   }
 }
