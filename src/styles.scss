@@ -1,0 +1,577 @@
+@use "sass:color";
+
+:root {
+  --background-color: #f0f0f0;
+  --primary-color: #ffffff;
+  --secondary-color: #e0e0e0;
+  --tertiary-color: #cccccc;
+  --applied-color: #21212114;
+  --font-color: #333333;
+  --hover-color: #d1d1d1;
+  --border-radius: 8px;
+  --transition-speed: 0.3s;
+}
+
+.tu-editor {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 200px 1fr;
+  gap: 0.5rem;
+  padding: 1rem;
+  height: 100vh;
+  background-color: var(--background-color);
+  color: var(--font-color);
+  border-radius: 20px;
+
+  .tu-top-controls {
+    grid-area: 1 / 1 / 2 / 3;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    background: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    position: sticky;
+    top: 1rem;
+    z-index: 10;
+
+    .tu-show-tracks-button {
+      @extend %tu-button-style;
+    }
+
+    .tu-score-controls {
+      width: 40vw;
+      display: flex;
+      flex-direction: column;
+
+      .tu-master-controls {
+        display: flex;
+        justify-content: space-around;
+        gap: 10px;
+
+        .tu-settings {
+          display: flex;
+          gap: 10px;
+        }
+
+        .tu-score-name-input {
+          border: none;
+          outline: none;
+          background: transparent;
+          border-radius: 4px;
+          transition: background-color 0.15s ease, box-shadow 0.15s ease;
+
+          &:focus {
+            background-color: var(--applied-color);
+            cursor: text;
+          }
+
+          &:hover {
+            background-color: var(--primary-color);
+            box-shadow: 0 0 0 2px var(--secondary-color);
+          }
+        }
+      }
+
+      .tu-tracks {
+        // border-radius: var(--border-radius);
+        // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        // padding: 5px;
+
+        .tu-track-controls {
+          button {
+            @extend %tu-button-style;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 150px;
+          }
+        }
+      }
+    }
+
+    .tu-score-controls,
+    .tu-play-controls {
+      // width: 40vw;
+    }
+
+    .tu-track-controls,
+    .tu-play-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .tu-track-selector {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--tertiary-color);
+      border-radius: var(--border-radius);
+      background-color: var(--secondary-color);
+      cursor: pointer;
+      transition: background-color var(--transition-speed);
+
+      &:hover {
+        background-color: var(--hover-color);
+      }
+    }
+
+    img {
+      width: 40px;
+      height: 40px;
+      transition: all var(--transition-speed) ease;
+      border-radius: 50%;
+
+      &:hover {
+        background: var(--hover-color);
+        cursor: pointer;
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  .tu-side-controls {
+    position: sticky;
+    top: calc(10vh + 2rem);
+    height: fit-content;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    background: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .tu-note-controls,
+    .tu-technique-controls,
+    .tu-measure-controls {
+      @extend %tu-side-controls-layout;
+    }
+
+    .tu-note-controls,
+    .tu-technique-controls {
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--secondary-color);
+    }
+
+    img {
+      width: 20%;
+      height: 35px;
+      padding: 5px;
+      border-radius: var(--border-radius);
+      transition: background-color var(--transition-speed) ease;
+
+      &:hover {
+        background: var(--hover-color);
+        cursor: pointer;
+      }
+    }
+  }
+
+  .tu-notation-viewport {
+    grid-area: 2 / 2 / 3 / 3;
+    background: var(--primary-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: auto;
+    min-height: 0;
+    padding: 5px;
+  }
+
+  .tu-root-svg {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    display: block;
+  }
+
+  .tu-tuplet-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-tuplet-dialog-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .tu-tuplet-inputs {
+        display: flex;
+        flex-direction: column;
+
+        .tu-tuplet-text {
+          padding: 3px;
+          text-align: center;
+          font-size: 20px;
+        }
+
+        .tu-tuplet-input {
+          @extend %tu-input-number-style;
+        }
+
+        .tu-tuplet-error {
+          @extend %tu-input-error-text;
+        }
+      }
+
+      .tu-tuplet-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+
+        .tu-tuplet-confirm-button {
+        }
+
+        .tu-tuplet-cancel-button {
+        }
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
+  }
+
+  .tu-bend-controls-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-bend-controls-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .tu-bend-controls-selector-content {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+
+        .tu-bend-types {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+      }
+
+      .tu-bend-controls-actions-content {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+
+      button {
+        @extend %tu-button-style;
+      }
+    }
+  }
+
+  .tu-time-sig-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-time-sig-dialog-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .tu-time-sig-inputs {
+        display: flex;
+        flex-direction: column;
+
+        .tu-time-sig-text {
+          padding: 3px;
+          text-align: center;
+          font-size: 20px;
+        }
+
+        .tu-time-sig-beats-input {
+          @extend %tu-input-number-style;
+        }
+
+        .tu-time-sig-beats-error {
+          @extend %tu-input-error-text;
+        }
+
+        .tu-time-sig-duration-input {
+          @extend %tu-input-number-style;
+        }
+
+        .tu-time-sig-duration-error {
+          @extend %tu-input-error-text;
+        }
+      }
+
+      .tu-time-sig-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+
+        .tu-time-sig-confirm-button {
+        }
+
+        .tu-time-sig-cancel-button {
+        }
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
+  }
+
+  .tu-tempo-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-tempo-dialog-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+
+      .tu-tempo-inputs {
+        display: flex;
+        flex-direction: column;
+
+        .tu-tempo-text {
+          padding: 3px;
+          text-align: center;
+          font-size: 20px;
+        }
+
+        .tu-tempo-input {
+          @extend %tu-input-number-style;
+        }
+
+        .tu-tempo-error {
+          @extend %tu-input-error-text;
+        }
+      }
+
+      .tu-tempo-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+
+        .tu-tempo-confirm-button {
+        }
+
+        .tu-tempo-cancel-button {
+        }
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
+  }
+
+  .tu-nt-dialog {
+    @extend %tu-modal-dialog;
+    width: 400px;
+
+    .tu-nt-content {
+      @extend %tu-modal-dialog-content;
+
+      .tu-nt-settings-container {
+        display: flex;
+        flex-direction: column;
+
+        .tu-nt-kinds-container {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+
+          img {
+            width: 75px;
+            height: 75px;
+            border-radius: 20px;
+          }
+        }
+
+        .tu-nt-instr-settings-container {
+          display: flex;
+          justify-content: space-between;
+
+          .tu-nt-types-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-right: 3px;
+          }
+
+          .tu-nt-presets-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-left: 3px;
+          }
+
+          margin-bottom: 5px;
+        }
+
+        .tu-nt-track-info-container {
+          display: flex;
+          flex-direction: column;
+
+          .tu-nt-input {
+            @extend %tu-input-number-style;
+          }
+
+          .tu-nt-error {
+            @extend %tu-input-error-text;
+          }
+        }
+      }
+
+      .tu-nt-actions-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+
+        .tu-nt-confirm-button {
+          margin-right: 3px;
+        }
+
+        .tu-nt-cancel-button {
+          margin-left: 3px;
+        }
+      }
+
+      button {
+        @extend %tu-button-style;
+        width: 100%;
+        box-sizing: border-box; /* ensures borders/padding don’t overflow */
+      }
+    }
+  }
+
+  .tu-yes-no-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-yes-no-dialog-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+
+      .tu-yes-no-info-container {
+        display: flex;
+        flex-direction: column;
+
+        .tu-yes-no-text {
+          padding: 3px;
+          text-align: center;
+          font-size: 20px;
+        }
+      }
+
+      .tu-yes-no-actions-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+
+        .tu-yes-no-confirm-button {
+        }
+
+        .tu-yes-no-cancel-button {
+        }
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
+  }
+
+  .tu-ts-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-ts-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+
+      .tu-ts-track-info-container {
+        display: flex;
+        flex-direction: column;
+
+        .tu-ts-input {
+          @extend %tu-input-number-style;
+        }
+
+        .tu-ts-error {
+          @extend %tu-input-error-text;
+        }
+      }
+
+      .tu-ts-actions-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+
+        .tu-ts-confirm-button {
+        }
+
+        .tu-ts-cancel-button {
+        }
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
+  }
+}
+
+%tu-side-controls-layout {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+%tu-modal-dialog {
+  border-radius: var(--border-radius);
+  border: none;
+  padding: 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  background-color: var(--primary-color);
+}
+
+%tu-modal-dialog-content {
+  padding: 1.5rem;
+}
+
+%tu-button-style {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--tertiary-color);
+  border-radius: var(--border-radius);
+  background-color: var(--secondary-color);
+  cursor: pointer;
+  transition: background-color var(--transition-speed);
+
+  &:hover {
+    background-color: var(--hover-color);
+  }
+}
+
+%tu-input-number-style {
+  padding: 5px;
+  border: 2px solid black;
+  border-radius: 5px;
+}
+
+%tu-input-error-text {
+  color: lightcoral;
+  min-height: 1em;
+  max-height: 1em;
+}
+
+.tu-applied-img {
+  background-color: var(--applied-color);
+  border-radius: var(--border-radius);
+}
+
+.tu-disabled-img {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: default;
+}

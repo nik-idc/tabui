@@ -13,7 +13,7 @@ import {
   Tab,
   TabWindowDim,
 } from "../../../src";
-import { SelectedElement } from "../../../src/tab-window/elements/selected-element";
+import { SelectedNote } from "../../../src/tab-window/element/selected-element";
 
 const stringsCount = 6;
 const fretsCount = 24;

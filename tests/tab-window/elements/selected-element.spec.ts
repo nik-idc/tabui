@@ -9,8 +9,8 @@ import {
   TabWindow,
   TabWindowDim,
 } from "../../../src";
-import { SelectedElement } from "../../../src/tab-window/elements/selected-element";
-import { SelectedElementWindowIds } from "../../../src/tab-window/tab-window";
+import { SelectedNote } from "../../../src/tab-window/element/selected-element";
+import { SelectedNoteWindowIds } from "../../../src/tab-window/tab-window";
 
 import { createBasicTabWindow } from "../../../test-render/test-cases";
 

@@ -1,349 +1,349 @@
 import { TabWindow } from "../../src/index";
 import { Guitar, GuitarNote, Note } from "../../src/index";
-import { GuitarEffect } from "../../src/models/guitar-effect/guitar-effect";
-import { GuitarEffectOptions } from "../../src/models/guitar-effect/guitar-effect-options";
-import { GuitarEffectType } from "../../src/models/guitar-effect/guitar-effect-type";
+import { GuitarTechnique } from "../../src/models/guitar-technique/guitar-technique";
+import { GuitarTechniqueOptions } from "../../src/models/guitar-technique/guitar-technique-options";
+import { GuitarTechniqueType } from "../../src/models/guitar-technique/guitar-technique-type";
 
-describe("Guitar Effect Model Tests", () => {
+describe("Guitar Technique Model Tests", () => {
   test("Valid vibrato", () => {
-    const effectType = GuitarEffectType.Vibrato;
+    const type = GuitarTechniqueType.Vibrato;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
-    const actualGuitarEffect = new GuitarEffect(effectType);
+    const actualGuitarTechnique = new GuitarTechnique(type);
 
     try {
-      guitarEffect = new GuitarEffect(effectType);
+      guitarTechnique = new GuitarTechnique(type);
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBe(undefined);
-      expect(guitarEffect).toStrictEqual(actualGuitarEffect);
+      expect(techniqueError).toBe(undefined);
+      expect(guitarTechnique).toStrictEqual(actualGuitarTechnique);
     }
   });
 
-  test("Invalid vibrato: options provided", () => {
-    const effectType = GuitarEffectType.Vibrato;
+  test("Invalid vibrato: bendOptions provided", () => {
+    const type = GuitarTechniqueType.Vibrato;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
     try {
-      guitarEffect = new GuitarEffect(
-        effectType,
-        new GuitarEffectOptions(undefined, 1.2, undefined)
+      guitarTechnique = new GuitarTechnique(
+        type,
+        new GuitarTechniqueOptions(undefined, 1.2, undefined)
       );
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
       console.log(`ERROR: ${error}`);
     } finally {
-      expect(effectError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(techniqueError).toBeInstanceOf(Error);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 
   test("Valid bend", () => {
-    const effectType = GuitarEffectType.Bend;
+    const type = GuitarTechniqueType.Bend;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
-    const options = new GuitarEffectOptions(1.2);
-    const actualGuitarEffect = new GuitarEffect(effectType, options);
+    const bendOptions = new GuitarTechniqueOptions(1.2);
+    const actualGuitarTechnique = new GuitarTechnique(type, bendOptions);
 
     try {
-      guitarEffect = new GuitarEffect(effectType, options);
+      guitarTechnique = new GuitarTechnique(type, bendOptions);
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBe(undefined);
-      expect(guitarEffect).toStrictEqual(actualGuitarEffect);
+      expect(techniqueError).toBe(undefined);
+      expect(guitarTechnique).toStrictEqual(actualGuitarTechnique);
     }
   });
 
-  test("Invalid bend: no options", () => {
-    const effectType = GuitarEffectType.Bend;
+  test("Invalid bend: no bendOptions", () => {
+    const type = GuitarTechniqueType.Bend;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
     try {
-      guitarEffect = new GuitarEffect(effectType);
+      guitarTechnique = new GuitarTechnique(type);
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(techniqueError).toBeInstanceOf(Error);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 
-  test("Invalid bend: wrong options", () => {
-    const effectType = GuitarEffectType.Bend;
+  test("Invalid bend: wrong bendOptions", () => {
+    const type = GuitarTechniqueType.Bend;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
     try {
-      guitarEffect = new GuitarEffect(
-        effectType,
-        new GuitarEffectOptions(undefined, 1.2, undefined)
+      guitarTechnique = new GuitarTechnique(
+        type,
+        new GuitarTechniqueOptions(undefined, 1.2, undefined)
       );
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(techniqueError).toBeInstanceOf(Error);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 
   test("Valid bend-and-release", () => {
-    const effectType = GuitarEffectType.BendAndRelease;
+    const type = GuitarTechniqueType.BendAndRelease;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
-    const options = new GuitarEffectOptions(1.2, 1.2);
-    const actualGuitarEffect = new GuitarEffect(effectType, options);
+    const bendOptions = new GuitarTechniqueOptions(1.2, 1.2);
+    const actualGuitarTechnique = new GuitarTechnique(type, bendOptions);
 
     try {
-      guitarEffect = new GuitarEffect(effectType, options);
+      guitarTechnique = new GuitarTechnique(type, bendOptions);
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBe(undefined);
-      expect(guitarEffect).toStrictEqual(actualGuitarEffect);
+      expect(techniqueError).toBe(undefined);
+      expect(guitarTechnique).toStrictEqual(actualGuitarTechnique);
     }
   });
 
-  test("Invalid bend-and-release: no options", () => {
-    const effectType = GuitarEffectType.BendAndRelease;
+  test("Invalid bend-and-release: no bendOptions", () => {
+    const type = GuitarTechniqueType.BendAndRelease;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
     try {
-      guitarEffect = new GuitarEffect(effectType);
+      guitarTechnique = new GuitarTechnique(type);
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(techniqueError).toBeInstanceOf(Error);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 
-  test("Invalid bend-and-release: wrong options", () => {
-    const effectType = GuitarEffectType.BendAndRelease;
+  test("Invalid bend-and-release: wrong bendOptions", () => {
+    const type = GuitarTechniqueType.BendAndRelease;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
     try {
-      guitarEffect = new GuitarEffect(
-        effectType,
-        new GuitarEffectOptions(undefined, 1.2, undefined)
+      guitarTechnique = new GuitarTechnique(
+        type,
+        new GuitarTechniqueOptions(undefined, 1.2, undefined)
       );
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(techniqueError).toBeInstanceOf(Error);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 
   test("Valid prebend-and-release", () => {
-    const effectType = GuitarEffectType.PrebendAndRelease;
+    const type = GuitarTechniqueType.PrebendAndRelease;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
-    const options = new GuitarEffectOptions(undefined, 1.2, 1.2);
-    const actualGuitarEffect = new GuitarEffect(effectType, options);
+    const bendOptions = new GuitarTechniqueOptions(undefined, 1.2, 1.2);
+    const actualGuitarTechnique = new GuitarTechnique(type, bendOptions);
 
     try {
-      guitarEffect = new GuitarEffect(effectType, options);
+      guitarTechnique = new GuitarTechnique(type, bendOptions);
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBe(undefined);
-      expect(guitarEffect).toStrictEqual(actualGuitarEffect);
+      expect(techniqueError).toBe(undefined);
+      expect(guitarTechnique).toStrictEqual(actualGuitarTechnique);
     }
   });
 
-  test("Invalid prebend-and-release: no options", () => {
-    const effectType = GuitarEffectType.PrebendAndRelease;
+  test("Invalid prebend-and-release: no bendOptions", () => {
+    const type = GuitarTechniqueType.PrebendAndRelease;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
     try {
-      guitarEffect = new GuitarEffect(effectType);
+      guitarTechnique = new GuitarTechnique(type);
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(techniqueError).toBeInstanceOf(Error);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 
-  test("Invalid prebend-and-release: wrong options", () => {
-    const effectType = GuitarEffectType.PrebendAndRelease;
+  test("Invalid prebend-and-release: wrong bendOptions", () => {
+    const type = GuitarTechniqueType.PrebendAndRelease;
 
-    let guitarEffect: GuitarEffect | undefined;
-    let effectError: Error | undefined = undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
+    let techniqueError: Error | undefined = undefined;
 
     try {
-      guitarEffect = new GuitarEffect(
-        effectType,
-        new GuitarEffectOptions(undefined, 1.2, undefined)
+      guitarTechnique = new GuitarTechnique(
+        type,
+        new GuitarTechniqueOptions(undefined, 1.2, undefined)
       );
     } catch (error) {
-      effectError = error;
+      techniqueError = error;
     } finally {
-      expect(effectError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(techniqueError).toBeInstanceOf(Error);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 
-  test("Guitar effect from object, valid, #1", () => {
-    const effectType = GuitarEffectType.Vibrato;
+  test("Guitar technique from object, valid, #1", () => {
+    const type = GuitarTechniqueType.Vibrato;
 
     const obj = {
-      effectType: effectType,
+      type: type,
     };
 
-    const actualGuitarEffect = new GuitarEffect(effectType);
+    const actualGuitarTechnique = new GuitarTechnique(type);
 
-    let guitarEffect: GuitarEffect | undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
     let parseError: Error | undefined = undefined;
     try {
-      guitarEffect = GuitarEffect.fromObject(obj);
+      guitarTechnique = GuitarTechnique.fromObject(obj);
     } catch (error) {
       parseError = error;
     } finally {
       expect(parseError).toBe(undefined);
-      expect(guitarEffect).toStrictEqual(actualGuitarEffect);
+      expect(guitarTechnique).toStrictEqual(actualGuitarTechnique);
     }
   });
 
-  test("Guitar effect from object, valid, #2", () => {
-    const effectType = GuitarEffectType.Bend;
+  test("Guitar technique from object, valid, #2", () => {
+    const type = GuitarTechniqueType.Bend;
     const bendPitch = 1.25;
 
     const obj = {
-      effectType: effectType,
-      options: { bendPitch: bendPitch },
+      type: type,
+      bendOptions: { bendPitch: bendPitch },
     };
 
-    const actualGuitarEffect = new GuitarEffect(
-      effectType,
-      new GuitarEffectOptions(bendPitch)
+    const actualGuitarTechnique = new GuitarTechnique(
+      type,
+      new GuitarTechniqueOptions(bendPitch)
     );
 
-    let guitarEffect: GuitarEffect | undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
     let parseError: Error | undefined = undefined;
     try {
-      guitarEffect = GuitarEffect.fromObject(obj);
+      guitarTechnique = GuitarTechnique.fromObject(obj);
     } catch (error) {
       parseError = error;
     } finally {
       expect(parseError).toBe(undefined);
-      expect(guitarEffect).toStrictEqual(actualGuitarEffect);
+      expect(guitarTechnique).toStrictEqual(actualGuitarTechnique);
     }
   });
 
-  test("Guitar effect from object, valid, #3", () => {
-    const effectType = GuitarEffectType.PrebendAndRelease;
+  test("Guitar technique from object, valid, #3", () => {
+    const type = GuitarTechniqueType.PrebendAndRelease;
     const prebendPitch = 1.25;
     const bendReleasePitch = 0.5;
 
     const obj = {
-      effectType: effectType,
-      options: {
+      type: type,
+      bendOptions: {
         prebendPitch: prebendPitch,
         bendReleasePitch: bendReleasePitch,
       },
     };
 
-    const actualGuitarEffect = new GuitarEffect(
-      effectType,
-      new GuitarEffectOptions(undefined, bendReleasePitch, prebendPitch)
+    const actualGuitarTechnique = new GuitarTechnique(
+      type,
+      new GuitarTechniqueOptions(undefined, bendReleasePitch, prebendPitch)
     );
 
-    let guitarEffect: GuitarEffect | undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
     let parseError: Error | undefined = undefined;
     try {
-      guitarEffect = GuitarEffect.fromObject(obj);
+      guitarTechnique = GuitarTechnique.fromObject(obj);
     } catch (error) {
       parseError = error;
     } finally {
       expect(parseError).toBe(undefined);
-      expect(guitarEffect).toStrictEqual(actualGuitarEffect);
+      expect(guitarTechnique).toStrictEqual(actualGuitarTechnique);
     }
   });
 
-  test("Guitar effect from object, invalid, #1", () => {
-    const effectType = GuitarEffectType.Vibrato;
+  test("Guitar technique from object, invalid, #1", () => {
+    const type = GuitarTechniqueType.Vibrato;
 
     const obj = {
-      effectType: effectType,
-      options: { bendPitch: 1.2 },
+      type: type,
+      bendOptions: { bendPitch: 1.2 },
     };
 
-    let guitarEffect: GuitarEffect | undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
     let parseError: Error | undefined = undefined;
     try {
-      guitarEffect = GuitarEffect.fromObject(obj);
+      guitarTechnique = GuitarTechnique.fromObject(obj);
     } catch (error) {
       parseError = error;
     } finally {
       expect(parseError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 
-  test("Guitar effect from object, invalid, #2", () => {
-    const effectType = GuitarEffectType.Bend;
+  test("Guitar technique from object, invalid, #2", () => {
+    const type = GuitarTechniqueType.Bend;
     const bendPitch = 1.25;
 
     const obj = {
-      effectType: effectType,
-      options: { prebendPitch: bendPitch },
+      type: type,
+      bendOptions: { prebendPitch: bendPitch },
     };
 
-    let guitarEffect: GuitarEffect | undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
     let parseError: Error | undefined = undefined;
     try {
-      guitarEffect = GuitarEffect.fromObject(obj);
+      guitarTechnique = GuitarTechnique.fromObject(obj);
     } catch (error) {
       parseError = error;
     } finally {
       expect(parseError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 
-  test("Guitar effect from object, invalid, #3", () => {
-    const effectType = GuitarEffectType.PrebendAndRelease;
+  test("Guitar technique from object, invalid, #3", () => {
+    const type = GuitarTechniqueType.PrebendAndRelease;
     const prebendPitch = 1.25;
     const bendReleasePitch = 0.5;
 
     const obj = {
-      effectType: effectType,
-      options: {
+      type: type,
+      bendOptions: {
         prebendPitch: prebendPitch,
       },
     };
 
-    let guitarEffect: GuitarEffect | undefined;
+    let guitarTechnique: GuitarTechnique | undefined;
     let parseError: Error | undefined = undefined;
     try {
-      guitarEffect = GuitarEffect.fromObject(obj);
+      guitarTechnique = GuitarTechnique.fromObject(obj);
     } catch (error) {
       parseError = error;
     } finally {
       expect(parseError).toBeInstanceOf(Error);
-      expect(guitarEffect).toStrictEqual(undefined);
+      expect(guitarTechnique).toStrictEqual(undefined);
     }
   });
 });

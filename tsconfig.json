@@ -12,16 +12,11 @@
     "declarationDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"]
     }
   },
   "ts-node": {
     "esm": true
   },
-  "include": [
-    "src/**/*",
-    "editor/**/*"
-  ]
+  "include": ["src/**/*", "editor/**/*"]
 }

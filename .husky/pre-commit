@@ -1,0 +1,5 @@
+#!/bin/sh
+
+## Run Prettier on all files before committing
+# echo "Running Prettier..."
+# npx prettier --write .
