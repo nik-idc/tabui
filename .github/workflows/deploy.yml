@@ -1,7 +1,8 @@
 name: Deploy Editor to GitHub Pages
 on:
   push:
-    branches: [master]
+    tags:
+      - 'v*'
 
 jobs:
   build:
