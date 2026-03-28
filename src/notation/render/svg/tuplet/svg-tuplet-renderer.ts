@@ -261,7 +261,9 @@ export class SVGTupletRenderer implements ElementRenderer {
 
     const length = this.tupletElement.tupletGroup.beats.length;
     while (this._incompleteTupletTextsSVG.length > length) {
-      this.unrenderIncompleteTupletText(this._incompleteTupletTextsSVG.length - 1);
+      this.unrenderIncompleteTupletText(
+        this._incompleteTupletTextsSVG.length - 1
+      );
       this._incompleteTupletTextsSVG.pop();
     }
 

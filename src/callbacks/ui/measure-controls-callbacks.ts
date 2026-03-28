@@ -28,9 +28,7 @@ export interface MeasureControlsCallbacks {
   unbind(): void;
 }
 
-export class MeasureControlsDefaultCallbacks
-  implements MeasureControlsCallbacks
-{
+export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks {
   private _measureComponent: MeasureControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;

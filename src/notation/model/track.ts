@@ -57,8 +57,27 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
     };
 
     this._name = name;
-    this._staves = staves;
-    // staves.length !== 0 ? staves : [new Staff(this, this.context)];
+    this._staves =
+      staves.length !== 0 ? staves : [new Staff(this, this.context)];
+
+    this.ensureStaffBarsAligned();
+  }
+
+  private ensureStaffBarsAligned(): void {
+    const masterBars = this.score.masterBars;
+    if (masterBars.length === 0) {
+      return;
+    }
+
+    for (const staff of this._staves) {
+      while (staff.bars.length > masterBars.length) {
+        staff.removeBar(staff.bars.length - 1);
+      }
+
+      for (let i = staff.bars.length; i < masterBars.length; i++) {
+        staff.appendBar(masterBars[i]);
+      }
+    }
   }
 
   /**
@@ -79,6 +98,7 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
     }
 
     this._staves.splice(index, 0, staff);
+    this.ensureStaffBarsAligned();
 
     return { index: index, staves: [staff] };
   }
@@ -90,7 +110,7 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
    */
   public removeStaff(index: number): StaffArrayOperationOutput<I>[] {
     // Check index validity
-    if (index < 0 || index > this._staves.length) {
+    if (index < 0 || index >= this._staves.length) {
       throw Error(`${index} is invalid staff index`);
     }
 

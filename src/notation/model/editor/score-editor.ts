@@ -1,29 +1,15 @@
 import {
-  BendOptionsData,
   BendTechniqueOptions,
   GuitarTechnique,
-  Score,
-  Technique,
-  TECHNIQUES_INCOMPATIBILITY,
   TechniqueType,
-  Track,
   TupletSettings,
   tupletSettingsEqual,
 } from "..";
-import { Bar, BeatArrayOperationOutput } from "../bar";
-import { MasterBar, MasterBarData } from "../master-bar";
+import { BeatArrayOperationOutput } from "../bar";
 import { Beat } from "../beat";
-import { Guitar } from "../instrument/guitar/guitar";
 import { MusicInstrument } from "../instrument/instrument";
 import { GuitarNote } from "../guitar-note";
-import {
-  NOTES_ARR,
-  NOTES_PER_OCTAVE,
-  LOWEST_OCTAVE,
-  HIGHEST_OCTAVE,
-  Note,
-  NoteValue,
-} from "../note";
+import { Note } from "../note";
 import { NoteDuration } from "../note-duration";
 
 /**
@@ -31,137 +17,6 @@ import { NoteDuration } from "../note-duration";
  * like replace beats across the staff, transpose note etc
  */
 export class ScoreEditor {
-  /**
-   * Transposes note value by the specified semitone count
-   * @param semitones Semitone count
-   */
-  public static transpose<I extends MusicInstrument>(
-    note: Note<I>,
-    semitones: number
-  ): void {
-    if (note.octave === null) {
-      throw Error("Tried to transpose a non-transposable note");
-    }
-
-    const currentIndex = NOTES_ARR.indexOf(note.noteValue);
-    const totalSemitones =
-      note.octave * NOTES_PER_OCTAVE + currentIndex + semitones;
-
-    const newOctave = Math.floor(totalSemitones / NOTES_PER_OCTAVE);
-    const newIndex =
-      ((totalSemitones % NOTES_PER_OCTAVE) + NOTES_PER_OCTAVE) %
-      NOTES_PER_OCTAVE;
-
-    if (newOctave < LOWEST_OCTAVE || newOctave > HIGHEST_OCTAVE) {
-      throw new Error("Octave out of range");
-    }
-
-    note.noteValue = NOTES_ARR[newIndex];
-    note.octave = newOctave;
-  }
-
-  /**
-   * Raise note by the specified semitone count
-   * @param semitones Semitone count
-   */
-  public static raiseNote<I extends MusicInstrument>(
-    note: Note<I>,
-    semitones: number
-  ): void {
-    this.transpose(note, semitones);
-  }
-
-  /**
-   * Lower note by the specified semitone count
-   * @param semitones Semitone count
-   */
-  public static lowerNote<I extends MusicInstrument>(
-    note: Note<I>,
-    semitones: number
-  ): void {
-    this.transpose(note, -semitones);
-  }
-
-  /**
-   * Sets note fret value
-   * @param note Note
-   * @param fret New fret value
-   */
-  public static setNoteFret(note: GuitarNote, fret: number): void {
-    note.fret = fret;
-    note.beat.bar.computeBeaming();
-  }
-
-  /**
-   * Apply bend technique to a guitar note
-   * @param note Note
-   * @param bendOptions Bend options
-   */
-  public static applyBend(
-    note: GuitarNote,
-    bendOptions?: BendOptionsData
-  ): void {}
-
-  /**
-   * Apply technique to note
-   * @param note Note
-   * @param techniqueType Technique type
-   * @param bendOptions Bend options (if applicable)
-   * @returns True if technique applied, false otherwise
-   */
-  public static applyTechniqueToNote<I extends MusicInstrument>(
-    note: Note<I>,
-    techniqueType: TechniqueType,
-    bendOptions: BendTechniqueOptions | null
-  ): boolean {
-    // TEMPORARY LACK OF SUPPORT FOR NON-GUITAR NOTES
-    if (!(note instanceof GuitarNote)) {
-      throw Error("No support for non guitar notes");
-    }
-
-    if (
-      note.noteValue === NoteValue.None ||
-      note.noteValue === NoteValue.Dead
-    ) {
-      // No techniques can be applied to a dead note or an abscense of a note
-      return false;
-    }
-
-    note.addTechnique(new GuitarTechnique(note, techniqueType, bendOptions));
-    note.sortTechniques();
-
-    return true;
-  }
-
-  /**
-   * Adds new technique to the note
-   * @param technique Technique to add
-   * @returns True if technique added succesfully, false if can't add this technique
-   */
-  public static addTechniqueToNote<I extends MusicInstrument>(
-    note: Note<I>,
-    technique: Technique
-  ): boolean {
-    // Check if technique to be added is compatible with all the other techniques
-    for (const technique of note.techniques) {
-      const curIncompatibility = TECHNIQUES_INCOMPATIBILITY[technique.type];
-      if (
-        curIncompatibility.some((incompatibleType) => {
-          return incompatibleType === technique.type;
-        })
-      ) {
-        // One of the techniques is incompatible with the
-        // to be added technique => discard and return false
-        return false;
-      }
-    }
-
-    // All techniques are compatible with each
-    // other => add new technique and return true
-    note.addTechnique(technique);
-    return true;
-  }
-
   /**
    * Sets (applies/removes) technique from notes
    * @param notes Notes
@@ -197,20 +52,6 @@ export class ScoreEditor {
   }
 
   /**
-   * Applies techniques to all notes in specified beats
-   * @param beats Beats array
-   * @param technique Technique to apply
-   * @returns True if the technique applied to all notes
-   */
-  public static applyTechniqueToBeatsNotes<I extends MusicInstrument>(
-    beats: Beat<I>[],
-    type: TechniqueType
-  ): void {
-    const notesArr: Note<I>[] = beats.flatMap((b) => b.notes);
-    this.setTechniqueNotes(notesArr, type);
-  }
-
-  /**
    * Set beat duration
    * @param beat Beat
    * @param newDuration New duration
@@ -237,7 +78,7 @@ export class ScoreEditor {
 
     for (const beat of beats) {
       beat.dots = newDots === beat.dots ? 0 : newDots;
-      beat.bar.computeBeaming();
+      beat.bar.computeBarTupletGroups();
     }
   }
 
@@ -249,12 +90,11 @@ export class ScoreEditor {
     beat: Beat<I>,
     newSettings: TupletSettings | null = null
   ): void {
-    const sameSettings =
-      newSettings?.normalCount === beat.tupletSettings?.normalCount ||
-      newSettings?.tupletCount === beat.tupletSettings?.tupletCount;
+    const sameSettings = tupletSettingsEqual(newSettings, beat.tupletSettings);
 
     if (newSettings === null || sameSettings) {
       beat.tupletSettings = null;
+      beat.bar.computeBarTupletGroups();
       return;
     }
 
@@ -262,6 +102,7 @@ export class ScoreEditor {
       normalCount: newSettings.normalCount,
       tupletCount: newSettings.tupletCount,
     };
+    beat.bar.computeBarTupletGroups();
   }
 
   /**
@@ -362,4 +203,23 @@ export class ScoreEditor {
       }
     }
   }
+
+  // Unused helpers kept for later review.
+  // public static transpose<I extends MusicInstrument>(
+  //   note: Note<I>,
+  //   semitones: number
+  // ): void {}
+  // public static raiseNote<I extends MusicInstrument>(
+  //   note: Note<I>,
+  //   semitones: number
+  // ): void {}
+  // public static lowerNote<I extends MusicInstrument>(
+  //   note: Note<I>,
+  //   semitones: number
+  // ): void {}
+  // public static setNoteFret(note: GuitarNote, fret: number): void {}
+  // public static applyBend(
+  //   note: GuitarNote,
+  //   bendOptions?: BendTechniqueOptions
+  // ): void {}
 }

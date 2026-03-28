@@ -30,7 +30,7 @@ export class AppendBeatCommand implements Command {
    * Execute add beat command
    */
   execute(): void {
-    this._appendBeatResult = this._bar.appendBeat();
+    this._appendBeatResult = this._bar.appendBeats();
   }
 
   /**

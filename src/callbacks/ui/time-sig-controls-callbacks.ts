@@ -19,9 +19,7 @@ export interface TimeSigControlsCallbacks {
   unbind(): void;
 }
 
-export class TimeSigControlsDefaultCallbacks
-  implements TimeSigControlsCallbacks
-{
+export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks {
   private _timeSigComponent: TimeSigControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;

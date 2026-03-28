@@ -30,7 +30,7 @@ export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
       [],
       barsInfo.beatsDuration
     );
-    bar.appendBeat(newBeat);
+    bar.appendBeats([newBeat]);
   }
 
   for (let i = 0; i < barsInfo.beatsCount; i++) {
@@ -53,7 +53,8 @@ export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
 
 export function fillStaff(staff: Staff<Guitar>, barsInfo: BarsInfo[]): void {
   for (let i = 0; i < barsInfo.length; i++) {
-    const result = staff.appendBar(staff.track.score.masterBars[i]);
+    const result =
+      staff.bars[i] ?? staff.appendBar(staff.track.score.masterBars[i]);
 
     fillBar(result, barsInfo[i]);
   }
@@ -68,11 +69,12 @@ export function fillTrack(
   }
 ): void {
   for (let i = 0; i < info.stavesInfo.length; i++) {
-    const result = track.insertStaff(
-      track.staves.length === 0 ? 0 : track.staves.length
-    );
+    const staff =
+      i === 0
+        ? track.staves[0]
+        : track.insertStaff(track.staves.length).staves[0];
 
-    fillStaff(result.staves[0], info.stavesInfo[i]);
+    fillStaff(staff, info.stavesInfo[i]);
   }
 }
 
@@ -89,6 +91,9 @@ export function createScore(
   // barsInfo: BarsInfo[]
 ): Score {
   const score = new Score([], scoreName, artist, songName);
+
+  score.tracks.splice(0, score.tracks.length);
+  score.masterBars.splice(0, score.masterBars.length);
 
   for (let i = 0; i < masterBarsCount; i++) {
     score.appendMasterBar();

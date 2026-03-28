@@ -56,9 +56,7 @@ export class NewTrackControlsTemplateRenderer {
     this.template.trackInfoContainer.classList.add(trackInfoCSSClass);
     this.template.actionsContainer.classList.add(actionsCSSClass);
 
-    this.template.dialog.appendChild(
-      this.template.dialogContent
-    );
+    this.template.dialog.appendChild(this.template.dialogContent);
     this.template.dialogContent.append(
       this.template.settingsContainer,
       this.template.actionsContainer

@@ -17,9 +17,7 @@ export interface TrackSettingsControlsCallbacks {
   unbind(): void;
 }
 
-export class TrackSettingsControlsDefaultCallbacks
-  implements TrackSettingsControlsCallbacks
-{
+export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsControlsCallbacks {
   private _trackSettingsComponent: TrackSettingsControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;

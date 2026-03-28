@@ -23,9 +23,7 @@ export interface NewTrackControlsCallbacks {
   unbind(): void;
 }
 
-export class NewTrackControlsDefaultCallbacks
-  implements NewTrackControlsCallbacks
-{
+export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbacks {
   private _newTrackComponent: NewTrackControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;

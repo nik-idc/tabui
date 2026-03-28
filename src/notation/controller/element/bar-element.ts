@@ -214,7 +214,7 @@ export class BarElement implements NotationElement {
 
     for (const tupletGroup of this.bar.tupletGroups) {
       const tupletTabBeatElements = this._beatElements.filter((b) =>
-        tupletGroup.beats.some((tb) => tb.actualBeat.uuid === b.beat.uuid)
+        tupletGroup.beats.some((tb) => tb.uuid === b.beat.uuid)
       );
 
       this._tupletElements.push(

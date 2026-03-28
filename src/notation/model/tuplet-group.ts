@@ -11,14 +11,6 @@ export interface BarTupletBeatJSON {
 }
 
 /**
- * Tuplet beat type
- */
-export type BarTupletBeat<I extends MusicInstrument = MusicInstrument> = {
-  actualBeat: Beat<I>;
-  calculatedDuration: number;
-};
-
-/**
  * Tuplet group JSON format
  */
 export interface BarTupletGroupJSON {
@@ -35,8 +27,8 @@ export interface BarTupletGroupJSON {
 export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
   /** Tuplet group's unique identifier */
   readonly uuid: number;
-  /** Array of all beats in the bar */
-  readonly beats: BarTupletBeat<I>[];
+  /** Tuplet group's beats */
+  readonly beats: Beat<I>[];
   /** True if beats 'fill' the tuplet group */
   readonly complete: boolean;
   /** True if normal count = tuplet count + 1 (3:2, 4:3, 5:4 etc) */
@@ -57,18 +49,20 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
     this.normalCount = normalCount;
     this.tupletCount = tupletCount;
 
-    this.beats = [];
-    for (const beat of beats) {
-      const factor = this.tupletCount / this.normalCount;
-      const calculatedDuration = beat.fullDuration * factor;
-      this.beats.push({
-        actualBeat: beat,
-        calculatedDuration: calculatedDuration,
-      });
-    }
+    this.beats = beats;
 
     this.complete = this.beats.length === normalCount;
     this.isStandard = this.normalCount === this.tupletCount + 1;
+  }
+
+  /** Gets calculated duration of a tuplet beat by index */
+  public getCalculatedDurationAt(index: number): number {
+    const beat = this.beats[index];
+    if (beat === undefined) {
+      throw new Error(`Tuplet beat at index ${index} does not exist`);
+    }
+
+    return beat.fullDuration * (this.tupletCount / this.normalCount);
   }
 
   /**
@@ -76,9 +70,8 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
    * @returns Current tuplet group's deep copy
    */
   public deepCopy(): BarTupletGroup {
-    const actualBeats = this.beats.map((b) => b.actualBeat);
     const copy = new BarTupletGroup(
-      actualBeats,
+      [...this.beats],
       this.normalCount,
       this.tupletCount
     );
@@ -91,10 +84,11 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
    */
   public toJSON(): BarTupletGroupJSON {
     const beatsJSON: BarTupletBeatJSON[] = [];
-    for (const beat of this.beats) {
+    for (let i = 0; i < this.beats.length; i++) {
+      const beat = this.beats[i];
       beatsJSON.push({
-        actualBeat: beat.actualBeat.toJSON(),
-        calculatedDuration: beat.calculatedDuration,
+        actualBeat: beat.toJSON(),
+        calculatedDuration: this.getCalculatedDurationAt(i),
       });
     }
 
