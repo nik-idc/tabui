@@ -35,7 +35,7 @@ export class CommandManager {
     const command = this.redoStack.pop();
     if (command) {
       command.redo();
-      this.redoStack.push(command);
+      this.undoStack.push(command);
     }
   }
 

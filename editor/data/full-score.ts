@@ -3,7 +3,7 @@ import {
   DEFAULT_ELECTRIC_GUITARS,
   NoteDuration,
   Score,
-} from "@/index";
+} from "@/notation/model";
 import { createScore } from "./helpers";
 
 const stavesInfo = [

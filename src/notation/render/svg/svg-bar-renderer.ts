@@ -16,7 +16,7 @@ import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { SVGTupletRenderer, SVGTupletSegmentRenderer } from "./tuplet";
 import { ElementRenderer } from "../element-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
-import { TabBeatElement } from "@/notation/controller/element/tab-beat-element";
+import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 import { SVGTabBeatRenderer } from "./svg-tab-beat-renderer";
 import { SVGBeamSegmentRenderer } from "./svg-beam-segment-renderer";
 
@@ -225,6 +225,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this.barElement.timeSigBeatsTextCoordsGlobal === undefined ||
       this.barElement.timeSigDurationTextCoordsGlobal === undefined
     ) {
+      this.unrenderBarSig();
       return;
     }
 

@@ -1,15 +1,15 @@
 import { Staff } from "@/notation/model";
 import { Point, randomInt, Rect } from "@/shared";
-import { BarElement } from "./bar-element";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import { BarElement } from "../bar/bar-element";
 import {
   NotationStyle,
   StaffLineData,
   StaffLineElement,
 } from "./staff-line-element";
-import { TabLayoutDimensions } from "../tab-controller-dim";
 import { TechGapElement } from "./tech-gap-element";
-import { NotationElement } from "./notation-element";
-import { TrackElement } from "./track-element";
 
 /**
  * Class that handles geometry of a single notation style line in the staff

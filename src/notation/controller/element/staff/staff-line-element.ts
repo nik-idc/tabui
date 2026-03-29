@@ -1,9 +1,9 @@
 import { Bar, Staff } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TrackLineElement } from "./track-line-element";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import { TrackLineElement } from "../track/track-line-element";
 import { NotationStyleLineElement } from "./notation-style-line-element";
-import { NotationElement } from "./notation-element";
-import { TrackElement } from "./track-element";
 
 /**
  * Supported notation styles

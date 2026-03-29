@@ -1,8 +1,8 @@
 import { GuitarTechnique } from "@/notation/model";
 import { Point, Rect } from "@/shared";
-import { BeatElement } from "../beat-element";
-import { TechGapLineElement } from "../tech-gap-line-element";
-import { NotationElement } from "../notation-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import { BeatElement } from "@/notation/controller/element/beat/beat-element";
+import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
 
 /**
  * Interface describing a technique label element.

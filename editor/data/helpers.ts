@@ -2,18 +2,14 @@ import {
   Track,
   Bar,
   Beat,
-  Note,
-  NoteValue,
   NoteDuration,
   Guitar,
   Score,
   GuitarNote,
-  DEFAULT_ELECTRIC_GUITARS,
   Staff,
-  ScoreEditor,
   MusicInstrument,
   TrackContext,
-} from "@/index";
+} from "@/notation/model";
 
 type BarsInfo = {
   beatsCount: number;
@@ -24,29 +20,27 @@ const excludedStrings = [1, 5, 6];
 
 export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
   for (let i = 0; i < barsInfo.beatsCount; i++) {
-    const newBeat = new Beat<Guitar>(
-      bar,
-      bar.trackContext,
-      [],
-      barsInfo.beatsDuration
-    );
-    bar.appendBeats([newBeat]);
-  }
-
-  for (let i = 0; i < barsInfo.beatsCount; i++) {
-    const beat = bar.beats[i];
+    const reusedSeedBeat = i === 0 && bar.isEmpty();
+    const newBeat = reusedSeedBeat
+      ? bar.beats[0]
+      : new Beat<Guitar>(bar, bar.trackContext, [], barsInfo.beatsDuration);
+    newBeat.baseDuration = barsInfo.beatsDuration;
     for (let j = 0; j < bar.trackContext.instrument.maxPolyphony; j++) {
       if (excludedStrings.includes(j + 1)) {
         continue;
       }
 
       const note = new GuitarNote(
-        beat as Beat<Guitar>,
-        beat.trackContext as TrackContext<Guitar>,
+        newBeat,
+        newBeat.trackContext as TrackContext<Guitar>,
         j + 1,
         j + i
       );
-      bar.beats[i].setNote(j, note);
+      newBeat.setNote(j, note);
+    }
+
+    if (!reusedSeedBeat) {
+      bar.appendBeats([newBeat]);
     }
   }
 }

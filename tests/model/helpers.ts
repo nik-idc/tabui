@@ -37,7 +37,8 @@ export function createScoreGraph(
   }
 
   const bar = staff.bars[0] as Bar<Guitar>;
-  bar.beats.splice(0, bar.beats.length);
+  const seedBeat = createBeat(bar, NoteDuration.Quarter);
+  bar.beats.splice(0, bar.beats.length, seedBeat);
   bar.computeBarTupletGroups();
 
   return { score, track, staff, masterBar, bar };
@@ -90,7 +91,7 @@ export function createBarWithBeats(
     )
   );
 
-  graph.bar.beats.push(...beats);
+  graph.bar.beats.splice(0, graph.bar.beats.length, ...beats);
   graph.bar.computeBarTupletGroups();
 
   return { ...graph, beats };

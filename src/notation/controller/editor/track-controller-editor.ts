@@ -9,8 +9,8 @@ import {
   DEFAULT_MASTER_BAR,
 } from "@/notation/model";
 import { TrackElement } from "../element";
-import { BeatElement } from "../element/beat-element";
-import { NoteElement } from "../element/note-element";
+import { BeatElement } from "../element/beat/beat-element";
+import { NoteElement } from "../element/note/note-element";
 import {
   MoveRightResult,
   SelectedMoveDirection,
@@ -42,6 +42,10 @@ import {
  * Class responsible for managing editing & element state
  */
 export class TrackControllerEditor {
+  // TODO(P0-ARCH): Revisit the boundary between this type and TrackController.
+  // Editing orchestration lives here, while TrackController acts as the public
+  // façade. The split works, but ownership is still a bit blurry.
+
   /** Command manager */
   readonly commandManager: CommandManager;
 
@@ -354,6 +358,13 @@ export class TrackControllerEditor {
    */
   public clearSelectedNote(): void {
     this._selectionManager.clearSelectedNote();
+  }
+
+  /**
+   * Syncs selection to current runtime structure after structural changes.
+   */
+  public syncSelection(): void {
+    this._selectionManager.syncSelection();
   }
 
   /**

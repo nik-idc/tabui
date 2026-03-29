@@ -1,5 +1,5 @@
 import { NoteElement, TrackController } from "@/notation/controller";
-import { TabNoteElement } from "@/notation/controller/element/tab-note-element";
+import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { createSVGRect } from "@/shared";
 
 /**

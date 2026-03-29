@@ -6,18 +6,24 @@ import {
   Guitar,
 } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
+import {
+  TabControllerDim,
+  TabLayoutDimensions,
+} from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import {
+  NotationStyle,
+  StaffLineElement,
+} from "@/notation/controller/element/staff/staff-line-element";
+import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
 import { BeamSegmentElement } from "./beam-segment-element";
 import { BarTupletGroupElement } from "./bar-tuplet-group-element";
-import { TabControllerDim, TabLayoutDimensions } from "../tab-controller-dim";
-import { TabBeatElement } from "./tab-beat-element";
-import { SheetBeatElement } from "./sheet-beat-element";
-import { BeatElement, getBeatWidth } from "./beat-element";
+import { TabBeatElement } from "../beat/tab-beat-element";
+import { SheetBeatElement } from "../beat/sheet-beat-element";
+import { BeatElement, getBeatWidth } from "../beat/beat-element";
 // import { BeatElement_old } from "./tab-beat-element_old";
-import { NotationStyle, StaffLineElement } from "./staff-line-element";
 import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
-import { NotationStyleLineElement } from "./notation-style-line-element";
-import { NotationElement } from "./notation-element";
-import { TrackElement } from "./track-element";
 
 // TODO:: Fix repeat rects shifting when there are multple staves
 

@@ -1,19 +1,19 @@
 import { Beat, Track } from "@/notation/model";
 import { randomInt, Point, Rect } from "@/shared";
-import { BarElement, getBarWidth } from "./bar-element";
-import { TrackLineData, TrackLineElement } from "./track-line-element";
-import { TabLayoutDimensions } from "../tab-controller-dim";
-import { BeatElement } from "./beat-element";
-import { StaffLineElement } from "./staff-line-element";
+import { TabLayoutDimensions } from "../tab-layout-dimensions";
+import { BarElement, getBarWidth } from "./bar/bar-element";
+import { TrackLineData, TrackLineElement } from "./track/track-line-element";
+import { BeatElement } from "./beat/beat-element";
+import { StaffLineElement } from "./staff/staff-line-element";
 import { NotationElement, NotationElementClass } from "./notation-element";
-import { TabNoteElement } from "./tab-note-element";
-import { TabBeatElement } from "./tab-beat-element";
-import { NotationStyleLineElement } from "./notation-style-line-element";
-import { BeamSegmentElement } from "./beam-segment-element";
-import { BarTupletGroupElement } from "./bar-tuplet-group-element";
-import { TechGapElement } from "./tech-gap-element";
-import { TechGapLineElement } from "./tech-gap-line-element";
-import { TrackLineInfoElement } from "./track-line-info-element";
+import { TabNoteElement } from "./note/tab-note-element";
+import { TabBeatElement } from "./beat/tab-beat-element";
+import { NotationStyleLineElement } from "./staff/notation-style-line-element";
+import { BeamSegmentElement } from "./bar/beam-segment-element";
+import { BarTupletGroupElement } from "./bar/bar-tuplet-group-element";
+import { TechGapElement } from "./staff/tech-gap-element";
+import { TechGapLineElement } from "./staff/tech-gap-line-element";
+import { TrackLineInfoElement } from "./track/track-line-info-element";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
 
@@ -254,6 +254,23 @@ export class TrackElement {
 
   public getElementByModelUUID(modelUUID: number): NotationElement | undefined {
     return this._elementRegistry.get(modelUUID);
+  }
+
+  /** Finds corresponding beat element */
+  public findCorrespondingBeatElement(beat: Beat): BeatElement | undefined {
+    const element = this._elementRegistry.get(beat.uuid);
+    return element instanceof TabBeatElement ? element : undefined;
+  }
+
+  /** Finds beat element by beat UUID */
+  public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
+    const element = this._elementRegistry.get(beatUUID);
+    return element instanceof TabBeatElement ? element : undefined;
+  }
+
+  /** Gets beat element global coords */
+  public getBeatElementGlobalCoords(neededBeatElement: BeatElement): Point {
+    return neededBeatElement.globalCoords;
   }
 
   public clearDirtyElements(): void {

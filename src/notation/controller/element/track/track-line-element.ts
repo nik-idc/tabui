@@ -1,12 +1,15 @@
 import { Guitar, MasterBar, Track } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
-import { StaffLineData, StaffLineElement } from "./staff-line-element";
-import { TabLayoutDimensions } from "../tab-controller-dim";
-import { TrackElement } from "./track-element";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import {
+  StaffLineData,
+  StaffLineElement,
+} from "@/notation/controller/element/staff/staff-line-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
-import { getBarWidth } from "./bar-element";
+import { getBarWidth } from "@/notation/controller/element/bar/bar-element";
 import { VertLine } from "@/shared/rendering/geometry/line";
-import { NotationElement } from "./notation-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
 
 /**
  * Data needed to build a track bar:

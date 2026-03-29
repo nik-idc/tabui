@@ -1,4 +1,4 @@
-import { DEFAULT_ELECTRIC_GUITARS, NoteDuration } from "@/index";
+import { DEFAULT_ELECTRIC_GUITARS, NoteDuration } from "@/notation/model";
 import { createScore } from "./helpers";
 
 const MASTER_BARS_COUNT = 120;

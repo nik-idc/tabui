@@ -1,5 +1,5 @@
 import { TrackController } from "@/notation/controller";
-import { TechGapLineElement } from "@/notation/controller/element/tech-gap-line-element";
+import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
 import { createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";

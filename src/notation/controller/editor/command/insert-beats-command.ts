@@ -11,6 +11,8 @@ export class InsertBeatsCommand implements Command {
   private _index: number;
   /** Beats to be inserted */
   private _beatsToInsert: Beat[];
+  /** Inserted beat copies tracked for undo/redo */
+  private _insertedBeats: Beat[] = [];
   /** True if executed, false otherwise */
   private _executed: boolean = false;
 
@@ -29,7 +31,11 @@ export class InsertBeatsCommand implements Command {
    * Execute add beat command
    */
   execute(): void {
-    this._bar.insertBeats(this._index, this._beatsToInsert);
+    this._insertedBeats = this._bar.insertBeats(
+      this._index,
+      this._beatsToInsert
+    );
+    this._executed = true;
   }
 
   /**
@@ -40,7 +46,7 @@ export class InsertBeatsCommand implements Command {
       return;
     }
 
-    this._bar.removeBeats(this._beatsToInsert);
+    this._bar.removeBeats(this._insertedBeats);
   }
 
   /**
@@ -51,6 +57,9 @@ export class InsertBeatsCommand implements Command {
       return;
     }
 
-    this._bar.insertBeats(this._index, this._beatsToInsert);
+    this._insertedBeats = this._bar.insertBeats(
+      this._index,
+      this._beatsToInsert
+    );
   }
 }

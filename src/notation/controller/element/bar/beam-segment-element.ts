@@ -1,10 +1,10 @@
 import { Point, Rect, randomInt } from "@/shared";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BarElement } from "./bar-element";
-import { TabLayoutDimensions } from "../tab-controller-dim";
-import { TabBeatElement } from "./tab-beat-element";
+import { TabBeatElement } from "../beat/tab-beat-element";
 import { DURATION_TO_FLAG_COUNT } from "@/notation/model";
-import { NotationElement } from "./notation-element";
-import { TrackElement } from "./track-element";
 
 type ShortTailDirection = "left" | "right";
 

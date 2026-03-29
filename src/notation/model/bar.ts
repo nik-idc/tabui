@@ -69,21 +69,23 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     this.staff = staff;
     this.trackContext = trackContext;
     this.masterBar = masterBar;
-    if (beats.length === 0) {
-      // this.beats = [new Beat<I>(this, this.trackContext, NoteDuration.Quarter)];
-
-      // TODO: Figure out behavior for when passed beats is empty
-      // this.beats = [new Beat<I>(this, this.trackContext)];
-      this.beats = [];
-    } else {
-      this.beats = beats;
-    }
+    this.beats = beats.length === 0 ? [this.createDefaultBeat(0)] : beats;
 
     this._beamingGroups = [];
     this._tupletGroups = [];
 
     this.computeBeaming();
     this.computeBarTupletGroups();
+  }
+
+  private ensureSeedBeat(): Beat<I>[] {
+    if (this.beats.length !== 0) {
+      return [];
+    }
+
+    const seedBeat = this.createDefaultBeat(0);
+    this.beats.push(seedBeat);
+    return [seedBeat];
   }
 
   private resetBeamingMetadata(): void {
@@ -618,6 +620,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     // Remove beat
     const outputs: BeatArrayOperationOutput<I>[] = [];
     outputs.push({ index: index, beats: this.beats.splice(index, 1) });
+    this.ensureSeedBeat();
 
     // Recalc beaming
     this.computeBeaming();
@@ -663,15 +666,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    * @returns True if empty, false otherwise
    */
   public isEmpty(): boolean {
-    if (this.beats.length === 0) {
-      return true;
-    }
-
-    if (this.beats.length > 1) {
-      return false;
-    }
-
-    return this.beats[0].isEmpty();
+    return this.beats.length === 1 && this.beats[0].isEmpty();
   }
 
   /**
@@ -679,10 +674,6 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    * Returns true if durations fit OR no beats in the bar
    */
   public checkDurationsFit(): boolean {
-    if (this.beats.length === 0) {
-      return true;
-    }
-
     if (this.beats.length === 1 && this.beats[0].isEmpty()) {
       return true;
     }
@@ -710,6 +701,10 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    * @returns Bar JSON
    */
   public toJSON(): BarJSON {
+    if (this.isEmpty()) {
+      return { beats: [] };
+    }
+
     const beatsJSON: BeatJSON[] = [];
     for (const beat of this.beats) {
       beatsJSON.push(beat.toJSON());

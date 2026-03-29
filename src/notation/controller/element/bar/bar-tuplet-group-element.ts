@@ -1,11 +1,11 @@
 import { BarTupletGroup } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { BeatElement } from "./beat-element";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import { BeatElement } from "../beat/beat-element";
 import { BarElement } from "./bar-element";
-import { TabLayoutDimensions } from "../tab-controller-dim";
-import { TabBeatElement } from "./tab-beat-element";
-import { NotationElement } from "./notation-element";
-import { TrackElement } from "./track-element";
+import { TabBeatElement } from "../beat/tab-beat-element";
 
 /**
  * Class that handles geometry & visually relevant info of a bar tuplet group

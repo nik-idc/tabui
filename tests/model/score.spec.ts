@@ -63,4 +63,51 @@ describe("Score model", () => {
       "Score must have at least one master bar"
     );
   });
+
+  test("appendMasterBar adds corresponding bars for every track staff", () => {
+    const score = new Score();
+    const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
+
+    const output = score.appendMasterBar(DEFAULT_MASTER_BAR);
+
+    expect(score.masterBars).toHaveLength(2);
+    expect(score.tracks[0].staves[0].bars).toHaveLength(2);
+    expect(secondTrack.staves[0].bars).toHaveLength(2);
+    expect(output.bars.get(score.tracks[0].staves[0].uuid)).toBe(
+      score.tracks[0].staves[0].bars[1]
+    );
+    expect(output.bars.get(secondTrack.staves[0].uuid)).toBe(
+      secondTrack.staves[0].bars[1]
+    );
+  });
+
+  test("removeMasterBar removes aligned bars from every track staff", () => {
+    const score = new Score();
+    score.addTrack(new Guitar(), "Track 2");
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+
+    const removed = score.removeMasterBar(1);
+
+    expect(score.masterBars).toHaveLength(2);
+    for (const track of score.tracks) {
+      for (const staff of track.staves) {
+        expect(staff.bars).toHaveLength(2);
+        expect(removed.bars.get(staff.uuid)).toBeDefined();
+      }
+    }
+  });
+
+  test("addTrack in a multi-bar score creates staff bars aligned to master bars", () => {
+    const score = new Score();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+
+    const output = score.addTrack(new Guitar(), "Late Track");
+    const addedTrack = output.tracks[0];
+
+    expect(score.masterBars).toHaveLength(3);
+    expect(addedTrack.staves).toHaveLength(1);
+    expect(addedTrack.staves[0].bars).toHaveLength(3);
+  });
 });

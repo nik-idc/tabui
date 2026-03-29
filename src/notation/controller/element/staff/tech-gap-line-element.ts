@@ -1,17 +1,17 @@
 import { Point, randomInt, Rect } from "@/shared";
 import { GuitarTechnique, Technique, TechniqueType } from "@/notation/model";
-import { TabLayoutDimensions } from "../tab-controller-dim";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import { BeatElement } from "@/notation/controller/element/beat/beat-element";
+import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 import {
   GuitarTechniqueLabelElement,
   TECHNIQUE_ALLOWS_STACKING,
   TechLineNumber,
-  TechniqueLabelElement,
-} from "./technique";
-import { BeatElement } from "./beat-element";
-import { TabBeatElement } from "./tab-beat-element";
+} from "@/notation/controller/element/technique/guitar-technique";
+import { TechniqueLabelElement } from "@/notation/controller/element/technique";
 import { TechGapElement } from "./tech-gap-element";
-import { NotationElement } from "./notation-element";
-import { TrackElement } from "./track-element";
 
 /**
  * Class representing a single line of a staff line's technique label gap

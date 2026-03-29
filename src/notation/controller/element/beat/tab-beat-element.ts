@@ -5,14 +5,14 @@ import {
   NoteDuration,
 } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "../tab-controller-dim";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
 import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
 import { Circle } from "@/shared/rendering/geometry/circle";
-import { TabNoteElement } from "./tab-note-element";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { TabNoteElement } from "../note/tab-note-element";
 import { BeatElement, getBeatWidth } from "./beat-element";
-import { BarElement } from "./bar-element";
-import { NoteElement } from "./note-element";
-import { TrackElement } from "./track-element";
+import { BarElement } from "../bar/bar-element";
+import { NoteElement } from "../note/note-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat

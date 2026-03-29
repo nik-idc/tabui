@@ -124,6 +124,6 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
     }
 
     this._containerGroupSVG.removeChild(this._techniqueLabelSVG);
-    // this._containerGroupSVG = undefined;
+    this._techniqueLabelSVG = undefined;
   }
 }

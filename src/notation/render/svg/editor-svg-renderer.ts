@@ -9,7 +9,7 @@ import { createSVG, createSVGG, createSVGRect, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
 import { TrackPlayerSVGAnimator } from "./player-svg-animator";
 import { ElementRenderer } from "../element-renderer";
-import { TabBeatElement } from "@/notation/controller/element/tab-beat-element";
+import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 import { ELEMENT_ORDER } from "@/notation/controller/element/track-element";
 import { createRendererForElement } from "./support/renderer-factory";
 import { rebindRendererElement } from "./support/renderer-rebinder";
@@ -252,7 +252,6 @@ export class EditorSVGRenderer implements EditorRenderer {
     visibleElements: NotationElement[]
   ): ElementRenderer[] {
     const diff = trackController.trackElement.getElementDiff();
-    console.log("=== RENDER RECONCILED - DIFF ===", diff);
     const visibleModelUUIDs = new Set(
       visibleElements.map((element) => element.getModelUUID())
     );

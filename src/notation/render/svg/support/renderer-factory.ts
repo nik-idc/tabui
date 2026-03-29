@@ -3,19 +3,19 @@ import {
   NotationElementClass,
   TrackController,
 } from "@/notation/controller";
-import { TrackLineElement } from "@/notation/controller/element/track-line-element";
-import { TrackLineInfoElement } from "@/notation/controller/element/track-line-info-element";
-import { StaffLineElement } from "@/notation/controller/element/staff-line-element";
-import { NotationStyleLineElement } from "@/notation/controller/element/notation-style-line-element";
-import { TechGapElement } from "@/notation/controller/element/tech-gap-element";
-import { BarElement } from "@/notation/controller/element/bar-element";
-import { TabBeatElement } from "@/notation/controller/element/tab-beat-element";
-import { TabNoteElement } from "@/notation/controller/element/tab-note-element";
+import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
+import { TrackLineInfoElement } from "@/notation/controller/element/track/track-line-info-element";
+import { StaffLineElement } from "@/notation/controller/element/staff/staff-line-element";
+import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
+import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-element";
+import { BarElement } from "@/notation/controller/element/bar/bar-element";
+import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
+import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { GuitarTechniqueElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
-import { BeamSegmentElement } from "@/notation/controller/element/beam-segment-element";
-import { BarTupletGroupElement } from "@/notation/controller/element/bar-tuplet-group-element";
-import { TechGapLineElement } from "@/notation/controller/element/tech-gap-line-element";
+import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segment-element";
+import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
+import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
 import {
   ElementRenderer,
   ElementRendererClass,

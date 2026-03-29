@@ -1,7 +1,7 @@
 import { Technique } from "@/notation/model";
-import { NoteElement } from "../note-element";
+import { NoteElement } from "../note/note-element";
 import { Point, Rect } from "@/shared";
-import { NotationElement } from "../notation-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
 
 /**
  * Class that handles geometry & visually relevant info
