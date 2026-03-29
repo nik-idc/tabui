@@ -1,7 +1,5 @@
 import { Note } from "./note";
-import {
-  TechniqueType,
-} from "./technique-type";
+import { TechniqueType } from "./technique-type";
 
 /** Technique JSON format */
 export interface TechniqueJSON {

@@ -21,7 +21,7 @@ export class TopControlsComponent {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-  this.template = new TopControlsTemplate();
+    this.template = new TopControlsTemplate();
     this.templateRenderer = new TopControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

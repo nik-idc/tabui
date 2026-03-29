@@ -2,18 +2,14 @@ import {
   Track,
   Bar,
   Beat,
-  Note,
-  NoteValue,
   NoteDuration,
   Guitar,
   Score,
   GuitarNote,
-  DEFAULT_ELECTRIC_GUITARS,
   Staff,
-  ScoreEditor,
   MusicInstrument,
   TrackContext,
-} from "@/index";
+} from "@/notation/model";
 
 type BarsInfo = {
   beatsCount: number;
@@ -24,36 +20,35 @@ const excludedStrings = [1, 5, 6];
 
 export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
   for (let i = 0; i < barsInfo.beatsCount; i++) {
-    const newBeat = new Beat<Guitar>(
-      bar,
-      bar.trackContext,
-      [],
-      barsInfo.beatsDuration
-    );
-    bar.appendBeat(newBeat);
-  }
-
-  for (let i = 0; i < barsInfo.beatsCount; i++) {
-    const beat = bar.beats[i];
+    const reusedSeedBeat = i === 0 && bar.isEmpty();
+    const newBeat = reusedSeedBeat
+      ? bar.beats[0]
+      : new Beat<Guitar>(bar, bar.trackContext, [], barsInfo.beatsDuration);
+    newBeat.baseDuration = barsInfo.beatsDuration;
     for (let j = 0; j < bar.trackContext.instrument.maxPolyphony; j++) {
       if (excludedStrings.includes(j + 1)) {
         continue;
       }
 
       const note = new GuitarNote(
-        beat as Beat<Guitar>,
-        beat.trackContext as TrackContext<Guitar>,
+        newBeat,
+        newBeat.trackContext as TrackContext<Guitar>,
         j + 1,
         j + i
       );
-      bar.beats[i].setNote(j, note);
+      newBeat.setNote(j, note);
+    }
+
+    if (!reusedSeedBeat) {
+      bar.appendBeats([newBeat]);
     }
   }
 }
 
 export function fillStaff(staff: Staff<Guitar>, barsInfo: BarsInfo[]): void {
   for (let i = 0; i < barsInfo.length; i++) {
-    const result = staff.appendBar(staff.track.score.masterBars[i]);
+    const result =
+      staff.bars[i] ?? staff.appendBar(staff.track.score.masterBars[i]);
 
     fillBar(result, barsInfo[i]);
   }
@@ -68,11 +63,12 @@ export function fillTrack(
   }
 ): void {
   for (let i = 0; i < info.stavesInfo.length; i++) {
-    const result = track.insertStaff(
-      track.staves.length === 0 ? 0 : track.staves.length
-    );
+    const staff =
+      i === 0
+        ? track.staves[0]
+        : track.insertStaff(track.staves.length).staves[0];
 
-    fillStaff(result.staves[0], info.stavesInfo[i]);
+    fillStaff(staff, info.stavesInfo[i]);
   }
 }
 
@@ -89,6 +85,9 @@ export function createScore(
   // barsInfo: BarsInfo[]
 ): Score {
   const score = new Score([], scoreName, artist, songName);
+
+  score.tracks.splice(0, score.tracks.length);
+  score.masterBars.splice(0, score.masterBars.length);
 
   for (let i = 0; i < masterBarsCount; i++) {
     score.appendMasterBar();

@@ -88,20 +88,22 @@ export const DEFAULT_BASS_GUITARS: Record<BassGuitarPreset, MusicInstrument> = {
   ),
 };
 
-export const DEFAULT_OTHER_STRING: Record<OtherStringPreset, MusicInstrument> = {
-  [OtherStringPreset.Banjo]: new Guitar(
-    StringMusicInstrumentType.Other,
-    OtherStringPreset.Banjo,
-    "Default Banjo",
-    5,
-    DEFAULT_TUNINGS[5].BanjoStandard,
-    22
-  ),
-  [OtherStringPreset.Ukulele]: new Guitar(
-    StringMusicInstrumentType.Other,
-    OtherStringPreset.Ukulele,
-    "Default Ukulele",
-    15,
-    DEFAULT_TUNINGS[4].UkuleleStandard
-  ),
-};
+export const DEFAULT_OTHER_STRING: Record<OtherStringPreset, MusicInstrument> =
+  {
+    [OtherStringPreset.Banjo]: new Guitar(
+      StringMusicInstrumentType.Other,
+      OtherStringPreset.Banjo,
+      "Default Banjo",
+      5,
+      DEFAULT_TUNINGS[5].BanjoStandard,
+      22
+    ),
+    [OtherStringPreset.Ukulele]: new Guitar(
+      StringMusicInstrumentType.Other,
+      OtherStringPreset.Ukulele,
+      "Default Ukulele",
+      4,
+      DEFAULT_TUNINGS[4].UkuleleStandard,
+      15
+    ),
+  };

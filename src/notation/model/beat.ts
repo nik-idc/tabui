@@ -4,7 +4,11 @@ import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
 import { NoteJSON, Note, NoteValue } from "./note";
 import { NoteDuration } from "./note-duration";
-import { TupletSettingsJSON, TupletSettings } from "./tuplet-settings";
+import {
+  TupletSettingsJSON,
+  TupletSettings,
+  tupletSettingsEqual,
+} from "./tuplet-settings";
 import { TechniqueType } from "./technique-type";
 import { Guitar } from "./instrument";
 import { GuitarNote } from "./guitar-note";
@@ -120,7 +124,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
    * @param note Note value to set
    */
   public setNote(index: number, note: Note<I>): NoteArrayOperationOutput<I> {
-    if (index < 0 || index > this._notes.length) {
+    if (index < 0 || index >= this._notes.length) {
       throw Error(`${index} is invalid note index`);
     }
 
@@ -151,7 +155,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
       this._notes.length !== otherBeat.notes.length ||
       this._baseDuration !== otherBeat._baseDuration ||
       this._dots !== otherBeat._dots ||
-      this._tupletSettings !== otherBeat._tupletSettings
+      !tupletSettingsEqual(this._tupletSettings, otherBeat._tupletSettings)
     ) {
       return false;
     }

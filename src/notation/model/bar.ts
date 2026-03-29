@@ -26,6 +26,12 @@ export interface BarJSON {
   beats: BeatJSON[];
 }
 
+type PretendBeamingBeat = {
+  fullDuration: number;
+  beamGroupId: number | null;
+  lastInBeamGroup: boolean;
+};
+
 /**
  * Class that represents a musical bar
  */
@@ -63,15 +69,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     this.staff = staff;
     this.trackContext = trackContext;
     this.masterBar = masterBar;
-    if (beats.length === 0) {
-      // this.beats = [new Beat<I>(this, this.trackContext, NoteDuration.Quarter)];
-
-      // TODO: Figure out behavior for when passed beats is empty
-      // this.beats = [new Beat<I>(this, this.trackContext)];
-      this.beats = [];
-    } else {
-      this.beats = beats;
-    }
+    this.beats = beats.length === 0 ? [this.createDefaultBeat(0)] : beats;
 
     this._beamingGroups = [];
     this._tupletGroups = [];
@@ -80,57 +78,61 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     this.computeBarTupletGroups();
   }
 
-  /**
-   * Computes beaming for all the beats inside of this bar
-   * AI SLOP AI SLOP I HAVE NO IDEA HOW THIS WORKS AI SLOP AI SLOP
-   * NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
-   */
-  public computeBeaming(): void {
-    // NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
-    // NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
-    // NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
-    // NEEDS TO BE REWRITTEN SO THAT I UNDERSTAND HOW IT WORKS
+  private ensureSeedBeat(): Beat<I>[] {
+    if (this.beats.length !== 0) {
+      return [];
+    }
 
-    // 1. Reset all beaming information on the actual beats.
+    const seedBeat = this.createDefaultBeat(0);
+    this.beats.push(seedBeat);
+    return [seedBeat];
+  }
+
+  private resetBeamingMetadata(): void {
     for (const beat of this.beats) {
       beat.beamGroupId = null;
       beat.lastInBeamGroup = false;
     }
+  }
 
-    if (this.beats.length < 2) {
-      return;
+  private buildPretendBeats(): {
+    pretendBeats: PretendBeamingBeat[];
+    realToPretendMap: Map<Beat<I>, PretendBeamingBeat>;
+  } {
+    // Index complete tuplets by beat for O(1) membership checks.
+    const pretendBeats: PretendBeamingBeat[] = [];
+    const realToPretendMap = new Map<Beat<I>, PretendBeamingBeat>();
+    const completeTupletGroupByBeat = new Map<Beat<I>, BarTupletGroup<I>>();
+
+    for (const tupletGroup of this._tupletGroups) {
+      if (!tupletGroup.complete) {
+        continue;
+      }
+
+      for (const tupletBeat of tupletGroup.beats) {
+        completeTupletGroupByBeat.set(tupletBeat, tupletGroup);
+      }
     }
 
-    // 2. Create a "pretend" list of beats for calculation.
-    // This is the core of the beaming logic for tuplets. To figure out how notes
-    // around a tuplet should be beamed, we create a temporary list of beats where
-    // the tuplet is replaced by the notes it rhythmically represents (e.g., a 3:2 triplet
-    // of eighths is replaced by 2 regular eighths).
-    const pretendBeats: Beat[] = [];
-    // This map links the original beats to the pretend beats used for calculation.
-    const realToPretendMap = new Map<Beat, Beat>();
-
+    // Build temporary rhythmic representation used by beaming.
     for (let i = 0; i < this.beats.length; i++) {
       const beat = this.beats[i];
-      const tupletGroup = this._tupletGroups.find((tg) =>
-        tg.beats.some((tb) => tb.actualBeat === beat)
-      );
+      const tupletGroup = completeTupletGroupByBeat.get(beat);
 
-      // If we find the first beat of a complete tuplet group...
-      if (
-        tupletGroup &&
-        tupletGroup.complete &&
-        tupletGroup.beats[0].actualBeat === beat
-      ) {
-        const tupletBeats = tupletGroup.beats.map((tb) => tb.actualBeat);
+      if (tupletGroup && tupletGroup.beats[0] === beat) {
+        // Replace N tuplet beats with M equivalent "pretend" beats.
+        const tupletBeats = tupletGroup.beats;
         const baseDuration = tupletBeats[0].baseDuration;
-
-        // ...create M "pretend" beats to stand in for the N real tuplet notes.
-        const pretendBeatPrototypes = Array(tupletGroup.tupletCount).fill(
-          new Beat<I>(this, this.trackContext, [], baseDuration)
+        const pretendBeatPrototypes = Array.from(
+          { length: tupletGroup.tupletCount },
+          () => ({
+            fullDuration: baseDuration,
+            beamGroupId: null,
+            lastInBeamGroup: false,
+          })
         );
 
-        // Map all N real beats to their corresponding M pretend beats.
+        // Map each real tuplet beat to the pretend beat it belongs to.
         for (let j = 0; j < tupletGroup.normalCount; j++) {
           const realBeat = tupletBeats[j];
           const correspondingPretendBeat =
@@ -141,17 +143,26 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
             ];
           realToPretendMap.set(realBeat, correspondingPretendBeat);
         }
+
         pretendBeats.push(...pretendBeatPrototypes);
-        i += tupletGroup.normalCount - 1; // Skip the already processed real tuplet beats.
+        // Skip beats already consumed as part of this complete tuplet.
+        i += tupletGroup.normalCount - 1;
       } else {
-        // For regular beats or incomplete tuplets, they represent themselves.
-        pretendBeats.push(beat);
-        realToPretendMap.set(beat, beat);
+        // Non-tuplet beats map one-to-one into the pretend sequence.
+        const pretendBeat = {
+          fullDuration: beat.fullDuration,
+          beamGroupId: null,
+          lastInBeamGroup: false,
+        };
+        pretendBeats.push(pretendBeat);
+        realToPretendMap.set(beat, pretendBeat);
       }
     }
 
-    // 3. Run the standard beaming algorithm on the `pretendBeats` list.
-    // This calculates the metrically correct beaming as if there were no tuplets.
+    return { pretendBeats, realToPretendMap };
+  }
+
+  private getBeamingPlan(): { beamingGroups: number[]; factor: number } {
     const beamingGroups = getBeaming(
       this.masterBar.beatsCount,
       1 / this.masterBar.duration
@@ -159,42 +170,73 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     const factor =
       1 / this.masterBar.duration < 8 ? 8 : 1 / this.masterBar.duration;
 
-    let currentBeamGroupId = 0;
-    let beamingGroupIndex = 0;
-    let currentBeamGroup = beamingGroups[beamingGroupIndex];
-    let remainingDuration = currentBeamGroup ? currentBeamGroup / factor : 0;
+    return { beamingGroups, factor };
+  }
+
+  private advanceBeamingState(
+    beamingGroups: number[],
+    factor: number,
+    state: {
+      currentBeamGroupId: number;
+      beamingGroupIndex: number;
+      remainingDuration: number;
+    }
+  ): void {
+    state.currentBeamGroupId++;
+    state.beamingGroupIndex =
+      (state.beamingGroupIndex + 1) % beamingGroups.length;
+    const currentBeamGroup = beamingGroups[state.beamingGroupIndex];
+    state.remainingDuration = currentBeamGroup ? currentBeamGroup / factor : 0;
+  }
+
+  private applyBeamingToPretendBeats(
+    pretendBeats: PretendBeamingBeat[],
+    beamingGroups: number[],
+    factor: number
+  ): void {
+    // Cursor that tracks the current metric beaming bucket.
+    const state = {
+      currentBeamGroupId: 0,
+      beamingGroupIndex: 0,
+      remainingDuration: beamingGroups[0] ? beamingGroups[0] / factor : 0,
+    };
+    let currentGroupBeats: PretendBeamingBeat[] = [];
+
+    // Finalize the current pretend-beat group boundary.
+    const closeCurrentGroup = (): void => {
+      if (currentGroupBeats.length > 0) {
+        currentGroupBeats[currentGroupBeats.length - 1].lastInBeamGroup = true;
+      }
+      currentGroupBeats = [];
+    };
 
     for (const beat of pretendBeats) {
-      // if (beat.fullDuration > NoteDuration.Eighth || beat.isEmpty()) {
+      // Notes longer than eighths break beaming at this position.
       if (beat.fullDuration > NoteDuration.Eighth) {
-        currentBeamGroupId++;
-        beamingGroupIndex = (beamingGroupIndex + 1) % beamingGroups.length;
-        currentBeamGroup = beamingGroups[beamingGroupIndex];
-        remainingDuration = currentBeamGroup ? currentBeamGroup / factor : 0;
+        closeCurrentGroup();
+        this.advanceBeamingState(beamingGroups, factor, state);
         continue;
       }
 
-      if (remainingDuration > 0) {
-        beat.beamGroupId = currentBeamGroupId;
-        remainingDuration -= beat.fullDuration;
+      // Assign beat to the current metric bucket.
+      if (state.remainingDuration > 0) {
+        beat.beamGroupId = state.currentBeamGroupId;
+        state.remainingDuration -= beat.fullDuration;
+        currentGroupBeats.push(beat);
       }
 
-      if (remainingDuration <= 0) {
-        const groupBeats = pretendBeats.filter(
-          (b) => b.beamGroupId === currentBeamGroupId
-        );
-        if (groupBeats.length > 0) {
-          groupBeats[groupBeats.length - 1].lastInBeamGroup = true;
-        }
-
-        currentBeamGroupId++;
-        beamingGroupIndex = (beamingGroupIndex + 1) % beamingGroups.length;
-        currentBeamGroup = beamingGroups[beamingGroupIndex];
-        remainingDuration = currentBeamGroup ? currentBeamGroup / factor : 0;
+      // Move to next bucket once the current one is filled.
+      if (state.remainingDuration <= 0) {
+        closeCurrentGroup();
+        this.advanceBeamingState(beamingGroups, factor, state);
       }
     }
+  }
 
-    // 4. Map the beaming information from the pretend beats back to the real beats.
+  private mapPretendToRealBeaming(
+    realToPretendMap: Map<Beat<I>, PretendBeamingBeat>
+  ): void {
+    // Copy computed beaming metadata back onto real beats.
     for (const realBeat of this.beats) {
       const pretendBeat = realToPretendMap.get(realBeat);
       if (pretendBeat && realBeat.baseDuration <= NoteDuration.Eighth) {
@@ -202,13 +244,19 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
         realBeat.lastInBeamGroup = pretendBeat.lastInBeamGroup;
       }
     }
+  }
 
-    // 5. Isolate the tuplets into their own beam groups.
-    // This ensures that a tuplet is always a visually distinct group.
+  private isolateTupletBeamGroups(): void {
+    // Index beats once to avoid repeated indexOf scans.
+    const beatIndexMap = new Map<Beat<I>, number>();
+    for (let i = 0; i < this.beats.length; i++) {
+      beatIndexMap.set(this.beats[i], i);
+    }
+
     let maxGroupId = Math.max(
       ...this.beats
         .map((b) => b.beamGroupId)
-        .filter((id) => id !== undefined)
+        .filter((id) => id !== null)
         .map((id) => id as number),
       0
     );
@@ -218,56 +266,129 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
         continue;
       }
 
+      // Tuplets with only unbeamable notes do not need isolation.
       const tupletIsUnbeamable = tupletGroup.beats.every(
-        (b) => b.actualBeat.baseDuration > NoteDuration.Eighth
+        (b) => b.baseDuration > NoteDuration.Eighth
       );
       if (tupletIsUnbeamable) {
         continue;
       }
 
-      const realBeats = tupletGroup.beats.map((tb) => tb.actualBeat);
+      const realBeats = tupletGroup.beats;
       const firstBeat = realBeats[0];
-      const beatBefore = this.beats[this.beats.indexOf(firstBeat) - 1];
+      const firstBeatIndex = beatIndexMap.get(firstBeat);
+      if (firstBeatIndex === undefined) {
+        continue;
+      }
+      const beatBefore = this.beats[firstBeatIndex - 1];
 
-      // A tuplet needs its own group if it's currently beamed with a preceding note...
       let needsNewGroup = false;
       if (beatBefore && beatBefore.beamGroupId === firstBeat.beamGroupId) {
         needsNewGroup = true;
       }
 
-      // ...or if it's beamed with a succeeding note.
       if (!needsNewGroup) {
         const lastBeat = realBeats[realBeats.length - 1];
-        const beatAfter = this.beats[this.beats.indexOf(lastBeat) + 1];
+        const lastBeatIndex = beatIndexMap.get(lastBeat);
+        if (lastBeatIndex === undefined) {
+          continue;
+        }
+        const beatAfter = this.beats[lastBeatIndex + 1];
         if (beatAfter && beatAfter.beamGroupId === lastBeat.beamGroupId) {
           needsNewGroup = true;
         }
       }
 
       if (needsNewGroup) {
-        // maxGroupId++; // I have no idea why this is here
+        // Force this tuplet into a dedicated visual beam group.
+        maxGroupId++;
         for (const realBeat of realBeats) {
           realBeat.beamGroupId = maxGroupId;
         }
       }
     }
+  }
 
-    // 6. Final cleanup: un-beam any groups that have only one beat.
-    const allGroupIds = [
-      ...new Set(
-        this.beats.map((b) => b.beamGroupId).filter((id) => id !== undefined)
-      ),
-    ];
-    for (const id of allGroupIds) {
-      const groupBeats = this.beats.filter((b) => b.beamGroupId === id);
+  private cleanupSingleBeatGroups(): void {
+    // Group beats by assigned beam ID in one pass.
+    const groupsById = new Map<number, Beat<I>[]>();
+    for (const beat of this.beats) {
+      if (beat.beamGroupId === null) {
+        continue;
+      }
+
+      const groupBeats = groupsById.get(beat.beamGroupId);
+      if (groupBeats === undefined) {
+        groupsById.set(beat.beamGroupId, [beat]);
+      } else {
+        groupBeats.push(beat);
+      }
+    }
+
+    // Convert one-beat groups to unbeamed beats.
+    for (const groupBeats of groupsById.values()) {
       if (groupBeats.length === 1) {
         groupBeats[0].beamGroupId = null;
         groupBeats[0].lastInBeamGroup = false;
       } else {
-        // Ensure the last beat of any valid group is marked as such.
         groupBeats[groupBeats.length - 1].lastInBeamGroup = true;
       }
     }
+  }
+
+  private normalizeBeamGroupIds(): void {
+    // Remap surviving IDs to a dense 0..N-1 sequence.
+    const normalizedIdsMap = new Map<number, number>();
+    let nextNormalizedId = 0;
+
+    for (const beat of this.beats) {
+      const originalId = beat.beamGroupId;
+      if (originalId === null) {
+        continue;
+      }
+
+      if (!normalizedIdsMap.has(originalId)) {
+        normalizedIdsMap.set(originalId, nextNormalizedId);
+        nextNormalizedId++;
+      }
+
+      beat.beamGroupId = normalizedIdsMap.get(originalId) ?? null;
+    }
+  }
+
+  /**
+   * Computes beaming for all the beats inside of this bar
+   * Algorithm overview:
+   * 1. Clear previous beam metadata from real beats.
+   * 2. Build a temporary beat sequence where complete tuplets are replaced by
+   *    the rhythmic space they represent.
+   * 3. Run ordinary time-signature beaming on that temporary sequence.
+   * 4. Copy the computed beam metadata back onto the real beats.
+   * 5. Split complete tuplets into their own visual beam groups when needed.
+   * 6. Remove any beam groups that ended up with only one beat.
+   * TODO: There is a much cleaner alternative approach:
+   * - Instead of pretend beats, compute each beat’s:
+   * -- start position in bar
+   * -- end position in bar
+   * -- effective duration (including tuplet ratio)
+   * - Then assign beam groups by crossing metric boundaries directly.
+   * This should be done once ticks are introduced into the Model layer
+   */
+  public computeBeaming(): void {
+    this.resetBeamingMetadata();
+
+    if (this.beats.length < 2) {
+      return;
+    }
+
+    const { pretendBeats, realToPretendMap } = this.buildPretendBeats();
+    const { beamingGroups, factor } = this.getBeamingPlan();
+
+    this.applyBeamingToPretendBeats(pretendBeats, beamingGroups, factor);
+    this.mapPretendToRealBeaming(realToPretendMap);
+    this.isolateTupletBeamGroups();
+    this.cleanupSingleBeatGroups();
+    this.normalizeBeamGroupIds();
 
     this._beamingGroups = beamingGroups;
   }
@@ -424,12 +545,12 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    * @param index Index after which to insert the beat
    * @param beats Beats to insert
    */
-  public insertBeats(index: number, beats: Beat<I>[]): void {
+  public insertBeats(index: number, beats: Beat<I>[]): Beat<I>[] {
     if (index < 0 || index > this.beats.length) {
       throw Error(`${index} is invalid beat index`);
     }
 
-    const beatsCopies = [];
+    const beatsCopies: Beat<I>[] = [];
     for (const beat of beats) {
       beatsCopies.push(beat.deepCopy());
     }
@@ -437,6 +558,8 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
 
     this.computeBeaming();
     this.computeBarTupletGroups();
+
+    return beatsCopies;
   }
 
   /**
@@ -452,45 +575,36 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     if (beat === undefined) {
       beat = new Beat<I>(this, this.trackContext);
     }
-    this.insertBeats(index, [beat]);
+    const insertedBeats = this.insertBeats(index, [beat]);
 
-    return { index: index, beats: [beat] };
+    return { index: index, beats: insertedBeats };
   }
 
-  /**
-   * Inserts empty beat in the bar before beat with index 'index'
-   * @param bar Bar to modify
-   * @param index Index of the beat that will be prepended by the new beat
-   */
-  public insertEmptyBeat(index: number): BeatArrayOperationOutput<I> {
+  private createDefaultBeat(index: number): Beat<I> {
     const duration =
       index === 0 ? NoteDuration.Quarter : this.beats[index - 1].baseDuration;
-    const newBeat = new Beat(this, this.trackContext, [], duration);
-    this.insertBeats(index, [newBeat]);
-
-    return { index: index, beats: [newBeat] };
+    return new Beat(this, this.trackContext, [], duration);
   }
 
   /**
-   * Prepends beat to the beginning of the bar
-   * @param bar Bar to modify
+   * Prepends beats to the beginning of the bar
    */
-  public prependBeat(beat?: Beat<I>): BeatArrayOperationOutput<I> {
-    return this.insertEmptyBeat(0);
+  public prependBeats(beats?: Beat<I>[]): BeatArrayOperationOutput<I> {
+    const beatsToInsert = beats ?? [this.createDefaultBeat(0)];
+    const insertedBeats = this.insertBeats(0, beatsToInsert);
+
+    return { index: 0, beats: insertedBeats };
   }
 
   /**
-   * Appends beat to the end of the bar
-   * @param bar Bar to modify
+   * Appends beats to the end of the bar
    */
-  public appendBeat(beat?: Beat<I>): BeatArrayOperationOutput<I> {
-    if (beat === undefined) {
-      return this.insertEmptyBeat(this.beats.length);
-    } else {
-      const index =
-        this.beats.length === 0 ? this.beats.length : this.beats.length - 1;
-      return this.insertBeat(index, beat);
-    }
+  public appendBeats(beats?: Beat<I>[]): BeatArrayOperationOutput<I> {
+    const index = this.beats.length;
+    const beatsToInsert = beats ?? [this.createDefaultBeat(index)];
+    const insertedBeats = this.insertBeats(index, beatsToInsert);
+
+    return { index: index, beats: insertedBeats };
   }
 
   /**
@@ -499,18 +613,14 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    */
   public removeBeat(index: number): BeatArrayOperationOutput<I>[] {
     // Check index validity
-    if (index < 0 || index > this.beats.length) {
+    if (index < 0 || index >= this.beats.length) {
       throw Error(`${index} is invalid beat index`);
     }
 
     // Remove beat
     const outputs: BeatArrayOperationOutput<I>[] = [];
     outputs.push({ index: index, beats: this.beats.splice(index, 1) });
-
-    // Insert empty beat if bar beats count drops to 0
-    if (this.beats.length === 0) {
-      outputs.push(this.insertEmptyBeat(0));
-    }
+    this.ensureSeedBeat();
 
     // Recalc beaming
     this.computeBeaming();
@@ -556,11 +666,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    * @returns True if empty, false otherwise
    */
   public isEmpty(): boolean {
-    if (this.beats.length > 1) {
-      return false;
-    }
-
-    return this.beats[0].isEmpty();
+    return this.beats.length === 1 && this.beats[0].isEmpty();
   }
 
   /**
@@ -568,10 +674,6 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    * Returns true if durations fit OR no beats in the bar
    */
   public checkDurationsFit(): boolean {
-    if (this.beats.length === 0) {
-      return true;
-    }
-
     if (this.beats.length === 1 && this.beats[0].isEmpty()) {
       return true;
     }
@@ -599,6 +701,10 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    * @returns Bar JSON
    */
   public toJSON(): BarJSON {
+    if (this.isEmpty()) {
+      return { beats: [] };
+    }
+
     const beatsJSON: BeatJSON[] = [];
     for (const beat of this.beats) {
       beatsJSON.push(beat.toJSON());

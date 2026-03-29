@@ -22,7 +22,15 @@ sake and more on targeted changes that directly unlock the MVP.
 
 ## Road to 0.5.0
 
+### Progress Snapshot
+
+- Phase 0 is complete.
+- Current focus should move to Phase 1 (tick-based timing model).
+- Phase 0 follow-ups that are intentionally deferred are listed under Phase 0.
+
 ### Phase 0 - Foundation
+
+Status: complete.
 
 - Fix known correctness issues in core model, controller, and rendering paths.
 - Add a minimal automated test foundation for the model and element layers.
@@ -30,11 +38,31 @@ sake and more on targeted changes that directly unlock the MVP.
   and rhythmically tricky cases.
 - Add at least one repeatable large-score benchmark scenario.
 
+Completed in Phase 0:
+
+- Correctness fixes were applied across model/controller/command paths, including
+  undo/redo behavior and structural selection sync.
+- Renderer stale-state regressions were addressed in targeted paths needed for
+  current editing flows.
+- Active automated tests now exist in `tests/model/` and `tests/controller/`
+  and run via `npm test`.
+- Active suite currently covers 18 suites / 87 tests.
+- Repeatable fixture routing is in place via `fixture=empty`,
+  `fixture=default`, and `fixture=selection_perf`.
+
 Exit criteria:
 
 - A small but real test suite exists and runs reliably.
 - Core regression-prone areas have basic coverage.
 - There is a repeatable benchmark scenario for performance comparisons.
+
+Phase 0 intentionally deferred follow-ups:
+
+- Broad geometry naming refactor (`rect` -> `boundingBox`/`bounds`) due to high
+  blast radius.
+- Larger architecture redesigns beyond targeted boundary cleanup.
+- Legacy/deprecated-area build issues outside the active notation/controller
+  stabilization surface.
 
 ### Phase 1 - Tick-Based Timing Model
 

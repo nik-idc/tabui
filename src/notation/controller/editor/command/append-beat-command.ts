@@ -30,7 +30,7 @@ export class AppendBeatCommand implements Command {
    * Execute add beat command
    */
   execute(): void {
-    this._appendBeatResult = this._bar.appendBeat();
+    this._appendBeatResult = this._bar.appendBeats();
   }
 
   /**
@@ -42,7 +42,9 @@ export class AppendBeatCommand implements Command {
     }
 
     const beatIndex = this._bar.beats.indexOf(this._appendBeatResult.beats[0]);
-    this._bar.removeBeat(beatIndex);
+    const targetIndex =
+      beatIndex === -1 ? this._appendBeatResult.index : beatIndex;
+    this._bar.removeBeat(targetIndex);
   }
 
   /**

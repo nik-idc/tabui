@@ -7,12 +7,13 @@ export interface EditorRenderer {
 
   attachBeatInteractionEvent<K extends keyof SVGElementEventMap>(
     eventType: K,
-    eventHandler: (event: SVGElementEventMap[K], beatElement: BeatElement) => void
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      beatElement: BeatElement
+    ) => void
   ): void;
 
-  attachViewportScrollEvent(
-    eventHandler: (event: Event) => void
-  ): void;
+  attachViewportScrollEvent(eventHandler: (event: Event) => void): void;
 
   render(trackController: TrackController): ElementRenderer[];
   renderSelectionOverlay(trackController: TrackController): void;

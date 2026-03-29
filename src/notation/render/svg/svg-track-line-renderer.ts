@@ -1,5 +1,5 @@
 import { ElementRenderer } from "../element-renderer";
-import { TrackLineElement } from "@/notation/controller/element/track-line-element";
+import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
 import { SVGStaffLineRenderer } from "./svg-staff-line-renderer";
 import { TrackController } from "@/notation/controller";
 import { SVGTrackLineInfoRenderer } from "./svg-track-line-info-renderer";
@@ -193,6 +193,7 @@ export class SVGTrackLineRenderer implements ElementRenderer {
 
     const lines = this.trackLineElement.outlineLinesGlobal;
     if (lines === undefined) {
+      this.unrenderOutlines();
       return;
     }
 

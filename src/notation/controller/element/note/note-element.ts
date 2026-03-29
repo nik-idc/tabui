@@ -1,8 +1,8 @@
 import { Note } from "@/notation/model";
 import { Point, Rect } from "@/shared";
-import { GuitarTechniqueElement } from "./technique";
-import { BeatElement } from "./beat-element";
-import { NotationElement } from "./notation-element";
+import { GuitarTechniqueElement } from "../technique";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import { BeatElement } from "../beat/beat-element";
 
 /**
  * Interface describing the basic visually relevant

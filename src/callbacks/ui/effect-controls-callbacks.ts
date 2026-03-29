@@ -25,9 +25,7 @@ export interface TechniqueControlsCallbacks {
   unbind(): void;
 }
 
-export class TechniqueControlsDefaultCallbacks
-  implements TechniqueControlsCallbacks
-{
+export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallbacks {
   private _techniquesComponent: TechniqueControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;

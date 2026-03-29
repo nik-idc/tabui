@@ -184,14 +184,19 @@ describe("Tab Model Tests", () => {
     const tab = getTab();
 
     const bendOptions = { bendPitch: 1.5 };
-    const bendTechnique = new GuitarTechnique(GuitarTechniqueType.Bend, bendOptions);
+    const bendTechnique = new GuitarTechnique(
+      GuitarTechniqueType.Bend,
+      bendOptions
+    );
     randomFrets(tab);
     tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.Bend, bendOptions);
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
-    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(bendTechnique);
-    expect(tab.bars[0].beats[2].notes[2].techniques[0].bendOptions).toStrictEqual(
-      bendOptions
+    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
+      bendTechnique
     );
+    expect(
+      tab.bars[0].beats[2].notes[2].techniques[0].bendOptions
+    ).toStrictEqual(bendOptions);
   });
 
   test("Tab apply note technique: bend-and-release", () => {
@@ -203,30 +208,39 @@ describe("Tab Model Tests", () => {
       bendOptions
     );
     randomFrets(tab);
-    tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.BendAndRelease, bendOptions);
+    tab.applyTechniqueToNote(
+      0,
+      2,
+      3,
+      GuitarTechniqueType.BendAndRelease,
+      bendOptions
+    );
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
     expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
       bendAndReleaseTechnique
     );
-    expect(tab.bars[0].beats[2].notes[2].techniques[0].bendOptions).toStrictEqual(
-      bendOptions
-    );
+    expect(
+      tab.bars[0].beats[2].notes[2].techniques[0].bendOptions
+    ).toStrictEqual(bendOptions);
   });
 
   test("Tab apply note technique: prebend", () => {
     const tab = getTab();
 
     const bendOptions = { prebendPitch: 1.5 };
-    const prebendTechnique = new GuitarTechnique(GuitarTechniqueType.Prebend, bendOptions);
+    const prebendTechnique = new GuitarTechnique(
+      GuitarTechniqueType.Prebend,
+      bendOptions
+    );
     randomFrets(tab);
     tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.Prebend, bendOptions);
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
     expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
       prebendTechnique
     );
-    expect(tab.bars[0].beats[2].notes[2].techniques[0].bendOptions).toStrictEqual(
-      bendOptions
-    );
+    expect(
+      tab.bars[0].beats[2].notes[2].techniques[0].bendOptions
+    ).toStrictEqual(bendOptions);
   });
 
   test("Tab apply note technique: prebend-and-release", () => {
@@ -238,14 +252,20 @@ describe("Tab Model Tests", () => {
       bendOptions
     );
     randomFrets(tab);
-    tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.PrebendAndRelease, bendOptions);
+    tab.applyTechniqueToNote(
+      0,
+      2,
+      3,
+      GuitarTechniqueType.PrebendAndRelease,
+      bendOptions
+    );
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
     expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
       prebendAndReleaseTechnique
     );
-    expect(tab.bars[0].beats[2].notes[2].techniques[0].bendOptions).toStrictEqual(
-      bendOptions
-    );
+    expect(
+      tab.bars[0].beats[2].notes[2].techniques[0].bendOptions
+    ).toStrictEqual(bendOptions);
   });
 
   test("Tab apply note technique: vibrato", () => {
@@ -272,10 +292,15 @@ describe("Tab Model Tests", () => {
       undefined,
       nextHigher
     );
-    const slideTechnique = new GuitarTechnique(GuitarTechniqueType.Slide, bendOptions);
+    const slideTechnique = new GuitarTechnique(
+      GuitarTechniqueType.Slide,
+      bendOptions
+    );
     tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.Slide, bendOptions);
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
-    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(slideTechnique);
+    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
+      slideTechnique
+    );
     expect(tab.bars[0].beats[2].notes[2].techniques[0].type).toBe(
       GuitarTechniqueType.Slide
     );
@@ -284,7 +309,9 @@ describe("Tab Model Tests", () => {
   test("Tab apply note technique: hammer-on", () => {
     const tab = getTab();
 
-    const hammerOnTechnique = new GuitarTechnique(GuitarTechniqueType.HammerOnOrPullOff);
+    const hammerOnTechnique = new GuitarTechnique(
+      GuitarTechniqueType.HammerOnOrPullOff
+    );
     randomFrets(tab);
     tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.HammerOnOrPullOff);
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
@@ -303,7 +330,9 @@ describe("Tab Model Tests", () => {
     randomFrets(tab);
     tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.PinchHarmonic);
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
-    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(phTechnique);
+    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
+      phTechnique
+    );
     expect(tab.bars[0].beats[2].notes[2].techniques[0].type).toBe(
       GuitarTechniqueType.PinchHarmonic
     );
@@ -312,11 +341,15 @@ describe("Tab Model Tests", () => {
   test("Tab apply note technique: natural harmonic", () => {
     const tab = getTab();
 
-    const nhTechnique = new GuitarTechnique(GuitarTechniqueType.NaturalHarmonic);
+    const nhTechnique = new GuitarTechnique(
+      GuitarTechniqueType.NaturalHarmonic
+    );
     randomFrets(tab);
     tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.NaturalHarmonic);
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
-    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(nhTechnique);
+    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
+      nhTechnique
+    );
     expect(tab.bars[0].beats[2].notes[2].techniques[0].type).toBe(
       GuitarTechniqueType.NaturalHarmonic
     );
@@ -329,7 +362,9 @@ describe("Tab Model Tests", () => {
     randomFrets(tab);
     tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.PalmMute);
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
-    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(pmTechnique);
+    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
+      pmTechnique
+    );
     expect(tab.bars[0].beats[2].notes[2].techniques[0].type).toBe(
       GuitarTechniqueType.PalmMute
     );
@@ -339,8 +374,13 @@ describe("Tab Model Tests", () => {
     const tab = getTab();
 
     const bendOptions = { bendPitch: 1.5 };
-    const bendTechnique = new GuitarTechnique(GuitarTechniqueType.Bend, bendOptions);
-    const nhTechnique = new GuitarTechnique(GuitarTechniqueType.NaturalHarmonic);
+    const bendTechnique = new GuitarTechnique(
+      GuitarTechniqueType.Bend,
+      bendOptions
+    );
+    const nhTechnique = new GuitarTechnique(
+      GuitarTechniqueType.NaturalHarmonic
+    );
     randomFrets(tab);
     tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.Bend, bendOptions);
     const nhApplyResult = tab.applyTechniqueToNote(
@@ -352,14 +392,19 @@ describe("Tab Model Tests", () => {
 
     expect(nhApplyResult).toBe(false);
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(1);
-    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(bendTechnique);
+    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
+      bendTechnique
+    );
   });
 
   test("Tab apply compatible techniques: pinch harmonic + bend", () => {
     const tab = getTab();
 
     const bendOptions = { bendPitch: 1.5 };
-    const bendTechnique = new GuitarTechnique(GuitarTechniqueType.Bend, bendOptions);
+    const bendTechnique = new GuitarTechnique(
+      GuitarTechniqueType.Bend,
+      bendOptions
+    );
     const phTechnique = new GuitarTechnique(GuitarTechniqueType.PinchHarmonic);
     randomFrets(tab);
     tab.applyTechniqueToNote(0, 2, 3, GuitarTechniqueType.Bend, bendOptions);
@@ -372,8 +417,12 @@ describe("Tab Model Tests", () => {
 
     expect(phApplyResult).toBe(true);
     expect(tab.bars[0].beats[2].notes[2].techniques.length).toBe(2);
-    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(bendTechnique);
-    expect(tab.bars[0].beats[2].notes[2].techniques[1]).toStrictEqual(phTechnique);
+    expect(tab.bars[0].beats[2].notes[2].techniques[0]).toStrictEqual(
+      bendTechnique
+    );
+    expect(tab.bars[0].beats[2].notes[2].techniques[1]).toStrictEqual(
+      phTechnique
+    );
   });
 
   test("Test from object after transcription", () => {

@@ -1,10 +1,10 @@
 import { MasterBar, Track } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
-import { BarElement } from "./bar-element";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import { BarElement } from "../bar/bar-element";
 import { TrackLineBarData, TrackLineElement } from "./track-line-element";
-import { TabLayoutDimensions } from "../tab-controller-dim";
-import { NotationElement } from "./notation-element";
-import { TrackElement } from "./track-element";
 
 /**
  * Class representing the visual info about all

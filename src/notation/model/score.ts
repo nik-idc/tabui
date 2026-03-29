@@ -1,6 +1,7 @@
 import { Bar } from "./bar";
 import { DEFAULT_MASTER_BAR, MasterBar, MasterBarData } from "./master-bar";
 import { MusicInstrument } from "./instrument/instrument";
+import { Guitar } from "./instrument/guitar/guitar";
 import { Note } from "./note";
 import { Staff } from "./staff";
 import { Track, TrackJSON } from "./track";
@@ -73,7 +74,24 @@ export class Score {
     this._name = name;
     this._artist = artist;
     this._song = song;
-    this._masterBars = [];
+    this._masterBars = [new MasterBar(DEFAULT_MASTER_BAR)];
+
+    if (this._tracks.length === 0) {
+      this._tracks.push(new Track(this, new Guitar(), "Track 1"));
+      return;
+    }
+
+    for (const track of this._tracks) {
+      if (track.staves.length === 0) {
+        track.insertStaff(0);
+      }
+
+      for (const staff of track.staves) {
+        if (staff.bars.length === 0) {
+          staff.appendBar(this._masterBars[0]);
+        }
+      }
+    }
   }
 
   /**
@@ -87,7 +105,7 @@ export class Score {
     masterBar: MasterBar,
     bars: Map<number, Bar>
   ): void {
-    this._masterBars.push(masterBar);
+    this._masterBars.splice(index, 0, masterBar);
 
     for (const track of this._tracks) {
       for (const staff of track.staves) {
@@ -175,6 +193,13 @@ export class Score {
    * @param index Index of the bar to remove
    */
   public removeMasterBar(index: number): MasterBarArrayOperationOutput {
+    if (index < 0 || index >= this._masterBars.length) {
+      throw new Error("Master bar not in score");
+    }
+    if (this._masterBars.length === 1) {
+      throw new Error("Score must have at least one master bar");
+    }
+
     const removedStaffBars: Map<number, Bar> = new Map();
     for (const track of this._tracks) {
       for (const staff of track.staves) {
@@ -197,13 +222,11 @@ export class Score {
     instrument: MusicInstrument,
     name: string
   ): TrackArrayOperationOutput {
-    const newTrack = new Track(this, instrument, name);
-
-    for (const masterBar of this.masterBars) {
-      for (const staff of newTrack.staves) {
-        staff.appendBar(masterBar);
-      }
+    if (this._masterBars.length === 0) {
+      this._masterBars.push(new MasterBar(DEFAULT_MASTER_BAR));
     }
+
+    const newTrack = new Track(this, instrument, name);
 
     this._tracks.push(newTrack);
 
@@ -228,7 +251,7 @@ export class Score {
     }
     const newTrack = trackBefore !== undefined ? trackBefore : trackAfter;
 
-    this._tracks.splice(index);
+    this._tracks.splice(index, 1);
 
     return newTrack;
   }

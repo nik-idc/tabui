@@ -30,7 +30,9 @@ export class PrependBarCommand implements Command {
    * Execute add bar command
    */
   execute(): void {
-    this._prependMasterBarResult = this._score.prependMasterBar(this._masterBarData);
+    this._prependMasterBarResult = this._score.prependMasterBar(
+      this._masterBarData
+    );
   }
 
   /**

@@ -160,6 +160,46 @@ export class SelectedNote {
     this._beatIndex = 0;
   }
 
+  /**
+   * Syncs stored bar/beat/note indices to current runtime structure.
+   */
+  public syncToStructure(): void {
+    if (this.staff.bars.length === 0) {
+      throw Error("Selected note sync called with no bars in staff");
+    }
+
+    if (this._barIndex >= this.staff.bars.length) {
+      this._barIndex = this.staff.bars.length - 1;
+    }
+    if (this._barIndex < 0) {
+      this._barIndex = 0;
+    }
+
+    const bar = this.staff.bars[this._barIndex];
+    if (bar.beats.length === 0) {
+      throw Error("Selected note sync called with no beats in bar");
+    }
+
+    if (this._beatIndex >= bar.beats.length) {
+      this._beatIndex = bar.beats.length - 1;
+    }
+    if (this._beatIndex < 0) {
+      this._beatIndex = 0;
+    }
+
+    const beat = bar.beats[this._beatIndex];
+    if (beat.notes.length === 0) {
+      throw Error("Selected note sync called with no notes in beat");
+    }
+
+    if (this._noteIndex >= beat.notes.length) {
+      this._noteIndex = beat.notes.length - 1;
+    }
+    if (this._noteIndex < 0) {
+      this._noteIndex = 0;
+    }
+  }
+
   /** Selected note */
   public get note(): Note {
     return this.staff.bars[this._barIndex].beats[this._beatIndex].notes[

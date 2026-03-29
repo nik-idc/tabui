@@ -1,9 +1,9 @@
 import { Beat } from "@/notation/model";
 import { Rect, Point } from "@/shared";
-import { BarElement } from "./bar-element";
-import { NoteElement } from "./note-element";
-import { TabLayoutDimensions } from "../tab-controller-dim";
-import { NotationElement } from "./notation-element";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import { BarElement } from "../bar/bar-element";
+import { NoteElement } from "../note/note-element";
 
 /**
  * Interface representing a specific notation styleА beat element

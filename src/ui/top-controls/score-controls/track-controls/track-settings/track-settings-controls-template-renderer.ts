@@ -36,15 +36,11 @@ export class TrackSettingsControlsTemplateRenderer {
     const actionsCSSClass = "tu-ts-actions-container";
 
     this.template.dialog.classList.add(dialogCSSClass);
-    this.template.dialogContent.classList.add(
-      dialogContentCSSClass
-    );
+    this.template.dialogContent.classList.add(dialogContentCSSClass);
     this.template.trackInfoContainer.classList.add(trackInfoCSSClass);
     this.template.actionsContainer.classList.add(actionsCSSClass);
 
-    this.template.dialog.appendChild(
-      this.template.dialogContent
-    );
+    this.template.dialog.appendChild(this.template.dialogContent);
     this.template.dialogContent.append(
       this.template.trackInfoContainer,
       this.template.actionsContainer

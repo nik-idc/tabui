@@ -123,6 +123,13 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * @param index Index of the bar to remove
    */
   public removeBar(index: number): Bar<I> {
+    if (index < 0 || index >= this._bars.length) {
+      throw Error(`${index} is invalid bar index`);
+    }
+    if (this._bars.length === 1) {
+      throw Error("Staff must have at least one bar");
+    }
+
     const removedBar = this._bars[index];
     this._bars.splice(index, 1);
 
@@ -259,7 +266,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
 
   /** Show classic notation setter */
   public set showClassicNotation(newShowClassicNotation: boolean) {
-    this._showTablature = newShowClassicNotation;
+    this._showClassicNotation = newShowClassicNotation;
   }
   /** Indicates whether to display classical music notation */
   public get showClassicNotation(): boolean {

@@ -1,14 +1,19 @@
 import { ScorePlayer } from "@/player";
 import { Track } from "../model";
 import { TrackElement, BeatElement } from "./element";
-import { TrackControllerEditor } from ".";
+import { TrackControllerEditor } from "./editor/track-controller-editor";
 import { Rect } from "@/shared";
 
-// TODO:
-// Figure out if this class is even necessary
-// and if it is, figure out how to fix the
-// "controller.controllerEditor.ohMyGodBruh.whereTfIsThisFunction"
-// problem
+// TODO(P0-ARCH): Revisit whether this type should remain the main runtime
+// facade or whether editing/playback/render access should be split more clearly.
+//
+// TODO(P0-ARCH): Revisit naming. "TrackController" feels vague for a type that
+// owns runtime/editor/playback concerns.
+//
+// TODO(P0-READABILITY): Reduce deep access chains like
+// `trackController.trackControllerEditor.selectionManager...`.
+// Add dedicated façade getters where useful so this remains the main entry
+// point into the controller layer.
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -87,11 +92,15 @@ export class TrackController {
   /** Undo previous action */
   public undo(): void {
     this._trackControllerEditor.commandManager.undo();
+    this._trackElement.update();
+    this._trackControllerEditor.syncSelection();
   }
 
   /** Redo previous action */
   public redo(): void {
-    this._trackControllerEditor.commandManager.undo();
+    this._trackControllerEditor.commandManager.redo();
+    this._trackElement.update();
+    this._trackControllerEditor.syncSelection();
   }
 
   /** True if playing, false if not/player undefined */
@@ -162,6 +171,16 @@ export class TrackController {
   /** Track controller editor */
   public get trackControllerEditor(): TrackControllerEditor {
     return this._trackControllerEditor;
+  }
+
+  /** Selection manager */
+  public get selectionManager() {
+    return this._trackControllerEditor.selectionManager;
+  }
+
+  /** Command manager */
+  public get commandManager() {
+    return this._trackControllerEditor.commandManager;
   }
 
   /** Score player (undefined if testing outside of a browser) */

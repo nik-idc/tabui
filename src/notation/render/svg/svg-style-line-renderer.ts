@@ -4,7 +4,7 @@ import { SVGBarRenderer } from "./svg-bar-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { ElementRenderer } from "../element-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
-import { NotationStyleLineElement } from "@/notation/controller/element/notation-style-line-element";
+import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
 import { SVGTechGapRenderer } from "./svg-tech-gap-renderer";
 
 /**

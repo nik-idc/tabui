@@ -1,10 +1,7 @@
 import { Staff, Beat, NoteDuration, Note, Track } from "@/notation/model";
-import {
-  SelectedNote,
-  MoveRightOutput,
-  NoteElement,
-  BeatElement,
-} from "../element";
+import { BeatElement } from "@/notation/controller/element/beat/beat-element";
+import { NoteElement } from "@/notation/controller/element/note/note-element";
+import { SelectedNote, MoveRightOutput } from "./selected-note";
 
 /**
  * Class that manages selection state
@@ -224,6 +221,13 @@ export class SelectionManager {
    */
   public clearSelectedNote(): void {
     this._selectedNote = undefined;
+  }
+
+  /**
+   * Syncs currently selected note to current runtime structure.
+   */
+  public syncSelection(): void {
+    this._selectedNote?.syncToStructure();
   }
 
   /**

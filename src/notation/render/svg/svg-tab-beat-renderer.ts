@@ -21,9 +21,9 @@ import {
 } from "@/notation/controller";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGGuitarNoteRenderer } from "./svg-guitar-note-renderer";
-import { TabNoteElement } from "@/notation/controller/element/tab-note-element";
+import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
-import { TabBeatElement } from "@/notation/controller/element/tab-beat-element";
+import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 
 /**
  * Class for rendering a beat element using SVG
@@ -214,7 +214,6 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
-    console.log("=== TAB RENDER", this._durationFlagsSVG[flagIndex]);
     this._containerGroupSVG.removeChild(this._durationFlagsSVG[flagIndex]);
   }
 

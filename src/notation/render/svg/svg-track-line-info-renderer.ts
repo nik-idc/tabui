@@ -6,7 +6,7 @@ import {
 import { createSVGG, createSVGImage, createSVGText } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
-import { TrackLineInfoElement } from "@/notation/controller/element/track-line-info-element";
+import { TrackLineInfoElement } from "@/notation/controller/element/track/track-line-info-element";
 
 type TempoSVG = {
   image: SVGImageElement;
@@ -98,6 +98,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
 
     const textRect = this.trackLineInfoElement.barTempoRectsMap.get(barElement);
     if (textRect === undefined) {
+      this.unrenderTempoText(barElement);
       return;
     }
 

@@ -1,15 +1,15 @@
 import { Beat, Guitar, GuitarTechnique } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "../tab-controller-dim";
-import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
-import { TECHNIQUE_TYPE_TO_LABEL } from "./technique/guitar-technique/guitar-technique-element-lists";
-import { TechniqueLabelElement } from "./technique/technique-label-element";
-import { NoteElement } from "./note-element";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { GuitarTechniqueLabelElement } from "../technique/guitar-technique/guitar-technique-label-element";
+import { TECHNIQUE_TYPE_TO_LABEL } from "../technique/guitar-technique/guitar-technique-element-lists";
+import { TechniqueLabelElement } from "../technique/technique-label-element";
+import { NoteElement } from "../note/note-element";
 import { Circle } from "@/shared/rendering/geometry/circle";
 import { VertLine, HorLine } from "@/shared/rendering/geometry/line";
 import { BeatElement } from "./beat-element";
-import { BarElement } from "./bar-element";
-import { TrackElement } from "./track-element";
+import { BarElement } from "../bar/bar-element";
 
 // TO BE IMPLEMENTED
 // TO BE IMPLEMENTED

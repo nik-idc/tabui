@@ -6,11 +6,11 @@ import {
 } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
 import { SVGUtils } from "./guitar-technique-html";
-import { TabLayoutDimensions } from "@/notation/controller/tab-controller-dim";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
 import { TechniqueElement } from "../technique-element";
-import { TabNoteElement } from "../../tab-note-element";
+import { TabNoteElement } from "../../note/tab-note-element";
 import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
-import { TrackElement } from "../../track-element";
 
 /**
  * Class that handles geometry & visually relevant

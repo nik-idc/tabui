@@ -4,7 +4,10 @@
  * @param duration Duration of a single bar beat
  * @returns
  */
-export function buildIrregularBeams(beatsCount: number, duration: number): number[] {
+export function buildIrregularBeams(
+  beatsCount: number,
+  duration: number
+): number[] {
   // Adjust beats count and duration to the provided duration
   // (anything below 8 gets multiplied by 8/x: for 4 multiply by 2, for 2 - by 4)
   let adjBeatsCount = beatsCount;

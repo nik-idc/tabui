@@ -1,9 +1,12 @@
 import { Point, randomInt, Rect } from "@/shared";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { NotationElement } from "@/notation/controller/element/notation-element";
+import {
+  TechLineNumber,
+  TECHNIQUE_TO_LINE_NUMBER,
+} from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element-lists";
 import { TechGapLineElement } from "./tech-gap-line-element";
-import { TechLineNumber, TECHNIQUE_TO_LINE_NUMBER } from "./technique";
 import { NotationStyleLineElement } from "./notation-style-line-element";
-import { NotationElement } from "./notation-element";
-import { TrackElement } from "./track-element";
 
 /**
  * Class that handles all visually relevant info of a technique gap

@@ -20,7 +20,10 @@ export type MusicInstrumentType =
   | OrchestraMusicInstrumentType
   | DrumMusicInstrumentType;
 
-export const INSTRUMENT_TYPES: Record<MusicInstrumentKind, MusicInstrumentType[]> = {
+export const INSTRUMENT_TYPES: Record<
+  MusicInstrumentKind,
+  MusicInstrumentType[]
+> = {
   [MusicInstrumentKind.String]: [
     StringMusicInstrumentType.AcousticGuitar,
     StringMusicInstrumentType.ElectricGuitar,

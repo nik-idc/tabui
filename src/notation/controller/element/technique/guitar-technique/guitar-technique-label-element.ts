@@ -5,11 +5,11 @@ import {
 } from "@/notation/model";
 import { Point, Rect, getPitchRatioNums, randomInt } from "@/shared";
 import { SVGUtils } from "./guitar-technique-html";
-import { TabLayoutDimensions } from "@/notation/controller/tab-controller-dim";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { BeatElement } from "@/notation/controller/element/beat/beat-element";
+import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
 import { TechniqueLabelElement } from "../technique-label-element";
-import { BeatElement } from "../../beat-element";
-import { TechGapLineElement } from "../../tech-gap-line-element";
-import { TrackElement } from "../../track-element";
 
 /**
  * Class that contains a guitar technique label

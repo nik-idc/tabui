@@ -1,10 +1,10 @@
 import { GuitarNote } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "../tab-controller-dim";
-import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
+import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { TrackElement } from "@/notation/controller/element/track-element";
+import { GuitarTechniqueElement } from "../technique/guitar-technique/guitar-technique-element";
 import { NoteElement } from "./note-element";
-import { TabBeatElement } from "./tab-beat-element";
-import { TrackElement } from "./track-element";
+import { TabBeatElement } from "../beat/tab-beat-element";
 
 /**
  * Class that handles geometry & visually relevant info of a tab note

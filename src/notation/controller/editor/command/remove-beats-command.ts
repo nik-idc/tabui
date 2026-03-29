@@ -54,6 +54,10 @@ export class RemoveBeatsCommand implements Command {
       return;
     }
 
-    ScoreEditor.removeBeats(this._beatsToRemove);
+    for (const outputs of this._removeBeatsOutputs) {
+      const output = outputs[0];
+      const bar = output.beats[0].bar;
+      bar.removeBeat(output.index);
+    }
   }
 }

@@ -1,8 +1,7 @@
 import { getEl } from "@/shared/misc/get-dom-element";
-import { score } from "./data/full-score";
-import { selectionPerfScore } from "./data/selection-perf-score";
 import { TabUIEditor } from "@/tabui-editor";
 import { TabLayoutDimensions } from "@/notation";
+import { resolveEditorFixture } from "./data/fixture";
 
 TabLayoutDimensions.configure({
   width: 1200,
@@ -19,10 +18,9 @@ if (rootDiv === null) {
   throw new Error("Could not get root div element");
 }
 const searchParams = new URLSearchParams(window.location.search);
-const isSelectionPerfMode = searchParams.get("perf") === "selection";
-
-const selectedScore = isSelectionPerfMode ? selectionPerfScore : score;
-if (isSelectionPerfMode) {
+const selectedFixture = searchParams.get("fixture");
+const selectedScore = resolveEditorFixture(searchParams);
+if (selectedFixture === "selection_perf") {
   console.log("=== PERF MODE ===", "Selection stress score enabled");
 }
 
