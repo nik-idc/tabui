@@ -20,6 +20,10 @@ npm run test         # Run active Jest test suites
   - `tests/controller/`
 - Archived tests are in `tests/archive/` and are intentionally ignored by Jest.
 - Source of truth for test config: `jest.config.cjs`.
+- Prefer TDD: whenever possible & makes sense, first make tests and only
+  then write the actual functionality. Main goal - avoiding writing tests
+  that test only the happy path and/or current flow of execution. Instead,
+  tests should check correctness of implementation of intended functionality
 
 ## Validation Notes
 
