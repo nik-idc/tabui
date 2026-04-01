@@ -1,4 +1,4 @@
-import { Staff, Beat, NoteDuration, Note, Track } from "@/notation/model";
+import { Staff, Beat, Note, Track } from "@/notation/model";
 import { BeatElement } from "@/notation/controller/element/beat/beat-element";
 import { NoteElement } from "@/notation/controller/element/note/note-element";
 import { SelectedNote, MoveRightOutput } from "./selected-note";
@@ -228,16 +228,6 @@ export class SelectionManager {
    */
   public syncSelection(): void {
     this._selectedNote?.syncToStructure();
-  }
-
-  /**
-   * Changes duration of all selected beats
-   * @param newDuration New duration to set
-   */
-  public changeSelectionDuration(newDuration: NoteDuration): void {
-    for (const beat of this._selectionBeats) {
-      beat.baseDuration = newDuration;
-    }
   }
 
   /**

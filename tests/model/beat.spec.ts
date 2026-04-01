@@ -41,4 +41,21 @@ describe("Beat model", () => {
     expect(result.notes).toHaveLength(1);
     expect((beat.notes[0] as GuitarNote).fret).toBe(3);
   });
+
+  test("exposes tick timing fields after bar rebuild", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth, dots: 1 },
+    ]);
+
+    bar.rebuildTiming();
+
+    expect(beats[0].startTick).toBe(0);
+    expect(beats[0].endTick).toBe(beats[0].fullDurationTicks);
+    expect(beats[1].startTick).toBe(beats[0].endTick);
+    expect(beats[1].endTick).toBe(
+      beats[1].startTick + beats[1].fullDurationTicks
+    );
+    expect(beats[0].baseDurationTicks).toBeGreaterThan(0);
+  });
 });

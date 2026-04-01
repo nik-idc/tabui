@@ -1,5 +1,6 @@
-import { NoteDuration } from "../../src/notation/model";
+import { BarRepeatStatus, NoteDuration } from "../../src/notation/model";
 import { createBarWithBeats, createBeat, createScoreGraph } from "./helpers";
+import { fillBar } from "../../editor/data/helpers";
 
 describe("Bar model", () => {
   test("new bar starts with one empty seed beat", () => {
@@ -82,5 +83,55 @@ describe("Bar model", () => {
     const { bar } = createScoreGraph();
 
     expect(bar.toJSON().beats).toHaveLength(0);
+  });
+
+  test("rebuildTiming computes bar and beat ticks", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth, dots: 1 },
+      { baseDuration: NoteDuration.Sixteenth },
+    ]);
+
+    bar.rebuildTiming();
+
+    expect(bar.tickResolution).toBeGreaterThan(0);
+    expect(bar.barTicks).toBe(bar.tickResolution);
+    expect(bar.actualTicks).toBe(
+      beats[0].fullDurationTicks +
+        beats[1].fullDurationTicks +
+        beats[2].fullDurationTicks
+    );
+    expect(beats[0].startTick).toBe(0);
+    expect(beats[1].startTick).toBe(beats[0].endTick);
+    expect(beats[2].startTick).toBe(beats[1].endTick);
+  });
+
+  test("checkDurationsFit and beatPlayable use tick-based bar bounds", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Whole },
+      { baseDuration: NoteDuration.Eighth },
+    ]);
+
+    expect(bar.checkDurationsFit()).toBe(false);
+    expect(bar.beatPlayable(beats[0])).toBe(true);
+    expect(bar.beatPlayable(beats[1])).toBe(false);
+  });
+
+  test("fillBar rebuilds timing for reused seed-beat bars", () => {
+    const { bar } = createScoreGraph({
+      tempo: 120,
+      beatsCount: 1,
+      duration: NoteDuration.Whole,
+      repeatStatus: BarRepeatStatus.None,
+      repeatCount: null,
+    });
+
+    fillBar(bar, {
+      beatsCount: 1,
+      beatsDuration: NoteDuration.Whole,
+    });
+
+    expect(bar.checkDurationsFit()).toBe(true);
+    expect(bar.actualTicks).toBe(bar.barTicks);
   });
 });

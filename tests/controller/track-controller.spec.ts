@@ -1,8 +1,14 @@
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { AppendBeatCommand } from "../../src/notation/controller/editor/command/append-beat-command";
+import { NoteDuration } from "../../src/notation/model";
 import { SelectedMoveDirection } from "../../src/notation/controller/selection/selected-note";
-import { createScoreGraph } from "../model/helpers";
+import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
+
+function getBeatElements(controller: TrackController) {
+  return controller.trackElement.trackLineElements[0].staffLineElements[0]
+    .styleLinesAsArray[0].barElements[0].beatElements;
+}
 
 jest.mock("../../src/player", () => ({
   ScorePlayer: class {
@@ -78,5 +84,44 @@ describe("TrackController", () => {
 
     controller.undo();
     expect(bar.beats).toHaveLength(1);
+  });
+
+  test("setDuration changes only the selected note beat", () => {
+    const { track, bar } = createScoreGraph();
+    const controller = new TrackController(track);
+
+    controller.trackControllerEditor.setDuration(NoteDuration.Eighth);
+
+    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
+    expect(bar.beats[0].fullDurationTicks).toBe(bar.tickResolution / 8);
+    expect(bar.actualTicks).toBe(bar.tickResolution / 8);
+  });
+
+  test("setDuration changes every beat in the selected range", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track);
+    const beatElements = getBeatElements(controller);
+
+    controller.trackControllerEditor.selectBeat(beatElements[0]);
+    controller.trackControllerEditor.selectBeat(beatElements[2]);
+    controller.trackControllerEditor.setDuration(NoteDuration.Eighth);
+
+    expect(bar.beats.slice(0, 3).map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+    ]);
+    expect(bar.beats[3].baseDuration).toBe(NoteDuration.Quarter);
+    expect(bar.beats.slice(0, 3).map((beat) => beat.fullDurationTicks)).toEqual(
+      [bar.tickResolution / 8, bar.tickResolution / 8, bar.tickResolution / 8]
+    );
+    expect(bar.beats[1].startTick).toBe(bar.beats[0].endTick);
+    expect(bar.beats[2].startTick).toBe(bar.beats[1].endTick);
+    expect(bar.actualTicks).toBe((bar.tickResolution * 5) / 8);
   });
 });

@@ -1,6 +1,7 @@
 import { randomInt } from "@/shared";
 import { NoteDuration } from "./note-duration";
 import { BarRepeatStatus } from "./bar-repeat-status";
+import { getBaseDurationFraction, TimingFraction } from "./timing";
 
 export type MasterBarData = {
   tempo: number;
@@ -93,6 +94,16 @@ export class MasterBar {
     return this._duration;
   }
 
+  /** Time signature numerator alias */
+  public get timeSignatureNumerator(): number {
+    return this._beatsCount;
+  }
+
+  /** Time signature denominator alias */
+  public get timeSignatureDenominator(): NoteDuration {
+    return this._duration;
+  }
+
   /** Repeat status setter */
   public set repeatStatus(newStatus: BarRepeatStatus) {
     this._repeatStatus =
@@ -123,6 +134,19 @@ export class MasterBar {
   /** Gets max duration of the bar */
   public get maxDuration() {
     return this._beatsCount * this._duration;
+  }
+
+  /**
+   * Exact duration of this bar as a fraction of a whole note.
+   * E.g. 3/4 -> 3/4, 6/8 -> 3/4.
+   */
+  public get barDurationFraction(): TimingFraction {
+    const beatUnit = getBaseDurationFraction(this._duration);
+
+    return {
+      numerator: beatUnit.numerator * this._beatsCount,
+      denominator: beatUnit.denominator,
+    };
   }
 
   /** Gets essential master bar data */

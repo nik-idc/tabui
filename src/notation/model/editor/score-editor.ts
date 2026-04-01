@@ -1,12 +1,15 @@
 import {
   BendTechniqueOptions,
   GuitarTechnique,
+  MasterBar,
+  Score,
   TechniqueType,
   TupletSettings,
   tupletSettingsEqual,
 } from "..";
+import { Bar } from "../bar";
 import { BeatArrayOperationOutput } from "../bar";
-import { Beat } from "../beat";
+import { Beat, BeatDots } from "../beat";
 import { MusicInstrument } from "../instrument/instrument";
 import { GuitarNote } from "../guitar-note";
 import { Note } from "../note";
@@ -17,6 +20,78 @@ import { NoteDuration } from "../note-duration";
  * like replace beats across the staff, transpose note etc
  */
 export class ScoreEditor {
+  private static rebuildBars<I extends MusicInstrument>(
+    bars: Set<Bar<I>>
+  ): void {
+    for (const bar of bars) {
+      bar.rebuildTiming();
+    }
+  }
+
+  private static rebuildAffectedBars<I extends MusicInstrument>(
+    beats: Beat<I>[]
+  ): void {
+    this.rebuildBars(new Set(beats.map((beat) => beat.bar)));
+  }
+
+  private static copyRhythmicData<I extends MusicInstrument>(
+    targetBeat: Beat<I>,
+    sourceBeat: Beat<I>
+  ): void {
+    targetBeat.baseDuration = sourceBeat.baseDuration;
+    targetBeat.dots = sourceBeat.dots as BeatDots;
+    targetBeat.tupletSettings =
+      sourceBeat.tupletSettings !== null
+        ? {
+            normalCount: sourceBeat.tupletSettings.normalCount,
+            tupletCount: sourceBeat.tupletSettings.tupletCount,
+          }
+        : null;
+  }
+
+  private static copyBeatContent<I extends MusicInstrument>(
+    targetBeat: Beat<I>,
+    sourceBeat: Beat<I>
+  ): void {
+    this.copyRhythmicData(targetBeat, sourceBeat);
+
+    const smallerNoteCount = Math.min(
+      targetBeat.notes.length,
+      sourceBeat.notes.length
+    );
+    for (let i = 0; i < smallerNoteCount; i++) {
+      targetBeat.notes[i].noteValue = sourceBeat.notes[i].noteValue;
+      targetBeat.notes[i].octave = sourceBeat.notes[i].octave;
+    }
+  }
+
+  public static setTimeSignature(
+    score: Score,
+    masterBar: MasterBar,
+    beatsCount?: number,
+    duration?: NoteDuration
+  ): void {
+    if (beatsCount !== undefined) {
+      masterBar.beatsCount = beatsCount;
+    }
+    if (duration !== undefined) {
+      masterBar.duration = duration;
+    }
+
+    const affectedBars = new Set<Bar>();
+    for (const track of score.tracks) {
+      for (const staff of track.staves) {
+        for (const bar of staff.bars) {
+          if (bar.masterBar === masterBar) {
+            affectedBars.add(bar);
+          }
+        }
+      }
+    }
+
+    this.rebuildBars(affectedBars);
+  }
+
   /**
    * Sets (applies/removes) technique from notes
    * @param notes Notes
@@ -59,9 +134,31 @@ export class ScoreEditor {
   public static setDuration<I extends MusicInstrument>(
     beat: Beat<I>,
     newDuration: NoteDuration
-  ) {
+  ): void {
     beat.baseDuration = newDuration;
-    beat.bar.computeBarTupletGroups();
+    beat.bar.rebuildTiming();
+  }
+
+  public static setDurations<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    newDuration: NoteDuration
+  ): void {
+    for (const beat of beats) {
+      beat.baseDuration = newDuration;
+    }
+
+    this.rebuildAffectedBars(beats);
+  }
+
+  public static restoreDurations<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    oldDurationMap: Map<number, NoteDuration>
+  ): void {
+    for (const beat of beats) {
+      beat.baseDuration = oldDurationMap.get(beat.uuid) ?? NoteDuration.Quarter;
+    }
+
+    this.rebuildAffectedBars(beats);
   }
 
   /**
@@ -78,8 +175,20 @@ export class ScoreEditor {
 
     for (const beat of beats) {
       beat.dots = newDots === beat.dots ? 0 : newDots;
-      beat.bar.computeBarTupletGroups();
     }
+
+    this.rebuildAffectedBars(beats);
+  }
+
+  public static restoreDots<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    oldDotsMap: Map<number, number>
+  ): void {
+    for (const beat of beats) {
+      beat.dots = (oldDotsMap.get(beat.uuid) ?? 0) as BeatDots;
+    }
+
+    this.rebuildAffectedBars(beats);
   }
 
   /**
@@ -94,7 +203,7 @@ export class ScoreEditor {
 
     if (newSettings === null || sameSettings) {
       beat.tupletSettings = null;
-      beat.bar.computeBarTupletGroups();
+      beat.bar.rebuildTiming();
       return;
     }
 
@@ -102,7 +211,7 @@ export class ScoreEditor {
       normalCount: newSettings.normalCount,
       tupletCount: newSettings.tupletCount,
     };
-    beat.bar.computeBarTupletGroups();
+    beat.bar.rebuildTiming();
   }
 
   /**
@@ -127,9 +236,27 @@ export class ScoreEditor {
               }
             : null;
       }
-
-      beat.bar.computeBarTupletGroups();
     }
+
+    this.rebuildAffectedBars(beats);
+  }
+
+  public static restoreTuplets<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    oldTupletMap: Map<number, TupletSettings | null>
+  ): void {
+    for (const beat of beats) {
+      const oldTuplet = oldTupletMap.get(beat.uuid) ?? null;
+      beat.tupletSettings =
+        oldTuplet !== null
+          ? {
+              normalCount: oldTuplet.normalCount,
+              tupletCount: oldTuplet.tupletCount,
+            }
+          : null;
+    }
+
+    this.rebuildAffectedBars(beats);
   }
 
   /**
@@ -156,52 +283,44 @@ export class ScoreEditor {
   public static replaceBeats<I extends MusicInstrument>(
     oldBeats: Beat<I>[],
     newBeats: Beat<I>[]
-  ): void {
+  ): Beat<I>[] {
     if (oldBeats.length === 0 || newBeats.length === 0) {
-      return;
+      return [];
     }
 
-    const smallerNoteCount =
-      oldBeats[0].notes.length > newBeats[0].notes.length
-        ? newBeats[0].notes.length
-        : oldBeats[0].notes.length;
+    const affectedBars = new Set(oldBeats.map((beat) => beat.bar));
 
     if (oldBeats.length > newBeats.length) {
-      // Replace beats' notes values
       for (let i = 0; i < newBeats.length; i++) {
-        oldBeats[i].baseDuration = newBeats[i].baseDuration;
-        for (let j = 0; j < smallerNoteCount; j++) {
-          oldBeats[i].notes[j].noteValue = newBeats[i].notes[j].noteValue;
-          oldBeats[i].notes[j].octave = newBeats[i].notes[j].octave;
-        }
+        this.copyBeatContent(oldBeats[i], newBeats[i]);
       }
 
-      // Remove 'excess' beats
       this.removeBeats(oldBeats.slice(newBeats.length, oldBeats.length));
-    } else if (oldBeats.length < newBeats.length) {
+      this.rebuildBars(affectedBars);
+
+      return oldBeats.slice(0, newBeats.length);
+    }
+
+    if (oldBeats.length < newBeats.length) {
       const bar = oldBeats[0].bar;
       const beatIndex = bar.beats.indexOf(oldBeats[0]);
 
-      // Remove selected beats
       this.removeBeats(oldBeats);
 
-      // Paste copied data into bar
-      const newBeatsCopies = [];
-      for (const beat of newBeats) {
-        newBeatsCopies.push(beat.deepCopy());
+      if (bar.beats.length === 1 && bar.beats[0].isEmpty()) {
+        bar.beats.splice(0, 1);
       }
-      // Beats inserted AFTER the index
-      bar.insertBeats(beatIndex - 1, newBeatsCopies);
-    } else {
-      // Replace all notes in selection with copied beats
-      for (let i = 0; i < oldBeats.length; i++) {
-        oldBeats[i].baseDuration = newBeats[i].baseDuration;
-        for (let j = 0; j < smallerNoteCount; j++) {
-          oldBeats[i].notes[j].noteValue = newBeats[i].notes[j].noteValue;
-          oldBeats[i].notes[j].octave = newBeats[i].notes[j].octave;
-        }
-      }
+
+      const newBeatsCopies = newBeats.map((beat) => beat.deepCopy());
+      return bar.insertBeats(beatIndex, newBeatsCopies);
     }
+
+    for (let i = 0; i < oldBeats.length; i++) {
+      this.copyBeatContent(oldBeats[i], newBeats[i]);
+    }
+    this.rebuildBars(affectedBars);
+
+    return oldBeats;
   }
 
   // Unused helpers kept for later review.
