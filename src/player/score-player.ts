@@ -12,7 +12,9 @@ import {
   fractionLt,
   fractionLte,
   fractionToSeconds,
+  Staff,
 } from "../notation/model";
+import { trackEvent, TrackEventType } from "@/shared/events";
 
 const ZERO_FRACTION = { numerator: 0, denominator: 1 };
 
@@ -81,6 +83,8 @@ export class ScorePlayer {
 
   /** UUID of the currently rendered track */
   private _activeTrackUUID: number;
+  /** UUID of the staff on which the player was started (to avoid multiple beat change events)*/
+  private _activeStaffUUID: number;
 
   /** Indicates if playback is active or starting */
   private _isPlaying: boolean = false;
@@ -90,6 +94,8 @@ export class ScorePlayer {
   private _isLooped: boolean = false;
   /** Selected loop section if any */
   private _loopSection?: LoopSection;
+  /** Current beat on the active rendered track */
+  private _currentBeat?: Beat;
   /** Active repeat section start index if traversal is inside a repeat */
   private _repeatStartMasterBarIndex?: number;
   /** Completed repeat passes for the active repeat section */
@@ -101,6 +107,10 @@ export class ScorePlayer {
   private _schedulerIntervalMs: number = 50;
   /** Interval handle for rolling scheduling */
   private _schedulerInterval?: ReturnType<typeof setInterval>;
+  /** Timeouts driving beat-change and natural-stop UI events */
+  private _scheduledUiTimeouts: Set<ReturnType<typeof setTimeout>>;
+  /** Stop timeout for natural playback end */
+  private _stopTimeout?: ReturnType<typeof setTimeout>;
 
   /**
    * Score player that handles playback for all tracks/staves
@@ -112,9 +122,11 @@ export class ScorePlayer {
     this._currentScheduleBase = 0;
     this._scheduledVoices = new Set();
     this._nextMasterBarIndexToSchedule = 0;
+    this._scheduledUiTimeouts = new Set();
 
     this.score = score;
     this._activeTrackUUID = activeTrack.uuid;
+    this._activeStaffUUID = activeTrack.staves[0].uuid;
     void ZERO_FRACTION;
   }
 
@@ -134,8 +146,69 @@ export class ScorePlayer {
     this._nextMasterBarIndexToSchedule = 0;
     this._playbackStartBoundary = undefined;
     this._playbackEndBoundary = undefined;
+    this._currentBeat = undefined;
     this._repeatStartMasterBarIndex = undefined;
     this._repeatPassCount = 0;
+  }
+
+  /** Emits a playback state change signal for UI consumers */
+  private emitPlaybackStateChanged(): void {
+    trackEvent.emit(TrackEventType.PlayerStateChanged, {});
+  }
+
+  /** Schedules a beat-change event for the active rendered track */
+  private scheduleBeatChange(beat: Beat, startTime: number): void {
+    if (
+      beat.bar.staff.track.uuid !== this._activeTrackUUID ||
+      beat.bar.staff.uuid !== this._activeStaffUUID
+    ) {
+      return;
+    }
+    if (this._audioContext === undefined) {
+      throw Error("Audio context is not initialized");
+    }
+
+    const playbackRunId = this._playbackRunId;
+    const delayMs = Math.max(
+      0,
+      (startTime - this._audioContext.currentTime) * 1000
+    );
+    const timeout = setTimeout(() => {
+      this._scheduledUiTimeouts.delete(timeout);
+      if (!this._isPlaying || playbackRunId !== this._playbackRunId) {
+        return;
+      }
+
+      this._currentBeat = beat;
+      trackEvent.emit(TrackEventType.PlayerCurBeatChanged, {
+        beatUUID: beat.uuid,
+      });
+    }, delayMs);
+    this._scheduledUiTimeouts.add(timeout);
+  }
+
+  /** Schedules a natural stop once all playback has been buffered */
+  private scheduleNaturalStop(): void {
+    if (this._audioContext === undefined || this._stopTimeout !== undefined) {
+      return;
+    }
+
+    const playbackRunId = this._playbackRunId;
+    const delayMs = Math.max(
+      0,
+      (this._currentScheduleBase +
+        this._scheduledPlaybackSeconds -
+        this._audioContext.currentTime) *
+        1000
+    );
+    this._stopTimeout = setTimeout(() => {
+      this._stopTimeout = undefined;
+      if (!this._isPlaying || playbackRunId !== this._playbackRunId) {
+        return;
+      }
+
+      this.stop();
+    }, delayMs);
   }
 
   /** Gets playback start boundary from the selected start beat or score start */
@@ -234,6 +307,11 @@ export class ScorePlayer {
     }
 
     const nextMasterBarIndex = currentMasterBarIndex + 1;
+    if (nextMasterBarIndex >= this.score.masterBars.length && this._isLooped) {
+      this._playbackStartBoundary = this.getPlaybackStartBoundary();
+      return 0;
+    }
+
     return nextMasterBarIndex < this.score.masterBars.length
       ? nextMasterBarIndex
       : null;
@@ -298,6 +376,8 @@ export class ScorePlayer {
     );
     const startTime = this._currentScheduleBase + barTimingOffsetSeconds;
     const stopTime = startTime + beatDurationInSeconds;
+
+    this.scheduleBeatChange(beat, startTime);
 
     for (const note of beat.notes) {
       this.scheduleNote(note, startTime, stopTime);
@@ -469,6 +549,13 @@ export class ScorePlayer {
 
       this.scheduleMasterBar(masterBarIndex);
     }
+
+    if (
+      !this._isLooped &&
+      this._nextMasterBarIndexToSchedule >= this.score.masterBars.length
+    ) {
+      this.scheduleNaturalStop();
+    }
   }
 
   /**
@@ -476,6 +563,7 @@ export class ScorePlayer {
    */
   private scheduleScore(): void {
     this._isPlaying = true;
+    this.emitPlaybackStateChanged();
     this.ensureAudioContext();
     if (this._audioContext === undefined) {
       throw Error("Audio context is not initialized");
@@ -537,6 +625,11 @@ export class ScorePlayer {
         : this.getPlaybackEndBoundary(options.loopEndBeat);
     this._nextMasterBarIndexToSchedule =
       this._playbackStartBoundary.masterBarIndex;
+
+    if (options.startBeat) {
+      this._activeStaffUUID = options.startBeat.bar.staff.uuid;
+    }
+
     this.scheduleScore();
   }
 
@@ -550,6 +643,16 @@ export class ScorePlayer {
 
     clearInterval(this._schedulerInterval);
     this._schedulerInterval = undefined;
+
+    if (this._stopTimeout !== undefined) {
+      clearTimeout(this._stopTimeout);
+      this._stopTimeout = undefined;
+    }
+
+    for (const timeout of this._scheduledUiTimeouts) {
+      clearTimeout(timeout);
+    }
+    this._scheduledUiTimeouts.clear();
 
     for (const voice of this._scheduledVoices) {
       try {
@@ -570,6 +673,7 @@ export class ScorePlayer {
     this._playbackRunId++;
     this._isPlaying = false;
     this.resetPlayback();
+    this.emitPlaybackStateChanged();
   }
 
   /** Toggles loop mode */
@@ -580,6 +684,11 @@ export class ScorePlayer {
   /** Enables loop mode */
   public enableLoop(): void {
     this._isLooped = true;
+  }
+
+  /** Disables loop mode */
+  public disableLoop(): void {
+    this._isLooped = false;
   }
 
   /** Clears currently selected loop section */
@@ -599,6 +708,11 @@ export class ScorePlayer {
   /** Disposes all playback resources */
   public dispose(): void {
     this.stop();
+
+    if (this._audioContext !== undefined) {
+      void this._audioContext.close();
+      this._audioContext = undefined;
+    }
   }
 
   /** Indicates if playback is active */
@@ -609,5 +723,10 @@ export class ScorePlayer {
   /** Indicates if loop mode is enabled */
   public get isLooped(): boolean {
     return this._isLooped;
+  }
+
+  /** Current beat on the active rendered track */
+  public get currentBeat(): Beat | undefined {
+    return this._currentBeat;
   }
 }

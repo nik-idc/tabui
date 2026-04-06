@@ -1,36 +1,55 @@
 import { TrackController } from "@/notation/controller";
-// import { TonejsDurationMap } from "@/player/staff-player";
-import { Point } from "@/shared";
+import { BeatElement } from "@/notation/controller/element/beat/beat-element";
+import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
 import { trackEvent, TrackEventType, TrackEventArgs } from "@/shared/events";
-import * as Tone from "tone";
+
+/** Renders the player cursor from a beat and its containing track line */
+export function renderPlayerCursor(
+  cursorElement: SVGRectElement,
+  beatElement: BeatElement,
+  trackLineElement?: TrackLineElement
+): void {
+  const coords = beatElement.globalCoords;
+  const playerCursorWidth = 5;
+  const playerCursorAddHeight = 10;
+  let y = coords.y - playerCursorAddHeight;
+  let height = beatElement.rect.height + playerCursorAddHeight;
+
+  const outlineLines = trackLineElement?.outlineLinesGlobal;
+  if (outlineLines !== undefined) {
+    y = outlineLines.left.y1;
+    height = outlineLines.left.height;
+  }
+
+  cursorElement.setAttribute("x", `${coords.x + beatElement.rect.width / 2}`);
+  cursorElement.setAttribute("y", `${y}`);
+  cursorElement.setAttribute("width", `${playerCursorWidth}`);
+  cursorElement.setAttribute("height", `${height}`);
+}
 
 /**
- * Animates an SVG rectangle moving across beats while
- * playback is active
+ * Updates the player cursor position when the active-track beat changes.
  */
 export class TrackPlayerSVGAnimator {
+  /** True once event binding is active */
   private _bound: boolean;
+  /** Cursor SVG rectangle */
   private _cursorElement: SVGRectElement;
+  /** Track controller for beat element lookup */
   private _trackController: TrackController;
-  private _isAnimating: boolean;
-  private _prevCoords: Point;
-  private _nextCoords: Point | undefined;
-  private _startTime: number;
-  private _duration: number;
+  /** Bound event handler reference */
+  private _boundOnBeatChanged: (
+    args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
+  ) => void;
 
   constructor(cursorElement: SVGRectElement, trackController: TrackController) {
     this._bound = false;
     this._cursorElement = cursorElement;
-    this._isAnimating = false;
     this._trackController = trackController;
-    this._prevCoords = new Point(
-      cursorElement.getAttribute("x") as unknown as number,
-      cursorElement.getAttribute("y") as unknown as number
-    );
-    this._startTime = 0;
-    this._duration = 0;
+    this._boundOnBeatChanged = this.onBeatChanged.bind(this);
   }
 
+  /** Subscribes to active-track beat change events */
   public bindToBeatChanged(): void {
     if (this._bound) {
       return;
@@ -38,63 +57,44 @@ export class TrackPlayerSVGAnimator {
 
     trackEvent.on(
       TrackEventType.PlayerCurBeatChanged,
-      this.onBeatChanged.bind(this)
+      this._boundOnBeatChanged
     );
     this._bound = true;
   }
 
+  /** Unsubscribes from active-track beat change events */
+  public unbindFromBeatChanged(): void {
+    if (!this._bound) {
+      return;
+    }
+
+    trackEvent.off(
+      TrackEventType.PlayerCurBeatChanged,
+      this._boundOnBeatChanged
+    );
+    this._bound = false;
+  }
+
+  /** Finds the track line containing the beat element */
+  private getContainingTrackLineElement(
+    beatElement: BeatElement
+  ): TrackLineElement {
+    return beatElement.barElement.notationStyleLineElement.staffLineElement
+      .trackLineElement;
+  }
+
+  /** Moves the cursor directly to the newly active beat */
   private onBeatChanged(
     args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
-  ) {
+  ): void {
     const beatElement = this._trackController.trackElement.getBeatElementByUUID(
       args.beatUUID
     );
     if (beatElement === undefined) {
-      throw Error("Could not find beat element");
+      throw Error("Failed to get beat element on beat changed");
     }
 
-    const coords =
-      this._trackController.trackElement.getBeatElementGlobalCoords(
-        beatElement
-      );
-    // Adjust to fix the playback feeling as if it's behind 1 beat
-    coords.x += beatElement.rect.width / 2;
-    const durationSeconds = Tone.Time(
-      TonejsDurationMap[beatElement.beat.baseDuration]
-    ).toSeconds();
-
-    this._prevCoords =
-      this._nextCoords === undefined ? coords : this._nextCoords;
-    this._nextCoords = coords;
-    this._duration = durationSeconds;
-    this._startTime = Tone.now();
-
-    if (!this._isAnimating) {
-      this._isAnimating = true;
-      requestAnimationFrame(this.animate.bind(this));
-    }
-  }
-
-  private animate(): void {
-    if (this._prevCoords === undefined || this._nextCoords === undefined) {
-      return;
-    }
-
-    const elapsed = Tone.now() - this._startTime;
-    const progress = Math.min(elapsed / this._duration, 1);
-
-    const x =
-      this._prevCoords.x + (this._nextCoords.x - this._prevCoords.x) * progress;
-    const y = this._nextCoords.y; // optionally animate y too
-
-    this._cursorElement.setAttribute("x", x.toString());
-    this._cursorElement.setAttribute("y", (y - 10).toString());
-
-    if (progress < 1) {
-      requestAnimationFrame(this.animate.bind(this));
-    } else {
-      this._prevCoords = this._nextCoords;
-      this._isAnimating = false;
-    }
+    const trackLineElement = this.getContainingTrackLineElement(beatElement);
+    renderPlayerCursor(this._cursorElement, beatElement, trackLineElement);
   }
 }

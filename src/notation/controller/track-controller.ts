@@ -66,6 +66,7 @@ export class TrackController {
       this._scorePlayer.enableLoop();
     } else {
       this._scorePlayer.clearLoopSection();
+      this._scorePlayer.disableLoop();
     }
 
     void this._scorePlayer.start({ startBeat: selection[0] });
@@ -92,6 +93,11 @@ export class TrackController {
     }
 
     this._scorePlayer.toggleLoop();
+  }
+
+  /** Disposes runtime resources owned by the controller */
+  public dispose(): void {
+    this._scorePlayer?.dispose();
   }
 
   /** Undo previous action */
@@ -170,5 +176,19 @@ export class TrackController {
   /** Score player (undefined if testing outside of a browser) */
   public get trackPlayer(): ScorePlayer | undefined {
     return this._scorePlayer;
+  }
+
+  /** Current beat element of the player on the active track */
+  public get playerCurrentBeatElement(): BeatElement | undefined {
+    if (
+      this._scorePlayer === undefined ||
+      this._scorePlayer.currentBeat === undefined
+    ) {
+      return undefined;
+    }
+
+    return this._trackElement.findCorrespondingBeatElement(
+      this._scorePlayer.currentBeat
+    );
   }
 }

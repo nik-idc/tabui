@@ -56,8 +56,9 @@ class MockAudioContext {
   }
 }
 
-(globalThis as unknown as { AudioContext: typeof MockAudioContext }).AudioContext =
-  MockAudioContext;
+(
+  globalThis as unknown as { AudioContext: typeof MockAudioContext }
+).AudioContext = MockAudioContext;
 
 function createScoreWithBars(barCount: number) {
   const { score, track } = createScoreGraph({
@@ -86,7 +87,7 @@ function createScoreWithBars(barCount: number) {
 }
 
 function setBeatFret(beat: { notes: Array<unknown> }, fret: number): void {
-  ((beat.notes[0] as unknown) as { fret: number | null }).fret = fret;
+  (beat.notes[0] as unknown as { fret: number | null }).fret = fret;
 }
 
 function oscillatorStarts(): number[] {
@@ -118,7 +119,7 @@ describe("ScorePlayer", () => {
     const player = new ScorePlayer(score, track);
 
     expect(
-      ((player as unknown) as { _audioContext?: AudioContext })._audioContext
+      (player as unknown as { _audioContext?: AudioContext })._audioContext
     ).toBeUndefined();
   });
 
@@ -195,7 +196,7 @@ describe("ScorePlayer", () => {
     ];
 
     const player = new ScorePlayer(score, track);
-    ((player as unknown) as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
+    (player as unknown as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
     player.setLoopSection(bars[0].beats[0], bars[5].beats[0]);
     player.enableLoop();
     await player.start({ startBeat: bars[0].beats[0] });
@@ -222,7 +223,7 @@ describe("ScorePlayer", () => {
     ];
 
     const player = new ScorePlayer(score, track);
-    ((player as unknown) as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
+    (player as unknown as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
     player.setLoopSection(bars[2].beats[0], bars[5].beats[0]);
     player.enableLoop();
     await player.start({ startBeat: bars[2].beats[0] });
@@ -249,7 +250,7 @@ describe("ScorePlayer", () => {
     ];
 
     const player = new ScorePlayer(score, track);
-    ((player as unknown) as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
+    (player as unknown as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
     player.setLoopSection(bars[0].beats[0], bars[3].beats[0]);
     player.enableLoop();
     await player.start({ startBeat: bars[0].beats[0] });
@@ -334,7 +335,7 @@ describe("ScorePlayer", () => {
 
     expect(player.isPlaying).toBe(false);
     expect(
-      ((player as unknown) as { _scheduledVoices: Set<unknown> })._scheduledVoices
+      (player as unknown as { _scheduledVoices: Set<unknown> })._scheduledVoices
         .size
     ).toBe(0);
   });

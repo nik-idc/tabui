@@ -32,7 +32,6 @@
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.24.1",
-    "tone": "^15.0.4",
     "tsx": "^4.16.5"
   }
 }

@@ -54,6 +54,7 @@ export class NotationComponent {
    * @returns Active renderers
    */
   public loadTrack(newTrack: Track): ElementRenderer[] {
+    this._trackController.dispose();
     this.renderer.unrender();
 
     // Render new stuff
