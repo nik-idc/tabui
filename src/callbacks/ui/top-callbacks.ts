@@ -55,5 +55,6 @@ export class TopControlsCallbacks {
 
   public unbind(): void {
     this._scoreCallbacks.unbind();
+    this._playCallbacks.unbind();
   }
 }
