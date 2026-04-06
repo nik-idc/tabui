@@ -40,7 +40,7 @@ export class TrackController {
     this._trackControllerEditor = new TrackControllerEditor(this._trackElement);
 
     if (typeof window !== "undefined") {
-      this._scorePlayer = new ScorePlayer(this.track.score);
+      this._scorePlayer = new ScorePlayer(this.track.score, this.track);
     } else {
       this._scorePlayer = undefined;
     }
@@ -58,12 +58,17 @@ export class TrackController {
 
     const selection =
       this._trackControllerEditor.selectionManager.selectionAsBeats;
-    this._scorePlayer.setCurrentBeat(selection[0]);
     if (selection.length > 1) {
-      this._scorePlayer.setLoopSection(selection[0], selection[1]);
+      this._scorePlayer.setLoopSection(
+        selection[0],
+        selection[selection.length - 1]
+      );
+      this._scorePlayer.enableLoop();
+    } else {
+      this._scorePlayer.clearLoopSection();
     }
 
-    this._scorePlayer.start();
+    void this._scorePlayer.start({ startBeat: selection[0] });
   }
 
   /**
@@ -119,27 +124,6 @@ export class TrackController {
     }
 
     return this._scorePlayer.isLooped;
-  }
-
-  /** Current beat elemnet of the player */
-  public get playerCurrentBeatElement(): BeatElement | undefined {
-    if (this._scorePlayer === undefined) {
-      return undefined;
-    }
-
-    if (this._scorePlayer.currentBeat === undefined) {
-      throw Error("Track player current beat undefined");
-    }
-
-    const beatElement = this._trackElement.findCorrespondingBeatElement(
-      this._scorePlayer.currentBeat
-    );
-
-    if (beatElement === undefined) {
-      throw Error("Failed to find corresponding beat element");
-    }
-
-    return beatElement;
   }
 
   /**

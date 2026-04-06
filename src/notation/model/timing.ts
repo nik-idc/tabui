@@ -2,10 +2,13 @@ import { NoteDuration } from "./note-duration";
 import { TupletSettings } from "./tuplet-settings";
 
 export type TimingFraction = {
+  /** Fraction numerator */
   numerator: number;
+  /** Fraction denominator */
   denominator: number;
 };
 
+/** Greatest common divisor */
 export function gcd(a: number, b: number): number {
   let x = Math.abs(a);
   let y = Math.abs(b);
@@ -19,6 +22,7 @@ export function gcd(a: number, b: number): number {
   return x;
 }
 
+/** Least common multiple */
 export function lcm(a: number, b: number): number {
   if (a === 0 || b === 0) {
     return 0;
@@ -27,6 +31,7 @@ export function lcm(a: number, b: number): number {
   return Math.abs((a / gcd(a, b)) * b);
 }
 
+/** Least common multiple for an array of values */
 export function lcmAll(values: number[]): number {
   if (values.length === 0) {
     throw Error("lcmAll called with an empty array");
@@ -35,6 +40,7 @@ export function lcmAll(values: number[]): number {
   return values.reduce((acc, value) => lcm(acc, value));
 }
 
+/** Reduces a fraction to its lowest terms */
 export function reduceFraction(
   numerator: number,
   denominator: number
@@ -50,6 +56,7 @@ export function reduceFraction(
   };
 }
 
+/** Multiplies two fractions */
 export function multiplyFractions(
   a: TimingFraction,
   b: TimingFraction
@@ -60,6 +67,7 @@ export function multiplyFractions(
   );
 }
 
+/** Gets exact whole-note fraction for a written base duration */
 export function getBaseDurationFraction(
   duration: NoteDuration
 ): TimingFraction {
@@ -69,6 +77,7 @@ export function getBaseDurationFraction(
   };
 }
 
+/** Applies dots to a base duration fraction */
 export function applyDotsToFraction(
   baseFraction: TimingFraction,
   dots: number
@@ -91,6 +100,7 @@ export function applyDotsToFraction(
   }
 }
 
+/** Applies tuplet scaling to a duration fraction */
 export function applyTupletToFraction(
   fraction: TimingFraction,
   tupletSettings: TupletSettings | null
@@ -105,6 +115,7 @@ export function applyTupletToFraction(
   });
 }
 
+/** Converts an exact whole-note fraction into ticks */
 export function fractionToTicks(
   fraction: TimingFraction,
   tickResolution: number
@@ -117,4 +128,45 @@ export function fractionToTicks(
   }
 
   return ticksNumerator / fraction.denominator;
+}
+
+/** Converts ticks into an exact whole-note fraction */
+export function ticksToFraction(
+  ticks: number,
+  tickResolution: number
+): TimingFraction {
+  return reduceFraction(ticks, tickResolution);
+}
+
+/** Indicates whether two fractions are equal */
+export function fractionEq(a: TimingFraction, b: TimingFraction): boolean {
+  return a.numerator * b.denominator === b.numerator * a.denominator;
+}
+
+/** Indicates whether the first fraction is less than the second */
+export function fractionLt(a: TimingFraction, b: TimingFraction): boolean {
+  return a.numerator * b.denominator < b.numerator * a.denominator;
+}
+
+/** Indicates whether the first fraction is less than or equal to the second */
+export function fractionLte(a: TimingFraction, b: TimingFraction): boolean {
+  return a.numerator * b.denominator <= b.numerator * a.denominator;
+}
+
+/** Converts an exact whole-note fraction into seconds at a tempo */
+export function fractionToSeconds(
+  fraction: TimingFraction,
+  tempo: number
+): number {
+  const wholeNoteSeconds = 240 / tempo;
+  return (fraction.numerator / fraction.denominator) * wholeNoteSeconds;
+}
+
+/** Converts bar-local ticks into seconds at a tempo */
+export function ticksToSeconds(
+  ticks: number,
+  tickResolution: number,
+  tempo: number
+): number {
+  return fractionToSeconds(ticksToFraction(ticks, tickResolution), tempo);
 }
