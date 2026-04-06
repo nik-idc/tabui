@@ -25,12 +25,13 @@ sake and more on targeted changes that directly unlock the MVP.
 ### Progress Snapshot
 
 - Phase 0 is complete.
-- Current focus should move to Phase 1 (tick-based timing model).
+- Phase 1 is complete.
+- Current focus should move to Phase 2 (targeted architecture cleanup).
 - Phase 0 follow-ups that are intentionally deferred are listed under Phase 0.
 
 ### Phase 0 - Foundation
 
-Status: complete.
+**Status: complete.**
 
 - Fix known correctness issues in core model, controller, and rendering paths.
 - Add a minimal automated test foundation for the model and element layers.
@@ -66,10 +67,24 @@ Phase 0 intentionally deferred follow-ups:
 
 ### Phase 1 - Tick-Based Timing Model
 
+**Status: complete.**
+
 - Introduce ticks as the canonical timing representation.
 - Refactor duration-related logic to derive from ticks.
 - Use ticks to simplify reasoning around tuplets, spacing, and playback timing.
 - Prefer clean model changes over preserving old internal compatibility.
+
+Completed in Phase 1:
+
+- Model timing now uses ticks as the canonical representation for beats and bars.
+- Dots and tuplets are derived through the tick-based timing model instead of
+  ad hoc fractional duration handling.
+- Bar fit/playability, beaming, and related timing-sensitive model logic were
+  updated to operate on ticks.
+- Score playback was rewritten around the tick-based model and now uses Web
+  Audio instead of Tone.js.
+- Playback now honors repeats, current-start position, and bounded looping,
+  with active-track cursor updates restored.
 
 Exit criteria:
 

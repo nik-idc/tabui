@@ -7,7 +7,10 @@ import {
 } from "@/notation/controller";
 import { createSVG, createSVGG, createSVGRect, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
-import { TrackPlayerSVGAnimator } from "./player-svg-animator";
+import {
+  renderPlayerCursor,
+  TrackPlayerSVGAnimator,
+} from "./player-svg-animator";
 import { ElementRenderer } from "../element-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 import { ELEMENT_ORDER } from "@/notation/controller/element/track-element";
@@ -386,16 +389,19 @@ export class EditorSVGRenderer implements EditorRenderer {
     if (currentBeatElement === undefined) {
       cursorRect = new Rect(0, 0, 0, 0);
     } else {
-      const beatElementCoords = currentBeatElement.globalCoords;
-
-      const playerCursorWidth = 5;
-      const playerCursorAddHeight = 10;
-
+      const trackLineElement =
+        currentBeatElement.barElement.notationStyleLineElement.staffLineElement
+          .trackLineElement;
+      renderPlayerCursor(
+        this._playerCursorRect,
+        currentBeatElement,
+        trackLineElement
+      );
       cursorRect = new Rect(
-        beatElementCoords.x + currentBeatElement.rect.width / 2,
-        beatElementCoords.y - playerCursorAddHeight,
-        playerCursorWidth,
-        currentBeatElement.rect.height + playerCursorAddHeight
+        Number(this._playerCursorRect.getAttribute("x") ?? 0),
+        Number(this._playerCursorRect.getAttribute("y") ?? 0),
+        Number(this._playerCursorRect.getAttribute("width") ?? 0),
+        Number(this._playerCursorRect.getAttribute("height") ?? 0)
       );
     }
 
@@ -475,8 +481,13 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     this._rendererRegistry.clear();
     this._mountedRendererUUIDs.clear();
+    if (this._playerAnimator !== undefined) {
+      this._playerAnimator.unbindFromBeatChanged();
+      this._playerAnimator = undefined;
+    }
     if (this._playerCursorRect) {
       this._playerCursorRect.remove();
+      this._playerCursorRect = undefined;
     }
     this._selectionOverlayRenderer.clear();
     this._beatInteractionLayer.clear();

@@ -10,6 +10,7 @@ export interface PlayControlsCallbacks {
   onLastClicked(): void;
   onLoopClicked(): void;
   bind(): void;
+  unbind(): void;
 }
 
 export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
@@ -42,7 +43,13 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     throw new Error("Method not implemented");
   }
   onPlayClicked(): void {
-    this._notationComponent.trackController.startPlayer();
+    if (this._notationComponent.trackController.isPlaying) {
+      this._notationComponent.trackController.stopPlayer();
+    } else {
+      this._notationComponent.trackController.startPlayer();
+    }
+
+    this._renderFunc();
   }
   onNextClicked(): void {
     throw new Error("Method not implemented");

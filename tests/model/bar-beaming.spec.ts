@@ -151,6 +151,16 @@ describe("Bar beaming", () => {
     expect(beats.every((beat) => beat.lastInBeamGroup === false)).toBe(true);
   });
 
+  test("single-beat bars expose no beaming groups", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+
+    expect(beats[0].beamGroupId).toBeNull();
+    expect(beats[0].lastInBeamGroup).toBe(false);
+    expect(bar.beamingGroups).toEqual([]);
+  });
+
   test("3/4 beaming groups eighth notes by quarter-note beats", () => {
     const { beats } = createBarWithBeats(
       [
@@ -214,5 +224,52 @@ describe("Bar beaming", () => {
     expect(beats.map((beat) => beat.beamGroupId)).toEqual([
       0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3,
     ]);
+  });
+
+  test("13/8 creates deterministic beam groups", () => {
+    const { beats } = createBarWithBeats(
+      [
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+        { baseDuration: NoteDuration.Eighth },
+      ],
+      {
+        tempo: 120,
+        beatsCount: 13,
+        duration: NoteDuration.Eighth,
+        repeatStatus: BarRepeatStatus.None,
+        repeatCount: null,
+      }
+    );
+
+    expect(beats.map((beat) => beat.beamGroupId)).toEqual([
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      3,
+      3,
+      3,
+      null,
+    ]);
+    expect(beats[2].lastInBeamGroup).toBe(true);
+    expect(beats[5].lastInBeamGroup).toBe(true);
+    expect(beats[8].lastInBeamGroup).toBe(true);
+    expect(beats[11].lastInBeamGroup).toBe(true);
   });
 });

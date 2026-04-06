@@ -1,10 +1,4 @@
-import {
-  Score,
-  GuitarNote,
-  Beat,
-  ScoreEditor,
-  BeatArrayOperationOutput,
-} from "@/notation/model";
+import { Beat, ScoreEditor } from "@/notation/model";
 import { Command } from "./command";
 
 /**
@@ -51,10 +45,7 @@ export class SetDotsCommand implements Command {
       return;
     }
 
-    for (const beat of this._beats) {
-      const oldDots = this._oldDotsMap.get(beat.uuid);
-      ScoreEditor.setDots([beat], oldDots === undefined ? 0 : oldDots);
-    }
+    ScoreEditor.restoreDots(this._beats, this._oldDotsMap);
   }
 
   /**

@@ -56,8 +56,13 @@ export class PlayControlsTemplateRenderer {
     this.template.prevButton.setAttribute("height", buttonSize);
 
     const playSrc = `${assetsPath}/img/ui/play.svg`;
-    this.template.playButton.setAttribute("src", playSrc);
-    this.template.playButton.setAttribute("alt", "Play");
+    const pauseSrc = `${assetsPath}/img/ui/pause.svg`;
+    const isPlaying = this.notationComponent.trackController.isPlaying;
+    this.template.playButton.setAttribute(
+      "src",
+      isPlaying ? pauseSrc : playSrc
+    );
+    this.template.playButton.setAttribute("alt", isPlaying ? "Pause" : "Play");
     this.template.playButton.setAttribute("width", buttonSize);
     this.template.playButton.setAttribute("height", buttonSize);
 

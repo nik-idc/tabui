@@ -59,12 +59,14 @@ describe("ScoreEditor", () => {
       },
     ]);
 
-    const before = bar.tupletGroups[0].getCalculatedDurationAt(0);
-
     ScoreEditor.setDots([beats[0]], 1);
 
-    expect(bar.tupletGroups[0].getCalculatedDurationAt(0)).toBeGreaterThan(
-      before
+    expect(bar.tupletGroups[0].getCalculatedDurationAt(0)).toBeCloseTo(
+      1 / 8,
+      10
+    );
+    expect(bar.tupletGroups[0].getDurationTicksAt(0)).toBe(
+      beats[0].fullDurationTicks
     );
   });
 
@@ -122,6 +124,104 @@ describe("ScoreEditor", () => {
 
     expect(beats[0].tupletSettings).toBeNull();
     expect(beats[1].tupletSettings).toBeNull();
+  });
+
+  test("setTimeSignature updates every bar tied to a master bar", () => {
+    const { score, track, masterBar, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const extraStaff = track.insertStaff(1).staves[0];
+    const siblingBar = extraStaff.bars[0];
+
+    ScoreEditor.setTimeSignature(score, masterBar, 3, NoteDuration.Quarter);
+
+    expect(bar.barTicks).toBe((bar.tickResolution * 3) / 4);
+    expect(siblingBar.barTicks).toBe((siblingBar.tickResolution * 3) / 4);
+    expect(bar.checkDurationsFit()).toBe(false);
+    expect(siblingBar.checkDurationsFit()).toBe(true);
+  });
+
+  test("replaceBeats copies full rhythmic data for equal-length replacements", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const replacements = [
+      createBarWithBeats([
+        {
+          baseDuration: NoteDuration.Eighth,
+          dots: 1,
+          tupletSettings: { normalCount: 3, tupletCount: 2 },
+        },
+      ]).beats[0],
+      createBarWithBeats([
+        {
+          baseDuration: NoteDuration.Sixteenth,
+          tupletSettings: { normalCount: 5, tupletCount: 4 },
+        },
+      ]).beats[0],
+    ];
+
+    ScoreEditor.replaceBeats(beats, replacements);
+
+    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
+    expect(bar.beats[0].dots).toBe(1);
+    expect(bar.beats[0].tupletSettings).toEqual({
+      normalCount: 3,
+      tupletCount: 2,
+    });
+    expect(bar.beats[1].baseDuration).toBe(NoteDuration.Sixteenth);
+    expect(bar.beats[1].tupletSettings).toEqual({
+      normalCount: 5,
+      tupletCount: 4,
+    });
+  });
+
+  test("replaceBeats updates timing when replacing with more beats", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const replacements = createBarWithBeats([
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Quarter },
+    ]).beats;
+
+    const insertedBeats = ScoreEditor.replaceBeats(beats, replacements);
+
+    expect(insertedBeats).toHaveLength(3);
+    expect(bar.beats).toHaveLength(3);
+    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Quarter,
+    ]);
+    expect(bar.actualTicks).toBe(bar.tickResolution / 2);
+  });
+
+  test("replaceBeats updates timing when replacing with fewer beats", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Eighth },
+    ]);
+    const replacements = createBarWithBeats([
+      {
+        baseDuration: NoteDuration.Quarter,
+        dots: 1,
+      },
+    ]).beats;
+
+    const remainingBeats = ScoreEditor.replaceBeats(beats, replacements);
+
+    expect(remainingBeats).toHaveLength(1);
+    expect(bar.beats).toHaveLength(1);
+    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Quarter);
+    expect(bar.beats[0].dots).toBe(1);
+    expect(bar.actualTicks).toBe((bar.tickResolution * 3) / 8);
   });
 
   test("removeBeats preserves seed-beat invariant when all beats are removed", () => {

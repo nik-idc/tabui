@@ -104,6 +104,42 @@ export const LOWEST_OCTAVE = 0;
 export const HIGHEST_OCTAVE = 9;
 
 /**
+ * Maps our NoteValue enum to its semitone offset from C
+ */
+const SEMITONE_MAP: Record<string, number> = {
+  [NoteValue.C]: 0,
+  [NoteValue.CSharp]: 1,
+  [NoteValue.D]: 2,
+  [NoteValue.DSharp]: 3,
+  [NoteValue.E]: 4,
+  [NoteValue.F]: 5,
+  [NoteValue.FSharp]: 6,
+  [NoteValue.G]: 7,
+  [NoteValue.GSharp]: 8,
+  [NoteValue.A]: 9,
+  [NoteValue.ASharp]: 10,
+  [NoteValue.B]: 11,
+};
+
+export function getNoteFrequency(note: Note): number {
+  // Handle Dead notes or None by returning 0 (silence)
+  if (
+    note.noteValue === NoteValue.Dead ||
+    note.noteValue === NoteValue.None ||
+    note.octave === null
+  ) {
+    return 0;
+  }
+
+  // 1. Calculate how many semitones this note is from C0
+  const semitonesFromC0 = note.octave * 12 + SEMITONE_MAP[note.noteValue];
+
+  // 2. A4 (440Hz) is semitone #57 if we start counting from C0
+  // Formula: Frequency = 440 * 2^((n - 57) / 12)
+  return 440 * Math.pow(2, (semitonesFromC0 - 57) / 12);
+}
+
+/**
  * Verifies if provided nota value & octave values make a valid note
  * @param noteValue Note value
  * @param octave Octave value

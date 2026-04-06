@@ -1,11 +1,4 @@
-import {
-  Score,
-  GuitarNote,
-  Beat,
-  ScoreEditor,
-  BeatArrayOperationOutput,
-  TupletSettings,
-} from "@/notation/model";
+import { Beat, ScoreEditor, TupletSettings } from "@/notation/model";
 import { Command } from "./command";
 
 /**
@@ -52,10 +45,7 @@ export class SetTupletCommand implements Command {
       return;
     }
 
-    for (const beat of this._beats) {
-      const oldTuplet = this._oldTupletMap.get(beat.uuid);
-      ScoreEditor.setTuplet([beat], oldTuplet === undefined ? null : oldTuplet);
-    }
+    ScoreEditor.restoreTuplets(this._beats, this._oldTupletMap);
   }
 
   /**

@@ -12,6 +12,12 @@ import {
 import { TechniqueType } from "./technique-type";
 import { Guitar } from "./instrument";
 import { GuitarNote } from "./guitar-note";
+import {
+  applyDotsToFraction,
+  applyTupletToFraction,
+  fractionToTicks,
+  getBaseDurationFraction,
+} from "./timing";
 
 export type NoteArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
@@ -57,6 +63,14 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   private _beamGroupId: number | null = null;
   /** * True only if part of a beam group and is the last beat of that group */
   private _lastInBeamGroup: boolean;
+  /** Base duration in ticks at the parent bar's resolution */
+  private _baseDurationTicks: number;
+  /** Played duration in ticks at the parent bar's resolution */
+  private _fullDurationTicks: number;
+  /** Beat start position in bar-local ticks */
+  private _startTick: number;
+  /** Beat end position in bar-local ticks */
+  private _endTick: number;
 
   /**
    * Class that represents a beat
@@ -90,6 +104,10 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._tupletSettings = tupletSettings;
     this._beamGroupId = beamGroupId;
     this._lastInBeamGroup = lastInBeamGroup;
+    this._baseDurationTicks = 0;
+    this._fullDurationTicks = 0;
+    this._startTick = 0;
+    this._endTick = 0;
 
     const maxPolyphony = this.trackContext.instrument.maxPolyphony;
     if (notes.length !== 0) {
@@ -238,27 +256,42 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   }
   /** Full beat duration getter */
   public get fullDuration(): number {
-    let duration = this._baseDuration;
-    switch (this._dots) {
-      case 0:
-        duration = this._baseDuration;
-        break;
-      case 1:
-        duration = this._baseDuration + this._baseDuration / 2;
-        break;
-      case 2:
-        duration =
-          this._baseDuration + this._baseDuration / 2 + this._baseDuration / 4;
-        break;
-    }
+    const withDots = applyDotsToFraction(
+      getBaseDurationFraction(this._baseDuration),
+      this._dots
+    );
+    const withTuplet = applyTupletToFraction(withDots, this._tupletSettings);
 
-    if (this._tupletSettings !== null) {
-      duration =
-        duration *
-        (this._tupletSettings.tupletCount / this._tupletSettings.normalCount);
-    }
+    return withTuplet.numerator / withTuplet.denominator;
+  }
 
-    return duration;
+  public getBaseDurationTicks(tickResolution: number): number {
+    return fractionToTicks(
+      getBaseDurationFraction(this._baseDuration),
+      tickResolution
+    );
+  }
+
+  public getFullDurationTicks(tickResolution: number): number {
+    const withDots = applyDotsToFraction(
+      getBaseDurationFraction(this._baseDuration),
+      this._dots
+    );
+    const withTuplet = applyTupletToFraction(withDots, this._tupletSettings);
+
+    return fractionToTicks(withTuplet, tickResolution);
+  }
+
+  public setTiming(
+    baseDurationTicks: number,
+    fullDurationTicks: number,
+    startTick: number,
+    endTick: number
+  ): void {
+    this._baseDurationTicks = baseDurationTicks;
+    this._fullDurationTicks = fullDurationTicks;
+    this._startTick = startTick;
+    this._endTick = endTick;
   }
 
   /** Dots setter */
@@ -298,5 +331,25 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   /** Last in beam group getter */
   public get lastInBeamGroup(): boolean {
     return this._lastInBeamGroup;
+  }
+
+  /** Base duration in ticks at the parent bar's resolution */
+  public get baseDurationTicks(): number {
+    return this._baseDurationTicks;
+  }
+
+  /** Played duration in ticks at the parent bar's resolution */
+  public get fullDurationTicks(): number {
+    return this._fullDurationTicks;
+  }
+
+  /** Beat start position in bar-local ticks */
+  public get startTick(): number {
+    return this._startTick;
+  }
+
+  /** Beat end position in bar-local ticks */
+  public get endTick(): number {
+    return this._endTick;
   }
 }

@@ -288,7 +288,12 @@ export class TrackControllerEditor {
     }
 
     this.commandManager.execute(
-      new SetTimeSigCommand(selectedNote.bar.masterBar, beatsCount, duration)
+      new SetTimeSigCommand(
+        selectedNote.staff.track.score,
+        selectedNote.bar.masterBar,
+        beatsCount,
+        duration
+      )
     );
 
     this._trackElement.update();

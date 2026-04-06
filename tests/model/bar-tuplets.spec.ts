@@ -56,8 +56,12 @@ describe("Bar tuplets", () => {
 
     ScoreEditor.setDots([beats[1]], 1);
 
-    expect(bar.tupletGroups[0].getCalculatedDurationAt(1)).toBe(
-      beats[1].fullDuration * (2 / 3)
+    expect(bar.tupletGroups[0].getCalculatedDurationAt(1)).toBeCloseTo(
+      1 / 8,
+      10
+    );
+    expect(bar.tupletGroups[0].getDurationTicksAt(1)).toBe(
+      beats[1].fullDurationTicks
     );
   });
 
@@ -77,6 +81,31 @@ describe("Bar tuplets", () => {
     expect(beats[1].fullDuration / beats[0].fullDuration).toBeCloseTo(
       2 / 3,
       10
+    );
+  });
+
+  test("complete triplet beat duration APIs return the played beat duration", () => {
+    const { bar } = createBarWithBeats([
+      {
+        baseDuration: NoteDuration.Eighth,
+        tupletSettings: { normalCount: 3, tupletCount: 2 },
+      },
+      {
+        baseDuration: NoteDuration.Eighth,
+        tupletSettings: { normalCount: 3, tupletCount: 2 },
+      },
+      {
+        baseDuration: NoteDuration.Eighth,
+        tupletSettings: { normalCount: 3, tupletCount: 2 },
+      },
+    ]);
+
+    expect(bar.tupletGroups[0].getCalculatedDurationAt(0)).toBeCloseTo(
+      1 / 12,
+      10
+    );
+    expect(bar.tupletGroups[0].getDurationTicksAt(0)).toBe(
+      bar.tickResolution / 12
     );
   });
 

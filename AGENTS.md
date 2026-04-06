@@ -100,4 +100,12 @@ The editor supports fixture selection through the `fixture` query parameter:
 - Command pattern is used for undoable edits (`execute`, `undo`, `redo`).
 - Keep behavior changes small and verifiable with tests.
 - Prefer correctness and clarity over broad refactors during stabilization-focused work.
+- Prefer locality of behavior. Do not introduce trivial one-line
+  getters/helpers that only wrap a simple property access used in one
+  place.
+- If a getter or helper would be a single obvious line such as
+  `return this._foo?.bar;`, prefer inlining that expression at the call
+  site instead of creating a dedicated method.
+- Extract only when the logic is reused, meaningfully named, or complex
+  enough that the abstraction improves readability.
 - Avoid adding comments unless the logic is non-obvious.

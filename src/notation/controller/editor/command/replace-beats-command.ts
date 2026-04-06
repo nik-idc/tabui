@@ -1,4 +1,4 @@
-import { Bar, Beat, ScoreEditor } from "@/notation/model";
+import { Beat, ScoreEditor } from "@/notation/model";
 import { Command } from "./command";
 
 /**
@@ -9,6 +9,10 @@ export class ReplaceBeatsCommand implements Command {
   private _beatsToReplace: Beat[];
   /** New beats */
   private _newBeats: Beat[];
+  /** Snapshot of original beats for undo */
+  private _oldBeatSnapshots: Beat[];
+  /** Beats currently present in the bar after execute/redo */
+  private _currentBeats: Beat[];
   /** True if executed, false otherwise */
   private _executed: boolean = false;
 
@@ -20,13 +24,18 @@ export class ReplaceBeatsCommand implements Command {
   constructor(beatsToReplace: Beat[], newBeats: Beat[]) {
     this._beatsToReplace = beatsToReplace;
     this._newBeats = newBeats;
+    this._oldBeatSnapshots = beatsToReplace.map((beat) => beat.deepCopy());
+    this._currentBeats = beatsToReplace;
   }
 
   /**
    * Execute replace beats command
    */
   execute(): void {
-    ScoreEditor.replaceBeats(this._beatsToReplace, this._newBeats);
+    this._currentBeats = ScoreEditor.replaceBeats(
+      this._beatsToReplace,
+      this._newBeats
+    );
 
     this._executed = true;
   }
@@ -39,7 +48,10 @@ export class ReplaceBeatsCommand implements Command {
       return;
     }
 
-    ScoreEditor.replaceBeats(this._newBeats, this._beatsToReplace);
+    this._currentBeats = ScoreEditor.replaceBeats(
+      this._currentBeats,
+      this._oldBeatSnapshots
+    );
   }
 
   /**
@@ -50,6 +62,9 @@ export class ReplaceBeatsCommand implements Command {
       return;
     }
 
-    ScoreEditor.replaceBeats(this._beatsToReplace, this._newBeats);
+    this._currentBeats = ScoreEditor.replaceBeats(
+      this._currentBeats,
+      this._newBeats
+    );
   }
 }

@@ -8,6 +8,7 @@ import {
   ScoreControlsCallbacks,
   ScoreControlsDefaultCallbacks,
 } from "./score-controls-callbacks";
+import { trackEvent, TrackEventType } from "@/shared/events";
 
 export class TopControlsCallbacks {
   private _topComponent: TopControlsComponent;
@@ -18,6 +19,8 @@ export class TopControlsCallbacks {
 
   private _scoreCallbacks: ScoreControlsCallbacks;
   private _playCallbacks: PlayControlsCallbacks;
+  /** Bound playback state listener used to rerender controls */
+  private _onPlayerStateChanged: () => void;
 
   constructor(
     topComponent: TopControlsComponent,
@@ -46,14 +49,24 @@ export class TopControlsCallbacks {
       this._captureKeyboard,
       this._freeKeyboard
     );
+    this._onPlayerStateChanged = () => this._renderFunc();
   }
 
   public bind(): void {
     this._scoreCallbacks.bind();
     this._playCallbacks.bind();
+    trackEvent.on(
+      TrackEventType.PlayerStateChanged,
+      this._onPlayerStateChanged
+    );
   }
 
   public unbind(): void {
     this._scoreCallbacks.unbind();
+    this._playCallbacks.unbind();
+    trackEvent.off(
+      TrackEventType.PlayerStateChanged,
+      this._onPlayerStateChanged
+    );
   }
 }

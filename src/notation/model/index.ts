@@ -19,5 +19,6 @@ export * from "./technique";
 export * from "./technique-type";
 export * from "./track";
 export * from "./track-context";
+export * from "./timing";
 export * from "./tuplet-group";
 export * from "./tuplet-settings";

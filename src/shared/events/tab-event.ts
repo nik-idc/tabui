@@ -4,6 +4,11 @@ export enum TrackEventType {
    */
   PlayerCurBeatChanged,
   /**
+   * Fires when playback state changes. Consumers should query current state
+   * from the controller/player instead of relying on event payload state.
+   */
+  PlayerStateChanged,
+  /**
    * Fires when track window renderer finishes rendering
    */
   RenderComplete,
@@ -14,6 +19,7 @@ export type TrackEventArgs = {
   [TrackEventType.PlayerCurBeatChanged]: {
     beatUUID: number;
   };
+  [TrackEventType.PlayerStateChanged]: {};
   [TrackEventType.RenderComplete]: {};
 };
 
@@ -42,6 +48,21 @@ export class TrackEvent {
     }
 
     eventListeners.push(listener);
+  }
+
+  public off<T extends TrackEventType>(
+    event: T,
+    listener: (args: TrackEventArgs[T]) => void
+  ): void {
+    const eventListeners = this._listeners.get(event.toString());
+    if (eventListeners === undefined) {
+      return;
+    }
+
+    const index = eventListeners.indexOf(listener as (args: any) => void);
+    if (index !== -1) {
+      eventListeners.splice(index, 1);
+    }
   }
 
   public emit<T extends TrackEventType>(

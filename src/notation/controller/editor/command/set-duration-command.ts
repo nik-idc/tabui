@@ -1,11 +1,4 @@
-import {
-  Score,
-  GuitarNote,
-  Beat,
-  ScoreEditor,
-  BeatArrayOperationOutput,
-  NoteDuration,
-} from "@/notation/model";
+import { Beat, ScoreEditor, NoteDuration } from "@/notation/model";
 import { Command } from "./command";
 
 /**
@@ -40,9 +33,7 @@ export class SetDurationCommand implements Command {
    * Execute set duration command
    */
   execute(): void {
-    for (const beat of this._beats) {
-      ScoreEditor.setDuration(beat, this._newDuration);
-    }
+    ScoreEditor.setDurations(this._beats, this._newDuration);
     this._executed = true;
   }
 
@@ -54,13 +45,7 @@ export class SetDurationCommand implements Command {
       return;
     }
 
-    for (const beat of this._beats) {
-      const oldDuration = this._oldDurationMap.get(beat.uuid);
-      ScoreEditor.setDuration(
-        beat,
-        oldDuration === undefined ? NoteDuration.Quarter : oldDuration
-      );
-    }
+    ScoreEditor.restoreDurations(this._beats, this._oldDurationMap);
   }
 
   /**
@@ -71,8 +56,6 @@ export class SetDurationCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    for (const beat of this._beats) {
-      ScoreEditor.setDuration(beat, this._newDuration);
-    }
+    ScoreEditor.setDurations(this._beats, this._newDuration);
   }
 }

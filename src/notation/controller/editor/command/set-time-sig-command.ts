@@ -1,18 +1,12 @@
-import {
-  Score,
-  Beat,
-  ScoreEditor,
-  BeatArrayOperationOutput,
-  Bar,
-  MasterBar,
-  NoteDuration,
-} from "@/notation/model";
+import { Score, MasterBar, NoteDuration, ScoreEditor } from "@/notation/model";
 import { Command } from "./command";
 
 /**
  * Set bar time signature command
  */
 export class SetTimeSigCommand implements Command {
+  /** Score that owns bars tied to this master bar */
+  private _score: Score;
   /** Bar to append the beat to */
   private _bar: MasterBar;
   /** New beats count value */
@@ -33,11 +27,18 @@ export class SetTimeSigCommand implements Command {
 
   /**
    * Set guitar bar time signature command
+   * @param score Score containing bars tied to the master bar
    * @param bar Bar whose time signature to set
    * @param beatsCount Time signature beats count
    * @param duration Time signature duration
    */
-  constructor(bar: MasterBar, beatsCount?: number, duration?: NoteDuration) {
+  constructor(
+    score: Score,
+    bar: MasterBar,
+    beatsCount?: number,
+    duration?: NoteDuration
+  ) {
+    this._score = score;
     this._bar = bar;
     this._newBeatsCount = beatsCount;
     this._newDuration = duration;
@@ -49,12 +50,12 @@ export class SetTimeSigCommand implements Command {
    * Execute set timeSig command
    */
   execute(): void {
-    if (this._newBeatsCount !== undefined) {
-      this._bar.beatsCount = this._newBeatsCount;
-    }
-    if (this._newDuration !== undefined) {
-      this._bar.duration = this._newDuration;
-    }
+    ScoreEditor.setTimeSignature(
+      this._score,
+      this._bar,
+      this._newBeatsCount,
+      this._newDuration
+    );
     this._executed = true;
   }
 
@@ -66,8 +67,12 @@ export class SetTimeSigCommand implements Command {
       return;
     }
 
-    this._bar.beatsCount = this._oldBeatsCount;
-    this._bar.duration = this._oldDuration;
+    ScoreEditor.setTimeSignature(
+      this._score,
+      this._bar,
+      this._oldBeatsCount,
+      this._oldDuration
+    );
   }
 
   /**
@@ -78,11 +83,11 @@ export class SetTimeSigCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    if (this._newBeatsCount !== undefined) {
-      this._bar.beatsCount = this._newBeatsCount;
-    }
-    if (this._newDuration !== undefined) {
-      this._bar.duration = this._newDuration;
-    }
+    ScoreEditor.setTimeSignature(
+      this._score,
+      this._bar,
+      this._newBeatsCount,
+      this._newDuration
+    );
   }
 }

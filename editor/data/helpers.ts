@@ -43,6 +43,8 @@ export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
       bar.appendBeats([newBeat]);
     }
   }
+
+  bar.rebuildTiming();
 }
 
 export function fillStaff(staff: Staff<Guitar>, barsInfo: BarsInfo[]): void {

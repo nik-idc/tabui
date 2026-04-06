@@ -8,6 +8,7 @@ import { BeatJSON, Beat } from "./beat";
 export interface BarTupletBeatJSON {
   actualBeat: BeatJSON;
   calculatedDuration: number;
+  calculatedDurationTicks: number;
 }
 
 /**
@@ -62,7 +63,21 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
       throw new Error(`Tuplet beat at index ${index} does not exist`);
     }
 
-    return beat.fullDuration * (this.tupletCount / this.normalCount);
+    // NOTE: Historical name kept for compatibility. This now returns the
+    // beat's already-calculated full played duration.
+    return beat.fullDuration;
+  }
+
+  /** Gets calculated duration of a tuplet beat by index in ticks */
+  public getDurationTicksAt(index: number): number {
+    const beat = this.beats[index];
+    if (beat === undefined) {
+      throw new Error(`Tuplet beat at index ${index} does not exist`);
+    }
+
+    // NOTE: Historical name kept for compatibility. This now returns the
+    // beat's already-calculated full played duration in ticks.
+    return beat.fullDurationTicks;
   }
 
   /**
@@ -89,6 +104,7 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
       beatsJSON.push({
         actualBeat: beat.toJSON(),
         calculatedDuration: this.getCalculatedDurationAt(i),
+        calculatedDurationTicks: this.getDurationTicksAt(i),
       });
     }
 
@@ -99,5 +115,22 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
       normalCount: this.normalCount,
       tupletCount: this.tupletCount,
     };
+  }
+
+  /** Tuplet start in bar-local ticks */
+  public get startTick(): number {
+    const firstBeat = this.beats[0];
+    return firstBeat?.startTick ?? 0;
+  }
+
+  /** Tuplet end in bar-local ticks */
+  public get endTick(): number {
+    const lastBeat = this.beats[this.beats.length - 1];
+    return lastBeat?.endTick ?? 0;
+  }
+
+  /** Total tuplet span in bar-local ticks */
+  public get totalTicks(): number {
+    return this.endTick - this.startTick;
   }
 }
