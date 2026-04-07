@@ -7,8 +7,8 @@ import { createBarWithBeats } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
 function getBarElement(trackElement: TrackElement) {
-  return trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0]
-    .barElements[0];
+  return trackElement.trackLineElements[0].staffLineElements[0]
+    .styleLinesAsArray[0].barElements[0];
 }
 
 describe("BeamSegmentElement", () => {

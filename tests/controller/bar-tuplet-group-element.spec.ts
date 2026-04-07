@@ -5,8 +5,8 @@ import { createBarWithBeats } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
 function getBarElement(trackElement: TrackElement) {
-  return trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0]
-    .barElements[0];
+  return trackElement.trackLineElements[0].staffLineElements[0]
+    .styleLinesAsArray[0].barElements[0];
 }
 
 describe("BarTupletGroupElement", () => {
@@ -41,7 +41,9 @@ describe("BarTupletGroupElement", () => {
 
     expect(tupletElement.incompleteRects).toBeUndefined();
     expect(tupletElement.rect.width).toBeCloseTo(expectedWidth);
-    expect(tupletElement.rect.height).toBe(TabLayoutDimensions.TUPLET_RECT_HEIGHT);
+    expect(tupletElement.rect.height).toBe(
+      TabLayoutDimensions.TUPLET_RECT_HEIGHT
+    );
     expect(tupletElement.completeText).toBe("3");
   });
 
@@ -74,7 +76,11 @@ describe("BarTupletGroupElement", () => {
     expect(incompleteRects?.[1].width).toBeCloseTo(
       tupletElement.beatElements[1].rect.width
     );
-    expect(incompleteRects?.every((rect) => rect.height === TabLayoutDimensions.TUPLET_RECT_HEIGHT)).toBe(true);
+    expect(
+      incompleteRects?.every(
+        (rect) => rect.height === TabLayoutDimensions.TUPLET_RECT_HEIGHT
+      )
+    ).toBe(true);
   });
 
   test("outer rect starts at the first beat and spans the summed beat widths", () => {
@@ -111,7 +117,9 @@ describe("BarTupletGroupElement", () => {
       0
     );
 
-    expect(tupletElement.rect.x).toBeCloseTo(tupletElement.beatElements[0].rect.x);
+    expect(tupletElement.rect.x).toBeCloseTo(
+      tupletElement.beatElements[0].rect.x
+    );
     expect(tupletElement.rect.width).toBeCloseTo(sumWidth);
     expect(tupletElement.rect.y).toBeCloseTo(
       barElement.rect.height - TabLayoutDimensions.TUPLET_RECT_HEIGHT
@@ -141,7 +149,8 @@ describe("BarTupletGroupElement", () => {
     const tupletElement = getBarElement(trackElement).tupletElements[0];
     const firstBeatWidth = tupletElement.beatElements[0].rect.width;
     const lastBeatWidth =
-      tupletElement.beatElements[tupletElement.beatElements.length - 1].rect.width;
+      tupletElement.beatElements[tupletElement.beatElements.length - 1].rect
+        .width;
     const pathRect = tupletElement.completePathRectGlobal;
 
     expect(pathRect).toBeDefined();
