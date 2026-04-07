@@ -34,6 +34,21 @@ describe("SetFretCommand", () => {
     expect(note.fret).toBeNull();
   });
 
+  test("clamps out-of-range frets to the instrument maximum", () => {
+    const { bar } = createScoreGraph();
+    const note = bar.beats[0].notes[0] as GuitarNote;
+    const command = new SetFretCommand(note, 30);
+
+    command.execute();
+    expect(note.fret).toBe(note.trackContext.instrument.fretsCount);
+
+    command.undo();
+    expect(note.fret).toBeNull();
+
+    command.redo();
+    expect(note.fret).toBe(note.trackContext.instrument.fretsCount);
+  });
+
   test("redo before execute throws", () => {
     const { bar } = createScoreGraph();
     const note = bar.beats[0].notes[0] as GuitarNote;

@@ -1,5 +1,6 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
+import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-dimensions";
 import { DEFAULT_MASTER_BAR } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
@@ -89,15 +90,32 @@ describe("TrackElement tree", () => {
       secondLine.staffLineElements[0].styleLinesAsArray[0];
     expect(secondLineStyle.barElements[0].rect.x).toBeCloseTo(0);
 
+    const firstLineStyle = firstLine.staffLineElements[0].styleLinesAsArray[0];
+    expect(
+      firstLineStyle.barElements[firstLineStyle.barElements.length - 1].rect
+        .right
+    ).toBeCloseTo(TabLayoutDimensions.WIDTH);
+    expect(
+      secondLineStyle.barElements[secondLineStyle.barElements.length - 1].rect
+        .right
+    ).toBeLessThanOrEqual(TabLayoutDimensions.WIDTH);
+
     for (const line of lines) {
       const styleLine = line.staffLineElements[0].styleLinesAsArray[0];
       expect(styleLine.barElements).toHaveLength(line.trackLineData.length);
+      expect(styleLine.barElements[0].rect.x).toBeCloseTo(0);
 
       for (let i = 0; i < line.trackLineData.length; i++) {
         const masterBarIndex = line.trackLineData[i].masterBarIndex;
         expect(styleLine.barElements[i].bar).toBe(
           track.staves[0].bars[masterBarIndex]
         );
+
+        if (i > 0) {
+          expect(styleLine.barElements[i].rect.x).toBeCloseTo(
+            styleLine.barElements[i - 1].rect.right
+          );
+        }
       }
     }
 
@@ -109,9 +127,24 @@ describe("TrackElement tree", () => {
       firstLineBeat,
       secondLineBeat,
     ]);
+    const firstLineBeatElement = trackElement.getBeatElementByUUID(
+      firstLineBeat.uuid
+    );
+    const secondLineBeatElement = trackElement.getBeatElementByUUID(
+      secondLineBeat.uuid
+    );
+
+    expect(firstLineBeatElement).toBeDefined();
+    expect(secondLineBeatElement).toBeDefined();
     expect(selectionRects).toHaveLength(2);
     expect(selectionRects[0].width).toBeGreaterThan(0);
     expect(selectionRects[1].width).toBeGreaterThan(0);
     expect(selectionRects[1].y).toBeGreaterThan(selectionRects[0].y);
+    expect(selectionRects[0].x).toBeCloseTo(
+      trackElement.getBeatElementGlobalCoords(firstLineBeatElement!).x
+    );
+    expect(selectionRects[1].x).toBeCloseTo(
+      trackElement.getBeatElementGlobalCoords(secondLineBeatElement!).x
+    );
   });
 });
