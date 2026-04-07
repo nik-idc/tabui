@@ -123,7 +123,7 @@ describe("Timing rebuild commands", () => {
     expect(siblingBar.barTicks).toBe((siblingBar.tickResolution * 3) / 4);
   });
 
-  test("ReplaceBeatsCommand copies full rhythmic data and restores it on undo", () => {
+  test("ReplaceBeatsCommand copies full rhythmic data and restores equal-length replacements on undo/redo", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -136,8 +136,10 @@ describe("Timing rebuild commands", () => {
       createBeat(bar, NoteDuration.Sixteenth),
     ];
     const command = new ReplaceBeatsCommand(beats, replacementBeats);
+    const originalBeatUUIDs = bar.beats.map((beat) => beat.uuid);
 
     command.execute();
+    expect(bar.beats).toHaveLength(2);
     expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
     expect(bar.beats[0].dots).toBe(1);
     expect(bar.beats[0].tupletSettings).toEqual({
@@ -145,21 +147,85 @@ describe("Timing rebuild commands", () => {
       tupletCount: 2,
     });
     expect(bar.beats[1].baseDuration).toBe(NoteDuration.Sixteenth);
+    expect(bar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
 
     command.undo();
     expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Quarter,
     ]);
+    expect(bar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
     expect(bar.beats.every((beat) => beat.dots === 0)).toBe(true);
     expect(bar.beats.every((beat) => beat.tupletSettings === null)).toBe(true);
 
     command.redo();
+    expect(bar.beats).toHaveLength(2);
     expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
     expect(bar.beats[0].dots).toBe(1);
     expect(bar.beats[0].tupletSettings).toEqual({
       normalCount: 3,
       tupletCount: 2,
     });
+    expect(bar.beats[1].baseDuration).toBe(NoteDuration.Sixteenth);
+    expect(bar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
+  });
+
+  test("ReplaceBeatsCommand inserts additional beats in order and restores original sequence on undo", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const replacementBeats = [
+      createBeat(bar, NoteDuration.Eighth),
+      createBeat(bar, NoteDuration.Sixteenth),
+    ];
+    const command = new ReplaceBeatsCommand(beats, replacementBeats);
+
+    command.execute();
+    expect(bar.beats).toHaveLength(2);
+    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Eighth,
+      NoteDuration.Sixteenth,
+    ]);
+
+    command.undo();
+    expect(bar.beats).toHaveLength(1);
+    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Quarter);
+    expect(bar.beats[0].dots).toBe(0);
+    expect(bar.beats[0].tupletSettings).toBeNull();
+
+    command.redo();
+    expect(bar.beats).toHaveLength(2);
+    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Eighth,
+      NoteDuration.Sixteenth,
+    ]);
+  });
+
+  test("ReplaceBeatsCommand removes surplus beats and restores original order on undo", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Sixteenth },
+    ]);
+    const replacementBeats = [createBeat(bar, NoteDuration.Half)];
+    const command = new ReplaceBeatsCommand(beats, replacementBeats);
+
+    command.execute();
+    expect(bar.beats).toHaveLength(1);
+    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Half);
+
+    command.undo();
+    expect(bar.beats).toHaveLength(3);
+    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+      NoteDuration.Eighth,
+      NoteDuration.Sixteenth,
+    ]);
+    expect(bar.beats.every((beat) => beat.dots === 0)).toBe(true);
+    expect(bar.beats.every((beat) => beat.tupletSettings === null)).toBe(true);
+
+    command.redo();
+    expect(bar.beats).toHaveLength(1);
+    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Half);
   });
 });
