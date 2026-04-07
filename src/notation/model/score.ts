@@ -137,7 +137,7 @@ export class Score {
       }
     }
 
-    return { index: index + 1, masterBar: newMasterBar, bars: staffBars };
+    return { index, masterBar: newMasterBar, bars: staffBars };
   }
 
   /**

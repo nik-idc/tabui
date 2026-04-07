@@ -41,6 +41,11 @@ export class RemoveBeatsCommand implements Command {
     for (const outputs of this._removeBeatsOutputs) {
       for (const output of outputs) {
         const bar = output.beats[0].bar;
+
+        if (bar.beats.length === 1 && bar.beats[0].isEmpty()) {
+          bar.beats.splice(0, 1);
+        }
+
         bar.insertBeats(output.index, output.beats);
       }
     }
