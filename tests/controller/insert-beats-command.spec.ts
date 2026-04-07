@@ -45,7 +45,7 @@ describe("InsertBeatsCommand", () => {
     expect(bar.beats[2].baseDuration).toBe(NoteDuration.Sixteenth);
   });
 
-  test("inserting into a seed-beat-only bar replaces the seed beat and undo restores it", () => {
+  test("inserting into a single-beat bar preserves the existing beat and undo restores the original bar", () => {
     const { bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
