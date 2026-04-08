@@ -1,4 +1,4 @@
-import { Guitar, isValidGuitarTuning, NoteDuration } from "@/notation";
+import { Guitar, isValidGuitarTuning, NoteDuration } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import {
   INSTRUMENT_KINDS,
@@ -79,10 +79,8 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   }
 
   onKindClicked(kind: string): void {
-    // this._newTrackComponent.setKind(kind);
-    // this._renderFunc();
-
-    throw new Error("Method not implemented");
+    this._newTrackComponent.setKind(kind);
+    this._renderFunc();
   }
 
   onTypeClicked(type: string): void {
@@ -104,7 +102,7 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       trackNameInput.value.length < this._minTrackNameLength ||
       trackNameInput.value.length > this._maxTrackNameLength
     ) {
-      trackNameError.textContent = this.stringCountErrorText;
+      trackNameError.textContent = this.trackNameErrorText;
       confirmButton.disabled = true;
     } else {
       trackNameError.textContent = " ";
@@ -138,12 +136,12 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       this._newTrackComponent.stringCount
     );
     if (!validTuning) {
-      tuningError.textContent = this.stringCountErrorText;
+      tuningError.textContent = this.tuningErrorText;
       confirmButton.disabled = true;
     } else {
       tuningError.textContent = " ";
       confirmButton.disabled = false;
-      this._newTrackComponent.setTrackName(tuningInput.value);
+      this._newTrackComponent.setTuning(tuningInput.value);
     }
   }
 

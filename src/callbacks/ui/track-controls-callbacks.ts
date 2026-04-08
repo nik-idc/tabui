@@ -27,6 +27,7 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
+  private _bound = false;
 
   private _yesNoCallbacks: YesNoCallbacks;
   private _trackSettingsCallbacks: TrackSettingsControlsCallbacks;
@@ -94,6 +95,10 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   bind(): void {
+    if (this._bound) {
+      return;
+    }
+
     this._listeners.bindAll([
       {
         element: this._trackComponent.template.removeButton,
@@ -129,11 +134,17 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
 
     this._yesNoCallbacks.bind();
     this._trackSettingsCallbacks.bind();
+    this._bound = true;
   }
 
   unbind(): void {
+    if (!this._bound) {
+      return;
+    }
+
     this._listeners.unbindAll();
     this._yesNoCallbacks.unbind();
     this._trackSettingsCallbacks.unbind();
+    this._bound = false;
   }
 }

@@ -12,6 +12,7 @@ export class UICallbacks {
 
   private _topCallbacks: TopControlsCallbacks;
   private _sideCallbacks: SideControlsCallbacks;
+  private _bound = false;
 
   constructor(
     uiComponent: UIComponent,
@@ -43,12 +44,22 @@ export class UICallbacks {
   }
 
   public bind(): void {
+    if (this._bound) {
+      return;
+    }
+
     this._topCallbacks.bind();
     this._sideCallbacks.bind();
+    this._bound = true;
   }
 
   public unbind(): void {
+    if (!this._bound) {
+      return;
+    }
+
     this._topCallbacks.unbind();
     this._sideCallbacks.unbind();
+    this._bound = false;
   }
 }

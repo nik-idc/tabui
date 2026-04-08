@@ -17,7 +17,7 @@ import {
   TimeSigControlsDefaultCallbacks,
 } from "./time-sig-controls-callbacks";
 import { ListenerManager } from "@/shared/misc";
-import { BarRepeatStatus } from "@/notation";
+import { BarRepeatStatus } from "@/notation/model";
 
 export interface MeasureControlsCallbacks {
   onTempoClicked(): void;

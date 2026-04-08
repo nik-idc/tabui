@@ -1,4 +1,4 @@
-import { isValidGuitarTuning } from "@/notation";
+import { isValidGuitarTuning } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";
 import { TrackSettingsControlsComponent } from "@/ui/top-controls/score-controls/track-controls/track-settings";
@@ -81,7 +81,7 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       trackNameInput.value.length < this._minTrackNameLength ||
       trackNameInput.value.length > this._maxTrackNameLength
     ) {
-      trackNameError.textContent = this.stringCountErrorText;
+      trackNameError.textContent = this.trackNameErrorText;
       confirmButton.disabled = true;
     } else {
       trackNameError.textContent = " ";
@@ -119,12 +119,12 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       this._trackSettingsComponent.stringCount
     );
     if (!validTuning) {
-      tuningError.textContent = this.stringCountErrorText;
+      tuningError.textContent = this.tuningErrorText;
       confirmButton.disabled = true;
     } else {
       tuningError.textContent = " ";
       confirmButton.disabled = false;
-      this._trackSettingsComponent.setTrackName(tuningInput.value);
+      this._trackSettingsComponent.setTuning(tuningInput.value);
     }
   }
 
