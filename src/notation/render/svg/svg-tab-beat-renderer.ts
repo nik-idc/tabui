@@ -93,6 +93,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
+    this.detachAllMouseEvents();
+
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
@@ -466,6 +468,34 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
     this._containerGroupSVG.addEventListener(eventType, listener);
     this._attachedEvents.set(eventType, listener);
+  }
+
+  public detachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K
+  ): void {
+    if (this._containerGroupSVG === undefined) {
+      return;
+    }
+
+    const listener = this._attachedEvents.get(eventType);
+    if (listener === undefined) {
+      return;
+    }
+
+    this._containerGroupSVG.removeEventListener(eventType, listener);
+    this._attachedEvents.delete(eventType);
+  }
+
+  public detachAllMouseEvents(): void {
+    if (this._containerGroupSVG === undefined) {
+      this._attachedEvents.clear();
+      return;
+    }
+
+    for (const [eventType, listener] of this._attachedEvents) {
+      this._containerGroupSVG.removeEventListener(eventType, listener);
+    }
+    this._attachedEvents.clear();
   }
 
   public get noteRenderers(): SVGNoteRenderer[] {

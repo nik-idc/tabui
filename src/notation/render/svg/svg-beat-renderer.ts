@@ -20,4 +20,7 @@ export interface SVGBeatRenderer {
       beatElement: BeatElement
     ) => void
   ): void;
+
+  detachMouseEvent<K extends keyof SVGElementEventMap>(eventType: K): void;
+  detachAllMouseEvents(): void;
 }

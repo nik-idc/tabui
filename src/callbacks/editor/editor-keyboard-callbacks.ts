@@ -1,12 +1,10 @@
 import {
   BendTechniqueOptions,
-  EditorRenderer,
   GuitarTechniqueType,
   NoteValue,
-} from "@/notation";
+} from "@/notation/model";
 import { SelectedMoveDirection } from "@/notation/controller";
 import { NotationComponent } from "@/notation/notation-component";
-import { ElementRenderer } from "@/notation/render/element-renderer";
 import { KeyChecker } from "@/shared";
 import { UIComponent } from "@/ui";
 
@@ -107,7 +105,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public shiftBEvent(event: KeyboardEvent): void {
-    throw new Error("Method not implemented yet");
+    void event;
+    this._uiComponent.sideComponent.techniqueControlsComponent.showBendControls();
   }
 
   public spaceEvent(event: KeyboardEvent): void {
@@ -241,7 +240,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         this.shiftBEvent(event);
       }
     } else if (!event.ctrlKey && !event.shiftKey) {
-      if (key === "Delete") {
+      if (key === "delete") {
         this.deleteEvent(event);
       } else if (key === " ") {
         this.spaceEvent(event);

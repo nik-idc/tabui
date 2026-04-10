@@ -1,4 +1,4 @@
-import { SVGGuitarNoteRenderer } from "@/notation";
+import { SVGGuitarNoteRenderer } from "@/notation/render/svg/svg-guitar-note-renderer";
 import { NoteElement, BeatElement } from "@/notation/controller";
 import { NotationComponent } from "@/notation/notation-component";
 import { ElementRenderer } from "@/notation/render/element-renderer";
@@ -19,6 +19,7 @@ export interface EditorMouseCallbacks {
   onBeatMouseUp(): void;
   onWindowMouseUp(): void;
   bind(activeRenderers: ElementRenderer[]): void;
+  unbind(): void;
 }
 
 /** Default mouse callbacks implementation for notation editor interactions. */
@@ -35,9 +36,16 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** True once delegated beat interaction handlers are attached. */
   private _beatInteractionBound: boolean = false;
   /** Note renderers that already have note mouse handlers attached. */
-  private _boundNoteRenderers: WeakSet<SVGGuitarNoteRenderer>;
+  private _boundNoteRenderers: Set<SVGGuitarNoteRenderer>;
   /** Bound global window mouseup listener reference. */
   private _boundOnWindowMouseUp?: (event: MouseEvent) => void;
+  /** Bound beat interaction handlers by event type. */
+  private _boundBeatHandlers: Partial<
+    Record<
+      "mousedown" | "mousemove" | "mouseup",
+      (event: MouseEvent, beatElement: BeatElement) => void
+    >
+  >;
   /** Selection drag state machine. */
   private _selectionDragController: SelectionDragController;
 
@@ -53,8 +61,35 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this.notationComponent = notationComponent;
     this.renderFunc = renderFunc;
 
-    this._boundNoteRenderers = new WeakSet();
+    this._boundNoteRenderers = new Set();
+    this._boundBeatHandlers = {};
     this._selectionDragController = new SelectionDragController();
+  }
+
+  private detachNoteRenderer(renderer: SVGGuitarNoteRenderer): void {
+    renderer.detachMouseEvent("mousedown");
+    renderer.detachMouseEvent("click");
+    renderer.detachMouseEvent("mouseenter");
+    renderer.detachMouseEvent("mousemove");
+    renderer.detachMouseEvent("mouseleave");
+  }
+
+  private reconcileNoteRenderers(activeRenderers: ElementRenderer[]): void {
+    const activeNoteRenderers = new Set<SVGGuitarNoteRenderer>();
+    for (const renderer of activeRenderers) {
+      if (renderer instanceof SVGGuitarNoteRenderer) {
+        activeNoteRenderers.add(renderer);
+      }
+    }
+
+    for (const renderer of this._boundNoteRenderers) {
+      if (activeNoteRenderers.has(renderer)) {
+        continue;
+      }
+
+      this.detachNoteRenderer(renderer);
+      this._boundNoteRenderers.delete(renderer);
+    }
   }
 
   /**
@@ -188,6 +223,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Binds one-time global/delegated handlers and note renderer handlers.
    */
   public bind(activeRenderers: ElementRenderer[]): void {
+    this.reconcileNoteRenderers(activeRenderers);
+
     if (!this._globalMouseUpBound) {
       this._boundOnWindowMouseUp = this.onWindowMouseUp.bind(this);
       window.addEventListener("mouseup", this._boundOnWindowMouseUp);
@@ -195,17 +232,20 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     if (!this._beatInteractionBound) {
+      this._boundBeatHandlers.mousedown = this.onBeatMouseDown.bind(this);
+      this._boundBeatHandlers.mousemove = this.onBeatMouseMove.bind(this);
+      this._boundBeatHandlers.mouseup = this.onBeatMouseUp.bind(this);
       this.notationComponent.renderer.attachBeatInteractionEvent(
         "mousedown",
-        this.onBeatMouseDown.bind(this)
+        this._boundBeatHandlers.mousedown
       );
       this.notationComponent.renderer.attachBeatInteractionEvent(
         "mousemove",
-        this.onBeatMouseMove.bind(this)
+        this._boundBeatHandlers.mousemove
       );
       this.notationComponent.renderer.attachBeatInteractionEvent(
         "mouseup",
-        this.onBeatMouseUp.bind(this)
+        this._boundBeatHandlers.mouseup
       );
       this._beatInteractionBound = true;
     }
@@ -230,6 +270,28 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         this._boundNoteRenderers.add(renderer);
       }
     }
+  }
+
+  public unbind(): void {
+    if (this._globalMouseUpBound && this._boundOnWindowMouseUp !== undefined) {
+      window.removeEventListener("mouseup", this._boundOnWindowMouseUp);
+      this._boundOnWindowMouseUp = undefined;
+      this._globalMouseUpBound = false;
+    }
+
+    if (this._beatInteractionBound) {
+      this.notationComponent.renderer.detachBeatInteractionEvent("mousedown");
+      this.notationComponent.renderer.detachBeatInteractionEvent("mousemove");
+      this.notationComponent.renderer.detachBeatInteractionEvent("mouseup");
+      this._boundBeatHandlers = {};
+      this._beatInteractionBound = false;
+    }
+
+    for (const renderer of this._boundNoteRenderers) {
+      this.detachNoteRenderer(renderer);
+    }
+    this._boundNoteRenderers.clear();
+    this._selectionDragController.reset();
   }
 
   /**

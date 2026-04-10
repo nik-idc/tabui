@@ -359,6 +359,12 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._beatInteractionLayer.attachEvent(eventType, eventHandler);
   }
 
+  public detachBeatInteractionEvent<K extends keyof SVGElementEventMap>(
+    eventType: K
+  ): void {
+    this._beatInteractionLayer.detachEvent(eventType);
+  }
+
   /**
    * Render player overlay
    */
@@ -595,6 +601,16 @@ class BeatInteractionLayer {
 
     this._interactionGroup.addEventListener(eventType, listener);
     this._beatInteractionEvents.set(eventType, listener);
+  }
+
+  public detachEvent<K extends keyof SVGElementEventMap>(eventType: K): void {
+    const listener = this._beatInteractionEvents.get(eventType);
+    if (listener === undefined) {
+      return;
+    }
+
+    this._interactionGroup.removeEventListener(eventType, listener);
+    this._beatInteractionEvents.delete(eventType);
   }
 
   public clear(): void {

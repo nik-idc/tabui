@@ -13,6 +13,10 @@ export interface EditorRenderer {
     ) => void
   ): void;
 
+  detachBeatInteractionEvent<K extends keyof SVGElementEventMap>(
+    eventType: K
+  ): void;
+
   attachViewportScrollEvent(eventHandler: (event: Event) => void): void;
 
   render(trackController: TrackController): ElementRenderer[];
