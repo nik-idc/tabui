@@ -23,6 +23,7 @@ export class SideControlsCallbacks {
   private _renderFunc: () => void;
   private _captureKeyboard: () => void;
   private _freeKeyboard: () => void;
+  private _bound = false;
 
   constructor(
     sideComponent: SideControlsComponent,
@@ -61,14 +62,24 @@ export class SideControlsCallbacks {
   }
 
   public bind(): void {
+    if (this._bound) {
+      return;
+    }
+
     this._noteCallbacks.bind();
     this._techniqueCallbacks.bind();
     this._measureCallbacks.bind();
+    this._bound = true;
   }
 
   public unbind(): void {
+    if (!this._bound) {
+      return;
+    }
+
     this._noteCallbacks.unbind();
     this._techniqueCallbacks.unbind();
     this._measureCallbacks.unbind();
+    this._bound = false;
   }
 }

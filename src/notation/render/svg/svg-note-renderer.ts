@@ -16,4 +16,7 @@ export interface SVGNoteRenderer {
       noteElement: NoteElement
     ) => void
   ): void;
+
+  detachMouseEvent<K extends keyof SVGElementEventMap>(eventType: K): void;
+  detachAllMouseEvents(): void;
 }

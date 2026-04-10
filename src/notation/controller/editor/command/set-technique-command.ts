@@ -47,7 +47,10 @@ export class SetTechniqueCommand implements Command {
 
     this._oldTechniquesMap = new Map();
     for (const note of this._notes) {
-      this._oldTechniquesMap.set(note.uuid, note.techniques);
+      this._oldTechniquesMap.set(
+        note.uuid,
+        note.techniques.map((technique) => technique.deepCopy())
+      );
     }
   }
 
@@ -75,6 +78,8 @@ export class SetTechniqueCommand implements Command {
       if (oldTechniques === undefined) {
         continue;
       }
+
+      note.clearTechniques();
 
       for (const technique of oldTechniques) {
         const bendOptions =

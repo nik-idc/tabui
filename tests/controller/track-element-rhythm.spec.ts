@@ -1,7 +1,8 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { getBeatWidth } from "../../src/notation/controller/element/beat/beat-element";
-import { NoteDuration } from "../../src/notation/model";
-import { createBarWithBeats } from "../model/helpers";
+import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-dimensions";
+import { DEFAULT_MASTER_BAR, NoteDuration } from "../../src/notation/model";
+import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
 describe("TrackElement rhythm", () => {
@@ -56,5 +57,59 @@ describe("TrackElement rhythm", () => {
     expect(rects[0].width).toBeCloseTo(
       lastSelected.globalRect.right - firstSelected.globalCoords.x
     );
+  });
+
+  test("applies beat width formulas for dotted and tuplet beats", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth, dots: 1 },
+      {
+        baseDuration: NoteDuration.Eighth,
+        tupletSettings: { normalCount: 3, tupletCount: 2 },
+      },
+    ]);
+    const trackElement = new TrackElement(track);
+
+    trackElement.update();
+
+    const beatElements =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0].beatElements;
+
+    expect(beatElements).toHaveLength(3);
+    for (let i = 0; i < beatElements.length; i++) {
+      expect(beatElements[i].rect.width).toBeCloseTo(getBeatWidth(beats[i]));
+    }
+    expect(beatElements[1].rect.width).toBeGreaterThan(
+      beatElements[2].rect.width
+    );
+  });
+
+  test("justifies wrapped non-final lines to full width while keeping beats contiguous", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const firstLineStyle =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0];
+    const lastBarOnFirstLine =
+      firstLineStyle.barElements[firstLineStyle.barElements.length - 1];
+    expect(lastBarOnFirstLine.rect.right).toBeCloseTo(
+      TabLayoutDimensions.WIDTH
+    );
+
+    for (const barElement of firstLineStyle.barElements) {
+      for (let i = 1; i < barElement.beatElements.length; i++) {
+        expect(barElement.beatElements[i].rect.x).toBeCloseTo(
+          barElement.beatElements[i - 1].rect.right
+        );
+      }
+      expect(barElement.rect.width).toBeGreaterThan(0);
+    }
   });
 });

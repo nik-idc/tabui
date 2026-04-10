@@ -42,8 +42,7 @@ export class SetNoteCommand implements Command {
    * Execute set fret command
    */
   execute(): void {
-    this._note.noteValue = this._newValue;
-    this._note.octave = this._newOctave;
+    this.applyNoteState(this._newValue, this._newOctave);
     this._executed = true;
   }
 
@@ -55,8 +54,7 @@ export class SetNoteCommand implements Command {
       return;
     }
 
-    this._note.noteValue = this._oldValue;
-    this._note.octave = this._oldOctave;
+    this.applyNoteState(this._oldValue, this._oldOctave);
   }
 
   /**
@@ -67,7 +65,17 @@ export class SetNoteCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    this._note.noteValue = this._newValue;
-    this._note.octave = this._newOctave;
+    this.applyNoteState(this._newValue, this._newOctave);
+  }
+
+  private applyNoteState(value: NoteValue, octave: number | null): void {
+    if (value === NoteValue.None || value === NoteValue.Dead) {
+      this._note.noteValue = value;
+      this._note.octave = octave;
+      return;
+    }
+
+    this._note.octave = octave;
+    this._note.noteValue = value;
   }
 }

@@ -1,4 +1,4 @@
-import { GuitarNote, NoteDuration } from "../../src/notation/model";
+import { GuitarNote, NoteDuration, NoteValue } from "../../src/notation/model";
 import { createBarWithBeats, createBeat } from "./helpers";
 
 describe("Beat model", () => {
@@ -57,5 +57,17 @@ describe("Beat model", () => {
       beats[1].startTick + beats[1].fullDurationTicks
     );
     expect(beats[0].baseDurationTicks).toBeGreaterThan(0);
+  });
+
+  test("derived fret from note and octave clamps to the instrument maximum", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const note = beats[0].notes[0] as GuitarNote;
+
+    note.octave = 8;
+    note.noteValue = NoteValue.C;
+
+    expect(note.fret).toBe(note.trackContext.instrument.fretsCount);
   });
 });

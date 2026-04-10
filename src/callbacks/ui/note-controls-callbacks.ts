@@ -1,4 +1,4 @@
-import { NoteDuration } from "@/notation";
+import { NoteDuration } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import { NoteControlsComponent, NoteControlsTemplate } from "@/ui";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";

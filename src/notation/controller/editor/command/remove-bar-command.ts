@@ -40,12 +40,10 @@ export class RemoveBarCommand implements Command {
       return;
     }
 
-    const masterBarIndex = this._score.masterBars.indexOf(
-      this._removeMasterBarResult.masterBar
-    );
-    this._score.insertMasterBar(
-      masterBarIndex,
-      this._removeMasterBarResult.masterBar.barData
+    this._score.insertReadyMasterBar(
+      this._removeMasterBarResult.index,
+      this._removeMasterBarResult.masterBar,
+      this._removeMasterBarResult.bars
     );
   }
 

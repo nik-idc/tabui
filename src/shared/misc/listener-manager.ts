@@ -14,6 +14,7 @@ export class ListenerManager {
   }
 
   bindAll(configs: ListenerConfig[]): void {
+    this.unbindAll();
     configs.forEach((config) => this.addListener(config));
   }
 

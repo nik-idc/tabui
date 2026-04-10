@@ -11,12 +11,23 @@ import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-di
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
+function parseLinePath(svgPath: string): [number, number, number, number] {
+  const match = svgPath.match(
+    /m\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+L\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/
+  );
+  if (match === null) {
+    throw new Error(`Failed to parse line path: ${svgPath}`);
+  }
+
+  return match.slice(1).map(Number) as [number, number, number, number];
+}
+
 describe("TrackElement techniques", () => {
   beforeAll(() => {
     ensureLayoutConfigured();
   });
 
-  test("creates an inline slide path between two fretted notes", () => {
+  test("creates an inline slide path between two fretted notes with ascending slope for lower-to-higher notes", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -38,13 +49,52 @@ describe("TrackElement techniques", () => {
         .styleLinesAsArray[0].barElements[0].beatElements[0];
     const firstNoteElement = firstBeatElement.noteElements[0];
     const slideElement = firstNoteElement.guitarTechniqueElements[0];
+    const [startX, startY, endX, endY] = parseLinePath(
+      slideElement.svgPath ?? ""
+    );
 
     expect(firstNoteElement.guitarTechniqueElements).toHaveLength(1);
     expect(slideElement.svgPath).toBeDefined();
     expect(slideElement.svgPath).not.toBe("");
+    expect(endX).toBeGreaterThan(startX);
+    expect(startY).toBeGreaterThan(endY);
+    expect(startX).toBeGreaterThan(firstNoteElement.rect.x);
+    expect(endX - startX).toBeCloseTo(
+      firstNoteElement.rect.width - TabLayoutDimensions.NOTE_TEXT_SIZE
+    );
   });
 
-  test("creates labels on all technique gap lines", () => {
+  test("creates a descending slide path for higher-to-lower notes", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+
+    const firstNote = beats[0].notes[0] as GuitarNote;
+    const nextNote = beats[1].notes[0] as GuitarNote;
+    firstNote.fret = 7;
+    nextNote.fret = 5;
+    firstNote.addTechnique(
+      new GuitarTechnique(firstNote, GuitarTechniqueType.Slide)
+    );
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const firstBeatElement =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0].beatElements[0];
+    const firstNoteElement = firstBeatElement.noteElements[0];
+    const slideElement = firstNoteElement.guitarTechniqueElements[0];
+    const [startX, startY, endX, endY] = parseLinePath(
+      slideElement.svgPath ?? ""
+    );
+
+    expect(endX).toBeGreaterThan(startX);
+    expect(startY).toBeLessThan(endY);
+  });
+
+  test("creates labels on all technique gap lines with stacked non-overlapping geometry", () => {
     const { track, bar } = createScoreGraph();
     const vibratoNote = bar.beats[0].notes[0] as GuitarNote;
     const palmMuteNote = bar.beats[0].notes[1] as GuitarNote;
@@ -82,15 +132,32 @@ describe("TrackElement techniques", () => {
     expect(line1).not.toBeNull();
     expect(line2).not.toBeNull();
     expect(line3).not.toBeNull();
+    expect(line2?.rect.y).toBeCloseTo(line1?.rect.bottom ?? 0);
+    expect(line3?.rect.y).toBeCloseTo(line2?.rect.bottom ?? 0);
+    expect(line1?.rect.height).toBe(TabLayoutDimensions.TECH_LABEL_HEIGHT);
+    expect(line2?.rect.height).toBe(TabLayoutDimensions.TECH_LABEL_HEIGHT);
+    expect(line3?.rect.height).toBe(TabLayoutDimensions.TECH_LABEL_HEIGHT);
     expect(line1?.labelElements).toHaveLength(1);
     expect(line2?.labelElements).toHaveLength(1);
     expect(line3?.labelElements).toHaveLength(1);
     expect(line1?.labelElements[0].svgPath).toBeDefined();
     expect(line2?.labelElements[0].svgPath).toBeDefined();
     expect(line3?.labelElements[0].svgPath).toBeDefined();
+    expect(line1?.labelElements[0].rect.width).toBeCloseTo(
+      line1?.labelElements[0].beatElement.rect.width ?? 0
+    );
+    expect(line2?.labelElements[0].rect.width).toBeCloseTo(
+      line2?.labelElements[0].beatElement.rect.width ?? 0
+    );
+    expect(line3?.labelElements[0].rect.width).toBeCloseTo(
+      line3?.labelElements[0].beatElement.rect.width ?? 0
+    );
+    expect(line1?.labelElements[0].globalCoords.x).toBeCloseTo(
+      line1?.labelElements[0].beatElement.globalCoords.x ?? 0
+    );
   });
 
-  test("creates a bend inline element path", () => {
+  test("creates a bend inline element path and matching line-3 label geometry", () => {
     const { track, bar } = createScoreGraph();
     const note = bar.beats[0].notes[0] as GuitarNote;
 
@@ -118,8 +185,12 @@ describe("TrackElement techniques", () => {
         .styleLinesAsArray[0].barElements[0].beatElements[0];
     const noteElement = beatElement.noteElements[0];
     const bendElement = noteElement.guitarTechniqueElements[0];
+    const bendLabel = line3?.labelElements[0];
     expect(noteElement.guitarTechniqueElements).toHaveLength(1);
     expect(bendElement.svgPath).toBeDefined();
     expect(line3?.labelElements).toHaveLength(1);
+    expect(bendLabel?.rect.width).toBeCloseTo(beatElement.rect.width);
+    expect(bendLabel?.globalCoords.x).toBeCloseTo(beatElement.globalCoords.x);
+    expect(bendLabel?.globalCoords.y).toBeCloseTo(line3?.globalCoords.y ?? 0);
   });
 });

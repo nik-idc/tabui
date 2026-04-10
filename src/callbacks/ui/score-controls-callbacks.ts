@@ -33,6 +33,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   private _newTrackCallbacks: NewTrackControlsCallbacks;
 
   private _listeners = new ListenerManager();
+  private _bound = false;
   private _minTrackNameLength = 1;
   private _maxTrackNameLength = 32;
 
@@ -94,6 +95,10 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   private bindTracksCallbacks(): void {
+    for (const trackCallbacks of this._trackCallbacks) {
+      trackCallbacks.unbind();
+    }
+
     this._trackCallbacks = [];
     for (const trackComponent of this._scoreComponent.trackComponents) {
       const callbacks = new TrackControlsDefaultCallbacks(
@@ -110,6 +115,10 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   bind(): void {
+    if (this._bound) {
+      return;
+    }
+
     this._listeners.bindAll([
       {
         element: this._scoreComponent.template.showTracksButton,
@@ -151,13 +160,20 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     this.bindTracksCallbacks();
 
     this._newTrackCallbacks.bind();
+    this._bound = true;
   }
 
   unbind(): void {
+    if (!this._bound) {
+      return;
+    }
+
     this._listeners.unbindAll();
     for (const trackCallbacks of this._trackCallbacks) {
       trackCallbacks.unbind();
     }
     this._newTrackCallbacks.unbind();
+    this._trackCallbacks = [];
+    this._bound = false;
   }
 }

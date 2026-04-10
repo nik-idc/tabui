@@ -156,9 +156,9 @@ export class GuitarNote implements Note<Guitar> {
 
     const maxFret = this.trackContext.instrument.fretsCount;
 
-    // Apply wrap-around rule for upper bound
+    // Clamp to the fretboard upper bound instead of wrapping around.
     if (fret > maxFret) {
-      fret = fret % maxFret;
+      fret = maxFret;
     }
 
     this._fret = fret;
@@ -384,7 +384,7 @@ export class GuitarNote implements Note<Guitar> {
   public set fret(newFret: number | null) {
     const fretsCount = this.trackContext.instrument.fretsCount;
     if (newFret !== null) {
-      this._fret = newFret > fretsCount ? newFret % fretsCount : newFret;
+      this._fret = Math.min(newFret, fretsCount);
     } else {
       this._fret = null;
     }

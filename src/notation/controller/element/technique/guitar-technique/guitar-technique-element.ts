@@ -232,9 +232,9 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const slideHeight = this.noteElement.rect.height / 3;
     const slideStartX =
       this._startPoint.x + TabLayoutDimensions.NOTE_TEXT_SIZE / 2;
-    const slideStartY = this._startPoint.y - (slideHeight / 2) * upCoef;
+    const slideStartY = this._startPoint.y + (slideHeight / 2) * upCoef;
     const slideEndX = slideStartX + slideWidth;
-    const slideEndY = slideStartY + slideHeight * upCoef;
+    const slideEndY = slideStartY - slideHeight * upCoef;
     const slideLine = SVGUtils.lineSVGHTML(
       slideStartX,
       slideStartY,

@@ -21,6 +21,7 @@ export class TopControlsCallbacks {
   private _playCallbacks: PlayControlsCallbacks;
   /** Bound playback state listener used to rerender controls */
   private _onPlayerStateChanged: () => void;
+  private _bound = false;
 
   constructor(
     topComponent: TopControlsComponent,
@@ -53,20 +54,30 @@ export class TopControlsCallbacks {
   }
 
   public bind(): void {
+    if (this._bound) {
+      return;
+    }
+
     this._scoreCallbacks.bind();
     this._playCallbacks.bind();
     trackEvent.on(
       TrackEventType.PlayerStateChanged,
       this._onPlayerStateChanged
     );
+    this._bound = true;
   }
 
   public unbind(): void {
+    if (!this._bound) {
+      return;
+    }
+
     this._scoreCallbacks.unbind();
     this._playCallbacks.unbind();
     trackEvent.off(
       TrackEventType.PlayerStateChanged,
       this._onPlayerStateChanged
     );
+    this._bound = false;
   }
 }

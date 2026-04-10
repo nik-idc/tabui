@@ -2,7 +2,7 @@ import {
   BendTechniqueOptions,
   BendType,
   GuitarTechniqueType,
-} from "@/notation";
+} from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import {
   BendControlsComponent,
