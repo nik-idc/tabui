@@ -8,5 +8,6 @@ export function applyEditorTheme(
     config.theme.cssVars
   )) {
     rootDiv.style.setProperty(cssVarName, cssVarValue);
+    document.documentElement.style.setProperty(cssVarName, cssVarValue);
   }
 }

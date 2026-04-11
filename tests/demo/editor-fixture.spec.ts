@@ -39,20 +39,20 @@ describe("editor fixture and theme resolution", () => {
     ]);
   });
 
-  it("resolves known theme keys and falls back to default", () => {
+  it("resolves known theme keys and falls back to obsidian", () => {
     expect(resolveEditorThemeKey(new URLSearchParams("theme=midnight"))).toBe(
       "midnight"
     );
     expect(resolveEditorThemeKey(new URLSearchParams("theme=unknown"))).toBe(
-      "default"
+      "obsidian"
     );
-    expect(resolveEditorThemeKey(new URLSearchParams())).toBe("default");
+    expect(resolveEditorThemeKey(new URLSearchParams())).toBe("obsidian");
   });
 
   it("exposes theme options for demo UI", () => {
     expect(getEditorThemes().map((theme) => theme.key)).toEqual([
-      "default",
       "midnight",
+      "obsidian",
       "paper",
       "contrast",
     ]);

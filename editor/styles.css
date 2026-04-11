@@ -1,18 +1,24 @@
 body {
   font-family: "Roboto", sans-serif;
+  background-color: var(--tu-background-color, #0f172a);
+  margin: 0;
 }
 
 .header {
-  max-width: 900px; /* keeps lines readable on wide screens */
-  margin: 40px auto; /* centers the header block */
-  padding: 10px 20px; /* comfortable spacing inside */
-  background-color: #f8f9fa; /* subtle light background */
-  border-radius: 12px; /* smooth corners */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* soft shadow for “card” technique */
-  text-align: justify; /* full-width justified text */
-  line-height: 1.6; /* nice spacing for paragraphs */
-  font-family:
-    "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* clean modern font */
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 10px 20px;
+  background-color: var(--tu-primary-color, #111827);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-align: justify;
+  line-height: 1.6;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--tu-font-color, #e5eefb);
+}
+
+.header a {
+  color: var(--tu-font-color, #e5eefb);
 }
 
 .header h1 {
@@ -20,14 +26,12 @@ body {
   margin: 5px;
   margin-bottom: 20px;
   font-weight: 600;
-  text-align: center; /* heading still centered */
-  color: #222;
+  text-align: center;
 }
 
 .header p {
   font-size: 1.1rem;
-  color: #333;
-  text-align: justify; /* ensures the paragraph is fully justified */
+  text-align: justify;
 }
 
 .demo-controls {
@@ -43,14 +47,15 @@ body {
   gap: 6px;
   min-width: 180px;
   font-weight: 600;
-  color: #222;
+  color: var(--tu-font-color, #e5eefb);
 }
 
 .demo-control select {
   padding: 10px 12px;
-  border: 1px solid #c9d2dc;
+  border: 1px solid var(--tu-border-color, #334155);
   border-radius: 8px;
-  background: #fff;
+  background: var(--tu-secondary-color, #1f2937);
+  color: var(--tu-font-color, #e5eefb);
   font: inherit;
 }
 

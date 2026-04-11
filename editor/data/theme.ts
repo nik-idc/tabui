@@ -1,26 +1,19 @@
 import type { TabUIConfig } from "@/config/tabui-config";
 
-export type EditorThemeKey = "default" | "midnight" | "paper" | "contrast";
+export type EditorThemeKey = "midnight" | "obsidian" | "paper" | "contrast";
 
 export interface EditorThemeOption {
   key: EditorThemeKey;
   label: string;
+  isDark: boolean;
   config: TabUIConfig;
 }
 
 const EDITOR_THEMES: EditorThemeOption[] = [
   {
-    key: "default",
-    label: "Default Theme",
-    config: {
-      assets: {
-        variant: "light",
-      },
-    },
-  },
-  {
     key: "midnight",
     label: "Midnight",
+    isDark: true,
     config: {
       assets: {
         variant: "dark",
@@ -59,8 +52,50 @@ const EDITOR_THEMES: EditorThemeOption[] = [
     },
   },
   {
+    key: "obsidian",
+    label: "Obsidian",
+    isDark: true,
+    config: {
+      assets: {
+        variant: "dark",
+      },
+      theme: {
+        ui: {
+          colors: {
+            background: "#1a1a1a",
+            surface: "#252525",
+            surfaceAlt: "#333333",
+            border: "#4a4a4a",
+            text: "#d4d4d4",
+            hover: "#6b4c00",
+            applied: "#a3620044",
+          },
+          fonts: {
+            body: '"Segoe UI", sans-serif',
+          },
+          radius: "8px",
+        },
+        notation: {
+          colors: {
+            ink: "#d4d4d4",
+            text: "#d4d4d4",
+            noteBackground: "#252525",
+            selectionStroke: "#a16200",
+            selectionFill: "#a3620022",
+            cursor: "#d4d4d4",
+            danger: "#ef4444",
+          },
+          fonts: {
+            notation: '"Roboto Mono", monospace',
+          },
+        },
+      },
+    },
+  },
+  {
     key: "paper",
     label: "Paper",
+    isDark: false,
     config: {
       assets: {
         variant: "light",
@@ -101,6 +136,7 @@ const EDITOR_THEMES: EditorThemeOption[] = [
   {
     key: "contrast",
     label: "High Contrast",
+    isDark: false,
     config: {
       assets: {
         variant: "light",
@@ -148,11 +184,16 @@ export function resolveEditorThemeKey(
   searchParams: URLSearchParams
 ): EditorThemeKey {
   const theme = searchParams.get("theme");
-  if (theme === "midnight" || theme === "paper" || theme === "contrast") {
+  if (
+    theme === "midnight" ||
+    theme === "obsidian" ||
+    theme === "paper" ||
+    theme === "contrast"
+  ) {
     return theme;
   }
 
-  return "default";
+  return "obsidian";
 }
 
 export function resolveEditorTheme(searchParams: URLSearchParams): TabUIConfig {

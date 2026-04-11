@@ -54,7 +54,20 @@ if (fixtureSelect !== null) {
 
 if (themeSelect !== null) {
   themeSelect.replaceChildren();
-  for (const theme of getEditorThemes()) {
+  const darkThemes = getEditorThemes().filter((t) => t.isDark);
+  const lightThemes = getEditorThemes().filter((t) => !t.isDark);
+  for (const theme of darkThemes) {
+    const option = document.createElement("option");
+    option.value = theme.key;
+    option.textContent = theme.label;
+    option.selected = theme.key === selectedTheme;
+    themeSelect.appendChild(option);
+  }
+  const separator = document.createElement("option");
+  separator.disabled = true;
+  separator.textContent = "--- Light themes ---";
+  themeSelect.appendChild(separator);
+  for (const theme of lightThemes) {
     const option = document.createElement("option");
     option.value = theme.key;
     option.textContent = theme.label;
