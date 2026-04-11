@@ -5,6 +5,7 @@ import {
   EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { createSVG, createSVGG, createSVGRect, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
 import {
@@ -36,7 +37,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   /** Root SVG <svg> element */
   readonly rootSVGElement: SVGSVGElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   /** Selection overlay renderer (preview + note/beat selection visuals). */
   private _selectionOverlayRenderer: SelectionOverlayRenderer;
@@ -71,7 +72,7 @@ export class EditorSVGRenderer implements EditorRenderer {
    * @param rootDiv Root container element
    * @param assetsPath Path to assets
    */
-  constructor(rootDiv: HTMLDivElement, assetsPath: string) {
+  constructor(rootDiv: HTMLDivElement, assetsPath: ResolvedAssetConfig) {
     this.rootDiv = rootDiv;
     this.notationViewportDiv = document.createElement("div");
     this.notationViewportDiv.classList.add("tu-notation-viewport");
@@ -415,8 +416,8 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._playerCursorRect.setAttribute("y", `${cursorRect.y}`);
     this._playerCursorRect.setAttribute("width", `${cursorRect.width}`);
     this._playerCursorRect.setAttribute("height", `${cursorRect.height}`);
-    this._playerCursorRect.setAttribute("stroke", "black");
-    this._playerCursorRect.setAttribute("fill", "purple");
+    this._playerCursorRect.setAttribute("stroke", "var(--tu-notation-ink)");
+    this._playerCursorRect.setAttribute("fill", "var(--tu-notation-cursor)");
   }
 
   /**

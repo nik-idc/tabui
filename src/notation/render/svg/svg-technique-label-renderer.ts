@@ -1,6 +1,7 @@
 import { TechniqueLabelElement, TrackController } from "@/notation/controller";
 import { Point, createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a technique label using SVG
@@ -11,7 +12,7 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   /** Technique label element */
   techniqueLabelElement: TechniqueLabelElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   // /** Parent SVG group element */
   // private _parentElement: SVGGElement;
@@ -30,7 +31,7 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     techniqueLabelElement: TechniqueLabelElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.techniqueLabelElement = techniqueLabelElement;

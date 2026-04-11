@@ -1,12 +1,14 @@
 import { NotationComponent } from "@/notation/notation-component";
+import { resolveAssetUrl } from "@/config/asset-url-resolver";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import { BarRepeatStatus } from "@/notation";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class MeasureControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: MeasureControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -14,7 +16,7 @@ export class MeasureControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: MeasureControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -76,19 +78,25 @@ export class MeasureControlsTemplateRenderer {
   }
 
   private renderMeasureButtons(): void {
-    const tempoSrc = `${this.assetsPath}/img/ui/tempo.svg`;
+    const tempoSrc = resolveAssetUrl(this.assetsPath, "img/ui/tempo.svg");
     this.template.tempoButton.setAttribute("src", tempoSrc);
     this.template.tempoButton.setAttribute("alt", "Tempo");
 
-    const tsSrc = `${this.assetsPath}/img/ui/measure.svg`;
+    const tsSrc = resolveAssetUrl(this.assetsPath, "img/ui/measure.svg");
     this.template.timeSignatureButton.setAttribute("src", tsSrc);
     this.template.timeSignatureButton.setAttribute("alt", "Time Signature");
 
-    const repeatStartSrc = `${this.assetsPath}/img/ui/repeat-start.svg`;
+    const repeatStartSrc = resolveAssetUrl(
+      this.assetsPath,
+      "img/ui/repeat-start.svg"
+    );
     this.template.repeatStartButton.setAttribute("src", repeatStartSrc);
     this.template.repeatStartButton.setAttribute("alt", "Repeat Start");
 
-    const repeatEndSrc = `${this.assetsPath}/img/ui/repeat-end.svg`;
+    const repeatEndSrc = resolveAssetUrl(
+      this.assetsPath,
+      "img/ui/repeat-end.svg"
+    );
     this.template.repeatEndButton.setAttribute("src", repeatEndSrc);
     this.template.repeatEndButton.setAttribute("alt", "Repeat Start");
 

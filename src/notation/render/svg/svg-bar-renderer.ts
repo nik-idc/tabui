@@ -3,6 +3,7 @@ import {
   EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
+import { resolveAssetUrl } from "@/config/asset-url-resolver";
 import { BarRepeatStatus } from "@/notation/model";
 import {
   Point,
@@ -19,6 +20,7 @@ import { SVGNoteRenderer } from "./svg-note-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 import { SVGTabBeatRenderer } from "./svg-tab-beat-renderer";
 import { SVGBeamSegmentRenderer } from "./svg-beam-segment-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a bar element using SVG
@@ -29,7 +31,7 @@ export class SVGBarRenderer implements ElementRenderer {
   /** Bar element */
   barElement: BarElement;
   /** Assets path */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   // /** Path to any assets */
   // private assetsPath: string;
@@ -65,7 +67,7 @@ export class SVGBarRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     barElement: BarElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.barElement = barElement;
@@ -128,8 +130,8 @@ export class SVGBarRenderer implements ElementRenderer {
     }
 
     const strokeColor = this.barElement.bar.checkDurationsFit()
-      ? "black"
-      : "red";
+      ? "var(--tu-notation-ink)"
+      : "var(--tu-notation-danger)";
     for (let i = 0; i < this.barElement.staffLines.length; i++) {
       const lineGlobal = this.barElement.staffLinesGlobal[i];
       this._staffLinesSVG[i].setAttribute("x1", `${lineGlobal.x1}`);
@@ -171,8 +173,8 @@ export class SVGBarRenderer implements ElementRenderer {
       this._borderLinesSVG = [createSVGLine(), createSVGLine()];
 
       // Set only-set-once attributes
-      this._borderLinesSVG[0].setAttribute("stroke", "black");
-      this._borderLinesSVG[1].setAttribute("stroke", "black");
+      this._borderLinesSVG[0].setAttribute("stroke", "var(--tu-notation-ink)");
+      this._borderLinesSVG[1].setAttribute("stroke", "var(--tu-notation-ink)");
 
       // Set id
       this._borderLinesSVG[0].setAttribute("id", `bar-border-${barUUID}-0`);
@@ -307,7 +309,10 @@ export class SVGBarRenderer implements ElementRenderer {
       // Set only-set-once attributes
       this._repeatStartSVG = createSVGImage();
 
-      const href = `${this.assetsPath}/img/ui/repeat-start-applied_.svg`;
+      const href = resolveAssetUrl(
+        this.assetsPath,
+        "img/ui/repeat-start-applied_.svg"
+      );
       this._repeatStartSVG.setAttribute("href", href);
       this._repeatStartSVG.setAttribute("id", `bar-rep-start-${barUUID}`);
 
@@ -319,7 +324,10 @@ export class SVGBarRenderer implements ElementRenderer {
     ) {
       this._repeatEndSVG = createSVGImage();
 
-      const href = `${this.assetsPath}/img/ui/repeat-end-applied_.svg`;
+      const href = resolveAssetUrl(
+        this.assetsPath,
+        "img/ui/repeat-end-applied_.svg"
+      );
       this._repeatEndSVG.setAttribute("href", href);
       this._repeatEndSVG.setAttribute("id", `bar-rep-end-${barUUID}`);
 

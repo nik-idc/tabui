@@ -3,6 +3,7 @@ import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap
 import { createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a tech gap line element using SVG
@@ -13,7 +14,7 @@ export class SVGTechGapLineRenderer implements ElementRenderer {
   /** Tech gap line element */
   techGapLineElement: TechGapLineElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   // /** Parent SVG group element */
   // private _parentElement: SVGGElement;
@@ -33,7 +34,7 @@ export class SVGTechGapLineRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     techGapLineElement: TechGapLineElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.techGapLineElement = techGapLineElement;

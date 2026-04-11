@@ -1,3 +1,5 @@
 import { Score } from "@/notation/model";
 
-export const emptyScore = new Score();
+export function createEmptyScoreFixture(): Score {
+  return new Score();
+}

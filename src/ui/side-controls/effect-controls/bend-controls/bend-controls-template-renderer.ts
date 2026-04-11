@@ -1,11 +1,12 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { BendControlsTemplate } from "./bend-controls-template";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class BendControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: BendControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -13,7 +14,7 @@ export class BendControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: BendControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;

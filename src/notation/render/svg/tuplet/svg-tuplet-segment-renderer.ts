@@ -5,6 +5,7 @@ import {
 } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { ElementRenderer } from "../../element-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a tuplet segment using SVG
@@ -15,7 +16,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
   /** Beat element */
   beatElement: BeatElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
   // /** Parent SVG group element */
   // private _parentElement: SVGGElement;
 
@@ -35,7 +36,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     beatElement: BeatElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.beatElement = beatElement;
@@ -90,7 +91,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
       // Set id
       const id = `tuplet-segment-${beatUUID}-rect`;
       this._tupletSegmentRectSVG.setAttribute("id", id);
-      this._tupletSegmentRectSVG.setAttribute("fill", "black");
+      this._tupletSegmentRectSVG.setAttribute("fill", "var(--tu-notation-ink)");
 
       // Add element to root SVG element
       this._containerGroupSVG.appendChild(this._tupletSegmentRectSVG);

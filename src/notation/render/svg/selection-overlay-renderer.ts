@@ -66,7 +66,10 @@ export class SelectionOverlayRenderer {
     if (this._selectedNoteRect === undefined) {
       this._selectedNoteRect = createSVGRect();
       this._selectedNoteRect.setAttribute("fill", "none");
-      this._selectedNoteRect.setAttribute("stroke", "orange");
+      this._selectedNoteRect.setAttribute(
+        "stroke",
+        "var(--tu-notation-selection-stroke)"
+      );
       this._selectedNoteRect.setAttribute("stroke-width", "1");
       this._selectedNoteRect.setAttribute("rx", "3");
       this._selectedNoteRect.setAttribute("ry", "3");
@@ -94,7 +97,7 @@ export class SelectionOverlayRenderer {
       const rect = createSVGRect();
       const id = `selection-rect-${this._selectionRects.length + 1}`;
       rect.setAttribute("id", id);
-      rect.setAttribute("fill", "gray");
+      rect.setAttribute("fill", "var(--tu-notation-selection-block-fill)");
       rect.setAttribute("stroke-width", "1");
       rect.setAttribute("fill-opacity", "0.5");
       rect.setAttribute("stroke-opacity", "0.5");
@@ -148,8 +151,14 @@ export class SelectionOverlayRenderer {
     if (this._selectionPreviewRect === undefined) {
       this._selectionPreviewRect = createSVGRect();
       this._selectionPreviewRect.setAttribute("id", "selectionPreview");
-      this._selectionPreviewRect.setAttribute("fill", "white");
-      this._selectionPreviewRect.setAttribute("stroke", "orange");
+      this._selectionPreviewRect.setAttribute(
+        "fill",
+        "var(--tu-notation-selection-fill)"
+      );
+      this._selectionPreviewRect.setAttribute(
+        "stroke",
+        "var(--tu-notation-selection-stroke)"
+      );
       this._selectionPreviewRect.setAttribute("stroke-width", "1");
       this._selectionPreviewRect.setAttribute("rx", "3");
       this._selectionPreviewRect.setAttribute("ry", "3");

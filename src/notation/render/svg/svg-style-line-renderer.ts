@@ -6,6 +6,7 @@ import { ElementRenderer } from "../element-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
 import { SVGTechGapRenderer } from "./svg-tech-gap-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a notation style line element using SVG
@@ -16,7 +17,7 @@ export class SVGStyleLineRenderer implements ElementRenderer {
   /** Style line element */
   styleLineElement: NotationStyleLineElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   // /** Parent SVG group element */
   // private _parentElement: SVGGElement;
@@ -38,7 +39,7 @@ export class SVGStyleLineRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     styleLineElement: NotationStyleLineElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.styleLineElement = styleLineElement;

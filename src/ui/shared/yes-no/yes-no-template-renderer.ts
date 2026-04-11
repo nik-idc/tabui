@@ -1,11 +1,12 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { YesNoTemplate } from "./yes-no-template";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class YesNoTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: YesNoTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -16,7 +17,7 @@ export class YesNoTemplateRenderer {
     notationComponent: NotationComponent,
     template: YesNoTemplate,
     text: string,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;

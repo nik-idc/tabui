@@ -1,11 +1,12 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { TimeSigControlsTemplate } from "./time-sig-controls-template";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class TimeSigControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TimeSigControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -13,7 +14,7 @@ export class TimeSigControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TimeSigControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;

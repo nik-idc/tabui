@@ -1,4 +1,8 @@
-import { DEFAULT_ELECTRIC_GUITARS, NoteDuration } from "@/notation/model";
+import {
+  DEFAULT_ELECTRIC_GUITARS,
+  NoteDuration,
+  Score,
+} from "@/notation/model";
 import { createScore } from "./helpers";
 
 const MASTER_BARS_COUNT = 120;
@@ -22,10 +26,12 @@ const tracksInfo = [
   },
 ];
 
-export const selectionPerfScore = createScore(
-  "Selection Perf Score",
-  "TabUI",
-  "Selection Stress Test",
-  MASTER_BARS_COUNT,
-  tracksInfo
-);
+export function createSelectionPerfScoreFixture(): Score {
+  return createScore(
+    "Selection Perf Score",
+    "TabUI",
+    "Selection Stress Test",
+    MASTER_BARS_COUNT,
+    tracksInfo
+  );
+}

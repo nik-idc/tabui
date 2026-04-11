@@ -126,11 +126,13 @@ const barsInfo = [
   // },
 ];
 
-export const score = createScore(
-  "Test Score",
-  "Test Artist",
-  "Test Song",
-  6,
-  tracksInfo
-  // barsInfo
-);
+export function createDefaultScoreFixture(): Score {
+  return createScore(
+    "Test Score",
+    "Test Artist",
+    "Test Song",
+    6,
+    tracksInfo
+    // barsInfo
+  );
+}

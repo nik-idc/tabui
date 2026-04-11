@@ -1,4 +1,5 @@
 import { NotationComponent } from "@/notation/notation-component";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { TopControlsTemplate } from "./top-controls-template";
 import { createOption } from "@/shared";
 import {
@@ -10,7 +11,7 @@ export class TopControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TopControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -18,7 +19,7 @@ export class TopControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TopControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;

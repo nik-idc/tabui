@@ -45,7 +45,7 @@ export class BendReleaseSelector implements Selector {
       300 + this.bendManagerOptions.gridOffset,
       225
     );
-    this.bendPath.setAttribute("stroke", "black");
+    this.bendPath.setAttribute("stroke", "var(--tu-bend-curve)");
     this.bendPath.setAttribute("stroke-width", "2");
     this.bendPath.setAttribute("fill", "none");
     this.bendGraphSVG.appendChild(this.bendPath);
@@ -58,7 +58,7 @@ export class BendReleaseSelector implements Selector {
     );
     this._peakCircle.setAttribute("cy", "150");
     this._peakCircle.setAttribute("r", "8");
-    this._peakCircle.setAttribute("fill", "black");
+    this._peakCircle.setAttribute("fill", "var(--tu-bend-handle)");
     this._peakCircle.style.cursor = "pointer";
     this.bendGraphSVG.appendChild(this._peakCircle);
 
@@ -69,7 +69,7 @@ export class BendReleaseSelector implements Selector {
     );
     this._releaseCircle.setAttribute("cy", "225");
     this._releaseCircle.setAttribute("r", "8");
-    this._releaseCircle.setAttribute("fill", "black");
+    this._releaseCircle.setAttribute("fill", "var(--tu-bend-handle)");
     this._releaseCircle.style.cursor = "pointer";
     this.bendGraphSVG.appendChild(this._releaseCircle);
 

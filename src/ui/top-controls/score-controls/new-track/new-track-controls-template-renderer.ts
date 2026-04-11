@@ -1,13 +1,15 @@
 import { NotationComponent } from "@/notation/notation-component";
+import { resolveAssetUrl } from "@/config/asset-url-resolver";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
 import { createButton, createImage } from "@/shared";
 import { INSTRUMENT_KINDS } from "./new-track-controls-component";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class NewTrackControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: NewTrackControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _currentKind: string = Object.keys(INSTRUMENT_KINDS)[0];
   private _currentType: string = Object.keys(
@@ -25,7 +27,7 @@ export class NewTrackControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: NewTrackControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -106,7 +108,10 @@ export class NewTrackControlsTemplateRenderer {
     for (let i = 0; i < kinds.length; i++) {
       const imageButton = this.template.instrKindsButtons[i];
       const kind = kinds[i];
-      imageButton.src = `${this.assetsPath}/img/ui/${kind.toLowerCase()}`;
+      imageButton.src = resolveAssetUrl(
+        this.assetsPath,
+        `img/ui/${kind.toLowerCase()}.svg`
+      );
       imageButton.alt = kind;
     }
   }

@@ -1,9 +1,9 @@
 import { NotationComponent } from "@/notation/notation-component";
+import { resolveAssetUrl } from "@/config/asset-url-resolver";
 import { createOption } from "@/shared";
 import { ScoreControlsTemplate } from "./score-controls-template";
 import { Score } from "@/notation";
-
-const assetsPath = import.meta.env.BASE_URL;
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 // VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 const minVolume = 0;
@@ -18,7 +18,7 @@ export class ScoreControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: ScoreControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -28,7 +28,7 @@ export class ScoreControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: ScoreControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -76,7 +76,7 @@ export class ScoreControlsTemplateRenderer {
   private renderNewTrackButton(): void {
     const cssClass = "tu-new-track-button";
     this.template.newTrackButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/add.svg`;
+    const src = resolveAssetUrl(this.assetsPath, "img/ui/add.svg");
     this.template.newTrackButton.src = src;
     this.template.newTrackButton.alt = "New track";
   }

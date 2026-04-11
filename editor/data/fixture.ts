@@ -1,19 +1,55 @@
 import { Score } from "@/notation/model";
-import { emptyScore } from "./empty-score";
-import { score as defaultScore } from "./full-score";
-import { selectionPerfScore } from "./selection-perf-score";
+import { createEmptyScoreFixture } from "./empty-score";
+import { createDefaultScoreFixture } from "./full-score";
+import { createSelectionPerfScoreFixture } from "./selection-perf-score";
+
+export type EditorFixtureKey = "default" | "empty" | "selection_perf";
+
+export interface EditorFixtureOption {
+  key: EditorFixtureKey;
+  label: string;
+  createScore: () => Score;
+}
+
+const EDITOR_FIXTURES: EditorFixtureOption[] = [
+  {
+    key: "default",
+    label: "Default Score",
+    createScore: createDefaultScoreFixture,
+  },
+  {
+    key: "empty",
+    label: "Empty Score",
+    createScore: createEmptyScoreFixture,
+  },
+  {
+    key: "selection_perf",
+    label: "Selection Perf",
+    createScore: createSelectionPerfScoreFixture,
+  },
+];
+
+export function getEditorFixtures(): EditorFixtureOption[] {
+  return EDITOR_FIXTURES;
+}
+
+export function resolveEditorFixtureKey(
+  searchParams: URLSearchParams
+): EditorFixtureKey {
+  const fixture = searchParams.get("fixture");
+  if (fixture === "empty" || fixture === "selection_perf") {
+    return fixture;
+  }
+
+  return "default";
+}
 
 export function resolveEditorFixture(searchParams: URLSearchParams): Score {
-  const fixture = searchParams.get("fixture");
-
-  switch (fixture) {
-    case "empty":
-      return emptyScore;
-    case "selection_perf":
-      return selectionPerfScore;
-    case "default":
-    case null:
-    default:
-      return defaultScore;
+  const fixtureKey = resolveEditorFixtureKey(searchParams);
+  const fixture = EDITOR_FIXTURES.find((option) => option.key === fixtureKey);
+  if (fixture === undefined) {
+    throw new Error(`Unknown fixture key: ${fixtureKey}`);
   }
+
+  return fixture.createScore();
 }

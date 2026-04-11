@@ -126,7 +126,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
       // Set id
       this._durationStemSVG.setAttribute("id", `beat-dur-stem-${beatUUID}`);
-      this._durationStemSVG.setAttribute("stroke", "black");
+      this._durationStemSVG.setAttribute("stroke", "var(--tu-notation-ink)");
 
       // Add element to group SVG element
       this._containerGroupSVG.appendChild(this._durationStemSVG);
@@ -184,7 +184,10 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
         "id",
         `beat-dur-flag-${flagIndex}-${beatUUID}`
       );
-      this._durationFlagsSVG[flagIndex].setAttribute("stroke", "black");
+      this._durationFlagsSVG[flagIndex].setAttribute(
+        "stroke",
+        "var(--tu-notation-ink)"
+      );
 
       // Add element to group SVG element
       this._containerGroupSVG.appendChild(this._durationFlagsSVG[flagIndex]);
@@ -281,6 +284,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       dotCircle = createSVGCircle();
 
       dotCircle.setAttribute("id", `beat-dot-${dot1 ? 1 : 2}-${beatUUID}`);
+      dotCircle.setAttribute("fill", "var(--tu-notation-ink)");
 
       this._containerGroupSVG.appendChild(dotCircle);
 

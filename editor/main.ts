@@ -1,7 +1,15 @@
-import { getEl } from "@/shared/misc/get-dom-element";
 import { TabUIEditor } from "@/tabui-editor";
 import { EditorLayoutDimensions } from "@/notation";
-import { resolveEditorFixture } from "./data/fixture";
+import {
+  getEditorFixtures,
+  resolveEditorFixture,
+  resolveEditorFixtureKey,
+} from "./data/fixture";
+import {
+  getEditorThemes,
+  resolveEditorTheme,
+  resolveEditorThemeKey,
+} from "./data/theme";
 
 EditorLayoutDimensions.configure({
   width: 1200,
@@ -18,13 +26,69 @@ if (rootDiv === null) {
   throw new Error("Could not get root div element");
 }
 const searchParams = new URLSearchParams(window.location.search);
-const selectedFixture = searchParams.get("fixture");
+const fixtureSelect = document.getElementById(
+  "fixture-select"
+) as HTMLSelectElement | null;
+const themeSelect = document.getElementById(
+  "theme-select"
+) as HTMLSelectElement | null;
+
+const selectedFixture = resolveEditorFixtureKey(searchParams);
+const selectedTheme = resolveEditorThemeKey(searchParams);
 const selectedScore = resolveEditorFixture(searchParams);
+const selectedThemeConfig = resolveEditorTheme(searchParams);
 if (selectedFixture === "selection_perf") {
   console.log("=== PERF MODE ===", "Selection stress score enabled");
 }
 
-const tabuiEditor = new TabUIEditor(rootDiv, selectedScore);
+if (fixtureSelect !== null) {
+  fixtureSelect.replaceChildren();
+  for (const fixture of getEditorFixtures()) {
+    const option = document.createElement("option");
+    option.value = fixture.key;
+    option.textContent = fixture.label;
+    option.selected = fixture.key === selectedFixture;
+    fixtureSelect.appendChild(option);
+  }
+}
+
+if (themeSelect !== null) {
+  themeSelect.replaceChildren();
+  for (const theme of getEditorThemes()) {
+    const option = document.createElement("option");
+    option.value = theme.key;
+    option.textContent = theme.label;
+    option.selected = theme.key === selectedTheme;
+    themeSelect.appendChild(option);
+  }
+}
+
+function navigateWithSelection(fixtureKey: string, themeKey: string): void {
+  const params = new URLSearchParams(window.location.search);
+  params.set("fixture", fixtureKey);
+  params.set("theme", themeKey);
+  window.location.search = params.toString();
+}
+
+fixtureSelect?.addEventListener("change", () => {
+  navigateWithSelection(
+    fixtureSelect.value,
+    themeSelect?.value ?? selectedTheme
+  );
+});
+
+themeSelect?.addEventListener("change", () => {
+  navigateWithSelection(
+    fixtureSelect?.value ?? selectedFixture,
+    themeSelect.value
+  );
+});
+
+const tabuiEditor = new TabUIEditor(
+  rootDiv,
+  selectedScore,
+  selectedThemeConfig
+);
 tabuiEditor.init();
 
 // Get DOM references

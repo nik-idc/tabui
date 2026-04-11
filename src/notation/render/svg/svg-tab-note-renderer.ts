@@ -153,8 +153,14 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
         "id",
         `note-selection-${this.noteElement.note.uuid}`
       );
-      this._selectionRectSVG.setAttribute("fill", "white");
-      this._selectionRectSVG.setAttribute("stroke", "orange");
+      this._selectionRectSVG.setAttribute(
+        "fill",
+        "var(--tu-notation-selection-fill)"
+      );
+      this._selectionRectSVG.setAttribute(
+        "stroke",
+        "var(--tu-notation-selection-stroke)"
+      );
       this._selectionRectSVG.setAttribute("stroke-width", "1");
       this._selectionRectSVG.setAttribute("rx", "3");
       this._selectionRectSVG.setAttribute("ry", "3");
@@ -204,7 +210,10 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._backgroundSVG = createSVGRect();
 
       // Set only-set-once attributes
-      this._backgroundSVG.setAttribute("fill", "white");
+      this._backgroundSVG.setAttribute(
+        "fill",
+        "var(--tu-notation-note-background)"
+      );
       this._backgroundSVG.setAttribute("fill-opacity", "1");
       this._backgroundSVG.setAttribute("pointer-events", "none");
 
@@ -263,9 +272,9 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._textSVG.setAttribute("font-size", fontSize);
       this._textSVG.setAttribute("text-anchor", "middle");
       this._textSVG.setAttribute("dominant-baseline", "middle");
-      this._textSVG.setAttribute("fill", "black");
+      this._textSVG.setAttribute("fill", "var(--tu-notation-text)");
       this._textSVG.setAttribute("pointer-events", "none");
-      this._textSVG.setAttribute("fill", "black");
+      this._textSVG.setAttribute("fill", "var(--tu-notation-text)");
 
       // Set id
       this._textSVG.setAttribute("id", `note-text-${noteUUID}`);

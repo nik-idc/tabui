@@ -20,6 +20,7 @@ import {
   ElementRenderer,
   ElementRendererClass,
 } from "@/notation/render/element-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { SVGTrackLineRenderer } from "../svg-track-line-renderer";
 import { SVGTrackLineInfoRenderer } from "../svg-track-line-info-renderer";
 import { SVGStaffLineRenderer } from "../svg-staff-line-renderer";
@@ -54,7 +55,7 @@ const RENDERER_CTORS = new Map<NotationElementClass, ElementRendererClass>([
 export function createRendererForElement(
   trackController: TrackController,
   element: NotationElement,
-  assetsPath: string
+  assetsPath: ResolvedAssetConfig
 ): ElementRenderer | undefined {
   const ctor = RENDERER_CTORS.get(element.constructor as NotationElementClass);
   if (ctor === undefined) {

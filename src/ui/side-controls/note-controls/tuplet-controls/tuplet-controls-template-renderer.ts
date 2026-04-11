@@ -1,11 +1,12 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { TupletControlsTemplate } from "./tuplet-controls-template";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class TupletControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TupletControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -13,7 +14,7 @@ export class TupletControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TupletControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -80,7 +81,7 @@ export class TupletControlsTemplateRenderer {
     const tupletErrorCSSClass = "tu-tuplet-error";
     this.template.normalInput.classList.add(inputCSSClass);
     this.template.normalInput.type = "number";
-    this.template.normalInput.value = tupletInitValue;
+    this.template.normalInput.value = normalInitValue;
     this.template.normalErrorText.classList.add(tupletErrorCSSClass);
     this.template.input.classList.add(inputCSSClass);
     this.template.input.type = "number";

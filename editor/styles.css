@@ -30,6 +30,30 @@ body {
   text-align: justify; /* ensures the paragraph is fully justified */
 }
 
+.demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.demo-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+  font-weight: 600;
+  color: #222;
+}
+
+.demo-control select {
+  padding: 10px 12px;
+  border: 1px solid #c9d2dc;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+
 .tabSVG {
   background-color: var(--tab-div-color);
   margin: auto;

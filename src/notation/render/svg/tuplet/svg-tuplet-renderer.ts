@@ -1,4 +1,5 @@
 import { Point, createSVGG, createSVGPath, createSVGText } from "@/shared";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { SVGTupletSegmentRenderer } from "./svg-tuplet-segment-renderer";
 import { ElementRenderer } from "../../element-renderer";
 import {
@@ -16,7 +17,7 @@ export class SVGTupletRenderer implements ElementRenderer {
   /** Tuplet element */
   tupletElement: BarTupletGroupElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   // /** Parent SVG group element */
   // private _parentElement: SVGGElement;
@@ -42,7 +43,7 @@ export class SVGTupletRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     tupletElement: BarTupletGroupElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.tupletElement = tupletElement;
@@ -89,7 +90,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._completeTupletPath = createSVGPath();
 
       // Set only-set-once attributes
-      this._completeTupletPath.setAttribute("stroke", "black");
+      this._completeTupletPath.setAttribute("stroke", "var(--tu-notation-ink)");
       this._completeTupletPath.setAttribute("stroke-width", "1");
       this._completeTupletPath.setAttribute("fill", "none");
 

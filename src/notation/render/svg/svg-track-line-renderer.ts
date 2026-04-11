@@ -4,6 +4,7 @@ import { SVGStaffLineRenderer } from "./svg-staff-line-renderer";
 import { TrackController } from "@/notation/controller";
 import { SVGTrackLineInfoRenderer } from "./svg-track-line-info-renderer";
 import { createSVGG, createSVGLine } from "@/shared";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 type OutlineLinesRendered = {
   left: SVGLineElement;
@@ -19,7 +20,7 @@ export class SVGTrackLineRenderer implements ElementRenderer {
   /** Track line element */
   trackLineElement: TrackLineElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   // /** Parent SVG group element */
   // private _parentElement: SVGGElement;
@@ -44,7 +45,7 @@ export class SVGTrackLineRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     trackLineElement: TrackLineElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.trackLineElement = trackLineElement;
@@ -205,8 +206,14 @@ export class SVGTrackLineRenderer implements ElementRenderer {
       };
 
       // Set only-set-once attributes
-      this._renderedOutlineLines.left.setAttribute("stroke", "black");
-      this._renderedOutlineLines.right.setAttribute("stroke", "black");
+      this._renderedOutlineLines.left.setAttribute(
+        "stroke",
+        "var(--tu-notation-ink)"
+      );
+      this._renderedOutlineLines.right.setAttribute(
+        "stroke",
+        "var(--tu-notation-ink)"
+      );
 
       // Set id
       const idLeft = `track-outline-left-${lineUUID}`;

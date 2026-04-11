@@ -1,12 +1,14 @@
+import { resolveAssetUrl } from "@/config/asset-url-resolver";
 import { createDiv, createImage } from "@/shared";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NotationComponent } from "@/notation/notation-component";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class NoteControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: NoteControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -14,7 +16,7 @@ export class NoteControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: NoteControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -58,7 +60,10 @@ export class NoteControlsTemplateRenderer {
       const button = this.template.durationButtons[i];
 
       // Image attributes
-      const src = `${this.assetsPath}/img/notes/${notes[i].num}.svg`;
+      const src = resolveAssetUrl(
+        this.assetsPath,
+        `img/notes/${notes[i].num}.svg`
+      );
       const dataDuration = `${notes[i].num}`;
       const alt = `${notes[i].alt} note`;
       button.setAttribute("src", src);
@@ -84,12 +89,12 @@ export class NoteControlsTemplateRenderer {
     const appliedCSSClass = "tu-applied-img";
 
     // Image attributes
-    const dot1Src = `${this.assetsPath}/img/ui/dot1.svg`;
+    const dot1Src = resolveAssetUrl(this.assetsPath, "img/ui/dot1.svg");
     this.template.dot1Button.setAttribute("src", dot1Src);
     this.template.dot1Button.setAttribute("data-dot", "1");
     this.template.dot1Button.setAttribute("alt", "Dot");
 
-    const dot2Src = `${this.assetsPath}/img/ui/dot2.svg`;
+    const dot2Src = resolveAssetUrl(this.assetsPath, "img/ui/dot2.svg");
     this.template.dot2Button.setAttribute("src", dot2Src);
     this.template.dot2Button.setAttribute("data-dot", "2");
     this.template.dot2Button.setAttribute("alt", "Double dot");
@@ -117,17 +122,17 @@ export class NoteControlsTemplateRenderer {
         .selectionManager.selectionAsBeats;
     const appliedCSSClass = "tu-applied-img";
 
-    const tuplet2Src = `${this.assetsPath}/img/ui/tuplet-2.svg`;
+    const tuplet2Src = resolveAssetUrl(this.assetsPath, "img/ui/tuplet-2.svg");
     this.template.tuplet2Button.setAttribute("src", tuplet2Src);
     this.template.tuplet2Button.setAttribute("data-tuplet", "2");
     this.template.tuplet2Button.setAttribute("alt", "Tuplet");
 
-    const tuplet3Src = `${this.assetsPath}/img/ui/tuplet-3.svg`;
+    const tuplet3Src = resolveAssetUrl(this.assetsPath, "img/ui/tuplet-3.svg");
     this.template.tuplet3Button.setAttribute("src", tuplet3Src);
     this.template.tuplet3Button.setAttribute("data-tuplet", "3");
     this.template.tuplet3Button.setAttribute("alt", "Triplet");
 
-    const tupletSrc = `${this.assetsPath}/img/ui/tuplet.svg`;
+    const tupletSrc = resolveAssetUrl(this.assetsPath, "img/ui/tuplet.svg");
     this.template.tupletButton.setAttribute("src", tupletSrc);
     this.template.tupletButton.setAttribute("data-tuplet", "0");
     this.template.tupletButton.setAttribute("alt", "Custom tuplet");

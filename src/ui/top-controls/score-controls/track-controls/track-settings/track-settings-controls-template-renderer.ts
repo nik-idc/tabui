@@ -2,12 +2,13 @@ import { NotationComponent } from "@/notation/notation-component";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
 import { createButton, createImage } from "@/shared";
 import { INSTRUMENT_KINDS } from "./track-settings-controls-component";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class TrackSettingsControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TrackSettingsControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _currentTrackName: string = "Edit track";
   private _currentStringCount: number = 6;
@@ -19,7 +20,7 @@ export class TrackSettingsControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: TrackSettingsControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;

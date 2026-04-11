@@ -6,6 +6,7 @@ import {
 } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a tuplet segment using SVG
@@ -16,7 +17,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
   /** Beam segment element */
   beamSegment: BeamSegmentElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   // /** Parent SVG group element */
   // private _parentElement: SVGGElement;
@@ -37,7 +38,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     beamSegment: BeamSegmentElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.beamSegment = beamSegment;
@@ -97,7 +98,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       // Set id
       const id = `beam-long-rect-${beamUUID}-rect`;
       this._longRectSVG[index].setAttribute("id", id);
-      this._longRectSVG[index].setAttribute("fill", "black");
+      this._longRectSVG[index].setAttribute("fill", "var(--tu-notation-ink)");
 
       // Add element to root SVG element
       this._containerGroupSVG.appendChild(this._longRectSVG[index]);
@@ -191,7 +192,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       // Set id
       const id = `beam-short-rect-${beamUUID}-rect-${index}`;
       this._shortRectSVG[index].setAttribute("id", id);
-      this._shortRectSVG[index].setAttribute("fill", "black");
+      this._shortRectSVG[index].setAttribute("fill", "var(--tu-notation-ink)");
 
       // Add element to root SVG element
       this._containerGroupSVG.appendChild(this._shortRectSVG[index]);

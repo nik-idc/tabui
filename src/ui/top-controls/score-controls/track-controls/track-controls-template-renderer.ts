@@ -1,9 +1,9 @@
 import { NotationComponent } from "@/notation/notation-component";
+import { resolveAssetUrl } from "@/config/asset-url-resolver";
 import { createOption } from "@/shared";
 import { TrackControlsTemplate } from "./track-controls-template";
 import { Track } from "@/notation";
-
-const assetsPath = import.meta.env.BASE_URL;
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 // VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 const minVolume = 0;
@@ -18,7 +18,7 @@ export class TrackControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TrackControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
   readonly track: Track;
 
   private _assembled: boolean;
@@ -28,7 +28,7 @@ export class TrackControlsTemplateRenderer {
     notationComponent: NotationComponent,
     template: TrackControlsTemplate,
     track: Track,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -64,7 +64,7 @@ export class TrackControlsTemplateRenderer {
   private renderRemoveButton(): void {
     const cssClass = "tu-track-remove-button";
     this.template.muteButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/remove.svg`;
+    const src = resolveAssetUrl(this.assetsPath, "img/ui/remove.svg");
     this.template.removeButton.src = src;
     this.template.removeButton.alt = "Remove";
   }
@@ -94,7 +94,7 @@ export class TrackControlsTemplateRenderer {
   private renderMuteButton(): void {
     const cssClass = "tu-track-mute-button";
     this.template.muteButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/mute.svg`;
+    const src = resolveAssetUrl(this.assetsPath, "img/ui/mute.svg");
     this.template.muteButton.src = src;
     this.template.muteButton.alt = "Mute";
   }
@@ -102,7 +102,7 @@ export class TrackControlsTemplateRenderer {
   private renderSoloButton(): void {
     const cssClass = "tu-track-solo-button";
     this.template.soloButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/solo.svg`;
+    const src = resolveAssetUrl(this.assetsPath, "img/ui/solo.svg");
     this.template.soloButton.src = src;
     this.template.soloButton.alt = "Solo";
   }
@@ -110,7 +110,7 @@ export class TrackControlsTemplateRenderer {
   private renderScoreSettingsButton(): void {
     const cssClass = "tu-track-settings-button";
     this.template.settingsButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/settings.svg`;
+    const src = resolveAssetUrl(this.assetsPath, "img/ui/settings.svg");
     this.template.settingsButton.src = src;
     this.template.settingsButton.alt = "Track settings";
   }

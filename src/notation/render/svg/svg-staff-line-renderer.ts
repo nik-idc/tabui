@@ -2,6 +2,7 @@ import { StaffLineElement, TrackController } from "@/notation/controller";
 import { ElementRenderer } from "../element-renderer";
 import { SVGStyleLineRenderer } from "./svg-style-line-renderer";
 import { createSVGG } from "@/shared";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a staff line element using SVG
@@ -12,7 +13,7 @@ export class SVGStaffLineRenderer implements ElementRenderer {
   /** Staff line element */
   staffLineElement: StaffLineElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   // /** Parent SVG group element */
   // private _parentElement: SVGGElement;
@@ -32,7 +33,7 @@ export class SVGStaffLineRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     staffLineElement: StaffLineElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.staffLineElement = staffLineElement;
