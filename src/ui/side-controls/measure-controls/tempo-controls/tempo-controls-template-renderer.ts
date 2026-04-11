@@ -58,9 +58,7 @@ export class TempoControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const selectedNote =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectedNote;
+    const selectedNote = this.notationComponent.trackController.selectedNote;
 
     const tempoInitValue =
       selectedNote !== undefined

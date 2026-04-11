@@ -49,15 +49,12 @@ describe("NoteControlsDefaultCallbacks", () => {
     dispatchClick(component.template.tuplet3Button);
     dispatchClick(component.template.tupletButton);
 
+    expect(notationComponent.trackController.setDuration).toHaveBeenCalledWith(
+      NoteDuration.Quarter
+    );
+    expect(notationComponent.trackController.setDots).toHaveBeenCalledWith(2);
     expect(
-      notationComponent.trackController.trackControllerEditor.setDuration
-    ).toHaveBeenCalledWith(NoteDuration.Quarter);
-    expect(
-      notationComponent.trackController.trackControllerEditor.setDots
-    ).toHaveBeenCalledWith(2);
-    expect(
-      notationComponent.trackController.trackControllerEditor
-        .setSelectedBeatsTuplet
+      notationComponent.trackController.setSelectedBeatsTuplet
     ).toHaveBeenCalledWith(3, 2);
     expect(renderFunc).toHaveBeenCalledTimes(3);
     expect(captureKeyboard).toHaveBeenCalledTimes(1);
@@ -66,14 +63,13 @@ describe("NoteControlsDefaultCallbacks", () => {
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     const durationCallsBeforeUnbind =
-      notationComponent.trackController.trackControllerEditor.setDuration.mock
-        .calls.length;
+      notationComponent.trackController.setDuration.mock.calls.length;
     callbacks.unbind();
     dispatchClick(durationButtons[1]);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
-    expect(
-      notationComponent.trackController.trackControllerEditor.setDuration
-    ).toHaveBeenCalledTimes(durationCallsBeforeUnbind);
+    expect(notationComponent.trackController.setDuration).toHaveBeenCalledTimes(
+      durationCallsBeforeUnbind
+    );
     expect(tupletUnbindSpy).toHaveBeenCalledTimes(1);
 
     expect(() => callbacks.onTupletNormalClicked(1)).toThrow(

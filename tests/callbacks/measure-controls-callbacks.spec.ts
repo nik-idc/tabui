@@ -58,12 +58,10 @@ describe("MeasureControlsDefaultCallbacks", () => {
     expect(component.showTempoControls).toHaveBeenCalledTimes(1);
     expect(component.showTimeSigControls).toHaveBeenCalledTimes(1);
     expect(
-      notationComponent.trackController.trackControllerEditor
-        .setSelectedBarRepeatStatus
+      notationComponent.trackController.setSelectedBarRepeatStatus
     ).toHaveBeenNthCalledWith(1, BarRepeatStatus.Start);
     expect(
-      notationComponent.trackController.trackControllerEditor
-        .setSelectedBarRepeatStatus
+      notationComponent.trackController.setSelectedBarRepeatStatus
     ).toHaveBeenNthCalledWith(2, BarRepeatStatus.End);
     expect(renderFunc).toHaveBeenCalledTimes(2);
     expect(tempoBindSpy).toHaveBeenCalledTimes(2);
@@ -71,14 +69,13 @@ describe("MeasureControlsDefaultCallbacks", () => {
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     const repeatStatusCallsBeforeUnbind =
-      notationComponent.trackController.trackControllerEditor
-        .setSelectedBarRepeatStatus.mock.calls.length;
+      notationComponent.trackController.setSelectedBarRepeatStatus.mock.calls
+        .length;
     callbacks.unbind();
     dispatchClick(component.template.repeatStartButton);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
     expect(
-      notationComponent.trackController.trackControllerEditor
-        .setSelectedBarRepeatStatus
+      notationComponent.trackController.setSelectedBarRepeatStatus
     ).toHaveBeenCalledTimes(repeatStatusCallsBeforeUnbind);
     expect(tempoUnbindSpy).toHaveBeenCalledTimes(1);
     expect(timeUnbindSpy).toHaveBeenCalledTimes(1);

@@ -60,9 +60,7 @@ export class TimeSigControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const selectedNote =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectedNote;
+    const selectedNote = this.notationComponent.trackController.selectedNote;
 
     const beatsInitValue =
       selectedNote !== undefined

@@ -41,9 +41,7 @@ export class MeasureControlsTemplateRenderer {
   }
 
   private renderRepeatButtonsState(): void {
-    const selectedNote =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectedNote;
+    const selectedNote = this.notationComponent.trackController.selectedNote;
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
 

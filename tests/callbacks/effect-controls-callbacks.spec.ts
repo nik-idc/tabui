@@ -48,13 +48,13 @@ describe("TechniqueControlsDefaultCallbacks", () => {
     dispatchClick(component.template.bendButton);
 
     expect(
-      notationComponent.trackController.trackControllerEditor.setTechnique
+      notationComponent.trackController.setTechnique
     ).toHaveBeenNthCalledWith(1, GuitarTechniqueType.Vibrato);
     expect(
-      notationComponent.trackController.trackControllerEditor.setTechnique
+      notationComponent.trackController.setTechnique
     ).toHaveBeenNthCalledWith(2, GuitarTechniqueType.HammerOnOrPullOff);
     expect(
-      notationComponent.trackController.trackControllerEditor.setTechnique
+      notationComponent.trackController.setTechnique
     ).toHaveBeenNthCalledWith(3, GuitarTechniqueType.Slide);
     expect(renderFunc).toHaveBeenCalledTimes(3);
     expect(component.showBendControls).toHaveBeenCalledTimes(1);
@@ -62,13 +62,12 @@ describe("TechniqueControlsDefaultCallbacks", () => {
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     const techniqueCallsBeforeUnbind =
-      notationComponent.trackController.trackControllerEditor.setTechnique.mock
-        .calls.length;
+      notationComponent.trackController.setTechnique.mock.calls.length;
     callbacks.unbind();
     dispatchClick(component.template.nhButton);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
     expect(
-      notationComponent.trackController.trackControllerEditor.setTechnique
+      notationComponent.trackController.setTechnique
     ).toHaveBeenCalledTimes(techniqueCallsBeforeUnbind);
     expect(bendUnbindSpy).toHaveBeenCalledTimes(1);
 

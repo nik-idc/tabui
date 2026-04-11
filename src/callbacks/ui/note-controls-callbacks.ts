@@ -50,15 +50,13 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   }
 
   onDurationClicked(noteDuration: NoteDuration): void {
-    this._notationComponent.trackController.trackControllerEditor.setDuration(
-      noteDuration
-    );
+    this._notationComponent.trackController.setDuration(noteDuration);
     this._renderFunc();
   }
 
   onDotClicked(dots: number): void {
     // notationComponent.notationComponent.setSelectedBeatDots(dots);
-    this._notationComponent.trackController.trackControllerEditor.setDots(dots);
+    this._notationComponent.trackController.setDots(dots);
     this._renderFunc();
   }
 
@@ -66,7 +64,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     if (normalCount < 2) {
       throw Error("Tuplet normal count has to be >= 2");
     }
-    this._notationComponent.trackController.trackControllerEditor.setSelectedBeatsTuplet(
+    this._notationComponent.trackController.setSelectedBeatsTuplet(
       normalCount,
       normalCount - 1
     );

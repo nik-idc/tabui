@@ -80,14 +80,14 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
   }
 
   onRepeatStartClicked(): void {
-    this._notationComponent.trackController.trackControllerEditor.setSelectedBarRepeatStatus(
+    this._notationComponent.trackController.setSelectedBarRepeatStatus(
       BarRepeatStatus.Start
     );
     this._renderFunc();
   }
 
   onRepeatEndClicked(): void {
-    this._notationComponent.trackController.trackControllerEditor.setSelectedBarRepeatStatus(
+    this._notationComponent.trackController.setSelectedBarRepeatStatus(
       BarRepeatStatus.End
     );
     this._renderFunc();

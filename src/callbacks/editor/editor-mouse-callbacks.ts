@@ -97,10 +97,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    */
   public onNoteClick(event: MouseEvent, noteElement: NoteElement): void {
     void event;
-    const editor = this.notationComponent.trackController.trackControllerEditor;
+    const tc = this.notationComponent.trackController;
 
     this.notationComponent.renderer.hideSelectionPreview();
-    editor.selectNoteElement(noteElement);
+    tc.selectNoteElement(noteElement);
 
     this.renderFunc(RenderType.NoteSelection);
   }
@@ -119,10 +119,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Handles note hover/enter for preview or drag-selection continuation.
    */
   public onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void {
-    const editor = this.notationComponent.trackController.trackControllerEditor;
+    const tc = this.notationComponent.trackController;
 
     if (this._selectionDragController.isSelectingBeats) {
-      editor.selectBeat(noteElement.beatElement);
+      tc.selectBeat(noteElement.beatElement);
       this.renderFunc(RenderType.DragSelection);
       return;
     }
@@ -171,7 +171,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Continues drag-selection while entering beat hitboxes.
    */
   public onBeatMouseEnter(event: MouseEvent, beatElement: BeatElement): void {
-    const editor = this.notationComponent.trackController.trackControllerEditor;
+    const tc = this.notationComponent.trackController;
     const isLeftPressed = (event.buttons & 1) === 1;
     if (
       isLeftPressed &&
@@ -182,7 +182,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     if (this._selectionDragController.isSelectingBeats) {
-      editor.selectBeat(beatElement);
+      tc.selectBeat(beatElement);
       this.renderFunc(RenderType.DragSelection);
     }
   }
@@ -191,22 +191,22 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Handles beat pointer movement and drag-selection threshold transitions.
    */
   public onBeatMouseMove(event: MouseEvent, beatElement: BeatElement): void {
-    const editor = this.notationComponent.trackController.trackControllerEditor;
+    const tc = this.notationComponent.trackController;
     const dragMoveResult = this._selectionDragController.handleMove(
       new Point(event.pageX, event.pageY),
       beatElement
     );
 
     if (dragMoveResult.startedSelection) {
-      editor.clearSelection();
+      tc.clearSelection();
       if (dragMoveResult.anchorBeat !== undefined) {
-        editor.selectBeat(dragMoveResult.anchorBeat);
+        tc.selectBeat(dragMoveResult.anchorBeat);
       }
       this.renderFunc(RenderType.DragSelection);
     }
 
     if (dragMoveResult.shouldSelectCurrentBeat) {
-      editor.selectBeat(beatElement);
+      tc.selectBeat(beatElement);
       this.renderFunc(RenderType.DragSelection);
     }
   }

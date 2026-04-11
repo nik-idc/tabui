@@ -32,27 +32,19 @@ describe("TrackController", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track);
 
-    controller.trackControllerEditor.moveSelectedNote(
-      SelectedMoveDirection.Right
-    );
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
     controller.trackElement.update();
 
     expect(bar.beats).toHaveLength(2);
-    expect(
-      controller.trackControllerEditor.selectionManager.selectedNote?.bar
-    ).toBe(bar);
-    expect(
-      controller.trackControllerEditor.selectionManager.selectedNote?.beatIndex
-    ).toBe(1);
+    expect(controller.selectedNote?.bar).toBe(bar);
+    expect(controller.selectedNote?.beatIndex).toBe(1);
   });
 
   test("redo on TrackController redoes the previously undone command", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track);
 
-    controller.trackControllerEditor.moveSelectedNote(
-      SelectedMoveDirection.Right
-    );
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
     expect(bar.beats).toHaveLength(2);
 
     controller.undo();
@@ -66,9 +58,7 @@ describe("TrackController", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track);
 
-    controller.trackControllerEditor.moveSelectedNote(
-      SelectedMoveDirection.Right
-    );
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
     expect(bar.beats).toHaveLength(2);
 
     controller.undo();
@@ -90,7 +80,7 @@ describe("TrackController", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track);
 
-    controller.trackControllerEditor.setDuration(NoteDuration.Eighth);
+    controller.setDuration(NoteDuration.Eighth);
 
     expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
     expect(bar.beats[0].fullDurationTicks).toBe(bar.tickResolution / 8);
@@ -107,9 +97,9 @@ describe("TrackController", () => {
     const controller = new TrackController(track);
     const beatElements = getBeatElements(controller);
 
-    controller.trackControllerEditor.selectBeat(beatElements[0]);
-    controller.trackControllerEditor.selectBeat(beatElements[2]);
-    controller.trackControllerEditor.setDuration(NoteDuration.Eighth);
+    controller.selectBeat(beatElements[0]);
+    controller.selectBeat(beatElements[2]);
+    controller.setDuration(NoteDuration.Eighth);
 
     expect(bar.beats.slice(0, 3).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Eighth,

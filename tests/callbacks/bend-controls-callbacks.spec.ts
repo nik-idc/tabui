@@ -78,8 +78,7 @@ describe("BendControlsDefaultCallbacks", () => {
       renderFunc,
       freeKeyboard,
     } = createBendHarness();
-    const setTechnique =
-      notationComponent.trackController.trackControllerEditor.setTechnique;
+    const setTechnique = notationComponent.trackController.setTechnique;
 
     callbacks.bind();
     callbacks.bind();

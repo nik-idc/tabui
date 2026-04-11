@@ -318,17 +318,6 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     }
 
     this.renderNoteRect();
-
-    // Legacy note-internal selection rendering disabled.
-    // Selected note overlay is now rendered by EditorSVGRenderer
-    // in the dedicated interaction layer.
-    // const selectedNote =
-    //   this.trackController.trackControllerEditor.selectionManager.selectedNote;
-    // if (this.noteElement.note === selectedNote?.note) {
-    //   this.renderSelectionRect();
-    // } else {
-    //   this.unrenderSelectionRect();
-    // }
     this.unrenderSelectionRect();
 
     // Render note value stuff if note value defined, remove it otherwise

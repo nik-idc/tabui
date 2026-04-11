@@ -84,9 +84,7 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   }
 
   onConfirmClicked(): void {
-    this._notationComponent.trackController.trackControllerEditor.setSelectedBarTempo(
-      this._tempo
-    );
+    this._notationComponent.trackController.setSelectedBarTempo(this._tempo);
     this._renderFunc();
 
     this._tempoComponent.template.dialog.close();

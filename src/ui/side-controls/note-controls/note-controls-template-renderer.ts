@@ -50,9 +50,7 @@ export class NoteControlsTemplateRenderer {
       { num: 16, alt: "Sixteenth" },
       { num: 32, alt: "Thirty-second" },
     ];
-    const selection =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectionAsBeats;
+    const selection = this.notationComponent.trackController.selectionBeats;
     const appliedCSSClass = "tu-applied-img";
 
     for (let i = 0; i < notes.length; i++) {
@@ -83,9 +81,7 @@ export class NoteControlsTemplateRenderer {
   }
 
   private renderDotButtons(): void {
-    const selection =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectionAsBeats;
+    const selection = this.notationComponent.trackController.selectionBeats;
     const appliedCSSClass = "tu-applied-img";
 
     // Image attributes
@@ -127,9 +123,7 @@ export class NoteControlsTemplateRenderer {
   }
 
   private renderTupletButtons(): void {
-    const selection =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectionAsBeats;
+    const selection = this.notationComponent.trackController.selectionBeats;
     const appliedCSSClass = "tu-applied-img";
 
     setImageAsset(

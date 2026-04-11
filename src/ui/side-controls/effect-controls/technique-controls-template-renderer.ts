@@ -51,12 +51,10 @@ export class TechniqueControlsTemplateRenderer {
     type: GuitarTechniqueType,
     button: HTMLImageElement
   ): void {
-    const selectionManager =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager;
+    const tc = this.notationComponent.trackController;
 
-    const selection = selectionManager.selectionAsBeats;
-    const selectedNote = selectionManager.selectedNote;
+    const selection = tc.selectionBeats;
+    const selectedNote = tc.selectedNote;
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
 

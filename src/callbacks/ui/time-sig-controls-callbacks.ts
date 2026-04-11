@@ -113,7 +113,7 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
   }
 
   onConfirmClicked(): void {
-    this._notationComponent.trackController.trackControllerEditor.setSelectedBarTimeSignature(
+    this._notationComponent.trackController.setSelectedBarTimeSignature(
       this._beatsCount,
       this._duration
     );

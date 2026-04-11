@@ -29,8 +29,7 @@ export class SelectionOverlayRenderer {
   private getSelectedTabNoteElement(
     trackController: TrackController
   ): TabNoteElement | undefined {
-    const selectedNote =
-      trackController.trackControllerEditor.selectionManager.selectedNote;
+    const selectedNote = trackController.selectedNote;
     if (selectedNote === undefined) {
       return undefined;
     }

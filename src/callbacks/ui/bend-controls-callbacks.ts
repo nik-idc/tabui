@@ -60,7 +60,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     const bendOptions =
       this._bendComponent.bendSelectorManager.getCurrentTechnique();
 
-    this._notationComponent.trackController.trackControllerEditor.setTechnique(
+    this._notationComponent.trackController.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions(bendOptions)
     );

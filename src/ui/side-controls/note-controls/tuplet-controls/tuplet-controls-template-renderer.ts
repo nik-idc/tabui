@@ -60,9 +60,7 @@ export class TupletControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const selectedNote =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectedNote;
+    const selectedNote = this.notationComponent.trackController.selectedNote;
 
     let normalInitValue: string;
     let tupletInitValue: string;
