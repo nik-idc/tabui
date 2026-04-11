@@ -1,6 +1,5 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { resolveAssetUrl } from "@/config/asset-url-resolver";
-import { createOption } from "@/shared";
+import { renderOnce, setImageAsset } from "@/ui/shared";
 import { ScoreControlsTemplate } from "./score-controls-template";
 import { Score } from "@/notation";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
@@ -76,9 +75,12 @@ export class ScoreControlsTemplateRenderer {
   private renderNewTrackButton(): void {
     const cssClass = "tu-new-track-button";
     this.template.newTrackButton.classList.add(cssClass);
-    const src = resolveAssetUrl(this.assetsPath, "img/ui/add.svg");
-    this.template.newTrackButton.src = src;
-    this.template.newTrackButton.alt = "New track";
+    setImageAsset(
+      this.template.newTrackButton,
+      this.assetsPath,
+      "img/ui/add.svg",
+      "New track"
+    );
   }
 
   private renderMasterVolumeInput(): void {
@@ -124,9 +126,8 @@ export class ScoreControlsTemplateRenderer {
     this.renderScoreNameInput();
     this.renderTracksContainer();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

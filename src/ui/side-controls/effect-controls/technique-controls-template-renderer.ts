@@ -1,5 +1,4 @@
-import { resolveAssetUrl } from "@/config/asset-url-resolver";
-import { createDiv, createImage } from "@/shared";
+import { renderOnce, setImageAsset } from "@/ui/shared";
 import { NotationComponent } from "@/notation/notation-component";
 import { GuitarTechniqueType, NoteValue } from "@/notation";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
@@ -101,77 +100,89 @@ export class TechniqueControlsTemplateRenderer {
   }
 
   private renderTechniqueButtons(): void {
-    const vibratoSrc = resolveAssetUrl(
+    setImageAsset(
+      this.template.vibratoButton,
       this.assetsPath,
-      "img/techniques/vibrato.svg"
+      "img/techniques/vibrato.svg",
+      "Vibrato"
     );
-    this.template.vibratoButton.setAttribute("src", vibratoSrc);
-    this.template.vibratoButton.setAttribute("alt", "Vibrato");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.Vibrato,
       this.template.vibratoButton
     );
 
-    const pmSrc = resolveAssetUrl(this.assetsPath, "img/techniques/pm.svg");
-    this.template.palmMuteButton.setAttribute("src", pmSrc);
-    this.template.palmMuteButton.setAttribute("alt", "Palm Mute");
+    setImageAsset(
+      this.template.palmMuteButton,
+      this.assetsPath,
+      "img/techniques/pm.svg",
+      "Palm Mute"
+    );
     this.renderTechniqueButtonState(
       GuitarTechniqueType.PalmMute,
       this.template.palmMuteButton
     );
 
-    const nhSrc = resolveAssetUrl(this.assetsPath, "img/techniques/nh.svg");
-    this.template.nhButton.setAttribute("src", nhSrc);
-    this.template.nhButton.setAttribute("alt", "Nat. Harmonic");
+    setImageAsset(
+      this.template.nhButton,
+      this.assetsPath,
+      "img/techniques/nh.svg",
+      "Nat. Harmonic"
+    );
     this.renderTechniqueButtonState(
       GuitarTechniqueType.NaturalHarmonic,
       this.template.nhButton
     );
 
-    const phSrc = resolveAssetUrl(this.assetsPath, "img/techniques/ph.svg");
-    this.template.phButton.setAttribute("src", phSrc);
-    this.template.phButton.setAttribute("alt", "Pinch Harmonic");
+    setImageAsset(
+      this.template.phButton,
+      this.assetsPath,
+      "img/techniques/ph.svg",
+      "Pinch Harmonic"
+    );
     this.renderTechniqueButtonState(
       GuitarTechniqueType.PinchHarmonic,
       this.template.phButton
     );
 
-    const hammerOnSrc = resolveAssetUrl(
+    setImageAsset(
+      this.template.hammerOnButton,
       this.assetsPath,
-      "img/techniques/hammer-on.svg"
+      "img/techniques/hammer-on.svg",
+      "Hammer-on"
     );
-    this.template.hammerOnButton.setAttribute("src", hammerOnSrc);
-    this.template.hammerOnButton.setAttribute("alt", "Hammer-on");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.HammerOnOrPullOff,
       this.template.hammerOnButton
     );
 
-    const pullOffSrc = resolveAssetUrl(
+    setImageAsset(
+      this.template.pullOffButton,
       this.assetsPath,
-      "img/techniques/pull-off.svg"
+      "img/techniques/pull-off.svg",
+      "Pull-off"
     );
-    this.template.pullOffButton.setAttribute("src", pullOffSrc);
-    this.template.pullOffButton.setAttribute("alt", "Pull-off");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.HammerOnOrPullOff,
       this.template.pullOffButton
     );
 
-    const slideSrc = resolveAssetUrl(
+    setImageAsset(
+      this.template.slideButton,
       this.assetsPath,
-      "img/techniques/slide-up.svg"
+      "img/techniques/slide-up.svg",
+      "Slide"
     );
-    this.template.slideButton.setAttribute("src", slideSrc);
-    this.template.slideButton.setAttribute("alt", "Slide");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.Slide,
       this.template.slideButton
     );
 
-    const bendSrc = resolveAssetUrl(this.assetsPath, "img/techniques/bend.svg");
-    this.template.bendButton.setAttribute("src", bendSrc);
-    this.template.bendButton.setAttribute("alt", "Bend");
+    setImageAsset(
+      this.template.bendButton,
+      this.assetsPath,
+      "img/techniques/bend.svg",
+      "Bend"
+    );
     this.renderTechniqueButtonState(
       GuitarTechniqueType.Bend,
       this.template.bendButton
@@ -181,9 +192,8 @@ export class TechniqueControlsTemplateRenderer {
   public render(): void {
     this.renderTechniqueButtons();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

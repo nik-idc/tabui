@@ -1,25 +1,22 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { SideControlsTemplate } from "./side-controls-template";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { renderOnce } from "@/ui/shared";
 
 export class SideControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: SideControlsTemplate;
-  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
   constructor(
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
-    template: SideControlsTemplate,
-    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
+    template: SideControlsTemplate
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
-    this.assetsPath = assetsPath;
 
     this._assembled = false;
   }
@@ -32,9 +29,8 @@ export class SideControlsTemplateRenderer {
   }
 
   public render(): void {
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

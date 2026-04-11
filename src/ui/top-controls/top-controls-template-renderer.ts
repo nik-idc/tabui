@@ -1,30 +1,22 @@
 import { NotationComponent } from "@/notation/notation-component";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { renderOnce } from "@/ui/shared";
 import { TopControlsTemplate } from "./top-controls-template";
-import { createOption } from "@/shared";
-import {
-  TrackControlsComponent,
-  TrackControlsTemplate,
-} from "./score-controls/track-controls";
 
 export class TopControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TopControlsTemplate;
-  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
   constructor(
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
-    template: TopControlsTemplate,
-    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
+    template: TopControlsTemplate
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
-    this.assetsPath = assetsPath;
 
     this._assembled = false;
   }
@@ -37,9 +29,8 @@ export class TopControlsTemplateRenderer {
   }
 
   public render(): void {
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

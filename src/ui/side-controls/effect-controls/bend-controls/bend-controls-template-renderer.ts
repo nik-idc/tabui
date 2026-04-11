@@ -1,64 +1,57 @@
 import { NotationComponent } from "@/notation/notation-component";
+import {
+  assembleDialog,
+  renderOnce,
+  setupDialogActionButtons,
+} from "@/ui/shared";
 import { BendControlsTemplate } from "./bend-controls-template";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class BendControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: BendControlsTemplate;
-  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
   constructor(
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
-    template: BendControlsTemplate,
-    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
+    template: BendControlsTemplate
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
-    this.assetsPath = assetsPath;
 
     this._assembled = false;
   }
 
   private assembleContainer(): void {
-    const dialogCSSClass = "tu-bend-controls-dialog";
-    const dialogContentCSSClass = "tu-bend-controls-content";
-    const selectorCSSClass = "tu-bend-controls-selector-content";
-    const actionsCSSClass = "tu-bend-controls-actions-content";
-
-    this.template.dialog.classList.add(dialogCSSClass);
-    this.template.dialogContent.classList.add(dialogContentCSSClass);
-    this.template.bendSelectorContent.classList.add(selectorCSSClass);
-    this.template.actionsContent.classList.add(actionsCSSClass);
-
-    this.template.dialog.appendChild(this.template.dialogContent);
-    this.template.dialogContent.append(
-      this.template.bendSelectorContent,
-      this.template.actionsContent
+    assembleDialog(
+      this.parentDiv,
+      this.template.dialog,
+      "tu-bend-controls-dialog",
+      this.template.dialogContent,
+      "tu-bend-controls-content",
+      [
+        {
+          element: this.template.bendSelectorContent,
+          className: "tu-bend-controls-selector-content",
+          children: [
+            this.template.bendTypeListContainer,
+            this.template.bendSelectorGraphSVG,
+          ],
+        },
+        {
+          element: this.template.actionsContent,
+          className: "tu-bend-controls-actions-content",
+          children: [this.template.confirmButton, this.template.cancelButton],
+        },
+      ]
     );
 
     this.template.bendTypeListContainer.append(
       ...this.template.bendTypesButtons
     );
-    this.template.bendSelectorContent.appendChild(
-      this.template.bendTypeListContainer
-    );
-
-    this.template.bendSelectorContent.appendChild(
-      this.template.bendSelectorGraphSVG
-    );
-
-    this.template.actionsContent.append(
-      this.template.confirmButton,
-      this.template.cancelButton
-    );
-    this.template.dialogContent.appendChild(this.template.actionsContent);
-
-    this.parentDiv.appendChild(this.template.dialog);
   }
 
   private renderBendTypesList(): void {
@@ -81,9 +74,12 @@ export class BendControlsTemplateRenderer {
   private renderActionButtons(): void {
     const cssClass = "tu-bend-controls-actions";
     this.template.actionsContent.classList.add(cssClass);
-
-    this.template.confirmButton.textContent = "Confirm";
-    this.template.cancelButton.textContent = "Cancel";
+    setupDialogActionButtons(
+      this.template.confirmButton,
+      this.template.cancelButton,
+      "tu-bend-controls-confirm-button",
+      "tu-bend-controls-cancel-button"
+    );
   }
 
   public render(): void {
@@ -91,9 +87,8 @@ export class BendControlsTemplateRenderer {
     this.renderSVGGraph();
     this.renderActionButtons();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

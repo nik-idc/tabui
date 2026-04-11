@@ -1,5 +1,5 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { resolveAssetUrl } from "@/config/asset-url-resolver";
+import { renderOnce, setImageAsset } from "@/ui/shared";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import { BarRepeatStatus } from "@/notation";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
@@ -78,27 +78,30 @@ export class MeasureControlsTemplateRenderer {
   }
 
   private renderMeasureButtons(): void {
-    const tempoSrc = resolveAssetUrl(this.assetsPath, "img/ui/tempo.svg");
-    this.template.tempoButton.setAttribute("src", tempoSrc);
-    this.template.tempoButton.setAttribute("alt", "Tempo");
-
-    const tsSrc = resolveAssetUrl(this.assetsPath, "img/ui/measure.svg");
-    this.template.timeSignatureButton.setAttribute("src", tsSrc);
-    this.template.timeSignatureButton.setAttribute("alt", "Time Signature");
-
-    const repeatStartSrc = resolveAssetUrl(
+    setImageAsset(
+      this.template.tempoButton,
       this.assetsPath,
-      "img/ui/repeat-start.svg"
+      "img/ui/tempo.svg",
+      "Tempo"
     );
-    this.template.repeatStartButton.setAttribute("src", repeatStartSrc);
-    this.template.repeatStartButton.setAttribute("alt", "Repeat Start");
-
-    const repeatEndSrc = resolveAssetUrl(
+    setImageAsset(
+      this.template.timeSignatureButton,
       this.assetsPath,
-      "img/ui/repeat-end.svg"
+      "img/ui/measure.svg",
+      "Time Signature"
     );
-    this.template.repeatEndButton.setAttribute("src", repeatEndSrc);
-    this.template.repeatEndButton.setAttribute("alt", "Repeat Start");
+    setImageAsset(
+      this.template.repeatStartButton,
+      this.assetsPath,
+      "img/ui/repeat-start.svg",
+      "Repeat Start"
+    );
+    setImageAsset(
+      this.template.repeatEndButton,
+      this.assetsPath,
+      "img/ui/repeat-end.svg",
+      "Repeat Start"
+    );
 
     this.renderRepeatButtonsState();
   }
@@ -106,9 +109,8 @@ export class MeasureControlsTemplateRenderer {
   public render(): void {
     this.renderMeasureButtons();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }
