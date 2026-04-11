@@ -3,7 +3,7 @@ import { SVGTupletSegmentRenderer } from "./svg-tuplet-segment-renderer";
 import { ElementRenderer } from "../../element-renderer";
 import {
   BarTupletGroupElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
 
@@ -142,7 +142,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._completeTupletTextSVG = createSVGText();
 
       // Set only-set-once attributes
-      const fontSize = `${TabLayoutDimensions.TEMPO_TEXT_SIZE}`;
+      const fontSize = `${EditorLayoutDimensions.TEMPO_TEXT_SIZE}`;
       this._completeTupletTextSVG.setAttribute("text-anchor", "middle");
       this._completeTupletTextSVG.setAttribute("dominant-baseline", "middle");
       this._completeTupletTextSVG.setAttribute("font-size", fontSize);
@@ -200,7 +200,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       renderedText = this._incompleteTupletTextsSVG[index];
 
       // Set only-set-once attributes
-      const fontSize = `${TabLayoutDimensions.TEMPO_TEXT_SIZE}`;
+      const fontSize = `${EditorLayoutDimensions.TEMPO_TEXT_SIZE}`;
       renderedText.setAttribute("text-anchor", "middle");
       renderedText.setAttribute("dominant-baseline", "middle");
       renderedText.setAttribute("font-size", fontSize);

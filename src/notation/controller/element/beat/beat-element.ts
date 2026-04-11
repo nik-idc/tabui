@@ -1,6 +1,6 @@
 import { Beat } from "@/notation/model";
 import { Rect, Point } from "@/shared";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
@@ -25,19 +25,19 @@ export interface BeatElement extends NotationElement {
  */
 export function getBeatWidth(beat: Beat): number {
   // Calc rect base width by duration
-  let width = TabLayoutDimensions.WIDTH_MAPPING[beat.baseDuration];
+  let width = EditorLayoutDimensions.WIDTH_MAPPING[beat.baseDuration];
 
   // Scale rect width based on number of dots
-  width *= TabLayoutDimensions.DOT_WIDTH_FACTORS[beat.dots];
+  width *= EditorLayoutDimensions.DOT_WIDTH_FACTORS[beat.dots];
 
   // Scale the rect width based on tuplet settings
   if (beat.tupletSettings !== null) {
     const tupletScale =
       beat.tupletSettings.tupletCount / beat.tupletSettings.normalCount;
     width *= tupletScale;
-    if (width < TabLayoutDimensions.NOTE_RECT_WIDTH_MIN) {
+    if (width < EditorLayoutDimensions.NOTE_RECT_WIDTH_MIN) {
       // To make sure beats don't get too small causing UI errors
-      width = TabLayoutDimensions.NOTE_RECT_WIDTH_MIN;
+      width = EditorLayoutDimensions.NOTE_RECT_WIDTH_MIN;
     }
   }
 
@@ -49,7 +49,7 @@ export function getBeatWidth(beat: Beat): number {
 // import { Point, randomInt, Rect } from "@/shared";
 // import { NoteElement } from "./note-element";
 // import { Circle } from "@/shared/rendering/geometry/circle";
-// import { TabLayoutDimensions } from "../tab-controller-dim";
+// import { EditorLayoutDimensions } from "../tab-controller-dim";
 // import { TabBeatElement } from "./tab-beat-element";
 // import { SheetBeatElement } from "./sheet-beat-element";
 
@@ -93,7 +93,7 @@ export function getBeatWidth(beat: Beat): number {
 //   public calc(): void {
 //     this._rect.set(
 //       -1,
-//       TabLayoutDimensions.TEMPO_RECT_HEIGHT,
+//       EditorLayoutDimensions.TEMPO_RECT_HEIGHT,
 
 //     )
 
@@ -181,7 +181,7 @@ export function getBeatWidth(beat: Beat): number {
 // import { TechniqueLabelElement } from "./technique";
 // import { BarElement } from "./bar-element";
 // import { NoteElement } from "./note-element";
-// import { TabLayoutDimensions } from "../tab-controller-dim";
+// import { EditorLayoutDimensions } from "../tab-controller-dim";
 // import { TabBeatElement } from "./tab-beat-element";
 // import { SheetBeatElement } from "./sheet-beat-element";
 
@@ -239,19 +239,19 @@ export function getBeatWidth(beat: Beat): number {
 
 // export function getBeatWidth(beat: Beat): number {
 //   // Calc rect base width by duration
-//   let width = TabLayoutDimensions.WIDTH_MAPPING[beat.baseDuration];
+//   let width = EditorLayoutDimensions.WIDTH_MAPPING[beat.baseDuration];
 
 //   // Scale rect width based on number of dots
-//   width *= TabLayoutDimensions.DOT_WIDTH_FACTORS[beat.dots];
+//   width *= EditorLayoutDimensions.DOT_WIDTH_FACTORS[beat.dots];
 
 //   // Scale the rect width based on tuplet settings
 //   if (beat.tupletSettings !== null) {
 //     const tupletScale =
 //       beat.tupletSettings.tupletCount / beat.tupletSettings.normalCount;
 //     width *= tupletScale;
-//     if (width < TabLayoutDimensions.NOTE_RECT_WIDTH_MIN) {
+//     if (width < EditorLayoutDimensions.NOTE_RECT_WIDTH_MIN) {
 //       // To make sure beats don't get too small causing UI errors
-//       width = TabLayoutDimensions.NOTE_RECT_WIDTH_MIN;
+//       width = EditorLayoutDimensions.NOTE_RECT_WIDTH_MIN;
 //     }
 //   }
 

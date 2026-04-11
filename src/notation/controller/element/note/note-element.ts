@@ -1,6 +1,6 @@
 import { Note } from "@/notation/model";
 import { Point, Rect } from "@/shared";
-import { GuitarTechniqueElement } from "../technique";
+import { TechniqueElement } from "../technique";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BeatElement } from "../beat/beat-element";
 
@@ -12,5 +12,5 @@ export interface NoteElement extends NotationElement {
   readonly note: Note;
   readonly beatElement: BeatElement;
 
-  get guitarTechniqueElements(): GuitarTechniqueElement[];
+  get techniqueElements(): TechniqueElement[];
 }

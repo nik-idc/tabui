@@ -1,6 +1,6 @@
 import { BarTupletGroup } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BeatElement } from "../beat/beat-element";
@@ -23,7 +23,7 @@ export class BarTupletGroupElement implements NotationElement {
   readonly trackElement: TrackElement;
 
   /** Tuplet element's outer rectangle */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** Individual tuplet signs if the tuplet group is incomplete */
   private _incompleteRects?: Rect[];
   /** String encoding the state of this element */
@@ -46,7 +46,7 @@ export class BarTupletGroupElement implements NotationElement {
     this.trackElement = this.barElement.trackElement;
     this.beatElements = beatElements;
 
-    this._rect = new Rect();
+    this._boundingBox = new Rect();
 
     this._stateHash = "";
 
@@ -76,22 +76,22 @@ export class BarTupletGroupElement implements NotationElement {
   public measure(): void {
     let sumWidth = 0;
     for (const beatElement of this.beatElements) {
-      sumWidth += beatElement.rect.width;
+      sumWidth += beatElement.boundingBox.width;
     }
 
     // // Adjust the coords and dimensions for better UI/UX
     // sumWidth -=
-    //   this.beatElements[this.beatElements.length - 1].rect.width * (3 / 4);
+    //   this.beatElements[this.beatElements.length - 1].boundingBox.width * (3 / 4);
 
-    const height = TabLayoutDimensions.TUPLET_RECT_HEIGHT;
-    this._rect.setDimensions(sumWidth, height);
+    const height = EditorLayoutDimensions.TUPLET_RECT_HEIGHT;
+    this._boundingBox.setDimensions(sumWidth, height);
 
     if (this._incompleteRects === undefined) {
       return;
     }
     for (let i = 0; i < this.beatElements.length; i++) {
       this._incompleteRects[i].setDimensions(
-        this.beatElements[i].rect.width,
+        this.beatElements[i].boundingBox.width,
         height
       );
     }
@@ -102,10 +102,10 @@ export class BarTupletGroupElement implements NotationElement {
    * */
   private calcStateHash(): void {
     const hashArr: string[] = [
-      `${this.globalRect.x}` +
-        `${this.globalRect.y}` +
-        `${this.globalRect.width}` +
-        `${this.globalRect.height}`,
+      `${this.globalBoundingBox.x}` +
+        `${this.globalBoundingBox.y}` +
+        `${this.globalBoundingBox.width}` +
+        `${this.globalBoundingBox.height}`,
     ];
 
     if (this._incompleteRects !== undefined) {
@@ -127,18 +127,19 @@ export class BarTupletGroupElement implements NotationElement {
    * Calculate the coordinates of this bar tuplet group element
    */
   public layout(): void {
-    const x = this.beatElements[0].rect.x;
+    const x = this.beatElements[0].boundingBox.x;
     const y =
-      this.barElement.rect.height - TabLayoutDimensions.TUPLET_RECT_HEIGHT;
+      this.barElement.boundingBox.height -
+      EditorLayoutDimensions.TUPLET_RECT_HEIGHT;
 
-    this._rect.setCoords(x, y);
+    this._boundingBox.setCoords(x, y);
 
     if (this._incompleteRects === undefined) {
       return;
     }
     for (let i = 0; i < this.beatElements.length; i++) {
       const x = this._incompleteRects[i - 1]?.right ?? 0;
-      const y = this._rect.y;
+      const y = this._boundingBox.y;
 
       this._incompleteRects[i].setCoords(x, y);
     }
@@ -186,8 +187,8 @@ export class BarTupletGroupElement implements NotationElement {
    * @param scale Scale factor
    */
   public scaleHorBy(scale: number): void {
-    this._rect.x *= scale;
-    this._rect.width *= scale;
+    this._boundingBox.x *= scale;
+    this._boundingBox.width *= scale;
 
     if (this._incompleteRects === undefined) {
       return;
@@ -211,19 +212,27 @@ export class BarTupletGroupElement implements NotationElement {
     return this.tupletGroup.uuid;
   }
 
-  /** Tuplet element's outer rectangle */
-  public get rect(): Rect {
-    return this._rect;
+  /** Tuplet element's outer layout bounding box */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
-  /** This bar's rect in global coords */
-  public get globalRect(): Rect {
+  /** This tuplet element's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Tuplet element's incomplete rectangles (defined if tuplet group is complete) */
@@ -265,7 +274,7 @@ export class BarTupletGroupElement implements NotationElement {
           this.globalCoords.x + rect.middleX,
           this.globalCoords.y +
             rect.height / 2 +
-            TabLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+            EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
         )
       );
     }
@@ -286,7 +295,7 @@ export class BarTupletGroupElement implements NotationElement {
       return undefined;
     }
 
-    return this._rect.middle;
+    return this._boundingBox.middle;
   }
 
   /** Complete tuplet group text coordinates (or undefined if tuplet group incomplete) */
@@ -296,10 +305,10 @@ export class BarTupletGroupElement implements NotationElement {
     }
 
     return new Point(
-      this.globalCoords.x + this._rect.width / 2,
+      this.globalCoords.x + this._boundingBox.width / 2,
       this.globalCoords.y +
-        this._rect.height / 2 +
-        TabLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        this._boundingBox.height / 2 +
+        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
     );
   }
 
@@ -313,12 +322,12 @@ export class BarTupletGroupElement implements NotationElement {
     const lastBeatElement = this.beatElements[this.beatElements.length - 1];
 
     const width =
-      this._rect.width -
-      lastBeatElement.rect.width / 2 -
-      firstBeatElement.rect.width / 2;
-    const height = TabLayoutDimensions.TUPLET_PATH_HEIGHT;
+      this._boundingBox.width -
+      lastBeatElement.boundingBox.width / 2 -
+      firstBeatElement.boundingBox.width / 2;
+    const height = EditorLayoutDimensions.TUPLET_PATH_HEIGHT;
     return new Rect(
-      this.globalCoords.x + firstBeatElement.rect.width / 2,
+      this.globalCoords.x + firstBeatElement.boundingBox.width / 2,
       this.globalCoords.y + height, // '- height' is due to SVG path calculation
       width,
       height
@@ -328,8 +337,8 @@ export class BarTupletGroupElement implements NotationElement {
   /** Global coords of the bar tuplet group element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._rect.x,
-      this.barElement.globalCoords.y + this._rect.y
+      this.barElement.globalCoords.x + this._boundingBox.x,
+      this.barElement.globalCoords.y + this._boundingBox.y
     );
   }
 }

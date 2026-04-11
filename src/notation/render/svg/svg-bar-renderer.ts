@@ -1,6 +1,6 @@
 import {
   BarElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
 import { BarRepeatStatus } from "@/notation/model";
@@ -234,7 +234,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this._timeSigTextsSVG = [createSVGText(), createSVGText()];
 
       // Set only-set-once attributes
-      const fontSize = `${TabLayoutDimensions.TIME_SIG_TEXT_SIZE}`;
+      const fontSize = `${EditorLayoutDimensions.TIME_SIG_TEXT_SIZE}`;
       this._timeSigTextsSVG[0].setAttribute("text-anchor", "start");
       this._timeSigTextsSVG[0].setAttribute("dominant-baseline", "hanging");
       this._timeSigTextsSVG[0].setAttribute("font-size", fontSize);
@@ -624,7 +624,7 @@ export class SVGBarRenderer implements ElementRenderer {
 //   const width = `${startGapGlobal.width}`;
 //   const tabBeatHeight = startGapGlobal.height;
 //   const sheetBeatHeight =
-//     this.barElement.sheetBeatElements[0]?.rect.height ?? 0;
+//     this.barElement.sheetBeatElements[0]?.boundingBox.height ?? 0;
 //   const height = `${tabBeatHeight + sheetBeatHeight}`;
 //   this._selectionStartGapRect.setAttribute("x", x);
 //   this._selectionStartGapRect.setAttribute("y", y);
@@ -676,9 +676,9 @@ export class SVGBarRenderer implements ElementRenderer {
 //   const x = `${globalCoords.x + this.barElement.endGap.x}`;
 //   const y = `${globalCoords.y + this.barElement.endGap.y}`;
 //   const width = `${this.barElement.repeatRect.width}`;
-//   const tabBeatHeight = this.barElement.tabBeatElements[0]?.rect.height ?? 0;
+//   const tabBeatHeight = this.barElement.tabBeatElements[0]?.boundingBox.height ?? 0;
 //   const sheetBeatHeight =
-//     this.barElement.sheetBeatElements[0]?.rect.height ?? 0;
+//     this.barElement.sheetBeatElements[0]?.boundingBox.height ?? 0;
 //   const height = `${tabBeatHeight + sheetBeatHeight}`;
 //   this._barSelectionEndGapRect.setAttribute("x", x);
 //   this._barSelectionEndGapRect.setAttribute("y", y);

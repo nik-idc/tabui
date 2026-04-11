@@ -7,7 +7,7 @@ import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-ele
 import { BarElement } from "@/notation/controller/element/bar/bar-element";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
-import { GuitarTechniqueElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element";
+import { TechniqueElement } from "@/notation/controller/element/technique/technique-element";
 import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
@@ -20,7 +20,7 @@ import { SVGStyleLineRenderer } from "../svg-style-line-renderer";
 import { SVGTechGapRenderer } from "../svg-tech-gap-renderer";
 import { SVGBarRenderer } from "../svg-bar-renderer";
 import { SVGTabBeatRenderer } from "../svg-tab-beat-renderer";
-import { SVGGuitarNoteRenderer } from "../svg-guitar-note-renderer";
+import { SVGTabNoteRenderer } from "../svg-tab-note-renderer";
 import { SVGTechniqueRenderer } from "../svg-technique-renderer";
 import { SVGTechniqueLabelRenderer } from "../svg-technique-label-renderer";
 import { SVGBeamSegmentRenderer } from "../svg-beam-segment-renderer";
@@ -49,10 +49,10 @@ export function rebindRendererElement(
     renderer.barElement = element as BarElement;
   } else if (renderer instanceof SVGTabBeatRenderer) {
     renderer.beatElement = element as TabBeatElement;
-  } else if (renderer instanceof SVGGuitarNoteRenderer) {
+  } else if (renderer instanceof SVGTabNoteRenderer) {
     renderer.noteElement = element as TabNoteElement;
   } else if (renderer instanceof SVGTechniqueRenderer) {
-    renderer.techniqueElement = element as GuitarTechniqueElement;
+    renderer.techniqueElement = element as TechniqueElement;
   } else if (renderer instanceof SVGTechniqueLabelRenderer) {
     renderer.techniqueLabelElement = element as GuitarTechniqueLabelElement;
   } else if (renderer instanceof SVGBeamSegmentRenderer) {

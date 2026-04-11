@@ -1,7 +1,7 @@
 import {
   BeamSegmentElement,
   BeatElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";

@@ -1,6 +1,6 @@
 import { Beat, Guitar, GuitarTechnique } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { GuitarTechniqueLabelElement } from "../technique/guitar-technique/guitar-technique-label-element";
 import { TECHNIQUE_TYPE_TO_LABEL } from "../technique/guitar-technique/guitar-technique-element-lists";
@@ -35,7 +35,7 @@ export class SheetBeatElement implements BeatElement {
   private _techniqueLabelElements: TechniqueLabelElement[];
 
   /** This beat's rect */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** This beat's duration rect */
   private _durationRect: Rect;
   /** Duration stem vertical line */
@@ -61,7 +61,7 @@ export class SheetBeatElement implements BeatElement {
     this._noteElements = [];
     this._techniqueLabelElements = [];
 
-    this._rect = new Rect();
+    this._boundingBox = new Rect();
     this._durationRect = new Rect();
     this._dot1Circle = new Circle();
     this._dot2Circle = new Circle();
@@ -92,9 +92,9 @@ export class SheetBeatElement implements BeatElement {
     return this._techniqueLabelElements;
   }
 
-  /** This beat's rectangle */
-  public get rect(): Rect {
-    return this._rect;
+  /** This beat's layout bounding box */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
   public getModelUUID(): number {
@@ -123,18 +123,26 @@ export class SheetBeatElement implements BeatElement {
 
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._rect.x,
-      this.barElement.globalCoords.y + this._rect.y
+      this.barElement.globalCoords.x + this._boundingBox.x,
+      this.barElement.globalCoords.y + this._boundingBox.y
     );
   }
 
-  public get globalRect(): Rect {
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   public get stateHash(): string {

@@ -147,7 +147,7 @@ export class TrackController {
     let trackWindowHeight = 0;
     const trackLineElements = this._trackElement.trackLineElements;
     for (const trackLineElement of trackLineElements) {
-      trackWindowHeight += trackLineElement.rect.height;
+      trackWindowHeight += trackLineElement.boundingBox.height;
     }
 
     return trackWindowHeight;

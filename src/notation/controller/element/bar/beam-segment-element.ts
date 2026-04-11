@@ -1,5 +1,5 @@
 import { Point, Rect, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BarElement } from "./bar-element";
@@ -162,16 +162,22 @@ export class BeamSegmentElement implements NotationElement {
 
     if (this.nextBeatElement !== undefined) {
       const longWidth =
-        this.curBeatElement.rect.width / 2 +
-        this.nextBeatElement.rect.width / 2;
+        this.curBeatElement.boundingBox.width / 2 +
+        this.nextBeatElement.boundingBox.width / 2;
       for (const rect of this._longRects) {
-        rect.setDimensions(longWidth, TabLayoutDimensions.DURATION_FLAG_HEIGHT);
+        rect.setDimensions(
+          longWidth,
+          EditorLayoutDimensions.DURATION_FLAG_HEIGHT
+        );
       }
     }
 
     const shortWidth = 10; // Should put this in tab layout dimensions
     for (const rect of this._shortRects) {
-      rect.setDimensions(shortWidth, TabLayoutDimensions.DURATION_FLAG_HEIGHT);
+      rect.setDimensions(
+        shortWidth,
+        EditorLayoutDimensions.DURATION_FLAG_HEIGHT
+      );
     }
   }
 
@@ -180,10 +186,10 @@ export class BeamSegmentElement implements NotationElement {
    * */
   private calcStateHash(): void {
     const hashArr: string[] = [
-      `${this.globalRect.x}` +
-        `${this.globalRect.y}` +
-        `${this.globalRect.width}` +
-        `${this.globalRect.height}`,
+      `${this.globalBoundingBox.x}` +
+        `${this.globalBoundingBox.y}` +
+        `${this.globalBoundingBox.width}` +
+        `${this.globalBoundingBox.height}`,
     ];
 
     for (const longRect of this._longRects) {
@@ -227,21 +233,22 @@ export class BeamSegmentElement implements NotationElement {
     }
 
     const longX =
-      this.curBeatElement.rect.x + this.curBeatElement.durationStemLine.x;
+      this.curBeatElement.boundingBox.x +
+      this.curBeatElement.durationStemLine.x;
     const shortTailDirection = this.getShortTailDirection();
     const shortWidth = 10;
 
     const baseY =
-      this.barElement.rect.height -
-      TabLayoutDimensions.TUPLET_RECT_HEIGHT -
-      TabLayoutDimensions.DURATION_FLAG_HEIGHT;
+      this.barElement.boundingBox.height -
+      EditorLayoutDimensions.TUPLET_RECT_HEIGHT -
+      EditorLayoutDimensions.DURATION_FLAG_HEIGHT;
 
     const curFlags = this.getFlagCount(this.curBeatElement);
     let longRectIndex = 0;
     let shortRectIndex = 0;
     for (let level = 1; level <= curFlags; level++) {
       const y =
-        baseY - (level - 1) * TabLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
+        baseY - (level - 1) * EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
 
       if (this.isLongRectLevel(level)) {
         this._longRects[longRectIndex]?.setCoords(longX, y);
@@ -307,8 +314,8 @@ export class BeamSegmentElement implements NotationElement {
     return prevUUID + curUUID * 3 + nextUUID * 5 + terminalFlag * 7;
   }
 
-  /** Bar element rectangle */
-  public get rect(): Rect {
+  /** Beam segment layout bounding box */
+  public get boundingBox(): Rect {
     const allRects = [...this._longRects, ...this._shortRects];
     if (allRects.length === 0) {
       return new Rect();
@@ -336,14 +343,22 @@ export class BeamSegmentElement implements NotationElement {
     return new Rect(minX, minY, maxX - minX, maxY - minY);
   }
 
-  /** This bar's rect in global coords */
-  public get globalRect(): Rect {
+  /** Beam segment layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this.rect.width,
-      this.rect.height
+      this.boundingBox.width,
+      this.boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Rectangle of the long beam */
@@ -391,8 +406,8 @@ export class BeamSegmentElement implements NotationElement {
   /** Global coords of the beam segment element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this.rect.x,
-      this.barElement.globalCoords.y + this.rect.y
+      this.barElement.globalCoords.x + this.boundingBox.x,
+      this.barElement.globalCoords.y + this.boundingBox.y
     );
   }
 }

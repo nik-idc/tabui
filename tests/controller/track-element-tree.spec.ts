@@ -1,6 +1,6 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
-import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { DEFAULT_MASTER_BAR } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
@@ -84,26 +84,26 @@ describe("TrackElement tree", () => {
     expect(trackElement.getPrevTrackLineElement(firstLine)).toBeNull();
     expect(trackElement.getNextTrackLineElement(firstLine)).toBe(secondLine);
     expect(trackElement.getPrevTrackLineElement(secondLine)).toBe(firstLine);
-    expect(secondLine.rect.y).toBeCloseTo(firstLine.rect.bottom);
+    expect(secondLine.boundingBox.y).toBeCloseTo(firstLine.boundingBox.bottom);
 
     const secondLineStyle =
       secondLine.staffLineElements[0].styleLinesAsArray[0];
-    expect(secondLineStyle.barElements[0].rect.x).toBeCloseTo(0);
+    expect(secondLineStyle.barElements[0].boundingBox.x).toBeCloseTo(0);
 
     const firstLineStyle = firstLine.staffLineElements[0].styleLinesAsArray[0];
     expect(
-      firstLineStyle.barElements[firstLineStyle.barElements.length - 1].rect
-        .right
-    ).toBeCloseTo(TabLayoutDimensions.WIDTH);
+      firstLineStyle.barElements[firstLineStyle.barElements.length - 1]
+        .boundingBox.right
+    ).toBeCloseTo(EditorLayoutDimensions.WIDTH);
     expect(
-      secondLineStyle.barElements[secondLineStyle.barElements.length - 1].rect
-        .right
-    ).toBeLessThanOrEqual(TabLayoutDimensions.WIDTH);
+      secondLineStyle.barElements[secondLineStyle.barElements.length - 1]
+        .boundingBox.right
+    ).toBeLessThanOrEqual(EditorLayoutDimensions.WIDTH);
 
     for (const line of lines) {
       const styleLine = line.staffLineElements[0].styleLinesAsArray[0];
       expect(styleLine.barElements).toHaveLength(line.trackLineData.length);
-      expect(styleLine.barElements[0].rect.x).toBeCloseTo(0);
+      expect(styleLine.barElements[0].boundingBox.x).toBeCloseTo(0);
 
       for (let i = 0; i < line.trackLineData.length; i++) {
         const masterBarIndex = line.trackLineData[i].masterBarIndex;
@@ -112,8 +112,8 @@ describe("TrackElement tree", () => {
         );
 
         if (i > 0) {
-          expect(styleLine.barElements[i].rect.x).toBeCloseTo(
-            styleLine.barElements[i - 1].rect.right
+          expect(styleLine.barElements[i].boundingBox.x).toBeCloseTo(
+            styleLine.barElements[i - 1].boundingBox.right
           );
         }
       }

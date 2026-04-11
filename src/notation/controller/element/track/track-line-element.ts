@@ -1,6 +1,6 @@
 import { Guitar, MasterBar, Track } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import {
   StaffLineData,
@@ -48,7 +48,7 @@ export class TrackLineElement implements NotationElement {
   private _trackLineInfoElement: TrackLineInfoElement | null;
 
   /** Track line encapsulating rectangle */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** Left & right outline line for when there are more than 1 staves */
   private _outlineLines?: OutlineLines;
   /** Data necessary to build a track line */
@@ -74,7 +74,7 @@ export class TrackLineElement implements NotationElement {
     this._staffLineElements = [];
     this._trackLineInfoElement = null;
 
-    this._rect = new Rect();
+    this._boundingBox = new Rect();
     this._trackLineData = trackLineData;
 
     this._stateHash = "";
@@ -128,14 +128,15 @@ export class TrackLineElement implements NotationElement {
     let sumStaffHeight = 0;
     for (const staffLine of this._staffLineElements) {
       staffLine.measure();
-      sumStaffHeight += staffLine.rect.height;
+      sumStaffHeight += staffLine.boundingBox.height;
     }
 
     this._trackLineInfoElement.measure();
 
-    const width = this._staffLineElements[0].rect.width;
-    const height = sumStaffHeight + this._trackLineInfoElement.rect.height;
-    this._rect.setDimensions(width, height);
+    const width = this._staffLineElements[0].boundingBox.width;
+    const height =
+      sumStaffHeight + this._trackLineInfoElement.boundingBox.height;
+    this._boundingBox.setDimensions(width, height);
   }
 
   /**
@@ -143,10 +144,10 @@ export class TrackLineElement implements NotationElement {
    * */
   private calcStateHash(): void {
     const hashArr: string[] = [
-      `${this.globalRect.x}` +
-        `${this.globalRect.y}` +
-        `${this.globalRect.width}` +
-        `${this.globalRect.height}`,
+      `${this.globalBoundingBox.x}` +
+        `${this.globalBoundingBox.y}` +
+        `${this.globalBoundingBox.width}` +
+        `${this.globalBoundingBox.height}`,
     ];
 
     this._stateHash = hashArr.join("");
@@ -168,8 +169,8 @@ export class TrackLineElement implements NotationElement {
     }
 
     const prevTrackLine = this.trackElement.getPrevTrackLineElement(this);
-    const y = prevTrackLine?._rect.bottom ?? 0;
-    this._rect.setCoords(0, y);
+    const y = prevTrackLine?._boundingBox.bottom ?? 0;
+    this._boundingBox.setCoords(0, y);
 
     this._trackLineInfoElement.layout();
 
@@ -181,21 +182,22 @@ export class TrackLineElement implements NotationElement {
       return;
     }
     const xLeft = 0;
-    const xRight = this._rect.width;
+    const xRight = this._boundingBox.width;
 
     // TODO: Redo this outline layout to support multiple notation
     // styles since current calculation only works for tablature
     const y1 =
-      this._trackLineInfoElement.rect.bottom +
+      this._trackLineInfoElement.boundingBox.bottom +
       // Since visually the staff lines begin a bit lower than the element
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
-      this._staffLineElements[0].styleLinesAsArray[0].techGapElement.rect
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this._staffLineElements[0].styleLinesAsArray[0].techGapElement.boundingBox
         .bottom;
     const y2 =
-      this._staffLineElements[this._staffLineElements.length - 1].rect.bottom -
-      TabLayoutDimensions.TUPLET_RECT_HEIGHT -
-      TabLayoutDimensions.DURATIONS_HEIGHT -
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2;
+      this._staffLineElements[this._staffLineElements.length - 1].boundingBox
+        .bottom -
+      EditorLayoutDimensions.TUPLET_RECT_HEIGHT -
+      EditorLayoutDimensions.DURATIONS_HEIGHT -
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2;
 
     this._outlineLines.left.set(xLeft, y1, y2);
     this._outlineLines.right.set(xRight, y1, y2);
@@ -218,9 +220,9 @@ export class TrackLineElement implements NotationElement {
    */
   public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
     if (scaleOuterX) {
-      this._rect.x *= scale;
+      this._boundingBox.x *= scale;
     }
-    this._rect.width *= scale;
+    this._boundingBox.width *= scale;
 
     for (const staffLineElement of this._staffLineElements) {
       staffLineElement.scaleHorBy(scale);
@@ -250,13 +252,13 @@ export class TrackLineElement implements NotationElement {
     // Calling layout since for info line that will have the same effect
     this._trackLineInfoElement.layout();
 
-    const width = this._staffLineElements[0].rect.width;
-    this._rect.width = width;
+    const width = this._staffLineElements[0].boundingBox.width;
+    this._boundingBox.width = width;
 
     if (this._outlineLines === undefined) {
       return;
     }
-    this._outlineLines.right.x = this._rect.width;
+    this._outlineLines.right.x = this._boundingBox.width;
 
     // Calculating state hash at the last step of
     // element's update process - layout
@@ -334,7 +336,7 @@ export class TrackLineElement implements NotationElement {
 
             for (const noteElement of beatElement.noteElements) {
               elements.push(noteElement);
-              elements.push(...noteElement.guitarTechniqueElements);
+              elements.push(...noteElement.techniqueElements);
             }
           }
         }
@@ -393,27 +395,35 @@ export class TrackLineElement implements NotationElement {
     return result;
   }
 
-  /** Track line encapsulating rectangle */
-  public get rect(): Rect {
-    return this._rect;
+  /** Track line layout bounding box */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
   /** Global coords of the track line element (in most cases X will be 0) */
   public get globalCoords(): Point {
     return new Point(
-      this.trackElement.globalCoords.x + this._rect.x,
-      this.trackElement.globalCoords.y + this._rect.y
+      this.trackElement.globalCoords.x + this._boundingBox.x,
+      this.trackElement.globalCoords.y + this._boundingBox.y
     );
   }
 
-  /** This element's rect in global coords */
-  public get globalRect(): Rect {
+  /** This element's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Data necessary to build a track line */
@@ -450,7 +460,7 @@ export class TrackLineElement implements NotationElement {
 //     const bar = staffLine.staff.bars[masterBarIndex];
 //     const barWidth = getBarWidth(bar);
 
-//     if (staffLine.rect.right + barWidth <= TabLayoutDimensions.WIDTH) {
+//     if (staffLine.boundingBox.right + barWidth <= EditorLayoutDimensions.WIDTH) {
 //       barsCountsPerStaff.push();
 //     }
 //   }
@@ -488,12 +498,12 @@ export class TrackLineElement implements NotationElement {
 //     this.trackElement.trackLineElements[
 //       this.trackElement.trackLineElements.length - 1
 //     ];
-//   const y = prevTrackLineElement?._rect.bottom ?? 0;
-//   this._rect = new Rect(
+//   const y = prevTrackLineElement?._boundingBox.bottom ?? 0;
+//   this._boundingBox = new Rect(
 //     0,
 //     y,
-//     TabLayoutDimensions.WIDTH,
-//     TabLayoutDimensions.getStaffLineMinHeight(this.track.context.instrument)
+//     EditorLayoutDimensions.WIDTH,
+//     EditorLayoutDimensions.getStaffLineMinHeight(this.track.context.instrument)
 //   );
 
 //   this._trackLineInfoElement.calc();

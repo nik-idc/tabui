@@ -1,9 +1,9 @@
 import { getEl } from "@/shared/misc/get-dom-element";
 import { TabUIEditor } from "@/tabui-editor";
-import { TabLayoutDimensions } from "@/notation";
+import { EditorLayoutDimensions } from "@/notation";
 import { resolveEditorFixture } from "./data/fixture";
 
-TabLayoutDimensions.configure({
+EditorLayoutDimensions.configure({
   width: 1200,
   noteTextSize: 12,
   timeSigTextSize: 48,

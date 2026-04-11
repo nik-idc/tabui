@@ -1,7 +1,7 @@
 // import { Beat, GuitarNote } from "@/notation/model";
 // import { Point, Rect, randomInt } from "@/shared";
 // import { BeatElement } from "./beat-element";
-// import { TabLayoutDimensions } from "../tab-controller-dim";
+// import { EditorLayoutDimensions } from "../tab-controller-dim";
 // import { NoteElement } from "./note-element";
 // import { TabNoteElement } from "./guitar-note-element";
 
@@ -45,10 +45,10 @@
 //   public calc(): void {
 //     this._rect = new Rect(
 //       0,
-//       TabLayoutDimensions.DURATIONS_HEIGHT +
+//       EditorLayoutDimensions.DURATIONS_HEIGHT +
 //         this.beatElement.techniqueLabelsRect.height,
 //       this.beatElement.rect.width,
-//       TabLayoutDimensions.NOTE_RECT_HEIGHT *
+//       EditorLayoutDimensions.NOTE_RECT_HEIGHT *
 //         this.beat.trackContext.instrument.maxPolyphony
 //     );
 

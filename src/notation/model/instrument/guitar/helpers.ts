@@ -1,10 +1,4 @@
-import { INSTRUMENT_KINDS } from "@/ui/top-controls/score-controls/new-track";
-import { Note, NoteType, NoteValue } from "../../note";
-import {
-  INSTRUMENT_TYPES,
-  StringMusicInstrumentType,
-} from "../instrument-type";
-import { MusicInstrumentKind } from "../instrument-kind";
+import { NoteType, NoteValue } from "../../note";
 
 /**
  * 🚨🚨🚨 !!! AI SLOP !!! 🚨🚨🚨

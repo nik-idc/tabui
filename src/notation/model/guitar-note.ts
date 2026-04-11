@@ -1,6 +1,6 @@
 import { randomInt } from "@/shared";
 import { Beat } from "./beat";
-import { TabContext } from "./track-context";
+import { TrackContext } from "./track-context";
 import { GuitarTechniqueJSON, GuitarTechnique } from "./guitar-technique";
 import { Guitar } from "./instrument/guitar";
 import { MusicInstrumentType } from "./instrument/instrument-type";
@@ -36,8 +36,8 @@ export class GuitarNote implements Note<Guitar> {
   readonly uuid: number;
   /** Beat in which the note lives */
   readonly beat: Beat<Guitar>;
-  /** Tab context */
-  readonly trackContext: TabContext;
+  /** Track context */
+  readonly trackContext: TrackContext<Guitar>;
 
   /** Note value */
   private _noteValue: NoteValue = NoteValue.None;
@@ -53,14 +53,14 @@ export class GuitarNote implements Note<Guitar> {
   /**
    * Class that represents a guitar note
    * @param beat Beat in which the note lives
-   * @param trackContext Tab context
+   * @param trackContext Track context
    * @param stringNum String number
    * @param fret Fret number
    * @param techniques Techniques applied to the note
    */
   constructor(
     beat: Beat<Guitar>,
-    trackContext: TabContext,
+    trackContext: TrackContext<Guitar>,
     stringNum: number,
     fret: number | null = null,
     techniques: GuitarTechnique[] = []

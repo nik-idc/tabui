@@ -1,5 +1,5 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { SideControlsComponent } from "./side-controls/side-contros-component";
+import { SideControlsComponent } from "./side-controls/side-controls-component";
 import { TopControlsComponent } from "./top-controls";
 
 export class UIComponent {

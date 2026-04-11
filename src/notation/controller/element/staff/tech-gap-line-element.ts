@@ -1,6 +1,6 @@
 import { Point, randomInt, Rect } from "@/shared";
 import { GuitarTechnique, Technique, TechniqueType } from "@/notation/model";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BeatElement } from "@/notation/controller/element/beat/beat-element";
@@ -33,7 +33,7 @@ export class TechGapLineElement implements NotationElement {
   private _labelElements: TechniqueLabelElement[];
 
   /** Outer rectangle */
-  private _rect?: Rect;
+  private _boundingBox?: Rect;
   /** String encoding the state of this element */
   private _stateHash: string;
 
@@ -90,12 +90,12 @@ export class TechGapLineElement implements NotationElement {
     this._labelElements.push(labelElement);
     beatsLabels.add(technique.type);
 
-    if (this._rect === undefined) {
-      this._rect = new Rect(
+    if (this._boundingBox === undefined) {
+      this._boundingBox = new Rect(
         0,
         0,
-        this.techGapElement.rect.width,
-        TabLayoutDimensions.TECH_LABEL_HEIGHT
+        this.techGapElement.boundingBox.width,
+        EditorLayoutDimensions.TECH_LABEL_HEIGHT
       );
     }
   }
@@ -120,11 +120,11 @@ export class TechGapLineElement implements NotationElement {
   private calcStateHash(): void {
     const hashArr: string[] = [];
 
-    if (this.globalRect.width !== undefined) {
-      hashArr.push(`${this.globalRect.x}`);
-      hashArr.push(`${this.globalRect.y}`);
-      hashArr.push(`${this.globalRect.width}`);
-      hashArr.push(`${this.globalRect.height}`);
+    if (this.globalBoundingBox.width !== undefined) {
+      hashArr.push(`${this.globalBoundingBox.x}`);
+      hashArr.push(`${this.globalBoundingBox.y}`);
+      hashArr.push(`${this.globalBoundingBox.width}`);
+      hashArr.push(`${this.globalBoundingBox.height}`);
     }
 
     this._stateHash = hashArr.join("");
@@ -138,8 +138,8 @@ export class TechGapLineElement implements NotationElement {
    */
   public layout(): void {
     const prevLine = this.techGapElement.getPrevGapLine(this);
-    const y = prevLine?.rect.bottom ?? 0;
-    this._rect?.setCoords(0, y);
+    const y = prevLine?.boundingBox.bottom ?? 0;
+    this._boundingBox?.setCoords(0, y);
 
     for (const label of this._labelElements) {
       label.layout();
@@ -160,9 +160,9 @@ export class TechGapLineElement implements NotationElement {
    * @param scale Scale factor
    */
   public scaleHorBy(scale: number): void {
-    if (this._rect !== undefined) {
-      this._rect.x *= scale;
-      this._rect.width *= scale;
+    if (this._boundingBox !== undefined) {
+      this._boundingBox.x *= scale;
+      this._boundingBox.width *= scale;
     }
 
     for (const label of this._labelElements) {
@@ -186,25 +186,33 @@ export class TechGapLineElement implements NotationElement {
   /** Global coords of the notation style line element */
   public get globalCoords(): Point {
     return new Point(
-      this.techGapElement.globalCoords.x + (this._rect?.x ?? 0),
-      this.techGapElement.globalCoords.y + (this._rect?.y ?? 0)
+      this.techGapElement.globalCoords.x + (this._boundingBox?.x ?? 0),
+      this.techGapElement.globalCoords.y + (this._boundingBox?.y ?? 0)
     );
   }
 
-  /** Line outer rectangle */
-  public get rect(): Rect {
+  /** Line outer layout bounding box */
+  public get boundingBox(): Rect {
     // Fallback keeps interface contract for not-yet-measured instances.
-    return this._rect ?? new Rect();
+    return this._boundingBox ?? new Rect();
   }
 
-  /** This element's rect in global coords */
-  public get globalRect(): Rect {
+  /** This element's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect?.width,
-      this._rect?.height
+      this._boundingBox?.width,
+      this._boundingBox?.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Maps each BeatElement instance to a Set of TechniqueType labels already processed or drawn for that specific beat elemen */

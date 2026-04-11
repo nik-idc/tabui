@@ -1,6 +1,6 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { getBeatWidth } from "../../src/notation/controller/element/beat/beat-element";
-import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { DEFAULT_MASTER_BAR, NoteDuration } from "../../src/notation/model";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
@@ -29,9 +29,11 @@ describe("TrackElement rhythm", () => {
 
     let expectedX = barElement.startGap.right;
     for (let i = 0; i < beatElements.length; i++) {
-      expect(beatElements[i].rect.x).toBeCloseTo(expectedX);
-      expect(beatElements[i].rect.width).toBeCloseTo(getBeatWidth(beats[i]));
-      expectedX += beatElements[i].rect.width;
+      expect(beatElements[i].boundingBox.x).toBeCloseTo(expectedX);
+      expect(beatElements[i].boundingBox.width).toBeCloseTo(
+        getBeatWidth(beats[i])
+      );
+      expectedX += beatElements[i].boundingBox.width;
     }
   });
 
@@ -55,7 +57,7 @@ describe("TrackElement rhythm", () => {
     expect(rects).toHaveLength(1);
     expect(rects[0].x).toBeCloseTo(firstSelected.globalCoords.x);
     expect(rects[0].width).toBeCloseTo(
-      lastSelected.globalRect.right - firstSelected.globalCoords.x
+      lastSelected.globalBoundingBox.right - firstSelected.globalCoords.x
     );
   });
 
@@ -78,10 +80,12 @@ describe("TrackElement rhythm", () => {
 
     expect(beatElements).toHaveLength(3);
     for (let i = 0; i < beatElements.length; i++) {
-      expect(beatElements[i].rect.width).toBeCloseTo(getBeatWidth(beats[i]));
+      expect(beatElements[i].boundingBox.width).toBeCloseTo(
+        getBeatWidth(beats[i])
+      );
     }
-    expect(beatElements[1].rect.width).toBeGreaterThan(
-      beatElements[2].rect.width
+    expect(beatElements[1].boundingBox.width).toBeGreaterThan(
+      beatElements[2].boundingBox.width
     );
   });
 
@@ -99,17 +103,17 @@ describe("TrackElement rhythm", () => {
         .styleLinesAsArray[0];
     const lastBarOnFirstLine =
       firstLineStyle.barElements[firstLineStyle.barElements.length - 1];
-    expect(lastBarOnFirstLine.rect.right).toBeCloseTo(
-      TabLayoutDimensions.WIDTH
+    expect(lastBarOnFirstLine.boundingBox.right).toBeCloseTo(
+      EditorLayoutDimensions.WIDTH
     );
 
     for (const barElement of firstLineStyle.barElements) {
       for (let i = 1; i < barElement.beatElements.length; i++) {
-        expect(barElement.beatElements[i].rect.x).toBeCloseTo(
-          barElement.beatElements[i - 1].rect.right
+        expect(barElement.beatElements[i].boundingBox.x).toBeCloseTo(
+          barElement.beatElements[i - 1].boundingBox.right
         );
       }
-      expect(barElement.rect.width).toBeGreaterThan(0);
+      expect(barElement.boundingBox.width).toBeGreaterThan(0);
     }
   });
 });

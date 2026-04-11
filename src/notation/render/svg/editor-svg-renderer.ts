@@ -2,7 +2,7 @@ import {
   BeatElement,
   NoteElement,
   NotationElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
 import { createSVG, createSVGG, createSVGRect, Rect } from "@/shared";
@@ -166,7 +166,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     let firstVisibleIndex = -1;
     let lastVisibleIndex = -1;
     for (let i = 0; i < trackLines.length; i++) {
-      const lineRect = trackLines[i].globalRect;
+      const lineRect = trackLines[i].globalBoundingBox;
       const intersectsViewport =
         lineRect.bottom >= viewportTop && lineRect.y <= viewportBottom;
       if (!intersectsViewport) {
@@ -464,9 +464,12 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     // Update SVG root dimensions
     const trackWindowHeight = trackController.trackElement.height;
-    const VB = `0 0 ${TabLayoutDimensions.WIDTH} ${trackWindowHeight}`;
+    const VB = `0 0 ${EditorLayoutDimensions.WIDTH} ${trackWindowHeight}`;
     this.rootSVGElement.setAttribute("viewBox", VB);
-    this.rootSVGElement.setAttribute("width", `${TabLayoutDimensions.WIDTH}`);
+    this.rootSVGElement.setAttribute(
+      "width",
+      `${EditorLayoutDimensions.WIDTH}`
+    );
     this.rootSVGElement.setAttribute("height", `${trackWindowHeight}`);
 
     return activeRenderers;
@@ -541,11 +544,11 @@ class BeatInteractionLayer {
         this._beatInteractionRects.set(modelUUID, rect);
       }
 
-      const globalRect = element.globalRect;
-      rect.setAttribute("x", `${globalRect.x}`);
-      rect.setAttribute("y", `${globalRect.y}`);
-      rect.setAttribute("width", `${globalRect.width}`);
-      rect.setAttribute("height", `${globalRect.height}`);
+      const globalBoundingBox = element.globalBoundingBox;
+      rect.setAttribute("x", `${globalBoundingBox.x}`);
+      rect.setAttribute("y", `${globalBoundingBox.y}`);
+      rect.setAttribute("width", `${globalBoundingBox.width}`);
+      rect.setAttribute("height", `${globalBoundingBox.height}`);
     }
 
     for (const [modelUUID, rect] of this._beatInteractionRects) {

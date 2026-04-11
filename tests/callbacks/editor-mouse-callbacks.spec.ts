@@ -1,6 +1,6 @@
 import { EditorMouseDefCallbacks } from "../../src/callbacks/editor/editor-mouse-callbacks";
 import { RenderType } from "../../src/callbacks/render-type";
-import { SVGGuitarNoteRenderer } from "../../src/notation/render/svg/svg-guitar-note-renderer";
+import { SVGTabNoteRenderer } from "../../src/notation/render/svg/svg-tab-note-renderer";
 
 function createMouseEvent(
   x: number,
@@ -16,7 +16,7 @@ function createMouseEvent(
 
 function createRendererBackedNoteRenderer(noteElement: any) {
   const handlers = new Map<string, Function>();
-  const renderer = Object.create(SVGGuitarNoteRenderer.prototype) as any;
+  const renderer = Object.create(SVGTabNoteRenderer.prototype) as any;
   renderer.noteElement = noteElement;
   renderer.attachMouseEvent = jest.fn(
     (eventType: string, handler: Function) => {
@@ -37,7 +37,10 @@ function createRendererBackedNoteRenderer(noteElement: any) {
 }
 
 function createHarness() {
-  const beatElement = { rect: { width: 40 } } as any;
+  const beatElement = {
+    boundingBox: { width: 40 },
+    rect: { width: 40 },
+  } as any;
   const noteElement = { beatElement } as any;
   const renderer = {
     showSelectionPreview: jest.fn(),

@@ -5,7 +5,7 @@ import {
 } from "@/notation/model";
 import { Point, Rect, getPitchRatioNums, randomInt } from "@/shared";
 import { SVGUtils } from "./guitar-technique-html";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { BeatElement } from "@/notation/controller/element/beat/beat-element";
 import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
@@ -27,7 +27,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   readonly trackElement: TrackElement;
 
   /** Outer rectangle */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** SVG path */
   private _svgPath?: string;
   /** String encoding the state of this element */
@@ -52,7 +52,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
     this._stateHash = "";
 
-    this._rect = new Rect();
+    this._boundingBox = new Rect();
 
     this.trackElement.registerElement(this);
   }
@@ -69,9 +69,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     }
 
     const nums = getPitchRatioNums(this.technique.bendOptions.bendPitch);
-    const bigNumSize = TabLayoutDimensions.NOTE_TEXT_SIZE;
-    const x = this._rect.x + this._rect.width - bigNumSize / 2;
-    const y = this._rect.y + this._rect.height / 2 - bigNumSize / 2;
+    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const x = this._boundingBox.x + this._boundingBox.width - bigNumSize / 2;
+    const y =
+      this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
 
     if ([1, 2, 3].includes(nums[0]) && nums[1] === 0) {
       let text: string;
@@ -92,7 +93,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       this._svgPath = SVGUtils.textSVGHTML(
         x,
         y,
-        TabLayoutDimensions.NOTE_TEXT_SIZE,
+        EditorLayoutDimensions.NOTE_TEXT_SIZE,
         text
       );
       return;
@@ -121,9 +122,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
     const nums = getPitchRatioNums(this.technique.bendOptions.prebendPitch);
 
-    const bigNumSize = TabLayoutDimensions.NOTE_TEXT_SIZE;
-    const x = this._rect.x + this._rect.width / 2;
-    const y = this._rect.y + this._rect.height / 2 - bigNumSize / 2;
+    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const x = this._boundingBox.x + this._boundingBox.width / 2;
+    const y =
+      this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
     this._svgPath = SVGUtils.ratioSVGHTML(
       nums[0],
       nums[1],
@@ -160,13 +162,13 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       return;
     }
 
-    const bigNumSize = TabLayoutDimensions.NOTE_TEXT_SIZE;
-    const xBend = this._rect.x + this._rect.width - bigNumSize;
+    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const xBend = this._boundingBox.x + this._boundingBox.width - bigNumSize;
     const xRelease = xBend + bigNumSize * 1.5;
     const y =
-      this._rect.y +
-      this._rect.height / 2 -
-      TabLayoutDimensions.NOTE_TEXT_SIZE / 2;
+      this._boundingBox.y +
+      this._boundingBox.height / 2 -
+      EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
 
     const bendNums = getPitchRatioNums(this.technique.bendOptions.bendPitch);
     const bendHTML = SVGUtils.ratioSVGHTML(
@@ -219,13 +221,14 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       return;
     }
 
-    const bigNumSize = TabLayoutDimensions.NOTE_TEXT_SIZE;
-    const xPrebend = this._rect.x + this._rect.width / 2 + bigNumSize / 4;
+    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const xPrebend =
+      this._boundingBox.x + this._boundingBox.width / 2 + bigNumSize / 4;
     const xRelease = xPrebend + bigNumSize * 1.5;
     const y =
-      this._rect.y +
-      this._rect.height / 2 -
-      TabLayoutDimensions.NOTE_TEXT_SIZE / 2;
+      this._boundingBox.y +
+      this._boundingBox.height / 2 -
+      EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
 
     const prebendNums = getPitchRatioNums(
       this.technique.bendOptions.prebendPitch
@@ -258,10 +261,13 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Generates regular vibrato HTML
    */
   private createVibratoPath(): void {
-    const x = this._rect.x + this._rect.width / 2 - this._rect.width / 4;
-    const y = this._rect.y + this._rect.height / 2;
-    const vibratoHeight = this.rect.height / 6;
-    const vibratoWidth = this.rect.width / 2;
+    const x =
+      this._boundingBox.x +
+      this._boundingBox.width / 2 -
+      this._boundingBox.width / 4;
+    const y = this._boundingBox.y + this._boundingBox.height / 2;
+    const vibratoHeight = this.boundingBox.height / 6;
+    const vibratoWidth = this.boundingBox.width / 2;
     this._svgPath = SVGUtils.horizontalSquigglySVGHTML(
       x,
       y,
@@ -275,12 +281,14 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    */
   private createPalmMutePath(): void {
     const x =
-      this._rect.x + this._rect.width / 2 - TabLayoutDimensions.NOTE_TEXT_SIZE;
-    const y = this._rect.y + this._rect.height / 2;
+      this._boundingBox.x +
+      this._boundingBox.width / 2 -
+      EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const y = this._boundingBox.y + this._boundingBox.height / 2;
     this._svgPath = SVGUtils.textSVGHTML(
       x,
       y,
-      TabLayoutDimensions.NOTE_TEXT_SIZE,
+      EditorLayoutDimensions.NOTE_TEXT_SIZE,
       "P.M."
     );
   }
@@ -323,9 +331,9 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Calculates the dimensions of the outer rectangle
    */
   public measure(): void {
-    this._rect.setDimensions(
-      this.beatElement.rect.width,
-      TabLayoutDimensions.TECH_LABEL_HEIGHT
+    this._boundingBox.setDimensions(
+      this.beatElement.boundingBox.width,
+      EditorLayoutDimensions.TECH_LABEL_HEIGHT
     );
   }
 
@@ -334,10 +342,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * */
   private calcStateHash(): void {
     const hashArr: string[] = [
-      `${this.globalRect.x}` +
-        `${this.globalRect.y}` +
-        `${this.globalRect.width}` +
-        `${this.globalRect.height}`,
+      `${this.globalBoundingBox.x}` +
+        `${this.globalBoundingBox.y}` +
+        `${this.globalBoundingBox.width}` +
+        `${this.globalBoundingBox.height}`,
     ];
 
     this._stateHash = hashArr.join("");
@@ -353,8 +361,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     // Setting to beat element's global coords since
     // the label element is inside the tech gap line
     // whose rect is always (0, 0, {track line width}, {gap line height})
-    // this._rect.setCoords(this.beatElement.globalCoords.x, 0);
-    this._rect.setCoords(0, 0);
+    // this._boundingBox.setCoords(this.beatElement.globalCoords.x, 0);
+    this._boundingBox.setCoords(0, 0);
 
     this.createPath();
 
@@ -394,8 +402,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * @param scale Scale factor
    */
   public scaleHorBy(scale: number): void {
-    this._rect.x *= scale;
-    this._rect.width *= scale;
+    this._boundingBox.x *= scale;
+    this._boundingBox.width *= scale;
 
     this.createPath();
 
@@ -418,20 +426,28 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /**
-   * Outer rectangle
+   * Outer layout bounding box
    */
-  public get rect(): Rect {
-    return this._rect;
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
-  /** This element's rect in global coords */
-  public get globalRect(): Rect {
+  /** This element's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /**
@@ -444,7 +460,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /** Global coords of the guitar technique label element */
   public get globalCoords(): Point {
     return new Point(
-      this.beatElement.globalCoords.x + this._rect.x,
+      this.beatElement.globalCoords.x + this._boundingBox.x,
       this.gapLineElement.globalCoords.y
     );
   }
@@ -465,15 +481,15 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 //     TECHNIQUE_ALLOWS_STACKING[this.technique.type] &&
 //     siblingLabel !== undefined
 //   ) {
-//     y = siblingLabel.rect.y;
+//     y = siblingLabel.boundingBox.y;
 //   } else {
-//     y = existingLabels[existingLabels.length - 1]?.rect.y ?? 0;
+//     y = existingLabels[existingLabels.length - 1]?.boundingBox.y ?? 0;
 //   }
 
-//   this._rect.set(
+//   this._boundingBox.set(
 //     0,
 //     y,
-//     this.rect.width,
-//     TabLayoutDimensions.TECH_LABEL_HEIGHT
+//     this.boundingBox.width,
+//     EditorLayoutDimensions.TECH_LABEL_HEIGHT
 //   );
 // }

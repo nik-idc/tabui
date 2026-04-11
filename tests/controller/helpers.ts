@@ -1,8 +1,8 @@
-import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 
 export function ensureLayoutConfigured(): void {
   try {
-    TabLayoutDimensions.configure({
+    EditorLayoutDimensions.configure({
       width: 1200,
       noteTextSize: 12,
       timeSigTextSize: 48,

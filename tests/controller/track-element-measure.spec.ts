@@ -1,5 +1,5 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
-import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import {
   BarRepeatStatus,
   DEFAULT_MASTER_BAR,
@@ -27,10 +27,10 @@ describe("TrackElement measure", () => {
     expect(barElements[0].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect).toBeUndefined();
     expect(barElements[0].startGap.width).toBe(
-      TabLayoutDimensions.TIME_SIG_RECT_WIDTH
+      EditorLayoutDimensions.TIME_SIG_RECT_WIDTH
     );
     expect(barElements[1].startGap.width).toBe(0);
-    expect(barElements[1].beatElements[0].rect.x).toBeCloseTo(0);
+    expect(barElements[1].beatElements[0].boundingBox.x).toBeCloseTo(0);
   });
 
   test("shows time signature with expected dimensions and placement when meter changes", () => {
@@ -51,13 +51,13 @@ describe("TrackElement measure", () => {
     expect(barElements[0].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect?.width).toBe(
-      TabLayoutDimensions.TIME_SIG_RECT_WIDTH
+      EditorLayoutDimensions.TIME_SIG_RECT_WIDTH
     );
     expect(barElements[1].timeSigRect?.height).toBe(
-      TabLayoutDimensions.TIME_SIG_TEXT_SIZE * 2
+      EditorLayoutDimensions.TIME_SIG_TEXT_SIZE * 2
     );
     expect(barElements[1].timeSigRect?.x).toBe(0);
-    expect(barElements[1].beatElements[0].rect.x).toBeCloseTo(
+    expect(barElements[1].beatElements[0].boundingBox.x).toBeCloseTo(
       barElements[1].timeSigRect?.right ?? 0
     );
   });
@@ -82,30 +82,30 @@ describe("TrackElement measure", () => {
     expect(barElements[1].repeatEndRect).toBeDefined();
 
     expect(barElements[0].repeatStartRect?.width).toBe(
-      TabLayoutDimensions.REPEAT_SIGN_WIDTH
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH
     );
     expect(barElements[0].repeatStartRect?.height).toBe(
-      TabLayoutDimensions.getStaffHeight(track.context.instrument)
+      EditorLayoutDimensions.getStaffHeight(track.context.instrument)
     );
     expect(barElements[0].repeatStartRect?.x).toBeCloseTo(
       barElements[0].timeSigRect?.right ?? 0
     );
-    expect(barElements[0].beatElements[0].rect.x).toBeCloseTo(
+    expect(barElements[0].beatElements[0].boundingBox.x).toBeCloseTo(
       barElements[0].repeatStartRect?.right ?? 0
     );
 
     expect(barElements[1].repeatEndRect?.width).toBe(
-      TabLayoutDimensions.REPEAT_SIGN_WIDTH
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH
     );
     expect(barElements[1].repeatEndRect?.height).toBe(
-      TabLayoutDimensions.getStaffHeight(track.context.instrument)
+      EditorLayoutDimensions.getStaffHeight(track.context.instrument)
     );
     expect(barElements[1].repeatEndRect?.right).toBeCloseTo(
-      barElements[1].rect.width
+      barElements[1].boundingBox.width
     );
     expect(
-      barElements[1].beatElements[barElements[1].beatElements.length - 1].rect
-        .right
+      barElements[1].beatElements[barElements[1].beatElements.length - 1]
+        .boundingBox.right
     ).toBeLessThanOrEqual(barElements[1].repeatEndRect?.x ?? 0);
   });
 });

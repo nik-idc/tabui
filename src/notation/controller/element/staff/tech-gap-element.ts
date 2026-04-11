@@ -23,7 +23,7 @@ export class TechGapElement implements NotationElement {
   private _techGapLines: Record<TechLineNumber, TechGapLineElement | null>;
 
   /** Outer rectangle */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** String encoding the state of this element */
   private _stateHash: string;
 
@@ -44,7 +44,7 @@ export class TechGapElement implements NotationElement {
 
     this._stateHash = "";
 
-    this._rect = new Rect();
+    this._boundingBox = new Rect();
 
     this.trackElement.registerElement(this);
   }
@@ -83,10 +83,13 @@ export class TechGapElement implements NotationElement {
     }
 
     const height =
-      (this._techGapLines[1]?.rect?.height ?? 0) +
-      (this._techGapLines[2]?.rect?.height ?? 0) +
-      (this._techGapLines[3]?.rect?.height ?? 0);
-    this._rect.setDimensions(this.notationStyleLineElement.rect.width, height);
+      (this._techGapLines[1]?.boundingBox?.height ?? 0) +
+      (this._techGapLines[2]?.boundingBox?.height ?? 0) +
+      (this._techGapLines[3]?.boundingBox?.height ?? 0);
+    this._boundingBox.setDimensions(
+      this.notationStyleLineElement.boundingBox.width,
+      height
+    );
   }
 
   /**
@@ -95,11 +98,11 @@ export class TechGapElement implements NotationElement {
   private calcStateHash(): void {
     const hashArr: string[] = [];
 
-    if (this.globalRect.width !== undefined) {
-      hashArr.push(`${this.globalRect.x}`);
-      hashArr.push(`${this.globalRect.y}`);
-      hashArr.push(`${this.globalRect.width}`);
-      hashArr.push(`${this.globalRect.height}`);
+    if (this.globalBoundingBox.width !== undefined) {
+      hashArr.push(`${this.globalBoundingBox.x}`);
+      hashArr.push(`${this.globalBoundingBox.y}`);
+      hashArr.push(`${this.globalBoundingBox.width}`);
+      hashArr.push(`${this.globalBoundingBox.height}`);
     }
 
     this._stateHash = hashArr.join("");
@@ -112,7 +115,7 @@ export class TechGapElement implements NotationElement {
    * Sets the coordinates of all child tech gap line elements
    */
   public layout(): void {
-    this._rect.setCoords(0, 0);
+    this._boundingBox.setCoords(0, 0);
 
     this._techGapLines[1]?.layout();
     this._techGapLines[2]?.layout();
@@ -134,8 +137,8 @@ export class TechGapElement implements NotationElement {
    * @param scale Scale factor
    */
   public scaleHorBy(scale: number): void {
-    this._rect.x *= scale;
-    this._rect.width *= scale;
+    this._boundingBox.x *= scale;
+    this._boundingBox.width *= scale;
 
     this._techGapLines[1]?.scaleHorBy(scale);
     this._techGapLines[2]?.scaleHorBy(scale);
@@ -184,24 +187,32 @@ export class TechGapElement implements NotationElement {
   /** This tech gap line's global coords */
   public get globalCoords(): Point {
     return new Point(
-      this.notationStyleLineElement.globalCoords.x + this._rect.x,
-      this.notationStyleLineElement.globalCoords.y + this._rect.y
+      this.notationStyleLineElement.globalCoords.x + this._boundingBox.x,
+      this.notationStyleLineElement.globalCoords.y + this._boundingBox.y
     );
   }
 
-  /** Outer rectangle */
-  public get rect(): Rect {
-    return this._rect;
+  /** Outer layout bounding box */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
-  /** This element's rect in global coords */
-  public get globalRect(): Rect {
+  /** This element's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect?.width,
-      this._rect?.height
+      this._boundingBox?.width,
+      this._boundingBox?.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Child tech gap line elements */

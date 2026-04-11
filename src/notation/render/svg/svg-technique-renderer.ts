@@ -1,9 +1,5 @@
-import {
-  GuitarTechniqueElement,
-  TechniqueElement,
-  TrackController,
-} from "@/notation/controller";
-import { Point, createSVGG, createSVGRect } from "@/shared";
+import { TechniqueElement, TrackController } from "@/notation/controller";
+import { createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 
 /**
@@ -34,7 +30,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
    */
   constructor(
     trackController: TrackController,
-    techniqueElement: GuitarTechniqueElement,
+    techniqueElement: TechniqueElement,
     assetsPath: string
   ) {
     this.trackController = trackController;

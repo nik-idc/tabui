@@ -1,6 +1,6 @@
 import { Beat, Track } from "@/notation/model";
 import { randomInt, Point, Rect } from "@/shared";
-import { TabLayoutDimensions } from "../tab-layout-dimensions";
+import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 import { BarElement, getBarWidth } from "./bar/bar-element";
 import { TrackLineData, TrackLineElement } from "./track/track-line-element";
 import { BeatElement } from "./beat/beat-element";
@@ -132,7 +132,7 @@ export class TrackElement {
         // on the next line and continue
         width = largestBarWidth;
         if (curLineData.length === 1) {
-          curLineData[0].largestBarWidth = TabLayoutDimensions.WIDTH;
+          curLineData[0].largestBarWidth = EditorLayoutDimensions.WIDTH;
         }
         linesData.push(curLineData);
         allFit = true;
@@ -400,14 +400,14 @@ export class TrackElement {
               curLineRect = new Rect(
                 beatElement.globalCoords.x,
                 beatElement.globalCoords.y,
-                beatElement.rect.width,
-                staffLine.rect.height
+                beatElement.boundingBox.width,
+                staffLine.boundingBox.height
               );
               continue;
             }
 
             curLineRect.width +=
-              beatElement.globalRect.right - curLineRect.right;
+              beatElement.globalBoundingBox.right - curLineRect.right;
           }
         }
       }
@@ -428,14 +428,14 @@ export class TrackElement {
   /** Global coords of the track element (in most cases X=0, Y=0) */
   public get globalCoords(): Point {
     const firstLine = this._trackLineElements[0];
-    return new Point(firstLine.rect.x, firstLine.rect.y);
+    return new Point(firstLine.boundingBox.x, firstLine.boundingBox.y);
   }
 
   /** Calculates the total height of the track element */
   public get height(): number {
     let height = 0;
     for (const line of this._trackLineElements) {
-      height += line.rect.height;
+      height += line.boundingBox.height;
     }
 
     return height;
@@ -621,7 +621,7 @@ export class TrackElement {
 //     this._trackLineElements = [];
 
 //     currentLine.barElements = [];
-//     currentLine.rect.set(0, 0, 0, this.dim.trackLineMinHeight);
+//     currentLine.boundingBox.set(0, 0, 0, this.dim.trackLineMinHeight);
 //     currentLine.techniqueLabelsRect.setDimensions(0, 0);
 //     this._trackLineElements.push(currentLine);
 
@@ -639,7 +639,7 @@ export class TrackElement {
 //       } else {
 //         barElement = BarElement.createBarElement(this.dim, bar, prevBar, 0, 0);
 //       }
-//       barElement.update(prevBar, currentLine.rect.rightTop.x);
+//       barElement.update(prevBar, currentLine.boundingBox.rightTop.x);
 
 //       if (!currentLine.barElementFits(barElement)) {
 //         barElement.update(prevBar, 0);
@@ -652,9 +652,9 @@ export class TrackElement {
 //           oldLines.shift() ||
 //           new TrackLineElement(this._track, this.dim, new Point(0, 0));
 //         currentLine.barElements = [];
-//         currentLine.rect.set(
+//         currentLine.boundingBox.set(
 //           0,
-//           prevLine.rect.bottom,
+//           prevLine.boundingBox.bottom,
 //           0,
 //           this.dim.trackLineMinHeight + prevLine.techniqueLabelsRect.height
 //         );
@@ -815,12 +815,12 @@ export class TrackElement {
 //     );
 //   }
 
-//   const tleOffset = new Point(0, foundTrackLineElement.rect.y);
-//   const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
+//   const tleOffset = new Point(0, foundTrackLineElement.boundingBox.y);
+//   const barOffset = new Point(foundBarElement.boundingBox.x, tleOffset.y);
 
 //   return new Point(
-//     barOffset.x + neededBeatElement.rect.x,
-//     barOffset.y + neededBeatElement.rect.y
+//     barOffset.x + neededBeatElement.boundingBox.x,
+//     barOffset.y + neededBeatElement.boundingBox.y
 //   );
 // }
 
@@ -861,18 +861,18 @@ export class TrackElement {
 //     );
 //   }
 
-//   const tleOffset = new Point(0, foundTrackLineElement.rect.y);
-//   const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
+//   const tleOffset = new Point(0, foundTrackLineElement.boundingBox.y);
+//   const barOffset = new Point(foundBarElement.boundingBox.x, tleOffset.y);
 //   const beatOffset = new Point(
-//     barOffset.x + foundBeatElement.rect.x,
-//     barOffset.y + foundBeatElement.rect.y
+//     barOffset.x + foundBeatElement.boundingBox.x,
+//     barOffset.y + foundBeatElement.boundingBox.y
 //   );
 
 //   const noteX = beatOffset.x;
 //   const noteY =
 //     beatOffset.y +
-//     foundBeatElement.beatNotesElement.rect.y +
-//     neededNoteElement.rect.y;
+//     foundBeatElement.beatNotesElement.boundingBox.y +
+//     neededNoteElement.boundingBox.y;
 
 //   return new Point(noteX, noteY);
 // }
@@ -917,17 +917,17 @@ export class TrackElement {
 //     );
 //   }
 
-//   const tleOffset = new Point(0, foundTrackLineElement.rect.y);
-//   const barOffset = new Point(foundBarElement.rect.x, tleOffset.y);
+//   const tleOffset = new Point(0, foundTrackLineElement.boundingBox.y);
+//   const barOffset = new Point(foundBarElement.boundingBox.x, tleOffset.y);
 //   const beatOffset = new Point(
-//     barOffset.x + foundBeatElement.rect.x,
-//     barOffset.y + foundBeatElement.rect.y
+//     barOffset.x + foundBeatElement.boundingBox.x,
+//     barOffset.y + foundBeatElement.boundingBox.y
 //   );
 
 //   const noteTextX = beatOffset.x + TabNoteElement.textRect.x;
 //   const noteTextY =
 //     beatOffset.y +
-//     foundBeatElement.beatNotesElement.rect.y +
+//     foundBeatElement.beatNotesElement.boundingBox.y +
 //     TabNoteElement.textRect.y;
 
 //   return new Point(noteTextX, noteTextY);

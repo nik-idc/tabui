@@ -1,4 +1,4 @@
-import { TabLayoutDimensions, TrackController } from "@/notation/controller";
+import { EditorLayoutDimensions, TrackController } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
@@ -7,7 +7,7 @@ import { SVGNoteRenderer } from "./svg-note-renderer";
 /**
  * Class for rendering a note element using SVG
  */
-export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
+export class SVGTabNoteRenderer implements SVGNoteRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Guitar note element */
@@ -24,8 +24,8 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
 
-  /** SVG rectangle element */
-  private _rectSVG?: SVGRectElement;
+  /** SVG bounding box rectangle */
+  private _boundingBoxSVG?: SVGRectElement;
   /** SVG text element */
   private _textSVG?: SVGTextElement;
   /** SVG background rectangle */
@@ -96,30 +96,30 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
     }
 
     const noteUUID = this.noteElement.note.uuid;
-    if (this._rectSVG === undefined) {
-      this._rectSVG = createSVGRect();
+    if (this._boundingBoxSVG === undefined) {
+      this._boundingBoxSVG = createSVGRect();
 
       // Set only-set-once attributes
-      this._rectSVG.setAttribute("fill", "transparent");
-      this._rectSVG.setAttribute("fill-opacity", "0");
-      this._rectSVG.setAttribute("stroke", "none");
-      this._rectSVG.setAttribute("stroke-opacity", "0");
+      this._boundingBoxSVG.setAttribute("fill", "transparent");
+      this._boundingBoxSVG.setAttribute("fill-opacity", "0");
+      this._boundingBoxSVG.setAttribute("stroke", "none");
+      this._boundingBoxSVG.setAttribute("stroke-opacity", "0");
 
       // Set id
-      this._rectSVG.setAttribute("id", `note-rect-${noteUUID}`);
+      this._boundingBoxSVG.setAttribute("id", `note-rect-${noteUUID}`);
 
       // Add element to root SVG element
-      this._containerGroupSVG.appendChild(this._rectSVG);
+      this._containerGroupSVG.appendChild(this._boundingBoxSVG);
     }
 
     const x = `${this.noteElement.globalCoords.x}`;
     const y = `${this.noteElement.globalCoords.y}`;
-    const width = `${this.noteElement.rect.width}`;
-    const height = `${this.noteElement.rect.height}`;
-    this._rectSVG.setAttribute("x", x);
-    this._rectSVG.setAttribute("y", y);
-    this._rectSVG.setAttribute("width", width);
-    this._rectSVG.setAttribute("height", height);
+    const width = `${this.noteElement.boundingBox.width}`;
+    const height = `${this.noteElement.boundingBox.height}`;
+    this._boundingBoxSVG.setAttribute("x", x);
+    this._boundingBoxSVG.setAttribute("y", y);
+    this._boundingBoxSVG.setAttribute("width", width);
+    this._boundingBoxSVG.setAttribute("height", height);
   }
 
   /**
@@ -130,12 +130,12 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       throw Error("Tried to unrender note rect when SVG group undefined");
     }
 
-    if (this._rectSVG === undefined) {
+    if (this._boundingBoxSVG === undefined) {
       return;
     }
 
-    this._containerGroupSVG.removeChild(this._rectSVG);
-    this._rectSVG = undefined;
+    this._containerGroupSVG.removeChild(this._boundingBoxSVG);
+    this._boundingBoxSVG = undefined;
   }
 
   /**
@@ -259,7 +259,7 @@ export class SVGGuitarNoteRenderer implements SVGNoteRenderer {
       this._textSVG = createSVGText();
 
       // Set only-set-once attributes
-      const fontSize = `${TabLayoutDimensions.NOTE_TEXT_SIZE}px`;
+      const fontSize = `${EditorLayoutDimensions.NOTE_TEXT_SIZE}px`;
       this._textSVG.setAttribute("font-size", fontSize);
       this._textSVG.setAttribute("text-anchor", "middle");
       this._textSVG.setAttribute("dominant-baseline", "middle");

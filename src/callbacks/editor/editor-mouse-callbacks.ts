@@ -1,4 +1,4 @@
-import { SVGGuitarNoteRenderer } from "@/notation/render/svg/svg-guitar-note-renderer";
+import { SVGTabNoteRenderer } from "@/notation/render/svg/svg-tab-note-renderer";
 import { NoteElement, BeatElement } from "@/notation/controller";
 import { NotationComponent } from "@/notation/notation-component";
 import { ElementRenderer } from "@/notation/render/element-renderer";
@@ -36,7 +36,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** True once delegated beat interaction handlers are attached. */
   private _beatInteractionBound: boolean = false;
   /** Note renderers that already have note mouse handlers attached. */
-  private _boundNoteRenderers: Set<SVGGuitarNoteRenderer>;
+  private _boundNoteRenderers: Set<SVGTabNoteRenderer>;
   /** Bound global window mouseup listener reference. */
   private _boundOnWindowMouseUp?: (event: MouseEvent) => void;
   /** Bound beat interaction handlers by event type. */
@@ -66,7 +66,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this._selectionDragController = new SelectionDragController();
   }
 
-  private detachNoteRenderer(renderer: SVGGuitarNoteRenderer): void {
+  private detachNoteRenderer(renderer: SVGTabNoteRenderer): void {
     renderer.detachMouseEvent("mousedown");
     renderer.detachMouseEvent("click");
     renderer.detachMouseEvent("mouseenter");
@@ -75,9 +75,9 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   }
 
   private reconcileNoteRenderers(activeRenderers: ElementRenderer[]): void {
-    const activeNoteRenderers = new Set<SVGGuitarNoteRenderer>();
+    const activeNoteRenderers = new Set<SVGTabNoteRenderer>();
     for (const renderer of activeRenderers) {
-      if (renderer instanceof SVGGuitarNoteRenderer) {
+      if (renderer instanceof SVGTabNoteRenderer) {
         activeNoteRenderers.add(renderer);
       }
     }
@@ -251,7 +251,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     for (const renderer of activeRenderers) {
-      if (renderer instanceof SVGGuitarNoteRenderer) {
+      if (renderer instanceof SVGTabNoteRenderer) {
         if (this._boundNoteRenderers.has(renderer)) {
           continue;
         }

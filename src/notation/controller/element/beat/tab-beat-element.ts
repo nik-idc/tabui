@@ -5,7 +5,7 @@ import {
   NoteDuration,
 } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
 import { Circle } from "@/shared/rendering/geometry/circle";
 import { TrackElement } from "@/notation/controller/element/track-element";
@@ -31,7 +31,7 @@ export class TabBeatElement implements BeatElement {
   private _noteElements: TabNoteElement[];
 
   /** This beat's rect */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** Duration stem vertical line */
   private _durationStemLine?: VertLine;
   /** Duration flags horizontal lines (for durations like 1/8, 1/16 etc) */
@@ -57,7 +57,7 @@ export class TabBeatElement implements BeatElement {
     this._noteElements = [];
 
     const width = getBeatWidth(this.beat);
-    this._rect = new Rect(0, 0, width, 0);
+    this._boundingBox = new Rect(0, 0, width, 0);
 
     this._stateHash = "";
 
@@ -129,15 +129,15 @@ export class TabBeatElement implements BeatElement {
 
     const width = getBeatWidth(this.beat);
     const notesHeight =
-      this._noteElements.length * TabLayoutDimensions.NOTE_RECT_HEIGHT;
-    const height = notesHeight + TabLayoutDimensions.DURATIONS_HEIGHT;
-    this._rect.setDimensions(width, height);
+      this._noteElements.length * EditorLayoutDimensions.NOTE_RECT_HEIGHT;
+    const height = notesHeight + EditorLayoutDimensions.DURATIONS_HEIGHT;
+    this._boundingBox.setDimensions(width, height);
 
     if (this._dot1Circle !== undefined) {
-      this._dot1Circle.diameter = TabLayoutDimensions.DOT_DIAMETER;
+      this._dot1Circle.diameter = EditorLayoutDimensions.DOT_DIAMETER;
     }
     if (this._dot2Circle !== undefined) {
-      this._dot2Circle.diameter = TabLayoutDimensions.DOT_DIAMETER;
+      this._dot2Circle.diameter = EditorLayoutDimensions.DOT_DIAMETER;
     }
   }
 
@@ -146,9 +146,10 @@ export class TabBeatElement implements BeatElement {
    */
   private layoutRect(): void {
     const prevBeatElement = this.barElement.getPrevBeatElement(this);
-    const x = prevBeatElement?.rect.right ?? this.barElement.startGap.right;
+    const x =
+      prevBeatElement?.boundingBox.right ?? this.barElement.startGap.right;
 
-    this._rect.setCoords(x, 0);
+    this._boundingBox.setCoords(x, 0);
   }
 
   /**
@@ -158,11 +159,12 @@ export class TabBeatElement implements BeatElement {
     if (this._durationStemLine === undefined) {
       return;
     }
-    const stemY1 = this._rect.height - TabLayoutDimensions.DURATIONS_HEIGHT;
-    const stemY2 = stemY1 + TabLayoutDimensions.DURATIONS_HEIGHT;
-    this._durationStemLine.set(this._rect.width / 2, stemY1, stemY2);
+    const stemY1 =
+      this._boundingBox.height - EditorLayoutDimensions.DURATIONS_HEIGHT;
+    const stemY2 = stemY1 + EditorLayoutDimensions.DURATIONS_HEIGHT;
+    this._durationStemLine.set(this._boundingBox.width / 2, stemY1, stemY2);
     if (this.beat.baseDuration === NoteDuration.Half) {
-      this._durationStemLine.y1 += TabLayoutDimensions.DURATIONS_HEIGHT / 2;
+      this._durationStemLine.y1 += EditorLayoutDimensions.DURATIONS_HEIGHT / 2;
     }
 
     if (this._durationFlagLines === undefined) {
@@ -170,9 +172,9 @@ export class TabBeatElement implements BeatElement {
     }
     let y = this._durationStemLine.y2;
     for (const flagLine of this._durationFlagLines) {
-      const x1 = this._rect.width / 2;
-      flagLine.set(x1, x1 + this._rect.width / 4, y);
-      y -= TabLayoutDimensions.DOT_DIAMETER / 2;
+      const x1 = this._boundingBox.width / 2;
+      flagLine.set(x1, x1 + this._boundingBox.width / 4, y);
+      y -= EditorLayoutDimensions.DOT_DIAMETER / 2;
     }
   }
 
@@ -184,11 +186,12 @@ export class TabBeatElement implements BeatElement {
       return;
     }
     const newDot1X =
-      this._rect.width / 2 + TabLayoutDimensions.DOT_DIAMETER * 2;
-    let newDotY = this._rect.height - TabLayoutDimensions.DOT_DIAMETER / 2;
+      this._boundingBox.width / 2 + EditorLayoutDimensions.DOT_DIAMETER * 2;
+    let newDotY =
+      this._boundingBox.height - EditorLayoutDimensions.DOT_DIAMETER / 2;
     if (this._durationFlagLines !== undefined) {
       newDotY -=
-        TabLayoutDimensions.DURATION_FLAG_HEIGHT *
+        EditorLayoutDimensions.DURATION_FLAG_HEIGHT *
         this._durationFlagLines.length;
     }
     this._dot1Circle.setCoords(newDot1X, newDotY);
@@ -197,7 +200,7 @@ export class TabBeatElement implements BeatElement {
       return;
     }
     this._dot2Circle.setCoords(
-      newDot1X + TabLayoutDimensions.DOT_DIAMETER,
+      newDot1X + EditorLayoutDimensions.DOT_DIAMETER,
       newDotY
     );
   }
@@ -216,10 +219,10 @@ export class TabBeatElement implements BeatElement {
    * */
   private calcStateHash(): void {
     const hashArr: string[] = [
-      `${this.globalRect.x}` +
-        `${this.globalRect.y}` +
-        `${this.globalRect.width}` +
-        `${this.globalRect.height}`,
+      `${this.globalBoundingBox.x}` +
+        `${this.globalBoundingBox.y}` +
+        `${this.globalBoundingBox.width}` +
+        `${this.globalBoundingBox.height}`,
     ];
 
     if (this._dot1Circle !== undefined) {
@@ -279,8 +282,8 @@ export class TabBeatElement implements BeatElement {
    * @param scale Scale factor
    */
   public scaleHorBy(scale: number): void {
-    this._rect.x *= scale;
-    this._rect.width *= scale;
+    this._boundingBox.x *= scale;
+    this._boundingBox.width *= scale;
 
     if (this._durationStemLine !== undefined) {
       this._durationStemLine.x *= scale;
@@ -294,11 +297,11 @@ export class TabBeatElement implements BeatElement {
 
     if (this._dot1Circle !== undefined) {
       this._dot1Circle.centerX =
-        this._rect.width / 2 + TabLayoutDimensions.DOT_DIAMETER; //HERE!!~!
+        this._boundingBox.width / 2 + EditorLayoutDimensions.DOT_DIAMETER; //HERE!!~!
     }
     if (this._dot1Circle !== undefined && this._dot2Circle !== undefined) {
       this._dot2Circle.centerX =
-        this._dot1Circle.right + TabLayoutDimensions.DOT_DIAMETER;
+        this._dot1Circle.right + EditorLayoutDimensions.DOT_DIAMETER;
     }
 
     for (const noteElement of this._noteElements) {
@@ -350,19 +353,27 @@ export class TabBeatElement implements BeatElement {
     return this._noteElements;
   }
 
-  /** This beat's rect */
-  public get rect(): Rect {
-    return this._rect;
+  /** This beat's layout bounding box */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
-  /** This beat's rect in global coords */
-  public get globalRect(): Rect {
+  /** This beat's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Duration stem vertical line */
@@ -446,8 +457,8 @@ export class TabBeatElement implements BeatElement {
   /** Global coords of the tab beat element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._rect.x,
-      this.barElement.globalCoords.y + this._rect.y
+      this.barElement.globalCoords.x + this._boundingBox.x,
+      this.barElement.globalCoords.y + this._boundingBox.y
     );
   }
 }
@@ -456,7 +467,7 @@ export class TabBeatElement implements BeatElement {
 // import { Rect, Point, randomInt } from "@/shared";
 // import { BeatNotesElement } from "./beat-notes-element";
 // import { BarElement } from "./bar-element";
-// import { TabLayoutDimensions } from "../tab-controller-dim";
+// import { EditorLayoutDimensions } from "../tab-controller-dim";
 // import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
 // import { TECHNIQUE_TYPE_TO_LABEL } from "./technique/guitar-technique/guitar-technique-element-lists";
 // import { TechniqueLabelElement } from "./technique/technique-label-element";
@@ -484,7 +495,7 @@ export class TabBeatElement implements BeatElement {
 //   /** Technique label element */
 //   private _techniqueLabelElements: TechniqueLabelElement[];
 //   /** This beat's rectangle */
-//   private _rect: Rect;
+//   private _boundingBox: Rect;
 //   /** This beat's duration rectangle */
 //   private _durationRect: Rect;
 //   /** This beat's dot rectangle */
@@ -507,15 +518,15 @@ export class TabBeatElement implements BeatElement {
 
 //     this._beatNotesElement = new BeatNotesElement(this.beat, this);
 //     this._techniqueLabelElements = [];
-//     this._rect = new Rect(
+//     this._boundingBox = new Rect(
 //       barElement.timeSigRect.width,
-//       barElement.rect.y + TabLayoutDimensions.TEMPO_RECT_HEIGHT
+//       barElement.rect.y + EditorLayoutDimensions.TEMPO_RECT_HEIGHT
 //     );
 //     this._durationRect = new Rect();
 //     this._dotRect = new Rect();
 //     this._techniqueLabelsRect = new Rect(
 //       0,
-//       TabLayoutDimensions.DURATIONS_HEIGHT,
+//       EditorLayoutDimensions.DURATIONS_HEIGHT,
 //       0,
 //       labelsGapHeight
 //     );
@@ -529,9 +540,9 @@ export class TabBeatElement implements BeatElement {
 //   private calcRectAndNotes(): void {
 //     const prevBarElement =
 //       this.barElement.beatElements[this.barElement.beatElements.length - 1];
-//     this._rect.x = prevBarElement?._rect.right ?? this._rect.x;
+//     this._boundingBox.x = prevBarElement?._boundingBox.right ?? this._boundingBox.x;
 
-//     let mappingWidth = TabLayoutDimensions.WIDTH_MAPPING.get(
+//     let mappingWidth = EditorLayoutDimensions.WIDTH_MAPPING.get(
 //       this.beat.baseDuration
 //     );
 //     if (mappingWidth === undefined) {
@@ -539,7 +550,7 @@ export class TabBeatElement implements BeatElement {
 //         `${this.beat.baseDuration} is an invalid beat duration OR error in mapping`
 //       );
 //     }
-//     this._rect.width = mappingWidth;
+//     this._boundingBox.width = mappingWidth;
 
 //     // By how much the rect width should multiply depending on the number of dots
 //     let dotsScaling = 1;
@@ -557,29 +568,29 @@ export class TabBeatElement implements BeatElement {
 //         dotsScaling = 1;
 //         break;
 //     }
-//     this._rect.width *= dotsScaling;
+//     this._boundingBox.width *= dotsScaling;
 
 //     if (this.beat.tupletSettings !== null) {
 //       const tupletScale =
 //         this.beat.tupletSettings.tupletCount /
 //         this.beat.tupletSettings.normalCount;
-//       this._rect.width *= tupletScale;
-//       if (this._rect.width < TabLayoutDimensions.NOTE_RECT_WIDTH_MIN) {
+//       this._boundingBox.width *= tupletScale;
+//       if (this._boundingBox.width < EditorLayoutDimensions.NOTE_RECT_WIDTH_MIN) {
 //         // To make sure beats don't get too small causing UI errors
-//         this._rect.width = TabLayoutDimensions.NOTE_RECT_WIDTH_MIN;
+//         this._boundingBox.width = EditorLayoutDimensions.NOTE_RECT_WIDTH_MIN;
 //       }
 //     }
 
-//     this._rect.height =
+//     this._boundingBox.height =
 //       this.barElement.rect.height - this.barElement.tempoRect.height;
 
-//     this._techniqueLabelsRect.width = this._rect.width;
+//     this._techniqueLabelsRect.width = this._boundingBox.width;
 
-//     this._beatNotesElement.rect.width = this._rect.width;
+//     this._beatNotesElement.rect.width = this._boundingBox.width;
 //     this._beatNotesElement.rect.y =
-//       TabLayoutDimensions.DURATIONS_HEIGHT + this._techniqueLabelsRect.height;
+//       EditorLayoutDimensions.DURATIONS_HEIGHT + this._techniqueLabelsRect.height;
 //     this._beatNotesElement.rect.height =
-//       TabLayoutDimensions.NOTE_RECT_HEIGHT *
+//       EditorLayoutDimensions.NOTE_RECT_HEIGHT *
 //       this.beat.trackContext.instrument.maxPolyphony;
 
 //     this._beatNotesElement.calc();
@@ -591,13 +602,13 @@ export class TabBeatElement implements BeatElement {
 //   private calcDurationRect(): void {
 //     // 140 - radius of ellipse in SVG files, 827 - viewBox
 //     const magicNumber = 140 / 827; // some bullshit
-//     const offset = magicNumber * TabLayoutDimensions.DURATIONS_WIDTH * 2;
+//     const offset = magicNumber * EditorLayoutDimensions.DURATIONS_WIDTH * 2;
 //     const beamingX =
-//       this._rect.width / 2 - TabLayoutDimensions.DURATIONS_WIDTH / 2 - offset;
+//       this._boundingBox.width / 2 - EditorLayoutDimensions.DURATIONS_WIDTH / 2 - offset;
 //     this._durationRect.x = this.beat.beamGroupId === null ? 0 : beamingX;
 //     this._durationRect.y = 0;
-//     this._durationRect.width = TabLayoutDimensions.DURATIONS_WIDTH;
-//     this._durationRect.height = TabLayoutDimensions.DURATIONS_HEIGHT;
+//     this._durationRect.width = EditorLayoutDimensions.DURATIONS_WIDTH;
+//     this._durationRect.height = EditorLayoutDimensions.DURATIONS_HEIGHT;
 //   }
 
 //   /**
@@ -607,8 +618,8 @@ export class TabBeatElement implements BeatElement {
 //     this._dotRect.set(
 //       this._durationRect.right,
 //       0,
-//       TabLayoutDimensions.DURATIONS_WIDTH,
-//       TabLayoutDimensions.DURATIONS_HEIGHT
+//       EditorLayoutDimensions.DURATIONS_WIDTH,
+//       EditorLayoutDimensions.DURATIONS_HEIGHT
 //     );
 //   }
 
@@ -632,7 +643,7 @@ export class TabBeatElement implements BeatElement {
 //             this
 //           );
 //           this._techniqueLabelElements.push(labelElement);
-//           totalLabelsHeight += TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
+//           totalLabelsHeight += EditorLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
 //         }
 //       }
 //     }
@@ -656,10 +667,10 @@ export class TabBeatElement implements BeatElement {
 //    * Sets height of the beat element
 //    */
 //   public setHeight(newHeight: number): void {
-//     const diff = newHeight - this._rect.height;
+//     const diff = newHeight - this._boundingBox.height;
 //     this._techniqueLabelsRect.height += diff;
 //     this._beatNotesElement.rect.y += diff;
-//     this._rect.height += diff;
+//     this._boundingBox.height += diff;
 //   }
 
 //   /**
@@ -670,7 +681,7 @@ export class TabBeatElement implements BeatElement {
 //     const oldGapHeight = this._techniqueLabelsRect.height;
 
 //     this._beatNotesElement.rect.y += newGapHeight - oldGapHeight;
-//     this._rect.height += newGapHeight - oldGapHeight;
+//     this._boundingBox.height += newGapHeight - oldGapHeight;
 
 //     this._techniqueLabelsRect.height = newGapHeight;
 //   }
@@ -683,9 +694,9 @@ export class TabBeatElement implements BeatElement {
 //    */
 //   public insertTechniqueGap(): void {
 //     this._techniqueLabelsRect.height +=
-//       TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//     this._beatNotesElement.rect.y += TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//     this._rect.height += TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
+//       EditorLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
+//     this._beatNotesElement.rect.y += EditorLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
+//     this._boundingBox.height += EditorLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
 //   }
 
 //   /**
@@ -693,9 +704,9 @@ export class TabBeatElement implements BeatElement {
 //    */
 //   public removeTechniqueGap(): void {
 //     this._techniqueLabelsRect.height -=
-//       TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//     this._beatNotesElement.rect.y -= TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//     this._rect.height -= TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
+//       EditorLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
+//     this._beatNotesElement.rect.y -= EditorLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
+//     this._boundingBox.height -= EditorLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
 //   }
 
 //   /**
@@ -704,16 +715,16 @@ export class TabBeatElement implements BeatElement {
 //    */
 //   public scaleHorBy(scale: number): void {
 //     if (this.beat.beamGroupId !== undefined) {
-//       const diff = this._rect.width * scale - this._durationRect.width;
+//       const diff = this._boundingBox.width * scale - this._durationRect.width;
 //       this._durationRect.x += diff / 2;
 //     } else {
 //       this._durationRect.x =
-//         (this._rect.width * scale) / 2 - this._durationRect.width / 2;
+//         (this._boundingBox.width * scale) / 2 - this._durationRect.width / 2;
 //     }
 //     this._dotRect.x = this._durationRect.right;
 
-//     this._rect.x *= scale;
-//     this._rect.width *= scale;
+//     this._boundingBox.x *= scale;
+//     this._boundingBox.width *= scale;
 
 //     this._techniqueLabelsRect.x *= scale;
 //     this._techniqueLabelsRect.width *= scale;
@@ -737,7 +748,7 @@ export class TabBeatElement implements BeatElement {
 
 //   /** This beat's rectangle */
 //   public get rect(): Rect {
-//     return this._rect;
+//     return this._boundingBox;
 //   }
 
 //   /** This beat's duration rectangle */
@@ -767,8 +778,8 @@ export class TabBeatElement implements BeatElement {
 //   /** Global coords of the beat element */
 //   public get globalCoords(): Point {
 //     return new Point(
-//       this.barElement.globalCoords.x + this._rect.x,
-//       this.barElement.globalCoords.y + this._rect.y
+//       this.barElement.globalCoords.x + this._boundingBox.x,
+//       this.barElement.globalCoords.y + this._boundingBox.y
 //     );
 //   }
 // }

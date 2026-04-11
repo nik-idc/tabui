@@ -13,7 +13,7 @@ export function renderPlayerCursor(
   const playerCursorWidth = 5;
   const playerCursorAddHeight = 10;
   let y = coords.y - playerCursorAddHeight;
-  let height = beatElement.rect.height + playerCursorAddHeight;
+  let height = beatElement.boundingBox.height + playerCursorAddHeight;
 
   const outlineLines = trackLineElement?.outlineLinesGlobal;
   if (outlineLines !== undefined) {
@@ -21,7 +21,10 @@ export function renderPlayerCursor(
     height = outlineLines.left.height;
   }
 
-  cursorElement.setAttribute("x", `${coords.x + beatElement.rect.width / 2}`);
+  cursorElement.setAttribute(
+    "x",
+    `${coords.x + beatElement.boundingBox.width / 2}`
+  );
   cursorElement.setAttribute("y", `${y}`);
   cursorElement.setAttribute("width", `${playerCursorWidth}`);
   cursorElement.setAttribute("height", `${height}`);

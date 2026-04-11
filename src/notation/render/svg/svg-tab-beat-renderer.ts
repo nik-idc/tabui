@@ -16,11 +16,11 @@ import {
 import { ElementRenderer } from "../element-renderer";
 import {
   BeatElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
 import { SVGNoteRenderer } from "./svg-note-renderer";
-import { SVGGuitarNoteRenderer } from "./svg-guitar-note-renderer";
+import { SVGTabNoteRenderer } from "./svg-tab-note-renderer";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
@@ -360,7 +360,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
   //     );
   //     if (renderedNote === undefined) {
   //       if (noteElement instanceof TabNoteElement) {
-  //         const renderer = new SVGGuitarNoteRenderer(
+  //         const renderer = new SVGTabNoteRenderer(
   //           this.trackController,
   //           noteElement
   //         );
@@ -536,8 +536,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
 //   const x = `${this.beatElement.globalCoords.x}`;
 //   const y = `${this.beatElement.globalCoords.y}`;
-//   const width = `${this.beatElement.rect.width}`;
-//   const height = `${this.beatElement.rect.height}`;
+//   const width = `${this.beatElement.boundingBox.width}`;
+//   const height = `${this.beatElement.boundingBox.height}`;
 //   this._beatSelectionSVG.setAttribute("x", x);
 //   this._beatSelectionSVG.setAttribute("y", y);
 //   this._beatSelectionSVG.setAttribute("width", width);

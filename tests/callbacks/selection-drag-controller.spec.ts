@@ -3,6 +3,9 @@ import { Point } from "../../src/shared";
 
 function createBeatElement(width: number = 40) {
   return {
+    boundingBox: {
+      width,
+    },
     rect: {
       width,
     },

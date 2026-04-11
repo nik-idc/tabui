@@ -1,6 +1,6 @@
 import {
   BarElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
 import { createSVGG, createSVGImage, createSVGText } from "@/shared";

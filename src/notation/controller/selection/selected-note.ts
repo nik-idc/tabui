@@ -269,7 +269,7 @@ export class SelectedNote {
   // public get staffLineElementIndex(): number {
   //   const a = this.staffWindow.
   //   return Math.floor(
-  //     this.staffWindow.staffLineElements[this._].rect.y /
+  //     this.staffWindow.staffLineElements[this._].boundingBox.y /
   //       this.staffWindow.dim.staffLineMinHeight
   //   );
   // }
