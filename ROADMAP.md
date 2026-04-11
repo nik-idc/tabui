@@ -102,6 +102,7 @@ Exit criteria:
 - Reduce especially confusing hotspots in core music-related logic.
 
 Completed in Phase 2:
+
 - Changed "rect" to "boundingBox" to better reflect its purpose
 - Added customizable theming & styling via a config object passed in root TabUIEditor.
   Also implemented 4 default themes: dark - midnight & obsidian, light - default & paper

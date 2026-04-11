@@ -2,10 +2,10 @@ import { defineConfig } from "vite";
 import path from "path";
 
 export default defineConfig({
-  root: path.resolve(__dirname, "editor"),
+  root: path.resolve(__dirname, "demo"),
   base: "/tabui/",
   build: {
-    outDir: path.resolve(__dirname, "editor/dist"),
+    outDir: path.resolve(__dirname, "demo/dist"),
     emptyOutDir: true,
   },
   resolve: {

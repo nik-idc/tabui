@@ -2,12 +2,12 @@ import {
   getEditorFixtures,
   resolveEditorFixture,
   resolveEditorFixtureKey,
-} from "../../editor/data/fixture";
+} from "../../demo/data/fixture";
 import {
   getEditorThemes,
   resolveEditorTheme,
   resolveEditorThemeKey,
-} from "../../editor/data/theme";
+} from "../../demo/data/theme";
 
 describe("editor fixture and theme resolution", () => {
   it("resolves known fixture keys and falls back to default", () => {
