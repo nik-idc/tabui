@@ -94,10 +94,22 @@ Exit criteria:
 
 ### Phase 2 - Targeted Architecture Cleanup
 
+**Status: complete.**
+
 - Clean up naming, ownership boundaries, and responsibilities where they block
   the upcoming notation, playback, or timing work.
 - Revisit techniques and labels handling where needed.
 - Reduce especially confusing hotspots in core music-related logic.
+
+Completed in Phase 2:
+- Changed "rect" to "boundingBox" to better reflect its purpose
+- Added customizable theming & styling via a config object passed in root TabUIEditor.
+  Also implemented 4 default themes: dark - midnight & obsidian, light - default & paper
+- Refactored UI components: now use helper component assemblers and asset setters
+- Updated technique element & technique label element: now uses SVG descriptors instead
+  of returning full SVG elements inside a string
+- Improved TrackController's API
+- Global dead code & stale comments cleanup
 
 Exit criteria:
 
