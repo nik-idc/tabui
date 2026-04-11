@@ -95,9 +95,6 @@ export class TabNoteElement implements NoteElement {
       `${this._textRect.height}` +
       `${this._textCoords.x}` +
       `${this._textCoords.y}`;
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -121,10 +118,6 @@ export class TabNoteElement implements NoteElement {
     for (const techniqueElement of this._techniqueElements) {
       techniqueElement.layout();
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    // this.calcStateHash();
   }
 
   /**
@@ -148,8 +141,6 @@ export class TabNoteElement implements NoteElement {
       this._boundingBox.x +
       this._boundingBox.width / 2 -
       EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
-    // this._textRect.x *= scale;
-    // this._textRect.width *= scale;
     this._textCoords.x *= scale;
 
     for (const techniqueElement of this._techniqueElements) {

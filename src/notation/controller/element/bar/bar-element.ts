@@ -19,7 +19,6 @@ import { BarTupletGroupElement } from "./bar-tuplet-group-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { SheetBeatElement } from "../beat/sheet-beat-element";
 import { BeatElement, getBeatWidth } from "../beat/beat-element";
-// import { BeatElement_old } from "./tab-beat-element_old";
 import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
 
 // TODO:: Fix repeat rects shifting when there are multple staves
@@ -50,8 +49,6 @@ export class BarElement implements NotationElement {
   private _boundingBox: Rect;
   /** Bar element's lines */
   private _staffLines: HorLine[];
-  // /** Tempo rectangle */
-  // private _tempoRect: Rect;
   /** Time signature rectangle */
   private _timeSigRect?: Rect;
   /** Repeat start sign rectangle */
@@ -165,9 +162,6 @@ export class BarElement implements NotationElement {
       if (!(beatElement instanceof TabBeatElement)) {
         return;
       }
-      // if (DURATION_TO_FLAG_COUNT[beatElement.beat.baseDuration] === 0) {
-      //   return;
-      // }
     }
 
     for (let i = 0; i < this.bar.beamingGroups.length; i++) {
@@ -434,9 +428,6 @@ export class BarElement implements NotationElement {
     hashArr.push(`${this.bar.checkDurationsFit() ? 1 : 0}`);
 
     this._stateHash = hashArr.join("");
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -461,9 +452,6 @@ export class BarElement implements NotationElement {
     }
 
     this.justifyToFit();
-
-    // Calculating state hash moved to scaleHorBy
-    // this.calcStateHash();
   }
 
   /**
@@ -498,7 +486,6 @@ export class BarElement implements NotationElement {
       this._boundingBox.x *= scale;
     }
     this._boundingBox.width *= scale;
-    // this._tempoRect.x *= scale;
     if (this._repeatStartRect !== undefined) {
       this._repeatStartRect.x *= scale;
       this._repeatStartRect.width *= scale;
@@ -802,11 +789,6 @@ export class BarElement implements NotationElement {
     return result;
   }
 
-  // /** Tempo rectangle */
-  // public get tempoRect(): Rect {
-  //   return this._tempoRect;
-  // }
-
   /** Time signature rectangle */
   public get timeSigRect(): Rect | undefined {
     return this._timeSigRect;
@@ -889,88 +871,3 @@ export function getBarWidth(bar: Bar): number {
 
   return width;
 }
-
-// ==== PROBABLY WILL BE USEFULL LATER ====
-//
-// /**
-//  * Calculates beaming groups
-//  */
-// private calcBeamGroups(): void {
-//   this._beamSegments = [];
-//   for (let i = 0; i < this.bar.beamingGroups.length; i++) {
-//     const beamGroupBeats = this.bar.beats.filter((b) => b.beamGroupId === i);
-
-//     if (beamGroupBeats.length <= 1) {
-//       continue;
-//     }
-
-//     for (let j = 0; j < beamGroupBeats.length - 1; j++) {
-//       const curTabBeatElement = beamGroupBeats[j];
-//       const nextTabBeatElement = beamGroupBeats[j + 1];
-//       const prevTabBeatElement = j === 0 ? undefined : beamGroupBeats[j - 1];
-//       this._beamSegments.push(
-//         new BeamSegmentElement(
-//           this,
-//           curTabBeatElement,
-//           nextTabBeatElement,
-//           prevTabBeatElement
-//         )
-//       );
-//     }
-//   }
-// }
-//
-// //
-// /**
-//  * Sets technique gap height to the new provided value
-//  * @param newGapHeight New gap height
-//  */
-// public setTechniqueGap(newGapHeight: number): void {
-//   // Apply the necessary gap height
-//   const oldGapHeight = this._labelsGapHeight;
-
-//   this._boundingBox.height += newGapHeight - oldGapHeight;
-//   this._timeSigRect.y += newGapHeight - oldGapHeight;
-
-//   this._labelsGapHeight = newGapHeight;
-
-//   for (const tabBeatElement of this._beatElements) {
-//     tabBeatElement.setTechniqueGap(newGapHeight);
-//   }
-
-//   this.calcStaffLines();
-// }
-
-// /**
-//  * Calculates & applies the technique gap of the current
-//  * bar element
-//  */
-// public calcTechniqueGap(): void {
-//   // Reset labels gap height to 0
-//   this._timeSigRect.y -= this._labelsGapHeight;
-//   this._boundingBox.height -= this._labelsGapHeight;
-//   this._labelsGapHeight = 0;
-
-//   // Figure out which beat element
-//   // is supposed to be the tallest one
-//   let mostLabelsBeatHeight = this._boundingBox.height;
-//   let mostLabelsCount = 0;
-//   for (const tabBeatElement of this._tabBeatElements) {
-//     if (tabBeatElement.techniqueLabelElements.length > mostLabelsCount) {
-//       mostLabelsCount = tabBeatElement.techniqueLabelElements.length;
-//       mostLabelsBeatHeight = tabBeatElement.boundingBox.height;
-//     }
-//   }
-
-//   // Apply the necessary gap height
-//   const newGapHeight = mostLabelsBeatHeight - this._boundingBox.height;
-//   this._labelsGapHeight = newGapHeight;
-//   this._boundingBox.height += this._labelsGapHeight;
-//   this._timeSigRect.y += this._labelsGapHeight;
-
-//   for (const tabBeatElement of this._tabBeatElements) {
-//     tabBeatElement.setTechniqueGap(newGapHeight);
-//   }
-
-//   this.calcStaffLines();
-// }

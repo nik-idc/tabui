@@ -29,8 +29,6 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
 
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
   /** Map of tempo svg text element */
   private _temposSVG: Map<BarElement, TempoSVG>;
 
@@ -49,8 +47,6 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
     this.trackLineInfoElement = trackLineInfoElement;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
-    //
     this._temposSVG = new Map();
   }
 
@@ -216,8 +212,5 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
     }
 
     this.unrenderTempoTexts();
-
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
 }

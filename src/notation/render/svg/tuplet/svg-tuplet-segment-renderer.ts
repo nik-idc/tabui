@@ -17,8 +17,6 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
   beatElement: BeatElement;
   /** Path to any assets */
   readonly assetsPath: ResolvedAssetConfig;
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
 
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
@@ -197,9 +195,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
 
     if (complete) {
       this.unrenderTupletSegmentText();
-      // this.renderTupletSegmentRect();
     } else {
-      // this.unrenderTupletSegmentRect();
       this.renderTupletSegmentText(isStandard);
     }
   }
@@ -214,8 +210,5 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
 
     this.unrenderTupletSegmentRect();
     this.unrenderTupletSegmentText();
-
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
 }

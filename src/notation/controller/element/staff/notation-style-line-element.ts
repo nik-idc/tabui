@@ -109,30 +109,18 @@ export class NotationStyleLineElement implements NotationElement {
     ];
 
     this._stateHash = hashArr.join("");
-
-    // Prompt the track element to check if this element has changed
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
    * Calculates the coordinates for all bar elements & their children
    */
   public layout(): void {
-    // // Setting rect width in layout since
-    // // bar element's layout justifies it to fit.
-    // // This is NOT ideal
-    // this._boundingBox.width = sumWidth;
-
     let sumWidth = 0;
     this._techGapElement.layout();
     for (const barElement of this._barElements) {
       barElement.layout();
       sumWidth += barElement.boundingBox.width;
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    // this.calcStateHash();
   }
 
   /**

@@ -103,9 +103,6 @@ export class TrackLineInfoElement implements NotationElement {
     }
 
     this._stateHash = hashArr.join("");
-
-    // // Prompt the track element to check if this element has changed
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -144,10 +141,6 @@ export class TrackLineInfoElement implements NotationElement {
       rect.x *= scale;
       rect.width *= scale;
     }
-
-    // // Calculating state hash at the last step of
-    // // element's update process - layout
-    // this.calcStateHash();
   }
 
   /**

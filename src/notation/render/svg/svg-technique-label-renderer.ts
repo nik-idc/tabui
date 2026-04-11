@@ -14,9 +14,6 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   /** Path to any assets */
   readonly assetsPath: ResolvedAssetConfig;
 
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
-
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
   /** Technique label SVG group */
@@ -41,7 +38,6 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
     this.techniqueLabelElement = techniqueLabelElement;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
   }
 
   /**

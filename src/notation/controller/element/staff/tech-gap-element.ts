@@ -106,9 +106,6 @@ export class TechGapElement implements NotationElement {
     }
 
     this._stateHash = hashArr.join("");
-
-    // // Prompt the track element to check if this element has changed
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -143,10 +140,6 @@ export class TechGapElement implements NotationElement {
     this._techGapLines[1]?.scaleHorBy(scale);
     this._techGapLines[2]?.scaleHorBy(scale);
     this._techGapLines[3]?.scaleHorBy(scale);
-
-    // // Calculating state hash at the last step of
-    // // element's update process - layout
-    // this.calcStateHash();
   }
 
   public getPrevGapLine(

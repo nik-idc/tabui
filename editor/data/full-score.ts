@@ -104,35 +104,8 @@ const barsInfo = [
     beatsCount: 32,
     beatsDuration: NoteDuration.ThirtySecond,
   },
-  // {
-  //   beatsCount: 4,
-  //   beatsDuration: NoteDuration.Quarter,
-  // },
-  // {
-  //   beatsCount: 4,
-  //   beatsDuration: NoteDuration.Quarter,
-  // },
-  // {
-  //   beatsCount: 4,
-  //   beatsDuration: NoteDuration.Quarter,
-  // },
-  // {
-  //   beatsCount: 8,
-  //   beatsDuration: NoteDuration.Eighth,
-  // },
-  // {
-  //   beatsCount: 16,
-  //   beatsDuration: NoteDuration.Sixteenth,
-  // },
 ];
 
 export function createDefaultScoreFixture(): Score {
-  return createScore(
-    "Test Score",
-    "Test Artist",
-    "Test Song",
-    6,
-    tracksInfo
-    // barsInfo
-  );
+  return createScore("Test Score", "Test Artist", "Test Song", 6, tracksInfo);
 }

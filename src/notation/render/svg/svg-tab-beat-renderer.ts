@@ -34,9 +34,6 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
   /** Beat element */
   beatElement: TabBeatElement;
 
-  // /** Rendered note elements map (legacy only, disabled in new flow) */
-  // private _renderedNoteElements: Map<number, SVGNoteRenderer>;
-
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
 
@@ -69,7 +66,6 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     this.beatElement = beatElement;
     void assetsPath;
 
-    // this._renderedNoteElements = new Map();
     this._attachedEvents = new Map();
   }
 
@@ -329,75 +325,6 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     }
   }
 
-  // private renderNoteElements(): SVGNoteRenderer[] {
-  //   if (SVGTabBeatRenderer.useIndependentNoteLifecycle) {
-  //     if (this._renderedNoteElements.size > 0) {
-  //       for (const [uuid, renderer] of this._renderedNoteElements) {
-  //         renderer.unrender();
-  //         this._renderedNoteElements.delete(uuid);
-  //       }
-  //     }
-  //     return [];
-  //   }
-  //
-  //   if (this._containerGroupSVG === undefined) {
-  //     throw Error("Tried to render note element when SVG group undefined");
-  //   }
-  //
-  //   const activeRenderers: SVGNoteRenderer[] = [];
-  //
-  //   // Check if there are any notes to remove
-  //   const curNoteUUIDs = new Set(
-  //     this.beatElement.noteElements.map((n) => n.note.uuid)
-  //   );
-  //   for (const [uuid, renderer] of this._renderedNoteElements) {
-  //     if (!curNoteUUIDs.has(uuid)) {
-  //       renderer.unrender();
-  //       this._renderedNoteElements.delete(uuid);
-  //     }
-  //   }
-  //
-  //   // Add & render new note element AND re-render existing notes
-  //   for (const noteElement of this.beatElement.noteElements) {
-  //     const renderedNote = this._renderedNoteElements.get(
-  //       noteElement.note.uuid
-  //     );
-  //     if (renderedNote === undefined) {
-  //       if (noteElement instanceof TabNoteElement) {
-  //         const renderer = new SVGTabNoteRenderer(
-  //           this.trackController,
-  //           noteElement
-  //         );
-  //         renderer.render();
-  //         this._renderedNoteElements.set(noteElement.note.uuid, renderer);
-  //         activeRenderers.push(renderer);
-  //       }
-  //     } else {
-  //       activeRenderers.push(renderedNote);
-  //       renderedNote.render();
-  //     }
-  //   }
-  //   return activeRenderers;
-  // }
-  //
-  // /**
-  //  * Unrender all note element
-  //  */
-  // private unrenderNoteElements(): void {
-  //   if (SVGTabBeatRenderer.useIndependentNoteLifecycle) {
-  //     this._renderedNoteElements.clear();
-  //     return;
-  //   }
-  //
-  //   if (this._containerGroupSVG === undefined) {
-  //     throw Error("Tried to unrender note element when SVG group undefined");
-  //   }
-  //
-  //   for (const [uuid, renderer] of this._renderedNoteElements) {
-  //     renderer.unrender();
-  //   }
-  // }
-
   /**
    * Render a full beat
    */
@@ -415,16 +342,6 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
         this.renderDotCircle(false);
       }
     }
-    // else {
-    //   this.unrenderDotCircle(true);
-    //   this.unrenderDotCircle(false);
-    // }
-
-    // if (this.beatElement.selected) {
-    //   this.renderBeatSelection();
-    // } else {
-    //   this.unrenderBeatSelection();
-    // }
   }
 
   /**
@@ -435,12 +352,10 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
-    // this.unrenderLabels();
     this.unrenderDurationStem();
     this.unrenderDurationFlags();
     this.unrenderDotCircle(true);
     this.unrenderDotCircle(false);
-    // this.unrenderBeatSelection();
   }
 
   /**
@@ -506,123 +421,3 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     return Array.from(this.noteRenderers.values());
   }
 }
-
-// ==============================
-// ==== MAY BE USEFULL LATER ====
-//
-// /**
-//  * Render beat selection
-//  */
-// private renderBeatSelection(): void {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to render beat selection when SVG group undefined");
-//   }
-
-//   if (!this.beatElement.selected) {
-//     throw Error("Tried to render selection of an unselected beat element");
-//   }
-
-//   const beatUUID = this.beatElement.beat.uuid;
-//   if (this._beatSelectionSVG === undefined) {
-//     this._beatSelectionSVG = createSVGRect();
-
-//     // Set only-set-once attributes
-//     this._beatSelectionSVG.setAttribute("fill", "gray");
-//     this._beatSelectionSVG.setAttribute("fill-opacity", "0.25");
-//     this._beatSelectionSVG.setAttribute("pointer-events", "none");
-
-//     // Set id
-//     this._beatSelectionSVG.setAttribute("id", `beat-sel-${beatUUID}`);
-
-//     // Add element to group SVG element
-//     this._containerGroupSVG.appendChild(this._beatSelectionSVG);
-//   }
-
-//   const x = `${this.beatElement.globalCoords.x}`;
-//   const y = `${this.beatElement.globalCoords.y}`;
-//   const width = `${this.beatElement.boundingBox.width}`;
-//   const height = `${this.beatElement.boundingBox.height}`;
-//   this._beatSelectionSVG.setAttribute("x", x);
-//   this._beatSelectionSVG.setAttribute("y", y);
-//   this._beatSelectionSVG.setAttribute("width", width);
-//   this._beatSelectionSVG.setAttribute("height", height);
-// }
-
-// /**
-//  * Unrender beat selection
-//  */
-// private unrenderBeatSelection(): void {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to unrender beat selection when SVG group undefined");
-//   }
-
-//   if (this._beatSelectionSVG === undefined) {
-//     return;
-//   }
-
-//   this._containerGroupSVG.removeChild(this._beatSelectionSVG);
-//   this._beatSelectionSVG = undefined;
-// }
-
-// /**
-//  * Render needed labels & unrender unneccesary ones
-//  * @param beatOffset Global offset of the beat element
-//  */
-// private renderLabels(): void {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to render beat labels when SVG group undefined");
-//   }
-
-//   /**
-//    * DONT ADD TO THE ROOT ELEMENT, ADD TO THE PARENT ELEMENT
-//    */
-
-//   // Check if there are any technique labels to remove
-//   const curTechniqueLabelUUIDs = new Set(
-//     this.beatElement.techniqueLabelElements.map((e) => e.technique.uuid)
-//   );
-//   for (const [uuid, renderer] of this._renderedLabels) {
-//     if (!curTechniqueLabelUUIDs.has(uuid)) {
-//       renderer.unrender();
-//       this._renderedLabels.delete(uuid);
-//     }
-//   }
-
-//   // Add & render new technique label element
-//   for (const techniqueLabelElement of this.beatElement
-//     .techniqueLabelElements) {
-//     const renderedLabel = this._renderedLabels.get(
-//       techniqueLabelElement.technique.uuid
-//     );
-//     if (renderedLabel === undefined) {
-//       const renderer = new SVGTechniqueLabelRenderer(
-//         this.trackController,
-//         techniqueLabelElement,
-//         this._assetsPath,
-//         this._containerGroupSVG
-//       );
-//       renderer.render();
-//       this._renderedLabels.set(
-//         techniqueLabelElement.technique.uuid,
-//         renderer
-//       );
-//     } else {
-//       renderedLabel.render();
-//     }
-//   }
-// }
-
-// /**
-//  * Unrender all technique labels
-//  */
-// private unrenderLabels(): void {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to unrender beat labels when SVG group undefined");
-//   }
-
-//   for (const [uuid, renderer] of this._renderedLabels) {
-//     renderer.unrender();
-//   }
-// }
-// ==== MAY BE USEFULL LATER ====
-// ==============================

@@ -92,10 +92,6 @@
       }
 
       .tu-tracks {
-        // border-radius: var(--tu-border-radius);
-        // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        // padding: 5px;
-
         .tu-track-controls {
           button {
             @extend %tu-button-style;
@@ -234,11 +230,9 @@
         justify-content: space-between;
         margin-top: 10px;
 
-        .tu-tuplet-confirm-button {
-        }
+        .tu-tuplet-confirm-button {}
 
-        .tu-tuplet-cancel-button {
-        }
+        .tu-tuplet-cancel-button {}
 
         button {
           @extend %tu-button-style;
@@ -321,11 +315,9 @@
         justify-content: space-between;
         margin-top: 10px;
 
-        .tu-time-sig-confirm-button {
-        }
+        .tu-time-sig-confirm-button {}
 
-        .tu-time-sig-cancel-button {
-        }
+        .tu-time-sig-cancel-button {}
 
         button {
           @extend %tu-button-style;
@@ -366,11 +358,9 @@
         justify-content: space-between;
         margin-top: 10px;
 
-        .tu-tempo-confirm-button {
-        }
+        .tu-tempo-confirm-button {}
 
-        .tu-tempo-cancel-button {
-        }
+        .tu-tempo-cancel-button {}
 
         button {
           @extend %tu-button-style;
@@ -456,7 +446,8 @@
       button {
         @extend %tu-button-style;
         width: 100%;
-        box-sizing: border-box; /* ensures borders/padding don’t overflow */
+        box-sizing: border-box;
+        /* ensures borders/padding don’t overflow */
       }
     }
   }
@@ -485,11 +476,9 @@
         justify-content: space-between;
         margin-top: 10px;
 
-        .tu-yes-no-confirm-button {
-        }
+        .tu-yes-no-confirm-button {}
 
-        .tu-yes-no-cancel-button {
-        }
+        .tu-yes-no-cancel-button {}
 
         button {
           @extend %tu-button-style;
@@ -524,11 +513,9 @@
         justify-content: space-between;
         margin-top: 10px;
 
-        .tu-ts-confirm-button {
-        }
+        .tu-ts-confirm-button {}
 
-        .tu-ts-cancel-button {
-        }
+        .tu-ts-cancel-button {}
 
         button {
           @extend %tu-button-style;

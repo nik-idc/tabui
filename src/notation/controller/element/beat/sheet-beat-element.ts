@@ -15,11 +15,6 @@ import { VertLine, HorLine } from "@/shared/rendering/geometry/line";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
 
-// TO BE IMPLEMENTED
-// TO BE IMPLEMENTED
-// TO BE IMPLEMENTED
-// TO BE IMPLEMENTED
-
 /**
  * Class that handles geometry & visually relevant info of a beat
  */

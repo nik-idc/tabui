@@ -128,9 +128,6 @@ export class TechGapLineElement implements NotationElement {
     }
 
     this._stateHash = hashArr.join("");
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -144,9 +141,6 @@ export class TechGapLineElement implements NotationElement {
     for (const label of this._labelElements) {
       label.layout();
     }
-
-    // Calculating state hash moved to scaleHorBy
-    // this.calcStateHash();
   }
 
   public update(): void {
@@ -168,10 +162,6 @@ export class TechGapLineElement implements NotationElement {
     for (const label of this._labelElements) {
       label.scaleHorBy(scale);
     }
-
-    // // Calculating state hash at the last step of
-    // // element's update process - layout
-    // this.calcStateHash();
   }
 
   /** String encoding the state of this element */

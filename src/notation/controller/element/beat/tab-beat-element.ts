@@ -247,9 +247,6 @@ export class TabBeatElement implements BeatElement {
     }
 
     this._stateHash = hashArr.join("");
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -261,10 +258,6 @@ export class TabBeatElement implements BeatElement {
     this.layoutDots();
 
     this.layoutNotes();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    // this.calcStateHash();
   }
 
   /**

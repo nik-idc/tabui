@@ -16,12 +16,6 @@ export class SVGTechGapLineRenderer implements ElementRenderer {
   /** Path to any assets */
   readonly assetsPath: ResolvedAssetConfig;
 
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
-
-  // /** Rendered technique label renderers map: label UUID => label renderer */
-  // private _renderedGapLineElements: Map<number, SVGTechniqueLabelRenderer>;
-
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
 
@@ -40,9 +34,6 @@ export class SVGTechGapLineRenderer implements ElementRenderer {
     this.techGapLineElement = techGapLineElement;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
-    //
-    // this._renderedGapLineElements = new Map();
   }
 
   /**
@@ -80,64 +71,6 @@ export class SVGTechGapLineRenderer implements ElementRenderer {
     this.ensureContainerGroup();
   }
 
-  // /**
-  //  * Render new & re-render existing gap line elements
-  //  * @returns
-  //  */
-  // private renderLabelElements(): SVGTechniqueLabelRenderer[] {
-  //   if (this._containerGroupSVG === undefined) {
-  //     throw Error("Tried to render gap lines when SVG group undefined");
-  //   }
-  //
-  //   const activeRenderers: SVGTechniqueLabelRenderer[] = [];
-  //
-  //   // Check if there are any gap lines to remove
-  //   const curNoteUUIDs = new Set(
-  //     this.techGapLineElement.labelElements.map((l) => l.uuid)
-  //   );
-  //   for (const [uuid, renderer] of this._renderedGapLineElements) {
-  //     if (!curNoteUUIDs.has(uuid)) {
-  //       renderer.unrender();
-  //       this._renderedGapLineElements.delete(uuid);
-  //     }
-  //   }
-  //
-  //   // Add & render new gap line elements AND re-render existing lines
-  //   for (const labelElement of this.techGapLineElement.labelElements) {
-  //     const renderedLabel = this._renderedGapLineElements.get(
-  //       labelElement.uuid
-  //     );
-  //     if (renderedLabel === undefined) {
-  //       const renderer = new SVGTechniqueLabelRenderer(
-  //         this.trackController,
-  //         labelElement,
-  //         this.assetsPath,
-  //         this._containerGroupSVG
-  //       );
-  //       renderer.render();
-  //       this._renderedGapLineElements.set(labelElement.uuid, renderer);
-  //       activeRenderers.push(renderer);
-  //     } else {
-  //       activeRenderers.push(renderedLabel);
-  //       renderedLabel.render();
-  //     }
-  //   }
-  //   return activeRenderers;
-  // }
-  //
-  // /**
-  //  * Unrender all labels
-  //  */
-  // private unrenderLabelElements(): void {
-  //   if (this._containerGroupSVG === undefined) {
-  //     throw Error("Tried to unrender note element when SVG group undefined");
-  //   }
-  //
-  //   for (const [uuid, renderer] of this._renderedGapLineElements) {
-  //     renderer.unrender();
-  //   }
-  // }
-
   /**
    * Renders the technique gap line element
    */
@@ -147,8 +80,6 @@ export class SVGTechGapLineRenderer implements ElementRenderer {
     if (this._containerGroupSVG === undefined) {
       throw Error("Bar group SVG undefined after render group call");
     }
-
-    // this.renderLabelElements();
   }
 
   /**
@@ -158,10 +89,5 @@ export class SVGTechGapLineRenderer implements ElementRenderer {
     if (this._containerGroupSVG === undefined) {
       return;
     }
-
-    // this.unrenderLabelElements();
-    //
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
 }

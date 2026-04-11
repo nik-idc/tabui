@@ -45,8 +45,6 @@ export class EditorLayoutDimensions {
   /* ==== BAR ELEMENT ==== */
   /** Size of time signature text */
   private static _TIME_SIG_TEXT_SIZE: number;
-  /** Width of a time signature rectangle */
-  // private static _TIME_SIG_RECT_HEIGHT: number;
   /** Height of a time signature rectangle */
   private static _TIME_SIG_RECT_WIDTH: number;
   /** Size of tempo text */
@@ -57,15 +55,9 @@ export class EditorLayoutDimensions {
   private static _TEMPO_RECT_WIDTH: number;
   /** Repeat sign width */
   private static _REPEAT_SIGN_WIDTH: number;
-  /** Repeat sign height */
-  // private static _REPEAT_SIGN_HEIGHT: number;
 
   /* ==== STAFF LINE ELEMENT ==== */
   private static _TECH_LABEL_HEIGHT: number;
-  /** TO BE DOCUMENTED  */
-  // private static _TAB_LINE_MIN_HEIGHT: number;
-  /** TO BE DOCUMENTED */
-  // private static _STAFF_LINES_HEIGHT: number;
 
   static configure(config: EditorLayoutDimensionsConfig): void {
     if (this._configured) {
@@ -101,7 +93,6 @@ export class EditorLayoutDimensions {
     this._TECHNIQUE_LABEL_HEIGHT = this._NOTE_TEXT_SIZE * 2;
 
     this._TIME_SIG_RECT_WIDTH = this._WIDTH_MAPPING[NoteDuration.ThirtySecond];
-    // this._TIME_SIG_RECT_HEIGHT = this._STAFF_LINES_HEIGHT;
     // '= XXX' = 5 characters of 'TEMPO_TEXT_SIZE' size
     this._TEMPO_RECT_WIDTH = this._DURATIONS_HEIGHT; //  + this._TEMPO_TEXT_SIZE * 5;
     this._TEMPO_RECT_HEIGHT = this._DURATIONS_HEIGHT;
@@ -110,13 +101,6 @@ export class EditorLayoutDimensions {
       0.75 * this._WIDTH_MAPPING[NoteDuration.SixtyFourth]!;
 
     this._TECH_LABEL_HEIGHT = this._NOTE_RECT_HEIGHT;
-    // this._REPEAT_SIGN_HEIGHT = this._TIME_SIG_RECT_HEIGHT;
-
-    // this._TAB_LINE_MIN_HEIGHT =
-    // this._TEMPO_RECT_HEIGHT +
-    // this._NOTE_RECT_HEIGHT * stringsCount +
-    // this._DURATIONS_HEIGHT +
-    // this._TUPLET_RECT_HEIGHT;
   }
 
   /**

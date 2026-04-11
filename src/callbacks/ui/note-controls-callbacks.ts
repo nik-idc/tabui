@@ -55,7 +55,6 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   }
 
   onDotClicked(dots: number): void {
-    // notationComponent.notationComponent.setSelectedBeatDots(dots);
     this._notationComponent.trackController.setDots(dots);
     this._renderFunc();
   }

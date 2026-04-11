@@ -79,10 +79,6 @@ export class BarTupletGroupElement implements NotationElement {
       sumWidth += beatElement.boundingBox.width;
     }
 
-    // // Adjust the coords and dimensions for better UI/UX
-    // sumWidth -=
-    //   this.beatElements[this.beatElements.length - 1].boundingBox.width * (3 / 4);
-
     const height = EditorLayoutDimensions.TUPLET_RECT_HEIGHT;
     this._boundingBox.setDimensions(sumWidth, height);
 
@@ -118,9 +114,6 @@ export class BarTupletGroupElement implements NotationElement {
     }
 
     this._stateHash = hashArr.join("");
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -143,9 +136,6 @@ export class BarTupletGroupElement implements NotationElement {
 
       this._incompleteRects[i].setCoords(x, y);
     }
-
-    // Calculating state hash moved to scaleHorBy
-    // this.calcStateHash();
   }
 
   /**

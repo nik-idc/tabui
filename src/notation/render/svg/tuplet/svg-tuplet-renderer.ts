@@ -19,12 +19,6 @@ export class SVGTupletRenderer implements ElementRenderer {
   /** Path to any assets */
   readonly assetsPath: ResolvedAssetConfig;
 
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
-
-  // /** Rendered segments map */
-  // private _renderedTupletSegments: Map<number, SVGTupletSegmentRenderer>;
-
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
   /** SVG path for if the tuplet is complete */
@@ -49,9 +43,6 @@ export class SVGTupletRenderer implements ElementRenderer {
     this.tupletElement = tupletElement;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
-    //
-    // this._renderedTupletSegments = new Map();
   }
 
   public ensureContainerGroup(): SVGGElement {
@@ -319,77 +310,5 @@ export class SVGTupletRenderer implements ElementRenderer {
     this.unrenderCompleteTupletText();
     this.unrenderCompleteTupletPath();
     this.unrenderIncompleteTexts();
-
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
 }
-
-// ================
-// ==== LEGACY ====
-//
-// /**
-//  * Render tuplet segments
-//  */
-// private renderTupletSegments(): SVGTupletSegmentRenderer[] {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to render tuplet segments when SVG group undefined");
-//   }
-
-//   const activeRenderers: SVGTupletSegmentRenderer[] = [];
-
-//   // Check if there are any beat element to remove
-//   const curBeatElementUUIDs = new Set(
-//     this.tupletElement.beatElements.map((b) => b.beat.uuid)
-//   );
-//   for (const [uuid, renderer] of this._renderedTupletSegments) {
-//     if (!curBeatElementUUIDs.has(uuid)) {
-//       renderer.unrender();
-//       this._renderedTupletSegments.delete(uuid);
-//     }
-//   }
-
-//   // Add & render new tuplet segments AND re-render existing ones
-//   for (const beatElement of this.tupletElement.beatElements) {
-//     const renderedTupletSegment = this._renderedTupletSegments.get(
-//       beatElement.beat.uuid
-//     );
-//     if (renderedTupletSegment === undefined) {
-//       const renderer = new SVGTupletSegmentRenderer(
-//         this.trackController,
-//         beatElement,
-//         this.assetsPath,
-//         this._containerGroupSVG
-//       );
-//       renderer.render(
-//         this.tupletElement.tupletGroup.complete,
-//         this.tupletElement.tupletGroup.isStandard
-//       );
-//       activeRenderers.push(renderer);
-//       this._renderedTupletSegments.set(beatElement.beat.uuid, renderer);
-//     } else {
-//       renderedTupletSegment.render(
-//         this.tupletElement.tupletGroup.complete,
-//         this.tupletElement.tupletGroup.isStandard
-//       );
-//       activeRenderers.push(renderedTupletSegment);
-//     }
-//   }
-//   return activeRenderers;
-// }
-
-// /**
-//  * Unrender tuplet segments
-//  */
-// private unrenderTupletSegments(): void {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to unrender tuplet segments when SVG group undefined");
-//   }
-
-//   for (const [uuid, renderer] of this._renderedTupletSegments) {
-//     renderer.unrender();
-//     this._renderedTupletSegments.delete(uuid);
-//   }
-// }
-// ==== LEGACY ====
-// ================

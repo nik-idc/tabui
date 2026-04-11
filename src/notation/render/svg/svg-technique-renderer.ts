@@ -12,16 +12,9 @@ export class SVGTechniqueRenderer implements ElementRenderer {
   /** Technique element to render */
   techniqueElement: TechniqueElement;
 
-  // /** Path to any assets */
-  // private _assetsPath: string;
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
-
   /** Container SVG group  */
   private _containerGroupSVG?: SVGGElement;
 
-  // /** Technique SVG path */
-  // private _techniqueSVGPath?: SVGGElement;
   /** Technique SVG paths */
   private _techniquePathsSVG?: SVGPathElement[];
 
@@ -151,8 +144,6 @@ export class SVGTechniqueRenderer implements ElementRenderer {
   public render(): void {
     this.renderGroup();
 
-    // The reason for 2 ifs: bends DO NOT have a rect, but DO have full HTML
-
     // Render technique custom HTML if necessary, remove it otherwise
     if (this.techniqueElement.pathDescriptors !== undefined) {
       this.renderTechniquePaths();
@@ -172,64 +163,3 @@ export class SVGTechniqueRenderer implements ElementRenderer {
     this.unrenderTechniquePaths();
   }
 }
-
-// // =====================================
-// // ==== MAYBE WILL BE USEFULL LATER ====
-//
-// /**
-//  * Render technique's outer rect
-//  */
-// private renderTechniqueRect(): void {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to render technique rect when SVG group undefined");
-//   }
-
-//   if (this.techniqueElement.rect === undefined) {
-//     throw Error("Tried to render technique rect with undefined rect");
-//   }
-
-//   const techniqueUUID = this.techniqueElement.technique.uuid;
-//   if (this._techniqueRectSVG === undefined) {
-//     this._techniqueRectSVG = createSVGRect();
-//     // Set only-set-once attributes
-//     this._techniqueRectSVG.setAttribute("fill", "white");
-//     this._techniqueRectSVG.setAttribute("stroke-opacity", "0");
-
-//     // Set id
-//     this._techniqueRectSVG.setAttribute(
-//       "id",
-//       `technique-rect-${techniqueUUID}`
-//     );
-
-//     // Add element to root SVG element
-//     this._containerGroupSVG.appendChild(this._techniqueRectSVG);
-//   }
-
-//   const x = `${this.techniqueElement.globalCoords.x}`;
-//   const y = `${this.techniqueElement.globalCoords.y}`;
-//   const width = `${this.techniqueElement.rect.width}`;
-//   const height = `${this.techniqueElement.rect.height}`;
-//   this._techniqueRectSVG.setAttribute("x", x);
-//   this._techniqueRectSVG.setAttribute("y", y);
-//   this._techniqueRectSVG.setAttribute("width", width);
-//   this._techniqueRectSVG.setAttribute("height", height);
-// }
-//
-// /**
-//  * Unrenders technique rect
-//  */
-// private unrenderTechniqueRect(): void {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to unrender technique rect when SVG group undefined");
-//   }
-
-//   if (this._techniqueRectSVG === undefined) {
-//     return;
-//   }
-
-//   this._containerGroupSVG.removeChild(this._techniqueRectSVG);
-//   this._techniqueRectSVG = undefined;
-// }
-//
-// // ==== MAYBE WILL BE USEFULL LATER ====
-// // =====================================

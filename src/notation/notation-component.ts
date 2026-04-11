@@ -41,8 +41,6 @@ export class NotationComponent {
         : renderer;
 
     this._trackController = new TrackController(this.score.tracks[0]);
-    // this._trackController.trackElement.measure();
-    // this._trackController.trackElement.layout();
   }
 
   /**
@@ -66,8 +64,6 @@ export class NotationComponent {
     const newTrackController = new TrackController(newTrack);
     this._trackController = newTrackController;
     this._trackController.trackElement.update();
-    // this._trackController.trackElement.measure();
-    // this._trackController.trackElement.layout();
     return this.renderer.render(this._trackController);
   }
 

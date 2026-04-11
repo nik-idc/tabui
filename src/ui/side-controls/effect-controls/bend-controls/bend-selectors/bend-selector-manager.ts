@@ -56,7 +56,6 @@ export class BendSelectorManager {
     const SelectorType =
       bendType === undefined ? BendSelector : selectorMap[bendType];
 
-    // BAD BAD BAD!!! SHOULD BE HANDLING ALL TYPES OF BENDS!!! AAAAA
     this._currentSelector = new SelectorType!(
       this._bendGraphSVG,
       this._currentOptions
@@ -135,7 +134,6 @@ export class BendSelectorManager {
 
     const SelectorType =
       bendType === undefined ? BendSelector : selectorMap[bendType];
-    // BAD BAD BAD!!! SHOULD BE HANDLING ALL TYPES OF BENDS!!! AAAAA
     this._currentSelector = new SelectorType!(
       this._bendGraphSVG,
       this._currentOptions

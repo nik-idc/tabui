@@ -351,7 +351,6 @@ export class TrackControllerEditor {
    */
   public clearSelection(): void {
     this._selectionManager.clearSelection();
-    // this._trackElement.resetSelection();
   }
 
   /**
@@ -374,10 +373,6 @@ export class TrackControllerEditor {
    */
   public selectBeat(beatElement: BeatElement): void {
     this._selectionManager.selectBeat(beatElement.beat);
-
-    // this._trackElement.recalcBeatElementSelection(
-    //   this._selectionManager.selectionBeats
-    // );
   }
 
   /**
@@ -519,45 +514,6 @@ export class TrackControllerEditor {
 
     this._trackElement.update();
   }
-
-  // /**
-  //  * Undo (reestablish previous state)
-  //  */
-  // public undo(): void {
-  //   const prevTrack = this.undoStack.pop();
-  //   if (prevTrack === undefined) {
-  //     return;
-  //   }
-
-  //   IMPLEMENT USING COMMAND PATTERN
-  //   IMPLEMENT USING COMMAND PATTERN
-  //   IMPLEMENT USING COMMAND PATTERN
-  //   IMPLEMENT USING COMMAND PATTERN
-  //   IMPLEMENT USING COMMAND PATTERN
-
-  //   this.redoStack.push(this._trackElement.track.deepCopy());
-  //   this._trackElement = new TrackElement(prevTrack)
-  //   this._selectionManager = new SelectionManager(this._trackElement.track);
-  // }
-
-  // public redo(): void {
-  //   const nextTrack = this.redoStack.pop();
-  //   if (nextTrack === undefined) {
-  //     return;
-  //   }
-
-  //   IMPLEMENT USING COMMAND PATTERN
-  //   IMPLEMENT USING COMMAND PATTERN
-  //   IMPLEMENT USING COMMAND PATTERN
-  //   IMPLEMENT USING COMMAND PATTERN
-  //   IMPLEMENT USING COMMAND PATTERN
-
-  //   this.undoStack.push(this._trackElement.track.deepCopy());
-  //   this._trackElement.track = nextTrack;
-
-  //   this._selectionManager = new SelectionManager(this._trackElement.track);
-  //   this._trackElement.resetTrack(this._trackElement.track);
-  // }
 
   public get selectionManager(): SelectionManager {
     return this._selectionManager;

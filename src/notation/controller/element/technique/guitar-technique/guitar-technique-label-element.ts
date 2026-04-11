@@ -385,9 +385,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     ];
 
     this._stateHash = hashArr.join("");
-
-    // // Prompt the track element to check if this element has changed
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**

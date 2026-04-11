@@ -19,9 +19,6 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
   /** Path to any assets */
   readonly assetsPath: ResolvedAssetConfig;
 
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
-
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
   /** Long beam rectangle */
@@ -44,7 +41,6 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
     this.beamSegment = beamSegment;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
   }
 
   public detachContainerGroup(): void {
@@ -289,8 +285,5 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
 
     this.unrenderLongRects();
     this.unrenderShortRects();
-
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
 }

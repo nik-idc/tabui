@@ -84,7 +84,6 @@ export function createScore(
     stavesInfo: BarsInfo[][];
     name: string;
   }[]
-  // barsInfo: BarsInfo[]
 ): Score {
   const score = new Score([], scoreName, artist, songName);
 
@@ -102,66 +101,3 @@ export function createScore(
 
   return score;
 }
-
-// export function getBeats(
-//   count: number,
-//   guitar: Guitar,
-//   duration: NoteDuration,
-//   affectedStrings: number[],
-//   notes: number[]
-// ): Beat<Guitar>[] {
-//   let beats: Beat<Guitar>[] = [];
-//   for (let i = 0; i < count; i++) {
-//     beats.push(new Beat(guitar, duration, notesArr));
-//     const notesArr: GuitarNote[] = [];
-//     for (let j = 1; j <= guitar.stringsCount; j++) {
-//       const fretVal = affectedStrings.includes(j) ? notes[i % 4] : undefined;
-//       notesArr.push(new GuitarNote());
-//     }
-//   }
-
-//   return beats;
-// }
-
-// export function createTrack(
-//   name: string,
-//   stringsCount: number,
-//   tuning: Note<Guitar>[],
-//   affectedStrings: number[]
-// ): Track<Guitar> {
-//   const track = new Track<Guitar>();
-
-//   const staffCount = 1;
-//   const fretsCount = 24;
-//   const guitar = DEFAULT_ELECTRIC_GUITARS["Electric Clean"];
-
-//   const notes = [8, 10, 12, 13];
-
-//   const staff = new Staff();
-
-//   const bars = [
-//     new Bar(
-//       guitar,
-//       120,
-//       4,
-//       NoteDuration.Quarter,
-//       getBeats(4, guitar, NoteDuration.Quarter, affectedStrings, notes)
-//     ),
-//     new Bar(
-//       guitar,
-//       120,
-//       4,
-//       NoteDuration.Quarter,
-//       getBeats(8, guitar, NoteDuration.Eighth, affectedStrings, notes)
-//     ),
-//     new Bar(
-//       guitar,
-//       120,
-//       4,
-//       NoteDuration.Quarter,
-//       getBeats(16, guitar, NoteDuration.Sixteenth, affectedStrings, notes)
-//     ),
-//   ];
-
-//   return new Track(name, "guitar", guitar, bars);
-// }

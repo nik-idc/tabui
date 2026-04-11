@@ -207,9 +207,6 @@ export class BeamSegmentElement implements NotationElement {
     }
 
     this._stateHash = hashArr.join("");
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -264,10 +261,6 @@ export class BeamSegmentElement implements NotationElement {
       this._shortRects[shortRectIndex]?.setCoords(shortX, y);
       shortRectIndex++;
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    // this.calcStateHash();
   }
 
   /**

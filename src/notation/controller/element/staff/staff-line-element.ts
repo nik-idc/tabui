@@ -138,9 +138,6 @@ export class StaffLineElement implements NotationElement {
     ];
 
     this._stateHash = hashArr.join("");
-
-    // // Prompt the track element to check if this element has changed
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -163,12 +160,6 @@ export class StaffLineElement implements NotationElement {
 
     this._notationStyleLineElements[NotationStyle.Classic]?.layout();
     this._notationStyleLineElements[NotationStyle.Tablature]?.layout();
-
-    // this.justifyStyleLines();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    // this.calcStateHash();
   }
 
   public update(): void {
@@ -226,10 +217,6 @@ export class StaffLineElement implements NotationElement {
       width = tablatureNot.boundingBox.width;
     }
     this._boundingBox.width = width;
-
-    // // Calculating state hash at the last step of
-    // // element's update process - layout
-    // this.calcStateHash();
   }
 
   /** String encoding the state of this element */
@@ -293,71 +280,3 @@ export class StaffLineElement implements NotationElement {
     return this.globalBoundingBox;
   }
 }
-
-// // ==== MAYBE WILL BE USEFULL LATER ====
-// /**
-//  * Calc staff line element
-//  */
-// public calc(): void {
-//   const prevStaffLineElement =
-//     this.trackLineElement.getPrevStaffLineElement(this);
-//   const x = prevStaffLineElement?._boundingBox.x ?? 0;
-//   const y = prevStaffLineElement?._boundingBox.y ?? 0;
-
-//   this._boundingBox = new Rect(
-//     x,
-//     y,
-//     0,
-//     EditorLayoutDimensions.getStaffLineMinHeight(
-//       this.staff.trackContext.instrument
-//     )
-//   );
-//   this._techniqueLabelsRect = new Rect(x, y, 0, 0);
-
-//   // this._barElements = [];
-//   // for (const bar of this.staff.bars) {
-//   //   const barElement = new BarElement(bar, this);
-//   //   this._barElements.push(barElement);
-//   // }
-
-//   this.calcTechniqueGap();
-// }
-// /**
-//  * Justifies element by scaling all their widths
-//  */
-// public justifyElements(): void {
-//   for (const barsLine of this._barElements) {
-//     barsLine.justifyElements();
-//   }
-// }
-
-// /**
-//  * Checks if bar fits
-//  * @param bar Bar
-//  * @returns True if fits, false otherwise
-//  */
-// public barFits(bar: Bar): boolean {
-//   const barWidth = getBarWidth(bar);
-//   return this._boundingBox.rightTop.x + barWidth <= EditorLayoutDimensions.WIDTH;
-// }
-
-// /**
-//  * Add master bar to the line (assumes the bar fits)
-//  * @param masterBarIndex Index of the master bar to add
-//  */
-// public addBar(masterBarIndex: number): boolean {
-//   const bar = this.staff.bars[masterBarIndex];
-//   if (!this.barFits(bar)) {
-//     for (const barsLine of this._barElements) {
-//       barsLine.justifyElements();
-//       barsLine.calcTechniqueGap();
-//     }
-//     return false;
-//   }
-
-//   for (const barsLine of this._barElements) {
-//     barsLine.addBar(bar);
-//   }
-
-//   return true;
-// }

@@ -15,12 +15,6 @@ export class SVGStaffLineRenderer implements ElementRenderer {
   /** Path to any assets */
   readonly assetsPath: ResolvedAssetConfig;
 
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
-
-  // /** Rendered style lines map: style line UUID -> style line renderer */
-  // private _renderedStyleLines: Map<number, SVGStyleLineRenderer>;
-
   /** Parent SVG group element */
   private _containerGroupSVG?: SVGGElement;
 
@@ -39,9 +33,6 @@ export class SVGStaffLineRenderer implements ElementRenderer {
     this.staffLineElement = staffLineElement;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
-    //
-    // this._renderedStyleLines = new Map();
   }
 
   /**
@@ -85,39 +76,6 @@ export class SVGStaffLineRenderer implements ElementRenderer {
     if (this._containerGroupSVG === undefined) {
       throw Error("Bar group SVG undefined after render group call");
     }
-
-    // const styleLinesArr = this.staffLineElement.styleLinesAsArray;
-    //
-    // // Check if there are any style lines to remove
-    // const curStyleLinesUUIDs = new Set(styleLinesArr.map((sl) => sl.uuid));
-    // for (const [uuid, renderer] of this._renderedStyleLines) {
-    //   if (!curStyleLinesUUIDs.has(uuid)) {
-    //     renderer.unrender();
-    //     this._renderedStyleLines.delete(uuid);
-    //   }
-    // }
-    //
-    // const activeRenderers: ElementRenderer[] = [];
-    // // Add & render new bar element AND re-render existing bar element
-    // for (const styleLine of styleLinesArr) {
-    //   const renderedLine = this._renderedStyleLines.get(styleLine.uuid);
-    //   if (renderedLine === undefined) {
-    //     const renderer = new SVGStyleLineRenderer(
-    //       this.trackController,
-    //       styleLine,
-    //       this.assetsPath,
-    //       this._containerGroupSVG
-    //     );
-    //     activeRenderers.push(renderer);
-    //     activeRenderers.push(...renderer.render());
-    //     this._renderedStyleLines.set(styleLine.uuid, renderer);
-    //   } else {
-    //     activeRenderers.push(renderedLine);
-    //     activeRenderers.push(...renderedLine.render());
-    //   }
-    // }
-    //
-    // return activeRenderers;
   }
 
   /**
@@ -127,15 +85,5 @@ export class SVGStaffLineRenderer implements ElementRenderer {
     if (this._containerGroupSVG === undefined) {
       return;
     }
-
-    // for (const [uuid, renderer] of this._renderedStyleLines) {
-    //   renderer.unrender();
-    //   this._renderedStyleLines.delete(uuid);
-    // }
   }
-
-  // /** Style lines renderers getter */
-  // public get styleLinesRenderers(): SVGStyleLineRenderer[] {
-  //   return this._renderedStyleLines.values().toArray();
-  // }
 }

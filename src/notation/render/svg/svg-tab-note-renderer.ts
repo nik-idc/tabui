@@ -13,14 +13,6 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
   /** Guitar note element */
   noteElement: TabNoteElement;
 
-  // /** Path to any assets */
-  // private _assetsPath: string;
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
-
-  // /** Rendered techniques map */
-  // private _renderedTechniques: Map<number, SVGTechniqueRenderer>;
-
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
 
@@ -328,36 +320,6 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this.unrenderNoteBackground();
       this.unrenderNoteText();
     }
-
-    // // Check if there are any techniques to remove
-    // const curTechniqueElementUUIDs = new Set(
-    //   this.noteElement.guitarTechniqueElements.map((e) => e.technique.uuid)
-    // );
-    // for (const [uuid, renderer] of this._renderedTechniques) {
-    //   if (!curTechniqueElementUUIDs.has(uuid)) {
-    //     renderer.unrender();
-    //     this._renderedTechniques.delete(uuid);
-    //   }
-    // }
-    //
-    // // Add & render new guitar technique element
-    // for (const techniqueElement of this.noteElement.guitarTechniqueElements) {
-    //   const renderedTechnique = this._renderedTechniques.get(
-    //     techniqueElement.technique.uuid
-    //   );
-    //   if (renderedTechnique === undefined) {
-    //     const renderer = new SVGTechniqueRenderer(
-    //       this.trackController,
-    //       techniqueElement,
-    //       this._assetsPath,
-    //       this._containerGroupSVG
-    //     );
-    //     renderer.render();
-    //     this._renderedTechniques.set(techniqueElement.technique.uuid, renderer);
-    //   } else {
-    //     renderedTechnique.render();
-    //   }
-    // }
   }
 
   /**
@@ -367,10 +329,6 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     if (this._containerGroupSVG === undefined) {
       return;
     }
-
-    // for (const [uuid, renderer] of this._renderedTechniques) {
-    //   renderer.unrender();
-    // }
 
     this.unrenderSelectionRect();
     this.unrenderNoteRect();

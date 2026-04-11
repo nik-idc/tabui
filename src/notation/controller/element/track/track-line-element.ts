@@ -151,9 +151,6 @@ export class TrackLineElement implements NotationElement {
     ];
 
     this._stateHash = hashArr.join("");
-
-    // // Prompt the track element to check if this element has changed
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -431,80 +428,3 @@ export class TrackLineElement implements NotationElement {
     return this._trackLineData;
   }
 }
-
-// ==== TOO AFRAID TO DELETE ====
-// /**
-//  * Checks if bar fits in all the staff line elements
-//  * @param masterBarIndex Index of the master bar
-//  * @returns True if fits, false otherwise
-//  */
-// public masterBarFits(masterBarIndex: number): boolean {
-//   for (const staffLineElement of this._staffLineElements) {
-//     const bar = staffLineElement.staff.bars[masterBarIndex];
-//     if (!staffLineElement.barFits(bar)) {
-//       return false;
-//     }
-//   }
-
-//   return true;
-// }
-
-// /**
-//  * Add master bar to the line (assumes the bar fits)
-//  * @param masterBarIndex Index of the master bar to add
-//  */
-// public addBar(masterBarIndex: number): boolean {
-//   // Check if the bar fits in ALL the staff lines
-//   const barsCountsPerStaff = [];
-//   for (const staffLine of this._staffLineElements) {
-//     const bar = staffLine.staff.bars[masterBarIndex];
-//     const barWidth = getBarWidth(bar);
-
-//     if (staffLine.boundingBox.right + barWidth <= EditorLayoutDimensions.WIDTH) {
-//       barsCountsPerStaff.push();
-//     }
-//   }
-
-//   if (!this.masterBarFits(masterBarIndex)) {
-//     return false;
-//   }
-
-//   for (const staffLineElement of this._staffLineElements) {
-//     if (!staffLineElement.addBar(masterBarIndex)) {
-//       return false;
-//     }
-//   }
-
-//   this._trackLineInfoElement.calc();
-
-//   return true;
-// }
-
-// /**
-//  * Justifies element by scaling all their widths
-//  */
-// public justifyStaves(): void {
-//   for (const staffLineElement of this._staffLineElements) {
-//     staffLineElement.justifyElements();
-//   }
-// }
-//
-//
-// /**
-//  * Calculates track line element
-//  */
-// public calc(): void {
-//   const prevTrackLineElement =
-//     this.trackElement.trackLineElements[
-//       this.trackElement.trackLineElements.length - 1
-//     ];
-//   const y = prevTrackLineElement?._boundingBox.bottom ?? 0;
-//   this._boundingBox = new Rect(
-//     0,
-//     y,
-//     EditorLayoutDimensions.WIDTH,
-//     EditorLayoutDimensions.getStaffLineMinHeight(this.track.context.instrument)
-//   );
-
-//   this._trackLineInfoElement.calc();
-// }
