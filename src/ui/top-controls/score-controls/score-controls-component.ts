@@ -1,7 +1,6 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { ScoreControlsTemplate } from "./score-controls-template";
 import { ScoreControlsTemplateRenderer } from "./score-controls-template-renderer";
-import { TrackControlsTemplate } from "./track-controls";
 import { TrackControlsComponent } from "./track-controls/track-controls-component";
 import { NewTrackControlsComponent } from "./new-track/new-track-controls-component";
 import { Score } from "@/notation";

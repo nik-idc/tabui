@@ -11,7 +11,6 @@ export * from "./bar/bar-tuplet-group-element";
 export * from "./beat/beat-element";
 export * from "./beat/tab-beat-element";
 export * from "./beat/sheet-beat-element";
-// export * from "./beat-notes-element";  // Commented out - file is empty
 export * from "./note/note-element";
 export * from "./note/tab-note-element";
 export * from "./technique";

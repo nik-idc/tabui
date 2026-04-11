@@ -4,14 +4,12 @@ import { ScoreControlsTemplate } from "./score-controls-template";
 import { Score } from "@/notation";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
-// VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 const minVolume = 0;
 const maxVolume = 100;
 const volumeStep = 5;
 const minPanning = -1;
 const maxPanning = 1;
 const panningStep = 0.05;
-// VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 
 export class ScoreControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

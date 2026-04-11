@@ -28,8 +28,6 @@ export type StaffLineBarData = {
  */
 export type StaffLineData = StaffLineBarData[];
 
-// TODO: Implement showing selection somehow
-
 /**
  * Class that handles all geometry & visually relevant info of a staff line
  */

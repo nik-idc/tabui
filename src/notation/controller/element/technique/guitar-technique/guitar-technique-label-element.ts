@@ -356,10 +356,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     }
   }
 
-  /**
-   * Dummy build function (for now)
-   * TODO: Rethink how this element is done
-   */
   public build(): void {
     this._pathDescriptors = [];
     this._textDescriptors = [];
@@ -518,31 +514,3 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     );
   }
 }
-
-// ==== TOO AFRAID TO DELETE ====
-// /**
-//  * Calculates the outer rectangle
-//  */
-// private createRect(): void {
-//   const existingLabels = this.techniqueLabelElements;
-
-//   let y = 0;
-//   const siblingLabel = existingLabels.find(
-//     (l) => l.technique.type === this.technique.type
-//   );
-//   if (
-//     TECHNIQUE_ALLOWS_STACKING[this.technique.type] &&
-//     siblingLabel !== undefined
-//   ) {
-//     y = siblingLabel.boundingBox.y;
-//   } else {
-//     y = existingLabels[existingLabels.length - 1]?.boundingBox.y ?? 0;
-//   }
-
-//   this._boundingBox.set(
-//     0,
-//     y,
-//     this.boundingBox.width,
-//     EditorLayoutDimensions.TECH_LABEL_HEIGHT
-//   );
-// }

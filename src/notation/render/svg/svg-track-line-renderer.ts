@@ -1,8 +1,6 @@
 import { ElementRenderer } from "../element-renderer";
 import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
-import { SVGStaffLineRenderer } from "./svg-staff-line-renderer";
 import { TrackController } from "@/notation/controller";
-import { SVGTrackLineInfoRenderer } from "./svg-track-line-info-renderer";
 import { createSVGG, createSVGLine } from "@/shared";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
@@ -21,14 +19,6 @@ export class SVGTrackLineRenderer implements ElementRenderer {
   trackLineElement: TrackLineElement;
   /** Path to any assets */
   readonly assetsPath: ResolvedAssetConfig;
-
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
-
-  // /** Rendered track line infoe element */
-  // private _renderedInfoElement?: SVGTrackLineInfoRenderer;
-  // /** Rendered staff line elements map */
-  // private _renderedStaffLines: Map<number, SVGStaffLineRenderer>;
 
   /** Rendered outlines lines */
   private _renderedOutlineLines?: OutlineLinesRendered;
@@ -51,9 +41,6 @@ export class SVGTrackLineRenderer implements ElementRenderer {
     this.trackLineElement = trackLineElement;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
-    //
-    // this._renderedStaffLines = new Map();
   }
 
   /**
@@ -87,102 +74,6 @@ export class SVGTrackLineRenderer implements ElementRenderer {
   private renderGroup(): void {
     this.ensureContainerGroup();
   }
-
-  // /**
-  //  * Renders track line info element
-  //  */
-  // private renderInfoElement(): void {
-  //   if (this._containerGroupSVG === undefined) {
-  //     throw Error("Tried to render tech gap when SVG group undefined");
-  //   }
-  //
-  //   if (this.trackLineElement.trackLineInfoElement === null) {
-  //     this.unrenderInfoElement();
-  //     return;
-  //   }
-  //
-  //   if (this._renderedInfoElement === undefined) {
-  //     this._renderedInfoElement = new SVGTrackLineInfoRenderer(
-  //       this.trackController,
-  //       this.trackLineElement.trackLineInfoElement,
-  //       this.assetsPath,
-  //       this._containerGroupSVG
-  //     );
-  //   }
-  //
-  //   this._renderedInfoElement.render();
-  // }
-  //
-  // /**
-  //  * Unrenders track line info element
-  //  */
-  // private unrenderInfoElement(): void {
-  //   if (this._containerGroupSVG === undefined) {
-  //     throw Error("Tried to unrender track info line when SVG group undefined");
-  //   }
-  //
-  //   if (this._renderedInfoElement === undefined) {
-  //     return;
-  //   }
-  //
-  //   this._renderedInfoElement.unrender();
-  //   this._renderedInfoElement = undefined;
-  // }
-
-  // /**
-  //  * Renders all new staff lines & re-renders existing ones
-  //  * @returns Active renderers as a result of the render
-  //  */
-  // private renderStaffLines(): ElementRenderer[] {
-  //   if (this._containerGroupSVG === undefined) {
-  //     throw Error("Tried to render staff lines when SVG group undefined");
-  //   }
-  //
-  //   // Check if there are any staff element to remove
-  //   const curStaffLineElementUUIDs = new Set(
-  //     this.trackLineElement.staffLineElements.map((s) => s.staff.uuid)
-  //   );
-  //   for (const [uuid, renderer] of this._renderedStaffLines) {
-  //     if (!curStaffLineElementUUIDs.has(uuid)) {
-  //       renderer.unrender();
-  //       this._renderedStaffLines.delete(uuid);
-  //     }
-  //   }
-  //
-  //   const activeRenderers: ElementRenderer[] = [];
-  //   // Add & render new staff element AND re-render existing staff element
-  //   for (const staffLineElement of this.trackLineElement.staffLineElements) {
-  //     const renderedStaff = this._renderedStaffLines.get(
-  //       staffLineElement.staff.uuid
-  //     );
-  //     if (renderedStaff === undefined) {
-  //       const renderer = new SVGStaffLineRenderer(
-  //         this.trackController,
-  //         staffLineElement,
-  //         this.assetsPath,
-  //         this._containerGroupSVG
-  //       );
-  //       activeRenderers.push(renderer);
-  //       activeRenderers.push(...renderer.render());
-  //       this._renderedStaffLines.set(staffLineElement.staff.uuid, renderer);
-  //     } else {
-  //       activeRenderers.push(renderedStaff);
-  //       activeRenderers.push(...renderedStaff.render());
-  //     }
-  //   }
-  //
-  //   return activeRenderers;
-  // }
-  //
-  // /**
-  //  * Unrenders all staff lines
-  //  */
-  // private unrenderStaffLines(): void {
-  //   for (const [uuid, renderer] of this._renderedStaffLines) {
-  //     renderer.unrender();
-  //     this._renderedStaffLines.delete(uuid);
-  //   }
-  // }
 
   /**
    * Renders the left & right outline lines
@@ -260,9 +151,7 @@ export class SVGTrackLineRenderer implements ElementRenderer {
    */
   public render(): void {
     this.renderGroup();
-    // this.renderInfoElement();
     this.renderOutlines();
-    // return this.renderStaffLines();
   }
 
   /**
@@ -272,16 +161,6 @@ export class SVGTrackLineRenderer implements ElementRenderer {
     if (this._containerGroupSVG === undefined) {
       return;
     }
-
-    // this.unrenderInfoElement();
-    // this.unrenderStaffLines();
     this.unrenderOutlines();
-
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
-
-  // public get staffRenderers(): SVGStaffLineRenderer[] {
-  //   return this._renderedStaffLines.values().toArray();
-  // }
 }

@@ -1,9 +1,13 @@
-import { Beat, Guitar, GuitarTechnique } from "@/notation/model";
+import {
+  Beat,
+  Guitar,
+  GuitarTechnique,
+  TECHNIQUE_TYPE_TO_LABEL,
+} from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { GuitarTechniqueLabelElement } from "../technique/guitar-technique/guitar-technique-label-element";
-import { TECHNIQUE_TYPE_TO_LABEL } from "../technique/guitar-technique/guitar-technique-element-lists";
 import { TechniqueLabelElement } from "../technique/technique-label-element";
 import { NoteElement } from "../note/note-element";
 import { Circle } from "@/shared/rendering/geometry/circle";

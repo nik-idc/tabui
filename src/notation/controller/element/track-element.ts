@@ -195,10 +195,7 @@ export class TrackElement {
     this.checkAllDirty();
   }
 
-  public checkIfDirty(element: NotationElement): void {
-    // DEPRECATED - replaced by checkAllDirty()
-    // Keeping for backward compatibility during transition
-  }
+  public checkIfDirty(_element: NotationElement): void {}
 
   public registerElement(element: NotationElement): void {
     this._elementRegistry.set(element.getModelUUID(), element);

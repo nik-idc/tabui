@@ -1,8 +1,11 @@
 import { renderOnce, setImageAsset } from "@/ui/shared";
 import { NotationComponent } from "@/notation/notation-component";
-import { GuitarTechniqueType, NoteValue } from "@/notation";
+import {
+  GuitarTechniqueType,
+  NoteValue,
+  TECHNIQUE_TYPE_TO_LABEL,
+} from "@/notation/model";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
-import { TECHNIQUE_TYPE_TO_LABEL } from "@/notation/controller";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class TechniqueControlsTemplateRenderer {

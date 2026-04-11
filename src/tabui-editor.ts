@@ -10,17 +10,6 @@ import {
 } from "./config/tabui-config";
 import "./styles.scss";
 
-// TODO:
-// 0. Dynamic button enabled/disabled status -- done
-// 1. Tuplet dialog -- done
-// 2. New track dialog -- done
-// 3. Delete track/Yes or No dialog -- done
-// 4. Score settings dialog -x- not needed
-// 5. Track settings dialog -- done
-// 6. Score name input field (like in Google Docs) -- done
-// 7. Fix empty divs, i.e. fix component parenthood issues -- done
-// 8. Major model update
-
 export class TabUIEditor {
   readonly score: Score;
   readonly rootDiv: HTMLDivElement;

@@ -370,12 +370,6 @@ export class EditorSVGRenderer implements EditorRenderer {
    * Render player overlay
    */
   private renderPlayerOverlay(trackController: TrackController): void {
-    /**
-     * TODO: PLAYER CURSOR NEEDS TO BE RENDERED ON TOP OF
-     * EVERYTHING ELSE. THAT MEANS THAT EVERY PAUSE UNRENDERS IT
-     * AND EVERY START RENDERS IT
-     */
-
     if (this._playerCursorRect === undefined) {
       this._playerCursorRect = createSVGRect();
       this._playerCursorRect.setAttribute("id", "playerCursor");

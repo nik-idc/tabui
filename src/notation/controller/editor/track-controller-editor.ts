@@ -42,7 +42,7 @@ import {
  * Class responsible for managing editing & element state
  */
 export class TrackControllerEditor {
-  // TODO(P0-ARCH): Revisit the boundary between this type and TrackController.
+  // TODO: Revisit the boundary between this type and TrackController.
   // Editing orchestration lives here, while TrackController acts as the public
   // façade. The split works, but ownership is still a bit blurry.
 

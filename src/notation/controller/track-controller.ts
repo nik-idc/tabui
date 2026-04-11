@@ -4,13 +4,13 @@ import { TrackElement, BeatElement } from "./element";
 import { TrackControllerEditor } from "./editor/track-controller-editor";
 import { Rect } from "@/shared";
 
-// TODO(P0-ARCH): Revisit whether this type should remain the main runtime
+// TODO: Revisit whether this type should remain the main runtime
 // facade or whether editing/playback/render access should be split more clearly.
 //
-// TODO(P0-ARCH): Revisit naming. "TrackController" feels vague for a type that
+// TODO: Revisit naming. "TrackController" feels vague for a type that
 // owns runtime/editor/playback concerns.
 //
-// TODO(P0-READABILITY): Reduce deep access chains like
+// TODO: Reduce deep access chains like
 // `trackController.trackControllerEditor.selectionManager...`.
 // Add dedicated façade getters where useful so this remains the main entry
 // point into the controller layer.

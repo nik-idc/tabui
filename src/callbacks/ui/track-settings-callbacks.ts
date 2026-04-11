@@ -131,7 +131,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   onConfirmClicked(): void {
     this._trackSettingsComponent.track.name =
       this._trackSettingsComponent.trackName;
-    // TODO: IMPLEMENT TRACK EDITING IN THE MODEL UPDATE!!
     this._renderFunc();
 
     this._trackSettingsComponent.template.dialog.close();
