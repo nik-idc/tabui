@@ -2,7 +2,6 @@ import { TrackController } from "@/notation/controller";
 import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-element";
 import { createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
-import { SVGTechGapLineRenderer } from "./svg-tech-gap-line-renderer";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**

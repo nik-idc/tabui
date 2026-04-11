@@ -1,4 +1,4 @@
-import { Point, createSVGG, createSVGPath, createSVGText } from "@/shared";
+import { createSVGG, createSVGPath, createSVGText } from "@/shared";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { SVGTupletSegmentRenderer } from "./svg-tuplet-segment-renderer";
 import { ElementRenderer } from "../../element-renderer";

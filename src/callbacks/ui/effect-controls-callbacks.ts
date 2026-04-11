@@ -1,11 +1,6 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { GuitarTechniqueType } from "@/notation/model";
-import {
-  BendControlsTemplate,
-  BendSelectorManager,
-  TechniqueControlsComponent,
-  TechniqueControlsTemplate,
-} from "@/ui";
+import { TechniqueControlsComponent } from "@/ui";
 import {
   BendControlsCallbacks,
   BendControlsDefaultCallbacks,

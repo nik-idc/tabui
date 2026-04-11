@@ -1,4 +1,4 @@
-import { Guitar, isValidGuitarTuning, NoteDuration } from "@/notation/model";
+import { isValidGuitarTuning } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import {
   INSTRUMENT_KINDS,

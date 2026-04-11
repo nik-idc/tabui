@@ -1,5 +1,5 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { PlayControlsComponent, PlayControlsTemplate } from "@/ui";
+import { PlayControlsComponent } from "@/ui";
 import { ListenerManager } from "@/shared/misc";
 
 export interface PlayControlsCallbacks {

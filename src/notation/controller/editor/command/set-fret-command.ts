@@ -1,10 +1,4 @@
-import {
-  Score,
-  GuitarNote,
-  Beat,
-  ScoreEditor,
-  BeatArrayOperationOutput,
-} from "@/notation/model";
+import { GuitarNote, Beat, BeatArrayOperationOutput } from "@/notation/model";
 import { Command } from "./command";
 
 /**

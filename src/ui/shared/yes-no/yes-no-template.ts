@@ -1,4 +1,4 @@
-import { createButton, createDialog, createDiv, createInput } from "@/shared";
+import { createButton, createDialog, createDiv } from "@/shared";
 
 export class YesNoTemplate {
   readonly yesNoDialog: HTMLDialogElement = createDialog();

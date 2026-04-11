@@ -3,7 +3,7 @@ import {
   EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
-import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
+import { createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { ElementRenderer } from "../../element-renderer";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 

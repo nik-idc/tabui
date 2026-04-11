@@ -1,6 +1,5 @@
 import { EditorLayoutDimensions, TrackController } from "@/notation/controller";
-import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
-import { ElementRenderer } from "../element-renderer";
+import { createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 

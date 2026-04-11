@@ -1,6 +1,6 @@
 import { NoteDuration } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
-import { NoteControlsComponent, NoteControlsTemplate } from "@/ui";
+import { NoteControlsComponent } from "@/ui";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";
 import {
   TupletControlsCallbacks,

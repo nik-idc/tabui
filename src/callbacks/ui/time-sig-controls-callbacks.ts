@@ -1,9 +1,6 @@
 import { NoteDuration } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
-import {
-  TimeSigControlsComponent,
-  TimeSigControlsTemplate,
-} from "@/ui/side-controls/measure-controls/time-sig-controls";
+import { TimeSigControlsComponent } from "@/ui/side-controls/measure-controls/time-sig-controls";
 import { ListenerManager } from "@/shared/misc";
 
 export interface TimeSigControlsCallbacks {

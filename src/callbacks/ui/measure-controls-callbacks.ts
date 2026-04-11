@@ -1,13 +1,7 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { MeasureControlsComponent, MeasureControlsTemplate } from "@/ui";
-import {
-  TempoControlsComponent,
-  TempoControlsTemplate,
-} from "@/ui/side-controls/measure-controls/tempo-controls";
-import {
-  TimeSigControlsComponent,
-  TimeSigControlsTemplate,
-} from "@/ui/side-controls/measure-controls/time-sig-controls";
+import { MeasureControlsComponent } from "@/ui";
+import { TempoControlsComponent } from "@/ui/side-controls/measure-controls/tempo-controls";
+import { TimeSigControlsComponent } from "@/ui/side-controls/measure-controls/time-sig-controls";
 import {
   TempoControlsCallbacks,
   TempoControlsDefaultCallbacks,
