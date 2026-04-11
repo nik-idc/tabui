@@ -1,6 +1,7 @@
 import { TechniqueElement, TrackController } from "@/notation/controller";
-import { createSVGG } from "@/shared";
+import { createSVGG, createSVGPath } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a guitar technique element using SVG
@@ -19,8 +20,10 @@ export class SVGTechniqueRenderer implements ElementRenderer {
   /** Container SVG group  */
   private _containerGroupSVG?: SVGGElement;
 
-  /** Technique SVG path */
-  private _techniqueSVGPath?: SVGGElement;
+  // /** Technique SVG path */
+  // private _techniqueSVGPath?: SVGGElement;
+  /** Technique SVG paths */
+  private _techniquePathsSVG?: SVGPathElement[];
 
   /**
    * Class for rendering a guitar technique element using SVG
@@ -31,7 +34,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     techniqueElement: TechniqueElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.techniqueElement = techniqueElement;
@@ -73,50 +76,73 @@ export class SVGTechniqueRenderer implements ElementRenderer {
   /**
    * Render technique's raw SVG
    */
-  private renderTechniquePath(): void {
+  private renderTechniquePaths(): void {
     if (this._containerGroupSVG === undefined) {
-      throw Error("Tried to render technique HTML when SVG group undefined");
+      throw Error("Tried to render technique paths when SVG group undefined");
     }
 
-    if (this.techniqueElement.svgPath === undefined) {
-      throw Error("Tried to render technique HTML with undefined HTML");
+    const pathDescriptors = this.techniqueElement.pathDescriptors;
+    if (pathDescriptors === undefined) {
+      throw Error("Tried to render technique paths when descriptors undefined");
     }
 
     const techniqueUUID = this.techniqueElement.technique.uuid;
-    if (this._techniqueSVGPath === undefined) {
-      this._techniqueSVGPath = createSVGG();
-
-      // Set id
-      this._techniqueSVGPath.setAttribute(
-        "id",
-        `technique-path-${techniqueUUID}`
-      );
-
-      // Add element to root SVG element
-      this._containerGroupSVG.appendChild(this._techniqueSVGPath);
+    if (this._techniquePathsSVG === undefined) {
+      this._techniquePathsSVG = [];
     }
 
-    const x = `${this.techniqueElement.svgPathGlobalCoords.x}`;
-    const y = `${this.techniqueElement.svgPathGlobalCoords.y}`;
+    while (this._techniquePathsSVG.length < pathDescriptors.length) {
+      const pathIndex = this._techniquePathsSVG.length;
+      const pathElement = createSVGPath();
+      pathElement.setAttribute(
+        "id",
+        `technique-path-${techniqueUUID}-${pathIndex}`
+      );
+      this._containerGroupSVG.appendChild(pathElement);
+      this._techniquePathsSVG.push(pathElement);
+    }
+
+    while (this._techniquePathsSVG.length > pathDescriptors.length) {
+      const pathElement = this._techniquePathsSVG.pop();
+      if (pathElement !== undefined) {
+        this._containerGroupSVG.removeChild(pathElement);
+      }
+    }
+
+    const x = `${this.techniqueElement.pathOrigin.x}`;
+    const y = `${this.techniqueElement.pathOrigin.y}`;
     const transform = `translate(${x}, ${y})`;
-    this._techniqueSVGPath.setAttribute("transform", transform);
-    this._techniqueSVGPath.innerHTML = this.techniqueElement.svgPath; // May lead to performance issues
+
+    for (let i = 0; i < pathDescriptors.length; i++) {
+      const pathElement = this._techniquePathsSVG[i];
+      const descriptor = pathDescriptors[i];
+      pathElement.setAttribute("transform", transform);
+      pathElement.setAttribute("d", descriptor.d);
+
+      if (descriptor.attrs !== undefined) {
+        for (const [option, value] of Object.entries(descriptor.attrs)) {
+          pathElement.setAttribute(option, value);
+        }
+      }
+    }
   }
 
   /**
    * Unrender technique's custom HTML (like bend curves, palm mute text etc)
    */
-  private unrenderTechniquePath(): void {
+  private unrenderTechniquePaths(): void {
     if (this._containerGroupSVG === undefined) {
-      throw Error("Tried to unrender technique HTML when SVG group undefined");
+      throw Error("Tried to unrender technique paths when SVG group undefined");
     }
 
-    if (this._techniqueSVGPath === undefined) {
+    if (this._techniquePathsSVG === undefined) {
       return;
     }
 
-    this._containerGroupSVG.removeChild(this._techniqueSVGPath);
-    this._techniqueSVGPath = undefined;
+    for (const pathElement of this._techniquePathsSVG) {
+      this._containerGroupSVG.removeChild(pathElement);
+    }
+    this._techniquePathsSVG = undefined;
   }
 
   /**
@@ -128,10 +154,10 @@ export class SVGTechniqueRenderer implements ElementRenderer {
     // The reason for 2 ifs: bends DO NOT have a rect, but DO have full HTML
 
     // Render technique custom HTML if necessary, remove it otherwise
-    if (this.techniqueElement.svgPath !== undefined) {
-      this.renderTechniquePath();
+    if (this.techniqueElement.pathDescriptors !== undefined) {
+      this.renderTechniquePaths();
     } else {
-      this.unrenderTechniquePath();
+      this.unrenderTechniquePaths();
     }
   }
 
@@ -143,7 +169,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       return;
     }
 
-    this.unrenderTechniquePath();
+    this.unrenderTechniquePaths();
   }
 }
 

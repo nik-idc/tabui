@@ -4,12 +4,13 @@ import {
   GuitarTechniqueType,
 } from "@/notation/model";
 import { Point, Rect, getPitchRatioNums, randomInt } from "@/shared";
-import { SVGUtils } from "./guitar-technique-html";
+import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { BeatElement } from "@/notation/controller/element/beat/beat-element";
 import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
 import { TechniqueLabelElement } from "../technique-label-element";
+import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
 
 /**
  * Class that contains a guitar technique label
@@ -28,8 +29,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
   /** Outer rectangle */
   private _boundingBox: Rect;
-  /** SVG path */
-  private _svgPath?: string;
+  /** SVG path descriptors */
+  private _pathDescriptors?: SVGPathDescriptor[];
+  /** SVG text descriptors */
+  private _textDescriptors?: SVGTextDescriptor[];
   /** String encoding the state of this element */
   private _stateHash: string;
 
@@ -74,6 +77,9 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     const y =
       this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
 
+    this._pathDescriptors = [];
+    this._textDescriptors = [];
+
     if ([1, 2, 3].includes(nums[0]) && nums[1] === 0) {
       let text: string;
       switch (nums[0]) {
@@ -90,16 +96,18 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
           text = "full";
           break;
       }
-      this._svgPath = SVGUtils.textSVGHTML(
-        x,
-        y,
-        EditorLayoutDimensions.NOTE_TEXT_SIZE,
-        text
-      );
+      this._textDescriptors = [
+        GuitarTechniqueDescriptors.createTextDescriptor(
+          x,
+          y,
+          EditorLayoutDimensions.NOTE_TEXT_SIZE,
+          text
+        ),
+      ];
       return;
     }
 
-    this._svgPath = SVGUtils.ratioSVGHTML(
+    const ratio = GuitarTechniqueDescriptors.createRatioDescriptors(
       nums[0],
       nums[1],
       nums[2],
@@ -107,6 +115,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       y,
       bigNumSize
     );
+    this._pathDescriptors = ratio.pathDescriptors;
+    this._textDescriptors = ratio.textDescriptors;
   }
 
   /**
@@ -126,7 +136,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     const x = this._boundingBox.x + this._boundingBox.width / 2;
     const y =
       this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
-    this._svgPath = SVGUtils.ratioSVGHTML(
+    const ratio = GuitarTechniqueDescriptors.createRatioDescriptors(
       nums[0],
       nums[1],
       nums[2],
@@ -134,6 +144,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       y,
       bigNumSize
     );
+    this._pathDescriptors = ratio.pathDescriptors;
+    this._textDescriptors = ratio.textDescriptors;
   }
 
   /**
@@ -171,7 +183,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
 
     const bendNums = getPitchRatioNums(this.technique.bendOptions.bendPitch);
-    const bendHTML = SVGUtils.ratioSVGHTML(
+    const bendDescriptors = GuitarTechniqueDescriptors.createRatioDescriptors(
       bendNums[0],
       bendNums[1],
       bendNums[2],
@@ -183,16 +195,24 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     const releaseNums = getPitchRatioNums(
       this.technique.bendOptions.releasePitch
     );
-    const releaseHTML = SVGUtils.ratioSVGHTML(
-      releaseNums[0],
-      releaseNums[1],
-      releaseNums[2],
-      xRelease,
-      y,
-      bigNumSize
-    );
+    const releaseDescriptors =
+      GuitarTechniqueDescriptors.createRatioDescriptors(
+        releaseNums[0],
+        releaseNums[1],
+        releaseNums[2],
+        xRelease,
+        y,
+        bigNumSize
+      );
 
-    this._svgPath = bendHTML + releaseHTML;
+    this._pathDescriptors = [
+      ...bendDescriptors.pathDescriptors,
+      ...releaseDescriptors.pathDescriptors,
+    ];
+    this._textDescriptors = [
+      ...bendDescriptors.textDescriptors,
+      ...releaseDescriptors.textDescriptors,
+    ];
   }
 
   /**
@@ -233,28 +253,37 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     const prebendNums = getPitchRatioNums(
       this.technique.bendOptions.prebendPitch
     );
-    const prebendHTML = SVGUtils.ratioSVGHTML(
-      prebendNums[0],
-      prebendNums[1],
-      prebendNums[2],
-      xPrebend,
-      y,
-      bigNumSize
-    );
+    const prebendDescriptors =
+      GuitarTechniqueDescriptors.createRatioDescriptors(
+        prebendNums[0],
+        prebendNums[1],
+        prebendNums[2],
+        xPrebend,
+        y,
+        bigNumSize
+      );
 
     const releaseNums = getPitchRatioNums(
       this.technique.bendOptions.releasePitch
     );
-    const releaseHTML = SVGUtils.ratioSVGHTML(
-      releaseNums[0],
-      releaseNums[1],
-      releaseNums[2],
-      xRelease,
-      y,
-      bigNumSize
-    );
+    const releaseDescriptors =
+      GuitarTechniqueDescriptors.createRatioDescriptors(
+        releaseNums[0],
+        releaseNums[1],
+        releaseNums[2],
+        xRelease,
+        y,
+        bigNumSize
+      );
 
-    this._svgPath = prebendHTML + releaseHTML;
+    this._pathDescriptors = [
+      ...prebendDescriptors.pathDescriptors,
+      ...releaseDescriptors.pathDescriptors,
+    ];
+    this._textDescriptors = [
+      ...prebendDescriptors.textDescriptors,
+      ...releaseDescriptors.textDescriptors,
+    ];
   }
 
   /**
@@ -268,12 +297,15 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     const y = this._boundingBox.y + this._boundingBox.height / 2;
     const vibratoHeight = this.boundingBox.height / 6;
     const vibratoWidth = this.boundingBox.width / 2;
-    this._svgPath = SVGUtils.horizontalSquigglySVGHTML(
-      x,
-      y,
-      vibratoHeight,
-      vibratoWidth
-    );
+    this._pathDescriptors = [
+      GuitarTechniqueDescriptors.createHorizontalVibratoPath(
+        x,
+        y,
+        vibratoHeight,
+        vibratoWidth
+      ),
+    ];
+    this._textDescriptors = [];
   }
 
   /**
@@ -285,12 +317,15 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       this._boundingBox.width / 2 -
       EditorLayoutDimensions.NOTE_TEXT_SIZE;
     const y = this._boundingBox.y + this._boundingBox.height / 2;
-    this._svgPath = SVGUtils.textSVGHTML(
-      x,
-      y,
-      EditorLayoutDimensions.NOTE_TEXT_SIZE,
-      "P.M."
-    );
+    this._pathDescriptors = [];
+    this._textDescriptors = [
+      GuitarTechniqueDescriptors.createTextDescriptor(
+        x,
+        y,
+        EditorLayoutDimensions.NOTE_TEXT_SIZE,
+        "P.M."
+      ),
+    ];
   }
 
   /**
@@ -325,7 +360,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Dummy build function (for now)
    * TODO: Rethink how this element is done
    */
-  public build(): void {}
+  public build(): void {
+    this._pathDescriptors = [];
+    this._textDescriptors = [];
+  }
 
   /**
    * Calculates the dimensions of the outer rectangle
@@ -345,7 +383,9 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
         `${this.globalBoundingBox.width}` +
-        `${this.globalBoundingBox.height}`,
+        `${this.globalBoundingBox.height}` +
+        `${JSON.stringify(this._pathDescriptors)}` +
+        `${JSON.stringify(this._textDescriptors)}`,
     ];
 
     this._stateHash = hashArr.join("");
@@ -384,6 +424,9 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Builds technique label element path
    */
   public createPath(): void {
+    this._pathDescriptors = [];
+    this._textDescriptors = [];
+
     switch (this.technique.type) {
       case GuitarTechniqueType.Bend:
         this.createBendLabelPath();
@@ -451,10 +494,20 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /**
-   * SVG path (full path HTML including styling, i.e. transparent/non-transparent)
+   * SVG path descriptors
    */
-  public get svgPath(): string | undefined {
-    return this._svgPath;
+  public get pathDescriptors(): SVGPathDescriptor[] | undefined {
+    return this._pathDescriptors;
+  }
+
+  /** SVG text descriptors */
+  public get textDescriptors(): SVGTextDescriptor[] | undefined {
+    return this._textDescriptors;
+  }
+
+  /** Shared origin for descriptor-local coordinates */
+  public get descriptorOrigin(): Point {
+    return this.globalCoords;
   }
 
   /** Global coords of the guitar technique label element */

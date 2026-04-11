@@ -3,6 +3,7 @@ import { Point, Rect } from "@/shared";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BeatElement } from "@/notation/controller/element/beat/beat-element";
 import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
+import { SVGPathDescriptor, SVGTextDescriptor } from "./technique-element";
 
 /**
  * Interface describing a technique label element.
@@ -15,5 +16,7 @@ export interface TechniqueLabelElement extends NotationElement {
 
   createPath(): void;
 
-  get svgPath(): string | undefined;
+  get pathDescriptors(): SVGPathDescriptor[] | undefined;
+  get textDescriptors(): SVGTextDescriptor[] | undefined;
+  get descriptorOrigin(): Point;
 }

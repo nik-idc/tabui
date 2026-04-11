@@ -50,12 +50,13 @@ describe("TrackElement techniques", () => {
     const firstNoteElement = firstBeatElement.noteElements[0];
     const slideElement = firstNoteElement.techniqueElements[0];
     const [startX, startY, endX, endY] = parseLinePath(
-      slideElement.svgPath ?? ""
+      slideElement.pathDescriptors?.[0]?.d ?? ""
     );
 
     expect(firstNoteElement.techniqueElements).toHaveLength(1);
-    expect(slideElement.svgPath).toBeDefined();
-    expect(slideElement.svgPath).not.toBe("");
+    expect(slideElement.pathDescriptors).toHaveLength(1);
+    expect(slideElement.pathDescriptors?.[0]?.d).toBeDefined();
+    expect(slideElement.pathDescriptors?.[0]?.d).not.toBe("");
     expect(endX).toBeGreaterThan(startX);
     expect(startY).toBeGreaterThan(endY);
     expect(startX).toBeGreaterThan(firstNoteElement.boundingBox.x);
@@ -87,7 +88,7 @@ describe("TrackElement techniques", () => {
     const firstNoteElement = firstBeatElement.noteElements[0];
     const slideElement = firstNoteElement.techniqueElements[0];
     const [startX, startY, endX, endY] = parseLinePath(
-      slideElement.svgPath ?? ""
+      slideElement.pathDescriptors?.[0]?.d ?? ""
     );
 
     expect(endX).toBeGreaterThan(startX);
@@ -148,9 +149,18 @@ describe("TrackElement techniques", () => {
     expect(line1?.labelElements).toHaveLength(1);
     expect(line2?.labelElements).toHaveLength(1);
     expect(line3?.labelElements).toHaveLength(1);
-    expect(line1?.labelElements[0].svgPath).toBeDefined();
-    expect(line2?.labelElements[0].svgPath).toBeDefined();
-    expect(line3?.labelElements[0].svgPath).toBeDefined();
+    expect(
+      (line1?.labelElements[0].pathDescriptors?.length ?? 0) +
+        (line1?.labelElements[0].textDescriptors?.length ?? 0)
+    ).toBeGreaterThan(0);
+    expect(
+      (line2?.labelElements[0].pathDescriptors?.length ?? 0) +
+        (line2?.labelElements[0].textDescriptors?.length ?? 0)
+    ).toBeGreaterThan(0);
+    expect(
+      (line3?.labelElements[0].pathDescriptors?.length ?? 0) +
+        (line3?.labelElements[0].textDescriptors?.length ?? 0)
+    ).toBeGreaterThan(0);
     expect(line1?.labelElements[0].boundingBox.width).toBeCloseTo(
       line1?.labelElements[0].beatElement.boundingBox.width ?? 0
     );
@@ -195,7 +205,8 @@ describe("TrackElement techniques", () => {
     const bendElement = noteElement.techniqueElements[0];
     const bendLabel = line3?.labelElements[0];
     expect(noteElement.techniqueElements).toHaveLength(1);
-    expect(bendElement.svgPath).toBeDefined();
+    expect(bendElement.pathDescriptors).toBeDefined();
+    expect(bendElement.pathDescriptors).toHaveLength(2);
     expect(line3?.labelElements).toHaveLength(1);
     expect(bendLabel?.boundingBox.width).toBeCloseTo(
       beatElement.boundingBox.width
