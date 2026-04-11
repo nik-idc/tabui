@@ -56,7 +56,6 @@ export class BendSelectorManager {
     const SelectorType =
       bendType === undefined ? BendSelector : selectorMap[bendType];
 
-    // BAD BAD BAD!!! SHOULD BE HANDLING ALL TYPES OF BENDS!!! AAAAA
     this._currentSelector = new SelectorType!(
       this._bendGraphSVG,
       this._currentOptions
@@ -75,7 +74,7 @@ export class BendSelectorManager {
       line.setAttribute("y1", `${y}`);
       line.setAttribute("x2", `${this._currentOptions.width}`);
       line.setAttribute("y2", `${y}`);
-      line.setAttribute("stroke", "#ccc");
+      line.setAttribute("stroke", "var(--tu-bend-grid)");
       this._bendGraphSVG.appendChild(line);
 
       const pitch = Math.round(
@@ -94,6 +93,7 @@ export class BendSelectorManager {
       text.setAttribute("y", `${yPos}`);
       text.classList.add("pitch-label");
       text.setAttribute("font-size", "12px");
+      text.setAttribute("fill", "var(--tu-bend-label)");
 
       const label = getPitchLabel(pitch);
       text.textContent = label;
@@ -110,7 +110,7 @@ export class BendSelectorManager {
       line.setAttribute("y1", "0");
       line.setAttribute("x2", `${x}`);
       line.setAttribute("y2", `${this._currentOptions.height}`);
-      line.setAttribute("stroke", "#ccc");
+      line.setAttribute("stroke", "var(--tu-bend-grid)");
       this._bendGraphSVG.appendChild(line);
     }
   }
@@ -134,7 +134,6 @@ export class BendSelectorManager {
 
     const SelectorType =
       bendType === undefined ? BendSelector : selectorMap[bendType];
-    // BAD BAD BAD!!! SHOULD BE HANDLING ALL TYPES OF BENDS!!! AAAAA
     this._currentSelector = new SelectorType!(
       this._bendGraphSVG,
       this._currentOptions

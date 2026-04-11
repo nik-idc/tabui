@@ -2,7 +2,7 @@ export * from "./editor-svg-renderer";
 export * from "./player-svg-animator";
 export * from "./svg-bar-renderer";
 export * from "./svg-beat-renderer";
-export * from "./svg-guitar-note-renderer";
+export * from "./svg-tab-note-renderer";
 export * from "./svg-note-renderer";
 export * from "./svg-staff-line-renderer";
 export * from "./svg-technique-label-renderer";

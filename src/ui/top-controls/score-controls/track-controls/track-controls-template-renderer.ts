@@ -1,24 +1,21 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { createOption } from "@/shared";
+import { renderOnce, setImageAsset } from "@/ui/shared";
 import { TrackControlsTemplate } from "./track-controls-template";
 import { Track } from "@/notation";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
-const assetsPath = import.meta.env.BASE_URL;
-
-// VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 const minVolume = 0;
 const maxVolume = 100;
 const volumeStep = 5;
 const minPanning = -1;
 const maxPanning = 1;
 const panningStep = 0.05;
-// VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 
 export class TrackControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TrackControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
   readonly track: Track;
 
   private _assembled: boolean;
@@ -28,7 +25,7 @@ export class TrackControlsTemplateRenderer {
     notationComponent: NotationComponent,
     template: TrackControlsTemplate,
     track: Track,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -64,9 +61,12 @@ export class TrackControlsTemplateRenderer {
   private renderRemoveButton(): void {
     const cssClass = "tu-track-remove-button";
     this.template.muteButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/remove.svg`;
-    this.template.removeButton.src = src;
-    this.template.removeButton.alt = "Remove";
+    setImageAsset(
+      this.template.removeButton,
+      this.assetsPath,
+      "img/ui/remove.svg",
+      "Remove"
+    );
   }
 
   private renderVolumeInput(): void {
@@ -94,25 +94,34 @@ export class TrackControlsTemplateRenderer {
   private renderMuteButton(): void {
     const cssClass = "tu-track-mute-button";
     this.template.muteButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/mute.svg`;
-    this.template.muteButton.src = src;
-    this.template.muteButton.alt = "Mute";
+    setImageAsset(
+      this.template.muteButton,
+      this.assetsPath,
+      "img/ui/mute.svg",
+      "Mute"
+    );
   }
 
   private renderSoloButton(): void {
     const cssClass = "tu-track-solo-button";
     this.template.soloButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/solo.svg`;
-    this.template.soloButton.src = src;
-    this.template.soloButton.alt = "Solo";
+    setImageAsset(
+      this.template.soloButton,
+      this.assetsPath,
+      "img/ui/solo.svg",
+      "Solo"
+    );
   }
 
   private renderScoreSettingsButton(): void {
     const cssClass = "tu-track-settings-button";
     this.template.settingsButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/settings.svg`;
-    this.template.settingsButton.src = src;
-    this.template.settingsButton.alt = "Track settings";
+    setImageAsset(
+      this.template.settingsButton,
+      this.assetsPath,
+      "img/ui/settings.svg",
+      "Track settings"
+    );
   }
 
   public render(): void {
@@ -124,9 +133,8 @@ export class TrackControlsTemplateRenderer {
     this.renderSoloButton();
     this.renderScoreSettingsButton();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

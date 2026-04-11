@@ -1,12 +1,14 @@
 import {
   BarElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
+import { resolveAssetUrl } from "@/config/asset-url-resolver";
 import { createSVGG, createSVGImage, createSVGText } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
 import { TrackLineInfoElement } from "@/notation/controller/element/track/track-line-info-element";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 type TempoSVG = {
   image: SVGImageElement;
@@ -22,13 +24,11 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
   /** Tech gap line element */
   trackLineInfoElement: TrackLineInfoElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
 
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
   /** Map of tempo svg text element */
   private _temposSVG: Map<BarElement, TempoSVG>;
 
@@ -41,14 +41,12 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     trackLineInfoElement: TrackLineInfoElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.trackLineInfoElement = trackLineInfoElement;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
-    //
     this._temposSVG = new Map();
   }
 
@@ -131,7 +129,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       throw Error("Bar tempo elements undefined");
     }
 
-    const href = `${this.assetsPath}/img/notes/4.svg`;
+    const href = resolveAssetUrl(this.assetsPath, "img/notes/4.svg");
     renderedTempo.image.setAttribute("x", `${tempoRect.x}`);
     renderedTempo.image.setAttribute("y", `${tempoRect.y}`);
     renderedTempo.image.setAttribute("width", `${tempoRect.width}`);
@@ -214,8 +212,5 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
     }
 
     this.unrenderTempoTexts();
-
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
 }

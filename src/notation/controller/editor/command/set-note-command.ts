@@ -1,8 +1,6 @@
 import {
-  Score,
   Note,
   Beat,
-  ScoreEditor,
   BeatArrayOperationOutput,
   NoteValue,
 } from "@/notation/model";

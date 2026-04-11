@@ -1,12 +1,13 @@
-import { createDiv, createImage } from "@/shared";
+import { renderOnce, setImageAsset } from "@/ui/shared";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NotationComponent } from "@/notation/notation-component";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class NoteControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: NoteControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -14,7 +15,7 @@ export class NoteControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: NoteControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -49,21 +50,23 @@ export class NoteControlsTemplateRenderer {
       { num: 16, alt: "Sixteenth" },
       { num: 32, alt: "Thirty-second" },
     ];
-    const selection =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectionAsBeats;
+    const selection = this.notationComponent.trackController.selectionBeats;
     const appliedCSSClass = "tu-applied-img";
 
     for (let i = 0; i < notes.length; i++) {
       const button = this.template.durationButtons[i];
 
-      // Image attributes
-      const src = `${this.assetsPath}/img/notes/${notes[i].num}.svg`;
       const dataDuration = `${notes[i].num}`;
       const alt = `${notes[i].alt} note`;
-      button.setAttribute("src", src);
-      button.setAttribute("data-duration", dataDuration);
-      button.setAttribute("alt", alt);
+      setImageAsset(
+        button,
+        this.assetsPath,
+        `img/notes/${notes[i].num}.svg`,
+        alt,
+        {
+          "data-duration": dataDuration,
+        }
+      );
 
       // Mark applied status
       const beatsOfCurDuration = selection.find(
@@ -78,21 +81,29 @@ export class NoteControlsTemplateRenderer {
   }
 
   private renderDotButtons(): void {
-    const selection =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectionAsBeats;
+    const selection = this.notationComponent.trackController.selectionBeats;
     const appliedCSSClass = "tu-applied-img";
 
     // Image attributes
-    const dot1Src = `${this.assetsPath}/img/ui/dot1.svg`;
-    this.template.dot1Button.setAttribute("src", dot1Src);
-    this.template.dot1Button.setAttribute("data-dot", "1");
-    this.template.dot1Button.setAttribute("alt", "Dot");
+    setImageAsset(
+      this.template.dot1Button,
+      this.assetsPath,
+      "img/ui/dot1.svg",
+      "Dot",
+      {
+        "data-dot": "1",
+      }
+    );
 
-    const dot2Src = `${this.assetsPath}/img/ui/dot2.svg`;
-    this.template.dot2Button.setAttribute("src", dot2Src);
-    this.template.dot2Button.setAttribute("data-dot", "2");
-    this.template.dot2Button.setAttribute("alt", "Double dot");
+    setImageAsset(
+      this.template.dot2Button,
+      this.assetsPath,
+      "img/ui/dot2.svg",
+      "Double dot",
+      {
+        "data-dot": "2",
+      }
+    );
 
     // Mark singular dot applied status
     const beatsDot1 = selection.find((b) => b.dots === 1);
@@ -112,25 +123,38 @@ export class NoteControlsTemplateRenderer {
   }
 
   private renderTupletButtons(): void {
-    const selection =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectionAsBeats;
+    const selection = this.notationComponent.trackController.selectionBeats;
     const appliedCSSClass = "tu-applied-img";
 
-    const tuplet2Src = `${this.assetsPath}/img/ui/tuplet-2.svg`;
-    this.template.tuplet2Button.setAttribute("src", tuplet2Src);
-    this.template.tuplet2Button.setAttribute("data-tuplet", "2");
-    this.template.tuplet2Button.setAttribute("alt", "Tuplet");
+    setImageAsset(
+      this.template.tuplet2Button,
+      this.assetsPath,
+      "img/ui/tuplet-2.svg",
+      "Tuplet",
+      {
+        "data-tuplet": "2",
+      }
+    );
 
-    const tuplet3Src = `${this.assetsPath}/img/ui/tuplet-3.svg`;
-    this.template.tuplet3Button.setAttribute("src", tuplet3Src);
-    this.template.tuplet3Button.setAttribute("data-tuplet", "3");
-    this.template.tuplet3Button.setAttribute("alt", "Triplet");
+    setImageAsset(
+      this.template.tuplet3Button,
+      this.assetsPath,
+      "img/ui/tuplet-3.svg",
+      "Triplet",
+      {
+        "data-tuplet": "3",
+      }
+    );
 
-    const tupletSrc = `${this.assetsPath}/img/ui/tuplet.svg`;
-    this.template.tupletButton.setAttribute("src", tupletSrc);
-    this.template.tupletButton.setAttribute("data-tuplet", "0");
-    this.template.tupletButton.setAttribute("alt", "Custom tuplet");
+    setImageAsset(
+      this.template.tupletButton,
+      this.assetsPath,
+      "img/ui/tuplet.svg",
+      "Custom tuplet",
+      {
+        "data-tuplet": "0",
+      }
+    );
 
     let hasTuplet2: boolean = false;
     let hasTuplet3: boolean = false;
@@ -183,9 +207,8 @@ export class NoteControlsTemplateRenderer {
     this.renderDotButtons();
     this.renderTupletButtons();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

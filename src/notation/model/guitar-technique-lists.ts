@@ -48,18 +48,3 @@ export const TECHNIQUES_INCOMPATIBILITY: Record<
     GuitarTechniqueType.Vibrato,
   ],
 };
-
-// /**
-//  * Maps technique type to possibility of applying it to multiple
-//  * notes at the same time
-//  */
-// export const TECHNIQUE_TYPE_MULTI_NOTE_MAP: Record<TechniqueType, boolean> = {
-//   [GuitarTechniqueType.Bend]: true,
-//   [GuitarTechniqueType.HammerOnOrPullOff]: true,
-//   [GuitarTechniqueType.LetRing]: true,
-//   [GuitarTechniqueType.NaturalHarmonic]: true,
-//   [GuitarTechniqueType.PalmMute]: true,
-//   [GuitarTechniqueType.PinchHarmonic]: false,
-//   [GuitarTechniqueType.Slide]: true,
-//   [GuitarTechniqueType.Vibrato]: true,
-// };

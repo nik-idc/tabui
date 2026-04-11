@@ -1,7 +1,7 @@
 import { BeamSegmentElement } from "../../src/notation/controller/element/bar/beam-segment-element";
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
-import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { NoteDuration } from "../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
@@ -48,12 +48,13 @@ describe("BeamSegmentElement", () => {
     const curBeat = segment.curBeatElement;
     const nextBeat = segment.nextBeatElement as TabBeatElement;
     const stemX = curBeat.durationStemLine?.x ?? 0;
-    const expectedWidth = curBeat.rect.width / 2 + nextBeat.rect.width / 2;
+    const expectedWidth =
+      curBeat.boundingBox.width / 2 + nextBeat.boundingBox.width / 2;
 
     expect(segment.longRects).toHaveLength(2);
     expect(segment.longRects[0].width).toBeCloseTo(expectedWidth);
     expect(segment.longRects[1].width).toBeCloseTo(expectedWidth);
-    expect(segment.longRects[0].x).toBeCloseTo(curBeat.rect.x + stemX);
+    expect(segment.longRects[0].x).toBeCloseTo(curBeat.boundingBox.x + stemX);
   });
 
   test("uses a right-facing short tail when the next beat has fewer flags", () => {
@@ -67,7 +68,7 @@ describe("BeamSegmentElement", () => {
 
     const segment = getBarElement(trackElement).beamSegments[0];
     const longX =
-      segment.curBeatElement.rect.x +
+      segment.curBeatElement.boundingBox.x +
       (segment.curBeatElement.durationStemLine?.x ?? 0);
 
     expect(segment.longRects).toHaveLength(1);
@@ -87,7 +88,7 @@ describe("BeamSegmentElement", () => {
 
     const segment = getBarElement(trackElement).beamSegments[2];
     const longX =
-      segment.curBeatElement.rect.x +
+      segment.curBeatElement.boundingBox.x +
       (segment.curBeatElement.durationStemLine?.x ?? 0);
 
     expect(segment.nextBeatElement).toBeUndefined();
@@ -109,16 +110,16 @@ describe("BeamSegmentElement", () => {
 
     expect(segment.longRects).toHaveLength(3);
     expect(segment.longRects[0].height).toBe(
-      TabLayoutDimensions.DURATION_FLAG_HEIGHT
+      EditorLayoutDimensions.DURATION_FLAG_HEIGHT
     );
     expect(segment.longRects[1].height).toBe(
-      TabLayoutDimensions.DURATION_FLAG_HEIGHT
+      EditorLayoutDimensions.DURATION_FLAG_HEIGHT
     );
     expect(segment.longRects[0].y - segment.longRects[1].y).toBeCloseTo(
-      TabLayoutDimensions.DURATION_FLAG_HEIGHT * 2
+      EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2
     );
     expect(segment.longRects[1].y - segment.longRects[2].y).toBeCloseTo(
-      TabLayoutDimensions.DURATION_FLAG_HEIGHT * 2
+      EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2
     );
   });
 

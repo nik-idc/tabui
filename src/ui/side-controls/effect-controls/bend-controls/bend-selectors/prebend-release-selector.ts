@@ -40,7 +40,7 @@ export class PrebendReleaseSelector implements Selector {
   public init(): void {
     // Draw bend path
     this.updatePath(150, 200 + this.bendManagerOptions.gridOffset, 225);
-    this.bendPath.setAttribute("stroke", "black");
+    this.bendPath.setAttribute("stroke", "var(--tu-bend-curve)");
     this.bendPath.setAttribute("stroke-width", "2");
     this.bendPath.setAttribute("fill", "none");
     this.bendGraphSVG.appendChild(this.bendPath);
@@ -51,7 +51,7 @@ export class PrebendReleaseSelector implements Selector {
     this._startCircle.setAttribute("cx", startCX);
     this._startCircle.setAttribute("cy", startCY);
     this._startCircle.setAttribute("r", "8");
-    this._startCircle.setAttribute("fill", "black");
+    this._startCircle.setAttribute("fill", "var(--tu-bend-handle)");
     this._startCircle.style.cursor = "pointer";
     this.bendGraphSVG.appendChild(this._startCircle);
 
@@ -60,7 +60,7 @@ export class PrebendReleaseSelector implements Selector {
     this._releaseCircle.setAttribute("cx", releaseCX);
     this._releaseCircle.setAttribute("cy", releaseCY);
     this._releaseCircle.setAttribute("r", "8");
-    this._releaseCircle.setAttribute("fill", "black");
+    this._releaseCircle.setAttribute("fill", "var(--tu-bend-handle)");
     this._releaseCircle.style.cursor = "pointer";
     this.bendGraphSVG.appendChild(this._releaseCircle);
 

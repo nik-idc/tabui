@@ -1,24 +1,21 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { createOption } from "@/shared";
+import { renderOnce, setImageAsset } from "@/ui/shared";
 import { ScoreControlsTemplate } from "./score-controls-template";
 import { Score } from "@/notation";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
-const assetsPath = import.meta.env.BASE_URL;
-
-// VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 const minVolume = 0;
 const maxVolume = 100;
 const volumeStep = 5;
 const minPanning = -1;
 const maxPanning = 1;
 const panningStep = 0.05;
-// VERY BAD!!! VERY VERY BAD!!!! SHOULD CHANGE ASAP!!!
 
 export class ScoreControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: ScoreControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -28,7 +25,7 @@ export class ScoreControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: ScoreControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -76,9 +73,12 @@ export class ScoreControlsTemplateRenderer {
   private renderNewTrackButton(): void {
     const cssClass = "tu-new-track-button";
     this.template.newTrackButton.classList.add(cssClass);
-    const src = `${assetsPath}/img/ui/add.svg`;
-    this.template.newTrackButton.src = src;
-    this.template.newTrackButton.alt = "New track";
+    setImageAsset(
+      this.template.newTrackButton,
+      this.assetsPath,
+      "img/ui/add.svg",
+      "New track"
+    );
   }
 
   private renderMasterVolumeInput(): void {
@@ -124,9 +124,8 @@ export class ScoreControlsTemplateRenderer {
     this.renderScoreNameInput();
     this.renderTracksContainer();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

@@ -1,13 +1,15 @@
 import { NotationComponent } from "@/notation/notation-component";
+import {
+  assembleDialog,
+  renderOnce,
+  setupDialogActionButtons,
+} from "@/ui/shared";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
-import { createButton, createImage } from "@/shared";
-import { INSTRUMENT_KINDS } from "./track-settings-controls-component";
 
 export class TrackSettingsControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TrackSettingsControlsTemplate;
-  readonly assetsPath: string;
 
   private _currentTrackName: string = "Edit track";
   private _currentStringCount: number = 6;
@@ -18,46 +20,42 @@ export class TrackSettingsControlsTemplateRenderer {
   constructor(
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
-    template: TrackSettingsControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    template: TrackSettingsControlsTemplate
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
-    this.assetsPath = assetsPath;
 
     this._assembled = false;
   }
 
   private assembleContainer(): void {
-    const dialogCSSClass = "tu-ts-dialog";
-    const dialogContentCSSClass = "tu-ts-content";
-    const trackInfoCSSClass = "tu-ts-track-info-container";
-    const actionsCSSClass = "tu-ts-actions-container";
-
-    this.template.dialog.classList.add(dialogCSSClass);
-    this.template.dialogContent.classList.add(dialogContentCSSClass);
-    this.template.trackInfoContainer.classList.add(trackInfoCSSClass);
-    this.template.actionsContainer.classList.add(actionsCSSClass);
-
-    this.template.dialog.appendChild(this.template.dialogContent);
-    this.template.dialogContent.append(
-      this.template.trackInfoContainer,
-      this.template.actionsContainer
+    assembleDialog(
+      this.parentDiv,
+      this.template.dialog,
+      "tu-ts-dialog",
+      this.template.dialogContent,
+      "tu-ts-content",
+      [
+        {
+          element: this.template.trackInfoContainer,
+          className: "tu-ts-track-info-container",
+          children: [
+            this.template.trackNameInput,
+            this.template.trackNameError,
+            this.template.stringCountInput,
+            this.template.stringCountError,
+            this.template.tuningInput,
+            this.template.tuningError,
+          ],
+        },
+        {
+          element: this.template.actionsContainer,
+          className: "tu-ts-actions-container",
+          children: [this.template.confirmButton, this.template.cancelButton],
+        },
+      ]
     );
-    this.template.trackInfoContainer.append(
-      this.template.trackNameInput,
-      this.template.trackNameError,
-      this.template.stringCountInput,
-      this.template.stringCountError,
-      this.template.tuningInput,
-      this.template.tuningError
-    );
-    this.template.actionsContainer.append(
-      this.template.confirmButton,
-      this.template.cancelButton
-    );
-    this.parentDiv.appendChild(this.template.dialog);
   }
 
   private renderInputs(): void {
@@ -79,13 +77,12 @@ export class TrackSettingsControlsTemplateRenderer {
   }
 
   private renderActionButtons(): void {
-    const confirmCSSClass = "tu-ts-confirm-button";
-    const cancelCSSClass = "tu-ts-cancel-button";
-
-    this.template.confirmButton.classList.add(confirmCSSClass);
-    this.template.confirmButton.textContent = "Confirm";
-    this.template.cancelButton.classList.add(cancelCSSClass);
-    this.template.cancelButton.textContent = "Cancel";
+    setupDialogActionButtons(
+      this.template.confirmButton,
+      this.template.cancelButton,
+      "tu-ts-confirm-button",
+      "tu-ts-cancel-button"
+    );
   }
 
   public render(
@@ -100,9 +97,8 @@ export class TrackSettingsControlsTemplateRenderer {
     this.renderInputs();
     this.renderActionButtons();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

@@ -1,15 +1,21 @@
 @use "sass:color";
 
-:root {
-  --background-color: #f0f0f0;
-  --primary-color: #ffffff;
-  --secondary-color: #e0e0e0;
-  --tertiary-color: #cccccc;
-  --applied-color: #21212114;
-  --font-color: #333333;
-  --hover-color: #d1d1d1;
-  --border-radius: 8px;
-  --transition-speed: 0.3s;
+.tu-editor {
+  --tu-background-color: #f0f0f0;
+  --tu-primary-color: #ffffff;
+  --tu-secondary-color: #e0e0e0;
+  --tu-border-color: #cccccc;
+  --tu-applied-color: #21212114;
+  --tu-font-color: #333333;
+  --tu-hover-color: #d1d1d1;
+  --tu-border-radius: 8px;
+  --tu-font-body: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --tu-font-notation: "Roboto", sans-serif;
+  --tu-bend-grid: #cccccc;
+  --tu-bend-curve: #000000;
+  --tu-bend-handle: #000000;
+  --tu-bend-label: #333333;
+  --tu-transition-speed: 0.3s;
 }
 
 .tu-editor {
@@ -19,15 +25,21 @@
   gap: 0.5rem;
   padding: 1rem;
   height: 100vh;
-  background-color: var(--background-color);
-  color: var(--font-color);
-  border-radius: 20px;
+  background-color: var(--tu-background-color);
+  color: var(--tu-font-color);
+  border-radius: var(--tu-border-radius);
+  font-family: var(--tu-font-body);
+
+  .tu-root-svg text {
+    font-family: var(--tu-font-notation);
+    fill: var(--tu-notation-text);
+  }
 
   .tu-top-controls {
     grid-area: 1 / 1 / 2 / 3;
     padding: 0.5rem 1rem;
-    border-radius: var(--border-radius);
-    background: var(--primary-color);
+    border-radius: var(--tu-border-radius);
+    background: var(--tu-primary-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-around;
@@ -59,28 +71,27 @@
           border: none;
           outline: none;
           background: transparent;
+          color: var(--tu-font-color);
+          caret-color: var(--tu-font-color);
           border-radius: 4px;
+          font: inherit;
           transition:
             background-color 0.15s ease,
             box-shadow 0.15s ease;
 
           &:focus {
-            background-color: var(--applied-color);
+            background-color: var(--tu-applied-color);
             cursor: text;
           }
 
           &:hover {
-            background-color: var(--primary-color);
-            box-shadow: 0 0 0 2px var(--secondary-color);
+            background-color: var(--tu-primary-color);
+            box-shadow: 0 0 0 2px var(--tu-secondary-color);
           }
         }
       }
 
       .tu-tracks {
-        // border-radius: var(--border-radius);
-        // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        // padding: 5px;
-
         .tu-track-controls {
           button {
             @extend %tu-button-style;
@@ -107,25 +118,25 @@
 
     .tu-track-selector {
       padding: 0.5rem 1rem;
-      border: 1px solid var(--tertiary-color);
-      border-radius: var(--border-radius);
-      background-color: var(--secondary-color);
+      border: 1px solid var(--tu-border-color);
+      border-radius: var(--tu-border-radius);
+      background-color: var(--tu-secondary-color);
       cursor: pointer;
-      transition: background-color var(--transition-speed);
+      transition: background-color var(--tu-transition-speed);
 
       &:hover {
-        background-color: var(--hover-color);
+        background-color: var(--tu-hover-color);
       }
     }
 
     img {
       width: 40px;
       height: 40px;
-      transition: all var(--transition-speed) ease;
+      transition: all var(--tu-transition-speed) ease;
       border-radius: 50%;
 
       &:hover {
-        background: var(--hover-color);
+        background: var(--tu-hover-color);
         cursor: pointer;
         transform: scale(1.1);
       }
@@ -137,8 +148,8 @@
     top: calc(10vh + 2rem);
     height: fit-content;
     padding: 1rem;
-    border-radius: var(--border-radius);
-    background: var(--primary-color);
+    border-radius: var(--tu-border-radius);
+    background: var(--tu-primary-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
     .tu-note-controls,
@@ -151,18 +162,18 @@
     .tu-technique-controls {
       margin-bottom: 1rem;
       padding-bottom: 1rem;
-      border-bottom: 1px solid var(--secondary-color);
+      border-bottom: 1px solid var(--tu-secondary-color);
     }
 
     img {
       width: 20%;
       height: 35px;
       padding: 5px;
-      border-radius: var(--border-radius);
-      transition: background-color var(--transition-speed) ease;
+      border-radius: var(--tu-border-radius);
+      transition: background-color var(--tu-transition-speed) ease;
 
       &:hover {
-        background: var(--hover-color);
+        background: var(--tu-hover-color);
         cursor: pointer;
       }
     }
@@ -170,8 +181,8 @@
 
   .tu-notation-viewport {
     grid-area: 2 / 2 / 3 / 3;
-    background: var(--primary-color);
-    border-radius: var(--border-radius);
+    background: var(--tu-primary-color);
+    border-radius: var(--tu-border-radius);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow: auto;
     min-height: 0;
@@ -441,7 +452,8 @@
       button {
         @extend %tu-button-style;
         width: 100%;
-        box-sizing: border-box; /* ensures borders/padding don’t overflow */
+        box-sizing: border-box;
+        /* ensures borders/padding don’t overflow */
       }
     }
   }
@@ -531,34 +543,47 @@
 }
 
 %tu-modal-dialog {
-  border-radius: var(--border-radius);
+  border-radius: var(--tu-border-radius);
   border: none;
   padding: 0;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  background-color: var(--primary-color);
+  background-color: var(--tu-primary-color);
+  color: var(--tu-font-color);
 }
 
 %tu-modal-dialog-content {
   padding: 1.5rem;
+  color: inherit;
 }
 
 %tu-button-style {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--tertiary-color);
-  border-radius: var(--border-radius);
-  background-color: var(--secondary-color);
+  border: 1px solid var(--tu-border-color);
+  border-radius: var(--tu-border-radius);
+  background-color: var(--tu-secondary-color);
+  color: var(--tu-font-color);
   cursor: pointer;
-  transition: background-color var(--transition-speed);
+  transition: background-color var(--tu-transition-speed);
 
   &:hover {
-    background-color: var(--hover-color);
+    background-color: var(--tu-hover-color);
   }
 }
 
 %tu-input-number-style {
   padding: 5px;
-  border: 2px solid black;
+  border: 2px solid var(--tu-border-color);
   border-radius: 5px;
+  background-color: var(--tu-primary-color);
+  color: var(--tu-font-color);
+  caret-color: var(--tu-font-color);
+  font: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: var(--tu-notation-selection-stroke);
+    box-shadow: 0 0 0 2px var(--tu-applied-color);
+  }
 }
 
 %tu-input-error-text {
@@ -568,8 +593,8 @@
 }
 
 .tu-applied-img {
-  background-color: var(--applied-color);
-  border-radius: var(--border-radius);
+  background-color: var(--tu-applied-color);
+  border-radius: var(--tu-border-radius);
 }
 
 .tu-disabled-img {

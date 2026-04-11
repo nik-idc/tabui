@@ -79,9 +79,7 @@ describe("TupletControlsDefaultCallbacks", () => {
       renderFunc,
       freeKeyboard,
     } = createTupletHarness();
-    const setTuplet =
-      notationComponent.trackController.trackControllerEditor
-        .setSelectedBeatsTuplet;
+    const setTuplet = notationComponent.trackController.setSelectedBeatsTuplet;
 
     callbacks.bind();
     callbacks.bind();

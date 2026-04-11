@@ -6,10 +6,7 @@ import {
   Guitar,
 } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import {
-  TabControllerDim,
-  TabLayoutDimensions,
-} from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import {
@@ -22,7 +19,6 @@ import { BarTupletGroupElement } from "./bar-tuplet-group-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { SheetBeatElement } from "../beat/sheet-beat-element";
 import { BeatElement, getBeatWidth } from "../beat/beat-element";
-// import { BeatElement_old } from "./tab-beat-element_old";
 import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
 
 // TODO:: Fix repeat rects shifting when there are multple staves
@@ -50,11 +46,9 @@ export class BarElement implements NotationElement {
   private _tupletElements: BarTupletGroupElement[];
 
   /** Bar element rectangle */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** Bar element's lines */
   private _staffLines: HorLine[];
-  // /** Tempo rectangle */
-  // private _tempoRect: Rect;
   /** Time signature rectangle */
   private _timeSigRect?: Rect;
   /** Repeat start sign rectangle */
@@ -88,7 +82,7 @@ export class BarElement implements NotationElement {
     this._beamSegments = [];
     this._tupletElements = [];
 
-    this._rect = new Rect();
+    this._boundingBox = new Rect();
     this._staffLines = Array.from(
       { length: this.bar.trackContext.instrument.maxPolyphony },
       () => new HorLine()
@@ -168,9 +162,6 @@ export class BarElement implements NotationElement {
       if (!(beatElement instanceof TabBeatElement)) {
         return;
       }
-      // if (DURATION_TO_FLAG_COUNT[beatElement.beat.baseDuration] === 0) {
-      //   return;
-      // }
     }
 
     for (let i = 0; i < this.bar.beamingGroups.length; i++) {
@@ -253,8 +244,8 @@ export class BarElement implements NotationElement {
 
     // Time signature rectangle
     this._timeSigRect.setDimensions(
-      TabLayoutDimensions.TIME_SIG_RECT_WIDTH,
-      TabLayoutDimensions.TIME_SIG_TEXT_SIZE * 2
+      EditorLayoutDimensions.TIME_SIG_RECT_WIDTH,
+      EditorLayoutDimensions.TIME_SIG_TEXT_SIZE * 2
     );
   }
 
@@ -271,14 +262,14 @@ export class BarElement implements NotationElement {
 
     if (this._repeatStartRect !== undefined) {
       this._repeatStartRect.setDimensions(
-        TabLayoutDimensions.REPEAT_SIGN_WIDTH,
-        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+        EditorLayoutDimensions.REPEAT_SIGN_WIDTH,
+        EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
       );
     }
     if (this._repeatEndRect !== undefined) {
       this._repeatEndRect.setDimensions(
-        TabLayoutDimensions.REPEAT_SIGN_WIDTH,
-        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+        EditorLayoutDimensions.REPEAT_SIGN_WIDTH,
+        EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
       );
     }
   }
@@ -289,7 +280,7 @@ export class BarElement implements NotationElement {
   private measureRect(): void {
     let beatsSumWidth = 0;
     for (const beatElement of this._beatElements) {
-      beatsSumWidth += beatElement.rect.width;
+      beatsSumWidth += beatElement.boundingBox.width;
     }
 
     const barWidth =
@@ -298,10 +289,10 @@ export class BarElement implements NotationElement {
       beatsSumWidth +
       (this._repeatEndRect?.width ?? 0);
     const height =
-      this._beatElements[0].rect.height +
-      TabLayoutDimensions.TUPLET_RECT_HEIGHT;
+      this._beatElements[0].boundingBox.height +
+      EditorLayoutDimensions.TUPLET_RECT_HEIGHT;
 
-    this._rect.setDimensions(barWidth, height);
+    this._boundingBox.setDimensions(barWidth, height);
   }
 
   /**
@@ -310,7 +301,7 @@ export class BarElement implements NotationElement {
   private measureStaffLines(): void {
     for (let i = 0; i < this.bar.trackContext.instrument.maxPolyphony; i++) {
       this._staffLines[i].x1 = 0;
-      this._staffLines[i].x2 = this._rect.width;
+      this._staffLines[i].x2 = this._boundingBox.width;
     }
   }
 
@@ -342,9 +333,9 @@ export class BarElement implements NotationElement {
   private layoutRect(): void {
     const prevBarElement =
       this.notationStyleLineElement.getPrevBarElement(this);
-    const x = prevBarElement?.rect.right ?? 0;
-    const y = this.notationStyleLineElement.techGapElement.rect.bottom;
-    this._rect.setCoords(x, y);
+    const x = prevBarElement?.boundingBox.right ?? 0;
+    const y = this.notationStyleLineElement.techGapElement.boundingBox.bottom;
+    this._boundingBox.setCoords(x, y);
   }
 
   /**
@@ -356,7 +347,7 @@ export class BarElement implements NotationElement {
     }
 
     const staffHeight =
-      this._rect.height - TabLayoutDimensions.DURATIONS_HEIGHT;
+      this._boundingBox.height - EditorLayoutDimensions.DURATIONS_HEIGHT;
     const yOffset = (staffHeight - this._timeSigRect.height) / 2;
     this._timeSigRect.setCoords(0, yOffset);
   }
@@ -372,14 +363,14 @@ export class BarElement implements NotationElement {
       return;
     }
 
-    const y = TabLayoutDimensions.NOTE_RECT_HEIGHT / 2;
+    const y = EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2;
     if (this._repeatStartRect !== undefined) {
       const x = this._timeSigRect?.right ?? 0;
       this._repeatStartRect.setCoords(x, y);
     }
     if (this._repeatEndRect !== undefined) {
       this._repeatEndRect.setCoords(
-        this._rect.width - TabLayoutDimensions.REPEAT_SIGN_WIDTH,
+        this._boundingBox.width - EditorLayoutDimensions.REPEAT_SIGN_WIDTH,
         y
       );
     }
@@ -390,11 +381,11 @@ export class BarElement implements NotationElement {
    */
   private layoutStaffLines(): void {
     // Make lines
-    let y = TabLayoutDimensions.NOTE_RECT_HEIGHT / 2;
+    let y = EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2;
     for (let i = 0; i < this.bar.trackContext.instrument.maxPolyphony; i++) {
       this._staffLines[i].y = y;
 
-      y += TabLayoutDimensions.NOTE_RECT_HEIGHT;
+      y += EditorLayoutDimensions.NOTE_RECT_HEIGHT;
     }
   }
 
@@ -403,10 +394,10 @@ export class BarElement implements NotationElement {
    * */
   private calcStateHash(): void {
     const hashArr: string[] = [
-      `${this.globalRect.x}` +
-        `${this.globalRect.y}` +
-        `${this.globalRect.width}` +
-        `${this.globalRect.height}`,
+      `${this.globalBoundingBox.x}` +
+        `${this.globalBoundingBox.y}` +
+        `${this.globalBoundingBox.width}` +
+        `${this.globalBoundingBox.height}`,
     ];
 
     hashArr.push(`${this._showTempo}`);
@@ -437,9 +428,6 @@ export class BarElement implements NotationElement {
     hashArr.push(`${this.bar.checkDurationsFit() ? 1 : 0}`);
 
     this._stateHash = hashArr.join("");
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -464,9 +452,6 @@ export class BarElement implements NotationElement {
     }
 
     this.justifyToFit();
-
-    // Calculating state hash moved to scaleHorBy
-    // this.calcStateHash();
   }
 
   /**
@@ -484,11 +469,11 @@ export class BarElement implements NotationElement {
    * @param desiredWidth Desired width of the bar element
    */
   public justifyToFit(): void {
-    if (this.desiredWidth - this.rect.width === 0) {
+    if (this.desiredWidth - this.boundingBox.width === 0) {
       return;
     }
 
-    const scale = this.desiredWidth / this.rect.width;
+    const scale = this.desiredWidth / this.boundingBox.width;
     this.scaleHorBy(scale, false);
   }
 
@@ -498,10 +483,9 @@ export class BarElement implements NotationElement {
    */
   public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
     if (scaleOuterX) {
-      this._rect.x *= scale;
+      this._boundingBox.x *= scale;
     }
-    this._rect.width *= scale;
-    // this._tempoRect.x *= scale;
+    this._boundingBox.width *= scale;
     if (this._repeatStartRect !== undefined) {
       this._repeatStartRect.x *= scale;
       this._repeatStartRect.width *= scale;
@@ -644,9 +628,9 @@ export class BarElement implements NotationElement {
   get barLeftBorderLine(): VertLine {
     return new VertLine(
       0,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
-        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
+        EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
     );
   }
 
@@ -654,38 +638,38 @@ export class BarElement implements NotationElement {
   get barLeftBorderLineGlobal(): VertLine {
     return new VertLine(
       this.globalCoords.x,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2 + this.globalCoords.y,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 + this.globalCoords.y,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
         this.globalCoords.y +
-        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+        EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
     );
   }
 
   /** Bar right border line */
   get barRightBorderLine(): VertLine {
     return new VertLine(
-      this._rect.right,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
-        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+      this._boundingBox.right,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
+        EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
     );
   }
 
   /** Bar right border line in global coords */
   get barRightBorderLineGlobal(): VertLine {
     return new VertLine(
-      this.globalCoords.x + this._rect.width,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2 + this.globalCoords.y,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.globalCoords.x + this._boundingBox.width,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 + this.globalCoords.y,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
         this.globalCoords.y +
-        TabLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+        EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
     );
   }
 
   /** Gap at the fron of the bar (time sig. and/or repeat start) */
   get startGap(): Rect {
     const x = 0;
-    const y = this._showTempo ? TabLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    const y = this._showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
     let width = 0;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
@@ -693,14 +677,14 @@ export class BarElement implements NotationElement {
     if (this._repeatStartRect !== undefined) {
       width += this._repeatStartRect.width;
     }
-    const height = this._rect.height;
+    const height = this._boundingBox.height;
     return new Rect(x, y, width, height);
   }
 
   /** Gap at the fron of the bar (time sig. and/or repeat start) in global coords */
   get startGapGlobal(): Rect {
     const x = 0;
-    const y = this._showTempo ? TabLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    const y = this._showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
     let width = 0;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
@@ -708,7 +692,7 @@ export class BarElement implements NotationElement {
     if (this._repeatStartRect !== undefined) {
       width += this._repeatStartRect.width;
     }
-    const height = this._rect.height;
+    const height = this._boundingBox.height;
     return new Rect(
       this.globalCoords.x + x,
       this.globalCoords.y + y,
@@ -723,9 +707,9 @@ export class BarElement implements NotationElement {
     if (this._repeatEndRect !== undefined) {
       width += this._repeatEndRect.width;
     }
-    const height = this._rect.height;
-    const x = this._rect.right - width;
-    const y = this._showTempo ? TabLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    const height = this._boundingBox.height;
+    const x = this._boundingBox.right - width;
+    const y = this._showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
     return new Rect(x, y, width, height);
   }
 
@@ -735,9 +719,9 @@ export class BarElement implements NotationElement {
     if (this._repeatEndRect !== undefined) {
       width += this._repeatEndRect.width;
     }
-    const height = this._rect.height;
-    const x = this._rect.right - width;
-    const y = this._showTempo ? TabLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    const height = this._boundingBox.height;
+    const x = this._boundingBox.right - width;
+    const y = this._showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
     return new Rect(
       this.globalCoords.x + x,
       this.globalCoords.y + y,
@@ -761,19 +745,27 @@ export class BarElement implements NotationElement {
     return this._tupletElements;
   }
 
-  /** Bar element rectangle */
-  public get rect(): Rect {
-    return this._rect;
+  /** Bar element layout bounding box */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
-  /** This bar's rect in global coords */
-  public get globalRect(): Rect {
+  /** This bar's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Bar element's staff lines */
@@ -796,11 +788,6 @@ export class BarElement implements NotationElement {
 
     return result;
   }
-
-  // /** Tempo rectangle */
-  // public get tempoRect(): Rect {
-  //   return this._tempoRect;
-  // }
 
   /** Time signature rectangle */
   public get timeSigRect(): Rect | undefined {
@@ -853,8 +840,8 @@ export class BarElement implements NotationElement {
   /** Global coords of the bar element */
   public get globalCoords(): Point {
     return new Point(
-      this.notationStyleLineElement.globalCoords.x + this._rect.x,
-      this.notationStyleLineElement.globalCoords.y + this._rect.y
+      this.notationStyleLineElement.globalCoords.x + this._boundingBox.x,
+      this.notationStyleLineElement.globalCoords.y + this._boundingBox.y
     );
   }
 }
@@ -863,7 +850,7 @@ export function getBarWidth(bar: Bar): number {
   let width = 0;
 
   if (bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
-    width += TabLayoutDimensions.REPEAT_SIGN_WIDTH;
+    width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
   }
 
   const prevBar: Bar | null = bar.staff.getPrevBar(bar);
@@ -871,7 +858,7 @@ export function getBarWidth(bar: Bar): number {
     prevBar === null ||
     prevBar.masterBar.maxDuration !== bar.masterBar.maxDuration
   ) {
-    width += TabLayoutDimensions.TIME_SIG_RECT_WIDTH;
+    width += EditorLayoutDimensions.TIME_SIG_RECT_WIDTH;
   }
 
   for (const beat of bar.beats) {
@@ -879,93 +866,8 @@ export function getBarWidth(bar: Bar): number {
   }
 
   if (bar.masterBar.repeatStatus === BarRepeatStatus.End) {
-    width += TabLayoutDimensions.REPEAT_SIGN_WIDTH;
+    width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
   }
 
   return width;
 }
-
-// ==== PROBABLY WILL BE USEFULL LATER ====
-//
-// /**
-//  * Calculates beaming groups
-//  */
-// private calcBeamGroups(): void {
-//   this._beamSegments = [];
-//   for (let i = 0; i < this.bar.beamingGroups.length; i++) {
-//     const beamGroupBeats = this.bar.beats.filter((b) => b.beamGroupId === i);
-
-//     if (beamGroupBeats.length <= 1) {
-//       continue;
-//     }
-
-//     for (let j = 0; j < beamGroupBeats.length - 1; j++) {
-//       const curTabBeatElement = beamGroupBeats[j];
-//       const nextTabBeatElement = beamGroupBeats[j + 1];
-//       const prevTabBeatElement = j === 0 ? undefined : beamGroupBeats[j - 1];
-//       this._beamSegments.push(
-//         new BeamSegmentElement(
-//           this,
-//           curTabBeatElement,
-//           nextTabBeatElement,
-//           prevTabBeatElement
-//         )
-//       );
-//     }
-//   }
-// }
-//
-// //
-// /**
-//  * Sets technique gap height to the new provided value
-//  * @param newGapHeight New gap height
-//  */
-// public setTechniqueGap(newGapHeight: number): void {
-//   // Apply the necessary gap height
-//   const oldGapHeight = this._labelsGapHeight;
-
-//   this._rect.height += newGapHeight - oldGapHeight;
-//   this._timeSigRect.y += newGapHeight - oldGapHeight;
-
-//   this._labelsGapHeight = newGapHeight;
-
-//   for (const tabBeatElement of this._beatElements) {
-//     tabBeatElement.setTechniqueGap(newGapHeight);
-//   }
-
-//   this.calcStaffLines();
-// }
-
-// /**
-//  * Calculates & applies the technique gap of the current
-//  * bar element
-//  */
-// public calcTechniqueGap(): void {
-//   // Reset labels gap height to 0
-//   this._timeSigRect.y -= this._labelsGapHeight;
-//   this._rect.height -= this._labelsGapHeight;
-//   this._labelsGapHeight = 0;
-
-//   // Figure out which beat element
-//   // is supposed to be the tallest one
-//   let mostLabelsBeatHeight = this._rect.height;
-//   let mostLabelsCount = 0;
-//   for (const tabBeatElement of this._tabBeatElements) {
-//     if (tabBeatElement.techniqueLabelElements.length > mostLabelsCount) {
-//       mostLabelsCount = tabBeatElement.techniqueLabelElements.length;
-//       mostLabelsBeatHeight = tabBeatElement.rect.height;
-//     }
-//   }
-
-//   // Apply the necessary gap height
-//   const newGapHeight = mostLabelsBeatHeight - this._rect.height;
-//   this._labelsGapHeight = newGapHeight;
-//   this._rect.height += this._labelsGapHeight;
-//   this._timeSigRect.y += this._labelsGapHeight;
-
-//   for (const tabBeatElement of this._tabBeatElements) {
-//     tabBeatElement.setTechniqueGap(newGapHeight);
-//   }
-
-//   this.calcStaffLines();
-// }

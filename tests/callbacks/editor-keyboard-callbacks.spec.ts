@@ -33,6 +33,14 @@ function createHarness() {
       startPlayer: jest.fn(),
       stopPlayer: jest.fn(),
       isPlaying: false,
+      copy: jest.fn(),
+      paste: jest.fn(),
+      deleteSelectedBeats: jest.fn(),
+      setTechnique: jest.fn(),
+      setSelectedNoteFret: jest.fn(),
+      moveSelectedNote: jest.fn(),
+      selectedNote: undefined as any,
+      hasSelectedNote: false,
       trackControllerEditor,
     },
   } as any;
@@ -76,15 +84,14 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test("direct command handlers dispatch expected editor actions", () => {
-    const { callbacks, notationComponent, trackControllerEditor, renderFunc } =
-      createHarness();
+    const { callbacks, notationComponent, renderFunc } = createHarness();
 
     callbacks.ctrlCEvent(createKeyboardEvent("c"));
-    expect(trackControllerEditor.copy).toHaveBeenCalledTimes(1);
+    expect(notationComponent.trackController.copy).toHaveBeenCalledTimes(1);
     expect(renderFunc).not.toHaveBeenCalled();
 
     callbacks.ctrlVEvent(createKeyboardEvent("v"));
-    expect(trackControllerEditor.paste).toHaveBeenCalledTimes(1);
+    expect(notationComponent.trackController.paste).toHaveBeenCalledTimes(1);
 
     callbacks.ctrlZEvent(createKeyboardEvent("z"));
     expect(notationComponent.trackController.undo).toHaveBeenCalledTimes(1);
@@ -93,7 +100,9 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(notationComponent.trackController.redo).toHaveBeenCalledTimes(1);
 
     callbacks.deleteEvent(createKeyboardEvent("Delete"));
-    expect(trackControllerEditor.deleteSelectedBeats).toHaveBeenCalledTimes(1);
+    expect(
+      notationComponent.trackController.deleteSelectedBeats
+    ).toHaveBeenCalledTimes(1);
 
     callbacks.spaceEvent(createKeyboardEvent(" "));
     expect(notationComponent.trackController.startPlayer).toHaveBeenCalledTimes(
@@ -109,30 +118,29 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test("technique shortcuts respect selection and bend shortcut opens bend controls", () => {
-    const { callbacks, uiComponent, trackControllerEditor, renderFunc } =
+    const { callbacks, uiComponent, notationComponent, renderFunc } =
       createHarness();
 
     callbacks.setTechnique(GuitarTechniqueType.Vibrato);
-    expect(trackControllerEditor.setTechnique).not.toHaveBeenCalled();
+    expect(
+      notationComponent.trackController.setTechnique
+    ).not.toHaveBeenCalled();
 
-    trackControllerEditor.selectionManager.selectedNote = {
+    notationComponent.trackController.selectedNote = {
       note: { noteValue: NoteValue.C },
     };
+    notationComponent.trackController.hasSelectedNote = true;
 
     callbacks.shiftVEvent(createKeyboardEvent("V", { shiftKey: true }));
     callbacks.shiftPEvent(createKeyboardEvent("P", { shiftKey: true }));
     callbacks.shiftBEvent(createKeyboardEvent("B", { shiftKey: true }));
 
-    expect(trackControllerEditor.setTechnique).toHaveBeenNthCalledWith(
-      1,
-      GuitarTechniqueType.Vibrato,
-      undefined
-    );
-    expect(trackControllerEditor.setTechnique).toHaveBeenNthCalledWith(
-      2,
-      GuitarTechniqueType.PalmMute,
-      undefined
-    );
+    expect(
+      notationComponent.trackController.setTechnique
+    ).toHaveBeenNthCalledWith(1, GuitarTechniqueType.Vibrato, undefined);
+    expect(
+      notationComponent.trackController.setTechnique
+    ).toHaveBeenNthCalledWith(2, GuitarTechniqueType.PalmMute, undefined);
     expect(
       uiComponent.sideComponent.techniqueControlsComponent.showBendControls
     ).toHaveBeenCalledTimes(1);
@@ -140,75 +148,74 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test("number entry combines only within the configured time epsilon", () => {
-    const { callbacks, trackControllerEditor, renderFunc } = createHarness();
-    trackControllerEditor.selectionManager.selectedNote = {
+    const { callbacks, notationComponent, renderFunc } = createHarness();
+    notationComponent.trackController.selectedNote = {
       note: { noteValue: NoteValue.C },
     };
+    notationComponent.trackController.hasSelectedNote = true;
     const getTimeSpy = jest.spyOn(Date.prototype, "getTime");
 
     getTimeSpy.mockReturnValueOnce(1000);
     callbacks.onNumberDown("1");
-    expect(trackControllerEditor.setSelectedNoteFret).toHaveBeenNthCalledWith(
-      1,
-      1
-    );
+    expect(
+      notationComponent.trackController.setSelectedNoteFret
+    ).toHaveBeenNthCalledWith(1, 1);
 
     getTimeSpy.mockReturnValueOnce(1100);
     callbacks.onNumberDown("2");
-    expect(trackControllerEditor.setSelectedNoteFret).toHaveBeenNthCalledWith(
-      2,
-      12
-    );
+    expect(
+      notationComponent.trackController.setSelectedNoteFret
+    ).toHaveBeenNthCalledWith(2, 12);
 
     getTimeSpy.mockReturnValueOnce(1500);
     callbacks.onNumberDown("3");
-    expect(trackControllerEditor.setSelectedNoteFret).toHaveBeenNthCalledWith(
-      3,
-      3
-    );
+    expect(
+      notationComponent.trackController.setSelectedNoteFret
+    ).toHaveBeenNthCalledWith(3, 3);
 
     callbacks.onNumberDown("x");
-    expect(trackControllerEditor.setSelectedNoteFret).toHaveBeenCalledTimes(3);
+    expect(
+      notationComponent.trackController.setSelectedNoteFret
+    ).toHaveBeenCalledTimes(3);
     expect(renderFunc).toHaveBeenCalledTimes(3);
   });
 
   test("arrow keys and backspace update the selected note correctly", () => {
-    const { callbacks, trackControllerEditor, renderFunc } = createHarness();
-    trackControllerEditor.selectionManager.selectedNote = {
+    const { callbacks, notationComponent, renderFunc } = createHarness();
+    notationComponent.trackController.selectedNote = {
       note: { noteValue: NoteValue.C },
     };
+    notationComponent.trackController.hasSelectedNote = true;
 
     callbacks.onArrowDown("arrowdown");
     callbacks.onArrowDown("arrowup");
     callbacks.onArrowDown("arrowleft");
     callbacks.onArrowDown("arrowright");
-    expect(trackControllerEditor.moveSelectedNote).toHaveBeenNthCalledWith(
-      1,
-      SelectedMoveDirection.Down
-    );
-    expect(trackControllerEditor.moveSelectedNote).toHaveBeenNthCalledWith(
-      2,
-      SelectedMoveDirection.Up
-    );
-    expect(trackControllerEditor.moveSelectedNote).toHaveBeenNthCalledWith(
-      3,
-      SelectedMoveDirection.Left
-    );
-    expect(trackControllerEditor.moveSelectedNote).toHaveBeenNthCalledWith(
-      4,
-      SelectedMoveDirection.Right
-    );
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenNthCalledWith(1, SelectedMoveDirection.Down);
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenNthCalledWith(2, SelectedMoveDirection.Up);
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenNthCalledWith(3, SelectedMoveDirection.Left);
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenNthCalledWith(4, SelectedMoveDirection.Right);
 
     callbacks.onBackspacePress();
-    expect(trackControllerEditor.setSelectedNoteFret).toHaveBeenCalledWith(
-      null
-    );
+    expect(
+      notationComponent.trackController.setSelectedNoteFret
+    ).toHaveBeenCalledWith(null);
 
-    trackControllerEditor.selectionManager.selectedNote = {
+    notationComponent.trackController.selectedNote = {
       note: { noteValue: NoteValue.None },
     };
     callbacks.onBackspacePress();
-    expect(trackControllerEditor.setSelectedNoteFret).toHaveBeenCalledTimes(1);
+    expect(
+      notationComponent.trackController.setSelectedNoteFret
+    ).toHaveBeenCalledTimes(1);
     expect(renderFunc).toHaveBeenCalledTimes(5);
   });
 

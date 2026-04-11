@@ -1,9 +1,10 @@
-import { Point, createSVGG, createSVGPath, createSVGText } from "@/shared";
+import { createSVGG, createSVGPath, createSVGText } from "@/shared";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { SVGTupletSegmentRenderer } from "./svg-tuplet-segment-renderer";
 import { ElementRenderer } from "../../element-renderer";
 import {
   BarTupletGroupElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
 
@@ -16,13 +17,7 @@ export class SVGTupletRenderer implements ElementRenderer {
   /** Tuplet element */
   tupletElement: BarTupletGroupElement;
   /** Path to any assets */
-  readonly assetsPath: string;
-
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
-
-  // /** Rendered segments map */
-  // private _renderedTupletSegments: Map<number, SVGTupletSegmentRenderer>;
+  readonly assetsPath: ResolvedAssetConfig;
 
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
@@ -42,15 +37,12 @@ export class SVGTupletRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     tupletElement: BarTupletGroupElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.tupletElement = tupletElement;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
-    //
-    // this._renderedTupletSegments = new Map();
   }
 
   public ensureContainerGroup(): SVGGElement {
@@ -89,7 +81,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._completeTupletPath = createSVGPath();
 
       // Set only-set-once attributes
-      this._completeTupletPath.setAttribute("stroke", "black");
+      this._completeTupletPath.setAttribute("stroke", "var(--tu-notation-ink)");
       this._completeTupletPath.setAttribute("stroke-width", "1");
       this._completeTupletPath.setAttribute("fill", "none");
 
@@ -142,7 +134,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._completeTupletTextSVG = createSVGText();
 
       // Set only-set-once attributes
-      const fontSize = `${TabLayoutDimensions.TEMPO_TEXT_SIZE}`;
+      const fontSize = `${EditorLayoutDimensions.TEMPO_TEXT_SIZE}`;
       this._completeTupletTextSVG.setAttribute("text-anchor", "middle");
       this._completeTupletTextSVG.setAttribute("dominant-baseline", "middle");
       this._completeTupletTextSVG.setAttribute("font-size", fontSize);
@@ -200,7 +192,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       renderedText = this._incompleteTupletTextsSVG[index];
 
       // Set only-set-once attributes
-      const fontSize = `${TabLayoutDimensions.TEMPO_TEXT_SIZE}`;
+      const fontSize = `${EditorLayoutDimensions.TEMPO_TEXT_SIZE}`;
       renderedText.setAttribute("text-anchor", "middle");
       renderedText.setAttribute("dominant-baseline", "middle");
       renderedText.setAttribute("font-size", fontSize);
@@ -318,77 +310,5 @@ export class SVGTupletRenderer implements ElementRenderer {
     this.unrenderCompleteTupletText();
     this.unrenderCompleteTupletPath();
     this.unrenderIncompleteTexts();
-
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
 }
-
-// ================
-// ==== LEGACY ====
-//
-// /**
-//  * Render tuplet segments
-//  */
-// private renderTupletSegments(): SVGTupletSegmentRenderer[] {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to render tuplet segments when SVG group undefined");
-//   }
-
-//   const activeRenderers: SVGTupletSegmentRenderer[] = [];
-
-//   // Check if there are any beat element to remove
-//   const curBeatElementUUIDs = new Set(
-//     this.tupletElement.beatElements.map((b) => b.beat.uuid)
-//   );
-//   for (const [uuid, renderer] of this._renderedTupletSegments) {
-//     if (!curBeatElementUUIDs.has(uuid)) {
-//       renderer.unrender();
-//       this._renderedTupletSegments.delete(uuid);
-//     }
-//   }
-
-//   // Add & render new tuplet segments AND re-render existing ones
-//   for (const beatElement of this.tupletElement.beatElements) {
-//     const renderedTupletSegment = this._renderedTupletSegments.get(
-//       beatElement.beat.uuid
-//     );
-//     if (renderedTupletSegment === undefined) {
-//       const renderer = new SVGTupletSegmentRenderer(
-//         this.trackController,
-//         beatElement,
-//         this.assetsPath,
-//         this._containerGroupSVG
-//       );
-//       renderer.render(
-//         this.tupletElement.tupletGroup.complete,
-//         this.tupletElement.tupletGroup.isStandard
-//       );
-//       activeRenderers.push(renderer);
-//       this._renderedTupletSegments.set(beatElement.beat.uuid, renderer);
-//     } else {
-//       renderedTupletSegment.render(
-//         this.tupletElement.tupletGroup.complete,
-//         this.tupletElement.tupletGroup.isStandard
-//       );
-//       activeRenderers.push(renderedTupletSegment);
-//     }
-//   }
-//   return activeRenderers;
-// }
-
-// /**
-//  * Unrender tuplet segments
-//  */
-// private unrenderTupletSegments(): void {
-//   if (this._containerGroupSVG === undefined) {
-//     throw Error("Tried to unrender tuplet segments when SVG group undefined");
-//   }
-
-//   for (const [uuid, renderer] of this._renderedTupletSegments) {
-//     renderer.unrender();
-//     this._renderedTupletSegments.delete(uuid);
-//   }
-// }
-// ==== LEGACY ====
-// ================

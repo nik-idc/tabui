@@ -52,7 +52,7 @@ export class SelectionDragController {
     const dy = point.y - this._selectionStartPoint.y;
     const distMoved = Math.sqrt(dx * dx + dy * dy);
 
-    if (this._isDragPending && distMoved >= beatElement.rect.width / 4) {
+    if (this._isDragPending && distMoved >= beatElement.boundingBox.width / 4) {
       this._isDragPending = false;
       this._isSelectingBeats = true;
 

@@ -1,8 +1,9 @@
 import { GuitarNote } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { GuitarTechniqueElement } from "../technique/guitar-technique/guitar-technique-element";
+import { TechniqueElement } from "../technique/technique-element";
 import { NoteElement } from "./note-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 
@@ -19,11 +20,11 @@ export class TabNoteElement implements NoteElement {
   /** Root track element */
   readonly trackElement: TrackElement;
 
-  /** Array of guitar technique element */
-  private _guitarTechniqueElements: GuitarTechniqueElement[];
+  /** Array of technique elements */
+  private _techniqueElements: TechniqueElement[];
 
-  /** Rectangle of the main clickable-area rectangle */
-  private _rect: Rect = new Rect();
+  /** Bounding box of the main clickable area */
+  private _boundingBox: Rect = new Rect();
   /** Rectangle of the note text rectangle (needed to cover the text background) */
   private _textRect: Rect = new Rect();
   /** Coordinates of the note text */
@@ -42,8 +43,8 @@ export class TabNoteElement implements NoteElement {
     this.beatElement = beatElement;
     this.trackElement = this.beatElement.trackElement;
 
-    this._rect = new Rect();
-    this._guitarTechniqueElements = [];
+    this._boundingBox = new Rect();
+    this._techniqueElements = [];
 
     this._stateHash = "";
 
@@ -56,10 +57,10 @@ export class TabNoteElement implements NoteElement {
    * Fills the technique element array
    */
   public build(): void {
-    this._guitarTechniqueElements = [];
+    this._techniqueElements = [];
     for (const technique of this.note.techniques) {
       const techniqueElement = new GuitarTechniqueElement(technique, this);
-      this._guitarTechniqueElements.push(techniqueElement);
+      this._techniqueElements.push(techniqueElement);
     }
   }
 
@@ -67,14 +68,14 @@ export class TabNoteElement implements NoteElement {
    * Calculates the dimensions for the note element and it's children
    */
   public measure(): void {
-    this._rect.setDimensions(
-      this.beatElement.rect.width,
-      TabLayoutDimensions.NOTE_RECT_HEIGHT
+    this._boundingBox.setDimensions(
+      this.beatElement.boundingBox.width,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT
     );
 
     this._textRect.setDimensions(
-      TabLayoutDimensions.NOTE_TEXT_SIZE,
-      TabLayoutDimensions.NOTE_TEXT_SIZE
+      EditorLayoutDimensions.NOTE_TEXT_SIZE,
+      EditorLayoutDimensions.NOTE_TEXT_SIZE
     );
   }
 
@@ -84,19 +85,16 @@ export class TabNoteElement implements NoteElement {
   private calcStateHash(): void {
     this._stateHash =
       `${this.note.fret}` +
-      `${this.globalRect.x}` +
-      `${this.globalRect.y}` +
-      `${this.globalRect.width}` +
-      `${this.globalRect.height}` +
+      `${this.globalBoundingBox.x}` +
+      `${this.globalBoundingBox.y}` +
+      `${this.globalBoundingBox.width}` +
+      `${this.globalBoundingBox.height}` +
       `${this._textRect.x}` +
       `${this._textRect.y}` +
       `${this._textRect.width}` +
       `${this._textRect.height}` +
       `${this._textCoords.x}` +
       `${this._textCoords.y}`;
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -104,26 +102,22 @@ export class TabNoteElement implements NoteElement {
    */
   public layout(): void {
     const prevNoteElement = this.beatElement.getPrevNoteElement(this);
-    const y = prevNoteElement?.rect.bottom ?? 0;
-    this._rect.setCoords(0, y);
+    const y = prevNoteElement?.boundingBox.bottom ?? 0;
+    this._boundingBox.setCoords(0, y);
 
     this._textRect.setCoords(
-      this._rect.width / 2 - TabLayoutDimensions.NOTE_TEXT_SIZE / 2,
-      this._rect.height / 2 - TabLayoutDimensions.NOTE_TEXT_SIZE / 2
+      this._boundingBox.width / 2 - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2,
+      this._boundingBox.height / 2 - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2
     );
 
     this._textCoords.set(
-      this._textRect.x + TabLayoutDimensions.NOTE_TEXT_SIZE / 2,
-      this._textRect.y + TabLayoutDimensions.NOTE_TEXT_SIZE / 2
+      this._textRect.x + EditorLayoutDimensions.NOTE_TEXT_SIZE / 2,
+      this._textRect.y + EditorLayoutDimensions.NOTE_TEXT_SIZE / 2
     );
 
-    for (const techniqueElement of this._guitarTechniqueElements) {
+    for (const techniqueElement of this._techniqueElements) {
       techniqueElement.layout();
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    // this.calcStateHash();
   }
 
   /**
@@ -140,18 +134,16 @@ export class TabNoteElement implements NoteElement {
    * @param scale Scale factor
    */
   public scaleHorBy(scale: number): void {
-    this._rect.x *= scale;
-    this._rect.width *= scale;
+    this._boundingBox.x *= scale;
+    this._boundingBox.width *= scale;
 
     this._textRect.x =
-      this._rect.x +
-      this._rect.width / 2 -
-      TabLayoutDimensions.NOTE_TEXT_SIZE / 2;
-    // this._textRect.x *= scale;
-    // this._textRect.width *= scale;
+      this._boundingBox.x +
+      this._boundingBox.width / 2 -
+      EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
     this._textCoords.x *= scale;
 
-    for (const techniqueElement of this._guitarTechniqueElements) {
+    for (const techniqueElement of this._techniqueElements) {
       techniqueElement.scaleHorBy(scale);
     }
 
@@ -167,19 +159,27 @@ export class TabNoteElement implements NoteElement {
     return this.note.uuid;
   }
 
-  /** Rectangle of the main clickable-area rectangle */
-  public get rect(): Rect {
-    return this._rect;
+  /** Main clickable-area bounding box */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
-  /** Element's rect */
-  public get globalRect(): Rect {
+  /** Main clickable-area bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Rectangle of the note text rectangle */
@@ -210,9 +210,9 @@ export class TabNoteElement implements NoteElement {
     );
   }
 
-  /** Array of guitar technique element */
-  public get guitarTechniqueElements(): GuitarTechniqueElement[] {
-    return this._guitarTechniqueElements;
+  /** Array of technique elements */
+  public get techniqueElements(): TechniqueElement[] {
+    return this._techniqueElements;
   }
 
   /** Note selection rectangle */
@@ -229,8 +229,8 @@ export class TabNoteElement implements NoteElement {
   /** Global coords of the note element */
   public get globalCoords(): Point {
     return new Point(
-      this.beatElement.globalCoords.x + this._rect.x,
-      this.beatElement.globalCoords.y + this._rect.y
+      this.beatElement.globalCoords.x + this._boundingBox.x,
+      this.beatElement.globalCoords.y + this._boundingBox.y
     );
   }
 }

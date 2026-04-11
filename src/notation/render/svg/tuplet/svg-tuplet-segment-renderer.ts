@@ -1,10 +1,11 @@
 import {
   BeatElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
-import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
+import { createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { ElementRenderer } from "../../element-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a tuplet segment using SVG
@@ -15,9 +16,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
   /** Beat element */
   beatElement: BeatElement;
   /** Path to any assets */
-  readonly assetsPath: string;
-  // /** Parent SVG group element */
-  // private _parentElement: SVGGElement;
+  readonly assetsPath: ResolvedAssetConfig;
 
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
@@ -35,7 +34,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     beatElement: BeatElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.beatElement = beatElement;
@@ -90,7 +89,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
       // Set id
       const id = `tuplet-segment-${beatUUID}-rect`;
       this._tupletSegmentRectSVG.setAttribute("id", id);
-      this._tupletSegmentRectSVG.setAttribute("fill", "black");
+      this._tupletSegmentRectSVG.setAttribute("fill", "var(--tu-notation-ink)");
 
       // Add element to root SVG element
       this._containerGroupSVG.appendChild(this._tupletSegmentRectSVG);
@@ -98,7 +97,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
 
     const x = `${this.beatElement.globalCoords.x}`;
     const y = `${this.beatElement.globalCoords.y - 10}`;
-    const width = `${this.beatElement.rect.width}`;
+    const width = `${this.beatElement.boundingBox.width}`;
     const height = `2`;
     this._tupletSegmentRectSVG.setAttribute("x", x);
     this._tupletSegmentRectSVG.setAttribute("y", y);
@@ -146,7 +145,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
 
       // Set id
       const id = `tuplet-segment-${beatUUID}-text`;
-      const fontSize = `${TabLayoutDimensions.TEMPO_TEXT_SIZE}`;
+      const fontSize = `${EditorLayoutDimensions.TEMPO_TEXT_SIZE}`;
       this._tupletSegmentTextSVG.setAttribute("id", id);
       this._tupletSegmentTextSVG.setAttribute("text-anchor", "middle");
       this._tupletSegmentTextSVG.setAttribute("dominant-baseline", "middle");
@@ -157,10 +156,11 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
     }
 
     const x = `${
-      this.beatElement.globalCoords.x + this.beatElement.rect.middleX
+      this.beatElement.globalCoords.x + this.beatElement.boundingBox.middleX
     }`;
     const y = `${
-      this.beatElement.globalCoords.y + TabLayoutDimensions.TUPLET_RECT_HEIGHT
+      this.beatElement.globalCoords.y +
+      EditorLayoutDimensions.TUPLET_RECT_HEIGHT
     }`;
     this._tupletSegmentTextSVG.setAttribute("x", x);
     this._tupletSegmentTextSVG.setAttribute("y", y);
@@ -195,9 +195,7 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
 
     if (complete) {
       this.unrenderTupletSegmentText();
-      // this.renderTupletSegmentRect();
     } else {
-      // this.unrenderTupletSegmentRect();
       this.renderTupletSegmentText(isStandard);
     }
   }
@@ -212,8 +210,5 @@ export class SVGTupletSegmentRenderer implements ElementRenderer {
 
     this.unrenderTupletSegmentRect();
     this.unrenderTupletSegmentText();
-
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
 }

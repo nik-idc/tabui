@@ -1,13 +1,20 @@
 import { NotationComponent } from "@/notation/notation-component";
+import {
+  assembleDialog,
+  renderOnce,
+  setImageAsset,
+  setupDialogActionButtons,
+} from "@/ui/shared";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
 import { createButton, createImage } from "@/shared";
 import { INSTRUMENT_KINDS } from "./new-track-controls-component";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class NewTrackControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: NewTrackControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _currentKind: string = Object.keys(INSTRUMENT_KINDS)[0];
   private _currentType: string = Object.keys(
@@ -25,7 +32,7 @@ export class NewTrackControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: NewTrackControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -36,36 +43,41 @@ export class NewTrackControlsTemplateRenderer {
   }
 
   private assembleContainer(): void {
-    const dialogCSSClass = "tu-nt-dialog";
-    const dialogContentCSSClass = "tu-nt-content";
-    const settingsCSSClass = "tu-nt-settings-container";
-    const kindsCSSClass = "tu-nt-kinds-container";
-    const instrSelectCSSClass = "tu-nt-instr-settings-container";
-    const typesCSSClass = "tu-nt-types-container";
-    const presetsCSSClass = "tu-nt-presets-container";
-    const trackInfoCSSClass = "tu-nt-track-info-container";
-    const actionsCSSClass = "tu-nt-actions-container";
-
-    this.template.dialog.classList.add(dialogCSSClass);
-    this.template.dialogContent.classList.add(dialogContentCSSClass);
-    this.template.settingsContainer.classList.add(settingsCSSClass);
-    this.template.instrKindsContainer.classList.add(kindsCSSClass);
-    this.template.instrSelectContainer.classList.add(instrSelectCSSClass);
-    this.template.instrTypesContainer.classList.add(typesCSSClass);
-    this.template.instrPresetsContainer.classList.add(presetsCSSClass);
-    this.template.trackInfoContainer.classList.add(trackInfoCSSClass);
-    this.template.actionsContainer.classList.add(actionsCSSClass);
-
-    this.template.dialog.appendChild(this.template.dialogContent);
-    this.template.dialogContent.append(
-      this.template.settingsContainer,
-      this.template.actionsContainer
+    assembleDialog(
+      this.parentDiv,
+      this.template.dialog,
+      "tu-nt-dialog",
+      this.template.dialogContent,
+      "tu-nt-content",
+      [
+        {
+          element: this.template.settingsContainer,
+          className: "tu-nt-settings-container",
+          children: [
+            this.template.instrKindsContainer,
+            this.template.instrSelectContainer,
+            this.template.trackInfoContainer,
+          ],
+        },
+        {
+          element: this.template.actionsContainer,
+          className: "tu-nt-actions-container",
+          children: [this.template.confirmButton, this.template.cancelButton],
+        },
+      ]
     );
-    this.template.settingsContainer.append(
-      this.template.instrKindsContainer,
-      this.template.instrSelectContainer,
-      this.template.trackInfoContainer
+    this.template.instrKindsContainer.classList.add("tu-nt-kinds-container");
+    this.template.instrSelectContainer.classList.add(
+      "tu-nt-instr-settings-container"
     );
+    this.template.instrTypesContainer.classList.add("tu-nt-types-container");
+    this.template.instrPresetsContainer.classList.add(
+      "tu-nt-presets-container"
+    );
+    this.template.trackInfoContainer.classList.add(
+      "tu-nt-track-info-container"
+    );
+
     this.template.instrKindsContainer.append(
       ...this.template.instrKindsButtons
     );
@@ -87,11 +99,6 @@ export class NewTrackControlsTemplateRenderer {
       this.template.tuningInput,
       this.template.tuningError
     );
-    this.template.actionsContainer.append(
-      this.template.confirmButton,
-      this.template.cancelButton
-    );
-    this.parentDiv.appendChild(this.template.dialog);
   }
 
   private renderMusicInstrumentKindsButtons(): void {
@@ -106,8 +113,12 @@ export class NewTrackControlsTemplateRenderer {
     for (let i = 0; i < kinds.length; i++) {
       const imageButton = this.template.instrKindsButtons[i];
       const kind = kinds[i];
-      imageButton.src = `${this.assetsPath}/img/ui/${kind.toLowerCase()}`;
-      imageButton.alt = kind;
+      setImageAsset(
+        imageButton,
+        this.assetsPath,
+        `img/ui/${kind.toLowerCase()}.svg`,
+        kind
+      );
     }
   }
 
@@ -169,13 +180,12 @@ export class NewTrackControlsTemplateRenderer {
   }
 
   private renderActionButtons(): void {
-    const confirmCSSClass = "tu-nt-confirm-button";
-    const cancelCSSClass = "tu-nt-cancel-button";
-
-    this.template.confirmButton.classList.add(confirmCSSClass);
-    this.template.confirmButton.textContent = "Confirm";
-    this.template.cancelButton.classList.add(cancelCSSClass);
-    this.template.cancelButton.textContent = "Cancel";
+    setupDialogActionButtons(
+      this.template.confirmButton,
+      this.template.cancelButton,
+      "tu-nt-confirm-button",
+      "tu-nt-cancel-button"
+    );
   }
 
   public render(
@@ -207,9 +217,8 @@ export class NewTrackControlsTemplateRenderer {
     this.renderInputs();
     this.renderActionButtons();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

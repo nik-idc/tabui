@@ -1,5 +1,5 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
-import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { NoteDuration } from "../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
@@ -35,14 +35,14 @@ describe("BarTupletGroupElement", () => {
 
     const tupletElement = getBarElement(trackElement).tupletElements[0];
     const expectedWidth = tupletElement.beatElements.reduce(
-      (sum, beatElement) => sum + beatElement.rect.width,
+      (sum, beatElement) => sum + beatElement.boundingBox.width,
       0
     );
 
     expect(tupletElement.incompleteRects).toBeUndefined();
-    expect(tupletElement.rect.width).toBeCloseTo(expectedWidth);
-    expect(tupletElement.rect.height).toBe(
-      TabLayoutDimensions.TUPLET_RECT_HEIGHT
+    expect(tupletElement.boundingBox.width).toBeCloseTo(expectedWidth);
+    expect(tupletElement.boundingBox.height).toBe(
+      EditorLayoutDimensions.TUPLET_RECT_HEIGHT
     );
     expect(tupletElement.completeText).toBe("3");
   });
@@ -70,15 +70,15 @@ describe("BarTupletGroupElement", () => {
     expect(incompleteRects).toHaveLength(2);
     expect(incompleteRects?.[0].x).toBeCloseTo(0);
     expect(incompleteRects?.[0].width).toBeCloseTo(
-      tupletElement.beatElements[0].rect.width
+      tupletElement.beatElements[0].boundingBox.width
     );
     expect(incompleteRects?.[1].x).toBeCloseTo(incompleteRects?.[0].right ?? 0);
     expect(incompleteRects?.[1].width).toBeCloseTo(
-      tupletElement.beatElements[1].rect.width
+      tupletElement.beatElements[1].boundingBox.width
     );
     expect(
       incompleteRects?.every(
-        (rect) => rect.height === TabLayoutDimensions.TUPLET_RECT_HEIGHT
+        (rect) => rect.height === EditorLayoutDimensions.TUPLET_RECT_HEIGHT
       )
     ).toBe(true);
   });
@@ -113,16 +113,16 @@ describe("BarTupletGroupElement", () => {
     const barElement = getBarElement(trackElement);
     const tupletElement = barElement.tupletElements[0];
     const sumWidth = tupletElement.beatElements.reduce(
-      (sum, beatElement) => sum + beatElement.rect.width,
+      (sum, beatElement) => sum + beatElement.boundingBox.width,
       0
     );
 
-    expect(tupletElement.rect.x).toBeCloseTo(
-      tupletElement.beatElements[0].rect.x
+    expect(tupletElement.boundingBox.x).toBeCloseTo(
+      tupletElement.beatElements[0].boundingBox.x
     );
-    expect(tupletElement.rect.width).toBeCloseTo(sumWidth);
-    expect(tupletElement.rect.y).toBeCloseTo(
-      barElement.rect.height - TabLayoutDimensions.TUPLET_RECT_HEIGHT
+    expect(tupletElement.boundingBox.width).toBeCloseTo(sumWidth);
+    expect(tupletElement.boundingBox.y).toBeCloseTo(
+      barElement.boundingBox.height - EditorLayoutDimensions.TUPLET_RECT_HEIGHT
     );
     expect(tupletElement.completeText).toBe("5:3");
   });
@@ -147,17 +147,17 @@ describe("BarTupletGroupElement", () => {
     trackElement.update();
 
     const tupletElement = getBarElement(trackElement).tupletElements[0];
-    const firstBeatWidth = tupletElement.beatElements[0].rect.width;
+    const firstBeatWidth = tupletElement.beatElements[0].boundingBox.width;
     const lastBeatWidth =
-      tupletElement.beatElements[tupletElement.beatElements.length - 1].rect
-        .width;
+      tupletElement.beatElements[tupletElement.beatElements.length - 1]
+        .boundingBox.width;
     const pathRect = tupletElement.completePathRectGlobal;
 
     expect(pathRect).toBeDefined();
     expect(pathRect?.width).toBeCloseTo(
-      tupletElement.rect.width - firstBeatWidth / 2 - lastBeatWidth / 2
+      tupletElement.boundingBox.width - firstBeatWidth / 2 - lastBeatWidth / 2
     );
-    expect(pathRect?.height).toBe(TabLayoutDimensions.TUPLET_PATH_HEIGHT);
+    expect(pathRect?.height).toBe(EditorLayoutDimensions.TUPLET_PATH_HEIGHT);
     expect(pathRect?.x).toBeCloseTo(
       tupletElement.globalCoords.x + firstBeatWidth / 2
     );
@@ -185,18 +185,18 @@ describe("BarTupletGroupElement", () => {
     const tupletElement = getBarElement(trackElement).tupletElements[0];
 
     expect(tupletElement.comleteTextCoords?.x).toBeCloseTo(
-      tupletElement.rect.middleX
+      tupletElement.boundingBox.middleX
     );
     expect(tupletElement.comleteTextCoords?.y).toBeCloseTo(
-      tupletElement.rect.middleY
+      tupletElement.boundingBox.middleY
     );
     expect(tupletElement.comleteTextCoordsGlobal?.x).toBeCloseTo(
-      tupletElement.globalCoords.x + tupletElement.rect.width / 2
+      tupletElement.globalCoords.x + tupletElement.boundingBox.width / 2
     );
     expect(tupletElement.comleteTextCoordsGlobal?.y).toBeCloseTo(
       tupletElement.globalCoords.y +
-        tupletElement.rect.height / 2 +
-        TabLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        tupletElement.boundingBox.height / 2 +
+        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
     );
   });
 

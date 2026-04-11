@@ -112,7 +112,7 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   }
 
   onConfirmClicked(): void {
-    this._notationComponent.trackController.trackControllerEditor.setSelectedBeatsTuplet(
+    this._notationComponent.trackController.setSelectedBeatsTuplet(
       this._normalCount,
       this._tupletCount
     );

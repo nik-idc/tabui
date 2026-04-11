@@ -2,7 +2,7 @@ import { TrackController } from "@/notation/controller";
 import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-element";
 import { createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
-import { SVGTechGapLineRenderer } from "./svg-tech-gap-line-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 /**
  * Class for rendering a bar element using SVG
@@ -13,10 +13,7 @@ export class SVGTechGapRenderer implements ElementRenderer {
   /** Bar element */
   techGapElement: TechGapElement;
   /** Path to any assets */
-  readonly assetsPath: string;
-
-  // /** Rendered gap line elements map: gap line UUID => gap line renderer */
-  // private _renderedGapLineElements: Map<number, SVGTechGapLineRenderer>;
+  readonly assetsPath: ResolvedAssetConfig;
 
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
@@ -30,15 +27,12 @@ export class SVGTechGapRenderer implements ElementRenderer {
   constructor(
     trackController: TrackController,
     techGapElement: TechGapElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.techGapElement = techGapElement;
 
     this.assetsPath = assetsPath;
-    // this._parentElement = parentElement;
-    //
-    // this._renderedGapLineElements = new Map();
   }
 
   /**
@@ -73,63 +67,6 @@ export class SVGTechGapRenderer implements ElementRenderer {
     this.ensureContainerGroup();
   }
 
-  // /**
-  //  * Render new & re-render existing gap line elements
-  //  * @returns
-  //  */
-  // private renderGapLineElements(): ElementRenderer[] {
-  //   if (this._containerGroupSVG === undefined) {
-  //     throw Error("Tried to render gap lines when SVG group undefined");
-  //   }
-  //
-  //   const activeRenderers: ElementRenderer[] = [];
-  //
-  //   // Check if there are any gap lines to remove
-  //   const linesArray = this.techGapElement.techGapLinesAsArray;
-  //   const curNoteUUIDs = new Set(linesArray.map((gl) => gl.uuid));
-  //   for (const [uuid, renderer] of this._renderedGapLineElements) {
-  //     if (!curNoteUUIDs.has(uuid)) {
-  //       renderer.unrender();
-  //       this._renderedGapLineElements.delete(uuid);
-  //     }
-  //   }
-  //
-  //   // Add & render new gap line elements AND re-render existing lines
-  //   for (const gapLineElement of linesArray) {
-  //     const renderedGapLine = this._renderedGapLineElements.get(
-  //       gapLineElement.uuid
-  //     );
-  //     if (renderedGapLine === undefined) {
-  //       const renderer = new SVGTechGapLineRenderer(
-  //         this.trackController,
-  //         gapLineElement,
-  //         this.assetsPath,
-  //         this._containerGroupSVG
-  //       );
-  //       renderer.render();
-  //       this._renderedGapLineElements.set(gapLineElement.uuid, renderer);
-  //       activeRenderers.push(renderer);
-  //     } else {
-  //       activeRenderers.push(renderedGapLine);
-  //       renderedGapLine.render();
-  //     }
-  //   }
-  //   return activeRenderers;
-  // }
-  //
-  // /**
-  //  * Unrender all tech gap lines
-  //  */
-  // private unrenderGapLineElements(): void {
-  //   if (this._containerGroupSVG === undefined) {
-  //     throw Error("Tried to unrender note element when SVG group undefined");
-  //   }
-  //
-  //   for (const [uuid, renderer] of this._renderedGapLineElements) {
-  //     renderer.unrender();
-  //   }
-  // }
-
   /**
    * Renders the technique gap element
    */
@@ -139,8 +76,6 @@ export class SVGTechGapRenderer implements ElementRenderer {
     if (this._containerGroupSVG === undefined) {
       throw Error("Bar group SVG undefined after render group call");
     }
-
-    // return this.renderGapLineElements();
   }
 
   /**
@@ -150,10 +85,5 @@ export class SVGTechGapRenderer implements ElementRenderer {
     if (this._containerGroupSVG === undefined) {
       return;
     }
-
-    // this.unrenderGapLineElements();
-    //
-    // this._parentElement.removeChild(this._containerGroupSVG);
-    // this._containerGroupSVG = undefined;
   }
 }

@@ -2,9 +2,10 @@ import {
   BeatElement,
   NoteElement,
   NotationElement,
-  TabLayoutDimensions,
+  EditorLayoutDimensions,
   TrackController,
 } from "@/notation/controller";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { createSVG, createSVGG, createSVGRect, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
 import {
@@ -36,7 +37,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   /** Root SVG <svg> element */
   readonly rootSVGElement: SVGSVGElement;
   /** Path to any assets */
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   /** Selection overlay renderer (preview + note/beat selection visuals). */
   private _selectionOverlayRenderer: SelectionOverlayRenderer;
@@ -71,7 +72,7 @@ export class EditorSVGRenderer implements EditorRenderer {
    * @param rootDiv Root container element
    * @param assetsPath Path to assets
    */
-  constructor(rootDiv: HTMLDivElement, assetsPath: string) {
+  constructor(rootDiv: HTMLDivElement, assetsPath: ResolvedAssetConfig) {
     this.rootDiv = rootDiv;
     this.notationViewportDiv = document.createElement("div");
     this.notationViewportDiv.classList.add("tu-notation-viewport");
@@ -166,7 +167,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     let firstVisibleIndex = -1;
     let lastVisibleIndex = -1;
     for (let i = 0; i < trackLines.length; i++) {
-      const lineRect = trackLines[i].globalRect;
+      const lineRect = trackLines[i].globalBoundingBox;
       const intersectsViewport =
         lineRect.bottom >= viewportTop && lineRect.y <= viewportBottom;
       if (!intersectsViewport) {
@@ -369,12 +370,6 @@ export class EditorSVGRenderer implements EditorRenderer {
    * Render player overlay
    */
   private renderPlayerOverlay(trackController: TrackController): void {
-    /**
-     * TODO: PLAYER CURSOR NEEDS TO BE RENDERED ON TOP OF
-     * EVERYTHING ELSE. THAT MEANS THAT EVERY PAUSE UNRENDERS IT
-     * AND EVERY START RENDERS IT
-     */
-
     if (this._playerCursorRect === undefined) {
       this._playerCursorRect = createSVGRect();
       this._playerCursorRect.setAttribute("id", "playerCursor");
@@ -415,8 +410,8 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._playerCursorRect.setAttribute("y", `${cursorRect.y}`);
     this._playerCursorRect.setAttribute("width", `${cursorRect.width}`);
     this._playerCursorRect.setAttribute("height", `${cursorRect.height}`);
-    this._playerCursorRect.setAttribute("stroke", "black");
-    this._playerCursorRect.setAttribute("fill", "purple");
+    this._playerCursorRect.setAttribute("stroke", "var(--tu-notation-ink)");
+    this._playerCursorRect.setAttribute("fill", "var(--tu-notation-cursor)");
   }
 
   /**
@@ -464,9 +459,12 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     // Update SVG root dimensions
     const trackWindowHeight = trackController.trackElement.height;
-    const VB = `0 0 ${TabLayoutDimensions.WIDTH} ${trackWindowHeight}`;
+    const VB = `0 0 ${EditorLayoutDimensions.WIDTH} ${trackWindowHeight}`;
     this.rootSVGElement.setAttribute("viewBox", VB);
-    this.rootSVGElement.setAttribute("width", `${TabLayoutDimensions.WIDTH}`);
+    this.rootSVGElement.setAttribute(
+      "width",
+      `${EditorLayoutDimensions.WIDTH}`
+    );
     this.rootSVGElement.setAttribute("height", `${trackWindowHeight}`);
 
     return activeRenderers;
@@ -541,11 +539,11 @@ class BeatInteractionLayer {
         this._beatInteractionRects.set(modelUUID, rect);
       }
 
-      const globalRect = element.globalRect;
-      rect.setAttribute("x", `${globalRect.x}`);
-      rect.setAttribute("y", `${globalRect.y}`);
-      rect.setAttribute("width", `${globalRect.width}`);
-      rect.setAttribute("height", `${globalRect.height}`);
+      const globalBoundingBox = element.globalBoundingBox;
+      rect.setAttribute("x", `${globalBoundingBox.x}`);
+      rect.setAttribute("y", `${globalBoundingBox.y}`);
+      rect.setAttribute("width", `${globalBoundingBox.width}`);
+      rect.setAttribute("height", `${globalBoundingBox.height}`);
     }
 
     for (const [modelUUID, rect] of this._beatInteractionRects) {

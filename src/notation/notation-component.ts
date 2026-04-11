@@ -2,6 +2,7 @@ import { Score, Track } from "./model";
 import { EditorSVGRenderer, EditorRenderer } from "./render";
 import { ElementRenderer } from "./render/element-renderer";
 import { TrackController } from "./controller";
+import { ResolvedTabUIConfig } from "@/config/tabui-config";
 
 /**
  * Responsible for controllong everything notation-wise
@@ -13,6 +14,8 @@ export class NotationComponent {
   readonly score: Score;
   /** Renderer */
   readonly renderer: EditorRenderer;
+  /** Resolved editor config */
+  readonly config: ResolvedTabUIConfig;
 
   /** Track controller */
   private _trackController: TrackController;
@@ -26,18 +29,18 @@ export class NotationComponent {
   constructor(
     rootDiv: HTMLDivElement,
     score: Score,
+    config: ResolvedTabUIConfig,
     renderer?: EditorRenderer
   ) {
     this.score = score;
     this.rootDiv = rootDiv;
+    this.config = config;
     this.renderer =
       renderer === undefined
-        ? new EditorSVGRenderer(this.rootDiv, import.meta.env.BASE_URL)
+        ? new EditorSVGRenderer(this.rootDiv, this.config.assets)
         : renderer;
 
     this._trackController = new TrackController(this.score.tracks[0]);
-    // this._trackController.trackElement.measure();
-    // this._trackController.trackElement.layout();
   }
 
   /**
@@ -61,8 +64,6 @@ export class NotationComponent {
     const newTrackController = new TrackController(newTrack);
     this._trackController = newTrackController;
     this._trackController.trackElement.update();
-    // this._trackController.trackElement.measure();
-    // this._trackController.trackElement.layout();
     return this.renderer.render(this._trackController);
   }
 

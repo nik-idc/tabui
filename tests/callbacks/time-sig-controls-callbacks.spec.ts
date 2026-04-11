@@ -81,8 +81,7 @@ describe("TimeSigControlsDefaultCallbacks", () => {
       freeKeyboard,
     } = createTimeSigHarness();
     const setTimeSignature =
-      notationComponent.trackController.trackControllerEditor
-        .setSelectedBarTimeSignature;
+      notationComponent.trackController.setSelectedBarTimeSignature;
 
     callbacks.bind();
     callbacks.bind();

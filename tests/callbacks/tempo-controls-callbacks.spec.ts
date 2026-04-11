@@ -78,8 +78,7 @@ describe("TempoControlsDefaultCallbacks", () => {
     callbacks.onConfirmClicked();
 
     expect(
-      notationComponent.trackController.trackControllerEditor
-        .setSelectedBarTempo
+      notationComponent.trackController.setSelectedBarTempo
     ).toHaveBeenCalledWith(180);
     expect(renderFunc).toHaveBeenCalledTimes(1);
     expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
@@ -108,9 +107,7 @@ describe("TempoControlsDefaultCallbacks", () => {
       renderFunc,
       freeKeyboard,
     } = createTempoHarness();
-    const setTempo =
-      notationComponent.trackController.trackControllerEditor
-        .setSelectedBarTempo;
+    const setTempo = notationComponent.trackController.setSelectedBarTempo;
 
     callbacks.bind();
     dispatchInput(component.template.input, "200");

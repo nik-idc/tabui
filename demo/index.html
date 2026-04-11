@@ -1,0 +1,38 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TabUI Vite test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="header">
+      <h1>TabUI Demo</h1>
+      <p>
+        This is a demo of a guitar tab editor library. This is still an early,
+        unfinished version. While the editor is currently embedded directly in
+        this page, it can be fully integrated into any JavaScript or TypeScript
+        project once a dynamic template builder is added.
+      </p>
+      <div class="demo-controls">
+        <label class="demo-control">
+          <span>Fixture</span>
+          <select id="fixture-select"></select>
+        </label>
+        <label class="demo-control">
+          <span>Theme</span>
+          <select id="theme-select"></select>
+        </label>
+      </div>
+      <a href="https://github.com/nik-idc/tabui">GitHub Repo</a>
+    </div>
+    <div id="tabui-editor"></div>
+    <script src="./main.ts" type="module" defer></script>
+  </body>
+</html>

@@ -1,56 +1,56 @@
 import { NotationComponent } from "@/notation/notation-component";
+import {
+  assembleDialog,
+  renderOnce,
+  setupDialogActionButtons,
+} from "@/ui/shared";
 import { TimeSigControlsTemplate } from "./time-sig-controls-template";
 
 export class TimeSigControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: TimeSigControlsTemplate;
-  readonly assetsPath: string;
 
   private _assembled: boolean;
 
   constructor(
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
-    template: TimeSigControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    template: TimeSigControlsTemplate
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.template = template;
-    this.assetsPath = assetsPath;
 
     this._assembled = false;
   }
 
   private assembleContainer(): void {
-    const dialogCSSClass = "tu-time-sig-dialog";
-    const dialogContentCSSClass = "tu-time-sig-dialog-content";
-    const inputContainerCSSClass = "tu-time-sig-inputs";
-    const actionsCSSClass = "tu-time-sig-actions";
-
-    this.template.dialog.classList.add(dialogCSSClass);
-    this.template.dialogContent.classList.add(dialogContentCSSClass);
-    this.template.inputContent.classList.add(inputContainerCSSClass);
-    this.template.actionsContent.classList.add(actionsCSSClass);
-
-    this.template.dialog.append(this.template.dialogContent);
-    this.template.dialogContent.append(
-      this.template.inputContent,
-      this.template.actionsContent
+    assembleDialog(
+      this.parentDiv,
+      this.template.dialog,
+      "tu-time-sig-dialog",
+      this.template.dialogContent,
+      "tu-time-sig-dialog-content",
+      [
+        {
+          element: this.template.inputContent,
+          className: "tu-time-sig-inputs",
+          children: [
+            this.template.textContainer,
+            this.template.beatsInput,
+            this.template.beatsErrorText,
+            this.template.durationInput,
+            this.template.durationErrorText,
+          ],
+        },
+        {
+          element: this.template.actionsContent,
+          className: "tu-time-sig-actions",
+          children: [this.template.confirmButton, this.template.cancelButton],
+        },
+      ]
     );
-    this.template.inputContent.append(
-      this.template.textContainer,
-      this.template.beatsInput,
-      this.template.beatsErrorText,
-      this.template.durationInput,
-      this.template.durationErrorText
-    );
-    this.template.actionsContent.append(
-      this.template.confirmButton,
-      this.template.cancelButton
-    );
-    this.parentDiv.appendChild(this.template.dialog);
   }
 
   private renderTextContainer(): void {
@@ -60,9 +60,7 @@ export class TimeSigControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const selectedNote =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectedNote;
+    const selectedNote = this.notationComponent.trackController.selectedNote;
 
     const beatsInitValue =
       selectedNote !== undefined
@@ -89,13 +87,12 @@ export class TimeSigControlsTemplateRenderer {
   }
 
   private renderButtons(): void {
-    const confirmCSSClass = "tu-time-sig-confirm-button";
-    this.template.confirmButton.classList.add(confirmCSSClass);
-    this.template.confirmButton.textContent = "Confirm";
-
-    const cancelCSSClass = "tu-time-sig-cancel-button";
-    this.template.cancelButton.classList.add(cancelCSSClass);
-    this.template.cancelButton.textContent = "Cancel";
+    setupDialogActionButtons(
+      this.template.confirmButton,
+      this.template.cancelButton,
+      "tu-time-sig-confirm-button",
+      "tu-time-sig-cancel-button"
+    );
   }
 
   public render(): void {
@@ -103,9 +100,8 @@ export class TimeSigControlsTemplateRenderer {
     this.renderInputs();
     this.renderButtons();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

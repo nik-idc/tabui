@@ -7,7 +7,7 @@ import {
   GuitarTechniqueType,
   NoteDuration,
 } from "../../src/notation/model";
-import { TabLayoutDimensions } from "../../src/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
@@ -48,19 +48,20 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineElements[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0];
     const firstNoteElement = firstBeatElement.noteElements[0];
-    const slideElement = firstNoteElement.guitarTechniqueElements[0];
+    const slideElement = firstNoteElement.techniqueElements[0];
     const [startX, startY, endX, endY] = parseLinePath(
-      slideElement.svgPath ?? ""
+      slideElement.pathDescriptors?.[0]?.d ?? ""
     );
 
-    expect(firstNoteElement.guitarTechniqueElements).toHaveLength(1);
-    expect(slideElement.svgPath).toBeDefined();
-    expect(slideElement.svgPath).not.toBe("");
+    expect(firstNoteElement.techniqueElements).toHaveLength(1);
+    expect(slideElement.pathDescriptors).toHaveLength(1);
+    expect(slideElement.pathDescriptors?.[0]?.d).toBeDefined();
+    expect(slideElement.pathDescriptors?.[0]?.d).not.toBe("");
     expect(endX).toBeGreaterThan(startX);
     expect(startY).toBeGreaterThan(endY);
-    expect(startX).toBeGreaterThan(firstNoteElement.rect.x);
+    expect(startX).toBeGreaterThan(firstNoteElement.boundingBox.x);
     expect(endX - startX).toBeCloseTo(
-      firstNoteElement.rect.width - TabLayoutDimensions.NOTE_TEXT_SIZE
+      firstNoteElement.boundingBox.width - EditorLayoutDimensions.NOTE_TEXT_SIZE
     );
   });
 
@@ -85,9 +86,9 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineElements[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0];
     const firstNoteElement = firstBeatElement.noteElements[0];
-    const slideElement = firstNoteElement.guitarTechniqueElements[0];
+    const slideElement = firstNoteElement.techniqueElements[0];
     const [startX, startY, endX, endY] = parseLinePath(
-      slideElement.svgPath ?? ""
+      slideElement.pathDescriptors?.[0]?.d ?? ""
     );
 
     expect(endX).toBeGreaterThan(startX);
@@ -128,29 +129,46 @@ describe("TrackElement techniques", () => {
     const line2 = techGap.techGapLines[2];
     const line3 = techGap.techGapLines[3];
 
-    expect(techGap.rect.height).toBe(TabLayoutDimensions.TECH_LABEL_HEIGHT * 3);
+    expect(techGap.boundingBox.height).toBe(
+      EditorLayoutDimensions.TECH_LABEL_HEIGHT * 3
+    );
     expect(line1).not.toBeNull();
     expect(line2).not.toBeNull();
     expect(line3).not.toBeNull();
-    expect(line2?.rect.y).toBeCloseTo(line1?.rect.bottom ?? 0);
-    expect(line3?.rect.y).toBeCloseTo(line2?.rect.bottom ?? 0);
-    expect(line1?.rect.height).toBe(TabLayoutDimensions.TECH_LABEL_HEIGHT);
-    expect(line2?.rect.height).toBe(TabLayoutDimensions.TECH_LABEL_HEIGHT);
-    expect(line3?.rect.height).toBe(TabLayoutDimensions.TECH_LABEL_HEIGHT);
+    expect(line2?.boundingBox.y).toBeCloseTo(line1?.boundingBox.bottom ?? 0);
+    expect(line3?.boundingBox.y).toBeCloseTo(line2?.boundingBox.bottom ?? 0);
+    expect(line1?.boundingBox.height).toBe(
+      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+    );
+    expect(line2?.boundingBox.height).toBe(
+      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+    );
+    expect(line3?.boundingBox.height).toBe(
+      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+    );
     expect(line1?.labelElements).toHaveLength(1);
     expect(line2?.labelElements).toHaveLength(1);
     expect(line3?.labelElements).toHaveLength(1);
-    expect(line1?.labelElements[0].svgPath).toBeDefined();
-    expect(line2?.labelElements[0].svgPath).toBeDefined();
-    expect(line3?.labelElements[0].svgPath).toBeDefined();
-    expect(line1?.labelElements[0].rect.width).toBeCloseTo(
-      line1?.labelElements[0].beatElement.rect.width ?? 0
+    expect(
+      (line1?.labelElements[0].pathDescriptors?.length ?? 0) +
+        (line1?.labelElements[0].textDescriptors?.length ?? 0)
+    ).toBeGreaterThan(0);
+    expect(
+      (line2?.labelElements[0].pathDescriptors?.length ?? 0) +
+        (line2?.labelElements[0].textDescriptors?.length ?? 0)
+    ).toBeGreaterThan(0);
+    expect(
+      (line3?.labelElements[0].pathDescriptors?.length ?? 0) +
+        (line3?.labelElements[0].textDescriptors?.length ?? 0)
+    ).toBeGreaterThan(0);
+    expect(line1?.labelElements[0].boundingBox.width).toBeCloseTo(
+      line1?.labelElements[0].beatElement.boundingBox.width ?? 0
     );
-    expect(line2?.labelElements[0].rect.width).toBeCloseTo(
-      line2?.labelElements[0].beatElement.rect.width ?? 0
+    expect(line2?.labelElements[0].boundingBox.width).toBeCloseTo(
+      line2?.labelElements[0].beatElement.boundingBox.width ?? 0
     );
-    expect(line3?.labelElements[0].rect.width).toBeCloseTo(
-      line3?.labelElements[0].beatElement.rect.width ?? 0
+    expect(line3?.labelElements[0].boundingBox.width).toBeCloseTo(
+      line3?.labelElements[0].beatElement.boundingBox.width ?? 0
     );
     expect(line1?.labelElements[0].globalCoords.x).toBeCloseTo(
       line1?.labelElements[0].beatElement.globalCoords.x ?? 0
@@ -184,12 +202,15 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineElements[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0];
     const noteElement = beatElement.noteElements[0];
-    const bendElement = noteElement.guitarTechniqueElements[0];
+    const bendElement = noteElement.techniqueElements[0];
     const bendLabel = line3?.labelElements[0];
-    expect(noteElement.guitarTechniqueElements).toHaveLength(1);
-    expect(bendElement.svgPath).toBeDefined();
+    expect(noteElement.techniqueElements).toHaveLength(1);
+    expect(bendElement.pathDescriptors).toBeDefined();
+    expect(bendElement.pathDescriptors).toHaveLength(2);
     expect(line3?.labelElements).toHaveLength(1);
-    expect(bendLabel?.rect.width).toBeCloseTo(beatElement.rect.width);
+    expect(bendLabel?.boundingBox.width).toBeCloseTo(
+      beatElement.boundingBox.width
+    );
     expect(bendLabel?.globalCoords.x).toBeCloseTo(beatElement.globalCoords.x);
     expect(bendLabel?.globalCoords.y).toBeCloseTo(line3?.globalCoords.y ?? 0);
   });

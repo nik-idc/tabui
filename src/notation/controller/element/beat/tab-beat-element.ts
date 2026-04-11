@@ -5,7 +5,7 @@ import {
   NoteDuration,
 } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
 import { Circle } from "@/shared/rendering/geometry/circle";
 import { TrackElement } from "@/notation/controller/element/track-element";
@@ -31,7 +31,7 @@ export class TabBeatElement implements BeatElement {
   private _noteElements: TabNoteElement[];
 
   /** This beat's rect */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** Duration stem vertical line */
   private _durationStemLine?: VertLine;
   /** Duration flags horizontal lines (for durations like 1/8, 1/16 etc) */
@@ -57,7 +57,7 @@ export class TabBeatElement implements BeatElement {
     this._noteElements = [];
 
     const width = getBeatWidth(this.beat);
-    this._rect = new Rect(0, 0, width, 0);
+    this._boundingBox = new Rect(0, 0, width, 0);
 
     this._stateHash = "";
 
@@ -129,15 +129,15 @@ export class TabBeatElement implements BeatElement {
 
     const width = getBeatWidth(this.beat);
     const notesHeight =
-      this._noteElements.length * TabLayoutDimensions.NOTE_RECT_HEIGHT;
-    const height = notesHeight + TabLayoutDimensions.DURATIONS_HEIGHT;
-    this._rect.setDimensions(width, height);
+      this._noteElements.length * EditorLayoutDimensions.NOTE_RECT_HEIGHT;
+    const height = notesHeight + EditorLayoutDimensions.DURATIONS_HEIGHT;
+    this._boundingBox.setDimensions(width, height);
 
     if (this._dot1Circle !== undefined) {
-      this._dot1Circle.diameter = TabLayoutDimensions.DOT_DIAMETER;
+      this._dot1Circle.diameter = EditorLayoutDimensions.DOT_DIAMETER;
     }
     if (this._dot2Circle !== undefined) {
-      this._dot2Circle.diameter = TabLayoutDimensions.DOT_DIAMETER;
+      this._dot2Circle.diameter = EditorLayoutDimensions.DOT_DIAMETER;
     }
   }
 
@@ -146,9 +146,10 @@ export class TabBeatElement implements BeatElement {
    */
   private layoutRect(): void {
     const prevBeatElement = this.barElement.getPrevBeatElement(this);
-    const x = prevBeatElement?.rect.right ?? this.barElement.startGap.right;
+    const x =
+      prevBeatElement?.boundingBox.right ?? this.barElement.startGap.right;
 
-    this._rect.setCoords(x, 0);
+    this._boundingBox.setCoords(x, 0);
   }
 
   /**
@@ -158,11 +159,12 @@ export class TabBeatElement implements BeatElement {
     if (this._durationStemLine === undefined) {
       return;
     }
-    const stemY1 = this._rect.height - TabLayoutDimensions.DURATIONS_HEIGHT;
-    const stemY2 = stemY1 + TabLayoutDimensions.DURATIONS_HEIGHT;
-    this._durationStemLine.set(this._rect.width / 2, stemY1, stemY2);
+    const stemY1 =
+      this._boundingBox.height - EditorLayoutDimensions.DURATIONS_HEIGHT;
+    const stemY2 = stemY1 + EditorLayoutDimensions.DURATIONS_HEIGHT;
+    this._durationStemLine.set(this._boundingBox.width / 2, stemY1, stemY2);
     if (this.beat.baseDuration === NoteDuration.Half) {
-      this._durationStemLine.y1 += TabLayoutDimensions.DURATIONS_HEIGHT / 2;
+      this._durationStemLine.y1 += EditorLayoutDimensions.DURATIONS_HEIGHT / 2;
     }
 
     if (this._durationFlagLines === undefined) {
@@ -170,9 +172,9 @@ export class TabBeatElement implements BeatElement {
     }
     let y = this._durationStemLine.y2;
     for (const flagLine of this._durationFlagLines) {
-      const x1 = this._rect.width / 2;
-      flagLine.set(x1, x1 + this._rect.width / 4, y);
-      y -= TabLayoutDimensions.DOT_DIAMETER / 2;
+      const x1 = this._boundingBox.width / 2;
+      flagLine.set(x1, x1 + this._boundingBox.width / 4, y);
+      y -= EditorLayoutDimensions.DOT_DIAMETER / 2;
     }
   }
 
@@ -184,11 +186,12 @@ export class TabBeatElement implements BeatElement {
       return;
     }
     const newDot1X =
-      this._rect.width / 2 + TabLayoutDimensions.DOT_DIAMETER * 2;
-    let newDotY = this._rect.height - TabLayoutDimensions.DOT_DIAMETER / 2;
+      this._boundingBox.width / 2 + EditorLayoutDimensions.DOT_DIAMETER * 2;
+    let newDotY =
+      this._boundingBox.height - EditorLayoutDimensions.DOT_DIAMETER / 2;
     if (this._durationFlagLines !== undefined) {
       newDotY -=
-        TabLayoutDimensions.DURATION_FLAG_HEIGHT *
+        EditorLayoutDimensions.DURATION_FLAG_HEIGHT *
         this._durationFlagLines.length;
     }
     this._dot1Circle.setCoords(newDot1X, newDotY);
@@ -197,7 +200,7 @@ export class TabBeatElement implements BeatElement {
       return;
     }
     this._dot2Circle.setCoords(
-      newDot1X + TabLayoutDimensions.DOT_DIAMETER,
+      newDot1X + EditorLayoutDimensions.DOT_DIAMETER,
       newDotY
     );
   }
@@ -216,10 +219,10 @@ export class TabBeatElement implements BeatElement {
    * */
   private calcStateHash(): void {
     const hashArr: string[] = [
-      `${this.globalRect.x}` +
-        `${this.globalRect.y}` +
-        `${this.globalRect.width}` +
-        `${this.globalRect.height}`,
+      `${this.globalBoundingBox.x}` +
+        `${this.globalBoundingBox.y}` +
+        `${this.globalBoundingBox.width}` +
+        `${this.globalBoundingBox.height}`,
     ];
 
     if (this._dot1Circle !== undefined) {
@@ -244,9 +247,6 @@ export class TabBeatElement implements BeatElement {
     }
 
     this._stateHash = hashArr.join("");
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -258,10 +258,6 @@ export class TabBeatElement implements BeatElement {
     this.layoutDots();
 
     this.layoutNotes();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    // this.calcStateHash();
   }
 
   /**
@@ -279,8 +275,8 @@ export class TabBeatElement implements BeatElement {
    * @param scale Scale factor
    */
   public scaleHorBy(scale: number): void {
-    this._rect.x *= scale;
-    this._rect.width *= scale;
+    this._boundingBox.x *= scale;
+    this._boundingBox.width *= scale;
 
     if (this._durationStemLine !== undefined) {
       this._durationStemLine.x *= scale;
@@ -294,11 +290,11 @@ export class TabBeatElement implements BeatElement {
 
     if (this._dot1Circle !== undefined) {
       this._dot1Circle.centerX =
-        this._rect.width / 2 + TabLayoutDimensions.DOT_DIAMETER; //HERE!!~!
+        this._boundingBox.width / 2 + EditorLayoutDimensions.DOT_DIAMETER; //HERE!!~!
     }
     if (this._dot1Circle !== undefined && this._dot2Circle !== undefined) {
       this._dot2Circle.centerX =
-        this._dot1Circle.right + TabLayoutDimensions.DOT_DIAMETER;
+        this._dot1Circle.right + EditorLayoutDimensions.DOT_DIAMETER;
     }
 
     for (const noteElement of this._noteElements) {
@@ -350,19 +346,27 @@ export class TabBeatElement implements BeatElement {
     return this._noteElements;
   }
 
-  /** This beat's rect */
-  public get rect(): Rect {
-    return this._rect;
+  /** This beat's layout bounding box */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
-  /** This beat's rect in global coords */
-  public get globalRect(): Rect {
+  /** This beat's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Duration stem vertical line */
@@ -446,329 +450,8 @@ export class TabBeatElement implements BeatElement {
   /** Global coords of the tab beat element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._rect.x,
-      this.barElement.globalCoords.y + this._rect.y
+      this.barElement.globalCoords.x + this._boundingBox.x,
+      this.barElement.globalCoords.y + this._boundingBox.y
     );
   }
 }
-
-// import { Beat, Guitar, GuitarTechnique } from "@/notation/model";
-// import { Rect, Point, randomInt } from "@/shared";
-// import { BeatNotesElement } from "./beat-notes-element";
-// import { BarElement } from "./bar-element";
-// import { TabLayoutDimensions } from "../tab-controller-dim";
-// import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
-// import { TECHNIQUE_TYPE_TO_LABEL } from "./technique/guitar-technique/guitar-technique-element-lists";
-// import { TechniqueLabelElement } from "./technique/technique-label-element";
-// import { BeatElement } from "./beat-element";
-
-// // These 2 being defined like this is maybe bad
-// // but as long as they're only needed here
-// // I don't really see the reason to move them
-// const dotScale1Dot = 1.05;
-// const dotScale2Dot = 1.1;
-
-// /**
-//  * Class that handles geometry & visually relevant info of a beat
-//  */
-// export class BeatElement_old implements BeatElement {
-//   /** Beat element's unique identifier */
-//   readonly uuid: number;
-//   /** The beat */
-//   readonly beat: Beat;
-//   /** Parent bar element */
-//   readonly barElement: BarElement;
-
-//   /** This beat's note element */
-//   private _beatNotesElement: BeatNotesElement;
-//   /** Technique label element */
-//   private _techniqueLabelElements: TechniqueLabelElement[];
-//   /** This beat's rectangle */
-//   private _rect: Rect;
-//   /** This beat's duration rectangle */
-//   private _durationRect: Rect;
-//   /** This beat's dot rectangle */
-//   private _dotRect: Rect;
-//   /** Technique labels rectangle */
-//   private _techniqueLabelsRect: Rect;
-//   /** Inidicates whether this beat element is selected */
-//   private _selected: boolean = false;
-
-//   /**
-//    * Class that handles geometry & visually relevant info of a beat
-//    * @param beat Beat
-//    * @param barElement Parent bar element
-//    * @param labelsGapHeight Labels gap heigh (0 by default)
-//    */
-//   constructor(beat: Beat, barElement: BarElement, labelsGapHeight: number = 0) {
-//     this.uuid = randomInt();
-//     this.beat = beat;
-//     this.barElement = barElement;
-
-//     this._beatNotesElement = new BeatNotesElement(this.beat, this);
-//     this._techniqueLabelElements = [];
-//     this._rect = new Rect(
-//       barElement.timeSigRect.width,
-//       barElement.rect.y + TabLayoutDimensions.TEMPO_RECT_HEIGHT
-//     );
-//     this._durationRect = new Rect();
-//     this._dotRect = new Rect();
-//     this._techniqueLabelsRect = new Rect(
-//       0,
-//       TabLayoutDimensions.DURATIONS_HEIGHT,
-//       0,
-//       labelsGapHeight
-//     );
-
-//     this.calc();
-//   }
-
-//   /**
-//    * Calculates main rectangle & notes within the beat
-//    */
-//   private calcRectAndNotes(): void {
-//     const prevBarElement =
-//       this.barElement.beatElements[this.barElement.beatElements.length - 1];
-//     this._rect.x = prevBarElement?._rect.right ?? this._rect.x;
-
-//     let mappingWidth = TabLayoutDimensions.WIDTH_MAPPING.get(
-//       this.beat.baseDuration
-//     );
-//     if (mappingWidth === undefined) {
-//       throw Error(
-//         `${this.beat.baseDuration} is an invalid beat duration OR error in mapping`
-//       );
-//     }
-//     this._rect.width = mappingWidth;
-
-//     // By how much the rect width should multiply depending on the number of dots
-//     let dotsScaling = 1;
-//     switch (this.beat.dots) {
-//       case 0:
-//         dotsScaling = 1;
-//         break;
-//       case 1:
-//         dotsScaling = dotScale1Dot;
-//         break;
-//       case 2:
-//         dotsScaling = dotScale2Dot;
-//         break;
-//       default:
-//         dotsScaling = 1;
-//         break;
-//     }
-//     this._rect.width *= dotsScaling;
-
-//     if (this.beat.tupletSettings !== null) {
-//       const tupletScale =
-//         this.beat.tupletSettings.tupletCount /
-//         this.beat.tupletSettings.normalCount;
-//       this._rect.width *= tupletScale;
-//       if (this._rect.width < TabLayoutDimensions.NOTE_RECT_WIDTH_MIN) {
-//         // To make sure beats don't get too small causing UI errors
-//         this._rect.width = TabLayoutDimensions.NOTE_RECT_WIDTH_MIN;
-//       }
-//     }
-
-//     this._rect.height =
-//       this.barElement.rect.height - this.barElement.tempoRect.height;
-
-//     this._techniqueLabelsRect.width = this._rect.width;
-
-//     this._beatNotesElement.rect.width = this._rect.width;
-//     this._beatNotesElement.rect.y =
-//       TabLayoutDimensions.DURATIONS_HEIGHT + this._techniqueLabelsRect.height;
-//     this._beatNotesElement.rect.height =
-//       TabLayoutDimensions.NOTE_RECT_HEIGHT *
-//       this.beat.trackContext.instrument.maxPolyphony;
-
-//     this._beatNotesElement.calc();
-//   }
-
-//   /**
-//    * Calculates beat duration rectangle
-//    */
-//   private calcDurationRect(): void {
-//     // 140 - radius of ellipse in SVG files, 827 - viewBox
-//     const magicNumber = 140 / 827; // some bullshit
-//     const offset = magicNumber * TabLayoutDimensions.DURATIONS_WIDTH * 2;
-//     const beamingX =
-//       this._rect.width / 2 - TabLayoutDimensions.DURATIONS_WIDTH / 2 - offset;
-//     this._durationRect.x = this.beat.beamGroupId === null ? 0 : beamingX;
-//     this._durationRect.y = 0;
-//     this._durationRect.width = TabLayoutDimensions.DURATIONS_WIDTH;
-//     this._durationRect.height = TabLayoutDimensions.DURATIONS_HEIGHT;
-//   }
-
-//   /**
-//    * Calculates beaming rectangle
-//    */
-//   private calcBeamRect(): void {
-//     this._dotRect.set(
-//       this._durationRect.right,
-//       0,
-//       TabLayoutDimensions.DURATIONS_WIDTH,
-//       TabLayoutDimensions.DURATIONS_HEIGHT
-//     );
-//   }
-
-//   /**
-//    * Calculates technique labels
-//    */
-//   private calcTechniqueLabels(): void {
-//     this._techniqueLabelElements = [];
-
-//     let totalLabelsHeight: number = 0;
-//     const noteElements = this._beatNotesElement.noteElements;
-//     for (const noteElement of noteElements) {
-//       for (const technique of noteElement.note.techniques) {
-//         if (!TECHNIQUE_TYPE_TO_LABEL[technique.type]) {
-//           continue;
-//         }
-
-//         if (this.beat.trackContext.instrument instanceof Guitar) {
-//           const labelElement = new GuitarTechniqueLabelElement(
-//             technique as GuitarTechnique,
-//             this
-//           );
-//           this._techniqueLabelElements.push(labelElement);
-//           totalLabelsHeight += TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//         }
-//       }
-//     }
-
-//     if (totalLabelsHeight > 0) {
-//       this.setTechniqueGap(totalLabelsHeight);
-//     }
-//   }
-
-//   /**
-//    * Calculate dimensions of the beat element and its' child element
-//    */
-//   public calc(): void {
-//     this.calcRectAndNotes();
-//     this.calcDurationRect();
-//     this.calcBeamRect();
-//     this.calcTechniqueLabels();
-//   }
-
-//   /**
-//    * Sets height of the beat element
-//    */
-//   public setHeight(newHeight: number): void {
-//     const diff = newHeight - this._rect.height;
-//     this._techniqueLabelsRect.height += diff;
-//     this._beatNotesElement.rect.y += diff;
-//     this._rect.height += diff;
-//   }
-
-//   /**
-//    * Sets new technique label hap
-//    * @param newGapHeight New technique label gap height
-//    */
-//   public setTechniqueGap(newGapHeight: number): void {
-//     const oldGapHeight = this._techniqueLabelsRect.height;
-
-//     this._beatNotesElement.rect.y += newGapHeight - oldGapHeight;
-//     this._rect.height += newGapHeight - oldGapHeight;
-
-//     this._techniqueLabelsRect.height = newGapHeight;
-//   }
-
-//   /**
-//    * Inserts a gap between the durations rectangle and beat notes.
-//    * The result is that the beat element is taller, beat notes are
-//    * moved down and the gap between durations and notes is increased
-//    * (or created if there was none)
-//    */
-//   public insertTechniqueGap(): void {
-//     this._techniqueLabelsRect.height +=
-//       TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//     this._beatNotesElement.rect.y += TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//     this._rect.height += TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//   }
-
-//   /**
-//    * Removes technique label gap
-//    */
-//   public removeTechniqueGap(): void {
-//     this._techniqueLabelsRect.height -=
-//       TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//     this._beatNotesElement.rect.y -= TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//     this._rect.height -= TabLayoutDimensions.TECHNIQUE_LABEL_HEIGHT;
-//   }
-
-//   /**
-//    * Scales beat element & all it's children horizontally
-//    * @param scale Scale factor
-//    */
-//   public scaleHorBy(scale: number): void {
-//     if (this.beat.beamGroupId !== undefined) {
-//       const diff = this._rect.width * scale - this._durationRect.width;
-//       this._durationRect.x += diff / 2;
-//     } else {
-//       this._durationRect.x =
-//         (this._rect.width * scale) / 2 - this._durationRect.width / 2;
-//     }
-//     this._dotRect.x = this._durationRect.right;
-
-//     this._rect.x *= scale;
-//     this._rect.width *= scale;
-
-//     this._techniqueLabelsRect.x *= scale;
-//     this._techniqueLabelsRect.width *= scale;
-
-//     for (const techniqueLabelElement of this._techniqueLabelElements) {
-//       techniqueLabelElement.scaleHorBy(scale);
-//     }
-
-//     this._beatNotesElement.scaleHorBy(scale);
-//   }
-
-//   /** Beat's note element */
-//   public get beatNotesElement(): BeatNotesElement {
-//     return this._beatNotesElement;
-//   }
-
-//   /** Technique label element */
-//   public get techniqueLabelElements(): TechniqueLabelElement[] {
-//     return this._techniqueLabelElements;
-//   }
-
-//   /** This beat's rectangle */
-//   public get rect(): Rect {
-//     return this._rect;
-//   }
-
-//   /** This beat's duration rectangle */
-//   public get durationRect(): Rect {
-//     return this._durationRect;
-//   }
-
-//   /** This beat's dot rectangle */
-//   public get dotRect(): Rect {
-//     return this._dotRect;
-//   }
-
-//   /** Technique labels rectangle */
-//   public get techniqueLabelsRect(): Rect {
-//     return this._techniqueLabelsRect;
-//   }
-
-//   /** Selection status setter */
-//   public set selected(newSelectedValue: boolean) {
-//     this._selected = newSelectedValue;
-//   }
-//   /** Selection status getter */
-//   public get selected(): boolean {
-//     return this._selected;
-//   }
-
-//   /** Global coords of the beat element */
-//   public get globalCoords(): Point {
-//     return new Point(
-//       this.barElement.globalCoords.x + this._rect.x,
-//       this.barElement.globalCoords.y + this._rect.y
-//     );
-//   }
-// }

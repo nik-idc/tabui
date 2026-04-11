@@ -1,6 +1,6 @@
 import { BarRepeatStatus, NoteDuration } from "../../src/notation/model";
 import { createBarWithBeats, createBeat, createScoreGraph } from "./helpers";
-import { fillBar } from "../../editor/data/helpers";
+import { fillBar } from "../../demo/data/helpers";
 
 describe("Bar model", () => {
   test("new bar starts with one empty seed beat", () => {

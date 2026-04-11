@@ -1,6 +1,6 @@
 import { EditorMouseDefCallbacks } from "../../src/callbacks/editor/editor-mouse-callbacks";
 import { RenderType } from "../../src/callbacks/render-type";
-import { SVGGuitarNoteRenderer } from "../../src/notation/render/svg/svg-guitar-note-renderer";
+import { SVGTabNoteRenderer } from "../../src/notation/render/svg/svg-tab-note-renderer";
 
 function createMouseEvent(
   x: number,
@@ -16,7 +16,7 @@ function createMouseEvent(
 
 function createRendererBackedNoteRenderer(noteElement: any) {
   const handlers = new Map<string, Function>();
-  const renderer = Object.create(SVGGuitarNoteRenderer.prototype) as any;
+  const renderer = Object.create(SVGTabNoteRenderer.prototype) as any;
   renderer.noteElement = noteElement;
   renderer.attachMouseEvent = jest.fn(
     (eventType: string, handler: Function) => {
@@ -37,7 +37,10 @@ function createRendererBackedNoteRenderer(noteElement: any) {
 }
 
 function createHarness() {
-  const beatElement = { rect: { width: 40 } } as any;
+  const beatElement = {
+    boundingBox: { width: 40 },
+    rect: { width: 40 },
+  } as any;
   const noteElement = { beatElement } as any;
   const renderer = {
     showSelectionPreview: jest.fn(),
@@ -45,15 +48,12 @@ function createHarness() {
     attachBeatInteractionEvent: jest.fn(),
     detachBeatInteractionEvent: jest.fn(),
   };
-  const trackControllerEditor = {
-    selectNoteElement: jest.fn(),
-    selectBeat: jest.fn(),
-    clearSelection: jest.fn(),
-  };
   const notationComponent = {
     renderer,
     trackController: {
-      trackControllerEditor,
+      selectNoteElement: jest.fn(),
+      selectBeat: jest.fn(),
+      clearSelection: jest.fn(),
     },
   } as any;
   const renderFunc = jest.fn();
@@ -68,7 +68,7 @@ function createHarness() {
     beatElement,
     noteElement,
     renderer,
-    trackControllerEditor,
+    notationComponent,
     renderFunc,
   };
 }
@@ -90,19 +90,14 @@ describe("EditorMouseDefCallbacks", () => {
   });
 
   test("note click and hover behavior update preview and selection correctly", () => {
-    const {
-      callbacks,
-      noteElement,
-      renderer,
-      trackControllerEditor,
-      renderFunc,
-    } = createHarness();
+    const { callbacks, noteElement, renderer, notationComponent, renderFunc } =
+      createHarness();
 
     callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
     expect(renderer.hideSelectionPreview).toHaveBeenCalledTimes(1);
-    expect(trackControllerEditor.selectNoteElement).toHaveBeenCalledWith(
-      noteElement
-    );
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).toHaveBeenCalledWith(noteElement);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.NoteSelection);
 
     callbacks.onNoteMouseEnter(createMouseEvent(10, 10), noteElement);
@@ -117,7 +112,7 @@ describe("EditorMouseDefCallbacks", () => {
       callbacks,
       beatElement,
       noteElement,
-      trackControllerEditor,
+      notationComponent,
       renderFunc,
     } = createHarness();
     const dragController = {
@@ -146,35 +141,29 @@ describe("EditorMouseDefCallbacks", () => {
     });
 
     callbacks.onBeatMouseMove(createMouseEvent(5, 6), beatElement);
-    expect(trackControllerEditor.clearSelection).toHaveBeenCalledTimes(1);
-    expect(trackControllerEditor.selectBeat).toHaveBeenNthCalledWith(
-      1,
-      beatElement
-    );
+    expect(
+      notationComponent.trackController.clearSelection
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      notationComponent.trackController.selectBeat
+    ).toHaveBeenNthCalledWith(1, beatElement);
     expect(renderFunc).toHaveBeenNthCalledWith(1, RenderType.DragSelection);
-    expect(trackControllerEditor.selectBeat).toHaveBeenNthCalledWith(
-      2,
-      beatElement
-    );
+    expect(
+      notationComponent.trackController.selectBeat
+    ).toHaveBeenNthCalledWith(2, beatElement);
 
     callbacks.onBeatMouseMove(createMouseEvent(7, 8), beatElement);
-    expect(trackControllerEditor.selectBeat).toHaveBeenNthCalledWith(
-      3,
-      beatElement
-    );
+    expect(
+      notationComponent.trackController.selectBeat
+    ).toHaveBeenNthCalledWith(3, beatElement);
 
     callbacks.onBeatMouseUp();
     expect(dragController.reset).toHaveBeenCalledTimes(1);
   });
 
   test("bind and unbind manage global, delegated, and note renderer listeners without leaks", () => {
-    const {
-      callbacks,
-      noteElement,
-      renderer,
-      trackControllerEditor,
-      renderFunc,
-    } = createHarness();
+    const { callbacks, noteElement, renderer, notationComponent, renderFunc } =
+      createHarness();
     const noteRenderer = createRendererBackedNoteRenderer(noteElement);
     const win = (globalThis as any).window;
 
@@ -186,13 +175,13 @@ describe("EditorMouseDefCallbacks", () => {
     expect(noteRenderer.attachMouseEvent).toHaveBeenCalledTimes(5);
 
     noteRenderer.trigger("click", createMouseEvent(10, 10));
-    expect(trackControllerEditor.selectNoteElement).toHaveBeenCalledWith(
-      noteElement
-    );
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).toHaveBeenCalledWith(noteElement);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.NoteSelection);
 
     const noteSelectionCallsBeforeUnbind =
-      trackControllerEditor.selectNoteElement.mock.calls.length;
+      notationComponent.trackController.selectNoteElement.mock.calls.length;
     callbacks.unbind();
     expect(win.removeEventListener).toHaveBeenCalledTimes(1);
     expect(renderer.detachBeatInteractionEvent).toHaveBeenCalledTimes(3);
@@ -200,9 +189,9 @@ describe("EditorMouseDefCallbacks", () => {
     expect(noteRenderer.hasHandler("click")).toBe(false);
 
     noteRenderer.trigger("click", createMouseEvent(20, 20));
-    expect(trackControllerEditor.selectNoteElement).toHaveBeenCalledTimes(
-      noteSelectionCallsBeforeUnbind
-    );
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).toHaveBeenCalledTimes(noteSelectionCallsBeforeUnbind);
 
     callbacks.bind([noteRenderer]);
     expect(win.addEventListener).toHaveBeenCalledTimes(2);
@@ -210,7 +199,7 @@ describe("EditorMouseDefCallbacks", () => {
   });
 
   test("bind reconciles stale note renderers when the active renderer set changes", () => {
-    const { callbacks, noteElement, trackControllerEditor } = createHarness();
+    const { callbacks, noteElement, notationComponent } = createHarness();
     const oldRenderer = createRendererBackedNoteRenderer(noteElement);
     const newRenderer = createRendererBackedNoteRenderer(noteElement);
 
@@ -225,15 +214,15 @@ describe("EditorMouseDefCallbacks", () => {
     expect(newRenderer.hasHandler("click")).toBe(true);
 
     const selectedCallsBeforeOldTrigger =
-      trackControllerEditor.selectNoteElement.mock.calls.length;
+      notationComponent.trackController.selectNoteElement.mock.calls.length;
     oldRenderer.trigger("click", createMouseEvent(30, 30));
-    expect(trackControllerEditor.selectNoteElement).toHaveBeenCalledTimes(
-      selectedCallsBeforeOldTrigger
-    );
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).toHaveBeenCalledTimes(selectedCallsBeforeOldTrigger);
 
     newRenderer.trigger("click", createMouseEvent(40, 40));
-    expect(trackControllerEditor.selectNoteElement).toHaveBeenCalledTimes(
-      selectedCallsBeforeOldTrigger + 1
-    );
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).toHaveBeenCalledTimes(selectedCallsBeforeOldTrigger + 1);
   });
 });

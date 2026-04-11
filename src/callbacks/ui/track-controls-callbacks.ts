@@ -1,5 +1,5 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { TrackControlsComponent, TrackControlsTemplate } from "@/ui";
+import { TrackControlsComponent } from "@/ui";
 import { ListenerManager } from "@/shared/misc";
 import { YesNoCallbacks, YesNoDefaultCallbacks } from "./yes-no-callbacks";
 import {

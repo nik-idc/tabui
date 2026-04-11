@@ -8,6 +8,7 @@ export * from "./clef-type";
 export * from "./editor";
 export * from "./guitar-note";
 export * from "./guitar-technique";
+export * from "./guitar-technique-labels";
 export * from "./guitar-technique-lists";
 export * from "./instrument";
 export * from "./master-bar";

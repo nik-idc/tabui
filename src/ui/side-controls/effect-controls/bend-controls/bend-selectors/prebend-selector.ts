@@ -41,7 +41,7 @@ export class PrebendSelector implements Selector {
       `L ${this.bendManagerOptions.width} ` +
       `${this.bendManagerOptions.height / 2}`;
     this.bendPath.setAttribute("d", d);
-    this.bendPath.setAttribute("stroke", "black");
+    this.bendPath.setAttribute("stroke", "var(--tu-bend-curve)");
     this.bendPath.setAttribute("stroke-width", "2");
     this.bendPath.setAttribute("fill", "none");
     this.bendGraphSVG.appendChild(this.bendPath);
@@ -53,7 +53,7 @@ export class PrebendSelector implements Selector {
     this._bendCircle.setAttribute("cx", cx);
     this._bendCircle.setAttribute("cy", cy);
     this._bendCircle.setAttribute("r", "8");
-    this._bendCircle.setAttribute("fill", "black");
+    this._bendCircle.setAttribute("fill", "var(--tu-bend-handle)");
     this._bendCircle.style.cursor = "pointer";
     this.bendGraphSVG.appendChild(this._bendCircle);
 

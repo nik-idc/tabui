@@ -1,6 +1,6 @@
 import { Staff } from "@/notation/model";
 import { Point, randomInt, Rect } from "@/shared";
-import { TabLayoutDimensions } from "@/notation/controller/tab-layout-dimensions";
+import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BarElement } from "../bar/bar-element";
@@ -33,7 +33,7 @@ export class NotationStyleLineElement implements NotationElement {
   private _techGapElement: TechGapElement;
 
   /** Line encapsulating rectangle */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** String encoding the state of this element */
   private _stateHash: string;
 
@@ -54,7 +54,7 @@ export class NotationStyleLineElement implements NotationElement {
     this._barElements = [];
     this._techGapElement = new TechGapElement(this);
 
-    this._rect = new Rect();
+    this._boundingBox = new Rect();
 
     this._stateHash = "";
 
@@ -78,22 +78,23 @@ export class NotationStyleLineElement implements NotationElement {
    * Calculates the dimensions for all bar elements & their children
    */
   public measure(): void {
-    this._rect.width = TabLayoutDimensions.WIDTH;
+    this._boundingBox.width = EditorLayoutDimensions.WIDTH;
 
     let sumWidth = 0;
     for (const barElement of this._barElements) {
       barElement.measure();
-      sumWidth += barElement.rect.width;
+      sumWidth += barElement.boundingBox.width;
     }
     // // Set width BEFORE measure tech gap since gap's width = parent notation
     // // style line's width
-    // this._rect.width = sumWidth;
+    // this._boundingBox.width = sumWidth;
 
     this._techGapElement.measure();
     // Set height AFTER tech gap measure since notation style line height
     // depends on both the height of bar elements & the height of the tech gap
-    this._rect.height =
-      this._techGapElement.rect.height + this._barElements[0].rect.height;
+    this._boundingBox.height =
+      this._techGapElement.boundingBox.height +
+      this._barElements[0].boundingBox.height;
   }
 
   /**
@@ -101,37 +102,25 @@ export class NotationStyleLineElement implements NotationElement {
    * */
   private calcStateHash(): void {
     const hashArr: string[] = [
-      `${this.globalRect.x}` +
-        `${this.globalRect.y}` +
-        `${this.globalRect.width}` +
-        `${this.globalRect.height}`,
+      `${this.globalBoundingBox.x}` +
+        `${this.globalBoundingBox.y}` +
+        `${this.globalBoundingBox.width}` +
+        `${this.globalBoundingBox.height}`,
     ];
 
     this._stateHash = hashArr.join("");
-
-    // Prompt the track element to check if this element has changed
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
    * Calculates the coordinates for all bar elements & their children
    */
   public layout(): void {
-    // // Setting rect width in layout since
-    // // bar element's layout justifies it to fit.
-    // // This is NOT ideal
-    // this._rect.width = sumWidth;
-
     let sumWidth = 0;
     this._techGapElement.layout();
     for (const barElement of this._barElements) {
       barElement.layout();
-      sumWidth += barElement.rect.width;
+      sumWidth += barElement.boundingBox.width;
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    // this.calcStateHash();
   }
 
   /**
@@ -150,9 +139,9 @@ export class NotationStyleLineElement implements NotationElement {
    */
   public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
     if (scaleOuterX) {
-      this._rect.x *= scale;
+      this._boundingBox.x *= scale;
     }
-    this._rect.width *= scale;
+    this._boundingBox.width *= scale;
 
     for (const barElement of this._barElements) {
       barElement.scaleHorBy(scale);
@@ -183,8 +172,8 @@ export class NotationStyleLineElement implements NotationElement {
 
     // Calc width of empty space
     const gapWidth =
-      TabLayoutDimensions.WIDTH -
-      this._barElements[this._barElements.length - 1].rect.rightTop.x;
+      EditorLayoutDimensions.WIDTH -
+      this._barElements[this._barElements.length - 1].boundingBox.rightTop.x;
 
     if (gapWidth === 0) {
       return;
@@ -192,17 +181,17 @@ export class NotationStyleLineElement implements NotationElement {
 
     // Calc sum width of all bar element
     let sumWidth =
-      this._barElements[this._barElements.length - 1].rect.rightTop.x;
+      this._barElements[this._barElements.length - 1].boundingBox.rightTop.x;
 
     // Go through each bar element and increase their
     // width according to how their current width relates
     // to the width of the empty space
-    const scale = TabLayoutDimensions.WIDTH / sumWidth;
+    const scale = EditorLayoutDimensions.WIDTH / sumWidth;
     for (const barElement of this._barElements) {
       barElement.scaleHorBy(scale);
     }
     this._techGapElement.scaleHorBy(scale);
-    this._rect.width *= scale;
+    this._boundingBox.width *= scale;
 
     // Calculating state hash at the last step of
     // element's update process - layout
@@ -250,26 +239,34 @@ export class NotationStyleLineElement implements NotationElement {
     return this._techGapElement;
   }
 
-  /** Line encapsulating rectangle */
-  public get rect(): Rect {
-    return this._rect;
+  /** Line layout bounding box */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
-  /** This element's rect in global coords */
-  public get globalRect(): Rect {
+  /** This element's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
+  }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
   }
 
   /** Global coords of the notation style line element */
   public get globalCoords(): Point {
     return new Point(
-      this.staffLineElement.globalCoords.x + this._rect.x,
-      this.staffLineElement.globalCoords.y + this._rect.y
+      this.staffLineElement.globalCoords.x + this._boundingBox.x,
+      this.staffLineElement.globalCoords.y + this._boundingBox.y
     );
   }
 }

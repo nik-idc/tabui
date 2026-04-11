@@ -14,8 +14,12 @@ export interface NotationElement {
 
   get stateHash(): string;
 
-  get rect(): Rect;
+  get boundingBox(): Rect;
   get globalCoords(): Point;
+  get globalBoundingBox(): Rect;
+
+  // Transitional aliases while Pass 2.A migrates active paths.
+  get rect(): Rect;
   get globalRect(): Rect;
 
   getModelUUID(): number;

@@ -1,15 +1,15 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { createOption } from "@/shared";
+import { renderOnce, setImageAsset } from "@/ui/shared";
 import { PlayControlsTemplate } from "./play-controls-template";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
-const assetsPath = import.meta.env.BASE_URL;
 const buttonSize = `30px`;
 
 export class PlayControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: PlayControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -17,7 +17,7 @@ export class PlayControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: PlayControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -43,46 +43,72 @@ export class PlayControlsTemplateRenderer {
   }
 
   private renderPlayButtons(): void {
-    const firstSrc = `${assetsPath}/img/ui/first.svg`;
-    this.template.firstButton.setAttribute("src", firstSrc);
-    this.template.firstButton.setAttribute("alt", "First bar");
-    this.template.firstButton.setAttribute("width", buttonSize);
-    this.template.firstButton.setAttribute("height", buttonSize);
-
-    const prevSrc = `${assetsPath}/img/ui/prev.svg`;
-    this.template.prevButton.setAttribute("src", prevSrc);
-    this.template.prevButton.setAttribute("alt", "Prev bar");
-    this.template.prevButton.setAttribute("width", buttonSize);
-    this.template.prevButton.setAttribute("height", buttonSize);
-
-    const playSrc = `${assetsPath}/img/ui/play.svg`;
-    const pauseSrc = `${assetsPath}/img/ui/pause.svg`;
-    const isPlaying = this.notationComponent.trackController.isPlaying;
-    this.template.playButton.setAttribute(
-      "src",
-      isPlaying ? pauseSrc : playSrc
+    setImageAsset(
+      this.template.firstButton,
+      this.assetsPath,
+      "img/ui/first.svg",
+      "First bar",
+      {
+        width: buttonSize,
+        height: buttonSize,
+      }
     );
-    this.template.playButton.setAttribute("alt", isPlaying ? "Pause" : "Play");
-    this.template.playButton.setAttribute("width", buttonSize);
-    this.template.playButton.setAttribute("height", buttonSize);
 
-    const nextSrc = `${assetsPath}/img/ui/next.svg`;
-    this.template.nextButton.setAttribute("src", nextSrc);
-    this.template.nextButton.setAttribute("alt", "Next bar");
-    this.template.nextButton.setAttribute("width", buttonSize);
-    this.template.nextButton.setAttribute("height", buttonSize);
+    setImageAsset(
+      this.template.prevButton,
+      this.assetsPath,
+      "img/ui/prev.svg",
+      "Prev bar",
+      {
+        width: buttonSize,
+        height: buttonSize,
+      }
+    );
 
-    const lastSrc = `${assetsPath}/img/ui/last.svg`;
-    this.template.lastButton.setAttribute("src", lastSrc);
-    this.template.lastButton.setAttribute("alt", "Last bar");
-    this.template.lastButton.setAttribute("width", buttonSize);
-    this.template.lastButton.setAttribute("height", buttonSize);
+    const isPlaying = this.notationComponent.trackController.isPlaying;
+    setImageAsset(
+      this.template.playButton,
+      this.assetsPath,
+      isPlaying ? "img/ui/pause.svg" : "img/ui/play.svg",
+      isPlaying ? "Pause" : "Play",
+      {
+        width: buttonSize,
+        height: buttonSize,
+      }
+    );
 
-    const loopSrc = `${assetsPath}/img/ui/loop.svg`;
-    this.template.loopButton.setAttribute("src", loopSrc);
-    this.template.loopButton.setAttribute("alt", "Loop");
-    this.template.loopButton.setAttribute("width", buttonSize);
-    this.template.loopButton.setAttribute("height", buttonSize);
+    setImageAsset(
+      this.template.nextButton,
+      this.assetsPath,
+      "img/ui/next.svg",
+      "Next bar",
+      {
+        width: buttonSize,
+        height: buttonSize,
+      }
+    );
+
+    setImageAsset(
+      this.template.lastButton,
+      this.assetsPath,
+      "img/ui/last.svg",
+      "Last bar",
+      {
+        width: buttonSize,
+        height: buttonSize,
+      }
+    );
+
+    setImageAsset(
+      this.template.loopButton,
+      this.assetsPath,
+      "img/ui/loop.svg",
+      "Loop",
+      {
+        width: buttonSize,
+        height: buttonSize,
+      }
+    );
   }
   /**
    * Responsible for setting up the note controls:
@@ -91,9 +117,8 @@ export class PlayControlsTemplateRenderer {
   public render(): void {
     this.renderPlayButtons();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }

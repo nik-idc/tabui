@@ -322,23 +322,4 @@ export class ScoreEditor {
 
     return oldBeats;
   }
-
-  // Unused helpers kept for later review.
-  // public static transpose<I extends MusicInstrument>(
-  //   note: Note<I>,
-  //   semitones: number
-  // ): void {}
-  // public static raiseNote<I extends MusicInstrument>(
-  //   note: Note<I>,
-  //   semitones: number
-  // ): void {}
-  // public static lowerNote<I extends MusicInstrument>(
-  //   note: Note<I>,
-  //   semitones: number
-  // ): void {}
-  // public static setNoteFret(note: GuitarNote, fret: number): void {}
-  // public static applyBend(
-  //   note: GuitarNote,
-  //   bendOptions?: BendTechniqueOptions
-  // ): void {}
 }

@@ -4,11 +4,7 @@ import {
   GuitarTechniqueType,
 } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
-import {
-  BendControlsComponent,
-  BendControlsTemplate,
-  BendSelectorManager,
-} from "@/ui";
+import { BendControlsComponent } from "@/ui";
 import { ListenerManager } from "@/shared/misc";
 
 export interface BendControlsCallbacks {
@@ -60,7 +56,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     const bendOptions =
       this._bendComponent.bendSelectorManager.getCurrentTechnique();
 
-    this._notationComponent.trackController.trackControllerEditor.setTechnique(
+    this._notationComponent.trackController.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions(bendOptions)
     );

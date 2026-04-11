@@ -1,9 +1,6 @@
 import { NoteDuration } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
-import {
-  TimeSigControlsComponent,
-  TimeSigControlsTemplate,
-} from "@/ui/side-controls/measure-controls/time-sig-controls";
+import { TimeSigControlsComponent } from "@/ui/side-controls/measure-controls/time-sig-controls";
 import { ListenerManager } from "@/shared/misc";
 
 export interface TimeSigControlsCallbacks {
@@ -113,7 +110,7 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
   }
 
   onConfirmClicked(): void {
-    this._notationComponent.trackController.trackControllerEditor.setSelectedBarTimeSignature(
+    this._notationComponent.trackController.setSelectedBarTimeSignature(
       this._beatsCount,
       this._duration
     );

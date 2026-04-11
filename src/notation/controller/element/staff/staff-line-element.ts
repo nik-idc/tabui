@@ -28,8 +28,6 @@ export type StaffLineBarData = {
  */
 export type StaffLineData = StaffLineBarData[];
 
-// TODO: Implement showing selection somehow
-
 /**
  * Class that handles all geometry & visually relevant info of a staff line
  */
@@ -52,7 +50,7 @@ export class StaffLineElement implements NotationElement {
   >;
 
   /** Line encapsulating rectangle */
-  private _rect: Rect;
+  private _boundingBox: Rect;
   /** String encoding the state of this element */
   private _stateHash: string;
 
@@ -78,7 +76,7 @@ export class StaffLineElement implements NotationElement {
       [NotationStyle.Tablature]: null,
     };
 
-    this._rect = new Rect();
+    this._boundingBox = new Rect();
 
     this._stateHash = "";
 
@@ -118,13 +116,14 @@ export class StaffLineElement implements NotationElement {
 
     let width = 0;
     if (classicNot !== null) {
-      width = classicNot.rect.width;
+      width = classicNot.boundingBox.width;
     } else if (tablatureNot !== null) {
-      width = tablatureNot.rect.width;
+      width = tablatureNot.boundingBox.width;
     }
     const height =
-      (classicNot?.rect.height ?? 0) + (tablatureNot?.rect.height ?? 0);
-    this._rect.setDimensions(width, height);
+      (classicNot?.boundingBox.height ?? 0) +
+      (tablatureNot?.boundingBox.height ?? 0);
+    this._boundingBox.setDimensions(width, height);
   }
 
   /**
@@ -132,16 +131,13 @@ export class StaffLineElement implements NotationElement {
    * */
   private calcStateHash(): void {
     const hashArr: string[] = [
-      `${this.globalRect.x}` +
-        `${this.globalRect.y}` +
-        `${this.globalRect.width}` +
-        `${this.globalRect.height}`,
+      `${this.globalBoundingBox.x}` +
+        `${this.globalBoundingBox.y}` +
+        `${this.globalBoundingBox.width}` +
+        `${this.globalBoundingBox.height}`,
     ];
 
     this._stateHash = hashArr.join("");
-
-    // // Prompt the track element to check if this element has changed
-    // this.trackElement.checkIfDirty(this);
   }
 
   /**
@@ -157,19 +153,13 @@ export class StaffLineElement implements NotationElement {
 
     const prevStaffLine = this.trackLineElement.getPrevStaffLineElement(this);
     const y =
-      prevStaffLine?.rect.bottom ??
-      this.trackLineElement.trackLineInfoElement?.rect.bottom ??
+      prevStaffLine?.boundingBox.bottom ??
+      this.trackLineElement.trackLineInfoElement?.boundingBox.bottom ??
       0;
-    this._rect.setCoords(0, y);
+    this._boundingBox.setCoords(0, y);
 
     this._notationStyleLineElements[NotationStyle.Classic]?.layout();
     this._notationStyleLineElements[NotationStyle.Tablature]?.layout();
-
-    // this.justifyStyleLines();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    // this.calcStateHash();
   }
 
   public update(): void {
@@ -185,9 +175,9 @@ export class StaffLineElement implements NotationElement {
    */
   public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
     if (scaleOuterX) {
-      this._rect.x *= scale;
+      this._boundingBox.x *= scale;
     }
-    this._rect.width *= scale;
+    this._boundingBox.width *= scale;
 
     const styleLinesEntries = Object.entries(this._notationStyleLineElements);
     for (const [style, styleLine] of styleLinesEntries) {
@@ -222,15 +212,11 @@ export class StaffLineElement implements NotationElement {
 
     let width = 0;
     if (classicNot !== null) {
-      width = classicNot.rect.width;
+      width = classicNot.boundingBox.width;
     } else if (tablatureNot !== null) {
-      width = tablatureNot.rect.width;
+      width = tablatureNot.boundingBox.width;
     }
-    this._rect.width = width;
-
-    // // Calculating state hash at the last step of
-    // // element's update process - layout
-    // this.calcStateHash();
+    this._boundingBox.width = width;
   }
 
   /** String encoding the state of this element */
@@ -263,94 +249,34 @@ export class StaffLineElement implements NotationElement {
     return result;
   }
 
-  /** Line encapsulating rectangle getter */
-  public get rect(): Rect {
-    return this._rect;
+  /** Line layout bounding box getter */
+  public get boundingBox(): Rect {
+    return this._boundingBox;
   }
 
   /** Global coords of the staff line element (in most cases X will be 0) */
   public get globalCoords(): Point {
     return new Point(
-      this.trackLineElement.globalCoords.x + this._rect.x,
-      this.trackLineElement.globalCoords.y + this._rect.y
+      this.trackLineElement.globalCoords.x + this._boundingBox.x,
+      this.trackLineElement.globalCoords.y + this._boundingBox.y
     );
   }
 
-  /** This element's rect in global coords */
-  public get globalRect(): Rect {
+  /** This element's layout bounding box in global coordinates */
+  public get globalBoundingBox(): Rect {
     return new Rect(
       this.globalCoords.x,
       this.globalCoords.y,
-      this._rect.width,
-      this._rect.height
+      this._boundingBox.width,
+      this._boundingBox.height
     );
   }
+
+  public get rect(): Rect {
+    return this.boundingBox;
+  }
+
+  public get globalRect(): Rect {
+    return this.globalBoundingBox;
+  }
 }
-
-// // ==== MAYBE WILL BE USEFULL LATER ====
-// /**
-//  * Calc staff line element
-//  */
-// public calc(): void {
-//   const prevStaffLineElement =
-//     this.trackLineElement.getPrevStaffLineElement(this);
-//   const x = prevStaffLineElement?._rect.x ?? 0;
-//   const y = prevStaffLineElement?._rect.y ?? 0;
-
-//   this._rect = new Rect(
-//     x,
-//     y,
-//     0,
-//     TabLayoutDimensions.getStaffLineMinHeight(
-//       this.staff.trackContext.instrument
-//     )
-//   );
-//   this._techniqueLabelsRect = new Rect(x, y, 0, 0);
-
-//   // this._barElements = [];
-//   // for (const bar of this.staff.bars) {
-//   //   const barElement = new BarElement(bar, this);
-//   //   this._barElements.push(barElement);
-//   // }
-
-//   this.calcTechniqueGap();
-// }
-// /**
-//  * Justifies element by scaling all their widths
-//  */
-// public justifyElements(): void {
-//   for (const barsLine of this._barElements) {
-//     barsLine.justifyElements();
-//   }
-// }
-
-// /**
-//  * Checks if bar fits
-//  * @param bar Bar
-//  * @returns True if fits, false otherwise
-//  */
-// public barFits(bar: Bar): boolean {
-//   const barWidth = getBarWidth(bar);
-//   return this._rect.rightTop.x + barWidth <= TabLayoutDimensions.WIDTH;
-// }
-
-// /**
-//  * Add master bar to the line (assumes the bar fits)
-//  * @param masterBarIndex Index of the master bar to add
-//  */
-// public addBar(masterBarIndex: number): boolean {
-//   const bar = this.staff.bars[masterBarIndex];
-//   if (!this.barFits(bar)) {
-//     for (const barsLine of this._barElements) {
-//       barsLine.justifyElements();
-//       barsLine.calcTechniqueGap();
-//     }
-//     return false;
-//   }
-
-//   for (const barsLine of this._barElements) {
-//     barsLine.addBar(bar);
-//   }
-
-//   return true;
-// }

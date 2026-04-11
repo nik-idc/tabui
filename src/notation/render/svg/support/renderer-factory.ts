@@ -20,6 +20,7 @@ import {
   ElementRenderer,
   ElementRendererClass,
 } from "@/notation/render/element-renderer";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { SVGTrackLineRenderer } from "../svg-track-line-renderer";
 import { SVGTrackLineInfoRenderer } from "../svg-track-line-info-renderer";
 import { SVGStaffLineRenderer } from "../svg-staff-line-renderer";
@@ -27,7 +28,7 @@ import { SVGStyleLineRenderer } from "../svg-style-line-renderer";
 import { SVGTechGapRenderer } from "../svg-tech-gap-renderer";
 import { SVGBarRenderer } from "../svg-bar-renderer";
 import { SVGTabBeatRenderer } from "../svg-tab-beat-renderer";
-import { SVGGuitarNoteRenderer } from "../svg-guitar-note-renderer";
+import { SVGTabNoteRenderer } from "../svg-tab-note-renderer";
 import { SVGTechniqueRenderer } from "../svg-technique-renderer";
 import { SVGTechniqueLabelRenderer } from "../svg-technique-label-renderer";
 import { SVGBeamSegmentRenderer } from "../svg-beam-segment-renderer";
@@ -43,7 +44,7 @@ const RENDERER_CTORS = new Map<NotationElementClass, ElementRendererClass>([
   [TechGapElement, SVGTechGapRenderer],
   [BarElement, SVGBarRenderer],
   [TabBeatElement, SVGTabBeatRenderer],
-  [TabNoteElement, SVGGuitarNoteRenderer],
+  [TabNoteElement, SVGTabNoteRenderer],
   [GuitarTechniqueElement, SVGTechniqueRenderer],
   [GuitarTechniqueLabelElement, SVGTechniqueLabelRenderer],
   [BeamSegmentElement, SVGBeamSegmentRenderer],
@@ -54,7 +55,7 @@ const RENDERER_CTORS = new Map<NotationElementClass, ElementRendererClass>([
 export function createRendererForElement(
   trackController: TrackController,
   element: NotationElement,
-  assetsPath: string
+  assetsPath: ResolvedAssetConfig
 ): ElementRenderer | undefined {
   const ctor = RENDERER_CTORS.get(element.constructor as NotationElementClass);
   if (ctor === undefined) {

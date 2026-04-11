@@ -1,5 +1,4 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { TupletControlsComponent } from "@/ui/side-controls/note-controls/tuplet-controls";
 import { Track, Guitar } from "@/notation";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
 import { TrackSettingsControlsTemplateRenderer } from "./track-settings-controls-template-renderer";

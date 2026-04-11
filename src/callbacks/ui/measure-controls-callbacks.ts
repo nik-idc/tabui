@@ -1,13 +1,7 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { MeasureControlsComponent, MeasureControlsTemplate } from "@/ui";
-import {
-  TempoControlsComponent,
-  TempoControlsTemplate,
-} from "@/ui/side-controls/measure-controls/tempo-controls";
-import {
-  TimeSigControlsComponent,
-  TimeSigControlsTemplate,
-} from "@/ui/side-controls/measure-controls/time-sig-controls";
+import { MeasureControlsComponent } from "@/ui";
+import { TempoControlsComponent } from "@/ui/side-controls/measure-controls/tempo-controls";
+import { TimeSigControlsComponent } from "@/ui/side-controls/measure-controls/time-sig-controls";
 import {
   TempoControlsCallbacks,
   TempoControlsDefaultCallbacks,
@@ -80,14 +74,14 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
   }
 
   onRepeatStartClicked(): void {
-    this._notationComponent.trackController.trackControllerEditor.setSelectedBarRepeatStatus(
+    this._notationComponent.trackController.setSelectedBarRepeatStatus(
       BarRepeatStatus.Start
     );
     this._renderFunc();
   }
 
   onRepeatEndClicked(): void {
-    this._notationComponent.trackController.trackControllerEditor.setSelectedBarRepeatStatus(
+    this._notationComponent.trackController.setSelectedBarRepeatStatus(
       BarRepeatStatus.End
     );
     this._renderFunc();

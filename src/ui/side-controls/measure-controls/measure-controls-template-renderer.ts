@@ -1,12 +1,14 @@
 import { NotationComponent } from "@/notation/notation-component";
+import { renderOnce, setImageAsset } from "@/ui/shared";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import { BarRepeatStatus } from "@/notation";
+import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
 export class MeasureControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly template: MeasureControlsTemplate;
-  readonly assetsPath: string;
+  readonly assetsPath: ResolvedAssetConfig;
 
   private _assembled: boolean;
 
@@ -14,7 +16,7 @@ export class MeasureControlsTemplateRenderer {
     parentDiv: HTMLDivElement,
     notationComponent: NotationComponent,
     template: MeasureControlsTemplate,
-    assetsPath: string = import.meta.env.BASE_URL
+    assetsPath: ResolvedAssetConfig = notationComponent.config.assets
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -39,9 +41,7 @@ export class MeasureControlsTemplateRenderer {
   }
 
   private renderRepeatButtonsState(): void {
-    const selectedNote =
-      this.notationComponent.trackController.trackControllerEditor
-        .selectionManager.selectedNote;
+    const selectedNote = this.notationComponent.trackController.selectedNote;
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
 
@@ -76,21 +76,30 @@ export class MeasureControlsTemplateRenderer {
   }
 
   private renderMeasureButtons(): void {
-    const tempoSrc = `${this.assetsPath}/img/ui/tempo.svg`;
-    this.template.tempoButton.setAttribute("src", tempoSrc);
-    this.template.tempoButton.setAttribute("alt", "Tempo");
-
-    const tsSrc = `${this.assetsPath}/img/ui/measure.svg`;
-    this.template.timeSignatureButton.setAttribute("src", tsSrc);
-    this.template.timeSignatureButton.setAttribute("alt", "Time Signature");
-
-    const repeatStartSrc = `${this.assetsPath}/img/ui/repeat-start.svg`;
-    this.template.repeatStartButton.setAttribute("src", repeatStartSrc);
-    this.template.repeatStartButton.setAttribute("alt", "Repeat Start");
-
-    const repeatEndSrc = `${this.assetsPath}/img/ui/repeat-end.svg`;
-    this.template.repeatEndButton.setAttribute("src", repeatEndSrc);
-    this.template.repeatEndButton.setAttribute("alt", "Repeat Start");
+    setImageAsset(
+      this.template.tempoButton,
+      this.assetsPath,
+      "img/ui/tempo.svg",
+      "Tempo"
+    );
+    setImageAsset(
+      this.template.timeSignatureButton,
+      this.assetsPath,
+      "img/ui/measure.svg",
+      "Time Signature"
+    );
+    setImageAsset(
+      this.template.repeatStartButton,
+      this.assetsPath,
+      "img/ui/repeat-start.svg",
+      "Repeat Start"
+    );
+    setImageAsset(
+      this.template.repeatEndButton,
+      this.assetsPath,
+      "img/ui/repeat-end.svg",
+      "Repeat Start"
+    );
 
     this.renderRepeatButtonsState();
   }
@@ -98,9 +107,8 @@ export class MeasureControlsTemplateRenderer {
   public render(): void {
     this.renderMeasureButtons();
 
-    if (!this._assembled) {
-      this.assembleContainer();
-      this._assembled = true;
-    }
+    this._assembled = renderOnce(this._assembled, () =>
+      this.assembleContainer()
+    );
   }
 }
