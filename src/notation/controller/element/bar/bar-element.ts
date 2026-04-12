@@ -27,16 +27,21 @@ import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
  * Class that handles geometry & visually relevant info of a bar
  */
 export class BarElement implements NotationElement {
+  public static createStableIdentity(bar: Bar): string {
+    return `bar:${bar.uuid}`;
+  }
+
   /** Unique identifier for the bar element */
   readonly uuid: number;
   /** The bar */
   readonly bar: Bar;
   /** Parent bars line element */
   readonly notationStyleLineElement: NotationStyleLineElement;
-  /** Desired width for this bar's master bar as determined in the TrackElement */
-  readonly desiredWidth: number;
   /** Root track element */
   readonly trackElement: TrackElement;
+
+  /** Desired width for this bar's master bar as determined in the TrackElement */
+  private _desiredWidth: number;
 
   /** This bar's beat elements */
   private _beatElements: BeatElement[];
@@ -76,7 +81,7 @@ export class BarElement implements NotationElement {
     this.bar = bar;
     this.notationStyleLineElement = notationStyleLineElement;
     this.trackElement = this.notationStyleLineElement.trackElement;
-    this.desiredWidth = desiredWidth;
+    this._desiredWidth = desiredWidth;
 
     this._beatElements = [];
     this._beamSegments = [];
@@ -135,8 +140,25 @@ export class BarElement implements NotationElement {
   public buildBeats(): void {
     const notationStyle = this.notationStyleLineElement.notationStyle;
 
+    const prevBeatElements = this.trackElement.useElementReuse
+      ? new Map(
+          this._beatElements.map((element) => [
+            element.getStableIdentity(),
+            element,
+          ])
+        )
+      : new Map<string, BeatElement>();
     this._beatElements = [];
     for (const beat of this.bar.beats) {
+      const existingBeatElement = prevBeatElements.get(
+        TabBeatElement.createStableIdentity(beat)
+      );
+      if (existingBeatElement !== undefined) {
+        existingBeatElement.build();
+        this._beatElements.push(existingBeatElement);
+        continue;
+      }
+
       let beatElement: BeatElement;
       switch (notationStyle) {
         case NotationStyle.Classic:
@@ -157,6 +179,14 @@ export class BarElement implements NotationElement {
    * Fills the beam segments array
    */
   public buildBeamSegments(): void {
+    const prevBeamSegments = this.trackElement.useElementReuse
+      ? new Map(
+          this._beamSegments.map((element) => [
+            element.getStableIdentity(),
+            element,
+          ])
+        )
+      : new Map<string, BeamSegmentElement>();
     this._beamSegments = [];
     for (const beatElement of this._beatElements) {
       if (!(beatElement instanceof TabBeatElement)) {
@@ -177,6 +207,19 @@ export class BarElement implements NotationElement {
         const curBeatElement = beamGroupBeats[j];
         const nextBeatElement = beamGroupBeats[j + 1];
         const prevBeatElement = j === 0 ? undefined : beamGroupBeats[j - 1];
+        const stableIdentity = BeamSegmentElement.createStableIdentity(
+          this,
+          curBeatElement as TabBeatElement,
+          nextBeatElement as TabBeatElement,
+          prevBeatElement as TabBeatElement | undefined
+        );
+        const existingBeamSegment = prevBeamSegments.get(stableIdentity);
+        if (existingBeamSegment !== undefined) {
+          existingBeamSegment.build();
+          this._beamSegments.push(existingBeamSegment);
+          continue;
+        }
+
         this._beamSegments.push(
           new BeamSegmentElement(
             this,
@@ -189,6 +232,19 @@ export class BarElement implements NotationElement {
 
       const lastBeatElement = beamGroupBeats[beamGroupBeats.length - 1];
       const prevLastBeatElement = beamGroupBeats[beamGroupBeats.length - 2];
+      const terminalStableIdentity = BeamSegmentElement.createStableIdentity(
+        this,
+        lastBeatElement as TabBeatElement,
+        undefined,
+        prevLastBeatElement as TabBeatElement
+      );
+      const existingTerminalBeam = prevBeamSegments.get(terminalStableIdentity);
+      if (existingTerminalBeam !== undefined) {
+        existingTerminalBeam.build();
+        this._beamSegments.push(existingTerminalBeam);
+        continue;
+      }
+
       this._beamSegments.push(
         new BeamSegmentElement(
           this,
@@ -204,6 +260,14 @@ export class BarElement implements NotationElement {
    * Fills the bar tuplet groups array
    */
   public buildTupletGroupElements(): void {
+    const prevTupletElements = this.trackElement.useElementReuse
+      ? new Map(
+          this._tupletElements.map((element) => [
+            element.getStableIdentity(),
+            element,
+          ])
+        )
+      : new Map<string, BarTupletGroupElement>();
     this._tupletElements = [];
     if (!this._beatElements.every((v) => v instanceof TabBeatElement)) {
       return;
@@ -214,10 +278,24 @@ export class BarElement implements NotationElement {
         tupletGroup.beats.some((tb) => tb.uuid === b.beat.uuid)
       );
 
+      const existingTupletElement = prevTupletElements.get(
+        BarTupletGroupElement.createStableIdentity(tupletGroup)
+      );
+      if (existingTupletElement !== undefined) {
+        existingTupletElement.setBeatElements(tupletTabBeatElements);
+        existingTupletElement.build();
+        this._tupletElements.push(existingTupletElement);
+        continue;
+      }
+
       this._tupletElements.push(
         new BarTupletGroupElement(tupletGroup, this, tupletTabBeatElements)
       );
     }
+  }
+
+  public setDesiredWidth(desiredWidth: number): void {
+    this._desiredWidth = desiredWidth;
   }
 
   /**
@@ -228,6 +306,8 @@ export class BarElement implements NotationElement {
    * - Fills the tuplet group elements array
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
     this.buildStructuralElements();
     this.buildBeats();
     this.buildBeamSegments();
@@ -464,6 +544,26 @@ export class BarElement implements NotationElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    elements.push(
+      ...this._beamSegments.flatMap((segment) =>
+        segment.refreshOwnedNotationElements()
+      )
+    );
+    elements.push(
+      ...this._tupletElements.flatMap((tuplet) =>
+        tuplet.refreshOwnedNotationElements()
+      )
+    );
+    for (const beatElement of this._beatElements) {
+      elements.push(...beatElement.refreshOwnedNotationElements());
+    }
+
+    return elements;
+  }
+
   /**
    * Justifies the bar element to be of the specified width
    * @param desiredWidth Desired width of the bar element
@@ -548,8 +648,12 @@ export class BarElement implements NotationElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    return this.bar.uuid;
+  public get desiredWidth(): number {
+    return this._desiredWidth;
+  }
+
+  public getStableIdentity(): string {
+    return BarElement.createStableIdentity(this.bar);
   }
 
   /** Time signature beats rectangle */

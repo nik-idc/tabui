@@ -8,6 +8,9 @@ import {
   NoteDuration,
 } from "../../src/notation/model";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
+import { TechGapElement } from "../../src/notation/controller/element/staff/tech-gap-element";
+import { TechGapLineElement } from "../../src/notation/controller/element/staff/tech-gap-line-element";
+import { GuitarTechniqueLabelElement } from "../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
@@ -213,5 +216,128 @@ describe("TrackElement techniques", () => {
     );
     expect(bendLabel?.globalCoords.x).toBeCloseTo(beatElement.globalCoords.x);
     expect(bendLabel?.globalCoords.y).toBeCloseTo(line3?.globalCoords.y ?? 0);
+  });
+
+  test("no-op update preserves technique gap subtree identities", () => {
+    const { track, bar } = createScoreGraph();
+    const vibratoNote = bar.beats[0].notes[0] as GuitarNote;
+    const bendNote = bar.beats[0].notes[2] as GuitarNote;
+
+    vibratoNote.addTechnique(
+      new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
+    );
+    bendNote.addTechnique(
+      new GuitarTechnique(
+        bendNote,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 1,
+          bendDuration: 1,
+        })
+      )
+    );
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const techGap =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].techGapElement;
+    const line1 = techGap.techGapLines[1];
+    const line3 = techGap.techGapLines[3];
+    const line1Label = line1?.labelElements[0];
+    const line3Label = line3?.labelElements[0];
+
+    trackElement.update();
+
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].techGapElement
+    ).toBe(techGap);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].techGapElement.techGapLines[1]
+    ).toBe(line1);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].techGapElement.techGapLines[3]
+    ).toBe(line3);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].techGapElement.techGapLines[1]?.labelElements[0]
+    ).toBe(line1Label);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].techGapElement.techGapLines[3]?.labelElements[0]
+    ).toBe(line3Label);
+  });
+
+  test("ownedNotationElements includes technique gap subtree elements", () => {
+    const { track, bar } = createScoreGraph();
+    const note = bar.beats[0].notes[0] as GuitarNote;
+
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const ownedElements =
+      trackElement.trackLineElements[0].ownedNotationElements;
+
+    expect(
+      ownedElements.some((element) => element instanceof TechGapElement)
+    ).toBe(true);
+    expect(
+      ownedElements.some((element) => element instanceof TechGapLineElement)
+    ).toBe(true);
+    expect(
+      ownedElements.some(
+        (element) => element instanceof GuitarTechniqueLabelElement
+      )
+    ).toBe(true);
+  });
+
+  test("adding a second technique gap line preserves distinct label y positions", () => {
+    const { track, bar } = createScoreGraph();
+    const vibratoNote = bar.beats[0].notes[0] as GuitarNote;
+    const palmMuteNote = bar.beats[0].notes[1] as GuitarNote;
+
+    palmMuteNote.addTechnique(
+      new GuitarTechnique(palmMuteNote, GuitarTechniqueType.PalmMute)
+    );
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    vibratoNote.addTechnique(
+      new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
+    );
+    trackElement.update();
+
+    const techGap =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].techGapElement;
+    const vibratoLine = techGap.techGapLines[1];
+    const palmMuteLine = techGap.techGapLines[2];
+    const vibratoLabel = vibratoLine?.labelElements[0];
+    const palmMuteLabel = palmMuteLine?.labelElements[0];
+
+    expect(vibratoLine).not.toBeNull();
+    expect(palmMuteLine).not.toBeNull();
+    expect(vibratoLabel).toBeDefined();
+    expect(palmMuteLabel).toBeDefined();
+    expect(vibratoLine?.boundingBox.height).toBe(
+      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+    );
+    expect(palmMuteLine?.boundingBox.height).toBe(
+      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+    );
+    expect(palmMuteLine?.boundingBox.y).toBeCloseTo(
+      vibratoLine?.boundingBox.bottom ?? 0
+    );
+    expect(palmMuteLabel?.globalCoords.y).toBeGreaterThan(
+      vibratoLabel?.globalCoords.y ?? 0
+    );
   });
 });

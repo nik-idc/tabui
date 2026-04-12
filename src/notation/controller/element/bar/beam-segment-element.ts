@@ -12,6 +12,20 @@ type ShortTailDirection = "left" | "right";
  * Class that handles geometry & visually relevant info of a beam segment
  */
 export class BeamSegmentElement implements NotationElement {
+  public static createStableIdentity(
+    barElement: BarElement,
+    curBeatElement: TabBeatElement,
+    nextBeatElement?: TabBeatElement,
+    prevBeatElement?: TabBeatElement
+  ): string {
+    const prevUUID = prevBeatElement?.beat.uuid ?? 0;
+    const curUUID = curBeatElement.beat.uuid;
+    const nextUUID = nextBeatElement?.beat.uuid ?? 0;
+    const terminalFlag = nextBeatElement === undefined ? 1 : 0;
+
+    return `beam:${barElement.bar.uuid}:${prevUUID}:${curUUID}:${nextUUID}:${terminalFlag}`;
+  }
+
   /** Unique identifier for the beam segment element */
   readonly uuid: number;
   /** Parent bar element */
@@ -129,6 +143,8 @@ export class BeamSegmentElement implements NotationElement {
    * Initializes the long and short rectangles for this segment
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
     this._longRects = [];
     this._shortRects = [];
 
@@ -298,13 +314,17 @@ export class BeamSegmentElement implements NotationElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    const prevUUID = this.prevBeatElement?.beat.uuid ?? 0;
-    const curUUID = this.curBeatElement.beat.uuid;
-    const nextUUID = this.nextBeatElement?.beat.uuid ?? 0;
-    const terminalFlag = this.nextBeatElement === undefined ? 1 : 0;
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [this];
+  }
 
-    return prevUUID + curUUID * 3 + nextUUID * 5 + terminalFlag * 7;
+  public getStableIdentity(): string {
+    return BeamSegmentElement.createStableIdentity(
+      this.barElement,
+      this.curBeatElement,
+      this.nextBeatElement,
+      this.prevBeatElement
+    );
   }
 
   /** Beam segment layout bounding box */

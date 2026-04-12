@@ -16,6 +16,7 @@ import { TechGapLineElement } from "./staff/tech-gap-line-element";
 import { TrackLineInfoElement } from "./track/track-line-info-element";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
+import { SheetBeatElement } from "./beat/sheet-beat-element";
 
 /**
  * ELEMENT_ORDER defines the order in which element types are rendered.
@@ -38,9 +39,9 @@ export const ELEMENT_ORDER: Array<NotationElementClass> = [
 ];
 
 export interface ElementDiff {
-  added: Map<NotationElementClass, Map<number, NotationElement>>;
-  updated: Map<NotationElementClass, Map<number, NotationElement>>;
-  removed: Map<NotationElementClass, Set<number>>;
+  added: Map<NotationElementClass, Map<string, NotationElement>>;
+  updated: Map<NotationElementClass, Map<string, NotationElement>>;
+  removed: Map<NotationElementClass, Set<string>>;
 }
 
 /**
@@ -55,15 +56,19 @@ export class TrackElement {
   /** Track line element */
   private _trackLineElements: TrackLineElement[];
 
-  /** Registry of all elements (modelUUID -> element) */
-  private _elementRegistry: Map<number, NotationElement>;
+  /** Registry of all elements by stable identity. */
+  private _elementRegistryByIdentity: Map<string, NotationElement>;
+  /** Registry of model-backed elements by model UUID. */
+  private _elementRegistryByModelUUID: Map<number, NotationElement>;
   /** Keeps track of all elements' hash strings */
-  private _elementHashes: Map<number, string>;
+  private _elementHashesByIdentity: Map<string, string>;
   /** Keeps track of changed elements grouped by type */
   private _dirtyElements: Map<
     NotationElementClass,
-    Map<number, NotationElement>
+    Map<string, NotationElement>
   >;
+  /** Controls whether build paths may reuse existing element instances. */
+  private _useElementReuse: boolean;
   /** Structural diff between previous and current update cycles */
   private _elementDiff: ElementDiff;
 
@@ -79,9 +84,11 @@ export class TrackElement {
     this.track = track;
 
     this._trackLineElements = [];
-    this._elementRegistry = new Map();
-    this._elementHashes = new Map();
+    this._elementRegistryByIdentity = new Map();
+    this._elementRegistryByModelUUID = new Map();
+    this._elementHashesByIdentity = new Map();
     this._dirtyElements = new Map();
+    this._useElementReuse = true;
     this._elementDiff = this.createEmptyDiff();
 
     this.build();
@@ -93,7 +100,8 @@ export class TrackElement {
    */
   public build(): void {
     // Clear element registry to avoid duplicates on rebuild
-    this._elementRegistry.clear();
+    this._elementRegistryByIdentity.clear();
+    this._elementRegistryByModelUUID.clear();
 
     // Step 1: Organize bars into lines
     let width = 0;
@@ -145,13 +153,44 @@ export class TrackElement {
       linesData.push(curLineData);
     }
 
-    // Step 2: Use the 'linesData' array to build track line elements
+    // Step 2: Rebuild or reuse track line elements by stable identity.
+    const prevTrackLineElements = this._useElementReuse
+      ? new Map(
+          this._trackLineElements.map((element) => [
+            element.getStableIdentity(),
+            element,
+          ])
+        )
+      : new Map<string, TrackLineElement>();
     this._trackLineElements = [];
     for (const data of linesData) {
+      const stableIdentity = TrackLineElement.createStableIdentity(
+        this.track,
+        data
+      );
+      const existingTrackLineElement =
+        prevTrackLineElements.get(stableIdentity);
+      if (existingTrackLineElement !== undefined) {
+        existingTrackLineElement.setTrackLineData(data);
+        existingTrackLineElement.build();
+        this._trackLineElements.push(existingTrackLineElement);
+        continue;
+      }
+
       this._trackLineElements.push(
         new TrackLineElement(this.track, this, data)
       );
     }
+  }
+
+  /**
+   * Preserved full rebuild path for Phase 3 benchmarking/comparison.
+   */
+  public buildOld(): void {
+    const prevUseElementReuse = this._useElementReuse;
+    this._useElementReuse = false;
+    this.build();
+    this._useElementReuse = prevUseElementReuse;
   }
 
   /**
@@ -161,6 +200,13 @@ export class TrackElement {
     for (const trackLine of this._trackLineElements) {
       trackLine.measure();
     }
+  }
+
+  /**
+   * Preserved full measure path for Phase 3 benchmarking/comparison.
+   */
+  public measureOld(): void {
+    this.measure();
   }
 
   /**
@@ -177,14 +223,21 @@ export class TrackElement {
   }
 
   /**
+   * Preserved full layout path for Phase 3 benchmarking/comparison.
+   */
+  public layoutOld(): void {
+    this.layout();
+  }
+
+  /**
    * Updates the entire state of the track element in 3 steps:
    * - Build
    * - Measure
    * - Layout
    */
   public update(): void {
-    const prevRegistry = new Map(this._elementRegistry);
-    const prevHashes = new Map(this._elementHashes);
+    const prevRegistry = new Map(this._elementRegistryByIdentity);
+    const prevHashes = new Map(this._elementHashesByIdentity);
 
     this.build();
     this.measure();
@@ -195,10 +248,38 @@ export class TrackElement {
     this.checkAllDirty();
   }
 
+  /**
+   * Preserved full-tree rebuild update path for Phase 3 benchmarking/comparison.
+   */
+  public updateOld(): void {
+    const prevRegistry = new Map(this._elementRegistryByIdentity);
+    const prevHashes = new Map(this._elementHashesByIdentity);
+
+    this.buildOld();
+    this.measureOld();
+    this.layoutOld();
+
+    this.computeElementDiff(prevRegistry, prevHashes);
+
+    this.checkAllDirty();
+  }
+
   public checkIfDirty(_element: NotationElement): void {}
 
   public registerElement(element: NotationElement): void {
-    this._elementRegistry.set(element.getModelUUID(), element);
+    this._elementRegistryByIdentity.set(element.getStableIdentity(), element);
+
+    if (
+      element instanceof BarElement ||
+      element instanceof TabBeatElement ||
+      element instanceof SheetBeatElement ||
+      element instanceof TabNoteElement ||
+      element instanceof GuitarTechniqueElement ||
+      element instanceof BarTupletGroupElement
+    ) {
+      const modelUUID = this.getBackingModelUUID(element);
+      this._elementRegistryByModelUUID.set(modelUUID, element);
+    }
   }
 
   public checkAllDirty(): void {
@@ -207,9 +288,9 @@ export class TrackElement {
       map.clear();
     }
 
-    for (const element of this._elementRegistry.values()) {
-      const modelUUID = element.getModelUUID();
-      const prevHash = this._elementHashes.get(modelUUID);
+    for (const element of this._elementRegistryByIdentity.values()) {
+      const stableIdentity = element.getStableIdentity();
+      const prevHash = this._elementHashesByIdentity.get(stableIdentity);
       const curHash = element.stateHash;
 
       if (prevHash === undefined || prevHash !== curHash) {
@@ -219,15 +300,15 @@ export class TrackElement {
           this._dirtyElements.set(ElementClass, new Map());
         }
 
-        this._dirtyElements.get(ElementClass)!.set(modelUUID, element);
-        this._elementHashes.set(modelUUID, curHash);
+        this._dirtyElements.get(ElementClass)!.set(stableIdentity, element);
+        this._elementHashesByIdentity.set(stableIdentity, curHash);
       }
     }
   }
 
   public getDirtyElements(): Map<
     NotationElementClass,
-    Map<number, NotationElement>
+    Map<string, NotationElement>
   > {
     return this._dirtyElements;
   }
@@ -242,27 +323,31 @@ export class TrackElement {
 
   /** Read-only registry view for model UUID lookups. */
   public getElementRegistry(): ReadonlyMap<number, NotationElement> {
-    return this._elementRegistry;
+    return this._elementRegistryByModelUUID;
   }
 
   public getRegisteredElements(): NotationElement[] {
-    return Array.from(this._elementRegistry.values());
+    return Array.from(this._elementRegistryByIdentity.values());
   }
 
   public getElementByModelUUID(modelUUID: number): NotationElement | undefined {
-    return this._elementRegistry.get(modelUUID);
+    return this._elementRegistryByModelUUID.get(modelUUID);
   }
 
   /** Finds corresponding beat element */
   public findCorrespondingBeatElement(beat: Beat): BeatElement | undefined {
-    const element = this._elementRegistry.get(beat.uuid);
+    const element = this._elementRegistryByModelUUID.get(beat.uuid);
     return element instanceof TabBeatElement ? element : undefined;
   }
 
   /** Finds beat element by beat UUID */
   public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
-    const element = this._elementRegistry.get(beatUUID);
+    const element = this._elementRegistryByModelUUID.get(beatUUID);
     return element instanceof TabBeatElement ? element : undefined;
+  }
+
+  public get useElementReuse(): boolean {
+    return this._useElementReuse;
   }
 
   /** Gets beat element global coords */
@@ -290,53 +375,78 @@ export class TrackElement {
   }
 
   private addToDiff(
-    diffMap: Map<NotationElementClass, Map<number, NotationElement>>,
+    diffMap: Map<NotationElementClass, Map<string, NotationElement>>,
     element: NotationElement
   ): void {
     const elementClass = element.constructor as NotationElementClass;
     if (!diffMap.has(elementClass)) {
       diffMap.set(elementClass, new Map());
     }
-    diffMap.get(elementClass)!.set(element.getModelUUID(), element);
+    diffMap.get(elementClass)!.set(element.getStableIdentity(), element);
   }
 
   private addToRemovedDiff(
-    removedMap: Map<NotationElementClass, Set<number>>,
+    removedMap: Map<NotationElementClass, Set<string>>,
     element: NotationElement
   ): void {
     const elementClass = element.constructor as NotationElementClass;
     if (!removedMap.has(elementClass)) {
       removedMap.set(elementClass, new Set());
     }
-    removedMap.get(elementClass)!.add(element.getModelUUID());
+    removedMap.get(elementClass)!.add(element.getStableIdentity());
   }
 
   private computeElementDiff(
-    prevRegistry: Map<number, NotationElement>,
-    prevHashes: Map<number, string>
+    prevRegistry: Map<string, NotationElement>,
+    prevHashes: Map<string, string>
   ): void {
     this._elementDiff = this.createEmptyDiff();
 
-    for (const [modelUUID, element] of this._elementRegistry) {
-      const prevElement = prevRegistry.get(modelUUID);
+    for (const [stableIdentity, element] of this._elementRegistryByIdentity) {
+      const prevElement = prevRegistry.get(stableIdentity);
       if (prevElement === undefined) {
         this.addToDiff(this._elementDiff.added, element);
         continue;
       }
 
-      const prevHash = prevHashes.get(modelUUID);
+      const prevHash = prevHashes.get(stableIdentity);
       const curHash = element.stateHash;
       if (prevHash === undefined || prevHash !== curHash) {
         this.addToDiff(this._elementDiff.updated, element);
       }
     }
 
-    for (const [modelUUID, element] of prevRegistry) {
-      if (this._elementRegistry.has(modelUUID)) {
+    for (const [stableIdentity, element] of prevRegistry) {
+      if (this._elementRegistryByIdentity.has(stableIdentity)) {
         continue;
       }
       this.addToRemovedDiff(this._elementDiff.removed, element);
     }
+  }
+
+  private getBackingModelUUID(element: NotationElement): number {
+    if (element instanceof BarElement) {
+      return element.bar.uuid;
+    }
+    if (
+      element instanceof TabBeatElement ||
+      element instanceof SheetBeatElement
+    ) {
+      return element.beat.uuid;
+    }
+    if (element instanceof TabNoteElement) {
+      return element.note.uuid;
+    }
+    if (element instanceof GuitarTechniqueElement) {
+      return element.technique.uuid;
+    }
+    if (element instanceof BarTupletGroupElement) {
+      return element.tupletGroup.uuid;
+    }
+
+    throw new Error(
+      "Tried to get model UUID of an element with no model backing"
+    );
   }
 
   /**

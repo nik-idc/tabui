@@ -35,6 +35,17 @@ type OutlineLines = {
  * Class that handles all geometry & visually relevant info of a track line
  */
 export class TrackLineElement implements NotationElement {
+  public static createStableIdentity(
+    track: Track,
+    trackLineData: TrackLineData
+  ): string {
+    const firstMasterBarIndex = trackLineData[0]?.masterBarIndex ?? 0;
+    const lastMasterBarIndex =
+      trackLineData[trackLineData.length - 1]?.masterBarIndex ?? 0;
+
+    return `track-line:${track.uuid}:${firstMasterBarIndex}:${lastMasterBarIndex}`;
+  }
+
   /** Unique identifier for the track line element */
   readonly uuid: number;
   /** Track */
@@ -46,6 +57,8 @@ export class TrackLineElement implements NotationElement {
   private _staffLineElements: StaffLineElement[];
   /** Track line info (tempo) */
   private _trackLineInfoElement: TrackLineInfoElement | null;
+  /** Notation elements owned by this track line in traversal order. */
+  private _ownedNotationElements: NotationElement[];
 
   /** Track line encapsulating rectangle */
   private _boundingBox: Rect;
@@ -73,6 +86,7 @@ export class TrackLineElement implements NotationElement {
 
     this._staffLineElements = [];
     this._trackLineInfoElement = null;
+    this._ownedNotationElements = [];
 
     this._boundingBox = new Rect();
     this._trackLineData = trackLineData;
@@ -88,6 +102,16 @@ export class TrackLineElement implements NotationElement {
    * Fills staff lines array
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
+    const prevStaffLineElements = this.trackElement.useElementReuse
+      ? new Map(
+          this._staffLineElements.map((element) => [
+            element.getStableIdentity(),
+            element,
+          ])
+        )
+      : new Map<string, StaffLineElement>();
     this._staffLineElements = [];
     for (const staff of this.track.staves) {
       const data: StaffLineData = this._trackLineData.map((td) => {
@@ -97,8 +121,17 @@ export class TrackLineElement implements NotationElement {
         };
       });
 
-      const staffLineElement = new StaffLineElement(staff, this, data);
-      this._staffLineElements.push(staffLineElement);
+      const stableIdentity = StaffLineElement.createStableIdentity(this, staff);
+      const existingStaffLineElement =
+        prevStaffLineElements.get(stableIdentity);
+      if (existingStaffLineElement !== undefined) {
+        existingStaffLineElement.setStaffLineData(data);
+        existingStaffLineElement.build();
+        this._staffLineElements.push(existingStaffLineElement);
+        continue;
+      }
+
+      this._staffLineElements.push(new StaffLineElement(staff, this, data));
     }
 
     if (this.track.staves.length > 1) {
@@ -110,7 +143,22 @@ export class TrackLineElement implements NotationElement {
       this._outlineLines = undefined;
     }
 
-    this._trackLineInfoElement = new TrackLineInfoElement(this);
+    const trackLineInfoStableIdentity =
+      TrackLineInfoElement.createStableIdentity(this);
+    if (
+      this.trackElement.useElementReuse &&
+      this._trackLineInfoElement !== null &&
+      this._trackLineInfoElement.getStableIdentity() ===
+        trackLineInfoStableIdentity
+    ) {
+      this._trackLineInfoElement.build();
+    } else {
+      this._trackLineInfoElement = new TrackLineInfoElement(this);
+    }
+  }
+
+  public setTrackLineData(trackLineData: TrackLineData): void {
+    this._trackLineData = trackLineData;
   }
 
   /**
@@ -137,6 +185,8 @@ export class TrackLineElement implements NotationElement {
     const height =
       sumStaffHeight + this._trackLineInfoElement.boundingBox.height;
     this._boundingBox.setDimensions(width, height);
+
+    this.refreshOwnedNotationElements();
   }
 
   /**
@@ -302,44 +352,20 @@ export class TrackLineElement implements NotationElement {
    *    TrackElement then remains an orchestrator/builder rather than
    *    traversal owner.
    */
-  public getAllNotationElements(): NotationElement[] {
+  public refreshOwnedNotationElements(): NotationElement[] {
     const elements: NotationElement[] = [this];
 
     if (this._trackLineInfoElement !== null) {
-      elements.push(this._trackLineInfoElement);
+      elements.push(
+        ...this._trackLineInfoElement.refreshOwnedNotationElements()
+      );
     }
 
     for (const staffLine of this._staffLineElements) {
-      elements.push(staffLine);
-
-      for (const styleLine of staffLine.styleLinesAsArray) {
-        elements.push(styleLine);
-
-        const techGap = styleLine.techGapElement;
-        elements.push(techGap);
-
-        for (const techGapLine of techGap.techGapLinesAsArray) {
-          elements.push(techGapLine);
-          elements.push(...techGapLine.labelElements);
-        }
-
-        for (const barElement of styleLine.barElements) {
-          elements.push(barElement);
-          elements.push(...barElement.beamSegments);
-          elements.push(...barElement.tupletElements);
-
-          for (const beatElement of barElement.beatElements) {
-            elements.push(beatElement);
-
-            for (const noteElement of beatElement.noteElements) {
-              elements.push(noteElement);
-              elements.push(...noteElement.techniqueElements);
-            }
-          }
-        }
-      }
+      elements.push(...staffLine.refreshOwnedNotationElements());
     }
 
+    this._ownedNotationElements = elements;
     return elements;
   }
 
@@ -348,12 +374,11 @@ export class TrackLineElement implements NotationElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    const firstMasterBarIndex = this._trackLineData[0]?.masterBarIndex ?? 0;
-    const lastMasterBarIndex =
-      this._trackLineData[this._trackLineData.length - 1]?.masterBarIndex ?? 0;
-
-    return this.track.uuid + firstMasterBarIndex + lastMasterBarIndex;
+  public getStableIdentity(): string {
+    return TrackLineElement.createStableIdentity(
+      this.track,
+      this._trackLineData
+    );
   }
 
   /** Staff line element on this track line */
@@ -364,6 +389,10 @@ export class TrackLineElement implements NotationElement {
   /** Track line info (tempo) */
   public get trackLineInfoElement(): TrackLineInfoElement | null {
     return this._trackLineInfoElement;
+  }
+
+  public get ownedNotationElements(): NotationElement[] {
+    return this._ownedNotationElements;
   }
 
   /** Left & right outline line for when there are more than 1 staves */

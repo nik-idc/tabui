@@ -16,7 +16,6 @@ import { ElementRenderer } from "../element-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 import { ELEMENT_ORDER } from "@/notation/controller/element/track-element";
 import { createRendererForElement } from "./support/renderer-factory";
-import { rebindRendererElement } from "./support/renderer-rebinder";
 import { SelectionOverlayRenderer } from "./selection-overlay-renderer";
 
 /**
@@ -50,9 +49,9 @@ export class EditorSVGRenderer implements EditorRenderer {
   private _playerCursorRect?: SVGRectElement;
 
   /** Registry mapping model UUID to renderer. */
-  private _rendererRegistry: Map<number, ElementRenderer>;
+  private _rendererRegistry: Map<string, ElementRenderer>;
   /** Renderer UUIDs currently mounted in layer groups. */
-  private _mountedRendererUUIDs: Set<number>;
+  private _mountedRendererUUIDs: Set<string>;
   /** Viewport rectangle inside notation scroll container. */
   private _viewportRect: Rect;
 
@@ -208,46 +207,45 @@ export class EditorSVGRenderer implements EditorRenderer {
       visibleTrackLineRange.end + 1
     );
 
-    return trackLines.flatMap((trackLine) =>
-      trackLine.getAllNotationElements()
-    );
+    return trackLines.flatMap((trackLine) => trackLine.ownedNotationElements);
   }
 
   private updateRendererElement(
     renderer: ElementRenderer,
     element: NotationElement
   ): void {
-    rebindRendererElement(renderer, element);
+    void renderer;
+    void element;
   }
 
-  private removeByDiff(modelUUIDs: number[]): void {
-    for (const modelUUID of modelUUIDs) {
-      const renderer = this._rendererRegistry.get(modelUUID);
+  private removeByDiff(stableIdentities: string[]): void {
+    for (const stableIdentity of stableIdentities) {
+      const renderer = this._rendererRegistry.get(stableIdentity);
       if (renderer === undefined) {
         continue;
       }
 
       renderer.unrender();
       renderer.detachContainerGroup();
-      this._rendererRegistry.delete(modelUUID);
-      this._mountedRendererUUIDs.delete(modelUUID);
+      this._rendererRegistry.delete(stableIdentity);
+      this._mountedRendererUUIDs.delete(stableIdentity);
     }
   }
 
-  private cullInvisibleRenderers(visibleModelUUIDs: Set<number>): void {
-    for (const modelUUID of this._mountedRendererUUIDs) {
-      if (visibleModelUUIDs.has(modelUUID)) {
+  private cullInvisibleRenderers(visibleStableIdentities: Set<string>): void {
+    for (const stableIdentity of this._mountedRendererUUIDs) {
+      if (visibleStableIdentities.has(stableIdentity)) {
         continue;
       }
 
-      const renderer = this._rendererRegistry.get(modelUUID);
+      const renderer = this._rendererRegistry.get(stableIdentity);
       if (renderer === undefined) {
-        this._mountedRendererUUIDs.delete(modelUUID);
+        this._mountedRendererUUIDs.delete(stableIdentity);
         continue;
       }
 
       renderer.detachContainerGroup();
-      this._mountedRendererUUIDs.delete(modelUUID);
+      this._mountedRendererUUIDs.delete(stableIdentity);
     }
   }
 
@@ -256,35 +254,35 @@ export class EditorSVGRenderer implements EditorRenderer {
     visibleElements: NotationElement[]
   ): ElementRenderer[] {
     const diff = trackController.trackElement.getElementDiff();
-    const visibleModelUUIDs = new Set(
-      visibleElements.map((element) => element.getModelUUID())
+    const visibleStableIdentities = new Set(
+      visibleElements.map((element) => element.getStableIdentity())
     );
 
     // Step 1: Unrender removed elements
-    const removedUUIDs: number[] = [];
+    const removedStableIdentities: string[] = [];
     for (const uuidSet of diff.removed.values()) {
-      removedUUIDs.push(...uuidSet.values());
+      removedStableIdentities.push(...uuidSet.values());
     }
-    this.removeByDiff(removedUUIDs);
+    this.removeByDiff(removedStableIdentities);
 
     // Step 2: Detach invisible renderers but keep them cached for reuse.
-    this.cullInvisibleRenderers(visibleModelUUIDs);
+    this.cullInvisibleRenderers(visibleStableIdentities);
 
     // Step 3: Re-render visible elements when needed (new, updated, remounted).
-    const updatedVisibleUUIDs = new Set<number>();
+    const updatedVisibleUUIDs = new Set<string>();
     for (const elementMap of diff.updated.values()) {
       for (const element of elementMap.values()) {
-        const modelUUID = element.getModelUUID();
-        if (visibleModelUUIDs.has(modelUUID)) {
-          updatedVisibleUUIDs.add(modelUUID);
+        const stableIdentity = element.getStableIdentity();
+        if (visibleStableIdentities.has(stableIdentity)) {
+          updatedVisibleUUIDs.add(stableIdentity);
         }
       }
     }
 
     const activeRenderers: ElementRenderer[] = [];
     for (const element of visibleElements) {
-      const modelUUID = element.getModelUUID();
-      let renderer = this._rendererRegistry.get(modelUUID);
+      const stableIdentity = element.getStableIdentity();
+      let renderer = this._rendererRegistry.get(stableIdentity);
       let isNewRenderer = false;
       if (renderer === undefined) {
         const newRenderer = createRendererForElement(
@@ -297,19 +295,23 @@ export class EditorSVGRenderer implements EditorRenderer {
         }
 
         renderer = newRenderer;
-        this._rendererRegistry.set(modelUUID, renderer);
+        this._rendererRegistry.set(stableIdentity, renderer);
         isNewRenderer = true;
       }
 
-      const wasMounted = this._mountedRendererUUIDs.has(modelUUID);
-      if (updatedVisibleUUIDs.has(modelUUID) || !wasMounted) {
+      const wasMounted = this._mountedRendererUUIDs.has(stableIdentity);
+      if (updatedVisibleUUIDs.has(stableIdentity) || !wasMounted) {
         this.updateRendererElement(renderer, element);
       }
 
       this.ensureRendererMounted(renderer, element);
-      this._mountedRendererUUIDs.add(modelUUID);
+      this._mountedRendererUUIDs.add(stableIdentity);
 
-      if (isNewRenderer || updatedVisibleUUIDs.has(modelUUID) || !wasMounted) {
+      if (
+        isNewRenderer ||
+        updatedVisibleUUIDs.has(stableIdentity) ||
+        !wasMounted
+      ) {
         renderer.render();
       }
 
@@ -525,7 +527,7 @@ class BeatInteractionLayer {
         continue;
       }
 
-      const modelUUID = element.getModelUUID();
+      const modelUUID = element.beat.uuid;
       activeBeatUUIDs.add(modelUUID);
 
       let rect = this._beatInteractionRects.get(modelUUID);

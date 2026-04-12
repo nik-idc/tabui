@@ -19,6 +19,10 @@ import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
  * to which the technique is applied
  */
 export class GuitarTechniqueElement implements TechniqueElement {
+  public static createStableIdentity(technique: GuitarTechnique): string {
+    return `technique:${technique.uuid}`;
+  }
+
   /** Guitar note element's unique identifier */
   readonly uuid: number;
   /** Technique */
@@ -382,6 +386,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Initializes the path descriptors for non-inline techniques.
    */
   build(): void {
+    this.trackElement.registerElement(this);
+
     if (TECHNIQUE_IS_INLINE[this.technique.type]) {
       this._pathDescriptors = [];
     } else {
@@ -434,6 +440,10 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [this];
+  }
+
   /**
    * Scales the technique element horizontally by the factor
    * @param scale Scale factor
@@ -449,8 +459,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    return this.technique.uuid;
+  public getStableIdentity(): string {
+    return GuitarTechniqueElement.createStableIdentity(this.technique);
   }
 
   /** Start point */

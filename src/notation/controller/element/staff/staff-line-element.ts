@@ -32,14 +32,19 @@ export type StaffLineData = StaffLineBarData[];
  * Class that handles all geometry & visually relevant info of a staff line
  */
 export class StaffLineElement implements NotationElement {
+  public static createStableIdentity(
+    trackLineElement: TrackLineElement,
+    staff: Staff
+  ): string {
+    return `staff-line:${trackLineElement.getStableIdentity()}:${staff.uuid}`;
+  }
+
   /** Unique identifier for the staff line element */
   readonly uuid: number;
   /** Staff */
   readonly staff: Staff;
   /** Parent track line element */
   readonly trackLineElement: TrackLineElement;
-  /** Data necessary to build a staff line */
-  readonly staffLineData: StaffLineData;
   /** Root track element */
   readonly trackElement: TrackElement;
 
@@ -48,6 +53,8 @@ export class StaffLineElement implements NotationElement {
     NotationStyle,
     NotationStyleLineElement | null
   >;
+  /** Data necessary to build a staff line */
+  private _staffLineData: StaffLineData;
 
   /** Line encapsulating rectangle */
   private _boundingBox: Rect;
@@ -69,7 +76,7 @@ export class StaffLineElement implements NotationElement {
     this.staff = staff;
     this.trackLineElement = trackLineElement;
     this.trackElement = this.trackLineElement.trackElement;
-    this.staffLineData = staffLineData;
+    this._staffLineData = staffLineData;
 
     this._notationStyleLineElements = {
       [NotationStyle.Classic]: null,
@@ -89,15 +96,42 @@ export class StaffLineElement implements NotationElement {
    * Fills the notation style lines array
    */
   public build(): void {
-    this._notationStyleLineElements[NotationStyle.Classic] = this.staff
-      .showClassicNotation
-      ? new NotationStyleLineElement(this, NotationStyle.Classic)
-      : null;
+    this.trackElement.registerElement(this);
 
-    this._notationStyleLineElements[NotationStyle.Tablature] = this.staff
-      .showTablature
-      ? new NotationStyleLineElement(this, NotationStyle.Tablature)
+    const existingClassic = this.trackElement.useElementReuse
+      ? this._notationStyleLineElements[NotationStyle.Classic]
       : null;
+    if (this.staff.showClassicNotation) {
+      if (existingClassic !== null) {
+        existingClassic.build();
+        this._notationStyleLineElements[NotationStyle.Classic] =
+          existingClassic;
+      } else {
+        this._notationStyleLineElements[NotationStyle.Classic] =
+          new NotationStyleLineElement(this, NotationStyle.Classic);
+      }
+    } else {
+      this._notationStyleLineElements[NotationStyle.Classic] = null;
+    }
+
+    const existingTab = this.trackElement.useElementReuse
+      ? this._notationStyleLineElements[NotationStyle.Tablature]
+      : null;
+    if (this.staff.showTablature) {
+      if (existingTab !== null) {
+        existingTab.build();
+        this._notationStyleLineElements[NotationStyle.Tablature] = existingTab;
+      } else {
+        this._notationStyleLineElements[NotationStyle.Tablature] =
+          new NotationStyleLineElement(this, NotationStyle.Tablature);
+      }
+    } else {
+      this._notationStyleLineElements[NotationStyle.Tablature] = null;
+    }
+  }
+
+  public setStaffLineData(staffLineData: StaffLineData): void {
+    this._staffLineData = staffLineData;
   }
 
   /**
@@ -169,6 +203,16 @@ export class StaffLineElement implements NotationElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    for (const styleLine of this.styleLinesAsArray) {
+      elements.push(...styleLine.refreshOwnedNotationElements());
+    }
+
+    return elements;
+  }
+
   /**
    * Scales the element & its children horizontally by the factor
    * @param scale Scale factor
@@ -224,8 +268,11 @@ export class StaffLineElement implements NotationElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    return this.trackLineElement.getModelUUID() + this.staff.uuid;
+  public getStableIdentity(): string {
+    return StaffLineElement.createStableIdentity(
+      this.trackLineElement,
+      this.staff
+    );
   }
 
   /** Style line elements record object */
@@ -247,6 +294,10 @@ export class StaffLineElement implements NotationElement {
     }
 
     return result;
+  }
+
+  public get staffLineData(): StaffLineData {
+    return this._staffLineData;
   }
 
   /** Line layout bounding box getter */

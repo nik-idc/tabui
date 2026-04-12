@@ -18,6 +18,13 @@ import { TechGapElement } from "./tech-gap-element";
  * NotationStyleLineElement for the tab and the other for sheet notation
  */
 export class NotationStyleLineElement implements NotationElement {
+  public static createStableIdentity(
+    staffLineElement: StaffLineElement,
+    notationStyle: NotationStyle
+  ): string {
+    return `style-line:${staffLineElement.getStableIdentity()}:${notationStyle}`;
+  }
+
   /** Unique identifier for the staff line element */
   readonly uuid: number;
   /** Parent staff line element */
@@ -67,10 +74,38 @@ export class NotationStyleLineElement implements NotationElement {
    * Builds the bar elements array for this notation style line
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+    if (
+      !this.trackElement.useElementReuse ||
+      this._techGapElement === undefined
+    ) {
+      this._techGapElement = new TechGapElement(this);
+    } else {
+      this._techGapElement.build();
+    }
+
+    const prevBarElements = this.trackElement.useElementReuse
+      ? new Map(
+          this._barElements.map((element) => [
+            element.getStableIdentity(),
+            element,
+          ])
+        )
+      : new Map<string, BarElement>();
     this._barElements = [];
     for (const data of this.staffLineElement.staffLineData) {
-      const barElement = new BarElement(data.bar, this, data.largestBarWidth);
-      this._barElements.push(barElement);
+      const stableIdentity = BarElement.createStableIdentity(data.bar);
+      const existingBarElement = prevBarElements.get(stableIdentity);
+      if (existingBarElement !== undefined) {
+        existingBarElement.setDesiredWidth(data.largestBarWidth);
+        existingBarElement.build();
+        this._barElements.push(existingBarElement);
+        continue;
+      }
+
+      this._barElements.push(
+        new BarElement(data.bar, this, data.largestBarWidth)
+      );
     }
   }
 
@@ -131,6 +166,17 @@ export class NotationStyleLineElement implements NotationElement {
 
     this.measure();
     this.layout();
+  }
+
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    elements.push(...this._techGapElement.refreshOwnedNotationElements());
+    for (const barElement of this._barElements) {
+      elements.push(...barElement.refreshOwnedNotationElements());
+    }
+
+    return elements;
   }
 
   /**
@@ -225,8 +271,11 @@ export class NotationStyleLineElement implements NotationElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    return this.staffLineElement.getModelUUID() + this.notationStyle;
+  public getStableIdentity(): string {
+    return NotationStyleLineElement.createStableIdentity(
+      this.staffLineElement,
+      this.notationStyle
+    );
   }
 
   /** Bar elements on this line */

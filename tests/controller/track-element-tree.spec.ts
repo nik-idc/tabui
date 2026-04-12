@@ -2,7 +2,8 @@ import { TrackElement } from "../../src/notation/controller/element/track-elemen
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { DEFAULT_MASTER_BAR } from "../../src/notation/model";
-import { createScoreGraph } from "../model/helpers";
+import { createBarWithBeats, createScoreGraph } from "../model/helpers";
+import { NoteDuration } from "../../src/notation/model";
 import { ensureLayoutConfigured } from "./helpers";
 
 describe("TrackElement tree", () => {
@@ -44,6 +45,43 @@ describe("TrackElement tree", () => {
     expect(beatElement?.beat.uuid).toBe(beat.uuid);
   });
 
+  test("no-op update preserves core element object identity", () => {
+    const { track } = createScoreGraph();
+    const trackElement = new TrackElement(track);
+
+    trackElement.update();
+
+    const trackLine = trackElement.trackLineElements[0];
+    const staffLine = trackLine.staffLineElements[0];
+    const styleLine = staffLine.styleLinesAsArray[0];
+    const barElement = styleLine.barElements[0];
+    const beatElement = barElement.beatElements[0];
+    const noteElement = beatElement.noteElements[0];
+
+    trackElement.update();
+
+    expect(trackElement.trackLineElements[0]).toBe(trackLine);
+    expect(trackElement.trackLineElements[0].staffLineElements[0]).toBe(
+      staffLine
+    );
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0]
+    ).toBe(styleLine);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0]
+    ).toBe(barElement);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0].beatElements[0]
+    ).toBe(beatElement);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0]
+    ).toBe(noteElement);
+  });
+
   test("element diff reports beat additions and removals", () => {
     const { track, bar } = createScoreGraph();
     const trackElement = new TrackElement(track);
@@ -55,16 +93,47 @@ describe("TrackElement tree", () => {
     trackElement.update();
 
     const addDiff = trackElement.getElementDiff();
-    expect(addDiff.added.get(TabBeatElement)?.has(addedBeat.uuid)).toBe(true);
+    expect(
+      addDiff.added.get(TabBeatElement)?.has(`beat:${addedBeat.uuid}`)
+    ).toBe(true);
 
     trackElement.clearElementDiff();
     bar.removeBeat(1);
     trackElement.update();
 
     const removeDiff = trackElement.getElementDiff();
-    expect(removeDiff.removed.get(TabBeatElement)?.has(addedBeat.uuid)).toBe(
-      true
-    );
+    expect(
+      removeDiff.removed.get(TabBeatElement)?.has(`beat:${addedBeat.uuid}`)
+    ).toBe(true);
+  });
+
+  test("width-affecting updates keep note x coordinates aligned with legacy rebuild", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+
+    const trackElement = new TrackElement(track);
+    const legacyTrackElement = new TrackElement(track);
+
+    beats[0].baseDuration = NoteDuration.Eighth;
+    beats[0].bar.rebuildTiming();
+
+    trackElement.update();
+    legacyTrackElement.updateOld();
+
+    const noteX =
+      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements.map(
+        (beatElement) => beatElement.noteElements[0].textCoordsGlobal.x
+      );
+    const legacyNoteX =
+      legacyTrackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements.map(
+        (beatElement) => beatElement.noteElements[0].textCoordsGlobal.x
+      );
+
+    expect(noteX).toEqual(legacyNoteX);
   });
 
   test("wraps whole bars onto next track line and keeps line navigation/selection consistent", () => {

@@ -22,7 +22,7 @@ export interface NotationElement {
   get rect(): Rect;
   get globalRect(): Rect;
 
-  getModelUUID(): number;
+  getStableIdentity(): string;
 }
 
 export type NotationElementClass = new (...args: any[]) => NotationElement;

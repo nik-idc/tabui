@@ -19,6 +19,10 @@ import { BarElement } from "../bar/bar-element";
  * Class that handles geometry & visually relevant info of a beat
  */
 export class SheetBeatElement implements BeatElement {
+  public static createStableIdentity(beat: Beat): string {
+    return `beat:${beat.uuid}`;
+  }
+
   /** Beat element's unique identifier */
   readonly uuid: number;
   /** The beat */
@@ -96,8 +100,8 @@ export class SheetBeatElement implements BeatElement {
     return this._boundingBox;
   }
 
-  public getModelUUID(): number {
-    return this.beat.uuid;
+  public getStableIdentity(): string {
+    return SheetBeatElement.createStableIdentity(this.beat);
   }
 
   public get durationRect(): Rect {
@@ -149,6 +153,10 @@ export class SheetBeatElement implements BeatElement {
   }
 
   public update(): void {}
+
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [this];
+  }
 
   public getNextNoteElement(noteElement: NoteElement): NoteElement | null {
     return null;

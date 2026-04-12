@@ -12,6 +12,12 @@ import { NotationStyleLineElement } from "./notation-style-line-element";
  * Class that handles all visually relevant info of a technique gap
  */
 export class TechGapElement implements NotationElement {
+  public static createStableIdentity(
+    notationStyleLineElement: NotationStyleLineElement
+  ): string {
+    return `tech-gap:${notationStyleLineElement.getStableIdentity()}`;
+  }
+
   /** Unique identifier for this element */
   readonly uuid: number;
   /** Parent notation style line element */
@@ -21,6 +27,8 @@ export class TechGapElement implements NotationElement {
 
   /** Child tech gap line elements */
   private _techGapLines: Record<TechLineNumber, TechGapLineElement | null>;
+  /** Stable key for each child gap line */
+  private _techGapLinesByIdentity: Map<string, TechGapLineElement>;
 
   /** Outer rectangle */
   private _boundingBox: Rect;
@@ -41,6 +49,7 @@ export class TechGapElement implements NotationElement {
       2: null,
       3: null,
     };
+    this._techGapLinesByIdentity = new Map();
 
     this._stateHash = "";
 
@@ -49,15 +58,40 @@ export class TechGapElement implements NotationElement {
     this.trackElement.registerElement(this);
   }
 
-  /** Dummy build function to comply with the interface
-   * TODO: Rethink this element's update process
+  /**
+   * Builds or reuses child gap line elements.
    */
-  public build(): void {}
+  public build(): void {
+    this.trackElement.registerElement(this);
+
+    const prevGapLines = this.trackElement.useElementReuse
+      ? new Map(this._techGapLinesByIdentity)
+      : new Map<string, TechGapLineElement>();
+    this._techGapLinesByIdentity.clear();
+
+    for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {
+      const stableIdentity = TechGapLineElement.createStableIdentity(
+        this,
+        lineNumber
+      );
+      let gapLine = prevGapLines.get(stableIdentity);
+      if (gapLine === undefined) {
+        gapLine = new TechGapLineElement(this, lineNumber);
+      }
+
+      this._techGapLines[lineNumber] = gapLine;
+      this._techGapLinesByIdentity.set(stableIdentity, gapLine);
+    }
+  }
 
   /**
    * Sets the dimensions of all child tech gap line elements
    */
   public measure(): void {
+    for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {
+      this._techGapLines[lineNumber]?.build();
+    }
+
     for (const barElement of this.notationStyleLineElement.barElements) {
       for (const beatElement of barElement.beatElements) {
         for (const note of beatElement.beat.notes) {
@@ -67,19 +101,19 @@ export class TechGapElement implements NotationElement {
               continue;
             }
 
-            let gapLine = this._techGapLines[lineNumber];
+            const gapLine = this._techGapLines[lineNumber];
             if (gapLine === null) {
-              gapLine = new TechGapLineElement(this, lineNumber);
-              gapLine.build();
-              gapLine.measure();
-              this._techGapLines[lineNumber] = gapLine;
+              continue;
             }
 
             gapLine.addTechnique(beatElement, technique);
-            gapLine.measure();
           }
         }
       }
+    }
+
+    for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {
+      this._techGapLines[lineNumber]?.measure();
     }
 
     const height =
@@ -129,6 +163,16 @@ export class TechGapElement implements NotationElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    for (const line of this.techGapLinesAsArray) {
+      elements.push(...line.refreshOwnedNotationElements());
+    }
+
+    return elements;
+  }
+
   /**
    * Scales the element & its children horizontally by the factor
    * @param scale Scale factor
@@ -173,8 +217,8 @@ export class TechGapElement implements NotationElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    return this.notationStyleLineElement.getModelUUID() + 1000002;
+  public getStableIdentity(): string {
+    return TechGapElement.createStableIdentity(this.notationStyleLineElement);
   }
 
   /** This tech gap line's global coords */

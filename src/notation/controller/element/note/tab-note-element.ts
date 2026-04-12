@@ -11,6 +11,10 @@ import { TabBeatElement } from "../beat/tab-beat-element";
  * Class that handles geometry & visually relevant info of a tab note
  */
 export class TabNoteElement implements NoteElement {
+  public static createStableIdentity(note: GuitarNote): string {
+    return `note:${note.uuid}`;
+  }
+
   /** Guitar note element's unique identifier */
   readonly uuid: number;
   /** The note */
@@ -57,9 +61,23 @@ export class TabNoteElement implements NoteElement {
    * Fills the technique element array
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
+    const prevTechniqueElements = this.trackElement.useElementReuse
+      ? new Map(
+          this._techniqueElements.map((element) => [
+            element.getStableIdentity(),
+            element,
+          ])
+        )
+      : new Map<string, GuitarTechniqueElement>();
     this._techniqueElements = [];
     for (const technique of this.note.techniques) {
-      const techniqueElement = new GuitarTechniqueElement(technique, this);
+      const techniqueElement =
+        prevTechniqueElements.get(
+          GuitarTechniqueElement.createStableIdentity(technique)
+        ) ?? new GuitarTechniqueElement(technique, this);
+      techniqueElement.build();
       this._techniqueElements.push(techniqueElement);
     }
   }
@@ -129,6 +147,15 @@ export class TabNoteElement implements NoteElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [
+      this,
+      ...this._techniqueElements.flatMap((technique) =>
+        technique.refreshOwnedNotationElements()
+      ),
+    ];
+  }
+
   /**
    * Scales the guitar note element & all it's children horizontally by the factor
    * @param scale Scale factor
@@ -155,8 +182,8 @@ export class TabNoteElement implements NoteElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    return this.note.uuid;
+  public getStableIdentity(): string {
+    return TabNoteElement.createStableIdentity(this.note);
   }
 
   /** Main clickable-area bounding box */

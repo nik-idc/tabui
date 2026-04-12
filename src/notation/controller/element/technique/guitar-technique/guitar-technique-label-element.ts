@@ -16,6 +16,14 @@ import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
  * Class that contains a guitar technique label
  */
 export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
+  public static createStableIdentity(
+    gapLineElement: TechGapLineElement,
+    technique: GuitarTechnique,
+    beatElement: BeatElement
+  ): string {
+    return `technique-label:${gapLineElement.getStableIdentity()}:${technique.uuid}:${beatElement.beat.uuid}`;
+  }
+
   /** Technique label element's unique identifier */
   readonly uuid: number;
   /** Technique */
@@ -413,6 +421,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): TechniqueLabelElement[] {
+    return [this];
+  }
+
   /**
    * Builds technique label element path
    */
@@ -453,11 +465,11 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    return (
-      this.gapLineElement.getModelUUID() +
-      this.technique.uuid +
-      this.beatElement.beat.uuid
+  public getStableIdentity(): string {
+    return GuitarTechniqueLabelElement.createStableIdentity(
+      this.gapLineElement,
+      this.technique,
+      this.beatElement
     );
   }
 

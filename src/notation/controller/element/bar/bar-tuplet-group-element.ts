@@ -11,17 +11,21 @@ import { TabBeatElement } from "../beat/tab-beat-element";
  * Class that handles geometry & visually relevant info of a bar tuplet group
  */
 export class BarTupletGroupElement implements NotationElement {
+  public static createStableIdentity(tupletGroup: BarTupletGroup): string {
+    return `tuplet:${tupletGroup.uuid}`;
+  }
+
   /** UUID of the tuplet element */
   readonly uuid: number;
   /** Tuplet group this element represents */
   readonly tupletGroup: BarTupletGroup;
   /** Parent bar element */
   readonly barElement: BarElement;
-  /** Array of beat element included in this tuplet group */
-  readonly beatElements: TabBeatElement[];
   /** Root track element */
   readonly trackElement: TrackElement;
 
+  /** Tuplet element's outer rectangle */
+  private _beatElements: TabBeatElement[];
   /** Tuplet element's outer rectangle */
   private _boundingBox: Rect;
   /** Individual tuplet signs if the tuplet group is incomplete */
@@ -44,7 +48,7 @@ export class BarTupletGroupElement implements NotationElement {
     this.tupletGroup = tupletGroup;
     this.barElement = barElement;
     this.trackElement = this.barElement.trackElement;
-    this.beatElements = beatElements;
+    this._beatElements = beatElements;
 
     this._boundingBox = new Rect();
 
@@ -60,6 +64,8 @@ export class BarTupletGroupElement implements NotationElement {
    * depending if the tuplet group is complete
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
     if (!this.tupletGroup.complete) {
       this._incompleteRects = [];
       for (const _ of this.beatElements) {
@@ -148,6 +154,10 @@ export class BarTupletGroupElement implements NotationElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [this];
+  }
+
   /**
    * Returns tuplet string. A single number if complete, full otherwise
    * @param beatIndex Index of the beat element
@@ -198,8 +208,16 @@ export class BarTupletGroupElement implements NotationElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    return this.tupletGroup.uuid;
+  public getStableIdentity(): string {
+    return BarTupletGroupElement.createStableIdentity(this.tupletGroup);
+  }
+
+  public setBeatElements(beatElements: TabBeatElement[]): void {
+    this._beatElements = beatElements;
+  }
+
+  public get beatElements(): TabBeatElement[] {
+    return this._beatElements;
   }
 
   /** Tuplet element's outer layout bounding box */

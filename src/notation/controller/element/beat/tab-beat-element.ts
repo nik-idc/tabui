@@ -18,6 +18,10 @@ import { NoteElement } from "../note/note-element";
  * Class that handles geometry & visually relevant info of a beat
  */
 export class TabBeatElement implements BeatElement {
+  public static createStableIdentity(beat: Beat): string {
+    return `beat:${beat.uuid}`;
+  }
+
   /** Beat element's unique identifier */
   readonly uuid: number;
   /** The beat */
@@ -73,8 +77,27 @@ export class TabBeatElement implements BeatElement {
    * - Sets dot circles
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
+    const prevNoteElements = this.trackElement.useElementReuse
+      ? new Map(
+          this._noteElements.map((element) => [
+            element.getStableIdentity(),
+            element,
+          ])
+        )
+      : new Map<string, TabNoteElement>();
     this._noteElements = [];
     for (const note of this.beat.notes) {
+      const existingNoteElement = prevNoteElements.get(
+        TabNoteElement.createStableIdentity(note as GuitarNote)
+      );
+      if (existingNoteElement !== undefined) {
+        existingNoteElement.build();
+        this._noteElements.push(existingNoteElement);
+        continue;
+      }
+
       this._noteElements.push(new TabNoteElement(note as GuitarNote, this));
     }
 
@@ -123,11 +146,13 @@ export class TabBeatElement implements BeatElement {
    * Calculates the dimensions of the tab beat element & it's children
    */
   public measure(): void {
+    const width = getBeatWidth(this.beat);
+    this._boundingBox.width = width;
+
     for (const noteElement of this._noteElements) {
       noteElement.measure();
     }
 
-    const width = getBeatWidth(this.beat);
     const notesHeight =
       this._noteElements.length * EditorLayoutDimensions.NOTE_RECT_HEIGHT;
     const height = notesHeight + EditorLayoutDimensions.DURATIONS_HEIGHT;
@@ -270,6 +295,16 @@ export class TabBeatElement implements BeatElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    for (const noteElement of this._noteElements) {
+      elements.push(...noteElement.refreshOwnedNotationElements());
+    }
+
+    return elements;
+  }
+
   /**
    * Scales beat element & all it's children horizontally
    * @param scale Scale factor
@@ -311,8 +346,8 @@ export class TabBeatElement implements BeatElement {
     return this._stateHash;
   }
 
-  public getModelUUID(): number {
-    return this.beat.uuid;
+  public getStableIdentity(): string {
+    return TabBeatElement.createStableIdentity(this.beat);
   }
 
   /**
