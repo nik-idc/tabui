@@ -2,8 +2,12 @@ import { BeamSegmentElement } from "../../src/notation/controller/element/bar/be
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
-import { NoteDuration } from "../../src/notation/model";
-import { createBarWithBeats } from "../model/helpers";
+import { NoteDuration, ScoreEditor } from "../../src/notation/model";
+import {
+  createBarWithBeats,
+  createBeat,
+  createScoreGraph,
+} from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
 function getBarElement(trackElement: TrackElement) {
@@ -137,5 +141,64 @@ describe("BeamSegmentElement", () => {
     expect(() => new BeamSegmentElement(barElement, beatElement)).toThrow(
       "Beam segment for a beat with a non-beamable duration"
     );
+  });
+
+  test("width-affecting updates keep complete beam coordinates aligned with legacy rebuild", () => {
+    const { track, bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Sixteenth },
+      { baseDuration: NoteDuration.Sixteenth },
+    ]);
+    bar.rebuildTiming();
+
+    const trackElement = new TrackElement(track);
+    const legacyTrackElement = new TrackElement(track);
+
+    beats[0].baseDuration = NoteDuration.ThirtySecond;
+    beats[1].baseDuration = NoteDuration.ThirtySecond;
+    bar.rebuildTiming();
+
+    trackElement.update();
+    legacyTrackElement.updateOld();
+
+    const segment = getBarElement(trackElement).beamSegments[0];
+    const legacySegment = getBarElement(legacyTrackElement).beamSegments[0];
+
+    expect(segment.longRectsGlobal).toEqual(legacySegment.longRectsGlobal);
+    expect(segment.shortRectsGlobal).toEqual(legacySegment.shortRectsGlobal);
+  });
+
+  test("complete tuplets update state hash when scaled", () => {
+    const { score, track, staff } = createScoreGraph();
+    for (let i = 0; i < 3; i++) {
+      score.appendMasterBar({
+        tempo: 120,
+        beatsCount: 4,
+        duration: NoteDuration.Quarter,
+        repeatStatus: 0,
+        repeatCount: null,
+      });
+    }
+
+    const bar2 = staff.bars[1];
+    const bar2Beats = [
+      createBeat(bar2, NoteDuration.Eighth),
+      createBeat(bar2, NoteDuration.Eighth),
+    ];
+    bar2.beats.splice(0, bar2.beats.length, ...bar2Beats);
+    bar2.rebuildTiming();
+
+    ScoreEditor.setTuplet(bar2Beats, { normalCount: 2, tupletCount: 4 });
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const tupletElement =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[1].tupletElements[0];
+    const prevStateHash = tupletElement.stateHash;
+
+    tupletElement.scaleHorBy(1.25);
+
+    expect(tupletElement.stateHash).not.toBe(prevStateHash);
   });
 });

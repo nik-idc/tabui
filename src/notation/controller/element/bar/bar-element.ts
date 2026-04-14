@@ -27,8 +27,13 @@ import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
  * Class that handles geometry & visually relevant info of a bar
  */
 export class BarElement implements NotationElement {
-  public static createStableIdentity(bar: Bar): string {
-    return `bar:${bar.uuid}`;
+  public static createStableIdentity(
+    notationStyleLineElement: NotationStyleLineElement,
+    bar: Bar
+  ): string {
+    const trackLineStableIdentity =
+      notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `bar:${trackLineStableIdentity}:${bar.uuid}`;
   }
 
   /** Unique identifier for the bar element */
@@ -62,8 +67,6 @@ export class BarElement implements NotationElement {
   private _repeatEndRect?: Rect;
   /** If tempo is to be shown in the bar */
   private _showTempo: boolean;
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that handles geometry & visually relevant info of a bar
@@ -96,8 +99,6 @@ export class BarElement implements NotationElement {
     this._repeatStartRect = new Rect();
     this._repeatEndRect = new Rect();
     this._showTempo = false;
-
-    this._stateHash = "";
 
     this.build();
 
@@ -151,7 +152,7 @@ export class BarElement implements NotationElement {
     this._beatElements = [];
     for (const beat of this.bar.beats) {
       const existingBeatElement = prevBeatElements.get(
-        TabBeatElement.createStableIdentity(beat)
+        TabBeatElement.createStableIdentity(this, beat)
       );
       if (existingBeatElement !== undefined) {
         existingBeatElement.build();
@@ -279,7 +280,7 @@ export class BarElement implements NotationElement {
       );
 
       const existingTupletElement = prevTupletElements.get(
-        BarTupletGroupElement.createStableIdentity(tupletGroup)
+        BarTupletGroupElement.createStableIdentity(this, tupletGroup)
       );
       if (existingTupletElement !== undefined) {
         existingTupletElement.setBeatElements(tupletTabBeatElements);
@@ -469,10 +470,7 @@ export class BarElement implements NotationElement {
     }
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -507,7 +505,7 @@ export class BarElement implements NotationElement {
 
     hashArr.push(`${this.bar.checkDurationsFit() ? 1 : 0}`);
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -615,10 +613,6 @@ export class BarElement implements NotationElement {
     for (const tupletElement of this._tupletElements) {
       tupletElement.scaleHorBy(scale);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -645,7 +639,7 @@ export class BarElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public get desiredWidth(): number {
@@ -653,7 +647,10 @@ export class BarElement implements NotationElement {
   }
 
   public getStableIdentity(): string {
-    return BarElement.createStableIdentity(this.bar);
+    return BarElement.createStableIdentity(
+      this.notationStyleLineElement,
+      this.bar
+    );
   }
 
   /** Time signature beats rectangle */

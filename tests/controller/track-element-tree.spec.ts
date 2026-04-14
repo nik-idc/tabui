@@ -1,7 +1,12 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
-import { DEFAULT_MASTER_BAR } from "../../src/notation/model";
+import {
+  DEFAULT_MASTER_BAR,
+  GuitarNote,
+  GuitarTechnique,
+  GuitarTechniqueType,
+} from "../../src/notation/model";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { NoteDuration } from "../../src/notation/model";
 import { ensureLayoutConfigured } from "./helpers";
@@ -93,18 +98,24 @@ describe("TrackElement tree", () => {
     trackElement.update();
 
     const addDiff = trackElement.getElementDiff();
-    expect(
-      addDiff.added.get(TabBeatElement)?.has(`beat:${addedBeat.uuid}`)
-    ).toBe(true);
+    const addedBeatElement =
+      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements.find(
+        (beatElement) => beatElement.beat === addedBeat
+      );
+    expect(addedBeatElement).toBeDefined();
+    const addedBeatIdentity = addedBeatElement!.getStableIdentity();
+    expect(addDiff.added.get(TabBeatElement)?.has(addedBeatIdentity)).toBe(
+      true
+    );
 
     trackElement.clearElementDiff();
     bar.removeBeat(1);
     trackElement.update();
 
     const removeDiff = trackElement.getElementDiff();
-    expect(
-      removeDiff.removed.get(TabBeatElement)?.has(`beat:${addedBeat.uuid}`)
-    ).toBe(true);
+    expect(removeDiff.removed.get(TabBeatElement)?.has(addedBeatIdentity)).toBe(
+      true
+    );
   });
 
   test("width-affecting updates keep note x coordinates aligned with legacy rebuild", () => {
@@ -215,5 +226,38 @@ describe("TrackElement tree", () => {
     expect(selectionRects[1].x).toBeCloseTo(
       trackElement.getBeatElementGlobalCoords(secondLineBeatElement!).x
     );
+  });
+
+  test("second-line tempo info shifts down when first line grows from technique labels", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const secondLineStartIndex =
+      trackElement.trackLineElements[1].trackLineData[0].masterBarIndex;
+    score.masterBars[secondLineStartIndex].tempo = 160;
+    track.staves[0].bars[secondLineStartIndex].rebuildTiming();
+
+    trackElement.update();
+
+    const beforeY =
+      trackElement.trackLineElements[1].trackLineInfoElement?.globalCoords.y ??
+      0;
+
+    const firstLineNote = track.staves[0].bars[0].beats[0]
+      .notes[0] as GuitarNote;
+    firstLineNote.addTechnique(
+      new GuitarTechnique(firstLineNote, GuitarTechniqueType.Vibrato)
+    );
+
+    trackElement.update();
+
+    expect(
+      trackElement.trackLineElements[1].trackLineInfoElement?.globalCoords.y
+    ).toBeGreaterThan(beforeY);
   });
 });

@@ -11,8 +11,13 @@ import { TabBeatElement } from "../beat/tab-beat-element";
  * Class that handles geometry & visually relevant info of a bar tuplet group
  */
 export class BarTupletGroupElement implements NotationElement {
-  public static createStableIdentity(tupletGroup: BarTupletGroup): string {
-    return `tuplet:${tupletGroup.uuid}`;
+  public static createStableIdentity(
+    barElement: BarElement,
+    tupletGroup: BarTupletGroup
+  ): string {
+    const trackLineStableIdentity =
+      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `tuplet:${trackLineStableIdentity}:${tupletGroup.uuid}`;
   }
 
   /** UUID of the tuplet element */
@@ -30,9 +35,6 @@ export class BarTupletGroupElement implements NotationElement {
   private _boundingBox: Rect;
   /** Individual tuplet signs if the tuplet group is incomplete */
   private _incompleteRects?: Rect[];
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class that handles geometry & visually relevant info of a bar tuplet group
    * @param tupletGroup Tuplet group
@@ -51,8 +53,6 @@ export class BarTupletGroupElement implements NotationElement {
     this._beatElements = beatElements;
 
     this._boundingBox = new Rect();
-
-    this._stateHash = "";
 
     this.build();
 
@@ -99,10 +99,7 @@ export class BarTupletGroupElement implements NotationElement {
     }
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -119,7 +116,7 @@ export class BarTupletGroupElement implements NotationElement {
       }
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -190,26 +187,24 @@ export class BarTupletGroupElement implements NotationElement {
     this._boundingBox.x *= scale;
     this._boundingBox.width *= scale;
 
-    if (this._incompleteRects === undefined) {
-      return;
+    if (this._incompleteRects !== undefined) {
+      for (const incompleteRect of this._incompleteRects) {
+        incompleteRect.x *= scale;
+        incompleteRect.width *= scale;
+      }
     }
-    for (const incompleteRect of this._incompleteRects) {
-      incompleteRect.x *= scale;
-      incompleteRect.width *= scale;
-    }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {
-    return BarTupletGroupElement.createStableIdentity(this.tupletGroup);
+    return BarTupletGroupElement.createStableIdentity(
+      this.barElement,
+      this.tupletGroup
+    );
   }
 
   public setBeatElements(beatElements: TabBeatElement[]): void {

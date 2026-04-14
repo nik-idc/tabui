@@ -21,7 +21,9 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     technique: GuitarTechnique,
     beatElement: BeatElement
   ): string {
-    return `technique-label:${gapLineElement.getStableIdentity()}:${technique.uuid}:${beatElement.beat.uuid}`;
+    const trackLineStableIdentity =
+      gapLineElement.techGapElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `technique-label:${trackLineStableIdentity}:${gapLineElement.techLineNumber}:${technique.uuid}:${beatElement.beat.uuid}`;
   }
 
   /** Technique label element's unique identifier */
@@ -41,8 +43,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   private _pathDescriptors?: SVGPathDescriptor[];
   /** SVG text descriptors */
   private _textDescriptors?: SVGTextDescriptor[];
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that contains an technique label
@@ -60,8 +60,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this.gapLineElement = gapLineElement;
     this.trackElement = this.gapLineElement.trackElement;
     this.beatElement = beatElement;
-
-    this._stateHash = "";
 
     this._boundingBox = new Rect();
 
@@ -365,6 +363,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   public build(): void {
+    this.trackElement.registerElement(this);
+
     this._pathDescriptors = [];
     this._textDescriptors = [];
   }
@@ -379,10 +379,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     );
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -392,7 +389,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         `${JSON.stringify(this._textDescriptors)}`,
     ];
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -406,10 +403,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._boundingBox.setCoords(0, 0);
 
     this.createPath();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -454,15 +447,11 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._boundingBox.width *= scale;
 
     this.createPath();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {

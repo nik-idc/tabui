@@ -19,8 +19,13 @@ import { BarElement } from "../bar/bar-element";
  * Class that handles geometry & visually relevant info of a beat
  */
 export class SheetBeatElement implements BeatElement {
-  public static createStableIdentity(beat: Beat): string {
-    return `beat:${beat.uuid}`;
+  public static createStableIdentity(
+    barElement: BarElement,
+    beat: Beat
+  ): string {
+    const trackLineStableIdentity =
+      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `beat:${trackLineStableIdentity}:${beat.uuid}`;
   }
 
   /** Beat element's unique identifier */
@@ -101,7 +106,7 @@ export class SheetBeatElement implements BeatElement {
   }
 
   public getStableIdentity(): string {
-    return SheetBeatElement.createStableIdentity(this.beat);
+    return SheetBeatElement.createStableIdentity(this.barElement, this.beat);
   }
 
   public get durationRect(): Rect {

@@ -45,9 +45,6 @@ export class TechGapLineElement implements NotationElement {
 
   /** Outer rectangle */
   private _boundingBox?: Rect;
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class representing a single line of a staff line's
    * technique label gap
@@ -59,8 +56,6 @@ export class TechGapLineElement implements NotationElement {
     this.techGapElement = techGapElement;
     this.techLineNumber = techLineNumber;
     this.trackElement = this.techGapElement.trackElement;
-
-    this._stateHash = "";
 
     this._beatsLabelsMap = new Map();
     this._labelElements = [];
@@ -101,6 +96,7 @@ export class TechGapLineElement implements NotationElement {
       ? this._prevLabelElementsByIdentity.get(stableIdentity)
       : undefined;
     if (labelElement !== undefined) {
+      labelElement.build();
       this._labelElements.push(labelElement);
       this._labelElementsByIdentity.set(stableIdentity, labelElement);
       beatsLabels.add(technique.type);
@@ -165,10 +161,7 @@ export class TechGapLineElement implements NotationElement {
     }
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [];
 
     if (this.globalBoundingBox.width !== undefined) {
@@ -178,7 +171,7 @@ export class TechGapLineElement implements NotationElement {
       hashArr.push(`${this.globalBoundingBox.height}`);
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -186,7 +179,6 @@ export class TechGapLineElement implements NotationElement {
    */
   public layout(): void {
     if (this._boundingBox === undefined) {
-      this._stateHash = "";
       return;
     }
 
@@ -197,8 +189,6 @@ export class TechGapLineElement implements NotationElement {
     for (const label of this._labelElements) {
       label.layout();
     }
-
-    this.calcStateHash();
   }
 
   public update(): void {
@@ -233,7 +223,7 @@ export class TechGapLineElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this._boundingBox === undefined ? "" : this.buildStateHash();
   }
 
   public getStableIdentity(): string {

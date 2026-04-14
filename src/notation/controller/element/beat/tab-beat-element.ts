@@ -13,13 +13,19 @@ import { TabNoteElement } from "../note/tab-note-element";
 import { BeatElement, getBeatWidth } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
+import { NotationElement } from "../notation-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
  */
 export class TabBeatElement implements BeatElement {
-  public static createStableIdentity(beat: Beat): string {
-    return `beat:${beat.uuid}`;
+  public static createStableIdentity(
+    barElement: BarElement,
+    beat: Beat
+  ): string {
+    const trackLineStableIdentity =
+      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `beat:${trackLineStableIdentity}:${beat.uuid}`;
   }
 
   /** Beat element's unique identifier */
@@ -44,8 +50,6 @@ export class TabBeatElement implements BeatElement {
   private _dot1Circle?: Circle;
   /** This beat's dot rect */
   private _dot2Circle?: Circle;
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that handles geometry & visually relevant info of a beat
@@ -62,8 +66,6 @@ export class TabBeatElement implements BeatElement {
 
     const width = getBeatWidth(this.beat);
     this._boundingBox = new Rect(0, 0, width, 0);
-
-    this._stateHash = "";
 
     this.build();
 
@@ -90,7 +92,7 @@ export class TabBeatElement implements BeatElement {
     this._noteElements = [];
     for (const note of this.beat.notes) {
       const existingNoteElement = prevNoteElements.get(
-        TabNoteElement.createStableIdentity(note as GuitarNote)
+        TabNoteElement.createStableIdentity(this, note as GuitarNote)
       );
       if (existingNoteElement !== undefined) {
         existingNoteElement.build();
@@ -239,10 +241,7 @@ export class TabBeatElement implements BeatElement {
     }
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -271,7 +270,7 @@ export class TabBeatElement implements BeatElement {
       }
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -335,19 +334,15 @@ export class TabBeatElement implements BeatElement {
     for (const noteElement of this._noteElements) {
       noteElement.scaleHorBy(scale);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {
-    return TabBeatElement.createStableIdentity(this.beat);
+    return TabBeatElement.createStableIdentity(this.barElement, this.beat);
   }
 
   /**

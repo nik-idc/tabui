@@ -6,13 +6,19 @@ import { GuitarTechniqueElement } from "../technique/guitar-technique/guitar-tec
 import { TechniqueElement } from "../technique/technique-element";
 import { NoteElement } from "./note-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
+import { NotationElement } from "../notation-element";
 
 /**
  * Class that handles geometry & visually relevant info of a tab note
  */
 export class TabNoteElement implements NoteElement {
-  public static createStableIdentity(note: GuitarNote): string {
-    return `note:${note.uuid}`;
+  public static createStableIdentity(
+    beatElement: TabBeatElement,
+    note: GuitarNote
+  ): string {
+    const trackLineStableIdentity =
+      beatElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `note:${trackLineStableIdentity}:${note.uuid}`;
   }
 
   /** Guitar note element's unique identifier */
@@ -33,9 +39,6 @@ export class TabNoteElement implements NoteElement {
   private _textRect: Rect = new Rect();
   /** Coordinates of the note text */
   private _textCoords: Point = new Point();
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class that handles geometry & visually relevant info of a guitar note
    * @param note Guitar note
@@ -49,8 +52,6 @@ export class TabNoteElement implements NoteElement {
 
     this._boundingBox = new Rect();
     this._techniqueElements = [];
-
-    this._stateHash = "";
 
     this.build();
 
@@ -75,7 +76,7 @@ export class TabNoteElement implements NoteElement {
     for (const technique of this.note.techniques) {
       const techniqueElement =
         prevTechniqueElements.get(
-          GuitarTechniqueElement.createStableIdentity(technique)
+          GuitarTechniqueElement.createStableIdentity(this, technique)
         ) ?? new GuitarTechniqueElement(technique, this);
       techniqueElement.build();
       this._techniqueElements.push(techniqueElement);
@@ -97,11 +98,8 @@ export class TabNoteElement implements NoteElement {
     );
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
-    this._stateHash =
+  private buildStateHash(): string {
+    return (
       `${this.note.fret}` +
       `${this.globalBoundingBox.x}` +
       `${this.globalBoundingBox.y}` +
@@ -112,7 +110,8 @@ export class TabNoteElement implements NoteElement {
       `${this._textRect.width}` +
       `${this._textRect.height}` +
       `${this._textCoords.x}` +
-      `${this._textCoords.y}`;
+      `${this._textCoords.y}`
+    );
   }
 
   /**
@@ -173,17 +172,15 @@ export class TabNoteElement implements NoteElement {
     for (const techniqueElement of this._techniqueElements) {
       techniqueElement.scaleHorBy(scale);
     }
-
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {
-    return TabNoteElement.createStableIdentity(this.note);
+    return TabNoteElement.createStableIdentity(this.beatElement, this.note);
   }
 
   /** Main clickable-area bounding box */

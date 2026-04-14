@@ -41,8 +41,6 @@ export class NotationStyleLineElement implements NotationElement {
 
   /** Line encapsulating rectangle */
   private _boundingBox: Rect;
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that handles geometry of a single notation style line in the staff line
@@ -62,8 +60,6 @@ export class NotationStyleLineElement implements NotationElement {
     this._techGapElement = new TechGapElement(this);
 
     this._boundingBox = new Rect();
-
-    this._stateHash = "";
 
     this.build();
 
@@ -94,7 +90,7 @@ export class NotationStyleLineElement implements NotationElement {
       : new Map<string, BarElement>();
     this._barElements = [];
     for (const data of this.staffLineElement.staffLineData) {
-      const stableIdentity = BarElement.createStableIdentity(data.bar);
+      const stableIdentity = BarElement.createStableIdentity(this, data.bar);
       const existingBarElement = prevBarElements.get(stableIdentity);
       if (existingBarElement !== undefined) {
         existingBarElement.setDesiredWidth(data.largestBarWidth);
@@ -132,10 +128,7 @@ export class NotationStyleLineElement implements NotationElement {
       this._barElements[0].boundingBox.height;
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -143,7 +136,7 @@ export class NotationStyleLineElement implements NotationElement {
         `${this.globalBoundingBox.height}`,
     ];
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -192,10 +185,6 @@ export class NotationStyleLineElement implements NotationElement {
     for (const barElement of this._barElements) {
       barElement.scaleHorBy(scale);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -210,9 +199,6 @@ export class NotationStyleLineElement implements NotationElement {
       }
       this._techGapElement.scaleHorBy(1);
 
-      // Calculating state hash at the last step of
-      // element's update process - layout
-      this.calcStateHash();
       return;
     }
 
@@ -238,10 +224,6 @@ export class NotationStyleLineElement implements NotationElement {
     }
     this._techGapElement.scaleHorBy(scale);
     this._boundingBox.width *= scale;
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -268,7 +250,7 @@ export class NotationStyleLineElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {

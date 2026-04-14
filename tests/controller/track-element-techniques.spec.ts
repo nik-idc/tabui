@@ -1,11 +1,13 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import {
+  DEFAULT_MASTER_BAR,
   BendTechniqueOptions,
   BendType,
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
   NoteDuration,
+  ScoreEditor,
 } from "../../src/notation/model";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { TechGapElement } from "../../src/notation/controller/element/staff/tech-gap-element";
@@ -339,5 +341,101 @@ describe("TrackElement techniques", () => {
     expect(palmMuteLabel?.globalCoords.y).toBeGreaterThan(
       vibratoLabel?.globalCoords.y ?? 0
     );
+  });
+
+  test("palm mute label stays centered after justified width recalculation", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const palmMuteNote = track.staves[0].bars[0].beats[0]
+      .notes[0] as GuitarNote;
+    palmMuteNote.addTechnique(
+      new GuitarTechnique(palmMuteNote, GuitarTechniqueType.PalmMute)
+    );
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    track.staves[0].bars[0].beats[0].baseDuration = NoteDuration.Eighth;
+    track.staves[0].bars[0].rebuildTiming();
+    trackElement.update();
+
+    const beatElement =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0].beatElements[0];
+    const palmMuteLabel =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].techGapElement.techGapLines[2]?.labelElements[0];
+    const descriptorX = Number(
+      palmMuteLabel?.textDescriptors?.[0]?.attrs?.x ?? 0
+    );
+    const descriptorAnchor =
+      palmMuteLabel?.textDescriptors?.[0]?.attrs?.["text-anchor"];
+
+    expect(palmMuteLabel).toBeDefined();
+    expect(descriptorAnchor).toBe("start");
+    expect(
+      (palmMuteLabel?.globalCoords.x ?? 0) +
+        descriptorX +
+        EditorLayoutDimensions.NOTE_TEXT_SIZE
+    ).toBeCloseTo(
+      beatElement.globalCoords.x + beatElement.boundingBox.width / 2,
+      1
+    );
+  });
+
+  test("re-adding vibrato after removal keeps palm mute label registered and separated", () => {
+    const { score, track, staff } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const secondLineStartIndex =
+      trackElement.trackLineElements[1].trackLineData[0].masterBarIndex;
+    const note = staff.bars[secondLineStartIndex].beats[0]
+      .notes[0] as GuitarNote;
+    const noteArray = [note];
+
+    score.masterBars[secondLineStartIndex].tempo = 121;
+    staff.bars[secondLineStartIndex].rebuildTiming();
+    trackElement.update();
+
+    ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.Vibrato);
+    trackElement.update();
+    ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.PalmMute);
+    trackElement.update();
+    ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.Vibrato);
+    trackElement.update();
+    ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.Vibrato);
+    trackElement.update();
+
+    const secondLineStyle =
+      trackElement.trackLineElements[1].staffLineElements[0]
+        .styleLinesAsArray[0];
+    const line1 = secondLineStyle.techGapElement.techGapLines[1];
+    const line2 = secondLineStyle.techGapElement.techGapLines[2];
+    const vibratoLabel = line1?.labelElements[0];
+    const palmMuteLabel = line2?.labelElements[0];
+
+    expect(vibratoLabel).toBeDefined();
+    expect(palmMuteLabel).toBeDefined();
+    expect(vibratoLabel?.globalCoords.y).toBeLessThan(
+      palmMuteLabel?.globalCoords.y ?? 0
+    );
+    expect(
+      trackElement
+        .getRegisteredElements()
+        .filter(
+          (element) =>
+            element instanceof GuitarTechniqueLabelElement &&
+            (element.technique.type === GuitarTechniqueType.Vibrato ||
+              element.technique.type === GuitarTechniqueType.PalmMute)
+        )
+    ).toHaveLength(2);
   });
 });

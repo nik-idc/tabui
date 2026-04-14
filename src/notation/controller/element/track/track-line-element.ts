@@ -42,8 +42,11 @@ export class TrackLineElement implements NotationElement {
     const firstMasterBarIndex = trackLineData[0]?.masterBarIndex ?? 0;
     const lastMasterBarIndex =
       trackLineData[trackLineData.length - 1]?.masterBarIndex ?? 0;
+    const totalWidth = trackLineData
+      .map((data) => data.largestBarWidth)
+      .reduce((accumulator, currentValue) => accumulator + currentValue, 0);
 
-    return `track-line:${track.uuid}:${firstMasterBarIndex}:${lastMasterBarIndex}`;
+    return `track-line:${track.uuid}:${firstMasterBarIndex}:${lastMasterBarIndex}:${totalWidth}`;
   }
 
   /** Unique identifier for the track line element */
@@ -66,8 +69,6 @@ export class TrackLineElement implements NotationElement {
   private _outlineLines?: OutlineLines;
   /** Data necessary to build a track line */
   private _trackLineData: TrackLineData;
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that handles all geometry & visually relevant info of a track line
@@ -90,8 +91,6 @@ export class TrackLineElement implements NotationElement {
 
     this._boundingBox = new Rect();
     this._trackLineData = trackLineData;
-
-    this._stateHash = "";
 
     this.build();
 
@@ -189,10 +188,7 @@ export class TrackLineElement implements NotationElement {
     this.refreshOwnedNotationElements();
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -200,7 +196,7 @@ export class TrackLineElement implements NotationElement {
         `${this.globalBoundingBox.height}`,
     ];
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -229,7 +225,10 @@ export class TrackLineElement implements NotationElement {
       return;
     }
     const xLeft = 0;
-    const xRight = this._boundingBox.width;
+    // const xRight = this._boundingBox.width;
+    const barElements =
+      this._staffLineElements[0].styleLinesAsArray[0].barElements;
+    const xRight = barElements[barElements.length - 1].globalBoundingBox.right;
 
     // TODO: Redo this outline layout to support multiple notation
     // styles since current calculation only works for tablature
@@ -248,10 +247,6 @@ export class TrackLineElement implements NotationElement {
 
     this._outlineLines.left.set(xLeft, y1, y2);
     this._outlineLines.right.set(xRight, y1, y2);
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   public update(): void {
@@ -274,10 +269,6 @@ export class TrackLineElement implements NotationElement {
     for (const staffLineElement of this._staffLineElements) {
       staffLineElement.scaleHorBy(scale);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -305,11 +296,25 @@ export class TrackLineElement implements NotationElement {
     if (this._outlineLines === undefined) {
       return;
     }
-    this._outlineLines.right.x = this._boundingBox.width;
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
+    const barElements =
+      this._staffLineElements[0].styleLinesAsArray[0].barElements;
+    const lastBE = barElements[barElements.length - 1];
+    const xRight = barElements[barElements.length - 1].globalBoundingBox.right;
+    this._outlineLines.right.x = xRight;
+    if (fakeJustify) {
+      console.log("=== TRACK LINE FAKE JUSTIFY", {
+        lineBB: JSON.parse(JSON.stringify(this._boundingBox)),
+        staffBB: JSON.parse(
+          JSON.stringify(
+            lastBE.notationStyleLineElement.staffLineElement.boundingBox
+          )
+        ),
+        styleBB: JSON.parse(
+          JSON.stringify(lastBE.notationStyleLineElement.boundingBox)
+        ),
+        barBB: JSON.parse(JSON.stringify(lastBE.boundingBox)),
+      });
+    }
   }
 
   /**
@@ -371,7 +376,7 @@ export class TrackLineElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {

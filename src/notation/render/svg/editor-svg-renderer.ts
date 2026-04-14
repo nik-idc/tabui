@@ -254,6 +254,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     visibleElements: NotationElement[]
   ): ElementRenderer[] {
     const diff = trackController.trackElement.getElementDiff();
+
     const visibleStableIdentities = new Set(
       visibleElements.map((element) => element.getStableIdentity())
     );

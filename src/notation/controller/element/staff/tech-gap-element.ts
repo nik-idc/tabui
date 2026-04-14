@@ -32,9 +32,6 @@ export class TechGapElement implements NotationElement {
 
   /** Outer rectangle */
   private _boundingBox: Rect;
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class that handles all visually relevant info of a technique gap
    * @param notationStyleLineElement Parent notation style line element
@@ -50,8 +47,6 @@ export class TechGapElement implements NotationElement {
       3: null,
     };
     this._techGapLinesByIdentity = new Map();
-
-    this._stateHash = "";
 
     this._boundingBox = new Rect();
 
@@ -126,10 +121,7 @@ export class TechGapElement implements NotationElement {
     );
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [];
 
     if (this.globalBoundingBox.width !== undefined) {
@@ -139,7 +131,7 @@ export class TechGapElement implements NotationElement {
       hashArr.push(`${this.globalBoundingBox.height}`);
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -151,10 +143,6 @@ export class TechGapElement implements NotationElement {
     this._techGapLines[1]?.layout();
     this._techGapLines[2]?.layout();
     this._techGapLines[3]?.layout();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   public update(): void {
@@ -214,7 +202,7 @@ export class TechGapElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {

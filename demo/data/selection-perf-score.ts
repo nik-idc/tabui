@@ -5,7 +5,7 @@ import {
 } from "@/notation/model";
 import { createScore } from "./helpers";
 
-const MASTER_BARS_COUNT = 120;
+const MASTER_BARS_COUNT = 500;
 
 const denseBarsInfo = Array.from({ length: MASTER_BARS_COUNT }, (_, index) => {
   const isThirtySecond = index % 2 === 1;

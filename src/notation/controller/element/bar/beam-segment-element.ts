@@ -18,12 +18,14 @@ export class BeamSegmentElement implements NotationElement {
     nextBeatElement?: TabBeatElement,
     prevBeatElement?: TabBeatElement
   ): string {
+    const trackLineStableIdentity =
+      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
     const prevUUID = prevBeatElement?.beat.uuid ?? 0;
     const curUUID = curBeatElement.beat.uuid;
     const nextUUID = nextBeatElement?.beat.uuid ?? 0;
     const terminalFlag = nextBeatElement === undefined ? 1 : 0;
 
-    return `beam:${barElement.bar.uuid}:${prevUUID}:${curUUID}:${nextUUID}:${terminalFlag}`;
+    return `beam:${trackLineStableIdentity}:${barElement.bar.uuid}:${prevUUID}:${curUUID}:${nextUUID}:${terminalFlag}`;
   }
 
   /** Unique identifier for the beam segment element */
@@ -43,9 +45,6 @@ export class BeamSegmentElement implements NotationElement {
   private _longRects: Rect[];
   /** Rectangles of short tails */
   private _shortRects: Rect[];
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class that handles geometry & visually relevant info of a beam segment
    * @param barElement Parent bar element
@@ -72,8 +71,6 @@ export class BeamSegmentElement implements NotationElement {
 
     this._longRects = [];
     this._shortRects = [];
-
-    this._stateHash = "";
 
     this.build();
 
@@ -197,10 +194,7 @@ export class BeamSegmentElement implements NotationElement {
     }
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -222,7 +216,7 @@ export class BeamSegmentElement implements NotationElement {
       hashArr.push(`${shortRect.height}`);
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -303,15 +297,11 @@ export class BeamSegmentElement implements NotationElement {
       rect.x *= scale;
       rect.width *= scale;
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public refreshOwnedNotationElements(): NotationElement[] {

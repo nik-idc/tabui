@@ -28,9 +28,6 @@ export class TrackLineInfoElement implements NotationElement {
   private _boundingBox: Rect;
   /** Stores all the bars whose tempo to display & the tempo rect */
   private _barTempoRectsMap: Map<BarElement, Rect>;
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class representing the visual info about all
    * info that needs to be on this track line element
@@ -44,8 +41,6 @@ export class TrackLineInfoElement implements NotationElement {
 
     this._boundingBox = new Rect(0, 0, EditorLayoutDimensions.WIDTH, 0);
     this._barTempoRectsMap = new Map();
-
-    this._stateHash = "";
 
     this.build();
 
@@ -91,10 +86,7 @@ export class TrackLineInfoElement implements NotationElement {
     this._boundingBox.setDimensions(EditorLayoutDimensions.WIDTH, height);
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -110,7 +102,7 @@ export class TrackLineInfoElement implements NotationElement {
       hashArr.push(`${rect.height}`);
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -122,10 +114,6 @@ export class TrackLineInfoElement implements NotationElement {
     for (const [barElement, rect] of this._barTempoRectsMap) {
       rect.setCoords(barElement.boundingBox.x, 0);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   public update(): void {
@@ -226,7 +214,7 @@ export class TrackLineInfoElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {
@@ -241,8 +229,8 @@ export class TrackLineInfoElement implements NotationElement {
   /** Global coords of the track line element (in most cases X will be 0) */
   public get globalCoords(): Point {
     return new Point(
-      this.trackElement.globalCoords.x + this._boundingBox.x,
-      this.trackElement.globalCoords.y + this._boundingBox.y
+      this.trackLineElement.globalCoords.x + this._boundingBox.x,
+      this.trackLineElement.globalCoords.y + this._boundingBox.y
     );
   }
 

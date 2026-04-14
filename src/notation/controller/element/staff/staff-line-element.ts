@@ -58,8 +58,6 @@ export class StaffLineElement implements NotationElement {
 
   /** Line encapsulating rectangle */
   private _boundingBox: Rect;
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that handles all geometry & visually relevant info of a staff line
@@ -84,8 +82,6 @@ export class StaffLineElement implements NotationElement {
     };
 
     this._boundingBox = new Rect();
-
-    this._stateHash = "";
 
     this.build();
 
@@ -160,10 +156,7 @@ export class StaffLineElement implements NotationElement {
     this._boundingBox.setDimensions(width, height);
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -171,7 +164,7 @@ export class StaffLineElement implements NotationElement {
         `${this.globalBoundingBox.height}`,
     ];
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -230,10 +223,6 @@ export class StaffLineElement implements NotationElement {
       }
       styleLine.scaleHorBy(scale);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -265,7 +254,7 @@ export class StaffLineElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {

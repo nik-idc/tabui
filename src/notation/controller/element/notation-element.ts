@@ -23,6 +23,7 @@ export interface NotationElement {
   get globalRect(): Rect;
 
   getStableIdentity(): string;
+  refreshOwnedNotationElements(): NotationElement[];
 }
 
 export type NotationElementClass = new (...args: any[]) => NotationElement;

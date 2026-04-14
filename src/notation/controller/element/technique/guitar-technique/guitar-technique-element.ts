@@ -19,8 +19,13 @@ import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
  * to which the technique is applied
  */
 export class GuitarTechniqueElement implements TechniqueElement {
-  public static createStableIdentity(technique: GuitarTechnique): string {
-    return `technique:${technique.uuid}`;
+  public static createStableIdentity(
+    noteElement: TabNoteElement,
+    technique: GuitarTechnique
+  ): string {
+    const trackLineStableIdentity =
+      noteElement.beatElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `technique:${trackLineStableIdentity}:${technique.uuid}`;
   }
 
   /** Guitar note element's unique identifier */
@@ -36,8 +41,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
   private _startPoint: Point;
   /** SVG path descriptors rendered from this origin */
   private _pathDescriptors?: SVGPathDescriptor[];
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that represents a guitar technique
@@ -54,8 +57,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
       this.noteElement.boundingBox.width / 2,
       this.noteElement.boundingBox.height / 2
     );
-
-    this._stateHash = "";
 
     this.createPath();
 
@@ -400,19 +401,14 @@ export class GuitarTechniqueElement implements TechniqueElement {
    */
   measure(): void {}
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
-    this._stateHash =
+  private buildStateHash(): string {
+    return (
       `${this.globalBoundingBox.x}` +
       `${this.globalBoundingBox.y}` +
       `${this._startPoint.x}` +
       `${this._startPoint.y}` +
-      `${JSON.stringify(this._pathDescriptors)}`;
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
+      `${JSON.stringify(this._pathDescriptors)}`
+    );
   }
 
   /**
@@ -425,10 +421,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     this.createPath();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -456,11 +448,14 @@ export class GuitarTechniqueElement implements TechniqueElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
   public getStableIdentity(): string {
-    return GuitarTechniqueElement.createStableIdentity(this.technique);
+    return GuitarTechniqueElement.createStableIdentity(
+      this.noteElement,
+      this.technique
+    );
   }
 
   /** Start point */
