@@ -83,7 +83,7 @@ export class SVGTrackLineRenderer implements ElementRenderer {
       throw Error("Tried to render staff lines when SVG group undefined");
     }
 
-    const lines = this.trackLineElement.outlineLinesGlobal;
+    const lines = this.trackLineElement.outlineLinesLineLocal;
     if (lines === undefined) {
       this.unrenderOutlines();
       return;

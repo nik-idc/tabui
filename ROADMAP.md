@@ -118,17 +118,31 @@ Exit criteria:
 - Notation-style-specific logic has cleaner boundaries.
 - The most problematic architecture bottlenecks for upcoming work are removed.
 
-### Phase 3 - Element Layer Performance
+### Phase 3 - Incremental Layout and Renderer Performance
 
 - Optimize large-score updates so localized changes do not trigger excessive
   rebuild, layout, or rendering work.
+- Redesign the Element and Renderer layers around track-line-local coordinates
+  and per-line rendering ownership so vertical shifts become cheap.
 - Measure before and after using the same fixtures and benchmark scenarios.
 - Preserve correctness while pushing for much better responsiveness.
+
+Phase 3 split:
+
+- 3.1 Stable element identity and renderer contract cleanup. Completed.
+- 3.2 Line-local coordinate model in the Element layer.
+- 3.3 Renderer restructuring around per-line embedded layers.
+- 3.4 Incremental vertical update propagation using line-local layout and
+  per-line renderer movement.
+- 3.5 Width-affecting update propagation and regrouping-safe rebuilds.
+- 3.6 Measurement, benchmarks, and viewport refinement.
 
 Exit criteria:
 
 - Large-score edits are noticeably faster.
 - Small localized changes avoid unnecessary full-tree work where possible.
+- Vertical line shifts do not require child-by-child renderer updates across
+  the affected suffix of the score.
 - Performance improvements are validated against repeatable scenarios.
 
 ### Phase 4 - Notation Expansion Evaluation

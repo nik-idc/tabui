@@ -220,6 +220,24 @@ export class BarTupletGroupElement implements NotationElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.barElement.lineLocalCoords.x + this._boundingBox.x,
+      this.barElement.lineLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** This tuplet element's layout bounding box in global coordinates */
   public get globalBoundingBox(): Rect {
     return new Rect(
@@ -264,6 +282,27 @@ export class BarTupletGroupElement implements NotationElement {
     return result;
   }
 
+  /** Track line local coords of incomplete texts */
+  public get incompleteTextsCoordsLineLocal(): Point[] | undefined {
+    if (this._incompleteRects === undefined) {
+      return this._incompleteRects;
+    }
+
+    const result = [];
+    for (const rect of this._incompleteRects) {
+      result.push(
+        new Point(
+          this.lineLocalCoords.x + rect.middleX,
+          this.lineLocalCoords.y +
+            rect.height / 2 +
+            EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        )
+      );
+    }
+
+    return result;
+  }
+
   /** Global coords of incomplete texts */
   public get incompleteTextsCoordsGlobal(): Point[] | undefined {
     if (this._incompleteRects === undefined) {
@@ -301,6 +340,20 @@ export class BarTupletGroupElement implements NotationElement {
     return this._boundingBox.middle;
   }
 
+  /** Complete tuplet group text coordinates in track line local space (or undefined if tuplet group incomplete) */
+  public get completeTextCoordsLineLocal(): Point | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    return new Point(
+      this.lineLocalCoords.x + this._boundingBox.width / 2,
+      this.lineLocalCoords.y +
+        this._boundingBox.height / 2 +
+        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+    );
+  }
+
   /** Complete tuplet group text coordinates (or undefined if tuplet group incomplete) */
   public get comleteTextCoordsGlobal(): Point | undefined {
     if (!this.tupletGroup.complete) {
@@ -312,6 +365,28 @@ export class BarTupletGroupElement implements NotationElement {
       this.globalCoords.y +
         this._boundingBox.height / 2 +
         EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+    );
+  }
+
+  /** Rect in track-line-local coords for the SVG path (if the tuplet is complete) */
+  public get completePathRectLineLocal(): Rect | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    const firstBeatElement = this.beatElements[0];
+    const lastBeatElement = this.beatElements[this.beatElements.length - 1];
+
+    const width =
+      this._boundingBox.width -
+      lastBeatElement.boundingBox.width / 2 -
+      firstBeatElement.boundingBox.width / 2;
+    const height = EditorLayoutDimensions.TUPLET_PATH_HEIGHT;
+    return new Rect(
+      this.lineLocalCoords.x + firstBeatElement.boundingBox.width / 2,
+      this.lineLocalCoords.y + height, // '- height' is due to SVG path calculation
+      width,
+      height
     );
   }
 

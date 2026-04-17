@@ -19,6 +19,28 @@ import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar
 import { SheetBeatElement } from "./beat/sheet-beat-element";
 
 /**
+ * PERF: Types of track element updates (to improve performance)
+ * - Vertical:
+ * - - computes the affected lines;
+ * - - full update of the affected lines;
+ * - - Y shift of all lines after the first affected line
+ * - Horizontal:
+ * - - rebuilds skeleton;
+ * - - compares skeleton with previous;
+ * - - if no line changes -> full update of the current line
+ * - - if lines makeup changed -> full update of every line start from the first affected one
+ * - Full: full update of every line
+ * - Cosmetic: change fret/add technique element (not sure how to implement this)
+ * NOTE: It is important to remember that computing the diff & doing dirty checks
+ * is very expensive performance-wise. The solution should be either:
+ * a) Simpler & more efficient way for parents to list all their NotationElement children
+ * b) More Maps (though it's best avoided given current over-abundance of Maps)
+ */
+export type UpdateType = "Vertical" | "Horizontal" | "Full" | "Cosmetic";
+
+export interface UpdateConfig {}
+
+/**
  * ELEMENT_ORDER defines the order in which element types are rendered.
  * Parents must render before children.
  */
@@ -229,13 +251,11 @@ export class TrackElement {
     this.layout();
   }
 
-  /**
-   * Updates the entire state of the track element in 3 steps:
-   * - Build
-   * - Measure
-   * - Layout
-   */
-  public update(): void {
+  public updateVertical(config?: UpdateConfig): void {}
+
+  public updateHorizontal(): void {}
+
+  public updateFull(): void {
     const prevRegistry = new Map(this._elementRegistryByIdentity);
     const prevHashes = new Map(this._elementHashesByIdentity);
 
@@ -246,6 +266,23 @@ export class TrackElement {
     this.computeElementDiff(prevRegistry, prevHashes);
 
     this.checkAllDirty();
+  }
+
+  /**
+   * Updates the entire state of the track element in 3 steps:
+   * - Build
+   * - Measure
+   * - Layout
+   */
+  public update(updateType: UpdateType = "Full", config?: UpdateConfig): void {
+    switch (updateType) {
+      case "Vertical":
+        return this.updateVertical(config);
+      case "Horizontal":
+        return this.updateHorizontal();
+      case "Full":
+        return this.updateFull();
+    }
   }
 
   /**

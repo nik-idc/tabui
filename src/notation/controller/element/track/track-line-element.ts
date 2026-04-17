@@ -405,6 +405,11 @@ export class TrackLineElement implements NotationElement {
     return this._outlineLines;
   }
 
+  /** Left & right outline line in track line-local coordinates */
+  public get outlineLinesLineLocal(): OutlineLines | undefined {
+    return this._outlineLines;
+  }
+
   /** Left & right outline line for when there are more than 1 staves */
   public get outlineLinesGlobal(): OutlineLines | undefined {
     if (this._outlineLines === undefined) {
@@ -429,6 +434,16 @@ export class TrackLineElement implements NotationElement {
   /** Track line layout bounding box */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(0, 0);
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(0, 0, this._boundingBox.width, this._boundingBox.height);
   }
 
   /** Global coords of the track line element (in most cases X will be 0) */

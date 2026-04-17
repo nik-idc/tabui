@@ -381,6 +381,24 @@ export class TabBeatElement implements BeatElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.barElement.lineLocalCoords.x + this._boundingBox.x,
+      this.barElement.lineLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** This beat's layout bounding box in global coordinates */
   public get globalBoundingBox(): Rect {
     return new Rect(
@@ -404,6 +422,19 @@ export class TabBeatElement implements BeatElement {
     return this._durationStemLine;
   }
 
+  /** Duration stem vertical line in track-line-local coords */
+  public get durationStemLineLineLocal(): VertLine | undefined {
+    if (this._durationStemLine === undefined) {
+      return undefined;
+    }
+
+    return new VertLine(
+      this.lineLocalCoords.x + this._durationStemLine.x,
+      this.lineLocalCoords.y + this._durationStemLine.y1,
+      this.lineLocalCoords.y + this._durationStemLine.y2
+    );
+  }
+
   /** Duration stem vertical line in global coords */
   public get durationStemLineGlobal(): VertLine | undefined {
     if (this._durationStemLine === undefined) {
@@ -420,6 +451,25 @@ export class TabBeatElement implements BeatElement {
   /** Duration flags horizontal lines (for durations like 1/8, 1/16 etc) */
   public get durationFlagLines(): HorLine[] | undefined {
     return this._durationFlagLines;
+  }
+
+  /** Duration flags horizontal lines (in track-line-local coords) */
+  public get durationFlagLinesLineLocal(): HorLine[] | undefined {
+    if (this._durationFlagLines === undefined) {
+      return undefined;
+    }
+
+    const result = [];
+    for (const flagLine of this._durationFlagLines) {
+      result.push(
+        new HorLine(
+          this.lineLocalCoords.x + flagLine.x1,
+          this.lineLocalCoords.x + flagLine.x2,
+          this.lineLocalCoords.y + flagLine.y
+        )
+      );
+    }
+    return result;
   }
 
   /** Duration flags horizontal lines (for durations like 1/8, 1/16 etc) */
@@ -446,6 +496,19 @@ export class TabBeatElement implements BeatElement {
     return this._dot1Circle;
   }
 
+  /** This beat's first dot circle in track-line-local coords */
+  public get dot1CircleLineLocal(): Circle | undefined {
+    if (this._dot1Circle === undefined) {
+      return undefined;
+    }
+
+    return new Circle(
+      this.lineLocalCoords.x + this._dot1Circle.centerX,
+      this.lineLocalCoords.y + this._dot1Circle.centerY,
+      this._dot1Circle.diameter
+    );
+  }
+
   /** This beat's first dot circle in global coords */
   public get dot1CircleGlobal(): Circle | undefined {
     if (this._dot1Circle === undefined) {
@@ -462,6 +525,19 @@ export class TabBeatElement implements BeatElement {
   /** This beat's second dot circle */
   public get dot2Circle(): Circle | undefined {
     return this._dot2Circle;
+  }
+
+  /** This beat's second dot circle in track-line-local coords */
+  public get dot2CircleLineLocal(): Circle | undefined {
+    if (this._dot2Circle === undefined) {
+      return undefined;
+    }
+
+    return new Circle(
+      this.lineLocalCoords.x + this._dot2Circle.centerX,
+      this.lineLocalCoords.y + this._dot2Circle.centerY,
+      this._dot2Circle.diameter
+    );
   }
 
   /** This beat's second dot circle in global coords */

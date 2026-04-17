@@ -7,6 +7,7 @@ import {
 import { Point, Rect, randomInt } from "@/shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
+import { NotationElement } from "@/notation/controller/element/notation-element";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { SVGPathDescriptor, TechniqueElement } from "../technique-element";
 import { TabNoteElement } from "../../note/tab-note-element";
@@ -468,6 +469,11 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return this._pathDescriptors;
   }
 
+  /** Track line-local origin for local path descriptor coordinates */
+  public get pathOriginLineLocal(): Point {
+    return this.noteElement.lineLocalCoords;
+  }
+
   /** Global origin for local path descriptor coordinates */
   public get pathOrigin(): Point {
     return this.noteElement.globalCoords;
@@ -478,6 +484,19 @@ export class GuitarTechniqueElement implements TechniqueElement {
     // Placeholder bounding box used to satisfy the notation element interface.
     // This element currently does not persist a dedicated box.
     return new Rect(this._startPoint.x, this._startPoint.y, 0, 0);
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.noteElement.lineLocalCoords.x + this._startPoint.x,
+      this.noteElement.lineLocalCoords.y + this._startPoint.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(this.lineLocalCoords.x, this.lineLocalCoords.y, 0, 0);
   }
 
   /** Global coords of the guitar technique element */

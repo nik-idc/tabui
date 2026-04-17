@@ -677,6 +677,18 @@ export class BarElement implements NotationElement {
     return new Point(this._timeSigRect.x + padding, this._timeSigRect.y);
   }
 
+  /** Time signature beats text coords in track line-local coordinates */
+  get timeSigBeatsTextCoordsLineLocal(): Point | undefined {
+    if (this.timeSigBeatsTextCoords === undefined) {
+      return undefined;
+    }
+
+    return new Point(
+      this.lineLocalCoords.x + this.timeSigBeatsTextCoords.x,
+      this.lineLocalCoords.y + this.timeSigBeatsTextCoords.y
+    );
+  }
+
   /** Time signature beats text global coords */
   get timeSigBeatsTextCoordsGlobal(): Point | undefined {
     if (this.timeSigBeatsTextCoords === undefined) {
@@ -713,6 +725,18 @@ export class BarElement implements NotationElement {
     return new Point(this._timeSigRect.x + padding, this._timeSigRect.middleY);
   }
 
+  /** Time signature measure text coords in track line-local coordinates */
+  get timeSigDurationTextCoordsLineLocal(): Point | undefined {
+    if (this.timeSigDurationTextCoords === undefined) {
+      return undefined;
+    }
+
+    return new Point(
+      this.lineLocalCoords.x + this.timeSigDurationTextCoords.x,
+      this.lineLocalCoords.y + this.timeSigDurationTextCoords.y
+    );
+  }
+
   /** Time signature measure text global coords */
   get timeSigDurationTextCoordsGlobal(): Point | undefined {
     if (this.timeSigDurationTextCoords === undefined) {
@@ -734,6 +758,15 @@ export class BarElement implements NotationElement {
         EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
     );
   }
+  /** Bar left border line in track line-local coordinates */
+  get barLeftBorderLineLineLocal(): VertLine {
+    const line = this.barLeftBorderLine;
+    return new VertLine(
+      this.lineLocalCoords.x + line.x,
+      this.lineLocalCoords.y + line.y1,
+      this.lineLocalCoords.y + line.y2
+    );
+  }
 
   /** Bar left border line in global coords */
   get barLeftBorderLineGlobal(): VertLine {
@@ -752,6 +785,17 @@ export class BarElement implements NotationElement {
       this._boundingBox.right,
       EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2,
       EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
+        EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+    );
+  }
+
+  /** Bar right border line in track-line-local */
+  get barRightBorderLineLineLocal(): VertLine {
+    return new VertLine(
+      this.lineLocalCoords.x + this._boundingBox.width,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 + this.lineLocalCoords.y,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
+        this.lineLocalCoords.y +
         EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
     );
   }
@@ -836,6 +880,24 @@ export class BarElement implements NotationElement {
     return this._beatElements;
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.notationStyleLineElement.lineLocalCoords.x + this._boundingBox.x,
+      this.notationStyleLineElement.lineLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** Beam segments of this bar element */
   public get beamSegments(): BeamSegmentElement[] {
     return this._beamSegments;
@@ -875,6 +937,22 @@ export class BarElement implements NotationElement {
   }
 
   /** Bar element's staff lines in global coords */
+  public get staffLinesLineLocal(): HorLine[] {
+    const result = [];
+    for (const line of this._staffLines) {
+      result.push(
+        new HorLine(
+          this.lineLocalCoords.x + line.x1,
+          this.lineLocalCoords.x + line.x2,
+          this.lineLocalCoords.y + line.y
+        )
+      );
+    }
+
+    return result;
+  }
+
+  /** Bar element's staff lines in global coords */
   public get staffLinesGlobal(): HorLine[] {
     const result = [];
     for (const line of this._staffLines) {
@@ -901,6 +979,20 @@ export class BarElement implements NotationElement {
   }
 
   /** Repeat start sign rectangle in global coords */
+  public get repeatStartRectLineLocal(): Rect | undefined {
+    if (this._repeatStartRect === undefined) {
+      return undefined;
+    }
+
+    return new Rect(
+      this.lineLocalCoords.x + this._repeatStartRect.x,
+      this.lineLocalCoords.y + this._repeatStartRect.y,
+      this._repeatStartRect.width,
+      this._repeatStartRect.height
+    );
+  }
+
+  /** Repeat start sign rectangle in global coords */
   public get repeatStartRectGlobal(): Rect | undefined {
     if (this._repeatStartRect === undefined) {
       return undefined;
@@ -917,6 +1009,20 @@ export class BarElement implements NotationElement {
   /** Repeat end sign rectangle */
   public get repeatEndRect(): Rect | undefined {
     return this._repeatEndRect;
+  }
+
+  /** Repeat end sign rectangle in track-line-local coords */
+  public get repeatEndRectLineLocal(): Rect | undefined {
+    if (this._repeatEndRect === undefined) {
+      return undefined;
+    }
+
+    return new Rect(
+      this.lineLocalCoords.x + this._repeatEndRect.x,
+      this.lineLocalCoords.y + this._repeatEndRect.y,
+      this._repeatEndRect.width,
+      this._repeatEndRect.height
+    );
   }
 
   /** Repeat end sign rectangle in global coords */

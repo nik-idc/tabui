@@ -7,6 +7,7 @@ import {
   MasterBarData,
   TupletSettings,
   DEFAULT_MASTER_BAR,
+  GuitarTechniqueType,
 } from "@/notation/model";
 import { TrackElement } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
@@ -333,7 +334,11 @@ export class TrackControllerEditor {
     this.commandManager.execute(command);
 
     if (command.executed) {
-      this._trackElement.update();
+      if (type === GuitarTechniqueType.PalmMute) {
+        this._trackElement.update("Vertical");
+      } else {
+        this._trackElement.update();
+      }
     }
   }
 

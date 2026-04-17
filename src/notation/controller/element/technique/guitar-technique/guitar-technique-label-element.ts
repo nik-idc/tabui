@@ -469,6 +469,24 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.beatElement.lineLocalCoords.x + this._boundingBox.x,
+      this.gapLineElement.lineLocalCoords.y ?? 0
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** This element's layout bounding box in global coordinates */
   public get globalBoundingBox(): Rect {
     return new Rect(
@@ -497,6 +515,11 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /** SVG text descriptors */
   public get textDescriptors(): SVGTextDescriptor[] | undefined {
     return this._textDescriptors;
+  }
+
+  /** Shared origin for descriptor-local coordinates in track line-local space */
+  public get descriptorOriginLineLocal(): Point {
+    return this.lineLocalCoords;
   }
 
   /** Shared origin for descriptor-local coordinates */

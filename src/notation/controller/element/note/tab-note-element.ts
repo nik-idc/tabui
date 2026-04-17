@@ -188,6 +188,24 @@ export class TabNoteElement implements NoteElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.beatElement.lineLocalCoords.x + this._boundingBox.x,
+      this.beatElement.lineLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** Main clickable-area bounding box in global coordinates */
   public get globalBoundingBox(): Rect {
     return new Rect(
@@ -211,6 +229,16 @@ export class TabNoteElement implements NoteElement {
     return this._textRect;
   }
 
+  /** Rectangle of the note text rectangle in track line-local coords */
+  public get textRectLineLocal(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x + this.textRect.x,
+      this.lineLocalCoords.y + this.textRect.y,
+      this.textRect.width,
+      this.textRect.height
+    );
+  }
+
   /** Rectangle of the note text rectangle in global coords */
   public get textRectGlobal(): Rect {
     return new Rect(
@@ -224,6 +252,14 @@ export class TabNoteElement implements NoteElement {
   /** Coordinates of the note text */
   public get textCoords(): Point {
     return this._textCoords;
+  }
+
+  /** Track line-local coordinates of the note text */
+  public get textCoordsLineLocal(): Point {
+    return new Point(
+      this.lineLocalCoords.x + this.textCoords.x,
+      this.lineLocalCoords.y + this.textCoords.y
+    );
   }
 
   /** Global coordinates of the note text */

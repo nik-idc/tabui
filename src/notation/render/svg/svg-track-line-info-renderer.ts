@@ -117,9 +117,9 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
     }
 
     const tempoRect =
-      this.trackLineInfoElement.getBarTempoRectGlobal(barElement);
+      this.trackLineInfoElement.getBarTempoRectLineLocal(barElement);
     const tempoTextCoords =
-      this.trackLineInfoElement.getBarTempoTextCoordsGlobal(barElement);
+      this.trackLineInfoElement.getBarTempoTextCoordsLineLocal(barElement);
     const tempoText = this.trackLineInfoElement.getBarTempoText(barElement);
     if (
       tempoRect === undefined ||

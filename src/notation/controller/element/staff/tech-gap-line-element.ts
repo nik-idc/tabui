@@ -247,6 +247,24 @@ export class TechGapLineElement implements NotationElement {
     return this._boundingBox ?? new Rect();
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.techGapElement.lineLocalCoords.x + (this._boundingBox?.x ?? 0),
+      this.techGapElement.lineLocalCoords.y + (this._boundingBox?.y ?? 0)
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox?.width ?? 0,
+      this._boundingBox?.height ?? 0
+    );
+  }
+
   /** This element's layout bounding box in global coordinates */
   public get globalBoundingBox(): Rect {
     return new Rect(

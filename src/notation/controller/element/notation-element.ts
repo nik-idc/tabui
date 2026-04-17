@@ -15,6 +15,8 @@ export interface NotationElement {
   get stateHash(): string;
 
   get boundingBox(): Rect;
+  readonly lineLocalCoords: Point;
+  readonly lineLocalBoundingBox: Rect;
   get globalCoords(): Point;
   get globalBoundingBox(): Rect;
 

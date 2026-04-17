@@ -150,6 +150,21 @@ export class TrackLineInfoElement implements NotationElement {
     return this._barTempoRectsMap.get(barElement);
   }
 
+  /** Gets a tempo rectangle for a specific bar element in track line-local coords */
+  public getBarTempoRectLineLocal(barElement: BarElement): Rect | undefined {
+    const barRect = this._barTempoRectsMap.get(barElement);
+    if (barRect === undefined) {
+      return undefined;
+    }
+
+    return new Rect(
+      barRect.x,
+      this.lineLocalCoords.y,
+      barRect.width,
+      barRect.height
+    );
+  }
+
   /**
    * Gets a tempo rectangle for a specific bar element
    */
@@ -179,6 +194,21 @@ export class TrackLineInfoElement implements NotationElement {
     return new Point(
       barTempoRect.x + barTempoRect.width,
       EditorLayoutDimensions.TEMPO_TEXT_SIZE
+    );
+  }
+
+  /** Gets tempo text coordinates for a specific bar element in track line-local coords */
+  public getBarTempoTextCoordsLineLocal(
+    barElement: BarElement
+  ): Point | undefined {
+    const barTempoRect = this._barTempoRectsMap.get(barElement);
+    if (barTempoRect === undefined) {
+      return undefined;
+    }
+
+    return new Point(
+      barTempoRect.x + barTempoRect.width,
+      this.lineLocalCoords.y + EditorLayoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 
@@ -224,6 +254,21 @@ export class TrackLineInfoElement implements NotationElement {
   /** Track line info layout bounding box */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
   }
 
   /** Global coords of the track line element (in most cases X will be 0) */

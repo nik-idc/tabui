@@ -110,8 +110,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       throw Error("Tried to render beat duration when SVG group undefined");
     }
 
-    const stemGlobal = this.beatElement.durationStemLineGlobal;
-    if (stemGlobal === undefined) {
+    const stemLineLocal = this.beatElement.durationStemLineLineLocal;
+    if (stemLineLocal === undefined) {
       this.unrenderDurationStem();
       return;
     }
@@ -128,9 +128,9 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       this._containerGroupSVG.appendChild(this._durationStemSVG);
     }
 
-    const x = `${stemGlobal.x}`;
-    const y1 = `${stemGlobal.y1}`;
-    const y2 = `${stemGlobal.y2}`;
+    const x = `${stemLineLocal.x}`;
+    const y1 = `${stemLineLocal.y1}`;
+    const y2 = `${stemLineLocal.y2}`;
     this._durationStemSVG.setAttribute("x1", x);
     this._durationStemSVG.setAttribute("x2", x);
     this._durationStemSVG.setAttribute("y1", y1);
@@ -166,8 +166,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       throw Error("Tried to render beat duration when flags array undefined");
     }
 
-    const flagLinesGlobal = this.beatElement.durationFlagLinesGlobal;
-    if (flagLinesGlobal === undefined) {
+    const flagLinesLineLocal = this.beatElement.durationFlagLinesLineLocal;
+    if (flagLinesLineLocal === undefined) {
       return;
     }
 
@@ -189,9 +189,9 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       this._containerGroupSVG.appendChild(this._durationFlagsSVG[flagIndex]);
     }
 
-    const x1 = `${flagLinesGlobal[flagIndex].x1}`;
-    const x2 = `${flagLinesGlobal[flagIndex].x2}`;
-    const y = `${flagLinesGlobal[flagIndex].y}`;
+    const x1 = `${flagLinesLineLocal[flagIndex].x1}`;
+    const x2 = `${flagLinesLineLocal[flagIndex].x2}`;
+    const y = `${flagLinesLineLocal[flagIndex].y}`;
     this._durationFlagsSVG[flagIndex].setAttribute("x1", x1);
     this._durationFlagsSVG[flagIndex].setAttribute("x2", x2);
     this._durationFlagsSVG[flagIndex].setAttribute("y1", y);
@@ -292,8 +292,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     }
 
     const circle = dot1
-      ? this.beatElement.dot1CircleGlobal
-      : this.beatElement.dot2CircleGlobal;
+      ? this.beatElement.dot1CircleLineLocal
+      : this.beatElement.dot2CircleLineLocal;
     if (circle === undefined) {
       throw Error("Tried to render dot circle when circle undefined");
     }

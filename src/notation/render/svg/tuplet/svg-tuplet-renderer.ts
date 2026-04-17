@@ -1,6 +1,5 @@
 import { createSVGG, createSVGPath, createSVGText } from "@/shared";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
-import { SVGTupletSegmentRenderer } from "./svg-tuplet-segment-renderer";
 import { ElementRenderer } from "../../element-renderer";
 import {
   BarTupletGroupElement,
@@ -93,7 +92,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._completeTupletPath);
     }
 
-    const completeRect = this.tupletElement.completePathRectGlobal;
+    const completeRect = this.tupletElement.completePathRectLineLocal;
     if (completeRect === undefined) {
       throw Error("Complete rect undefined right before setting SVG path");
     }
@@ -147,7 +146,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._completeTupletTextSVG);
     }
 
-    const coords = this.tupletElement.comleteTextCoordsGlobal;
+    const coords = this.tupletElement.completeTextCoordsLineLocal;
     if (coords === undefined) {
       throw Error("Complete text coords undefined right before setting text");
     }
@@ -205,7 +204,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(renderedText);
     }
 
-    const textCoordsArray = this.tupletElement.incompleteTextsCoordsGlobal;
+    const textCoordsArray = this.tupletElement.incompleteTextsCoordsLineLocal;
     if (textCoordsArray === undefined) {
       throw Error("Incomplete text array undefined right before setting text");
     }

@@ -4,6 +4,7 @@ import {
   NotationElement,
   EditorLayoutDimensions,
   TrackController,
+  NotationElementClass,
 } from "@/notation/controller";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { createSVG, createSVGG, createSVGRect, Rect } from "@/shared";
@@ -17,6 +18,23 @@ import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-elem
 import { ELEMENT_ORDER } from "@/notation/controller/element/track-element";
 import { createRendererForElement } from "./support/renderer-factory";
 import { SelectionOverlayRenderer } from "./selection-overlay-renderer";
+import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
+import { TrackLineInfoElement } from "@/notation/controller/element/track/track-line-info-element";
+import { StaffLineElement } from "@/notation/controller/element/staff/staff-line-element";
+import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
+import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-element";
+import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
+import { BarElement } from "@/notation/controller/element/bar/bar-element";
+import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
+import { GuitarTechniqueElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element";
+import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
+import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segment-element";
+import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
+
+type TrackLineGroupEntry = {
+  wrapper: SVGGElement;
+  layerGroups: Map<NotationElementClass, SVGGElement>;
+};
 
 /**
  * Render a track window using SVG
@@ -55,8 +73,10 @@ export class EditorSVGRenderer implements EditorRenderer {
   /** Viewport rectangle inside notation scroll container. */
   private _viewportRect: Rect;
 
-  /** Layer groups - each element type lives in the dedicated SVG <g> element */
-  private _layerGroups: Map<Function, SVGGElement>;
+  /** Root group for all notation content. */
+  private _notationSVGGroup: SVGGElement;
+  /** Track line wrapper groups keyed by stable identity. */
+  private _trackLineGroups: Map<string, TrackLineGroupEntry>;
   /** Interaction-only layer for delegated beat hitbox events. */
   private _interactionSVGGroup: SVGGElement;
   /** Selection interaction layer (selection preview / selected note / beat rects). */
@@ -82,7 +102,9 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     this.assetsPath = assetsPath;
 
-    this._layerGroups = this.createLayerGroupsByOrder();
+    this._notationSVGGroup = createSVGG();
+    this._notationSVGGroup.setAttribute("id", "tu-notation");
+    this._trackLineGroups = new Map();
     this._interactionSVGGroup = createSVGG();
     this._interactionSVGGroup.setAttribute("id", "tu-interaction");
     this._beatInteractionLayer = new BeatInteractionLayer(
@@ -105,31 +127,137 @@ export class EditorSVGRenderer implements EditorRenderer {
 
   private mountRootLayers(): void {
     this.rootSVGElement.appendChild(this._interactionSVGGroup);
-    for (const elementClass of ELEMENT_ORDER) {
-      const layer = this._layerGroups.get(elementClass);
-      if (layer !== undefined) {
-        this.rootSVGElement.appendChild(layer);
-      }
-    }
+    this.rootSVGElement.appendChild(this._notationSVGGroup);
     this.rootSVGElement.appendChild(this._selectionSVGGroup);
     this.rootSVGElement.appendChild(this._playerSVGGroup);
   }
 
-  private createLayerGroupsByOrder(): Map<Function, SVGGElement> {
-    const layerGroups = new Map<Function, SVGGElement>();
+  private toDomIdFragment(value: string): string {
+    return value.replace(/[^a-zA-Z0-9_-]/g, "-");
+  }
 
+  private ensureTrackLineGroup(
+    trackLineElement: TrackLineElement
+  ): TrackLineGroupEntry {
+    // Check for track line group existence
+    const stableIdentity = trackLineElement.getStableIdentity();
+    const existingEntry = this._trackLineGroups.get(stableIdentity);
+    if (existingEntry !== undefined) {
+      // existingEntry.wrapper.setAttribute("transform", "translate(0, 0)");
+      existingEntry.wrapper.setAttribute(
+        "transform",
+        `translate(${trackLineElement.globalCoords.x}, ${trackLineElement.globalCoords.y})`
+      );
+      return existingEntry;
+    }
+
+    // Create the line wrapper
+    const wrapper = createSVGG();
+    wrapper.setAttribute(
+      "id",
+      `tu-track-line-wrapper-${this.toDomIdFragment(stableIdentity)}`
+    );
+    // wrapper.setAttribute("transform", "translate(0, 0)");
+    wrapper.setAttribute(
+      "transform",
+      `translate(${trackLineElement.globalCoords.x}, ${trackLineElement.globalCoords.y})`
+    );
+
+    // Create the layer groups & populate the wrapper with them
+    const layerGroups = new Map<NotationElementClass, SVGGElement>();
+    const sanitizedStableIdentity = this.toDomIdFragment(stableIdentity);
     for (const elementClass of ELEMENT_ORDER) {
       const group = createSVGG();
       group.setAttribute(
         "id",
-        `tu-${elementClass.name
+        `tu-line-${sanitizedStableIdentity}-${elementClass.name
           .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
           .toLowerCase()}`
       );
       layerGroups.set(elementClass, group);
+      wrapper.appendChild(group);
     }
 
-    return layerGroups;
+    const entry = { wrapper, layerGroups };
+    this._trackLineGroups.set(stableIdentity, entry);
+    return entry;
+  }
+
+  private syncVisibleTrackLineGroups(
+    trackLineElements: TrackLineElement[]
+  ): void {
+    const visibleStableIdentities = new Set(
+      trackLineElements.map((trackLineElement) =>
+        trackLineElement.getStableIdentity()
+      )
+    );
+
+    for (const trackLineElement of trackLineElements) {
+      const entry = this.ensureTrackLineGroup(trackLineElement);
+      this._notationSVGGroup.appendChild(entry.wrapper);
+    }
+
+    for (const [stableIdentity, entry] of this._trackLineGroups) {
+      if (visibleStableIdentities.has(stableIdentity)) {
+        continue;
+      }
+
+      entry.wrapper.remove();
+      this._trackLineGroups.delete(stableIdentity);
+    }
+  }
+
+  private getOwningTrackLineElement(
+    element: NotationElement
+  ): TrackLineElement {
+    if (element instanceof TrackLineElement) {
+      return element;
+    }
+    if (element instanceof TrackLineInfoElement) {
+      return element.trackLineElement;
+    }
+    if (element instanceof StaffLineElement) {
+      return element.trackLineElement;
+    }
+    if (element instanceof NotationStyleLineElement) {
+      return element.staffLineElement.trackLineElement;
+    }
+    if (element instanceof TechGapElement) {
+      return element.notationStyleLineElement.staffLineElement.trackLineElement;
+    }
+    if (element instanceof TechGapLineElement) {
+      return element.techGapElement.notationStyleLineElement.staffLineElement
+        .trackLineElement;
+    }
+    if (element instanceof BarElement) {
+      return element.notationStyleLineElement.staffLineElement.trackLineElement;
+    }
+    if (element instanceof TabBeatElement) {
+      return element.barElement.notationStyleLineElement.staffLineElement
+        .trackLineElement;
+    }
+    if (element instanceof TabNoteElement) {
+      return element.beatElement.barElement.notationStyleLineElement
+        .staffLineElement.trackLineElement;
+    }
+    if (element instanceof GuitarTechniqueElement) {
+      return element.noteElement.beatElement.barElement.notationStyleLineElement
+        .staffLineElement.trackLineElement;
+    }
+    if (element instanceof GuitarTechniqueLabelElement) {
+      return element.gapLineElement.techGapElement.notationStyleLineElement
+        .staffLineElement.trackLineElement;
+    }
+    if (element instanceof BeamSegmentElement) {
+      return element.barElement.notationStyleLineElement.staffLineElement
+        .trackLineElement;
+    }
+    if (element instanceof BarTupletGroupElement) {
+      return element.barElement.notationStyleLineElement.staffLineElement
+        .trackLineElement;
+    }
+
+    throw new Error(`Unsupported notation element for track line mounting`);
   }
 
   private syncViewportState(): void {
@@ -326,7 +454,11 @@ export class EditorSVGRenderer implements EditorRenderer {
     renderer: ElementRenderer,
     element: NotationElement
   ): void {
-    const layer = this._layerGroups.get(element.constructor as Function);
+    const owningTrackLineElement = this.getOwningTrackLineElement(element);
+    const lineGroupEntry = this.ensureTrackLineGroup(owningTrackLineElement);
+    const layer = lineGroupEntry.layerGroups.get(
+      element.constructor as NotationElementClass
+    );
     if (layer === undefined) {
       return;
     }
@@ -438,6 +570,12 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.syncViewportState();
     const visibleTrackLineRange =
       this.getVisibleTrackLineRange(trackController);
+    const visibleTrackLines =
+      trackController.trackElement.trackLineElements.slice(
+        visibleTrackLineRange.start,
+        visibleTrackLineRange.end + 1
+      );
+    this.syncVisibleTrackLineGroups(visibleTrackLines);
     const visibleElements = this.getVisibleElements(
       trackController,
       visibleTrackLineRange
@@ -488,6 +626,7 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     this._rendererRegistry.clear();
     this._mountedRendererUUIDs.clear();
+    this._trackLineGroups.clear();
     if (this._playerAnimator !== undefined) {
       this._playerAnimator.unbindFromBeatChanged();
       this._playerAnimator = undefined;

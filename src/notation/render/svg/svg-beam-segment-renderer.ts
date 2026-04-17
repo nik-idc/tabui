@@ -100,10 +100,10 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._longRectSVG[index]);
     }
 
-    const x = `${this.beamSegment.longRectsGlobal[index].x}`;
-    const y = `${this.beamSegment.longRectsGlobal[index].y}`;
-    const width = `${this.beamSegment.longRectsGlobal[index].width}`;
-    const height = `${this.beamSegment.longRectsGlobal[index].height}`;
+    const x = `${this.beamSegment.longRectsLineLocal[index].x}`;
+    const y = `${this.beamSegment.longRectsLineLocal[index].y}`;
+    const width = `${this.beamSegment.longRectsLineLocal[index].width}`;
+    const height = `${this.beamSegment.longRectsLineLocal[index].height}`;
     this._longRectSVG[index].setAttribute("x", x);
     this._longRectSVG[index].setAttribute("y", y);
     this._longRectSVG[index].setAttribute("width", width);
@@ -194,10 +194,10 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._shortRectSVG[index]);
     }
 
-    const x = `${this.beamSegment.shortRectsGlobal[index].x}`;
-    const y = `${this.beamSegment.shortRectsGlobal[index].y}`;
-    const width = `${this.beamSegment.shortRectsGlobal[index].width}`;
-    const height = `${this.beamSegment.shortRectsGlobal[index].height}`;
+    const x = `${this.beamSegment.shortRectsLineLocal[index].x}`;
+    const y = `${this.beamSegment.shortRectsLineLocal[index].y}`;
+    const width = `${this.beamSegment.shortRectsLineLocal[index].width}`;
+    const height = `${this.beamSegment.shortRectsLineLocal[index].height}`;
     this._shortRectSVG[index].setAttribute("x", x);
     this._shortRectSVG[index].setAttribute("y", y);
     this._shortRectSVG[index].setAttribute("width", width);

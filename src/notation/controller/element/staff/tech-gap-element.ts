@@ -222,6 +222,24 @@ export class TechGapElement implements NotationElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.notationStyleLineElement.lineLocalCoords.x + this._boundingBox.x,
+      this.notationStyleLineElement.lineLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** This element's layout bounding box in global coordinates */
   public get globalBoundingBox(): Rect {
     return new Rect(

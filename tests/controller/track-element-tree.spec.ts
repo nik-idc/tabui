@@ -38,6 +38,248 @@ describe("TrackElement tree", () => {
     );
   });
 
+  test("line-local geometry is exposed for track line and immediate children", () => {
+    const { track } = createScoreGraph();
+    const trackElement = new TrackElement(track);
+
+    trackElement.update();
+
+    const trackLine = trackElement.trackLineElements[0];
+    const trackLineInfo = trackLine.trackLineInfoElement;
+    const staffLine = trackLine.staffLineElements[0];
+
+    expect(trackLine.lineLocalCoords?.x).toBeCloseTo(0);
+    expect(trackLine.lineLocalCoords?.y).toBeCloseTo(0);
+    expect(trackLine.lineLocalBoundingBox?.x).toBeCloseTo(0);
+    expect(trackLine.lineLocalBoundingBox?.y).toBeCloseTo(0);
+    expect(trackLine.lineLocalBoundingBox?.width).toBeCloseTo(
+      trackLine.boundingBox.width
+    );
+    expect(trackLine.lineLocalBoundingBox?.height).toBeCloseTo(
+      trackLine.boundingBox.height
+    );
+
+    expect(trackLineInfo).not.toBeNull();
+    expect(trackLineInfo?.lineLocalCoords?.x).toBeCloseTo(
+      trackLineInfo?.boundingBox.x ?? 0
+    );
+    expect(trackLineInfo?.lineLocalCoords?.y).toBeCloseTo(
+      trackLineInfo?.boundingBox.y ?? 0
+    );
+    expect(trackLineInfo?.lineLocalBoundingBox?.x).toBeCloseTo(
+      trackLineInfo?.boundingBox.x ?? 0
+    );
+    expect(trackLineInfo?.lineLocalBoundingBox?.y).toBeCloseTo(
+      trackLineInfo?.boundingBox.y ?? 0
+    );
+    expect(trackLineInfo?.globalCoords.x).toBeCloseTo(
+      trackLine.globalCoords.x + (trackLineInfo?.lineLocalCoords?.x ?? 0)
+    );
+    expect(trackLineInfo?.globalCoords.y).toBeCloseTo(
+      trackLine.globalCoords.y + (trackLineInfo?.lineLocalCoords?.y ?? 0)
+    );
+
+    expect(staffLine.lineLocalCoords?.x).toBeCloseTo(staffLine.boundingBox.x);
+    expect(staffLine.lineLocalCoords?.y).toBeCloseTo(staffLine.boundingBox.y);
+    expect(staffLine.lineLocalBoundingBox?.x).toBeCloseTo(
+      staffLine.boundingBox.x
+    );
+    expect(staffLine.lineLocalBoundingBox?.y).toBeCloseTo(
+      staffLine.boundingBox.y
+    );
+    expect(staffLine.globalCoords.x).toBeCloseTo(
+      trackLine.globalCoords.x + (staffLine.lineLocalCoords?.x ?? 0)
+    );
+    expect(staffLine.globalCoords.y).toBeCloseTo(
+      trackLine.globalCoords.y + (staffLine.lineLocalCoords?.y ?? 0)
+    );
+  });
+
+  test("line-local geometry composes through bar beat note and label descendants", () => {
+    const { track, bar } = createScoreGraph();
+    const note = bar.beats[0].notes[0] as GuitarNote;
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const trackLine = trackElement.trackLineElements[0];
+    const staffLine = trackLine.staffLineElements[0];
+    const styleLine = staffLine.styleLinesAsArray[0];
+    const barElement = styleLine.barElements[0];
+    const beatElement = barElement.beatElements[0];
+    const noteElement = beatElement.noteElements[0];
+    const gapLine = styleLine.techGapElement.techGapLinesAsArray.find(
+      (line) => line.labelElements.length > 0
+    );
+    expect(gapLine).toBeDefined();
+    const labelElement = gapLine!.labelElements[0];
+
+    expect(styleLine.lineLocalCoords?.x).toBeCloseTo(
+      (staffLine.lineLocalCoords?.x ?? 0) + styleLine.boundingBox.x
+    );
+    expect(styleLine.lineLocalCoords?.y).toBeCloseTo(
+      (staffLine.lineLocalCoords?.y ?? 0) + styleLine.boundingBox.y
+    );
+
+    expect(barElement.lineLocalCoords?.x).toBeCloseTo(
+      (styleLine.lineLocalCoords?.x ?? 0) + barElement.boundingBox.x
+    );
+    expect(barElement.lineLocalCoords?.y).toBeCloseTo(
+      (styleLine.lineLocalCoords?.y ?? 0) + barElement.boundingBox.y
+    );
+
+    expect(beatElement.lineLocalCoords?.x).toBeCloseTo(
+      (barElement.lineLocalCoords?.x ?? 0) + beatElement.boundingBox.x
+    );
+    expect(beatElement.lineLocalCoords?.y).toBeCloseTo(
+      (barElement.lineLocalCoords?.y ?? 0) + beatElement.boundingBox.y
+    );
+
+    expect(noteElement.lineLocalCoords?.x).toBeCloseTo(
+      (beatElement.lineLocalCoords?.x ?? 0) + noteElement.boundingBox.x
+    );
+    expect(noteElement.lineLocalCoords?.y).toBeCloseTo(
+      (beatElement.lineLocalCoords?.y ?? 0) + noteElement.boundingBox.y
+    );
+
+    expect(labelElement.lineLocalCoords?.x).toBeCloseTo(
+      (beatElement.lineLocalCoords?.x ?? 0) + labelElement.boundingBox.x
+    );
+    expect(labelElement.lineLocalCoords?.y).toBeCloseTo(
+      gapLine?.lineLocalCoords?.y ?? 0
+    );
+  });
+
+  test("line-local helper origins match previous global geometry contracts", () => {
+    const { track, bar } = createScoreGraph();
+    const note = bar.beats[0].notes[0] as GuitarNote;
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const trackLine = trackElement.trackLineElements[0];
+    const trackLineInfo = trackLine.trackLineInfoElement!;
+    const barElement =
+      trackLine.staffLineElements[0].styleLinesAsArray[0].barElements[0];
+    const noteElement = barElement.beatElements[0].noteElements[0];
+    const techniqueElement = noteElement.techniqueElements[0];
+    const gapLine =
+      trackLine.staffLineElements[0].styleLinesAsArray[0].techGapElement.techGapLinesAsArray.find(
+        (line) => line.labelElements.length > 0
+      )!;
+    const labelElement = gapLine.labelElements[0];
+
+    const tempoRectGlobal = trackLineInfo.getBarTempoRectGlobal(barElement)!;
+    const tempoRectLineLocal =
+      trackLineInfo.getBarTempoRectLineLocal(barElement)!;
+    expect(tempoRectGlobal.x - trackLine.globalCoords.x).toBeCloseTo(
+      tempoRectLineLocal.x
+    );
+    expect(tempoRectGlobal.y - trackLine.globalCoords.y).toBeCloseTo(
+      tempoRectLineLocal.y
+    );
+
+    const tempoTextGlobal =
+      trackLineInfo.getBarTempoTextCoordsGlobal(barElement)!;
+    const tempoTextLineLocal =
+      trackLineInfo.getBarTempoTextCoordsLineLocal(barElement)!;
+    expect(tempoTextGlobal.x - trackLine.globalCoords.x).toBeCloseTo(
+      tempoTextLineLocal.x
+    );
+    expect(tempoTextGlobal.y - trackLine.globalCoords.y).toBeCloseTo(
+      tempoTextLineLocal.y
+    );
+
+    expect(
+      techniqueElement.pathOrigin.x - trackLine.globalCoords.x
+    ).toBeCloseTo(techniqueElement.pathOriginLineLocal.x);
+    expect(
+      techniqueElement.pathOrigin.y - trackLine.globalCoords.y
+    ).toBeCloseTo(techniqueElement.pathOriginLineLocal.y);
+
+    expect(
+      labelElement.descriptorOrigin.x - trackLine.globalCoords.x
+    ).toBeCloseTo(labelElement.descriptorOriginLineLocal.x);
+    expect(
+      labelElement.descriptorOrigin.y - trackLine.globalCoords.y
+    ).toBeCloseTo(labelElement.descriptorOriginLineLocal.y);
+  });
+
+  test("line-local core notation geometry matches previous global contracts", () => {
+    const { track, bar } = createScoreGraph();
+    const note = bar.beats[0].notes[0] as GuitarNote;
+    note.fret = 7;
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const trackLine = trackElement.trackLineElements[0];
+    const barElement =
+      trackLine.staffLineElements[0].styleLinesAsArray[0].barElements[0];
+    const beatElement = barElement.beatElements[0];
+    const noteElement = beatElement.noteElements[0];
+
+    const outlineGlobal = trackLine.outlineLinesGlobal;
+    const outlineLineLocal = trackLine.outlineLinesLineLocal;
+    if (outlineGlobal !== undefined && outlineLineLocal !== undefined) {
+      expect(outlineGlobal.left.y1 - trackLine.globalCoords.y).toBeCloseTo(
+        outlineLineLocal.left.y1
+      );
+      expect(outlineGlobal.right.y2 - trackLine.globalCoords.y).toBeCloseTo(
+        outlineLineLocal.right.y2
+      );
+    }
+
+    expect(
+      barElement.barLeftBorderLineGlobal.x - trackLine.globalCoords.x
+    ).toBeCloseTo(barElement.barLeftBorderLineLineLocal.x);
+    expect(
+      barElement.barRightBorderLineGlobal.y1 - trackLine.globalCoords.y
+    ).toBeCloseTo(barElement.barRightBorderLineLineLocal.y1);
+    expect(
+      barElement.staffLinesGlobal[0].x1 - trackLine.globalCoords.x
+    ).toBeCloseTo(barElement.staffLinesLineLocal[0].x1);
+    expect(
+      barElement.staffLinesGlobal[0].y - trackLine.globalCoords.y
+    ).toBeCloseTo(barElement.staffLinesLineLocal[0].y);
+
+    if (
+      beatElement.durationStemLineGlobal &&
+      beatElement.durationStemLineLineLocal
+    ) {
+      expect(
+        beatElement.durationStemLineGlobal.x - trackLine.globalCoords.x
+      ).toBeCloseTo(beatElement.durationStemLineLineLocal.x);
+      expect(
+        beatElement.durationStemLineGlobal.y1 - trackLine.globalCoords.y
+      ).toBeCloseTo(beatElement.durationStemLineLineLocal.y1);
+    }
+
+    if (beatElement.dot1CircleGlobal && beatElement.dot1CircleLineLocal) {
+      expect(
+        beatElement.dot1CircleGlobal.centerX - trackLine.globalCoords.x
+      ).toBeCloseTo(beatElement.dot1CircleLineLocal.centerX);
+      expect(
+        beatElement.dot1CircleGlobal.centerY - trackLine.globalCoords.y
+      ).toBeCloseTo(beatElement.dot1CircleLineLocal.centerY);
+    }
+
+    expect(noteElement.textRectGlobal.x - trackLine.globalCoords.x).toBeCloseTo(
+      noteElement.textRectLineLocal.x
+    );
+    expect(noteElement.textRectGlobal.y - trackLine.globalCoords.y).toBeCloseTo(
+      noteElement.textRectLineLocal.y
+    );
+    expect(
+      noteElement.textCoordsGlobal.x - trackLine.globalCoords.x
+    ).toBeCloseTo(noteElement.textCoordsLineLocal.x);
+    expect(
+      noteElement.textCoordsGlobal.y - trackLine.globalCoords.y
+    ).toBeCloseTo(noteElement.textCoordsLineLocal.y);
+  });
+
   test("registry lookup returns the beat element by beat UUID", () => {
     const { track, bar } = createScoreGraph();
     const trackElement = new TrackElement(track);

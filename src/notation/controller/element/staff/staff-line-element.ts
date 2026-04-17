@@ -294,6 +294,21 @@ export class StaffLineElement implements NotationElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** Global coords of the staff line element (in most cases X will be 0) */
   public get globalCoords(): Point {
     return new Point(

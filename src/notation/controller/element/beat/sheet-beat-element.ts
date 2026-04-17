@@ -14,6 +14,7 @@ import { Circle } from "@/shared/rendering/geometry/circle";
 import { VertLine, HorLine } from "@/shared/rendering/geometry/line";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
+import { NotationElement } from "../notation-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
@@ -103,6 +104,24 @@ export class SheetBeatElement implements BeatElement {
   /** This beat's layout bounding box */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.barElement.lineLocalCoords.x + this._boundingBox.x,
+      this.barElement.lineLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
   }
 
   public getStableIdentity(): string {

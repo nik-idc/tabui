@@ -24,6 +24,7 @@ export interface TechniqueElement extends NotationElement {
 
   get pathDescriptors(): SVGPathDescriptor[] | undefined;
   get startPoint(): Point;
+  get pathOriginLineLocal(): Point;
   get pathOrigin(): Point;
   get globalCoords(): Point;
 }

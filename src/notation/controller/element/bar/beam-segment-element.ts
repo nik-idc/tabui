@@ -346,6 +346,24 @@ export class BeamSegmentElement implements NotationElement {
     return new Rect(minX, minY, maxX - minX, maxY - minY);
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.barElement.lineLocalCoords.x + this.boundingBox.x,
+      this.barElement.lineLocalCoords.y + this.boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this.boundingBox.width,
+      this.boundingBox.height
+    );
+  }
+
   /** Beam segment layout bounding box in global coordinates */
   public get globalBoundingBox(): Rect {
     return new Rect(
@@ -369,6 +387,22 @@ export class BeamSegmentElement implements NotationElement {
     return this._longRects;
   }
 
+  /** Rectangle of the long beam in track-line-local coords */
+  public get longRectsLineLocal(): Rect[] {
+    const result = [];
+    for (const rect of this._longRects) {
+      result.push(
+        new Rect(
+          this.barElement.lineLocalCoords.x + rect.x,
+          this.barElement.lineLocalCoords.y + rect.y,
+          rect.width,
+          rect.height
+        )
+      );
+    }
+    return result;
+  }
+
   /** Rectangle of the long beam in global coords */
   public get longRectsGlobal(): Rect[] {
     const result = [];
@@ -388,6 +422,22 @@ export class BeamSegmentElement implements NotationElement {
   /** Rectangles of the short tails */
   public get shortRects(): Rect[] {
     return this._shortRects;
+  }
+
+  /** Rectangles of the short tails in global coords */
+  public get shortRectsLineLocal(): Rect[] {
+    const result = [];
+    for (const rect of this._shortRects) {
+      result.push(
+        new Rect(
+          this.barElement.lineLocalCoords.x + rect.x,
+          this.barElement.lineLocalCoords.y + rect.y,
+          rect.width,
+          rect.height
+        )
+      );
+    }
+    return result;
   }
 
   /** Rectangles of the short tails in global coords */

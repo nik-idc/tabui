@@ -11,6 +11,7 @@ npm run dev          # Start Vite dev server for the editor
 npm run build_vite   # Build the editor with Vite
 npm run preview_vite # Preview the Vite build
 npm run test         # Run active Jest test suites
+npm run format       # Format all files
 ```
 
 ## Tests
