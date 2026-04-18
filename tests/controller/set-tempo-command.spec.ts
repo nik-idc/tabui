@@ -22,4 +22,12 @@ describe("SetTempoCommand", () => {
 
     expect(() => command.redo()).toThrow("Redo called before execute");
   });
+
+  test("tempo command can carry vertical-update metadata", () => {
+    const { bar, masterBar } = createScoreGraph();
+    const command = new SetTempoCommand(masterBar, 180, [bar.uuid]);
+
+    expect(command.isTempoVisibilityVerticalUpdate).toBe(true);
+    expect(command.affectedModelUUIDs).toEqual([bar.uuid]);
+  });
 });

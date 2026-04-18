@@ -11,11 +11,14 @@ const denseBarsInfo = Array.from({ length: MASTER_BARS_COUNT }, (_, index) => {
   const isThirtySecond = index % 2 === 1;
 
   return {
-    beatsCount: isThirtySecond ? 32 : 16,
-    beatsDuration: isThirtySecond
-      ? NoteDuration.ThirtySecond
-      : NoteDuration.Sixteenth,
+    beatsCount: 32,
+    beatsDuration: NoteDuration.ThirtySecond,
   };
+
+  // beatsCount: isThirtySecond ? 32 : 16,
+  // beatsDuration: isThirtySecond
+  //   ? NoteDuration.ThirtySecond
+  //   : NoteDuration.Sixteenth,
 });
 
 const tracksInfo = [

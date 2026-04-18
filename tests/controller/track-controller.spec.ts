@@ -1,7 +1,12 @@
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { AppendBeatCommand } from "../../src/notation/controller/editor/command/append-beat-command";
 import { BarElement } from "../../src/notation/controller/element/bar/bar-element";
-import { NoteDuration } from "../../src/notation/model";
+import {
+  BendTechniqueOptions,
+  BendType,
+  GuitarTechniqueType,
+  NoteDuration,
+} from "../../src/notation/model";
 import { SelectedMoveDirection } from "../../src/notation/controller/selection/selected-note";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
@@ -117,6 +122,7 @@ describe("TrackController", () => {
   });
 
   test("moving right enough to split the last bar onto a new line marks that bar updated", () => {
+    // NOTE: Takes too long because of unoptimized TrackElement.update
     const { score, track, staff } = createScoreGraph();
     for (let i = 0; i < 40; i++) {
       score.appendMasterBar({
@@ -160,5 +166,78 @@ describe("TrackController", () => {
       diff.added.get(BarElement)?.has(movedBarIdentity) ||
         diff.updated.get(BarElement)?.has(movedBarIdentity)
     ).toBe(true);
+  });
+
+  test("vibrato apply undo redo uses vertical update behavior", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 80; i++) {
+      score.appendMasterBar({
+        tempo: 120,
+        beatsCount: 4,
+        duration: NoteDuration.Quarter,
+        repeatStatus: 0,
+        repeatCount: null,
+      });
+    }
+
+    const controller = new TrackController(track);
+    controller.trackElement.update();
+
+    const secondLine = controller.trackElement.trackLineElements[1];
+    const initialY = secondLine.boundingBox.y;
+
+    controller.setTechnique(GuitarTechniqueType.Vibrato);
+    expect(
+      controller.trackElement.trackLineElements[1].boundingBox.y
+    ).toBeGreaterThan(initialY);
+
+    controller.undo();
+    expect(
+      controller.trackElement.trackLineElements[1].boundingBox.y
+    ).toBeCloseTo(initialY);
+
+    controller.redo();
+    expect(
+      controller.trackElement.trackLineElements[1].boundingBox.y
+    ).toBeGreaterThan(initialY);
+  });
+
+  test("tempo visibility apply undo redo uses vertical update behavior", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 120; i++) {
+      score.appendMasterBar({
+        tempo: 120,
+        beatsCount: 4,
+        duration: NoteDuration.Quarter,
+        repeatStatus: 0,
+        repeatCount: null,
+      });
+    }
+
+    const controller = new TrackController(track);
+    controller.trackElement.update();
+
+    const secondLine = controller.trackElement.trackLineElements[1];
+    const thirdLine = controller.trackElement.trackLineElements[2];
+    const firstNoteOnSecondLine =
+      secondLine.staffLineElements[0].styleLinesAsArray[0].barElements[0]
+        .beatElements[0].noteElements[0];
+    const initialThirdLineY = thirdLine.boundingBox.y;
+
+    controller.selectNoteElement(firstNoteOnSecondLine);
+    controller.setSelectedBarTempo(160);
+    expect(
+      controller.trackElement.trackLineElements[2].boundingBox.y
+    ).toBeGreaterThan(initialThirdLineY);
+
+    controller.undo();
+    expect(
+      controller.trackElement.trackLineElements[2].boundingBox.y
+    ).toBeCloseTo(initialThirdLineY);
+
+    controller.redo();
+    expect(
+      controller.trackElement.trackLineElements[2].boundingBox.y
+    ).toBeGreaterThan(initialThirdLineY);
   });
 });

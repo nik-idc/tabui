@@ -38,7 +38,9 @@ import { SheetBeatElement } from "./beat/sheet-beat-element";
  */
 export type UpdateType = "Vertical" | "Horizontal" | "Full" | "Cosmetic";
 
-export interface UpdateConfig {}
+export interface UpdateConfig {
+  affectedModelUUIDs?: number[];
+}
 
 /**
  * ELEMENT_ORDER defines the order in which element types are rendered.
@@ -251,7 +253,35 @@ export class TrackElement {
     this.layout();
   }
 
-  public updateVertical(config?: UpdateConfig): void {}
+  public updateVertical(config?: UpdateConfig): void {
+    const affectedTrackLines = this.getAffectedTrackLines(
+      config?.affectedModelUUIDs ?? []
+    );
+    if (affectedTrackLines.length === 0) {
+      this.updateFull();
+      return;
+    }
+
+    const prevOwnedByAffectedLine =
+      this.snapshotOwnedElements(affectedTrackLines);
+
+    this.clearElementDiff();
+    this.clearDirtyElements();
+
+    const firstAffectedTrackLineIndex = Math.min(
+      ...affectedTrackLines.map((trackLineElement) =>
+        this._trackLineElements.indexOf(trackLineElement)
+      )
+    );
+    this.applyVerticalUpdatesSequentially(
+      firstAffectedTrackLineIndex,
+      affectedTrackLines
+    );
+    this.reconcileAffectedTrackLineUpdates(
+      affectedTrackLines,
+      prevOwnedByAffectedLine
+    );
+  }
 
   public updateHorizontal(): void {}
 
@@ -316,6 +346,21 @@ export class TrackElement {
     ) {
       const modelUUID = this.getBackingModelUUID(element);
       this._elementRegistryByModelUUID.set(modelUUID, element);
+    }
+  }
+
+  public unregisterElement(element: NotationElement): void {
+    this._elementRegistryByIdentity.delete(element.getStableIdentity());
+    this._elementHashesByIdentity.delete(element.getStableIdentity());
+
+    if (!this.isModelBackedElement(element)) {
+      return;
+    }
+
+    const modelUUID = this.getBackingModelUUID(element);
+    const currentElement = this._elementRegistryByModelUUID.get(modelUUID);
+    if (currentElement === element) {
+      this._elementRegistryByModelUUID.delete(modelUUID);
     }
   }
 
@@ -484,6 +529,192 @@ export class TrackElement {
     throw new Error(
       "Tried to get model UUID of an element with no model backing"
     );
+  }
+
+  private isModelBackedElement(element: NotationElement): boolean {
+    return (
+      element instanceof BarElement ||
+      element instanceof TabBeatElement ||
+      element instanceof SheetBeatElement ||
+      element instanceof TabNoteElement ||
+      element instanceof GuitarTechniqueElement ||
+      element instanceof BarTupletGroupElement
+    );
+  }
+
+  private getAffectedTrackLines(modelUUIDs: number[]): TrackLineElement[] {
+    const affectedTrackLines: TrackLineElement[] = [];
+    const seenStableIdentities = new Set<string>();
+
+    for (const modelUUID of modelUUIDs) {
+      const element = this._elementRegistryByModelUUID.get(modelUUID);
+      if (element === undefined) {
+        continue;
+      }
+
+      const trackLineElement = this.getOwningTrackLineElement(element);
+      const stableIdentity = trackLineElement.getStableIdentity();
+      if (seenStableIdentities.has(stableIdentity)) {
+        continue;
+      }
+
+      affectedTrackLines.push(trackLineElement);
+      seenStableIdentities.add(stableIdentity);
+    }
+
+    affectedTrackLines.sort(
+      (a, b) =>
+        this._trackLineElements.indexOf(a) - this._trackLineElements.indexOf(b)
+    );
+    return affectedTrackLines;
+  }
+
+  private getOwningTrackLineElement(
+    element: NotationElement
+  ): TrackLineElement {
+    // FIX: This works, but it also really sucks. What needs to happen is that every NotationElement
+    // should now also posses a reference to their owning TrackLineElement
+    if (element instanceof BarElement) {
+      return element.notationStyleLineElement.staffLineElement.trackLineElement;
+    }
+    if (
+      element instanceof TabBeatElement ||
+      element instanceof SheetBeatElement
+    ) {
+      return element.barElement.notationStyleLineElement.staffLineElement
+        .trackLineElement;
+    }
+    if (element instanceof TabNoteElement) {
+      return element.beatElement.barElement.notationStyleLineElement
+        .staffLineElement.trackLineElement;
+    }
+    if (element instanceof GuitarTechniqueElement) {
+      return element.noteElement.beatElement.barElement.notationStyleLineElement
+        .staffLineElement.trackLineElement;
+    }
+    if (element instanceof BarTupletGroupElement) {
+      return element.barElement.notationStyleLineElement.staffLineElement
+        .trackLineElement;
+    }
+
+    throw new Error("Unsupported element type for vertical update");
+  }
+
+  private snapshotOwnedElements(
+    trackLineElements: TrackLineElement[]
+  ): Map<string, Map<string, NotationElement>> {
+    const prevOwnedByAffectedLine = new Map<
+      string,
+      Map<string, NotationElement>
+    >();
+
+    for (const trackLineElement of trackLineElements) {
+      prevOwnedByAffectedLine.set(
+        trackLineElement.getStableIdentity(),
+        new Map(
+          trackLineElement.ownedNotationElements.map((element) => [
+            element.getStableIdentity(),
+            element,
+          ])
+        )
+      );
+    }
+
+    return prevOwnedByAffectedLine;
+  }
+
+  private applyVerticalUpdatesSequentially(
+    firstAffectedTrackLineIndex: number,
+    affectedTrackLines: TrackLineElement[]
+  ): void {
+    const affectedStableIdentities = new Set(
+      affectedTrackLines.map((trackLineElement) =>
+        trackLineElement.getStableIdentity()
+      )
+    );
+    const lastTrackLineIndex = this._trackLineElements.length - 1;
+
+    for (
+      let i = firstAffectedTrackLineIndex;
+      i < this._trackLineElements.length;
+      i++
+    ) {
+      const trackLineElement = this._trackLineElements[i];
+      if (affectedStableIdentities.has(trackLineElement.getStableIdentity())) {
+        trackLineElement.build();
+        trackLineElement.measure();
+        trackLineElement.layout();
+        trackLineElement.justifyElements(i === lastTrackLineIndex);
+        continue;
+      }
+
+      trackLineElement.layoutVerticalShift();
+    }
+  }
+
+  private reconcileAffectedTrackLineUpdates(
+    affectedTrackLines: TrackLineElement[],
+    prevOwnedByAffectedLine: Map<string, Map<string, NotationElement>>
+  ): void {
+    for (const trackLineElement of affectedTrackLines) {
+      const prevOwnedElements = prevOwnedByAffectedLine.get(
+        trackLineElement.getStableIdentity()
+      );
+      if (prevOwnedElements === undefined) {
+        continue;
+      }
+
+      const nextOwnedElements = new Map(
+        trackLineElement.ownedNotationElements.map((element) => [
+          element.getStableIdentity(),
+          element,
+        ])
+      );
+
+      this.reconcileRemovedAffectedElements(
+        prevOwnedElements,
+        nextOwnedElements
+      );
+      this.markAffectedLineContentsChanged(
+        trackLineElement.ownedNotationElements,
+        prevOwnedElements
+      );
+    }
+  }
+
+  private reconcileRemovedAffectedElements(
+    prevOwnedElements: Map<string, NotationElement>,
+    nextOwnedElements: Map<string, NotationElement>
+  ): void {
+    for (const [stableIdentity, prevElement] of prevOwnedElements) {
+      if (nextOwnedElements.has(stableIdentity)) {
+        continue;
+      }
+
+      this.unregisterElement(prevElement);
+      this.addToRemovedDiff(this._elementDiff.removed, prevElement);
+    }
+  }
+
+  private markAffectedLineContentsChanged(
+    nextOwnedNotationElements: NotationElement[],
+    prevOwnedElements: Map<string, NotationElement>
+  ): void {
+    for (const element of nextOwnedNotationElements) {
+      const stableIdentity = element.getStableIdentity();
+      if (prevOwnedElements.has(stableIdentity)) {
+        this.addToDiff(this._elementDiff.updated, element);
+      } else {
+        this.addToDiff(this._elementDiff.added, element);
+      }
+
+      const elementClass = element.constructor as NotationElementClass;
+      if (!this._dirtyElements.has(elementClass)) {
+        this._dirtyElements.set(elementClass, new Map());
+      }
+      this._dirtyElements.get(elementClass)!.set(stableIdentity, element);
+      this._elementHashesByIdentity.set(stableIdentity, element.stateHash);
+    }
   }
 
   /**

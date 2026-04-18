@@ -256,6 +256,12 @@ export class TrackLineElement implements NotationElement {
     this.layout();
   }
 
+  public layoutVerticalShift(): void {
+    const prevTrackLine = this.trackElement.getPrevTrackLineElement(this);
+    const y = prevTrackLine?._boundingBox.bottom ?? 0;
+    this._boundingBox.y = y;
+  }
+
   /**
    * Scales the element & its children horizontally by the factor
    * @param scale Scale factor

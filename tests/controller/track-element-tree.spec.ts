@@ -389,6 +389,50 @@ describe("TrackElement tree", () => {
     expect(noteX).toEqual(legacyNoteX);
   });
 
+  test("vertical palm mute update rebuilds affected line and only shifts later lines", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 80; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    expect(trackElement.trackLineElements.length).toBeGreaterThan(2);
+
+    const affectedLine = trackElement.trackLineElements[0];
+    const shiftedLine = trackElement.trackLineElements[1];
+    const shiftedLineBeat =
+      shiftedLine.staffLineElements[0].styleLinesAsArray[0].barElements[0]
+        .beatElements[0];
+    const beforeShiftedLineY = shiftedLine.boundingBox.y;
+
+    const affectedNote = track.staves[0].bars[0].beats[0]
+      .notes[0] as GuitarNote;
+    affectedNote.addTechnique(
+      new GuitarTechnique(affectedNote, GuitarTechniqueType.PalmMute)
+    );
+
+    trackElement.update("Vertical", {
+      affectedModelUUIDs: [affectedNote.uuid],
+    });
+
+    const updatedBeats = trackElement
+      .getElementDiff()
+      .updated.get(TabBeatElement);
+    expect(trackElement.trackLineElements[0]).toBe(affectedLine);
+    expect(trackElement.trackLineElements[1]).toBe(shiftedLine);
+    expect(shiftedLine.boundingBox.y).toBeGreaterThan(beforeShiftedLineY);
+    expect(
+      updatedBeats?.has(
+        affectedLine.staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements[0].getStableIdentity()
+      )
+    ).toBe(true);
+    expect(updatedBeats?.has(shiftedLineBeat.getStableIdentity())).not.toBe(
+      true
+    );
+  });
+
   test("wraps whole bars onto next track line and keeps line navigation/selection consistent", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 40; i++) {

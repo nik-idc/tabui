@@ -14,6 +14,8 @@ import { Command } from "./command";
 export class SetTempoCommand implements Command {
   /** Bar to append the beat to */
   private _bar: MasterBar;
+  /** Bar UUIDs whose tempo visibility may change */
+  private _affectedModelUUIDs: number[];
   /** New tempo value */
   private _newTempo: number;
   /** Old tempo value */
@@ -26,8 +28,13 @@ export class SetTempoCommand implements Command {
    * @param bar Bar whose tempo to set
    * @param newTempo New tempo value
    */
-  constructor(bar: MasterBar, newTempo: number) {
+  constructor(
+    bar: MasterBar,
+    newTempo: number,
+    affectedModelUUIDs: number[] = []
+  ) {
     this._bar = bar;
+    this._affectedModelUUIDs = affectedModelUUIDs;
     this._newTempo = newTempo;
     this._oldTempo = bar.tempo;
   }
@@ -60,5 +67,17 @@ export class SetTempoCommand implements Command {
     }
 
     this._bar.tempo = this._newTempo;
+  }
+
+  public get executed(): boolean {
+    return this._executed;
+  }
+
+  public get isTempoVisibilityVerticalUpdate(): boolean {
+    return this._affectedModelUUIDs.length > 0;
+  }
+
+  public get affectedModelUUIDs(): number[] {
+    return this._affectedModelUUIDs;
   }
 }

@@ -65,9 +65,6 @@ export class BarElement implements NotationElement {
   private _repeatStartRect?: Rect;
   /** Repeat end sign rectangle */
   private _repeatEndRect?: Rect;
-  /** If tempo is to be shown in the bar */
-  private _showTempo: boolean;
-
   /**
    * Class that handles geometry & visually relevant info of a bar
    * @param bar Bar
@@ -98,8 +95,6 @@ export class BarElement implements NotationElement {
     this._timeSigRect = new Rect();
     this._repeatStartRect = new Rect();
     this._repeatEndRect = new Rect();
-    this._showTempo = false;
-
     this.build();
 
     this.trackElement.registerElement(this);
@@ -110,11 +105,6 @@ export class BarElement implements NotationElement {
    */
   private buildStructuralElements(): void {
     const prevBar = this.bar.staff.getPrevBar(this.bar);
-
-    this._showTempo =
-      prevBar !== null
-        ? this.bar.masterBar.tempo !== prevBar.masterBar.tempo
-        : true;
 
     if (
       prevBar !== null &&
@@ -478,7 +468,7 @@ export class BarElement implements NotationElement {
         `${this.globalBoundingBox.height}`,
     ];
 
-    hashArr.push(`${this._showTempo}`);
+    hashArr.push(`${this.showTempo}`);
 
     if (this._repeatEndRect !== undefined) {
       hashArr.push(`${this._repeatEndRect.x}`);
@@ -814,7 +804,7 @@ export class BarElement implements NotationElement {
   /** Gap at the fron of the bar (time sig. and/or repeat start) */
   get startGap(): Rect {
     const x = 0;
-    const y = this._showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
     let width = 0;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
@@ -829,7 +819,7 @@ export class BarElement implements NotationElement {
   /** Gap at the fron of the bar (time sig. and/or repeat start) in global coords */
   get startGapGlobal(): Rect {
     const x = 0;
-    const y = this._showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
     let width = 0;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
@@ -854,7 +844,7 @@ export class BarElement implements NotationElement {
     }
     const height = this._boundingBox.height;
     const x = this._boundingBox.right - width;
-    const y = this._showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
     return new Rect(x, y, width, height);
   }
 
@@ -866,7 +856,7 @@ export class BarElement implements NotationElement {
     }
     const height = this._boundingBox.height;
     const x = this._boundingBox.right - width;
-    const y = this._showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
+    const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
     return new Rect(
       this.globalCoords.x + x,
       this.globalCoords.y + y,
@@ -1041,7 +1031,10 @@ export class BarElement implements NotationElement {
 
   /** If tempo is to be shown in the bar */
   public get showTempo(): boolean {
-    return this._showTempo;
+    const prevBar = this.bar.staff.getPrevBar(this.bar);
+    return prevBar !== null
+      ? this.bar.masterBar.tempo !== prevBar.masterBar.tempo
+      : true;
   }
 
   /** Global coords of the bar element */

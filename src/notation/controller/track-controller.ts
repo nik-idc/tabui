@@ -100,15 +100,19 @@ export class TrackController {
 
   /** Undo previous action */
   public undo(): void {
-    this._trackControllerEditor.commandManager.undo();
-    this._trackElement.update();
+    const handledIncrementally = this._trackControllerEditor.undoCommand();
+    if (!handledIncrementally) {
+      this._trackElement.update();
+    }
     this._trackControllerEditor.syncSelection();
   }
 
   /** Redo previous action */
   public redo(): void {
-    this._trackControllerEditor.commandManager.redo();
-    this._trackElement.update();
+    const handledIncrementally = this._trackControllerEditor.redoCommand();
+    if (!handledIncrementally) {
+      this._trackElement.update();
+    }
     this._trackControllerEditor.syncSelection();
   }
 

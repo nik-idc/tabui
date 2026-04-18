@@ -111,4 +111,35 @@ export class SetTechniqueCommand implements Command {
   public get executed(): boolean {
     return this._executed;
   }
+
+  public get isTechniqueLabelVerticalUpdate(): boolean {
+    if (this.isTechniqueLabelType(this._newTechniqueType)) {
+      return true;
+    }
+
+    for (const oldTechniques of this._oldTechniquesMap.values()) {
+      if (
+        oldTechniques.some((technique) =>
+          this.isTechniqueLabelType(technique.type)
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public get affectedModelUUIDs(): number[] {
+    return this._notes.map((note) => note.uuid);
+  }
+
+  private isTechniqueLabelType(type: TechniqueType): boolean {
+    return (
+      type === GuitarTechniqueType.PalmMute ||
+      type === GuitarTechniqueType.LetRing ||
+      type === GuitarTechniqueType.Vibrato ||
+      type === GuitarTechniqueType.Bend
+    );
+  }
 }
