@@ -22,6 +22,7 @@ import { TechGapLineElement } from "./staff/tech-gap-line-element";
 import { TrackLineInfoElement } from "./track/track-line-info-element";
 import {
   getHorizontalWindow,
+  HorizontalWindow,
   relayoutChangedHorizontalWindow,
 } from "./track/update/track-element-horizontal-update";
 import {
@@ -325,75 +326,88 @@ export class TrackElement {
       return;
     }
 
-    // Keep the old registries around so the final diff can be computed against
-    // the pre-update tree after only a local line window is rebuilt.
-    const prevRegistry = new Map(this._elementRegistryByIdentity);
-    const prevHashes = new Map(this._elementHashesByIdentity);
-    const prevTrackLineElements = [...this._trackLineElements];
-
-    // Repack into a fresh skeleton, then determine the smallest line window
-    // whose ownership changed.
-    const nextSkeleton = this.buildTrackLineSkeleton();
-    const horizontalWindow = getHorizontalWindow(
-      prevTrackLineElements,
-      nextSkeleton,
+    const oldRegistry = new Map(this._elementRegistryByIdentity);
+    const oldHashes = new Map(this._elementHashesByIdentity);
+    const oldLines = [...this._trackLineElements];
+    const newSkeleton = this.buildTrackLineSkeleton();
+    const window = getHorizontalWindow(
+      oldLines,
+      newSkeleton,
       request.firstAffectedMasterBarIndex
     );
 
-    if (horizontalWindow === null) {
+    if (window === null) {
       // Width changed but current line ownership did not, so rebuild the
       // existing affected lines in place.
-      this.updateHorizontalInPlace(request, nextSkeleton);
+      this.updateHorizontalInPlace(request, newSkeleton);
       return;
     }
 
-    // Replace only the changed line window, keeping the prefix and stabilized
-    // suffix line instances untouched.
-    const prevWindowElements = prevTrackLineElements.slice(
-      horizontalWindow.startLineIndex,
-      horizontalWindow.oldEndLineIndexExclusive
+    this.replaceTrackLineWindow(oldLines, newSkeleton, window);
+    this.finishHorizontalUpdate(
+      oldRegistry,
+      oldHashes,
+      window.startLineIndex,
+      window.newEndLineIndexExclusive
     );
-    for (const trackLineElement of prevWindowElements) {
+  }
+
+  private replaceTrackLineWindow(
+    oldLines: TrackLineElement[],
+    newSkeleton: TrackLineData[],
+    window: HorizontalWindow
+  ): void {
+    const oldWindowLines = oldLines.slice(
+      window.startLineIndex,
+      window.oldEndLineIndexExclusive
+    );
+    for (const trackLineElement of oldWindowLines) {
       for (const element of trackLineElement.ownedNotationElements) {
         this.unregisterElement(element);
       }
     }
 
-    const prevWindowByIdentity = new Map(
-      prevWindowElements.map((trackLineElement) => [
+    const oldWindowById = new Map(
+      oldWindowLines.map((trackLineElement) => [
         trackLineElement.getStableIdentity(),
         trackLineElement,
       ])
     );
-    const nextWindowData = nextSkeleton.slice(
-      horizontalWindow.startLineIndex,
-      horizontalWindow.newEndLineIndexExclusive
+    const newWindowData = newSkeleton.slice(
+      window.startLineIndex,
+      window.newEndLineIndexExclusive
     );
-    const nextWindowElements = this.buildTrackLineElementsFromSkeleton(
-      nextWindowData,
-      prevWindowByIdentity
+    const newWindowLines = this.buildTrackLineElementsFromSkeleton(
+      newWindowData,
+      oldWindowById
     );
-    const prevSuffix = prevTrackLineElements.slice(
-      horizontalWindow.oldEndLineIndexExclusive
-    );
+    const oldTrailingLines = oldLines.slice(window.oldEndLineIndexExclusive);
 
     this._trackLineElements = [
-      ...prevTrackLineElements.slice(0, horizontalWindow.startLineIndex),
-      ...nextWindowElements,
-      ...prevSuffix,
+      ...oldLines.slice(0, window.startLineIndex),
+      ...newWindowLines,
+      ...oldTrailingLines,
     ];
+  }
+
+  private finishHorizontalUpdate(
+    oldRegistry: Map<string, NotationElement>,
+    oldHashes: Map<string, string>,
+    startLineIndex: number,
+    newEndLineIndexExclusive: number
+  ): void {
+    this.clearElementDiff();
+    this.clearDirtyElements();
 
     // Re-measure the rebuilt window, shift the preserved suffix, then compute
     // the final diff against the old registries.
-    this.clearElementDiff();
-    this.clearDirtyElements();
     relayoutChangedHorizontalWindow(
       this._trackLineElements,
-      horizontalWindow.startLineIndex,
-      horizontalWindow.newEndLineIndexExclusive
+      startLineIndex,
+      newEndLineIndexExclusive
     );
 
-    this.computeElementDiff(prevRegistry, prevHashes);
+    this.computeElementDiff(oldRegistry, oldHashes);
     this.checkAllDirty();
   }
 
@@ -774,14 +788,19 @@ export class TrackElement {
     this.clearElementDiff();
     this.clearDirtyElements();
 
+    const newLineDataById = new Map(
+      nextSkeleton.map((trackLineData) => [
+        TrackLineElement.createStableIdentity(this.track, trackLineData),
+        trackLineData,
+      ])
+    );
+
     // The line grouping stayed the same, so only rebuild the current affected
     // lines and keep everything else in place.
     const lastTrackLineIndex = this._trackLineElements.length - 1;
     for (const trackLineElement of affectedTrackLines) {
-      const nextTrackLineData = nextSkeleton.find(
-        (trackLineData) =>
-          TrackLineElement.createStableIdentity(this.track, trackLineData) ===
-          trackLineElement.getStableIdentity()
+      const nextTrackLineData = newLineDataById.get(
+        trackLineElement.getStableIdentity()
       );
       if (nextTrackLineData !== undefined) {
         trackLineElement.setTrackLineData(nextTrackLineData);

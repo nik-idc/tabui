@@ -162,4 +162,105 @@ describe("TrackElement rhythm", () => {
       );
     }
   });
+
+  test("invalid beam group ids do not suppress standalone duration flags", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.ThirtySecond },
+      { baseDuration: NoteDuration.ThirtySecond },
+      { baseDuration: NoteDuration.ThirtySecond },
+      { baseDuration: NoteDuration.ThirtySecond },
+      { baseDuration: NoteDuration.ThirtySecond },
+    ]);
+    const trackElement = new TrackElement(track);
+
+    expect(bar.beamingGroups.length).toBeGreaterThan(0);
+
+    bar.beats[3].beamGroupId = bar.beamingGroups.length;
+    bar.beats[4].beamGroupId = bar.beamingGroups.length;
+    bar.beats[3].lastInBeamGroup = false;
+    bar.beats[4].lastInBeamGroup = false;
+
+    trackElement.update();
+
+    const beatElements =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0].beatElements;
+
+    expect(beatElements[0].durationFlagLines).toBeUndefined();
+    expect(beatElements[1].durationFlagLines).toBeUndefined();
+    expect(beatElements[2].durationFlagLines).toBeUndefined();
+    expect(beatElements[3].durationFlagLines).toHaveLength(3);
+    expect(beatElements[4].durationFlagLines).toHaveLength(3);
+  });
+
+  test("standalone flag spacing matches beam level spacing", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.ThirtySecond },
+    ]);
+    const trackElement = new TrackElement(track);
+
+    bar.beats[0].beamGroupId = null;
+    bar.beats[0].lastInBeamGroup = false;
+    trackElement.update();
+
+    const beatElement =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0].beatElements[0];
+
+    expect(beatElement.durationFlagLines).toHaveLength(3);
+    expect(
+      beatElement.durationFlagLines![0].y - beatElement.durationFlagLines![1].y
+    ).toBeCloseTo(EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2);
+    expect(
+      beatElement.durationFlagLines![1].y - beatElement.durationFlagLines![2].y
+    ).toBeCloseTo(EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2);
+  });
+
+  test("beamed dotted beats lift dots to account for beam levels", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.ThirtySecond, dots: 1 },
+      { baseDuration: NoteDuration.ThirtySecond, dots: 1 },
+    ]);
+    const trackElement = new TrackElement(track);
+
+    bar.rebuildTiming();
+    trackElement.update();
+
+    const beatElement =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0].beatElements[0];
+    const dot = beatElement.dot1Circle;
+    const topBeamLevelY =
+      beatElement.barElement.boundingBox.height -
+      EditorLayoutDimensions.TUPLET_RECT_HEIGHT -
+      EditorLayoutDimensions.DURATION_FLAG_HEIGHT -
+      (3 - 1) * EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
+
+    expect(beatElement.durationFlagLines).toBeUndefined();
+    expect(dot).toBeDefined();
+    expect(dot!.centerY).toBeCloseTo(
+      topBeamLevelY - EditorLayoutDimensions.DOT_DIAMETER
+    );
+  });
+
+  test("standalone dotted beats place dots above the top flag", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.ThirtySecond, dots: 1 },
+    ]);
+    const trackElement = new TrackElement(track);
+
+    bar.beats[0].beamGroupId = null;
+    bar.beats[0].lastInBeamGroup = false;
+    trackElement.update();
+
+    const beatElement =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0].beatElements[0];
+    const topFlagY = beatElement.durationFlagLines![2].y;
+
+    expect(beatElement.dot1Circle).toBeDefined();
+    expect(beatElement.dot1Circle!.centerY).toBeCloseTo(
+      topFlagY - EditorLayoutDimensions.DOT_DIAMETER
+    );
+  });
 });

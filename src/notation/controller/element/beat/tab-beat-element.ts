@@ -118,12 +118,13 @@ export class TabBeatElement implements BeatElement {
       this._durationStemLine = undefined;
     }
 
-    if (
-      this.beat.baseDuration <= NoteDuration.Eighth &&
-      this.beat.beamGroupId === null
-    ) {
+    const hasValidBeamGroup =
+      this.beat.beamGroupId !== null &&
+      this.beat.beamGroupId < this.beat.bar.beamingGroups.length;
+
+    if (this.beat.baseDuration <= NoteDuration.Eighth && !hasValidBeamGroup) {
       // Flag lines should only be visible for beats
-      // outside of beam groups AND of duration smaller than 8ths
+      // outside of valid beam groups AND of duration smaller than 8ths
       this._durationFlagLines = Array.from(
         { length: DURATION_TO_FLAG_COUNT[this.beat.baseDuration] },
         () => new HorLine()
@@ -201,8 +202,41 @@ export class TabBeatElement implements BeatElement {
     for (const flagLine of this._durationFlagLines) {
       const x1 = this._boundingBox.width / 2;
       flagLine.set(x1, x1 + this._boundingBox.width / 4, y);
-      y -= EditorLayoutDimensions.DOT_DIAMETER / 2;
+      y -= EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
     }
+  }
+
+  private getDurationLevelCount(): number {
+    if (this._durationFlagLines !== undefined) {
+      return this._durationFlagLines.length;
+    }
+
+    const hasValidBeamGroup =
+      this.beat.beamGroupId !== null &&
+      this.beat.beamGroupId < this.beat.bar.beamingGroups.length;
+    if (!hasValidBeamGroup) {
+      return 0;
+    }
+
+    return DURATION_TO_FLAG_COUNT[this.beat.baseDuration];
+  }
+
+  private getTopDurationDecorationY(): number | undefined {
+    if (this._durationFlagLines !== undefined) {
+      return this._durationFlagLines[this._durationFlagLines.length - 1]?.y;
+    }
+
+    const durationLevelCount = this.getDurationLevelCount();
+    if (durationLevelCount === 0) {
+      return undefined;
+    }
+
+    return (
+      this.barElement.boundingBox.height -
+      EditorLayoutDimensions.TUPLET_RECT_HEIGHT -
+      EditorLayoutDimensions.DURATION_FLAG_HEIGHT -
+      (durationLevelCount - 1) * EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2
+    );
   }
 
   /**
@@ -216,10 +250,9 @@ export class TabBeatElement implements BeatElement {
       this._boundingBox.width / 2 + EditorLayoutDimensions.DOT_DIAMETER * 2;
     let newDotY =
       this._boundingBox.height - EditorLayoutDimensions.DOT_DIAMETER / 2;
-    if (this._durationFlagLines !== undefined) {
-      newDotY -=
-        EditorLayoutDimensions.DURATION_FLAG_HEIGHT *
-        this._durationFlagLines.length;
+    const topDurationDecorationY = this.getTopDurationDecorationY();
+    if (topDurationDecorationY !== undefined) {
+      newDotY = topDurationDecorationY - EditorLayoutDimensions.DOT_DIAMETER;
     }
     this._dot1Circle.setCoords(newDot1X, newDotY);
 
