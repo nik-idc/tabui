@@ -4,7 +4,11 @@ import {
   BeatArrayOperationOutput,
   ScoreEditor,
 } from "@/notation/model";
-import { Command } from "./command";
+import {
+  Command,
+  CommandUpdateRequest,
+  getAffectedMasterBarIndicesFromBeats,
+} from "./command";
 
 /**
  * Remove beats command
@@ -14,6 +18,7 @@ export class RemoveBeatsCommand implements Command {
   private _beatsToRemove: Beat[];
   /** True if executed, false otherwise */
   private _removeBeatsOutputs: BeatArrayOperationOutput[][] | null = null;
+  private _affectedMasterBarIndices: number[];
 
   /**
    * Remove beats command
@@ -21,6 +26,8 @@ export class RemoveBeatsCommand implements Command {
    */
   constructor(beatsToRemove: Beat[]) {
     this._beatsToRemove = beatsToRemove;
+    this._affectedMasterBarIndices =
+      getAffectedMasterBarIndicesFromBeats(beatsToRemove);
   }
 
   /**
@@ -64,5 +71,14 @@ export class RemoveBeatsCommand implements Command {
       const bar = output.beats[0].bar;
       bar.removeBeat(output.index);
     }
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: this._affectedMasterBarIndices,
+      firstAffectedMasterBarIndex: this._affectedMasterBarIndices[0] ?? 0,
+      reason: "remove-beats",
+    };
   }
 }

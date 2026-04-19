@@ -93,14 +93,14 @@ export class NotationStyleLineElement implements NotationElement {
       const stableIdentity = BarElement.createStableIdentity(this, data.bar);
       const existingBarElement = prevBarElements.get(stableIdentity);
       if (existingBarElement !== undefined) {
-        existingBarElement.setDesiredWidth(data.largestBarWidth);
+        existingBarElement.setFinalizedWidth(data.finalizedWidth);
         existingBarElement.build();
         this._barElements.push(existingBarElement);
         continue;
       }
 
       this._barElements.push(
-        new BarElement(data.bar, this, data.largestBarWidth)
+        new BarElement(data.bar, this, data.finalizedWidth)
       );
     }
   }

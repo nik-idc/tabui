@@ -16,13 +16,14 @@ import { NotationElement } from "@/notation/controller/element/notation-element"
  * Width to match & master bar index
  */
 export type TrackLineBarData = {
-  largestBarWidth: number;
+  intrinsicWidth: number;
+  finalizedWidth: number;
   masterBarIndex: number;
 };
 
 /**
  * Data needed to build a track line:
- * Array of objects: Largest width for the master bar at the specified index
+ * Array of objects: intrinsic/finalized width for the master bar at the specified index
  */
 export type TrackLineData = TrackLineBarData[];
 
@@ -39,14 +40,11 @@ export class TrackLineElement implements NotationElement {
     track: Track,
     trackLineData: TrackLineData
   ): string {
-    const firstMasterBarIndex = trackLineData[0]?.masterBarIndex ?? 0;
-    const lastMasterBarIndex =
-      trackLineData[trackLineData.length - 1]?.masterBarIndex ?? 0;
-    const totalWidth = trackLineData
-      .map((data) => data.largestBarWidth)
-      .reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+    const ownershipKey = trackLineData
+      .map((data) => track.score.masterBars[data.masterBarIndex].uuid)
+      .join(":");
 
-    return `track-line:${track.uuid}:${firstMasterBarIndex}:${lastMasterBarIndex}:${totalWidth}`;
+    return `track-line:${track.uuid}:${ownershipKey}`;
   }
 
   /** Unique identifier for the track line element */
@@ -69,6 +67,8 @@ export class TrackLineElement implements NotationElement {
   private _outlineLines?: OutlineLines;
   /** Data necessary to build a track line */
   private _trackLineData: TrackLineData;
+  /** Stable ownership identity captured when the line data is assigned. */
+  private _stableIdentity: string;
 
   /**
    * Class that handles all geometry & visually relevant info of a track line
@@ -91,6 +91,10 @@ export class TrackLineElement implements NotationElement {
 
     this._boundingBox = new Rect();
     this._trackLineData = trackLineData;
+    this._stableIdentity = TrackLineElement.createStableIdentity(
+      this.track,
+      this._trackLineData
+    );
 
     this.build();
 
@@ -115,7 +119,8 @@ export class TrackLineElement implements NotationElement {
     for (const staff of this.track.staves) {
       const data: StaffLineData = this._trackLineData.map((td) => {
         return {
-          largestBarWidth: td.largestBarWidth,
+          intrinsicWidth: td.intrinsicWidth,
+          finalizedWidth: td.finalizedWidth,
           bar: staff.bars[td.masterBarIndex],
         };
       });
@@ -158,6 +163,10 @@ export class TrackLineElement implements NotationElement {
 
   public setTrackLineData(trackLineData: TrackLineData): void {
     this._trackLineData = trackLineData;
+    this._stableIdentity = TrackLineElement.createStableIdentity(
+      this.track,
+      this._trackLineData
+    );
   }
 
   /**
@@ -386,10 +395,7 @@ export class TrackLineElement implements NotationElement {
   }
 
   public getStableIdentity(): string {
-    return TrackLineElement.createStableIdentity(
-      this.track,
-      this._trackLineData
-    );
+    return this._stableIdentity;
   }
 
   /** Staff line element on this track line */

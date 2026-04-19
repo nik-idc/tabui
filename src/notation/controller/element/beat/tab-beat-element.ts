@@ -64,7 +64,7 @@ export class TabBeatElement implements BeatElement {
 
     this._noteElements = [];
 
-    const width = getBeatWidth(this.beat);
+    const width = getBeatWidth(this.beat, this.beat.bar);
     this._boundingBox = new Rect(0, 0, width, 0);
 
     this.build();
@@ -148,7 +148,7 @@ export class TabBeatElement implements BeatElement {
    * Calculates the dimensions of the tab beat element & it's children
    */
   public measure(): void {
-    const width = getBeatWidth(this.beat);
+    const width = getBeatWidth(this.beat, this.beat.bar);
     this._boundingBox.width = width;
 
     for (const noteElement of this._noteElements) {

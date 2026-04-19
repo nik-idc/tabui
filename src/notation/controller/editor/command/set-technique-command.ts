@@ -1,11 +1,5 @@
 import {
-  Score,
-  Beat,
   ScoreEditor,
-  BeatArrayOperationOutput,
-  Bar,
-  MasterBar,
-  BarRepeatStatus,
   Technique,
   BendTechniqueOptions,
   Note,
@@ -13,7 +7,7 @@ import {
   GuitarTechnique,
   GuitarTechniqueType,
 } from "@/notation/model";
-import { Command } from "./command";
+import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Set technique for notes command
@@ -132,6 +126,19 @@ export class SetTechniqueCommand implements Command {
 
   public get affectedModelUUIDs(): number[] {
     return this._notes.map((note) => note.uuid);
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    if (this.isTechniqueLabelVerticalUpdate) {
+      return {
+        updateType: "Vertical",
+        affectedModelUUIDs: this.affectedModelUUIDs,
+      };
+    }
+
+    return {
+      updateType: "Full",
+    };
   }
 
   private isTechniqueLabelType(type: TechniqueType): boolean {

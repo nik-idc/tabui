@@ -4,7 +4,7 @@ import {
   Beat,
   BeatArrayOperationOutput,
 } from "@/notation/model";
-import { Command } from "./command";
+import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
 
 /**
  * Append beat command
@@ -61,5 +61,19 @@ export class AppendBeatCommand implements Command {
   /** Created master bar & staff bars or null if not created yet */
   public get appendBeatResult(): BeatArrayOperationOutput | null {
     return this._appendBeatResult;
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    const affectedMasterBarIndex = getMasterBarIndex(
+      this._bar.staff.track.score,
+      this._bar.masterBar
+    );
+
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [affectedMasterBarIndex],
+      firstAffectedMasterBarIndex: affectedMasterBarIndex,
+      reason: "append-beat",
+    };
   }
 }

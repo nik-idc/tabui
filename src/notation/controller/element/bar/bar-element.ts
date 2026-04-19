@@ -45,8 +45,8 @@ export class BarElement implements NotationElement {
   /** Root track element */
   readonly trackElement: TrackElement;
 
-  /** Desired width for this bar's master bar as determined in the TrackElement */
-  private _desiredWidth: number;
+  /** Finalized width for this bar's master bar as determined in the skeleton */
+  private _finalizedWidth: number;
 
   /** This bar's beat elements */
   private _beatElements: BeatElement[];
@@ -69,19 +69,19 @@ export class BarElement implements NotationElement {
    * Class that handles geometry & visually relevant info of a bar
    * @param bar Bar
    * @param notationStyleLineElement Parent notation style line element
-   * @param desiredWidth Desired width for this bar's master bar as determined
-   * in the TrackElement
+   * @param finalizedWidth Finalized width for this bar's master bar as
+   * determined in the skeleton
    */
   constructor(
     bar: Bar,
     notationStyleLineElement: NotationStyleLineElement,
-    desiredWidth: number
+    finalizedWidth: number
   ) {
     this.uuid = randomInt();
     this.bar = bar;
     this.notationStyleLineElement = notationStyleLineElement;
     this.trackElement = this.notationStyleLineElement.trackElement;
-    this._desiredWidth = desiredWidth;
+    this._finalizedWidth = finalizedWidth;
 
     this._beatElements = [];
     this._beamSegments = [];
@@ -285,8 +285,8 @@ export class BarElement implements NotationElement {
     }
   }
 
-  public setDesiredWidth(desiredWidth: number): void {
-    this._desiredWidth = desiredWidth;
+  public setFinalizedWidth(finalizedWidth: number): void {
+    this._finalizedWidth = finalizedWidth;
   }
 
   /**
@@ -553,15 +553,14 @@ export class BarElement implements NotationElement {
   }
 
   /**
-   * Justifies the bar element to be of the specified width
-   * @param desiredWidth Desired width of the bar element
+   * Justifies the bar element to be of the finalized width
    */
   public justifyToFit(): void {
-    if (this.desiredWidth - this.boundingBox.width === 0) {
+    if (this.finalizedWidth - this.boundingBox.width === 0) {
       return;
     }
 
-    const scale = this.desiredWidth / this.boundingBox.width;
+    const scale = this.finalizedWidth / this.boundingBox.width;
     this.scaleHorBy(scale, false);
   }
 
@@ -632,8 +631,8 @@ export class BarElement implements NotationElement {
     return this.buildStateHash();
   }
 
-  public get desiredWidth(): number {
-    return this._desiredWidth;
+  public get finalizedWidth(): number {
+    return this._finalizedWidth;
   }
 
   public getStableIdentity(): string {
@@ -1062,7 +1061,7 @@ export function getBarWidth(bar: Bar): number {
   }
 
   for (const beat of bar.beats) {
-    width += getBeatWidth(beat);
+    width += getBeatWidth(beat, bar);
   }
 
   if (bar.masterBar.repeatStatus === BarRepeatStatus.End) {

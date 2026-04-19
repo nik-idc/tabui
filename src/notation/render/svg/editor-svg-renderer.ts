@@ -30,6 +30,7 @@ import { GuitarTechniqueElement } from "@/notation/controller/element/technique/
 import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
+import { getOwningTrackLineElement } from "@/notation/controller/element/track/update/track-element-update-helpers";
 
 type TrackLineGroupEntry = {
   wrapper: SVGGElement;
@@ -205,59 +206,6 @@ export class EditorSVGRenderer implements EditorRenderer {
       entry.wrapper.remove();
       this._trackLineGroups.delete(stableIdentity);
     }
-  }
-
-  private getOwningTrackLineElement(
-    element: NotationElement
-  ): TrackLineElement {
-    if (element instanceof TrackLineElement) {
-      return element;
-    }
-    if (element instanceof TrackLineInfoElement) {
-      return element.trackLineElement;
-    }
-    if (element instanceof StaffLineElement) {
-      return element.trackLineElement;
-    }
-    if (element instanceof NotationStyleLineElement) {
-      return element.staffLineElement.trackLineElement;
-    }
-    if (element instanceof TechGapElement) {
-      return element.notationStyleLineElement.staffLineElement.trackLineElement;
-    }
-    if (element instanceof TechGapLineElement) {
-      return element.techGapElement.notationStyleLineElement.staffLineElement
-        .trackLineElement;
-    }
-    if (element instanceof BarElement) {
-      return element.notationStyleLineElement.staffLineElement.trackLineElement;
-    }
-    if (element instanceof TabBeatElement) {
-      return element.barElement.notationStyleLineElement.staffLineElement
-        .trackLineElement;
-    }
-    if (element instanceof TabNoteElement) {
-      return element.beatElement.barElement.notationStyleLineElement
-        .staffLineElement.trackLineElement;
-    }
-    if (element instanceof GuitarTechniqueElement) {
-      return element.noteElement.beatElement.barElement.notationStyleLineElement
-        .staffLineElement.trackLineElement;
-    }
-    if (element instanceof GuitarTechniqueLabelElement) {
-      return element.gapLineElement.techGapElement.notationStyleLineElement
-        .staffLineElement.trackLineElement;
-    }
-    if (element instanceof BeamSegmentElement) {
-      return element.barElement.notationStyleLineElement.staffLineElement
-        .trackLineElement;
-    }
-    if (element instanceof BarTupletGroupElement) {
-      return element.barElement.notationStyleLineElement.staffLineElement
-        .trackLineElement;
-    }
-
-    throw new Error(`Unsupported notation element for track line mounting`);
   }
 
   private syncViewportState(): void {
@@ -454,7 +402,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     renderer: ElementRenderer,
     element: NotationElement
   ): void {
-    const owningTrackLineElement = this.getOwningTrackLineElement(element);
+    const owningTrackLineElement = getOwningTrackLineElement(element);
     const lineGroupEntry = this.ensureTrackLineGroup(owningTrackLineElement);
     const layer = lineGroupEntry.layerGroups.get(
       element.constructor as NotationElementClass

@@ -1,12 +1,5 @@
-import {
-  Score,
-  Beat,
-  ScoreEditor,
-  BeatArrayOperationOutput,
-  Bar,
-  MasterBar,
-} from "@/notation/model";
-import { Command } from "./command";
+import { MasterBar } from "@/notation/model";
+import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Set bar tempo command
@@ -79,5 +72,18 @@ export class SetTempoCommand implements Command {
 
   public get affectedModelUUIDs(): number[] {
     return this._affectedModelUUIDs;
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    if (this.isTempoVisibilityVerticalUpdate) {
+      return {
+        updateType: "Vertical",
+        affectedModelUUIDs: this._affectedModelUUIDs,
+      };
+    }
+
+    return {
+      updateType: "Full",
+    };
   }
 }

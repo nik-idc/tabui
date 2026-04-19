@@ -5,7 +5,7 @@ import {
 } from "@/notation/model";
 import { createScore } from "./helpers";
 
-const MASTER_BARS_COUNT = 500;
+const MASTER_BARS_COUNT = 1000;
 
 const denseBarsInfo = Array.from({ length: MASTER_BARS_COUNT }, (_, index) => {
   const isThirtySecond = index % 2 === 1;
@@ -14,6 +14,11 @@ const denseBarsInfo = Array.from({ length: MASTER_BARS_COUNT }, (_, index) => {
     beatsCount: 32,
     beatsDuration: NoteDuration.ThirtySecond,
   };
+
+  // beatsCount: 64,
+  // beatsDuration: NoteDuration.SixtyFourth,
+  // beatsCount: 32,
+  // beatsDuration: NoteDuration.ThirtySecond,
 
   // beatsCount: isThirtySecond ? 32 : 16,
   // beatsDuration: isThirtySecond

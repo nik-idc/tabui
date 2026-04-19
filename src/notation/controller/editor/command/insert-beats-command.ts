@@ -1,5 +1,5 @@
 import { Bar, Beat } from "@/notation/model";
-import { Command } from "./command";
+import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
 
 /**
  * Insert beats command
@@ -61,5 +61,19 @@ export class InsertBeatsCommand implements Command {
       this._index,
       this._beatsToInsert
     );
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    const affectedMasterBarIndex = getMasterBarIndex(
+      this._bar.staff.track.score,
+      this._bar.masterBar
+    );
+
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [affectedMasterBarIndex],
+      firstAffectedMasterBarIndex: affectedMasterBarIndex,
+      reason: "insert-beats",
+    };
   }
 }

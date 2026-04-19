@@ -1,5 +1,9 @@
 import { Beat, ScoreEditor } from "@/notation/model";
-import { Command } from "./command";
+import {
+  Command,
+  CommandUpdateRequest,
+  getAffectedMasterBarIndicesFromBeats,
+} from "./command";
 
 /**
  * Replace beats command
@@ -15,6 +19,7 @@ export class ReplaceBeatsCommand implements Command {
   private _currentBeats: Beat[];
   /** True if executed, false otherwise */
   private _executed: boolean = false;
+  private _affectedMasterBarIndices: number[];
 
   /**
    * Replace beats command
@@ -26,6 +31,8 @@ export class ReplaceBeatsCommand implements Command {
     this._newBeats = newBeats;
     this._oldBeatSnapshots = beatsToReplace.map((beat) => beat.deepCopy());
     this._currentBeats = beatsToReplace;
+    this._affectedMasterBarIndices =
+      getAffectedMasterBarIndicesFromBeats(beatsToReplace);
   }
 
   /**
@@ -66,5 +73,14 @@ export class ReplaceBeatsCommand implements Command {
       this._currentBeats,
       this._newBeats
     );
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: this._affectedMasterBarIndices,
+      firstAffectedMasterBarIndex: this._affectedMasterBarIndices[0] ?? 0,
+      reason: "replace-beats",
+    };
   }
 }

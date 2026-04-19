@@ -2,8 +2,24 @@ import { TrackElement } from "../../src/notation/controller/element/track-elemen
 import { getBeatWidth } from "../../src/notation/controller/element/beat/beat-element";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { DEFAULT_MASTER_BAR, NoteDuration } from "../../src/notation/model";
-import { createBarWithBeats, createScoreGraph } from "../model/helpers";
+import {
+  createBarWithBeats,
+  createBeat,
+  createScoreGraph,
+} from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
+
+function fillBarWithDenseSixtyFourthBeats(
+  bar: ReturnType<typeof createScoreGraph>["bar"],
+  count: number
+): void {
+  const beats = Array.from({ length: count }, () =>
+    createBeat(bar, NoteDuration.SixtyFourth)
+  );
+  bar.beats.splice(0, bar.beats.length, ...beats);
+  bar.computeBarTupletGroups();
+  bar.rebuildTiming();
+}
 
 describe("TrackElement rhythm", () => {
   beforeAll(() => {
@@ -31,7 +47,7 @@ describe("TrackElement rhythm", () => {
     for (let i = 0; i < beatElements.length; i++) {
       expect(beatElements[i].boundingBox.x).toBeCloseTo(expectedX);
       expect(beatElements[i].boundingBox.width).toBeCloseTo(
-        getBeatWidth(beats[i])
+        getBeatWidth(beats[i], beats[i].bar)
       );
       expectedX += beatElements[i].boundingBox.width;
     }
@@ -81,7 +97,7 @@ describe("TrackElement rhythm", () => {
     expect(beatElements).toHaveLength(3);
     for (let i = 0; i < beatElements.length; i++) {
       expect(beatElements[i].boundingBox.width).toBeCloseTo(
-        getBeatWidth(beats[i])
+        getBeatWidth(beats[i], beats[i].bar)
       );
     }
     expect(beatElements[1].boundingBox.width).toBeGreaterThan(
@@ -114,6 +130,36 @@ describe("TrackElement rhythm", () => {
         );
       }
       expect(barElement.boundingBox.width).toBeGreaterThan(0);
+    }
+  });
+
+  test("dense 64th-note bars build without overflowing line width", () => {
+    const { score, track } = createScoreGraph();
+    fillBarWithDenseSixtyFourthBeats(track.staves[0].bars[0], 64);
+
+    for (let i = 0; i < 8; i++) {
+      score.appendMasterBar({
+        ...DEFAULT_MASTER_BAR,
+        beatsCount: 32,
+        duration: NoteDuration.SixtyFourth,
+      });
+      fillBarWithDenseSixtyFourthBeats(
+        track.staves[0].bars[track.staves[0].bars.length - 1],
+        64
+      );
+    }
+
+    const trackElement = new TrackElement(track);
+
+    expect(() => trackElement.update()).not.toThrow();
+    expect(trackElement.trackLineElements.length).toBeGreaterThan(1);
+
+    for (const trackLine of trackElement.trackLineElements) {
+      const styleLine = trackLine.staffLineElements[0].styleLinesAsArray[0];
+      const lastBar = styleLine.barElements[styleLine.barElements.length - 1];
+      expect(lastBar.boundingBox.right).toBeLessThanOrEqual(
+        EditorLayoutDimensions.WIDTH
+      );
     }
   });
 });

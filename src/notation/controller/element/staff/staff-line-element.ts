@@ -18,13 +18,14 @@ export enum NotationStyle {
  * Width to match & the bar itself
  */
 export type StaffLineBarData = {
-  largestBarWidth: number;
+  intrinsicWidth: number;
+  finalizedWidth: number;
   bar: Bar;
 };
 
 /**
  * Data needed to build a staff line:
- * Array of objects: Largest width for the bar at the specified index
+ * Array of objects: intrinsic/finalized width for the bar at the specified index
  */
 export type StaffLineData = StaffLineBarData[];
 

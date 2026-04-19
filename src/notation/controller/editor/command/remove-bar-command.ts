@@ -3,7 +3,7 @@ import {
   MasterBarData,
   MasterBarArrayOperationOutput,
 } from "@/notation/model";
-import { Command } from "./command";
+import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Remove bar command
@@ -61,5 +61,14 @@ export class RemoveBarCommand implements Command {
   /** Created master bar & staff bars or null if not created yet */
   public get removeResult(): MasterBarArrayOperationOutput | null {
     return this._removeMasterBarResult;
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [this._index],
+      firstAffectedMasterBarIndex: this._index,
+      reason: "remove-bar",
+    };
   }
 }

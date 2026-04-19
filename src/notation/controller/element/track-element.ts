@@ -1,5 +1,11 @@
 import { Beat, Track } from "@/notation/model";
 import { randomInt, Point, Rect } from "@/shared";
+import {
+  CommandUpdateRequest,
+  HorizontalUpdateRequest,
+  TargetedUpdateRequest,
+  VerticalUpdateRequest,
+} from "../editor/command/command";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 import { BarElement, getBarWidth } from "./bar/bar-element";
 import { TrackLineData, TrackLineElement } from "./track/track-line-element";
@@ -14,9 +20,18 @@ import { BarTupletGroupElement } from "./bar/bar-tuplet-group-element";
 import { TechGapElement } from "./staff/tech-gap-element";
 import { TechGapLineElement } from "./staff/tech-gap-line-element";
 import { TrackLineInfoElement } from "./track/track-line-info-element";
+import {
+  getHorizontalWindow,
+  relayoutChangedHorizontalWindow,
+} from "./track/update/track-element-horizontal-update";
+import {
+  applyVerticalUpdatesSequentially,
+  getAffectedTrackLines,
+} from "./track/update/track-element-vertical-update";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
 import { SheetBeatElement } from "./beat/sheet-beat-element";
+import { snapshotOwnedElements } from "./track/update/track-element-update-helpers";
 
 /**
  * PERF: Types of track element updates (to improve performance)
@@ -36,12 +51,6 @@ import { SheetBeatElement } from "./beat/sheet-beat-element";
  * a) Simpler & more efficient way for parents to list all their NotationElement children
  * b) More Maps (though it's best avoided given current over-abundance of Maps)
  */
-export type UpdateType = "Vertical" | "Horizontal" | "Full" | "Cosmetic";
-
-export interface UpdateConfig {
-  affectedModelUUIDs?: number[];
-}
-
 /**
  * ELEMENT_ORDER defines the order in which element types are rendered.
  * Parents must render before children.
@@ -95,7 +104,6 @@ export class TrackElement {
   private _useElementReuse: boolean;
   /** Structural diff between previous and current update cycles */
   private _elementDiff: ElementDiff;
-
   // Purely for testing
   public counts: any = {};
 
@@ -114,7 +122,6 @@ export class TrackElement {
     this._dirtyElements = new Map();
     this._useElementReuse = true;
     this._elementDiff = this.createEmptyDiff();
-
     this.build();
   }
 
@@ -127,15 +134,29 @@ export class TrackElement {
     this._elementRegistryByIdentity.clear();
     this._elementRegistryByModelUUID.clear();
 
-    // Step 1: Organize bars into lines
+    const newSkeleton = this.buildTrackLineSkeleton();
+    this._trackLineElements = this.buildTrackLineElementsFromSkeleton(
+      newSkeleton,
+      this._useElementReuse
+        ? new Map(
+            this._trackLineElements.map((element) => [
+              element.getStableIdentity(),
+              element,
+            ])
+          )
+        : new Map<string, TrackLineElement>()
+    );
+  }
+
+  private buildTrackLineSkeleton(): TrackLineData[] {
     let width = 0;
-    let largestBarWidth = 0;
+    let intrinsicBarWidth = 0;
     let curLineData: TrackLineData = [];
     let allFit = true;
     const linesData: TrackLineData[] = [];
     const masterBars = this.track.score.masterBars;
     for (let i = 0; i < masterBars.length; i++) {
-      largestBarWidth = 0;
+      intrinsicBarWidth = 0;
 
       // Check if current bar fits in all the staves
       // AND find the largest bar amonng the staves
@@ -143,50 +164,70 @@ export class TrackElement {
         const bar = staff.bars[i];
         const barWidth = getBarWidth(bar);
 
-        if (width + barWidth > 1200) {
+        if (width + barWidth > EditorLayoutDimensions.WIDTH) {
           allFit = false;
         }
 
-        if (barWidth > largestBarWidth) {
-          largestBarWidth = barWidth;
+        if (barWidth > intrinsicBarWidth) {
+          intrinsicBarWidth = barWidth;
         }
       }
 
       if (allFit) {
         // If fits, continue trying to fit the next master bar
         curLineData.push({
-          largestBarWidth: largestBarWidth,
+          intrinsicWidth: intrinsicBarWidth,
+          finalizedWidth: intrinsicBarWidth,
           masterBarIndex: i,
         });
-        width += largestBarWidth;
+        width += intrinsicBarWidth;
       } else {
+        if (curLineData.length === 0) {
+          curLineData = [
+            {
+              intrinsicWidth: intrinsicBarWidth,
+              finalizedWidth: EditorLayoutDimensions.WIDTH,
+              masterBarIndex: i,
+            },
+          ];
+          linesData.push(curLineData);
+          width = 0;
+          allFit = true;
+          curLineData = [];
+          continue;
+        }
+
         // If doesn't fit, assume that current master bar fits
         // on the next line and continue
-        width = largestBarWidth;
+        width = intrinsicBarWidth;
         if (curLineData.length === 1) {
-          curLineData[0].largestBarWidth = EditorLayoutDimensions.WIDTH;
+          curLineData[0].finalizedWidth = EditorLayoutDimensions.WIDTH;
         }
         linesData.push(curLineData);
         allFit = true;
-        curLineData = [{ largestBarWidth: largestBarWidth, masterBarIndex: i }];
+        curLineData = [
+          {
+            intrinsicWidth: intrinsicBarWidth,
+            finalizedWidth: intrinsicBarWidth,
+            masterBarIndex: i,
+          },
+        ];
       }
     }
 
-    // Push remaining bars
     if (curLineData.length !== 0) {
       linesData.push(curLineData);
     }
 
-    // Step 2: Rebuild or reuse track line elements by stable identity.
-    const prevTrackLineElements = this._useElementReuse
-      ? new Map(
-          this._trackLineElements.map((element) => [
-            element.getStableIdentity(),
-            element,
-          ])
-        )
-      : new Map<string, TrackLineElement>();
-    this._trackLineElements = [];
+    return linesData;
+  }
+
+  private buildTrackLineElementsFromSkeleton(
+    linesData: TrackLineData[],
+    prevTrackLineElements: Map<string, TrackLineElement>
+  ): TrackLineElement[] {
+    // Reuse existing line instances when line ownership is unchanged.
+    const trackLineElements: TrackLineElement[] = [];
     for (const data of linesData) {
       const stableIdentity = TrackLineElement.createStableIdentity(
         this.track,
@@ -197,14 +238,14 @@ export class TrackElement {
       if (existingTrackLineElement !== undefined) {
         existingTrackLineElement.setTrackLineData(data);
         existingTrackLineElement.build();
-        this._trackLineElements.push(existingTrackLineElement);
+        trackLineElements.push(existingTrackLineElement);
         continue;
       }
 
-      this._trackLineElements.push(
-        new TrackLineElement(this.track, this, data)
-      );
+      trackLineElements.push(new TrackLineElement(this.track, this, data));
     }
+
+    return trackLineElements;
   }
 
   /**
@@ -253,28 +294,23 @@ export class TrackElement {
     this.layout();
   }
 
-  public updateVertical(config?: UpdateConfig): void {
-    const affectedTrackLines = this.getAffectedTrackLines(
-      config?.affectedModelUUIDs ?? []
+  public updateVertical(request: VerticalUpdateRequest): void {
+    const affectedTrackLines = getAffectedTrackLines(
+      this,
+      request.affectedModelUUIDs
     );
     if (affectedTrackLines.length === 0) {
       this.updateFull();
       return;
     }
 
-    const prevOwnedByAffectedLine =
-      this.snapshotOwnedElements(affectedTrackLines);
+    const prevOwnedByAffectedLine = snapshotOwnedElements(affectedTrackLines);
 
     this.clearElementDiff();
     this.clearDirtyElements();
 
-    const firstAffectedTrackLineIndex = Math.min(
-      ...affectedTrackLines.map((trackLineElement) =>
-        this._trackLineElements.indexOf(trackLineElement)
-      )
-    );
-    this.applyVerticalUpdatesSequentially(
-      firstAffectedTrackLineIndex,
+    applyVerticalUpdatesSequentially(
+      this._trackLineElements,
       affectedTrackLines
     );
     this.reconcileAffectedTrackLineUpdates(
@@ -283,7 +319,115 @@ export class TrackElement {
     );
   }
 
-  public updateHorizontal(): void {}
+  public updateHorizontal(request: HorizontalUpdateRequest): void {
+    if (request.affectedMasterBarIndices.length === 0) {
+      this.updateFull();
+      return;
+    }
+
+    // Keep the old registries around so the final diff can be computed against
+    // the pre-update tree after only a local line window is rebuilt.
+    const prevRegistry = new Map(this._elementRegistryByIdentity);
+    const prevHashes = new Map(this._elementHashesByIdentity);
+    const prevTrackLineElements = [...this._trackLineElements];
+
+    // Repack into a fresh skeleton, then determine the smallest line window
+    // whose ownership changed.
+    const nextSkeleton = this.buildTrackLineSkeleton();
+    const horizontalWindow = getHorizontalWindow(
+      prevTrackLineElements,
+      nextSkeleton,
+      request.firstAffectedMasterBarIndex
+    );
+
+    if (horizontalWindow === null) {
+      // Width changed but current line ownership did not, so rebuild the
+      // existing affected lines in place.
+      this.updateHorizontalInPlace(request, nextSkeleton);
+      return;
+    }
+
+    // Replace only the changed line window, keeping the prefix and stabilized
+    // suffix line instances untouched.
+    const prevWindowElements = prevTrackLineElements.slice(
+      horizontalWindow.startLineIndex,
+      horizontalWindow.oldEndLineIndexExclusive
+    );
+    for (const trackLineElement of prevWindowElements) {
+      for (const element of trackLineElement.ownedNotationElements) {
+        this.unregisterElement(element);
+      }
+    }
+
+    const prevWindowByIdentity = new Map(
+      prevWindowElements.map((trackLineElement) => [
+        trackLineElement.getStableIdentity(),
+        trackLineElement,
+      ])
+    );
+    const nextWindowData = nextSkeleton.slice(
+      horizontalWindow.startLineIndex,
+      horizontalWindow.newEndLineIndexExclusive
+    );
+    const nextWindowElements = this.buildTrackLineElementsFromSkeleton(
+      nextWindowData,
+      prevWindowByIdentity
+    );
+    const prevSuffix = prevTrackLineElements.slice(
+      horizontalWindow.oldEndLineIndexExclusive
+    );
+
+    this._trackLineElements = [
+      ...prevTrackLineElements.slice(0, horizontalWindow.startLineIndex),
+      ...nextWindowElements,
+      ...prevSuffix,
+    ];
+
+    // Re-measure the rebuilt window, shift the preserved suffix, then compute
+    // the final diff against the old registries.
+    this.clearElementDiff();
+    this.clearDirtyElements();
+    relayoutChangedHorizontalWindow(
+      this._trackLineElements,
+      horizontalWindow.startLineIndex,
+      horizontalWindow.newEndLineIndexExclusive
+    );
+
+    this.computeElementDiff(prevRegistry, prevHashes);
+    this.checkAllDirty();
+  }
+
+  public updateTargeted(request: TargetedUpdateRequest): void {
+    this.clearElementDiff();
+    this.clearDirtyElements();
+
+    const seenStableIdentities = new Set<string>();
+    for (const modelUUID of request.affectedModelUUIDs) {
+      const element = this._elementRegistryByModelUUID.get(modelUUID);
+      if (element === undefined) {
+        continue;
+      }
+
+      const stableIdentity = element.getStableIdentity();
+      if (seenStableIdentities.has(stableIdentity)) {
+        continue;
+      }
+
+      element.update();
+      this.addToDiff(this._elementDiff.updated, element);
+
+      const elementClass = element.constructor as NotationElementClass;
+      let classDirtyElements = this._dirtyElements.get(elementClass);
+      if (classDirtyElements === undefined) {
+        classDirtyElements = new Map();
+        this._dirtyElements.set(elementClass, classDirtyElements);
+      }
+
+      classDirtyElements.set(stableIdentity, element);
+      this._elementHashesByIdentity.set(stableIdentity, element.stateHash);
+      seenStableIdentities.add(stableIdentity);
+    }
+  }
 
   public updateFull(): void {
     const prevRegistry = new Map(this._elementRegistryByIdentity);
@@ -304,12 +448,14 @@ export class TrackElement {
    * - Measure
    * - Layout
    */
-  public update(updateType: UpdateType = "Full", config?: UpdateConfig): void {
-    switch (updateType) {
+  public update(request: CommandUpdateRequest = { updateType: "Full" }): void {
+    switch (request.updateType) {
       case "Vertical":
-        return this.updateVertical(config);
+        return this.updateVertical(request);
       case "Horizontal":
-        return this.updateHorizontal();
+        return this.updateHorizontal(request);
+      case "Targeted":
+        return this.updateTargeted(request);
       case "Full":
         return this.updateFull();
     }
@@ -542,116 +688,6 @@ export class TrackElement {
     );
   }
 
-  private getAffectedTrackLines(modelUUIDs: number[]): TrackLineElement[] {
-    const affectedTrackLines: TrackLineElement[] = [];
-    const seenStableIdentities = new Set<string>();
-
-    for (const modelUUID of modelUUIDs) {
-      const element = this._elementRegistryByModelUUID.get(modelUUID);
-      if (element === undefined) {
-        continue;
-      }
-
-      const trackLineElement = this.getOwningTrackLineElement(element);
-      const stableIdentity = trackLineElement.getStableIdentity();
-      if (seenStableIdentities.has(stableIdentity)) {
-        continue;
-      }
-
-      affectedTrackLines.push(trackLineElement);
-      seenStableIdentities.add(stableIdentity);
-    }
-
-    affectedTrackLines.sort(
-      (a, b) =>
-        this._trackLineElements.indexOf(a) - this._trackLineElements.indexOf(b)
-    );
-    return affectedTrackLines;
-  }
-
-  private getOwningTrackLineElement(
-    element: NotationElement
-  ): TrackLineElement {
-    // FIX: This works, but it also really sucks. What needs to happen is that every NotationElement
-    // should now also posses a reference to their owning TrackLineElement
-    if (element instanceof BarElement) {
-      return element.notationStyleLineElement.staffLineElement.trackLineElement;
-    }
-    if (
-      element instanceof TabBeatElement ||
-      element instanceof SheetBeatElement
-    ) {
-      return element.barElement.notationStyleLineElement.staffLineElement
-        .trackLineElement;
-    }
-    if (element instanceof TabNoteElement) {
-      return element.beatElement.barElement.notationStyleLineElement
-        .staffLineElement.trackLineElement;
-    }
-    if (element instanceof GuitarTechniqueElement) {
-      return element.noteElement.beatElement.barElement.notationStyleLineElement
-        .staffLineElement.trackLineElement;
-    }
-    if (element instanceof BarTupletGroupElement) {
-      return element.barElement.notationStyleLineElement.staffLineElement
-        .trackLineElement;
-    }
-
-    throw new Error("Unsupported element type for vertical update");
-  }
-
-  private snapshotOwnedElements(
-    trackLineElements: TrackLineElement[]
-  ): Map<string, Map<string, NotationElement>> {
-    const prevOwnedByAffectedLine = new Map<
-      string,
-      Map<string, NotationElement>
-    >();
-
-    for (const trackLineElement of trackLineElements) {
-      prevOwnedByAffectedLine.set(
-        trackLineElement.getStableIdentity(),
-        new Map(
-          trackLineElement.ownedNotationElements.map((element) => [
-            element.getStableIdentity(),
-            element,
-          ])
-        )
-      );
-    }
-
-    return prevOwnedByAffectedLine;
-  }
-
-  private applyVerticalUpdatesSequentially(
-    firstAffectedTrackLineIndex: number,
-    affectedTrackLines: TrackLineElement[]
-  ): void {
-    const affectedStableIdentities = new Set(
-      affectedTrackLines.map((trackLineElement) =>
-        trackLineElement.getStableIdentity()
-      )
-    );
-    const lastTrackLineIndex = this._trackLineElements.length - 1;
-
-    for (
-      let i = firstAffectedTrackLineIndex;
-      i < this._trackLineElements.length;
-      i++
-    ) {
-      const trackLineElement = this._trackLineElements[i];
-      if (affectedStableIdentities.has(trackLineElement.getStableIdentity())) {
-        trackLineElement.build();
-        trackLineElement.measure();
-        trackLineElement.layout();
-        trackLineElement.justifyElements(i === lastTrackLineIndex);
-        continue;
-      }
-
-      trackLineElement.layoutVerticalShift();
-    }
-  }
-
   private reconcileAffectedTrackLineUpdates(
     affectedTrackLines: TrackLineElement[],
     prevOwnedByAffectedLine: Map<string, Map<string, NotationElement>>
@@ -715,6 +751,53 @@ export class TrackElement {
       this._dirtyElements.get(elementClass)!.set(stableIdentity, element);
       this._elementHashesByIdentity.set(stableIdentity, element.stateHash);
     }
+  }
+
+  private updateHorizontalInPlace(
+    request: HorizontalUpdateRequest,
+    nextSkeleton: TrackLineData[]
+  ): void {
+    const affectedMasterBarIndices = request.affectedMasterBarIndices;
+    const affectedTrackLines = this._trackLineElements.filter((tle) =>
+      tle.trackLineData.some((tld) =>
+        affectedMasterBarIndices.includes(tld.masterBarIndex)
+      )
+    );
+
+    if (affectedTrackLines.length === 0) {
+      this.updateFull();
+      return;
+    }
+
+    const prevOwnedByAffectedLine = snapshotOwnedElements(affectedTrackLines);
+
+    this.clearElementDiff();
+    this.clearDirtyElements();
+
+    // The line grouping stayed the same, so only rebuild the current affected
+    // lines and keep everything else in place.
+    const lastTrackLineIndex = this._trackLineElements.length - 1;
+    for (const trackLineElement of affectedTrackLines) {
+      const nextTrackLineData = nextSkeleton.find(
+        (trackLineData) =>
+          TrackLineElement.createStableIdentity(this.track, trackLineData) ===
+          trackLineElement.getStableIdentity()
+      );
+      if (nextTrackLineData !== undefined) {
+        trackLineElement.setTrackLineData(nextTrackLineData);
+      }
+
+      const trackLineIndex = this._trackLineElements.indexOf(trackLineElement);
+      trackLineElement.build();
+      trackLineElement.measure();
+      trackLineElement.layout();
+      trackLineElement.justifyElements(trackLineIndex === lastTrackLineIndex);
+    }
+
+    this.reconcileAffectedTrackLineUpdates(
+      affectedTrackLines,
+      prevOwnedByAffectedLine
+    );
   }
 
   /**

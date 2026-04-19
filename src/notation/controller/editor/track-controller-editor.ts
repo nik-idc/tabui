@@ -63,30 +63,12 @@ export class TrackControllerEditor {
     this._selectionManager = new SelectionManager(this._trackElement.track);
   }
 
-  private applyCommandUpdate(command: unknown): boolean {
-    if (
-      command instanceof SetTechniqueCommand &&
-      command.executed &&
-      command.isTechniqueLabelVerticalUpdate
-    ) {
-      this._trackElement.update("Vertical", {
-        affectedModelUUIDs: command.affectedModelUUIDs,
-      });
-      return true;
+  private applyCommandUpdate(command: Command | undefined): void {
+    if (command === undefined) {
+      return;
     }
 
-    if (
-      command instanceof SetTempoCommand &&
-      command.executed &&
-      command.isTempoVisibilityVerticalUpdate
-    ) {
-      this._trackElement.update("Vertical", {
-        affectedModelUUIDs: command.affectedModelUUIDs,
-      });
-      return true;
-    }
-
-    return false;
+    this._trackElement.update(command.updateRequest);
   }
 
   public executeCommand<T extends Command>(command: T): T {
@@ -95,14 +77,14 @@ export class TrackControllerEditor {
     return executedCommand;
   }
 
-  public undoCommand(): boolean {
+  public undoCommand(): void {
     const command = this.commandManager.undo();
-    return this.applyCommandUpdate(command);
+    this.applyCommandUpdate(command);
   }
 
-  public redoCommand(): boolean {
+  public redoCommand(): void {
     const command = this.commandManager.redo();
-    return this.applyCommandUpdate(command);
+    this.applyCommandUpdate(command);
   }
 
   /**
@@ -133,8 +115,6 @@ export class TrackControllerEditor {
     }
 
     this.executeCommand(new AppendBeatCommand(selectedNote.bar));
-
-    this._trackElement.update();
   }
 
   /**
@@ -153,8 +133,6 @@ export class TrackControllerEditor {
       )
     );
     selectedNote.afterAddedBar();
-
-    this._trackElement.update();
   }
 
   /**
@@ -225,8 +203,6 @@ export class TrackControllerEditor {
     }
 
     this.executeCommand(new SetFretCommand(selectedNote.note, newFret));
-
-    this._trackElement.update();
   }
 
   /**
@@ -239,8 +215,6 @@ export class TrackControllerEditor {
       throw Error("Selection length = 0");
     }
     this.executeCommand(new SetDotsCommand(selection, newDots));
-
-    this._trackElement.update();
   }
 
   /**
@@ -254,8 +228,6 @@ export class TrackControllerEditor {
     }
 
     this.executeCommand(new SetDurationCommand(selection, newDuration));
-
-    this._trackElement.update();
   }
 
   /**
@@ -277,8 +249,6 @@ export class TrackControllerEditor {
 
     const settings: TupletSettings = { normalCount, tupletCount };
     this.executeCommand(new SetTupletCommand(selection, settings));
-
-    this._trackElement.update();
   }
 
   /**
@@ -296,16 +266,12 @@ export class TrackControllerEditor {
     }
 
     const nextBar = selectedNote.staff.getNextBar(selectedNote.bar);
-    const command = this.executeCommand(
+    this.executeCommand(
       new SetTempoCommand(selectedNote.bar.masterBar, newTempo, [
         selectedNote.bar.uuid,
         ...(nextBar !== null ? [nextBar.uuid] : []),
       ])
     );
-
-    if (!command.isTempoVisibilityVerticalUpdate) {
-      this._trackElement.update();
-    }
   }
 
   /**
@@ -341,8 +307,6 @@ export class TrackControllerEditor {
         duration
       )
     );
-
-    this._trackElement.update();
   }
 
   /**
@@ -357,11 +321,16 @@ export class TrackControllerEditor {
       );
     }
 
-    this.executeCommand(
-      new SetRepeatStatusCommand(selectedNote.bar.masterBar, status)
+    const masterBarIndex = selectedNote.staff.track.score.masterBars.indexOf(
+      selectedNote.bar.masterBar
     );
-
-    this._trackElement.update();
+    this.executeCommand(
+      new SetRepeatStatusCommand(
+        selectedNote.bar.masterBar,
+        status,
+        masterBarIndex
+      )
+    );
   }
 
   /**
@@ -379,13 +348,9 @@ export class TrackControllerEditor {
         ? [selectedNote.note]
         : this._selectionManager.selectionAsBeats.flatMap((b) => b.notes);
 
-    const command = this.executeCommand(
+    this.executeCommand(
       new SetTechniqueCommand(selectionNotes, type, bendOptions)
     );
-
-    if (command.executed && !command.isTechniqueLabelVerticalUpdate) {
-      this._trackElement.update();
-    }
   }
 
   /**
@@ -479,8 +444,6 @@ export class TrackControllerEditor {
         )
       );
     }
-
-    this._trackElement.update();
   }
 
   /**
@@ -491,8 +454,6 @@ export class TrackControllerEditor {
       new RemoveBeatsCommand(this._selectionManager.selectionBeats)
     );
     this.clearSelection();
-
-    this._trackElement.update();
   }
 
   /**
@@ -503,8 +464,6 @@ export class TrackControllerEditor {
     this.executeCommand(
       new AppendBarCommand(this._trackElement.track.score, masterBarData)
     );
-
-    this._trackElement.update();
   }
 
   /**
@@ -515,8 +474,6 @@ export class TrackControllerEditor {
     this.executeCommand(
       new PrependBarCommand(this._trackElement.track.score, masterBarData)
     );
-
-    this._trackElement.update();
   }
 
   /**
@@ -541,8 +498,6 @@ export class TrackControllerEditor {
         masterBarData
       )
     );
-
-    this._trackElement.update();
   }
 
   /**
@@ -560,8 +515,6 @@ export class TrackControllerEditor {
     this.executeCommand(
       new RemoveBarCommand(this._trackElement.track.score, barIndex)
     );
-
-    this._trackElement.update();
   }
 
   public get selectionManager(): SelectionManager {

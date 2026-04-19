@@ -101,6 +101,8 @@ export class TabNoteElement implements NoteElement {
   private buildStateHash(): string {
     return (
       `${this.note.fret}` +
+      `${this.note.noteValue}` +
+      `${this.note.octave}` +
       `${this.globalBoundingBox.x}` +
       `${this.globalBoundingBox.y}` +
       `${this.globalBoundingBox.width}` +

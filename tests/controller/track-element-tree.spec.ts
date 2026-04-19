@@ -1,5 +1,6 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
+import { TrackLineElement } from "../../src/notation/controller/element/track/track-line-element";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import {
   DEFAULT_MASTER_BAR,
@@ -7,9 +8,53 @@ import {
   GuitarTechnique,
   GuitarTechniqueType,
 } from "../../src/notation/model";
-import { createBarWithBeats, createScoreGraph } from "../model/helpers";
+import { createScoreGraph } from "../model/helpers";
 import { NoteDuration } from "../../src/notation/model";
 import { ensureLayoutConfigured } from "./helpers";
+import { SetTechniqueCommand } from "../../src/notation/controller/editor/command";
+
+function getLineOwnershipKeys(trackElement: TrackElement): string[] {
+  return trackElement.trackLineElements.map((line) =>
+    TrackLineElement.createStableIdentity(
+      trackElement.track,
+      line.trackLineData
+    )
+  );
+}
+
+function getAllNoteX(trackElement: TrackElement): number[] {
+  return trackElement.trackLineElements.flatMap((trackLineElement) =>
+    trackLineElement.staffLineElements.flatMap((staffLineElement) =>
+      staffLineElement.styleLinesAsArray.flatMap((styleLineElement) =>
+        styleLineElement.barElements.flatMap((barElement) =>
+          barElement.beatElements.map(
+            (beatElement) => beatElement.noteElements[0].textCoordsGlobal.x
+          )
+        )
+      )
+    )
+  );
+}
+
+function getTrackLineY(trackElement: TrackElement): number[] {
+  return trackElement.trackLineElements.map((line) => line.boundingBox.y);
+}
+
+function expectHorizontalUpdateToMatchLegacy(
+  trackElement: TrackElement,
+  legacyTrackElement: TrackElement
+): void {
+  expect(getLineOwnershipKeys(trackElement)).toEqual(
+    getLineOwnershipKeys(legacyTrackElement)
+  );
+  expect(trackElement.trackLineElements.length).toBe(
+    legacyTrackElement.trackLineElements.length
+  );
+  expect(getTrackLineY(trackElement)).toEqual(
+    getTrackLineY(legacyTrackElement)
+  );
+  expect(getAllNoteX(trackElement)).toEqual(getAllNoteX(legacyTrackElement));
+}
 
 describe("TrackElement tree", () => {
   beforeAll(() => {
@@ -360,33 +405,108 @@ describe("TrackElement tree", () => {
     );
   });
 
-  test("width-affecting updates keep note x coordinates aligned with legacy rebuild", () => {
-    const { track, beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
+  test("horizontal duration update matches legacy rebuild when line ownership stays the same", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
 
     const trackElement = new TrackElement(track);
     const legacyTrackElement = new TrackElement(track);
-
-    beats[0].baseDuration = NoteDuration.Eighth;
-    beats[0].bar.rebuildTiming();
-
     trackElement.update();
     legacyTrackElement.updateOld();
 
-    const noteX =
-      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements.map(
-        (beatElement) => beatElement.noteElements[0].textCoordsGlobal.x
-      );
-    const legacyNoteX =
-      legacyTrackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements.map(
-        (beatElement) => beatElement.noteElements[0].textCoordsGlobal.x
-      );
+    const lastLineIndex = trackElement.trackLineElements.length - 1;
+    const affectedMasterBarIndex =
+      trackElement.trackLineElements[lastLineIndex].trackLineData[0]
+        .masterBarIndex;
+    const affectedBar = track.staves[0].bars[affectedMasterBarIndex];
+    affectedBar.beats[0].baseDuration = NoteDuration.Eighth;
+    affectedBar.rebuildTiming();
 
-    expect(noteX).toEqual(legacyNoteX);
+    trackElement.update({
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [affectedMasterBarIndex],
+      firstAffectedMasterBarIndex: affectedMasterBarIndex,
+    });
+    legacyTrackElement.updateOld();
+
+    expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
+  });
+
+  test("horizontal duration update matches legacy rebuild when a late window regroups", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    const legacyTrackElement = new TrackElement(track);
+    trackElement.update();
+    legacyTrackElement.updateOld();
+
+    const secondLastLineIndex = trackElement.trackLineElements.length - 2;
+    const affectedMasterBarIndex =
+      trackElement.trackLineElements[secondLastLineIndex].trackLineData[0]
+        .masterBarIndex;
+    const affectedBar = track.staves[0].bars[affectedMasterBarIndex];
+    affectedBar.beats[0].baseDuration = NoteDuration.Whole;
+    affectedBar.rebuildTiming();
+
+    trackElement.update({
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [affectedMasterBarIndex],
+      firstAffectedMasterBarIndex: affectedMasterBarIndex,
+    });
+    legacyTrackElement.updateOld();
+
+    expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
+  });
+
+  test("horizontal update matches legacy rebuild after deleting a bar in the middle", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    const legacyTrackElement = new TrackElement(track);
+    trackElement.update();
+
+    const removeIndex = 12;
+    score.removeMasterBar(removeIndex);
+
+    trackElement.update({
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [removeIndex],
+      firstAffectedMasterBarIndex: removeIndex,
+    });
+    legacyTrackElement.updateOld();
+
+    expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
+  });
+
+  test("horizontal update matches legacy rebuild after inserting a bar in the middle", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    const legacyTrackElement = new TrackElement(track);
+    trackElement.update();
+
+    const insertIndex = 12;
+    score.insertMasterBar(insertIndex, DEFAULT_MASTER_BAR);
+
+    trackElement.update({
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [insertIndex],
+      firstAffectedMasterBarIndex: insertIndex,
+    });
+    legacyTrackElement.updateOld();
+
+    expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
   });
 
   test("vertical palm mute update rebuilds affected line and only shifts later lines", () => {
@@ -409,13 +529,13 @@ describe("TrackElement tree", () => {
 
     const affectedNote = track.staves[0].bars[0].beats[0]
       .notes[0] as GuitarNote;
-    affectedNote.addTechnique(
-      new GuitarTechnique(affectedNote, GuitarTechniqueType.PalmMute)
+    const setTechCommand = new SetTechniqueCommand(
+      [affectedNote],
+      GuitarTechniqueType.PalmMute
     );
+    setTechCommand.execute();
 
-    trackElement.update("Vertical", {
-      affectedModelUUIDs: [affectedNote.uuid],
-    });
+    trackElement.update(setTechCommand.updateRequest);
 
     const updatedBeats = trackElement
       .getElementDiff()
