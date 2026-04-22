@@ -65,6 +65,8 @@ export class BarElement implements NotationElement {
   private _repeatStartRect?: Rect;
   /** Repeat end sign rectangle */
   private _repeatEndRect?: Rect;
+  /** Whether current horizontal pass may reuse descendants unchanged. */
+  private _reuseOnHorizontalUpdate: boolean;
   /**
    * Class that handles geometry & visually relevant info of a bar
    * @param bar Bar
@@ -95,6 +97,7 @@ export class BarElement implements NotationElement {
     this._timeSigRect = new Rect();
     this._repeatStartRect = new Rect();
     this._repeatEndRect = new Rect();
+    this._reuseOnHorizontalUpdate = false;
     this.build();
 
     this.trackElement.registerElement(this);
@@ -289,6 +292,12 @@ export class BarElement implements NotationElement {
     this._finalizedWidth = finalizedWidth;
   }
 
+  public prepareForHorizontalReuse(finalizedWidth: number): void {
+    this.trackElement.registerElement(this);
+    this._finalizedWidth = finalizedWidth;
+    this._reuseOnHorizontalUpdate = true;
+  }
+
   /**
    * Initializes the bar element:
    * - Calculates the tempo & time sig. visibility
@@ -298,6 +307,7 @@ export class BarElement implements NotationElement {
    */
   public build(): void {
     this.trackElement.registerElement(this);
+    this._reuseOnHorizontalUpdate = false;
 
     this.buildStructuralElements();
     this.buildBeats();
@@ -380,6 +390,10 @@ export class BarElement implements NotationElement {
    * Measure the dimensions of all sub elements of this track line element
    */
   public measure(): void {
+    if (this._reuseOnHorizontalUpdate) {
+      return;
+    }
+
     for (const beatElement of this._beatElements) {
       beatElement.measure();
     }
@@ -503,6 +517,12 @@ export class BarElement implements NotationElement {
    */
   public layout(): void {
     this.layoutRect();
+
+    if (this._reuseOnHorizontalUpdate) {
+      this.justifyToFit();
+      return;
+    }
+
     this.layoutRepeatRects();
     this.layoutTimeSigRect();
     this.layoutStaffLines();
@@ -771,7 +791,7 @@ export class BarElement implements NotationElement {
   /** Bar right border line */
   get barRightBorderLine(): VertLine {
     return new VertLine(
-      this._boundingBox.right,
+      this._boundingBox.width,
       EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2,
       EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
         EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)

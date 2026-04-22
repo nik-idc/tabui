@@ -103,10 +103,10 @@ export class TabNoteElement implements NoteElement {
       `${this.note.fret}` +
       `${this.note.noteValue}` +
       `${this.note.octave}` +
-      `${this.globalBoundingBox.x}` +
-      `${this.globalBoundingBox.y}` +
-      `${this.globalBoundingBox.width}` +
-      `${this.globalBoundingBox.height}` +
+      `${this.barLocalBoundingBox.x}` +
+      `${this.barLocalBoundingBox.y}` +
+      `${this.barLocalBoundingBox.width}` +
+      `${this.barLocalBoundingBox.height}` +
       `${this._textRect.x}` +
       `${this._textRect.y}` +
       `${this._textRect.width}` +
@@ -190,6 +190,24 @@ export class TabNoteElement implements NoteElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(
+      this.beatElement.barLocalCoords.x + this._boundingBox.x,
+      this.beatElement.barLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
@@ -231,6 +249,16 @@ export class TabNoteElement implements NoteElement {
     return this._textRect;
   }
 
+  /** Rectangle of the note text rectangle in bar-local coords */
+  public get textRectBarLocal(): Rect {
+    return new Rect(
+      this.barLocalCoords.x + this.textRect.x,
+      this.barLocalCoords.y + this.textRect.y,
+      this.textRect.width,
+      this.textRect.height
+    );
+  }
+
   /** Rectangle of the note text rectangle in track line-local coords */
   public get textRectLineLocal(): Rect {
     return new Rect(
@@ -254,6 +282,14 @@ export class TabNoteElement implements NoteElement {
   /** Coordinates of the note text */
   public get textCoords(): Point {
     return this._textCoords;
+  }
+
+  /** Bar-local coordinates of the note text */
+  public get textCoordsBarLocal(): Point {
+    return new Point(
+      this.barLocalCoords.x + this.textCoords.x,
+      this.barLocalCoords.y + this.textCoords.y
+    );
   }
 
   /** Track line-local coordinates of the note text */
@@ -291,8 +327,8 @@ export class TabNoteElement implements NoteElement {
   /** Global coords of the note element */
   public get globalCoords(): Point {
     return new Point(
-      this.beatElement.globalCoords.x + this._boundingBox.x,
-      this.beatElement.globalCoords.y + this._boundingBox.y
+      this.beatElement.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.beatElement.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

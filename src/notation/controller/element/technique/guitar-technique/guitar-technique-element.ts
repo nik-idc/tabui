@@ -404,8 +404,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
 
   private buildStateHash(): string {
     return (
-      `${this.globalBoundingBox.x}` +
-      `${this.globalBoundingBox.y}` +
+      `${this.barLocalCoords.x}` +
+      `${this.barLocalCoords.y}` +
       `${this._startPoint.x}` +
       `${this._startPoint.y}` +
       `${JSON.stringify(this._pathDescriptors)}`
@@ -464,14 +464,32 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return this._startPoint;
   }
 
+  /** Start point in bar-local coordinates */
+  public get startPointBarLocal(): Point {
+    return new Point(
+      this.noteElement.barLocalCoords.x + this._startPoint.x,
+      this.noteElement.barLocalCoords.y + this._startPoint.y
+    );
+  }
+
   /** SVG path descriptors */
   public get pathDescriptors(): SVGPathDescriptor[] | undefined {
     return this._pathDescriptors;
   }
 
   /** Track line-local origin for local path descriptor coordinates */
+  public get pathOriginBarLocal(): Point {
+    return this.noteElement.barLocalCoords;
+  }
+
+  /** Track line-local origin for local path descriptor coordinates */
   public get pathOriginLineLocal(): Point {
-    return this.noteElement.lineLocalCoords;
+    return new Point(
+      this.noteElement.beatElement.barElement.lineLocalCoords.x +
+        this.noteElement.barLocalCoords.x,
+      this.noteElement.beatElement.barElement.lineLocalCoords.y +
+        this.noteElement.barLocalCoords.y
+    );
   }
 
   /** Global origin for local path descriptor coordinates */
@@ -486,11 +504,23 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return new Rect(this._startPoint.x, this._startPoint.y, 0, 0);
   }
 
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return this.startPointBarLocal;
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(this.barLocalCoords.x, this.barLocalCoords.y, 0, 0);
+  }
+
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.noteElement.lineLocalCoords.x + this._startPoint.x,
-      this.noteElement.lineLocalCoords.y + this._startPoint.y
+      this.noteElement.beatElement.barElement.lineLocalCoords.x +
+        this.barLocalCoords.x,
+      this.noteElement.beatElement.barElement.lineLocalCoords.y +
+        this.barLocalCoords.y
     );
   }
 
@@ -502,8 +532,10 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /** Global coords of the guitar technique element */
   public get globalCoords(): Point {
     return new Point(
-      this.noteElement.globalCoords.x + this._startPoint.x,
-      this.noteElement.globalCoords.y + this._startPoint.y
+      this.noteElement.beatElement.barElement.globalCoords.x +
+        this.barLocalCoords.x,
+      this.noteElement.beatElement.barElement.globalCoords.y +
+        this.barLocalCoords.y
     );
   }
 

@@ -31,11 +31,28 @@ import { GuitarTechniqueLabelElement } from "@/notation/controller/element/techn
 import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
 import { getOwningTrackLineElement } from "@/notation/controller/element/track/update/track-element-update-helpers";
+import { getOwningBarElement } from "@/notation/controller/element/track/update/track-element-update-helpers";
 
-type TrackLineGroupEntry = {
+type TrackLineGroup = {
+  wrapper: SVGGElement;
+  layerGroups: Map<NotationElementClass, SVGGElement>;
+  barGroups: Map<string, BarGroup>;
+};
+
+type BarGroup = {
   wrapper: SVGGElement;
   layerGroups: Map<NotationElementClass, SVGGElement>;
 };
+
+const BAR_OWNED_ELEMENT_CLASSES: Array<NotationElementClass> = [
+  BarElement,
+  TabBeatElement,
+  TabNoteElement,
+  GuitarTechniqueElement,
+  GuitarTechniqueLabelElement,
+  BeamSegmentElement,
+  BarTupletGroupElement,
+];
 
 /**
  * Render a track window using SVG
@@ -77,7 +94,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   /** Root group for all notation content. */
   private _notationSVGGroup: SVGGElement;
   /** Track line wrapper groups keyed by stable identity. */
-  private _trackLineGroups: Map<string, TrackLineGroupEntry>;
+  private _trackLineGroups: Map<string, TrackLineGroup>;
   /** Interaction-only layer for delegated beat hitbox events. */
   private _interactionSVGGroup: SVGGElement;
   /** Selection interaction layer (selection preview / selected note / beat rects). */
@@ -137,19 +154,36 @@ export class EditorSVGRenderer implements EditorRenderer {
     return value.replace(/[^a-zA-Z0-9_-]/g, "-");
   }
 
+  private ensureChildAtIndex(
+    parent: SVGGElement,
+    child: SVGGElement,
+    index: number
+  ): void {
+    const referenceChild = parent.children.item(index);
+    const alreadyLastAtIndex =
+      referenceChild === null &&
+      child.parentNode === parent &&
+      parent.lastElementChild === child;
+    if (referenceChild === child || alreadyLastAtIndex) {
+      return;
+    }
+
+    parent.insertBefore(child, referenceChild);
+  }
+
   private ensureTrackLineGroup(
     trackLineElement: TrackLineElement
-  ): TrackLineGroupEntry {
-    // Check for track line group existence
+  ): TrackLineGroup {
+    // Check for existing track line group and simply update if it exists
     const stableIdentity = trackLineElement.getStableIdentity();
-    const existingEntry = this._trackLineGroups.get(stableIdentity);
-    if (existingEntry !== undefined) {
-      // existingEntry.wrapper.setAttribute("transform", "translate(0, 0)");
-      existingEntry.wrapper.setAttribute(
+    const existingLineGroup = this._trackLineGroups.get(stableIdentity);
+    if (existingLineGroup !== undefined) {
+      existingLineGroup.wrapper.setAttribute(
         "transform",
         `translate(${trackLineElement.globalCoords.x}, ${trackLineElement.globalCoords.y})`
       );
-      return existingEntry;
+      this.syncTrackLineBarGroups(existingLineGroup, trackLineElement);
+      return existingLineGroup;
     }
 
     // Create the line wrapper
@@ -158,7 +192,6 @@ export class EditorSVGRenderer implements EditorRenderer {
       "id",
       `tu-track-line-wrapper-${this.toDomIdFragment(stableIdentity)}`
     );
-    // wrapper.setAttribute("transform", "translate(0, 0)");
     wrapper.setAttribute(
       "transform",
       `translate(${trackLineElement.globalCoords.x}, ${trackLineElement.globalCoords.y})`
@@ -168,6 +201,11 @@ export class EditorSVGRenderer implements EditorRenderer {
     const layerGroups = new Map<NotationElementClass, SVGGElement>();
     const sanitizedStableIdentity = this.toDomIdFragment(stableIdentity);
     for (const elementClass of ELEMENT_ORDER) {
+      // Skip not track line owned elements (e.g. track line info is per track line)
+      if (BAR_OWNED_ELEMENT_CLASSES.includes(elementClass)) {
+        continue;
+      }
+
       const group = createSVGG();
       group.setAttribute(
         "id",
@@ -179,9 +217,89 @@ export class EditorSVGRenderer implements EditorRenderer {
       wrapper.appendChild(group);
     }
 
-    const entry = { wrapper, layerGroups };
-    this._trackLineGroups.set(stableIdentity, entry);
-    return entry;
+    const trackLineGroup = { wrapper, layerGroups, barGroups: new Map() };
+    this.syncTrackLineBarGroups(trackLineGroup, trackLineElement);
+    this._trackLineGroups.set(stableIdentity, trackLineGroup);
+    return trackLineGroup;
+  }
+
+  private syncTrackLineBarGroups(
+    trackLineGroup: TrackLineGroup,
+    trackLineElement: TrackLineElement
+  ): void {
+    const visibleBarStableIdentities = new Set<string>();
+    let barGroupIndex = trackLineGroup.layerGroups.size;
+
+    // Ensure existence of visible bar groups
+    for (const staffLineElement of trackLineElement.staffLineElements) {
+      for (const notationStyleLineElement of staffLineElement.styleLinesAsArray) {
+        for (const barElement of notationStyleLineElement.barElements) {
+          const stableIdentity = barElement.getStableIdentity();
+          visibleBarStableIdentities.add(stableIdentity);
+
+          const barGroup = this.ensureBarGroup(
+            trackLineGroup,
+            trackLineElement,
+            barElement
+          );
+          this.ensureChildAtIndex(
+            trackLineGroup.wrapper,
+            barGroup.wrapper,
+            barGroupIndex
+          );
+          barGroupIndex++;
+        }
+      }
+    }
+
+    // Remove stale bar groups from the track line group
+    for (const [stableIdentity, barGroup] of trackLineGroup.barGroups) {
+      if (visibleBarStableIdentities.has(stableIdentity)) {
+        continue;
+      }
+
+      barGroup.wrapper.remove();
+      trackLineGroup.barGroups.delete(stableIdentity);
+    }
+  }
+
+  private ensureBarGroup(
+    trackLineGroup: TrackLineGroup,
+    trackLineElement: TrackLineElement,
+    barElement: BarElement
+  ): BarGroup {
+    const stableIdentity = barElement.getStableIdentity();
+    const existingGroup = trackLineGroup.barGroups.get(stableIdentity);
+
+    const translateX = barElement.lineLocalCoords.x;
+    const translateY = barElement.lineLocalCoords.y;
+    const barWrapperTransform = `translate(${translateX}, ${translateY})`;
+    if (existingGroup !== undefined) {
+      existingGroup.wrapper.setAttribute("transform", barWrapperTransform);
+      return existingGroup;
+    }
+
+    const wrapper = createSVGG();
+    wrapper.setAttribute(
+      "id",
+      `tu-bar-wrapper-${this.toDomIdFragment(stableIdentity)}`
+    );
+    wrapper.setAttribute("transform", barWrapperTransform);
+
+    const layerGroups = new Map<NotationElementClass, SVGGElement>();
+    for (const elementClass of BAR_OWNED_ELEMENT_CLASSES) {
+      const group = createSVGG();
+      group.setAttribute(
+        "data-layer",
+        elementClass.name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
+      );
+      layerGroups.set(elementClass, group);
+      wrapper.appendChild(group);
+    }
+
+    const barGroup = { wrapper, layerGroups };
+    trackLineGroup.barGroups.set(stableIdentity, barGroup);
+    return barGroup;
   }
 
   private syncVisibleTrackLineGroups(
@@ -193,17 +311,18 @@ export class EditorSVGRenderer implements EditorRenderer {
       )
     );
 
-    for (const trackLineElement of trackLineElements) {
-      const entry = this.ensureTrackLineGroup(trackLineElement);
-      this._notationSVGGroup.appendChild(entry.wrapper);
+    for (let i = 0; i < trackLineElements.length; i++) {
+      const trackLineElement = trackLineElements[i];
+      const trackLineGroup = this.ensureTrackLineGroup(trackLineElement);
+      this.ensureChildAtIndex(this._notationSVGGroup, trackLineGroup.wrapper, i);
     }
 
-    for (const [stableIdentity, entry] of this._trackLineGroups) {
+    for (const [stableIdentity, trackLineGroup] of this._trackLineGroups) {
       if (visibleStableIdentities.has(stableIdentity)) {
         continue;
       }
 
-      entry.wrapper.remove();
+      trackLineGroup.wrapper.remove();
       this._trackLineGroups.delete(stableIdentity);
     }
   }
@@ -403,10 +522,20 @@ export class EditorSVGRenderer implements EditorRenderer {
     element: NotationElement
   ): void {
     const owningTrackLineElement = getOwningTrackLineElement(element);
-    const lineGroupEntry = this.ensureTrackLineGroup(owningTrackLineElement);
-    const layer = lineGroupEntry.layerGroups.get(
-      element.constructor as NotationElementClass
-    );
+    const trackLineGroup = this.ensureTrackLineGroup(owningTrackLineElement);
+    const owningBarElement = getOwningBarElement(element);
+    let layer: SVGGElement | undefined = undefined;
+    if (owningBarElement === null) {
+      layer = trackLineGroup.layerGroups.get(
+        element.constructor as NotationElementClass
+      );
+    } else {
+      layer = this.ensureBarGroup(
+        trackLineGroup,
+        owningTrackLineElement,
+        owningBarElement
+      ).layerGroups.get(element.constructor as NotationElementClass);
+    }
     if (layer === undefined) {
       return;
     }

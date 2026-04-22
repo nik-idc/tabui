@@ -106,11 +106,26 @@ export class SheetBeatElement implements BeatElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.barElement.lineLocalCoords.x + this._boundingBox.x,
-      this.barElement.lineLocalCoords.y + this._boundingBox.y
+      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -150,8 +165,8 @@ export class SheetBeatElement implements BeatElement {
 
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._boundingBox.x,
-      this.barElement.globalCoords.y + this._boundingBox.y
+      this.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 

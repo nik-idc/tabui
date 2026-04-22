@@ -105,6 +105,8 @@ export class TrackElement {
   private _useElementReuse: boolean;
   /** Structural diff between previous and current update cycles */
   private _elementDiff: ElementDiff;
+  /** Horizontal update bars whose content/intrinsic width actually changed. */
+  private _horizontalAffectedBarIndices: Set<number> | null;
   // Purely for testing
   public counts: any = {};
 
@@ -123,6 +125,7 @@ export class TrackElement {
     this._dirtyElements = new Map();
     this._useElementReuse = true;
     this._elementDiff = this.createEmptyDiff();
+    this._horizontalAffectedBarIndices = null;
     this.build();
   }
 
@@ -326,30 +329,37 @@ export class TrackElement {
       return;
     }
 
-    const oldRegistry = new Map(this._elementRegistryByIdentity);
-    const oldHashes = new Map(this._elementHashesByIdentity);
-    const oldLines = [...this._trackLineElements];
-    const newSkeleton = this.buildTrackLineSkeleton();
-    const window = getHorizontalWindow(
-      oldLines,
-      newSkeleton,
-      request.firstAffectedMasterBarIndex
+    this._horizontalAffectedBarIndices = new Set(
+      request.affectedMasterBarIndices
     );
+    try {
+      const oldRegistry = new Map(this._elementRegistryByIdentity);
+      const oldHashes = new Map(this._elementHashesByIdentity);
+      const oldLines = [...this._trackLineElements];
+      const newSkeleton = this.buildTrackLineSkeleton();
+      const window = getHorizontalWindow(
+        oldLines,
+        newSkeleton,
+        request.firstAffectedMasterBarIndex
+      );
 
-    if (window === null) {
-      // Width changed but current line ownership did not, so rebuild the
-      // existing affected lines in place.
-      this.updateHorizontalInPlace(request, newSkeleton);
-      return;
+      if (window === null) {
+        // Width changed but current line ownership did not, so rebuild the
+        // existing affected lines in place.
+        this.updateHorizontalInPlace(request, newSkeleton);
+        return;
+      }
+
+      this.replaceTrackLineWindow(oldLines, newSkeleton, window);
+      this.finishHorizontalUpdate(
+        oldRegistry,
+        oldHashes,
+        window.startLineIndex,
+        window.newEndLineIndexExclusive
+      );
+    } finally {
+      this._horizontalAffectedBarIndices = null;
     }
-
-    this.replaceTrackLineWindow(oldLines, newSkeleton, window);
-    this.finishHorizontalUpdate(
-      oldRegistry,
-      oldHashes,
-      window.startLineIndex,
-      window.newEndLineIndexExclusive
-    );
   }
 
   private replaceTrackLineWindow(
@@ -590,6 +600,14 @@ export class TrackElement {
 
   public get useElementReuse(): boolean {
     return this._useElementReuse;
+  }
+
+  public isBarAffectedHorizontally(masterBarIndex: number): boolean {
+    return this._horizontalAffectedBarIndices?.has(masterBarIndex) ?? false;
+  }
+
+  public get hasActiveHorizontalUpdate(): boolean {
+    return this._horizontalAffectedBarIndices !== null;
   }
 
   /** Gets beat element global coords */

@@ -147,8 +147,8 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
       }
     }
 
-    const x = this.techniqueLabelElement.descriptorOriginLineLocal.x;
-    const y = this.techniqueLabelElement.descriptorOriginLineLocal.y;
+    const x = this.techniqueLabelElement.descriptorOriginBarLocal.x;
+    const y = this.techniqueLabelElement.descriptorOriginBarLocal.y;
     const transform = `translate(${x}, ${y})`;
     this._techniqueLabelSVG.setAttribute("transform", transform);
 

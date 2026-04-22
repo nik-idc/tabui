@@ -137,6 +137,43 @@ Phase 3 split:
 - 3.5 Width-affecting update propagation and regrouping-safe rebuilds.
 - 3.6 Measurement, benchmarks, and viewport refinement.
 
+Current Phase 3.5 / 3.6 findings:
+
+- Width-affecting incremental updates are now in place for contiguous duration,
+  dots, tuplet, repeat, and time-signature edits, plus bar insertion/removal.
+- Horizontal correctness is currently checked against `updateOld()` for:
+  - same-line width changes
+  - late regrouping
+  - middle insert
+  - middle delete
+- Large-score editing is now practically responsive on the dense selection
+  stress fixture used during Phase 3 work.
+
+Benchmark snapshot (reduced but representative dense fixture):
+
+- Fixture used for the final comparison pass:
+  - 300 master bars
+  - 1 guitar track
+  - 32 thirty-second beats per bar
+- Measured with `npm run benchmark:phase3`
+- Each scenario used 1 warmup run and 3 measured runs
+
+Results:
+
+| Operation                                       | Optimized mean | Legacy mean | Speedup |
+| ----------------------------------------------- | -------------- | ----------- | ------- |
+| Duration change (first 128 beats, 32nd -> 16th) | 98.10 ms       | 7370.70 ms  | 75.13x  |
+| Insert bar at index 120                         | 59.48 ms       | 7410.57 ms  | 124.59x |
+| Remove bar at index 120                         | 7136.98 ms     | 7373.58 ms  | 1.03x   |
+
+Interpretation:
+
+- Duration change and bar insertion now show the intended large speedup.
+- Bar removal is still close to legacy full-rebuild cost and remains a clear
+  follow-up optimization target inside Phase 3.
+- The practical goal of making the dense stress score editable has been met,
+  even though not every width-affecting operation is equally optimized yet.
+
 Exit criteria:
 
 - Large-score edits are noticeably faster.

@@ -21,9 +21,12 @@ export interface SVGTextDescriptor {
 export interface TechniqueElement extends NotationElement {
   readonly technique: Technique;
   readonly noteElement: NoteElement;
+  readonly barLocalCoords: Point;
+  readonly barLocalBoundingBox: Rect;
 
   get pathDescriptors(): SVGPathDescriptor[] | undefined;
   get startPoint(): Point;
+  get pathOriginBarLocal(): Point;
   get pathOriginLineLocal(): Point;
   get pathOrigin(): Point;
   get globalCoords(): Point;

@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "build": "tsc --build",
+    "benchmark:phase3": "npx tsx scripts/benchmark-phase3.ts",
     "clean": "tsc --build --clean",
     "dev": "vite",
     "build_vite": "vite build",

@@ -196,10 +196,10 @@ export class BeamSegmentElement implements NotationElement {
 
   private buildStateHash(): string {
     const hashArr: string[] = [
-      `${this.globalBoundingBox.x}` +
-        `${this.globalBoundingBox.y}` +
-        `${this.globalBoundingBox.width}` +
-        `${this.globalBoundingBox.height}`,
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}`,
     ];
 
     for (const longRect of this._longRects) {
@@ -346,11 +346,26 @@ export class BeamSegmentElement implements NotationElement {
     return new Rect(minX, minY, maxX - minX, maxY - minY);
   }
 
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(this.boundingBox.x, this.boundingBox.y);
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this.boundingBox.width,
+      this.boundingBox.height
+    );
+  }
+
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.barElement.lineLocalCoords.x + this.boundingBox.x,
-      this.barElement.lineLocalCoords.y + this.boundingBox.y
+      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -459,8 +474,8 @@ export class BeamSegmentElement implements NotationElement {
   /** Global coords of the beam segment element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this.boundingBox.x,
-      this.barElement.globalCoords.y + this.boundingBox.y
+      this.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

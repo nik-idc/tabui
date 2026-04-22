@@ -114,11 +114,11 @@ export class SVGBarRenderer implements ElementRenderer {
       ? "var(--tu-notation-ink)"
       : "var(--tu-notation-danger)";
     for (let i = 0; i < this.barElement.staffLines.length; i++) {
-      const lineLocal = this.barElement.staffLinesLineLocal[i];
-      this._staffLinesSVG[i].setAttribute("x1", `${lineLocal.x1}`);
-      this._staffLinesSVG[i].setAttribute("y1", `${lineLocal.y}`);
-      this._staffLinesSVG[i].setAttribute("x2", `${lineLocal.x2}`);
-      this._staffLinesSVG[i].setAttribute("y2", `${lineLocal.y}`);
+      const local = this.barElement.staffLines[i];
+      this._staffLinesSVG[i].setAttribute("x1", `${local.x1}`);
+      this._staffLinesSVG[i].setAttribute("y1", `${local.y}`);
+      this._staffLinesSVG[i].setAttribute("x2", `${local.x2}`);
+      this._staffLinesSVG[i].setAttribute("y2", `${local.y}`);
       this._staffLinesSVG[i].setAttribute("stroke", strokeColor);
     }
   }
@@ -166,13 +166,13 @@ export class SVGBarRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._borderLinesSVG[1]);
     }
 
-    const leftLocal = this.barElement.barLeftBorderLineLineLocal;
+    const leftLocal = this.barElement.barLeftBorderLine;
     this._borderLinesSVG[0].setAttribute("x1", `${leftLocal.x}`);
     this._borderLinesSVG[0].setAttribute("y1", `${leftLocal.y1}`);
     this._borderLinesSVG[0].setAttribute("x2", `${leftLocal.x}`);
     this._borderLinesSVG[0].setAttribute("y2", `${leftLocal.y2}`);
 
-    const rightLocal = this.barElement.barRightBorderLineLineLocal;
+    const rightLocal = this.barElement.barRightBorderLine;
     this._borderLinesSVG[1].setAttribute("x1", `${rightLocal.x}`);
     this._borderLinesSVG[1].setAttribute("y1", `${rightLocal.y1}`);
     this._borderLinesSVG[1].setAttribute("x2", `${rightLocal.x}`);
@@ -205,8 +205,8 @@ export class SVGBarRenderer implements ElementRenderer {
     }
 
     if (
-      this.barElement.timeSigBeatsTextCoordsLineLocal === undefined ||
-      this.barElement.timeSigDurationTextCoordsLineLocal === undefined
+      this.barElement.timeSigBeatsTextCoords === undefined ||
+      this.barElement.timeSigDurationTextCoords === undefined
     ) {
       this.unrenderBarSig();
       return;
@@ -234,14 +234,14 @@ export class SVGBarRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._timeSigTextsSVG[1]);
     }
 
-    const beatsX = `${this.barElement.timeSigBeatsTextCoordsLineLocal.x}`;
-    const beatsY = `${this.barElement.timeSigBeatsTextCoordsLineLocal.y}`;
+    const beatsX = `${this.barElement.timeSigBeatsTextCoords.x}`;
+    const beatsY = `${this.barElement.timeSigBeatsTextCoords.y}`;
     this._timeSigTextsSVG[0].setAttribute("x", beatsX);
     this._timeSigTextsSVG[0].setAttribute("y", beatsY);
     this._timeSigTextsSVG[0].textContent = `${this.barElement.bar.masterBar.beatsCount}`;
 
-    const measureX = `${this.barElement.timeSigDurationTextCoordsLineLocal.x}`;
-    const measureY = `${this.barElement.timeSigDurationTextCoordsLineLocal.y}`;
+    const measureX = `${this.barElement.timeSigDurationTextCoords.x}`;
+    const measureY = `${this.barElement.timeSigDurationTextCoords.y}`;
     this._timeSigTextsSVG[1].setAttribute("x", measureX);
     this._timeSigTextsSVG[1].setAttribute("y", measureY);
     this._timeSigTextsSVG[1].textContent = `${
@@ -276,8 +276,8 @@ export class SVGBarRenderer implements ElementRenderer {
 
     this.unrenderRepeats();
 
-    const repStartLineLocal = this.barElement.repeatStartRectLineLocal;
-    const repEndLineLocal = this.barElement.repeatEndRectLineLocal;
+    const repStartLineLocal = this.barElement.repeatStartRect;
+    const repEndLineLocal = this.barElement.repeatEndRect;
     if (repStartLineLocal === undefined && repEndLineLocal === undefined) {
       return;
     }
@@ -285,7 +285,7 @@ export class SVGBarRenderer implements ElementRenderer {
     const barUUID = this.barElement.bar.uuid;
     if (
       this._repeatStartSVG === undefined &&
-      this.barElement.repeatStartRectLineLocal !== undefined
+      this.barElement.repeatStartRect !== undefined
     ) {
       // Set only-set-once attributes
       this._repeatStartSVG = createSVGImage();
@@ -301,7 +301,7 @@ export class SVGBarRenderer implements ElementRenderer {
     }
     if (
       this._repeatEndSVG === undefined &&
-      this.barElement.repeatEndRectLineLocal !== undefined
+      this.barElement.repeatEndRect !== undefined
     ) {
       this._repeatEndSVG = createSVGImage();
 

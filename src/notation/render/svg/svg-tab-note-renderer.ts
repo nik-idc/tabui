@@ -103,8 +103,8 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._containerGroupSVG.appendChild(this._boundingBoxSVG);
     }
 
-    const x = `${this.noteElement.lineLocalCoords.x}`;
-    const y = `${this.noteElement.lineLocalCoords.y}`;
+    const x = `${this.noteElement.barLocalCoords.x}`;
+    const y = `${this.noteElement.barLocalCoords.y}`;
     const width = `${this.noteElement.boundingBox.width}`;
     const height = `${this.noteElement.boundingBox.height}`;
     this._boundingBoxSVG.setAttribute("x", x);
@@ -215,8 +215,8 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._containerGroupSVG.appendChild(this._backgroundSVG);
     }
 
-    const x = `${this.noteElement.textRectLineLocal.x}`;
-    const y = `${this.noteElement.textRectLineLocal.y}`;
+    const x = `${this.noteElement.textRectBarLocal.x}`;
+    const y = `${this.noteElement.textRectBarLocal.y}`;
     const width = `${this.noteElement.textRect.width}`;
     const height = `${this.noteElement.textRect.height}`;
     this._backgroundSVG.setAttribute("x", x);
@@ -274,8 +274,8 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._containerGroupSVG.appendChild(this._textSVG);
     }
 
-    const x = `${this.noteElement.textCoordsLineLocal.x}`;
-    const y = `${this.noteElement.textCoordsLineLocal.y}`;
+    const x = `${this.noteElement.textCoordsBarLocal.x}`;
+    const y = `${this.noteElement.textCoordsBarLocal.y}`;
     this._textSVG.setAttribute("x", x);
     this._textSVG.setAttribute("y", y);
     this._textSVG.textContent = `${this.noteElement.note.fret}`;

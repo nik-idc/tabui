@@ -110,8 +110,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       throw Error("Tried to render beat duration when SVG group undefined");
     }
 
-    const stemLineLocal = this.beatElement.durationStemLineLineLocal;
-    if (stemLineLocal === undefined) {
+    const stemBarLocal = this.beatElement.durationStemLineBarLocal;
+    if (stemBarLocal === undefined) {
       this.unrenderDurationStem();
       return;
     }
@@ -128,9 +128,9 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       this._containerGroupSVG.appendChild(this._durationStemSVG);
     }
 
-    const x = `${stemLineLocal.x}`;
-    const y1 = `${stemLineLocal.y1}`;
-    const y2 = `${stemLineLocal.y2}`;
+    const x = `${stemBarLocal.x}`;
+    const y1 = `${stemBarLocal.y1}`;
+    const y2 = `${stemBarLocal.y2}`;
     this._durationStemSVG.setAttribute("x1", x);
     this._durationStemSVG.setAttribute("x2", x);
     this._durationStemSVG.setAttribute("y1", y1);
@@ -166,8 +166,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       throw Error("Tried to render beat duration when flags array undefined");
     }
 
-    const flagLinesLineLocal = this.beatElement.durationFlagLinesLineLocal;
-    if (flagLinesLineLocal === undefined) {
+    const flagLinesBarLocal = this.beatElement.durationFlagLinesBarLocal;
+    if (flagLinesBarLocal === undefined) {
       return;
     }
 
@@ -189,9 +189,9 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       this._containerGroupSVG.appendChild(this._durationFlagsSVG[flagIndex]);
     }
 
-    const x1 = `${flagLinesLineLocal[flagIndex].x1}`;
-    const x2 = `${flagLinesLineLocal[flagIndex].x2}`;
-    const y = `${flagLinesLineLocal[flagIndex].y}`;
+    const x1 = `${flagLinesBarLocal[flagIndex].x1}`;
+    const x2 = `${flagLinesBarLocal[flagIndex].x2}`;
+    const y = `${flagLinesBarLocal[flagIndex].y}`;
     this._durationFlagsSVG[flagIndex].setAttribute("x1", x1);
     this._durationFlagsSVG[flagIndex].setAttribute("x2", x2);
     this._durationFlagsSVG[flagIndex].setAttribute("y1", y);
@@ -292,8 +292,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     }
 
     const circle = dot1
-      ? this.beatElement.dot1CircleLineLocal
-      : this.beatElement.dot2CircleLineLocal;
+      ? this.beatElement.dot1CircleBarLocal
+      : this.beatElement.dot2CircleBarLocal;
     if (circle === undefined) {
       throw Error("Tried to render dot circle when circle undefined");
     }

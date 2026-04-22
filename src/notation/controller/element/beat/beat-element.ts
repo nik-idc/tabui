@@ -11,6 +11,8 @@ import { NoteElement } from "../note/note-element";
 export interface BeatElement extends NotationElement {
   readonly beat: Beat;
   readonly barElement: BarElement;
+  readonly barLocalCoords: Point;
+  readonly barLocalBoundingBox: Rect;
 
   getNextNoteElement(noteElement: NoteElement): NoteElement | null;
   getPrevNoteElement(noteElement: NoteElement): NoteElement | null;

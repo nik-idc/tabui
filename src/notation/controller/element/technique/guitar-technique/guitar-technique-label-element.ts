@@ -381,10 +381,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
   private buildStateHash(): string {
     const hashArr: string[] = [
-      `${this.globalBoundingBox.x}` +
-        `${this.globalBoundingBox.y}` +
-        `${this.globalBoundingBox.width}` +
-        `${this.globalBoundingBox.height}` +
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}` +
         `${JSON.stringify(this._pathDescriptors)}` +
         `${JSON.stringify(this._textDescriptors)}`,
     ];
@@ -470,10 +470,35 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /** Coords of this element in its owning track line space */
+  public get barLocalCoords(): Point {
+    const barLineLocalCoords = this.beatElement.barElement.lineLocalCoords;
+    return new Point(
+      // NOTE: GPT 5.4's version:
+      // this.beatElement.lineLocalCoords.x -
+      //   barLineLocalCoords.x +
+      //   this._boundingBox.x,
+      this.beatElement.barLocalCoords.x + this._boundingBox.x,
+      this.gapLineElement.lineLocalCoords.y -
+        barLineLocalCoords.y +
+        this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
+  /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.beatElement.lineLocalCoords.x + this._boundingBox.x,
-      this.gapLineElement.lineLocalCoords.y ?? 0
+      this.beatElement.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.beatElement.barElement.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -518,6 +543,11 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /** Shared origin for descriptor-local coordinates in track line-local space */
+  public get descriptorOriginBarLocal(): Point {
+    return this.barLocalCoords;
+  }
+
+  /** Shared origin for descriptor-local coordinates in track line-local space */
   public get descriptorOriginLineLocal(): Point {
     return this.lineLocalCoords;
   }
@@ -530,8 +560,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /** Global coords of the guitar technique label element */
   public get globalCoords(): Point {
     return new Point(
-      this.beatElement.globalCoords.x + this._boundingBox.x,
-      this.gapLineElement.globalCoords.y
+      this.beatElement.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.beatElement.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

@@ -276,10 +276,10 @@ export class TabBeatElement implements BeatElement {
 
   private buildStateHash(): string {
     const hashArr: string[] = [
-      `${this.globalBoundingBox.x}` +
-        `${this.globalBoundingBox.y}` +
-        `${this.globalBoundingBox.width}` +
-        `${this.globalBoundingBox.height}`,
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}`,
     ];
 
     if (this._dot1Circle !== undefined) {
@@ -414,11 +414,26 @@ export class TabBeatElement implements BeatElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.barElement.lineLocalCoords.x + this._boundingBox.x,
-      this.barElement.lineLocalCoords.y + this._boundingBox.y
+      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -455,6 +470,19 @@ export class TabBeatElement implements BeatElement {
     return this._durationStemLine;
   }
 
+  /** Duration stem vertical line in bar-local coords */
+  public get durationStemLineBarLocal(): VertLine | undefined {
+    if (this._durationStemLine === undefined) {
+      return undefined;
+    }
+
+    return new VertLine(
+      this.barLocalCoords.x + this._durationStemLine.x,
+      this.barLocalCoords.y + this._durationStemLine.y1,
+      this.barLocalCoords.y + this._durationStemLine.y2
+    );
+  }
+
   /** Duration stem vertical line in track-line-local coords */
   public get durationStemLineLineLocal(): VertLine | undefined {
     if (this._durationStemLine === undefined) {
@@ -484,6 +512,25 @@ export class TabBeatElement implements BeatElement {
   /** Duration flags horizontal lines (for durations like 1/8, 1/16 etc) */
   public get durationFlagLines(): HorLine[] | undefined {
     return this._durationFlagLines;
+  }
+
+  /** Duration flags horizontal lines (in bar-local coords) */
+  public get durationFlagLinesBarLocal(): HorLine[] | undefined {
+    if (this._durationFlagLines === undefined) {
+      return undefined;
+    }
+
+    const result = [];
+    for (const flagLine of this._durationFlagLines) {
+      result.push(
+        new HorLine(
+          this.barLocalCoords.x + flagLine.x1,
+          this.barLocalCoords.x + flagLine.x2,
+          this.barLocalCoords.y + flagLine.y
+        )
+      );
+    }
+    return result;
   }
 
   /** Duration flags horizontal lines (in track-line-local coords) */
@@ -529,6 +576,19 @@ export class TabBeatElement implements BeatElement {
     return this._dot1Circle;
   }
 
+  /** This beat's first dot circle in bar-local coords */
+  public get dot1CircleBarLocal(): Circle | undefined {
+    if (this._dot1Circle === undefined) {
+      return undefined;
+    }
+
+    return new Circle(
+      this.barLocalCoords.x + this._dot1Circle.centerX,
+      this.barLocalCoords.y + this._dot1Circle.centerY,
+      this._dot1Circle.diameter
+    );
+  }
+
   /** This beat's first dot circle in track-line-local coords */
   public get dot1CircleLineLocal(): Circle | undefined {
     if (this._dot1Circle === undefined) {
@@ -560,6 +620,19 @@ export class TabBeatElement implements BeatElement {
     return this._dot2Circle;
   }
 
+  /** This beat's second dot circle in bar-local coords */
+  public get dot2CircleBarLocal(): Circle | undefined {
+    if (this._dot2Circle === undefined) {
+      return undefined;
+    }
+
+    return new Circle(
+      this.barLocalCoords.x + this._dot2Circle.centerX,
+      this.barLocalCoords.y + this._dot2Circle.centerY,
+      this._dot2Circle.diameter
+    );
+  }
+
   /** This beat's second dot circle in track-line-local coords */
   public get dot2CircleLineLocal(): Circle | undefined {
     if (this._dot2Circle === undefined) {
@@ -589,8 +662,8 @@ export class TabBeatElement implements BeatElement {
   /** Global coords of the tab beat element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._boundingBox.x,
-      this.barElement.globalCoords.y + this._boundingBox.y
+      this.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

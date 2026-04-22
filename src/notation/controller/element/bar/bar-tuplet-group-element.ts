@@ -101,10 +101,10 @@ export class BarTupletGroupElement implements NotationElement {
 
   private buildStateHash(): string {
     const hashArr: string[] = [
-      `${this.globalBoundingBox.x}` +
-        `${this.globalBoundingBox.y}` +
-        `${this.globalBoundingBox.width}` +
-        `${this.globalBoundingBox.height}`,
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}`,
     ];
 
     if (this._incompleteRects !== undefined) {
@@ -220,11 +220,26 @@ export class BarTupletGroupElement implements NotationElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.barElement.lineLocalCoords.x + this._boundingBox.x,
-      this.barElement.lineLocalCoords.y + this._boundingBox.y
+      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -275,6 +290,27 @@ export class BarTupletGroupElement implements NotationElement {
           this.globalCoords.y + rect.y,
           rect.width,
           rect.height
+        )
+      );
+    }
+
+    return result;
+  }
+
+  /** Track line local coords of incomplete texts */
+  public get incompleteTextsCoordsBarLocal(): Point[] | undefined {
+    if (this._incompleteRects === undefined) {
+      return this._incompleteRects;
+    }
+
+    const result = [];
+    for (const rect of this._incompleteRects) {
+      result.push(
+        new Point(
+          this.barLocalCoords.x + rect.middleX,
+          this.barLocalCoords.y +
+            rect.height / 2 +
+            EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
         )
       );
     }
@@ -341,6 +377,20 @@ export class BarTupletGroupElement implements NotationElement {
   }
 
   /** Complete tuplet group text coordinates in track line local space (or undefined if tuplet group incomplete) */
+  public get completeTextCoordsBarLocal(): Point | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    return new Point(
+      this.barLocalCoords.x + this._boundingBox.width / 2,
+      this.barLocalCoords.y +
+        this._boundingBox.height / 2 +
+        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+    );
+  }
+
+  /** Complete tuplet group text coordinates in track line local space (or undefined if tuplet group incomplete) */
   public get completeTextCoordsLineLocal(): Point | undefined {
     if (!this.tupletGroup.complete) {
       return undefined;
@@ -365,6 +415,28 @@ export class BarTupletGroupElement implements NotationElement {
       this.globalCoords.y +
         this._boundingBox.height / 2 +
         EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+    );
+  }
+
+  /** Rect in track-line-local coords for the SVG path (if the tuplet is complete) */
+  public get completePathRectBarLocal(): Rect | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    const firstBeatElement = this.beatElements[0];
+    const lastBeatElement = this.beatElements[this.beatElements.length - 1];
+
+    const width =
+      this._boundingBox.width -
+      lastBeatElement.boundingBox.width / 2 -
+      firstBeatElement.boundingBox.width / 2;
+    const height = EditorLayoutDimensions.TUPLET_PATH_HEIGHT;
+    return new Rect(
+      this.barLocalCoords.x + firstBeatElement.boundingBox.width / 2,
+      this.barLocalCoords.y + height,
+      width,
+      height
     );
   }
 
@@ -415,8 +487,8 @@ export class BarTupletGroupElement implements NotationElement {
   /** Global coords of the bar tuplet group element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._boundingBox.x,
-      this.barElement.globalCoords.y + this._boundingBox.y
+      this.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

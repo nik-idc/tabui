@@ -67,7 +67,8 @@ export class SVGTupletRenderer implements ElementRenderer {
    * Renders the group element which will contain all the data about the tuplet
    */
   private renderGroup(): void {
-    this.ensureContainerGroup();
+    const group = this.ensureContainerGroup();
+    group.removeAttribute("transform");
   }
 
   private renderCompleteTupletPath(): void {
@@ -92,7 +93,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._completeTupletPath);
     }
 
-    const completeRect = this.tupletElement.completePathRectLineLocal;
+    const completeRect = this.tupletElement.completePathRectBarLocal;
     if (completeRect === undefined) {
       throw Error("Complete rect undefined right before setting SVG path");
     }
@@ -146,7 +147,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._completeTupletTextSVG);
     }
 
-    const coords = this.tupletElement.completeTextCoordsLineLocal;
+    const coords = this.tupletElement.completeTextCoordsBarLocal;
     if (coords === undefined) {
       throw Error("Complete text coords undefined right before setting text");
     }
@@ -204,7 +205,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(renderedText);
     }
 
-    const textCoordsArray = this.tupletElement.incompleteTextsCoordsLineLocal;
+    const textCoordsArray = this.tupletElement.incompleteTextsCoordsBarLocal;
     if (textCoordsArray === undefined) {
       throw Error("Incomplete text array undefined right before setting text");
     }

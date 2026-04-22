@@ -90,11 +90,19 @@ export class NotationStyleLineElement implements NotationElement {
       : new Map<string, BarElement>();
     this._barElements = [];
     for (const data of this.staffLineElement.staffLineData) {
+      const masterBarIndex = data.bar.staff.bars.indexOf(data.bar);
       const stableIdentity = BarElement.createStableIdentity(this, data.bar);
       const existingBarElement = prevBarElements.get(stableIdentity);
       if (existingBarElement !== undefined) {
-        existingBarElement.setFinalizedWidth(data.finalizedWidth);
-        existingBarElement.build();
+        if (
+          !this.trackElement.hasActiveHorizontalUpdate ||
+          this.trackElement.isBarAffectedHorizontally(masterBarIndex)
+        ) {
+          existingBarElement.setFinalizedWidth(data.finalizedWidth);
+          existingBarElement.build();
+        } else {
+          existingBarElement.prepareForHorizontalReuse(data.finalizedWidth);
+        }
         this._barElements.push(existingBarElement);
         continue;
       }

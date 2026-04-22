@@ -103,3 +103,34 @@ export function getOwningTrackLineElement(
 
   throw new Error(`Unsupported notation element for track line mounting`);
 }
+
+export function getOwningBarElement(
+  element: NotationElement
+): BarElement | null {
+  if (element instanceof BarElement) {
+    return element;
+  }
+  if (
+    element instanceof TabBeatElement ||
+    element instanceof SheetBeatElement
+  ) {
+    return element.barElement;
+  }
+  if (element instanceof TabNoteElement) {
+    return element.beatElement.barElement;
+  }
+  if (element instanceof GuitarTechniqueElement) {
+    return element.noteElement.beatElement.barElement;
+  }
+  if (element instanceof GuitarTechniqueLabelElement) {
+    return element.beatElement.barElement;
+  }
+  if (element instanceof BeamSegmentElement) {
+    return element.barElement;
+  }
+  if (element instanceof BarTupletGroupElement) {
+    return element.barElement;
+  }
+
+  return null;
+}

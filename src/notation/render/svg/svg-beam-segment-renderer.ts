@@ -72,7 +72,8 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
    * data about the bar
    */
   private renderGroup(): void {
-    this.ensureContainerGroup();
+    const group = this.ensureContainerGroup();
+    group.removeAttribute("transform");
   }
 
   /**
@@ -100,10 +101,10 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._longRectSVG[index]);
     }
 
-    const x = `${this.beamSegment.longRectsLineLocal[index].x}`;
-    const y = `${this.beamSegment.longRectsLineLocal[index].y}`;
-    const width = `${this.beamSegment.longRectsLineLocal[index].width}`;
-    const height = `${this.beamSegment.longRectsLineLocal[index].height}`;
+    const x = `${this.beamSegment.longRects[index].x}`;
+    const y = `${this.beamSegment.longRects[index].y}`;
+    const width = `${this.beamSegment.longRects[index].width}`;
+    const height = `${this.beamSegment.longRects[index].height}`;
     this._longRectSVG[index].setAttribute("x", x);
     this._longRectSVG[index].setAttribute("y", y);
     this._longRectSVG[index].setAttribute("width", width);
@@ -194,10 +195,10 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._shortRectSVG[index]);
     }
 
-    const x = `${this.beamSegment.shortRectsLineLocal[index].x}`;
-    const y = `${this.beamSegment.shortRectsLineLocal[index].y}`;
-    const width = `${this.beamSegment.shortRectsLineLocal[index].width}`;
-    const height = `${this.beamSegment.shortRectsLineLocal[index].height}`;
+    const x = `${this.beamSegment.shortRects[index].x}`;
+    const y = `${this.beamSegment.shortRects[index].y}`;
+    const width = `${this.beamSegment.shortRects[index].width}`;
+    const height = `${this.beamSegment.shortRects[index].height}`;
     this._shortRectSVG[index].setAttribute("x", x);
     this._shortRectSVG[index].setAttribute("y", y);
     this._shortRectSVG[index].setAttribute("width", width);

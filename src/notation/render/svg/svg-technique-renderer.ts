@@ -102,14 +102,13 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       }
     }
 
-    const x = `${this.techniqueElement.pathOriginLineLocal.x}`;
-    const y = `${this.techniqueElement.pathOriginLineLocal.y}`;
-    const transform = `translate(${x}, ${y})`;
+    const x = this.techniqueElement.pathOriginBarLocal.x;
+    const y = this.techniqueElement.pathOriginBarLocal.y;
 
     for (let i = 0; i < pathDescriptors.length; i++) {
       const pathElement = this._techniquePathsSVG[i];
       const descriptor = pathDescriptors[i];
-      pathElement.setAttribute("transform", transform);
+      pathElement.setAttribute("transform", `translate(${x}, ${y})`);
       pathElement.setAttribute("d", descriptor.d);
 
       if (descriptor.attrs !== undefined) {
