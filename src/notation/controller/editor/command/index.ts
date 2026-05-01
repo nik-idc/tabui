@@ -3,6 +3,7 @@ export * from "./append-beat-command";
 export * from "./command";
 export * from "./command-manager";
 export * from "./insert-bar-command";
+export * from "./insert-beat-command";
 export * from "./insert-beats-command";
 export * from "./prepend-bar-command";
 export * from "./remove-bar-command";

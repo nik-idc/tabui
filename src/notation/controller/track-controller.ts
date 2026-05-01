@@ -256,6 +256,18 @@ export class TrackController {
     this._trackControllerEditor.deleteSelectedBeats();
   }
 
+  public insertBeatBeforeSelected(): void {
+    this._trackControllerEditor.insertBeatBeforeSelected();
+  }
+
+  public insertBeatAfterSelected(): void {
+    this._trackControllerEditor.insertBeatAfterSelected();
+  }
+
+  public removeSelectedBeat(): void {
+    this._trackControllerEditor.removeSelectedBeat();
+  }
+
   /**
    * Check if a note element is currently selected
    * @param noteElement Note element to check

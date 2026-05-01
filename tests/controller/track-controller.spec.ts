@@ -71,6 +71,137 @@ describe("TrackController", () => {
     expect(bar.beats).toHaveLength(1);
   });
 
+  test("insert beat before selected inserts and selects the new beat", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+    ]);
+    const controller = new TrackController(track);
+    const secondBeatUUID = bar.beats[1].uuid;
+
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.insertBeatBeforeSelected();
+
+    expect(bar.beats).toHaveLength(3);
+    expect(bar.beats[2].uuid).toBe(secondBeatUUID);
+    expect(controller.selectedNote?.beat).toBe(bar.beats[1]);
+  });
+
+  test("insert beat after selected inserts and selects the new beat", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+    ]);
+    const controller = new TrackController(track);
+    const secondBeatUUID = bar.beats[1].uuid;
+
+    controller.insertBeatAfterSelected();
+
+    expect(bar.beats).toHaveLength(3);
+    expect(bar.beats[2].uuid).toBe(secondBeatUUID);
+    expect(controller.selectedNote?.beat).toBe(bar.beats[1]);
+  });
+
+  test("remove selected beat deletes current beat and clears selection", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+    ]);
+    const controller = new TrackController(track);
+    const secondBeatUUID = bar.beats[1].uuid;
+
+    controller.removeSelectedBeat();
+
+    expect(bar.beats).toHaveLength(1);
+    expect(bar.beats[0].uuid).toBe(secondBeatUUID);
+    expect(controller.selectedNote?.beat).toBe(bar.beats[0]);
+  });
+
+  test("insert beat before active selection inserts before first selected beat", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Sixteenth },
+    ]);
+    const controller = new TrackController(track);
+    const beatElements = getBeatElements(controller);
+    const originalUUIDs = bar.beats.map((beat) => beat.uuid);
+
+    controller.selectBeat(beatElements[1]);
+    controller.selectBeat(beatElements[2]);
+    controller.insertBeatBeforeSelected();
+
+    expect(bar.beats).toHaveLength(4);
+    expect(bar.beats[0].uuid).toBe(originalUUIDs[0]);
+    expect(bar.beats[2].uuid).toBe(originalUUIDs[1]);
+    expect(bar.beats[3].uuid).toBe(originalUUIDs[2]);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(bar.beats[1]);
+  });
+
+  test("insert beat after active selection inserts after last selected beat", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Sixteenth },
+    ]);
+    const controller = new TrackController(track);
+    const beatElements = getBeatElements(controller);
+    const originalUUIDs = bar.beats.map((beat) => beat.uuid);
+
+    controller.selectBeat(beatElements[0]);
+    controller.selectBeat(beatElements[1]);
+    controller.insertBeatAfterSelected();
+
+    expect(bar.beats).toHaveLength(4);
+    expect(bar.beats[0].uuid).toBe(originalUUIDs[0]);
+    expect(bar.beats[1].uuid).toBe(originalUUIDs[1]);
+    expect(bar.beats[3].uuid).toBe(originalUUIDs[2]);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(bar.beats[2]);
+  });
+
+  test("remove active selection selects the beat before selection", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Sixteenth },
+      { baseDuration: NoteDuration.ThirtySecond },
+    ]);
+    const controller = new TrackController(track);
+    const beatElements = getBeatElements(controller);
+    const beforeSelectionUUID = bar.beats[0].uuid;
+    const afterSelectionUUID = bar.beats[3].uuid;
+
+    controller.selectBeat(beatElements[1]);
+    controller.selectBeat(beatElements[2]);
+    controller.removeSelectedBeat();
+
+    expect(bar.beats).toHaveLength(2);
+    expect(bar.beats[0].uuid).toBe(beforeSelectionUUID);
+    expect(bar.beats[1].uuid).toBe(afterSelectionUUID);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(bar.beats[0]);
+  });
+
+  test("remove all selected beats leaves and selects a seed beat", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+    ]);
+    const controller = new TrackController(track);
+    const beatElements = getBeatElements(controller);
+
+    controller.selectBeat(beatElements[0]);
+    controller.selectBeat(beatElements[1]);
+    controller.removeSelectedBeat();
+
+    expect(bar.beats).toHaveLength(1);
+    expect(bar.beats[0].isEmpty()).toBe(true);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(bar.beats[0]);
+  });
+
   test("undo works for a directly executed append-beat command", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track);

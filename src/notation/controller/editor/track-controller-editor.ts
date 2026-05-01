@@ -1,4 +1,5 @@
 import {
+  Beat,
   NoteDuration,
   GuitarNote,
   BarRepeatStatus,
@@ -31,6 +32,7 @@ import {
   SetRepeatStatusCommand,
   SetTechniqueCommand,
   InsertBeatsCommand,
+  InsertBeatCommand,
   ReplaceBeatsCommand,
   SetNoteCommand,
   RemoveBeatsCommand,
@@ -454,6 +456,62 @@ export class TrackControllerEditor {
       new RemoveBeatsCommand(this._selectionManager.selectionBeats)
     );
     this.clearSelection();
+  }
+
+  private getSelectedNoteIndex(): number {
+    return this._selectionManager.selectedNote?.noteIndex ?? 0;
+  }
+
+  private selectBeatModel(beat: Beat, noteIndex: number): void {
+    this._selectionManager.selectNote(beat.notes[noteIndex]);
+  }
+
+  private selectInsertedBeat(
+    command: InsertBeatCommand,
+    noteIndex: number
+  ): void {
+    const insertedBeat = command.insertBeatResult?.beats[0];
+    if (insertedBeat === undefined) {
+      throw Error("Cannot select inserted beat before command executes");
+    }
+
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(insertedBeat, noteIndex);
+  }
+
+  public insertBeatBeforeSelected(): void {
+    const noteIndex = this.getSelectedNoteIndex();
+    const firstBeat = this._selectionManager.selectionAsBeats[0];
+    const insertIndex = firstBeat.bar.beats.indexOf(firstBeat);
+
+    const command = this.executeCommand(
+      new InsertBeatCommand(firstBeat.bar, insertIndex)
+    );
+    this.selectInsertedBeat(command, noteIndex);
+  }
+
+  public insertBeatAfterSelected(): void {
+    const noteIndex = this.getSelectedNoteIndex();
+    const selectionBeats = this._selectionManager.selectionAsBeats;
+    const lastBeat = selectionBeats[selectionBeats.length - 1];
+    const insertIndex = lastBeat.bar.beats.indexOf(lastBeat) + 1;
+
+    const command = this.executeCommand(
+      new InsertBeatCommand(lastBeat.bar, insertIndex)
+    );
+    this.selectInsertedBeat(command, noteIndex);
+  }
+
+  public removeSelectedBeat(): void {
+    const noteIndex = this.getSelectedNoteIndex();
+    const selectionBeats = this._selectionManager.selectionAsBeats;
+    const firstBeat = selectionBeats[0];
+    const previousBeat = firstBeat.bar.staff.getPrevBeat(firstBeat);
+
+    this.executeCommand(new RemoveBeatsCommand(selectionBeats));
+    const targetBeat = previousBeat ?? firstBeat.bar.beats[0];
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(targetBeat, noteIndex);
   }
 
   /**
