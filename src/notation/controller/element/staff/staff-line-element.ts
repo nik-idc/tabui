@@ -9,8 +9,8 @@ import { NotationStyleLineElement } from "./notation-style-line-element";
  * Supported notation styles
  */
 export enum NotationStyle {
-  Classic,
-  Tablature,
+  Classic = "classic",
+  Tablature = "tablature",
 }
 
 /**
@@ -21,6 +21,7 @@ export type StaffLineBarData = {
   intrinsicWidth: number;
   finalizedWidth: number;
   bar: Bar;
+  masterBarIndex: number;
 };
 
 /**
@@ -89,39 +90,38 @@ export class StaffLineElement implements NotationElement {
     this.trackElement.registerElement(this);
   }
 
+  private getStyleLineData(notationStyle: NotationStyle): StaffLineData {
+    if (notationStyle === NotationStyle.Classic) {
+      return this.staff.showClassicNotation ? this._staffLineData : [];
+    }
+
+    return this.staff.showTablature ? this._staffLineData : [];
+  }
+
   /**
    * Fills the notation style lines array
    */
   public build(): void {
     this.trackElement.registerElement(this);
 
-    const existingClassic = this.trackElement.useElementReuse
-      ? this._notationStyleLineElements[NotationStyle.Classic]
-      : null;
     if (this.staff.showClassicNotation) {
-      if (existingClassic !== null) {
-        existingClassic.build();
-        this._notationStyleLineElements[NotationStyle.Classic] =
-          existingClassic;
-      } else {
-        this._notationStyleLineElements[NotationStyle.Classic] =
-          new NotationStyleLineElement(this, NotationStyle.Classic);
-      }
+      const styleLine = new NotationStyleLineElement(
+        this,
+        NotationStyle.Classic,
+        this.getStyleLineData(NotationStyle.Classic)
+      );
+      this._notationStyleLineElements[NotationStyle.Classic] = styleLine;
     } else {
       this._notationStyleLineElements[NotationStyle.Classic] = null;
     }
 
-    const existingTab = this.trackElement.useElementReuse
-      ? this._notationStyleLineElements[NotationStyle.Tablature]
-      : null;
     if (this.staff.showTablature) {
-      if (existingTab !== null) {
-        existingTab.build();
-        this._notationStyleLineElements[NotationStyle.Tablature] = existingTab;
-      } else {
-        this._notationStyleLineElements[NotationStyle.Tablature] =
-          new NotationStyleLineElement(this, NotationStyle.Tablature);
-      }
+      const styleLine = new NotationStyleLineElement(
+        this,
+        NotationStyle.Tablature,
+        this.getStyleLineData(NotationStyle.Tablature)
+      );
+      this._notationStyleLineElements[NotationStyle.Tablature] = styleLine;
     } else {
       this._notationStyleLineElements[NotationStyle.Tablature] = null;
     }

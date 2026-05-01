@@ -161,7 +161,7 @@ describe("TrackController", () => {
       ];
     const movedBarIdentity = movedBarElement.getStableIdentity();
 
-    const diff = controller.trackElement.getElementDiff();
+    const diff = controller.trackElement.elementDiff;
     expect(
       diff.added.get(BarElement)?.has(movedBarIdentity) ||
         diff.updated.get(BarElement)?.has(movedBarIdentity)

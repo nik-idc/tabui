@@ -7,12 +7,8 @@ import {
   NotationElementClass,
 } from "@/notation/controller";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
-import { createSVG, createSVGG, createSVGRect, Rect } from "@/shared";
+import { createSVG, createSVGG, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
-import {
-  renderPlayerCursor,
-  TrackPlayerSVGAnimator,
-} from "./player-svg-animator";
 import { ElementRenderer } from "../element-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 import { ELEMENT_ORDER } from "@/notation/controller/element/track-element";
@@ -32,6 +28,9 @@ import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segme
 import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
 import { getOwningTrackLineElement } from "@/notation/controller/element/track/update/track-element-update-helpers";
 import { getOwningBarElement } from "@/notation/controller/element/track/update/track-element-update-helpers";
+import { BeatInteractionRenderer } from "./beat-interaction-renderer";
+import { PlayerOverlayRenderer } from "./player-overlay-renderer";
+import { ensureDomChildAtIndex, toDomIdFragment } from "./support/misc";
 
 type TrackLineGroup = {
   wrapper: SVGGElement;
@@ -65,82 +64,89 @@ export class EditorSVGRenderer implements EditorRenderer {
    */
   private static readonly VIEWPORT_OVERSCAN_LINES = 2;
 
-  /** Root DIV element */
-  readonly rootDiv: HTMLDivElement;
   /** Notation-only scroll viewport wrapper. */
   readonly notationViewportDiv: HTMLDivElement;
   /** Root SVG <svg> element */
   readonly rootSVGElement: SVGSVGElement;
   /** Path to any assets */
   readonly assetsPath: ResolvedAssetConfig;
+  /** Track controller rendered by this renderer instance. */
+  readonly trackController: TrackController;
 
-  /** Selection overlay renderer (preview + note/beat selection visuals). */
-  private _selectionOverlayRenderer: SelectionOverlayRenderer;
-  /** Beat interaction layer (hitboxes + delegated events). */
-  private _beatInteractionLayer: BeatInteractionLayer;
-
-  /** Player animator */
-  private _playerAnimator?: TrackPlayerSVGAnimator;
-  /** Player cursor SVG rectangle */
-  private _playerCursorRect?: SVGRectElement;
-
-  /** Registry mapping model UUID to renderer. */
+  /** Track line wrapper groups keyed by stable identity. */
+  private _trackLineGroups: Map<string, TrackLineGroup>;
+  /** Registry mapping stable element identity to renderer. */
   private _rendererRegistry: Map<string, ElementRenderer>;
   /** Renderer UUIDs currently mounted in layer groups. */
   private _mountedRendererUUIDs: Set<string>;
+  /** Viewport scroll listener. */
+  private _viewportScrollListener?: EventListener;
   /** Viewport rectangle inside notation scroll container. */
   private _viewportRect: Rect;
 
   /** Root group for all notation content. */
   private _notationSVGGroup: SVGGElement;
-  /** Track line wrapper groups keyed by stable identity. */
-  private _trackLineGroups: Map<string, TrackLineGroup>;
-  /** Interaction-only layer for delegated beat hitbox events. */
-  private _interactionSVGGroup: SVGGElement;
   /** Selection interaction layer (selection preview / selected note / beat rects). */
   private _selectionSVGGroup: SVGGElement;
+  /** Selection overlay renderer (preview + note/beat selection visuals). */
+  private _selectionOverlayRenderer: SelectionOverlayRenderer;
+  /** Interaction-only layer for delegated beat hitbox events. */
+  private _interactionSVGGroup: SVGGElement;
+  /** Beat interaction layer renderer (hitboxes + delegated events). */
+  private _beatInteractionRenderer: BeatInteractionRenderer;
   /** Player interaction layer (player cursor). */
   private _playerSVGGroup: SVGGElement;
-  /** Viewport scroll listener. */
-  private _viewportScrollListener?: EventListener;
+  /** Player overlay renderer (player cursor) */
+  private _playerOverlayRenderer: PlayerOverlayRenderer;
 
   /**
    * Render a track window using SVG
    * @param rootDiv Root container element
    * @param assetsPath Path to assets
    */
-  constructor(rootDiv: HTMLDivElement, assetsPath: ResolvedAssetConfig) {
-    this.rootDiv = rootDiv;
+  constructor(
+    rootDiv: HTMLDivElement,
+    trackController: TrackController,
+    assetsPath: ResolvedAssetConfig
+  ) {
     this.notationViewportDiv = document.createElement("div");
     this.notationViewportDiv.classList.add("tu-notation-viewport");
     this.rootSVGElement = createSVG();
     this.rootSVGElement.classList.add("tu-root-svg");
     this.notationViewportDiv.appendChild(this.rootSVGElement);
-    this.rootDiv.appendChild(this.notationViewportDiv);
+    rootDiv.appendChild(this.notationViewportDiv);
 
     this.assetsPath = assetsPath;
+    this.trackController = trackController;
 
-    this._notationSVGGroup = createSVGG();
-    this._notationSVGGroup.setAttribute("id", "tu-notation");
     this._trackLineGroups = new Map();
-    this._interactionSVGGroup = createSVGG();
-    this._interactionSVGGroup.setAttribute("id", "tu-interaction");
-    this._beatInteractionLayer = new BeatInteractionLayer(
-      this._interactionSVGGroup
-    );
-    this._selectionSVGGroup = createSVGG();
-    this._selectionSVGGroup.setAttribute("id", "tu-selection");
-    this._selectionOverlayRenderer = new SelectionOverlayRenderer(
-      this._selectionSVGGroup
-    );
-    this._playerSVGGroup = createSVGG();
-    this._playerSVGGroup.setAttribute("id", "tu-player");
-    this.mountRootLayers();
-
     this._rendererRegistry = new Map();
     this._mountedRendererUUIDs = new Set();
     this._viewportRect = new Rect();
     this.syncViewportState();
+
+    this._notationSVGGroup = createSVGG();
+    this._notationSVGGroup.setAttribute("id", "tu-notation");
+    this._selectionSVGGroup = createSVGG();
+    this._selectionSVGGroup.setAttribute("id", "tu-selection");
+    this._selectionOverlayRenderer = new SelectionOverlayRenderer(
+      this._selectionSVGGroup,
+      this.trackController
+    );
+    this._interactionSVGGroup = createSVGG();
+    this._interactionSVGGroup.setAttribute("id", "tu-interaction");
+    this._beatInteractionRenderer = new BeatInteractionRenderer(
+      this._interactionSVGGroup,
+      this.trackController
+    );
+    this._playerSVGGroup = createSVGG();
+    this._playerSVGGroup.setAttribute("id", "tu-player");
+    this._playerOverlayRenderer = new PlayerOverlayRenderer(
+      this._playerSVGGroup,
+      this.trackController
+    );
+
+    this.mountRootLayers();
   }
 
   private mountRootLayers(): void {
@@ -150,25 +156,78 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.rootSVGElement.appendChild(this._playerSVGGroup);
   }
 
-  private toDomIdFragment(value: string): string {
-    return value.replace(/[^a-zA-Z0-9_-]/g, "-");
-  }
+  private ensureBarGroup(
+    trackLineGroup: TrackLineGroup,
+    barElement: BarElement
+  ): BarGroup {
+    const stableIdentity = barElement.getStableIdentity();
+    const existingGroup = trackLineGroup.barGroups.get(stableIdentity);
 
-  private ensureChildAtIndex(
-    parent: SVGGElement,
-    child: SVGGElement,
-    index: number
-  ): void {
-    const referenceChild = parent.children.item(index);
-    const alreadyLastAtIndex =
-      referenceChild === null &&
-      child.parentNode === parent &&
-      parent.lastElementChild === child;
-    if (referenceChild === child || alreadyLastAtIndex) {
-      return;
+    const translateX = barElement.lineLocalCoords.x;
+    const translateY = barElement.lineLocalCoords.y;
+    const barWrapperTransform = `translate(${translateX}, ${translateY})`;
+    if (existingGroup !== undefined) {
+      existingGroup.wrapper.setAttribute("transform", barWrapperTransform);
+      return existingGroup;
     }
 
-    parent.insertBefore(child, referenceChild);
+    const wrapper = createSVGG();
+    wrapper.setAttribute(
+      "id",
+      `tu-bar-wrapper-${toDomIdFragment(stableIdentity)}`
+    );
+    wrapper.setAttribute("transform", barWrapperTransform);
+
+    const layerGroups = new Map<NotationElementClass, SVGGElement>();
+    for (const elementClass of BAR_OWNED_ELEMENT_CLASSES) {
+      const group = createSVGG();
+      group.setAttribute(
+        "data-layer",
+        elementClass.name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
+      );
+      layerGroups.set(elementClass, group);
+      wrapper.appendChild(group);
+    }
+
+    const barGroup = { wrapper, layerGroups };
+    trackLineGroup.barGroups.set(stableIdentity, barGroup);
+    return barGroup;
+  }
+
+  private syncTrackLineBarGroups(
+    trackLineGroup: TrackLineGroup,
+    trackLineElement: TrackLineElement
+  ): void {
+    const visibleBarStableIdentities = new Set<string>();
+    let barGroupIndex = trackLineGroup.layerGroups.size;
+
+    // Ensure existence of visible bar groups
+    for (const staffLineElement of trackLineElement.staffLineElements) {
+      for (const notationStyleLineElement of staffLineElement.styleLinesAsArray) {
+        for (const barElement of notationStyleLineElement.barElements) {
+          const stableIdentity = barElement.getStableIdentity();
+          visibleBarStableIdentities.add(stableIdentity);
+
+          const barGroup = this.ensureBarGroup(trackLineGroup, barElement);
+          ensureDomChildAtIndex(
+            trackLineGroup.wrapper,
+            barGroup.wrapper,
+            barGroupIndex
+          );
+          barGroupIndex++;
+        }
+      }
+    }
+
+    // Remove stale bar groups from the track line group
+    for (const [stableIdentity, barGroup] of trackLineGroup.barGroups) {
+      if (visibleBarStableIdentities.has(stableIdentity)) {
+        continue;
+      }
+
+      barGroup.wrapper.remove();
+      trackLineGroup.barGroups.delete(stableIdentity);
+    }
   }
 
   private ensureTrackLineGroup(
@@ -190,7 +249,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     const wrapper = createSVGG();
     wrapper.setAttribute(
       "id",
-      `tu-track-line-wrapper-${this.toDomIdFragment(stableIdentity)}`
+      `tu-track-line-wrapper-${toDomIdFragment(stableIdentity)}`
     );
     wrapper.setAttribute(
       "transform",
@@ -199,7 +258,7 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     // Create the layer groups & populate the wrapper with them
     const layerGroups = new Map<NotationElementClass, SVGGElement>();
-    const sanitizedStableIdentity = this.toDomIdFragment(stableIdentity);
+    const sanitizedStableIdentity = toDomIdFragment(stableIdentity);
     for (const elementClass of ELEMENT_ORDER) {
       // Skip not track line owned elements (e.g. track line info is per track line)
       if (BAR_OWNED_ELEMENT_CLASSES.includes(elementClass)) {
@@ -221,110 +280,6 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.syncTrackLineBarGroups(trackLineGroup, trackLineElement);
     this._trackLineGroups.set(stableIdentity, trackLineGroup);
     return trackLineGroup;
-  }
-
-  private syncTrackLineBarGroups(
-    trackLineGroup: TrackLineGroup,
-    trackLineElement: TrackLineElement
-  ): void {
-    const visibleBarStableIdentities = new Set<string>();
-    let barGroupIndex = trackLineGroup.layerGroups.size;
-
-    // Ensure existence of visible bar groups
-    for (const staffLineElement of trackLineElement.staffLineElements) {
-      for (const notationStyleLineElement of staffLineElement.styleLinesAsArray) {
-        for (const barElement of notationStyleLineElement.barElements) {
-          const stableIdentity = barElement.getStableIdentity();
-          visibleBarStableIdentities.add(stableIdentity);
-
-          const barGroup = this.ensureBarGroup(
-            trackLineGroup,
-            trackLineElement,
-            barElement
-          );
-          this.ensureChildAtIndex(
-            trackLineGroup.wrapper,
-            barGroup.wrapper,
-            barGroupIndex
-          );
-          barGroupIndex++;
-        }
-      }
-    }
-
-    // Remove stale bar groups from the track line group
-    for (const [stableIdentity, barGroup] of trackLineGroup.barGroups) {
-      if (visibleBarStableIdentities.has(stableIdentity)) {
-        continue;
-      }
-
-      barGroup.wrapper.remove();
-      trackLineGroup.barGroups.delete(stableIdentity);
-    }
-  }
-
-  private ensureBarGroup(
-    trackLineGroup: TrackLineGroup,
-    trackLineElement: TrackLineElement,
-    barElement: BarElement
-  ): BarGroup {
-    const stableIdentity = barElement.getStableIdentity();
-    const existingGroup = trackLineGroup.barGroups.get(stableIdentity);
-
-    const translateX = barElement.lineLocalCoords.x;
-    const translateY = barElement.lineLocalCoords.y;
-    const barWrapperTransform = `translate(${translateX}, ${translateY})`;
-    if (existingGroup !== undefined) {
-      existingGroup.wrapper.setAttribute("transform", barWrapperTransform);
-      return existingGroup;
-    }
-
-    const wrapper = createSVGG();
-    wrapper.setAttribute(
-      "id",
-      `tu-bar-wrapper-${this.toDomIdFragment(stableIdentity)}`
-    );
-    wrapper.setAttribute("transform", barWrapperTransform);
-
-    const layerGroups = new Map<NotationElementClass, SVGGElement>();
-    for (const elementClass of BAR_OWNED_ELEMENT_CLASSES) {
-      const group = createSVGG();
-      group.setAttribute(
-        "data-layer",
-        elementClass.name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
-      );
-      layerGroups.set(elementClass, group);
-      wrapper.appendChild(group);
-    }
-
-    const barGroup = { wrapper, layerGroups };
-    trackLineGroup.barGroups.set(stableIdentity, barGroup);
-    return barGroup;
-  }
-
-  private syncVisibleTrackLineGroups(
-    trackLineElements: TrackLineElement[]
-  ): void {
-    const visibleStableIdentities = new Set(
-      trackLineElements.map((trackLineElement) =>
-        trackLineElement.getStableIdentity()
-      )
-    );
-
-    for (let i = 0; i < trackLineElements.length; i++) {
-      const trackLineElement = trackLineElements[i];
-      const trackLineGroup = this.ensureTrackLineGroup(trackLineElement);
-      this.ensureChildAtIndex(this._notationSVGGroup, trackLineGroup.wrapper, i);
-    }
-
-    for (const [stableIdentity, trackLineGroup] of this._trackLineGroups) {
-      if (visibleStableIdentities.has(stableIdentity)) {
-        continue;
-      }
-
-      trackLineGroup.wrapper.remove();
-      this._trackLineGroups.delete(stableIdentity);
-    }
   }
 
   private syncViewportState(): void {
@@ -350,13 +305,13 @@ export class EditorSVGRenderer implements EditorRenderer {
     );
   }
 
-  private getVisibleTrackLineRange(trackController: TrackController): {
+  private getLinesInViewport(): {
     start: number;
     end: number;
   } {
     const viewportTop = this._viewportRect.y;
     const viewportBottom = this._viewportRect.bottom;
-    const trackLines = trackController.trackElement.trackLineElements;
+    const trackLines = this.trackController.trackElement.trackLineElements;
 
     let firstVisibleIndex = -1;
     let lastVisibleIndex = -1;
@@ -393,27 +348,37 @@ export class EditorSVGRenderer implements EditorRenderer {
     };
   }
 
-  private getVisibleElements(
-    trackController: TrackController,
-    visibleTrackLineRange: { start: number; end: number }
+  private reconcileLinesViewport(
+    start: number,
+    end: number
   ): NotationElement[] {
-    const trackLines = trackController.trackElement.trackLineElements.slice(
-      visibleTrackLineRange.start,
-      visibleTrackLineRange.end + 1
+    const visibleTrackLines =
+      this.trackController.trackElement.trackLineElements.slice(start, end + 1);
+    const visibleStableIdentities = new Set(
+      visibleTrackLines.map((trackLineElement) =>
+        trackLineElement.getStableIdentity()
+      )
     );
 
-    return trackLines.flatMap((trackLine) => trackLine.ownedNotationElements);
+    for (let i = 0; i < visibleTrackLines.length; i++) {
+      const trackLineElement = visibleTrackLines[i];
+      const trackLineGroup = this.ensureTrackLineGroup(trackLineElement);
+      ensureDomChildAtIndex(this._notationSVGGroup, trackLineGroup.wrapper, i);
+    }
+
+    for (const [stableIdentity, trackLineGroup] of this._trackLineGroups) {
+      if (visibleStableIdentities.has(stableIdentity)) {
+        continue;
+      }
+
+      trackLineGroup.wrapper.remove();
+      this._trackLineGroups.delete(stableIdentity);
+    }
+
+    return visibleTrackLines.flatMap((tle) => tle.ownedNotationElements);
   }
 
-  private updateRendererElement(
-    renderer: ElementRenderer,
-    element: NotationElement
-  ): void {
-    void renderer;
-    void element;
-  }
-
-  private removeByDiff(stableIdentities: string[]): void {
+  private removeByDiff(stableIdentities: Iterable<string>): void {
     for (const stableIdentity of stableIdentities) {
       const renderer = this._rendererRegistry.get(stableIdentity);
       if (renderer === undefined) {
@@ -444,31 +409,90 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
   }
 
+  private ensureRendererMounted(
+    renderer: ElementRenderer,
+    element: NotationElement
+  ): void {
+    const owningTrackLineElement = getOwningTrackLineElement(element);
+    const trackLineGroup = this.ensureTrackLineGroup(owningTrackLineElement);
+    const owningBarElement = getOwningBarElement(element);
+    let layer: SVGGElement | undefined = undefined;
+    if (owningBarElement === null) {
+      layer = trackLineGroup.layerGroups.get(
+        element.constructor as NotationElementClass
+      );
+    } else {
+      layer = this.ensureBarGroup(
+        trackLineGroup,
+        owningBarElement
+      ).layerGroups.get(element.constructor as NotationElementClass);
+    }
+    if (layer === undefined) {
+      return;
+    }
+
+    const group = renderer.ensureContainerGroup();
+
+    if (group.parentNode !== layer) {
+      layer.appendChild(group);
+    }
+  }
+
+  private updateRendererElement(
+    renderer: ElementRenderer,
+    element: NotationElement
+  ): void {
+    const mutableRenderer = renderer as any;
+    if (element instanceof TrackLineElement) {
+      mutableRenderer.trackLineElement = element;
+    } else if (element instanceof TrackLineInfoElement) {
+      mutableRenderer.trackLineInfoElement = element;
+    } else if (element instanceof StaffLineElement) {
+      mutableRenderer.staffLineElement = element;
+    } else if (element instanceof NotationStyleLineElement) {
+      mutableRenderer.styleLineElement = element;
+    } else if (element instanceof TechGapElement) {
+      mutableRenderer.techGapElement = element;
+    } else if (element instanceof TechGapLineElement) {
+      mutableRenderer.techGapLineElement = element;
+    } else if (element instanceof BarElement) {
+      mutableRenderer.barElement = element;
+    } else if (element instanceof TabBeatElement) {
+      mutableRenderer.beatElement = element;
+    } else if (element instanceof TabNoteElement) {
+      mutableRenderer.noteElement = element;
+    } else if (element instanceof GuitarTechniqueElement) {
+      mutableRenderer.techniqueElement = element;
+    } else if (element instanceof GuitarTechniqueLabelElement) {
+      mutableRenderer.techniqueLabelElement = element;
+    } else if (element instanceof BeamSegmentElement) {
+      mutableRenderer.beamSegment = element;
+    } else if (element instanceof BarTupletGroupElement) {
+      mutableRenderer.tupletElement = element;
+    }
+  }
+
   private renderReconciled(
-    trackController: TrackController,
     visibleElements: NotationElement[]
   ): ElementRenderer[] {
-    const diff = trackController.trackElement.getElementDiff();
+    const diff = this.trackController.trackElement.consumeDiff();
 
     const visibleStableIdentities = new Set(
       visibleElements.map((element) => element.getStableIdentity())
     );
 
     // Step 1: Unrender removed elements
-    const removedStableIdentities: string[] = [];
     for (const uuidSet of diff.removed.values()) {
-      removedStableIdentities.push(...uuidSet.values());
+      this.removeByDiff(uuidSet);
     }
-    this.removeByDiff(removedStableIdentities);
 
     // Step 2: Detach invisible renderers but keep them cached for reuse.
     this.cullInvisibleRenderers(visibleStableIdentities);
 
     // Step 3: Re-render visible elements when needed (new, updated, remounted).
     const updatedVisibleUUIDs = new Set<string>();
-    for (const elementMap of diff.updated.values()) {
-      for (const element of elementMap.values()) {
-        const stableIdentity = element.getStableIdentity();
+    for (const updatedIdentities of diff.updated.values()) {
+      for (const stableIdentity of updatedIdentities) {
         if (visibleStableIdentities.has(stableIdentity)) {
           updatedVisibleUUIDs.add(stableIdentity);
         }
@@ -482,7 +506,7 @@ export class EditorSVGRenderer implements EditorRenderer {
       let isNewRenderer = false;
       if (renderer === undefined) {
         const newRenderer = createRendererForElement(
-          trackController,
+          this.trackController,
           element,
           this.assetsPath
         );
@@ -496,9 +520,7 @@ export class EditorSVGRenderer implements EditorRenderer {
       }
 
       const wasMounted = this._mountedRendererUUIDs.has(stableIdentity);
-      if (updatedVisibleUUIDs.has(stableIdentity) || !wasMounted) {
-        this.updateRendererElement(renderer, element);
-      }
+      this.updateRendererElement(renderer, element);
 
       this.ensureRendererMounted(renderer, element);
       this._mountedRendererUUIDs.add(stableIdentity);
@@ -515,36 +537,6 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     return activeRenderers;
-  }
-
-  private ensureRendererMounted(
-    renderer: ElementRenderer,
-    element: NotationElement
-  ): void {
-    const owningTrackLineElement = getOwningTrackLineElement(element);
-    const trackLineGroup = this.ensureTrackLineGroup(owningTrackLineElement);
-    const owningBarElement = getOwningBarElement(element);
-    let layer: SVGGElement | undefined = undefined;
-    if (owningBarElement === null) {
-      layer = trackLineGroup.layerGroups.get(
-        element.constructor as NotationElementClass
-      );
-    } else {
-      layer = this.ensureBarGroup(
-        trackLineGroup,
-        owningTrackLineElement,
-        owningBarElement
-      ).layerGroups.get(element.constructor as NotationElementClass);
-    }
-    if (layer === undefined) {
-      return;
-    }
-
-    const group = renderer.ensureContainerGroup();
-
-    if (group.parentNode !== layer) {
-      layer.appendChild(group);
-    }
   }
 
   /**
@@ -569,114 +561,17 @@ export class EditorSVGRenderer implements EditorRenderer {
       beatElement: BeatElement
     ) => void
   ): void {
-    this._beatInteractionLayer.attachEvent(eventType, eventHandler);
+    this._beatInteractionRenderer.attachEvent(eventType, eventHandler);
   }
 
   public detachBeatInteractionEvent<K extends keyof SVGElementEventMap>(
     eventType: K
   ): void {
-    this._beatInteractionLayer.detachEvent(eventType);
+    this._beatInteractionRenderer.detachEvent(eventType);
   }
 
-  /**
-   * Render player overlay
-   */
-  private renderPlayerOverlay(trackController: TrackController): void {
-    if (this._playerCursorRect === undefined) {
-      this._playerCursorRect = createSVGRect();
-      this._playerCursorRect.setAttribute("id", "playerCursor");
-    }
-    this._playerSVGGroup.appendChild(this._playerCursorRect);
-
-    if (this._playerAnimator === undefined) {
-      this._playerAnimator = new TrackPlayerSVGAnimator(
-        this._playerCursorRect,
-        trackController
-      );
-      this._playerAnimator.bindToBeatChanged();
-    }
-
-    const currentBeatElement = trackController.playerCurrentBeatElement;
-
-    let cursorRect: Rect;
-    if (currentBeatElement === undefined) {
-      cursorRect = new Rect(0, 0, 0, 0);
-    } else {
-      const trackLineElement =
-        currentBeatElement.barElement.notationStyleLineElement.staffLineElement
-          .trackLineElement;
-      renderPlayerCursor(
-        this._playerCursorRect,
-        currentBeatElement,
-        trackLineElement
-      );
-      cursorRect = new Rect(
-        Number(this._playerCursorRect.getAttribute("x") ?? 0),
-        Number(this._playerCursorRect.getAttribute("y") ?? 0),
-        Number(this._playerCursorRect.getAttribute("width") ?? 0),
-        Number(this._playerCursorRect.getAttribute("height") ?? 0)
-      );
-    }
-
-    this._playerCursorRect.setAttribute("x", `${cursorRect.x}`);
-    this._playerCursorRect.setAttribute("y", `${cursorRect.y}`);
-    this._playerCursorRect.setAttribute("width", `${cursorRect.width}`);
-    this._playerCursorRect.setAttribute("height", `${cursorRect.height}`);
-    this._playerCursorRect.setAttribute("stroke", "var(--tu-notation-ink)");
-    this._playerCursorRect.setAttribute("fill", "var(--tu-notation-cursor)");
-  }
-
-  /**
-   * Hide player overlay when not playing
-   */
-  private hidePlayerOverlay(): void {
-    if (this._playerCursorRect === undefined) {
-      this._playerCursorRect = createSVGRect();
-      this._playerCursorRect.setAttribute("id", "playerCursor");
-    }
-    this._playerSVGGroup.appendChild(this._playerCursorRect);
-
-    this._playerCursorRect.setAttribute("width", "0");
-    this._playerCursorRect.setAttribute("height", "0");
-  }
-
-  /**
-   * Render track window using SVG
-   */
-  public render(trackController: TrackController): ElementRenderer[] {
-    this.syncViewportState();
-    const visibleTrackLineRange =
-      this.getVisibleTrackLineRange(trackController);
-    const visibleTrackLines =
-      trackController.trackElement.trackLineElements.slice(
-        visibleTrackLineRange.start,
-        visibleTrackLineRange.end + 1
-      );
-    this.syncVisibleTrackLineGroups(visibleTrackLines);
-    const visibleElements = this.getVisibleElements(
-      trackController,
-      visibleTrackLineRange
-    );
-
-    // Render using element diff
-    const activeRenderers = this.renderReconciled(
-      trackController,
-      visibleElements
-    );
-    this._beatInteractionLayer.render(trackController, visibleElements);
-    trackController.trackElement.clearElementDiff();
-    trackController.trackElement.clearDirtyElements();
-
-    // Player overlay rect
-    if (trackController.isPlaying) {
-      this.renderPlayerOverlay(trackController);
-    } else {
-      this.hidePlayerOverlay();
-    }
-    this._selectionOverlayRenderer.render(trackController);
-
-    // Update SVG root dimensions
-    const trackWindowHeight = trackController.trackElement.height;
+  private syncRootSVGDimensions(): void {
+    const trackWindowHeight = this.trackController.trackElement.height;
     const VB = `0 0 ${EditorLayoutDimensions.WIDTH} ${trackWindowHeight}`;
     this.rootSVGElement.setAttribute("viewBox", VB);
     this.rootSVGElement.setAttribute(
@@ -684,12 +579,29 @@ export class EditorSVGRenderer implements EditorRenderer {
       `${EditorLayoutDimensions.WIDTH}`
     );
     this.rootSVGElement.setAttribute("height", `${trackWindowHeight}`);
+  }
+
+  /**
+   * Render track window using SVG
+   */
+  public render(): ElementRenderer[] {
+    this.syncViewportState();
+
+    const { start, end } = this.getLinesInViewport();
+    const visibleElements = this.reconcileLinesViewport(start, end);
+    const activeRenderers = this.renderReconciled(visibleElements);
+
+    this._beatInteractionRenderer.render(visibleElements);
+    this._playerOverlayRenderer.render();
+    this._selectionOverlayRenderer.render();
+
+    this.syncRootSVGDimensions();
 
     return activeRenderers;
   }
 
-  public renderSelectionOverlay(trackController: TrackController): void {
-    this._selectionOverlayRenderer.render(trackController);
+  public renderSelectionOverlay(): void {
+    this._selectionOverlayRenderer.render();
   }
 
   /**
@@ -704,142 +616,16 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._rendererRegistry.clear();
     this._mountedRendererUUIDs.clear();
     this._trackLineGroups.clear();
-    if (this._playerAnimator !== undefined) {
-      this._playerAnimator.unbindFromBeatChanged();
-      this._playerAnimator = undefined;
-    }
-    if (this._playerCursorRect) {
-      this._playerCursorRect.remove();
-      this._playerCursorRect = undefined;
-    }
-    this._selectionOverlayRenderer.clear();
-    this._beatInteractionLayer.clear();
+    this._playerOverlayRenderer.unrender();
+    this._selectionOverlayRenderer.unrender();
+    this._beatInteractionRenderer.unrender();
 
     this.rootSVGElement.replaceChildren();
     this.mountRootLayers();
   }
-}
 
-class BeatInteractionLayer {
-  private _interactionGroup: SVGGElement;
-  private _beatInteractionRects: Map<number, SVGRectElement>;
-  private _beatInteractionEvents: Map<string, EventListener>;
-  private _trackController?: TrackController;
-
-  constructor(interactionGroup: SVGGElement) {
-    this._interactionGroup = interactionGroup;
-    this._beatInteractionRects = new Map();
-    this._beatInteractionEvents = new Map();
-  }
-
-  public render(
-    trackController: TrackController,
-    visibleElements: NotationElement[]
-  ): void {
-    this._trackController = trackController;
-    const activeBeatUUIDs = new Set<number>();
-
-    for (const element of visibleElements) {
-      if (!(element instanceof TabBeatElement)) {
-        continue;
-      }
-
-      const modelUUID = element.beat.uuid;
-      activeBeatUUIDs.add(modelUUID);
-
-      let rect = this._beatInteractionRects.get(modelUUID);
-      if (rect === undefined) {
-        rect = createSVGRect();
-        rect.setAttribute("fill", "transparent");
-        rect.setAttribute("stroke", "none");
-        rect.setAttribute("pointer-events", "all");
-        rect.setAttribute("data-beat-uuid", `${modelUUID}`);
-        this._interactionGroup.appendChild(rect);
-        this._beatInteractionRects.set(modelUUID, rect);
-      }
-
-      const globalBoundingBox = element.globalBoundingBox;
-      rect.setAttribute("x", `${globalBoundingBox.x}`);
-      rect.setAttribute("y", `${globalBoundingBox.y}`);
-      rect.setAttribute("width", `${globalBoundingBox.width}`);
-      rect.setAttribute("height", `${globalBoundingBox.height}`);
-    }
-
-    for (const [modelUUID, rect] of this._beatInteractionRects) {
-      if (activeBeatUUIDs.has(modelUUID)) {
-        continue;
-      }
-
-      this._interactionGroup.removeChild(rect);
-      this._beatInteractionRects.delete(modelUUID);
-    }
-  }
-
-  public attachEvent<K extends keyof SVGElementEventMap>(
-    eventType: K,
-    eventHandler: (
-      event: SVGElementEventMap[K],
-      beatElement: BeatElement
-    ) => void
-  ): void {
-    const listener = (event: Event): void => {
-      if (this._trackController === undefined) {
-        return;
-      }
-
-      const eventTarget = event.target;
-      if (!(eventTarget instanceof Element)) {
-        return;
-      }
-
-      const beatRect = eventTarget.closest("[data-beat-uuid]");
-      if (!(beatRect instanceof SVGRectElement)) {
-        return;
-      }
-
-      const beatUUID = Number(beatRect.dataset["beatUuid"]);
-      if (Number.isNaN(beatUUID)) {
-        return;
-      }
-
-      const element =
-        this._trackController.trackElement.getElementByModelUUID(beatUUID);
-      if (!(element instanceof TabBeatElement)) {
-        return;
-      }
-
-      eventHandler(event as SVGElementEventMap[K], element);
-    };
-
-    const oldListener = this._beatInteractionEvents.get(eventType);
-    if (oldListener !== undefined) {
-      this._interactionGroup.removeEventListener(eventType, oldListener);
-    }
-
-    this._interactionGroup.addEventListener(eventType, listener);
-    this._beatInteractionEvents.set(eventType, listener);
-  }
-
-  public detachEvent<K extends keyof SVGElementEventMap>(eventType: K): void {
-    const listener = this._beatInteractionEvents.get(eventType);
-    if (listener === undefined) {
-      return;
-    }
-
-    this._interactionGroup.removeEventListener(eventType, listener);
-    this._beatInteractionEvents.delete(eventType);
-  }
-
-  public clear(): void {
-    for (const rect of this._beatInteractionRects.values()) {
-      this._interactionGroup.removeChild(rect);
-    }
-    this._beatInteractionRects.clear();
-
-    for (const [eventType, listener] of this._beatInteractionEvents) {
-      this._interactionGroup.removeEventListener(eventType, listener);
-    }
-    this._beatInteractionEvents.clear();
-    this._trackController = undefined;
+  public dispose(): void {
+    this.unrender();
+    this.notationViewportDiv.remove();
   }
 }

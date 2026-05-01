@@ -1,4 +1,8 @@
-import { NoteElement, TrackController } from "@/notation/controller";
+import {
+  NoteElement,
+  TrackController,
+  TrackLineIdentity,
+} from "@/notation/controller";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { createSVGRect } from "@/shared";
 
@@ -7,6 +11,8 @@ import { createSVGRect } from "@/shared";
  * inside the provided selection SVG group.
  */
 export class SelectionOverlayRenderer {
+  readonly trackController: TrackController;
+
   /** Root SVG group for selection visuals. */
   private _selectionGroup: SVGGElement;
   /** Hover preview rectangle for note selection. */
@@ -19,23 +25,24 @@ export class SelectionOverlayRenderer {
   /**
    * Creates selection overlay renderer for a selection layer group.
    */
-  constructor(selectionGroup: SVGGElement) {
+  constructor(selectionGroup: SVGGElement, trackController: TrackController) {
+    this.trackController = trackController;
+
     this._selectionGroup = selectionGroup;
   }
 
   /**
+   * NOTE: Could (and probably) should be extracted to TrackController
    * Resolves currently selected tab note element from track element registry.
    */
-  private getSelectedTabNoteElement(
-    trackController: TrackController
-  ): TabNoteElement | undefined {
-    const selectedNote = trackController.selectedNote;
+  private getSelectedTabNoteElement(): TabNoteElement | undefined {
+    const selectedNote = this.trackController.selectedNote;
     if (selectedNote === undefined) {
       return undefined;
     }
 
     const registeredElements =
-      trackController.trackElement.getElementRegistry();
+      this.trackController.trackElement.elementRegistryByModelUUID;
     const selectedNoteElement = registeredElements.get(selectedNote.note.uuid);
     if (
       selectedNoteElement === undefined ||
@@ -51,8 +58,8 @@ export class SelectionOverlayRenderer {
   /**
    * Renders or clears selected-note outline rectangle.
    */
-  private renderSelectedNoteOverlay(trackController: TrackController): void {
-    const selectedNoteElement = this.getSelectedTabNoteElement(trackController);
+  private renderSelectedNoteOverlay(): void {
+    const selectedNoteElement = this.getSelectedTabNoteElement();
 
     if (selectedNoteElement === undefined) {
       if (this._selectedNoteRect !== undefined) {
@@ -86,8 +93,8 @@ export class SelectionOverlayRenderer {
   /**
    * Renders beat selection rectangles with pooling (grow/shrink/update in place).
    */
-  private renderSelectionRects(trackController: TrackController): void {
-    const selectionRects = trackController.getSelectionRects();
+  private renderSelectionRects(): void {
+    const selectionRects = this.trackController.getSelectionRects();
     if (this._selectionRects === undefined) {
       this._selectionRects = [];
     }
@@ -202,15 +209,15 @@ export class SelectionOverlayRenderer {
   /**
    * Renders full selection layer state for the current track controller.
    */
-  public render(trackController: TrackController): void {
-    this.renderSelectedNoteOverlay(trackController);
-    this.renderSelectionRects(trackController);
+  public render(): void {
+    this.renderSelectedNoteOverlay();
+    this.renderSelectionRects();
   }
 
   /**
    * Clears all selection-layer visuals from the selection group.
    */
-  public clear(): void {
+  public unrender(): void {
     if (this._selectionPreviewRect !== undefined) {
       this._selectionGroup.removeChild(this._selectionPreviewRect);
       this._selectionPreviewRect = undefined;

@@ -1,31 +1,32 @@
-import { Guitar, MasterBar, Track } from "@/notation/model";
+import { Track } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import {
+  NotationStyle,
   StaffLineData,
   StaffLineElement,
 } from "@/notation/controller/element/staff/staff-line-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
-import { getBarWidth } from "@/notation/controller/element/bar/bar-element";
 import { VertLine } from "@/shared/rendering/geometry/line";
 import { NotationElement } from "@/notation/controller/element/notation-element";
-
 /**
- * Data needed to build a track bar:
- * Width to match & master bar index
+ * Bar placement data for one master bar inside a presentation track line.
+ * Presentation shells create the actual BarElements from this placement data.
  */
-export type TrackLineBarData = {
+export type TrackLineBar = {
   intrinsicWidth: number;
   finalizedWidth: number;
+  masterBarUUID: number;
   masterBarIndex: number;
 };
 
-/**
- * Data needed to build a track line:
- * Array of objects: intrinsic/finalized width for the master bar at the specified index
- */
-export type TrackLineData = TrackLineBarData[];
+/** Bar placement data for one rendered track line. */
+export type TrackLineBars = TrackLineBar[];
+
+// Transitional alias for legacy tests/helpers that still use TrackLineData
+// naming. Remove once old horizontal helper code is cleaned up.
+export type TrackLineData = TrackLineBars;
 
 type OutlineLines = {
   left: VertLine;
@@ -38,10 +39,10 @@ type OutlineLines = {
 export class TrackLineElement implements NotationElement {
   public static createStableIdentity(
     track: Track,
-    trackLineData: TrackLineData
+    trackLineBars: TrackLineBars
   ): string {
-    const ownershipKey = trackLineData
-      .map((data) => track.score.masterBars[data.masterBarIndex].uuid)
+    const ownershipKey = trackLineBars
+      .map((data) => data.masterBarUUID)
       .join(":");
 
     return `track-line:${track.uuid}:${ownershipKey}`;
@@ -64,25 +65,22 @@ export class TrackLineElement implements NotationElement {
   /** Track line encapsulating rectangle */
   private _boundingBox: Rect;
   /** Left & right outline line for when there are more than 1 staves */
+  // FIX: There are some errors with how outline lines are formed.
+  // Especially noticeable when adding new beats/bars by moving right
   private _outlineLines?: OutlineLines;
-  /** Data necessary to build a track line */
-  private _trackLineData: TrackLineData;
+  /** Bar elements placed by TrackElement into this presentation line. */
+  private _trackLineBars: TrackLineBars;
   /** Stable ownership identity captured when the line data is assigned. */
   private _stableIdentity: string;
 
   /**
    * Class that handles all geometry & visually relevant info of a track line
-   * @param track Track
    * @param trackElement Parent track element
-   * @param trackLineData Data necessary to build the track line element
+   * @param trackLineBars Bar placement data for this track line
    */
-  constructor(
-    track: Track,
-    trackElement: TrackElement,
-    trackLineData: TrackLineData
-  ) {
+  constructor(trackElement: TrackElement, trackLineBars: TrackLineBars) {
     this.uuid = randomInt();
-    this.track = track;
+    this.track = trackElement.track;
     this.trackElement = trackElement;
 
     this._staffLineElements = [];
@@ -90,10 +88,10 @@ export class TrackLineElement implements NotationElement {
     this._ownedNotationElements = [];
 
     this._boundingBox = new Rect();
-    this._trackLineData = trackLineData;
+    this._trackLineBars = trackLineBars;
     this._stableIdentity = TrackLineElement.createStableIdentity(
       this.track,
-      this._trackLineData
+      this._trackLineBars
     );
 
     this.build();
@@ -107,33 +105,19 @@ export class TrackLineElement implements NotationElement {
   public build(): void {
     this.trackElement.registerElement(this);
 
-    const prevStaffLineElements = this.trackElement.useElementReuse
-      ? new Map(
-          this._staffLineElements.map((element) => [
-            element.getStableIdentity(),
-            element,
-          ])
-        )
-      : new Map<string, StaffLineElement>();
     this._staffLineElements = [];
     for (const staff of this.track.staves) {
-      const data: StaffLineData = this._trackLineData.map((td) => {
+      // Convert track-line placement data into staff-local data. Missing model
+      // bars are intentionally not guarded: the model is expected to be valid
+      // before TrackElement updates run.
+      const data: StaffLineData = this._trackLineBars.map((lineBars) => {
         return {
-          intrinsicWidth: td.intrinsicWidth,
-          finalizedWidth: td.finalizedWidth,
-          bar: staff.bars[td.masterBarIndex],
+          intrinsicWidth: lineBars.intrinsicWidth,
+          finalizedWidth: lineBars.finalizedWidth,
+          bar: staff.bars[lineBars.masterBarIndex],
+          masterBarIndex: lineBars.masterBarIndex,
         };
       });
-
-      const stableIdentity = StaffLineElement.createStableIdentity(this, staff);
-      const existingStaffLineElement =
-        prevStaffLineElements.get(stableIdentity);
-      if (existingStaffLineElement !== undefined) {
-        existingStaffLineElement.setStaffLineData(data);
-        existingStaffLineElement.build();
-        this._staffLineElements.push(existingStaffLineElement);
-        continue;
-      }
 
       this._staffLineElements.push(new StaffLineElement(staff, this, data));
     }
@@ -147,26 +131,7 @@ export class TrackLineElement implements NotationElement {
       this._outlineLines = undefined;
     }
 
-    const trackLineInfoStableIdentity =
-      TrackLineInfoElement.createStableIdentity(this);
-    if (
-      this.trackElement.useElementReuse &&
-      this._trackLineInfoElement !== null &&
-      this._trackLineInfoElement.getStableIdentity() ===
-        trackLineInfoStableIdentity
-    ) {
-      this._trackLineInfoElement.build();
-    } else {
-      this._trackLineInfoElement = new TrackLineInfoElement(this);
-    }
-  }
-
-  public setTrackLineData(trackLineData: TrackLineData): void {
-    this._trackLineData = trackLineData;
-    this._stableIdentity = TrackLineElement.createStableIdentity(
-      this.track,
-      this._trackLineData
-    );
+    this._trackLineInfoElement = new TrackLineInfoElement(this);
   }
 
   /**
@@ -398,6 +363,10 @@ export class TrackLineElement implements NotationElement {
     return this._stableIdentity;
   }
 
+  public setTrackLineBars(trackLineBars: TrackLineBars): void {
+    this._trackLineBars = trackLineBars;
+  }
+
   /** Staff line element on this track line */
   public get staffLineElements(): StaffLineElement[] {
     return this._staffLineElements;
@@ -484,8 +453,16 @@ export class TrackLineElement implements NotationElement {
     return this.globalBoundingBox;
   }
 
-  /** Data necessary to build a track line */
+  /** Bar placement data for this rendered track line. */
+  public get trackLineBars(): TrackLineBars {
+    return this._trackLineBars;
+  }
+
+  /**
+   * Transitional legacy test/helper alias. Prefer trackLineBars and remove this
+   * before commit after callers have been migrated.
+   */
   public get trackLineData(): TrackLineData {
-    return this._trackLineData;
+    return this._trackLineBars;
   }
 }

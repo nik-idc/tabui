@@ -220,7 +220,7 @@ describe("TrackElement techniques", () => {
     expect(bendLabel?.globalCoords.y).toBeCloseTo(line3?.globalCoords.y ?? 0);
   });
 
-  test("no-op update preserves technique gap subtree identities", () => {
+  test("no-op update rebuilds technique gap shells", () => {
     const { track, bar } = createScoreGraph();
     const vibratoNote = bar.beats[0].notes[0] as GuitarNote;
     const bendNote = bar.beats[0].notes[2] as GuitarNote;
@@ -250,29 +250,26 @@ describe("TrackElement techniques", () => {
     const line3 = techGap.techGapLines[3];
     const line1Label = line1?.labelElements[0];
     const line3Label = line3?.labelElements[0];
+    const line1LabelIdentity = line1Label?.getStableIdentity();
+    const line3LabelIdentity = line3Label?.getStableIdentity();
 
     trackElement.update();
 
-    expect(
+    const nextTechGap =
       trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement
-    ).toBe(techGap);
+        .styleLinesAsArray[0].techGapElement;
+
+    expect(nextTechGap).not.toBe(techGap);
+    expect(nextTechGap.techGapLines[1]).not.toBe(line1);
+    expect(nextTechGap.techGapLines[3]).not.toBe(line3);
+    expect(nextTechGap.techGapLines[1]?.labelElements[0]).not.toBe(line1Label);
+    expect(nextTechGap.techGapLines[3]?.labelElements[0]).not.toBe(line3Label);
     expect(
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement.techGapLines[1]
-    ).toBe(line1);
+      nextTechGap.techGapLines[1]?.labelElements[0]?.getStableIdentity()
+    ).toBe(line1LabelIdentity);
     expect(
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement.techGapLines[3]
-    ).toBe(line3);
-    expect(
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement.techGapLines[1]?.labelElements[0]
-    ).toBe(line1Label);
-    expect(
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement.techGapLines[3]?.labelElements[0]
-    ).toBe(line3Label);
+      nextTechGap.techGapLines[3]?.labelElements[0]?.getStableIdentity()
+    ).toBe(line3LabelIdentity);
   });
 
   test("ownedNotationElements includes technique gap subtree elements", () => {
@@ -428,14 +425,12 @@ describe("TrackElement techniques", () => {
       palmMuteLabel?.globalCoords.y ?? 0
     );
     expect(
-      trackElement
-        .getRegisteredElements()
-        .filter(
-          (element) =>
-            element instanceof GuitarTechniqueLabelElement &&
-            (element.technique.type === GuitarTechniqueType.Vibrato ||
-              element.technique.type === GuitarTechniqueType.PalmMute)
-        )
+      Array.from(trackElement.elementRegistryByIdentity.values()).filter(
+        (element) =>
+          element instanceof GuitarTechniqueLabelElement &&
+          (element.technique.type === GuitarTechniqueType.Vibrato ||
+            element.technique.type === GuitarTechniqueType.PalmMute)
+      )
     ).toHaveLength(2);
   });
 });

@@ -13,7 +13,7 @@ export class NotationComponent {
   /** Score */
   readonly score: Score;
   /** Renderer */
-  readonly renderer: EditorRenderer;
+  private _renderer: EditorRenderer;
   /** Resolved editor config */
   readonly config: ResolvedTabUIConfig;
 
@@ -35,12 +35,15 @@ export class NotationComponent {
     this.score = score;
     this.rootDiv = rootDiv;
     this.config = config;
-    this.renderer =
-      renderer === undefined
-        ? new EditorSVGRenderer(this.rootDiv, this.config.assets)
-        : renderer;
-
     this._trackController = new TrackController(this.score.tracks[0]);
+    this._renderer =
+      renderer === undefined
+        ? new EditorSVGRenderer(
+            this.rootDiv,
+            this._trackController,
+            this.config.assets
+          )
+        : renderer;
   }
 
   /**
@@ -48,7 +51,7 @@ export class NotationComponent {
    * @returns Active renderers
    */
   public render(): ElementRenderer[] {
-    return this.renderer.render(this._trackController);
+    return this._renderer.render();
   }
 
   /**
@@ -58,13 +61,18 @@ export class NotationComponent {
    */
   public loadTrack(newTrack: Track): ElementRenderer[] {
     this._trackController.dispose();
-    this.renderer.unrender();
+    this._renderer.dispose();
 
     // Render new stuff
     const newTrackController = new TrackController(newTrack);
     this._trackController = newTrackController;
+    this._renderer = new EditorSVGRenderer(
+      this.rootDiv,
+      this._trackController,
+      this.config.assets
+    );
     this._trackController.trackElement.update();
-    return this.renderer.render(this._trackController);
+    return this._renderer.render();
   }
 
   /**
@@ -82,5 +90,9 @@ export class NotationComponent {
   /** Track controller */
   public get trackController(): TrackController {
     return this._trackController;
+  }
+
+  public get renderer(): EditorRenderer {
+    return this._renderer;
   }
 }

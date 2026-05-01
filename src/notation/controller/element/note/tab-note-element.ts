@@ -64,14 +64,12 @@ export class TabNoteElement implements NoteElement {
   public build(): void {
     this.trackElement.registerElement(this);
 
-    const prevTechniqueElements = this.trackElement.useElementReuse
-      ? new Map(
-          this._techniqueElements.map((element) => [
-            element.getStableIdentity(),
-            element,
-          ])
-        )
-      : new Map<string, GuitarTechniqueElement>();
+    const prevTechniqueElements = new Map(
+      this._techniqueElements.map((element) => [
+        element.getStableIdentity(),
+        element,
+      ])
+    );
     this._techniqueElements = [];
     for (const technique of this.note.techniques) {
       const techniqueElement =

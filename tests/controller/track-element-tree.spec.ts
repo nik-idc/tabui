@@ -56,6 +56,23 @@ function expectHorizontalUpdateToMatchLegacy(
   expect(getAllNoteX(trackElement)).toEqual(getAllNoteX(legacyTrackElement));
 }
 
+function findBarElement(trackElement: TrackElement, barUUID: number) {
+  for (const trackLine of trackElement.trackLineElements) {
+    for (const staffLine of trackLine.staffLineElements) {
+      for (const styleLine of staffLine.styleLinesAsArray) {
+        const barElement = styleLine.barElements.find(
+          (element) => element.bar.uuid === barUUID
+        );
+        if (barElement !== undefined) {
+          return barElement;
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
 describe("TrackElement tree", () => {
   beforeAll(() => {
     ensureLayoutConfigured();
@@ -337,7 +354,7 @@ describe("TrackElement tree", () => {
     expect(beatElement?.beat.uuid).toBe(beat.uuid);
   });
 
-  test("no-op update preserves core element object identity", () => {
+  test("no-op update rebuilds presentation element objects", () => {
     const { track } = createScoreGraph();
     const trackElement = new TrackElement(track);
 
@@ -349,29 +366,41 @@ describe("TrackElement tree", () => {
     const barElement = styleLine.barElements[0];
     const beatElement = barElement.beatElements[0];
     const noteElement = beatElement.noteElements[0];
+    const barIdentity = barElement.getStableIdentity();
+    const beatIdentity = beatElement.getStableIdentity();
+    const noteIdentity = noteElement.getStableIdentity();
 
     trackElement.update();
 
-    expect(trackElement.trackLineElements[0]).toBe(trackLine);
-    expect(trackElement.trackLineElements[0].staffLineElements[0]).toBe(
+    expect(trackElement.trackLineElements[0]).not.toBe(trackLine);
+    expect(trackElement.trackLineElements[0].staffLineElements[0]).not.toBe(
       staffLine
     );
     expect(
       trackElement.trackLineElements[0].staffLineElements[0]
         .styleLinesAsArray[0]
-    ).toBe(styleLine);
+    ).not.toBe(styleLine);
     expect(
       trackElement.trackLineElements[0].staffLineElements[0]
         .styleLinesAsArray[0].barElements[0]
-    ).toBe(barElement);
+    ).not.toBe(barElement);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].getStableIdentity()
+    ).toBe(barIdentity);
     expect(
       trackElement.trackLineElements[0].staffLineElements[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0]
-    ).toBe(beatElement);
+    ).not.toBe(beatElement);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements[0].getStableIdentity()
+    ).toBe(beatIdentity);
     expect(
       trackElement.trackLineElements[0].staffLineElements[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0]
-    ).toBe(noteElement);
+    ).not.toBe(noteElement);
+    expect(
+      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0].getStableIdentity()
+    ).toBe(noteIdentity);
   });
 
   test("element diff reports beat additions and removals", () => {
@@ -384,7 +413,7 @@ describe("TrackElement tree", () => {
     const addedBeat = bar.appendBeats().beats[0];
     trackElement.update();
 
-    const addDiff = trackElement.getElementDiff();
+    const addDiff = trackElement.elementDiff;
     const addedBeatElement =
       trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements.find(
         (beatElement) => beatElement.beat === addedBeat
@@ -399,7 +428,7 @@ describe("TrackElement tree", () => {
     bar.removeBeat(1);
     trackElement.update();
 
-    const removeDiff = trackElement.getElementDiff();
+    const removeDiff = trackElement.elementDiff;
     expect(removeDiff.removed.get(TabBeatElement)?.has(addedBeatIdentity)).toBe(
       true
     );
@@ -414,7 +443,7 @@ describe("TrackElement tree", () => {
     const trackElement = new TrackElement(track);
     const legacyTrackElement = new TrackElement(track);
     trackElement.update();
-    legacyTrackElement.updateOld();
+    legacyTrackElement.updateFull();
 
     const lastLineIndex = trackElement.trackLineElements.length - 1;
     const affectedMasterBarIndex =
@@ -429,7 +458,7 @@ describe("TrackElement tree", () => {
       affectedMasterBarIndices: [affectedMasterBarIndex],
       firstAffectedMasterBarIndex: affectedMasterBarIndex,
     });
-    legacyTrackElement.updateOld();
+    legacyTrackElement.updateFull();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
   });
@@ -443,7 +472,7 @@ describe("TrackElement tree", () => {
     const trackElement = new TrackElement(track);
     const legacyTrackElement = new TrackElement(track);
     trackElement.update();
-    legacyTrackElement.updateOld();
+    legacyTrackElement.updateFull();
 
     const secondLastLineIndex = trackElement.trackLineElements.length - 2;
     const affectedMasterBarIndex =
@@ -458,9 +487,63 @@ describe("TrackElement tree", () => {
       affectedMasterBarIndices: [affectedMasterBarIndex],
       firstAffectedMasterBarIndex: affectedMasterBarIndex,
     });
-    legacyTrackElement.updateOld();
+    legacyTrackElement.updateFull();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
+  });
+
+  test("presentation shell rebuild replaces moved bar element object", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const beforeByBarUUID = new Map(
+      track.staves[0].bars.map((bar) => {
+        const barElement = findBarElement(trackElement, bar.uuid);
+        expect(barElement).toBeDefined();
+        return [
+          bar.uuid,
+          {
+            barElement: barElement!,
+            stableIdentity: barElement!.getStableIdentity(),
+            styleLine: barElement!.notationStyleLineElement,
+          },
+        ];
+      })
+    );
+
+    const firstLine = trackElement.trackLineElements[0];
+    const affectedMasterBarIndex =
+      firstLine.trackLineData[firstLine.trackLineData.length - 1]
+        .masterBarIndex;
+    const affectedBar = track.staves[0].bars[affectedMasterBarIndex];
+
+    affectedBar.beats[0].baseDuration = NoteDuration.Whole;
+    affectedBar.rebuildTiming();
+
+    trackElement.updateFull();
+
+    const movedBarUUID = track.staves[0].bars.find((bar) => {
+      const before = beforeByBarUUID.get(bar.uuid);
+      const after = findBarElement(trackElement, bar.uuid);
+      return (
+        before !== undefined &&
+        after !== undefined &&
+        after !== before.barElement &&
+        after.notationStyleLineElement !== before.styleLine
+      );
+    })?.uuid;
+    expect(movedBarUUID).toBeDefined();
+
+    const before = beforeByBarUUID.get(movedBarUUID!)!;
+    const after = findBarElement(trackElement, movedBarUUID!);
+    expect(after).not.toBe(before.barElement);
+    expect(after?.getStableIdentity()).toBe(before.stableIdentity);
+    expect(after?.notationStyleLineElement).not.toBe(before.styleLine);
   });
 
   test("horizontal update matches legacy rebuild after deleting a bar in the middle", () => {
@@ -481,7 +564,7 @@ describe("TrackElement tree", () => {
       affectedMasterBarIndices: [removeIndex],
       firstAffectedMasterBarIndex: removeIndex,
     });
-    legacyTrackElement.updateOld();
+    legacyTrackElement.updateFull();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
   });
@@ -504,9 +587,33 @@ describe("TrackElement tree", () => {
       affectedMasterBarIndices: [insertIndex],
       firstAffectedMasterBarIndex: insertIndex,
     });
-    legacyTrackElement.updateOld();
+    legacyTrackElement.updateFull();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
+  });
+
+  test("horizontal append keeps earlier beats in model registry", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const firstBeatUUID = track.staves[0].bars[0].beats[0].uuid;
+    const affectedMasterBarIndex = score.masterBars.length;
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+
+    trackElement.update({
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [affectedMasterBarIndex],
+      firstAffectedMasterBarIndex: affectedMasterBarIndex,
+    });
+
+    expect(trackElement.getBeatElementByUUID(firstBeatUUID)).toBeInstanceOf(
+      TabBeatElement
+    );
   });
 
   test("vertical palm mute update rebuilds affected line and only shifts later lines", () => {
@@ -537,9 +644,7 @@ describe("TrackElement tree", () => {
 
     trackElement.update(setTechCommand.updateRequest);
 
-    const updatedBeats = trackElement
-      .getElementDiff()
-      .updated.get(TabBeatElement);
+    const updatedBeats = trackElement.elementDiff.updated.get(TabBeatElement);
     expect(trackElement.trackLineElements[0]).toBe(affectedLine);
     expect(trackElement.trackLineElements[1]).toBe(shiftedLine);
     expect(shiftedLine.boundingBox.y).toBeGreaterThan(beforeShiftedLineY);

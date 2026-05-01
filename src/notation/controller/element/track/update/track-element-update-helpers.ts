@@ -2,6 +2,8 @@ import {
   BarElement,
   BarTupletGroupElement,
   BeamSegmentElement,
+  ElementDiff,
+  ElementIdentity,
   GuitarTechniqueElement,
   GuitarTechniqueLabelElement,
   NotationElement,
@@ -23,15 +25,15 @@ import {
  */
 export function snapshotOwnedElements(
   trackLineElements: TrackLineElement[]
-): Map<string, Map<string, NotationElement>> {
+): Map<TrackLineElement, Map<ElementIdentity, NotationElement>> {
   const prevOwnedByAffectedLine = new Map<
-    string,
-    Map<string, NotationElement>
+    TrackLineElement,
+    Map<ElementIdentity, NotationElement>
   >();
 
   for (const trackLineElement of trackLineElements) {
     prevOwnedByAffectedLine.set(
-      trackLineElement.getStableIdentity(),
+      trackLineElement,
       new Map(
         trackLineElement.ownedNotationElements.map((element) => [
           element.getStableIdentity(),
@@ -133,4 +135,48 @@ export function getOwningBarElement(
   }
 
   return null;
+}
+
+export function getBackingModelUUID(element: NotationElement): number {
+  if (element instanceof BarElement) {
+    return element.bar.uuid;
+  }
+  if (
+    element instanceof TabBeatElement ||
+    element instanceof SheetBeatElement
+  ) {
+    return element.beat.uuid;
+  }
+  if (element instanceof TabNoteElement) {
+    return element.note.uuid;
+  }
+  if (element instanceof GuitarTechniqueElement) {
+    return element.technique.uuid;
+  }
+  if (element instanceof BarTupletGroupElement) {
+    return element.tupletGroup.uuid;
+  }
+
+  throw new Error(
+    "Tried to get model UUID of an element with no model backing"
+  );
+}
+
+export function isModelBackedElement(element: NotationElement): boolean {
+  return (
+    element instanceof BarElement ||
+    element instanceof TabBeatElement ||
+    element instanceof SheetBeatElement ||
+    element instanceof TabNoteElement ||
+    element instanceof GuitarTechniqueElement ||
+    element instanceof BarTupletGroupElement
+  );
+}
+
+export function createEmptyDiff(): ElementDiff {
+  return {
+    added: new Map(),
+    updated: new Map(),
+    removed: new Map(),
+  };
 }

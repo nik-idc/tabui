@@ -59,9 +59,7 @@ export class TechGapElement implements NotationElement {
   public build(): void {
     this.trackElement.registerElement(this);
 
-    const prevGapLines = this.trackElement.useElementReuse
-      ? new Map(this._techGapLinesByIdentity)
-      : new Map<string, TechGapLineElement>();
+    const prevGapLines = new Map(this._techGapLinesByIdentity);
     this._techGapLinesByIdentity.clear();
 
     for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {

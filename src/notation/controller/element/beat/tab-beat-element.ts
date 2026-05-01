@@ -81,14 +81,12 @@ export class TabBeatElement implements BeatElement {
   public build(): void {
     this.trackElement.registerElement(this);
 
-    const prevNoteElements = this.trackElement.useElementReuse
-      ? new Map(
-          this._noteElements.map((element) => [
-            element.getStableIdentity(),
-            element,
-          ])
-        )
-      : new Map<string, TabNoteElement>();
+    const prevNoteElements = new Map(
+      this._noteElements.map((element) => [
+        element.getStableIdentity(),
+        element,
+      ])
+    );
     this._noteElements = [];
     for (const note of this.beat.notes) {
       const existingNoteElement = prevNoteElements.get(

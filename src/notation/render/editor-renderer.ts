@@ -1,4 +1,4 @@
-import { BeatElement, NoteElement, TrackController } from "../controller";
+import { BeatElement, NoteElement } from "../controller";
 import { ElementRenderer } from "./element-renderer";
 
 export interface EditorRenderer {
@@ -19,7 +19,8 @@ export interface EditorRenderer {
 
   attachViewportScrollEvent(eventHandler: (event: Event) => void): void;
 
-  render(trackController: TrackController): ElementRenderer[];
-  renderSelectionOverlay(trackController: TrackController): void;
+  render(): ElementRenderer[];
+  renderSelectionOverlay(): void;
   unrender(): void;
+  dispose(): void;
 }

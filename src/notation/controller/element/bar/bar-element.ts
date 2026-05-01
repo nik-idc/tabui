@@ -28,20 +28,20 @@ import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
  */
 export class BarElement implements NotationElement {
   public static createStableIdentity(
-    notationStyleLineElement: NotationStyleLineElement,
+    notationStyle: NotationStyle,
     bar: Bar
   ): string {
-    const trackLineStableIdentity =
-      notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `bar:${trackLineStableIdentity}:${bar.uuid}`;
+    return `bar:${bar.uuid}:${notationStyle}`;
   }
 
   /** Unique identifier for the bar element */
   readonly uuid: number;
   /** The bar */
   readonly bar: Bar;
+  /** Notation style for this bar element. */
+  readonly notationStyle: NotationStyle;
   /** Parent bars line element */
-  readonly notationStyleLineElement: NotationStyleLineElement;
+  public notationStyleLineElement!: NotationStyleLineElement;
   /** Root track element */
   readonly trackElement: TrackElement;
 
@@ -59,6 +59,10 @@ export class BarElement implements NotationElement {
   private _boundingBox: Rect;
   /** Bar element's lines */
   private _staffLines: HorLine[];
+  /** Kept as separate because is part of geometry state that has to be fully stale pre-update */
+  private _showTempo: boolean;
+  /** Kept as separate because is part of geometry state that has to be fully stale pre-update */
+  private _durationsFit: boolean;
   /** Time signature rectangle */
   private _timeSigRect?: Rect;
   /** Repeat start sign rectangle */
@@ -76,14 +80,22 @@ export class BarElement implements NotationElement {
    */
   constructor(
     bar: Bar,
-    notationStyleLineElement: NotationStyleLineElement,
-    finalizedWidth: number
+    trackElement: TrackElement,
+    notationStyle: NotationStyle,
+    finalizedWidth: number,
+    notationStyleLineElement?: NotationStyleLineElement
   ) {
     this.uuid = randomInt();
     this.bar = bar;
-    this.notationStyleLineElement = notationStyleLineElement;
-    this.trackElement = this.notationStyleLineElement.trackElement;
+    this.trackElement = trackElement;
+    this.notationStyle = notationStyle;
+    if (notationStyleLineElement !== undefined) {
+      this.notationStyleLineElement = notationStyleLineElement;
+    }
     this._finalizedWidth = finalizedWidth;
+
+    this._showTempo = false;
+    this._durationsFit = false;
 
     this._beatElements = [];
     this._beamSegments = [];
@@ -98,7 +110,9 @@ export class BarElement implements NotationElement {
     this._repeatStartRect = new Rect();
     this._repeatEndRect = new Rect();
     this._reuseOnHorizontalUpdate = false;
-    this.build();
+    if (notationStyleLineElement !== undefined) {
+      this.build();
+    }
 
     this.trackElement.registerElement(this);
   }
@@ -108,6 +122,12 @@ export class BarElement implements NotationElement {
    */
   private buildStructuralElements(): void {
     const prevBar = this.bar.staff.getPrevBar(this.bar);
+
+    this._showTempo =
+      prevBar !== null
+        ? this.bar.masterBar.tempo !== prevBar.masterBar.tempo
+        : true;
+    this._durationsFit = this.bar.checkDurationsFit();
 
     if (
       prevBar !== null &&
@@ -132,16 +152,12 @@ export class BarElement implements NotationElement {
    * Fills the beat elements array
    */
   public buildBeats(): void {
-    const notationStyle = this.notationStyleLineElement.notationStyle;
-
-    const prevBeatElements = this.trackElement.useElementReuse
-      ? new Map(
-          this._beatElements.map((element) => [
-            element.getStableIdentity(),
-            element,
-          ])
-        )
-      : new Map<string, BeatElement>();
+    const prevBeatElements = new Map(
+      this._beatElements.map((element) => [
+        element.getStableIdentity(),
+        element,
+      ])
+    );
     this._beatElements = [];
     for (const beat of this.bar.beats) {
       const existingBeatElement = prevBeatElements.get(
@@ -154,7 +170,7 @@ export class BarElement implements NotationElement {
       }
 
       let beatElement: BeatElement;
-      switch (notationStyle) {
+      switch (this.notationStyle) {
         case NotationStyle.Classic:
           beatElement = new SheetBeatElement(beat, this);
           break;
@@ -162,7 +178,9 @@ export class BarElement implements NotationElement {
           beatElement = new TabBeatElement(beat, this);
           break;
         default:
-          throw Error(`Unsupported notation style value: '${notationStyle}'`);
+          throw Error(
+            `Unsupported notation style value: '${this.notationStyle}'`
+          );
       }
 
       this._beatElements.push(beatElement);
@@ -173,14 +191,12 @@ export class BarElement implements NotationElement {
    * Fills the beam segments array
    */
   public buildBeamSegments(): void {
-    const prevBeamSegments = this.trackElement.useElementReuse
-      ? new Map(
-          this._beamSegments.map((element) => [
-            element.getStableIdentity(),
-            element,
-          ])
-        )
-      : new Map<string, BeamSegmentElement>();
+    const prevBeamSegments = new Map(
+      this._beamSegments.map((element) => [
+        element.getStableIdentity(),
+        element,
+      ])
+    );
     this._beamSegments = [];
     for (const beatElement of this._beatElements) {
       if (!(beatElement instanceof TabBeatElement)) {
@@ -254,14 +270,12 @@ export class BarElement implements NotationElement {
    * Fills the bar tuplet groups array
    */
   public buildTupletGroupElements(): void {
-    const prevTupletElements = this.trackElement.useElementReuse
-      ? new Map(
-          this._tupletElements.map((element) => [
-            element.getStableIdentity(),
-            element,
-          ])
-        )
-      : new Map<string, BarTupletGroupElement>();
+    const prevTupletElements = new Map(
+      this._tupletElements.map((element) => [
+        element.getStableIdentity(),
+        element,
+      ])
+    );
     this._tupletElements = [];
     if (!this._beatElements.every((v) => v instanceof TabBeatElement)) {
       return;
@@ -482,7 +496,7 @@ export class BarElement implements NotationElement {
         `${this.globalBoundingBox.height}`,
     ];
 
-    hashArr.push(`${this.showTempo}`);
+    hashArr.push(`${this._showTempo}`);
 
     if (this._repeatEndRect !== undefined) {
       hashArr.push(`${this._repeatEndRect.x}`);
@@ -507,7 +521,7 @@ export class BarElement implements NotationElement {
       hashArr.push(`${line.x1}${line.x2}${line.y}`);
     }
 
-    hashArr.push(`${this.bar.checkDurationsFit() ? 1 : 0}`);
+    hashArr.push(`${this._durationsFit ? 1 : 0}`);
 
     return hashArr.join("");
   }
@@ -656,10 +670,7 @@ export class BarElement implements NotationElement {
   }
 
   public getStableIdentity(): string {
-    return BarElement.createStableIdentity(
-      this.notationStyleLineElement,
-      this.bar
-    );
+    return BarElement.createStableIdentity(this.notationStyle, this.bar);
   }
 
   /** Time signature beats rectangle */
@@ -1050,10 +1061,7 @@ export class BarElement implements NotationElement {
 
   /** If tempo is to be shown in the bar */
   public get showTempo(): boolean {
-    const prevBar = this.bar.staff.getPrevBar(this.bar);
-    return prevBar !== null
-      ? this.bar.masterBar.tempo !== prevBar.masterBar.tempo
-      : true;
+    return this._showTempo;
   }
 
   /** Global coords of the bar element */

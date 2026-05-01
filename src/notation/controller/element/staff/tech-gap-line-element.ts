@@ -92,9 +92,7 @@ export class TechGapLineElement implements NotationElement {
             beatElement
           )
         : "";
-    let labelElement = this.trackElement.useElementReuse
-      ? this._prevLabelElementsByIdentity.get(stableIdentity)
-      : undefined;
+    let labelElement = this._prevLabelElementsByIdentity.get(stableIdentity);
     if (labelElement !== undefined) {
       labelElement.build();
       this._labelElements.push(labelElement);

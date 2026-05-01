@@ -1,4 +1,3 @@
-import { Staff } from "@/notation/model";
 import { Point, randomInt, Rect } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
@@ -36,6 +35,8 @@ export class NotationStyleLineElement implements NotationElement {
 
   /** Bar elements on this line */
   private _barElements: BarElement[];
+  /** Bar data placed into this presentation line. */
+  private _staffLineData: StaffLineData;
   /** Tech gap element */
   private _techGapElement: TechGapElement;
 
@@ -49,7 +50,8 @@ export class NotationStyleLineElement implements NotationElement {
    */
   constructor(
     staffLineElement: StaffLineElement,
-    notationStyle: NotationStyle
+    notationStyle: NotationStyle,
+    staffLineData: StaffLineData
   ) {
     this.uuid = randomInt();
     this.staffLineElement = staffLineElement;
@@ -57,7 +59,9 @@ export class NotationStyleLineElement implements NotationElement {
     this.notationStyle = notationStyle;
 
     this._barElements = [];
+    this._staffLineData = staffLineData;
     this._techGapElement = new TechGapElement(this);
+    this._techGapElement.build();
 
     this._boundingBox = new Rect();
 
@@ -71,46 +75,19 @@ export class NotationStyleLineElement implements NotationElement {
    */
   public build(): void {
     this.trackElement.registerElement(this);
-    if (
-      !this.trackElement.useElementReuse ||
-      this._techGapElement === undefined
-    ) {
-      this._techGapElement = new TechGapElement(this);
-    } else {
-      this._techGapElement.build();
-    }
+    this._techGapElement = new TechGapElement(this);
+    this._techGapElement.build();
 
-    const prevBarElements = this.trackElement.useElementReuse
-      ? new Map(
-          this._barElements.map((element) => [
-            element.getStableIdentity(),
-            element,
-          ])
+    this._barElements = this._staffLineData.map(
+      (data) =>
+        new BarElement(
+          data.bar,
+          this.trackElement,
+          this.notationStyle,
+          data.finalizedWidth,
+          this
         )
-      : new Map<string, BarElement>();
-    this._barElements = [];
-    for (const data of this.staffLineElement.staffLineData) {
-      const masterBarIndex = data.bar.staff.bars.indexOf(data.bar);
-      const stableIdentity = BarElement.createStableIdentity(this, data.bar);
-      const existingBarElement = prevBarElements.get(stableIdentity);
-      if (existingBarElement !== undefined) {
-        if (
-          !this.trackElement.hasActiveHorizontalUpdate ||
-          this.trackElement.isBarAffectedHorizontally(masterBarIndex)
-        ) {
-          existingBarElement.setFinalizedWidth(data.finalizedWidth);
-          existingBarElement.build();
-        } else {
-          existingBarElement.prepareForHorizontalReuse(data.finalizedWidth);
-        }
-        this._barElements.push(existingBarElement);
-        continue;
-      }
-
-      this._barElements.push(
-        new BarElement(data.bar, this, data.finalizedWidth)
-      );
-    }
+    );
   }
 
   /**

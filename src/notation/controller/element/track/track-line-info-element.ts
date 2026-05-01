@@ -4,7 +4,7 @@ import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dime
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BarElement } from "../bar/bar-element";
-import { TrackLineBarData, TrackLineElement } from "./track-line-element";
+import { TrackLineElement } from "./track-line-element";
 
 /**
  * Class representing the visual info about all

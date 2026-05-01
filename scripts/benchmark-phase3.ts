@@ -94,7 +94,7 @@ function measureDurationChange(useLegacy: boolean): number {
 
   const start = performance.now();
   if (useLegacy) {
-    trackElement.updateOld();
+    trackElement.updateFull();
   } else {
     trackElement.update({
       updateType: "Horizontal",
@@ -118,7 +118,7 @@ function measureInsertBar(useLegacy: boolean): number {
 
   const start = performance.now();
   if (useLegacy) {
-    trackElement.updateOld();
+    trackElement.updateFull();
   } else {
     trackElement.update({
       updateType: "Horizontal",
@@ -142,7 +142,7 @@ function measureRemoveBar(useLegacy: boolean): number {
 
   const start = performance.now();
   if (useLegacy) {
-    trackElement.updateOld();
+    trackElement.updateFull();
   } else {
     trackElement.update({
       updateType: "Horizontal",
