@@ -403,10 +403,21 @@ export class TrackElement {
     this.reconcileVerticalUpdate(affectedSnapshot);
   }
 
+  /**
+   * Returns the master-bar UUID ownership for one rendered track line.
+   * Ownership is used instead of object identity so old and new skeletons can be
+   * compared after presentation shell objects are rebuilt.
+   */
   private getLineOwnership(trackLineBars: TrackLineBars): number[] {
     return trackLineBars.map((lineBar) => lineBar.masterBarUUID);
   }
 
+  /** Builds a compact ownership key for overlap checks between line windows. */
+  private getLineOwnershipKey(trackLineBars: TrackLineBars): string {
+    return this.getLineOwnership(trackLineBars).join(":");
+  }
+
+  /** Returns true when two line skeleton entries own the same master bars. */
   private isSameLineOwnership(a: number[], b: number[]): boolean {
     if (a.length !== b.length) {
       return false;
@@ -421,15 +432,76 @@ export class TrackElement {
     return true;
   }
 
-  private getLineIndexForMasterBar(
-    lines: TrackLineBars[],
-    masterBarIndex: number
-  ): number {
+  /** Finds the rendered line containing the given current master-bar index. */
+  private findLineByBarIndex(lines: TrackLineBars[], index: number): number {
     return lines.findIndex((lineBars) =>
-      lineBars.some((lineBar) => lineBar.masterBarIndex === masterBarIndex)
+      lineBars.some((lb) => lb.masterBarIndex === index)
     );
   }
 
+  /** Finds the rendered line containing the given stable master-bar UUID. */
+  private findLineByBarUUID(lines: TrackLineBars[], uuid: number): number {
+    return lines.findIndex((lbs) =>
+      lbs.some((lb) => lb.masterBarUUID === uuid)
+    );
+  }
+
+  /**
+   * Finds the first line touched by a horizontal update.
+   * UUIDs are preferred because indices can shift after bar insertions/removals;
+   * the index remains a fallback for older request paths and edit-position
+   * anchoring.
+   */
+  private firstAffectedLine(
+    lines: TrackLineBars[],
+    request: HorizontalUpdateRequest
+  ): number {
+    for (const masterBarUUID of request.affectedMasterBarUUIDs ?? []) {
+      const lineIndex = this.findLineByBarUUID(lines, masterBarUUID);
+      if (lineIndex !== -1) {
+        return lineIndex;
+      }
+    }
+
+    return this.findLineByBarIndex(lines, request.firstAffectedMasterBarIndex);
+  }
+
+  /**
+   * Finds the last line touched by a horizontal update.
+   * This mirrors firstAffectedLine but walks affected UUIDs from the end so
+   * multi-bar updates can cover the full changed range.
+   */
+  private lastAffectedLine(
+    lines: TrackLineBars[],
+    request: HorizontalUpdateRequest
+  ): number {
+    const affectedMasterBarUUIDs = request.affectedMasterBarUUIDs ?? [];
+    for (let i = affectedMasterBarUUIDs.length - 1; i >= 0; i--) {
+      const lineIndex = this.findLineByBarUUID(
+        lines,
+        affectedMasterBarUUIDs[i]
+      );
+      if (lineIndex !== -1) {
+        return lineIndex;
+      }
+    }
+
+    const lastAffectedBar =
+      request.affectedMasterBarIndices[
+        request.affectedMasterBarIndices.length - 1
+      ];
+    return this.findLineByBarIndex(lines, lastAffectedBar);
+  }
+
+  /**
+   * Computes the old/new track-line window that must be rebuilt for a
+   * width-affecting update.
+   *
+   * Lines before `start` and after `oldEnd` are preserved where possible. The
+   * old window `[start, oldEnd)` is replaced by newly built lines from the new
+   * skeleton window `[start, newEnd)`. UUID-based affected bars are used when
+   * available to avoid index-shift bugs after bar insertion/removal.
+   */
   private getChangedLineWindow(
     oldLineBars: TrackLineBars[],
     newLineBars: TrackLineBars[],
@@ -451,24 +523,15 @@ export class TrackElement {
     let newEnd = newOwnership.length;
 
     if (oldEnd === newEnd && start === oldEnd) {
-      // Process the case when line ownership doesn't change
-      const firstAffectedBar = request.firstAffectedMasterBarIndex;
-      const lastAffectedBar =
-        request.affectedMasterBarIndices[
-          request.affectedMasterBarIndices.length - 1
-        ];
-      const firstAffectedLineIndex = this.getLineIndexForMasterBar(
-        oldLineBars,
-        firstAffectedBar
-      );
-      const lastAffectedLineIndex = this.getLineIndexForMasterBar(
-        oldLineBars,
-        lastAffectedBar
-      );
+      // Ownership did not change, but affected bars still need rebuilding.
+      const firstAffectedLine = this.firstAffectedLine(oldLineBars, request);
+      const lastAffectedLine = this.lastAffectedLine(oldLineBars, request);
       return {
-        start: firstAffectedLineIndex,
-        oldEnd: lastAffectedLineIndex + 1,
-        newEnd: lastAffectedLineIndex + 1,
+        start: firstAffectedLine,
+        // Include one following line because tempo, time sig etc
+        // visibility depends on the previous bar
+        oldEnd: Math.min(oldLineBars.length, lastAffectedLine + 2),
+        newEnd: Math.min(newLineBars.length, lastAffectedLine + 2),
       };
     }
 
@@ -484,27 +547,41 @@ export class TrackElement {
       newEnd--;
     }
 
-    const affectedOldLine = this.getLineIndexForMasterBar(
-      oldLineBars,
-      request.firstAffectedMasterBarIndex
-    );
-    const affectedNewLine = this.getLineIndexForMasterBar(
-      newLineBars,
-      request.firstAffectedMasterBarIndex
-    );
-
-    if (affectedOldLine !== -1) {
-      start = Math.min(start, affectedOldLine);
-      oldEnd = Math.max(oldEnd, affectedOldLine + 1);
+    // Prefix/suffix matching can produce a window that misses the edited bar.
+    // Anchor it by affected UUIDs first; indices are only a fallback.
+    const firstAffectedOld = this.firstAffectedLine(oldLineBars, request);
+    const firstAffectedNew = this.firstAffectedLine(newLineBars, request);
+    if (firstAffectedOld !== -1) {
+      start = Math.min(start, firstAffectedOld);
+      oldEnd = Math.max(oldEnd, firstAffectedOld + 1);
     }
-    if (affectedNewLine !== -1) {
-      start = Math.min(start, affectedNewLine);
-      newEnd = Math.max(newEnd, affectedNewLine + 1);
+    if (firstAffectedNew !== -1) {
+      start = Math.min(start, firstAffectedNew);
+      newEnd = Math.max(newEnd, firstAffectedNew + 1);
+    }
+
+    // Include one following line because tempo, time sig etc
+    // visibility depends on the previous bar
+    if (oldEnd < oldOwnership.length - 1) {
+      oldEnd++;
+    }
+    if (newEnd < newOwnership.length - 1) {
+      // Do not rebuild a line that is already preserved as suffix. This can
+      // happen after removals, where old/new indices no longer refer to the
+      // same master bars.
+      const preservedSuffixKeys = new Set(
+        oldLineBars.slice(oldEnd).map((lb) => this.getLineOwnershipKey(lb))
+      );
+      const nextNewLineKey = this.getLineOwnershipKey(newLineBars[newEnd]);
+      if (!preservedSuffixKeys.has(nextNewLineKey)) {
+        newEnd++;
+      }
     }
 
     return { start, oldEnd, newEnd };
   }
 
+  /** Captures element objects and state hashes before replacing a line window. */
   private snapshotElements(elements: NotationElement[]): ElementSnapshot {
     const snapshot: ElementSnapshot = {
       elements: new Map(),
@@ -520,16 +597,22 @@ export class TrackElement {
     return snapshot;
   }
 
+  /** Returns all notation elements owned by the provided track lines. */
   private getOwnedElements(trackLines: TrackLineElement[]): NotationElement[] {
     return trackLines.flatMap((l) => l.ownedNotationElements);
   }
 
+  /** Removes elements from TrackElement registries before their owners go away. */
   private unregisterElements(elements: Iterable<NotationElement>): void {
     for (const element of elements) {
       this.unregisterElement(element);
     }
   }
 
+  /**
+   * Reconciles a replaced line-window snapshot against newly built elements and
+   * records added, updated, and removed stable identities for the renderer.
+   */
   private reconcileElementSnapshot(
     prevSnapshot: ElementSnapshot,
     nextElements: NotationElement[]
@@ -553,6 +636,10 @@ export class TrackElement {
     }
   }
 
+  /**
+   * Lays out rebuilt horizontal lines and vertically shifts preserved suffix
+   * lines so their Y positions follow the changed window.
+   */
   private layoutHorizontalWindow(
     startLineIndex: number,
     rebuiltLines: Set<TrackLineElement>
@@ -569,6 +656,10 @@ export class TrackElement {
     }
   }
 
+  /**
+   * Applies a width-affecting update by rebuilding only the changed line window
+   * and preserving unchanged prefix/suffix line objects.
+   */
   public updateHorizontal(request: HorizontalUpdateRequest): void {
     // Get update window
     const oldLineBars = this._trackLineElements.map((tl) => tl.trackLineBars);

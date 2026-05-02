@@ -12,8 +12,29 @@ import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
 function getBeatElements(controller: TrackController) {
-  return controller.trackElement.trackLineElements[0].staffLineElements[0]
-    .styleLinesAsArray[0].barElements[0].beatElements;
+  const beatElements = [] as ReturnType<
+    typeof controller.trackElement.findCorrespondingBeatElement
+  >[];
+
+  for (const trackLine of controller.trackElement.trackLineElements) {
+    for (const staffLine of trackLine.staffLineElements) {
+      for (const styleLine of staffLine.styleLinesAsArray) {
+        for (const barElement of styleLine.barElements) {
+          beatElements.push(...barElement.beatElements);
+        }
+      }
+    }
+  }
+
+  return beatElements;
+}
+
+function getBeatElement(
+  controller: TrackController,
+  barIndex: number,
+  beatIndex: number
+) {
+  return getBeatElements(controller)[barIndex + beatIndex];
 }
 
 jest.mock("../../src/player", () => ({
@@ -117,6 +138,36 @@ describe("TrackController", () => {
     expect(controller.selectedNote?.beat).toBe(bar.beats[0]);
   });
 
+  test("insert bar before selected note inserts and selects the new bar", () => {
+    const { track, score } = createScoreGraph();
+    const controller = new TrackController(track);
+    const originalUUID = score.masterBars[0].uuid;
+
+    controller.insertBarBeforeSelected();
+
+    expect(score.masterBars).toHaveLength(2);
+    expect(score.masterBars[1].uuid).toBe(originalUUID);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(
+      track.staves[0].bars[0].beats[0]
+    );
+  });
+
+  test("insert bar after selected note inserts and selects the new bar", () => {
+    const { track, score } = createScoreGraph();
+    const controller = new TrackController(track);
+    const originalUUID = score.masterBars[0].uuid;
+
+    controller.insertBarAfterSelected();
+
+    expect(score.masterBars).toHaveLength(2);
+    expect(score.masterBars[0].uuid).toBe(originalUUID);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(
+      track.staves[0].bars[1].beats[0]
+    );
+  });
+
   test("insert beat before active selection inserts before first selected beat", () => {
     const { track, bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -182,6 +233,142 @@ describe("TrackController", () => {
     expect(bar.beats[1].uuid).toBe(afterSelectionUUID);
     expect(controller.selectionBeats).toHaveLength(0);
     expect(controller.selectedNote?.beat).toBe(bar.beats[0]);
+  });
+
+  test("insert bar before active selection inserts before first selected bar", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar({
+      tempo: 120,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      repeatStatus: 0,
+      repeatCount: null,
+    });
+    const controller = new TrackController(track);
+    controller.trackElement.update();
+    const originalUUIDs = score.masterBars.map((bar) => bar.uuid);
+
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.selectBeat(getBeatElement(controller, 1, 0));
+    controller.insertBarBeforeSelected();
+
+    expect(score.masterBars).toHaveLength(3);
+    expect(score.masterBars[1].uuid).toBe(originalUUIDs[0]);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(
+      track.staves[0].bars[0].beats[0]
+    );
+  });
+
+  test("insert bar after active selection inserts after last selected bar", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar({
+      tempo: 120,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      repeatStatus: 0,
+      repeatCount: null,
+    });
+    const controller = new TrackController(track);
+    controller.trackElement.update();
+    const originalUUIDs = score.masterBars.map((bar) => bar.uuid);
+
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.selectBeat(getBeatElement(controller, 1, 0));
+    controller.insertBarAfterSelected();
+
+    expect(score.masterBars).toHaveLength(3);
+    expect(score.masterBars[0].uuid).toBe(originalUUIDs[0]);
+    expect(score.masterBars[1].uuid).toBe(originalUUIDs[1]);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(
+      track.staves[0].bars[2].beats[0]
+    );
+  });
+
+  test("remove selected bar removes the current bar and selects the previous bar", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar({
+      tempo: 120,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      repeatStatus: 0,
+      repeatCount: null,
+    });
+    const controller = new TrackController(track);
+    controller.trackElement.update();
+    const firstBarFirstBeat = track.staves[0].bars[0].beats[0];
+
+    controller.selectBeat(getBeatElement(controller, 1, 0));
+    controller.removeSelectedBar();
+
+    expect(score.masterBars).toHaveLength(1);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(firstBarFirstBeat);
+  });
+
+  test("remove active selection removes all touched bars in order", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar({
+      tempo: 120,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      repeatStatus: 0,
+      repeatCount: null,
+    });
+    score.appendMasterBar({
+      tempo: 120,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      repeatStatus: 0,
+      repeatCount: null,
+    });
+    const controller = new TrackController(track);
+    controller.trackElement.update();
+
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.selectBeat(getBeatElement(controller, 1, 0));
+    controller.removeSelectedBar();
+
+    expect(score.masterBars).toHaveLength(1);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(
+      track.staves[0].bars[0].beats[0]
+    );
+  });
+
+  test("remove active selection removes contiguous middle bars by original index", () => {
+    const { track, score } = createScoreGraph();
+
+    for (let i = 0; i < 6; i++) {
+      score.appendMasterBar({
+        tempo: 120,
+        beatsCount: 4,
+        duration: NoteDuration.Quarter,
+        repeatStatus: 0,
+        repeatCount: null,
+      });
+    }
+
+    const originalUUIDs = score.masterBars.map((bar) => bar.uuid);
+    const controller = new TrackController(track);
+    controller.trackElement.update();
+
+    controller.selectBeat(getBeatElement(controller, 2, 0));
+    controller.selectBeat(getBeatElement(controller, 3, 0));
+    controller.selectBeat(getBeatElement(controller, 4, 0));
+    controller.removeSelectedBar();
+
+    expect(score.masterBars.map((bar) => bar.uuid)).toEqual([
+      originalUUIDs[0],
+      originalUUIDs[1],
+      originalUUIDs[5],
+      originalUUIDs[6],
+    ]);
+    expect(controller.selectionBeats).toHaveLength(0);
+    expect(controller.selectedNote?.beat).toBe(
+      track.staves[0].bars[1].beats[0]
+    );
   });
 
   test("remove all selected beats leaves and selects a seed beat", () => {

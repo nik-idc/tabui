@@ -7,6 +7,7 @@ export interface VerticalUpdateRequest {
 
 export interface HorizontalUpdateRequest {
   updateType: "Horizontal";
+  affectedMasterBarUUIDs?: number[];
   affectedMasterBarIndices: number[];
   firstAffectedMasterBarIndex: number;
   reason?: string;

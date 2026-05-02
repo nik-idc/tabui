@@ -34,7 +34,10 @@ export class MeasureControlsTemplateRenderer {
       this.template.tempoButton,
       this.template.timeSignatureButton,
       this.template.repeatStartButton,
-      this.template.repeatEndButton
+      this.template.repeatEndButton,
+      this.template.insertBarBeforeButton,
+      this.template.insertBarAfterButton,
+      this.template.removeBarButton
     );
 
     this.parentDiv.appendChild(this.template.container);
@@ -100,6 +103,38 @@ export class MeasureControlsTemplateRenderer {
       "img/ui/repeat-end.svg",
       "Repeat Start"
     );
+    setImageAsset(
+      this.template.insertBarBeforeButton,
+      this.assetsPath,
+      "img/ui/add.svg",
+      "Insert bar before",
+      {
+        "data-bar-action": "insert-before",
+      }
+    );
+    this.template.insertBarBeforeButton.title = "Insert bar before";
+
+    setImageAsset(
+      this.template.insertBarAfterButton,
+      this.assetsPath,
+      "img/ui/add.svg",
+      "Insert bar after",
+      {
+        "data-bar-action": "insert-after",
+      }
+    );
+    this.template.insertBarAfterButton.title = "Insert bar after";
+
+    setImageAsset(
+      this.template.removeBarButton,
+      this.assetsPath,
+      "img/ui/remove.svg",
+      "Remove bar",
+      {
+        "data-bar-action": "remove",
+      }
+    );
+    this.template.removeBarButton.title = "Remove bar";
 
     this.renderRepeatButtonsState();
   }

@@ -96,6 +96,7 @@ export class SetTimeSigCommand implements Command {
   public get updateRequest(): CommandUpdateRequest {
     return {
       updateType: "Horizontal",
+      affectedMasterBarUUIDs: [this._bar.uuid],
       affectedMasterBarIndices: [this._affectedMasterBarIndex],
       firstAffectedMasterBarIndex: this._affectedMasterBarIndex,
       reason: "time-signature",

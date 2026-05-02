@@ -2,6 +2,7 @@ import {
   BendTechniqueOptions,
   GuitarTechnique,
   MasterBar,
+  MasterBarArrayOperationOutput,
   Score,
   TechniqueType,
   TupletSettings,
@@ -270,6 +271,20 @@ export class ScoreEditor {
     for (const beat of beats) {
       const beatIndex = beat.bar.beats.indexOf(beat);
       outputs.push(beat.bar.removeBeat(beatIndex));
+    }
+
+    return outputs;
+  }
+
+  public static removeBars(
+    score: Score,
+    indices: number[]
+  ): MasterBarArrayOperationOutput[] {
+    const uniqueIndices = Array.from(new Set(indices)).sort((a, b) => a - b);
+    const outputs: MasterBarArrayOperationOutput[] = [];
+
+    for (let i = uniqueIndices.length - 1; i >= 0; i--) {
+      outputs.unshift(score.removeMasterBar(uniqueIndices[i]));
     }
 
     return outputs;

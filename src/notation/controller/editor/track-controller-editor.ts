@@ -2,6 +2,7 @@ import {
   Beat,
   NoteDuration,
   GuitarNote,
+  Bar,
   BarRepeatStatus,
   TechniqueType,
   BendTechniqueOptions,
@@ -38,7 +39,7 @@ import {
   RemoveBeatsCommand,
   PrependBarCommand,
   InsertBarCommand,
-  RemoveBarCommand,
+  RemoveBarsCommand,
   Command,
 } from "./command";
 
@@ -565,14 +566,120 @@ export class TrackControllerEditor {
   public removeBar(barIndex: number): void {
     if (
       barIndex < 0 ||
-      barIndex > this._trackElement.track.score.masterBars.length
+      barIndex >= this._trackElement.track.score.masterBars.length
     ) {
       throw Error(`Invalid bar index: '${barIndex}'`);
     }
 
     this.executeCommand(
-      new RemoveBarCommand(this._trackElement.track.score, barIndex)
+      new RemoveBarsCommand(this._trackElement.track.score, barIndex)
     );
+  }
+
+  private getSelectedBarForInsert(isInsertBefore: boolean): Bar {
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote !== undefined) {
+      return selectedNote.bar;
+    }
+
+    const selectionBeats = this._selectionManager.selectionAsBeats;
+    const selectedBeat =
+      selectionBeats[isInsertBefore ? 0 : selectionBeats.length - 1];
+    if (selectedBeat === undefined) {
+      throw Error("Selected bar is undefined");
+    }
+
+    return selectedBeat.bar;
+  }
+
+  private selectFirstBeatInBar(bar: Bar): void {
+    const firstBeat = bar.beats[0];
+    if (firstBeat === undefined) {
+      throw Error("Can't select first beat in empty bar");
+    }
+
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(firstBeat, 0);
+  }
+
+  public insertBarBeforeSelected(): void {
+    const selectedBar = this.getSelectedBarForInsert(true);
+    const insertIndex = selectedBar.staff.track.score.masterBars.indexOf(
+      selectedBar.masterBar
+    );
+
+    this.executeCommand(
+      new InsertBarCommand(
+        selectedBar.staff.track.score,
+        insertIndex,
+        DEFAULT_MASTER_BAR
+      )
+    );
+    this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex]);
+  }
+
+  public insertBarAfterSelected(): void {
+    const selectedBar = this.getSelectedBarForInsert(false);
+    const insertIndex = selectedBar.staff.track.score.masterBars.indexOf(
+      selectedBar.masterBar
+    );
+
+    this.executeCommand(
+      new InsertBarCommand(
+        selectedBar.staff.track.score,
+        insertIndex + 1,
+        DEFAULT_MASTER_BAR
+      )
+    );
+    this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex + 1]);
+  }
+
+  public removeSelectedBar(): void {
+    const selectedBeats = this._selectionManager.selectionAsBeats;
+    const selectedNote = this._selectionManager.selectedNote;
+    const score = this._trackElement.track.score;
+    const bars =
+      selectedBeats.length > 0
+        ? selectedBeats.map((beat) => beat.bar)
+        : selectedNote !== undefined
+          ? [selectedNote.bar]
+          : [];
+    const selectedBarIndices = Array.from(
+      new Set(
+        bars
+          .map((bar) => score.masterBars.indexOf(bar.masterBar))
+          .filter((index) => index >= 0)
+      )
+    ).sort((a, b) => a - b);
+
+    if (selectedBarIndices.length === 0) {
+      throw Error("Selected bar is undefined");
+    }
+
+    const removableBarIndices =
+      selectedBarIndices.length >= score.masterBars.length
+        ? selectedBarIndices.slice(0, score.masterBars.length - 1)
+        : selectedBarIndices;
+
+    if (removableBarIndices.length === 0) {
+      this._selectionManager.clearSelection();
+      this.selectFirstNote();
+      return;
+    }
+
+    const firstRemovedBarIndex = removableBarIndices[0];
+    const selectedStaff = bars[0].staff;
+
+    this.executeCommand(new RemoveBarsCommand(score, removableBarIndices));
+
+    const selectedTargetBeat =
+      firstRemovedBarIndex > 0
+        ? selectedStaff.bars[firstRemovedBarIndex - 1].beats[
+            selectedStaff.bars[firstRemovedBarIndex - 1].beats.length - 1
+          ]
+        : selectedStaff.bars[0].beats[0];
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(selectedTargetBeat, 0);
   }
 
   public get selectionManager(): SelectionManager {

@@ -6,7 +6,7 @@ export * from "./insert-bar-command";
 export * from "./insert-beat-command";
 export * from "./insert-beats-command";
 export * from "./prepend-bar-command";
-export * from "./remove-bar-command";
+export * from "./remove-bars-command";
 export * from "./remove-beats-command";
 export * from "./replace-beats-command";
 export * from "./set-dots-command";
