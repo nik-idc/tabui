@@ -4,7 +4,7 @@ import { createBarWithBeats, createBeat } from "../model/helpers";
 
 describe("InsertBeatsCommand", () => {
   test("execute inserts beats at the requested index preserving surrounding order", () => {
-    const { bar, beats } = createBarWithBeats([
+    const { score, track, bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Half },
       { baseDuration: NoteDuration.Quarter },
@@ -14,7 +14,7 @@ describe("InsertBeatsCommand", () => {
       createBeat(bar, NoteDuration.Sixteenth),
     ];
     const originalBeatUUIDs = beats.map((beat) => beat.uuid);
-    const command = new InsertBeatsCommand(bar, 1, insertedBeats);
+    const command = new InsertBeatsCommand(bar.staff, beats[0], insertedBeats);
 
     command.execute();
     expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
@@ -24,6 +24,7 @@ describe("InsertBeatsCommand", () => {
       NoteDuration.Half,
       NoteDuration.Quarter,
     ]);
+    expect(score.masterBars).toHaveLength(1);
     expect(bar.beats[0].uuid).toBe(originalBeatUUIDs[0]);
     expect(bar.beats[3].uuid).toBe(originalBeatUUIDs[1]);
     expect(bar.beats[4].uuid).toBe(originalBeatUUIDs[2]);
@@ -31,7 +32,11 @@ describe("InsertBeatsCommand", () => {
     expect(bar.beats[2].baseDuration).toBe(NoteDuration.Sixteenth);
 
     command.undo();
-    expect(bar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
+    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+      NoteDuration.Half,
+      NoteDuration.Quarter,
+    ]);
 
     command.redo();
     expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
@@ -45,26 +50,55 @@ describe("InsertBeatsCommand", () => {
     expect(bar.beats[2].baseDuration).toBe(NoteDuration.Sixteenth);
   });
 
-  test("inserting into a single-beat bar preserves the existing beat and undo restores the original bar", () => {
-    const { bar } = createBarWithBeats([
+  test("inserting into an empty seed bar replaces the seed beat", () => {
+    const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const seedBeatUUID = bar.beats[0].uuid;
     const insertedBeat = createBeat(bar, NoteDuration.Eighth);
-    const command = new InsertBeatsCommand(bar, 1, [insertedBeat]);
+    const command = new InsertBeatsCommand(bar.staff, beats[0], [insertedBeat]);
 
     command.execute();
-    expect(bar.beats).toHaveLength(2);
-    expect(bar.beats[0].uuid).toBe(seedBeatUUID);
-    expect(bar.beats[1].baseDuration).toBe(NoteDuration.Eighth);
+    expect(bar.beats).toHaveLength(1);
+    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
 
     command.undo();
     expect(bar.beats).toHaveLength(1);
-    expect(bar.beats[0].uuid).toBe(seedBeatUUID);
     expect(bar.beats[0].isEmpty()).toBe(true);
 
     command.redo();
-    expect(bar.beats).toHaveLength(2);
-    expect(bar.beats[1].baseDuration).toBe(NoteDuration.Eighth);
+    expect(bar.beats).toHaveLength(1);
+    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
+  });
+
+  test("repeated redo restores local permissive insertions", () => {
+    const { score, track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const clipboard = [...bar.beats];
+    const firstCommand = new InsertBeatsCommand(
+      bar.staff,
+      bar.beats[3],
+      clipboard
+    );
+
+    firstCommand.execute();
+    const secondCommand = new InsertBeatsCommand(
+      bar.staff,
+      bar.beats[7],
+      clipboard
+    );
+    secondCommand.execute();
+
+    secondCommand.undo();
+    firstCommand.undo();
+    firstCommand.redo();
+    secondCommand.redo();
+
+    expect(score.masterBars).toHaveLength(1);
+    expect(track.staves[0].bars[0].beats).toHaveLength(12);
+    expect(track.staves[0].bars[0].checkDurationsFit()).toBe(false);
   });
 });

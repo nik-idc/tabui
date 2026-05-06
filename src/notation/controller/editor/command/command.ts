@@ -44,6 +44,10 @@ export function getAffectedMasterBarIndicesFromBeats(beats: Beat[]): number[] {
     .sort((a, b) => a - b);
 }
 
+export function getAffectedMasterBarUUIDsFromBeats(beats: Beat[]): number[] {
+  return Array.from(new Set(beats.map((beat) => beat.bar.masterBar.uuid)));
+}
+
 // Command interface
 export interface Command {
   execute(): void;

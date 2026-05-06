@@ -13,7 +13,7 @@ import { BeatArrayOperationOutput } from "../bar";
 import { Beat, BeatDots } from "../beat";
 import { MusicInstrument } from "../instrument/instrument";
 import { GuitarNote } from "../guitar-note";
-import { Note } from "../note";
+import { Note, NoteValue } from "../note";
 import { NoteDuration } from "../note-duration";
 
 /**
@@ -61,9 +61,32 @@ export class ScoreEditor {
       sourceBeat.notes.length
     );
     for (let i = 0; i < smallerNoteCount; i++) {
-      targetBeat.notes[i].noteValue = sourceBeat.notes[i].noteValue;
-      targetBeat.notes[i].octave = sourceBeat.notes[i].octave;
+      targetBeat.notes[i].setNote(
+        sourceBeat.notes[i].noteValue,
+        sourceBeat.notes[i].octave
+      );
     }
+  }
+
+  private static createBeatCopyForBar<I extends MusicInstrument>(
+    bar: Bar<I>,
+    sourceBeat: Beat<I>
+  ): Beat<I> {
+    const beat = new Beat<I>(
+      bar,
+      bar.trackContext,
+      [],
+      sourceBeat.baseDuration,
+      sourceBeat.dots as BeatDots,
+      sourceBeat.tupletSettings !== null
+        ? {
+            normalCount: sourceBeat.tupletSettings.normalCount,
+            tupletCount: sourceBeat.tupletSettings.tupletCount,
+          }
+        : null
+    );
+    this.copyBeatContent(beat, sourceBeat);
+    return beat;
   }
 
   public static setTimeSignature(
@@ -290,8 +313,38 @@ export class ScoreEditor {
     return outputs;
   }
 
+  // Future direction: once TabUI has explicit rests/gaps and a clear invariant
+  // for complete bars, paste/replacement can become rhythm-aware. Until then,
+  // these operations intentionally match the liberal beat-editing model: they
+  // insert/remove beats locally and allow bars to become underfilled/overfilled.
+  public static insertBeats<I extends MusicInstrument>(
+    bar: Bar<I>,
+    beatIndex: number,
+    beats: Beat<I>[],
+    replaceSeedBeat: boolean = false
+  ): Beat<I>[] {
+    if (beats.length === 0) {
+      return [];
+    }
+
+    if (replaceSeedBeat && bar.isEmpty()) {
+      bar.beats.splice(0, 1);
+      beatIndex = 0;
+    }
+
+    const insertedBeats = beats.map((beat) =>
+      this.createBeatCopyForBar(bar, beat)
+    );
+    bar.beats.splice(beatIndex, 0, ...insertedBeats);
+    bar.rebuildTiming();
+
+    return insertedBeats;
+  }
+
   /**
-   * Replaces beat section with another beat section
+   * Replaces selected beats with new beats at the selection start. This is not
+   * duration-aware: multi-bar selections may leave later bars underfilled and
+   * longer clipboard content may overfill the first affected bar.
    * @param oldBeats Old beats
    * @param newBeats New beats
    */
@@ -303,38 +356,24 @@ export class ScoreEditor {
       return [];
     }
 
+    const startBeatIndex = oldBeats[0].bar.beats.indexOf(oldBeats[0]);
+    const startBar = oldBeats[0].bar;
     const affectedBars = new Set(oldBeats.map((beat) => beat.bar));
+    const replaceSeedBeat =
+      startBeatIndex === 0 &&
+      oldBeats.filter((b) => b.bar === startBar).length ===
+        startBar.beats.length;
 
-    if (oldBeats.length > newBeats.length) {
-      for (let i = 0; i < newBeats.length; i++) {
-        this.copyBeatContent(oldBeats[i], newBeats[i]);
-      }
-
-      this.removeBeats(oldBeats.slice(newBeats.length, oldBeats.length));
-      this.rebuildBars(affectedBars);
-
-      return oldBeats.slice(0, newBeats.length);
+    this.removeBeats(oldBeats);
+    for (const bar of affectedBars) {
+      bar.rebuildTiming();
     }
 
-    if (oldBeats.length < newBeats.length) {
-      const bar = oldBeats[0].bar;
-      const beatIndex = bar.beats.indexOf(oldBeats[0]);
-
-      this.removeBeats(oldBeats);
-
-      if (bar.beats.length === 1 && bar.beats[0].isEmpty()) {
-        bar.beats.splice(0, 1);
-      }
-
-      const newBeatsCopies = newBeats.map((beat) => beat.deepCopy());
-      return bar.insertBeats(beatIndex, newBeatsCopies);
-    }
-
-    for (let i = 0; i < oldBeats.length; i++) {
-      this.copyBeatContent(oldBeats[i], newBeats[i]);
-    }
-    this.rebuildBars(affectedBars);
-
-    return oldBeats;
+    return this.insertBeats(
+      startBar,
+      startBeatIndex,
+      newBeats,
+      replaceSeedBeat
+    );
   }
 }

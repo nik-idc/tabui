@@ -165,6 +165,17 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
+   * Sets both note value and octave
+   * @param newNoteValue - New note value
+   * @param newOctave - New octave value
+   */
+  public setNote(newNoteValue: NoteValue, newOctave: number | null): void {
+    this._noteValue = newNoteValue;
+    this._octave = newOctave;
+    this.calculateFretFromNote();
+  }
+
+  /**
    * Returns note in the format "{Note value}{Octave}". Examples: A#2, B3, c4, f#1
    * @returns Note in the format "{Note value}{Octave}"
    */

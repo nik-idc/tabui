@@ -1,72 +1,84 @@
-import { Bar, Beat } from "@/notation/model";
+import { Beat, ScoreEditor, Staff } from "@/notation/model";
 import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
 
 /**
- * Insert beats command
+ * Inserts clipboard beats locally after an anchor beat. This intentionally does
+ * not distribute overflow or fill rhythmic gaps until TabUI has real rests/gaps.
  */
 export class InsertBeatsCommand implements Command {
-  /** Bar to insert the beats into */
-  private _bar: Bar;
-  /** Insertion index */
-  private _index: number;
-  /** Beats to be inserted */
+  private _anchorStaff: Staff;
+  private _anchorBeat: Beat | undefined;
   private _beatsToInsert: Beat[];
-  /** Inserted beat copies tracked for undo/redo */
   private _insertedBeats: Beat[] = [];
-  /** True if executed, false otherwise */
   private _executed: boolean = false;
 
-  /**
-   * Insert beats command
-   * @param bar Bar to insert the beats into
-   * @param beatsToInsert Beats to be inserted
-   */
-  constructor(bar: Bar, index: number, beatsToInsert: Beat[]) {
-    this._bar = bar;
-    this._index = index;
+  constructor(
+    anchorStaff: Staff,
+    anchorBeat: Beat | undefined,
+    beatsToInsert: Beat[]
+  ) {
+    this._anchorStaff = anchorStaff;
+    this._anchorBeat = anchorBeat;
     this._beatsToInsert = beatsToInsert;
   }
 
-  /**
-   * Execute add beat command
-   */
+  private getInsertionPosition(): { barIndex: number; beatIndex: number } {
+    if (this._anchorBeat === undefined) {
+      return { barIndex: 0, beatIndex: 0 };
+    }
+
+    return {
+      barIndex: this._anchorStaff.bars.indexOf(this._anchorBeat.bar),
+      beatIndex: this._anchorBeat.bar.beats.indexOf(this._anchorBeat) + 1,
+    };
+  }
+
   execute(): void {
-    this._insertedBeats = this._bar.insertBeats(
-      this._index,
-      this._beatsToInsert
+    if (this._executed) {
+      throw Error("InsertBeatsCommand attempted to execute twice");
+    }
+
+    const { barIndex, beatIndex } = this.getInsertionPosition();
+    const bar = this._anchorStaff.bars[barIndex];
+
+    this._insertedBeats = ScoreEditor.insertBeats(
+      bar,
+      beatIndex,
+      this._beatsToInsert,
+      true
     );
     this._executed = true;
   }
 
-  /**
-   * Undo add beat command, i.e. delete added beat
-   */
   undo(): void {
     if (!this._executed) {
       return;
     }
 
-    this._bar.removeBeats(this._insertedBeats);
+    ScoreEditor.removeBeats(this._insertedBeats);
   }
 
-  /**
-   * Redo, i.e. restore bar state to before execute
-   */
   redo(): void {
     if (!this._executed) {
       return;
     }
 
-    this._insertedBeats = this._bar.insertBeats(
-      this._index,
-      this._beatsToInsert
+    const { barIndex, beatIndex } = this.getInsertionPosition();
+    const bar = this._anchorStaff.bars[barIndex];
+
+    this._insertedBeats = ScoreEditor.insertBeats(
+      bar,
+      beatIndex,
+      this._beatsToInsert,
+      true
     );
   }
 
   public get updateRequest(): CommandUpdateRequest {
+    const affectedBar = this._anchorBeat?.bar ?? this._anchorStaff.bars[0];
     const affectedMasterBarIndex = getMasterBarIndex(
-      this._bar.staff.track.score,
-      this._bar.masterBar
+      this._anchorStaff.track.score,
+      affectedBar.masterBar
     );
 
     return {
@@ -77,3 +89,30 @@ export class InsertBeatsCommand implements Command {
     };
   }
 }
+
+// Deferred duration-aware insertion direction:
+//
+// We attempted to make paste insertion behave musically by treating clipboard
+// beats as a duration stream. That approach would fill the current bar first,
+// then overwrite or create following bars as needed. It was abandoned for now
+// because TabUI currently allows underfilled/overfilled bars and has no explicit
+// rest/gap model. Making paste strict while add/remove beat controls remain
+// permissive creates inconsistent editing behavior and fragile undo/redo state.
+//
+// If/when the model introduces rests/gaps and a clear complete-bar invariant,
+// revisit insertion with this shape:
+//
+// - Command state should use `anchorStaff` plus optional `anchorBeat` so
+//   insertion at the start of a staff is representable.
+// - The core model operation should be one overwrite-insert primitive shared by
+//   insertion and replacement.
+// - It should use exact tick/rational math, never floating-point duration
+//   comparisons.
+// - It should respect existing tuplet context rather than invent arbitrary
+//   tuplets. MuseScore-like behavior decomposes gaps into rests and handles
+//   tuplets within existing tuplet context.
+// - If a touched bar is underfilled, the future rest/gap model should determine
+//   whether to complete it, leave a gap, or surface invalid rhythm explicitly.
+// - Undo/redo should track inserted beats, overwritten beats, filler/rest beats,
+//   and any created bars by stable identity, not recompute broad duration ranges
+//   from stale indices.

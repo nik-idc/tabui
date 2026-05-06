@@ -421,8 +421,8 @@ export class TrackControllerEditor {
         // Insert if currently not selecting
         this.executeCommand(
           new InsertBeatsCommand(
-            selectedNote.bar,
-            selectedNote.beatIndex,
+            selectedNote.bar.staff,
+            selectedNote.beat,
             clipboard
           )
         );
