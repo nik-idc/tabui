@@ -13,6 +13,8 @@ import { EditorLayoutDimensions } from "../../src/notation/controller/editor-lay
 import { TechGapElement } from "../../src/notation/controller/element/staff/tech-gap-element";
 import { TechGapLineElement } from "../../src/notation/controller/element/staff/tech-gap-line-element";
 import { GuitarTechniqueLabelElement } from "../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
+import { GuitarTechniqueElement } from "../../src/notation/controller/element/technique/guitar-technique/guitar-technique-element";
+import { SetTechniqueCommand } from "../../src/notation/controller/editor/command";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
@@ -98,6 +100,41 @@ describe("TrackElement techniques", () => {
 
     expect(endX).toBeGreaterThan(startX);
     expect(startY).toBeLessThan(endY);
+  });
+
+  test("targeted inline technique update adds technique element diff", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const note = beats[0].notes[0] as GuitarNote;
+    note.fret = 5;
+    (beats[1].notes[0] as GuitarNote).fret = 7;
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const command = new SetTechniqueCommand([note], GuitarTechniqueType.Slide);
+    command.execute();
+    trackElement.update(command.updateRequest);
+
+    const noteElement = trackElement.findCorrespondingBeatElement(beats[0])
+      ?.noteElements[0];
+    const techniqueElement = noteElement?.techniqueElements[0];
+
+    expect(command.updateRequest.updateType).toBe("Targeted");
+    expect(noteElement?.techniqueElements).toHaveLength(1);
+    expect(techniqueElement).toBeInstanceOf(GuitarTechniqueElement);
+    expect(
+      trackElement.trackLineElements[0].ownedNotationElements.some(
+        (element) => element === techniqueElement
+      )
+    ).toBe(true);
+    expect(
+      trackElement.elementDiff.added
+        .get(GuitarTechniqueElement)
+        ?.has(techniqueElement?.getStableIdentity() ?? "")
+    ).toBe(true);
   });
 
   test("creates labels on all technique gap lines with stacked non-overlapping geometry", () => {

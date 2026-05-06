@@ -720,9 +720,17 @@ export class TrackElement {
         continue;
       }
 
+      const prevSnapshot = this.snapshotElements(
+        element.refreshOwnedNotationElements()
+      );
+      // NOTE: Idk looks kinda weird. But fine for now
+      const owningTrackLineElement = getOwningTrackLineElement(element);
       element.update();
-      this.addToDiff(DiffPart.Updated, element);
-      this._elementHashesByIdentity.set(stableIdentity, element.stateHash);
+      owningTrackLineElement.refreshOwnedNotationElements();
+      this.reconcileElementSnapshot(
+        prevSnapshot,
+        element.refreshOwnedNotationElements()
+      );
       seenStableIdentities.add(stableIdentity);
     }
   }

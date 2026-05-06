@@ -136,9 +136,34 @@ export class SetTechniqueCommand implements Command {
       };
     }
 
+    if (this.isInlineTechniqueTargetedUpdate) {
+      return {
+        updateType: "Targeted",
+        affectedModelUUIDs: this.affectedModelUUIDs,
+      };
+    }
+
     return {
       updateType: "Full",
     };
+  }
+
+  private get isInlineTechniqueTargetedUpdate(): boolean {
+    if (this.isInlineTechniqueType(this._newTechniqueType)) {
+      return true;
+    }
+
+    for (const oldTechniques of this._oldTechniquesMap.values()) {
+      if (
+        oldTechniques.some((technique) =>
+          this.isInlineTechniqueType(technique.type)
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private isTechniqueLabelType(type: TechniqueType): boolean {
@@ -147,6 +172,15 @@ export class SetTechniqueCommand implements Command {
       type === GuitarTechniqueType.LetRing ||
       type === GuitarTechniqueType.Vibrato ||
       type === GuitarTechniqueType.Bend
+    );
+  }
+
+  private isInlineTechniqueType(type: TechniqueType): boolean {
+    return (
+      type === GuitarTechniqueType.HammerOnOrPullOff ||
+      type === GuitarTechniqueType.NaturalHarmonic ||
+      type === GuitarTechniqueType.PinchHarmonic ||
+      type === GuitarTechniqueType.Slide
     );
   }
 }

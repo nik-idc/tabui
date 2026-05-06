@@ -75,4 +75,42 @@ describe("SetTechniqueCommand", () => {
     expect(bendCommand.isTechniqueLabelVerticalUpdate).toBe(true);
     expect(letRingCommand.isTechniqueLabelVerticalUpdate).toBe(true);
   });
+
+  test("inline non-label techniques are marked for targeted update", () => {
+    const { bar } = createScoreGraph();
+    const note = bar.beats[0].notes[0] as GuitarNote;
+
+    const harmonicCommand = new SetTechniqueCommand(
+      [note],
+      GuitarTechniqueType.NaturalHarmonic
+    );
+    const slideCommand = new SetTechniqueCommand(
+      [note],
+      GuitarTechniqueType.Slide
+    );
+
+    expect(harmonicCommand.updateRequest).toEqual({
+      updateType: "Targeted",
+      affectedModelUUIDs: [note.uuid],
+    });
+    expect(slideCommand.updateRequest).toEqual({
+      updateType: "Targeted",
+      affectedModelUUIDs: [note.uuid],
+    });
+  });
+
+  test("bend remains a vertical update because it produces a label", () => {
+    const { bar } = createScoreGraph();
+    const note = bar.beats[0].notes[0] as GuitarNote;
+    const command = new SetTechniqueCommand(
+      [note],
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({ type: BendType.Bend })
+    );
+
+    expect(command.updateRequest).toEqual({
+      updateType: "Vertical",
+      affectedModelUUIDs: [note.uuid],
+    });
+  });
 });
