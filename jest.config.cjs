@@ -2,7 +2,7 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/tests"],
   testMatch: ["**/*.spec.ts"],
-  testPathIgnorePatterns: ["/node_modules/", "/tests/archive/"],
+  testPathIgnorePatterns: ["/node_modules/"],
   transform: {
     "^.+\\.(ts|tsx)$": "babel-jest",
   },

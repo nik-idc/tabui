@@ -179,12 +179,10 @@ Benchmark status:
   not blocking Phase 3 closeout because current user-facing empty-bar insertion
   workflows insert one bar at a time, and multi-bar removal remains fast in the
   stress fixture.
-- Temporary Phase 3 notes are in `ROADMAP-P3-TMP.md`, but that file is a working
-  handoff and should not be treated as a committed roadmap source.
 
 Exit criteria:
 
-- Large-score edits are noticeably faster.
+- Large-score edits are noticeably faster and instant for the user.
 - Small localized changes avoid unnecessary full-tree work where possible.
 - Vertical line shifts do not require child-by-child renderer updates across
   the affected suffix of the score.
