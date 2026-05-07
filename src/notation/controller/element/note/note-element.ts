@@ -11,6 +11,8 @@ import { BeatElement } from "../beat/beat-element";
 export interface NoteElement extends NotationElement {
   readonly note: Note;
   readonly beatElement: BeatElement;
+  readonly barLocalCoords: Point;
+  readonly barLocalBoundingBox: Rect;
 
   get techniqueElements(): TechniqueElement[];
 }

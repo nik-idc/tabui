@@ -1,8 +1,18 @@
 import { Beat, Track } from "@/notation/model";
 import { randomInt, Point, Rect } from "@/shared";
+import {
+  CommandUpdateRequest,
+  HorizontalUpdateRequest,
+  TargetedUpdateRequest,
+  VerticalUpdateRequest,
+} from "../editor/command/command";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 import { BarElement, getBarWidth } from "./bar/bar-element";
-import { TrackLineData, TrackLineElement } from "./track/track-line-element";
+import {
+  TrackLineBars,
+  TrackLineBar,
+  TrackLineElement,
+} from "./track/track-line-element";
 import { BeatElement } from "./beat/beat-element";
 import { StaffLineElement } from "./staff/staff-line-element";
 import { NotationElement, NotationElementClass } from "./notation-element";
@@ -16,6 +26,14 @@ import { TechGapLineElement } from "./staff/tech-gap-line-element";
 import { TrackLineInfoElement } from "./track/track-line-info-element";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
+import { SheetBeatElement } from "./beat/sheet-beat-element";
+import {
+  createEmptyDiff,
+  getBackingModelUUID,
+  getOwningTrackLineElement,
+  isModelBackedElement,
+  snapshotOwnedElements,
+} from "./track/update/track-element-update-helpers";
 
 /**
  * ELEMENT_ORDER defines the order in which element types are rendered.
@@ -37,11 +55,31 @@ export const ELEMENT_ORDER: Array<NotationElementClass> = [
   TechGapLineElement,
 ];
 
-export interface ElementDiff {
-  added: Map<NotationElementClass, Map<number, NotationElement>>;
-  updated: Map<NotationElementClass, Map<number, NotationElement>>;
-  removed: Map<NotationElementClass, Set<number>>;
+export type ElementIdentity = string;
+export type TrackLineIdentity = ElementIdentity;
+
+export enum DiffPart {
+  Added = "added",
+  Updated = "updated",
+  Removed = "removed",
 }
+
+export interface ElementDiff {
+  [DiffPart.Added]: Map<NotationElementClass, Set<string>>;
+  [DiffPart.Updated]: Map<NotationElementClass, Set<string>>;
+  [DiffPart.Removed]: Map<NotationElementClass, Set<string>>;
+}
+
+type ElementSnapshot = {
+  elements: Map<ElementIdentity, NotationElement>;
+  hashes: Map<ElementIdentity, string>;
+};
+
+type LineWindow = {
+  start: number;
+  oldEnd: number;
+  newEnd: number;
+};
 
 /**
  * Class that handles all geometry & visually relevant info of a track
@@ -55,20 +93,14 @@ export class TrackElement {
   /** Track line element */
   private _trackLineElements: TrackLineElement[];
 
-  /** Registry of all elements (modelUUID -> element) */
-  private _elementRegistry: Map<number, NotationElement>;
+  /** Registry of all elements by stable identity. */
+  private _elementRegistryByIdentity: Map<string, NotationElement>;
+  /** Registry of model-backed elements by model UUID. */
+  private _elementRegistryByModelUUID: Map<number, NotationElement>;
   /** Keeps track of all elements' hash strings */
-  private _elementHashes: Map<number, string>;
-  /** Keeps track of changed elements grouped by type */
-  private _dirtyElements: Map<
-    NotationElementClass,
-    Map<number, NotationElement>
-  >;
+  private _elementHashesByIdentity: Map<string, string>;
   /** Structural diff between previous and current update cycles */
   private _elementDiff: ElementDiff;
-
-  // Purely for testing
-  public counts: any = {};
 
   /**
    * Class that handles all geometry & visually relevant info of a track
@@ -79,31 +111,111 @@ export class TrackElement {
     this.track = track;
 
     this._trackLineElements = [];
-    this._elementRegistry = new Map();
-    this._elementHashes = new Map();
-    this._dirtyElements = new Map();
-    this._elementDiff = this.createEmptyDiff();
-
+    this._elementRegistryByIdentity = new Map();
+    this._elementRegistryByModelUUID = new Map();
+    this._elementHashesByIdentity = new Map();
+    this._elementDiff = createEmptyDiff();
     this.build();
   }
 
-  /**
-   * Calculates how many lines are needed & which bars go into which lines.
-   * Populates the "_trackLineElements" array
-   */
-  public build(): void {
-    // Clear element registry to avoid duplicates on rebuild
-    this._elementRegistry.clear();
+  public registerElement(element: NotationElement): void {
+    this._elementRegistryByIdentity.set(element.getStableIdentity(), element);
 
-    // Step 1: Organize bars into lines
+    if (!isModelBackedElement(element)) {
+      return;
+    }
+
+    const modelUUID = getBackingModelUUID(element);
+    this._elementRegistryByModelUUID.set(modelUUID, element);
+  }
+
+  public unregisterElement(element: NotationElement): void {
+    this._elementRegistryByIdentity.delete(element.getStableIdentity());
+    this._elementHashesByIdentity.delete(element.getStableIdentity());
+
+    if (!isModelBackedElement(element)) {
+      return;
+    }
+
+    const modelUUID = getBackingModelUUID(element);
+    // This check is necessary because some elements may share the same model uuid
+    // (TabBeatElement vs SheetBeatElement for example)
+    if (this._elementRegistryByModelUUID.get(modelUUID) === element) {
+      this._elementRegistryByModelUUID.delete(modelUUID);
+    }
+  }
+
+  private addToDiff(diffPart: DiffPart, element: NotationElement): void {
+    const diffMap = this._elementDiff[diffPart];
+    const elementClass = element.constructor as NotationElementClass;
+    let classDiff = diffMap.get(elementClass);
+
+    if (!classDiff) {
+      classDiff = new Set();
+      diffMap.set(elementClass, classDiff);
+    }
+
+    classDiff.add(element.getStableIdentity());
+  }
+
+  private computeElementDiff(
+    prevRegistry: Map<string, NotationElement>,
+    prevHashes: Map<string, string>
+  ): void {
+    this._elementDiff = createEmptyDiff();
+
+    for (const [stableIdentity, element] of this._elementRegistryByIdentity) {
+      const prevElement = prevRegistry.get(stableIdentity);
+      if (prevElement === undefined) {
+        this.addToDiff(DiffPart.Added, element);
+        continue;
+      }
+
+      const prevHash = prevHashes.get(stableIdentity);
+      const curHash = element.stateHash;
+      if (prevHash === undefined || prevHash !== curHash) {
+        this.addToDiff(DiffPart.Updated, element);
+      }
+    }
+
+    for (const [stableIdentity, element] of prevRegistry) {
+      if (this._elementRegistryByIdentity.has(stableIdentity)) {
+        continue;
+      }
+      this.addToDiff(DiffPart.Removed, element);
+    }
+  }
+
+  public clearElementDiff(): void {
+    this._elementDiff = createEmptyDiff();
+  }
+
+  /** Creates one line bar entry for presentation shell construction. */
+  private createTrackLineBar(
+    masterBarIndex: number,
+    intrinsicWidth: number,
+    finalizedWidth: number
+  ): TrackLineBar {
+    return {
+      intrinsicWidth,
+      finalizedWidth,
+      masterBarUUID: this.track.score.masterBars[masterBarIndex].uuid,
+      masterBarIndex,
+    };
+  }
+
+  /**
+   * Groups master bars into rendered track lines based on intrinsic bar widths.
+   */
+  private buildTrackLineSkeleton(): TrackLineBars[] {
     let width = 0;
-    let largestBarWidth = 0;
-    let curLineData: TrackLineData = [];
+    let intrinsicBarWidth = 0;
+    let currentLineBars: TrackLineBars = [];
     let allFit = true;
-    const linesData: TrackLineData[] = [];
+    const trackLinesBars: TrackLineBars[] = [];
     const masterBars = this.track.score.masterBars;
     for (let i = 0; i < masterBars.length; i++) {
-      largestBarWidth = 0;
+      intrinsicBarWidth = 0;
 
       // Check if current bar fits in all the staves
       // AND find the largest bar amonng the staves
@@ -111,46 +223,68 @@ export class TrackElement {
         const bar = staff.bars[i];
         const barWidth = getBarWidth(bar);
 
-        if (width + barWidth > 1200) {
+        if (width + barWidth > EditorLayoutDimensions.WIDTH) {
           allFit = false;
         }
 
-        if (barWidth > largestBarWidth) {
-          largestBarWidth = barWidth;
+        if (barWidth > intrinsicBarWidth) {
+          intrinsicBarWidth = barWidth;
         }
       }
 
       if (allFit) {
-        // If fits, continue trying to fit the next master bar
-        curLineData.push({
-          largestBarWidth: largestBarWidth,
-          masterBarIndex: i,
-        });
-        width += largestBarWidth;
+        // If fits, keep filling the current line.
+        currentLineBars.push(
+          this.createTrackLineBar(i, intrinsicBarWidth, intrinsicBarWidth)
+        );
+        width += intrinsicBarWidth;
       } else {
+        if (currentLineBars.length === 0) {
+          currentLineBars = [
+            this.createTrackLineBar(
+              i,
+              intrinsicBarWidth,
+              EditorLayoutDimensions.WIDTH
+            ),
+          ];
+          trackLinesBars.push(currentLineBars);
+          width = 0;
+          allFit = true;
+          currentLineBars = [];
+          continue;
+        }
+
         // If doesn't fit, assume that current master bar fits
         // on the next line and continue
-        width = largestBarWidth;
-        if (curLineData.length === 1) {
-          curLineData[0].largestBarWidth = EditorLayoutDimensions.WIDTH;
+        width = intrinsicBarWidth;
+        if (currentLineBars.length === 1) {
+          // Update both line-level and style-level finalized width placement data
+          currentLineBars[0].finalizedWidth = EditorLayoutDimensions.WIDTH;
         }
-        linesData.push(curLineData);
+        trackLinesBars.push(currentLineBars);
         allFit = true;
-        curLineData = [{ largestBarWidth: largestBarWidth, masterBarIndex: i }];
+        currentLineBars = [
+          this.createTrackLineBar(i, intrinsicBarWidth, intrinsicBarWidth),
+        ];
       }
     }
 
-    // Push remaining bars
-    if (curLineData.length !== 0) {
-      linesData.push(curLineData);
+    if (currentLineBars.length !== 0) {
+      trackLinesBars.push(currentLineBars);
     }
 
-    // Step 2: Use the 'linesData' array to build track line elements
+    return trackLinesBars;
+  }
+
+  /** Rebuilds all presentation shell elements and their descendants. */
+  public build(): void {
+    this._elementRegistryByIdentity.clear();
+    this._elementRegistryByModelUUID.clear();
+
     this._trackLineElements = [];
-    for (const data of linesData) {
-      this._trackLineElements.push(
-        new TrackLineElement(this.track, this, data)
-      );
+    const skeleton = this.buildTrackLineSkeleton();
+    for (const trackLineBars of skeleton) {
+      this._trackLineElements.push(new TrackLineElement(this, trackLineBars));
     }
   }
 
@@ -176,167 +310,470 @@ export class TrackElement {
     }
   }
 
+  private getAffectedTrackLines(
+    request: VerticalUpdateRequest
+  ): TrackLineElement[] {
+    const modelUUIDs = request.affectedModelUUIDs;
+    const affectedTrackLines: TrackLineElement[] = [];
+    const seenStableIdentities = new Set<string>();
+
+    // Map model-backed elements to the unique track lines that own them.
+    for (const modelUUID of modelUUIDs) {
+      const element = this._elementRegistryByModelUUID.get(modelUUID);
+      if (element === undefined) {
+        continue;
+      }
+
+      const trackLineElement = getOwningTrackLineElement(element);
+      const stableIdentity = trackLineElement.getStableIdentity();
+      if (seenStableIdentities.has(stableIdentity)) {
+        continue;
+      }
+
+      affectedTrackLines.push(trackLineElement);
+      seenStableIdentities.add(stableIdentity);
+    }
+
+    affectedTrackLines.sort(
+      (a, b) =>
+        this._trackLineElements.indexOf(a) - this._trackLineElements.indexOf(b)
+    );
+    return affectedTrackLines;
+  }
+
+  private applyVerticalUpdate(affectedLines: TrackLineElement[]): void {
+    const firstAffectedLineIndex = this._trackLineElements.indexOf(
+      affectedLines[0]
+    );
+    const lastLineIndex = this._trackLineElements.length - 1;
+    let nextAffectedIndex = 0;
+
+    for (let i = firstAffectedLineIndex; i <= lastLineIndex; i++) {
+      const trackLineElement = this._trackLineElements[i];
+      if (trackLineElement === affectedLines[nextAffectedIndex]) {
+        trackLineElement.build();
+        trackLineElement.measure();
+        trackLineElement.layout();
+        trackLineElement.justifyElements(i === lastLineIndex);
+        nextAffectedIndex++;
+        continue;
+      }
+
+      trackLineElement.layoutVerticalShift();
+    }
+  }
+
+  private reconcileVerticalUpdate(
+    affectedSnapshot: Map<
+      TrackLineElement,
+      Map<ElementIdentity, NotationElement>
+    >
+  ): void {
+    for (const [trackLineElement, prevOwnership] of affectedSnapshot) {
+      const curOwnership = trackLineElement.ownedNotationElements;
+      // Reconcile added/updated elements
+      for (const element of curOwnership) {
+        const identity = element.getStableIdentity();
+        if (prevOwnership.has(identity)) {
+          this.addToDiff(DiffPart.Updated, element);
+          prevOwnership.delete(identity);
+        } else {
+          this.addToDiff(DiffPart.Added, element);
+        }
+
+        this._elementHashesByIdentity.set(identity, element.stateHash);
+      }
+
+      // Reconcile removed elements
+      for (const prevElement of prevOwnership.values()) {
+        this.unregisterElement(prevElement);
+        this.addToDiff(DiffPart.Removed, prevElement);
+      }
+    }
+  }
+
+  public updateVertical(request: VerticalUpdateRequest): void {
+    this._elementDiff = createEmptyDiff();
+
+    const affectedLines = this.getAffectedTrackLines(request);
+    const affectedSnapshot = snapshotOwnedElements(affectedLines);
+
+    this.applyVerticalUpdate(affectedLines);
+
+    this.reconcileVerticalUpdate(affectedSnapshot);
+  }
+
   /**
-   * Updates the entire state of the track element in 3 steps:
-   * - Build
-   * - Measure
-   * - Layout
+   * Returns the master-bar UUID ownership for one rendered track line.
+   * Ownership is used instead of object identity so old and new skeletons can be
+   * compared after presentation shell objects are rebuilt.
    */
-  public update(): void {
-    const prevRegistry = new Map(this._elementRegistry);
-    const prevHashes = new Map(this._elementHashes);
+  private getLineOwnership(trackLineBars: TrackLineBars): number[] {
+    return trackLineBars.map((lineBar) => lineBar.masterBarUUID);
+  }
+
+  /** Builds a compact ownership key for overlap checks between line windows. */
+  private getLineOwnershipKey(trackLineBars: TrackLineBars): string {
+    return this.getLineOwnership(trackLineBars).join(":");
+  }
+
+  /** Returns true when two line skeleton entries own the same master bars. */
+  private isSameLineOwnership(a: number[], b: number[]): boolean {
+    if (a.length !== b.length) {
+      return false;
+    }
+
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /** Finds the rendered line containing the given current master-bar index. */
+  private findLineByBarIndex(lines: TrackLineBars[], index: number): number {
+    return lines.findIndex((lineBars) =>
+      lineBars.some((lb) => lb.masterBarIndex === index)
+    );
+  }
+
+  /** Finds the rendered line containing the given stable master-bar UUID. */
+  private findLineByBarUUID(lines: TrackLineBars[], uuid: number): number {
+    return lines.findIndex((lbs) =>
+      lbs.some((lb) => lb.masterBarUUID === uuid)
+    );
+  }
+
+  /**
+   * Finds the first line touched by a horizontal update.
+   * UUIDs are preferred because indices can shift after bar insertions/removals;
+   * the index remains a fallback for older request paths and edit-position
+   * anchoring.
+   */
+  private firstAffectedLine(
+    lines: TrackLineBars[],
+    request: HorizontalUpdateRequest
+  ): number {
+    for (const masterBarUUID of request.affectedMasterBarUUIDs ?? []) {
+      const lineIndex = this.findLineByBarUUID(lines, masterBarUUID);
+      if (lineIndex !== -1) {
+        return lineIndex;
+      }
+    }
+
+    return this.findLineByBarIndex(lines, request.firstAffectedMasterBarIndex);
+  }
+
+  /**
+   * Finds the last line touched by a horizontal update.
+   * This mirrors firstAffectedLine but walks affected UUIDs from the end so
+   * multi-bar updates can cover the full changed range.
+   */
+  private lastAffectedLine(
+    lines: TrackLineBars[],
+    request: HorizontalUpdateRequest
+  ): number {
+    const affectedMasterBarUUIDs = request.affectedMasterBarUUIDs ?? [];
+    for (let i = affectedMasterBarUUIDs.length - 1; i >= 0; i--) {
+      const lineIndex = this.findLineByBarUUID(
+        lines,
+        affectedMasterBarUUIDs[i]
+      );
+      if (lineIndex !== -1) {
+        return lineIndex;
+      }
+    }
+
+    const lastAffectedBar =
+      request.affectedMasterBarIndices[
+        request.affectedMasterBarIndices.length - 1
+      ];
+    return this.findLineByBarIndex(lines, lastAffectedBar);
+  }
+
+  /**
+   * Computes the old/new track-line window that must be rebuilt for a
+   * width-affecting update.
+   *
+   * Lines before `start` and after `oldEnd` are preserved where possible. The
+   * old window `[start, oldEnd)` is replaced by newly built lines from the new
+   * skeleton window `[start, newEnd)`. UUID-based affected bars are used when
+   * available to avoid index-shift bugs after bar insertion/removal.
+   */
+  private getChangedLineWindow(
+    oldLineBars: TrackLineBars[],
+    newLineBars: TrackLineBars[],
+    request: HorizontalUpdateRequest
+  ): LineWindow {
+    const oldOwnership = oldLineBars.map((lb) => this.getLineOwnership(lb));
+    const newOwnership = newLineBars.map((lb) => this.getLineOwnership(lb));
+
+    let start = 0;
+    while (
+      start < oldOwnership.length &&
+      start < newOwnership.length &&
+      this.isSameLineOwnership(oldOwnership[start], newOwnership[start])
+    ) {
+      start++;
+    }
+
+    let oldEnd = oldOwnership.length;
+    let newEnd = newOwnership.length;
+
+    if (oldEnd === newEnd && start === oldEnd) {
+      // Ownership did not change, but affected bars still need rebuilding.
+      const firstAffectedLine = this.firstAffectedLine(oldLineBars, request);
+      const lastAffectedLine = this.lastAffectedLine(oldLineBars, request);
+      return {
+        start: firstAffectedLine,
+        // Include one following line because tempo, time sig etc
+        // visibility depends on the previous bar
+        oldEnd: Math.min(oldLineBars.length, lastAffectedLine + 2),
+        newEnd: Math.min(newLineBars.length, lastAffectedLine + 2),
+      };
+    }
+
+    while (
+      oldEnd > start &&
+      newEnd > start &&
+      this.isSameLineOwnership(
+        oldOwnership[oldEnd - 1],
+        newOwnership[newEnd - 1]
+      )
+    ) {
+      oldEnd--;
+      newEnd--;
+    }
+
+    // Prefix/suffix matching can produce a window that misses the edited bar.
+    // Anchor it by affected UUIDs first; indices are only a fallback.
+    const firstAffectedOld = this.firstAffectedLine(oldLineBars, request);
+    const firstAffectedNew = this.firstAffectedLine(newLineBars, request);
+    if (firstAffectedOld !== -1) {
+      start = Math.min(start, firstAffectedOld);
+      oldEnd = Math.max(oldEnd, firstAffectedOld + 1);
+    }
+    if (firstAffectedNew !== -1) {
+      start = Math.min(start, firstAffectedNew);
+      newEnd = Math.max(newEnd, firstAffectedNew + 1);
+    }
+
+    // Include one following line because tempo, time sig etc
+    // visibility depends on the previous bar
+    if (oldEnd < oldOwnership.length - 1) {
+      oldEnd++;
+    }
+    if (newEnd < newOwnership.length - 1) {
+      // Do not rebuild a line that is already preserved as suffix. This can
+      // happen after removals, where old/new indices no longer refer to the
+      // same master bars.
+      const preservedSuffixKeys = new Set(
+        oldLineBars.slice(oldEnd).map((lb) => this.getLineOwnershipKey(lb))
+      );
+      const nextNewLineKey = this.getLineOwnershipKey(newLineBars[newEnd]);
+      if (!preservedSuffixKeys.has(nextNewLineKey)) {
+        newEnd++;
+      }
+    }
+
+    return { start, oldEnd, newEnd };
+  }
+
+  /** Captures element objects and state hashes before replacing a line window. */
+  private snapshotElements(elements: NotationElement[]): ElementSnapshot {
+    const snapshot: ElementSnapshot = {
+      elements: new Map(),
+      hashes: new Map(),
+    };
+
+    for (const element of elements) {
+      const identity = element.getStableIdentity();
+      snapshot.elements.set(identity, element);
+      snapshot.hashes.set(identity, element.stateHash);
+    }
+
+    return snapshot;
+  }
+
+  /** Returns all notation elements owned by the provided track lines. */
+  private getOwnedElements(trackLines: TrackLineElement[]): NotationElement[] {
+    return trackLines.flatMap((l) => l.ownedNotationElements);
+  }
+
+  /** Removes elements from TrackElement registries before their owners go away. */
+  private unregisterElements(elements: Iterable<NotationElement>): void {
+    for (const element of elements) {
+      this.unregisterElement(element);
+    }
+  }
+
+  /**
+   * Reconciles a replaced line-window snapshot against newly built elements and
+   * records added, updated, and removed stable identities for the renderer.
+   */
+  private reconcileElementSnapshot(
+    prevSnapshot: ElementSnapshot,
+    nextElements: NotationElement[]
+  ): void {
+    const remainingPrevElements = new Map(prevSnapshot.elements);
+
+    for (const element of nextElements) {
+      const identity = element.getStableIdentity();
+      if (!remainingPrevElements.has(identity)) {
+        this.addToDiff(DiffPart.Added, element);
+      } else if (prevSnapshot.hashes.get(identity) !== element.stateHash) {
+        this.addToDiff(DiffPart.Updated, element);
+      }
+
+      this._elementHashesByIdentity.set(identity, element.stateHash);
+      remainingPrevElements.delete(identity);
+    }
+
+    for (const element of remainingPrevElements.values()) {
+      this.addToDiff(DiffPart.Removed, element);
+    }
+  }
+
+  /**
+   * Lays out rebuilt horizontal lines and vertically shifts preserved suffix
+   * lines so their Y positions follow the changed window.
+   */
+  private layoutHorizontalWindow(
+    startLineIndex: number,
+    rebuiltLines: Set<TrackLineElement>
+  ): void {
+    const lastLineIndex = this._trackLineElements.length - 1;
+    for (let i = startLineIndex; i < this._trackLineElements.length; i++) {
+      const trackLineElement = this._trackLineElements[i];
+      if (rebuiltLines.has(trackLineElement)) {
+        trackLineElement.layout();
+      } else {
+        trackLineElement.layoutVerticalShift();
+      }
+      trackLineElement.justifyElements(i === lastLineIndex);
+    }
+  }
+
+  /**
+   * Applies a width-affecting update by rebuilding only the changed line window
+   * and preserving unchanged prefix/suffix line objects.
+   */
+  public updateHorizontal(request: HorizontalUpdateRequest): void {
+    // Get update window
+    const oldLineBars = this._trackLineElements.map((tl) => tl.trackLineBars);
+    const newLineBars = this.buildTrackLineSkeleton();
+    const updateWindow = this.getChangedLineWindow(
+      oldLineBars,
+      newLineBars,
+      request
+    );
+
+    // Snapshot old window elements before updating
+    const oldWindowLines = this._trackLineElements.slice(
+      updateWindow.start,
+      updateWindow.oldEnd
+    );
+    const preservedSuffixLines = this._trackLineElements.slice(
+      updateWindow.oldEnd
+    );
+    const oldWindowSnapshot = this.snapshotElements(
+      this.getOwnedElements(oldWindowLines)
+    );
+
+    // Perform the actual update of the Elements
+    this.unregisterElements(oldWindowSnapshot.elements.values());
+    const newWindowLines = newLineBars
+      .slice(updateWindow.start, updateWindow.newEnd)
+      .map((trackLineBars) => new TrackLineElement(this, trackLineBars));
+    this._trackLineElements = [
+      ...this._trackLineElements.slice(0, updateWindow.start),
+      ...newWindowLines,
+      ...preservedSuffixLines,
+    ];
+    for (const trackLineElement of newWindowLines) {
+      trackLineElement.measure();
+    }
+    this.layoutHorizontalWindow(updateWindow.start, new Set(newWindowLines));
+
+    // Compute the diff optimally
+    this.clearElementDiff();
+    this.reconcileElementSnapshot(
+      oldWindowSnapshot,
+      this.getOwnedElements(newWindowLines)
+    );
+  }
+
+  public updateTargeted(request: TargetedUpdateRequest): void {
+    this.clearElementDiff();
+
+    const seenStableIdentities = new Set<string>();
+    for (const modelUUID of request.affectedModelUUIDs) {
+      const element = this._elementRegistryByModelUUID.get(modelUUID);
+      if (element === undefined) {
+        continue;
+      }
+
+      const stableIdentity = element.getStableIdentity();
+      if (seenStableIdentities.has(stableIdentity)) {
+        continue;
+      }
+
+      const prevSnapshot = this.snapshotElements(
+        element.refreshOwnedNotationElements()
+      );
+      // NOTE: Idk looks kinda weird. But fine for now
+      const owningTrackLineElement = getOwningTrackLineElement(element);
+      element.update();
+      owningTrackLineElement.refreshOwnedNotationElements();
+      this.reconcileElementSnapshot(
+        prevSnapshot,
+        element.refreshOwnedNotationElements()
+      );
+      seenStableIdentities.add(stableIdentity);
+    }
+  }
+
+  public updateFull(): void {
+    const prevRegistry = new Map(this._elementRegistryByIdentity);
+    const prevHashes = new Map(this._elementHashesByIdentity);
 
     this.build();
     this.measure();
     this.layout();
 
     this.computeElementDiff(prevRegistry, prevHashes);
-
-    this.checkAllDirty();
   }
 
-  public checkIfDirty(_element: NotationElement): void {}
-
-  public registerElement(element: NotationElement): void {
-    this._elementRegistry.set(element.getModelUUID(), element);
-  }
-
-  public checkAllDirty(): void {
-    // Clear all dirty maps
-    for (const map of this._dirtyElements.values()) {
-      map.clear();
+  public update(request: CommandUpdateRequest = { updateType: "Full" }): void {
+    switch (request.updateType) {
+      case "Vertical":
+        return this.updateVertical(request);
+      case "Horizontal":
+        return this.updateHorizontal(request);
+      case "Targeted":
+        return this.updateTargeted(request);
+      case "Full":
+        return this.updateFull();
     }
-
-    for (const element of this._elementRegistry.values()) {
-      const modelUUID = element.getModelUUID();
-      const prevHash = this._elementHashes.get(modelUUID);
-      const curHash = element.stateHash;
-
-      if (prevHash === undefined || prevHash !== curHash) {
-        const ElementClass = element.constructor as NotationElementClass;
-
-        if (!this._dirtyElements.has(ElementClass)) {
-          this._dirtyElements.set(ElementClass, new Map());
-        }
-
-        this._dirtyElements.get(ElementClass)!.set(modelUUID, element);
-        this._elementHashes.set(modelUUID, curHash);
-      }
-    }
-  }
-
-  public getDirtyElements(): Map<
-    NotationElementClass,
-    Map<number, NotationElement>
-  > {
-    return this._dirtyElements;
-  }
-
-  public getElementDiff(): ElementDiff {
-    return this._elementDiff;
-  }
-
-  public getElementOrder(): Array<NotationElementClass> {
-    return ELEMENT_ORDER;
-  }
-
-  /** Read-only registry view for model UUID lookups. */
-  public getElementRegistry(): ReadonlyMap<number, NotationElement> {
-    return this._elementRegistry;
-  }
-
-  public getRegisteredElements(): NotationElement[] {
-    return Array.from(this._elementRegistry.values());
-  }
-
-  public getElementByModelUUID(modelUUID: number): NotationElement | undefined {
-    return this._elementRegistry.get(modelUUID);
   }
 
   /** Finds corresponding beat element */
   public findCorrespondingBeatElement(beat: Beat): BeatElement | undefined {
-    const element = this._elementRegistry.get(beat.uuid);
+    const element = this._elementRegistryByModelUUID.get(beat.uuid);
     return element instanceof TabBeatElement ? element : undefined;
   }
 
   /** Finds beat element by beat UUID */
   public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
-    const element = this._elementRegistry.get(beatUUID);
+    const element = this._elementRegistryByModelUUID.get(beatUUID);
     return element instanceof TabBeatElement ? element : undefined;
   }
 
   /** Gets beat element global coords */
   public getBeatElementGlobalCoords(neededBeatElement: BeatElement): Point {
     return neededBeatElement.globalCoords;
-  }
-
-  public clearDirtyElements(): void {
-    for (const map of this._dirtyElements.values()) {
-      map.clear();
-    }
-    this.counts = {};
-  }
-
-  public clearElementDiff(): void {
-    this._elementDiff = this.createEmptyDiff();
-  }
-
-  private createEmptyDiff(): ElementDiff {
-    return {
-      added: new Map(),
-      updated: new Map(),
-      removed: new Map(),
-    };
-  }
-
-  private addToDiff(
-    diffMap: Map<NotationElementClass, Map<number, NotationElement>>,
-    element: NotationElement
-  ): void {
-    const elementClass = element.constructor as NotationElementClass;
-    if (!diffMap.has(elementClass)) {
-      diffMap.set(elementClass, new Map());
-    }
-    diffMap.get(elementClass)!.set(element.getModelUUID(), element);
-  }
-
-  private addToRemovedDiff(
-    removedMap: Map<NotationElementClass, Set<number>>,
-    element: NotationElement
-  ): void {
-    const elementClass = element.constructor as NotationElementClass;
-    if (!removedMap.has(elementClass)) {
-      removedMap.set(elementClass, new Set());
-    }
-    removedMap.get(elementClass)!.add(element.getModelUUID());
-  }
-
-  private computeElementDiff(
-    prevRegistry: Map<number, NotationElement>,
-    prevHashes: Map<number, string>
-  ): void {
-    this._elementDiff = this.createEmptyDiff();
-
-    for (const [modelUUID, element] of this._elementRegistry) {
-      const prevElement = prevRegistry.get(modelUUID);
-      if (prevElement === undefined) {
-        this.addToDiff(this._elementDiff.added, element);
-        continue;
-      }
-
-      const prevHash = prevHashes.get(modelUUID);
-      const curHash = element.stateHash;
-      if (prevHash === undefined || prevHash !== curHash) {
-        this.addToDiff(this._elementDiff.updated, element);
-      }
-    }
-
-    for (const [modelUUID, element] of prevRegistry) {
-      if (this._elementRegistry.has(modelUUID)) {
-        continue;
-      }
-      this.addToRemovedDiff(this._elementDiff.removed, element);
-    }
   }
 
   /**
@@ -415,6 +852,35 @@ export class TrackElement {
     }
 
     return rects;
+  }
+
+  /**
+   * Consumes the diff - returns the diff and resets it
+   * @returns Element diff
+   */
+  public consumeDiff(): ElementDiff {
+    const consumedDiff = this._elementDiff;
+
+    this._elementDiff = createEmptyDiff();
+
+    return consumedDiff;
+  }
+
+  public get elementDiff(): ElementDiff {
+    return this._elementDiff;
+  }
+
+  /** Read-only registry view for model UUID lookups. */
+  public get elementRegistryByModelUUID(): ReadonlyMap<
+    number,
+    NotationElement
+  > {
+    return this._elementRegistryByModelUUID;
+  }
+
+  /** Read-only registry view for model UUID lookups. */
+  public get elementRegistryByIdentity(): ReadonlyMap<string, NotationElement> {
+    return this._elementRegistryByIdentity;
   }
 
   /** Track line elements getter */

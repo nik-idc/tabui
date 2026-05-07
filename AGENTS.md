@@ -11,24 +11,21 @@ npm run dev          # Start Vite dev server for the editor
 npm run build_vite   # Build the editor with Vite
 npm run preview_vite # Preview the Vite build
 npm run test         # Run active Jest test suites
+npm run format       # Format all files
 ```
 
 ## Tests
 
-- Active tests are in:
-  - `tests/model/`
-  - `tests/controller/`
-- Archived tests are in `tests/archive/` and are intentionally ignored by Jest.
+- Active tests are in `tests/*`.
 - Source of truth for test config: `jest.config.cjs`.
 - Prefer TDD: whenever possible & makes sense, first make tests and only
   then write the actual functionality. Main goal - avoiding writing tests
   that test only the happy path and/or current flow of execution. Instead,
-  tests should check correctness of implementation of intended functionality
+  tests should check correctness of implementation of intended functionality.
 
 ## Validation Notes
 
 - `npm test` is the primary regression check for active work.
-- `npm run build` may include failures from legacy/deprecated areas outside the active notation/controller surface. Treat build output carefully and isolate whether failures are caused by your changes.
 
 ## Editor Fixtures
 

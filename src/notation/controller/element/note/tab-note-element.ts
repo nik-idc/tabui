@@ -6,11 +6,21 @@ import { GuitarTechniqueElement } from "../technique/guitar-technique/guitar-tec
 import { TechniqueElement } from "../technique/technique-element";
 import { NoteElement } from "./note-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
+import { NotationElement } from "../notation-element";
 
 /**
  * Class that handles geometry & visually relevant info of a tab note
  */
 export class TabNoteElement implements NoteElement {
+  public static createStableIdentity(
+    beatElement: TabBeatElement,
+    note: GuitarNote
+  ): string {
+    const trackLineStableIdentity =
+      beatElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `note:${trackLineStableIdentity}:${note.uuid}`;
+  }
+
   /** Guitar note element's unique identifier */
   readonly uuid: number;
   /** The note */
@@ -29,9 +39,6 @@ export class TabNoteElement implements NoteElement {
   private _textRect: Rect = new Rect();
   /** Coordinates of the note text */
   private _textCoords: Point = new Point();
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class that handles geometry & visually relevant info of a guitar note
    * @param note Guitar note
@@ -46,8 +53,6 @@ export class TabNoteElement implements NoteElement {
     this._boundingBox = new Rect();
     this._techniqueElements = [];
 
-    this._stateHash = "";
-
     this.build();
 
     this.trackElement.registerElement(this);
@@ -57,9 +62,21 @@ export class TabNoteElement implements NoteElement {
    * Fills the technique element array
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
+    const prevTechniqueElements = new Map(
+      this._techniqueElements.map((element) => [
+        element.getStableIdentity(),
+        element,
+      ])
+    );
     this._techniqueElements = [];
     for (const technique of this.note.techniques) {
-      const techniqueElement = new GuitarTechniqueElement(technique, this);
+      const techniqueElement =
+        prevTechniqueElements.get(
+          GuitarTechniqueElement.createStableIdentity(this, technique)
+        ) ?? new GuitarTechniqueElement(technique, this);
+      techniqueElement.build();
       this._techniqueElements.push(techniqueElement);
     }
   }
@@ -79,22 +96,22 @@ export class TabNoteElement implements NoteElement {
     );
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
-    this._stateHash =
+  private buildStateHash(): string {
+    return (
       `${this.note.fret}` +
-      `${this.globalBoundingBox.x}` +
-      `${this.globalBoundingBox.y}` +
-      `${this.globalBoundingBox.width}` +
-      `${this.globalBoundingBox.height}` +
+      `${this.note.noteValue}` +
+      `${this.note.octave}` +
+      `${this.barLocalBoundingBox.x}` +
+      `${this.barLocalBoundingBox.y}` +
+      `${this.barLocalBoundingBox.width}` +
+      `${this.barLocalBoundingBox.height}` +
       `${this._textRect.x}` +
       `${this._textRect.y}` +
       `${this._textRect.width}` +
       `${this._textRect.height}` +
       `${this._textCoords.x}` +
-      `${this._textCoords.y}`;
+      `${this._textCoords.y}`
+    );
   }
 
   /**
@@ -129,6 +146,15 @@ export class TabNoteElement implements NoteElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [
+      this,
+      ...this._techniqueElements.flatMap((technique) =>
+        technique.refreshOwnedNotationElements()
+      ),
+    ];
+  }
+
   /**
    * Scales the guitar note element & all it's children horizontally by the factor
    * @param scale Scale factor
@@ -146,22 +172,56 @@ export class TabNoteElement implements NoteElement {
     for (const techniqueElement of this._techniqueElements) {
       techniqueElement.scaleHorBy(scale);
     }
-
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return this.note.uuid;
+  public getStableIdentity(): string {
+    return TabNoteElement.createStableIdentity(this.beatElement, this.note);
   }
 
   /** Main clickable-area bounding box */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(
+      this.beatElement.barLocalCoords.x + this._boundingBox.x,
+      this.beatElement.barLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.beatElement.lineLocalCoords.x + this._boundingBox.x,
+      this.beatElement.lineLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
   }
 
   /** Main clickable-area bounding box in global coordinates */
@@ -187,6 +247,26 @@ export class TabNoteElement implements NoteElement {
     return this._textRect;
   }
 
+  /** Rectangle of the note text rectangle in bar-local coords */
+  public get textRectBarLocal(): Rect {
+    return new Rect(
+      this.barLocalCoords.x + this.textRect.x,
+      this.barLocalCoords.y + this.textRect.y,
+      this.textRect.width,
+      this.textRect.height
+    );
+  }
+
+  /** Rectangle of the note text rectangle in track line-local coords */
+  public get textRectLineLocal(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x + this.textRect.x,
+      this.lineLocalCoords.y + this.textRect.y,
+      this.textRect.width,
+      this.textRect.height
+    );
+  }
+
   /** Rectangle of the note text rectangle in global coords */
   public get textRectGlobal(): Rect {
     return new Rect(
@@ -200,6 +280,22 @@ export class TabNoteElement implements NoteElement {
   /** Coordinates of the note text */
   public get textCoords(): Point {
     return this._textCoords;
+  }
+
+  /** Bar-local coordinates of the note text */
+  public get textCoordsBarLocal(): Point {
+    return new Point(
+      this.barLocalCoords.x + this.textCoords.x,
+      this.barLocalCoords.y + this.textCoords.y
+    );
+  }
+
+  /** Track line-local coordinates of the note text */
+  public get textCoordsLineLocal(): Point {
+    return new Point(
+      this.lineLocalCoords.x + this.textCoords.x,
+      this.lineLocalCoords.y + this.textCoords.y
+    );
   }
 
   /** Global coordinates of the note text */
@@ -229,8 +325,8 @@ export class TabNoteElement implements NoteElement {
   /** Global coords of the note element */
   public get globalCoords(): Point {
     return new Point(
-      this.beatElement.globalCoords.x + this._boundingBox.x,
-      this.beatElement.globalCoords.y + this._boundingBox.y
+      this.beatElement.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.beatElement.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

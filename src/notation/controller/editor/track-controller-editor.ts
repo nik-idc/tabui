@@ -1,12 +1,15 @@
 import {
+  Beat,
   NoteDuration,
   GuitarNote,
+  Bar,
   BarRepeatStatus,
   TechniqueType,
   BendTechniqueOptions,
   MasterBarData,
   TupletSettings,
   DEFAULT_MASTER_BAR,
+  GuitarTechniqueType,
 } from "@/notation/model";
 import { TrackElement } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
@@ -30,12 +33,14 @@ import {
   SetRepeatStatusCommand,
   SetTechniqueCommand,
   InsertBeatsCommand,
+  InsertBeatCommand,
   ReplaceBeatsCommand,
   SetNoteCommand,
   RemoveBeatsCommand,
   PrependBarCommand,
   InsertBarCommand,
-  RemoveBarCommand,
+  RemoveBarsCommand,
+  Command,
 } from "./command";
 
 /**
@@ -59,6 +64,30 @@ export class TrackControllerEditor {
 
     this._trackElement = trackElement;
     this._selectionManager = new SelectionManager(this._trackElement.track);
+  }
+
+  private applyCommandUpdate(command: Command | undefined): void {
+    if (command === undefined) {
+      return;
+    }
+
+    this._trackElement.update(command.updateRequest);
+  }
+
+  public executeCommand<T extends Command>(command: T): T {
+    const executedCommand = this.commandManager.execute(command) as T;
+    this.applyCommandUpdate(executedCommand);
+    return executedCommand;
+  }
+
+  public undoCommand(): void {
+    const command = this.commandManager.undo();
+    this.applyCommandUpdate(command);
+  }
+
+  public redoCommand(): void {
+    const command = this.commandManager.redo();
+    this.applyCommandUpdate(command);
   }
 
   /**
@@ -88,9 +117,7 @@ export class TrackControllerEditor {
       throw Error("Handling added beat when selected note undefined");
     }
 
-    this.commandManager.execute(new AppendBeatCommand(selectedNote.bar));
-
-    this._trackElement.update();
+    this.executeCommand(new AppendBeatCommand(selectedNote.bar));
   }
 
   /**
@@ -102,15 +129,13 @@ export class TrackControllerEditor {
       throw Error("Handling added beat when selected note undefined");
     }
 
-    this.commandManager.execute(
+    this.executeCommand(
       new AppendBarCommand(
         selectedNote.bar.staff.track.score,
         selectedNote.bar.masterBar.barData
       )
     );
     selectedNote.afterAddedBar();
-
-    this._trackElement.update();
   }
 
   /**
@@ -180,9 +205,7 @@ export class TrackControllerEditor {
       throw Error("Can't set fret of a non-guitar note");
     }
 
-    this.commandManager.execute(new SetFretCommand(selectedNote.note, newFret));
-
-    this._trackElement.update();
+    this.executeCommand(new SetFretCommand(selectedNote.note, newFret));
   }
 
   /**
@@ -194,9 +217,7 @@ export class TrackControllerEditor {
     if (selection.length === 0) {
       throw Error("Selection length = 0");
     }
-    this.commandManager.execute(new SetDotsCommand(selection, newDots));
-
-    this._trackElement.update();
+    this.executeCommand(new SetDotsCommand(selection, newDots));
   }
 
   /**
@@ -209,9 +230,7 @@ export class TrackControllerEditor {
       throw Error("Selection length = 0");
     }
 
-    this.commandManager.execute(new SetDurationCommand(selection, newDuration));
-
-    this._trackElement.update();
+    this.executeCommand(new SetDurationCommand(selection, newDuration));
   }
 
   /**
@@ -232,9 +251,7 @@ export class TrackControllerEditor {
     }
 
     const settings: TupletSettings = { normalCount, tupletCount };
-    this.commandManager.execute(new SetTupletCommand(selection, settings));
-
-    this._trackElement.update();
+    this.executeCommand(new SetTupletCommand(selection, settings));
   }
 
   /**
@@ -251,11 +268,13 @@ export class TrackControllerEditor {
       return;
     }
 
-    this.commandManager.execute(
-      new SetTempoCommand(selectedNote.bar.masterBar, newTempo)
+    const nextBar = selectedNote.staff.getNextBar(selectedNote.bar);
+    this.executeCommand(
+      new SetTempoCommand(selectedNote.bar.masterBar, newTempo, [
+        selectedNote.bar.uuid,
+        ...(nextBar !== null ? [nextBar.uuid] : []),
+      ])
     );
-
-    this._trackElement.update();
   }
 
   /**
@@ -283,7 +302,7 @@ export class TrackControllerEditor {
       return;
     }
 
-    this.commandManager.execute(
+    this.executeCommand(
       new SetTimeSigCommand(
         selectedNote.staff.track.score,
         selectedNote.bar.masterBar,
@@ -291,8 +310,6 @@ export class TrackControllerEditor {
         duration
       )
     );
-
-    this._trackElement.update();
   }
 
   /**
@@ -307,11 +324,16 @@ export class TrackControllerEditor {
       );
     }
 
-    this.commandManager.execute(
-      new SetRepeatStatusCommand(selectedNote.bar.masterBar, status)
+    const masterBarIndex = selectedNote.staff.track.score.masterBars.indexOf(
+      selectedNote.bar.masterBar
     );
-
-    this._trackElement.update();
+    this.executeCommand(
+      new SetRepeatStatusCommand(
+        selectedNote.bar.masterBar,
+        status,
+        masterBarIndex
+      )
+    );
   }
 
   /**
@@ -329,12 +351,9 @@ export class TrackControllerEditor {
         ? [selectedNote.note]
         : this._selectionManager.selectionAsBeats.flatMap((b) => b.notes);
 
-    const command = new SetTechniqueCommand(selectionNotes, type, bendOptions);
-    this.commandManager.execute(command);
-
-    if (command.executed) {
-      this._trackElement.update();
-    }
+    this.executeCommand(
+      new SetTechniqueCommand(selectionNotes, type, bendOptions)
+    );
   }
 
   /**
@@ -400,18 +419,16 @@ export class TrackControllerEditor {
 
       if (selectedNote !== undefined) {
         // Insert if currently not selecting
-        this.commandManager.execute(
+        this.executeCommand(
           new InsertBeatsCommand(
-            selectedNote.bar,
-            selectedNote.beatIndex,
+            selectedNote.bar.staff,
+            selectedNote.beat,
             clipboard
           )
         );
       } else {
         // Replace currently selected
-        this.commandManager.execute(
-          new ReplaceBeatsCommand(selectionBeats, clipboard)
-        );
+        this.executeCommand(new ReplaceBeatsCommand(selectionBeats, clipboard));
         this.clearSelection();
       }
     } else if (clipboard !== undefined) {
@@ -422,7 +439,7 @@ export class TrackControllerEditor {
       }
 
       // Set note value if selected is a note element
-      this.commandManager.execute(
+      this.executeCommand(
         new SetNoteCommand(
           selectedNote.note,
           clipboard.noteValue,
@@ -430,20 +447,72 @@ export class TrackControllerEditor {
         )
       );
     }
-
-    this._trackElement.update();
   }
 
   /**
    * Delete selected beats
    */
   public deleteSelectedBeats(): void {
-    this.commandManager.execute(
+    this.executeCommand(
       new RemoveBeatsCommand(this._selectionManager.selectionBeats)
     );
     this.clearSelection();
+  }
 
-    this._trackElement.update();
+  private getSelectedNoteIndex(): number {
+    return this._selectionManager.selectedNote?.noteIndex ?? 0;
+  }
+
+  private selectBeatModel(beat: Beat, noteIndex: number): void {
+    this._selectionManager.selectNote(beat.notes[noteIndex]);
+  }
+
+  private selectInsertedBeat(
+    command: InsertBeatCommand,
+    noteIndex: number
+  ): void {
+    const insertedBeat = command.insertBeatResult?.beats[0];
+    if (insertedBeat === undefined) {
+      throw Error("Cannot select inserted beat before command executes");
+    }
+
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(insertedBeat, noteIndex);
+  }
+
+  public insertBeatBeforeSelected(): void {
+    const noteIndex = this.getSelectedNoteIndex();
+    const firstBeat = this._selectionManager.selectionAsBeats[0];
+    const insertIndex = firstBeat.bar.beats.indexOf(firstBeat);
+
+    const command = this.executeCommand(
+      new InsertBeatCommand(firstBeat.bar, insertIndex)
+    );
+    this.selectInsertedBeat(command, noteIndex);
+  }
+
+  public insertBeatAfterSelected(): void {
+    const noteIndex = this.getSelectedNoteIndex();
+    const selectionBeats = this._selectionManager.selectionAsBeats;
+    const lastBeat = selectionBeats[selectionBeats.length - 1];
+    const insertIndex = lastBeat.bar.beats.indexOf(lastBeat) + 1;
+
+    const command = this.executeCommand(
+      new InsertBeatCommand(lastBeat.bar, insertIndex)
+    );
+    this.selectInsertedBeat(command, noteIndex);
+  }
+
+  public removeSelectedBeat(): void {
+    const noteIndex = this.getSelectedNoteIndex();
+    const selectionBeats = this._selectionManager.selectionAsBeats;
+    const firstBeat = selectionBeats[0];
+    const previousBeat = firstBeat.bar.staff.getPrevBeat(firstBeat);
+
+    this.executeCommand(new RemoveBeatsCommand(selectionBeats));
+    const targetBeat = previousBeat ?? firstBeat.bar.beats[0];
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(targetBeat, noteIndex);
   }
 
   /**
@@ -451,11 +520,9 @@ export class TrackControllerEditor {
    * @param bar Bar to append
    */
   public appendBar(masterBarData: MasterBarData = DEFAULT_MASTER_BAR): void {
-    this.commandManager.execute(
+    this.executeCommand(
       new AppendBarCommand(this._trackElement.track.score, masterBarData)
     );
-
-    this._trackElement.update();
   }
 
   /**
@@ -463,11 +530,9 @@ export class TrackControllerEditor {
    * @param bar Bar to prepend
    */
   public prependBar(masterBarData: MasterBarData = DEFAULT_MASTER_BAR): void {
-    this.commandManager.execute(
+    this.executeCommand(
       new PrependBarCommand(this._trackElement.track.score, masterBarData)
     );
-
-    this._trackElement.update();
   }
 
   /**
@@ -485,15 +550,13 @@ export class TrackControllerEditor {
       throw Error(`Invalid bar index: '${barIndex}'`);
     }
 
-    this.commandManager.execute(
+    this.executeCommand(
       new InsertBarCommand(
         this._trackElement.track.score,
         barIndex,
         masterBarData
       )
     );
-
-    this._trackElement.update();
   }
 
   /**
@@ -503,16 +566,120 @@ export class TrackControllerEditor {
   public removeBar(barIndex: number): void {
     if (
       barIndex < 0 ||
-      barIndex > this._trackElement.track.score.masterBars.length
+      barIndex >= this._trackElement.track.score.masterBars.length
     ) {
       throw Error(`Invalid bar index: '${barIndex}'`);
     }
 
-    this.commandManager.execute(
-      new RemoveBarCommand(this._trackElement.track.score, barIndex)
+    this.executeCommand(
+      new RemoveBarsCommand(this._trackElement.track.score, barIndex)
+    );
+  }
+
+  private getSelectedBarForInsert(isInsertBefore: boolean): Bar {
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote !== undefined) {
+      return selectedNote.bar;
+    }
+
+    const selectionBeats = this._selectionManager.selectionAsBeats;
+    const selectedBeat =
+      selectionBeats[isInsertBefore ? 0 : selectionBeats.length - 1];
+    if (selectedBeat === undefined) {
+      throw Error("Selected bar is undefined");
+    }
+
+    return selectedBeat.bar;
+  }
+
+  private selectFirstBeatInBar(bar: Bar): void {
+    const firstBeat = bar.beats[0];
+    if (firstBeat === undefined) {
+      throw Error("Can't select first beat in empty bar");
+    }
+
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(firstBeat, 0);
+  }
+
+  public insertBarBeforeSelected(): void {
+    const selectedBar = this.getSelectedBarForInsert(true);
+    const insertIndex = selectedBar.staff.track.score.masterBars.indexOf(
+      selectedBar.masterBar
     );
 
-    this._trackElement.update();
+    this.executeCommand(
+      new InsertBarCommand(
+        selectedBar.staff.track.score,
+        insertIndex,
+        DEFAULT_MASTER_BAR
+      )
+    );
+    this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex]);
+  }
+
+  public insertBarAfterSelected(): void {
+    const selectedBar = this.getSelectedBarForInsert(false);
+    const insertIndex = selectedBar.staff.track.score.masterBars.indexOf(
+      selectedBar.masterBar
+    );
+
+    this.executeCommand(
+      new InsertBarCommand(
+        selectedBar.staff.track.score,
+        insertIndex + 1,
+        DEFAULT_MASTER_BAR
+      )
+    );
+    this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex + 1]);
+  }
+
+  public removeSelectedBar(): void {
+    const selectedBeats = this._selectionManager.selectionAsBeats;
+    const selectedNote = this._selectionManager.selectedNote;
+    const score = this._trackElement.track.score;
+    const bars =
+      selectedBeats.length > 0
+        ? selectedBeats.map((beat) => beat.bar)
+        : selectedNote !== undefined
+          ? [selectedNote.bar]
+          : [];
+    const selectedBarIndices = Array.from(
+      new Set(
+        bars
+          .map((bar) => score.masterBars.indexOf(bar.masterBar))
+          .filter((index) => index >= 0)
+      )
+    ).sort((a, b) => a - b);
+
+    if (selectedBarIndices.length === 0) {
+      throw Error("Selected bar is undefined");
+    }
+
+    const removableBarIndices =
+      selectedBarIndices.length >= score.masterBars.length
+        ? selectedBarIndices.slice(0, score.masterBars.length - 1)
+        : selectedBarIndices;
+
+    if (removableBarIndices.length === 0) {
+      this._selectionManager.clearSelection();
+      this.selectFirstNote();
+      return;
+    }
+
+    const firstRemovedBarIndex = removableBarIndices[0];
+    const selectedStaff = bars[0].staff;
+
+    this.executeCommand(new RemoveBarsCommand(score, removableBarIndices));
+
+    const selectedTargetBeat =
+      firstRemovedBarIndex > 0
+        ? selectedStaff.bars[firstRemovedBarIndex - 1].beats[
+            selectedStaff.bars[firstRemovedBarIndex - 1].beats.length - 1
+          ]
+        : selectedStaff.bars[0].beats[0];
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(selectedTargetBeat, 0);
   }
 
   public get selectionManager(): SelectionManager {

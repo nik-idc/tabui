@@ -1,4 +1,3 @@
-import { Staff } from "@/notation/model";
 import { Point, randomInt, Rect } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
@@ -18,6 +17,13 @@ import { TechGapElement } from "./tech-gap-element";
  * NotationStyleLineElement for the tab and the other for sheet notation
  */
 export class NotationStyleLineElement implements NotationElement {
+  public static createStableIdentity(
+    staffLineElement: StaffLineElement,
+    notationStyle: NotationStyle
+  ): string {
+    return `style-line:${staffLineElement.getStableIdentity()}:${notationStyle}`;
+  }
+
   /** Unique identifier for the staff line element */
   readonly uuid: number;
   /** Parent staff line element */
@@ -29,13 +35,13 @@ export class NotationStyleLineElement implements NotationElement {
 
   /** Bar elements on this line */
   private _barElements: BarElement[];
+  /** Bar data placed into this presentation line. */
+  private _staffLineData: StaffLineData;
   /** Tech gap element */
   private _techGapElement: TechGapElement;
 
   /** Line encapsulating rectangle */
   private _boundingBox: Rect;
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that handles geometry of a single notation style line in the staff line
@@ -44,7 +50,8 @@ export class NotationStyleLineElement implements NotationElement {
    */
   constructor(
     staffLineElement: StaffLineElement,
-    notationStyle: NotationStyle
+    notationStyle: NotationStyle,
+    staffLineData: StaffLineData
   ) {
     this.uuid = randomInt();
     this.staffLineElement = staffLineElement;
@@ -52,11 +59,11 @@ export class NotationStyleLineElement implements NotationElement {
     this.notationStyle = notationStyle;
 
     this._barElements = [];
+    this._staffLineData = staffLineData;
     this._techGapElement = new TechGapElement(this);
+    this._techGapElement.build();
 
     this._boundingBox = new Rect();
-
-    this._stateHash = "";
 
     this.build();
 
@@ -67,11 +74,20 @@ export class NotationStyleLineElement implements NotationElement {
    * Builds the bar elements array for this notation style line
    */
   public build(): void {
-    this._barElements = [];
-    for (const data of this.staffLineElement.staffLineData) {
-      const barElement = new BarElement(data.bar, this, data.largestBarWidth);
-      this._barElements.push(barElement);
-    }
+    this.trackElement.registerElement(this);
+    this._techGapElement = new TechGapElement(this);
+    this._techGapElement.build();
+
+    this._barElements = this._staffLineData.map(
+      (data) =>
+        new BarElement(
+          data.bar,
+          this.trackElement,
+          this.notationStyle,
+          data.finalizedWidth,
+          this
+        )
+    );
   }
 
   /**
@@ -97,10 +113,7 @@ export class NotationStyleLineElement implements NotationElement {
       this._barElements[0].boundingBox.height;
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -108,7 +121,7 @@ export class NotationStyleLineElement implements NotationElement {
         `${this.globalBoundingBox.height}`,
     ];
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -133,6 +146,17 @@ export class NotationStyleLineElement implements NotationElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    elements.push(...this._techGapElement.refreshOwnedNotationElements());
+    for (const barElement of this._barElements) {
+      elements.push(...barElement.refreshOwnedNotationElements());
+    }
+
+    return elements;
+  }
+
   /**
    * Scales the element & its children horizontally by the factor
    * @param scale Scale factor
@@ -146,10 +170,6 @@ export class NotationStyleLineElement implements NotationElement {
     for (const barElement of this._barElements) {
       barElement.scaleHorBy(scale);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -164,9 +184,6 @@ export class NotationStyleLineElement implements NotationElement {
       }
       this._techGapElement.scaleHorBy(1);
 
-      // Calculating state hash at the last step of
-      // element's update process - layout
-      this.calcStateHash();
       return;
     }
 
@@ -192,10 +209,6 @@ export class NotationStyleLineElement implements NotationElement {
     }
     this._techGapElement.scaleHorBy(scale);
     this._boundingBox.width *= scale;
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -222,11 +235,14 @@ export class NotationStyleLineElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return this.staffLineElement.getModelUUID() + this.notationStyle;
+  public getStableIdentity(): string {
+    return NotationStyleLineElement.createStableIdentity(
+      this.staffLineElement,
+      this.notationStyle
+    );
   }
 
   /** Bar elements on this line */
@@ -242,6 +258,24 @@ export class NotationStyleLineElement implements NotationElement {
   /** Line layout bounding box */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.staffLineElement.lineLocalCoords.x + this._boundingBox.x,
+      this.staffLineElement.lineLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
   }
 
   /** This element's layout bounding box in global coordinates */

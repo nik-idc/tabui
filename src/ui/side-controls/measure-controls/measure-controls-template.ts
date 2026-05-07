@@ -15,4 +15,7 @@ export class MeasureControlsTemplate {
   readonly timeSignatureButton: HTMLImageElement = createImage();
   readonly repeatStartButton: HTMLImageElement = createImage();
   readonly repeatEndButton: HTMLImageElement = createImage();
+  readonly insertBarBeforeButton: HTMLImageElement = createImage();
+  readonly insertBarAfterButton: HTMLImageElement = createImage();
+  readonly removeBarButton: HTMLImageElement = createImage();
 }

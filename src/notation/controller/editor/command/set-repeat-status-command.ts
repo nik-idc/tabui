@@ -1,13 +1,5 @@
-import {
-  Score,
-  Beat,
-  ScoreEditor,
-  BeatArrayOperationOutput,
-  Bar,
-  MasterBar,
-  BarRepeatStatus,
-} from "@/notation/model";
-import { Command } from "./command";
+import { MasterBar, BarRepeatStatus } from "@/notation/model";
+import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Set bar repeat status command
@@ -21,16 +13,23 @@ export class SetRepeatStatusCommand implements Command {
   private _oldRepeatStatus: BarRepeatStatus;
   /** True if executed, false otherwise*/
   private _executed: boolean = false;
+  /** Index of the affected master bar */
+  private _affectedMasterBarIndex: number;
 
   /**
    * Set guitar bar repeat status command
    * @param bar Bar whose repeat status to set
    * @param newRepeatStatus New repeat status value
    */
-  constructor(bar: MasterBar, newRepeatStatus: BarRepeatStatus) {
+  constructor(
+    bar: MasterBar,
+    newRepeatStatus: BarRepeatStatus,
+    affectedMasterBarIndex: number
+  ) {
     this._bar = bar;
     this._newRepeatStatus = newRepeatStatus;
     this._oldRepeatStatus = bar.repeatStatus;
+    this._affectedMasterBarIndex = affectedMasterBarIndex;
   }
 
   /**
@@ -61,5 +60,14 @@ export class SetRepeatStatusCommand implements Command {
     }
 
     this._bar.repeatStatus = this._newRepeatStatus;
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [this._affectedMasterBarIndex],
+      firstAffectedMasterBarIndex: this._affectedMasterBarIndex,
+      reason: "repeat-status",
+    };
   }
 }

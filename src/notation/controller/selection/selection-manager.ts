@@ -237,7 +237,7 @@ export class SelectionManager {
     this._clipboard =
       this._selectedNote !== undefined
         ? this._selectedNote.note.deepCopy()
-        : this._selectionBeats;
+        : this._selectionBeats.map((beat) => beat.deepCopy());
   }
 
   /**

@@ -1,11 +1,5 @@
 import {
-  Score,
-  Beat,
   ScoreEditor,
-  BeatArrayOperationOutput,
-  Bar,
-  MasterBar,
-  BarRepeatStatus,
   Technique,
   BendTechniqueOptions,
   Note,
@@ -13,7 +7,7 @@ import {
   GuitarTechnique,
   GuitarTechniqueType,
 } from "@/notation/model";
-import { Command } from "./command";
+import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Set technique for notes command
@@ -110,5 +104,83 @@ export class SetTechniqueCommand implements Command {
   /** True if executed, false otherwise */
   public get executed(): boolean {
     return this._executed;
+  }
+
+  public get isTechniqueLabelVerticalUpdate(): boolean {
+    if (this.isTechniqueLabelType(this._newTechniqueType)) {
+      return true;
+    }
+
+    for (const oldTechniques of this._oldTechniquesMap.values()) {
+      if (
+        oldTechniques.some((technique) =>
+          this.isTechniqueLabelType(technique.type)
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public get affectedModelUUIDs(): number[] {
+    return this._notes.map((note) => note.uuid);
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    if (this.isTechniqueLabelVerticalUpdate) {
+      return {
+        updateType: "Vertical",
+        affectedModelUUIDs: this.affectedModelUUIDs,
+      };
+    }
+
+    if (this.isInlineTechniqueTargetedUpdate) {
+      return {
+        updateType: "Targeted",
+        affectedModelUUIDs: this.affectedModelUUIDs,
+      };
+    }
+
+    return {
+      updateType: "Full",
+    };
+  }
+
+  private get isInlineTechniqueTargetedUpdate(): boolean {
+    if (this.isInlineTechniqueType(this._newTechniqueType)) {
+      return true;
+    }
+
+    for (const oldTechniques of this._oldTechniquesMap.values()) {
+      if (
+        oldTechniques.some((technique) =>
+          this.isInlineTechniqueType(technique.type)
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private isTechniqueLabelType(type: TechniqueType): boolean {
+    return (
+      type === GuitarTechniqueType.PalmMute ||
+      type === GuitarTechniqueType.LetRing ||
+      type === GuitarTechniqueType.Vibrato ||
+      type === GuitarTechniqueType.Bend
+    );
+  }
+
+  private isInlineTechniqueType(type: TechniqueType): boolean {
+    return (
+      type === GuitarTechniqueType.HammerOnOrPullOff ||
+      type === GuitarTechniqueType.NaturalHarmonic ||
+      type === GuitarTechniqueType.PinchHarmonic ||
+      type === GuitarTechniqueType.Slide
+    );
   }
 }

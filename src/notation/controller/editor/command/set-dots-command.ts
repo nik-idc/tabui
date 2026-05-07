@@ -1,5 +1,9 @@
 import { Beat, ScoreEditor } from "@/notation/model";
-import { Command } from "./command";
+import {
+  Command,
+  CommandUpdateRequest,
+  getAffectedMasterBarIndicesFromBeats,
+} from "./command";
 
 /**
  * Set beats dots
@@ -13,6 +17,7 @@ export class SetDotsCommand implements Command {
   private _oldDotsMap: Map<number, number>;
   /** True if executed, false otherwise*/
   private _executed: boolean = false;
+  private _affectedMasterBarIndices: number[];
 
   /**
    * Set beats dots
@@ -22,6 +27,8 @@ export class SetDotsCommand implements Command {
   constructor(beats: Beat[], newDots: number) {
     this._beats = beats;
     this._newDots = newDots;
+    this._affectedMasterBarIndices =
+      getAffectedMasterBarIndicesFromBeats(beats);
 
     this._oldDotsMap = new Map();
     for (const beat of this._beats) {
@@ -57,5 +64,14 @@ export class SetDotsCommand implements Command {
     }
 
     ScoreEditor.setDots(this._beats, this._newDots);
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: this._affectedMasterBarIndices,
+      firstAffectedMasterBarIndex: this._affectedMasterBarIndices[0] ?? 0,
+      reason: "dots",
+    };
   }
 }

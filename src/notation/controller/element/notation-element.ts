@@ -15,6 +15,8 @@ export interface NotationElement {
   get stateHash(): string;
 
   get boundingBox(): Rect;
+  readonly lineLocalCoords: Point;
+  readonly lineLocalBoundingBox: Rect;
   get globalCoords(): Point;
   get globalBoundingBox(): Rect;
 
@@ -22,7 +24,8 @@ export interface NotationElement {
   get rect(): Rect;
   get globalRect(): Rect;
 
-  getModelUUID(): number;
+  getStableIdentity(): string;
+  refreshOwnedNotationElements(): NotationElement[];
 }
 
 export type NotationElementClass = new (...args: any[]) => NotationElement;

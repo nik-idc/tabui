@@ -1,5 +1,9 @@
 import { Beat, ScoreEditor, TupletSettings } from "@/notation/model";
-import { Command } from "./command";
+import {
+  Command,
+  CommandUpdateRequest,
+  getAffectedMasterBarIndicesFromBeats,
+} from "./command";
 
 /**
  * Set beats tuplet settings
@@ -13,6 +17,7 @@ export class SetTupletCommand implements Command {
   private _oldTupletMap: Map<number, TupletSettings | null>;
   /** True if executed, false otherwise*/
   private _executed: boolean = false;
+  private _affectedMasterBarIndices: number[];
 
   /**
    * Set beats tuplet settings
@@ -22,6 +27,8 @@ export class SetTupletCommand implements Command {
   constructor(beats: Beat[], newTupletSettings: TupletSettings) {
     this._beats = beats;
     this._newTupletSettings = newTupletSettings;
+    this._affectedMasterBarIndices =
+      getAffectedMasterBarIndicesFromBeats(beats);
 
     this._oldTupletMap = new Map();
     for (const beat of this._beats) {
@@ -57,5 +64,14 @@ export class SetTupletCommand implements Command {
     }
 
     ScoreEditor.setTuplet(this._beats, this._newTupletSettings);
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: this._affectedMasterBarIndices,
+      firstAffectedMasterBarIndex: this._affectedMasterBarIndices[0] ?? 0,
+      reason: "tuplet",
+    };
   }
 }

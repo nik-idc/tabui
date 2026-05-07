@@ -171,22 +171,28 @@ export class GuitarTechniqueDescriptors {
     width: number
   ): SVGPathDescriptor {
     const edgeWidth = width / 8;
+    // Start at the vertical middle to make the humps symmetrical
+    const startY = y + height / 2;
+
     const d =
-      `M ${x} ${y + height} ` +
-      `l ${edgeWidth} ${-height} ` +
-      `l ${edgeWidth} ${height} ` +
-      `l ${edgeWidth} ${-height} ` +
-      `l ${edgeWidth} ${height} ` +
-      `l ${edgeWidth} ${-height} ` +
-      `l ${edgeWidth} ${height} ` +
-      `l ${edgeWidth} ${-height} ` +
-      `l ${edgeWidth} ${height}`;
+      `M ${x} ${startY} ` +
+      // q [controlX] [controlY] [endX] [endY]
+      `q ${edgeWidth / 2} ${-height} ${edgeWidth} 0 ` + // Upward hump
+      `t ${edgeWidth} 0 ` + // Smooth shorthand (Automatic reflection)
+      `t ${edgeWidth} 0 ` +
+      `t ${edgeWidth} 0 ` +
+      `t ${edgeWidth} 0 ` +
+      `t ${edgeWidth} 0 ` +
+      `t ${edgeWidth} 0 ` +
+      `t ${edgeWidth} 0 `;
 
     return {
       d,
       attrs: {
         stroke: "var(--tu-notation-ink)",
         fill: "none",
+        strokeLinecap: "round", // Makes the ends look professional
+        "stroke-width": "1.5", // Vibrato usually needs a bit of weight
       },
     };
   }
@@ -203,6 +209,8 @@ export class GuitarTechniqueDescriptors {
         x: `${x}`,
         y: `${y}`,
         "font-size": `${fontSize}`,
+        "font-weight": "bold",
+        "font-style": "italic",
         "text-anchor": "start",
         "dominant-baseline": "hanging",
         fill: "var(--tu-notation-text)",

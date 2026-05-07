@@ -17,6 +17,13 @@ import { TechGapElement } from "./tech-gap-element";
  * Class representing a single line of a staff line's technique label gap
  */
 export class TechGapLineElement implements NotationElement {
+  public static createStableIdentity(
+    techGapElement: TechGapElement,
+    techLineNumber: TechLineNumber
+  ): string {
+    return `tech-gap-line:${techGapElement.getStableIdentity()}:${techLineNumber}`;
+  }
+
   /** Technique label element's unique identifier */
   readonly uuid: number;
   /** Parent staff gap element */
@@ -31,12 +38,13 @@ export class TechGapLineElement implements NotationElement {
   private _beatsLabelsMap = new Map<BeatElement, Set<TechniqueType>>();
   /** Label elements present on this tech gap line */
   private _labelElements: TechniqueLabelElement[];
+  /** Label elements indexed by stable identity */
+  private _labelElementsByIdentity: Map<string, TechniqueLabelElement>;
+  /** Previous label elements indexed by stable identity during build */
+  private _prevLabelElementsByIdentity: Map<string, TechniqueLabelElement>;
 
   /** Outer rectangle */
   private _boundingBox?: Rect;
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class representing a single line of a staff line's
    * technique label gap
@@ -49,10 +57,10 @@ export class TechGapLineElement implements NotationElement {
     this.techLineNumber = techLineNumber;
     this.trackElement = this.techGapElement.trackElement;
 
-    this._stateHash = "";
-
     this._beatsLabelsMap = new Map();
     this._labelElements = [];
+    this._labelElementsByIdentity = new Map();
+    this._prevLabelElementsByIdentity = new Map();
 
     this.trackElement.registerElement(this);
   }
@@ -76,7 +84,23 @@ export class TechGapLineElement implements NotationElement {
       return;
     }
 
-    let labelElement: TechniqueLabelElement;
+    const stableIdentity =
+      beatElement instanceof TabBeatElement
+        ? GuitarTechniqueLabelElement.createStableIdentity(
+            this,
+            technique as GuitarTechnique,
+            beatElement
+          )
+        : "";
+    let labelElement = this._prevLabelElementsByIdentity.get(stableIdentity);
+    if (labelElement !== undefined) {
+      labelElement.build();
+      this._labelElements.push(labelElement);
+      this._labelElementsByIdentity.set(stableIdentity, labelElement);
+      beatsLabels.add(technique.type);
+      return;
+    }
+
     if (beatElement instanceof TabBeatElement) {
       labelElement = new GuitarTechniqueLabelElement(
         technique as GuitarTechnique,
@@ -88,6 +112,7 @@ export class TechGapLineElement implements NotationElement {
     }
 
     this._labelElements.push(labelElement);
+    this._labelElementsByIdentity.set(stableIdentity, labelElement);
     beatsLabels.add(technique.type);
 
     if (this._boundingBox === undefined) {
@@ -100,24 +125,41 @@ export class TechGapLineElement implements NotationElement {
     }
   }
 
-  /** Dummy build function to comply with the interface
-   * TODO: Rethink this element's update process
+  /**
+   * Clears transient label state before repopulating.
    */
-  public build(): void {}
+  public build(): void {
+    this.trackElement.registerElement(this);
+    this._prevLabelElementsByIdentity = new Map(this._labelElementsByIdentity);
+    this._beatsLabelsMap = new Map();
+    this._labelElements = [];
+    this._labelElementsByIdentity.clear();
+    this._boundingBox = undefined;
+  }
 
   /**
    * Goes through all the technique labels and sets their dimensions
    */
   public measure(): void {
+    if (this._labelElements.length === 0) {
+      this._boundingBox = undefined;
+      return;
+    }
+
+    if (this._boundingBox === undefined) {
+      this._boundingBox = new Rect();
+    }
+    this._boundingBox.setDimensions(
+      this.techGapElement.boundingBox.width,
+      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+    );
+
     for (const label of this._labelElements) {
       label.measure();
     }
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [];
 
     if (this.globalBoundingBox.width !== undefined) {
@@ -127,16 +169,20 @@ export class TechGapLineElement implements NotationElement {
       hashArr.push(`${this.globalBoundingBox.height}`);
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
    * Goes through all the technique labels and sets their coordinates
    */
   public layout(): void {
+    if (this._boundingBox === undefined) {
+      return;
+    }
+
     const prevLine = this.techGapElement.getPrevGapLine(this);
     const y = prevLine?.boundingBox.bottom ?? 0;
-    this._boundingBox?.setCoords(0, y);
+    this._boundingBox.setCoords(0, y);
 
     for (const label of this._labelElements) {
       label.layout();
@@ -147,6 +193,15 @@ export class TechGapLineElement implements NotationElement {
     this.build();
     this.measure();
     this.layout();
+  }
+
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [
+      this,
+      ...this._labelElements.flatMap((label) =>
+        label.refreshOwnedNotationElements()
+      ),
+    ];
   }
 
   /**
@@ -166,11 +221,14 @@ export class TechGapLineElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this._boundingBox === undefined ? "" : this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return this.techGapElement.getModelUUID() + this.techLineNumber;
+  public getStableIdentity(): string {
+    return TechGapLineElement.createStableIdentity(
+      this.techGapElement,
+      this.techLineNumber
+    );
   }
 
   /** Global coords of the notation style line element */
@@ -185,6 +243,24 @@ export class TechGapLineElement implements NotationElement {
   public get boundingBox(): Rect {
     // Fallback keeps interface contract for not-yet-measured instances.
     return this._boundingBox ?? new Rect();
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.techGapElement.lineLocalCoords.x + (this._boundingBox?.x ?? 0),
+      this.techGapElement.lineLocalCoords.y + (this._boundingBox?.y ?? 0)
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox?.width ?? 0,
+      this._boundingBox?.height ?? 0
+    );
   }
 
   /** This element's layout bounding box in global coordinates */

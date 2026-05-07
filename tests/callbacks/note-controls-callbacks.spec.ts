@@ -27,6 +27,9 @@ describe("NoteControlsDefaultCallbacks", () => {
         durationButtons,
         dot1Button: makeButton(),
         dot2Button: makeButton(),
+        insertBeatBeforeButton: makeButton(),
+        insertBeatAfterButton: makeButton(),
+        removeBeatButton: makeButton(),
         tuplet2Button: makeButton(),
         tuplet3Button: makeButton(),
         tupletButton: makeButton(),
@@ -46,6 +49,9 @@ describe("NoteControlsDefaultCallbacks", () => {
     callbacks.bind();
     dispatchClick(durationButtons[0]);
     dispatchClick(component.template.dot2Button);
+    dispatchClick(component.template.insertBeatBeforeButton);
+    dispatchClick(component.template.insertBeatAfterButton);
+    dispatchClick(component.template.removeBeatButton);
     dispatchClick(component.template.tuplet3Button);
     dispatchClick(component.template.tupletButton);
 
@@ -54,9 +60,18 @@ describe("NoteControlsDefaultCallbacks", () => {
     );
     expect(notationComponent.trackController.setDots).toHaveBeenCalledWith(2);
     expect(
+      notationComponent.trackController.insertBeatBeforeSelected
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      notationComponent.trackController.insertBeatAfterSelected
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      notationComponent.trackController.removeSelectedBeat
+    ).toHaveBeenCalledTimes(1);
+    expect(
       notationComponent.trackController.setSelectedBeatsTuplet
     ).toHaveBeenCalledWith(3, 2);
-    expect(renderFunc).toHaveBeenCalledTimes(3);
+    expect(renderFunc).toHaveBeenCalledTimes(6);
     expect(captureKeyboard).toHaveBeenCalledTimes(1);
     expect(component.showTupletControls).toHaveBeenCalledTimes(1);
     expect(tupletBindSpy).toHaveBeenCalledTimes(2);

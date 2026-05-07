@@ -1,30 +1,32 @@
-import { Guitar, MasterBar, Track } from "@/notation/model";
+import { Track } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import {
+  NotationStyle,
   StaffLineData,
   StaffLineElement,
 } from "@/notation/controller/element/staff/staff-line-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
-import { getBarWidth } from "@/notation/controller/element/bar/bar-element";
 import { VertLine } from "@/shared/rendering/geometry/line";
 import { NotationElement } from "@/notation/controller/element/notation-element";
-
 /**
- * Data needed to build a track bar:
- * Width to match & master bar index
+ * Bar placement data for one master bar inside a presentation track line.
+ * Presentation shells create the actual BarElements from this placement data.
  */
-export type TrackLineBarData = {
-  largestBarWidth: number;
+export type TrackLineBar = {
+  intrinsicWidth: number;
+  finalizedWidth: number;
+  masterBarUUID: number;
   masterBarIndex: number;
 };
 
-/**
- * Data needed to build a track line:
- * Array of objects: Largest width for the master bar at the specified index
- */
-export type TrackLineData = TrackLineBarData[];
+/** Bar placement data for one rendered track line. */
+export type TrackLineBars = TrackLineBar[];
+
+// Transitional alias for legacy tests/helpers that still use TrackLineData
+// naming. Remove once old horizontal helper code is cleaned up.
+export type TrackLineData = TrackLineBars;
 
 type OutlineLines = {
   left: VertLine;
@@ -35,6 +37,17 @@ type OutlineLines = {
  * Class that handles all geometry & visually relevant info of a track line
  */
 export class TrackLineElement implements NotationElement {
+  public static createStableIdentity(
+    track: Track,
+    trackLineBars: TrackLineBars
+  ): string {
+    const ownershipKey = trackLineBars
+      .map((data) => data.masterBarUUID)
+      .join(":");
+
+    return `track-line:${track.uuid}:${ownershipKey}`;
+  }
+
   /** Unique identifier for the track line element */
   readonly uuid: number;
   /** Track */
@@ -46,38 +59,40 @@ export class TrackLineElement implements NotationElement {
   private _staffLineElements: StaffLineElement[];
   /** Track line info (tempo) */
   private _trackLineInfoElement: TrackLineInfoElement | null;
+  /** Notation elements owned by this track line in traversal order. */
+  private _ownedNotationElements: NotationElement[];
 
   /** Track line encapsulating rectangle */
   private _boundingBox: Rect;
   /** Left & right outline line for when there are more than 1 staves */
+  // FIX: There are some errors with how outline lines are formed.
+  // Especially noticeable when adding new beats/bars by moving right
   private _outlineLines?: OutlineLines;
-  /** Data necessary to build a track line */
-  private _trackLineData: TrackLineData;
-  /** String encoding the state of this element */
-  private _stateHash: string;
+  /** Bar elements placed by TrackElement into this presentation line. */
+  private _trackLineBars: TrackLineBars;
+  /** Stable ownership identity captured when the line data is assigned. */
+  private _stableIdentity: string;
 
   /**
    * Class that handles all geometry & visually relevant info of a track line
-   * @param track Track
    * @param trackElement Parent track element
-   * @param trackLineData Data necessary to build the track line element
+   * @param trackLineBars Bar placement data for this track line
    */
-  constructor(
-    track: Track,
-    trackElement: TrackElement,
-    trackLineData: TrackLineData
-  ) {
+  constructor(trackElement: TrackElement, trackLineBars: TrackLineBars) {
     this.uuid = randomInt();
-    this.track = track;
+    this.track = trackElement.track;
     this.trackElement = trackElement;
 
     this._staffLineElements = [];
     this._trackLineInfoElement = null;
+    this._ownedNotationElements = [];
 
     this._boundingBox = new Rect();
-    this._trackLineData = trackLineData;
-
-    this._stateHash = "";
+    this._trackLineBars = trackLineBars;
+    this._stableIdentity = TrackLineElement.createStableIdentity(
+      this.track,
+      this._trackLineBars
+    );
 
     this.build();
 
@@ -88,17 +103,23 @@ export class TrackLineElement implements NotationElement {
    * Fills staff lines array
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
     this._staffLineElements = [];
     for (const staff of this.track.staves) {
-      const data: StaffLineData = this._trackLineData.map((td) => {
+      // Convert track-line placement data into staff-local data. Missing model
+      // bars are intentionally not guarded: the model is expected to be valid
+      // before TrackElement updates run.
+      const data: StaffLineData = this._trackLineBars.map((lineBars) => {
         return {
-          largestBarWidth: td.largestBarWidth,
-          bar: staff.bars[td.masterBarIndex],
+          intrinsicWidth: lineBars.intrinsicWidth,
+          finalizedWidth: lineBars.finalizedWidth,
+          bar: staff.bars[lineBars.masterBarIndex],
+          masterBarIndex: lineBars.masterBarIndex,
         };
       });
 
-      const staffLineElement = new StaffLineElement(staff, this, data);
-      this._staffLineElements.push(staffLineElement);
+      this._staffLineElements.push(new StaffLineElement(staff, this, data));
     }
 
     if (this.track.staves.length > 1) {
@@ -137,12 +158,11 @@ export class TrackLineElement implements NotationElement {
     const height =
       sumStaffHeight + this._trackLineInfoElement.boundingBox.height;
     this._boundingBox.setDimensions(width, height);
+
+    this.refreshOwnedNotationElements();
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -150,7 +170,7 @@ export class TrackLineElement implements NotationElement {
         `${this.globalBoundingBox.height}`,
     ];
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -179,7 +199,10 @@ export class TrackLineElement implements NotationElement {
       return;
     }
     const xLeft = 0;
-    const xRight = this._boundingBox.width;
+    // const xRight = this._boundingBox.width;
+    const barElements =
+      this._staffLineElements[0].styleLinesAsArray[0].barElements;
+    const xRight = barElements[barElements.length - 1].globalBoundingBox.right;
 
     // TODO: Redo this outline layout to support multiple notation
     // styles since current calculation only works for tablature
@@ -198,10 +221,6 @@ export class TrackLineElement implements NotationElement {
 
     this._outlineLines.left.set(xLeft, y1, y2);
     this._outlineLines.right.set(xRight, y1, y2);
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   public update(): void {
@@ -209,6 +228,12 @@ export class TrackLineElement implements NotationElement {
 
     this.measure();
     this.layout();
+  }
+
+  public layoutVerticalShift(): void {
+    const prevTrackLine = this.trackElement.getPrevTrackLineElement(this);
+    const y = prevTrackLine?._boundingBox.bottom ?? 0;
+    this._boundingBox.y = y;
   }
 
   /**
@@ -224,10 +249,6 @@ export class TrackLineElement implements NotationElement {
     for (const staffLineElement of this._staffLineElements) {
       staffLineElement.scaleHorBy(scale);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -255,11 +276,25 @@ export class TrackLineElement implements NotationElement {
     if (this._outlineLines === undefined) {
       return;
     }
-    this._outlineLines.right.x = this._boundingBox.width;
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
+    const barElements =
+      this._staffLineElements[0].styleLinesAsArray[0].barElements;
+    const lastBE = barElements[barElements.length - 1];
+    const xRight = barElements[barElements.length - 1].globalBoundingBox.right;
+    this._outlineLines.right.x = xRight;
+    if (fakeJustify) {
+      console.log("=== TRACK LINE FAKE JUSTIFY", {
+        lineBB: JSON.parse(JSON.stringify(this._boundingBox)),
+        staffBB: JSON.parse(
+          JSON.stringify(
+            lastBE.notationStyleLineElement.staffLineElement.boundingBox
+          )
+        ),
+        styleBB: JSON.parse(
+          JSON.stringify(lastBE.notationStyleLineElement.boundingBox)
+        ),
+        barBB: JSON.parse(JSON.stringify(lastBE.boundingBox)),
+      });
+    }
   }
 
   /**
@@ -302,58 +337,34 @@ export class TrackLineElement implements NotationElement {
    *    TrackElement then remains an orchestrator/builder rather than
    *    traversal owner.
    */
-  public getAllNotationElements(): NotationElement[] {
+  public refreshOwnedNotationElements(): NotationElement[] {
     const elements: NotationElement[] = [this];
 
     if (this._trackLineInfoElement !== null) {
-      elements.push(this._trackLineInfoElement);
+      elements.push(
+        ...this._trackLineInfoElement.refreshOwnedNotationElements()
+      );
     }
 
     for (const staffLine of this._staffLineElements) {
-      elements.push(staffLine);
-
-      for (const styleLine of staffLine.styleLinesAsArray) {
-        elements.push(styleLine);
-
-        const techGap = styleLine.techGapElement;
-        elements.push(techGap);
-
-        for (const techGapLine of techGap.techGapLinesAsArray) {
-          elements.push(techGapLine);
-          elements.push(...techGapLine.labelElements);
-        }
-
-        for (const barElement of styleLine.barElements) {
-          elements.push(barElement);
-          elements.push(...barElement.beamSegments);
-          elements.push(...barElement.tupletElements);
-
-          for (const beatElement of barElement.beatElements) {
-            elements.push(beatElement);
-
-            for (const noteElement of beatElement.noteElements) {
-              elements.push(noteElement);
-              elements.push(...noteElement.techniqueElements);
-            }
-          }
-        }
-      }
+      elements.push(...staffLine.refreshOwnedNotationElements());
     }
 
+    this._ownedNotationElements = elements;
     return elements;
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    const firstMasterBarIndex = this._trackLineData[0]?.masterBarIndex ?? 0;
-    const lastMasterBarIndex =
-      this._trackLineData[this._trackLineData.length - 1]?.masterBarIndex ?? 0;
+  public getStableIdentity(): string {
+    return this._stableIdentity;
+  }
 
-    return this.track.uuid + firstMasterBarIndex + lastMasterBarIndex;
+  public setTrackLineBars(trackLineBars: TrackLineBars): void {
+    this._trackLineBars = trackLineBars;
   }
 
   /** Staff line element on this track line */
@@ -366,8 +377,17 @@ export class TrackLineElement implements NotationElement {
     return this._trackLineInfoElement;
   }
 
+  public get ownedNotationElements(): NotationElement[] {
+    return this._ownedNotationElements;
+  }
+
   /** Left & right outline line for when there are more than 1 staves */
   public get outlineLines(): OutlineLines | undefined {
+    return this._outlineLines;
+  }
+
+  /** Left & right outline line in track line-local coordinates */
+  public get outlineLinesLineLocal(): OutlineLines | undefined {
     return this._outlineLines;
   }
 
@@ -397,6 +417,16 @@ export class TrackLineElement implements NotationElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(0, 0);
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(0, 0, this._boundingBox.width, this._boundingBox.height);
+  }
+
   /** Global coords of the track line element (in most cases X will be 0) */
   public get globalCoords(): Point {
     return new Point(
@@ -423,8 +453,16 @@ export class TrackLineElement implements NotationElement {
     return this.globalBoundingBox;
   }
 
-  /** Data necessary to build a track line */
+  /** Bar placement data for this rendered track line. */
+  public get trackLineBars(): TrackLineBars {
+    return this._trackLineBars;
+  }
+
+  /**
+   * Transitional legacy test/helper alias. Prefer trackLineBars and remove this
+   * before commit after callers have been migrated.
+   */
   public get trackLineData(): TrackLineData {
-    return this._trackLineData;
+    return this._trackLineBars;
   }
 }

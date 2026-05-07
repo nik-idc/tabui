@@ -25,6 +25,9 @@ export class NoteControlsTemplate {
   ];
   readonly dot1Button: HTMLImageElement = createImage();
   readonly dot2Button: HTMLImageElement = createImage();
+  readonly insertBeatBeforeButton: HTMLImageElement = createImage();
+  readonly insertBeatAfterButton: HTMLImageElement = createImage();
+  readonly removeBeatButton: HTMLImageElement = createImage();
   readonly tuplet2Button: HTMLImageElement = createImage();
   readonly tuplet3Button: HTMLImageElement = createImage();
   readonly tupletButton: HTMLImageElement = createImage();

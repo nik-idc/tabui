@@ -47,6 +47,7 @@ export interface Note<I extends MusicInstrument = MusicInstrument> {
   octave: number | null;
   techniques: Technique[];
 
+  setNote(newNoteValue: NoteValue, newOctave: number | null): void;
   getNoteStr(): string;
 
   addTechnique(technique: Technique): boolean;

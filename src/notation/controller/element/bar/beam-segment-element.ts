@@ -12,6 +12,22 @@ type ShortTailDirection = "left" | "right";
  * Class that handles geometry & visually relevant info of a beam segment
  */
 export class BeamSegmentElement implements NotationElement {
+  public static createStableIdentity(
+    barElement: BarElement,
+    curBeatElement: TabBeatElement,
+    nextBeatElement?: TabBeatElement,
+    prevBeatElement?: TabBeatElement
+  ): string {
+    const trackLineStableIdentity =
+      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    const prevUUID = prevBeatElement?.beat.uuid ?? 0;
+    const curUUID = curBeatElement.beat.uuid;
+    const nextUUID = nextBeatElement?.beat.uuid ?? 0;
+    const terminalFlag = nextBeatElement === undefined ? 1 : 0;
+
+    return `beam:${trackLineStableIdentity}:${barElement.bar.uuid}:${prevUUID}:${curUUID}:${nextUUID}:${terminalFlag}`;
+  }
+
   /** Unique identifier for the beam segment element */
   readonly uuid: number;
   /** Parent bar element */
@@ -29,9 +45,6 @@ export class BeamSegmentElement implements NotationElement {
   private _longRects: Rect[];
   /** Rectangles of short tails */
   private _shortRects: Rect[];
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class that handles geometry & visually relevant info of a beam segment
    * @param barElement Parent bar element
@@ -58,8 +71,6 @@ export class BeamSegmentElement implements NotationElement {
 
     this._longRects = [];
     this._shortRects = [];
-
-    this._stateHash = "";
 
     this.build();
 
@@ -129,6 +140,8 @@ export class BeamSegmentElement implements NotationElement {
    * Initializes the long and short rectangles for this segment
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
     this._longRects = [];
     this._shortRects = [];
 
@@ -181,15 +194,12 @@ export class BeamSegmentElement implements NotationElement {
     }
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
-      `${this.globalBoundingBox.x}` +
-        `${this.globalBoundingBox.y}` +
-        `${this.globalBoundingBox.width}` +
-        `${this.globalBoundingBox.height}`,
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}`,
     ];
 
     for (const longRect of this._longRects) {
@@ -206,7 +216,7 @@ export class BeamSegmentElement implements NotationElement {
       hashArr.push(`${shortRect.height}`);
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -287,24 +297,24 @@ export class BeamSegmentElement implements NotationElement {
       rect.x *= scale;
       rect.width *= scale;
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    const prevUUID = this.prevBeatElement?.beat.uuid ?? 0;
-    const curUUID = this.curBeatElement.beat.uuid;
-    const nextUUID = this.nextBeatElement?.beat.uuid ?? 0;
-    const terminalFlag = this.nextBeatElement === undefined ? 1 : 0;
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [this];
+  }
 
-    return prevUUID + curUUID * 3 + nextUUID * 5 + terminalFlag * 7;
+  public getStableIdentity(): string {
+    return BeamSegmentElement.createStableIdentity(
+      this.barElement,
+      this.curBeatElement,
+      this.nextBeatElement,
+      this.prevBeatElement
+    );
   }
 
   /** Beam segment layout bounding box */
@@ -336,6 +346,39 @@ export class BeamSegmentElement implements NotationElement {
     return new Rect(minX, minY, maxX - minX, maxY - minY);
   }
 
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(this.boundingBox.x, this.boundingBox.y);
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this.boundingBox.width,
+      this.boundingBox.height
+    );
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this.boundingBox.width,
+      this.boundingBox.height
+    );
+  }
+
   /** Beam segment layout bounding box in global coordinates */
   public get globalBoundingBox(): Rect {
     return new Rect(
@@ -357,6 +400,22 @@ export class BeamSegmentElement implements NotationElement {
   /** Rectangle of the long beam */
   public get longRects(): Rect[] {
     return this._longRects;
+  }
+
+  /** Rectangle of the long beam in track-line-local coords */
+  public get longRectsLineLocal(): Rect[] {
+    const result = [];
+    for (const rect of this._longRects) {
+      result.push(
+        new Rect(
+          this.barElement.lineLocalCoords.x + rect.x,
+          this.barElement.lineLocalCoords.y + rect.y,
+          rect.width,
+          rect.height
+        )
+      );
+    }
+    return result;
   }
 
   /** Rectangle of the long beam in global coords */
@@ -381,6 +440,22 @@ export class BeamSegmentElement implements NotationElement {
   }
 
   /** Rectangles of the short tails in global coords */
+  public get shortRectsLineLocal(): Rect[] {
+    const result = [];
+    for (const rect of this._shortRects) {
+      result.push(
+        new Rect(
+          this.barElement.lineLocalCoords.x + rect.x,
+          this.barElement.lineLocalCoords.y + rect.y,
+          rect.width,
+          rect.height
+        )
+      );
+    }
+    return result;
+  }
+
+  /** Rectangles of the short tails in global coords */
   public get shortRectsGlobal(): Rect[] {
     const result = [];
     for (const rect of this._shortRects) {
@@ -399,8 +474,8 @@ export class BeamSegmentElement implements NotationElement {
   /** Global coords of the beam segment element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this.boundingBox.x,
-      this.barElement.globalCoords.y + this.boundingBox.y
+      this.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

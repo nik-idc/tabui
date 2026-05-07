@@ -10,6 +10,9 @@ import {
 export interface NoteControlsCallbacks {
   onDurationClicked(noteDuration: NoteDuration): void;
   onDotClicked(dots: number): void;
+  onInsertBeatBeforeClicked(): void;
+  onInsertBeatAfterClicked(): void;
+  onRemoveBeatClicked(): void;
   onTupletNormalClicked(normalCount: number): void;
   onTupletClicked(): void;
   bind(): void;
@@ -59,6 +62,21 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._renderFunc();
   }
 
+  onInsertBeatBeforeClicked(): void {
+    this._notationComponent.trackController.insertBeatBeforeSelected();
+    this._renderFunc();
+  }
+
+  onInsertBeatAfterClicked(): void {
+    this._notationComponent.trackController.insertBeatAfterSelected();
+    this._renderFunc();
+  }
+
+  onRemoveBeatClicked(): void {
+    this._notationComponent.trackController.removeSelectedBeat();
+    this._renderFunc();
+  }
+
   onTupletNormalClicked(normalCount: number): void {
     if (normalCount < 2) {
       throw Error("Tuplet normal count has to be >= 2");
@@ -98,6 +116,21 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
         element: this._noteComponent.template.dot2Button,
         event: "click",
         handler: () => this.onDotClicked(2),
+      },
+      {
+        element: this._noteComponent.template.insertBeatBeforeButton,
+        event: "click",
+        handler: () => this.onInsertBeatBeforeClicked(),
+      },
+      {
+        element: this._noteComponent.template.insertBeatAfterButton,
+        event: "click",
+        handler: () => this.onInsertBeatAfterClicked(),
+      },
+      {
+        element: this._noteComponent.template.removeBeatButton,
+        event: "click",
+        handler: () => this.onRemoveBeatClicked(),
       },
       {
         element: this._noteComponent.template.tuplet2Button,

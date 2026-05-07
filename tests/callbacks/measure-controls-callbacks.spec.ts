@@ -32,6 +32,9 @@ describe("MeasureControlsDefaultCallbacks", () => {
         timeSignatureButton: makeButton(),
         repeatStartButton: makeButton(),
         repeatEndButton: makeButton(),
+        insertBarBeforeButton: makeButton(),
+        insertBarAfterButton: makeButton(),
+        removeBarButton: makeButton(),
       },
       tempoControlsComponent: {},
       timeSigControlsComponent: {},
@@ -53,6 +56,9 @@ describe("MeasureControlsDefaultCallbacks", () => {
     dispatchClick(component.template.timeSignatureButton);
     dispatchClick(component.template.repeatStartButton);
     dispatchClick(component.template.repeatEndButton);
+    dispatchClick(component.template.insertBarBeforeButton);
+    dispatchClick(component.template.insertBarAfterButton);
+    dispatchClick(component.template.removeBarButton);
 
     expect(captureKeyboard).toHaveBeenCalledTimes(2);
     expect(component.showTempoControls).toHaveBeenCalledTimes(1);
@@ -63,7 +69,16 @@ describe("MeasureControlsDefaultCallbacks", () => {
     expect(
       notationComponent.trackController.setSelectedBarRepeatStatus
     ).toHaveBeenNthCalledWith(2, BarRepeatStatus.End);
-    expect(renderFunc).toHaveBeenCalledTimes(2);
+    expect(
+      notationComponent.trackController.insertBarBeforeSelected
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      notationComponent.trackController.insertBarAfterSelected
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      notationComponent.trackController.removeSelectedBar
+    ).toHaveBeenCalledTimes(1);
+    expect(renderFunc).toHaveBeenCalledTimes(5);
     expect(tempoBindSpy).toHaveBeenCalledTimes(2);
     expect(timeBindSpy).toHaveBeenCalledTimes(2);
 

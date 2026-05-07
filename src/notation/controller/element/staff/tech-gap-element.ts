@@ -12,6 +12,12 @@ import { NotationStyleLineElement } from "./notation-style-line-element";
  * Class that handles all visually relevant info of a technique gap
  */
 export class TechGapElement implements NotationElement {
+  public static createStableIdentity(
+    notationStyleLineElement: NotationStyleLineElement
+  ): string {
+    return `tech-gap:${notationStyleLineElement.getStableIdentity()}`;
+  }
+
   /** Unique identifier for this element */
   readonly uuid: number;
   /** Parent notation style line element */
@@ -21,12 +27,11 @@ export class TechGapElement implements NotationElement {
 
   /** Child tech gap line elements */
   private _techGapLines: Record<TechLineNumber, TechGapLineElement | null>;
+  /** Stable key for each child gap line */
+  private _techGapLinesByIdentity: Map<string, TechGapLineElement>;
 
   /** Outer rectangle */
   private _boundingBox: Rect;
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class that handles all visually relevant info of a technique gap
    * @param notationStyleLineElement Parent notation style line element
@@ -41,23 +46,45 @@ export class TechGapElement implements NotationElement {
       2: null,
       3: null,
     };
-
-    this._stateHash = "";
+    this._techGapLinesByIdentity = new Map();
 
     this._boundingBox = new Rect();
 
     this.trackElement.registerElement(this);
   }
 
-  /** Dummy build function to comply with the interface
-   * TODO: Rethink this element's update process
+  /**
+   * Builds or reuses child gap line elements.
    */
-  public build(): void {}
+  public build(): void {
+    this.trackElement.registerElement(this);
+
+    const prevGapLines = new Map(this._techGapLinesByIdentity);
+    this._techGapLinesByIdentity.clear();
+
+    for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {
+      const stableIdentity = TechGapLineElement.createStableIdentity(
+        this,
+        lineNumber
+      );
+      let gapLine = prevGapLines.get(stableIdentity);
+      if (gapLine === undefined) {
+        gapLine = new TechGapLineElement(this, lineNumber);
+      }
+
+      this._techGapLines[lineNumber] = gapLine;
+      this._techGapLinesByIdentity.set(stableIdentity, gapLine);
+    }
+  }
 
   /**
    * Sets the dimensions of all child tech gap line elements
    */
   public measure(): void {
+    for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {
+      this._techGapLines[lineNumber]?.build();
+    }
+
     for (const barElement of this.notationStyleLineElement.barElements) {
       for (const beatElement of barElement.beatElements) {
         for (const note of beatElement.beat.notes) {
@@ -67,19 +94,19 @@ export class TechGapElement implements NotationElement {
               continue;
             }
 
-            let gapLine = this._techGapLines[lineNumber];
+            const gapLine = this._techGapLines[lineNumber];
             if (gapLine === null) {
-              gapLine = new TechGapLineElement(this, lineNumber);
-              gapLine.build();
-              gapLine.measure();
-              this._techGapLines[lineNumber] = gapLine;
+              continue;
             }
 
             gapLine.addTechnique(beatElement, technique);
-            gapLine.measure();
           }
         }
       }
+    }
+
+    for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {
+      this._techGapLines[lineNumber]?.measure();
     }
 
     const height =
@@ -92,10 +119,7 @@ export class TechGapElement implements NotationElement {
     );
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [];
 
     if (this.globalBoundingBox.width !== undefined) {
@@ -105,7 +129,7 @@ export class TechGapElement implements NotationElement {
       hashArr.push(`${this.globalBoundingBox.height}`);
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -117,16 +141,22 @@ export class TechGapElement implements NotationElement {
     this._techGapLines[1]?.layout();
     this._techGapLines[2]?.layout();
     this._techGapLines[3]?.layout();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   public update(): void {
     this.build();
     this.measure();
     this.layout();
+  }
+
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    for (const line of this.techGapLinesAsArray) {
+      elements.push(...line.refreshOwnedNotationElements());
+    }
+
+    return elements;
   }
 
   /**
@@ -170,11 +200,11 @@ export class TechGapElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return this.notationStyleLineElement.getModelUUID() + 1000002;
+  public getStableIdentity(): string {
+    return TechGapElement.createStableIdentity(this.notationStyleLineElement);
   }
 
   /** This tech gap line's global coords */
@@ -188,6 +218,24 @@ export class TechGapElement implements NotationElement {
   /** Outer layout bounding box */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.notationStyleLineElement.lineLocalCoords.x + this._boundingBox.x,
+      this.notationStyleLineElement.lineLocalCoords.y + this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
   }
 
   /** This element's layout bounding box in global coordinates */

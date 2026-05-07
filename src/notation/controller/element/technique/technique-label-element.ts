@@ -18,5 +18,7 @@ export interface TechniqueLabelElement extends NotationElement {
 
   get pathDescriptors(): SVGPathDescriptor[] | undefined;
   get textDescriptors(): SVGTextDescriptor[] | undefined;
+  get descriptorOriginBarLocal(): Point;
+  get descriptorOriginLineLocal(): Point;
   get descriptorOrigin(): Point;
 }

@@ -14,11 +14,21 @@ import { Circle } from "@/shared/rendering/geometry/circle";
 import { VertLine, HorLine } from "@/shared/rendering/geometry/line";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
+import { NotationElement } from "../notation-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
  */
 export class SheetBeatElement implements BeatElement {
+  public static createStableIdentity(
+    barElement: BarElement,
+    beat: Beat
+  ): string {
+    const trackLineStableIdentity =
+      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `beat:${trackLineStableIdentity}:${beat.uuid}`;
+  }
+
   /** Beat element's unique identifier */
   readonly uuid: number;
   /** The beat */
@@ -96,8 +106,41 @@ export class SheetBeatElement implements BeatElement {
     return this._boundingBox;
   }
 
-  public getModelUUID(): number {
-    return this.beat.uuid;
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
+  public getStableIdentity(): string {
+    return SheetBeatElement.createStableIdentity(this.barElement, this.beat);
   }
 
   public get durationRect(): Rect {
@@ -122,8 +165,8 @@ export class SheetBeatElement implements BeatElement {
 
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._boundingBox.x,
-      this.barElement.globalCoords.y + this._boundingBox.y
+      this.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -149,6 +192,10 @@ export class SheetBeatElement implements BeatElement {
   }
 
   public update(): void {}
+
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [this];
+  }
 
   public getNextNoteElement(noteElement: NoteElement): NoteElement | null {
     return null;

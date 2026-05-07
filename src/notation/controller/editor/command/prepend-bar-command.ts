@@ -3,7 +3,7 @@ import {
   MasterBarData,
   MasterBarArrayOperationOutput,
 } from "@/notation/model";
-import { Command } from "./command";
+import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Prepend bar command
@@ -67,5 +67,14 @@ export class PrependBarCommand implements Command {
   /** Created master bar & staff bars or null if not created yet */
   public get prependResult(): MasterBarArrayOperationOutput | null {
     return this._prependMasterBarResult;
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [0],
+      firstAffectedMasterBarIndex: 0,
+      reason: "prepend-bar",
+    };
   }
 }

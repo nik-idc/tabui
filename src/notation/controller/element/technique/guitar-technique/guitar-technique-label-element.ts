@@ -16,6 +16,16 @@ import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
  * Class that contains a guitar technique label
  */
 export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
+  public static createStableIdentity(
+    gapLineElement: TechGapLineElement,
+    technique: GuitarTechnique,
+    beatElement: BeatElement
+  ): string {
+    const trackLineStableIdentity =
+      gapLineElement.techGapElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `technique-label:${trackLineStableIdentity}:${gapLineElement.techLineNumber}:${technique.uuid}:${beatElement.beat.uuid}`;
+  }
+
   /** Technique label element's unique identifier */
   readonly uuid: number;
   /** Technique */
@@ -33,8 +43,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   private _pathDescriptors?: SVGPathDescriptor[];
   /** SVG text descriptors */
   private _textDescriptors?: SVGTextDescriptor[];
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that contains an technique label
@@ -52,8 +60,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this.gapLineElement = gapLineElement;
     this.trackElement = this.gapLineElement.trackElement;
     this.beatElement = beatElement;
-
-    this._stateHash = "";
 
     this._boundingBox = new Rect();
 
@@ -357,6 +363,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   public build(): void {
+    this.trackElement.registerElement(this);
+
     this._pathDescriptors = [];
     this._textDescriptors = [];
   }
@@ -371,20 +379,17 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     );
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
-      `${this.globalBoundingBox.x}` +
-        `${this.globalBoundingBox.y}` +
-        `${this.globalBoundingBox.width}` +
-        `${this.globalBoundingBox.height}` +
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}` +
         `${JSON.stringify(this._pathDescriptors)}` +
         `${JSON.stringify(this._textDescriptors)}`,
     ];
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -398,10 +403,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._boundingBox.setCoords(0, 0);
 
     this.createPath();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -411,6 +412,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this.build();
     this.measure();
     this.layout();
+  }
+
+  public refreshOwnedNotationElements(): TechniqueLabelElement[] {
+    return [this];
   }
 
   /**
@@ -442,22 +447,18 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._boundingBox.width *= scale;
 
     this.createPath();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return (
-      this.gapLineElement.getModelUUID() +
-      this.technique.uuid +
-      this.beatElement.beat.uuid
+  public getStableIdentity(): string {
+    return GuitarTechniqueLabelElement.createStableIdentity(
+      this.gapLineElement,
+      this.technique,
+      this.beatElement
     );
   }
 
@@ -466,6 +467,49 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get barLocalCoords(): Point {
+    const barLineLocalCoords = this.beatElement.barElement.lineLocalCoords;
+    return new Point(
+      // NOTE: GPT 5.4's version:
+      // this.beatElement.lineLocalCoords.x -
+      //   barLineLocalCoords.x +
+      //   this._boundingBox.x,
+      this.beatElement.barLocalCoords.x + this._boundingBox.x,
+      this.gapLineElement.lineLocalCoords.y -
+        barLineLocalCoords.y +
+        this._boundingBox.y
+    );
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.beatElement.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.beatElement.barElement.lineLocalCoords.y + this.barLocalCoords.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
   }
 
   /** This element's layout bounding box in global coordinates */
@@ -498,6 +542,16 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     return this._textDescriptors;
   }
 
+  /** Shared origin for descriptor-local coordinates in track line-local space */
+  public get descriptorOriginBarLocal(): Point {
+    return this.barLocalCoords;
+  }
+
+  /** Shared origin for descriptor-local coordinates in track line-local space */
+  public get descriptorOriginLineLocal(): Point {
+    return this.lineLocalCoords;
+  }
+
   /** Shared origin for descriptor-local coordinates */
   public get descriptorOrigin(): Point {
     return this.globalCoords;
@@ -506,8 +560,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /** Global coords of the guitar technique label element */
   public get globalCoords(): Point {
     return new Point(
-      this.beatElement.globalCoords.x + this._boundingBox.x,
-      this.gapLineElement.globalCoords.y
+      this.beatElement.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.beatElement.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

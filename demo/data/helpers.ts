@@ -26,9 +26,9 @@ export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
       : new Beat<Guitar>(bar, bar.trackContext, [], barsInfo.beatsDuration);
     newBeat.baseDuration = barsInfo.beatsDuration;
     for (let j = 0; j < bar.trackContext.instrument.maxPolyphony; j++) {
-      if (excludedStrings.includes(j + 1)) {
-        continue;
-      }
+      // if (excludedStrings.includes(j + 1)) {
+      //   continue;
+      // }
 
       const note = new GuitarNote(
         newBeat,

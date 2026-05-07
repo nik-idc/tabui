@@ -11,32 +11,35 @@ export class CommandManager {
    * Execute provided command, push it the undo stack & clear redo stack
    * @param command
    */
-  execute(command: Command): void {
+  execute(command: Command): Command {
     command.execute();
     this.undoStack.push(command);
     this.redoStack = [];
+    return command;
   }
 
   /**
    * Undo command & put it into redo stack
    */
-  undo(): void {
+  undo(): Command | undefined {
     const command = this.undoStack.pop();
     if (command !== undefined) {
       command.undo();
       this.redoStack.push(command);
     }
+    return command;
   }
 
   /**
    * Redo command
    */
-  redo(): void {
+  redo(): Command | undefined {
     const command = this.redoStack.pop();
     if (command) {
       command.redo();
       this.undoStack.push(command);
     }
+    return command;
   }
 
   /**

@@ -3,7 +3,7 @@ import {
   MasterBarData,
   MasterBarArrayOperationOutput,
 } from "@/notation/model";
-import { Command } from "./command";
+import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Append bar command
@@ -67,5 +67,17 @@ export class AppendBarCommand implements Command {
   /** Created master bar & staff bars or null if not created yet */
   public get appendResult(): MasterBarArrayOperationOutput | null {
     return this._appendMasterBarResult;
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    const affectedMasterBarIndex =
+      this._appendMasterBarResult?.index ?? this._score.masterBars.length;
+
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [affectedMasterBarIndex],
+      firstAffectedMasterBarIndex: affectedMasterBarIndex,
+      reason: "append-bar",
+    };
   }
 }

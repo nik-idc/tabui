@@ -7,6 +7,7 @@ import {
 import { Point, Rect, randomInt } from "@/shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
+import { NotationElement } from "@/notation/controller/element/notation-element";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { SVGPathDescriptor, TechniqueElement } from "../technique-element";
 import { TabNoteElement } from "../../note/tab-note-element";
@@ -19,6 +20,15 @@ import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
  * to which the technique is applied
  */
 export class GuitarTechniqueElement implements TechniqueElement {
+  public static createStableIdentity(
+    noteElement: TabNoteElement,
+    technique: GuitarTechnique
+  ): string {
+    const trackLineStableIdentity =
+      noteElement.beatElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `technique:${trackLineStableIdentity}:${technique.uuid}`;
+  }
+
   /** Guitar note element's unique identifier */
   readonly uuid: number;
   /** Technique */
@@ -32,8 +42,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
   private _startPoint: Point;
   /** SVG path descriptors rendered from this origin */
   private _pathDescriptors?: SVGPathDescriptor[];
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that represents a guitar technique
@@ -50,8 +58,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
       this.noteElement.boundingBox.width / 2,
       this.noteElement.boundingBox.height / 2
     );
-
-    this._stateHash = "";
 
     this.createPath();
 
@@ -382,6 +388,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Initializes the path descriptors for non-inline techniques.
    */
   build(): void {
+    this.trackElement.registerElement(this);
+
     if (TECHNIQUE_IS_INLINE[this.technique.type]) {
       this._pathDescriptors = [];
     } else {
@@ -394,19 +402,14 @@ export class GuitarTechniqueElement implements TechniqueElement {
    */
   measure(): void {}
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
-    this._stateHash =
-      `${this.globalBoundingBox.x}` +
-      `${this.globalBoundingBox.y}` +
+  private buildStateHash(): string {
+    return (
+      `${this.barLocalCoords.x}` +
+      `${this.barLocalCoords.y}` +
       `${this._startPoint.x}` +
       `${this._startPoint.y}` +
-      `${JSON.stringify(this._pathDescriptors)}`;
-
-    // checkIfDirty removed - now handled by checkAllDirty() in TrackElement
-    // this.trackElement.checkIfDirty(this);
+      `${JSON.stringify(this._pathDescriptors)}`
+    );
   }
 
   /**
@@ -419,10 +422,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     this.createPath();
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -432,6 +431,10 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this.build();
     this.measure();
     this.layout();
+  }
+
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [this];
   }
 
   /**
@@ -446,11 +449,14 @@ export class GuitarTechniqueElement implements TechniqueElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return this.technique.uuid;
+  public getStableIdentity(): string {
+    return GuitarTechniqueElement.createStableIdentity(
+      this.noteElement,
+      this.technique
+    );
   }
 
   /** Start point */
@@ -458,9 +464,32 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return this._startPoint;
   }
 
+  /** Start point in bar-local coordinates */
+  public get startPointBarLocal(): Point {
+    return new Point(
+      this.noteElement.barLocalCoords.x + this._startPoint.x,
+      this.noteElement.barLocalCoords.y + this._startPoint.y
+    );
+  }
+
   /** SVG path descriptors */
   public get pathDescriptors(): SVGPathDescriptor[] | undefined {
     return this._pathDescriptors;
+  }
+
+  /** Track line-local origin for local path descriptor coordinates */
+  public get pathOriginBarLocal(): Point {
+    return this.noteElement.barLocalCoords;
+  }
+
+  /** Track line-local origin for local path descriptor coordinates */
+  public get pathOriginLineLocal(): Point {
+    return new Point(
+      this.noteElement.beatElement.barElement.lineLocalCoords.x +
+        this.noteElement.barLocalCoords.x,
+      this.noteElement.beatElement.barElement.lineLocalCoords.y +
+        this.noteElement.barLocalCoords.y
+    );
   }
 
   /** Global origin for local path descriptor coordinates */
@@ -475,11 +504,38 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return new Rect(this._startPoint.x, this._startPoint.y, 0, 0);
   }
 
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return this.startPointBarLocal;
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(this.barLocalCoords.x, this.barLocalCoords.y, 0, 0);
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.noteElement.beatElement.barElement.lineLocalCoords.x +
+        this.barLocalCoords.x,
+      this.noteElement.beatElement.barElement.lineLocalCoords.y +
+        this.barLocalCoords.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(this.lineLocalCoords.x, this.lineLocalCoords.y, 0, 0);
+  }
+
   /** Global coords of the guitar technique element */
   public get globalCoords(): Point {
     return new Point(
-      this.noteElement.globalCoords.x + this._startPoint.x,
-      this.noteElement.globalCoords.y + this._startPoint.y
+      this.noteElement.beatElement.barElement.globalCoords.x +
+        this.barLocalCoords.x,
+      this.noteElement.beatElement.barElement.globalCoords.y +
+        this.barLocalCoords.y
     );
   }
 

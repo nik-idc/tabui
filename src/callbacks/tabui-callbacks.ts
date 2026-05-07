@@ -57,9 +57,7 @@ export class TabUICallbacks {
   }
 
   private renderSelectionOverlayAndUI(): void {
-    this._notationComponent.renderer.renderSelectionOverlay(
-      this._notationComponent.trackController
-    );
+    this._notationComponent.renderer.renderSelectionOverlay();
 
     this._uiCallbacks.unbind();
     this._uiComponent.render();

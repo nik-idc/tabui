@@ -26,7 +26,10 @@ sake and more on targeted changes that directly unlock the MVP.
 
 - Phase 0 is complete.
 - Phase 1 is complete.
-- Current focus should move to Phase 2 (targeted architecture cleanup).
+- Phase 2 is complete.
+- Phase 3 is complete.
+- Current focus should move to Phase 4: sheet notation expansion and the model
+  improvements needed to support it.
 - Phase 0 follow-ups that are intentionally deferred are listed under Phase 0.
 
 ### Phase 0 - Foundation
@@ -118,33 +121,104 @@ Exit criteria:
 - Notation-style-specific logic has cleaner boundaries.
 - The most problematic architecture bottlenecks for upcoming work are removed.
 
-### Phase 3 - Element Layer Performance
+### Phase 3 - Incremental Layout and Renderer Performance
+
+**Status: complete.**
 
 - Optimize large-score updates so localized changes do not trigger excessive
   rebuild, layout, or rendering work.
+- Redesign the Element and Renderer layers around track-line-local coordinates
+  and per-line rendering ownership so vertical shifts become cheap.
 - Measure before and after using the same fixtures and benchmark scenarios.
 - Preserve correctness while pushing for much better responsiveness.
 
+Phase 3 split:
+
+- 3.1 Stable element identity and renderer contract cleanup. Completed.
+- 3.2 Line-local coordinate model in the Element layer. Completed.
+- 3.3 Renderer restructuring around per-line embedded layers. Completed.
+- 3.4 Incremental vertical update propagation using line-local layout and
+  per-line renderer movement. Completed.
+- 3.5 Width-affecting update propagation and regrouping-safe rebuilds.
+  Completed.
+- 3.6 Measurement, benchmarks, and viewport refinement. Completed.
+
+Completed in Phase 3:
+
+- Width-affecting incremental updates are now in place for contiguous duration,
+  dots, tuplets, beat insertion/removal, bar insertion/removal, repeat changes,
+  and time-signature changes.
+- Vertical incremental updates are in place for tempo visibility and labeled
+  technique updates.
+- Targeted updates are in place for note-local changes and inline non-label
+  techniques.
+- Renderer reconciliation now uses stable element identity and consumes scoped
+  `ElementDiff` output from `TrackElement`.
+- Presentation-shell ownership is the active architecture: `TrackElement`
+  orchestrates grouping/update/diff/registries while line/staff/style/bar shells
+  own descendant creation and lifetime.
+- Beat and bar insert/remove controls were added, including active beat selection
+  flows and plural bar removal.
+- Paste/replacement behavior was stabilized while intentionally keeping the
+  current permissive no-rest model.
+- Large-score editing is now practically responsive on the dense selection-perf
+  stress fixture used during Phase 3 work.
+
+Benchmark status:
+
+- General full-vs-focused update benchmark is available via
+  `npm run benchmark:updates`.
+- The benchmark uses a 1000-bar dense guitar score with 32 thirty-second notes per
+  bar and covers dots, tuplets, beat/bar insertion and removal, time signatures,
+  tempo, repeats, inline techniques, and labeled techniques.
+- Current results show strong focused-update wins for the intended localized
+  cases, including inline technique application after targeted-update fixes.
+- Known anomaly: multiple bar insertion is unexpectedly close to full-update cost
+  even for a small two-bar benchmark case. Treat this as a likely bug/performance
+  defect to investigate later rather than as expected batch-size behavior. It is
+  not blocking Phase 3 closeout because current user-facing empty-bar insertion
+  workflows insert one bar at a time, and multi-bar removal remains fast in the
+  stress fixture.
+
 Exit criteria:
 
-- Large-score edits are noticeably faster.
+- Large-score edits are noticeably faster and instant for the user.
 - Small localized changes avoid unnecessary full-tree work where possible.
+- Vertical line shifts do not require child-by-child renderer updates across
+  the affected suffix of the score.
 - Performance improvements are validated against repeatable scenarios.
 
 ### Phase 4 - Notation Expansion Evaluation
+
+**Status: next.**
 
 - Implement a limited but end-to-end sheet notation feature set to evaluate the
   direction.
 - Validate whether the current model and element architecture can support it
   cleanly.
+- Expand the model where sheet notation exposes tablature-era shortcuts.
 - Assess whether drum notation can share the same foundation without creating
   disproportionate complexity.
 - Treat non-tablature notation viewing as the minimum acceptable `0.5.0`
   outcome if full editing support proves too costly.
 
+Expected Phase 4 model work:
+
+- Introduce voices or an equivalent multi-voice representation where needed.
+- Add explicit rests/gaps instead of representing incomplete rhythmic content
+  through missing beats or permissive underfilled bars.
+- Revisit insertion and replacement around rests, overflow, bar completion, and
+  clear invalid-rhythm states.
+- Clarify score/bar invariants so sheet notation, tablature, and future drum
+  notation share one coherent timing model.
+- Expand rendering/model tests around notation scenarios that are not naturally
+  expressed by guitar tablature alone.
+
 Exit criteria:
 
 - A limited but convincing sheet-notation implementation works end to end.
+- The model supports the required sheet-notation primitives without relying on
+  tablature-specific shortcuts.
 - A clear decision is made on whether to continue, narrow, or postpone broader
   notation expansion.
 

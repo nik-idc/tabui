@@ -3,7 +3,7 @@ import {
   MasterBarData,
   MasterBarArrayOperationOutput,
 } from "@/notation/model";
-import { Command } from "./command";
+import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Insert bar command
@@ -71,5 +71,14 @@ export class InsertBarCommand implements Command {
   /** Created master bar & staff bars or null if not created yet */
   public get insertResult(): MasterBarArrayOperationOutput | null {
     return this._insertMasterBarResult;
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    return {
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [this._index],
+      firstAffectedMasterBarIndex: this._index,
+      reason: "insert-bar",
+    };
   }
 }

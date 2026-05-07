@@ -100,15 +100,13 @@ export class TrackController {
 
   /** Undo previous action */
   public undo(): void {
-    this._trackControllerEditor.commandManager.undo();
-    this._trackElement.update();
+    this._trackControllerEditor.undoCommand();
     this._trackControllerEditor.syncSelection();
   }
 
   /** Redo previous action */
   public redo(): void {
-    this._trackControllerEditor.commandManager.redo();
-    this._trackElement.update();
+    this._trackControllerEditor.redoCommand();
     this._trackControllerEditor.syncSelection();
   }
 
@@ -256,6 +254,30 @@ export class TrackController {
    */
   public deleteSelectedBeats(): void {
     this._trackControllerEditor.deleteSelectedBeats();
+  }
+
+  public insertBeatBeforeSelected(): void {
+    this._trackControllerEditor.insertBeatBeforeSelected();
+  }
+
+  public insertBeatAfterSelected(): void {
+    this._trackControllerEditor.insertBeatAfterSelected();
+  }
+
+  public removeSelectedBeat(): void {
+    this._trackControllerEditor.removeSelectedBeat();
+  }
+
+  public insertBarBeforeSelected(): void {
+    this._trackControllerEditor.insertBarBeforeSelected();
+  }
+
+  public insertBarAfterSelected(): void {
+    this._trackControllerEditor.insertBarAfterSelected();
+  }
+
+  public removeSelectedBar(): void {
+    this._trackControllerEditor.removeSelectedBar();
   }
 
   /**

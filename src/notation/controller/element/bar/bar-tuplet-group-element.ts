@@ -11,24 +11,30 @@ import { TabBeatElement } from "../beat/tab-beat-element";
  * Class that handles geometry & visually relevant info of a bar tuplet group
  */
 export class BarTupletGroupElement implements NotationElement {
+  public static createStableIdentity(
+    barElement: BarElement,
+    tupletGroup: BarTupletGroup
+  ): string {
+    const trackLineStableIdentity =
+      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `tuplet:${trackLineStableIdentity}:${tupletGroup.uuid}`;
+  }
+
   /** UUID of the tuplet element */
   readonly uuid: number;
   /** Tuplet group this element represents */
   readonly tupletGroup: BarTupletGroup;
   /** Parent bar element */
   readonly barElement: BarElement;
-  /** Array of beat element included in this tuplet group */
-  readonly beatElements: TabBeatElement[];
   /** Root track element */
   readonly trackElement: TrackElement;
 
   /** Tuplet element's outer rectangle */
+  private _beatElements: TabBeatElement[];
+  /** Tuplet element's outer rectangle */
   private _boundingBox: Rect;
   /** Individual tuplet signs if the tuplet group is incomplete */
   private _incompleteRects?: Rect[];
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class that handles geometry & visually relevant info of a bar tuplet group
    * @param tupletGroup Tuplet group
@@ -44,11 +50,9 @@ export class BarTupletGroupElement implements NotationElement {
     this.tupletGroup = tupletGroup;
     this.barElement = barElement;
     this.trackElement = this.barElement.trackElement;
-    this.beatElements = beatElements;
+    this._beatElements = beatElements;
 
     this._boundingBox = new Rect();
-
-    this._stateHash = "";
 
     this.build();
 
@@ -60,6 +64,8 @@ export class BarTupletGroupElement implements NotationElement {
    * depending if the tuplet group is complete
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
     if (!this.tupletGroup.complete) {
       this._incompleteRects = [];
       for (const _ of this.beatElements) {
@@ -93,15 +99,12 @@ export class BarTupletGroupElement implements NotationElement {
     }
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
-      `${this.globalBoundingBox.x}` +
-        `${this.globalBoundingBox.y}` +
-        `${this.globalBoundingBox.width}` +
-        `${this.globalBoundingBox.height}`,
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}`,
     ];
 
     if (this._incompleteRects !== undefined) {
@@ -113,7 +116,7 @@ export class BarTupletGroupElement implements NotationElement {
       }
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -148,6 +151,10 @@ export class BarTupletGroupElement implements NotationElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [this];
+  }
+
   /**
    * Returns tuplet string. A single number if complete, full otherwise
    * @param beatIndex Index of the beat element
@@ -180,31 +187,70 @@ export class BarTupletGroupElement implements NotationElement {
     this._boundingBox.x *= scale;
     this._boundingBox.width *= scale;
 
-    if (this._incompleteRects === undefined) {
-      return;
+    if (this._incompleteRects !== undefined) {
+      for (const incompleteRect of this._incompleteRects) {
+        incompleteRect.x *= scale;
+        incompleteRect.width *= scale;
+      }
     }
-    for (const incompleteRect of this._incompleteRects) {
-      incompleteRect.x *= scale;
-      incompleteRect.width *= scale;
-    }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return this.tupletGroup.uuid;
+  public getStableIdentity(): string {
+    return BarTupletGroupElement.createStableIdentity(
+      this.barElement,
+      this.tupletGroup
+    );
+  }
+
+  public setBeatElements(beatElements: TabBeatElement[]): void {
+    this._beatElements = beatElements;
+  }
+
+  public get beatElements(): TabBeatElement[] {
+    return this._beatElements;
   }
 
   /** Tuplet element's outer layout bounding box */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
   }
 
   /** This tuplet element's layout bounding box in global coordinates */
@@ -251,6 +297,48 @@ export class BarTupletGroupElement implements NotationElement {
     return result;
   }
 
+  /** Track line local coords of incomplete texts */
+  public get incompleteTextsCoordsBarLocal(): Point[] | undefined {
+    if (this._incompleteRects === undefined) {
+      return this._incompleteRects;
+    }
+
+    const result = [];
+    for (const rect of this._incompleteRects) {
+      result.push(
+        new Point(
+          this.barLocalCoords.x + rect.middleX,
+          this.barLocalCoords.y +
+            rect.height / 2 +
+            EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        )
+      );
+    }
+
+    return result;
+  }
+
+  /** Track line local coords of incomplete texts */
+  public get incompleteTextsCoordsLineLocal(): Point[] | undefined {
+    if (this._incompleteRects === undefined) {
+      return this._incompleteRects;
+    }
+
+    const result = [];
+    for (const rect of this._incompleteRects) {
+      result.push(
+        new Point(
+          this.lineLocalCoords.x + rect.middleX,
+          this.lineLocalCoords.y +
+            rect.height / 2 +
+            EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        )
+      );
+    }
+
+    return result;
+  }
+
   /** Global coords of incomplete texts */
   public get incompleteTextsCoordsGlobal(): Point[] | undefined {
     if (this._incompleteRects === undefined) {
@@ -288,6 +376,34 @@ export class BarTupletGroupElement implements NotationElement {
     return this._boundingBox.middle;
   }
 
+  /** Complete tuplet group text coordinates in track line local space (or undefined if tuplet group incomplete) */
+  public get completeTextCoordsBarLocal(): Point | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    return new Point(
+      this.barLocalCoords.x + this._boundingBox.width / 2,
+      this.barLocalCoords.y +
+        this._boundingBox.height / 2 +
+        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+    );
+  }
+
+  /** Complete tuplet group text coordinates in track line local space (or undefined if tuplet group incomplete) */
+  public get completeTextCoordsLineLocal(): Point | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    return new Point(
+      this.lineLocalCoords.x + this._boundingBox.width / 2,
+      this.lineLocalCoords.y +
+        this._boundingBox.height / 2 +
+        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+    );
+  }
+
   /** Complete tuplet group text coordinates (or undefined if tuplet group incomplete) */
   public get comleteTextCoordsGlobal(): Point | undefined {
     if (!this.tupletGroup.complete) {
@@ -299,6 +415,50 @@ export class BarTupletGroupElement implements NotationElement {
       this.globalCoords.y +
         this._boundingBox.height / 2 +
         EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+    );
+  }
+
+  /** Rect in track-line-local coords for the SVG path (if the tuplet is complete) */
+  public get completePathRectBarLocal(): Rect | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    const firstBeatElement = this.beatElements[0];
+    const lastBeatElement = this.beatElements[this.beatElements.length - 1];
+
+    const width =
+      this._boundingBox.width -
+      lastBeatElement.boundingBox.width / 2 -
+      firstBeatElement.boundingBox.width / 2;
+    const height = EditorLayoutDimensions.TUPLET_PATH_HEIGHT;
+    return new Rect(
+      this.barLocalCoords.x + firstBeatElement.boundingBox.width / 2,
+      this.barLocalCoords.y + height,
+      width,
+      height
+    );
+  }
+
+  /** Rect in track-line-local coords for the SVG path (if the tuplet is complete) */
+  public get completePathRectLineLocal(): Rect | undefined {
+    if (!this.tupletGroup.complete) {
+      return undefined;
+    }
+
+    const firstBeatElement = this.beatElements[0];
+    const lastBeatElement = this.beatElements[this.beatElements.length - 1];
+
+    const width =
+      this._boundingBox.width -
+      lastBeatElement.boundingBox.width / 2 -
+      firstBeatElement.boundingBox.width / 2;
+    const height = EditorLayoutDimensions.TUPLET_PATH_HEIGHT;
+    return new Rect(
+      this.lineLocalCoords.x + firstBeatElement.boundingBox.width / 2,
+      this.lineLocalCoords.y + height, // '- height' is due to SVG path calculation
+      width,
+      height
     );
   }
 
@@ -327,8 +487,8 @@ export class BarTupletGroupElement implements NotationElement {
   /** Global coords of the bar tuplet group element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._boundingBox.x,
-      this.barElement.globalCoords.y + this._boundingBox.y
+      this.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

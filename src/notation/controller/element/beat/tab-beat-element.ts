@@ -13,11 +13,21 @@ import { TabNoteElement } from "../note/tab-note-element";
 import { BeatElement, getBeatWidth } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
+import { NotationElement } from "../notation-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
  */
 export class TabBeatElement implements BeatElement {
+  public static createStableIdentity(
+    barElement: BarElement,
+    beat: Beat
+  ): string {
+    const trackLineStableIdentity =
+      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `beat:${trackLineStableIdentity}:${beat.uuid}`;
+  }
+
   /** Beat element's unique identifier */
   readonly uuid: number;
   /** The beat */
@@ -40,8 +50,6 @@ export class TabBeatElement implements BeatElement {
   private _dot1Circle?: Circle;
   /** This beat's dot rect */
   private _dot2Circle?: Circle;
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that handles geometry & visually relevant info of a beat
@@ -56,10 +64,8 @@ export class TabBeatElement implements BeatElement {
 
     this._noteElements = [];
 
-    const width = getBeatWidth(this.beat);
+    const width = getBeatWidth(this.beat, this.beat.bar);
     this._boundingBox = new Rect(0, 0, width, 0);
-
-    this._stateHash = "";
 
     this.build();
 
@@ -73,8 +79,25 @@ export class TabBeatElement implements BeatElement {
    * - Sets dot circles
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
+    const prevNoteElements = new Map(
+      this._noteElements.map((element) => [
+        element.getStableIdentity(),
+        element,
+      ])
+    );
     this._noteElements = [];
     for (const note of this.beat.notes) {
+      const existingNoteElement = prevNoteElements.get(
+        TabNoteElement.createStableIdentity(this, note as GuitarNote)
+      );
+      if (existingNoteElement !== undefined) {
+        existingNoteElement.build();
+        this._noteElements.push(existingNoteElement);
+        continue;
+      }
+
       this._noteElements.push(new TabNoteElement(note as GuitarNote, this));
     }
 
@@ -93,12 +116,13 @@ export class TabBeatElement implements BeatElement {
       this._durationStemLine = undefined;
     }
 
-    if (
-      this.beat.baseDuration <= NoteDuration.Eighth &&
-      this.beat.beamGroupId === null
-    ) {
+    const hasValidBeamGroup =
+      this.beat.beamGroupId !== null &&
+      this.beat.beamGroupId < this.beat.bar.beamingGroups.length;
+
+    if (this.beat.baseDuration <= NoteDuration.Eighth && !hasValidBeamGroup) {
       // Flag lines should only be visible for beats
-      // outside of beam groups AND of duration smaller than 8ths
+      // outside of valid beam groups AND of duration smaller than 8ths
       this._durationFlagLines = Array.from(
         { length: DURATION_TO_FLAG_COUNT[this.beat.baseDuration] },
         () => new HorLine()
@@ -123,11 +147,13 @@ export class TabBeatElement implements BeatElement {
    * Calculates the dimensions of the tab beat element & it's children
    */
   public measure(): void {
+    const width = getBeatWidth(this.beat, this.beat.bar);
+    this._boundingBox.width = width;
+
     for (const noteElement of this._noteElements) {
       noteElement.measure();
     }
 
-    const width = getBeatWidth(this.beat);
     const notesHeight =
       this._noteElements.length * EditorLayoutDimensions.NOTE_RECT_HEIGHT;
     const height = notesHeight + EditorLayoutDimensions.DURATIONS_HEIGHT;
@@ -174,8 +200,41 @@ export class TabBeatElement implements BeatElement {
     for (const flagLine of this._durationFlagLines) {
       const x1 = this._boundingBox.width / 2;
       flagLine.set(x1, x1 + this._boundingBox.width / 4, y);
-      y -= EditorLayoutDimensions.DOT_DIAMETER / 2;
+      y -= EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
     }
+  }
+
+  private getDurationLevelCount(): number {
+    if (this._durationFlagLines !== undefined) {
+      return this._durationFlagLines.length;
+    }
+
+    const hasValidBeamGroup =
+      this.beat.beamGroupId !== null &&
+      this.beat.beamGroupId < this.beat.bar.beamingGroups.length;
+    if (!hasValidBeamGroup) {
+      return 0;
+    }
+
+    return DURATION_TO_FLAG_COUNT[this.beat.baseDuration];
+  }
+
+  private getTopDurationDecorationY(): number | undefined {
+    if (this._durationFlagLines !== undefined) {
+      return this._durationFlagLines[this._durationFlagLines.length - 1]?.y;
+    }
+
+    const durationLevelCount = this.getDurationLevelCount();
+    if (durationLevelCount === 0) {
+      return undefined;
+    }
+
+    return (
+      this.barElement.boundingBox.height -
+      EditorLayoutDimensions.TUPLET_RECT_HEIGHT -
+      EditorLayoutDimensions.DURATION_FLAG_HEIGHT -
+      (durationLevelCount - 1) * EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2
+    );
   }
 
   /**
@@ -189,10 +248,9 @@ export class TabBeatElement implements BeatElement {
       this._boundingBox.width / 2 + EditorLayoutDimensions.DOT_DIAMETER * 2;
     let newDotY =
       this._boundingBox.height - EditorLayoutDimensions.DOT_DIAMETER / 2;
-    if (this._durationFlagLines !== undefined) {
-      newDotY -=
-        EditorLayoutDimensions.DURATION_FLAG_HEIGHT *
-        this._durationFlagLines.length;
+    const topDurationDecorationY = this.getTopDurationDecorationY();
+    if (topDurationDecorationY !== undefined) {
+      newDotY = topDurationDecorationY - EditorLayoutDimensions.DOT_DIAMETER;
     }
     this._dot1Circle.setCoords(newDot1X, newDotY);
 
@@ -214,15 +272,12 @@ export class TabBeatElement implements BeatElement {
     }
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
-      `${this.globalBoundingBox.x}` +
-        `${this.globalBoundingBox.y}` +
-        `${this.globalBoundingBox.width}` +
-        `${this.globalBoundingBox.height}`,
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}`,
     ];
 
     if (this._dot1Circle !== undefined) {
@@ -246,7 +301,7 @@ export class TabBeatElement implements BeatElement {
       }
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -268,6 +323,16 @@ export class TabBeatElement implements BeatElement {
 
     this.measure();
     this.layout();
+  }
+
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    for (const noteElement of this._noteElements) {
+      elements.push(...noteElement.refreshOwnedNotationElements());
+    }
+
+    return elements;
   }
 
   /**
@@ -300,19 +365,15 @@ export class TabBeatElement implements BeatElement {
     for (const noteElement of this._noteElements) {
       noteElement.scaleHorBy(scale);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return this.beat.uuid;
+  public getStableIdentity(): string {
+    return TabBeatElement.createStableIdentity(this.barElement, this.beat);
   }
 
   /**
@@ -351,6 +412,39 @@ export class TabBeatElement implements BeatElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in bar-local coordinates */
+  public get barLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in bar-local coordinates */
+  public get barLocalBoundingBox(): Rect {
+    return new Rect(
+      this.barLocalCoords.x,
+      this.barLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(
+      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
+    );
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** This beat's layout bounding box in global coordinates */
   public get globalBoundingBox(): Rect {
     return new Rect(
@@ -374,6 +468,32 @@ export class TabBeatElement implements BeatElement {
     return this._durationStemLine;
   }
 
+  /** Duration stem vertical line in bar-local coords */
+  public get durationStemLineBarLocal(): VertLine | undefined {
+    if (this._durationStemLine === undefined) {
+      return undefined;
+    }
+
+    return new VertLine(
+      this.barLocalCoords.x + this._durationStemLine.x,
+      this.barLocalCoords.y + this._durationStemLine.y1,
+      this.barLocalCoords.y + this._durationStemLine.y2
+    );
+  }
+
+  /** Duration stem vertical line in track-line-local coords */
+  public get durationStemLineLineLocal(): VertLine | undefined {
+    if (this._durationStemLine === undefined) {
+      return undefined;
+    }
+
+    return new VertLine(
+      this.lineLocalCoords.x + this._durationStemLine.x,
+      this.lineLocalCoords.y + this._durationStemLine.y1,
+      this.lineLocalCoords.y + this._durationStemLine.y2
+    );
+  }
+
   /** Duration stem vertical line in global coords */
   public get durationStemLineGlobal(): VertLine | undefined {
     if (this._durationStemLine === undefined) {
@@ -390,6 +510,44 @@ export class TabBeatElement implements BeatElement {
   /** Duration flags horizontal lines (for durations like 1/8, 1/16 etc) */
   public get durationFlagLines(): HorLine[] | undefined {
     return this._durationFlagLines;
+  }
+
+  /** Duration flags horizontal lines (in bar-local coords) */
+  public get durationFlagLinesBarLocal(): HorLine[] | undefined {
+    if (this._durationFlagLines === undefined) {
+      return undefined;
+    }
+
+    const result = [];
+    for (const flagLine of this._durationFlagLines) {
+      result.push(
+        new HorLine(
+          this.barLocalCoords.x + flagLine.x1,
+          this.barLocalCoords.x + flagLine.x2,
+          this.barLocalCoords.y + flagLine.y
+        )
+      );
+    }
+    return result;
+  }
+
+  /** Duration flags horizontal lines (in track-line-local coords) */
+  public get durationFlagLinesLineLocal(): HorLine[] | undefined {
+    if (this._durationFlagLines === undefined) {
+      return undefined;
+    }
+
+    const result = [];
+    for (const flagLine of this._durationFlagLines) {
+      result.push(
+        new HorLine(
+          this.lineLocalCoords.x + flagLine.x1,
+          this.lineLocalCoords.x + flagLine.x2,
+          this.lineLocalCoords.y + flagLine.y
+        )
+      );
+    }
+    return result;
   }
 
   /** Duration flags horizontal lines (for durations like 1/8, 1/16 etc) */
@@ -416,6 +574,32 @@ export class TabBeatElement implements BeatElement {
     return this._dot1Circle;
   }
 
+  /** This beat's first dot circle in bar-local coords */
+  public get dot1CircleBarLocal(): Circle | undefined {
+    if (this._dot1Circle === undefined) {
+      return undefined;
+    }
+
+    return new Circle(
+      this.barLocalCoords.x + this._dot1Circle.centerX,
+      this.barLocalCoords.y + this._dot1Circle.centerY,
+      this._dot1Circle.diameter
+    );
+  }
+
+  /** This beat's first dot circle in track-line-local coords */
+  public get dot1CircleLineLocal(): Circle | undefined {
+    if (this._dot1Circle === undefined) {
+      return undefined;
+    }
+
+    return new Circle(
+      this.lineLocalCoords.x + this._dot1Circle.centerX,
+      this.lineLocalCoords.y + this._dot1Circle.centerY,
+      this._dot1Circle.diameter
+    );
+  }
+
   /** This beat's first dot circle in global coords */
   public get dot1CircleGlobal(): Circle | undefined {
     if (this._dot1Circle === undefined) {
@@ -434,6 +618,32 @@ export class TabBeatElement implements BeatElement {
     return this._dot2Circle;
   }
 
+  /** This beat's second dot circle in bar-local coords */
+  public get dot2CircleBarLocal(): Circle | undefined {
+    if (this._dot2Circle === undefined) {
+      return undefined;
+    }
+
+    return new Circle(
+      this.barLocalCoords.x + this._dot2Circle.centerX,
+      this.barLocalCoords.y + this._dot2Circle.centerY,
+      this._dot2Circle.diameter
+    );
+  }
+
+  /** This beat's second dot circle in track-line-local coords */
+  public get dot2CircleLineLocal(): Circle | undefined {
+    if (this._dot2Circle === undefined) {
+      return undefined;
+    }
+
+    return new Circle(
+      this.lineLocalCoords.x + this._dot2Circle.centerX,
+      this.lineLocalCoords.y + this._dot2Circle.centerY,
+      this._dot2Circle.diameter
+    );
+  }
+
   /** This beat's second dot circle in global coords */
   public get dot2CircleGlobal(): Circle | undefined {
     if (this._dot2Circle === undefined) {
@@ -450,8 +660,8 @@ export class TabBeatElement implements BeatElement {
   /** Global coords of the tab beat element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this._boundingBox.x,
-      this.barElement.globalCoords.y + this._boundingBox.y
+      this.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

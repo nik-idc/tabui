@@ -1,10 +1,5 @@
-import {
-  Note,
-  Beat,
-  BeatArrayOperationOutput,
-  NoteValue,
-} from "@/notation/model";
-import { Command } from "./command";
+import { Note, NoteValue } from "@/notation/model";
+import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Set guitar note fret command
@@ -75,5 +70,12 @@ export class SetNoteCommand implements Command {
 
     this._note.octave = octave;
     this._note.noteValue = value;
+  }
+
+  public get updateRequest(): CommandUpdateRequest {
+    return {
+      updateType: "Targeted",
+      affectedModelUUIDs: [this._note.uuid],
+    };
   }
 }

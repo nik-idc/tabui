@@ -9,8 +9,8 @@ import { NotationStyleLineElement } from "./notation-style-line-element";
  * Supported notation styles
  */
 export enum NotationStyle {
-  Classic,
-  Tablature,
+  Classic = "classic",
+  Tablature = "tablature",
 }
 
 /**
@@ -18,13 +18,15 @@ export enum NotationStyle {
  * Width to match & the bar itself
  */
 export type StaffLineBarData = {
-  largestBarWidth: number;
+  intrinsicWidth: number;
+  finalizedWidth: number;
   bar: Bar;
+  masterBarIndex: number;
 };
 
 /**
  * Data needed to build a staff line:
- * Array of objects: Largest width for the bar at the specified index
+ * Array of objects: intrinsic/finalized width for the bar at the specified index
  */
 export type StaffLineData = StaffLineBarData[];
 
@@ -32,14 +34,19 @@ export type StaffLineData = StaffLineBarData[];
  * Class that handles all geometry & visually relevant info of a staff line
  */
 export class StaffLineElement implements NotationElement {
+  public static createStableIdentity(
+    trackLineElement: TrackLineElement,
+    staff: Staff
+  ): string {
+    return `staff-line:${trackLineElement.getStableIdentity()}:${staff.uuid}`;
+  }
+
   /** Unique identifier for the staff line element */
   readonly uuid: number;
   /** Staff */
   readonly staff: Staff;
   /** Parent track line element */
   readonly trackLineElement: TrackLineElement;
-  /** Data necessary to build a staff line */
-  readonly staffLineData: StaffLineData;
   /** Root track element */
   readonly trackElement: TrackElement;
 
@@ -48,11 +55,11 @@ export class StaffLineElement implements NotationElement {
     NotationStyle,
     NotationStyleLineElement | null
   >;
+  /** Data necessary to build a staff line */
+  private _staffLineData: StaffLineData;
 
   /** Line encapsulating rectangle */
   private _boundingBox: Rect;
-  /** String encoding the state of this element */
-  private _stateHash: string;
 
   /**
    * Class that handles all geometry & visually relevant info of a staff line
@@ -69,7 +76,7 @@ export class StaffLineElement implements NotationElement {
     this.staff = staff;
     this.trackLineElement = trackLineElement;
     this.trackElement = this.trackLineElement.trackElement;
-    this.staffLineData = staffLineData;
+    this._staffLineData = staffLineData;
 
     this._notationStyleLineElements = {
       [NotationStyle.Classic]: null,
@@ -78,26 +85,50 @@ export class StaffLineElement implements NotationElement {
 
     this._boundingBox = new Rect();
 
-    this._stateHash = "";
-
     this.build();
 
     this.trackElement.registerElement(this);
+  }
+
+  private getStyleLineData(notationStyle: NotationStyle): StaffLineData {
+    if (notationStyle === NotationStyle.Classic) {
+      return this.staff.showClassicNotation ? this._staffLineData : [];
+    }
+
+    return this.staff.showTablature ? this._staffLineData : [];
   }
 
   /**
    * Fills the notation style lines array
    */
   public build(): void {
-    this._notationStyleLineElements[NotationStyle.Classic] = this.staff
-      .showClassicNotation
-      ? new NotationStyleLineElement(this, NotationStyle.Classic)
-      : null;
+    this.trackElement.registerElement(this);
 
-    this._notationStyleLineElements[NotationStyle.Tablature] = this.staff
-      .showTablature
-      ? new NotationStyleLineElement(this, NotationStyle.Tablature)
-      : null;
+    if (this.staff.showClassicNotation) {
+      const styleLine = new NotationStyleLineElement(
+        this,
+        NotationStyle.Classic,
+        this.getStyleLineData(NotationStyle.Classic)
+      );
+      this._notationStyleLineElements[NotationStyle.Classic] = styleLine;
+    } else {
+      this._notationStyleLineElements[NotationStyle.Classic] = null;
+    }
+
+    if (this.staff.showTablature) {
+      const styleLine = new NotationStyleLineElement(
+        this,
+        NotationStyle.Tablature,
+        this.getStyleLineData(NotationStyle.Tablature)
+      );
+      this._notationStyleLineElements[NotationStyle.Tablature] = styleLine;
+    } else {
+      this._notationStyleLineElements[NotationStyle.Tablature] = null;
+    }
+  }
+
+  public setStaffLineData(staffLineData: StaffLineData): void {
+    this._staffLineData = staffLineData;
   }
 
   /**
@@ -126,10 +157,7 @@ export class StaffLineElement implements NotationElement {
     this._boundingBox.setDimensions(width, height);
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -137,7 +165,7 @@ export class StaffLineElement implements NotationElement {
         `${this.globalBoundingBox.height}`,
     ];
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -169,6 +197,16 @@ export class StaffLineElement implements NotationElement {
     this.layout();
   }
 
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    for (const styleLine of this.styleLinesAsArray) {
+      elements.push(...styleLine.refreshOwnedNotationElements());
+    }
+
+    return elements;
+  }
+
   /**
    * Scales the element & its children horizontally by the factor
    * @param scale Scale factor
@@ -186,10 +224,6 @@ export class StaffLineElement implements NotationElement {
       }
       styleLine.scaleHorBy(scale);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   /**
@@ -221,11 +255,14 @@ export class StaffLineElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return this.trackLineElement.getModelUUID() + this.staff.uuid;
+  public getStableIdentity(): string {
+    return StaffLineElement.createStableIdentity(
+      this.trackLineElement,
+      this.staff
+    );
   }
 
   /** Style line elements record object */
@@ -249,9 +286,28 @@ export class StaffLineElement implements NotationElement {
     return result;
   }
 
+  public get staffLineData(): StaffLineData {
+    return this._staffLineData;
+  }
+
   /** Line layout bounding box getter */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
   }
 
   /** Global coords of the staff line element (in most cases X will be 0) */

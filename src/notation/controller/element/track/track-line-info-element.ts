@@ -4,13 +4,19 @@ import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dime
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BarElement } from "../bar/bar-element";
-import { TrackLineBarData, TrackLineElement } from "./track-line-element";
+import { TrackLineElement } from "./track-line-element";
 
 /**
  * Class representing the visual info about all
  * info that needs to be on this track line element
  */
 export class TrackLineInfoElement implements NotationElement {
+  public static createStableIdentity(
+    trackLineElement: TrackLineElement
+  ): string {
+    return `track-line-info:${trackLineElement.getStableIdentity()}`;
+  }
+
   /** Unique identifier for the track line element */
   readonly uuid: number;
   /** Parent track line element */
@@ -22,9 +28,6 @@ export class TrackLineInfoElement implements NotationElement {
   private _boundingBox: Rect;
   /** Stores all the bars whose tempo to display & the tempo rect */
   private _barTempoRectsMap: Map<BarElement, Rect>;
-  /** String encoding the state of this element */
-  private _stateHash: string;
-
   /**
    * Class representing the visual info about all
    * info that needs to be on this track line element
@@ -39,8 +42,6 @@ export class TrackLineInfoElement implements NotationElement {
     this._boundingBox = new Rect(0, 0, EditorLayoutDimensions.WIDTH, 0);
     this._barTempoRectsMap = new Map();
 
-    this._stateHash = "";
-
     this.build();
 
     this.trackElement.registerElement(this);
@@ -50,6 +51,8 @@ export class TrackLineInfoElement implements NotationElement {
    * Fills the tempo rectangles map
    */
   public build(): void {
+    this.trackElement.registerElement(this);
+
     this._boundingBox.height = 0;
     this._barTempoRectsMap.clear();
 
@@ -83,10 +86,7 @@ export class TrackLineInfoElement implements NotationElement {
     this._boundingBox.setDimensions(EditorLayoutDimensions.WIDTH, height);
   }
 
-  /**
-   * Calculates the state hash of the element
-   * */
-  private calcStateHash(): void {
+  private buildStateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -102,7 +102,7 @@ export class TrackLineInfoElement implements NotationElement {
       hashArr.push(`${rect.height}`);
     }
 
-    this._stateHash = hashArr.join("");
+    return hashArr.join("");
   }
 
   /**
@@ -114,10 +114,6 @@ export class TrackLineInfoElement implements NotationElement {
     for (const [barElement, rect] of this._barTempoRectsMap) {
       rect.setCoords(barElement.boundingBox.x, 0);
     }
-
-    // Calculating state hash at the last step of
-    // element's update process - layout
-    this.calcStateHash();
   }
 
   public update(): void {
@@ -125,6 +121,10 @@ export class TrackLineInfoElement implements NotationElement {
 
     this.measure();
     this.layout();
+  }
+
+  public refreshOwnedNotationElements(): NotationElement[] {
+    return [this];
   }
 
   /**
@@ -148,6 +148,21 @@ export class TrackLineInfoElement implements NotationElement {
    */
   public getBarTempoRect(barElement: BarElement): Rect | undefined {
     return this._barTempoRectsMap.get(barElement);
+  }
+
+  /** Gets a tempo rectangle for a specific bar element in track line-local coords */
+  public getBarTempoRectLineLocal(barElement: BarElement): Rect | undefined {
+    const barRect = this._barTempoRectsMap.get(barElement);
+    if (barRect === undefined) {
+      return undefined;
+    }
+
+    return new Rect(
+      barRect.x,
+      this.lineLocalCoords.y,
+      barRect.width,
+      barRect.height
+    );
   }
 
   /**
@@ -179,6 +194,21 @@ export class TrackLineInfoElement implements NotationElement {
     return new Point(
       barTempoRect.x + barTempoRect.width,
       EditorLayoutDimensions.TEMPO_TEXT_SIZE
+    );
+  }
+
+  /** Gets tempo text coordinates for a specific bar element in track line-local coords */
+  public getBarTempoTextCoordsLineLocal(
+    barElement: BarElement
+  ): Point | undefined {
+    const barTempoRect = this._barTempoRectsMap.get(barElement);
+    if (barTempoRect === undefined) {
+      return undefined;
+    }
+
+    return new Point(
+      barTempoRect.x + barTempoRect.width,
+      this.lineLocalCoords.y + EditorLayoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 
@@ -214,11 +244,11 @@ export class TrackLineInfoElement implements NotationElement {
 
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this._stateHash;
+    return this.buildStateHash();
   }
 
-  public getModelUUID(): number {
-    return this.trackLineElement.getModelUUID() + 1000001;
+  public getStableIdentity(): string {
+    return TrackLineInfoElement.createStableIdentity(this.trackLineElement);
   }
 
   /** Track line info layout bounding box */
@@ -226,11 +256,26 @@ export class TrackLineInfoElement implements NotationElement {
     return this._boundingBox;
   }
 
+  /** Coords of this element in its owning track line space */
+  public get lineLocalCoords(): Point {
+    return new Point(this._boundingBox.x, this._boundingBox.y);
+  }
+
+  /** Bounding box of this element in track line-local coordinates */
+  public get lineLocalBoundingBox(): Rect {
+    return new Rect(
+      this.lineLocalCoords.x,
+      this.lineLocalCoords.y,
+      this._boundingBox.width,
+      this._boundingBox.height
+    );
+  }
+
   /** Global coords of the track line element (in most cases X will be 0) */
   public get globalCoords(): Point {
     return new Point(
-      this.trackElement.globalCoords.x + this._boundingBox.x,
-      this.trackElement.globalCoords.y + this._boundingBox.y
+      this.trackLineElement.globalCoords.x + this._boundingBox.x,
+      this.trackLineElement.globalCoords.y + this._boundingBox.y
     );
   }
 

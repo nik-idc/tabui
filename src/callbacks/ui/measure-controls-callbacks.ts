@@ -18,6 +18,9 @@ export interface MeasureControlsCallbacks {
   onTimeSignatureClicked(): void;
   onRepeatStartClicked(): void;
   onRepeatEndClicked(): void;
+  onInsertBarBeforeClicked(): void;
+  onInsertBarAfterClicked(): void;
+  onRemoveBarClicked(): void;
   bind(): void;
   unbind(): void;
 }
@@ -87,6 +90,21 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
     this._renderFunc();
   }
 
+  onInsertBarBeforeClicked(): void {
+    this._notationComponent.trackController.insertBarBeforeSelected();
+    this._renderFunc();
+  }
+
+  onInsertBarAfterClicked(): void {
+    this._notationComponent.trackController.insertBarAfterSelected();
+    this._renderFunc();
+  }
+
+  onRemoveBarClicked(): void {
+    this._notationComponent.trackController.removeSelectedBar();
+    this._renderFunc();
+  }
+
   public bind(): void {
     this._listeners.bindAll([
       {
@@ -108,6 +126,21 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
         element: this._measureComponent.template.repeatEndButton,
         event: "click",
         handler: () => this.onRepeatEndClicked(),
+      },
+      {
+        element: this._measureComponent.template.insertBarBeforeButton,
+        event: "click",
+        handler: () => this.onInsertBarBeforeClicked(),
+      },
+      {
+        element: this._measureComponent.template.insertBarAfterButton,
+        event: "click",
+        handler: () => this.onInsertBarAfterClicked(),
+      },
+      {
+        element: this._measureComponent.template.removeBarButton,
+        event: "click",
+        handler: () => this.onRemoveBarClicked(),
       },
     ]);
 

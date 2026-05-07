@@ -33,6 +33,9 @@ export class NoteControlsTemplateRenderer {
     this.template.container.append(
       this.template.dot1Button,
       this.template.dot2Button,
+      this.template.insertBeatBeforeButton,
+      this.template.insertBeatAfterButton,
+      this.template.removeBeatButton,
       this.template.tuplet2Button,
       this.template.tuplet3Button,
       this.template.tupletButton
@@ -198,6 +201,41 @@ export class NoteControlsTemplateRenderer {
     }
   }
 
+  private renderBeatEditButtons(): void {
+    setImageAsset(
+      this.template.insertBeatBeforeButton,
+      this.assetsPath,
+      "img/ui/add.svg",
+      "Insert beat before",
+      {
+        "data-beat-action": "insert-before",
+      }
+    );
+    this.template.insertBeatBeforeButton.title = "Insert beat before";
+
+    setImageAsset(
+      this.template.insertBeatAfterButton,
+      this.assetsPath,
+      "img/ui/add.svg",
+      "Insert beat after",
+      {
+        "data-beat-action": "insert-after",
+      }
+    );
+    this.template.insertBeatAfterButton.title = "Insert beat after";
+
+    setImageAsset(
+      this.template.removeBeatButton,
+      this.assetsPath,
+      "img/ui/remove.svg",
+      "Remove beat",
+      {
+        "data-beat-action": "remove",
+      }
+    );
+    this.template.removeBeatButton.title = "Remove beat";
+  }
+
   /**
    * Responsible for setting up the note controls:
    * Duration change, Dots & Tuplets
@@ -205,6 +243,7 @@ export class NoteControlsTemplateRenderer {
   public render(): void {
     this.renderDurationButtons();
     this.renderDotButtons();
+    this.renderBeatEditButtons();
     this.renderTupletButtons();
 
     this._assembled = renderOnce(this._assembled, () =>

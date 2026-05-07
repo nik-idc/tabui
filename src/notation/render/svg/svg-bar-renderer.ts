@@ -114,11 +114,11 @@ export class SVGBarRenderer implements ElementRenderer {
       ? "var(--tu-notation-ink)"
       : "var(--tu-notation-danger)";
     for (let i = 0; i < this.barElement.staffLines.length; i++) {
-      const lineGlobal = this.barElement.staffLinesGlobal[i];
-      this._staffLinesSVG[i].setAttribute("x1", `${lineGlobal.x1}`);
-      this._staffLinesSVG[i].setAttribute("y1", `${lineGlobal.y}`);
-      this._staffLinesSVG[i].setAttribute("x2", `${lineGlobal.x2}`);
-      this._staffLinesSVG[i].setAttribute("y2", `${lineGlobal.y}`);
+      const local = this.barElement.staffLines[i];
+      this._staffLinesSVG[i].setAttribute("x1", `${local.x1}`);
+      this._staffLinesSVG[i].setAttribute("y1", `${local.y}`);
+      this._staffLinesSVG[i].setAttribute("x2", `${local.x2}`);
+      this._staffLinesSVG[i].setAttribute("y2", `${local.y}`);
       this._staffLinesSVG[i].setAttribute("stroke", strokeColor);
     }
   }
@@ -166,17 +166,17 @@ export class SVGBarRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._borderLinesSVG[1]);
     }
 
-    const leftGlobal = this.barElement.barLeftBorderLineGlobal;
-    this._borderLinesSVG[0].setAttribute("x1", `${leftGlobal.x}`);
-    this._borderLinesSVG[0].setAttribute("y1", `${leftGlobal.y1}`);
-    this._borderLinesSVG[0].setAttribute("x2", `${leftGlobal.x}`);
-    this._borderLinesSVG[0].setAttribute("y2", `${leftGlobal.y2}`);
+    const leftLocal = this.barElement.barLeftBorderLine;
+    this._borderLinesSVG[0].setAttribute("x1", `${leftLocal.x}`);
+    this._borderLinesSVG[0].setAttribute("y1", `${leftLocal.y1}`);
+    this._borderLinesSVG[0].setAttribute("x2", `${leftLocal.x}`);
+    this._borderLinesSVG[0].setAttribute("y2", `${leftLocal.y2}`);
 
-    const rightGlobal = this.barElement.barRightBorderLineGlobal;
-    this._borderLinesSVG[1].setAttribute("x1", `${rightGlobal.x}`);
-    this._borderLinesSVG[1].setAttribute("y1", `${rightGlobal.y1}`);
-    this._borderLinesSVG[1].setAttribute("x2", `${rightGlobal.x}`);
-    this._borderLinesSVG[1].setAttribute("y2", `${rightGlobal.y2}`);
+    const rightLocal = this.barElement.barRightBorderLine;
+    this._borderLinesSVG[1].setAttribute("x1", `${rightLocal.x}`);
+    this._borderLinesSVG[1].setAttribute("y1", `${rightLocal.y1}`);
+    this._borderLinesSVG[1].setAttribute("x2", `${rightLocal.x}`);
+    this._borderLinesSVG[1].setAttribute("y2", `${rightLocal.y2}`);
   }
 
   /**
@@ -205,8 +205,8 @@ export class SVGBarRenderer implements ElementRenderer {
     }
 
     if (
-      this.barElement.timeSigBeatsTextCoordsGlobal === undefined ||
-      this.barElement.timeSigDurationTextCoordsGlobal === undefined
+      this.barElement.timeSigBeatsTextCoords === undefined ||
+      this.barElement.timeSigDurationTextCoords === undefined
     ) {
       this.unrenderBarSig();
       return;
@@ -234,14 +234,14 @@ export class SVGBarRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._timeSigTextsSVG[1]);
     }
 
-    const beatsX = `${this.barElement.timeSigBeatsTextCoordsGlobal.x}`;
-    const beatsY = `${this.barElement.timeSigBeatsTextCoordsGlobal.y}`;
+    const beatsX = `${this.barElement.timeSigBeatsTextCoords.x}`;
+    const beatsY = `${this.barElement.timeSigBeatsTextCoords.y}`;
     this._timeSigTextsSVG[0].setAttribute("x", beatsX);
     this._timeSigTextsSVG[0].setAttribute("y", beatsY);
     this._timeSigTextsSVG[0].textContent = `${this.barElement.bar.masterBar.beatsCount}`;
 
-    const measureX = `${this.barElement.timeSigDurationTextCoordsGlobal.x}`;
-    const measureY = `${this.barElement.timeSigDurationTextCoordsGlobal.y}`;
+    const measureX = `${this.barElement.timeSigDurationTextCoords.x}`;
+    const measureY = `${this.barElement.timeSigDurationTextCoords.y}`;
     this._timeSigTextsSVG[1].setAttribute("x", measureX);
     this._timeSigTextsSVG[1].setAttribute("y", measureY);
     this._timeSigTextsSVG[1].textContent = `${
@@ -276,16 +276,16 @@ export class SVGBarRenderer implements ElementRenderer {
 
     this.unrenderRepeats();
 
-    const repStartGlobal = this.barElement.repeatStartRectGlobal;
-    const repEndGlobal = this.barElement.repeatEndRectGlobal;
-    if (repStartGlobal === undefined && repEndGlobal === undefined) {
+    const repStartLineLocal = this.barElement.repeatStartRect;
+    const repEndLineLocal = this.barElement.repeatEndRect;
+    if (repStartLineLocal === undefined && repEndLineLocal === undefined) {
       return;
     }
 
     const barUUID = this.barElement.bar.uuid;
     if (
       this._repeatStartSVG === undefined &&
-      this.barElement.repeatStartRectGlobal !== undefined
+      this.barElement.repeatStartRect !== undefined
     ) {
       // Set only-set-once attributes
       this._repeatStartSVG = createSVGImage();
@@ -301,7 +301,7 @@ export class SVGBarRenderer implements ElementRenderer {
     }
     if (
       this._repeatEndSVG === undefined &&
-      this.barElement.repeatEndRectGlobal !== undefined
+      this.barElement.repeatEndRect !== undefined
     ) {
       this._repeatEndSVG = createSVGImage();
 
@@ -315,22 +315,22 @@ export class SVGBarRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._repeatEndSVG);
     }
 
-    if (this._repeatStartSVG !== undefined && repStartGlobal !== undefined) {
-      const x = `${repStartGlobal.x}`;
-      const y = `${repStartGlobal.y}`;
-      const width = `${repStartGlobal.width}`;
-      const height = `${repStartGlobal.height}`;
+    if (this._repeatStartSVG !== undefined && repStartLineLocal !== undefined) {
+      const x = `${repStartLineLocal.x}`;
+      const y = `${repStartLineLocal.y}`;
+      const width = `${repStartLineLocal.width}`;
+      const height = `${repStartLineLocal.height}`;
       this._repeatStartSVG.setAttribute("x", x);
       this._repeatStartSVG.setAttribute("y", y);
       this._repeatStartSVG.setAttribute("width", width);
       this._repeatStartSVG.setAttribute("height", height);
     }
 
-    if (this._repeatEndSVG !== undefined && repEndGlobal !== undefined) {
-      const x = `${repEndGlobal.x}`;
-      const y = `${repEndGlobal.y}`;
-      const width = `${repEndGlobal.width}`;
-      const height = `${repEndGlobal.height}`;
+    if (this._repeatEndSVG !== undefined && repEndLineLocal !== undefined) {
+      const x = `${repEndLineLocal.x}`;
+      const y = `${repEndLineLocal.y}`;
+      const width = `${repEndLineLocal.width}`;
+      const height = `${repEndLineLocal.height}`;
       this._repeatEndSVG.setAttribute("x", x);
       this._repeatEndSVG.setAttribute("y", y);
       this._repeatEndSVG.setAttribute("width", width);

@@ -9,6 +9,28 @@ import {
 import { createBarWithBeats } from "./helpers";
 
 describe("ScoreEditor", () => {
+  test("removeBars removes the requested original bar indices", () => {
+    const { score } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+
+    for (let i = 0; i < 6; i++) {
+      score.appendMasterBar({ tempo: 120 + i * 10 });
+    }
+
+    const originalUUIDs = score.masterBars.map((bar) => bar.uuid);
+
+    const removedBars = ScoreEditor.removeBars(score, [2, 3, 4]);
+
+    expect(score.masterBars.map((bar) => bar.uuid)).toEqual([
+      originalUUIDs[0],
+      originalUUIDs[1],
+      originalUUIDs[5],
+      originalUUIDs[6],
+    ]);
+    expect(removedBars.map((result) => result.index)).toEqual([2, 3, 4]);
+  });
+
   test("setTupletGroupSettings clears only on exact tuplet match", () => {
     const { beats } = createBarWithBeats([
       {
