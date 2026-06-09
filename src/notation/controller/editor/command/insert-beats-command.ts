@@ -28,8 +28,8 @@ export class InsertBeatsCommand implements Command {
     }
 
     return {
-      barIndex: this._anchorStaff.bars.indexOf(this._anchorBeat.bar),
-      beatIndex: this._anchorBeat.bar.beats.indexOf(this._anchorBeat) + 1,
+      barIndex: this._anchorStaff.bars.indexOf(this._anchorBeat.voiceBar.bar),
+      beatIndex: this._anchorBeat.voiceBar.beats.indexOf(this._anchorBeat) + 1,
     };
   }
 
@@ -39,10 +39,13 @@ export class InsertBeatsCommand implements Command {
     }
 
     const { barIndex, beatIndex } = this.getInsertionPosition();
-    const bar = this._anchorStaff.bars[barIndex];
+    const voiceBar = this._anchorStaff.bars[barIndex].getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Cannot insert beats into an empty voice slot");
+    }
 
     this._insertedBeats = ScoreEditor.insertBeats(
-      bar,
+      voiceBar,
       beatIndex,
       this._beatsToInsert,
       true
@@ -64,10 +67,13 @@ export class InsertBeatsCommand implements Command {
     }
 
     const { barIndex, beatIndex } = this.getInsertionPosition();
-    const bar = this._anchorStaff.bars[barIndex];
+    const voiceBar = this._anchorStaff.bars[barIndex].getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Cannot insert beats into an empty voice slot");
+    }
 
     this._insertedBeats = ScoreEditor.insertBeats(
-      bar,
+      voiceBar,
       beatIndex,
       this._beatsToInsert,
       true
@@ -75,7 +81,8 @@ export class InsertBeatsCommand implements Command {
   }
 
   public get updateRequest(): CommandUpdateRequest {
-    const affectedBar = this._anchorBeat?.bar ?? this._anchorStaff.bars[0];
+    const affectedBar =
+      this._anchorBeat?.voiceBar.bar ?? this._anchorStaff.bars[0];
     const affectedMasterBarIndex = getMasterBarIndex(
       this._anchorStaff.track.score,
       affectedBar.masterBar

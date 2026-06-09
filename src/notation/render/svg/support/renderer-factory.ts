@@ -9,7 +9,10 @@ import { StaffLineElement } from "@/notation/controller/element/staff/staff-line
 import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
 import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-element";
 import { BarElement } from "@/notation/controller/element/bar/bar-element";
+import { VoiceBarElement } from "@/notation/controller/element/bar/voice-bar-element";
+import { VoiceBarRhythmElement } from "@/notation/controller/element/bar/voice-bar-rhythm-element";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
+import { TabBeatRhythmElement } from "@/notation/controller/element/beat/tab-beat-rhythm-element";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { GuitarTechniqueElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
@@ -27,7 +30,10 @@ import { SVGStaffLineRenderer } from "../svg-staff-line-renderer";
 import { SVGStyleLineRenderer } from "../svg-style-line-renderer";
 import { SVGTechGapRenderer } from "../svg-tech-gap-renderer";
 import { SVGBarRenderer } from "../svg-bar-renderer";
+import { SVGVoiceBarRenderer } from "../svg-voice-bar-renderer";
+import { SVGVoiceBarRhythmRenderer } from "../svg-voice-bar-rhythm-renderer";
 import { SVGTabBeatRenderer } from "../svg-tab-beat-renderer";
+import { SVGTabBeatRhythmRenderer } from "../svg-tab-beat-rhythm-renderer";
 import { SVGTabNoteRenderer } from "../svg-tab-note-renderer";
 import { SVGTechniqueRenderer } from "../svg-technique-renderer";
 import { SVGTechniqueLabelRenderer } from "../svg-technique-label-renderer";
@@ -43,10 +49,13 @@ const RENDERER_CTORS = new Map<NotationElementClass, ElementRendererClass>([
   [NotationStyleLineElement, SVGStyleLineRenderer],
   [TechGapElement, SVGTechGapRenderer],
   [BarElement, SVGBarRenderer],
+  [VoiceBarElement, SVGVoiceBarRenderer],
   [TabBeatElement, SVGTabBeatRenderer],
   [TabNoteElement, SVGTabNoteRenderer],
   [GuitarTechniqueElement, SVGTechniqueRenderer],
   [GuitarTechniqueLabelElement, SVGTechniqueLabelRenderer],
+  [VoiceBarRhythmElement, SVGVoiceBarRhythmRenderer],
+  [TabBeatRhythmElement, SVGTabBeatRhythmRenderer],
   [BeamSegmentElement, SVGBeamSegmentRenderer],
   [BarTupletGroupElement, SVGTupletRenderer],
   [TechGapLineElement, SVGTechGapLineRenderer],

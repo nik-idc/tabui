@@ -10,8 +10,6 @@ export interface NotationElement {
   layout(): void;
   update(): void;
 
-  scaleHorBy(scale: number): void;
-
   get stateHash(): string;
 
   get boundingBox(): Rect;

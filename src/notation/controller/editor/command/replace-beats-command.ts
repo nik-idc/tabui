@@ -1,4 +1,4 @@
-import { Bar, Beat, ScoreEditor } from "@/notation/model";
+import { Beat, ScoreEditor, VoiceBar } from "@/notation/model";
 import {
   Command,
   CommandUpdateRequest,
@@ -7,7 +7,7 @@ import {
 } from "./command";
 
 type RemovedBeatSnapshot = {
-  bar: Bar;
+  voiceBar: VoiceBar;
   index: number;
   beat: Beat;
 };
@@ -21,7 +21,7 @@ export class ReplaceBeatsCommand implements Command {
   private _beatsToReplace: Beat[];
   private _newBeats: Beat[];
   private _oldBeatSnapshots: RemovedBeatSnapshot[];
-  private _originalBarBeatCounts: Map<Bar, number>;
+  private _originalVoiceBarBeatCounts: Map<VoiceBar, number>;
   private _currentBeats: Beat[];
   private _executed: boolean = false;
   private _affectedMasterBarIndices: number[];
@@ -31,14 +31,14 @@ export class ReplaceBeatsCommand implements Command {
     this._beatsToReplace = beatsToReplace;
     this._newBeats = newBeats;
     this._oldBeatSnapshots = beatsToReplace.map((beat) => ({
-      bar: beat.bar,
-      index: beat.bar.beats.indexOf(beat),
+      voiceBar: beat.voiceBar,
+      index: beat.voiceBar.beats.indexOf(beat),
       beat: beat.deepCopy(),
     }));
-    this._originalBarBeatCounts = new Map(
-      new Set(beatsToReplace.map((beat) => beat.bar))
+    this._originalVoiceBarBeatCounts = new Map(
+      new Set(beatsToReplace.map((beat) => beat.voiceBar))
         .values()
-        .map((bar) => [bar, bar.beats.length])
+        .map((voiceBar) => [voiceBar, voiceBar.beats.length])
     );
     this._currentBeats = beatsToReplace;
     this._affectedMasterBarIndices =
@@ -67,23 +67,23 @@ export class ReplaceBeatsCommand implements Command {
     ScoreEditor.removeBeats(this._currentBeats);
 
     const restoredBeats: Beat[] = [];
-    const bars = new Set(
-      this._oldBeatSnapshots.map((snapshot) => snapshot.bar)
+    const voiceBars = new Set(
+      this._oldBeatSnapshots.map((snapshot) => snapshot.voiceBar)
     );
-    for (const bar of bars) {
+    for (const voiceBar of voiceBars) {
       const barSnapshots = this._oldBeatSnapshots
-        .filter((snapshot) => snapshot.bar === bar)
+        .filter((snapshot) => snapshot.voiceBar === voiceBar)
         .sort((a, b) => a.index - b.index);
       const index = Math.min(...barSnapshots.map((snapshot) => snapshot.index));
       const beats = barSnapshots.map((snapshot) => snapshot.beat);
       const removedWholeBar =
-        barSnapshots.length === this._originalBarBeatCounts.get(bar);
+        barSnapshots.length === this._originalVoiceBarBeatCounts.get(voiceBar);
 
-      if (index === 0 && removedWholeBar && bar.isEmpty()) {
-        bar.beats.splice(0, 1);
+      if (index === 0 && removedWholeBar && voiceBar.isEmpty()) {
+        voiceBar.beats.splice(0, 1);
       }
 
-      restoredBeats.push(...bar.insertBeats(index, beats));
+      restoredBeats.push(...voiceBar.insertBeats(index, beats));
     }
 
     this._currentBeats = restoredBeats;

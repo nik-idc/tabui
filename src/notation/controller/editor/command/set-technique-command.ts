@@ -139,7 +139,7 @@ export class SetTechniqueCommand implements Command {
     if (this.isInlineTechniqueTargetedUpdate) {
       return {
         updateType: "Targeted",
-        affectedModelUUIDs: this.affectedModelUUIDs,
+        affectedModelUUID: this.affectedModelUUIDs[0],
       };
     }
 

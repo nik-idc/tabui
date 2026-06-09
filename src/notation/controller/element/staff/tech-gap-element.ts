@@ -159,19 +159,6 @@ export class TechGapElement implements NotationElement {
     return elements;
   }
 
-  /**
-   * Scales the element & its children horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    this._boundingBox.x *= scale;
-    this._boundingBox.width *= scale;
-
-    this._techGapLines[1]?.scaleHorBy(scale);
-    this._techGapLines[2]?.scaleHorBy(scale);
-    this._techGapLines[3]?.scaleHorBy(scale);
-  }
-
   public getPrevGapLine(
     techGapLine: TechGapLineElement
   ): TechGapLineElement | null {

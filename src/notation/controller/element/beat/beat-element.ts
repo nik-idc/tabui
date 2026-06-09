@@ -1,15 +1,17 @@
-import { Bar, Beat } from "@/notation/model";
+import { Bar, Beat, VoiceBar } from "@/notation/model";
 import { Rect, Point } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
+import { VoiceBarElement } from "../bar/voice-bar-element";
 
 /**
  * Interface representing a specific notation styleА beat element
  */
 export interface BeatElement extends NotationElement {
   readonly beat: Beat;
+  readonly voiceBarElement: VoiceBarElement;
   readonly barElement: BarElement;
   readonly barLocalCoords: Point;
   readonly barLocalBoundingBox: Rect;
@@ -26,9 +28,7 @@ export interface BeatElement extends NotationElement {
  * @param bar Owning bar context for width calculation
  * @returns Beat element base width
  */
-export function getBeatWidth(beat: Beat, bar: Bar = beat.bar): number {
-  void bar;
-
+export function getBeatWidth(beat: Beat): number {
   // Calc rect base width by duration
   let width = EditorLayoutDimensions.WIDTH_MAPPING[beat.baseDuration];
 

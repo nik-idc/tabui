@@ -28,6 +28,12 @@ export class BeatInteractionRenderer {
       if (!(element instanceof TabBeatElement)) {
         continue;
       }
+      if (
+        element.beat.voiceBar.voiceNumber !==
+        this.trackController.activeVoiceNumber
+      ) {
+        continue;
+      }
 
       const modelUUID = element.beat.uuid;
       activeBeatUUIDs.add(modelUUID);

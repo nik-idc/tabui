@@ -75,7 +75,7 @@ export class SetNoteCommand implements Command {
   public get updateRequest(): CommandUpdateRequest {
     return {
       updateType: "Targeted",
-      affectedModelUUIDs: [this._note.uuid],
+      affectedModelUUID: this._note.uuid,
     };
   }
 }

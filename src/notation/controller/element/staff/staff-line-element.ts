@@ -18,7 +18,6 @@ export enum NotationStyle {
  * Width to match & the bar itself
  */
 export type StaffLineBarData = {
-  intrinsicWidth: number;
   finalizedWidth: number;
   bar: Bar;
   masterBarIndex: number;
@@ -205,52 +204,6 @@ export class StaffLineElement implements NotationElement {
     }
 
     return elements;
-  }
-
-  /**
-   * Scales the element & its children horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
-    if (scaleOuterX) {
-      this._boundingBox.x *= scale;
-    }
-    this._boundingBox.width *= scale;
-
-    const styleLinesEntries = Object.entries(this._notationStyleLineElements);
-    for (const [style, styleLine] of styleLinesEntries) {
-      if (styleLine === null) {
-        continue;
-      }
-      styleLine.scaleHorBy(scale);
-    }
-  }
-
-  /**
-   * Justifies all the present lines
-   */
-  public justifyStyleLines(fakeJustify: boolean = false): void {
-    const classicNot = this._notationStyleLineElements[NotationStyle.Classic];
-    const tablatureNot =
-      this._notationStyleLineElements[NotationStyle.Tablature];
-    if (classicNot === null && tablatureNot === null) {
-      throw Error("Both classic & tablature notations null at layout");
-    }
-
-    this._notationStyleLineElements[NotationStyle.Classic]?.justifyElements(
-      fakeJustify
-    );
-    this._notationStyleLineElements[NotationStyle.Tablature]?.justifyElements(
-      fakeJustify
-    );
-
-    let width = 0;
-    if (classicNot !== null) {
-      width = classicNot.boundingBox.width;
-    } else if (tablatureNot !== null) {
-      width = tablatureNot.boundingBox.width;
-    }
-    this._boundingBox.width = width;
   }
 
   /** String encoding the state of this element */

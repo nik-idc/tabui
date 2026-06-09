@@ -2,6 +2,7 @@ import { EditorLayoutDimensions, TrackController } from "@/notation/controller";
 import { createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { SVGNoteRenderer } from "./svg-note-renderer";
+import { NoteValue, VoiceNumber } from "@/notation/model";
 
 /**
  * Class for rendering a note element using SVG
@@ -78,12 +79,55 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     this.ensureContainerGroup();
   }
 
+  private getSlotOwnerVoiceNumber(activeVoiceNumber: VoiceNumber): VoiceNumber {
+    const note = this.noteElement.note;
+    const slotElements =
+      this.trackController.trackElement.getNoteElementsForNoteSlot(note);
+    const activeNoteElement = slotElements.find(
+      (element) => element.note.beat.voiceBar.voiceNumber === activeVoiceNumber
+    );
+
+    if (activeNoteElement && activeNoteElement.note.fret !== null) {
+      return activeVoiceNumber;
+    }
+
+    let lowestFilledVoiceNumber: VoiceNumber | null = null;
+    for (const noteElement of slotElements) {
+      if (noteElement.note.fret === null) {
+        continue;
+      }
+
+      const voiceNumber = noteElement.note.beat.voiceBar.voiceNumber;
+
+      if (
+        lowestFilledVoiceNumber === null ||
+        voiceNumber < lowestFilledVoiceNumber
+      ) {
+        lowestFilledVoiceNumber = voiceNumber;
+      }
+    }
+
+    return lowestFilledVoiceNumber ?? activeVoiceNumber;
+  }
+
+  public shouldRenderHitRect(): boolean {
+    return (
+      this.noteElement.note.beat.voiceBar.voiceNumber ===
+      this.getSlotOwnerVoiceNumber(this.trackController.activeVoiceNumber)
+    );
+  }
+
   /**
    * Render note outer rect
    */
   private renderNoteRect(): void {
     if (this._containerGroupSVG === undefined) {
       throw Error("Tried to render note rect when SVG group undefined");
+    }
+
+    if (!this.shouldRenderHitRect()) {
+      this.unrenderNoteRect();
+      return;
     }
 
     const noteUUID = this.noteElement.note.uuid;
@@ -103,14 +147,24 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._containerGroupSVG.appendChild(this._boundingBoxSVG);
     }
 
-    const x = `${this.noteElement.barLocalCoords.x}`;
-    const y = `${this.noteElement.barLocalCoords.y}`;
-    const width = `${this.noteElement.boundingBox.width}`;
-    const height = `${this.noteElement.boundingBox.height}`;
+    const isActiveVoice =
+      this.noteElement.note.beat.voiceBar.voiceNumber ===
+      this.trackController.activeVoiceNumber;
+    const isEmpty = this.noteElement.note.noteValue === NoteValue.None;
+    const isInteractable = isActiveVoice || !isEmpty;
+
+    const x = `${this.noteElement.textRectBarLocal.x}`;
+    const y = `${this.noteElement.textRectBarLocal.y}`;
+    const width = `${this.noteElement.textRect.width}`;
+    const height = `${this.noteElement.textRect.height}`;
     this._boundingBoxSVG.setAttribute("x", x);
     this._boundingBoxSVG.setAttribute("y", y);
     this._boundingBoxSVG.setAttribute("width", width);
     this._boundingBoxSVG.setAttribute("height", height);
+    this._boundingBoxSVG.setAttribute(
+      "pointer-events",
+      isInteractable ? "all" : "none"
+    );
   }
 
   /**

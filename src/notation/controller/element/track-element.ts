@@ -1,4 +1,4 @@
-import { Beat, Track } from "@/notation/model";
+import { Beat, GuitarNote, lcmAll, Note, Track } from "@/notation/model";
 import { randomInt, Point, Rect } from "@/shared";
 import {
   CommandUpdateRequest,
@@ -7,18 +7,22 @@ import {
   VerticalUpdateRequest,
 } from "../editor/command/command";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
-import { BarElement, getBarWidth } from "./bar/bar-element";
 import {
-  TrackLineBars,
-  TrackLineBar,
-  TrackLineElement,
-} from "./track/track-line-element";
+  calculateMasterBarLayoutMetrics,
+  MasterBarLayoutMetrics,
+  TRACK_LINE_DURATION_BUDGET_UNITS,
+} from "../layout/bar-layout";
+import { BarElement } from "./bar/bar-element";
+import { TrackLineBar, TrackLineElement } from "./track/track-line-element";
 import { BeatElement } from "./beat/beat-element";
 import { StaffLineElement } from "./staff/staff-line-element";
 import { NotationElement, NotationElementClass } from "./notation-element";
 import { TabNoteElement } from "./note/tab-note-element";
 import { TabBeatElement } from "./beat/tab-beat-element";
+import { TabBeatRhythmElement } from "./beat/tab-beat-rhythm-element";
 import { NotationStyleLineElement } from "./staff/notation-style-line-element";
+import { VoiceBarElement } from "./bar/voice-bar-element";
+import { VoiceBarRhythmElement } from "./bar/voice-bar-rhythm-element";
 import { BeamSegmentElement } from "./bar/beam-segment-element";
 import { BarTupletGroupElement } from "./bar/bar-tuplet-group-element";
 import { TechGapElement } from "./staff/tech-gap-element";
@@ -34,6 +38,7 @@ import {
   isModelBackedElement,
   snapshotOwnedElements,
 } from "./track/update/track-element-update-helpers";
+import { NoteElement } from "./note/note-element";
 
 /**
  * ELEMENT_ORDER defines the order in which element types are rendered.
@@ -46,9 +51,12 @@ export const ELEMENT_ORDER: Array<NotationElementClass> = [
   NotationStyleLineElement,
   TechGapElement,
   BarElement,
+  VoiceBarElement,
   TabBeatElement,
   TabNoteElement,
   GuitarTechniqueElement,
+  VoiceBarRhythmElement,
+  TabBeatRhythmElement,
   GuitarTechniqueLabelElement,
   BeamSegmentElement,
   BarTupletGroupElement,
@@ -74,6 +82,13 @@ type ElementSnapshot = {
   elements: Map<ElementIdentity, NotationElement>;
   hashes: Map<ElementIdentity, string>;
 };
+
+function snapshotElements(elements: NotationElement[]): ElementSnapshot {
+  return {
+    elements: new Map(elements.map((e) => [e.getStableIdentity(), e])),
+    hashes: new Map(elements.map((e) => [e.getStableIdentity(), e.stateHash])),
+  };
+}
 
 type LineWindow = {
   start: number;
@@ -193,83 +208,88 @@ export class TrackElement {
   /** Creates one line bar entry for presentation shell construction. */
   private createTrackLineBar(
     masterBarIndex: number,
-    intrinsicWidth: number,
     finalizedWidth: number
   ): TrackLineBar {
     return {
-      intrinsicWidth,
       finalizedWidth,
       masterBarUUID: this.track.score.masterBars[masterBarIndex].uuid,
       masterBarIndex,
     };
   }
 
+  private finalizeTrackLineBars(
+    lineBars: TrackLineBar[],
+    metrics: MasterBarLayoutMetrics[],
+    stretch: boolean
+  ): void {
+    const minWidth = lineBars.reduce(
+      (sum, lineBar) => sum + lineBar.finalizedWidth,
+      0
+    );
+
+    if (!stretch || minWidth === 0) {
+      return;
+    }
+
+    const structuralWidth = lineBars.reduce((sum, lineBar) => {
+      return sum + metrics[lineBar.masterBarIndex].structuralWidth;
+    }, 0);
+    const contentMinWidth = lineBars.reduce((sum, lineBar) => {
+      return sum + metrics[lineBar.masterBarIndex].contentMinWidth;
+    }, 0);
+    const contentScale =
+      contentMinWidth === 0
+        ? 1
+        : Math.max(0, EditorLayoutDimensions.WIDTH - structuralWidth) /
+          contentMinWidth;
+
+    for (const lineBar of lineBars) {
+      const metric = metrics[lineBar.masterBarIndex];
+      lineBar.finalizedWidth =
+        metric.structuralWidth + metric.contentMinWidth * contentScale;
+    }
+  }
+
   /**
    * Groups master bars into rendered track lines based on intrinsic bar widths.
    */
-  private buildTrackLineSkeleton(): TrackLineBars[] {
-    let width = 0;
-    let intrinsicBarWidth = 0;
-    let currentLineBars: TrackLineBars = [];
-    let allFit = true;
-    const trackLinesBars: TrackLineBars[] = [];
+  private buildTrackLineSkeleton(): TrackLineBar[][] {
+    let currentLineBars: TrackLineBar[] = [];
+    const trackLinesBars: TrackLineBar[][] = [];
     const masterBars = this.track.score.masterBars;
+    const metrics = masterBars.map((_, index) =>
+      calculateMasterBarLayoutMetrics(this.track, index)
+    );
+    let lineMinWidth = 0;
+    let lineDurationUnits = 0;
+
     for (let i = 0; i < masterBars.length; i++) {
-      intrinsicBarWidth = 0;
+      const metric = metrics[i];
+      const finalizedWidth = Math.min(
+        metric.minWidth,
+        EditorLayoutDimensions.WIDTH
+      );
+      const fitsWidth =
+        lineMinWidth + finalizedWidth <= EditorLayoutDimensions.WIDTH;
+      const fitsDuration =
+        lineDurationUnits + metric.durationUnits <=
+        TRACK_LINE_DURATION_BUDGET_UNITS;
 
-      // Check if current bar fits in all the staves
-      // AND find the largest bar amonng the staves
-      for (const staff of this.track.staves) {
-        const bar = staff.bars[i];
-        const barWidth = getBarWidth(bar);
-
-        if (width + barWidth > EditorLayoutDimensions.WIDTH) {
-          allFit = false;
-        }
-
-        if (barWidth > intrinsicBarWidth) {
-          intrinsicBarWidth = barWidth;
-        }
-      }
-
-      if (allFit) {
-        // If fits, keep filling the current line.
-        currentLineBars.push(
-          this.createTrackLineBar(i, intrinsicBarWidth, intrinsicBarWidth)
-        );
-        width += intrinsicBarWidth;
-      } else {
-        if (currentLineBars.length === 0) {
-          currentLineBars = [
-            this.createTrackLineBar(
-              i,
-              intrinsicBarWidth,
-              EditorLayoutDimensions.WIDTH
-            ),
-          ];
-          trackLinesBars.push(currentLineBars);
-          width = 0;
-          allFit = true;
-          currentLineBars = [];
-          continue;
-        }
-
-        // If doesn't fit, assume that current master bar fits
-        // on the next line and continue
-        width = intrinsicBarWidth;
-        if (currentLineBars.length === 1) {
-          // Update both line-level and style-level finalized width placement data
-          currentLineBars[0].finalizedWidth = EditorLayoutDimensions.WIDTH;
-        }
+      if (currentLineBars.length !== 0 && (!fitsWidth || !fitsDuration)) {
+        this.finalizeTrackLineBars(currentLineBars, metrics, true);
         trackLinesBars.push(currentLineBars);
-        allFit = true;
-        currentLineBars = [
-          this.createTrackLineBar(i, intrinsicBarWidth, intrinsicBarWidth),
-        ];
+        currentLineBars = [];
+        lineMinWidth = 0;
+        lineDurationUnits = 0;
       }
+
+      currentLineBars.push(this.createTrackLineBar(i, finalizedWidth));
+      lineMinWidth += finalizedWidth;
+      lineDurationUnits += metric.durationUnits;
     }
 
     if (currentLineBars.length !== 0) {
+      this.finalizeTrackLineBars(currentLineBars, metrics, false);
       trackLinesBars.push(currentLineBars);
     }
 
@@ -301,12 +321,8 @@ export class TrackElement {
    * Calculates coordinates for all child elements
    */
   public layout(): void {
-    const lastIndex = this._trackLineElements.length - 1;
     for (let i = 0; i < this._trackLineElements.length; i++) {
       this._trackLineElements[i].layout();
-      // Last line uses fake justify (scale = 1) to ensure state hash captures final positions
-      const isLastLine = i === lastIndex;
-      this._trackLineElements[i].justifyElements(isLastLine);
     }
   }
 
@@ -345,16 +361,13 @@ export class TrackElement {
     const firstAffectedLineIndex = this._trackLineElements.indexOf(
       affectedLines[0]
     );
-    const lastLineIndex = this._trackLineElements.length - 1;
     let nextAffectedIndex = 0;
 
-    for (let i = firstAffectedLineIndex; i <= lastLineIndex; i++) {
-      const trackLineElement = this._trackLineElements[i];
+    for (const trackLineElement of this._trackLineElements) {
       if (trackLineElement === affectedLines[nextAffectedIndex]) {
         trackLineElement.build();
         trackLineElement.measure();
         trackLineElement.layout();
-        trackLineElement.justifyElements(i === lastLineIndex);
         nextAffectedIndex++;
         continue;
       }
@@ -408,12 +421,12 @@ export class TrackElement {
    * Ownership is used instead of object identity so old and new skeletons can be
    * compared after presentation shell objects are rebuilt.
    */
-  private getLineOwnership(trackLineBars: TrackLineBars): number[] {
+  private getLineOwnership(trackLineBars: TrackLineBar[]): number[] {
     return trackLineBars.map((lineBar) => lineBar.masterBarUUID);
   }
 
   /** Builds a compact ownership key for overlap checks between line windows. */
-  private getLineOwnershipKey(trackLineBars: TrackLineBars): string {
+  private getLineOwnershipKey(trackLineBars: TrackLineBar[]): string {
     return this.getLineOwnership(trackLineBars).join(":");
   }
 
@@ -433,14 +446,14 @@ export class TrackElement {
   }
 
   /** Finds the rendered line containing the given current master-bar index. */
-  private findLineByBarIndex(lines: TrackLineBars[], index: number): number {
+  private findLineByBarIndex(lines: TrackLineBar[][], index: number): number {
     return lines.findIndex((lineBars) =>
       lineBars.some((lb) => lb.masterBarIndex === index)
     );
   }
 
   /** Finds the rendered line containing the given stable master-bar UUID. */
-  private findLineByBarUUID(lines: TrackLineBars[], uuid: number): number {
+  private findLineByBarUUID(lines: TrackLineBar[][], uuid: number): number {
     return lines.findIndex((lbs) =>
       lbs.some((lb) => lb.masterBarUUID === uuid)
     );
@@ -453,7 +466,7 @@ export class TrackElement {
    * anchoring.
    */
   private firstAffectedLine(
-    lines: TrackLineBars[],
+    lines: TrackLineBar[][],
     request: HorizontalUpdateRequest
   ): number {
     for (const masterBarUUID of request.affectedMasterBarUUIDs ?? []) {
@@ -472,7 +485,7 @@ export class TrackElement {
    * multi-bar updates can cover the full changed range.
    */
   private lastAffectedLine(
-    lines: TrackLineBars[],
+    lines: TrackLineBar[][],
     request: HorizontalUpdateRequest
   ): number {
     const affectedMasterBarUUIDs = request.affectedMasterBarUUIDs ?? [];
@@ -503,8 +516,8 @@ export class TrackElement {
    * available to avoid index-shift bugs after bar insertion/removal.
    */
   private getChangedLineWindow(
-    oldLineBars: TrackLineBars[],
-    newLineBars: TrackLineBars[],
+    oldLineBars: TrackLineBar[][],
+    newLineBars: TrackLineBar[][],
     request: HorizontalUpdateRequest
   ): LineWindow {
     const oldOwnership = oldLineBars.map((lb) => this.getLineOwnership(lb));
@@ -644,7 +657,6 @@ export class TrackElement {
     startLineIndex: number,
     rebuiltLines: Set<TrackLineElement>
   ): void {
-    const lastLineIndex = this._trackLineElements.length - 1;
     for (let i = startLineIndex; i < this._trackLineElements.length; i++) {
       const trackLineElement = this._trackLineElements[i];
       if (rebuiltLines.has(trackLineElement)) {
@@ -652,7 +664,6 @@ export class TrackElement {
       } else {
         trackLineElement.layoutVerticalShift();
       }
-      trackLineElement.justifyElements(i === lastLineIndex);
     }
   }
 
@@ -708,31 +719,20 @@ export class TrackElement {
   public updateTargeted(request: TargetedUpdateRequest): void {
     this.clearElementDiff();
 
-    const seenStableIdentities = new Set<string>();
-    for (const modelUUID of request.affectedModelUUIDs) {
-      const element = this._elementRegistryByModelUUID.get(modelUUID);
-      if (element === undefined) {
-        continue;
-      }
-
-      const stableIdentity = element.getStableIdentity();
-      if (seenStableIdentities.has(stableIdentity)) {
-        continue;
-      }
-
-      const prevSnapshot = this.snapshotElements(
-        element.refreshOwnedNotationElements()
-      );
-      // NOTE: Idk looks kinda weird. But fine for now
-      const owningTrackLineElement = getOwningTrackLineElement(element);
-      element.update();
-      owningTrackLineElement.refreshOwnedNotationElements();
-      this.reconcileElementSnapshot(
-        prevSnapshot,
-        element.refreshOwnedNotationElements()
-      );
-      seenStableIdentities.add(stableIdentity);
+    const element = this._elementRegistryByModelUUID.get(
+      request.affectedModelUUID
+    );
+    if (!element) {
+      throw new Error("Targeted update request element not found");
     }
+
+    const beforeUpdate = element.refreshOwnedNotationElements();
+    const beforeUpdateSnapshot = snapshotElements(beforeUpdate);
+    const stateHashBefore = JSON.parse(JSON.stringify(element.stateHash));
+    element.update();
+    const stateHashAfter = JSON.parse(JSON.stringify(element.stateHash));
+    const afterUpdate = element.refreshOwnedNotationElements();
+    this.reconcileElementSnapshot(beforeUpdateSnapshot, afterUpdate);
   }
 
   public updateFull(): void {
@@ -852,6 +852,43 @@ export class TrackElement {
     }
 
     return rects;
+  }
+
+  public getNoteElementsForNoteSlot(note: GuitarNote): TabNoteElement[] {
+    const bar = note.beat.voiceBar.bar;
+    const sourceNoteElement = this._elementRegistryByModelUUID.get(note.uuid);
+    if (!(sourceNoteElement instanceof TabNoteElement)) {
+      throw new Error("Note's element is not a valid NoteElement");
+    }
+
+    const commonTickRes = lcmAll(
+      bar.voiceBarsAsArray.map((voiceBar) => voiceBar.tickResolution)
+    );
+    const sourceBeat = sourceNoteElement.beatElement.beat;
+    const sourceStartTick =
+      sourceBeat.startTick *
+      (commonTickRes / sourceBeat.voiceBar.tickResolution);
+
+    const result = [];
+    for (const voiceBar of bar.voiceBarsAsArray) {
+      for (const beat of voiceBar.beats) {
+        const beatStartTick =
+          beat.startTick * (commonTickRes / beat.voiceBar.tickResolution);
+        if (beatStartTick !== sourceStartTick) {
+          continue;
+        }
+
+        const slotNote = beat.notes[note.stringNum - 1];
+        const noteElement = this._elementRegistryByModelUUID.get(slotNote.uuid);
+        if (!(noteElement instanceof TabNoteElement)) {
+          throw new Error("Note's element is not a valid NoteElement");
+        }
+
+        result.push(noteElement);
+      }
+    }
+
+    return result;
   }
 
   /**

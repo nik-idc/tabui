@@ -4,28 +4,28 @@ import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dime
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BeatElement } from "../beat/beat-element";
-import { BarElement } from "./bar-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
+import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
 
 /**
  * Class that handles geometry & visually relevant info of a bar tuplet group
  */
 export class BarTupletGroupElement implements NotationElement {
   public static createStableIdentity(
-    barElement: BarElement,
+    voiceBarRhythmElement: VoiceBarRhythmElement,
     tupletGroup: BarTupletGroup
   ): string {
     const trackLineStableIdentity =
-      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `tuplet:${trackLineStableIdentity}:${tupletGroup.uuid}`;
+      voiceBarRhythmElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+    return `tuplet:${trackLineStableIdentity}:${voiceBarRhythmElement.voiceNumber}:${tupletGroup.uuid}`;
   }
 
   /** UUID of the tuplet element */
   readonly uuid: number;
   /** Tuplet group this element represents */
   readonly tupletGroup: BarTupletGroup;
-  /** Parent bar element */
-  readonly barElement: BarElement;
+  /** Parent voice bar rhythm element */
+  readonly voiceBarRhythmElement: VoiceBarRhythmElement;
   /** Root track element */
   readonly trackElement: TrackElement;
 
@@ -38,18 +38,18 @@ export class BarTupletGroupElement implements NotationElement {
   /**
    * Class that handles geometry & visually relevant info of a bar tuplet group
    * @param tupletGroup Tuplet group
-   * @param barElement Bar element
+   * @param voiceBarRhythmElement Voice bar rhythm element
    * @param beatElements Beat elements
    */
   constructor(
     tupletGroup: BarTupletGroup,
-    barElement: BarElement,
+    voiceBarRhythmElement: VoiceBarRhythmElement,
     beatElements: TabBeatElement[]
   ) {
     this.uuid = randomInt();
     this.tupletGroup = tupletGroup;
-    this.barElement = barElement;
-    this.trackElement = this.barElement.trackElement;
+    this.voiceBarRhythmElement = voiceBarRhythmElement;
+    this.trackElement = this.voiceBarRhythmElement.trackElement;
     this._beatElements = beatElements;
 
     this._boundingBox = new Rect();
@@ -80,63 +80,50 @@ export class BarTupletGroupElement implements NotationElement {
    * Calculates the dimensions of this bar tuplet group element
    */
   public measure(): void {
-    let sumWidth = 0;
-    for (const beatElement of this.beatElements) {
-      sumWidth += beatElement.boundingBox.width;
-    }
-
     const height = EditorLayoutDimensions.TUPLET_RECT_HEIGHT;
-    this._boundingBox.setDimensions(sumWidth, height);
+    this._boundingBox.setDimensions(0, height);
 
     if (this._incompleteRects === undefined) {
       return;
     }
     for (let i = 0; i < this.beatElements.length; i++) {
-      this._incompleteRects[i].setDimensions(
-        this.beatElements[i].boundingBox.width,
-        height
-      );
+      this._incompleteRects[i].setDimensions(0, height);
     }
-  }
-
-  private buildStateHash(): string {
-    const hashArr: string[] = [
-      `${this.barLocalBoundingBox.x}` +
-        `${this.barLocalBoundingBox.y}` +
-        `${this.barLocalBoundingBox.width}` +
-        `${this.barLocalBoundingBox.height}`,
-    ];
-
-    if (this._incompleteRects !== undefined) {
-      for (const rect of this._incompleteRects) {
-        hashArr.push(`${rect.x}`);
-        hashArr.push(`${rect.y}`);
-        hashArr.push(`${rect.width}`);
-        hashArr.push(`${rect.height}`);
-      }
-    }
-
-    return hashArr.join("");
   }
 
   /**
    * Calculate the coordinates of this bar tuplet group element
    */
   public layout(): void {
-    const x = this.beatElements[0].boundingBox.x;
+    const baseX = this.beatElements[0].attackX;
+    const lastBeatElement = this.beatElements[this.beatElements.length - 1];
+    const tupletWidth =
+      lastBeatElement.attackX + lastBeatElement.boundingBox.width - baseX;
     const y =
-      this.barElement.boundingBox.height -
+      this.voiceBarRhythmElement.boundingBox.height -
       EditorLayoutDimensions.TUPLET_RECT_HEIGHT;
 
-    this._boundingBox.setCoords(x, y);
+    // Width depends on laid-out beat attack columns, not measure-time data.
+    this._boundingBox.setDimensions(tupletWidth, this._boundingBox.height);
+    this._boundingBox.setCoords(baseX, y);
 
     if (this._incompleteRects === undefined) {
       return;
     }
     for (let i = 0; i < this.beatElements.length; i++) {
-      const x = this._incompleteRects[i - 1]?.right ?? 0;
+      const nextBeatElement = this.beatElements[i + 1];
+      const rectWidth =
+        nextBeatElement === undefined
+          ? this.beatElements[i].boundingBox.width
+          : nextBeatElement.attackX - this.beatElements[i].attackX;
+      const x = this.beatElements[i].attackX - baseX;
       const y = this._boundingBox.y;
 
+      // Width depends on the next laid-out beat attack column.
+      this._incompleteRects[i].setDimensions(
+        rectWidth,
+        this._incompleteRects[i].height
+      );
       this._incompleteRects[i].setCoords(x, y);
     }
   }
@@ -146,7 +133,6 @@ export class BarTupletGroupElement implements NotationElement {
    */
   public update(): void {
     this.build();
-
     this.measure();
     this.layout();
   }
@@ -179,30 +165,30 @@ export class BarTupletGroupElement implements NotationElement {
       : `${beatElementTuplet.normalCount}:${beatElementTuplet.tupletCount}`;
   }
 
-  /**
-   * Scales the bar tuplet group element horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    this._boundingBox.x *= scale;
-    this._boundingBox.width *= scale;
-
-    if (this._incompleteRects !== undefined) {
-      for (const incompleteRect of this._incompleteRects) {
-        incompleteRect.x *= scale;
-        incompleteRect.width *= scale;
-      }
-    }
-  }
-
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this.buildStateHash();
+    const hashArr: string[] = [
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}`,
+    ];
+
+    if (this._incompleteRects !== undefined) {
+      for (const rect of this._incompleteRects) {
+        hashArr.push(`${rect.x}`);
+        hashArr.push(`${rect.y}`);
+        hashArr.push(`${rect.width}`);
+        hashArr.push(`${rect.height}`);
+      }
+    }
+
+    return hashArr.join("");
   }
 
   public getStableIdentity(): string {
     return BarTupletGroupElement.createStableIdentity(
-      this.barElement,
+      this.voiceBarRhythmElement,
       this.tupletGroup
     );
   }
@@ -222,7 +208,10 @@ export class BarTupletGroupElement implements NotationElement {
 
   /** Coords of this element in bar-local coordinates */
   public get barLocalCoords(): Point {
-    return new Point(this._boundingBox.x, this._boundingBox.y);
+    return new Point(
+      this.voiceBarRhythmElement.boundingBox.x + this._boundingBox.x,
+      this.voiceBarRhythmElement.boundingBox.y + this._boundingBox.y
+    );
   }
 
   /** Bounding box of this element in bar-local coordinates */
@@ -238,8 +227,8 @@ export class BarTupletGroupElement implements NotationElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
-      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
+      this.voiceBarRhythmElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.voiceBarRhythmElement.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -382,8 +371,11 @@ export class BarTupletGroupElement implements NotationElement {
       return undefined;
     }
 
+    const lastBeatElement = this._beatElements[this._beatElements.length - 1];
+    const tupletPathMiddleX =
+      (this.barLocalCoords.x + lastBeatElement.attackXBarLocal) / 2;
     return new Point(
-      this.barLocalCoords.x + this._boundingBox.width / 2,
+      tupletPathMiddleX,
       this.barLocalCoords.y +
         this._boundingBox.height / 2 +
         EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
@@ -433,7 +425,7 @@ export class BarTupletGroupElement implements NotationElement {
       firstBeatElement.boundingBox.width / 2;
     const height = EditorLayoutDimensions.TUPLET_PATH_HEIGHT;
     return new Rect(
-      this.barLocalCoords.x + firstBeatElement.boundingBox.width / 2,
+      this.barLocalCoords.x,
       this.barLocalCoords.y + height,
       width,
       height
@@ -487,8 +479,8 @@ export class BarTupletGroupElement implements NotationElement {
   /** Global coords of the bar tuplet group element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this.barLocalCoords.x,
-      this.barElement.globalCoords.y + this.barLocalCoords.y
+      this.voiceBarRhythmElement.globalCoords.x + this.barLocalCoords.x,
+      this.voiceBarRhythmElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

@@ -54,6 +54,10 @@ export class NotationComponent {
     return this._renderer.render();
   }
 
+  public renderVisibleNoChange(): ElementRenderer[] {
+    return this._renderer.renderVisibleNoChange();
+  }
+
   /**
    * Loads & renders new track
    * @param newTrack New track

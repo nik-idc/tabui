@@ -15,7 +15,7 @@ export interface HorizontalUpdateRequest {
 
 export interface TargetedUpdateRequest {
   updateType: "Targeted";
-  affectedModelUUIDs: number[];
+  affectedModelUUID: number;
 }
 
 export interface FullUpdateRequest {
@@ -36,7 +36,10 @@ export function getAffectedMasterBarIndicesFromBeats(beats: Beat[]): number[] {
   return Array.from(
     new Set(
       beats.map((beat) =>
-        getMasterBarIndex(beat.bar.staff.track.score, beat.bar.masterBar)
+        getMasterBarIndex(
+          beat.voiceBar.bar.staff.track.score,
+          beat.voiceBar.bar.masterBar
+        )
       )
     )
   )
@@ -45,7 +48,9 @@ export function getAffectedMasterBarIndicesFromBeats(beats: Beat[]): number[] {
 }
 
 export function getAffectedMasterBarUUIDsFromBeats(beats: Beat[]): number[] {
-  return Array.from(new Set(beats.map((beat) => beat.bar.masterBar.uuid)));
+  return Array.from(
+    new Set(beats.map((beat) => beat.voiceBar.bar.masterBar.uuid))
+  );
 }
 
 // Command interface

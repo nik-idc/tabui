@@ -21,6 +21,9 @@ import { NotationStyleLineElement } from "@/notation/controller/element/staff/no
 import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-element";
 import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
 import { BarElement } from "@/notation/controller/element/bar/bar-element";
+import { VoiceBarElement } from "@/notation/controller/element/bar/voice-bar-element";
+import { VoiceBarRhythmElement } from "@/notation/controller/element/bar/voice-bar-rhythm-element";
+import { TabBeatRhythmElement } from "@/notation/controller/element/beat/tab-beat-rhythm-element";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { GuitarTechniqueElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
@@ -31,6 +34,7 @@ import { getOwningBarElement } from "@/notation/controller/element/track/update/
 import { BeatInteractionRenderer } from "./beat-interaction-renderer";
 import { PlayerOverlayRenderer } from "./player-overlay-renderer";
 import { ensureDomChildAtIndex, toDomIdFragment } from "./support/misc";
+import { VoiceNumber } from "@/notation/model";
 
 type TrackLineGroup = {
   wrapper: SVGGElement;
@@ -41,14 +45,25 @@ type TrackLineGroup = {
 type BarGroup = {
   wrapper: SVGGElement;
   layerGroups: Map<NotationElementClass, SVGGElement>;
+  voiceContentGroups: Map<VoiceNumber, SVGGElement>;
+  voiceRhythmGroups: Map<VoiceNumber, SVGGElement>;
 };
 
 const BAR_OWNED_ELEMENT_CLASSES: Array<NotationElementClass> = [
   BarElement,
+  GuitarTechniqueLabelElement,
+];
+
+const VOICE_CONTENT_ELEMENT_CLASSES: Array<NotationElementClass> = [
+  VoiceBarElement,
   TabBeatElement,
   TabNoteElement,
   GuitarTechniqueElement,
-  GuitarTechniqueLabelElement,
+];
+
+const VOICE_RHYTHM_ELEMENT_CLASSES: Array<NotationElementClass> = [
+  VoiceBarRhythmElement,
+  TabBeatRhythmElement,
   BeamSegmentElement,
   BarTupletGroupElement,
 ];
@@ -189,9 +204,94 @@ export class EditorSVGRenderer implements EditorRenderer {
       wrapper.appendChild(group);
     }
 
-    const barGroup = { wrapper, layerGroups };
+    const barGroup = {
+      wrapper,
+      layerGroups,
+      voiceContentGroups: new Map<VoiceNumber, SVGGElement>(),
+      voiceRhythmGroups: new Map<VoiceNumber, SVGGElement>(),
+    };
     trackLineGroup.barGroups.set(stableIdentity, barGroup);
     return barGroup;
+  }
+
+  private ensureVoiceGroup(
+    barGroup: BarGroup,
+    voiceNumber: VoiceNumber,
+    voiceKind: "content" | "rhythm"
+  ): SVGGElement {
+    const groups =
+      voiceKind === "content"
+        ? barGroup.voiceContentGroups
+        : barGroup.voiceRhythmGroups;
+    let group = groups.get(voiceNumber);
+    if (group === undefined) {
+      group = createSVGG();
+      group.setAttribute("data-voice", `${voiceNumber}`);
+      group.setAttribute("data-voice-kind", voiceKind);
+      groups.set(voiceNumber, group);
+    }
+
+    const isActive = voiceNumber === this.trackController.activeVoiceNumber;
+    group.setAttribute("opacity", isActive ? "1" : "0.5");
+    this.syncBarVoiceGroupOrder(barGroup);
+
+    return group;
+  }
+
+  private syncBarVoiceGroupOrder(barGroup: BarGroup): void {
+    this.appendVoiceGroupsInOrder(barGroup, barGroup.voiceContentGroups);
+    this.appendVoiceGroupsInOrder(barGroup, barGroup.voiceRhythmGroups);
+  }
+
+  private appendVoiceGroupsInOrder(
+    barGroup: BarGroup,
+    groups: Map<VoiceNumber, SVGGElement>
+  ): void {
+    const inactiveVoiceNumbers = [...groups.keys()].filter(
+      (voiceNumber) => voiceNumber !== this.trackController.activeVoiceNumber
+    );
+    const activeGroup = groups.get(this.trackController.activeVoiceNumber);
+
+    for (const voiceNumber of inactiveVoiceNumbers) {
+      barGroup.wrapper.appendChild(groups.get(voiceNumber)!);
+    }
+    if (activeGroup !== undefined) {
+      barGroup.wrapper.appendChild(activeGroup);
+    }
+  }
+
+  private getVoiceContentNumber(element: NotationElement): VoiceNumber | null {
+    if (element instanceof VoiceBarElement) {
+      return element.voiceBar.voiceNumber;
+    }
+    if (element instanceof TabBeatElement) {
+      return element.beat.voiceBar.voiceNumber;
+    }
+    if (element instanceof TabNoteElement) {
+      return element.note.beat.voiceBar.voiceNumber;
+    }
+    if (element instanceof GuitarTechniqueElement) {
+      return element.noteElement.note.beat.voiceBar.voiceNumber;
+    }
+
+    return null;
+  }
+
+  private getVoiceRhythmNumber(element: NotationElement): VoiceNumber | null {
+    if (element instanceof VoiceBarRhythmElement) {
+      return element.voiceNumber;
+    }
+    if (element instanceof TabBeatRhythmElement) {
+      return element.voiceBarRhythmElement.voiceNumber;
+    }
+    if (element instanceof BeamSegmentElement) {
+      return element.voiceBarRhythmElement.voiceNumber;
+    }
+    if (element instanceof BarTupletGroupElement) {
+      return element.voiceBarRhythmElement.voiceNumber;
+    }
+
+    return null;
   }
 
   private syncTrackLineBarGroups(
@@ -261,7 +361,11 @@ export class EditorSVGRenderer implements EditorRenderer {
     const sanitizedStableIdentity = toDomIdFragment(stableIdentity);
     for (const elementClass of ELEMENT_ORDER) {
       // Skip not track line owned elements (e.g. track line info is per track line)
-      if (BAR_OWNED_ELEMENT_CLASSES.includes(elementClass)) {
+      if (
+        BAR_OWNED_ELEMENT_CLASSES.includes(elementClass) ||
+        VOICE_CONTENT_ELEMENT_CLASSES.includes(elementClass) ||
+        VOICE_RHYTHM_ELEMENT_CLASSES.includes(elementClass)
+      ) {
         continue;
       }
 
@@ -375,7 +479,13 @@ export class EditorSVGRenderer implements EditorRenderer {
       this._trackLineGroups.delete(stableIdentity);
     }
 
-    return visibleTrackLines.flatMap((tle) => tle.ownedNotationElements);
+    // WARNING: This used to be `tle.ownedNotationElements`. It helped not
+    // drag performance down, but it exposed a flaw of stale `_ownedNotationElements`.
+    // For now, this uses `refreshOwnedNotationElements` to ensure correctness. But
+    // later this must be changed back to avoid performance bottlenecks.
+    return visibleTrackLines.flatMap((tle) =>
+      tle.refreshOwnedNotationElements()
+    );
   }
 
   private removeByDiff(stableIdentities: Iterable<string>): void {
@@ -422,10 +532,18 @@ export class EditorSVGRenderer implements EditorRenderer {
         element.constructor as NotationElementClass
       );
     } else {
-      layer = this.ensureBarGroup(
-        trackLineGroup,
-        owningBarElement
-      ).layerGroups.get(element.constructor as NotationElementClass);
+      const barGroup = this.ensureBarGroup(trackLineGroup, owningBarElement);
+      const voiceContentNumber = this.getVoiceContentNumber(element);
+      const voiceRhythmNumber = this.getVoiceRhythmNumber(element);
+      if (voiceContentNumber !== null) {
+        layer = this.ensureVoiceGroup(barGroup, voiceContentNumber, "content");
+      } else if (voiceRhythmNumber !== null) {
+        layer = this.ensureVoiceGroup(barGroup, voiceRhythmNumber, "rhythm");
+      } else {
+        layer = barGroup.layerGroups.get(
+          element.constructor as NotationElementClass
+        );
+      }
     }
     if (layer === undefined) {
       return;
@@ -457,8 +575,14 @@ export class EditorSVGRenderer implements EditorRenderer {
       mutableRenderer.techGapLineElement = element;
     } else if (element instanceof BarElement) {
       mutableRenderer.barElement = element;
+    } else if (element instanceof VoiceBarElement) {
+      mutableRenderer.voiceBarElement = element;
     } else if (element instanceof TabBeatElement) {
       mutableRenderer.beatElement = element;
+    } else if (element instanceof VoiceBarRhythmElement) {
+      mutableRenderer.voiceBarRhythmElement = element;
+    } else if (element instanceof TabBeatRhythmElement) {
+      mutableRenderer.beatRhythmElement = element;
     } else if (element instanceof TabNoteElement) {
       mutableRenderer.noteElement = element;
     } else if (element instanceof GuitarTechniqueElement) {
@@ -473,7 +597,8 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   private renderReconciled(
-    visibleElements: NotationElement[]
+    visibleElements: NotationElement[],
+    forceRender: boolean = false
   ): ElementRenderer[] {
     const diff = this.trackController.trackElement.consumeDiff();
 
@@ -526,6 +651,7 @@ export class EditorSVGRenderer implements EditorRenderer {
       this._mountedRendererUUIDs.add(stableIdentity);
 
       if (
+        forceRender ||
         isNewRenderer ||
         updatedVisibleUUIDs.has(stableIdentity) ||
         !wasMounted
@@ -590,6 +716,25 @@ export class EditorSVGRenderer implements EditorRenderer {
     const { start, end } = this.getLinesInViewport();
     const visibleElements = this.reconcileLinesViewport(start, end);
     const activeRenderers = this.renderReconciled(visibleElements);
+
+    this._beatInteractionRenderer.render(visibleElements);
+    this._playerOverlayRenderer.render();
+    this._selectionOverlayRenderer.render();
+
+    this.syncRootSVGDimensions();
+
+    return activeRenderers;
+  }
+
+  public renderVisibleNoChange(): ElementRenderer[] {
+    this.syncViewportState();
+
+    const { start, end } = this.getLinesInViewport();
+    const visibleElements = this.reconcileLinesViewport(start, end);
+    // Active voice is controller state, not an element diff. Force-rendering the
+    // visible set is a temporary bridge so opacity and hitboxes update after a
+    // selection-only voice switch without pretending the model changed.
+    const activeRenderers = this.renderReconciled(visibleElements, true);
 
     this._beatInteractionRenderer.render(visibleElements);
     this._playerOverlayRenderer.render();

@@ -173,6 +173,7 @@ export class GuitarNote implements Note<Guitar> {
     this._noteValue = newNoteValue;
     this._octave = newOctave;
     this.calculateFretFromNote();
+    this.beat.voiceBar.bar.staff.recalculateNonEmptyVoiceNumbers();
   }
 
   /**
@@ -375,6 +376,7 @@ export class GuitarNote implements Note<Guitar> {
   public set noteValue(newNoteValue: NoteValue) {
     this._noteValue = newNoteValue;
     this.calculateFretFromNote();
+    this.beat.voiceBar.bar.staff.recalculateNonEmptyVoiceNumbers();
   }
   /** Note value getter */
   public get noteValue(): NoteValue {
@@ -385,6 +387,7 @@ export class GuitarNote implements Note<Guitar> {
   public set octave(newOctave: number | null) {
     this._octave = newOctave;
     this.calculateFretFromNote();
+    this.beat.voiceBar.bar.staff.recalculateNonEmptyVoiceNumbers();
   }
   /** Octave getter */
   public get octave(): number | null {

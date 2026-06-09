@@ -11,11 +11,14 @@ import {
   SheetBeatElement,
   StaffLineElement,
   TabBeatElement,
+  TabBeatRhythmElement,
   TabNoteElement,
   TechGapElement,
   TechGapLineElement,
   TrackLineElement,
   TrackLineInfoElement,
+  VoiceBarElement,
+  VoiceBarRhythmElement,
 } from "@/notation";
 
 /**
@@ -78,9 +81,21 @@ export function getOwningTrackLineElement(
   if (element instanceof BarElement) {
     return element.notationStyleLineElement.staffLineElement.trackLineElement;
   }
+  if (element instanceof VoiceBarElement) {
+    return element.barElement.notationStyleLineElement.staffLineElement
+      .trackLineElement;
+  }
   if (element instanceof TabBeatElement) {
     return element.barElement.notationStyleLineElement.staffLineElement
       .trackLineElement;
+  }
+  if (element instanceof VoiceBarRhythmElement) {
+    return element.barElement.notationStyleLineElement.staffLineElement
+      .trackLineElement;
+  }
+  if (element instanceof TabBeatRhythmElement) {
+    return element.voiceBarRhythmElement.barElement.notationStyleLineElement
+      .staffLineElement.trackLineElement;
   }
   if (element instanceof TabNoteElement) {
     return element.beatElement.barElement.notationStyleLineElement
@@ -95,12 +110,12 @@ export function getOwningTrackLineElement(
       .staffLineElement.trackLineElement;
   }
   if (element instanceof BeamSegmentElement) {
-    return element.barElement.notationStyleLineElement.staffLineElement
-      .trackLineElement;
+    return element.voiceBarRhythmElement.barElement.notationStyleLineElement
+      .staffLineElement.trackLineElement;
   }
   if (element instanceof BarTupletGroupElement) {
-    return element.barElement.notationStyleLineElement.staffLineElement
-      .trackLineElement;
+    return element.voiceBarRhythmElement.barElement.notationStyleLineElement
+      .staffLineElement.trackLineElement;
   }
 
   throw new Error(`Unsupported notation element for track line mounting`);
@@ -118,6 +133,15 @@ export function getOwningBarElement(
   ) {
     return element.barElement;
   }
+  if (element instanceof VoiceBarElement) {
+    return element.barElement;
+  }
+  if (element instanceof VoiceBarRhythmElement) {
+    return element.barElement;
+  }
+  if (element instanceof TabBeatRhythmElement) {
+    return element.voiceBarRhythmElement.barElement;
+  }
   if (element instanceof TabNoteElement) {
     return element.beatElement.barElement;
   }
@@ -128,10 +152,10 @@ export function getOwningBarElement(
     return element.beatElement.barElement;
   }
   if (element instanceof BeamSegmentElement) {
-    return element.barElement;
+    return element.voiceBarRhythmElement.barElement;
   }
   if (element instanceof BarTupletGroupElement) {
-    return element.barElement;
+    return element.voiceBarRhythmElement.barElement;
   }
 
   return null;

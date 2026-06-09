@@ -91,11 +91,11 @@ describe("SetTechniqueCommand", () => {
 
     expect(harmonicCommand.updateRequest).toEqual({
       updateType: "Targeted",
-      affectedModelUUIDs: [note.uuid],
+      affectedModelUUID: note.uuid,
     });
     expect(slideCommand.updateRequest).toEqual({
       updateType: "Targeted",
-      affectedModelUUIDs: [note.uuid],
+      affectedModelUUID: note.uuid,
     });
   });
 

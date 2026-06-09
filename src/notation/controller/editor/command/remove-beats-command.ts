@@ -1,9 +1,4 @@
-import {
-  Bar,
-  Beat,
-  BeatArrayOperationOutput,
-  ScoreEditor,
-} from "@/notation/model";
+import { Beat, BeatArrayOperationOutput, ScoreEditor } from "@/notation/model";
 import {
   Command,
   CommandUpdateRequest,
@@ -47,13 +42,13 @@ export class RemoveBeatsCommand implements Command {
 
     for (const outputs of this._removeBeatsOutputs) {
       for (const output of outputs) {
-        const bar = output.beats[0].bar;
+        const voiceBar = output.beats[0].voiceBar;
 
-        if (bar.beats.length === 1 && bar.beats[0].isEmpty()) {
-          bar.beats.splice(0, 1);
+        if (voiceBar.beats.length === 1 && voiceBar.beats[0].isEmpty()) {
+          voiceBar.beats.splice(0, 1);
         }
 
-        bar.insertBeats(output.index, output.beats);
+        voiceBar.insertBeats(output.index, output.beats);
       }
     }
   }
@@ -68,8 +63,8 @@ export class RemoveBeatsCommand implements Command {
 
     for (const outputs of this._removeBeatsOutputs) {
       const output = outputs[0];
-      const bar = output.beats[0].bar;
-      bar.removeBeat(output.index);
+      const voiceBar = output.beats[0].voiceBar;
+      voiceBar.removeBeat(output.index);
     }
   }
 

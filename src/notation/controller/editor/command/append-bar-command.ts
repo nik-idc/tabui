@@ -2,6 +2,8 @@ import {
   Score,
   MasterBarData,
   MasterBarArrayOperationOutput,
+  VoiceNumber,
+  ScoreEditor,
 } from "@/notation/model";
 import { Command, CommandUpdateRequest } from "./command";
 
@@ -13,6 +15,7 @@ export class AppendBarCommand implements Command {
   private _score: Score;
   /** Data of the master bar to add */
   private _masterBarData: MasterBarData;
+  private _voiceNumber: VoiceNumber;
   /** Created master bar & staff bars or null if not created yet */
   private _appendMasterBarResult: MasterBarArrayOperationOutput | null = null;
 
@@ -21,17 +24,24 @@ export class AppendBarCommand implements Command {
    * @param score Score
    * @param masterBarData Data of the master bar to add
    */
-  constructor(score: Score, masterBarData: MasterBarData) {
+  constructor(
+    score: Score,
+    masterBarData: MasterBarData,
+    voiceNumber: VoiceNumber = 1
+  ) {
     this._score = score;
     this._masterBarData = masterBarData;
+    this._voiceNumber = voiceNumber;
   }
 
   /**
    * Execute add bar command
    */
   execute(): void {
-    this._appendMasterBarResult = this._score.appendMasterBar(
-      this._masterBarData
+    this._appendMasterBarResult = ScoreEditor.appendMasterBar(
+      this._score,
+      this._masterBarData,
+      this._voiceNumber
     );
   }
 

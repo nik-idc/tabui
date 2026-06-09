@@ -12,6 +12,7 @@ import {
   Staff,
   Track,
   TupletSettings,
+  VoiceBar,
 } from "../../src/notation/model";
 
 export function createScoreGraph(
@@ -37,22 +38,31 @@ export function createScoreGraph(
   }
 
   const bar = staff.bars[0] as Bar<Guitar>;
-  const seedBeat = createBeat(bar, NoteDuration.Quarter);
-  bar.beats.splice(0, bar.beats.length, seedBeat);
-  bar.computeBarTupletGroups();
+  const voiceBar = bar.getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error("Expected default score graph to include voice 1");
+  }
+
+  const seedBeat = createBeat(voiceBar, NoteDuration.Quarter);
+  voiceBar.beats.splice(0, voiceBar.beats.length, seedBeat);
+  voiceBar.computeBarTupletGroups();
 
   return { score, track, staff, masterBar, bar };
 }
 
 export function createBeat(
-  bar: Bar<Guitar>,
+  voiceBar: VoiceBar<Guitar> | null,
   baseDuration: NoteDuration,
   dots: BeatDots = 0,
   tupletSettings: TupletSettings | null = null
 ): Beat<Guitar> {
+  if (voiceBar === null) {
+    throw Error("Cannot create beat for an empty voice slot");
+  }
+
   return new Beat(
-    bar,
-    bar.trackContext,
+    voiceBar,
+    voiceBar.trackContext,
     [],
     baseDuration,
     dots,
@@ -82,17 +92,22 @@ export function createBarWithBeats(
   beats: Beat<Guitar>[];
 } {
   const graph = createScoreGraph(masterBarData);
+  const voiceBar = graph.bar.getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error("Expected default score graph to include voice 1");
+  }
+
   const beats = beatConfigs.map((config) =>
     createBeat(
-      graph.bar,
+      voiceBar,
       config.baseDuration,
       config.dots ?? 0,
       config.tupletSettings ?? null
     )
   );
 
-  graph.bar.beats.splice(0, graph.bar.beats.length, ...beats);
-  graph.bar.computeBarTupletGroups();
+  voiceBar.beats.splice(0, voiceBar.beats.length, ...beats);
+  voiceBar.computeBarTupletGroups();
 
   return { ...graph, beats };
 }

@@ -64,6 +64,15 @@ export class TabUICallbacks {
     this._uiCallbacks.bind();
   }
 
+  private renderVisibleNoChangeAndUI(): void {
+    const activeRenderers = this._notationComponent.renderVisibleNoChange();
+    this._mouseCallbacks.bind(activeRenderers);
+
+    this._uiCallbacks.unbind();
+    this._uiComponent.render();
+    this._uiCallbacks.bind();
+  }
+
   private cancelPendingSelectionRender(): void {
     if (this._selectionRenderRafId === undefined) {
       return;
@@ -103,7 +112,7 @@ export class TabUICallbacks {
         break;
       case RenderType.NoteSelection:
         this.cancelPendingSelectionRender();
-        this.renderSelectionOverlayAndUI();
+        this.renderVisibleNoChangeAndUI();
         break;
       case RenderType.PlayerCursor:
         // Reserved for future cursor-only render path.

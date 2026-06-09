@@ -1,8 +1,8 @@
 import {
   MasterBarArrayOperationOutput,
-  Bar,
   Beat,
   BeatArrayOperationOutput,
+  VoiceBar,
 } from "@/notation/model";
 import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
 
@@ -11,23 +11,23 @@ import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
  */
 export class AppendBeatCommand implements Command {
   /** Bar to append the beat to */
-  private _bar: Bar;
+  private _voiceBar: VoiceBar;
   /** Created master bar & staff bars or null if not created yet */
   private _appendBeatResult: BeatArrayOperationOutput | null = null;
 
   /**
    * Add beat command
-   * @param bar Bar to append the beat to
+   * @param voiceBar Voice bar to append the beat to
    */
-  constructor(bar: Bar) {
-    this._bar = bar;
+  constructor(voiceBar: VoiceBar) {
+    this._voiceBar = voiceBar;
   }
 
   /**
    * Execute add beat command
    */
   execute(): void {
-    this._appendBeatResult = this._bar.appendBeats();
+    this._appendBeatResult = this._voiceBar.appendBeats();
   }
 
   /**
@@ -38,10 +38,12 @@ export class AppendBeatCommand implements Command {
       return;
     }
 
-    const beatIndex = this._bar.beats.indexOf(this._appendBeatResult.beats[0]);
+    const beatIndex = this._voiceBar.beats.indexOf(
+      this._appendBeatResult.beats[0]
+    );
     const targetIndex =
       beatIndex === -1 ? this._appendBeatResult.index : beatIndex;
-    this._bar.removeBeat(targetIndex);
+    this._voiceBar.removeBeat(targetIndex);
   }
 
   /**
@@ -52,7 +54,7 @@ export class AppendBeatCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    this._bar.insertBeat(
+    this._voiceBar.insertBeat(
       this._appendBeatResult.index,
       this._appendBeatResult.beats[0]
     );
@@ -65,8 +67,8 @@ export class AppendBeatCommand implements Command {
 
   public get updateRequest(): CommandUpdateRequest {
     const affectedMasterBarIndex = getMasterBarIndex(
-      this._bar.staff.track.score,
-      this._bar.masterBar
+      this._voiceBar.bar.staff.track.score,
+      this._voiceBar.bar.masterBar
     );
 
     return {

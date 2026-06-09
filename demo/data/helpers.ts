@@ -19,11 +19,17 @@ type BarsInfo = {
 const excludedStrings = [1, 5, 6];
 
 export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
+  const voiceBar = bar.getVoiceBar(1) ?? bar.insertVoiceBar(1);
   for (let i = 0; i < barsInfo.beatsCount; i++) {
-    const reusedSeedBeat = i === 0 && bar.isEmpty();
+    const reusedSeedBeat = i === 0 && voiceBar.isEmpty();
     const newBeat = reusedSeedBeat
-      ? bar.beats[0]
-      : new Beat<Guitar>(bar, bar.trackContext, [], barsInfo.beatsDuration);
+      ? voiceBar.beats[0]
+      : new Beat<Guitar>(
+          voiceBar,
+          voiceBar.trackContext,
+          [],
+          barsInfo.beatsDuration
+        );
     newBeat.baseDuration = barsInfo.beatsDuration;
     for (let j = 0; j < bar.trackContext.instrument.maxPolyphony; j++) {
       // if (excludedStrings.includes(j + 1)) {
@@ -40,11 +46,11 @@ export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
     }
 
     if (!reusedSeedBeat) {
-      bar.appendBeats([newBeat]);
+      voiceBar.appendBeats([newBeat]);
     }
   }
 
-  bar.rebuildTiming();
+  voiceBar.rebuildTiming();
 }
 
 export function fillStaff(staff: Staff<Guitar>, barsInfo: BarsInfo[]): void {

@@ -23,3 +23,4 @@ export * from "./track-context";
 export * from "./timing";
 export * from "./tuplet-group";
 export * from "./tuplet-settings";
+export * from "./voice-bar";

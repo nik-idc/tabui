@@ -2,6 +2,7 @@ import {
   BendTechniqueOptions,
   GuitarTechnique,
   MasterBar,
+  MasterBarData,
   MasterBarArrayOperationOutput,
   Score,
   TechniqueType,
@@ -9,12 +10,13 @@ import {
   tupletSettingsEqual,
 } from "..";
 import { Bar } from "../bar";
-import { BeatArrayOperationOutput } from "../bar";
 import { Beat, BeatDots } from "../beat";
 import { MusicInstrument } from "../instrument/instrument";
 import { GuitarNote } from "../guitar-note";
 import { Note, NoteValue } from "../note";
 import { NoteDuration } from "../note-duration";
+import { BeatArrayOperationOutput, VoiceBar } from "../voice-bar";
+import { VoiceNumber } from "../voice-bar";
 
 /**
  * Static class containing complex editing methods,
@@ -22,17 +24,17 @@ import { NoteDuration } from "../note-duration";
  */
 export class ScoreEditor {
   private static rebuildBars<I extends MusicInstrument>(
-    bars: Set<Bar<I>>
+    voiceBars: Set<VoiceBar<I>>
   ): void {
-    for (const bar of bars) {
-      bar.rebuildTiming();
+    for (const voiceBar of voiceBars) {
+      voiceBar.rebuildTiming();
     }
   }
 
   private static rebuildAffectedBars<I extends MusicInstrument>(
     beats: Beat<I>[]
   ): void {
-    this.rebuildBars(new Set(beats.map((beat) => beat.bar)));
+    this.rebuildBars(new Set(beats.map((beat) => beat.voiceBar)));
   }
 
   private static copyRhythmicData<I extends MusicInstrument>(
@@ -69,12 +71,12 @@ export class ScoreEditor {
   }
 
   private static createBeatCopyForBar<I extends MusicInstrument>(
-    bar: Bar<I>,
+    voiceBar: VoiceBar<I>,
     sourceBeat: Beat<I>
   ): Beat<I> {
     const beat = new Beat<I>(
-      bar,
-      bar.trackContext,
+      voiceBar,
+      voiceBar.trackContext,
       [],
       sourceBeat.baseDuration,
       sourceBeat.dots as BeatDots,
@@ -87,6 +89,31 @@ export class ScoreEditor {
     );
     this.copyBeatContent(beat, sourceBeat);
     return beat;
+  }
+
+  public static insertMasterBar(
+    score: Score,
+    index: number,
+    masterBarData: MasterBarData,
+    voiceNumber: VoiceNumber
+  ): MasterBarArrayOperationOutput {
+    return score.insertMasterBar(index, masterBarData, voiceNumber);
+  }
+
+  public static appendMasterBar(
+    score: Score,
+    masterBarData: MasterBarData,
+    voiceNumber: VoiceNumber
+  ): MasterBarArrayOperationOutput {
+    return score.appendMasterBar(masterBarData, voiceNumber);
+  }
+
+  public static prependMasterBar(
+    score: Score,
+    masterBarData: MasterBarData,
+    voiceNumber: VoiceNumber
+  ): MasterBarArrayOperationOutput {
+    return score.prependMasterBar(masterBarData, voiceNumber);
   }
 
   public static setTimeSignature(
@@ -102,18 +129,20 @@ export class ScoreEditor {
       masterBar.duration = duration;
     }
 
-    const affectedBars = new Set<Bar>();
+    const affectedVoiceBars = new Set<VoiceBar>();
     for (const track of score.tracks) {
       for (const staff of track.staves) {
         for (const bar of staff.bars) {
           if (bar.masterBar === masterBar) {
-            affectedBars.add(bar);
+            for (const voiceBar of bar.voiceBarsAsArray) {
+              affectedVoiceBars.add(voiceBar);
+            }
           }
         }
       }
     }
 
-    this.rebuildBars(affectedBars);
+    this.rebuildBars(affectedVoiceBars);
   }
 
   /**
@@ -160,7 +189,7 @@ export class ScoreEditor {
     newDuration: NoteDuration
   ): void {
     beat.baseDuration = newDuration;
-    beat.bar.rebuildTiming();
+    beat.voiceBar.rebuildTiming();
   }
 
   public static setDurations<I extends MusicInstrument>(
@@ -227,7 +256,7 @@ export class ScoreEditor {
 
     if (newSettings === null || sameSettings) {
       beat.tupletSettings = null;
-      beat.bar.rebuildTiming();
+      beat.voiceBar.rebuildTiming();
       return;
     }
 
@@ -235,7 +264,7 @@ export class ScoreEditor {
       normalCount: newSettings.normalCount,
       tupletCount: newSettings.tupletCount,
     };
-    beat.bar.rebuildTiming();
+    beat.voiceBar.rebuildTiming();
   }
 
   /**
@@ -292,8 +321,8 @@ export class ScoreEditor {
   ): BeatArrayOperationOutput<I>[][] {
     const outputs: BeatArrayOperationOutput<I>[][] = [];
     for (const beat of beats) {
-      const beatIndex = beat.bar.beats.indexOf(beat);
-      outputs.push(beat.bar.removeBeat(beatIndex));
+      const beatIndex = beat.voiceBar.beats.indexOf(beat);
+      outputs.push(beat.voiceBar.removeBeat(beatIndex));
     }
 
     return outputs;
@@ -318,7 +347,7 @@ export class ScoreEditor {
   // these operations intentionally match the liberal beat-editing model: they
   // insert/remove beats locally and allow bars to become underfilled/overfilled.
   public static insertBeats<I extends MusicInstrument>(
-    bar: Bar<I>,
+    voiceBar: VoiceBar<I>,
     beatIndex: number,
     beats: Beat<I>[],
     replaceSeedBeat: boolean = false
@@ -327,16 +356,16 @@ export class ScoreEditor {
       return [];
     }
 
-    if (replaceSeedBeat && bar.isEmpty()) {
-      bar.beats.splice(0, 1);
+    if (replaceSeedBeat && voiceBar.isEmpty()) {
+      voiceBar.beats.splice(0, 1);
       beatIndex = 0;
     }
 
     const insertedBeats = beats.map((beat) =>
-      this.createBeatCopyForBar(bar, beat)
+      this.createBeatCopyForBar(voiceBar, beat)
     );
-    bar.beats.splice(beatIndex, 0, ...insertedBeats);
-    bar.rebuildTiming();
+    voiceBar.beats.splice(beatIndex, 0, ...insertedBeats);
+    voiceBar.rebuildTiming();
 
     return insertedBeats;
   }
@@ -356,21 +385,21 @@ export class ScoreEditor {
       return [];
     }
 
-    const startBeatIndex = oldBeats[0].bar.beats.indexOf(oldBeats[0]);
-    const startBar = oldBeats[0].bar;
-    const affectedBars = new Set(oldBeats.map((beat) => beat.bar));
+    const startBeatIndex = oldBeats[0].voiceBar.beats.indexOf(oldBeats[0]);
+    const startVoiceBar = oldBeats[0].voiceBar;
+    const affectedVoiceBars = new Set(oldBeats.map((beat) => beat.voiceBar));
     const replaceSeedBeat =
       startBeatIndex === 0 &&
-      oldBeats.filter((b) => b.bar === startBar).length ===
-        startBar.beats.length;
+      oldBeats.filter((b) => b.voiceBar === startVoiceBar).length ===
+        startVoiceBar.beats.length;
 
     this.removeBeats(oldBeats);
-    for (const bar of affectedBars) {
-      bar.rebuildTiming();
+    for (const voiceBar of affectedVoiceBars) {
+      voiceBar.rebuildTiming();
     }
 
     return this.insertBeats(
-      startBar,
+      startVoiceBar,
       startBeatIndex,
       newBeats,
       replaceSeedBeat

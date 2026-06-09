@@ -158,60 +158,6 @@ export class NotationStyleLineElement implements NotationElement {
   }
 
   /**
-   * Scales the element & its children horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
-    if (scaleOuterX) {
-      this._boundingBox.x *= scale;
-    }
-    this._boundingBox.width *= scale;
-
-    for (const barElement of this._barElements) {
-      barElement.scaleHorBy(scale);
-    }
-  }
-
-  /**
-   * Justifies element by scaling all their widths
-   */
-  public justifyElements(fakeJustify: boolean = false): void {
-    if (fakeJustify) {
-      // For fake justify, use scale 1 (no actual scaling)
-      // but still calculate state hash to capture final positions
-      for (const barElement of this._barElements) {
-        barElement.scaleHorBy(1);
-      }
-      this._techGapElement.scaleHorBy(1);
-
-      return;
-    }
-
-    // Calc width of empty space
-    const gapWidth =
-      EditorLayoutDimensions.WIDTH -
-      this._barElements[this._barElements.length - 1].boundingBox.rightTop.x;
-
-    if (gapWidth === 0) {
-      return;
-    }
-
-    // Calc sum width of all bar element
-    let sumWidth =
-      this._barElements[this._barElements.length - 1].boundingBox.rightTop.x;
-
-    // Go through each bar element and increase their
-    // width according to how their current width relates
-    // to the width of the empty space
-    const scale = EditorLayoutDimensions.WIDTH / sumWidth;
-    for (const barElement of this._barElements) {
-      barElement.scaleHorBy(scale);
-    }
-    this._techGapElement.scaleHorBy(scale);
-    this._boundingBox.width *= scale;
-  }
-
-  /**
    * Gets next bar element
    * @param barElement Bar element
    * @returns Next bar element or null

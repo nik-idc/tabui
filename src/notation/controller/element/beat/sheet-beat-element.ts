@@ -15,17 +15,18 @@ import { VertLine, HorLine } from "@/shared/rendering/geometry/line";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
 import { NotationElement } from "../notation-element";
+import { VoiceBarElement } from "../bar/voice-bar-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
  */
 export class SheetBeatElement implements BeatElement {
   public static createStableIdentity(
-    barElement: BarElement,
+    voiceBarElement: VoiceBarElement,
     beat: Beat
   ): string {
     const trackLineStableIdentity =
-      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+      voiceBarElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
     return `beat:${trackLineStableIdentity}:${beat.uuid}`;
   }
 
@@ -34,7 +35,7 @@ export class SheetBeatElement implements BeatElement {
   /** The beat */
   readonly beat: Beat;
   /** Parent beat element */
-  readonly barElement: BarElement;
+  readonly voiceBarElement: VoiceBarElement;
   /** Reference to track element */
   readonly trackElement: TrackElement;
 
@@ -61,11 +62,11 @@ export class SheetBeatElement implements BeatElement {
    * @param beat Beat
    * @param beatElement Parent bar element
    */
-  constructor(beat: Beat, barElement: BarElement) {
+  constructor(beat: Beat, voiceBarElement: VoiceBarElement) {
     this.uuid = randomInt();
     this.beat = beat;
-    this.barElement = barElement;
-    this.trackElement = barElement.trackElement;
+    this.voiceBarElement = voiceBarElement;
+    this.trackElement = voiceBarElement.trackElement;
 
     this._noteElements = [];
     this._techniqueLabelElements = [];
@@ -86,12 +87,6 @@ export class SheetBeatElement implements BeatElement {
    * Calculates the sheet beat element
    */
   public calc(): void {}
-
-  /**
-   * Scales the element & all it's children horizontally
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {}
 
   public get noteElements(): NoteElement[] {
     return this._noteElements;
@@ -124,8 +119,8 @@ export class SheetBeatElement implements BeatElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
-      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
+      this.voiceBarElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.voiceBarElement.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -140,7 +135,14 @@ export class SheetBeatElement implements BeatElement {
   }
 
   public getStableIdentity(): string {
-    return SheetBeatElement.createStableIdentity(this.barElement, this.beat);
+    return SheetBeatElement.createStableIdentity(
+      this.voiceBarElement,
+      this.beat
+    );
+  }
+
+  public get barElement(): BarElement {
+    return this.voiceBarElement.barElement;
   }
 
   public get durationRect(): Rect {
@@ -165,8 +167,8 @@ export class SheetBeatElement implements BeatElement {
 
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this.barLocalCoords.x,
-      this.barElement.globalCoords.y + this.barLocalCoords.y
+      this.voiceBarElement.globalCoords.x + this.barLocalCoords.x,
+      this.voiceBarElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 

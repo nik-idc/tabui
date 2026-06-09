@@ -10,6 +10,7 @@ import {
   TupletSettings,
   DEFAULT_MASTER_BAR,
   GuitarTechniqueType,
+  VoiceNumber,
 } from "@/notation/model";
 import { TrackElement } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
@@ -117,7 +118,7 @@ export class TrackControllerEditor {
       throw Error("Handling added beat when selected note undefined");
     }
 
-    this.executeCommand(new AppendBeatCommand(selectedNote.bar));
+    this.executeCommand(new AppendBeatCommand(selectedNote.voiceBar));
   }
 
   /**
@@ -128,11 +129,11 @@ export class TrackControllerEditor {
     if (selectedNote === undefined) {
       throw Error("Handling added beat when selected note undefined");
     }
-
     this.executeCommand(
       new AppendBarCommand(
         selectedNote.bar.staff.track.score,
-        selectedNote.bar.masterBar.barData
+        selectedNote.bar.masterBar.barData,
+        selectedNote.voiceBar.voiceNumber
       )
     );
     selectedNote.afterAddedBar();
@@ -467,6 +468,34 @@ export class TrackControllerEditor {
     this._selectionManager.selectNote(beat.notes[noteIndex]);
   }
 
+  private getSelectedBar(): Bar {
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote !== undefined) {
+      return selectedNote.bar;
+    }
+
+    const selectedBeat = this._selectionManager.selectionAsBeats[0];
+    if (selectedBeat === undefined) {
+      throw Error("Selected bar is undefined");
+    }
+
+    return selectedBeat.voiceBar.bar;
+  }
+
+  public setActiveVoiceNumber(voiceNumber: VoiceNumber): void {
+    const noteIndex = this.getSelectedNoteIndex();
+    const selectedBar = this.getSelectedBar();
+    const voiceBar =
+      selectedBar.getVoiceBar(voiceNumber) ??
+      selectedBar.insertVoiceBar(voiceNumber);
+    const targetBeat = voiceBar.beats[0];
+
+    this._selectionManager.activeVoiceNumber = voiceNumber;
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(targetBeat, noteIndex);
+    this._trackElement.updateFull();
+  }
+
   private selectInsertedBeat(
     command: InsertBeatCommand,
     noteIndex: number
@@ -483,10 +512,10 @@ export class TrackControllerEditor {
   public insertBeatBeforeSelected(): void {
     const noteIndex = this.getSelectedNoteIndex();
     const firstBeat = this._selectionManager.selectionAsBeats[0];
-    const insertIndex = firstBeat.bar.beats.indexOf(firstBeat);
+    const insertIndex = firstBeat.voiceBar.beats.indexOf(firstBeat);
 
     const command = this.executeCommand(
-      new InsertBeatCommand(firstBeat.bar, insertIndex)
+      new InsertBeatCommand(firstBeat.voiceBar, insertIndex)
     );
     this.selectInsertedBeat(command, noteIndex);
   }
@@ -495,10 +524,10 @@ export class TrackControllerEditor {
     const noteIndex = this.getSelectedNoteIndex();
     const selectionBeats = this._selectionManager.selectionAsBeats;
     const lastBeat = selectionBeats[selectionBeats.length - 1];
-    const insertIndex = lastBeat.bar.beats.indexOf(lastBeat) + 1;
+    const insertIndex = lastBeat.voiceBar.beats.indexOf(lastBeat) + 1;
 
     const command = this.executeCommand(
-      new InsertBeatCommand(lastBeat.bar, insertIndex)
+      new InsertBeatCommand(lastBeat.voiceBar, insertIndex)
     );
     this.selectInsertedBeat(command, noteIndex);
   }
@@ -507,10 +536,10 @@ export class TrackControllerEditor {
     const noteIndex = this.getSelectedNoteIndex();
     const selectionBeats = this._selectionManager.selectionAsBeats;
     const firstBeat = selectionBeats[0];
-    const previousBeat = firstBeat.bar.staff.getPrevBeat(firstBeat);
+    const previousBeat = firstBeat.voiceBar.bar.staff.getPrevBeat(firstBeat);
 
     this.executeCommand(new RemoveBeatsCommand(selectionBeats));
-    const targetBeat = previousBeat ?? firstBeat.bar.beats[0];
+    const targetBeat = previousBeat ?? firstBeat.voiceBar.beats[0];
     this._selectionManager.clearSelection();
     this.selectBeatModel(targetBeat, noteIndex);
   }
@@ -521,7 +550,11 @@ export class TrackControllerEditor {
    */
   public appendBar(masterBarData: MasterBarData = DEFAULT_MASTER_BAR): void {
     this.executeCommand(
-      new AppendBarCommand(this._trackElement.track.score, masterBarData)
+      new AppendBarCommand(
+        this._trackElement.track.score,
+        masterBarData,
+        this._selectionManager.activeVoiceNumber
+      )
     );
   }
 
@@ -531,7 +564,11 @@ export class TrackControllerEditor {
    */
   public prependBar(masterBarData: MasterBarData = DEFAULT_MASTER_BAR): void {
     this.executeCommand(
-      new PrependBarCommand(this._trackElement.track.score, masterBarData)
+      new PrependBarCommand(
+        this._trackElement.track.score,
+        masterBarData,
+        this._selectionManager.activeVoiceNumber
+      )
     );
   }
 
@@ -554,7 +591,8 @@ export class TrackControllerEditor {
       new InsertBarCommand(
         this._trackElement.track.score,
         barIndex,
-        masterBarData
+        masterBarData,
+        this._selectionManager.activeVoiceNumber
       )
     );
   }
@@ -577,23 +615,22 @@ export class TrackControllerEditor {
   }
 
   private getSelectedBarForInsert(isInsertBefore: boolean): Bar {
-    const selectedNote = this._selectionManager.selectedNote;
-    if (selectedNote !== undefined) {
-      return selectedNote.bar;
+    if (isInsertBefore) {
+      return this.getSelectedBar();
     }
 
     const selectionBeats = this._selectionManager.selectionAsBeats;
-    const selectedBeat =
-      selectionBeats[isInsertBefore ? 0 : selectionBeats.length - 1];
+    const selectedBeat = selectionBeats[selectionBeats.length - 1];
     if (selectedBeat === undefined) {
       throw Error("Selected bar is undefined");
     }
 
-    return selectedBeat.bar;
+    return selectedBeat.voiceBar.bar;
   }
 
   private selectFirstBeatInBar(bar: Bar): void {
-    const firstBeat = bar.beats[0];
+    const activeVoiceNumber = this._selectionManager.activeVoiceNumber;
+    const firstBeat = bar.voiceBars[activeVoiceNumber]?.beats[0];
     if (firstBeat === undefined) {
       throw Error("Can't select first beat in empty bar");
     }
@@ -612,7 +649,8 @@ export class TrackControllerEditor {
       new InsertBarCommand(
         selectedBar.staff.track.score,
         insertIndex,
-        DEFAULT_MASTER_BAR
+        DEFAULT_MASTER_BAR,
+        this._selectionManager.activeVoiceNumber
       )
     );
     this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex]);
@@ -628,7 +666,8 @@ export class TrackControllerEditor {
       new InsertBarCommand(
         selectedBar.staff.track.score,
         insertIndex + 1,
-        DEFAULT_MASTER_BAR
+        DEFAULT_MASTER_BAR,
+        this._selectionManager.activeVoiceNumber
       )
     );
     this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex + 1]);
@@ -640,7 +679,7 @@ export class TrackControllerEditor {
     const score = this._trackElement.track.score;
     const bars =
       selectedBeats.length > 0
-        ? selectedBeats.map((beat) => beat.bar)
+        ? selectedBeats.map((beat) => beat.voiceBar.bar)
         : selectedNote !== undefined
           ? [selectedNote.bar]
           : [];
@@ -672,12 +711,19 @@ export class TrackControllerEditor {
 
     this.executeCommand(new RemoveBarsCommand(score, removableBarIndices));
 
+    const activeVoiceNumber = this._selectionManager.activeVoiceNumber;
+    // Anchor bar - bar **before** the first removed bar. Thus it is the last bar
+    // whose index hasn't changed after the removal. Hence - anchor
+    const anchorBar = selectedStaff.bars[firstRemovedBarIndex - 1];
+    const anchorVoiceBar = anchorBar?.getVoiceBar(activeVoiceNumber);
+    const beatIndex = (anchorVoiceBar?.beats.length ?? 1) - 1;
     const selectedTargetBeat =
       firstRemovedBarIndex > 0
-        ? selectedStaff.bars[firstRemovedBarIndex - 1].beats[
-            selectedStaff.bars[firstRemovedBarIndex - 1].beats.length - 1
-          ]
-        : selectedStaff.bars[0].beats[0];
+        ? anchorVoiceBar?.beats[beatIndex]
+        : selectedStaff.bars[0].getVoiceBar(1)?.beats[0];
+    if (selectedTargetBeat === undefined) {
+      throw Error("Can't select target beat in empty voice slot");
+    }
     this._selectionManager.clearSelection();
     this.selectBeatModel(selectedTargetBeat, 0);
   }

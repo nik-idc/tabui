@@ -30,6 +30,7 @@ export class SetFretCommand implements Command {
    */
   execute(): void {
     this._note.fret = this._newFret;
+    this._note.beat.voiceBar.bar.staff.recalculateNonEmptyVoiceNumbers();
     this._executed = true;
   }
 
@@ -42,6 +43,7 @@ export class SetFretCommand implements Command {
     }
 
     this._note.fret = this._oldFret;
+    this._note.beat.voiceBar.bar.staff.recalculateNonEmptyVoiceNumbers();
   }
 
   /**
@@ -53,12 +55,13 @@ export class SetFretCommand implements Command {
     }
 
     this._note.fret = this._newFret;
+    this._note.beat.voiceBar.bar.staff.recalculateNonEmptyVoiceNumbers();
   }
 
   public get updateRequest(): CommandUpdateRequest {
     return {
       updateType: "Targeted",
-      affectedModelUUIDs: [this._note.uuid],
+      affectedModelUUID: this._note.uuid,
     };
   }
 }

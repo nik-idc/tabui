@@ -20,6 +20,7 @@ export interface EditorRenderer {
   attachViewportScrollEvent(eventHandler: (event: Event) => void): void;
 
   render(): ElementRenderer[];
+  renderVisibleNoChange(): ElementRenderer[];
   renderSelectionOverlay(): void;
   unrender(): void;
   dispose(): void;

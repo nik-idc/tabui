@@ -128,22 +128,6 @@ export class TrackLineInfoElement implements NotationElement {
   }
 
   /**
-   * Scales the element & its children horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
-    if (scaleOuterX) {
-      this._boundingBox.x *= scale;
-    }
-    this._boundingBox.width *= scale;
-
-    for (const [barElement, rect] of this._barTempoRectsMap) {
-      rect.x *= scale;
-      rect.width *= scale;
-    }
-  }
-
-  /**
    * Gets a tempo rectangle for a specific bar element
    */
   public getBarTempoRect(barElement: BarElement): Rect | undefined {

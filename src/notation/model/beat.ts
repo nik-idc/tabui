@@ -1,5 +1,4 @@
 import { randomInt } from "@/shared";
-import { Bar } from "./bar";
 import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
 import { NoteJSON, Note, NoteValue } from "./note";
@@ -18,6 +17,7 @@ import {
   fractionToTicks,
   getBaseDurationFraction,
 } from "./timing";
+import { VoiceBar } from "./voice-bar";
 
 export type NoteArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
@@ -47,7 +47,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   /** Beat's unique identifier */
   readonly uuid: number;
   /** Bar in which the beat lives */
-  readonly bar: Bar<I>;
+  readonly voiceBar: VoiceBar<I>;
   /** Track context */
   readonly trackContext: TrackContext<I>;
 
@@ -74,7 +74,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
 
   /**
    * Class that represents a beat
-   * @param bar Bar in which the beat lives
+   * @param voiceBar Bar in which the beat lives
    * @param trackContext Track context
    * @param notes Notes
    * @param baseDuration Base duration
@@ -84,7 +84,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
    * @param lastInBeamGroup If is last in beam group
    */
   constructor(
-    bar: Bar<I>,
+    voiceBar: VoiceBar<I>,
     trackContext: TrackContext<I>,
     notes: Note<I>[] = [],
     baseDuration: NoteDuration = NoteDuration.Quarter,
@@ -94,7 +94,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     lastInBeamGroup: boolean = false
   ) {
     this.uuid = randomInt();
-    this.bar = bar;
+    this.voiceBar = voiceBar;
     this.trackContext = trackContext;
 
     this._notes = notes;
@@ -147,6 +147,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     }
 
     this._notes[index] = note.deepCopy();
+    this.voiceBar.bar.staff.recalculateNonEmptyVoiceNumbers();
 
     return {
       index: index,
@@ -208,7 +209,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
         : null;
 
     const beat = new Beat<I>(
-      this.bar,
+      this.voiceBar,
       this.trackContext,
       notes,
       this._baseDuration,

@@ -237,7 +237,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       return;
     }
 
-    const staff = this.noteElement.note.beat.bar.staff;
+    const staff = this.noteElement.note.beat.voiceBar.bar.staff;
     const nextBeat = staff.getNextBeat(this.noteElement.note.beat);
     if (nextBeat === null) {
       return;
@@ -435,16 +435,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
 
   public refreshOwnedNotationElements(): NotationElement[] {
     return [this];
-  }
-
-  /**
-   * Scales the technique element horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    this._startPoint.x *= scale;
-
-    this.layout();
   }
 
   /** String encoding the state of this element */

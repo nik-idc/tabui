@@ -30,6 +30,7 @@ export class NoteControlsTemplateRenderer {
     this.template.container.classList.add(cssClass);
 
     this.template.container.append(...this.template.durationButtons);
+    this.template.container.append(...this.template.voiceButtons);
     this.template.container.append(
       this.template.dot1Button,
       this.template.dot2Button,
@@ -52,6 +53,7 @@ export class NoteControlsTemplateRenderer {
       { num: 8, alt: "Eighth" },
       { num: 16, alt: "Sixteenth" },
       { num: 32, alt: "Thirty-second" },
+      { num: 64, alt: "Sixty-fourth" },
     ];
     const selection = this.notationComponent.trackController.selectionBeats;
     const appliedCSSClass = "tu-applied-img";
@@ -76,6 +78,26 @@ export class NoteControlsTemplateRenderer {
         (b) => b.baseDuration === 1 / notes[i].num
       );
       if (beatsOfCurDuration !== undefined) {
+        button.classList.add(appliedCSSClass);
+      } else {
+        button.classList.remove(appliedCSSClass);
+      }
+    }
+  }
+
+  private renderVoiceButtons(): void {
+    const activeVoiceNumber =
+      this.notationComponent.trackController.activeVoiceNumber;
+    const appliedCSSClass = "tu-applied-img";
+
+    for (let i = 0; i < this.template.voiceButtons.length; i++) {
+      const voiceNumber = i + 1;
+      const button = this.template.voiceButtons[i];
+      button.textContent = `${voiceNumber}`;
+      button.title = `Activate voice ${voiceNumber}`;
+      button.dataset["voiceNumber"] = `${voiceNumber}`;
+      button.classList.add("tu-voice-button");
+      if (voiceNumber === activeVoiceNumber) {
         button.classList.add(appliedCSSClass);
       } else {
         button.classList.remove(appliedCSSClass);
@@ -242,6 +264,7 @@ export class NoteControlsTemplateRenderer {
    */
   public render(): void {
     this.renderDurationButtons();
+    this.renderVoiceButtons();
     this.renderDotButtons();
     this.renderBeatEditButtons();
     this.renderTupletButtons();

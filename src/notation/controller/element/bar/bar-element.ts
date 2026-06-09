@@ -1,10 +1,4 @@
-import {
-  Bar,
-  BarRepeatStatus,
-  Beat,
-  DURATION_TO_FLAG_COUNT,
-  Guitar,
-} from "@/notation/model";
+import { Bar, BarRepeatStatus, VoiceNumber } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
@@ -14,12 +8,10 @@ import {
   StaffLineElement,
 } from "@/notation/controller/element/staff/staff-line-element";
 import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
-import { BeamSegmentElement } from "./beam-segment-element";
-import { BarTupletGroupElement } from "./bar-tuplet-group-element";
-import { TabBeatElement } from "../beat/tab-beat-element";
-import { SheetBeatElement } from "../beat/sheet-beat-element";
-import { BeatElement, getBeatWidth } from "../beat/beat-element";
-import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
+import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
+import { VoiceBarElement } from "./voice-bar-element";
+import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
+import { BeatElement } from "../beat/beat-element";
 
 // TODO:: Fix repeat rects shifting when there are multple staves
 
@@ -48,12 +40,10 @@ export class BarElement implements NotationElement {
   /** Finalized width for this bar's master bar as determined in the skeleton */
   private _finalizedWidth: number;
 
-  /** This bar's beat elements */
-  private _beatElements: BeatElement[];
-  /** Beam segments of this bar element */
-  private _beamSegments: BeamSegmentElement[];
-  /** All tuplet element */
-  private _tupletElements: BarTupletGroupElement[];
+  /** Voice bar elements containing each voice bar's notation elements */
+  private _voiceBarElements: VoiceBarElement[];
+  /** Voice bar rhythm elements containing each voice bar's rhythm elements stacked vertically */
+  private _voiceBarRhythmElements: VoiceBarRhythmElement[];
 
   /** Bar element rectangle */
   private _boundingBox: Rect;
@@ -69,8 +59,7 @@ export class BarElement implements NotationElement {
   private _repeatStartRect?: Rect;
   /** Repeat end sign rectangle */
   private _repeatEndRect?: Rect;
-  /** Whether current horizontal pass may reuse descendants unchanged. */
-  private _reuseOnHorizontalUpdate: boolean;
+
   /**
    * Class that handles geometry & visually relevant info of a bar
    * @param bar Bar
@@ -97,9 +86,8 @@ export class BarElement implements NotationElement {
     this._showTempo = false;
     this._durationsFit = false;
 
-    this._beatElements = [];
-    this._beamSegments = [];
-    this._tupletElements = [];
+    this._voiceBarElements = [];
+    this._voiceBarRhythmElements = [];
 
     this._boundingBox = new Rect();
     this._staffLines = Array.from(
@@ -109,7 +97,6 @@ export class BarElement implements NotationElement {
     this._timeSigRect = new Rect();
     this._repeatStartRect = new Rect();
     this._repeatEndRect = new Rect();
-    this._reuseOnHorizontalUpdate = false;
     if (notationStyleLineElement !== undefined) {
       this.build();
     }
@@ -148,185 +135,47 @@ export class BarElement implements NotationElement {
     }
   }
 
-  /**
-   * Fills the beat elements array
-   */
-  public buildBeats(): void {
-    const prevBeatElements = new Map(
-      this._beatElements.map((element) => [
-        element.getStableIdentity(),
-        element,
-      ])
+  private buildVoiceBarElements(): void {
+    const prevVoiceBarElements = new Map(
+      this._voiceBarElements.map((e) => [e.getStableIdentity(), e])
     );
-    this._beatElements = [];
-    for (const beat of this.bar.beats) {
-      const existingBeatElement = prevBeatElements.get(
-        TabBeatElement.createStableIdentity(this, beat)
+
+    this._voiceBarElements = [];
+    for (const voiceBar of this.bar.voiceBarsAsArray) {
+      const existingVoiceBar = prevVoiceBarElements.get(
+        VoiceBarElement.createStableIdentity(this.notationStyle, voiceBar)
       );
-      if (existingBeatElement !== undefined) {
-        existingBeatElement.build();
-        this._beatElements.push(existingBeatElement);
+      if (existingVoiceBar) {
+        existingVoiceBar.build();
+        this._voiceBarElements.push(existingVoiceBar);
         continue;
       }
 
-      let beatElement: BeatElement;
-      switch (this.notationStyle) {
-        case NotationStyle.Classic:
-          beatElement = new SheetBeatElement(beat, this);
-          break;
-        case NotationStyle.Tablature:
-          beatElement = new TabBeatElement(beat, this);
-          break;
-        default:
-          throw Error(
-            `Unsupported notation style value: '${this.notationStyle}'`
-          );
-      }
-
-      this._beatElements.push(beatElement);
+      this._voiceBarElements.push(new VoiceBarElement(voiceBar, this));
     }
   }
 
-  /**
-   * Fills the beam segments array
-   */
-  public buildBeamSegments(): void {
-    const prevBeamSegments = new Map(
-      this._beamSegments.map((element) => [
-        element.getStableIdentity(),
-        element,
-      ])
-    );
-    this._beamSegments = [];
-    for (const beatElement of this._beatElements) {
-      if (!(beatElement instanceof TabBeatElement)) {
-        return;
-      }
-    }
+  private buildVoiceBarRhythmElements(): void {
+    this._voiceBarRhythmElements = [];
 
-    for (let i = 0; i < this.bar.beamingGroups.length; i++) {
-      const beamGroupBeats = this._beatElements.filter(
-        (beatEl) => beatEl.beat.beamGroupId === i
+    const nonEmptyVoices = this.bar.staff.nonEmptyVoiceNumbers;
+    for (const voiceNumber of nonEmptyVoices) {
+      const voiceBarElement = this._voiceBarElements.find(
+        (e) => e.voiceBar.voiceNumber === voiceNumber
       );
 
-      if (beamGroupBeats.length <= 1) {
-        continue;
-      }
-
-      for (let j = 0; j < beamGroupBeats.length - 1; j++) {
-        const curBeatElement = beamGroupBeats[j];
-        const nextBeatElement = beamGroupBeats[j + 1];
-        const prevBeatElement = j === 0 ? undefined : beamGroupBeats[j - 1];
-        const stableIdentity = BeamSegmentElement.createStableIdentity(
-          this,
-          curBeatElement as TabBeatElement,
-          nextBeatElement as TabBeatElement,
-          prevBeatElement as TabBeatElement | undefined
-        );
-        const existingBeamSegment = prevBeamSegments.get(stableIdentity);
-        if (existingBeamSegment !== undefined) {
-          existingBeamSegment.build();
-          this._beamSegments.push(existingBeamSegment);
-          continue;
-        }
-
-        this._beamSegments.push(
-          new BeamSegmentElement(
-            this,
-            curBeatElement as TabBeatElement,
-            nextBeatElement as TabBeatElement,
-            prevBeatElement as TabBeatElement
-          )
-        );
-      }
-
-      const lastBeatElement = beamGroupBeats[beamGroupBeats.length - 1];
-      const prevLastBeatElement = beamGroupBeats[beamGroupBeats.length - 2];
-      const terminalStableIdentity = BeamSegmentElement.createStableIdentity(
-        this,
-        lastBeatElement as TabBeatElement,
-        undefined,
-        prevLastBeatElement as TabBeatElement
-      );
-      const existingTerminalBeam = prevBeamSegments.get(terminalStableIdentity);
-      if (existingTerminalBeam !== undefined) {
-        existingTerminalBeam.build();
-        this._beamSegments.push(existingTerminalBeam);
-        continue;
-      }
-
-      this._beamSegments.push(
-        new BeamSegmentElement(
-          this,
-          lastBeatElement as TabBeatElement,
-          undefined,
-          prevLastBeatElement as TabBeatElement
-        )
+      this._voiceBarRhythmElements.push(
+        new VoiceBarRhythmElement(this, voiceNumber, voiceBarElement)
       );
     }
   }
 
-  /**
-   * Fills the bar tuplet groups array
-   */
-  public buildTupletGroupElements(): void {
-    const prevTupletElements = new Map(
-      this._tupletElements.map((element) => [
-        element.getStableIdentity(),
-        element,
-      ])
-    );
-    this._tupletElements = [];
-    if (!this._beatElements.every((v) => v instanceof TabBeatElement)) {
-      return;
-    }
-
-    for (const tupletGroup of this.bar.tupletGroups) {
-      const tupletTabBeatElements = this._beatElements.filter((b) =>
-        tupletGroup.beats.some((tb) => tb.uuid === b.beat.uuid)
-      );
-
-      const existingTupletElement = prevTupletElements.get(
-        BarTupletGroupElement.createStableIdentity(this, tupletGroup)
-      );
-      if (existingTupletElement !== undefined) {
-        existingTupletElement.setBeatElements(tupletTabBeatElements);
-        existingTupletElement.build();
-        this._tupletElements.push(existingTupletElement);
-        continue;
-      }
-
-      this._tupletElements.push(
-        new BarTupletGroupElement(tupletGroup, this, tupletTabBeatElements)
-      );
-    }
-  }
-
-  public setFinalizedWidth(finalizedWidth: number): void {
-    this._finalizedWidth = finalizedWidth;
-  }
-
-  public prepareForHorizontalReuse(finalizedWidth: number): void {
-    this.trackElement.registerElement(this);
-    this._finalizedWidth = finalizedWidth;
-    this._reuseOnHorizontalUpdate = true;
-  }
-
-  /**
-   * Initializes the bar element:
-   * - Calculates the tempo & time sig. visibility
-   * - Fills the beat elements array
-   * - Fills beam segments array
-   * - Fills the tuplet group elements array
-   */
   public build(): void {
     this.trackElement.registerElement(this);
-    this._reuseOnHorizontalUpdate = false;
 
     this.buildStructuralElements();
-    this.buildBeats();
-    this.buildBeamSegments();
-    this.buildTupletGroupElements();
+    this.buildVoiceBarElements();
+    this.buildVoiceBarRhythmElements();
   }
 
   /**
@@ -373,21 +222,25 @@ export class BarElement implements NotationElement {
    * Calc main outer rectangle dimensions
    */
   private measureRect(): void {
-    let beatsSumWidth = 0;
-    for (const beatElement of this._beatElements) {
-      beatsSumWidth += beatElement.boundingBox.width;
-    }
+    const voiceBarElementsArr = Object.values(this._voiceBarElements);
+    const rhythmRowsHeight = this._voiceBarRhythmElements.reduce(
+      (sum, row) => sum + row.boundingBox.height,
+      0
+    );
 
     const barWidth =
       (this._repeatStartRect?.width ?? 0) +
       (this._timeSigRect?.width ?? 0) +
-      beatsSumWidth +
+      (voiceBarElementsArr[0]?.boundingBox.width ?? 0) +
       (this._repeatEndRect?.width ?? 0);
-    const height =
-      this._beatElements[0].boundingBox.height +
-      EditorLayoutDimensions.TUPLET_RECT_HEIGHT;
 
-    this._boundingBox.setDimensions(barWidth, height);
+    this._boundingBox.setDimensions(
+      barWidth,
+      (voiceBarElementsArr[0]?.boundingBox.height ??
+        EditorLayoutDimensions.getStaffHeight(
+          this.bar.trackContext.instrument
+        )) + rhythmRowsHeight
+    );
   }
 
   /**
@@ -404,24 +257,17 @@ export class BarElement implements NotationElement {
    * Measure the dimensions of all sub elements of this track line element
    */
   public measure(): void {
-    if (this._reuseOnHorizontalUpdate) {
-      return;
-    }
-
-    for (const beatElement of this._beatElements) {
-      beatElement.measure();
-    }
-
-    for (const beamSegment of this._beamSegments) {
-      beamSegment.measure();
-    }
-
-    for (const tupletElement of this._tupletElements) {
-      tupletElement.measure();
-    }
-
     this.measureTimeSigRect();
     this.measureRepeatRects();
+
+    for (const voiceBarElement of this._voiceBarElements) {
+      voiceBarElement.measure();
+    }
+
+    for (const voiceBarRhythmElement of this._voiceBarRhythmElements) {
+      voiceBarRhythmElement.measure();
+    }
+
     this.measureRect();
     this.measureStaffLines();
   }
@@ -445,8 +291,7 @@ export class BarElement implements NotationElement {
       return;
     }
 
-    const staffHeight =
-      this._boundingBox.height - EditorLayoutDimensions.DURATIONS_HEIGHT;
+    const staffHeight = this._voiceBarElements[0].boundingBox.bottom; // - EditorLayoutDimensions.DURATIONS_HEIGHT;
     const yOffset = (staffHeight - this._timeSigRect.height) / 2;
     this._timeSigRect.setCoords(0, yOffset);
   }
@@ -488,7 +333,69 @@ export class BarElement implements NotationElement {
     }
   }
 
-  private buildStateHash(): string {
+  /**
+   * Calculates layout for all child elements, i.e. their X and Y coordinates
+   */
+  public layout(): void {
+    this.layoutRect();
+
+    this.layoutRepeatRects();
+    this.layoutTimeSigRect();
+    this.layoutStaffLines();
+
+    for (const voiceBarElement of this._voiceBarElements) {
+      voiceBarElement.layout();
+    }
+
+    for (const voiceBarRhythmElement of this._voiceBarRhythmElements) {
+      voiceBarRhythmElement.layout();
+    }
+  }
+
+  /**
+   * Updates the element fully
+   */
+  public update(): void {
+    this.build();
+    this.measure();
+    this.layout();
+  }
+
+  public getPrevVoiceBarRhythmElement(
+    voiceBarRhythmElement: VoiceBarRhythmElement
+  ): VoiceBarRhythmElement | null {
+    const index = this._voiceBarRhythmElements.indexOf(voiceBarRhythmElement);
+    const prevBarRhythmElement = this._voiceBarRhythmElements[index - 1];
+    return prevBarRhythmElement ?? null;
+  }
+
+  public getNextVoiceBarRhythmElement(
+    voiceBarRhythmElement: VoiceBarRhythmElement
+  ): VoiceBarRhythmElement | null {
+    const index = this._voiceBarRhythmElements.indexOf(voiceBarRhythmElement);
+    const nextBarRhythmElement = this._voiceBarRhythmElements[index + 1];
+    return nextBarRhythmElement ?? null;
+  }
+
+  public refreshOwnedNotationElements(): NotationElement[] {
+    const elements: NotationElement[] = [this];
+
+    elements.push(
+      ...Object.values(this._voiceBarElements).flatMap((segment) =>
+        segment.refreshOwnedNotationElements()
+      )
+    );
+    elements.push(
+      ...Object.values(this._voiceBarRhythmElements).flatMap((segment) =>
+        segment.refreshOwnedNotationElements()
+      )
+    );
+
+    return elements;
+  }
+
+  /** String encoding the state of this element */
+  public get stateHash(): string {
     const hashArr: string[] = [
       `${this.globalBoundingBox.x}` +
         `${this.globalBoundingBox.y}` +
@@ -526,147 +433,23 @@ export class BarElement implements NotationElement {
     return hashArr.join("");
   }
 
-  /**
-   * Calculates layout for all child elements, i.e. their X and Y coordinates
-   */
-  public layout(): void {
-    this.layoutRect();
-
-    if (this._reuseOnHorizontalUpdate) {
-      this.justifyToFit();
-      return;
-    }
-
-    this.layoutRepeatRects();
-    this.layoutTimeSigRect();
-    this.layoutStaffLines();
-
-    for (const beatElement of this._beatElements) {
-      beatElement.layout();
-    }
-
-    for (const beamSegment of this._beamSegments) {
-      beamSegment.layout();
-    }
-
-    for (const tupletElement of this._tupletElements) {
-      tupletElement.layout();
-    }
-
-    this.justifyToFit();
-  }
-
-  /**
-   * Updates the element fully
-   */
-  public update(): void {
-    this.build();
-
-    this.measure();
-    this.layout();
-  }
-
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
-
-    elements.push(
-      ...this._beamSegments.flatMap((segment) =>
-        segment.refreshOwnedNotationElements()
-      )
-    );
-    elements.push(
-      ...this._tupletElements.flatMap((tuplet) =>
-        tuplet.refreshOwnedNotationElements()
-      )
-    );
-    for (const beatElement of this._beatElements) {
-      elements.push(...beatElement.refreshOwnedNotationElements());
-    }
-
-    return elements;
-  }
-
-  /**
-   * Justifies the bar element to be of the finalized width
-   */
-  public justifyToFit(): void {
-    if (this.finalizedWidth - this.boundingBox.width === 0) {
-      return;
-    }
-
-    const scale = this.finalizedWidth / this.boundingBox.width;
-    this.scaleHorBy(scale, false);
-  }
-
-  /**
-   * Scales the element & its children horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number, scaleOuterX: boolean = true): void {
-    if (scaleOuterX) {
-      this._boundingBox.x *= scale;
-    }
-    this._boundingBox.width *= scale;
-    if (this._repeatStartRect !== undefined) {
-      this._repeatStartRect.x *= scale;
-      this._repeatStartRect.width *= scale;
-    }
-    if (this._timeSigRect !== undefined) {
-      this._timeSigRect.x *= scale;
-      this._timeSigRect.width *= scale;
-    }
-    if (this._repeatEndRect !== undefined) {
-      this._repeatEndRect.x *= scale;
-      this._repeatEndRect.width *= scale;
-    }
-
-    for (const line of this._staffLines) {
-      line.x1 *= scale;
-      line.x2 *= scale;
-    }
-
-    for (const beatElement of this._beatElements) {
-      beatElement.scaleHorBy(scale);
-    }
-
-    for (const beamSegment of this._beamSegments) {
-      beamSegment.scaleHorBy(scale);
-    }
-
-    for (const tupletElement of this._tupletElements) {
-      tupletElement.scaleHorBy(scale);
-    }
-  }
-
-  /**
-   * Gets next beat element
-   * @param beatElement Beat element
-   * @returns Next beat element or null
-   */
-  public getNextBeatElement(beatElement: BeatElement): BeatElement | null {
-    const beatIndex = this._beatElements.indexOf(beatElement);
-    const nextBeat = this._beatElements[beatIndex + 1];
-    return nextBeat ?? null;
-  }
-
-  /**
-   * Gets prev beat element
-   * @param beatElement Beat element
-   * @returns Prev beat element or null
-   */
-  public getPrevBeatElement(beatElement: BeatElement): BeatElement | null {
-    const beatIndex = this._beatElements.indexOf(beatElement);
-    const prevBeat = this._beatElements[beatIndex - 1];
-    return prevBeat ?? null;
-  }
-
-  /** String encoding the state of this element */
-  public get stateHash(): string {
-    return this.buildStateHash();
-  }
-
   public get finalizedWidth(): number {
     return this._finalizedWidth;
+  }
+
+  public get voiceContentHeight(): number {
+    return (
+      this._voiceBarElements[0]?.boundingBox.height ??
+      EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+    );
+  }
+
+  public get voiceContentWidth(): number {
+    return this.finalizedWidth - this.startGap.width - this.endGap.width;
+  }
+
+  public get beatElements(): BeatElement[] {
+    return this._voiceBarElements.flatMap((element) => element.beatElements);
   }
 
   public getStableIdentity(): string {
@@ -693,8 +476,7 @@ export class BarElement implements NotationElement {
       return undefined;
     }
 
-    const padding = 10;
-    return new Point(this._timeSigRect.x + padding, this._timeSigRect.y);
+    return new Point(this._timeSigRect.x, this._timeSigRect.y);
   }
 
   /** Time signature beats text coords in track line-local coordinates */
@@ -741,8 +523,7 @@ export class BarElement implements NotationElement {
       return undefined;
     }
 
-    const padding = 10;
-    return new Point(this._timeSigRect.x + padding, this._timeSigRect.middleY);
+    return new Point(this._timeSigRect.x, this._timeSigRect.middleY);
   }
 
   /** Time signature measure text coords in track line-local coordinates */
@@ -895,11 +676,6 @@ export class BarElement implements NotationElement {
     );
   }
 
-  /** This bar's beat elements */
-  public get beatElements(): BeatElement[] {
-    return this._beatElements;
-  }
-
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
@@ -916,16 +692,6 @@ export class BarElement implements NotationElement {
       this._boundingBox.width,
       this._boundingBox.height
     );
-  }
-
-  /** Beam segments of this bar element */
-  public get beamSegments(): BeamSegmentElement[] {
-    return this._beamSegments;
-  }
-
-  /** All tuplet element */
-  public get tupletElements(): BarTupletGroupElement[] {
-    return this._tupletElements;
   }
 
   /** Bar element layout bounding box */
@@ -1071,30 +837,4 @@ export class BarElement implements NotationElement {
       this.notationStyleLineElement.globalCoords.y + this._boundingBox.y
     );
   }
-}
-
-export function getBarWidth(bar: Bar): number {
-  let width = 0;
-
-  if (bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
-    width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
-  }
-
-  const prevBar: Bar | null = bar.staff.getPrevBar(bar);
-  if (
-    prevBar === null ||
-    prevBar.masterBar.maxDuration !== bar.masterBar.maxDuration
-  ) {
-    width += EditorLayoutDimensions.TIME_SIG_RECT_WIDTH;
-  }
-
-  for (const beat of bar.beats) {
-    width += getBeatWidth(beat, bar);
-  }
-
-  if (bar.masterBar.repeatStatus === BarRepeatStatus.End) {
-    width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
-  }
-
-  return width;
 }

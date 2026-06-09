@@ -6,6 +6,7 @@ import { Note } from "./note";
 import { Staff } from "./staff";
 import { Track, TrackJSON } from "./track";
 import { Beat } from "./beat";
+import { VoiceBar, VoiceNumber } from "./voice-bar";
 
 export type TrackArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
@@ -18,6 +19,7 @@ export type NoteLocation = {
   track: Track;
   staff: Staff;
   bar: Bar;
+  voiceBar: VoiceBar;
   beat: Beat;
   note: Note;
 };
@@ -125,7 +127,8 @@ export class Score {
    */
   public insertMasterBar(
     index: number,
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR
+    masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
+    voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.splice(index, 0, newMasterBar);
@@ -133,7 +136,10 @@ export class Score {
     const staffBars: Map<number, Bar> = new Map();
     for (const track of this._tracks) {
       for (const staff of track.staves) {
-        staffBars.set(staff.uuid, staff.insertBar(index, newMasterBar));
+        staffBars.set(
+          staff.uuid,
+          staff.insertBar(index, newMasterBar, [], voiceNumber)
+        );
       }
     }
 
@@ -145,7 +151,8 @@ export class Score {
    * @param masterBarData Master bar data
    */
   public appendMasterBar(
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR
+    masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
+    voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.push(newMasterBar);
@@ -153,7 +160,10 @@ export class Score {
     const staffBars: Map<number, Bar> = new Map();
     for (const track of this._tracks) {
       for (const staff of track.staves) {
-        staffBars.set(staff.uuid, staff.appendBar(newMasterBar));
+        staffBars.set(
+          staff.uuid,
+          staff.appendBar(newMasterBar, [], voiceNumber)
+        );
       }
     }
 
@@ -169,7 +179,8 @@ export class Score {
    * @param masterBarData Master bar data
    */
   public prependMasterBar(
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR
+    masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
+    voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.unshift(newMasterBar);
@@ -177,7 +188,10 @@ export class Score {
     const staffBars: Map<number, Bar> = new Map();
     for (const track of this._tracks) {
       for (const staff of track.staves) {
-        staffBars.set(staff.uuid, staff.prependBar(newMasterBar));
+        staffBars.set(
+          staff.uuid,
+          staff.prependBar(newMasterBar, [], voiceNumber)
+        );
       }
     }
 

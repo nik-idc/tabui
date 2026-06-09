@@ -204,21 +204,6 @@ export class TechGapLineElement implements NotationElement {
     ];
   }
 
-  /**
-   * Scales the element & its children horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    if (this._boundingBox !== undefined) {
-      this._boundingBox.x *= scale;
-      this._boundingBox.width *= scale;
-    }
-
-    for (const label of this._labelElements) {
-      label.scaleHorBy(scale);
-    }
-  }
-
   /** String encoding the state of this element */
   public get stateHash(): string {
     return this._boundingBox === undefined ? "" : this.buildStateHash();

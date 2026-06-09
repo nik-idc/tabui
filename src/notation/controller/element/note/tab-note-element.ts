@@ -35,6 +35,8 @@ export class TabNoteElement implements NoteElement {
 
   /** Bounding box of the main clickable area */
   private _boundingBox: Rect = new Rect();
+  /** State of the note value at `build` */
+  private _noteValueState: string = "";
   /** Rectangle of the note text rectangle (needed to cover the text background) */
   private _textRect: Rect = new Rect();
   /** Coordinates of the note text */
@@ -63,6 +65,8 @@ export class TabNoteElement implements NoteElement {
    */
   public build(): void {
     this.trackElement.registerElement(this);
+
+    this._noteValueState = `${this.note.fret}${this.note.stringNum}`;
 
     const prevTechniqueElements = new Map(
       this._techniqueElements.map((element) => [
@@ -96,24 +100,6 @@ export class TabNoteElement implements NoteElement {
     );
   }
 
-  private buildStateHash(): string {
-    return (
-      `${this.note.fret}` +
-      `${this.note.noteValue}` +
-      `${this.note.octave}` +
-      `${this.barLocalBoundingBox.x}` +
-      `${this.barLocalBoundingBox.y}` +
-      `${this.barLocalBoundingBox.width}` +
-      `${this.barLocalBoundingBox.height}` +
-      `${this._textRect.x}` +
-      `${this._textRect.y}` +
-      `${this._textRect.width}` +
-      `${this._textRect.height}` +
-      `${this._textCoords.x}` +
-      `${this._textCoords.y}`
-    );
-  }
-
   /**
    * Calculates the coordinates for the note element and it's children
    */
@@ -123,12 +109,12 @@ export class TabNoteElement implements NoteElement {
     this._boundingBox.setCoords(0, y);
 
     this._textRect.setCoords(
-      this._boundingBox.width / 2 - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2,
+      this.beatElement.attackLocalX - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2,
       this._boundingBox.height / 2 - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2
     );
 
     this._textCoords.set(
-      this._textRect.x + EditorLayoutDimensions.NOTE_TEXT_SIZE / 2,
+      this.beatElement.attackLocalX,
       this._textRect.y + EditorLayoutDimensions.NOTE_TEXT_SIZE / 2
     );
 
@@ -155,28 +141,21 @@ export class TabNoteElement implements NoteElement {
     ];
   }
 
-  /**
-   * Scales the guitar note element & all it's children horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    this._boundingBox.x *= scale;
-    this._boundingBox.width *= scale;
-
-    this._textRect.x =
-      this._boundingBox.x +
-      this._boundingBox.width / 2 -
-      EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
-    this._textCoords.x *= scale;
-
-    for (const techniqueElement of this._techniqueElements) {
-      techniqueElement.scaleHorBy(scale);
-    }
-  }
-
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this.buildStateHash();
+    return (
+      `${this._noteValueState}` +
+      `${this.barLocalBoundingBox.x}` +
+      `${this.barLocalBoundingBox.y}` +
+      `${this.barLocalBoundingBox.width}` +
+      `${this.barLocalBoundingBox.height}` +
+      `${this._textRect.x}` +
+      `${this._textRect.y}` +
+      `${this._textRect.width}` +
+      `${this._textRect.height}` +
+      `${this._textCoords.x}` +
+      `${this._textCoords.y}`
+    );
   }
 
   public getStableIdentity(): string {

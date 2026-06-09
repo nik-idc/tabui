@@ -438,17 +438,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     }
   }
 
-  /**
-   * Scales the label horizontally
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    this._boundingBox.x *= scale;
-    this._boundingBox.width *= scale;
-
-    this.createPath();
-  }
-
   /** String encoding the state of this element */
   public get stateHash(): string {
     return this.buildStateHash();
