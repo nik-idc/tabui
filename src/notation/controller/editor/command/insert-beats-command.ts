@@ -1,4 +1,4 @@
-import { Beat, ScoreEditor, Staff } from "@/notation/model";
+import { Beat, ScoreEditor, Staff, VoiceNumber } from "@/notation/model";
 import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
 
 /**
@@ -9,17 +9,20 @@ export class InsertBeatsCommand implements Command {
   private _anchorStaff: Staff;
   private _anchorBeat: Beat | undefined;
   private _beatsToInsert: Beat[];
+  private _voiceNumber: VoiceNumber;
   private _insertedBeats: Beat[] = [];
   private _executed: boolean = false;
 
   constructor(
     anchorStaff: Staff,
     anchorBeat: Beat | undefined,
-    beatsToInsert: Beat[]
+    beatsToInsert: Beat[],
+    voiceNumber: VoiceNumber = 1
   ) {
     this._anchorStaff = anchorStaff;
     this._anchorBeat = anchorBeat;
     this._beatsToInsert = beatsToInsert;
+    this._voiceNumber = voiceNumber;
   }
 
   private getInsertionPosition(): { barIndex: number; beatIndex: number } {
@@ -39,7 +42,9 @@ export class InsertBeatsCommand implements Command {
     }
 
     const { barIndex, beatIndex } = this.getInsertionPosition();
-    const voiceBar = this._anchorStaff.bars[barIndex].getVoiceBar(1);
+    const voiceBar = this._anchorStaff.bars[barIndex].getVoiceBar(
+      this._voiceNumber
+    );
     if (voiceBar === null) {
       throw Error("Cannot insert beats into an empty voice slot");
     }
@@ -67,7 +72,9 @@ export class InsertBeatsCommand implements Command {
     }
 
     const { barIndex, beatIndex } = this.getInsertionPosition();
-    const voiceBar = this._anchorStaff.bars[barIndex].getVoiceBar(1);
+    const voiceBar = this._anchorStaff.bars[barIndex].getVoiceBar(
+      this._voiceNumber
+    );
     if (voiceBar === null) {
       throw Error("Cannot insert beats into an empty voice slot");
     }

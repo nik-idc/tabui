@@ -424,7 +424,8 @@ export class TrackControllerEditor {
           new InsertBeatsCommand(
             selectedNote.bar.staff,
             selectedNote.beat,
-            clipboard
+            clipboard,
+            this._selectionManager.activeVoiceNumber
           )
         );
       } else {
@@ -454,10 +455,15 @@ export class TrackControllerEditor {
    * Delete selected beats
    */
   public deleteSelectedBeats(): void {
-    this.executeCommand(
-      new RemoveBeatsCommand(this._selectionManager.selectionBeats)
-    );
-    this.clearSelection();
+    const noteIndex = this.getSelectedNoteIndex();
+    const selectionBeats = this._selectionManager.selectionAsBeats;
+    const firstBeat = selectionBeats[0];
+    const previousBeat = firstBeat.voiceBar.bar.staff.getPrevBeat(firstBeat);
+
+    this.executeCommand(new RemoveBeatsCommand(selectionBeats));
+    const targetBeat = previousBeat ?? firstBeat.voiceBar.beats[0];
+    this._selectionManager.clearSelection();
+    this.selectBeatModel(targetBeat, noteIndex);
   }
 
   private getSelectedNoteIndex(): number {

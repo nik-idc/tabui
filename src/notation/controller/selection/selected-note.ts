@@ -147,6 +147,11 @@ export class SelectedNote {
     if (this._barIndex !== this.staff.bars.length - 1) {
       this._barIndex++;
       this.bar.getVoiceBar(this._voiceNumber) ??
+        // WARNING: May insert voice bar but returns that nothing happened.
+        // Leads to a bug where TrackElement isn't update accordingly, leading
+        // to missing VoiceBarElement and all its descendants.
+        // Most likely an error due to the currently clanky implementation
+        // of ghost beats & rests (or lack there of).
         this.bar.insertVoiceBar(this._voiceNumber);
       this._beatIndex = 0;
 
