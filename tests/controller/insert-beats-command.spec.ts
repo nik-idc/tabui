@@ -59,7 +59,7 @@ describe("InsertBeatsCommand", () => {
     expect(voiceBar.beats[2].baseDuration).toBe(NoteDuration.Sixteenth);
   });
 
-  test("inserting into an empty seed bar replaces the seed beat", () => {
+  test("inserting after an empty beat keeps the anchor beat", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
@@ -68,16 +68,22 @@ describe("InsertBeatsCommand", () => {
     const command = new InsertBeatsCommand(bar.staff, beats[0], [insertedBeat]);
 
     command.execute();
-    expect(voiceBar.beats).toHaveLength(1);
-    expect(voiceBar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
+    expect(voiceBar.beats).toHaveLength(2);
+    expect(voiceBar.beats.map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+      NoteDuration.Eighth,
+    ]);
 
     command.undo();
     expect(voiceBar.beats).toHaveLength(1);
-    expect(voiceBar.beats[0].isEmpty()).toBe(true);
+    expect(voiceBar.beats[0].isRest()).toBe(false);
 
     command.redo();
-    expect(voiceBar.beats).toHaveLength(1);
-    expect(voiceBar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
+    expect(voiceBar.beats).toHaveLength(2);
+    expect(voiceBar.beats.map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+      NoteDuration.Eighth,
+    ]);
   });
 
   test("repeated redo restores local permissive insertions", () => {
@@ -123,12 +129,11 @@ describe("InsertBeatsCommand", () => {
     }
 
     const voiceTwoBar = bar.insertVoiceBar(2, []);
-    const voiceTwoSeed = createBeat(voiceTwoBar, NoteDuration.Quarter);
-    voiceTwoBar.beats.splice(0, voiceTwoBar.beats.length, voiceTwoSeed);
+    const voiceTwoRest = voiceTwoBar.beats[0];
     const insertedBeat = createBeat(voiceTwoBar, NoteDuration.Eighth);
     const command = new InsertBeatsCommand(
       bar.staff,
-      voiceTwoSeed,
+      voiceTwoRest,
       [insertedBeat],
       2
     );
@@ -136,8 +141,9 @@ describe("InsertBeatsCommand", () => {
     command.execute();
 
     expect(voiceOneBar.beats).toHaveLength(1);
-    expect(voiceTwoBar.beats).toHaveLength(1);
+    expect(voiceTwoBar.beats).toHaveLength(2);
     expect(voiceTwoBar.beats.map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Quarter,
       NoteDuration.Eighth,
     ]);
   });

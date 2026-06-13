@@ -32,8 +32,9 @@ export type MoveRightOutput =
   | { result: MoveRightResult.AddedBar; addedBar: true };
 
 /**
- * Class that contains all necessary information
- * about a selected element
+ * Legacy name: this is moving from note-object selection toward an edit cursor
+ * position (staff/bar/voice/beat/note lane). Once rests are stabilized, rename
+ * to SelectionCursor or similar.
  */
 export class SelectedNote {
   /** Selected note's staff */
@@ -50,25 +51,33 @@ export class SelectedNote {
   /** last move right result */
   private _lastMoveRightResult?: MoveRightResult;
 
-  /**
-   * Class that contains all necessary information
-   * about a selected element
-   */
-  constructor(initialNote: Note) {
-    this.staff = initialNote.beat.voiceBar.bar.staff;
-    this._voiceNumber = initialNote.beat.voiceBar.voiceNumber;
+  constructor(initialBeat: Beat, noteIndex: number) {
+    this.staff = initialBeat.voiceBar.bar.staff;
+    this._voiceNumber = initialBeat.voiceBar.voiceNumber;
+    this._noteIndex = noteIndex;
 
-    this.staff.bars.some((bar, barIndex) => {
+    // TODO(rests): Audit if this can be done simpler by extending
+    // Staff with methods like
+    // - Staff.getVoiceBarsSeq(voiceNumber: VoiceNumber): VoiceBar[]
+    // - Staff.getVoiceBetasSeq(voiceNumber: VoiceNumber): Beat[]
+    // WITHOUT any performance downgrades
+    for (let barIndex = 0; barIndex < this.staff.bars.length; barIndex++) {
+      const bar = this.staff.bars[barIndex];
       const voiceBar = bar.getVoiceBar(this._voiceNumber);
-      return voiceBar?.beats.some((beat, beatIndex) => {
-        return beat.notes.some((note, noteIndex) => {
-          this._barIndex = barIndex;
-          this._beatIndex = beatIndex;
-          this._noteIndex = noteIndex;
-          return note.uuid === initialNote.uuid;
-        });
-      });
-    });
+      if (voiceBar === null) {
+        continue;
+      }
+
+      for (let beatIndex = 0; beatIndex < voiceBar.beats.length; beatIndex++) {
+        if (voiceBar.beats[beatIndex].uuid !== initialBeat.uuid) {
+          continue;
+        }
+
+        this._barIndex = barIndex;
+        this._beatIndex = beatIndex;
+        return;
+      }
+    }
   }
 
   /**
@@ -207,11 +216,11 @@ export class SelectedNote {
     }
 
     const beat = voiceBar.beats[this._beatIndex];
-    if (beat.notes.length === 0) {
+    if (beat.notes !== null && beat.notes.length === 0) {
       throw Error("Selected note sync called with no notes in beat");
     }
 
-    if (this._noteIndex >= beat.notes.length) {
+    if (beat.notes !== null && this._noteIndex >= beat.notes.length) {
       this._noteIndex = beat.notes.length - 1;
     }
     if (this._noteIndex < 0) {
@@ -220,8 +229,9 @@ export class SelectedNote {
   }
 
   /** Selected note */
-  public get note(): Note {
-    return this.voiceBar.beats[this._beatIndex].notes[this._noteIndex];
+  public get note(): Note | null {
+    const notes = this.voiceBar.beats[this._beatIndex].notes;
+    return notes?.[this._noteIndex] ?? null;
   }
 
   /** Selected beat */

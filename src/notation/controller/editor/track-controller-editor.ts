@@ -15,6 +15,7 @@ import {
 import { TrackElement } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
 import { NoteElement } from "../element/note/note-element";
+import { TabNoteElement } from "../element/note/tab-note-element";
 import {
   MoveRightResult,
   SelectedMoveDirection,
@@ -37,6 +38,7 @@ import {
   InsertBeatCommand,
   ReplaceBeatsCommand,
   SetNoteCommand,
+  SetRestCommand,
   RemoveBeatsCommand,
   PrependBarCommand,
   InsertBarCommand,
@@ -96,6 +98,19 @@ export class TrackControllerEditor {
    * @param noteElement
    */
   public selectNoteElement(noteElement: NoteElement): void {
+    // Kinda weird idk - why not just selectNote?
+    if (noteElement instanceof TabNoteElement && !noteElement.hasBackingNote) {
+      this._selectionManager.selectBeatCursor(
+        noteElement.beatElement.beat,
+        noteElement.stringNumber - 1
+      );
+      return;
+    }
+
+    if (noteElement.note === null) {
+      return;
+    }
+
     this._selectionManager.selectNote(noteElement.note);
   }
 
@@ -103,10 +118,16 @@ export class TrackControllerEditor {
    * Selects first note
    */
   public selectFirstNote(): void {
-    const firstNoteElement =
+    const firstBeatElement =
       this._trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0];
-    this.selectNoteElement(firstNoteElement);
+        .styleLinesAsArray[0].barElements[0].beatElements[0];
+    const firstNoteElement = firstBeatElement.noteElements[0];
+    if (firstNoteElement !== undefined) {
+      this.selectNoteElement(firstNoteElement);
+      return;
+    }
+
+    this.selectBeatModel(firstBeatElement.beat, 0);
   }
 
   /**
@@ -202,11 +223,9 @@ export class TrackControllerEditor {
     if (selectedNote === undefined) {
       throw Error("Selected note is undefined");
     }
-    if (!(selectedNote.note instanceof GuitarNote)) {
-      throw Error("Can't set fret of a non-guitar note");
-    }
-
-    this.executeCommand(new SetFretCommand(selectedNote.note, newFret));
+    this.executeCommand(
+      new SetFretCommand(selectedNote.beat, selectedNote.noteIndex + 1, newFret)
+    );
   }
 
   /**
@@ -232,6 +251,17 @@ export class TrackControllerEditor {
     }
 
     this.executeCommand(new SetDurationCommand(selection, newDuration));
+  }
+
+  public setSelectedBeatRest(): void {
+    const selection = this._selectionManager.selectionAsBeats;
+    if (selection.length === 0) {
+      throw Error("Selection length is 0");
+    }
+
+    const newRestState = !selection.every((beat) => beat.isRest());
+
+    this.executeCommand(new SetRestCommand(selection, newRestState));
   }
 
   /**
@@ -348,9 +378,17 @@ export class TrackControllerEditor {
   ): void {
     const selectedNote = this._selectionManager.selectedNote;
     const selectionNotes =
-      selectedNote !== undefined
+      selectedNote && selectedNote.note !== null
         ? [selectedNote.note]
-        : this._selectionManager.selectionAsBeats.flatMap((b) => b.notes);
+        : this._selectionManager.selectionAsBeats.flatMap(
+            // TODO(rests): decide whether techniques can apply across rests or
+            // should surface an explicit no-op/invalid-selection state.
+            (b) => b.notes ?? []
+          );
+
+    if (selectionNotes.length === 0) {
+      return;
+    }
 
     this.executeCommand(
       new SetTechniqueCommand(selectionNotes, type, bendOptions)
@@ -440,10 +478,10 @@ export class TrackControllerEditor {
         );
       }
 
-      // Set note value if selected is a note element
       this.executeCommand(
         new SetNoteCommand(
-          selectedNote.note,
+          selectedNote.beat,
+          selectedNote.noteIndex + 1,
           clipboard.noteValue,
           clipboard.octave
         )
@@ -458,10 +496,15 @@ export class TrackControllerEditor {
     const noteIndex = this.getSelectedNoteIndex();
     const selectionBeats = this._selectionManager.selectionAsBeats;
     const firstBeat = selectionBeats[0];
+    const selectedBar = firstBeat.voiceBar.bar;
     const previousBeat = firstBeat.voiceBar.bar.staff.getPrevBeat(firstBeat);
 
     this.executeCommand(new RemoveBeatsCommand(selectionBeats));
-    const targetBeat = previousBeat ?? firstBeat.voiceBar.beats[0];
+    const targetBeat = this.getBeatAfterRemoval(
+      selectedBar,
+      previousBeat,
+      firstBeat.voiceBar.voiceNumber
+    );
     this._selectionManager.clearSelection();
     this.selectBeatModel(targetBeat, noteIndex);
   }
@@ -471,7 +514,35 @@ export class TrackControllerEditor {
   }
 
   private selectBeatModel(beat: Beat, noteIndex: number): void {
-    this._selectionManager.selectNote(beat.notes[noteIndex]);
+    this._selectionManager.selectBeatCursor(beat, noteIndex);
+  }
+
+  private getBeatAfterRemoval(
+    selectedBar: Bar,
+    previousBeat: Beat | null,
+    removedVoiceNumber: VoiceNumber
+  ): Beat {
+    const removedVoiceBar = selectedBar.getVoiceBar(removedVoiceNumber);
+    if (removedVoiceBar !== null && previousBeat !== null) {
+      return previousBeat;
+    } else if (removedVoiceBar !== null) {
+      return removedVoiceBar.beats[0];
+    }
+
+    const remainingVoiceBars = selectedBar.voiceBarsAsArray;
+    const lowerVoiceBar = remainingVoiceBars
+      .filter((voiceBar) => voiceBar.voiceNumber < removedVoiceNumber)
+      .at(-1);
+    if (lowerVoiceBar !== undefined) {
+      return lowerVoiceBar.beats[0];
+    }
+
+    const firstRemainingBeat = remainingVoiceBars[0]?.beats[0];
+    if (firstRemainingBeat === undefined) {
+      throw Error("Cannot find target beat after deletion");
+    }
+
+    return firstRemainingBeat;
   }
 
   private getSelectedBar(): Bar {
@@ -542,10 +613,15 @@ export class TrackControllerEditor {
     const noteIndex = this.getSelectedNoteIndex();
     const selectionBeats = this._selectionManager.selectionAsBeats;
     const firstBeat = selectionBeats[0];
+    const selectedBar = firstBeat.voiceBar.bar;
     const previousBeat = firstBeat.voiceBar.bar.staff.getPrevBeat(firstBeat);
 
     this.executeCommand(new RemoveBeatsCommand(selectionBeats));
-    const targetBeat = previousBeat ?? firstBeat.voiceBar.beats[0];
+    const targetBeat = this.getBeatAfterRemoval(
+      selectedBar,
+      previousBeat,
+      firstBeat.voiceBar.voiceNumber
+    );
     this._selectionManager.clearSelection();
     this.selectBeatModel(targetBeat, noteIndex);
   }

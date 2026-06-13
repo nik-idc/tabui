@@ -1,16 +1,15 @@
-import { Beat, ScoreEditor, VoiceBar } from "@/notation/model";
+import {
+  Beat,
+  BeatRestoreSnapshot,
+  Score,
+  ScoreEditor,
+} from "@/notation/model";
 import {
   Command,
   CommandUpdateRequest,
   getAffectedMasterBarIndicesFromBeats,
   getAffectedMasterBarUUIDsFromBeats,
 } from "./command";
-
-type RemovedBeatSnapshot = {
-  voiceBar: VoiceBar;
-  index: number;
-  beat: Beat;
-};
 
 /**
  * Replaces selected beats with clipboard beats using the current permissive
@@ -20,8 +19,7 @@ type RemovedBeatSnapshot = {
 export class ReplaceBeatsCommand implements Command {
   private _beatsToReplace: Beat[];
   private _newBeats: Beat[];
-  private _oldBeatSnapshots: RemovedBeatSnapshot[];
-  private _originalVoiceBarBeatCounts: Map<VoiceBar, number>;
+  private _oldBeatSnapshots: BeatRestoreSnapshot[];
   private _currentBeats: Beat[];
   private _executed: boolean = false;
   private _affectedMasterBarIndices: number[];
@@ -35,11 +33,6 @@ export class ReplaceBeatsCommand implements Command {
       index: beat.voiceBar.beats.indexOf(beat),
       beat: beat.deepCopy(),
     }));
-    this._originalVoiceBarBeatCounts = new Map(
-      new Set(beatsToReplace.map((beat) => beat.voiceBar))
-        .values()
-        .map((voiceBar) => [voiceBar, voiceBar.beats.length])
-    );
     this._currentBeats = beatsToReplace;
     this._affectedMasterBarIndices =
       getAffectedMasterBarIndicesFromBeats(beatsToReplace);
@@ -64,29 +57,8 @@ export class ReplaceBeatsCommand implements Command {
       return;
     }
 
-    ScoreEditor.removeBeats(this._currentBeats);
-
-    const restoredBeats: Beat[] = [];
-    const voiceBars = new Set(
-      this._oldBeatSnapshots.map((snapshot) => snapshot.voiceBar)
-    );
-    for (const voiceBar of voiceBars) {
-      const barSnapshots = this._oldBeatSnapshots
-        .filter((snapshot) => snapshot.voiceBar === voiceBar)
-        .sort((a, b) => a.index - b.index);
-      const index = Math.min(...barSnapshots.map((snapshot) => snapshot.index));
-      const beats = barSnapshots.map((snapshot) => snapshot.beat);
-      const removedWholeBar =
-        barSnapshots.length === this._originalVoiceBarBeatCounts.get(voiceBar);
-
-      if (index === 0 && removedWholeBar && voiceBar.isEmpty()) {
-        voiceBar.beats.splice(0, 1);
-      }
-
-      restoredBeats.push(...voiceBar.insertBeats(index, beats));
-    }
-
-    this._currentBeats = restoredBeats;
+    ScoreEditor.prepareBeatRestore(this._currentBeats);
+    this._currentBeats = ScoreEditor.restoreBeats(this._oldBeatSnapshots);
   }
 
   redo(): void {

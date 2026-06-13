@@ -52,8 +52,7 @@ export class InsertBeatsCommand implements Command {
     this._insertedBeats = ScoreEditor.insertBeats(
       voiceBar,
       beatIndex,
-      this._beatsToInsert,
-      true
+      this._beatsToInsert
     );
     this._executed = true;
   }
@@ -82,8 +81,7 @@ export class InsertBeatsCommand implements Command {
     this._insertedBeats = ScoreEditor.insertBeats(
       voiceBar,
       beatIndex,
-      this._beatsToInsert,
-      true
+      this._beatsToInsert
     );
   }
 

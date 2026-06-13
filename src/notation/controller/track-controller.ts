@@ -162,6 +162,10 @@ export class TrackController {
     this._trackControllerEditor.setDuration(newDuration);
   }
 
+  public setSelectedBeatRest(): void {
+    this._trackControllerEditor.setSelectedBeatRest();
+  }
+
   /**
    * Set dot count for selected beats
    * @param newDots New dot count

@@ -8,22 +8,26 @@ describe("InsertBeatCommand", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
     ]);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
     const originalBeatUUIDs = beats.map((beat) => beat.uuid);
-    const command = new InsertBeatCommand(bar, 1);
+    const command = new InsertBeatCommand(voiceBar, 1);
 
     command.execute();
 
-    expect(bar.beats).toHaveLength(3);
-    expect(bar.beats[0].uuid).toBe(originalBeatUUIDs[0]);
-    expect(bar.beats[2].uuid).toBe(originalBeatUUIDs[1]);
-    expect(bar.beats[1].baseDuration).toBe(NoteDuration.Quarter);
-    expect(command.insertBeatResult?.beats[0]).toBe(bar.beats[1]);
+    expect(voiceBar.beats).toHaveLength(3);
+    expect(voiceBar.beats[0].uuid).toBe(originalBeatUUIDs[0]);
+    expect(voiceBar.beats[2].uuid).toBe(originalBeatUUIDs[1]);
+    expect(voiceBar.beats[1].baseDuration).toBe(NoteDuration.Quarter);
+    expect(command.insertBeatResult?.beats[0]).toBe(voiceBar.beats[1]);
 
     command.undo();
-    expect(bar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
+    expect(voiceBar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
 
     command.redo();
-    expect(bar.beats).toHaveLength(3);
-    expect(bar.beats[1]).toBe(command.insertBeatResult?.beats[0]);
+    expect(voiceBar.beats).toHaveLength(3);
+    expect(voiceBar.beats[1]).toBe(command.insertBeatResult?.beats[0]);
   });
 });

@@ -53,7 +53,8 @@ export function getAffectedMasterBarUUIDsFromBeats(beats: Beat[]): number[] {
   );
 }
 
-// Command interface
+// Commands should own undo/redo state. Prefer ScoreEditor for structural model
+// edits; direct model mutation is acceptable for simple local value changes.
 export interface Command {
   execute(): void;
   undo(): void;

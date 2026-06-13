@@ -2,34 +2,44 @@ import { AppendBeatCommand } from "../../src/notation/controller/editor/command/
 import { createScoreGraph } from "../model/helpers";
 
 describe("AppendBeatCommand", () => {
-  test("execute appends one empty beat at the end and undo/redo restore exact state", () => {
+  test("execute appends one rest beat at the end and undo/redo restore exact state", () => {
     const { bar } = createScoreGraph();
-    const originalBeatUUIDs = bar.beats.map((beat) => beat.uuid);
-    const command = new AppendBeatCommand(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+    const originalBeatUUIDs = voiceBar.beats.map((beat) => beat.uuid);
+    const command = new AppendBeatCommand(voiceBar);
 
     command.execute();
-    expect(bar.beats).toHaveLength(2);
-    expect(bar.beats[0].uuid).toBe(originalBeatUUIDs[0]);
+    expect(voiceBar.beats).toHaveLength(2);
+    expect(voiceBar.beats[0].uuid).toBe(originalBeatUUIDs[0]);
     expect(command.appendBeatResult).not.toBeNull();
     expect(command.appendBeatResult?.index).toBe(1);
     expect(command.appendBeatResult?.beats).toHaveLength(1);
-    expect(bar.beats[1].uuid).toBe(command.appendBeatResult?.beats[0].uuid);
-    expect(bar.beats[1].isEmpty()).toBe(true);
+    expect(voiceBar.beats[1].uuid).toBe(
+      command.appendBeatResult?.beats[0].uuid
+    );
+    expect(voiceBar.beats[1].isRest()).toBe(true);
 
     command.undo();
-    expect(bar.beats).toHaveLength(1);
-    expect(bar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
+    expect(voiceBar.beats).toHaveLength(1);
+    expect(voiceBar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
 
     command.redo();
-    expect(bar.beats).toHaveLength(2);
-    expect(bar.beats[0].uuid).toBe(originalBeatUUIDs[0]);
-    expect(bar.beats[1].baseDuration).toBe(bar.beats[0].baseDuration);
-    expect(bar.beats[1].isEmpty()).toBe(true);
+    expect(voiceBar.beats).toHaveLength(2);
+    expect(voiceBar.beats[0].uuid).toBe(originalBeatUUIDs[0]);
+    expect(voiceBar.beats[1].baseDuration).toBe(voiceBar.beats[0].baseDuration);
+    expect(voiceBar.beats[1].isRest()).toBe(true);
   });
 
   test("redo before execute throws", () => {
     const { bar } = createScoreGraph();
-    const command = new AppendBeatCommand(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+    const command = new AppendBeatCommand(voiceBar);
 
     expect(() => command.redo()).toThrow("Redo called before execute");
   });

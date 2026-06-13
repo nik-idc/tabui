@@ -43,9 +43,18 @@ export class SelectionManager {
   public selectNote(note: Note): void {
     this._staff = note.beat.voiceBar.bar.staff;
     this._activeVoiceNumber = note.beat.voiceBar.voiceNumber;
+    const noteIndex = note.beat.notes?.indexOf(note) ?? 0;
 
     this.clearSelection();
-    this._selectedNote = new SelectedNote(note);
+    this._selectedNote = new SelectedNote(note.beat, noteIndex);
+  }
+
+  public selectBeatCursor(beat: Beat, noteIndex: number): void {
+    this._staff = beat.voiceBar.bar.staff;
+    this._activeVoiceNumber = beat.voiceBar.voiceNumber;
+
+    this.clearSelection();
+    this._selectedNote = new SelectedNote(beat, noteIndex);
   }
 
   /**
@@ -82,12 +91,15 @@ export class SelectionManager {
 
     if (this._selectionBeats.length !== 0) {
       // Select left most element of selection
+      const leftMostBeat = this._selectionBeats[0];
       const leftMostNote =
-        this._selectionBeats[0].notes[
+        leftMostBeat.notes?.[
           this.selectedNote ? this.selectedNote.noteIndex : 0
         ];
 
-      this.selectNote(leftMostNote);
+      if (leftMostNote !== undefined) {
+        this.selectNote(leftMostNote);
+      }
     }
 
     if (this._selectionBeats.length === 0 && this.selectedNote === undefined) {
@@ -107,12 +119,16 @@ export class SelectionManager {
 
     if (this._selectionBeats.length !== 0) {
       // Select right most element of selection
+      const rightMostBeat =
+        this._selectionBeats[this._selectionBeats.length - 1];
       const rightMostNote =
-        this._selectionBeats[this._selectionBeats.length - 1].notes[
+        rightMostBeat.notes?.[
           this.selectedNote ? this.selectedNote.noteIndex : 0
         ];
 
-      this.selectNote(rightMostNote);
+      if (rightMostNote !== undefined) {
+        this.selectNote(rightMostNote);
+      }
     }
 
     if (this._selectionBeats.length === 0 && this.selectedNote === undefined) {
@@ -239,10 +255,10 @@ export class SelectionManager {
    * Copy selected note/beats (depending on which is currently selected)
    */
   public copy(): void {
-    this._clipboard =
-      this._selectedNote !== undefined
-        ? this._selectedNote.note.deepCopy()
-        : this._selectionBeats.map((beat) => beat.deepCopy());
+    const selectedNote = this._selectedNote?.note;
+    this._clipboard = selectedNote
+      ? selectedNote.deepCopy()
+      : this._selectionBeats.map((beat) => beat.deepCopy());
   }
 
   /**
@@ -255,7 +271,7 @@ export class SelectionManager {
       throw Error("No note selected");
     }
 
-    return this._selectedNote.note.uuid === noteElement.note.uuid;
+    return this._selectedNote.note?.uuid === noteElement.note?.uuid;
   }
 
   /** Selected note element */

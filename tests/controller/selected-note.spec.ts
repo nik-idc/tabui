@@ -2,7 +2,7 @@ import {
   MoveRightResult,
   SelectedNote,
 } from "../../src/notation/controller/selection/selected-note";
-import { DEFAULT_MASTER_BAR } from "../../src/notation/model";
+import { DEFAULT_MASTER_BAR, Score } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 
 function getVoiceBar1(bar: ReturnType<typeof createScoreGraph>["bar"]) {
@@ -15,10 +15,22 @@ function getVoiceBar1(bar: ReturnType<typeof createScoreGraph>["bar"]) {
 }
 
 describe("SelectedNote", () => {
+  test("can represent a cursor on a rest beat lane", () => {
+    const score = new Score();
+    const bar = score.tracks[0].staves[0].bars[0];
+    const beat = getVoiceBar1(bar).beats[0];
+    const selectedNote = new SelectedNote(beat, 2);
+
+    expect(beat.isRest()).toBe(true);
+    expect(selectedNote.beat).toBe(beat);
+    expect(selectedNote.note).toBeNull();
+    expect(selectedNote.noteIndex).toBe(2);
+  });
+
   test("moveRight advances to the next beat slot when adding a beat from seed state", () => {
     const { bar } = createScoreGraph();
     const voiceBar = getVoiceBar1(bar);
-    const selectedNote = new SelectedNote(voiceBar.beats[0].notes[0]);
+    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
 
     const result = selectedNote.moveRight();
 
@@ -30,7 +42,7 @@ describe("SelectedNote", () => {
 
   test("moveLeft from the very first beat keeps selection in place", () => {
     const { bar } = createScoreGraph();
-    const selectedNote = new SelectedNote(getVoiceBar1(bar).beats[0].notes[0]);
+    const selectedNote = new SelectedNote(getVoiceBar1(bar).beats[0], 0);
 
     selectedNote.moveLeft();
 
@@ -43,9 +55,7 @@ describe("SelectedNote", () => {
     score.appendMasterBar(DEFAULT_MASTER_BAR);
 
     const secondBar = bar.staff.bars[1];
-    const selectedNote = new SelectedNote(
-      getVoiceBar1(secondBar).beats[0].notes[0]
-    );
+    const selectedNote = new SelectedNote(getVoiceBar1(secondBar).beats[0], 0);
 
     selectedNote.moveLeft();
 
@@ -57,7 +67,7 @@ describe("SelectedNote", () => {
   test("moveRight from full final bar requests adding a new bar", () => {
     const { bar } = createScoreGraph();
     const voiceBar = getVoiceBar1(bar);
-    const selectedNote = new SelectedNote(voiceBar.beats[0].notes[0]);
+    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
 
     voiceBar.appendBeats();
     voiceBar.appendBeats();
@@ -76,7 +86,7 @@ describe("SelectedNote", () => {
     const { score, bar } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     const voiceBar = getVoiceBar1(bar);
-    const selectedNote = new SelectedNote(voiceBar.beats[0].notes[0]);
+    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
 
     voiceBar.appendBeats();
     voiceBar.appendBeats();
@@ -98,7 +108,7 @@ describe("SelectedNote", () => {
     const voiceBar = bar.insertVoiceBar(3);
     score.appendMasterBar(DEFAULT_MASTER_BAR, 1);
     const nextBar = bar.staff.bars[1];
-    const selectedNote = new SelectedNote(voiceBar.beats[0].notes[0]);
+    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
 
     voiceBar.appendBeats();
     voiceBar.appendBeats();
@@ -118,7 +128,7 @@ describe("SelectedNote", () => {
 
   test("moveUp and moveDown wrap between first and last note indices", () => {
     const { bar } = createScoreGraph();
-    const selectedNote = new SelectedNote(getVoiceBar1(bar).beats[0].notes[0]);
+    const selectedNote = new SelectedNote(getVoiceBar1(bar).beats[0], 0);
 
     selectedNote.moveUp();
     expect(selectedNote.noteIndex).toBe(
@@ -131,7 +141,7 @@ describe("SelectedNote", () => {
 
   test("afterAddedBar throws if last move right was not AddedBar", () => {
     const { bar } = createScoreGraph();
-    const selectedNote = new SelectedNote(getVoiceBar1(bar).beats[0].notes[0]);
+    const selectedNote = new SelectedNote(getVoiceBar1(bar).beats[0], 0);
 
     expect(() => selectedNote.afterAddedBar()).toThrow(
       "After added bar called when last move right result is not added bar"
@@ -146,7 +156,7 @@ describe("SelectedNote", () => {
     secondVoiceBar.appendBeats();
     secondVoiceBar.appendBeats();
 
-    const selectedNote = new SelectedNote(secondVoiceBar.beats[2].notes[0]);
+    const selectedNote = new SelectedNote(secondVoiceBar.beats[2], 0);
 
     score.removeMasterBar(1);
     selectedNote.syncToStructure();

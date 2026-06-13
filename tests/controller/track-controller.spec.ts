@@ -8,6 +8,7 @@ import {
   GuitarTechniqueType,
   NoteDuration,
   NoteValue,
+  Score,
 } from "../../src/notation/model";
 import { SelectedMoveDirection } from "../../src/notation/controller/selection/selected-note";
 import {
@@ -153,6 +154,25 @@ describe("TrackController", () => {
     expect(bar.beats).toHaveLength(1);
     expect(bar.beats[0].uuid).toBe(secondBeatUUID);
     expect(controller.selectedNote?.beat).toBe(bar.beats[0]);
+  });
+
+  test("remove selected last beat keeps cursor on replacement rest", () => {
+    const score = new Score();
+    const track = score.tracks[0];
+    const bar = track.staves[0].bars[0];
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const controller = new TrackController(track);
+
+    controller.removeSelectedBeat();
+
+    expect(voiceBar.beats).toHaveLength(1);
+    expect(voiceBar.beats[0].isRest()).toBe(true);
+    expect(controller.selectedNote).not.toBeUndefined();
+    expect(controller.selectedNote?.beat).toBe(voiceBar.beats[0]);
+    expect(controller.selectedNote?.note).toBeNull();
   });
 
   test("insert bar before selected note inserts and selects the new bar", () => {
@@ -388,7 +408,7 @@ describe("TrackController", () => {
     );
   });
 
-  test("remove all selected beats leaves and selects a seed beat", () => {
+  test("remove all selected beats can leave a true empty voice bar", () => {
     const { track, bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
@@ -400,10 +420,8 @@ describe("TrackController", () => {
     controller.selectBeat(beatElements[1]);
     controller.removeSelectedBeat();
 
-    expect(bar.beats).toHaveLength(1);
-    expect(bar.beats[0].isEmpty()).toBe(true);
+    expect(bar.beats).toHaveLength(0);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(bar.beats[0]);
   });
 
   test("undo works for a directly executed append-beat command", () => {
@@ -521,8 +539,7 @@ describe("TrackController", () => {
     expect(
       track.staves[0].bars[1].beats.map((beat) => beat.baseDuration)
     ).toEqual([NoteDuration.Sixteenth]);
-    expect(track.staves[0].bars[2].beats).toHaveLength(1);
-    expect(track.staves[0].bars[2].beats[0].isEmpty()).toBe(true);
+    expect(track.staves[0].bars[2].beats).toHaveLength(0);
   });
 
   test("undo restores beats removed by multi-bar paste replacement", () => {
