@@ -1,7 +1,7 @@
 import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { SVGTabNoteRenderer } from "../../src/notation/render/svg/svg-tab-note-renderer";
-import { GuitarNote, NoteDuration } from "../../src/notation/model";
+import { Beat, GuitarNote, NoteDuration } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
@@ -24,6 +24,11 @@ function shouldRenderHitRect(controller: TrackController, note: GuitarNote) {
   );
 
   return renderer.shouldRenderHitRect();
+}
+
+function getBackingNote(beat: Beat) {
+  beat.makeBeatWithNotes();
+  return beat.notes![0] as GuitarNote;
 }
 
 function createLaidOutController(
@@ -49,9 +54,9 @@ describe("SVGTabNoteRenderer", () => {
     if (voice1 === null) {
       throw Error("Expected voice 1");
     }
-    const activeEmptyNote = voice1.beats[0].notes[0] as GuitarNote;
-    const voice2Note = voice2.beats[0].notes[0] as GuitarNote;
-    const voice4Note = voice4.beats[0].notes[0] as GuitarNote;
+    const activeEmptyNote = getBackingNote(voice1.beats[0]);
+    const voice2Note = getBackingNote(voice2.beats[0]);
+    const voice4Note = getBackingNote(voice4.beats[0]);
     voice2Note.fret = 3;
     voice4Note.fret = 5;
 
@@ -71,10 +76,9 @@ describe("SVGTabNoteRenderer", () => {
     }
     voice1.appendBeats();
     voice2.appendBeats();
-    const activeEmptyNote = voice1.beats[1].notes[0] as GuitarNote;
-    const inactiveNote = voice2.beats[1].notes[0] as GuitarNote;
+    const activeEmptyNote = getBackingNote(voice1.beats[1]);
+    const inactiveNote = getBackingNote(voice2.beats[1]);
     inactiveNote.fret = 3;
-    bar.staff.recalculateNonEmptyVoiceNumbers();
 
     const controller = createLaidOutController(track);
     const activeElement = getNoteElement(controller, activeEmptyNote);
@@ -103,28 +107,28 @@ describe("SVGTabNoteRenderer", () => {
     voice1.appendBeats();
     voice1.appendBeats();
     for (const beat of voice1.beats) {
-      (beat.notes[0] as GuitarNote).fret = 3;
+      getBackingNote(beat).fret = 3;
     }
     voice1.rebuildTiming();
 
     voice2.beats[0].baseDuration = NoteDuration.Half;
     voice2.appendBeats();
     voice2.rebuildTiming();
-    const inactiveHalfNote = voice2.beats[1].notes[0] as GuitarNote;
+    const inactiveHalfNote = getBackingNote(voice2.beats[1]);
     inactiveHalfNote.fret = 5;
-    bar.staff.recalculateNonEmptyVoiceNumbers();
 
     const controller = createLaidOutController(track);
     const matchingVoice1Element = getNoteElement(
       controller,
-      voice1.beats[2].notes[0] as GuitarNote
+      getBackingNote(voice1.beats[2])
     );
     const previousVoice1Element = getNoteElement(
       controller,
-      voice1.beats[1].notes[0] as GuitarNote
+      getBackingNote(voice1.beats[1])
     );
-    const slotElements =
-      controller.trackElement.getNoteElementsForNoteSlot(inactiveHalfNote);
+    const slotElements = controller.trackElement.getNoteElementsForNoteSlot(
+      getNoteElement(controller, inactiveHalfNote)
+    );
 
     expect(slotElements).toContain(matchingVoice1Element);
     expect(slotElements).not.toContain(previousVoice1Element);
@@ -137,8 +141,8 @@ describe("SVGTabNoteRenderer", () => {
     if (voice1 === null) {
       throw Error("Expected voice 1");
     }
-    const activeNote = voice1.beats[0].notes[0] as GuitarNote;
-    const inactiveNote = voice2.beats[0].notes[0] as GuitarNote;
+    const activeNote = getBackingNote(voice1.beats[0]);
+    const inactiveNote = getBackingNote(voice2.beats[0]);
     activeNote.fret = 3;
     inactiveNote.fret = 5;
 
@@ -155,8 +159,8 @@ describe("SVGTabNoteRenderer", () => {
     if (voice1 === null) {
       throw Error("Expected voice 1");
     }
-    const activeNote = voice1.beats[0].notes[0] as GuitarNote;
-    const inactiveNote = voice2.beats[0].notes[0] as GuitarNote;
+    const activeNote = getBackingNote(voice1.beats[0]);
+    const inactiveNote = getBackingNote(voice2.beats[0]);
 
     const controller = createLaidOutController(track);
 

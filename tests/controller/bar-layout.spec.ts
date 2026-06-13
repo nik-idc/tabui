@@ -46,9 +46,7 @@ function replaceVoiceBeats(
   const beats = durations.map(
     (duration) => new Beat(voiceBar, bar.trackContext, [], duration)
   );
-  voiceBar.beats.splice(0, voiceBar.beats.length, ...beats);
-  voiceBar.rebuildTiming();
-  bar.staff.recalculateNonEmptyVoiceNumbers();
+  voiceBar.replaceBeats(beats);
   return beats;
 }
 

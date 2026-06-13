@@ -64,11 +64,19 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this.trackElement.registerElement(this);
   }
 
+  private get note(): GuitarNote {
+    if (this.noteElement.note === null) {
+      throw Error("Guitar technique element requires a backing note");
+    }
+
+    return this.noteElement.note;
+  }
+
   /**
    * Build a regular bend path SVG path HTML element
    */
   private createBendPath(): void {
-    const stringNum = this.noteElement.note.stringNum;
+    const stringNum = this.note.stringNum;
     const verticalOffset =
       this.noteElement.boundingBox.height * (stringNum - 1) +
       this.noteElement.boundingBox.height / 2;
@@ -96,7 +104,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Build a bend-and-release path SVG path HTML element
    */
   private createBendAndReleasePath(): void {
-    const stringNum = this.noteElement.note.stringNum;
+    const stringNum = this.note.stringNum;
     const verticalOffset =
       this.noteElement.boundingBox.height * (stringNum - 1) +
       this.noteElement.boundingBox.height / 2;
@@ -146,7 +154,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Build a prebend path SVG path HTML element
    */
   private createPrebendPath(): void {
-    const stringNum = this.noteElement.note.stringNum;
+    const stringNum = this.note.stringNum;
     const verticalOffset =
       this.noteElement.boundingBox.height * (stringNum - 1) +
       this.noteElement.boundingBox.height / 2;
@@ -177,7 +185,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Build a prebend-and-release path SVG path HTML element
    */
   private createPrebendAndReleasePath(): void {
-    const stringNum = this.noteElement.note.stringNum;
+    const stringNum = this.note.stringNum;
     const verticalOffset =
       this.noteElement.boundingBox.height * (stringNum - 1) +
       this.noteElement.boundingBox.height / 2;
@@ -233,24 +241,27 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc slide path
    */
   private createSlidePath(): void {
-    if (this.noteElement.note.fret === null) {
+    const note = this.note;
+    if (note.fret === null) {
       return;
     }
 
-    const staff = this.noteElement.note.beat.voiceBar.bar.staff;
-    const nextBeat = staff.getNextBeat(this.noteElement.note.beat);
+    const staff = note.beat.voiceBar.bar.staff;
+    const nextBeat = staff.getNextBeat(note.beat);
     if (nextBeat === null) {
       return;
     }
 
-    const nextNote = nextBeat.notes[
-      this.noteElement.note.stringNum - 1
-    ] as GuitarNote;
+    if (nextBeat.notes === null) {
+      return;
+    }
+
+    const nextNote = nextBeat.notes[note.stringNum - 1] as GuitarNote;
     if (nextNote.fret === null) {
       return;
     }
 
-    const upCoef = nextNote.fret >= this.noteElement.note.fret ? 1 : -1;
+    const upCoef = nextNote.fret >= note.fret ? 1 : -1;
 
     const slideWidth =
       this.noteElement.boundingBox.width -

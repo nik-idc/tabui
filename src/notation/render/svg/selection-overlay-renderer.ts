@@ -1,5 +1,6 @@
 import {
   NoteElement,
+  TabBeatElement,
   TrackController,
   TrackLineIdentity,
 } from "@/notation/controller";
@@ -32,7 +33,7 @@ export class SelectionOverlayRenderer {
   }
 
   /**
-   * NOTE: Could (and probably) should be extracted to TrackController
+   * NOTE: Could (and probably should) be extracted to TrackController
    * Resolves currently selected tab note element from track element registry.
    */
   private getSelectedTabNoteElement(): TabNoteElement | undefined {
@@ -41,13 +42,24 @@ export class SelectionOverlayRenderer {
       return undefined;
     }
 
-    const registeredElements =
+    const modelElementRegistry =
       this.trackController.trackElement.elementRegistryByModelUUID;
-    const selectedNoteElement = registeredElements.get(selectedNote.note.uuid);
+    const beatElement = modelElementRegistry.get(selectedNote.beat.uuid);
+    if (!(beatElement instanceof TabBeatElement)) {
+      throw Error("Beat element not TabBeatElement");
+    }
+
+    const registeredElements =
+      this.trackController.trackElement.elementRegistryByIdentity;
+    const identity = TabNoteElement.createStableIdentity(
+      beatElement,
+      selectedNote.noteIndex + 1
+    );
+    const selectedNoteElement = registeredElements.get(identity);
+
     if (
       selectedNoteElement === undefined ||
-      !(selectedNoteElement instanceof TabNoteElement) ||
-      selectedNoteElement.note !== selectedNote.note
+      !(selectedNoteElement instanceof TabNoteElement)
     ) {
       return undefined;
     }

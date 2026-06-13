@@ -116,6 +116,13 @@ export class VoiceBarElement implements NotationElement {
       beatElement.measure();
     }
 
+    // const height =
+    //   this._beatElements[0]?.boundingBox.height ??
+    //   this.voiceBar.trackContext.instrument.maxPolyphony *
+    //     EditorLayoutDimensions.NOTE_RECT_HEIGHT;
+    //
+    // this._boundingBox.setDimensions(this.barElement.voiceContentWidth, height);
+
     this._boundingBox.setDimensions(
       this.barElement.voiceContentWidth,
       this._beatElements[0].boundingBox.height

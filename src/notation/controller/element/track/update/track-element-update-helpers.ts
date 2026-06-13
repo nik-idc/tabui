@@ -172,6 +172,9 @@ export function getBackingModelUUID(element: NotationElement): number {
     return element.beat.uuid;
   }
   if (element instanceof TabNoteElement) {
+    if (element.note === null) {
+      throw new Error("Virtual tab note slots have no backing model UUID");
+    }
     return element.note.uuid;
   }
   if (element instanceof GuitarTechniqueElement) {
@@ -191,7 +194,7 @@ export function isModelBackedElement(element: NotationElement): boolean {
     element instanceof BarElement ||
     element instanceof TabBeatElement ||
     element instanceof SheetBeatElement ||
-    element instanceof TabNoteElement ||
+    (element instanceof TabNoteElement && element.hasBackingNote) ||
     element instanceof GuitarTechniqueElement ||
     element instanceof BarTupletGroupElement
   );

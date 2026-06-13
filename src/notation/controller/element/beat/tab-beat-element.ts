@@ -43,6 +43,7 @@ export class TabBeatElement implements BeatElement {
 
   /** This beat's rect */
   private _boundingBox: Rect;
+  private _restRect: Rect | null;
 
   /**
    * Class that handles geometry & visually relevant info of a beat
@@ -58,6 +59,7 @@ export class TabBeatElement implements BeatElement {
     this._noteElements = [];
 
     this._boundingBox = new Rect();
+    this._restRect = null;
 
     this.build();
   }
@@ -72,17 +74,20 @@ export class TabBeatElement implements BeatElement {
       ])
     );
     this._noteElements = [];
-    for (const note of this.beat.notes) {
+    const maxPolyphony = this.beat.trackContext.instrument.maxPolyphony;
+    for (let i = 0; i < maxPolyphony; i++) {
+      const note = (this.beat.notes?.[i] as GuitarNote | undefined) ?? null;
       const existingNoteElement = prevNoteElements.get(
-        TabNoteElement.createStableIdentity(this, note as GuitarNote)
+        TabNoteElement.createStableIdentity(this, i + 1)
       );
       if (existingNoteElement !== undefined) {
+        existingNoteElement.setNote(note);
         existingNoteElement.build();
         this._noteElements.push(existingNoteElement);
         continue;
       }
 
-      this._noteElements.push(new TabNoteElement(note as GuitarNote, this));
+      this._noteElements.push(new TabNoteElement(this, i + 1, note));
     }
   }
 
@@ -94,6 +99,11 @@ export class TabBeatElement implements BeatElement {
     const notesHeight =
       this._noteElements.length * EditorLayoutDimensions.NOTE_RECT_HEIGHT;
     this._boundingBox.setDimensions(width, notesHeight);
+    this._restRect = this.beat.isRest() ? new Rect() : null;
+    this._restRect?.setDimensions(
+      EditorLayoutDimensions.NOTE_TEXT_SIZE,
+      EditorLayoutDimensions.NOTE_TEXT_SIZE
+    );
 
     for (const noteElement of this._noteElements) {
       noteElement.measure();
@@ -107,6 +117,11 @@ export class TabBeatElement implements BeatElement {
     const x = this.voiceBarElement.getBeatX(this.beat);
 
     this._boundingBox.setCoords(x, 0);
+
+    this._restRect?.setCoords(
+      this.attackLocalX - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2,
+      this._boundingBox.height / 2 - this._restRect.height / 2
+    );
 
     for (const noteElement of this._noteElements) {
       noteElement.layout();
@@ -128,6 +143,10 @@ export class TabBeatElement implements BeatElement {
         `${this.barLocalBoundingBox.y}` +
         `${this.barLocalBoundingBox.width}` +
         `${this.barLocalBoundingBox.height}`,
+      `${this._restRect?.x ?? ""}` +
+        `${this._restRect?.y ?? ""}` +
+        `${this._restRect?.width ?? ""}` +
+        `${this._restRect?.height ?? ""}`,
     ];
 
     return hashArr.join("");
@@ -197,6 +216,23 @@ export class TabBeatElement implements BeatElement {
   /** Beat's note element */
   public get noteElements(): TabNoteElement[] {
     return this._noteElements;
+  }
+
+  public get restRect(): Rect | null {
+    return this._restRect;
+  }
+
+  public get restRectBarLocal(): Rect | null {
+    if (this._restRect === null) {
+      return null;
+    }
+
+    return new Rect(
+      this.barLocalCoords.x + this._restRect.x,
+      this.barLocalCoords.y + this._restRect.y,
+      this._restRect.width,
+      this._restRect.height
+    );
   }
 
   public get durationStemLine(): VertLine | undefined {

@@ -854,13 +854,10 @@ export class TrackElement {
     return rects;
   }
 
-  public getNoteElementsForNoteSlot(note: GuitarNote): TabNoteElement[] {
-    const bar = note.beat.voiceBar.bar;
-    const sourceNoteElement = this._elementRegistryByModelUUID.get(note.uuid);
-    if (!(sourceNoteElement instanceof TabNoteElement)) {
-      throw new Error("Note's element is not a valid NoteElement");
-    }
-
+  public getNoteElementsForNoteSlot(
+    sourceNoteElement: TabNoteElement
+  ): TabNoteElement[] {
+    const bar = sourceNoteElement.beatElement.beat.voiceBar.bar;
     const commonTickRes = lcmAll(
       bar.voiceBarsAsArray.map((voiceBar) => voiceBar.tickResolution)
     );
@@ -878,8 +875,17 @@ export class TrackElement {
           continue;
         }
 
-        const slotNote = beat.notes[note.stringNum - 1];
-        const noteElement = this._elementRegistryByModelUUID.get(slotNote.uuid);
+        const beatElement = this._elementRegistryByModelUUID.get(beat.uuid);
+        if (!(beatElement instanceof TabBeatElement)) {
+          throw new Error("Beat's element is not a valid TabBeatElement");
+        }
+
+        const noteElement = this._elementRegistryByIdentity.get(
+          TabNoteElement.createStableIdentity(
+            beatElement,
+            sourceNoteElement.stringNumber
+          )
+        );
         if (!(noteElement instanceof TabNoteElement)) {
           throw new Error("Note's element is not a valid NoteElement");
         }

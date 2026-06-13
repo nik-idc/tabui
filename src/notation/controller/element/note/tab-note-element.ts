@@ -9,22 +9,25 @@ import { TabBeatElement } from "../beat/tab-beat-element";
 import { NotationElement } from "../notation-element";
 
 /**
+ * TODO(rests): Audit whether this class should be renamed since
+ * it is no longer tied strictly to a note but instead a note "position"
  * Class that handles geometry & visually relevant info of a tab note
  */
 export class TabNoteElement implements NoteElement {
   public static createStableIdentity(
     beatElement: TabBeatElement,
-    note: GuitarNote
+    stringNumber: number
   ): string {
     const trackLineStableIdentity =
       beatElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `note:${trackLineStableIdentity}:${note.uuid}`;
+    return `note-slot:${trackLineStableIdentity}:${beatElement.beat.uuid}:${stringNumber}`;
   }
 
   /** Guitar note element's unique identifier */
   readonly uuid: number;
-  /** The note */
-  readonly note: GuitarNote;
+  /** Backing note for this slot. TODO(rests): rename TabNoteElement later. */
+  note: GuitarNote | null;
+  readonly stringNumber: number;
   /** Parent beat element */
   readonly beatElement: TabBeatElement;
   /** Root track element */
@@ -46,9 +49,14 @@ export class TabNoteElement implements NoteElement {
    * @param note Guitar note
    * @param beatElement Parent beat element
    */
-  constructor(note: GuitarNote, beatElement: TabBeatElement) {
+  constructor(
+    beatElement: TabBeatElement,
+    stringNumber: number,
+    note: GuitarNote | null
+  ) {
     this.uuid = randomInt();
     this.note = note;
+    this.stringNumber = stringNumber;
     this.beatElement = beatElement;
     this.trackElement = this.beatElement.trackElement;
 
@@ -66,7 +74,7 @@ export class TabNoteElement implements NoteElement {
   public build(): void {
     this.trackElement.registerElement(this);
 
-    this._noteValueState = `${this.note.fret}${this.note.stringNum}`;
+    this._noteValueState = `${this.note?.fret ?? ""}${this.stringNumber}`;
 
     const prevTechniqueElements = new Map(
       this._techniqueElements.map((element) => [
@@ -75,7 +83,7 @@ export class TabNoteElement implements NoteElement {
       ])
     );
     this._techniqueElements = [];
-    for (const technique of this.note.techniques) {
+    for (const technique of this.note?.techniques ?? []) {
       const techniqueElement =
         prevTechniqueElements.get(
           GuitarTechniqueElement.createStableIdentity(this, technique)
@@ -132,6 +140,14 @@ export class TabNoteElement implements NoteElement {
     this.layout();
   }
 
+  public setNote(note: GuitarNote | null): void {
+    // TODO(rests): This relies on the caller rebuilding immediately after the
+    // backing note changes so model UUID registration is restored correctly.
+    // Revisit this when TabNoteElement is renamed/reworked as a slot element.
+    this.trackElement.unregisterElement(this);
+    this.note = note;
+  }
+
   public refreshOwnedNotationElements(): NotationElement[] {
     return [
       this,
@@ -159,7 +175,14 @@ export class TabNoteElement implements NoteElement {
   }
 
   public getStableIdentity(): string {
-    return TabNoteElement.createStableIdentity(this.beatElement, this.note);
+    return TabNoteElement.createStableIdentity(
+      this.beatElement,
+      this.stringNumber
+    );
+  }
+
+  public get hasBackingNote(): boolean {
+    return this.note !== null;
   }
 
   /** Main clickable-area bounding box */

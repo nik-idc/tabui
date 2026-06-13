@@ -1,10 +1,11 @@
-import { GuitarNote } from "@/notation/model";
-import { createSVGCircle, createSVGG, createSVGLine } from "@/shared";
-import { ElementRenderer } from "../element-renderer";
+import {
+  createSVGCircle,
+  createSVGG,
+  createSVGLine,
+  createSVGRect,
+} from "@/shared";
 import { BeatElement, TrackController } from "@/notation/controller";
 import { SVGNoteRenderer } from "./svg-note-renderer";
-import { SVGTabNoteRenderer } from "./svg-tab-note-renderer";
-import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 
@@ -30,6 +31,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
   private _dot2CircleSVG?: SVGCircleElement;
   /** Beat selection rectangle */
   private _beatSelectionSVG?: SVGRectElement;
+  private _restRectSVG?: SVGRectElement;
 
   /** Any events attached to the rendered group */
   private _attachedEvents: Map<string, EventListener> = new Map();
@@ -314,11 +316,53 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     }
   }
 
+  private renderRestRect(): void {
+    if (this._containerGroupSVG === undefined) {
+      throw Error("Tried to render rest rect when SVG group undefined");
+    }
+
+    const rect = this.beatElement.restRectBarLocal;
+    if (rect === null) {
+      this.unrenderRestRect();
+      return;
+    }
+
+    if (this._restRectSVG === undefined) {
+      this._restRectSVG = createSVGRect();
+      this._restRectSVG.setAttribute(
+        "id",
+        `beat-rest-${this.beatElement.beat.uuid}`
+      );
+      this._restRectSVG.setAttribute("fill", "var(--tu-notation-ink)");
+      this._restRectSVG.setAttribute("pointer-events", "none");
+      this._containerGroupSVG.appendChild(this._restRectSVG);
+    }
+
+    this._restRectSVG.setAttribute("x", `${rect.x}`);
+    this._restRectSVG.setAttribute("y", `${rect.y}`);
+    this._restRectSVG.setAttribute("width", `${rect.width}`);
+    this._restRectSVG.setAttribute("height", `${rect.height}`);
+  }
+
+  private unrenderRestRect(): void {
+    if (this._containerGroupSVG === undefined) {
+      throw Error("Tried to unrender rest rect when SVG group undefined");
+    }
+
+    if (this._restRectSVG === undefined) {
+      return;
+    }
+
+    this._containerGroupSVG.removeChild(this._restRectSVG);
+    this._restRectSVG = undefined;
+  }
+
   /**
    * Render a full beat
    */
   public render(): void {
     this.renderGroup();
+    this.renderRestRect();
   }
 
   /**
@@ -329,6 +373,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
+    this.unrenderRestRect();
     return;
 
     this.unrenderDurationStem();

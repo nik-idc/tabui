@@ -268,10 +268,10 @@ export class EditorSVGRenderer implements EditorRenderer {
       return element.beat.voiceBar.voiceNumber;
     }
     if (element instanceof TabNoteElement) {
-      return element.note.beat.voiceBar.voiceNumber;
+      return element.beatElement.beat.voiceBar.voiceNumber;
     }
     if (element instanceof GuitarTechniqueElement) {
-      return element.noteElement.note.beat.voiceBar.voiceNumber;
+      return element.noteElement.beatElement.beat.voiceBar.voiceNumber;
     }
 
     return null;
