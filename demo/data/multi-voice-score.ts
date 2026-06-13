@@ -278,6 +278,10 @@ function createBeat(voiceBar: VoiceBar<Guitar>, spec: BeatSpec): Beat<Guitar> {
     spec.tuplet ?? null
   );
 
+  if (beat.notes === null) {
+    throw Error("Demo fixture beat unexpectedly created as a rest");
+  }
+
   for (let i = 0; i < beat.notes.length; i++) {
     const fret = spec.frets[i] ?? null;
     beat.setNote(
@@ -297,18 +301,15 @@ function createBeat(voiceBar: VoiceBar<Guitar>, spec: BeatSpec): Beat<Guitar> {
 function fillVoiceBar(bar: Bar<Guitar>, spec: VoiceSpec): void {
   const voiceBar =
     bar.getVoiceBar(spec.voiceNumber) ?? bar.insertVoiceBar(spec.voiceNumber);
-  voiceBar.beats.splice(0, voiceBar.beats.length);
-  voiceBar.beats.push(
-    ...spec.beats.map((beatSpec) => createBeat(voiceBar, beatSpec))
+  voiceBar.replaceBeats(
+    spec.beats.map((beatSpec) => createBeat(voiceBar, beatSpec))
   );
-  voiceBar.rebuildTiming();
 }
 
 function fillBarVoices(bar: Bar<Guitar>, specs: VoiceSpec[]): void {
   for (const spec of specs) {
     fillVoiceBar(bar, spec);
   }
-  bar.staff.recalculateNonEmptyVoiceNumbers();
 }
 
 function createBaseScore(name: string): Score {

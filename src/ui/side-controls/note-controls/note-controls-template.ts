@@ -32,6 +32,7 @@ export class NoteControlsTemplate {
     createImage(), // Thirty-second
     createImage(), // Sixty-fourth
   ];
+  readonly restButton: HTMLButtonElement = createButton();
   readonly voiceButtons: VoiceButtons = [
     createButton(),
     createButton(),

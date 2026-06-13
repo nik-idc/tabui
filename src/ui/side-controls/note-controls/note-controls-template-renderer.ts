@@ -30,6 +30,7 @@ export class NoteControlsTemplateRenderer {
     this.template.container.classList.add(cssClass);
 
     this.template.container.append(...this.template.durationButtons);
+    this.template.container.append(this.template.restButton);
     this.template.container.append(...this.template.voiceButtons);
     this.template.container.append(
       this.template.dot1Button,
@@ -82,6 +83,17 @@ export class NoteControlsTemplateRenderer {
       } else {
         button.classList.remove(appliedCSSClass);
       }
+    }
+
+    const hasRest = selection.find((beat) => beat.isRest()) !== undefined;
+    this.template.restButton.textContent = "Rest";
+    this.template.restButton.title = "Set selected beat as rest";
+    this.template.restButton.dataset["beatAction"] = "rest";
+    this.template.restButton.classList.add("tu-rest-button");
+    if (hasRest) {
+      this.template.restButton.classList.add(appliedCSSClass);
+    } else {
+      this.template.restButton.classList.remove(appliedCSSClass);
     }
   }
 

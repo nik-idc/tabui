@@ -110,7 +110,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    */
   public onNoteMouseDown(event: MouseEvent, noteElement: NoteElement): void {
     if (
-      noteElement.note.beat.voiceBar.voiceNumber !==
+      noteElement.beatElement.beat.voiceBar.voiceNumber !==
       this.notationComponent.trackController.activeVoiceNumber
     ) {
       return;
@@ -128,7 +128,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   public onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void {
     const tc = this.notationComponent.trackController;
     const isActiveVoice =
-      noteElement.note.beat.voiceBar.voiceNumber === tc.activeVoiceNumber;
+      noteElement.beatElement.beat.voiceBar.voiceNumber ===
+      tc.activeVoiceNumber;
 
     if (this._selectionDragController.isSelectingBeats && isActiveVoice) {
       tc.selectBeat(noteElement.beatElement);
@@ -157,7 +158,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    */
   public onNoteMouseMove(event: MouseEvent, noteElement: NoteElement): void {
     if (
-      noteElement.note.beat.voiceBar.voiceNumber !==
+      noteElement.beatElement.beat.voiceBar.voiceNumber !==
       this.notationComponent.trackController.activeVoiceNumber
     ) {
       return;

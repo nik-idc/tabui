@@ -13,6 +13,7 @@ export interface NoteControlsCallbacks {
   onInsertBeatBeforeClicked(): void;
   onInsertBeatAfterClicked(): void;
   onRemoveBeatClicked(): void;
+  onRestClicked(): void;
   onVoiceClicked(voiceNumber: VoiceNumber): void;
   onTupletNormalClicked(normalCount: number): void;
   onTupletClicked(): void;
@@ -78,6 +79,11 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._renderFunc();
   }
 
+  onRestClicked(): void {
+    this._notationComponent.trackController.setSelectedBeatRest();
+    this._renderFunc();
+  }
+
   onVoiceClicked(voiceNumber: VoiceNumber): void {
     this._notationComponent.trackController.setActiveVoiceNumber(voiceNumber);
     this._renderFunc();
@@ -125,6 +131,11 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
 
     // Bind dot and tuplet buttons
     const otherConfigs: ListenerConfig[] = [
+      {
+        element: this._noteComponent.template.restButton,
+        event: "click",
+        handler: () => this.onRestClicked(),
+      },
       {
         element: this._noteComponent.template.dot1Button,
         event: "click",
