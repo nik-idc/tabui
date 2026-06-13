@@ -22,6 +22,12 @@ export type BeatArrayOperationOutput<
   beats: Beat<I>[];
 };
 
+export type BeatRemovalOutput<I extends MusicInstrument = MusicInstrument> = {
+  removed: BeatArrayOperationOutput<I>;
+  inserted: BeatArrayOperationOutput<I>[];
+  removedVoiceNumbers: VoiceNumber[] | null;
+};
+
 /**
  * Voice bar JSON format
  */
@@ -86,16 +92,6 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     this._actualTicks = 0;
 
     this.rebuildTiming();
-  }
-
-  private ensureSeedBeat(): Beat<I>[] {
-    if (this.beats.length !== 0) {
-      return [];
-    }
-
-    const seedBeat = this.createDefaultBeat(0);
-    this.beats.push(seedBeat);
-    return [seedBeat];
   }
 
   private resetBeamingMetadata(): void {
@@ -383,7 +379,6 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   }
 
   public rebuildTiming(): void {
-    this.ensureSeedBeat();
     this.recomputeTupletGroups();
     this.rebuildBeatTicks();
     this.recomputeBeaming();
@@ -436,16 +431,30 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
       throw Error(`${index} is invalid beat index`);
     }
 
+    const wasEmpty = this.isEmpty();
     const beatsCopies: Beat<I>[] = [];
     for (const beat of beats) {
       beatsCopies.push(beat.deepCopy());
     }
     this.beats.splice(index, 0, ...beatsCopies);
+    if (wasEmpty && !this.isEmpty()) {
+      this.bar.staff.recordVoiceBarAdded(this);
+    }
 
     this.rebuildTiming();
-    this.bar.staff.recalculateNonEmptyVoiceNumbers();
 
     return beatsCopies;
+  }
+
+  public replaceBeats(beats: Beat<I>[]): void {
+    const wasEmpty = this.isEmpty();
+    this.beats.splice(0, this.beats.length, ...beats);
+    if (wasEmpty && !this.isEmpty()) {
+      this.bar.staff.recordVoiceBarAdded(this);
+    } else if (!wasEmpty && this.isEmpty()) {
+      this.bar.staff.recordVoiceBarRemoved(this);
+    }
+    this.rebuildTiming();
   }
 
   /**
@@ -465,10 +474,20 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     return { index: index, beats: insertedBeats };
   }
 
+  // TODO(rests): Audit whether this is ok to stay as a private method
+  // or better to be extracted into a static method/separate function
   private createDefaultBeat(index: number): Beat<I> {
     const duration =
       index === 0 ? NoteDuration.Quarter : this.beats[index - 1].baseDuration;
-    return new Beat(this, this.trackContext, [], duration);
+    return new Beat(this, this.trackContext, null, duration);
+  }
+
+  public insertDefaultRest(): BeatArrayOperationOutput<I> {
+    const insertedBeat = this.insertBeats(0, [this.createDefaultBeat(0)]);
+    return {
+      index: 0,
+      beats: insertedBeat,
+    };
   }
 
   /**
@@ -496,27 +515,35 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
    * Remove beat from beats array
    * @param index Index of the beat
    */
-  public removeBeat(index: number): BeatArrayOperationOutput<I>[] {
+  public removeBeat(index: number): BeatRemovalOutput<I> {
     if (index < 0 || index >= this.beats.length) {
       throw Error(`${index} is invalid beat index`);
     }
 
-    const outputs: BeatArrayOperationOutput<I>[] = [];
-    outputs.push({ index: index, beats: this.beats.splice(index, 1) });
-    this.ensureSeedBeat();
+    const wasEmpty = this.isEmpty();
+    const removed = { index, beats: this.beats.splice(index, 1) };
+    if (!wasEmpty && this.isEmpty()) {
+      this.bar.staff.recordVoiceBarRemoved(this);
+    }
+
+    if (this.beats.length === 0) {
+      const { inserted, removedVoiceNumbers } =
+        this.bar.resolveEmptyVoiceBars();
+
+      this.rebuildTiming();
+      return { removed, inserted, removedVoiceNumbers };
+    }
 
     this.rebuildTiming();
-    this.bar.staff.recalculateNonEmptyVoiceNumbers();
-
-    return outputs;
+    return { removed, inserted: [], removedVoiceNumbers: null };
   }
 
   /**
    * Removes beats from bar
    * @param beats Beats to remove
    */
-  public removeBeats(beats: Beat<I>[]): BeatArrayOperationOutput<I>[][] {
-    const outputs: BeatArrayOperationOutput<I>[][] = [];
+  public removeBeats(beats: Beat<I>[]): BeatRemovalOutput<I>[] {
+    const outputs: BeatRemovalOutput<I>[] = [];
     for (const beat of beats) {
       const beatIndex = this.beats.indexOf(beat);
       outputs.push(this.removeBeat(beatIndex));
@@ -544,12 +571,9 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     return voiceBar;
   }
 
-  /**
-   * Checks if the bar is empty (actually or musically)
-   * @returns True if empty, false otherwise
-   */
+  /** Returns true only when this voice has no beats. */
   public isEmpty(): boolean {
-    return this.beats.length === 1 && this.beats[0].isEmpty();
+    return this.beats.length === 0;
   }
 
   /**
@@ -557,7 +581,7 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
    * Returns true if durations fit OR no beats in the bar
    */
   public checkDurationsFit(): boolean {
-    if (this.beats.length === 1 && this.beats[0].isEmpty()) {
+    if (this.isEmpty()) {
       return true;
     }
 

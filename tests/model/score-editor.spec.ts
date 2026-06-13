@@ -246,7 +246,7 @@ describe("ScoreEditor", () => {
     expect(bar.actualTicks).toBe((bar.tickResolution * 3) / 8);
   });
 
-  test("removeBeats preserves seed-beat invariant when all beats are removed", () => {
+  test("removeBeats can leave a true empty voice bar", () => {
     const { bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -254,8 +254,7 @@ describe("ScoreEditor", () => {
 
     ScoreEditor.removeBeats([...bar.beats]);
 
-    expect(bar.beats).toHaveLength(1);
-    expect(bar.beats[0].isEmpty()).toBe(true);
+    expect(bar.beats).toHaveLength(0);
   });
 
   test("setTechniqueNotes toggles a live technique on and off", () => {

@@ -6,7 +6,7 @@ import { ClefType } from "./clef-type";
 import { MasterBar } from "./master-bar";
 import { Track } from "./track";
 import { Beat } from "./beat";
-import { VoiceNumber } from "./voice-bar";
+import { VoiceBar, VoiceNumber } from "./voice-bar";
 
 /**
  * Staff JSON format
@@ -41,7 +41,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   /** Indicates whether to display classical music notation  */
   private _showClassicNotation: boolean;
 
-  private _nonEmptyVoiceNumbers: Set<VoiceNumber>;
+  private _voiceNumberBarCounts: Map<VoiceNumber, number>;
 
   /**
    * A staff in this context is a representation of an
@@ -67,9 +67,14 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     this._showTablature = showTablature;
     this._showClassicNotation = showClassicNotation;
 
-    this._nonEmptyVoiceNumbers = new Set();
+    this._voiceNumberBarCounts = new Map([
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [4, 0],
+    ]);
 
-    this.recalculateNonEmptyVoiceNumbers();
+    this.rebuildVoiceBarCounts();
   }
 
   /**
@@ -80,8 +85,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    */
   public insertReadyBar(index: number, bar: Bar<I>): Bar<I> {
     this._bars.splice(index, 0, bar);
-
-    this.recalculateNonEmptyVoiceNumbers();
+    this.recordBarAdded(bar);
 
     return bar;
   }
@@ -99,9 +103,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     voiceNumber: VoiceNumber = 1
   ): Bar<I> {
     const newBar = new Bar<I>(this, this.trackContext, masterBar);
-    this.insertVoiceBarsForNewBar(newBar, beats, voiceNumber);
     this._bars.splice(index, 0, newBar);
-    this.recalculateNonEmptyVoiceNumbers();
+    this.insertVoiceBarsForNewBar(newBar, beats, voiceNumber);
 
     return newBar;
   }
@@ -117,9 +120,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     voiceNumber: VoiceNumber = 1
   ): Bar<I> {
     const newBar = new Bar<I>(this, this.trackContext, masterBar);
-    this.insertVoiceBarsForNewBar(newBar, beats, voiceNumber);
     this._bars.push(newBar);
-    this.recalculateNonEmptyVoiceNumbers();
+    this.insertVoiceBarsForNewBar(newBar, beats, voiceNumber);
 
     return newBar;
   }
@@ -135,9 +137,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     voiceNumber: VoiceNumber = 1
   ): Bar<I> {
     const newBar = new Bar<I>(this, this.trackContext, masterBar);
-    this.insertVoiceBarsForNewBar(newBar, beats, voiceNumber);
     this._bars.unshift(newBar);
-    this.recalculateNonEmptyVoiceNumbers();
+    this.insertVoiceBarsForNewBar(newBar, beats, voiceNumber);
 
     return newBar;
   }
@@ -172,21 +173,63 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
 
     const removedBar = this._bars[index];
     this._bars.splice(index, 1);
-    this.recalculateNonEmptyVoiceNumbers();
+    this.recordBarRemoved(removedBar);
 
     return removedBar;
   }
 
-  public recalculateNonEmptyVoiceNumbers(): void {
-    this._nonEmptyVoiceNumbers.clear();
+  private adjustVoiceBarCount(voiceNumber: VoiceNumber, delta: number): void {
+    const currentCount = this._voiceNumberBarCounts.get(voiceNumber);
+    if (currentCount === undefined) {
+      throw Error(`Couldn't get voice ${voiceNumber} bar count`);
+    }
+
+    const nextCount = currentCount + delta;
+    if (nextCount < 0) {
+      throw Error(`Voice ${voiceNumber} bar count cannot be negative`);
+    }
+
+    this._voiceNumberBarCounts.set(voiceNumber, nextCount);
+  }
+
+  // TODO(voices): Revisit whether voice-count recording should stay here or be
+  // moved behind a higher-level Staff/Bar mutation boundary.
+  public recordVoiceBarAdded(voiceBar: VoiceBar<I>): void {
+    if (voiceBar.isEmpty()) {
+      return;
+    }
+
+    this.adjustVoiceBarCount(voiceBar.voiceNumber, 1);
+  }
+
+  public recordVoiceBarRemoved(voiceBar: VoiceBar<I>): void {
+    if (voiceBar.isEmpty()) {
+      return;
+    }
+
+    this.adjustVoiceBarCount(voiceBar.voiceNumber, -1);
+  }
+
+  private recordBarAdded(bar: Bar<I>): void {
+    for (const voiceBar of bar.voiceBarsAsArray) {
+      this.recordVoiceBarAdded(voiceBar);
+    }
+  }
+
+  private recordBarRemoved(bar: Bar<I>): void {
+    for (const voiceBar of bar.voiceBarsAsArray) {
+      this.recordVoiceBarRemoved(voiceBar);
+    }
+  }
+
+  private rebuildVoiceBarCounts(): void {
+    for (const voiceNumber of this._voiceNumberBarCounts.keys()) {
+      this._voiceNumberBarCounts.set(voiceNumber, 0);
+    }
 
     for (const bar of this._bars) {
-      for (const voiceBar of Object.values(bar.voiceBars)) {
-        if (voiceBar === null || voiceBar.isEmpty()) {
-          continue;
-        }
-
-        this._nonEmptyVoiceNumbers.add(voiceBar.voiceNumber);
+      for (const voiceBar of bar.voiceBarsAsArray) {
+        this.recordVoiceBarAdded(voiceBar);
       }
     }
   }
@@ -335,6 +378,9 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   public get nonEmptyVoiceNumbers(): VoiceNumber[] {
-    return [...this._nonEmptyVoiceNumbers].sort((a, b) => a - b);
+    return [...this._voiceNumberBarCounts.entries()]
+      .filter(([, count]) => count !== 0)
+      .map(([voiceNumber]) => voiceNumber)
+      .sort((a, b) => a - b);
   }
 }

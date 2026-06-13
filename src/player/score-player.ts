@@ -383,7 +383,9 @@ export class ScorePlayer {
 
     this.scheduleBeatChange(beat, startTime);
 
-    for (const note of beat.notes) {
+    // TODO(rests): this is the intended rest behavior, but playback should gain
+    // explicit rest coverage once default bars start using real rests.
+    for (const note of beat.notes ?? []) {
       this.scheduleNote(note, startTime, stopTime);
     }
 

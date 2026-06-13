@@ -1,7 +1,7 @@
 import { randomInt } from "@/shared";
 import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
-import { NoteJSON, Note, NoteValue } from "./note";
+import { NoteJSON, Note } from "./note";
 import { NoteDuration } from "./note-duration";
 import {
   TupletSettingsJSON,
@@ -52,7 +52,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   readonly trackContext: TrackContext<I>;
 
   /** Beat notes */
-  private _notes: Note<I>[] = [];
+  private _notes: Note<I>[] | null = null;
   /** * Base beat duration */
   private _baseDuration: NoteDuration;
   /** * Dots applied to the beat (0 = no dots, 1 = 1 dot, 2 = 2 dots) */
@@ -86,7 +86,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   constructor(
     voiceBar: VoiceBar<I>,
     trackContext: TrackContext<I>,
-    notes: Note<I>[] = [],
+    notes: Note<I>[] | null = [],
     baseDuration: NoteDuration = NoteDuration.Quarter,
     dots: BeatDots = 0,
     tupletSettings: TupletSettings | null = null,
@@ -110,13 +110,16 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._endTick = 0;
 
     const maxPolyphony = this.trackContext.instrument.maxPolyphony;
-    if (notes.length !== 0) {
+    if (notes === null) {
+      this._notes = null;
+    } else if (notes.length !== 0) {
       if (notes.length !== maxPolyphony) {
         throw Error("Beat notes count is different from max polyphony");
       }
 
       this._notes = notes;
     } else {
+      this._notes = [];
       for (let i = 0; i < maxPolyphony; i++) {
         const note = this.trackContext.instrument.createDefaultNote(
           this,
@@ -133,7 +136,27 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
    * @returns True if beat's notes have technique, false otherwise
    */
   public hasTechnique(type: TechniqueType): boolean {
-    return this._notes.some((n) => n.hasTechnique(type));
+    return this._notes?.some((n) => n.hasTechnique(type)) ?? false;
+  }
+
+  public makeRest(): void {
+    this._notes = null;
+  }
+
+  public makeBeatWithNotes(): void {
+    if (this._notes !== null) {
+      return;
+    }
+
+    this._notes = [];
+    const maxPolyphony = this.trackContext.instrument.maxPolyphony;
+    for (let i = 0; i < maxPolyphony; i++) {
+      const note = this.trackContext.instrument.createDefaultNote(
+        this,
+        i
+      ) as Note<I>;
+      this._notes.push(note);
+    }
   }
 
   /**
@@ -142,12 +165,15 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
    * @param note Note value to set
    */
   public setNote(index: number, note: Note<I>): NoteArrayOperationOutput<I> {
+    if (this._notes === null) {
+      throw Error("Cannot set a note on a rest beat");
+    }
+
     if (index < 0 || index >= this._notes.length) {
       throw Error(`${index} is invalid note index`);
     }
 
     this._notes[index] = note.deepCopy();
-    this.voiceBar.bar.staff.recalculateNonEmptyVoiceNumbers();
 
     return {
       index: index,
@@ -155,11 +181,12 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     };
   }
 
-  /**
-   * Returns true if no notes are present in the beat
-   */
-  public isEmpty(): boolean {
-    return !this._notes.some((gn) => gn.noteValue !== NoteValue.None);
+  public hasNotes(): boolean {
+    return this._notes !== null;
+  }
+
+  public isRest(): boolean {
+    return this._notes === null;
   }
 
   /**
@@ -171,11 +198,19 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   public compare(otherBeat: Beat<I>): boolean {
     if (
       this.trackContext !== otherBeat.trackContext ||
-      this._notes.length !== otherBeat.notes.length ||
+      this.hasNotes() !== otherBeat.hasNotes() ||
       this._baseDuration !== otherBeat._baseDuration ||
       this._dots !== otherBeat._dots ||
       !tupletSettingsEqual(this._tupletSettings, otherBeat._tupletSettings)
     ) {
+      return false;
+    }
+
+    if (this._notes === null || otherBeat.notes === null) {
+      return this._notes === null && otherBeat.notes === null;
+    }
+
+    if (this._notes.length !== otherBeat.notes.length) {
       return false;
     }
 
@@ -195,9 +230,12 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
    * @returns Beat's deep copy
    */
   public deepCopy(): Beat<I> {
-    const notes = [];
-    for (let i = 0; i < this._notes.length; i++) {
-      notes[i] = this._notes[i].deepCopy();
+    let notes: Note<I>[] | null = null;
+    if (this._notes !== null) {
+      notes = [];
+      for (let i = 0; i < this._notes.length; i++) {
+        notes[i] = this._notes[i].deepCopy();
+      }
     }
 
     const tupletSettingsCopy: TupletSettings | null =
@@ -228,7 +266,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
    */
   public toJSON(): BeatJSON {
     const notesJSON = [];
-    for (const note of this._notes) {
+    for (const note of this._notes ?? []) {
       notesJSON.push(note.toJSON());
     }
 
@@ -243,7 +281,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   }
 
   /** Notes getter */
-  public get notes(): Note<I>[] {
+  public get notes(): Note<I>[] | null {
     return this._notes;
   }
 

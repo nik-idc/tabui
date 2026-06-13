@@ -4,7 +4,12 @@ import { MasterBar } from "./master-bar";
 import { TrackContext } from "./track-context";
 import { Staff } from "./staff";
 import { Beat } from "./beat";
-import { VoiceBar, VoiceBarJSON, VoiceNumber } from "./voice-bar";
+import {
+  BeatArrayOperationOutput,
+  VoiceBar,
+  VoiceBarJSON,
+  VoiceNumber,
+} from "./voice-bar";
 
 export interface BarJSON {
   voiceBars: Record<VoiceNumber, VoiceBarJSON | null>;
@@ -16,6 +21,9 @@ export const VOICE_NUMBERS: VoiceNumber[] = [1, 2, 3, 4];
  * Class that represents a musical bar
  */
 export class Bar<I extends MusicInstrument = MusicInstrument> {
+  /** Fallback voice number where otherwise the entire bar will be empty */
+  private static readonly fallbackVoiceNumber: VoiceNumber = 1;
+
   /** Bar's unqiue identifier */
   readonly uuid: number;
   /** Staff in which the bar lives */
@@ -61,14 +69,64 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     beats: Beat<I>[] = []
   ): VoiceBar<I> {
     const voiceBar = new VoiceBar(this, this.trackContext, voiceNumber, beats);
+    const oldVoiceBar = this._voiceBars[voiceNumber];
+    if (oldVoiceBar !== null) {
+      this.staff.recordVoiceBarRemoved(oldVoiceBar);
+    }
     this._voiceBars[voiceNumber] = voiceBar;
-    this.staff.recalculateNonEmptyVoiceNumbers();
+    this.staff.recordVoiceBarAdded(voiceBar);
     return voiceBar;
   }
 
   public removeVoiceBar(voiceNumber: VoiceNumber): void {
+    const voiceBar = this._voiceBars[voiceNumber];
+    if (voiceBar !== null) {
+      this.staff.recordVoiceBarRemoved(voiceBar);
+    }
     this._voiceBars[voiceNumber] = null;
-    this.staff.recalculateNonEmptyVoiceNumbers();
+  }
+
+  public restoreVoiceBar(voiceBar: VoiceBar<I>): void {
+    const oldVoiceBar = this._voiceBars[voiceBar.voiceNumber];
+    if (oldVoiceBar !== null) {
+      this.staff.recordVoiceBarRemoved(oldVoiceBar);
+    }
+    this._voiceBars[voiceBar.voiceNumber] = voiceBar;
+    voiceBar.rebuildTiming();
+    this.staff.recordVoiceBarAdded(voiceBar);
+  }
+
+  public resolveEmptyVoiceBars(): {
+    inserted: BeatArrayOperationOutput<I>[];
+    removedVoiceNumbers: VoiceNumber[] | null;
+  } {
+    const inserted: BeatArrayOperationOutput<I>[] = [];
+    const removedVoiceNumbers: VoiceNumber[] = [];
+
+    const hasContent = this.voiceBarsAsArray.some((vb) => !vb.isEmpty());
+    const voiceNumberToKeep = hasContent ? null : Bar.fallbackVoiceNumber;
+
+    for (const voiceBar of this.voiceBarsAsArray) {
+      if (!voiceBar.isEmpty() || voiceBar.voiceNumber === voiceNumberToKeep) {
+        continue;
+      }
+
+      this.removeVoiceBar(voiceBar.voiceNumber);
+      removedVoiceNumbers.push(voiceBar.voiceNumber);
+    }
+
+    if (voiceNumberToKeep !== null) {
+      const keptVoiceBar =
+        this.getVoiceBar(voiceNumberToKeep) ??
+        this.insertVoiceBar(voiceNumberToKeep);
+      inserted.push(keptVoiceBar.insertDefaultRest());
+    }
+
+    return {
+      inserted,
+      removedVoiceNumbers:
+        removedVoiceNumbers.length === 0 ? null : removedVoiceNumbers,
+    };
   }
 
   public getVoiceBar(voiceNumber: VoiceNumber): VoiceBar<I> | null {
@@ -95,12 +153,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
   public deepCopy(): Bar<I> {
     const bar = new Bar<I>(this.staff, this.trackContext, this.masterBar);
     for (const voiceBar of this.voiceBarsAsArray) {
-      const copiedVoiceBar = bar.insertVoiceBar(voiceBar.voiceNumber, []);
-      copiedVoiceBar.beats.splice(0, copiedVoiceBar.beats.length);
-      for (const beat of voiceBar.beats) {
-        copiedVoiceBar.beats.push(beat.deepCopy());
-      }
-      copiedVoiceBar.rebuildTiming();
+      bar._voiceBars[voiceBar.voiceNumber] = voiceBar.deepCopy();
     }
     return bar;
   }

@@ -15,8 +15,14 @@ import { MusicInstrument } from "../instrument/instrument";
 import { GuitarNote } from "../guitar-note";
 import { Note, NoteValue } from "../note";
 import { NoteDuration } from "../note-duration";
-import { BeatArrayOperationOutput, VoiceBar } from "../voice-bar";
+import { BeatRemovalOutput, VoiceBar } from "../voice-bar";
 import { VoiceNumber } from "../voice-bar";
+
+export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
+  voiceBar: VoiceBar<I>;
+  index: number;
+  beat: Beat<I>;
+};
 
 /**
  * Static class containing complex editing methods,
@@ -57,6 +63,16 @@ export class ScoreEditor {
     sourceBeat: Beat<I>
   ): void {
     this.copyRhythmicData(targetBeat, sourceBeat);
+
+    if (sourceBeat.notes === null) {
+      targetBeat.makeRest();
+      return;
+    }
+
+    targetBeat.makeBeatWithNotes();
+    if (targetBeat.notes === null) {
+      throw Error("Failed to convert rest beat to note beat");
+    }
 
     const smallerNoteCount = Math.min(
       targetBeat.notes.length,
@@ -318,14 +334,109 @@ export class ScoreEditor {
    */
   public static removeBeats<I extends MusicInstrument>(
     beats: Beat<I>[]
-  ): BeatArrayOperationOutput<I>[][] {
-    const outputs: BeatArrayOperationOutput<I>[][] = [];
+  ): BeatRemovalOutput<I>[] {
+    const outputs: BeatRemovalOutput<I>[] = [];
     for (const beat of beats) {
       const beatIndex = beat.voiceBar.beats.indexOf(beat);
       outputs.push(beat.voiceBar.removeBeat(beatIndex));
     }
 
     return outputs;
+  }
+
+  /**
+   * Removes beats that were inserted only to preserve `VoiceBar` invariants
+   * during a removal operation. This intentionally bypasses `removeBeat()` so
+   * undo flows can replace a temporary default rest with restored content.
+   */
+  private static discardRemovalInsertions<I extends MusicInstrument>(
+    outputs: BeatRemovalOutput<I>[]
+  ): void {
+    for (let i = outputs.length - 1; i >= 0; i--) {
+      const output = outputs[i];
+      for (let j = output.inserted.length - 1; j >= 0; j--) {
+        const inserted = output.inserted[j];
+        const voiceBar = inserted.beats[0].voiceBar;
+        voiceBar.beats.splice(inserted.index, inserted.beats.length);
+        voiceBar.rebuildTiming();
+      }
+    }
+  }
+
+  /**
+   * Removes beats as a setup step before restoring other beats into the same
+   * location. Any default rest inserted by the removal invariant is discarded so
+   * the restore does not leave extra content behind.
+   */
+  public static prepareBeatRestore<I extends MusicInstrument>(
+    beats: Beat<I>[]
+  ): BeatRemovalOutput<I>[] {
+    const outputs = this.removeBeats(beats);
+    this.discardRemovalInsertions(outputs);
+
+    return outputs;
+  }
+
+  /**
+   * Undoes prior beat removals from recorded removal metadata. If a removal
+   * inserted a default rest to keep the voice bar non-empty, that temporary rest
+   * is removed before the original beats are restored.
+   */
+  public static undoBeatRemovals<I extends MusicInstrument>(
+    outputs: BeatRemovalOutput<I>[]
+  ): Beat<I>[] {
+    const restoredBeats: Beat<I>[] = [];
+    for (let i = outputs.length - 1; i >= 0; i--) {
+      const output = outputs[i];
+      this.discardRemovalInsertions([output]);
+      const voiceBar = output.removed.beats[0].voiceBar;
+      if (output.removedVoiceNumbers !== null) {
+        voiceBar.bar.restoreVoiceBar(voiceBar);
+      }
+      restoredBeats.unshift(
+        ...voiceBar.insertBeats(output.removed.index, output.removed.beats)
+      );
+    }
+
+    return restoredBeats;
+  }
+
+  /**
+   * Reapplies prior beat removals from recorded removal metadata. Returns fresh
+   * removal metadata because the redo may insert new default rests.
+   */
+  public static redoBeatRemovals<I extends MusicInstrument>(
+    outputs: BeatRemovalOutput<I>[]
+  ): BeatRemovalOutput<I>[] {
+    const reappliedOutputs: BeatRemovalOutput<I>[] = [];
+    for (const output of outputs) {
+      const voiceBar = output.removed.beats[0].voiceBar;
+      reappliedOutputs.push(voiceBar.removeBeat(output.removed.index));
+    }
+
+    return reappliedOutputs;
+  }
+
+  /**
+   * Restores beat snapshots grouped by their original voice bar and insertion
+   * index. Used by commands that snapshot beat content separately from a removal
+   * operation, such as replacement undo.
+   */
+  public static restoreBeats<I extends MusicInstrument>(
+    snapshots: BeatRestoreSnapshot<I>[]
+  ): Beat<I>[] {
+    const restoredBeats: Beat<I>[] = [];
+    const voiceBars = new Set(snapshots.map((snapshot) => snapshot.voiceBar));
+    for (const voiceBar of voiceBars) {
+      const barSnapshots = snapshots
+        .filter((snapshot) => snapshot.voiceBar === voiceBar)
+        .sort((a, b) => a.index - b.index);
+      const index = Math.min(...barSnapshots.map((snapshot) => snapshot.index));
+      const beats = barSnapshots.map((snapshot) => snapshot.beat);
+      restoredBeats.push(...voiceBar.insertBeats(index, beats));
+    }
+
+    return restoredBeats;
   }
 
   public static removeBars(
@@ -349,16 +460,10 @@ export class ScoreEditor {
   public static insertBeats<I extends MusicInstrument>(
     voiceBar: VoiceBar<I>,
     beatIndex: number,
-    beats: Beat<I>[],
-    replaceSeedBeat: boolean = false
+    beats: Beat<I>[]
   ): Beat<I>[] {
     if (beats.length === 0) {
       return [];
-    }
-
-    if (replaceSeedBeat && voiceBar.isEmpty()) {
-      voiceBar.beats.splice(0, 1);
-      beatIndex = 0;
     }
 
     const insertedBeats = beats.map((beat) =>
@@ -388,21 +493,12 @@ export class ScoreEditor {
     const startBeatIndex = oldBeats[0].voiceBar.beats.indexOf(oldBeats[0]);
     const startVoiceBar = oldBeats[0].voiceBar;
     const affectedVoiceBars = new Set(oldBeats.map((beat) => beat.voiceBar));
-    const replaceSeedBeat =
-      startBeatIndex === 0 &&
-      oldBeats.filter((b) => b.voiceBar === startVoiceBar).length ===
-        startVoiceBar.beats.length;
 
     this.removeBeats(oldBeats);
     for (const voiceBar of affectedVoiceBars) {
       voiceBar.rebuildTiming();
     }
 
-    return this.insertBeats(
-      startVoiceBar,
-      startBeatIndex,
-      newBeats,
-      replaceSeedBeat
-    );
+    return this.insertBeats(startVoiceBar, startBeatIndex, newBeats);
   }
 }
