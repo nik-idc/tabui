@@ -78,6 +78,10 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     return voiceBar;
   }
 
+  public ensureVoiceBar(voiceNumber: VoiceNumber): VoiceBar<I> {
+    return this.getVoiceBar(voiceNumber) ?? this.insertVoiceBar(voiceNumber);
+  }
+
   public removeVoiceBar(voiceNumber: VoiceNumber): void {
     const voiceBar = this._voiceBars[voiceNumber];
     if (voiceBar !== null) {

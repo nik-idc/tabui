@@ -119,7 +119,8 @@ export class SelectedNote {
 
     // Move to the left bar
     this._barIndex--;
-    this._beatIndex = this.voiceBar.beats.length - 1;
+    this._beatIndex =
+      (this.bar.getVoiceBar(this._voiceNumber)?.beats ?? [0]).length - 1;
   }
 
   /**
@@ -155,13 +156,6 @@ export class SelectedNote {
     // Can't move to next beat OR add more beats, move to the next bar
     if (this._barIndex !== this.staff.bars.length - 1) {
       this._barIndex++;
-      this.bar.getVoiceBar(this._voiceNumber) ??
-        // WARNING: May insert voice bar but returns that nothing happened.
-        // Leads to a bug where TrackElement isn't update accordingly, leading
-        // to missing VoiceBarElement and all its descendants.
-        // Most likely an error due to the currently clanky implementation
-        // of ghost beats & rests (or lack there of).
-        this.bar.insertVoiceBar(this._voiceNumber);
       this._beatIndex = 0;
 
       this._lastMoveRightResult = MoveRightResult.Nothing;
@@ -248,6 +242,9 @@ export class SelectedNote {
   public get voiceBar(): VoiceBar {
     const voiceBar = this.bar.getVoiceBar(this._voiceNumber);
     if (voiceBar === null) {
+      // TODO(selection): SelectedNote is becoming a cursor. Move model access
+      // resolution toward SelectionManager/TrackControllerEditor so cursor
+      // state can temporarily point at materializable slots without throwing.
       throw Error("Selected note points to an empty voice slot");
     }
 

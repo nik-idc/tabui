@@ -180,15 +180,51 @@ export class TrackControllerEditor {
     }
   }
 
+  private ensureVoiceBarElement(bar: Bar, voiceNumber: VoiceNumber): boolean {
+    const voiceBarInserted = bar.getVoiceBar(voiceNumber) === null;
+    bar.ensureVoiceBar(voiceNumber);
+    if (!voiceBarInserted) {
+      return false;
+    }
+
+    this._trackElement.updateVertical({
+      updateType: "Vertical",
+      affectedModelUUIDs: [bar.uuid],
+    });
+    return true;
+  }
+
+  /**
+   * Moves selected note left
+   */
+  private moveSelectedNoteLeft(): void {
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote === undefined) {
+      throw Error("Can't move left, selected note is undefined");
+    }
+
+    this._selectionManager.moveSelectedNoteLeft();
+    this.ensureVoiceBarElement(
+      selectedNote.bar,
+      this._selectionManager.activeVoiceNumber
+    );
+  }
+
   /**
    * Moves selected note right
    */
   private moveSelectedNoteRight(): void {
-    if (this._selectionManager.selectedNote === undefined) {
+    const selectedNote = this._selectionManager.selectedNote;
+    if (selectedNote === undefined) {
       throw Error("Can't move right, selected note is undefined");
     }
 
-    this.handleMoveRight(this._selectionManager.moveSelectedNoteRight());
+    const moveRightResult = this._selectionManager.moveSelectedNoteRight();
+    this.handleMoveRight(moveRightResult);
+    this.ensureVoiceBarElement(
+      selectedNote.bar,
+      this._selectionManager.activeVoiceNumber
+    );
   }
 
   /**
@@ -198,7 +234,7 @@ export class TrackControllerEditor {
   public moveSelectedNote(direction: SelectedMoveDirection): void {
     switch (direction) {
       case SelectedMoveDirection.Left:
-        this._selectionManager.moveSelectedNoteLeft();
+        this.moveSelectedNoteLeft();
         break;
       case SelectedMoveDirection.Right:
         this.moveSelectedNoteRight();

@@ -4,6 +4,7 @@ import { BarElement } from "../../src/notation/controller/element/bar/bar-elemen
 import {
   BendTechniqueOptions,
   BendType,
+  DEFAULT_MASTER_BAR,
   GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
@@ -119,6 +120,71 @@ describe("TrackController", () => {
       updateType: "Vertical",
       affectedModelUUIDs: [bar.uuid],
     });
+  });
+
+  test("moving right into a missing active voice bar updates elements", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track);
+    controller.setActiveVoiceNumber(2);
+    const secondBar = track.staves[0].bars[1];
+    const updateVerticalSpy = jest.spyOn(
+      controller.trackElement,
+      "updateVertical"
+    );
+
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+
+    expect(secondBar.getVoiceBar(2)).not.toBeNull();
+    expect(controller.selectedNote?.bar).toBe(secondBar);
+    expect(updateVerticalSpy).toHaveBeenCalledWith({
+      updateType: "Vertical",
+      affectedModelUUIDs: [secondBar.uuid],
+    });
+    expect(
+      controller.trackElement.findCorrespondingBeatElement(
+        controller.selectedNote!.beat
+      )
+    ).toBeDefined();
+  });
+
+  test("moving left into a missing active voice bar updates elements", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const secondBar = track.staves[0].bars[1];
+    const secondVoiceBar = secondBar.insertVoiceBar(2);
+    const controller = new TrackController(track);
+    controller.trackElement.update();
+    const secondVoiceBeatElement =
+      controller.trackElement.findCorrespondingBeatElement(
+        secondVoiceBar.beats[0]
+      );
+    if (secondVoiceBeatElement === undefined) {
+      throw Error("Second voice beat element not found");
+    }
+    controller.selectNoteElement(secondVoiceBeatElement.noteElements[0]);
+    const updateVerticalSpy = jest.spyOn(
+      controller.trackElement,
+      "updateVertical"
+    );
+    const firstBar = track.staves[0].bars[0];
+
+    controller.moveSelectedNote(SelectedMoveDirection.Left);
+
+    expect(firstBar.getVoiceBar(2)).not.toBeNull();
+    expect(controller.selectedNote?.bar).toBe(firstBar);
+    expect(updateVerticalSpy).toHaveBeenCalledWith({
+      updateType: "Vertical",
+      affectedModelUUIDs: [firstBar.uuid],
+    });
+    expect(
+      controller.trackElement.findCorrespondingBeatElement(
+        controller.selectedNote!.beat
+      )
+    ).toBeDefined();
   });
 
   test("redo on TrackController redoes the previously undone command", () => {
