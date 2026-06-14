@@ -25,6 +25,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   private _noteComponent: NoteControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _renderActiveVoiceFunc: () => void;
   private _captureKeyboard: () => void;
   private _freeKeyboard: () => void;
 
@@ -36,12 +37,14 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     noteComponent: NoteControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
+    renderActiveVoiceFunc: () => void,
     captureKeyboard: () => void,
     freeKeyboard: () => void
   ) {
     this._noteComponent = noteComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._renderActiveVoiceFunc = renderActiveVoiceFunc;
     this._captureKeyboard = captureKeyboard;
     this._freeKeyboard = freeKeyboard;
 
@@ -86,7 +89,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
 
   onVoiceClicked(voiceNumber: VoiceNumber): void {
     this._notationComponent.trackController.setActiveVoiceNumber(voiceNumber);
-    this._renderFunc();
+    this._renderActiveVoiceFunc();
   }
 
   onTupletNormalClicked(normalCount: number): void {

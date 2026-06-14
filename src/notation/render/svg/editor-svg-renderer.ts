@@ -11,7 +11,10 @@ import { createSVG, createSVGG, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
 import { ElementRenderer } from "../element-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
-import { ELEMENT_ORDER } from "@/notation/controller/element/track-element";
+import {
+  ELEMENT_ORDER,
+  ElementDiff,
+} from "@/notation/controller/element/track-element";
 import { createRendererForElement } from "./support/renderer-factory";
 import { SelectionOverlayRenderer } from "./selection-overlay-renderer";
 import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
@@ -94,6 +97,9 @@ export class EditorSVGRenderer implements EditorRenderer {
   private _rendererRegistry: Map<string, ElementRenderer>;
   /** Renderer UUIDs currently mounted in layer groups. */
   private _mountedRendererUUIDs: Set<string>;
+  private _activeRenderers: ElementRenderer[];
+  private _lastRenderedViewportStart?: number;
+  private _lastRenderedViewportEnd?: number;
   /** Viewport scroll listener. */
   private _viewportScrollListener?: EventListener;
   /** Viewport rectangle inside notation scroll container. */
@@ -137,6 +143,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._trackLineGroups = new Map();
     this._rendererRegistry = new Map();
     this._mountedRendererUUIDs = new Set();
+    this._activeRenderers = [];
     this._viewportRect = new Rect();
     this.syncViewportState();
 
@@ -229,11 +236,14 @@ export class EditorSVGRenderer implements EditorRenderer {
       group.setAttribute("data-voice", `${voiceNumber}`);
       group.setAttribute("data-voice-kind", voiceKind);
       groups.set(voiceNumber, group);
+      this.syncBarVoiceGroupOrder(barGroup);
     }
 
     const isActive = voiceNumber === this.trackController.activeVoiceNumber;
-    group.setAttribute("opacity", isActive ? "1" : "0.5");
-    this.syncBarVoiceGroupOrder(barGroup);
+    const opacity = isActive ? "1" : "0.5";
+    if (group.getAttribute("opacity") !== opacity) {
+      group.setAttribute("opacity", opacity);
+    }
 
     return group;
   }
@@ -596,25 +606,30 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
   }
 
-  private renderReconciled(
-    visibleElements: NotationElement[],
-    forceRender: boolean = false
-  ): ElementRenderer[] {
-    const diff = this.trackController.trackElement.consumeDiff();
-
-    const visibleStableIdentities = new Set(
+  private createVisibleStableIdentitySet(
+    visibleElements: NotationElement[]
+  ): Set<string> {
+    return new Set(
       visibleElements.map((element) => element.getStableIdentity())
     );
+  }
 
-    // Step 1: Unrender removed elements
+  private removeDiffRenderers(diff: ElementDiff): void {
     for (const uuidSet of diff.removed.values()) {
       this.removeByDiff(uuidSet);
     }
+  }
 
-    // Step 2: Detach invisible renderers but keep them cached for reuse.
+  private cullInvisibleRenderersForVisibleSet(
+    visibleStableIdentities: Set<string>
+  ): void {
     this.cullInvisibleRenderers(visibleStableIdentities);
+  }
 
-    // Step 3: Re-render visible elements when needed (new, updated, remounted).
+  private getUpdatedVisibleIdentities(
+    diff: ElementDiff,
+    visibleStableIdentities: Set<string>
+  ): Set<string> {
     const updatedVisibleUUIDs = new Set<string>();
     for (const updatedIdentities of diff.updated.values()) {
       for (const stableIdentity of updatedIdentities) {
@@ -624,38 +639,65 @@ export class EditorSVGRenderer implements EditorRenderer {
       }
     }
 
+    return updatedVisibleUUIDs;
+  }
+
+  private createRendererForVisibleElement(
+    stableIdentity: string,
+    element: NotationElement
+  ): { renderer: ElementRenderer | undefined; isNewRenderer: boolean } {
+    const existingRenderer = this._rendererRegistry.get(stableIdentity);
+    if (existingRenderer !== undefined) {
+      return { renderer: existingRenderer, isNewRenderer: false };
+    }
+
+    const renderer = createRendererForElement(
+      this.trackController,
+      element,
+      this.assetsPath
+    );
+    if (renderer === undefined) {
+      return { renderer: undefined, isNewRenderer: false };
+    }
+
+    this._rendererRegistry.set(stableIdentity, renderer);
+    return { renderer, isNewRenderer: true };
+  }
+
+  private reconcileVisibleRenderers(
+    visibleElements: NotationElement[],
+    updatedVisibleUUIDs: Set<string>,
+    forceRender: boolean
+  ): ElementRenderer[] {
     const activeRenderers: ElementRenderer[] = [];
+
     for (const element of visibleElements) {
       const stableIdentity = element.getStableIdentity();
-      let renderer = this._rendererRegistry.get(stableIdentity);
-      let isNewRenderer = false;
+      const { renderer, isNewRenderer } = this.createRendererForVisibleElement(
+        stableIdentity,
+        element
+      );
       if (renderer === undefined) {
-        const newRenderer = createRendererForElement(
-          this.trackController,
-          element,
-          this.assetsPath
-        );
-        if (newRenderer === undefined) {
-          continue;
-        }
-
-        renderer = newRenderer;
-        this._rendererRegistry.set(stableIdentity, renderer);
-        isNewRenderer = true;
+        continue;
       }
 
       const wasMounted = this._mountedRendererUUIDs.has(stableIdentity);
-      this.updateRendererElement(renderer, element);
-
-      this.ensureRendererMounted(renderer, element);
-      this._mountedRendererUUIDs.add(stableIdentity);
-
-      if (
+      const shouldRender =
         forceRender ||
         isNewRenderer ||
         updatedVisibleUUIDs.has(stableIdentity) ||
-        !wasMounted
-      ) {
+        !wasMounted;
+
+      if (wasMounted && !shouldRender) {
+        activeRenderers.push(renderer);
+        continue;
+      }
+
+      this.updateRendererElement(renderer, element);
+      this.ensureRendererMounted(renderer, element);
+      this._mountedRendererUUIDs.add(stableIdentity);
+
+      if (shouldRender) {
         renderer.render();
       }
 
@@ -663,6 +705,49 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     return activeRenderers;
+  }
+
+  private renderReconciled(
+    visibleElements: NotationElement[],
+    forceRender: boolean = false
+  ): ElementRenderer[] {
+    const diff = this.trackController.trackElement.consumeDiff();
+    const visibleStableIdentities =
+      this.createVisibleStableIdentitySet(visibleElements);
+
+    this.removeDiffRenderers(diff);
+    this.cullInvisibleRenderersForVisibleSet(visibleStableIdentities);
+    const updatedVisibleUUIDs = this.getUpdatedVisibleIdentities(
+      diff,
+      visibleStableIdentities
+    );
+
+    return this.reconcileVisibleRenderers(
+      visibleElements,
+      updatedVisibleUUIDs,
+      forceRender
+    );
+  }
+
+  private hasPendingElementDiff(): boolean {
+    const diff = this.trackController.trackElement.elementDiff;
+    for (const diffPart of [diff.added, diff.updated, diff.removed]) {
+      for (const identities of diffPart.values()) {
+        if (identities.size !== 0) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private canReuseViewportRender(start: number, end: number): boolean {
+    return (
+      this._lastRenderedViewportStart === start &&
+      this._lastRenderedViewportEnd === end &&
+      !this.hasPendingElementDiff()
+    );
   }
 
   /**
@@ -714,8 +799,15 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.syncViewportState();
 
     const { start, end } = this.getLinesInViewport();
+    if (this.canReuseViewportRender(start, end)) {
+      return this._activeRenderers;
+    }
+
     const visibleElements = this.reconcileLinesViewport(start, end);
     const activeRenderers = this.renderReconciled(visibleElements);
+    this._lastRenderedViewportStart = start;
+    this._lastRenderedViewportEnd = end;
+    this._activeRenderers = activeRenderers;
 
     this._beatInteractionRenderer.render(visibleElements);
     this._playerOverlayRenderer.render();
@@ -735,6 +827,9 @@ export class EditorSVGRenderer implements EditorRenderer {
     // visible set is a temporary bridge so opacity and hitboxes update after a
     // selection-only voice switch without pretending the model changed.
     const activeRenderers = this.renderReconciled(visibleElements, true);
+    this._lastRenderedViewportStart = start;
+    this._lastRenderedViewportEnd = end;
+    this._activeRenderers = activeRenderers;
 
     this._beatInteractionRenderer.render(visibleElements);
     this._playerOverlayRenderer.render();
@@ -760,6 +855,9 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     this._rendererRegistry.clear();
     this._mountedRendererUUIDs.clear();
+    this._activeRenderers = [];
+    this._lastRenderedViewportStart = undefined;
+    this._lastRenderedViewportEnd = undefined;
     this._trackLineGroups.clear();
     this._playerOverlayRenderer.unrender();
     this._selectionOverlayRenderer.unrender();
