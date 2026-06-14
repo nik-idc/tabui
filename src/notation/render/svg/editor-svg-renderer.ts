@@ -681,7 +681,7 @@ export class EditorSVGRenderer implements EditorRenderer {
         continue;
       }
 
-      const wasMounted = this._mountedRendererUUIDs.has(stableIdentity);
+      const wasMounted = this.isRendererMounted(stableIdentity, renderer);
       const shouldRender =
         forceRender ||
         isNewRenderer ||
@@ -705,6 +705,23 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     return activeRenderers;
+  }
+
+  private isRendererMounted(
+    stableIdentity: string,
+    renderer: ElementRenderer
+  ): boolean {
+    if (!this._mountedRendererUUIDs.has(stableIdentity)) {
+      return false;
+    }
+
+    const group = renderer.ensureContainerGroup();
+    if (this.rootSVGElement.contains(group)) {
+      return true;
+    }
+
+    this._mountedRendererUUIDs.delete(stableIdentity);
+    return false;
   }
 
   private renderReconciled(
@@ -800,6 +817,8 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     const { start, end } = this.getLinesInViewport();
     if (this.canReuseViewportRender(start, end)) {
+      this._playerOverlayRenderer.render();
+      this._selectionOverlayRenderer.render();
       return this._activeRenderers;
     }
 
