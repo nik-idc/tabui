@@ -100,9 +100,14 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const tc = this.notationComponent.trackController;
 
     this.notationComponent.renderer.hideSelectionPreview();
+    const prevActiveVoiceNumber = tc.activeVoiceNumber;
     tc.selectNoteElement(noteElement);
 
-    this.renderFunc(RenderType.NoteSelection);
+    this.renderFunc(
+      prevActiveVoiceNumber === tc.activeVoiceNumber
+        ? RenderType.NoteSelection
+        : RenderType.ActiveVoiceSelection
+    );
   }
 
   /**

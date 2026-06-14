@@ -37,7 +37,9 @@ function createRendererBackedNoteRenderer(noteElement: any) {
 }
 
 function createHarness() {
+  let activeVoiceNumber = 1;
   const beatElement = {
+    beat: { voiceBar: { voiceNumber: 1 } },
     boundingBox: { width: 40 },
     rect: { width: 40 },
   } as any;
@@ -54,6 +56,12 @@ function createHarness() {
       selectNoteElement: jest.fn(),
       selectBeat: jest.fn(),
       clearSelection: jest.fn(),
+      get activeVoiceNumber() {
+        return activeVoiceNumber;
+      },
+      setActiveVoiceNumber(voiceNumber: number) {
+        activeVoiceNumber = voiceNumber;
+      },
     },
   } as any;
   const renderFunc = jest.fn();
@@ -70,6 +78,9 @@ function createHarness() {
     renderer,
     notationComponent,
     renderFunc,
+    setActiveVoiceNumber: (voiceNumber: number) => {
+      activeVoiceNumber = voiceNumber;
+    },
   };
 }
 
@@ -105,6 +116,24 @@ describe("EditorMouseDefCallbacks", () => {
 
     callbacks.onNoteMouseLeave(createMouseEvent(10, 10), noteElement);
     expect(renderer.hideSelectionPreview).toHaveBeenCalledTimes(2);
+  });
+
+  test("note click refreshes visible notation when active voice changes", () => {
+    const {
+      callbacks,
+      noteElement,
+      notationComponent,
+      renderFunc,
+      setActiveVoiceNumber,
+    } = createHarness();
+    setActiveVoiceNumber(2);
+    notationComponent.trackController.selectNoteElement.mockImplementation(() =>
+      setActiveVoiceNumber(1)
+    );
+
+    callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
+
+    expect(renderFunc).toHaveBeenCalledWith(RenderType.ActiveVoiceSelection);
   });
 
   test("drag-selection behavior routes through the drag controller state machine", () => {
