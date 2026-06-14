@@ -163,6 +163,36 @@ describe("TrackElement rhythm", () => {
     }
   });
 
+  test("rhythm row height depends on voices present on the rendered line", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 40; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    expect(trackElement.trackLineElements.length).toBeGreaterThan(1);
+
+    const firstLineHeightBefore =
+      trackElement.trackLineElements[0].boundingBox.height;
+    const secondLineHeightBefore =
+      trackElement.trackLineElements[1].boundingBox.height;
+    const secondLineFirstBarIndex =
+      trackElement.trackLineElements[1].trackLineBars[0].masterBarIndex;
+    const secondLineFirstBar = track.staves[0].bars[secondLineFirstBarIndex];
+
+    secondLineFirstBar.insertVoiceBar(2);
+    trackElement.updateFull();
+
+    expect(trackElement.trackLineElements[0].boundingBox.height).toBeCloseTo(
+      firstLineHeightBefore
+    );
+    expect(
+      trackElement.trackLineElements[1].boundingBox.height
+    ).toBeGreaterThan(secondLineHeightBefore);
+  });
+
   test("invalid beam group ids do not suppress standalone duration flags", () => {
     const { track, bar } = createBarWithBeats([
       { baseDuration: NoteDuration.ThirtySecond },

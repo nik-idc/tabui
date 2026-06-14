@@ -158,7 +158,8 @@ export class BarElement implements NotationElement {
   private buildVoiceBarRhythmElements(): void {
     this._voiceBarRhythmElements = [];
 
-    const nonEmptyVoices = this.bar.staff.nonEmptyVoiceNumbers;
+    const nonEmptyVoices =
+      this.notationStyleLineElement.staffLineElement.lineNonEmptyVoiceNumbers;
     for (const voiceNumber of nonEmptyVoices) {
       const voiceBarElement = this._voiceBarElements.find(
         (e) => e.voiceBar.voiceNumber === voiceNumber

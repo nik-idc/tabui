@@ -1,4 +1,4 @@
-import { Bar, Staff } from "@/notation/model";
+import { Bar, Staff, VoiceNumber } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
@@ -56,6 +56,8 @@ export class StaffLineElement implements NotationElement {
   >;
   /** Data necessary to build a staff line */
   private _staffLineData: StaffLineData;
+  /** Non-empty voices present anywhere on this staff line. */
+  private _lineNonEmptyVoiceNumbers: VoiceNumber[];
 
   /** Line encapsulating rectangle */
   private _boundingBox: Rect;
@@ -76,6 +78,7 @@ export class StaffLineElement implements NotationElement {
     this.trackLineElement = trackLineElement;
     this.trackElement = this.trackLineElement.trackElement;
     this._staffLineData = staffLineData;
+    this._lineNonEmptyVoiceNumbers = [];
 
     this._notationStyleLineElements = {
       [NotationStyle.Classic]: null,
@@ -87,6 +90,19 @@ export class StaffLineElement implements NotationElement {
     this.build();
 
     this.trackElement.registerElement(this);
+  }
+
+  private computeLineNonEmptyVoiceNumbers(): VoiceNumber[] {
+    const voiceNumbers = new Set<VoiceNumber>();
+    for (const { bar } of this._staffLineData) {
+      for (const voiceBar of bar.voiceBarsAsArray) {
+        if (!voiceBar.isEmpty()) {
+          voiceNumbers.add(voiceBar.voiceNumber);
+        }
+      }
+    }
+
+    return [...voiceNumbers].sort((a, b) => a - b);
   }
 
   private getStyleLineData(notationStyle: NotationStyle): StaffLineData {
@@ -102,6 +118,7 @@ export class StaffLineElement implements NotationElement {
    */
   public build(): void {
     this.trackElement.registerElement(this);
+    this._lineNonEmptyVoiceNumbers = this.computeLineNonEmptyVoiceNumbers();
 
     if (this.staff.showClassicNotation) {
       const styleLine = new NotationStyleLineElement(
@@ -128,6 +145,7 @@ export class StaffLineElement implements NotationElement {
 
   public setStaffLineData(staffLineData: StaffLineData): void {
     this._staffLineData = staffLineData;
+    this._lineNonEmptyVoiceNumbers = this.computeLineNonEmptyVoiceNumbers();
   }
 
   /**
@@ -241,6 +259,10 @@ export class StaffLineElement implements NotationElement {
 
   public get staffLineData(): StaffLineData {
     return this._staffLineData;
+  }
+
+  public get lineNonEmptyVoiceNumbers(): VoiceNumber[] {
+    return this._lineNonEmptyVoiceNumbers;
   }
 
   /** Line layout bounding box getter */

@@ -409,6 +409,10 @@ export class TrackElement {
     this._elementDiff = createEmptyDiff();
 
     const affectedLines = this.getAffectedTrackLines(request);
+    if (affectedLines.length === 0) {
+      return;
+    }
+
     const affectedSnapshot = snapshotOwnedElements(affectedLines);
 
     this.applyVerticalUpdate(affectedLines);

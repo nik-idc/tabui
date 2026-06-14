@@ -562,15 +562,26 @@ export class TrackControllerEditor {
   public setActiveVoiceNumber(voiceNumber: VoiceNumber): void {
     const noteIndex = this.getSelectedNoteIndex();
     const selectedBar = this.getSelectedBar();
-    const voiceBar =
-      selectedBar.getVoiceBar(voiceNumber) ??
-      selectedBar.insertVoiceBar(voiceNumber);
+    let voiceBar = selectedBar.getVoiceBar(voiceNumber);
+    const voiceBarInserted = voiceBar === null;
+    if (voiceBar === null) {
+      voiceBar = selectedBar.insertVoiceBar(voiceNumber);
+    }
+
     const targetBeat = voiceBar.beats[0];
 
     this._selectionManager.activeVoiceNumber = voiceNumber;
     this._selectionManager.clearSelection();
     this.selectBeatModel(targetBeat, noteIndex);
-    this._trackElement.updateFull();
+
+    if (!voiceBarInserted) {
+      return;
+    }
+
+    this._trackElement.updateVertical({
+      updateType: "Vertical",
+      affectedModelUUIDs: [selectedBar.uuid],
+    });
   }
 
   private selectInsertedBeat(

@@ -85,6 +85,42 @@ describe("TrackController", () => {
     expect(controller.selectedNote?.beatIndex).toBe(1);
   });
 
+  test("switching to an existing voice does not update elements", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track);
+    const updateFullSpy = jest.spyOn(controller.trackElement, "updateFull");
+    const updateVerticalSpy = jest.spyOn(
+      controller.trackElement,
+      "updateVertical"
+    );
+
+    controller.setActiveVoiceNumber(1);
+
+    expect(controller.activeVoiceNumber).toBe(1);
+    expect(updateFullSpy).not.toHaveBeenCalled();
+    expect(updateVerticalSpy).not.toHaveBeenCalled();
+  });
+
+  test("switching to a new voice updates only the affected line vertically", () => {
+    const { track, bar } = createScoreGraph();
+    const controller = new TrackController(track);
+    const updateFullSpy = jest.spyOn(controller.trackElement, "updateFull");
+    const updateVerticalSpy = jest.spyOn(
+      controller.trackElement,
+      "updateVertical"
+    );
+
+    controller.setActiveVoiceNumber(2);
+
+    expect(controller.activeVoiceNumber).toBe(2);
+    expect(updateFullSpy).not.toHaveBeenCalled();
+    expect(updateVerticalSpy).toHaveBeenCalledTimes(1);
+    expect(updateVerticalSpy).toHaveBeenCalledWith({
+      updateType: "Vertical",
+      affectedModelUUIDs: [bar.uuid],
+    });
+  });
+
   test("redo on TrackController redoes the previously undone command", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track);
