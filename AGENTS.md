@@ -33,6 +33,8 @@ The editor supports fixture selection through the `fixture` query parameter:
 
 - `fixture=empty` -> empty score fixture
 - `fixture=default` (or missing) -> default/full fixture
+- `fixture=multi_voice_single_staff` -> multi-voice single-staff fixture
+- `fixture=multi_voice_two_staff` -> multi-voice two-staff fixture
 - `fixture=selection_perf` -> larger selection/performance fixture
 
 ## TypeScript and Imports
@@ -66,9 +68,10 @@ The editor supports fixture selection through the `fixture` query parameter:
   - `Track[]`
     - `Staff[]`
       - `Bar[]`
-        - `Beat[]`
-          - `Note[]`
-            - `Technique[]`
+        - `VoiceBar[]`
+          - `Beat[]`
+            - `Note[]`
+              - `Technique[]`
 
 ### Notation controller structure (current)
 
