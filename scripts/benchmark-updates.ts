@@ -314,7 +314,7 @@ function createRepeatStatusCase(
             new SetRepeatStatusCommand(
               score.masterBars[index],
               statuses[i] ?? statuses[0],
-              index
+              score.tracks[0]
             )
         )
       ),

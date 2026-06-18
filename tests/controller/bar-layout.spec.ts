@@ -103,18 +103,30 @@ describe("bar layout metrics", () => {
 
   test("keeps structural width separate from content minimum", () => {
     const { track } = createGraph();
-    const masterBar = track.score.masterBars[0];
-    masterBar.repeatStatus = BarRepeatStatus.Start;
 
     const metrics = calculateMasterBarLayoutMetrics(track, 0);
 
     expect(metrics.structuralWidth).toBe(
       EditorLayoutDimensions.TIME_SIG_RECT_WIDTH +
-        EditorLayoutDimensions.REPEAT_SIGN_WIDTH
+        EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 3
     );
     expect(metrics.minWidth).toBe(
       metrics.structuralWidth + metrics.contentMinWidth
     );
+  });
+
+  test("repeat status does not affect layout metrics", () => {
+    const { track } = createGraph();
+    const masterBar = track.score.masterBars[0];
+    const before = calculateMasterBarLayoutMetrics(track, 0);
+
+    masterBar.repeatStatus = BarRepeatStatus.Start;
+    const afterStart = calculateMasterBarLayoutMetrics(track, 0);
+    masterBar.repeatStatus = BarRepeatStatus.End;
+    const afterEnd = calculateMasterBarLayoutMetrics(track, 0);
+
+    expect(afterStart).toEqual(before);
+    expect(afterEnd).toEqual(before);
   });
 });
 

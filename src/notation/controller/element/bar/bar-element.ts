@@ -53,12 +53,10 @@ export class BarElement implements NotationElement {
   private _showTempo: boolean;
   /** Kept as separate because is part of geometry state that has to be fully stale pre-update */
   private _durationsFit: boolean;
+  /** Repeat status captured during build for stale pre-update diffing. */
+  private _repeatStatusState: BarRepeatStatus;
   /** Time signature rectangle */
   private _timeSigRect?: Rect;
-  /** Repeat start sign rectangle */
-  private _repeatStartRect?: Rect;
-  /** Repeat end sign rectangle */
-  private _repeatEndRect?: Rect;
 
   /**
    * Class that handles geometry & visually relevant info of a bar
@@ -85,6 +83,7 @@ export class BarElement implements NotationElement {
 
     this._showTempo = false;
     this._durationsFit = false;
+    this._repeatStatusState = this.bar.masterBar.repeatStatus;
 
     this._voiceBarElements = [];
     this._voiceBarRhythmElements = [];
@@ -95,8 +94,6 @@ export class BarElement implements NotationElement {
       () => new HorLine()
     );
     this._timeSigRect = new Rect();
-    this._repeatStartRect = new Rect();
-    this._repeatEndRect = new Rect();
     if (notationStyleLineElement !== undefined) {
       this.build();
     }
@@ -115,6 +112,7 @@ export class BarElement implements NotationElement {
         ? this.bar.masterBar.tempo !== prevBar.masterBar.tempo
         : true;
     this._durationsFit = this.bar.checkDurationsFit();
+    this._repeatStatusState = this.bar.masterBar.repeatStatus;
 
     if (
       prevBar !== null &&
@@ -123,15 +121,6 @@ export class BarElement implements NotationElement {
       this._timeSigRect = undefined;
     } else {
       this._timeSigRect = new Rect();
-    }
-
-    this._repeatStartRect = undefined;
-    this._repeatEndRect = undefined;
-    if (this.bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
-      this._repeatStartRect = new Rect();
-    }
-    if (this.bar.masterBar.repeatStatus === BarRepeatStatus.End) {
-      this._repeatEndRect = new Rect();
     }
   }
 
@@ -195,31 +184,6 @@ export class BarElement implements NotationElement {
   }
 
   /**
-   * Calculates repeat rectangles dimensions
-   */
-  private measureRepeatRects(): void {
-    if (
-      this._repeatStartRect === undefined &&
-      this._repeatEndRect === undefined
-    ) {
-      return;
-    }
-
-    if (this._repeatStartRect !== undefined) {
-      this._repeatStartRect.setDimensions(
-        EditorLayoutDimensions.REPEAT_SIGN_WIDTH,
-        EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
-      );
-    }
-    if (this._repeatEndRect !== undefined) {
-      this._repeatEndRect.setDimensions(
-        EditorLayoutDimensions.REPEAT_SIGN_WIDTH,
-        EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
-      );
-    }
-  }
-
-  /**
    * Calc main outer rectangle dimensions
    */
   private measureRect(): void {
@@ -229,14 +193,8 @@ export class BarElement implements NotationElement {
       0
     );
 
-    const barWidth =
-      (this._repeatStartRect?.width ?? 0) +
-      (this._timeSigRect?.width ?? 0) +
-      (voiceBarElementsArr[0]?.boundingBox.width ?? 0) +
-      (this._repeatEndRect?.width ?? 0);
-
     this._boundingBox.setDimensions(
-      barWidth,
+      this._finalizedWidth,
       (voiceBarElementsArr[0]?.boundingBox.height ??
         EditorLayoutDimensions.getStaffHeight(
           this.bar.trackContext.instrument
@@ -259,7 +217,6 @@ export class BarElement implements NotationElement {
    */
   public measure(): void {
     this.measureTimeSigRect();
-    this.measureRepeatRects();
 
     for (const voiceBarElement of this._voiceBarElements) {
       voiceBarElement.measure();
@@ -298,30 +255,6 @@ export class BarElement implements NotationElement {
   }
 
   /**
-   * Calculates repeat rectangle
-   */
-  private layoutRepeatRects(): void {
-    if (
-      this._repeatStartRect === undefined &&
-      this._repeatEndRect === undefined
-    ) {
-      return;
-    }
-
-    const y = EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2;
-    if (this._repeatStartRect !== undefined) {
-      const x = this._timeSigRect?.right ?? 0;
-      this._repeatStartRect.setCoords(x, y);
-    }
-    if (this._repeatEndRect !== undefined) {
-      this._repeatEndRect.setCoords(
-        this._boundingBox.width - EditorLayoutDimensions.REPEAT_SIGN_WIDTH,
-        y
-      );
-    }
-  }
-
-  /**
    * Calculates bar's staff lines
    */
   private layoutStaffLines(): void {
@@ -340,7 +273,6 @@ export class BarElement implements NotationElement {
   public layout(): void {
     this.layoutRect();
 
-    this.layoutRepeatRects();
     this.layoutTimeSigRect();
     this.layoutStaffLines();
 
@@ -405,19 +337,8 @@ export class BarElement implements NotationElement {
     ];
 
     hashArr.push(`${this._showTempo}`);
+    hashArr.push(`${this._repeatStatusState}`);
 
-    if (this._repeatEndRect !== undefined) {
-      hashArr.push(`${this._repeatEndRect.x}`);
-      hashArr.push(`${this._repeatEndRect.y}`);
-      hashArr.push(`${this._repeatEndRect.width}`);
-      hashArr.push(`${this._repeatEndRect.height}`);
-    }
-    if (this._repeatStartRect !== undefined) {
-      hashArr.push(`${this._repeatStartRect.x}`);
-      hashArr.push(`${this._repeatStartRect.y}`);
-      hashArr.push(`${this._repeatStartRect.width}`);
-      hashArr.push(`${this._repeatStartRect.height}`);
-    }
     if (this._timeSigRect !== undefined) {
       hashArr.push(`${this._timeSigRect.x}`);
       hashArr.push(`${this._timeSigRect.y}`);
@@ -617,12 +538,12 @@ export class BarElement implements NotationElement {
   get startGap(): Rect {
     const x = 0;
     const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
-    let width = 0;
+    // TODO(phase-4): This feels like a hack. Ideally the solution is such that
+    // start & end gap are of the same width AND they look identical, instead of
+    // end gap appearing larger than start gap (because of beat width)
+    let width = EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 2;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
-    }
-    if (this._repeatStartRect !== undefined) {
-      width += this._repeatStartRect.width;
     }
     const height = this._boundingBox.height;
     return new Rect(x, y, width, height);
@@ -632,12 +553,9 @@ export class BarElement implements NotationElement {
   get startGapGlobal(): Rect {
     const x = 0;
     const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
-    let width = 0;
+    let width = EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 2;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
-    }
-    if (this._repeatStartRect !== undefined) {
-      width += this._repeatStartRect.width;
     }
     const height = this._boundingBox.height;
     return new Rect(
@@ -650,10 +568,7 @@ export class BarElement implements NotationElement {
 
   /** Gap at the fron of the bar (repeat end) */
   get endGap(): Rect {
-    let width = 0;
-    if (this._repeatEndRect !== undefined) {
-      width += this._repeatEndRect.width;
-    }
+    const width = EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
     const height = this._boundingBox.height;
     const x = this._boundingBox.right - width;
     const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
@@ -662,10 +577,7 @@ export class BarElement implements NotationElement {
 
   /** Gap at the fron of the bar (repeat end) in global coords */
   get endGapGlobal(): Rect {
-    let width = 0;
-    if (this._repeatEndRect !== undefined) {
-      width += this._repeatEndRect.width;
-    }
+    const width = EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
     const height = this._boundingBox.height;
     const x = this._boundingBox.right - width;
     const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
@@ -762,67 +674,89 @@ export class BarElement implements NotationElement {
 
   /** Repeat start sign rectangle */
   public get repeatStartRect(): Rect | undefined {
-    return this._repeatStartRect;
-  }
-
-  /** Repeat start sign rectangle in global coords */
-  public get repeatStartRectLineLocal(): Rect | undefined {
-    if (this._repeatStartRect === undefined) {
+    if (this._repeatStatusState !== BarRepeatStatus.Start) {
       return undefined;
     }
 
     return new Rect(
-      this.lineLocalCoords.x + this._repeatStartRect.x,
-      this.lineLocalCoords.y + this._repeatStartRect.y,
-      this._repeatStartRect.width,
-      this._repeatStartRect.height
+      this._timeSigRect?.right ?? 0,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2,
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH,
+      EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+    );
+  }
+
+  /** Repeat start sign rectangle in global coords */
+  public get repeatStartRectLineLocal(): Rect | undefined {
+    const repeatStartRect = this.repeatStartRect;
+    if (repeatStartRect === undefined) {
+      return undefined;
+    }
+
+    return new Rect(
+      this.lineLocalCoords.x + repeatStartRect.x,
+      this.lineLocalCoords.y + repeatStartRect.y,
+      repeatStartRect.width,
+      repeatStartRect.height
     );
   }
 
   /** Repeat start sign rectangle in global coords */
   public get repeatStartRectGlobal(): Rect | undefined {
-    if (this._repeatStartRect === undefined) {
+    const repeatStartRect = this.repeatStartRect;
+    if (repeatStartRect === undefined) {
       return undefined;
     }
 
     return new Rect(
-      this.globalCoords.x + this._repeatStartRect.x,
-      this.globalCoords.y + this._repeatStartRect.y,
-      this._repeatStartRect.width,
-      this._repeatStartRect.height
+      this.globalCoords.x + repeatStartRect.x,
+      this.globalCoords.y + repeatStartRect.y,
+      repeatStartRect.width,
+      repeatStartRect.height
     );
   }
 
   /** Repeat end sign rectangle */
   public get repeatEndRect(): Rect | undefined {
-    return this._repeatEndRect;
-  }
-
-  /** Repeat end sign rectangle in track-line-local coords */
-  public get repeatEndRectLineLocal(): Rect | undefined {
-    if (this._repeatEndRect === undefined) {
+    if (this._repeatStatusState !== BarRepeatStatus.End) {
       return undefined;
     }
 
     return new Rect(
-      this.lineLocalCoords.x + this._repeatEndRect.x,
-      this.lineLocalCoords.y + this._repeatEndRect.y,
-      this._repeatEndRect.width,
-      this._repeatEndRect.height
+      this._boundingBox.width - EditorLayoutDimensions.REPEAT_SIGN_WIDTH,
+      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2,
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH,
+      EditorLayoutDimensions.getStaffHeight(this.bar.trackContext.instrument)
+    );
+  }
+
+  /** Repeat end sign rectangle in track-line-local coords */
+  public get repeatEndRectLineLocal(): Rect | undefined {
+    const repeatEndRect = this.repeatEndRect;
+    if (repeatEndRect === undefined) {
+      return undefined;
+    }
+
+    return new Rect(
+      this.lineLocalCoords.x + repeatEndRect.x,
+      this.lineLocalCoords.y + repeatEndRect.y,
+      repeatEndRect.width,
+      repeatEndRect.height
     );
   }
 
   /** Repeat end sign rectangle in global coords */
   public get repeatEndRectGlobal(): Rect | undefined {
-    if (this._repeatEndRect === undefined) {
+    const repeatEndRect = this.repeatEndRect;
+    if (repeatEndRect === undefined) {
       return undefined;
     }
 
     return new Rect(
-      this.globalCoords.x + this._repeatEndRect.x,
-      this.globalCoords.y + this._repeatEndRect.y,
-      this._repeatEndRect.width,
-      this._repeatEndRect.height
+      this.globalCoords.x + repeatEndRect.x,
+      this.globalCoords.y + repeatEndRect.y,
+      repeatEndRect.width,
+      repeatEndRect.height
     );
   }
 

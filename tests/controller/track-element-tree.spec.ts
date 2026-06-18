@@ -78,6 +78,39 @@ describe("TrackElement tree", () => {
     ensureLayoutConfigured();
   });
 
+  test("horizontal updates refresh multi-staff outline geometry", () => {
+    const { track, bar } = createScoreGraph();
+    track.insertStaff(1);
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const beforeLine = trackElement.trackLineElements[0];
+    const beforeOutline = beforeLine.outlineLinesLineLocal;
+    const voiceBar = bar.getVoiceBar(1);
+    if (beforeOutline === undefined || voiceBar === null) {
+      throw Error("Expected multi-staff outline and voice bar");
+    }
+    const beforeHash = beforeLine.stateHash;
+    const beforeRightX = beforeOutline.right.x;
+
+    voiceBar.insertBeat(1);
+    trackElement.updateHorizontal({
+      updateType: "Horizontal",
+      affectedMasterBarIndices: [0],
+      firstAffectedMasterBarIndex: 0,
+      reason: "insert-beat",
+    });
+
+    const afterLine = trackElement.trackLineElements[0];
+    const afterOutline = afterLine.outlineLinesLineLocal;
+    if (afterOutline === undefined) {
+      throw Error("Expected multi-staff outline after update");
+    }
+
+    expect(afterOutline.right.x).not.toBe(beforeRightX);
+    expect(afterLine.stateHash).not.toBe(beforeHash);
+  });
+
   test("builds the expected hierarchy for a single default bar", () => {
     const { track } = createScoreGraph();
     const trackElement = new TrackElement(track);

@@ -73,15 +73,9 @@ export class SetRestCommand implements Command {
   }
 
   public get updateRequest(): CommandUpdateRequest {
-    // TODO(rests): This is really bad. Likely will need
-    // to switch "Targeted" updates to be multi-affected-model
-    if (this._snapshots.length > 1) {
-      return { updateType: "Full" };
-    }
-
     return {
       updateType: "Targeted",
-      affectedModelUUID: this._snapshots[0].beat.uuid,
+      affectedModelUUIDs: this._snapshots.map((snapshot) => snapshot.beat.uuid),
     };
   }
 }

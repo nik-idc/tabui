@@ -161,6 +161,17 @@ export class TrackLineElement implements NotationElement {
         `${this.globalBoundingBox.height}`,
     ];
 
+    if (this._outlineLines !== undefined) {
+      hashArr.push(
+        `${this._outlineLines.left.x}` +
+          `${this._outlineLines.left.y1}` +
+          `${this._outlineLines.left.y2}` +
+          `${this._outlineLines.right.x}` +
+          `${this._outlineLines.right.y1}` +
+          `${this._outlineLines.right.y2}`
+      );
+    }
+
     return hashArr.join("");
   }
 

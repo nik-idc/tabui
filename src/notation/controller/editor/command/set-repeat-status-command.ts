@@ -1,35 +1,31 @@
-import { MasterBar, BarRepeatStatus } from "@/notation/model";
+import { BarRepeatStatus, MasterBar, Track } from "@/notation/model";
 import { Command, CommandUpdateRequest } from "./command";
 
 /**
  * Set bar repeat status command
  */
 export class SetRepeatStatusCommand implements Command {
-  /** Bar to append the beat to */
+  /** Master bar whose repeat status is changed. */
   private _bar: MasterBar;
+  /** Track whose rendered staff bars should be refreshed. */
+  private _track: Track;
   /** New repeat status value */
   private _newRepeatStatus: BarRepeatStatus;
   /** Old repeat status value */
   private _oldRepeatStatus: BarRepeatStatus;
   /** True if executed, false otherwise*/
   private _executed: boolean = false;
-  /** Index of the affected master bar */
-  private _affectedMasterBarIndex: number;
 
   /**
    * Set guitar bar repeat status command
    * @param bar Bar whose repeat status to set
    * @param newRepeatStatus New repeat status value
    */
-  constructor(
-    bar: MasterBar,
-    newRepeatStatus: BarRepeatStatus,
-    affectedMasterBarIndex: number
-  ) {
+  constructor(bar: MasterBar, newRepeatStatus: BarRepeatStatus, track: Track) {
     this._bar = bar;
+    this._track = track;
     this._newRepeatStatus = newRepeatStatus;
     this._oldRepeatStatus = bar.repeatStatus;
-    this._affectedMasterBarIndex = affectedMasterBarIndex;
   }
 
   /**
@@ -63,11 +59,13 @@ export class SetRepeatStatusCommand implements Command {
   }
 
   public get updateRequest(): CommandUpdateRequest {
+    const masterBarIndex = this._track.score.masterBars.indexOf(this._bar);
+
     return {
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [this._affectedMasterBarIndex],
-      firstAffectedMasterBarIndex: this._affectedMasterBarIndex,
-      reason: "repeat-status",
+      updateType: "Targeted",
+      affectedModelUUIDs: this._track.staves.map(
+        (staff) => staff.bars[masterBarIndex].uuid
+      ),
     };
   }
 }

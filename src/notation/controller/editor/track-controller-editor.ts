@@ -391,14 +391,11 @@ export class TrackControllerEditor {
       );
     }
 
-    const masterBarIndex = selectedNote.staff.track.score.masterBars.indexOf(
-      selectedNote.bar.masterBar
-    );
     this.executeCommand(
       new SetRepeatStatusCommand(
         selectedNote.bar.masterBar,
         status,
-        masterBarIndex
+        selectedNote.staff.track
       )
     );
   }

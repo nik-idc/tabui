@@ -723,20 +723,18 @@ export class TrackElement {
   public updateTargeted(request: TargetedUpdateRequest): void {
     this.clearElementDiff();
 
-    const element = this._elementRegistryByModelUUID.get(
-      request.affectedModelUUID
-    );
-    if (!element) {
-      throw new Error("Targeted update request element not found");
-    }
+    for (const modelUUID of request.affectedModelUUIDs) {
+      const element = this._elementRegistryByModelUUID.get(modelUUID);
+      if (!element) {
+        throw new Error("Targeted update request element not found");
+      }
 
-    const beforeUpdate = element.refreshOwnedNotationElements();
-    const beforeUpdateSnapshot = snapshotElements(beforeUpdate);
-    const stateHashBefore = JSON.parse(JSON.stringify(element.stateHash));
-    element.update();
-    const stateHashAfter = JSON.parse(JSON.stringify(element.stateHash));
-    const afterUpdate = element.refreshOwnedNotationElements();
-    this.reconcileElementSnapshot(beforeUpdateSnapshot, afterUpdate);
+      const beforeUpdate = element.refreshOwnedNotationElements();
+      const beforeUpdateSnapshot = snapshotElements(beforeUpdate);
+      element.update();
+      const afterUpdate = element.refreshOwnedNotationElements();
+      this.reconcileElementSnapshot(beforeUpdateSnapshot, afterUpdate);
+    }
   }
 
   public updateFull(): void {

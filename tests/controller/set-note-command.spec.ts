@@ -57,7 +57,7 @@ describe("SetNoteCommand", () => {
     expect(beat.isRest()).toBe(true);
     expect(command.updateRequest).toEqual({
       updateType: "Targeted",
-      affectedModelUUID: beat.uuid,
+      affectedModelUUIDs: [beat.uuid],
     });
 
     command.execute();

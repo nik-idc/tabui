@@ -253,6 +253,32 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.appendVoiceGroupsInOrder(barGroup, barGroup.voiceRhythmGroups);
   }
 
+  private syncBarVoiceGroups(barGroup: BarGroup): void {
+    const voicePartGroups = [
+      barGroup.voiceContentGroups,
+      barGroup.voiceRhythmGroups,
+    ];
+    for (const groups of voicePartGroups) {
+      for (const [voiceNumber, group] of groups) {
+        const opacity =
+          voiceNumber === this.trackController.activeVoiceNumber ? "1" : "0.5";
+        if (group.getAttribute("opacity") !== opacity) {
+          group.setAttribute("opacity", opacity);
+        }
+      }
+    }
+
+    this.syncBarVoiceGroupOrder(barGroup);
+  }
+
+  private syncVisibleVoiceGroups(): void {
+    for (const trackLineGroup of this._trackLineGroups.values()) {
+      for (const barGroup of trackLineGroup.barGroups.values()) {
+        this.syncBarVoiceGroups(barGroup);
+      }
+    }
+  }
+
   private appendVoiceGroupsInOrder(
     barGroup: BarGroup,
     groups: Map<VoiceNumber, SVGGElement>
@@ -688,12 +714,13 @@ export class EditorSVGRenderer implements EditorRenderer {
         updatedVisibleUUIDs.has(stableIdentity) ||
         !wasMounted;
 
+      this.updateRendererElement(renderer, element);
+
       if (wasMounted && !shouldRender) {
         activeRenderers.push(renderer);
         continue;
       }
 
-      this.updateRendererElement(renderer, element);
       this.ensureRendererMounted(renderer, element);
       this._mountedRendererUUIDs.add(stableIdentity);
 
@@ -823,6 +850,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     const visibleElements = this.reconcileLinesViewport(start, end);
+    this.syncVisibleVoiceGroups();
     const activeRenderers = this.renderReconciled(visibleElements);
     this._lastRenderedViewportStart = start;
     this._lastRenderedViewportEnd = end;
@@ -842,6 +870,7 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     const { start, end } = this.getLinesInViewport();
     const visibleElements = this.reconcileLinesViewport(start, end);
+    this.syncVisibleVoiceGroups();
     // Active voice is controller state, not an element diff. Force-rendering the
     // visible set is a temporary bridge so opacity and hitboxes update after a
     // selection-only voice switch without pretending the model changed.

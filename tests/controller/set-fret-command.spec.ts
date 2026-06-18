@@ -89,7 +89,7 @@ describe("SetFretCommand", () => {
 
     expect(command.updateRequest).toEqual({
       updateType: "Targeted",
-      affectedModelUUID: note.beat.uuid,
+      affectedModelUUIDs: [note.beat.uuid],
     });
   });
 
@@ -136,7 +136,7 @@ describe("SetFretCommand", () => {
     expect(beat.isRest()).toBe(true);
     expect(command.updateRequest).toEqual({
       updateType: "Targeted",
-      affectedModelUUID: beat.uuid,
+      affectedModelUUIDs: [beat.uuid],
     });
 
     command.execute();

@@ -15,7 +15,7 @@ export interface HorizontalUpdateRequest {
 
 export interface TargetedUpdateRequest {
   updateType: "Targeted";
-  affectedModelUUID: number;
+  affectedModelUUIDs: number[];
 }
 
 export interface FullUpdateRequest {

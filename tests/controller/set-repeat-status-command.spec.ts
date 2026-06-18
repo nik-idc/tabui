@@ -4,8 +4,12 @@ import { createScoreGraph } from "../model/helpers";
 
 describe("SetRepeatStatusCommand", () => {
   test("execute, undo, and redo update repeat status", () => {
-    const { masterBar } = createScoreGraph();
-    const command = new SetRepeatStatusCommand(masterBar, BarRepeatStatus.End);
+    const { masterBar, track } = createScoreGraph();
+    const command = new SetRepeatStatusCommand(
+      masterBar,
+      BarRepeatStatus.End,
+      track
+    );
 
     command.execute();
     expect(masterBar.repeatStatus).toBe(BarRepeatStatus.End);
@@ -21,12 +25,42 @@ describe("SetRepeatStatusCommand", () => {
   });
 
   test("redo before execute throws", () => {
-    const { masterBar } = createScoreGraph();
+    const { masterBar, track } = createScoreGraph();
     const command = new SetRepeatStatusCommand(
       masterBar,
-      BarRepeatStatus.Start
+      BarRepeatStatus.Start,
+      track
     );
 
     expect(() => command.redo()).toThrow("Redo called before execute");
+  });
+
+  test("uses a targeted update request for affected bars", () => {
+    const { masterBar, track, bar } = createScoreGraph();
+    const command = new SetRepeatStatusCommand(
+      masterBar,
+      BarRepeatStatus.End,
+      track
+    );
+
+    expect(command.updateRequest).toEqual({
+      updateType: "Targeted",
+      affectedModelUUIDs: [bar.uuid],
+    });
+  });
+
+  test("targets all staff bars for the affected master bar", () => {
+    const { masterBar, track, bar } = createScoreGraph();
+    const secondStaff = track.insertStaff(1).staves[0];
+    const command = new SetRepeatStatusCommand(
+      masterBar,
+      BarRepeatStatus.End,
+      track
+    );
+
+    expect(command.updateRequest).toEqual({
+      updateType: "Targeted",
+      affectedModelUUIDs: [bar.uuid, secondStaff.bars[0].uuid],
+    });
   });
 });

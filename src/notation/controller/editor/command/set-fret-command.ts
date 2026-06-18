@@ -81,7 +81,7 @@ export class SetFretCommand implements Command {
   public get updateRequest(): CommandUpdateRequest {
     return {
       updateType: "Targeted",
-      affectedModelUUID: this._beat.uuid,
+      affectedModelUUIDs: [this._beat.uuid],
     };
   }
 }

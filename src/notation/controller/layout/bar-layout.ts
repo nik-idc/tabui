@@ -1,4 +1,4 @@
-import { BarRepeatStatus, NoteDuration, Track } from "@/notation/model";
+import { NoteDuration, Track } from "@/notation/model";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 
 export type MasterBarLayoutMetrics = {
@@ -123,12 +123,7 @@ function calculateStructuralWidth(
     width += EditorLayoutDimensions.TIME_SIG_RECT_WIDTH;
   }
 
-  if (masterBar.repeatStatus === BarRepeatStatus.Start) {
-    width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
-  }
-  if (masterBar.repeatStatus === BarRepeatStatus.End) {
-    width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
-  }
+  width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 3;
 
   return width;
 }
