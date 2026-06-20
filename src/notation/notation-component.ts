@@ -1,5 +1,9 @@
 import { Score, Track } from "./model";
-import { EditorSVGRenderer, EditorRenderer } from "./render";
+import {
+  EditorSVGRenderer,
+  EditorRenderer,
+  EditorRenderOptions,
+} from "./render";
 import { ElementRenderer } from "./render/element-renderer";
 import { TrackController } from "./controller";
 import { ResolvedTabUIConfig } from "@/config/tabui-config";
@@ -50,12 +54,8 @@ export class NotationComponent {
    * Render current track
    * @returns Active renderers
    */
-  public render(): ElementRenderer[] {
-    return this._renderer.render();
-  }
-
-  public renderVisibleNoChange(): ElementRenderer[] {
-    return this._renderer.renderVisibleNoChange();
+  public render(options?: EditorRenderOptions): ElementRenderer[] {
+    return this._renderer.render(options);
   }
 
   /**

@@ -60,7 +60,11 @@ export class TabUICallbacks {
   }
 
   private renderSelectionOverlayAndUI(): void {
-    this._notationComponent.renderer.renderSelectionOverlay();
+    this._notationComponent.render({
+      renderNotation: false,
+      forceNotation: false,
+      overlays: { selection: true, player: false },
+    });
 
     this._uiCallbacks.unbind();
     this._uiComponent.render();
@@ -68,7 +72,13 @@ export class TabUICallbacks {
   }
 
   private renderVisibleNoChangeAndUI(): void {
-    const activeRenderers = this._notationComponent.renderVisibleNoChange();
+    // Active voice is controller state, not an element diff, so visible notation
+    // must be refreshed even when viewport/diff state looks reusable.
+    const activeRenderers = this._notationComponent.render({
+      renderNotation: true,
+      forceNotation: true,
+      overlays: { selection: true, player: true },
+    });
     this._mouseCallbacks.bind(activeRenderers);
 
     this._uiCallbacks.unbind();

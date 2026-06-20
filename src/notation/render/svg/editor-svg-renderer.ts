@@ -9,6 +9,7 @@ import {
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { createSVG, createSVGG, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
+import { EditorRenderOptions } from "../editor-renderer";
 import { ElementRenderer } from "../element-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 import {
@@ -70,6 +71,15 @@ const VOICE_RHYTHM_ELEMENT_CLASSES: Array<NotationElementClass> = [
   BeamSegmentElement,
   BarTupletGroupElement,
 ];
+
+const DEFAULT_RENDER_OPTIONS: EditorRenderOptions = {
+  renderNotation: true,
+  forceNotation: false,
+  overlays: {
+    selection: true,
+    player: true,
+  },
+};
 
 /**
  * Render a track window using SVG
@@ -271,6 +281,12 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.syncBarVoiceGroupOrder(barGroup);
   }
 
+  /**
+   * Refreshes active-voice opacity and paint order for retained visible groups.
+   *
+   * Active voice is controller state, not an element diff, so viewport-retained
+   * bar groups need an explicit presentation sync after line reconciliation.
+   */
   private syncVisibleVoiceGroups(): void {
     for (const trackLineGroup of this._trackLineGroups.values()) {
       for (const barGroup of trackLineGroup.barGroups.values()) {
@@ -524,7 +540,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     );
   }
 
-  private removeByDiff(stableIdentities: Iterable<string>): void {
+  private removeRenderersForDiff(stableIdentities: Iterable<string>): void {
     for (const stableIdentity of stableIdentities) {
       const renderer = this._rendererRegistry.get(stableIdentity);
       if (renderer === undefined) {
@@ -538,7 +554,11 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
   }
 
-  private cullInvisibleRenderers(visibleStableIdentities: Set<string>): void {
+  /**
+   * Detaches mounted renderer groups whose elements are outside the retained
+   * viewport set while keeping their renderer instances reusable.
+   */
+  private detachOffscreenRenderers(visibleStableIdentities: Set<string>): void {
     for (const stableIdentity of this._mountedRendererUUIDs) {
       if (visibleStableIdentities.has(stableIdentity)) {
         continue;
@@ -641,31 +661,25 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   private removeDiffRenderers(diff: ElementDiff): void {
-    for (const uuidSet of diff.removed.values()) {
-      this.removeByDiff(uuidSet);
+    for (const stableIdentities of diff.removed.values()) {
+      this.removeRenderersForDiff(stableIdentities);
     }
   }
 
-  private cullInvisibleRenderersForVisibleSet(
-    visibleStableIdentities: Set<string>
-  ): void {
-    this.cullInvisibleRenderers(visibleStableIdentities);
-  }
-
-  private getUpdatedVisibleIdentities(
+  private getVisibleUpdatedIdentities(
     diff: ElementDiff,
     visibleStableIdentities: Set<string>
   ): Set<string> {
-    const updatedVisibleUUIDs = new Set<string>();
+    const updatedVisibleIdentities = new Set<string>();
     for (const updatedIdentities of diff.updated.values()) {
       for (const stableIdentity of updatedIdentities) {
         if (visibleStableIdentities.has(stableIdentity)) {
-          updatedVisibleUUIDs.add(stableIdentity);
+          updatedVisibleIdentities.add(stableIdentity);
         }
       }
     }
 
-    return updatedVisibleUUIDs;
+    return updatedVisibleIdentities;
   }
 
   private createRendererForVisibleElement(
@@ -692,7 +706,7 @@ export class EditorSVGRenderer implements EditorRenderer {
 
   private reconcileVisibleRenderers(
     visibleElements: NotationElement[],
-    updatedVisibleUUIDs: Set<string>,
+    updatedVisibleIdentities: Set<string>,
     forceRender: boolean
   ): ElementRenderer[] {
     const activeRenderers: ElementRenderer[] = [];
@@ -711,7 +725,7 @@ export class EditorSVGRenderer implements EditorRenderer {
       const shouldRender =
         forceRender ||
         isNewRenderer ||
-        updatedVisibleUUIDs.has(stableIdentity) ||
+        updatedVisibleIdentities.has(stableIdentity) ||
         !wasMounted;
 
       this.updateRendererElement(renderer, element);
@@ -760,15 +774,15 @@ export class EditorSVGRenderer implements EditorRenderer {
       this.createVisibleStableIdentitySet(visibleElements);
 
     this.removeDiffRenderers(diff);
-    this.cullInvisibleRenderersForVisibleSet(visibleStableIdentities);
-    const updatedVisibleUUIDs = this.getUpdatedVisibleIdentities(
+    this.detachOffscreenRenderers(visibleStableIdentities);
+    const updatedVisibleIdentities = this.getVisibleUpdatedIdentities(
       diff,
       visibleStableIdentities
     );
 
     return this.reconcileVisibleRenderers(
       visibleElements,
-      updatedVisibleUUIDs,
+      updatedVisibleIdentities,
       forceRender
     );
   }
@@ -836,60 +850,54 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.rootSVGElement.setAttribute("height", `${trackWindowHeight}`);
   }
 
-  /**
-   * Render track window using SVG
-   */
-  public render(): ElementRenderer[] {
+  private renderNotation(options: EditorRenderOptions): ElementRenderer[] {
     this.syncViewportState();
 
     const { start, end } = this.getLinesInViewport();
-    if (this.canReuseViewportRender(start, end)) {
-      this._playerOverlayRenderer.render();
-      this._selectionOverlayRenderer.render();
+    if (!options.forceNotation && this.canReuseViewportRender(start, end)) {
+      this.renderOverlays(options);
       return this._activeRenderers;
     }
 
     const visibleElements = this.reconcileLinesViewport(start, end);
     this.syncVisibleVoiceGroups();
-    const activeRenderers = this.renderReconciled(visibleElements);
+    const activeRenderers = this.renderReconciled(
+      visibleElements,
+      options.forceNotation
+    );
     this._lastRenderedViewportStart = start;
     this._lastRenderedViewportEnd = end;
     this._activeRenderers = activeRenderers;
 
     this._beatInteractionRenderer.render(visibleElements);
-    this._playerOverlayRenderer.render();
-    this._selectionOverlayRenderer.render();
+    this.renderOverlays(options);
 
     this.syncRootSVGDimensions();
 
     return activeRenderers;
   }
 
-  public renderVisibleNoChange(): ElementRenderer[] {
-    this.syncViewportState();
-
-    const { start, end } = this.getLinesInViewport();
-    const visibleElements = this.reconcileLinesViewport(start, end);
-    this.syncVisibleVoiceGroups();
-    // Active voice is controller state, not an element diff. Force-rendering the
-    // visible set is a temporary bridge so opacity and hitboxes update after a
-    // selection-only voice switch without pretending the model changed.
-    const activeRenderers = this.renderReconciled(visibleElements, true);
-    this._lastRenderedViewportStart = start;
-    this._lastRenderedViewportEnd = end;
-    this._activeRenderers = activeRenderers;
-
-    this._beatInteractionRenderer.render(visibleElements);
-    this._playerOverlayRenderer.render();
-    this._selectionOverlayRenderer.render();
-
-    this.syncRootSVGDimensions();
-
-    return activeRenderers;
+  private renderOverlays(options: EditorRenderOptions): void {
+    if (options.overlays.player) {
+      this._playerOverlayRenderer.render();
+    }
+    if (options.overlays.selection) {
+      this._selectionOverlayRenderer.render();
+    }
   }
 
-  public renderSelectionOverlay(): void {
-    this._selectionOverlayRenderer.render();
+  /**
+   * Render track window using SVG.
+   */
+  public render(
+    options: EditorRenderOptions = DEFAULT_RENDER_OPTIONS
+  ): ElementRenderer[] {
+    if (options.renderNotation) {
+      return this.renderNotation(options);
+    }
+
+    this.renderOverlays(options);
+    return this._activeRenderers;
   }
 
   /**

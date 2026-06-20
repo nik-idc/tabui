@@ -3,11 +3,11 @@ export function toDomIdFragment(value: string): string {
 }
 
 /**
- * Keeps a stable child node at a deterministic layer index.
+ * Keeps a stable child node at a deterministic paint-order index.
  *
- * SVG renderers cache and reuse container groups. Re-inserting only when the
- * node is out of place preserves that cached DOM while still keeping layer
- * order deterministic after viewport/window reconciliation.
+ * SVG renderers cache and reuse container groups across viewport changes. SVG
+ * paint order follows DOM child order, so retained groups must be reinserted
+ * only when they drift from their layer slot.
  */
 export function ensureDomChildAtIndex(
   parent: SVGGElement,
