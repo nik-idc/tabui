@@ -42,20 +42,21 @@ export class SelectionOverlayRenderer {
       return undefined;
     }
 
-    const modelElementRegistry =
-      this.trackController.trackElement.elementRegistryByModelUUID;
-    const beatElement = modelElementRegistry.get(selectedNote.beat.uuid);
+    const beatElement = this.trackController.trackElement.getBeatElementByUUID(
+      selectedNote.beat.uuid
+    );
     if (!(beatElement instanceof TabBeatElement)) {
-      throw Error("Beat element not TabBeatElement");
+      return undefined;
     }
 
-    const registeredElements =
-      this.trackController.trackElement.elementRegistryByIdentity;
     const identity = TabNoteElement.createStableIdentity(
       beatElement,
       selectedNote.noteIndex + 1
     );
-    const selectedNoteElement = registeredElements.get(identity);
+    const selectedNoteElement =
+      this.trackController.trackElement.getMaterializedElementByIdentity(
+        identity
+      );
 
     if (
       selectedNoteElement === undefined ||

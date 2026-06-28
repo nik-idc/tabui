@@ -3,6 +3,7 @@ import {
   DURATION_TO_FLAG_COUNT,
   GuitarNote,
   NoteDuration,
+  VoiceNumber,
 } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
@@ -15,18 +16,29 @@ import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
 import { NotationElement } from "../notation-element";
 import { VoiceBarElement } from "../bar/voice-bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
  */
 export class TabBeatElement implements BeatElement {
+  public static createStableIdentity_NEW(
+    trackLineStableIdentity: string,
+    beat: Beat
+  ): string {
+    return `tab-beat:${trackLineStableIdentity}:${beat.uuid}`;
+  }
+
   public static createStableIdentity(
     voiceBarElement: VoiceBarElement,
     beat: Beat
   ): string {
     const trackLineStableIdentity =
       voiceBarElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `tab-beat:${trackLineStableIdentity}:${beat.uuid}`;
+    return TabBeatElement.createStableIdentity_NEW(
+      trackLineStableIdentity,
+      beat
+    );
   }
 
   /** Beat element's unique identifier */
@@ -37,6 +49,18 @@ export class TabBeatElement implements BeatElement {
   readonly voiceBarElement: VoiceBarElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+
+  public get voiceNumber(): VoiceNumber {
+    return this.beat.voiceBar.voiceNumber;
+  }
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.barElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.barElement;
+  }
 
   /** Note elements */
   private _noteElements: TabNoteElement[];
@@ -65,8 +89,6 @@ export class TabBeatElement implements BeatElement {
   }
 
   public build(): void {
-    this.trackElement.registerElement(this);
-
     const prevNoteElements = new Map(
       this._noteElements.map((element) => [
         element.getStableIdentity(),

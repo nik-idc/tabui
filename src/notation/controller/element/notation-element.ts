@@ -1,9 +1,15 @@
 import { Point, Rect } from "@/shared";
 import { TrackElement } from "./track-element";
+import { VoiceNumber } from "@/notation/model";
+import type { BarElement } from "./bar/bar-element";
+import type { TrackLineElement } from "./track/track-line-element";
 
 export interface NotationElement {
   readonly uuid: number;
   readonly trackElement: TrackElement;
+  readonly voiceNumber: VoiceNumber | null;
+  readonly owningTrackLineElement: TrackLineElement;
+  readonly owningBarElement: BarElement | null;
 
   build(): void;
   measure(): void;

@@ -1,4 +1,8 @@
-import { TechniqueElement, TrackController } from "@/notation/controller";
+import {
+  NotationElement,
+  TechniqueElement,
+  TrackController,
+} from "@/notation/controller";
 import { createSVGG, createSVGPath } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
@@ -56,6 +60,10 @@ export class SVGTechniqueRenderer implements ElementRenderer {
     }
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: TechniqueElement): void {
+    this.techniqueElement = element;
   }
 
   /**

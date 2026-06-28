@@ -158,7 +158,7 @@ describe("BeamSegmentElement", () => {
     bar.rebuildTiming();
 
     trackElement.update();
-    legacyTrackElement.updateFull();
+    legacyTrackElement.update();
 
     const segment = getBarElement(trackElement).beamSegments[0];
     const legacySegment = getBarElement(legacyTrackElement).beamSegments[0];

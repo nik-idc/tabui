@@ -12,6 +12,7 @@ import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
 import { VoiceBarElement } from "./voice-bar-element";
 import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
 import { BeatElement } from "../beat/beat-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 // TODO:: Fix repeat rects shifting when there are multple staves
 
@@ -36,6 +37,15 @@ export class BarElement implements NotationElement {
   public notationStyleLineElement!: NotationStyleLineElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+  readonly voiceNumber = null;
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.notationStyleLineElement.staffLineElement.trackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this;
+  }
 
   /** Finalized width for this bar's master bar as determined in the skeleton */
   private _finalizedWidth: number;
@@ -97,8 +107,6 @@ export class BarElement implements NotationElement {
     if (notationStyleLineElement !== undefined) {
       this.build();
     }
-
-    this.trackElement.registerElement(this);
   }
 
   /**
@@ -161,8 +169,6 @@ export class BarElement implements NotationElement {
   }
 
   public build(): void {
-    this.trackElement.registerElement(this);
-
     this.buildStructuralElements();
     this.buildVoiceBarElements();
     this.buildVoiceBarRhythmElements();

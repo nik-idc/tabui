@@ -1,4 +1,4 @@
-import { TrackController } from "../controller";
+import { NotationElement, TrackController } from "../controller";
 
 export interface ElementRenderer {
   readonly trackController: TrackController;
@@ -14,6 +14,13 @@ export interface ElementRenderer {
    * Root renderer calls this during lifecycle reconciliation.
    */
   detachContainerGroup(): void;
+
+  /**
+   * Updates the element object backing this renderer's stable identity.
+   * Renderers are reused by stable identity, while element objects can be
+   * recreated during viewport rematerialization or element tree updates.
+   */
+  updateElementReference(element: NotationElement): void;
 
   render(...params: any): void;
 

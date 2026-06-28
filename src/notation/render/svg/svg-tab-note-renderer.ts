@@ -1,4 +1,8 @@
-import { EditorLayoutDimensions, TrackController } from "@/notation/controller";
+import {
+  EditorLayoutDimensions,
+  NotationElement,
+  TrackController,
+} from "@/notation/controller";
 import { createSVGG, createSVGRect, createSVGText } from "@/shared";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { SVGNoteRenderer } from "./svg-note-renderer";
@@ -69,6 +73,10 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     this.detachAllMouseEvents();
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: TabNoteElement): void {
+    this.noteElement = element;
   }
 
   /**

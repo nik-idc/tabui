@@ -1,6 +1,7 @@
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { AppendBeatCommand } from "../../src/notation/controller/editor/command/append-beat-command";
 import { BarElement } from "../../src/notation/controller/element/bar/bar-element";
+import { BeatElement } from "../../src/notation/controller/element/beat/beat-element";
 import {
   BendTechniqueOptions,
   BendType,
@@ -20,9 +21,7 @@ import {
 import { ensureLayoutConfigured } from "./helpers";
 
 function getBeatElements(controller: TrackController) {
-  const beatElements = [] as ReturnType<
-    typeof controller.trackElement.findCorrespondingBeatElement
-  >[];
+  const beatElements: BeatElement[] = [];
 
   for (const trackLine of controller.trackElement.trackLineElements) {
     for (const staffLine of trackLine.staffLineElements) {
@@ -89,37 +88,24 @@ describe("TrackController", () => {
   test("switching to an existing voice does not update elements", () => {
     const { track } = createScoreGraph();
     const controller = new TrackController(track);
-    const updateFullSpy = jest.spyOn(controller.trackElement, "updateFull");
-    const updateVerticalSpy = jest.spyOn(
-      controller.trackElement,
-      "updateVertical"
-    );
+    const updateSpy = jest.spyOn(controller.trackElement, "update");
 
     controller.setActiveVoiceNumber(1);
 
     expect(controller.activeVoiceNumber).toBe(1);
-    expect(updateFullSpy).not.toHaveBeenCalled();
-    expect(updateVerticalSpy).not.toHaveBeenCalled();
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 
   test("switching to a new voice updates only the affected line vertically", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track);
-    const updateFullSpy = jest.spyOn(controller.trackElement, "updateFull");
-    const updateVerticalSpy = jest.spyOn(
-      controller.trackElement,
-      "updateVertical"
-    );
+    const updateSpy = jest.spyOn(controller.trackElement, "update");
 
     controller.setActiveVoiceNumber(2);
 
     expect(controller.activeVoiceNumber).toBe(2);
-    expect(updateFullSpy).not.toHaveBeenCalled();
-    expect(updateVerticalSpy).toHaveBeenCalledTimes(1);
-    expect(updateVerticalSpy).toHaveBeenCalledWith({
-      updateType: "Vertical",
-      affectedModelUUIDs: [bar.uuid],
-    });
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy).toHaveBeenCalledWith(0, 0, { depth: "elements" });
   });
 
   test("moving right into a missing active voice bar updates elements", () => {
@@ -128,10 +114,7 @@ describe("TrackController", () => {
     const controller = new TrackController(track);
     controller.setActiveVoiceNumber(2);
     const secondBar = track.staves[0].bars[1];
-    const updateVerticalSpy = jest.spyOn(
-      controller.trackElement,
-      "updateVertical"
-    );
+    const updateSpy = jest.spyOn(controller.trackElement, "update");
 
     controller.moveSelectedNote(SelectedMoveDirection.Right);
     controller.moveSelectedNote(SelectedMoveDirection.Right);
@@ -140,14 +123,9 @@ describe("TrackController", () => {
 
     expect(secondBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectedNote?.bar).toBe(secondBar);
-    expect(updateVerticalSpy).toHaveBeenCalledWith({
-      updateType: "Vertical",
-      affectedModelUUIDs: [secondBar.uuid],
-    });
+    expect(updateSpy).toHaveBeenCalledWith(0, 0, { depth: "elements" });
     expect(
-      controller.trackElement.findCorrespondingBeatElement(
-        controller.selectedNote!.beat
-      )
+      controller.trackElement.getBeatElement(controller.selectedNote!.beat)
     ).toBeDefined();
   });
 
@@ -158,32 +136,23 @@ describe("TrackController", () => {
     const secondVoiceBar = secondBar.insertVoiceBar(2);
     const controller = new TrackController(track);
     controller.trackElement.update();
-    const secondVoiceBeatElement =
-      controller.trackElement.findCorrespondingBeatElement(
-        secondVoiceBar.beats[0]
-      );
+    const secondVoiceBeatElement = controller.trackElement.getBeatElement(
+      secondVoiceBar.beats[0]
+    );
     if (secondVoiceBeatElement === undefined) {
       throw Error("Second voice beat element not found");
     }
     controller.selectNoteElement(secondVoiceBeatElement.noteElements[0]);
-    const updateVerticalSpy = jest.spyOn(
-      controller.trackElement,
-      "updateVertical"
-    );
+    const updateSpy = jest.spyOn(controller.trackElement, "update");
     const firstBar = track.staves[0].bars[0];
 
     controller.moveSelectedNote(SelectedMoveDirection.Left);
 
     expect(firstBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectedNote?.bar).toBe(firstBar);
-    expect(updateVerticalSpy).toHaveBeenCalledWith({
-      updateType: "Vertical",
-      affectedModelUUIDs: [firstBar.uuid],
-    });
+    expect(updateSpy).toHaveBeenCalledWith(0, 0, { depth: "elements" });
     expect(
-      controller.trackElement.findCorrespondingBeatElement(
-        controller.selectedNote!.beat
-      )
+      controller.trackElement.getBeatElement(controller.selectedNote!.beat)
     ).toBeDefined();
   });
 

@@ -4,7 +4,11 @@ import {
   createSVGLine,
   createSVGRect,
 } from "@/shared";
-import { BeatElement, TrackController } from "@/notation/controller";
+import {
+  BeatElement,
+  NotationElement,
+  TrackController,
+} from "@/notation/controller";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
@@ -77,6 +81,10 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     this.detachAllMouseEvents();
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: TabBeatElement): void {
+    this.beatElement = element;
   }
 
   /**

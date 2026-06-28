@@ -2,6 +2,7 @@ import {
   BeamSegmentElement,
   BeatElement,
   EditorLayoutDimensions,
+  NotationElement,
   TrackController,
 } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
@@ -49,6 +50,10 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
     }
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: BeamSegmentElement): void {
+    this.beamSegment = element;
   }
 
   /**

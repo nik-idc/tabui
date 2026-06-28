@@ -4,12 +4,12 @@ import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dime
 import { TrackElement } from "@/notation/controller/element/track-element";
 import {
   NotationStyle,
-  StaffLineData,
   StaffLineElement,
 } from "@/notation/controller/element/staff/staff-line-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
 import { VertLine } from "@/shared/rendering/geometry/line";
 import { NotationElement } from "@/notation/controller/element/notation-element";
+import type { BarElement } from "../bar/bar-element";
 /**
  * Bar placement data for one master bar inside a presentation track line.
  * Presentation shells create the actual BarElements from this placement data.
@@ -18,6 +18,15 @@ export type TrackLineBar = {
   finalizedWidth: number;
   masterBarUUID: number;
   masterBarIndex: number;
+};
+
+export type TrackElementSkeletonLine = {
+  trackLineBars: TrackLineBar[];
+  finalLineHeight: number;
+};
+
+export type TrackElementSkeleton = {
+  lines: TrackElementSkeletonLine[];
 };
 
 type OutlineLines = {
@@ -46,6 +55,15 @@ export class TrackLineElement implements NotationElement {
   readonly track: Track;
   /** Parent track element */
   readonly trackElement: TrackElement;
+  readonly voiceNumber = null;
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this;
+  }
+
+  public get owningBarElement(): BarElement | null {
+    return null;
+  }
 
   /** Staff line element on this track line */
   private _staffLineElements: StaffLineElement[];
@@ -61,7 +79,7 @@ export class TrackLineElement implements NotationElement {
   // Especially noticeable when adding new beats/bars by moving right
   private _outlineLines?: OutlineLines;
   /** Bar elements placed by TrackElement into this presentation line. */
-  private _trackLineBars: TrackLineBar[];
+  private _skeletonLine: TrackElementSkeletonLine;
   /** Stable ownership identity captured when the line data is assigned. */
   private _stableIdentity: string;
 
@@ -70,7 +88,10 @@ export class TrackLineElement implements NotationElement {
    * @param trackElement Parent track element
    * @param trackLineBars Bar placement data for this track line
    */
-  constructor(trackElement: TrackElement, trackLineBars: TrackLineBar[]) {
+  constructor(
+    trackElement: TrackElement,
+    skeletonLine: TrackElementSkeletonLine
+  ) {
     this.uuid = randomInt();
     this.track = trackElement.track;
     this.trackElement = trackElement;
@@ -80,37 +101,24 @@ export class TrackLineElement implements NotationElement {
     this._ownedNotationElements = [];
 
     this._boundingBox = new Rect();
-    this._trackLineBars = trackLineBars;
+    this._skeletonLine = skeletonLine;
     this._stableIdentity = TrackLineElement.createStableIdentity(
       this.track,
-      this._trackLineBars
+      this._skeletonLine.trackLineBars
     );
 
     this.build();
-
-    this.trackElement.registerElement(this);
   }
 
   /**
    * Fills staff lines array
    */
   public build(): void {
-    this.trackElement.registerElement(this);
-
     this._staffLineElements = [];
     for (const staff of this.track.staves) {
-      // Convert track-line placement data into staff-local data. Missing model
-      // bars are intentionally not guarded: the model is expected to be valid
-      // before TrackElement updates run.
-      const data: StaffLineData = this._trackLineBars.map((lineBars) => {
-        return {
-          finalizedWidth: lineBars.finalizedWidth,
-          bar: staff.bars[lineBars.masterBarIndex],
-          masterBarIndex: lineBars.masterBarIndex,
-        };
-      });
-
-      this._staffLineElements.push(new StaffLineElement(staff, this, data));
+      this._staffLineElements.push(
+        new StaffLineElement(staff, this, this._skeletonLine.trackLineBars)
+      );
     }
 
     if (this.track.staves.length > 1) {
@@ -123,6 +131,7 @@ export class TrackLineElement implements NotationElement {
     }
 
     this._trackLineInfoElement = new TrackLineInfoElement(this);
+    this.refreshOwnedNotationElements();
   }
 
   /**
@@ -149,8 +158,6 @@ export class TrackLineElement implements NotationElement {
     const height =
       sumStaffHeight + this._trackLineInfoElement.boundingBox.height;
     this._boundingBox.setDimensions(width, height);
-
-    this.refreshOwnedNotationElements();
   }
 
   private buildStateHash(): string {
@@ -304,12 +311,23 @@ export class TrackLineElement implements NotationElement {
   }
 
   public setTrackLineBars(trackLineBars: TrackLineBar[]): void {
-    this._trackLineBars = trackLineBars;
+    this._skeletonLine = {
+      ...this._skeletonLine,
+      trackLineBars,
+    };
   }
 
   /** Staff line element on this track line */
   public get staffLineElements(): StaffLineElement[] {
     return this._staffLineElements;
+  }
+
+  public *allBarElements(): Generator<BarElement> {
+    for (const staff of this._staffLineElements) {
+      for (const style of staff.styleLinesAsArray) {
+        yield* style.barElements;
+      }
+    }
   }
 
   /** Track line info (tempo) */
@@ -395,7 +413,11 @@ export class TrackLineElement implements NotationElement {
 
   /** Bar placement data for this rendered track line. */
   public get trackLineBars(): TrackLineBar[] {
-    return this._trackLineBars;
+    return this._skeletonLine.trackLineBars;
+  }
+
+  public get skeletonLine(): TrackElementSkeletonLine {
+    return this._skeletonLine;
   }
 
   /**
@@ -403,6 +425,6 @@ export class TrackLineElement implements NotationElement {
    * before commit after callers have been migrated.
    */
   public get trackLineData(): TrackLineBar[] {
-    return this._trackLineBars;
+    return this._skeletonLine.trackLineBars;
   }
 }

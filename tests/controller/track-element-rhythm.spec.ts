@@ -183,7 +183,7 @@ describe("TrackElement rhythm", () => {
     const secondLineFirstBar = track.staves[0].bars[secondLineFirstBarIndex];
 
     secondLineFirstBar.insertVoiceBar(2);
-    trackElement.updateFull();
+    trackElement.update();
 
     expect(trackElement.trackLineElements[0].boundingBox.height).toBeCloseTo(
       firstLineHeightBefore

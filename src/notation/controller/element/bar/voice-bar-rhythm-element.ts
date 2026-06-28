@@ -11,6 +11,7 @@ import { VoiceBarElement } from "./voice-bar-element";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TabBeatRhythmElement } from "../beat/tab-beat-rhythm-element";
 import { BarElement } from "./bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 export class VoiceBarRhythmElement implements NotationElement {
   /** Unique identifier for the bar element */
@@ -25,6 +26,14 @@ export class VoiceBarRhythmElement implements NotationElement {
   public voiceBarElement?: VoiceBarElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.barElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.barElement;
+  }
 
   /** Beat stem elements for each beat of the voice bar element */
   private _beatRhythmElements: TabBeatRhythmElement[];
@@ -191,8 +200,6 @@ export class VoiceBarRhythmElement implements NotationElement {
   }
 
   build(): void {
-    this.trackElement.registerElement(this);
-
     this.buildBeatRhythmElements();
     this.buildBeamSegments();
     this.buildTupletGroupElements();

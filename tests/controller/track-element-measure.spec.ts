@@ -136,7 +136,7 @@ describe("TrackElement measure", () => {
       );
     score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
     score.masterBars[1].repeatStatus = BarRepeatStatus.End;
-    trackElement.updateFull();
+    trackElement.update();
 
     const afterWidths =
       trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements.map(

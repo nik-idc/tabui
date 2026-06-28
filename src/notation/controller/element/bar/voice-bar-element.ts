@@ -5,6 +5,7 @@ import {
   Guitar,
   BarRepeatStatus,
   Bar,
+  VoiceNumber,
 } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
@@ -23,6 +24,7 @@ import { SheetBeatElement } from "../beat/sheet-beat-element";
 import { BeatElement, getBeatWidth } from "../beat/beat-element";
 import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
 import { BarElement } from "./bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 // TODO:: Fix repeat rects shifting when there are multple staves
 
@@ -45,6 +47,18 @@ export class VoiceBarElement implements NotationElement {
   public barElement: BarElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+
+  public get voiceNumber(): VoiceNumber {
+    return this.voiceBar.voiceNumber;
+  }
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.barElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.barElement;
+  }
 
   /** This bar's beat elements */
   private _beatElements: BeatElement[];
@@ -103,8 +117,6 @@ export class VoiceBarElement implements NotationElement {
   }
 
   public build(): void {
-    this.trackElement.registerElement(this);
-
     this.buildBeats();
   }
 

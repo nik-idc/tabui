@@ -94,7 +94,7 @@ describe("TrackElement tree", () => {
     const beforeRightX = beforeOutline.right.x;
 
     voiceBar.insertBeat(1);
-    trackElement.updateHorizontal({
+    trackElement.update({
       updateType: "Horizontal",
       affectedMasterBarIndices: [0],
       firstAffectedMasterBarIndex: 0,
@@ -381,7 +381,7 @@ describe("TrackElement tree", () => {
 
     trackElement.update();
 
-    const beat = bar.beats[0];
+    const beat = bar.voiceBarsAsArray[0].beats[0];
     const beatElement = trackElement.getBeatElementByUUID(beat.uuid);
     expect(beatElement).toBeDefined();
     expect(beatElement?.beat.uuid).toBe(beat.uuid);
@@ -476,7 +476,7 @@ describe("TrackElement tree", () => {
     const trackElement = new TrackElement(track);
     const legacyTrackElement = new TrackElement(track);
     trackElement.update();
-    legacyTrackElement.updateFull();
+    legacyTrackElement.update();
 
     const lastLineIndex = trackElement.trackLineElements.length - 1;
     const affectedMasterBarIndex =
@@ -491,7 +491,7 @@ describe("TrackElement tree", () => {
       affectedMasterBarIndices: [affectedMasterBarIndex],
       firstAffectedMasterBarIndex: affectedMasterBarIndex,
     });
-    legacyTrackElement.updateFull();
+    legacyTrackElement.update();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
   });
@@ -505,7 +505,7 @@ describe("TrackElement tree", () => {
     const trackElement = new TrackElement(track);
     const legacyTrackElement = new TrackElement(track);
     trackElement.update();
-    legacyTrackElement.updateFull();
+    legacyTrackElement.update();
 
     const secondLastLineIndex = trackElement.trackLineElements.length - 2;
     const affectedMasterBarIndex =
@@ -520,7 +520,7 @@ describe("TrackElement tree", () => {
       affectedMasterBarIndices: [affectedMasterBarIndex],
       firstAffectedMasterBarIndex: affectedMasterBarIndex,
     });
-    legacyTrackElement.updateFull();
+    legacyTrackElement.update();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
   });
@@ -558,7 +558,7 @@ describe("TrackElement tree", () => {
     affectedBar.beats[0].baseDuration = NoteDuration.Whole;
     affectedBar.rebuildTiming();
 
-    trackElement.updateFull();
+    trackElement.update();
 
     const movedBarUUID = track.staves[0].bars.find((bar) => {
       const before = beforeByBarUUID.get(bar.uuid);
@@ -597,7 +597,7 @@ describe("TrackElement tree", () => {
       affectedMasterBarIndices: [removeIndex],
       firstAffectedMasterBarIndex: removeIndex,
     });
-    legacyTrackElement.updateFull();
+    legacyTrackElement.update();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
   });
@@ -620,7 +620,7 @@ describe("TrackElement tree", () => {
       affectedMasterBarIndices: [insertIndex],
       firstAffectedMasterBarIndex: insertIndex,
     });
-    legacyTrackElement.updateFull();
+    legacyTrackElement.update();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
   });
@@ -765,10 +765,10 @@ describe("TrackElement tree", () => {
     expect(selectionRects[1].width).toBeGreaterThan(0);
     expect(selectionRects[1].y).toBeGreaterThan(selectionRects[0].y);
     expect(selectionRects[0].x).toBeCloseTo(
-      trackElement.getBeatElementGlobalCoords(firstLineBeatElement!).x
+      firstLineBeatElement!.globalCoords.x
     );
     expect(selectionRects[1].x).toBeCloseTo(
-      trackElement.getBeatElementGlobalCoords(secondLineBeatElement!).x
+      secondLineBeatElement!.globalCoords.x
     );
   });
 

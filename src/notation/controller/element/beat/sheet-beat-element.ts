@@ -16,6 +16,7 @@ import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
 import { NotationElement } from "../notation-element";
 import { VoiceBarElement } from "../bar/voice-bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
@@ -38,6 +39,15 @@ export class SheetBeatElement implements BeatElement {
   readonly voiceBarElement: VoiceBarElement;
   /** Reference to track element */
   readonly trackElement: TrackElement;
+  readonly voiceNumber = null;
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.barElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.barElement;
+  }
 
   /** Note elements */
   private _noteElements: NoteElement[];

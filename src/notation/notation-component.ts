@@ -75,7 +75,7 @@ export class NotationComponent {
       this._trackController,
       this.config.assets
     );
-    this._trackController.trackElement.update();
+    this._trackController.trackElement.update(0, Number.MAX_SAFE_INTEGER);
     return this._renderer.render();
   }
 

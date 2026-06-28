@@ -97,9 +97,7 @@ describe("SetFretCommand", () => {
     const { track, bar } = createScoreGraph();
     const note = getGuitarNote(getVoiceBar1(bar).beats[0]);
     const controller = new TrackController(track);
-    const beatElement = controller.trackElement.findCorrespondingBeatElement(
-      note.beat
-    );
+    const beatElement = controller.trackElement.getBeatElement(note.beat);
     const noteElement = beatElement?.noteElements[0] as TabNoteElement;
 
     controller.setSelectedNoteFret(7);
@@ -114,9 +112,7 @@ describe("SetFretCommand", () => {
     const note = getGuitarNote(getVoiceBar1(bar).beats[0]);
     note.fret = 5;
     const controller = new TrackController(track);
-    const beatElement = controller.trackElement.findCorrespondingBeatElement(
-      note.beat
-    );
+    const beatElement = controller.trackElement.getBeatElement(note.beat);
     const noteElement = beatElement?.noteElements[0] as TabNoteElement;
 
     controller.setSelectedNoteFret(7);

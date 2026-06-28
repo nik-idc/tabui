@@ -1,4 +1,4 @@
-import { BarTupletGroup } from "@/notation/model";
+import { BarTupletGroup, VoiceNumber } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
@@ -6,6 +6,8 @@ import { NotationElement } from "@/notation/controller/element/notation-element"
 import { BeatElement } from "../beat/beat-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
+import type { BarElement } from "./bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class that handles geometry & visually relevant info of a bar tuplet group
@@ -28,6 +30,18 @@ export class BarTupletGroupElement implements NotationElement {
   readonly voiceBarRhythmElement: VoiceBarRhythmElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+
+  public get voiceNumber(): VoiceNumber {
+    return this.voiceBarRhythmElement.voiceNumber;
+  }
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.voiceBarRhythmElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.voiceBarRhythmElement.barElement;
+  }
 
   /** Tuplet element's outer rectangle */
   private _beatElements: TabBeatElement[];
@@ -55,8 +69,6 @@ export class BarTupletGroupElement implements NotationElement {
     this._boundingBox = new Rect();
 
     this.build();
-
-    this.trackElement.registerElement(this);
   }
 
   /**
@@ -64,8 +76,6 @@ export class BarTupletGroupElement implements NotationElement {
    * depending if the tuplet group is complete
    */
   public build(): void {
-    this.trackElement.registerElement(this);
-
     if (!this.tupletGroup.complete) {
       this._incompleteRects = [];
       for (const _ of this.beatElements) {

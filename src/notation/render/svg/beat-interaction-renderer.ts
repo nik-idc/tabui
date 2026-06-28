@@ -90,9 +90,7 @@ export class BeatInteractionRenderer {
       }
 
       const element =
-        this.trackController.trackElement.elementRegistryByModelUUID.get(
-          beatUUID
-        );
+        this.trackController.trackElement.getBeatElementByUUID(beatUUID);
       if (!(element instanceof TabBeatElement)) {
         return;
       }

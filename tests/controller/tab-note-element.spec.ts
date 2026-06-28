@@ -6,9 +6,11 @@ import { createScoreGraph } from "../model/helpers";
 import { ensureLayoutConfigured } from "./helpers";
 
 function getNoteElement(controller: TrackController, note: GuitarNote) {
-  const noteElement = controller.trackElement.elementRegistryByModelUUID.get(
-    note.uuid
-  );
+  const noteElement = controller.trackElement.trackLineElements
+    .flatMap((line) => line.ownedNotationElements)
+    .find((element) => {
+      return element instanceof TabNoteElement && element.note === note;
+    });
   if (!(noteElement instanceof TabNoteElement)) {
     throw Error("Expected tab note element");
   }
@@ -35,8 +37,7 @@ function createLaidOutController(
   track: ConstructorParameters<typeof TrackController>[0]
 ) {
   const controller = new TrackController(track);
-  controller.trackElement.measure();
-  controller.trackElement.layout();
+  controller.trackElement.update();
 
   return controller;
 }

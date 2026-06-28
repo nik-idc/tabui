@@ -1,4 +1,9 @@
-import { Beat, DURATION_TO_FLAG_COUNT, NoteDuration } from "@/notation/model";
+import {
+  Beat,
+  DURATION_TO_FLAG_COUNT,
+  NoteDuration,
+  VoiceNumber,
+} from "@/notation/model";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { Point, randomInt, Rect } from "@/shared";
 import { TrackElement } from "../track-element";
@@ -7,6 +12,8 @@ import { Circle } from "@/shared/rendering/geometry/circle";
 import { NotationElement } from "../notation-element";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { VoiceBarRhythmElement } from "../bar/voice-bar-rhythm-element";
+import type { BarElement } from "../bar/bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 export class TabBeatRhythmElement implements NotationElement {
   public static createStableIdentity(beat: Beat): string {
@@ -23,6 +30,18 @@ export class TabBeatRhythmElement implements NotationElement {
   readonly beatElement: TabBeatElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+
+  public get voiceNumber(): VoiceNumber {
+    return this.voiceBarRhythmElement.voiceNumber;
+  }
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.voiceBarRhythmElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.voiceBarRhythmElement.barElement;
+  }
 
   /** This beat's rect */
   private _boundingBox: Rect;
@@ -51,8 +70,6 @@ export class TabBeatRhythmElement implements NotationElement {
   }
 
   public build(): void {
-    this.trackElement.registerElement(this);
-
     if (this.beat.voiceBar.bar.staff.showClassicNotation) {
       // Only show durations & else if classical notation is not enabled
       this._durationStemLine = undefined;

@@ -1,9 +1,10 @@
-import { Bar, Staff, VoiceNumber } from "@/notation/model";
+import { Staff, VoiceNumber } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
-import { TrackLineElement } from "../track/track-line-element";
+import { TrackLineBar, TrackLineElement } from "../track/track-line-element";
 import { NotationStyleLineElement } from "./notation-style-line-element";
+import type { BarElement } from "../bar/bar-element";
 
 /**
  * Supported notation styles
@@ -12,22 +13,6 @@ export enum NotationStyle {
   Classic = "classic",
   Tablature = "tablature",
 }
-
-/**
- * Data needed to build a staff line bar:
- * Width to match & the bar itself
- */
-export type StaffLineBarData = {
-  finalizedWidth: number;
-  bar: Bar;
-  masterBarIndex: number;
-};
-
-/**
- * Data needed to build a staff line:
- * Array of objects: intrinsic/finalized width for the bar at the specified index
- */
-export type StaffLineData = StaffLineBarData[];
 
 /**
  * Class that handles all geometry & visually relevant info of a staff line
@@ -48,14 +33,23 @@ export class StaffLineElement implements NotationElement {
   readonly trackLineElement: TrackLineElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+  readonly voiceNumber = null;
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.trackLineElement;
+  }
+
+  public get owningBarElement(): BarElement | null {
+    return null;
+  }
 
   /** Notation style line elements of this staff line */
   private _notationStyleLineElements: Record<
     NotationStyle,
     NotationStyleLineElement | null
   >;
-  /** Data necessary to build a staff line */
-  private _staffLineData: StaffLineData;
+  /** Bar placement data shared by every staff on this track line. */
+  private _trackLineBars: TrackLineBar[];
   /** Non-empty voices present anywhere on this staff line. */
   private _lineNonEmptyVoiceNumbers: VoiceNumber[];
 
@@ -66,18 +60,18 @@ export class StaffLineElement implements NotationElement {
    * Class that handles all geometry & visually relevant info of a staff line
    * @param staff Staff
    * @param trackLineElement Parent track line element
-   * @param staffLineData Data necessary to build a staff line
+   * @param trackLineBars Bar placement data for this track line
    */
   constructor(
     staff: Staff,
     trackLineElement: TrackLineElement,
-    staffLineData: StaffLineData
+    trackLineBars: TrackLineBar[]
   ) {
     this.uuid = randomInt();
     this.staff = staff;
     this.trackLineElement = trackLineElement;
     this.trackElement = this.trackLineElement.trackElement;
-    this._staffLineData = staffLineData;
+    this._trackLineBars = trackLineBars;
     this._lineNonEmptyVoiceNumbers = [];
 
     this._notationStyleLineElements = {
@@ -88,13 +82,12 @@ export class StaffLineElement implements NotationElement {
     this._boundingBox = new Rect();
 
     this.build();
-
-    this.trackElement.registerElement(this);
   }
 
   private computeLineNonEmptyVoiceNumbers(): VoiceNumber[] {
     const voiceNumbers = new Set<VoiceNumber>();
-    for (const { bar } of this._staffLineData) {
+    for (const { masterBarIndex } of this._trackLineBars) {
+      const bar = this.staff.bars[masterBarIndex];
       for (const voiceBar of bar.voiceBarsAsArray) {
         if (!voiceBar.isEmpty()) {
           voiceNumbers.add(voiceBar.voiceNumber);
@@ -105,26 +98,25 @@ export class StaffLineElement implements NotationElement {
     return [...voiceNumbers].sort((a, b) => a - b);
   }
 
-  private getStyleLineData(notationStyle: NotationStyle): StaffLineData {
+  private getStyleLineBars(notationStyle: NotationStyle): TrackLineBar[] {
     if (notationStyle === NotationStyle.Classic) {
-      return this.staff.showClassicNotation ? this._staffLineData : [];
+      return this.staff.showClassicNotation ? this._trackLineBars : [];
     }
 
-    return this.staff.showTablature ? this._staffLineData : [];
+    return this.staff.showTablature ? this._trackLineBars : [];
   }
 
   /**
    * Fills the notation style lines array
    */
   public build(): void {
-    this.trackElement.registerElement(this);
     this._lineNonEmptyVoiceNumbers = this.computeLineNonEmptyVoiceNumbers();
 
     if (this.staff.showClassicNotation) {
       const styleLine = new NotationStyleLineElement(
         this,
         NotationStyle.Classic,
-        this.getStyleLineData(NotationStyle.Classic)
+        this.getStyleLineBars(NotationStyle.Classic)
       );
       this._notationStyleLineElements[NotationStyle.Classic] = styleLine;
     } else {
@@ -135,7 +127,7 @@ export class StaffLineElement implements NotationElement {
       const styleLine = new NotationStyleLineElement(
         this,
         NotationStyle.Tablature,
-        this.getStyleLineData(NotationStyle.Tablature)
+        this.getStyleLineBars(NotationStyle.Tablature)
       );
       this._notationStyleLineElements[NotationStyle.Tablature] = styleLine;
     } else {
@@ -143,8 +135,8 @@ export class StaffLineElement implements NotationElement {
     }
   }
 
-  public setStaffLineData(staffLineData: StaffLineData): void {
-    this._staffLineData = staffLineData;
+  public setTrackLineBars(trackLineBars: TrackLineBar[]): void {
+    this._trackLineBars = trackLineBars;
     this._lineNonEmptyVoiceNumbers = this.computeLineNonEmptyVoiceNumbers();
   }
 
@@ -257,8 +249,8 @@ export class StaffLineElement implements NotationElement {
     return result;
   }
 
-  public get staffLineData(): StaffLineData {
-    return this._staffLineData;
+  public get trackLineBars(): TrackLineBar[] {
+    return this._trackLineBars;
   }
 
   public get lineNonEmptyVoiceNumbers(): VoiceNumber[] {

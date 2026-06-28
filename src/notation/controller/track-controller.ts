@@ -351,9 +351,7 @@ export class TrackController {
       return undefined;
     }
 
-    return this._trackElement.findCorrespondingBeatElement(
-      this._scorePlayer.currentBeat
-    );
+    return this._trackElement.getBeatElement(this._scorePlayer.currentBeat);
   }
 
   /** Track element */

@@ -44,7 +44,13 @@ import {
   InsertBarCommand,
   RemoveBarsCommand,
   Command,
+  CommandUpdateRequest,
 } from "./command";
+
+type MaterializedLineUpdate = {
+  startLineIndex: number;
+  endLineIndex: number;
+} | null;
 
 /**
  * Class responsible for managing editing & element state
@@ -69,12 +75,99 @@ export class TrackControllerEditor {
     this._selectionManager = new SelectionManager(this._trackElement.track);
   }
 
+  private getMasterBarIndicesForModelUUIDs(modelUUIDs: number[]): number[] {
+    const affectedUUIDs = new Set(modelUUIDs);
+    const indices = new Set<number>();
+
+    for (const staff of this._trackElement.track.staves) {
+      for (let barIndex = 0; barIndex < staff.bars.length; barIndex++) {
+        const bar = staff.bars[barIndex];
+        if (
+          affectedUUIDs.has(bar.uuid) ||
+          affectedUUIDs.has(bar.masterBar.uuid)
+        ) {
+          indices.add(barIndex);
+          continue;
+        }
+
+        for (const voiceBar of bar.voiceBarsAsArray) {
+          if (affectedUUIDs.has(voiceBar.uuid)) {
+            indices.add(barIndex);
+            break;
+          }
+
+          let found = false;
+          for (const beat of voiceBar.beats) {
+            if (affectedUUIDs.has(beat.uuid)) {
+              found = true;
+              break;
+            }
+
+            for (const note of beat.notes ?? []) {
+              if (
+                affectedUUIDs.has(note.uuid) ||
+                note.techniques.some((technique) =>
+                  affectedUUIDs.has(technique.uuid)
+                )
+              ) {
+                found = true;
+                break;
+              }
+            }
+
+            if (found) {
+              break;
+            }
+          }
+
+          if (found) {
+            indices.add(barIndex);
+            break;
+          }
+        }
+      }
+    }
+
+    return [...indices].sort((a, b) => a - b);
+  }
+
+  private transitionalLegacyUpdateRequestToMaterializedLineUpdate(
+    request: CommandUpdateRequest
+  ): MaterializedLineUpdate {
+    this._trackElement.rebuildSkeleton();
+
+    if (request.updateType === "Full") {
+      return this._trackElement.getFullLineRange();
+    }
+
+    const masterBarIndices =
+      request.updateType === "Horizontal"
+        ? request.affectedMasterBarIndices
+        : this.getMasterBarIndicesForModelUUIDs(request.affectedModelUUIDs);
+
+    return this._trackElement.getLineRangeForMasterBarIndices(masterBarIndices);
+  }
+
+  private updateMaterializedLines(update: MaterializedLineUpdate): void {
+    if (update === null) {
+      return;
+    }
+
+    this._trackElement.update(update.startLineIndex, update.endLineIndex, {
+      depth: "elements",
+    });
+  }
+
   private applyCommandUpdate(command: Command | undefined): void {
     if (command === undefined) {
       return;
     }
 
-    this._trackElement.update(command.updateRequest);
+    this.updateMaterializedLines(
+      this.transitionalLegacyUpdateRequestToMaterializedLineUpdate(
+        command.updateRequest
+      )
+    );
   }
 
   public executeCommand<T extends Command>(command: T): T {
@@ -187,10 +280,15 @@ export class TrackControllerEditor {
       return false;
     }
 
-    this._trackElement.updateVertical({
+    const updateRequest: CommandUpdateRequest = {
       updateType: "Vertical",
       affectedModelUUIDs: [bar.uuid],
-    });
+    };
+    this.updateMaterializedLines(
+      this.transitionalLegacyUpdateRequestToMaterializedLineUpdate(
+        updateRequest
+      )
+    );
     return true;
   }
 
@@ -611,10 +709,15 @@ export class TrackControllerEditor {
       return;
     }
 
-    this._trackElement.updateVertical({
+    const updateRequest: CommandUpdateRequest = {
       updateType: "Vertical",
       affectedModelUUIDs: [selectedBar.uuid],
-    });
+    };
+    this.updateMaterializedLines(
+      this.transitionalLegacyUpdateRequestToMaterializedLineUpdate(
+        updateRequest
+      )
+    );
   }
 
   private selectInsertedBeat(

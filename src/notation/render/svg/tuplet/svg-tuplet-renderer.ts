@@ -4,6 +4,7 @@ import { ElementRenderer } from "../../element-renderer";
 import {
   BarTupletGroupElement,
   EditorLayoutDimensions,
+  NotationElement,
   TrackController,
 } from "@/notation/controller";
 
@@ -61,6 +62,10 @@ export class SVGTupletRenderer implements ElementRenderer {
     }
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: NotationElement): void {
+    this.tupletElement = element as BarTupletGroupElement;
   }
 
   /**

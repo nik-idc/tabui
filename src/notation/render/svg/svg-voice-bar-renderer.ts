@@ -1,4 +1,8 @@
-import { TrackController, VoiceBarElement } from "@/notation/controller";
+import {
+  NotationElement,
+  TrackController,
+  VoiceBarElement,
+} from "@/notation/controller";
 import { createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
@@ -35,6 +39,10 @@ export class SVGVoiceBarRenderer implements ElementRenderer {
 
   public detachContainerGroup(): void {
     this._containerGroupSVG?.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: VoiceBarElement): void {
+    this.voiceBarElement = element;
   }
 
   public render(): void {

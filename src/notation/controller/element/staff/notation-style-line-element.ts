@@ -3,12 +3,9 @@ import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dime
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { BarElement } from "../bar/bar-element";
-import {
-  NotationStyle,
-  StaffLineData,
-  StaffLineElement,
-} from "./staff-line-element";
+import { NotationStyle, StaffLineElement } from "./staff-line-element";
 import { TechGapElement } from "./tech-gap-element";
+import { TrackLineBar, TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class that handles geometry of a single notation style line in the staff
@@ -32,11 +29,20 @@ export class NotationStyleLineElement implements NotationElement {
   readonly notationStyle: NotationStyle;
   /** Root track element */
   readonly trackElement: TrackElement;
+  readonly voiceNumber = null;
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.staffLineElement.trackLineElement;
+  }
+
+  public get owningBarElement(): BarElement | null {
+    return null;
+  }
 
   /** Bar elements on this line */
   private _barElements: BarElement[];
-  /** Bar data placed into this presentation line. */
-  private _staffLineData: StaffLineData;
+  /** Bar placement data shared by every staff on this track line. */
+  private _trackLineBars: TrackLineBar[];
   /** Tech gap element */
   private _techGapElement: TechGapElement;
 
@@ -51,7 +57,7 @@ export class NotationStyleLineElement implements NotationElement {
   constructor(
     staffLineElement: StaffLineElement,
     notationStyle: NotationStyle,
-    staffLineData: StaffLineData
+    trackLineBars: TrackLineBar[]
   ) {
     this.uuid = randomInt();
     this.staffLineElement = staffLineElement;
@@ -59,35 +65,33 @@ export class NotationStyleLineElement implements NotationElement {
     this.notationStyle = notationStyle;
 
     this._barElements = [];
-    this._staffLineData = staffLineData;
+    this._trackLineBars = trackLineBars;
     this._techGapElement = new TechGapElement(this);
     this._techGapElement.build();
 
     this._boundingBox = new Rect();
 
     this.build();
-
-    this.trackElement.registerElement(this);
   }
 
   /**
    * Builds the bar elements array for this notation style line
    */
   public build(): void {
-    this.trackElement.registerElement(this);
     this._techGapElement = new TechGapElement(this);
-    this._techGapElement.build();
 
-    this._barElements = this._staffLineData.map(
-      (data) =>
+    this._barElements = this._trackLineBars.map(
+      (lineBar) =>
         new BarElement(
-          data.bar,
+          this.staffLineElement.staff.bars[lineBar.masterBarIndex],
           this.trackElement,
           this.notationStyle,
-          data.finalizedWidth,
+          lineBar.finalizedWidth,
           this
         )
     );
+
+    this._techGapElement.build();
   }
 
   /**
@@ -194,6 +198,11 @@ export class NotationStyleLineElement implements NotationElement {
   /** Bar elements on this line */
   public get barElements(): BarElement[] {
     return this._barElements;
+  }
+
+  /** Bar placement data used to build this notation style line. */
+  public get trackLineBars(): TrackLineBar[] {
+    return this._trackLineBars;
   }
 
   /** Tech gap element */

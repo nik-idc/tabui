@@ -23,6 +23,15 @@ export class TrackLineInfoElement implements NotationElement {
   readonly trackLineElement: TrackLineElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+  readonly voiceNumber = null;
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.trackLineElement;
+  }
+
+  public get owningBarElement(): BarElement | null {
+    return null;
+  }
 
   /** Track line encapsulating rectangle */
   private _boundingBox: Rect;
@@ -43,16 +52,12 @@ export class TrackLineInfoElement implements NotationElement {
     this._barTempoRectsMap = new Map();
 
     this.build();
-
-    this.trackElement.registerElement(this);
   }
 
   /**
    * Fills the tempo rectangles map
    */
   public build(): void {
-    this.trackElement.registerElement(this);
-
     this._boundingBox.height = 0;
     this._barTempoRectsMap.clear();
 

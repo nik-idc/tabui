@@ -1,6 +1,7 @@
 import {
   BarElement,
   EditorLayoutDimensions,
+  NotationElement,
   TrackController,
 } from "@/notation/controller";
 import { resolveAssetUrl } from "@/config/asset-url-resolver";
@@ -75,6 +76,10 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
     }
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: TrackLineInfoElement): void {
+    this.trackLineInfoElement = element;
   }
 
   /**

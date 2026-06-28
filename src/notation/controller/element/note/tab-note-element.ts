@@ -1,4 +1,4 @@
-import { GuitarNote } from "@/notation/model";
+import { GuitarNote, VoiceNumber } from "@/notation/model";
 import { Rect, Point, randomInt } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
@@ -7,6 +7,8 @@ import { TechniqueElement } from "../technique/technique-element";
 import { NoteElement } from "./note-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { NotationElement } from "../notation-element";
+import type { BarElement } from "../bar/bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * TODO(rests): Audit whether this class should be renamed since
@@ -32,6 +34,18 @@ export class TabNoteElement implements NoteElement {
   readonly beatElement: TabBeatElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+
+  public get voiceNumber(): VoiceNumber {
+    return this.beatElement.voiceNumber;
+  }
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.beatElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.beatElement.barElement;
+  }
 
   /** Array of technique elements */
   private _techniqueElements: TechniqueElement[];
@@ -64,16 +78,12 @@ export class TabNoteElement implements NoteElement {
     this._techniqueElements = [];
 
     this.build();
-
-    this.trackElement.registerElement(this);
   }
 
   /**
    * Fills the technique element array
    */
   public build(): void {
-    this.trackElement.registerElement(this);
-
     this._noteValueState = `${this.note?.fret ?? ""}${this.stringNumber}`;
 
     const prevTechniqueElements = new Map(
@@ -144,7 +154,6 @@ export class TabNoteElement implements NoteElement {
     // TODO(rests): This relies on the caller rebuilding immediately after the
     // backing note changes so model UUID registration is restored correctly.
     // Revisit this when TabNoteElement is renamed/reworked as a slot element.
-    this.trackElement.unregisterElement(this);
     this.note = note;
   }
 

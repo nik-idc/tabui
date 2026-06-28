@@ -3,6 +3,7 @@ import {
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
+  VoiceNumber,
 } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
@@ -12,6 +13,8 @@ import { TrackElement } from "@/notation/controller/element/track-element";
 import { SVGPathDescriptor, TechniqueElement } from "../technique-element";
 import { TabNoteElement } from "../../note/tab-note-element";
 import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
+import type { BarElement } from "../../bar/bar-element";
+import type { TrackLineElement } from "../../track/track-line-element";
 
 /**
  * Class that handles geometry & visually relevant
@@ -38,6 +41,18 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /** Root track element */
   readonly trackElement: TrackElement;
 
+  public get voiceNumber(): VoiceNumber {
+    return this.noteElement.voiceNumber;
+  }
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.noteElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.noteElement.owningBarElement;
+  }
+
   /** Starting point (center of the provided rect) */
   private _startPoint: Point;
   /** SVG path descriptors rendered from this origin */
@@ -60,8 +75,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     this.createPath();
-
-    this.trackElement.registerElement(this);
   }
 
   private get note(): GuitarNote {
@@ -399,8 +412,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Initializes the path descriptors for non-inline techniques.
    */
   build(): void {
-    this.trackElement.registerElement(this);
-
     if (TECHNIQUE_IS_INLINE[this.technique.type]) {
       this._pathDescriptors = [];
     } else {

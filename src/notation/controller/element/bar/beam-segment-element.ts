@@ -3,9 +3,11 @@ import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dime
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { DURATION_TO_FLAG_COUNT } from "@/notation/model";
+import { DURATION_TO_FLAG_COUNT, VoiceNumber } from "@/notation/model";
 import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
 import { VoiceBarElement } from "./voice-bar-element";
+import type { BarElement } from "./bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 type ShortTailDirection = "left" | "right";
 
@@ -45,6 +47,18 @@ export class BeamSegmentElement implements NotationElement {
   /** Root track element */
   readonly trackElement: TrackElement;
 
+  public get voiceNumber(): VoiceNumber {
+    return this.voiceBarRhythmElement.voiceNumber;
+  }
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.voiceBarRhythmElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.voiceBarRhythmElement.barElement;
+  }
+
   /** Rectangle of the long beam */
   private _longRects: Rect[];
   /** Rectangles of short tails */
@@ -81,8 +95,6 @@ export class BeamSegmentElement implements NotationElement {
     this._shortRects = [];
 
     this.build();
-
-    this.trackElement.registerElement(this);
   }
 
   /**
@@ -148,8 +160,6 @@ export class BeamSegmentElement implements NotationElement {
    * Initializes the long and short rectangles for this segment
    */
   public build(): void {
-    this.trackElement.registerElement(this);
-
     this._longRects = [];
     this._shortRects = [];
 

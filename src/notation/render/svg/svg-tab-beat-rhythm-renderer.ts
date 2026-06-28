@@ -1,5 +1,9 @@
 import { DURATION_TO_FLAG_COUNT } from "@/notation/model";
-import { TabBeatRhythmElement, TrackController } from "@/notation/controller";
+import {
+  NotationElement,
+  TabBeatRhythmElement,
+  TrackController,
+} from "@/notation/controller";
 import { createSVGCircle, createSVGG, createSVGLine } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
@@ -40,6 +44,10 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
 
   public detachContainerGroup(): void {
     this._containerGroupSVG?.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: TabBeatRhythmElement): void {
+    this.beatRhythmElement = element;
   }
 
   private renderDurationStem(): void {
