@@ -266,7 +266,7 @@ describe("TrackElement techniques", () => {
     expect(trackElement.materializedLineIndices.has(0)).toBe(true);
     expect(trackElement.materializedLineIndices.has(1)).toBe(false);
     expect(
-      trackElement.getBeatElementByUUID(secondLineBeatElement.beat.uuid)
+      trackElement.getBeatElement(secondLineBeatElement.beat)
     ).toBeUndefined();
     expect(trackElement.elementDiff.added.size).toBeGreaterThan(0);
     expect(firstLineAfter.skeletonLine.finalLineHeight).toBe(

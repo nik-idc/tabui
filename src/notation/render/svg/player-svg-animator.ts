@@ -90,7 +90,7 @@ export class TrackPlayerSVGAnimator {
   private onBeatChanged(
     args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
   ): void {
-    const beatElement = this._trackController.trackElement.getBeatElementByUUID(
+    const beatElement = this._trackController.getBeatElementByUUID(
       args.beatUUID
     );
     if (beatElement === undefined) {

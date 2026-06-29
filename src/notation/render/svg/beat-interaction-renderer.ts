@@ -89,8 +89,7 @@ export class BeatInteractionRenderer {
         return;
       }
 
-      const element =
-        this.trackController.trackElement.getBeatElementByUUID(beatUUID);
+      const element = this.trackController.getBeatElementByUUID(beatUUID);
       if (!(element instanceof TabBeatElement)) {
         return;
       }

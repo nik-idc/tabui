@@ -354,6 +354,23 @@ export class TrackController {
     return this._trackElement.getBeatElement(this._scorePlayer.currentBeat);
   }
 
+  public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
+    for (const staff of this.track.staves) {
+      for (const bar of staff.bars) {
+        for (const voiceBar of bar.voiceBarsAsArray) {
+          const beat = voiceBar.beats.find((voiceBeat) => {
+            return voiceBeat.uuid === beatUUID;
+          });
+          if (beat !== undefined) {
+            return this._trackElement.getBeatElement(beat);
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
   /** Track element */
   public get trackElement(): TrackElement {
     return this._trackElement;

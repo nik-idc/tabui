@@ -375,14 +375,14 @@ describe("TrackElement tree", () => {
     ).toBeCloseTo(noteElement.textCoordsLineLocal.y);
   });
 
-  test("registry lookup returns the beat element by beat UUID", () => {
+  test("registry lookup returns the beat element by model beat", () => {
     const { track, bar } = createScoreGraph();
     const trackElement = new TrackElement(track);
 
     trackElement.update();
 
     const beat = bar.voiceBarsAsArray[0].beats[0];
-    const beatElement = trackElement.getBeatElementByUUID(beat.uuid);
+    const beatElement = trackElement.getBeatElement(beat);
     expect(beatElement).toBeDefined();
     expect(beatElement?.beat.uuid).toBe(beat.uuid);
   });
@@ -644,7 +644,9 @@ describe("TrackElement tree", () => {
       firstAffectedMasterBarIndex: affectedMasterBarIndex,
     });
 
-    expect(trackElement.getBeatElementByUUID(firstBeatUUID)).toBeInstanceOf(
+    const firstBeat = track.staves[0].bars[0].voiceBars[1]!.beats[0];
+    expect(firstBeat.uuid).toBe(firstBeatUUID);
+    expect(trackElement.getBeatElement(firstBeat)).toBeInstanceOf(
       TabBeatElement
     );
   });
@@ -751,12 +753,8 @@ describe("TrackElement tree", () => {
       firstLineBeat,
       secondLineBeat,
     ]);
-    const firstLineBeatElement = trackElement.getBeatElementByUUID(
-      firstLineBeat.uuid
-    );
-    const secondLineBeatElement = trackElement.getBeatElementByUUID(
-      secondLineBeat.uuid
-    );
+    const firstLineBeatElement = trackElement.getBeatElement(firstLineBeat);
+    const secondLineBeatElement = trackElement.getBeatElement(secondLineBeat);
 
     expect(firstLineBeatElement).toBeDefined();
     expect(secondLineBeatElement).toBeDefined();

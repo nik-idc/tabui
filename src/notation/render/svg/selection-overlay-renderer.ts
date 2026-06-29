@@ -42,7 +42,7 @@ export class SelectionOverlayRenderer {
       return undefined;
     }
 
-    const beatElement = this.trackController.trackElement.getBeatElementByUUID(
+    const beatElement = this.trackController.getBeatElementByUUID(
       selectedNote.beat.uuid
     );
     if (!(beatElement instanceof TabBeatElement)) {

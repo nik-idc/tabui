@@ -200,14 +200,6 @@ export class TrackElement {
     }
   }
 
-  /**
-   * @deprecated Transitional command-update adapter support. Remove when command
-   * update requests target materialized line ranges directly.
-   */
-  public rebuildSkeleton(): void {
-    this._skeleton = buildTrackElementSkeleton(this.track);
-  }
-
   /** Rebuilds all presentation shell elements and their descendants. */
   private build(): void {
     this._trackLineElements = [];
@@ -291,21 +283,15 @@ export class TrackElement {
     }
   }
 
-  /**
-   * @deprecated Transitional command-update adapter support. Remove with
-   * TrackControllerEditor.transitionalLegacyUpdateRequestToMaterializedLineUpdate.
-   */
-  public getFullLineRange(): MaybeTrackElementLineRange {
-    return getFullSkeletonLineRange(this._skeleton);
-  }
-
-  /**
-   * @deprecated Transitional command-update adapter support. Remove with
-   * TrackControllerEditor.transitionalLegacyUpdateRequestToMaterializedLineUpdate.
-   */
-  public getLineRangeForMasterBarIndices(
-    masterBarIndices: number[]
+  public rebuildSkeletonAndGetLineRange(
+    masterBarIndices: number[] | null
   ): MaybeTrackElementLineRange {
+    this._skeleton = buildTrackElementSkeleton(this.track);
+
+    if (masterBarIndices === null) {
+      return getFullSkeletonLineRange(this._skeleton);
+    }
+
     return getSkeletonLineRangeForMasterBarIndices(
       this._skeleton,
       masterBarIndices
@@ -416,27 +402,6 @@ export class TrackElement {
 
     const element = this._materializedElementsByIdentity.get(identity);
     return element instanceof TabBeatElement ? element : undefined;
-  }
-
-  /**
-   * @deprecated Transitional UUID adapter for renderer/player paths that do not
-   * yet retain the model Beat object.
-   */
-  public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
-    for (const staff of this.track.staves) {
-      for (const bar of staff.bars) {
-        for (const voiceBar of bar.voiceBarsAsArray) {
-          const beat = voiceBar.beats.find((voiceBeat) => {
-            return voiceBeat.uuid === beatUUID;
-          });
-          if (beat !== undefined) {
-            return this.getBeatElement(beat);
-          }
-        }
-      }
-    }
-
-    return undefined;
   }
 
   public getMaterializedElementByIdentity(

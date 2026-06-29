@@ -134,10 +134,8 @@ export class TrackControllerEditor {
   private transitionalLegacyUpdateRequestToMaterializedLineUpdate(
     request: CommandUpdateRequest
   ): MaterializedLineUpdate {
-    this._trackElement.rebuildSkeleton();
-
     if (request.updateType === "Full") {
-      return this._trackElement.getFullLineRange();
+      return this._trackElement.rebuildSkeletonAndGetLineRange(null);
     }
 
     const masterBarIndices =
@@ -145,7 +143,7 @@ export class TrackControllerEditor {
         ? request.affectedMasterBarIndices
         : this.getMasterBarIndicesForModelUUIDs(request.affectedModelUUIDs);
 
-    return this._trackElement.getLineRangeForMasterBarIndices(masterBarIndices);
+    return this._trackElement.rebuildSkeletonAndGetLineRange(masterBarIndices);
   }
 
   private updateMaterializedLines(update: MaterializedLineUpdate): void {

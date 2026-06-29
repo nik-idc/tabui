@@ -155,7 +155,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._trackLineContainers = new Map();
     this._mountedRendererIdentities = new Set();
     this._viewportRect = new Rect();
-    this.syncViewportState();
+    this.setViewportRect();
 
     this._notationSVGGroup = createSVGG();
     this._notationSVGGroup.setAttribute("id", "tu-notation");
@@ -210,9 +210,10 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.rootSVGElement.appendChild(this._playerSVGGroup);
   }
 
-  private syncViewportState(): void {
-    this._viewportRect.setCoords(0, this.notationViewportDiv.scrollTop);
-    this._viewportRect.setDimensions(
+  private setViewportRect(): void {
+    this._viewportRect.set(
+      0,
+      this.notationViewportDiv.scrollTop,
       this.notationViewportDiv.clientWidth,
       this.notationViewportDiv.clientHeight
     );
@@ -233,6 +234,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     );
   }
 
+  /** Returns the overscanned track-line range retained for the viewport. */
   private getLinesInViewport(): {
     start: number;
     end: number;
@@ -278,9 +280,10 @@ export class EditorSVGRenderer implements EditorRenderer {
 
   /**
    * Applies active voice opacity and paint order for all voice containers in a bar.
-   * OK
    */
-  private syncBarContainerVoicePresentation(barContainer: BarContainer): void {
+  private refreshBarContainerVoicePresentation(
+    barContainer: BarContainer
+  ): void {
     const activeVoiceNumber = this.trackController.activeVoiceNumber;
     const voiceContainers = new Map([
       ...barContainer.voiceContainers[VoicePart.Content],
@@ -387,7 +390,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     if (voiceContainer === undefined) {
       voiceContainer = createSVGG();
       voiceContainers.set(voiceNumber, voiceContainer);
-      this.syncBarContainerVoicePresentation(barContainer);
+      this.refreshBarContainerVoicePresentation(barContainer);
     }
 
     const isActive = voiceNumber === this.trackController.activeVoiceNumber;
@@ -399,7 +402,10 @@ export class EditorSVGRenderer implements EditorRenderer {
     return voiceContainer;
   }
 
-  /** Resolves the correct line/bar/voice layer for an element and mounts it. */
+  /**
+   * Resolves the correct line/bar/voice container for an element
+   * and mounts the renderer to that container
+   */
   private mountRenderer(
     renderer: ElementRenderer,
     element: NotationElement
@@ -411,7 +417,6 @@ export class EditorSVGRenderer implements EditorRenderer {
     const elementClass = element.constructor as NotationElementClass;
     const owningBarElement = element.owningBarElement;
     if (owningBarElement === null) {
-      // If belongs directly to track line container
       const lineLayerContainer =
         trackLineContainer.layerContainers.get(elementClass);
       const rendererContainer = renderer.ensureContainerGroup();
@@ -426,7 +431,6 @@ export class EditorSVGRenderer implements EditorRenderer {
     );
     const voicePart = ELEMENT_VOICE_PART.get(elementClass);
     if (voicePart === undefined || element.voiceNumber === null) {
-      // If belongs to a bar container
       const barLayerContainer = barContainer.layerContainers.get(elementClass);
       const rendererContainer = renderer.ensureContainerGroup();
       this.mountDomChild(barLayerContainer, rendererContainer);
@@ -497,8 +501,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   /**
-   * Prepares retained SVG containers for visible lines
-   * Does not mount renderer content.
+   * Reconciles retained SVG containers with the visible line set.
    */
   private reconcileVisibleContainers(
     visibleTrackLines: TrackLineElement[]
@@ -524,19 +527,17 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   /**
-   * Refreshes:
-   * - active-voice opacity and paint order for retained voice containers.
-   * OK
+   * Refreshes active-voice opacity and paint order for retained containers.
    */
-  private syncContainerPresentation(): void {
+  private refreshContainerPresentation(): void {
     for (const trackLineContainer of this._trackLineContainers.values()) {
       for (const barContainer of trackLineContainer.barContainers.values()) {
-        this.syncBarContainerVoicePresentation(barContainer);
+        this.refreshBarContainerVoicePresentation(barContainer);
       }
     }
   }
 
-  private unmountRemovedRenderers(diff: ElementDiff): void {
+  private disposeRemovedRenderers(diff: ElementDiff): void {
     for (const stableIdentities of diff.removed.values()) {
       for (const stableIdentity of stableIdentities) {
         const renderer = this._rendererRegistry.get(stableIdentity);
@@ -551,8 +552,8 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
   }
 
-  /** Unmounts renderer containers that are outside the retained viewport set. */
-  private unmountOffscreenRenderers(visibleIdentities: Set<string>): void {
+  /** Detaches offscreen renderers while keeping them reusable. */
+  private detachOffscreenRenderers(visibleIdentities: Set<string>): void {
     const mountedIdentities = [...this._mountedRendererIdentities];
     for (const stableIdentity of mountedIdentities) {
       if (visibleIdentities.has(stableIdentity)) {
@@ -566,7 +567,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
   }
 
-  private getVisibleUpdatedIdentities(
+  private getUpdatedVisibleIdentities(
     diff: ElementDiff,
     visibleIdentities: Set<string>
   ): Set<string> {
@@ -608,13 +609,13 @@ export class EditorSVGRenderer implements EditorRenderer {
     return { renderer, isNewRenderer: true };
   }
 
-  private reconcileVisibleRenderers(
-    elementsByVisibility: Map<NotationElement, boolean>,
+  private renderVisibleElementRenderers(
+    elementsByUpdateStatus: Map<NotationElement, boolean>,
     options: EditorRenderOptions
   ): ElementRenderer[] {
     const activeRenderers: ElementRenderer[] = [];
 
-    for (const [element, isUpdated] of elementsByVisibility) {
+    for (const [element, isUpdated] of elementsByUpdateStatus) {
       const stableIdentity = element.getStableIdentity();
       const { renderer, isNewRenderer } = this.createRendererElement(element);
       if (renderer === undefined) {
@@ -646,7 +647,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     return activeRenderers;
   }
 
-  private renderReconciled(
+  private reconcileRendererState(
     visibleElements: NotationElement[],
     options: EditorRenderOptions
   ): ElementRenderer[] {
@@ -655,19 +656,19 @@ export class EditorSVGRenderer implements EditorRenderer {
       visibleElements.map((ve) => ve.getStableIdentity())
     );
 
-    this.unmountRemovedRenderers(diff);
-    this.unmountOffscreenRenderers(visibleIdentities);
-    const updatedIdentities = this.getVisibleUpdatedIdentities(
+    this.disposeRemovedRenderers(diff);
+    this.detachOffscreenRenderers(visibleIdentities);
+    const updatedIdentities = this.getUpdatedVisibleIdentities(
       diff,
       visibleIdentities
     );
 
-    const elementsByVisibility = new Map();
+    const elementsByUpdateStatus = new Map();
     for (const element of visibleElements) {
-      const isVisible = updatedIdentities.has(element.getStableIdentity());
-      elementsByVisibility.set(element, isVisible);
+      const isUpdated = updatedIdentities.has(element.getStableIdentity());
+      elementsByUpdateStatus.set(element, isUpdated);
     }
-    return this.reconcileVisibleRenderers(elementsByVisibility, options);
+    return this.renderVisibleElementRenderers(elementsByUpdateStatus, options);
   }
 
   private *getMountedRenderers(): Generator<ElementRenderer> {
@@ -722,7 +723,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   private renderNotation(options: EditorRenderOptions): void {
-    this.syncViewportState();
+    this.setViewportRect();
 
     const { start, end } = this.getLinesInViewport();
     if (
@@ -744,9 +745,9 @@ export class EditorSVGRenderer implements EditorRenderer {
 
     // Prepare retained SVG scaffolding before mounting renderer content into it.
     this.reconcileVisibleContainers(visibleLines);
-    this.syncContainerPresentation();
+    this.refreshContainerPresentation();
 
-    this.renderReconciled(visibleElements, options);
+    this.reconcileRendererState(visibleElements, options);
     this._lastRenderedViewportStart = start;
     this._lastRenderedViewportEnd = end;
 
