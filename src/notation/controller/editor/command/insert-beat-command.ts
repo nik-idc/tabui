@@ -1,5 +1,5 @@
 import { BeatArrayOperationOutput, VoiceBar } from "@/notation/model";
-import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
+import { Command, AffectedModel } from "./command";
 
 /** Insert one default beat at a specific bar index. */
 export class InsertBeatCommand implements Command {
@@ -44,17 +44,14 @@ export class InsertBeatCommand implements Command {
     return this._insertBeatResult;
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    const affectedMasterBarIndex = getMasterBarIndex(
-      this._voiceBar.bar.staff.track.score,
-      this._voiceBar.bar.masterBar
-    );
-
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [affectedMasterBarIndex],
-      firstAffectedMasterBarIndex: affectedMasterBarIndex,
-      reason: "insert-beat",
-    };
+  public get affectedModels(): AffectedModel[] {
+    return [
+      {
+        masterBarIndex: this._voiceBar.bar.staff.track.score.masterBars.indexOf(
+          this._voiceBar.bar.masterBar
+        ),
+        modelUUID: this._voiceBar.bar.masterBar.uuid,
+      },
+    ];
   }
 }

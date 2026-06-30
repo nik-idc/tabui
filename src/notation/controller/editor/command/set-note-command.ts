@@ -1,5 +1,5 @@
 import { Beat, Note, NoteValue } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 // TODO(rests): audit whether this command is necessary
 // once the decision on classical notation is made
@@ -73,10 +73,7 @@ export class SetNoteCommand implements Command {
     note.noteValue = value;
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Targeted",
-      affectedModelUUIDs: [this._beat.uuid],
-    };
+  public get affectedModels(): AffectedModel[] {
+    return getAffectedModelsFromBeats([this._beat]);
   }
 }

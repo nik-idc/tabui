@@ -87,10 +87,12 @@ describe("SetFretCommand", () => {
     const note = getGuitarNote(getVoiceBar1(bar).beats[0]);
     const command = new SetFretCommand(note.beat, note.stringNum, 7);
 
-    expect(command.updateRequest).toEqual({
-      updateType: "Targeted",
-      affectedModelUUIDs: [note.beat.uuid],
-    });
+    expect(command.affectedModels).toEqual([
+      {
+        masterBarIndex: 0,
+        modelUUID: note.beat.uuid,
+      },
+    ]);
   });
 
   test("setting fret from empty marks the tab note element updated", () => {
@@ -130,10 +132,12 @@ describe("SetFretCommand", () => {
     const command = new SetFretCommand(beat, 3, 7);
 
     expect(beat.isRest()).toBe(true);
-    expect(command.updateRequest).toEqual({
-      updateType: "Targeted",
-      affectedModelUUIDs: [beat.uuid],
-    });
+    expect(command.affectedModels).toEqual([
+      {
+        masterBarIndex: 0,
+        modelUUID: beat.uuid,
+      },
+    ]);
 
     command.execute();
     expect(beat.isRest()).toBe(false);

@@ -5,7 +5,7 @@ import {
   VoiceNumber,
   ScoreEditor,
 } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Command, AffectedModel } from "./command";
 
 /**
  * Prepend bar command
@@ -79,12 +79,9 @@ export class PrependBarCommand implements Command {
     return this._prependMasterBarResult;
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [0],
-      firstAffectedMasterBarIndex: 0,
-      reason: "prepend-bar",
-    };
+  public get affectedModels(): AffectedModel[] {
+    const masterBar =
+      this._prependMasterBarResult?.masterBar ?? this._score.masterBars[0];
+    return [{ masterBarIndex: 0, modelUUID: masterBar?.uuid ?? 0 }];
   }
 }

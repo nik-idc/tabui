@@ -1,56 +1,32 @@
-import { Beat, MasterBar, Score } from "@/notation/model";
+import { Beat } from "@/notation/model";
 
-export interface VerticalUpdateRequest {
-  updateType: "Vertical";
-  affectedModelUUIDs: number[];
-}
+export type AffectedModel = {
+  masterBarIndex: number;
+  modelUUID: number;
+};
 
-export interface HorizontalUpdateRequest {
-  updateType: "Horizontal";
-  affectedMasterBarUUIDs?: number[];
-  affectedMasterBarIndices: number[];
-  firstAffectedMasterBarIndex: number;
-  reason?: string;
-}
+export function getAffectedModelsFromBeats(beats: Beat[]): AffectedModel[] {
+  const affectedModels: AffectedModel[] = [];
+  const seenBeatUUIDs = new Set<number>();
 
-export interface TargetedUpdateRequest {
-  updateType: "Targeted";
-  affectedModelUUIDs: number[];
-}
+  for (const beat of beats) {
+    const score = beat.voiceBar.bar.staff.track.score;
+    const masterBarIndex = score.masterBars.indexOf(
+      beat.voiceBar.bar.masterBar
+    );
+    if (masterBarIndex < 0) {
+      continue;
+    }
 
-export interface FullUpdateRequest {
-  updateType: "Full";
-}
+    if (seenBeatUUIDs.has(beat.uuid)) {
+      continue;
+    }
 
-export type CommandUpdateRequest =
-  | VerticalUpdateRequest
-  | HorizontalUpdateRequest
-  | TargetedUpdateRequest
-  | FullUpdateRequest;
+    seenBeatUUIDs.add(beat.uuid);
+    affectedModels.push({ masterBarIndex, modelUUID: beat.uuid });
+  }
 
-export function getMasterBarIndex(score: Score, masterBar: MasterBar): number {
-  return score.masterBars.indexOf(masterBar);
-}
-
-export function getAffectedMasterBarIndicesFromBeats(beats: Beat[]): number[] {
-  return Array.from(
-    new Set(
-      beats.map((beat) =>
-        getMasterBarIndex(
-          beat.voiceBar.bar.staff.track.score,
-          beat.voiceBar.bar.masterBar
-        )
-      )
-    )
-  )
-    .filter((masterBarIndex) => masterBarIndex >= 0)
-    .sort((a, b) => a - b);
-}
-
-export function getAffectedMasterBarUUIDsFromBeats(beats: Beat[]): number[] {
-  return Array.from(
-    new Set(beats.map((beat) => beat.voiceBar.bar.masterBar.uuid))
-  );
+  return affectedModels.sort((a, b) => a.masterBarIndex - b.masterBarIndex);
 }
 
 // Commands should own undo/redo state. Prefer ScoreEditor for structural model
@@ -59,5 +35,5 @@ export interface Command {
   execute(): void;
   undo(): void;
   redo(): void;
-  readonly updateRequest: CommandUpdateRequest;
+  readonly affectedModels: AffectedModel[];
 }

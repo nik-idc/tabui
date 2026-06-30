@@ -29,6 +29,12 @@ export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
  * like replace beats across the staff, transpose note etc
  */
 export class ScoreEditor {
+  public static ensureVoiceBar(bar: Bar, voiceNumber: VoiceNumber): boolean {
+    const voiceBarInserted = bar.getVoiceBar(voiceNumber) === null;
+    bar.ensureVoiceBar(voiceNumber);
+    return voiceBarInserted;
+  }
+
   private static rebuildBars<I extends MusicInstrument>(
     voiceBars: Set<VoiceBar<I>>
   ): void {

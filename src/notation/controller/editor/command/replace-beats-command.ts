@@ -4,12 +4,7 @@ import {
   Score,
   ScoreEditor,
 } from "@/notation/model";
-import {
-  Command,
-  CommandUpdateRequest,
-  getAffectedMasterBarIndicesFromBeats,
-  getAffectedMasterBarUUIDsFromBeats,
-} from "./command";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
  * Replaces selected beats with clipboard beats using the current permissive
@@ -22,8 +17,7 @@ export class ReplaceBeatsCommand implements Command {
   private _oldBeatSnapshots: BeatRestoreSnapshot[];
   private _currentBeats: Beat[];
   private _executed: boolean = false;
-  private _affectedMasterBarIndices: number[];
-  private _affectedMasterBarUUIDs: number[];
+  private _affectedModels: AffectedModel[];
 
   constructor(beatsToReplace: Beat[], newBeats: Beat[]) {
     this._beatsToReplace = beatsToReplace;
@@ -34,10 +28,7 @@ export class ReplaceBeatsCommand implements Command {
       beat: beat.deepCopy(),
     }));
     this._currentBeats = beatsToReplace;
-    this._affectedMasterBarIndices =
-      getAffectedMasterBarIndicesFromBeats(beatsToReplace);
-    this._affectedMasterBarUUIDs =
-      getAffectedMasterBarUUIDsFromBeats(beatsToReplace);
+    this._affectedModels = getAffectedModelsFromBeats(beatsToReplace);
   }
 
   execute(): void {
@@ -72,14 +63,8 @@ export class ReplaceBeatsCommand implements Command {
     );
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarUUIDs: this._affectedMasterBarUUIDs,
-      affectedMasterBarIndices: this._affectedMasterBarIndices,
-      firstAffectedMasterBarIndex: this._affectedMasterBarIndices[0] ?? 0,
-      reason: "replace-beats",
-    };
+  public get affectedModels(): AffectedModel[] {
+    return this._affectedModels;
   }
 }
 

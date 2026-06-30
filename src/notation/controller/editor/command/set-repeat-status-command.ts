@@ -1,5 +1,5 @@
 import { BarRepeatStatus, MasterBar, Track } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Command, AffectedModel } from "./command";
 
 /**
  * Set bar repeat status command
@@ -58,14 +58,12 @@ export class SetRepeatStatusCommand implements Command {
     this._bar.repeatStatus = this._newRepeatStatus;
   }
 
-  public get updateRequest(): CommandUpdateRequest {
+  public get affectedModels(): AffectedModel[] {
     const masterBarIndex = this._track.score.masterBars.indexOf(this._bar);
 
-    return {
-      updateType: "Targeted",
-      affectedModelUUIDs: this._track.staves.map(
-        (staff) => staff.bars[masterBarIndex].uuid
-      ),
-    };
+    return this._track.staves.map((staff) => ({
+      masterBarIndex,
+      modelUUID: staff.bars[masterBarIndex].uuid,
+    }));
   }
 }

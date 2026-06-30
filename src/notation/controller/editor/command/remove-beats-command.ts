@@ -1,9 +1,5 @@
 import { Beat, BeatRemovalOutput, ScoreEditor } from "@/notation/model";
-import {
-  Command,
-  CommandUpdateRequest,
-  getAffectedMasterBarIndicesFromBeats,
-} from "./command";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
  * Remove beats command
@@ -13,7 +9,7 @@ export class RemoveBeatsCommand implements Command {
   private _beatsToRemove: Beat[];
   /** True if executed, false otherwise */
   private _removeBeatsOutputs: BeatRemovalOutput[] | null = null;
-  private _affectedMasterBarIndices: number[];
+  private _affectedModels: AffectedModel[];
 
   /**
    * Remove beats command
@@ -21,8 +17,7 @@ export class RemoveBeatsCommand implements Command {
    */
   constructor(beatsToRemove: Beat[]) {
     this._beatsToRemove = beatsToRemove;
-    this._affectedMasterBarIndices =
-      getAffectedMasterBarIndicesFromBeats(beatsToRemove);
+    this._affectedModels = getAffectedModelsFromBeats(beatsToRemove);
   }
 
   /**
@@ -56,12 +51,7 @@ export class RemoveBeatsCommand implements Command {
     );
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarIndices: this._affectedMasterBarIndices,
-      firstAffectedMasterBarIndex: this._affectedMasterBarIndices[0] ?? 0,
-      reason: "remove-beats",
-    };
+  public get affectedModels(): AffectedModel[] {
+    return this._affectedModels;
   }
 }

@@ -43,10 +43,9 @@ describe("SetRepeatStatusCommand", () => {
       track
     );
 
-    expect(command.updateRequest).toEqual({
-      updateType: "Targeted",
-      affectedModelUUIDs: [bar.uuid],
-    });
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: bar.uuid },
+    ]);
   });
 
   test("targets all staff bars for the affected master bar", () => {
@@ -58,9 +57,9 @@ describe("SetRepeatStatusCommand", () => {
       track
     );
 
-    expect(command.updateRequest).toEqual({
-      updateType: "Targeted",
-      affectedModelUUIDs: [bar.uuid, secondStaff.bars[0].uuid],
-    });
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: bar.uuid },
+      { masterBarIndex: 0, modelUUID: secondStaff.bars[0].uuid },
+    ]);
   });
 });

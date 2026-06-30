@@ -4,7 +4,7 @@ import { EditorLayoutDimensions } from "../src/notation/controller/editor-layout
 import { TrackElement } from "../src/notation/controller/element/track-element";
 import {
   Command,
-  CommandUpdateRequest,
+  AffectedModel,
 } from "../src/notation/controller/editor/command";
 import { InsertBeatCommand } from "../src/notation/controller/editor/command/insert-beat-command";
 import { InsertBeatsCommand } from "../src/notation/controller/editor/command/insert-beats-command";
@@ -293,7 +293,12 @@ function createTempoCase(
             new SetTempoCommand(
               score.masterBars[index],
               tempos[i] ?? tempos[0],
-              [getBeat(score, index, 0).uuid]
+              [
+                {
+                  masterBarIndex: index,
+                  modelUUID: getBeat(score, index, 0).uuid,
+                },
+              ]
             )
         )
       ),
@@ -496,14 +501,13 @@ function mean(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function formatRequests(requests: CommandUpdateRequest[]): string {
+function formatRequests(requests: AffectedModel[][]): string {
   return requests
     .map((request) => {
-      const reason =
-        "reason" in request && request.reason !== undefined
-          ? `:${request.reason}`
-          : "";
-      return `${request.updateType}${reason}`;
+      const masterBarIndices = Array.from(
+        new Set(request.map((model) => model.masterBarIndex))
+      ).join("|");
+      return `models:${request.length}@${masterBarIndices}`;
     })
     .join(", ");
 }
@@ -512,7 +516,7 @@ function measureScenario(
   scenario: BenchmarkScenario,
   path: BenchmarkPath
 ): { elapsedMs: number; requestSummary: string } {
-  const requests = scenario.commands.map((command) => command.updateRequest);
+  const requests = scenario.commands.map((command) => command.affectedModels);
   const requestSummary = formatRequests(requests);
   const timerLabel = `  [${path}] done`;
 

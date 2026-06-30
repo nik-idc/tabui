@@ -11,6 +11,7 @@ import {
   DEFAULT_MASTER_BAR,
   GuitarTechniqueType,
   VoiceNumber,
+  ScoreEditor,
 } from "@/notation/model";
 import { TrackElement } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
@@ -44,13 +45,13 @@ import {
   InsertBarCommand,
   RemoveBarsCommand,
   Command,
-  CommandUpdateRequest,
+  AffectedModel,
 } from "./command";
 
-type MaterializedLineUpdate = {
+type UpdateLineRange = {
   startLineIndex: number;
   endLineIndex: number;
-} | null;
+};
 
 /**
  * Class responsible for managing editing & element state
@@ -75,85 +76,18 @@ export class TrackControllerEditor {
     this._selectionManager = new SelectionManager(this._trackElement.track);
   }
 
-  private getMasterBarIndicesForModelUUIDs(modelUUIDs: number[]): number[] {
-    const affectedUUIDs = new Set(modelUUIDs);
-    const indices = new Set<number>();
-
-    for (const staff of this._trackElement.track.staves) {
-      for (let barIndex = 0; barIndex < staff.bars.length; barIndex++) {
-        const bar = staff.bars[barIndex];
-        if (
-          affectedUUIDs.has(bar.uuid) ||
-          affectedUUIDs.has(bar.masterBar.uuid)
-        ) {
-          indices.add(barIndex);
-          continue;
-        }
-
-        for (const voiceBar of bar.voiceBarsAsArray) {
-          if (affectedUUIDs.has(voiceBar.uuid)) {
-            indices.add(barIndex);
-            break;
-          }
-
-          let found = false;
-          for (const beat of voiceBar.beats) {
-            if (affectedUUIDs.has(beat.uuid)) {
-              found = true;
-              break;
-            }
-
-            for (const note of beat.notes ?? []) {
-              if (
-                affectedUUIDs.has(note.uuid) ||
-                note.techniques.some((technique) =>
-                  affectedUUIDs.has(technique.uuid)
-                )
-              ) {
-                found = true;
-                break;
-              }
-            }
-
-            if (found) {
-              break;
-            }
-          }
-
-          if (found) {
-            indices.add(barIndex);
-            break;
-          }
-        }
-      }
+  private getUpdateLineRange(
+    affectedModels: AffectedModel[]
+  ): UpdateLineRange | null {
+    if (affectedModels.length === 0) {
+      return null;
     }
 
-    return [...indices].sort((a, b) => a - b);
-  }
+    const masterBarIndices = Array.from(
+      new Set(affectedModels.map((model) => model.masterBarIndex))
+    ).sort((a, b) => a - b);
 
-  private transitionalLegacyUpdateRequestToMaterializedLineUpdate(
-    request: CommandUpdateRequest
-  ): MaterializedLineUpdate {
-    if (request.updateType === "Full") {
-      return this._trackElement.rebuildSkeletonAndGetLineRange(null);
-    }
-
-    const masterBarIndices =
-      request.updateType === "Horizontal"
-        ? request.affectedMasterBarIndices
-        : this.getMasterBarIndicesForModelUUIDs(request.affectedModelUUIDs);
-
-    return this._trackElement.rebuildSkeletonAndGetLineRange(masterBarIndices);
-  }
-
-  private updateMaterializedLines(update: MaterializedLineUpdate): void {
-    if (update === null) {
-      return;
-    }
-
-    this._trackElement.update(update.startLineIndex, update.endLineIndex, {
-      depth: "elements",
-    });
+    return this._trackElement.rebuildSkeleton(masterBarIndices);
   }
 
   private applyCommandUpdate(command: Command | undefined): void {
@@ -161,10 +95,15 @@ export class TrackControllerEditor {
       return;
     }
 
-    this.updateMaterializedLines(
-      this.transitionalLegacyUpdateRequestToMaterializedLineUpdate(
-        command.updateRequest
-      )
+    const updateLineRange = this.getUpdateLineRange(command.affectedModels);
+    if (updateLineRange === null) {
+      return;
+    }
+
+    this._trackElement.update(
+      updateLineRange.startLineIndex,
+      updateLineRange.endLineIndex,
+      { depth: "elements" }
     );
   }
 
@@ -218,7 +157,7 @@ export class TrackControllerEditor {
       return;
     }
 
-    this.selectBeatModel(firstBeatElement.beat, 0);
+    this._selectionManager.selectBeatCursor(firstBeatElement.beat, 0);
   }
 
   /**
@@ -271,22 +210,25 @@ export class TrackControllerEditor {
     }
   }
 
-  private ensureVoiceBarElement(bar: Bar, voiceNumber: VoiceNumber): boolean {
-    const voiceBarInserted = bar.getVoiceBar(voiceNumber) === null;
-    bar.ensureVoiceBar(voiceNumber);
-    if (!voiceBarInserted) {
+  private updateInsertedVoiceBar(bar: Bar, voiceNumber: VoiceNumber): boolean {
+    if (!ScoreEditor.ensureVoiceBar(bar, voiceNumber)) {
       return false;
     }
 
-    const updateRequest: CommandUpdateRequest = {
-      updateType: "Vertical",
-      affectedModelUUIDs: [bar.uuid],
-    };
-    this.updateMaterializedLines(
-      this.transitionalLegacyUpdateRequestToMaterializedLineUpdate(
-        updateRequest
-      )
-    );
+    const affectedModels: AffectedModel[] = [
+      {
+        masterBarIndex: bar.staff.track.score.masterBars.indexOf(bar.masterBar),
+        modelUUID: bar.uuid,
+      },
+    ];
+    const updateLineRange = this.getUpdateLineRange(affectedModels);
+    if (updateLineRange !== null) {
+      this._trackElement.update(
+        updateLineRange.startLineIndex,
+        updateLineRange.endLineIndex,
+        { depth: "elements" }
+      );
+    }
     return true;
   }
 
@@ -300,7 +242,7 @@ export class TrackControllerEditor {
     }
 
     this._selectionManager.moveSelectedNoteLeft();
-    this.ensureVoiceBarElement(
+    this.updateInsertedVoiceBar(
       selectedNote.bar,
       this._selectionManager.activeVoiceNumber
     );
@@ -317,7 +259,7 @@ export class TrackControllerEditor {
 
     const moveRightResult = this._selectionManager.moveSelectedNoteRight();
     this.handleMoveRight(moveRightResult);
-    this.ensureVoiceBarElement(
+    this.updateInsertedVoiceBar(
       selectedNote.bar,
       this._selectionManager.activeVoiceNumber
     );
@@ -432,10 +374,15 @@ export class TrackControllerEditor {
     }
 
     const nextBar = selectedNote.staff.getNextBar(selectedNote.bar);
+    const masterBarIndex = selectedNote.bar.staff.bars.indexOf(
+      selectedNote.bar
+    );
     this.executeCommand(
       new SetTempoCommand(selectedNote.bar.masterBar, newTempo, [
-        selectedNote.bar.uuid,
-        ...(nextBar !== null ? [nextBar.uuid] : []),
+        { masterBarIndex, modelUUID: selectedNote.bar.uuid },
+        ...(nextBar !== null
+          ? [{ masterBarIndex: masterBarIndex + 1, modelUUID: nextBar.uuid }]
+          : []),
       ])
     );
   }
@@ -622,7 +569,7 @@ export class TrackControllerEditor {
    * Delete selected beats
    */
   public deleteSelectedBeats(): void {
-    const noteIndex = this.getSelectedNoteIndex();
+    const noteIndex = this._selectionManager.selectedNote?.noteIndex ?? 0;
     const selectionBeats = this._selectionManager.selectionAsBeats;
     const firstBeat = selectionBeats[0];
     const selectedBar = firstBeat.voiceBar.bar;
@@ -635,15 +582,7 @@ export class TrackControllerEditor {
       firstBeat.voiceBar.voiceNumber
     );
     this._selectionManager.clearSelection();
-    this.selectBeatModel(targetBeat, noteIndex);
-  }
-
-  private getSelectedNoteIndex(): number {
-    return this._selectionManager.selectedNote?.noteIndex ?? 0;
-  }
-
-  private selectBeatModel(beat: Beat, noteIndex: number): void {
-    this._selectionManager.selectBeatCursor(beat, noteIndex);
+    this._selectionManager.selectBeatCursor(targetBeat, noteIndex);
   }
 
   private getBeatAfterRemoval(
@@ -689,7 +628,7 @@ export class TrackControllerEditor {
   }
 
   public setActiveVoiceNumber(voiceNumber: VoiceNumber): void {
-    const noteIndex = this.getSelectedNoteIndex();
+    const noteIndex = this._selectionManager.selectedNote?.noteIndex ?? 0;
     const selectedBar = this.getSelectedBar();
     let voiceBar = selectedBar.getVoiceBar(voiceNumber);
     const voiceBarInserted = voiceBar === null;
@@ -701,21 +640,28 @@ export class TrackControllerEditor {
 
     this._selectionManager.activeVoiceNumber = voiceNumber;
     this._selectionManager.clearSelection();
-    this.selectBeatModel(targetBeat, noteIndex);
+    this._selectionManager.selectBeatCursor(targetBeat, noteIndex);
 
     if (!voiceBarInserted) {
       return;
     }
 
-    const updateRequest: CommandUpdateRequest = {
-      updateType: "Vertical",
-      affectedModelUUIDs: [selectedBar.uuid],
-    };
-    this.updateMaterializedLines(
-      this.transitionalLegacyUpdateRequestToMaterializedLineUpdate(
-        updateRequest
-      )
-    );
+    const affectedModels: AffectedModel[] = [
+      {
+        masterBarIndex: selectedBar.staff.track.score.masterBars.indexOf(
+          selectedBar.masterBar
+        ),
+        modelUUID: selectedBar.uuid,
+      },
+    ];
+    const updateLineRange = this.getUpdateLineRange(affectedModels);
+    if (updateLineRange !== null) {
+      this._trackElement.update(
+        updateLineRange.startLineIndex,
+        updateLineRange.endLineIndex,
+        { depth: "elements" }
+      );
+    }
   }
 
   private selectInsertedBeat(
@@ -728,11 +674,11 @@ export class TrackControllerEditor {
     }
 
     this._selectionManager.clearSelection();
-    this.selectBeatModel(insertedBeat, noteIndex);
+    this._selectionManager.selectBeatCursor(insertedBeat, noteIndex);
   }
 
   public insertBeatBeforeSelected(): void {
-    const noteIndex = this.getSelectedNoteIndex();
+    const noteIndex = this._selectionManager.selectedNote?.noteIndex ?? 0;
     const firstBeat = this._selectionManager.selectionAsBeats[0];
     const insertIndex = firstBeat.voiceBar.beats.indexOf(firstBeat);
 
@@ -743,7 +689,7 @@ export class TrackControllerEditor {
   }
 
   public insertBeatAfterSelected(): void {
-    const noteIndex = this.getSelectedNoteIndex();
+    const noteIndex = this._selectionManager.selectedNote?.noteIndex ?? 0;
     const selectionBeats = this._selectionManager.selectionAsBeats;
     const lastBeat = selectionBeats[selectionBeats.length - 1];
     const insertIndex = lastBeat.voiceBar.beats.indexOf(lastBeat) + 1;
@@ -755,7 +701,7 @@ export class TrackControllerEditor {
   }
 
   public removeSelectedBeat(): void {
-    const noteIndex = this.getSelectedNoteIndex();
+    const noteIndex = this._selectionManager.selectedNote?.noteIndex ?? 0;
     const selectionBeats = this._selectionManager.selectionAsBeats;
     const firstBeat = selectionBeats[0];
     const selectedBar = firstBeat.voiceBar.bar;
@@ -768,7 +714,7 @@ export class TrackControllerEditor {
       firstBeat.voiceBar.voiceNumber
     );
     this._selectionManager.clearSelection();
-    this.selectBeatModel(targetBeat, noteIndex);
+    this._selectionManager.selectBeatCursor(targetBeat, noteIndex);
   }
 
   /**
@@ -863,7 +809,7 @@ export class TrackControllerEditor {
     }
 
     this._selectionManager.clearSelection();
-    this.selectBeatModel(firstBeat, 0);
+    this._selectionManager.selectBeatCursor(firstBeat, 0);
   }
 
   public insertBarBeforeSelected(): void {
@@ -952,7 +898,7 @@ export class TrackControllerEditor {
       throw Error("Can't select target beat in empty voice slot");
     }
     this._selectionManager.clearSelection();
-    this.selectBeatModel(selectedTargetBeat, 0);
+    this._selectionManager.selectBeatCursor(selectedTargetBeat, 0);
   }
 
   public get selectionManager(): SelectionManager {

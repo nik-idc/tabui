@@ -1,5 +1,5 @@
 import { Beat, ScoreEditor, Staff, VoiceNumber } from "@/notation/model";
-import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
+import { Command, AffectedModel } from "./command";
 
 /**
  * Inserts clipboard beats locally after an anchor beat. This intentionally does
@@ -85,20 +85,18 @@ export class InsertBeatsCommand implements Command {
     );
   }
 
-  public get updateRequest(): CommandUpdateRequest {
+  public get affectedModels(): AffectedModel[] {
     const affectedBar =
       this._anchorBeat?.voiceBar.bar ?? this._anchorStaff.bars[0];
-    const affectedMasterBarIndex = getMasterBarIndex(
-      this._anchorStaff.track.score,
-      affectedBar.masterBar
-    );
 
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [affectedMasterBarIndex],
-      firstAffectedMasterBarIndex: affectedMasterBarIndex,
-      reason: "insert-beats",
-    };
+    return [
+      {
+        masterBarIndex: this._anchorStaff.track.score.masterBars.indexOf(
+          affectedBar.masterBar
+        ),
+        modelUUID: affectedBar.masterBar.uuid,
+      },
+    ];
   }
 }
 

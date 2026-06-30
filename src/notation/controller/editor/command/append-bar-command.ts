@@ -5,7 +5,7 @@ import {
   VoiceNumber,
   ScoreEditor,
 } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Command, AffectedModel } from "./command";
 
 /**
  * Append bar command
@@ -79,15 +79,13 @@ export class AppendBarCommand implements Command {
     return this._appendMasterBarResult;
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    const affectedMasterBarIndex =
+  public get affectedModels(): AffectedModel[] {
+    const masterBarIndex =
       this._appendMasterBarResult?.index ?? this._score.masterBars.length;
+    const masterBar =
+      this._appendMasterBarResult?.masterBar ??
+      this._score.masterBars[masterBarIndex];
 
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [affectedMasterBarIndex],
-      firstAffectedMasterBarIndex: affectedMasterBarIndex,
-      reason: "append-bar",
-    };
+    return [{ masterBarIndex, modelUUID: masterBar?.uuid ?? 0 }];
   }
 }

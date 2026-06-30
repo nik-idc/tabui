@@ -55,10 +55,9 @@ describe("SetNoteCommand", () => {
     const command = new SetNoteCommand(beat, 3, NoteValue.C, 4);
 
     expect(beat.isRest()).toBe(true);
-    expect(command.updateRequest).toEqual({
-      updateType: "Targeted",
-      affectedModelUUIDs: [beat.uuid],
-    });
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: beat.uuid },
+    ]);
 
     command.execute();
     expect(beat.isRest()).toBe(false);

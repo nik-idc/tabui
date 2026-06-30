@@ -8,11 +8,6 @@ import {
   TrackLineElement,
 } from "./track/track-line-element";
 import { buildTrackElementSkeleton } from "./track/track-element-skeleton-builder";
-import {
-  getFullSkeletonLineRange,
-  getSkeletonLineRangeForMasterBarIndices,
-  MaybeTrackElementLineRange,
-} from "./track/track-element-skeleton-range";
 import { BeatElement } from "./beat/beat-element";
 import { StaffLineElement } from "./staff/staff-line-element";
 import { NotationElement, NotationElementClass } from "./notation-element";
@@ -88,6 +83,11 @@ export interface ElementDiff {
 type ElementSnapshot = {
   elements: Map<ElementIdentity, NotationElement>;
   hashes: Map<ElementIdentity, string>;
+};
+
+export type TrackElementLineRange = {
+  startLineIndex: number;
+  endLineIndex: number;
 };
 
 export type TrackElementUpdateDepth = "none" | "elements" | "skeleton" | "full";
@@ -283,19 +283,48 @@ export class TrackElement {
     }
   }
 
-  public rebuildSkeletonAndGetLineRange(
+  /** Rebuilds the skeleton and returns the line range touched by master bars. */
+  public rebuildSkeleton(
     masterBarIndices: number[] | null
-  ): MaybeTrackElementLineRange {
+  ): TrackElementLineRange | null {
     this._skeleton = buildTrackElementSkeleton(this.track);
 
-    if (masterBarIndices === null) {
-      return getFullSkeletonLineRange(this._skeleton);
+    if (this._skeleton.lines.length === 0) {
+      return null;
     }
 
-    return getSkeletonLineRangeForMasterBarIndices(
-      this._skeleton,
-      masterBarIndices
-    );
+    if (masterBarIndices === null) {
+      return {
+        startLineIndex: 0,
+        endLineIndex: this._skeleton.lines.length - 1,
+      };
+    }
+
+    let startLineIndex = Number.MAX_SAFE_INTEGER;
+    let endLineIndex = -1;
+    for (const masterBarIndex of masterBarIndices) {
+      for (let i = 0; i < this._skeleton.lines.length; i++) {
+        const line = this._skeleton.lines[i];
+        for (const lineBar of line.trackLineBars) {
+          if (lineBar.masterBarIndex !== masterBarIndex) {
+            continue;
+          }
+
+          startLineIndex = Math.min(startLineIndex, i);
+          endLineIndex = Math.max(endLineIndex, i);
+          break;
+        }
+      }
+    }
+
+    if (endLineIndex === -1) {
+      return null;
+    }
+
+    return {
+      startLineIndex,
+      endLineIndex: Math.min(this._skeleton.lines.length - 1, endLineIndex + 1),
+    };
   }
 
   private materializeLineRange(

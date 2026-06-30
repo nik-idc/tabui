@@ -123,7 +123,7 @@ describe("TrackElement techniques", () => {
     const noteElement = trackElement.getBeatElement(beats[0])?.noteElements[0];
     const techniqueElement = noteElement?.techniqueElements[0];
 
-    expect(command.updateRequest.updateType).toBe("Targeted");
+    expect(command.affectedModels).toHaveLength(1);
     expect(noteElement?.techniqueElements).toHaveLength(1);
     expect(techniqueElement).toBeInstanceOf(GuitarTechniqueElement);
     expect(

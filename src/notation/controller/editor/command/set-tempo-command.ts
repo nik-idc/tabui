@@ -1,5 +1,5 @@
 import { MasterBar } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Command, AffectedModel } from "./command";
 
 /**
  * Set bar tempo command
@@ -7,8 +7,7 @@ import { Command, CommandUpdateRequest } from "./command";
 export class SetTempoCommand implements Command {
   /** Bar to append the beat to */
   private _bar: MasterBar;
-  /** Bar UUIDs whose tempo visibility may change */
-  private _affectedModelUUIDs: number[];
+  private _affectedModels: AffectedModel[];
   /** New tempo value */
   private _newTempo: number;
   /** Old tempo value */
@@ -24,10 +23,10 @@ export class SetTempoCommand implements Command {
   constructor(
     bar: MasterBar,
     newTempo: number,
-    affectedModelUUIDs: number[] = []
+    affectedModels: AffectedModel[]
   ) {
     this._bar = bar;
-    this._affectedModelUUIDs = affectedModelUUIDs;
+    this._affectedModels = affectedModels;
     this._newTempo = newTempo;
     this._oldTempo = bar.tempo;
   }
@@ -66,24 +65,11 @@ export class SetTempoCommand implements Command {
     return this._executed;
   }
 
-  public get isTempoVisibilityVerticalUpdate(): boolean {
-    return this._affectedModelUUIDs.length > 0;
+  public get affectsTempoVisibility(): boolean {
+    return this._affectedModels.length > 0;
   }
 
-  public get affectedModelUUIDs(): number[] {
-    return this._affectedModelUUIDs;
-  }
-
-  public get updateRequest(): CommandUpdateRequest {
-    if (this.isTempoVisibilityVerticalUpdate) {
-      return {
-        updateType: "Vertical",
-        affectedModelUUIDs: this._affectedModelUUIDs,
-      };
-    }
-
-    return {
-      updateType: "Full",
-    };
+  public get affectedModels(): AffectedModel[] {
+    return this._affectedModels;
   }
 }

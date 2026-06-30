@@ -1,5 +1,5 @@
 import { Beat, GuitarNote } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
  * Set guitar note fret command
@@ -78,10 +78,7 @@ export class SetFretCommand implements Command {
     note.fret = this._newFret;
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Targeted",
-      affectedModelUUIDs: [this._beat.uuid],
-    };
+  public get affectedModels(): AffectedModel[] {
+    return getAffectedModelsFromBeats([this._beat]);
   }
 }

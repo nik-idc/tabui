@@ -8,10 +8,18 @@ import {
 } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 
+function getVoiceBar1(bar: ReturnType<typeof createScoreGraph>["bar"]) {
+  const voiceBar = bar.getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error("Expected voice 1 bar");
+  }
+  return voiceBar;
+}
+
 describe("SetTechniqueCommand", () => {
   test("execute applies technique and undo restores previous techniques", () => {
     const { bar } = createScoreGraph();
-    const note = bar.beats[0].notes[0] as GuitarNote;
+    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const command = new SetTechniqueCommand(
       [note],
@@ -34,7 +42,7 @@ describe("SetTechniqueCommand", () => {
 
   test("incompatible execute leaves executed false and undo is a no-op", () => {
     const { bar } = createScoreGraph();
-    const note = bar.beats[0].notes[0] as GuitarNote;
+    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const command = new SetTechniqueCommand(
       [note],
@@ -55,7 +63,7 @@ describe("SetTechniqueCommand", () => {
 
   test("label-producing techniques are marked for vertical update", () => {
     const { bar } = createScoreGraph();
-    const note = bar.beats[0].notes[0] as GuitarNote;
+    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
 
     const vibratoCommand = new SetTechniqueCommand(
       [note],
@@ -71,14 +79,14 @@ describe("SetTechniqueCommand", () => {
       GuitarTechniqueType.LetRing
     );
 
-    expect(vibratoCommand.isTechniqueLabelVerticalUpdate).toBe(true);
-    expect(bendCommand.isTechniqueLabelVerticalUpdate).toBe(true);
-    expect(letRingCommand.isTechniqueLabelVerticalUpdate).toBe(true);
+    expect(vibratoCommand.affectsTechniqueLabels).toBe(true);
+    expect(bendCommand.affectsTechniqueLabels).toBe(true);
+    expect(letRingCommand.affectsTechniqueLabels).toBe(true);
   });
 
   test("inline non-label techniques are marked for targeted update", () => {
     const { bar } = createScoreGraph();
-    const note = bar.beats[0].notes[0] as GuitarNote;
+    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
 
     const harmonicCommand = new SetTechniqueCommand(
       [note],
@@ -89,28 +97,25 @@ describe("SetTechniqueCommand", () => {
       GuitarTechniqueType.Slide
     );
 
-    expect(harmonicCommand.updateRequest).toEqual({
-      updateType: "Targeted",
-      affectedModelUUIDs: [note.uuid],
-    });
-    expect(slideCommand.updateRequest).toEqual({
-      updateType: "Targeted",
-      affectedModelUUIDs: [note.uuid],
-    });
+    expect(harmonicCommand.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: note.uuid },
+    ]);
+    expect(slideCommand.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: note.uuid },
+    ]);
   });
 
-  test("bend remains a vertical update because it produces a label", () => {
+  test("bend requests a model update because it produces a label", () => {
     const { bar } = createScoreGraph();
-    const note = bar.beats[0].notes[0] as GuitarNote;
+    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
     const command = new SetTechniqueCommand(
       [note],
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions({ type: BendType.Bend })
     );
 
-    expect(command.updateRequest).toEqual({
-      updateType: "Vertical",
-      affectedModelUUIDs: [note.uuid],
-    });
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: note.uuid },
+    ]);
   });
 });

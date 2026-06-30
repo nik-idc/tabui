@@ -40,6 +40,18 @@ function getTrackLineY(trackElement: TrackElement): number[] {
   return trackElement.trackLineElements.map((line) => line.boundingBox.y);
 }
 
+function updateMasterBars(
+  trackElement: TrackElement,
+  masterBarIndices: number[]
+): void {
+  const lineRange = trackElement.rebuildSkeleton(masterBarIndices);
+  if (lineRange !== null) {
+    trackElement.update(lineRange.startLineIndex, lineRange.endLineIndex, {
+      depth: "elements",
+    });
+  }
+}
+
 function expectHorizontalUpdateToMatchLegacy(
   trackElement: TrackElement,
   legacyTrackElement: TrackElement
@@ -94,12 +106,7 @@ describe("TrackElement tree", () => {
     const beforeRightX = beforeOutline.right.x;
 
     voiceBar.insertBeat(1);
-    trackElement.update({
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [0],
-      firstAffectedMasterBarIndex: 0,
-      reason: "insert-beat",
-    });
+    updateMasterBars(trackElement, [0]);
 
     const afterLine = trackElement.trackLineElements[0];
     const afterOutline = afterLine.outlineLinesLineLocal;
@@ -486,11 +493,7 @@ describe("TrackElement tree", () => {
     affectedBar.beats[0].baseDuration = NoteDuration.Eighth;
     affectedBar.rebuildTiming();
 
-    trackElement.update({
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [affectedMasterBarIndex],
-      firstAffectedMasterBarIndex: affectedMasterBarIndex,
-    });
+    updateMasterBars(trackElement, [affectedMasterBarIndex]);
     legacyTrackElement.update();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
@@ -515,11 +518,7 @@ describe("TrackElement tree", () => {
     affectedBar.beats[0].baseDuration = NoteDuration.Whole;
     affectedBar.rebuildTiming();
 
-    trackElement.update({
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [affectedMasterBarIndex],
-      firstAffectedMasterBarIndex: affectedMasterBarIndex,
-    });
+    updateMasterBars(trackElement, [affectedMasterBarIndex]);
     legacyTrackElement.update();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
@@ -592,11 +591,7 @@ describe("TrackElement tree", () => {
     const removeIndex = 12;
     score.removeMasterBar(removeIndex);
 
-    trackElement.update({
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [removeIndex],
-      firstAffectedMasterBarIndex: removeIndex,
-    });
+    updateMasterBars(trackElement, [removeIndex]);
     legacyTrackElement.update();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
@@ -615,11 +610,7 @@ describe("TrackElement tree", () => {
     const insertIndex = 12;
     score.insertMasterBar(insertIndex, DEFAULT_MASTER_BAR);
 
-    trackElement.update({
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [insertIndex],
-      firstAffectedMasterBarIndex: insertIndex,
-    });
+    updateMasterBars(trackElement, [insertIndex]);
     legacyTrackElement.update();
 
     expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
@@ -638,11 +629,7 @@ describe("TrackElement tree", () => {
     const affectedMasterBarIndex = score.masterBars.length;
     score.appendMasterBar(DEFAULT_MASTER_BAR);
 
-    trackElement.update({
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [affectedMasterBarIndex],
-      firstAffectedMasterBarIndex: affectedMasterBarIndex,
-    });
+    updateMasterBars(trackElement, [affectedMasterBarIndex]);
 
     const firstBeat = track.staves[0].bars[0].voiceBars[1]!.beats[0];
     expect(firstBeat.uuid).toBe(firstBeatUUID);
@@ -677,7 +664,10 @@ describe("TrackElement tree", () => {
     );
     setTechCommand.execute();
 
-    trackElement.update(setTechCommand.updateRequest);
+    expect(setTechCommand.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: affectedNote.uuid },
+    ]);
+    updateMasterBars(trackElement, [0]);
 
     const updatedBeats = trackElement.elementDiff.updated.get(TabBeatElement);
     expect(trackElement.trackLineElements[0]).toBe(affectedLine);

@@ -1,5 +1,5 @@
 import { Beat, Note } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 type BeatRestSnapshot = {
   beat: Beat;
@@ -72,10 +72,9 @@ export class SetRestCommand implements Command {
     }
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Targeted",
-      affectedModelUUIDs: this._snapshots.map((snapshot) => snapshot.beat.uuid),
-    };
+  public get affectedModels(): AffectedModel[] {
+    return getAffectedModelsFromBeats(
+      this._snapshots.map((snapshot) => snapshot.beat)
+    );
   }
 }
