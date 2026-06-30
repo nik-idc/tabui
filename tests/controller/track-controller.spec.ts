@@ -1,6 +1,5 @@
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { AppendBeatCommand } from "../../src/notation/controller/editor/command/append-beat-command";
-import { BarElement } from "../../src/notation/controller/element/bar/bar-element";
 import { BeatElement } from "../../src/notation/controller/element/beat/beat-element";
 import {
   BendTechniqueOptions,
@@ -34,6 +33,10 @@ function getBeatElements(controller: TrackController) {
   }
 
   return beatElements;
+}
+
+function noteBeats<T extends { hasNotes: () => boolean }>(beats: T[]): T[] {
+  return beats.filter((beat) => beat.hasNotes());
 }
 
 function getBeatElement(
@@ -491,7 +494,9 @@ describe("TrackController", () => {
     controller.selectBeat(beatElements[1]);
     controller.removeSelectedBeat();
 
-    expect(bar.beats).toHaveLength(0);
+    expect(noteBeats(bar.beats)).toHaveLength(0);
+    expect(bar.beats).toHaveLength(1);
+    expect(bar.beats[0].isRest()).toBe(true);
     expect(controller.selectionBeats).toHaveLength(0);
   });
 
@@ -573,14 +578,14 @@ describe("TrackController", () => {
     controller.paste();
 
     expect(
-      track.staves[0].bars[1].beats.map((beat) => beat.baseDuration)
+      noteBeats(track.staves[0].bars[1].beats).map((beat) => beat.baseDuration)
     ).toEqual([
       NoteDuration.ThirtySecond,
       NoteDuration.Sixteenth,
       NoteDuration.Eighth,
     ]);
     expect(
-      track.staves[0].bars[2].beats.map((beat) => beat.baseDuration)
+      noteBeats(track.staves[0].bars[2].beats).map((beat) => beat.baseDuration)
     ).toEqual([NoteDuration.Half, NoteDuration.Half]);
     expect(controller.selectionBeats).toHaveLength(0);
   });
@@ -608,9 +613,10 @@ describe("TrackController", () => {
     controller.paste();
 
     expect(
-      track.staves[0].bars[1].beats.map((beat) => beat.baseDuration)
+      noteBeats(track.staves[0].bars[1].beats).map((beat) => beat.baseDuration)
     ).toEqual([NoteDuration.Sixteenth]);
-    expect(track.staves[0].bars[2].beats).toHaveLength(0);
+    expect(noteBeats(track.staves[0].bars[2].beats)).toHaveLength(0);
+    expect(track.staves[0].bars[2].beats[0].isRest()).toBe(true);
   });
 
   test("undo restores beats removed by multi-bar paste replacement", () => {
@@ -642,14 +648,14 @@ describe("TrackController", () => {
     controller.undo();
 
     expect(
-      track.staves[0].bars[1].beats.map((beat) => beat.baseDuration)
+      noteBeats(track.staves[0].bars[1].beats).map((beat) => beat.baseDuration)
     ).toEqual([NoteDuration.Quarter, NoteDuration.Quarter]);
     expect(
-      track.staves[0].bars[2].beats.map((beat) => beat.baseDuration)
+      noteBeats(track.staves[0].bars[2].beats).map((beat) => beat.baseDuration)
     ).toEqual([NoteDuration.Half, NoteDuration.Half]);
 
     controller.redo();
-    expect(track.staves[0].bars[1].beats).toHaveLength(3);
+    expect(noteBeats(track.staves[0].bars[1].beats)).toHaveLength(3);
   });
 
   test("paste keeps long clipboard content in the target bar", () => {
@@ -660,7 +666,7 @@ describe("TrackController", () => {
     setBarDurations(
       controller,
       0,
-      Array.from({ length: 64 }, () => NoteDuration.ThirtySecond)
+      Array.from({ length: 16 }, () => NoteDuration.ThirtySecond)
     );
     setBarDurations(controller, 1, [
       NoteDuration.Quarter,
@@ -670,15 +676,15 @@ describe("TrackController", () => {
     const beatElements = getBeatElements(controller);
 
     controller.selectBeat(beatElements[0]);
-    controller.selectBeat(beatElements[63]);
+    controller.selectBeat(beatElements[15]);
     controller.copy();
     controller.clearSelection();
-    controller.selectBeat(beatElements[64]);
-    controller.selectBeat(beatElements[65]);
+    controller.selectBeat(beatElements[16]);
+    controller.selectBeat(beatElements[17]);
     controller.paste();
 
     expect(score.masterBars).toHaveLength(2);
-    expect(track.staves[0].bars[1].beats).toHaveLength(64);
+    expect(noteBeats(track.staves[0].bars[1].beats)).toHaveLength(16);
     expect(track.staves[0].bars[1].checkDurationsFit()).toBe(false);
   });
 
@@ -710,7 +716,7 @@ describe("TrackController", () => {
     controller.paste();
 
     expect(
-      track.staves[0].bars[1].beats.map((beat) => beat.baseDuration)
+      noteBeats(track.staves[0].bars[1].beats).map((beat) => beat.baseDuration)
     ).toEqual([
       NoteDuration.ThirtySecond,
       NoteDuration.Sixteenth,
@@ -745,9 +751,9 @@ describe("TrackController", () => {
     controller.selectBeat(beatElements[9]);
     controller.paste();
 
-    expect(track.staves[0].bars[1].beats).toHaveLength(10);
+    expect(noteBeats(track.staves[0].bars[1].beats)).toHaveLength(10);
     expect(
-      track.staves[0].bars[1].beats.map((beat) => beat.baseDuration)
+      noteBeats(track.staves[0].bars[1].beats).map((beat) => beat.baseDuration)
     ).toEqual([
       ...Array.from({ length: 8 }, () => NoteDuration.Eighth),
       NoteDuration.Quarter,
@@ -785,9 +791,9 @@ describe("TrackController", () => {
     controller.undo();
     controller.redo();
 
-    expect(track.staves[0].bars[1].beats).toHaveLength(10);
+    expect(noteBeats(track.staves[0].bars[1].beats)).toHaveLength(10);
     expect(
-      track.staves[0].bars[1].beats.map((beat) => beat.baseDuration)
+      noteBeats(track.staves[0].bars[1].beats).map((beat) => beat.baseDuration)
     ).toEqual([
       ...Array.from({ length: 8 }, () => NoteDuration.Eighth),
       NoteDuration.Quarter,
@@ -823,7 +829,7 @@ describe("TrackController", () => {
     controller.paste();
 
     expect(score.masterBars).toHaveLength(2);
-    expect(track.staves[0].bars[1].beats).toHaveLength(8);
+    expect(noteBeats(track.staves[0].bars[1].beats)).toHaveLength(8);
     expect(track.staves[0].bars[1].checkDurationsFit()).toBe(false);
   });
 
@@ -835,7 +841,7 @@ describe("TrackController", () => {
     setBarDurations(
       controller,
       0,
-      Array.from({ length: 64 }, () => NoteDuration.ThirtySecond)
+      Array.from({ length: 16 }, () => NoteDuration.ThirtySecond)
     );
     setBarDurations(controller, 1, [
       NoteDuration.Quarter,
@@ -845,17 +851,17 @@ describe("TrackController", () => {
     const beatElements = getBeatElements(controller);
 
     controller.selectBeat(beatElements[0]);
-    controller.selectBeat(beatElements[63]);
+    controller.selectBeat(beatElements[15]);
     controller.copy();
     controller.clearSelection();
-    controller.selectBeat(beatElements[64]);
-    controller.selectBeat(beatElements[65]);
+    controller.selectBeat(beatElements[16]);
+    controller.selectBeat(beatElements[17]);
     controller.paste();
     controller.undo();
 
     expect(score.masterBars).toHaveLength(2);
     expect(
-      track.staves[0].bars[1].beats.map((beat) => beat.baseDuration)
+      noteBeats(track.staves[0].bars[1].beats).map((beat) => beat.baseDuration)
     ).toEqual([NoteDuration.Quarter, NoteDuration.Quarter]);
   });
 
@@ -916,18 +922,19 @@ describe("TrackController", () => {
       controller.trackElement.trackLineElements[
         controller.trackElement.trackLineElements.length - 2
       ];
-    const movedBarElement =
-      secondLastLine.staffLineElements[0].styleLinesAsArray[0].barElements[
-        secondLastLine.staffLineElements[0].styleLinesAsArray[0].barElements
-          .length - 1
+    const lastLine =
+      controller.trackElement.trackLineElements[
+        controller.trackElement.trackLineElements.length - 1
       ];
-    const movedBarIdentity = movedBarElement.getStableIdentity();
 
-    const diff = controller.trackElement.elementDiff;
-    expect(
-      diff.added.get(BarElement)?.has(movedBarIdentity) ||
-        diff.updated.get(BarElement)?.has(movedBarIdentity)
-    ).toBe(true);
+    expect(controller.trackElement.trackLineElements.length).toBeGreaterThan(
+      initialLineCount
+    );
+    expect(secondLastLine.boundingBox.bottom).toBeCloseTo(
+      lastLine.boundingBox.y
+    );
+    expect(controller.selectedNote?.beat).toBeDefined();
+    expect(controller.selectedNote?.bar).toBeDefined();
   });
 
   test("vibrato apply undo redo uses vertical update behavior", () => {

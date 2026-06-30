@@ -13,6 +13,10 @@ import {
 } from "../model/helpers";
 
 describe("Timing rebuild commands", () => {
+  function noteBeats<T extends { hasNotes: () => boolean }>(beats: T[]): T[] {
+    return beats.filter((beat) => beat.hasNotes());
+  }
+
   test("SetDurationCommand updates beat timing and restores it on undo/redo", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -136,38 +140,46 @@ describe("Timing rebuild commands", () => {
       createBeat(bar, NoteDuration.Sixteenth),
     ];
     const command = new ReplaceBeatsCommand(beats, replacementBeats);
-    const originalBeatUUIDs = bar.beats.map((beat) => beat.uuid);
+    const originalBeatUUIDs = noteBeats(bar.beats).map((beat) => beat.uuid);
 
     command.execute();
-    expect(bar.beats).toHaveLength(2);
-    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
-    expect(bar.beats[0].dots).toBe(1);
-    expect(bar.beats[0].tupletSettings).toEqual({
+    expect(noteBeats(bar.beats)).toHaveLength(2);
+    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Eighth);
+    expect(noteBeats(bar.beats)[0].dots).toBe(1);
+    expect(noteBeats(bar.beats)[0].tupletSettings).toEqual({
       normalCount: 3,
       tupletCount: 2,
     });
-    expect(bar.beats[1].baseDuration).toBe(NoteDuration.Sixteenth);
-    expect(bar.beats.map((beat) => beat.uuid)).not.toEqual(originalBeatUUIDs);
+    expect(noteBeats(bar.beats)[1].baseDuration).toBe(NoteDuration.Sixteenth);
+    expect(noteBeats(bar.beats).map((beat) => beat.uuid)).not.toEqual(
+      originalBeatUUIDs
+    );
 
     command.undo();
-    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(noteBeats(bar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Quarter,
     ]);
-    expect(bar.beats.map((beat) => beat.uuid)).not.toEqual(originalBeatUUIDs);
-    expect(bar.beats.every((beat) => beat.dots === 0)).toBe(true);
-    expect(bar.beats.every((beat) => beat.tupletSettings === null)).toBe(true);
+    expect(noteBeats(bar.beats).map((beat) => beat.uuid)).not.toEqual(
+      originalBeatUUIDs
+    );
+    expect(noteBeats(bar.beats).every((beat) => beat.dots === 0)).toBe(true);
+    expect(
+      noteBeats(bar.beats).every((beat) => beat.tupletSettings === null)
+    ).toBe(true);
 
     command.redo();
-    expect(bar.beats).toHaveLength(2);
-    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
-    expect(bar.beats[0].dots).toBe(1);
-    expect(bar.beats[0].tupletSettings).toEqual({
+    expect(noteBeats(bar.beats)).toHaveLength(2);
+    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Eighth);
+    expect(noteBeats(bar.beats)[0].dots).toBe(1);
+    expect(noteBeats(bar.beats)[0].tupletSettings).toEqual({
       normalCount: 3,
       tupletCount: 2,
     });
-    expect(bar.beats[1].baseDuration).toBe(NoteDuration.Sixteenth);
-    expect(bar.beats.map((beat) => beat.uuid)).not.toEqual(originalBeatUUIDs);
+    expect(noteBeats(bar.beats)[1].baseDuration).toBe(NoteDuration.Sixteenth);
+    expect(noteBeats(bar.beats).map((beat) => beat.uuid)).not.toEqual(
+      originalBeatUUIDs
+    );
   });
 
   test("ReplaceBeatsCommand inserts additional beats in order and restores original sequence on undo", () => {
@@ -181,21 +193,21 @@ describe("Timing rebuild commands", () => {
     const command = new ReplaceBeatsCommand(beats, replacementBeats);
 
     command.execute();
-    expect(bar.beats).toHaveLength(2);
-    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(noteBeats(bar.beats)).toHaveLength(2);
+    expect(noteBeats(bar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Eighth,
       NoteDuration.Sixteenth,
     ]);
 
     command.undo();
-    expect(bar.beats).toHaveLength(1);
-    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Quarter);
-    expect(bar.beats[0].dots).toBe(0);
-    expect(bar.beats[0].tupletSettings).toBeNull();
+    expect(noteBeats(bar.beats)).toHaveLength(1);
+    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Quarter);
+    expect(noteBeats(bar.beats)[0].dots).toBe(0);
+    expect(noteBeats(bar.beats)[0].tupletSettings).toBeNull();
 
     command.redo();
-    expect(bar.beats).toHaveLength(2);
-    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(noteBeats(bar.beats)).toHaveLength(2);
+    expect(noteBeats(bar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Eighth,
       NoteDuration.Sixteenth,
     ]);
@@ -211,22 +223,24 @@ describe("Timing rebuild commands", () => {
     const command = new ReplaceBeatsCommand(beats, replacementBeats);
 
     command.execute();
-    expect(bar.beats).toHaveLength(1);
-    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Half);
+    expect(noteBeats(bar.beats)).toHaveLength(1);
+    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Half);
 
     command.undo();
-    expect(bar.beats).toHaveLength(3);
-    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(noteBeats(bar.beats)).toHaveLength(3);
+    expect(noteBeats(bar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Eighth,
       NoteDuration.Sixteenth,
     ]);
-    expect(bar.beats.every((beat) => beat.dots === 0)).toBe(true);
-    expect(bar.beats.every((beat) => beat.tupletSettings === null)).toBe(true);
+    expect(noteBeats(bar.beats).every((beat) => beat.dots === 0)).toBe(true);
+    expect(
+      noteBeats(bar.beats).every((beat) => beat.tupletSettings === null)
+    ).toBe(true);
 
     command.redo();
-    expect(bar.beats).toHaveLength(1);
-    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Half);
+    expect(noteBeats(bar.beats)).toHaveLength(1);
+    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Half);
   });
 
   test("ReplaceBeatsCommand undo restores multi-bar selections to original bars", () => {

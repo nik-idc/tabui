@@ -25,11 +25,13 @@ describe("NoteControlsDefaultCallbacks", () => {
     const component = {
       template: {
         durationButtons,
+        restButton: makeButton(),
         dot1Button: makeButton(),
         dot2Button: makeButton(),
         insertBeatBeforeButton: makeButton(),
         insertBeatAfterButton: makeButton(),
         removeBeatButton: makeButton(),
+        voiceButtons: [],
         tuplet2Button: makeButton(),
         tuplet3Button: makeButton(),
         tupletButton: makeButton(),
@@ -72,7 +74,7 @@ describe("NoteControlsDefaultCallbacks", () => {
       notationComponent.trackController.setSelectedBeatsTuplet
     ).toHaveBeenCalledWith(3, 2);
     expect(renderFunc).toHaveBeenCalledTimes(6);
-    expect(captureKeyboard).toHaveBeenCalledTimes(1);
+    expect(captureKeyboard).not.toHaveBeenCalled();
     expect(component.showTupletControls).toHaveBeenCalledTimes(1);
     expect(tupletBindSpy).toHaveBeenCalledTimes(2);
 

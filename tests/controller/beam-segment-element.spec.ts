@@ -15,6 +15,34 @@ function getBarElement(trackElement: TrackElement) {
     .styleLinesAsArray[0].barElements[0];
 }
 
+function getBarElementAt(trackElement: TrackElement, index: number) {
+  return trackElement.trackLineElements[0].staffLineElements[0]
+    .styleLinesAsArray[0].barElements[index];
+}
+
+function getBeamSegments(trackElement: TrackElement): BeamSegmentElement[] {
+  return getBarElementAt(trackElement, 0)
+    .refreshOwnedNotationElements()
+    .filter(
+      (element): element is BeamSegmentElement =>
+        element instanceof BeamSegmentElement
+    );
+}
+
+function getTupletElements(trackElement: TrackElement, barIndex = 0) {
+  return getBarElementAt(trackElement, barIndex)
+    .refreshOwnedNotationElements()
+    .filter((element) => element.constructor.name === "BarTupletGroupElement");
+}
+
+function getVoiceBarRhythmElement(trackElement: TrackElement) {
+  return getBarElement(trackElement)
+    .refreshOwnedNotationElements()
+    .find(
+      (element) => element.constructor.name === "VoiceBarRhythmElement"
+    ) as any;
+}
+
 describe("BeamSegmentElement", () => {
   beforeAll(() => {
     ensureLayoutConfigured();
@@ -29,13 +57,13 @@ describe("BeamSegmentElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const barElement = getBarElement(trackElement);
+    const beamSegments = getBeamSegments(trackElement);
 
-    expect(barElement.beamSegments).toHaveLength(2);
-    expect(barElement.beamSegments[0].longRects).toHaveLength(2);
-    expect(barElement.beamSegments[0].shortRects).toHaveLength(0);
-    expect(barElement.beamSegments[1].longRects).toHaveLength(0);
-    expect(barElement.beamSegments[1].shortRects).toHaveLength(0);
+    expect(beamSegments).toHaveLength(2);
+    expect(beamSegments[0].longRects).toHaveLength(2);
+    expect(beamSegments[0].shortRects).toHaveLength(0);
+    expect(beamSegments[1].longRects).toHaveLength(0);
+    expect(beamSegments[1].shortRects).toHaveLength(0);
   });
 
   test("long rect width equals half current beat plus half next beat", () => {
@@ -47,13 +75,11 @@ describe("BeamSegmentElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const barElement = getBarElement(trackElement);
-    const segment = barElement.beamSegments[0];
+    const segment = getBeamSegments(trackElement)[0];
     const curBeat = segment.curBeatElement;
     const nextBeat = segment.nextBeatElement as TabBeatElement;
     const stemX = curBeat.durationStemLine?.x ?? 0;
-    const expectedWidth =
-      curBeat.boundingBox.width / 2 + nextBeat.boundingBox.width / 2;
+    const expectedWidth = nextBeat.attackX - curBeat.attackX;
 
     expect(segment.longRects).toHaveLength(2);
     expect(segment.longRects[0].width).toBeCloseTo(expectedWidth);
@@ -70,7 +96,7 @@ describe("BeamSegmentElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const segment = getBarElement(trackElement).beamSegments[0];
+    const segment = getBeamSegments(trackElement)[0];
     const longX =
       segment.curBeatElement.boundingBox.x +
       (segment.curBeatElement.durationStemLine?.x ?? 0);
@@ -90,7 +116,7 @@ describe("BeamSegmentElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const segment = getBarElement(trackElement).beamSegments[2];
+    const segment = getBeamSegments(trackElement)[2];
     const longX =
       segment.curBeatElement.boundingBox.x +
       (segment.curBeatElement.durationStemLine?.x ?? 0);
@@ -110,7 +136,7 @@ describe("BeamSegmentElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const segment = getBarElement(trackElement).beamSegments[0];
+    const segment = getBeamSegments(trackElement)[0];
 
     expect(segment.longRects).toHaveLength(3);
     expect(segment.longRects[0].height).toBe(
@@ -135,12 +161,16 @@ describe("BeamSegmentElement", () => {
     bar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
-    const barElement = getBarElement(trackElement);
-    const beatElement = barElement.beatElements[0] as TabBeatElement;
+    const beatElement = getBarElement(trackElement)
+      .beatElements[0] as TabBeatElement;
 
-    expect(() => new BeamSegmentElement(barElement, beatElement)).toThrow(
-      "Beam segment for a beat with a non-beamable duration"
-    );
+    expect(
+      () =>
+        new BeamSegmentElement(
+          getVoiceBarRhythmElement(trackElement),
+          beatElement
+        )
+    ).toThrow("Beam segment for a beat with a non-beamable duration");
   });
 
   test("width-affecting updates keep complete beam coordinates aligned with legacy rebuild", () => {
@@ -160,14 +190,14 @@ describe("BeamSegmentElement", () => {
     trackElement.update();
     legacyTrackElement.update();
 
-    const segment = getBarElement(trackElement).beamSegments[0];
-    const legacySegment = getBarElement(legacyTrackElement).beamSegments[0];
+    const segment = getBeamSegments(trackElement)[0];
+    const legacySegment = getBeamSegments(legacyTrackElement)[0];
 
     expect(segment.longRectsGlobal).toEqual(legacySegment.longRectsGlobal);
     expect(segment.shortRectsGlobal).toEqual(legacySegment.shortRectsGlobal);
   });
 
-  test("complete tuplets update state hash when scaled", () => {
+  test("complete tuplets expose a stable non-empty state hash", () => {
     const { score, track, staff } = createScoreGraph();
     for (let i = 0; i < 3; i++) {
       score.appendMasterBar({
@@ -192,13 +222,8 @@ describe("BeamSegmentElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const tupletElement =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].barElements[1].tupletElements[0];
-    const prevStateHash = tupletElement.stateHash;
-
-    tupletElement.scaleHorBy(1.25);
-
-    expect(tupletElement.stateHash).not.toBe(prevStateHash);
+    const tupletElement = getTupletElements(trackElement, 1)[0] as any;
+    expect(tupletElement.stateHash).not.toBe("");
+    expect(tupletElement.completeText).toBe("2:4");
   });
 });

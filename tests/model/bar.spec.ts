@@ -40,7 +40,7 @@ describe("Bar model", () => {
     expect(bar.hasContent()).toBe(true);
   });
 
-  test("removeBeat can leave a true empty voice bar", () => {
+  test("removeBeat replaces the last note beat with a default rest", () => {
     const { bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
@@ -48,9 +48,11 @@ describe("Bar model", () => {
 
     const result = voiceBar.removeBeat(0);
 
-    expect(result).toHaveLength(1);
-    expect(voiceBar.beats).toHaveLength(0);
-    expect(voiceBar.isEmpty()).toBe(true);
+    expect(result.removed.beats).toHaveLength(1);
+    expect(result.inserted).toHaveLength(1);
+    expect(voiceBar.beats).toHaveLength(1);
+    expect(voiceBar.beats[0].isRest()).toBe(true);
+    expect(voiceBar.isEmpty()).toBe(false);
   });
 
   test("appendBeats with no arguments inserts one rest beat", () => {

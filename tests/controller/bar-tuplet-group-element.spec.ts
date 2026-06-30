@@ -9,6 +9,17 @@ function getBarElement(trackElement: TrackElement) {
     .styleLinesAsArray[0].barElements[0];
 }
 
+function getTupletElement(trackElement: TrackElement): any {
+  const tupletElement = getBarElement(trackElement)
+    .refreshOwnedNotationElements()
+    .find((element) => element.constructor.name === "BarTupletGroupElement");
+  if (tupletElement === undefined) {
+    throw Error("Expected rendered tuplet element");
+  }
+
+  return tupletElement;
+}
+
 describe("BarTupletGroupElement", () => {
   beforeAll(() => {
     ensureLayoutConfigured();
@@ -33,7 +44,7 @@ describe("BarTupletGroupElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const tupletElement = getBarElement(trackElement).tupletElements[0];
+    const tupletElement = getTupletElement(trackElement);
     const expectedWidth = tupletElement.beatElements.reduce(
       (sum, beatElement) => sum + beatElement.boundingBox.width,
       0
@@ -63,7 +74,7 @@ describe("BarTupletGroupElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const tupletElement = getBarElement(trackElement).tupletElements[0];
+    const tupletElement = getTupletElement(trackElement);
     const incompleteRects = tupletElement.incompleteRects;
 
     expect(tupletElement.tupletGroup.complete).toBe(false);
@@ -111,7 +122,7 @@ describe("BarTupletGroupElement", () => {
     trackElement.update();
 
     const barElement = getBarElement(trackElement);
-    const tupletElement = barElement.tupletElements[0];
+    const tupletElement = getTupletElement(trackElement);
     const sumWidth = tupletElement.beatElements.reduce(
       (sum, beatElement) => sum + beatElement.boundingBox.width,
       0
@@ -122,7 +133,8 @@ describe("BarTupletGroupElement", () => {
     );
     expect(tupletElement.boundingBox.width).toBeCloseTo(sumWidth);
     expect(tupletElement.boundingBox.y).toBeCloseTo(
-      barElement.boundingBox.height - EditorLayoutDimensions.TUPLET_RECT_HEIGHT
+      tupletElement.voiceBarRhythmElement.boundingBox.height -
+        EditorLayoutDimensions.TUPLET_RECT_HEIGHT
     );
     expect(tupletElement.completeText).toBe("5:3");
   });
@@ -146,7 +158,7 @@ describe("BarTupletGroupElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const tupletElement = getBarElement(trackElement).tupletElements[0];
+    const tupletElement = getTupletElement(trackElement);
     const firstBeatWidth = tupletElement.beatElements[0].boundingBox.width;
     const lastBeatWidth =
       tupletElement.beatElements[tupletElement.beatElements.length - 1]
@@ -182,7 +194,7 @@ describe("BarTupletGroupElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const tupletElement = getBarElement(trackElement).tupletElements[0];
+    const tupletElement = getTupletElement(trackElement);
 
     expect(tupletElement.comleteTextCoords?.x).toBeCloseTo(
       tupletElement.boundingBox.middleX
@@ -216,7 +228,7 @@ describe("BarTupletGroupElement", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const tupletElement = getBarElement(trackElement).tupletElements[0];
+    const tupletElement = getTupletElement(trackElement);
 
     expect(() => tupletElement.getTupletString(-1)).toThrow(
       "Get tuplet string invalid index: -1"

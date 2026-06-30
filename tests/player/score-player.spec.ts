@@ -86,7 +86,11 @@ function createScoreWithBars(barCount: number) {
   };
 }
 
-function setBeatFret(beat: { notes: Array<unknown> }, fret: number): void {
+function setBeatFret(
+  beat: { notes: Array<unknown> | null; makeBeatWithNotes: () => void },
+  fret: number
+): void {
+  beat.makeBeatWithNotes();
   (beat.notes[0] as unknown as { fret: number | null }).fret = fret;
 }
 
