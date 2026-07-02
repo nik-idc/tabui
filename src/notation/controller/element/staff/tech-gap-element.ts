@@ -86,8 +86,6 @@ export class TechGapElement implements NotationElement {
 
     for (const barElement of this.notationStyleLineElement.barElements) {
       for (const beatElement of barElement.beatElements) {
-        // TODO(rests): rest beats cannot own note techniques, but this should
-        // become an explicit rest-aware traversal rather than a null fallback.
         for (const note of beatElement.beat.notes ?? []) {
           for (const technique of note.techniques) {
             const lineNumber = TECHNIQUE_TO_LINE_NUMBER[technique.type];

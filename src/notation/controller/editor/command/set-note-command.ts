@@ -1,9 +1,6 @@
 import { Beat, Note, NoteValue } from "@/notation/model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
-// TODO(rests): audit whether this command is necessary
-// once the decision on classical notation is made
-
 /** Set note value at a beat/string cursor position. */
 export class SetNoteCommand implements Command {
   private _beat: Beat;

@@ -456,11 +456,7 @@ export class TrackControllerEditor {
     const selectionNotes =
       selectedNote && selectedNote.note !== null
         ? [selectedNote.note]
-        : this._selectionManager.selectionAsBeats.flatMap(
-            // TODO(rests): decide whether techniques can apply across rests or
-            // should surface an explicit no-op/invalid-selection state.
-            (b) => b.notes ?? []
-          );
+        : this._selectionManager.selectionAsBeats.flatMap((b) => b.notes ?? []);
 
     if (selectionNotes.length === 0) {
       return;

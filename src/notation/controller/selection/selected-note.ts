@@ -56,11 +56,6 @@ export class SelectedNote {
     this._voiceNumber = initialBeat.voiceBar.voiceNumber;
     this._noteIndex = noteIndex;
 
-    // TODO(rests): Audit if this can be done simpler by extending
-    // Staff with methods like
-    // - Staff.getVoiceBarsSeq(voiceNumber: VoiceNumber): VoiceBar[]
-    // - Staff.getVoiceBetasSeq(voiceNumber: VoiceNumber): Beat[]
-    // WITHOUT any performance downgrades
     for (let barIndex = 0; barIndex < this.staff.bars.length; barIndex++) {
       const bar = this.staff.bars[barIndex];
       const voiceBar = bar.getVoiceBar(this._voiceNumber);
@@ -242,9 +237,6 @@ export class SelectedNote {
   public get voiceBar(): VoiceBar {
     const voiceBar = this.bar.getVoiceBar(this._voiceNumber);
     if (voiceBar === null) {
-      // TODO(selection): SelectedNote is becoming a cursor. Move model access
-      // resolution toward SelectionManager/TrackControllerEditor so cursor
-      // state can temporarily point at materializable slots without throwing.
       throw Error("Selected note points to an empty voice slot");
     }
 

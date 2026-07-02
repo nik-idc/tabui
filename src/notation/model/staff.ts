@@ -192,8 +192,6 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     this._voiceNumberBarCounts.set(voiceNumber, nextCount);
   }
 
-  // TODO(voices): Revisit whether voice-count recording should stay here or be
-  // moved behind a higher-level Staff/Bar mutation boundary.
   public recordVoiceBarAdded(voiceBar: VoiceBar<I>): void {
     if (voiceBar.isEmpty()) {
       return;

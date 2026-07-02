@@ -99,7 +99,7 @@ export class EditorLayoutDimensions {
     this._TECHNIQUE_LABEL_HEIGHT = this._NOTE_TEXT_SIZE * 2;
 
     this._TIME_SIG_RECT_WIDTH = this._WIDTH_MAPPING[NoteDuration.ThirtySecond];
-    // '= XXX' = 5 characters of 'TEMPO_TEXT_SIZE' size
+    // '= 120' = 5 characters of 'TEMPO_TEXT_SIZE' size
     this._TEMPO_RECT_WIDTH = this._DURATIONS_HEIGHT; //  + this._TEMPO_TEXT_SIZE * 5;
     this._TEMPO_RECT_HEIGHT = this._DURATIONS_HEIGHT;
 

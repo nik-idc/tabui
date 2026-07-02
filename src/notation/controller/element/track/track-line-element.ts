@@ -75,8 +75,6 @@ export class TrackLineElement implements NotationElement {
   /** Track line encapsulating rectangle */
   private _boundingBox: Rect;
   /** Left & right outline line for when there are more than 1 staves */
-  // FIX: There are some errors with how outline lines are formed.
-  // Especially noticeable when adding new beats/bars by moving right
   private _outlineLines?: OutlineLines;
   /** Bar elements placed by TrackElement into this presentation line. */
   private _skeletonLine: TrackElementSkeletonLine;
@@ -213,8 +211,7 @@ export class TrackLineElement implements NotationElement {
       this._staffLineElements[0].styleLinesAsArray[0].barElements;
     const xRight = barElements[barElements.length - 1].globalBoundingBox.right;
 
-    // TODO: Redo this outline layout to support multiple notation
-    // styles since current calculation only works for tablature
+    // Known limitation: outline layout currently assumes tablature geometry.
     const y1 =
       this._trackLineInfoElement.boundingBox.bottom +
       // Since visually the staff lines begin a bit lower than the element
@@ -271,7 +268,7 @@ export class TrackLineElement implements NotationElement {
   }
 
   /**
-   * HACK: Transitional flattened traversal for viewport element collection.
+   * Architecture debt: flattened traversal for viewport element collection.
    * Current approach manually walks nested children to collect all notation
    * elements, which is brittle and tightly coupled to hierarchy shape.
    *

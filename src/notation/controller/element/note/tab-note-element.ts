@@ -10,11 +10,7 @@ import { NotationElement } from "../notation-element";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
-/**
- * TODO(rests): Audit whether this class should be renamed since
- * it is no longer tied strictly to a note but instead a note "position"
- * Class that handles geometry & visually relevant info of a tab note
- */
+/** Class that handles geometry & visually relevant info of a tab note slot. */
 export class TabNoteElement implements NoteElement {
   public static createStableIdentity(
     beatElement: TabBeatElement,
@@ -27,7 +23,7 @@ export class TabNoteElement implements NoteElement {
 
   /** Guitar note element's unique identifier */
   readonly uuid: number;
-  /** Backing note for this slot. TODO(rests): rename TabNoteElement later. */
+  /** Backing note for this slot. */
   note: GuitarNote | null;
   readonly stringNumber: number;
   /** Parent beat element */
@@ -151,9 +147,6 @@ export class TabNoteElement implements NoteElement {
   }
 
   public setNote(note: GuitarNote | null): void {
-    // TODO(rests): This relies on the caller rebuilding immediately after the
-    // backing note changes so model UUID registration is restored correctly.
-    // Revisit this when TabNoteElement is renamed/reworked as a slot element.
     this.note = note;
   }
 

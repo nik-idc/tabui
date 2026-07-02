@@ -21,7 +21,6 @@ export class BeamSegmentElement implements NotationElement {
     nextBeatElement?: TabBeatElement,
     prevBeatElement?: TabBeatElement
   ): string {
-    // WARNING: Looks very nasty
     const trackLineStableIdentity =
       voiceBarElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
     const prevUUID = prevBeatElement?.beat.uuid ?? 0;

@@ -474,8 +474,6 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     return { index: index, beats: insertedBeats };
   }
 
-  // TODO(rests): Audit whether this is ok to stay as a private method
-  // or better to be extracted into a static method/separate function
   private createDefaultBeat(index: number): Beat<I> {
     const duration =
       index === 0 ? NoteDuration.Quarter : this.beats[index - 1].baseDuration;

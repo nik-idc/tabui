@@ -14,12 +14,13 @@ import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
 import { BeatElement } from "../beat/beat-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
-// TODO:: Fix repeat rects shifting when there are multple staves
-
 /**
  * Class that handles geometry & visually relevant info of a bar
  */
 export class BarElement implements NotationElement {
+  private static readonly startRepeatWidthFactor = 2;
+  private static readonly endRepeatWidthFactor = 1;
+
   public static createStableIdentity(
     notationStyle: NotationStyle,
     bar: Bar
@@ -544,10 +545,9 @@ export class BarElement implements NotationElement {
   get startGap(): Rect {
     const x = 0;
     const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
-    // TODO(phase-4): This feels like a hack. Ideally the solution is such that
-    // start & end gap are of the same width AND they look identical, instead of
-    // end gap appearing larger than start gap (because of beat width)
-    let width = EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 2;
+    let width =
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH *
+      BarElement.startRepeatWidthFactor;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
     }
@@ -559,7 +559,9 @@ export class BarElement implements NotationElement {
   get startGapGlobal(): Rect {
     const x = 0;
     const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
-    let width = EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 2;
+    let width =
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH *
+      BarElement.startRepeatWidthFactor;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
     }
@@ -574,7 +576,9 @@ export class BarElement implements NotationElement {
 
   /** Gap at the fron of the bar (repeat end) */
   get endGap(): Rect {
-    const width = EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
+    const width =
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH *
+      BarElement.endRepeatWidthFactor;
     const height = this._boundingBox.height;
     const x = this._boundingBox.right - width;
     const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;
@@ -583,7 +587,9 @@ export class BarElement implements NotationElement {
 
   /** Gap at the fron of the bar (repeat end) in global coords */
   get endGapGlobal(): Rect {
-    const width = EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
+    const width =
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH *
+      BarElement.endRepeatWidthFactor;
     const height = this._boundingBox.height;
     const x = this._boundingBox.right - width;
     const y = this.showTempo ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT : 0;

@@ -26,8 +26,6 @@ import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
 import { BarElement } from "./bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
-// TODO:: Fix repeat rects shifting when there are multple staves
-
 /**
  * Class that handles geometry & visually relevant info of a bar
  */
