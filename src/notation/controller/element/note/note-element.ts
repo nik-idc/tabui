@@ -9,7 +9,7 @@ import { BeatElement } from "../beat/beat-element";
  * info of a note element
  */
 export interface NoteElement extends NotationElement {
-  readonly note: Note;
+  readonly note: Note | null;
   readonly beatElement: BeatElement;
   readonly barLocalCoords: Point;
   readonly barLocalBoundingBox: Rect;

@@ -36,6 +36,8 @@ describe("editor fixture and theme resolution", () => {
       "default",
       "empty",
       "selection_perf",
+      "multi_voice_single_staff",
+      "multi_voice_two_staff",
     ]);
   });
 

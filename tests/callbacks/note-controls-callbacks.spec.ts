@@ -25,11 +25,13 @@ describe("NoteControlsDefaultCallbacks", () => {
     const component = {
       template: {
         durationButtons,
+        restButton: makeButton(),
         dot1Button: makeButton(),
         dot2Button: makeButton(),
         insertBeatBeforeButton: makeButton(),
         insertBeatAfterButton: makeButton(),
         removeBeatButton: makeButton(),
+        voiceButtons: [],
         tuplet2Button: makeButton(),
         tuplet3Button: makeButton(),
         tupletButton: makeButton(),
@@ -41,6 +43,7 @@ describe("NoteControlsDefaultCallbacks", () => {
       component,
       notationComponent,
       renderFunc,
+      jest.fn(),
       captureKeyboard,
       jest.fn()
     );

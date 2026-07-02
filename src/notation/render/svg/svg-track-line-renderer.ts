@@ -1,6 +1,6 @@
 import { ElementRenderer } from "../element-renderer";
 import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
-import { TrackController } from "@/notation/controller";
+import { NotationElement, TrackController } from "@/notation/controller";
 import { createSVGG, createSVGLine } from "@/shared";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 
@@ -65,6 +65,10 @@ export class SVGTrackLineRenderer implements ElementRenderer {
     }
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: TrackLineElement): void {
+    this.trackLineElement = element;
   }
 
   /**

@@ -2,6 +2,7 @@ import {
   BarRepeatStatus,
   DEFAULT_MASTER_BAR,
   Guitar,
+  Score,
 } from "../../src/notation/model";
 import { AppendBarCommand } from "../../src/notation/controller/editor/command";
 import { createScoreGraph } from "../model/helpers";
@@ -13,9 +14,7 @@ function createMultiTrackScore() {
   return graph;
 }
 
-function getStaffBarCounts(
-  score: ReturnType<typeof createScoreGraph>["score"]
-) {
+function getStaffBarCounts(score: Score) {
   return score.tracks.map((track) =>
     track.staves.map((staff) => staff.bars.length)
   );

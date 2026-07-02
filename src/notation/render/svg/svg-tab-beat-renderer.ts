@@ -1,27 +1,15 @@
 import {
-  DURATION_TO_FLAG_COUNT,
-  DURATION_TO_NAME,
-  GuitarNote,
-  MAX_FLAG_COUNT,
-  NoteDuration,
-} from "@/notation/model";
-import {
-  Point,
   createSVGCircle,
   createSVGG,
-  createSVGImage,
   createSVGLine,
   createSVGRect,
 } from "@/shared";
-import { ElementRenderer } from "../element-renderer";
 import {
   BeatElement,
-  EditorLayoutDimensions,
+  NotationElement,
   TrackController,
 } from "@/notation/controller";
 import { SVGNoteRenderer } from "./svg-note-renderer";
-import { SVGTabNoteRenderer } from "./svg-tab-note-renderer";
-import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
 
@@ -47,6 +35,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
   private _dot2CircleSVG?: SVGCircleElement;
   /** Beat selection rectangle */
   private _beatSelectionSVG?: SVGRectElement;
+  private _restRectSVG?: SVGRectElement;
 
   /** Any events attached to the rendered group */
   private _attachedEvents: Map<string, EventListener> = new Map();
@@ -94,6 +83,10 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
+  public updateElementReference(element: TabBeatElement): void {
+    this.beatElement = element;
+  }
+
   /**
    * Renders the group element which will contain all the
    * data about the beat
@@ -104,6 +97,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
   /**
    * Renders duration stem
+   * @deprecated Not needed - TabBeatRhythmElement now renders beat's rhythm
    */
   private renderDurationStem(): void {
     if (this._containerGroupSVG === undefined) {
@@ -139,6 +133,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
   /**
    * Unrender duration stem
+   * @deprecated Not needed - TabBeatRhythmElement now renders beat's rhythm
    */
   private unrenderDurationStem(): void {
     if (this._containerGroupSVG === undefined) {
@@ -156,6 +151,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
   /**
    * Renders a single duration flag
    * @param flagIndex Index of the flag
+   * @deprecated Not needed - TabBeatRhythmElement now renders beat's rhythm
    */
   private renderDurationFlag(flagIndex: number): void {
     if (this._containerGroupSVG === undefined) {
@@ -201,6 +197,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
   /**
    * Unrenders a single duration flag
    * @param flagIndex Index of the flag
+   * @deprecated Not needed - TabBeatRhythmElement now renders beat's rhythm
    */
   private unrenderDurationFlag(flagIndex: number): void {
     if (this._containerGroupSVG === undefined) {
@@ -220,6 +217,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
   /**
    * Renders all duration flags
+   * @deprecated Not needed - TabBeatRhythmElement now renders beat's rhythm
    */
   private renderDurationFlags(): void {
     if (this._containerGroupSVG === undefined) {
@@ -236,15 +234,14 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       this._durationFlagsSVG = [];
     }
 
-    const beatFlagCount =
-      DURATION_TO_FLAG_COUNT[this.beatElement.beat.baseDuration];
-    for (let i = 0; i < beatFlagCount; i++) {
+    for (let i = 0; i < this.beatElement.durationFlagLines.length; i++) {
       this.renderDurationFlag(i);
     }
   }
 
   /**
    * Unrenders all duration flags
+   * @deprecated Not needed - TabBeatRhythmElement now renders beat's rhythm
    */
   private unrenderDurationFlags(): void {
     if (this._containerGroupSVG === undefined) {
@@ -259,7 +256,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       return;
     }
 
-    for (let i = 0; i < MAX_FLAG_COUNT; i++) {
+    for (let i = this._durationFlagsSVG.length - 1; i >= 0; i--) {
       this.unrenderDurationFlag(i);
     }
     this._durationFlagsSVG = undefined;
@@ -267,6 +264,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
   /**
    * Render dots
+   * @deprecated Not needed - TabBeatRhythmElement now renders beat's rhythm
    */
   private renderDotCircle(dot1: boolean): void {
     let dotCircle = dot1 ? this._dot1CircleSVG : this._dot2CircleSVG;
@@ -304,6 +302,7 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
 
   /**
    * Unrender duration stem
+   * @deprecated Not needed - TabBeatRhythmElement now renders beat's rhythm
    */
   private unrenderDotCircle(dot1: boolean): void {
     const dotCircle = dot1 ? this._dot1CircleSVG : this._dot2CircleSVG;
@@ -325,23 +324,53 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     }
   }
 
+  private renderRestRect(): void {
+    if (this._containerGroupSVG === undefined) {
+      throw Error("Tried to render rest rect when SVG group undefined");
+    }
+
+    const rect = this.beatElement.restRectBarLocal;
+    if (rect === null) {
+      this.unrenderRestRect();
+      return;
+    }
+
+    if (this._restRectSVG === undefined) {
+      this._restRectSVG = createSVGRect();
+      this._restRectSVG.setAttribute(
+        "id",
+        `beat-rest-${this.beatElement.beat.uuid}`
+      );
+      this._restRectSVG.setAttribute("fill", "var(--tu-notation-ink)");
+      this._restRectSVG.setAttribute("pointer-events", "none");
+      this._containerGroupSVG.appendChild(this._restRectSVG);
+    }
+
+    this._restRectSVG.setAttribute("x", `${rect.x}`);
+    this._restRectSVG.setAttribute("y", `${rect.y}`);
+    this._restRectSVG.setAttribute("width", `${rect.width}`);
+    this._restRectSVG.setAttribute("height", `${rect.height}`);
+  }
+
+  private unrenderRestRect(): void {
+    if (this._containerGroupSVG === undefined) {
+      throw Error("Tried to unrender rest rect when SVG group undefined");
+    }
+
+    if (this._restRectSVG === undefined) {
+      return;
+    }
+
+    this._containerGroupSVG.removeChild(this._restRectSVG);
+    this._restRectSVG = undefined;
+  }
+
   /**
    * Render a full beat
    */
   public render(): void {
     this.renderGroup();
-
-    this.renderDurationStem();
-    this.renderDurationFlags();
-
-    this.unrenderDotCircle(true);
-    this.unrenderDotCircle(false);
-    if (this.beatElement.beat.dots > 0) {
-      this.renderDotCircle(true);
-      if (this.beatElement.beat.dots === 2) {
-        this.renderDotCircle(false);
-      }
-    }
+    this.renderRestRect();
   }
 
   /**
@@ -351,6 +380,9 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     if (this._containerGroupSVG === undefined) {
       return;
     }
+
+    this.unrenderRestRect();
+    return;
 
     this.unrenderDurationStem();
     this.unrenderDurationFlags();

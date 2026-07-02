@@ -12,6 +12,8 @@ import {
 } from "@/notation/controller/element/technique/guitar-technique";
 import { TechniqueLabelElement } from "@/notation/controller/element/technique";
 import { TechGapElement } from "./tech-gap-element";
+import type { BarElement } from "../bar/bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class representing a single line of a staff line's technique label gap
@@ -32,6 +34,16 @@ export class TechGapLineElement implements NotationElement {
   readonly techLineNumber: TechLineNumber;
   /** Root track element */
   readonly trackElement: TrackElement;
+  readonly voiceNumber = null;
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.techGapElement.notationStyleLineElement.staffLineElement
+      .trackLineElement;
+  }
+
+  public get owningBarElement(): BarElement | null {
+    return null;
+  }
 
   /** Maps each BeatElement instance to a Set of TechniqueType labels
    * already processed or drawn for that specific beat element */
@@ -61,8 +73,6 @@ export class TechGapLineElement implements NotationElement {
     this._labelElements = [];
     this._labelElementsByIdentity = new Map();
     this._prevLabelElementsByIdentity = new Map();
-
-    this.trackElement.registerElement(this);
   }
 
   /**
@@ -129,7 +139,6 @@ export class TechGapLineElement implements NotationElement {
    * Clears transient label state before repopulating.
    */
   public build(): void {
-    this.trackElement.registerElement(this);
     this._prevLabelElementsByIdentity = new Map(this._labelElementsByIdentity);
     this._beatsLabelsMap = new Map();
     this._labelElements = [];
@@ -202,21 +211,6 @@ export class TechGapLineElement implements NotationElement {
         label.refreshOwnedNotationElements()
       ),
     ];
-  }
-
-  /**
-   * Scales the element & its children horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    if (this._boundingBox !== undefined) {
-      this._boundingBox.x *= scale;
-      this._boundingBox.width *= scale;
-    }
-
-    for (const label of this._labelElements) {
-      label.scaleHorBy(scale);
-    }
   }
 
   /** String encoding the state of this element */

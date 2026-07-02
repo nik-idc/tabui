@@ -6,6 +6,7 @@ import { ClefType } from "./clef-type";
 import { MasterBar } from "./master-bar";
 import { Track } from "./track";
 import { Beat } from "./beat";
+import { VoiceBar, VoiceNumber } from "./voice-bar";
 
 /**
  * Staff JSON format
@@ -40,6 +41,8 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   /** Indicates whether to display classical music notation  */
   private _showClassicNotation: boolean;
 
+  private _voiceNumberBarCounts: Map<VoiceNumber, number>;
+
   /**
    * A staff in this context is a representation of an
    * individually played part on an instrument
@@ -63,6 +66,15 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     this._clefType = clefType;
     this._showTablature = showTablature;
     this._showClassicNotation = showClassicNotation;
+
+    this._voiceNumberBarCounts = new Map([
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [4, 0],
+    ]);
+
+    this.rebuildVoiceBarCounts();
   }
 
   /**
@@ -73,6 +85,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    */
   public insertReadyBar(index: number, bar: Bar<I>): Bar<I> {
     this._bars.splice(index, 0, bar);
+    this.recordBarAdded(bar);
 
     return bar;
   }
@@ -86,10 +99,12 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   public insertBar(
     index: number,
     masterBar: MasterBar,
-    beats: Beat<I>[] = []
+    beats: Beat<I>[] = [],
+    voiceNumber: VoiceNumber = 1
   ): Bar<I> {
-    const newBar = new Bar<I>(this, this.trackContext, masterBar, beats);
+    const newBar = new Bar<I>(this, this.trackContext, masterBar);
     this._bars.splice(index, 0, newBar);
+    this.insertVoiceBarsForNewBar(newBar, beats, voiceNumber);
 
     return newBar;
   }
@@ -99,9 +114,14 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * @param masterBar Master bar
    * @param beats Beats
    */
-  public appendBar(masterBar: MasterBar, beats: Beat<I>[] = []): Bar<I> {
-    const newBar = new Bar<I>(this, this.trackContext, masterBar, beats);
+  public appendBar(
+    masterBar: MasterBar,
+    beats: Beat<I>[] = [],
+    voiceNumber: VoiceNumber = 1
+  ): Bar<I> {
+    const newBar = new Bar<I>(this, this.trackContext, masterBar);
     this._bars.push(newBar);
+    this.insertVoiceBarsForNewBar(newBar, beats, voiceNumber);
 
     return newBar;
   }
@@ -111,11 +131,32 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * @param masterBar Master bar
    * @param beats Beats
    */
-  public prependBar(masterBar: MasterBar, beats: Beat<I>[] = []): Bar<I> {
-    const newBar = new Bar<I>(this, this.trackContext, masterBar, beats);
+  public prependBar(
+    masterBar: MasterBar,
+    beats: Beat<I>[] = [],
+    voiceNumber: VoiceNumber = 1
+  ): Bar<I> {
+    const newBar = new Bar<I>(this, this.trackContext, masterBar);
     this._bars.unshift(newBar);
+    this.insertVoiceBarsForNewBar(newBar, beats, voiceNumber);
 
     return newBar;
+  }
+
+  private insertVoiceBarsForNewBar(
+    bar: Bar<I>,
+    beats: Beat<I>[],
+    voiceNumber: VoiceNumber
+  ): void {
+    const voiceNumbers = new Set<VoiceNumber>(this.nonEmptyVoiceNumbers);
+    voiceNumbers.add(voiceNumber);
+
+    for (const currentVoiceNumber of voiceNumbers) {
+      bar.insertVoiceBar(
+        currentVoiceNumber,
+        currentVoiceNumber === voiceNumber ? beats : []
+      );
+    }
   }
 
   /**
@@ -132,8 +173,63 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
 
     const removedBar = this._bars[index];
     this._bars.splice(index, 1);
+    this.recordBarRemoved(removedBar);
 
     return removedBar;
+  }
+
+  private adjustVoiceBarCount(voiceNumber: VoiceNumber, delta: number): void {
+    const currentCount = this._voiceNumberBarCounts.get(voiceNumber);
+    if (currentCount === undefined) {
+      throw Error(`Couldn't get voice ${voiceNumber} bar count`);
+    }
+
+    const nextCount = currentCount + delta;
+    if (nextCount < 0) {
+      throw Error(`Voice ${voiceNumber} bar count cannot be negative`);
+    }
+
+    this._voiceNumberBarCounts.set(voiceNumber, nextCount);
+  }
+
+  public recordVoiceBarAdded(voiceBar: VoiceBar<I>): void {
+    if (voiceBar.isEmpty()) {
+      return;
+    }
+
+    this.adjustVoiceBarCount(voiceBar.voiceNumber, 1);
+  }
+
+  public recordVoiceBarRemoved(voiceBar: VoiceBar<I>): void {
+    if (voiceBar.isEmpty()) {
+      return;
+    }
+
+    this.adjustVoiceBarCount(voiceBar.voiceNumber, -1);
+  }
+
+  private recordBarAdded(bar: Bar<I>): void {
+    for (const voiceBar of bar.voiceBarsAsArray) {
+      this.recordVoiceBarAdded(voiceBar);
+    }
+  }
+
+  private recordBarRemoved(bar: Bar<I>): void {
+    for (const voiceBar of bar.voiceBarsAsArray) {
+      this.recordVoiceBarRemoved(voiceBar);
+    }
+  }
+
+  private rebuildVoiceBarCounts(): void {
+    for (const voiceNumber of this._voiceNumberBarCounts.keys()) {
+      this._voiceNumberBarCounts.set(voiceNumber, 0);
+    }
+
+    for (const bar of this._bars) {
+      for (const voiceBar of bar.voiceBarsAsArray) {
+        this.recordVoiceBarAdded(voiceBar);
+      }
+    }
   }
 
   /**
@@ -142,16 +238,17 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * @returns Next beat or null if passed beat is the last one
    */
   public getNextBeat(beat: Beat<I>): Beat<I> | null {
-    const beatIndex = beat.bar.beats.indexOf(beat);
-    const nextBeatInBar = beat.bar.beats[beatIndex + 1];
+    const beatIndex = beat.voiceBar.beats.indexOf(beat);
+    const nextBeatInBar = beat.voiceBar.beats[beatIndex + 1];
     if (nextBeatInBar !== undefined) {
       return nextBeatInBar;
     }
 
-    const barIndex = this._bars.indexOf(beat.bar);
+    const barIndex = this._bars.indexOf(beat.voiceBar.bar);
     const nextBar = this._bars[barIndex + 1];
-    if (nextBar !== undefined) {
-      return nextBar.beats[0];
+    const nextVoiceBar = nextBar?.getVoiceBar(beat.voiceBar.voiceNumber);
+    if (nextVoiceBar !== undefined && nextVoiceBar !== null) {
+      return nextVoiceBar.beats[0];
     }
 
     return null;
@@ -163,16 +260,17 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * @returns Prev beat or null if passed beat is the first one
    */
   public getPrevBeat(beat: Beat<I>): Beat | null {
-    const beatIndex = beat.bar.beats.indexOf(beat);
-    const prevBeatInBar = beat.bar.beats[beatIndex - 1];
+    const beatIndex = beat.voiceBar.beats.indexOf(beat);
+    const prevBeatInBar = beat.voiceBar.beats[beatIndex - 1];
     if (prevBeatInBar !== undefined) {
       return prevBeatInBar;
     }
 
-    const barIndex = this._bars.indexOf(beat.bar);
+    const barIndex = this._bars.indexOf(beat.voiceBar.bar);
     const prevBar = this._bars[barIndex - 1];
-    if (prevBar !== undefined) {
-      return prevBar.beats[prevBar.beats.length - 1];
+    const prevVoiceBar = prevBar?.getVoiceBar(beat.voiceBar.voiceNumber);
+    if (prevVoiceBar !== undefined && prevVoiceBar !== null) {
+      return prevVoiceBar.beats[prevVoiceBar.beats.length - 1];
     }
 
     return null;
@@ -181,10 +279,14 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   /**
    * All the beats as an array. Does a flat map, so consider performance
    */
-  public getBeatsSeq(): Beat<I>[] {
-    return this._bars.flatMap((bar) => {
-      return bar.beats;
-    });
+  public getBeatsSeq(voiceNumber: VoiceNumber = 1): Beat<I>[] {
+    return this.getVoiceBeatsSeq(voiceNumber);
+  }
+
+  public getVoiceBeatsSeq(voiceNumber: VoiceNumber): Beat<I>[] {
+    return this._bars.flatMap(
+      (bar) => bar.getVoiceBar(voiceNumber)?.beats ?? []
+    );
   }
 
   /**
@@ -271,5 +373,12 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   /** Indicates whether to display classical music notation */
   public get showClassicNotation(): boolean {
     return this._showClassicNotation;
+  }
+
+  public get nonEmptyVoiceNumbers(): VoiceNumber[] {
+    return [...this._voiceNumberBarCounts.entries()]
+      .filter(([, count]) => count !== 0)
+      .map(([voiceNumber]) => voiceNumber)
+      .sort((a, b) => a - b);
   }
 }

@@ -16,7 +16,7 @@
     "preview_vite": "vite preview",
     "deploy_vite": "npm run build && git subtree push --prefix demo/dist origin gh-pages",
     "serve_vite": "npx vite",
-    "test": "npx jest",
+    "test": "tsc --project tsconfig.test.json && npx jest",
     "prepare": "husky",
     "format": "npx prettier --write ."
   },

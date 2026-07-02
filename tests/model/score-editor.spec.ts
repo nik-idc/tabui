@@ -1,6 +1,9 @@
 import {
+  BarRepeatStatus,
   BendTechniqueOptions,
   BendType,
+  Beat,
+  Guitar,
   GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
@@ -9,13 +12,23 @@ import {
 import { createBarWithBeats } from "./helpers";
 
 describe("ScoreEditor", () => {
+  function noteBeats(beats: Beat<Guitar>[]): Beat<Guitar>[] {
+    return beats.filter((beat) => beat.hasNotes());
+  }
+
   test("removeBars removes the requested original bar indices", () => {
     const { score } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
 
     for (let i = 0; i < 6; i++) {
-      score.appendMasterBar({ tempo: 120 + i * 10 });
+      score.appendMasterBar({
+        tempo: 120 + i * 10,
+        beatsCount: 4,
+        duration: NoteDuration.Quarter,
+        repeatStatus: BarRepeatStatus.None,
+        repeatCount: null,
+      });
     }
 
     const originalUUIDs = score.masterBars.map((bar) => bar.uuid);
@@ -61,8 +74,12 @@ describe("ScoreEditor", () => {
       tupletCount: 2,
     });
 
-    expect(bar.tupletGroups).toHaveLength(1);
-    expect(bar.tupletGroups[0].beats[0]).toBe(beat);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(voiceBar.tupletGroups).toHaveLength(1);
+    expect(voiceBar.tupletGroups[0].beats[0]).toBe(beat);
   });
 
   test("setDots refreshes tuplet group calculated durations", () => {
@@ -83,11 +100,15 @@ describe("ScoreEditor", () => {
 
     ScoreEditor.setDots([beats[0]], 1);
 
-    expect(bar.tupletGroups[0].getCalculatedDurationAt(0)).toBeCloseTo(
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(voiceBar.tupletGroups[0].getCalculatedDurationAt(0)).toBeCloseTo(
       1 / 8,
       10
     );
-    expect(bar.tupletGroups[0].getDurationTicksAt(0)).toBe(
+    expect(voiceBar.tupletGroups[0].getDurationTicksAt(0)).toBe(
       beats[0].fullDurationTicks
     );
   });
@@ -160,10 +181,17 @@ describe("ScoreEditor", () => {
 
     ScoreEditor.setTimeSignature(score, masterBar, 3, NoteDuration.Quarter);
 
-    expect(bar.barTicks).toBe((bar.tickResolution * 3) / 4);
-    expect(siblingBar.barTicks).toBe((siblingBar.tickResolution * 3) / 4);
+    const voiceBar = bar.getVoiceBar(1);
+    const siblingVoiceBar = siblingBar.getVoiceBar(1);
+    if (voiceBar === null || siblingVoiceBar === null) {
+      throw Error("Expected voice 1 bars");
+    }
+    expect(voiceBar.barTicks).toBe((voiceBar.tickResolution * 3) / 4);
+    expect(siblingVoiceBar.barTicks).toBe(
+      (siblingVoiceBar.tickResolution * 3) / 4
+    );
     expect(bar.checkDurationsFit()).toBe(false);
-    expect(siblingBar.checkDurationsFit()).toBe(true);
+    expect(siblingBar.checkDurationsFit()).toBe(false);
   });
 
   test("replaceBeats copies full rhythmic data for equal-length replacements", () => {
@@ -189,14 +217,18 @@ describe("ScoreEditor", () => {
 
     ScoreEditor.replaceBeats(beats, replacements);
 
-    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
-    expect(bar.beats[0].dots).toBe(1);
-    expect(bar.beats[0].tupletSettings).toEqual({
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(voiceBar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
+    expect(voiceBar.beats[0].dots).toBe(1);
+    expect(voiceBar.beats[0].tupletSettings).toEqual({
       normalCount: 3,
       tupletCount: 2,
     });
-    expect(bar.beats[1].baseDuration).toBe(NoteDuration.Sixteenth);
-    expect(bar.beats[1].tupletSettings).toEqual({
+    expect(voiceBar.beats[1].baseDuration).toBe(NoteDuration.Sixteenth);
+    expect(voiceBar.beats[1].tupletSettings).toEqual({
       normalCount: 5,
       tupletCount: 4,
     });
@@ -215,13 +247,17 @@ describe("ScoreEditor", () => {
     const insertedBeats = ScoreEditor.replaceBeats(beats, replacements);
 
     expect(insertedBeats).toHaveLength(3);
-    expect(bar.beats).toHaveLength(3);
-    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(noteBeats(voiceBar.beats)).toHaveLength(3);
+    expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Eighth,
       NoteDuration.Eighth,
       NoteDuration.Quarter,
     ]);
-    expect(bar.actualTicks).toBe(bar.tickResolution / 2);
+    expect(voiceBar.actualTicks).toBe((voiceBar.tickResolution * 3) / 4);
   });
 
   test("replaceBeats updates timing when replacing with fewer beats", () => {
@@ -240,22 +276,34 @@ describe("ScoreEditor", () => {
     const remainingBeats = ScoreEditor.replaceBeats(beats, replacements);
 
     expect(remainingBeats).toHaveLength(1);
-    expect(bar.beats).toHaveLength(1);
-    expect(bar.beats[0].baseDuration).toBe(NoteDuration.Quarter);
-    expect(bar.beats[0].dots).toBe(1);
-    expect(bar.actualTicks).toBe((bar.tickResolution * 3) / 8);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(noteBeats(voiceBar.beats)).toHaveLength(1);
+    expect(noteBeats(voiceBar.beats)[0].baseDuration).toBe(
+      NoteDuration.Quarter
+    );
+    expect(noteBeats(voiceBar.beats)[0].dots).toBe(1);
+    expect(voiceBar.actualTicks).toBe((voiceBar.tickResolution * 5) / 8);
   });
 
-  test("removeBeats preserves seed-beat invariant when all beats are removed", () => {
+  test("removeBeats replaces the last removed content with a rest", () => {
     const { bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
 
-    ScoreEditor.removeBeats([...bar.beats]);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
 
-    expect(bar.beats).toHaveLength(1);
-    expect(bar.beats[0].isEmpty()).toBe(true);
+    ScoreEditor.removeBeats([...voiceBar.beats]);
+
+    expect(noteBeats(voiceBar.beats)).toHaveLength(0);
+    expect(voiceBar.beats).toHaveLength(1);
+    expect(voiceBar.beats[0].isRest()).toBe(true);
   });
 
   test("setTechniqueNotes toggles a live technique on and off", () => {
@@ -264,7 +312,11 @@ describe("ScoreEditor", () => {
         baseDuration: NoteDuration.Quarter,
       },
     ]);
-    const note = beats[0].notes[0] as GuitarNote;
+    const note = beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+
     note.fret = 3;
 
     expect(
@@ -282,7 +334,11 @@ describe("ScoreEditor", () => {
     const { beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const note = beats[0].notes[0] as GuitarNote;
+    const note = beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+
     note.fret = 5;
 
     ScoreEditor.setTechniqueNotes([note], GuitarTechniqueType.NaturalHarmonic);
@@ -306,8 +362,12 @@ describe("ScoreEditor", () => {
     const { beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const first = beats[0].notes[0] as GuitarNote;
-    const second = beats[0].notes[1] as GuitarNote;
+    const first = beats[0].notes?.[0];
+    const second = beats[0].notes?.[1];
+    if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
+      throw Error("Expected guitar notes in test beat");
+    }
+
     first.fret = 3;
     second.fret = 5;
 
@@ -327,7 +387,11 @@ describe("ScoreEditor", () => {
     const { beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const note = beats[0].notes[0] as GuitarNote;
+    const note = beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+
     note.fret = 5;
 
     expect(() =>

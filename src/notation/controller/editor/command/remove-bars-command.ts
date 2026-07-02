@@ -3,7 +3,7 @@ import {
   MasterBarArrayOperationOutput,
   ScoreEditor,
 } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Command, AffectedModel } from "./command";
 
 /**
  * Remove bars command
@@ -78,17 +78,13 @@ export class RemoveBarsCommand implements Command {
     return this._removeMasterBarResults?.[0] ?? null;
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    const affectedMasterBarUUIDs = this._removeMasterBarResults?.map(
-      (result) => result.masterBar.uuid
-    );
-
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarUUIDs,
-      affectedMasterBarIndices: this._indices,
-      firstAffectedMasterBarIndex: this._indices[0] ?? 0,
-      reason: "remove-bars",
-    };
+  public get affectedModels(): AffectedModel[] {
+    return this._indices.map((masterBarIndex, i) => ({
+      masterBarIndex,
+      modelUUID:
+        this._removeMasterBarResults?.[i]?.masterBar.uuid ??
+        this._score.masterBars[masterBarIndex]?.uuid ??
+        0,
+    }));
   }
 }

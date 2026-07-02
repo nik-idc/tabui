@@ -4,7 +4,7 @@ import { createScoreGraph } from "../model/helpers";
 describe("SetTempoCommand", () => {
   test("execute, undo, and redo update the selected master bar tempo", () => {
     const { masterBar } = createScoreGraph();
-    const command = new SetTempoCommand(masterBar, 180);
+    const command = new SetTempoCommand(masterBar, 180, []);
 
     command.execute();
     expect(masterBar.tempo).toBe(180);
@@ -18,16 +18,20 @@ describe("SetTempoCommand", () => {
 
   test("redo before execute throws", () => {
     const { masterBar } = createScoreGraph();
-    const command = new SetTempoCommand(masterBar, 180);
+    const command = new SetTempoCommand(masterBar, 180, []);
 
     expect(() => command.redo()).toThrow("Redo called before execute");
   });
 
   test("tempo command can carry vertical-update metadata", () => {
     const { bar, masterBar } = createScoreGraph();
-    const command = new SetTempoCommand(masterBar, 180, [bar.uuid]);
+    const command = new SetTempoCommand(masterBar, 180, [
+      { masterBarIndex: 0, modelUUID: bar.uuid },
+    ]);
 
-    expect(command.isTempoVisibilityVerticalUpdate).toBe(true);
-    expect(command.affectedModelUUIDs).toEqual([bar.uuid]);
+    expect(command.affectsTempoVisibility).toBe(true);
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: bar.uuid },
+    ]);
   });
 });

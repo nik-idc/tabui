@@ -12,17 +12,20 @@ import {
   Staff,
   Track,
   TupletSettings,
+  VoiceBar,
 } from "../../src/notation/model";
 
-export function createScoreGraph(
-  masterBarData: MasterBarData = DEFAULT_MASTER_BAR
-): {
+export type ScoreGraph = {
   score: Score;
   track: Track<Guitar>;
   staff: Staff<Guitar>;
   masterBar: MasterBar;
   bar: Bar<Guitar>;
-} {
+};
+
+export function createScoreGraph(
+  masterBarData: MasterBarData = DEFAULT_MASTER_BAR
+): ScoreGraph {
   const score = new Score();
   const track = score.tracks[0] as Track<Guitar>;
   const staff = track.staves[0] as Staff<Guitar>;
@@ -37,22 +40,41 @@ export function createScoreGraph(
   }
 
   const bar = staff.bars[0] as Bar<Guitar>;
-  const seedBeat = createBeat(bar, NoteDuration.Quarter);
-  bar.beats.splice(0, bar.beats.length, seedBeat);
-  bar.computeBarTupletGroups();
+  const voiceBar = bar.getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error("Expected test bar to include voice 1");
+  }
+
+  const seedBeat = createBeat(voiceBar, NoteDuration.Quarter);
+  voiceBar.beats.splice(0, voiceBar.beats.length, seedBeat);
+  voiceBar.computeBarTupletGroups();
 
   return { score, track, staff, masterBar, bar };
 }
 
 export function createBeat(
-  bar: Bar<Guitar>,
+  voiceBar: VoiceBar<Guitar> | Bar<Guitar> | null,
   baseDuration: NoteDuration,
   dots: BeatDots = 0,
   tupletSettings: TupletSettings | null = null
 ): Beat<Guitar> {
+  if (voiceBar === null) {
+    throw Error("Cannot create beat for an empty voice slot");
+  }
+  let targetVoiceBar: VoiceBar<Guitar>;
+  if (voiceBar instanceof VoiceBar) {
+    targetVoiceBar = voiceBar;
+  } else {
+    const existingVoiceBar = voiceBar.getVoiceBar(1);
+    if (existingVoiceBar === null) {
+      throw Error("Expected test bar to include voice 1");
+    }
+    targetVoiceBar = existingVoiceBar;
+  }
+
   return new Beat(
-    bar,
-    bar.trackContext,
+    targetVoiceBar,
+    targetVoiceBar.trackContext,
     [],
     baseDuration,
     dots,
@@ -73,26 +95,26 @@ export function createBarWithBeats(
     repeatStatus: BarRepeatStatus.None,
     repeatCount: null,
   }
-): {
-  score: Score;
-  track: Track<Guitar>;
-  staff: Staff<Guitar>;
-  masterBar: MasterBar;
-  bar: Bar<Guitar>;
+): ScoreGraph & {
   beats: Beat<Guitar>[];
 } {
   const graph = createScoreGraph(masterBarData);
+  const voiceBar = graph.bar.getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error("Expected test bar to include voice 1");
+  }
+
   const beats = beatConfigs.map((config) =>
     createBeat(
-      graph.bar,
+      voiceBar,
       config.baseDuration,
       config.dots ?? 0,
       config.tupletSettings ?? null
     )
   );
 
-  graph.bar.beats.splice(0, graph.bar.beats.length, ...beats);
-  graph.bar.computeBarTupletGroups();
+  voiceBar.beats.splice(0, voiceBar.beats.length, ...beats);
+  voiceBar.computeBarTupletGroups();
 
   return { ...graph, beats };
 }

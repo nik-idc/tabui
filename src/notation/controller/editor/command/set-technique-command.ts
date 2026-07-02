@@ -7,7 +7,7 @@ import {
   GuitarTechnique,
   GuitarTechniqueType,
 } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
  * Set technique for notes command
@@ -106,7 +106,7 @@ export class SetTechniqueCommand implements Command {
     return this._executed;
   }
 
-  public get isTechniqueLabelVerticalUpdate(): boolean {
+  public get affectsTechniqueLabels(): boolean {
     if (this.isTechniqueLabelType(this._newTechniqueType)) {
       return true;
     }
@@ -124,28 +124,32 @@ export class SetTechniqueCommand implements Command {
     return false;
   }
 
-  public get affectedModelUUIDs(): number[] {
-    return this._notes.map((note) => note.uuid);
+  private get _affectedModels(): AffectedModel[] {
+    const affectedBeats = getAffectedModelsFromBeats(
+      this._notes.map((note) => note.beat)
+    );
+    return this._notes.map((note) => {
+      const affectedBeat = affectedBeats.find(
+        (model) => model.modelUUID === note.beat.uuid
+      );
+      if (affectedBeat === undefined) {
+        return { masterBarIndex: -1, modelUUID: note.uuid };
+      }
+
+      return { ...affectedBeat, modelUUID: note.uuid };
+    });
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    if (this.isTechniqueLabelVerticalUpdate) {
-      return {
-        updateType: "Vertical",
-        affectedModelUUIDs: this.affectedModelUUIDs,
-      };
+  public get affectedModels(): AffectedModel[] {
+    if (this.affectsTechniqueLabels) {
+      return this._affectedModels;
     }
 
     if (this.isInlineTechniqueTargetedUpdate) {
-      return {
-        updateType: "Targeted",
-        affectedModelUUIDs: this.affectedModelUUIDs,
-      };
+      return this._affectedModels.slice(0, 1);
     }
 
-    return {
-      updateType: "Full",
-    };
+    return this._affectedModels;
   }
 
   private get isInlineTechniqueTargetedUpdate(): boolean {

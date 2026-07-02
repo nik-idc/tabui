@@ -21,6 +21,7 @@ export class SideControlsCallbacks {
   private _sideComponent: SideControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _renderActiveVoiceFunc: () => void;
   private _captureKeyboard: () => void;
   private _freeKeyboard: () => void;
   private _bound = false;
@@ -29,12 +30,14 @@ export class SideControlsCallbacks {
     sideComponent: SideControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
+    renderActiveVoiceFunc: () => void,
     captureKeyboard: () => void,
     freeKeyboard: () => void
   ) {
     this._sideComponent = sideComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._renderActiveVoiceFunc = renderActiveVoiceFunc;
     this._captureKeyboard = captureKeyboard;
     this._freeKeyboard = freeKeyboard;
 
@@ -42,6 +45,7 @@ export class SideControlsCallbacks {
       this._sideComponent.noteControlsComponent,
       this._notationComponent,
       this._renderFunc,
+      this._renderActiveVoiceFunc,
       this._captureKeyboard,
       this._freeKeyboard
     );

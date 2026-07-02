@@ -1,5 +1,5 @@
 import { Score, MasterBar, NoteDuration, ScoreEditor } from "@/notation/model";
-import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
+import { Command, AffectedModel } from "./command";
 
 /**
  * Set bar time signature command
@@ -45,7 +45,7 @@ export class SetTimeSigCommand implements Command {
     this._newDuration = duration;
     this._oldBeatsCount = bar.beatsCount;
     this._oldDuration = bar.duration;
-    this._affectedMasterBarIndex = getMasterBarIndex(this._score, bar);
+    this._affectedMasterBarIndex = this._score.masterBars.indexOf(bar);
   }
 
   /**
@@ -93,13 +93,12 @@ export class SetTimeSigCommand implements Command {
     );
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarUUIDs: [this._bar.uuid],
-      affectedMasterBarIndices: [this._affectedMasterBarIndex],
-      firstAffectedMasterBarIndex: this._affectedMasterBarIndex,
-      reason: "time-signature",
-    };
+  public get affectedModels(): AffectedModel[] {
+    return [
+      {
+        masterBarIndex: this._affectedMasterBarIndex,
+        modelUUID: this._bar.uuid,
+      },
+    ];
   }
 }

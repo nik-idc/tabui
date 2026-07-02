@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <ellipse cx="22" cy="48" rx="11" ry="8" transform="rotate(-20 22 48)" fill="#000"/>
+  <rect x="31" y="10" width="4" height="39" fill="#000"/>
+  <path d="M35 10 C47 13 52 19 54 27 L50 27 C48 22 43 19 35 17 Z" fill="#000"/>
+  <path d="M35 20 C47 23 52 29 54 37 L50 37 C48 32 43 29 35 27 Z" fill="#000"/>
+  <path d="M35 30 C47 33 52 39 54 47 L50 47 C48 42 43 39 35 37 Z" fill="#000"/>
+  <path d="M35 40 C47 43 52 49 54 57 L50 57 C48 52 43 49 35 47 Z" fill="#000"/>
+</svg>

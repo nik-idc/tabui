@@ -33,6 +33,7 @@ describe("SideControlsCallbacks", () => {
       {} as any,
       jest.fn(),
       jest.fn(),
+      jest.fn(),
       jest.fn()
     );
 

@@ -11,6 +11,8 @@ import { BeatElement } from "@/notation/controller/element/beat/beat-element";
 import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
 import { TechniqueLabelElement } from "../technique-label-element";
 import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
+import type { BarElement } from "../../bar/bar-element";
+import type { TrackLineElement } from "../../track/track-line-element";
 
 /**
  * Class that contains a guitar technique label
@@ -36,6 +38,15 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   readonly beatElement: BeatElement;
   /** Root track element */
   readonly trackElement: TrackElement;
+  readonly voiceNumber = null;
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.gapLineElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.beatElement.barElement;
+  }
 
   /** Outer rectangle */
   private _boundingBox: Rect;
@@ -62,8 +73,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this.beatElement = beatElement;
 
     this._boundingBox = new Rect();
-
-    this.trackElement.registerElement(this);
   }
 
   /**
@@ -363,8 +372,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   public build(): void {
-    this.trackElement.registerElement(this);
-
     this._pathDescriptors = [];
     this._textDescriptors = [];
   }
@@ -436,17 +443,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         this.createPalmMutePath();
         break;
     }
-  }
-
-  /**
-   * Scales the label horizontally
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    this._boundingBox.x *= scale;
-    this._boundingBox.width *= scale;
-
-    this.createPath();
   }
 
   /** String encoding the state of this element */

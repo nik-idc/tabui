@@ -1,16 +1,10 @@
-import { Bar, Beat, ScoreEditor } from "@/notation/model";
 import {
-  Command,
-  CommandUpdateRequest,
-  getAffectedMasterBarIndicesFromBeats,
-  getAffectedMasterBarUUIDsFromBeats,
-} from "./command";
-
-type RemovedBeatSnapshot = {
-  bar: Bar;
-  index: number;
-  beat: Beat;
-};
+  Beat,
+  BeatRestoreSnapshot,
+  Score,
+  ScoreEditor,
+} from "@/notation/model";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
  * Replaces selected beats with clipboard beats using the current permissive
@@ -20,31 +14,21 @@ type RemovedBeatSnapshot = {
 export class ReplaceBeatsCommand implements Command {
   private _beatsToReplace: Beat[];
   private _newBeats: Beat[];
-  private _oldBeatSnapshots: RemovedBeatSnapshot[];
-  private _originalBarBeatCounts: Map<Bar, number>;
+  private _oldBeatSnapshots: BeatRestoreSnapshot[];
   private _currentBeats: Beat[];
   private _executed: boolean = false;
-  private _affectedMasterBarIndices: number[];
-  private _affectedMasterBarUUIDs: number[];
+  private _affectedModels: AffectedModel[];
 
   constructor(beatsToReplace: Beat[], newBeats: Beat[]) {
     this._beatsToReplace = beatsToReplace;
     this._newBeats = newBeats;
     this._oldBeatSnapshots = beatsToReplace.map((beat) => ({
-      bar: beat.bar,
-      index: beat.bar.beats.indexOf(beat),
+      voiceBar: beat.voiceBar,
+      index: beat.voiceBar.beats.indexOf(beat),
       beat: beat.deepCopy(),
     }));
-    this._originalBarBeatCounts = new Map(
-      new Set(beatsToReplace.map((beat) => beat.bar))
-        .values()
-        .map((bar) => [bar, bar.beats.length])
-    );
     this._currentBeats = beatsToReplace;
-    this._affectedMasterBarIndices =
-      getAffectedMasterBarIndicesFromBeats(beatsToReplace);
-    this._affectedMasterBarUUIDs =
-      getAffectedMasterBarUUIDsFromBeats(beatsToReplace);
+    this._affectedModels = getAffectedModelsFromBeats(beatsToReplace);
   }
 
   execute(): void {
@@ -64,29 +48,8 @@ export class ReplaceBeatsCommand implements Command {
       return;
     }
 
-    ScoreEditor.removeBeats(this._currentBeats);
-
-    const restoredBeats: Beat[] = [];
-    const bars = new Set(
-      this._oldBeatSnapshots.map((snapshot) => snapshot.bar)
-    );
-    for (const bar of bars) {
-      const barSnapshots = this._oldBeatSnapshots
-        .filter((snapshot) => snapshot.bar === bar)
-        .sort((a, b) => a.index - b.index);
-      const index = Math.min(...barSnapshots.map((snapshot) => snapshot.index));
-      const beats = barSnapshots.map((snapshot) => snapshot.beat);
-      const removedWholeBar =
-        barSnapshots.length === this._originalBarBeatCounts.get(bar);
-
-      if (index === 0 && removedWholeBar && bar.isEmpty()) {
-        bar.beats.splice(0, 1);
-      }
-
-      restoredBeats.push(...bar.insertBeats(index, beats));
-    }
-
-    this._currentBeats = restoredBeats;
+    ScoreEditor.prepareBeatRestore(this._currentBeats);
+    this._currentBeats = ScoreEditor.restoreBeats(this._oldBeatSnapshots);
   }
 
   redo(): void {
@@ -100,14 +63,8 @@ export class ReplaceBeatsCommand implements Command {
     );
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarUUIDs: this._affectedMasterBarUUIDs,
-      affectedMasterBarIndices: this._affectedMasterBarIndices,
-      firstAffectedMasterBarIndex: this._affectedMasterBarIndices[0] ?? 0,
-      reason: "replace-beats",
-    };
+  public get affectedModels(): AffectedModel[] {
+    return this._affectedModels;
   }
 }
 

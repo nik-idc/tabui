@@ -1,5 +1,5 @@
-import { Beat, ScoreEditor, Staff } from "@/notation/model";
-import { Command, CommandUpdateRequest, getMasterBarIndex } from "./command";
+import { Beat, ScoreEditor, Staff, VoiceNumber } from "@/notation/model";
+import { Command, AffectedModel } from "./command";
 
 /**
  * Inserts clipboard beats locally after an anchor beat. This intentionally does
@@ -9,17 +9,20 @@ export class InsertBeatsCommand implements Command {
   private _anchorStaff: Staff;
   private _anchorBeat: Beat | undefined;
   private _beatsToInsert: Beat[];
+  private _voiceNumber: VoiceNumber;
   private _insertedBeats: Beat[] = [];
   private _executed: boolean = false;
 
   constructor(
     anchorStaff: Staff,
     anchorBeat: Beat | undefined,
-    beatsToInsert: Beat[]
+    beatsToInsert: Beat[],
+    voiceNumber: VoiceNumber = 1
   ) {
     this._anchorStaff = anchorStaff;
     this._anchorBeat = anchorBeat;
     this._beatsToInsert = beatsToInsert;
+    this._voiceNumber = voiceNumber;
   }
 
   private getInsertionPosition(): { barIndex: number; beatIndex: number } {
@@ -28,8 +31,8 @@ export class InsertBeatsCommand implements Command {
     }
 
     return {
-      barIndex: this._anchorStaff.bars.indexOf(this._anchorBeat.bar),
-      beatIndex: this._anchorBeat.bar.beats.indexOf(this._anchorBeat) + 1,
+      barIndex: this._anchorStaff.bars.indexOf(this._anchorBeat.voiceBar.bar),
+      beatIndex: this._anchorBeat.voiceBar.beats.indexOf(this._anchorBeat) + 1,
     };
   }
 
@@ -39,13 +42,17 @@ export class InsertBeatsCommand implements Command {
     }
 
     const { barIndex, beatIndex } = this.getInsertionPosition();
-    const bar = this._anchorStaff.bars[barIndex];
+    const voiceBar = this._anchorStaff.bars[barIndex].getVoiceBar(
+      this._voiceNumber
+    );
+    if (voiceBar === null) {
+      throw Error("Cannot insert beats into an empty voice slot");
+    }
 
     this._insertedBeats = ScoreEditor.insertBeats(
-      bar,
+      voiceBar,
       beatIndex,
-      this._beatsToInsert,
-      true
+      this._beatsToInsert
     );
     this._executed = true;
   }
@@ -64,29 +71,32 @@ export class InsertBeatsCommand implements Command {
     }
 
     const { barIndex, beatIndex } = this.getInsertionPosition();
-    const bar = this._anchorStaff.bars[barIndex];
+    const voiceBar = this._anchorStaff.bars[barIndex].getVoiceBar(
+      this._voiceNumber
+    );
+    if (voiceBar === null) {
+      throw Error("Cannot insert beats into an empty voice slot");
+    }
 
     this._insertedBeats = ScoreEditor.insertBeats(
-      bar,
+      voiceBar,
       beatIndex,
-      this._beatsToInsert,
-      true
+      this._beatsToInsert
     );
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    const affectedBar = this._anchorBeat?.bar ?? this._anchorStaff.bars[0];
-    const affectedMasterBarIndex = getMasterBarIndex(
-      this._anchorStaff.track.score,
-      affectedBar.masterBar
-    );
+  public get affectedModels(): AffectedModel[] {
+    const affectedBar =
+      this._anchorBeat?.voiceBar.bar ?? this._anchorStaff.bars[0];
 
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarIndices: [affectedMasterBarIndex],
-      firstAffectedMasterBarIndex: affectedMasterBarIndex,
-      reason: "insert-beats",
-    };
+    return [
+      {
+        masterBarIndex: this._anchorStaff.track.score.masterBars.indexOf(
+          affectedBar.masterBar
+        ),
+        modelUUID: affectedBar.masterBar.uuid,
+      },
+    ];
   }
 }
 

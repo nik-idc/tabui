@@ -27,10 +27,23 @@ describe("TrackElement measure", () => {
     expect(barElements[0].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect).toBeUndefined();
     expect(barElements[0].startGap.width).toBe(
-      EditorLayoutDimensions.TIME_SIG_RECT_WIDTH
+      EditorLayoutDimensions.TIME_SIG_RECT_WIDTH +
+        EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 2
     );
-    expect(barElements[1].startGap.width).toBe(0);
-    expect(barElements[1].beatElements[0].boundingBox.x).toBeCloseTo(0);
+    expect(barElements[0].endGap.width).toBe(
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH
+    );
+    expect(barElements[1].startGap.width).toBe(
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 2
+    );
+    expect(barElements[1].endGap.width).toBe(
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH
+    );
+    expect(barElements[1].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
+      EditorLayoutDimensions.REPEAT_SIGN_WIDTH +
+        EditorLayoutDimensions.REPEAT_SIGN_WIDTH +
+        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING
+    );
   });
 
   test("shows time signature with expected dimensions and placement when meter changes", () => {
@@ -57,8 +70,9 @@ describe("TrackElement measure", () => {
       EditorLayoutDimensions.TIME_SIG_TEXT_SIZE * 2
     );
     expect(barElements[1].timeSigRect?.x).toBe(0);
-    expect(barElements[1].beatElements[0].boundingBox.x).toBeCloseTo(
-      barElements[1].timeSigRect?.right ?? 0
+    expect(barElements[1].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
+      barElements[1].startGap.right +
+        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING
     );
   });
 
@@ -90,8 +104,9 @@ describe("TrackElement measure", () => {
     expect(barElements[0].repeatStartRect?.x).toBeCloseTo(
       barElements[0].timeSigRect?.right ?? 0
     );
-    expect(barElements[0].beatElements[0].boundingBox.x).toBeCloseTo(
-      barElements[0].repeatStartRect?.right ?? 0
+    expect(barElements[0].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
+      barElements[0].startGap.right +
+        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING
     );
 
     expect(barElements[1].repeatEndRect?.width).toBe(
@@ -105,7 +120,28 @@ describe("TrackElement measure", () => {
     );
     expect(
       barElements[1].beatElements[barElements[1].beatElements.length - 1]
-        .boundingBox.right
+        .barLocalBoundingBox.right
     ).toBeLessThanOrEqual(barElements[1].repeatEndRect?.x ?? 0);
+  });
+
+  test("repeat status does not change bar width", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const trackElement = new TrackElement(track);
+    trackElement.update();
+
+    const beforeWidths =
+      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements.map(
+        (barElement) => barElement.boundingBox.width
+      );
+    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
+    score.masterBars[1].repeatStatus = BarRepeatStatus.End;
+    trackElement.update();
+
+    const afterWidths =
+      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements.map(
+        (barElement) => barElement.boundingBox.width
+      );
+    expect(afterWidths).toEqual(beforeWidths);
   });
 });

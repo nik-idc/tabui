@@ -1,4 +1,8 @@
-import { StaffLineElement, TrackController } from "@/notation/controller";
+import {
+  NotationElement,
+  StaffLineElement,
+  TrackController,
+} from "@/notation/controller";
 import { createSVGG, Point } from "@/shared";
 import { SVGBarRenderer } from "./svg-bar-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
@@ -64,6 +68,10 @@ export class SVGStyleLineRenderer implements ElementRenderer {
     }
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: NotationStyleLineElement): void {
+    this.styleLineElement = element;
   }
 
   /**

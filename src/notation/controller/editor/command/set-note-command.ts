@@ -1,81 +1,76 @@
-import { Note, NoteValue } from "@/notation/model";
-import { Command, CommandUpdateRequest } from "./command";
+import { Beat, Note, NoteValue } from "@/notation/model";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
-/**
- * Set guitar note fret command
- */
+/** Set note value at a beat/string cursor position. */
 export class SetNoteCommand implements Command {
-  /** Note to append the beat to */
-  private _note: Note;
-  /** New note value */
+  private _beat: Beat;
+  private _stringNumber: number;
   private _newValue: NoteValue;
-  /** New octave */
   private _newOctave: number | null;
-  /** Old note value */
   private _oldValue: NoteValue;
-  /** Old octave */
   private _oldOctave: number | null;
-  /** True if executed, false otherwise*/
+  private _oldWasRest: boolean;
   private _executed: boolean = false;
 
-  /**
-   * Set guitar note fret command
-   * @param note Guitar note whose fret to set
-   * @param newFret New fret value
-   */
-  constructor(note: Note, newValue: NoteValue, newOctave: number | null) {
-    this._note = note;
+  constructor(
+    beat: Beat,
+    stringNumber: number,
+    newValue: NoteValue,
+    newOctave: number | null
+  ) {
+    this._beat = beat;
+    this._stringNumber = stringNumber;
     this._newValue = newValue;
     this._newOctave = newOctave;
-    this._oldValue = note.noteValue;
-    this._oldOctave = note.octave;
+    this._oldWasRest = beat.isRest();
+    const note = this._oldWasRest ? null : this.getTargetNote();
+    this._oldValue = note?.noteValue ?? NoteValue.None;
+    this._oldOctave = note?.octave ?? null;
   }
 
-  /**
-   * Execute set fret command
-   */
+  private getTargetNote(): Note {
+    return this._beat.notes![this._stringNumber - 1];
+  }
+
   execute(): void {
+    this._beat.makeBeatWithNotes();
     this.applyNoteState(this._newValue, this._newOctave);
     this._executed = true;
   }
 
-  /**
-   * Undo set fret command, i.e. set old fret value
-   */
   undo(): void {
     if (!this._executed) {
       return;
     }
 
     this.applyNoteState(this._oldValue, this._oldOctave);
+    if (this._oldWasRest) {
+      this._beat.makeRest();
+    }
   }
 
-  /**
-   * Redo, i.e. restore note state to before execute
-   */
   redo(): void {
     if (!this._executed) {
       throw Error("Redo called before execute");
     }
 
+    this._beat.makeBeatWithNotes();
     this.applyNoteState(this._newValue, this._newOctave);
   }
 
   private applyNoteState(value: NoteValue, octave: number | null): void {
+    const note = this.getTargetNote();
     if (value === NoteValue.None || value === NoteValue.Dead) {
-      this._note.noteValue = value;
-      this._note.octave = octave;
+      note.noteValue = value;
+      note.octave = octave;
       return;
     }
 
-    this._note.octave = octave;
-    this._note.noteValue = value;
+    note.octave = octave;
+    note.noteValue = value;
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Targeted",
-      affectedModelUUIDs: [this._note.uuid],
-    };
+  public get affectedModels(): AffectedModel[] {
+    return getAffectedModelsFromBeats([this._beat]);
   }
 }

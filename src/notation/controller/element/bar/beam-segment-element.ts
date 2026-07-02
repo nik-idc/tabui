@@ -2,9 +2,12 @@ import { Point, Rect, randomInt } from "@/shared";
 import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "@/notation/controller/element/track-element";
 import { NotationElement } from "@/notation/controller/element/notation-element";
-import { BarElement } from "./bar-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { DURATION_TO_FLAG_COUNT } from "@/notation/model";
+import { DURATION_TO_FLAG_COUNT, VoiceNumber } from "@/notation/model";
+import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
+import { VoiceBarElement } from "./voice-bar-element";
+import type { BarElement } from "./bar-element";
+import type { TrackLineElement } from "../track/track-line-element";
 
 type ShortTailDirection = "left" | "right";
 
@@ -13,25 +16,27 @@ type ShortTailDirection = "left" | "right";
  */
 export class BeamSegmentElement implements NotationElement {
   public static createStableIdentity(
-    barElement: BarElement,
+    voiceBarElement: VoiceBarRhythmElement,
     curBeatElement: TabBeatElement,
     nextBeatElement?: TabBeatElement,
     prevBeatElement?: TabBeatElement
   ): string {
     const trackLineStableIdentity =
-      barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
+      voiceBarElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
     const prevUUID = prevBeatElement?.beat.uuid ?? 0;
     const curUUID = curBeatElement.beat.uuid;
     const nextUUID = nextBeatElement?.beat.uuid ?? 0;
     const terminalFlag = nextBeatElement === undefined ? 1 : 0;
 
-    return `beam:${trackLineStableIdentity}:${barElement.bar.uuid}:${prevUUID}:${curUUID}:${nextUUID}:${terminalFlag}`;
+    return `beam:${trackLineStableIdentity}:${voiceBarElement.voiceNumber}:${prevUUID}:${curUUID}:${nextUUID}:${terminalFlag}`;
   }
 
   /** Unique identifier for the beam segment element */
   readonly uuid: number;
   /** Parent bar element */
-  readonly barElement: BarElement;
+  readonly voiceBarRhythmElement: VoiceBarRhythmElement;
+  /** Parent voice bar element */
+  readonly voiceBarElement: VoiceBarElement;
   /** Previous beat element */
   readonly prevBeatElement?: TabBeatElement;
   /** Current beat element */
@@ -41,19 +46,31 @@ export class BeamSegmentElement implements NotationElement {
   /** Root track element */
   readonly trackElement: TrackElement;
 
+  public get voiceNumber(): VoiceNumber {
+    return this.voiceBarRhythmElement.voiceNumber;
+  }
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.voiceBarRhythmElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.voiceBarRhythmElement.barElement;
+  }
+
   /** Rectangle of the long beam */
   private _longRects: Rect[];
   /** Rectangles of short tails */
   private _shortRects: Rect[];
   /**
    * Class that handles geometry & visually relevant info of a beam segment
-   * @param barElement Parent bar element
+   * @param voiceBarRhythmElement Parent bar element
    * @param curBeatElement Previous beat element
    * @param nextBeatElement Current beat element
    * @param prevBeatElement Next beat element
    */
   constructor(
-    barElement: BarElement,
+    voiceBarRhythmElement: VoiceBarRhythmElement,
     curBeatElement: TabBeatElement,
     nextBeatElement?: TabBeatElement,
     prevBeatElement?: TabBeatElement
@@ -63,8 +80,12 @@ export class BeamSegmentElement implements NotationElement {
     }
 
     this.uuid = randomInt();
-    this.barElement = barElement;
-    this.trackElement = this.barElement.trackElement;
+    this.voiceBarRhythmElement = voiceBarRhythmElement;
+    if (voiceBarRhythmElement.voiceBarElement === undefined) {
+      throw Error("Beam segment requires a non-empty voice bar rhythm row");
+    }
+    this.voiceBarElement = voiceBarRhythmElement.voiceBarElement;
+    this.trackElement = this.voiceBarRhythmElement.trackElement;
     this.prevBeatElement = prevBeatElement;
     this.curBeatElement = curBeatElement;
     this.nextBeatElement = nextBeatElement;
@@ -73,8 +94,6 @@ export class BeamSegmentElement implements NotationElement {
     this._shortRects = [];
 
     this.build();
-
-    this.trackElement.registerElement(this);
   }
 
   /**
@@ -140,8 +159,6 @@ export class BeamSegmentElement implements NotationElement {
    * Initializes the long and short rectangles for this segment
    */
   public build(): void {
-    this.trackElement.registerElement(this);
-
     this._longRects = [];
     this._shortRects = [];
 
@@ -162,26 +179,9 @@ export class BeamSegmentElement implements NotationElement {
    * Calculates the dimensions of long & short rectangles
    */
   public measure(): void {
-    if (this.curBeatElement.durationStemLine === undefined) {
-      throw Error("Cur duration stem line undefined in beam segment element");
-    }
-
-    if (
-      this.nextBeatElement !== undefined &&
-      this.nextBeatElement.durationStemLine === undefined
-    ) {
-      throw Error("Next duration stem line undefined in beam segment element");
-    }
-
     if (this.nextBeatElement !== undefined) {
-      const longWidth =
-        this.curBeatElement.boundingBox.width / 2 +
-        this.nextBeatElement.boundingBox.width / 2;
       for (const rect of this._longRects) {
-        rect.setDimensions(
-          longWidth,
-          EditorLayoutDimensions.DURATION_FLAG_HEIGHT
-        );
+        rect.setDimensions(0, EditorLayoutDimensions.DURATION_FLAG_HEIGHT);
       }
     }
 
@@ -194,31 +194,6 @@ export class BeamSegmentElement implements NotationElement {
     }
   }
 
-  private buildStateHash(): string {
-    const hashArr: string[] = [
-      `${this.barLocalBoundingBox.x}` +
-        `${this.barLocalBoundingBox.y}` +
-        `${this.barLocalBoundingBox.width}` +
-        `${this.barLocalBoundingBox.height}`,
-    ];
-
-    for (const longRect of this._longRects) {
-      hashArr.push(`${longRect.x}`);
-      hashArr.push(`${longRect.y}`);
-      hashArr.push(`${longRect.width}`);
-      hashArr.push(`${longRect.height}`);
-    }
-
-    for (const shortRect of this._shortRects) {
-      hashArr.push(`${shortRect.x}`);
-      hashArr.push(`${shortRect.y}`);
-      hashArr.push(`${shortRect.width}`);
-      hashArr.push(`${shortRect.height}`);
-    }
-
-    return hashArr.join("");
-  }
-
   /**
    * Calculates the coordinates of long and short beam rectangles.
    *
@@ -228,27 +203,15 @@ export class BeamSegmentElement implements NotationElement {
    * - Otherwise -> short tail rectangle
    */
   public layout(): void {
-    if (this.curBeatElement.durationStemLine === undefined) {
-      throw Error("Cur duration stem line undefined in beam segment element");
-    }
-
-    if (
-      this.nextBeatElement !== undefined &&
-      this.nextBeatElement.durationStemLine === undefined
-    ) {
-      throw Error("Next duration stem line undefined in beam segment element");
-    }
-
-    const longX =
-      this.curBeatElement.boundingBox.x +
-      this.curBeatElement.durationStemLine.x;
+    const longX = this.curBeatElement.attackX;
+    const longWidth =
+      this.nextBeatElement === undefined
+        ? 0
+        : this.nextBeatElement.attackX - longX;
     const shortTailDirection = this.getShortTailDirection();
     const shortWidth = 10;
 
-    const baseY =
-      this.barElement.boundingBox.height -
-      EditorLayoutDimensions.TUPLET_RECT_HEIGHT -
-      EditorLayoutDimensions.DURATION_FLAG_HEIGHT;
+    const baseY = EditorLayoutDimensions.DURATIONS_HEIGHT;
 
     const curFlags = this.getFlagCount(this.curBeatElement);
     let longRectIndex = 0;
@@ -258,6 +221,11 @@ export class BeamSegmentElement implements NotationElement {
         baseY - (level - 1) * EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
 
       if (this.isLongRectLevel(level)) {
+        // Width depends on laid-out beat attack columns, not measure-time data.
+        this._longRects[longRectIndex]?.setDimensions(
+          longWidth,
+          EditorLayoutDimensions.DURATION_FLAG_HEIGHT
+        );
         this._longRects[longRectIndex]?.setCoords(longX, y);
         longRectIndex++;
         continue;
@@ -283,25 +251,30 @@ export class BeamSegmentElement implements NotationElement {
     this.layout();
   }
 
-  /**
-   * Scales horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    for (const rect of this._longRects) {
-      rect.x *= scale;
-      rect.width *= scale;
-    }
-
-    for (const rect of this._shortRects) {
-      rect.x *= scale;
-      rect.width *= scale;
-    }
-  }
-
   /** String encoding the state of this element */
   public get stateHash(): string {
-    return this.buildStateHash();
+    const hashArr: string[] = [
+      `${this.barLocalBoundingBox.x}` +
+        `${this.barLocalBoundingBox.y}` +
+        `${this.barLocalBoundingBox.width}` +
+        `${this.barLocalBoundingBox.height}`,
+    ];
+
+    for (const longRect of this._longRects) {
+      hashArr.push(`${longRect.x}`);
+      hashArr.push(`${longRect.y}`);
+      hashArr.push(`${longRect.width}`);
+      hashArr.push(`${longRect.height}`);
+    }
+
+    for (const shortRect of this._shortRects) {
+      hashArr.push(`${shortRect.x}`);
+      hashArr.push(`${shortRect.y}`);
+      hashArr.push(`${shortRect.width}`);
+      hashArr.push(`${shortRect.height}`);
+    }
+
+    return hashArr.join("");
   }
 
   public refreshOwnedNotationElements(): NotationElement[] {
@@ -310,7 +283,7 @@ export class BeamSegmentElement implements NotationElement {
 
   public getStableIdentity(): string {
     return BeamSegmentElement.createStableIdentity(
-      this.barElement,
+      this.voiceBarRhythmElement,
       this.curBeatElement,
       this.nextBeatElement,
       this.prevBeatElement
@@ -348,7 +321,11 @@ export class BeamSegmentElement implements NotationElement {
 
   /** Coords of this element in bar-local coordinates */
   public get barLocalCoords(): Point {
-    return new Point(this.boundingBox.x, this.boundingBox.y);
+    // return new Point(this.boundingBox.x, this.boundingBox.y);
+    return new Point(
+      this.voiceBarRhythmElement.boundingBox.x + this.boundingBox.x,
+      this.voiceBarRhythmElement.boundingBox.bottom + this.boundingBox.y
+    );
   }
 
   /** Bounding box of this element in bar-local coordinates */
@@ -364,8 +341,8 @@ export class BeamSegmentElement implements NotationElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
-      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
+      this.voiceBarElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.voiceBarElement.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -403,13 +380,29 @@ export class BeamSegmentElement implements NotationElement {
   }
 
   /** Rectangle of the long beam in track-line-local coords */
+  public get longRectsBarLocal(): Rect[] {
+    const result = [];
+    for (const rect of this._longRects) {
+      result.push(
+        new Rect(
+          this.voiceBarRhythmElement.boundingBox.x + rect.x,
+          this.voiceBarRhythmElement.boundingBox.y + rect.y,
+          rect.width,
+          rect.height
+        )
+      );
+    }
+    return result;
+  }
+
+  /** Rectangle of the long beam in track-line-local coords */
   public get longRectsLineLocal(): Rect[] {
     const result = [];
     for (const rect of this._longRects) {
       result.push(
         new Rect(
-          this.barElement.lineLocalCoords.x + rect.x,
-          this.barElement.lineLocalCoords.y + rect.y,
+          this.voiceBarElement.lineLocalCoords.x + rect.x,
+          this.voiceBarElement.lineLocalCoords.y + rect.y,
           rect.width,
           rect.height
         )
@@ -424,8 +417,8 @@ export class BeamSegmentElement implements NotationElement {
     for (const rect of this._longRects) {
       result.push(
         new Rect(
-          this.barElement.globalCoords.x + rect.x,
-          this.barElement.globalCoords.y + rect.y,
+          this.voiceBarElement.globalCoords.x + rect.x,
+          this.voiceBarElement.globalCoords.y + rect.y,
           rect.width,
           rect.height
         )
@@ -440,13 +433,29 @@ export class BeamSegmentElement implements NotationElement {
   }
 
   /** Rectangles of the short tails in global coords */
+  public get shortRectsBarLocal(): Rect[] {
+    const result = [];
+    for (const rect of this._shortRects) {
+      result.push(
+        new Rect(
+          this.voiceBarRhythmElement.boundingBox.x + rect.x,
+          this.voiceBarRhythmElement.boundingBox.y + rect.y,
+          rect.width,
+          rect.height
+        )
+      );
+    }
+    return result;
+  }
+
+  /** Rectangles of the short tails in global coords */
   public get shortRectsLineLocal(): Rect[] {
     const result = [];
     for (const rect of this._shortRects) {
       result.push(
         new Rect(
-          this.barElement.lineLocalCoords.x + rect.x,
-          this.barElement.lineLocalCoords.y + rect.y,
+          this.voiceBarElement.lineLocalCoords.x + rect.x,
+          this.voiceBarElement.lineLocalCoords.y + rect.y,
           rect.width,
           rect.height
         )
@@ -461,8 +470,8 @@ export class BeamSegmentElement implements NotationElement {
     for (const rect of this._shortRects) {
       result.push(
         new Rect(
-          this.barElement.globalCoords.x + rect.x,
-          this.barElement.globalCoords.y + rect.y,
+          this.voiceBarElement.globalCoords.x + rect.x,
+          this.voiceBarElement.globalCoords.y + rect.y,
           rect.width,
           rect.height
         )
@@ -474,8 +483,8 @@ export class BeamSegmentElement implements NotationElement {
   /** Global coords of the beam segment element */
   public get globalCoords(): Point {
     return new Point(
-      this.barElement.globalCoords.x + this.barLocalCoords.x,
-      this.barElement.globalCoords.y + this.barLocalCoords.y
+      this.voiceBarElement.globalCoords.x + this.barLocalCoords.x,
+      this.voiceBarElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

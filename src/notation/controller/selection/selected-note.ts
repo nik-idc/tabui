@@ -1,4 +1,11 @@
-import { Bar, Staff, Beat, Note } from "@/notation/model";
+import {
+  Bar,
+  Staff,
+  Beat,
+  Note,
+  VoiceBar,
+  VoiceNumber,
+} from "@/notation/model";
 
 export enum SelectedMoveDirection {
   Left,
@@ -25,8 +32,9 @@ export type MoveRightOutput =
   | { result: MoveRightResult.AddedBar; addedBar: true };
 
 /**
- * Class that contains all necessary information
- * about a selected element
+ * Legacy name: this is moving from note-object selection toward an edit cursor
+ * position (staff/bar/voice/beat/note lane). Once rests are stabilized, rename
+ * to SelectionCursor or similar.
  */
 export class SelectedNote {
   /** Selected note's staff */
@@ -34,6 +42,8 @@ export class SelectedNote {
 
   /** Index of the selected note's bar */
   private _barIndex: number = 0;
+  /** Number of the selected voice */
+  private _voiceNumber: VoiceNumber = 1;
   /** Index of the selected note's beat (within the bar) */
   private _beatIndex: number = 0;
   /** Index of the selected note */
@@ -41,23 +51,28 @@ export class SelectedNote {
   /** last move right result */
   private _lastMoveRightResult?: MoveRightResult;
 
-  /**
-   * Class that contains all necessary information
-   * about a selected element
-   */
-  constructor(initialNote: Note) {
-    this.staff = initialNote.beat.bar.staff;
+  constructor(initialBeat: Beat, noteIndex: number) {
+    this.staff = initialBeat.voiceBar.bar.staff;
+    this._voiceNumber = initialBeat.voiceBar.voiceNumber;
+    this._noteIndex = noteIndex;
 
-    this.staff.bars.some((bar, barIndex) => {
-      return bar.beats.some((beat, beatIndex) => {
-        return beat.notes.some((note, noteIndex) => {
-          this._barIndex = barIndex;
-          this._beatIndex = beatIndex;
-          this._noteIndex = noteIndex;
-          return note.uuid === initialNote.uuid;
-        });
-      });
-    });
+    for (let barIndex = 0; barIndex < this.staff.bars.length; barIndex++) {
+      const bar = this.staff.bars[barIndex];
+      const voiceBar = bar.getVoiceBar(this._voiceNumber);
+      if (voiceBar === null) {
+        continue;
+      }
+
+      for (let beatIndex = 0; beatIndex < voiceBar.beats.length; beatIndex++) {
+        if (voiceBar.beats[beatIndex].uuid !== initialBeat.uuid) {
+          continue;
+        }
+
+        this._barIndex = barIndex;
+        this._beatIndex = beatIndex;
+        return;
+      }
+    }
   }
 
   /**
@@ -99,7 +114,8 @@ export class SelectedNote {
 
     // Move to the left bar
     this._barIndex--;
-    this._beatIndex = this.bar.beats.length - 1;
+    this._beatIndex =
+      (this.bar.getVoiceBar(this._voiceNumber)?.beats ?? [0]).length - 1;
   }
 
   /**
@@ -109,9 +125,9 @@ export class SelectedNote {
   public moveRight(): MoveRightOutput {
     // Check if can add beats to the bar
     if (
-      this._beatIndex === this.bar.beats.length - 1 &&
-      (!this.bar.checkDurationsFit() || this.bar.isEmpty()) &&
-      this.bar.getActualBarDuration() <
+      this._beatIndex === this.voiceBar.beats.length - 1 &&
+      (!this.voiceBar.checkDurationsFit() || this.voiceBar.isEmpty()) &&
+      this.voiceBar.getActualBarDuration() <
         this.bar.masterBar.beatsCount * this.bar.masterBar.duration
     ) {
       // If the current beat is not the last one of the bar AND
@@ -124,7 +140,7 @@ export class SelectedNote {
       return { result: this._lastMoveRightResult, addedBar: false };
     }
 
-    if (this._beatIndex !== this.bar.beats.length - 1) {
+    if (this._beatIndex !== this.voiceBar.beats.length - 1) {
       // Can't add more beats but can move to the next beat
       this._beatIndex++;
 
@@ -176,23 +192,24 @@ export class SelectedNote {
     }
 
     const bar = this.staff.bars[this._barIndex];
-    if (bar.beats.length === 0) {
+    const voiceBar = this.voiceBar;
+    if (voiceBar.beats.length === 0) {
       throw Error("Selected note sync called with no beats in bar");
     }
 
-    if (this._beatIndex >= bar.beats.length) {
-      this._beatIndex = bar.beats.length - 1;
+    if (this._beatIndex >= voiceBar.beats.length) {
+      this._beatIndex = voiceBar.beats.length - 1;
     }
     if (this._beatIndex < 0) {
       this._beatIndex = 0;
     }
 
-    const beat = bar.beats[this._beatIndex];
-    if (beat.notes.length === 0) {
+    const beat = voiceBar.beats[this._beatIndex];
+    if (beat.notes !== null && beat.notes.length === 0) {
       throw Error("Selected note sync called with no notes in beat");
     }
 
-    if (this._noteIndex >= beat.notes.length) {
+    if (beat.notes !== null && this._noteIndex >= beat.notes.length) {
       this._noteIndex = beat.notes.length - 1;
     }
     if (this._noteIndex < 0) {
@@ -201,20 +218,29 @@ export class SelectedNote {
   }
 
   /** Selected note */
-  public get note(): Note {
-    return this.staff.bars[this._barIndex].beats[this._beatIndex].notes[
-      this._noteIndex
-    ];
+  public get note(): Note | null {
+    const notes = this.voiceBar.beats[this._beatIndex].notes;
+    return notes?.[this._noteIndex] ?? null;
   }
 
   /** Selected beat */
   public get beat(): Beat {
-    return this.staff.bars[this._barIndex].beats[this._beatIndex];
+    return this.voiceBar.beats[this._beatIndex];
   }
 
   /** Selected bar */
   public get bar(): Bar {
     return this.staff.bars[this._barIndex];
+  }
+
+  /** Selected voice bar */
+  public get voiceBar(): VoiceBar {
+    const voiceBar = this.bar.getVoiceBar(this._voiceNumber);
+    if (voiceBar === null) {
+      throw Error("Selected note points to an empty voice slot");
+    }
+
+    return voiceBar;
   }
 
   /** Selected note's string number */

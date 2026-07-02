@@ -2,6 +2,7 @@ import {
   BeamSegmentElement,
   BeatElement,
   EditorLayoutDimensions,
+  NotationElement,
   TrackController,
 } from "@/notation/controller";
 import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
@@ -49,6 +50,10 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
     }
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: BeamSegmentElement): void {
+    this.beamSegment = element;
   }
 
   /**
@@ -101,10 +106,11 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._longRectSVG[index]);
     }
 
-    const x = `${this.beamSegment.longRects[index].x}`;
-    const y = `${this.beamSegment.longRects[index].y}`;
-    const width = `${this.beamSegment.longRects[index].width}`;
-    const height = `${this.beamSegment.longRects[index].height}`;
+    const longRectsBarLocal = this.beamSegment.longRectsBarLocal;
+    const x = `${longRectsBarLocal[index].x}`;
+    const y = `${longRectsBarLocal[index].y}`;
+    const width = `${longRectsBarLocal[index].width}`;
+    const height = `${longRectsBarLocal[index].height}`;
     this._longRectSVG[index].setAttribute("x", x);
     this._longRectSVG[index].setAttribute("y", y);
     this._longRectSVG[index].setAttribute("width", width);
@@ -195,10 +201,11 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._shortRectSVG[index]);
     }
 
-    const x = `${this.beamSegment.shortRects[index].x}`;
-    const y = `${this.beamSegment.shortRects[index].y}`;
-    const width = `${this.beamSegment.shortRects[index].width}`;
-    const height = `${this.beamSegment.shortRects[index].height}`;
+    const shortRectsBarLocal = this.beamSegment.shortRectsBarLocal;
+    const x = `${shortRectsBarLocal[index].x}`;
+    const y = `${shortRectsBarLocal[index].y}`;
+    const width = `${shortRectsBarLocal[index].width}`;
+    const height = `${shortRectsBarLocal[index].height}`;
     this._shortRectSVG[index].setAttribute("x", x);
     this._shortRectSVG[index].setAttribute("y", y);
     this._shortRectSVG[index].setAttribute("width", width);

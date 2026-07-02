@@ -2,56 +2,88 @@ import {
   BeatElement,
   NoteElement,
   NotationElement,
+  NotationElementClass,
   EditorLayoutDimensions,
   TrackController,
-  NotationElementClass,
 } from "@/notation/controller";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import { createSVG, createSVGG, Rect } from "@/shared";
 import { EditorRenderer } from "../editor-renderer";
+import { EditorRenderOptions } from "../editor-renderer";
 import { ElementRenderer } from "../element-renderer";
-import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
-import { ELEMENT_ORDER } from "@/notation/controller/element/track-element";
-import { createRendererForElement } from "./support/renderer-factory";
-import { SelectionOverlayRenderer } from "./selection-overlay-renderer";
-import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
-import { TrackLineInfoElement } from "@/notation/controller/element/track/track-line-info-element";
-import { StaffLineElement } from "@/notation/controller/element/staff/staff-line-element";
-import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
-import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-element";
-import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
+import {
+  ELEMENT_ORDER,
+  ElementDiff,
+  TrackElement,
+} from "@/notation/controller/element/track-element";
 import { BarElement } from "@/notation/controller/element/bar/bar-element";
+import { VoiceBarElement } from "@/notation/controller/element/bar/voice-bar-element";
+import { VoiceBarRhythmElement } from "@/notation/controller/element/bar/voice-bar-rhythm-element";
+import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
+import { TabBeatRhythmElement } from "@/notation/controller/element/beat/tab-beat-rhythm-element";
 import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
 import { GuitarTechniqueElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
-import { getOwningTrackLineElement } from "@/notation/controller/element/track/update/track-element-update-helpers";
-import { getOwningBarElement } from "@/notation/controller/element/track/update/track-element-update-helpers";
+import { VoiceNumber } from "@/notation/model";
+import { createRendererForElement } from "./support/renderer-factory";
+import { SelectionOverlayRenderer } from "./selection-overlay-renderer";
 import { BeatInteractionRenderer } from "./beat-interaction-renderer";
 import { PlayerOverlayRenderer } from "./player-overlay-renderer";
-import { ensureDomChildAtIndex, toDomIdFragment } from "./support/misc";
+import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
 
-type TrackLineGroup = {
+enum VoicePart {
+  Content = "content",
+  Rhythm = "rhythm",
+}
+
+type BarContainer = {
+  /** Wrapper translated to the bar's line-local position. */
   wrapper: SVGGElement;
-  layerGroups: Map<NotationElementClass, SVGGElement>;
-  barGroups: Map<string, BarGroup>;
+  /** Bar-owned non-voice containers keyed by element class. */
+  layerContainers: Map<NotationElementClass, SVGGElement>;
+  /** Voice content/rhythm containers under this bar, keyed by model voice number. */
+  voiceContainers: {
+    [VoicePart.Content]: Map<VoiceNumber, SVGGElement>;
+    [VoicePart.Rhythm]: Map<VoiceNumber, SVGGElement>;
+  };
 };
 
-type BarGroup = {
+type TrackLineContainer = {
+  /** Wrapper translated to the track line's global position. */
   wrapper: SVGGElement;
-  layerGroups: Map<NotationElementClass, SVGGElement>;
+  /** Line-owned element containers keyed by element class. */
+  layerContainers: Map<NotationElementClass, SVGGElement>;
+  /** Bar wrappers retained under this line, keyed by bar stable identity. */
+  barContainers: Map<string, BarContainer>;
 };
 
-const BAR_OWNED_ELEMENT_CLASSES: Array<NotationElementClass> = [
+// NOTE: Strong hint that the current model of doing labels is architecturally flawed.
+const BAR_OWNED_ELEMENT_CLASSES = new Set<NotationElementClass>([
   BarElement,
-  TabBeatElement,
-  TabNoteElement,
-  GuitarTechniqueElement,
   GuitarTechniqueLabelElement,
-  BeamSegmentElement,
-  BarTupletGroupElement,
-];
+]);
+
+const ELEMENT_VOICE_PART = new Map<NotationElementClass, VoicePart>([
+  [VoiceBarElement, VoicePart.Content],
+  [TabBeatElement, VoicePart.Content],
+  [TabNoteElement, VoicePart.Content],
+  [GuitarTechniqueElement, VoicePart.Content],
+  [VoiceBarRhythmElement, VoicePart.Rhythm],
+  [TabBeatRhythmElement, VoicePart.Rhythm],
+  [BeamSegmentElement, VoicePart.Rhythm],
+  [BarTupletGroupElement, VoicePart.Rhythm],
+]);
+
+const DEFAULT_RENDER_OPTIONS: EditorRenderOptions = {
+  renderNotation: true,
+  forceNotation: false,
+  overlays: {
+    selection: true,
+    player: true,
+  },
+};
 
 /**
  * Render a track window using SVG
@@ -73,12 +105,12 @@ export class EditorSVGRenderer implements EditorRenderer {
   /** Track controller rendered by this renderer instance. */
   readonly trackController: TrackController;
 
-  /** Track line wrapper groups keyed by stable identity. */
-  private _trackLineGroups: Map<string, TrackLineGroup>;
   /** Registry mapping stable element identity to renderer. */
   private _rendererRegistry: Map<string, ElementRenderer>;
-  /** Renderer UUIDs currently mounted in layer groups. */
-  private _mountedRendererUUIDs: Set<string>;
+  private _trackLineContainers: Map<string, TrackLineContainer>;
+  private _mountedRendererIdentities: Set<string>;
+  private _lastRenderedViewportStart?: number;
+  private _lastRenderedViewportEnd?: number;
   /** Viewport scroll listener. */
   private _viewportScrollListener?: EventListener;
   /** Viewport rectangle inside notation scroll container. */
@@ -119,11 +151,11 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.assetsPath = assetsPath;
     this.trackController = trackController;
 
-    this._trackLineGroups = new Map();
     this._rendererRegistry = new Map();
-    this._mountedRendererUUIDs = new Set();
+    this._trackLineContainers = new Map();
+    this._mountedRendererIdentities = new Set();
     this._viewportRect = new Rect();
-    this.syncViewportState();
+    this.setViewportRect();
 
     this._notationSVGGroup = createSVGG();
     this._notationSVGGroup.setAttribute("id", "tu-notation");
@@ -149,6 +181,28 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.mountRootLayers();
   }
 
+  private mountDomChild(
+    parent: SVGGElement | undefined,
+    child: SVGGElement
+  ): void {
+    if (parent === undefined || child.parentNode === parent) {
+      return;
+    }
+
+    parent.appendChild(child);
+  }
+
+  private unmountDomChild(
+    parent: SVGGElement | undefined,
+    child: SVGGElement
+  ): void {
+    if (parent === undefined || child.parentNode !== parent) {
+      return;
+    }
+
+    parent.removeChild(child);
+  }
+
   private mountRootLayers(): void {
     this.rootSVGElement.appendChild(this._interactionSVGGroup);
     this.rootSVGElement.appendChild(this._notationSVGGroup);
@@ -156,135 +210,10 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.rootSVGElement.appendChild(this._playerSVGGroup);
   }
 
-  private ensureBarGroup(
-    trackLineGroup: TrackLineGroup,
-    barElement: BarElement
-  ): BarGroup {
-    const stableIdentity = barElement.getStableIdentity();
-    const existingGroup = trackLineGroup.barGroups.get(stableIdentity);
-
-    const translateX = barElement.lineLocalCoords.x;
-    const translateY = barElement.lineLocalCoords.y;
-    const barWrapperTransform = `translate(${translateX}, ${translateY})`;
-    if (existingGroup !== undefined) {
-      existingGroup.wrapper.setAttribute("transform", barWrapperTransform);
-      return existingGroup;
-    }
-
-    const wrapper = createSVGG();
-    wrapper.setAttribute(
-      "id",
-      `tu-bar-wrapper-${toDomIdFragment(stableIdentity)}`
-    );
-    wrapper.setAttribute("transform", barWrapperTransform);
-
-    const layerGroups = new Map<NotationElementClass, SVGGElement>();
-    for (const elementClass of BAR_OWNED_ELEMENT_CLASSES) {
-      const group = createSVGG();
-      group.setAttribute(
-        "data-layer",
-        elementClass.name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
-      );
-      layerGroups.set(elementClass, group);
-      wrapper.appendChild(group);
-    }
-
-    const barGroup = { wrapper, layerGroups };
-    trackLineGroup.barGroups.set(stableIdentity, barGroup);
-    return barGroup;
-  }
-
-  private syncTrackLineBarGroups(
-    trackLineGroup: TrackLineGroup,
-    trackLineElement: TrackLineElement
-  ): void {
-    const visibleBarStableIdentities = new Set<string>();
-    let barGroupIndex = trackLineGroup.layerGroups.size;
-
-    // Ensure existence of visible bar groups
-    for (const staffLineElement of trackLineElement.staffLineElements) {
-      for (const notationStyleLineElement of staffLineElement.styleLinesAsArray) {
-        for (const barElement of notationStyleLineElement.barElements) {
-          const stableIdentity = barElement.getStableIdentity();
-          visibleBarStableIdentities.add(stableIdentity);
-
-          const barGroup = this.ensureBarGroup(trackLineGroup, barElement);
-          ensureDomChildAtIndex(
-            trackLineGroup.wrapper,
-            barGroup.wrapper,
-            barGroupIndex
-          );
-          barGroupIndex++;
-        }
-      }
-    }
-
-    // Remove stale bar groups from the track line group
-    for (const [stableIdentity, barGroup] of trackLineGroup.barGroups) {
-      if (visibleBarStableIdentities.has(stableIdentity)) {
-        continue;
-      }
-
-      barGroup.wrapper.remove();
-      trackLineGroup.barGroups.delete(stableIdentity);
-    }
-  }
-
-  private ensureTrackLineGroup(
-    trackLineElement: TrackLineElement
-  ): TrackLineGroup {
-    // Check for existing track line group and simply update if it exists
-    const stableIdentity = trackLineElement.getStableIdentity();
-    const existingLineGroup = this._trackLineGroups.get(stableIdentity);
-    if (existingLineGroup !== undefined) {
-      existingLineGroup.wrapper.setAttribute(
-        "transform",
-        `translate(${trackLineElement.globalCoords.x}, ${trackLineElement.globalCoords.y})`
-      );
-      this.syncTrackLineBarGroups(existingLineGroup, trackLineElement);
-      return existingLineGroup;
-    }
-
-    // Create the line wrapper
-    const wrapper = createSVGG();
-    wrapper.setAttribute(
-      "id",
-      `tu-track-line-wrapper-${toDomIdFragment(stableIdentity)}`
-    );
-    wrapper.setAttribute(
-      "transform",
-      `translate(${trackLineElement.globalCoords.x}, ${trackLineElement.globalCoords.y})`
-    );
-
-    // Create the layer groups & populate the wrapper with them
-    const layerGroups = new Map<NotationElementClass, SVGGElement>();
-    const sanitizedStableIdentity = toDomIdFragment(stableIdentity);
-    for (const elementClass of ELEMENT_ORDER) {
-      // Skip not track line owned elements (e.g. track line info is per track line)
-      if (BAR_OWNED_ELEMENT_CLASSES.includes(elementClass)) {
-        continue;
-      }
-
-      const group = createSVGG();
-      group.setAttribute(
-        "id",
-        `tu-line-${sanitizedStableIdentity}-${elementClass.name
-          .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-          .toLowerCase()}`
-      );
-      layerGroups.set(elementClass, group);
-      wrapper.appendChild(group);
-    }
-
-    const trackLineGroup = { wrapper, layerGroups, barGroups: new Map() };
-    this.syncTrackLineBarGroups(trackLineGroup, trackLineElement);
-    this._trackLineGroups.set(stableIdentity, trackLineGroup);
-    return trackLineGroup;
-  }
-
-  private syncViewportState(): void {
-    this._viewportRect.setCoords(0, this.notationViewportDiv.scrollTop);
-    this._viewportRect.setDimensions(
+  private setViewportRect(): void {
+    this._viewportRect.set(
+      0,
+      this.notationViewportDiv.scrollTop,
       this.notationViewportDiv.clientWidth,
       this.notationViewportDiv.clientHeight
     );
@@ -305,6 +234,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     );
   }
 
+  /** Returns the overscanned track-line range retained for the viewport. */
   private getLinesInViewport(): {
     start: number;
     end: number;
@@ -348,188 +278,366 @@ export class EditorSVGRenderer implements EditorRenderer {
     };
   }
 
-  private reconcileLinesViewport(
-    start: number,
-    end: number
-  ): NotationElement[] {
-    const visibleTrackLines =
-      this.trackController.trackElement.trackLineElements.slice(start, end + 1);
-    const visibleStableIdentities = new Set(
-      visibleTrackLines.map((trackLineElement) =>
-        trackLineElement.getStableIdentity()
-      )
-    );
-
-    for (let i = 0; i < visibleTrackLines.length; i++) {
-      const trackLineElement = visibleTrackLines[i];
-      const trackLineGroup = this.ensureTrackLineGroup(trackLineElement);
-      ensureDomChildAtIndex(this._notationSVGGroup, trackLineGroup.wrapper, i);
-    }
-
-    for (const [stableIdentity, trackLineGroup] of this._trackLineGroups) {
-      if (visibleStableIdentities.has(stableIdentity)) {
-        continue;
+  /**
+   * Applies active voice opacity and paint order for all voice containers in a bar.
+   */
+  private refreshBarContainerVoicePresentation(
+    barContainer: BarContainer
+  ): void {
+    const activeVoiceNumber = this.trackController.activeVoiceNumber;
+    const voiceContainers = new Map([
+      ...barContainer.voiceContainers[VoicePart.Content],
+      ...barContainer.voiceContainers[VoicePart.Rhythm],
+    ]);
+    for (const [voiceNumber, voiceContainer] of voiceContainers) {
+      const opacity = voiceNumber === activeVoiceNumber ? "1" : "0.5";
+      if (voiceContainer.getAttribute("opacity") !== opacity) {
+        voiceContainer.setAttribute("opacity", opacity);
       }
 
-      trackLineGroup.wrapper.remove();
-      this._trackLineGroups.delete(stableIdentity);
-    }
-
-    return visibleTrackLines.flatMap((tle) => tle.ownedNotationElements);
-  }
-
-  private removeByDiff(stableIdentities: Iterable<string>): void {
-    for (const stableIdentity of stableIdentities) {
-      const renderer = this._rendererRegistry.get(stableIdentity);
-      if (renderer === undefined) {
-        continue;
-      }
-
-      renderer.unrender();
-      renderer.detachContainerGroup();
-      this._rendererRegistry.delete(stableIdentity);
-      this._mountedRendererUUIDs.delete(stableIdentity);
+      this.mountDomChild(barContainer.wrapper, voiceContainer);
     }
   }
 
-  private cullInvisibleRenderers(visibleStableIdentities: Set<string>): void {
-    for (const stableIdentity of this._mountedRendererUUIDs) {
-      if (visibleStableIdentities.has(stableIdentity)) {
-        continue;
-      }
+  /** Ensures a track line wrapper and its line-owned containers exist. */
+  private mountTrackLineContainer(
+    trackLineElement: TrackLineElement
+  ): TrackLineContainer {
+    const x = trackLineElement.globalCoords.x;
+    const y = trackLineElement.globalCoords.y;
+    const transform = `translate(${x}, ${y})`;
 
-      const renderer = this._rendererRegistry.get(stableIdentity);
-      if (renderer === undefined) {
-        this._mountedRendererUUIDs.delete(stableIdentity);
-        continue;
-      }
-
-      renderer.detachContainerGroup();
-      this._mountedRendererUUIDs.delete(stableIdentity);
+    const stableIdentity = trackLineElement.getStableIdentity();
+    const existingLineContainer = this._trackLineContainers.get(stableIdentity);
+    if (existingLineContainer !== undefined) {
+      existingLineContainer.wrapper.setAttribute("transform", transform);
+      return existingLineContainer;
     }
+
+    const wrapper = createSVGG();
+    wrapper.setAttribute("transform", transform);
+
+    const layerContainers = new Map<NotationElementClass, SVGGElement>();
+    for (const elementClass of ELEMENT_ORDER) {
+      if (
+        BAR_OWNED_ELEMENT_CLASSES.has(elementClass) ||
+        ELEMENT_VOICE_PART.has(elementClass)
+      ) {
+        continue;
+      }
+
+      const container = createSVGG();
+      layerContainers.set(elementClass, container);
+      this.mountDomChild(wrapper, container);
+    }
+
+    const trackLineContainer = {
+      wrapper,
+      layerContainers,
+      barContainers: new Map(),
+    };
+    this._trackLineContainers.set(stableIdentity, trackLineContainer);
+    return trackLineContainer;
   }
 
-  private ensureRendererMounted(
+  /** Ensures a bar wrapper and its bar-owned containers exist under a track line. */
+  private mountBarContainer(
+    trackLineContainer: TrackLineContainer,
+    barElement: BarElement
+  ): BarContainer {
+    const x = barElement.lineLocalCoords.x;
+    const y = barElement.lineLocalCoords.y;
+    const barWrapperTransform = `translate(${x}, ${y})`;
+
+    const stableIdentity = barElement.getStableIdentity();
+    const existingContainer =
+      trackLineContainer.barContainers.get(stableIdentity);
+    if (existingContainer !== undefined) {
+      existingContainer.wrapper.setAttribute("transform", barWrapperTransform);
+      return existingContainer;
+    }
+
+    const wrapper = createSVGG();
+    wrapper.setAttribute("transform", barWrapperTransform);
+
+    const layerContainers = new Map<NotationElementClass, SVGGElement>();
+    for (const elementClass of BAR_OWNED_ELEMENT_CLASSES) {
+      const container = createSVGG();
+      layerContainers.set(elementClass, container);
+      this.mountDomChild(wrapper, container);
+    }
+
+    const barContainer: BarContainer = {
+      wrapper,
+      layerContainers,
+      voiceContainers: {
+        [VoicePart.Content]: new Map<VoiceNumber, SVGGElement>(),
+        [VoicePart.Rhythm]: new Map<VoiceNumber, SVGGElement>(),
+      },
+    };
+    trackLineContainer.barContainers.set(stableIdentity, barContainer);
+    return barContainer;
+  }
+
+  /** Ensures the voice container for a bar/voice/part exists. */
+  private mountVoiceContainer(
+    barContainer: BarContainer,
+    voiceNumber: VoiceNumber,
+    voicePart: VoicePart
+  ): SVGGElement {
+    const voiceContainers = barContainer.voiceContainers[voicePart];
+    let voiceContainer = voiceContainers.get(voiceNumber);
+    if (voiceContainer === undefined) {
+      voiceContainer = createSVGG();
+      voiceContainers.set(voiceNumber, voiceContainer);
+      this.refreshBarContainerVoicePresentation(barContainer);
+    }
+
+    const isActive = voiceNumber === this.trackController.activeVoiceNumber;
+    const opacity = isActive ? "1" : "0.5";
+    if (voiceContainer.getAttribute("opacity") !== opacity) {
+      voiceContainer.setAttribute("opacity", opacity);
+    }
+
+    return voiceContainer;
+  }
+
+  /**
+   * Resolves the correct line/bar/voice container for an element
+   * and mounts the renderer to that container
+   */
+  private mountRenderer(
     renderer: ElementRenderer,
     element: NotationElement
   ): void {
-    const owningTrackLineElement = getOwningTrackLineElement(element);
-    const trackLineGroup = this.ensureTrackLineGroup(owningTrackLineElement);
-    const owningBarElement = getOwningBarElement(element);
-    let layer: SVGGElement | undefined = undefined;
+    const stableIdentity = element.getStableIdentity();
+    const trackLineContainer = this.mountTrackLineContainer(
+      element.owningTrackLineElement
+    );
+    const elementClass = element.constructor as NotationElementClass;
+    const owningBarElement = element.owningBarElement;
     if (owningBarElement === null) {
-      layer = trackLineGroup.layerGroups.get(
-        element.constructor as NotationElementClass
-      );
-    } else {
-      layer = this.ensureBarGroup(
-        trackLineGroup,
-        owningBarElement
-      ).layerGroups.get(element.constructor as NotationElementClass);
-    }
-    if (layer === undefined) {
+      const lineLayerContainer =
+        trackLineContainer.layerContainers.get(elementClass);
+      const rendererContainer = renderer.ensureContainerGroup();
+      this.mountDomChild(lineLayerContainer, rendererContainer);
+      this._mountedRendererIdentities.add(stableIdentity);
       return;
     }
 
-    const group = renderer.ensureContainerGroup();
-
-    if (group.parentNode !== layer) {
-      layer.appendChild(group);
+    const barContainer = this.mountBarContainer(
+      trackLineContainer,
+      owningBarElement
+    );
+    const voicePart = ELEMENT_VOICE_PART.get(elementClass);
+    if (voicePart === undefined || element.voiceNumber === null) {
+      const barLayerContainer = barContainer.layerContainers.get(elementClass);
+      const rendererContainer = renderer.ensureContainerGroup();
+      this.mountDomChild(barLayerContainer, rendererContainer);
+      this._mountedRendererIdentities.add(stableIdentity);
+      return;
     }
+
+    const voiceContainer = this.mountVoiceContainer(
+      barContainer,
+      element.voiceNumber,
+      voicePart
+    );
+    const rendererContainer = renderer.ensureContainerGroup();
+    this.mountDomChild(voiceContainer, rendererContainer);
+    this._mountedRendererIdentities.add(stableIdentity);
+    return;
   }
 
-  private updateRendererElement(
-    renderer: ElementRenderer,
-    element: NotationElement
+  /** Detaches a renderer container and forgets its mounted identity. */
+  private unmountRenderer(
+    stableIdentity: string,
+    renderer: ElementRenderer | undefined
   ): void {
-    const mutableRenderer = renderer as any;
-    if (element instanceof TrackLineElement) {
-      mutableRenderer.trackLineElement = element;
-    } else if (element instanceof TrackLineInfoElement) {
-      mutableRenderer.trackLineInfoElement = element;
-    } else if (element instanceof StaffLineElement) {
-      mutableRenderer.staffLineElement = element;
-    } else if (element instanceof NotationStyleLineElement) {
-      mutableRenderer.styleLineElement = element;
-    } else if (element instanceof TechGapElement) {
-      mutableRenderer.techGapElement = element;
-    } else if (element instanceof TechGapLineElement) {
-      mutableRenderer.techGapLineElement = element;
-    } else if (element instanceof BarElement) {
-      mutableRenderer.barElement = element;
-    } else if (element instanceof TabBeatElement) {
-      mutableRenderer.beatElement = element;
-    } else if (element instanceof TabNoteElement) {
-      mutableRenderer.noteElement = element;
-    } else if (element instanceof GuitarTechniqueElement) {
-      mutableRenderer.techniqueElement = element;
-    } else if (element instanceof GuitarTechniqueLabelElement) {
-      mutableRenderer.techniqueLabelElement = element;
-    } else if (element instanceof BeamSegmentElement) {
-      mutableRenderer.beamSegment = element;
-    } else if (element instanceof BarTupletGroupElement) {
-      mutableRenderer.tupletElement = element;
+    renderer?.detachContainerGroup();
+    this._mountedRendererIdentities.delete(stableIdentity);
+  }
+
+  /** Returns whether the renderer identity is still mounted in the root SVG. */
+  private isRendererMounted(
+    stableIdentity: string,
+    renderer: ElementRenderer
+  ): boolean {
+    if (!this._mountedRendererIdentities.has(stableIdentity)) {
+      return false;
+    }
+
+    const group = renderer.ensureContainerGroup();
+    if (this.rootSVGElement.contains(group)) {
+      return true;
+    }
+
+    this._mountedRendererIdentities.delete(stableIdentity);
+    return false;
+  }
+
+  /** Retains only bar containers that still belong to one materialized line. */
+  private reconcileLineBarContainers(
+    lineContainer: TrackLineContainer,
+    trackLineElement: TrackLineElement
+  ): void {
+    const currentBarStableIdentities = new Set<string>();
+    for (const barElement of trackLineElement.allBarElements()) {
+      const stableIdentity = barElement.getStableIdentity();
+      currentBarStableIdentities.add(stableIdentity);
+
+      const barContainer = this.mountBarContainer(lineContainer, barElement);
+      this.mountDomChild(lineContainer.wrapper, barContainer.wrapper);
+    }
+
+    for (const [stableIdentity, barContainer] of lineContainer.barContainers) {
+      if (currentBarStableIdentities.has(stableIdentity)) {
+        continue;
+      }
+
+      this.unmountDomChild(this._notationSVGGroup, barContainer.wrapper);
+      lineContainer.barContainers.delete(stableIdentity);
     }
   }
 
-  private renderReconciled(
-    visibleElements: NotationElement[]
-  ): ElementRenderer[] {
-    const diff = this.trackController.trackElement.consumeDiff();
-
+  /**
+   * Reconciles retained SVG containers with the visible line set.
+   */
+  private reconcileVisibleContainers(
+    visibleTrackLines: TrackLineElement[]
+  ): void {
     const visibleStableIdentities = new Set(
-      visibleElements.map((element) => element.getStableIdentity())
+      visibleTrackLines.map((tle) => tle.getStableIdentity())
     );
 
-    // Step 1: Unrender removed elements
-    for (const uuidSet of diff.removed.values()) {
-      this.removeByDiff(uuidSet);
+    for (const trackLineElement of visibleTrackLines) {
+      const lineContainer = this.mountTrackLineContainer(trackLineElement);
+      this.reconcileLineBarContainers(lineContainer, trackLineElement);
+      this.mountDomChild(this._notationSVGGroup, lineContainer.wrapper);
     }
 
-    // Step 2: Detach invisible renderers but keep them cached for reuse.
-    this.cullInvisibleRenderers(visibleStableIdentities);
+    for (const [stableIdentity, lineContainer] of this._trackLineContainers) {
+      if (visibleStableIdentities.has(stableIdentity)) {
+        continue;
+      }
 
-    // Step 3: Re-render visible elements when needed (new, updated, remounted).
-    const updatedVisibleUUIDs = new Set<string>();
-    for (const updatedIdentities of diff.updated.values()) {
-      for (const stableIdentity of updatedIdentities) {
-        if (visibleStableIdentities.has(stableIdentity)) {
-          updatedVisibleUUIDs.add(stableIdentity);
-        }
+      this.unmountDomChild(this._notationSVGGroup, lineContainer.wrapper);
+      this._trackLineContainers.delete(stableIdentity);
+    }
+  }
+
+  /**
+   * Refreshes active-voice opacity and paint order for retained containers.
+   */
+  private refreshContainerPresentation(): void {
+    for (const trackLineContainer of this._trackLineContainers.values()) {
+      for (const barContainer of trackLineContainer.barContainers.values()) {
+        this.refreshBarContainerVoicePresentation(barContainer);
       }
     }
+  }
 
-    const activeRenderers: ElementRenderer[] = [];
-    for (const element of visibleElements) {
-      const stableIdentity = element.getStableIdentity();
-      let renderer = this._rendererRegistry.get(stableIdentity);
-      let isNewRenderer = false;
-      if (renderer === undefined) {
-        const newRenderer = createRendererForElement(
-          this.trackController,
-          element,
-          this.assetsPath
-        );
-        if (newRenderer === undefined) {
+  private disposeRemovedRenderers(diff: ElementDiff): void {
+    for (const stableIdentities of diff.removed.values()) {
+      for (const stableIdentity of stableIdentities) {
+        const renderer = this._rendererRegistry.get(stableIdentity);
+        if (renderer === undefined) {
           continue;
         }
 
-        renderer = newRenderer;
-        this._rendererRegistry.set(stableIdentity, renderer);
-        isNewRenderer = true;
+        renderer.unrender();
+        this.unmountRenderer(stableIdentity, renderer);
+        this._rendererRegistry.delete(stableIdentity);
+      }
+    }
+  }
+
+  /** Detaches offscreen renderers while keeping them reusable. */
+  private detachOffscreenRenderers(visibleIdentities: Set<string>): void {
+    const mountedIdentities = [...this._mountedRendererIdentities];
+    for (const stableIdentity of mountedIdentities) {
+      if (visibleIdentities.has(stableIdentity)) {
+        continue;
       }
 
-      const wasMounted = this._mountedRendererUUIDs.has(stableIdentity);
-      this.updateRendererElement(renderer, element);
+      this.unmountRenderer(
+        stableIdentity,
+        this._rendererRegistry.get(stableIdentity)
+      );
+    }
+  }
 
-      this.ensureRendererMounted(renderer, element);
-      this._mountedRendererUUIDs.add(stableIdentity);
+  private getUpdatedVisibleIdentities(
+    diff: ElementDiff,
+    visibleIdentities: Set<string>
+  ): Set<string> {
+    const updatedIdentities = new Set<string>();
 
-      if (
-        isNewRenderer ||
-        updatedVisibleUUIDs.has(stableIdentity) ||
-        !wasMounted
-      ) {
+    for (const diffUpdatedIdentities of diff.updated.values()) {
+      for (const stableIdentity of diffUpdatedIdentities) {
+        if (!visibleIdentities.has(stableIdentity)) {
+          continue;
+        }
+
+        updatedIdentities.add(stableIdentity);
+      }
+    }
+
+    return updatedIdentities;
+  }
+
+  private createRendererElement(element: NotationElement): {
+    renderer: ElementRenderer | undefined;
+    isNewRenderer: boolean;
+  } {
+    const stableIdentity = element.getStableIdentity();
+    const existingRenderer = this._rendererRegistry.get(stableIdentity);
+    if (existingRenderer !== undefined) {
+      return { renderer: existingRenderer, isNewRenderer: false };
+    }
+
+    const renderer = createRendererForElement(
+      this.trackController,
+      element,
+      this.assetsPath
+    );
+    if (renderer === undefined) {
+      return { renderer: undefined, isNewRenderer: false };
+    }
+
+    this._rendererRegistry.set(stableIdentity, renderer);
+    return { renderer, isNewRenderer: true };
+  }
+
+  private renderVisibleElementRenderers(
+    elementsByUpdateStatus: Map<NotationElement, boolean>,
+    options: EditorRenderOptions
+  ): ElementRenderer[] {
+    const activeRenderers: ElementRenderer[] = [];
+
+    for (const [element, isUpdated] of elementsByUpdateStatus) {
+      const stableIdentity = element.getStableIdentity();
+      const { renderer, isNewRenderer } = this.createRendererElement(element);
+      if (renderer === undefined) {
+        continue;
+      }
+
+      const wasMounted = this.isRendererMounted(stableIdentity, renderer);
+      const shouldRender =
+        options.forceNotation || isNewRenderer || isUpdated || !wasMounted;
+
+      // Renderer identity is stable, but rematerialization can replace the
+      // element object carrying current geometry and ownership references.
+      renderer.updateElementReference(element);
+
+      if (wasMounted && !shouldRender) {
+        activeRenderers.push(renderer);
+        continue;
+      }
+
+      this.mountRenderer(renderer, element);
+
+      if (shouldRender) {
         renderer.render();
       }
 
@@ -537,6 +645,39 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     return activeRenderers;
+  }
+
+  private reconcileRendererState(
+    visibleElements: NotationElement[],
+    options: EditorRenderOptions
+  ): ElementRenderer[] {
+    const diff = this.trackController.trackElement.consumeDiff();
+    const visibleIdentities = new Set(
+      visibleElements.map((ve) => ve.getStableIdentity())
+    );
+
+    this.disposeRemovedRenderers(diff);
+    this.detachOffscreenRenderers(visibleIdentities);
+    const updatedIdentities = this.getUpdatedVisibleIdentities(
+      diff,
+      visibleIdentities
+    );
+
+    const elementsByUpdateStatus = new Map();
+    for (const element of visibleElements) {
+      const isUpdated = updatedIdentities.has(element.getStableIdentity());
+      elementsByUpdateStatus.set(element, isUpdated);
+    }
+    return this.renderVisibleElementRenderers(elementsByUpdateStatus, options);
+  }
+
+  private *getMountedRenderers(): Generator<ElementRenderer> {
+    for (const stableIdentity of this._mountedRendererIdentities) {
+      const renderer = this._rendererRegistry.get(stableIdentity);
+      if (renderer !== undefined) {
+        yield renderer;
+      }
+    }
   }
 
   /**
@@ -581,27 +722,58 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.rootSVGElement.setAttribute("height", `${trackWindowHeight}`);
   }
 
-  /**
-   * Render track window using SVG
-   */
-  public render(): ElementRenderer[] {
-    this.syncViewportState();
+  private renderNotation(options: EditorRenderOptions): void {
+    this.setViewportRect();
 
     const { start, end } = this.getLinesInViewport();
-    const visibleElements = this.reconcileLinesViewport(start, end);
-    const activeRenderers = this.renderReconciled(visibleElements);
+    if (
+      !options.forceNotation &&
+      this._lastRenderedViewportStart === start &&
+      this._lastRenderedViewportEnd === end &&
+      !this.trackController.trackElement.hasPendingElementDiff()
+    ) {
+      return;
+    }
+
+    // Ensure that the viewport's elements are up to date
+    this.trackController.trackElement.update(start, end, { depth: "elements" });
+    const visibleLines =
+      this.trackController.trackElement.trackLineElements.slice(start, end + 1);
+    const visibleElements = visibleLines.flatMap(
+      (l) => l.ownedNotationElements
+    );
+
+    // Prepare retained SVG scaffolding before mounting renderer content into it.
+    this.reconcileVisibleContainers(visibleLines);
+    this.refreshContainerPresentation();
+
+    this.reconcileRendererState(visibleElements, options);
+    this._lastRenderedViewportStart = start;
+    this._lastRenderedViewportEnd = end;
 
     this._beatInteractionRenderer.render(visibleElements);
-    this._playerOverlayRenderer.render();
-    this._selectionOverlayRenderer.render();
 
     this.syncRootSVGDimensions();
-
-    return activeRenderers;
   }
 
-  public renderSelectionOverlay(): void {
-    this._selectionOverlayRenderer.render();
+  /**
+   * Render track window using SVG.
+   */
+  public render(
+    options: EditorRenderOptions = DEFAULT_RENDER_OPTIONS
+  ): ElementRenderer[] {
+    if (options.renderNotation) {
+      this.renderNotation(options);
+    }
+
+    if (options.overlays.player) {
+      this._playerOverlayRenderer.render();
+    }
+    if (options.overlays.selection) {
+      this._selectionOverlayRenderer.render();
+    }
+
+    return Array.from(this.getMountedRenderers());
   }
 
   /**
@@ -614,8 +786,10 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     this._rendererRegistry.clear();
-    this._mountedRendererUUIDs.clear();
-    this._trackLineGroups.clear();
+    this._trackLineContainers.clear();
+    this._mountedRendererIdentities.clear();
+    this._lastRenderedViewportStart = undefined;
+    this._lastRenderedViewportEnd = undefined;
     this._playerOverlayRenderer.unrender();
     this._selectionOverlayRenderer.unrender();
     this._beatInteractionRenderer.unrender();

@@ -100,15 +100,27 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const tc = this.notationComponent.trackController;
 
     this.notationComponent.renderer.hideSelectionPreview();
+    const prevActiveVoiceNumber = tc.activeVoiceNumber;
     tc.selectNoteElement(noteElement);
 
-    this.renderFunc(RenderType.NoteSelection);
+    this.renderFunc(
+      prevActiveVoiceNumber === tc.activeVoiceNumber
+        ? RenderType.NoteSelection
+        : RenderType.ActiveVoiceSelection
+    );
   }
 
   /**
    * Starts drag-selection from note pointer-down.
    */
   public onNoteMouseDown(event: MouseEvent, noteElement: NoteElement): void {
+    if (
+      noteElement.beatElement.beat.voiceBar.voiceNumber !==
+      this.notationComponent.trackController.activeVoiceNumber
+    ) {
+      return;
+    }
+
     this._selectionDragController.begin(
       noteElement.beatElement,
       new Point(event.pageX, event.pageY)
@@ -120,8 +132,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    */
   public onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void {
     const tc = this.notationComponent.trackController;
+    const isActiveVoice =
+      noteElement.beatElement.beat.voiceBar.voiceNumber ===
+      tc.activeVoiceNumber;
 
-    if (this._selectionDragController.isSelectingBeats) {
+    if (this._selectionDragController.isSelectingBeats && isActiveVoice) {
       tc.selectBeat(noteElement.beatElement);
       this.renderFunc(RenderType.DragSelection);
       return;
@@ -147,6 +162,13 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Forwards note pointer movement to beat drag-selection logic.
    */
   public onNoteMouseMove(event: MouseEvent, noteElement: NoteElement): void {
+    if (
+      noteElement.beatElement.beat.voiceBar.voiceNumber !==
+      this.notationComponent.trackController.activeVoiceNumber
+    ) {
+      return;
+    }
+
     if (
       !this._selectionDragController.isSelectingBeats &&
       !this._selectionDragController.isDragPending

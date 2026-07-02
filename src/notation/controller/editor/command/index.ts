@@ -14,6 +14,7 @@ export * from "./set-duration-command";
 export * from "./set-fret-command";
 export * from "./set-note-command";
 export * from "./set-repeat-status-command";
+export * from "./set-rest-command";
 export * from "./set-technique-command";
 export * from "./set-tempo-command";
 export * from "./set-time-sig-command";

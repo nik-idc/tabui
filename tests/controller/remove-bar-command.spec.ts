@@ -1,5 +1,5 @@
 import { RemoveBarsCommand } from "../../src/notation/controller/editor/command";
-import { DEFAULT_MASTER_BAR, Guitar } from "../../src/notation/model";
+import { DEFAULT_MASTER_BAR, Guitar, Score } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 
 function createMultiTrackScore(masterBarCount = 3) {
@@ -17,9 +17,7 @@ function createMultiTrackScore(masterBarCount = 3) {
   return graph;
 }
 
-function getStaffBarCounts(
-  score: ReturnType<typeof createScoreGraph>["score"]
-) {
+function getStaffBarCounts(score: Score) {
   return score.tracks.map((track) =>
     track.staves.map((staff) => staff.bars.length)
   );
@@ -82,18 +80,17 @@ describe("RemoveBarsCommand", () => {
     ]);
   });
 
-  test("update request includes removed master bar uuids after execute", () => {
+  test("update request includes removed master bar indices after execute", () => {
     const { score } = createMultiTrackScore(5);
     const removedUUIDs = score.masterBars.slice(1, 4).map((bar) => bar.uuid);
     const command = new RemoveBarsCommand(score, [1, 2, 3]);
 
     command.execute();
 
-    expect(command.updateRequest).toMatchObject({
-      affectedMasterBarUUIDs: removedUUIDs,
-      affectedMasterBarIndices: [1, 2, 3],
-      firstAffectedMasterBarIndex: 1,
-      reason: "remove-bars",
-    });
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 1, modelUUID: removedUUIDs[0] },
+      { masterBarIndex: 2, modelUUID: removedUUIDs[1] },
+      { masterBarIndex: 3, modelUUID: removedUUIDs[2] },
+    ]);
   });
 });

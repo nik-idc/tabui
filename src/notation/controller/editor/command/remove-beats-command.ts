@@ -1,14 +1,5 @@
-import {
-  Bar,
-  Beat,
-  BeatArrayOperationOutput,
-  ScoreEditor,
-} from "@/notation/model";
-import {
-  Command,
-  CommandUpdateRequest,
-  getAffectedMasterBarIndicesFromBeats,
-} from "./command";
+import { Beat, BeatRemovalOutput, ScoreEditor } from "@/notation/model";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
  * Remove beats command
@@ -17,8 +8,8 @@ export class RemoveBeatsCommand implements Command {
   /** Beats to be removeed */
   private _beatsToRemove: Beat[];
   /** True if executed, false otherwise */
-  private _removeBeatsOutputs: BeatArrayOperationOutput[][] | null = null;
-  private _affectedMasterBarIndices: number[];
+  private _removeBeatsOutputs: BeatRemovalOutput[] | null = null;
+  private _affectedModels: AffectedModel[];
 
   /**
    * Remove beats command
@@ -26,8 +17,7 @@ export class RemoveBeatsCommand implements Command {
    */
   constructor(beatsToRemove: Beat[]) {
     this._beatsToRemove = beatsToRemove;
-    this._affectedMasterBarIndices =
-      getAffectedMasterBarIndicesFromBeats(beatsToRemove);
+    this._affectedModels = getAffectedModelsFromBeats(beatsToRemove);
   }
 
   /**
@@ -45,17 +35,7 @@ export class RemoveBeatsCommand implements Command {
       return;
     }
 
-    for (const outputs of this._removeBeatsOutputs) {
-      for (const output of outputs) {
-        const bar = output.beats[0].bar;
-
-        if (bar.beats.length === 1 && bar.beats[0].isEmpty()) {
-          bar.beats.splice(0, 1);
-        }
-
-        bar.insertBeats(output.index, output.beats);
-      }
-    }
+    ScoreEditor.undoBeatRemovals(this._removeBeatsOutputs);
   }
 
   /**
@@ -66,19 +46,12 @@ export class RemoveBeatsCommand implements Command {
       return;
     }
 
-    for (const outputs of this._removeBeatsOutputs) {
-      const output = outputs[0];
-      const bar = output.beats[0].bar;
-      bar.removeBeat(output.index);
-    }
+    this._removeBeatsOutputs = ScoreEditor.redoBeatRemovals(
+      this._removeBeatsOutputs
+    );
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarIndices: this._affectedMasterBarIndices,
-      firstAffectedMasterBarIndex: this._affectedMasterBarIndices[0] ?? 0,
-      reason: "remove-beats",
-    };
+  public get affectedModels(): AffectedModel[] {
+    return this._affectedModels;
   }
 }

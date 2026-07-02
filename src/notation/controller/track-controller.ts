@@ -5,6 +5,7 @@ import {
   NoteDuration,
   BarRepeatStatus,
   TechniqueType,
+  VoiceNumber,
 } from "../model";
 import { TrackElement, BeatElement, NoteElement } from "./element";
 import { TrackControllerEditor } from "./editor/track-controller-editor";
@@ -161,6 +162,10 @@ export class TrackController {
     this._trackControllerEditor.setDuration(newDuration);
   }
 
+  public setSelectedBeatRest(): void {
+    this._trackControllerEditor.setSelectedBeatRest();
+  }
+
   /**
    * Set dot count for selected beats
    * @param newDots New dot count
@@ -268,6 +273,10 @@ export class TrackController {
     this._trackControllerEditor.removeSelectedBeat();
   }
 
+  public setActiveVoiceNumber(voiceNumber: VoiceNumber): void {
+    this._trackControllerEditor.setActiveVoiceNumber(voiceNumber);
+  }
+
   public insertBarBeforeSelected(): void {
     this._trackControllerEditor.insertBarBeforeSelected();
   }
@@ -342,9 +351,24 @@ export class TrackController {
       return undefined;
     }
 
-    return this._trackElement.findCorrespondingBeatElement(
-      this._scorePlayer.currentBeat
-    );
+    return this._trackElement.getBeatElement(this._scorePlayer.currentBeat);
+  }
+
+  public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
+    for (const staff of this.track.staves) {
+      for (const bar of staff.bars) {
+        for (const voiceBar of bar.voiceBarsAsArray) {
+          const beat = voiceBar.beats.find((voiceBeat) => {
+            return voiceBeat.uuid === beatUUID;
+          });
+          if (beat !== undefined) {
+            return this._trackElement.getBeatElement(beat);
+          }
+        }
+      }
+    }
+
+    return undefined;
   }
 
   /** Track element */
@@ -360,5 +384,10 @@ export class TrackController {
   /** Selection manager (for tests and advanced use) */
   public get selectionManager(): SelectionManager {
     return this._trackControllerEditor.selectionManager;
+  }
+
+  /** Current active voice number. */
+  public get activeVoiceNumber(): VoiceNumber {
+    return this._trackControllerEditor.selectionManager.activeVoiceNumber;
   }
 }

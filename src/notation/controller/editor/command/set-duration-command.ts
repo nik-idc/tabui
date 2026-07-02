@@ -1,9 +1,5 @@
 import { Beat, ScoreEditor, NoteDuration } from "@/notation/model";
-import {
-  Command,
-  CommandUpdateRequest,
-  getAffectedMasterBarIndicesFromBeats,
-} from "./command";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
  * Set beats duration
@@ -17,8 +13,7 @@ export class SetDurationCommand implements Command {
   private _oldDurationMap: Map<number, NoteDuration>;
   /** True if executed, false otherwise*/
   private _executed: boolean = false;
-  /** Indices of affected master bars, sorted */
-  private _affectedMasterBarIndices: number[];
+  private _affectedModels: AffectedModel[];
 
   /**
    * Set beats duration
@@ -28,8 +23,7 @@ export class SetDurationCommand implements Command {
   constructor(beats: Beat[], newDuration: NoteDuration) {
     this._beats = beats;
     this._newDuration = newDuration;
-    this._affectedMasterBarIndices =
-      getAffectedMasterBarIndicesFromBeats(beats);
+    this._affectedModels = getAffectedModelsFromBeats(beats);
 
     this._oldDurationMap = new Map();
     for (const beat of this._beats) {
@@ -67,12 +61,7 @@ export class SetDurationCommand implements Command {
     ScoreEditor.setDurations(this._beats, this._newDuration);
   }
 
-  public get updateRequest(): CommandUpdateRequest {
-    return {
-      updateType: "Horizontal",
-      affectedMasterBarIndices: this._affectedMasterBarIndices,
-      firstAffectedMasterBarIndex: this._affectedMasterBarIndices[0],
-      reason: "duration",
-    };
+  public get affectedModels(): AffectedModel[] {
+    return this._affectedModels;
   }
 }

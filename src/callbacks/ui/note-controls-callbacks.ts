@@ -1,4 +1,4 @@
-import { NoteDuration } from "@/notation/model";
+import { NoteDuration, VoiceNumber } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import { NoteControlsComponent } from "@/ui";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";
@@ -13,6 +13,8 @@ export interface NoteControlsCallbacks {
   onInsertBeatBeforeClicked(): void;
   onInsertBeatAfterClicked(): void;
   onRemoveBeatClicked(): void;
+  onRestClicked(): void;
+  onVoiceClicked(voiceNumber: VoiceNumber): void;
   onTupletNormalClicked(normalCount: number): void;
   onTupletClicked(): void;
   bind(): void;
@@ -23,6 +25,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   private _noteComponent: NoteControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  private _renderActiveVoiceFunc: () => void;
   private _captureKeyboard: () => void;
   private _freeKeyboard: () => void;
 
@@ -34,12 +37,14 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     noteComponent: NoteControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
+    renderActiveVoiceFunc: () => void,
     captureKeyboard: () => void,
     freeKeyboard: () => void
   ) {
     this._noteComponent = noteComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._renderActiveVoiceFunc = renderActiveVoiceFunc;
     this._captureKeyboard = captureKeyboard;
     this._freeKeyboard = freeKeyboard;
 
@@ -77,6 +82,16 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._renderFunc();
   }
 
+  onRestClicked(): void {
+    this._notationComponent.trackController.setSelectedBeatRest();
+    this._renderFunc();
+  }
+
+  onVoiceClicked(voiceNumber: VoiceNumber): void {
+    this._notationComponent.trackController.setActiveVoiceNumber(voiceNumber);
+    this._renderActiveVoiceFunc();
+  }
+
   onTupletNormalClicked(normalCount: number): void {
     if (normalCount < 2) {
       throw Error("Tuplet normal count has to be >= 2");
@@ -105,8 +120,25 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
         }) as ListenerConfig
     );
 
+    const voiceConfigs = this._noteComponent.template.voiceButtons.map(
+      (button) =>
+        ({
+          element: button,
+          event: "click",
+          handler: () =>
+            this.onVoiceClicked(
+              Number(button.dataset["voiceNumber"]) as VoiceNumber
+            ),
+        }) as ListenerConfig
+    );
+
     // Bind dot and tuplet buttons
     const otherConfigs: ListenerConfig[] = [
+      {
+        element: this._noteComponent.template.restButton,
+        event: "click",
+        handler: () => this.onRestClicked(),
+      },
       {
         element: this._noteComponent.template.dot1Button,
         event: "click",
@@ -149,7 +181,11 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
       },
     ];
 
-    this._listeners.bindAll([...durationConfigs, ...otherConfigs]);
+    this._listeners.bindAll([
+      ...durationConfigs,
+      ...voiceConfigs,
+      ...otherConfigs,
+    ]);
 
     this._tupletCallbacks.bind();
   }

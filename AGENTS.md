@@ -6,6 +6,7 @@ This document provides practical guidance for AI agents working on the TabUI cod
 
 ```bash
 npm run build        # Compile TypeScript to dist/ (tsc --build)
+npm run benchmark:updates # Run focused-vs-full update benchmark
 npm run clean        # Clean build artifacts
 npm run dev          # Start Vite dev server for the editor
 npm run build_vite   # Build the editor with Vite
@@ -16,7 +17,7 @@ npm run format       # Format all files
 
 ## Tests
 
-- Active tests are in `tests/*`.
+- Active tests are in `tests/`.
 - Source of truth for test config: `jest.config.cjs`.
 - Prefer TDD: whenever possible & makes sense, first make tests and only
   then write the actual functionality. Main goal - avoiding writing tests
@@ -33,6 +34,8 @@ The editor supports fixture selection through the `fixture` query parameter:
 
 - `fixture=empty` -> empty score fixture
 - `fixture=default` (or missing) -> default/full fixture
+- `fixture=multi_voice_single_staff` -> multi-voice single-staff fixture
+- `fixture=multi_voice_two_staff` -> multi-voice two-staff fixture
 - `fixture=selection_perf` -> larger selection/performance fixture
 
 ## TypeScript and Imports
@@ -52,6 +55,9 @@ The editor supports fixture selection through the `fixture` query parameter:
   - semicolons
   - 2-space indentation
   - line width 80
+- Keep `for`, `if`, and similar control-flow headers on one line. If the header
+  would become too long, extract local variables before the statement rather than
+  splitting the header across lines.
 
 ## Architecture Overview
 
@@ -66,9 +72,13 @@ The editor supports fixture selection through the `fixture` query parameter:
   - `Track[]`
     - `Staff[]`
       - `Bar[]`
-        - `Beat[]`
-          - `Note[]`
-            - `Technique[]`
+        - `VoiceBar[1..4] | null`
+          - `Beat[]`
+            - `Note[] | null`
+              - `Technique[]`
+- `Bar` stores sparse voice slots `1..4`.
+- `Beat.notes === null` means rest beat.
+- `VoiceBar.isEmpty()` means `beats.length === 0`.
 
 ### Notation controller structure (current)
 
@@ -86,15 +96,22 @@ The editor supports fixture selection through the `fixture` query parameter:
     - `beat/`
     - `note/`
     - `technique/`
+  - `track/track-element-skeleton-builder.ts` owns line breaking, finalized bar
+    widths, and predicted line heights for lazy line materialization.
 
 ### Render
 
 - SVG renderer code is under `src/notation/render/svg/`.
 - Renderer currently depends on concrete element classes for reconciliation.
+- `EditorSVGRenderer` renders materialized viewport lines and may retain
+  offscreen renderer instances for reuse.
 
 ## Patterns and Practices
 
 - Command pattern is used for undoable edits (`execute`, `undo`, `redo`).
+- Commands expose affected model anchors through `affectedModels`; do not
+  reintroduce eager update-type semantics such as horizontal/vertical/targeted
+  command update requests.
 - Keep behavior changes small and verifiable with tests.
 - Prefer correctness and clarity over broad refactors during stabilization-focused work.
 - Prefer locality of behavior. Do not introduce trivial one-line

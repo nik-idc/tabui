@@ -180,7 +180,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
 
-    if (selectedNote.note.noteValue === NoteValue.None) {
+    const note = selectedNote.note;
+    if (note === null || note.noteValue === NoteValue.None) {
       return;
     }
 

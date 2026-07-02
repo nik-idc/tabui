@@ -21,6 +21,10 @@ export class EditorLayoutDimensions {
   private static _NOTE_TEXT_SIZE: number;
   /** Minimum allowed rectangle width of a note */
   private static _NOTE_RECT_WIDTH_MIN: number;
+  /** Minimum gap between adjacent musical timing columns. */
+  private static _MIN_RHYTHM_COLUMN_GAP: number;
+  /** Padding before the first and after the last attack column in a bar. */
+  private static _RHYTHM_ATTACK_PADDING: number;
   /** Width mapping for durations */
   private static _WIDTH_MAPPING: Record<NoteDuration, number>;
   /** Note rectangle height */
@@ -89,11 +93,13 @@ export class EditorLayoutDimensions {
     };
     this._NOTE_RECT_WIDTH_MIN =
       0.75 * this._WIDTH_MAPPING[NoteDuration.SixtyFourth];
+    this._MIN_RHYTHM_COLUMN_GAP = this._NOTE_TEXT_SIZE * 3;
+    this._RHYTHM_ATTACK_PADDING = this._NOTE_TEXT_SIZE;
 
     this._TECHNIQUE_LABEL_HEIGHT = this._NOTE_TEXT_SIZE * 2;
 
     this._TIME_SIG_RECT_WIDTH = this._WIDTH_MAPPING[NoteDuration.ThirtySecond];
-    // '= XXX' = 5 characters of 'TEMPO_TEXT_SIZE' size
+    // '= 120' = 5 characters of 'TEMPO_TEXT_SIZE' size
     this._TEMPO_RECT_WIDTH = this._DURATIONS_HEIGHT; //  + this._TEMPO_TEXT_SIZE * 5;
     this._TEMPO_RECT_HEIGHT = this._DURATIONS_HEIGHT;
 
@@ -153,6 +159,14 @@ export class EditorLayoutDimensions {
 
   static get NOTE_RECT_WIDTH_MIN(): number {
     return this._NOTE_RECT_WIDTH_MIN;
+  }
+
+  static get MIN_RHYTHM_COLUMN_GAP(): number {
+    return this._MIN_RHYTHM_COLUMN_GAP;
+  }
+
+  static get RHYTHM_ATTACK_PADDING(): number {
+    return this._RHYTHM_ATTACK_PADDING;
   }
 
   static get WIDTH_MAPPING(): Record<NoteDuration, number> {

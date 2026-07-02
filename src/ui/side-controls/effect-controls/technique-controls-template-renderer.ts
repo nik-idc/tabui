@@ -74,22 +74,26 @@ export class TechniqueControlsTemplateRenderer {
       button.classList.remove(appliedCSSClass);
       button.classList.remove(disabledCSSClass);
     } else {
-      if (
-        TECHNIQUE_TYPE_TO_LABEL[type] &&
-        selectedNote.note.noteValue === NoteValue.None
-      ) {
+      const note = selectedNote.note;
+      if (note === null) {
         button.classList.remove(appliedCSSClass);
         button.classList.add(disabledCSSClass);
         return;
       }
 
-      if (selectedNote.note.hasTechnique(type)) {
+      if (TECHNIQUE_TYPE_TO_LABEL[type] && note.noteValue === NoteValue.None) {
+        button.classList.remove(appliedCSSClass);
+        button.classList.add(disabledCSSClass);
+        return;
+      }
+
+      if (note.hasTechnique(type)) {
         button.classList.add(appliedCSSClass);
         button.classList.remove(disabledCSSClass);
         return;
       }
 
-      if (selectedNote.note.techniqueApplicable(type)) {
+      if (note.techniqueApplicable(type)) {
         button.classList.remove(appliedCSSClass);
         button.classList.remove(disabledCSSClass);
         return;

@@ -28,8 +28,9 @@ sake and more on targeted changes that directly unlock the MVP.
 - Phase 1 is complete.
 - Phase 2 is complete.
 - Phase 3 is complete.
-- Current focus should move to Phase 4: sheet notation expansion and the model
-  improvements needed to support it.
+- Phase 4 is complete.
+- Current focus should move to Phase 5: playback overhaul, or directly to
+  Phase 6 stabilization if playback scope is narrowed for `0.5.0`.
 - Phase 0 follow-ups that are intentionally deferred are listed under Phase 0.
 
 ### Phase 0 - Foundation
@@ -190,10 +191,9 @@ Exit criteria:
 
 ### Phase 4 - Notation Expansion Evaluation
 
-**Status: next.**
+**Status: complete.**
 
-- Implement a limited but end-to-end sheet notation feature set to evaluate the
-  direction.
+- Evaluate whether sheet notation should be implemented before `0.5.0`.
 - Validate whether the current model and element architecture can support it
   cleanly.
 - Expand the model where sheet notation exposes tablature-era shortcuts.
@@ -202,25 +202,45 @@ Exit criteria:
 - Treat non-tablature notation viewing as the minimum acceptable `0.5.0`
   outcome if full editing support proves too costly.
 
-Expected Phase 4 model work:
+Completed in Phase 4:
 
-- Introduce voices or an equivalent multi-voice representation where needed.
-- Add explicit rests/gaps instead of representing incomplete rhythmic content
-  through missing beats or permissive underfilled bars.
-- Revisit insertion and replacement around rests, overflow, bar completion, and
-  clear invalid-rhythm states.
-- Clarify score/bar invariants so sheet notation, tablature, and future drum
-  notation share one coherent timing model.
-- Expand rendering/model tests around notation scenarios that are not naturally
-  expressed by guitar tablature alone.
+- Introduced multi-voice score structure through sparse voice bars:
+  `Bar -> VoiceBar[1..4] -> Beat[]`.
+- Added explicit rests using `Beat.notes === null`, with rest-aware editing,
+  rendering, selection, playback, and command behavior.
+- Reworked core bar/beat insertion, removal, replacement, and selection flows
+  around voices and rests.
+- Performed a major Element/Renderer architecture overhaul around
+  `TrackElement` and `EditorSVGRenderer`.
+- Replaced eager command update-type semantics with model-anchor-based affected
+  models and lazy viewport-oriented Element layer updates.
+- Refactored `TrackElement` around whole-track skeleton ownership and
+  materialized visible line ranges.
+- Refactored `EditorSVGRenderer` reconciliation around retained visible line
+  containers, stable element identity, offscreen detach, and materialized-line
+  rendering.
+- Expanded multi-voice and rest fixtures for manual and automated coverage.
+- Completed a large test refactor, including broad test updates for the new
+  voices/rests model and stronger type safety across the `tests/` folder.
+- Audited sheet-notation feasibility and decided to postpone sheet notation
+  beyond `0.5.0` rather than make it a release blocker.
+
+Phase 4 decision:
+
+- The model now has the main primitives that sheet notation will need: pitch,
+  duration ticks, dots, tuplets, rests, voices, and beaming metadata.
+- The sheet presentation layer is still mostly unimplemented, so credible sheet
+  notation viewing is achievable but not a safe `0.5.0` commitment.
+- Sheet notation remains strategically valuable and should be revisited after
+  the tablature-focused MVP is shipped or substantially stabilized.
 
 Exit criteria:
 
-- A limited but convincing sheet-notation implementation works end to end.
-- The model supports the required sheet-notation primitives without relying on
-  tablature-specific shortcuts.
-- A clear decision is made on whether to continue, narrow, or postpone broader
-  notation expansion.
+- Voices and rests work end to end in the active tablature editor.
+- The model supports the main primitives needed for future sheet notation
+  without relying on the previous permissive no-rest model.
+- A clear decision has been made to postpone sheet notation and keep `0.5.0`
+  focused on a stable tablature-oriented MVP.
 
 ### Phase 5 - Playback Overhaul
 

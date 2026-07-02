@@ -159,8 +159,8 @@ export class ScorePlayer {
   /** Schedules a beat-change event for the active rendered track */
   private scheduleBeatChange(beat: Beat, startTime: number): void {
     if (
-      beat.bar.staff.track.uuid !== this._activeTrackUUID ||
-      beat.bar.staff.uuid !== this._activeStaffUUID
+      beat.voiceBar.bar.staff.track.uuid !== this._activeTrackUUID ||
+      beat.voiceBar.bar.staff.uuid !== this._activeStaffUUID
     ) {
       return;
     }
@@ -221,10 +221,12 @@ export class ScorePlayer {
     }
 
     return {
-      masterBarIndex: this.score.masterBars.indexOf(startBeat.bar.masterBar),
+      masterBarIndex: this.score.masterBars.indexOf(
+        startBeat.voiceBar.bar.masterBar
+      ),
       offset: ticksToFraction(
         startBeat.startTick,
-        startBeat.bar.tickResolution
+        startBeat.voiceBar.tickResolution
       ),
     };
   }
@@ -236,8 +238,10 @@ export class ScorePlayer {
     }
 
     return {
-      masterBarIndex: this.score.masterBars.indexOf(endBeat.bar.masterBar),
-      offset: ticksToFraction(endBeat.endTick, endBeat.bar.tickResolution),
+      masterBarIndex: this.score.masterBars.indexOf(
+        endBeat.voiceBar.bar.masterBar
+      ),
+      offset: ticksToFraction(endBeat.endTick, endBeat.voiceBar.tickResolution),
     };
   }
 
@@ -371,15 +375,15 @@ export class ScorePlayer {
   private scheduleBeat(beat: Beat, barTimingOffsetSeconds: number): number {
     const beatDurationInSeconds = ticksToSeconds(
       beat.fullDurationTicks,
-      beat.bar.tickResolution,
-      beat.bar.masterBar.tempo
+      beat.voiceBar.tickResolution,
+      beat.voiceBar.bar.masterBar.tempo
     );
     const startTime = this._currentScheduleBase + barTimingOffsetSeconds;
     const stopTime = startTime + beatDurationInSeconds;
 
     this.scheduleBeatChange(beat, startTime);
 
-    for (const note of beat.notes) {
+    for (const note of beat.notes ?? []) {
       this.scheduleNote(note, startTime, stopTime);
     }
 
@@ -436,48 +440,50 @@ export class ScorePlayer {
   private scheduleBar(masterBarIndex: number, bar: Bar): void {
     const masterBarStartOffsetSeconds =
       this.getMasterBarStartOffsetSeconds(masterBarIndex);
-    for (const beat of bar.beats) {
-      if (!bar.beatPlayable(beat)) {
-        continue;
-      }
-
-      if (
-        this._playbackStartBoundary !== undefined &&
-        masterBarIndex === this._playbackStartBoundary.masterBarIndex
-      ) {
-        const beatStartOffset = ticksToFraction(
-          beat.startTick,
-          bar.tickResolution
-        );
-        if (fractionLt(beatStartOffset, this._playbackStartBoundary.offset)) {
+    for (const voiceBar of bar.voiceBarsAsArray) {
+      for (const beat of voiceBar.beats) {
+        if (!voiceBar.beatPlayable(beat)) {
           continue;
         }
-      }
 
-      if (
-        this._playbackEndBoundary !== undefined &&
-        masterBarIndex === this._playbackEndBoundary.masterBarIndex
-      ) {
-        const beatStartOffset = ticksToFraction(
-          beat.startTick,
-          bar.tickResolution
-        );
-        if (fractionLte(this._playbackEndBoundary.offset, beatStartOffset)) {
-          continue;
+        if (
+          this._playbackStartBoundary !== undefined &&
+          masterBarIndex === this._playbackStartBoundary.masterBarIndex
+        ) {
+          const beatStartOffset = ticksToFraction(
+            beat.startTick,
+            voiceBar.tickResolution
+          );
+          if (fractionLt(beatStartOffset, this._playbackStartBoundary.offset)) {
+            continue;
+          }
         }
-      }
 
-      const beatStartOffsetSeconds = ticksToSeconds(
-        beat.startTick,
-        bar.tickResolution,
-        bar.masterBar.tempo
-      );
-      this.scheduleBeat(
-        beat,
-        this._scheduledPlaybackSeconds +
-          beatStartOffsetSeconds -
-          masterBarStartOffsetSeconds
-      );
+        if (
+          this._playbackEndBoundary !== undefined &&
+          masterBarIndex === this._playbackEndBoundary.masterBarIndex
+        ) {
+          const beatStartOffset = ticksToFraction(
+            beat.startTick,
+            voiceBar.tickResolution
+          );
+          if (fractionLte(this._playbackEndBoundary.offset, beatStartOffset)) {
+            continue;
+          }
+        }
+
+        const beatStartOffsetSeconds = ticksToSeconds(
+          beat.startTick,
+          voiceBar.tickResolution,
+          bar.masterBar.tempo
+        );
+        this.scheduleBeat(
+          beat,
+          this._scheduledPlaybackSeconds +
+            beatStartOffsetSeconds -
+            masterBarStartOffsetSeconds
+        );
+      }
     }
   }
 
@@ -627,7 +633,7 @@ export class ScorePlayer {
       this._playbackStartBoundary.masterBarIndex;
 
     if (options.startBeat) {
-      this._activeStaffUUID = options.startBeat.bar.staff.uuid;
+      this._activeStaffUUID = options.startBeat.voiceBar.bar.staff.uuid;
     }
 
     this.scheduleScore();

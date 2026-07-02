@@ -3,6 +3,7 @@ import {
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
+  VoiceNumber,
 } from "@/notation/model";
 import { Point, Rect, randomInt } from "@/shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
@@ -12,6 +13,8 @@ import { TrackElement } from "@/notation/controller/element/track-element";
 import { SVGPathDescriptor, TechniqueElement } from "../technique-element";
 import { TabNoteElement } from "../../note/tab-note-element";
 import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
+import type { BarElement } from "../../bar/bar-element";
+import type { TrackLineElement } from "../../track/track-line-element";
 
 /**
  * Class that handles geometry & visually relevant
@@ -38,6 +41,18 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /** Root track element */
   readonly trackElement: TrackElement;
 
+  public get voiceNumber(): VoiceNumber {
+    return this.noteElement.voiceNumber;
+  }
+
+  public get owningTrackLineElement(): TrackLineElement {
+    return this.noteElement.owningTrackLineElement;
+  }
+
+  public get owningBarElement(): BarElement {
+    return this.noteElement.owningBarElement;
+  }
+
   /** Starting point (center of the provided rect) */
   private _startPoint: Point;
   /** SVG path descriptors rendered from this origin */
@@ -60,15 +75,21 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     this.createPath();
+  }
 
-    this.trackElement.registerElement(this);
+  private get note(): GuitarNote {
+    if (this.noteElement.note === null) {
+      throw Error("Guitar technique element requires a backing note");
+    }
+
+    return this.noteElement.note;
   }
 
   /**
    * Build a regular bend path SVG path HTML element
    */
   private createBendPath(): void {
-    const stringNum = this.noteElement.note.stringNum;
+    const stringNum = this.note.stringNum;
     const verticalOffset =
       this.noteElement.boundingBox.height * (stringNum - 1) +
       this.noteElement.boundingBox.height / 2;
@@ -96,7 +117,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Build a bend-and-release path SVG path HTML element
    */
   private createBendAndReleasePath(): void {
-    const stringNum = this.noteElement.note.stringNum;
+    const stringNum = this.note.stringNum;
     const verticalOffset =
       this.noteElement.boundingBox.height * (stringNum - 1) +
       this.noteElement.boundingBox.height / 2;
@@ -146,7 +167,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Build a prebend path SVG path HTML element
    */
   private createPrebendPath(): void {
-    const stringNum = this.noteElement.note.stringNum;
+    const stringNum = this.note.stringNum;
     const verticalOffset =
       this.noteElement.boundingBox.height * (stringNum - 1) +
       this.noteElement.boundingBox.height / 2;
@@ -177,7 +198,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Build a prebend-and-release path SVG path HTML element
    */
   private createPrebendAndReleasePath(): void {
-    const stringNum = this.noteElement.note.stringNum;
+    const stringNum = this.note.stringNum;
     const verticalOffset =
       this.noteElement.boundingBox.height * (stringNum - 1) +
       this.noteElement.boundingBox.height / 2;
@@ -233,24 +254,27 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc slide path
    */
   private createSlidePath(): void {
-    if (this.noteElement.note.fret === null) {
+    const note = this.note;
+    if (note.fret === null) {
       return;
     }
 
-    const staff = this.noteElement.note.beat.bar.staff;
-    const nextBeat = staff.getNextBeat(this.noteElement.note.beat);
+    const staff = note.beat.voiceBar.bar.staff;
+    const nextBeat = staff.getNextBeat(note.beat);
     if (nextBeat === null) {
       return;
     }
 
-    const nextNote = nextBeat.notes[
-      this.noteElement.note.stringNum - 1
-    ] as GuitarNote;
+    if (nextBeat.notes === null) {
+      return;
+    }
+
+    const nextNote = nextBeat.notes[note.stringNum - 1] as GuitarNote;
     if (nextNote.fret === null) {
       return;
     }
 
-    const upCoef = nextNote.fret >= this.noteElement.note.fret ? 1 : -1;
+    const upCoef = nextNote.fret >= note.fret ? 1 : -1;
 
     const slideWidth =
       this.noteElement.boundingBox.width -
@@ -388,8 +412,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Initializes the path descriptors for non-inline techniques.
    */
   build(): void {
-    this.trackElement.registerElement(this);
-
     if (TECHNIQUE_IS_INLINE[this.technique.type]) {
       this._pathDescriptors = [];
     } else {
@@ -435,16 +457,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
 
   public refreshOwnedNotationElements(): NotationElement[] {
     return [this];
-  }
-
-  /**
-   * Scales the technique element horizontally by the factor
-   * @param scale Scale factor
-   */
-  public scaleHorBy(scale: number): void {
-    this._startPoint.x *= scale;
-
-    this.layout();
   }
 
   /** String encoding the state of this element */

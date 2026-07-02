@@ -1,4 +1,4 @@
-import { Staff, Beat, Note, Track } from "@/notation/model";
+import { Staff, Beat, Note, Track, VoiceNumber } from "@/notation/model";
 import { BeatElement } from "@/notation/controller/element/beat/beat-element";
 import { NoteElement } from "@/notation/controller/element/note/note-element";
 import { SelectedNote, MoveRightOutput } from "./selected-note";
@@ -12,6 +12,8 @@ export class SelectionManager {
 
   /** Current staff */
   private _staff: Staff;
+  /** Current voice number */
+  private _activeVoiceNumber: VoiceNumber;
   /** Selected note element */
   private _selectedNote?: SelectedNote;
   /** Base beat of the selection */
@@ -29,6 +31,7 @@ export class SelectionManager {
     this.track = track;
 
     this._staff = this.track.staves[0];
+    this._activeVoiceNumber = 1;
     this._selectionBeats = [];
     this._clipboard = [];
   }
@@ -38,10 +41,20 @@ export class SelectionManager {
    * @param note Note to select
    */
   public selectNote(note: Note): void {
-    this._staff = note.beat.bar.staff;
+    this._staff = note.beat.voiceBar.bar.staff;
+    this._activeVoiceNumber = note.beat.voiceBar.voiceNumber;
+    const noteIndex = note.beat.notes?.indexOf(note) ?? 0;
 
     this.clearSelection();
-    this._selectedNote = new SelectedNote(note);
+    this._selectedNote = new SelectedNote(note.beat, noteIndex);
+  }
+
+  public selectBeatCursor(beat: Beat, noteIndex: number): void {
+    this._staff = beat.voiceBar.bar.staff;
+    this._activeVoiceNumber = beat.voiceBar.voiceNumber;
+
+    this.clearSelection();
+    this._selectedNote = new SelectedNote(beat, noteIndex);
   }
 
   /**
@@ -78,12 +91,15 @@ export class SelectionManager {
 
     if (this._selectionBeats.length !== 0) {
       // Select left most element of selection
+      const leftMostBeat = this._selectionBeats[0];
       const leftMostNote =
-        this._selectionBeats[0].notes[
+        leftMostBeat.notes?.[
           this.selectedNote ? this.selectedNote.noteIndex : 0
         ];
 
-      this.selectNote(leftMostNote);
+      if (leftMostNote !== undefined) {
+        this.selectNote(leftMostNote);
+      }
     }
 
     if (this._selectionBeats.length === 0 && this.selectedNote === undefined) {
@@ -103,12 +119,16 @@ export class SelectionManager {
 
     if (this._selectionBeats.length !== 0) {
       // Select right most element of selection
+      const rightMostBeat =
+        this._selectionBeats[this._selectionBeats.length - 1];
       const rightMostNote =
-        this._selectionBeats[this._selectionBeats.length - 1].notes[
+        rightMostBeat.notes?.[
           this.selectedNote ? this.selectedNote.noteIndex : 0
         ];
 
-      this.selectNote(rightMostNote);
+      if (rightMostNote !== undefined) {
+        this.selectNote(rightMostNote);
+      }
     }
 
     if (this._selectionBeats.length === 0 && this.selectedNote === undefined) {
@@ -124,7 +144,7 @@ export class SelectionManager {
    * @param beat2UUID UUID of the last beat
    */
   private selectBeatsInBetween(beat1UUID: number, beat2UUID: number): void {
-    const beatsSeq = this._staff.getBeatsSeq();
+    const beatsSeq = this._staff.getBeatsSeq(this._activeVoiceNumber);
 
     let startBeatElementSeqIndex: number = -1;
     let endBeatElementSeqIndex: number = -1;
@@ -159,18 +179,19 @@ export class SelectionManager {
 
     if (
       this._baseSelectionBeat !== undefined &&
-      beat.bar.staff !== this._baseSelectionBeat.bar.staff
+      beat.voiceBar.bar.staff !== this._baseSelectionBeat.voiceBar.bar.staff
     ) {
       // Don't add beats from a different staff to selection
       return;
     }
 
-    if (beat.bar.staff !== this._staff) {
-      this._staff = beat.bar.staff;
+    if (beat.voiceBar.bar.staff !== this._staff) {
+      this._staff = beat.voiceBar.bar.staff;
       this.clearSelection();
     }
+    this._activeVoiceNumber = beat.voiceBar.voiceNumber;
 
-    const beatsSeq = this._staff.getBeatsSeq();
+    const beatsSeq = this._staff.getBeatsSeq(this._activeVoiceNumber);
     let beatSeqIndex: number = -1;
     let baseBeatSeqIndex: number = -1;
     for (let i = 0; i < beatsSeq.length; i++) {
@@ -234,10 +255,10 @@ export class SelectionManager {
    * Copy selected note/beats (depending on which is currently selected)
    */
   public copy(): void {
-    this._clipboard =
-      this._selectedNote !== undefined
-        ? this._selectedNote.note.deepCopy()
-        : this._selectionBeats.map((beat) => beat.deepCopy());
+    const selectedNote = this._selectedNote?.note;
+    this._clipboard = selectedNote
+      ? selectedNote.deepCopy()
+      : this._selectionBeats.map((beat) => beat.deepCopy());
   }
 
   /**
@@ -250,12 +271,21 @@ export class SelectionManager {
       throw Error("No note selected");
     }
 
-    return this._selectedNote.note.uuid === noteElement.note.uuid;
+    return this._selectedNote.note?.uuid === noteElement.note?.uuid;
   }
 
   /** Selected note element */
   public get selectedNote(): SelectedNote | undefined {
     return this._selectedNote;
+  }
+
+  /** Current voice number */
+  public get activeVoiceNumber(): VoiceNumber {
+    return this._activeVoiceNumber;
+  }
+
+  public set activeVoiceNumber(voiceNumber: VoiceNumber) {
+    this._activeVoiceNumber = voiceNumber;
   }
 
   /** Selection beats */

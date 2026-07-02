@@ -1,4 +1,4 @@
-import { TrackController } from "@/notation/controller";
+import { NotationElement, TrackController } from "@/notation/controller";
 import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-element";
 import { createSVGG } from "@/shared";
 import { ElementRenderer } from "../element-renderer";
@@ -57,6 +57,10 @@ export class SVGTechGapRenderer implements ElementRenderer {
     }
 
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  public updateElementReference(element: TechGapElement): void {
+    this.techGapElement = element;
   }
 
   /**
