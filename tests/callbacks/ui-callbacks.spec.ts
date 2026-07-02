@@ -36,6 +36,7 @@ describe("UICallbacks", () => {
       {} as any,
       jest.fn(),
       jest.fn(),
+      jest.fn(),
       jest.fn()
     );
 

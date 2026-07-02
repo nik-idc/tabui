@@ -1,6 +1,11 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
-import { DEFAULT_MASTER_BAR, NoteDuration } from "../../src/notation/model";
+import {
+  Bar,
+  DEFAULT_MASTER_BAR,
+  Guitar,
+  NoteDuration,
+} from "../../src/notation/model";
 import {
   createBarWithBeats,
   createBeat,
@@ -9,15 +14,19 @@ import {
 import { ensureLayoutConfigured } from "./helpers";
 
 function fillBarWithDenseSixtyFourthBeats(
-  bar: ReturnType<typeof createScoreGraph>["bar"],
+  bar: Bar<Guitar>,
   count: number
 ): void {
+  const voiceBar = bar.getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error("Expected voice 1 bar");
+  }
   const beats = Array.from({ length: count }, () =>
-    createBeat(bar, NoteDuration.SixtyFourth)
+    createBeat(voiceBar, NoteDuration.SixtyFourth)
   );
-  bar.beats.splice(0, bar.beats.length, ...beats);
-  bar.computeBarTupletGroups();
-  bar.rebuildTiming();
+  voiceBar.beats.splice(0, voiceBar.beats.length, ...beats);
+  voiceBar.computeBarTupletGroups();
+  voiceBar.rebuildTiming();
 }
 
 function getRhythmElements(trackElement: TrackElement): any[] {
@@ -204,12 +213,17 @@ describe("TrackElement rhythm", () => {
     ]);
     const trackElement = new TrackElement(track);
 
-    expect(bar.beamingGroups.length).toBeGreaterThan(0);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
 
-    bar.beats[3].beamGroupId = bar.beamingGroups.length;
-    bar.beats[4].beamGroupId = bar.beamingGroups.length;
-    bar.beats[3].lastInBeamGroup = false;
-    bar.beats[4].lastInBeamGroup = false;
+    expect(voiceBar.beamingGroups.length).toBeGreaterThan(0);
+
+    voiceBar.beats[3].beamGroupId = voiceBar.beamingGroups.length;
+    voiceBar.beats[4].beamGroupId = voiceBar.beamingGroups.length;
+    voiceBar.beats[3].lastInBeamGroup = false;
+    voiceBar.beats[4].lastInBeamGroup = false;
 
     trackElement.update();
 
@@ -228,8 +242,12 @@ describe("TrackElement rhythm", () => {
     ]);
     const trackElement = new TrackElement(track);
 
-    bar.beats[0].beamGroupId = null;
-    bar.beats[0].lastInBeamGroup = false;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.beats[0].beamGroupId = null;
+    voiceBar.beats[0].lastInBeamGroup = false;
     trackElement.update();
 
     const beatElement = getRhythmElements(trackElement)[0];
@@ -250,7 +268,11 @@ describe("TrackElement rhythm", () => {
     ]);
     const trackElement = new TrackElement(track);
 
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     trackElement.update();
 
     const beatElement = getRhythmElements(trackElement)[0];
@@ -270,8 +292,12 @@ describe("TrackElement rhythm", () => {
     ]);
     const trackElement = new TrackElement(track);
 
-    bar.beats[0].beamGroupId = null;
-    bar.beats[0].lastInBeamGroup = false;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.beats[0].beamGroupId = null;
+    voiceBar.beats[0].lastInBeamGroup = false;
     trackElement.update();
 
     const beatElement = getRhythmElements(trackElement)[0];

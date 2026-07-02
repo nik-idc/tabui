@@ -40,8 +40,14 @@ describe("TrackElement techniques", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
 
-    const firstNote = beats[0].notes[0] as GuitarNote;
-    const nextNote = beats[1].notes[0] as GuitarNote;
+    const firstNote = beats[0].notes?.[0];
+    const nextNote = beats[1].notes?.[0];
+    if (
+      !(firstNote instanceof GuitarNote) ||
+      !(nextNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected guitar notes in test beats");
+    }
     firstNote.fret = 5;
     nextNote.fret = 7;
     firstNote.addTechnique(
@@ -78,8 +84,14 @@ describe("TrackElement techniques", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
 
-    const firstNote = beats[0].notes[0] as GuitarNote;
-    const nextNote = beats[1].notes[0] as GuitarNote;
+    const firstNote = beats[0].notes?.[0];
+    const nextNote = beats[1].notes?.[0];
+    if (
+      !(firstNote instanceof GuitarNote) ||
+      !(nextNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected guitar notes in test beats");
+    }
     firstNote.fret = 7;
     nextNote.fret = 5;
     firstNote.addTechnique(
@@ -107,9 +119,13 @@ describe("TrackElement techniques", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const note = beats[0].notes[0] as GuitarNote;
+    const note = beats[0].notes?.[0];
+    const nextNote = beats[1].notes?.[0];
+    if (!(note instanceof GuitarNote) || !(nextNote instanceof GuitarNote)) {
+      throw Error("Expected guitar notes in test beats");
+    }
     note.fret = 5;
-    (beats[1].notes[0] as GuitarNote).fret = 7;
+    nextNote.fret = 7;
 
     const trackElement = new TrackElement(track);
     trackElement.update(0, Number.MAX_SAFE_INTEGER);
@@ -140,9 +156,21 @@ describe("TrackElement techniques", () => {
 
   test("creates labels on all technique gap lines with stacked non-overlapping geometry", () => {
     const { track, bar } = createScoreGraph();
-    const vibratoNote = bar.beats[0].notes[0] as GuitarNote;
-    const palmMuteNote = bar.beats[0].notes[1] as GuitarNote;
-    const bendNote = bar.beats[0].notes[2] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const beat = voiceBar.beats[0];
+    const vibratoNote = beat.notes?.[0];
+    const palmMuteNote = beat.notes?.[1];
+    const bendNote = beat.notes?.[2];
+    if (
+      !(vibratoNote instanceof GuitarNote) ||
+      !(palmMuteNote instanceof GuitarNote) ||
+      !(bendNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected guitar notes in test beat");
+    }
 
     vibratoNote.addTechnique(
       new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
@@ -219,8 +247,14 @@ describe("TrackElement techniques", () => {
   test("track element skeleton line stores final line height", () => {
     const { track, bar } = createScoreGraph();
     const beat = bar.voiceBarsAsArray[0].beats[0];
-    const vibratoNote = beat.notes[0] as GuitarNote;
-    const palmMuteNote = beat.notes[1] as GuitarNote;
+    const vibratoNote = beat.notes?.[0];
+    const palmMuteNote = beat.notes?.[1];
+    if (
+      !(vibratoNote instanceof GuitarNote) ||
+      !(palmMuteNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected guitar notes in test beat");
+    }
 
     vibratoNote.addTechnique(
       new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
@@ -247,7 +281,10 @@ describe("TrackElement techniques", () => {
     trackElement.update(0, Number.MAX_SAFE_INTEGER);
     const firstLineBefore = trackElement.trackLineElements[0];
     const secondLineBefore = trackElement.trackLineElements[1];
-    const note = bar.voiceBarsAsArray[0].beats[0].notes[0] as GuitarNote;
+    const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     const secondLineBeatElement =
       secondLineBefore.staffLineElements[0].styleLinesAsArray[0].barElements[0]
         .beatElements[0];
@@ -286,7 +323,10 @@ describe("TrackElement techniques", () => {
 
   test("targeted label technique update refreshes tech gap height facts", () => {
     const { track, bar } = createScoreGraph();
-    const note = bar.voiceBarsAsArray[0].beats[0].notes[0] as GuitarNote;
+    const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     const trackElement = new TrackElement(track);
     trackElement.update(0, Number.MAX_SAFE_INTEGER);
 
@@ -316,8 +356,14 @@ describe("TrackElement techniques", () => {
   test("non-contiguous technique rows still use compact label positions", () => {
     const { track, bar } = createScoreGraph();
     const beat = bar.voiceBarsAsArray[0].beats[0];
-    const vibratoNote = beat.notes[0] as GuitarNote;
-    const bendNote = beat.notes[1] as GuitarNote;
+    const vibratoNote = beat.notes?.[0];
+    const bendNote = beat.notes?.[1];
+    if (
+      !(vibratoNote instanceof GuitarNote) ||
+      !(bendNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected guitar notes in test beat");
+    }
 
     vibratoNote.addTechnique(
       new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
@@ -351,7 +397,14 @@ describe("TrackElement techniques", () => {
 
   test("creates a bend inline element path and matching line-3 label geometry", () => {
     const { track, bar } = createScoreGraph();
-    const note = bar.beats[0].notes[0] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const note = voiceBar.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
 
     note.addTechnique(
       new GuitarTechnique(
@@ -391,8 +444,19 @@ describe("TrackElement techniques", () => {
 
   test("no-op update rebuilds technique gap shells", () => {
     const { track, bar } = createScoreGraph();
-    const vibratoNote = bar.beats[0].notes[0] as GuitarNote;
-    const bendNote = bar.beats[0].notes[2] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const beat = voiceBar.beats[0];
+    const vibratoNote = beat.notes?.[0];
+    const bendNote = beat.notes?.[2];
+    if (
+      !(vibratoNote instanceof GuitarNote) ||
+      !(bendNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected guitar notes in test beat");
+    }
 
     vibratoNote.addTechnique(
       new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
@@ -443,7 +507,10 @@ describe("TrackElement techniques", () => {
 
   test("ownedNotationElements includes technique gap subtree elements", () => {
     const { track, bar } = createScoreGraph();
-    const note = bar.voiceBarsAsArray[0].beats[0].notes![0] as GuitarNote;
+    const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
 
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
 
@@ -467,7 +534,10 @@ describe("TrackElement techniques", () => {
 
   test("ownedNotationElements updates after line rematerialization", () => {
     const { track, bar } = createScoreGraph();
-    const note = bar.voiceBarsAsArray[0].beats[0].notes![0] as GuitarNote;
+    const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     const trackElement = new TrackElement(track);
 
     expect(
@@ -488,8 +558,19 @@ describe("TrackElement techniques", () => {
 
   test("adding a second technique gap line preserves distinct label y positions", () => {
     const { track, bar } = createScoreGraph();
-    const vibratoNote = bar.beats[0].notes[0] as GuitarNote;
-    const palmMuteNote = bar.beats[0].notes[1] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const beat = voiceBar.beats[0];
+    const vibratoNote = beat.notes?.[0];
+    const palmMuteNote = beat.notes?.[1];
+    if (
+      !(vibratoNote instanceof GuitarNote) ||
+      !(palmMuteNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected guitar notes in test beat");
+    }
 
     palmMuteNote.addTechnique(
       new GuitarTechnique(palmMuteNote, GuitarTechniqueType.PalmMute)
@@ -535,8 +616,14 @@ describe("TrackElement techniques", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const palmMuteNote = track.staves[0].bars[0].beats[0]
-      .notes[0] as GuitarNote;
+    const firstVoiceBar = track.staves[0].bars[0].getVoiceBar(1);
+    if (firstVoiceBar === null) {
+      throw Error("Expected voice 1 in first bar");
+    }
+    const palmMuteNote = firstVoiceBar.beats[0].notes?.[0];
+    if (!(palmMuteNote instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     palmMuteNote.addTechnique(
       new GuitarTechnique(palmMuteNote, GuitarTechniqueType.PalmMute)
     );
@@ -544,8 +631,8 @@ describe("TrackElement techniques", () => {
     const trackElement = new TrackElement(track);
     trackElement.update(0, Number.MAX_SAFE_INTEGER);
 
-    track.staves[0].bars[0].beats[0].baseDuration = NoteDuration.Eighth;
-    track.staves[0].bars[0].rebuildTiming();
+    firstVoiceBar.beats[0].baseDuration = NoteDuration.Eighth;
+    firstVoiceBar.rebuildTiming();
     trackElement.update(0, Number.MAX_SAFE_INTEGER);
 
     const beatElement =
@@ -579,13 +666,20 @@ describe("TrackElement techniques", () => {
 
     const secondLineStartIndex =
       trackElement.trackLineElements[1].trackLineData[0].masterBarIndex;
-    const beat = staff.bars[secondLineStartIndex].beats[0];
+    const secondLineVoiceBar = staff.bars[secondLineStartIndex].getVoiceBar(1);
+    if (secondLineVoiceBar === null) {
+      throw Error("Expected voice 1 in second line bar");
+    }
+    const beat = secondLineVoiceBar.beats[0];
     beat.makeBeatWithNotes();
-    const note = beat.notes[0] as GuitarNote;
+    const note = beat.notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     const noteArray = [note];
 
     score.masterBars[secondLineStartIndex].tempo = 121;
-    staff.bars[secondLineStartIndex].rebuildTiming();
+    secondLineVoiceBar.rebuildTiming();
     trackElement.update(0, Number.MAX_SAFE_INTEGER);
 
     ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.Vibrato);

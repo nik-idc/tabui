@@ -3,19 +3,13 @@ import { createBarWithBeats, createBeat, createScoreGraph } from "./helpers";
 import { fillBar } from "../../demo/data/helpers";
 
 describe("Bar model", () => {
-  function getVoiceOneBar(bar: ReturnType<typeof createScoreGraph>["bar"]) {
+  test("new bar starts with one default rest beat", () => {
+    const score = new Score();
+    const bar = score.tracks[0].staves[0].bars[0];
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 to exist");
     }
-
-    return voiceBar;
-  }
-
-  test("new bar starts with one default rest beat", () => {
-    const score = new Score();
-    const bar = score.tracks[0].staves[0].bars[0];
-    const voiceBar = getVoiceOneBar(bar);
 
     expect(voiceBar.beats).toHaveLength(1);
     expect(voiceBar.beats[0].isRest()).toBe(true);
@@ -28,7 +22,10 @@ describe("Bar model", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
 
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
 
     expect(() => voiceBar.removeBeat(voiceBar.beats.length)).toThrow(Error);
   });
@@ -44,7 +41,10 @@ describe("Bar model", () => {
     const { bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
 
     const result = voiceBar.removeBeat(0);
 
@@ -57,7 +57,10 @@ describe("Bar model", () => {
 
   test("appendBeats with no arguments inserts one rest beat", () => {
     const { bar } = createScoreGraph();
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
 
     const result = voiceBar.appendBeats();
 
@@ -72,7 +75,10 @@ describe("Bar model", () => {
     const { bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
     const inputBeat = createBeat(voiceBar, NoteDuration.Eighth);
 
     const result = voiceBar.appendBeats([inputBeat]);
@@ -87,7 +93,10 @@ describe("Bar model", () => {
     const { bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
     const inputBeat = createBeat(voiceBar, NoteDuration.Eighth);
 
     const result = voiceBar.prependBeats([inputBeat]);
@@ -111,7 +120,10 @@ describe("Bar model", () => {
       { baseDuration: NoteDuration.Sixteenth },
     ]);
 
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
     voiceBar.rebuildTiming();
 
     expect(voiceBar.tickResolution).toBeGreaterThan(0);
@@ -132,7 +144,10 @@ describe("Bar model", () => {
       { baseDuration: NoteDuration.Eighth },
     ]);
 
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
 
     expect(voiceBar.checkDurationsFit()).toBe(false);
     expect(voiceBar.beatPlayable(beats[0])).toBe(true);
@@ -153,7 +168,10 @@ describe("Bar model", () => {
       beatsDuration: NoteDuration.Whole,
     });
 
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
 
     expect(bar.checkDurationsFit()).toBe(true);
     expect(voiceBar.actualTicks).toBe(voiceBar.barTicks);

@@ -11,9 +11,10 @@ import {
   createBeat,
   createScoreGraph,
 } from "../model/helpers";
+import { Beat, Guitar } from "../../src/notation/model";
 
 describe("Timing rebuild commands", () => {
-  function noteBeats<T extends { hasNotes: () => boolean }>(beats: T[]): T[] {
+  function noteBeats(beats: Beat<Guitar>[]): Beat<Guitar>[] {
     return beats.filter((beat) => beat.hasNotes());
   }
 
@@ -23,15 +24,19 @@ describe("Timing rebuild commands", () => {
     ]);
     const command = new SetDurationCommand(beats, NoteDuration.Eighth);
     const originalTicks = beats[0].fullDurationTicks;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
 
     command.execute();
-    expect(beats[0].fullDurationTicks).toBe(bar.tickResolution / 8);
+    expect(beats[0].fullDurationTicks).toBe(voiceBar.tickResolution / 8);
 
     command.undo();
     expect(beats[0].fullDurationTicks).toBe(originalTicks);
 
     command.redo();
-    expect(beats[0].fullDurationTicks).toBe(bar.tickResolution / 8);
+    expect(beats[0].fullDurationTicks).toBe(voiceBar.tickResolution / 8);
   });
 
   test("SetDotsCommand updates dot timing and restores tick state", () => {
@@ -41,22 +46,26 @@ describe("Timing rebuild commands", () => {
     ]);
     const originalTicks = beats.map((beat) => beat.fullDurationTicks);
     const command = new SetDotsCommand(beats, 1);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
 
     command.execute();
     expect(beats.map((beat) => beat.fullDurationTicks)).toEqual([
-      (bar.tickResolution * 3) / 8,
-      (bar.tickResolution * 3) / 8,
+      (voiceBar.tickResolution * 3) / 8,
+      (voiceBar.tickResolution * 3) / 8,
     ]);
-    expect(bar.actualTicks).toBe((bar.tickResolution * 3) / 4);
+    expect(voiceBar.actualTicks).toBe((voiceBar.tickResolution * 3) / 4);
 
     command.undo();
     expect(beats.map((beat) => beat.fullDurationTicks)).toEqual(originalTicks);
-    expect(bar.actualTicks).toBe(bar.tickResolution / 2);
+    expect(voiceBar.actualTicks).toBe(voiceBar.tickResolution / 2);
 
     command.redo();
     expect(beats.map((beat) => beat.fullDurationTicks)).toEqual([
-      (bar.tickResolution * 3) / 8,
-      (bar.tickResolution * 3) / 8,
+      (voiceBar.tickResolution * 3) / 8,
+      (voiceBar.tickResolution * 3) / 8,
     ]);
   });
 
@@ -70,31 +79,35 @@ describe("Timing rebuild commands", () => {
       normalCount: 3,
       tupletCount: 2,
     });
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
 
     command.execute();
-    expect(bar.tupletGroups).toHaveLength(1);
-    expect(bar.tupletGroups[0].complete).toBe(true);
+    expect(voiceBar.tupletGroups).toHaveLength(1);
+    expect(voiceBar.tupletGroups[0].complete).toBe(true);
     expect(beats.map((beat) => beat.fullDurationTicks)).toEqual([
-      bar.tickResolution / 12,
-      bar.tickResolution / 12,
-      bar.tickResolution / 12,
+      voiceBar.tickResolution / 12,
+      voiceBar.tickResolution / 12,
+      voiceBar.tickResolution / 12,
     ]);
     expect(beats.map((beat) => beat.beamGroupId)).toEqual([0, 0, 0]);
 
     command.undo();
-    expect(bar.tupletGroups).toHaveLength(0);
+    expect(voiceBar.tupletGroups).toHaveLength(0);
     expect(beats.map((beat) => beat.fullDurationTicks)).toEqual([
-      bar.tickResolution / 8,
-      bar.tickResolution / 8,
-      bar.tickResolution / 8,
+      voiceBar.tickResolution / 8,
+      voiceBar.tickResolution / 8,
+      voiceBar.tickResolution / 8,
     ]);
 
     command.redo();
-    expect(bar.tupletGroups).toHaveLength(1);
+    expect(voiceBar.tupletGroups).toHaveLength(1);
     expect(beats.map((beat) => beat.fullDurationTicks)).toEqual([
-      bar.tickResolution / 12,
-      bar.tickResolution / 12,
-      bar.tickResolution / 12,
+      voiceBar.tickResolution / 12,
+      voiceBar.tickResolution / 12,
+      voiceBar.tickResolution / 12,
     ]);
   });
 
@@ -103,8 +116,13 @@ describe("Timing rebuild commands", () => {
     const extraStaff = track.insertStaff(1).staves[0];
     const siblingBar = extraStaff.bars[0];
 
-    const originalBarTicks = bar.barTicks;
-    const originalSiblingTicks = siblingBar.barTicks;
+    const voiceBar = bar.getVoiceBar(1);
+    const siblingVoiceBar = siblingBar.getVoiceBar(1);
+    if (voiceBar === null || siblingVoiceBar === null) {
+      throw Error("Expected voice 1 in test bars");
+    }
+    const originalBarTicks = voiceBar.barTicks;
+    const originalSiblingTicks = siblingVoiceBar.barTicks;
     const command = new SetTimeSigCommand(
       score,
       masterBar,
@@ -113,18 +131,22 @@ describe("Timing rebuild commands", () => {
     );
 
     command.execute();
-    expect(bar.barTicks).toBe((bar.tickResolution * 3) / 4);
-    expect(siblingBar.barTicks).toBe((siblingBar.tickResolution * 3) / 4);
-    expect(bar.barTicks).not.toBe(originalBarTicks);
-    expect(siblingBar.barTicks).not.toBe(originalSiblingTicks);
+    expect(voiceBar.barTicks).toBe((voiceBar.tickResolution * 3) / 4);
+    expect(siblingVoiceBar.barTicks).toBe(
+      (siblingVoiceBar.tickResolution * 3) / 4
+    );
+    expect(voiceBar.barTicks).not.toBe(originalBarTicks);
+    expect(siblingVoiceBar.barTicks).not.toBe(originalSiblingTicks);
 
     command.undo();
-    expect(bar.barTicks).toBe(originalBarTicks);
-    expect(siblingBar.barTicks).toBe(originalSiblingTicks);
+    expect(voiceBar.barTicks).toBe(originalBarTicks);
+    expect(siblingVoiceBar.barTicks).toBe(originalSiblingTicks);
 
     command.redo();
-    expect(bar.barTicks).toBe((bar.tickResolution * 3) / 4);
-    expect(siblingBar.barTicks).toBe((siblingBar.tickResolution * 3) / 4);
+    expect(voiceBar.barTicks).toBe((voiceBar.tickResolution * 3) / 4);
+    expect(siblingVoiceBar.barTicks).toBe(
+      (siblingVoiceBar.tickResolution * 3) / 4
+    );
   });
 
   test("ReplaceBeatsCommand copies full rhythmic data and restores equal-length replacements on undo/redo", () => {
@@ -140,44 +162,56 @@ describe("Timing rebuild commands", () => {
       createBeat(bar, NoteDuration.Sixteenth),
     ];
     const command = new ReplaceBeatsCommand(beats, replacementBeats);
-    const originalBeatUUIDs = noteBeats(bar.beats).map((beat) => beat.uuid);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const originalBeatUUIDs = noteBeats(voiceBar.beats).map(
+      (beat) => beat.uuid
+    );
 
     command.execute();
-    expect(noteBeats(bar.beats)).toHaveLength(2);
-    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Eighth);
-    expect(noteBeats(bar.beats)[0].dots).toBe(1);
-    expect(noteBeats(bar.beats)[0].tupletSettings).toEqual({
+    expect(noteBeats(voiceBar.beats)).toHaveLength(2);
+    expect(noteBeats(voiceBar.beats)[0].baseDuration).toBe(NoteDuration.Eighth);
+    expect(noteBeats(voiceBar.beats)[0].dots).toBe(1);
+    expect(noteBeats(voiceBar.beats)[0].tupletSettings).toEqual({
       normalCount: 3,
       tupletCount: 2,
     });
-    expect(noteBeats(bar.beats)[1].baseDuration).toBe(NoteDuration.Sixteenth);
-    expect(noteBeats(bar.beats).map((beat) => beat.uuid)).not.toEqual(
+    expect(noteBeats(voiceBar.beats)[1].baseDuration).toBe(
+      NoteDuration.Sixteenth
+    );
+    expect(noteBeats(voiceBar.beats).map((beat) => beat.uuid)).not.toEqual(
       originalBeatUUIDs
     );
 
     command.undo();
-    expect(noteBeats(bar.beats).map((beat) => beat.baseDuration)).toEqual([
+    expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Quarter,
     ]);
-    expect(noteBeats(bar.beats).map((beat) => beat.uuid)).not.toEqual(
+    expect(noteBeats(voiceBar.beats).map((beat) => beat.uuid)).not.toEqual(
       originalBeatUUIDs
     );
-    expect(noteBeats(bar.beats).every((beat) => beat.dots === 0)).toBe(true);
+    expect(noteBeats(voiceBar.beats).every((beat) => beat.dots === 0)).toBe(
+      true
+    );
     expect(
-      noteBeats(bar.beats).every((beat) => beat.tupletSettings === null)
+      noteBeats(voiceBar.beats).every((beat) => beat.tupletSettings === null)
     ).toBe(true);
 
     command.redo();
-    expect(noteBeats(bar.beats)).toHaveLength(2);
-    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Eighth);
-    expect(noteBeats(bar.beats)[0].dots).toBe(1);
-    expect(noteBeats(bar.beats)[0].tupletSettings).toEqual({
+    expect(noteBeats(voiceBar.beats)).toHaveLength(2);
+    expect(noteBeats(voiceBar.beats)[0].baseDuration).toBe(NoteDuration.Eighth);
+    expect(noteBeats(voiceBar.beats)[0].dots).toBe(1);
+    expect(noteBeats(voiceBar.beats)[0].tupletSettings).toEqual({
       normalCount: 3,
       tupletCount: 2,
     });
-    expect(noteBeats(bar.beats)[1].baseDuration).toBe(NoteDuration.Sixteenth);
-    expect(noteBeats(bar.beats).map((beat) => beat.uuid)).not.toEqual(
+    expect(noteBeats(voiceBar.beats)[1].baseDuration).toBe(
+      NoteDuration.Sixteenth
+    );
+    expect(noteBeats(voiceBar.beats).map((beat) => beat.uuid)).not.toEqual(
       originalBeatUUIDs
     );
   });
@@ -191,23 +225,29 @@ describe("Timing rebuild commands", () => {
       createBeat(bar, NoteDuration.Sixteenth),
     ];
     const command = new ReplaceBeatsCommand(beats, replacementBeats);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
 
     command.execute();
-    expect(noteBeats(bar.beats)).toHaveLength(2);
-    expect(noteBeats(bar.beats).map((beat) => beat.baseDuration)).toEqual([
+    expect(noteBeats(voiceBar.beats)).toHaveLength(2);
+    expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Eighth,
       NoteDuration.Sixteenth,
     ]);
 
     command.undo();
-    expect(noteBeats(bar.beats)).toHaveLength(1);
-    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Quarter);
-    expect(noteBeats(bar.beats)[0].dots).toBe(0);
-    expect(noteBeats(bar.beats)[0].tupletSettings).toBeNull();
+    expect(noteBeats(voiceBar.beats)).toHaveLength(1);
+    expect(noteBeats(voiceBar.beats)[0].baseDuration).toBe(
+      NoteDuration.Quarter
+    );
+    expect(noteBeats(voiceBar.beats)[0].dots).toBe(0);
+    expect(noteBeats(voiceBar.beats)[0].tupletSettings).toBeNull();
 
     command.redo();
-    expect(noteBeats(bar.beats)).toHaveLength(2);
-    expect(noteBeats(bar.beats).map((beat) => beat.baseDuration)).toEqual([
+    expect(noteBeats(voiceBar.beats)).toHaveLength(2);
+    expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Eighth,
       NoteDuration.Sixteenth,
     ]);
@@ -221,26 +261,32 @@ describe("Timing rebuild commands", () => {
     ]);
     const replacementBeats = [createBeat(bar, NoteDuration.Half)];
     const command = new ReplaceBeatsCommand(beats, replacementBeats);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
 
     command.execute();
-    expect(noteBeats(bar.beats)).toHaveLength(1);
-    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Half);
+    expect(noteBeats(voiceBar.beats)).toHaveLength(1);
+    expect(noteBeats(voiceBar.beats)[0].baseDuration).toBe(NoteDuration.Half);
 
     command.undo();
-    expect(noteBeats(bar.beats)).toHaveLength(3);
-    expect(noteBeats(bar.beats).map((beat) => beat.baseDuration)).toEqual([
+    expect(noteBeats(voiceBar.beats)).toHaveLength(3);
+    expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Eighth,
       NoteDuration.Sixteenth,
     ]);
-    expect(noteBeats(bar.beats).every((beat) => beat.dots === 0)).toBe(true);
+    expect(noteBeats(voiceBar.beats).every((beat) => beat.dots === 0)).toBe(
+      true
+    );
     expect(
-      noteBeats(bar.beats).every((beat) => beat.tupletSettings === null)
+      noteBeats(voiceBar.beats).every((beat) => beat.tupletSettings === null)
     ).toBe(true);
 
     command.redo();
-    expect(noteBeats(bar.beats)).toHaveLength(1);
-    expect(noteBeats(bar.beats)[0].baseDuration).toBe(NoteDuration.Half);
+    expect(noteBeats(voiceBar.beats)).toHaveLength(1);
+    expect(noteBeats(voiceBar.beats)[0].baseDuration).toBe(NoteDuration.Half);
   });
 
   test("ReplaceBeatsCommand undo restores multi-bar selections to original bars", () => {
@@ -250,49 +296,57 @@ describe("Timing rebuild commands", () => {
     ]);
     score.appendMasterBar();
     const secondBar = track.staves[0].bars[1];
-    secondBar.beats.splice(
+    const secondVoiceBar = secondBar.getVoiceBar(1);
+    if (secondVoiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    secondVoiceBar.beats.splice(
       0,
-      secondBar.beats.length,
-      createBeat(secondBar, NoteDuration.Half),
-      createBeat(secondBar, NoteDuration.Half)
+      secondVoiceBar.beats.length,
+      createBeat(secondVoiceBar, NoteDuration.Half),
+      createBeat(secondVoiceBar, NoteDuration.Half)
     );
-    secondBar.rebuildTiming();
+    secondVoiceBar.rebuildTiming();
     const replacementBeats = [
       createBeat(bar, NoteDuration.Eighth),
       createBeat(bar, NoteDuration.Eighth),
     ];
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
     const command = new ReplaceBeatsCommand(
-      [bar.beats[1], secondBar.beats[0]],
+      [voiceBar.beats[1], secondVoiceBar.beats[0]],
       replacementBeats
     );
 
     command.execute();
-    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(voiceBar.beats.map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Eighth,
       NoteDuration.Eighth,
     ]);
-    expect(secondBar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(secondVoiceBar.beats.map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Half,
     ]);
 
     command.undo();
-    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(voiceBar.beats.map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Quarter,
     ]);
-    expect(secondBar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(secondVoiceBar.beats.map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Half,
       NoteDuration.Half,
     ]);
 
     command.redo();
-    expect(bar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(voiceBar.beats.map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Eighth,
       NoteDuration.Eighth,
     ]);
-    expect(secondBar.beats.map((beat) => beat.baseDuration)).toEqual([
+    expect(secondVoiceBar.beats.map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Half,
     ]);
   });

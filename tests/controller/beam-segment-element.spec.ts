@@ -53,7 +53,11 @@ describe("BeamSegmentElement", () => {
       { baseDuration: NoteDuration.Sixteenth },
       { baseDuration: NoteDuration.Sixteenth },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
@@ -71,7 +75,11 @@ describe("BeamSegmentElement", () => {
       { baseDuration: NoteDuration.Sixteenth },
       { baseDuration: NoteDuration.ThirtySecond },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
@@ -92,7 +100,11 @@ describe("BeamSegmentElement", () => {
       { baseDuration: NoteDuration.Sixteenth },
       { baseDuration: NoteDuration.Eighth },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
@@ -112,7 +124,11 @@ describe("BeamSegmentElement", () => {
       { baseDuration: NoteDuration.Sixteenth },
       { baseDuration: NoteDuration.ThirtySecond },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
@@ -132,7 +148,11 @@ describe("BeamSegmentElement", () => {
       { baseDuration: NoteDuration.ThirtySecond },
       { baseDuration: NoteDuration.ThirtySecond },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
@@ -158,7 +178,11 @@ describe("BeamSegmentElement", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
     const beatElement = getBarElement(trackElement)
@@ -178,14 +202,18 @@ describe("BeamSegmentElement", () => {
       { baseDuration: NoteDuration.Sixteenth },
       { baseDuration: NoteDuration.Sixteenth },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
 
     const trackElement = new TrackElement(track);
     const legacyTrackElement = new TrackElement(track);
 
     beats[0].baseDuration = NoteDuration.ThirtySecond;
     beats[1].baseDuration = NoteDuration.ThirtySecond;
-    bar.rebuildTiming();
+    voiceBar.rebuildTiming();
 
     trackElement.update();
     legacyTrackElement.update();
@@ -210,12 +238,16 @@ describe("BeamSegmentElement", () => {
     }
 
     const bar2 = staff.bars[1];
+    const bar2VoiceBar = bar2.getVoiceBar(1);
+    if (bar2VoiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
     const bar2Beats = [
-      createBeat(bar2, NoteDuration.Eighth),
-      createBeat(bar2, NoteDuration.Eighth),
+      createBeat(bar2VoiceBar, NoteDuration.Eighth),
+      createBeat(bar2VoiceBar, NoteDuration.Eighth),
     ];
-    bar2.beats.splice(0, bar2.beats.length, ...bar2Beats);
-    bar2.rebuildTiming();
+    bar2VoiceBar.beats.splice(0, bar2VoiceBar.beats.length, ...bar2Beats);
+    bar2VoiceBar.rebuildTiming();
 
     ScoreEditor.setTuplet(bar2Beats, { normalCount: 2, tupletCount: 4 });
 

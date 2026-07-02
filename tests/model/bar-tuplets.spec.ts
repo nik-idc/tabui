@@ -18,8 +18,12 @@ describe("Bar tuplets", () => {
       },
     ]);
 
-    expect(bar.tupletGroups).toHaveLength(1);
-    expect(bar.tupletGroups[0].complete).toBe(true);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(voiceBar.tupletGroups).toHaveLength(1);
+    expect(voiceBar.tupletGroups[0].complete).toBe(true);
   });
 
   test("incomplete tuplet groups stay marked incomplete", () => {
@@ -34,8 +38,12 @@ describe("Bar tuplets", () => {
       },
     ]);
 
-    expect(bar.tupletGroups).toHaveLength(1);
-    expect(bar.tupletGroups[0].complete).toBe(false);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(voiceBar.tupletGroups).toHaveLength(1);
+    expect(voiceBar.tupletGroups[0].complete).toBe(false);
   });
 
   test("dotted tuplets recalculate group durations after dot changes", () => {
@@ -56,11 +64,15 @@ describe("Bar tuplets", () => {
 
     ScoreEditor.setDots([beats[1]], 1);
 
-    expect(bar.tupletGroups[0].getCalculatedDurationAt(1)).toBeCloseTo(
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(voiceBar.tupletGroups[0].getCalculatedDurationAt(1)).toBeCloseTo(
       1 / 8,
       10
     );
-    expect(bar.tupletGroups[0].getDurationTicksAt(1)).toBe(
+    expect(voiceBar.tupletGroups[0].getDurationTicksAt(1)).toBe(
       beats[1].fullDurationTicks
     );
   });
@@ -100,12 +112,16 @@ describe("Bar tuplets", () => {
       },
     ]);
 
-    expect(bar.tupletGroups[0].getCalculatedDurationAt(0)).toBeCloseTo(
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(voiceBar.tupletGroups[0].getCalculatedDurationAt(0)).toBeCloseTo(
       1 / 12,
       10
     );
-    expect(bar.tupletGroups[0].getDurationTicksAt(0)).toBe(
-      bar.tickResolution / 12
+    expect(voiceBar.tupletGroups[0].getDurationTicksAt(0)).toBe(
+      voiceBar.tickResolution / 12
     );
   });
 
@@ -132,10 +148,14 @@ describe("Bar tuplets", () => {
       },
     ]);
 
-    expect(bar.tupletGroups).toHaveLength(2);
-    expect(bar.tupletGroups[0].beats).toHaveLength(2);
-    expect(bar.tupletGroups[1].beats).toHaveLength(2);
-    expect(bar.tupletGroups[0].complete).toBe(false);
-    expect(bar.tupletGroups[1].complete).toBe(false);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(voiceBar.tupletGroups).toHaveLength(2);
+    expect(voiceBar.tupletGroups[0].beats).toHaveLength(2);
+    expect(voiceBar.tupletGroups[1].beats).toHaveLength(2);
+    expect(voiceBar.tupletGroups[0].complete).toBe(false);
+    expect(voiceBar.tupletGroups[1].complete).toBe(false);
   });
 });

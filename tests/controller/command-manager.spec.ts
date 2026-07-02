@@ -1,6 +1,7 @@
 import { CommandManager } from "../../src/notation/controller/editor/command/command-manager";
 
 class TestCommand {
+  public readonly affectedModels = [];
   public executed = 0;
   public undone = 0;
   public redone = 0;

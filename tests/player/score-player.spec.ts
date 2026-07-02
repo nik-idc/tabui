@@ -2,7 +2,9 @@ import { ScorePlayer } from "../../src/player";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import {
   BarRepeatStatus,
+  Bar,
   Guitar,
+  MusicInstrument,
   NoteDuration,
   getNoteFrequency,
 } from "../../src/notation/model";
@@ -91,7 +93,20 @@ function setBeatFret(
   fret: number
 ): void {
   beat.makeBeatWithNotes();
-  (beat.notes[0] as unknown as { fret: number | null }).fret = fret;
+  const note = beat.notes?.[0];
+  if (typeof note !== "object" || note === null || !("fret" in note)) {
+    throw Error("Expected fretted note in test beat");
+  }
+
+  note.fret = fret;
+}
+
+function firstBeatOf<I extends MusicInstrument>(bar: Bar<I>) {
+  const voiceBar = bar.getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error("Expected voice 1 bar");
+  }
+  return voiceBar.beats[0];
 }
 
 function oscillatorStarts(): number[] {
@@ -148,11 +163,11 @@ describe("ScorePlayer", () => {
     const { score, track, bar } = createScoreGraph();
     const secondBar = score.appendMasterBar().bars.get(track.staves[0].uuid)!;
 
-    setBeatFret(bar.beats[0], 0);
-    setBeatFret(secondBar.beats[0], 2);
+    setBeatFret(firstBeatOf(bar), 0);
+    setBeatFret(firstBeatOf(secondBar), 2);
 
     const player = new ScorePlayer(score, track);
-    await player.start({ startBeat: bar.beats[0] });
+    await player.start({ startBeat: firstBeatOf(bar) });
 
     const playableOscillators = createdOscillators.filter(
       (oscillator) => oscillator.frequency.value > 0
@@ -167,11 +182,11 @@ describe("ScorePlayer", () => {
     const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
     const secondTrackBar = secondTrack.staves[0].bars[0];
 
-    setBeatFret(bar.beats[0], 0);
-    setBeatFret(secondTrackBar.beats[0], 4);
+    setBeatFret(firstBeatOf(bar), 0);
+    setBeatFret(firstBeatOf(secondTrackBar), 4);
 
     const player = new ScorePlayer(score, track);
-    await player.start({ startBeat: bar.beats[0] });
+    await player.start({ startBeat: firstBeatOf(bar) });
 
     expect(oscillatorStarts()).toHaveLength(2);
     expect(oscillatorStarts()).toEqual([0.05, 0.05]);
@@ -185,25 +200,41 @@ describe("ScorePlayer", () => {
     masterBars[3].repeatCount = 2;
 
     [0, 2, 4, 5, 7, 9].forEach((fret, index) => {
-      setBeatFret(bars[index].beats[0], fret);
+      setBeatFret(firstBeatOf(bars[index]), fret);
     });
 
+    const bar0Note = firstBeatOf(bars[0]).notes?.[0];
+    const bar1Note = firstBeatOf(bars[1]).notes?.[0];
+    const bar2Note = firstBeatOf(bars[2]).notes?.[0];
+    const bar3Note = firstBeatOf(bars[3]).notes?.[0];
+    const bar4Note = firstBeatOf(bars[4]).notes?.[0];
+    const bar5Note = firstBeatOf(bars[5]).notes?.[0];
+    if (
+      bar0Note === undefined ||
+      bar1Note === undefined ||
+      bar2Note === undefined ||
+      bar3Note === undefined ||
+      bar4Note === undefined ||
+      bar5Note === undefined
+    ) {
+      throw Error("Expected notes in playback test beats");
+    }
     const expectedFrequencies = [
-      getNoteFrequency(bars[0].beats[0].notes[0]),
-      getNoteFrequency(bars[1].beats[0].notes[0]),
-      getNoteFrequency(bars[2].beats[0].notes[0]),
-      getNoteFrequency(bars[3].beats[0].notes[0]),
-      getNoteFrequency(bars[2].beats[0].notes[0]),
-      getNoteFrequency(bars[3].beats[0].notes[0]),
-      getNoteFrequency(bars[4].beats[0].notes[0]),
-      getNoteFrequency(bars[5].beats[0].notes[0]),
+      getNoteFrequency(bar0Note),
+      getNoteFrequency(bar1Note),
+      getNoteFrequency(bar2Note),
+      getNoteFrequency(bar3Note),
+      getNoteFrequency(bar2Note),
+      getNoteFrequency(bar3Note),
+      getNoteFrequency(bar4Note),
+      getNoteFrequency(bar5Note),
     ];
 
     const player = new ScorePlayer(score, track);
     (player as unknown as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
-    player.setLoopSection(bars[0].beats[0], bars[5].beats[0]);
+    player.setLoopSection(firstBeatOf(bars[0]), firstBeatOf(bars[5]));
     player.enableLoop();
-    await player.start({ startBeat: bars[0].beats[0] });
+    await player.start({ startBeat: firstBeatOf(bars[0]) });
 
     expect(oscillatorFrequencies().slice(0, 8)).toEqual(expectedFrequencies);
   });
@@ -216,21 +247,33 @@ describe("ScorePlayer", () => {
     masterBars[3].repeatCount = 2;
 
     [4, 5, 7, 9].forEach((fret, index) => {
-      setBeatFret(bars[index + 2].beats[0], fret);
+      setBeatFret(firstBeatOf(bars[index + 2]), fret);
     });
 
+    const bar2Note = firstBeatOf(bars[2]).notes?.[0];
+    const bar3Note = firstBeatOf(bars[3]).notes?.[0];
+    const bar4Note = firstBeatOf(bars[4]).notes?.[0];
+    const bar5Note = firstBeatOf(bars[5]).notes?.[0];
+    if (
+      bar2Note === undefined ||
+      bar3Note === undefined ||
+      bar4Note === undefined ||
+      bar5Note === undefined
+    ) {
+      throw Error("Expected notes in playback test beats");
+    }
     const expectedFrequencies = [
-      getNoteFrequency(bars[2].beats[0].notes[0]),
-      getNoteFrequency(bars[3].beats[0].notes[0]),
-      getNoteFrequency(bars[4].beats[0].notes[0]),
-      getNoteFrequency(bars[5].beats[0].notes[0]),
+      getNoteFrequency(bar2Note),
+      getNoteFrequency(bar3Note),
+      getNoteFrequency(bar4Note),
+      getNoteFrequency(bar5Note),
     ];
 
     const player = new ScorePlayer(score, track);
     (player as unknown as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
-    player.setLoopSection(bars[2].beats[0], bars[5].beats[0]);
+    player.setLoopSection(firstBeatOf(bars[2]), firstBeatOf(bars[5]));
     player.enableLoop();
-    await player.start({ startBeat: bars[2].beats[0] });
+    await player.start({ startBeat: firstBeatOf(bars[2]) });
 
     expect(oscillatorFrequencies().slice(0, 4)).toEqual(expectedFrequencies);
   });
@@ -243,21 +286,33 @@ describe("ScorePlayer", () => {
     masterBars[5].repeatCount = 2;
 
     [0, 2, 4, 5].forEach((fret, index) => {
-      setBeatFret(bars[index].beats[0], fret);
+      setBeatFret(firstBeatOf(bars[index]), fret);
     });
 
+    const bar0Note = firstBeatOf(bars[0]).notes?.[0];
+    const bar1Note = firstBeatOf(bars[1]).notes?.[0];
+    const bar2Note = firstBeatOf(bars[2]).notes?.[0];
+    const bar3Note = firstBeatOf(bars[3]).notes?.[0];
+    if (
+      bar0Note === undefined ||
+      bar1Note === undefined ||
+      bar2Note === undefined ||
+      bar3Note === undefined
+    ) {
+      throw Error("Expected notes in playback test beats");
+    }
     const expectedFrequencies = [
-      getNoteFrequency(bars[0].beats[0].notes[0]),
-      getNoteFrequency(bars[1].beats[0].notes[0]),
-      getNoteFrequency(bars[2].beats[0].notes[0]),
-      getNoteFrequency(bars[3].beats[0].notes[0]),
+      getNoteFrequency(bar0Note),
+      getNoteFrequency(bar1Note),
+      getNoteFrequency(bar2Note),
+      getNoteFrequency(bar3Note),
     ];
 
     const player = new ScorePlayer(score, track);
     (player as unknown as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
-    player.setLoopSection(bars[0].beats[0], bars[3].beats[0]);
+    player.setLoopSection(firstBeatOf(bars[0]), firstBeatOf(bars[3]));
     player.enableLoop();
-    await player.start({ startBeat: bars[0].beats[0] });
+    await player.start({ startBeat: firstBeatOf(bars[0]) });
 
     expect(oscillatorFrequencies().slice(0, 4)).toEqual(expectedFrequencies);
   });
@@ -281,7 +336,7 @@ describe("ScorePlayer", () => {
 
   test("ignores stale async starts after stop", async () => {
     const { score, track, bar } = createScoreGraph();
-    setBeatFret(bar.beats[0], 0);
+    setBeatFret(firstBeatOf(bar), 0);
 
     let resolveResume: (() => void) | undefined;
     MockAudioContext.nextResumeImpl = () =>
@@ -290,7 +345,7 @@ describe("ScorePlayer", () => {
       });
 
     const player = new ScorePlayer(score, track);
-    const startPromise = player.start({ startBeat: bar.beats[0] });
+    const startPromise = player.start({ startBeat: firstBeatOf(bar) });
     player.stop();
     resolveResume?.();
     await startPromise;
@@ -301,7 +356,7 @@ describe("ScorePlayer", () => {
 
   test("newest start wins when two starts overlap", async () => {
     const { score, track, bar } = createScoreGraph();
-    setBeatFret(bar.beats[0], 0);
+    setBeatFret(firstBeatOf(bar), 0);
 
     let resolveFirstResume: (() => void) | undefined;
     let callCount = 0;
@@ -317,8 +372,8 @@ describe("ScorePlayer", () => {
     };
 
     const player = new ScorePlayer(score, track);
-    const firstStart = player.start({ startBeat: bar.beats[0] });
-    const secondStart = player.start({ startBeat: bar.beats[0] });
+    const firstStart = player.start({ startBeat: firstBeatOf(bar) });
+    const secondStart = player.start({ startBeat: firstBeatOf(bar) });
 
     resolveFirstResume?.();
     await firstStart;
@@ -330,10 +385,10 @@ describe("ScorePlayer", () => {
 
   test("stop is idempotent", async () => {
     const { score, track, bar } = createScoreGraph();
-    setBeatFret(bar.beats[0], 0);
+    setBeatFret(firstBeatOf(bar), 0);
     const player = new ScorePlayer(score, track);
 
-    await player.start({ startBeat: bar.beats[0] });
+    await player.start({ startBeat: firstBeatOf(bar) });
     player.stop();
     player.stop();
 

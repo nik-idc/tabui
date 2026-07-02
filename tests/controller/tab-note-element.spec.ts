@@ -30,7 +30,12 @@ function shouldRenderHitRect(controller: TrackController, note: GuitarNote) {
 
 function getBackingNote(beat: Beat) {
   beat.makeBeatWithNotes();
-  return beat.notes![0] as GuitarNote;
+  const note = beat.notes?.[0];
+  if (!(note instanceof GuitarNote)) {
+    throw Error("Expected guitar note");
+  }
+
+  return note;
 }
 
 function createLaidOutController(
@@ -84,13 +89,18 @@ describe("SVGTabNoteRenderer", () => {
     const controller = createLaidOutController(track);
     const activeElement = getNoteElement(controller, activeEmptyNote);
     const inactiveElement = getNoteElement(controller, inactiveNote);
+    const activeElementNote = activeElement.note;
+    const inactiveElementNote = inactiveElement.note;
+    if (activeElementNote === null || inactiveElementNote === null) {
+      throw Error("Expected tab note elements with notes");
+    }
 
     expect(controller.activeVoiceNumber).toBe(1);
     expect(activeEmptyNote.stringNum).toBe(inactiveNote.stringNum);
-    expect(inactiveElement.note.beat.voiceBar.voiceNumber).toBe(2);
-    expect(inactiveElement.note.fret).toBe(3);
-    expect(activeElement.note.beat.startTick).toBe(
-      inactiveElement.note.beat.startTick
+    expect(inactiveElementNote.beat.voiceBar.voiceNumber).toBe(2);
+    expect(inactiveElementNote.fret).toBe(3);
+    expect(activeElementNote.beat.startTick).toBe(
+      inactiveElementNote.beat.startTick
     );
 
     expect(shouldRenderHitRect(controller, activeEmptyNote)).toBe(false);

@@ -8,18 +8,18 @@ import {
 } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 
-function getVoiceBar1(bar: ReturnType<typeof createScoreGraph>["bar"]) {
-  const voiceBar = bar.getVoiceBar(1);
-  if (voiceBar === null) {
-    throw Error("Expected voice 1 bar");
-  }
-  return voiceBar;
-}
-
 describe("SetTechniqueCommand", () => {
   test("execute applies technique and undo restores previous techniques", () => {
     const { bar } = createScoreGraph();
-    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const note = voiceBar.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const command = new SetTechniqueCommand(
       [note],
@@ -42,7 +42,15 @@ describe("SetTechniqueCommand", () => {
 
   test("incompatible execute leaves executed false and undo is a no-op", () => {
     const { bar } = createScoreGraph();
-    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const note = voiceBar.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const command = new SetTechniqueCommand(
       [note],
@@ -63,7 +71,14 @@ describe("SetTechniqueCommand", () => {
 
   test("label-producing techniques are marked for vertical update", () => {
     const { bar } = createScoreGraph();
-    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const note = voiceBar.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
 
     const vibratoCommand = new SetTechniqueCommand(
       [note],
@@ -86,7 +101,14 @@ describe("SetTechniqueCommand", () => {
 
   test("inline non-label techniques are marked for targeted update", () => {
     const { bar } = createScoreGraph();
-    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const note = voiceBar.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
 
     const harmonicCommand = new SetTechniqueCommand(
       [note],
@@ -107,7 +129,15 @@ describe("SetTechniqueCommand", () => {
 
   test("bend requests a model update because it produces a label", () => {
     const { bar } = createScoreGraph();
-    const note = getVoiceBar1(bar).beats[0].notes![0] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const note = voiceBar.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+
     const command = new SetTechniqueCommand(
       [note],
       GuitarTechniqueType.Bend,

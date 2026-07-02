@@ -15,117 +15,17 @@ import {
   VoiceBar,
 } from "../../src/notation/model";
 
-type LegacyBarTestSurface = Bar<Guitar> & {
-  bar: Bar<Guitar>;
-  beats: Beat<Guitar>[];
-  beamingGroups: number[];
-  tupletGroups: VoiceBar<Guitar>["tupletGroups"];
-  tickResolution: number;
-  barTicks: number;
-  actualTicks: number;
-  rebuildTiming: () => void;
-  computeBeaming: () => void;
-  computeBarTupletGroups: () => void;
-  appendBeats: VoiceBar<Guitar>["appendBeats"];
-  prependBeats: VoiceBar<Guitar>["prependBeats"];
-  insertBeat: VoiceBar<Guitar>["insertBeat"];
-  insertBeats: VoiceBar<Guitar>["insertBeats"];
-  removeBeat: VoiceBar<Guitar>["removeBeat"];
-  removeBeats: VoiceBar<Guitar>["removeBeats"];
-};
-
-function getPrimaryVoiceBar(bar: Bar<Guitar>): VoiceBar<Guitar> {
-  const voiceBar = bar.getVoiceBar(1);
-  if (voiceBar === null) {
-    throw Error("Expected test bar to include voice 1");
-  }
-  return voiceBar;
-}
-
-function installLegacyBarTestSurface(): void {
-  const proto = Bar.prototype as LegacyBarTestSurface;
-  if (Object.prototype.hasOwnProperty.call(proto, "beats")) {
-    return;
-  }
-
-  Object.defineProperties(proto, {
-    bar: {
-      get: function () {
-        return this;
-      },
-    },
-    beats: {
-      get: function () {
-        return getPrimaryVoiceBar(this).beats;
-      },
-    },
-    beamingGroups: {
-      get: function () {
-        return getPrimaryVoiceBar(this).beamingGroups;
-      },
-    },
-    tupletGroups: {
-      get: function () {
-        return getPrimaryVoiceBar(this).tupletGroups;
-      },
-    },
-    tickResolution: {
-      get: function () {
-        return getPrimaryVoiceBar(this).tickResolution;
-      },
-    },
-    barTicks: {
-      get: function () {
-        return getPrimaryVoiceBar(this).barTicks;
-      },
-    },
-    actualTicks: {
-      get: function () {
-        return getPrimaryVoiceBar(this).actualTicks;
-      },
-    },
-  });
-
-  proto.rebuildTiming = function () {
-    getPrimaryVoiceBar(this).rebuildTiming();
-  };
-  proto.computeBeaming = function () {
-    getPrimaryVoiceBar(this).computeBeaming();
-  };
-  proto.computeBarTupletGroups = function () {
-    getPrimaryVoiceBar(this).computeBarTupletGroups();
-  };
-  proto.appendBeats = function (...args) {
-    return getPrimaryVoiceBar(this).appendBeats(...args);
-  };
-  proto.prependBeats = function (...args) {
-    return getPrimaryVoiceBar(this).prependBeats(...args);
-  };
-  proto.insertBeat = function (...args) {
-    return getPrimaryVoiceBar(this).insertBeat(...args);
-  };
-  proto.insertBeats = function (...args) {
-    return getPrimaryVoiceBar(this).insertBeats(...args);
-  };
-  proto.removeBeat = function (...args) {
-    return getPrimaryVoiceBar(this).removeBeat(...args);
-  };
-  proto.removeBeats = function (...args) {
-    return getPrimaryVoiceBar(this).removeBeats(...args);
-  };
-}
-
-installLegacyBarTestSurface();
-
-export function createScoreGraph(
-  masterBarData: MasterBarData = DEFAULT_MASTER_BAR
-): {
+export type ScoreGraph = {
   score: Score;
   track: Track<Guitar>;
   staff: Staff<Guitar>;
   masterBar: MasterBar;
   bar: Bar<Guitar>;
-} {
+};
+
+export function createScoreGraph(
+  masterBarData: MasterBarData = DEFAULT_MASTER_BAR
+): ScoreGraph {
   const score = new Score();
   const track = score.tracks[0] as Track<Guitar>;
   const staff = track.staves[0] as Staff<Guitar>;
@@ -142,7 +42,7 @@ export function createScoreGraph(
   const bar = staff.bars[0] as Bar<Guitar>;
   const voiceBar = bar.getVoiceBar(1);
   if (voiceBar === null) {
-    throw Error("Expected default score graph to include voice 1");
+    throw Error("Expected test bar to include voice 1");
   }
 
   const seedBeat = createBeat(voiceBar, NoteDuration.Quarter);
@@ -161,8 +61,16 @@ export function createBeat(
   if (voiceBar === null) {
     throw Error("Cannot create beat for an empty voice slot");
   }
-  const targetVoiceBar =
-    voiceBar instanceof Bar ? getPrimaryVoiceBar(voiceBar) : voiceBar;
+  let targetVoiceBar: VoiceBar<Guitar>;
+  if (voiceBar instanceof VoiceBar) {
+    targetVoiceBar = voiceBar;
+  } else {
+    const existingVoiceBar = voiceBar.getVoiceBar(1);
+    if (existingVoiceBar === null) {
+      throw Error("Expected test bar to include voice 1");
+    }
+    targetVoiceBar = existingVoiceBar;
+  }
 
   return new Beat(
     targetVoiceBar,
@@ -187,18 +95,13 @@ export function createBarWithBeats(
     repeatStatus: BarRepeatStatus.None,
     repeatCount: null,
   }
-): {
-  score: Score;
-  track: Track<Guitar>;
-  staff: Staff<Guitar>;
-  masterBar: MasterBar;
-  bar: Bar<Guitar>;
+): ScoreGraph & {
   beats: Beat<Guitar>[];
 } {
   const graph = createScoreGraph(masterBarData);
   const voiceBar = graph.bar.getVoiceBar(1);
   if (voiceBar === null) {
-    throw Error("Expected default score graph to include voice 1");
+    throw Error("Expected test bar to include voice 1");
   }
 
   const beats = beatConfigs.map((config) =>

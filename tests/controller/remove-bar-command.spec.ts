@@ -1,5 +1,5 @@
 import { RemoveBarsCommand } from "../../src/notation/controller/editor/command";
-import { DEFAULT_MASTER_BAR, Guitar } from "../../src/notation/model";
+import { DEFAULT_MASTER_BAR, Guitar, Score } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 
 function createMultiTrackScore(masterBarCount = 3) {
@@ -17,9 +17,7 @@ function createMultiTrackScore(masterBarCount = 3) {
   return graph;
 }
 
-function getStaffBarCounts(
-  score: ReturnType<typeof createScoreGraph>["score"]
-) {
+function getStaffBarCounts(score: Score) {
   return score.tracks.map((track) =>
     track.staves.map((staff) => staff.bars.length)
   );

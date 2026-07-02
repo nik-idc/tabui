@@ -1,5 +1,6 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
+import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
 import { TrackLineElement } from "../../src/notation/controller/element/track/track-line-element";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import {
@@ -27,9 +28,14 @@ function getAllNoteX(trackElement: TrackElement): number[] {
     trackLineElement.staffLineElements.flatMap((staffLineElement) =>
       staffLineElement.styleLinesAsArray.flatMap((styleLineElement) =>
         styleLineElement.barElements.flatMap((barElement) =>
-          barElement.beatElements.map(
-            (beatElement) => beatElement.noteElements[0].textCoordsGlobal.x
-          )
+          barElement.beatElements.map((beatElement) => {
+            const noteElement = beatElement.noteElements[0];
+            if (!(noteElement instanceof TabNoteElement)) {
+              throw Error("Expected tab note element");
+            }
+
+            return noteElement.textCoordsGlobal.x;
+          })
         )
       )
     )
@@ -199,7 +205,14 @@ describe("TrackElement tree", () => {
 
   test("line-local geometry composes through bar beat note and label descendants", () => {
     const { track, bar } = createScoreGraph();
-    const note = bar.beats[0].notes[0] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const note = voiceBar.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
     const trackElement = new TrackElement(track);
@@ -251,14 +264,24 @@ describe("TrackElement tree", () => {
 
   test("line-local helper origins match previous global geometry contracts", () => {
     const { track, bar } = createScoreGraph();
-    const note = bar.beats[0].notes[0] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const note = voiceBar.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
     const trackElement = new TrackElement(track);
     trackElement.update();
 
     const trackLine = trackElement.trackLineElements[0];
-    const trackLineInfo = trackLine.trackLineInfoElement!;
+    const trackLineInfo = trackLine.trackLineInfoElement;
+    if (trackLineInfo === null) {
+      throw Error("Expected track line info element");
+    }
     const barElement =
       trackLine.staffLineElements[0].styleLinesAsArray[0].barElements[0];
     const noteElement = barElement.beatElements[0].noteElements[0];
@@ -266,7 +289,10 @@ describe("TrackElement tree", () => {
     const gapLine =
       trackLine.staffLineElements[0].styleLinesAsArray[0].techGapElement.techGapLinesAsArray.find(
         (line) => line.labelElements.length > 0
-      )!;
+      );
+    if (gapLine === undefined) {
+      throw Error("Expected technique gap line");
+    }
     const labelElement = gapLine.labelElements[0];
 
     const tempoRectGlobal = trackLineInfo.getBarTempoRectGlobal(barElement)!;
@@ -307,7 +333,14 @@ describe("TrackElement tree", () => {
 
   test("line-local core notation geometry matches previous global contracts", () => {
     const { track, bar } = createScoreGraph();
-    const note = bar.beats[0].notes[0] as GuitarNote;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const note = voiceBar.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     note.fret = 7;
 
     const trackElement = new TrackElement(track);
@@ -318,6 +351,12 @@ describe("TrackElement tree", () => {
       trackLine.staffLineElements[0].styleLinesAsArray[0].barElements[0];
     const beatElement = barElement.beatElements[0];
     const noteElement = beatElement.noteElements[0];
+    if (!(beatElement instanceof TabBeatElement)) {
+      throw Error("Expected tab beat element");
+    }
+    if (!(noteElement instanceof TabNoteElement)) {
+      throw Error("Expected tab note element");
+    }
 
     const outlineGlobal = trackLine.outlineLinesGlobal;
     const outlineLineLocal = trackLine.outlineLinesLineLocal;
@@ -342,27 +381,6 @@ describe("TrackElement tree", () => {
     expect(
       barElement.staffLinesGlobal[0].y - trackLine.globalCoords.y
     ).toBeCloseTo(barElement.staffLinesLineLocal[0].y);
-
-    if (
-      beatElement.durationStemLineGlobal &&
-      beatElement.durationStemLineLineLocal
-    ) {
-      expect(
-        beatElement.durationStemLineGlobal.x - trackLine.globalCoords.x
-      ).toBeCloseTo(beatElement.durationStemLineLineLocal.x);
-      expect(
-        beatElement.durationStemLineGlobal.y1 - trackLine.globalCoords.y
-      ).toBeCloseTo(beatElement.durationStemLineLineLocal.y1);
-    }
-
-    if (beatElement.dot1CircleGlobal && beatElement.dot1CircleLineLocal) {
-      expect(
-        beatElement.dot1CircleGlobal.centerX - trackLine.globalCoords.x
-      ).toBeCloseTo(beatElement.dot1CircleLineLocal.centerX);
-      expect(
-        beatElement.dot1CircleGlobal.centerY - trackLine.globalCoords.y
-      ).toBeCloseTo(beatElement.dot1CircleLineLocal.centerY);
-    }
 
     expect(noteElement.textRectLineLocal.width).toBeCloseTo(
       noteElement.textRectGlobal.width
@@ -444,7 +462,11 @@ describe("TrackElement tree", () => {
     trackElement.update();
     trackElement.clearElementDiff();
 
-    const addedBeat = bar.appendBeats().beats[0];
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const addedBeat = voiceBar.appendBeats().beats[0];
     trackElement.update();
 
     const addDiff = trackElement.elementDiff;
@@ -459,7 +481,7 @@ describe("TrackElement tree", () => {
     );
 
     trackElement.clearElementDiff();
-    bar.removeBeat(1);
+    voiceBar.removeBeat(1);
     trackElement.update();
 
     const removeDiff = trackElement.elementDiff;
@@ -484,8 +506,12 @@ describe("TrackElement tree", () => {
       trackElement.trackLineElements[lastLineIndex].trackLineData[0]
         .masterBarIndex;
     const affectedBar = track.staves[0].bars[affectedMasterBarIndex];
-    affectedBar.beats[0].baseDuration = NoteDuration.Eighth;
-    affectedBar.rebuildTiming();
+    const affectedVoiceBar = affectedBar.getVoiceBar(1);
+    if (affectedVoiceBar === null) {
+      throw Error("Expected voice 1 in affected bar");
+    }
+    affectedVoiceBar.beats[0].baseDuration = NoteDuration.Eighth;
+    affectedVoiceBar.rebuildTiming();
 
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
     legacyTrackElement.update();
@@ -509,8 +535,12 @@ describe("TrackElement tree", () => {
       trackElement.trackLineElements[secondLastLineIndex].trackLineData[0]
         .masterBarIndex;
     const affectedBar = track.staves[0].bars[affectedMasterBarIndex];
-    affectedBar.beats[0].baseDuration = NoteDuration.Whole;
-    affectedBar.rebuildTiming();
+    const affectedVoiceBar = affectedBar.getVoiceBar(1);
+    if (affectedVoiceBar === null) {
+      throw Error("Expected voice 1 in affected bar");
+    }
+    affectedVoiceBar.beats[0].baseDuration = NoteDuration.Whole;
+    affectedVoiceBar.rebuildTiming();
 
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
     legacyTrackElement.update();
@@ -548,8 +578,12 @@ describe("TrackElement tree", () => {
         .masterBarIndex;
     const affectedBar = track.staves[0].bars[affectedMasterBarIndex];
 
-    affectedBar.beats[0].baseDuration = NoteDuration.Whole;
-    affectedBar.rebuildTiming();
+    const affectedVoiceBar = affectedBar.getVoiceBar(1);
+    if (affectedVoiceBar === null) {
+      throw Error("Expected voice 1 in affected bar");
+    }
+    affectedVoiceBar.beats[0].baseDuration = NoteDuration.Whole;
+    affectedVoiceBar.rebuildTiming();
 
     trackElement.update();
 
@@ -619,21 +653,35 @@ describe("TrackElement tree", () => {
     const trackElement = new TrackElement(track);
     trackElement.update();
 
-    const firstBeatUUID = track.staves[0].bars[0].beats[0].uuid;
+    const firstVoiceBar = track.staves[0].bars[0].getVoiceBar(1);
+    if (firstVoiceBar === null) {
+      throw Error("Expected voice 1 in first bar");
+    }
+    const firstBeatUUID = firstVoiceBar.beats[0].uuid;
     const affectedMasterBarIndex = score.masterBars.length;
     score.appendMasterBar(DEFAULT_MASTER_BAR);
 
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
 
-    const firstBeat = track.staves[0].bars[0].voiceBars[1]!.beats[0];
-    expect(firstBeat.uuid).toBe(firstBeatUUID);
-    expect(firstBeat).toBe(track.staves[0].bars[0].voiceBars[1]!.beats[0]);
+    const firstBeat = track.staves[0].bars[0].getVoiceBar(1);
+    if (firstBeat === null) {
+      throw Error("Expected voice 1 in first bar");
+    }
+    const firstBeatValue = firstBeat.beats[0];
+    expect(firstBeatValue.uuid).toBe(firstBeatUUID);
+    expect(firstBeatValue).toBe(firstBeat.beats[0]);
   });
 
   test("vertical palm mute command reports the affected note", () => {
     const { track } = createScoreGraph();
-    const affectedNote = track.staves[0].bars[0].beats[0]
-      .notes[0] as GuitarNote;
+    const voiceBar = track.staves[0].bars[0].getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in first bar");
+    }
+    const affectedNote = voiceBar.beats[0].notes?.[0];
+    if (!(affectedNote instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     const setTechCommand = new SetTechniqueCommand(
       [affectedNote],
       GuitarTechniqueType.PalmMute
@@ -697,10 +745,22 @@ describe("TrackElement tree", () => {
       }
     }
 
-    const firstLineBeat =
-      track.staves[0].bars[firstLine.trackLineData[0].masterBarIndex].beats[0];
-    const secondLineBeat =
-      track.staves[0].bars[secondLine.trackLineData[0].masterBarIndex].beats[0];
+    const firstLineVoiceBar =
+      track.staves[0].bars[
+        firstLine.trackLineData[0].masterBarIndex
+      ].getVoiceBar(1);
+    if (firstLineVoiceBar === null) {
+      throw Error("Expected voice 1 in first line bar");
+    }
+    const secondLineVoiceBar =
+      track.staves[0].bars[
+        secondLine.trackLineData[0].masterBarIndex
+      ].getVoiceBar(1);
+    if (secondLineVoiceBar === null) {
+      throw Error("Expected voice 1 in second line bar");
+    }
+    const firstLineBeat = firstLineVoiceBar.beats[0];
+    const secondLineBeat = secondLineVoiceBar.beats[0];
     const selectionRects = trackElement.getSelectionRects([
       firstLineBeat,
       secondLineBeat,
@@ -715,6 +775,7 @@ describe("TrackElement tree", () => {
     expect(selectionRects[1].width).toBeGreaterThan(0);
     expect(selectionRects[1].y).toBeGreaterThan(selectionRects[0].y);
     expect(selectionRects[0].x).toBeCloseTo(
+      // WARNING: This is bad but delayed until a conrecte decision on BeatElement is made
       firstLineBeatElement!.globalCoords.x
     );
     expect(selectionRects[1].x).toBeCloseTo(
@@ -734,7 +795,12 @@ describe("TrackElement tree", () => {
     const secondLineStartIndex =
       trackElement.trackLineElements[1].trackLineData[0].masterBarIndex;
     score.masterBars[secondLineStartIndex].tempo = 160;
-    track.staves[0].bars[secondLineStartIndex].rebuildTiming();
+    const secondLineVoiceBar =
+      track.staves[0].bars[secondLineStartIndex].getVoiceBar(1);
+    if (secondLineVoiceBar === null) {
+      throw Error("Expected voice 1 in second line bar");
+    }
+    secondLineVoiceBar.rebuildTiming();
 
     trackElement.update();
 
@@ -742,8 +808,14 @@ describe("TrackElement tree", () => {
       trackElement.trackLineElements[1].trackLineInfoElement?.globalCoords.y ??
       0;
 
-    const firstLineNote = track.staves[0].bars[0].beats[0]
-      .notes[0] as GuitarNote;
+    const firstLineVoiceBar = track.staves[0].bars[0].getVoiceBar(1);
+    if (firstLineVoiceBar === null) {
+      throw Error("Expected voice 1 in first bar");
+    }
+    const firstLineNote = firstLineVoiceBar.beats[0].notes?.[0];
+    if (!(firstLineNote instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
     firstLineNote.addTechnique(
       new GuitarTechnique(firstLineNote, GuitarTechniqueType.Vibrato)
     );

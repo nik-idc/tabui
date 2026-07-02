@@ -43,6 +43,7 @@ describe("NoteControlsDefaultCallbacks", () => {
       component,
       notationComponent,
       renderFunc,
+      jest.fn(),
       captureKeyboard,
       jest.fn()
     );
@@ -74,7 +75,7 @@ describe("NoteControlsDefaultCallbacks", () => {
       notationComponent.trackController.setSelectedBeatsTuplet
     ).toHaveBeenCalledWith(3, 2);
     expect(renderFunc).toHaveBeenCalledTimes(6);
-    expect(captureKeyboard).not.toHaveBeenCalled();
+    expect(captureKeyboard).toHaveBeenCalledTimes(1);
     expect(component.showTupletControls).toHaveBeenCalledTimes(1);
     expect(tupletBindSpy).toHaveBeenCalledTimes(2);
 

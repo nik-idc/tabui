@@ -163,7 +163,7 @@ describe("musical beat layout", () => {
         repeatStatus: BarRepeatStatus.None,
         repeatCount: null,
       })
-      .bars.get(track.staves[0].uuid)!;
+      .bars.get(track.staves[0].uuid) as Bar<Guitar>;
     replaceVoiceBeats(secondBar, 1, [
       NoteDuration.Quarter,
       NoteDuration.Quarter,
@@ -204,7 +204,7 @@ describe("musical beat layout", () => {
           repeatStatus: BarRepeatStatus.None,
           repeatCount: null,
         })
-        .bars.get(track.staves[0].uuid)!;
+        .bars.get(track.staves[0].uuid) as Bar<Guitar>;
       replaceVoiceBeats(nextBar, 1, [
         NoteDuration.Quarter,
         NoteDuration.Quarter,

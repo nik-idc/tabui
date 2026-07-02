@@ -1,3 +1,4 @@
+import { BarTupletGroupElement } from "../../src/notation/controller/element/bar/bar-tuplet-group-element";
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { NoteDuration } from "../../src/notation/model";
@@ -9,11 +10,11 @@ function getBarElement(trackElement: TrackElement) {
     .styleLinesAsArray[0].barElements[0];
 }
 
-function getTupletElement(trackElement: TrackElement): any {
+function getTupletElement(trackElement: TrackElement): BarTupletGroupElement {
   const tupletElement = getBarElement(trackElement)
     .refreshOwnedNotationElements()
     .find((element) => element.constructor.name === "BarTupletGroupElement");
-  if (tupletElement === undefined) {
+  if (!(tupletElement instanceof BarTupletGroupElement)) {
     throw Error("Expected rendered tuplet element");
   }
 
@@ -40,13 +41,17 @@ describe("BarTupletGroupElement", () => {
         tupletSettings: { normalCount: 3, tupletCount: 2 },
       },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
     const tupletElement = getTupletElement(trackElement);
     const expectedWidth = tupletElement.beatElements.reduce(
-      (sum, beatElement) => sum + beatElement.boundingBox.width,
+      (sum: number, beatElement) => sum + beatElement.boundingBox.width,
       0
     );
 
@@ -70,7 +75,11 @@ describe("BarTupletGroupElement", () => {
       },
       { baseDuration: NoteDuration.Eighth },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
@@ -117,14 +126,18 @@ describe("BarTupletGroupElement", () => {
         tupletSettings: { normalCount: 5, tupletCount: 3 },
       },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
     const barElement = getBarElement(trackElement);
     const tupletElement = getTupletElement(trackElement);
     const sumWidth = tupletElement.beatElements.reduce(
-      (sum, beatElement) => sum + beatElement.boundingBox.width,
+      (sum: number, beatElement) => sum + beatElement.boundingBox.width,
       0
     );
 
@@ -154,7 +167,11 @@ describe("BarTupletGroupElement", () => {
         tupletSettings: { normalCount: 3, tupletCount: 2 },
       },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
@@ -190,7 +207,11 @@ describe("BarTupletGroupElement", () => {
         tupletSettings: { normalCount: 3, tupletCount: 2 },
       },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 
@@ -224,7 +245,11 @@ describe("BarTupletGroupElement", () => {
       },
       { baseDuration: NoteDuration.Eighth },
     ]);
-    bar.rebuildTiming();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    voiceBar.rebuildTiming();
     const trackElement = new TrackElement(track);
     trackElement.update();
 

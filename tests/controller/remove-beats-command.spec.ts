@@ -3,22 +3,17 @@ import { NoteDuration } from "../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 
 describe("RemoveBeatsCommand", () => {
-  function getVoiceOneBar(bar: ReturnType<typeof createBarWithBeats>["bar"]) {
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 to exist");
-    }
-
-    return voiceBar;
-  }
-
   test("execute removes selected beats and undo restores them in place", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
       { baseDuration: NoteDuration.Sixteenth },
     ]);
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+
     const command = new RemoveBeatsCommand([beats[1]]);
 
     command.execute();
@@ -48,7 +43,11 @@ describe("RemoveBeatsCommand", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+
     const command = new RemoveBeatsCommand(beats);
 
     command.execute();
@@ -72,11 +71,16 @@ describe("RemoveBeatsCommand", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     const voiceBar = bar.insertVoiceBar(2);
-    const command = new RemoveBeatsCommand(voiceBar.beats, 2);
+    const command = new RemoveBeatsCommand(voiceBar.beats);
 
     command.execute();
+    const voiceOneBarAfterExecute = bar.getVoiceBar(1);
+    if (voiceOneBarAfterExecute === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+
     expect(bar.getVoiceBar(2)).toBeNull();
-    expect(getVoiceOneBar(bar).beats).toHaveLength(1);
+    expect(voiceOneBarAfterExecute.beats).toHaveLength(1);
 
     command.undo();
     expect(bar.getVoiceBar(2)).toBe(voiceBar);
@@ -84,7 +88,12 @@ describe("RemoveBeatsCommand", () => {
     expect(voiceBar.beats[0].isRest()).toBe(true);
 
     command.redo();
+    const voiceOneBarAfterRedo = bar.getVoiceBar(1);
+    if (voiceOneBarAfterRedo === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+
     expect(bar.getVoiceBar(2)).toBeNull();
-    expect(getVoiceOneBar(bar).beats).toHaveLength(1);
+    expect(voiceOneBarAfterRedo.beats).toHaveLength(1);
   });
 });

@@ -3,21 +3,17 @@ import { NoteDuration } from "../../src/notation/model";
 import { createBarWithBeats, createBeat } from "../model/helpers";
 
 describe("InsertBeatsCommand", () => {
-  function getVoiceOneBar(bar: ReturnType<typeof createBarWithBeats>["bar"]) {
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 to exist");
-    }
-    return voiceBar;
-  }
-
   test("execute inserts beats at the requested index preserving surrounding order", () => {
     const { score, track, bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Half },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+
     const insertedBeats = [
       createBeat(voiceBar, NoteDuration.Eighth),
       createBeat(voiceBar, NoteDuration.Sixteenth),
@@ -63,7 +59,11 @@ describe("InsertBeatsCommand", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+
     const insertedBeat = createBeat(voiceBar, NoteDuration.Eighth);
     const command = new InsertBeatsCommand(bar.staff, beats[0], [insertedBeat]);
 
@@ -93,7 +93,11 @@ describe("InsertBeatsCommand", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const voiceBar = getVoiceOneBar(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+
     const clipboard = [...voiceBar.beats];
     const firstCommand = new InsertBeatsCommand(
       bar.staff,

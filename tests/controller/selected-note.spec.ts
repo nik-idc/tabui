@@ -2,23 +2,23 @@ import {
   MoveRightResult,
   SelectedNote,
 } from "../../src/notation/controller/selection/selected-note";
-import { DEFAULT_MASTER_BAR, Score } from "../../src/notation/model";
+import {
+  Bar,
+  DEFAULT_MASTER_BAR,
+  Guitar,
+  Score,
+} from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
-
-function getVoiceBar1(bar: ReturnType<typeof createScoreGraph>["bar"]) {
-  const voiceBar = bar.getVoiceBar(1);
-  if (voiceBar === null) {
-    throw Error("Expected voice 1 in test bar");
-  }
-
-  return voiceBar;
-}
 
 describe("SelectedNote", () => {
   test("can represent a cursor on a rest beat lane", () => {
     const score = new Score();
     const bar = score.tracks[0].staves[0].bars[0];
-    const beat = getVoiceBar1(bar).beats[0];
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const beat = voiceBar.beats[0];
     const selectedNote = new SelectedNote(beat, 2);
 
     expect(beat.isRest()).toBe(true);
@@ -29,7 +29,10 @@ describe("SelectedNote", () => {
 
   test("moveRight advances to the next beat slot when adding a beat from seed state", () => {
     const { bar } = createScoreGraph();
-    const voiceBar = getVoiceBar1(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
     const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
 
     const result = selectedNote.moveRight();
@@ -42,7 +45,12 @@ describe("SelectedNote", () => {
 
   test("moveLeft from the very first beat keeps selection in place", () => {
     const { bar } = createScoreGraph();
-    const selectedNote = new SelectedNote(getVoiceBar1(bar).beats[0], 0);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const beat = voiceBar.beats[0];
+    const selectedNote = new SelectedNote(beat, 0);
 
     selectedNote.moveLeft();
 
@@ -55,18 +63,30 @@ describe("SelectedNote", () => {
     score.appendMasterBar(DEFAULT_MASTER_BAR);
 
     const secondBar = bar.staff.bars[1];
-    const selectedNote = new SelectedNote(getVoiceBar1(secondBar).beats[0], 0);
+    const voiceBarBefore = bar.getVoiceBar(1);
+    if (voiceBarBefore === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const beat = voiceBarBefore.beats[0];
+    const selectedNote = new SelectedNote(beat, 0);
 
     selectedNote.moveLeft();
 
     expect(selectedNote.barIndex).toBe(0);
-    expect(selectedNote.beatIndex).toBe(getVoiceBar1(bar).beats.length - 1);
+    const voiceBarAfter = bar.getVoiceBar(1);
+    if (voiceBarAfter === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(selectedNote.beatIndex).toBe(voiceBarAfter.beats.length - 1);
     expect(selectedNote.bar).toBe(bar);
   });
 
   test("moveRight from full final bar requests adding a new bar", () => {
     const { bar } = createScoreGraph();
-    const voiceBar = getVoiceBar1(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
     const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
 
     voiceBar.appendBeats();
@@ -85,7 +105,10 @@ describe("SelectedNote", () => {
   test("moveRight from full bar moves to the next existing bar", () => {
     const { score, bar } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
-    const voiceBar = getVoiceBar1(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
     const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
 
     voiceBar.appendBeats();
@@ -128,7 +151,11 @@ describe("SelectedNote", () => {
 
   test("moveUp and moveDown wrap between first and last note indices", () => {
     const { bar } = createScoreGraph();
-    const selectedNote = new SelectedNote(getVoiceBar1(bar).beats[0], 0);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
 
     selectedNote.moveUp();
     expect(selectedNote.noteIndex).toBe(
@@ -141,7 +168,11 @@ describe("SelectedNote", () => {
 
   test("afterAddedBar throws if last move right was not AddedBar", () => {
     const { bar } = createScoreGraph();
-    const selectedNote = new SelectedNote(getVoiceBar1(bar).beats[0], 0);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
 
     expect(() => selectedNote.afterAddedBar()).toThrow(
       "After added bar called when last move right result is not added bar"
@@ -152,7 +183,10 @@ describe("SelectedNote", () => {
     const { score, bar } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     const secondBar = bar.staff.bars[1];
-    const secondVoiceBar = getVoiceBar1(secondBar);
+    const secondVoiceBar = secondBar.getVoiceBar(1);
+    if (secondVoiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
     secondVoiceBar.appendBeats();
     secondVoiceBar.appendBeats();
 
@@ -162,7 +196,10 @@ describe("SelectedNote", () => {
     selectedNote.syncToStructure();
     expect(selectedNote.barIndex).toBe(0);
 
-    const voiceBar = getVoiceBar1(bar);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
     voiceBar.appendBeats();
     voiceBar.appendBeats();
     selectedNote.moveRight();

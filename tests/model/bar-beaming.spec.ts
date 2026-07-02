@@ -158,7 +158,11 @@ describe("Bar beaming", () => {
 
     expect(beats[0].beamGroupId).toBeNull();
     expect(beats[0].lastInBeamGroup).toBe(false);
-    expect(bar.beamingGroups).toEqual([]);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    expect(voiceBar.beamingGroups).toEqual([]);
   });
 
   test("3/4 beaming groups eighth notes by quarter-note beats", () => {
