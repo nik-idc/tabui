@@ -1,5 +1,7 @@
 import { TabUIEditor } from "@/tabui-editor";
 import {
+  AcousticGuitarPreset,
+  BassGuitarPreset,
   EditorLayoutDimensions,
   ElectricGuitarPreset,
   NoteValue,
@@ -24,6 +26,11 @@ EditorLayoutDimensions.configure({
 });
 
 const CLEAN_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Clean-Guitar-C3.wav`;
+const OVERDRIVEN_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Roland-SC-88-Overdriven-Guitar-C3.wav`;
+const DISTORTED_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Roland-SC-88-Distorted-Guitar-C3.wav`;
+const SLAP_BASS_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-S4-Plus-FatSynSlap-C2.wav`;
+const NYLON_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Nylon-String-Guitar-C4.wav`;
+const STEEL_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Steel-String-Guitar-C4.wav`;
 
 const rootDiv = document.getElementById(
   "tabui-editor"
@@ -111,6 +118,41 @@ const tabuiEditor = new TabUIEditor(rootDiv, selectedScore, {
       rootNote: {
         noteValue: NoteValue.C,
         octave: 3,
+      },
+    },
+    [ElectricGuitarPreset.Overdrive]: {
+      url: OVERDRIVEN_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 3,
+      },
+    },
+    [ElectricGuitarPreset.Distortion]: {
+      url: DISTORTED_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 3,
+      },
+    },
+    [BassGuitarPreset.Clean]: {
+      url: SLAP_BASS_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 2,
+      },
+    },
+    [AcousticGuitarPreset.Nylon]: {
+      url: NYLON_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 4,
+      },
+    },
+    [AcousticGuitarPreset.Steel]: {
+      url: STEEL_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 4,
       },
     },
   },

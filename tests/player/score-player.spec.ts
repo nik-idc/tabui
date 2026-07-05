@@ -7,6 +7,7 @@ import {
   MusicInstrument,
   NoteDuration,
   ElectricGuitarPreset,
+  StringMusicInstrumentType,
   getNoteFrequency,
 } from "../../src/notation/model";
 import { trackEvent, TrackEventType } from "../../src/shared/events";
@@ -237,6 +238,48 @@ describe("ScorePlayer", () => {
     expect(createdBufferSources).toHaveLength(1);
     expect(createdBufferSources[0].playbackRate.value).toBe(1);
     expect(createdBufferSources[0].start).toHaveBeenCalledWith(0.05);
+    expect(createdOscillators).toHaveLength(0);
+  });
+
+  test("uses separate configured samples for different presets", async () => {
+    const { score, track, bar } = createScoreGraph();
+    const leadTrack = score.addTrack(
+      new Guitar(
+        StringMusicInstrumentType.ElectricGuitar,
+        ElectricGuitarPreset.Overdrive,
+        "Lead"
+      ),
+      "Lead"
+    ).tracks[0];
+    const leadBar = leadTrack.staves[0].bars[0];
+
+    setBeatFret(firstBeatOf(bar), 0);
+    setBeatFret(firstBeatOf(leadBar), 0);
+    fetchMock.mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+    });
+
+    const noteFrequency = getNoteFrequency(firstBeatOf(bar).notes![0]);
+    const player = new ScorePlayer(score, track, {
+      [ElectricGuitarPreset.Clean]: {
+        url: "/samples/clean.wav",
+        rootFrequency: noteFrequency,
+      },
+      [ElectricGuitarPreset.Overdrive]: {
+        url: "/samples/overdrive.wav",
+        rootFrequency: noteFrequency / 2,
+      },
+    });
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(fetchMock).toHaveBeenCalledWith("/samples/clean.wav");
+    expect(fetchMock).toHaveBeenCalledWith("/samples/overdrive.wav");
+    expect(createdBufferSources).toHaveLength(2);
+    const playbackRates = createdBufferSources.map(
+      (source) => source.playbackRate.value
+    );
+    expect(playbackRates).toEqual([1, 2]);
     expect(createdOscillators).toHaveLength(0);
   });
 
