@@ -94,6 +94,9 @@ export class TrackPlayerSVGAnimator {
       args.beatUUID
     );
     if (beatElement === undefined) {
+      // WARNING: Should this still throw? Seems like a bug Phase 4 missed
+      // Since now the required beat is not guaranteed to have a corresponding
+      // beat element because lazy updating is used
       throw Error("Failed to get beat element on beat changed");
     }
 

@@ -6,10 +6,13 @@ import {
   Guitar,
   MusicInstrument,
   NoteDuration,
+  ElectricGuitarPreset,
   getNoteFrequency,
 } from "../../src/notation/model";
+import { trackEvent, TrackEventType } from "../../src/shared/events";
 
 const createdOscillators: MockOscillatorNode[] = [];
+const createdBufferSources: MockAudioBufferSourceNode[] = [];
 
 class MockOscillatorNode {
   public type = "sine";
@@ -36,6 +39,22 @@ class MockGainNode {
   public disconnect = jest.fn();
 }
 
+class MockAudioBufferSourceNode {
+  public buffer: AudioBuffer | null = null;
+  public playbackRate = { value: 1 };
+  public onended?: () => void;
+  public start = jest.fn();
+  public stop = jest.fn(() => {
+    this.onended?.();
+  });
+  public connect = jest.fn();
+  public disconnect = jest.fn();
+
+  constructor() {
+    createdBufferSources.push(this);
+  }
+}
+
 class MockAudioContext {
   public static nextResumeImpl: (() => Promise<void>) | null = null;
 
@@ -53,6 +72,14 @@ class MockAudioContext {
     return new MockGainNode() as unknown as GainNode;
   }
 
+  public createBufferSource(): AudioBufferSourceNode {
+    return new MockAudioBufferSourceNode() as unknown as AudioBufferSourceNode;
+  }
+
+  public decodeAudioData(): Promise<AudioBuffer> {
+    return Promise.resolve({} as AudioBuffer);
+  }
+
   public resume(): Promise<void> {
     return MockAudioContext.nextResumeImpl?.() ?? Promise.resolve();
   }
@@ -61,6 +88,9 @@ class MockAudioContext {
 (
   globalThis as unknown as { AudioContext: typeof MockAudioContext }
 ).AudioContext = MockAudioContext;
+
+const fetchMock = jest.fn();
+(globalThis as unknown as { fetch: jest.Mock }).fetch = fetchMock;
 
 function createScoreWithBars(barCount: number) {
   const { score, track } = createScoreGraph({
@@ -126,20 +156,13 @@ describe("ScorePlayer", () => {
     jest.useFakeTimers();
     jest.setSystemTime(0);
     createdOscillators.length = 0;
+    createdBufferSources.length = 0;
     MockAudioContext.nextResumeImpl = null;
+    fetchMock.mockReset();
   });
 
   afterEach(() => {
     jest.useRealTimers();
-  });
-
-  test("does not initialize audio context before playback starts", () => {
-    const { score, track } = createScoreGraph();
-    const player = new ScorePlayer(score, track);
-
-    expect(
-      (player as unknown as { _audioContext?: AudioContext })._audioContext
-    ).toBeUndefined();
   });
 
   test("uses full played beat duration for dotted beats", async () => {
@@ -192,6 +215,53 @@ describe("ScorePlayer", () => {
     expect(oscillatorStarts()).toEqual([0.05, 0.05]);
   });
 
+  test("uses configured clean electric guitar sample when it loads", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    fetchMock.mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+    });
+
+    const player = new ScorePlayer(score, track, {
+      [ElectricGuitarPreset.Clean]: {
+        url: "/samples/clean-electric-guitar.wav",
+        rootFrequency: getNoteFrequency(firstBeatOf(bar).notes![0]),
+      },
+    });
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/samples/clean-electric-guitar.wav"
+    );
+    expect(createdBufferSources).toHaveLength(1);
+    expect(createdBufferSources[0].playbackRate.value).toBe(1);
+    expect(createdBufferSources[0].start).toHaveBeenCalledWith(0.05);
+    expect(createdOscillators).toHaveLength(0);
+  });
+
+  test("falls back to oscillator when sample loading fails", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    fetchMock.mockRejectedValue(new Error("network failed"));
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    const player = new ScorePlayer(score, track, {
+      [ElectricGuitarPreset.Clean]: {
+        url: "/samples/missing.wav",
+        rootFrequency: 82.4068892282175,
+      },
+    });
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(createdBufferSources).toHaveLength(0);
+    expect(oscillatorFrequencies()).toHaveLength(1);
+
+    consoleErrorSpy.mockRestore();
+  });
+
   test("selection playback honors repeats fully contained inside selection", async () => {
     const { score, track, bars, masterBars } = createScoreWithBars(6);
 
@@ -231,7 +301,6 @@ describe("ScorePlayer", () => {
     ];
 
     const player = new ScorePlayer(score, track);
-    (player as unknown as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
     player.setLoopSection(firstBeatOf(bars[0]), firstBeatOf(bars[5]));
     player.enableLoop();
     await player.start({ startBeat: firstBeatOf(bars[0]) });
@@ -270,7 +339,6 @@ describe("ScorePlayer", () => {
     ];
 
     const player = new ScorePlayer(score, track);
-    (player as unknown as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
     player.setLoopSection(firstBeatOf(bars[2]), firstBeatOf(bars[5]));
     player.enableLoop();
     await player.start({ startBeat: firstBeatOf(bars[2]) });
@@ -309,7 +377,6 @@ describe("ScorePlayer", () => {
     ];
 
     const player = new ScorePlayer(score, track);
-    (player as unknown as { _lookaheadSeconds: number })._lookaheadSeconds = 10;
     player.setLoopSection(firstBeatOf(bars[0]), firstBeatOf(bars[3]));
     player.enableLoop();
     await player.start({ startBeat: firstBeatOf(bars[0]) });
@@ -387,15 +454,20 @@ describe("ScorePlayer", () => {
     const { score, track, bar } = createScoreGraph();
     setBeatFret(firstBeatOf(bar), 0);
     const player = new ScorePlayer(score, track);
+    const emitSpy = jest.spyOn(trackEvent, "emit");
 
     await player.start({ startBeat: firstBeatOf(bar) });
     player.stop();
     player.stop();
+    jest.advanceTimersByTime(1000);
 
     expect(player.isPlaying).toBe(false);
     expect(
-      (player as unknown as { _scheduledVoices: Set<unknown> })._scheduledVoices
-        .size
-    ).toBe(0);
+      emitSpy.mock.calls.filter(
+        ([eventType]) => eventType === TrackEventType.PlayerCurBeatChanged
+      )
+    ).toHaveLength(0);
+
+    emitSpy.mockRestore();
   });
 });

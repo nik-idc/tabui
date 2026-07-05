@@ -122,6 +122,38 @@ const SEMITONE_MAP: Record<string, number> = {
   [NoteValue.B]: 11,
 };
 
+/**
+ * Translates a `Note` instance into a number of semitones from C0
+ */
+export function getSemitonesFromNote(
+  noteValue: NoteValue,
+  octave: number
+): number {
+  return octave * NOTES_PER_OCTAVE + SEMITONE_MAP[noteValue];
+}
+
+/**
+ * Translates a number of semitones from C0 into a `Note` instance
+ */
+export function getNoteFromSemitones(semitonesFromC0: number): {
+  noteValue: NoteValue;
+  octave: number;
+} {
+  const octave = Math.floor(semitonesFromC0 / NOTES_PER_OCTAVE);
+  const semitone =
+    ((semitonesFromC0 % NOTES_PER_OCTAVE) + NOTES_PER_OCTAVE) %
+    NOTES_PER_OCTAVE;
+  const noteValue = Object.entries(SEMITONE_MAP).find(
+    ([, value]) => value === semitone
+  )?.[0] as NoteValue | undefined;
+
+  if (noteValue === undefined) {
+    throw Error(`Invalid semitone offset: ${semitone}`);
+  }
+
+  return { noteValue, octave };
+}
+
 export function getNoteFrequency(note: Note): number {
   // Handle Dead notes or None by returning 0 (silence)
   if (
@@ -132,11 +164,20 @@ export function getNoteFrequency(note: Note): number {
     return 0;
   }
 
-  // 1. Calculate how many semitones this note is from C0
-  const semitonesFromC0 = note.octave * 12 + SEMITONE_MAP[note.noteValue];
+  return getFrequencyFromNoteType(note);
+}
 
-  // 2. A4 (440Hz) is semitone #57 if we start counting from C0
-  // Formula: Frequency = 440 * 2^((n - 57) / 12)
+export function getFrequencyFromNoteType(note: NoteType): number {
+  if (note.noteValue === NoteValue.Dead || note.noteValue === NoteValue.None) {
+    return 0;
+  }
+
+  if (note.octave === null) {
+    return 0;
+  }
+
+  const semitonesFromC0 = getSemitonesFromNote(note.noteValue, note.octave);
+  // A4 (440Hz) is semitone #57 if we start counting from C0.
   return 440 * Math.pow(2, (semitonesFromC0 - 57) / 12);
 }
 

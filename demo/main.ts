@@ -1,5 +1,9 @@
 import { TabUIEditor } from "@/tabui-editor";
-import { EditorLayoutDimensions } from "@/notation";
+import {
+  EditorLayoutDimensions,
+  ElectricGuitarPreset,
+  NoteValue,
+} from "@/notation";
 import {
   getEditorFixtures,
   resolveEditorFixture,
@@ -18,6 +22,8 @@ EditorLayoutDimensions.configure({
   tempoTextSize: 24,
   durationsHeight: 30,
 });
+
+const CLEAN_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Clean-Guitar-C3.wav`;
 
 const rootDiv = document.getElementById(
   "tabui-editor"
@@ -97,9 +103,16 @@ themeSelect?.addEventListener("change", () => {
   );
 });
 
-const tabuiEditor = new TabUIEditor(
-  rootDiv,
-  selectedScore,
-  selectedThemeConfig
-);
+const tabuiEditor = new TabUIEditor(rootDiv, selectedScore, {
+  ...selectedThemeConfig,
+  playback: {
+    [ElectricGuitarPreset.Clean]: {
+      url: CLEAN_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 3,
+      },
+    },
+  },
+});
 tabuiEditor.init();

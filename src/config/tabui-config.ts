@@ -1,10 +1,42 @@
 import { normalizeAssetBaseUrl } from "./asset-url-resolver";
+import {
+  MusicInstrumentPreset,
+  NoteType,
+  NoteValue,
+  getFrequencyFromNoteType,
+} from "@/notation/model";
+
+export interface PlaybackSampleConfig {
+  url: string;
+  /**
+   * Pitch recorded in the sample file.
+   * This is sample-dependent metadata: a C3 sample should use C3, an E2 sample
+   * should use E2, etc. TabUI resolves this to frequency internally so playback
+   * can transpose the recording to other notes with playbackRate.
+   */
+  rootNote?: NoteType;
+}
+
+export type PlaybackConfig = Partial<
+  Record<MusicInstrumentPreset, PlaybackSampleConfig>
+>;
+
+export interface ResolvedPlaybackSampleConfig {
+  url: string;
+  /** Frequency of the pitch recorded in the sample file. */
+  rootFrequency: number;
+}
+
+export type ResolvedPlaybackConfig = Partial<
+  Record<MusicInstrumentPreset, ResolvedPlaybackSampleConfig>
+>;
 
 export interface TabUIConfig {
   assets?: {
     baseUrl?: string;
     variant?: "light" | "dark";
   };
+  playback?: PlaybackConfig;
   theme?: {
     ui?: {
       colors?: {
@@ -43,6 +75,7 @@ export interface ResolvedTabUIConfig {
     baseUrl: string;
     variant: "light" | "dark";
   };
+  playback: ResolvedPlaybackConfig;
   theme: {
     cssVars: Record<string, string>;
   };
@@ -73,6 +106,109 @@ const DEFAULT_THEME_CSS_VARS = {
   "--tu-bend-label": "#333333",
 } satisfies Record<string, string>;
 
+const DEFAULT_SAMPLE_ROOT_NOTE = {
+  noteValue: NoteValue.E,
+  octave: 2,
+} satisfies NoteType;
+
+function resolvePlaybackConfig(
+  config: PlaybackConfig = {}
+): ResolvedPlaybackConfig {
+  const resolved: ResolvedPlaybackConfig = {};
+  for (const [preset, sampleConfig] of Object.entries(config)) {
+    if (sampleConfig === undefined) {
+      continue;
+    }
+
+    resolved[preset as MusicInstrumentPreset] = {
+      url: sampleConfig.url,
+      rootFrequency: getFrequencyFromNoteType(
+        sampleConfig.rootNote ?? DEFAULT_SAMPLE_ROOT_NOTE
+      ),
+    };
+  }
+
+  return resolved;
+}
+
+function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
+  return {
+    ...DEFAULT_THEME_CSS_VARS,
+    ...(config.theme?.ui?.colors?.background !== undefined
+      ? { "--tu-background-color": config.theme.ui.colors.background }
+      : {}),
+    ...(config.theme?.ui?.colors?.surface !== undefined
+      ? { "--tu-primary-color": config.theme.ui.colors.surface }
+      : {}),
+    ...(config.theme?.ui?.colors?.surfaceAlt !== undefined
+      ? { "--tu-secondary-color": config.theme.ui.colors.surfaceAlt }
+      : {}),
+    ...(config.theme?.ui?.colors?.border !== undefined
+      ? {
+          "--tu-border-color": config.theme.ui.colors.border,
+          "--tu-bend-grid": config.theme.ui.colors.border,
+        }
+      : {}),
+    ...(config.theme?.ui?.colors?.text !== undefined
+      ? {
+          "--tu-font-color": config.theme.ui.colors.text,
+          "--tu-bend-label": config.theme.ui.colors.text,
+        }
+      : {}),
+    ...(config.theme?.ui?.colors?.hover !== undefined
+      ? { "--tu-hover-color": config.theme.ui.colors.hover }
+      : {}),
+    ...(config.theme?.ui?.colors?.applied !== undefined
+      ? { "--tu-applied-color": config.theme.ui.colors.applied }
+      : {}),
+    ...(config.theme?.ui?.fonts?.body !== undefined
+      ? { "--tu-font-body": config.theme.ui.fonts.body }
+      : {}),
+    ...(config.theme?.notation?.fonts?.notation !== undefined
+      ? { "--tu-font-notation": config.theme.notation.fonts.notation }
+      : {}),
+    ...(config.theme?.ui?.radius !== undefined
+      ? { "--tu-border-radius": config.theme.ui.radius }
+      : {}),
+    ...(config.theme?.notation?.colors?.ink !== undefined
+      ? {
+          "--tu-notation-ink": config.theme.notation.colors.ink,
+          "--tu-bend-curve": config.theme.notation.colors.ink,
+          "--tu-bend-handle": config.theme.notation.colors.ink,
+        }
+      : {}),
+    ...(config.theme?.notation?.colors?.text !== undefined
+      ? { "--tu-notation-text": config.theme.notation.colors.text }
+      : {}),
+    ...(config.theme?.notation?.colors?.noteBackground !== undefined
+      ? {
+          "--tu-notation-note-background":
+            config.theme.notation.colors.noteBackground,
+        }
+      : {}),
+    ...(config.theme?.notation?.colors?.selectionStroke !== undefined
+      ? {
+          "--tu-notation-selection-stroke":
+            config.theme.notation.colors.selectionStroke,
+        }
+      : {}),
+    ...(config.theme?.notation?.colors?.selectionFill !== undefined
+      ? {
+          "--tu-notation-selection-fill":
+            config.theme.notation.colors.selectionFill,
+          "--tu-notation-selection-block-fill":
+            config.theme.notation.colors.selectionFill,
+        }
+      : {}),
+    ...(config.theme?.notation?.colors?.cursor !== undefined
+      ? { "--tu-notation-cursor": config.theme.notation.colors.cursor }
+      : {}),
+    ...(config.theme?.notation?.colors?.danger !== undefined
+      ? { "--tu-notation-danger": config.theme.notation.colors.danger }
+      : {}),
+  };
+}
+
 export function resolveTabUIConfig(
   config: TabUIConfig = {}
 ): ResolvedTabUIConfig {
@@ -81,82 +217,9 @@ export function resolveTabUIConfig(
       baseUrl: normalizeAssetBaseUrl(config.assets?.baseUrl?.trim() ?? ""),
       variant: config.assets?.variant ?? "light",
     },
+    playback: resolvePlaybackConfig(config.playback),
     theme: {
-      cssVars: {
-        ...DEFAULT_THEME_CSS_VARS,
-        ...(config.theme?.ui?.colors?.background !== undefined
-          ? { "--tu-background-color": config.theme.ui.colors.background }
-          : {}),
-        ...(config.theme?.ui?.colors?.surface !== undefined
-          ? { "--tu-primary-color": config.theme.ui.colors.surface }
-          : {}),
-        ...(config.theme?.ui?.colors?.surfaceAlt !== undefined
-          ? { "--tu-secondary-color": config.theme.ui.colors.surfaceAlt }
-          : {}),
-        ...(config.theme?.ui?.colors?.border !== undefined
-          ? {
-              "--tu-border-color": config.theme.ui.colors.border,
-              "--tu-bend-grid": config.theme.ui.colors.border,
-            }
-          : {}),
-        ...(config.theme?.ui?.colors?.text !== undefined
-          ? {
-              "--tu-font-color": config.theme.ui.colors.text,
-              "--tu-bend-label": config.theme.ui.colors.text,
-            }
-          : {}),
-        ...(config.theme?.ui?.colors?.hover !== undefined
-          ? { "--tu-hover-color": config.theme.ui.colors.hover }
-          : {}),
-        ...(config.theme?.ui?.colors?.applied !== undefined
-          ? { "--tu-applied-color": config.theme.ui.colors.applied }
-          : {}),
-        ...(config.theme?.ui?.fonts?.body !== undefined
-          ? { "--tu-font-body": config.theme.ui.fonts.body }
-          : {}),
-        ...(config.theme?.notation?.fonts?.notation !== undefined
-          ? { "--tu-font-notation": config.theme.notation.fonts.notation }
-          : {}),
-        ...(config.theme?.ui?.radius !== undefined
-          ? { "--tu-border-radius": config.theme.ui.radius }
-          : {}),
-        ...(config.theme?.notation?.colors?.ink !== undefined
-          ? {
-              "--tu-notation-ink": config.theme.notation.colors.ink,
-              "--tu-bend-curve": config.theme.notation.colors.ink,
-              "--tu-bend-handle": config.theme.notation.colors.ink,
-            }
-          : {}),
-        ...(config.theme?.notation?.colors?.text !== undefined
-          ? { "--tu-notation-text": config.theme.notation.colors.text }
-          : {}),
-        ...(config.theme?.notation?.colors?.noteBackground !== undefined
-          ? {
-              "--tu-notation-note-background":
-                config.theme.notation.colors.noteBackground,
-            }
-          : {}),
-        ...(config.theme?.notation?.colors?.selectionStroke !== undefined
-          ? {
-              "--tu-notation-selection-stroke":
-                config.theme.notation.colors.selectionStroke,
-            }
-          : {}),
-        ...(config.theme?.notation?.colors?.selectionFill !== undefined
-          ? {
-              "--tu-notation-selection-fill":
-                config.theme.notation.colors.selectionFill,
-              "--tu-notation-selection-block-fill":
-                config.theme.notation.colors.selectionFill,
-            }
-          : {}),
-        ...(config.theme?.notation?.colors?.cursor !== undefined
-          ? { "--tu-notation-cursor": config.theme.notation.colors.cursor }
-          : {}),
-        ...(config.theme?.notation?.colors?.danger !== undefined
-          ? { "--tu-notation-danger": config.theme.notation.colors.danger }
-          : {}),
-      },
+      cssVars: resolveThemeCssVars(config),
     },
   };
 }
