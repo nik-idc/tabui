@@ -135,6 +135,11 @@
       transition: all var(--tu-transition-speed) ease;
       border-radius: 50%;
 
+      &.tu-track-control-active {
+        background: var(--tu-applied-color);
+        box-shadow: 0 0 0 2px var(--tu-font-color);
+      }
+
       &:hover {
         background: var(--tu-hover-color);
         cursor: pointer;

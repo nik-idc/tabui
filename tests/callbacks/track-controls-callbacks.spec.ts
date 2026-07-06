@@ -4,7 +4,9 @@ import { TrackSettingsControlsDefaultCallbacks } from "../../src/callbacks/ui/tr
 import {
   createNotationComponentMock,
   dispatchClick,
+  dispatchInput,
   makeButton,
+  makeInput,
 } from "./helpers";
 
 describe("TrackControlsDefaultCallbacks", () => {
@@ -25,12 +27,13 @@ describe("TrackControlsDefaultCallbacks", () => {
     const notationComponent = createNotationComponentMock();
     const renderFunc = jest.fn();
     const captureKeyboard = jest.fn();
-    const track = { id: 1 };
+    const track = { id: 1, volume: 0.5, pan: 0, muted: false, soloed: false };
     const component = {
       template: {
         removeButton: makeButton(),
         trackButton: makeButton(),
-        volumeInput: makeButton(),
+        volumeInput: makeInput("50"),
+        panningInput: makeInput("0"),
         muteButton: makeButton(),
         soloButton: makeButton(),
         settingsButton: makeButton(),
@@ -54,9 +57,20 @@ describe("TrackControlsDefaultCallbacks", () => {
     dispatchClick(component.template.trackButton);
     dispatchClick(component.template.removeButton);
     dispatchClick(component.template.settingsButton);
+    dispatchInput(component.template.volumeInput, "75");
+    dispatchInput(component.template.panningInput, "-0.5");
+    dispatchClick(component.template.muteButton);
+    dispatchClick(component.template.soloButton);
 
     expect(notationComponent.loadTrack).toHaveBeenCalledWith(track);
-    expect(renderFunc).toHaveBeenCalledTimes(1);
+    expect(track.volume).toBe(0.75);
+    expect(track.pan).toBe(-0.5);
+    expect(track.muted).toBe(true);
+    expect(track.soloed).toBe(true);
+    expect(
+      notationComponent.trackController.syncTrackPlaybackState
+    ).toHaveBeenCalledTimes(4);
+    expect(renderFunc).toHaveBeenCalledTimes(3);
     expect(captureKeyboard).toHaveBeenCalledTimes(2);
     expect(component.showRemoveDialog).toHaveBeenCalledTimes(1);
     expect(component.showTrackSettings).toHaveBeenCalledTimes(1);

@@ -1,23 +1,9 @@
-import { Bar, Beat, Score, ticksToSeconds } from "@/notation/model";
+import { Bar, Beat, Score, Track, ticksToSeconds } from "@/notation/model";
 import { ResolvedPlaybackConfig } from "@/config/tabui-config";
 import { PlaybackNoteScheduler } from "./playback-note-scheduler";
 import { PlaybackSampleManager } from "./playback-sample-manager";
 import { PlaybackTraversalManager } from "./playback-traversal-manager";
-import { ScheduledAudioNode } from "./scheduled-audio-node";
-
-export interface PlaybackSchedulerOptions {
-  /** Score whose material should be scheduled. */
-  score: Score;
-  /** Playback sample configuration. */
-  playbackConfig: ResolvedPlaybackConfig;
-}
-
-export interface PlaybackSchedulerRangeOptions {
-  /** Beat to start playback from. */
-  startBeat?: Beat;
-  /** Beat to end playback at. */
-  endBeat?: Beat;
-}
+import { ScheduledAudioNode, TrackAudioBus } from "./scheduled-audio-node";
 
 export interface ScheduledBeatChange {
   /** Beat whose UI cursor should be activated. */
@@ -56,22 +42,59 @@ export class PlaybackScheduler {
   private _currentScheduleBase: number;
   /** All currently scheduled audio nodes. */
   private _scheduledAudioNodes: Set<ScheduledAudioNode>;
+  /** Stable per-track audio buses for live volume/mute/solo/pan controls. */
+  private _trackAudioBuses: Map<number, TrackAudioBus>;
+  /** Audio context currently backing sample, note, and track-bus scheduling. */
+  private _audioContext?: AudioContext;
   /** Index of the next master bar to schedule. */
   private _nextMasterBarIndexToSchedule: number;
 
   /**
    * Schedules score material for playback.
-   * @param options Scheduler dependencies
+   * @param score Score whose material should be scheduled
+   * @param playbackConfig Playback sample configuration
    */
-  constructor(options: PlaybackSchedulerOptions) {
-    this._score = options.score;
-    this._traversalManager = new PlaybackTraversalManager(options.score);
-    this._playbackConfig = options.playbackConfig;
+  constructor(score: Score, playbackConfig: ResolvedPlaybackConfig) {
+    this._score = score;
+    this._traversalManager = new PlaybackTraversalManager(score);
+    this._playbackConfig = playbackConfig;
 
     this._scheduledPlaybackSeconds = 0;
     this._currentScheduleBase = 0;
     this._scheduledAudioNodes = new Set();
+    this._trackAudioBuses = new Map();
+    this._audioContext = undefined;
     this._nextMasterBarIndexToSchedule = 0;
+  }
+
+  private createTrackAudioBus(track: Track): TrackAudioBus {
+    if (this._audioContext === undefined) {
+      throw new Error("Audio context undefined in rebuild track buses");
+    }
+
+    const gainNode = this._audioContext.createGain();
+    const pannerNode = this._audioContext.createStereoPanner();
+    gainNode.connect(pannerNode);
+    pannerNode.connect(this._audioContext.destination);
+
+    return { track, gainNode, pannerNode };
+  }
+
+  private rebuildTrackAudioBuses(): void {
+    if (this._audioContext === undefined) {
+      throw new Error("Audio context undefined in rebuild track buses");
+    }
+
+    for (const bus of this._trackAudioBuses.values()) {
+      bus.gainNode.disconnect();
+      bus.pannerNode.disconnect();
+    }
+    this._trackAudioBuses.clear();
+
+    for (const track of this._score.tracks) {
+      this._trackAudioBuses.set(track.uuid, this.createTrackAudioBus(track));
+    }
+    this.applyTrackControls(this._audioContext.currentTime);
   }
 
   /**
@@ -79,6 +102,7 @@ export class PlaybackScheduler {
    * @param audioContext Audio context used by sample and note schedulers
    */
   public setAudioContext(audioContext: AudioContext): void {
+    this._audioContext = audioContext;
     this._sampleManager = new PlaybackSampleManager(
       audioContext,
       this._playbackConfig
@@ -87,12 +111,15 @@ export class PlaybackScheduler {
       audioContext,
       this._sampleManager
     );
+    this.rebuildTrackAudioBuses();
   }
 
   /** Clears audio-context-backed helpers after the audio context is closed. */
   public clearAudioContext(): void {
     this._sampleManager = undefined;
     this._noteScheduler = undefined;
+    this._audioContext = undefined;
+    this._trackAudioBuses.clear();
   }
 
   /** Loads configured samples before playback scheduling begins. */
@@ -114,10 +141,11 @@ export class PlaybackScheduler {
 
   /**
    * Sets traversal boundaries for the next playback run.
-   * @param options Playback range boundaries
+   * @param startBeat Beat to start playback from
+   * @param endBeat Beat to end playback at
    */
-  public setPlaybackRange(options: PlaybackSchedulerRangeOptions): void {
-    this._traversalManager.setPlaybackRange(options);
+  public setPlaybackRange(startBeat?: Beat, endBeat?: Beat): void {
+    this._traversalManager.setPlaybackRange(startBeat, endBeat);
     this._nextMasterBarIndexToSchedule =
       this._traversalManager.firstMasterBarIndex;
   }
@@ -161,6 +189,7 @@ export class PlaybackScheduler {
   private scheduleBeat(
     beat: Beat,
     barTimingOffsetSeconds: number,
+    trackBus: TrackAudioBus,
     beatChanges: ScheduledBeatChange[]
   ): number {
     if (this._noteScheduler === undefined) {
@@ -181,7 +210,8 @@ export class PlaybackScheduler {
       const scheduledAudioNode = this._noteScheduler.scheduleNote(
         note,
         startTime,
-        stopTime
+        stopTime,
+        trackBus
       );
       if (scheduledAudioNode === null) {
         continue;
@@ -199,6 +229,35 @@ export class PlaybackScheduler {
     return beatDurationInSeconds;
   }
 
+  private getTrackAudioBus(track: Track): TrackAudioBus {
+    let bus = this._trackAudioBuses.get(track.uuid);
+    if (bus !== undefined) {
+      return bus;
+    }
+
+    if (this._audioContext === undefined) {
+      throw Error("Track audio bus is not initialized");
+    }
+
+    bus = this.createTrackAudioBus(track);
+    this._trackAudioBuses.set(track.uuid, bus);
+    this.applyTrackControls(this._audioContext.currentTime);
+    return bus;
+  }
+
+  private removeStaleTrackAudioBuses(): void {
+    const trackUUIDs = new Set(this._score.tracks.map((track) => track.uuid));
+    for (const [trackUUID, bus] of this._trackAudioBuses) {
+      if (trackUUIDs.has(trackUUID)) {
+        continue;
+      }
+
+      bus.gainNode.disconnect();
+      bus.pannerNode.disconnect();
+      this._trackAudioBuses.delete(trackUUID);
+    }
+  }
+
   /**
    * Schedules a single staff bar for the current master bar pass.
    * @param masterBarIndex Master bar index being scheduled
@@ -212,6 +271,7 @@ export class PlaybackScheduler {
   ): void {
     const masterBarStartOffsetSeconds =
       this._traversalManager.getMasterBarStartOffsetSeconds(masterBarIndex);
+    const trackBus = this.getTrackAudioBus(bar.staff.track);
     for (const voiceBar of bar.voiceBarsAsArray) {
       for (const beat of voiceBar.beats) {
         if (!voiceBar.beatPlayable(beat)) {
@@ -234,6 +294,7 @@ export class PlaybackScheduler {
           this._scheduledPlaybackSeconds +
             beatStartOffsetSeconds -
             masterBarStartOffsetSeconds,
+          trackBus,
           beatChanges
         );
       }
@@ -264,6 +325,20 @@ export class PlaybackScheduler {
       this._traversalManager.completeMasterBar(masterBarIndex);
     this._nextMasterBarIndexToSchedule =
       nextMasterBarIndex ?? this._score.masterBars.length;
+  }
+
+  /** Applies current track controls to already-buffered audio nodes. */
+  public applyTrackControls(currentTime: number): void {
+    this.removeStaleTrackAudioBuses();
+    const hasSoloedTrack = this._score.tracks.some((track) => track.soloed);
+    for (const [_, bus] of this._trackAudioBuses) {
+      const track = bus.track;
+      const trackAudible = !track.muted && (!hasSoloedTrack || track.soloed);
+      const trackGain = trackAudible ? track.volume : 0;
+
+      bus.gainNode.gain.setValueAtTime(trackGain, currentTime);
+      bus.pannerNode.pan.setValueAtTime(track.pan, currentTime);
+    }
   }
 
   /**

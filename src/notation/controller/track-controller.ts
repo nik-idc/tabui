@@ -99,6 +99,11 @@ export class TrackController {
     this._scorePlayer.toggleLoop();
   }
 
+  /** Applies current track playback-control state to active playback nodes. */
+  public syncTrackPlaybackState(): void {
+    this._scorePlayer?.syncTrackPlaybackState();
+  }
+
   /** Disposes runtime resources owned by the controller */
   public dispose(): void {
     this._scorePlayer?.dispose();

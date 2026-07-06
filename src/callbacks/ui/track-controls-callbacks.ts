@@ -10,8 +10,8 @@ import {
 export interface TrackControlsCallbacks {
   onTrackRemoveClicked(): void;
   onTrackClicked(): void;
-  onTrackVolumeChanged(): void;
-  onTrackPanningChanged(): void;
+  onTrackVolumeChanged(event: InputEvent): void;
+  onTrackPanningChanged(event: InputEvent): void;
   onMuteButtonClicked(): void;
   onSoloButtonClicked(): void;
   onTrackSettingsClicked(): void;
@@ -73,20 +73,30 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     this._renderFunc();
   }
 
-  onTrackVolumeChanged(): void {
-    throw new Error("Method not implemented");
+  onTrackVolumeChanged(event: InputEvent): void {
+    const input = event.target as HTMLInputElement;
+    this._trackComponent.track.volume = Number(input.value) / 100;
+    this._notationComponent.trackController.syncTrackPlaybackState();
   }
 
-  onTrackPanningChanged(): void {
-    throw new Error("Method not implemented");
+  onTrackPanningChanged(event: InputEvent): void {
+    const input = event.target as HTMLInputElement;
+    this._trackComponent.track.pan = Number(input.value);
+    this._notationComponent.trackController.syncTrackPlaybackState();
   }
 
   onMuteButtonClicked(): void {
-    throw new Error("Method not implemented");
+    const track = this._trackComponent.track;
+    track.muted = !track.muted;
+    this._notationComponent.trackController.syncTrackPlaybackState();
+    this._renderFunc();
   }
 
   onSoloButtonClicked(): void {
-    throw new Error("Method not implemented");
+    const track = this._trackComponent.track;
+    track.soloed = !track.soloed;
+    this._notationComponent.trackController.syncTrackPlaybackState();
+    this._renderFunc();
   }
 
   onTrackSettingsClicked(): void {
@@ -112,8 +122,17 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
       },
       {
         element: this._trackComponent.template.volumeInput,
-        event: "change",
-        handler: () => this.onTrackVolumeChanged(),
+        event: "input",
+        handler: (event: InputEvent) => {
+          this.onTrackVolumeChanged(event);
+        },
+      },
+      {
+        element: this._trackComponent.template.panningInput,
+        event: "input",
+        handler: (event: InputEvent) => {
+          this.onTrackPanningChanged(event);
+        },
       },
       {
         element: this._trackComponent.template.muteButton,

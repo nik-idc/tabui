@@ -18,13 +18,6 @@ export interface PlaybackLoopSection {
   endBeat: Beat;
 }
 
-export interface PlaybackTraversalManagerRangeOptions {
-  /** Beat to start playback from. */
-  startBeat?: Beat;
-  /** Beat to end playback at. */
-  endBeat?: Beat;
-}
-
 interface PlaybackBoundary {
   /** Master bar index containing the playback clipping point. */
   masterBarIndex: number;
@@ -116,20 +109,21 @@ export class PlaybackTraversalManager {
   }
 
   /**
-   * Sets traversal boundaries from the provided playback options.
-   * @param options Playback traversal boundary options
+   * Sets traversal boundaries from the provided playback range.
+   * @param startBeat Beat to start playback from
+   * @param endBeat Beat to end playback at
    */
-  public setPlaybackRange(options: PlaybackTraversalManagerRangeOptions): void {
+  public setPlaybackRange(startBeat?: Beat, endBeat?: Beat): void {
     this.reset();
     this._playbackStartBoundary = this.getPlaybackStartBoundary(
       this._isLooped && this._loopSection !== undefined
         ? this._loopSection.startBeat
-        : options.startBeat
+        : startBeat
     );
     this._playbackEndBoundary =
       this._isLooped && this._loopSection !== undefined
         ? this.getPlaybackEndBoundary(this._loopSection.endBeat)
-        : this.getPlaybackEndBoundary(options.endBeat);
+        : this.getPlaybackEndBoundary(endBeat);
   }
 
   /**

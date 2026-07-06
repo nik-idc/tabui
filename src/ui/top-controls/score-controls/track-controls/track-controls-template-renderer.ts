@@ -77,7 +77,7 @@ export class TrackControlsTemplateRenderer {
     this.template.volumeInput.max = `${maxVolume}`;
     this.template.volumeInput.step = `${volumeStep}`;
 
-    this.template.volumeInput.value = `${(minVolume + maxVolume) / 2}`;
+    this.template.volumeInput.value = `${this.track.volume * maxVolume}`;
   }
 
   private renderPanningInput(): void {
@@ -88,7 +88,7 @@ export class TrackControlsTemplateRenderer {
     this.template.panningInput.max = `${maxPanning}`;
     this.template.panningInput.step = `${panningStep}`;
 
-    this.template.panningInput.value = `${0}`;
+    this.template.panningInput.value = `${this.track.pan}`;
   }
 
   private renderMuteButton(): void {
@@ -113,6 +113,25 @@ export class TrackControlsTemplateRenderer {
     );
   }
 
+  private renderPlaybackState(): void {
+    this.template.muteButton.classList.toggle(
+      "tu-track-control-active",
+      this.track.muted
+    );
+    this.template.muteButton.setAttribute(
+      "aria-pressed",
+      `${this.track.muted}`
+    );
+    this.template.soloButton.classList.toggle(
+      "tu-track-control-active",
+      this.track.soloed
+    );
+    this.template.soloButton.setAttribute(
+      "aria-pressed",
+      `${this.track.soloed}`
+    );
+  }
+
   private renderScoreSettingsButton(): void {
     const cssClass = "tu-track-settings-button";
     this.template.settingsButton.classList.add(cssClass);
@@ -131,6 +150,7 @@ export class TrackControlsTemplateRenderer {
     this.renderPanningInput();
     this.renderMuteButton();
     this.renderSoloButton();
+    this.renderPlaybackState();
     this.renderScoreSettingsButton();
 
     this._assembled = renderOnce(this._assembled, () =>

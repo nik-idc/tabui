@@ -1,6 +1,10 @@
 import { Note, getNoteFrequency } from "@/notation/model";
 import { PlaybackSampleManager } from "./playback-sample-manager";
-import { ScheduledAudioNode } from "./scheduled-audio-node";
+import { ScheduledAudioNode, TrackAudioBus } from "./scheduled-audio-node";
+
+const notePeakGain = 0.06;
+const attackSeconds = 0.01;
+const releaseSeconds = 0.02;
 
 /**
  * Schedules Web Audio nodes for individual notes.
@@ -72,7 +76,8 @@ export class PlaybackNoteScheduler {
   public scheduleNote(
     note: Note,
     startTime: number,
-    stopTime: number
+    stopTime: number,
+    trackBus: TrackAudioBus
   ): ScheduledAudioNode | null {
     const frequency = getNoteFrequency(note);
     if (frequency <= 0) {
@@ -81,17 +86,23 @@ export class PlaybackNoteScheduler {
 
     const sourceNode = this.createSourceNode(note, frequency);
     const gainNode = this._audioContext.createGain();
-    const releaseStartTime = Math.max(startTime + 0.01, stopTime - 0.02);
+    const attackEndTime = startTime + attackSeconds;
+    const releaseStartTime = Math.max(attackEndTime, stopTime - releaseSeconds);
+    const track = note.beat.voiceBar.bar.staff.track;
     gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(0.06, startTime + 0.01);
-    gainNode.gain.setValueAtTime(0.06, releaseStartTime);
+    gainNode.gain.linearRampToValueAtTime(notePeakGain, attackEndTime);
+    gainNode.gain.setValueAtTime(notePeakGain, releaseStartTime);
     gainNode.gain.linearRampToValueAtTime(0, stopTime);
 
     sourceNode.connect(gainNode);
-    gainNode.connect(this._audioContext.destination);
+    gainNode.connect(trackBus.gainNode);
     sourceNode.start(startTime);
     sourceNode.stop(stopTime);
 
-    return { sourceNode, gainNode };
+    return {
+      sourceNode,
+      track,
+      gainNode,
+    };
   }
 }

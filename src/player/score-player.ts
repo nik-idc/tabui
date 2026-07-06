@@ -69,10 +69,7 @@ export class ScorePlayer {
     this._scheduledUiTimeouts = new Set();
 
     this.score = score;
-    this._scheduler = new PlaybackScheduler({
-      score: this.score,
-      playbackConfig,
-    });
+    this._scheduler = new PlaybackScheduler(this.score, playbackConfig);
     this._activeTrackUUID = activeTrack.uuid;
     this._activeStaffUUID = activeTrack.staves[0].uuid;
   }
@@ -239,10 +236,7 @@ export class ScorePlayer {
     }
 
     this.resetSchedulingState();
-    this._scheduler.setPlaybackRange({
-      startBeat: options.startBeat,
-      endBeat: options.loopEndBeat,
-    });
+    this._scheduler.setPlaybackRange(options.startBeat, options.loopEndBeat);
 
     if (options.startBeat) {
       this._activeStaffUUID = options.startBeat.voiceBar.bar.staff.uuid;
@@ -287,6 +281,15 @@ export class ScorePlayer {
   /** Toggles loop mode. */
   public toggleLoop(): void {
     this._scheduler.toggleLoop();
+  }
+
+  /** Applies current track playback-control state to already scheduled audio. */
+  public syncTrackPlaybackState(): void {
+    if (this._audioContext === undefined) {
+      return;
+    }
+
+    this._scheduler.applyTrackControls(this._audioContext.currentTime);
   }
 
   /** Enables loop mode. */
