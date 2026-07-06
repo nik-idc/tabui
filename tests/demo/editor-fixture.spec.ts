@@ -12,12 +12,14 @@ import {
 describe("editor fixture and theme resolution", () => {
   it("resolves known fixture keys and falls back to default", () => {
     expect(
-      resolveEditorFixtureKey(new URLSearchParams("fixture=selection_perf"))
-    ).toBe("selection_perf");
+      resolveEditorFixtureKey(new URLSearchParams("fixture=performance_stress"))
+    ).toBe("performance_stress");
     expect(
       resolveEditorFixtureKey(new URLSearchParams("fixture=unknown"))
-    ).toBe("default");
-    expect(resolveEditorFixtureKey(new URLSearchParams())).toBe("default");
+    ).toBe("feature_showcase");
+    expect(resolveEditorFixtureKey(new URLSearchParams())).toBe(
+      "feature_showcase"
+    );
   });
 
   it("returns fresh score instances for fixture resolution", () => {
@@ -33,9 +35,9 @@ describe("editor fixture and theme resolution", () => {
 
   it("exposes fixture options for demo UI", () => {
     expect(getEditorFixtures().map((fixture) => fixture.key)).toEqual([
-      "default",
+      "feature_showcase",
       "empty",
-      "selection_perf",
+      "performance_stress",
       "multi_voice_single_staff",
       "multi_voice_two_staff",
     ]);

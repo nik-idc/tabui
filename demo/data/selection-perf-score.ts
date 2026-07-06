@@ -7,38 +7,26 @@ import { createScore } from "./helpers";
 
 const MASTER_BARS_COUNT = 1000;
 
-const denseBarsInfo = Array.from({ length: MASTER_BARS_COUNT }, (_, index) => {
-  const isThirtySecond = index % 2 === 1;
-
+const denseBarsInfo = Array.from({ length: MASTER_BARS_COUNT }, () => {
   return {
     beatsCount: 32,
     beatsDuration: NoteDuration.ThirtySecond,
   };
-
-  // beatsCount: 64,
-  // beatsDuration: NoteDuration.SixtyFourth,
-  // beatsCount: 32,
-  // beatsDuration: NoteDuration.ThirtySecond,
-
-  // beatsCount: isThirtySecond ? 32 : 16,
-  // beatsDuration: isThirtySecond
-  //   ? NoteDuration.ThirtySecond
-  //   : NoteDuration.Sixteenth,
 });
 
 const tracksInfo = [
   {
     instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
     stavesInfo: [denseBarsInfo],
-    name: "Selection Perf Track",
+    name: "Performance Stress Track",
   },
 ];
 
-export function createSelectionPerfScoreFixture(): Score {
+export function createPerformanceStressScoreFixture(): Score {
   return createScore(
-    "Selection Perf Score",
+    "Performance Stress Score",
     "TabUI",
-    "Selection Stress Test",
+    "Dense Playback/Layout Stress Test",
     MASTER_BARS_COUNT,
     tracksInfo
   );

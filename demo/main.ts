@@ -50,8 +50,8 @@ const selectedFixture = resolveEditorFixtureKey(searchParams);
 const selectedTheme = resolveEditorThemeKey(searchParams);
 const selectedScore = resolveEditorFixture(searchParams);
 const selectedThemeConfig = resolveEditorTheme(searchParams);
-if (selectedFixture === "selection_perf") {
-  console.log("=== PERF MODE ===", "Selection stress score enabled");
+if (selectedFixture === "performance_stress") {
+  console.log("=== PERF MODE ===", "Performance stress score enabled");
 }
 
 if (fixtureSelect !== null) {

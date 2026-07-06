@@ -53,7 +53,7 @@ Completed in Phase 0:
   and run via `npm test`.
 - Active suite currently covers 18 suites / 87 tests.
 - Repeatable fixture routing is in place via `fixture=empty`,
-  `fixture=default`, and `fixture=selection_perf`.
+  `fixture=feature_showcase`, and `fixture=performance_stress`.
 
 Exit criteria:
 
@@ -162,7 +162,7 @@ Completed in Phase 3:
   flows and plural bar removal.
 - Paste/replacement behavior was stabilized while intentionally keeping the
   current permissive no-rest model.
-- Large-score editing is now practically responsive on the dense selection-perf
+- Large-score editing is now practically responsive on the dense performance
   stress fixture used during Phase 3 work.
 
 Benchmark status:

@@ -1,16 +1,16 @@
 import { Score } from "@/notation/model";
 import { createEmptyScoreFixture } from "./empty-score";
-import { createDefaultScoreFixture } from "./full-score";
+import { createFeatureShowcaseScoreFixture } from "./full-score";
 import {
   createMultiVoiceSingleStaffScoreFixture,
   createMultiVoiceTwoStaffScoreFixture,
 } from "./multi-voice-score";
-import { createSelectionPerfScoreFixture } from "./selection-perf-score";
+import { createPerformanceStressScoreFixture } from "./selection-perf-score";
 
 export type EditorFixtureKey =
-  | "default"
+  | "feature_showcase"
   | "empty"
-  | "selection_perf"
+  | "performance_stress"
   | "multi_voice_single_staff"
   | "multi_voice_two_staff";
 
@@ -22,9 +22,9 @@ export interface EditorFixtureOption {
 
 const EDITOR_FIXTURES: EditorFixtureOption[] = [
   {
-    key: "default",
-    label: "Default Score",
-    createScore: createDefaultScoreFixture,
+    key: "feature_showcase",
+    label: "Feature Showcase",
+    createScore: createFeatureShowcaseScoreFixture,
   },
   {
     key: "empty",
@@ -32,9 +32,9 @@ const EDITOR_FIXTURES: EditorFixtureOption[] = [
     createScore: createEmptyScoreFixture,
   },
   {
-    key: "selection_perf",
-    label: "Selection Perf",
-    createScore: createSelectionPerfScoreFixture,
+    key: "performance_stress",
+    label: "Performance Stress",
+    createScore: createPerformanceStressScoreFixture,
   },
   {
     key: "multi_voice_single_staff",
@@ -58,14 +58,15 @@ export function resolveEditorFixtureKey(
   const fixture = searchParams.get("fixture");
   if (
     fixture === "empty" ||
-    fixture === "selection_perf" ||
+    fixture === "feature_showcase" ||
+    fixture === "performance_stress" ||
     fixture === "multi_voice_single_staff" ||
     fixture === "multi_voice_two_staff"
   ) {
     return fixture;
   }
 
-  return "default";
+  return "feature_showcase";
 }
 
 export function resolveEditorFixture(searchParams: URLSearchParams): Score {
