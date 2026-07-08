@@ -1,6 +1,7 @@
-import { ScoreControlsDefaultCallbacks } from "../../src/callbacks/ui/score-controls-callbacks";
-import { TrackControlsDefaultCallbacks } from "../../src/callbacks/ui/track-controls-callbacks";
-import { NewTrackControlsDefaultCallbacks } from "../../src/callbacks/ui/new-track-controls-callbacks";
+import { ScoreControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/score-controls-callbacks";
+import { TrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-controls-callbacks";
+import { NewTrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/new-track/new-track-controls-callbacks";
+import { TrackSettingsControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-settings/track-settings-controls-callbacks";
 import {
   createNotationComponentMock,
   dispatchClick,
@@ -24,10 +25,17 @@ describe("ScoreControlsDefaultCallbacks", () => {
     const newTrackUnbindSpy = jest
       .spyOn(NewTrackControlsDefaultCallbacks.prototype, "unbind")
       .mockImplementation(() => {});
+    const trackSettingsBindSpy = jest
+      .spyOn(TrackSettingsControlsDefaultCallbacks.prototype, "bind")
+      .mockImplementation(() => {});
+    const trackSettingsUnbindSpy = jest
+      .spyOn(TrackSettingsControlsDefaultCallbacks.prototype, "unbind")
+      .mockImplementation(() => {});
 
     const notationComponent = createNotationComponentMock();
     const captureKeyboard = jest.fn();
     const freeKeyboard = jest.fn();
+    const showTrackSettings = jest.fn();
     const score = { name: "Old" };
     const component = {
       template: {
@@ -38,11 +46,13 @@ describe("ScoreControlsDefaultCallbacks", () => {
         scoreNameInput: makeInput("New Name"),
       },
       newTrackComponent: {},
-      trackComponents: [{}, {}],
+      trackSettingsComponent: {},
+      trackComponents: [{ track: { id: 1 } }, { track: { id: 2 } }],
       tracksAreDisplayed: false,
       score,
       render: jest.fn(),
       showNewTrackDialog: jest.fn(),
+      showTrackSettingsDialog: jest.fn(),
       changeTracksAreDisplayed: jest.fn(() => {
         component.tracksAreDisplayed = !component.tracksAreDisplayed;
       }),
@@ -52,7 +62,8 @@ describe("ScoreControlsDefaultCallbacks", () => {
       notationComponent,
       jest.fn(),
       captureKeyboard,
-      freeKeyboard
+      freeKeyboard,
+      showTrackSettings
     );
 
     callbacks.bind();
@@ -71,6 +82,7 @@ describe("ScoreControlsDefaultCallbacks", () => {
     expect(score.name).toBe("New Name");
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
     expect(newTrackBindSpy).toHaveBeenCalledTimes(1);
+    expect(trackSettingsBindSpy).toHaveBeenCalledTimes(1);
 
     const renderCallsBeforeUnbind = component.render.mock.calls.length;
     callbacks.unbind();
@@ -78,10 +90,13 @@ describe("ScoreControlsDefaultCallbacks", () => {
     expect(component.render).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
     expect(trackUnbindSpy).toHaveBeenCalledTimes(4);
     expect(newTrackUnbindSpy).toHaveBeenCalledTimes(1);
+    expect(trackSettingsUnbindSpy).toHaveBeenCalledTimes(1);
 
     trackBindSpy.mockRestore();
     trackUnbindSpy.mockRestore();
     newTrackBindSpy.mockRestore();
     newTrackUnbindSpy.mockRestore();
+    trackSettingsBindSpy.mockRestore();
+    trackSettingsUnbindSpy.mockRestore();
   });
 });

@@ -1,14 +1,19 @@
 import { NotationComponent } from "@/notation/notation-component";
+import { Track } from "@/notation";
 import { ScoreControlsComponent } from "@/ui";
 import { ListenerManager } from "@/shared/misc";
 import {
   TrackControlsCallbacks,
   TrackControlsDefaultCallbacks,
-} from "./track-controls-callbacks";
+} from "./track-controls/track-controls-callbacks";
 import {
   NewTrackControlsCallbacks,
   NewTrackControlsDefaultCallbacks,
-} from "./new-track-controls-callbacks";
+} from "./new-track/new-track-controls-callbacks";
+import {
+  TrackSettingsControlsCallbacks,
+  TrackSettingsControlsDefaultCallbacks,
+} from "./track-controls/track-settings/track-settings-controls-callbacks";
 
 export interface ScoreControlsCallbacks {
   onShowTracksButtonClicked(): void;
@@ -28,9 +33,11 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   private _renderFunc: () => void;
   private _captureKeyboard: () => void;
   private _freeKeyboard: () => void;
+  private _showTrackSettings: (track: Track) => void;
 
   private _trackCallbacks: TrackControlsCallbacks[] = [];
   private _newTrackCallbacks: NewTrackControlsCallbacks;
+  private _trackSettingsCallbacks: TrackSettingsControlsCallbacks;
 
   private _listeners = new ListenerManager();
   private _bound = false;
@@ -42,16 +49,25 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     notationComponent: NotationComponent,
     renderFunc: () => void,
     captureKeyboard: () => void,
-    freeKeyboard: () => void
+    freeKeyboard: () => void,
+    showTrackSettings: (track: Track) => void
   ) {
     this._scoreComponent = scoreComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
     this._captureKeyboard = captureKeyboard;
     this._freeKeyboard = freeKeyboard;
+    this._showTrackSettings = showTrackSettings;
 
     this._newTrackCallbacks = new NewTrackControlsDefaultCallbacks(
       this._scoreComponent.newTrackComponent,
+      this._notationComponent,
+      this._renderFunc,
+      this._captureKeyboard,
+      this._freeKeyboard
+    );
+    this._trackSettingsCallbacks = new TrackSettingsControlsDefaultCallbacks(
+      this._scoreComponent.trackSettingsComponent,
       this._notationComponent,
       this._renderFunc,
       this._captureKeyboard,
@@ -106,7 +122,8 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
         this._notationComponent,
         this._renderFunc,
         this._captureKeyboard,
-        this._freeKeyboard
+        this._freeKeyboard,
+        () => this._showTrackSettings(trackComponent.track)
       );
       callbacks.bind();
 
@@ -160,6 +177,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     this.bindTracksCallbacks();
 
     this._newTrackCallbacks.bind();
+    this._trackSettingsCallbacks.bind();
     this._bound = true;
   }
 
@@ -173,6 +191,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
       trackCallbacks.unbind();
     }
     this._newTrackCallbacks.unbind();
+    this._trackSettingsCallbacks.unbind();
     this._trackCallbacks = [];
     this._bound = false;
   }

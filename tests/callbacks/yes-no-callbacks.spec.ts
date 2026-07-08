@@ -1,4 +1,4 @@
-import { YesNoDefaultCallbacks } from "../../src/callbacks/ui/yes-no-callbacks";
+import { YesNoDefaultCallbacks } from "../../src/ui/shared/yes-no/yes-no-callbacks";
 import {
   createNotationComponentMock,
   dispatchClick,

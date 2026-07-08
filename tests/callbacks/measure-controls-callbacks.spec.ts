@@ -1,6 +1,6 @@
-import { MeasureControlsDefaultCallbacks } from "../../src/callbacks/ui/measure-controls-callbacks";
-import { TempoControlsDefaultCallbacks } from "../../src/callbacks/ui/tempo-controls-callbacks";
-import { TimeSigControlsDefaultCallbacks } from "../../src/callbacks/ui/time-sig-controls-callbacks";
+import { MeasureControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/measure-controls-callbacks";
+import { TempoControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/tempo-controls/tempo-controls-callbacks";
+import { TimeSigControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/time-sig-controls/time-sig-controls-callbacks";
 import { BarRepeatStatus } from "../../src/notation/model";
 import {
   createNotationComponentMock,

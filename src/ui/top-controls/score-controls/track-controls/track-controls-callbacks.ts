@@ -1,11 +1,10 @@
 import { NotationComponent } from "@/notation/notation-component";
 import { TrackControlsComponent } from "@/ui";
 import { ListenerManager } from "@/shared/misc";
-import { YesNoCallbacks, YesNoDefaultCallbacks } from "./yes-no-callbacks";
 import {
-  TrackSettingsControlsCallbacks,
-  TrackSettingsControlsDefaultCallbacks,
-} from "./track-settings-callbacks";
+  YesNoCallbacks,
+  YesNoDefaultCallbacks,
+} from "@/ui/shared/yes-no/yes-no-callbacks";
 
 export interface TrackControlsCallbacks {
   onTrackRemoveClicked(): void;
@@ -25,25 +24,27 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   private _renderFunc: () => void;
   private _captureKeyboard: () => void;
   private _freeKeyboard: () => void;
+  private _showTrackSettings: () => void;
 
   private _listeners = new ListenerManager();
   private _bound = false;
 
   private _yesNoCallbacks: YesNoCallbacks;
-  private _trackSettingsCallbacks: TrackSettingsControlsCallbacks;
 
   constructor(
     trackComponent: TrackControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
     captureKeyboard: () => void,
-    freeKeyboard: () => void
+    freeKeyboard: () => void,
+    showTrackSettings: () => void
   ) {
     this._trackComponent = trackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
     this._captureKeyboard = captureKeyboard;
     this._freeKeyboard = freeKeyboard;
+    this._showTrackSettings = showTrackSettings;
 
     this._yesNoCallbacks = new YesNoDefaultCallbacks(
       this._trackComponent.yesNoComponent,
@@ -52,14 +53,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
       this._captureKeyboard,
       this._freeKeyboard,
       () => this._notationComponent.removeTrack(this._trackComponent.track)
-    );
-
-    this._trackSettingsCallbacks = new TrackSettingsControlsDefaultCallbacks(
-      this._trackComponent.trackSettingsComponent,
-      this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
     );
   }
 
@@ -101,7 +94,7 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
 
   onTrackSettingsClicked(): void {
     this._captureKeyboard();
-    this._trackComponent.showTrackSettings();
+    this._showTrackSettings();
   }
 
   bind(): void {
@@ -152,7 +145,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     ]);
 
     this._yesNoCallbacks.bind();
-    this._trackSettingsCallbacks.bind();
     this._bound = true;
   }
 
@@ -163,7 +155,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
 
     this._listeners.unbindAll();
     this._yesNoCallbacks.unbind();
-    this._trackSettingsCallbacks.unbind();
     this._bound = false;
   }
 }

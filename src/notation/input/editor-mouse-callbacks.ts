@@ -4,7 +4,7 @@ import { NotationComponent } from "@/notation/notation-component";
 import { ElementRenderer } from "@/notation/render/element-renderer";
 import { Point } from "@/shared";
 import { UIComponent } from "@/ui";
-import { RenderType } from "../render-type";
+import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
 
 export interface EditorMouseCallbacks {

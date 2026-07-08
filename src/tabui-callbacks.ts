@@ -4,10 +4,10 @@ import {
   EditorKeyboardDefCallbacks,
   EditorMouseCallbacks,
   EditorMouseDefCallbacks,
-} from "./editor";
-import { RenderType } from "./render-type";
+  RenderType,
+} from "./notation/input";
 import { UIComponent } from "@/ui";
-import { UICallbacks } from "./ui";
+import { UICallbacks } from "./ui/ui-callbacks";
 
 export class TabUICallbacks {
   private _uiComponent: UIComponent;

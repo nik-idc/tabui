@@ -1,4 +1,4 @@
-import { TimeSigControlsDefaultCallbacks } from "../../src/callbacks/ui/time-sig-controls-callbacks";
+import { TimeSigControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/time-sig-controls/time-sig-controls-callbacks";
 import { NoteDuration } from "../../src/notation/model";
 import {
   createNotationComponentMock,

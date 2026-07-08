@@ -17,7 +17,7 @@ export const INSTRUMENT_KINDS: Record<string, Record<string, string[]>> = {
 export class TrackSettingsControlsComponent {
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
-  readonly track: Track;
+  private _track: Track;
 
   readonly template: TrackSettingsControlsTemplate;
   readonly templateRenderer: TrackSettingsControlsTemplateRenderer;
@@ -33,7 +33,7 @@ export class TrackSettingsControlsComponent {
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
-    this.track = track;
+    this._track = track;
 
     this.template = new TrackSettingsControlsTemplate();
     this.templateRenderer = new TrackSettingsControlsTemplateRenderer(
@@ -42,6 +42,16 @@ export class TrackSettingsControlsComponent {
       this.template
     );
 
+    this._trackName = track.name;
+    this._stringCount = (track.context.instrument as Guitar).stringsCount;
+    this._tuning = (track.context.instrument as Guitar).tuning
+      .map((n) => n.noteValue)
+      .reverse()
+      .join(" ");
+  }
+
+  public setTrack(track: Track): void {
+    this._track = track;
     this._trackName = track.name;
     this._stringCount = (track.context.instrument as Guitar).stringsCount;
     this._tuning = (track.context.instrument as Guitar).tuning
@@ -72,6 +82,10 @@ export class TrackSettingsControlsComponent {
 
   public get trackName(): string {
     return this._trackName;
+  }
+
+  public get track(): Track {
+    return this._track;
   }
 
   public get stringCount(): number {

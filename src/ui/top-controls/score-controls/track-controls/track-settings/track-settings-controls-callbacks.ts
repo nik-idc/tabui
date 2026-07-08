@@ -2,6 +2,7 @@ import { isValidGuitarTuning } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";
 import { TrackSettingsControlsComponent } from "@/ui/top-controls/score-controls/track-controls/track-settings";
+
 export interface TrackSettingsControlsCallbacks {
   readonly stringCountErrorText: string;
   readonly trackNameErrorText: string;

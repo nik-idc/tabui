@@ -3,15 +3,15 @@ import { NotationComponent } from "@/notation/notation-component";
 import {
   TechniqueControlsCallbacks,
   TechniqueControlsDefaultCallbacks,
-} from "./effect-controls-callbacks";
+} from "./effect-controls/effect-controls-callbacks";
 import {
   MeasureControlsCallbacks,
   MeasureControlsDefaultCallbacks,
-} from "./measure-controls-callbacks";
+} from "./measure-controls/measure-controls-callbacks";
 import {
   NoteControlsCallbacks,
   NoteControlsDefaultCallbacks,
-} from "./note-controls-callbacks";
+} from "./note-controls/note-controls-callbacks";
 
 export class SideControlsCallbacks {
   private _noteCallbacks: NoteControlsCallbacks;

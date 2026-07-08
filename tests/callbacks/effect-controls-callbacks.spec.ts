@@ -1,5 +1,5 @@
-import { TechniqueControlsDefaultCallbacks } from "../../src/callbacks/ui/effect-controls-callbacks";
-import { BendControlsDefaultCallbacks } from "../../src/callbacks/ui/bend-controls-callbacks";
+import { TechniqueControlsDefaultCallbacks } from "../../src/ui/side-controls/effect-controls/effect-controls-callbacks";
+import { BendControlsDefaultCallbacks } from "../../src/ui/side-controls/effect-controls/bend-controls/bend-controls-callbacks";
 import { GuitarTechniqueType } from "../../src/notation/model";
 import {
   createNotationComponentMock,

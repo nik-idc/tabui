@@ -1,7 +1,7 @@
-import { SideControlsCallbacks } from "../../src/callbacks/ui/side-callbacks";
-import { NoteControlsDefaultCallbacks } from "../../src/callbacks/ui/note-controls-callbacks";
-import { TechniqueControlsDefaultCallbacks } from "../../src/callbacks/ui/effect-controls-callbacks";
-import { MeasureControlsDefaultCallbacks } from "../../src/callbacks/ui/measure-controls-callbacks";
+import { SideControlsCallbacks } from "../../src/ui/side-controls/side-controls-callbacks";
+import { NoteControlsDefaultCallbacks } from "../../src/ui/side-controls/note-controls/note-controls-callbacks";
+import { TechniqueControlsDefaultCallbacks } from "../../src/ui/side-controls/effect-controls/effect-controls-callbacks";
+import { MeasureControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/measure-controls-callbacks";
 
 describe("SideControlsCallbacks", () => {
   test("bind and unbind delegate to child callbacks", () => {

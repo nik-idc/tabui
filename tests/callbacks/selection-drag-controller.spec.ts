@@ -1,4 +1,4 @@
-import { SelectionDragController } from "../../src/callbacks/editor/selection-drag-controller";
+import { SelectionDragController } from "../../src/notation/input/selection-drag-controller";
 import { Point } from "../../src/shared";
 
 function createBeatElement(width: number = 40) {

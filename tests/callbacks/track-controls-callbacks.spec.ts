@@ -1,6 +1,5 @@
-import { TrackControlsDefaultCallbacks } from "../../src/callbacks/ui/track-controls-callbacks";
-import { YesNoDefaultCallbacks } from "../../src/callbacks/ui/yes-no-callbacks";
-import { TrackSettingsControlsDefaultCallbacks } from "../../src/callbacks/ui/track-settings-callbacks";
+import { TrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-controls-callbacks";
+import { YesNoDefaultCallbacks } from "../../src/ui/shared/yes-no/yes-no-callbacks";
 import {
   createNotationComponentMock,
   dispatchClick,
@@ -17,16 +16,10 @@ describe("TrackControlsDefaultCallbacks", () => {
     const yesUnbindSpy = jest
       .spyOn(YesNoDefaultCallbacks.prototype, "unbind")
       .mockImplementation(() => {});
-    const settingsBindSpy = jest
-      .spyOn(TrackSettingsControlsDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const settingsUnbindSpy = jest
-      .spyOn(TrackSettingsControlsDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
-
     const notationComponent = createNotationComponentMock();
     const renderFunc = jest.fn();
     const captureKeyboard = jest.fn();
+    const showTrackSettings = jest.fn();
     const track = { id: 1, volume: 0.5, pan: 0, muted: false, soloed: false };
     const component = {
       template: {
@@ -39,17 +32,16 @@ describe("TrackControlsDefaultCallbacks", () => {
         settingsButton: makeButton(),
       },
       yesNoComponent: {},
-      trackSettingsComponent: {},
       track,
       showRemoveDialog: jest.fn(),
-      showTrackSettings: jest.fn(),
     } as any;
     const callbacks = new TrackControlsDefaultCallbacks(
       component,
       notationComponent,
       renderFunc,
       captureKeyboard,
-      jest.fn()
+      jest.fn(),
+      showTrackSettings
     );
 
     callbacks.bind();
@@ -73,20 +65,16 @@ describe("TrackControlsDefaultCallbacks", () => {
     expect(renderFunc).toHaveBeenCalledTimes(3);
     expect(captureKeyboard).toHaveBeenCalledTimes(2);
     expect(component.showRemoveDialog).toHaveBeenCalledTimes(1);
-    expect(component.showTrackSettings).toHaveBeenCalledTimes(1);
+    expect(showTrackSettings).toHaveBeenCalledTimes(1);
     expect(yesBindSpy).toHaveBeenCalledTimes(1);
-    expect(settingsBindSpy).toHaveBeenCalledTimes(1);
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
     dispatchClick(component.template.trackButton);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
     expect(yesUnbindSpy).toHaveBeenCalledTimes(1);
-    expect(settingsUnbindSpy).toHaveBeenCalledTimes(1);
 
     yesBindSpy.mockRestore();
     yesUnbindSpy.mockRestore();
-    settingsBindSpy.mockRestore();
-    settingsUnbindSpy.mockRestore();
   });
 });

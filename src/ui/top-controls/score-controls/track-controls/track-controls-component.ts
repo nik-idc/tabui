@@ -3,7 +3,6 @@ import { TrackControlsTemplate } from "./track-controls-template";
 import { TrackControlsTemplateRenderer } from "./track-controls-template-renderer";
 import { Track } from "@/notation";
 import { YesNoComponent } from "@/ui/shared/yes-no";
-import { TrackSettingsControlsComponent } from "./track-settings";
 
 export class TrackControlsComponent {
   readonly parentDiv: HTMLDivElement;
@@ -14,7 +13,6 @@ export class TrackControlsComponent {
   readonly templateRenderer: TrackControlsTemplateRenderer;
 
   readonly yesNoComponent: YesNoComponent;
-  readonly trackSettingsComponent: TrackSettingsControlsComponent;
 
   constructor(
     parentDiv: HTMLDivElement,
@@ -38,25 +36,15 @@ export class TrackControlsComponent {
       this.notationComponent,
       `Are you sure you want to delete track "${this.track.name}"?`
     );
-    this.trackSettingsComponent = new TrackSettingsControlsComponent(
-      this.template.container,
-      this.notationComponent,
-      this.track
-    );
   }
 
   public render(): void {
     this.templateRenderer.render();
 
     this.yesNoComponent.render();
-    this.trackSettingsComponent.render();
   }
 
   public showRemoveDialog(): void {
     this.yesNoComponent.template.yesNoDialog.showModal();
-  }
-
-  public showTrackSettings(): void {
-    this.trackSettingsComponent.template.dialog.showModal();
   }
 }

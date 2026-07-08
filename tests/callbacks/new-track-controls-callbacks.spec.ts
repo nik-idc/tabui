@@ -1,4 +1,4 @@
-import { NewTrackControlsDefaultCallbacks } from "../../src/callbacks/ui/new-track-controls-callbacks";
+import { NewTrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/new-track/new-track-controls-callbacks";
 import {
   createNotationComponentMock,
   dispatchClick,
