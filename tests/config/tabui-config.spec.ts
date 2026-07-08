@@ -1,5 +1,5 @@
 import { resolveTabUIConfig } from "../../src/config/tabui-config";
-import { ElectricGuitarPreset, NoteValue } from "../../src/notation/model";
+import { ElectricGuitarTone, NoteValue } from "../../src/notation/model";
 
 describe("tabui-config", () => {
   it("fills defaults for empty config", () => {
@@ -55,10 +55,10 @@ describe("tabui-config", () => {
     );
   });
 
-  it("resolves playback samples by instrument preset", () => {
+  it("resolves playback samples by instrument tone", () => {
     const config = resolveTabUIConfig({
       playback: {
-        [ElectricGuitarPreset.Clean]: {
+        [ElectricGuitarTone.Clean]: {
           url: "/samples/clean.wav",
           rootNote: {
             noteValue: NoteValue.C,
@@ -68,7 +68,7 @@ describe("tabui-config", () => {
       },
     });
 
-    expect(config.playback[ElectricGuitarPreset.Clean]).toEqual({
+    expect(config.playback[ElectricGuitarTone.Clean]).toEqual({
       url: "/samples/clean.wav",
       rootFrequency: 130.8127826502993,
     });

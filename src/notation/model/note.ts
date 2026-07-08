@@ -1,6 +1,6 @@
 import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
-import { MusicInstrumentType } from "./instrument/instrument-type";
+import { InstrumentType } from "./instrument/instrument-type";
 import { Beat } from "./beat";
 import { Technique } from "./technique";
 import { TechniqueType } from "./technique-type";
@@ -29,7 +29,7 @@ export enum NoteValue {
  * Base note JSON format
  */
 export interface NoteJSON {
-  instrumentType: MusicInstrumentType;
+  instrumentType: InstrumentType;
   noteValue: NoteValue;
   octave: number | null;
 }

@@ -415,7 +415,7 @@
             margin-right: 3px;
           }
 
-          .tu-nt-presets-container {
+          .tu-nt-tones-container {
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -508,16 +508,55 @@
       display: flex;
       flex-direction: column;
 
-      .tu-ts-track-info-container {
+      .tu-ts-settings-container {
         display: flex;
         flex-direction: column;
 
-        .tu-ts-input {
-          @extend %tu-input-number-style;
+        .tu-ts-kinds-container {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+
+          img {
+            width: 75px;
+            height: 75px;
+            border-radius: 20px;
+          }
         }
 
-        .tu-ts-error {
-          @extend %tu-input-error-text;
+        .tu-ts-instr-settings-container {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 5px;
+
+          .tu-ts-types-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-right: 3px;
+          }
+
+          .tu-ts-tones-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-left: 3px;
+          }
+        }
+
+        .tu-ts-track-info-container {
+          display: flex;
+          flex-direction: column;
+
+          .tu-ts-input {
+            @extend %tu-input-number-style;
+          }
+
+          .tu-ts-error {
+            @extend %tu-input-error-text;
+          }
         }
       }
 
@@ -535,6 +574,12 @@
         button {
           @extend %tu-button-style;
         }
+      }
+
+      button {
+        @extend %tu-button-style;
+        width: 100%;
+        box-sizing: border-box;
       }
     }
   }

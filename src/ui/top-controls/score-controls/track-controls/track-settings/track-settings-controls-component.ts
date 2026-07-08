@@ -1,18 +1,19 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { Track, Guitar } from "@/notation";
+import {
+  ElectricGuitarTone,
+  Guitar,
+  InstrumentFamily,
+  InstrumentType,
+  INSTRUMENT_TYPES,
+  INSTRUMENT_TONES,
+  isStringInstrumentType,
+  parseTuning,
+  StringInstrumentTone,
+  StringInstrumentType,
+  Track,
+} from "@/notation";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
 import { TrackSettingsControlsTemplateRenderer } from "./track-settings-controls-template-renderer";
-
-export const INSTRUMENT_KINDS: Record<string, Record<string, string[]>> = {
-  Strings: {
-    Acoustic: ["Steel", "Nylon"],
-    Electric: ["Clean", "Overdrive", "Distortion"],
-    Bass: ["Acoustic", "Clean", "Distortion"],
-    Other: ["Ukulele", "Banjo"],
-  },
-  Orchestra: {},
-  Drums: {},
-};
 
 export class TrackSettingsControlsComponent {
   readonly parentDiv: HTMLDivElement;
@@ -22,6 +23,9 @@ export class TrackSettingsControlsComponent {
   readonly template: TrackSettingsControlsTemplate;
   readonly templateRenderer: TrackSettingsControlsTemplateRenderer;
 
+  private _instrumentFamily: InstrumentFamily = InstrumentFamily.Strings;
+  private _instrumentType: InstrumentType;
+  private _instrumentTone: StringInstrumentTone;
   private _trackName: string;
   private _stringCount: number;
   private _tuning: string;
@@ -42,16 +46,20 @@ export class TrackSettingsControlsComponent {
       this.template
     );
 
-    this._trackName = track.name;
-    this._stringCount = (track.context.instrument as Guitar).stringsCount;
-    this._tuning = (track.context.instrument as Guitar).tuning
-      .map((n) => n.noteValue)
-      .reverse()
-      .join(" ");
+    this._instrumentType = StringInstrumentType.ElectricGuitar;
+    this._instrumentTone = ElectricGuitarTone.Clean;
+    this._trackName = "";
+    this._stringCount = 6;
+    this._tuning = "E A D G B E";
+    this.setTrack(track);
   }
 
   public setTrack(track: Track): void {
     this._track = track;
+    this._instrumentFamily = track.context.instrument.family;
+    this._instrumentType = track.context.instrument.type;
+    this._instrumentTone = track.context.instrument
+      .tone as StringInstrumentTone;
     this._trackName = track.name;
     this._stringCount = (track.context.instrument as Guitar).stringsCount;
     this._tuning = (track.context.instrument as Guitar).tuning
@@ -62,9 +70,61 @@ export class TrackSettingsControlsComponent {
 
   public render(): void {
     this.templateRenderer.render(
+      this._instrumentFamily,
+      this._instrumentType,
+      this._instrumentTone,
       this._trackName,
       this._stringCount,
       this._tuning
+    );
+  }
+
+  public setFamily(newFamily: InstrumentFamily): void {
+    const types = INSTRUMENT_TYPES[newFamily];
+    if (types.length === 0) {
+      return;
+    }
+
+    this._instrumentFamily = newFamily;
+    this._instrumentType = types[0];
+    const tones = INSTRUMENT_TONES[this._instrumentType];
+    if (tones === undefined || tones.length === 0) {
+      return;
+    }
+    this._instrumentTone = tones[0];
+    this.render();
+  }
+
+  public setType(newType: InstrumentType): void {
+    const tones = INSTRUMENT_TONES[newType];
+    if (tones === undefined || tones.length === 0) {
+      return;
+    }
+
+    this._instrumentType = newType;
+    this._instrumentTone = tones[0];
+    this.render();
+  }
+
+  public setTone(newTone: StringInstrumentTone): void {
+    this._instrumentTone = newTone;
+    this.render();
+  }
+
+  public applyTrackSettings(): void {
+    if (!isStringInstrumentType(this._instrumentType)) {
+      throw new Error("Unsupported instrument selection");
+    }
+
+    this._track.name = this._trackName;
+    this._track.setInstrument(
+      new Guitar(
+        this._instrumentType,
+        this._instrumentTone,
+        this._trackName,
+        this._stringCount,
+        parseTuning(this._tuning)
+      )
     );
   }
 
@@ -86,6 +146,14 @@ export class TrackSettingsControlsComponent {
 
   public get track(): Track {
     return this._track;
+  }
+
+  public get instrumentFamily(): InstrumentFamily {
+    return this._instrumentFamily;
+  }
+
+  public get instrumentType(): InstrumentType {
+    return this._instrumentType;
   }
 
   public get stringCount(): number {

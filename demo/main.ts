@@ -1,9 +1,9 @@
 import { TabUIEditor } from "@/tabui-editor";
 import {
-  AcousticGuitarPreset,
-  BassGuitarPreset,
+  AcousticGuitarTone,
+  BassGuitarTone,
   EditorLayoutDimensions,
-  ElectricGuitarPreset,
+  ElectricGuitarTone,
   NoteValue,
 } from "@/notation";
 import {
@@ -113,42 +113,42 @@ themeSelect?.addEventListener("change", () => {
 const tabuiEditor = new TabUIEditor(rootDiv, selectedScore, {
   ...selectedThemeConfig,
   playback: {
-    [ElectricGuitarPreset.Clean]: {
+    [ElectricGuitarTone.Clean]: {
       url: CLEAN_GUITAR_SAMPLE_URL,
       rootNote: {
         noteValue: NoteValue.C,
         octave: 3,
       },
     },
-    [ElectricGuitarPreset.Overdrive]: {
+    [ElectricGuitarTone.Overdrive]: {
       url: OVERDRIVEN_GUITAR_SAMPLE_URL,
       rootNote: {
         noteValue: NoteValue.C,
         octave: 3,
       },
     },
-    [ElectricGuitarPreset.Distortion]: {
+    [ElectricGuitarTone.Distortion]: {
       url: DISTORTED_GUITAR_SAMPLE_URL,
       rootNote: {
         noteValue: NoteValue.C,
         octave: 3,
       },
     },
-    [BassGuitarPreset.Clean]: {
+    [BassGuitarTone.Clean]: {
       url: SLAP_BASS_SAMPLE_URL,
       rootNote: {
         noteValue: NoteValue.C,
         octave: 2,
       },
     },
-    [AcousticGuitarPreset.Nylon]: {
+    [AcousticGuitarTone.Nylon]: {
       url: NYLON_GUITAR_SAMPLE_URL,
       rootNote: {
         noteValue: NoteValue.C,
         octave: 4,
       },
     },
-    [AcousticGuitarPreset.Steel]: {
+    [AcousticGuitarTone.Steel]: {
       url: STEEL_GUITAR_SAMPLE_URL,
       rootNote: {
         noteValue: NoteValue.C,

@@ -11,13 +11,13 @@ export class NewTrackControlsTemplate {
   readonly dialog: HTMLDialogElement = createDialog();
   /**/ readonly dialogContent: HTMLDivElement = createDiv();
   /****/ readonly settingsContainer: HTMLDivElement = createDiv();
-  /******/ readonly instrKindsContainer: HTMLDivElement = createDiv();
-  /********/ readonly instrKindsButtons: HTMLImageElement[] = [];
+  /******/ readonly instrFamiliesContainer: HTMLDivElement = createDiv();
+  /********/ readonly instrFamiliesButtons: HTMLImageElement[] = [];
   /******/ readonly instrSelectContainer: HTMLDivElement = createDiv();
   /********/ readonly instrTypesContainer: HTMLDivElement = createDiv();
   /**********/ instrTypesButtons: HTMLButtonElement[] = [];
-  /********/ readonly instrPresetsContainer: HTMLDivElement = createDiv();
-  /**********/ instrPresetsButtons: HTMLButtonElement[] = [];
+  /********/ readonly instrTonesContainer: HTMLDivElement = createDiv();
+  /**********/ instrTonesButtons: HTMLButtonElement[] = [];
   /******/ readonly trackInfoContainer: HTMLDivElement = createDiv();
   /********/ readonly trackNameInput: HTMLInputElement = createInput();
   /********/ readonly trackNameError: HTMLDivElement = createDiv();

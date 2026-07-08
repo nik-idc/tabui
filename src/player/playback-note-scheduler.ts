@@ -15,7 +15,7 @@ const releaseSeconds = 0.02;
 export class PlaybackNoteScheduler {
   /** Audio context used to create and schedule note nodes. */
   private _audioContext: AudioContext;
-  /** Sample manager used to resolve configured samples by instrument preset. */
+  /** Sample manager used to resolve configured samples by instrument tone. */
   private _sampleManager: PlaybackSampleManager;
 
   /**
@@ -41,9 +41,9 @@ export class PlaybackNoteScheduler {
     note: Note,
     frequency: number
   ): AudioScheduledSourceNode {
-    const preset = note.trackContext.instrument.preset;
-    const sample = this._sampleManager.getSample(preset);
-    const rootFrequency = this._sampleManager.getRootFrequency(preset);
+    const tone = note.trackContext.instrument.tone;
+    const sample = this._sampleManager.getSample(tone);
+    const rootFrequency = this._sampleManager.getRootFrequency(tone);
     if (sample === undefined || rootFrequency === undefined) {
       const oscillatorNode = this._audioContext.createOscillator();
       oscillatorNode.type = "sine";

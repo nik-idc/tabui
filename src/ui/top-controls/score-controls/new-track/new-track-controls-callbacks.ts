@@ -1,9 +1,13 @@
 import { isValidGuitarTuning } from "@/notation/model";
-import { NotationComponent } from "@/notation/notation-component";
 import {
-  INSTRUMENT_KINDS,
-  NewTrackControlsComponent,
-} from "@/ui/top-controls/score-controls/new-track/new-track-controls-component";
+  InstrumentFamily,
+  InstrumentType,
+  INSTRUMENT_TYPES,
+  INSTRUMENT_TONES,
+  StringInstrumentTone,
+} from "@/notation/model";
+import { NotationComponent } from "@/notation/notation-component";
+import { NewTrackControlsComponent } from "@/ui/top-controls/score-controls/new-track/new-track-controls-component";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";
 export interface NewTrackControlsCallbacks {
   readonly stringCountErrorText: string;
@@ -11,9 +15,9 @@ export interface NewTrackControlsCallbacks {
   readonly tuningErrorText: string;
 
   onDialogClicked(event: MouseEvent): void;
-  onKindClicked(kind: string): void;
-  onTypeClicked(type: string): void;
-  onPresetClicked(preset: string): void;
+  onFamilyClicked(family: InstrumentFamily): void;
+  onTypeClicked(type: InstrumentType): void;
+  onToneClicked(tone: StringInstrumentTone): void;
   onTrackNameChanged(): void;
   onStringCountChanged(): void;
   onTuningChange(): void;
@@ -78,18 +82,18 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     }
   }
 
-  onKindClicked(kind: string): void {
-    this._newTrackComponent.setKind(kind);
+  onFamilyClicked(family: InstrumentFamily): void {
+    this._newTrackComponent.setFamily(family);
     this._renderFunc();
   }
 
-  onTypeClicked(type: string): void {
+  onTypeClicked(type: InstrumentType): void {
     this._newTrackComponent.setType(type);
     this._renderFunc();
   }
 
-  onPresetClicked(preset: string): void {
-    this._newTrackComponent.setPreset(preset);
+  onToneClicked(tone: StringInstrumentTone): void {
+    this._newTrackComponent.setTone(tone);
     this._renderFunc();
   }
 
@@ -167,17 +171,18 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
     });
 
-    const kinds = this._newTrackComponent.getAllKinds();
-    const kindsButtons = this._newTrackComponent.template.instrKindsButtons;
-    for (let i = 0; i < kinds.length; i++) {
+    const families = Object.values(InstrumentFamily);
+    const familiesButtons =
+      this._newTrackComponent.template.instrFamiliesButtons;
+    for (let i = 0; i < families.length; i++) {
       configs.push({
-        element: kindsButtons[i] as HTMLElement,
+        element: familiesButtons[i] as HTMLElement,
         event: "click",
-        handler: () => this.onKindClicked(kinds[i]),
+        handler: () => this.onFamilyClicked(families[i]),
       });
     }
 
-    const types = this._newTrackComponent.getAllTypes();
+    const types = INSTRUMENT_TYPES[this._newTrackComponent.instrumentFamily];
     const typesButtons = this._newTrackComponent.template.instrTypesButtons;
     for (let i = 0; i < types.length; i++) {
       configs.push({
@@ -187,13 +192,14 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       });
     }
 
-    const presets = this._newTrackComponent.getAllPresets();
-    const presetsButtons = this._newTrackComponent.template.instrPresetsButtons;
-    for (let i = 0; i < presets.length; i++) {
+    const tones =
+      INSTRUMENT_TONES[this._newTrackComponent.instrumentType] ?? [];
+    const tonesButtons = this._newTrackComponent.template.instrTonesButtons;
+    for (let i = 0; i < tones.length; i++) {
       configs.push({
-        element: presetsButtons[i] as HTMLElement,
+        element: tonesButtons[i] as HTMLElement,
         event: "click",
-        handler: () => this.onPresetClicked(presets[i]),
+        handler: () => this.onToneClicked(tones[i]),
       });
     }
 

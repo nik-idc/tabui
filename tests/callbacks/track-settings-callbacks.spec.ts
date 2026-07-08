@@ -1,5 +1,10 @@
 import { TrackSettingsControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-settings/track-settings-controls-callbacks";
 import {
+  ElectricGuitarTone,
+  InstrumentFamily,
+  StringInstrumentType,
+} from "../../src/notation/model";
+import {
   createNotationComponentMock,
   dispatchClick,
   dispatchInput,
@@ -22,6 +27,13 @@ function createTrackSettingsHarness() {
   const tuningError = makeText();
   const confirmButton = makeButton();
   const cancelButton = makeButton();
+  const familyButtons = [
+    makeButton() as any,
+    makeButton() as any,
+    makeButton() as any,
+  ];
+  const typeButtons = [makeButton(), makeButton(), makeButton(), makeButton()];
+  const toneButtons = [makeButton(), makeButton(), makeButton()];
   const track = { name: "Track 1" };
   const component = {
     template: {
@@ -35,10 +47,18 @@ function createTrackSettingsHarness() {
       tuningError,
       confirmButton,
       cancelButton,
+      instrFamiliesButtons: familyButtons,
+      instrTypesButtons: typeButtons,
+      instrTonesButtons: toneButtons,
     },
     track,
     stringCount: 6,
     trackName: "Track 1",
+    instrumentFamily: InstrumentFamily.Strings,
+    instrumentType: StringInstrumentType.ElectricGuitar,
+    setFamily: jest.fn(),
+    setType: jest.fn(),
+    setTone: jest.fn(),
     setTrackName: jest.fn((name: string) => {
       component.trackName = name;
     }),
@@ -46,6 +66,9 @@ function createTrackSettingsHarness() {
       component.stringCount = count;
     }),
     setTuning: jest.fn(),
+    applyTrackSettings: jest.fn(() => {
+      component.track.name = component.trackName;
+    }),
   } as any;
   const renderFunc = jest.fn();
   const freeKeyboard = jest.fn();
@@ -100,6 +123,18 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
 
     callbacks.bind();
     callbacks.bind();
+
+    dispatchClick(component.template.instrFamiliesButtons[0]);
+    expect(component.setFamily).toHaveBeenCalledWith(InstrumentFamily.Strings);
+    dispatchClick(component.template.instrTypesButtons[1]);
+    expect(component.setType).toHaveBeenCalledWith(
+      StringInstrumentType.ElectricGuitar
+    );
+    dispatchClick(component.template.instrTonesButtons[1]);
+    expect(component.setTone).toHaveBeenCalledWith(
+      ElectricGuitarTone.Overdrive
+    );
+
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
     dispatchClick(component.template.confirmButton);
@@ -109,6 +144,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
       freeKeyboardCallsBeforeConfirm + 1
     );
     expect(component.track.name).toBe(component.trackName);
+    expect(component.applyTrackSettings).toHaveBeenCalledTimes(1);
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();

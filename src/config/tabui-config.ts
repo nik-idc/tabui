@@ -1,6 +1,6 @@
 import { normalizeAssetBaseUrl } from "./asset-url-resolver";
 import {
-  MusicInstrumentPreset,
+  InstrumentTone,
   NoteType,
   NoteValue,
   getFrequencyFromNoteType,
@@ -18,7 +18,7 @@ export interface PlaybackSampleConfig {
 }
 
 export type PlaybackConfig = Partial<
-  Record<MusicInstrumentPreset, PlaybackSampleConfig>
+  Record<InstrumentTone, PlaybackSampleConfig>
 >;
 
 export interface ResolvedPlaybackSampleConfig {
@@ -28,7 +28,7 @@ export interface ResolvedPlaybackSampleConfig {
 }
 
 export type ResolvedPlaybackConfig = Partial<
-  Record<MusicInstrumentPreset, ResolvedPlaybackSampleConfig>
+  Record<InstrumentTone, ResolvedPlaybackSampleConfig>
 >;
 
 export interface TabUIConfig {
@@ -115,12 +115,12 @@ function resolvePlaybackConfig(
   config: PlaybackConfig = {}
 ): ResolvedPlaybackConfig {
   const resolved: ResolvedPlaybackConfig = {};
-  for (const [preset, sampleConfig] of Object.entries(config)) {
+  for (const [tone, sampleConfig] of Object.entries(config)) {
     if (sampleConfig === undefined) {
       continue;
     }
 
-    resolved[preset as MusicInstrumentPreset] = {
+    resolved[tone as InstrumentTone] = {
       url: sampleConfig.url,
       rootFrequency: getFrequencyFromNoteType(
         sampleConfig.rootNote ?? DEFAULT_SAMPLE_ROOT_NOTE

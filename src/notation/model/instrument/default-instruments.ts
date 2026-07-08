@@ -2,28 +2,28 @@ import { DEFAULT_TUNINGS } from "./guitar/default-tunings";
 import { Guitar } from "./guitar/guitar";
 import { MusicInstrument } from "./instrument";
 import {
-  AcousticGuitarPreset,
-  ElectricGuitarPreset,
-  BassGuitarPreset,
-  OtherStringPreset,
-} from "./instrument-preset";
-import { StringMusicInstrumentType } from "./instrument-type";
+  AcousticGuitarTone,
+  ElectricGuitarTone,
+  BassGuitarTone,
+  OtherStringTone,
+} from "./instrument-tone";
+import { StringInstrumentType } from "./instrument-type";
 
 export const DEFAULT_ACOUSTIC_GUITARS: Record<
-  AcousticGuitarPreset,
+  AcousticGuitarTone,
   MusicInstrument
 > = {
-  [AcousticGuitarPreset.Nylon]: new Guitar(
-    StringMusicInstrumentType.AcousticGuitar,
-    AcousticGuitarPreset.Nylon,
+  [AcousticGuitarTone.Nylon]: new Guitar(
+    StringInstrumentType.AcousticGuitar,
+    AcousticGuitarTone.Nylon,
     "Default Nylon Guitar",
     6,
     DEFAULT_TUNINGS[6].Standard,
     18
   ),
-  [AcousticGuitarPreset.Steel]: new Guitar(
-    StringMusicInstrumentType.AcousticGuitar,
-    AcousticGuitarPreset.Steel,
+  [AcousticGuitarTone.Steel]: new Guitar(
+    StringInstrumentType.AcousticGuitar,
+    AcousticGuitarTone.Steel,
     "Default Acoustic Guitar",
     6,
     DEFAULT_TUNINGS[6].Standard,
@@ -32,28 +32,28 @@ export const DEFAULT_ACOUSTIC_GUITARS: Record<
 };
 
 export const DEFAULT_ELECTRIC_GUITARS: Record<
-  ElectricGuitarPreset,
+  ElectricGuitarTone,
   MusicInstrument
 > = {
-  [ElectricGuitarPreset.Clean]: new Guitar(
-    StringMusicInstrumentType.ElectricGuitar,
-    ElectricGuitarPreset.Clean,
+  [ElectricGuitarTone.Clean]: new Guitar(
+    StringInstrumentType.ElectricGuitar,
+    ElectricGuitarTone.Clean,
     "Default Clean Electirc Guitar",
     6,
     DEFAULT_TUNINGS[6].Standard,
     24
   ),
-  [ElectricGuitarPreset.Overdrive]: new Guitar(
-    StringMusicInstrumentType.ElectricGuitar,
-    ElectricGuitarPreset.Overdrive,
+  [ElectricGuitarTone.Overdrive]: new Guitar(
+    StringInstrumentType.ElectricGuitar,
+    ElectricGuitarTone.Overdrive,
     "Default Overdrive Electirc Guitar",
     6,
     DEFAULT_TUNINGS[6].Standard,
     24
   ),
-  [ElectricGuitarPreset.Distortion]: new Guitar(
-    StringMusicInstrumentType.ElectricGuitar,
-    ElectricGuitarPreset.Distortion,
+  [ElectricGuitarTone.Distortion]: new Guitar(
+    StringInstrumentType.ElectricGuitar,
+    ElectricGuitarTone.Distortion,
     "Default Distortion Electirc Guitar",
     6,
     DEFAULT_TUNINGS[6].Standard,
@@ -61,26 +61,26 @@ export const DEFAULT_ELECTRIC_GUITARS: Record<
   ),
 };
 
-export const DEFAULT_BASS_GUITARS: Record<BassGuitarPreset, MusicInstrument> = {
-  [BassGuitarPreset.Acoustic]: new Guitar(
-    StringMusicInstrumentType.BassGuitar,
-    BassGuitarPreset.Acoustic,
+export const DEFAULT_BASS_GUITARS: Record<BassGuitarTone, MusicInstrument> = {
+  [BassGuitarTone.Acoustic]: new Guitar(
+    StringInstrumentType.BassGuitar,
+    BassGuitarTone.Acoustic,
     "Default Acoustic Bass Guitar",
     4,
     DEFAULT_TUNINGS[4].BassStandard,
     24
   ),
-  [BassGuitarPreset.Clean]: new Guitar(
-    StringMusicInstrumentType.BassGuitar,
-    BassGuitarPreset.Clean,
+  [BassGuitarTone.Clean]: new Guitar(
+    StringInstrumentType.BassGuitar,
+    BassGuitarTone.Clean,
     "Default Clean Bass Guitar",
     4,
     DEFAULT_TUNINGS[4].BassStandard,
     24
   ),
-  [BassGuitarPreset.Distortion]: new Guitar(
-    StringMusicInstrumentType.BassGuitar,
-    BassGuitarPreset.Distortion,
+  [BassGuitarTone.Distortion]: new Guitar(
+    StringInstrumentType.BassGuitar,
+    BassGuitarTone.Distortion,
     "Default Distortion Bass Guitar",
     4,
     DEFAULT_TUNINGS[4].BassStandard,
@@ -88,22 +88,21 @@ export const DEFAULT_BASS_GUITARS: Record<BassGuitarPreset, MusicInstrument> = {
   ),
 };
 
-export const DEFAULT_OTHER_STRING: Record<OtherStringPreset, MusicInstrument> =
-  {
-    [OtherStringPreset.Banjo]: new Guitar(
-      StringMusicInstrumentType.Other,
-      OtherStringPreset.Banjo,
-      "Default Banjo",
-      5,
-      DEFAULT_TUNINGS[5].BanjoStandard,
-      22
-    ),
-    [OtherStringPreset.Ukulele]: new Guitar(
-      StringMusicInstrumentType.Other,
-      OtherStringPreset.Ukulele,
-      "Default Ukulele",
-      4,
-      DEFAULT_TUNINGS[4].UkuleleStandard,
-      15
-    ),
-  };
+export const DEFAULT_OTHER_STRING: Record<OtherStringTone, MusicInstrument> = {
+  [OtherStringTone.Banjo]: new Guitar(
+    StringInstrumentType.Other,
+    OtherStringTone.Banjo,
+    "Default Banjo",
+    5,
+    DEFAULT_TUNINGS[5].BanjoStandard,
+    22
+  ),
+  [OtherStringTone.Ukulele]: new Guitar(
+    StringInstrumentType.Other,
+    OtherStringTone.Ukulele,
+    "Default Ukulele",
+    4,
+    DEFAULT_TUNINGS[4].UkuleleStandard,
+    15
+  ),
+};

@@ -10,8 +10,8 @@ import {
   Guitar,
   MusicInstrument,
   NoteDuration,
-  ElectricGuitarPreset,
-  StringMusicInstrumentType,
+  ElectricGuitarTone,
+  StringInstrumentType,
   getNoteFrequency,
 } from "../../src/notation/model";
 import { trackEvent, TrackEventType } from "../../src/shared/events";
@@ -510,7 +510,7 @@ describe("ScorePlayer", () => {
     });
 
     const player = new ScorePlayer(score, track, {
-      [ElectricGuitarPreset.Clean]: {
+      [ElectricGuitarTone.Clean]: {
         url: "/samples/clean-electric-guitar.wav",
         rootFrequency: getNoteFrequency(firstBeatOf(bar).notes![0]),
       },
@@ -526,12 +526,12 @@ describe("ScorePlayer", () => {
     expect(createdOscillators).toHaveLength(0);
   });
 
-  test("uses separate configured samples for different presets", async () => {
+  test("uses separate configured samples for different tones", async () => {
     const { score, track, bar } = createScoreGraph();
     const leadTrack = score.addTrack(
       new Guitar(
-        StringMusicInstrumentType.ElectricGuitar,
-        ElectricGuitarPreset.Overdrive,
+        StringInstrumentType.ElectricGuitar,
+        ElectricGuitarTone.Overdrive,
         "Lead"
       ),
       "Lead"
@@ -547,11 +547,11 @@ describe("ScorePlayer", () => {
 
     const noteFrequency = getNoteFrequency(firstBeatOf(bar).notes![0]);
     const player = new ScorePlayer(score, track, {
-      [ElectricGuitarPreset.Clean]: {
+      [ElectricGuitarTone.Clean]: {
         url: "/samples/clean.wav",
         rootFrequency: noteFrequency,
       },
-      [ElectricGuitarPreset.Overdrive]: {
+      [ElectricGuitarTone.Overdrive]: {
         url: "/samples/overdrive.wav",
         rootFrequency: noteFrequency / 2,
       },
@@ -577,7 +577,7 @@ describe("ScorePlayer", () => {
       .mockImplementation(() => {});
 
     const player = new ScorePlayer(score, track, {
-      [ElectricGuitarPreset.Clean]: {
+      [ElectricGuitarTone.Clean]: {
         url: "/samples/missing.wav",
         rootFrequency: 82.4068892282175,
       },

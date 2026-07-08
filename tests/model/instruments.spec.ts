@@ -9,14 +9,14 @@ import {
   getNoteFrequency,
 } from "../../src/notation/model";
 import {
-  BassGuitarPreset,
-  OtherStringPreset,
-} from "../../src/notation/model/instrument/instrument-preset";
+  BassGuitarTone,
+  OtherStringTone,
+} from "../../src/notation/model/instrument/instrument-tone";
 import { createScoreGraph } from "./helpers";
 
 describe("Default instruments", () => {
   test("ukulele default uses four strings and matching tuning", () => {
-    const ukulele = DEFAULT_OTHER_STRING[OtherStringPreset.Ukulele];
+    const ukulele = DEFAULT_OTHER_STRING[OtherStringTone.Ukulele];
 
     expect(ukulele).toBeInstanceOf(Guitar);
     expect((ukulele as Guitar).stringsCount).toBe(4);
@@ -24,7 +24,7 @@ describe("Default instruments", () => {
   });
 
   test("default bass uses tuning length matching string count", () => {
-    const bass = DEFAULT_BASS_GUITARS[BassGuitarPreset.Clean] as Guitar;
+    const bass = DEFAULT_BASS_GUITARS[BassGuitarTone.Clean] as Guitar;
 
     expect(bass.tuning).toHaveLength(bass.stringsCount);
   });

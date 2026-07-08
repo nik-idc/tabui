@@ -92,6 +92,10 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
     }
   }
 
+  public setInstrument(instrument: I): void {
+    this.context.instrument = instrument;
+  }
+
   /**
    * Insert a staff
    * @param index Index after which to insert the staff

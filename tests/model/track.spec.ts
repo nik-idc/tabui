@@ -1,4 +1,10 @@
-import { Guitar, Score, Track } from "../../src/notation/model";
+import {
+  ElectricGuitarTone,
+  Guitar,
+  Score,
+  StringInstrumentType,
+  Track,
+} from "../../src/notation/model";
 
 describe("Track model", () => {
   test("new Track creates one default staff", () => {
@@ -47,5 +53,18 @@ describe("Track model", () => {
 
     expect(result.staves).toHaveLength(1);
     expect(result.staves[0].bars).toHaveLength(score.masterBars.length);
+  });
+
+  test("setInstrument updates the track context instrument", () => {
+    const track = new Track(new Score(), new Guitar(), "Guitar");
+    const instrument = new Guitar(
+      StringInstrumentType.ElectricGuitar,
+      ElectricGuitarTone.Overdrive
+    );
+
+    track.setInstrument(instrument);
+
+    expect(track.context.instrument).toBe(instrument);
+    expect(track.staves[0].trackContext.instrument).toBe(instrument);
   });
 });

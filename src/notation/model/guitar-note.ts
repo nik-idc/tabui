@@ -3,7 +3,7 @@ import { Beat } from "./beat";
 import { TrackContext } from "./track-context";
 import { GuitarTechniqueJSON, GuitarTechnique } from "./guitar-technique";
 import { Guitar } from "./instrument/guitar";
-import { MusicInstrumentType } from "./instrument/instrument-type";
+import { InstrumentType } from "./instrument/instrument-type";
 import {
   NoteValue,
   Note,
@@ -20,7 +20,7 @@ import { TECHNIQUES_INCOMPATIBILITY } from "./guitar-technique-lists";
  * Guitar note JSON format
  */
 export interface GuitarNoteJSON {
-  instrumentType: MusicInstrumentType;
+  instrumentType: InstrumentType;
   noteValue: NoteValue;
   octave: number | null;
   stringNum: number;
@@ -357,7 +357,7 @@ export class GuitarNote implements Note<Guitar> {
     }
 
     return {
-      instrumentType: obj.instrumentType as MusicInstrumentType,
+      instrumentType: obj.instrumentType as InstrumentType,
       noteValue: obj.noteValue as NoteValue,
       octave: obj.octave,
       stringNum: obj.stringNum,

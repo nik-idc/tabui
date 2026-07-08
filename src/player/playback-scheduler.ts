@@ -31,7 +31,7 @@ export class PlaybackScheduler {
   private _traversalManager: PlaybackTraversalManager;
   /** Playback sample configuration. */
   private _playbackConfig: ResolvedPlaybackConfig;
-  /** Sample manager used to resolve configured samples by instrument preset. */
+  /** Sample manager used to resolve configured samples by instrument tone. */
   private _sampleManager?: PlaybackSampleManager;
   /** Scheduler that creates Web Audio nodes for individual notes. */
   private _noteScheduler?: PlaybackNoteScheduler;
