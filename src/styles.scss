@@ -502,6 +502,7 @@
 
   .tu-ts-dialog {
     @extend %tu-modal-dialog;
+    width: 400px;
 
     .tu-ts-content {
       @extend %tu-modal-dialog-content;
@@ -645,6 +646,11 @@
 .tu-applied-img {
   background-color: var(--tu-applied-color);
   border-radius: var(--tu-border-radius);
+}
+
+.tu-applied-button {
+  background-color: var(--tu-applied-color);
+  box-shadow: 0 0 0 2px var(--tu-applied-color);
 }
 
 .tu-disabled-img {

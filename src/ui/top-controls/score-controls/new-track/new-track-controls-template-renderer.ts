@@ -116,6 +116,10 @@ export class NewTrackControlsTemplateRenderer {
     for (let i = 0; i < families.length; i++) {
       const imageButton = this.template.instrFamiliesButtons[i];
       const family = families[i];
+      imageButton.classList.toggle(
+        "tu-applied-img",
+        family === this._currentFamily
+      );
       setImageAsset(
         imageButton,
         this.assetsPath,
@@ -139,8 +143,10 @@ export class NewTrackControlsTemplateRenderer {
     for (let i = 0; i < types.length; i++) {
       const typeButton = this.template.instrTypesButtons[i];
       typeButton.textContent = `${types[i]}`;
-
-      // Mark applied/disabled
+      typeButton.classList.toggle(
+        "tu-applied-button",
+        types[i] === this._currentType
+      );
     }
   }
 
@@ -157,10 +163,12 @@ export class NewTrackControlsTemplateRenderer {
     }
 
     for (let i = 0; i < tones.length; i++) {
-      const typeButton = this.template.instrTonesButtons[i];
-      typeButton.textContent = `${tones[i]}`;
-
-      // Mark applied/disabled
+      const toneButton = this.template.instrTonesButtons[i];
+      toneButton.textContent = `${tones[i]}`;
+      toneButton.classList.toggle(
+        "tu-applied-button",
+        tones[i] === this._currentTone
+      );
     }
   }
 

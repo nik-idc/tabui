@@ -115,6 +115,10 @@ export class TrackSettingsControlsTemplateRenderer {
     for (let i = 0; i < families.length; i++) {
       const imageButton = this.template.instrFamiliesButtons[i];
       const family = families[i];
+      imageButton.classList.toggle(
+        "tu-applied-img",
+        family === this._currentFamily
+      );
       setImageAsset(
         imageButton,
         this.assetsPath,
@@ -136,7 +140,12 @@ export class TrackSettingsControlsTemplateRenderer {
     }
 
     for (let i = 0; i < types.length; i++) {
-      this.template.instrTypesButtons[i].textContent = `${types[i]}`;
+      const typeButton = this.template.instrTypesButtons[i];
+      typeButton.textContent = `${types[i]}`;
+      typeButton.classList.toggle(
+        "tu-applied-button",
+        types[i] === this._currentType
+      );
     }
   }
 
@@ -152,7 +161,12 @@ export class TrackSettingsControlsTemplateRenderer {
     }
 
     for (let i = 0; i < tones.length; i++) {
-      this.template.instrTonesButtons[i].textContent = `${tones[i]}`;
+      const toneButton = this.template.instrTonesButtons[i];
+      toneButton.textContent = `${tones[i]}`;
+      toneButton.classList.toggle(
+        "tu-applied-button",
+        tones[i] === this._currentTone
+      );
     }
   }
 
