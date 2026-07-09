@@ -79,7 +79,7 @@ export class GuitarNote implements Note<Guitar> {
   /**
    * Calculate musical note value based on the fret & string number
    */
-  private calcNoteFromFret(): void {
+  public calcNoteFromFret(): void {
     if (this._fret === null) {
       this._noteValue = NoteValue.None;
       this._octave = null;
@@ -115,7 +115,7 @@ export class GuitarNote implements Note<Guitar> {
   /**
    * Calculate musical note value based on note & octave value
    */
-  private calculateFretFromNote(): void {
+  public calculateFretFromNote(): void {
     if (this._noteValue === NoteValue.None) {
       this._fret = null;
       return;

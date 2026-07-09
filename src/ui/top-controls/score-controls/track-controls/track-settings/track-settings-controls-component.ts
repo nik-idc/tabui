@@ -7,10 +7,11 @@ import {
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
   isStringInstrumentType,
-  parseTuning,
+  parseTuningStrSimple,
   StringInstrumentTone,
   StringInstrumentType,
   Track,
+  TrackInstrumentChangeMode,
 } from "@/notation";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
 import { TrackSettingsControlsTemplateRenderer } from "./track-settings-controls-template-renderer";
@@ -28,7 +29,9 @@ export class TrackSettingsControlsComponent {
   private _instrumentTone: StringInstrumentTone;
   private _trackName: string;
   private _stringCount: number;
+  private _originalTuning: string;
   private _tuning: string;
+  private _tuningChangeMode: TrackInstrumentChangeMode = "keepFrets";
 
   constructor(
     parentDiv: HTMLDivElement,
@@ -50,22 +53,26 @@ export class TrackSettingsControlsComponent {
     this._instrumentTone = ElectricGuitarTone.Clean;
     this._trackName = "";
     this._stringCount = 6;
+    this._originalTuning = "E A D G B E";
     this._tuning = "E A D G B E";
     this.setTrack(track);
   }
 
   public setTrack(track: Track): void {
+    if (!(track.context.instrument instanceof Guitar)) {
+      throw new Error("Non guitar instruments are currently unsupported");
+    }
+
     this._track = track;
     this._instrumentFamily = track.context.instrument.family;
     this._instrumentType = track.context.instrument.type;
     this._instrumentTone = track.context.instrument
       .tone as StringInstrumentTone;
     this._trackName = track.name;
-    this._stringCount = (track.context.instrument as Guitar).stringsCount;
-    this._tuning = (track.context.instrument as Guitar).tuning
-      .map((n) => n.noteValue)
-      .reverse()
-      .join(" ");
+    this._stringCount = track.context.instrument.stringsCount;
+    this._originalTuning = track.context.instrument.getTuningStrSimple();
+    this._tuning = this._originalTuning;
+    this._tuningChangeMode = "keepFrets";
   }
 
   public render(): void {
@@ -75,7 +82,9 @@ export class TrackSettingsControlsComponent {
       this._instrumentTone,
       this._trackName,
       this._stringCount,
-      this._tuning
+      this._tuning,
+      this._originalTuning,
+      this._tuningChangeMode
     );
   }
 
@@ -117,14 +126,16 @@ export class TrackSettingsControlsComponent {
     }
 
     this._track.name = this._trackName;
+    const tuning = parseTuningStrSimple(this._tuning);
     this._track.setInstrument(
       new Guitar(
         this._instrumentType,
         this._instrumentTone,
         this._trackName,
         this._stringCount,
-        parseTuning(this._tuning)
-      )
+        tuning
+      ),
+      this._tuningChangeMode
     );
   }
 
@@ -138,6 +149,11 @@ export class TrackSettingsControlsComponent {
 
   public setTuning(tuning: string): void {
     this._tuning = tuning;
+  }
+
+  public setTuningChangeMode(mode: TrackInstrumentChangeMode): void {
+    this._tuningChangeMode = mode;
+    this.render();
   }
 
   public get trackName(): string {

@@ -14,6 +14,7 @@ import {
   INSTRUMENT_TONES,
   InstrumentType,
   StringInstrumentType,
+  TrackInstrumentChangeMode,
 } from "@/notation";
 
 export class TrackSettingsControlsTemplateRenderer {
@@ -27,7 +28,9 @@ export class TrackSettingsControlsTemplateRenderer {
   private _currentTone: string = INSTRUMENT_TONES[this._currentType]?.[0] ?? "";
   private _currentTrackName: string = "Edit track";
   private _currentStringCount: number = 6;
+  private _originalTuning: string = "E A D G B E";
   private _currentTuning: string = "E A D G B E";
+  private _currentTuningChangeMode: TrackInstrumentChangeMode = "keepFrets";
 
   private _assembled: boolean;
 
@@ -100,7 +103,12 @@ export class TrackSettingsControlsTemplateRenderer {
       this.template.stringCountInput,
       this.template.stringCountError,
       this.template.tuningInput,
-      this.template.tuningError
+      this.template.tuningError,
+      this.template.tuningModeContainer
+    );
+    this.template.tuningModeContainer.append(
+      this.template.keepFretsButton,
+      this.template.transposeButton
     );
   }
 
@@ -186,6 +194,21 @@ export class TrackSettingsControlsTemplateRenderer {
     this.template.tuningInput.classList.add(newTrackInputCSSClass);
     this.template.tuningInput.value = this._currentTuning;
     this.template.tuningError.classList.add(newTrackErrorCSSClass);
+    this.template.tuningModeContainer.classList.add(
+      "tu-ts-tuning-mode-container"
+    );
+    this.template.tuningModeContainer.style.display =
+      this._currentTuning === this._originalTuning ? "none" : "flex";
+    this.template.keepFretsButton.textContent = "Keep frets";
+    this.template.transposeButton.textContent = "Transpose";
+    this.template.keepFretsButton.classList.toggle(
+      "tu-applied-button",
+      this._currentTuningChangeMode === "keepFrets"
+    );
+    this.template.transposeButton.classList.toggle(
+      "tu-applied-button",
+      this._currentTuningChangeMode === "transpose"
+    );
   }
 
   private renderActionButtons(): void {
@@ -203,7 +226,9 @@ export class TrackSettingsControlsTemplateRenderer {
     currentTone: string,
     currentTrackName: string,
     currentStringCount: number,
-    currentTuning: string
+    currentTuning: string,
+    originalTuning: string,
+    currentTuningChangeMode: TrackInstrumentChangeMode
   ): void {
     if (this._currentFamily !== currentFamily) {
       this.template.instrTypesContainer.replaceChildren();
@@ -219,6 +244,8 @@ export class TrackSettingsControlsTemplateRenderer {
     this._currentTrackName = currentTrackName;
     this._currentStringCount = currentStringCount;
     this._currentTuning = currentTuning;
+    this._originalTuning = originalTuning;
+    this._currentTuningChangeMode = currentTuningChangeMode;
 
     this.renderInstrumentFamiliesButtons();
     this.renderInstrumentTypesButtons();

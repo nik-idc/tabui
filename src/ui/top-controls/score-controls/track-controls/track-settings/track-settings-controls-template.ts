@@ -25,6 +25,9 @@ export class TrackSettingsControlsTemplate {
   /******/ readonly stringCountError: HTMLDivElement = createDiv();
   /******/ readonly tuningInput: HTMLInputElement = createInput();
   /******/ readonly tuningError: HTMLDivElement = createDiv();
+  /******/ readonly tuningModeContainer: HTMLDivElement = createDiv();
+  /********/ readonly keepFretsButton: HTMLButtonElement = createButton();
+  /********/ readonly transposeButton: HTMLButtonElement = createButton();
   /****/ readonly actionsContainer: HTMLDivElement = createDiv();
   /******/ readonly confirmButton: HTMLButtonElement = createButton();
   /******/ readonly cancelButton: HTMLButtonElement = createButton();

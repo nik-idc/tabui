@@ -5,6 +5,7 @@ import {
   INSTRUMENT_TONES,
   isValidGuitarTuning,
   StringInstrumentTone,
+  TrackInstrumentChangeMode,
 } from "@/notation/model";
 import { NotationComponent } from "@/notation/notation-component";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";
@@ -22,6 +23,7 @@ export interface TrackSettingsControlsCallbacks {
   onTrackNameChanged(): void;
   onStringCountChanged(): void;
   onTuningChange(): void;
+  onTuningModeClicked(mode: TrackInstrumentChangeMode): void;
   onConfirmClicked(): void;
   onCancelClicked(): void;
   bind(): void;
@@ -151,11 +153,22 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       tuningError.textContent = " ";
       confirmButton.disabled = false;
       this._trackSettingsComponent.setTuning(tuningInput.value);
+      this._trackSettingsComponent.render();
     }
+  }
+
+  onTuningModeClicked(mode: TrackInstrumentChangeMode): void {
+    this._trackSettingsComponent.setTuningChangeMode(mode);
   }
 
   onConfirmClicked(): void {
     this._trackSettingsComponent.applyTrackSettings();
+    if (
+      this._notationComponent.trackController.track ===
+      this._trackSettingsComponent.track
+    ) {
+      this._notationComponent.loadTrack(this._trackSettingsComponent.track);
+    }
     this._renderFunc();
 
     this._trackSettingsComponent.template.dialog.close();
@@ -229,6 +242,18 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
           .tuningInput as HTMLElement,
         event: "input",
         handler: (event: Event) => this.onTuningChange(),
+      },
+      {
+        element: this._trackSettingsComponent.template
+          .keepFretsButton as HTMLElement,
+        event: "click",
+        handler: () => this.onTuningModeClicked("keepFrets"),
+      },
+      {
+        element: this._trackSettingsComponent.template
+          .transposeButton as HTMLElement,
+        event: "click",
+        handler: () => this.onTuningModeClicked("transpose"),
       },
       {
         element: this._trackSettingsComponent.template

@@ -1,10 +1,14 @@
 import {
   ElectricGuitarTone,
   Guitar,
+  GuitarNote,
+  parseTuning,
+  parseTuningStrSimple,
   Score,
   StringInstrumentType,
   Track,
 } from "../../src/notation/model";
+import { createScoreGraph } from "./helpers";
 
 describe("Track model", () => {
   test("new Track creates one default staff", () => {
@@ -66,5 +70,83 @@ describe("Track model", () => {
 
     expect(track.context.instrument).toBe(instrument);
     expect(track.staves[0].trackContext.instrument).toBe(instrument);
+  });
+
+  test("setInstrument keeps frets and recalculates pitch by default", () => {
+    const { track, bar } = createScoreGraph();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected test bar to include voice 1");
+    }
+    const beat = voiceBar.beats[0];
+    const note = new GuitarNote(beat, beat.trackContext, 6, 3);
+    beat.makeBeatWithNotes();
+    const [storedNote] = beat.setNote(0, note).notes as GuitarNote[];
+
+    track.setInstrument(
+      new Guitar(
+        StringInstrumentType.ElectricGuitar,
+        ElectricGuitarTone.Clean,
+        "Drop D",
+        6,
+        parseTuning("E B G D A D")
+      )
+    );
+
+    expect(storedNote.fret).toBe(3);
+    expect(storedNote.getNoteStr()).toBe("F2");
+  });
+
+  test("setInstrument transpose mode keeps pitch and recalculates fret", () => {
+    const { track, bar } = createScoreGraph();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected test bar to include voice 1");
+    }
+    const beat = voiceBar.beats[0];
+    const note = new GuitarNote(beat, beat.trackContext, 6, 3);
+    beat.makeBeatWithNotes();
+    const [storedNote] = beat.setNote(0, note).notes as GuitarNote[];
+
+    track.setInstrument(
+      new Guitar(
+        StringInstrumentType.ElectricGuitar,
+        ElectricGuitarTone.Clean,
+        "Drop D",
+        6,
+        parseTuning("E B G D A D")
+      ),
+      "transpose"
+    );
+
+    expect(storedNote.getNoteStr()).toBe("G2");
+    expect(storedNote.fret).toBe(5);
+  });
+
+  test("setInstrument transpose mode handles conventional tuning input order", () => {
+    const { track, bar } = createScoreGraph();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected test bar to include voice 1");
+    }
+    const beat = voiceBar.beats[0];
+    beat.makeBeatWithNotes();
+    const note = new GuitarNote(beat, beat.trackContext, 6, 3);
+    const [storedNote] = beat.setNote(0, note).notes as GuitarNote[];
+    const originalPitch = storedNote.getNoteStr();
+
+    track.setInstrument(
+      new Guitar(
+        StringInstrumentType.ElectricGuitar,
+        ElectricGuitarTone.Clean,
+        "Drop D",
+        6,
+        parseTuningStrSimple("D A D G B E")
+      ),
+      "transpose"
+    );
+
+    expect(storedNote.getNoteStr()).toBe(originalPitch);
+    expect(storedNote.fret).toBe(5);
   });
 });

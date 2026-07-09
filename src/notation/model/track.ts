@@ -3,6 +3,9 @@ import { MusicInstrument, MusicInstrumentJSON } from "./instrument/instrument";
 import { Staff, StaffJSON } from "./staff";
 import { TrackContext } from "./track-context";
 import { Score } from "./score";
+import { GuitarNote } from "./guitar-note";
+
+export type TrackInstrumentChangeMode = "keepFrets" | "transpose";
 
 export type StaffArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
@@ -92,8 +95,31 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
     }
   }
 
-  public setInstrument(instrument: I): void {
+  public setInstrument(
+    instrument: I,
+    mode: TrackInstrumentChangeMode = "keepFrets"
+  ): void {
     this.context.instrument = instrument;
+
+    for (const staff of this._staves) {
+      for (const bar of staff.bars) {
+        for (const voiceBar of bar.voiceBarsAsArray) {
+          for (const beat of voiceBar.beats) {
+            for (const note of beat.notes ?? []) {
+              if (!(note instanceof GuitarNote)) {
+                continue;
+              }
+
+              if (mode === "transpose") {
+                note.calculateFretFromNote();
+              } else {
+                note.calcNoteFromFret();
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   /**

@@ -1,4 +1,5 @@
 import { NoteType, NoteValue } from "../../note";
+import { DEFAULT_TUNINGS } from "./default-tunings";
 
 /**
  * 🚨🚨🚨 !!! AI SLOP !!! 🚨🚨🚨
@@ -112,4 +113,20 @@ export function parseTuning(tuning: string): NoteType[] {
     const octave = octaveForString(i);
     return { noteValue, octave };
   });
+}
+
+export function parseTuningStrSimple(tuning: string): NoteType[] {
+  const parsed = parseTuning(tuning).reverse();
+  const defaultTuning = Object.values(DEFAULT_TUNINGS)
+    .flatMap((tunings) => Object.values(tunings))
+    .find((defaultTuning) => defaultTuning.length === parsed.length);
+
+  if (defaultTuning === undefined) {
+    return parsed;
+  }
+
+  return parsed.map((note, index) => ({
+    noteValue: note.noteValue,
+    octave: defaultTuning[index].octave,
+  }));
 }

@@ -101,6 +101,13 @@ export class Guitar implements MusicInstrument {
     return tuningStrArr.join("");
   }
 
+  public getTuningStrSimple(): string {
+    return this._tuning
+      .map((n) => n.noteValue)
+      .reverse()
+      .join(" ");
+  }
+
   /**
    * Parses guitar into JSON string
    * @returns Parsed JSON string

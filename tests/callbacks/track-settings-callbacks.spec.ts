@@ -1,7 +1,9 @@
 import { TrackSettingsControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-settings/track-settings-controls-callbacks";
 import {
   ElectricGuitarTone,
+  Guitar,
   InstrumentFamily,
+  parseTuningStrSimple,
   StringInstrumentType,
 } from "../../src/notation/model";
 import {
@@ -25,6 +27,8 @@ function createTrackSettingsHarness() {
   const trackNameError = makeText();
   const stringCountError = makeText();
   const tuningError = makeText();
+  const keepFretsButton = makeButton();
+  const transposeButton = makeButton();
   const confirmButton = makeButton();
   const cancelButton = makeButton();
   const familyButtons = [
@@ -45,6 +49,8 @@ function createTrackSettingsHarness() {
       trackNameError,
       stringCountError,
       tuningError,
+      keepFretsButton,
+      transposeButton,
       confirmButton,
       cancelButton,
       instrFamiliesButtons: familyButtons,
@@ -66,27 +72,36 @@ function createTrackSettingsHarness() {
       component.stringCount = count;
     }),
     setTuning: jest.fn(),
+    setTuningChangeMode: jest.fn(),
+    render: jest.fn(),
     applyTrackSettings: jest.fn(() => {
       component.track.name = component.trackName;
     }),
   } as any;
   const renderFunc = jest.fn();
   const freeKeyboard = jest.fn();
+  const notationComponent = createNotationComponentMock();
+  notationComponent.trackController.track = track;
   const callbacks = new TrackSettingsControlsDefaultCallbacks(
     component,
-    createNotationComponentMock(),
+    notationComponent,
     renderFunc,
     jest.fn(),
     freeKeyboard
   );
 
-  return { callbacks, component, renderFunc, freeKeyboard };
+  return { callbacks, component, notationComponent, renderFunc, freeKeyboard };
 }
 
 describe("TrackSettingsControlsDefaultCallbacks", () => {
   test("validation uses correct fields and lifecycle wiring is idempotent", () => {
-    const { callbacks, component, renderFunc, freeKeyboard } =
-      createTrackSettingsHarness();
+    const {
+      callbacks,
+      component,
+      notationComponent,
+      renderFunc,
+      freeKeyboard,
+    } = createTrackSettingsHarness();
 
     dispatchInput(component.template.trackNameInput, "");
     callbacks.onTrackNameChanged();
@@ -120,6 +135,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     callbacks.onTuningChange();
     expect(component.template.tuningError.textContent).toBe(" ");
     expect(component.setTuning).toHaveBeenCalledWith("B E A D G B E");
+    expect(component.render).toHaveBeenCalledTimes(1);
 
     callbacks.bind();
     callbacks.bind();
@@ -134,11 +150,16 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     expect(component.setTone).toHaveBeenCalledWith(
       ElectricGuitarTone.Overdrive
     );
+    dispatchClick(component.template.transposeButton);
+    expect(component.setTuningChangeMode).toHaveBeenCalledWith("transpose");
+    dispatchClick(component.template.keepFretsButton);
+    expect(component.setTuningChangeMode).toHaveBeenCalledWith("keepFrets");
 
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
     dispatchClick(component.template.confirmButton);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
+    expect(notationComponent.loadTrack).toHaveBeenCalledWith(component.track);
     expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(
       freeKeyboardCallsBeforeConfirm + 1
@@ -150,5 +171,21 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     callbacks.unbind();
     dispatchClick(component.template.confirmButton);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
+  });
+
+  test("simple tuning strings use conventional low-to-high order", () => {
+    const tunings = ["E A D G", "G D G B D", "D A F C G C"];
+
+    for (const tuning of tunings) {
+      const guitar = new Guitar(
+        StringInstrumentType.ElectricGuitar,
+        ElectricGuitarTone.Clean,
+        "Custom",
+        tuning.split(" ").length,
+        parseTuningStrSimple(tuning)
+      );
+
+      expect(guitar.getTuningStrSimple()).toBe(tuning);
+    }
   });
 });
