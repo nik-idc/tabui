@@ -104,6 +104,19 @@ export const LOWEST_OCTAVE = 0;
 /** Highest supported octaveS */
 export const HIGHEST_OCTAVE = 9;
 
+export function shiftNoteValue(
+  noteValue: NoteValue,
+  semitones: number
+): NoteValue {
+  const index = NOTES_ARR.indexOf(noteValue);
+  if (index === -1) {
+    throw new Error(`Unsupported note value: ${noteValue}`);
+  }
+
+  const nextIndex = (index + semitones + NOTES_ARR.length) % NOTES_ARR.length;
+  return NOTES_ARR[nextIndex];
+}
+
 /**
  * Maps our NoteValue enum to its semitone offset from C
  */

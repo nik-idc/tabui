@@ -6,7 +6,7 @@ import {
   setupDialogActionButtons,
 } from "@/ui/shared";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
-import { createButton, createImage } from "@/shared";
+import { createButton, createDiv, createImage } from "@/shared";
 import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
 import {
   InstrumentFamily,
@@ -100,11 +100,14 @@ export class TrackSettingsControlsTemplateRenderer {
     this.template.trackInfoContainer.append(
       this.template.trackNameInput,
       this.template.trackNameError,
-      this.template.stringCountInput,
-      this.template.stringCountError,
-      this.template.tuningInput,
+      this.template.tuningContainer,
+      this.template.wholeTuningContainer,
       this.template.tuningError,
       this.template.tuningModeContainer
+    );
+    this.template.wholeTuningContainer.append(
+      this.template.wholeTuningDownButton,
+      this.template.wholeTuningUpButton
     );
     this.template.tuningModeContainer.append(
       this.template.keepFretsButton,
@@ -186,19 +189,13 @@ export class TrackSettingsControlsTemplateRenderer {
     this.template.trackNameInput.value = this._currentTrackName;
     this.template.trackNameError.classList.add(newTrackErrorCSSClass);
 
-    this.template.stringCountInput.classList.add(newTrackInputCSSClass);
-    this.template.stringCountInput.type = "number";
-    this.template.stringCountInput.value = `${this._currentStringCount}`;
-    this.template.stringCountError.classList.add(newTrackErrorCSSClass);
-
-    this.template.tuningInput.classList.add(newTrackInputCSSClass);
-    this.template.tuningInput.value = this._currentTuning;
+    this.renderTuningControls();
     this.template.tuningError.classList.add(newTrackErrorCSSClass);
     this.template.tuningModeContainer.classList.add(
       "tu-ts-tuning-mode-container"
     );
-    this.template.tuningModeContainer.style.display =
-      this._currentTuning === this._originalTuning ? "none" : "flex";
+    this.template.tuningModeContainer.style.visibility =
+      this._currentTuning === this._originalTuning ? "hidden" : "visible";
     this.template.keepFretsButton.textContent = "Keep frets";
     this.template.transposeButton.textContent = "Transpose";
     this.template.keepFretsButton.classList.toggle(
@@ -209,6 +206,67 @@ export class TrackSettingsControlsTemplateRenderer {
       "tu-applied-button",
       this._currentTuningChangeMode === "transpose"
     );
+  }
+
+  private renderTuningControls(): void {
+    // Split on one or more whitespace characters between note names.
+    const notes = this._currentTuning.trim().split(/\s+/);
+    while (this.template.tuningStringContainers.length < notes.length) {
+      const stringContainer = createDiv();
+      const label = createDiv();
+      const upButton = createButton();
+      const noteLabel = createDiv();
+      const downButton = createButton();
+
+      stringContainer.append(label, upButton, noteLabel, downButton);
+      this.template.tuningStringContainers.push(stringContainer);
+      this.template.tuningStringLabels.push(label);
+      this.template.tuningUpButtons.push(upButton);
+      this.template.tuningNoteLabels.push(noteLabel);
+      this.template.tuningDownButtons.push(downButton);
+    }
+
+    this.template.tuningContainer.replaceChildren(
+      ...this.template.tuningStringContainers.slice(0, notes.length)
+    );
+    this.template.tuningContainer.classList.add("tu-ts-tuning-container");
+    this.template.wholeTuningContainer.classList.add(
+      "tu-ts-whole-tuning-container"
+    );
+    this.template.wholeTuningDownButton.textContent = "All -1";
+    this.template.wholeTuningUpButton.textContent = "All +1";
+
+    for (let i = 0; i < notes.length; i++) {
+      const stringNumber = notes.length - i;
+      this.template.tuningStringContainers[i].classList.add(
+        "tu-ts-tuning-string"
+      );
+      this.template.tuningStringLabels[i].classList.add(
+        "tu-ts-tuning-string-label"
+      );
+      this.template.tuningStringLabels[i].textContent =
+        this.getStringLabel(stringNumber);
+      this.template.tuningUpButtons[i].classList.add("tu-ts-tuning-step");
+      this.template.tuningUpButtons[i].textContent = "▲";
+      this.template.tuningNoteLabels[i].classList.add("tu-ts-tuning-note");
+      this.template.tuningNoteLabels[i].textContent = notes[i];
+      this.template.tuningDownButtons[i].classList.add("tu-ts-tuning-step");
+      this.template.tuningDownButtons[i].textContent = "▼";
+    }
+  }
+
+  private getStringLabel(stringNumber: number): string {
+    if (stringNumber === 1) {
+      return "1st";
+    }
+    if (stringNumber === 2) {
+      return "2nd";
+    }
+    if (stringNumber === 3) {
+      return "3rd";
+    }
+
+    return `${stringNumber}th`;
   }
 
   private renderActionButtons(): void {
@@ -232,12 +290,12 @@ export class TrackSettingsControlsTemplateRenderer {
   ): void {
     if (this._currentFamily !== currentFamily) {
       this.template.instrTypesContainer.replaceChildren();
-      this.template.instrTypesButtons = [];
+      this.template.instrTypesButtons.splice(0);
       this._currentFamily = currentFamily;
     }
     if (this._currentType !== currentType) {
       this.template.instrTonesContainer.replaceChildren();
-      this.template.instrTonesButtons = [];
+      this.template.instrTonesButtons.splice(0);
       this._currentType = currentType;
     }
     this._currentTone = currentTone;

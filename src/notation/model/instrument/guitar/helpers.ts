@@ -1,4 +1,4 @@
-import { NoteType, NoteValue } from "../../note";
+import { NoteType, NoteValue, shiftNoteValue } from "../../note";
 import { DEFAULT_TUNINGS } from "./default-tunings";
 
 /**
@@ -15,6 +15,7 @@ export function isValidGuitarTuning(
   input: string,
   stringCount: number
 ): boolean {
+  // Split on one or more whitespace characters between note names.
   const notes = input.trim().split(/\s+/);
   if (notes.length !== stringCount) {
     return false;
@@ -59,6 +60,7 @@ export function isValidGuitarTuning(
  * @returns Parsed array of note objects
  */
 export function parseTuning(tuning: string): NoteType[] {
+  // Split on one or more whitespace characters between note names.
   const notes = tuning.trim().split(/\s+/);
 
   const normalize = (n: string): keyof typeof NoteValue => {
@@ -129,4 +131,45 @@ export function parseTuningStrSimple(tuning: string): NoteType[] {
     noteValue: note.noteValue,
     octave: defaultTuning[index].octave,
   }));
+}
+
+export function getDefaultTuningStrSimple(stringCount: number): string | null {
+  const defaultTuning = Object.values(DEFAULT_TUNINGS)
+    .flatMap((tunings) => Object.values(tunings))
+    .find((defaultTuning) => defaultTuning.length === stringCount);
+
+  if (defaultTuning === undefined) {
+    return null;
+  }
+
+  return defaultTuning
+    .map((note) => note.noteValue)
+    .reverse()
+    .join(" ");
+}
+
+export function shiftTuningString(
+  tuning: string,
+  stringIndex: number,
+  semitones: number
+): string {
+  // Split on one or more whitespace characters between note names.
+  const notes = tuning.trim().split(/\s+/);
+  if (stringIndex < 0 || stringIndex >= notes.length) {
+    throw new Error(`${stringIndex} is invalid tuning string index`);
+  }
+
+  notes[stringIndex] = shiftNoteValue(
+    notes[stringIndex] as NoteValue,
+    semitones
+  );
+  return notes.join(" ");
+}
+
+export function shiftTuningWhole(tuning: string, semitones: number): string {
+  return tuning
+    .trim()
+    .split(/\s+/) // Split on one or more whitespace characters between note names.
+    .map((note) => shiftNoteValue(note as NoteValue, semitones))
+    .join(" ");
 }

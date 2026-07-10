@@ -20,8 +20,12 @@ function createNewTrackHarness() {
   const dialogContent = new FakeElement();
   dialog.appendChild(dialogContent);
   const trackNameInput = makeInput("Lead");
-  const stringCountInput = makeInput("6");
-  const tuningInput = makeInput("E A D G B E");
+  const stringCountDownButton = makeButton();
+  const stringCountUpButton = makeButton();
+  const tuningUpButtons = [makeButton(), makeButton(), makeButton()];
+  const tuningDownButtons = [makeButton(), makeButton(), makeButton()];
+  const wholeTuningUpButton = makeButton();
+  const wholeTuningDownButton = makeButton();
   const trackNameError = makeText();
   const stringCountError = makeText();
   const tuningError = makeText();
@@ -39,8 +43,12 @@ function createNewTrackHarness() {
       instrTypesButtons: typeButtons,
       instrTonesButtons: toneButtons,
       trackNameInput,
-      stringCountInput,
-      tuningInput,
+      stringCountDownButton,
+      stringCountUpButton,
+      tuningUpButtons,
+      tuningDownButtons,
+      wholeTuningUpButton,
+      wholeTuningDownButton,
       trackNameError,
       stringCountError,
       tuningError,
@@ -54,10 +62,9 @@ function createNewTrackHarness() {
     setType: jest.fn(),
     setTone: jest.fn(),
     setTrackName: jest.fn(),
-    setStringCount: jest.fn((count: number) => {
-      component.stringCount = count;
-    }),
-    setTuning: jest.fn(),
+    shiftStringCount: jest.fn(),
+    shiftTuningString: jest.fn(),
+    shiftWholeTuning: jest.fn(),
     makeTrack: jest.fn(() => madeTrack),
   } as any;
   const notationComponent = createNotationComponentMock();
@@ -101,26 +108,6 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     callbacks.onTrackNameChanged();
     expect(component.setTrackName).toHaveBeenCalledWith("Lead");
 
-    dispatchInput(component.template.stringCountInput, "0");
-    callbacks.onStringCountChanged();
-    expect(component.template.stringCountError.textContent).toBe(
-      callbacks.stringCountErrorText
-    );
-
-    dispatchInput(component.template.stringCountInput, "7");
-    callbacks.onStringCountChanged();
-    expect(component.setStringCount).toHaveBeenCalledWith(7);
-
-    dispatchInput(component.template.tuningInput, "invalid");
-    callbacks.onTuningChange();
-    expect(component.template.tuningError.textContent).toBe(
-      callbacks.tuningErrorText
-    );
-
-    dispatchInput(component.template.tuningInput, "B E A D G B E");
-    callbacks.onTuningChange();
-    expect(component.setTuning).toHaveBeenCalledWith("B E A D G B E");
-
     callbacks.bind();
     callbacks.bind();
     dispatchClick(component.template.instrFamiliesButtons[0]);
@@ -131,6 +118,18 @@ describe("NewTrackControlsDefaultCallbacks", () => {
       StringInstrumentType.ElectricGuitar
     );
     expect(component.setTone).toHaveBeenCalledWith(ElectricGuitarTone.Clean);
+    dispatchClick(component.template.stringCountUpButton);
+    expect(component.shiftStringCount).toHaveBeenCalledWith(1);
+    dispatchClick(component.template.stringCountDownButton);
+    expect(component.shiftStringCount).toHaveBeenCalledWith(-1);
+    dispatchClick(component.template.tuningUpButtons[1]);
+    expect(component.shiftTuningString).toHaveBeenCalledWith(1, 1);
+    dispatchClick(component.template.tuningDownButtons[2]);
+    expect(component.shiftTuningString).toHaveBeenCalledWith(2, -1);
+    dispatchClick(component.template.wholeTuningUpButton);
+    expect(component.shiftWholeTuning).toHaveBeenCalledWith(1);
+    dispatchClick(component.template.wholeTuningDownButton);
+    expect(component.shiftWholeTuning).toHaveBeenCalledWith(-1);
 
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;

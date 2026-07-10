@@ -15,15 +15,28 @@ export class NewTrackControlsTemplate {
   /********/ readonly instrFamiliesButtons: HTMLImageElement[] = [];
   /******/ readonly instrSelectContainer: HTMLDivElement = createDiv();
   /********/ readonly instrTypesContainer: HTMLDivElement = createDiv();
-  /**********/ instrTypesButtons: HTMLButtonElement[] = [];
+  /**********/ readonly instrTypesButtons: HTMLButtonElement[] = [];
   /********/ readonly instrTonesContainer: HTMLDivElement = createDiv();
-  /**********/ instrTonesButtons: HTMLButtonElement[] = [];
+  /**********/ readonly instrTonesButtons: HTMLButtonElement[] = [];
   /******/ readonly trackInfoContainer: HTMLDivElement = createDiv();
   /********/ readonly trackNameInput: HTMLInputElement = createInput();
   /********/ readonly trackNameError: HTMLDivElement = createDiv();
-  /********/ readonly stringCountInput: HTMLInputElement = createInput();
+  /********/ readonly stringCountContainer: HTMLDivElement = createDiv();
+  /**********/ readonly stringCountDownButton: HTMLButtonElement =
+    createButton();
+  /**********/ readonly stringCountValue: HTMLDivElement = createDiv();
+  /**********/ readonly stringCountUpButton: HTMLButtonElement = createButton();
   /********/ readonly stringCountError: HTMLDivElement = createDiv();
-  /********/ readonly tuningInput: HTMLInputElement = createInput();
+  /********/ readonly tuningContainer: HTMLDivElement = createDiv();
+  /**********/ readonly tuningStringContainers: HTMLDivElement[] = [];
+  /**********/ readonly tuningStringLabels: HTMLDivElement[] = [];
+  /**********/ readonly tuningNoteLabels: HTMLDivElement[] = [];
+  /**********/ readonly tuningUpButtons: HTMLButtonElement[] = [];
+  /**********/ readonly tuningDownButtons: HTMLButtonElement[] = [];
+  /********/ readonly wholeTuningContainer: HTMLDivElement = createDiv();
+  /**********/ readonly wholeTuningUpButton: HTMLButtonElement = createButton();
+  /**********/ readonly wholeTuningDownButton: HTMLButtonElement =
+    createButton();
   /********/ readonly tuningError: HTMLDivElement = createDiv();
   /****/ readonly actionsContainer: HTMLDivElement = createDiv();
   /******/ readonly confirmButton: HTMLButtonElement = createButton();

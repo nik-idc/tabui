@@ -14,6 +14,10 @@ import {
   TrackSettingsControlsCallbacks,
   TrackSettingsControlsDefaultCallbacks,
 } from "./track-controls/track-settings/track-settings-controls-callbacks";
+import {
+  YesNoCallbacks,
+  YesNoDefaultCallbacks,
+} from "@/ui/shared/yes-no/yes-no-callbacks";
 
 export interface ScoreControlsCallbacks {
   onShowTracksButtonClicked(): void;
@@ -38,6 +42,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   private _trackCallbacks: TrackControlsCallbacks[] = [];
   private _newTrackCallbacks: NewTrackControlsCallbacks;
   private _trackSettingsCallbacks: TrackSettingsControlsCallbacks;
+  private _trackRemoveCallbacks: YesNoCallbacks;
 
   private _listeners = new ListenerManager();
   private _bound = false;
@@ -72,6 +77,14 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
       this._renderFunc,
       this._captureKeyboard,
       this._freeKeyboard
+    );
+    this._trackRemoveCallbacks = new YesNoDefaultCallbacks(
+      this._scoreComponent.trackRemoveComponent,
+      this._notationComponent,
+      this._renderFunc,
+      this._captureKeyboard,
+      this._freeKeyboard,
+      () => this._scoreComponent.removeSelectedTrack()
     );
   }
 
@@ -123,7 +136,8 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
         this._renderFunc,
         this._captureKeyboard,
         this._freeKeyboard,
-        () => this._showTrackSettings(trackComponent.track)
+        () => this._showTrackSettings(trackComponent.track),
+        () => this._scoreComponent.showTrackRemoveDialog(trackComponent.track)
       );
       callbacks.bind();
 
@@ -178,6 +192,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
 
     this._newTrackCallbacks.bind();
     this._trackSettingsCallbacks.bind();
+    this._trackRemoveCallbacks.bind();
     this._bound = true;
   }
 
@@ -192,6 +207,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     }
     this._newTrackCallbacks.unbind();
     this._trackSettingsCallbacks.unbind();
+    this._trackRemoveCallbacks.unbind();
     this._trackCallbacks = [];
     this._bound = false;
   }

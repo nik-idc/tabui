@@ -101,6 +101,40 @@
             white-space: nowrap;
             width: 150px;
           }
+
+          .tu-track-remove-button {
+            width: 40px;
+            height: 40px;
+            position: relative;
+            overflow: visible;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 24px 24px;
+
+            &:disabled {
+              cursor: not-allowed;
+              opacity: 0.35;
+              filter: grayscale(1);
+            }
+
+            &:disabled:hover::after {
+              content: attr(data-tooltip);
+              position: absolute;
+              z-index: 10;
+              left: 50%;
+              top: calc(100% + 6px);
+              transform: translateX(-50%);
+              width: max-content;
+              max-width: 180px;
+              padding: 4px 6px;
+              border-radius: var(--tu-border-radius);
+              background: var(--tu-secondary-color);
+              color: var(--tu-text-color);
+              font-size: 12px;
+              white-space: normal;
+              pointer-events: none;
+            }
+          }
         }
       }
     }
@@ -382,7 +416,7 @@
 
   .tu-nt-dialog {
     @extend %tu-modal-dialog;
-    width: 400px;
+    width: 600px;
 
     .tu-nt-content {
       @extend %tu-modal-dialog-content;
@@ -436,6 +470,56 @@
 
           .tu-nt-error {
             @extend %tu-input-error-text;
+          }
+
+          .tu-nt-string-count-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+          }
+
+          .tu-nt-string-count-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: 700;
+          }
+
+          .tu-nt-tuning-container {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+          }
+
+          .tu-nt-tuning-string {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+          }
+
+          .tu-nt-tuning-string-label {
+            font-size: 11px;
+            opacity: 0.75;
+          }
+
+          .tu-nt-tuning-note {
+            min-width: 34px;
+            padding: 4px 0;
+            text-align: center;
+            font-weight: 700;
+          }
+
+          .tu-nt-tuning-step {
+            padding: 2px 0;
+            line-height: 1;
+          }
+
+          .tu-nt-whole-tuning-container {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
           }
         }
       }
@@ -557,6 +641,44 @@
 
           .tu-ts-error {
             @extend %tu-input-error-text;
+          }
+
+          .tu-ts-tuning-container {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+          }
+
+          .tu-ts-tuning-string {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+          }
+
+          .tu-ts-tuning-string-label {
+            font-size: 11px;
+            opacity: 0.75;
+          }
+
+          .tu-ts-tuning-note {
+            min-width: 34px;
+            padding: 4px 0;
+            text-align: center;
+            font-weight: 700;
+          }
+
+          .tu-ts-tuning-step {
+            padding: 2px 0;
+            line-height: 1;
+          }
+
+          .tu-ts-whole-tuning-container,
+          .tu-ts-tuning-mode-container {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
           }
         }
       }

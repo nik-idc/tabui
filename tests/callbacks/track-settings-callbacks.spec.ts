@@ -1,4 +1,5 @@
 import { TrackSettingsControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-settings/track-settings-controls-callbacks";
+import { TrackSettingsControlsComponent } from "../../src/ui/top-controls/score-controls/track-controls/track-settings/track-settings-controls-component";
 import {
   ElectricGuitarTone,
   Guitar,
@@ -22,10 +23,11 @@ function createTrackSettingsHarness() {
   const dialogContent = new FakeElement();
   dialog.appendChild(dialogContent);
   const trackNameInput = makeInput("Lead");
-  const stringCountInput = makeInput("6");
-  const tuningInput = makeInput("E A D G B E");
+  const tuningUpButtons = [makeButton(), makeButton(), makeButton()];
+  const tuningDownButtons = [makeButton(), makeButton(), makeButton()];
+  const wholeTuningUpButton = makeButton();
+  const wholeTuningDownButton = makeButton();
   const trackNameError = makeText();
-  const stringCountError = makeText();
   const tuningError = makeText();
   const keepFretsButton = makeButton();
   const transposeButton = makeButton();
@@ -44,10 +46,11 @@ function createTrackSettingsHarness() {
       dialog,
       dialogContent,
       trackNameInput,
-      stringCountInput,
-      tuningInput,
+      tuningUpButtons,
+      tuningDownButtons,
+      wholeTuningUpButton,
+      wholeTuningDownButton,
       trackNameError,
-      stringCountError,
       tuningError,
       keepFretsButton,
       transposeButton,
@@ -68,10 +71,8 @@ function createTrackSettingsHarness() {
     setTrackName: jest.fn((name: string) => {
       component.trackName = name;
     }),
-    setStringCount: jest.fn((count: number) => {
-      component.stringCount = count;
-    }),
-    setTuning: jest.fn(),
+    shiftTuningString: jest.fn(),
+    shiftWholeTuning: jest.fn(),
     setTuningChangeMode: jest.fn(),
     render: jest.fn(),
     applyTrackSettings: jest.fn(() => {
@@ -115,28 +116,6 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     expect(component.template.trackNameError.textContent).toBe(" ");
     expect(component.setTrackName).toHaveBeenCalledWith("Lead");
 
-    dispatchInput(component.template.stringCountInput, "0");
-    callbacks.onStringCountChanged();
-    expect(component.template.stringCountError.textContent).toBe(
-      callbacks.stringCountErrorText
-    );
-
-    dispatchInput(component.template.stringCountInput, "7");
-    callbacks.onStringCountChanged();
-    expect(component.setStringCount).toHaveBeenCalledWith(7);
-
-    dispatchInput(component.template.tuningInput, "invalid");
-    callbacks.onTuningChange();
-    expect(component.template.tuningError.textContent).toBe(
-      callbacks.tuningErrorText
-    );
-
-    dispatchInput(component.template.tuningInput, "B E A D G B E");
-    callbacks.onTuningChange();
-    expect(component.template.tuningError.textContent).toBe(" ");
-    expect(component.setTuning).toHaveBeenCalledWith("B E A D G B E");
-    expect(component.render).toHaveBeenCalledTimes(1);
-
     callbacks.bind();
     callbacks.bind();
 
@@ -150,6 +129,14 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     expect(component.setTone).toHaveBeenCalledWith(
       ElectricGuitarTone.Overdrive
     );
+    dispatchClick(component.template.tuningUpButtons[1]);
+    expect(component.shiftTuningString).toHaveBeenCalledWith(1, 1);
+    dispatchClick(component.template.tuningDownButtons[2]);
+    expect(component.shiftTuningString).toHaveBeenCalledWith(2, -1);
+    dispatchClick(component.template.wholeTuningUpButton);
+    expect(component.shiftWholeTuning).toHaveBeenCalledWith(1);
+    dispatchClick(component.template.wholeTuningDownButton);
+    expect(component.shiftWholeTuning).toHaveBeenCalledWith(-1);
     dispatchClick(component.template.transposeButton);
     expect(component.setTuningChangeMode).toHaveBeenCalledWith("transpose");
     dispatchClick(component.template.keepFretsButton);
@@ -187,5 +174,23 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
 
       expect(guitar.getTuningStrSimple()).toBe(tuning);
     }
+  });
+
+  test("tuning steppers update conventional tuning string", () => {
+    const component = Object.create(
+      TrackSettingsControlsComponent.prototype
+    ) as any;
+    component._tuning = "E A D G B E";
+    component.render = jest.fn();
+
+    component.shiftTuningString(0, 1);
+    expect(component._tuning).toBe("F A D G B E");
+
+    component.shiftTuningString(1, -1);
+    expect(component._tuning).toBe("F G# D G B E");
+
+    component.shiftWholeTuning(1);
+    expect(component._tuning).toBe("F# A D# G# C F");
+    expect(component.render).toHaveBeenCalledTimes(3);
   });
 });

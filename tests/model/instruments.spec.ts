@@ -7,6 +7,10 @@ import {
   NoteDuration,
   NoteValue,
   getNoteFrequency,
+  getDefaultTuningStrSimple,
+  shiftNoteValue,
+  shiftTuningWhole,
+  shiftTuningString,
 } from "../../src/notation/model";
 import {
   BassGuitarTone,
@@ -64,5 +68,38 @@ describe("Default instruments", () => {
 
     expect(getNoteFrequency(fret12)).toBeCloseTo(getNoteFrequency(fret0) * 2);
     expect(getNoteFrequency(fret24)).toBeCloseTo(getNoteFrequency(fret0) * 4);
+  });
+
+  test("simple tuning shift helpers preserve conventional string order", () => {
+    expect(shiftNoteValue(NoteValue.E, 1)).toBe(NoteValue.F);
+    expect(shiftNoteValue(NoteValue.E, -1)).toBe(NoteValue.DSharp);
+    expect(shiftTuningString("E A D G B E", 0, 1)).toBe("F A D G B E");
+    expect(shiftTuningString("E A D G B E", 5, -1)).toBe("E A D G B D#");
+    expect(shiftTuningWhole("E A D G B E", 1)).toBe("F A# D# G# C F");
+  });
+
+  test("default simple tuning strings use conventional string order", () => {
+    const expectedTunings = [
+      "E",
+      "E B",
+      "E B G",
+      "E A D G",
+      "G D G B D",
+      "E A D G B E",
+      "B E A D G B E",
+      "F# B E A D G B E",
+      "C# F# B E A D G B E",
+      "G# C# F# B E A D G B E",
+      "D# G# C# F# B E A D G B E",
+      "A# D# G# C# F# B E A D G B E",
+    ];
+
+    for (let stringCount = 1; stringCount <= 12; stringCount++) {
+      expect(getDefaultTuningStrSimple(stringCount)).toBe(
+        expectedTunings[stringCount - 1]
+      );
+    }
+
+    expect(getDefaultTuningStrSimple(13)).toBeNull();
   });
 });

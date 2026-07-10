@@ -8,6 +8,8 @@ import {
   INSTRUMENT_TONES,
   isStringInstrumentType,
   parseTuningStrSimple,
+  shiftTuningWhole,
+  shiftTuningString,
   StringInstrumentTone,
   StringInstrumentType,
   Track,
@@ -143,12 +145,18 @@ export class TrackSettingsControlsComponent {
     this._trackName = trackName;
   }
 
-  public setStringCount(stringCount: number): void {
-    this._stringCount = stringCount;
-  }
-
   public setTuning(tuning: string): void {
     this._tuning = tuning;
+  }
+
+  public shiftTuningString(stringIndex: number, semitones: number): void {
+    this._tuning = shiftTuningString(this._tuning, stringIndex, semitones);
+    this.render();
+  }
+
+  public shiftWholeTuning(semitones: number): void {
+    this._tuning = shiftTuningWhole(this._tuning, semitones);
+    this.render();
   }
 
   public setTuningChangeMode(mode: TrackInstrumentChangeMode): void {

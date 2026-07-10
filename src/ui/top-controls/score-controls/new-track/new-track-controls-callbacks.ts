@@ -1,4 +1,3 @@
-import { isValidGuitarTuning } from "@/notation/model";
 import {
   InstrumentFamily,
   InstrumentType,
@@ -10,7 +9,6 @@ import { NotationComponent } from "@/notation/notation-component";
 import { NewTrackControlsComponent } from "@/ui/top-controls/score-controls/new-track/new-track-controls-component";
 import { ListenerConfig, ListenerManager } from "@/shared/misc";
 export interface NewTrackControlsCallbacks {
-  readonly stringCountErrorText: string;
   readonly trackNameErrorText: string;
   readonly tuningErrorText: string;
 
@@ -19,8 +17,9 @@ export interface NewTrackControlsCallbacks {
   onTypeClicked(type: InstrumentType): void;
   onToneClicked(tone: StringInstrumentTone): void;
   onTrackNameChanged(): void;
-  onStringCountChanged(): void;
-  onTuningChange(): void;
+  onStringCountStep(delta: number): void;
+  onTuningStringStep(stringIndex: number, semitones: number): void;
+  onWholeTuningStep(semitones: number): void;
   onConfirmClicked(): void;
   onCancelClicked(): void;
   bind(): void;
@@ -35,12 +34,9 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
-  readonly stringCountErrorText: string = "Invalid string count";
   readonly trackNameErrorText: string = "Invalid track name";
   readonly tuningErrorText: string = "Invalid tuning";
 
-  private _minStringCount = 1;
-  private _maxStringCount = 12;
   private _minTrackNameLength = 1;
   private _maxTrackNameLength = 32;
 
@@ -56,19 +52,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     this._renderFunc = renderFunc;
     this._captureKeyboard = captureKeyboard;
     this._freeKeyboard = freeKeyboard;
-  }
-
-  private stringCountValid(stringCountValue: string): boolean {
-    const stringCountNum = Number(stringCountValue);
-    if (
-      Number.isNaN(stringCountNum) ||
-      stringCountNum < this._minStringCount ||
-      stringCountNum > this._maxStringCount
-    ) {
-      return false;
-    }
-
-    return true;
   }
 
   onDialogClicked(event: MouseEvent): void {
@@ -115,38 +98,16 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     }
   }
 
-  onStringCountChanged(): void {
-    const stringCountInput = this._newTrackComponent.template.stringCountInput;
-    const stringCountError = this._newTrackComponent.template.stringCountError;
-    const confirmButton = this._newTrackComponent.template.confirmButton;
-
-    if (!this.stringCountValid(stringCountInput.value)) {
-      stringCountError.textContent = this.stringCountErrorText;
-      confirmButton.disabled = true;
-    } else {
-      stringCountError.textContent = " ";
-      confirmButton.disabled = false;
-      this._newTrackComponent.setStringCount(Number(stringCountInput.value));
-    }
+  onStringCountStep(delta: number): void {
+    this._newTrackComponent.shiftStringCount(delta);
   }
 
-  onTuningChange(): void {
-    const tuningInput = this._newTrackComponent.template.tuningInput;
-    const tuningError = this._newTrackComponent.template.tuningError;
-    const confirmButton = this._newTrackComponent.template.confirmButton;
+  onTuningStringStep(stringIndex: number, semitones: number): void {
+    this._newTrackComponent.shiftTuningString(stringIndex, semitones);
+  }
 
-    const validTuning = isValidGuitarTuning(
-      tuningInput.value,
-      this._newTrackComponent.stringCount
-    );
-    if (!validTuning) {
-      tuningError.textContent = this.tuningErrorText;
-      confirmButton.disabled = true;
-    } else {
-      tuningError.textContent = " ";
-      confirmButton.disabled = false;
-      this._newTrackComponent.setTuning(tuningInput.value);
-    }
+  onWholeTuningStep(semitones: number): void {
+    this._newTrackComponent.shiftWholeTuning(semitones);
   }
 
   onConfirmClicked(): void {
@@ -211,14 +172,27 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       },
       {
         element: this._newTrackComponent.template
-          .stringCountInput as HTMLElement,
-        event: "input",
-        handler: (event: Event) => this.onStringCountChanged(),
+          .stringCountDownButton as HTMLElement,
+        event: "click",
+        handler: () => this.onStringCountStep(-1),
       },
       {
-        element: this._newTrackComponent.template.tuningInput as HTMLElement,
-        event: "input",
-        handler: (event: Event) => this.onTuningChange(),
+        element: this._newTrackComponent.template
+          .stringCountUpButton as HTMLElement,
+        event: "click",
+        handler: () => this.onStringCountStep(1),
+      },
+      {
+        element: this._newTrackComponent.template
+          .wholeTuningDownButton as HTMLElement,
+        event: "click",
+        handler: () => this.onWholeTuningStep(-1),
+      },
+      {
+        element: this._newTrackComponent.template
+          .wholeTuningUpButton as HTMLElement,
+        event: "click",
+        handler: () => this.onWholeTuningStep(1),
       },
       {
         element: this._newTrackComponent.template.confirmButton as HTMLElement,
@@ -231,6 +205,23 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
         handler: () => this.onCancelClicked(),
       }
     );
+
+    const upButtons = this._newTrackComponent.template.tuningUpButtons;
+    const downButtons = this._newTrackComponent.template.tuningDownButtons;
+    for (let i = 0; i < upButtons.length; i++) {
+      configs.push(
+        {
+          element: upButtons[i] as HTMLElement,
+          event: "click",
+          handler: () => this.onTuningStringStep(i, 1),
+        },
+        {
+          element: downButtons[i] as HTMLElement,
+          event: "click",
+          handler: () => this.onTuningStringStep(i, -1),
+        }
+      );
+    }
 
     this._listeners.bindAll(configs);
   }

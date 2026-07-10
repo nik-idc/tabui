@@ -8,11 +8,14 @@ import {
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
   isStringInstrumentType,
-  parseTuning,
+  parseTuningStrSimple,
+  shiftTuningString,
+  shiftTuningWhole,
   StringInstrumentTone,
   StringInstrumentType,
   Track,
   ElectricGuitarTone,
+  getDefaultTuningStrSimple,
 } from "@/notation/model";
 
 export class NewTrackControlsComponent {
@@ -90,10 +93,37 @@ export class NewTrackControlsComponent {
 
   public setStringCount(stringCount: number): void {
     this._stringCount = stringCount;
+    const defaultTuning = getDefaultTuningStrSimple(stringCount);
+    if (defaultTuning !== null) {
+      this._tuning = defaultTuning;
+      this.render();
+    }
+  }
+
+  public shiftStringCount(delta: number): void {
+    const nextStringCount = Math.min(
+      12,
+      Math.max(1, this._stringCount + delta)
+    );
+    if (nextStringCount === this._stringCount) {
+      return;
+    }
+
+    this.setStringCount(nextStringCount);
   }
 
   public setTuning(tuning: string): void {
     this._tuning = tuning;
+  }
+
+  public shiftTuningString(stringIndex: number, semitones: number): void {
+    this._tuning = shiftTuningString(this._tuning, stringIndex, semitones);
+    this.render();
+  }
+
+  public shiftWholeTuning(semitones: number): void {
+    this._tuning = shiftTuningWhole(this._tuning, semitones);
+    this.render();
   }
 
   public makeTrack(): Track {
@@ -106,7 +136,7 @@ export class NewTrackControlsComponent {
       this._instrumentTone,
       this._trackName,
       this._stringCount,
-      parseTuning(this._tuning)
+      parseTuningStrSimple(this._tuning)
     );
 
     const output = this.notationComponent.score.addTrack(

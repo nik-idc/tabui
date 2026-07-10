@@ -1,5 +1,5 @@
 import { TrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-controls-callbacks";
-import { YesNoDefaultCallbacks } from "../../src/ui/shared/yes-no/yes-no-callbacks";
+import { TrackControlsTemplateRenderer } from "../../src/ui/top-controls/score-controls/track-controls/track-controls-template-renderer";
 import {
   createNotationComponentMock,
   dispatchClick,
@@ -9,17 +9,35 @@ import {
 } from "./helpers";
 
 describe("TrackControlsDefaultCallbacks", () => {
+  function renderRemoveButton(trackCount: number) {
+    const removeButton = {
+      classList: { add: jest.fn() },
+      disabled: false,
+      title: "",
+      style: { backgroundImage: "" },
+      setAttribute: jest.fn(),
+    };
+    const renderer = Object.create(TrackControlsTemplateRenderer.prototype);
+    renderer.template = { removeButton };
+    renderer.notationComponent = { score: { tracks: new Array(trackCount) } };
+    renderer.assetsPath = { baseUrl: "", variant: "light" };
+
+    renderer.renderRemoveButton();
+
+    return removeButton;
+  }
+
+  test("remove button is disabled for the only track", () => {
+    expect(renderRemoveButton(1).disabled).toBe(true);
+    expect(renderRemoveButton(2).disabled).toBe(false);
+  });
+
   test("top-level actions dispatch correctly and child callbacks are bound idempotently", () => {
-    const yesBindSpy = jest
-      .spyOn(YesNoDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const yesUnbindSpy = jest
-      .spyOn(YesNoDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
     const notationComponent = createNotationComponentMock();
     const renderFunc = jest.fn();
     const captureKeyboard = jest.fn();
     const showTrackSettings = jest.fn();
+    const showTrackRemove = jest.fn();
     const track = { id: 1, volume: 0.5, pan: 0, muted: false, soloed: false };
     const component = {
       template: {
@@ -31,9 +49,7 @@ describe("TrackControlsDefaultCallbacks", () => {
         soloButton: makeButton(),
         settingsButton: makeButton(),
       },
-      yesNoComponent: {},
       track,
-      showRemoveDialog: jest.fn(),
     } as any;
     const callbacks = new TrackControlsDefaultCallbacks(
       component,
@@ -41,7 +57,8 @@ describe("TrackControlsDefaultCallbacks", () => {
       renderFunc,
       captureKeyboard,
       jest.fn(),
-      showTrackSettings
+      showTrackSettings,
+      showTrackRemove
     );
 
     callbacks.bind();
@@ -64,17 +81,12 @@ describe("TrackControlsDefaultCallbacks", () => {
     ).toHaveBeenCalledTimes(4);
     expect(renderFunc).toHaveBeenCalledTimes(3);
     expect(captureKeyboard).toHaveBeenCalledTimes(2);
-    expect(component.showRemoveDialog).toHaveBeenCalledTimes(1);
+    expect(showTrackRemove).toHaveBeenCalledTimes(1);
     expect(showTrackSettings).toHaveBeenCalledTimes(1);
-    expect(yesBindSpy).toHaveBeenCalledTimes(1);
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
     dispatchClick(component.template.trackButton);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
-    expect(yesUnbindSpy).toHaveBeenCalledTimes(1);
-
-    yesBindSpy.mockRestore();
-    yesUnbindSpy.mockRestore();
   });
 });

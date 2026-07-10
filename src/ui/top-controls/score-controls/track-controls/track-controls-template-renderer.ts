@@ -1,4 +1,5 @@
 import { NotationComponent } from "@/notation/notation-component";
+import { resolveAssetUrl } from "@/config/asset-url-resolver";
 import { renderOnce, setImageAsset } from "@/ui/shared";
 import { TrackControlsTemplate } from "./track-controls-template";
 import { Track } from "@/notation";
@@ -60,12 +61,25 @@ export class TrackControlsTemplateRenderer {
 
   private renderRemoveButton(): void {
     const cssClass = "tu-track-remove-button";
-    this.template.muteButton.classList.add(cssClass);
-    setImageAsset(
-      this.template.removeButton,
+    this.template.removeButton.classList.add(cssClass);
+    this.template.removeButton.disabled =
+      this.notationComponent.score.tracks.length <= 1;
+    this.template.removeButton.title = this.template.removeButton.disabled
+      ? "Cannot remove the only track"
+      : "Remove track";
+    if (this.template.removeButton.disabled) {
+      this.template.removeButton.dataset.tooltip =
+        this.template.removeButton.title;
+    } else {
+      this.template.removeButton.removeAttribute("data-tooltip");
+    }
+    this.template.removeButton.style.backgroundImage = `url("${resolveAssetUrl(
       this.assetsPath,
-      "img/ui/remove.svg",
-      "Remove"
+      "img/ui/remove.svg"
+    )}")`;
+    this.template.removeButton.setAttribute(
+      "aria-label",
+      this.template.removeButton.title
     );
   }
 

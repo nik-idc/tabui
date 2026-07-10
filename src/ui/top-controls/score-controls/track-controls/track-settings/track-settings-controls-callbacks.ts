@@ -3,7 +3,6 @@ import {
   InstrumentType,
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
-  isValidGuitarTuning,
   StringInstrumentTone,
   TrackInstrumentChangeMode,
 } from "@/notation/model";
@@ -12,7 +11,6 @@ import { ListenerConfig, ListenerManager } from "@/shared/misc";
 import { TrackSettingsControlsComponent } from "@/ui/top-controls/score-controls/track-controls/track-settings";
 
 export interface TrackSettingsControlsCallbacks {
-  readonly stringCountErrorText: string;
   readonly trackNameErrorText: string;
   readonly tuningErrorText: string;
 
@@ -21,8 +19,8 @@ export interface TrackSettingsControlsCallbacks {
   onTypeClicked(type: InstrumentType): void;
   onToneClicked(tone: StringInstrumentTone): void;
   onTrackNameChanged(): void;
-  onStringCountChanged(): void;
-  onTuningChange(): void;
+  onTuningStringStep(stringIndex: number, semitones: number): void;
+  onWholeTuningStep(semitones: number): void;
   onTuningModeClicked(mode: TrackInstrumentChangeMode): void;
   onConfirmClicked(): void;
   onCancelClicked(): void;
@@ -38,12 +36,9 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
-  readonly stringCountErrorText: string = "Invalid string count";
   readonly trackNameErrorText: string = "Invalid track name";
   readonly tuningErrorText: string = "Invalid tuning";
 
-  private _minStringCount = 1;
-  private _maxStringCount = 12;
   private _minTrackNameLength = 1;
   private _maxTrackNameLength = 32;
 
@@ -76,19 +71,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
     this._renderFunc();
   }
 
-  private stringCountValid(stringCountValue: string): boolean {
-    const stringCountNum = Number(stringCountValue);
-    if (
-      Number.isNaN(stringCountNum) ||
-      stringCountNum < this._minStringCount ||
-      stringCountNum > this._maxStringCount
-    ) {
-      return false;
-    }
-
-    return true;
-  }
-
   onDialogClicked(event: MouseEvent): void {
     if (
       !this._trackSettingsComponent.template.dialogContent.contains(
@@ -118,43 +100,12 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
     }
   }
 
-  onStringCountChanged(): void {
-    const stringCountInput =
-      this._trackSettingsComponent.template.stringCountInput;
-    const stringCountError =
-      this._trackSettingsComponent.template.stringCountError;
-    const confirmButton = this._trackSettingsComponent.template.confirmButton;
-
-    if (!this.stringCountValid(stringCountInput.value)) {
-      stringCountError.textContent = this.stringCountErrorText;
-      confirmButton.disabled = true;
-    } else {
-      stringCountError.textContent = " ";
-      confirmButton.disabled = false;
-      this._trackSettingsComponent.setStringCount(
-        Number(stringCountInput.value)
-      );
-    }
+  onTuningStringStep(stringIndex: number, semitones: number): void {
+    this._trackSettingsComponent.shiftTuningString(stringIndex, semitones);
   }
 
-  onTuningChange(): void {
-    const tuningInput = this._trackSettingsComponent.template.tuningInput;
-    const tuningError = this._trackSettingsComponent.template.tuningError;
-    const confirmButton = this._trackSettingsComponent.template.confirmButton;
-
-    const validTuning = isValidGuitarTuning(
-      tuningInput.value,
-      this._trackSettingsComponent.stringCount
-    );
-    if (!validTuning) {
-      tuningError.textContent = this.tuningErrorText;
-      confirmButton.disabled = true;
-    } else {
-      tuningError.textContent = " ";
-      confirmButton.disabled = false;
-      this._trackSettingsComponent.setTuning(tuningInput.value);
-      this._trackSettingsComponent.render();
-    }
+  onWholeTuningStep(semitones: number): void {
+    this._trackSettingsComponent.shiftWholeTuning(semitones);
   }
 
   onTuningModeClicked(mode: TrackInstrumentChangeMode): void {
@@ -233,18 +184,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       },
       {
         element: this._trackSettingsComponent.template
-          .stringCountInput as HTMLElement,
-        event: "input",
-        handler: (event: Event) => this.onStringCountChanged(),
-      },
-      {
-        element: this._trackSettingsComponent.template
-          .tuningInput as HTMLElement,
-        event: "input",
-        handler: (event: Event) => this.onTuningChange(),
-      },
-      {
-        element: this._trackSettingsComponent.template
           .keepFretsButton as HTMLElement,
         event: "click",
         handler: () => this.onTuningModeClicked("keepFrets"),
@@ -254,6 +193,18 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
           .transposeButton as HTMLElement,
         event: "click",
         handler: () => this.onTuningModeClicked("transpose"),
+      },
+      {
+        element: this._trackSettingsComponent.template
+          .wholeTuningDownButton as HTMLElement,
+        event: "click",
+        handler: () => this.onWholeTuningStep(-1),
+      },
+      {
+        element: this._trackSettingsComponent.template
+          .wholeTuningUpButton as HTMLElement,
+        event: "click",
+        handler: () => this.onWholeTuningStep(1),
       },
       {
         element: this._trackSettingsComponent.template
@@ -268,6 +219,23 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
         handler: () => this.onCancelClicked(),
       }
     );
+
+    const upButtons = this._trackSettingsComponent.template.tuningUpButtons;
+    const downButtons = this._trackSettingsComponent.template.tuningDownButtons;
+    for (let i = 0; i < upButtons.length; i++) {
+      configs.push(
+        {
+          element: upButtons[i] as HTMLElement,
+          event: "click",
+          handler: () => this.onTuningStringStep(i, 1),
+        },
+        {
+          element: downButtons[i] as HTMLElement,
+          event: "click",
+          handler: () => this.onTuningStringStep(i, -1),
+        }
+      );
+    }
 
     this._listeners.bindAll(configs);
   }
