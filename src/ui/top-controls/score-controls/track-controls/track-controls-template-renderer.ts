@@ -1,5 +1,4 @@
 import { NotationComponent } from "@/notation/notation-component";
-import { resolveAssetUrl } from "@/config/asset-url-resolver";
 import { renderOnce, setImageAsset } from "@/ui/shared";
 import { TrackControlsTemplate } from "./track-controls-template";
 import { Track } from "@/notation";
@@ -58,28 +57,27 @@ export class TrackControlsTemplateRenderer {
 
   private renderSelectButton(): void {
     const cssClass = "tu-track-select-button";
+    const isActive =
+      this.notationComponent.trackController.track === this.track;
     this.template.selectButton.classList.add(cssClass);
-    this.template.selectButton.textContent = "▶";
+    this.template.selectButton.textContent = isActive ? "●" : "○";
     this.template.selectButton.classList.toggle(
       "tu-track-control-active",
-      this.notationComponent.trackController.track === this.track
+      isActive
     );
-    this.template.selectButton.setAttribute(
-      "aria-pressed",
-      `${this.notationComponent.trackController.track === this.track}`
-    );
+    this.template.selectButton.setAttribute("aria-pressed", `${isActive}`);
   }
 
   private renderMoveButtons(): void {
     const trackIndex = this.notationComponent.score.tracks.indexOf(this.track);
     this.template.moveUpButton.classList.add("tu-track-move-button");
-    this.template.moveUpButton.textContent = "↑";
+    this.template.moveUpButton.textContent = "▲";
     this.template.moveUpButton.disabled = trackIndex <= 0;
     this.template.moveUpButton.title = "Move track up";
     this.template.moveUpButton.setAttribute("aria-label", "Move track up");
 
     this.template.moveDownButton.classList.add("tu-track-move-button");
-    this.template.moveDownButton.textContent = "↓";
+    this.template.moveDownButton.textContent = "▼";
     this.template.moveDownButton.disabled =
       trackIndex === -1 ||
       trackIndex >= this.notationComponent.score.tracks.length - 1;
@@ -107,10 +105,7 @@ export class TrackControlsTemplateRenderer {
     } else {
       this.template.removeButton.removeAttribute("data-tooltip");
     }
-    this.template.removeButton.style.backgroundImage = `url("${resolveAssetUrl(
-      this.assetsPath,
-      "img/ui/remove.svg"
-    )}")`;
+    this.template.removeButton.textContent = "−";
     this.template.removeButton.setAttribute(
       "aria-label",
       this.template.removeButton.title

@@ -92,38 +92,116 @@
       }
 
       .tu-tracks {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-top: 0.35rem;
+        width: max-content;
+
         .tu-track-controls {
+          display: grid;
+          grid-template-columns:
+            2.15rem 2.15rem 2.15rem 16rem 12rem 12rem 2.4rem 2.4rem 2.4rem
+            2.4rem;
+          align-items: center;
+          gap: 0.35rem;
+          width: max-content;
+          padding: 0.3rem;
+          border: 1px solid
+            color-mix(in srgb, var(--tu-border-color) 70%, transparent);
+          border-radius: calc(var(--tu-border-radius) + 2px);
+          background: color-mix(
+            in srgb,
+            var(--tu-secondary-color) 35%,
+            transparent
+          );
+
           button {
             @extend %tu-button-style;
 
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            width: 150px;
+            width: auto;
+            min-width: 0;
+            height: 2.4rem;
+            padding: 0;
           }
 
           .tu-track-select-button {
-            width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            line-height: 1;
+            text-overflow: clip;
 
             &.tu-track-control-active {
               background: var(--tu-applied-color);
-              box-shadow: 0 0 0 2px var(--tu-font-color);
+              box-shadow:
+                inset 0 0 0 1px var(--tu-font-color),
+                0 0 0 2px var(--tu-applied-color);
+            }
+          }
+
+          .tu-track-move-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-size: 1.05rem;
+            font-weight: 700;
+            line-height: 1;
+            text-overflow: clip;
+            opacity: 0.85;
+
+            &:disabled {
+              cursor: default;
+              opacity: 0.28;
             }
           }
 
           .tu-track-name-input {
             @extend %tu-input-number-style;
-            width: 150px;
+            width: 100%;
+            min-width: 0;
+            height: 2.4rem;
+            box-sizing: border-box;
+          }
+
+          .tu-track-volume-input,
+          .tu-track-panning-input {
+            width: 100%;
+            min-width: 0;
+          }
+
+          .tu-track-mute-button,
+          .tu-track-solo-button,
+          .tu-track-settings-button {
+            width: 2.4rem;
+            height: 2.4rem;
+            padding: 0.25rem;
+            border-radius: var(--tu-border-radius);
+            box-sizing: border-box;
           }
 
           .tu-track-remove-button {
-            width: 40px;
-            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: auto;
+            height: 2.4rem;
             position: relative;
             overflow: visible;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: 24px 24px;
+            color: #d65a5a;
+            font-size: 1.35rem;
+            font-weight: 700;
+            line-height: 1;
+            text-overflow: clip;
+
+            &:hover {
+              color: #ff7a7a;
+            }
 
             &:disabled {
               cursor: not-allowed;
