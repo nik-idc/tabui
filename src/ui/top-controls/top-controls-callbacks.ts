@@ -3,11 +3,11 @@ import { NotationComponent } from "@/notation/notation-component";
 import {
   PlayControlsCallbacks,
   PlayControlsDefaultCallbacks,
-} from "./play-controls-callbacks";
+} from "./play-controls/play-controls-callbacks";
 import {
   ScoreControlsCallbacks,
   ScoreControlsDefaultCallbacks,
-} from "./score-controls-callbacks";
+} from "./score-controls/score-controls-callbacks";
 import { trackEvent, TrackEventType } from "@/shared/events";
 
 export class TopControlsCallbacks {
@@ -41,7 +41,9 @@ export class TopControlsCallbacks {
       this._notationComponent,
       this._renderFunc,
       this._captureKeyboard,
-      this._freeKeyboard
+      this._freeKeyboard,
+      (track) =>
+        this._topComponent.scoreComponent.showTrackSettingsDialog(track)
     );
     this._playCallbacks = new PlayControlsDefaultCallbacks(
       this._topComponent.playComponent,

@@ -33,10 +33,10 @@ npm run format       # Format all files
 The editor supports fixture selection through the `fixture` query parameter:
 
 - `fixture=empty` -> empty score fixture
-- `fixture=default` (or missing) -> default/full fixture
+- `fixture=feature_showcase` (or missing) -> feature showcase fixture
 - `fixture=multi_voice_single_staff` -> multi-voice single-staff fixture
 - `fixture=multi_voice_two_staff` -> multi-voice two-staff fixture
-- `fixture=selection_perf` -> larger selection/performance fixture
+- `fixture=performance_stress` -> larger performance stress fixture
 
 ## TypeScript and Imports
 

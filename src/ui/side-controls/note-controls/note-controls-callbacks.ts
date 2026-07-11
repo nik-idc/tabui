@@ -5,7 +5,7 @@ import { ListenerConfig, ListenerManager } from "@/shared/misc";
 import {
   TupletControlsCallbacks,
   TupletControlsDefaultCallbacks,
-} from "./tuplet-controls-callbacks";
+} from "./tuplet-controls/tuplet-controls-callbacks";
 
 export interface NoteControlsCallbacks {
   onDurationClicked(noteDuration: NoteDuration): void;

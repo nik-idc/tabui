@@ -1,6 +1,6 @@
-import { TopControlsCallbacks } from "../../src/callbacks/ui/top-callbacks";
-import { PlayControlsDefaultCallbacks } from "../../src/callbacks/ui/play-controls-callbacks";
-import { ScoreControlsDefaultCallbacks } from "../../src/callbacks/ui/score-controls-callbacks";
+import { TopControlsCallbacks } from "../../src/ui/top-controls/top-controls-callbacks";
+import { PlayControlsDefaultCallbacks } from "../../src/ui/top-controls/play-controls/play-controls-callbacks";
+import { ScoreControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/score-controls-callbacks";
 import { trackEvent, TrackEventType } from "../../src/shared/events";
 
 describe("TopControlsCallbacks", () => {

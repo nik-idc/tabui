@@ -1,4 +1,4 @@
-import { TempoControlsDefaultCallbacks } from "../../src/callbacks/ui/tempo-controls-callbacks";
+import { TempoControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/tempo-controls/tempo-controls-callbacks";
 import {
   createNotationComponentMock,
   dispatchClick,

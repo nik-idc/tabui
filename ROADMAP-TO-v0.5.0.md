@@ -29,8 +29,8 @@ sake and more on targeted changes that directly unlock the MVP.
 - Phase 2 is complete.
 - Phase 3 is complete.
 - Phase 4 is complete.
-- Current focus should move to Phase 5: playback overhaul, or directly to
-  Phase 6 stabilization if playback scope is narrowed for `0.5.0`.
+- Phase 5 is complete.
+- Current focus should move to Phase 6 stabilization for `0.5.0`.
 - Phase 0 follow-ups that are intentionally deferred are listed under Phase 0.
 
 ### Phase 0 - Foundation
@@ -53,7 +53,7 @@ Completed in Phase 0:
   and run via `npm test`.
 - Active suite currently covers 18 suites / 87 tests.
 - Repeatable fixture routing is in place via `fixture=empty`,
-  `fixture=default`, and `fixture=selection_perf`.
+  `fixture=feature_showcase`, and `fixture=performance_stress`.
 
 Exit criteria:
 
@@ -162,7 +162,7 @@ Completed in Phase 3:
   flows and plural bar removal.
 - Paste/replacement behavior was stabilized while intentionally keeping the
   current permissive no-rest model.
-- Large-score editing is now practically responsive on the dense selection-perf
+- Large-score editing is now practically responsive on the dense performance
   stress fixture used during Phase 3 work.
 
 Benchmark status:
@@ -244,9 +244,39 @@ Exit criteria:
 
 ### Phase 5 - Playback Overhaul
 
+**Status: complete.**
+
 - Improve score playback so all tracks can play together.
 - Add optional focus on the current track within the overall mix.
 - Improve instrument variety and audio quality incrementally.
+
+Completed in Phase 5:
+
+- Reworked playback around Web Audio scheduling with rolling lookahead.
+- Added URL-configured sample playback keyed by instrument tone, with oscillator
+  fallback when samples are missing or fail to load.
+- Added local demo samples for clean/overdriven/distorted electric guitar, bass,
+  nylon acoustic guitar, and steel acoustic guitar.
+- Added per-track audio buses and real-time volume, mute, solo, and pan controls.
+- Tracks are all scheduled during playback so buffered mute/solo changes remain
+  reversible.
+- Added track-row playback controls and inline track naming UI.
+- Added tone-specific oscillator fallback profiles for distinct no-sample timbres.
+- Added first-pass guitar technique playback shaping for bends, palm mutes,
+  let-ring, natural/pinch harmonics, hammer-on/pull-off, vibrato, and slides.
+- Slide playback now treats the source and target notes as one continuous
+  scheduled source when a playable same-string target exists.
+- Added playback regression tests for samples, multi-track scheduling, track
+  controls, repeats/selection playback, tracks/staves/voices added or removed
+  after audio context creation, and technique playback behavior.
+
+Phase 5 closeout note:
+
+- Playback is now substantially better than the previous baseline and good
+  enough for MVP feedback, but it remains rudimentary compared to mature guitar
+  notation/audio tools. Future versions should aim for more realistic audio,
+  including multisampling, velocity layers, richer articulations, and more
+  instrument-specific playback modeling.
 
 Exit criteria:
 

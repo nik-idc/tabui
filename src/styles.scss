@@ -92,14 +92,183 @@
       }
 
       .tu-tracks {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-top: 0.35rem;
+        width: max-content;
+
         .tu-track-controls {
+          display: grid;
+          grid-template-columns:
+            3rem 2.4rem 16rem 12rem 12rem 2.4rem 2.4rem 2.4rem
+            2.4rem;
+          grid-template-rows: repeat(2, 1.6rem);
+          align-items: center;
+          gap: 0.35rem;
+          width: max-content;
+          padding: 0.3rem;
+          border: 1px solid
+            color-mix(in srgb, var(--tu-border-color) 70%, transparent);
+          border-radius: calc(var(--tu-border-radius) + 2px);
+          background: color-mix(
+            in srgb,
+            var(--tu-secondary-color) 35%,
+            transparent
+          );
+
+          &:has(.tu-track-select-button.tu-track-control-active) {
+            border-color: color-mix(
+              in srgb,
+              var(--tu-font-color) 50%,
+              var(--tu-border-color)
+            );
+            background: color-mix(
+              in srgb,
+              var(--tu-applied-color) 45%,
+              transparent
+            );
+          }
+
           button {
             @extend %tu-button-style;
 
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            width: 150px;
+            width: auto;
+            min-width: 0;
+            height: 100%;
+            padding: 0;
+          }
+
+          .tu-track-select-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            justify-self: center;
+            grid-row: 1 / 3;
+            width: 2.6rem;
+            height: 2.6rem;
+            border-radius: 50%;
+            background: transparent;
+            font-size: 1.1rem;
+            line-height: 1;
+            text-overflow: clip;
+
+            &.tu-track-control-active {
+              background: var(--tu-applied-color);
+              box-shadow:
+                inset 0 0 0 1px var(--tu-font-color),
+                0 0 0 2px var(--tu-applied-color);
+            }
+          }
+
+          .tu-track-move-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            height: 1.6rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1;
+            text-overflow: clip;
+            opacity: 0.85;
+
+            &:disabled {
+              cursor: default;
+              opacity: 0.28;
+            }
+          }
+
+          .tu-track-move-up-button {
+            grid-row: 1;
+          }
+
+          .tu-track-move-down-button {
+            grid-row: 2;
+          }
+
+          .tu-track-name-input {
+            @extend %tu-input-number-style;
+            grid-row: 1 / 3;
+            width: 100%;
+            min-width: 0;
+            height: 2.4rem;
+            box-sizing: border-box;
+          }
+
+          .tu-track-volume-input,
+          .tu-track-panning-input {
+            grid-row: 1 / 3;
+            width: 100%;
+            min-width: 0;
+          }
+
+          .tu-track-mute-button,
+          .tu-track-solo-button,
+          .tu-track-settings-button {
+            grid-row: 1 / 3;
+            width: 2.4rem;
+            height: 2.4rem;
+            padding: 0.25rem;
+            border-radius: var(--tu-border-radius);
+            box-sizing: border-box;
+          }
+
+          .tu-track-remove-button {
+            grid-row: 1 / 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: auto;
+            height: 2.4rem;
+            position: relative;
+            overflow: visible;
+            border-color: color-mix(
+              in srgb,
+              #d65a5a 55%,
+              var(--tu-border-color)
+            );
+            color: #d65a5a;
+            font-size: 1.35rem;
+            font-weight: 700;
+            line-height: 1;
+            text-overflow: clip;
+
+            &:hover {
+              background-color: color-mix(
+                in srgb,
+                #d65a5a 18%,
+                var(--tu-hover-color)
+              );
+              color: #ff7a7a;
+            }
+
+            &:disabled {
+              cursor: not-allowed;
+              opacity: 0.35;
+              filter: grayscale(1);
+            }
+
+            &:disabled:hover::after {
+              content: attr(data-tooltip);
+              position: absolute;
+              z-index: 10;
+              left: 50%;
+              top: calc(100% + 6px);
+              transform: translateX(-50%);
+              width: max-content;
+              max-width: 180px;
+              padding: 4px 6px;
+              border-radius: var(--tu-border-radius);
+              background: var(--tu-secondary-color);
+              color: var(--tu-text-color);
+              font-size: 12px;
+              white-space: normal;
+              pointer-events: none;
+            }
           }
         }
       }
@@ -134,6 +303,11 @@
       height: 40px;
       transition: all var(--tu-transition-speed) ease;
       border-radius: 50%;
+
+      &.tu-track-control-active {
+        background: var(--tu-applied-color);
+        box-shadow: 0 0 0 2px var(--tu-font-color);
+      }
 
       &:hover {
         background: var(--tu-hover-color);
@@ -377,7 +551,7 @@
 
   .tu-nt-dialog {
     @extend %tu-modal-dialog;
-    width: 400px;
+    width: 600px;
 
     .tu-nt-content {
       @extend %tu-modal-dialog-content;
@@ -410,7 +584,7 @@
             margin-right: 3px;
           }
 
-          .tu-nt-presets-container {
+          .tu-nt-tones-container {
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -431,6 +605,56 @@
 
           .tu-nt-error {
             @extend %tu-input-error-text;
+          }
+
+          .tu-nt-string-count-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+          }
+
+          .tu-nt-string-count-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: 700;
+          }
+
+          .tu-nt-tuning-container {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+          }
+
+          .tu-nt-tuning-string {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+          }
+
+          .tu-nt-tuning-string-label {
+            font-size: 11px;
+            opacity: 0.75;
+          }
+
+          .tu-nt-tuning-note {
+            min-width: 34px;
+            padding: 4px 0;
+            text-align: center;
+            font-weight: 700;
+          }
+
+          .tu-nt-tuning-step {
+            padding: 2px 0;
+            line-height: 1;
+          }
+
+          .tu-nt-whole-tuning-container {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
           }
         }
       }
@@ -497,22 +721,100 @@
 
   .tu-ts-dialog {
     @extend %tu-modal-dialog;
+    width: 400px;
 
     .tu-ts-content {
       @extend %tu-modal-dialog-content;
       display: flex;
       flex-direction: column;
 
-      .tu-ts-track-info-container {
+      .tu-ts-settings-container {
         display: flex;
         flex-direction: column;
 
-        .tu-ts-input {
-          @extend %tu-input-number-style;
+        .tu-ts-kinds-container {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+
+          img {
+            width: 75px;
+            height: 75px;
+            border-radius: 20px;
+          }
         }
 
-        .tu-ts-error {
-          @extend %tu-input-error-text;
+        .tu-ts-instr-settings-container {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 5px;
+
+          .tu-ts-types-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-right: 3px;
+          }
+
+          .tu-ts-tones-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-left: 3px;
+          }
+        }
+
+        .tu-ts-track-info-container {
+          display: flex;
+          flex-direction: column;
+
+          .tu-ts-input {
+            @extend %tu-input-number-style;
+          }
+
+          .tu-ts-error {
+            @extend %tu-input-error-text;
+          }
+
+          .tu-ts-tuning-container {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+          }
+
+          .tu-ts-tuning-string {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+          }
+
+          .tu-ts-tuning-string-label {
+            font-size: 11px;
+            opacity: 0.75;
+          }
+
+          .tu-ts-tuning-note {
+            min-width: 34px;
+            padding: 4px 0;
+            text-align: center;
+            font-weight: 700;
+          }
+
+          .tu-ts-tuning-step {
+            padding: 2px 0;
+            line-height: 1;
+          }
+
+          .tu-ts-whole-tuning-container,
+          .tu-ts-tuning-mode-container {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+          }
         }
       }
 
@@ -530,6 +832,12 @@
         button {
           @extend %tu-button-style;
         }
+      }
+
+      button {
+        @extend %tu-button-style;
+        width: 100%;
+        box-sizing: border-box;
       }
     }
   }
@@ -595,6 +903,11 @@
 .tu-applied-img {
   background-color: var(--tu-applied-color);
   border-radius: var(--tu-border-radius);
+}
+
+.tu-applied-button {
+  background-color: var(--tu-applied-color);
+  box-shadow: 0 0 0 2px var(--tu-applied-color);
 }
 
 .tu-disabled-img {

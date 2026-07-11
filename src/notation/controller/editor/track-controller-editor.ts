@@ -13,7 +13,7 @@ import {
   VoiceNumber,
   ScoreEditor,
 } from "@/notation/model";
-import { TrackElement } from "../element";
+import { TrackElement, TrackElementUpdateDepth } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
 import { NoteElement } from "../element/note/note-element";
 import { TabNoteElement } from "../element/note/tab-note-element";
@@ -103,7 +103,7 @@ export class TrackControllerEditor {
     this._trackElement.update(
       updateLineRange.startLineIndex,
       updateLineRange.endLineIndex,
-      { depth: "elements" }
+      { depth: TrackElementUpdateDepth.Elements }
     );
   }
 
@@ -226,7 +226,7 @@ export class TrackControllerEditor {
       this._trackElement.update(
         updateLineRange.startLineIndex,
         updateLineRange.endLineIndex,
-        { depth: "elements" }
+        { depth: TrackElementUpdateDepth.Elements }
       );
     }
     return true;
@@ -655,7 +655,7 @@ export class TrackControllerEditor {
       this._trackElement.update(
         updateLineRange.startLineIndex,
         updateLineRange.endLineIndex,
-        { depth: "elements" }
+        { depth: TrackElementUpdateDepth.Elements }
       );
     }
   }

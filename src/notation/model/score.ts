@@ -270,6 +270,22 @@ export class Score {
     return newTrack;
   }
 
+  public moveTrack(track: Track, targetIndex: number): void {
+    const currentIndex = this._tracks.indexOf(track);
+    if (currentIndex === -1) {
+      throw new Error("Track not in score");
+    }
+    if (targetIndex < 0 || targetIndex >= this._tracks.length) {
+      throw new Error("Target track index out of score");
+    }
+    if (currentIndex === targetIndex) {
+      return;
+    }
+
+    this._tracks.splice(currentIndex, 1);
+    this._tracks.splice(targetIndex, 0, track);
+  }
+
   /** Name setter */
   public set name(newName: string) {
     this._name = newName;

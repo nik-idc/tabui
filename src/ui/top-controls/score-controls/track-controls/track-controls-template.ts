@@ -8,8 +8,11 @@ import { createButton, createDiv, createImage, createInput } from "@/shared";
  */
 export class TrackControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
-  readonly trackButton: HTMLButtonElement = createButton();
-  readonly removeButton: HTMLImageElement = createImage();
+  readonly selectButton: HTMLButtonElement = createButton();
+  readonly moveUpButton: HTMLButtonElement = createButton();
+  readonly moveDownButton: HTMLButtonElement = createButton();
+  readonly trackNameInput: HTMLInputElement = createInput();
+  readonly removeButton: HTMLButtonElement = createButton();
   readonly volumeInput: HTMLInputElement = createInput();
   readonly panningInput: HTMLInputElement = createInput();
   readonly muteButton: HTMLImageElement = createImage();

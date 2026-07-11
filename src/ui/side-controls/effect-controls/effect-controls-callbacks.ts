@@ -4,7 +4,7 @@ import { TechniqueControlsComponent } from "@/ui";
 import {
   BendControlsCallbacks,
   BendControlsDefaultCallbacks,
-} from "./bend-controls-callbacks";
+} from "./bend-controls/bend-controls-callbacks";
 import { ListenerManager } from "@/shared/misc";
 
 export interface TechniqueControlsCallbacks {

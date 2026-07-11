@@ -2,19 +2,19 @@ import { Beat } from "../../beat";
 import { GuitarNote } from "../../guitar-note";
 import { Note, NoteJSON, NoteType, NoteValue } from "../../note";
 import { MusicInstrument, MusicInstrumentJSON } from "../instrument";
-import { MusicInstrumentKind } from "../instrument-kind";
+import { InstrumentFamily } from "../instrument-family";
 import {
-  ElectricGuitarPreset,
-  MusicInstrumentPreset,
-  STRING_PRESETS,
-  StringMusicInstrumentPreset,
-} from "../instrument-preset";
+  ElectricGuitarTone,
+  InstrumentTone,
+  STRING_TONES,
+  StringInstrumentTone,
+} from "../instrument-tone";
 import {
   INSTRUMENT_TYPES,
-  MusicInstrumentType,
-  StringMusicInstrumentType,
+  InstrumentType,
+  StringInstrumentType,
 } from "../instrument-type";
-import { PRESET_TO_MIDI } from "../preset-to-midi";
+import { TONE_TO_MIDI } from "../tone-to-midi";
 import { DEFAULT_TUNINGS } from "./default-tunings";
 import { parseTuning } from "./helpers";
 
@@ -22,9 +22,9 @@ import { parseTuning } from "./helpers";
  * Guitar JSON format
  */
 export interface GuitarJSON {
-  kind: MusicInstrumentKind;
-  type: StringMusicInstrumentType;
-  preset: MusicInstrumentPreset;
+  family: InstrumentFamily;
+  type: StringInstrumentType;
+  tone: InstrumentTone;
   name: string;
   program: number;
   tuning: NoteType[];
@@ -36,14 +36,12 @@ export interface GuitarJSON {
  * TabUI Guitar
  */
 export class Guitar implements MusicInstrument {
-  /** Kind of instrument (String | Orchestra | Drum) */
-  readonly kind: MusicInstrumentKind = MusicInstrumentKind.String;
+  readonly family: InstrumentFamily = InstrumentFamily.Strings;
 
   /** Type of instrument */
-  private _type: StringMusicInstrumentType =
-    StringMusicInstrumentType.ElectricGuitar;
-  /** MusicInstrument preset */
-  private _preset: StringMusicInstrumentPreset = ElectricGuitarPreset.Clean;
+  private _type: StringInstrumentType = StringInstrumentType.ElectricGuitar;
+  /** MusicInstrument tone */
+  private _tone: StringInstrumentTone = ElectricGuitarTone.Clean;
   /** Name of the instrument */
   private _name: string;
   /** MIDI program or custom sound ID for playback */
@@ -58,24 +56,24 @@ export class Guitar implements MusicInstrument {
   /**
    * TabUI Guitar
    * @param type Type of guitar
-   * @param preset Guitar preset
+   * @param tone Guitar tone
    * @param name
    * @param stringsCount
    * @param tuning
    * @param fretsCount
    */
   constructor(
-    type: StringMusicInstrumentType = StringMusicInstrumentType.ElectricGuitar,
-    preset: StringMusicInstrumentPreset = ElectricGuitarPreset.Clean,
+    type: StringInstrumentType = StringInstrumentType.ElectricGuitar,
+    tone: StringInstrumentTone = ElectricGuitarTone.Clean,
     name: string = "Electric Guitar",
     stringsCount: number = 6,
     tuning: NoteType[] = DEFAULT_TUNINGS[6].Standard,
     fretsCount: number = 24
   ) {
     this._type = type;
-    this._preset = preset;
+    this._tone = tone;
     this._name = name;
-    this._program = PRESET_TO_MIDI[this._preset];
+    this._program = TONE_TO_MIDI[this._tone];
 
     this._stringsCount = stringsCount;
     this._tuning = tuning;
@@ -103,15 +101,22 @@ export class Guitar implements MusicInstrument {
     return tuningStrArr.join("");
   }
 
+  public getTuningStrSimple(): string {
+    return this._tuning
+      .map((n) => n.noteValue)
+      .reverse()
+      .join(" ");
+  }
+
   /**
    * Parses guitar into JSON string
    * @returns Parsed JSON string
    */
   public toJSON(): GuitarJSON {
     return {
-      kind: this.kind,
+      family: this.family,
       type: this._type,
-      preset: this._preset,
+      tone: this._tone,
       name: this._name,
       program: this._program,
       tuning: this._tuning,
@@ -134,9 +139,9 @@ export class Guitar implements MusicInstrument {
    */
   static validateGuitarJSON(obj: Record<string, unknown>): GuitarJSON {
     const required = [
-      "kind",
+      "family",
       "type",
-      "preset",
+      "tone",
       "name",
       "program",
       "stringsCount",
@@ -151,9 +156,9 @@ export class Guitar implements MusicInstrument {
     }
 
     const typeChecks: Record<string, string> = {
-      kind: "string",
+      family: "string",
       type: "string",
-      preset: "string",
+      tone: "string",
       name: "string",
       stringsCount: "number",
       tuning: "string",
@@ -167,27 +172,27 @@ export class Guitar implements MusicInstrument {
     }
 
     if (
-      !INSTRUMENT_TYPES[MusicInstrumentKind.String].includes(
-        obj.type as StringMusicInstrumentType
+      !INSTRUMENT_TYPES[InstrumentFamily.Strings].includes(
+        obj.type as StringInstrumentType
       )
     ) {
       throw new Error(`Invalid instrument type: ${obj.type}`);
     }
 
     if (
-      !STRING_PRESETS[obj.type as StringMusicInstrumentType].includes(
-        obj.preset as MusicInstrumentPreset
+      !STRING_TONES[obj.type as StringInstrumentType].includes(
+        obj.tone as InstrumentTone
       )
     ) {
-      throw new Error(`Invalid preset: ${obj.preset}`);
+      throw new Error(`Invalid tone: ${obj.tone}`);
     }
 
     const tuning = parseTuning(obj.tuning as string);
 
     return {
-      kind: obj.kind as MusicInstrumentKind,
-      type: obj.type as StringMusicInstrumentType,
-      preset: obj.preset as StringMusicInstrumentPreset,
+      family: obj.family as InstrumentFamily,
+      type: obj.type as StringInstrumentType,
+      tone: obj.tone as StringInstrumentTone,
       name: obj.name as string,
       program: obj.program as number,
       tuning: tuning,
@@ -197,13 +202,13 @@ export class Guitar implements MusicInstrument {
   }
 
   /** Type of instrument */
-  public get type(): StringMusicInstrumentType {
+  public get type(): StringInstrumentType {
     return this._type;
   }
 
-  /** MusicInstrument preset */
-  public get preset(): StringMusicInstrumentPreset {
-    return this._preset;
+  /** MusicInstrument tone */
+  public get tone(): StringInstrumentTone {
+    return this._tone;
   }
 
   /** Name of the instrument */

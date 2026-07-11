@@ -1,4 +1,4 @@
-import { TupletControlsDefaultCallbacks } from "../../src/callbacks/ui/tuplet-controls-callbacks";
+import { TupletControlsDefaultCallbacks } from "../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-callbacks";
 import {
   createNotationComponentMock,
   dispatchClick,

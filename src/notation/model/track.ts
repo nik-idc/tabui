@@ -3,6 +3,12 @@ import { MusicInstrument, MusicInstrumentJSON } from "./instrument/instrument";
 import { Staff, StaffJSON } from "./staff";
 import { TrackContext } from "./track-context";
 import { Score } from "./score";
+import { GuitarNote } from "./guitar-note";
+
+export enum TrackInstrumentChangeMode {
+  KeepFrets = "keepFrets",
+  Transpose = "transpose",
+}
 
 export type StaffArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
@@ -17,6 +23,10 @@ export type StaffArrayOperationOutput<
 export interface TrackJSON {
   instrument: MusicInstrumentJSON;
   name: string;
+  volume: number;
+  pan: number;
+  muted: boolean;
+  soloed: boolean;
   staves: StaffJSON[];
 }
 
@@ -31,8 +41,13 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
   /** This track's context */
   readonly context: TrackContext<I>;
 
-  /** Name if the track */
-  private _name: string;
+  public volume: number;
+  public pan: number;
+  public muted: boolean;
+  public soloed: boolean;
+  /** Name of the track */
+  public name: string;
+
   /** Track's staves */
   private _staves: Staff<I>[];
 
@@ -55,7 +70,11 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
       instrument: instrument,
     };
 
-    this._name = name;
+    this.name = name;
+    this.volume = 0.5;
+    this.pan = 0;
+    this.muted = false;
+    this.soloed = false;
     this._staves =
       staves.length !== 0 ? staves : [new Staff(this, this.context)];
 
@@ -75,6 +94,33 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
 
       for (let i = staff.bars.length; i < masterBars.length; i++) {
         staff.appendBar(masterBars[i]);
+      }
+    }
+  }
+
+  public setInstrument(
+    instrument: I,
+    mode: TrackInstrumentChangeMode = TrackInstrumentChangeMode.KeepFrets
+  ): void {
+    this.context.instrument = instrument;
+
+    for (const staff of this._staves) {
+      for (const bar of staff.bars) {
+        for (const voiceBar of bar.voiceBarsAsArray) {
+          for (const beat of voiceBar.beats) {
+            for (const note of beat.notes ?? []) {
+              if (!(note instanceof GuitarNote)) {
+                continue;
+              }
+
+              if (mode === TrackInstrumentChangeMode.Transpose) {
+                note.calculateFretFromNote();
+              } else {
+                note.calcNoteFromFret();
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -134,12 +180,17 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
       stavesCopy.push(staff.deepCopy());
     }
 
-    return new Track<I>(
+    const track = new Track<I>(
       this.score,
       this.context.instrument,
-      this._name,
+      this.name,
       stavesCopy
     );
+    track.volume = this.volume;
+    track.pan = this.pan;
+    track.muted = this.muted;
+    track.soloed = this.soloed;
+    return track;
   }
 
   /**
@@ -154,18 +205,13 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
 
     return {
       instrument: this.context.instrument.toJSON(),
-      name: this._name,
+      name: this.name,
+      volume: this.volume,
+      pan: this.pan,
+      muted: this.muted,
+      soloed: this.soloed,
       staves: stavesJSON,
     };
-  }
-
-  /** Name of the track setter */
-  public set name(newName: string) {
-    this._name = newName;
-  }
-  /** Name of the track getter */
-  public get name(): string {
-    return this._name;
   }
 
   /** Track's bars */

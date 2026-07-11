@@ -3,7 +3,9 @@ import { ScoreControlsTemplate } from "./score-controls-template";
 import { ScoreControlsTemplateRenderer } from "./score-controls-template-renderer";
 import { TrackControlsComponent } from "./track-controls/track-controls-component";
 import { NewTrackControlsComponent } from "./new-track/new-track-controls-component";
-import { Score } from "@/notation";
+import { Score, Track } from "@/notation";
+import { TrackSettingsControlsComponent } from "./track-controls/track-settings";
+import { YesNoComponent } from "@/ui/shared/yes-no";
 
 export class ScoreControlsComponent {
   readonly parentDiv: HTMLDivElement;
@@ -15,6 +17,9 @@ export class ScoreControlsComponent {
 
   private _trackComponents: TrackControlsComponent[];
   readonly newTrackComponent: NewTrackControlsComponent;
+  readonly trackSettingsComponent: TrackSettingsControlsComponent;
+  readonly trackRemoveComponent: YesNoComponent;
+  private _trackToRemove: Track | null = null;
 
   private _tracksAreDisplayed: boolean = false;
 
@@ -36,6 +41,15 @@ export class ScoreControlsComponent {
       this.template.container,
       this.notationComponent
     );
+    this.trackSettingsComponent = new TrackSettingsControlsComponent(
+      this.template.container,
+      this.notationComponent,
+      this.score.tracks[0]
+    );
+    this.trackRemoveComponent = new YesNoComponent(
+      this.template.container,
+      this.notationComponent
+    );
   }
 
   public changeTracksAreDisplayed(): void {
@@ -46,27 +60,82 @@ export class ScoreControlsComponent {
     this.templateRenderer.render(this.score);
 
     this.newTrackComponent.render();
+    this.trackSettingsComponent.render();
+    this.trackRemoveComponent.render();
 
-    this._trackComponents = [];
-    this.template.tracksContainer.replaceChildren();
+    this.reconcileTrackComponents();
+  }
+
+  private reconcileTrackComponents(): void {
     if (!this._tracksAreDisplayed) {
+      this.template.tracksContainer.replaceChildren();
+      this._trackComponents = [];
       return;
     }
 
+    const remainingTrackComponents = new Map(
+      this._trackComponents.map((tc) => [tc.track, tc])
+    );
+    const nextTrackComponents: TrackControlsComponent[] = [];
+
     for (const track of this.notationComponent.score.tracks) {
-      const trackComponent = new TrackControlsComponent(
-        this.template.tracksContainer,
-        this.notationComponent,
-        track
-      );
+      const trackComponent =
+        remainingTrackComponents.get(track) ??
+        new TrackControlsComponent(
+          this.template.tracksContainer,
+          this.notationComponent,
+          track
+        );
+
       trackComponent.render();
 
-      this._trackComponents.push(trackComponent);
+      const container = trackComponent.template.container;
+      const nextContainerIndex = nextTrackComponents.length;
+      const currentContainer =
+        this.template.tracksContainer.children[nextContainerIndex];
+      if (currentContainer !== container) {
+        this.template.tracksContainer.insertBefore(
+          container,
+          currentContainer ?? null
+        );
+      }
+      remainingTrackComponents.delete(track);
+
+      nextTrackComponents.push(trackComponent);
     }
+
+    for (const trackComponent of remainingTrackComponents.values()) {
+      trackComponent.template.container.remove();
+    }
+
+    this._trackComponents = nextTrackComponents;
   }
 
   public showNewTrackDialog(): void {
     this.newTrackComponent.template.dialog.showModal();
+  }
+
+  public showTrackSettingsDialog(track: Track): void {
+    this.trackSettingsComponent.setTrack(track);
+    this.trackSettingsComponent.render();
+    this.trackSettingsComponent.template.dialog.showModal();
+  }
+
+  public showTrackRemoveDialog(track: Track): void {
+    this._trackToRemove = track;
+    this.trackRemoveComponent.setText(
+      `Are you sure you want to delete track "${track.name}"?`
+    );
+    this.trackRemoveComponent.template.yesNoDialog.showModal();
+  }
+
+  public removeSelectedTrack(): void {
+    if (this._trackToRemove === null) {
+      return;
+    }
+
+    this.notationComponent.removeTrack(this._trackToRemove);
+    this._trackToRemove = null;
   }
 
   public get trackComponents(): TrackControlsComponent[] {

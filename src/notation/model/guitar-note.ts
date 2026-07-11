@@ -3,15 +3,15 @@ import { Beat } from "./beat";
 import { TrackContext } from "./track-context";
 import { GuitarTechniqueJSON, GuitarTechnique } from "./guitar-technique";
 import { Guitar } from "./instrument/guitar";
-import { MusicInstrumentType } from "./instrument/instrument-type";
+import { InstrumentType } from "./instrument/instrument-type";
 import {
   NoteValue,
   Note,
-  NOTES_ARR,
-  NOTES_PER_OCTAVE,
   LOWEST_OCTAVE,
   HIGHEST_OCTAVE,
   NOTE_VALUES_ARR,
+  getNoteFromSemitones,
+  getSemitonesFromNote,
 } from "./note";
 import { GuitarTechniqueType } from "./technique-type";
 import { TECHNIQUES_INCOMPATIBILITY } from "./guitar-technique-lists";
@@ -20,7 +20,7 @@ import { TECHNIQUES_INCOMPATIBILITY } from "./guitar-technique-lists";
  * Guitar note JSON format
  */
 export interface GuitarNoteJSON {
-  instrumentType: MusicInstrumentType;
+  instrumentType: InstrumentType;
   noteValue: NoteValue;
   octave: number | null;
   stringNum: number;
@@ -79,7 +79,7 @@ export class GuitarNote implements Note<Guitar> {
   /**
    * Calculate musical note value based on the fret & string number
    */
-  private calcNoteFromFret(): void {
+  public calcNoteFromFret(): void {
     if (this._fret === null) {
       this._noteValue = NoteValue.None;
       this._octave = null;
@@ -99,27 +99,23 @@ export class GuitarNote implements Note<Guitar> {
       throw Error("Open string octave is null");
     }
 
-    const currentIndex = NOTES_ARR.indexOf(openStringNote.noteValue);
     const totalSemitones =
-      openStringNote.octave * NOTES_PER_OCTAVE + currentIndex + this._fret;
+      getSemitonesFromNote(openStringNote.noteValue, openStringNote.octave) +
+      this._fret;
+    const { noteValue, octave } = getNoteFromSemitones(totalSemitones);
 
-    const newOctave = Math.floor(totalSemitones / NOTES_PER_OCTAVE);
-    const newIndex =
-      ((totalSemitones % NOTES_PER_OCTAVE) + NOTES_PER_OCTAVE) %
-      NOTES_PER_OCTAVE;
-
-    if (newOctave < LOWEST_OCTAVE || newOctave > HIGHEST_OCTAVE) {
+    if (octave < LOWEST_OCTAVE || octave > HIGHEST_OCTAVE) {
       throw new Error("Octave out of range");
     }
 
-    this._noteValue = NOTES_ARR[newIndex];
-    this._octave = newOctave;
+    this._noteValue = noteValue;
+    this._octave = octave;
   }
 
   /**
    * Calculate musical note value based on note & octave value
    */
-  private calculateFretFromNote(): void {
+  public calculateFretFromNote(): void {
     if (this._noteValue === NoteValue.None) {
       this._fret = null;
       return;
@@ -142,12 +138,11 @@ export class GuitarNote implements Note<Guitar> {
       throw Error("Open string this._octave is null");
     }
 
-    const openIndex = NOTES_ARR.indexOf(openString.noteValue);
-    const targetIndex = NOTES_ARR.indexOf(this._noteValue);
-
-    const openTotal = openString.octave * NOTES_PER_OCTAVE + openIndex;
-
-    const targetTotal = this._octave * NOTES_PER_OCTAVE + targetIndex;
+    const openTotal = getSemitonesFromNote(
+      openString.noteValue,
+      openString.octave
+    );
+    const targetTotal = getSemitonesFromNote(this._noteValue, this._octave);
 
     let fret = targetTotal - openTotal;
     if (fret < 0) {
@@ -362,7 +357,7 @@ export class GuitarNote implements Note<Guitar> {
     }
 
     return {
-      instrumentType: obj.instrumentType as MusicInstrumentType,
+      instrumentType: obj.instrumentType as InstrumentType,
       noteValue: obj.noteValue as NoteValue,
       octave: obj.octave,
       stringNum: obj.stringNum,

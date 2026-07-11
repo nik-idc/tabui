@@ -2,61 +2,21 @@ import { NotationComponent } from "@/notation/notation-component";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
 import { NewTrackControlsTemplateRenderer } from "./new-track-controls-template-renderer";
 import {
-  AcousticGuitarPreset,
-  BassGuitarPreset,
   Guitar,
-  OtherStringPreset,
-  parseTuning,
-  StringMusicInstrumentPreset,
-  StringMusicInstrumentType,
+  InstrumentFamily,
+  InstrumentType,
+  INSTRUMENT_TYPES,
+  INSTRUMENT_TONES,
+  isStringInstrumentType,
+  parseTuningStrSimple,
+  shiftTuningString,
+  shiftTuningWhole,
+  StringInstrumentTone,
+  StringInstrumentType,
   Track,
-  ElectricGuitarPreset,
+  ElectricGuitarTone,
+  getDefaultTuningStrSimple,
 } from "@/notation/model";
-
-export const INSTRUMENT_KINDS: Record<string, Record<string, string[]>> = {
-  Strings: {
-    Acoustic: ["Steel", "Nylon"],
-    Electric: ["Clean", "Overdrive", "Distortion"],
-    Bass: ["Acoustic", "Clean", "Distortion"],
-    Other: ["Ukulele", "Banjo"],
-  },
-  Orchestra: {},
-  Drums: {},
-};
-
-const UI_TYPE_TO_STRING_INSTRUMENT_TYPE: Record<
-  string,
-  StringMusicInstrumentType
-> = {
-  Acoustic: StringMusicInstrumentType.AcousticGuitar,
-  Electric: StringMusicInstrumentType.ElectricGuitar,
-  Bass: StringMusicInstrumentType.BassGuitar,
-  Other: StringMusicInstrumentType.Other,
-};
-
-const UI_PRESET_TO_STRING_INSTRUMENT_PRESET: Record<
-  StringMusicInstrumentType,
-  Record<string, StringMusicInstrumentPreset>
-> = {
-  [StringMusicInstrumentType.AcousticGuitar]: {
-    Steel: AcousticGuitarPreset.Steel,
-    Nylon: AcousticGuitarPreset.Nylon,
-  },
-  [StringMusicInstrumentType.ElectricGuitar]: {
-    Clean: ElectricGuitarPreset.Clean,
-    Overdrive: ElectricGuitarPreset.Overdrive,
-    Distortion: ElectricGuitarPreset.Distortion,
-  },
-  [StringMusicInstrumentType.BassGuitar]: {
-    Acoustic: BassGuitarPreset.Acoustic,
-    Clean: BassGuitarPreset.Clean,
-    Distortion: BassGuitarPreset.Distortion,
-  },
-  [StringMusicInstrumentType.Other]: {
-    Ukulele: OtherStringPreset.Ukulele,
-    Banjo: OtherStringPreset.Banjo,
-  },
-};
 
 export class NewTrackControlsComponent {
   readonly parentDiv: HTMLDivElement;
@@ -65,12 +25,9 @@ export class NewTrackControlsComponent {
   readonly template: NewTrackControlsTemplate;
   readonly templateRenderer: NewTrackControlsTemplateRenderer;
 
-  private _instrumentKind: string = Object.keys(INSTRUMENT_KINDS)[0];
-  private _instrumentType: string = Object.keys(
-    INSTRUMENT_KINDS[this._instrumentKind]
-  )[0];
-  private _instrumentPreset: string =
-    INSTRUMENT_KINDS[this._instrumentKind][this._instrumentType][0];
+  private _instrumentFamily: InstrumentFamily = InstrumentFamily.Strings;
+  private _instrumentType: InstrumentType = StringInstrumentType.ElectricGuitar;
+  private _instrumentTone: StringInstrumentTone = ElectricGuitarTone.Clean;
   private _trackName: string = "New track";
   private _stringCount: number = 6;
   private _tuning: string = "E A D G B E";
@@ -89,40 +46,45 @@ export class NewTrackControlsComponent {
 
   public render(): void {
     this.templateRenderer.render(
-      this._instrumentKind,
+      this._instrumentFamily,
       this._instrumentType,
-      this._instrumentPreset,
+      this._instrumentTone,
       this._trackName,
       this._stringCount,
       this._tuning
     );
   }
 
-  public setKind(newKind: string): void {
-    this._instrumentKind = newKind;
+  public setFamily(newFamily: InstrumentFamily): void {
+    const types = INSTRUMENT_TYPES[newFamily];
+    if (types.length === 0) {
+      return;
+    }
+
+    this._instrumentFamily = newFamily;
+    this._instrumentType = types[0];
+    const tones = INSTRUMENT_TONES[this._instrumentType];
+    if (tones === undefined || tones.length === 0) {
+      return;
+    }
+    this._instrumentTone = tones[0];
     this.render();
   }
 
-  public getAllKinds(): string[] {
-    return Object.keys(INSTRUMENT_KINDS);
-  }
+  public setType(newType: InstrumentType): void {
+    const tones = INSTRUMENT_TONES[newType];
+    if (tones === undefined || tones.length === 0) {
+      return;
+    }
 
-  public setType(newType: string): void {
     this._instrumentType = newType;
+    this._instrumentTone = tones[0];
     this.render();
   }
 
-  public getAllTypes(): string[] {
-    return Object.keys(INSTRUMENT_KINDS[this._instrumentKind]);
-  }
-
-  public setPreset(newPreset: string): void {
-    this._instrumentPreset = newPreset;
+  public setTone(newTone: StringInstrumentTone): void {
+    this._instrumentTone = newTone;
     this.render();
-  }
-
-  public getAllPresets(): string[] {
-    return INSTRUMENT_KINDS[this._instrumentKind][this._instrumentType];
   }
 
   public setTrackName(trackName: string): void {
@@ -131,29 +93,50 @@ export class NewTrackControlsComponent {
 
   public setStringCount(stringCount: number): void {
     this._stringCount = stringCount;
+    const defaultTuning = getDefaultTuningStrSimple(stringCount);
+    if (defaultTuning !== null) {
+      this._tuning = defaultTuning;
+      this.render();
+    }
+  }
+
+  public shiftStringCount(delta: number): void {
+    const nextStringCount = Math.min(
+      12,
+      Math.max(1, this._stringCount + delta)
+    );
+    if (nextStringCount === this._stringCount) {
+      return;
+    }
+
+    this.setStringCount(nextStringCount);
   }
 
   public setTuning(tuning: string): void {
     this._tuning = tuning;
   }
 
+  public shiftTuningString(stringIndex: number, semitones: number): void {
+    this._tuning = shiftTuningString(this._tuning, stringIndex, semitones);
+    this.render();
+  }
+
+  public shiftWholeTuning(semitones: number): void {
+    this._tuning = shiftTuningWhole(this._tuning, semitones);
+    this.render();
+  }
+
   public makeTrack(): Track {
-    const instrumentType =
-      UI_TYPE_TO_STRING_INSTRUMENT_TYPE[this._instrumentType];
-    const preset =
-      UI_PRESET_TO_STRING_INSTRUMENT_PRESET[instrumentType]?.[
-        this._instrumentPreset
-      ];
-    if (instrumentType === undefined || preset === undefined) {
+    if (!isStringInstrumentType(this._instrumentType)) {
       throw new Error("Unsupported instrument selection");
     }
 
     const instrument = new Guitar(
-      instrumentType,
-      preset,
+      this._instrumentType,
+      this._instrumentTone,
       this._trackName,
       this._stringCount,
-      parseTuning(this._tuning)
+      parseTuningStrSimple(this._tuning)
     );
 
     const output = this.notationComponent.score.addTrack(
@@ -163,16 +146,16 @@ export class NewTrackControlsComponent {
     return output.tracks[0];
   }
 
-  public get instrumentKind(): string {
-    return this._instrumentKind;
+  public get instrumentFamily(): InstrumentFamily {
+    return this._instrumentFamily;
   }
 
-  public get instrumentType(): string {
+  public get instrumentType(): InstrumentType {
     return this._instrumentType;
   }
 
-  public get instrumentPreset(): string {
-    return this._instrumentPreset;
+  public get instrumentTone(): StringInstrumentTone {
+    return this._instrumentTone;
   }
 
   public get trackName(): string {

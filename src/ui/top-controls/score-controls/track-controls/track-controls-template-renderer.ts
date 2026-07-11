@@ -41,31 +41,80 @@ export class TrackControlsTemplateRenderer {
     this.template.container.classList.add(cssClass);
 
     this.template.container.append(
-      this.template.removeButton,
-      this.template.trackButton,
+      this.template.selectButton,
+      this.template.moveUpButton,
+      this.template.moveDownButton,
+      this.template.trackNameInput,
       this.template.volumeInput,
       this.template.panningInput,
       this.template.muteButton,
       this.template.soloButton,
-      this.template.settingsButton
+      this.template.settingsButton,
+      this.template.removeButton
     );
     this.parentDiv.appendChild(this.template.container);
   }
 
-  private renderTrackName(): void {
-    const cssClass = "tu-track-button";
-    this.template.trackButton.classList.add(cssClass);
-    this.template.trackButton.textContent = this.track.name;
+  private renderSelectButton(): void {
+    const cssClass = "tu-track-select-button";
+    const isActive =
+      this.notationComponent.trackController.track === this.track;
+    this.template.selectButton.classList.add(cssClass);
+    this.template.selectButton.textContent = isActive ? "●" : "○";
+    this.template.selectButton.classList.toggle(
+      "tu-track-control-active",
+      isActive
+    );
+    this.template.selectButton.setAttribute("aria-pressed", `${isActive}`);
+  }
+
+  private renderMoveButtons(): void {
+    const trackIndex = this.notationComponent.score.tracks.indexOf(this.track);
+    this.template.moveUpButton.classList.add(
+      "tu-track-move-button",
+      "tu-track-move-up-button"
+    );
+    this.template.moveUpButton.textContent = "▲";
+    this.template.moveUpButton.disabled = trackIndex <= 0;
+    this.template.moveUpButton.title = "Move track up";
+    this.template.moveUpButton.setAttribute("aria-label", "Move track up");
+
+    this.template.moveDownButton.classList.add(
+      "tu-track-move-button",
+      "tu-track-move-down-button"
+    );
+    this.template.moveDownButton.textContent = "▼";
+    this.template.moveDownButton.disabled =
+      trackIndex === -1 ||
+      trackIndex >= this.notationComponent.score.tracks.length - 1;
+    this.template.moveDownButton.title = "Move track down";
+    this.template.moveDownButton.setAttribute("aria-label", "Move track down");
+  }
+
+  private renderTrackNameInput(): void {
+    const cssClass = "tu-track-name-input";
+    this.template.trackNameInput.classList.add(cssClass);
+    this.template.trackNameInput.value = this.track.name;
   }
 
   private renderRemoveButton(): void {
     const cssClass = "tu-track-remove-button";
-    this.template.muteButton.classList.add(cssClass);
-    setImageAsset(
-      this.template.removeButton,
-      this.assetsPath,
-      "img/ui/remove.svg",
-      "Remove"
+    this.template.removeButton.classList.add(cssClass);
+    this.template.removeButton.disabled =
+      this.notationComponent.score.tracks.length <= 1;
+    this.template.removeButton.title = this.template.removeButton.disabled
+      ? "Cannot remove the only track"
+      : "Remove track";
+    if (this.template.removeButton.disabled) {
+      this.template.removeButton.dataset.tooltip =
+        this.template.removeButton.title;
+    } else {
+      this.template.removeButton.removeAttribute("data-tooltip");
+    }
+    this.template.removeButton.textContent = "−";
+    this.template.removeButton.setAttribute(
+      "aria-label",
+      this.template.removeButton.title
     );
   }
 
@@ -77,7 +126,7 @@ export class TrackControlsTemplateRenderer {
     this.template.volumeInput.max = `${maxVolume}`;
     this.template.volumeInput.step = `${volumeStep}`;
 
-    this.template.volumeInput.value = `${(minVolume + maxVolume) / 2}`;
+    this.template.volumeInput.value = `${this.track.volume * maxVolume}`;
   }
 
   private renderPanningInput(): void {
@@ -88,7 +137,7 @@ export class TrackControlsTemplateRenderer {
     this.template.panningInput.max = `${maxPanning}`;
     this.template.panningInput.step = `${panningStep}`;
 
-    this.template.panningInput.value = `${0}`;
+    this.template.panningInput.value = `${this.track.pan}`;
   }
 
   private renderMuteButton(): void {
@@ -113,6 +162,25 @@ export class TrackControlsTemplateRenderer {
     );
   }
 
+  private renderPlaybackState(): void {
+    this.template.muteButton.classList.toggle(
+      "tu-track-control-active",
+      this.track.muted
+    );
+    this.template.muteButton.setAttribute(
+      "aria-pressed",
+      `${this.track.muted}`
+    );
+    this.template.soloButton.classList.toggle(
+      "tu-track-control-active",
+      this.track.soloed
+    );
+    this.template.soloButton.setAttribute(
+      "aria-pressed",
+      `${this.track.soloed}`
+    );
+  }
+
   private renderScoreSettingsButton(): void {
     const cssClass = "tu-track-settings-button";
     this.template.settingsButton.classList.add(cssClass);
@@ -126,11 +194,14 @@ export class TrackControlsTemplateRenderer {
 
   public render(): void {
     this.renderRemoveButton();
-    this.renderTrackName();
+    this.renderSelectButton();
+    this.renderMoveButtons();
+    this.renderTrackNameInput();
     this.renderVolumeInput();
     this.renderPanningInput();
     this.renderMuteButton();
     this.renderSoloButton();
+    this.renderPlaybackState();
     this.renderScoreSettingsButton();
 
     this._assembled = renderOnce(this._assembled, () =>

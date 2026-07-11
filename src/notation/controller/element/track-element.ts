@@ -90,7 +90,12 @@ export type TrackElementLineRange = {
   endLineIndex: number;
 };
 
-export type TrackElementUpdateDepth = "none" | "elements" | "skeleton" | "full";
+export enum TrackElementUpdateDepth {
+  None = "none",
+  Elements = "elements",
+  Skeleton = "skeleton",
+  Full = "full",
+}
 
 export type TrackElementUpdateOptions = {
   depth?: TrackElementUpdateDepth;
@@ -377,9 +382,13 @@ export class TrackElement {
     endLineIndex: number = Number.MAX_SAFE_INTEGER,
     options: TrackElementUpdateOptions = {}
   ): void {
-    const depth = options.depth ?? "full";
-    const rebuildSkeleton = depth === "skeleton" || depth === "full";
-    const forceElements = depth === "elements" || depth === "full";
+    const depth = options.depth ?? TrackElementUpdateDepth.Full;
+    const rebuildSkeleton =
+      depth === TrackElementUpdateDepth.Skeleton ||
+      depth === TrackElementUpdateDepth.Full;
+    const forceElements =
+      depth === TrackElementUpdateDepth.Elements ||
+      depth === TrackElementUpdateDepth.Full;
 
     this.clearElementDiff();
 

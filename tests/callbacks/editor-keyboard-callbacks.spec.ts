@@ -1,4 +1,4 @@
-import { EditorKeyboardDefCallbacks } from "../../src/callbacks/editor/editor-keyboard-callbacks";
+import { EditorKeyboardDefCallbacks } from "../../src/notation/input/editor-keyboard-callbacks";
 import { GuitarTechniqueType, NoteValue } from "../../src/notation/model";
 import { SelectedMoveDirection } from "../../src/notation/controller";
 

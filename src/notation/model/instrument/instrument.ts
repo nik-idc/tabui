@@ -1,13 +1,13 @@
 import { Beat } from "../beat";
 import { Note, NoteJSON, NoteType } from "../note";
-import { MusicInstrumentKind } from "./instrument-kind";
-import { MusicInstrumentPreset } from "./instrument-preset";
-import { MusicInstrumentType } from "./instrument-type";
+import { InstrumentFamily } from "./instrument-family";
+import { InstrumentTone } from "./instrument-tone";
+import { InstrumentType } from "./instrument-type";
 
 export interface MusicInstrumentJSON {
-  kind: MusicInstrumentKind;
-  type: MusicInstrumentType;
-  preset: MusicInstrumentPreset;
+  family: InstrumentFamily;
+  type: InstrumentType;
+  tone: InstrumentTone;
   name: string;
   program: number;
   tuning: NoteType[];
@@ -17,12 +17,11 @@ export interface MusicInstrumentJSON {
  * Interface for TabUI musical instruments
  */
 export interface MusicInstrument {
-  /* Kind of instrument (String | Orchestra | Drum) */
-  kind: MusicInstrumentKind;
+  family: InstrumentFamily;
   /* Type of instrument */
-  type: MusicInstrumentType;
-  /* MusicInstrument preset */
-  preset: MusicInstrumentPreset;
+  type: InstrumentType;
+  /* MusicInstrument tone */
+  tone: InstrumentTone;
   /* Name of the instrument */
   name: string;
   /* MIDI program or custom sound ID for playback */

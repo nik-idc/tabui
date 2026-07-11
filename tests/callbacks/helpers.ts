@@ -5,7 +5,11 @@ export class FakeElement {
   textContent = "";
   disabled = false;
   dataset: Record<string, string> = {};
+  classList = {
+    toggle: jest.fn(),
+  };
   close = jest.fn();
+  setAttribute = jest.fn();
 
   private _children: FakeElement[] = [];
   private _listeners = new Map<string, Set<Handler>>();
@@ -85,6 +89,8 @@ export function createNotationComponentMock() {
       startPlayer: jest.fn(),
       stopPlayer: jest.fn(),
       toggleLoop: jest.fn(),
+      syncTrackPlaybackState: jest.fn(),
+      moveTrack: jest.fn(),
       setSelectedBarTempo: jest.fn(),
       setSelectedBarTimeSignature: jest.fn(),
       setSelectedBeatsTuplet: jest.fn(),

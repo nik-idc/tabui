@@ -1,5 +1,5 @@
-import { NoteControlsDefaultCallbacks } from "../../src/callbacks/ui/note-controls-callbacks";
-import { TupletControlsDefaultCallbacks } from "../../src/callbacks/ui/tuplet-controls-callbacks";
+import { NoteControlsDefaultCallbacks } from "../../src/ui/side-controls/note-controls/note-controls-callbacks";
+import { TupletControlsDefaultCallbacks } from "../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-callbacks";
 import { NoteDuration } from "../../src/notation/model";
 import {
   createNotationComponentMock,

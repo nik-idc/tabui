@@ -14,6 +14,7 @@ import { SelectedNote, SelectedMoveDirection } from "./selection/selected-note";
 import { CommandManager } from "./editor/command/command-manager";
 import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
+import { ResolvedPlaybackConfig } from "@/config/tabui-config";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -33,14 +34,18 @@ export class TrackController {
    * Class that handles editing, playing & calculating geometry of a track
    * @param track Track
    */
-  constructor(track: Track) {
+  constructor(track: Track, playbackConfig: ResolvedPlaybackConfig = {}) {
     this.track = track;
 
     this._trackElement = new TrackElement(this.track);
     this._trackControllerEditor = new TrackControllerEditor(this._trackElement);
 
     if (typeof window !== "undefined") {
-      this._scorePlayer = new ScorePlayer(this.track.score, this.track);
+      this._scorePlayer = new ScorePlayer(
+        this.track.score,
+        this.track,
+        playbackConfig
+      );
     } else {
       this._scorePlayer = undefined;
     }
@@ -92,6 +97,15 @@ export class TrackController {
     }
 
     this._scorePlayer.toggleLoop();
+  }
+
+  /** Applies current track playback-control state to active playback nodes. */
+  public syncTrackPlaybackState(): void {
+    this._scorePlayer?.syncTrackPlaybackState();
+  }
+
+  public moveTrack(track: Track, targetIndex: number): void {
+    this.track.score.moveTrack(track, targetIndex);
   }
 
   /** Disposes runtime resources owned by the controller */

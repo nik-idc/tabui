@@ -1,6 +1,7 @@
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { AppendBeatCommand } from "../../src/notation/controller/editor/command/append-beat-command";
 import { BeatElement } from "../../src/notation/controller/element/beat/beat-element";
+import { TrackElementUpdateDepth } from "../../src/notation/controller/element/track-element";
 import {
   BendTechniqueOptions,
   BendType,
@@ -121,7 +122,9 @@ describe("TrackController", () => {
 
     expect(controller.activeVoiceNumber).toBe(2);
     expect(updateSpy).toHaveBeenCalledTimes(1);
-    expect(updateSpy).toHaveBeenCalledWith(0, 0, { depth: "elements" });
+    expect(updateSpy).toHaveBeenCalledWith(0, 0, {
+      depth: TrackElementUpdateDepth.Elements,
+    });
   });
 
   test("moving right into a missing active voice bar updates elements", () => {
@@ -139,7 +142,9 @@ describe("TrackController", () => {
 
     expect(secondBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectedNote?.bar).toBe(secondBar);
-    expect(updateSpy).toHaveBeenCalledWith(0, 0, { depth: "elements" });
+    expect(updateSpy).toHaveBeenCalledWith(0, 0, {
+      depth: TrackElementUpdateDepth.Elements,
+    });
     expect(
       controller.trackElement.getBeatElement(controller.selectedNote!.beat)
     ).toBeDefined();
@@ -166,7 +171,9 @@ describe("TrackController", () => {
 
     expect(firstBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectedNote?.bar).toBe(firstBar);
-    expect(updateSpy).toHaveBeenCalledWith(0, 0, { depth: "elements" });
+    expect(updateSpy).toHaveBeenCalledWith(0, 0, {
+      depth: TrackElementUpdateDepth.Elements,
+    });
     expect(
       controller.trackElement.getBeatElement(controller.selectedNote!.beat)
     ).toBeDefined();

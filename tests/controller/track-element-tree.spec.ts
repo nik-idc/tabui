@@ -1,4 +1,7 @@
-import { TrackElement } from "../../src/notation/controller/element/track-element";
+import {
+  TrackElement,
+  TrackElementUpdateDepth,
+} from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
 import { TrackLineElement } from "../../src/notation/controller/element/track/track-line-element";
@@ -53,7 +56,7 @@ function updateMasterBars(
   const lineRange = trackElement.rebuildSkeleton(masterBarIndices);
   if (lineRange !== null) {
     trackElement.update(lineRange.startLineIndex, lineRange.endLineIndex, {
-      depth: "elements",
+      depth: TrackElementUpdateDepth.Elements,
     });
   }
 }

@@ -1,5 +1,5 @@
-import { EditorMouseDefCallbacks } from "../../src/callbacks/editor/editor-mouse-callbacks";
-import { RenderType } from "../../src/callbacks/render-type";
+import { EditorMouseDefCallbacks } from "../../src/notation/input/editor-mouse-callbacks";
+import { RenderType } from "../../src/notation/input/render-type";
 import { SVGTabNoteRenderer } from "../../src/notation/render/svg/svg-tab-note-renderer";
 
 function createMouseEvent(

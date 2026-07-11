@@ -1,5 +1,11 @@
 import { TabUIEditor } from "@/tabui-editor";
-import { EditorLayoutDimensions } from "@/notation";
+import {
+  AcousticGuitarTone,
+  BassGuitarTone,
+  EditorLayoutDimensions,
+  ElectricGuitarTone,
+  NoteValue,
+} from "@/notation";
 import {
   getEditorFixtures,
   resolveEditorFixture,
@@ -19,6 +25,13 @@ EditorLayoutDimensions.configure({
   durationsHeight: 30,
 });
 
+const CLEAN_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Clean-Guitar-C3.wav`;
+const OVERDRIVEN_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Roland-SC-88-Overdriven-Guitar-C3.wav`;
+const DISTORTED_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Roland-SC-88-Distorted-Guitar-C3.wav`;
+const SLAP_BASS_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-S4-Plus-FatSynSlap-C2.wav`;
+const NYLON_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Nylon-String-Guitar-C4.wav`;
+const STEEL_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Steel-String-Guitar-C4.wav`;
+
 const rootDiv = document.getElementById(
   "tabui-editor"
 ) as HTMLDivElement | null;
@@ -37,8 +50,8 @@ const selectedFixture = resolveEditorFixtureKey(searchParams);
 const selectedTheme = resolveEditorThemeKey(searchParams);
 const selectedScore = resolveEditorFixture(searchParams);
 const selectedThemeConfig = resolveEditorTheme(searchParams);
-if (selectedFixture === "selection_perf") {
-  console.log("=== PERF MODE ===", "Selection stress score enabled");
+if (selectedFixture === "performance_stress") {
+  console.log("=== PERF MODE ===", "Performance stress score enabled");
 }
 
 if (fixtureSelect !== null) {
@@ -97,9 +110,51 @@ themeSelect?.addEventListener("change", () => {
   );
 });
 
-const tabuiEditor = new TabUIEditor(
-  rootDiv,
-  selectedScore,
-  selectedThemeConfig
-);
+const tabuiEditor = new TabUIEditor(rootDiv, selectedScore, {
+  ...selectedThemeConfig,
+  playback: {
+    [ElectricGuitarTone.Clean]: {
+      url: CLEAN_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 3,
+      },
+    },
+    [ElectricGuitarTone.Overdrive]: {
+      url: OVERDRIVEN_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 3,
+      },
+    },
+    [ElectricGuitarTone.Distortion]: {
+      url: DISTORTED_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 3,
+      },
+    },
+    [BassGuitarTone.Clean]: {
+      url: SLAP_BASS_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 2,
+      },
+    },
+    [AcousticGuitarTone.Nylon]: {
+      url: NYLON_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 4,
+      },
+    },
+    [AcousticGuitarTone.Steel]: {
+      url: STEEL_GUITAR_SAMPLE_URL,
+      rootNote: {
+        noteValue: NoteValue.C,
+        octave: 4,
+      },
+    },
+  },
+});
 tabuiEditor.init();

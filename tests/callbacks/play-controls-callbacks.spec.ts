@@ -1,4 +1,4 @@
-import { PlayControlsDefaultCallbacks } from "../../src/callbacks/ui/play-controls-callbacks";
+import { PlayControlsDefaultCallbacks } from "../../src/ui/top-controls/play-controls/play-controls-callbacks";
 import { dispatchClick, makeButton } from "./helpers";
 
 describe("PlayControlsDefaultCallbacks", () => {

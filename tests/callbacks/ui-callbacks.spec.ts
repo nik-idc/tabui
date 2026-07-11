@@ -1,6 +1,6 @@
-import { UICallbacks } from "../../src/callbacks/ui/ui-callbacks";
-import { TopControlsCallbacks } from "../../src/callbacks/ui/top-callbacks";
-import { SideControlsCallbacks } from "../../src/callbacks/ui/side-callbacks";
+import { UICallbacks } from "../../src/ui/ui-callbacks";
+import { TopControlsCallbacks } from "../../src/ui/top-controls/top-controls-callbacks";
+import { SideControlsCallbacks } from "../../src/ui/side-controls/side-controls-callbacks";
 
 describe("UICallbacks", () => {
   test("bind and unbind delegate to top and side callbacks", () => {

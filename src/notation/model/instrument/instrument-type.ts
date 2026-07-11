@@ -1,35 +1,40 @@
-import { MusicInstrumentKind } from "./instrument-kind";
+import { InstrumentFamily } from "./instrument-family";
 
-export enum StringMusicInstrumentType {
+export enum StringInstrumentType {
   AcousticGuitar = "Acoustic Guitar",
   ElectricGuitar = "Electric Guitar",
   BassGuitar = "Bass Guitar",
   Other = "Other",
 }
 
-export enum OrchestraMusicInstrumentType {
+export enum OrchestraInstrumentType {
   Keyboard = "Keyboard",
 }
 
-export enum DrumMusicInstrumentType {
+export enum DrumInstrumentType {
   Drums = "Drums",
 }
 
-export type MusicInstrumentType =
-  | StringMusicInstrumentType
-  | OrchestraMusicInstrumentType
-  | DrumMusicInstrumentType;
+export type InstrumentType =
+  | StringInstrumentType
+  | OrchestraInstrumentType
+  | DrumInstrumentType;
 
-export const INSTRUMENT_TYPES: Record<
-  MusicInstrumentKind,
-  MusicInstrumentType[]
-> = {
-  [MusicInstrumentKind.String]: [
-    StringMusicInstrumentType.AcousticGuitar,
-    StringMusicInstrumentType.ElectricGuitar,
-    StringMusicInstrumentType.BassGuitar,
-    StringMusicInstrumentType.Other,
+export const INSTRUMENT_TYPES: Record<InstrumentFamily, InstrumentType[]> = {
+  [InstrumentFamily.Strings]: [
+    StringInstrumentType.AcousticGuitar,
+    StringInstrumentType.ElectricGuitar,
+    StringInstrumentType.BassGuitar,
+    StringInstrumentType.Other,
   ],
-  [MusicInstrumentKind.Orchestra]: [OrchestraMusicInstrumentType.Keyboard],
-  [MusicInstrumentKind.Drums]: [DrumMusicInstrumentType.Drums],
+  [InstrumentFamily.Orchestra]: [OrchestraInstrumentType.Keyboard],
+  [InstrumentFamily.Drums]: [DrumInstrumentType.Drums],
 };
+
+export function isStringInstrumentType(
+  type: InstrumentType
+): type is StringInstrumentType {
+  return Object.values(StringInstrumentType).includes(
+    type as StringInstrumentType
+  );
+}

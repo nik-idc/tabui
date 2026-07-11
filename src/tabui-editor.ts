@@ -1,4 +1,4 @@
-import { TabUICallbacks } from "./callbacks/tabui-callbacks";
+import { TabUICallbacks } from "./tabui-callbacks";
 import { Score } from "./notation";
 import { NotationComponent } from "./notation/notation-component";
 import { UIComponent } from "./ui";

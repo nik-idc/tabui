@@ -66,6 +66,11 @@ export class YesNoTemplateRenderer {
     );
   }
 
+  public setText(text: string): void {
+    this._text = text;
+    this.renderText();
+  }
+
   public render(): void {
     this.renderText();
     this.renderButtons();

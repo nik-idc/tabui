@@ -5,11 +5,11 @@ import { TimeSigControlsComponent } from "@/ui/side-controls/measure-controls/ti
 import {
   TempoControlsCallbacks,
   TempoControlsDefaultCallbacks,
-} from "./tempo-controls-callbacks";
+} from "./tempo-controls/tempo-controls-callbacks";
 import {
   TimeSigControlsCallbacks,
   TimeSigControlsDefaultCallbacks,
-} from "./time-sig-controls-callbacks";
+} from "./time-sig-controls/time-sig-controls-callbacks";
 import { ListenerManager } from "@/shared/misc";
 import { BarRepeatStatus } from "@/notation/model";
 

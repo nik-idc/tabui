@@ -33,4 +33,9 @@ export class YesNoComponent {
   public render(): void {
     this.templateRenderer.render();
   }
+
+  public setText(text: string): void {
+    this._text = text;
+    this.templateRenderer.setText(text);
+  }
 }

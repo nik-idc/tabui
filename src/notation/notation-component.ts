@@ -39,7 +39,10 @@ export class NotationComponent {
     this.score = score;
     this.rootDiv = rootDiv;
     this.config = config;
-    this._trackController = new TrackController(this.score.tracks[0]);
+    this._trackController = new TrackController(
+      this.score.tracks[0],
+      this.config.playback
+    );
     this._renderer =
       renderer === undefined
         ? new EditorSVGRenderer(
@@ -68,7 +71,10 @@ export class NotationComponent {
     this._renderer.dispose();
 
     // Render new stuff
-    const newTrackController = new TrackController(newTrack);
+    const newTrackController = new TrackController(
+      newTrack,
+      this.config.playback
+    );
     this._trackController = newTrackController;
     this._renderer = new EditorSVGRenderer(
       this.rootDiv,

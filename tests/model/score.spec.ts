@@ -56,6 +56,29 @@ describe("Score model", () => {
     );
   });
 
+  test("moveTrack moves an existing track to the target index", () => {
+    const score = new Score();
+    const track1 = score.tracks[0];
+    const track2 = score.addTrack(new Guitar(), "Track 2").tracks[0];
+    const track3 = score.addTrack(new Guitar(), "Track 3").tracks[0];
+
+    score.moveTrack(track3, 0);
+
+    expect(score.tracks).toEqual([track3, track1, track2]);
+  });
+
+  test("moveTrack throws for tracks and target indices outside the score", () => {
+    const score = new Score();
+    const foreignTrack = new Track(score, new Guitar(), "Foreign");
+
+    expect(() => score.moveTrack(foreignTrack, 0)).toThrow(
+      "Track not in score"
+    );
+    expect(() => score.moveTrack(score.tracks[0], -1)).toThrow(
+      "Target track index out of score"
+    );
+  });
+
   test("removeMasterBar throws when removing the last remaining master bar", () => {
     const score = new Score();
 
