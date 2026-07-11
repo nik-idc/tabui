@@ -6,10 +6,15 @@ import {
 } from "../model/helpers";
 import {
   BarRepeatStatus,
+  BendTechniqueOptions,
+  BendType,
   Bar,
   Guitar,
+  GuitarTechnique,
+  GuitarTechniqueType,
   MusicInstrument,
   NoteDuration,
+  NoteValue,
   ElectricGuitarTone,
   StringInstrumentType,
   getNoteFrequency,
@@ -23,7 +28,15 @@ const createdPanners: MockStereoPannerNode[] = [];
 
 class MockOscillatorNode {
   public type = "sine";
-  public frequency = { value: 0 };
+  public frequency = {
+    value: 0,
+    setValueAtTime: jest.fn((value: number) => {
+      this.frequency.value = value;
+    }),
+    linearRampToValueAtTime: jest.fn((value: number) => {
+      this.frequency.value = value;
+    }),
+  };
   public onended?: () => void;
   public start = jest.fn();
   public stop = jest.fn(() => {
@@ -68,7 +81,15 @@ class MockStereoPannerNode {
 
 class MockAudioBufferSourceNode {
   public buffer: AudioBuffer | null = null;
-  public playbackRate = { value: 1 };
+  public playbackRate = {
+    value: 1,
+    setValueAtTime: jest.fn((value: number) => {
+      this.playbackRate.value = value;
+    }),
+    linearRampToValueAtTime: jest.fn((value: number) => {
+      this.playbackRate.value = value;
+    }),
+  };
   public onended?: () => void;
   public start = jest.fn();
   public stop = jest.fn(() => {
@@ -168,6 +189,15 @@ function firstBeatOf<I extends MusicInstrument>(bar: Bar<I>) {
     throw Error("Expected voice 1 bar");
   }
   return voiceBar.beats[0];
+}
+
+function firstNoteOf<I extends MusicInstrument>(bar: Bar<I>) {
+  const note = firstBeatOf(bar).notes?.[0];
+  if (note === undefined) {
+    throw Error("Expected note in test bar");
+  }
+
+  return note;
 }
 
 function oscillatorStarts(): number[] {
@@ -318,6 +348,153 @@ describe("ScorePlayer", () => {
       0.06,
       0.53
     );
+  });
+
+  test("palm mute shortens and softens note playback", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    const note = firstNoteOf(bar);
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(createdOscillators[0].stop).toHaveBeenCalledWith(
+      0.22999999999999998
+    );
+    expect(
+      noteEnvelopeGains()[0].gain.linearRampToValueAtTime
+    ).toHaveBeenCalledWith(0.038, 0.060000000000000005);
+  });
+
+  test("let ring extends note playback", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    const note = firstNoteOf(bar);
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(createdOscillators[0].stop).toHaveBeenCalledWith(1.25);
+    expect(noteEnvelopeGains()[0].gain.setValueAtTime).toHaveBeenCalledWith(
+      0.06,
+      1.23
+    );
+  });
+
+  test("hammer-on and pull-off playback uses softer attack", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    const note = firstNoteOf(bar);
+    note.addTechnique(
+      new GuitarTechnique(note, GuitarTechniqueType.HammerOnOrPullOff)
+    );
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(
+      noteEnvelopeGains()[0].gain.linearRampToValueAtTime
+    ).toHaveBeenCalledWith(0.048, 0.068);
+    expect(noteEnvelopeGains()[0].gain.setValueAtTime).toHaveBeenCalledWith(
+      0.048,
+      0.53
+    );
+  });
+
+  test("bend automates note pitch", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    const note = firstNoteOf(bar);
+    note.addTechnique(
+      new GuitarTechnique(
+        note,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 2,
+          bendDuration: 0.5,
+        })
+      )
+    );
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    const frequency = getNoteFrequency(note);
+    expect(createdOscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(
+      frequency,
+      0.05
+    );
+    expect(
+      createdOscillators[0].frequency.linearRampToValueAtTime
+    ).toHaveBeenCalledWith(frequency * 2 ** (2 / 12), 0.3);
+  });
+
+  test("slide targets the next same-string note", async () => {
+    const { score, track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    setBeatFret(beats[0], 0);
+    setBeatFret(beats[1], 2);
+    const note = beats[0].notes![0];
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide));
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: beats[0] });
+
+    expect(oscillatorFrequencies()).toHaveLength(1);
+    expect(createdOscillators[0].stop).toHaveBeenCalledWith(1.05);
+    expect(createdOscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(
+      getNoteFrequency(note),
+      expect.closeTo(0.225)
+    );
+    expect(
+      createdOscillators[0].frequency.linearRampToValueAtTime
+    ).toHaveBeenCalledWith(getNoteFrequency(beats[1].notes![0]), 0.55);
+  });
+
+  test("slide does not consume an unplayable target note", async () => {
+    const { score, track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    setBeatFret(beats[0], 0);
+    setBeatFret(beats[1], 2);
+    const note = beats[0].notes![0];
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide));
+    beats[1].notes![0].setNote(NoteValue.Dead, null);
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: beats[0] });
+
+    expect(oscillatorFrequencies()).toHaveLength(1);
+    expect(createdOscillators[0].stop).toHaveBeenCalledWith(0.55);
+    expect(
+      createdOscillators[0].frequency.linearRampToValueAtTime
+    ).not.toHaveBeenCalledWith(expect.any(Number), 0.55);
+  });
+
+  test("harmonics shift pitch up and use softer envelope", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    const note = firstNoteOf(bar);
+    note.addTechnique(
+      new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
+    );
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(createdOscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(
+      getNoteFrequency(note) * 2,
+      0.05
+    );
+    expect(
+      noteEnvelopeGains()[0].gain.linearRampToValueAtTime
+    ).toHaveBeenCalledWith(0.045, 0.060000000000000005);
   });
 
   test("track pan routes scheduled output through stereo panner", async () => {

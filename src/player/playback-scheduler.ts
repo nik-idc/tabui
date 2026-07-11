@@ -1,4 +1,13 @@
-import { Bar, Beat, Score, Track, ticksToSeconds } from "@/notation/model";
+import {
+  Bar,
+  Beat,
+  GuitarNote,
+  GuitarTechniqueType,
+  Score,
+  Track,
+  getNoteFrequency,
+  ticksToSeconds,
+} from "@/notation/model";
 import { ResolvedPlaybackConfig } from "@/config/tabui-config";
 import { PlaybackNoteScheduler } from "./playback-note-scheduler";
 import { PlaybackSampleManager } from "./playback-sample-manager";
@@ -207,6 +216,10 @@ export class PlaybackScheduler {
     beatChanges.push({ beat, startTime });
 
     for (const note of beat.notes ?? []) {
+      if (this.noteIsSlideTarget(note)) {
+        continue;
+      }
+
       const scheduledAudioNode = this._noteScheduler.scheduleNote(
         note,
         startTime,
@@ -227,6 +240,20 @@ export class PlaybackScheduler {
     }
 
     return beatDurationInSeconds;
+  }
+
+  private noteIsSlideTarget(note: unknown): boolean {
+    if (!(note instanceof GuitarNote)) {
+      return false;
+    }
+
+    const prevBeat = note.beat.voiceBar.bar.staff.getPrevBeat(note.beat);
+    const prevNote = prevBeat?.notes?.[note.stringNum - 1];
+    return (
+      prevNote instanceof GuitarNote &&
+      prevNote.hasTechnique(GuitarTechniqueType.Slide) &&
+      getNoteFrequency(note) > 0
+    );
   }
 
   private getTrackAudioBus(track: Track): TrackAudioBus {
