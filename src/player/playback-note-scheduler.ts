@@ -9,6 +9,10 @@ import {
   ticksToSeconds,
 } from "@/notation/model";
 import { PlaybackSampleManager } from "./playback-sample-manager";
+import {
+  getPlaybackToneProfile,
+  PlaybackToneProfile,
+} from "./playback-tone-profile";
 import { ScheduledAudioNode, TrackAudioBus } from "./scheduled-audio-node";
 
 // Conservative peak keeps summed multi-track playback from clipping quickly.
@@ -43,6 +47,10 @@ const vibratoDepthRatio = 0.018;
 const vibratoStepSeconds = 0.08;
 // Missing bend duration falls back to halfway through the note.
 const defaultBendDurationRatio = 0.5;
+// Downbeat notes get a small emphasis for a less mechanical feel.
+const downbeatGainMultiplier = 1.08;
+// Repeated notes are softened slightly to reduce machine-gun playback.
+const repeatedNoteGainMultiplier = 0.92;
 
 type BendAutomationValues = {
   bendRamp: PitchRampParams;
@@ -73,6 +81,7 @@ type PitchRampParams = {
 type TechniqueEnvelopeSettings = {
   attackSeconds: number;
   peakGain: number;
+  releaseSeconds: number;
   stopTime: number;
 };
 
@@ -116,7 +125,7 @@ export class PlaybackNoteScheduler {
     const rootFrequency = this._sampleManager.getRootFrequency(tone);
     if (sample === undefined || rootFrequency === undefined) {
       const oscillatorNode = this._audioContext.createOscillator();
-      oscillatorNode.type = "sine";
+      oscillatorNode.type = this.getToneProfile(note).oscillatorType;
       oscillatorNode.frequency.value = frequency;
       return oscillatorNode;
     }
@@ -139,6 +148,30 @@ export class PlaybackNoteScheduler {
   /** Converts semitone distance into a frequency/playbackRate multiplier. */
   private semitonesToRate(semitones: number): number {
     return 2 ** (semitones / 12);
+  }
+
+  /** Returns playback shaping defaults for the note's instrument tone. */
+  private getToneProfile(note: Note): PlaybackToneProfile {
+    return getPlaybackToneProfile(note.trackContext.instrument.tone);
+  }
+
+  /** Returns a small musical gain variation from beat/note context. */
+  private getContextGainMultiplier(note: Note): number {
+    let multiplier = 1;
+    if (note.beat.startTick === 0) {
+      multiplier *= downbeatGainMultiplier;
+    }
+
+    const prevBeat = note.beat.voiceBar.bar.staff.getPrevBeat(note.beat);
+    const prevNote = this.getSameStringNote(note, prevBeat?.notes ?? null);
+    if (
+      prevNote !== null &&
+      getNoteFrequency(prevNote) === getNoteFrequency(note)
+    ) {
+      multiplier *= repeatedNoteGainMultiplier;
+    }
+
+    return multiplier;
   }
 
   /** Returns the source parameter that controls pitch. */
@@ -369,9 +402,14 @@ export class PlaybackNoteScheduler {
     stopTime: number,
     startTime: number
   ): TechniqueEnvelopeSettings {
+    const profile = this.getToneProfile(note);
     const settings: TechniqueEnvelopeSettings = {
-      attackSeconds,
-      peakGain: notePeakGain,
+      attackSeconds: attackSeconds * profile.attackMultiplier,
+      peakGain:
+        notePeakGain *
+        profile.gainMultiplier *
+        this.getContextGainMultiplier(note),
+      releaseSeconds: releaseSeconds * profile.releaseMultiplier,
       stopTime,
     };
 
@@ -430,16 +468,25 @@ export class PlaybackNoteScheduler {
     }
 
     const nextBeat = note.beat.voiceBar.bar.staff.getNextBeat(note.beat);
-    if (nextBeat?.notes === null || nextBeat?.notes === undefined) {
-      return null;
-    }
-
-    const nextNote = nextBeat.notes[note.stringNum - 1];
+    const nextNote = this.getSameStringNote(note, nextBeat?.notes ?? null);
     if (!(nextNote instanceof GuitarNote)) {
       return null;
     }
 
     return getNoteFrequency(nextNote) > 0 ? nextNote : null;
+  }
+
+  /** Returns the same-string note from another beat when both notes are guitar. */
+  private getSameStringNote(
+    note: Note,
+    notes: Note[] | null
+  ): GuitarNote | null {
+    if (!(note instanceof GuitarNote) || notes === null) {
+      return null;
+    }
+
+    const sameStringNote = notes[note.stringNum - 1];
+    return sameStringNote instanceof GuitarNote ? sameStringNote : null;
   }
 
   /**
@@ -471,7 +518,7 @@ export class PlaybackNoteScheduler {
     const attackEndTime = startTime + envelopeSettings.attackSeconds;
     const releaseStartTime = Math.max(
       attackEndTime,
-      effectiveStopTime - releaseSeconds
+      effectiveStopTime - envelopeSettings.releaseSeconds
     );
     const track = note.beat.voiceBar.bar.staff.track;
     gainNode.gain.setValueAtTime(0, startTime);

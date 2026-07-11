@@ -9,6 +9,7 @@ import {
   BendTechniqueOptions,
   BendType,
   Bar,
+  BassGuitarTone,
   Guitar,
   GuitarTechnique,
   GuitarTechniqueType,
@@ -343,11 +344,30 @@ describe("ScorePlayer", () => {
     );
     expect(
       noteEnvelopeGains()[0].gain.linearRampToValueAtTime
-    ).toHaveBeenCalledWith(0.06, 0.060000000000000005);
+    ).toHaveBeenCalledWith(0.0648, 0.060000000000000005);
     expect(noteEnvelopeGains()[0].gain.setValueAtTime).toHaveBeenCalledWith(
-      0.06,
+      0.0648,
       0.53
     );
+  });
+
+  test("repeated notes are softened after the first attack", async () => {
+    const { score, track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    setBeatFret(beats[0], 0);
+    setBeatFret(beats[1], 0);
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: beats[0] });
+
+    expect(
+      noteEnvelopeGains()[0].gain.linearRampToValueAtTime
+    ).toHaveBeenCalledWith(0.0648, 0.060000000000000005);
+    expect(
+      noteEnvelopeGains()[1].gain.linearRampToValueAtTime
+    ).toHaveBeenCalledWith(0.0552, 0.56);
   });
 
   test("palm mute shortens and softens note playback", async () => {
@@ -378,7 +398,7 @@ describe("ScorePlayer", () => {
 
     expect(createdOscillators[0].stop).toHaveBeenCalledWith(1.25);
     expect(noteEnvelopeGains()[0].gain.setValueAtTime).toHaveBeenCalledWith(
-      0.06,
+      0.0648,
       1.23
     );
   });
@@ -495,6 +515,31 @@ describe("ScorePlayer", () => {
     expect(
       noteEnvelopeGains()[0].gain.linearRampToValueAtTime
     ).toHaveBeenCalledWith(0.045, 0.060000000000000005);
+  });
+
+  test("bass oscillator fallback uses a warmer profile", async () => {
+    const { score, track, bar } = createScoreGraph();
+    track.setInstrument(
+      new Guitar(
+        StringInstrumentType.BassGuitar,
+        BassGuitarTone.Clean,
+        "Bass",
+        4
+      )
+    );
+    setBeatFret(firstBeatOf(bar), 0);
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(createdOscillators[0].type).toBe("triangle");
+    expect(
+      noteEnvelopeGains()[0].gain.linearRampToValueAtTime
+    ).toHaveBeenCalledWith(0.069984, 0.060500000000000005);
+    expect(noteEnvelopeGains()[0].gain.setValueAtTime).toHaveBeenCalledWith(
+      0.069984,
+      0.525
+    );
   });
 
   test("track pan routes scheduled output through stereo panner", async () => {
