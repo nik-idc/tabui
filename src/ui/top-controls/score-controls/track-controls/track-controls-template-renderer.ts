@@ -70,13 +70,19 @@ export class TrackControlsTemplateRenderer {
 
   private renderMoveButtons(): void {
     const trackIndex = this.notationComponent.score.tracks.indexOf(this.track);
-    this.template.moveUpButton.classList.add("tu-track-move-button");
+    this.template.moveUpButton.classList.add(
+      "tu-track-move-button",
+      "tu-track-move-up-button"
+    );
     this.template.moveUpButton.textContent = "▲";
     this.template.moveUpButton.disabled = trackIndex <= 0;
     this.template.moveUpButton.title = "Move track up";
     this.template.moveUpButton.setAttribute("aria-label", "Move track up");
 
-    this.template.moveDownButton.classList.add("tu-track-move-button");
+    this.template.moveDownButton.classList.add(
+      "tu-track-move-button",
+      "tu-track-move-down-button"
+    );
     this.template.moveDownButton.textContent = "▼";
     this.template.moveDownButton.disabled =
       trackIndex === -1 ||
