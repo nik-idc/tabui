@@ -64,6 +64,8 @@ The editor supports fixture selection through the `fixture` query parameter:
 - TabUI is a music-notation-focused library (especially guitar tablature).
 - A score can contain multiple tracks.
 - UI displays one active track at a time through the notation component.
+- Playback schedules all tracks through per-track audio buses, even though the
+  notation UI displays one active track.
 
 ### Model (conceptual)
 
@@ -105,6 +107,20 @@ The editor supports fixture selection through the `fixture` query parameter:
 - Renderer currently depends on concrete element classes for reconciliation.
 - `EditorSVGRenderer` renders materialized viewport lines and may retain
   offscreen renderer instances for reuse.
+
+### Playback
+
+- Playback is implemented directly with Web Audio under `src/player/`.
+- `ScorePlayer` owns transport state and lazy `AudioContext` lifecycle.
+- `PlaybackScheduler` owns score-material scheduling, track buses, sample
+  loading, and scheduled node tracking.
+- `PlaybackNoteScheduler` owns per-note source/envelope creation and lightweight
+  technique/tone shaping.
+- Samples are configured by instrument tone URL/root note, with oscillator
+  fallback when samples are missing or fail to load.
+- Track volume, mute, solo, and pan update persistent per-track audio buses.
+- Technique playback currently uses Web Audio pitch/envelope shaping over the
+  same source; it is not multisampling or articulation-specific sampling.
 
 ## Patterns and Practices
 
