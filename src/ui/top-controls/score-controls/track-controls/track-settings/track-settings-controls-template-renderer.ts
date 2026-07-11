@@ -26,7 +26,6 @@ export class TrackSettingsControlsTemplateRenderer {
   private _currentFamily: InstrumentFamily = InstrumentFamily.Strings;
   private _currentType: InstrumentType = StringInstrumentType.ElectricGuitar;
   private _currentTone: string = INSTRUMENT_TONES[this._currentType]?.[0] ?? "";
-  private _currentTrackName: string = "Edit track";
   private _currentStringCount: number = 6;
   private _originalTuning: string = "E A D G B E";
   private _currentTuning: string = "E A D G B E";
@@ -98,8 +97,6 @@ export class TrackSettingsControlsTemplateRenderer {
       ...this.template.instrTonesButtons
     );
     this.template.trackInfoContainer.append(
-      this.template.trackNameInput,
-      this.template.trackNameError,
       this.template.tuningContainer,
       this.template.wholeTuningContainer,
       this.template.tuningError,
@@ -182,12 +179,7 @@ export class TrackSettingsControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const newTrackInputCSSClass = "tu-ts-input";
     const newTrackErrorCSSClass = "tu-ts-error";
-
-    this.template.trackNameInput.classList.add(newTrackInputCSSClass);
-    this.template.trackNameInput.value = this._currentTrackName;
-    this.template.trackNameError.classList.add(newTrackErrorCSSClass);
 
     this.renderTuningControls();
     this.template.tuningError.classList.add(newTrackErrorCSSClass);
@@ -282,7 +274,6 @@ export class TrackSettingsControlsTemplateRenderer {
     currentFamily: InstrumentFamily,
     currentType: InstrumentType,
     currentTone: string,
-    currentTrackName: string,
     currentStringCount: number,
     currentTuning: string,
     originalTuning: string,
@@ -299,7 +290,6 @@ export class TrackSettingsControlsTemplateRenderer {
       this._currentType = currentType;
     }
     this._currentTone = currentTone;
-    this._currentTrackName = currentTrackName;
     this._currentStringCount = currentStringCount;
     this._currentTuning = currentTuning;
     this._originalTuning = originalTuning;

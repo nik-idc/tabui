@@ -104,6 +104,10 @@ export class TrackController {
     this._scorePlayer?.syncTrackPlaybackState();
   }
 
+  public moveTrack(track: Track, targetIndex: number): void {
+    this.track.score.moveTrack(track, targetIndex);
+  }
+
   /** Disposes runtime resources owned by the controller */
   public dispose(): void {
     this._scorePlayer?.dispose();

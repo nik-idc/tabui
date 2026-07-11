@@ -4,7 +4,12 @@ import { ListenerManager } from "@/shared/misc";
 
 export interface TrackControlsCallbacks {
   onTrackRemoveClicked(): void;
-  onTrackClicked(): void;
+  onTrackSelected(): void;
+  onTrackMoveUpClicked(): void;
+  onTrackMoveDownClicked(): void;
+  onTrackNameChanged(): void;
+  onTrackNameFocusGained(): void;
+  onTrackNameFocusLost(): void;
   onTrackVolumeChanged(event: InputEvent): void;
   onTrackPanningChanged(event: InputEvent): void;
   onMuteButtonClicked(): void;
@@ -49,9 +54,38 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     this._showTrackRemove();
   }
 
-  onTrackClicked(): void {
+  onTrackSelected(): void {
     this._notationComponent.loadTrack(this._trackComponent.track);
     this._renderFunc();
+  }
+
+  onTrackMoveUpClicked(): void {
+    this.moveTrack(-1);
+  }
+
+  onTrackMoveDownClicked(): void {
+    this.moveTrack(1);
+  }
+
+  private moveTrack(offset: number): void {
+    const track = this._trackComponent.track;
+    const trackIndex = this._notationComponent.score.tracks.indexOf(track);
+    const targetIndex = trackIndex + offset;
+    this._notationComponent.trackController.moveTrack(track, targetIndex);
+    this._renderFunc();
+  }
+
+  onTrackNameChanged(): void {
+    this._trackComponent.track.name =
+      this._trackComponent.template.trackNameInput.value;
+  }
+
+  onTrackNameFocusGained(): void {
+    this._captureKeyboard();
+  }
+
+  onTrackNameFocusLost(): void {
+    this._freeKeyboard();
   }
 
   onTrackVolumeChanged(event: InputEvent): void {
@@ -97,9 +131,34 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
         handler: () => this.onTrackRemoveClicked(),
       },
       {
-        element: this._trackComponent.template.trackButton,
+        element: this._trackComponent.template.selectButton,
         event: "click",
-        handler: () => this.onTrackClicked(),
+        handler: () => this.onTrackSelected(),
+      },
+      {
+        element: this._trackComponent.template.moveUpButton,
+        event: "click",
+        handler: () => this.onTrackMoveUpClicked(),
+      },
+      {
+        element: this._trackComponent.template.moveDownButton,
+        event: "click",
+        handler: () => this.onTrackMoveDownClicked(),
+      },
+      {
+        element: this._trackComponent.template.trackNameInput,
+        event: "input",
+        handler: () => this.onTrackNameChanged(),
+      },
+      {
+        element: this._trackComponent.template.trackNameInput,
+        event: "focus",
+        handler: () => this.onTrackNameFocusGained(),
+      },
+      {
+        element: this._trackComponent.template.trackNameInput,
+        event: "focusout",
+        handler: () => this.onTrackNameFocusLost(),
       },
       {
         element: this._trackComponent.template.volumeInput,

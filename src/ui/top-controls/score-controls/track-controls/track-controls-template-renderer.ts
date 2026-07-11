@@ -42,21 +42,55 @@ export class TrackControlsTemplateRenderer {
     this.template.container.classList.add(cssClass);
 
     this.template.container.append(
-      this.template.removeButton,
-      this.template.trackButton,
+      this.template.selectButton,
+      this.template.moveUpButton,
+      this.template.moveDownButton,
+      this.template.trackNameInput,
       this.template.volumeInput,
       this.template.panningInput,
       this.template.muteButton,
       this.template.soloButton,
-      this.template.settingsButton
+      this.template.settingsButton,
+      this.template.removeButton
     );
     this.parentDiv.appendChild(this.template.container);
   }
 
-  private renderTrackName(): void {
-    const cssClass = "tu-track-button";
-    this.template.trackButton.classList.add(cssClass);
-    this.template.trackButton.textContent = this.track.name;
+  private renderSelectButton(): void {
+    const cssClass = "tu-track-select-button";
+    this.template.selectButton.classList.add(cssClass);
+    this.template.selectButton.textContent = "▶";
+    this.template.selectButton.classList.toggle(
+      "tu-track-control-active",
+      this.notationComponent.trackController.track === this.track
+    );
+    this.template.selectButton.setAttribute(
+      "aria-pressed",
+      `${this.notationComponent.trackController.track === this.track}`
+    );
+  }
+
+  private renderMoveButtons(): void {
+    const trackIndex = this.notationComponent.score.tracks.indexOf(this.track);
+    this.template.moveUpButton.classList.add("tu-track-move-button");
+    this.template.moveUpButton.textContent = "↑";
+    this.template.moveUpButton.disabled = trackIndex <= 0;
+    this.template.moveUpButton.title = "Move track up";
+    this.template.moveUpButton.setAttribute("aria-label", "Move track up");
+
+    this.template.moveDownButton.classList.add("tu-track-move-button");
+    this.template.moveDownButton.textContent = "↓";
+    this.template.moveDownButton.disabled =
+      trackIndex === -1 ||
+      trackIndex >= this.notationComponent.score.tracks.length - 1;
+    this.template.moveDownButton.title = "Move track down";
+    this.template.moveDownButton.setAttribute("aria-label", "Move track down");
+  }
+
+  private renderTrackNameInput(): void {
+    const cssClass = "tu-track-name-input";
+    this.template.trackNameInput.classList.add(cssClass);
+    this.template.trackNameInput.value = this.track.name;
   }
 
   private renderRemoveButton(): void {
@@ -159,7 +193,9 @@ export class TrackControlsTemplateRenderer {
 
   public render(): void {
     this.renderRemoveButton();
-    this.renderTrackName();
+    this.renderSelectButton();
+    this.renderMoveButtons();
+    this.renderTrackNameInput();
     this.renderVolumeInput();
     this.renderPanningInput();
     this.renderMuteButton();

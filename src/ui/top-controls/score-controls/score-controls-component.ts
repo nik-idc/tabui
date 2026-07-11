@@ -63,22 +63,52 @@ export class ScoreControlsComponent {
     this.trackSettingsComponent.render();
     this.trackRemoveComponent.render();
 
-    this._trackComponents = [];
-    this.template.tracksContainer.replaceChildren();
+    this.reconcileTrackComponents();
+  }
+
+  private reconcileTrackComponents(): void {
     if (!this._tracksAreDisplayed) {
+      this.template.tracksContainer.replaceChildren();
+      this._trackComponents = [];
       return;
     }
 
+    const remainingTrackComponents = new Map(
+      this._trackComponents.map((tc) => [tc.track, tc])
+    );
+    const nextTrackComponents: TrackControlsComponent[] = [];
+
     for (const track of this.notationComponent.score.tracks) {
-      const trackComponent = new TrackControlsComponent(
-        this.template.tracksContainer,
-        this.notationComponent,
-        track
-      );
+      const trackComponent =
+        remainingTrackComponents.get(track) ??
+        new TrackControlsComponent(
+          this.template.tracksContainer,
+          this.notationComponent,
+          track
+        );
+
       trackComponent.render();
 
-      this._trackComponents.push(trackComponent);
+      const container = trackComponent.template.container;
+      const nextContainerIndex = nextTrackComponents.length;
+      const currentContainer =
+        this.template.tracksContainer.children[nextContainerIndex];
+      if (currentContainer !== container) {
+        this.template.tracksContainer.insertBefore(
+          container,
+          currentContainer ?? null
+        );
+      }
+      remainingTrackComponents.delete(track);
+
+      nextTrackComponents.push(trackComponent);
     }
+
+    for (const trackComponent of remainingTrackComponents.values()) {
+      trackComponent.template.container.remove();
+    }
+
+    this._trackComponents = nextTrackComponents;
   }
 
   public showNewTrackDialog(): void {

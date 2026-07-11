@@ -29,7 +29,6 @@ export class TrackSettingsControlsComponent {
   private _instrumentFamily: InstrumentFamily = InstrumentFamily.Strings;
   private _instrumentType: InstrumentType;
   private _instrumentTone: StringInstrumentTone;
-  private _trackName: string;
   private _stringCount: number;
   private _originalTuning: string;
   private _tuning: string;
@@ -53,7 +52,6 @@ export class TrackSettingsControlsComponent {
 
     this._instrumentType = StringInstrumentType.ElectricGuitar;
     this._instrumentTone = ElectricGuitarTone.Clean;
-    this._trackName = "";
     this._stringCount = 6;
     this._originalTuning = "E A D G B E";
     this._tuning = "E A D G B E";
@@ -70,7 +68,6 @@ export class TrackSettingsControlsComponent {
     this._instrumentType = track.context.instrument.type;
     this._instrumentTone = track.context.instrument
       .tone as StringInstrumentTone;
-    this._trackName = track.name;
     this._stringCount = track.context.instrument.stringsCount;
     this._originalTuning = track.context.instrument.getTuningStrSimple();
     this._tuning = this._originalTuning;
@@ -82,7 +79,6 @@ export class TrackSettingsControlsComponent {
       this._instrumentFamily,
       this._instrumentType,
       this._instrumentTone,
-      this._trackName,
       this._stringCount,
       this._tuning,
       this._originalTuning,
@@ -127,22 +123,17 @@ export class TrackSettingsControlsComponent {
       throw new Error("Unsupported instrument selection");
     }
 
-    this._track.name = this._trackName;
     const tuning = parseTuningStrSimple(this._tuning);
     this._track.setInstrument(
       new Guitar(
         this._instrumentType,
         this._instrumentTone,
-        this._trackName,
+        this._track.name,
         this._stringCount,
         tuning
       ),
       this._tuningChangeMode
     );
-  }
-
-  public setTrackName(trackName: string): void {
-    this._trackName = trackName;
   }
 
   public setTuning(tuning: string): void {
@@ -162,10 +153,6 @@ export class TrackSettingsControlsComponent {
   public setTuningChangeMode(mode: TrackInstrumentChangeMode): void {
     this._tuningChangeMode = mode;
     this.render();
-  }
-
-  public get trackName(): string {
-    return this._trackName;
   }
 
   public get track(): Track {

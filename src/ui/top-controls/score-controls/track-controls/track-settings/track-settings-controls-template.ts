@@ -19,8 +19,6 @@ export class TrackSettingsControlsTemplate {
   /********/ readonly instrTonesContainer: HTMLDivElement = createDiv();
   /**********/ readonly instrTonesButtons: HTMLButtonElement[] = [];
   /****/ readonly trackInfoContainer: HTMLDivElement = createDiv();
-  /******/ readonly trackNameInput: HTMLInputElement = createInput();
-  /******/ readonly trackNameError: HTMLDivElement = createDiv();
   /******/ readonly tuningContainer: HTMLDivElement = createDiv();
   /********/ readonly tuningStringContainers: HTMLDivElement[] = [];
   /********/ readonly tuningStringLabels: HTMLDivElement[] = [];

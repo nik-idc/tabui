@@ -10,11 +10,9 @@ import {
 import {
   createNotationComponentMock,
   dispatchClick,
-  dispatchInput,
   FakeElement,
   makeButton,
   makeDialog,
-  makeInput,
   makeText,
 } from "./helpers";
 
@@ -22,12 +20,10 @@ function createTrackSettingsHarness() {
   const dialog = makeDialog();
   const dialogContent = new FakeElement();
   dialog.appendChild(dialogContent);
-  const trackNameInput = makeInput("Lead");
   const tuningUpButtons = [makeButton(), makeButton(), makeButton()];
   const tuningDownButtons = [makeButton(), makeButton(), makeButton()];
   const wholeTuningUpButton = makeButton();
   const wholeTuningDownButton = makeButton();
-  const trackNameError = makeText();
   const tuningError = makeText();
   const keepFretsButton = makeButton();
   const transposeButton = makeButton();
@@ -45,12 +41,10 @@ function createTrackSettingsHarness() {
     template: {
       dialog,
       dialogContent,
-      trackNameInput,
       tuningUpButtons,
       tuningDownButtons,
       wholeTuningUpButton,
       wholeTuningDownButton,
-      trackNameError,
       tuningError,
       keepFretsButton,
       transposeButton,
@@ -68,9 +62,6 @@ function createTrackSettingsHarness() {
     setFamily: jest.fn(),
     setType: jest.fn(),
     setTone: jest.fn(),
-    setTrackName: jest.fn((name: string) => {
-      component.trackName = name;
-    }),
     shiftTuningString: jest.fn(),
     shiftWholeTuning: jest.fn(),
     setTuningChangeMode: jest.fn(),
@@ -103,18 +94,6 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
       renderFunc,
       freeKeyboard,
     } = createTrackSettingsHarness();
-
-    dispatchInput(component.template.trackNameInput, "");
-    callbacks.onTrackNameChanged();
-    expect(component.template.trackNameError.textContent).toBe(
-      callbacks.trackNameErrorText
-    );
-    expect(component.template.confirmButton.disabled).toBe(true);
-
-    dispatchInput(component.template.trackNameInput, "Lead");
-    callbacks.onTrackNameChanged();
-    expect(component.template.trackNameError.textContent).toBe(" ");
-    expect(component.setTrackName).toHaveBeenCalledWith("Lead");
 
     callbacks.bind();
     callbacks.bind();
@@ -151,7 +130,6 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     expect(freeKeyboard).toHaveBeenCalledTimes(
       freeKeyboardCallsBeforeConfirm + 1
     );
-    expect(component.track.name).toBe(component.trackName);
     expect(component.applyTrackSettings).toHaveBeenCalledTimes(1);
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;

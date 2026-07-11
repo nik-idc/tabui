@@ -11,14 +11,12 @@ import { ListenerConfig, ListenerManager } from "@/shared/misc";
 import { TrackSettingsControlsComponent } from "@/ui/top-controls/score-controls/track-controls/track-settings";
 
 export interface TrackSettingsControlsCallbacks {
-  readonly trackNameErrorText: string;
   readonly tuningErrorText: string;
 
   onDialogClicked(event: MouseEvent): void;
   onFamilyClicked(family: InstrumentFamily): void;
   onTypeClicked(type: InstrumentType): void;
   onToneClicked(tone: StringInstrumentTone): void;
-  onTrackNameChanged(): void;
   onTuningStringStep(stringIndex: number, semitones: number): void;
   onWholeTuningStep(semitones: number): void;
   onTuningModeClicked(mode: TrackInstrumentChangeMode): void;
@@ -36,11 +34,7 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
-  readonly trackNameErrorText: string = "Invalid track name";
   readonly tuningErrorText: string = "Invalid tuning";
-
-  private _minTrackNameLength = 1;
-  private _maxTrackNameLength = 32;
 
   constructor(
     newTrackComponent: TrackSettingsControlsComponent,
@@ -79,24 +73,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
     ) {
       this._trackSettingsComponent.template.dialog.close();
       this._freeKeyboard();
-    }
-  }
-
-  onTrackNameChanged(): void {
-    const trackNameInput = this._trackSettingsComponent.template.trackNameInput;
-    const trackNameError = this._trackSettingsComponent.template.trackNameError;
-    const confirmButton = this._trackSettingsComponent.template.confirmButton;
-
-    if (
-      trackNameInput.value.length < this._minTrackNameLength ||
-      trackNameInput.value.length > this._maxTrackNameLength
-    ) {
-      trackNameError.textContent = this.trackNameErrorText;
-      confirmButton.disabled = true;
-    } else {
-      trackNameError.textContent = " ";
-      confirmButton.disabled = false;
-      this._trackSettingsComponent.setTrackName(trackNameInput.value);
     }
   }
 
@@ -176,12 +152,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
     }
 
     configs.push(
-      {
-        element: this._trackSettingsComponent.template
-          .trackNameInput as HTMLElement,
-        event: "input",
-        handler: (event: Event) => this.onTrackNameChanged(),
-      },
       {
         element: this._trackSettingsComponent.template
           .keepFretsButton as HTMLElement,

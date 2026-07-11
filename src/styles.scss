@@ -102,6 +102,20 @@
             width: 150px;
           }
 
+          .tu-track-select-button {
+            width: 40px;
+
+            &.tu-track-control-active {
+              background: var(--tu-applied-color);
+              box-shadow: 0 0 0 2px var(--tu-font-color);
+            }
+          }
+
+          .tu-track-name-input {
+            @extend %tu-input-number-style;
+            width: 150px;
+          }
+
           .tu-track-remove-button {
             width: 40px;
             height: 40px;

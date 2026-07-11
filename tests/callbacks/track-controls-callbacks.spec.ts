@@ -3,6 +3,7 @@ import { TrackControlsTemplateRenderer } from "../../src/ui/top-controls/score-c
 import {
   createNotationComponentMock,
   dispatchClick,
+  dispatchEvent,
   dispatchInput,
   makeButton,
   makeInput,
@@ -13,8 +14,10 @@ describe("TrackControlsDefaultCallbacks", () => {
     const removeButton = {
       classList: { add: jest.fn() },
       disabled: false,
+      dataset: {},
       title: "",
       style: { backgroundImage: "" },
+      removeAttribute: jest.fn(),
       setAttribute: jest.fn(),
     };
     const renderer = Object.create(TrackControlsTemplateRenderer.prototype);
@@ -38,11 +41,21 @@ describe("TrackControlsDefaultCallbacks", () => {
     const captureKeyboard = jest.fn();
     const showTrackSettings = jest.fn();
     const showTrackRemove = jest.fn();
-    const track = { id: 1, volume: 0.5, pan: 0, muted: false, soloed: false };
+    const track = {
+      id: 1,
+      name: "Lead",
+      volume: 0.5,
+      pan: 0,
+      muted: false,
+      soloed: false,
+    };
     const component = {
       template: {
         removeButton: makeButton(),
-        trackButton: makeButton(),
+        selectButton: makeButton(),
+        moveUpButton: makeButton(),
+        moveDownButton: makeButton(),
+        trackNameInput: makeInput("Rhythm"),
         volumeInput: makeInput("50"),
         panningInput: makeInput("0"),
         muteButton: makeButton(),
@@ -51,6 +64,9 @@ describe("TrackControlsDefaultCallbacks", () => {
       },
       track,
     } as any;
+    notationComponent.score = {
+      tracks: [{}, track, {}],
+    };
     const callbacks = new TrackControlsDefaultCallbacks(
       component,
       notationComponent,
@@ -63,7 +79,12 @@ describe("TrackControlsDefaultCallbacks", () => {
 
     callbacks.bind();
     callbacks.bind();
-    dispatchClick(component.template.trackButton);
+    dispatchClick(component.template.selectButton);
+    dispatchClick(component.template.moveUpButton);
+    dispatchClick(component.template.moveDownButton);
+    dispatchInput(component.template.trackNameInput, "Rhythm");
+    dispatchEvent(component.template.trackNameInput, "focus");
+    dispatchEvent(component.template.trackNameInput, "focusout");
     dispatchClick(component.template.removeButton);
     dispatchClick(component.template.settingsButton);
     dispatchInput(component.template.volumeInput, "75");
@@ -72,6 +93,17 @@ describe("TrackControlsDefaultCallbacks", () => {
     dispatchClick(component.template.soloButton);
 
     expect(notationComponent.loadTrack).toHaveBeenCalledWith(track);
+    expect(notationComponent.trackController.moveTrack).toHaveBeenNthCalledWith(
+      1,
+      track,
+      0
+    );
+    expect(notationComponent.trackController.moveTrack).toHaveBeenNthCalledWith(
+      2,
+      track,
+      2
+    );
+    expect(track.name).toBe("Rhythm");
     expect(track.volume).toBe(0.75);
     expect(track.pan).toBe(-0.5);
     expect(track.muted).toBe(true);
@@ -79,14 +111,14 @@ describe("TrackControlsDefaultCallbacks", () => {
     expect(
       notationComponent.trackController.syncTrackPlaybackState
     ).toHaveBeenCalledTimes(4);
-    expect(renderFunc).toHaveBeenCalledTimes(3);
-    expect(captureKeyboard).toHaveBeenCalledTimes(2);
+    expect(renderFunc).toHaveBeenCalledTimes(5);
+    expect(captureKeyboard).toHaveBeenCalledTimes(3);
     expect(showTrackRemove).toHaveBeenCalledTimes(1);
     expect(showTrackSettings).toHaveBeenCalledTimes(1);
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.trackButton);
+    dispatchClick(component.template.selectButton);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
   });
 });
