@@ -14,12 +14,16 @@ Audio nodes are scheduled on the audio context timeline.
   - `AudioBufferSourceNode` for configured samples.
 - Each note has a short envelope `GainNode` to avoid clicks:
   - gain starts at `0`.
-  - attack ramps to `0.06`.
+  - attack ramps to a technique/profile-adjusted peak gain.
   - release ramps back to `0`.
 - Each track has a persistent audio bus:
   `note source -> note gain -> track gain -> track panner -> destination`.
 - Track volume/mute/solo controls update the track bus gain.
 - Track pan updates the track bus `StereoPannerNode`.
+- Tone profiles can adjust fallback oscillator type, note gain, attack, and
+  release.
+- Technique playback uses Web Audio pitch/envelope automation over the same
+  oscillator or sample source.
 
 ## Module Roles
 
@@ -52,6 +56,7 @@ Audio nodes are scheduled on the audio context timeline.
   - Creates the source node for one note.
   - Connects it through a note envelope into the owning track bus.
   - Starts/stops the source at absolute audio-context times.
+  - Applies tone-profile, context, and technique shaping for note playback.
 
 ## Lookahead
 
@@ -80,11 +85,15 @@ Playback is scheduled by master bar because all tracks share master bars.
 
 ## Oscillators vs Samples
 
-If no sample is configured or loaded for a note's instrument preset, playback
-uses an `OscillatorNode`:
+If no sample is configured or loaded for a note's instrument tone, playback uses
+an `OscillatorNode`:
 
-- oscillator type is currently `sine`.
+- oscillator type comes from the tone profile:
+  - default and clean electric: `sine`.
+  - bass/acoustic fallback tones: `triangle`.
+  - overdrive/distortion fallback tones: `sawtooth`.
 - frequency is calculated directly from the note pitch.
+- attack/release/gain can vary by tone profile.
 - no network or decoding is required.
 
 If a sample is configured, playback uses an `AudioBufferSourceNode`:
@@ -94,6 +103,27 @@ If a sample is configured, playback uses an `AudioBufferSourceNode`:
 - other pitches are produced by setting `playbackRate` to
   `noteFrequency / rootFrequency`.
 - this is single-sample pitch shifting, not multisampling.
+
+## Technique Playback
+
+Technique playback is currently implemented as Web Audio shaping over the same
+scheduled note source rather than articulation-specific samples.
+
+- Bends automate the source pitch according to bend options.
+- Palm mutes shorten and soften the note envelope.
+- Let-ring extends the note release.
+- Natural and pinch harmonics shift playback to the first octave partial and use
+  a softer envelope.
+- Hammer-on/pull-off uses a softer, slightly slower legato-style attack.
+- Vibrato modulates pitch around the target pitch.
+- Slides pair the source note with the next playable same-string target note:
+  - the source is scheduled through the target note's duration.
+  - pitch ramps from source pitch to target pitch.
+  - the target note is skipped as a separate source only when it is a playable
+    slide target.
+
+Technique shaping is intentionally lightweight. It improves playback feedback
+without requiring multisampling, velocity layers, or technique-specific samples.
 
 ## Non-Obvious Details
 
@@ -108,3 +138,7 @@ If a sample is configured, playback uses an `AudioBufferSourceNode`:
   user changes mute/solo before those notes play.
 - Scheduled source nodes are one-shot. Stopping playback stops pending sources
   and disconnects note envelope nodes.
+- Downbeat notes receive a small gain accent and repeated same-string/same-pitch
+  notes are softened slightly to reduce mechanical playback.
+- Current sample playback still uses one sample per configured tone. It does not
+  support multisampling, velocity layers, or articulation-specific samples yet.
