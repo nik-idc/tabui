@@ -29,7 +29,8 @@ export class TrackSettingsControlsTemplateRenderer {
   private _currentStringCount: number = 6;
   private _originalTuning: string = "E A D G B E";
   private _currentTuning: string = "E A D G B E";
-  private _currentTuningChangeMode: TrackInstrumentChangeMode = "keepFrets";
+  private _currentTuningChangeMode: TrackInstrumentChangeMode =
+    TrackInstrumentChangeMode.KeepFrets;
 
   private _assembled: boolean;
 
@@ -192,11 +193,11 @@ export class TrackSettingsControlsTemplateRenderer {
     this.template.transposeButton.textContent = "Transpose";
     this.template.keepFretsButton.classList.toggle(
       "tu-applied-button",
-      this._currentTuningChangeMode === "keepFrets"
+      this._currentTuningChangeMode === TrackInstrumentChangeMode.KeepFrets
     );
     this.template.transposeButton.classList.toggle(
       "tu-applied-button",
-      this._currentTuningChangeMode === "transpose"
+      this._currentTuningChangeMode === TrackInstrumentChangeMode.Transpose
     );
   }
 

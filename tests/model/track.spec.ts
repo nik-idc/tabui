@@ -7,6 +7,7 @@ import {
   Score,
   StringInstrumentType,
   Track,
+  TrackInstrumentChangeMode,
 } from "../../src/notation/model";
 import { createScoreGraph } from "./helpers";
 
@@ -116,7 +117,7 @@ describe("Track model", () => {
         6,
         parseTuning("E B G D A D")
       ),
-      "transpose"
+      TrackInstrumentChangeMode.Transpose
     );
 
     expect(storedNote.getNoteStr()).toBe("G2");
@@ -143,7 +144,7 @@ describe("Track model", () => {
         6,
         parseTuningStrSimple("D A D G B E")
       ),
-      "transpose"
+      TrackInstrumentChangeMode.Transpose
     );
 
     expect(storedNote.getNoteStr()).toBe(originalPitch);

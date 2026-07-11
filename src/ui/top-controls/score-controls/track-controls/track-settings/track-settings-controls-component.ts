@@ -32,7 +32,8 @@ export class TrackSettingsControlsComponent {
   private _stringCount: number;
   private _originalTuning: string;
   private _tuning: string;
-  private _tuningChangeMode: TrackInstrumentChangeMode = "keepFrets";
+  private _tuningChangeMode: TrackInstrumentChangeMode =
+    TrackInstrumentChangeMode.KeepFrets;
 
   constructor(
     parentDiv: HTMLDivElement,
@@ -71,7 +72,7 @@ export class TrackSettingsControlsComponent {
     this._stringCount = track.context.instrument.stringsCount;
     this._originalTuning = track.context.instrument.getTuningStrSimple();
     this._tuning = this._originalTuning;
-    this._tuningChangeMode = "keepFrets";
+    this._tuningChangeMode = TrackInstrumentChangeMode.KeepFrets;
   }
 
   public render(): void {

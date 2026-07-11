@@ -156,13 +156,15 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
         element: this._trackSettingsComponent.template
           .keepFretsButton as HTMLElement,
         event: "click",
-        handler: () => this.onTuningModeClicked("keepFrets"),
+        handler: () =>
+          this.onTuningModeClicked(TrackInstrumentChangeMode.KeepFrets),
       },
       {
         element: this._trackSettingsComponent.template
           .transposeButton as HTMLElement,
         event: "click",
-        handler: () => this.onTuningModeClicked("transpose"),
+        handler: () =>
+          this.onTuningModeClicked(TrackInstrumentChangeMode.Transpose),
       },
       {
         element: this._trackSettingsComponent.template

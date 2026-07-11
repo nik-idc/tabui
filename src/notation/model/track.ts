@@ -5,7 +5,10 @@ import { TrackContext } from "./track-context";
 import { Score } from "./score";
 import { GuitarNote } from "./guitar-note";
 
-export type TrackInstrumentChangeMode = "keepFrets" | "transpose";
+export enum TrackInstrumentChangeMode {
+  KeepFrets = "keepFrets",
+  Transpose = "transpose",
+}
 
 export type StaffArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
@@ -97,7 +100,7 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
 
   public setInstrument(
     instrument: I,
-    mode: TrackInstrumentChangeMode = "keepFrets"
+    mode: TrackInstrumentChangeMode = TrackInstrumentChangeMode.KeepFrets
   ): void {
     this.context.instrument = instrument;
 
@@ -110,7 +113,7 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
                 continue;
               }
 
-              if (mode === "transpose") {
+              if (mode === TrackInstrumentChangeMode.Transpose) {
                 note.calculateFretFromNote();
               } else {
                 note.calcNoteFromFret();

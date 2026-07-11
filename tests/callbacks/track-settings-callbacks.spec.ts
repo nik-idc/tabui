@@ -6,6 +6,7 @@ import {
   InstrumentFamily,
   parseTuningStrSimple,
   StringInstrumentType,
+  TrackInstrumentChangeMode,
 } from "../../src/notation/model";
 import {
   createNotationComponentMock,
@@ -117,9 +118,13 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     dispatchClick(component.template.wholeTuningDownButton);
     expect(component.shiftWholeTuning).toHaveBeenCalledWith(-1);
     dispatchClick(component.template.transposeButton);
-    expect(component.setTuningChangeMode).toHaveBeenCalledWith("transpose");
+    expect(component.setTuningChangeMode).toHaveBeenCalledWith(
+      TrackInstrumentChangeMode.Transpose
+    );
     dispatchClick(component.template.keepFretsButton);
-    expect(component.setTuningChangeMode).toHaveBeenCalledWith("keepFrets");
+    expect(component.setTuningChangeMode).toHaveBeenCalledWith(
+      TrackInstrumentChangeMode.KeepFrets
+    );
 
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;

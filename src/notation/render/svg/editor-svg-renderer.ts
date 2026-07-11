@@ -15,6 +15,7 @@ import {
   ELEMENT_ORDER,
   ElementDiff,
   TrackElement,
+  TrackElementUpdateDepth,
 } from "@/notation/controller/element/track-element";
 import { BarElement } from "@/notation/controller/element/bar/bar-element";
 import { VoiceBarElement } from "@/notation/controller/element/bar/voice-bar-element";
@@ -736,7 +737,9 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     // Ensure that the viewport's elements are up to date
-    this.trackController.trackElement.update(start, end, { depth: "elements" });
+    this.trackController.trackElement.update(start, end, {
+      depth: TrackElementUpdateDepth.Elements,
+    });
     const visibleLines =
       this.trackController.trackElement.trackLineElements.slice(start, end + 1);
     const visibleElements = visibleLines.flatMap(

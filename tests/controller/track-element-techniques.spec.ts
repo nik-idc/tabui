@@ -1,4 +1,7 @@
-import { TrackElement } from "../../src/notation/controller/element/track-element";
+import {
+  TrackElement,
+  TrackElementUpdateDepth,
+} from "../../src/notation/controller/element/track-element";
 import {
   DEFAULT_MASTER_BAR,
   BendTechniqueOptions,
@@ -343,7 +346,7 @@ describe("TrackElement techniques", () => {
     {
       trackElement.update(0, Number.MAX_SAFE_INTEGER);
     }
-    trackElement.update(0, 0, { depth: "none" });
+    trackElement.update(0, 0, { depth: TrackElementUpdateDepth.None });
 
     const afterTechGap =
       trackElement.trackLineElements[0].staffLineElements[0]
