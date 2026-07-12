@@ -1,11 +1,12 @@
-import { TabUIEditor } from "@/tabui-editor";
+import { TabUIEditor } from "../src/tabui-editor";
+import "../src/styles.scss";
 import {
   AcousticGuitarTone,
   BassGuitarTone,
   EditorLayoutDimensions,
   ElectricGuitarTone,
   NoteValue,
-} from "@/notation";
+} from "../src/notation";
 import {
   getEditorFixtures,
   resolveEditorFixture,

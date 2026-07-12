@@ -20,6 +20,34 @@ guitar-oriented workflows.
 
 TabUI is still pre-`1.0.0` and under active development.
 
+## Package Usage
+
+```ts
+import { EditorLayoutDimensions, Score, TabUIEditor } from "@atikincode/tabui";
+import "@atikincode/tabui/styles.css";
+
+EditorLayoutDimensions.configure({
+  width: 1200,
+  noteTextSize: 12,
+  timeSigTextSize: 48,
+  tempoTextSize: 24,
+  durationsHeight: 30,
+});
+
+const root = document.getElementById("tabui-editor") as HTMLDivElement;
+const editor = new TabUIEditor(root, new Score(), {
+  assets: { baseUrl: "/tabui-assets" },
+});
+
+editor.init();
+```
+
+The root export is the supported framework-agnostic API. Styles are available
+from `@atikincode/tabui/styles.css`. Runtime icons are packaged under
+`@atikincode/tabui/assets/*`; serve those files from your app and pass the public
+base URL through `assets.baseUrl`. Playback samples are host-provided through the
+`playback` config and fall back to oscillator playback when omitted.
+
 The refactor and optimization work from `tu-69-refactor-and-optimization` has
 been merged into `master` and now serves as the current development baseline.
 
