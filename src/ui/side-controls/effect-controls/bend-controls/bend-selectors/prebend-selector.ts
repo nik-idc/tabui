@@ -3,7 +3,7 @@ import {
   createSVGText,
   createSVGPath,
   createSVGCircle,
-} from "@/shared";
+} from "../../../../../shared";
 import { BendData, Selector } from "./selector";
 import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
 import {
@@ -11,7 +11,7 @@ import {
   BendType,
   GuitarTechnique,
   GuitarTechniqueType,
-} from "@/notation";
+} from "../../../../../notation";
 
 export class PrebendSelector implements Selector {
   readonly bendGraphSVG: SVGSVGElement;

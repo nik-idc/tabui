@@ -1,7 +1,7 @@
-import { NoteDuration } from "@/notation/model";
-import { NotationComponent } from "@/notation/notation-component";
-import { TimeSigControlsComponent } from "@/ui/side-controls/measure-controls/time-sig-controls";
-import { ListenerManager } from "@/shared/misc";
+import { NoteDuration } from "../../../../notation/model";
+import { NotationComponent } from "../../../../notation/notation-component";
+import { TimeSigControlsComponent } from "./";
+import { ListenerManager } from "../../../../shared/misc";
 
 export interface TimeSigControlsCallbacks {
   readonly beatsCountErrorText: string;

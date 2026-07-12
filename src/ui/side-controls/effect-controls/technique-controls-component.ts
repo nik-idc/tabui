@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../notation/notation-component";
 import { template } from "@babel/core";
 
 import { BendControlsComponent } from "./bend-controls/bend-controls-component";

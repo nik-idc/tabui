@@ -1,4 +1,4 @@
-import { BarRepeatStatus, MasterBar, Track } from "@/notation/model";
+import { BarRepeatStatus, MasterBar, Track } from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**

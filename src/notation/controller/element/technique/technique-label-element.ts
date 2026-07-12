@@ -1,8 +1,8 @@
-import { Technique } from "@/notation/model";
-import { Point, Rect } from "@/shared";
-import { NotationElement } from "@/notation/controller/element/notation-element";
-import { BeatElement } from "@/notation/controller/element/beat/beat-element";
-import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
+import { Technique } from "../../../model";
+import { Point, Rect } from "../../../../shared";
+import { NotationElement } from "../notation-element";
+import { BeatElement } from "../beat/beat-element";
+import { TechGapLineElement } from "../staff/tech-gap-line-element";
 import { SVGPathDescriptor, SVGTextDescriptor } from "./technique-element";
 
 /**

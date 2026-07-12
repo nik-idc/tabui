@@ -1,5 +1,5 @@
-import { BeatElement } from "@/notation/controller";
-import { Point } from "@/shared";
+import { BeatElement } from "../controller";
+import { Point } from "../../shared";
 
 /** Result of handling pointer movement during beat selection drag. */
 export type SelectionDragMoveResult = {

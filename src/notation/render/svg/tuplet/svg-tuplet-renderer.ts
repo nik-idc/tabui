@@ -1,12 +1,12 @@
-import { createSVGG, createSVGPath, createSVGText } from "@/shared";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { createSVGG, createSVGPath, createSVGText } from "../../../../shared";
+import type { ResolvedAssetConfig } from "../../../../config/asset-url-resolver";
 import { ElementRenderer } from "../../element-renderer";
 import {
   BarTupletGroupElement,
   EditorLayoutDimensions,
   NotationElement,
   TrackController,
-} from "@/notation/controller";
+} from "../../../controller";
 
 /**
  * Class for rendering a tuplet element using SVG

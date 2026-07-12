@@ -1,4 +1,4 @@
-import { randomInt } from "@/shared";
+import { randomInt } from "../../shared";
 import { NoteDuration } from "./note-duration";
 import { BarRepeatStatus } from "./bar-repeat-status";
 import { getBaseDurationFraction, TimingFraction } from "./timing";

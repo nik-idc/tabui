@@ -1,12 +1,12 @@
-import { renderOnce, setImageAsset } from "@/ui/shared";
-import { NotationComponent } from "@/notation/notation-component";
+import { renderOnce, setImageAsset } from "../../shared";
+import { NotationComponent } from "../../../notation/notation-component";
 import {
   GuitarTechniqueType,
   NoteValue,
   TECHNIQUE_TYPE_TO_LABEL,
-} from "@/notation/model";
+} from "../../../notation/model";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 export class TechniqueControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

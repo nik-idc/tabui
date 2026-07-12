@@ -4,10 +4,10 @@ import {
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
   StringInstrumentTone,
-} from "@/notation/model";
-import { NotationComponent } from "@/notation/notation-component";
-import { NewTrackControlsComponent } from "@/ui/top-controls/score-controls/new-track/new-track-controls-component";
-import { ListenerConfig, ListenerManager } from "@/shared/misc";
+} from "../../../../notation/model";
+import { NotationComponent } from "../../../../notation/notation-component";
+import { NewTrackControlsComponent } from "./new-track-controls-component";
+import { ListenerConfig, ListenerManager } from "../../../../shared/misc";
 export interface NewTrackControlsCallbacks {
   readonly trackNameErrorText: string;
   readonly tuningErrorText: string;

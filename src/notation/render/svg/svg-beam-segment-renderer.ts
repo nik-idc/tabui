@@ -4,10 +4,15 @@ import {
   EditorLayoutDimensions,
   NotationElement,
   TrackController,
-} from "@/notation/controller";
-import { Point, createSVGG, createSVGRect, createSVGText } from "@/shared";
+} from "../../controller";
+import {
+  Point,
+  createSVGG,
+  createSVGRect,
+  createSVGText,
+} from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 /**
  * Class for rendering a tuplet segment using SVG

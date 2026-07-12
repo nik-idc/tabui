@@ -1,4 +1,4 @@
-import { randomInt } from "@/shared";
+import { randomInt } from "../../shared";
 import { BendTechniqueOptions } from "./bend-options";
 import { Note } from "./note";
 import { Technique } from "./technique";

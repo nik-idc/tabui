@@ -9,7 +9,7 @@ import {
   Staff,
   MusicInstrument,
   TrackContext,
-} from "@/notation/model";
+} from "../../src/notation/model";
 
 type BarsInfo = {
   beatsCount: number;

@@ -5,7 +5,7 @@ import {
   createImage,
   createInput,
   createSVG,
-} from "@/shared";
+} from "../../../../shared";
 
 export class NewTrackControlsTemplate {
   readonly dialog: HTMLDialogElement = createDialog();

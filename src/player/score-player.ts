@@ -1,6 +1,6 @@
 import { Score, Beat, Track } from "../notation/model";
-import { trackEvent, TrackEventType } from "@/shared/events";
-import { ResolvedPlaybackConfig } from "@/config/tabui-config";
+import { trackEvent, TrackEventType } from "../shared/events";
+import { ResolvedPlaybackConfig } from "../config/tabui-config";
 import { PlaybackScheduler } from "./playback-scheduler";
 
 /** Seconds of score material to keep scheduled ahead of playback. */

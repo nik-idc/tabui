@@ -1,5 +1,5 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { ResolvedTabUIConfig } from "@/config/tabui-config";
+import { NotationComponent } from "../notation/notation-component";
+import { ResolvedTabUIConfig } from "../config/tabui-config";
 import { SideControlsComponent } from "./side-controls/side-controls-component";
 import { TopControlsComponent } from "./top-controls";
 

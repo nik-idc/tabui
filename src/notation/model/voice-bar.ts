@@ -1,4 +1,4 @@
-import { randomInt } from "@/shared";
+import { randomInt } from "../../shared";
 import { Beat, BeatJSON } from "./beat";
 import { NoteDuration } from "./note-duration";
 import { getBeaming } from "./bar-beaming";

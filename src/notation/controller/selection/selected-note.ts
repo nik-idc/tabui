@@ -1,11 +1,4 @@
-import {
-  Bar,
-  Staff,
-  Beat,
-  Note,
-  VoiceBar,
-  VoiceNumber,
-} from "@/notation/model";
+import { Bar, Staff, Beat, Note, VoiceBar, VoiceNumber } from "../../model";
 
 export enum SelectedMoveDirection {
   Left,

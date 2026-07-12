@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../notation/notation-component";
 import { YesNoTemplateRenderer } from "./yes-no-template-renderer";
 import { YesNoTemplate } from "./yes-no-template";
 

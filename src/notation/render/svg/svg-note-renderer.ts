@@ -1,4 +1,4 @@
-import { NoteElement, TrackController } from "@/notation/controller";
+import { NoteElement, TrackController } from "../../controller";
 
 export interface SVGNoteRenderer {
   readonly trackController: TrackController;

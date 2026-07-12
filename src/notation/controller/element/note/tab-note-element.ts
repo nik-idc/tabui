@@ -1,7 +1,7 @@
-import { GuitarNote, VoiceNumber } from "@/notation/model";
-import { Rect, Point, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
+import { GuitarNote, VoiceNumber } from "../../../model";
+import { Rect, Point, randomInt } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { TrackElement } from "../track-element";
 import { GuitarTechniqueElement } from "../technique/guitar-technique/guitar-technique-element";
 import { TechniqueElement } from "../technique/technique-element";
 import { NoteElement } from "./note-element";

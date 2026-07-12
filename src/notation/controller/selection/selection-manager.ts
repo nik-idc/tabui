@@ -1,6 +1,6 @@
-import { Staff, Beat, Note, Track, VoiceNumber } from "@/notation/model";
-import { BeatElement } from "@/notation/controller/element/beat/beat-element";
-import { NoteElement } from "@/notation/controller/element/note/note-element";
+import { Staff, Beat, Note, Track, VoiceNumber } from "../../model";
+import { BeatElement } from "../element/beat/beat-element";
+import { NoteElement } from "../element/note/note-element";
 import { SelectedNote, MoveRightOutput } from "./selected-note";
 
 /**

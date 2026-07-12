@@ -1,9 +1,9 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
-} from "@/ui/shared";
+} from "../../../shared";
 import { TempoControlsTemplate } from "./tempo-controls-template";
 
 export class TempoControlsTemplateRenderer {

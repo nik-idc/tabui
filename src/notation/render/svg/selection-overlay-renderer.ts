@@ -3,9 +3,9 @@ import {
   TabBeatElement,
   TrackController,
   TrackLineIdentity,
-} from "@/notation/controller";
-import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
-import { createSVGRect } from "@/shared";
+} from "../../controller";
+import { TabNoteElement } from "../../controller/element/note/tab-note-element";
+import { createSVGRect } from "../../../shared";
 
 /**
  * Renders all selection-layer overlays (preview, selected note, beat selection)

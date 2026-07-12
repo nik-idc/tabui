@@ -1,5 +1,5 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { renderOnce } from "@/ui/shared";
+import { NotationComponent } from "../../notation/notation-component";
+import { renderOnce } from "../shared";
 import { TopControlsTemplate } from "./top-controls-template";
 
 export class TopControlsTemplateRenderer {

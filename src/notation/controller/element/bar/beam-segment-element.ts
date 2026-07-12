@@ -1,9 +1,9 @@
-import { Point, Rect, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { Point, Rect, randomInt } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { TrackElement } from "../track-element";
+import { NotationElement } from "../notation-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { DURATION_TO_FLAG_COUNT, VoiceNumber } from "@/notation/model";
+import { DURATION_TO_FLAG_COUNT, VoiceNumber } from "../../../model";
 import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
 import { VoiceBarElement } from "./voice-bar-element";
 import type { BarElement } from "./bar-element";

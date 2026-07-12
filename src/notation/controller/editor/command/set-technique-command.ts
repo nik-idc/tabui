@@ -6,7 +6,7 @@ import {
   TechniqueType,
   GuitarTechnique,
   GuitarTechniqueType,
-} from "@/notation/model";
+} from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**

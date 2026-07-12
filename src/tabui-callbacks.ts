@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "./notation/notation-component";
 import {
   EditorKeyboardCallbacks,
   EditorKeyboardDefCallbacks,
@@ -6,7 +6,7 @@ import {
   EditorMouseDefCallbacks,
   RenderType,
 } from "./notation/input";
-import { UIComponent } from "@/ui";
+import { UIComponent } from "./ui";
 import { UICallbacks } from "./ui/ui-callbacks";
 
 export class TabUICallbacks {

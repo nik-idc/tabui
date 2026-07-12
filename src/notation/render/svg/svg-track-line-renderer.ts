@@ -1,8 +1,8 @@
 import { ElementRenderer } from "../element-renderer";
-import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
-import { NotationElement, TrackController } from "@/notation/controller";
-import { createSVGG, createSVGLine } from "@/shared";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { TrackLineElement } from "../../controller/element/track/track-line-element";
+import { NotationElement, TrackController } from "../../controller";
+import { createSVGG, createSVGLine } from "../../../shared";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 type OutlineLinesRendered = {
   left: SVGLineElement;

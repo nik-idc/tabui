@@ -1,4 +1,9 @@
-import { createButton, createDialog, createDiv, createSVG } from "@/shared";
+import {
+  createButton,
+  createDialog,
+  createDiv,
+  createSVG,
+} from "../../../../shared";
 
 type BendTypesButtons = [
   HTMLButtonElement, // Regular bend button

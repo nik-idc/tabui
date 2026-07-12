@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import { TempoControlsTemplate } from "./tempo-controls-template";
 import { TempoControlsTemplateRenderer } from "./tempo-controls-template-renderer";
 

@@ -2,9 +2,9 @@ import {
   BeatElement,
   NotationElement,
   TrackController,
-} from "@/notation/controller";
-import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
-import { createSVGRect } from "@/shared";
+} from "../../controller";
+import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
+import { createSVGRect } from "../../../shared";
 
 export class BeatInteractionRenderer {
   readonly trackController: TrackController;

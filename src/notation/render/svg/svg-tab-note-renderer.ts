@@ -2,11 +2,11 @@ import {
   EditorLayoutDimensions,
   NotationElement,
   TrackController,
-} from "@/notation/controller";
-import { createSVGG, createSVGRect, createSVGText } from "@/shared";
-import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
+} from "../../controller";
+import { createSVGG, createSVGRect, createSVGText } from "../../../shared";
+import { TabNoteElement } from "../../controller/element/note/tab-note-element";
 import { SVGNoteRenderer } from "./svg-note-renderer";
-import { NoteValue, VoiceNumber } from "@/notation/model";
+import { NoteValue, VoiceNumber } from "../../model";
 
 /**
  * Class for rendering a note element using SVG

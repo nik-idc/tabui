@@ -1,7 +1,7 @@
-import { UIComponent } from "@/ui";
+import { UIComponent } from "./";
 import { SideControlsCallbacks } from "./side-controls/side-controls-callbacks";
 import { TopControlsCallbacks } from "./top-controls/top-controls-callbacks";
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../notation/notation-component";
 
 export class UICallbacks {
   private _uiComponent: UIComponent;

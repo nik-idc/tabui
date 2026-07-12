@@ -19,7 +19,7 @@ import {
   TrackLineInfoElement,
   VoiceBarElement,
   VoiceBarRhythmElement,
-} from "@/notation";
+} from "../../../..";
 
 /**
  * Snapshots the currently owned elements of each affected line before the line

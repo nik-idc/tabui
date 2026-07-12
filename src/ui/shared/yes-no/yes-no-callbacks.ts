@@ -1,6 +1,6 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { ListenerManager } from "@/shared/misc";
-import { YesNoComponent } from "@/ui/shared/yes-no";
+import { NotationComponent } from "../../../notation/notation-component";
+import { ListenerManager } from "../../../shared/misc";
+import { YesNoComponent } from "./";
 
 export interface YesNoCallbacks {
   onDialogClicked(event: MouseEvent): void;

@@ -5,9 +5,9 @@ import {
   NotationElementClass,
   EditorLayoutDimensions,
   TrackController,
-} from "@/notation/controller";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
-import { createSVG, createSVGG, Rect } from "@/shared";
+} from "../../controller";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import { createSVG, createSVGG, Rect } from "../../../shared";
 import { EditorRenderer } from "../editor-renderer";
 import { EditorRenderOptions } from "../editor-renderer";
 import { ElementRenderer } from "../element-renderer";
@@ -16,23 +16,23 @@ import {
   ElementDiff,
   TrackElement,
   TrackElementUpdateDepth,
-} from "@/notation/controller/element/track-element";
-import { BarElement } from "@/notation/controller/element/bar/bar-element";
-import { VoiceBarElement } from "@/notation/controller/element/bar/voice-bar-element";
-import { VoiceBarRhythmElement } from "@/notation/controller/element/bar/voice-bar-rhythm-element";
-import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
-import { TabBeatRhythmElement } from "@/notation/controller/element/beat/tab-beat-rhythm-element";
-import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
-import { GuitarTechniqueElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element";
-import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
-import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segment-element";
-import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
-import { VoiceNumber } from "@/notation/model";
+} from "../../controller/element/track-element";
+import { BarElement } from "../../controller/element/bar/bar-element";
+import { VoiceBarElement } from "../../controller/element/bar/voice-bar-element";
+import { VoiceBarRhythmElement } from "../../controller/element/bar/voice-bar-rhythm-element";
+import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
+import { TabBeatRhythmElement } from "../../controller/element/beat/tab-beat-rhythm-element";
+import { TabNoteElement } from "../../controller/element/note/tab-note-element";
+import { GuitarTechniqueElement } from "../../controller/element/technique/guitar-technique/guitar-technique-element";
+import { GuitarTechniqueLabelElement } from "../../controller/element/technique/guitar-technique/guitar-technique-label-element";
+import { BeamSegmentElement } from "../../controller/element/bar/beam-segment-element";
+import { BarTupletGroupElement } from "../../controller/element/bar/bar-tuplet-group-element";
+import { VoiceNumber } from "../../model";
 import { createRendererForElement } from "./support/renderer-factory";
 import { SelectionOverlayRenderer } from "./selection-overlay-renderer";
 import { BeatInteractionRenderer } from "./beat-interaction-renderer";
 import { PlayerOverlayRenderer } from "./player-overlay-renderer";
-import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
+import { TrackLineElement } from "../../controller/element/track/track-line-element";
 
 enum VoicePart {
   Content = "content",

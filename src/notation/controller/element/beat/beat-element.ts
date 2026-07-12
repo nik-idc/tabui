@@ -1,7 +1,7 @@
-import { Bar, Beat, VoiceBar } from "@/notation/model";
-import { Rect, Point } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { Bar, Beat, VoiceBar } from "../../../model";
+import { Rect, Point } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { NotationElement } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
 import { VoiceBarElement } from "../bar/voice-bar-element";

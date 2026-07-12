@@ -2,13 +2,18 @@ import {
   BendType,
   GuitarTechnique,
   GuitarTechniqueType,
-} from "@/notation/model";
-import { Point, Rect, getPitchRatioNums, randomInt } from "@/shared";
+} from "../../../../model";
+import {
+  Point,
+  Rect,
+  getPitchRatioNums,
+  randomInt,
+} from "../../../../../shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { BeatElement } from "@/notation/controller/element/beat/beat-element";
-import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
+import { EditorLayoutDimensions } from "../../../editor-layout-dimensions";
+import { TrackElement } from "../../track-element";
+import { BeatElement } from "../../beat/beat-element";
+import { TechGapLineElement } from "../../staff/tech-gap-line-element";
 import { TechniqueLabelElement } from "../technique-label-element";
 import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
 import type { BarElement } from "../../bar/bar-element";

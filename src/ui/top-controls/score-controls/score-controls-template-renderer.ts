@@ -1,8 +1,8 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { renderOnce, setImageAsset } from "@/ui/shared";
+import { NotationComponent } from "../../../notation/notation-component";
+import { renderOnce, setImageAsset } from "../../shared";
 import { ScoreControlsTemplate } from "./score-controls-template";
-import { Score } from "@/notation";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { Score } from "../../../notation";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 const minVolume = 0;
 const maxVolume = 100;

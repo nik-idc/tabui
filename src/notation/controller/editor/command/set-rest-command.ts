@@ -1,4 +1,4 @@
-import { Beat, Note } from "@/notation/model";
+import { Beat, Note } from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 type BeatRestSnapshot = {

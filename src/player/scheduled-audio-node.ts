@@ -1,4 +1,4 @@
-import { Track } from "@/notation/model";
+import { Track } from "../notation/model";
 
 export interface TrackAudioBus {
   /** Track whose audio is routed through this bus. */

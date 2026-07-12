@@ -1,4 +1,4 @@
-import { Beat, Note, NoteValue } from "@/notation/model";
+import { Beat, Note, NoteValue } from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /** Set note value at a beat/string cursor position. */

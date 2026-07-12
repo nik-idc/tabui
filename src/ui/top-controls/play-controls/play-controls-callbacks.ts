@@ -1,6 +1,6 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { PlayControlsComponent } from "@/ui";
-import { ListenerManager } from "@/shared/misc";
+import { NotationComponent } from "../../../notation/notation-component";
+import { PlayControlsComponent } from "../..";
+import { ListenerManager } from "../../../shared/misc";
 
 export interface PlayControlsCallbacks {
   onFirstClicked(): void;

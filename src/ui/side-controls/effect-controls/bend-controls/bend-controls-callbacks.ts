@@ -2,10 +2,10 @@ import {
   BendTechniqueOptions,
   BendType,
   GuitarTechniqueType,
-} from "@/notation/model";
-import { NotationComponent } from "@/notation/notation-component";
-import { BendControlsComponent } from "@/ui";
-import { ListenerManager } from "@/shared/misc";
+} from "../../../../notation/model";
+import { NotationComponent } from "../../../../notation/notation-component";
+import { BendControlsComponent } from "../../..";
+import { ListenerManager } from "../../../../shared/misc";
 
 export interface BendControlsCallbacks {
   onDialogClicked(event: MouseEvent): void;

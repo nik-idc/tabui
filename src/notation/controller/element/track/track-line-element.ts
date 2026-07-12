@@ -1,14 +1,11 @@
-import { Track } from "@/notation/model";
-import { Point, Rect, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import {
-  NotationStyle,
-  StaffLineElement,
-} from "@/notation/controller/element/staff/staff-line-element";
+import { Track } from "../../../model";
+import { Point, Rect, randomInt } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { TrackElement } from "../track-element";
+import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
-import { VertLine } from "@/shared/rendering/geometry/line";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { VertLine } from "../../../../shared/rendering/geometry/line";
+import { NotationElement } from "../notation-element";
 import type { BarElement } from "../bar/bar-element";
 /**
  * Bar placement data for one master bar inside a presentation track line.

@@ -1,7 +1,7 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { Track } from "@/notation";
-import { ScoreControlsComponent } from "@/ui";
-import { ListenerManager } from "@/shared/misc";
+import { NotationComponent } from "../../../notation/notation-component";
+import { Track } from "../../../notation";
+import { ScoreControlsComponent } from "../..";
+import { ListenerManager } from "../../../shared/misc";
 import {
   TrackControlsCallbacks,
   TrackControlsDefaultCallbacks,
@@ -17,7 +17,7 @@ import {
 import {
   YesNoCallbacks,
   YesNoDefaultCallbacks,
-} from "@/ui/shared/yes-no/yes-no-callbacks";
+} from "../../shared/yes-no/yes-no-callbacks";
 
 export interface ScoreControlsCallbacks {
   onShowTracksButtonClicked(): void;

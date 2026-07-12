@@ -3,7 +3,7 @@ import {
   Beat,
   BeatArrayOperationOutput,
   VoiceBar,
-} from "@/notation/model";
+} from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**

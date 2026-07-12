@@ -1,4 +1,4 @@
-import { NoteDuration, Track } from "@/notation/model";
+import { NoteDuration, Track } from "../../model";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 
 export type MasterBarLayoutMetrics = {

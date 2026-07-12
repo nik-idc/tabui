@@ -1,4 +1,4 @@
-import { randomInt } from "@/shared";
+import { randomInt } from "../../shared";
 import { MusicInstrument, MusicInstrumentJSON } from "./instrument/instrument";
 import { Staff, StaffJSON } from "./staff";
 import { TrackContext } from "./track-context";

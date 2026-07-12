@@ -1,4 +1,9 @@
-import { createButton, createDialog, createDiv, createInput } from "@/shared";
+import {
+  createButton,
+  createDialog,
+  createDiv,
+  createInput,
+} from "../../../../shared";
 
 export class TempoControlsTemplate {
   readonly dialog: HTMLDialogElement = createDialog();

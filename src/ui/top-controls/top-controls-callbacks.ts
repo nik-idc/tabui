@@ -1,5 +1,5 @@
-import { TopControlsComponent } from "@/ui";
-import { NotationComponent } from "@/notation/notation-component";
+import { TopControlsComponent } from "..";
+import { NotationComponent } from "../../notation/notation-component";
 import {
   PlayControlsCallbacks,
   PlayControlsDefaultCallbacks,
@@ -8,7 +8,7 @@ import {
   ScoreControlsCallbacks,
   ScoreControlsDefaultCallbacks,
 } from "./score-controls/score-controls-callbacks";
-import { trackEvent, TrackEventType } from "@/shared/events";
+import { trackEvent, TrackEventType } from "../../shared/events";
 
 export class TopControlsCallbacks {
   private _topComponent: TopControlsComponent;

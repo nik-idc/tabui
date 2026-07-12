@@ -1,8 +1,8 @@
-import { MasterBar, Track } from "@/notation/model";
-import { Point, Rect, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { MasterBar, Track } from "../../../model";
+import { Point, Rect, randomInt } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { TrackElement } from "../track-element";
+import { NotationElement } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { TrackLineElement } from "./track-line-element";
 

@@ -1,4 +1,4 @@
-import { createDiv, createImage } from "@/shared";
+import { createDiv, createImage } from "../../../shared";
 
 /**
  * Interface defining the template of play controls:

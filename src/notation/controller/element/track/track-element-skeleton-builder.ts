@@ -1,10 +1,10 @@
-import { Staff, Track } from "@/notation/model";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
+import { Staff, Track } from "../../../model";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import {
   calculateMasterBarLayoutMetrics,
   MasterBarLayoutMetrics,
   TRACK_LINE_DURATION_BUDGET_UNITS,
-} from "@/notation/controller/layout/bar-layout";
+} from "../../layout/bar-layout";
 import { TECHNIQUE_TO_LINE_NUMBER } from "../technique/guitar-technique/guitar-technique-element-lists";
 import {
   TrackElementSkeleton,

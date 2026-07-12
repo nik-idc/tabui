@@ -9,7 +9,7 @@ import {
   TrackContext,
   VoiceBar,
   VoiceNumber,
-} from "@/notation/model";
+} from "../../src/notation/model";
 
 type BeatSpec = {
   duration: NoteDuration;

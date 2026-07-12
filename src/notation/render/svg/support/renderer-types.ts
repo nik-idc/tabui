@@ -1,6 +1,6 @@
-import { NotationElement, TrackController } from "@/notation/controller";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
-import { ElementRenderer } from "@/notation/render/element-renderer";
+import { NotationElement, TrackController } from "../../../controller";
+import type { ResolvedAssetConfig } from "../../../../config/asset-url-resolver";
+import { ElementRenderer } from "../../element-renderer";
 
 export type ElementCtor<T extends NotationElement = NotationElement> = new (
   ...args: any[]

@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 
 import { TimeSigControlsTemplate } from "./time-sig-controls-template";
 import { TimeSigControlsTemplateRenderer } from "./time-sig-controls-template-renderer";

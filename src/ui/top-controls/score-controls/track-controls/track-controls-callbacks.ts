@@ -1,6 +1,6 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { TrackControlsComponent } from "@/ui";
-import { ListenerManager } from "@/shared/misc";
+import { NotationComponent } from "../../../../notation/notation-component";
+import { TrackControlsComponent } from "../../..";
+import { ListenerManager } from "../../../../shared/misc";
 
 export interface TrackControlsCallbacks {
   onTrackRemoveClicked(): void;

@@ -1,7 +1,7 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { MeasureControlsComponent } from "@/ui";
-import { TempoControlsComponent } from "@/ui/side-controls/measure-controls/tempo-controls";
-import { ListenerManager } from "@/shared/misc";
+import { NotationComponent } from "../../../../notation/notation-component";
+import { MeasureControlsComponent } from "../../..";
+import { TempoControlsComponent } from "./";
+import { ListenerManager } from "../../../../shared/misc";
 
 export interface TempoControlsCallbacks {
   readonly beatsCountErrorText: string;

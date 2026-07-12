@@ -2,7 +2,7 @@ import {
   Score,
   MasterBarArrayOperationOutput,
   ScoreEditor,
-} from "@/notation/model";
+} from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**

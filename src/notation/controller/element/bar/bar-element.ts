@@ -1,14 +1,11 @@
-import { Bar, BarRepeatStatus, VoiceNumber } from "@/notation/model";
-import { Rect, Point, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { NotationElement } from "@/notation/controller/element/notation-element";
-import {
-  NotationStyle,
-  StaffLineElement,
-} from "@/notation/controller/element/staff/staff-line-element";
-import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
-import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
+import { Bar, BarRepeatStatus, VoiceNumber } from "../../../model";
+import { Rect, Point, randomInt } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { TrackElement } from "../track-element";
+import { NotationElement } from "../notation-element";
+import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
+import { NotationStyleLineElement } from "../staff/notation-style-line-element";
+import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
 import { VoiceBarElement } from "./voice-bar-element";
 import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
 import { BeatElement } from "../beat/beat-element";

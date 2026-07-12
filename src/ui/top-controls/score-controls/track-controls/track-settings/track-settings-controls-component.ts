@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../../notation/notation-component";
 import {
   ElectricGuitarTone,
   Guitar,
@@ -14,7 +14,7 @@ import {
   StringInstrumentType,
   Track,
   TrackInstrumentChangeMode,
-} from "@/notation";
+} from "../../../../../notation";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
 import { TrackSettingsControlsTemplateRenderer } from "./track-settings-controls-template-renderer";
 

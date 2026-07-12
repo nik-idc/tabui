@@ -1,9 +1,9 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
-} from "@/ui/shared";
+} from "../../../shared";
 import { TimeSigControlsTemplate } from "./time-sig-controls-template";
 
 export class TimeSigControlsTemplateRenderer {

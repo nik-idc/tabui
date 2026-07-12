@@ -1,12 +1,8 @@
-import {
-  BendTechniqueOptions,
-  GuitarTechniqueType,
-  NoteValue,
-} from "@/notation/model";
-import { SelectedMoveDirection } from "@/notation/controller";
-import { NotationComponent } from "@/notation/notation-component";
-import { KeyChecker } from "@/shared";
-import { UIComponent } from "@/ui";
+import { BendTechniqueOptions, GuitarTechniqueType, NoteValue } from "../model";
+import { SelectedMoveDirection } from "../controller";
+import { NotationComponent } from "../notation-component";
+import { KeyChecker } from "../../shared";
+import { UIComponent } from "../../ui";
 
 export interface EditorKeyboardCallbacks {
   ctrlCEvent(event: KeyboardEvent): void;

@@ -1,9 +1,9 @@
-import { SVGTabNoteRenderer } from "@/notation/render/svg/svg-tab-note-renderer";
-import { NoteElement, BeatElement } from "@/notation/controller";
-import { NotationComponent } from "@/notation/notation-component";
-import { ElementRenderer } from "@/notation/render/element-renderer";
-import { Point } from "@/shared";
-import { UIComponent } from "@/ui";
+import { SVGTabNoteRenderer } from "../render/svg/svg-tab-note-renderer";
+import { NoteElement, BeatElement } from "../controller";
+import { NotationComponent } from "../notation-component";
+import { ElementRenderer } from "../render/element-renderer";
+import { Point } from "../../shared";
+import { UIComponent } from "../../ui";
 import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
 

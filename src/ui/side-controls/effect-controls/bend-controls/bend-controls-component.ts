@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import { BendControlsTemplate } from "./bend-controls-template";
 import { BendControlsTemplateRenderer } from "./bend-controls-template-renderer";
 import { BendSelectorManager } from "./bend-selectors";

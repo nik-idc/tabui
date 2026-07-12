@@ -1,4 +1,4 @@
-import { createButton, createDiv } from "@/shared";
+import { createButton, createDiv } from "../../shared";
 import { PlayControlsTemplate } from "./play-controls";
 import { ScoreControlsTemplate } from "./score-controls";
 

@@ -1,7 +1,7 @@
-import { NoteDuration, VoiceNumber } from "@/notation/model";
-import { NotationComponent } from "@/notation/notation-component";
-import { NoteControlsComponent } from "@/ui";
-import { ListenerConfig, ListenerManager } from "@/shared/misc";
+import { NoteDuration, VoiceNumber } from "../../../notation/model";
+import { NotationComponent } from "../../../notation/notation-component";
+import { NoteControlsComponent } from "../..";
+import { ListenerConfig, ListenerManager } from "../../../shared/misc";
 import {
   TupletControlsCallbacks,
   TupletControlsDefaultCallbacks,

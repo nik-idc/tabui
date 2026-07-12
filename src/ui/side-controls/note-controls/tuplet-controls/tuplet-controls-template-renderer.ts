@@ -1,9 +1,9 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
-} from "@/ui/shared";
+} from "../../../shared";
 import { TupletControlsTemplate } from "./tuplet-controls-template";
 
 export class TupletControlsTemplateRenderer {

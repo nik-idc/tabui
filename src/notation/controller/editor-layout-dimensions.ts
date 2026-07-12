@@ -1,4 +1,4 @@
-import { MusicInstrument, NoteDuration } from "@/notation/model";
+import { MusicInstrument, NoteDuration } from "../model";
 
 export interface EditorLayoutDimensionsConfig {
   width: number;

@@ -3,7 +3,7 @@ import {
   BassGuitarTone,
   ElectricGuitarTone,
   InstrumentTone,
-} from "@/notation/model";
+} from "../notation/model";
 
 export type PlaybackToneProfile = {
   attackMultiplier: number;

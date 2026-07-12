@@ -4,12 +4,12 @@ import {
   GuitarTechnique,
   GuitarTechniqueType,
   VoiceNumber,
-} from "@/notation/model";
-import { Point, Rect, randomInt } from "@/shared";
+} from "../../../../model";
+import { Point, Rect, randomInt } from "../../../../../shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { NotationElement } from "@/notation/controller/element/notation-element";
-import { TrackElement } from "@/notation/controller/element/track-element";
+import { EditorLayoutDimensions } from "../../../editor-layout-dimensions";
+import { NotationElement } from "../../notation-element";
+import { TrackElement } from "../../track-element";
 import { SVGPathDescriptor, TechniqueElement } from "../technique-element";
 import { TabNoteElement } from "../../note/tab-note-element";
 import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";

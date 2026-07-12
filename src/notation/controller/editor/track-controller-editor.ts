@@ -12,7 +12,7 @@ import {
   GuitarTechniqueType,
   VoiceNumber,
   ScoreEditor,
-} from "@/notation/model";
+} from "../../model";
 import { TrackElement, TrackElementUpdateDepth } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
 import { NoteElement } from "../element/note/note-element";

@@ -6,7 +6,7 @@ import {
 } from "./render";
 import { ElementRenderer } from "./render/element-renderer";
 import { TrackController } from "./controller";
-import { ResolvedTabUIConfig } from "@/config/tabui-config";
+import { ResolvedTabUIConfig } from "../config/tabui-config";
 
 /**
  * Responsible for controllong everything notation-wise

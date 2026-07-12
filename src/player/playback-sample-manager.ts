@@ -1,5 +1,5 @@
-import { ResolvedPlaybackConfig } from "@/config/tabui-config";
-import { InstrumentTone } from "@/notation/model";
+import { ResolvedPlaybackConfig } from "../config/tabui-config";
+import { InstrumentTone } from "../notation/model";
 
 /**
  * Loads and stores configured playback samples by instrument tone.

@@ -3,18 +3,18 @@ import {
   EditorLayoutDimensions,
   NotationElement,
   TrackController,
-} from "@/notation/controller";
-import { resolveAssetUrl } from "@/config/asset-url-resolver";
-import { BarRepeatStatus } from "@/notation/model";
+} from "../../controller";
+import { resolveAssetUrl } from "../../../config/asset-url-resolver";
+import { BarRepeatStatus } from "../../model";
 import {
   createSVGG,
   createSVGLine,
   createSVGImage,
   createSVGText,
-} from "@/shared";
+} from "../../../shared";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 /**
  * Class for rendering a bar element using SVG

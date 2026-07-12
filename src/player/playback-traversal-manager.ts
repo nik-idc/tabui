@@ -7,7 +7,7 @@ import {
   Score,
   ticksToFraction,
   TimingFraction,
-} from "@/notation/model";
+} from "../notation/model";
 
 const ZERO_FRACTION = { numerator: 0, denominator: 1 };
 

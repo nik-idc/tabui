@@ -1,11 +1,11 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { GuitarTechniqueType } from "@/notation/model";
-import { TechniqueControlsComponent } from "@/ui";
+import { NotationComponent } from "../../../notation/notation-component";
+import { GuitarTechniqueType } from "../../../notation/model";
+import { TechniqueControlsComponent } from "../..";
 import {
   BendControlsCallbacks,
   BendControlsDefaultCallbacks,
 } from "./bend-controls/bend-controls-callbacks";
-import { ListenerManager } from "@/shared/misc";
+import { ListenerManager } from "../../../shared/misc";
 
 export interface TechniqueControlsCallbacks {
   onVibratoClicked(): void;

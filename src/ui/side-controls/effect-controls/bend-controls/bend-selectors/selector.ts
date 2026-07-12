@@ -1,4 +1,4 @@
-import { BendOptionsData } from "@/notation";
+import { BendOptionsData } from "../../../../../notation";
 import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
 
 export interface BendData {

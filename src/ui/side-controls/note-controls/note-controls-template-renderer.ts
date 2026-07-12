@@ -1,7 +1,7 @@
-import { renderOnce, setImageAsset } from "@/ui/shared";
+import { renderOnce, setImageAsset } from "../../shared";
 import { NoteControlsTemplate } from "./note-controls-template";
-import { NotationComponent } from "@/notation/notation-component";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { NotationComponent } from "../../../notation/notation-component";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 export class NoteControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

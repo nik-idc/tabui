@@ -1,5 +1,9 @@
-import { BendOptionsData, BendType, GuitarTechnique } from "@/notation/model";
-import { createSVGLine, createSVGText } from "@/shared";
+import {
+  BendOptionsData,
+  BendType,
+  GuitarTechnique,
+} from "../../../../../notation/model";
+import { createSVGLine, createSVGText } from "../../../../../shared";
 import { BendData, Selector } from "./selector";
 import { BendReleaseSelector } from "./bend-release-selector";
 import { BendSelector } from "./bend-selector";

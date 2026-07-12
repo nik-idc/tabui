@@ -1,4 +1,4 @@
-import { Score, MasterBar, NoteDuration, ScoreEditor } from "@/notation/model";
+import { Score, MasterBar, NoteDuration, ScoreEditor } from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**

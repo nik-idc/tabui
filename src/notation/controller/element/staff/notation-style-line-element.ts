@@ -1,7 +1,7 @@
-import { Point, randomInt, Rect } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { Point, randomInt, Rect } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { TrackElement } from "../track-element";
+import { NotationElement } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { NotationStyle, StaffLineElement } from "./staff-line-element";
 import { TechGapElement } from "./tech-gap-element";

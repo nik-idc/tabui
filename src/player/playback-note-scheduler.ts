@@ -7,7 +7,7 @@ import {
   Note,
   getNoteFrequency,
   ticksToSeconds,
-} from "@/notation/model";
+} from "../notation/model";
 import { PlaybackSampleManager } from "./playback-sample-manager";
 import {
   getPlaybackToneProfile,

@@ -1,4 +1,4 @@
-import { randomInt } from "@/shared";
+import { randomInt } from "../../shared";
 import { MusicInstrument } from "./instrument/instrument";
 import { MasterBar } from "./master-bar";
 import { TrackContext } from "./track-context";

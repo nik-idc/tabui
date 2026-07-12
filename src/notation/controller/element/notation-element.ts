@@ -1,6 +1,6 @@
-import { Point, Rect } from "@/shared";
+import { Point, Rect } from "../../../shared";
 import { TrackElement } from "./track-element";
-import { VoiceNumber } from "@/notation/model";
+import { VoiceNumber } from "../../model";
 import type { BarElement } from "./bar/bar-element";
 import type { TrackLineElement } from "./track/track-line-element";
 

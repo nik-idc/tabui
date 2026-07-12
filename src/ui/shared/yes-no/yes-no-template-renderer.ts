@@ -1,9 +1,5 @@
-import { NotationComponent } from "@/notation/notation-component";
-import {
-  assembleDialog,
-  renderOnce,
-  setupDialogActionButtons,
-} from "@/ui/shared";
+import { NotationComponent } from "../../../notation/notation-component";
+import { assembleDialog, renderOnce, setupDialogActionButtons } from "..";
 import { YesNoTemplate } from "./yes-no-template";
 
 export class YesNoTemplateRenderer {

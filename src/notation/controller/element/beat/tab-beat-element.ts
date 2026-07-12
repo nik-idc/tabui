@@ -4,12 +4,12 @@ import {
   GuitarNote,
   NoteDuration,
   VoiceNumber,
-} from "@/notation/model";
-import { Rect, Point, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
-import { Circle } from "@/shared/rendering/geometry/circle";
-import { TrackElement } from "@/notation/controller/element/track-element";
+} from "../../../model";
+import { Rect, Point, randomInt } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
+import { Circle } from "../../../../shared/rendering/geometry/circle";
+import { TrackElement } from "../track-element";
 import { TabNoteElement } from "../note/tab-note-element";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";

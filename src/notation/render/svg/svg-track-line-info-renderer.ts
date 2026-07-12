@@ -3,13 +3,13 @@ import {
   EditorLayoutDimensions,
   NotationElement,
   TrackController,
-} from "@/notation/controller";
-import { resolveAssetUrl } from "@/config/asset-url-resolver";
-import { createSVGG, createSVGImage, createSVGText } from "@/shared";
+} from "../../controller";
+import { resolveAssetUrl } from "../../../config/asset-url-resolver";
+import { createSVGG, createSVGImage, createSVGText } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
-import { TrackLineInfoElement } from "@/notation/controller/element/track/track-line-info-element";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { TrackLineInfoElement } from "../../controller/element/track/track-line-info-element";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 type TempoSVG = {
   image: SVGImageElement;

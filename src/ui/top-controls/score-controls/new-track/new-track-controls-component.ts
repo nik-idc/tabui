@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
 import { NewTrackControlsTemplateRenderer } from "./new-track-controls-template-renderer";
 import {
@@ -16,7 +16,7 @@ import {
   Track,
   ElectricGuitarTone,
   getDefaultTuningStrSimple,
-} from "@/notation/model";
+} from "../../../../notation/model";
 
 export class NewTrackControlsComponent {
   readonly parentDiv: HTMLDivElement;

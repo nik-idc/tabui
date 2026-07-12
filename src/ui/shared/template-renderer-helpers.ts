@@ -1,7 +1,7 @@
 import {
   ResolvedAssetConfig,
   resolveAssetUrl,
-} from "@/config/asset-url-resolver";
+} from "../../config/asset-url-resolver";
 
 export interface DialogSection {
   element: HTMLElement;

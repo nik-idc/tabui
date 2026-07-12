@@ -4,7 +4,7 @@ import {
   NoteType,
   NoteValue,
   getFrequencyFromNoteType,
-} from "@/notation/model";
+} from "../notation/model";
 
 export interface PlaybackSampleConfig {
   url: string;

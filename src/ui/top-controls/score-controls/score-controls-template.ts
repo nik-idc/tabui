@@ -1,4 +1,9 @@
-import { createButton, createDiv, createImage, createInput } from "@/shared";
+import {
+  createButton,
+  createDiv,
+  createImage,
+  createInput,
+} from "../../../shared";
 import { TrackControlsTemplate } from "./track-controls/track-controls-template";
 
 /**

@@ -1,8 +1,8 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { renderOnce, setImageAsset } from "@/ui/shared";
+import { NotationComponent } from "../../../../notation/notation-component";
+import { renderOnce, setImageAsset } from "../../../shared";
 import { TrackControlsTemplate } from "./track-controls-template";
-import { Track } from "@/notation";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { Track } from "../../../../notation";
+import type { ResolvedAssetConfig } from "../../../../config/asset-url-resolver";
 
 const minVolume = 0;
 const maxVolume = 100;

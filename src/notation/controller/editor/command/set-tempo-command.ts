@@ -1,4 +1,4 @@
-import { MasterBar } from "@/notation/model";
+import { MasterBar } from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**

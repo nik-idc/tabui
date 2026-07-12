@@ -7,8 +7,8 @@ import {
   Track,
   getNoteFrequency,
   ticksToSeconds,
-} from "@/notation/model";
-import { ResolvedPlaybackConfig } from "@/config/tabui-config";
+} from "../notation/model";
+import { ResolvedPlaybackConfig } from "../config/tabui-config";
 import { PlaybackNoteScheduler } from "./playback-note-scheduler";
 import { PlaybackSampleManager } from "./playback-sample-manager";
 import { PlaybackTraversalManager } from "./playback-traversal-manager";

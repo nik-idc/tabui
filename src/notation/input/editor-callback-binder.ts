@@ -1,8 +1,8 @@
-import { SVGTabNoteRenderer } from "@/notation";
-import { ElementRenderer } from "@/notation/render/element-renderer";
+import { SVGTabNoteRenderer } from "..";
+import { ElementRenderer } from "../render/element-renderer";
 import { EditorKeyboardCallbacks } from "./editor-keyboard-callbacks";
 import { EditorMouseCallbacks } from "./editor-mouse-callbacks";
-import { SVGTabBeatRenderer } from "@/notation/render/svg/svg-tab-beat-renderer";
+import { SVGTabBeatRenderer } from "../render/svg/svg-tab-beat-renderer";
 
 export class EditorCallbackBinder {
   private _globalMouseEventsBound = false;

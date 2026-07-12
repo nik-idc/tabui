@@ -3,12 +3,12 @@ import {
   DURATION_TO_FLAG_COUNT,
   NoteDuration,
   VoiceNumber,
-} from "@/notation/model";
+} from "../../../model";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { Point, randomInt, Rect } from "@/shared";
+import { Point, randomInt, Rect } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
-import { Circle } from "@/shared/rendering/geometry/circle";
+import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
+import { Circle } from "../../../../shared/rendering/geometry/circle";
 import { NotationElement } from "../notation-element";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { VoiceBarRhythmElement } from "../bar/voice-bar-rhythm-element";

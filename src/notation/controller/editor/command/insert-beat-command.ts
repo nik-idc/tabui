@@ -1,4 +1,4 @@
-import { BeatArrayOperationOutput, VoiceBar } from "@/notation/model";
+import { BeatArrayOperationOutput, VoiceBar } from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /** Insert one default beat at a specific bar index. */

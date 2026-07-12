@@ -3,15 +3,15 @@ import {
   Guitar,
   GuitarTechnique,
   TECHNIQUE_TYPE_TO_LABEL,
-} from "@/notation/model";
-import { Rect, Point, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
+} from "../../../model";
+import { Rect, Point, randomInt } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { TrackElement } from "../track-element";
 import { GuitarTechniqueLabelElement } from "../technique/guitar-technique/guitar-technique-label-element";
 import { TechniqueLabelElement } from "../technique/technique-label-element";
 import { NoteElement } from "../note/note-element";
-import { Circle } from "@/shared/rendering/geometry/circle";
-import { VertLine, HorLine } from "@/shared/rendering/geometry/line";
+import { Circle } from "../../../../shared/rendering/geometry/circle";
+import { VertLine, HorLine } from "../../../../shared/rendering/geometry/line";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
 import { NotationElement } from "../notation-element";

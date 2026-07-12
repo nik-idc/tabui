@@ -1,5 +1,5 @@
-import { TrackController } from "@/notation/controller";
-import { createSVGRect, Rect } from "@/shared";
+import { TrackController } from "../../controller";
+import { createSVGRect, Rect } from "../../../shared";
 import {
   renderPlayerCursor,
   TrackPlayerSVGAnimator,

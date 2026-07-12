@@ -1,4 +1,4 @@
-import type { TabUIConfig } from "@/config/tabui-config";
+import type { TabUIConfig } from "../../src/config/tabui-config";
 
 export type EditorThemeKey = "midnight" | "obsidian" | "paper" | "contrast";
 

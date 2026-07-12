@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../notation/notation-component";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NoteControlsTemplateRenderer } from "./note-controls-template-renderer";
 import { TupletControlsComponent } from "./tuplet-controls";

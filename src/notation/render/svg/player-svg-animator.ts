@@ -1,7 +1,11 @@
-import { TrackController } from "@/notation/controller";
-import { BeatElement } from "@/notation/controller/element/beat/beat-element";
-import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
-import { trackEvent, TrackEventType, TrackEventArgs } from "@/shared/events";
+import { TrackController } from "../../controller";
+import { BeatElement } from "../../controller/element/beat/beat-element";
+import { TrackLineElement } from "../../controller/element/track/track-line-element";
+import {
+  trackEvent,
+  TrackEventType,
+  TrackEventArgs,
+} from "../../../shared/events";
 
 /** Renders the player cursor from a beat and its containing track line */
 export function renderPlayerCursor(

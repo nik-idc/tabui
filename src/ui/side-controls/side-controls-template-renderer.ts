@@ -1,6 +1,6 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../notation/notation-component";
 import { SideControlsTemplate } from "./side-controls-template";
-import { renderOnce } from "@/ui/shared";
+import { renderOnce } from "../shared";
 
 export class SideControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

@@ -1,4 +1,4 @@
-import { ScorePlayer } from "@/player";
+import { ScorePlayer } from "../../player";
 import {
   Track,
   Beat,
@@ -9,12 +9,12 @@ import {
 } from "../model";
 import { TrackElement, BeatElement, NoteElement } from "./element";
 import { TrackControllerEditor } from "./editor/track-controller-editor";
-import { Rect } from "@/shared";
+import { Rect } from "../../shared";
 import { SelectedNote, SelectedMoveDirection } from "./selection/selected-note";
 import { CommandManager } from "./editor/command/command-manager";
 import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
-import { ResolvedPlaybackConfig } from "@/config/tabui-config";
+import { ResolvedPlaybackConfig } from "../../config/tabui-config";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track

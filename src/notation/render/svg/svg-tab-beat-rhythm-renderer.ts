@@ -1,12 +1,12 @@
-import { DURATION_TO_FLAG_COUNT } from "@/notation/model";
+import { DURATION_TO_FLAG_COUNT } from "../../model";
 import {
   NotationElement,
   TabBeatRhythmElement,
   TrackController,
-} from "@/notation/controller";
-import { createSVGCircle, createSVGG, createSVGLine } from "@/shared";
+} from "../../controller";
+import { createSVGCircle, createSVGG, createSVGLine } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 export class SVGTabBeatRhythmRenderer implements ElementRenderer {
   readonly trackController: TrackController;

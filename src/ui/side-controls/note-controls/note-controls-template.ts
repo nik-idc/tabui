@@ -1,4 +1,4 @@
-import { createButton, createDiv, createImage } from "@/shared";
+import { createButton, createDiv, createImage } from "../../../shared";
 
 type NoteDurationButtons = readonly [
   HTMLImageElement, // Whole

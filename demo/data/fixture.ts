@@ -1,4 +1,4 @@
-import { Score } from "@/notation/model";
+import { Score } from "../../src/notation/model";
 import { createEmptyScoreFixture } from "./empty-score";
 import { createFeatureShowcaseScoreFixture } from "./full-score";
 import {

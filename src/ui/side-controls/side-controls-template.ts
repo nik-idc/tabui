@@ -1,4 +1,4 @@
-import { createDiv } from "@/shared";
+import { createDiv } from "../../shared";
 
 /**
  * Interface defining the template of side controls:

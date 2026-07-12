@@ -1,11 +1,11 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../notation/notation-component";
 import { ScoreControlsTemplate } from "./score-controls-template";
 import { ScoreControlsTemplateRenderer } from "./score-controls-template-renderer";
 import { TrackControlsComponent } from "./track-controls/track-controls-component";
 import { NewTrackControlsComponent } from "./new-track/new-track-controls-component";
-import { Score, Track } from "@/notation";
+import { Score, Track } from "../../../notation";
 import { TrackSettingsControlsComponent } from "./track-controls/track-settings";
-import { YesNoComponent } from "@/ui/shared/yes-no";
+import { YesNoComponent } from "../../shared/yes-no";
 
 export class ScoreControlsComponent {
   readonly parentDiv: HTMLDivElement;

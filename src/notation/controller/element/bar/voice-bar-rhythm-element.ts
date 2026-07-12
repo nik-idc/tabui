@@ -1,4 +1,4 @@
-import { VoiceBar, VoiceNumber } from "@/notation/model";
+import { VoiceBar, VoiceNumber } from "../../../model";
 import { TrackElement } from "../track-element";
 import {
   BarTupletGroupElement,
@@ -6,7 +6,7 @@ import {
   NotationElement,
   TabBeatElement,
 } from "..";
-import { Point, randomInt, Rect } from "@/shared";
+import { Point, randomInt, Rect } from "../../../../shared";
 import { VoiceBarElement } from "./voice-bar-element";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TabBeatRhythmElement } from "../beat/tab-beat-rhythm-element";
