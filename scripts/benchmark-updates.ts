@@ -1,7 +1,10 @@
 import { performance } from "node:perf_hooks";
 import { createScore } from "../demo/data/helpers";
 import { EditorLayoutDimensions } from "../src/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "../src/notation/controller/element/track-element";
+import {
+  TrackElement,
+  TrackElementUpdateDepth,
+} from "../src/notation/controller/element/track-element";
 import {
   Command,
   AffectedModel,
@@ -102,7 +105,21 @@ function createBenchmarkScore(): Score {
 }
 
 function getBeat(score: Score, barIndex: number, beatIndex: number): Beat {
-  return score.tracks[0].staves[0].bars[barIndex].beats[beatIndex];
+  const voiceBar = score.tracks[0].staves[0].bars[barIndex].getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error(`Expected voice bar 1 at bar ${barIndex}`);
+  }
+
+  return voiceBar.beats[beatIndex];
+}
+
+function getVoiceBar(score: Score, barIndex: number) {
+  const voiceBar = score.tracks[0].staves[0].bars[barIndex].getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error(`Expected voice bar 1 at bar ${barIndex}`);
+  }
+
+  return voiceBar;
 }
 
 function getNote(
@@ -141,7 +158,6 @@ function createScenario(
 ): BenchmarkScenario {
   const score = createBenchmarkScore();
   const trackElement = new TrackElement(score.tracks[0]);
-  trackElement.updateFull();
 
   return {
     trackElement,
@@ -188,8 +204,7 @@ function createBeatInsertionCase(
     name,
     buildScenario: () =>
       createScenario((score) => {
-        const bar = score.tracks[0].staves[0].bars[barIndex];
-        return [new InsertBeatCommand(bar, beatIndex)];
+        return [new InsertBeatCommand(getVoiceBar(score, barIndex), beatIndex)];
       }),
   };
 }
@@ -512,6 +527,12 @@ function formatRequests(requests: AffectedModel[][]): string {
     .join(", ");
 }
 
+function getMasterBarIndices(request: AffectedModel[]): number[] {
+  return Array.from(new Set(request.map((model) => model.masterBarIndex))).sort(
+    (a, b) => a - b
+  );
+}
+
 function measureScenario(
   scenario: BenchmarkScenario,
   path: BenchmarkPath
@@ -527,10 +548,21 @@ function measureScenario(
   const start = performance.now();
   if (path === "focused") {
     for (const request of requests) {
-      scenario.trackElement.update(request);
+      const lineRange = scenario.trackElement.rebuildSkeleton(
+        getMasterBarIndices(request)
+      );
+      if (lineRange === null) {
+        continue;
+      }
+
+      scenario.trackElement.update(
+        lineRange.startLineIndex,
+        lineRange.endLineIndex,
+        { depth: TrackElementUpdateDepth.Elements }
+      );
     }
   } else {
-    scenario.trackElement.updateFull();
+    scenario.trackElement.update();
   }
   const elapsedMs = performance.now() - start;
 
