@@ -7,16 +7,15 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "rootDir": "src",
     "outDir": "dist",
     "declaration": true,
     "declarationDir": "dist",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "emitDeclarationOnly": true,
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
   "ts-node": {
     "esm": true
   },
-  "include": ["src/**/*", "demo/**/*"]
+  "include": ["src/**/*"]
 }

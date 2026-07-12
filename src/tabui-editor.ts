@@ -1,5 +1,5 @@
 import { TabUICallbacks } from "./tabui-callbacks";
-import { Score } from "./notation";
+import { Score } from "./notation/model";
 import { NotationComponent } from "./notation/notation-component";
 import { UIComponent } from "./ui";
 import { applyEditorTheme } from "./config/apply-editor-theme";
@@ -8,8 +8,6 @@ import {
   TabUIConfig,
   resolveTabUIConfig,
 } from "./config/tabui-config";
-import "./styles.scss";
-
 export class TabUIEditor {
   readonly score: Score;
   readonly rootDiv: HTMLDivElement;
