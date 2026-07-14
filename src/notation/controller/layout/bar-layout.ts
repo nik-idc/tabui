@@ -37,7 +37,8 @@ export function calculateMasterBarDurationUnits(
 
 export function calculateMasterBarLayoutMetrics(
   track: Track,
-  masterBarIndex: number
+  masterBarIndex: number,
+  layoutDimensions: EditorLayoutDimensions
 ): MasterBarLayoutMetrics {
   const durationUnits = calculateMasterBarDurationUnits(track, masterBarIndex);
   const rhythmColumns = new Set<number>();
@@ -56,16 +57,21 @@ export function calculateMasterBarLayoutMetrics(
 
   const sortedColumns = [...rhythmColumns].sort((a, b) => a - b);
 
-  const structuralWidth = calculateStructuralWidth(track, masterBarIndex);
+  const structuralWidth = calculateStructuralWidth(
+    track,
+    masterBarIndex,
+    layoutDimensions
+  );
   const columnCountMinWidth =
-    sortedColumns.length * EditorLayoutDimensions.MIN_RHYTHM_COLUMN_GAP;
+    sortedColumns.length * layoutDimensions.MIN_RHYTHM_COLUMN_GAP;
   const attackCollisionMinWidth = calculateAttackCollisionMinWidth(
     sortedColumns,
-    durationUnits
+    durationUnits,
+    layoutDimensions
   );
   const durationMinWidth =
     durationUnits *
-    EditorLayoutDimensions.WIDTH_MAPPING[NoteDuration.Quarter] *
+    layoutDimensions.WIDTH_MAPPING[NoteDuration.Quarter] *
     WHOLE_NOTE_WIDTH_UNITS;
   const contentMinWidth =
     sortedColumns.length === 0
@@ -75,7 +81,7 @@ export function calculateMasterBarLayoutMetrics(
           columnCountMinWidth,
           attackCollisionMinWidth
         ) +
-        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING * 2;
+        layoutDimensions.RHYTHM_ATTACK_PADDING * 2;
 
   return {
     durationUnits,
@@ -88,7 +94,8 @@ export function calculateMasterBarLayoutMetrics(
 
 function calculateAttackCollisionMinWidth(
   sortedColumns: number[],
-  durationUnits: number
+  durationUnits: number,
+  layoutDimensions: EditorLayoutDimensions
 ): number {
   if (sortedColumns.length < 2 || durationUnits === 0) {
     return 0;
@@ -104,13 +111,13 @@ function calculateAttackCollisionMinWidth(
 
   return minColumnDelta === 0 || !Number.isFinite(minColumnDelta)
     ? 0
-    : (EditorLayoutDimensions.MIN_RHYTHM_COLUMN_GAP * durationUnits) /
-        minColumnDelta;
+    : (layoutDimensions.MIN_RHYTHM_COLUMN_GAP * durationUnits) / minColumnDelta;
 }
 
 function calculateStructuralWidth(
   track: Track,
-  masterBarIndex: number
+  masterBarIndex: number,
+  layoutDimensions: EditorLayoutDimensions
 ): number {
   const masterBar = track.score.masterBars[masterBarIndex];
   const prevMasterBar = track.score.masterBars[masterBarIndex - 1];
@@ -120,10 +127,10 @@ function calculateStructuralWidth(
     prevMasterBar === undefined ||
     prevMasterBar.maxDuration !== masterBar.maxDuration
   ) {
-    width += EditorLayoutDimensions.TIME_SIG_RECT_WIDTH;
+    width += layoutDimensions.TIME_SIG_RECT_WIDTH;
   }
 
-  width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 3;
+  width += layoutDimensions.REPEAT_SIGN_WIDTH * 3;
 
   return width;
 }

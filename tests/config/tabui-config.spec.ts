@@ -11,6 +11,15 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-font-body"]).toContain("Segoe UI");
     expect(config.theme.cssVars["--tu-font-notation"]).toContain("Roboto");
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#000000");
+    expect(config.layout).toEqual({
+      width: undefined,
+      minWidth: 320,
+      noteTextSize: 12,
+      timeSigTextSize: 48,
+      tempoTextSize: 24,
+      durationsHeight: 30,
+      horizontalPadding: 12,
+    });
   });
 
   it("merges partial overrides into css vars", () => {
@@ -71,6 +80,30 @@ describe("tabui-config", () => {
     expect(config.playback[ElectricGuitarTone.Clean]).toEqual({
       url: "/samples/clean.wav",
       rootFrequency: 130.8127826502993,
+    });
+  });
+
+  it("resolves layout overrides", () => {
+    const config = resolveTabUIConfig({
+      layout: {
+        width: 720,
+        minWidth: 400,
+        noteTextSize: 16,
+        timeSigTextSize: 50,
+        tempoTextSize: 28,
+        durationsHeight: 36,
+        horizontalPadding: 18,
+      },
+    });
+
+    expect(config.layout).toEqual({
+      width: 720,
+      minWidth: 400,
+      noteTextSize: 16,
+      timeSigTextSize: 50,
+      tempoTextSize: 28,
+      durationsHeight: 36,
+      horizontalPadding: 18,
     });
   });
 });

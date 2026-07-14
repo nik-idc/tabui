@@ -7,6 +7,7 @@ import {
 import { ElementRenderer } from "./render/element-renderer";
 import { TrackController } from "./controller";
 import { ResolvedTabUIConfig } from "../config/tabui-config";
+import { EditorLayoutDimensions } from "./controller/editor-layout-dimensions";
 
 /**
  * Responsible for controllong everything notation-wise
@@ -20,6 +21,8 @@ export class NotationComponent {
   private _renderer: EditorRenderer;
   /** Resolved editor config */
   readonly config: ResolvedTabUIConfig;
+  /** Layout dimensions */
+  readonly layoutDimensions: EditorLayoutDimensions;
 
   /** Track controller */
   private _trackController: TrackController;
@@ -31,16 +34,19 @@ export class NotationComponent {
    * @param renderer Renderer
    */
   constructor(
-    rootDiv: HTMLDivElement,
+    notationHostDiv: HTMLDivElement,
     score: Score,
     config: ResolvedTabUIConfig,
+    layoutDimensions: EditorLayoutDimensions,
     renderer?: EditorRenderer
   ) {
     this.score = score;
-    this.rootDiv = rootDiv;
+    this.rootDiv = notationHostDiv;
     this.config = config;
+    this.layoutDimensions = layoutDimensions;
     this._trackController = new TrackController(
       this.score.tracks[0],
+      this.layoutDimensions,
       this.config.playback
     );
     this._renderer =
@@ -73,6 +79,7 @@ export class NotationComponent {
     // Render new stuff
     const newTrackController = new TrackController(
       newTrack,
+      this.layoutDimensions,
       this.config.playback
     );
     this._trackController = newTrackController;
@@ -83,6 +90,11 @@ export class NotationComponent {
     );
     this._trackController.trackElement.update(0, Number.MAX_SAFE_INTEGER);
     return this._renderer.render();
+  }
+
+  public dispose(): void {
+    this._trackController.dispose();
+    this._renderer.dispose();
   }
 
   /**

@@ -5,7 +5,6 @@ import {
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
 import { TrackLineElement } from "../../src/notation/controller/element/track/track-line-element";
-import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import {
   DEFAULT_MASTER_BAR,
   GuitarNote,
@@ -14,7 +13,7 @@ import {
 } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 import { NoteDuration } from "../../src/notation/model";
-import { ensureLayoutConfigured } from "./helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 import { SetTechniqueCommand } from "../../src/notation/controller/editor/command";
 
 function getLineOwnershipKeys(trackElement: TrackElement): string[] {
@@ -96,13 +95,13 @@ function findBarElement(trackElement: TrackElement, barUUID: number) {
 
 describe("TrackElement tree", () => {
   beforeAll(() => {
-    ensureLayoutConfigured();
+    TEST_LAYOUT_DIMENSIONS;
   });
 
   test("horizontal updates refresh multi-staff outline geometry", () => {
     const { track, bar } = createScoreGraph();
     track.insertStaff(1);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const beforeLine = trackElement.trackLineElements[0];
@@ -129,7 +128,7 @@ describe("TrackElement tree", () => {
 
   test("builds the expected hierarchy for a single default bar", () => {
     const { track } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -151,7 +150,7 @@ describe("TrackElement tree", () => {
 
   test("line-local geometry is exposed for track line and immediate children", () => {
     const { track } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -218,7 +217,7 @@ describe("TrackElement tree", () => {
     }
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const trackLine = trackElement.trackLineElements[0];
@@ -277,7 +276,7 @@ describe("TrackElement tree", () => {
     }
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const trackLine = trackElement.trackLineElements[0];
@@ -346,7 +345,7 @@ describe("TrackElement tree", () => {
     }
     note.fret = 7;
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const trackLine = trackElement.trackLineElements[0];
@@ -399,7 +398,7 @@ describe("TrackElement tree", () => {
 
   test("registry lookup returns the beat element by model beat", () => {
     const { track, bar } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -411,7 +410,7 @@ describe("TrackElement tree", () => {
 
   test("no-op update rebuilds presentation element objects", () => {
     const { track } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -460,7 +459,7 @@ describe("TrackElement tree", () => {
 
   test("element diff reports beat additions and removals", () => {
     const { track, bar } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
     trackElement.clearElementDiff();
@@ -499,8 +498,8 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
-    const legacyTrackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     legacyTrackElement.update();
 
@@ -528,8 +527,8 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
-    const legacyTrackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     legacyTrackElement.update();
 
@@ -557,7 +556,7 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const beforeByBarUUID = new Map(
@@ -615,8 +614,8 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
-    const legacyTrackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const removeIndex = 4;
@@ -634,8 +633,8 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
-    const legacyTrackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const insertIndex = 4;
@@ -653,7 +652,7 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const firstVoiceBar = track.staves[0].bars[0].getVoiceBar(1);
@@ -702,7 +701,7 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const lines = trackElement.trackLineElements;
@@ -723,11 +722,11 @@ describe("TrackElement tree", () => {
     expect(
       firstLineStyle.barElements[firstLineStyle.barElements.length - 1]
         .boundingBox.right
-    ).toBeCloseTo(EditorLayoutDimensions.WIDTH);
+    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.WIDTH);
     expect(
       secondLineStyle.barElements[secondLineStyle.barElements.length - 1]
         .boundingBox.right
-    ).toBeLessThanOrEqual(EditorLayoutDimensions.WIDTH);
+    ).toBeLessThanOrEqual(TEST_LAYOUT_DIMENSIONS.WIDTH);
 
     for (const line of lines) {
       const styleLine = line.staffLineElements[0].styleLinesAsArray[0];
@@ -792,7 +791,7 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const secondLineStartIndex =

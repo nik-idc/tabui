@@ -1,6 +1,5 @@
 import { GuitarNote, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
 import { GuitarTechniqueElement } from "../technique/guitar-technique/guitar-technique-element";
 import { TechniqueElement } from "../technique/technique-element";
@@ -105,12 +104,12 @@ export class TabNoteElement implements NoteElement {
   public measure(): void {
     this._boundingBox.setDimensions(
       this.beatElement.boundingBox.width,
-      EditorLayoutDimensions.NOTE_RECT_HEIGHT
+      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT
     );
 
     this._textRect.setDimensions(
-      EditorLayoutDimensions.NOTE_TEXT_SIZE,
-      EditorLayoutDimensions.NOTE_TEXT_SIZE
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE
     );
   }
 
@@ -123,13 +122,15 @@ export class TabNoteElement implements NoteElement {
     this._boundingBox.setCoords(0, y);
 
     this._textRect.setCoords(
-      this.beatElement.attackLocalX - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2,
-      this._boundingBox.height / 2 - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2
+      this.beatElement.attackLocalX -
+        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2,
+      this._boundingBox.height / 2 -
+        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2
     );
 
     this._textCoords.set(
       this.beatElement.attackLocalX,
-      this._textRect.y + EditorLayoutDimensions.NOTE_TEXT_SIZE / 2
+      this._textRect.y + this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2
     );
 
     for (const techniqueElement of this._techniqueElements) {

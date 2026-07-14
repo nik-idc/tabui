@@ -15,6 +15,7 @@ import { CommandManager } from "./editor/command/command-manager";
 import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
 import { ResolvedPlaybackConfig } from "../../config/tabui-config";
+import { EditorLayoutDimensions } from "./editor-layout-dimensions";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -22,6 +23,8 @@ import { ResolvedPlaybackConfig } from "../../config/tabui-config";
 export class TrackController {
   /** Track object to get data from */
   readonly track: Track;
+  /** Layout dimensions */
+  readonly layoutDimensions: EditorLayoutDimensions;
 
   /** Track element */
   private _trackElement: TrackElement;
@@ -34,10 +37,15 @@ export class TrackController {
    * Class that handles editing, playing & calculating geometry of a track
    * @param track Track
    */
-  constructor(track: Track, playbackConfig: ResolvedPlaybackConfig = {}) {
+  constructor(
+    track: Track,
+    layoutDimensions: EditorLayoutDimensions,
+    playbackConfig: ResolvedPlaybackConfig = {}
+  ) {
     this.track = track;
+    this.layoutDimensions = layoutDimensions;
 
-    this._trackElement = new TrackElement(this.track);
+    this._trackElement = new TrackElement(this.track, this.layoutDimensions);
     this._trackControllerEditor = new TrackControllerEditor(this._trackElement);
 
     if (typeof window !== "undefined") {
@@ -111,6 +119,7 @@ export class TrackController {
   /** Disposes runtime resources owned by the controller */
   public dispose(): void {
     this._scorePlayer?.dispose();
+    this._scorePlayer = undefined;
   }
 
   /** Undo previous action */

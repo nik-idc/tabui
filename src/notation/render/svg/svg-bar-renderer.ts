@@ -1,9 +1,4 @@
-import {
-  BarElement,
-  EditorLayoutDimensions,
-  NotationElement,
-  TrackController,
-} from "../../controller";
+import { BarElement, NotationElement, TrackController } from "../../controller";
 import { resolveAssetUrl } from "../../../config/asset-url-resolver";
 import { BarRepeatStatus } from "../../model";
 import {
@@ -222,7 +217,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this._timeSigTextsSVG = [createSVGText(), createSVGText()];
 
       // Set only-set-once attributes
-      const fontSize = `${EditorLayoutDimensions.TIME_SIG_TEXT_SIZE}`;
+      const fontSize = `${this.trackController.layoutDimensions.TIME_SIG_TEXT_SIZE}`;
       this._timeSigTextsSVG[0].setAttribute("text-anchor", "start");
       this._timeSigTextsSVG[0].setAttribute("dominant-baseline", "hanging");
       this._timeSigTextsSVG[0].setAttribute("font-size", fontSize);

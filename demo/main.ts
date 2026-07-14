@@ -3,7 +3,6 @@ import "../src/styles.scss";
 import {
   AcousticGuitarTone,
   BassGuitarTone,
-  EditorLayoutDimensions,
   ElectricGuitarTone,
   NoteValue,
 } from "../src/notation";
@@ -17,14 +16,6 @@ import {
   resolveEditorTheme,
   resolveEditorThemeKey,
 } from "./data/theme";
-
-EditorLayoutDimensions.configure({
-  width: 1200,
-  noteTextSize: 12,
-  timeSigTextSize: 48,
-  tempoTextSize: 24,
-  durationsHeight: 30,
-});
 
 const CLEAN_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Clean-Guitar-C3.wav`;
 const OVERDRIVEN_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Roland-SC-88-Overdriven-Guitar-C3.wav`;

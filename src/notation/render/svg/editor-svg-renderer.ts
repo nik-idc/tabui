@@ -3,7 +3,6 @@ import {
   NoteElement,
   NotationElement,
   NotationElementClass,
-  EditorLayoutDimensions,
   TrackController,
 } from "../../controller";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
@@ -138,16 +137,14 @@ export class EditorSVGRenderer implements EditorRenderer {
    * @param assetsPath Path to assets
    */
   constructor(
-    rootDiv: HTMLDivElement,
+    notationViewportDiv: HTMLDivElement,
     trackController: TrackController,
     assetsPath: ResolvedAssetConfig
   ) {
-    this.notationViewportDiv = document.createElement("div");
-    this.notationViewportDiv.classList.add("tu-notation-viewport");
+    this.notationViewportDiv = notationViewportDiv;
     this.rootSVGElement = createSVG();
     this.rootSVGElement.classList.add("tu-root-svg");
     this.notationViewportDiv.appendChild(this.rootSVGElement);
-    rootDiv.appendChild(this.notationViewportDiv);
 
     this.assetsPath = assetsPath;
     this.trackController = trackController;
@@ -205,6 +202,13 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   private mountRootLayers(): void {
+    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
+    const contentTransform = `translate(${padding}, 0)`;
+    this._interactionSVGGroup.setAttribute("transform", contentTransform);
+    this._notationSVGGroup.setAttribute("transform", contentTransform);
+    this._selectionSVGGroup.setAttribute("transform", contentTransform);
+    this._playerSVGGroup.setAttribute("transform", contentTransform);
+
     this.rootSVGElement.appendChild(this._interactionSVGGroup);
     this.rootSVGElement.appendChild(this._notationSVGGroup);
     this.rootSVGElement.appendChild(this._selectionSVGGroup);
@@ -220,13 +224,20 @@ export class EditorSVGRenderer implements EditorRenderer {
     );
   }
 
-  public attachViewportScrollEvent(eventHandler: (event: Event) => void): void {
-    if (this._viewportScrollListener !== undefined) {
-      this.notationViewportDiv.removeEventListener(
-        "scroll",
-        this._viewportScrollListener
-      );
+  public detachViewportScrollEvent(): void {
+    if (this._viewportScrollListener === undefined) {
+      return;
     }
+
+    this.notationViewportDiv.removeEventListener(
+      "scroll",
+      this._viewportScrollListener
+    );
+    this._viewportScrollListener = undefined;
+  }
+
+  public attachViewportScrollEvent(eventHandler: (event: Event) => void): void {
+    this.detachViewportScrollEvent();
 
     this._viewportScrollListener = eventHandler as EventListener;
     this.notationViewportDiv.addEventListener(
@@ -714,12 +725,12 @@ export class EditorSVGRenderer implements EditorRenderer {
 
   private syncRootSVGDimensions(): void {
     const trackWindowHeight = this.trackController.trackElement.height;
-    const VB = `0 0 ${EditorLayoutDimensions.WIDTH} ${trackWindowHeight}`;
+    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
+    const trackWindowWidth =
+      this.trackController.layoutDimensions.WIDTH + padding * 2;
+    const VB = `0 0 ${trackWindowWidth} ${trackWindowHeight}`;
     this.rootSVGElement.setAttribute("viewBox", VB);
-    this.rootSVGElement.setAttribute(
-      "width",
-      `${EditorLayoutDimensions.WIDTH}`
-    );
+    this.rootSVGElement.setAttribute("width", `${trackWindowWidth}`);
     this.rootSVGElement.setAttribute("height", `${trackWindowHeight}`);
   }
 
@@ -802,7 +813,8 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   public dispose(): void {
+    this.detachViewportScrollEvent();
     this.unrender();
-    this.notationViewportDiv.remove();
+    this.notationViewportDiv.replaceChildren();
   }
 }

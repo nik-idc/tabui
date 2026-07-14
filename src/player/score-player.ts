@@ -53,6 +53,8 @@ export class ScorePlayer {
   private _isPlaying: boolean = false;
   /** Monotonic playback generation used to ignore stale async start completions. */
   private _playbackRunId: number = 0;
+  /** True after disposal; async start work must not resume playback. */
+  private _disposed: boolean = false;
 
   /**
    * Owns playback transport and UI-facing playback state.
@@ -76,6 +78,10 @@ export class ScorePlayer {
 
   /** Ensures audio context exists before playback starts. */
   private ensureAudioContext(): void {
+    if (this._disposed) {
+      return;
+    }
+
     if (this._audioContext !== undefined) {
       return;
     }
@@ -202,6 +208,10 @@ export class ScorePlayer {
    * @param options Playback options
    */
   public async start(options: PlaybackOptions = {}): Promise<void> {
+    if (this._disposed) {
+      return;
+    }
+
     const playbackRunId = ++this._playbackRunId;
 
     this._isPlaying = false;
@@ -216,7 +226,7 @@ export class ScorePlayer {
     try {
       await this._audioContext.resume();
     } catch (error) {
-      if (playbackRunId !== this._playbackRunId) {
+      if (this._disposed || playbackRunId !== this._playbackRunId) {
         return;
       }
 
@@ -225,13 +235,23 @@ export class ScorePlayer {
       return;
     }
 
-    if (playbackRunId !== this._playbackRunId) {
+    if (this._disposed || playbackRunId !== this._playbackRunId) {
       return;
     }
 
-    await this._scheduler.loadSamples();
+    try {
+      await this._scheduler.loadSamples();
+    } catch (error) {
+      if (this._disposed || playbackRunId !== this._playbackRunId) {
+        return;
+      }
 
-    if (playbackRunId !== this._playbackRunId) {
+      this._isPlaying = false;
+      console.error("Failed to load playback samples", error);
+      return;
+    }
+
+    if (this._disposed || playbackRunId !== this._playbackRunId) {
       return;
     }
 
@@ -318,6 +338,11 @@ export class ScorePlayer {
 
   /** Disposes all playback resources. */
   public dispose(): void {
+    if (this._disposed) {
+      return;
+    }
+
+    this._disposed = true;
     this.stop();
 
     if (this._audioContext !== undefined) {

@@ -1,14 +1,13 @@
 import { BeamSegmentElement } from "../../src/notation/controller/element/bar/beam-segment-element";
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
-import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { NoteDuration, ScoreEditor } from "../../src/notation/model";
 import {
   createBarWithBeats,
   createBeat,
   createScoreGraph,
 } from "../model/helpers";
-import { ensureLayoutConfigured } from "./helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 function getBarElement(trackElement: TrackElement) {
   return trackElement.trackLineElements[0].staffLineElements[0]
@@ -44,10 +43,6 @@ function getVoiceBarRhythmElement(trackElement: TrackElement) {
 }
 
 describe("BeamSegmentElement", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("creates one long rect per shared beam level and no short tails for equal flag counts", () => {
     const { track, bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Sixteenth },
@@ -58,7 +53,7 @@ describe("BeamSegmentElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const beamSegments = getBeamSegments(trackElement);
@@ -80,7 +75,7 @@ describe("BeamSegmentElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const segment = getBeamSegments(trackElement)[0];
@@ -105,7 +100,7 @@ describe("BeamSegmentElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const segment = getBeamSegments(trackElement)[0];
@@ -129,7 +124,7 @@ describe("BeamSegmentElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const segment = getBeamSegments(trackElement)[2];
@@ -153,23 +148,23 @@ describe("BeamSegmentElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const segment = getBeamSegments(trackElement)[0];
 
     expect(segment.longRects).toHaveLength(3);
     expect(segment.longRects[0].height).toBe(
-      EditorLayoutDimensions.DURATION_FLAG_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT
     );
     expect(segment.longRects[1].height).toBe(
-      EditorLayoutDimensions.DURATION_FLAG_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT
     );
     expect(segment.longRects[0].y - segment.longRects[1].y).toBeCloseTo(
-      EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2
+      TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT * 2
     );
     expect(segment.longRects[1].y - segment.longRects[2].y).toBeCloseTo(
-      EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2
+      TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT * 2
     );
   });
 
@@ -183,7 +178,7 @@ describe("BeamSegmentElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     const beatElement = getBarElement(trackElement)
       .beatElements[0] as TabBeatElement;
@@ -208,8 +203,8 @@ describe("BeamSegmentElement", () => {
     }
     voiceBar.rebuildTiming();
 
-    const trackElement = new TrackElement(track);
-    const legacyTrackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     beats[0].baseDuration = NoteDuration.ThirtySecond;
     beats[1].baseDuration = NoteDuration.ThirtySecond;
@@ -251,7 +246,7 @@ describe("BeamSegmentElement", () => {
 
     ScoreEditor.setTuplet(bar2Beats, { normalCount: 2, tupletCount: 4 });
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const tupletElement = getTupletElements(trackElement, 1)[0] as any;

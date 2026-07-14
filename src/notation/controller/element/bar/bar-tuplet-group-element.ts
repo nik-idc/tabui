@@ -1,6 +1,5 @@
 import { BarTupletGroup, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
 import { NotationElement } from "../notation-element";
 import { BeatElement } from "../beat/beat-element";
@@ -90,7 +89,7 @@ export class BarTupletGroupElement implements NotationElement {
    * Calculates the dimensions of this bar tuplet group element
    */
   public measure(): void {
-    const height = EditorLayoutDimensions.TUPLET_RECT_HEIGHT;
+    const height = this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT;
     this._boundingBox.setDimensions(0, height);
 
     if (this._incompleteRects === undefined) {
@@ -111,7 +110,7 @@ export class BarTupletGroupElement implements NotationElement {
       lastBeatElement.attackX + lastBeatElement.boundingBox.width - baseX;
     const y =
       this.voiceBarRhythmElement.boundingBox.height -
-      EditorLayoutDimensions.TUPLET_RECT_HEIGHT;
+      this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT;
 
     // Width depends on laid-out beat attack columns, not measure-time data.
     this._boundingBox.setDimensions(tupletWidth, this._boundingBox.height);
@@ -309,7 +308,7 @@ export class BarTupletGroupElement implements NotationElement {
           this.barLocalCoords.x + rect.middleX,
           this.barLocalCoords.y +
             rect.height / 2 +
-            EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+            this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT * 2
         )
       );
     }
@@ -330,7 +329,7 @@ export class BarTupletGroupElement implements NotationElement {
           this.lineLocalCoords.x + rect.middleX,
           this.lineLocalCoords.y +
             rect.height / 2 +
-            EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+            this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT * 2
         )
       );
     }
@@ -351,7 +350,7 @@ export class BarTupletGroupElement implements NotationElement {
           this.globalCoords.x + rect.middleX,
           this.globalCoords.y +
             rect.height / 2 +
-            EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+            this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT * 2
         )
       );
     }
@@ -388,7 +387,7 @@ export class BarTupletGroupElement implements NotationElement {
       tupletPathMiddleX,
       this.barLocalCoords.y +
         this._boundingBox.height / 2 +
-        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT * 2
     );
   }
 
@@ -402,7 +401,7 @@ export class BarTupletGroupElement implements NotationElement {
       this.lineLocalCoords.x + this._boundingBox.width / 2,
       this.lineLocalCoords.y +
         this._boundingBox.height / 2 +
-        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT * 2
     );
   }
 
@@ -416,7 +415,7 @@ export class BarTupletGroupElement implements NotationElement {
       this.globalCoords.x + this._boundingBox.width / 2,
       this.globalCoords.y +
         this._boundingBox.height / 2 +
-        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT * 2
     );
   }
 
@@ -433,7 +432,7 @@ export class BarTupletGroupElement implements NotationElement {
       this._boundingBox.width -
       lastBeatElement.boundingBox.width / 2 -
       firstBeatElement.boundingBox.width / 2;
-    const height = EditorLayoutDimensions.TUPLET_PATH_HEIGHT;
+    const height = this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT;
     return new Rect(
       this.barLocalCoords.x,
       this.barLocalCoords.y + height,
@@ -455,7 +454,7 @@ export class BarTupletGroupElement implements NotationElement {
       this._boundingBox.width -
       lastBeatElement.boundingBox.width / 2 -
       firstBeatElement.boundingBox.width / 2;
-    const height = EditorLayoutDimensions.TUPLET_PATH_HEIGHT;
+    const height = this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT;
     return new Rect(
       this.lineLocalCoords.x + firstBeatElement.boundingBox.width / 2,
       this.lineLocalCoords.y + height, // '- height' is due to SVG path calculation
@@ -477,7 +476,7 @@ export class BarTupletGroupElement implements NotationElement {
       this._boundingBox.width -
       lastBeatElement.boundingBox.width / 2 -
       firstBeatElement.boundingBox.width / 2;
-    const height = EditorLayoutDimensions.TUPLET_PATH_HEIGHT;
+    const height = this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT;
     return new Rect(
       this.globalCoords.x + firstBeatElement.boundingBox.width / 2,
       this.globalCoords.y + height, // '- height' is due to SVG path calculation

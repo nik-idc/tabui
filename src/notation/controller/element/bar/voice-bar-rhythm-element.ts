@@ -8,7 +8,6 @@ import {
 } from "..";
 import { Point, randomInt, Rect } from "../../../../shared";
 import { VoiceBarElement } from "./voice-bar-element";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TabBeatRhythmElement } from "../beat/tab-beat-rhythm-element";
 import { BarElement } from "./bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
@@ -221,8 +220,8 @@ export class VoiceBarRhythmElement implements NotationElement {
     this._boundingBox.setDimensions(
       this.voiceBarElement?.boundingBox.width ??
         this.barElement.voiceContentWidth,
-      EditorLayoutDimensions.DURATIONS_HEIGHT +
-        EditorLayoutDimensions.TUPLET_RECT_HEIGHT
+      this.trackElement.layoutDimensions.DURATIONS_HEIGHT +
+        this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT
     );
   }
 

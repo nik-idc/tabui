@@ -4,7 +4,8 @@ import { SideControlsComponent } from "./side-controls/side-controls-component";
 import { TopControlsComponent } from "./top-controls";
 
 export class UIComponent {
-  readonly parentDiv: HTMLDivElement;
+  readonly topHost: HTMLDivElement;
+  readonly sideHost: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly config: ResolvedTabUIConfig;
 
@@ -12,20 +13,22 @@ export class UIComponent {
   readonly sideComponent: SideControlsComponent;
 
   constructor(
-    parentDiv: HTMLDivElement,
+    topHost: HTMLDivElement,
+    sideHost: HTMLDivElement,
     notationComponent: NotationComponent,
     config: ResolvedTabUIConfig
   ) {
-    this.parentDiv = parentDiv;
+    this.topHost = topHost;
+    this.sideHost = sideHost;
     this.notationComponent = notationComponent;
     this.config = config;
 
     this.topComponent = new TopControlsComponent(
-      this.parentDiv,
+      this.topHost,
       this.notationComponent
     );
     this.sideComponent = new SideControlsComponent(
-      this.parentDiv,
+      this.sideHost,
       this.notationComponent
     );
   }

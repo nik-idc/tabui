@@ -1,5 +1,4 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
-import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import {
   Bar,
   DEFAULT_MASTER_BAR,
@@ -11,7 +10,7 @@ import {
   createBeat,
   createScoreGraph,
 } from "../model/helpers";
-import { ensureLayoutConfigured } from "./helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 function fillBarWithDenseSixtyFourthBeats(
   bar: Bar<Guitar>,
@@ -36,17 +35,13 @@ function getRhythmElements(trackElement: TrackElement): any[] {
 }
 
 describe("TrackElement rhythm", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("lays out beat x positions from start gap and beat widths", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
       { baseDuration: NoteDuration.Sixteenth },
     ]);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -71,7 +66,7 @@ describe("TrackElement rhythm", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -98,7 +93,7 @@ describe("TrackElement rhythm", () => {
         tupletSettings: { normalCount: 3, tupletCount: 2 },
       },
     ]);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -121,7 +116,7 @@ describe("TrackElement rhythm", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const firstLineStyle =
@@ -130,7 +125,7 @@ describe("TrackElement rhythm", () => {
     const lastBarOnFirstLine =
       firstLineStyle.barElements[firstLineStyle.barElements.length - 1];
     expect(lastBarOnFirstLine.boundingBox.right).toBeCloseTo(
-      EditorLayoutDimensions.WIDTH
+      TEST_LAYOUT_DIMENSIONS.WIDTH
     );
 
     for (const barElement of firstLineStyle.barElements) {
@@ -159,7 +154,7 @@ describe("TrackElement rhythm", () => {
       );
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     expect(() => trackElement.update()).not.toThrow();
     expect(trackElement.trackLineElements.length).toBeGreaterThan(1);
@@ -168,7 +163,7 @@ describe("TrackElement rhythm", () => {
       const styleLine = trackLine.staffLineElements[0].styleLinesAsArray[0];
       const lastBar = styleLine.barElements[styleLine.barElements.length - 1];
       expect(lastBar.boundingBox.right).toBeLessThanOrEqual(
-        EditorLayoutDimensions.WIDTH
+        TEST_LAYOUT_DIMENSIONS.WIDTH
       );
     }
   });
@@ -179,7 +174,7 @@ describe("TrackElement rhythm", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     expect(trackElement.trackLineElements.length).toBeGreaterThan(1);
@@ -211,7 +206,7 @@ describe("TrackElement rhythm", () => {
       { baseDuration: NoteDuration.ThirtySecond },
       { baseDuration: NoteDuration.ThirtySecond },
     ]);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -240,7 +235,7 @@ describe("TrackElement rhythm", () => {
     const { track, bar } = createBarWithBeats([
       { baseDuration: NoteDuration.ThirtySecond },
     ]);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -255,10 +250,10 @@ describe("TrackElement rhythm", () => {
     expect(beatElement.durationFlagLines).toHaveLength(3);
     expect(
       beatElement.durationFlagLines![0].y - beatElement.durationFlagLines![1].y
-    ).toBeCloseTo(EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2);
+    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT * 2);
     expect(
       beatElement.durationFlagLines![1].y - beatElement.durationFlagLines![2].y
-    ).toBeCloseTo(EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2);
+    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT * 2);
   });
 
   test("beamed dotted beats lift dots to account for beam levels", () => {
@@ -266,7 +261,7 @@ describe("TrackElement rhythm", () => {
       { baseDuration: NoteDuration.ThirtySecond, dots: 1 },
       { baseDuration: NoteDuration.ThirtySecond, dots: 1 },
     ]);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -282,7 +277,7 @@ describe("TrackElement rhythm", () => {
     expect(dot).toBeDefined();
     expect(dot!.centerY).toBeLessThan(
       beatElement.voiceBarRhythmElement.boundingBox.y +
-        EditorLayoutDimensions.DURATIONS_HEIGHT
+        TEST_LAYOUT_DIMENSIONS.DURATIONS_HEIGHT
     );
   });
 
@@ -290,7 +285,7 @@ describe("TrackElement rhythm", () => {
     const { track, bar } = createBarWithBeats([
       { baseDuration: NoteDuration.ThirtySecond, dots: 1 },
     ]);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -305,7 +300,7 @@ describe("TrackElement rhythm", () => {
 
     expect(beatElement.dot1CircleBarLocal).toBeDefined();
     expect(beatElement.dot1CircleBarLocal!.centerY).toBeCloseTo(
-      topFlagY - EditorLayoutDimensions.DOT_DIAMETER
+      topFlagY - TEST_LAYOUT_DIMENSIONS.DOT_DIAMETER
     );
   });
 });

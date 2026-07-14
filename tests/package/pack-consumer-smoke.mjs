@@ -91,7 +91,6 @@ try {
   await writeFile(
     path.join(workspace, "src/main.ts"),
     `import {
-  EditorLayoutDimensions,
   NoteValue,
   Score,
   TabUIEditor,
@@ -99,14 +98,6 @@ try {
 } from "@atikincode/tabui";
 import "@atikincode/tabui/styles.css";
 import playIconUrl from "@atikincode/tabui/assets/img/ui/play.svg?url";
-
-EditorLayoutDimensions.configure({
-  width: 1200,
-  noteTextSize: 12,
-  timeSigTextSize: 48,
-  tempoTextSize: 24,
-  durationsHeight: 30,
-});
 
 const rootDiv = document.getElementById("tabui-editor") as HTMLDivElement;
 const score = new Score();

@@ -6,7 +6,6 @@ import {
   VoiceNumber,
 } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
 import { Circle } from "../../../../shared/rendering/geometry/circle";
 import { TrackElement } from "../track-element";
@@ -119,12 +118,13 @@ export class TabBeatElement implements BeatElement {
   public measure(): void {
     const width = this.voiceBarElement.getBeatWidth(this.beat);
     const notesHeight =
-      this._noteElements.length * EditorLayoutDimensions.NOTE_RECT_HEIGHT;
+      this._noteElements.length *
+      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT;
     this._boundingBox.setDimensions(width, notesHeight);
     this._restRect = this.beat.isRest() ? new Rect() : null;
     this._restRect?.setDimensions(
-      EditorLayoutDimensions.NOTE_TEXT_SIZE,
-      EditorLayoutDimensions.NOTE_TEXT_SIZE
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE
     );
 
     for (const noteElement of this._noteElements) {
@@ -141,7 +141,7 @@ export class TabBeatElement implements BeatElement {
     this._boundingBox.setCoords(x, 0);
 
     this._restRect?.setCoords(
-      this.attackLocalX - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2,
+      this.attackLocalX - this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2,
       this._boundingBox.height / 2 - this._restRect.height / 2
     );
 

@@ -10,7 +10,6 @@ import {
   randomInt,
 } from "../../../../../shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
-import { EditorLayoutDimensions } from "../../../editor-layout-dimensions";
 import { TrackElement } from "../../track-element";
 import { BeatElement } from "../../beat/beat-element";
 import { TechGapLineElement } from "../../staff/tech-gap-line-element";
@@ -92,7 +91,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     }
 
     const nums = getPitchRatioNums(this.technique.bendOptions.bendPitch);
-    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const x = this._boundingBox.x + this._boundingBox.width - bigNumSize / 2;
     const y =
       this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
@@ -120,7 +119,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         GuitarTechniqueDescriptors.createTextDescriptor(
           x,
           y,
-          EditorLayoutDimensions.NOTE_TEXT_SIZE,
+          this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
           text
         ),
       ];
@@ -152,7 +151,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
     const nums = getPitchRatioNums(this.technique.bendOptions.prebendPitch);
 
-    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const x = this._boundingBox.x + this._boundingBox.width / 2;
     const y =
       this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
@@ -194,13 +193,13 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       return;
     }
 
-    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const xBend = this._boundingBox.x + this._boundingBox.width - bigNumSize;
     const xRelease = xBend + bigNumSize * 1.5;
     const y =
       this._boundingBox.y +
       this._boundingBox.height / 2 -
-      EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
 
     const bendNums = getPitchRatioNums(this.technique.bendOptions.bendPitch);
     const bendDescriptors = GuitarTechniqueDescriptors.createRatioDescriptors(
@@ -261,14 +260,14 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       return;
     }
 
-    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const xPrebend =
       this._boundingBox.x + this._boundingBox.width / 2 + bigNumSize / 4;
     const xRelease = xPrebend + bigNumSize * 1.5;
     const y =
       this._boundingBox.y +
       this._boundingBox.height / 2 -
-      EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
 
     const prebendNums = getPitchRatioNums(
       this.technique.bendOptions.prebendPitch
@@ -335,14 +334,14 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     const x =
       this._boundingBox.x +
       this._boundingBox.width / 2 -
-      EditorLayoutDimensions.NOTE_TEXT_SIZE;
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const y = this._boundingBox.y + this._boundingBox.height / 2;
     this._pathDescriptors = [];
     this._textDescriptors = [
       GuitarTechniqueDescriptors.createTextDescriptor(
         x,
         y,
-        EditorLayoutDimensions.NOTE_TEXT_SIZE,
+        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
         "P.M."
       ),
     ];
@@ -387,7 +386,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   public measure(): void {
     this._boundingBox.setDimensions(
       this.beatElement.boundingBox.width,
-      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+      this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
     );
   }
 

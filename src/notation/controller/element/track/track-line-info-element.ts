@@ -1,6 +1,5 @@
 import { MasterBar, Track } from "../../../model";
 import { Point, Rect, randomInt } from "../../../../shared";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
 import { NotationElement } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
@@ -48,7 +47,12 @@ export class TrackLineInfoElement implements NotationElement {
     this.trackLineElement = trackLineElement;
     this.trackElement = this.trackLineElement.trackElement;
 
-    this._boundingBox = new Rect(0, 0, EditorLayoutDimensions.WIDTH, 0);
+    this._boundingBox = new Rect(
+      0,
+      0,
+      this.trackElement.layoutDimensions.WIDTH,
+      0
+    );
     this._barTempoRectsMap = new Map();
 
     this.build();
@@ -72,8 +76,8 @@ export class TrackLineInfoElement implements NotationElement {
         const rect = new Rect(
           barElement.boundingBox.x,
           0,
-          EditorLayoutDimensions.TEMPO_RECT_WIDTH,
-          EditorLayoutDimensions.TEMPO_RECT_HEIGHT
+          this.trackElement.layoutDimensions.TEMPO_RECT_WIDTH,
+          this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
         );
         this._barTempoRectsMap.set(barElement, rect);
       }
@@ -86,9 +90,12 @@ export class TrackLineInfoElement implements NotationElement {
   public measure(): void {
     const height =
       this._barTempoRectsMap.size !== 0
-        ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT
+        ? this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
         : 0;
-    this._boundingBox.setDimensions(EditorLayoutDimensions.WIDTH, height);
+    this._boundingBox.setDimensions(
+      this.trackElement.layoutDimensions.WIDTH,
+      height
+    );
   }
 
   private buildStateHash(): string {
@@ -182,7 +189,7 @@ export class TrackLineInfoElement implements NotationElement {
 
     return new Point(
       barTempoRect.x + barTempoRect.width,
-      EditorLayoutDimensions.TEMPO_TEXT_SIZE
+      this.trackElement.layoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 
@@ -197,7 +204,8 @@ export class TrackLineInfoElement implements NotationElement {
 
     return new Point(
       barTempoRect.x + barTempoRect.width,
-      this.lineLocalCoords.y + EditorLayoutDimensions.TEMPO_TEXT_SIZE
+      this.lineLocalCoords.y +
+        this.trackElement.layoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 
@@ -215,7 +223,7 @@ export class TrackLineInfoElement implements NotationElement {
     return new Point(
       barTempoRect.x + barTempoRect.width,
       this.trackLineElement.globalCoords.y +
-        EditorLayoutDimensions.TEMPO_TEXT_SIZE
+        this.trackElement.layoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 

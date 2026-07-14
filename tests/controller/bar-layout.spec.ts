@@ -3,7 +3,6 @@ import {
   calculateMasterBarLayoutMetrics,
   TRACK_LINE_DURATION_BUDGET_UNITS,
 } from "../../src/notation/controller/layout/bar-layout";
-import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { BeatElement } from "../../src/notation/controller/element/beat/beat-element";
 import {
   Bar,
@@ -16,7 +15,7 @@ import {
   Staff,
   Track,
 } from "../../src/notation/model";
-import { ensureLayoutConfigured } from "./helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 function createGraph(masterBarData?: Partial<MasterBarData>): {
   score: Score;
@@ -63,10 +62,6 @@ function findBeatElement(
 }
 
 describe("bar layout metrics", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("combines actual duration and rhythm column count", () => {
     const { track, bar } = createGraph();
     replaceVoiceBeats(bar, 1, [NoteDuration.Quarter, NoteDuration.Quarter]);
@@ -77,15 +72,19 @@ describe("bar layout metrics", () => {
       NoteDuration.Eighth,
     ]);
 
-    const metrics = calculateMasterBarLayoutMetrics(track, 0);
+    const metrics = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
 
     expect(metrics.rhythmColumnCount).toBe(4);
     expect(metrics.contentMinWidth).toBe(
       Math.max(
-        0.5 * EditorLayoutDimensions.WIDTH_MAPPING[NoteDuration.Quarter] * 4,
-        4 * EditorLayoutDimensions.MIN_RHYTHM_COLUMN_GAP
+        0.5 * TEST_LAYOUT_DIMENSIONS.WIDTH_MAPPING[NoteDuration.Quarter] * 4,
+        4 * TEST_LAYOUT_DIMENSIONS.MIN_RHYTHM_COLUMN_GAP
       ) +
-        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING * 2
+        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING * 2
     );
   });
 
@@ -96,7 +95,11 @@ describe("bar layout metrics", () => {
     replaceVoiceBeats(bar, 1, [NoteDuration.Quarter, NoteDuration.Quarter]);
     replaceVoiceBeats(secondBar, 1, [NoteDuration.Eighth, NoteDuration.Eighth]);
 
-    const metrics = calculateMasterBarLayoutMetrics(track, 0);
+    const metrics = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
 
     expect(metrics.rhythmColumnCount).toBe(3);
   });
@@ -104,11 +107,15 @@ describe("bar layout metrics", () => {
   test("keeps structural width separate from content minimum", () => {
     const { track } = createGraph();
 
-    const metrics = calculateMasterBarLayoutMetrics(track, 0);
+    const metrics = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
 
     expect(metrics.structuralWidth).toBe(
-      EditorLayoutDimensions.TIME_SIG_RECT_WIDTH +
-        EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 3
+      TEST_LAYOUT_DIMENSIONS.TIME_SIG_RECT_WIDTH +
+        TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH * 3
     );
     expect(metrics.minWidth).toBe(
       metrics.structuralWidth + metrics.contentMinWidth
@@ -118,12 +125,24 @@ describe("bar layout metrics", () => {
   test("repeat status does not affect layout metrics", () => {
     const { track } = createGraph();
     const masterBar = track.score.masterBars[0];
-    const before = calculateMasterBarLayoutMetrics(track, 0);
+    const before = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
 
     masterBar.repeatStatus = BarRepeatStatus.Start;
-    const afterStart = calculateMasterBarLayoutMetrics(track, 0);
+    const afterStart = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
     masterBar.repeatStatus = BarRepeatStatus.End;
-    const afterEnd = calculateMasterBarLayoutMetrics(track, 0);
+    const afterEnd = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
 
     expect(afterStart).toEqual(before);
     expect(afterEnd).toEqual(before);
@@ -131,15 +150,11 @@ describe("bar layout metrics", () => {
 });
 
 describe("musical beat layout", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("aligns same-time beats across voices", () => {
     const { track, bar } = createGraph();
     const voiceOneBeats = replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
     const voiceTwoBeats = replaceVoiceBeats(bar, 2, [NoteDuration.Quarter]);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -170,7 +185,7 @@ describe("musical beat layout", () => {
       NoteDuration.Quarter,
       NoteDuration.Quarter,
     ]);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -212,7 +227,7 @@ describe("musical beat layout", () => {
         NoteDuration.Quarter,
       ]);
     }
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -220,7 +235,7 @@ describe("musical beat layout", () => {
       trackElement.trackLineElements[0].staffLineElements[0]
         .styleLinesAsArray[0].barElements;
     const lastBar = firstLineBarElements[firstLineBarElements.length - 1];
-    expect(lastBar.boundingBox.right).toBeCloseTo(EditorLayoutDimensions.WIDTH);
+    expect(lastBar.boundingBox.right).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.WIDTH);
   });
 
   test("shorter voice-bar columns do not widen duration-dominated bars", () => {
@@ -229,10 +244,18 @@ describe("musical beat layout", () => {
     const secondBar = secondStaff.bars[0];
     replaceVoiceBeats(bar, 1, [NoteDuration.Half, NoteDuration.Half]);
     replaceVoiceBeats(secondBar, 1, [NoteDuration.Half, NoteDuration.Half]);
-    const halfMetrics = calculateMasterBarLayoutMetrics(track, 0);
+    const halfMetrics = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
 
     replaceVoiceBeats(bar, 1, [NoteDuration.Half]);
-    const shorterVoiceMetrics = calculateMasterBarLayoutMetrics(track, 0);
+    const shorterVoiceMetrics = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
 
     expect(shorterVoiceMetrics.contentMinWidth).toBe(
       halfMetrics.contentMinWidth
@@ -246,14 +269,18 @@ describe("musical beat layout", () => {
       NoteDuration.ThirtySecond,
       NoteDuration.Half,
     ]);
-    const metrics = calculateMasterBarLayoutMetrics(track, 0);
-
-    expect(metrics.contentMinWidth).toBeGreaterThan(
-      beats.length * EditorLayoutDimensions.MIN_RHYTHM_COLUMN_GAP +
-        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING * 2
+    const metrics = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
     );
 
-    const trackElement = new TrackElement(track);
+    expect(metrics.contentMinWidth).toBeGreaterThan(
+      beats.length * TEST_LAYOUT_DIMENSIONS.MIN_RHYTHM_COLUMN_GAP +
+        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING * 2
+    );
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     const attackXs = beats.map((beat) => {
       const beatElement = findBeatElement(trackElement, beat);
@@ -263,7 +290,7 @@ describe("musical beat layout", () => {
 
     for (let i = 1; i < attackXs.length; i++) {
       expect(attackXs[i] - attackXs[i - 1]).toBeGreaterThanOrEqual(
-        EditorLayoutDimensions.MIN_RHYTHM_COLUMN_GAP
+        TEST_LAYOUT_DIMENSIONS.MIN_RHYTHM_COLUMN_GAP
       );
     }
   });
@@ -275,17 +302,21 @@ describe("musical beat layout", () => {
       1,
       Array.from({ length: 64 }, () => NoteDuration.SixtyFourth)
     );
-    const metrics = calculateMasterBarLayoutMetrics(track, 0);
+    const metrics = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
 
-    expect(metrics.minWidth).toBeGreaterThan(EditorLayoutDimensions.WIDTH);
+    expect(metrics.minWidth).toBeGreaterThan(TEST_LAYOUT_DIMENSIONS.WIDTH);
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     const barElement =
       trackElement.trackLineElements[0].staffLineElements[0]
         .styleLinesAsArray[0].barElements[0];
 
-    expect(barElement.boundingBox.width).toBe(EditorLayoutDimensions.WIDTH);
+    expect(barElement.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.WIDTH);
 
     const firstBeatElement = findBeatElement(trackElement, beats[0]);
     const secondBeatElement = findBeatElement(trackElement, beats[1]);
@@ -293,6 +324,6 @@ describe("musical beat layout", () => {
     expect(secondBeatElement).toBeDefined();
     expect(
       secondBeatElement!.barLocalCoords.x - firstBeatElement!.barLocalCoords.x
-    ).toBeLessThan(EditorLayoutDimensions.MIN_RHYTHM_COLUMN_GAP);
+    ).toBeLessThan(TEST_LAYOUT_DIMENSIONS.MIN_RHYTHM_COLUMN_GAP);
   });
 });

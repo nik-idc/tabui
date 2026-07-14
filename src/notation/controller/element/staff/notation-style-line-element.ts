@@ -1,5 +1,4 @@
 import { Point, randomInt, Rect } from "../../../../shared";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
 import { NotationElement } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
@@ -98,7 +97,7 @@ export class NotationStyleLineElement implements NotationElement {
    * Calculates the dimensions for all bar elements & their children
    */
   public measure(): void {
-    this._boundingBox.width = EditorLayoutDimensions.WIDTH;
+    this._boundingBox.width = this.trackElement.layoutDimensions.WIDTH;
 
     let sumWidth = 0;
     for (const barElement of this._barElements) {

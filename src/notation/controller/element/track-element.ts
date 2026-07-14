@@ -26,6 +26,7 @@ import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-tech
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
 import { SheetBeatElement } from "./beat/sheet-beat-element";
 import { NoteElement } from "./note/note-element";
+import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 
 function snapshotElements(elements: NotationElement[]): ElementSnapshot {
   const snapshot: ElementSnapshot = {
@@ -109,6 +110,8 @@ export class TrackElement {
   readonly uuid: number;
   /** Track */
   readonly track: Track;
+  /** Layout dimensions */
+  readonly layoutDimensions: EditorLayoutDimensions;
 
   /** Track line element */
   private _trackLineElements: TrackLineElement[];
@@ -125,9 +128,10 @@ export class TrackElement {
    * Class that handles all geometry & visually relevant info of a track
    * @param track Track
    */
-  constructor(track: Track) {
+  constructor(track: Track, layoutDimensions: EditorLayoutDimensions) {
     this.uuid = randomInt();
     this.track = track;
+    this.layoutDimensions = layoutDimensions;
 
     this._trackLineElements = [];
     this._skeleton = { lines: [] };
@@ -209,7 +213,10 @@ export class TrackElement {
   private build(): void {
     this._trackLineElements = [];
     this._materializedLineIndices.clear();
-    this._skeleton = buildTrackElementSkeleton(this.track);
+    this._skeleton = buildTrackElementSkeleton(
+      this.track,
+      this.layoutDimensions
+    );
     for (let i = 0; i < this._skeleton.lines.length; i++) {
       this._trackLineElements.push(
         new TrackLineElement(this, this._skeleton.lines[i])
@@ -292,7 +299,10 @@ export class TrackElement {
   public rebuildSkeleton(
     masterBarIndices: number[] | null
   ): TrackElementLineRange | null {
-    this._skeleton = buildTrackElementSkeleton(this.track);
+    this._skeleton = buildTrackElementSkeleton(
+      this.track,
+      this.layoutDimensions
+    );
 
     if (this._skeleton.lines.length === 0) {
       return null;
@@ -393,7 +403,10 @@ export class TrackElement {
     this.clearElementDiff();
 
     if (rebuildSkeleton) {
-      this._skeleton = buildTrackElementSkeleton(this.track);
+      this._skeleton = buildTrackElementSkeleton(
+        this.track,
+        this.layoutDimensions
+      );
     }
 
     if (forceElements) {

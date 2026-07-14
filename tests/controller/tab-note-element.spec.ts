@@ -3,7 +3,7 @@ import { TrackController } from "../../src/notation/controller/track-controller"
 import { SVGTabNoteRenderer } from "../../src/notation/render/svg/svg-tab-note-renderer";
 import { Beat, GuitarNote, NoteDuration } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
-import { ensureLayoutConfigured } from "./helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 function getNoteElement(controller: TrackController, note: GuitarNote) {
   const noteElement = controller.trackElement.trackLineElements
@@ -41,17 +41,13 @@ function getBackingNote(beat: Beat) {
 function createLaidOutController(
   track: ConstructorParameters<typeof TrackController>[0]
 ) {
-  const controller = new TrackController(track);
+  const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
   controller.trackElement.update();
 
   return controller;
 }
 
 describe("SVGTabNoteRenderer", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("active empty slot yields hit rect to lowest filled inactive voice", () => {
     const { track, bar } = createScoreGraph();
     const voice1 = bar.getVoiceBar(1);

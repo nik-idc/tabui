@@ -14,7 +14,34 @@ function createKeyboardEvent(
   } as any;
 }
 
-function createHarness() {
+type FakeRootElement = HTMLElement & {
+  dispatch(event: string): void;
+};
+
+function createRootElement(): FakeRootElement {
+  const listeners = new Map<string, Set<(...args: any[]) => void>>();
+  return {
+    addEventListener: jest.fn(
+      (event: string, handler: (...args: any[]) => void) => {
+        const handlers = listeners.get(event) ?? new Set();
+        handlers.add(handler);
+        listeners.set(event, handlers);
+      }
+    ),
+    removeEventListener: jest.fn(
+      (event: string, handler: (...args: any[]) => void) => {
+        listeners.get(event)?.delete(handler);
+      }
+    ),
+    dispatch(event: string): void {
+      for (const handler of listeners.get(event) ?? []) {
+        handler({});
+      }
+    },
+  } as any;
+}
+
+function createHarness(rootElement: FakeRootElement = createRootElement()) {
   const trackControllerEditor = {
     copy: jest.fn(),
     paste: jest.fn(),
@@ -55,13 +82,15 @@ function createHarness() {
   const callbacks = new EditorKeyboardDefCallbacks(
     uiComponent,
     notationComponent,
-    renderFunc
+    renderFunc,
+    rootElement
   );
 
   return {
     callbacks,
     uiComponent,
     notationComponent,
+    rootElement,
     trackControllerEditor,
     renderFunc,
   };
@@ -84,7 +113,8 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test("direct command handlers dispatch expected editor actions", () => {
-    const { callbacks, notationComponent, renderFunc } = createHarness();
+    const { callbacks, notationComponent, renderFunc } =
+      createHarness(createRootElement());
 
     callbacks.ctrlCEvent(createKeyboardEvent("c"));
     expect(notationComponent.trackController.copy).toHaveBeenCalledTimes(1);
@@ -119,7 +149,7 @@ describe("EditorKeyboardDefCallbacks", () => {
 
   test("technique shortcuts respect selection and bend shortcut opens bend controls", () => {
     const { callbacks, uiComponent, notationComponent, renderFunc } =
-      createHarness();
+      createHarness(createRootElement());
 
     callbacks.setTechnique(GuitarTechniqueType.Vibrato);
     expect(
@@ -148,7 +178,8 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test("number entry combines only within the configured time epsilon", () => {
-    const { callbacks, notationComponent, renderFunc } = createHarness();
+    const { callbacks, notationComponent, renderFunc } =
+      createHarness(createRootElement());
     notationComponent.trackController.selectedNote = {
       note: { noteValue: NoteValue.C },
     };
@@ -181,7 +212,8 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test("arrow keys and backspace update the selected note correctly", () => {
-    const { callbacks, notationComponent, renderFunc } = createHarness();
+    const { callbacks, notationComponent, renderFunc } =
+      createHarness(createRootElement());
     notationComponent.trackController.selectedNote = {
       note: { noteValue: NoteValue.C },
     };
@@ -220,7 +252,9 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test("onKeyDown routes handled keys and ignores function keys", () => {
-    const { callbacks } = createHarness();
+    const { callbacks, rootElement } = createHarness(createRootElement());
+    callbacks.bind();
+    rootElement.dispatch("focusin");
     const ctrlCSpy = jest.spyOn(callbacks, "ctrlCEvent");
     const shiftBSpy = jest.spyOn(callbacks, "shiftBEvent");
     const deleteSpy = jest.spyOn(callbacks, "deleteEvent");
@@ -258,10 +292,12 @@ describe("EditorKeyboardDefCallbacks", () => {
     const functionKey = createKeyboardEvent("F2");
     callbacks.onKeyDown(functionKey);
     expect(functionKey.preventDefault).not.toHaveBeenCalled();
+
+    callbacks.unbind();
   });
 
   test("bind and unbind attach one keydown listener and are idempotent", () => {
-    const { callbacks } = createHarness();
+    const { callbacks } = createHarness(createRootElement());
     const doc = (globalThis as any).document;
 
     callbacks.bind();
@@ -277,6 +313,80 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(doc.removeEventListener).toHaveBeenCalledTimes(1);
     expect(doc.removeEventListener).toHaveBeenCalledWith(
       "keydown",
+      expect.any(Function)
+    );
+  });
+
+  test("global keyboard input is scoped to the active editor root", () => {
+    const rootA = createRootElement();
+    const rootB = createRootElement();
+    const editorA = createHarness(rootA);
+    const editorB = createHarness(rootB);
+    const doc = (globalThis as any).document;
+    const keydownHandlers: ((event: KeyboardEvent) => void)[] = [];
+    doc.addEventListener.mockImplementation(
+      (event: string, handler: (event: KeyboardEvent) => void) => {
+        if (event === "keydown") {
+          keydownHandlers.push(handler);
+        }
+      }
+    );
+    doc.removeEventListener.mockImplementation(
+      (event: string, handler: (event: KeyboardEvent) => void) => {
+        if (event !== "keydown") {
+          return;
+        }
+        const index = keydownHandlers.indexOf(handler);
+        if (index !== -1) {
+          keydownHandlers.splice(index, 1);
+        }
+      }
+    );
+
+    editorA.callbacks.bind();
+    editorB.callbacks.bind();
+
+    for (const handler of keydownHandlers) {
+      handler(createKeyboardEvent(" "));
+    }
+    expect(
+      editorA.notationComponent.trackController.startPlayer
+    ).toHaveBeenCalledTimes(0);
+    expect(
+      editorB.notationComponent.trackController.startPlayer
+    ).toHaveBeenCalledTimes(0);
+
+    rootA.dispatch("focusin");
+    for (const handler of keydownHandlers) {
+      handler(createKeyboardEvent(" "));
+    }
+    expect(
+      editorA.notationComponent.trackController.startPlayer
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      editorB.notationComponent.trackController.startPlayer
+    ).toHaveBeenCalledTimes(0);
+
+    rootB.dispatch("mousedown");
+    for (const handler of keydownHandlers) {
+      handler(createKeyboardEvent(" "));
+    }
+    expect(
+      editorA.notationComponent.trackController.startPlayer
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      editorB.notationComponent.trackController.startPlayer
+    ).toHaveBeenCalledTimes(1);
+
+    editorA.callbacks.unbind();
+    editorB.callbacks.unbind();
+    expect(keydownHandlers).toHaveLength(0);
+    expect(rootA.removeEventListener).toHaveBeenCalledWith(
+      "focusin",
+      expect.any(Function)
+    );
+    expect(rootB.removeEventListener).toHaveBeenCalledWith(
+      "mousedown",
       expect.any(Function)
     );
   });

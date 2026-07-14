@@ -21,7 +21,7 @@ import {
   createBeat,
   createScoreGraph,
 } from "../model/helpers";
-import { ensureLayoutConfigured } from "./helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 function getBeatElements(controller: TrackController) {
   const beatElements: BeatElement[] = [];
@@ -82,13 +82,9 @@ jest.mock("../../src/player", () => ({
 }));
 
 describe("TrackController", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("moving right from the seed beat appends a second beat", () => {
     const { track, bar } = createScoreGraph();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
@@ -104,7 +100,7 @@ describe("TrackController", () => {
 
   test("switching to an existing voice does not update elements", () => {
     const { track } = createScoreGraph();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const updateSpy = jest.spyOn(controller.trackElement, "update");
 
     controller.setActiveVoiceNumber(1);
@@ -115,7 +111,7 @@ describe("TrackController", () => {
 
   test("switching to a new voice updates only the affected line vertically", () => {
     const { track, bar } = createScoreGraph();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const updateSpy = jest.spyOn(controller.trackElement, "update");
 
     controller.setActiveVoiceNumber(2);
@@ -130,7 +126,7 @@ describe("TrackController", () => {
   test("moving right into a missing active voice bar updates elements", () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.setActiveVoiceNumber(2);
     const secondBar = track.staves[0].bars[1];
     const updateSpy = jest.spyOn(controller.trackElement, "update");
@@ -155,7 +151,7 @@ describe("TrackController", () => {
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     const secondBar = track.staves[0].bars[1];
     const secondVoiceBar = secondBar.insertVoiceBar(2);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
     const secondVoiceBeatElement = controller.trackElement.getBeatElement(
       secondVoiceBar.beats[0]
@@ -181,7 +177,7 @@ describe("TrackController", () => {
 
   test("redo on TrackController redoes the previously undone command", () => {
     const { track, bar } = createScoreGraph();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
@@ -199,7 +195,7 @@ describe("TrackController", () => {
 
   test("append beat undo removes the appended beat", () => {
     const { track, bar } = createScoreGraph();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
@@ -217,7 +213,7 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
     ]);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
@@ -238,7 +234,7 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
     ]);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
@@ -258,7 +254,7 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
     ]);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
@@ -281,7 +277,7 @@ describe("TrackController", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
     }
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     controller.removeSelectedBeat();
 
@@ -294,7 +290,7 @@ describe("TrackController", () => {
 
   test("insert bar before selected note inserts and selects the new bar", () => {
     const { track, score } = createScoreGraph();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const originalUUID = score.masterBars[0].uuid;
 
     controller.insertBarBeforeSelected();
@@ -312,7 +308,7 @@ describe("TrackController", () => {
 
   test("insert bar after selected note inserts and selects the new bar", () => {
     const { track, score } = createScoreGraph();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const originalUUID = score.masterBars[0].uuid;
 
     controller.insertBarAfterSelected();
@@ -334,7 +330,7 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Eighth },
       { baseDuration: NoteDuration.Sixteenth },
     ]);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const beatElements = getBeatElements(controller);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -361,7 +357,7 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Eighth },
       { baseDuration: NoteDuration.Sixteenth },
     ]);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const beatElements = getBeatElements(controller);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -389,7 +385,7 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Sixteenth },
       { baseDuration: NoteDuration.ThirtySecond },
     ]);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const beatElements = getBeatElements(controller);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -419,7 +415,7 @@ describe("TrackController", () => {
       repeatStatus: 0,
       repeatCount: null,
     });
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
     const originalUUIDs = score.masterBars.map((bar) => bar.uuid);
 
@@ -447,7 +443,7 @@ describe("TrackController", () => {
       repeatStatus: 0,
       repeatCount: null,
     });
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
     const originalUUIDs = score.masterBars.map((bar) => bar.uuid);
 
@@ -476,7 +472,7 @@ describe("TrackController", () => {
       repeatStatus: 0,
       repeatCount: null,
     });
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
     const voiceBar = track.staves[0].bars[0].getVoiceBar(1);
     if (voiceBar === null) {
@@ -508,7 +504,7 @@ describe("TrackController", () => {
       repeatStatus: 0,
       repeatCount: null,
     });
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
 
     controller.selectBeat(getBeatElement(controller, 0, 0));
@@ -539,7 +535,7 @@ describe("TrackController", () => {
     }
 
     const originalUUIDs = score.masterBars.map((bar) => bar.uuid);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
 
     controller.selectBeat(getBeatElement(controller, 2, 0));
@@ -566,7 +562,7 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
     ]);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const beatElements = getBeatElements(controller);
 
     controller.selectBeat(beatElements[0]);
@@ -586,7 +582,7 @@ describe("TrackController", () => {
 
   test("undo works for a directly executed append-beat command", () => {
     const { track, bar } = createScoreGraph();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
@@ -601,7 +597,7 @@ describe("TrackController", () => {
 
   test("setDuration changes only the selected note beat", () => {
     const { track, bar } = createScoreGraph();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
@@ -623,7 +619,7 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const beatElements = getBeatElements(controller);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -654,7 +650,7 @@ describe("TrackController", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(controller, 0, [
       NoteDuration.ThirtySecond,
@@ -699,7 +695,7 @@ describe("TrackController", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(controller, 0, [NoteDuration.Sixteenth]);
     setBarDurations(controller, 1, [
@@ -733,7 +729,7 @@ describe("TrackController", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(controller, 0, [
       NoteDuration.ThirtySecond,
@@ -776,7 +772,7 @@ describe("TrackController", () => {
   test("paste keeps long clipboard content in the target bar", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(
       controller,
@@ -811,7 +807,7 @@ describe("TrackController", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(controller, 0, [
       NoteDuration.ThirtySecond,
@@ -848,7 +844,7 @@ describe("TrackController", () => {
   test("paste over same-bar selection inserts clipboard at selection start", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(
       controller,
@@ -888,7 +884,7 @@ describe("TrackController", () => {
   test("redo reapplies replace paste after undo", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(
       controller,
@@ -929,7 +925,7 @@ describe("TrackController", () => {
   test("paste at note selection inserts locally into selected bar", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(controller, 0, [
       NoteDuration.Quarter,
@@ -965,7 +961,7 @@ describe("TrackController", () => {
   test("undo restores local paste without creating bars", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(
       controller,
@@ -1002,7 +998,7 @@ describe("TrackController", () => {
   test("paste copies playable guitar notes without invalid intermediate state", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     setBarDurations(controller, 0, [NoteDuration.ThirtySecond]);
     setBarDurations(controller, 1, [NoteDuration.Quarter]);
@@ -1049,7 +1045,7 @@ describe("TrackController", () => {
       });
     }
 
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
 
     const lastBar = staff.bars[staff.bars.length - 1];
@@ -1096,7 +1092,7 @@ describe("TrackController", () => {
       });
     }
 
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
 
     const secondLine = controller.trackElement.trackLineElements[1];
@@ -1130,7 +1126,7 @@ describe("TrackController", () => {
       });
     }
 
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
 
     const secondLine = controller.trackElement.trackLineElements[1];

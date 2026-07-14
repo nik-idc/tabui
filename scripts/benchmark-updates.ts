@@ -60,28 +60,17 @@ type BenchmarkCase = {
 
 const MASTER_BARS_COUNT = 1000;
 const BEATS_PER_BAR = 32;
+const layoutDimensions = new EditorLayoutDimensions({
+  width: 1200,
+  noteTextSize: 12,
+  timeSigTextSize: 48,
+  tempoTextSize: 24,
+  durationsHeight: 30,
+  horizontalPadding: 12,
+});
 const WARMUP_RUNS = Number(process.env.BENCHMARK_WARMUPS ?? 0);
 const MEASURED_RUNS = Number(process.env.BENCHMARK_RUNS ?? 1);
 const CASE_FILTER = process.env.BENCHMARK_CASE_FILTER?.toLowerCase();
-
-function ensureLayoutConfigured(): void {
-  try {
-    EditorLayoutDimensions.configure({
-      width: 1200,
-      noteTextSize: 12,
-      timeSigTextSize: 48,
-      tempoTextSize: 24,
-      durationsHeight: 30,
-    });
-  } catch (error) {
-    if (
-      !(error instanceof Error) ||
-      error.message !== "Layout dimensions already configured"
-    ) {
-      throw error;
-    }
-  }
-}
 
 function createBenchmarkScore(): Score {
   const denseBarsInfo = Array.from({ length: MASTER_BARS_COUNT }, () => ({
@@ -157,7 +146,7 @@ function createScenario(
   buildCommands: (score: Score) => Command[]
 ): BenchmarkScenario {
   const score = createBenchmarkScore();
-  const trackElement = new TrackElement(score.tracks[0]);
+  const trackElement = new TrackElement(score.tracks[0], layoutDimensions);
 
   return {
     trackElement,
@@ -619,8 +608,6 @@ function runBenchmark(benchmarkCase: BenchmarkCase): BenchmarkResult {
     speedup: mean(fullRuns) / mean(focusedRuns),
   };
 }
-
-ensureLayoutConfigured();
 
 const benchmarkCases = createBenchmarkCases().filter((benchmarkCase) =>
   CASE_FILTER === undefined

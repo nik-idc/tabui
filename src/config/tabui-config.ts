@@ -36,6 +36,15 @@ export interface TabUIConfig {
     baseUrl?: string;
     variant?: "light" | "dark";
   };
+  layout?: {
+    width?: number;
+    minWidth?: number;
+    noteTextSize?: number;
+    timeSigTextSize?: number;
+    tempoTextSize?: number;
+    durationsHeight?: number;
+    horizontalPadding?: number;
+  };
   playback?: PlaybackConfig;
   theme?: {
     ui?: {
@@ -75,11 +84,29 @@ export interface ResolvedTabUIConfig {
     baseUrl: string;
     variant: "light" | "dark";
   };
+  layout: {
+    width?: number;
+    minWidth: number;
+    noteTextSize: number;
+    timeSigTextSize: number;
+    tempoTextSize: number;
+    durationsHeight: number;
+    horizontalPadding: number;
+  };
   playback: ResolvedPlaybackConfig;
   theme: {
     cssVars: Record<string, string>;
   };
 }
+
+const DEFAULT_LAYOUT = {
+  minWidth: 320,
+  noteTextSize: 12,
+  timeSigTextSize: 48,
+  tempoTextSize: 24,
+  durationsHeight: 30,
+  horizontalPadding: 12,
+} satisfies Required<Omit<NonNullable<TabUIConfig["layout"]>, "width">>;
 
 const DEFAULT_THEME_CSS_VARS = {
   "--tu-background-color": "#f0f0f0",
@@ -216,6 +243,19 @@ export function resolveTabUIConfig(
     assets: {
       baseUrl: normalizeAssetBaseUrl(config.assets?.baseUrl?.trim() ?? ""),
       variant: config.assets?.variant ?? "light",
+    },
+    layout: {
+      width: config.layout?.width,
+      minWidth: config.layout?.minWidth ?? DEFAULT_LAYOUT.minWidth,
+      noteTextSize: config.layout?.noteTextSize ?? DEFAULT_LAYOUT.noteTextSize,
+      timeSigTextSize:
+        config.layout?.timeSigTextSize ?? DEFAULT_LAYOUT.timeSigTextSize,
+      tempoTextSize:
+        config.layout?.tempoTextSize ?? DEFAULT_LAYOUT.tempoTextSize,
+      durationsHeight:
+        config.layout?.durationsHeight ?? DEFAULT_LAYOUT.durationsHeight,
+      horizontalPadding:
+        config.layout?.horizontalPadding ?? DEFAULT_LAYOUT.horizontalPadding,
     },
     playback: resolvePlaybackConfig(config.playback),
     theme: {

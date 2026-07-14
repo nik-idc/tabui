@@ -16,14 +16,20 @@ export class TabUICallbacks {
   private _mouseCallbacks: EditorMouseCallbacks;
   private _keyboardCallbacks: EditorKeyboardCallbacks;
   private _uiCallbacks: UICallbacks;
+  private _rootDiv: HTMLDivElement;
   /** Pending requestAnimationFrame id for coalesced notation scroll renders. */
   private _notationRenderRafId?: number;
   /** Pending requestAnimationFrame id for coalesced selection/UI updates. */
   private _selectionRenderRafId?: number;
 
-  constructor(uiComponent: UIComponent, notationComponent: NotationComponent) {
+  constructor(
+    uiComponent: UIComponent,
+    notationComponent: NotationComponent,
+    rootDiv: HTMLDivElement
+  ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
+    this._rootDiv = rootDiv;
 
     this._mouseCallbacks = new EditorMouseDefCallbacks(
       this._uiComponent,
@@ -33,7 +39,8 @@ export class TabUICallbacks {
     this._keyboardCallbacks = new EditorKeyboardDefCallbacks(
       this._uiComponent,
       this._notationComponent,
-      () => this.render(RenderType.Full)
+      () => this.render(RenderType.Full),
+      this._rootDiv
     );
     this._uiCallbacks = new UICallbacks(
       this._uiComponent,
@@ -46,6 +53,7 @@ export class TabUICallbacks {
   }
 
   private renderAndBindFull(): void {
+    this._mouseCallbacks.unbind();
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
 
@@ -181,7 +189,8 @@ export class TabUICallbacks {
   public unbind(): void {
     this.cancelPendingNotationRender();
     this.cancelPendingSelectionRender();
-    // this._mouseCallbacks.unbind();
+    this._mouseCallbacks.unbind();
+    this._notationComponent.renderer.detachViewportScrollEvent();
     this._keyboardCallbacks.unbind();
     this._uiCallbacks.unbind();
   }

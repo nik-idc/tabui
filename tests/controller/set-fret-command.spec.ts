@@ -3,13 +3,9 @@ import { TrackController } from "../../src/notation/controller/track-controller"
 import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
 import { GuitarNote, Score } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
-import { ensureLayoutConfigured } from "./helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 describe("SetFretCommand", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("execute, undo, and redo update fret", () => {
     const { bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
@@ -128,7 +124,7 @@ describe("SetFretCommand", () => {
       throw Error("Expected guitar note in test beat");
     }
 
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const beatElement = controller.trackElement.getBeatElement(note.beat);
     const noteElement = beatElement?.noteElements[0] as TabNoteElement;
 
@@ -151,7 +147,7 @@ describe("SetFretCommand", () => {
     }
 
     note.fret = 5;
-    const controller = new TrackController(track);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const beatElement = controller.trackElement.getBeatElement(note.beat);
     const noteElement = beatElement?.noteElements[0] as TabNoteElement;
 

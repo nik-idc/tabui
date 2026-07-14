@@ -1,8 +1,4 @@
-import {
-  EditorLayoutDimensions,
-  NotationElement,
-  TrackController,
-} from "../../controller";
+import { NotationElement, TrackController } from "../../controller";
 import { createSVGG, createSVGRect, createSVGText } from "../../../shared";
 import { TabNoteElement } from "../../controller/element/note/tab-note-element";
 import { SVGNoteRenderer } from "./svg-note-renderer";
@@ -328,7 +324,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._textSVG = createSVGText();
 
       // Set only-set-once attributes
-      const fontSize = `${EditorLayoutDimensions.NOTE_TEXT_SIZE}px`;
+      const fontSize = `${this.trackController.layoutDimensions.NOTE_TEXT_SIZE}px`;
       this._textSVG.setAttribute("font-size", fontSize);
       this._textSVG.setAttribute("text-anchor", "middle");
       this._textSVG.setAttribute("dominant-baseline", "middle");

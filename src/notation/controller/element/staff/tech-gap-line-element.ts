@@ -1,6 +1,5 @@
 import { Point, randomInt, Rect } from "../../../../shared";
 import { GuitarTechnique, Technique, TechniqueType } from "../../../model";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
 import { NotationElement } from "../notation-element";
 import { BeatElement } from "../beat/beat-element";
@@ -130,7 +129,7 @@ export class TechGapLineElement implements NotationElement {
         0,
         0,
         this.techGapElement.boundingBox.width,
-        EditorLayoutDimensions.TECH_LABEL_HEIGHT
+        this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
       );
     }
   }
@@ -160,7 +159,7 @@ export class TechGapLineElement implements NotationElement {
     }
     this._boundingBox.setDimensions(
       this.techGapElement.boundingBox.width,
-      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+      this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
     );
 
     for (const label of this._labelElements) {

@@ -28,24 +28,39 @@ export interface EditorKeyboardCallbacks {
 }
 
 export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
+  /** Editor root that most recently captured document-level keyboard ownership. */
+  private static _activeRootElement?: HTMLElement;
+
   readonly eventsTimeEpsilon: number = 250;
 
   private _uiComponent: UIComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  /** Root for this editor instance; used to ignore other editors' key events. */
+  private _rootElement: HTMLElement;
 
   private _bound: boolean = false;
   private _prevKeyPress?: { time: number; key: string };
-  private _boundOnKeyDown?: (event: KeyboardEvent) => void;
+  private _boundOnKeyDown: (event: KeyboardEvent) => void;
+  private _boundCaptureEditorFocus: () => void;
 
   constructor(
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void
+    renderFunc: () => void,
+    rootElement: HTMLElement
   ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._rootElement = rootElement;
+
+    this._boundOnKeyDown = this.onKeyDown.bind(this);
+    this._boundCaptureEditorFocus = this.captureEditorFocus.bind(this);
+  }
+
+  private captureEditorFocus(): void {
+    EditorKeyboardDefCallbacks._activeRootElement = this._rootElement;
   }
 
   public ctrlCEvent(event: KeyboardEvent): void {
@@ -189,6 +204,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   public onCtrlDel(): void {}
 
   public onKeyDown(event: KeyboardEvent): void {
+    if (EditorKeyboardDefCallbacks._activeRootElement !== this._rootElement) {
+      return;
+    }
+
     const key = event.key.toLowerCase(); // normalize
     if (key.length !== 1 && key[0] === "f") {
       return;
@@ -236,14 +255,34 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
     document.addEventListener("keydown", this._boundOnKeyDown);
+    this._rootElement.addEventListener(
+      "focusin",
+      this._boundCaptureEditorFocus
+    );
+    this._rootElement.addEventListener(
+      "mousedown",
+      this._boundCaptureEditorFocus
+    );
     this._bound = true;
   }
 
   public unbind(): void {
-    if (this._bound && this._boundOnKeyDown !== undefined) {
-      document.removeEventListener("keydown", this._boundOnKeyDown);
-      this._boundOnKeyDown = undefined;
-      this._bound = false;
+    if (!this._bound) {
+      return;
     }
+
+    document.removeEventListener("keydown", this._boundOnKeyDown);
+    this._rootElement.removeEventListener(
+      "focusin",
+      this._boundCaptureEditorFocus
+    );
+    this._rootElement.removeEventListener(
+      "mousedown",
+      this._boundCaptureEditorFocus
+    );
+    if (EditorKeyboardDefCallbacks._activeRootElement === this._rootElement) {
+      EditorKeyboardDefCallbacks._activeRootElement = undefined;
+    }
+    this._bound = false;
   }
 }

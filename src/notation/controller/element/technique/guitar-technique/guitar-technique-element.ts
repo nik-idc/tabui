@@ -7,7 +7,6 @@ import {
 } from "../../../../model";
 import { Point, Rect, randomInt } from "../../../../../shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
-import { EditorLayoutDimensions } from "../../../editor-layout-dimensions";
 import { NotationElement } from "../../notation-element";
 import { TrackElement } from "../../track-element";
 import { SVGPathDescriptor, TechniqueElement } from "../technique-element";
@@ -278,10 +277,11 @@ export class GuitarTechniqueElement implements TechniqueElement {
 
     const slideWidth =
       this.noteElement.boundingBox.width -
-      EditorLayoutDimensions.NOTE_TEXT_SIZE;
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const slideHeight = this.noteElement.boundingBox.height / 3;
     const slideStartX =
-      this._startPoint.x + EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
+      this._startPoint.x +
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
     const slideStartY = this._startPoint.y + (slideHeight / 2) * upCoef;
     const slideEndX = slideStartX + slideWidth;
     const slideEndY = slideStartY - slideHeight * upCoef;
@@ -320,10 +320,11 @@ export class GuitarTechniqueElement implements TechniqueElement {
    */
   private createNaturalHarmonicPath(): void {
     const nhStartX =
-      this._startPoint.x - 5 * (EditorLayoutDimensions.NOTE_TEXT_SIZE / 4);
+      this._startPoint.x -
+      5 * (this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 4);
     const nhStartY = this._startPoint.y;
-    const nhWidth = EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
-    const nhHeight = EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
+    const nhWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    const nhHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
     const nhLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
       nhStartX,
       nhStartY,
@@ -342,10 +343,11 @@ export class GuitarTechniqueElement implements TechniqueElement {
    */
   private createPinchHarmonicPath(): void {
     const phStartX =
-      this._startPoint.x - 5 * (EditorLayoutDimensions.NOTE_TEXT_SIZE / 4);
+      this._startPoint.x -
+      5 * (this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 4);
     const phStartY = this._startPoint.y;
-    const phWidth = EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
-    const phHeight = EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
+    const phWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    const phHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
     const phLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
       phStartX,
       phStartY,

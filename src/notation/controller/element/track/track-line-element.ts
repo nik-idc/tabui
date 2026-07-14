@@ -1,6 +1,5 @@
 import { Track } from "../../../model";
 import { Point, Rect, randomInt } from "../../../../shared";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
 import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
@@ -212,15 +211,15 @@ export class TrackLineElement implements NotationElement {
     const y1 =
       this._trackLineInfoElement.boundingBox.bottom +
       // Since visually the staff lines begin a bit lower than the element
-      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
       this._staffLineElements[0].styleLinesAsArray[0].techGapElement.boundingBox
         .bottom;
     const y2 =
       this._staffLineElements[this._staffLineElements.length - 1].boundingBox
         .bottom -
-      EditorLayoutDimensions.TUPLET_RECT_HEIGHT -
-      EditorLayoutDimensions.DURATIONS_HEIGHT -
-      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2;
+      this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT -
+      this.trackElement.layoutDimensions.DURATIONS_HEIGHT -
+      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2;
 
     this._outlineLines.left.set(xLeft, y1, y2);
     this._outlineLines.right.set(xRight, y1, y2);

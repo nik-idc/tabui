@@ -30,13 +30,22 @@
   border-radius: var(--tu-border-radius);
   font-family: var(--tu-font-body);
 
+  .tu-top-controls-host {
+    grid-area: 1 / 1 / 2 / 3;
+    min-width: 0;
+  }
+
+  .tu-side-controls-host {
+    grid-area: 2 / 1 / 3 / 2;
+    min-width: 0;
+  }
+
   .tu-root-svg text {
     font-family: var(--tu-font-notation);
     fill: var(--tu-notation-text);
   }
 
   .tu-top-controls {
-    grid-area: 1 / 1 / 2 / 3;
     padding: 0.5rem 1rem;
     border-radius: var(--tu-border-radius);
     background: var(--tu-primary-color);
@@ -355,12 +364,15 @@
 
   .tu-notation-viewport {
     grid-area: 2 / 2 / 3 / 3;
+    min-width: 0;
+    box-sizing: border-box;
     background: var(--tu-primary-color);
     border-radius: var(--tu-border-radius);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
     min-height: 0;
-    padding: 5px;
   }
 
   .tu-root-svg {
