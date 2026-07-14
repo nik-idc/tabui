@@ -22,6 +22,10 @@ export class BendReleaseSelector implements Selector {
   private _releaseCircle: SVGCircleElement;
   private _draggedCircle: SVGCircleElement;
   private _isDragging: boolean;
+  private _boundOnPeakMouseDown: () => void;
+  private _boundOnReleaseMouseDown: () => void;
+  private _boundOnDocumentMouseMove: (event: MouseEvent) => void;
+  private _boundOnDocumentMouseUp: (event: MouseEvent) => void;
 
   constructor(
     bendGraphSVG: SVGSVGElement,
@@ -35,6 +39,11 @@ export class BendReleaseSelector implements Selector {
     this._peakCircle = createSVGCircle();
     this._releaseCircle = createSVGCircle();
     this._draggedCircle = createSVGCircle();
+    this._boundOnPeakMouseDown = () => this.onCircleMouseDown(this._peakCircle);
+    this._boundOnReleaseMouseDown = () =>
+      this.onCircleMouseDown(this._releaseCircle);
+    this._boundOnDocumentMouseMove = this.onDocumentMouseMove.bind(this);
+    this._boundOnDocumentMouseUp = this.onDocumentMouseUp.bind(this);
   }
 
   public init(): void {
@@ -73,11 +82,10 @@ export class BendReleaseSelector implements Selector {
     this._releaseCircle.style.cursor = "pointer";
     this.bendGraphSVG.appendChild(this._releaseCircle);
 
-    this._peakCircle.addEventListener("mousedown", () =>
-      this.onCircleMouseDown(this._peakCircle)
-    );
-    this._releaseCircle.addEventListener("mousedown", () =>
-      this.onCircleMouseDown(this._releaseCircle)
+    this._peakCircle.addEventListener("mousedown", this._boundOnPeakMouseDown);
+    this._releaseCircle.addEventListener(
+      "mousedown",
+      this._boundOnReleaseMouseDown
     );
   }
 
@@ -104,14 +112,28 @@ export class BendReleaseSelector implements Selector {
   }
 
   public dispose(): void {
+    this._peakCircle.removeEventListener(
+      "mousedown",
+      this._boundOnPeakMouseDown
+    );
+    this._releaseCircle.removeEventListener(
+      "mousedown",
+      this._boundOnReleaseMouseDown
+    );
+    this.removeDocumentDragListeners();
     this.bendGraphSVG.innerHTML = "";
   }
 
   private onCircleMouseDown(circleElement: SVGCircleElement) {
     this._isDragging = true;
     this._draggedCircle = circleElement;
-    document.addEventListener("mousemove", this.onDocumentMouseMove.bind(this));
-    document.addEventListener("mouseup", this.onDocumentMouseUp.bind(this));
+    document.addEventListener("mousemove", this._boundOnDocumentMouseMove);
+    document.addEventListener("mouseup", this._boundOnDocumentMouseUp);
+  }
+
+  private removeDocumentDragListeners(): void {
+    document.removeEventListener("mousemove", this._boundOnDocumentMouseMove);
+    document.removeEventListener("mouseup", this._boundOnDocumentMouseUp);
   }
 
   private onDocumentMouseMove(event: MouseEvent) {
@@ -200,10 +222,6 @@ export class BendReleaseSelector implements Selector {
   private onDocumentMouseUp(event: MouseEvent) {
     this._isDragging = false;
     this._draggedCircle = this._peakCircle;
-    document.removeEventListener(
-      "mousemove",
-      this.onDocumentMouseMove.bind(this)
-    );
-    document.removeEventListener("mouseup", this.onDocumentMouseUp.bind(this));
+    this.removeDocumentDragListeners();
   }
 }
