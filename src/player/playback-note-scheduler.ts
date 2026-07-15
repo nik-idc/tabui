@@ -546,6 +546,7 @@ export class PlaybackNoteScheduler {
       sourceNode,
       track,
       gainNode,
+      startTime,
     };
   }
 }

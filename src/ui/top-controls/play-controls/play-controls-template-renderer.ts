@@ -109,6 +109,14 @@ export class PlayControlsTemplateRenderer {
         height: buttonSize,
       }
     );
+    this.template.loopButton.classList.toggle(
+      "tu-track-control-active",
+      this.notationComponent.trackController.isLooped
+    );
+    this.template.loopButton.setAttribute(
+      "aria-pressed",
+      String(this.notationComponent.trackController.isLooped)
+    );
   }
   /**
    * Responsible for setting up the note controls:

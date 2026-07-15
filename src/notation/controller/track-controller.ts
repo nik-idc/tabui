@@ -1,4 +1,5 @@
 import { ScorePlayer } from "../../player";
+import type { PlaybackOptions } from "../../player";
 import {
   Track,
   Beat,
@@ -71,18 +72,18 @@ export class TrackController {
 
     const selection =
       this._trackControllerEditor.selectionManager.selectionAsBeats;
+    const playbackOptions: PlaybackOptions = { startBeat: selection[0] };
     if (selection.length > 1) {
       this._scorePlayer.setLoopSection(
         selection[0],
         selection[selection.length - 1]
       );
-      this._scorePlayer.enableLoop();
+      playbackOptions.loopEndBeat = selection[selection.length - 1];
     } else {
       this._scorePlayer.clearLoopSection();
-      this._scorePlayer.disableLoop();
     }
 
-    void this._scorePlayer.start({ startBeat: selection[0] });
+    void this._scorePlayer.start(playbackOptions);
   }
 
   /**
@@ -94,6 +95,42 @@ export class TrackController {
     }
 
     this._scorePlayer.stop();
+  }
+
+  /** Selects the first bar and seeks active playback to it. */
+  public selectFirstBar(): void {
+    const wasPlaying = this.isPlaying;
+    const moved = this._trackControllerEditor.selectFirstBar();
+    if (wasPlaying && moved) {
+      this.startPlayer();
+    }
+  }
+
+  /** Selects the previous bar and seeks active playback to it. */
+  public selectPreviousBar(): void {
+    const wasPlaying = this.isPlaying;
+    const moved = this._trackControllerEditor.selectPreviousBar();
+    if (wasPlaying && moved) {
+      this.startPlayer();
+    }
+  }
+
+  /** Selects the next bar and seeks active playback to it. */
+  public selectNextBar(): void {
+    const wasPlaying = this.isPlaying;
+    const moved = this._trackControllerEditor.selectNextBar();
+    if (wasPlaying && moved) {
+      this.startPlayer();
+    }
+  }
+
+  /** Selects the last bar and seeks active playback to it. */
+  public selectLastBar(): void {
+    const wasPlaying = this.isPlaying;
+    const moved = this._trackControllerEditor.selectLastBar();
+    if (wasPlaying && moved) {
+      this.startPlayer();
+    }
   }
 
   /**

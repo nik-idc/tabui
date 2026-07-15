@@ -21,4 +21,6 @@ export interface ScheduledAudioNode {
   track: Track;
   /** Gain node used only for the note envelope. */
   gainNode: GainNode;
+  /** Absolute audio context time when the source is scheduled to start. */
+  startTime: number;
 }

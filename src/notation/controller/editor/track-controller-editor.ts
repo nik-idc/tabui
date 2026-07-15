@@ -160,6 +160,76 @@ export class TrackControllerEditor {
     this._selectionManager.selectBeatCursor(firstBeatElement.beat, 0);
   }
 
+  private selectBeatCursor(beat: Beat): void {
+    const noteIndex = this._selectionManager.selectedNote?.noteIndex ?? 0;
+    this._selectionManager.selectBeatCursor(beat, noteIndex);
+  }
+
+  private selectedBeatIs(beat: Beat): boolean {
+    return this._selectionManager.selectionAsBeats[0] === beat;
+  }
+
+  /** Selects the first beat in the first bar of the active voice. */
+  public selectFirstBar(): boolean {
+    const selectedBar = this.getSelectedBar();
+    const firstBar = selectedBar.staff.bars[0];
+    const activeVoiceNumber = this._selectionManager.activeVoiceNumber;
+    const firstBeat = firstBar.getVoiceBar(activeVoiceNumber)?.beats[0];
+
+    if (firstBeat !== undefined && !this.selectedBeatIs(firstBeat)) {
+      this.selectBeatCursor(firstBeat);
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Selects the first beat in the previous bar of the active voice. */
+  public selectPreviousBar(): boolean {
+    const selectedBar = this.getSelectedBar();
+    const previousBar = selectedBar.staff.getPrevBar(selectedBar);
+    const previousBeat = previousBar?.getVoiceBar(
+      this._selectionManager.activeVoiceNumber
+    )?.beats[0];
+
+    if (previousBeat !== undefined && !this.selectedBeatIs(previousBeat)) {
+      this.selectBeatCursor(previousBeat);
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Selects the first beat in the next bar of the active voice. */
+  public selectNextBar(): boolean {
+    const selectedBar = this.getSelectedBar();
+    const nextBar = selectedBar.staff.getNextBar(selectedBar);
+    const activeVoiceNumber = this._selectionManager.activeVoiceNumber;
+    const nextBeat = nextBar?.getVoiceBar(activeVoiceNumber)?.beats[0];
+
+    if (nextBeat !== undefined && !this.selectedBeatIs(nextBeat)) {
+      this.selectBeatCursor(nextBeat);
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Selects the first beat in the last bar of the active voice. */
+  public selectLastBar(): boolean {
+    const selectedBar = this.getSelectedBar();
+    const lastBar = selectedBar.staff.bars[selectedBar.staff.bars.length - 1];
+    const activeVoiceNumber = this._selectionManager.activeVoiceNumber;
+    const firstBeat = lastBar.getVoiceBar(activeVoiceNumber)?.beats[0];
+
+    if (firstBeat !== undefined && !this.selectedBeatIs(firstBeat)) {
+      this.selectBeatCursor(firstBeat);
+      return true;
+    }
+
+    return false;
+  }
+
   /**
    * Handles added beat after moving right
    */

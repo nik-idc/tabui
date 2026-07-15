@@ -852,7 +852,7 @@ describe("ScorePlayer", () => {
 
     const player = new ScorePlayer(score, track);
     player.setLoopSection(firstBeatOf(bars[0]), firstBeatOf(bars[5]));
-    player.enableLoop();
+    player.toggleLoop();
     await player.start({ startBeat: firstBeatOf(bars[0]) });
 
     expect(oscillatorFrequencies().slice(0, 8)).toEqual(expectedFrequencies);
@@ -890,7 +890,7 @@ describe("ScorePlayer", () => {
 
     const player = new ScorePlayer(score, track);
     player.setLoopSection(firstBeatOf(bars[2]), firstBeatOf(bars[5]));
-    player.enableLoop();
+    player.toggleLoop();
     await player.start({ startBeat: firstBeatOf(bars[2]) });
 
     expect(oscillatorFrequencies().slice(0, 4)).toEqual(expectedFrequencies);
@@ -928,10 +928,93 @@ describe("ScorePlayer", () => {
 
     const player = new ScorePlayer(score, track);
     player.setLoopSection(firstBeatOf(bars[0]), firstBeatOf(bars[3]));
-    player.enableLoop();
+    player.toggleLoop();
     await player.start({ startBeat: firstBeatOf(bars[0]) });
 
     expect(oscillatorFrequencies().slice(0, 4)).toEqual(expectedFrequencies);
+  });
+
+  test("looped full-score playback schedules another pass", async () => {
+    const { score, track, bars } = createScoreWithBars(2);
+    setBeatFret(firstBeatOf(bars[0]), 0);
+    setBeatFret(firstBeatOf(bars[1]), 2);
+
+    const bar0Note = firstBeatOf(bars[0]).notes?.[0];
+    const bar1Note = firstBeatOf(bars[1]).notes?.[0];
+    if (bar0Note === undefined || bar1Note === undefined) {
+      throw Error("Expected notes in playback test beats");
+    }
+
+    const player = new ScorePlayer(score, track);
+    player.toggleLoop();
+    await player.start({ startBeat: firstBeatOf(bars[0]) });
+
+    expect(oscillatorFrequencies().slice(0, 4)).toEqual([
+      getNoteFrequency(bar0Note),
+      getNoteFrequency(bar1Note),
+      getNoteFrequency(bar0Note),
+      getNoteFrequency(bar1Note),
+    ]);
+  });
+
+  test("enabling loop during playback schedules another pass without restart", async () => {
+    const { score, track, bars } = createScoreWithBars(2);
+    setBeatFret(firstBeatOf(bars[0]), 0);
+    setBeatFret(firstBeatOf(bars[1]), 2);
+
+    const bar0Note = firstBeatOf(bars[0]).notes?.[0];
+    const bar1Note = firstBeatOf(bars[1]).notes?.[0];
+    if (bar0Note === undefined || bar1Note === undefined) {
+      throw Error("Expected notes in playback test beats");
+    }
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bars[0]) });
+    expect(oscillatorFrequencies()).toHaveLength(2);
+
+    player.toggleLoop();
+
+    expect(oscillatorFrequencies().slice(0, 4)).toEqual([
+      getNoteFrequency(bar0Note),
+      getNoteFrequency(bar1Note),
+      getNoteFrequency(bar0Note),
+      getNoteFrequency(bar1Note),
+    ]);
+  });
+
+  test("disabling loop near the end cancels already scheduled loop notes", async () => {
+    const { score, track, bars } = createScoreWithBars(2);
+    setBeatFret(firstBeatOf(bars[0]), 0);
+    setBeatFret(firstBeatOf(bars[1]), 2);
+
+    const player = new ScorePlayer(score, track);
+    player.toggleLoop();
+    await player.start({ startBeat: firstBeatOf(bars[0]) });
+    expect(oscillatorStarts().slice(0, 3)).toEqual([0.05, 0.55, 1.05]);
+
+    jest.setSystemTime(900);
+    player.toggleLoop();
+
+    expect(createdOscillators[2].stop).toHaveBeenLastCalledWith(0.9);
+    jest.advanceTimersByTime(200);
+    expect(player.isPlaying).toBe(false);
+  });
+
+  test("enabling loop near the end cancels pending natural stop", async () => {
+    const { score, track, bars } = createScoreWithBars(2);
+    setBeatFret(firstBeatOf(bars[0]), 0);
+    setBeatFret(firstBeatOf(bars[1]), 2);
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bars[0]) });
+    expect(oscillatorStarts()).toEqual([0.05, 0.55]);
+
+    jest.setSystemTime(900);
+    player.toggleLoop();
+
+    expect(oscillatorStarts().slice(0, 3)).toEqual([0.05, 0.55, 1.05]);
+    jest.advanceTimersByTime(200);
+    expect(player.isPlaying).toBe(true);
   });
 
   test("does not start playback when audio context resume throws", async () => {

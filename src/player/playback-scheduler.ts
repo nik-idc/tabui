@@ -57,6 +57,8 @@ export class PlaybackScheduler {
   private _audioContext?: AudioContext;
   /** Index of the next master bar to schedule. */
   private _nextMasterBarIndexToSchedule: number;
+  /** Scheduled playback-second offsets where looped passes begin. */
+  private _loopStartOffsets: number[];
 
   /**
    * Schedules score material for playback.
@@ -74,6 +76,7 @@ export class PlaybackScheduler {
     this._trackAudioBuses = new Map();
     this._audioContext = undefined;
     this._nextMasterBarIndexToSchedule = 0;
+    this._loopStartOffsets = [];
   }
 
   private createTrackAudioBus(track: Track): TrackAudioBus {
@@ -145,6 +148,7 @@ export class PlaybackScheduler {
     this._scheduledPlaybackSeconds = 0;
     this._currentScheduleBase = 0;
     this._nextMasterBarIndexToSchedule = 0;
+    this._loopStartOffsets = [];
     this._traversalManager.reset();
   }
 
@@ -168,6 +172,7 @@ export class PlaybackScheduler {
     this._scheduledPlaybackSeconds = 0;
     this._nextMasterBarIndexToSchedule =
       this._traversalManager.firstMasterBarIndex;
+    this._loopStartOffsets = [];
   }
 
   /**
@@ -186,6 +191,28 @@ export class PlaybackScheduler {
     }
 
     this._scheduledAudioNodes.clear();
+  }
+
+  /**
+   * Stops scheduled audio nodes whose source starts at or after startTime.
+   * @param startTime Absolute AudioContext time where cancellation starts
+   * @param currentTime AudioContext time used for immediate source stop
+   */
+  public stopAudioFrom(startTime: number, currentTime: number): void {
+    for (const audioNode of [...this._scheduledAudioNodes]) {
+      if (audioNode.startTime < startTime) {
+        continue;
+      }
+
+      try {
+        audioNode.sourceNode.stop(currentTime);
+      } catch {
+        // Stopping an already stopped oscillator is harmless for teardown.
+      }
+      audioNode.gainNode.disconnect();
+      audioNode.sourceNode.disconnect();
+      this._scheduledAudioNodes.delete(audioNode);
+    }
   }
 
   /**
@@ -350,6 +377,13 @@ export class PlaybackScheduler {
     this._scheduledPlaybackSeconds += masterBarDurationSeconds;
     const nextMasterBarIndex =
       this._traversalManager.completeMasterBar(masterBarIndex);
+    if (
+      this._traversalManager.isLooped &&
+      nextMasterBarIndex !== null &&
+      nextMasterBarIndex <= masterBarIndex
+    ) {
+      this._loopStartOffsets.push(this._scheduledPlaybackSeconds);
+    }
     this._nextMasterBarIndexToSchedule =
       nextMasterBarIndex ?? this._score.masterBars.length;
   }
@@ -399,6 +433,16 @@ export class PlaybackScheduler {
     };
   }
 
+  private resumeLoopFromEnd(): void {
+    const lastLoopStartOffset =
+      this._loopStartOffsets[this._loopStartOffsets.length - 1];
+    if (lastLoopStartOffset !== this._scheduledPlaybackSeconds) {
+      this._loopStartOffsets.push(this._scheduledPlaybackSeconds);
+    }
+    this._nextMasterBarIndexToSchedule =
+      this._traversalManager.loopStartMasterBarIndex;
+  }
+
   /** Absolute playback time in seconds scheduled so far. */
   public get scheduledPlaybackSeconds(): number {
     return this._scheduledPlaybackSeconds;
@@ -407,16 +451,37 @@ export class PlaybackScheduler {
   /** Toggles loop mode. */
   public toggleLoop(): void {
     this._traversalManager.toggleLoop();
+    if (
+      this._traversalManager.isLooped &&
+      this._nextMasterBarIndexToSchedule >= this._score.masterBars.length
+    ) {
+      this.resumeLoopFromEnd();
+    }
   }
 
-  /** Enables loop mode. */
-  public enableLoop(): void {
-    this._traversalManager.enableLoop();
+  /**
+   * Gets the next scheduled loop-pass start after the current playback offset.
+   * Offsets are measured from the start of the current playback run, not from
+   * AudioContext.currentTime.
+   * @param elapsedPlaybackSeconds Current playback offset in seconds
+   * @returns Next loop start offset, or undefined if none is buffered
+   */
+  public nextLoopStartOffsetAfter(
+    elapsedPlaybackSeconds: number
+  ): number | undefined {
+    return this._loopStartOffsets.find((o) => o > elapsedPlaybackSeconds);
   }
 
-  /** Disables loop mode. */
-  public disableLoop(): void {
-    this._traversalManager.disableLoop();
+  /**
+   * Discards scheduler state after the provided playback offset.
+   * @param playbackSeconds Playback offset, measured from the current run start
+   */
+  public truncateAt(playbackSeconds: number): void {
+    this._scheduledPlaybackSeconds = playbackSeconds;
+    this._nextMasterBarIndexToSchedule = this._score.masterBars.length;
+    this._loopStartOffsets = this._loopStartOffsets.filter(
+      (o) => o < playbackSeconds
+    );
   }
 
   /** Clears currently selected loop section. */

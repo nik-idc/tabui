@@ -13,9 +13,7 @@ export interface PlaybackOptions {
   startBeat?: Beat;
   /** Ignore an already-open repeat when playback starts inside it. */
   skipOpenRepeatAtStart?: boolean;
-  /** Loop section start beat. */
-  loopStartBeat?: Beat;
-  /** Loop section end beat. */
+  /** Playback range end beat. */
   loopEndBeat?: Beat;
 }
 
@@ -39,7 +37,7 @@ export class ScorePlayer {
   /** Interval handle for rolling lookahead scheduling. */
   private _schedulerInterval?: ReturnType<typeof setInterval>;
   /** Timeouts driving beat-change and natural-stop UI events. */
-  private _scheduledUiTimeouts: Set<ReturnType<typeof setTimeout>>;
+  private _scheduledUiTimeouts: Map<ReturnType<typeof setTimeout>, number>;
   /** Stop timeout for natural playback end. */
   private _stopTimeout?: ReturnType<typeof setTimeout>;
 
@@ -68,7 +66,7 @@ export class ScorePlayer {
     playbackConfig: ResolvedPlaybackConfig = {}
   ) {
     this._currentScheduleBase = 0;
-    this._scheduledUiTimeouts = new Set();
+    this._scheduledUiTimeouts = new Map();
 
     this.score = score;
     this._scheduler = new PlaybackScheduler(this.score, playbackConfig);
@@ -134,7 +132,18 @@ export class ScorePlayer {
         beatUUID: beat.uuid,
       });
     }, delayMs);
-    this._scheduledUiTimeouts.add(timeout);
+    this._scheduledUiTimeouts.set(timeout, startTime);
+  }
+
+  private clearUiTimeoutsFrom(startTime: number): void {
+    for (const [timeout, timeoutStartTime] of this._scheduledUiTimeouts) {
+      if (timeoutStartTime < startTime) {
+        continue;
+      }
+
+      clearTimeout(timeout);
+      this._scheduledUiTimeouts.delete(timeout);
+    }
   }
 
   /** Handles natural playback completion once all playback has been buffered. */
@@ -281,7 +290,7 @@ export class ScorePlayer {
       this._stopTimeout = undefined;
     }
 
-    for (const timeout of this._scheduledUiTimeouts) {
+    for (const timeout of this._scheduledUiTimeouts.keys()) {
       clearTimeout(timeout);
     }
     this._scheduledUiTimeouts.clear();
@@ -298,9 +307,43 @@ export class ScorePlayer {
     this.emitPlaybackStateChanged();
   }
 
+  private applyLiveLoopChange(): void {
+    if (!this._isPlaying) {
+      return;
+    }
+
+    if (this._audioContext === undefined) {
+      throw Error("Audio context is not initialized");
+    }
+
+    const elapsedPlaybackSeconds = Math.max(
+      0,
+      this._audioContext.currentTime - this._currentScheduleBase
+    );
+    const nextLoopStartOffset = this._scheduler.nextLoopStartOffsetAfter(
+      elapsedPlaybackSeconds
+    );
+    if (!this._scheduler.isLooped && nextLoopStartOffset !== undefined) {
+      const loopStartTime = this._currentScheduleBase + nextLoopStartOffset;
+      this.clearUiTimeoutsFrom(loopStartTime);
+      this._scheduler.stopAudioFrom(
+        loopStartTime,
+        this._audioContext.currentTime
+      );
+      this._scheduler.truncateAt(nextLoopStartOffset);
+    }
+
+    if (this._stopTimeout !== undefined) {
+      clearTimeout(this._stopTimeout);
+      this._stopTimeout = undefined;
+    }
+    this.scheduleLookahead();
+  }
+
   /** Toggles loop mode. */
   public toggleLoop(): void {
     this._scheduler.toggleLoop();
+    this.applyLiveLoopChange();
   }
 
   /** Applies current track playback-control state to already scheduled audio. */
@@ -310,16 +353,6 @@ export class ScorePlayer {
     }
 
     this._scheduler.applyTrackControls(this._audioContext.currentTime);
-  }
-
-  /** Enables loop mode. */
-  public enableLoop(): void {
-    this._scheduler.enableLoop();
-  }
-
-  /** Disables loop mode. */
-  public disableLoop(): void {
-    this._scheduler.disableLoop();
   }
 
   /** Clears currently selected loop section. */

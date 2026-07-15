@@ -336,16 +336,6 @@ export class PlaybackTraversalManager {
     this._isLooped = !this._isLooped;
   }
 
-  /** Enables loop mode. */
-  public enableLoop(): void {
-    this._isLooped = true;
-  }
-
-  /** Disables loop mode. */
-  public disableLoop(): void {
-    this._isLooped = false;
-  }
-
   /** Clears currently selected loop section. */
   public clearLoopSection(): void {
     this._loopSection = undefined;
@@ -368,5 +358,16 @@ export class PlaybackTraversalManager {
   /** First master bar index to schedule for the current playback run. */
   public get firstMasterBarIndex(): number {
     return this._playbackStartBoundary?.masterBarIndex ?? 0;
+  }
+
+  /** Master bar index where looped playback should resume. */
+  public get loopStartMasterBarIndex(): number {
+    if (this._loopSection !== undefined) {
+      return this.score.masterBars.indexOf(
+        this._loopSection.startBeat.voiceBar.bar.masterBar
+      );
+    }
+
+    return 0;
   }
 }
