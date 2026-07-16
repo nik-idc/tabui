@@ -257,6 +257,35 @@ export class TabBeatElement implements BeatElement {
     );
   }
 
+  /**
+   * Bounds used for selection overlays and beat-level hit testing.
+   * Unlike the layout bounding box, this includes tab note/rest text that can
+   * extend left of the beat attack while centered on the staff line.
+   */
+  public getGlobalVisualBounds(): Rect {
+    const rect = new Rect(
+      this.barElement.globalCoords.x + this.barLocalBoundingBox.x,
+      this.barElement.globalCoords.y + this.barLocalBoundingBox.y,
+      this.barLocalBoundingBox.width,
+      this.barLocalBoundingBox.height
+    );
+
+    const restRect = this.restRectBarLocal;
+    if (restRect !== null) {
+      const restLeft = this.barElement.globalCoords.x + restRect.x;
+      rect.x = Math.min(rect.x, restLeft);
+    }
+
+    for (const noteElement of this.noteElements) {
+      if (noteElement.note === null) {
+        continue;
+      }
+      rect.x = Math.min(rect.x, noteElement.textRectGlobal.x);
+    }
+
+    return rect;
+  }
+
   public get durationStemLine(): VertLine | undefined {
     return undefined;
   }

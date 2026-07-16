@@ -776,12 +776,13 @@ describe("TrackElement tree", () => {
     expect(selectionRects[0].width).toBeGreaterThan(0);
     expect(selectionRects[1].width).toBeGreaterThan(0);
     expect(selectionRects[1].y).toBeGreaterThan(selectionRects[0].y);
-    expect(selectionRects[0].x).toBeCloseTo(
-      // WARNING: This is bad but delayed until a conrecte decision on BeatElement is made
-      firstLineBeatElement!.globalCoords.x
+    expect(selectionRects[0].x).toBeLessThan(
+      firstLineBeatElement!.barElement.globalCoords.x +
+        firstLineBeatElement!.barLocalBoundingBox.x
     );
-    expect(selectionRects[1].x).toBeCloseTo(
-      secondLineBeatElement!.globalCoords.x
+    expect(selectionRects[1].x).toBeLessThan(
+      secondLineBeatElement!.barElement.globalCoords.x +
+        secondLineBeatElement!.barLocalBoundingBox.x
     );
   });
 

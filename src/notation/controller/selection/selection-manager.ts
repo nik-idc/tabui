@@ -177,11 +177,13 @@ export class SelectionManager {
       this._selectedNote = undefined;
     }
 
-    if (
-      this._baseSelectionBeat !== undefined &&
-      beat.voiceBar.bar.staff !== this._baseSelectionBeat.voiceBar.bar.staff
-    ) {
-      // Don't add beats from a different staff to selection
+    const baseSelectionVoiceBar = this._baseSelectionBeat?.voiceBar;
+    const isDifferentSelectionLane =
+      baseSelectionVoiceBar !== undefined &&
+      (beat.voiceBar.bar.staff !== baseSelectionVoiceBar.bar.staff ||
+        beat.voiceBar.voiceNumber !== baseSelectionVoiceBar.voiceNumber);
+    if (isDifferentSelectionLane) {
+      // Don't extend an anchored range into another staff or voice.
       return;
     }
 

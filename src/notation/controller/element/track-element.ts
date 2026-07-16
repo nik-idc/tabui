@@ -519,19 +519,26 @@ export class TrackElement {
             if (!selectedBeats.has(beatElement.beat)) {
               continue;
             }
+            if (!(beatElement instanceof TabBeatElement)) {
+              continue;
+            }
+
+            const beatSelectionRect = beatElement.getGlobalVisualBounds();
 
             if (curLineRect === undefined) {
               curLineRect = new Rect(
-                beatElement.globalCoords.x,
-                beatElement.globalCoords.y,
-                beatElement.boundingBox.width,
+                beatSelectionRect.x,
+                beatSelectionRect.y,
+                beatSelectionRect.width,
                 staffLine.boundingBox.height
               );
               continue;
             }
 
-            curLineRect.width +=
-              beatElement.globalBoundingBox.right - curLineRect.right;
+            const lineRight = curLineRect.right;
+            curLineRect.x = Math.min(curLineRect.x, beatSelectionRect.x);
+            curLineRect.width =
+              Math.max(lineRight, beatSelectionRect.right) - curLineRect.x;
           }
         }
       }

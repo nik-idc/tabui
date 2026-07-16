@@ -930,6 +930,46 @@ describe("TrackController", () => {
     ]);
   });
 
+  test("drag selection ignores beats from another voice without changing selection", () => {
+    const { bar, track } = createScoreGraph();
+    const voice1 = bar.getVoiceBar(1);
+    const voice2 = bar.ensureVoiceBar(2);
+    if (voice1 === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    voice1.beats.splice(
+      0,
+      voice1.beats.length,
+      createBeat(voice1, NoteDuration.Quarter),
+      createBeat(voice1, NoteDuration.Quarter)
+    );
+    voice2.beats.splice(
+      0,
+      voice2.beats.length,
+      createBeat(voice2, NoteDuration.Quarter),
+      createBeat(voice2, NoteDuration.Quarter)
+    );
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.trackElement.update();
+    const beatElements = getBeatElements(controller);
+    const voice1Beats = beatElements.filter(
+      (beatElement) => beatElement.beat.voiceBar.voiceNumber === 1
+    );
+    const voice2Beats = beatElements.filter(
+      (beatElement) => beatElement.beat.voiceBar.voiceNumber === 2
+    );
+
+    controller.selectBeat(voice1Beats[0]);
+    controller.selectBeat(voice1Beats[1]);
+    controller.selectBeat(voice2Beats[1]);
+
+    expect(controller.selectionBeats).toEqual([
+      voice1Beats[0].beat,
+      voice1Beats[1].beat,
+    ]);
+    expect(controller.activeVoiceNumber).toBe(1);
+  });
+
   test("paste over same-bar selection inserts clipboard at selection start", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();

@@ -49,7 +49,7 @@ export class BeatInteractionRenderer {
         this._beatInteractionRects.set(modelUUID, rect);
       }
 
-      const globalBoundingBox = element.globalBoundingBox;
+      const globalBoundingBox = element.getGlobalVisualBounds();
       rect.setAttribute("x", `${globalBoundingBox.x}`);
       rect.setAttribute("y", `${globalBoundingBox.y}`);
       rect.setAttribute("width", `${globalBoundingBox.width}`);

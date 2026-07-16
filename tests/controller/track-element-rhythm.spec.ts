@@ -1,8 +1,10 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
+import { TabNoteElement } from "../../src/notation/controller";
 import {
   Bar,
   DEFAULT_MASTER_BAR,
   Guitar,
+  GuitarNote,
   NoteDuration,
 } from "../../src/notation/model";
 import {
@@ -78,10 +80,50 @@ describe("TrackElement rhythm", () => {
 
     const rects = trackElement.getSelectionRects([beats[0], beats[1]]);
     expect(rects).toHaveLength(1);
-    expect(rects[0].x).toBeCloseTo(firstSelected.globalCoords.x);
-    expect(rects[0].width).toBeCloseTo(
-      lastSelected.globalBoundingBox.right - firstSelected.globalCoords.x
+    const firstSelectedX =
+      firstSelected.barElement.globalCoords.x +
+      firstSelected.barLocalBoundingBox.x;
+    const lastSelectedRight =
+      lastSelected.barElement.globalCoords.x +
+      lastSelected.barLocalBoundingBox.right;
+    expect(rects[0].x).toBeLessThan(firstSelectedX);
+    expect(rects[0].width).toBeCloseTo(lastSelectedRight - rects[0].x);
+  });
+
+  test("selection rect covers left-extending tab note text", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats[0].makeBeatWithNotes();
+    const note = beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    note.fret = 3;
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+
+    trackElement.update();
+
+    const beatElement = trackElement.getBeatElement(beats[0]);
+    if (beatElement === undefined) {
+      throw Error("Expected beat element");
+    }
+    const noteElement = beatElement.noteElements.find(
+      (element) => element.note === note
     );
+    if (!(noteElement instanceof TabNoteElement)) {
+      throw Error("Expected note element");
+    }
+
+    const rects = trackElement.getSelectionRects([beats[0]]);
+
+    expect(rects).toHaveLength(1);
+    const beatRight =
+      beatElement.barElement.globalCoords.x +
+      beatElement.barLocalBoundingBox.right;
+    expect(rects[0].x).toBeCloseTo(noteElement.textRectGlobal.x);
+    expect(rects[0].right).toBeCloseTo(beatRight);
   });
 
   test("applies beat width formulas for dotted and tuplet beats", () => {
