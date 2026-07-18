@@ -1,5 +1,6 @@
 import { TrackController } from "../../controller";
 import { BeatElement } from "../../controller/element/beat/beat-element";
+import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
 import { TrackLineElement } from "../../controller/element/track/track-line-element";
 import {
   trackEvent,
@@ -13,9 +14,17 @@ export function renderPlayerCursor(
   beatElement: BeatElement,
   trackLineElement?: TrackLineElement
 ): void {
+  if (!(beatElement instanceof TabBeatElement)) {
+    return;
+  }
+
   const coords = beatElement.globalCoords;
   const playerCursorWidth = 5;
   const playerCursorAddHeight = 10;
+  const x =
+    beatElement.barElement.globalCoords.x +
+    beatElement.barLocalCoords.x +
+    beatElement.attackLocalX;
   let y = coords.y - playerCursorAddHeight;
   let height = beatElement.boundingBox.height + playerCursorAddHeight;
 
@@ -25,13 +34,10 @@ export function renderPlayerCursor(
     height = outlineLines.left.height;
   }
 
-  cursorElement.setAttribute(
-    "x",
-    `${coords.x + beatElement.boundingBox.width / 2}`
-  );
   cursorElement.setAttribute("y", `${y}`);
   cursorElement.setAttribute("width", `${playerCursorWidth}`);
   cursorElement.setAttribute("height", `${height}`);
+  cursorElement.setAttribute("x", `${x - playerCursorWidth / 2}`);
 }
 
 /**
@@ -44,15 +50,27 @@ export class TrackPlayerSVGAnimator {
   private _cursorElement: SVGRectElement;
   /** Track controller for beat element lookup */
   private _trackController: TrackController;
+  private _renderBeatElement: (beatElement: BeatElement) => void;
   /** Bound event handler reference */
   private _boundOnBeatChanged: (
     args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
   ) => void;
 
-  constructor(cursorElement: SVGRectElement, trackController: TrackController) {
+  constructor(
+    cursorElement: SVGRectElement,
+    trackController: TrackController,
+    renderBeatElement?: (beatElement: BeatElement) => void
+  ) {
     this._bound = false;
     this._cursorElement = cursorElement;
     this._trackController = trackController;
+    this._renderBeatElement =
+      renderBeatElement ??
+      ((beatElement) => {
+        const trackLineElement =
+          this.getContainingTrackLineElement(beatElement);
+        renderPlayerCursor(this._cursorElement, beatElement, trackLineElement);
+      });
     this._boundOnBeatChanged = this.onBeatChanged.bind(this);
   }
 
@@ -104,7 +122,6 @@ export class TrackPlayerSVGAnimator {
       throw Error("Failed to get beat element on beat changed");
     }
 
-    const trackLineElement = this.getContainingTrackLineElement(beatElement);
-    renderPlayerCursor(this._cursorElement, beatElement, trackLineElement);
+    this._renderBeatElement(beatElement);
   }
 }

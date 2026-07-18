@@ -53,7 +53,6 @@ export class PlayerOverlayRenderer {
     this.ensureAnimator();
 
     const currentBeatElement = this.trackController.playerCurrentBeatElement;
-
     let cursorRect: Rect;
     if (currentBeatElement === undefined) {
       cursorRect = new Rect(0, 0, 0, 0);

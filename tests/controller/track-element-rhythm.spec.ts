@@ -1,5 +1,5 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
-import { TabNoteElement } from "../../src/notation/controller";
+import { TabBeatElement, TabNoteElement } from "../../src/notation/controller";
 import {
   Bar,
   DEFAULT_MASTER_BAR,
@@ -83,11 +83,13 @@ describe("TrackElement rhythm", () => {
     const firstSelectedX =
       firstSelected.barElement.globalCoords.x +
       firstSelected.barLocalBoundingBox.x;
-    const lastSelectedRight =
-      lastSelected.barElement.globalCoords.x +
-      lastSelected.barLocalBoundingBox.right;
     expect(rects[0].x).toBeLessThan(firstSelectedX);
-    expect(rects[0].width).toBeCloseTo(lastSelectedRight - rects[0].x);
+    if (!(lastSelected instanceof TabBeatElement)) {
+      throw Error("Expected tab beat element");
+    }
+    expect(rects[0].right).toBeCloseTo(
+      lastSelected.getGlobalVisualBounds().right
+    );
   });
 
   test("selection rect covers left-extending tab note text", () => {
@@ -119,11 +121,10 @@ describe("TrackElement rhythm", () => {
     const rects = trackElement.getSelectionRects([beats[0]]);
 
     expect(rects).toHaveLength(1);
-    const beatRight =
-      beatElement.barElement.globalCoords.x +
-      beatElement.barLocalBoundingBox.right;
     expect(rects[0].x).toBeCloseTo(noteElement.textRectGlobal.x);
-    expect(rects[0].right).toBeCloseTo(beatRight);
+    expect(rects[0].right).toBeCloseTo(
+      (beatElement as TabBeatElement).getGlobalVisualBounds().right
+    );
   });
 
   test("applies beat width formulas for dotted and tuplet beats", () => {

@@ -328,9 +328,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._textSVG.setAttribute("font-size", fontSize);
       this._textSVG.setAttribute("text-anchor", "middle");
       this._textSVG.setAttribute("dominant-baseline", "middle");
-      this._textSVG.setAttribute("fill", "var(--tu-notation-text)");
       this._textSVG.setAttribute("pointer-events", "none");
-      this._textSVG.setAttribute("fill", "var(--tu-notation-text)");
 
       // Set id
       this._textSVG.setAttribute("id", `note-text-${noteUUID}`);
@@ -343,6 +341,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     const y = `${this.noteElement.textCoordsBarLocal.y}`;
     this._textSVG.setAttribute("x", x);
     this._textSVG.setAttribute("y", y);
+    this._textSVG.setAttribute("fill", "var(--tu-notation-text)");
     this._textSVG.textContent = `${note.fret}`;
     this._containerGroupSVG.appendChild(this._textSVG);
   }

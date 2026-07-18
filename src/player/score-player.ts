@@ -106,10 +106,7 @@ export class ScorePlayer {
    * @param startTime Absolute audio context time when the beat starts
    */
   private handleScheduledBeatChange(beat: Beat, startTime: number): void {
-    if (
-      beat.voiceBar.bar.staff.track.uuid !== this._activeTrackUUID ||
-      beat.voiceBar.bar.staff.uuid !== this._activeStaffUUID
-    ) {
+    if (beat.voiceBar.bar.staff.track.uuid !== this._activeTrackUUID) {
       return;
     }
     if (this._audioContext === undefined) {

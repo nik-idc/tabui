@@ -668,6 +668,43 @@ describe("ScorePlayer", () => {
     ]);
   });
 
+  test("cursor follows scheduled beats on non-starting staves", async () => {
+    const { track, bar } = createScoreGraph();
+    const staff = track.insertStaff(1).staves[0];
+    const staffBar = staff.bars[0];
+    const voiceBar = staffBar.ensureVoiceBar(1);
+    voiceBar.beats.splice(
+      0,
+      voiceBar.beats.length,
+      createBeat(voiceBar, NoteDuration.Half),
+      createBeat(voiceBar, NoteDuration.Half)
+    );
+    voiceBar.rebuildTiming();
+    setBeatFret(firstBeatOf(bar), 0);
+    setBeatFret(voiceBar.beats[0], 4);
+    setBeatFret(voiceBar.beats[1], 5);
+    const emitSpy = jest.spyOn(trackEvent, "emit");
+    const player = new ScorePlayer(track.score, track);
+
+    await player.start({ startBeat: firstBeatOf(bar) });
+    jest.advanceTimersByTime(0);
+    jest.advanceTimersByTime(2000);
+
+    const beatChangedEvents = emitSpy.mock.calls.filter(
+      ([eventType]) => eventType === TrackEventType.PlayerCurBeatChanged
+    );
+    const beatUUIDs = beatChangedEvents.map(([, args]) => {
+      if (!("beatUUID" in args)) {
+        throw Error("Expected beat change event args");
+      }
+      return args.beatUUID;
+    });
+    expect(beatUUIDs).toContain(voiceBar.beats[1].uuid);
+    expect(player.currentBeat).toBe(voiceBar.beats[1]);
+
+    emitSpy.mockRestore();
+  });
+
   test("removed staff is not scheduled after audio context initialization", async () => {
     const { score, track, bar } = createScoreGraph();
     const staff = track.insertStaff(1).staves[0];
