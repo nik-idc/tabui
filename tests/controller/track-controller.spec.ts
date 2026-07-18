@@ -142,6 +142,29 @@ describe("TrackController", () => {
     expect(mockScorePlayerInstances[0].start).not.toHaveBeenCalled();
   });
 
+  test("playback seek clears edit selection and restarts from the target beat", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const targetBeatElement = getBeatElements(controller)[1];
+    const masterBarCount = score.masterBars.length;
+    const barCount = track.staves[0].bars.length;
+    mockScorePlayerInstances[0].isPlaying = true;
+
+    controller.restartPlayerFromBeat(targetBeatElement);
+
+    expect(controller.selectedNote).toBeUndefined();
+    expect(controller.selectionBeats).toEqual([]);
+    expect(mockScorePlayerInstances[0].clearLoopSection).toHaveBeenCalledTimes(
+      1
+    );
+    expect(mockScorePlayerInstances[0].start).toHaveBeenCalledWith({
+      startBeat: targetBeatElement.beat,
+    });
+    expect(score.masterBars).toHaveLength(masterBarCount);
+    expect(track.staves[0].bars).toHaveLength(barCount);
+  });
+
   test("bar traversal selects first beats without editing the score", () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);

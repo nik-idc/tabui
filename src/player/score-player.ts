@@ -220,7 +220,6 @@ export class ScorePlayer {
 
     const playbackRunId = ++this._playbackRunId;
 
-    this._isPlaying = false;
     this.resetPlayback();
 
     this.ensureAudioContext();

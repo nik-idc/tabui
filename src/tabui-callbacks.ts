@@ -137,7 +137,7 @@ export class TabUICallbacks {
   /**
    * Dispatches render by mode.
    * Full/NotationOnly are immediate; DragSelection is rAF-coalesced;
-   * NoteSelection is immediate to keep click selection feedback synchronous.
+   * SelectionRefresh is immediate to keep selection feedback synchronous.
    */
   private render(type: RenderType): void {
     switch (type) {
@@ -152,7 +152,7 @@ export class TabUICallbacks {
       case RenderType.DragSelection:
         this.scheduleSelectionRender();
         break;
-      case RenderType.NoteSelection:
+      case RenderType.SelectionRefresh:
         this.cancelPendingSelectionRender();
         this.renderSelectionOverlayAndUI();
         break;

@@ -9,8 +9,8 @@ export enum RenderType {
   NotationOnly = "notation-only",
   /** Selection overlay + UI refresh for drag beat-selection updates. */
   DragSelection = "drag-selection",
-  /** Selection overlay + UI refresh for single-note selection updates. */
-  NoteSelection = "note-selection",
+  /** Immediate selection overlay and selection-dependent UI refresh. */
+  SelectionRefresh = "selection-refresh",
   /** Visible notation refresh needed after active voice changes. */
   ActiveVoiceSelection = "active-voice-selection",
   /** Reserved for future player-cursor-only updates. */

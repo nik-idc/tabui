@@ -97,6 +97,18 @@ export class TrackController {
     this._scorePlayer.stop();
   }
 
+  /** Clears edit selection and seeks active playback to the provided beat. */
+  public restartPlayerFromBeat(beatElement: BeatElement): void {
+    if (this._scorePlayer === undefined || !this._scorePlayer.isPlaying) {
+      return;
+    }
+
+    this._trackControllerEditor.clearSelection();
+    this._trackControllerEditor.clearSelectedNote();
+    this._scorePlayer.clearLoopSection();
+    void this._scorePlayer.start({ startBeat: beatElement.beat });
+  }
+
   /** Selects the first bar and seeks active playback to it. */
   public selectFirstBar(): void {
     const wasPlaying = this.isPlaying;

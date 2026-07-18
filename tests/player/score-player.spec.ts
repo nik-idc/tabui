@@ -1120,6 +1120,26 @@ describe("ScorePlayer", () => {
     expect(oscillatorFrequencies()).toHaveLength(1);
   });
 
+  test("active playback remains active while a seek restart is pending", async () => {
+    const { score, track, bars } = createScoreWithBars(2);
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bars[0]) });
+
+    let resolveResume: (() => void) | undefined;
+    MockAudioContext.nextResumeImpl = () =>
+      new Promise<void>((resolve) => {
+        resolveResume = resolve;
+      });
+
+    const seekPromise = player.start({ startBeat: firstBeatOf(bars[1]) });
+
+    expect(player.isPlaying).toBe(true);
+
+    resolveResume?.();
+    await seekPromise;
+    expect(player.isPlaying).toBe(true);
+  });
+
   test("stop is idempotent", async () => {
     const { score, track, bar } = createScoreGraph();
     setBeatFret(firstBeatOf(bar), 0);

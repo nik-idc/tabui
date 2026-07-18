@@ -13,6 +13,7 @@ export interface EditorMouseCallbacks {
   onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void;
   onNoteMouseMove(event: MouseEvent, noteElement: NoteElement): void;
   onNoteMouseLeave(event: MouseEvent, noteElement: NoteElement): void;
+  onBeatClick(event: MouseEvent, beatElement: BeatElement): void;
   onBeatMouseDown(event: MouseEvent, beatElement: BeatElement): void;
   onBeatMouseEnter(event: MouseEvent, beatElement: BeatElement): void;
   onBeatMouseMove(event: MouseEvent, beatElement: BeatElement): void;
@@ -42,7 +43,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Bound beat interaction handlers by event type. */
   private _boundBeatHandlers: Partial<
     Record<
-      "mousedown" | "mousemove" | "mouseup",
+      "click" | "mousedown" | "mousemove" | "mouseup",
       (event: MouseEvent, beatElement: BeatElement) => void
     >
   >;
@@ -100,12 +101,19 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const tc = this.notationComponent.trackController;
 
     this.notationComponent.renderer.hideSelectionPreview();
+    if (tc.isPlaying) {
+      this._selectionDragController.reset();
+      tc.restartPlayerFromBeat(noteElement.beatElement);
+      this.renderFunc(RenderType.SelectionRefresh);
+      return;
+    }
+
     const prevActiveVoiceNumber = tc.activeVoiceNumber;
     tc.selectNoteElement(noteElement);
 
     this.renderFunc(
       prevActiveVoiceNumber === tc.activeVoiceNumber
-        ? RenderType.NoteSelection
+        ? RenderType.SelectionRefresh
         : RenderType.ActiveVoiceSelection
     );
   }
@@ -114,6 +122,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Starts drag-selection from note pointer-down.
    */
   public onNoteMouseDown(event: MouseEvent, noteElement: NoteElement): void {
+    if (this.notationComponent.trackController.isPlaying) {
+      return;
+    }
+
     if (
       noteElement.beatElement.beat.voiceBar.voiceNumber !==
       this.notationComponent.trackController.activeVoiceNumber
@@ -132,6 +144,12 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    */
   public onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void {
     const tc = this.notationComponent.trackController;
+    if (tc.isPlaying) {
+      this._selectionDragController.reset();
+      this.notationComponent.renderer.hideSelectionPreview();
+      return;
+    }
+
     const isActiveVoice =
       noteElement.beatElement.beat.voiceBar.voiceNumber ===
       tc.activeVoiceNumber;
@@ -162,6 +180,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Forwards note pointer movement to beat drag-selection logic.
    */
   public onNoteMouseMove(event: MouseEvent, noteElement: NoteElement): void {
+    if (this.notationComponent.trackController.isPlaying) {
+      this._selectionDragController.reset();
+      return;
+    }
+
     if (
       noteElement.beatElement.beat.voiceBar.voiceNumber !==
       this.notationComponent.trackController.activeVoiceNumber
@@ -180,9 +203,29 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   }
 
   /**
+   * Seeks active playback to a clicked beat without selecting it for editing.
+   */
+  public onBeatClick(event: MouseEvent, beatElement: BeatElement): void {
+    void event;
+    const tc = this.notationComponent.trackController;
+    if (!tc.isPlaying) {
+      return;
+    }
+
+    this._selectionDragController.reset();
+    this.notationComponent.renderer.hideSelectionPreview();
+    tc.restartPlayerFromBeat(beatElement);
+    this.renderFunc(RenderType.SelectionRefresh);
+  }
+
+  /**
    * Starts drag-selection from beat pointer-down.
    */
   public onBeatMouseDown(event: MouseEvent, beatElement: BeatElement): void {
+    if (this.notationComponent.trackController.isPlaying) {
+      return;
+    }
+
     this._selectionDragController.begin(
       beatElement,
       new Point(event.pageX, event.pageY)
@@ -194,6 +237,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    */
   public onBeatMouseEnter(event: MouseEvent, beatElement: BeatElement): void {
     const tc = this.notationComponent.trackController;
+    if (tc.isPlaying) {
+      this._selectionDragController.reset();
+      return;
+    }
+
     const isLeftPressed = (event.buttons & 1) === 1;
     if (
       isLeftPressed &&
@@ -214,6 +262,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    */
   public onBeatMouseMove(event: MouseEvent, beatElement: BeatElement): void {
     const tc = this.notationComponent.trackController;
+    if (tc.isPlaying) {
+      this._selectionDragController.reset();
+      return;
+    }
+
     const dragMoveResult = this._selectionDragController.handleMove(
       new Point(event.pageX, event.pageY),
       beatElement
@@ -254,9 +307,14 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     if (!this._beatInteractionBound) {
+      this._boundBeatHandlers.click = this.onBeatClick.bind(this);
       this._boundBeatHandlers.mousedown = this.onBeatMouseDown.bind(this);
       this._boundBeatHandlers.mousemove = this.onBeatMouseMove.bind(this);
       this._boundBeatHandlers.mouseup = this.onBeatMouseUp.bind(this);
+      this.notationComponent.renderer.attachBeatInteractionEvent(
+        "click",
+        this._boundBeatHandlers.click
+      );
       this.notationComponent.renderer.attachBeatInteractionEvent(
         "mousedown",
         this._boundBeatHandlers.mousedown
@@ -302,6 +360,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     if (this._beatInteractionBound) {
+      this.notationComponent.renderer.detachBeatInteractionEvent("click");
       this.notationComponent.renderer.detachBeatInteractionEvent("mousedown");
       this.notationComponent.renderer.detachBeatInteractionEvent("mousemove");
       this.notationComponent.renderer.detachBeatInteractionEvent("mouseup");
