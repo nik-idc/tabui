@@ -85,6 +85,8 @@ const DEFAULT_RENDER_OPTIONS: EditorRenderOptions = {
   },
 };
 
+const TRACK_LINE_VIEWPORT_MARGIN_RATIO = 0.25;
+
 /**
  * Render a track window using SVG
  */
@@ -131,6 +133,39 @@ export class EditorSVGRenderer implements EditorRenderer {
   /** Player overlay renderer (player cursor) */
   private _playerOverlayRenderer: PlayerOverlayRenderer;
 
+  private calculateScrollTopForTrackLine(lineBounds: Rect): number | undefined {
+    if (this._viewportRect.height <= 0) {
+      return undefined;
+    }
+
+    let targetScrollTop: number | undefined;
+    if (lineBounds.height >= this._viewportRect.height) {
+      if (
+        lineBounds.y < this._viewportRect.y ||
+        lineBounds.bottom > this._viewportRect.bottom
+      ) {
+        targetScrollTop = lineBounds.y;
+      }
+    } else {
+      const viewportMargin =
+        this._viewportRect.height * TRACK_LINE_VIEWPORT_MARGIN_RATIO;
+      const safeZoneTop = this._viewportRect.y + viewportMargin;
+      const safeZoneBottom = this._viewportRect.bottom - viewportMargin;
+      if (lineBounds.y < safeZoneTop || lineBounds.bottom > safeZoneBottom) {
+        targetScrollTop = lineBounds.y - viewportMargin;
+      }
+    }
+
+    if (targetScrollTop === undefined) {
+      return undefined;
+    }
+
+    targetScrollTop = Math.max(0, targetScrollTop);
+    return targetScrollTop === this._viewportRect.y
+      ? undefined
+      : targetScrollTop;
+  }
+
   /**
    * Render a track window using SVG
    * @param rootDiv Root container element
@@ -173,7 +208,8 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._playerSVGGroup.setAttribute("id", "tu-player");
     this._playerOverlayRenderer = new PlayerOverlayRenderer(
       this._playerSVGGroup,
-      this.trackController
+      this.trackController,
+      this.ensureTrackLineVisible.bind(this)
     );
 
     this.mountRootLayers();
@@ -222,6 +258,32 @@ export class EditorSVGRenderer implements EditorRenderer {
       this.notationViewportDiv.clientWidth,
       this.notationViewportDiv.clientHeight
     );
+  }
+
+  private ensureTrackLineVisible(trackLineElement: TrackLineElement): void {
+    this.setViewportRect();
+    const scrollTop = this.calculateScrollTopForTrackLine(
+      trackLineElement.globalBoundingBox
+    );
+    const lineIndex =
+      this.trackController.trackElement.trackLineElements.indexOf(
+        trackLineElement
+      );
+    const isMaterialized =
+      this.trackController.trackElement.materializedLineIndices.has(lineIndex);
+    if (scrollTop === undefined && isMaterialized) {
+      return;
+    }
+
+    if (scrollTop !== undefined) {
+      this.notationViewportDiv.scrollTop = scrollTop;
+      this.setViewportRect();
+    }
+    this.renderNotation({
+      renderNotation: true,
+      forceNotation: !isMaterialized,
+      overlays: { selection: false, player: false },
+    });
   }
 
   public detachViewportScrollEvent(): void {

@@ -1,12 +1,6 @@
-import { TrackController } from "../../controller";
 import { BeatElement } from "../../controller/element/beat/beat-element";
 import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
 import { TrackLineElement } from "../../controller/element/track/track-line-element";
-import {
-  trackEvent,
-  TrackEventType,
-  TrackEventArgs,
-} from "../../../shared/events";
 
 /** Renders the player cursor from a beat and its containing track line */
 export function renderPlayerCursor(
@@ -44,84 +38,25 @@ export function renderPlayerCursor(
  * Updates the player cursor position when the active-track beat changes.
  */
 export class TrackPlayerSVGAnimator {
-  /** True once event binding is active */
-  private _bound: boolean;
   /** Cursor SVG rectangle */
   private _cursorElement: SVGRectElement;
-  /** Track controller for beat element lookup */
-  private _trackController: TrackController;
-  private _renderBeatElement: (beatElement: BeatElement) => void;
-  /** Bound event handler reference */
-  private _boundOnBeatChanged: (
-    args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
-  ) => void;
+  private _renderPlayerCursor: (beatElement: BeatElement) => void;
 
   constructor(
     cursorElement: SVGRectElement,
-    trackController: TrackController,
     renderBeatElement?: (beatElement: BeatElement) => void
   ) {
-    this._bound = false;
     this._cursorElement = cursorElement;
-    this._trackController = trackController;
-    this._renderBeatElement =
-      renderBeatElement ??
-      ((beatElement) => {
-        const trackLineElement =
-          this.getContainingTrackLineElement(beatElement);
-        renderPlayerCursor(this._cursorElement, beatElement, trackLineElement);
-      });
-    this._boundOnBeatChanged = this.onBeatChanged.bind(this);
+    this._renderPlayerCursor = renderBeatElement ?? this.renderPlayerCursor;
   }
 
-  /** Subscribes to active-track beat change events */
-  public bindToBeatChanged(): void {
-    if (this._bound) {
-      return;
-    }
-
-    trackEvent.on(
-      TrackEventType.PlayerCurBeatChanged,
-      this._boundOnBeatChanged
-    );
-    this._bound = true;
+  private renderPlayerCursor(beatElement: BeatElement): void {
+    const trackLineElement = beatElement.owningTrackLineElement;
+    renderPlayerCursor(this._cursorElement, beatElement, trackLineElement);
   }
 
-  /** Unsubscribes from active-track beat change events */
-  public unbindFromBeatChanged(): void {
-    if (!this._bound) {
-      return;
-    }
-
-    trackEvent.off(
-      TrackEventType.PlayerCurBeatChanged,
-      this._boundOnBeatChanged
-    );
-    this._bound = false;
-  }
-
-  /** Finds the track line containing the beat element */
-  private getContainingTrackLineElement(
-    beatElement: BeatElement
-  ): TrackLineElement {
-    return beatElement.barElement.notationStyleLineElement.staffLineElement
-      .trackLineElement;
-  }
-
-  /** Moves the cursor directly to the newly active beat */
-  private onBeatChanged(
-    args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
-  ): void {
-    const beatElement = this._trackController.getBeatElementByUUID(
-      args.beatUUID
-    );
-    if (beatElement === undefined) {
-      // WARNING: Should this still throw? Seems like a bug Phase 4 missed
-      // Since now the required beat is not guaranteed to have a corresponding
-      // beat element because lazy updating is used
-      throw Error("Failed to get beat element on beat changed");
-    }
-
-    this._renderBeatElement(beatElement);
+  /** Moves the cursor directly to the provided beat. */
+  public snapToBeat(beatElement: BeatElement): void {
+    this._renderPlayerCursor(beatElement);
   }
 }

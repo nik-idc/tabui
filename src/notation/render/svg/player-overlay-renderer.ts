@@ -1,5 +1,11 @@
 import { TrackController } from "../../controller";
+import { TrackLineElement } from "../../controller/element/track/track-line-element";
 import { createSVGRect, Rect } from "../../../shared";
+import {
+  trackEvent,
+  TrackEventArgs,
+  TrackEventType,
+} from "../../../shared/events";
 import {
   renderPlayerCursor,
   TrackPlayerSVGAnimator,
@@ -9,12 +15,21 @@ export class PlayerOverlayRenderer {
   private _playerGroup: SVGGElement;
   private _playerAnimator?: TrackPlayerSVGAnimator;
   private _playerCursorRect?: SVGRectElement;
+  private _beatChangedBound: boolean;
+  private _boundOnBeatChanged: (
+    args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
+  ) => void;
 
   constructor(
     playerGroup: SVGGElement,
-    private readonly trackController: TrackController
+    private readonly trackController: TrackController,
+    private readonly ensureTrackLineVisible?: (
+      trackLine: TrackLineElement
+    ) => void
   ) {
     this._playerGroup = playerGroup;
+    this._beatChangedBound = false;
+    this._boundOnBeatChanged = this.onBeatChanged.bind(this);
   }
 
   private ensureCursorRect(): SVGRectElement {
@@ -32,11 +47,55 @@ export class PlayerOverlayRenderer {
       return;
     }
 
-    this._playerAnimator = new TrackPlayerSVGAnimator(
-      this.ensureCursorRect(),
-      this.trackController
+    this._playerAnimator = new TrackPlayerSVGAnimator(this.ensureCursorRect());
+  }
+
+  private bindToBeatChanged(): void {
+    if (this._beatChangedBound) {
+      return;
+    }
+
+    trackEvent.on(
+      TrackEventType.PlayerCurBeatChanged,
+      this._boundOnBeatChanged
     );
-    this._playerAnimator.bindToBeatChanged();
+    this._beatChangedBound = true;
+  }
+
+  private unbindFromBeatChanged(): void {
+    if (!this._beatChangedBound) {
+      return;
+    }
+
+    trackEvent.off(
+      TrackEventType.PlayerCurBeatChanged,
+      this._boundOnBeatChanged
+    );
+    this._beatChangedBound = false;
+  }
+
+  private onBeatChanged(
+    args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
+  ): void {
+    const beat = this.trackController.getBeatByUUID(args.beatUUID);
+    if (beat === undefined) {
+      return;
+    }
+
+    const trackLineElement =
+      this.trackController.trackElement.getTrackLineElementForBeat(beat);
+    if (trackLineElement === undefined) {
+      return;
+    }
+
+    this.ensureTrackLineVisible?.(trackLineElement);
+    const beatElement = this.trackController.trackElement.getBeatElement(beat);
+    if (beatElement === undefined) {
+      return;
+    }
+
+    this.ensureAnimator();
+    this._playerAnimator?.snapToBeat(beatElement);
   }
 
   public render(): void {
@@ -51,6 +110,7 @@ export class PlayerOverlayRenderer {
     const cursorRectElement = this.ensureCursorRect();
     this._playerGroup.appendChild(cursorRectElement);
     this.ensureAnimator();
+    this.bindToBeatChanged();
 
     const currentBeatElement = this.trackController.playerCurrentBeatElement;
     let cursorRect: Rect;
@@ -90,10 +150,8 @@ export class PlayerOverlayRenderer {
   }
 
   public unrender(): void {
-    if (this._playerAnimator !== undefined) {
-      this._playerAnimator.unbindFromBeatChanged();
-      this._playerAnimator = undefined;
-    }
+    this.unbindFromBeatChanged();
+    this._playerAnimator = undefined;
     if (this._playerCursorRect !== undefined) {
       this._playerCursorRect.remove();
       this._playerCursorRect = undefined;

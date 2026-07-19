@@ -430,21 +430,26 @@ export class TrackElement {
     this.refreshMaterializedElements();
   }
 
-  public getBeatElement(beat: Beat): BeatElement | undefined {
+  public getTrackLineElementForBeat(beat: Beat): TrackLineElement | undefined {
     const bar = beat.voiceBar.bar;
     const masterBarIndex = bar.staff.bars.indexOf(bar);
-    const skeletonLine = this._skeleton.lines.find((line) => {
+    const lineIndex = this._skeleton.lines.findIndex((line) => {
       return line.trackLineBars.some((lineBar) => {
         return lineBar.masterBarIndex === masterBarIndex;
       });
     });
-    if (skeletonLine === undefined) {
+    return lineIndex === -1 ? undefined : this._trackLineElements[lineIndex];
+  }
+
+  public getBeatElement(beat: Beat): BeatElement | undefined {
+    const trackLineElement = this.getTrackLineElementForBeat(beat);
+    if (trackLineElement === undefined) {
       return undefined;
     }
 
     const trackLineIdentity = TrackLineElement.createStableIdentity(
       this.track,
-      skeletonLine.trackLineBars
+      trackLineElement.trackLineBars
     );
     const identity = TabBeatElement.createStableIdentity_NEW(
       trackLineIdentity,

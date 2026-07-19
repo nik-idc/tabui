@@ -427,6 +427,13 @@ export class TrackController {
   }
 
   public getBeatElementByUUID(beatUUID: number): BeatElement | undefined {
+    const beat = this.getBeatByUUID(beatUUID);
+    return beat === undefined
+      ? undefined
+      : this._trackElement.getBeatElement(beat);
+  }
+
+  public getBeatByUUID(beatUUID: number): Beat | undefined {
     for (const staff of this.track.staves) {
       for (const bar of staff.bars) {
         for (const voiceBar of bar.voiceBarsAsArray) {
@@ -434,7 +441,7 @@ export class TrackController {
             return voiceBeat.uuid === beatUUID;
           });
           if (beat !== undefined) {
-            return this._trackElement.getBeatElement(beat);
+            return beat;
           }
         }
       }
