@@ -50,6 +50,9 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   onTrackRemoveClicked(): void {
+    if (this._notationComponent.trackController.isPlaying) {
+      return;
+    }
     this._captureKeyboard();
     this._showTrackRemove();
   }
@@ -68,6 +71,9 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   private moveTrack(offset: number): void {
+    if (this._notationComponent.trackController.isPlaying) {
+      return;
+    }
     const track = this._trackComponent.track;
     const trackIndex = this._notationComponent.score.tracks.indexOf(track);
     const targetIndex = trackIndex + offset;
@@ -76,6 +82,9 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   onTrackNameChanged(): void {
+    if (this._notationComponent.trackController.isPlaying) {
+      return;
+    }
     this._trackComponent.track.name =
       this._trackComponent.template.trackNameInput.value;
   }
@@ -115,6 +124,9 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   onTrackSettingsClicked(): void {
+    if (this._notationComponent.trackController.isPlaying) {
+      return;
+    }
     this._captureKeyboard();
     this._showTrackSettings();
   }

@@ -147,6 +147,33 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(renderFunc).toHaveBeenCalledTimes(6);
   });
 
+  test("playback suppresses editing shortcuts but preserves Space", () => {
+    const { callbacks, notationComponent, rootElement, uiComponent } =
+      createHarness();
+    callbacks.bind();
+    rootElement.dispatch("focusin");
+    notationComponent.trackController.isPlaying = true;
+    notationComponent.trackController.hasSelectedNote = true;
+
+    callbacks.onKeyDown(createKeyboardEvent("c", { ctrlKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("v", { ctrlKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("b", { shiftKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("Delete"));
+    callbacks.onKeyDown(createKeyboardEvent(" "));
+
+    expect(notationComponent.trackController.paste).not.toHaveBeenCalled();
+    expect(notationComponent.trackController.copy).toHaveBeenCalledTimes(1);
+    expect(
+      notationComponent.trackController.deleteSelectedBeats
+    ).not.toHaveBeenCalled();
+    expect(
+      uiComponent.sideComponent.techniqueControlsComponent.showBendControls
+    ).not.toHaveBeenCalled();
+    expect(notationComponent.trackController.stopPlayer).toHaveBeenCalledTimes(
+      1
+    );
+  });
+
   test("technique shortcuts respect selection and bend shortcut opens bend controls", () => {
     const { callbacks, uiComponent, notationComponent, renderFunc } =
       createHarness(createRootElement());

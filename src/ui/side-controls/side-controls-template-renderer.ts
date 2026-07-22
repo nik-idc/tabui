@@ -29,6 +29,13 @@ export class SideControlsTemplateRenderer {
   }
 
   public render(): void {
+    const editingDisabled = this.notationComponent.trackController.isPlaying;
+    this.template.container.inert = editingDisabled;
+    this.template.container.classList.toggle(
+      "tu-editing-disabled",
+      editingDisabled
+    );
+    this.template.container.setAttribute("aria-disabled", `${editingDisabled}`);
     this._assembled = renderOnce(this._assembled, () =>
       this.assembleContainer()
     );

@@ -1,8 +1,30 @@
 import { UICallbacks } from "../../src/ui/ui-callbacks";
 import { TopControlsCallbacks } from "../../src/ui/top-controls/top-controls-callbacks";
 import { SideControlsCallbacks } from "../../src/ui/side-controls/side-controls-callbacks";
+import { SideControlsTemplateRenderer } from "../../src/ui/side-controls/side-controls-template-renderer";
+import { makeButton } from "./helpers";
 
 describe("UICallbacks", () => {
+  test("side editing controls render inert during playback", () => {
+    const container = makeButton() as any;
+    const renderer = Object.create(SideControlsTemplateRenderer.prototype);
+    renderer.notationComponent = { trackController: { isPlaying: true } };
+    renderer.template = { container };
+    renderer._assembled = true;
+
+    renderer.render();
+
+    expect(container.inert).toBe(true);
+    expect(container.classList.toggle).toHaveBeenCalledWith(
+      "tu-editing-disabled",
+      true
+    );
+    expect(container.setAttribute).toHaveBeenCalledWith(
+      "aria-disabled",
+      "true"
+    );
+  });
+
   test("bind and unbind delegate to top and side callbacks", () => {
     const topBindSpy = jest
       .spyOn(TopControlsCallbacks.prototype, "bind")

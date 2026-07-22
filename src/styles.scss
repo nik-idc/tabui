@@ -927,3 +927,8 @@
   pointer-events: none;
   cursor: default;
 }
+
+.tu-editing-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

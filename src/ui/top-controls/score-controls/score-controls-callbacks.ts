@@ -98,6 +98,9 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   onNewTrackButtonClicked(): void {
+    if (this._notationComponent.trackController.isPlaying) {
+      return;
+    }
     this._captureKeyboard();
     this._scoreComponent.showNewTrackDialog();
   }
@@ -111,6 +114,9 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   onScoreNameChanged(): void {
+    if (this._notationComponent.trackController.isPlaying) {
+      return;
+    }
     this._scoreComponent.score.name =
       this._scoreComponent.template.scoreNameInput.value;
   }

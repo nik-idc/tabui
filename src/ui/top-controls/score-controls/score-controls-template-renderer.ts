@@ -79,6 +79,15 @@ export class ScoreControlsTemplateRenderer {
       "img/ui/add.svg",
       "New track"
     );
+    const editingDisabled = this.notationComponent.trackController.isPlaying;
+    this.template.newTrackButton.classList.toggle(
+      "tu-disabled-img",
+      editingDisabled
+    );
+    this.template.newTrackButton.setAttribute(
+      "aria-disabled",
+      `${editingDisabled}`
+    );
   }
 
   private renderMasterVolumeInput(): void {
@@ -107,6 +116,8 @@ export class ScoreControlsTemplateRenderer {
     const cssClass = "tu-score-name-input";
     this.template.scoreNameInput.classList.add(cssClass);
     this.template.scoreNameInput.value = this._currentScoreName;
+    this.template.scoreNameInput.disabled =
+      this.notationComponent.trackController.isPlaying;
   }
 
   private renderTracksContainer(): void {

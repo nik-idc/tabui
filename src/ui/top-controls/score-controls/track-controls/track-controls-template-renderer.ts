@@ -75,7 +75,8 @@ export class TrackControlsTemplateRenderer {
       "tu-track-move-up-button"
     );
     this.template.moveUpButton.textContent = "▲";
-    this.template.moveUpButton.disabled = trackIndex <= 0;
+    const editingDisabled = this.notationComponent.trackController.isPlaying;
+    this.template.moveUpButton.disabled = editingDisabled || trackIndex <= 0;
     this.template.moveUpButton.title = "Move track up";
     this.template.moveUpButton.setAttribute("aria-label", "Move track up");
 
@@ -85,6 +86,7 @@ export class TrackControlsTemplateRenderer {
     );
     this.template.moveDownButton.textContent = "▼";
     this.template.moveDownButton.disabled =
+      editingDisabled ||
       trackIndex === -1 ||
       trackIndex >= this.notationComponent.score.tracks.length - 1;
     this.template.moveDownButton.title = "Move track down";
@@ -95,12 +97,15 @@ export class TrackControlsTemplateRenderer {
     const cssClass = "tu-track-name-input";
     this.template.trackNameInput.classList.add(cssClass);
     this.template.trackNameInput.value = this.track.name;
+    this.template.trackNameInput.disabled =
+      this.notationComponent.trackController.isPlaying;
   }
 
   private renderRemoveButton(): void {
     const cssClass = "tu-track-remove-button";
     this.template.removeButton.classList.add(cssClass);
     this.template.removeButton.disabled =
+      this.notationComponent.trackController.isPlaying ||
       this.notationComponent.score.tracks.length <= 1;
     this.template.removeButton.title = this.template.removeButton.disabled
       ? "Cannot remove the only track"
@@ -189,6 +194,15 @@ export class TrackControlsTemplateRenderer {
       this.assetsPath,
       "img/ui/settings.svg",
       "Track settings"
+    );
+    const editingDisabled = this.notationComponent.trackController.isPlaying;
+    this.template.settingsButton.classList.toggle(
+      "tu-disabled-img",
+      editingDisabled
+    );
+    this.template.settingsButton.setAttribute(
+      "aria-disabled",
+      `${editingDisabled}`
     );
   }
 

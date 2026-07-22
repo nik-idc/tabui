@@ -62,6 +62,17 @@ export class ScoreControlsComponent {
     this.newTrackComponent.render();
     this.trackSettingsComponent.render();
     this.trackRemoveComponent.render();
+    const editingDisabled = this.notationComponent.trackController.isPlaying;
+    const editingDialogs = [
+      this.newTrackComponent.template.dialog,
+      this.trackSettingsComponent.template.dialog,
+      this.trackRemoveComponent.template.yesNoDialog,
+    ];
+    for (const dialog of editingDialogs) {
+      dialog.inert = editingDisabled;
+      dialog.classList.toggle("tu-editing-disabled", editingDisabled);
+      dialog.setAttribute("aria-disabled", `${editingDisabled}`);
+    }
 
     this.reconcileTrackComponents();
   }
@@ -112,16 +123,25 @@ export class ScoreControlsComponent {
   }
 
   public showNewTrackDialog(): void {
+    if (this.notationComponent.trackController.isPlaying) {
+      return;
+    }
     this.newTrackComponent.template.dialog.showModal();
   }
 
   public showTrackSettingsDialog(track: Track): void {
+    if (this.notationComponent.trackController.isPlaying) {
+      return;
+    }
     this.trackSettingsComponent.setTrack(track);
     this.trackSettingsComponent.render();
     this.trackSettingsComponent.template.dialog.showModal();
   }
 
   public showTrackRemoveDialog(track: Track): void {
+    if (this.notationComponent.trackController.isPlaying) {
+      return;
+    }
     this._trackToRemove = track;
     this.trackRemoveComponent.setText(
       `Are you sure you want to delete track "${track.name}"?`
@@ -130,7 +150,10 @@ export class ScoreControlsComponent {
   }
 
   public removeSelectedTrack(): void {
-    if (this._trackToRemove === null) {
+    if (
+      this.notationComponent.trackController.isPlaying ||
+      this._trackToRemove === null
+    ) {
       return;
     }
 

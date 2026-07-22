@@ -89,6 +89,9 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   }
 
   onConfirmClicked(): void {
+    if (this._notationComponent.trackController.isPlaying) {
+      return;
+    }
     this._trackSettingsComponent.applyTrackSettings();
     if (
       this._notationComponent.trackController.track ===

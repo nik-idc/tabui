@@ -215,6 +215,15 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     event.preventDefault();
 
+    if (this._notationComponent.trackController.isPlaying) {
+      if (event.ctrlKey && !event.shiftKey && key === "c") {
+        this.ctrlCEvent(event);
+      } else if (key === " " && !event.ctrlKey && !event.shiftKey) {
+        this.spaceEvent(event);
+      }
+      return;
+    }
+
     if (event.ctrlKey && !event.shiftKey) {
       if (key === "c") {
         this.ctrlCEvent(event);

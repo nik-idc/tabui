@@ -111,6 +111,9 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   }
 
   onConfirmClicked(): void {
+    if (this._notationComponent.trackController.isPlaying) {
+      return;
+    }
     this._notationComponent.loadTrack(this._newTrackComponent.makeTrack());
     this._renderFunc();
 

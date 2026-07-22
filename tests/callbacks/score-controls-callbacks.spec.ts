@@ -3,6 +3,7 @@ import { TrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-c
 import { NewTrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/new-track/new-track-controls-callbacks";
 import { TrackSettingsControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-settings/track-settings-controls-callbacks";
 import { YesNoDefaultCallbacks } from "../../src/ui/shared/yes-no/yes-no-callbacks";
+import { ScoreControlsTemplateRenderer } from "../../src/ui/top-controls/score-controls/score-controls-template-renderer";
 import {
   createNotationComponentMock,
   dispatchClick,
@@ -13,6 +14,36 @@ import {
 } from "./helpers";
 
 describe("ScoreControlsDefaultCallbacks", () => {
+  test("score editing controls render disabled during playback", () => {
+    const newTrackButton = {
+      classList: { add: jest.fn(), toggle: jest.fn() },
+      setAttribute: jest.fn(),
+      src: "",
+      alt: "",
+    };
+    const scoreNameInput = {
+      classList: { add: jest.fn() },
+      value: "",
+      disabled: false,
+    };
+    const renderer = Object.create(ScoreControlsTemplateRenderer.prototype);
+    renderer.template = { newTrackButton, scoreNameInput };
+    renderer.notationComponent = {
+      trackController: { isPlaying: true },
+    };
+    renderer.assetsPath = { baseUrl: "", variant: "light" };
+    renderer._currentScoreName = "Score";
+
+    renderer.renderNewTrackButton();
+    renderer.renderScoreNameInput();
+
+    expect(newTrackButton.classList.toggle).toHaveBeenCalledWith(
+      "tu-disabled-img",
+      true
+    );
+    expect(scoreNameInput.disabled).toBe(true);
+  });
+
   test("score controls dispatch behavior and child callback lifecycle correctly", () => {
     const trackBindSpy = jest
       .spyOn(TrackControlsDefaultCallbacks.prototype, "bind")
@@ -94,6 +125,13 @@ describe("ScoreControlsDefaultCallbacks", () => {
     expect(newTrackBindSpy).toHaveBeenCalledTimes(1);
     expect(trackSettingsBindSpy).toHaveBeenCalledTimes(1);
     expect(yesNoBindSpy).toHaveBeenCalledTimes(1);
+
+    notationComponent.trackController.isPlaying = true;
+    component.template.scoreNameInput.value = "Blocked";
+    callbacks.onNewTrackButtonClicked();
+    callbacks.onScoreNameChanged();
+    expect(component.showNewTrackDialog).toHaveBeenCalledTimes(1);
+    expect(score.name).toBe("New Name");
 
     const renderCallsBeforeUnbind = component.render.mock.calls.length;
     callbacks.unbind();
