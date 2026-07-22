@@ -103,7 +103,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this.notationComponent.renderer.hideSelectionPreview();
     if (tc.isPlaying) {
       this._selectionDragController.reset();
-      tc.restartPlayerFromBeat(noteElement.beatElement);
+      tc.restartPlayerFromBeat(noteElement.beatElement.beat);
       this.renderFunc(RenderType.SelectionRefresh);
       return;
     }
@@ -214,7 +214,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
     this._selectionDragController.reset();
     this.notationComponent.renderer.hideSelectionPreview();
-    tc.restartPlayerFromBeat(beatElement);
+    tc.restartPlayerFromBeat(beatElement.beat);
     this.renderFunc(RenderType.SelectionRefresh);
   }
 

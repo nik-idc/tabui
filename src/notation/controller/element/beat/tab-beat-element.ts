@@ -209,6 +209,10 @@ export class TabBeatElement implements BeatElement {
     return this.barLocalCoords.x + this.attackLocalX;
   }
 
+  public get attackXGlobal(): number {
+    return this.barElement.globalCoords.x + this.attackXBarLocal;
+  }
+
   /**
    * Gets next note element
    * @param noteElement Note element

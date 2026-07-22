@@ -5,6 +5,7 @@ import { TrackElementUpdateDepth } from "../../src/notation/controller/element/t
 import {
   BendTechniqueOptions,
   BendType,
+  BarRepeatStatus,
   DEFAULT_MASTER_BAR,
   Beat,
   Guitar,
@@ -26,7 +27,8 @@ import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 const mockScorePlayerInstances: Array<{
   isPlaying: boolean;
   isLooped: boolean;
-  currentBeat: undefined;
+  lastStartedBeat: Beat | undefined;
+  playbackAnchorBeat: Beat | undefined;
   setLoopSection: jest.Mock;
   clearLoopSection: jest.Mock;
   start: jest.Mock;
@@ -83,7 +85,8 @@ jest.mock("../../src/player", () => ({
   ScorePlayer: class {
     public isPlaying = false;
     public isLooped = false;
-    public currentBeat = undefined;
+    public lastStartedBeat: Beat | undefined = undefined;
+    public playbackAnchorBeat: Beat | undefined = undefined;
     public setCurrentBeat(): void {}
     public setLoopSection = jest.fn();
     public clearLoopSection = jest.fn();
@@ -131,6 +134,63 @@ describe("TrackController", () => {
     expect(mockScorePlayerInstances[0].start).toHaveBeenCalledTimes(1);
   });
 
+  test("playback start enables looping for a beat selection", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const beatElements = getBeatElements(controller);
+    const player = mockScorePlayerInstances[0];
+    controller.selectBeat(beatElements[0]);
+    controller.selectBeat(beatElements[1]);
+
+    controller.startPlayer();
+
+    expect(player.setLoopSection).toHaveBeenCalledWith(
+      beatElements[0].beat,
+      beatElements[1].beat
+    );
+    expect(player.toggleLoop).toHaveBeenCalledTimes(1);
+    expect(player.start).toHaveBeenCalledWith({
+      startBeat: beatElements[0].beat,
+      loopEndBeat: beatElements[1].beat,
+    });
+  });
+
+  test("selection playback preserves an enabled loop choice", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const beatElements = getBeatElements(controller);
+    const player = mockScorePlayerInstances[0];
+    player.isLooped = true;
+    controller.selectBeat(beatElements[0]);
+    controller.selectBeat(beatElements[1]);
+
+    controller.startPlayer();
+    player.isPlaying = true;
+    controller.restartPlayerFromBeat(beatElements[1].beat);
+
+    expect(player.clearLoopSection).toHaveBeenCalledTimes(1);
+    expect(player.toggleLoop).not.toHaveBeenCalled();
+  });
+
+  test("playback seek disables only selection-enabled looping", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const beatElements = getBeatElements(controller);
+    const player = mockScorePlayerInstances[0];
+    controller.selectBeat(beatElements[0]);
+    controller.selectBeat(beatElements[1]);
+    controller.startPlayer();
+    player.isPlaying = true;
+
+    controller.restartPlayerFromBeat(beatElements[1].beat);
+
+    expect(player.clearLoopSection).toHaveBeenCalledTimes(1);
+    expect(player.toggleLoop).toHaveBeenCalledTimes(2);
+  });
+
   test("loop toggle does not restart active playback", () => {
     const { track } = createScoreGraph();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -142,6 +202,67 @@ describe("TrackController", () => {
     expect(mockScorePlayerInstances[0].start).not.toHaveBeenCalled();
   });
 
+  test("notation mutations are ignored while playback is active", () => {
+    const { score, track } = createScoreGraph();
+    score.addTrack(new Guitar(), "Track 2");
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const editor = (controller as any)._trackControllerEditor;
+    const editorMethods = [
+      "undoCommand",
+      "redoCommand",
+      "setSelectedNoteFret",
+      "setDuration",
+      "setSelectedBeatRest",
+      "setDots",
+      "setSelectedBeatsTuplet",
+      "setSelectedBarTempo",
+      "setSelectedBarTimeSignature",
+      "setSelectedBarRepeatStatus",
+      "setTechnique",
+      "moveSelectedNote",
+      "paste",
+      "deleteSelectedBeats",
+      "insertBeatBeforeSelected",
+      "insertBeatAfterSelected",
+      "removeSelectedBeat",
+      "setActiveVoiceNumber",
+      "insertBarBeforeSelected",
+      "insertBarAfterSelected",
+      "removeSelectedBar",
+    ];
+    const spies = editorMethods.map((method) => jest.spyOn(editor, method));
+    const trackOrder = [...score.tracks];
+    mockScorePlayerInstances[0].isPlaying = true;
+
+    controller.moveTrack(track, 1);
+    controller.undo();
+    controller.redo();
+    controller.setSelectedNoteFret(3);
+    controller.setDuration(NoteDuration.Half);
+    controller.setSelectedBeatRest();
+    controller.setDots(1);
+    controller.setSelectedBeatsTuplet(3, 2);
+    controller.setSelectedBarTempo(90);
+    controller.setSelectedBarTimeSignature(3, NoteDuration.Quarter);
+    controller.setSelectedBarRepeatStatus(BarRepeatStatus.Start);
+    controller.setTechnique(GuitarTechniqueType.Vibrato);
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.paste();
+    controller.deleteSelectedBeats();
+    controller.insertBeatBeforeSelected();
+    controller.insertBeatAfterSelected();
+    controller.removeSelectedBeat();
+    controller.setActiveVoiceNumber(2);
+    controller.insertBarBeforeSelected();
+    controller.insertBarAfterSelected();
+    controller.removeSelectedBar();
+
+    expect(score.tracks).toEqual(trackOrder);
+    for (const spy of spies) {
+      expect(spy).not.toHaveBeenCalled();
+    }
+  });
+
   test("playback seek clears edit selection and restarts from the target beat", () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
@@ -151,7 +272,7 @@ describe("TrackController", () => {
     const barCount = track.staves[0].bars.length;
     mockScorePlayerInstances[0].isPlaying = true;
 
-    controller.restartPlayerFromBeat(targetBeatElement);
+    controller.restartPlayerFromBeat(targetBeatElement.beat);
 
     expect(controller.selectedNote).toBeUndefined();
     expect(controller.selectionBeats).toEqual([]);
@@ -184,30 +305,181 @@ describe("TrackController", () => {
     expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[0]);
   });
 
-  test("bar traversal restarts active playback from the selected bar", () => {
+  test("bar traversal restarts active playback from the current bar", () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    mockScorePlayerInstances[0].isPlaying = true;
+    const player = mockScorePlayerInstances[0];
+    player.isPlaying = true;
+    player.playbackAnchorBeat =
+      track.staves[0].bars[0].getVoiceBar(1)?.beats[0];
 
     controller.selectNextBar();
 
-    expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[1]);
-    expect(mockScorePlayerInstances[0].start).toHaveBeenCalledTimes(1);
-    expect(mockScorePlayerInstances[0].start).toHaveBeenCalledWith({
-      startBeat: controller.selectedNote?.beat,
+    expect(controller.selectedNote).toBeUndefined();
+    expect(player.start).toHaveBeenCalledTimes(1);
+    expect(player.start).toHaveBeenCalledWith({
+      startBeat: track.staves[0].bars[1].getVoiceBar(1)?.beats[0],
     });
   });
 
   test("bar traversal does not restart playback when selection does not move", () => {
     const { track } = createScoreGraph();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    mockScorePlayerInstances[0].isPlaying = true;
+    const player = mockScorePlayerInstances[0];
+    player.isPlaying = true;
+    player.playbackAnchorBeat =
+      track.staves[0].bars[0].getVoiceBar(1)?.beats[0];
 
     controller.selectFirstBar();
     controller.selectPreviousBar();
 
+    expect(player.start).not.toHaveBeenCalled();
+  });
+
+  test("bar traversal safely ignores active playback without an anchor beat", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    mockScorePlayerInstances[0].isPlaying = true;
+
+    expect(() => controller.selectPreviousBar()).not.toThrow();
     expect(mockScorePlayerInstances[0].start).not.toHaveBeenCalled();
+  });
+
+  test("previous bar follows the current playback bar on repeated seeks", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const player = mockScorePlayerInstances[0];
+    const playbackAnchorBeat = track.staves[0].bars[2].getVoiceBar(1)?.beats[0];
+    const previousBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
+    player.isPlaying = true;
+    player.playbackAnchorBeat = playbackAnchorBeat;
+
+    controller.selectPreviousBar();
+    player.playbackAnchorBeat = playbackAnchorBeat;
+    controller.selectPreviousBar();
+
+    expect(player.start).toHaveBeenCalledTimes(2);
+    expect(player.start).toHaveBeenNthCalledWith(1, {
+      startBeat: previousBeat,
+    });
+    expect(player.start).toHaveBeenNthCalledWith(2, {
+      startBeat: previousBeat,
+    });
+  });
+
+  test("previous bar works after a playback mouse seek clears selection", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const player = mockScorePlayerInstances[0];
+    const targetBeatElement = getBeatElements(controller)[2];
+    const previousBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
+    player.isPlaying = true;
+
+    controller.restartPlayerFromBeat(targetBeatElement.beat);
+    player.playbackAnchorBeat = targetBeatElement.beat;
+
+    expect(() => controller.selectPreviousBar()).not.toThrow();
+    expect(player.start).toHaveBeenLastCalledWith({ startBeat: previousBeat });
+  });
+
+  test("next bar follows the current playback bar after selection is cleared", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const player = mockScorePlayerInstances[0];
+    const playbackAnchorBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
+    const nextBeat = track.staves[0].bars[2].getVoiceBar(1)?.beats[0];
+    player.isPlaying = true;
+    if (playbackAnchorBeat === undefined) {
+      throw Error("Expected playback anchor beat");
+    }
+
+    controller.restartPlayerFromBeat(playbackAnchorBeat);
+    player.playbackAnchorBeat = playbackAnchorBeat;
+
+    expect(() => controller.selectNextBar()).not.toThrow();
+    expect(player.start).toHaveBeenLastCalledWith({ startBeat: nextBeat });
+  });
+
+  test("first and last bar follow playback state after selection is cleared", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const player = mockScorePlayerInstances[0];
+    const playbackAnchorBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
+    const firstBeat = track.staves[0].bars[0].getVoiceBar(1)?.beats[0];
+    const lastBeat = track.staves[0].bars[2].getVoiceBar(1)?.beats[0];
+    player.isPlaying = true;
+    if (playbackAnchorBeat === undefined) {
+      throw Error("Expected playback anchor beat");
+    }
+
+    controller.restartPlayerFromBeat(playbackAnchorBeat);
+    player.playbackAnchorBeat = playbackAnchorBeat;
+
+    expect(() => controller.selectFirstBar()).not.toThrow();
+    expect(player.start).toHaveBeenLastCalledWith({ startBeat: firstBeat });
+
+    player.playbackAnchorBeat = playbackAnchorBeat;
+    expect(() => controller.selectLastBar()).not.toThrow();
+    expect(player.start).toHaveBeenLastCalledWith({ startBeat: lastBeat });
+  });
+
+  test("playback bar traversal falls back when the anchor voice is absent", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const bars = track.staves[0].bars;
+    const anchorVoice = bars[1].insertVoiceBar(2);
+    const playbackAnchorBeat = anchorVoice.beats[0];
+    const firstBeat = bars[0].getVoiceBar(1)?.beats[0];
+    const lastBeat = bars[2].getVoiceBar(1)?.beats[0];
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const player = mockScorePlayerInstances[0];
+    player.isPlaying = true;
+    player.playbackAnchorBeat = playbackAnchorBeat;
+
+    controller.selectFirstBar();
+    player.playbackAnchorBeat = playbackAnchorBeat;
+    controller.selectPreviousBar();
+    player.playbackAnchorBeat = playbackAnchorBeat;
+    controller.selectNextBar();
+    player.playbackAnchorBeat = playbackAnchorBeat;
+    controller.selectLastBar();
+
+    expect(player.start).toHaveBeenNthCalledWith(1, { startBeat: firstBeat });
+    expect(player.start).toHaveBeenNthCalledWith(2, { startBeat: firstBeat });
+    expect(player.start).toHaveBeenNthCalledWith(3, { startBeat: lastBeat });
+    expect(player.start).toHaveBeenNthCalledWith(4, { startBeat: lastBeat });
+  });
+
+  test("playback bar traversal falls back across staves", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const secondStaff = track.insertStaff(1).staves[0];
+    const emptyTargetVoice = secondStaff.bars[2].getVoiceBar(1);
+    if (emptyTargetVoice === null) {
+      throw Error("Expected target voice bar");
+    }
+    emptyTargetVoice.replaceBeats([]);
+    const playbackAnchorBeat = secondStaff.bars[1].getVoiceBar(1)?.beats[0];
+    const fallbackBeat = track.staves[0].bars[2].getVoiceBar(1)?.beats[0];
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const player = mockScorePlayerInstances[0];
+    player.isPlaying = true;
+    player.playbackAnchorBeat = playbackAnchorBeat;
+
+    controller.selectNextBar();
+
+    expect(player.start).toHaveBeenCalledWith({ startBeat: fallbackBeat });
   });
 
   test("switching to an existing voice does not update elements", () => {

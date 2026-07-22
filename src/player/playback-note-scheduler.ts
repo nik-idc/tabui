@@ -494,13 +494,15 @@ export class PlaybackNoteScheduler {
    * @param note Note to schedule
    * @param startTime Absolute audio context start time
    * @param stopTime Absolute audio context stop time
+   * @param maxStopTime Hard playback boundary that techniques may not exceed
    * @returns Created audio nodes, or null for unplayable notes
    */
   public scheduleNote(
     note: Note,
     startTime: number,
     stopTime: number,
-    trackBus: TrackAudioBus
+    trackBus: TrackAudioBus,
+    maxStopTime?: number
   ): ScheduledAudioNode | null {
     const frequency = getNoteFrequency(note);
     if (frequency <= 0) {
@@ -514,7 +516,10 @@ export class PlaybackNoteScheduler {
       stopTime,
       startTime
     );
-    const effectiveStopTime = envelopeSettings.stopTime;
+    const effectiveStopTime = Math.min(
+      envelopeSettings.stopTime,
+      maxStopTime ?? Infinity
+    );
     const attackEndTime = startTime + envelopeSettings.attackSeconds;
     const releaseStartTime = Math.max(
       attackEndTime,
@@ -537,10 +542,21 @@ export class PlaybackNoteScheduler {
       note.hasTechnique(GuitarTechniqueType.Slide) ? stopTime : null
     );
 
-    sourceNode.connect(gainNode);
-    gainNode.connect(trackBus.gainNode);
-    sourceNode.start(startTime);
-    sourceNode.stop(effectiveStopTime);
+    try {
+      sourceNode.connect(gainNode);
+      gainNode.connect(trackBus.gainNode);
+      sourceNode.start(startTime);
+      sourceNode.stop(effectiveStopTime);
+    } catch (error) {
+      try {
+        sourceNode.stop(this._audioContext.currentTime);
+      } catch {
+        // The source may not have started or may already be stopped.
+      }
+      sourceNode.disconnect();
+      gainNode.disconnect();
+      throw error;
+    }
 
     return {
       sourceNode,

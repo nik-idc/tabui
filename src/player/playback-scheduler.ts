@@ -19,11 +19,15 @@ export interface ScheduledBeatChange {
   beat: Beat;
   /** Absolute audio context time when the beat starts. */
   startTime: number;
+  /** Absolute audio context time when the beat's duration ends. */
+  endTime: number;
 }
 
 export interface PlaybackScheduleResult {
   /** Beat-change UI events produced while scheduling score material. */
   beatChanges: ScheduledBeatChange[];
+  /** Calculated beat timing data for the next traversal bar. */
+  nextBeatChanges: ScheduledBeatChange[];
   /** Indicates that non-looped playback reached the natural end. */
   playbackComplete: boolean;
 }
@@ -85,11 +89,17 @@ export class PlaybackScheduler {
     }
 
     const gainNode = this._audioContext.createGain();
-    const pannerNode = this._audioContext.createStereoPanner();
-    gainNode.connect(pannerNode);
-    pannerNode.connect(this._audioContext.destination);
-
-    return { track, gainNode, pannerNode };
+    let pannerNode: StereoPannerNode | undefined;
+    try {
+      pannerNode = this._audioContext.createStereoPanner();
+      gainNode.connect(pannerNode);
+      pannerNode.connect(this._audioContext.destination);
+      return { track, gainNode, pannerNode };
+    } catch (error) {
+      gainNode.disconnect();
+      pannerNode?.disconnect();
+      throw error;
+    }
   }
 
   private rebuildTrackAudioBuses(): void {
@@ -114,20 +124,30 @@ export class PlaybackScheduler {
    * @param audioContext Audio context used by sample and note schedulers
    */
   public setAudioContext(audioContext: AudioContext): void {
+    this.clearAudioContext();
     this._audioContext = audioContext;
-    this._sampleManager = new PlaybackSampleManager(
-      audioContext,
-      this._playbackConfig
-    );
-    this._noteScheduler = new PlaybackNoteScheduler(
-      audioContext,
-      this._sampleManager
-    );
-    this.rebuildTrackAudioBuses();
+    try {
+      this._sampleManager = new PlaybackSampleManager(
+        audioContext,
+        this._playbackConfig
+      );
+      this._noteScheduler = new PlaybackNoteScheduler(
+        audioContext,
+        this._sampleManager
+      );
+      this.rebuildTrackAudioBuses();
+    } catch (error) {
+      this.clearAudioContext();
+      throw error;
+    }
   }
 
   /** Clears audio-context-backed helpers after the audio context is closed. */
   public clearAudioContext(): void {
+    for (const bus of this._trackAudioBuses.values()) {
+      bus.gainNode.disconnect();
+      bus.pannerNode.disconnect();
+    }
     this._sampleManager = undefined;
     this._noteScheduler = undefined;
     this._audioContext = undefined;
@@ -215,32 +235,66 @@ export class PlaybackScheduler {
     }
   }
 
+  private getPlaybackEndTime(beat: Beat): number | undefined {
+    const masterBarIndex = this._score.masterBars.indexOf(
+      beat.voiceBar.bar.masterBar
+    );
+    const endDistanceSeconds =
+      this._traversalManager.getPlaybackEndDistanceSeconds(masterBarIndex);
+    if (endDistanceSeconds === undefined) {
+      return undefined;
+    }
+    return (
+      this._currentScheduleBase +
+      this._scheduledPlaybackSeconds +
+      endDistanceSeconds
+    );
+  }
+
+  private createScheduledBeatChange(beat: Beat): ScheduledBeatChange {
+    const bar = beat.voiceBar.bar;
+    const masterBarIndex = this._score.masterBars.indexOf(bar.masterBar);
+    const masterBarStartOffsetSeconds =
+      this._traversalManager.getMasterBarStartOffsetSeconds(masterBarIndex);
+    const beatStartOffsetSeconds = ticksToSeconds(
+      beat.startTick,
+      beat.voiceBar.tickResolution,
+      bar.masterBar.tempo
+    );
+    const beatDurationInSeconds = ticksToSeconds(
+      beat.fullDurationTicks,
+      beat.voiceBar.tickResolution,
+      bar.masterBar.tempo
+    );
+    const startTime =
+      this._currentScheduleBase +
+      this._scheduledPlaybackSeconds +
+      beatStartOffsetSeconds -
+      masterBarStartOffsetSeconds;
+    const playbackEndTime = this.getPlaybackEndTime(beat);
+    return {
+      beat,
+      startTime,
+      endTime: Math.min(
+        startTime + beatDurationInSeconds,
+        playbackEndTime ?? Infinity
+      ),
+    };
+  }
+
   /**
-   * Schedules all playable notes in one beat and returns its duration.
+   * Schedules all playable notes in one beat and returns its UI timing data.
    * @param beat Beat to schedule
-   * @param barTimingOffsetSeconds Beat start offset from the current schedule base
-   * @param beatChanges Accumulator for UI beat-change scheduling data
-   * @returns Beat duration in seconds
    */
   private scheduleBeat(
     beat: Beat,
-    barTimingOffsetSeconds: number,
-    trackBus: TrackAudioBus,
-    beatChanges: ScheduledBeatChange[]
-  ): number {
+    trackBus: TrackAudioBus
+  ): ScheduledBeatChange {
     if (this._noteScheduler === undefined) {
       throw Error("Playback note scheduler is not initialized");
     }
 
-    const beatDurationInSeconds = ticksToSeconds(
-      beat.fullDurationTicks,
-      beat.voiceBar.tickResolution,
-      beat.voiceBar.bar.masterBar.tempo
-    );
-    const startTime = this._currentScheduleBase + barTimingOffsetSeconds;
-    const stopTime = startTime + beatDurationInSeconds;
-
-    beatChanges.push({ beat, startTime });
+    const beatChange = this.createScheduledBeatChange(beat);
 
     for (const note of beat.notes ?? []) {
       if (this.noteIsSlideTarget(note)) {
@@ -249,9 +303,10 @@ export class PlaybackScheduler {
 
       const scheduledAudioNode = this._noteScheduler.scheduleNote(
         note,
-        startTime,
-        stopTime,
-        trackBus
+        beatChange.startTime,
+        beatChange.endTime,
+        trackBus,
+        this.getPlaybackEndTime(beat)
       );
       if (scheduledAudioNode === null) {
         continue;
@@ -266,7 +321,7 @@ export class PlaybackScheduler {
       this._scheduledAudioNodes.add(scheduledAudioNode);
     }
 
-    return beatDurationInSeconds;
+    return beatChange;
   }
 
   private noteIsSlideTarget(note: unknown): boolean {
@@ -316,15 +371,9 @@ export class PlaybackScheduler {
    * Schedules a single staff bar for the current master bar pass.
    * @param masterBarIndex Master bar index being scheduled
    * @param bar Staff bar to schedule
-   * @param beatChanges Accumulator for UI beat-change scheduling data
    */
-  private scheduleBar(
-    masterBarIndex: number,
-    bar: Bar,
-    beatChanges: ScheduledBeatChange[]
-  ): void {
-    const masterBarStartOffsetSeconds =
-      this._traversalManager.getMasterBarStartOffsetSeconds(masterBarIndex);
+  private scheduleBar(masterBarIndex: number, bar: Bar): ScheduledBeatChange[] {
+    const beatChanges: ScheduledBeatChange[] = [];
     const trackBus = this.getTrackAudioBus(bar.staff.track);
     for (const voiceBar of bar.voiceBarsAsArray) {
       for (const beat of voiceBar.beats) {
@@ -338,54 +387,77 @@ export class PlaybackScheduler {
           continue;
         }
 
-        const beatStartOffsetSeconds = ticksToSeconds(
-          beat.startTick,
-          voiceBar.tickResolution,
-          bar.masterBar.tempo
-        );
-        this.scheduleBeat(
-          beat,
-          this._scheduledPlaybackSeconds +
-            beatStartOffsetSeconds -
-            masterBarStartOffsetSeconds,
-          trackBus,
-          beatChanges
+        beatChanges.push(this.scheduleBeat(beat, trackBus));
+      }
+    }
+    return beatChanges;
+  }
+
+  private calculateBarBeatChanges(
+    masterBarIndex: number,
+    bar: Bar
+  ): ScheduledBeatChange[] {
+    const beatChanges: ScheduledBeatChange[] = [];
+    for (const voiceBar of bar.voiceBarsAsArray) {
+      for (const beat of voiceBar.beats) {
+        if (
+          !voiceBar.beatPlayable(beat) ||
+          this._traversalManager.beatOutsideBoundaries(masterBarIndex, beat)
+        ) {
+          continue;
+        }
+
+        beatChanges.push(this.createScheduledBeatChange(beat));
+      }
+    }
+    return beatChanges;
+  }
+
+  private calculateNextMasterBarBeatChanges(): ScheduledBeatChange[] {
+    const masterBarIndex = this._nextMasterBarIndexToSchedule;
+    if (masterBarIndex >= this._score.masterBars.length) {
+      return [];
+    }
+
+    const beatChanges: ScheduledBeatChange[] = [];
+    for (const track of this._score.tracks) {
+      for (const staff of track.staves) {
+        beatChanges.push(
+          ...this.calculateBarBeatChanges(
+            masterBarIndex,
+            staff.bars[masterBarIndex]
+          )
         );
       }
     }
+    return beatChanges;
   }
 
   /**
    * Schedules all track/staff bars for one master bar.
    * @param masterBarIndex Master bar index to schedule
-   * @param beatChanges Accumulator for UI beat-change scheduling data
    */
-  private scheduleMasterBar(
-    masterBarIndex: number,
-    beatChanges: ScheduledBeatChange[]
-  ): void {
+  private scheduleMasterBar(masterBarIndex: number): ScheduledBeatChange[] {
+    const beatChanges: ScheduledBeatChange[] = [];
     const masterBarDurationSeconds =
       this._traversalManager.getMasterBarDurationSeconds(masterBarIndex);
 
     for (const track of this._score.tracks) {
       for (const staff of track.staves) {
         const bar = staff.bars[masterBarIndex];
-        this.scheduleBar(masterBarIndex, bar, beatChanges);
+        beatChanges.push(...this.scheduleBar(masterBarIndex, bar));
       }
     }
 
     this._scheduledPlaybackSeconds += masterBarDurationSeconds;
-    const nextMasterBarIndex =
+    const traversalResult =
       this._traversalManager.completeMasterBar(masterBarIndex);
-    if (
-      this._traversalManager.isLooped &&
-      nextMasterBarIndex !== null &&
-      nextMasterBarIndex <= masterBarIndex
-    ) {
+    if (traversalResult.loopRestarted) {
       this._loopStartOffsets.push(this._scheduledPlaybackSeconds);
     }
     this._nextMasterBarIndexToSchedule =
-      nextMasterBarIndex ?? this._score.masterBars.length;
+      traversalResult.nextMasterBarIndex ?? this._score.masterBars.length;
+    return beatChanges;
   }
 
   /** Applies current track controls to already-buffered audio nodes. */
@@ -412,21 +484,16 @@ export class PlaybackScheduler {
 
     while (this._nextMasterBarIndexToSchedule < this._score.masterBars.length) {
       const masterBarIndex = this._nextMasterBarIndexToSchedule;
-      const masterBarDurationSeconds =
-        this._traversalManager.getMasterBarDurationSeconds(masterBarIndex);
-
-      if (
-        this._scheduledPlaybackSeconds + masterBarDurationSeconds >
-        lookaheadTargetSeconds
-      ) {
+      if (this._scheduledPlaybackSeconds >= lookaheadTargetSeconds) {
         break;
       }
 
-      this.scheduleMasterBar(masterBarIndex, beatChanges);
+      beatChanges.push(...this.scheduleMasterBar(masterBarIndex));
     }
 
     return {
       beatChanges,
+      nextBeatChanges: this.calculateNextMasterBarBeatChanges(),
       playbackComplete: this._traversalManager.playbackComplete(
         this._nextMasterBarIndexToSchedule
       ),
@@ -440,7 +507,7 @@ export class PlaybackScheduler {
       this._loopStartOffsets.push(this._scheduledPlaybackSeconds);
     }
     this._nextMasterBarIndexToSchedule =
-      this._traversalManager.loopStartMasterBarIndex;
+      this._traversalManager.restartLoopTraversal();
   }
 
   /** Absolute playback time in seconds scheduled so far. */
@@ -479,6 +546,7 @@ export class PlaybackScheduler {
   public truncateAt(playbackSeconds: number): void {
     this._scheduledPlaybackSeconds = playbackSeconds;
     this._nextMasterBarIndexToSchedule = this._score.masterBars.length;
+    this._traversalManager.resetRepeatTraversal();
     this._loopStartOffsets = this._loopStartOffsets.filter(
       (o) => o < playbackSeconds
     );

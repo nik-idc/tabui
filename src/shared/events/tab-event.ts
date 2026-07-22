@@ -17,9 +17,17 @@ export enum TrackEventType {
 // Define a mapping of event types to argument types
 export type TrackEventArgs = {
   [TrackEventType.PlayerCurBeatChanged]: {
+    trackUUID: number;
+    playerUUID: number;
     beatUUID: number;
+    nextBeatUUID?: number;
+    startTime: number;
+    endTime: number;
+    playbackRunId: number;
   };
-  [TrackEventType.PlayerStateChanged]: {};
+  [TrackEventType.PlayerStateChanged]: {
+    playerUUID: number;
+  };
   [TrackEventType.RenderComplete]: {};
 };
 
@@ -78,7 +86,7 @@ export class TrackEvent {
       return;
     }
 
-    for (const listener of eventListeners) {
+    for (const listener of [...eventListeners]) {
       listener(args);
     }
   }

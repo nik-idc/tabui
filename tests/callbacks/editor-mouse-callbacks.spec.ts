@@ -164,10 +164,10 @@ describe("EditorMouseDefCallbacks", () => {
     expect(notationComponent.trackController.selectBeat).not.toHaveBeenCalled();
     expect(
       notationComponent.trackController.restartPlayerFromBeat
-    ).toHaveBeenNthCalledWith(1, beatElement);
+    ).toHaveBeenNthCalledWith(1, beatElement.beat);
     expect(
       notationComponent.trackController.restartPlayerFromBeat
-    ).toHaveBeenNthCalledWith(2, beatElement);
+    ).toHaveBeenNthCalledWith(2, beatElement.beat);
     expect(renderFunc).toHaveBeenCalledTimes(2);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
   });
