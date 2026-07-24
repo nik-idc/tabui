@@ -149,7 +149,6 @@ export class TabUIEditor {
     );
 
     this._uiComponent.render();
-    this._notationComponent.loadTrack(this.score.tracks[0]);
     this._callbacks.bind();
 
     this._state = TabUIEditorState.Initialized;

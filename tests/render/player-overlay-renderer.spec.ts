@@ -4,7 +4,7 @@ import { Rect } from "../../src/shared";
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { createScoreGraph } from "../model/helpers";
-import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
+import { createTestTrackController } from "../controller/helpers";
 
 function createCursorElement() {
   const attrs = new Map<string, string>();
@@ -69,7 +69,7 @@ function createAnimationOverlay(
 describe("PlayerOverlayRenderer cursor geometry", () => {
   test("places tab beat cursor at the beat attack column", () => {
     const { track } = createScoreGraph();
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const controller = createTestTrackController(track);
     controller.trackElement.update();
     const beat = track.staves[0].bars[0].getVoiceBar(1)?.beats[0];
     if (beat === undefined) {
@@ -429,5 +429,19 @@ describe("EditorSVGRenderer track line visibility", () => {
       forceNotation: true,
       overlays: { selection: false, player: false },
     });
+  });
+
+  test("uses a bounded nearest-line range outside the current viewport", () => {
+    const renderer = Object.create(EditorSVGRenderer.prototype) as any;
+    renderer._viewportRect = new Rect(0, 10_000, 800, 400);
+    renderer.trackController = {
+      trackElement: {
+        trackLineElements: Array.from({ length: 20 }, (_, index) => ({
+          globalBoundingBox: new Rect(0, index * 100, 800, 80),
+        })),
+      },
+    };
+
+    expect(renderer.getLinesInViewport()).toEqual({ start: 17, end: 19 });
   });
 });

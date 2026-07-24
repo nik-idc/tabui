@@ -1,7 +1,4 @@
-import {
-  TrackElement,
-  TrackElementUpdateDepth,
-} from "../../src/notation/controller/element/track-element";
+import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
 import { TrackLineElement } from "../../src/notation/controller/element/track/track-line-element";
@@ -52,12 +49,7 @@ function updateMasterBars(
   trackElement: TrackElement,
   masterBarIndices: number[]
 ): void {
-  const lineRange = trackElement.rebuildSkeleton(masterBarIndices);
-  if (lineRange !== null) {
-    trackElement.update(lineRange.startLineIndex, lineRange.endLineIndex, {
-      depth: TrackElementUpdateDepth.Elements,
-    });
-  }
+  trackElement.update({ affectedMasterBarIndices: masterBarIndices });
 }
 
 function expectHorizontalUpdateToMatchLegacy(
@@ -408,7 +400,7 @@ describe("TrackElement tree", () => {
     expect(beatElement?.beat.uuid).toBe(beat.uuid);
   });
 
-  test("no-op update rebuilds presentation element objects", () => {
+  test("no-op update preserves the line shell and rebuilds descendants", () => {
     const { track } = createScoreGraph();
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
@@ -426,7 +418,7 @@ describe("TrackElement tree", () => {
 
     trackElement.update();
 
-    expect(trackElement.trackLineElements[0]).not.toBe(trackLine);
+    expect(trackElement.trackLineElements[0]).toBe(trackLine);
     expect(trackElement.trackLineElements[0].staffLineElements[0]).not.toBe(
       staffLine
     );
@@ -784,6 +776,58 @@ describe("TrackElement tree", () => {
       secondLineBeatElement!.barElement.globalCoords.x +
         secondLineBeatElement!.barLocalBoundingBox.x
     );
+  });
+
+  test("initializes whole-track shell geometry without materializing every line", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 20; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const lines = trackElement.trackLineElements;
+
+    expect(lines.length).toBeGreaterThan(2);
+    expect(trackElement.materializedLineIndices.size).toBe(0);
+    expect(lines[1].staffLineElements).toEqual([]);
+    expect(lines[1].boundingBox.y).toBe(lines[0].boundingBox.bottom);
+    expect(trackElement.height).toBe(
+      lines.reduce(
+        (height, line) => height + line.skeletonLine.finalLineHeight,
+        0
+      )
+    );
+  });
+
+  test("viewport materialization preserves shell positions and total height", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 20; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const initialHeight = trackElement.height;
+    const lastLineIndex = trackElement.trackLineElements.length - 1;
+    const laterLineY =
+      trackElement.trackLineElements[lastLineIndex].boundingBox.y;
+
+    trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 1 },
+      rebuildSkeleton: false,
+      forceElements: false,
+      dematerializeOutsideRange: {
+        startLineIndex: 0,
+        endLineIndex: 1,
+      },
+    });
+
+    expect([...trackElement.materializedLineIndices]).toEqual([0, 1]);
+    expect(
+      trackElement.trackLineElements[lastLineIndex].staffLineElements
+    ).toEqual([]);
+    expect(trackElement.trackLineElements[lastLineIndex].boundingBox.y).toBe(
+      laterLineY
+    );
+    expect(trackElement.height).toBe(initialHeight);
   });
 
   test("second-line tempo info shifts down when first line grows from technique labels", () => {

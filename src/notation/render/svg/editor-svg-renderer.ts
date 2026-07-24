@@ -14,7 +14,6 @@ import {
   ELEMENT_ORDER,
   ElementDiff,
   TrackElement,
-  TrackElementUpdateDepth,
 } from "../../controller/element/track-element";
 import { BarElement } from "../../controller/element/bar/bar-element";
 import { VoiceBarElement } from "../../controller/element/bar/voice-bar-element";
@@ -97,6 +96,8 @@ export class EditorSVGRenderer implements EditorRenderer {
    * the last visible track line
    */
   private static readonly VIEWPORT_OVERSCAN_LINES = 2;
+  /** Extra materialized lines retained beyond rendered overscan. */
+  private static readonly MATERIALIZED_LINE_CACHE_MARGIN = 2;
 
   /** Notation-only scroll viewport wrapper. */
   readonly notationViewportDiv: HTMLDivElement;
@@ -286,6 +287,18 @@ export class EditorSVGRenderer implements EditorRenderer {
     });
   }
 
+  /** Positions the initial viewport around a known track line before rendering. */
+  public prepareViewportForTrackLine(trackLineElement: TrackLineElement): void {
+    this.setViewportRect();
+    const scrollTop = this.calculateScrollTopForTrackLine(
+      trackLineElement.globalBoundingBox
+    );
+    if (scrollTop !== undefined) {
+      this.notationViewportDiv.scrollTop = scrollTop;
+      this.setViewportRect();
+    }
+  }
+
   public detachViewportScrollEvent(): void {
     if (this._viewportScrollListener === undefined) {
       return;
@@ -334,9 +347,24 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     if (firstVisibleIndex === -1 || lastVisibleIndex === -1) {
+      // Find the nearest line to the current scroll position
+      let nearestLineIndex = 0;
+      for (let i = 0; i < trackLines.length; i++) {
+        if (trackLines[i].globalBoundingBox.y > viewportTop) {
+          break;
+        }
+        nearestLineIndex = i;
+      }
+
       return {
-        start: 0,
-        end: Math.max(0, trackLines.length - 1),
+        start: Math.max(
+          0,
+          nearestLineIndex - EditorSVGRenderer.VIEWPORT_OVERSCAN_LINES
+        ),
+        end: Math.min(
+          trackLines.length - 1,
+          nearestLineIndex + EditorSVGRenderer.VIEWPORT_OVERSCAN_LINES
+        ),
       };
     }
 
@@ -809,9 +837,26 @@ export class EditorSVGRenderer implements EditorRenderer {
       return;
     }
 
-    // Ensure that the viewport's elements are up to date
-    this.trackController.trackElement.update(start, end, {
-      depth: TrackElementUpdateDepth.Elements,
+    const lastLineIndex =
+      this.trackController.trackElement.trackLineElements.length - 1;
+    const retainedStart = Math.max(
+      0,
+      start - EditorSVGRenderer.MATERIALIZED_LINE_CACHE_MARGIN
+    );
+    const retainedEnd = Math.min(
+      lastLineIndex,
+      end + EditorSVGRenderer.MATERIALIZED_LINE_CACHE_MARGIN
+    );
+
+    // Ensure that the viewport's elements are up to date.
+    this.trackController.trackElement.update({
+      lineRange: { startLineIndex: start, endLineIndex: end },
+      rebuildSkeleton: false,
+      forceElements: false,
+      dematerializeOutsideRange: {
+        startLineIndex: retainedStart,
+        endLineIndex: retainedEnd,
+      },
     });
     const visibleLines =
       this.trackController.trackElement.trackLineElements.slice(start, end + 1);

@@ -1,10 +1,7 @@
 import { performance } from "node:perf_hooks";
 import { createScore } from "../demo/data/helpers";
 import { EditorLayoutDimensions } from "../src/notation/controller/editor-layout-dimensions";
-import {
-  TrackElement,
-  TrackElementUpdateDepth,
-} from "../src/notation/controller/element/track-element";
+import { TrackElement } from "../src/notation/controller/element/track-element";
 import {
   Command,
   AffectedModel,
@@ -537,18 +534,9 @@ function measureScenario(
   const start = performance.now();
   if (path === "focused") {
     for (const request of requests) {
-      const lineRange = scenario.trackElement.rebuildSkeleton(
-        getMasterBarIndices(request)
-      );
-      if (lineRange === null) {
-        continue;
-      }
-
-      scenario.trackElement.update(
-        lineRange.startLineIndex,
-        lineRange.endLineIndex,
-        { depth: TrackElementUpdateDepth.Elements }
-      );
+      scenario.trackElement.update({
+        affectedMasterBarIndices: getMasterBarIndices(request),
+      });
     }
   } else {
     scenario.trackElement.update();

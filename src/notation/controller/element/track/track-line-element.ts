@@ -19,6 +19,7 @@ export type TrackLineBar = {
 export type TrackElementSkeletonLine = {
   trackLineBars: TrackLineBar[];
   finalLineHeight: number;
+  y: number;
 };
 
 export type TrackElementSkeleton = {
@@ -101,7 +102,24 @@ export class TrackLineElement implements NotationElement {
       this._skeletonLine.trackLineBars
     );
 
-    this.build();
+    // A new track line starts as a geometry-only shell until materialized.
+    this._ownedNotationElements = [this];
+    this.setGeometryFromSkeleton(skeletonLine);
+  }
+
+  /** Applies whole-track skeleton geometry without building descendants. */
+  public setGeometryFromSkeleton(skeletonLine: TrackElementSkeletonLine): void {
+    this._skeletonLine = skeletonLine;
+    this._stableIdentity = TrackLineElement.createStableIdentity(
+      this.track,
+      skeletonLine.trackLineBars
+    );
+    this._boundingBox.set(
+      0,
+      skeletonLine.y,
+      this.trackElement.layoutDimensions.WIDTH,
+      skeletonLine.finalLineHeight
+    );
   }
 
   /**

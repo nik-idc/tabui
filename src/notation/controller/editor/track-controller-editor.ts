@@ -13,7 +13,7 @@ import {
   VoiceNumber,
   ScoreEditor,
 } from "../../model";
-import { TrackElement, TrackElementUpdateDepth } from "../element";
+import { TrackElement } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
 import { NoteElement } from "../element/note/note-element";
 import { TabNoteElement } from "../element/note/tab-note-element";
@@ -48,11 +48,6 @@ import {
   AffectedModel,
 } from "./command";
 
-type UpdateLineRange = {
-  startLineIndex: number;
-  endLineIndex: number;
-};
-
 /**
  * Class responsible for managing editing & element state
  */
@@ -76,9 +71,9 @@ export class TrackControllerEditor {
     this._selectionManager = new SelectionManager(this._trackElement.track);
   }
 
-  private getUpdateLineRange(
+  private getAffectedMasterBarIndices(
     affectedModels: AffectedModel[]
-  ): UpdateLineRange | null {
+  ): number[] | null {
     if (affectedModels.length === 0) {
       return null;
     }
@@ -87,7 +82,7 @@ export class TrackControllerEditor {
       new Set(affectedModels.map((model) => model.masterBarIndex))
     ).sort((a, b) => a - b);
 
-    return this._trackElement.rebuildSkeleton(masterBarIndices);
+    return masterBarIndices;
   }
 
   private applyCommandUpdate(command: Command | undefined): void {
@@ -95,16 +90,13 @@ export class TrackControllerEditor {
       return;
     }
 
-    const updateLineRange = this.getUpdateLineRange(command.affectedModels);
-    if (updateLineRange === null) {
+    const masterBarIndices = this.getAffectedMasterBarIndices(
+      command.affectedModels
+    );
+    if (masterBarIndices === null) {
       return;
     }
-
-    this._trackElement.update(
-      updateLineRange.startLineIndex,
-      updateLineRange.endLineIndex,
-      { depth: TrackElementUpdateDepth.Elements }
-    );
+    this._trackElement.update({ affectedMasterBarIndices: masterBarIndices });
   }
 
   public executeCommand<T extends Command>(command: T): T {
@@ -148,16 +140,19 @@ export class TrackControllerEditor {
    * Selects first note
    */
   public selectFirstNote(): void {
-    const firstBeatElement =
-      this._trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].barElements[0].beatElements[0];
-    const firstNoteElement = firstBeatElement.noteElements[0];
-    if (firstNoteElement !== undefined) {
-      this.selectNoteElement(firstNoteElement);
+    const firstBar = this._trackElement.track.staves[0].bars[0];
+    const firstBeat = firstBar.getVoiceBar(1)?.beats[0];
+    if (firstBeat === undefined) {
       return;
     }
 
-    this._selectionManager.selectBeatCursor(firstBeatElement.beat, 0);
+    const firstNote = firstBeat.notes?.[0];
+    if (firstNote !== undefined) {
+      this._selectionManager.selectNote(firstNote);
+      return;
+    }
+
+    this._selectionManager.selectBeatCursor(firstBeat, 0);
   }
 
   private selectBeatCursor(beat: Beat): void {
@@ -291,13 +286,9 @@ export class TrackControllerEditor {
         modelUUID: bar.uuid,
       },
     ];
-    const updateLineRange = this.getUpdateLineRange(affectedModels);
-    if (updateLineRange !== null) {
-      this._trackElement.update(
-        updateLineRange.startLineIndex,
-        updateLineRange.endLineIndex,
-        { depth: TrackElementUpdateDepth.Elements }
-      );
+    const masterBarIndices = this.getAffectedMasterBarIndices(affectedModels);
+    if (masterBarIndices !== null) {
+      this._trackElement.update({ affectedMasterBarIndices: masterBarIndices });
     }
     return true;
   }
@@ -720,13 +711,9 @@ export class TrackControllerEditor {
         modelUUID: selectedBar.uuid,
       },
     ];
-    const updateLineRange = this.getUpdateLineRange(affectedModels);
-    if (updateLineRange !== null) {
-      this._trackElement.update(
-        updateLineRange.startLineIndex,
-        updateLineRange.endLineIndex,
-        { depth: TrackElementUpdateDepth.Elements }
-      );
+    const masterBarIndices = this.getAffectedMasterBarIndices(affectedModels);
+    if (masterBarIndices !== null) {
+      this._trackElement.update({ affectedMasterBarIndices: masterBarIndices });
     }
   }
 

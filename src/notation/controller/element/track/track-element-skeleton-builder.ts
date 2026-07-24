@@ -156,11 +156,13 @@ function getTrackLineHeight(
 function createSkeletonLine(
   track: Track,
   trackLineBars: TrackLineBar[],
-  layoutDimensions: EditorLayoutDimensions
+  layoutDimensions: EditorLayoutDimensions,
+  y: number
 ): TrackElementSkeletonLine {
   return {
     trackLineBars,
     finalLineHeight: getTrackLineHeight(track, trackLineBars, layoutDimensions),
+    y,
   };
 }
 
@@ -176,6 +178,7 @@ export function buildTrackElementSkeleton(
   );
   let lineMinWidth = 0;
   let lineDurationUnits = 0;
+  let lineY = 0;
 
   for (let i = 0; i < masterBars.length; i++) {
     const metric = metrics[i];
@@ -187,7 +190,14 @@ export function buildTrackElementSkeleton(
 
     if (currentLineBars.length !== 0 && (!fitsWidth || !fitsDuration)) {
       finalizeTrackLineBars(currentLineBars, metrics, true, layoutDimensions);
-      lines.push(createSkeletonLine(track, currentLineBars, layoutDimensions));
+      const line = createSkeletonLine(
+        track,
+        currentLineBars,
+        layoutDimensions,
+        lineY
+      );
+      lines.push(line);
+      lineY += line.finalLineHeight;
       currentLineBars = [];
       lineMinWidth = 0;
       lineDurationUnits = 0;
@@ -200,7 +210,9 @@ export function buildTrackElementSkeleton(
 
   if (currentLineBars.length !== 0) {
     finalizeTrackLineBars(currentLineBars, metrics, false, layoutDimensions);
-    lines.push(createSkeletonLine(track, currentLineBars, layoutDimensions));
+    lines.push(
+      createSkeletonLine(track, currentLineBars, layoutDimensions, lineY)
+    );
   }
 
   return { lines };
