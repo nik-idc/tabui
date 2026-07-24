@@ -262,13 +262,43 @@ function oscillatorFrequencies(): number[] {
 }
 
 function trackBusGains(): MockGainNode[] {
-  return createdGains.filter((gain) =>
-    createdPanners.some((panner) => gain.connect.mock.calls[0]?.[0] === panner)
+  return createdGains.filter((gain) => {
+    const panner = createdPanners.find(
+      (candidate) => gain.connect.mock.calls[0]?.[0] === candidate
+    );
+    return (
+      panner !== undefined &&
+      !createdAudioContexts.some(
+        (context) => panner.connect.mock.calls[0]?.[0] === context.destination
+      )
+    );
+  });
+}
+
+function masterBusGain(): MockGainNode | undefined {
+  return createdGains.find((gain) =>
+    createdPanners.some(
+      (panner) =>
+        gain.connect.mock.calls[0]?.[0] === panner &&
+        createdAudioContexts.some(
+          (context) => panner.connect.mock.calls[0]?.[0] === context.destination
+        )
+    )
+  );
+}
+
+function masterBusPanner(): MockStereoPannerNode | undefined {
+  return createdPanners.find((panner) =>
+    createdAudioContexts.some(
+      (context) => panner.connect.mock.calls[0]?.[0] === context.destination
+    )
   );
 }
 
 function noteEnvelopeGains(): MockGainNode[] {
-  return createdGains.filter((gain) => !trackBusGains().includes(gain));
+  return createdGains.filter(
+    (gain) => gain !== masterBusGain() && !trackBusGains().includes(gain)
+  );
 }
 
 describe("ScorePlayer", () => {
@@ -623,9 +653,42 @@ describe("ScorePlayer", () => {
     const player = new ScorePlayer(score, track);
     await player.start({ startBeat: firstBeatOf(bar) });
 
-    expect(createdPanners).toHaveLength(1);
-    expect(createdPanners[0].pan.setValueAtTime).toHaveBeenCalledWith(-0.75, 0);
-    expect(trackBusGains()[0].connect).toHaveBeenCalledWith(createdPanners[0]);
+    const trackPanner = createdPanners.find(
+      (panner) => panner !== masterBusPanner()
+    );
+    expect(createdPanners).toHaveLength(2);
+    expect(trackPanner?.pan.setValueAtTime).toHaveBeenCalledWith(-0.75, 0);
+    expect(trackBusGains()[0].connect).toHaveBeenCalledWith(trackPanner);
+    expect(trackPanner?.connect).toHaveBeenCalledWith(masterBusGain());
+  });
+
+  test("master controls route and update buffered score audio", async () => {
+    const { score, track, bar } = createScoreGraph();
+    score.masterVolume = 0.8;
+    score.masterPan = -0.25;
+    setBeatFret(firstBeatOf(bar), 0);
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    const masterGain = masterBusGain();
+    const masterPanner = masterBusPanner();
+    expect(masterGain?.gain.setValueAtTime).toHaveBeenCalledWith(0.8, 0);
+    expect(masterPanner?.pan.setValueAtTime).toHaveBeenCalledWith(-0.25, 0);
+
+    score.masterVolume = 0.4;
+    score.masterPan = 0.5;
+    player.syncMasterPlaybackState();
+
+    expect(masterGain?.gain.setValueAtTime).toHaveBeenCalledWith(
+      0.4,
+      expect.any(Number)
+    );
+    expect(masterPanner?.pan.setValueAtTime).toHaveBeenCalledWith(
+      0.5,
+      expect.any(Number)
+    );
+    expect(createdOscillators).toHaveLength(1);
   });
 
   test("track playback-control changes apply to buffered audio", async () => {
@@ -643,7 +706,10 @@ describe("ScorePlayer", () => {
       0.25,
       expect.any(Number)
     );
-    expect(createdPanners[0].pan.setValueAtTime).toHaveBeenCalledWith(
+    const trackPanner = createdPanners.find(
+      (panner) => panner !== masterBusPanner()
+    );
+    expect(trackPanner?.pan.setValueAtTime).toHaveBeenCalledWith(
       0.5,
       expect.any(Number)
     );
@@ -774,6 +840,74 @@ describe("ScorePlayer", () => {
     });
     expect(beatUUIDs).toContain(voiceBar.beats[1].uuid);
     expect(player.lastStartedBeat).toBe(voiceBar.beats[1]);
+
+    emitSpy.mockRestore();
+  });
+
+  test("active-track switching retargets buffered cursor events without changing the player run", async () => {
+    const { score, track, bars } = createScoreWithBars(2);
+    const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
+    const firstTrackBar = track.staves[0].bars[0];
+    const secondTrackBars = secondTrack.staves[0].bars;
+    const firstBeat = firstBeatOf(bars[0]);
+    const secondBeat = firstBeatOf(bars[1]);
+    const secondTrackFirstBeat = firstBeatOf(secondTrackBars[0]);
+    const secondTrackSecondBeat = firstBeatOf(secondTrackBars[1]);
+    setBeatFret(firstBeat, 0);
+    setBeatFret(secondBeat, 2);
+    setBeatFret(secondTrackFirstBeat, 4);
+    setBeatFret(secondTrackSecondBeat, 5);
+    const emitSpy = jest.spyOn(trackEvent, "emit");
+    const player = new ScorePlayer(score, track);
+    const playerUUID = player.uuid;
+
+    player.toggleLoop();
+    await player.start({ startBeat: firstBeat });
+    expect(player.isPlaying).toBe(true);
+    expect(player.isLooped).toBe(true);
+    expect(player.playbackRunId).toBe(1);
+    jest.advanceTimersByTime(50);
+
+    expect(player.lastStartedBeat).toBe(firstBeat);
+    emitSpy.mockClear();
+    const oscillatorCountBeforeSwitch = createdOscillators.length;
+
+    expect(player.getCurrentBeatForTrack(secondTrack)).toBe(
+      secondTrackFirstBeat
+    );
+
+    player.setActiveTrack(secondTrack);
+
+    expect(player.uuid).toBe(playerUUID);
+    expect(player.playbackRunId).toBe(1);
+    expect(player.isLooped).toBe(true);
+    expect(player.lastStartedBeat).toBe(secondTrackFirstBeat);
+    expect(player.playbackAnchorBeat).toBe(secondTrackFirstBeat);
+    expect(createdOscillators).toHaveLength(oscillatorCountBeforeSwitch);
+
+    jest.advanceTimersByTime(500);
+
+    const retargetedCalls = emitSpy.mock.calls.filter(
+      ([eventType, args]) =>
+        eventType === TrackEventType.PlayerCurBeatChanged &&
+        "trackUUID" in args &&
+        args.trackUUID === secondTrack.uuid
+    );
+    expect(retargetedCalls).toHaveLength(2);
+    expect(retargetedCalls[0][1]).toEqual(
+      expect.objectContaining({
+        playerUUID: playerUUID,
+        beatUUID: secondTrackFirstBeat.uuid,
+        playbackRunId: 1,
+      })
+    );
+    expect(retargetedCalls[1][1]).toEqual(
+      expect.objectContaining({
+        playerUUID: playerUUID,
+        beatUUID: secondTrackSecondBeat.uuid,
+        playbackRunId: 1,
+      })
+    );
 
     emitSpy.mockRestore();
   });
@@ -1954,6 +2088,30 @@ describe("ScorePlayer", () => {
     expect(oscillatorFrequencies()[0]).toBe(
       getNoteFrequency(firstNoteOfBeat(voiceBar.beats[2]))
     );
+  });
+
+  test("selection looping restores loop mode when it enabled it", () => {
+    const { score, track, bar } = createScoreGraph();
+    const beat = firstBeatOf(bar);
+    const player = new ScorePlayer(score, track);
+
+    player.setSelectionLoopSection(beat, beat);
+    expect(player.isLooped).toBe(true);
+
+    player.clearSelectionLoopSection();
+    expect(player.isLooped).toBe(false);
+  });
+
+  test("selection looping preserves an explicit loop choice", () => {
+    const { score, track, bar } = createScoreGraph();
+    const beat = firstBeatOf(bar);
+    const player = new ScorePlayer(score, track);
+    player.toggleLoop();
+
+    player.setSelectionLoopSection(beat, beat);
+    player.clearSelectionLoopSection();
+
+    expect(player.isLooped).toBe(true);
   });
 
   test("stop is idempotent", async () => {

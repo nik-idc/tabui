@@ -138,7 +138,7 @@ describe("TabUIEditor lifecycle", () => {
     const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
 
     expect(ui.render).toHaveBeenCalledTimes(1);
-    expect(notation.loadTrack).toHaveBeenCalledTimes(1);
+    expect(notation.loadTrack).not.toHaveBeenCalled();
     expect(callbacks.bind).toHaveBeenCalledTimes(1);
     expect(callbacks.unbind).toHaveBeenCalledTimes(1);
     expect(notation.dispose).toHaveBeenCalledTimes(1);

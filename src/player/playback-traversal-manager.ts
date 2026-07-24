@@ -52,6 +52,8 @@ export class PlaybackTraversalManager {
   private _isLooped: boolean;
   /** Selected loop section, if loop playback is bounded by selection. */
   private _loopSection?: PlaybackLoopSection;
+  /** Whether selecting a section implicitly enabled loop mode. */
+  private _selectionLoopEnabledBySelection: boolean;
   /** Active repeat section start index if traversal is inside a repeat. */
   private _repeatStartMasterBarIndex?: number;
   /** Completed repeat passes for the active repeat section. */
@@ -64,6 +66,7 @@ export class PlaybackTraversalManager {
   constructor(score: Score) {
     this.score = score;
     this._isLooped = false;
+    this._selectionLoopEnabledBySelection = false;
     this._repeatPassCount = 0;
   }
 
@@ -472,6 +475,7 @@ export class PlaybackTraversalManager {
   /** Toggles loop mode. */
   public toggleLoop(): void {
     this._isLooped = !this._isLooped;
+    this._selectionLoopEnabledBySelection = false;
   }
 
   /** Clears currently selected loop section. */
@@ -486,6 +490,30 @@ export class PlaybackTraversalManager {
    */
   public setLoopSection(startBeat: Beat, endBeat: Beat): void {
     this._loopSection = { startBeat, endBeat };
+  }
+
+  /** Sets a selection section and reports whether it enabled loop mode. */
+  public setSelectionLoopSection(startBeat: Beat, endBeat: Beat): boolean {
+    this.setLoopSection(startBeat, endBeat);
+    if (this._isLooped) {
+      return false;
+    }
+
+    this._isLooped = true;
+    this._selectionLoopEnabledBySelection = true;
+    return true;
+  }
+
+  /** Clears a selection section and reports whether it disabled loop mode. */
+  public clearSelectionLoopSection(): boolean {
+    this.clearLoopSection();
+    if (!this._selectionLoopEnabledBySelection) {
+      return false;
+    }
+
+    this._isLooped = false;
+    this._selectionLoopEnabledBySelection = false;
+    return true;
   }
 
   /** Indicates if loop mode is enabled. */

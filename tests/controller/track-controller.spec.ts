@@ -1,7 +1,7 @@
-import { TrackController } from "../../src/notation/controller/track-controller";
+import { TrackController as BaseTrackController } from "../../src/notation/controller/track-controller";
+import { ScorePlayer } from "../../src/player";
 import { AppendBeatCommand } from "../../src/notation/controller/editor/command/append-beat-command";
 import { BeatElement } from "../../src/notation/controller/element/beat/beat-element";
-import { TrackElementUpdateDepth } from "../../src/notation/controller/element/track-element";
 import {
   BendTechniqueOptions,
   BendType,
@@ -29,14 +29,21 @@ const mockScorePlayerInstances: Array<{
   isLooped: boolean;
   lastStartedBeat: Beat | undefined;
   playbackAnchorBeat: Beat | undefined;
+  setActiveTrack: jest.Mock;
+  setSelectionLoopSection: jest.Mock;
+  clearSelectionLoopSection: jest.Mock;
   setLoopSection: jest.Mock;
   clearLoopSection: jest.Mock;
   start: jest.Mock;
   stop: jest.Mock;
   toggleLoop: jest.Mock;
+  dispose: jest.Mock;
 }> = [];
 
 function getBeatElements(controller: TrackController) {
+  if (controller.trackElement.materializedLineIndices.size === 0) {
+    controller.trackElement.update();
+  }
   const beatElements: BeatElement[] = [];
 
   for (const trackLine of controller.trackElement.trackLineElements) {
@@ -87,12 +94,16 @@ jest.mock("../../src/player", () => ({
     public isLooped = false;
     public lastStartedBeat: Beat | undefined = undefined;
     public playbackAnchorBeat: Beat | undefined = undefined;
+    public setActiveTrack = jest.fn();
+    public setSelectionLoopSection = jest.fn();
+    public clearSelectionLoopSection = jest.fn();
     public setCurrentBeat(): void {}
     public setLoopSection = jest.fn();
     public clearLoopSection = jest.fn();
     public start = jest.fn();
     public stop = jest.fn();
     public toggleLoop = jest.fn();
+    public dispose = jest.fn();
 
     constructor() {
       mockScorePlayerInstances.push(this);
@@ -100,10 +111,36 @@ jest.mock("../../src/player", () => ({
   },
 }));
 
+class TrackController extends BaseTrackController {
+  constructor(
+    track: ConstructorParameters<typeof BaseTrackController>[0],
+    layoutDimensions: ConstructorParameters<typeof BaseTrackController>[1]
+  ) {
+    super(track, layoutDimensions, new ScorePlayer(track.score, track, {}));
+  }
+}
+
 describe("TrackController", () => {
   beforeEach(() => {
     mockScorePlayerInstances.length = 0;
-    (globalThis as unknown as { window: object }).window = {};
+  });
+
+  test("supports headless use without a score player", () => {
+    const { track } = createScoreGraph();
+    const controller = new BaseTrackController(track, TEST_LAYOUT_DIMENSIONS);
+
+    expect(() => {
+      controller.startPlayer();
+      controller.stopPlayer();
+      controller.toggleLoop();
+      controller.syncTrackPlaybackState();
+      controller.syncMasterPlaybackState();
+    }).not.toThrow();
+    expect(controller.isPlaying).toBe(false);
+    expect(controller.isLooped).toBe(false);
+    expect(controller.playerCurrentTime).toBeUndefined();
+    expect(controller.playerRunId).toBeUndefined();
+    expect(controller.playerUUID).toBeUndefined();
   });
 
   test("moving right from the seed beat appends a second beat", () => {
@@ -128,9 +165,9 @@ describe("TrackController", () => {
 
     controller.startPlayer();
 
-    expect(mockScorePlayerInstances[0].clearLoopSection).toHaveBeenCalledTimes(
-      1
-    );
+    expect(
+      mockScorePlayerInstances[0].clearSelectionLoopSection
+    ).toHaveBeenCalledTimes(1);
     expect(mockScorePlayerInstances[0].start).toHaveBeenCalledTimes(1);
   });
 
@@ -145,11 +182,10 @@ describe("TrackController", () => {
 
     controller.startPlayer();
 
-    expect(player.setLoopSection).toHaveBeenCalledWith(
+    expect(player.setSelectionLoopSection).toHaveBeenCalledWith(
       beatElements[0].beat,
       beatElements[1].beat
     );
-    expect(player.toggleLoop).toHaveBeenCalledTimes(1);
     expect(player.start).toHaveBeenCalledWith({
       startBeat: beatElements[0].beat,
       loopEndBeat: beatElements[1].beat,
@@ -170,8 +206,8 @@ describe("TrackController", () => {
     player.isPlaying = true;
     controller.restartPlayerFromBeat(beatElements[1].beat);
 
-    expect(player.clearLoopSection).toHaveBeenCalledTimes(1);
-    expect(player.toggleLoop).not.toHaveBeenCalled();
+    expect(player.clearSelectionLoopSection).toHaveBeenCalledTimes(1);
+    expect(player.setSelectionLoopSection).toHaveBeenCalledTimes(1);
   });
 
   test("playback seek disables only selection-enabled looping", () => {
@@ -187,8 +223,8 @@ describe("TrackController", () => {
 
     controller.restartPlayerFromBeat(beatElements[1].beat);
 
-    expect(player.clearLoopSection).toHaveBeenCalledTimes(1);
-    expect(player.toggleLoop).toHaveBeenCalledTimes(2);
+    expect(player.clearSelectionLoopSection).toHaveBeenCalledTimes(1);
+    expect(player.setSelectionLoopSection).toHaveBeenCalledTimes(1);
   });
 
   test("loop toggle does not restart active playback", () => {
@@ -276,9 +312,9 @@ describe("TrackController", () => {
 
     expect(controller.selectedNote).toBeUndefined();
     expect(controller.selectionBeats).toEqual([]);
-    expect(mockScorePlayerInstances[0].clearLoopSection).toHaveBeenCalledTimes(
-      1
-    );
+    expect(
+      mockScorePlayerInstances[0].clearSelectionLoopSection
+    ).toHaveBeenCalledTimes(1);
     expect(mockScorePlayerInstances[0].start).toHaveBeenCalledWith({
       startBeat: targetBeatElement.beat,
     });
@@ -502,8 +538,8 @@ describe("TrackController", () => {
 
     expect(controller.activeVoiceNumber).toBe(2);
     expect(updateSpy).toHaveBeenCalledTimes(1);
-    expect(updateSpy).toHaveBeenCalledWith(0, 0, {
-      depth: TrackElementUpdateDepth.Elements,
+    expect(updateSpy).toHaveBeenCalledWith({
+      affectedMasterBarIndices: [0],
     });
   });
 
@@ -522,8 +558,8 @@ describe("TrackController", () => {
 
     expect(secondBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectedNote?.bar).toBe(secondBar);
-    expect(updateSpy).toHaveBeenCalledWith(0, 0, {
-      depth: TrackElementUpdateDepth.Elements,
+    expect(updateSpy).toHaveBeenCalledWith({
+      affectedMasterBarIndices: [1],
     });
     expect(
       controller.trackElement.getBeatElement(controller.selectedNote!.beat)
@@ -551,8 +587,8 @@ describe("TrackController", () => {
 
     expect(firstBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectedNote?.bar).toBe(firstBar);
-    expect(updateSpy).toHaveBeenCalledWith(0, 0, {
-      depth: TrackElementUpdateDepth.Elements,
+    expect(updateSpy).toHaveBeenCalledWith({
+      affectedMasterBarIndices: [0],
     });
     expect(
       controller.trackElement.getBeatElement(controller.selectedNote!.beat)

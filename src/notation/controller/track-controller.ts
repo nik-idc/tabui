@@ -16,7 +16,6 @@ import { SelectedNote, SelectedMoveDirection } from "./selection/selected-note";
 import { CommandManager } from "./editor/command/command-manager";
 import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
-import { ResolvedPlaybackConfig } from "../../config/tabui-config";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
 
 /**
@@ -32,10 +31,8 @@ export class TrackController {
   private _trackElement: TrackElement;
   /** Track controller editor */
   private _trackControllerEditor: TrackControllerEditor;
-  /** Score player (undefined if testing outside of a browser) */
-  private _scorePlayer: ScorePlayer | undefined;
-  /** Whether the current loop mode was enabled automatically by a selection. */
-  private _loopEnabledBySelection: boolean;
+  /** Optional score-wide player provided by the owning runtime. */
+  private readonly _scorePlayer?: ScorePlayer;
 
   /**
    * Class that handles editing, playing & calculating geometry of a track
@@ -44,24 +41,14 @@ export class TrackController {
   constructor(
     track: Track,
     layoutDimensions: EditorLayoutDimensions,
-    playbackConfig: ResolvedPlaybackConfig = {}
+    scorePlayer?: ScorePlayer
   ) {
     this.track = track;
     this.layoutDimensions = layoutDimensions;
 
     this._trackElement = new TrackElement(this.track, this.layoutDimensions);
     this._trackControllerEditor = new TrackControllerEditor(this._trackElement);
-    this._loopEnabledBySelection = false;
-
-    if (typeof window !== "undefined") {
-      this._scorePlayer = new ScorePlayer(
-        this.track.score,
-        this.track,
-        playbackConfig
-      );
-    } else {
-      this._scorePlayer = undefined;
-    }
+    this._scorePlayer = scorePlayer;
 
     this._trackControllerEditor.selectFirstNote();
   }
@@ -78,17 +65,13 @@ export class TrackController {
       this._trackControllerEditor.selectionManager.selectionAsBeats;
     const playbackOptions: PlaybackOptions = { startBeat: selection[0] };
     if (selection.length > 1) {
-      this._scorePlayer.setLoopSection(
+      this._scorePlayer.setSelectionLoopSection(
         selection[0],
         selection[selection.length - 1]
       );
-      if (!this._scorePlayer.isLooped) {
-        this._scorePlayer.toggleLoop();
-        this._loopEnabledBySelection = true;
-      }
       playbackOptions.loopEndBeat = selection[selection.length - 1];
     } else {
-      this.clearSelectionLoopSection();
+      this._scorePlayer.clearSelectionLoopSection();
     }
 
     void this._scorePlayer.start(playbackOptions);
@@ -98,35 +81,19 @@ export class TrackController {
    * Stops player
    */
   public stopPlayer(): void {
-    if (this._scorePlayer === undefined) {
-      return;
-    }
-
-    this._scorePlayer.stop();
+    this._scorePlayer?.stop();
   }
 
   /** Clears edit selection and seeks active playback to the provided beat. */
   public restartPlayerFromBeat(beat: Beat): void {
-    if (this._scorePlayer === undefined || !this._scorePlayer.isPlaying) {
+    if (!this._scorePlayer?.isPlaying) {
       return;
     }
 
     this._trackControllerEditor.clearSelection();
     this._trackControllerEditor.clearSelectedNote();
-    this.clearSelectionLoopSection();
+    this._scorePlayer.clearSelectionLoopSection();
     void this._scorePlayer.start({ startBeat: beat });
-  }
-
-  private clearSelectionLoopSection(): void {
-    if (this._scorePlayer === undefined) {
-      return;
-    }
-
-    this._scorePlayer.clearLoopSection();
-    if (this._loopEnabledBySelection) {
-      this._scorePlayer.toggleLoop();
-      this._loopEnabledBySelection = false;
-    }
   }
 
   private getBarPlaybackStartBeat(
@@ -288,7 +255,6 @@ export class TrackController {
     }
 
     this._scorePlayer.toggleLoop();
-    this._loopEnabledBySelection = false;
   }
 
   /** Applies current track playback-control state to active playback nodes. */
@@ -296,17 +262,16 @@ export class TrackController {
     this._scorePlayer?.syncTrackPlaybackState();
   }
 
+  /** Applies score-wide playback-control state to active playback nodes. */
+  public syncMasterPlaybackState(): void {
+    this._scorePlayer?.syncMasterPlaybackState();
+  }
+
   public moveTrack(track: Track, targetIndex: number): void {
     if (this.isPlaying) {
       return;
     }
     this.track.score.moveTrack(track, targetIndex);
-  }
-
-  /** Disposes runtime resources owned by the controller */
-  public dispose(): void {
-    this._scorePlayer?.dispose();
-    this._scorePlayer = undefined;
   }
 
   /** Undo previous action */
@@ -327,22 +292,14 @@ export class TrackController {
     this._trackControllerEditor.syncSelection();
   }
 
-  /** True if playing, false if not/player undefined */
+  /** True while score playback is active. */
   public get isPlaying(): boolean {
-    if (this._scorePlayer === undefined) {
-      return false;
-    }
-
-    return this._scorePlayer.isPlaying;
+    return this._scorePlayer?.isPlaying ?? false;
   }
 
-  /** True if looped, false if not/player undefined */
+  /** True while score playback is looped. */
   public get isLooped(): boolean {
-    if (this._scorePlayer === undefined) {
-      return false;
-    }
-
-    return this._scorePlayer.isLooped;
+    return this._scorePlayer?.isLooped ?? false;
   }
 
   /** Currently selected note, or undefined if no note is selected */
@@ -617,10 +574,7 @@ export class TrackController {
 
   /** Last started beat element of the player on the active track. */
   public get playerLastStartedBeatElement(): BeatElement | undefined {
-    if (
-      this._scorePlayer === undefined ||
-      this._scorePlayer.lastStartedBeat === undefined
-    ) {
+    if (this._scorePlayer?.lastStartedBeat === undefined) {
       return undefined;
     }
 

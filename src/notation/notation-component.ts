@@ -8,6 +8,7 @@ import { ElementRenderer } from "./render/element-renderer";
 import { TrackController } from "./controller";
 import { ResolvedTabUIConfig } from "../config/tabui-config";
 import { EditorLayoutDimensions } from "./controller/editor-layout-dimensions";
+import { ScorePlayer } from "../player";
 
 /**
  * Responsible for controllong everything notation-wise
@@ -26,6 +27,10 @@ export class NotationComponent {
 
   /** Track controller */
   private _trackController: TrackController;
+  /** Score-wide player owned by this notation component. */
+  private readonly _scorePlayer: ScorePlayer;
+  /** True after the notation component has been disposed. */
+  private _disposed: boolean = false;
 
   /**
    * Responsible for controllong everything notation-wise
@@ -44,10 +49,15 @@ export class NotationComponent {
     this.rootDiv = notationHostDiv;
     this.config = config;
     this.layoutDimensions = layoutDimensions;
+    this._scorePlayer = new ScorePlayer(
+      this.score,
+      this.score.tracks[0],
+      this.config.playback
+    );
     this._trackController = new TrackController(
       this.score.tracks[0],
       this.layoutDimensions,
-      this.config.playback
+      this._scorePlayer
     );
     this._renderer =
       renderer === undefined
@@ -73,28 +83,45 @@ export class NotationComponent {
    * @returns Active renderers
    */
   public loadTrack(newTrack: Track): ElementRenderer[] {
-    this._trackController.dispose();
+    const newTrackPlaybackBeat =
+      this._scorePlayer.getCurrentBeatForTrack(newTrack);
     this._renderer.dispose();
 
     // Render new stuff
     const newTrackController = new TrackController(
       newTrack,
       this.layoutDimensions,
-      this.config.playback
+      this._scorePlayer
     );
     this._trackController = newTrackController;
-    this._renderer = new EditorSVGRenderer(
+    const renderer = new EditorSVGRenderer(
       this.rootDiv,
       this._trackController,
       this.config.assets
     );
-    this._trackController.trackElement.update(0, Number.MAX_SAFE_INTEGER);
-    return this._renderer.render();
+    this._renderer = renderer;
+    if (newTrackPlaybackBeat !== undefined) {
+      const playbackLine =
+        this._trackController.trackElement.getTrackLineElementForBeat(
+          newTrackPlaybackBeat
+        );
+      if (playbackLine !== undefined) {
+        renderer.prepareViewportForTrackLine(playbackLine);
+      }
+    }
+    const activeRenderers = renderer.render();
+    this._scorePlayer.setActiveTrack(newTrack);
+    return activeRenderers;
   }
 
   public dispose(): void {
-    this._trackController.dispose();
+    if (this._disposed) {
+      return;
+    }
+
+    this._disposed = true;
     this._renderer.dispose();
+    this._scorePlayer.dispose();
   }
 
   /**
