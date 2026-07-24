@@ -90,7 +90,7 @@ export class ScoreControlsTemplateRenderer {
     );
   }
 
-  private renderMasterVolumeInput(): void {
+  private renderMasterVolumeInput(score: Score): void {
     const cssClass = "tu-master-volume-input";
     this.template.masterVolumeInput.classList.add(cssClass);
     this.template.masterVolumeInput.type = "range";
@@ -98,10 +98,10 @@ export class ScoreControlsTemplateRenderer {
     this.template.masterVolumeInput.max = `${maxVolume}`;
     this.template.masterVolumeInput.step = `${volumeStep}`;
 
-    this.template.masterVolumeInput.value = `${(minVolume + maxVolume) / 2}`;
+    this.template.masterVolumeInput.value = `${score.masterVolume * 100}`;
   }
 
-  private renderMasterPanningInput(): void {
+  private renderMasterPanningInput(score: Score): void {
     const cssClass = "tu-master-panning-input";
     this.template.masterPanningInput.classList.add(cssClass);
     this.template.masterPanningInput.type = "range";
@@ -109,7 +109,7 @@ export class ScoreControlsTemplateRenderer {
     this.template.masterPanningInput.max = `${maxPanning}`;
     this.template.masterPanningInput.step = `${panningStep}`;
 
-    this.template.masterPanningInput.value = `${0}`;
+    this.template.masterPanningInput.value = `${score.masterPan}`;
   }
 
   private renderScoreNameInput(): void {
@@ -130,8 +130,8 @@ export class ScoreControlsTemplateRenderer {
 
     this.renderShowButton();
     this.renderNewTrackButton();
-    this.renderMasterVolumeInput();
-    this.renderMasterPanningInput();
+    this.renderMasterVolumeInput(score);
+    this.renderMasterPanningInput(score);
     this.renderScoreNameInput();
     this.renderTracksContainer();
 

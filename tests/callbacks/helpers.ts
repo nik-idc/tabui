@@ -90,6 +90,7 @@ export function createNotationComponentMock() {
       stopPlayer: jest.fn(),
       toggleLoop: jest.fn(),
       syncTrackPlaybackState: jest.fn(),
+      syncMasterPlaybackState: jest.fn(),
       moveTrack: jest.fn(),
       setSelectedBarTempo: jest.fn(),
       setSelectedBarTimeSignature: jest.fn(),

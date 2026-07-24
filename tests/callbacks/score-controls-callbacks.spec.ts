@@ -74,13 +74,13 @@ describe("ScoreControlsDefaultCallbacks", () => {
     const captureKeyboard = jest.fn();
     const freeKeyboard = jest.fn();
     const showTrackSettings = jest.fn();
-    const score = { name: "Old" };
+    const score = { name: "Old", masterVolume: 1, masterPan: 0 };
     const component = {
       template: {
         showTracksButton: makeButton(),
         newTrackButton: makeButton(),
-        masterVolumeInput: makeButton(),
-        masterPanningInput: makeButton(),
+        masterVolumeInput: makeInput("75"),
+        masterPanningInput: makeInput("-0.5"),
         scoreNameInput: makeInput("New Name"),
       },
       newTrackComponent: {},
@@ -111,6 +111,8 @@ describe("ScoreControlsDefaultCallbacks", () => {
     callbacks.bind();
     dispatchClick(component.template.showTracksButton);
     dispatchClick(component.template.newTrackButton);
+    dispatchInput(component.template.masterVolumeInput, "75");
+    dispatchInput(component.template.masterPanningInput, "-0.5");
     dispatchInput(component.template.scoreNameInput, "New Name");
     dispatchEvent(component.template.scoreNameInput, "focus");
     dispatchEvent(component.template.scoreNameInput, "focusout");
@@ -119,6 +121,11 @@ describe("ScoreControlsDefaultCallbacks", () => {
     expect(component.render).toHaveBeenCalledTimes(1);
     expect(trackBindSpy).toHaveBeenCalledTimes(4);
     expect(component.showNewTrackDialog).toHaveBeenCalledTimes(1);
+    expect(score.masterVolume).toBe(0.75);
+    expect(score.masterPan).toBe(-0.5);
+    expect(
+      notationComponent.trackController.syncMasterPlaybackState
+    ).toHaveBeenCalledTimes(2);
     expect(captureKeyboard).toHaveBeenCalledTimes(2);
     expect(score.name).toBe("New Name");
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
@@ -150,5 +157,32 @@ describe("ScoreControlsDefaultCallbacks", () => {
     trackSettingsUnbindSpy.mockRestore();
     yesNoBindSpy.mockRestore();
     yesNoUnbindSpy.mockRestore();
+  });
+
+  test("master controls render score state without resetting it", () => {
+    const masterVolumeInput = {
+      classList: { add: jest.fn() },
+      value: "",
+      type: "",
+      min: "",
+      max: "",
+      step: "",
+    };
+    const masterPanningInput = {
+      classList: { add: jest.fn() },
+      value: "",
+      type: "",
+      min: "",
+      max: "",
+      step: "",
+    };
+    const renderer = Object.create(ScoreControlsTemplateRenderer.prototype);
+    renderer.template = { masterVolumeInput, masterPanningInput };
+
+    renderer.renderMasterVolumeInput({ masterVolume: 0.7 });
+    renderer.renderMasterPanningInput({ masterPan: -0.25 });
+
+    expect(masterVolumeInput.value).toBe("70");
+    expect(masterPanningInput.value).toBe("-0.25");
   });
 });

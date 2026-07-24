@@ -56,6 +56,9 @@ export class TabUICallbacks {
     this._mouseCallbacks.unbind();
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
+    this._notationComponent.renderer.attachViewportScrollEvent(() =>
+      this.render(RenderType.NotationOnly)
+    );
 
     this._uiCallbacks.unbind();
     this._uiComponent.render();
@@ -65,6 +68,9 @@ export class TabUICallbacks {
   private renderNotationOnly(): void {
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
+    this._notationComponent.renderer.attachViewportScrollEvent(() =>
+      this.render(RenderType.NotationOnly)
+    );
   }
 
   private renderSelectionOverlayAndUI(): void {
@@ -88,6 +94,9 @@ export class TabUICallbacks {
       overlays: { selection: true, player: true },
     });
     this._mouseCallbacks.bind(activeRenderers);
+    this._notationComponent.renderer.attachViewportScrollEvent(() =>
+      this.render(RenderType.NotationOnly)
+    );
 
     this._uiCallbacks.unbind();
     this._uiComponent.render();

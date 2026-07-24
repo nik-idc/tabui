@@ -106,11 +106,16 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   onMasterVolumeChanged(): void {
-    throw new Error("Method not implemented");
+    this._scoreComponent.score.masterVolume =
+      Number(this._scoreComponent.template.masterVolumeInput.value) / 100;
+    this._notationComponent.trackController.syncMasterPlaybackState();
   }
 
   onMasterPanningChanged(): void {
-    throw new Error("Method not implemented");
+    this._scoreComponent.score.masterPan = Number(
+      this._scoreComponent.template.masterPanningInput.value
+    );
+    this._notationComponent.trackController.syncMasterPlaybackState();
   }
 
   onScoreNameChanged(): void {
@@ -169,12 +174,12 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
       },
       {
         element: this._scoreComponent.template.masterVolumeInput,
-        event: "change",
+        event: "input",
         handler: () => this.onMasterVolumeChanged(),
       },
       {
         element: this._scoreComponent.template.masterPanningInput,
-        event: "change",
+        event: "input",
         handler: () => this.onMasterPanningChanged(),
       },
       {
