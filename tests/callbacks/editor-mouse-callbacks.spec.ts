@@ -259,6 +259,14 @@ describe("EditorMouseDefCallbacks", () => {
     expect(dragController.reset).toHaveBeenCalledTimes(1);
   });
 
+  test("idle global mouseup does not render", () => {
+    const { callbacks, renderFunc } = createHarness();
+
+    callbacks.onBeatMouseUp();
+
+    expect(renderFunc).not.toHaveBeenCalled();
+  });
+
   test("bind and unbind manage global, delegated, and note renderer listeners without leaks", () => {
     const { callbacks, noteElement, renderer, notationComponent, renderFunc } =
       createHarness();

@@ -21,6 +21,8 @@ export class TabUICallbacks {
   private _notationRenderRafId?: number;
   /** Pending requestAnimationFrame id for coalesced selection/UI updates. */
   private _selectionRenderRafId?: number;
+  private _bound = false;
+  private _keyboardCaptured = false;
 
   constructor(
     uiComponent: UIComponent,
@@ -176,14 +178,33 @@ export class TabUICallbacks {
   }
 
   private captureKeyboard(): void {
+    if (!this._bound || this._keyboardCaptured) {
+      return;
+    }
+
+    this._keyboardCaptured = true;
     this._keyboardCallbacks.unbind();
   }
 
   private freeKeyboard(): void {
+    if (!this._keyboardCaptured) {
+      return;
+    }
+
+    this._keyboardCaptured = false;
+    if (!this._bound) {
+      return;
+    }
+
     this._keyboardCallbacks.bind();
   }
 
   public bind(): void {
+    if (this._bound) {
+      return;
+    }
+
+    this._bound = true;
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
     this._notationComponent.renderer.attachViewportScrollEvent(() =>
@@ -196,10 +217,16 @@ export class TabUICallbacks {
   }
 
   public unbind(): void {
+    if (!this._bound) {
+      return;
+    }
+
     this.cancelPendingNotationRender();
     this.cancelPendingSelectionRender();
     this._mouseCallbacks.unbind();
     this._notationComponent.renderer.detachViewportScrollEvent();
+    this.freeKeyboard();
+    this._bound = false;
     this._keyboardCallbacks.unbind();
     this._uiCallbacks.unbind();
   }

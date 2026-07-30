@@ -61,7 +61,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       )
     ) {
       this._newTrackComponent.template.dialog.close();
-      this._freeKeyboard();
     }
   }
 
@@ -85,16 +84,17 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     const trackNameError = this._newTrackComponent.template.trackNameError;
     const confirmButton = this._newTrackComponent.template.confirmButton;
 
+    const trackName = trackNameInput.value.trim();
     if (
-      trackNameInput.value.length < this._minTrackNameLength ||
-      trackNameInput.value.length > this._maxTrackNameLength
+      trackName.length < this._minTrackNameLength ||
+      trackName.length > this._maxTrackNameLength
     ) {
       trackNameError.textContent = this.trackNameErrorText;
       confirmButton.disabled = true;
     } else {
       trackNameError.textContent = " ";
       confirmButton.disabled = false;
-      this._newTrackComponent.setTrackName(trackNameInput.value);
+      this._newTrackComponent.setTrackName(trackName);
     }
   }
 
@@ -112,18 +112,37 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
 
   onConfirmClicked(): void {
     if (this._notationComponent.trackController.isPlaying) {
+      this._newTrackComponent.template.dialog.close();
+      return;
+    }
+    this.onTrackNameChanged();
+    if (this._newTrackComponent.template.confirmButton.disabled) {
       return;
     }
     this._notationComponent.loadTrack(this._newTrackComponent.makeTrack());
     this._renderFunc();
 
     this._newTrackComponent.template.dialog.close();
-    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._newTrackComponent.template.dialog.close();
-    this._freeKeyboard();
+  }
+
+  onKeydown(event: KeyboardEvent): void {
+    const template = this._newTrackComponent.template;
+    const canConfirm =
+      event.target === template.dialog ||
+      event.target === template.trackNameInput ||
+      event.target === template.confirmButton;
+    if (
+      event.key === "Enter" &&
+      canConfirm &&
+      !template.confirmButton.disabled
+    ) {
+      event.preventDefault();
+      this.onConfirmClicked();
+    }
   }
 
   bind(): void {
@@ -134,6 +153,18 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       event: "click",
       handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
     });
+    configs.push(
+      {
+        element: this._newTrackComponent.template.dialog as HTMLElement,
+        event: "close",
+        handler: () => this._freeKeyboard(),
+      },
+      {
+        element: this._newTrackComponent.template.dialog as HTMLElement,
+        event: "keydown",
+        handler: (event: KeyboardEvent) => this.onKeydown(event),
+      }
+    );
 
     const families = Object.values(InstrumentFamily);
     const familiesButtons =

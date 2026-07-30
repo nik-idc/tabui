@@ -72,7 +72,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       )
     ) {
       this._trackSettingsComponent.template.dialog.close();
-      this._freeKeyboard();
     }
   }
 
@@ -90,6 +89,7 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
 
   onConfirmClicked(): void {
     if (this._notationComponent.trackController.isPlaying) {
+      this._trackSettingsComponent.template.dialog.close();
       return;
     }
     this._trackSettingsComponent.applyTrackSettings();
@@ -102,12 +102,22 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
     this._renderFunc();
 
     this._trackSettingsComponent.template.dialog.close();
-    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._trackSettingsComponent.template.dialog.close();
-    this._freeKeyboard();
+  }
+
+  onKeydown(event: KeyboardEvent): void {
+    const template = this._trackSettingsComponent.template;
+    if (
+      event.key === "Enter" &&
+      (event.target === template.dialog ||
+        event.target === template.confirmButton)
+    ) {
+      event.preventDefault();
+      this.onConfirmClicked();
+    }
   }
 
   bind(): void {
@@ -118,6 +128,18 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
+    configs.push(
+      {
+        element: this._trackSettingsComponent.template.dialog as HTMLElement,
+        event: "close",
+        handler: () => this._freeKeyboard(),
+      },
+      {
+        element: this._trackSettingsComponent.template.dialog as HTMLElement,
+        event: "keydown",
+        handler: (event: KeyboardEvent) => this.onKeydown(event),
+      }
+    );
 
     const families = Object.values(InstrumentFamily);
     const familiesButtons =

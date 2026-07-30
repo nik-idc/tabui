@@ -290,8 +290,13 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Finalizes current drag-selection interaction.
    */
   public onBeatMouseUp(): void {
+    const interactionActive =
+      this._selectionDragController.isSelectingBeats ||
+      this._selectionDragController.isDragPending;
     this._selectionDragController.reset();
-    this.renderFunc(RenderType.DragSelection);
+    if (interactionActive) {
+      this.renderFunc(RenderType.DragSelection);
+    }
   }
 
   /**
