@@ -342,7 +342,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     this._textSVG.setAttribute("x", x);
     this._textSVG.setAttribute("y", y);
     this._textSVG.setAttribute("fill", "var(--tu-notation-text)");
-    this._textSVG.textContent = `${note.fret}`;
+    this._textSVG.textContent = this.noteElement.noteText;
     this._containerGroupSVG.appendChild(this._textSVG);
   }
 

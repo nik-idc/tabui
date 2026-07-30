@@ -8,7 +8,7 @@ export class FakeElement {
   classList = {
     toggle: jest.fn(),
   };
-  close = jest.fn();
+  close = jest.fn(() => this.dispatch("close"));
   setAttribute = jest.fn();
 
   private _children: FakeElement[] = [];

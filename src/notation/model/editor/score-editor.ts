@@ -1,6 +1,5 @@
 import {
   BendTechniqueOptions,
-  GuitarTechnique,
   MasterBar,
   MasterBarData,
   MasterBarArrayOperationOutput,
@@ -180,27 +179,25 @@ export class ScoreEditor {
     bendOptions: BendTechniqueOptions | null = null
   ): boolean {
     let changesMade = false;
-
     const hasAnyWithTechnique = notes.some((n) => n.hasTechnique(type));
-    if (hasAnyWithTechnique) {
-      for (const note of notes) {
-        if (note.removeTechnique(type)) {
-          changesMade = true;
-        }
+    const removeFromSelection = hasAnyWithTechnique && bendOptions === null;
+
+    for (const note of notes) {
+      if (!(note instanceof GuitarNote)) {
+        continue;
       }
-    } else {
-      for (const note of notes) {
-        if (note instanceof GuitarNote) {
-          if (note.addTechnique(new GuitarTechnique(note, type, bendOptions))) {
-            changesMade = true;
-          }
-        }
+
+      if (removeFromSelection && !note.hasTechnique(type)) {
+        continue;
+      }
+
+      if (note.setTechnique(type, bendOptions)) {
+        changesMade = true;
       }
     }
 
     return changesMade;
   }
-
   /**
    * Set beat duration
    * @param beat Beat

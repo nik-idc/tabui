@@ -4,6 +4,7 @@ import { createDiv, createImage } from "../../../shared";
  * Interface defining the template of technique controls:
  * - Vibrato
  * - P.M.
+ * - Let Ring
  * - NH
  * - PH
  * - Hammer-on
@@ -16,6 +17,7 @@ export class TechniqueControlsTemplate {
 
   readonly vibratoButton: HTMLImageElement = createImage();
   readonly palmMuteButton: HTMLImageElement = createImage();
+  readonly letRingButton: HTMLImageElement = createImage();
   readonly nhButton: HTMLImageElement = createImage();
   readonly phButton: HTMLImageElement = createImage();
   readonly hammerOnButton: HTMLImageElement = createImage();

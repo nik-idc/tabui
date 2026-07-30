@@ -249,6 +249,63 @@ export class GuitarTechniqueElement implements TechniqueElement {
     ];
   }
 
+  private createHoldPath(): void {
+    this._pathDescriptors = [];
+  }
+
+  private createReleasePath(): void {
+    const verticalOffset =
+      this.noteElement.boundingBox.height * (this.note.stringNum - 1) +
+      this.noteElement.boundingBox.height / 2;
+    const releaseX = this._startPoint.x;
+    const releaseY = this._startPoint.y - verticalOffset;
+    const releaseWidth = this.noteElement.boundingBox.width / 2;
+    const releaseCurve = GuitarTechniqueDescriptors.createDownCurvePath(
+      releaseX,
+      releaseY,
+      releaseWidth,
+      this.noteElement.boundingBox.height / 4,
+      verticalOffset
+    );
+    const releaseArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
+      releaseX + releaseWidth,
+      releaseY + verticalOffset,
+      false
+    );
+    this._pathDescriptors = [releaseCurve, releaseArrow];
+  }
+
+  private createPrebendBendPath(): void {
+    const verticalOffset =
+      this.noteElement.boundingBox.height * (this.note.stringNum - 1) +
+      this.noteElement.boundingBox.height / 2;
+    const prebendX =
+      this._startPoint.x + this.noteElement.boundingBox.width / 4;
+    const prebendY = this._startPoint.y;
+    const prebendLine = GuitarTechniqueDescriptors.createVerticalLinePath(
+      prebendX,
+      prebendY,
+      verticalOffset
+    );
+    const prebendTopY = prebendY - verticalOffset;
+    const prebendArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
+      prebendX,
+      prebendTopY
+    );
+    const bendHeight = this.noteElement.boundingBox.height / 2;
+    const bendCurve = GuitarTechniqueDescriptors.createUpCurvePath(
+      prebendX,
+      prebendTopY,
+      this.noteElement.boundingBox.width / 4,
+      bendHeight
+    );
+    const bendArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
+      prebendX + this.noteElement.boundingBox.width / 4,
+      prebendTopY - bendHeight
+    );
+    this._pathDescriptors = [prebendLine, prebendArrow, bendCurve, bendArrow];
+  }
+
   /**
    * Calc slide path
    */
@@ -365,7 +422,11 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calculate path for a specific bend type
    */
   private createBendTechPath(): void {
-    switch (this.technique.bendOptions?.type) {
+    const bendOptions = this.technique.bendOptions;
+    if (bendOptions === null) {
+      throw Error("Bend technique requires options");
+    }
+    switch (bendOptions.type) {
       case BendType.Bend:
         this.createBendPath();
         break;
@@ -378,8 +439,15 @@ export class GuitarTechniqueElement implements TechniqueElement {
       case BendType.PrebendAndRelease:
         this.createPrebendAndReleasePath();
         break;
-      default:
-        throw Error("Bend without optoons");
+      case BendType.Hold:
+        this.createHoldPath();
+        break;
+      case BendType.PrebendBend:
+        this.createPrebendBendPath();
+        break;
+      case BendType.Release:
+        this.createReleasePath();
+        break;
     }
   }
 

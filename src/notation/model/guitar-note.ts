@@ -14,7 +14,12 @@ import {
   getSemitonesFromNote,
 } from "./note";
 import { GuitarTechniqueType } from "./technique-type";
-import { TECHNIQUES_INCOMPATIBILITY } from "./guitar-technique-lists";
+import {
+  BEND_TYPE_INCOMPATIBILITY,
+  TECHNIQUES_INCOMPATIBILITY,
+} from "./guitar-technique-lists";
+import { BendTechniqueOptions, MAX_BEND_PITCH } from "./bend-options";
+import { BendType } from "./bend-type";
 
 /**
  * Guitar note JSON format
@@ -185,19 +190,106 @@ export class GuitarNote implements Note<Guitar> {
     }
   }
 
+  public getBendContinuationPitch(): number | undefined {
+    if (!this.hasTechnique(GuitarTechniqueType.LetRing)) {
+      return undefined;
+    }
+    const previousBeat = this.beat.voiceBar.bar.staff.getPrevBeat(this.beat);
+    const previousNote = previousBeat?.notes?.find(
+      (n) => n instanceof GuitarNote && n.stringNum === this.stringNum
+    );
+    if (!(previousNote instanceof GuitarNote)) {
+      return undefined;
+    }
+    const previousBend = previousNote.techniques.find(
+      (t) => t.type === GuitarTechniqueType.Bend
+    );
+    return previousBend?.bendOptions?.terminalPitch;
+  }
+
+  private bendInvalidForContinuation(
+    bendOptions: BendTechniqueOptions
+  ): boolean {
+    if (
+      bendOptions.type !== BendType.Bend &&
+      bendOptions.type !== BendType.BendAndRelease
+    ) {
+      return false;
+    }
+
+    const continuationPitch = this.getBendContinuationPitch();
+    if (continuationPitch === undefined) {
+      return false;
+    }
+    if (continuationPitch >= MAX_BEND_PITCH) {
+      return true;
+    }
+    return (
+      bendOptions.bendPitch !== undefined &&
+      bendOptions.bendPitch < continuationPitch
+    );
+  }
+
+  /**
+   * Applies, updates, or removes a technique on this note.
+   */
+  public setTechnique(
+    type: GuitarTechniqueType,
+    bendOptions: BendTechniqueOptions | null = null
+  ): boolean {
+    const existingTechnique = this._techniques.find((t) => t.type === type);
+    if (existingTechnique !== undefined) {
+      if (
+        existingTechnique.type === GuitarTechniqueType.Bend &&
+        bendOptions !== null
+      ) {
+        if (this.bendInvalidForContinuation(bendOptions)) {
+          return false;
+        }
+        const incompatibleTypes = BEND_TYPE_INCOMPATIBILITY[bendOptions.type];
+        if (
+          this._techniques.some(
+            (t) => t !== existingTechnique && incompatibleTypes.includes(t.type)
+          )
+        ) {
+          return false;
+        }
+        return existingTechnique.replaceBendOptions(bendOptions);
+      }
+      return this.removeTechnique(type);
+    }
+
+    return this.addTechnique(new GuitarTechnique(this, type, bendOptions));
+  }
+
   /**
    * Adds new technique to the note
    * @param guitarTechnique Guitar technique to add
    * @returns True if technique added succesfully, false if can't add this technique
    */
   public addTechnique(guitarTechnique: GuitarTechnique): boolean {
+    if (
+      guitarTechnique.bendOptions !== null &&
+      this.bendInvalidForContinuation(guitarTechnique.bendOptions)
+    ) {
+      return false;
+    }
+
     // Check if technique to be added is compatible with all the other techniques
     for (const technique of this._techniques) {
       const curIncompatibility = TECHNIQUES_INCOMPATIBILITY[technique.type];
+      const existingBendIncompatibility =
+        technique.bendOptions === null
+          ? []
+          : BEND_TYPE_INCOMPATIBILITY[technique.bendOptions.type];
+      const addedBendIncompatibility =
+        guitarTechnique.bendOptions === null
+          ? []
+          : BEND_TYPE_INCOMPATIBILITY[guitarTechnique.bendOptions.type];
       if (
-        curIncompatibility.some((incompatibleType) => {
-          return incompatibleType === guitarTechnique.type;
-        })
+        curIncompatibility.includes(guitarTechnique.type) ||
+        existingBendIncompatibility.includes(guitarTechnique.type) ||
+        addedBendIncompatibility.includes(technique.type)
       ) {
         // One of the techniques is incompatible with the
         // to be added technique => discard and return false

@@ -22,6 +22,7 @@ describe("TechniqueControlsDefaultCallbacks", () => {
       template: {
         vibratoButton: makeButton(),
         palmMuteButton: makeButton(),
+        letRingButton: makeButton(),
         nhButton: makeButton(),
         phButton: makeButton(),
         hammerOnButton: makeButton(),
@@ -43,6 +44,7 @@ describe("TechniqueControlsDefaultCallbacks", () => {
     callbacks.bind();
     callbacks.bind();
     dispatchClick(component.template.vibratoButton);
+    dispatchClick(component.template.letRingButton);
     dispatchClick(component.template.pullOffButton);
     dispatchClick(component.template.slideButton);
     dispatchClick(component.template.bendButton);
@@ -52,11 +54,14 @@ describe("TechniqueControlsDefaultCallbacks", () => {
     ).toHaveBeenNthCalledWith(1, GuitarTechniqueType.Vibrato);
     expect(
       notationComponent.trackController.setTechnique
-    ).toHaveBeenNthCalledWith(2, GuitarTechniqueType.HammerOnOrPullOff);
+    ).toHaveBeenNthCalledWith(2, GuitarTechniqueType.LetRing);
     expect(
       notationComponent.trackController.setTechnique
-    ).toHaveBeenNthCalledWith(3, GuitarTechniqueType.Slide);
-    expect(renderFunc).toHaveBeenCalledTimes(3);
+    ).toHaveBeenNthCalledWith(3, GuitarTechniqueType.HammerOnOrPullOff);
+    expect(
+      notationComponent.trackController.setTechnique
+    ).toHaveBeenNthCalledWith(4, GuitarTechniqueType.Slide);
+    expect(renderFunc).toHaveBeenCalledTimes(4);
     expect(component.showBendControls).toHaveBeenCalledTimes(1);
     expect(bendBindSpy).toHaveBeenCalledTimes(2);
 

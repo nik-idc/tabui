@@ -4,13 +4,17 @@ import {
   createDiv,
   createSVG,
 } from "../../../../shared";
+import { BendType } from "../../../../notation/model";
 
-type BendTypesButtons = [
-  HTMLButtonElement, // Regular bend button
-  HTMLButtonElement, // Prebend button
-  HTMLButtonElement, // Bend & release button
-  HTMLButtonElement, // Prebend & release button
-];
+export const BEND_TYPE_BUTTON_ORDER = [
+  BendType.Bend,
+  BendType.Prebend,
+  BendType.BendAndRelease,
+  BendType.PrebendAndRelease,
+  BendType.PrebendBend,
+  BendType.Hold,
+  BendType.Release,
+] as const;
 
 export class BendControlsTemplate {
   readonly dialog: HTMLDialogElement = createDialog();
@@ -18,15 +22,19 @@ export class BendControlsTemplate {
 
   readonly bendSelectorContent: HTMLDivElement = createDiv();
   readonly bendTypeListContainer: HTMLDivElement = createDiv();
-  readonly bendTypesButtons: BendTypesButtons = [
-    createButton(),
-    createButton(),
-    createButton(),
-    createButton(),
-  ];
+  readonly bendTypesButtons: Record<BendType, HTMLButtonElement> = {
+    [BendType.Bend]: createButton(),
+    [BendType.BendAndRelease]: createButton(),
+    [BendType.Hold]: createButton(),
+    [BendType.Prebend]: createButton(),
+    [BendType.PrebendAndRelease]: createButton(),
+    [BendType.PrebendBend]: createButton(),
+    [BendType.Release]: createButton(),
+  };
   readonly bendSelectorGraphSVG: SVGSVGElement = createSVG();
 
   readonly actionsContent: HTMLDivElement = createDiv();
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
+  readonly removeButton: HTMLButtonElement = createButton();
 }

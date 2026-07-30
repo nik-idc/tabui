@@ -1,4 +1,4 @@
-import { GuitarNote, VoiceNumber } from "../../../model";
+import { GuitarNote, GuitarTechniqueType, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
 import { GuitarTechniqueElement } from "../technique/guitar-technique/guitar-technique-element";
@@ -79,7 +79,7 @@ export class TabNoteElement implements NoteElement {
    * Fills the technique element array
    */
   public build(): void {
-    this._noteValueState = `${this.note?.fret ?? ""}${this.stringNumber}`;
+    this._noteValueState = `${this.noteText}${this.stringNumber}`;
 
     const prevTechniqueElements = new Map(
       this._techniqueElements.map((element) => [
@@ -107,10 +107,9 @@ export class TabNoteElement implements NoteElement {
       this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT
     );
 
-    this._textRect.setDimensions(
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE
-    );
+    const textSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
+    const textWidth = Math.max(textSize, this.noteText.length * textSize * 0.6);
+    this._textRect.setDimensions(textWidth, textSize);
   }
 
   /**
@@ -122,8 +121,7 @@ export class TabNoteElement implements NoteElement {
     this._boundingBox.setCoords(0, y);
 
     this._textRect.setCoords(
-      this.beatElement.attackLocalX -
-        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2,
+      this.beatElement.attackLocalX - this._textRect.width / 2,
       this._boundingBox.height / 2 -
         this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2
     );
@@ -149,6 +147,16 @@ export class TabNoteElement implements NoteElement {
 
   public setNote(note: GuitarNote | null): void {
     this.note = note;
+  }
+
+  public get noteText(): string {
+    if (this.note === null || this.note.fret === null) {
+      return "";
+    }
+    const fret = `${this.note.fret}`;
+    return this.note.hasTechnique(GuitarTechniqueType.LetRing)
+      ? `(${fret})`
+      : fret;
   }
 
   public refreshOwnedNotationElements(): NotationElement[] {
@@ -318,12 +326,12 @@ export class TabNoteElement implements NoteElement {
 
   /** Note selection rectangle */
   public get selectionRect(): Rect {
-    const padding = 2;
+    const size = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 1.5;
     return new Rect(
-      this.globalCoords.x + this.textRect.x - padding,
-      this.globalCoords.y + this.textRect.y - padding,
-      this.textRect.width + padding * 2,
-      this.textRect.height + padding * 2
+      this.globalCoords.x + this.textCoords.x - size / 2,
+      this.globalCoords.y + this.textCoords.y - size / 2,
+      size,
+      size
     );
   }
 

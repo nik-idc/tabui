@@ -96,7 +96,7 @@ export class SelectionOverlayRenderer {
       this._selectionGroup.appendChild(this._selectedNoteRect);
     }
 
-    const rect = selectedNoteElement.textRectGlobal;
+    const rect = selectedNoteElement.selectionRect;
     this._selectedNoteRect.setAttribute("x", `${rect.x}`);
     this._selectedNoteRect.setAttribute("y", `${rect.y}`);
     this._selectedNoteRect.setAttribute("width", `${rect.width}`);

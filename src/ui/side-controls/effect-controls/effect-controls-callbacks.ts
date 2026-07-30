@@ -10,6 +10,7 @@ import { ListenerManager } from "../../../shared/misc";
 export interface TechniqueControlsCallbacks {
   onVibratoClicked(): void;
   onPalmMuteClicked(): void;
+  onLetRingClicked(): void;
   onNHClicked(): void;
   onPHClicked(): void;
   onHammerOnClicked(): void;
@@ -67,6 +68,13 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
     this._renderFunc();
   }
 
+  public onLetRingClicked(): void {
+    this._notationComponent.trackController.setTechnique(
+      GuitarTechniqueType.LetRing
+    );
+    this._renderFunc();
+  }
+
   public onNHClicked(): void {
     this._notationComponent.trackController.setTechnique(
       GuitarTechniqueType.NaturalHarmonic
@@ -117,6 +125,11 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
         element: this._techniquesComponent.template.palmMuteButton,
         event: "click",
         handler: () => this.onPalmMuteClicked(),
+      },
+      {
+        element: this._techniquesComponent.template.letRingButton,
+        event: "click",
+        handler: () => this.onLetRingClicked(),
       },
       {
         element: this._techniquesComponent.template.nhButton,

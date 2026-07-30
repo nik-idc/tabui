@@ -462,6 +462,37 @@
     }
   }
 
+  .tu-number-stepper {
+    display: grid;
+    grid-template-columns: repeat(2, auto) minmax(4rem, 1fr) repeat(2, auto);
+    align-items: stretch;
+    gap: 0.35rem;
+    margin: 0.35rem 0;
+
+    button {
+      @extend %tu-button-style;
+      min-width: 2.5rem;
+    }
+
+    .tu-number-stepper-value {
+      display: grid;
+      place-items: center;
+      min-height: 2.25rem;
+      padding: 0 0.75rem;
+      border: 2px solid var(--tu-border-color);
+      border-radius: var(--tu-border-radius);
+      background-color: var(--tu-primary-color);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      user-select: none;
+    }
+  }
+
+  .tu-tuplet-dialog .tu-number-stepper,
+  .tu-time-sig-dialog .tu-number-stepper {
+    grid-template-columns: auto minmax(4rem, 1fr) auto;
+  }
+
   .tu-time-sig-dialog {
     @extend %tu-modal-dialog;
 
@@ -887,6 +918,15 @@
 
   &:hover {
     background-color: var(--tu-hover-color);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  &:disabled:hover {
+    background-color: var(--tu-secondary-color);
   }
 }
 

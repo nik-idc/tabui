@@ -13,6 +13,27 @@ export interface GuitarTechniqueJSON {
   readonly bendOptions?: BendTechniqueOptions;
 }
 
+// TODO: This module currently is very obviously juggling 2 cases:
+// - Normal technique with no options
+// - Bend with bend options
+// But this assumes bends is the **only** technique type that has options.
+// And while currently in the codebase that is true, that does not necessarily have
+// to be the case. For example, an artificial/pinch harmonic can have options
+// (I know this from GuitarPro/Songsterr).
+// So this to me suggests that a better design is something like:
+// type TechniqueOptions = BendTechniqueOptions | PinchHarmonicOptions;
+// export class GuitarTechnique implements Technique {
+//   /** Global unique identifier */
+//   readonly uuid: number;
+//   /** Note on which the technique is performed */
+//   readonly note: Note;
+//   /** Technique type */
+//   readonly type: GuitarTechniqueType;
+//   /** Optional bend options */
+//   private _options: TechniqueOptions | null;
+//   ... rest of the code ...
+// }
+
 /**
  * Class that represents a note guitar technique
  */
@@ -79,20 +100,18 @@ export class GuitarTechnique implements Technique {
       throw Error("Bend options are null");
     }
 
-    const actualKeys = Object.keys(this._bendOptions);
-    const expectedKeys = OPTIONS_PER_BEND_TYPE[this._bendOptions.type];
+    const actual = Object.keys(this._bendOptions);
+    const expected = OPTIONS_PER_BEND_TYPE[this._bendOptions.type];
     const areEqual =
-      actualKeys.length === expectedKeys.length &&
-      actualKeys.every((key) => expectedKeys.includes(key));
+      actual.length === expected.length &&
+      actual.every((key) => expected.includes(key));
 
     if (!areEqual) {
-      throw Error(
-        `Option demanding technique was provided the wrong bend options: Required bend options: ${expectedKeys}; provided: ${actualKeys}`
-      );
+      throw Error(`Wrong options: expected: ${expected}; provided: ${actual}`);
     }
   }
 
-  public editBendOptions(options: Partial<BendTechniqueOptions>): void {
+  public replaceBendOptions(options: BendTechniqueOptions): boolean {
     if (this.type !== GuitarTechniqueType.Bend) {
       throw Error("Technique not bend");
     }
@@ -100,10 +119,22 @@ export class GuitarTechnique implements Technique {
       throw Error("Bend options are null");
     }
 
-    this._bendOptions = new BendTechniqueOptions({
-      ...this._bendOptions,
-      ...options,
-    });
+    const replacement = new BendTechniqueOptions(options);
+    if (
+      this._bendOptions.type === replacement.type &&
+      this._bendOptions.bendPitch === replacement.bendPitch &&
+      this._bendOptions.releasePitch === replacement.releasePitch &&
+      this._bendOptions.holdPitch === replacement.holdPitch &&
+      this._bendOptions.prebendPitch === replacement.prebendPitch &&
+      this._bendOptions.bendDuration === replacement.bendDuration
+    ) {
+      return false;
+    }
+
+    this._bendOptions = replacement;
+    this.stripUndefinedOptions();
+    this.ensureCorrectOptions();
+    return true;
   }
 
   /**

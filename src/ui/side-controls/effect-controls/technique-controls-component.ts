@@ -38,6 +38,7 @@ export class TechniqueControlsComponent {
   }
 
   public showBendControls(): void {
+    this.bendControlsComponent.prepareForOpen();
     this.bendControlsComponent.template.dialog.showModal();
   }
 }

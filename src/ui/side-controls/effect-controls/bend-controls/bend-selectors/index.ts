@@ -1,4 +1,5 @@
 export * from "./bend-release-selector";
+export * from "./bend-curve-selector";
 export * from "./bend-selector";
 export * from "./bend-selector-manager";
 export * from "./bend-selector-manager-options";

@@ -87,7 +87,11 @@ describe("SetTechniqueCommand", () => {
     const bendCommand = new SetTechniqueCommand(
       [note],
       GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({ type: BendType.Bend })
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 1,
+        bendDuration: 1,
+      })
     );
     const letRingCommand = new SetTechniqueCommand(
       [note],
@@ -141,11 +145,90 @@ describe("SetTechniqueCommand", () => {
     const command = new SetTechniqueCommand(
       [note],
       GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({ type: BendType.Bend })
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 1,
+        bendDuration: 1,
+      })
     );
 
     expect(command.affectedModels).toEqual([
       { masterBarIndex: 0, modelUUID: note.uuid },
     ]);
+  });
+
+  test("execute replaces existing bend options and undo restores them", () => {
+    const { bar } = createScoreGraph();
+    const voiceBar = bar.getVoiceBar(1);
+    const note = voiceBar?.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+
+    note.addTechnique(
+      new GuitarTechnique(
+        note,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 0.5,
+          bendDuration: 1,
+        })
+      )
+    );
+    const command = new SetTechniqueCommand(
+      [note],
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.PrebendBend,
+        prebendPitch: 0.5,
+        bendPitch: 1,
+        bendDuration: 1,
+      })
+    );
+
+    command.execute();
+    expect((note.techniques[0] as GuitarTechnique).bendOptions?.type).toBe(
+      BendType.PrebendBend
+    );
+
+    command.undo();
+    expect((note.techniques[0] as GuitarTechnique).bendOptions?.bendPitch).toBe(
+      0.5
+    );
+
+    command.redo();
+    expect((note.techniques[0] as GuitarTechnique).bendOptions?.type).toBe(
+      BendType.PrebendBend
+    );
+  });
+
+  test("existing bend is removed without options and supports undo and redo", () => {
+    const { bar } = createScoreGraph();
+    const note = bar.getVoiceBar(1)?.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+    note.addTechnique(
+      new GuitarTechnique(
+        note,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 1,
+          bendDuration: 1,
+        })
+      )
+    );
+    const command = new SetTechniqueCommand([note], GuitarTechniqueType.Bend);
+
+    command.execute();
+    expect(note.hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
+
+    command.undo();
+    expect(note.hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
+
+    command.redo();
+    expect(note.hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
   });
 });

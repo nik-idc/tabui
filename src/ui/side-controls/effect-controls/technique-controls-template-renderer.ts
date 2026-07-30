@@ -37,6 +37,7 @@ export class TechniqueControlsTemplateRenderer {
     this.template.container.append(
       this.template.vibratoButton,
       this.template.palmMuteButton,
+      this.template.letRingButton,
       this.template.nhButton,
       this.template.phButton,
       this.template.hammerOnButton,
@@ -125,6 +126,17 @@ export class TechniqueControlsTemplateRenderer {
     this.renderTechniqueButtonState(
       GuitarTechniqueType.PalmMute,
       this.template.palmMuteButton
+    );
+
+    setImageAsset(
+      this.template.letRingButton,
+      this.assetsPath,
+      "img/techniques/lr.svg",
+      "Let Ring"
+    );
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.LetRing,
+      this.template.letRingButton
     );
 
     setImageAsset(

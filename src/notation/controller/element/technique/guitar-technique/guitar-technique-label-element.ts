@@ -331,6 +331,14 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Generates Palm Mute HTML
    */
   private createPalmMutePath(): void {
+    this.createRepeatedTextPath("P.M.");
+  }
+
+  private createLetRingPath(): void {
+    this.createRepeatedTextPath("LR");
+  }
+
+  private createRepeatedTextPath(text: string): void {
     const x =
       this._boundingBox.x +
       this._boundingBox.width / 2 -
@@ -342,7 +350,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         x,
         y,
         this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
-        "P.M."
+        text
       ),
     ];
   }
@@ -370,9 +378,32 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       case BendType.PrebendAndRelease:
         this.createPrebendAndReleasePitchPath();
         break;
+      case BendType.Hold:
+        this.createBendTypeText("hold");
+        break;
+      case BendType.PrebendBend:
+        this.createBendTypeText("prebend / bend");
+        break;
+      case BendType.Release:
+        this.createBendTypeText("release");
+        break;
       default:
         break;
     }
+  }
+
+  private createBendTypeText(text: string): void {
+    const fontSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
+    this._pathDescriptors = [];
+    this._textDescriptors = [
+      GuitarTechniqueDescriptors.createTextDescriptor(
+        0,
+        this._boundingBox.height / 2,
+        fontSize,
+        text,
+        this._boundingBox.width
+      ),
+    ];
   }
 
   public build(): void {
@@ -445,6 +476,9 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         break;
       case GuitarTechniqueType.PalmMute:
         this.createPalmMutePath();
+        break;
+      case GuitarTechniqueType.LetRing:
+        this.createLetRingPath();
         break;
     }
   }

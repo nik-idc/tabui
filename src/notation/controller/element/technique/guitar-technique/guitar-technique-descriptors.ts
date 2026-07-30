@@ -201,8 +201,19 @@ export class GuitarTechniqueDescriptors {
     x: number,
     y: number,
     fontSize: number,
-    text: string
+    text: string,
+    textWidth?: number
   ): SVGTextDescriptor {
+    let textAttrs: { textLength: string; lengthAdjust: string } | {};
+    if (textWidth !== undefined) {
+      textAttrs = {
+        textLength: `${textWidth}`,
+        lengthAdjust: "spacingAndGlyphs",
+      };
+    } else {
+      textAttrs = {};
+    }
+
     return {
       text,
       attrs: {
@@ -214,6 +225,7 @@ export class GuitarTechniqueDescriptors {
         "text-anchor": "start",
         "dominant-baseline": "hanging",
         fill: "var(--tu-notation-text)",
+        ...textAttrs,
       },
     };
   }
