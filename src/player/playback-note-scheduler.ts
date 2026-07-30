@@ -211,11 +211,23 @@ export class PlaybackNoteScheduler {
     const bendValue = baseValue * this.semitonesToRate(bendPitch);
     const prebendValue = baseValue * this.semitonesToRate(prebendPitch);
     const releaseValue = baseValue * this.semitonesToRate(releasePitch);
+    const continuationPitch =
+      params.note instanceof GuitarNote
+        ? params.note.getBendContinuationPitch()
+        : undefined;
+    const continuationValue =
+      continuationPitch === undefined
+        ? baseValue
+        : baseValue * this.semitonesToRate(continuationPitch);
+    const bendStartValue =
+      options.type === BendType.Bend || options.type === BendType.BendAndRelease
+        ? continuationValue
+        : baseValue;
 
     return {
       bendRamp: {
         pitchParam,
-        startValue: baseValue,
+        startValue: bendStartValue,
         endValue: bendValue,
         startTime,
         endTime: bendEndTime,
@@ -239,6 +251,19 @@ export class PlaybackNoteScheduler {
     };
   }
 
+  private getContinuationValue(params: PitchAutomationParams): number {
+    if (!(params.note instanceof GuitarNote)) {
+      throw Error("Bend continuation requires a guitar note");
+    }
+    const continuationPitch = params.note.getBendContinuationPitch();
+    if (continuationPitch === undefined) {
+      throw Error(
+        "Hold and Release playback require a previous bend continuation"
+      );
+    }
+    return params.baseValue * this.semitonesToRate(continuationPitch);
+  }
+
   /** Dispatches bend automation based on the concrete bend type. */
   private applyBendAutomation(
     bend: GuitarTechnique,
@@ -254,8 +279,10 @@ export class PlaybackNoteScheduler {
 
     switch (options.type) {
       case BendType.Bend:
-      case BendType.Hold:
         this.applyPitchRamp(values.bendRamp);
+        break;
+      case BendType.Hold:
+        pitchParam.setValueAtTime(this.getContinuationValue(params), startTime);
         break;
       case BendType.BendAndRelease:
         this.applyPitchRamp(values.bendRamp);
@@ -265,8 +292,13 @@ export class PlaybackNoteScheduler {
         pitchParam.setValueAtTime(values.prebendValue, startTime);
         break;
       case BendType.PrebendAndRelease:
-      case BendType.Release:
         this.applyPitchRamp(values.releaseRamp);
+        break;
+      case BendType.Release:
+        this.applyPitchRamp({
+          ...values.releaseRamp,
+          startValue: this.getContinuationValue(params),
+        });
         break;
       case BendType.PrebendBend:
         this.applyPitchRamp(values.prebendBendRamp);

@@ -555,6 +555,196 @@ describe("ScorePlayer", () => {
     ).toHaveBeenCalledWith(frequency * 2 ** (2 / 12), 0.3);
   });
 
+  test.each([BendType.Bend, BendType.BendAndRelease])(
+    "continuation bend type %s starts at the previous terminal pitch",
+    async (type) => {
+      const { score, track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      setBeatFret(beats[0], 0);
+      setBeatFret(beats[1], 0);
+      const previous = firstNoteOfBeat(beats[0]);
+      const current = firstNoteOfBeat(beats[1]);
+      previous.addTechnique(
+        new GuitarTechnique(
+          previous,
+          GuitarTechniqueType.Bend,
+          new BendTechniqueOptions({
+            type: BendType.Bend,
+            bendPitch: 1.5,
+            bendDuration: 0.5,
+          })
+        )
+      );
+      current.addTechnique(
+        new GuitarTechnique(current, GuitarTechniqueType.LetRing)
+      );
+      current.addTechnique(
+        new GuitarTechnique(
+          current,
+          GuitarTechniqueType.Bend,
+          new BendTechniqueOptions(
+            type === BendType.Bend
+              ? { type, bendPitch: 2, bendDuration: 0.5 }
+              : {
+                  type,
+                  bendPitch: 2,
+                  releasePitch: 0,
+                  bendDuration: 0.5,
+                }
+          )
+        )
+      );
+
+      const player = new ScorePlayer(score, track);
+      await player.start({ startBeat: beats[0] });
+
+      const frequency = getNoteFrequency(current);
+      expect(
+        createdOscillators[1].frequency.setValueAtTime
+      ).toHaveBeenLastCalledWith(frequency * 2 ** (1.5 / 12), 0.55);
+      expect(
+        createdOscillators[1].frequency.linearRampToValueAtTime
+      ).toHaveBeenCalledWith(frequency * 2 ** (2 / 12), 1.15);
+      if (type === BendType.BendAndRelease) {
+        expect(
+          createdOscillators[1].frequency.linearRampToValueAtTime
+        ).toHaveBeenCalledWith(frequency, 1.75);
+      }
+    }
+  );
+
+  test("Hold starts and remains at the previous bend terminal pitch", async () => {
+    const { score, track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    setBeatFret(beats[0], 0);
+    setBeatFret(beats[1], 0);
+    const previous = firstNoteOfBeat(beats[0]);
+    const current = firstNoteOfBeat(beats[1]);
+    previous.addTechnique(
+      new GuitarTechnique(
+        previous,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 1.5,
+          bendDuration: 0.5,
+        })
+      )
+    );
+    current.addTechnique(
+      new GuitarTechnique(current, GuitarTechniqueType.LetRing)
+    );
+    current.addTechnique(
+      new GuitarTechnique(
+        current,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Hold,
+          holdPitch: 0.5,
+          bendDuration: 1,
+        })
+      )
+    );
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: beats[0] });
+
+    const continuationValue = getNoteFrequency(current) * 2 ** (1.5 / 12);
+    expect(
+      createdOscillators[1].frequency.setValueAtTime
+    ).toHaveBeenLastCalledWith(continuationValue, 0.55);
+    expect(
+      createdOscillators[1].frequency.linearRampToValueAtTime
+    ).not.toHaveBeenCalled();
+  });
+
+  test("Release ramps from the previous bend terminal pitch", async () => {
+    const { score, track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    setBeatFret(beats[0], 0);
+    setBeatFret(beats[1], 0);
+    const previous = firstNoteOfBeat(beats[0]);
+    const current = firstNoteOfBeat(beats[1]);
+    previous.addTechnique(
+      new GuitarTechnique(
+        previous,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 1.5,
+          bendDuration: 0.5,
+        })
+      )
+    );
+    current.addTechnique(
+      new GuitarTechnique(current, GuitarTechniqueType.LetRing)
+    );
+    current.addTechnique(
+      new GuitarTechnique(
+        current,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Release,
+          releasePitch: 0,
+          bendDuration: 0.5,
+        })
+      )
+    );
+
+    const player = new ScorePlayer(score, track);
+    await player.start({ startBeat: beats[0] });
+
+    const frequency = getNoteFrequency(current);
+    expect(
+      createdOscillators[1].frequency.setValueAtTime
+    ).toHaveBeenLastCalledWith(frequency * 2 ** (1.5 / 12), 0.55);
+    expect(
+      createdOscillators[1].frequency.linearRampToValueAtTime
+    ).toHaveBeenCalledWith(frequency, 1.15);
+  });
+
+  test("rejects continuation automation without valid context", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    const note = firstNoteOf(bar);
+    note.addTechnique(
+      new GuitarTechnique(
+        note,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Hold,
+          holdPitch: 1,
+          bendDuration: 1,
+        })
+      )
+    );
+    const player = new ScorePlayer(score, track);
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(player.isPlaying).toBe(false);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "Failed to schedule playback",
+      expect.objectContaining({
+        message:
+          "Hold and Release playback require a previous bend continuation",
+      })
+    );
+    expect(
+      createdOscillators[0].frequency.linearRampToValueAtTime
+    ).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
   test("slide targets the next same-string note", async () => {
     const { score, track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
