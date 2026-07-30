@@ -5,13 +5,14 @@ This document provides practical guidance for AI agents working on the TabUI cod
 ## Core Commands
 
 ```bash
-npm run build        # Compile TypeScript to dist/ (tsc --build)
+npm run build        # Build package ESM/CSS and TypeScript declarations
 npm run benchmark:updates # Run focused-vs-full update benchmark
 npm run clean        # Clean build artifacts
 npm run dev          # Start Vite dev server for the editor
 npm run build_vite   # Build the editor with Vite
 npm run preview_vite # Preview the Vite build
 npm run test         # Run active Jest test suites
+npm run test:pack-consumer # Build/install the packed external-consumer fixture
 npm run format       # Format all files
 ```
 
@@ -27,6 +28,8 @@ npm run format       # Format all files
 ## Validation Notes
 
 - `npm test` is the primary regression check for active work.
+- Release-facing changes should also run `npm run build`, `npm run build_vite`,
+  and `npm run test:pack-consumer` as applicable.
 
 ## Editor Fixtures
 
@@ -41,7 +44,8 @@ The editor supports fixture selection through the `fixture` query parameter:
 ## TypeScript and Imports
 
 - Strict mode is enabled (`strict: true` in `tsconfig.json`).
-- Path alias `@/` points to `src/`.
+- The demo Vite config supports the `@/` alias, but package/source output must not
+  depend on repository-only aliases.
 - Prefer named exports and barrel exports where they improve discoverability.
 - For internal module boundaries, prefer direct imports over broad barrels when possible.
 
@@ -111,14 +115,20 @@ The editor supports fixture selection through the `fixture` query parameter:
 ### Playback
 
 - Playback is implemented directly with Web Audio under `src/player/`.
-- `ScorePlayer` owns transport state and lazy `AudioContext` lifecycle.
-- `PlaybackScheduler` owns score-material scheduling, track buses, sample
-  loading, and scheduled node tracking.
+- `ScorePlayer` owns transport state and coordinates playback lifecycle.
+- `PlaybackScheduler` owns score-material timing and traversal coordination.
+- `PlaybackAudioEngine` owns lazy `AudioContext` lifecycle, track/master buses,
+  sample loading, note rendering, and scheduled node tracking.
+- `PlaybackCursorCoordinator` owns buffered cursor timing and active-track cursor
+  event projection.
 - `PlaybackNoteScheduler` owns per-note source/envelope creation and lightweight
   technique/tone shaping.
 - Samples are configured by instrument tone URL/root note, with oscillator
   fallback when samples are missing or fail to load.
 - Track volume, mute, solo, and pan update persistent per-track audio buses.
+- Playback cursor events are scoped by player identity and playback generation.
+- Editing mutations are ignored while playback is active; copy, transport,
+  active-track selection, and track mix controls remain available.
 - Technique playback currently uses Web Audio pitch/envelope shaping over the
   same source; it is not multisampling or articulation-specific sampling.
 
@@ -139,3 +149,5 @@ The editor supports fixture selection through the `fixture` query parameter:
 - Extract only when the logic is reused, meaningfully named, or complex
   enough that the abstraction improves readability.
 - Avoid adding comments unless the logic is non-obvious.
+- Phase 6 status and the next release-blocking task are tracked in
+  `PHASE-6-ROADMAP.md`.

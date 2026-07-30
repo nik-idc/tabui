@@ -16,10 +16,13 @@ Audio nodes are scheduled on the audio context timeline.
   - gain starts at `0`.
   - attack ramps to a technique/profile-adjusted peak gain.
   - release ramps back to `0`.
-- Each track has a persistent audio bus:
-  `note source -> note gain -> track gain -> track panner -> destination`.
+- Each track has a persistent audio bus, and all track buses feed one master bus:
+  `note source -> note gain -> track gain -> track panner -> master gain ->`
+  `master panner -> destination`.
 - Track volume/mute/solo controls update the track bus gain.
 - Track pan updates the track bus `StereoPannerNode`.
+- Master volume and pan update the score-wide master bus without changing any
+  per-track mix state.
 - Tone profiles can adjust fallback oscillator type, note gain, attack, and
   release.
 - Technique playback uses Web Audio pitch/envelope automation over the same
@@ -29,23 +32,47 @@ Audio nodes are scheduled on the audio context timeline.
 
 - `ScorePlayer`
   - Owns transport state: start, stop, dispose, loop toggles, and UI events.
-  - Lazily creates `AudioContext` on playback start.
+  - Coordinates lazy audio initialization and asynchronous playback startup.
   - Runs the rolling lookahead timer.
-  - Converts scheduler results into playback cursor UI timeouts.
+  - Coordinates scheduler, audio engine, and cursor collaborators.
+  - Retains a playback anchor for navigation/retry separately from the last beat
+    whose audio start time has actually been reached.
+  - Is owned once per `NotationComponent`, so active notation-track replacement
+    preserves transport, buffered audio, loop state, player identity, and run
+    generation.
 
 - `PlaybackScheduler`
-  - Owns score-material scheduling state.
-  - Owns `PlaybackTraversalManager`, `PlaybackSampleManager`, and
-    `PlaybackNoteScheduler`.
+  - Owns score-material timing and rolling scheduling state.
+  - Owns `PlaybackTraversalManager` and delegates note rendering to the audio
+    engine.
+
+- `PlaybackAudioEngine`
+  - Lazily creates, resumes, exposes the clock from, and closes `AudioContext`.
+  - Owns context-bound `PlaybackSampleManager` and `PlaybackNoteScheduler`.
   - Tracks scheduled audio nodes so they can be stopped/disconnected.
-  - Owns per-track audio buses for real-time volume/mute/solo/pan.
+  - Owns per-track audio buses and the score-wide master bus for real-time mix
+    changes.
   - Schedules all tracks, even muted or non-soloed tracks, so controls remain
     reversible while audio is already buffered.
+
+- `PlaybackCursorCoordinator`
+  - Converts scheduler timing into playback cursor UI timeouts.
+  - Retains buffered timing for active-track cursor retargeting.
+  - Scopes cursor events by player identity and playback generation.
 
 - `PlaybackTraversalManager`
   - Decides which master bar should be scheduled next.
   - Handles playback start/end boundaries, repeats, and loop sections.
   - Converts master-bar positions into timing offsets used by the scheduler.
+  - Retains the requested start boundary for repeat-containment checks while a
+    pending start boundary is consumed by the first bar of each playback pass.
+
+- `PlayerOverlayRenderer`
+  - Owns the SVG playback cursor and subscribes to scoped beat-change events.
+  - Interpolates cursor movement with `requestAnimationFrame` against the Web
+    Audio clock.
+  - Materializes and follows the active track line when playback moves outside
+    the current viewport.
 
 - `PlaybackSampleManager`
   - Loads configured samples by instrument preset.
@@ -68,8 +95,12 @@ entire score at once.
 - On each tick, `ScorePlayer` computes elapsed playback seconds from
   `AudioContext.currentTime` and asks `PlaybackScheduler` to schedule up to the
   target point.
-- Scheduler returns beat-change events with exact audio start times.
-- `ScorePlayer` maps those times to `setTimeout` calls for the visual cursor.
+- Scheduler returns beat-change events with exact audio start/end times and a
+  preview of the next master bar's cursor changes.
+- `ScorePlayer` maps those times to `setTimeout` calls, then the overlay
+  interpolates between forward beat changes using `AudioContext.currentTime`.
+- Player UUID and playback-run ID checks prevent stale or cross-editor events
+  from moving another cursor.
 
 ## Traversal
 
@@ -80,6 +111,10 @@ Playback is scheduled by master bar because all tracks share master bars.
 - Repeats are expanded during traversal.
 - Repeats that are not fully inside the active selection are ignored for bounded
   selection playback.
+- Mid-bar starts and ends clip scheduling, note envelopes, and technique tails to
+  the requested playback interval.
+- Loop restarts restore their mid-bar start boundary and reset notation-repeat
+  traversal without losing the requested range used for containment checks.
 - Bar-local beat offsets are converted from ticks to seconds using the current
   bar tempo.
 
@@ -138,6 +173,19 @@ without requiring multisampling, velocity layers, or technique-specific samples.
   user changes mute/solo before those notes play.
 - Scheduled source nodes are one-shot. Stopping playback stops pending sources
   and disconnects note envelope nodes.
+- Playback startup and rolling scheduling failures stop cleanly, invalidate stale
+  async continuations, release partial audio resources, and preserve a retry
+  anchor where possible.
+- Normal score edits are blocked while playback is active. Copy, transport,
+  active-track selection, and track volume/mute/solo/pan remain available.
+- Clicking a beat during playback seeks without creating edit selection.
+- Active-track switching disposes the old track renderer/controller view but
+  preserves the `NotationComponent`-owned `ScorePlayer`. Pending cursor timing is
+  retargeted to the newly displayed track while player UUID and playback run ID
+  remain stable.
+- Before retargeting, the replacement view uses skeleton line bounds to prepare
+  the buffered playback cursor's viewport range. Full notation descendants are
+  materialized only for that range and its overscan.
 - Downbeat notes receive a small gain accent and repeated same-string/same-pitch
   notes are softened slightly to reduce mechanical playback.
 - Current sample playback still uses one sample per configured tone. It does not

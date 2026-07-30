@@ -23,23 +23,25 @@ TabUI is still pre-`1.0.0` and under active development.
 ## Package Usage
 
 ```ts
-import { EditorLayoutDimensions, Score, TabUIEditor } from "@atikincode/tabui";
+import { Score, TabUIEditor } from "@atikincode/tabui";
 import "@atikincode/tabui/styles.css";
-
-EditorLayoutDimensions.configure({
-  width: 1200,
-  noteTextSize: 12,
-  timeSigTextSize: 48,
-  tempoTextSize: 24,
-  durationsHeight: 30,
-});
 
 const root = document.getElementById("tabui-editor") as HTMLDivElement;
 const editor = new TabUIEditor(root, new Score(), {
   assets: { baseUrl: "/tabui-assets" },
+  layout: {
+    width: 1200,
+    noteTextSize: 12,
+    timeSigTextSize: 48,
+    tempoTextSize: 24,
+    durationsHeight: 30,
+  },
 });
 
 editor.init();
+
+// Stop playback, release listeners, and clear editor-owned root contents.
+window.addEventListener("beforeunload", () => editor.dispose(), { once: true });
 ```
 
 The root export is the supported framework-agnostic API. Styles are available
@@ -47,6 +49,11 @@ from `@atikincode/tabui/styles.css`. Runtime icons are packaged under
 `@atikincode/tabui/assets/*`; serve those files from your app and pass the public
 base URL through `assets.baseUrl`. Playback samples are host-provided through the
 `playback` config and fall back to oscillator playback when omitted.
+
+Pass a dedicated empty root element to `TabUIEditor`. The host owns the root;
+TabUI owns its contents while mounted. `init()` is synchronous and may be called
+once. `dispose()` is idempotent, but a disposed editor is terminal. To replace a
+score, dispose the editor and construct a new instance.
 
 The refactor and optimization work from `tu-69-refactor-and-optimization` has
 been merged into `master` and now serves as the current development baseline.
@@ -58,13 +65,14 @@ first target integration.
 
 ## Current Focus
 
-- Introduce a tick-based timing model across the project.
-- Strengthen the model and element layers with focused automated tests.
-- Improve performance for large-score layout and rendering updates.
-- Expand notation support beyond tablature, with non-tablature notation viewing
-  as the minimum target for `0.5.0`.
-- Improve playback quality and multi-track playback behavior.
+- Complete Phase 6 P0 stabilization: master controls, track-switch playback
+  ownership, bends/dialog input safety, host events, and release validation.
+- Continue with the required `0.5.0` persistence contract, then layout,
+  embedding, responsive behavior, and release-candidate validation.
+- Keep `0.5.0` focused on a dependable tablature editor. Sheet and drum notation
+  are explicitly deferred.
 
 ## Roadmap
 
-See `ROADMAP.md` for the current plan toward `0.5.0` and beyond.
+See `ROADMAP-TO-v0.5.0.md` for the project roadmap and
+`PHASE-6-ROADMAP.md` for the current stabilization status and next task.
