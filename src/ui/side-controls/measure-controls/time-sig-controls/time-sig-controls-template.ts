@@ -2,7 +2,7 @@ import {
   createButton,
   createDialog,
   createDiv,
-  createInput,
+  createSelect,
 } from "../../../../shared";
 
 export class TimeSigControlsTemplate {
@@ -11,9 +11,14 @@ export class TimeSigControlsTemplate {
 
   readonly inputContent: HTMLDivElement = createDiv();
   readonly textContainer: HTMLDivElement = createDiv();
-  readonly beatsInput: HTMLInputElement = createInput();
+  readonly beatsLabel: HTMLDivElement = createDiv();
+  readonly beatsControl: HTMLDivElement = createDiv();
+  readonly beatsDownButton: HTMLButtonElement = createButton();
+  readonly beatsValue: HTMLDivElement = createDiv();
+  readonly beatsUpButton: HTMLButtonElement = createButton();
   readonly beatsErrorText: HTMLDivElement = createDiv();
-  readonly durationInput: HTMLInputElement = createInput();
+  readonly durationLabel: HTMLDivElement = createDiv();
+  readonly durationSelect: HTMLSelectElement = createSelect();
   readonly durationErrorText: HTMLDivElement = createDiv();
 
   readonly actionsContent: HTMLDivElement = createDiv();

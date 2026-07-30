@@ -38,9 +38,11 @@ export class TimeSigControlsTemplateRenderer {
           className: "tu-time-sig-inputs",
           children: [
             this.template.textContainer,
-            this.template.beatsInput,
+            this.template.beatsLabel,
+            this.template.beatsControl,
             this.template.beatsErrorText,
-            this.template.durationInput,
+            this.template.durationLabel,
+            this.template.durationSelect,
             this.template.durationErrorText,
           ],
         },
@@ -50,6 +52,11 @@ export class TimeSigControlsTemplateRenderer {
           children: [this.template.confirmButton, this.template.cancelButton],
         },
       ]
+    );
+    this.template.beatsControl.append(
+      this.template.beatsDownButton,
+      this.template.beatsValue,
+      this.template.beatsUpButton
     );
   }
 
@@ -71,17 +78,32 @@ export class TimeSigControlsTemplateRenderer {
         ? `${1 / selectedNote.bar.masterBar.duration}`
         : "4";
 
-    const beatsCSSClass = "tu-time-sig-beats-input";
-    this.template.beatsInput.classList.add(beatsCSSClass);
-    this.template.beatsInput.type = "number";
-    this.template.beatsInput.value = beatsInitValue;
+    this.template.beatsLabel.textContent = "Beats per measure";
+    this.template.beatsControl.classList.add("tu-number-stepper");
+    this.template.beatsDownButton.textContent = "-";
+    this.template.beatsValue.classList.add("tu-number-stepper-value");
+    this.template.beatsValue.textContent = beatsInitValue;
+    this.template.beatsUpButton.textContent = "+";
+    this.template.beatsDownButton.disabled = Number(beatsInitValue) <= 1;
+    this.template.beatsUpButton.disabled = Number(beatsInitValue) >= 32;
     const beatsErrorCSSClass = "tu-time-sig-beats-error";
     this.template.beatsErrorText.classList.add(beatsErrorCSSClass);
 
     const durationCSSClass = "tu-time-sig-duration-input";
-    this.template.durationInput.classList.add(durationCSSClass);
-    this.template.durationInput.type = "number";
-    this.template.durationInput.value = durationInitValue;
+    this.template.durationLabel.textContent = "Beat unit";
+    this.template.durationSelect.classList.add(durationCSSClass);
+    if (this.template.durationSelect.options.length === 0) {
+      // TODO: Use durations lists from the model layer (or create
+      // them if they don't exist already). And address other usage of magic
+      // constants in this and other UI files
+      for (const duration of [1, 2, 4, 8, 16, 32]) {
+        const option = document.createElement("option");
+        option.value = `${duration}`;
+        option.textContent = `${duration}`;
+        this.template.durationSelect.appendChild(option);
+      }
+    }
+    this.template.durationSelect.value = durationInitValue;
     const durationErrorCSSClass = "tu-time-sig-duration-error";
     this.template.durationErrorText.classList.add(durationErrorCSSClass);
   }

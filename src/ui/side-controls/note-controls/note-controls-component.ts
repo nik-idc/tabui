@@ -36,6 +36,7 @@ export class NoteControlsComponent {
   }
 
   public showTupletControls(): void {
+    this.tupletComponent.render();
     this.tupletComponent.template.dialog.showModal();
   }
 }

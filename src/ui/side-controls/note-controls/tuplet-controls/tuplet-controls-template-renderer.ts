@@ -38,9 +38,11 @@ export class TupletControlsTemplateRenderer {
           className: "tu-tuplet-inputs",
           children: [
             this.template.textContainer,
-            this.template.normalInput,
+            this.template.normalLabel,
+            this.template.normalControl,
             this.template.normalErrorText,
-            this.template.input,
+            this.template.tupletLabel,
+            this.template.tupletControl,
             this.template.tupletErrorText,
           ],
         },
@@ -50,6 +52,16 @@ export class TupletControlsTemplateRenderer {
           children: [this.template.confirmButton, this.template.cancelButton],
         },
       ]
+    );
+    this.template.normalControl.append(
+      this.template.normalDownButton,
+      this.template.normalValue,
+      this.template.normalUpButton
+    );
+    this.template.tupletControl.append(
+      this.template.tupletDownButton,
+      this.template.tupletValue,
+      this.template.tupletUpButton
     );
   }
 
@@ -75,15 +87,24 @@ export class TupletControlsTemplateRenderer {
       tupletInitValue = "2";
     }
 
-    const inputCSSClass = "tu-tuplet-input";
     const tupletErrorCSSClass = "tu-tuplet-error";
-    this.template.normalInput.classList.add(inputCSSClass);
-    this.template.normalInput.type = "number";
-    this.template.normalInput.value = normalInitValue;
+    this.template.normalLabel.textContent = "Normal notes";
+    this.template.normalControl.classList.add("tu-number-stepper");
+    this.template.normalDownButton.textContent = "-";
+    this.template.normalValue.classList.add("tu-number-stepper-value");
+    this.template.normalValue.textContent = normalInitValue;
+    this.template.normalUpButton.textContent = "+";
+    this.template.normalDownButton.disabled = Number(normalInitValue) <= 2;
+    this.template.normalUpButton.disabled = Number(normalInitValue) >= 256;
     this.template.normalErrorText.classList.add(tupletErrorCSSClass);
-    this.template.input.classList.add(inputCSSClass);
-    this.template.input.type = "number";
-    this.template.input.value = tupletInitValue;
+    this.template.tupletLabel.textContent = "Tuplet notes";
+    this.template.tupletControl.classList.add("tu-number-stepper");
+    this.template.tupletDownButton.textContent = "-";
+    this.template.tupletValue.classList.add("tu-number-stepper-value");
+    this.template.tupletValue.textContent = tupletInitValue;
+    this.template.tupletUpButton.textContent = "+";
+    this.template.tupletDownButton.disabled = Number(tupletInitValue) <= 2;
+    this.template.tupletUpButton.disabled = Number(tupletInitValue) >= 256;
     this.template.tupletErrorText.classList.add(tupletErrorCSSClass);
   }
 

@@ -38,7 +38,7 @@ export class TempoControlsTemplateRenderer {
           className: "tu-tempo-inputs",
           children: [
             this.template.textContainer,
-            this.template.input,
+            this.template.valueControl,
             this.template.errorText,
           ],
         },
@@ -48,6 +48,13 @@ export class TempoControlsTemplateRenderer {
           children: [this.template.confirmButton, this.template.cancelButton],
         },
       ]
+    );
+    this.template.valueControl.append(
+      this.template.decreaseTenButton,
+      this.template.decreaseButton,
+      this.template.value,
+      this.template.increaseButton,
+      this.template.increaseTenButton
     );
   }
 
@@ -65,10 +72,21 @@ export class TempoControlsTemplateRenderer {
         ? `${selectedNote.bar.masterBar.tempo}`
         : "120";
 
-    const beatsCSSClass = "tu-tempo-input";
-    this.template.input.classList.add(beatsCSSClass);
-    this.template.input.type = "number";
-    this.template.input.value = tempoInitValue;
+    this.template.valueControl.classList.add("tu-number-stepper");
+    this.template.decreaseTenButton.textContent = "-10";
+    this.template.decreaseButton.textContent = "-";
+    this.template.value.classList.add("tu-number-stepper-value");
+    this.template.value.textContent = tempoInitValue;
+    this.template.increaseButton.textContent = "+";
+    this.template.increaseTenButton.textContent = "+10";
+    const tempo = Number(tempoInitValue);
+    // TODO: Either extract the `999` into a const value in this file
+    // OR define & export constant limits for tempo & other values
+    // in the model layer instead
+    this.template.decreaseTenButton.disabled = tempo <= 1;
+    this.template.decreaseButton.disabled = tempo <= 1;
+    this.template.increaseButton.disabled = tempo >= 999;
+    this.template.increaseTenButton.disabled = tempo >= 999;
     const beatsErrorCSSClass = "tu-tempo-error";
     this.template.errorText.classList.add(beatsErrorCSSClass);
   }

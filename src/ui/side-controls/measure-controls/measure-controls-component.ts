@@ -42,10 +42,12 @@ export class MeasureControlsComponent {
   }
 
   public showTempoControls(): void {
+    this.tempoControlsComponent.render();
     this.tempoControlsComponent.template.dialog.showModal();
   }
 
   public showTimeSigControls(): void {
+    this.timeSigControlsComponent.render();
     this.timeSigControlsComponent.template.dialog.showModal();
   }
 }

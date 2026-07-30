@@ -3,11 +3,9 @@ import { NoteDuration } from "../../src/notation/model";
 import {
   createNotationComponentMock,
   dispatchClick,
-  dispatchInput,
   FakeElement,
   makeButton,
   makeDialog,
-  makeInput,
   makeText,
 } from "./helpers";
 
@@ -15,8 +13,13 @@ function createTimeSigHarness() {
   const dialog = makeDialog();
   const dialogContent = new FakeElement();
   dialog.appendChild(dialogContent);
-  const beatsInput = makeInput("4");
-  const durationInput = makeInput("4");
+  const beatsControl = new FakeElement();
+  const beatsDownButton = makeButton();
+  const beatsValue = new FakeElement();
+  beatsValue.textContent = "4";
+  const beatsUpButton = makeButton();
+  const durationSelect = new FakeElement();
+  durationSelect.value = "4";
   const confirmButton = makeButton();
   const cancelButton = makeButton();
   const beatsErrorText = makeText();
@@ -25,8 +28,11 @@ function createTimeSigHarness() {
     template: {
       dialog,
       dialogContent,
-      beatsInput,
-      durationInput,
+      beatsControl,
+      beatsDownButton,
+      beatsValue,
+      beatsUpButton,
+      durationSelect,
       confirmButton,
       cancelButton,
       beatsErrorText,
@@ -48,28 +54,49 @@ function createTimeSigHarness() {
 }
 
 describe("TimeSigControlsDefaultCallbacks", () => {
-  test("input validation updates errors and confirm state", () => {
+  test("beats stepper clamps and duration selector validates", () => {
     const { callbacks, component } = createTimeSigHarness();
 
-    dispatchInput(component.template.beatsInput, "0");
-    callbacks.onBeatsChanged({} as InputEvent);
-    expect(component.template.confirmButton.disabled).toBe(true);
-    expect(component.template.beatsErrorText.textContent).not.toBe(" ");
+    callbacks.onBeatsStep(3);
+    expect(component.template.beatsValue.textContent).toBe("7");
+    callbacks.onBeatsStep(-100);
+    expect(component.template.beatsValue.textContent).toBe("1");
+    expect(component.template.beatsDownButton.disabled).toBe(true);
 
-    dispatchInput(component.template.beatsInput, "7");
-    callbacks.onBeatsChanged({} as InputEvent);
-    expect(component.template.confirmButton.disabled).toBe(false);
-    expect(component.template.beatsErrorText.textContent).toBe(" ");
-
-    dispatchInput(component.template.durationInput, "3");
-    callbacks.onDurationChanged({} as InputEvent);
+    component.template.durationSelect.value = "3";
+    callbacks.onDurationChanged();
     expect(component.template.confirmButton.disabled).toBe(true);
     expect(component.template.durationErrorText.textContent).not.toBe(" ");
 
-    dispatchInput(component.template.durationInput, "8");
-    callbacks.onDurationChanged({} as InputEvent);
+    component.template.durationSelect.value = "8";
+    callbacks.onDurationChanged();
     expect(component.template.confirmButton.disabled).toBe(false);
     expect(component.template.durationErrorText.textContent).toBe(" ");
+  });
+
+  test("mouse wheel adjusts the beat count", () => {
+    const { callbacks, component } = createTimeSigHarness();
+    callbacks.bind();
+
+    component.template.beatsControl.dispatch("wheel", {
+      deltaY: -1,
+      preventDefault: jest.fn(),
+    });
+
+    expect(component.template.beatsValue.textContent).toBe("5");
+  });
+
+  test("one valid field cannot re-enable confirm while the other is invalid", () => {
+    const { callbacks, component, notationComponent } = createTimeSigHarness();
+
+    component.template.beatsValue.textContent = "0";
+    component.template.durationSelect.value = "8";
+    callbacks.onConfirmClicked();
+
+    expect(component.template.confirmButton.disabled).toBe(true);
+    expect(
+      notationComponent.trackController.setSelectedBarTimeSignature
+    ).not.toHaveBeenCalled();
   });
 
   test("confirm commits time signature and repeated bind does not double fire", () => {
@@ -85,8 +112,8 @@ describe("TimeSigControlsDefaultCallbacks", () => {
 
     callbacks.bind();
     callbacks.bind();
-    dispatchInput(component.template.beatsInput, "7");
-    dispatchInput(component.template.durationInput, "8");
+    component.template.beatsValue.textContent = "7";
+    component.template.durationSelect.value = "8";
     dispatchClick(component.template.confirmButton);
 
     expect(setTimeSignature).toHaveBeenCalledTimes(1);
