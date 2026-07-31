@@ -23,7 +23,7 @@ TabUI is still pre-`1.0.0` and under active development.
 ## Package Usage
 
 ```ts
-import { Score, TabUIEditor } from "@atikincode/tabui";
+import { PlaybackErrorCode, Score, TabUIEditor } from "@atikincode/tabui";
 import "@atikincode/tabui/styles.css";
 
 const root = document.getElementById("tabui-editor") as HTMLDivElement;
@@ -40,8 +40,28 @@ const editor = new TabUIEditor(root, new Score(), {
 
 editor.init();
 
+const unsubscribe = editor.subscribe((event) => {
+  if (event.type === "change") {
+    console.log(event.state.activeTrack, event.state.playback);
+  } else {
+    if (event.error.code === PlaybackErrorCode.ContextStart) {
+      console.error("Browser audio could not start", event.error.cause);
+    }
+  }
+});
+
+// Re-measure the notation host after an explicit container layout change.
+editor.refreshLayout();
+
 // Stop playback, release listeners, and clear editor-owned root contents.
-window.addEventListener("beforeunload", () => editor.dispose(), { once: true });
+window.addEventListener(
+  "beforeunload",
+  () => {
+    unsubscribe();
+    editor.dispose();
+  },
+  { once: true }
+);
 ```
 
 The root export is the supported framework-agnostic API. Styles are available
@@ -55,6 +75,16 @@ TabUI owns its contents while mounted. `init()` is synchronous and may be called
 once. `dispose()` is idempotent, but a disposed editor is terminal. To replace a
 score, dispose the editor and construct a new instance.
 
+`getState()` returns a `TabUIEditorStateSnapshot` containing the current active
+track, playback flags, model-level selection, and rendered layout size. Its
+identity remains stable until a `"change"` notification, so it can be used with
+external-store adapters.
+`subscribe()` is editor-instance scoped and returns an idempotent unsubscribe
+function. Asynchronous playback failures arrive as `"error"` events with a
+`PlaybackErrorCode`, message, and original cause. `refreshLayout(width?)` is the
+explicit host hook for container changes; automatic responsive observation is
+not yet provided.
+
 The refactor and optimization work from `tu-69-refactor-and-optimization` has
 been merged into `master` and now serves as the current development baseline.
 
@@ -65,8 +95,7 @@ first target integration.
 
 ## Current Focus
 
-- Complete Phase 6 P0 stabilization: master controls, track-switch playback
-  ownership, bends/dialog input safety, host events, and release validation.
+- Complete the Phase 6 P0 release-validation and browser/mobile smoke-test gate.
 - Continue with the required `0.5.0` persistence contract, then layout,
   embedding, responsive behavior, and release-candidate validation.
 - Keep `0.5.0` focused on a dependable tablature editor. Sheet and drum notation

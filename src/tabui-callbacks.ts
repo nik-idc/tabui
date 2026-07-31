@@ -17,6 +17,7 @@ export class TabUICallbacks {
   private _keyboardCallbacks: EditorKeyboardCallbacks;
   private _uiCallbacks: UICallbacks;
   private _rootDiv: HTMLDivElement;
+  private _onStateChanged: () => void;
   /** Pending requestAnimationFrame id for coalesced notation scroll renders. */
   private _notationRenderRafId?: number;
   /** Pending requestAnimationFrame id for coalesced selection/UI updates. */
@@ -27,11 +28,13 @@ export class TabUICallbacks {
   constructor(
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
-    rootDiv: HTMLDivElement
+    rootDiv: HTMLDivElement,
+    onStateChanged: () => void = () => {}
   ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
     this._rootDiv = rootDiv;
+    this._onStateChanged = onStateChanged;
 
     this._mouseCallbacks = new EditorMouseDefCallbacks(
       this._uiComponent,
@@ -151,6 +154,7 @@ export class TabUICallbacks {
    * SelectionRefresh is immediate to keep selection feedback synchronous.
    */
   private render(type: RenderType): void {
+    let stateChanged = true;
     switch (type) {
       case RenderType.Full:
         this.cancelPendingNotationRender();
@@ -159,6 +163,7 @@ export class TabUICallbacks {
         break;
       case RenderType.NotationOnly:
         this.scheduleNotationRender();
+        stateChanged = false;
         break;
       case RenderType.DragSelection:
         this.scheduleSelectionRender();
@@ -173,8 +178,18 @@ export class TabUICallbacks {
         break;
       case RenderType.PlayerCursor:
         // Reserved for future cursor-only render path.
+        stateChanged = false;
         break;
     }
+
+    if (stateChanged) {
+      this._onStateChanged();
+    }
+  }
+
+  /** Forces a full refresh for explicit host-driven layout changes. */
+  public refresh(): void {
+    this.render(RenderType.Full);
   }
 
   private captureKeyboard(): void {

@@ -23,6 +23,21 @@ export interface PlaybackOptions {
   loopEndBeat?: Beat;
 }
 
+export enum PlaybackErrorCode {
+  ContextInit = "context-init",
+  ContextStart = "context-start",
+  SampleLoading = "sample-loading",
+  Scheduling = "scheduling",
+}
+
+export interface PlaybackError {
+  code: PlaybackErrorCode;
+  message: string;
+  cause: unknown;
+}
+
+export type PlaybackErrorListener = (error: PlaybackError) => void;
+
 /**
  * Owns playback transport and UI-facing playback state.
  * ScorePlayer coordinates start/stop/dispose behavior, rolling lookahead polling,
@@ -54,6 +69,8 @@ export class ScorePlayer {
   private _playbackRunId: number = 0;
   /** True after disposal; async start work must not resume playback. */
   private _disposed: boolean = false;
+  /** Optional owner-scoped sink for actionable asynchronous failures. */
+  private readonly _onError?: PlaybackErrorListener;
 
   /**
    * Owns playback transport and UI-facing playback state.
@@ -64,12 +81,14 @@ export class ScorePlayer {
   constructor(
     score: Score,
     activeTrack: Track,
-    playbackConfig: ResolvedPlaybackConfig = {}
+    playbackConfig: ResolvedPlaybackConfig = {},
+    onError?: PlaybackErrorListener
   ) {
     this.uuid = randomInt();
     this._schedulingReady = false;
 
     this.score = score;
+    this._onError = onError;
     this._audioEngine = new PlaybackAudioEngine(this.score, playbackConfig);
     this._scheduler = new PlaybackScheduler(this.score, this._audioEngine);
     this._cursorCoordinator = new PlaybackCursorCoordinator(
@@ -95,6 +114,7 @@ export class ScorePlayer {
   private handlePlaybackFailure(
     error: unknown,
     playbackAnchorBeat: Beat | undefined,
+    code: PlaybackErrorCode,
     message: string
   ): void {
     this._playbackRunId++;
@@ -103,6 +123,7 @@ export class ScorePlayer {
     this._cursorCoordinator.setPlaybackAnchorBeat(playbackAnchorBeat);
     this.emitPlaybackStateChanged();
     console.error(message, error);
+    this._onError?.({ code, message, cause: error });
   }
 
   /** Handles natural playback completion once all playback has been buffered. */
@@ -182,6 +203,7 @@ export class ScorePlayer {
         this.handlePlaybackFailure(
           error,
           this.playbackAnchorBeat,
+          PlaybackErrorCode.Scheduling,
           "Failed to schedule playback"
         );
       }
@@ -203,6 +225,7 @@ export class ScorePlayer {
         this.handlePlaybackFailure(
           error,
           playbackAnchorBeat,
+          PlaybackErrorCode.ContextInit,
           "Failed to initialize audio context"
         );
       }
@@ -216,6 +239,7 @@ export class ScorePlayer {
         this.handlePlaybackFailure(
           error,
           playbackAnchorBeat,
+          PlaybackErrorCode.ContextStart,
           "Failed to start audio context"
         );
       }
@@ -236,6 +260,7 @@ export class ScorePlayer {
         this.handlePlaybackFailure(
           error,
           playbackAnchorBeat,
+          PlaybackErrorCode.SampleLoading,
           "Failed to load playback samples"
         );
       }
@@ -271,6 +296,7 @@ export class ScorePlayer {
         this.handlePlaybackFailure(
           error,
           playbackAnchorBeat,
+          PlaybackErrorCode.Scheduling,
           "Failed to schedule playback"
         );
       }
@@ -386,6 +412,7 @@ export class ScorePlayer {
       this.handlePlaybackFailure(
         error,
         this.playbackAnchorBeat,
+        PlaybackErrorCode.Scheduling,
         "Failed to schedule playback"
       );
     }

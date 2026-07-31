@@ -12,7 +12,7 @@ export interface EditorLayoutDimensionsConfig {
 export class EditorLayoutDimensions {
   /* ==== NOTATION VIEW ==== */
   /** Width of the tab */
-  private readonly _WIDTH: number;
+  private _WIDTH: number;
   /** Horizontal page margin around the notation content. */
   private readonly _HORIZONTAL_PADDING: number;
 
@@ -139,6 +139,10 @@ export class EditorLayoutDimensions {
 
   get WIDTH(): number {
     return this._WIDTH;
+  }
+
+  public setWidth(width: number): void {
+    this._WIDTH = width;
   }
 
   get HORIZONTAL_PADDING(): number {

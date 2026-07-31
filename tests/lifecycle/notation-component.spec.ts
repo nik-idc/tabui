@@ -11,6 +11,7 @@ const mockTrackControllers: Array<{
   trackElement: {
     update: jest.Mock;
     getTrackLineElementForBeat: jest.Mock;
+    refreshLayout: jest.Mock;
   };
 }> = [];
 
@@ -42,6 +43,7 @@ jest.mock("../../src/notation/controller", () => ({
           trackElement: {
             update: jest.fn(),
             getTrackLineElementForBeat: jest.fn(() => mockPlaybackLineForTrack),
+            refreshLayout: jest.fn(),
           },
         };
         mockTrackControllers.push(instance);
@@ -155,5 +157,21 @@ describe("NotationComponent", () => {
     expect(mockRenderers[1].render.mock.invocationCallOrder[0]).toBeLessThan(
       mockPlayers[0].setActiveTrack.mock.invocationCallOrder[0]
     );
+  });
+
+  test("refreshes active track geometry for an explicit layout refresh", () => {
+    const { score } = createScoreGraph();
+    const notation = new NotationComponent(
+      { appendChild: jest.fn() } as unknown as HTMLDivElement,
+      score,
+      { assets: {} as any, playback: {} as any, layout: {} as any } as any,
+      TEST_LAYOUT_DIMENSIONS
+    );
+
+    notation.refreshLayout();
+
+    expect(
+      mockTrackControllers[0].trackElement.refreshLayout
+    ).toHaveBeenCalledTimes(1);
   });
 });

@@ -8,7 +8,7 @@ import { ElementRenderer } from "./render/element-renderer";
 import { TrackController } from "./controller";
 import { ResolvedTabUIConfig } from "../config/tabui-config";
 import { EditorLayoutDimensions } from "./controller/editor-layout-dimensions";
-import { ScorePlayer } from "../player";
+import { PlaybackErrorListener, ScorePlayer } from "../player";
 
 /**
  * Responsible for controllong everything notation-wise
@@ -43,6 +43,7 @@ export class NotationComponent {
     score: Score,
     config: ResolvedTabUIConfig,
     layoutDimensions: EditorLayoutDimensions,
+    onPlaybackError?: PlaybackErrorListener,
     renderer?: EditorRenderer
   ) {
     this.score = score;
@@ -52,7 +53,8 @@ export class NotationComponent {
     this._scorePlayer = new ScorePlayer(
       this.score,
       this.score.tracks[0],
-      this.config.playback
+      this.config.playback,
+      onPlaybackError
     );
     this._trackController = new TrackController(
       this.score.tracks[0],
@@ -122,6 +124,11 @@ export class NotationComponent {
     this._disposed = true;
     this._renderer.dispose();
     this._scorePlayer.dispose();
+  }
+
+  /** Rebuilds active-track geometry after explicit host layout refresh. */
+  public refreshLayout(): void {
+    this._trackController.trackElement.refreshLayout();
   }
 
   /**

@@ -92,9 +92,13 @@ try {
     path.join(workspace, "src/main.ts"),
     `import {
   NoteValue,
+  PlaybackErrorCode,
   Score,
   TabUIEditor,
+  type SelectionCursorSnapshot,
   type TabUIConfig,
+  type TabUIEditorEvent,
+  type TabUIEditorStateSnapshot,
 } from "@atikincode/tabui";
 import "@atikincode/tabui/styles.css";
 import playIconUrl from "@atikincode/tabui/assets/img/ui/play.svg?url";
@@ -108,9 +112,26 @@ const config: TabUIConfig = {
 
 const editor = new TabUIEditor(rootDiv, score, config);
 editor.init();
+const initialState: TabUIEditorStateSnapshot = editor.getState();
+const initialCursor: SelectionCursorSnapshot | null =
+  initialState.selection.cursor;
+const unsubscribe = editor.subscribe((event: TabUIEditorEvent) => {
+  if (event.type === "change") {
+    document.body.dataset.activeTrack = event.state.activeTrack.name;
+  } else {
+    document.body.dataset.editorError = event.error.code;
+    document.body.dataset.contextError = String(
+      event.error.code === PlaybackErrorCode.ContextStart
+    );
+  }
+});
+editor.refreshLayout(1200);
+window.addEventListener("beforeunload", unsubscribe, { once: true });
 
 document.body.dataset.playIconUrl = playIconUrl;
 document.body.dataset.noteValue = NoteValue.C;
+document.body.dataset.initialTrack = initialState.activeTrack.name;
+document.body.dataset.hasInitialCursor = String(initialCursor !== null);
 `
   );
 

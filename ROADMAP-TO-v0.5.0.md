@@ -301,11 +301,11 @@ Completed so far:
   handling, cursor synchronization, viewport following, and stale-event scoping.
 - Disabled editing mutations and editing UI while playback is active while
   preserving copy, transport, track selection, and track mix controls.
+- Completed bend/dialog safety and the instance-scoped host state, event, error,
+  and explicit layout-refresh API.
 
 Next P0 work:
 
-- Complete bend removal and dialog input/focus safety.
-- Define the minimum host-facing state/event API.
 - Run and record the full release-validation gate.
 
 See `PHASE-6-ROADMAP.md` for current status, remaining work, and release gates.

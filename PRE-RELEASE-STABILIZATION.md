@@ -8,7 +8,6 @@ issue inbox; classify new findings here before they expand release scope.
 
 ## P0 - Release Blockers
 
-- Define the minimum host-facing playback, active-track, state, and error API.
 - Complete and record the P0 release-validation gate.
 
 ## Completed P0
@@ -55,6 +54,11 @@ issue inbox; classify new findings here before they expand release scope.
 - Note selection previews and selected-note outlines use identical fixed geometry
   for ordinary and parenthesized Let Ring fret text.
 - `BendTechniqueOptions` requires explicit valid constructor input.
+- Editor-instance `getState()`/`subscribe()` host API for active track, playback,
+  model-level selection, layout size, and structured playback errors, with
+  explicit subscription disposal and cross-editor isolation.
+- Explicit `refreshLayout(width?)` host hook with stable external-store state
+  snapshots; automatic responsive observation remains P1.
 
 Latest implementation commits:
 
@@ -77,6 +81,15 @@ Latest implementation commits:
   memory before deciding whether to simplify presentation-shell types.
 - Decide the desired cross-track width invariant before implementing score-wide
   width planning.
+- Reassess UI event ownership and naming after stabilization. Prefer components
+  owning their interactions when that reduces coupling, but do not make the
+  current component/callback split part of the public integration contract.
+- Replace the global internal `trackEvent` singleton with an injected
+  editor/notation-owned event scope when revisiting component ownership. Current
+  UUID/run filtering preserves multi-instance correctness, so treat this as an
+  ownership cleanup rather than a P0 behavior fix.
+- Evaluate hierarchical template element objects only as a measured internal
+  simplification; the broad template access blast radius does not belong in P0.
 - Improve repeat markers and technique visuals.
 - Replace repeated Palm Mute and Let Ring labels with continuous dashed spans
   across consecutive applications.

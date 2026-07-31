@@ -1,4 +1,4 @@
-import { ScorePlayer } from "../../src/player";
+import { PlaybackErrorCode, ScorePlayer } from "../../src/player";
 import {
   createBarWithBeats,
   createBeat,
@@ -724,7 +724,8 @@ describe("ScorePlayer", () => {
         })
       )
     );
-    const player = new ScorePlayer(score, track);
+    const onError = jest.fn();
+    const player = new ScorePlayer(score, track, {}, onError);
     const consoleErrorSpy = jest
       .spyOn(console, "error")
       .mockImplementation(() => {});
@@ -742,6 +743,14 @@ describe("ScorePlayer", () => {
     expect(
       createdOscillators[0].frequency.linearRampToValueAtTime
     ).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith({
+      code: PlaybackErrorCode.Scheduling,
+      message: "Failed to schedule playback",
+      cause: expect.objectContaining({
+        message:
+          "Hold and Release playback require a previous bend continuation",
+      }),
+    });
     consoleErrorSpy.mockRestore();
   });
 

@@ -2,12 +2,34 @@ import { TabUIEditor } from "../../src/tabui-editor";
 import { NotationComponent } from "../../src/notation/notation-component";
 import { UIComponent } from "../../src/ui";
 import { TabUICallbacks } from "../../src/tabui-callbacks";
+import { PlaybackErrorCode } from "../../src/player";
 
 jest.mock("../../src/notation/notation-component", () => ({
-  NotationComponent: jest.fn().mockImplementation(() => ({
-    loadTrack: jest.fn(),
-    dispose: jest.fn(),
-  })),
+  NotationComponent: jest
+    .fn()
+    .mockImplementation(
+      (
+        _root: unknown,
+        score: any,
+        _config: unknown,
+        layoutDimensions: any,
+        onPlaybackError?: (error: unknown) => void
+      ) => ({
+        loadTrack: jest.fn(),
+        refreshLayout: jest.fn(),
+        dispose: jest.fn(),
+        emitPlaybackError: onPlaybackError,
+        trackController: {
+          track: score.tracks[0],
+          isPlaying: false,
+          isLooped: false,
+          activeVoiceNumber: 1,
+          selectionBeats: [],
+          selectedNote: undefined,
+          windowHeight: layoutDimensions.WIDTH / 2,
+        },
+      })
+    ),
 }));
 
 jest.mock("../../src/ui", () => ({
@@ -17,10 +39,21 @@ jest.mock("../../src/ui", () => ({
 }));
 
 jest.mock("../../src/tabui-callbacks", () => ({
-  TabUICallbacks: jest.fn().mockImplementation(() => ({
-    bind: jest.fn(),
-    unbind: jest.fn(),
-  })),
+  TabUICallbacks: jest
+    .fn()
+    .mockImplementation(
+      (
+        _ui: unknown,
+        _notation: unknown,
+        _root: unknown,
+        onStateChanged?: () => void
+      ) => ({
+        bind: jest.fn(),
+        unbind: jest.fn(),
+        refresh: jest.fn(onStateChanged),
+        emitStateChanged: onStateChanged,
+      })
+    ),
 }));
 
 function createRoot() {
@@ -72,7 +105,7 @@ function createShellElement() {
 }
 
 function createScore() {
-  return { tracks: [{ id: "track" }] } as any;
+  return { tracks: [{ uuid: Math.random(), name: "Track" }] } as any;
 }
 
 describe("TabUIEditor lifecycle", () => {
@@ -209,6 +242,166 @@ describe("TabUIEditor lifecycle", () => {
 
     expect(() => editor.init()).toThrow(
       "TabUIEditor width must be at least 320px"
+    );
+  });
+
+  test("exposes model-level editor state without exposing runtime controllers", () => {
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+    const selectedBeat = { uuid: 10 };
+    const selectedNote = { uuid: 11 };
+    notation.trackController.isPlaying = true;
+    notation.trackController.isLooped = true;
+    notation.trackController.activeVoiceNumber = 2;
+    notation.trackController.selectionBeats = [selectedBeat];
+    notation.trackController.selectedNote = {
+      beat: selectedBeat,
+      note: selectedNote,
+      noteIndex: 3,
+    };
+    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+    callbacks.emitStateChanged();
+
+    const state = editor.getState();
+
+    expect(state).toEqual({
+      activeTrack: editor.score.tracks[0],
+      playback: { isPlaying: true, isLooped: true },
+      selection: {
+        activeVoiceNumber: 2,
+        beats: [selectedBeat],
+        cursor: { beat: selectedBeat, note: selectedNote, noteIndex: 3 },
+      },
+      layout: { width: 666, height: 333 },
+    });
+    expect(state).not.toHaveProperty("controller");
+    expect(state).not.toHaveProperty("renderer");
+  });
+
+  test("subscriptions are disposable and isolated between editor instances", () => {
+    const firstEditor = new TabUIEditor(createRoot(), createScore());
+    const secondEditor = new TabUIEditor(createRoot(), createScore());
+    firstEditor.init();
+    secondEditor.init();
+    const firstListener = jest.fn();
+    const secondListener = jest.fn();
+    const unsubscribeFirst = firstEditor.subscribe(firstListener);
+    secondEditor.subscribe(secondListener);
+    const firstCallbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+    const secondCallbacks = jest.mocked(TabUICallbacks).mock.results[1].value;
+
+    firstCallbacks.emitStateChanged();
+
+    expect(firstListener).toHaveBeenCalledWith({
+      type: "change",
+      state: firstEditor.getState(),
+    });
+    expect(secondListener).not.toHaveBeenCalled();
+
+    unsubscribeFirst();
+    unsubscribeFirst();
+    firstCallbacks.emitStateChanged();
+    secondCallbacks.emitStateChanged();
+
+    expect(firstListener).toHaveBeenCalledTimes(1);
+    expect(secondListener).toHaveBeenCalledTimes(1);
+  });
+
+  test("keeps state snapshots stable between change notifications", () => {
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const initialState = editor.getState();
+    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+
+    expect(editor.getState()).toBe(initialState);
+
+    callbacks.emitStateChanged();
+
+    expect(editor.getState()).not.toBe(initialState);
+    expect(editor.getState()).toBe(editor.getState());
+  });
+
+  test("publishes structured playback failures only to the owning editor", () => {
+    const firstEditor = new TabUIEditor(createRoot(), createScore());
+    const secondEditor = new TabUIEditor(createRoot(), createScore());
+    firstEditor.init();
+    secondEditor.init();
+    const firstListener = jest.fn();
+    const secondListener = jest.fn();
+    firstEditor.subscribe(firstListener);
+    secondEditor.subscribe(secondListener);
+    const firstNotation = jest.mocked(NotationComponent).mock.results[0].value;
+    const cause = new Error("blocked");
+
+    firstNotation.emitPlaybackError({
+      code: PlaybackErrorCode.ContextStart,
+      message: "Failed to start audio context",
+      cause,
+    });
+
+    expect(firstListener).toHaveBeenCalledWith({
+      type: "error",
+      error: {
+        source: "playback",
+        code: PlaybackErrorCode.ContextStart,
+        message: "Failed to start audio context",
+        cause,
+      },
+    });
+    expect(secondListener).not.toHaveBeenCalled();
+  });
+
+  test("refreshes explicit or measured layout and publishes the new size", () => {
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const listener = jest.fn();
+    editor.subscribe(listener);
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+
+    editor.refreshLayout(720);
+
+    expect(editor.layoutDimensions.WIDTH).toBe(720);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
+    expect(callbacks.refresh).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenLastCalledWith({
+      type: "change",
+      state: editor.getState(),
+    });
+  });
+
+  test("rejects invalid refresh widths before changing layout", () => {
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+
+    expect(() => editor.refreshLayout(200)).toThrow(
+      "TabUIEditor width must be at least 320px"
+    );
+    expect(editor.layoutDimensions.WIDTH).toBe(666);
+    expect(notation.refreshLayout).not.toHaveBeenCalled();
+    expect(callbacks.refresh).not.toHaveBeenCalled();
+  });
+
+  test("disposal clears subscriptions and keeps state APIs terminal", () => {
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const listener = jest.fn();
+    editor.subscribe(listener);
+    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+
+    editor.dispose();
+    callbacks.emitStateChanged();
+
+    expect(listener).not.toHaveBeenCalled();
+    expect(() => editor.getState()).toThrow("TabUIEditor already disposed");
+    expect(() => editor.subscribe(jest.fn())).toThrow(
+      "TabUIEditor already disposed"
+    );
+    expect(() => editor.refreshLayout()).toThrow(
+      "TabUIEditor already disposed"
     );
   });
 });

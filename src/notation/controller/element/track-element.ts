@@ -473,6 +473,15 @@ export class TrackElement {
     this.reconcileSkeletonLines();
   }
 
+  /**
+   * Rebuilds line shells while preserving lazy materialization. Calling update
+   * without a viewport range would materialize the whole track.
+   */
+  public refreshLayout(): void {
+    this.rebuildSkeletonGeometry();
+    this.refreshMaterializedElements();
+  }
+
   private normalizeLineRange(
     lineRange: TrackElementLineRange | undefined
   ): TrackElementLineRange {

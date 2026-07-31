@@ -9,4 +9,6 @@ export type {
 export * from "./notation/model";
 export type { EditorLayoutDimensionsConfig } from "./notation/controller/editor-layout-dimensions";
 export { EditorLayoutDimensions } from "./notation/controller/editor-layout-dimensions";
+export type { SelectionCursorSnapshot } from "./notation/controller/selection/selected-note";
+export { PlaybackErrorCode } from "./player";
 export * from "./tabui-editor";

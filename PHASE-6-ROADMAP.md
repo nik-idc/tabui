@@ -14,12 +14,12 @@ pre-`1.0.0` ownership/API decisions and record new issues in
 | 2       | Lifecycle, disposal, ownership, multi-instance safety         | Complete |
 | 3.1-3.4 | Playback, selection, editing locks, controls, track switching | Complete |
 | 3.5     | Bends and dialog input safety                                 | Complete |
-| 3.6     | Minimum host event/API surface                                | Pending  |
+| 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Pending  |
 
-Current automated checkpoint: 70 suites / 552 tests. `npm test`, `npm run build`,
+Current automated checkpoint: 70 suites / 561 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
-after the Stage 3.5 implementation.
+after the Stage 3.6 implementation.
 
 ## Completed Contracts
 
@@ -70,17 +70,18 @@ after the Stage 3.5 implementation.
   beat geometry without introducing technique-specific collision planning.
 - Note hover previews and selected-note outlines share one larger fixed square,
   independent of ordinary or parenthesized Let Ring fret text width.
+- `TabUIEditor.getState()` projects active track, playback, model-level
+  selection, and layout size without exposing controllers or renderers. Snapshots
+  remain referentially stable between change notifications for external-store
+  consumers.
+- `TabUIEditor.subscribe()` is instance-scoped and returns an idempotent disposer.
+  Change and structured playback-error events cannot cross editor instances, and
+  the global internal event singleton is not part of the package contract.
+- `TabUIEditor.refreshLayout(width?)` provides an explicit host resize/layout
+  hook while preserving active selection and the score-wide player. Automatic
+  responsive observation remains P1.
 
 ## Remaining P0
-
-### Stage 3.6 - Host API
-
-- Define only the host-observable state required for playback, active track,
-  supported selection/state changes, resize/layout refresh, and actionable errors.
-- Keep the core framework-agnostic; do not expose internal controllers, renderers,
-  or the global event singleton as the integration contract.
-- Make subscription disposal explicit and prove two editors cannot receive each
-  other's events.
 
 ### Stage 4 - P0 Closeout
 

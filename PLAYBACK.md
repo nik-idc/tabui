@@ -178,6 +178,10 @@ without requiring multisampling, velocity layers, or technique-specific samples.
   anchor where possible.
 - Normal score edits are blocked while playback is active. Copy, transport,
   active-track selection, and track volume/mute/solo/pan remain available.
+- Fatal asynchronous playback startup or scheduling failures are projected to
+  the owning `TabUIEditor` as structured `"error"` events. Error codes distinguish
+  audio-context initialization/start, sample loading, and scheduling failures;
+  one editor cannot receive another editor's host notifications.
 - Clicking a beat during playback seeks without creating edit selection.
 - Active-track switching disposes the old track renderer/controller view but
   preserves the `NotationComponent`-owned `ScorePlayer`. Pending cursor timing is

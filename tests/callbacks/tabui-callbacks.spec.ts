@@ -52,7 +52,7 @@ jest.mock("../../src/ui/ui-callbacks", () => {
 });
 
 describe("TabUICallbacks", () => {
-  function createHarness() {
+  function createHarness(onStateChanged: () => void = () => {}) {
     const renderer = {
       attachViewportScrollEvent: jest.fn(),
       detachViewportScrollEvent: jest.fn(),
@@ -69,7 +69,8 @@ describe("TabUICallbacks", () => {
     const callbacks = new TabUICallbacks(
       uiComponent,
       notationComponent,
-      {} as HTMLDivElement
+      {} as HTMLDivElement,
+      onStateChanged
     );
 
     return {
@@ -160,5 +161,16 @@ describe("TabUICallbacks", () => {
     uiCallbacks.freeKeyboard();
 
     expect(keyboardCallbacks.bind).toHaveBeenCalledTimes(1);
+  });
+
+  test("reports host state changes without reporting cursor-only renders", () => {
+    const onStateChanged = jest.fn();
+    const { callbacks } = createHarness(onStateChanged);
+
+    (callbacks as any).render(RenderType.SelectionRefresh);
+    (callbacks as any).render(RenderType.PlayerCursor);
+    callbacks.refresh();
+
+    expect(onStateChanged).toHaveBeenCalledTimes(2);
   });
 });
