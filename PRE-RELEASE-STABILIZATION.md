@@ -8,7 +8,8 @@ issue inbox; classify new findings here before they expand release scope.
 
 ## P0 - Release Blockers
 
-- Complete and record the P0 release-validation gate.
+- Complete and record the Chromium/Firefox, mobile/touch, and retained-resource
+  smoke gate. The clean automated gate passed on 2026-08-01.
 
 ## Completed P0
 
@@ -59,6 +60,9 @@ issue inbox; classify new findings here before they expand release scope.
   explicit subscription disposal and cross-editor isolation.
 - Explicit `refreshLayout(width?)` host hook with stable external-store state
   snapshots; automatic responsive observation remains P1.
+- Repeated tempo and time-signature edits invalidate retained notation using
+  build-captured presentation values, preventing stale BPM and meter text when
+  geometry remains unchanged.
 
 Latest implementation commits:
 
@@ -97,6 +101,12 @@ Latest implementation commits:
   across tied beats, bend continuation, serialization, editing, and tie notation;
   remove the temporary use of Let Ring as a tied-destination marker afterward.
 - Apply voice opacity consistently to technique labels.
+- Define rendering semantics for empty but non-null voice bars before persistence
+  accepts them; current `VoiceBarElement.measure()` assumes at least one beat.
+- Tempo setting should overwrite tempo values of all master bars after the last one changed.
+  This would make it so that changing the tempo of the first bar would effectively change the
+  tempo of the entire score. And maybe also make it so that if drag selection is active,
+  tempo change applies only to the bars within active selection.
 
 ## P2 - Conditional Polish
 
@@ -118,9 +128,23 @@ Latest implementation commits:
 2. Audit `TabBeatElement` necessity; it may be possible to converge on
    `BeatElement`. Keep this as measured architecture analysis, not a speculative
    P0 refactor.
-3. Observed a bug - repeated change of tempo doesn't result in a correctly rendered
-   change. Eg 120 -> 130 BPM renders correctly. But then from 130 -> 160 doesn't render.
-   Could be deeper than just a renderer issue but on the surface it appears to be just that.
+3. Resolved during P0 closeout: repeated tempo and time-signature edits could
+   leave stale rendered text because retained element hashes omitted displayed
+   values.
+
+## P0 Audit - 2026-08-01
+
+- Audited TODO, FIXME, FIX, XXX, HACK, WARNING, NOTE, BUG, temporary, unsupported,
+  placeholder, and empty-method markers across source and active tests.
+- No additional marker-backed P0 was found. Classic/sheet notation stubs remain
+  explicitly deferred; technique bounds, tuning approximation, paste semantics,
+  and global event ownership remain P1/P2 or documented limitations.
+- Confirmed the multi-staff/multi-voice outline extends into rhythm rows when the
+  final staff has multiple voices. It remains P1 because editing/model/playback
+  state stays correct, though the playback cursor shares the excessive extent.
+- Confirmed repeated tempo text invalidation as P0 and the analogous repeated
+  time-signature text invalidation. Both received focused regressions and a
+  shared captured-presentation-state correction.
 
 As testing progresses, add newly found issues with an explicit priority and
 release impact.

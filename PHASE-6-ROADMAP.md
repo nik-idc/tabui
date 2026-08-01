@@ -17,9 +17,9 @@ pre-`1.0.0` ownership/API decisions and record new issues in
 | 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Pending  |
 
-Current automated checkpoint: 70 suites / 561 tests. `npm test`, `npm run build`,
+Current automated checkpoint: 70 suites / 563 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
-after the Stage 3.6 implementation.
+after the P0 closeout audit and retained-text invalidation fixes.
 
 ## Completed Contracts
 
@@ -80,14 +80,18 @@ after the Stage 3.6 implementation.
 - `TabUIEditor.refreshLayout(width?)` provides an explicit host resize/layout
   hook while preserving active selection and the score-wide player. Automatic
   responsive observation remains P1.
+- Tempo and time-signature elements capture displayed values for diffing, so
+  repeated edits, undo, and redo cannot leave retained SVG text stale when
+  visibility and geometry remain unchanged.
 
 ## Remaining P0
 
 ### Stage 4 - P0 Closeout
 
-- Run `npm test`, `npm run build`, `npm run build_vite`,
-  `npm run test:pack-consumer`, `npm run benchmark:updates`, and
-  `git diff --check` from clean output.
+- Automated gate passed from clean output on 2026-08-01: `npm test`,
+  `npm run build`, `npm run build_vite`, `npm run test:pack-consumer`,
+  `npm run benchmark:updates`, and `git diff --check`. All 28 benchmark scenarios
+  retained a substantial focused-update speedup over full updates.
 - Smoke test Chromium and Firefox desktop plus mobile viewport/touch input:
   fixtures, editing, selection, dialogs, playback/repeats/loops, cursor following,
   buffered mix changes, track switching, mount/dispose/remount, and two editors.

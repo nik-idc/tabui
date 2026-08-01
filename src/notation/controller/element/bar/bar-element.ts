@@ -1,4 +1,9 @@
-import { Bar, BarRepeatStatus, VoiceNumber } from "../../../model";
+import {
+  Bar,
+  BarRepeatStatus,
+  NoteDuration,
+  VoiceNumber,
+} from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
 import { NotationElement } from "../notation-element";
@@ -62,6 +67,11 @@ export class BarElement implements NotationElement {
   private _durationsFit: boolean;
   /** Repeat status captured during build for stale pre-update diffing. */
   private _repeatStatusState: BarRepeatStatus;
+  /** Time signature captured during build for stale pre-update diffing. */
+  private _timeSignatureState: {
+    beatsCount: number;
+    duration: NoteDuration;
+  };
   /** Time signature rectangle */
   private _timeSigRect?: Rect;
 
@@ -91,6 +101,10 @@ export class BarElement implements NotationElement {
     this._showTempo = false;
     this._durationsFit = false;
     this._repeatStatusState = this.bar.masterBar.repeatStatus;
+    this._timeSignatureState = {
+      beatsCount: this.bar.masterBar.beatsCount,
+      duration: this.bar.masterBar.duration,
+    };
 
     this._voiceBarElements = [];
     this._voiceBarRhythmElements = [];
@@ -118,6 +132,10 @@ export class BarElement implements NotationElement {
         : true;
     this._durationsFit = this.bar.checkDurationsFit();
     this._repeatStatusState = this.bar.masterBar.repeatStatus;
+    this._timeSignatureState = {
+      beatsCount: this.bar.masterBar.beatsCount,
+      duration: this.bar.masterBar.duration,
+    };
 
     if (
       prevBar !== null &&
@@ -343,6 +361,8 @@ export class BarElement implements NotationElement {
     hashArr.push(`${this._repeatStatusState}`);
 
     if (this._timeSigRect !== undefined) {
+      hashArr.push(`${this._timeSignatureState.beatsCount}`);
+      hashArr.push(`${this._timeSignatureState.duration}`);
       hashArr.push(`${this._timeSigRect.x}`);
       hashArr.push(`${this._timeSigRect.y}`);
       hashArr.push(`${this._timeSigRect.width}`);

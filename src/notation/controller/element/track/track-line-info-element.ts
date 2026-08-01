@@ -36,6 +36,8 @@ export class TrackLineInfoElement implements NotationElement {
   private _boundingBox: Rect;
   /** Stores all the bars whose tempo to display & the tempo rect */
   private _barTempoRectsMap: Map<BarElement, Rect>;
+  /** Displayed tempo captured during build for stale pre-update diffing. */
+  private _barTempoState: Map<BarElement, number>;
   /**
    * Class representing the visual info about all
    * info that needs to be on this track line element
@@ -54,6 +56,7 @@ export class TrackLineInfoElement implements NotationElement {
       0
     );
     this._barTempoRectsMap = new Map();
+    this._barTempoState = new Map();
 
     this.build();
   }
@@ -64,6 +67,7 @@ export class TrackLineInfoElement implements NotationElement {
   public build(): void {
     this._boundingBox.height = 0;
     this._barTempoRectsMap.clear();
+    this._barTempoState.clear();
 
     const barElements =
       this.trackLineElement.staffLineElements[0].styleLinesAsArray[0]
@@ -80,6 +84,7 @@ export class TrackLineInfoElement implements NotationElement {
           this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
         );
         this._barTempoRectsMap.set(barElement, rect);
+        this._barTempoState.set(barElement, barElement.bar.masterBar.tempo);
       }
     }
   }
@@ -112,6 +117,7 @@ export class TrackLineInfoElement implements NotationElement {
       hashArr.push(`${rect.y}`);
       hashArr.push(`${rect.width}`);
       hashArr.push(`${rect.height}`);
+      hashArr.push(`${this._barTempoState.get(barElement)}`);
     }
 
     return hashArr.join("");
@@ -236,7 +242,8 @@ export class TrackLineInfoElement implements NotationElement {
       return undefined;
     }
 
-    return `=${barElement.bar.masterBar.tempo}`;
+    const tempo = this._barTempoState.get(barElement);
+    return tempo === undefined ? undefined : `=${tempo}`;
   }
 
   /** String encoding the state of this element */

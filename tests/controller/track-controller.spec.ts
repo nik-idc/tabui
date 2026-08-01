@@ -17,6 +17,8 @@ import {
   VoiceBar,
 } from "../../src/notation/model";
 import { SelectedMoveDirection } from "../../src/notation/controller/selection/selected-note";
+import { BarElement } from "../../src/notation/controller/element/bar/bar-element";
+import { TrackLineInfoElement } from "../../src/notation/controller/element/track/track-line-info-element";
 import {
   createBarWithBeats,
   createBeat,
@@ -1611,5 +1613,111 @@ describe("TrackController", () => {
     expect(
       controller.trackElement.trackLineElements[2].boundingBox.y
     ).toBeGreaterThan(initialThirdLineY);
+  });
+
+  test("repeated tempo changes invalidate displayed tempo text", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.trackElement.update();
+    controller.selectNoteElement(
+      getBeatElements(controller)[0].noteElements[0]
+    );
+    controller.trackElement.consumeDiff();
+
+    controller.setSelectedBarTempo(130);
+    let lineInfo = controller.trackElement.trackLineElements[0]
+      .trackLineInfoElement as TrackLineInfoElement;
+    let barElement = [...lineInfo.barTempoRectsMap.keys()][0];
+    const firstHash = lineInfo.stateHash;
+    const firstDiff = controller.trackElement.consumeDiff();
+
+    expect(lineInfo.getBarTempoText(barElement)).toBe("=130");
+    expect(firstDiff.updated.get(TrackLineInfoElement)).toContain(
+      lineInfo.getStableIdentity()
+    );
+
+    controller.setSelectedBarTempo(160);
+    lineInfo = controller.trackElement.trackLineElements[0]
+      .trackLineInfoElement as TrackLineInfoElement;
+    barElement = [...lineInfo.barTempoRectsMap.keys()][0];
+    const secondDiff = controller.trackElement.consumeDiff();
+
+    expect(lineInfo.getBarTempoText(barElement)).toBe("=160");
+    expect(lineInfo.stateHash).not.toBe(firstHash);
+    expect(secondDiff.updated.get(TrackLineInfoElement)).toContain(
+      lineInfo.getStableIdentity()
+    );
+
+    controller.undo();
+    lineInfo = controller.trackElement.trackLineElements[0]
+      .trackLineInfoElement as TrackLineInfoElement;
+    barElement = [...lineInfo.barTempoRectsMap.keys()][0];
+    const undoDiff = controller.trackElement.consumeDiff();
+    expect(lineInfo.getBarTempoText(barElement)).toBe("=130");
+    expect(undoDiff.updated.get(TrackLineInfoElement)).toContain(
+      lineInfo.getStableIdentity()
+    );
+
+    controller.redo();
+    lineInfo = controller.trackElement.trackLineElements[0]
+      .trackLineInfoElement as TrackLineInfoElement;
+    barElement = [...lineInfo.barTempoRectsMap.keys()][0];
+    const redoDiff = controller.trackElement.consumeDiff();
+    expect(lineInfo.getBarTempoText(barElement)).toBe("=160");
+    expect(redoDiff.updated.get(TrackLineInfoElement)).toContain(
+      lineInfo.getStableIdentity()
+    );
+  });
+
+  test("repeated time signature changes invalidate displayed meter text", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.trackElement.update();
+    controller.selectNoteElement(
+      getBeatElements(controller)[0].noteElements[0]
+    );
+    controller.trackElement.consumeDiff();
+
+    controller.setSelectedBarTimeSignature(3, NoteDuration.Quarter);
+    let barElement =
+      controller.trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0];
+    const firstHash = barElement.stateHash;
+    const firstDiff = controller.trackElement.consumeDiff();
+
+    expect(firstDiff.updated.get(BarElement)).toContain(
+      barElement.getStableIdentity()
+    );
+
+    controller.setSelectedBarTimeSignature(5, NoteDuration.Quarter);
+    barElement =
+      controller.trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0];
+    const secondDiff = controller.trackElement.consumeDiff();
+
+    expect(barElement.stateHash).not.toBe(firstHash);
+    expect(secondDiff.updated.get(BarElement)).toContain(
+      barElement.getStableIdentity()
+    );
+
+    controller.undo();
+    barElement =
+      controller.trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0];
+    const undoDiff = controller.trackElement.consumeDiff();
+    expect(track.score.masterBars[0].beatsCount).toBe(3);
+    expect(undoDiff.updated.get(BarElement)).toContain(
+      barElement.getStableIdentity()
+    );
+
+    controller.redo();
+    barElement =
+      controller.trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements[0];
+    const redoDiff = controller.trackElement.consumeDiff();
+    expect(track.score.masterBars[0].beatsCount).toBe(5);
+    expect(redoDiff.updated.get(BarElement)).toContain(
+      barElement.getStableIdentity()
+    );
   });
 });
