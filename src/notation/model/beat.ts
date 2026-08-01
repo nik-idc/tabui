@@ -173,7 +173,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
       throw Error(`${index} is invalid note index`);
     }
 
-    this._notes[index] = note.deepCopy();
+    this._notes[index] = note.deepCopy(this);
 
     return {
       index: index,
@@ -227,17 +227,10 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
 
   /**
    * Creates a deep copy of the beat
+   * @param voiceBar Voice bar that will own the copied beat
    * @returns Beat's deep copy
    */
-  public deepCopy(): Beat<I> {
-    let notes: Note<I>[] | null = null;
-    if (this._notes !== null) {
-      notes = [];
-      for (let i = 0; i < this._notes.length; i++) {
-        notes[i] = this._notes[i].deepCopy();
-      }
-    }
-
+  public deepCopy(voiceBar: VoiceBar<I> = this.voiceBar): Beat<I> {
     const tupletSettingsCopy: TupletSettings | null =
       this._tupletSettings !== null
         ? {
@@ -247,15 +240,20 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
         : null;
 
     const beat = new Beat<I>(
-      this.voiceBar,
-      this.trackContext,
-      notes,
+      voiceBar,
+      voiceBar.trackContext,
+      this._notes === null ? null : [],
       this._baseDuration,
       this._dots,
       tupletSettingsCopy,
       this._beamGroupId,
       this._lastInBeamGroup
     );
+    if (this._notes !== null && beat._notes !== null) {
+      for (let i = 0; i < this._notes.length; i++) {
+        beat._notes[i] = this._notes[i].deepCopy(beat);
+      }
+    }
 
     return beat;
   }

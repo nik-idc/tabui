@@ -649,6 +649,16 @@ describe("TrackController", () => {
     expect(beats).toHaveLength(3);
     expect(beats[2].uuid).toBe(secondBeatUUID);
     expect(controller.selectedNote?.beat).toBe(beats[1]);
+
+    const insertedBeatElement = controller.trackElement.getBeatElement(
+      beats[1]
+    );
+    if (insertedBeatElement === undefined) {
+      throw Error("Expected inserted beat element");
+    }
+    controller.selectNoteElement(insertedBeatElement.noteElements[0]);
+    expect(controller.selectedNote?.beat).toBe(beats[1]);
+    expect(controller.selectedNote?.noteIndex).toBe(0);
   });
 
   test("insert beat after selected inserts and selects the new beat", () => {
@@ -669,6 +679,16 @@ describe("TrackController", () => {
     expect(beats).toHaveLength(3);
     expect(beats[2].uuid).toBe(secondBeatUUID);
     expect(controller.selectedNote?.beat).toBe(beats[1]);
+
+    const insertedBeatElement = controller.trackElement.getBeatElement(
+      beats[1]
+    );
+    if (insertedBeatElement === undefined) {
+      throw Error("Expected inserted beat element");
+    }
+    controller.selectNoteElement(insertedBeatElement.noteElements[0]);
+    expect(controller.selectedNote?.beat).toBe(beats[1]);
+    expect(controller.selectedNote?.noteIndex).toBe(0);
   });
 
   test("remove selected beat deletes current beat and clears selection", () => {

@@ -2,6 +2,7 @@ import {
   Beat,
   Guitar,
   GuitarNote,
+  GuitarTechniqueType,
   NoteDuration,
   NoteValue,
 } from "../../src/notation/model";
@@ -56,6 +57,7 @@ describe("Beat model", () => {
     expect(result.index).toBe(0);
     expect(result.notes).toHaveLength(1);
     expect((expectNotes(beat)[0] as GuitarNote).fret).toBe(3);
+    expect(expectNotes(beat)[0].beat).toBe(beat);
   });
 
   test("can represent a real rest beat", () => {
@@ -100,6 +102,24 @@ describe("Beat model", () => {
     expect(copy.isRest()).toBe(true);
     expect(copy.baseDuration).toBe(NoteDuration.Half);
     expect(copy.compare(restBeat)).toBe(true);
+  });
+
+  test("deep copy owns copied notes and techniques", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const sourceBeat = beats[0];
+    const sourceNote = expectNotes(sourceBeat)[0] as GuitarNote;
+    sourceNote.setTechnique(GuitarTechniqueType.Vibrato);
+
+    const copy = sourceBeat.deepCopy();
+    const copiedNote = expectNotes(copy)[0] as GuitarNote;
+
+    expect(copiedNote).not.toBe(sourceNote);
+    expect(copiedNote.beat).toBe(copy);
+    expect(sourceNote.beat).toBe(sourceBeat);
+    expect(copiedNote.hasTechnique(GuitarTechniqueType.Vibrato)).toBe(true);
+    expect(copiedNote.techniques[0].note).toBe(copiedNote);
   });
 
   test("exposes tick timing fields after bar rebuild", () => {

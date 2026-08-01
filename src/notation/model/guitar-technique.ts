@@ -139,14 +139,15 @@ export class GuitarTechnique implements Technique {
 
   /**
    * Creates a deep copy of the technique
+   * @param note Note that will own the copied technique
    * @returns Copy of the technique
    */
-  public deepCopy(): GuitarTechnique {
+  public deepCopy(note: Note = this.note): GuitarTechnique {
     const bendOptionsCopy =
       this._bendOptions === null
         ? undefined
         : new BendTechniqueOptions(this._bendOptions);
-    return new GuitarTechnique(this.note, this.type, bendOptionsCopy);
+    return new GuitarTechnique(note, this.type, bendOptionsCopy);
   }
 
   /**

@@ -59,7 +59,7 @@ export interface Note<I extends MusicInstrument = MusicInstrument> {
 
   compare(otherNote: Note<I>): boolean;
 
-  deepCopy(): Note<I>;
+  deepCopy(beat?: Beat<I>): Note<I>;
   toJSON(): NoteJSON | null;
 }
 

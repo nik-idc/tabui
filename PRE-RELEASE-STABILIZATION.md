@@ -63,6 +63,8 @@ issue inbox; classify new findings here before they expand release scope.
 - Repeated tempo and time-signature edits invalidate retained notation using
   build-captured presentation values, preventing stale BPM and meter text when
   geometry remains unchanged.
+- Inserted and copied beats preserve beat-note-technique ownership, so notes in
+  insert-before/after results remain click-selectable through execute and redo.
 
 Latest implementation commits:
 
@@ -79,7 +81,8 @@ Latest implementation commits:
 - Multi-staff/multi-voice track-line outline extents.
 - View-only mode.
 - Responsive embedded-container behavior, including window resize.
-- Mobile, touch, touchpad, mouse, and keyboard usability.
+- Basic tablet/touch, touchpad, mouse, and keyboard usability alongside
+  responsive embedding.
 - Configurable top/side panel visibility and placement.
 - Measure Element-layer construction, materialization, updates, and retained
   memory before deciding whether to simplify presentation-shell types.
@@ -110,6 +113,8 @@ Latest implementation commits:
 
 ## P2 - Conditional Polish
 
+- Full phone-sized editing UX with deliberately mobile-specific selection,
+  controls, and panel interaction rather than a compressed desktop layout.
 - Improve existing icons and create a coherent handcrafted SVG set.
 - Improve top-control visual consistency.
 - Audit hard-coded colors and behavior that could use existing or new config.
@@ -145,6 +150,10 @@ Latest implementation commits:
 - Confirmed repeated tempo text invalidation as P0 and the analogous repeated
   time-signature text invalidation. Both received focused regressions and a
   shared captured-presentation-state correction.
+- Confirmed inserted-beat click selection as P0. Deep copies retained orphaned
+  beat ownership in notes (and source ownership in techniques), while keyboard
+  navigation used positional cursor state. Destination-aware deep copies and
+  controller/model regressions now enforce the ownership invariant.
 
 As testing progresses, add newly found issues with an explicit priority and
 release impact.

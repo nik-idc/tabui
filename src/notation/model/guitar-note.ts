@@ -369,19 +369,19 @@ export class GuitarNote implements Note<Guitar> {
 
   /**
    * Deep copy of the guitar note
+   * @param beat Beat that will own the copied note
    * @returns Deep copy of the guitar note
    */
-  public deepCopy(): GuitarNote {
+  public deepCopy(beat: Beat<Guitar> = this.beat): GuitarNote {
     const note = new GuitarNote(
-      this.beat,
-      this.trackContext,
+      beat,
+      beat.trackContext,
       this._stringNum,
       this._fret
     );
-
-    for (const technique of this._techniques) {
-      this.addTechnique(technique.deepCopy());
-    }
+    note._techniques = this._techniques.map((technique) =>
+      technique.deepCopy(note)
+    );
 
     return note;
   }

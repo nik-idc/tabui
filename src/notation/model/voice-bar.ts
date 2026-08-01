@@ -434,7 +434,7 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     const wasEmpty = this.isEmpty();
     const beatsCopies: Beat<I>[] = [];
     for (const beat of beats) {
-      beatsCopies.push(beat.deepCopy());
+      beatsCopies.push(beat.deepCopy(this));
     }
     this.beats.splice(index, 0, ...beatsCopies);
     if (wasEmpty && !this.isEmpty()) {
@@ -563,7 +563,7 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     );
     voiceBar.beats.splice(0, voiceBar.beats.length);
     for (const beat of this.beats) {
-      voiceBar.beats.push(beat.deepCopy());
+      voiceBar.beats.push(beat.deepCopy(voiceBar));
     }
     voiceBar.rebuildTiming();
     return voiceBar;

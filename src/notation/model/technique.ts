@@ -14,7 +14,7 @@ export interface Technique {
   readonly type: TechniqueType;
   readonly note: Note;
 
-  deepCopy(): Technique;
+  deepCopy(note?: Note): Technique;
 
   toJSON(): TechniqueJSON;
 }

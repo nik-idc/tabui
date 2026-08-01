@@ -17,7 +17,7 @@ pre-`1.0.0` ownership/API decisions and record new issues in
 | 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Pending  |
 
-Current automated checkpoint: 70 suites / 563 tests. `npm test`, `npm run build`,
+Current automated checkpoint: 70 suites / 564 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
 after the P0 closeout audit and retained-text invalidation fixes.
 
@@ -83,6 +83,8 @@ after the P0 closeout audit and retained-text invalidation fixes.
 - Tempo and time-signature elements capture displayed values for diffing, so
   repeated edits, undo, and redo cannot leave retained SVG text stale when
   visibility and geometry remain unchanged.
+- Beat/note/technique deep copies preserve destination ownership, keeping notes
+  inserted through before/after controls click-selectable after execute and redo.
 
 ## Remaining P0
 
