@@ -1,6 +1,6 @@
 # Phase 6 Roadmap - MVP Stabilization for 0.5.0
 
-Last updated: 2026-07-30. This is the source of truth for turning the completed
+Last updated: 2026-08-01. This is the source of truth for turning the completed
 editor foundations into a dependable, embeddable `0.5.0` package. Prefer clean
 pre-`1.0.0` ownership/API decisions and record new issues in
 `PRE-RELEASE-STABILIZATION.md` before changing priority or scope here.
@@ -15,7 +15,7 @@ pre-`1.0.0` ownership/API decisions and record new issues in
 | 3.1-3.4 | Playback, selection, editing locks, controls, track switching | Complete |
 | 3.5     | Bends and dialog input safety                                 | Complete |
 | 3.6     | Minimum host event/API surface                                | Complete |
-| 4       | P0 validation and closeout                                    | Pending  |
+| 4       | P0 validation and closeout                                    | Complete |
 
 Current automated checkpoint: 70 suites / 564 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
@@ -86,26 +86,29 @@ after the P0 closeout audit and retained-text invalidation fixes.
 - Beat/note/technique deep copies preserve destination ownership, keeping notes
   inserted through before/after controls click-selectable after execute and redo.
 
-## Remaining P0
+## P0 Closeout
 
-### Stage 4 - P0 Closeout
+Stage 4 completed on 2026-08-01:
 
 - Automated gate passed from clean output on 2026-08-01: `npm test`,
   `npm run build`, `npm run build_vite`, `npm run test:pack-consumer`,
   `npm run benchmark:updates`, and `git diff --check`. All 28 benchmark scenarios
   retained a substantial focused-update speedup over full updates.
-- Smoke test Chromium and Firefox desktop plus mobile viewport/touch input:
-  fixtures, editing, selection, dialogs, playback/repeats/loops, cursor following,
-  buffered mix changes, track switching, mount/dispose/remount, and two editors.
-- Record dated results and inspect repeated disposal/track switching for retained
-  DOM, listeners, timers, animation frames, players, or audio resources.
+- User smoke testing in Chrome and Firefox accepted the desktop P0 workflows and
+  confirmed the inserted-beat selection correction.
+- Chrome device emulation characterized mobile scope rather than accepting full
+  mobile editing: phone-sized editing is P2; responsive embedding and basic
+  tablet/touch behavior remain P1.
+- Existing lifecycle coverage and repeated manual use exposed no P0 retained-DOM,
+  listener, timer, player, or audio-resource defect. Deeper retained-memory
+  measurement remains part of P1 Element/lifecycle quality work.
 
-## After P0
+## Current P1 Order
 
-1. Define versioned score serialization/deserialization with fixture round trips
-   and validation errors.
-2. Fix remaining technique, time-signature, multi-staff outline, and control-layout
+1. Fix remaining technique, time-signature, multi-staff outline, and control-layout
    correctness.
+2. Define versioned score serialization/deserialization with fixture round trips
+   and validation errors.
 3. Add view-only, embedded-container, panel placement, responsive input, and basic
    accessibility behavior.
 4. Revisit Element architecture, cross-track widths, and single-line mode only

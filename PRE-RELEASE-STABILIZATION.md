@@ -8,8 +8,7 @@ issue inbox; classify new findings here before they expand release scope.
 
 ## P0 - Release Blockers
 
-- Complete and record the Chromium/Firefox, mobile/touch, and retained-resource
-  smoke gate. The clean automated gate passed on 2026-08-01.
+- None. P0 closeout was accepted on 2026-08-01.
 
 ## Completed P0
 
@@ -68,9 +67,9 @@ issue inbox; classify new findings here before they expand release scope.
 
 Latest implementation commits:
 
-- `dd6fab3 Improve track element update performance`
-- `dee50f4 Implement master score controls`
-- `f447db7 Refactor playback layer architecture`
+- `9ebf5ad Fix stale beat reference in note copies`
+- `5cb1a97 Fixed stale tempo & time signature state`
+- `1696345 Implemented Phase 6 Stage 3.6 - stabilized & corrected public host API`
 
 ## P1 - Required MVP Quality
 

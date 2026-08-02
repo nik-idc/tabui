@@ -303,10 +303,13 @@ Completed so far:
   preserving copy, transport, track selection, and track mix controls.
 - Completed bend/dialog safety and the instance-scoped host state, event, error,
   and explicit layout-refresh API.
+- Closed the P0 gate with automated validation, desktop Chrome/Firefox smoke
+  testing, and fixes for retained tempo/meter text and inserted-note ownership.
 
-Next P0 work:
+Next P1 work:
 
-- Run and record the full release-validation gate.
+- Define versioned score serialization and validated deserialization with fixture
+  round trips and explicit validation errors.
 
 See `PHASE-6-ROADMAP.md` for current status, remaining work, and release gates.
 

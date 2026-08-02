@@ -95,8 +95,7 @@ first target integration.
 
 ## Current Focus
 
-- Complete the Phase 6 P0 release-validation and browser/mobile smoke-test gate.
-- Continue with the required `0.5.0` persistence contract, then layout,
+- Implement the required `0.5.0` persistence contract, then layout,
   embedding, responsive behavior, and release-candidate validation.
 - Keep `0.5.0` focused on a dependable tablature editor. Sheet and drum notation
   are explicitly deferred.
