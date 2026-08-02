@@ -308,8 +308,8 @@ Completed so far:
 
 Next P1 work:
 
-- Define versioned score serialization and validated deserialization with fixture
-  round trips and explicit validation errors.
+- Fix remaining technique, time-signature, multi-staff outline, and control-layout
+  correctness before starting the persistence contract.
 
 See `PHASE-6-ROADMAP.md` for current status, remaining work, and release gates.
 

@@ -71,13 +71,22 @@ Latest implementation commits:
 - `5cb1a97 Fixed stale tempo & time signature state`
 - `1696345 Implemented Phase 6 Stage 3.6 - stabilized & corrected public host API`
 
+## Completed P1
+
+- Multi-staff track-line outlines now use the first and last rendered staff lines
+  and line-local bar extents instead of subtracting assumed rhythm-row heights.
+  Dense one- through four-voice final staffs, sparse voices 1 and 3, focused
+  voice add/remove updates, and playback-cursor projection have regression
+  coverage. This correction covers current tablature workflows; sheet and drum
+  notation remain deferred.
+
 ## P1 - Required MVP Quality
 
-- Versioned JSON serialization and validated deserialization. This is required
-  for the integrated `0.5.0` MVP even though it follows the P0 gate.
 - Inline technique geometry and hit/layout bounds.
 - Time-signature presentation on one- through four-string instruments.
-- Multi-staff/multi-voice track-line outline extents.
+- Control-layout correctness across supported desktop notation workflows.
+- Versioned JSON serialization and validated deserialization after the required
+  notation/layout correctness pass.
 - View-only mode.
 - Responsive embedded-container behavior, including window resize.
 - Basic tablet/touch, touchpad, mouse, and keyboard usability alongside
@@ -117,6 +126,13 @@ Latest implementation commits:
 - Improve existing icons and create a coherent handcrafted SVG set.
 - Improve top-control visual consistency.
 - Audit hard-coded colors and behavior that could use existing or new config.
+- Audit the possibility of even more atomizable TabUI:
+  - Just the Model module
+  - Just the Element module
+  - Just the Controller module
+  - etc
+    Essentially audit how much of the project could be made modular - either use the whole package
+    or use just the module you actually need.
 - Evaluate additional safe customization opportunities.
 
 ## Deferred

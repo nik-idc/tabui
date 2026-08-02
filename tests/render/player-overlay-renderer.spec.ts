@@ -5,6 +5,7 @@ import { TrackController } from "../../src/notation/controller/track-controller"
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { createScoreGraph } from "../model/helpers";
 import { createTestTrackController } from "../controller/helpers";
+import { createMultiVoiceTwoStaffScoreFixture } from "../../demo/data/multi-voice-score";
 
 function createCursorElement() {
   const attrs = new Map<string, string>();
@@ -96,6 +97,47 @@ describe("PlayerOverlayRenderer cursor geometry", () => {
       beatElement.barElement.globalCoords.x +
         beatElement.barLocalCoords.x +
         beatElement.attackLocalX
+    );
+  });
+
+  test("uses the corrected multi-staff outline extent", () => {
+    const score = createMultiVoiceTwoStaffScoreFixture();
+    const controller = createTestTrackController(score.tracks[0]);
+    controller.trackElement.update();
+    const beat = score.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0];
+    if (beat === undefined) {
+      throw Error("Expected fixture beat");
+    }
+    const beatElement = controller.trackElement.getBeatElement(beat);
+    if (!(beatElement instanceof TabBeatElement)) {
+      throw Error("Expected tab beat element");
+    }
+    const trackLine = beatElement.owningTrackLineElement;
+    const firstStyleLine = trackLine.staffLineElements[0].styleLinesAsArray[0];
+    const finalStaffLine =
+      trackLine.staffLineElements[trackLine.staffLineElements.length - 1];
+    const finalStyleLine = finalStaffLine.styleLinesAsArray[0];
+    const firstRenderedStaffLine =
+      firstStyleLine.barElements[0].staffLinesGlobal[0];
+    const lastBar =
+      finalStyleLine.barElements[finalStyleLine.barElements.length - 1];
+    const lastRenderedStaffLine =
+      lastBar.staffLinesGlobal[lastBar.staffLinesGlobal.length - 1];
+    const cursorElement = createCursorElement();
+    const overlay = new PlayerOverlayRenderer(
+      {} as SVGGElement,
+      controller,
+      () => {}
+    );
+    (overlay as any)._playerCursorRect = cursorElement;
+
+    (overlay as any).positionCursorAtBeat(beatElement);
+
+    expect(Number(cursorElement.getAttribute("y"))).toBeCloseTo(
+      firstRenderedStaffLine.y
+    );
+    expect(Number(cursorElement.getAttribute("height"))).toBeCloseTo(
+      lastRenderedStaffLine.y - firstRenderedStaffLine.y
     );
   });
 });

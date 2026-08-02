@@ -1,6 +1,6 @@
 # Phase 6 Roadmap - MVP Stabilization for 0.5.0
 
-Last updated: 2026-08-01. This is the source of truth for turning the completed
+Last updated: 2026-08-02. This is the source of truth for turning the completed
 editor foundations into a dependable, embeddable `0.5.0` package. Prefer clean
 pre-`1.0.0` ownership/API decisions and record new issues in
 `PRE-RELEASE-STABILIZATION.md` before changing priority or scope here.
@@ -17,9 +17,10 @@ pre-`1.0.0` ownership/API decisions and record new issues in
 | 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Complete |
 
-Current automated checkpoint: 70 suites / 564 tests. `npm test`, `npm run build`,
+Current automated checkpoint: 70 suites / 572 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
-after the P0 closeout audit and retained-text invalidation fixes.
+after the multi-staff outline geometry correction. All 28 focused-update
+benchmark scenarios retain a substantial speedup over full updates.
 
 ## Completed Contracts
 
@@ -85,6 +86,9 @@ after the P0 closeout audit and retained-text invalidation fixes.
   visibility and geometry remain unchanged.
 - Beat/note/technique deep copies preserve destination ownership, keeping notes
   inserted through before/after controls click-selectable after execute and redo.
+- Multi-staff outlines derive both endpoints and horizontal extents from rendered
+  line-local staff geometry. One through four dense or sparse final-staff voices
+  no longer extend outlines or playback cursors into rhythm rows.
 
 ## P0 Closeout
 
@@ -115,6 +119,41 @@ Stage 4 completed on 2026-08-01:
    when profiling or a release requirement justifies them.
 5. Apply final visual/icon polish, performance budgets, package/browser gates,
    release notes, and a feature freeze for the release candidate.
+6. Audit the source code for:
+
+- Non-reliance on tests. I remember there were moments when an agent
+  would structure the code in an unnatural way just to make testing simpler.
+  This is bad - tests should only affect understanding of code correctness,
+  not its structure.
+- Type strictness, meaning:
+  - `any`
+  - `!`
+  - `as`
+    etc should be minimized or removed entirely
+
+7. Audit the test suite for:
+
+- Over/under-exhaustiveness
+- Stale tests/tests that no longer make sense and are only green because of
+  code crutches that essentially force the test to be green
+- Type correctness
+- Type strictness, just like the source code
+- Over-reliance on mocks when real source code could be used
+- Anything else that makes the test suite worse
+
+8. Create new demos using different JS frontend frameworks to ensure that packing
+   actually works correctly. Suggested frameworks to test:
+
+- React (important to note that once TabUI v0.5.0 ships this will be the frontend tech)
+- Next.js (though since it's based on React not sure of the usefullness of testing this)
+- Vue
+- Angular
+- Svelte
+- Any other major frontend framework I might have missed
+
+9. Test how this library would work in a headless/backend context. I.e.
+   getting just the geometry from a Model. Or rendering once into a specified file/buffer.
+   May require large scale code changes.
 
 Deferred from `0.5.0`: sheet/drum notation, production multisampling, a plugin
 system, speculative schema migrations, compatibility wrappers for unpublished

@@ -4,14 +4,26 @@ import { TabNoteElement } from "../../src/notation/controller/element/note/tab-n
 import { TrackLineElement } from "../../src/notation/controller/element/track/track-line-element";
 import {
   DEFAULT_MASTER_BAR,
+  Guitar,
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
+  NoteDuration,
+  Track,
+  VoiceNumber,
 } from "../../src/notation/model";
-import { createScoreGraph } from "../model/helpers";
-import { NoteDuration } from "../../src/notation/model";
+import { createBeat, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 import { SetTechniqueCommand } from "../../src/notation/controller/editor/command";
+import { createMultiVoiceTwoStaffScoreFixture } from "../../demo/data/multi-voice-score";
+
+const FINAL_STAFF_VOICE_CASES: Array<[VoiceNumber[]]> = [
+  [[1]],
+  [[1, 2]],
+  [[1, 2, 3]],
+  [[1, 2, 3, 4]],
+  [[1, 3]],
+];
 
 function getLineOwnershipKeys(trackElement: TrackElement): string[] {
   return trackElement.trackLineElements.map((line) =>
@@ -50,6 +62,50 @@ function updateMasterBars(
   masterBarIndices: number[]
 ): void {
   trackElement.update({ affectedMasterBarIndices: masterBarIndices });
+}
+
+function setFinalStaffVoices(voiceNumbers: VoiceNumber[]) {
+  const score = createMultiVoiceTwoStaffScoreFixture();
+  const track = score.tracks[0] as Track<Guitar>;
+  const finalStaff = track.staves[track.staves.length - 1];
+
+  for (const bar of finalStaff.bars) {
+    for (const voiceNumber of [1, 2, 3, 4] as VoiceNumber[]) {
+      bar.removeVoiceBar(voiceNumber);
+    }
+    for (const voiceNumber of voiceNumbers) {
+      const voiceBar = bar.insertVoiceBar(voiceNumber);
+      voiceBar.replaceBeats([createBeat(voiceBar, NoteDuration.Quarter)]);
+    }
+  }
+
+  return { track, finalStaff };
+}
+
+function expectOutlineToMatchTabStaffLines(trackElement: TrackElement): void {
+  const trackLine = trackElement.trackLineElements[0];
+  const outline = trackLine.outlineLinesLineLocal;
+  if (outline === undefined) {
+    throw Error("Expected multi-staff outline");
+  }
+
+  const firstStyleLine = trackLine.staffLineElements[0].styleLinesAsArray[0];
+  const finalStaffLine =
+    trackLine.staffLineElements[trackLine.staffLineElements.length - 1];
+  const finalStyleLine = finalStaffLine.styleLinesAsArray[0];
+  const firstBar = firstStyleLine.barElements[0];
+  const lastBar =
+    finalStyleLine.barElements[finalStyleLine.barElements.length - 1];
+  const firstRenderedStaffLine = firstBar.staffLinesLineLocal[0];
+  const lastRenderedStaffLine =
+    lastBar.staffLinesLineLocal[lastBar.staffLinesLineLocal.length - 1];
+
+  expect(outline.left.x).toBeCloseTo(firstRenderedStaffLine.x1);
+  expect(outline.right.x).toBeCloseTo(lastRenderedStaffLine.x2);
+  expect(outline.left.y1).toBeCloseTo(firstRenderedStaffLine.y);
+  expect(outline.right.y1).toBeCloseTo(firstRenderedStaffLine.y);
+  expect(outline.left.y2).toBeCloseTo(lastRenderedStaffLine.y);
+  expect(outline.right.y2).toBeCloseTo(lastRenderedStaffLine.y);
 }
 
 function expectHorizontalUpdateToMatchLegacy(
@@ -116,6 +172,50 @@ describe("TrackElement tree", () => {
 
     expect(afterOutline.right.x).not.toBe(beforeRightX);
     expect(afterLine.stateHash).not.toBe(beforeHash);
+  });
+
+  test("multi-voice two-staff outline matches rendered staff-line geometry", () => {
+    const score = createMultiVoiceTwoStaffScoreFixture();
+    const trackElement = new TrackElement(
+      score.tracks[0],
+      TEST_LAYOUT_DIMENSIONS
+    );
+
+    trackElement.update();
+
+    expectOutlineToMatchTabStaffLines(trackElement);
+  });
+
+  test.each(FINAL_STAFF_VOICE_CASES)(
+    "outline matches rendered staff lines for final-staff voices %j",
+    (voiceNumbers) => {
+      const { track } = setFinalStaffVoices(voiceNumbers);
+      const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+
+      trackElement.update();
+
+      expectOutlineToMatchTabStaffLines(trackElement);
+    }
+  );
+
+  test("voice additions and removals refresh outline from staff-line geometry", () => {
+    const { track, finalStaff } = setFinalStaffVoices([1]);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    expectOutlineToMatchTabStaffLines(trackElement);
+
+    for (const bar of finalStaff.bars) {
+      const voiceBar = bar.insertVoiceBar(3);
+      voiceBar.replaceBeats([createBeat(voiceBar, NoteDuration.Quarter)]);
+    }
+    updateMasterBars(trackElement, [0, 1, 2]);
+    expectOutlineToMatchTabStaffLines(trackElement);
+
+    for (const bar of finalStaff.bars) {
+      bar.removeVoiceBar(3);
+    }
+    updateMasterBars(trackElement, [0, 1, 2]);
+    expectOutlineToMatchTabStaffLines(trackElement);
   });
 
   test("builds the expected hierarchy for a single default bar", () => {

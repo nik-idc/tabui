@@ -1,7 +1,7 @@
 import { Track } from "../../../model";
 import { Point, Rect, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
+import { StaffLineElement } from "../staff/staff-line-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
 import { VertLine } from "../../../../shared/rendering/geometry/line";
 import { NotationElement } from "../notation-element";
@@ -219,25 +219,25 @@ export class TrackLineElement implements NotationElement {
     if (this._outlineLines === undefined) {
       return;
     }
-    const xLeft = 0;
-    // const xRight = this._boundingBox.width;
-    const barElements =
-      this._staffLineElements[0].styleLinesAsArray[0].barElements;
-    const xRight = barElements[barElements.length - 1].globalBoundingBox.right;
 
-    // Known limitation: outline layout currently assumes tablature geometry.
-    const y1 =
-      this._trackLineInfoElement.boundingBox.bottom +
-      // Since visually the staff lines begin a bit lower than the element
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
-      this._staffLineElements[0].styleLinesAsArray[0].techGapElement.boundingBox
-        .bottom;
-    const y2 =
-      this._staffLineElements[this._staffLineElements.length - 1].boundingBox
-        .bottom -
-      this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT -
-      this.trackElement.layoutDimensions.DURATIONS_HEIGHT -
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2;
+    const firstStaffLine = this._staffLineElements[0];
+    const lastStaffLine =
+      this._staffLineElements[this._staffLineElements.length - 1];
+    const firstStyleLine = firstStaffLine.styleLinesAsArray[0];
+    const lastStyleLine =
+      lastStaffLine.styleLinesAsArray[
+        lastStaffLine.styleLinesAsArray.length - 1
+      ];
+    const firstBar = firstStyleLine.barElements[0];
+    const lastBar =
+      lastStyleLine.barElements[lastStyleLine.barElements.length - 1];
+    const firstMaterializedBarStaffLine = firstBar.staffLinesLineLocal[0];
+    const lastMaterializedBarStaffLine =
+      lastBar.staffLinesLineLocal[lastBar.staffLinesLineLocal.length - 1];
+    const xLeft = firstMaterializedBarStaffLine.x1;
+    const xRight = lastMaterializedBarStaffLine.x2;
+    const y1 = firstMaterializedBarStaffLine.y;
+    const y2 = lastMaterializedBarStaffLine.y;
 
     this._outlineLines.left.set(xLeft, y1, y2);
     this._outlineLines.right.set(xRight, y1, y2);

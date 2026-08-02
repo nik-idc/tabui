@@ -95,7 +95,7 @@ first target integration.
 
 ## Current Focus
 
-- Implement the required `0.5.0` persistence contract, then layout,
+- Fix required notation/layout correctness, then implement persistence,
   embedding, responsive behavior, and release-candidate validation.
 - Keep `0.5.0` focused on a dependable tablature editor. Sheet and drum notation
   are explicitly deferred.
