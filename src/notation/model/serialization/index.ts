@@ -5,8 +5,13 @@ export {
   SCORE_SERIALIZATION_FORMAT,
   SCORE_SERIALIZATION_VERSION,
   SerializedBendType,
+  SerializedClefType,
+  SerializedInstrumentFamily,
   SerializedNoteDuration,
+  SerializedPlayableNoteValue,
   SerializedRepeatStatus,
+  SerializedStringInstrumentTone,
+  SerializedStringInstrumentType,
   SerializedTechniqueType,
 } from "./v1/schema";
-export type { SerializedScoreV1 } from "./v1/schema";
+export type * from "./v1/schema";

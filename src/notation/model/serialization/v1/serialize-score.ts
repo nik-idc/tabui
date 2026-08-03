@@ -15,7 +15,7 @@ import {
 } from "../serialization-path";
 import { serializeInstrument } from "./instrument-serialization";
 import {
-  CLEF_TYPES,
+  SERIALIZED_CLEF_TYPES,
   SERIALIZED_NOTE_DURATIONS,
   SERIALIZED_REPEAT_STATUSES,
 } from "./mappings";
@@ -32,29 +32,21 @@ import {
   SerializedTrack,
 } from "./schema";
 
+/** Rejects mutable model fields that no longer satisfy the string schema. */
 function validateString(value: unknown, path: SerializationPath): void {
   if (typeof value !== "string") {
     throw new ScoreSerializationError(path, "expected string");
   }
 }
 
+/** Rejects mutable model fields that no longer satisfy the boolean schema. */
 function validateBoolean(value: unknown, path: SerializationPath): void {
   if (typeof value !== "boolean") {
     throw new ScoreSerializationError(path, "expected boolean");
   }
 }
 
-function validateEnumMember<T extends string>(
-  value: unknown,
-  allowed: readonly T[],
-  path: SerializationPath
-): void {
-  validateString(value, path);
-  if (!allowed.some((v) => v === value)) {
-    throw new ScoreSerializationError(path, `unsupported value '${value}'`);
-  }
-}
-
+/** Enforces the finite numeric bounds promised by the serialized schema. */
 function validateNumberInRange(
   value: number,
   minimum: number,
@@ -72,6 +64,7 @@ function validateNumberInRange(
   }
 }
 
+/** Enforces safe-integer bounds promised by the serialized schema. */
 function validateIntegerInRange(
   value: number,
   minimum: number,
@@ -89,7 +82,23 @@ function validateIntegerInRange(
   }
 }
 
-function serializeBar(bar: Bar, path: SerializationPath): SerializedBar {
+/**
+ * Serializes a bar after verifying its staff, track context, and master-bar
+ * owners, preserving the model's four sparse voice slots.
+ */
+function serializeBar(
+  bar: Bar<Guitar>,
+  path: SerializationPath,
+  staff: Staff<Guitar>,
+  masterBar: MasterBar
+): SerializedBar {
+  if (
+    bar.staff !== staff ||
+    bar.trackContext !== staff.trackContext ||
+    bar.masterBar !== masterBar
+  ) {
+    throw new ScoreSerializationError(path, "bar ownership mismatch");
+  }
   const voicesPath = propertyPath(path, "voices");
   const voices: SerializedBar["voices"] = [null, null, null, null];
   let hasVoice = false;
@@ -100,7 +109,12 @@ function serializeBar(bar: Bar, path: SerializationPath): SerializedBar {
     }
     hasVoice = true;
     const voicePath = indexPath(voicesPath, voiceNumber - 1);
-    voices[voiceNumber - 1] = serializeVoiceBar(voiceBar, voicePath);
+    voices[voiceNumber - 1] = serializeVoiceBar(
+      voiceBar,
+      voicePath,
+      bar,
+      voiceNumber
+    );
   }
   if (!hasVoice) {
     throw new ScoreSerializationError(
@@ -111,15 +125,26 @@ function serializeBar(bar: Bar, path: SerializationPath): SerializedBar {
   return { voices };
 }
 
+/**
+ * Serializes staff settings and bars after checking that the staff belongs to
+ * the supplied track and has exactly one bar per master bar.
+ */
 function serializeStaff(
-  staff: Staff,
-  path: SerializationPath
+  staff: Staff<Guitar>,
+  path: SerializationPath,
+  track: Track<Guitar>
 ): SerializedStaff {
-  validateEnumMember(
-    staff.clefType,
-    CLEF_TYPES,
-    propertyPath(path, "clefType")
-  );
+  if (staff.track !== track || staff.trackContext !== track.context) {
+    throw new ScoreSerializationError(path, "staff ownership mismatch");
+  }
+  if (
+    !Object.prototype.hasOwnProperty.call(SERIALIZED_CLEF_TYPES, staff.clefType)
+  ) {
+    throw new ScoreSerializationError(
+      propertyPath(path, "clefType"),
+      `unsupported value '${staff.clefType}'`
+    );
+  }
   validateBoolean(staff.showTablature, propertyPath(path, "showTablature"));
   validateBoolean(
     staff.showClassicNotation,
@@ -132,19 +157,29 @@ function serializeStaff(
       "bar count does not match master bars"
     );
   }
-  const bars = serializeArray(staff.bars, barsPath, serializeBar);
+  const bars = serializeArray(staff.bars, barsPath, (bar, barPath, index) =>
+    serializeBar(bar, barPath, staff, track.score.masterBars[index])
+  );
   return {
-    clefType: staff.clefType,
+    clefType: SERIALIZED_CLEF_TYPES[staff.clefType],
     showTablature: staff.showTablature,
     showClassicNotation: staff.showClassicNotation,
     bars,
   };
 }
 
+/**
+ * Serializes a score-owned guitar track and validates its mutable mix state,
+ * instrument support, and nonempty staff collection.
+ */
 function serializeTrack(
   track: Track,
-  path: SerializationPath
+  path: SerializationPath,
+  score: Score
 ): SerializedTrack {
+  if (track.score !== score) {
+    throw new ScoreSerializationError(path, "track belongs to another score");
+  }
   const instrumentPath = propertyPath(path, "instrument");
   if (!(track.context.instrument instanceof Guitar)) {
     throw new ScoreSerializationError(
@@ -152,6 +187,7 @@ function serializeTrack(
       "unsupported instrument type"
     );
   }
+  const guitarTrack = track as Track<Guitar>;
   const instrument = serializeInstrument(
     track.context.instrument,
     instrumentPath
@@ -168,7 +204,11 @@ function serializeTrack(
       "expected at least one staff"
     );
   }
-  const staves = serializeArray(track.staves, stavesPath, serializeStaff);
+  const staves = serializeArray(
+    guitarTrack.staves,
+    stavesPath,
+    (staff, staffPath) => serializeStaff(staff, staffPath, guitarTrack)
+  );
   return {
     instrument,
     name: track.name,
@@ -180,6 +220,7 @@ function serializeTrack(
   };
 }
 
+/** Validates the coupled repeat status and count before encoding either shape. */
 function validateMasterBarRepeat(
   masterBar: MasterBar,
   path: SerializationPath
@@ -201,7 +242,12 @@ function validateMasterBarRepeat(
       "repeat count requires repeat end status"
     );
   }
-  if (SERIALIZED_REPEAT_STATUSES[masterBar.repeatStatus] === undefined) {
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      SERIALIZED_REPEAT_STATUSES,
+      masterBar.repeatStatus
+    )
+  ) {
     throw new ScoreSerializationError(
       propertyPath(path, "repeatStatus"),
       "unsupported repeat status"
@@ -209,6 +255,7 @@ function validateMasterBarRepeat(
   }
 }
 
+/** Narrows validated repeat data to the schema's discriminated representation. */
 function constructSerializedMasterBar(
   masterBar: MasterBar,
   serialized: SerializedMasterBarCommon,
@@ -234,6 +281,7 @@ function constructSerializedMasterBar(
   return { ...serialized, repeatStatus, repeatCount: null };
 }
 
+/** Serializes meter, tempo, duration, and internally consistent repeat data. */
 function serializeMasterBar(
   masterBar: MasterBar,
   path: SerializationPath
@@ -245,7 +293,12 @@ function serializeMasterBar(
     32,
     propertyPath(path, "beatsCount")
   );
-  if (SERIALIZED_NOTE_DURATIONS[masterBar.duration] === undefined) {
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      SERIALIZED_NOTE_DURATIONS,
+      masterBar.duration
+    )
+  ) {
     throw new ScoreSerializationError(
       propertyPath(path, "duration"),
       "unsupported duration"
@@ -260,6 +313,11 @@ function serializeMasterBar(
   return constructSerializedMasterBar(masterBar, serialized, path);
 }
 
+/**
+ * Converts a complete in-memory score to the public version-1 document,
+ * rejecting unsupported instruments, invalid persisted values, and broken
+ * ownership links at their prospective document paths.
+ */
 export function serializeScore(score: Score): SerializedScoreV1 {
   validateString(score.name, propertyPath(ROOT_SERIALIZATION_PATH, "name"));
   validateString(score.artist, propertyPath(ROOT_SERIALIZATION_PATH, "artist"));
@@ -283,7 +341,9 @@ export function serializeScore(score: Score): SerializedScoreV1 {
       "expected at least one track"
     );
   }
-  const tracks = serializeArray(score.tracks, tracksPath, serializeTrack);
+  const tracks = serializeArray(score.tracks, tracksPath, (track, trackPath) =>
+    serializeTrack(track, trackPath, score)
+  );
   validateNumberInRange(
     score.masterVolume,
     0,

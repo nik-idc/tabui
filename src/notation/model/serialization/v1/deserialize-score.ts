@@ -7,13 +7,14 @@ import { Staff } from "../../staff";
 import { Track } from "../../track";
 import { SerializedValueReader } from "../serialized-value-reader";
 import { deserializeInstrument } from "./instrument-serialization";
-import { CLEF_TYPES, readNoteDuration, readRepeatStatus } from "./mappings";
+import { readClefType, readNoteDuration, readRepeatStatus } from "./mappings";
 import { deserializeVoiceBar } from "./voice-bar-serialization";
 import {
   SCORE_SERIALIZATION_FORMAT,
   SCORE_SERIALIZATION_VERSION,
 } from "./schema";
 
+/** Validated root fields retained while the model graph is reconstructed. */
 type ScoreData = {
   name: string;
   artist: string;
@@ -24,11 +25,16 @@ type ScoreData = {
   tracks: SerializedValueReader[];
 };
 
+/**
+ * Detached bars and their sparse voice documents, keyed by owning staff, ready
+ * for atomic master-bar insertion.
+ */
 type PreparedMasterBar = {
   bars: Map<number, Bar>;
   voiceDocuments: Map<number, SerializedValueReader[]>;
 };
 
+/** Rejects documents not addressed to this format and schema version. */
 function validateScoreHeader(reader: SerializedValueReader): void {
   const formatReader = reader.property("format");
   if (formatReader.readString() !== SCORE_SERIALIZATION_FORMAT) {
@@ -40,9 +46,21 @@ function validateScoreHeader(reader: SerializedValueReader): void {
   }
 }
 
+/** Validates the root shape and retains child readers for ordered restoration. */
 function readScoreData(reader: SerializedValueReader): ScoreData {
   reader.readObject();
   validateScoreHeader(reader);
+  reader.expectKeys([
+    "format",
+    "version",
+    "name",
+    "artist",
+    "song",
+    "masterVolume",
+    "masterPan",
+    "masterBars",
+    "tracks",
+  ]);
   const masterBarsReader = reader.property("masterBars");
   const tracksReader = reader.property("tracks");
   const masterBars = masterBarsReader.readArray();
@@ -64,9 +82,17 @@ function readScoreData(reader: SerializedValueReader): ScoreData {
   };
 }
 
+/** Reconstructs a master bar after validating its meter and repeat invariants. */
 function deserializeMasterBar(reader: SerializedValueReader): MasterBar {
   reader.readObject();
   const repeatStatus = readRepeatStatus(reader.property("repeatStatus"));
+  reader.expectKeys([
+    "tempo",
+    "beatsCount",
+    "duration",
+    "repeatStatus",
+    "repeatCount",
+  ]);
   const repeatCountReader = reader.property("repeatCount");
   const repeatCount = repeatCountReader.readNullableInteger();
   if (repeatStatus === BarRepeatStatus.End) {
@@ -85,13 +111,22 @@ function deserializeMasterBar(reader: SerializedValueReader): MasterBar {
   });
 }
 
+/**
+ * Creates an empty staff shell after validating settings and its serialized bar
+ * count; bars are attached later with their master bars.
+ */
 function deserializeStaff(
   reader: SerializedValueReader,
   track: Track<Guitar>,
   masterBars: MasterBar[]
 ): Staff<Guitar> {
-  reader.readObject();
-  const clefType = reader.property("clefType").readEnumMember(CLEF_TYPES);
+  reader.readObject([
+    "clefType",
+    "showTablature",
+    "showClassicNotation",
+    "bars",
+  ]);
+  const clefType = readClefType(reader.property("clefType"));
   const showTablature = reader.property("showTablature").readBoolean();
   const showClassicNotation = reader
     .property("showClassicNotation")
@@ -110,12 +145,24 @@ function deserializeStaff(
   );
 }
 
+/**
+ * Creates a score-owned track and its staff shells without restoring bar
+ * content, which requires the master-bar insertion phase.
+ */
 function deserializeTrack(
   reader: SerializedValueReader,
   score: Score,
   masterBars: MasterBar[]
 ): Track<Guitar> {
-  reader.readObject();
+  reader.readObject([
+    "instrument",
+    "name",
+    "volume",
+    "pan",
+    "muted",
+    "soloed",
+    "staves",
+  ]);
   const instrument = deserializeInstrument(reader.property("instrument"));
   const track = new Track<Guitar>(
     score,
@@ -139,12 +186,16 @@ function deserializeTrack(
   return track;
 }
 
+/**
+ * Validates four sparse voice slots and creates a detached bar owned by the
+ * supplied staff and master bar; at least one slot must contain a voice.
+ */
 function prepareBar(
   reader: SerializedValueReader,
   staff: Staff<Guitar>,
   masterBar: MasterBar
 ): { bar: Bar<Guitar>; voices: SerializedValueReader[] } {
-  reader.readObject();
+  reader.readObject(["voices"]);
   const voicesReader = reader.property("voices");
   const voices = voicesReader.readArray();
   if (voices.length !== 4) {
@@ -156,17 +207,27 @@ function prepareBar(
   return { bar: new Bar(staff, staff.trackContext, masterBar), voices };
 }
 
+/** Locates and prepares one staff's bar at a master-bar index. */
 function prepareStaffBar(
   staffReader: SerializedValueReader,
   staff: Staff<Guitar>,
   masterBar: MasterBar,
   masterBarIndex: number
 ): { bar: Bar<Guitar>; voices: SerializedValueReader[] } {
-  staffReader.readObject();
+  staffReader.readObject([
+    "clefType",
+    "showTablature",
+    "showClassicNotation",
+    "bars",
+  ]);
   const barReader = staffReader.property("bars").readArray()[masterBarIndex];
   return prepareBar(barReader, staff, masterBar);
 }
 
+/**
+ * Prepares every staff bar for one master bar before any of those bars become
+ * reachable through the score graph.
+ */
 function prepareMasterBarContent(
   scoreData: ScoreData,
   tracks: Track<Guitar>[],
@@ -193,6 +254,10 @@ function prepareMasterBarContent(
   return { bars, voiceDocuments };
 }
 
+/**
+ * Restores only populated voice slots after the staff bar has been attached;
+ * null slots remain absent rather than becoming empty voices.
+ */
 function restoreStaffVoices(
   staff: Staff<Guitar>,
   masterBarIndex: number,
@@ -209,6 +274,7 @@ function restoreStaffVoices(
   }
 }
 
+/** Restores attached voice content across every staff for one master bar. */
 function restoreMasterBarVoices(
   tracks: Track<Guitar>[],
   masterBarIndex: number,
@@ -224,6 +290,12 @@ function restoreMasterBarVoices(
   }
 }
 
+/**
+ * Validates and reconstructs a public version-1 score document. Reconstruction
+ * first creates master bars and track/staff shells. It then prepares, inserts,
+ * and restores each master bar in order so model operations regenerate derived
+ * state from an attached graph.
+ */
 export function deserializeScore(value: unknown): Score {
   const scoreData = readScoreData(SerializedValueReader.root(value));
   const score = new Score([], scoreData.name, scoreData.artist, scoreData.song);

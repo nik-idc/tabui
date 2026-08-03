@@ -45,4 +45,45 @@ describe("SerializedValueReader", () => {
     expect(error.path).toBe("$.fret");
     expect(error.cause).toBe(cause);
   });
+
+  test.each(["__proto__", "constructor", "toString"])(
+    "rejects inherited enum key %s",
+    (value) => {
+      const reader = SerializedValueReader.root(value);
+      const error = getError(() => reader.readEnumValue({ valid: 1 }));
+
+      expect(error.path).toBe("$");
+      expect(error.message).toContain(`unsupported value '${value}'`);
+    }
+  );
+
+  test("reports unknown and missing object keys at their property paths", () => {
+    const unknown = SerializedValueReader.root({ expected: 1, typo: 2 });
+    const missing = SerializedValueReader.root({});
+
+    expect(getError(() => unknown.readObject(["expected"])).path).toBe(
+      "$.typo"
+    );
+    expect(getError(() => missing.readObject(["expected"])).path).toBe(
+      "$.expected"
+    );
+  });
+
+  test("rejects array holes, inherited indices, and named properties", () => {
+    const hole = new Array(1);
+    const inherited = new Array(1);
+    Object.setPrototypeOf(inherited, { 0: "inherited" });
+    const named = ["value"];
+    Reflect.set(named, "extra", true);
+
+    expect(
+      getError(() => SerializedValueReader.root(hole).readArray()).path
+    ).toBe("$[0]");
+    expect(
+      getError(() => SerializedValueReader.root(inherited).readArray()).path
+    ).toBe("$[0]");
+    expect(
+      getError(() => SerializedValueReader.root(named).readArray()).path
+    ).toBe("$.extra");
+  });
 });

@@ -1,6 +1,11 @@
 import { ScoreSerializationError } from "./serialization-error";
 import { indexPath, SerializationPath } from "./serialization-path";
 
+/**
+ * Serializes an array while requiring every index to be an own, defined item.
+ * Sparse arrays and explicit `undefined` items are rejected at their indexed
+ * JSON-style paths, producing a dense serialized result.
+ */
 export function serializeArray<T, U>(
   values: readonly T[],
   path: SerializationPath,

@@ -12,12 +12,13 @@ import {
   getSemitonesFromNote,
 } from "./note";
 import { GuitarTechniqueType } from "./technique-type";
+import { BEND_TYPE_INCOMPATIBILITY } from "./guitar-technique-lists";
 import {
-  BEND_TYPE_INCOMPATIBILITY,
-  TECHNIQUES_INCOMPATIBILITY,
-} from "./guitar-technique-lists";
-import { BendTechniqueOptions, MAX_BEND_PITCH } from "./bend-options";
-import { BendType } from "./bend-type";
+  guitarTechniquesIncompatible,
+  guitarTechniqueTypesIncompatible,
+  isBendValidForContinuation,
+} from "./guitar-technique-validation";
+import { BendTechniqueOptions } from "./bend-options";
 
 /**
  * Class that represents a guitar note
@@ -193,29 +194,6 @@ export class GuitarNote implements Note<Guitar> {
     return previousBend?.bendOptions?.terminalPitch;
   }
 
-  private bendInvalidForContinuation(
-    bendOptions: BendTechniqueOptions
-  ): boolean {
-    if (
-      bendOptions.type !== BendType.Bend &&
-      bendOptions.type !== BendType.BendAndRelease
-    ) {
-      return false;
-    }
-
-    const continuationPitch = this.getBendContinuationPitch();
-    if (continuationPitch === undefined) {
-      return false;
-    }
-    if (continuationPitch >= MAX_BEND_PITCH) {
-      return true;
-    }
-    return (
-      bendOptions.bendPitch !== undefined &&
-      bendOptions.bendPitch < continuationPitch
-    );
-  }
-
   /**
    * Applies, updates, or removes a technique on this note.
    */
@@ -229,7 +207,7 @@ export class GuitarNote implements Note<Guitar> {
         existingTechnique.type === GuitarTechniqueType.Bend &&
         bendOptions !== null
       ) {
-        if (this.bendInvalidForContinuation(bendOptions)) {
+        if (!isBendValidForContinuation(this, bendOptions)) {
           return false;
         }
         const incompatibleTypes = BEND_TYPE_INCOMPATIBILITY[bendOptions.type];
@@ -256,27 +234,14 @@ export class GuitarNote implements Note<Guitar> {
   public addTechnique(guitarTechnique: GuitarTechnique): boolean {
     if (
       guitarTechnique.bendOptions !== null &&
-      this.bendInvalidForContinuation(guitarTechnique.bendOptions)
+      !isBendValidForContinuation(this, guitarTechnique.bendOptions)
     ) {
       return false;
     }
 
     // Check if technique to be added is compatible with all the other techniques
     for (const technique of this._techniques) {
-      const curIncompatibility = TECHNIQUES_INCOMPATIBILITY[technique.type];
-      const existingBendIncompatibility =
-        technique.bendOptions === null
-          ? []
-          : BEND_TYPE_INCOMPATIBILITY[technique.bendOptions.type];
-      const addedBendIncompatibility =
-        guitarTechnique.bendOptions === null
-          ? []
-          : BEND_TYPE_INCOMPATIBILITY[guitarTechnique.bendOptions.type];
-      if (
-        curIncompatibility.includes(guitarTechnique.type) ||
-        existingBendIncompatibility.includes(guitarTechnique.type) ||
-        addedBendIncompatibility.includes(technique.type)
-      ) {
+      if (guitarTechniquesIncompatible(technique, guitarTechnique)) {
         // One of the techniques is incompatible with the
         // to be added technique => discard and return false
         return false;
@@ -324,8 +289,8 @@ export class GuitarNote implements Note<Guitar> {
    * @returns True if applicable, false otherwise
    */
   public techniqueApplicable(type: GuitarTechniqueType): boolean {
-    return !this._techniques.some((e) =>
-      TECHNIQUES_INCOMPATIBILITY[e.type].includes(type)
+    return !this._techniques.some((t) =>
+      guitarTechniqueTypesIncompatible(t.type, type)
     );
   }
 

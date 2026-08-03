@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   AcousticGuitarTone,
   BarRepeatStatus,
@@ -236,7 +235,29 @@ function addExhaustiveBeatContent(voiceBar: VoiceBar<Guitar>): void {
     { normalCount: 3, tupletCount: 2 },
     { normalCount: 5, tupletCount: 4 },
   ];
-  const beats: Beat<Guitar>[] = [];
+  const beats: Beat<Guitar>[] = [
+    makeBeat(voiceBar, NoteDuration.Eighth, 0, {
+      normalCount: 3,
+      tupletCount: 2,
+    }),
+    makeBeat(voiceBar, NoteDuration.Eighth, 0, {
+      normalCount: 3,
+      tupletCount: 2,
+    }),
+    makeBeat(voiceBar, NoteDuration.Eighth, 0, {
+      normalCount: 3,
+      tupletCount: 2,
+    }),
+    makeBeat(voiceBar, NoteDuration.Sixteenth, 0, {
+      normalCount: 3,
+      tupletCount: 2,
+    }),
+    makeBeat(voiceBar, NoteDuration.Sixteenth, 0, {
+      normalCount: 3,
+      tupletCount: 2,
+    }),
+    makeBeat(voiceBar, NoteDuration.Quarter, 0, null),
+  ];
   const nonBendTechniques = enumNumbers(GuitarTechniqueType).filter(
     (t) => t !== GuitarTechniqueType.Bend
   ) as GuitarTechniqueType[];
@@ -458,23 +479,45 @@ function semanticSnapshot(score: Score) {
   };
 }
 
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(canonicalJson).join(",")}]`;
-  }
-  if (value !== null && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).sort(
-      ([a], [b]) => a.localeCompare(b)
-    );
-    return `{${entries
-      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
-
-function fingerprint(value: unknown): string {
-  return createHash("sha256").update(canonicalJson(value)).digest("hex");
+function runtimeSemanticSnapshot(score: Score) {
+  return score.tracks.map((track) =>
+    track.staves.map((staff) =>
+      staff.bars.map((bar) =>
+        VOICE_NUMBERS.map((voiceNumber) => {
+          const voiceBar = bar.getVoiceBar(voiceNumber);
+          if (voiceBar === null) {
+            return null;
+          }
+          return {
+            tickResolution: voiceBar.tickResolution,
+            barTicks: voiceBar.barTicks,
+            actualTicks: voiceBar.actualTicks,
+            beamingGroups: [...voiceBar.beamingGroups],
+            beats: voiceBar.beats.map((beat) => ({
+              baseDurationTicks: beat.baseDurationTicks,
+              fullDurationTicks: beat.fullDurationTicks,
+              startTick: beat.startTick,
+              endTick: beat.endTick,
+              beamGroupId: beat.beamGroupId,
+              lastInBeamGroup: beat.lastInBeamGroup,
+            })),
+            tupletGroups: voiceBar.tupletGroups.map((group) => ({
+              normalCount: group.normalCount,
+              tupletCount: group.tupletCount,
+              complete: group.complete,
+              isStandard: group.isStandard,
+              startTick: group.startTick,
+              endTick: group.endTick,
+              totalTicks: group.totalTicks,
+              memberBeatIndices: group.beats.map((beat) =>
+                voiceBar.beats.indexOf(beat)
+              ),
+            })),
+          };
+        })
+      )
+    )
+  );
 }
 
 function expectRestoredOwnership(score: Score): void {
@@ -533,6 +576,9 @@ function expectExhaustiveCoverage(score: Score): void {
   let deadNotes = 0;
   let rests = 0;
   let chords = 0;
+  let beamedBeats = 0;
+  let completeTuplets = 0;
+  let incompleteTuplets = 0;
 
   for (const track of score.tracks) {
     const instrument = track.context.instrument;
@@ -552,7 +598,17 @@ function expectExhaustiveCoverage(score: Score): void {
         maximumVoiceCount = Math.max(maximumVoiceCount, pattern.length);
         for (const voiceBar of bar.voiceBarsAsArray) {
           expect(voiceBar.beats.length).toBeGreaterThan(0);
+          for (const group of voiceBar.tupletGroups) {
+            if (group.complete) {
+              completeTuplets++;
+            } else {
+              incompleteTuplets++;
+            }
+          }
           for (const beat of voiceBar.beats) {
+            if (beat.beamGroupId !== null) {
+              beamedBeats++;
+            }
             beatDurations.add(beat.baseDuration);
             dots.add(beat.dots);
             if (beat.tupletSettings !== null) {
@@ -641,6 +697,9 @@ function expectExhaustiveCoverage(score: Score): void {
   expect(deadNotes).toBeGreaterThan(0);
   expect(rests).toBeGreaterThan(0);
   expect(chords).toBeGreaterThan(0);
+  expect(beamedBeats).toBeGreaterThan(0);
+  expect(completeTuplets).toBeGreaterThan(0);
+  expect(incompleteTuplets).toBeGreaterThan(0);
   expect(score.tracks.some((t) => t.muted && t.soloed)).toBe(true);
   expect(score.tracks.map((t) => t.volume)).toEqual(
     expect.arrayContaining([0, 1])
@@ -656,13 +715,14 @@ describe("exhaustive V1 score serialization", () => {
     expect(source.tracks).toHaveLength(9);
     expectExhaustiveCoverage(source);
     const sourceSnapshot = semanticSnapshot(source);
+    const sourceRuntimeSnapshot = runtimeSemanticSnapshot(source);
     const document = serializeScore(source);
     const jsonDocument = JSON.parse(JSON.stringify(document)) as unknown;
     const restored = deserializeScore(jsonDocument);
     const restoredSnapshot = semanticSnapshot(restored);
 
     expect(restoredSnapshot).toEqual(sourceSnapshot);
-    expect(fingerprint(restoredSnapshot)).toBe(fingerprint(sourceSnapshot));
+    expect(runtimeSemanticSnapshot(restored)).toEqual(sourceRuntimeSnapshot);
     expect(serializeScore(restored)).toEqual(document);
     expectExhaustiveCoverage(restored);
     expectRestoredOwnership(restored);

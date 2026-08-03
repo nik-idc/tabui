@@ -79,6 +79,39 @@ function expectRestoredOwnership(score: ReturnType<typeof deserializeScore>) {
   }
 }
 
+function getFirstNote(score: Score): GuitarNote {
+  const beat = score.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0];
+  if (beat === undefined) {
+    throw Error("Expected fixture beat");
+  }
+  if (beat.notes === null) {
+    beat.makeBeatWithNotes();
+  }
+  const note = beat.notes?.find((n) => n instanceof GuitarNote);
+  if (!(note instanceof GuitarNote)) {
+    throw Error("Expected fixture guitar note");
+  }
+  return note;
+}
+
+function createDocumentWithBend() {
+  const score = new Score();
+  const note = getFirstNote(score);
+  note.fret = 1;
+  note.addTechnique(
+    new GuitarTechnique(
+      note,
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 1,
+        bendDuration: 0.5,
+      })
+    )
+  );
+  return serializeScore(score);
+}
+
 describe("score serialization", () => {
   test.each([
     ["empty score", createEmptyScoreFixture],
@@ -247,6 +280,19 @@ describe("score serialization", () => {
     expect(firstBeat).not.toHaveProperty("lastInBeamGroup");
   });
 
+  test("emits stable V1 tokens for isolated model enum values", () => {
+    const document = serializeScore(new Score());
+    const instrument = document.tracks[0].instrument;
+
+    expect(document.masterBars[0].duration).toBe("quarter");
+    expect(document.masterBars[0].repeatStatus).toBe("none");
+    expect(document.tracks[0].staves[0].clefType).toBe("Treble");
+    expect(instrument.family).toBe("Strings");
+    expect(instrument.type).toBe("Electric Guitar");
+    expect(instrument.tone).toBe("Electric Clean");
+    expect(instrument.tuning[0].noteValue).toBe("E");
+  });
+
   test("round trips a score containing only rests", () => {
     const score = createFeatureShowcaseScoreFixture();
     for (const track of score.tracks) {
@@ -313,6 +359,89 @@ describe("score serialization", () => {
     );
   });
 
+  test("rejects unknown and missing root properties at exact paths", () => {
+    const unknown = serializeScore(new Score()) as unknown as Record<
+      string,
+      unknown
+    >;
+    unknown.formatt = unknown.format;
+    expectSerializationError(unknown, "$.formatt");
+
+    const missing = serializeScore(new Score()) as unknown as Record<
+      string,
+      unknown
+    >;
+    Reflect.deleteProperty(missing, "artist");
+    expectSerializationError(missing, "$.artist");
+  });
+
+  test("rejects unknown and missing deeply nested properties", () => {
+    const unknown = createDocumentWithBend();
+    const technique =
+      unknown.tracks[0].staves[0].bars[0].voices[0]?.beats[0].notes?.[0]
+        ?.techniques[0];
+    if (technique === undefined) {
+      throw Error("Expected serialized bend technique");
+    }
+    Reflect.set(technique, "optionz", {});
+    expectSerializationError(
+      unknown,
+      "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[0].optionz"
+    );
+
+    const missing = createDocumentWithBend();
+    const options =
+      missing.tracks[0].staves[0].bars[0].voices[0]?.beats[0].notes?.[0]
+        ?.techniques[0];
+    if (options?.type !== "bend") {
+      throw Error("Expected serialized bend technique");
+    }
+    Reflect.deleteProperty(options.options, "bendDuration");
+    expectSerializationError(
+      missing,
+      "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[0].options.bendDuration"
+    );
+  });
+
+  test.each(["__proto__", "constructor", "toString"])(
+    "rejects prototype enum key %s for duration, repeat, technique and bend",
+    (value) => {
+      const duration = createDocumentWithBend();
+      Reflect.set(duration.masterBars[0], "duration", value);
+      expectSerializationError(duration, "$.masterBars[0].duration");
+
+      const repeat = createDocumentWithBend();
+      Reflect.set(repeat.masterBars[0], "repeatStatus", value);
+      expectSerializationError(repeat, "$.masterBars[0].repeatStatus");
+
+      const technique = createDocumentWithBend();
+      const serializedTechnique =
+        technique.tracks[0].staves[0].bars[0].voices[0]?.beats[0].notes?.[0]
+          ?.techniques[0];
+      if (serializedTechnique === undefined) {
+        throw Error("Expected serialized technique");
+      }
+      Reflect.set(serializedTechnique, "type", value);
+      expectSerializationError(
+        technique,
+        "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[0].type"
+      );
+
+      const bend = createDocumentWithBend();
+      const serializedBend =
+        bend.tracks[0].staves[0].bars[0].voices[0]?.beats[0].notes?.[0]
+          ?.techniques[0];
+      if (serializedBend?.type !== "bend") {
+        throw Error("Expected serialized bend");
+      }
+      Reflect.set(serializedBend.options, "type", value);
+      expectSerializationError(
+        bend,
+        "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[0].options.type"
+      );
+    }
+  );
+
   test("rejects staff bar counts that do not match master bars", () => {
     const document = serializeScore(createFeatureShowcaseScoreFixture());
     document.tracks[0].staves[0].bars.pop();
@@ -366,7 +495,7 @@ describe("score serialization", () => {
     ]);
     expectSerializationError(
       invalidBend,
-      `$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[${firstNoteIndex}].techniques[0].options`
+      `$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[${firstNoteIndex}].techniques[0].options.releasePitch`
     );
   });
 
@@ -435,6 +564,22 @@ describe("score serialization", () => {
       document,
       "$.tracks[0].staves[0].bars[0].voices[0].beats[1].notes[0].techniques[1]"
     );
+
+    secondNote.techniques.push(
+      new GuitarTechnique(
+        secondNote,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 1,
+          bendDuration: 0.5,
+        })
+      )
+    );
+    expectSerializeError(
+      score,
+      "$.tracks[0].staves[0].bars[0].voices[0].beats[1].notes[0].techniques[1]"
+    );
   });
 
   test("rejects tracks without staves", () => {
@@ -472,6 +617,24 @@ describe("score serialization", () => {
     expectSerializeError(score, "$.masterBars[0].repeatCount");
   });
 
+  test.each(["normalCount", "tupletCount"] as const)(
+    "refuses to serialize an invalid tuplet %s at its exact path",
+    (property) => {
+      const score = new Score();
+      const beat = score.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0];
+      if (beat === undefined) {
+        throw Error("Expected score beat");
+      }
+      beat.tupletSettings = { normalCount: 3, tupletCount: 2 };
+      Reflect.set(beat.tupletSettings, property, 0);
+
+      expectSerializeError(
+        score,
+        `$.tracks[0].staves[0].bars[0].voices[0].beats[0].tuplet.${property}`
+      );
+    }
+  );
+
   test("refuses to serialize notes whose string differs from their slot", () => {
     const score = new Score();
     const beat = score.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0];
@@ -485,6 +648,63 @@ describe("score serialization", () => {
     expectSerializeError(
       score,
       "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0]"
+    );
+  });
+
+  test("rejects invalid technique arrays before emitting a document", () => {
+    const unsupported = new Score();
+    const unsupportedNote = getFirstNote(unsupported);
+    unsupportedNote.fret = 1;
+    Reflect.apply(Array.prototype.push, unsupportedNote.techniques, [null]);
+    expectSerializeError(
+      unsupported,
+      "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[0]"
+    );
+
+    const duplicate = new Score();
+    const duplicateNote = getFirstNote(duplicate);
+    duplicateNote.fret = 1;
+    duplicateNote.techniques.push(
+      new GuitarTechnique(duplicateNote, GuitarTechniqueType.Vibrato),
+      new GuitarTechnique(duplicateNote, GuitarTechniqueType.Vibrato)
+    );
+    expectSerializeError(
+      duplicate,
+      "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[1]"
+    );
+
+    const incompatible = new Score();
+    const incompatibleNote = getFirstNote(incompatible);
+    incompatibleNote.fret = 1;
+    incompatibleNote.techniques.push(
+      new GuitarTechnique(incompatibleNote, GuitarTechniqueType.LetRing),
+      new GuitarTechnique(incompatibleNote, GuitarTechniqueType.PalmMute)
+    );
+    expectSerializeError(
+      incompatible,
+      "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[1]"
+    );
+
+    const unexpectedOptions = new Score();
+    const optionsNote = getFirstNote(unexpectedOptions);
+    optionsNote.fret = 1;
+    const vibrato = new GuitarTechnique(
+      optionsNote,
+      GuitarTechniqueType.Vibrato
+    );
+    Reflect.set(
+      vibrato,
+      "_bendOptions",
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 1,
+        bendDuration: 0.5,
+      })
+    );
+    optionsNote.techniques.push(vibrato);
+    expectSerializeError(
+      unexpectedOptions,
+      "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[0].options"
     );
   });
 
@@ -575,5 +795,77 @@ describe("score serialization", () => {
     Reflect.set(score.tracks[0].context.instrument, "_type", "invalid");
 
     expectSerializeError(score, "$.tracks[0].instrument.type");
+  });
+
+  test("rejects foreign ownership at every serialized model layer", () => {
+    const cases: readonly [string, (score: Score, foreign: Score) => void][] = [
+      [
+        "$.tracks[0]",
+        (score, foreign) => {
+          score.tracks[0] = foreign.tracks[0];
+        },
+      ],
+      [
+        "$.tracks[0].staves[0]",
+        (score, foreign) => {
+          score.tracks[0].staves[0] = foreign.tracks[0].staves[0];
+        },
+      ],
+      [
+        "$.tracks[0].staves[0].bars[0]",
+        (score, foreign) => {
+          score.tracks[0].staves[0].bars[0] =
+            foreign.tracks[0].staves[0].bars[0];
+        },
+      ],
+      [
+        "$.tracks[0].staves[0].bars[0].voices[0]",
+        (score, foreign) => {
+          const bar = score.tracks[0].staves[0].bars[0];
+          bar.voiceBars[1] = foreign.tracks[0].staves[0].bars[0].getVoiceBar(1);
+        },
+      ],
+      [
+        "$.tracks[0].staves[0].bars[0].voices[0].beats[0]",
+        (score, foreign) => {
+          const voice = score.tracks[0].staves[0].bars[0].getVoiceBar(1);
+          const foreignBeat =
+            foreign.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0];
+          if (voice === null || foreignBeat === undefined) {
+            throw Error("Expected voice beats");
+          }
+          voice.beats[0] = foreignBeat;
+        },
+      ],
+      [
+        "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0]",
+        (score, foreign) => {
+          const notes = getFirstNote(score).beat.notes;
+          if (notes === null) {
+            throw Error("Expected notes");
+          }
+          notes[0] = getFirstNote(foreign);
+        },
+      ],
+      [
+        "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[0]",
+        (score, foreign) => {
+          const note = getFirstNote(score);
+          const foreignNote = getFirstNote(foreign);
+          note.fret = 1;
+          foreignNote.fret = 1;
+          note.techniques.push(
+            new GuitarTechnique(foreignNote, GuitarTechniqueType.Vibrato)
+          );
+        },
+      ],
+    ];
+
+    for (const [path, corrupt] of cases) {
+      const score = new Score();
+      const foreign = new Score();
+      corrupt(score, foreign);
+      expectSerializeError(score, path);
+    }
   });
 });

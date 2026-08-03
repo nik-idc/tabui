@@ -6,47 +6,57 @@ import {
   ElectricGuitarTone,
   OtherStringTone,
   STRING_TONES as TONES_BY_INSTRUMENT_TYPE,
+  StringInstrumentTone,
 } from "../../instrument/instrument-tone";
 import { StringInstrumentType } from "../../instrument/instrument-type";
 import { TONE_TO_MIDI } from "../../instrument/tone-to-midi";
-import { NoteType, NoteValue, NOTES_ARR } from "../../note";
+import { NoteType, NoteValue } from "../../note";
 import { ScoreSerializationError } from "../serialization-error";
 import { serializeArray } from "../serialize-array";
 import { propertyPath, SerializationPath } from "../serialization-path";
 import { SerializedValueReader } from "../serialized-value-reader";
 import {
-  INSTRUMENT_FAMILIES,
+  readInstrumentFamily,
   readNoteValue,
-  STRING_INSTRUMENT_TYPES,
-  STRING_TONES,
+  readStringInstrumentType,
+  readStringTone,
+  SERIALIZED_INSTRUMENT_FAMILIES,
+  SERIALIZED_PLAYABLE_NOTE_VALUES,
+  SERIALIZED_STRING_INSTRUMENT_TYPES,
+  SERIALIZED_STRING_TONES,
 } from "./mappings";
 import {
   SerializedGuitarInstrument,
   SerializedGuitarInstrumentCommon,
+  SerializedStringInstrumentType,
+  SerializedStringInstrumentTone,
   SerializedTuningNote,
 } from "./schema";
 
+/**
+ * Serializes one playable tuning pitch and reports validation errors at its
+ * `noteValue` or `octave` property path.
+ */
 function serializeTuningNote(
   tuning: NoteType,
   path: SerializationPath
 ): SerializedTuningNote {
   const noteValuePath = propertyPath(path, "noteValue");
-  if (typeof tuning.noteValue !== "string") {
-    throw new ScoreSerializationError(noteValuePath, "expected string");
-  }
-  const noteValue = NOTES_ARR.find((n) => n === tuning.noteValue);
-  if (noteValue === undefined) {
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      SERIALIZED_PLAYABLE_NOTE_VALUES,
+      tuning.noteValue
+    )
+  ) {
     throw new ScoreSerializationError(
       noteValuePath,
       `unsupported value '${tuning.noteValue}'`
     );
   }
-  if (noteValue === NoteValue.None || noteValue === NoteValue.Dead) {
-    throw new ScoreSerializationError(
-      noteValuePath,
-      "unsupported value for tuning"
-    );
-  }
+  const noteValue =
+    SERIALIZED_PLAYABLE_NOTE_VALUES[
+      tuning.noteValue as Exclude<NoteValue, NoteValue.None | NoteValue.Dead>
+    ];
   const octave = tuning.octave;
   const octavePath = propertyPath(path, "octave");
   if (typeof octave !== "number" || !Number.isFinite(octave)) {
@@ -64,6 +74,7 @@ function serializeTuningNote(
   return { noteValue, octave };
 }
 
+/** Validates structural guitar fields and tuning/string-count consistency. */
 function validateInstrument(instrument: Guitar, path: SerializationPath): void {
   if (
     !Number.isInteger(instrument.stringsCount) ||
@@ -99,6 +110,7 @@ function validateInstrument(instrument: Guitar, path: SerializationPath): void {
   }
 }
 
+/** Validates wire-safe instrument metadata at property-specific paths. */
 function validateInstrumentMetadata(
   instrument: Guitar,
   path: SerializationPath
@@ -123,18 +135,25 @@ function validateInstrumentMetadata(
   }
 }
 
-function serializeTone<T extends string>(
-  tone: string,
-  tones: readonly T[],
+/** Validates a tone against its guitar variant before applying the v1 mapping. */
+function serializeTone(
+  tone: StringInstrumentTone,
+  tones: readonly StringInstrumentTone[],
   path: SerializationPath
-): T {
-  const serialized = tones.find((t) => t === tone);
-  if (serialized === undefined) {
+): SerializedStringInstrumentTone {
+  if (
+    !tones.includes(tone) ||
+    !Object.prototype.hasOwnProperty.call(SERIALIZED_STRING_TONES, tone)
+  ) {
     throw new ScoreSerializationError(path, `unsupported value '${tone}'`);
   }
-  return serialized;
+  return SERIALIZED_STRING_TONES[tone];
 }
 
+/**
+ * Adds the discriminated v1 type and tone for acoustic, electric, bass, or
+ * other supported string instruments.
+ */
 function serializeInstrumentVariant(
   instrument: Guitar,
   serialized: SerializedGuitarInstrumentCommon,
@@ -146,37 +165,55 @@ function serializeInstrumentVariant(
       const tones = Object.values(AcousticGuitarTone);
       return {
         ...serialized,
-        type: instrument.type,
-        tone: serializeTone(instrument.tone, tones, tonePath),
+        type: SERIALIZED_STRING_INSTRUMENT_TYPES[
+          instrument.type
+        ] as SerializedStringInstrumentType.AcousticGuitar,
+        tone: serializeTone(instrument.tone, tones, tonePath) as
+          | SerializedStringInstrumentTone.Nylon
+          | SerializedStringInstrumentTone.Steel,
       };
     }
     case StringInstrumentType.ElectricGuitar: {
       const tones = Object.values(ElectricGuitarTone);
       return {
         ...serialized,
-        type: instrument.type,
-        tone: serializeTone(instrument.tone, tones, tonePath),
+        type: SERIALIZED_STRING_INSTRUMENT_TYPES[
+          instrument.type
+        ] as SerializedStringInstrumentType.ElectricGuitar,
+        tone: serializeTone(instrument.tone, tones, tonePath) as
+          | SerializedStringInstrumentTone.ElectricClean
+          | SerializedStringInstrumentTone.ElectricOverdrive
+          | SerializedStringInstrumentTone.ElectricDistortion,
       };
     }
     case StringInstrumentType.BassGuitar:
       return {
         ...serialized,
-        type: instrument.type,
+        type: SERIALIZED_STRING_INSTRUMENT_TYPES[
+          instrument.type
+        ] as SerializedStringInstrumentType.BassGuitar,
         tone: serializeTone(
           instrument.tone,
           Object.values(BassGuitarTone),
           tonePath
-        ),
+        ) as
+          | SerializedStringInstrumentTone.BassAcoustic
+          | SerializedStringInstrumentTone.BassClean
+          | SerializedStringInstrumentTone.BassDistortion,
       };
     case StringInstrumentType.Other:
       return {
         ...serialized,
-        type: instrument.type,
+        type: SERIALIZED_STRING_INSTRUMENT_TYPES[
+          instrument.type
+        ] as SerializedStringInstrumentType.Other,
         tone: serializeTone(
           instrument.tone,
           Object.values(OtherStringTone),
           tonePath
-        ),
+        ) as
+          | SerializedStringInstrumentTone.Banjo
+          | SerializedStringInstrumentTone.Ukulele,
       };
     default:
       throw new ScoreSerializationError(
@@ -186,6 +223,10 @@ function serializeInstrumentVariant(
   }
 }
 
+/**
+ * Serializes a validated guitar to v1 wire data, enforcing tuning, variant,
+ * tone, and MIDI-program consistency with property-relative error paths.
+ */
 export function serializeInstrument(
   instrument: Guitar,
   path: SerializationPath
@@ -194,7 +235,7 @@ export function serializeInstrument(
   validateInstrumentMetadata(instrument, path);
   const tuningPath = propertyPath(path, "tuning");
   const serialized: SerializedGuitarInstrumentCommon = {
-    family: InstrumentFamily.Strings,
+    family: SERIALIZED_INSTRUMENT_FAMILIES[InstrumentFamily.Strings]!,
     name: instrument.name,
     program: instrument.program,
     stringsCount: instrument.stringsCount,
@@ -202,7 +243,7 @@ export function serializeInstrument(
     fretsCount: instrument.fretsCount,
   };
   const result = serializeInstrumentVariant(instrument, serialized, path);
-  if (instrument.program !== TONE_TO_MIDI[result.tone]) {
+  if (instrument.program !== TONE_TO_MIDI[instrument.tone]) {
     throw new ScoreSerializationError(
       propertyPath(path, "program"),
       "program does not match tone"
@@ -211,11 +252,12 @@ export function serializeInstrument(
   return result;
 }
 
+/** Reads a tuning array of playable pitches with item-relative validation paths. */
 function readTuning(reader: SerializedValueReader): NoteType[] {
   const array = reader.readArray();
   const tuning: NoteType[] = [];
   for (const item of array) {
-    item.readObject();
+    item.readObject(["noteValue", "octave"]);
     const noteValueReader = item.property("noteValue");
     const noteValue = readNoteValue(noteValueReader);
     if (noteValue === NoteValue.None || noteValue === NoteValue.Dead) {
@@ -231,9 +273,10 @@ function readTuning(reader: SerializedValueReader): NoteType[] {
   return tuning;
 }
 
+/** Temporary validated fields used before cross-field checks and model creation. */
 type ParsedInstrumentData = {
   type: StringInstrumentType;
-  tone: (typeof STRING_TONES)[number];
+  tone: StringInstrumentTone;
   name: string;
   program: number;
   stringsCount: number;
@@ -241,18 +284,30 @@ type ParsedInstrumentData = {
   tuning: NoteType[];
 };
 
+/** Reads the complete v1 guitar object while preserving property path context. */
 function readInstrumentData(
   reader: SerializedValueReader
 ): ParsedInstrumentData {
   reader.readObject();
   const familyReader = reader.property("family");
-  const family = familyReader.readEnumMember(INSTRUMENT_FAMILIES);
+  const family = readInstrumentFamily(familyReader);
   if (family !== InstrumentFamily.Strings) {
     familyReader.fail("unsupported instrument family");
   }
+  const type = readStringInstrumentType(reader.property("type"));
+  reader.expectKeys([
+    "family",
+    "type",
+    "tone",
+    "name",
+    "program",
+    "stringsCount",
+    "tuning",
+    "fretsCount",
+  ]);
   return {
-    type: reader.property("type").readEnumMember(STRING_INSTRUMENT_TYPES),
-    tone: reader.property("tone").readEnumMember(STRING_TONES),
+    type,
+    tone: readStringTone(reader.property("tone")),
     name: reader.property("name").readString(),
     program: reader.property("program").readIntegerInRange(0, 127),
     stringsCount: reader
@@ -265,6 +320,7 @@ function readInstrumentData(
   };
 }
 
+/** Enforces tuning length, variant/tone, and tone/program cross-field invariants. */
 function validateInstrumentConsistency(
   data: ParsedInstrumentData,
   reader: SerializedValueReader
@@ -280,6 +336,10 @@ function validateInstrumentConsistency(
   }
 }
 
+/**
+ * Deserializes validated, cross-field-consistent v1 guitar data through the
+ * reader's path-aware model-operation boundary.
+ */
 export function deserializeInstrument(reader: SerializedValueReader): Guitar {
   const data = readInstrumentData(reader);
   validateInstrumentConsistency(data, reader);

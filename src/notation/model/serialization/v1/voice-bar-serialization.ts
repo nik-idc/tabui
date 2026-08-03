@@ -7,13 +7,21 @@ import {
 import { BendType, OPTIONS_PER_BEND_TYPE } from "../../bend-type";
 import { GuitarNote } from "../../guitar-note";
 import { GuitarTechnique } from "../../guitar-technique";
+import {
+  guitarTechniquesIncompatible,
+  isBendValidForContinuation,
+} from "../../guitar-technique-validation";
 import { Guitar } from "../../instrument/guitar/guitar";
 import { GuitarTechniqueType } from "../../technique-type";
 import { TupletSettings } from "../../tuplet-settings";
 import { VoiceBar } from "../../voice-bar";
 import { ScoreSerializationError } from "../serialization-error";
 import { serializeArray } from "../serialize-array";
-import { propertyPath, SerializationPath } from "../serialization-path";
+import {
+  indexPath,
+  propertyPath,
+  SerializationPath,
+} from "../serialization-path";
 import { SerializedValueReader } from "../serialized-value-reader";
 import {
   SERIALIZED_NOTE_DURATIONS,
@@ -30,16 +38,20 @@ import {
   SerializedGuitarNote,
   SerializedGuitarTechnique,
   SerializedTechniqueType,
+  SerializedTuplet,
   SerializedVoiceBar,
 } from "./schema";
 
-// Technique checks can depend on neighboring beats, so restore them only after
-// the complete voice beat sequence has been attached to its VoiceBar.
+/**
+ * A restored note paired with technique readers deferred until the complete
+ * beat sequence is attached, because technique rules can inspect neighbors.
+ */
 export type DeferredNoteTechniques = {
   note: GuitarNote;
   techniques: SerializedValueReader[];
 };
 
+/** Reads a required bend field and enforces its model-level numeric bounds. */
 function requireBendOption(
   options: BendTechniqueOptions,
   key: Exclude<keyof BendOptionsData, "type">,
@@ -73,6 +85,7 @@ function requireBendOption(
   return value;
 }
 
+/** Encodes only the option fields valid for the bend's discriminated type. */
 function serializeBendOptions(
   options: BendTechniqueOptions,
   path: SerializationPath
@@ -130,17 +143,36 @@ function serializeBendOptions(
   }
 }
 
+/**
+ * Serializes a technique after confirming that it is owned by the supplied
+ * note and that its type and bend options form a supported combination.
+ */
 function serializeTechnique(
   technique: GuitarTechnique,
-  path: SerializationPath
+  path: SerializationPath,
+  note: GuitarNote
 ): SerializedGuitarTechnique {
-  const type = SERIALIZED_TECHNIQUE_TYPES[technique.type];
-  if (type === undefined) {
+  if (!(technique instanceof GuitarTechnique)) {
+    throw new ScoreSerializationError(path, "unsupported technique type");
+  }
+  if (technique.note !== note) {
+    throw new ScoreSerializationError(
+      path,
+      "technique belongs to another note"
+    );
+  }
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      SERIALIZED_TECHNIQUE_TYPES,
+      technique.type
+    )
+  ) {
     throw new ScoreSerializationError(
       propertyPath(path, "type"),
       "unsupported technique type"
     );
   }
+  const type = SERIALIZED_TECHNIQUE_TYPES[technique.type];
   if (technique.type === GuitarTechniqueType.Bend) {
     const options = technique.bendOptions;
     if (options === null) {
@@ -154,6 +186,12 @@ function serializeTechnique(
       options: serializeBendOptions(options, propertyPath(path, "options")),
     };
   }
+  if (technique.bendOptions !== null) {
+    throw new ScoreSerializationError(
+      propertyPath(path, "options"),
+      "unexpected bend options"
+    );
+  }
   if (type === SerializedTechniqueType.Bend) {
     throw new ScoreSerializationError(
       propertyPath(path, "type"),
@@ -163,10 +201,42 @@ function serializeTechnique(
   return { type };
 }
 
-function serializeNote(
+/** Serializes techniques while rejecting duplicate or incompatible entries. */
+function serializeTechniques(
   note: GuitarNote,
   path: SerializationPath
+): SerializedGuitarTechnique[] {
+  const serializedTypes = new Set<GuitarTechniqueType>();
+  const previous: GuitarTechnique[] = [];
+  return serializeArray(note.techniques, path, (technique, techniquePath) => {
+    const serialized = serializeTechnique(technique, techniquePath, note);
+    if (serializedTypes.has(technique.type)) {
+      throw new ScoreSerializationError(techniquePath, "duplicate technique");
+    }
+    if (previous.some((t) => guitarTechniquesIncompatible(t, technique))) {
+      throw new ScoreSerializationError(
+        techniquePath,
+        "incompatible technique"
+      );
+    }
+    serializedTypes.add(technique.type);
+    previous.push(technique);
+    return serialized;
+  });
+}
+
+/**
+ * Serializes an owned guitar-string slot, collapsing a fretless note without
+ * techniques to null while retaining technique-only note state.
+ */
+function serializeNote(
+  note: GuitarNote,
+  path: SerializationPath,
+  beat: Beat<Guitar>
 ): SerializedGuitarNote | null {
+  if (note.beat !== beat || note.trackContext !== beat.trackContext) {
+    throw new ScoreSerializationError(path, "note ownership mismatch");
+  }
   if (note.fret === null && note.techniques.length === 0) {
     return null;
   }
@@ -182,30 +252,53 @@ function serializeNote(
     );
   }
   const techniquesPath = propertyPath(path, "techniques");
+  const techniques = serializeTechniques(note, techniquesPath);
+  const bendIndex = note.techniques.findIndex(
+    (t) => t.type === GuitarTechniqueType.Bend
+  );
+  const bendOptions = note.techniques[bendIndex]?.bendOptions;
+  if (
+    bendOptions !== undefined &&
+    bendOptions !== null &&
+    !isBendValidForContinuation(note, bendOptions)
+  ) {
+    throw new ScoreSerializationError(
+      indexPath(techniquesPath, bendIndex),
+      "bend is invalid for let-ring continuation"
+    );
+  }
   return {
     fret: note.fret,
-    techniques: serializeArray(
-      note.techniques,
-      techniquesPath,
-      serializeTechnique
-    ),
+    techniques,
   };
 }
 
+/** Encodes a nullable tuplet ratio after checking both bounded counts. */
 function serializeTuplet(
   tuplet: TupletSettings | null,
   path: SerializationPath
-): TupletSettings | null {
-  if (
-    tuplet !== null &&
-    (!Number.isSafeInteger(tuplet.normalCount) ||
+): SerializedTuplet | null {
+  if (tuplet !== null) {
+    if (
+      !Number.isSafeInteger(tuplet.normalCount) ||
       tuplet.normalCount < 1 ||
-      tuplet.normalCount > 256 ||
+      tuplet.normalCount > 256
+    ) {
+      throw new ScoreSerializationError(
+        propertyPath(path, "normalCount"),
+        "expected an integer between 1 and 256"
+      );
+    }
+    if (
       !Number.isSafeInteger(tuplet.tupletCount) ||
       tuplet.tupletCount < 1 ||
-      tuplet.tupletCount > 256)
-  ) {
-    throw new ScoreSerializationError(path, "invalid tuplet counts");
+      tuplet.tupletCount > 256
+    ) {
+      throw new ScoreSerializationError(
+        propertyPath(path, "tupletCount"),
+        "expected an integer between 1 and 256"
+      );
+    }
   }
   return tuplet === null
     ? null
@@ -215,8 +308,12 @@ function serializeTuplet(
       };
 }
 
+/**
+ * Preserves null for a rest; otherwise validates the fixed string-slot array
+ * and each note's beat, track context, and string-slot ownership.
+ */
 function serializeBeatNotes(
-  beat: Beat,
+  beat: Beat<Guitar>,
   path: SerializationPath
 ): SerializedBeat["notes"] {
   if (beat.notes === null) {
@@ -229,21 +326,41 @@ function serializeBeatNotes(
     if (!(note instanceof GuitarNote)) {
       throw new ScoreSerializationError(notePath, "unsupported note type");
     }
-    if (note.stringNum !== index + 1) {
+    if (
+      note.beat !== beat ||
+      note.trackContext !== beat.trackContext ||
+      note.stringNum !== index + 1
+    ) {
       throw new ScoreSerializationError(
         notePath,
-        "note string does not match its slot"
+        "note ownership or string slot mismatch"
       );
     }
-    return serializeNote(note, notePath);
+    return serializeNote(note, notePath, beat);
   });
 }
 
+/**
+ * Serializes an owned beat's duration and content after validating its
+ * VoiceBar relationship and schema-supported rhythmic values.
+ */
 export function serializeBeat(
-  beat: Beat,
-  path: SerializationPath
+  beat: Beat<Guitar>,
+  path: SerializationPath,
+  voiceBar: VoiceBar<Guitar>
 ): SerializedBeat {
-  if (SERIALIZED_NOTE_DURATIONS[beat.baseDuration] === undefined) {
+  if (
+    beat.voiceBar !== voiceBar ||
+    beat.trackContext !== voiceBar.trackContext
+  ) {
+    throw new ScoreSerializationError(path, "beat ownership mismatch");
+  }
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      SERIALIZED_NOTE_DURATIONS,
+      beat.baseDuration
+    )
+  ) {
     throw new ScoreSerializationError(
       propertyPath(path, "duration"),
       "unsupported duration"
@@ -263,10 +380,23 @@ export function serializeBeat(
   };
 }
 
+/**
+ * Serializes a nonempty voice after checking its bar, track context, and sparse
+ * voice-slot number against the caller's expected owners.
+ */
 export function serializeVoiceBar(
-  voiceBar: VoiceBar,
-  path: SerializationPath
+  voiceBar: VoiceBar<Guitar>,
+  path: SerializationPath,
+  bar: VoiceBar<Guitar>["bar"],
+  voiceNumber: VoiceBar<Guitar>["voiceNumber"]
 ): SerializedVoiceBar {
+  if (
+    voiceBar.bar !== bar ||
+    voiceBar.trackContext !== bar.trackContext ||
+    voiceBar.voiceNumber !== voiceNumber
+  ) {
+    throw new ScoreSerializationError(path, "voice bar ownership mismatch");
+  }
   const beatsPath = propertyPath(path, "beats");
   if (voiceBar.isEmpty()) {
     throw new ScoreSerializationError(
@@ -275,25 +405,19 @@ export function serializeVoiceBar(
     );
   }
   return {
-    beats: serializeArray(voiceBar.beats, beatsPath, serializeBeat),
+    beats: serializeArray(voiceBar.beats, beatsPath, (beat, beatPath) =>
+      serializeBeat(beat, beatPath, voiceBar)
+    ),
   };
 }
 
+/** Reconstructs a bend option object from exactly the fields its type permits. */
 function deserializeBendOptions(
   reader: SerializedValueReader
 ): BendTechniqueOptions {
-  reader.readObject();
   const type = readBendType(reader.property("type"));
-  const suppliedKeys = reader.readKeys();
   const expectedKeys = OPTIONS_PER_BEND_TYPE[type];
-  if (
-    suppliedKeys.length !== expectedKeys.length ||
-    suppliedKeys.some(
-      (key) => !expectedKeys.some((expectedKey) => expectedKey === key)
-    )
-  ) {
-    reader.fail("unexpected or missing bend option");
-  }
+  reader.expectKeys(expectedKeys);
   const options: BendOptionsData = { type };
   for (const key of expectedKeys) {
     if (key === "type") {
@@ -304,32 +428,33 @@ function deserializeBendOptions(
   return reader.runModelOperation(() => new BendTechniqueOptions(options));
 }
 
+/** Reconstructs one technique against its already attached owning note. */
 function deserializeTechnique(
   reader: SerializedValueReader,
   note: GuitarNote
 ): GuitarTechnique {
-  const obj = reader.readObject();
+  reader.readObject();
   const type = readTechniqueType(reader.property("type"));
   if (type === GuitarTechniqueType.Bend) {
-    if (obj.options === undefined) {
-      reader.property("options").fail("expected bend options");
-    }
+    reader.expectKeys(["type", "options"]);
     const bendOptions = deserializeBendOptions(reader.property("options"));
     return reader.runModelOperation(
       () => new GuitarTechnique(note, type, bendOptions)
     );
   }
-  if (obj.options !== undefined) {
-    reader.property("options").fail("unexpected options");
-  }
+  reader.expectKeys(["type"]);
   return reader.runModelOperation(() => new GuitarTechnique(note, type));
 }
 
+/**
+ * Restores fret state now but returns technique readers for restoration after
+ * the complete voice beat sequence has been attached.
+ */
 function deserializeNote(
   reader: SerializedValueReader,
   note: GuitarNote
 ): DeferredNoteTechniques {
-  reader.readObject();
+  reader.readObject(["fret", "techniques"]);
   const fretReader = reader.property("fret");
   const fret = fretReader.readNullableInteger();
   if (
@@ -347,6 +472,10 @@ function deserializeNote(
   };
 }
 
+/**
+ * Adds deferred techniques through model APIs, rejecting duplicates and
+ * combinations that become incompatible in the reconstructed context.
+ */
 function restoreNoteTechniques(deferred: DeferredNoteTechniques): void {
   const seenTypes = new Set<GuitarTechniqueType>();
   for (const techniqueReader of deferred.techniques) {
@@ -361,26 +490,18 @@ function restoreNoteTechniques(deferred: DeferredNoteTechniques): void {
   }
 }
 
+/**
+ * Validates bend pitch against any let-ring continuation now discoverable from
+ * neighboring attached beats, reporting failure at the source bend document.
+ */
 function validateBendContinuation(deferred: DeferredNoteTechniques): void {
   const bend = deferred.note.techniques.find(
     (technique) => technique.type === GuitarTechniqueType.Bend
   );
-  const options = bend?.bendOptions;
   if (
-    options === undefined ||
-    options === null ||
-    (options.type !== BendType.Bend && options.type !== BendType.BendAndRelease)
-  ) {
-    return;
-  }
-  const continuationPitch = deferred.note.getBendContinuationPitch();
-  if (continuationPitch === undefined) {
-    return;
-  }
-  if (
-    continuationPitch < MAX_BEND_PITCH &&
-    options.bendPitch !== undefined &&
-    options.bendPitch >= continuationPitch
+    bend?.bendOptions === undefined ||
+    bend.bendOptions === null ||
+    isBendValidForContinuation(deferred.note, bend.bendOptions)
   ) {
     return;
   }
@@ -396,6 +517,7 @@ function validateBendContinuation(deferred: DeferredNoteTechniques): void {
   );
 }
 
+/** Distinguishes a required null tuplet from a validated ratio object. */
 function deserializeTuplet(
   reader: SerializedValueReader
 ): TupletSettings | null {
@@ -405,13 +527,17 @@ function deserializeTuplet(
   if (reader.rawValue() === null) {
     return null;
   }
-  reader.readObject();
+  reader.readObject(["normalCount", "tupletCount"]);
   return {
     normalCount: reader.property("normalCount").readIntegerInRange(1, 256),
     tupletCount: reader.property("tupletCount").readIntegerInRange(1, 256),
   };
 }
 
+/**
+ * Converts null notes to a rest or restores populated fixed string slots,
+ * returning their techniques for deferred graph-aware validation.
+ */
 function restoreBeatNotes(
   notesReader: SerializedValueReader,
   beatReader: SerializedValueReader,
@@ -445,11 +571,15 @@ function restoreBeatNotes(
   return deferredTechniques;
 }
 
+/**
+ * Reconstructs a detached beat and its rest or sparse note slots while
+ * collecting techniques that cannot yet inspect a complete voice.
+ */
 function deserializeBeat(
   reader: SerializedValueReader,
   voiceBar: VoiceBar<Guitar>
 ): { beat: Beat<Guitar>; deferredTechniques: DeferredNoteTechniques[] } {
-  reader.readObject();
+  reader.readObject(["notes", "duration", "dots", "tuplet"]);
   const duration = readNoteDuration(reader.property("duration"));
   const dots = readBeatDots(reader.property("dots"));
   const tuplet = deserializeTuplet(reader.property("tuplet"));
@@ -473,11 +603,16 @@ function deserializeBeat(
   return { beat, deferredTechniques };
 }
 
+/**
+ * Restores a nonempty voice in strict phases: build all beats and notes,
+ * replace the beat sequence so model APIs regenerate derived rhythmic state,
+ * add deferred techniques, then validate continuation-dependent bends.
+ */
 export function deserializeVoiceBar(
   reader: SerializedValueReader,
   voiceBar: VoiceBar<Guitar>
 ): void {
-  reader.readObject();
+  reader.readObject(["beats"]);
   const beatsReader = reader.property("beats");
   const beats = beatsReader.readArray();
   if (beats.length === 0) {

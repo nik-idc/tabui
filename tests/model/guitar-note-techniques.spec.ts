@@ -83,6 +83,22 @@ describe("GuitarNote technique updates", () => {
     expect(note.hasTechnique(GuitarTechniqueType.LetRing)).toBe(false);
   });
 
+  test.each([
+    [GuitarTechniqueType.NaturalHarmonic, GuitarTechniqueType.Vibrato],
+    [GuitarTechniqueType.Vibrato, GuitarTechniqueType.NaturalHarmonic],
+  ])(
+    "rejects incompatible techniques regardless of insertion order",
+    (a, b) => {
+      const note = createNote();
+
+      expect(note.setTechnique(a)).toBe(true);
+      expect(note.techniqueApplicable(b)).toBe(false);
+      expect(note.setTechnique(b)).toBe(false);
+      expect(note.hasTechnique(a)).toBe(true);
+      expect(note.hasTechnique(b)).toBe(false);
+    }
+  );
+
   test("setTechnique updates options on the existing bend", () => {
     const note = createNote();
     note.setTechnique(
