@@ -85,6 +85,22 @@ Latest implementation commits:
   variants. Fixture round trips restore model ownership, timing, and continuation
   validation while regenerating runtime UUIDs. Malformed input fails with an
   exact `ScoreSerializationError` path; empty non-null voice bars remain rejected.
+- Magic-number audit (P1 Stage 3) named shared domain/timing constants
+  (`A4_REFERENCE_FREQUENCY_HZ`, `A4_SEMITONES_FROM_C0`, `NOTES_PER_OCTAVE`
+  reuse, `DEFAULT_MASTER_BAR`-derived defaults, shared tempo/time-signature/
+  tuplet stepper bounds, time-signature duration list, `NOTES_PER_OCTAVE`-backed
+  bend-graph grid count, and `colsCount`/`rowsCount`-honoring release selectors).
+  Domain bounds were then relocated to the Model layer:
+  `MIN_MASTER_BAR_TEMPO`/`MAX_MASTER_BAR_TEMPO` and
+  `MIN_MASTER_BAR_BEATS_COUNT`/`MAX_MASTER_BAR_BEATS_COUNT` live on `MasterBar`
+  and are enforced by its setters/constructor;
+  `MIN_TUPLET_*`/`MAX_TUPLET_*` live on `TupletSettings`, are exposed via
+  `tupletSettingsInRange`, and are enforced by `Beat.tupletSettings`. The
+  serialization layer and UI steppers both import these Model constants,
+  removing the prior triplication. The UI keeps only stricter _presentation_
+  choices (tuplet stepper `min = 2` while storage accepts `1`; the duration
+  selector subset excludes `NoteDuration.SixtyFourth`). New Model-boundary
+  regression tests cover accept/reject at each limit.
 
 ## P1 - Required MVP Quality
 

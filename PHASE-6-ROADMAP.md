@@ -1,8 +1,8 @@
 # Phase 6 Roadmap - MVP Stabilization for 0.5.0
 
-Last updated: 2026-08-03. This is the source of truth for turning the completed
-editor foundations into a dependable, embeddable `0.5.0` package. Prefer clean
-pre-`1.0.0` ownership/API decisions and record new issues in
+Last updated: 2026-08-03 (Stage 3 complete). This is the source of truth for
+turning the completed editor foundations into a dependable, embeddable `0.5.0`
+package. Prefer clean pre-`1.0.0` ownership/API decisions and record new issues in
 `PRE-RELEASE-STABILIZATION.md` before changing priority or scope here.
 
 ## Status
@@ -17,10 +17,11 @@ pre-`1.0.0` ownership/API decisions and record new issues in
 | 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Complete |
 
-Current automated checkpoint: 75 suites / 673 tests. `npm test`, `npm run build`,
-`npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
-after the versioned score persistence slice. All 28 focused-update benchmark
-scenarios retain their previously verified substantial speedup over full updates.
+Current automated checkpoint: 76 suites / 700 tests. `npm test`, `npm run build`,
+`npm run build_vite`, `npm run test:pack-consumer`, `npm run benchmark:updates`,
+and `git diff --check` pass after the magic-number audit slice. All 28
+focused-update benchmark scenarios retain their previously verified substantial
+speedup over full updates.
 
 ## Completed Contracts
 
@@ -94,6 +95,34 @@ scenarios retain their previously verified substantial speedup over full updates
   rejects malformed unknown input with exact `ScoreSerializationError` paths.
   Sparse voices and explicit rests are preserved; empty non-null voices remain
   rejected until their rendering semantics are defined.
+- Magic-number audit (P1 Stage 3) introduced named constants only where a value
+  encoded a shared domain/timing invariant or was duplicated across modules.
+  `getFrequencyFromNoteType` now names the A4 reference frequency and A4
+  semitone offset and reuses `NOTES_PER_OCTAVE`; `MasterBar` constructor
+  defaults derive from the public `DEFAULT_MASTER_BAR`; tempo/time-signature/
+  tuplet stepper bounds and the time-signature duration list are shared between
+  each control's callbacks and template renderer; tempo display fallback now
+  uses `DEFAULT_MASTER_BAR.tempo`; the bend-graph grid count now uses
+  `NOTES_PER_OCTAVE` and the release selectors honor their owned
+  `colsCount`/`rowsCount` instead of a literal `12`; the playback
+  `semitonesToRate` divisor reuses `NOTES_PER_OCTAVE`. **Domain bounds were then
+  relocated to own the invariant at the Model layer:** `MIN_MASTER_BAR_TEMPO`,
+  `MAX_MASTER_BAR_TEMPO`, `MIN_MASTER_BAR_BEATS_COUNT`, and
+  `MAX_MASTER_BAR_BEATS_COUNT` live on `MasterBar` and are enforced by its
+  setters and constructor; `MIN_TUPLET_*`/`MAX_TUPLET_*` live on
+  `TupletSettings`, exposed via `tupletSettingsInRange`, and enforced by
+  `Beat.tupletSettings`. The serialization layer and UI steppers both import
+  these Model constants, removing the earlier triplication of the same literals
+  across UI callbacks, serialization, and (previously absent) Model setters.
+  The UI keeps only genuine presentation choices: the tuplet stepper's stricter
+  `min = 2` (the storage layer accepts `1`, round-tripped by serialization, but
+  the UI steers users away from degenerate 1-tuplets) and the
+  `AVAILABLE_TIME_SIG_DURATIONS` selector subset (the storage layer also
+  accepts `NoteDuration.SixtyFourth`, exercised by serialization tests).
+  Obvious inline literals (cursor priority ranks, voice slot indices, one-off
+  visual/geometry tuning, layout scaling factors, and `whole-note-seconds =
+240 / tempo`) were intentionally left local. New Model-boundary regression
+  tests cover accept/reject at each limit.
 
 ## P0 Closeout
 
@@ -118,9 +147,9 @@ Stage 4 completed on 2026-08-01:
    and control-layout correctness.
 2. (**COMPLETED**) Define versioned score serialization/deserialization with
    fixture round trips and validation errors.
-3. Audit magic numbers and introduce named constants for repeated or non-obvious
-   domain, timing, geometry, and layout values. Keep obvious structural values and
-   readable one-off literals local rather than extracting constants mechanically.
+3. (**COMPLETED**) Audit magic numbers and introduce named constants for
+   repeated or non-obvious domain, timing, geometry, and layout values. Obvious
+   structural values and readable one-off literals remain local.
 4. Add view-only, embedded-container, panel placement, responsive input, and basic
    accessibility behavior.
 5. Revisit Element architecture, cross-track widths, and single-line mode only

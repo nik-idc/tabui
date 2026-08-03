@@ -1,10 +1,15 @@
 import { NotationComponent } from "../../../../notation/notation-component";
 import {
+  MAX_MASTER_BAR_BEATS_COUNT,
+  MIN_MASTER_BAR_BEATS_COUNT,
+} from "../../../../notation/model";
+import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
 } from "../../../shared";
 import { TimeSigControlsTemplate } from "./time-sig-controls-template";
+import { AVAILABLE_TIME_SIG_DURATIONS } from "./time-sig-controls-callbacks";
 
 export class TimeSigControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -84,8 +89,10 @@ export class TimeSigControlsTemplateRenderer {
     this.template.beatsValue.classList.add("tu-number-stepper-value");
     this.template.beatsValue.textContent = beatsInitValue;
     this.template.beatsUpButton.textContent = "+";
-    this.template.beatsDownButton.disabled = Number(beatsInitValue) <= 1;
-    this.template.beatsUpButton.disabled = Number(beatsInitValue) >= 32;
+    this.template.beatsDownButton.disabled =
+      Number(beatsInitValue) <= MIN_MASTER_BAR_BEATS_COUNT;
+    this.template.beatsUpButton.disabled =
+      Number(beatsInitValue) >= MAX_MASTER_BAR_BEATS_COUNT;
     const beatsErrorCSSClass = "tu-time-sig-beats-error";
     this.template.beatsErrorText.classList.add(beatsErrorCSSClass);
 
@@ -93,10 +100,7 @@ export class TimeSigControlsTemplateRenderer {
     this.template.durationLabel.textContent = "Beat unit";
     this.template.durationSelect.classList.add(durationCSSClass);
     if (this.template.durationSelect.options.length === 0) {
-      // TODO: Use durations lists from the model layer (or create
-      // them if they don't exist already). And address other usage of magic
-      // constants in this and other UI files
-      for (const duration of [1, 2, 4, 8, 16, 32]) {
+      for (const duration of AVAILABLE_TIME_SIG_DURATIONS) {
         const option = document.createElement("option");
         option.value = `${duration}`;
         option.textContent = `${duration}`;

@@ -1,7 +1,13 @@
 import { Bar, VOICE_NUMBERS } from "../../bar";
 import { BarRepeatStatus } from "../../bar-repeat-status";
 import { Guitar } from "../../instrument/guitar/guitar";
-import { MasterBar } from "../../master-bar";
+import {
+  MasterBar,
+  MAX_MASTER_BAR_BEATS_COUNT,
+  MAX_MASTER_BAR_TEMPO,
+  MIN_MASTER_BAR_BEATS_COUNT,
+  MIN_MASTER_BAR_TEMPO,
+} from "../../master-bar";
 import { Score } from "../../score";
 import { Staff } from "../../staff";
 import { Track } from "../../track";
@@ -286,11 +292,16 @@ function serializeMasterBar(
   masterBar: MasterBar,
   path: SerializationPath
 ): SerializedMasterBar {
-  validateIntegerInRange(masterBar.tempo, 1, 999, propertyPath(path, "tempo"));
+  validateIntegerInRange(
+    masterBar.tempo,
+    MIN_MASTER_BAR_TEMPO,
+    MAX_MASTER_BAR_TEMPO,
+    propertyPath(path, "tempo")
+  );
   validateIntegerInRange(
     masterBar.beatsCount,
-    1,
-    32,
+    MIN_MASTER_BAR_BEATS_COUNT,
+    MAX_MASTER_BAR_BEATS_COUNT,
     propertyPath(path, "beatsCount")
   );
   if (

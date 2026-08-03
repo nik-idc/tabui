@@ -1,7 +1,13 @@
 import { Bar, VOICE_NUMBERS } from "../../bar";
 import { BarRepeatStatus } from "../../bar-repeat-status";
 import { Guitar } from "../../instrument/guitar/guitar";
-import { MasterBar } from "../../master-bar";
+import {
+  MasterBar,
+  MAX_MASTER_BAR_BEATS_COUNT,
+  MAX_MASTER_BAR_TEMPO,
+  MIN_MASTER_BAR_BEATS_COUNT,
+  MIN_MASTER_BAR_TEMPO,
+} from "../../master-bar";
 import { Score } from "../../score";
 import { Staff } from "../../staff";
 import { Track } from "../../track";
@@ -103,8 +109,15 @@ function deserializeMasterBar(reader: SerializedValueReader): MasterBar {
     repeatCountReader.fail("repeat count requires repeat end status");
   }
   return new MasterBar({
-    tempo: reader.property("tempo").readIntegerInRange(1, 999),
-    beatsCount: reader.property("beatsCount").readIntegerInRange(1, 32),
+    tempo: reader
+      .property("tempo")
+      .readIntegerInRange(MIN_MASTER_BAR_TEMPO, MAX_MASTER_BAR_TEMPO),
+    beatsCount: reader
+      .property("beatsCount")
+      .readIntegerInRange(
+        MIN_MASTER_BAR_BEATS_COUNT,
+        MAX_MASTER_BAR_BEATS_COUNT
+      ),
     duration: readNoteDuration(reader.property("duration")),
     repeatStatus,
     repeatCount,

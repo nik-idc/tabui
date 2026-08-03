@@ -6,6 +6,7 @@ import {
   GuitarTechniqueType,
   Note,
   getNoteFrequency,
+  NOTES_PER_OCTAVE,
   ticksToSeconds,
 } from "../notation/model";
 import { PlaybackSampleManager } from "./playback-sample-manager";
@@ -147,7 +148,7 @@ export class PlaybackNoteScheduler {
 
   /** Converts semitone distance into a frequency/playbackRate multiplier. */
   private semitonesToRate(semitones: number): number {
-    return 2 ** (semitones / 12);
+    return 2 ** (semitones / NOTES_PER_OCTAVE);
   }
 
   /** Returns playback shaping defaults for the note's instrument tone. */

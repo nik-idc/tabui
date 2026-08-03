@@ -1,4 +1,9 @@
 import { NotationComponent } from "../../../../notation/notation-component";
+import {
+  DEFAULT_MASTER_BAR,
+  MAX_MASTER_BAR_TEMPO,
+  MIN_MASTER_BAR_TEMPO,
+} from "../../../../notation/model";
 import { MeasureControlsComponent } from "../../..";
 import { TempoControlsComponent } from "./";
 import { ListenerManager } from "../../../../shared/misc";
@@ -26,9 +31,6 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   readonly beatsCountErrorText: string = "Invalid beats count";
   readonly durationErrorText: string = "Invalid duration";
 
-  private _minTempo = 1;
-  private _maxTempo = 999;
-
   constructor(
     tempoComponent: TempoControlsComponent,
     notationComponent: NotationComponent,
@@ -47,8 +49,8 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
     const tempoNum = Number(tempoValue);
     if (
       !Number.isFinite(tempoNum) ||
-      tempoNum < this._minTempo ||
-      tempoNum > this._maxTempo
+      tempoNum < MIN_MASTER_BAR_TEMPO ||
+      tempoNum > MAX_MASTER_BAR_TEMPO
     ) {
       return false;
     }
@@ -69,16 +71,18 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   onTempoStep(delta: number): void {
     const template = this._tempoComponent.template;
     const parsedTempo = Number(template.value.textContent);
-    const currentTempo = Number.isFinite(parsedTempo) ? parsedTempo : 120;
+    const currentTempo = Number.isFinite(parsedTempo)
+      ? parsedTempo
+      : DEFAULT_MASTER_BAR.tempo;
     const tempo = Math.max(
-      this._minTempo,
-      Math.min(this._maxTempo, currentTempo + delta)
+      MIN_MASTER_BAR_TEMPO,
+      Math.min(MAX_MASTER_BAR_TEMPO, currentTempo + delta)
     );
     template.value.textContent = `${tempo}`;
-    template.decreaseTenButton.disabled = tempo <= this._minTempo;
-    template.decreaseButton.disabled = tempo <= this._minTempo;
-    template.increaseButton.disabled = tempo >= this._maxTempo;
-    template.increaseTenButton.disabled = tempo >= this._maxTempo;
+    template.decreaseTenButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;
+    template.decreaseButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;
+    template.increaseButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
+    template.increaseTenButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
     template.errorText.textContent = " ";
     template.confirmButton.disabled = false;
   }

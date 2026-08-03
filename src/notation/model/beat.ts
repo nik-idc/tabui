@@ -3,7 +3,11 @@ import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
 import { Note } from "./note";
 import { NoteDuration } from "./note-duration";
-import { TupletSettings, tupletSettingsEqual } from "./tuplet-settings";
+import {
+  TupletSettings,
+  tupletSettingsEqual,
+  tupletSettingsInRange,
+} from "./tuplet-settings";
 import { TechniqueType } from "./technique-type";
 import { Guitar } from "./instrument";
 import { GuitarNote } from "./guitar-note";
@@ -85,7 +89,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._baseDuration = baseDuration;
     this._dots = dots === undefined ? 0 : dots;
     this._lastInBeamGroup = false;
-    this._tupletSettings = tupletSettings;
+    this.tupletSettings = tupletSettings;
     this._beamGroupId = beamGroupId;
     this._lastInBeamGroup = lastInBeamGroup;
     this._baseDurationTicks = 0;
@@ -306,6 +310,12 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
 
   /** Tuplet settings setter */
   public set tupletSettings(newSettings: TupletSettings | null) {
+    if (newSettings !== null && !tupletSettingsInRange(newSettings)) {
+      const { normalCount, tupletCount } = newSettings;
+      throw new Error(
+        `Tuplet settings {${normalCount},${tupletCount}} are outside the supported range`
+      );
+    }
     this._tupletSettings = newSettings;
   }
   /** Tuplet settings getter */

@@ -1,4 +1,8 @@
-import { BendOptionsData, BendType } from "../../../../../notation/model";
+import {
+  BendOptionsData,
+  BendType,
+  NOTES_PER_OCTAVE,
+} from "../../../../../notation/model";
 import { createSVGLine, createSVGText } from "../../../../../shared";
 import { Selector } from "./selector";
 import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
@@ -37,8 +41,8 @@ export class BendSelectorManager {
             width: 420,
             height: 300,
             gridOffset: 20,
-            rowsCount: 12,
-            colsCount: 12,
+            rowsCount: NOTES_PER_OCTAVE,
+            colsCount: NOTES_PER_OCTAVE,
           }
         : bendOptions;
 

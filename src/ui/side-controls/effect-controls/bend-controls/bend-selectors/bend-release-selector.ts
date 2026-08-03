@@ -147,7 +147,8 @@ export class BendReleaseSelector implements Selector {
     );
 
     const xStep =
-      (this.bendManagerOptions.width - this.bendManagerOptions.gridOffset) / 12;
+      (this.bendManagerOptions.width - this.bendManagerOptions.gridOffset) /
+      this.bendManagerOptions.colsCount;
     const yStep =
       this.bendManagerOptions.height / this.bendManagerOptions.rowsCount;
 

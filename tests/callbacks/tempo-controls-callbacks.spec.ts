@@ -1,4 +1,5 @@
 import { TempoControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/tempo-controls/tempo-controls-callbacks";
+import { DEFAULT_MASTER_BAR } from "../../src/notation/model";
 import {
   createNotationComponentMock,
   dispatchClick,
@@ -68,6 +69,17 @@ describe("TempoControlsDefaultCallbacks", () => {
     expect(component.template.value.textContent).toBe("1");
     expect(component.template.decreaseButton.disabled).toBe(true);
     expect(component.template.confirmButton.disabled).toBe(false);
+  });
+
+  test("a non-numeric displayed tempo resets to the model default on step", () => {
+    const { callbacks, component } = createTempoHarness();
+    component.template.value.textContent = "not a number";
+
+    callbacks.onTempoStep(1);
+
+    expect(component.template.value.textContent).toBe(
+      `${DEFAULT_MASTER_BAR.tempo + 1}`
+    );
   });
 
   test("mouse wheel adjusts tempo", () => {

@@ -13,7 +13,13 @@ import {
 } from "../../guitar-technique-validation";
 import { Guitar } from "../../instrument/guitar/guitar";
 import { GuitarTechniqueType } from "../../technique-type";
-import { TupletSettings } from "../../tuplet-settings";
+import {
+  MAX_TUPLET_NORMAL_COUNT,
+  MAX_TUPLET_TUPLET_COUNT,
+  MIN_TUPLET_NORMAL_COUNT,
+  MIN_TUPLET_TUPLET_COUNT,
+  TupletSettings,
+} from "../../tuplet-settings";
 import { VoiceBar } from "../../voice-bar";
 import { ScoreSerializationError } from "../serialization-error";
 import { serializeArray } from "../serialize-array";
@@ -281,22 +287,22 @@ function serializeTuplet(
   if (tuplet !== null) {
     if (
       !Number.isSafeInteger(tuplet.normalCount) ||
-      tuplet.normalCount < 1 ||
-      tuplet.normalCount > 256
+      tuplet.normalCount < MIN_TUPLET_NORMAL_COUNT ||
+      tuplet.normalCount > MAX_TUPLET_NORMAL_COUNT
     ) {
       throw new ScoreSerializationError(
         propertyPath(path, "normalCount"),
-        "expected an integer between 1 and 256"
+        `expected an integer between ${MIN_TUPLET_NORMAL_COUNT} and ${MAX_TUPLET_NORMAL_COUNT}`
       );
     }
     if (
       !Number.isSafeInteger(tuplet.tupletCount) ||
-      tuplet.tupletCount < 1 ||
-      tuplet.tupletCount > 256
+      tuplet.tupletCount < MIN_TUPLET_TUPLET_COUNT ||
+      tuplet.tupletCount > MAX_TUPLET_TUPLET_COUNT
     ) {
       throw new ScoreSerializationError(
         propertyPath(path, "tupletCount"),
-        "expected an integer between 1 and 256"
+        `expected an integer between ${MIN_TUPLET_TUPLET_COUNT} and ${MAX_TUPLET_TUPLET_COUNT}`
       );
     }
   }
@@ -529,8 +535,12 @@ function deserializeTuplet(
   }
   reader.readObject(["normalCount", "tupletCount"]);
   return {
-    normalCount: reader.property("normalCount").readIntegerInRange(1, 256),
-    tupletCount: reader.property("tupletCount").readIntegerInRange(1, 256),
+    normalCount: reader
+      .property("normalCount")
+      .readIntegerInRange(MIN_TUPLET_NORMAL_COUNT, MAX_TUPLET_NORMAL_COUNT),
+    tupletCount: reader
+      .property("tupletCount")
+      .readIntegerInRange(MIN_TUPLET_TUPLET_COUNT, MAX_TUPLET_TUPLET_COUNT),
   };
 }
 

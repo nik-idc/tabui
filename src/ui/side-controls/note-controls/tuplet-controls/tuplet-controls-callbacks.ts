@@ -1,6 +1,30 @@
 import { NotationComponent } from "../../../../notation/notation-component";
+import {
+  MAX_TUPLET_NORMAL_COUNT,
+  MAX_TUPLET_TUPLET_COUNT,
+} from "../../../../notation/model";
 import { TupletControlsComponent } from "./";
 import { ListenerManager } from "../../../../shared/misc";
+
+/**
+ * Lowest normal-count offered by the tuplet stepper. The storage layer accepts
+ * `MIN_TUPLET_NORMAL_COUNT` (1); the UI intentionally starts at 2 to avoid
+ * degenerate 1-tuplets.
+ */
+export const MIN_NORMAL_COUNT = 2;
+/** Highest normal-count offered by the tuplet stepper (matches the Model). */
+export const MAX_NORMAL_COUNT = MAX_TUPLET_NORMAL_COUNT;
+/**
+ * Lowest tuplet-count offered by the tuplet stepper. Storage accepts 1; UI
+ * intentionally starts at 2.
+ */
+export const MIN_TUPLET_COUNT = 2;
+/** Highest tuplet-count offered by the tuplet stepper (matches the Model). */
+export const MAX_TUPLET_COUNT = MAX_TUPLET_TUPLET_COUNT;
+/** Default normal-count shown when no beat is selected. */
+export const DEFAULT_NORMAL_COUNT = 3;
+/** Default tuplet-count shown when no beat is selected. */
+export const DEFAULT_TUPLET_COUNT = 2;
 
 export interface TupletControlsCallbacks {
   readonly normalCountErrorText: string;
@@ -27,11 +51,6 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   readonly normalCountErrorText: string = "Invalid normal count";
   readonly tupletCountErrorText: string = "Invalid tuplet count";
 
-  private _minNormalCount = 2;
-  private _maxNormalCount = 256;
-  private _minTupletCount = 2;
-  private _maxTupletCount = 256;
-
   constructor(
     tupletComponent: TupletControlsComponent,
     notationComponent: NotationComponent,
@@ -50,8 +69,8 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     const normalCountNum = Number(normalCountValue);
     if (
       !Number.isInteger(normalCountNum) ||
-      normalCountNum < this._minNormalCount ||
-      normalCountNum > this._maxNormalCount
+      normalCountNum < MIN_NORMAL_COUNT ||
+      normalCountNum > MAX_NORMAL_COUNT
     ) {
       return false;
     }
@@ -63,8 +82,8 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     const tupletCountNum = Number(tupletCountValue);
     if (
       !Number.isInteger(tupletCountNum) ||
-      tupletCountNum < this._minTupletCount ||
-      tupletCountNum > this._maxTupletCount
+      tupletCountNum < MIN_TUPLET_COUNT ||
+      tupletCountNum > MAX_TUPLET_COUNT
     ) {
       return false;
     }
@@ -87,14 +106,14 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     const parsedValue = Number(template.normalValue.textContent);
     const currentValue = Number.isInteger(parsedValue)
       ? parsedValue
-      : this._minNormalCount;
+      : MIN_NORMAL_COUNT;
     const value = Math.max(
-      this._minNormalCount,
-      Math.min(this._maxNormalCount, currentValue + delta)
+      MIN_NORMAL_COUNT,
+      Math.min(MAX_NORMAL_COUNT, currentValue + delta)
     );
     template.normalValue.textContent = `${value}`;
-    template.normalDownButton.disabled = value <= this._minNormalCount;
-    template.normalUpButton.disabled = value >= this._maxNormalCount;
+    template.normalDownButton.disabled = value <= MIN_NORMAL_COUNT;
+    template.normalUpButton.disabled = value >= MAX_NORMAL_COUNT;
     template.normalErrorText.textContent = " ";
     template.confirmButton.disabled = false;
   }
@@ -104,14 +123,14 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     const parsedValue = Number(template.tupletValue.textContent);
     const currentValue = Number.isInteger(parsedValue)
       ? parsedValue
-      : this._minTupletCount;
+      : MIN_TUPLET_COUNT;
     const value = Math.max(
-      this._minTupletCount,
-      Math.min(this._maxTupletCount, currentValue + delta)
+      MIN_TUPLET_COUNT,
+      Math.min(MAX_TUPLET_COUNT, currentValue + delta)
     );
     template.tupletValue.textContent = `${value}`;
-    template.tupletDownButton.disabled = value <= this._minTupletCount;
-    template.tupletUpButton.disabled = value >= this._maxTupletCount;
+    template.tupletDownButton.disabled = value <= MIN_TUPLET_COUNT;
+    template.tupletUpButton.disabled = value >= MAX_TUPLET_COUNT;
     template.tupletErrorText.textContent = " ";
     template.confirmButton.disabled = false;
   }

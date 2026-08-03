@@ -1,7 +1,18 @@
 import { NoteDuration } from "../../../../notation/model";
+import {
+  MAX_MASTER_BAR_BEATS_COUNT,
+  MIN_MASTER_BAR_BEATS_COUNT,
+} from "../../../../notation/model";
 import { NotationComponent } from "../../../../notation/notation-component";
 import { TimeSigControlsComponent } from "./";
 import { ListenerManager } from "../../../../shared/misc";
+
+/**
+ * Beat-unit denominators offered by the time-signature selector. This is a UI
+ * presentation choice (a subset of {@link NoteDuration}); the storage layer
+ * also accepts other valid {@link NoteDuration} values such as SixtyFourth.
+ */
+export const AVAILABLE_TIME_SIG_DURATIONS = [1, 2, 4, 8, 16, 32];
 
 export interface TimeSigControlsCallbacks {
   readonly beatsCountErrorText: string;
@@ -27,10 +38,6 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
   readonly beatsCountErrorText: string = "Invalid beats count";
   readonly durationErrorText: string = "Invalid duration";
 
-  private _minBeatsCount = 1;
-  private _maxBeatsCount = 32;
-  private _availableDurations = [1, 2, 4, 8, 16, 32];
-
   constructor(
     timeSigComponent: TimeSigControlsComponent,
     notationComponent: NotationComponent,
@@ -49,8 +56,8 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
     const beatsCountNum = Number(beatsCountValue);
     if (
       !Number.isInteger(beatsCountNum) ||
-      beatsCountNum < this._minBeatsCount ||
-      beatsCountNum > this._maxBeatsCount
+      beatsCountNum < MIN_MASTER_BAR_BEATS_COUNT ||
+      beatsCountNum > MAX_MASTER_BAR_BEATS_COUNT
     ) {
       return false;
     }
@@ -62,7 +69,7 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
     const durationNum = Number(durationValue);
     if (
       Number.isNaN(durationNum) ||
-      !this._availableDurations.includes(durationNum)
+      !AVAILABLE_TIME_SIG_DURATIONS.includes(durationNum)
     ) {
       return false;
     }
@@ -85,14 +92,14 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
     const parsedValue = Number(template.beatsValue.textContent);
     const currentValue = Number.isInteger(parsedValue)
       ? parsedValue
-      : this._minBeatsCount;
+      : MIN_MASTER_BAR_BEATS_COUNT;
     const value = Math.max(
-      this._minBeatsCount,
-      Math.min(this._maxBeatsCount, currentValue + delta)
+      MIN_MASTER_BAR_BEATS_COUNT,
+      Math.min(MAX_MASTER_BAR_BEATS_COUNT, currentValue + delta)
     );
     template.beatsValue.textContent = `${value}`;
-    template.beatsDownButton.disabled = value <= this._minBeatsCount;
-    template.beatsUpButton.disabled = value >= this._maxBeatsCount;
+    template.beatsDownButton.disabled = value <= MIN_MASTER_BAR_BEATS_COUNT;
+    template.beatsUpButton.disabled = value >= MAX_MASTER_BAR_BEATS_COUNT;
     template.beatsErrorText.textContent = " ";
     template.confirmButton.disabled = false;
   }

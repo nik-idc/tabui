@@ -144,7 +144,8 @@ export class PrebendReleaseSelector implements Selector {
     const xStep =
       (this.bendManagerOptions.width - this.bendManagerOptions.gridOffset) /
       this.bendManagerOptions.colsCount;
-    const yStep = this.bendManagerOptions.height / 12;
+    const yStep =
+      this.bendManagerOptions.height / this.bendManagerOptions.rowsCount;
 
     let snappedX =
       this.bendManagerOptions.gridOffset +

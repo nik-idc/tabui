@@ -1,5 +1,10 @@
 import { NotationComponent } from "../../../../notation/notation-component";
 import {
+  DEFAULT_MASTER_BAR,
+  MAX_MASTER_BAR_TEMPO,
+  MIN_MASTER_BAR_TEMPO,
+} from "../../../../notation/model";
+import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
@@ -70,7 +75,7 @@ export class TempoControlsTemplateRenderer {
     const tempoInitValue =
       selectedNote !== undefined
         ? `${selectedNote.bar.masterBar.tempo}`
-        : "120";
+        : `${DEFAULT_MASTER_BAR.tempo}`;
 
     this.template.valueControl.classList.add("tu-number-stepper");
     this.template.decreaseTenButton.textContent = "-10";
@@ -80,13 +85,10 @@ export class TempoControlsTemplateRenderer {
     this.template.increaseButton.textContent = "+";
     this.template.increaseTenButton.textContent = "+10";
     const tempo = Number(tempoInitValue);
-    // TODO: Either extract the `999` into a const value in this file
-    // OR define & export constant limits for tempo & other values
-    // in the model layer instead
-    this.template.decreaseTenButton.disabled = tempo <= 1;
-    this.template.decreaseButton.disabled = tempo <= 1;
-    this.template.increaseButton.disabled = tempo >= 999;
-    this.template.increaseTenButton.disabled = tempo >= 999;
+    this.template.decreaseTenButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;
+    this.template.decreaseButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;
+    this.template.increaseButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
+    this.template.increaseTenButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
     const beatsErrorCSSClass = "tu-tempo-error";
     this.template.errorText.classList.add(beatsErrorCSSClass);
   }
