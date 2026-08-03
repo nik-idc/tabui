@@ -114,8 +114,8 @@ Stage 4 completed on 2026-08-01:
 
 ## Current P1 Order
 
-1. Fix remaining technique, time-signature, multi-staff outline, and control-layout
-   correctness.
+1. (**COMPLETED**) Fix remaining technique, time-signature, multi-staff outline,
+   and control-layout correctness.
 2. (**COMPLETED**) Define versioned score serialization/deserialization with
    fixture round trips and validation errors.
 3. Address all magic numbers and introduce constants instead where needed.
