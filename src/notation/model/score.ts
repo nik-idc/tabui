@@ -4,7 +4,7 @@ import { MusicInstrument } from "./instrument/instrument";
 import { Guitar } from "./instrument/guitar/guitar";
 import { Note } from "./note";
 import { Staff } from "./staff";
-import { Track, TrackJSON } from "./track";
+import { Track } from "./track";
 import { Beat } from "./beat";
 import { VoiceBar, VoiceNumber } from "./voice-bar";
 
@@ -32,18 +32,6 @@ export type MasterBarArrayOperationOutput = {
   masterBar: MasterBar;
   bars: Map<number, Bar>;
 };
-
-/**
- * Staff JSON format
- */
-export interface ScoreJSON {
-  tracks: TrackJSON[];
-  name: string;
-  artist: string;
-  song: string;
-  masterVolume: number;
-  masterPan: number;
-}
 
 /**
  * Class representing a full score
@@ -330,25 +318,5 @@ export class Score {
   /** Tracks getter */
   public get tracks(): Track[] {
     return this._tracks;
-  }
-
-  /**
-   * Converts score to JSON format
-   * @returns Score in JSON format
-   */
-  public toJSON(): ScoreJSON {
-    const tracksJSON: TrackJSON[] = [];
-    for (const track of this._tracks) {
-      tracksJSON.push(track.toJSON());
-    }
-
-    return {
-      tracks: tracksJSON,
-      name: this._name,
-      artist: this._artist,
-      song: this._song,
-      masterVolume: this.masterVolume,
-      masterPan: this.masterPan,
-    };
   }
 }

@@ -107,12 +107,6 @@ describe("Bar model", () => {
     expect(voiceBar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
   });
 
-  test("toJSON preserves existing default beat content", () => {
-    const { bar } = createScoreGraph();
-
-    expect(bar.toJSON().voiceBars[1]?.beats).toHaveLength(1);
-  });
-
   test("rebuildTiming computes bar and beat ticks", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

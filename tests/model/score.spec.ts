@@ -18,17 +18,6 @@ describe("Score model", () => {
     expect(score.masterPan).toBe(0);
   });
 
-  test("serializes master playback controls", () => {
-    const score = new Score();
-    score.masterVolume = 0.7;
-    score.masterPan = -0.25;
-
-    expect(score.toJSON()).toMatchObject({
-      masterVolume: 0.7,
-      masterPan: -0.25,
-    });
-  });
-
   test("insertReadyMasterBar inserts the master bar at the requested index", () => {
     const score = new Score();
     const track = score.tracks[0];

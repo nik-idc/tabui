@@ -87,8 +87,11 @@ not yet provided.
 
 ## Score Persistence
 
-Use the versioned score serialization API rather than the legacy model-level
-`toJSON()` methods:
+Use the versioned score serialization API for persistence:
+
+Model-level JSON methods and types have been removed. Use
+`JSON.stringify(serializeScore(score))` rather than stringifying model instances
+directly.
 
 ```ts
 import {

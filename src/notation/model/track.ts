@@ -1,6 +1,6 @@
 import { randomInt } from "../../shared";
-import { MusicInstrument, MusicInstrumentJSON } from "./instrument/instrument";
-import { Staff, StaffJSON } from "./staff";
+import { MusicInstrument } from "./instrument/instrument";
+import { Staff } from "./staff";
 import { TrackContext } from "./track-context";
 import { Score } from "./score";
 import { GuitarNote } from "./guitar-note";
@@ -16,19 +16,6 @@ export type StaffArrayOperationOutput<
   index: number;
   staves: Staff<I>[];
 };
-
-/**
- * Track JSON format
- */
-export interface TrackJSON {
-  instrument: MusicInstrumentJSON;
-  name: string;
-  volume: number;
-  pan: number;
-  muted: boolean;
-  soloed: boolean;
-  staves: StaffJSON[];
-}
 
 /**
  * Class representing a single track
@@ -191,27 +178,6 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
     track.muted = this.muted;
     track.soloed = this.soloed;
     return track;
-  }
-
-  /**
-   * Converts track to JSON format
-   * @returns Track in JSON format
-   */
-  public toJSON(): TrackJSON {
-    const stavesJSON: StaffJSON[] = [];
-    for (const staff of this.staves) {
-      stavesJSON.push(staff.toJSON());
-    }
-
-    return {
-      instrument: this.context.instrument.toJSON(),
-      name: this.name,
-      volume: this.volume,
-      pan: this.pan,
-      muted: this.muted,
-      soloed: this.soloed,
-      staves: stavesJSON,
-    };
   }
 
   /** Track's bars */

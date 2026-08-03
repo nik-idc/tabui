@@ -1,6 +1,5 @@
 import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
-import { InstrumentType } from "./instrument/instrument-type";
 import { Beat } from "./beat";
 import { Technique } from "./technique";
 import { TechniqueType } from "./technique-type";
@@ -25,16 +24,10 @@ export enum NoteValue {
   None = "",
 }
 
-/**
- * Base note JSON format
- */
-export interface NoteJSON {
-  instrumentType: InstrumentType;
+export type NoteType = {
   noteValue: NoteValue;
   octave: number | null;
-}
-
-export type NoteType = Omit<NoteJSON, "instrumentType">;
+};
 
 /**
  * Note interface
@@ -60,7 +53,6 @@ export interface Note<I extends MusicInstrument = MusicInstrument> {
   compare(otherNote: Note<I>): boolean;
 
   deepCopy(beat?: Beat<I>): Note<I>;
-  toJSON(): NoteJSON | null;
 }
 
 /** Array of all 12 musical notes */

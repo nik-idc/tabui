@@ -6,17 +6,14 @@ export type TupletSettings = {
   tupletCount: number;
 };
 
-export type TupletSettingsJSON = TupletSettings;
-
 export function isTupletSettings(
   value: Record<string, unknown> | unknown
 ): value is TupletSettings {
-  if (typeof value !== "object" || !value) {
+  if (typeof value !== "object" || value === null) {
     return false;
   }
 
   return (
-    value &&
     typeof (value as Record<string, unknown>).normalCount === "number" &&
     typeof (value as Record<string, unknown>).tupletCount === "number"
   );

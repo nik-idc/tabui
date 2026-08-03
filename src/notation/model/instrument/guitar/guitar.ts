@@ -1,36 +1,12 @@
 import { Beat } from "../../beat";
 import { GuitarNote } from "../../guitar-note";
-import { Note, NoteJSON, NoteType, NoteValue } from "../../note";
-import { MusicInstrument, MusicInstrumentJSON } from "../instrument";
+import { NoteType } from "../../note";
+import { MusicInstrument } from "../instrument";
 import { InstrumentFamily } from "../instrument-family";
-import {
-  ElectricGuitarTone,
-  InstrumentTone,
-  STRING_TONES,
-  StringInstrumentTone,
-} from "../instrument-tone";
-import {
-  INSTRUMENT_TYPES,
-  InstrumentType,
-  StringInstrumentType,
-} from "../instrument-type";
+import { ElectricGuitarTone, StringInstrumentTone } from "../instrument-tone";
+import { StringInstrumentType } from "../instrument-type";
 import { TONE_TO_MIDI } from "../tone-to-midi";
 import { DEFAULT_TUNINGS } from "./default-tunings";
-import { parseTuning } from "./helpers";
-
-/**
- * Guitar JSON format
- */
-export interface GuitarJSON {
-  family: InstrumentFamily;
-  type: StringInstrumentType;
-  tone: InstrumentTone;
-  name: string;
-  program: number;
-  tuning: NoteType[];
-  stringsCount: number;
-  fretsCount: number;
-}
 
 /**
  * TabUI Guitar
@@ -109,96 +85,11 @@ export class Guitar implements MusicInstrument {
   }
 
   /**
-   * Parses guitar into JSON string
-   * @returns Parsed JSON string
-   */
-  public toJSON(): GuitarJSON {
-    return {
-      family: this.family,
-      type: this._type,
-      tone: this._tone,
-      name: this._name,
-      program: this._program,
-      tuning: this._tuning,
-      stringsCount: this._stringsCount,
-      fretsCount: this._fretsCount,
-    };
-  }
-
-  /**
    * Creates a note
    * @param voiceIndex Voice index
    */
   public createDefaultNote(beat: Beat<Guitar>, voiceIndex: number): GuitarNote {
     return new GuitarNote(beat, beat.trackContext, voiceIndex + 1, null);
-  }
-
-  /**
-   * Validates that the passed object is a valid guitar serialization
-   * @param obj Object to validate
-   */
-  static validateGuitarJSON(obj: Record<string, unknown>): GuitarJSON {
-    const required = [
-      "family",
-      "type",
-      "tone",
-      "name",
-      "program",
-      "stringsCount",
-      "tuning",
-      "fretsCount",
-    ];
-
-    for (const key of required) {
-      if (obj[key] === undefined) {
-        throw new Error(`Missing property: ${key}`);
-      }
-    }
-
-    const typeChecks: Record<string, string> = {
-      family: "string",
-      type: "string",
-      tone: "string",
-      name: "string",
-      stringsCount: "number",
-      tuning: "string",
-      fretsCount: "number",
-    };
-
-    for (const [key, expected] of Object.entries(typeChecks)) {
-      if (typeof obj[key] !== expected) {
-        throw new Error(`Invalid ${key}: expected ${expected}`);
-      }
-    }
-
-    if (
-      !INSTRUMENT_TYPES[InstrumentFamily.Strings].includes(
-        obj.type as StringInstrumentType
-      )
-    ) {
-      throw new Error(`Invalid instrument type: ${obj.type}`);
-    }
-
-    if (
-      !STRING_TONES[obj.type as StringInstrumentType].includes(
-        obj.tone as InstrumentTone
-      )
-    ) {
-      throw new Error(`Invalid tone: ${obj.tone}`);
-    }
-
-    const tuning = parseTuning(obj.tuning as string);
-
-    return {
-      family: obj.family as InstrumentFamily,
-      type: obj.type as StringInstrumentType,
-      tone: obj.tone as StringInstrumentTone,
-      name: obj.name as string,
-      program: obj.program as number,
-      tuning: tuning,
-      stringsCount: obj.stringsCount as number,
-      fretsCount: obj.fretsCount as number,
-    };
   }
 
   /** Type of instrument */

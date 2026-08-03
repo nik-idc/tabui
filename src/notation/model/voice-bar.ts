@@ -1,5 +1,5 @@
 import { randomInt } from "../../shared";
-import { Beat, BeatJSON } from "./beat";
+import { Beat } from "./beat";
 import { NoteDuration } from "./note-duration";
 import { getBeaming } from "./bar-beaming";
 import { MusicInstrument } from "./instrument/instrument";
@@ -27,13 +27,6 @@ export type BeatRemovalOutput<I extends MusicInstrument = MusicInstrument> = {
   inserted: BeatArrayOperationOutput<I>[];
   removedVoiceNumbers: VoiceNumber[] | null;
 };
-
-/**
- * Voice bar JSON format
- */
-export interface VoiceBarJSON {
-  beats: BeatJSON[];
-}
 
 type MetricSpan = {
   startTick: number;
@@ -609,25 +602,6 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   /** Actual sum of all beat ticks */
   public get actualTicks(): number {
     return this._actualTicks;
-  }
-
-  /**
-   * Parses bar into JSON
-   * @returns Bar JSON
-   */
-  public toJSON(): VoiceBarJSON {
-    if (this.isEmpty()) {
-      return { beats: [] };
-    }
-
-    const beatsJSON: BeatJSON[] = [];
-    for (const beat of this.beats) {
-      beatsJSON.push(beat.toJSON());
-    }
-
-    return {
-      beats: beatsJSON,
-    };
   }
 
   /**

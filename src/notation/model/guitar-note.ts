@@ -1,15 +1,13 @@
 import { randomInt } from "../../shared";
 import { Beat } from "./beat";
 import { TrackContext } from "./track-context";
-import { GuitarTechniqueJSON, GuitarTechnique } from "./guitar-technique";
+import { GuitarTechnique } from "./guitar-technique";
 import { Guitar } from "./instrument/guitar";
-import { InstrumentType } from "./instrument/instrument-type";
 import {
   NoteValue,
   Note,
   LOWEST_OCTAVE,
   HIGHEST_OCTAVE,
-  NOTE_VALUES_ARR,
   getNoteFromSemitones,
   getSemitonesFromNote,
 } from "./note";
@@ -20,18 +18,6 @@ import {
 } from "./guitar-technique-lists";
 import { BendTechniqueOptions, MAX_BEND_PITCH } from "./bend-options";
 import { BendType } from "./bend-type";
-
-/**
- * Guitar note JSON format
- */
-export interface GuitarNoteJSON {
-  instrumentType: InstrumentType;
-  noteValue: NoteValue;
-  octave: number | null;
-  stringNum: number;
-  fret: number | null;
-  techniques: GuitarTechniqueJSON[];
-}
 
 /**
  * Class that represents a guitar note
@@ -384,78 +370,6 @@ export class GuitarNote implements Note<Guitar> {
     );
 
     return note;
-  }
-
-  /**
-   * Parses guitar note into JSON string
-   * @returns Parsed JSON string
-   */
-  public toJSON(): GuitarNoteJSON | null {
-    if (this._fret === undefined) {
-      return null;
-    }
-
-    const fxJSON: GuitarTechniqueJSON[] = [];
-    for (const technique of this._techniques) {
-      fxJSON.push(technique.toJSON());
-    }
-
-    return {
-      instrumentType: this.trackContext.instrument.type,
-      stringNum: this._stringNum,
-      fret: this._fret,
-      noteValue: this._noteValue,
-      octave: this._octave,
-      techniques: fxJSON,
-    };
-  }
-
-  /**
-   * Validates that the passed object is a valid guitar note serialization
-   * @param obj Object to validate
-   */
-  static validateGuitarNote(obj: Record<string, unknown>): GuitarNoteJSON {
-    const requiredFields = [
-      "noteValue",
-      "octave",
-      "stringNum",
-      "fret",
-      "techniques",
-    ];
-    for (const key of requiredFields) {
-      if (obj[key] === undefined) {
-        throw new Error(`Missing property: ${key}`);
-      }
-    }
-
-    if (!NOTE_VALUES_ARR.includes(obj.noteValue as NoteValue)) {
-      throw new Error(`Invalid note value: ${obj.noteValue}`);
-    }
-
-    if (typeof obj.octave !== "number" && obj.octave !== null) {
-      throw new Error(`Invalid octave: expected number or null`);
-    }
-
-    if (typeof obj.fret !== "number" && obj.fret !== null) {
-      throw new Error(`Invalid fret: expected number or null`);
-    }
-
-    if (typeof obj.stringNum !== "number") {
-      throw new Error(`Invalid stringNum: expected number`);
-    }
-
-    if (!Array.isArray(obj.techniques)) {
-      throw new Error(`Invalid techniques: expected array`);
-    }
-
-    return {
-      instrumentType: obj.instrumentType as InstrumentType,
-      noteValue: obj.noteValue as NoteValue,
-      octave: obj.octave,
-      stringNum: obj.stringNum,
-      fret: obj.fret,
-      techniques: [],
-    };
   }
 
   /** Note value setter */

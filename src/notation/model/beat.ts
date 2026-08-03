@@ -1,13 +1,9 @@
 import { randomInt } from "../../shared";
 import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
-import { NoteJSON, Note } from "./note";
+import { Note } from "./note";
 import { NoteDuration } from "./note-duration";
-import {
-  TupletSettingsJSON,
-  TupletSettings,
-  tupletSettingsEqual,
-} from "./tuplet-settings";
+import { TupletSettings, tupletSettingsEqual } from "./tuplet-settings";
 import { TechniqueType } from "./technique-type";
 import { Guitar } from "./instrument";
 import { GuitarNote } from "./guitar-note";
@@ -27,18 +23,6 @@ export type NoteArrayOperationOutput<
 };
 
 export type BeatDots = 0 | 1 | 2;
-
-/**
- * Beat JSON format
- */
-export interface BeatJSON {
-  notes: (NoteJSON | null)[];
-  duration: NoteDuration;
-  dots: number;
-  tupletSettings: TupletSettingsJSON | undefined;
-  beamGroupId: number | undefined;
-  lastInBeamGroup: boolean;
-}
 
 /**
  * Class that represents a beat
@@ -256,26 +240,6 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     }
 
     return beat;
-  }
-
-  /**
-   * Parses beat into JSON string
-   * @returns Parsed JSON string
-   */
-  public toJSON(): BeatJSON {
-    const notesJSON = [];
-    for (const note of this._notes ?? []) {
-      notesJSON.push(note.toJSON());
-    }
-
-    return {
-      notes: notesJSON,
-      duration: this._baseDuration,
-      dots: this._dots,
-      tupletSettings: this._tupletSettings ?? undefined,
-      beamGroupId: this._beamGroupId ?? undefined,
-      lastInBeamGroup: this._lastInBeamGroup,
-    };
   }
 
   /** Notes getter */

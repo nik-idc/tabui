@@ -1,26 +1,6 @@
 import { randomInt } from "../../shared";
 import { MusicInstrument } from "./instrument/instrument";
-import { BeatJSON, Beat } from "./beat";
-
-/**
- * Tuplet beat JSON format
- */
-export interface BarTupletBeatJSON {
-  actualBeat: BeatJSON;
-  calculatedDuration: number;
-  calculatedDurationTicks: number;
-}
-
-/**
- * Tuplet group JSON format
- */
-export interface BarTupletGroupJSON {
-  beats: BarTupletBeatJSON[];
-  complete: boolean;
-  isStandard: boolean;
-  normalCount: number;
-  tupletCount: number;
-}
+import { Beat } from "./beat";
 
 /**
  * Class that represents a tuplet group inside a bar
@@ -91,30 +71,6 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
       this.tupletCount
     );
     return copy;
-  }
-
-  /**
-   * Returns current tuplet group JSON
-   * @returns Current tuplet group JSON
-   */
-  public toJSON(): BarTupletGroupJSON {
-    const beatsJSON: BarTupletBeatJSON[] = [];
-    for (let i = 0; i < this.beats.length; i++) {
-      const beat = this.beats[i];
-      beatsJSON.push({
-        actualBeat: beat.toJSON(),
-        calculatedDuration: this.getCalculatedDurationAt(i),
-        calculatedDurationTicks: this.getDurationTicksAt(i),
-      });
-    }
-
-    return {
-      beats: beatsJSON,
-      complete: this.complete,
-      isStandard: this.isStandard,
-      normalCount: this.normalCount,
-      tupletCount: this.tupletCount,
-    };
   }
 
   /** Tuplet start in bar-local ticks */

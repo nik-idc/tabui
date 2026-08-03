@@ -5,14 +5,6 @@ import { Technique } from "./technique";
 import { GuitarTechniqueType } from "./technique-type";
 import { OPTIONS_PER_BEND_TYPE } from "./bend-type";
 
-/**
- * Note guitar technique JSON format
- */
-export interface GuitarTechniqueJSON {
-  readonly type: GuitarTechniqueType;
-  readonly bendOptions?: BendTechniqueOptions;
-}
-
 // TODO: This module currently is very obviously juggling 2 cases:
 // - Normal technique with no options
 // - Bend with bend options
@@ -150,17 +142,6 @@ export class GuitarTechnique implements Technique {
         ? undefined
         : new BendTechniqueOptions(this._bendOptions);
     return new GuitarTechnique(note, this.type, bendOptionsCopy);
-  }
-
-  /**
-   * Parses note guitar technique into JSON string
-   * @returns Parsed JSON string
-   */
-  public toJSON(): GuitarTechniqueJSON {
-    return {
-      type: this.type,
-      bendOptions: this._bendOptions ?? undefined,
-    };
   }
 
   /** Bend options */

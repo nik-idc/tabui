@@ -1,17 +1,8 @@
 import { Beat } from "../beat";
-import { Note, NoteJSON, NoteType } from "../note";
+import { Note, NoteType } from "../note";
 import { InstrumentFamily } from "./instrument-family";
 import { InstrumentTone } from "./instrument-tone";
 import { InstrumentType } from "./instrument-type";
-
-export interface MusicInstrumentJSON {
-  family: InstrumentFamily;
-  type: InstrumentType;
-  tone: InstrumentTone;
-  name: string;
-  program: number;
-  tuning: NoteType[];
-}
 
 /**
  * Interface for TabUI musical instruments
@@ -31,10 +22,6 @@ export interface MusicInstrument {
   /** Tuning for instruments with tuning possibility */
   tuning?: NoteType[];
 
-  /**
-   * Serialize the instrument
-   */
-  toJSON(): MusicInstrumentJSON;
   /**
    * Creates a note
    * @param beat Parent beat
