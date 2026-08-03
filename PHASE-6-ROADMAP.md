@@ -17,7 +17,7 @@ pre-`1.0.0` ownership/API decisions and record new issues in
 | 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Complete |
 
-Current automated checkpoint: 73 suites / 608 tests. `npm test`, `npm run build`,
+Current automated checkpoint: 74 suites / 611 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
 after the versioned score persistence slice. All 28 focused-update benchmark
 scenarios retain their previously verified substantial speedup over full updates.

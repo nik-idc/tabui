@@ -59,6 +59,52 @@ body {
   font: inherit;
 }
 
+.demo-persistence-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.demo-persistence-actions button {
+  padding: 10px 14px;
+  border: 1px solid var(--tu-border-color, #334155);
+  border-radius: 8px;
+  background: var(--tu-secondary-color, #1f2937);
+  color: var(--tu-font-color, #e5eefb);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.demo-persistence-actions button:hover:not(:disabled) {
+  border-color: var(--tu-accent-color, #60a5fa);
+}
+
+.demo-persistence-status {
+  min-height: 24px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.demo-persistence-status[data-state="success"] {
+  color: #86efac;
+}
+
+.demo-persistence-status[data-state="error"] {
+  color: #fca5a5;
+}
+
+@media (max-width: 640px) {
+  .demo-control,
+  .demo-persistence-actions {
+    width: 100%;
+  }
+
+  .demo-persistence-actions button {
+    flex: 1;
+  }
+}
+
 .tabSVG {
   background-color: var(--tab-div-color);
   margin: auto;

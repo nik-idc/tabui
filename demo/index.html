@@ -29,7 +29,23 @@
           <span>Theme</span>
           <select id="theme-select"></select>
         </label>
+        <div class="demo-persistence-actions">
+          <button id="serialize-score" type="button">Serialize score</button>
+          <button id="deserialize-score" type="button">Deserialize file</button>
+          <input
+            id="score-file"
+            type="file"
+            accept=".json,.tabui.json,application/json"
+            hidden
+          />
+        </div>
       </div>
+      <div
+        id="score-persistence-status"
+        class="demo-persistence-status"
+        role="status"
+        aria-live="polite"
+      ></div>
       <a href="https://github.com/nik-idc/tabui">GitHub Repo</a>
     </div>
     <div id="tabui-editor"></div>

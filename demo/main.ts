@@ -5,6 +5,7 @@ import {
   BassGuitarTone,
   ElectricGuitarTone,
   NoteValue,
+  Score,
 } from "../src/notation";
 import {
   getEditorFixtures,
@@ -16,6 +17,10 @@ import {
   resolveEditorTheme,
   resolveEditorThemeKey,
 } from "./data/theme";
+import {
+  bindScorePersistenceControls,
+  downloadScoreDocument,
+} from "./score-persistence-controls";
 
 const CLEAN_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Clean-Guitar-C3.wav`;
 const OVERDRIVEN_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Roland-SC-88-Overdriven-Guitar-C3.wav`;
@@ -24,12 +29,15 @@ const SLAP_BASS_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-S4-Plus-
 const NYLON_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Nylon-String-Guitar-C4.wav`;
 const STEEL_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Steel-String-Guitar-C4.wav`;
 
-const rootDiv = document.getElementById(
-  "tabui-editor"
-) as HTMLDivElement | null;
-if (rootDiv === null) {
-  throw new Error("Could not get root div element");
+function requiredElement<T extends HTMLElement>(id: string): T {
+  const element = document.getElementById(id);
+  if (element === null) {
+    throw new Error(`Could not get #${id} element`);
+  }
+  return element as T;
 }
+
+const rootDiv = requiredElement<HTMLDivElement>("tabui-editor");
 const searchParams = new URLSearchParams(window.location.search);
 const fixtureSelect = document.getElementById(
   "fixture-select"
@@ -37,6 +45,13 @@ const fixtureSelect = document.getElementById(
 const themeSelect = document.getElementById(
   "theme-select"
 ) as HTMLSelectElement | null;
+const serializeButton = requiredElement<HTMLButtonElement>("serialize-score");
+const deserializeButton =
+  requiredElement<HTMLButtonElement>("deserialize-score");
+const scoreFileInput = requiredElement<HTMLInputElement>("score-file");
+const persistenceStatus = requiredElement<HTMLDivElement>(
+  "score-persistence-status"
+);
 
 const selectedFixture = resolveEditorFixtureKey(searchParams);
 const selectedTheme = resolveEditorThemeKey(searchParams);
@@ -102,7 +117,7 @@ themeSelect?.addEventListener("change", () => {
   );
 });
 
-const tabuiEditor = new TabUIEditor(rootDiv, selectedScore, {
+const editorConfig = {
   ...selectedThemeConfig,
   playback: {
     [ElectricGuitarTone.Clean]: {
@@ -148,5 +163,25 @@ const tabuiEditor = new TabUIEditor(rootDiv, selectedScore, {
       },
     },
   },
+};
+
+function mountEditor(score: Score): TabUIEditor {
+  const editor = new TabUIEditor(rootDiv, score, editorConfig);
+  editor.init();
+  return editor;
+}
+
+let tabuiEditor = mountEditor(selectedScore);
+
+bindScorePersistenceControls({
+  serializeButton,
+  deserializeButton,
+  fileInput: scoreFileInput,
+  status: persistenceStatus,
+  getScore: () => tabuiEditor.score,
+  replaceScore: (score) => {
+    tabuiEditor.dispose();
+    tabuiEditor = mountEditor(score);
+  },
+  downloadDocument: downloadScoreDocument,
 });
-tabuiEditor.init();
