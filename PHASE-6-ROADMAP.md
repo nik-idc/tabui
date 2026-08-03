@@ -1,6 +1,6 @@
 # Phase 6 Roadmap - MVP Stabilization for 0.5.0
 
-Last updated: 2026-08-02. This is the source of truth for turning the completed
+Last updated: 2026-08-03. This is the source of truth for turning the completed
 editor foundations into a dependable, embeddable `0.5.0` package. Prefer clean
 pre-`1.0.0` ownership/API decisions and record new issues in
 `PRE-RELEASE-STABILIZATION.md` before changing priority or scope here.
@@ -112,13 +112,15 @@ Stage 4 completed on 2026-08-01:
   listener, timer, player, or audio-resource defect. Deeper retained-memory
   measurement remains part of P1 Element/lifecycle quality work.
 
-## Current P1 Order
+## Current P1 Stages
 
 1. (**COMPLETED**) Fix remaining technique, time-signature, multi-staff outline,
    and control-layout correctness.
 2. (**COMPLETED**) Define versioned score serialization/deserialization with
    fixture round trips and validation errors.
-3. Address all magic numbers and introduce constants instead where needed.
+3. Audit magic numbers and introduce named constants for repeated or non-obvious
+   domain, timing, geometry, and layout values. Keep obvious structural values and
+   readable one-off literals local rather than extracting constants mechanically.
 4. Add view-only, embedded-container, panel placement, responsive input, and basic
    accessibility behavior.
 5. Revisit Element architecture, cross-track widths, and single-line mode only
@@ -160,6 +162,23 @@ Stage 4 completed on 2026-08-01:
 10. Test how this library would work in a headless/backend context. I.e.
     getting just the geometry from a Model. Or rendering once into a specified file/buffer.
     May require large scale code changes.
+
+## P2 Stages
+
+P2 is conditional polish rather than a `0.5.0` release gate. Work these stages
+after required P1 quality unless user feedback or release evidence promotes a
+specific item.
+
+1. Build a deliberate phone-sized editing UX for selection, controls, and panel
+   interaction rather than compressing the desktop interface.
+2. Improve existing icons and create a coherent handcrafted SVG set.
+3. Improve top-control visual consistency.
+4. Audit hard-coded colors and behavior that should use existing or new
+   configuration.
+5. Audit package modularity so consumers can assess using the Model, Element, or
+   Controller layers independently instead of importing the complete editor.
+6. Evaluate additional safe customization opportunities without expanding the
+   public contract speculatively.
 
 Deferred from `0.5.0`: sheet/drum notation, production multisampling, a plugin
 system, speculative schema migrations, compatibility wrappers for unpublished
