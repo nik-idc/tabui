@@ -17,7 +17,7 @@ pre-`1.0.0` ownership/API decisions and record new issues in
 | 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Complete |
 
-Current automated checkpoint: 74 suites / 609 tests. `npm test`, `npm run build`,
+Current automated checkpoint: 75 suites / 673 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
 after the versioned score persistence slice. All 28 focused-update benchmark
 scenarios retain their previously verified substantial speedup over full updates.
@@ -116,8 +116,8 @@ Stage 4 completed on 2026-08-01:
 
 1. Fix remaining technique, time-signature, multi-staff outline, and control-layout
    correctness.
-2. Define versioned score serialization/deserialization with fixture round trips
-   and validation errors.
+2. (**COMPLETED**) Define versioned score serialization/deserialization with
+   fixture round trips and validation errors.
 3. Address all magic numbers and introduce constants instead where needed.
 4. Add view-only, embedded-container, panel placement, responsive input, and basic
    accessibility behavior.

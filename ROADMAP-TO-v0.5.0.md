@@ -308,8 +308,8 @@ Completed so far:
 
 Next P1 work:
 
-- Fix remaining technique, time-signature, multi-staff outline, and control-layout
-  correctness before starting the persistence contract.
+- Continue the remaining notation correctness, embedding, responsive-input,
+  accessibility, and release validation work after completing score persistence.
 
 See `PHASE-6-ROADMAP.md` for current status, remaining work, and release gates.
 

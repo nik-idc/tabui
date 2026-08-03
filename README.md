@@ -126,6 +126,10 @@ dispatched.
 Error paths use a JSONPath-like rooted form such as
 `$.tracks[0].staves[0].bars`.
 
+`SerializedScoreV1` and its nested document types use dedicated `Serialized*`
+enums. These enums define the persisted V1 wire tokens independently from the
+runtime model enums; use the serialized enums when constructing typed documents.
+
 The refactor and optimization work from `tu-69-refactor-and-optimization` has
 been merged into `master` and now serves as the current development baseline.
 
@@ -136,8 +140,8 @@ first target integration.
 
 ## Current Focus
 
-- Fix required notation/layout correctness, then implement persistence,
-  embedding, responsive behavior, and release-candidate validation.
+- Continue remaining notation/layout correctness, embedding, responsive behavior,
+  and release-candidate validation now that score persistence is complete.
 - Keep `0.5.0` focused on a dependable tablature editor. Sheet and drum notation
   are explicitly deferred.
 
