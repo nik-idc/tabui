@@ -85,6 +85,44 @@ function. Asynchronous playback failures arrive as `"error"` events with a
 explicit host hook for container changes; automatic responsive observation is
 not yet provided.
 
+## Score Persistence
+
+Use the versioned score serialization API rather than the legacy model-level
+`toJSON()` methods:
+
+```ts
+import {
+  ScoreSerializationError,
+  deserializeScore,
+  serializeScore,
+} from "@atikincode/tabui";
+
+const document = serializeScore(score);
+localStorage.setItem("score", JSON.stringify(document));
+
+const stored = localStorage.getItem("score");
+if (stored !== null) {
+  try {
+    const restoredScore = deserializeScore(JSON.parse(stored));
+  } catch (error) {
+    if (error instanceof ScoreSerializationError) {
+      console.error(error.path, error.message);
+    }
+  }
+}
+```
+
+The current `tabui-score` V1 document covers guitar/tablature score metadata,
+master bars, track mix and instruments, staves, sparse voices, rests, tuplets,
+notes, techniques, and bends. Runtime UUIDs and derived timing/beaming state are
+regenerated. Deserialization validates all persisted values it consumes and
+reports an exact property path through `ScoreSerializationError`. Empty non-null
+voice bars are rejected until rendering semantics for them are defined. The
+`format` field identifies a JSON object as a TabUI score before its version is
+dispatched.
+Error paths use a JSONPath-like rooted form such as
+`$.tracks[0].staves[0].bars`.
+
 The refactor and optimization work from `tu-69-refactor-and-optimization` has
 been merged into `master` and now serves as the current development baseline.
 

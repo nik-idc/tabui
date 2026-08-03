@@ -79,14 +79,21 @@ Latest implementation commits:
   voice add/remove updates, and playback-cursor projection have regression
   coverage. This correction covers current tablature workflows; sheet and drum
   notation remain deferred.
+- Versioned `tabui-score` V1 serialization/deserialization covers score metadata,
+  master bars, mix state, guitar instruments/tuning, aligned multi-staff bars,
+  sparse voices, explicit rests, tuplets, notes, techniques, and all bend option
+  variants. Fixture round trips restore model ownership, timing, and continuation
+  validation while regenerating runtime UUIDs. Malformed input fails with an
+  exact `ScoreSerializationError` path; empty non-null voice bars remain rejected.
 
 ## P1 - Required MVP Quality
 
+- Audit raw `Error` throws and define dedicated error classes at recoverable
+  public boundaries, distinguishing them from internal invariant/programming
+  errors; do not replace all errors as part of the audit.
 - Inline technique geometry and hit/layout bounds.
 - Time-signature presentation on one- through four-string instruments.
 - Control-layout correctness across supported desktop notation workflows.
-- Versioned JSON serialization and validated deserialization after the required
-  notation/layout correctness pass.
 - View-only mode.
 - Responsive embedded-container behavior, including window resize.
 - Basic tablet/touch, touchpad, mouse, and keyboard usability alongside

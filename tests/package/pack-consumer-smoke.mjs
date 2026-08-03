@@ -93,9 +93,14 @@ try {
     `import {
   NoteValue,
   PlaybackErrorCode,
+  SCORE_SERIALIZATION_VERSION,
   Score,
+  SerializedNoteDuration,
   TabUIEditor,
+  deserializeScore,
+  serializeScore,
   type SelectionCursorSnapshot,
+  type SerializedScoreV1,
   type TabUIConfig,
   type TabUIEditorEvent,
   type TabUIEditorStateSnapshot,
@@ -105,6 +110,10 @@ import playIconUrl from "@atikincode/tabui/assets/img/ui/play.svg?url";
 
 const rootDiv = document.getElementById("tabui-editor") as HTMLDivElement;
 const score = new Score();
+const serializedScore: SerializedScoreV1 = serializeScore(score);
+const restoredScore = deserializeScore(
+  JSON.parse(JSON.stringify(serializedScore)) as unknown
+);
 const config: TabUIConfig = {
   assets: { baseUrl: "/tabui-assets" },
   playback: {},
@@ -132,6 +141,9 @@ document.body.dataset.playIconUrl = playIconUrl;
 document.body.dataset.noteValue = NoteValue.C;
 document.body.dataset.initialTrack = initialState.activeTrack.name;
 document.body.dataset.hasInitialCursor = String(initialCursor !== null);
+document.body.dataset.scoreVersion = String(SCORE_SERIALIZATION_VERSION);
+document.body.dataset.scoreDuration = SerializedNoteDuration.Quarter;
+document.body.dataset.restoredTrack = restoredScore.tracks[0].name;
 `
   );
 

@@ -63,10 +63,10 @@ export class BendTechniqueOptions {
     }
 
     for (const key of expectedKeys) {
-      const value = options[key as keyof BendOptionsData];
       if (key === "type") {
         continue;
       }
+      const value = options[key];
       if (typeof value !== "number" || !Number.isFinite(value)) {
         throw Error(`Invalid bend options: '${key}' must be finite`);
       }
@@ -86,7 +86,9 @@ export class BendTechniqueOptions {
       .map(([key]) => key);
     if (
       suppliedKeys.length !== expectedKeys.length ||
-      suppliedKeys.some((key) => !expectedKeys.includes(key))
+      suppliedKeys.some(
+        (key) => !expectedKeys.some((expectedKey) => expectedKey === key)
+      )
     ) {
       throw Error("Invalid bend options: unexpected value for bend type");
     }

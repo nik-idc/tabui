@@ -44,6 +44,15 @@ The editor supports fixture selection through the `fixture` query parameter:
 ## TypeScript and Imports
 
 - Strict mode is enabled (`strict: true` in `tsconfig.json`).
+- Prefer enums for finite named value sets. Continue using types or interfaces
+  for object shapes, unions of structurally different objects, and composition.
+- Prefer one-letter names for variables in internal iterable functions:
+
+```ts
+array.find((value) => value.property === neededProp); // BAD
+array.find((v) => v.property === neededProp); // GOOD
+```
+
 - The demo Vite config supports the `@/` alias, but package/source output must not
   depend on repository-only aliases.
 - Prefer named exports and barrel exports where they improve discoverability.

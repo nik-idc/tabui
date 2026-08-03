@@ -17,10 +17,10 @@ pre-`1.0.0` ownership/API decisions and record new issues in
 | 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Complete |
 
-Current automated checkpoint: 70 suites / 572 tests. `npm test`, `npm run build`,
+Current automated checkpoint: 73 suites / 608 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
-after the multi-staff outline geometry correction. All 28 focused-update
-benchmark scenarios retain a substantial speedup over full updates.
+after the versioned score persistence slice. All 28 focused-update benchmark
+scenarios retain their previously verified substantial speedup over full updates.
 
 ## Completed Contracts
 
@@ -89,6 +89,11 @@ benchmark scenarios retain a substantial speedup over full updates.
 - Multi-staff outlines derive both endpoints and horizontal extents from rendered
   line-local staff geometry. One through four dense or sparse final-staff voices
   no longer extend outlines or playback cursors into rhythm rows.
+- The public `tabui-score` V1 format round trips fixture and custom guitar scores,
+  restores ownership and derived timing state, regenerates runtime UUIDs, and
+  rejects malformed unknown input with exact `ScoreSerializationError` paths.
+  Sparse voices and explicit rests are preserved; empty non-null voices remain
+  rejected until their rendering semantics are defined.
 
 ## P0 Closeout
 
@@ -113,13 +118,14 @@ Stage 4 completed on 2026-08-01:
    correctness.
 2. Define versioned score serialization/deserialization with fixture round trips
    and validation errors.
-3. Add view-only, embedded-container, panel placement, responsive input, and basic
+3. Address all magic numbers and introduce constants instead where needed.
+4. Add view-only, embedded-container, panel placement, responsive input, and basic
    accessibility behavior.
-4. Revisit Element architecture, cross-track widths, and single-line mode only
+5. Revisit Element architecture, cross-track widths, and single-line mode only
    when profiling or a release requirement justifies them.
-5. Apply final visual/icon polish, performance budgets, package/browser gates,
+6. Apply final visual/icon polish, performance budgets, package/browser gates,
    release notes, and a feature freeze for the release candidate.
-6. Audit the source code for:
+7. Audit the source code for:
 
 - Non-reliance on tests. I remember there were moments when an agent
   would structure the code in an unnatural way just to make testing simpler.
@@ -131,7 +137,7 @@ Stage 4 completed on 2026-08-01:
   - `as`
     etc should be minimized or removed entirely
 
-7. Audit the test suite for:
+8. Audit the test suite for:
 
 - Over/under-exhaustiveness
 - Stale tests/tests that no longer make sense and are only green because of
@@ -141,7 +147,7 @@ Stage 4 completed on 2026-08-01:
 - Over-reliance on mocks when real source code could be used
 - Anything else that makes the test suite worse
 
-8. Create new demos using different JS frontend frameworks to ensure that packing
+9. Create new demos using different JS frontend frameworks to ensure that packing
    actually works correctly. Suggested frameworks to test:
 
 - React (important to note that once TabUI v0.5.0 ships this will be the frontend tech)
@@ -151,9 +157,9 @@ Stage 4 completed on 2026-08-01:
 - Svelte
 - Any other major frontend framework I might have missed
 
-9. Test how this library would work in a headless/backend context. I.e.
-   getting just the geometry from a Model. Or rendering once into a specified file/buffer.
-   May require large scale code changes.
+10. Test how this library would work in a headless/backend context. I.e.
+    getting just the geometry from a Model. Or rendering once into a specified file/buffer.
+    May require large scale code changes.
 
 Deferred from `0.5.0`: sheet/drum notation, production multisampling, a plugin
 system, speculative schema migrations, compatibility wrappers for unpublished

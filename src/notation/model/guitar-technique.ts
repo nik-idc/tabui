@@ -104,7 +104,9 @@ export class GuitarTechnique implements Technique {
     const expected = OPTIONS_PER_BEND_TYPE[this._bendOptions.type];
     const areEqual =
       actual.length === expected.length &&
-      actual.every((key) => expected.includes(key));
+      actual.every((key) =>
+        expected.some((expectedKey) => expectedKey === key)
+      );
 
     if (!areEqual) {
       throw Error(`Wrong options: expected: ${expected}; provided: ${actual}`);

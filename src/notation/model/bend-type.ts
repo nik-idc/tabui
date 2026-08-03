@@ -1,3 +1,5 @@
+import type { BendOptionsData } from "./bend-options";
+
 /**
  * All kinds of bend types
  */
@@ -33,4 +35,4 @@ export const OPTIONS_PER_BEND_TYPE = {
   ],
   [BendType.PrebendBend]: ["type", "prebendPitch", "bendPitch", "bendDuration"],
   [BendType.Release]: ["type", "releasePitch", "bendDuration"],
-};
+} as const satisfies Record<BendType, readonly (keyof BendOptionsData)[]>;
