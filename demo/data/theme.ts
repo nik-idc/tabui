@@ -1,3 +1,4 @@
+import { resolveTabUIConfig } from "../../src/config/tabui-config";
 import type { TabUIConfig } from "../../src/config/tabui-config";
 
 export type EditorThemeKey = "midnight" | "obsidian" | "paper" | "contrast";
@@ -204,4 +205,16 @@ export function resolveEditorTheme(searchParams: URLSearchParams): TabUIConfig {
   }
 
   return theme.config;
+}
+
+/** Applies the selected editor theme to demo-owned page chrome outside the editor. */
+export function applyEditorThemeToPage(
+  config: TabUIConfig,
+  style: Pick<CSSStyleDeclaration, "setProperty"> = document.documentElement
+    .style
+): void {
+  const cssVars = resolveTabUIConfig(config).theme.cssVars;
+  for (const [name, value] of Object.entries(cssVars)) {
+    style.setProperty(name, value);
+  }
 }

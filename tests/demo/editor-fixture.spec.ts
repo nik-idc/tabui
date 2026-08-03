@@ -4,10 +4,44 @@ import {
   resolveEditorFixtureKey,
 } from "../../demo/data/fixture";
 import {
+  applyEditorThemeToPage,
   getEditorThemes,
   resolveEditorTheme,
   resolveEditorThemeKey,
 } from "../../demo/data/theme";
+import {
+  deserializeScore,
+  Score,
+  serializeScore,
+} from "../../src/notation/model";
+
+const FIXTURE_SCORE_NAMES = {
+  feature_showcase: "Feature Showcase Score",
+  empty: "Unknown",
+  performance_stress: "Performance Stress Score",
+  multi_voice_single_staff: "Multi Voice Single Staff",
+  multi_voice_two_staff: "Multi Voice Two Staff",
+} as const;
+
+function expectOwnershipBasics(score: Score): void {
+  for (const track of score.tracks) {
+    expect(track.score).toBe(score);
+    for (const staff of track.staves) {
+      expect(staff.track).toBe(track);
+      for (let barIndex = 0; barIndex < staff.bars.length; barIndex++) {
+        const bar = staff.bars[barIndex];
+        expect(bar.staff).toBe(staff);
+        expect(bar.masterBar).toBe(score.masterBars[barIndex]);
+        for (const voiceBar of bar.voiceBarsAsArray) {
+          expect(voiceBar.bar).toBe(bar);
+          for (const beat of voiceBar.beats) {
+            expect(beat.voiceBar).toBe(voiceBar);
+          }
+        }
+      }
+    }
+  }
+}
 
 describe("editor fixture and theme resolution", () => {
   it("resolves known fixture keys and falls back to default", () => {
@@ -43,6 +77,29 @@ describe("editor fixture and theme resolution", () => {
     ]);
   });
 
+  for (const fixture of getEditorFixtures()) {
+    it(`round trips the ${fixture.key} fixture across a JSON boundary`, () => {
+      const source = fixture.createScore();
+      const sourceTrackCount = source.tracks.length;
+      const sourceMasterBarCount = source.masterBars.length;
+      const document = serializeScore(source);
+      const restored = deserializeScore(
+        JSON.parse(JSON.stringify(document)) as unknown
+      );
+
+      expect(source.name).toBe(FIXTURE_SCORE_NAMES[fixture.key]);
+      expect(restored.name).toBe(FIXTURE_SCORE_NAMES[fixture.key]);
+      expect(restored.tracks).toHaveLength(sourceTrackCount);
+      expect(restored.masterBars).toHaveLength(sourceMasterBarCount);
+      expect(serializeScore(restored)).toEqual(document);
+      expectOwnershipBasics(restored);
+
+      if (fixture.key === "performance_stress") {
+        expect(sourceMasterBarCount).toBe(1000);
+      }
+    });
+  }
+
   it("resolves known theme keys and falls back to obsidian", () => {
     expect(resolveEditorThemeKey(new URLSearchParams("theme=midnight"))).toBe(
       "midnight"
@@ -69,6 +126,26 @@ describe("editor fixture and theme resolution", () => {
     expect(theme.theme?.ui?.colors?.background).toBe("#f4efe6");
     expect(theme.theme?.notation?.fonts?.notation).toContain(
       "Cormorant Garamond"
+    );
+  });
+
+  it("applies the selected theme to demo-owned page chrome", () => {
+    const style = { setProperty: jest.fn() };
+    const theme = resolveEditorTheme(new URLSearchParams("theme=paper"));
+
+    applyEditorThemeToPage(theme, style);
+
+    expect(style.setProperty).toHaveBeenCalledWith(
+      "--tu-background-color",
+      "#f4efe6"
+    );
+    expect(style.setProperty).toHaveBeenCalledWith(
+      "--tu-primary-color",
+      "#fffdf8"
+    );
+    expect(style.setProperty).not.toHaveBeenCalledWith(
+      "--tu-background-color",
+      "#0f172a"
     );
   });
 });

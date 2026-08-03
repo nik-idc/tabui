@@ -13,6 +13,7 @@ import {
   resolveEditorFixtureKey,
 } from "./data/fixture";
 import {
+  applyEditorThemeToPage,
   getEditorThemes,
   resolveEditorTheme,
   resolveEditorThemeKey,
@@ -57,6 +58,7 @@ const selectedFixture = resolveEditorFixtureKey(searchParams);
 const selectedTheme = resolveEditorThemeKey(searchParams);
 const selectedScore = resolveEditorFixture(searchParams);
 const selectedThemeConfig = resolveEditorTheme(searchParams);
+applyEditorThemeToPage(selectedThemeConfig);
 if (selectedFixture === "performance_stress") {
   console.log("=== PERF MODE ===", "Performance stress score enabled");
 }
@@ -103,19 +105,22 @@ function navigateWithSelection(fixtureKey: string, themeKey: string): void {
   window.location.search = params.toString();
 }
 
-fixtureSelect?.addEventListener("change", () => {
-  navigateWithSelection(
-    fixtureSelect.value,
-    themeSelect?.value ?? selectedTheme
-  );
-});
-
-themeSelect?.addEventListener("change", () => {
+function handleFixtureChange(): void {
   navigateWithSelection(
     fixtureSelect?.value ?? selectedFixture,
-    themeSelect.value
+    themeSelect?.value ?? selectedTheme
   );
-});
+}
+
+function handleThemeChange(): void {
+  navigateWithSelection(
+    fixtureSelect?.value ?? selectedFixture,
+    themeSelect?.value ?? selectedTheme
+  );
+}
+
+fixtureSelect?.addEventListener("change", handleFixtureChange);
+themeSelect?.addEventListener("change", handleThemeChange);
 
 const editorConfig = {
   ...selectedThemeConfig,
@@ -173,15 +178,28 @@ function mountEditor(score: Score): TabUIEditor {
 
 let tabuiEditor = mountEditor(selectedScore);
 
-bindScorePersistenceControls({
+const unbindPersistenceControls = bindScorePersistenceControls({
   serializeButton,
   deserializeButton,
   fileInput: scoreFileInput,
   status: persistenceStatus,
   getScore: () => tabuiEditor.score,
   replaceScore: (score) => {
-    tabuiEditor.dispose();
-    tabuiEditor = mountEditor(score);
+    const previousScore = tabuiEditor.score;
+    try {
+      tabuiEditor.dispose();
+      tabuiEditor = mountEditor(score);
+    } catch (error) {
+      tabuiEditor = mountEditor(previousScore);
+      throw error;
+    }
   },
   downloadDocument: downloadScoreDocument,
+});
+
+import.meta.hot?.dispose(() => {
+  fixtureSelect?.removeEventListener("change", handleFixtureChange);
+  themeSelect?.removeEventListener("change", handleThemeChange);
+  unbindPersistenceControls();
+  tabuiEditor.dispose();
 });

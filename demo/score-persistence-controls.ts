@@ -30,13 +30,17 @@ export function downloadScoreDocument(
   const url = URL.createObjectURL(
     new Blob([contents], { type: "application/json" })
   );
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  let anchor: HTMLAnchorElement | undefined;
+  try {
+    anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+  } finally {
+    anchor?.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
 }
 
 export function bindScorePersistenceControls({
@@ -48,9 +52,17 @@ export function bindScorePersistenceControls({
   replaceScore,
   downloadDocument,
 }: ScorePersistenceControlsOptions): () => void {
+  let active = true;
+  let readGeneration = 0;
+  let isReading = false;
   const showStatus = (message: string, isError = false): void => {
     status.textContent = message;
     status.dataset.state = isError ? "error" : "success";
+  };
+  const setReading = (reading: boolean): void => {
+    isReading = reading;
+    deserializeButton.disabled = reading;
+    status.setAttribute("aria-busy", String(reading));
   };
   const onSerialize = (): void => {
     try {
@@ -63,21 +75,37 @@ export function bindScorePersistenceControls({
       console.error(error);
     }
   };
-  const onDeserialize = (): void => fileInput.click();
+  const onDeserialize = (): void => {
+    if (!isReading) {
+      fileInput.click();
+    }
+  };
   const onFileSelected = async (): Promise<void> => {
     const file = fileInput.files?.[0];
     if (file === undefined) {
       return;
     }
+    const generation = ++readGeneration;
+    setReading(true);
     try {
-      const document: unknown = JSON.parse(await file.text());
+      const contents = await file.text();
+      if (!active || generation !== readGeneration) {
+        return;
+      }
+      const document: unknown = JSON.parse(contents);
       replaceScore(deserializeScore(document));
       showStatus(`Mounted score from ${file.name}.`);
     } catch (error) {
+      if (!active || generation !== readGeneration) {
+        return;
+      }
       showStatus(errorMessage(error), true);
       console.error(error);
     } finally {
-      fileInput.value = "";
+      if (active && generation === readGeneration) {
+        fileInput.value = "";
+        setReading(false);
+      }
     }
   };
 
@@ -86,6 +114,12 @@ export function bindScorePersistenceControls({
   fileInput.addEventListener("change", onFileSelected);
 
   return () => {
+    if (!active) {
+      return;
+    }
+    active = false;
+    readGeneration++;
+    setReading(false);
     serializeButton.removeEventListener("click", onSerialize);
     deserializeButton.removeEventListener("click", onDeserialize);
     fileInput.removeEventListener("change", onFileSelected);

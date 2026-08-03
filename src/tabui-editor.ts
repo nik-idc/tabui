@@ -104,6 +104,8 @@ export class TabUIEditor {
   private _uiComponent?: UIComponent;
   /** Bound interaction owner connecting controls and notation. */
   private _callbacks?: TabUICallbacks;
+  /** Whether callback binding began and therefore requires teardown. */
+  private _callbacksBound = false;
   /** Current terminal lifecycle state. */
   private _state: TabUIEditorLifecycleState;
   /** Last published stable host state snapshot. */
@@ -124,12 +126,11 @@ export class TabUIEditor {
     this._state = TabUIEditorLifecycleState.Uninitialized;
   }
 
-  /** Applies configured theme variables to the editor root and document. */
+  /** Applies configured theme variables to this editor root. */
   private applyEditorTheme(): void {
     const cssVars = Object.entries(this.config.theme.cssVars);
     for (const [cssVarName, cssVarValue] of cssVars) {
       this.rootDiv.style.setProperty(cssVarName, cssVarValue);
-      document.documentElement.style.setProperty(cssVarName, cssVarValue);
     }
   }
 
@@ -242,7 +243,38 @@ export class TabUIEditor {
     );
 
     this._uiComponent.render();
+    this._callbacksBound = true;
     this._callbacks.bind();
+  }
+
+  /** Cleans all resources that may have been created during initialization. */
+  private cleanupOwnedResources(): void {
+    try {
+      if (this._callbacksBound) {
+        this._callbacks?.unbind();
+      }
+    } finally {
+      try {
+        this._notationComponent?.dispose();
+      } finally {
+        this.rootDiv.replaceChildren();
+        this.rootDiv.classList.remove("tu-editor");
+        const cssVars = Object.keys(this.config.theme.cssVars);
+        for (const cssVar of cssVars) {
+          this.rootDiv.style.removeProperty(cssVar);
+        }
+
+        this._topControlsHost = undefined;
+        this._sideControlsHost = undefined;
+        this._notationViewport = undefined;
+        this._layoutDimensions = undefined;
+        this._notationComponent = undefined;
+        this._uiComponent = undefined;
+        this._callbacks = undefined;
+        this._callbacksBound = false;
+        this._stateSnapshot = undefined;
+      }
+    }
   }
 
   /** Mounts the editor. May be called once per instance. */
@@ -254,14 +286,25 @@ export class TabUIEditor {
       throw new Error("TabUIEditor already initialized");
     }
 
-    this.rootDiv.classList.add("tu-editor");
-    this.applyEditorTheme();
-    this.appendEditorShell();
-    this.initializeLayoutDimensions();
-    this.initializeOwnedComponents();
+    try {
+      this.rootDiv.classList.add("tu-editor");
+      this.applyEditorTheme();
+      this.appendEditorShell();
+      this.initializeLayoutDimensions();
+      this.initializeOwnedComponents();
 
-    this._state = TabUIEditorLifecycleState.Initialized;
-    this._stateSnapshot = this.createStateSnapshot();
+      this._state = TabUIEditorLifecycleState.Initialized;
+      this._stateSnapshot = this.createStateSnapshot();
+    } catch (error) {
+      this._state = TabUIEditorLifecycleState.Disposed;
+      try {
+        this.cleanupOwnedResources();
+      } catch {
+        // Preserve the initialization failure after best-effort rollback.
+      }
+      this._events.clear();
+      throw error;
+    }
   }
 
   /**
@@ -279,29 +322,12 @@ export class TabUIEditor {
       return;
     }
 
-    if (
-      this._callbacks === undefined ||
-      this._notationComponent === undefined
-    ) {
-      throw new Error("TabUIEditor initialized without owned components");
-    }
-
-    this._callbacks.unbind();
-    this._notationComponent.dispose();
-    this.rootDiv.replaceChildren();
-    this.rootDiv.classList.remove("tu-editor");
-    const cssVars = Object.keys(this.config.theme.cssVars);
-    for (const cssVar of cssVars) {
-      this.rootDiv.style.removeProperty(cssVar);
-    }
-
-    this._topControlsHost = undefined;
-    this._sideControlsHost = undefined;
-    this._notationViewport = undefined;
-
-    this._events.clear();
-    this._stateSnapshot = undefined;
     this._state = TabUIEditorLifecycleState.Disposed;
+    try {
+      this.cleanupOwnedResources();
+    } finally {
+      this._events.clear();
+    }
   }
 
   /** Throws unless the editor is initialized and active. */

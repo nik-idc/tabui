@@ -143,6 +143,7 @@ describe("TabUIEditor lifecycle", () => {
       documentElement: {
         style: {
           setProperty: jest.fn(),
+          removeProperty: jest.fn(),
         },
       },
     };
@@ -178,6 +179,20 @@ describe("TabUIEditor lifecycle", () => {
     expect(root.replaceChildren).toHaveBeenCalledTimes(1);
     expect((root as any).children).toHaveLength(0);
     expect(root.classList.remove).toHaveBeenCalledWith("tu-editor");
+  });
+
+  test("keeps theme variables scoped to the editor root", () => {
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore());
+    const documentStyle = document.documentElement.style as any;
+
+    editor.init();
+
+    expect(root.style.setProperty).toHaveBeenCalled();
+    expect(documentStyle.setProperty).not.toHaveBeenCalled();
+    editor.dispose();
+    expect(root.style.removeProperty).toHaveBeenCalled();
+    expect(documentStyle.removeProperty).not.toHaveBeenCalled();
   });
 
   test("a disposed root can be remounted by a new editor", () => {
@@ -243,6 +258,45 @@ describe("TabUIEditor lifecycle", () => {
     expect(() => editor.init()).toThrow(
       "TabUIEditor width must be at least 320px"
     );
+    expect(root.replaceChildren).toHaveBeenCalledTimes(1);
+    expect(root.classList.remove).toHaveBeenCalledWith("tu-editor");
+    expect(() => editor.init()).toThrow("TabUIEditor already disposed");
+  });
+
+  test("rolls back a partial init failure and allows a clean remount", () => {
+    const renderError = new Error("render failed");
+    jest.mocked(UIComponent).mockImplementationOnce(
+      () =>
+        ({
+          render: jest.fn(() => {
+            throw renderError;
+          }),
+        }) as any
+    );
+    const root = createRoot();
+    const failedEditor = new TabUIEditor(root, createScore());
+
+    expect(() => failedEditor.init()).toThrow(renderError);
+
+    const failedNotation = jest.mocked(NotationComponent).mock.results[0].value;
+    const failedCallbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+    expect(failedCallbacks.bind).not.toHaveBeenCalled();
+    expect(failedCallbacks.unbind).not.toHaveBeenCalled();
+    expect(failedNotation.dispose).toHaveBeenCalledTimes(1);
+    expect(root.replaceChildren).toHaveBeenCalledTimes(1);
+    expect((root as any).children).toHaveLength(0);
+    expect(() => failedEditor.getState()).toThrow(
+      "TabUIEditor already disposed"
+    );
+    failedEditor.dispose();
+    expect(failedNotation.dispose).toHaveBeenCalledTimes(1);
+
+    const restoredEditor = new TabUIEditor(root, createScore());
+    restoredEditor.init();
+    restoredEditor.dispose();
+
+    expect(jest.mocked(NotationComponent)).toHaveBeenCalledTimes(2);
+    expect(root.replaceChildren).toHaveBeenCalledTimes(2);
   });
 
   test("exposes model-level editor state without exposing runtime controllers", () => {
