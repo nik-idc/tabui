@@ -114,7 +114,7 @@ Latest implementation commits:
 - Responsive embedded-container behavior, including window resize.
 - Basic tablet/touch, touchpad, mouse, and keyboard usability alongside
   responsive embedding.
-- Configurable top/side panel visibility and placement.
+- Configurable score/side panel visibility and placement.
 - Measure Element-layer construction, materialization, updates, and retained
   memory before deciding whether to simplify presentation-shell types.
 - Decide the desired cross-track width invariant before implementing score-wide

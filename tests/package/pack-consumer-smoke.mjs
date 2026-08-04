@@ -97,6 +97,9 @@ try {
   Score,
   SerializedNoteDuration,
   TabUIEditor,
+  TabUIEditorMode,
+  TabUIScorePanelPlacement,
+  TabUISidePanelPlacement,
   deserializeScore,
   serializeScore,
   type SelectionCursorSnapshot,
@@ -116,6 +119,14 @@ const restoredScore = deserializeScore(
 );
 const config: TabUIConfig = {
   assets: { baseUrl: "/tabui-assets" },
+  interaction: { mode: TabUIEditorMode.Edit },
+  panels: {
+    score: { placement: TabUIScorePanelPlacement.Top },
+    side: {
+      placement: TabUISidePanelPlacement.Left,
+      collapsible: true,
+    },
+  },
   playback: {},
 };
 

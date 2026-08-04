@@ -23,12 +23,26 @@ TabUI is still pre-`1.0.0` and under active development.
 ## Package Usage
 
 ```ts
-import { PlaybackErrorCode, Score, TabUIEditor } from "@atikincode/tabui";
+import {
+  PlaybackErrorCode,
+  Score,
+  TabUIEditor,
+  TabUIScorePanelPlacement,
+  TabUISidePanelPlacement,
+} from "@atikincode/tabui";
 import "@atikincode/tabui/styles.css";
 
 const root = document.getElementById("tabui-editor") as HTMLDivElement;
 const editor = new TabUIEditor(root, new Score(), {
   assets: { baseUrl: "/tabui-assets" },
+  panels: {
+    score: { placement: TabUIScorePanelPlacement.Top },
+    side: {
+      placement: TabUISidePanelPlacement.Left,
+      collapsible: true,
+      initiallyCollapsed: false,
+    },
+  },
   layout: {
     width: 1200,
     noteTextSize: 12,
@@ -84,6 +98,12 @@ function. Asynchronous playback failures arrive as `"error"` events with a
 `PlaybackErrorCode`, message, and original cause. `refreshLayout(width?)` is the
 explicit host hook for container changes; automatic responsive observation is
 not yet provided.
+
+The score panel can be placed above or below notation. The side editing panel
+can be placed left or right, hidden, or made collapsible. Collapsing a measured
+layout automatically reflows notation; an explicit `layout.width` remains fixed.
+The demo exposes these construction-time options and recreates the editor when
+they change.
 
 ## Score Persistence
 

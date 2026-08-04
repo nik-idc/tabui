@@ -31,10 +31,28 @@ export type ResolvedPlaybackConfig = Partial<
   Record<InstrumentTone, ResolvedPlaybackSampleConfig>
 >;
 
+export enum TabUIEditorMode {
+  Edit = "edit",
+  ViewOnly = "view-only",
+}
+
+export enum TabUIScorePanelPlacement {
+  Top = "top",
+  Bottom = "bottom",
+}
+
+export enum TabUISidePanelPlacement {
+  Left = "left",
+  Right = "right",
+}
+
 export interface TabUIConfig {
   assets?: {
     baseUrl?: string;
     variant?: "light" | "dark";
+  };
+  interaction?: {
+    mode?: TabUIEditorMode;
   };
   layout?: {
     width?: number;
@@ -46,6 +64,18 @@ export interface TabUIConfig {
     horizontalPadding?: number;
   };
   playback?: PlaybackConfig;
+  panels?: {
+    score?: {
+      visible?: boolean;
+      placement?: TabUIScorePanelPlacement;
+    };
+    side?: {
+      visible?: boolean;
+      placement?: TabUISidePanelPlacement;
+      collapsible?: boolean;
+      initiallyCollapsed?: boolean;
+    };
+  };
   theme?: {
     ui?: {
       colors?: {
@@ -84,6 +114,9 @@ export interface ResolvedTabUIConfig {
     baseUrl: string;
     variant: "light" | "dark";
   };
+  interaction: {
+    mode: TabUIEditorMode;
+  };
   layout: {
     width?: number;
     minWidth: number;
@@ -94,6 +127,18 @@ export interface ResolvedTabUIConfig {
     horizontalPadding: number;
   };
   playback: ResolvedPlaybackConfig;
+  panels: {
+    score: {
+      visible: boolean;
+      placement: TabUIScorePanelPlacement;
+    };
+    side: {
+      visible: boolean;
+      placement: TabUISidePanelPlacement;
+      collapsible: boolean;
+      initiallyCollapsed: boolean;
+    };
+  };
   theme: {
     cssVars: Record<string, string>;
   };
@@ -239,11 +284,14 @@ function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
 export function resolveTabUIConfig(
   config: TabUIConfig = {}
 ): ResolvedTabUIConfig {
+  const mode = config.interaction?.mode ?? TabUIEditorMode.Edit;
+  const sideCollapsible = config.panels?.side?.collapsible ?? true;
   return {
     assets: {
       baseUrl: normalizeAssetBaseUrl(config.assets?.baseUrl?.trim() ?? ""),
       variant: config.assets?.variant ?? "light",
     },
+    interaction: { mode },
     layout: {
       width: config.layout?.width,
       minWidth: config.layout?.minWidth ?? DEFAULT_LAYOUT.minWidth,
@@ -258,6 +306,21 @@ export function resolveTabUIConfig(
         config.layout?.horizontalPadding ?? DEFAULT_LAYOUT.horizontalPadding,
     },
     playback: resolvePlaybackConfig(config.playback),
+    panels: {
+      score: {
+        visible: config.panels?.score?.visible ?? true,
+        placement:
+          config.panels?.score?.placement ?? TabUIScorePanelPlacement.Top,
+      },
+      side: {
+        visible: config.panels?.side?.visible ?? mode === TabUIEditorMode.Edit,
+        placement:
+          config.panels?.side?.placement ?? TabUISidePanelPlacement.Left,
+        collapsible: sideCollapsible,
+        initiallyCollapsed:
+          sideCollapsible && (config.panels?.side?.initiallyCollapsed ?? false),
+      },
+    },
     theme: {
       cssVars: resolveThemeCssVars(config),
     },

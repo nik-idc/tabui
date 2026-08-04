@@ -59,6 +59,11 @@ body {
   font: inherit;
 }
 
+.demo-control select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .demo-persistence-actions {
   display: flex;
   align-items: flex-end;

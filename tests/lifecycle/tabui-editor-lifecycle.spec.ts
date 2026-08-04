@@ -3,6 +3,11 @@ import { NotationComponent } from "../../src/notation/notation-component";
 import { UIComponent } from "../../src/ui";
 import { TabUICallbacks } from "../../src/tabui-callbacks";
 import { PlaybackErrorCode } from "../../src/player";
+import {
+  TabUIEditorMode,
+  TabUIScorePanelPlacement,
+  TabUISidePanelPlacement,
+} from "../../src/config/tabui-config";
 
 jest.mock("../../src/notation/notation-component", () => ({
   NotationComponent: jest
@@ -58,6 +63,7 @@ jest.mock("../../src/tabui-callbacks", () => ({
 
 function createRoot() {
   const children: any[] = [];
+  const listeners = new Map<string, Set<(...args: any[]) => void>>();
   return {
     clientWidth: 900,
     appendChild: jest.fn((child: any) => {
@@ -72,6 +78,25 @@ function createRoot() {
       setProperty: jest.fn(),
       removeProperty: jest.fn(),
     },
+    addEventListener: jest.fn(
+      (type: string, listener: (...args: any[]) => void) => {
+        const typeListeners =
+          listeners.get(type) ?? new Set<(...args: any[]) => void>();
+        typeListeners.add(listener);
+        listeners.set(type, typeListeners);
+      }
+    ),
+    removeEventListener: jest.fn(
+      (type: string, listener: (...args: any[]) => void) => {
+        listeners.get(type)?.delete(listener);
+      }
+    ),
+    dispatch: (type: string, event: Record<string, unknown> = {}) => {
+      for (const listener of listeners.get(type) ?? []) {
+        listener(event);
+      }
+    },
+    hidden: false,
     replaceChildren: jest.fn(() => {
       children.length = 0;
     }),
@@ -81,6 +106,8 @@ function createRoot() {
 
 function createShellElement() {
   const classes = new Set<string>();
+  const children: any[] = [];
+  const listeners = new Map<string, Set<() => void>>();
   return {
     classList: {
       add: (...classNames: string[]) => {
@@ -101,6 +128,26 @@ function createShellElement() {
       setProperty: jest.fn(),
       removeProperty: jest.fn(),
     },
+    children,
+    appendChild: jest.fn((child: any) => {
+      children.push(child);
+      return child;
+    }),
+    addEventListener: jest.fn((type: string, listener: () => void) => {
+      const typeListeners = listeners.get(type) ?? new Set<() => void>();
+      typeListeners.add(listener);
+      listeners.set(type, typeListeners);
+    }),
+    removeEventListener: jest.fn((type: string, listener: () => void) => {
+      listeners.get(type)?.delete(listener);
+    }),
+    dispatch: (type: string) => {
+      for (const listener of listeners.get(type) ?? []) {
+        listener();
+      }
+    },
+    setAttribute: jest.fn(),
+    hidden: false,
   } as unknown as HTMLDivElement;
 }
 
@@ -164,6 +211,8 @@ describe("TabUIEditor lifecycle", () => {
     const editor = new TabUIEditor(root, createScore());
 
     editor.init();
+    const sideHost = (root as any).children[1];
+    const sideToggle = sideHost.children[0];
     editor.dispose();
     editor.dispose();
 
@@ -176,9 +225,19 @@ describe("TabUIEditor lifecycle", () => {
     expect(callbacks.bind).toHaveBeenCalledTimes(1);
     expect(callbacks.unbind).toHaveBeenCalledTimes(1);
     expect(notation.dispose).toHaveBeenCalledTimes(1);
+    expect(sideToggle.removeEventListener).toHaveBeenCalledTimes(1);
     expect(root.replaceChildren).toHaveBeenCalledTimes(1);
     expect((root as any).children).toHaveLength(0);
     expect(root.classList.remove).toHaveBeenCalledWith("tu-editor");
+    expect(root.classList.remove).toHaveBeenCalledWith(
+      "tu-score-panel-top",
+      "tu-score-panel-bottom",
+      "tu-side-controls-left",
+      "tu-side-controls-right",
+      "tu-score-panel-hidden",
+      "tu-side-controls-hidden",
+      "tu-side-controls-collapsed"
+    );
   });
 
   test("keeps theme variables scoped to the editor root", () => {
@@ -245,6 +304,138 @@ describe("TabUIEditor lifecycle", () => {
         "tu-notation-viewport"
       )
     ).toBe(true);
+  });
+
+  test("applies configured panel placement and visibility to the shell", () => {
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore(), {
+      panels: {
+        score: {
+          visible: false,
+          placement: TabUIScorePanelPlacement.Bottom,
+        },
+        side: { placement: TabUISidePanelPlacement.Right },
+      },
+    });
+
+    editor.init();
+
+    const topHost = (root as any).children[0];
+    const sideHost = (root as any).children[1];
+    expect(root.classList.add).toHaveBeenCalledWith(
+      "tu-score-panel-bottom",
+      "tu-side-controls-right",
+      "tu-score-panel-hidden"
+    );
+    expect(topHost.hidden).toBe(true);
+    expect(sideHost.hidden).toBe(false);
+  });
+
+  test("hides side controls by default in view-only mode", () => {
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore(), {
+      interaction: { mode: TabUIEditorMode.ViewOnly },
+    });
+
+    editor.init();
+
+    const sideHost = (root as any).children[1];
+    expect(root.classList.add).toHaveBeenCalledWith(
+      "tu-score-panel-top",
+      "tu-side-controls-left",
+      "tu-side-controls-hidden"
+    );
+    expect(sideHost.hidden).toBe(true);
+  });
+
+  test("collapses and expands visible side controls with layout refresh", () => {
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore());
+    editor.init();
+    const sideHost = (root as any).children[1];
+    const toggle = sideHost.children[0];
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+
+    toggle.dispatch("click");
+
+    expect(root.classList.add).toHaveBeenCalledWith(
+      "tu-side-controls-collapsed"
+    );
+    expect(toggle.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "false"
+    );
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
+
+    toggle.dispatch("click");
+
+    expect(root.classList.remove).toHaveBeenCalledWith(
+      "tu-side-controls-collapsed"
+    );
+    expect(toggle.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "true"
+    );
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(2);
+  });
+
+  test("supports an initially collapsed side panel", () => {
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore(), {
+      panels: { side: { initiallyCollapsed: true } },
+    });
+
+    editor.init();
+
+    const sideHost = (root as any).children[1];
+    const toggle = sideHost.children[0];
+    expect(root.classList.add).toHaveBeenCalledWith(
+      "tu-score-panel-top",
+      "tu-side-controls-left"
+    );
+    expect(root.classList.add).toHaveBeenCalledWith(
+      "tu-side-controls-collapsed"
+    );
+    expect(toggle.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "false"
+    );
+  });
+
+  test("rolls collapse state back when layout refresh fails", () => {
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore());
+    editor.init();
+    const sideHost = (root as any).children[1];
+    const toggle = sideHost.children[0];
+    jest.spyOn(editor, "refreshLayout").mockImplementation(() => {
+      throw new Error("layout failed");
+    });
+
+    expect(() => toggle.dispatch("click")).toThrow("layout failed");
+
+    expect(root.classList.add).toHaveBeenCalledWith(
+      "tu-side-controls-collapsed"
+    );
+    expect(root.classList.remove).toHaveBeenCalledWith(
+      "tu-side-controls-collapsed"
+    );
+    expect(toggle.setAttribute).toHaveBeenLastCalledWith(
+      "aria-expanded",
+      "true"
+    );
+  });
+
+  test("does not mount a toggle for a non-collapsible side panel", () => {
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore(), {
+      panels: { side: { collapsible: false } },
+    });
+
+    editor.init();
+
+    const sideHost = (root as any).children[1];
+    expect(sideHost.children).toHaveLength(0);
   });
 
   test("rejects widths below the resolved minimum", () => {
@@ -423,6 +614,51 @@ describe("TabUIEditor lifecycle", () => {
       type: "change",
       state: editor.getState(),
     });
+  });
+
+  test("keeps configured layout width fixed during measured refresh", () => {
+    const editor = new TabUIEditor(createRoot(), createScore(), {
+      layout: { width: 640 },
+    });
+    editor.init();
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+
+    editor.refreshLayout();
+
+    expect(editor.layoutDimensions.WIDTH).toBe(640);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
+  });
+
+  test("restores the previous width when notation refresh fails", () => {
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+    notation.refreshLayout.mockImplementationOnce(() => {
+      throw new Error("refresh failed");
+    });
+
+    expect(() => editor.refreshLayout(720)).toThrow("refresh failed");
+
+    expect(editor.layoutDimensions.WIDTH).toBe(666);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(2);
+    expect(callbacks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("restores captured dimensions when a change listener disposes and throws", () => {
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const dimensions = editor.layoutDimensions;
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+    editor.subscribe(() => {
+      editor.dispose();
+      throw new Error("listener failed");
+    });
+
+    expect(() => editor.refreshLayout(720)).toThrow("listener failed");
+
+    expect(dimensions.WIDTH).toBe(666);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(2);
   });
 
   test("rejects invalid refresh widths before changing layout", () => {

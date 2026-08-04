@@ -6,6 +6,11 @@ export type {
   ResolvedTabUIConfig,
   TabUIConfig,
 } from "./config/tabui-config";
+export {
+  TabUIEditorMode,
+  TabUIScorePanelPlacement,
+  TabUISidePanelPlacement,
+} from "./config/tabui-config";
 export * from "./notation/model";
 export type { EditorLayoutDimensionsConfig } from "./notation/controller/editor-layout-dimensions";
 export { EditorLayoutDimensions } from "./notation/controller/editor-layout-dimensions";

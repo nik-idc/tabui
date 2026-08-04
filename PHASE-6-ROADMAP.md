@@ -1,6 +1,6 @@
 # Phase 6 Roadmap - MVP Stabilization for 0.5.0
 
-Last updated: 2026-08-03 (Stage 3 complete). This is the source of truth for
+Last updated: 2026-08-04 (P1 Stage 4.1 complete). This is the source of truth for
 turning the completed editor foundations into a dependable, embeddable `0.5.0`
 package. Prefer clean pre-`1.0.0` ownership/API decisions and record new issues in
 `PRE-RELEASE-STABILIZATION.md` before changing priority or scope here.
@@ -17,10 +17,10 @@ package. Prefer clean pre-`1.0.0` ownership/API decisions and record new issues 
 | 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Complete |
 
-Current automated checkpoint: 76 suites / 700 tests. `npm test`, `npm run build`,
-`npm run build_vite`, `npm run test:pack-consumer`, `npm run benchmark:updates`,
-and `git diff --check` pass after the magic-number audit slice. All 28
-focused-update benchmark scenarios retain their previously verified substantial
+Current automated checkpoint: 78 suites / 718 tests. `npm test`, `npm run build`,
+`npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
+after P1 Stage 4.1. The benchmark was last rerun after the magic-number audit;
+all 28 focused-update scenarios retained their previously verified substantial
 speedup over full updates.
 
 ## Completed Contracts
@@ -152,6 +152,38 @@ Stage 4 completed on 2026-08-01:
    structural values and readable one-off literals remain local.
 4. Add view-only, embedded-container, panel placement, responsive input, and basic
    accessibility behavior.
+   4.1. (**COMPLETED**) Contract and shell layout.
+   `TabUIConfig` now defines edit/view-only interaction modes and independent
+   score/side panel visibility and placement. Score controls support top/bottom;
+   side controls support left/right. View-only hides the editing side panel by
+   default, while an explicit visibility setting wins. Supplying
+   `layout.width` remains the fixed-width opt-in. The shell collapses hidden
+   panel tracks and cleans all placement state on disposal. Visible side panels
+   can expose a lifecycle-owned collapse control with configurable initial state;
+   measured layouts reflow on toggle while explicit widths remain fixed. The
+   demo recreates the editor to exercise every Stage 4.1 option. Mutation
+   prevention is deliberately owned by Stage 4.2 rather than inferred from
+   hidden UI. Root DOM, panel rendering, collapse callbacks, and transition
+   lifecycle now follow the component/template/renderer/callback convention;
+   editor snapshots and host events are owned by a dedicated state store.
+   Collapse/expand reflows immediately so notation geometry never trails panel
+   geometry. Ordered cleanup uses a flat `runCleanupSteps()` finalizer utility.
+   4.2. (**NEXT**) View-only enforcement. Prevent all TabUI-originated score,
+   structure, metadata, instrument, and persisted mix mutations at callback,
+   controller, and command boundaries. Preserve selection, non-growing
+   navigation, copy, scrolling, playback/seek/loop, and active-track selection.
+   4.3. Add automatic embedded-container observation for editors without an explicit
+   width. Coalesce resize work, preserve editor/player/selection ownership, and
+   disconnect safely during failed initialization and disposal.
+   4.4. Replace mouse-only notation drag ownership with deliberate pointer/touch
+   behavior. Preserve mouse and touchpad behavior and keep phone-specific editing
+   UX deferred to P2.
+   4.5. Remove keyboard focus traps and add basic names, roles, labels, focus order,
+   activation, pressed/disabled state, dialog focus behavior, and an explicit
+   accessibility boundary for notation SVG.
+   4.6. Validate desktop, tablet, touch, resize, embedding, view-only, package, and
+   demo behavior. Add browser automation where unit fakes cannot verify CSS,
+   focus, accessibility trees, pointer behavior, or native dialogs.
 5. Revisit Element architecture, cross-track widths, and single-line mode only
    when profiling or a release requirement justifies them.
 6. Apply final visual/icon polish, performance budgets, package/browser gates,
