@@ -60,6 +60,7 @@ function createHarness(rootElement: FakeRootElement = createRootElement()) {
       startPlayer: jest.fn(),
       stopPlayer: jest.fn(),
       isPlaying: false,
+      editingEnabled: true,
       copy: jest.fn(),
       paste: jest.fn(),
       deleteSelectedBeats: jest.fn(),
@@ -116,31 +117,31 @@ describe("EditorKeyboardDefCallbacks", () => {
     const { callbacks, notationComponent, renderFunc } =
       createHarness(createRootElement());
 
-    callbacks.ctrlCEvent(createKeyboardEvent("c"));
+    callbacks.copyEvent();
     expect(notationComponent.trackController.copy).toHaveBeenCalledTimes(1);
     expect(renderFunc).not.toHaveBeenCalled();
 
-    callbacks.ctrlVEvent(createKeyboardEvent("v"));
+    callbacks.pasteEvent();
     expect(notationComponent.trackController.paste).toHaveBeenCalledTimes(1);
 
-    callbacks.ctrlZEvent(createKeyboardEvent("z"));
+    callbacks.undoEvent();
     expect(notationComponent.trackController.undo).toHaveBeenCalledTimes(1);
 
-    callbacks.ctrlYEvent(createKeyboardEvent("y"));
+    callbacks.redoEvent();
     expect(notationComponent.trackController.redo).toHaveBeenCalledTimes(1);
 
-    callbacks.deleteEvent(createKeyboardEvent("Delete"));
+    callbacks.deleteSelectionEvent();
     expect(
       notationComponent.trackController.deleteSelectedBeats
     ).toHaveBeenCalledTimes(1);
 
-    callbacks.spaceEvent(createKeyboardEvent(" "));
+    callbacks.togglePlaybackEvent();
     expect(notationComponent.trackController.startPlayer).toHaveBeenCalledTimes(
       1
     );
 
     notationComponent.trackController.isPlaying = true;
-    callbacks.spaceEvent(createKeyboardEvent(" "));
+    callbacks.togglePlaybackEvent();
     expect(notationComponent.trackController.stopPlayer).toHaveBeenCalledTimes(
       1
     );
@@ -174,11 +175,61 @@ describe("EditorKeyboardDefCallbacks", () => {
     );
   });
 
+  test("view-only dispatches only non-mutating keyboard actions", () => {
+    const {
+      callbacks,
+      notationComponent,
+      rootElement,
+      uiComponent,
+      renderFunc,
+    } = createHarness();
+    callbacks.bind();
+    rootElement.dispatch("focusin");
+    notationComponent.trackController.editingEnabled = false;
+    notationComponent.trackController.hasSelectedNote = true;
+    callbacks.onKeyDown(createKeyboardEvent("c", { ctrlKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("v", { ctrlKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("z", { ctrlKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("y", { ctrlKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("v", { shiftKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("p", { shiftKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("b", { shiftKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("Delete"));
+    callbacks.onKeyDown(createKeyboardEvent("7"));
+    callbacks.onKeyDown(createKeyboardEvent("Backspace"));
+    callbacks.onKeyDown(createKeyboardEvent("ArrowRight"));
+    callbacks.onKeyDown(createKeyboardEvent(" "));
+
+    expect(notationComponent.trackController.copy).toHaveBeenCalledTimes(1);
+    expect(notationComponent.trackController.paste).not.toHaveBeenCalled();
+    expect(notationComponent.trackController.undo).not.toHaveBeenCalled();
+    expect(notationComponent.trackController.redo).not.toHaveBeenCalled();
+    expect(
+      notationComponent.trackController.deleteSelectedBeats
+    ).not.toHaveBeenCalled();
+    expect(
+      notationComponent.trackController.setTechnique
+    ).not.toHaveBeenCalled();
+    expect(
+      notationComponent.trackController.setSelectedNoteFret
+    ).not.toHaveBeenCalled();
+    expect(
+      uiComponent.sideComponent.techniqueControlsComponent.showBendControls
+    ).not.toHaveBeenCalled();
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenCalledWith(SelectedMoveDirection.Right);
+    expect(notationComponent.trackController.startPlayer).toHaveBeenCalledTimes(
+      1
+    );
+    expect(renderFunc).toHaveBeenCalledTimes(2);
+  });
+
   test("technique shortcuts respect selection and bend shortcut opens bend controls", () => {
     const { callbacks, uiComponent, notationComponent, renderFunc } =
       createHarness(createRootElement());
 
-    callbacks.setTechnique(GuitarTechniqueType.Vibrato);
+    callbacks.vibratoEvent();
     expect(
       notationComponent.trackController.setTechnique
     ).not.toHaveBeenCalled();
@@ -188,9 +239,9 @@ describe("EditorKeyboardDefCallbacks", () => {
     };
     notationComponent.trackController.hasSelectedNote = true;
 
-    callbacks.shiftVEvent(createKeyboardEvent("V", { shiftKey: true }));
-    callbacks.shiftPEvent(createKeyboardEvent("P", { shiftKey: true }));
-    callbacks.shiftBEvent(createKeyboardEvent("B", { shiftKey: true }));
+    callbacks.vibratoEvent();
+    callbacks.palmMuteEvent();
+    callbacks.bendEvent();
 
     expect(
       notationComponent.trackController.setTechnique
@@ -214,24 +265,24 @@ describe("EditorKeyboardDefCallbacks", () => {
     const getTimeSpy = jest.spyOn(Date.prototype, "getTime");
 
     getTimeSpy.mockReturnValueOnce(1000);
-    callbacks.onNumberDown("1");
+    callbacks.fretInputEvent("1");
     expect(
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenNthCalledWith(1, 1);
 
     getTimeSpy.mockReturnValueOnce(1100);
-    callbacks.onNumberDown("2");
+    callbacks.fretInputEvent("2");
     expect(
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenNthCalledWith(2, 12);
 
     getTimeSpy.mockReturnValueOnce(1500);
-    callbacks.onNumberDown("3");
+    callbacks.fretInputEvent("3");
     expect(
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenNthCalledWith(3, 3);
 
-    callbacks.onNumberDown("x");
+    callbacks.fretInputEvent("x");
     expect(
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenCalledTimes(3);
@@ -246,10 +297,10 @@ describe("EditorKeyboardDefCallbacks", () => {
     };
     notationComponent.trackController.hasSelectedNote = true;
 
-    callbacks.onArrowDown("arrowdown");
-    callbacks.onArrowDown("arrowup");
-    callbacks.onArrowDown("arrowleft");
-    callbacks.onArrowDown("arrowright");
+    callbacks.moveSelectionEvent("arrowdown");
+    callbacks.moveSelectionEvent("arrowup");
+    callbacks.moveSelectionEvent("arrowleft");
+    callbacks.moveSelectionEvent("arrowright");
     expect(
       notationComponent.trackController.moveSelectedNote
     ).toHaveBeenNthCalledWith(1, SelectedMoveDirection.Down);
@@ -263,7 +314,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       notationComponent.trackController.moveSelectedNote
     ).toHaveBeenNthCalledWith(4, SelectedMoveDirection.Right);
 
-    callbacks.onBackspacePress();
+    callbacks.clearFretEvent();
     expect(
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenCalledWith(null);
@@ -271,7 +322,7 @@ describe("EditorKeyboardDefCallbacks", () => {
     notationComponent.trackController.selectedNote = {
       note: { noteValue: NoteValue.None },
     };
-    callbacks.onBackspacePress();
+    callbacks.clearFretEvent();
     expect(
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenCalledTimes(1);
@@ -282,22 +333,22 @@ describe("EditorKeyboardDefCallbacks", () => {
     const { callbacks, rootElement } = createHarness(createRootElement());
     callbacks.bind();
     rootElement.dispatch("focusin");
-    const ctrlCSpy = jest.spyOn(callbacks, "ctrlCEvent");
-    const shiftBSpy = jest.spyOn(callbacks, "shiftBEvent");
-    const deleteSpy = jest.spyOn(callbacks, "deleteEvent");
-    const numberSpy = jest.spyOn(callbacks, "onNumberDown");
-    const arrowSpy = jest.spyOn(callbacks, "onArrowDown");
-    const backspaceSpy = jest.spyOn(callbacks, "onBackspacePress");
-    const spaceSpy = jest.spyOn(callbacks, "spaceEvent");
+    const copySpy = jest.spyOn(callbacks, "copyEvent");
+    const bendSpy = jest.spyOn(callbacks, "bendEvent");
+    const deleteSpy = jest.spyOn(callbacks, "deleteSelectionEvent");
+    const fretSpy = jest.spyOn(callbacks, "fretInputEvent");
+    const moveSpy = jest.spyOn(callbacks, "moveSelectionEvent");
+    const clearFretSpy = jest.spyOn(callbacks, "clearFretEvent");
+    const playbackSpy = jest.spyOn(callbacks, "togglePlaybackEvent");
 
     const ctrlC = createKeyboardEvent("C", { ctrlKey: true });
     callbacks.onKeyDown(ctrlC);
-    expect(ctrlCSpy).toHaveBeenCalledTimes(1);
+    expect(copySpy).toHaveBeenCalledTimes(1);
     expect(ctrlC.preventDefault).toHaveBeenCalledTimes(1);
 
     const shiftB = createKeyboardEvent("B", { shiftKey: true });
     callbacks.onKeyDown(shiftB);
-    expect(shiftBSpy).toHaveBeenCalledTimes(1);
+    expect(bendSpy).toHaveBeenCalledTimes(1);
     expect(shiftB.preventDefault).toHaveBeenCalledTimes(1);
 
     const deleteEvent = createKeyboardEvent("Delete");
@@ -305,16 +356,16 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(deleteSpy).toHaveBeenCalledTimes(1);
 
     callbacks.onKeyDown(createKeyboardEvent("7"));
-    expect(numberSpy).toHaveBeenCalledWith("7");
+    expect(fretSpy).toHaveBeenCalledWith("7");
 
     callbacks.onKeyDown(createKeyboardEvent("ArrowLeft"));
-    expect(arrowSpy).toHaveBeenCalledWith("arrowleft");
+    expect(moveSpy).toHaveBeenCalledWith("arrowleft");
 
     callbacks.onKeyDown(createKeyboardEvent("Backspace"));
-    expect(backspaceSpy).toHaveBeenCalledTimes(1);
+    expect(clearFretSpy).toHaveBeenCalledTimes(1);
 
     callbacks.onKeyDown(createKeyboardEvent(" "));
-    expect(spaceSpy).toHaveBeenCalledTimes(1);
+    expect(playbackSpy).toHaveBeenCalledTimes(1);
 
     const functionKey = createKeyboardEvent("F2");
     callbacks.onKeyDown(functionKey);

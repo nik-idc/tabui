@@ -1,6 +1,5 @@
 import { TrackController as BaseTrackController } from "../../src/notation/controller/track-controller";
 import { ScorePlayer } from "../../src/player";
-import { AppendBeatCommand } from "../../src/notation/controller/editor/command/append-beat-command";
 import { BeatElement } from "../../src/notation/controller/element/beat/beat-element";
 import {
   BendTechniqueOptions,
@@ -14,7 +13,9 @@ import {
   NoteDuration,
   NoteValue,
   Score,
+  TrackInstrumentChangeMode,
   VoiceBar,
+  serializeScore,
 } from "../../src/notation/model";
 import { SelectedMoveDirection } from "../../src/notation/controller/selection/selected-note";
 import { BarElement } from "../../src/notation/controller/element/bar/bar-element";
@@ -299,6 +300,58 @@ describe("TrackController", () => {
     for (const spy of spies) {
       expect(spy).not.toHaveBeenCalled();
     }
+  });
+
+  test("view-only preserves the complete score document", () => {
+    const { score, track } = createScoreGraph();
+    const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
+    const controller = new BaseTrackController(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      undefined,
+      false
+    );
+    const before = serializeScore(score);
+
+    controller.setScoreName(score, "Blocked");
+    controller.setMasterVolume(score, 0.25);
+    controller.setMasterPan(score, -0.5);
+    controller.addTrack(score, new Guitar(), "Blocked");
+    controller.removeTrack(score, secondTrack);
+    controller.moveTrack(track, 1);
+    controller.setTrackName(track, "Blocked");
+    controller.setTrackVolume(track, 0.25);
+    controller.setTrackPan(track, -0.5);
+    controller.toggleTrackMuted(track);
+    controller.toggleTrackSoloed(track);
+    controller.setTrackInstrument(
+      track,
+      new Guitar(),
+      TrackInstrumentChangeMode.KeepFrets
+    );
+    controller.undo();
+    controller.redo();
+    controller.setSelectedNoteFret(3);
+    controller.setDuration(NoteDuration.Half);
+    controller.setSelectedBeatRest();
+    controller.setDots(1);
+    controller.setSelectedBeatsTuplet(3, 2);
+    controller.setSelectedBarTempo(90);
+    controller.setSelectedBarTimeSignature(3, NoteDuration.Quarter);
+    controller.setSelectedBarRepeatStatus(BarRepeatStatus.Start);
+    controller.setTechnique(GuitarTechniqueType.Vibrato);
+    controller.paste();
+    controller.deleteSelectedBeats();
+    controller.insertBeatBeforeSelected();
+    controller.insertBeatAfterSelected();
+    controller.removeSelectedBeat();
+    controller.setActiveVoiceNumber(2);
+    controller.insertBarBeforeSelected();
+    controller.insertBarAfterSelected();
+    controller.removeSelectedBar();
+
+    expect(controller.editingEnabled).toBe(false);
+    expect(serializeScore(score)).toEqual(before);
   });
 
   test("playback seek clears edit selection and restarts from the target beat", () => {
@@ -1020,21 +1073,6 @@ describe("TrackController", () => {
     expect(voiceBar.beats).toHaveLength(1);
     expect(voiceBar.beats[0].isRest()).toBe(true);
     expect(controller.selectionBeats).toHaveLength(0);
-  });
-
-  test("undo works for a directly executed append-beat command", () => {
-    const { track, bar } = createScoreGraph();
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 in test bar");
-    }
-
-    controller.commandManager.execute(new AppendBeatCommand(voiceBar));
-    expect(voiceBar.beats).toHaveLength(2);
-
-    controller.undo();
-    expect(voiceBar.beats).toHaveLength(1);
   });
 
   test("setDuration changes only the selected note beat", () => {

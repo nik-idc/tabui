@@ -29,7 +29,7 @@ describe("ScoreControlsDefaultCallbacks", () => {
     const renderer = Object.create(ScoreControlsTemplateRenderer.prototype);
     renderer.template = { newTrackButton, scoreNameInput };
     renderer.notationComponent = {
-      trackController: { isPlaying: true },
+      trackController: { isPlaying: true, editingEnabled: true },
     };
     renderer.assetsPath = { baseUrl: "", variant: "light" };
     renderer._currentScoreName = "Score";
@@ -124,8 +124,12 @@ describe("ScoreControlsDefaultCallbacks", () => {
     expect(score.masterVolume).toBe(0.75);
     expect(score.masterPan).toBe(-0.5);
     expect(
-      notationComponent.trackController.syncMasterPlaybackState
-    ).toHaveBeenCalledTimes(2);
+      notationComponent.trackController.setMasterVolume
+    ).toHaveBeenCalledWith(score, 0.75);
+    expect(notationComponent.trackController.setMasterPan).toHaveBeenCalledWith(
+      score,
+      -0.5
+    );
     expect(captureKeyboard).toHaveBeenCalledTimes(2);
     expect(score.name).toBe("New Name");
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
@@ -178,6 +182,9 @@ describe("ScoreControlsDefaultCallbacks", () => {
     };
     const renderer = Object.create(ScoreControlsTemplateRenderer.prototype);
     renderer.template = { masterVolumeInput, masterPanningInput };
+    renderer.notationComponent = {
+      trackController: { editingEnabled: true },
+    };
 
     renderer.renderMasterVolumeInput({ masterVolume: 0.7 });
     renderer.renderMasterPanningInput({ masterPan: -0.25 });

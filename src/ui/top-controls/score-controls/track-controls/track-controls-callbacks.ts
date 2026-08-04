@@ -50,7 +50,8 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   onTrackRemoveClicked(): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
       return;
     }
     this._captureKeyboard();
@@ -71,22 +72,27 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   private moveTrack(offset: number): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
       return;
     }
     const track = this._trackComponent.track;
     const trackIndex = this._notationComponent.score.tracks.indexOf(track);
     const targetIndex = trackIndex + offset;
-    this._notationComponent.trackController.moveTrack(track, targetIndex);
-    this._renderFunc();
+    if (this._notationComponent.trackController.moveTrack(track, targetIndex)) {
+      this._renderFunc();
+    }
   }
 
   onTrackNameChanged(): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
       return;
     }
-    this._trackComponent.track.name =
-      this._trackComponent.template.trackNameInput.value;
+    this._notationComponent.trackController.setTrackName(
+      this._trackComponent.track,
+      this._trackComponent.template.trackNameInput.value
+    );
   }
 
   onTrackNameFocusGained(): void {
@@ -99,32 +105,43 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
 
   onTrackVolumeChanged(event: InputEvent): void {
     const input = event.target as HTMLInputElement;
-    this._trackComponent.track.volume = Number(input.value) / 100;
-    this._notationComponent.trackController.syncTrackPlaybackState();
+    this._notationComponent.trackController.setTrackVolume(
+      this._trackComponent.track,
+      Number(input.value) / 100
+    );
   }
 
   onTrackPanningChanged(event: InputEvent): void {
     const input = event.target as HTMLInputElement;
-    this._trackComponent.track.pan = Number(input.value);
-    this._notationComponent.trackController.syncTrackPlaybackState();
+    this._notationComponent.trackController.setTrackPan(
+      this._trackComponent.track,
+      Number(input.value)
+    );
   }
 
   onMuteButtonClicked(): void {
-    const track = this._trackComponent.track;
-    track.muted = !track.muted;
-    this._notationComponent.trackController.syncTrackPlaybackState();
-    this._renderFunc();
+    if (
+      this._notationComponent.trackController.toggleTrackMuted(
+        this._trackComponent.track
+      )
+    ) {
+      this._renderFunc();
+    }
   }
 
   onSoloButtonClicked(): void {
-    const track = this._trackComponent.track;
-    track.soloed = !track.soloed;
-    this._notationComponent.trackController.syncTrackPlaybackState();
-    this._renderFunc();
+    if (
+      this._notationComponent.trackController.toggleTrackSoloed(
+        this._trackComponent.track
+      )
+    ) {
+      this._renderFunc();
+    }
   }
 
   onTrackSettingsClicked(): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
       return;
     }
     this._captureKeyboard();

@@ -149,6 +149,76 @@ describe("SelectedNote", () => {
     expect(selectedNote.beatIndex).toBe(0);
   });
 
+  test("view-only moveRight selects the closest existing voice", () => {
+    const { score, bar } = createScoreGraph();
+    const voiceBar = bar.insertVoiceBar(3);
+    score.appendMasterBar(DEFAULT_MASTER_BAR, 1);
+    const nextBar = bar.staff.bars[1];
+    nextBar.removeVoiceBar(3);
+    nextBar.insertVoiceBar(4);
+    voiceBar.appendBeats();
+    voiceBar.appendBeats();
+    voiceBar.appendBeats();
+    const selectedNote = new SelectedNote(voiceBar.beats[3], 0);
+
+    selectedNote.moveRight(false);
+
+    expect(selectedNote.bar).toBe(nextBar);
+    expect(selectedNote.voiceNumber).toBe(4);
+    expect(nextBar.getVoiceBar(3)).toBeNull();
+  });
+
+  test("view-only sparse voice ties prefer the lower voice number", () => {
+    const { score, bar } = createScoreGraph();
+    const voiceBar = bar.insertVoiceBar(3);
+    score.appendMasterBar(DEFAULT_MASTER_BAR, 2);
+    const nextBar = bar.staff.bars[1];
+    nextBar.removeVoiceBar(3);
+    nextBar.insertVoiceBar(4);
+    voiceBar.appendBeats();
+    voiceBar.appendBeats();
+    voiceBar.appendBeats();
+    const selectedNote = new SelectedNote(voiceBar.beats[3], 0);
+
+    selectedNote.moveRight(false);
+
+    expect(selectedNote.voiceNumber).toBe(2);
+  });
+
+  test("view-only moveLeft selects the closest existing voice", () => {
+    const { score, bar } = createScoreGraph();
+    bar.insertVoiceBar(1);
+    bar.insertVoiceBar(4);
+    score.appendMasterBar(DEFAULT_MASTER_BAR, 3);
+    const nextBar = bar.staff.bars[1];
+    const voiceBar = nextBar.getVoiceBar(3);
+    if (voiceBar === null) {
+      throw Error("Expected voice 3 bar");
+    }
+    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+
+    selectedNote.moveLeft(false);
+
+    expect(selectedNote.bar).toBe(bar);
+    expect(selectedNote.voiceNumber).toBe(4);
+    expect(bar.getVoiceBar(3)).toBeNull();
+  });
+
+  test("view-only moveRight does not grow the final bar", () => {
+    const { bar } = createScoreGraph();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 bar");
+    }
+    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+
+    const result = selectedNote.moveRight(false);
+
+    expect(result.result).toBe(MoveRightResult.Nothing);
+    expect(voiceBar.beats).toHaveLength(1);
+    expect(selectedNote.beatIndex).toBe(0);
+  });
+
   test("moveUp and moveDown wrap between first and last note indices", () => {
     const { bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);

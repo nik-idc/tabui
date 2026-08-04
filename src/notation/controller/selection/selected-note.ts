@@ -100,10 +100,31 @@ export class SelectedNote {
     this._noteIndex = newnoteIndex;
   }
 
+  private getClosestVoiceBar(bar: Bar): VoiceBar {
+    const voiceBars = bar.voiceBarsAsArray;
+    let closest = voiceBars[0];
+    for (let i = 1; i < voiceBars.length; i++) {
+      const candidate = voiceBars[i];
+      const closestDistance = Math.abs(closest.voiceNumber - this._voiceNumber);
+      const candidateDistance = Math.abs(
+        candidate.voiceNumber - this._voiceNumber
+      );
+      if (candidateDistance < closestDistance) {
+        closest = candidate;
+      } else if (
+        candidateDistance === closestDistance &&
+        candidate.voiceNumber < closest.voiceNumber
+      ) {
+        closest = candidate;
+      }
+    }
+    return closest;
+  }
+
   /**
    * Move selected note left (or to the last note of the previous bar)
    */
-  public moveLeft(): void {
+  public moveLeft(editingEnabled: boolean = true): void {
     // If not first bar beat
     if (this._beatIndex !== 0) {
       this._beatIndex--;
@@ -115,19 +136,26 @@ export class SelectedNote {
       return;
     }
 
-    // Move to the left bar
+    const previousBar = this.staff.bars[this._barIndex - 1];
+    if (!editingEnabled) {
+      const closestVoiceBar = this.getClosestVoiceBar(previousBar);
+      this._voiceNumber = closestVoiceBar.voiceNumber;
+      this._beatIndex = closestVoiceBar.beats.length - 1;
+    } else {
+      this._beatIndex =
+        (previousBar.getVoiceBar(this._voiceNumber)?.beats ?? [0]).length - 1;
+    }
     this._barIndex--;
-    this._beatIndex =
-      (this.bar.getVoiceBar(this._voiceNumber)?.beats ?? [0]).length - 1;
   }
 
   /**
    * Move selected note right (or to the first note of the next bar)
    * @returns A move right result
    */
-  public moveRight(): MoveRightOutput {
+  public moveRight(editingEnabled: boolean = true): MoveRightOutput {
     // Check if can add beats to the bar
     if (
+      editingEnabled &&
       this._beatIndex === this.voiceBar.beats.length - 1 &&
       (!this.voiceBar.checkDurationsFit() || this.voiceBar.isEmpty()) &&
       this.voiceBar.getActualBarDuration() <
@@ -153,6 +181,10 @@ export class SelectedNote {
 
     // Can't move to next beat OR add more beats, move to the next bar
     if (this._barIndex !== this.staff.bars.length - 1) {
+      if (!editingEnabled) {
+        const nextBar = this.staff.bars[this._barIndex + 1];
+        this._voiceNumber = this.getClosestVoiceBar(nextBar).voiceNumber;
+      }
       this._barIndex++;
       this._beatIndex = 0;
 
@@ -160,8 +192,13 @@ export class SelectedNote {
       return { result: this._lastMoveRightResult, addedBar: false };
     }
 
-    this._lastMoveRightResult = MoveRightResult.AddedBar;
-    return { result: this._lastMoveRightResult, addedBar: true };
+    if (editingEnabled) {
+      this._lastMoveRightResult = MoveRightResult.AddedBar;
+      return { result: this._lastMoveRightResult, addedBar: true };
+    }
+
+    this._lastMoveRightResult = MoveRightResult.Nothing;
+    return { result: this._lastMoveRightResult, addedBar: false };
   }
 
   /**
@@ -249,6 +286,10 @@ export class SelectedNote {
   /** Selected note's string number */
   public get noteIndex(): number {
     return this._noteIndex;
+  }
+
+  public get voiceNumber(): VoiceNumber {
+    return this._voiceNumber;
   }
 
   /** Selected beat id */

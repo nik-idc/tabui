@@ -119,22 +119,23 @@ export class TrackSettingsControlsComponent {
     this.render();
   }
 
-  public applyTrackSettings(): void {
+  public makeInstrument(): Guitar {
     if (!isStringInstrumentType(this._instrumentType)) {
       throw new Error("Unsupported instrument selection");
     }
 
     const tuning = parseTuningStrSimple(this._tuning);
-    this._track.setInstrument(
-      new Guitar(
-        this._instrumentType,
-        this._instrumentTone,
-        this._track.name,
-        this._stringCount,
-        tuning
-      ),
-      this._tuningChangeMode
+    return new Guitar(
+      this._instrumentType,
+      this._instrumentTone,
+      this._track.name,
+      this._stringCount,
+      tuning
     );
+  }
+
+  public get tuningChangeMode(): TrackInstrumentChangeMode {
+    return this._tuningChangeMode;
   }
 
   public setTuning(tuning: string): void {

@@ -111,7 +111,8 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   }
 
   onConfirmClicked(): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
       this._newTrackComponent.template.dialog.close();
       return;
     }
@@ -119,7 +120,16 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     if (this._newTrackComponent.template.confirmButton.disabled) {
       return;
     }
-    this._notationComponent.loadTrack(this._newTrackComponent.makeTrack());
+    const track = this._notationComponent.trackController.addTrack(
+      this._notationComponent.score,
+      this._newTrackComponent.makeInstrument(),
+      this._newTrackComponent.trackName
+    );
+    if (track === undefined) {
+      this._newTrackComponent.template.dialog.close();
+      return;
+    }
+    this._notationComponent.loadTrack(track);
     this._renderFunc();
 
     this._newTrackComponent.template.dialog.close();

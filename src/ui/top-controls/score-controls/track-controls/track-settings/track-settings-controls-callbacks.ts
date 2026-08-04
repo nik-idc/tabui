@@ -88,11 +88,20 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   }
 
   onConfirmClicked(): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
       this._trackSettingsComponent.template.dialog.close();
       return;
     }
-    this._trackSettingsComponent.applyTrackSettings();
+    const changed = this._notationComponent.trackController.setTrackInstrument(
+      this._trackSettingsComponent.track,
+      this._trackSettingsComponent.makeInstrument(),
+      this._trackSettingsComponent.tuningChangeMode
+    );
+    if (!changed) {
+      this._trackSettingsComponent.template.dialog.close();
+      return;
+    }
     if (
       this._notationComponent.trackController.track ===
       this._trackSettingsComponent.track

@@ -75,7 +75,8 @@ export class TrackControlsTemplateRenderer {
       "tu-track-move-up-button"
     );
     this.template.moveUpButton.textContent = "▲";
-    const editingDisabled = this.notationComponent.trackController.isPlaying;
+    const controller = this.notationComponent.trackController;
+    const editingDisabled = !controller.editingEnabled || controller.isPlaying;
     this.template.moveUpButton.disabled = editingDisabled || trackIndex <= 0;
     this.template.moveUpButton.title = "Move track up";
     this.template.moveUpButton.setAttribute("aria-label", "Move track up");
@@ -97,14 +98,16 @@ export class TrackControlsTemplateRenderer {
     const cssClass = "tu-track-name-input";
     this.template.trackNameInput.classList.add(cssClass);
     this.template.trackNameInput.value = this.track.name;
+    const controller = this.notationComponent.trackController;
     this.template.trackNameInput.disabled =
-      this.notationComponent.trackController.isPlaying;
+      !controller.editingEnabled || controller.isPlaying;
   }
 
   private renderRemoveButton(): void {
     const cssClass = "tu-track-remove-button";
     this.template.removeButton.classList.add(cssClass);
     this.template.removeButton.disabled =
+      !this.notationComponent.trackController.editingEnabled ||
       this.notationComponent.trackController.isPlaying ||
       this.notationComponent.score.tracks.length <= 1;
     this.template.removeButton.title = this.template.removeButton.disabled
@@ -132,6 +135,8 @@ export class TrackControlsTemplateRenderer {
     this.template.volumeInput.step = `${volumeStep}`;
 
     this.template.volumeInput.value = `${this.track.volume * maxVolume}`;
+    this.template.volumeInput.disabled =
+      !this.notationComponent.trackController.editingEnabled;
   }
 
   private renderPanningInput(): void {
@@ -143,6 +148,8 @@ export class TrackControlsTemplateRenderer {
     this.template.panningInput.step = `${panningStep}`;
 
     this.template.panningInput.value = `${this.track.pan}`;
+    this.template.panningInput.disabled =
+      !this.notationComponent.trackController.editingEnabled;
   }
 
   private renderMuteButton(): void {
@@ -168,6 +175,12 @@ export class TrackControlsTemplateRenderer {
   }
 
   private renderPlaybackState(): void {
+    const editingDisabled =
+      !this.notationComponent.trackController.editingEnabled;
+    for (const button of [this.template.muteButton, this.template.soloButton]) {
+      button.classList.toggle("tu-disabled-img", editingDisabled);
+      button.setAttribute("aria-disabled", `${editingDisabled}`);
+    }
     this.template.muteButton.classList.toggle(
       "tu-track-control-active",
       this.track.muted
@@ -195,7 +208,8 @@ export class TrackControlsTemplateRenderer {
       "img/ui/settings.svg",
       "Track settings"
     );
-    const editingDisabled = this.notationComponent.trackController.isPlaying;
+    const controller = this.notationComponent.trackController;
+    const editingDisabled = !controller.editingEnabled || controller.isPlaying;
     this.template.settingsButton.classList.toggle(
       "tu-disabled-img",
       editingDisabled

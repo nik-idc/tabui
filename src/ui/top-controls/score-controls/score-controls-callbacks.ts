@@ -98,7 +98,8 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   onNewTrackButtonClicked(): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
       return;
     }
     this._captureKeyboard();
@@ -106,24 +107,28 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   onMasterVolumeChanged(): void {
-    this._scoreComponent.score.masterVolume =
-      Number(this._scoreComponent.template.masterVolumeInput.value) / 100;
-    this._notationComponent.trackController.syncMasterPlaybackState();
+    this._notationComponent.trackController.setMasterVolume(
+      this._scoreComponent.score,
+      Number(this._scoreComponent.template.masterVolumeInput.value) / 100
+    );
   }
 
   onMasterPanningChanged(): void {
-    this._scoreComponent.score.masterPan = Number(
-      this._scoreComponent.template.masterPanningInput.value
+    this._notationComponent.trackController.setMasterPan(
+      this._scoreComponent.score,
+      Number(this._scoreComponent.template.masterPanningInput.value)
     );
-    this._notationComponent.trackController.syncMasterPlaybackState();
   }
 
   onScoreNameChanged(): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
       return;
     }
-    this._scoreComponent.score.name =
-      this._scoreComponent.template.scoreNameInput.value;
+    this._notationComponent.trackController.setScoreName(
+      this._scoreComponent.score,
+      this._scoreComponent.template.scoreNameInput.value
+    );
   }
 
   onScoreNameFocusGained(): void {

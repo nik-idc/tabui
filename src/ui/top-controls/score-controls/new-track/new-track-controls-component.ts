@@ -126,24 +126,18 @@ export class NewTrackControlsComponent {
     this.render();
   }
 
-  public makeTrack(): Track {
+  public makeInstrument(): Guitar {
     if (!isStringInstrumentType(this._instrumentType)) {
       throw new Error("Unsupported instrument selection");
     }
 
-    const instrument = new Guitar(
+    return new Guitar(
       this._instrumentType,
       this._instrumentTone,
       this._trackName,
       this._stringCount,
       parseTuningStrSimple(this._tuning)
     );
-
-    const output = this.notationComponent.score.addTrack(
-      instrument,
-      this._trackName
-    );
-    return output.tracks[0];
   }
 
   public get instrumentFamily(): InstrumentFamily {

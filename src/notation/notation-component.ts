@@ -6,7 +6,7 @@ import {
 } from "./render";
 import { ElementRenderer } from "./render/element-renderer";
 import { TrackController } from "./controller";
-import { ResolvedTabUIConfig } from "../config/tabui-config";
+import { ResolvedTabUIConfig, TabUIEditorMode } from "../config/tabui-config";
 import { EditorLayoutDimensions } from "./controller/editor-layout-dimensions";
 import { PlaybackErrorListener, ScorePlayer } from "../player";
 
@@ -59,7 +59,8 @@ export class NotationComponent {
     this._trackController = new TrackController(
       this.score.tracks[0],
       this.layoutDimensions,
-      this._scorePlayer
+      this._scorePlayer,
+      this.config.interaction.mode === TabUIEditorMode.Edit
     );
     this._renderer =
       renderer === undefined
@@ -93,7 +94,8 @@ export class NotationComponent {
     const newTrackController = new TrackController(
       newTrack,
       this.layoutDimensions,
-      this._scorePlayer
+      this._scorePlayer,
+      this.config.interaction.mode === TabUIEditorMode.Edit
     );
     this._trackController = newTrackController;
     const renderer = new EditorSVGRenderer(
@@ -136,9 +138,11 @@ export class NotationComponent {
    * @param track Track to remove
    * @returns Active renderers
    */
-  public removeTrack(track: Track): ElementRenderer[] {
-    const trackIndex = this.score.tracks.indexOf(track);
-    const newTrack = this.score.removeTrack(trackIndex);
+  public removeTrack(track: Track): ElementRenderer[] | undefined {
+    const newTrack = this._trackController.removeTrack(this.score, track);
+    if (newTrack === undefined) {
+      return undefined;
+    }
 
     return this.loadTrack(newTrack);
   }

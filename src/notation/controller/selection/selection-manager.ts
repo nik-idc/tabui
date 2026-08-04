@@ -84,7 +84,7 @@ export class SelectionManager {
   /**
    * Move selected note left
    */
-  public moveSelectedNoteLeft(): void {
+  public moveSelectedNoteLeft(editingEnabled: boolean = true): void {
     if (this._selectedNote === undefined) {
       throw Error("No note selected");
     }
@@ -106,13 +106,16 @@ export class SelectionManager {
       throw Error("No note selected");
     }
 
-    this._selectedNote.moveLeft();
+    this._selectedNote.moveLeft(editingEnabled);
+    this._activeVoiceNumber = this._selectedNote.voiceNumber;
   }
 
   /**
    * Move selected note right
    */
-  public moveSelectedNoteRight(): MoveRightOutput {
+  public moveSelectedNoteRight(
+    editingEnabled: boolean = true
+  ): MoveRightOutput {
     if (this._selectedNote === undefined) {
       throw Error("No note selected");
     }
@@ -135,7 +138,9 @@ export class SelectionManager {
       throw Error("No note selected");
     }
 
-    return this._selectedNote.moveRight();
+    const output = this._selectedNote.moveRight(editingEnabled);
+    this._activeVoiceNumber = this._selectedNote.voiceNumber;
+    return output;
   }
 
   /**

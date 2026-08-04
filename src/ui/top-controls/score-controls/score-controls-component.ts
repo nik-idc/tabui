@@ -62,7 +62,8 @@ export class ScoreControlsComponent {
     this.newTrackComponent.render();
     this.trackSettingsComponent.render();
     this.trackRemoveComponent.render();
-    const editingDisabled = this.notationComponent.trackController.isPlaying;
+    const controller = this.notationComponent.trackController;
+    const editingDisabled = !controller.editingEnabled || controller.isPlaying;
     const editingDialogs = [
       this.newTrackComponent.template.dialog,
       this.trackSettingsComponent.template.dialog,
@@ -123,14 +124,16 @@ export class ScoreControlsComponent {
   }
 
   public showNewTrackDialog(): void {
-    if (this.notationComponent.trackController.isPlaying) {
+    const controller = this.notationComponent.trackController;
+    if (controller.isPlaying) {
       return;
     }
     this.newTrackComponent.template.dialog.showModal();
   }
 
   public showTrackSettingsDialog(track: Track): void {
-    if (this.notationComponent.trackController.isPlaying) {
+    const controller = this.notationComponent.trackController;
+    if (controller.isPlaying) {
       return;
     }
     this.trackSettingsComponent.setTrack(track);
@@ -139,7 +142,8 @@ export class ScoreControlsComponent {
   }
 
   public showTrackRemoveDialog(track: Track): void {
-    if (this.notationComponent.trackController.isPlaying) {
+    const controller = this.notationComponent.trackController;
+    if (controller.isPlaying) {
       return;
     }
     this._trackToRemove = track;

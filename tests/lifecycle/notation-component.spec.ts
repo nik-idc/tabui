@@ -102,7 +102,12 @@ describe("NotationComponent", () => {
     const notation = new NotationComponent(
       rootDiv,
       score,
-      { assets: {} as any, playback: {} as any, layout: {} as any } as any,
+      {
+        assets: {} as any,
+        playback: {} as any,
+        layout: {} as any,
+        interaction: { mode: "edit" },
+      } as any,
       TEST_LAYOUT_DIMENSIONS
     );
 
@@ -138,7 +143,12 @@ describe("NotationComponent", () => {
     const notation = new NotationComponent(
       { appendChild: jest.fn() } as unknown as HTMLDivElement,
       score,
-      { assets: {} as any, playback: {} as any, layout: {} as any } as any,
+      {
+        assets: {} as any,
+        playback: {} as any,
+        layout: {} as any,
+        interaction: { mode: "edit" },
+      } as any,
       TEST_LAYOUT_DIMENSIONS
     );
     mockPlayers[0].getCurrentBeatForTrack.mockReturnValue(playbackBeat);
@@ -164,7 +174,12 @@ describe("NotationComponent", () => {
     const notation = new NotationComponent(
       { appendChild: jest.fn() } as unknown as HTMLDivElement,
       score,
-      { assets: {} as any, playback: {} as any, layout: {} as any } as any,
+      {
+        assets: {} as any,
+        playback: {} as any,
+        layout: {} as any,
+        interaction: { mode: "edit" },
+      } as any,
       TEST_LAYOUT_DIMENSIONS
     );
 

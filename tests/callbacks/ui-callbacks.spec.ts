@@ -8,7 +8,9 @@ describe("UICallbacks", () => {
   test("side editing controls render inert during playback", () => {
     const container = makeButton() as any;
     const renderer = Object.create(SideControlsTemplateRenderer.prototype);
-    renderer.notationComponent = { trackController: { isPlaying: true } };
+    renderer.notationComponent = {
+      trackController: { isPlaying: true, editingEnabled: true },
+    };
     renderer.template = { container };
     renderer._assembled = true;
 

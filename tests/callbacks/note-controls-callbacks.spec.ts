@@ -97,4 +97,30 @@ describe("NoteControlsDefaultCallbacks", () => {
     tupletBindSpy.mockRestore();
     tupletUnbindSpy.mockRestore();
   });
+
+  test("note callbacks dispatch in view-only mode", () => {
+    const notationComponent = createNotationComponentMock();
+    notationComponent.trackController.editingEnabled = false;
+    const component = {
+      template: { durationButtons: [], voiceButtons: [] },
+      tupletComponent: {},
+      showTupletControls: jest.fn(),
+    } as any;
+    const callbacks = new NoteControlsDefaultCallbacks(
+      component,
+      notationComponent,
+      jest.fn(),
+      jest.fn(),
+      jest.fn(),
+      jest.fn()
+    );
+
+    callbacks.onDurationClicked(NoteDuration.Quarter);
+    callbacks.onTupletClicked();
+
+    expect(notationComponent.trackController.setDuration).toHaveBeenCalledWith(
+      NoteDuration.Quarter
+    );
+    expect(component.showTupletControls).toHaveBeenCalledTimes(1);
+  });
 });

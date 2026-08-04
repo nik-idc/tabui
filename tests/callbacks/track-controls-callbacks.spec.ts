@@ -24,7 +24,7 @@ describe("TrackControlsDefaultCallbacks", () => {
     renderer.template = { removeButton };
     renderer.notationComponent = {
       score: { tracks: new Array(trackCount) },
-      trackController: { isPlaying },
+      trackController: { isPlaying, editingEnabled: true },
     };
     renderer.assetsPath = { baseUrl: "", variant: "light" };
 
@@ -65,7 +65,7 @@ describe("TrackControlsDefaultCallbacks", () => {
     renderer.track = track;
     renderer.notationComponent = {
       score: { tracks: [track, {}] },
-      trackController: { isPlaying: true },
+      trackController: { isPlaying: true, editingEnabled: true },
     };
     renderer.assetsPath = { baseUrl: "", variant: "light" };
 
@@ -130,6 +130,40 @@ describe("TrackControlsDefaultCallbacks", () => {
     expect(showSettings).not.toHaveBeenCalled();
     expect(track.volume).toBe(0.75);
     expect(track.muted).toBe(true);
+  });
+
+  test("persisted mix callbacks dispatch in view-only mode", () => {
+    const notationComponent = createNotationComponentMock();
+    notationComponent.trackController.editingEnabled = false;
+    const track = { volume: 0.5, pan: 0, muted: false, soloed: false };
+    const callbacks = new TrackControlsDefaultCallbacks(
+      { track, template: {} } as any,
+      notationComponent,
+      jest.fn(),
+      jest.fn(),
+      jest.fn(),
+      jest.fn(),
+      jest.fn()
+    );
+
+    callbacks.onTrackVolumeChanged({ target: makeInput("75") } as any);
+    callbacks.onTrackPanningChanged({ target: makeInput("-0.5") } as any);
+    callbacks.onMuteButtonClicked();
+    callbacks.onSoloButtonClicked();
+
+    expect(
+      notationComponent.trackController.setTrackVolume
+    ).toHaveBeenCalledWith(track, 0.75);
+    expect(notationComponent.trackController.setTrackPan).toHaveBeenCalledWith(
+      track,
+      -0.5
+    );
+    expect(
+      notationComponent.trackController.toggleTrackMuted
+    ).toHaveBeenCalledWith(track);
+    expect(
+      notationComponent.trackController.toggleTrackSoloed
+    ).toHaveBeenCalledWith(track);
   });
 
   test("top-level actions dispatch correctly and child callbacks are bound idempotently", () => {
@@ -206,8 +240,12 @@ describe("TrackControlsDefaultCallbacks", () => {
     expect(track.muted).toBe(true);
     expect(track.soloed).toBe(true);
     expect(
-      notationComponent.trackController.syncTrackPlaybackState
-    ).toHaveBeenCalledTimes(4);
+      notationComponent.trackController.setTrackVolume
+    ).toHaveBeenCalledWith(track, 0.75);
+    expect(notationComponent.trackController.setTrackPan).toHaveBeenCalledWith(
+      track,
+      -0.5
+    );
     expect(renderFunc).toHaveBeenCalledTimes(5);
     expect(captureKeyboard).toHaveBeenCalledTimes(3);
     expect(showTrackRemove).toHaveBeenCalledTimes(1);

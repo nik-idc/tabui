@@ -8,12 +8,14 @@ import {
   BarRepeatStatus,
   TechniqueType,
   VoiceNumber,
+  Score,
+  MusicInstrument,
+  TrackInstrumentChangeMode,
 } from "../model";
 import { TrackElement, BeatElement, NoteElement } from "./element";
 import { TrackControllerEditor } from "./editor/track-controller-editor";
 import { Rect } from "../../shared";
 import { SelectedNote, SelectedMoveDirection } from "./selection/selected-note";
-import { CommandManager } from "./editor/command/command-manager";
 import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
@@ -41,13 +43,17 @@ export class TrackController {
   constructor(
     track: Track,
     layoutDimensions: EditorLayoutDimensions,
-    scorePlayer?: ScorePlayer
+    scorePlayer?: ScorePlayer,
+    editingEnabled: boolean = true
   ) {
     this.track = track;
     this.layoutDimensions = layoutDimensions;
 
     this._trackElement = new TrackElement(this.track, this.layoutDimensions);
-    this._trackControllerEditor = new TrackControllerEditor(this._trackElement);
+    this._trackControllerEditor = new TrackControllerEditor(
+      this._trackElement,
+      editingEnabled
+    );
     this._scorePlayer = scorePlayer;
 
     this._trackControllerEditor.selectFirstNote();
@@ -267,11 +273,106 @@ export class TrackController {
     this._scorePlayer?.syncMasterPlaybackState();
   }
 
-  public moveTrack(track: Track, targetIndex: number): void {
+  public moveTrack(track: Track, targetIndex: number): boolean {
     if (this.isPlaying) {
-      return;
+      return false;
     }
-    this.track.score.moveTrack(track, targetIndex);
+    return this._trackControllerEditor.moveTrack(track, targetIndex);
+  }
+
+  public setScoreName(score: Score, name: string): boolean {
+    if (this.isPlaying) {
+      return false;
+    }
+    return this._trackControllerEditor.setScoreName(score, name);
+  }
+
+  public setMasterVolume(score: Score, volume: number): boolean {
+    const changed = this._trackControllerEditor.setMasterVolume(score, volume);
+    if (changed) {
+      this.syncMasterPlaybackState();
+    }
+    return changed;
+  }
+
+  public setMasterPan(score: Score, pan: number): boolean {
+    const changed = this._trackControllerEditor.setMasterPan(score, pan);
+    if (changed) {
+      this.syncMasterPlaybackState();
+    }
+    return changed;
+  }
+
+  public addTrack(
+    score: Score,
+    instrument: MusicInstrument,
+    name: string
+  ): Track | undefined {
+    if (this.isPlaying) {
+      return undefined;
+    }
+    return this._trackControllerEditor.addTrack(score, instrument, name);
+  }
+
+  public removeTrack(score: Score, track: Track): Track | undefined {
+    if (this.isPlaying) {
+      return undefined;
+    }
+    return this._trackControllerEditor.removeTrack(score, track);
+  }
+
+  public setTrackName(track: Track, name: string): boolean {
+    if (this.isPlaying) {
+      return false;
+    }
+    return this._trackControllerEditor.setTrackName(track, name);
+  }
+
+  public setTrackVolume(track: Track, volume: number): boolean {
+    const changed = this._trackControllerEditor.setTrackVolume(track, volume);
+    if (changed) {
+      this.syncTrackPlaybackState();
+    }
+    return changed;
+  }
+
+  public setTrackPan(track: Track, pan: number): boolean {
+    const changed = this._trackControllerEditor.setTrackPan(track, pan);
+    if (changed) {
+      this.syncTrackPlaybackState();
+    }
+    return changed;
+  }
+
+  public toggleTrackMuted(track: Track): boolean {
+    const changed = this._trackControllerEditor.toggleTrackMuted(track);
+    if (changed) {
+      this.syncTrackPlaybackState();
+    }
+    return changed;
+  }
+
+  public toggleTrackSoloed(track: Track): boolean {
+    const changed = this._trackControllerEditor.toggleTrackSoloed(track);
+    if (changed) {
+      this.syncTrackPlaybackState();
+    }
+    return changed;
+  }
+
+  public setTrackInstrument(
+    track: Track,
+    instrument: MusicInstrument,
+    mode: TrackInstrumentChangeMode
+  ): boolean {
+    if (this.isPlaying) {
+      return false;
+    }
+    return this._trackControllerEditor.setTrackInstrument(
+      track,
+      instrument,
+      mode
+    );
   }
 
   /** Undo previous action */
@@ -300,6 +401,10 @@ export class TrackController {
   /** True while score playback is looped. */
   public get isLooped(): boolean {
     return this._scorePlayer?.isLooped ?? false;
+  }
+
+  public get editingEnabled(): boolean {
+    return this._trackControllerEditor.editingEnabled;
   }
 
   /** Currently selected note, or undefined if no note is selected */
@@ -623,11 +728,6 @@ export class TrackController {
   /** Track element */
   public get trackElement(): TrackElement {
     return this._trackElement;
-  }
-
-  /** Command manager (for tests and advanced use) */
-  public get commandManager(): CommandManager {
-    return this._trackControllerEditor.commandManager;
   }
 
   /** Selection manager (for tests and advanced use) */

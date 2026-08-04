@@ -35,6 +35,7 @@ function createNewTrackHarness() {
   const typeButtons = [makeButton(), makeButton(), makeButton(), makeButton()];
   const toneButtons = [makeButton(), makeButton(), makeButton()];
   const madeTrack = { id: 1 };
+  const madeInstrument = { id: 2 };
   const component = {
     template: {
       dialog,
@@ -56,6 +57,7 @@ function createNewTrackHarness() {
       cancelButton,
     },
     stringCount: 6,
+    trackName: "Lead",
     instrumentFamily: InstrumentFamily.Strings,
     instrumentType: StringInstrumentType.ElectricGuitar,
     setFamily: jest.fn(),
@@ -65,9 +67,10 @@ function createNewTrackHarness() {
     shiftStringCount: jest.fn(),
     shiftTuningString: jest.fn(),
     shiftWholeTuning: jest.fn(),
-    makeTrack: jest.fn(() => madeTrack),
+    makeInstrument: jest.fn(() => madeInstrument),
   } as any;
   const notationComponent = createNotationComponentMock();
+  notationComponent.trackController.addTrack.mockReturnValue(madeTrack);
   const renderFunc = jest.fn();
   const captureKeyboard = jest.fn();
   const freeKeyboard = jest.fn();
@@ -134,8 +137,13 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
     dispatchClick(component.template.confirmButton);
+    expect(notationComponent.trackController.addTrack).toHaveBeenCalledWith(
+      notationComponent.score,
+      component.makeInstrument.mock.results[0].value,
+      "Lead"
+    );
     expect(notationComponent.loadTrack).toHaveBeenCalledWith(
-      component.makeTrack.mock.results[0].value
+      notationComponent.trackController.addTrack.mock.results[0].value
     );
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
     expect(component.template.dialog.close).toHaveBeenCalledTimes(1);

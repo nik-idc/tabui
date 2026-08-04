@@ -168,13 +168,18 @@ Stage 4 completed on 2026-08-01:
    editor snapshots and host events are owned by a dedicated state store.
    Collapse/expand reflows immediately so notation geometry never trails panel
    geometry. Ordered cleanup uses a flat `runCleanupSteps()` finalizer utility.
-   4.2. (**NEXT**) View-only enforcement. Prevent all TabUI-originated score,
-   structure, metadata, instrument, and persisted mix mutations at callback,
-   controller, and command boundaries. Preserve selection, non-growing
-   navigation, copy, scrolling, playback/seek/loop, and active-track selection.
-   4.3. Add automatic embedded-container observation for editors without an explicit
-   width. Coalesce resize work, preserve editor/player/selection ownership, and
-   disconnect safely during failed initialization and disposal.
+   4.2. (**COMPLETED**) View-only enforcement. Immutable editing capability is
+   propagated through controller replacement, with `TrackControllerEditor` as
+   the single mutation authority for score structure, notation, metadata,
+   instruments, and persisted mix state. UI controls are presented disabled or
+   inert, while callbacks and public controller methods delegate to that
+   authority. Selection, closest-existing-voice navigation without model growth,
+   copy, scrolling, playback/seek/loop, and active-track selection remain
+   available. Serialized-document regression coverage verifies that the complete
+   score remains unchanged.
+   4.3. (**NEXT**) Add automatic embedded-container observation for editors without
+   an explicit width. Coalesce resize work, preserve editor/player/selection
+   ownership, and disconnect safely during failed initialization and disposal.
    4.4. Replace mouse-only notation drag ownership with deliberate pointer/touch
    behavior. Preserve mouse and touchpad behavior and keep phone-specific editing
    UX deferred to P2.
