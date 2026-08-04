@@ -35,23 +35,85 @@ body {
 }
 
 .demo-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin: 20px 0;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.demo-control-section {
+  min-width: 0;
+  margin: 0;
+  padding: 11px;
+  border: 1px solid var(--tu-border-color, #334155);
+  border-radius: 10px;
+  background: color-mix(
+    in srgb,
+    var(--tu-secondary-color, #1f2937) 35%,
+    transparent
+  );
+}
+
+.demo-control-section legend {
+  padding: 0 8px;
+  color: var(--tu-font-color, #e5eefb);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.demo-control-section-wide {
+  grid-column: 1 / -1;
+}
+
+.demo-control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.demo-setting-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.demo-setting-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid
+    color-mix(in srgb, var(--tu-border-color, #334155) 65%, transparent);
+}
+
+.demo-setting-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.demo-setting-row:last-child {
+  padding-bottom: 0;
+}
+
+.demo-setting-row-title {
+  padding-top: 3px;
+  color: var(--tu-font-color, #e5eefb);
+  font-weight: 700;
 }
 
 .demo-control {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 180px;
+  gap: 4px;
+  min-width: 0;
   font-weight: 600;
   color: var(--tu-font-color, #e5eefb);
 }
 
 .demo-control select {
-  padding: 10px 12px;
+  width: 100%;
+  padding: 8px 10px;
   border: 1px solid var(--tu-border-color, #334155);
   border-radius: 8px;
   background: var(--tu-secondary-color, #1f2937);
@@ -66,12 +128,12 @@ body {
 
 .demo-persistence-actions {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .demo-persistence-actions button {
-  padding: 10px 14px;
+  padding: 8px 11px;
   border: 1px solid var(--tu-border-color, #334155);
   border-radius: 8px;
   background: var(--tu-secondary-color, #1f2937);
@@ -87,7 +149,7 @@ body {
 
 .demo-persistence-status {
   min-height: 24px;
-  margin-bottom: 8px;
+  margin-top: 8px;
   font-weight: 600;
 }
 
@@ -100,13 +162,21 @@ body {
 }
 
 @media (max-width: 640px) {
-  .demo-control,
-  .demo-persistence-actions {
-    width: 100%;
+  .demo-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-control-section-wide {
+    grid-column: auto;
+  }
+
+  .demo-setting-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .demo-persistence-actions button {
-    flex: 1;
+    flex: 1 1 100%;
   }
 }
 
