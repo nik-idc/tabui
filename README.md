@@ -165,6 +165,24 @@ first target integration.
 - Keep `0.5.0` focused on a dependable tablature editor. Sheet and drum notation
   are explicitly deferred.
 
+## CI And Deployment
+
+Pull requests targeting `master` and pushes to `master` run the deterministic
+CI gate through `npm run verify`: tests, package build, packed-consumer validation,
+and demo build. The timing benchmark remains a deliberate local/release check
+rather than a shared-runner CI gate.
+
+Tags matching `v*` run the same gate and upload `demo/dist` through GitHub's
+official Pages artifact workflow. Deployment occurs only after verification
+passes. The repository's GitHub Pages source must be set to **GitHub Actions**.
+Creating and pushing a release tag remains a maintainer action. Protect the
+`github-pages` environment with a required maintainer reviewer when deployment
+approval is desired.
+
+Workflow actions are pinned to immutable commits. Dependabot checks GitHub
+Actions and npm dependencies monthly; npm minor and patch updates are grouped,
+while major updates remain individually reviewable.
+
 ## Roadmap
 
 See `ROADMAP-TO-v0.5.0.md` for the project roadmap and

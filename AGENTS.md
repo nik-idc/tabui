@@ -7,6 +7,7 @@ This document provides practical guidance for AI agents working on the TabUI cod
 ```bash
 npm run build        # Build package ESM/CSS and TypeScript declarations
 npm run benchmark:updates # Run focused-vs-full update benchmark
+npm run verify       # Run deterministic CI and pre-deployment checks
 npm run clean        # Clean build artifacts
 npm run dev          # Start Vite dev server for the editor
 npm run build_vite   # Build the editor with Vite

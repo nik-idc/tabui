@@ -28,11 +28,11 @@
   "scripts": {
     "build": "vite build --config vite.config.lib.js && tsc --build",
     "benchmark:updates": "npx tsx scripts/benchmark-updates.ts",
+    "verify": "npm test && npm run build && npm run test:pack-consumer && npm run build_vite",
     "clean": "rm -rf dist",
     "dev": "vite",
     "build_vite": "vite build",
     "preview_vite": "vite preview",
-    "deploy_vite": "npm run build && git subtree push --prefix demo/dist origin gh-pages",
     "serve_vite": "npx vite",
     "test": "tsc --project tsconfig.test.json && npx jest",
     "test:pack-consumer": "node tests/package/pack-consumer-smoke.mjs",
