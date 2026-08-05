@@ -57,6 +57,12 @@ export class TabUIEditor {
   private _callbacks?: TabUICallbacks;
   /** Whether callback binding began and therefore requires teardown. */
   private _callbacksBound = false;
+  /** Responsive notation viewport observer for auto-width editors. */
+  private _layoutResizeObserver?: ResizeObserver;
+  /** Window resize fallback when ResizeObserver is unavailable. */
+  private _windowResizeHandler?: EventListener;
+  /** Pending coalesced responsive layout refresh. */
+  private _layoutResizeRafId?: number;
   /** Current terminal lifecycle state. */
   private _state: TabUIEditorLifecycleState;
   /** Stable snapshots and instance-scoped host events. */
@@ -158,9 +164,88 @@ export class TabUIEditor {
     this._shellCallbacks.bind();
   }
 
+  /** Queues one layout refresh using the latest measured viewport width. */
+  private scheduleResponsiveLayoutRefresh(): void {
+    if (
+      this._state !== TabUIEditorLifecycleState.Initialized ||
+      this._layoutResizeRafId !== undefined
+    ) {
+      return;
+    }
+
+    this._layoutResizeRafId = requestAnimationFrame(() => {
+      this._layoutResizeRafId = undefined;
+      if (this._state !== TabUIEditorLifecycleState.Initialized) {
+        return;
+      }
+
+      const width = this._shellComponent?.measureAvailableWidth();
+      if (
+        width === undefined ||
+        width < this.config.layout.minWidth ||
+        width === this._layoutDimensions?.WIDTH
+      ) {
+        return;
+      }
+      this.refreshLayout(width);
+    });
+  }
+
+  /** Observes responsive viewport width only when no fixed width is configured. */
+  private initializeResponsiveLayout(): void {
+    if (
+      this.config.layout.width !== undefined ||
+      this._shellComponent === undefined
+    ) {
+      return;
+    }
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(() =>
+        this.scheduleResponsiveLayoutRefresh()
+      );
+      this._layoutResizeObserver = observer;
+      observer.observe(this._shellComponent.template.notationViewport);
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      this._windowResizeHandler = () => this.scheduleResponsiveLayoutRefresh();
+      window.addEventListener("resize", this._windowResizeHandler);
+    }
+  }
+
+  /** Cancels responsive work and releases browser observation. */
+  private cleanupResponsiveLayout(): void {
+    const rafId = this._layoutResizeRafId;
+    const observer = this._layoutResizeObserver;
+    const windowResizeHandler = this._windowResizeHandler;
+    this._layoutResizeRafId = undefined;
+    this._layoutResizeObserver = undefined;
+    this._windowResizeHandler = undefined;
+
+    runCleanupSteps(
+      () => {
+        if (rafId !== undefined) {
+          cancelAnimationFrame(rafId);
+        }
+      },
+      () => observer?.disconnect(),
+      () => {
+        if (
+          windowResizeHandler !== undefined &&
+          typeof window !== "undefined"
+        ) {
+          window.removeEventListener("resize", windowResizeHandler);
+        }
+      }
+    );
+  }
+
   /** Cleans all resources that may have been created during initialization. */
   private cleanupOwnedResources(): void {
     runCleanupSteps(
+      () => this.cleanupResponsiveLayout(),
       () => {
         if (this._callbacksBound) {
           this._callbacks?.unbind();
@@ -207,6 +292,7 @@ export class TabUIEditor {
         this._notationComponent,
         this._layoutDimensions
       );
+      this.initializeResponsiveLayout();
     } catch (error) {
       this._state = TabUIEditorLifecycleState.Disposed;
       try {

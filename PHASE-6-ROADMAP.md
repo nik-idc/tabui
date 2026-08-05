@@ -177,12 +177,15 @@ Stage 4 completed on 2026-08-01:
    copy, scrolling, playback/seek/loop, and active-track selection remain
    available. Serialized-document regression coverage verifies that the complete
    score remains unchanged.
-   4.3. (**NEXT**) Add automatic embedded-container observation for editors without
-   an explicit width. Coalesce resize work, preserve editor/player/selection
-   ownership, and disconnect safely during failed initialization and disposal.
-   4.4. Replace mouse-only notation drag ownership with deliberate pointer/touch
-   behavior. Preserve mouse and touchpad behavior and keep phone-specific editing
-   UX deferred to P2.
+   4.3. (**COMPLETED**) Automatic embedded-container observation. Editors without
+   an explicit width observe the notation viewport, coalesce changes per frame,
+   and force active geometry to reflow using the latest valid measurement. A
+   window resize fallback covers environments without `ResizeObserver`. Fixed
+   widths never observe host size, runtime ownership is preserved, and pending
+   work is disconnected safely during failed initialization and disposal.
+   4.4. (**NEXT**) Replace mouse-only notation drag ownership with deliberate
+   pointer/touch behavior. Preserve mouse and touchpad behavior and keep
+   phone-specific editing UX deferred to P2.
    4.5. Remove keyboard focus traps and add basic names, roles, labels, focus order,
    activation, pressed/disabled state, dialog focus behavior, and an explicit
    accessibility boundary for notation SVG.

@@ -158,10 +158,20 @@ function createScore() {
 describe("TabUIEditor lifecycle", () => {
   let originalDocument: any;
   let originalGetComputedStyle: any;
+  let originalResizeObserver: any;
+  let originalRequestAnimationFrame: any;
+  let originalCancelAnimationFrame: any;
+  let originalWindow: any;
+  let notationViewportWidth: number;
 
   beforeEach(() => {
     originalDocument = (globalThis as any).document;
     originalGetComputedStyle = (globalThis as any).getComputedStyle;
+    originalResizeObserver = (globalThis as any).ResizeObserver;
+    originalRequestAnimationFrame = (globalThis as any).requestAnimationFrame;
+    originalCancelAnimationFrame = (globalThis as any).cancelAnimationFrame;
+    originalWindow = (globalThis as any).window;
+    notationViewportWidth = 690;
     (globalThis as any).document = {
       createElement: jest.fn((tagName: string) => {
         if (tagName === "div") {
@@ -170,14 +180,14 @@ describe("TabUIEditor lifecycle", () => {
             clientWidth: {
               get() {
                 return element.classList.contains("tu-notation-viewport")
-                  ? 690
+                  ? notationViewportWidth
                   : 0;
               },
             },
             getBoundingClientRect: {
               value: () => ({
                 width: element.classList.contains("tu-notation-viewport")
-                  ? 690
+                  ? notationViewportWidth
                   : 0,
               }),
             },
@@ -204,6 +214,10 @@ describe("TabUIEditor lifecycle", () => {
   afterEach(() => {
     (globalThis as any).document = originalDocument;
     (globalThis as any).getComputedStyle = originalGetComputedStyle;
+    (globalThis as any).ResizeObserver = originalResizeObserver;
+    (globalThis as any).requestAnimationFrame = originalRequestAnimationFrame;
+    (globalThis as any).cancelAnimationFrame = originalCancelAnimationFrame;
+    (globalThis as any).window = originalWindow;
   });
 
   test("init then dispose tears down owned callbacks, notation, and root DOM state", () => {
@@ -614,6 +628,195 @@ describe("TabUIEditor lifecycle", () => {
       type: "change",
       state: editor.getState(),
     });
+  });
+
+  test("coalesces responsive viewport observations using the latest width", () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    let frameCallback: FrameRequestCallback | undefined;
+    const observe = jest.fn();
+    const disconnect = jest.fn();
+    (globalThis as any).ResizeObserver = jest
+      .fn()
+      .mockImplementation((callback: ResizeObserverCallback) => {
+        resizeCallback = callback;
+        return { observe, disconnect };
+      });
+    (globalThis as any).requestAnimationFrame = jest.fn(
+      (callback: FrameRequestCallback) => {
+        frameCallback = callback;
+        return 7;
+      }
+    );
+    (globalThis as any).cancelAnimationFrame = jest.fn();
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore());
+    editor.init();
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+    const listener = jest.fn();
+    editor.subscribe(listener);
+
+    expect(observe).toHaveBeenCalledWith((root as any).children[2]);
+    notationViewportWidth = 740;
+    resizeCallback?.([], {} as ResizeObserver);
+    notationViewportWidth = 780;
+    resizeCallback?.([], {} as ResizeObserver);
+
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
+    frameCallback?.(0);
+    expect(editor.layoutDimensions.WIDTH).toBe(756);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
+    expect(callbacks.refresh).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(NotationComponent).toHaveBeenCalledTimes(1);
+    expect(UIComponent).toHaveBeenCalledTimes(1);
+    expect(TabUICallbacks).toHaveBeenCalledTimes(1);
+
+    resizeCallback?.([], {} as ResizeObserver);
+    frameCallback?.(1);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
+
+    editor.dispose();
+    expect(disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  test("ignores transient invalid responsive widths and later recovers", () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    let frameCallback: FrameRequestCallback | undefined;
+    (globalThis as any).ResizeObserver = jest
+      .fn()
+      .mockImplementation((callback: ResizeObserverCallback) => {
+        resizeCallback = callback;
+        return { observe: jest.fn(), disconnect: jest.fn() };
+      });
+    (globalThis as any).requestAnimationFrame = jest.fn(
+      (callback: FrameRequestCallback) => {
+        frameCallback = callback;
+        return 8;
+      }
+    );
+    (globalThis as any).cancelAnimationFrame = jest.fn();
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+
+    notationViewportWidth = 0;
+    resizeCallback?.([], {} as ResizeObserver);
+    frameCallback?.(0);
+    notationViewportWidth = 300;
+    resizeCallback?.([], {} as ResizeObserver);
+    frameCallback?.(1);
+
+    expect(editor.layoutDimensions.WIDTH).toBe(666);
+    expect(notation.refreshLayout).not.toHaveBeenCalled();
+
+    notationViewportWidth = 720;
+    resizeCallback?.([], {} as ResizeObserver);
+    frameCallback?.(2);
+    expect(editor.layoutDimensions.WIDTH).toBe(696);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
+  });
+
+  test("rolls back when responsive observer setup fails", () => {
+    const disconnect = jest.fn();
+    (globalThis as any).ResizeObserver = jest.fn().mockImplementation(() => ({
+      observe: jest.fn(() => {
+        throw new Error("observe failed");
+      }),
+      disconnect,
+    }));
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore());
+
+    expect(() => editor.init()).toThrow("observe failed");
+
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(notation.dispose).toHaveBeenCalledTimes(1);
+    expect(root.replaceChildren).toHaveBeenCalledTimes(1);
+    expect(() => editor.getState()).toThrow("TabUIEditor already disposed");
+  });
+
+  test("does not observe or resize editors with configured widths", () => {
+    const ResizeObserverMock = jest.fn();
+    (globalThis as any).ResizeObserver = ResizeObserverMock;
+    const editor = new TabUIEditor(createRoot(), createScore(), {
+      layout: { width: 640 },
+    });
+
+    editor.init();
+    notationViewportWidth = 800;
+
+    expect(ResizeObserverMock).not.toHaveBeenCalled();
+    expect(editor.layoutDimensions.WIDTH).toBe(640);
+  });
+
+  test("cancels pending responsive work during disposal", () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    let frameCallback: FrameRequestCallback | undefined;
+    const disconnect = jest.fn();
+    (globalThis as any).ResizeObserver = jest
+      .fn()
+      .mockImplementation((callback: ResizeObserverCallback) => {
+        resizeCallback = callback;
+        return { observe: jest.fn(), disconnect };
+      });
+    (globalThis as any).requestAnimationFrame = jest.fn(
+      (callback: FrameRequestCallback) => {
+        frameCallback = callback;
+        return 9;
+      }
+    );
+    (globalThis as any).cancelAnimationFrame = jest.fn();
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+
+    notationViewportWidth = 760;
+    resizeCallback?.([], {} as ResizeObserver);
+    editor.dispose();
+    resizeCallback?.([], {} as ResizeObserver);
+    frameCallback?.(0);
+
+    expect(cancelAnimationFrame).toHaveBeenCalledWith(9);
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(notation.refreshLayout).not.toHaveBeenCalled();
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
+  });
+
+  test("falls back to a coalesced window resize listener", () => {
+    let resizeHandler: EventListener | undefined;
+    let frameCallback: FrameRequestCallback | undefined;
+    const addEventListener = jest.fn((type: string, handler: EventListener) => {
+      if (type === "resize") {
+        resizeHandler = handler;
+      }
+    });
+    const removeEventListener = jest.fn();
+    (globalThis as any).ResizeObserver = undefined;
+    (globalThis as any).window = { addEventListener, removeEventListener };
+    (globalThis as any).requestAnimationFrame = jest.fn(
+      (callback: FrameRequestCallback) => {
+        frameCallback = callback;
+        return 11;
+      }
+    );
+    (globalThis as any).cancelAnimationFrame = jest.fn();
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+
+    notationViewportWidth = 750;
+    resizeHandler?.({} as Event);
+    resizeHandler?.({} as Event);
+    frameCallback?.(0);
+
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
+    expect(editor.layoutDimensions.WIDTH).toBe(726);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
+
+    editor.dispose();
+    expect(removeEventListener).toHaveBeenCalledWith("resize", resizeHandler);
   });
 
   test("keeps configured layout width fixed during measured refresh", () => {

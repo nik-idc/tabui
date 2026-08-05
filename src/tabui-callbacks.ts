@@ -57,9 +57,16 @@ export class TabUICallbacks {
     );
   }
 
-  private renderAndBindFull(): void {
+  private renderAndBindFull(forceNotation: boolean = false): void {
     this._mouseCallbacks.unbind();
-    const activeRenderers = this._notationComponent.render();
+    const renderOptions = forceNotation
+      ? {
+          renderNotation: true,
+          forceNotation: true,
+          overlays: { selection: true, player: true },
+        }
+      : undefined;
+    const activeRenderers = this._notationComponent.render(renderOptions);
     this._mouseCallbacks.bind(activeRenderers);
     this._notationComponent.renderer.attachViewportScrollEvent(() =>
       this.render(RenderType.NotationOnly)
@@ -189,7 +196,10 @@ export class TabUICallbacks {
 
   /** Forces a full refresh for explicit host-driven layout changes. */
   public refresh(): void {
-    this.render(RenderType.Full);
+    this.cancelPendingNotationRender();
+    this.cancelPendingSelectionRender();
+    this.renderAndBindFull(true);
+    this._onStateChanged();
   }
 
   private captureKeyboard(): void {

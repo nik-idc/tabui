@@ -173,4 +173,17 @@ describe("TabUICallbacks", () => {
 
     expect(onStateChanged).toHaveBeenCalledTimes(2);
   });
+
+  test("forces notation geometry during an explicit layout refresh", () => {
+    const { callbacks } = createHarness();
+    const notationComponent = (callbacks as any)._notationComponent;
+
+    callbacks.refresh();
+
+    expect(notationComponent.render).toHaveBeenCalledWith({
+      renderNotation: true,
+      forceNotation: true,
+      overlays: { selection: true, player: true },
+    });
+  });
 });

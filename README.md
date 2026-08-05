@@ -95,9 +95,9 @@ identity remains stable until a `"change"` notification, so it can be used with
 external-store adapters.
 `subscribe()` is editor-instance scoped and returns an idempotent unsubscribe
 function. Asynchronous playback failures arrive as `"error"` events with a
-`PlaybackErrorCode`, message, and original cause. `refreshLayout(width?)` is the
-explicit host hook for container changes; automatic responsive observation is
-not yet provided.
+`PlaybackErrorCode`, message, and original cause. Editors without an explicit
+`layout.width` automatically reflow when their notation viewport changes size.
+`refreshLayout(width?)` remains available for explicit host-driven refreshes.
 
 The score panel can be placed above or below notation. The side editing panel
 can be placed left or right, hidden, or made collapsible. Collapsing a measured
