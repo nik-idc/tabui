@@ -101,6 +101,12 @@ Latest implementation commits:
   choices (tuplet stepper `min = 2` while storage accepts `1`; the duration
   selector subset excludes `NoteDuration.SixtyFourth`). New Model-boundary
   regression tests cover accept/reject at each limit.
+- View-only mode blocks TabUI-originated score mutations while preserving copy,
+  selection, non-growing navigation, playback, scrolling, and track selection.
+- Embedded layouts support configurable score/side panel visibility and
+  placement, including a collapsible side panel and fixed-width opt-in.
+- Auto-width editors observe their notation viewport and coalesce responsive
+  reflow, while explicit widths remain fixed through host and window resizing.
 
 ## P1 - Required MVP Quality
 
@@ -110,11 +116,9 @@ Latest implementation commits:
 - Inline technique geometry and hit/layout bounds.
 - Time-signature presentation on one- through four-string instruments.
 - Control-layout correctness across supported desktop notation workflows.
-- View-only mode.
-- Responsive embedded-container behavior, including window resize.
-- Basic tablet/touch, touchpad, mouse, and keyboard usability alongside
-  responsive embedding.
-- Configurable score/side panel visibility and placement.
+- Deliberate keyboard-only, mouse, touchpad, touch, pen, hybrid-device, and
+  large-tablet usability, plus baseline accessibility. Full phone-sized editing
+  remains P2.
 - Measure Element-layer construction, materialization, updates, and retained
   memory before deciding whether to simplify presentation-shell types.
 - Decide the desired cross-track width invariant before implementing score-wide

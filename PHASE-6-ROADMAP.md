@@ -1,6 +1,6 @@
 # Phase 6 Roadmap - MVP Stabilization for 0.5.0
 
-Last updated: 2026-08-04 (P1 Stage 4.1 complete). This is the source of truth for
+Last updated: 2026-08-05 (P1 Stage 4 complete). This is the source of truth for
 turning the completed editor foundations into a dependable, embeddable `0.5.0`
 package. Prefer clean pre-`1.0.0` ownership/API decisions and record new issues in
 `PRE-RELEASE-STABILIZATION.md` before changing priority or scope here.
@@ -16,10 +16,12 @@ package. Prefer clean pre-`1.0.0` ownership/API decisions and record new issues 
 | 3.5     | Bends and dialog input safety                                 | Complete |
 | 3.6     | Minimum host event/API surface                                | Complete |
 | 4       | P0 validation and closeout                                    | Complete |
+| P1 1-4  | Correctness, persistence, constants, responsive embedding     | Complete |
+| P1 5    | Multimodal input and accessibility                            | Next     |
 
-Current automated checkpoint: 78 suites / 718 tests. `npm test`, `npm run build`,
+Current automated checkpoint: 78 suites / 733 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
-after P1 Stage 4.1. The benchmark was last rerun after the magic-number audit;
+after P1 Stage 4. The benchmark was last rerun after the magic-number audit;
 all 28 focused-update scenarios retained their previously verified substantial
 speedup over full updates.
 
@@ -150,8 +152,8 @@ Stage 4 completed on 2026-08-01:
 3. (**COMPLETED**) Audit magic numbers and introduce named constants for
    repeated or non-obvious domain, timing, geometry, and layout values. Obvious
    structural values and readable one-off literals remain local.
-4. Add view-only, embedded-container, panel placement, responsive input, and basic
-   accessibility behavior.
+4. (**COMPLETED**) Add view-only behavior, embedded-container support,
+   configurable panel placement, and responsive layout.
    4.1. (**COMPLETED**) Contract and shell layout.
    `TabUIConfig` now defines edit/view-only interaction modes and independent
    score/side panel visibility and placement. Score controls support top/bottom;
@@ -183,20 +185,23 @@ Stage 4 completed on 2026-08-01:
    window resize fallback covers environments without `ResizeObserver`. Fixed
    widths never observe host size, runtime ownership is preserved, and pending
    work is disconnected safely during failed initialization and disposal.
-   4.4. (**NEXT**) Replace mouse-only notation drag ownership with deliberate
-   pointer/touch behavior. Preserve mouse and touchpad behavior and keep
-   phone-specific editing UX deferred to P2.
-   4.5. Remove keyboard focus traps and add basic names, roles, labels, focus order,
-   activation, pressed/disabled state, dialog focus behavior, and an explicit
-   accessibility boundary for notation SVG.
-   4.6. Validate desktop, tablet, touch, resize, embedding, view-only, package, and
-   demo behavior. Add browser automation where unit fakes cannot verify CSS,
-   focus, accessibility trees, pointer behavior, or native dialogs.
-5. Revisit Element architecture, cross-track widths, and single-line mode only
+5. (**NEXT**) Add deliberate multimodal input and baseline accessibility across
+   desktop, laptop, hybrid, and large-tablet configurations. Full phone-sized
+   editing remains P2.
+   5.1. Replace mouse-only notation drag ownership with pointer behavior for
+   mouse, touch, and pen while preserving touchpad scrolling and selection.
+   5.2. Remove keyboard focus traps and add basic names, roles, labels, focus
+   order, activation, pressed/disabled state, dialog focus behavior, and an
+   explicit accessibility boundary for notation SVG.
+   5.3. Validate keyboard-only, mouse, touchpad, touch, pen, hybrid-device,
+   orientation, zoom, coarse-pointer, and reduced-motion behavior. Add browser
+   automation where unit fakes cannot verify CSS, focus, accessibility trees,
+   pointer behavior, or native dialogs.
+6. Revisit Element architecture, cross-track widths, and single-line mode only
    when profiling or a release requirement justifies them.
-6. Apply final visual/icon polish, performance budgets, package/browser gates,
+7. Apply final visual/icon polish, performance budgets, package/browser gates,
    release notes, and a feature freeze for the release candidate.
-7. Audit the source code for:
+8. Audit the source code for:
 
 - Non-reliance on tests. I remember there were moments when an agent
   would structure the code in an unnatural way just to make testing simpler.
@@ -208,7 +213,7 @@ Stage 4 completed on 2026-08-01:
   - `as`
     etc should be minimized or removed entirely
 
-8. Audit the test suite for:
+9. Audit the test suite for:
 
 - Over/under-exhaustiveness
 - Stale tests/tests that no longer make sense and are only green because of
@@ -218,8 +223,8 @@ Stage 4 completed on 2026-08-01:
 - Over-reliance on mocks when real source code could be used
 - Anything else that makes the test suite worse
 
-9. Create new demos using different JS frontend frameworks to ensure that packing
-   actually works correctly. Suggested frameworks to test:
+10. Create new demos using different JS frontend frameworks to ensure that packing
+    actually works correctly. Suggested frameworks to test:
 
 - React (important to note that once TabUI v0.5.0 ships this will be the frontend tech)
 - Next.js (though since it's based on React not sure of the usefullness of testing this)
@@ -228,7 +233,7 @@ Stage 4 completed on 2026-08-01:
 - Svelte
 - Any other major frontend framework I might have missed
 
-10. Test how this library would work in a headless/backend context. I.e.
+11. Test how this library would work in a headless/backend context. I.e.
     getting just the geometry from a Model. Or rendering once into a specified file/buffer.
     May require large scale code changes.
 

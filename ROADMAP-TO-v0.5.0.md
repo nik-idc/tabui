@@ -308,8 +308,8 @@ Completed so far:
 
 Next P1 work:
 
-- Continue the remaining notation correctness, embedding, responsive-input,
-  accessibility, and release validation work after completing score persistence.
+- Continue multimodal input, baseline accessibility, notation quality, and
+  release validation after completing responsive embedding and view-only mode.
 
 See `PHASE-6-ROADMAP.md` for current status, remaining work, and release gates.
 
