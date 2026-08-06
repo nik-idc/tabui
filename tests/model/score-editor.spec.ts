@@ -244,20 +244,20 @@ describe("ScoreEditor", () => {
       { baseDuration: NoteDuration.Quarter },
     ]).beats;
 
-    const insertedBeats = ScoreEditor.replaceBeats(beats, replacements);
+    const output = ScoreEditor.replaceBeats(beats, replacements);
 
-    expect(insertedBeats).toHaveLength(3);
+    expect(output.insertedBeats).toHaveLength(3);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 bar");
     }
-    expect(noteBeats(voiceBar.beats)).toHaveLength(3);
+    expect(voiceBar.beats).toHaveLength(3);
     expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Eighth,
       NoteDuration.Eighth,
       NoteDuration.Quarter,
     ]);
-    expect(voiceBar.actualTicks).toBe((voiceBar.tickResolution * 3) / 4);
+    expect(voiceBar.actualTicks).toBe(voiceBar.tickResolution / 2);
   });
 
   test("replaceBeats updates timing when replacing with fewer beats", () => {
@@ -273,19 +273,19 @@ describe("ScoreEditor", () => {
       },
     ]).beats;
 
-    const remainingBeats = ScoreEditor.replaceBeats(beats, replacements);
+    const output = ScoreEditor.replaceBeats(beats, replacements);
 
-    expect(remainingBeats).toHaveLength(1);
+    expect(output.insertedBeats).toHaveLength(1);
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 bar");
     }
-    expect(noteBeats(voiceBar.beats)).toHaveLength(1);
+    expect(voiceBar.beats).toHaveLength(1);
     expect(noteBeats(voiceBar.beats)[0].baseDuration).toBe(
       NoteDuration.Quarter
     );
     expect(noteBeats(voiceBar.beats)[0].dots).toBe(1);
-    expect(voiceBar.actualTicks).toBe((voiceBar.tickResolution * 5) / 8);
+    expect(voiceBar.actualTicks).toBe((voiceBar.tickResolution * 3) / 8);
   });
 
   test("removeBeats replaces the last removed content with a rest", () => {

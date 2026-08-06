@@ -1205,6 +1205,37 @@ describe("TrackController", () => {
     expect(barTwoVoiceBar.beats[0].isRest()).toBe(true);
   });
 
+  test("paste replacement does not retain an invariant rest through undo", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [NoteDuration.Whole]);
+    setBarDurations(controller, 1, [NoteDuration.Half, NoteDuration.Half]);
+    controller.trackElement.update();
+    const beatElements = getBeatElements(controller);
+    const targetVoiceBar = track.staves[0].bars[1].getVoiceBar(1);
+    if (targetVoiceBar === null) {
+      throw Error("Expected voice 1 in target bar");
+    }
+
+    controller.selectBeat(beatElements[0]);
+    controller.copy();
+    controller.clearSelection();
+    controller.selectBeat(beatElements[1]);
+    controller.selectBeat(beatElements[2]);
+    controller.paste();
+
+    expect(targetVoiceBar.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Whole,
+    ]);
+
+    controller.undo();
+    expect(targetVoiceBar.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+      NoteDuration.Half,
+    ]);
+  });
+
   test("undo restores beats removed by multi-bar paste replacement", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
@@ -1244,6 +1275,8 @@ describe("TrackController", () => {
     expect(
       noteBeats(barTwoVoiceBar.beats).map((beat) => beat.baseDuration)
     ).toEqual([NoteDuration.Half, NoteDuration.Half]);
+    expect(barOneVoiceBar.beats).toHaveLength(2);
+    expect(barTwoVoiceBar.beats).toHaveLength(2);
 
     controller.redo();
     expect(noteBeats(barOneVoiceBar.beats)).toHaveLength(3);

@@ -19,7 +19,7 @@ package. Prefer clean pre-`1.0.0` ownership/API decisions and record new issues 
 | P1 1-4  | Correctness, persistence, constants, responsive embedding     | Complete |
 | P1 5    | Multimodal input and accessibility                            | Next     |
 
-Current automated checkpoint: 78 suites / 733 tests. `npm test`, `npm run build`,
+Current automated checkpoint: 78 suites / 736 tests. `npm test`, `npm run build`,
 `npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
 after P1 Stage 4. The benchmark was last rerun after the magic-number audit;
 all 28 focused-update scenarios retained their previously verified substantial
@@ -144,6 +144,13 @@ Stage 4 completed on 2026-08-01:
   measurement remains part of P1 Element/lifecycle quality work.
 
 ## Current P1 Stages
+
+**NEXT IMMEDIATE:** Fix eager beat-removal invariant repair at the Model layer
+before beginning Stage 5. Beat replacement should be one atomic bar operation:
+apply all removals and insertions first, then normalize the completed `Bar` once
+so it retains at least one voice and beat only when genuinely empty. This should
+remove replacement's need to track and discard temporary fallback rests while
+preserving exact execute/undo/redo behavior across single- and multi-voice bars.
 
 1. (**COMPLETED**) Fix remaining technique, time-signature, multi-staff outline,
    and control-layout correctness.

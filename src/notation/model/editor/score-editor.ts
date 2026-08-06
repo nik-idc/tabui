@@ -23,6 +23,12 @@ export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
   beat: Beat<I>;
 };
 
+export type BeatReplacementOutput<I extends MusicInstrument = MusicInstrument> =
+  {
+    insertedBeats: Beat<I>[];
+    removalOutputs: BeatRemovalOutput<I>[];
+  };
+
 /**
  * Static class containing complex editing methods,
  * like replace beats across the staff, transpose note etc
@@ -348,19 +354,31 @@ export class ScoreEditor {
   }
 
   /**
-   * Removes beats that were inserted only to preserve `VoiceBar` invariants
-   * during a removal operation. This intentionally bypasses `removeBeat()` so
-   * undo flows can replace a temporary default rest with restored content.
+   * Discards beats inserted by a prior removal to preserve model invariants.
    */
-  private static discardRemovalInsertions<I extends MusicInstrument>(
+  public static discardBeatRemovalInsertions<I extends MusicInstrument>(
     outputs: BeatRemovalOutput<I>[]
   ): void {
     for (let i = outputs.length - 1; i >= 0; i--) {
       const output = outputs[i];
       for (let j = output.inserted.length - 1; j >= 0; j--) {
-        const inserted = output.inserted[j];
-        const voiceBar = inserted.beats[0].voiceBar;
-        voiceBar.beats.splice(inserted.index, inserted.beats.length);
+        const insertion = output.inserted[j];
+        const voiceBar = insertion.beats[0].voiceBar;
+        const presentBeats = insertion.beats.filter((beat) =>
+          voiceBar.beats.includes(beat)
+        );
+        if (
+          presentBeats.length !== 0 &&
+          presentBeats.length === voiceBar.beats.length
+        ) {
+          voiceBar.bar.staff.recordVoiceBarRemoved(voiceBar);
+        }
+        for (const beat of presentBeats) {
+          const beatIndex = voiceBar.beats.indexOf(beat);
+          if (beatIndex !== -1) {
+            voiceBar.beats.splice(beatIndex, 1);
+          }
+        }
         voiceBar.rebuildTiming();
       }
     }
@@ -375,7 +393,7 @@ export class ScoreEditor {
     beats: Beat<I>[]
   ): BeatRemovalOutput<I>[] {
     const outputs = this.removeBeats(beats);
-    this.discardRemovalInsertions(outputs);
+    this.discardBeatRemovalInsertions(outputs);
 
     return outputs;
   }
@@ -391,7 +409,7 @@ export class ScoreEditor {
     const restoredBeats: Beat<I>[] = [];
     for (let i = outputs.length - 1; i >= 0; i--) {
       const output = outputs[i];
-      this.discardRemovalInsertions([output]);
+      this.discardBeatRemovalInsertions([output]);
       const voiceBar = output.removed.beats[0].voiceBar;
       if (output.removedVoiceNumbers !== null) {
         voiceBar.bar.restoreVoiceBar(voiceBar);
@@ -436,6 +454,9 @@ export class ScoreEditor {
         .sort((a, b) => a.index - b.index);
       const index = Math.min(...barSnapshots.map((snapshot) => snapshot.index));
       const beats = barSnapshots.map((snapshot) => snapshot.beat);
+      if (voiceBar.bar.getVoiceBar(voiceBar.voiceNumber) !== voiceBar) {
+        voiceBar.bar.restoreVoiceBar(voiceBar);
+      }
       restoredBeats.push(...voiceBar.insertBeats(index, beats));
     }
 
@@ -469,10 +490,14 @@ export class ScoreEditor {
       return [];
     }
 
+    const wasEmpty = voiceBar.isEmpty();
     const insertedBeats = beats.map((beat) =>
       this.createBeatCopyForBar(voiceBar, beat)
     );
     voiceBar.beats.splice(beatIndex, 0, ...insertedBeats);
+    if (wasEmpty) {
+      voiceBar.bar.staff.recordVoiceBarAdded(voiceBar);
+    }
     voiceBar.rebuildTiming();
 
     return insertedBeats;
@@ -488,20 +513,32 @@ export class ScoreEditor {
   public static replaceBeats<I extends MusicInstrument>(
     oldBeats: Beat<I>[],
     newBeats: Beat<I>[]
-  ): Beat<I>[] {
+  ): BeatReplacementOutput<I> {
     if (oldBeats.length === 0 || newBeats.length === 0) {
-      return [];
+      return { insertedBeats: [], removalOutputs: [] };
     }
 
     const startBeatIndex = oldBeats[0].voiceBar.beats.indexOf(oldBeats[0]);
     const startVoiceBar = oldBeats[0].voiceBar;
     const affectedVoiceBars = new Set(oldBeats.map((beat) => beat.voiceBar));
 
-    this.removeBeats(oldBeats);
+    const removalOutputs = this.removeBeats(oldBeats);
+    const startBarOutputs = removalOutputs.filter(
+      (o) => o.removed.beats[0].voiceBar.bar === startVoiceBar.bar
+    );
+    this.discardBeatRemovalInsertions(startBarOutputs);
+    if (
+      startVoiceBar.bar.getVoiceBar(startVoiceBar.voiceNumber) !== startVoiceBar
+    ) {
+      startVoiceBar.bar.restoreVoiceBar(startVoiceBar);
+    }
     for (const voiceBar of affectedVoiceBars) {
       voiceBar.rebuildTiming();
     }
 
-    return this.insertBeats(startVoiceBar, startBeatIndex, newBeats);
+    return {
+      insertedBeats: this.insertBeats(startVoiceBar, startBeatIndex, newBeats),
+      removalOutputs,
+    };
   }
 }

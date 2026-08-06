@@ -511,11 +511,11 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
       throw Error(`${index} is invalid beat index`);
     }
 
-    const wasEmpty = this.isEmpty();
-    const removed = { index, beats: this.beats.splice(index, 1) };
-    if (!wasEmpty && this.isEmpty()) {
+    const willBecomeEmpty = this.beats.length === 1;
+    if (willBecomeEmpty) {
       this.bar.staff.recordVoiceBarRemoved(this);
     }
+    const removed = { index, beats: this.beats.splice(index, 1) };
 
     if (this.beats.length === 0) {
       const { inserted, removedVoiceNumbers } =

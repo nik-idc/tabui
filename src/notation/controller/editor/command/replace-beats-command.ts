@@ -1,4 +1,10 @@
-import { Beat, BeatRestoreSnapshot, Score, ScoreEditor } from "../../../model";
+import {
+  Beat,
+  BeatRemovalOutput,
+  BeatRestoreSnapshot,
+  Score,
+  ScoreEditor,
+} from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
@@ -11,6 +17,7 @@ export class ReplaceBeatsCommand implements Command {
   private _newBeats: Beat[];
   private _oldBeatSnapshots: BeatRestoreSnapshot[];
   private _currentBeats: Beat[];
+  private _removalOutputs: BeatRemovalOutput[];
   private _executed: boolean = false;
   private _affectedModels: AffectedModel[];
 
@@ -23,6 +30,7 @@ export class ReplaceBeatsCommand implements Command {
       beat: beat.deepCopy(),
     }));
     this._currentBeats = beatsToReplace;
+    this._removalOutputs = [];
     this._affectedModels = getAffectedModelsFromBeats(beatsToReplace);
   }
 
@@ -31,10 +39,12 @@ export class ReplaceBeatsCommand implements Command {
       throw Error("ReplaceBeatsCommand attempted to execute twice");
     }
 
-    this._currentBeats = ScoreEditor.replaceBeats(
+    const output = ScoreEditor.replaceBeats(
       this._beatsToReplace,
       this._newBeats
     );
+    this._currentBeats = output.insertedBeats;
+    this._removalOutputs = output.removalOutputs;
     this._executed = true;
   }
 
@@ -43,6 +53,7 @@ export class ReplaceBeatsCommand implements Command {
       return;
     }
 
+    ScoreEditor.discardBeatRemovalInsertions(this._removalOutputs);
     ScoreEditor.prepareBeatRestore(this._currentBeats);
     this._currentBeats = ScoreEditor.restoreBeats(this._oldBeatSnapshots);
   }
@@ -52,10 +63,9 @@ export class ReplaceBeatsCommand implements Command {
       return;
     }
 
-    this._currentBeats = ScoreEditor.replaceBeats(
-      this._currentBeats,
-      this._newBeats
-    );
+    const output = ScoreEditor.replaceBeats(this._currentBeats, this._newBeats);
+    this._currentBeats = output.insertedBeats;
+    this._removalOutputs = output.removalOutputs;
   }
 
   public get affectedModels(): AffectedModel[] {
