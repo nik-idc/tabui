@@ -7,6 +7,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -16,8 +17,7 @@ const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../.."
 );
-const tempRoot = "/tmp/opencode";
-const workspace = await mkdtemp(path.join(tempRoot, "tabui-pack-smoke-"));
+const workspace = await mkdtemp(path.join(tmpdir(), "tabui-pack-smoke-"));
 
 async function run(command, args, options = {}) {
   try {
