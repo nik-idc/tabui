@@ -1,12 +1,12 @@
-import { renderOnce, setImageAsset } from "@/ui/shared";
-import { NotationComponent } from "@/notation/notation-component";
+import { renderOnce, setImageAsset } from "../../shared";
+import { NotationComponent } from "../../../notation/notation-component";
 import {
   GuitarTechniqueType,
   NoteValue,
   TECHNIQUE_TYPE_TO_LABEL,
-} from "@/notation/model";
+} from "../../../notation/model";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 export class TechniqueControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -37,6 +37,7 @@ export class TechniqueControlsTemplateRenderer {
     this.template.container.append(
       this.template.vibratoButton,
       this.template.palmMuteButton,
+      this.template.letRingButton,
       this.template.nhButton,
       this.template.phButton,
       this.template.hammerOnButton,
@@ -125,6 +126,17 @@ export class TechniqueControlsTemplateRenderer {
     this.renderTechniqueButtonState(
       GuitarTechniqueType.PalmMute,
       this.template.palmMuteButton
+    );
+
+    setImageAsset(
+      this.template.letRingButton,
+      this.assetsPath,
+      "img/techniques/lr.svg",
+      "Let Ring"
+    );
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.LetRing,
+      this.template.letRingButton
     );
 
     setImageAsset(

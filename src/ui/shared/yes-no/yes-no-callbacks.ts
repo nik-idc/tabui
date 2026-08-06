@@ -1,6 +1,6 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { ListenerManager } from "@/shared/misc";
-import { YesNoComponent } from "@/ui/shared/yes-no";
+import { NotationComponent } from "../../../notation/notation-component";
+import { ListenerManager } from "../../../shared/misc";
+import { YesNoComponent } from "./";
 
 export interface YesNoCallbacks {
   onDialogClicked(event: MouseEvent): void;
@@ -43,7 +43,6 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
       )
     ) {
       this._yesNoComponent.template.yesNoDialog.close();
-      this._freeKeyboard();
     }
   }
 
@@ -52,12 +51,23 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
     this._renderFunc();
 
     this._yesNoComponent.template.yesNoDialog.close();
-    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._yesNoComponent.template.yesNoDialog.close();
-    this._freeKeyboard();
+  }
+
+  onKeydown(event: KeyboardEvent): void {
+    // Making Enter act as confirm button
+    const template = this._yesNoComponent.template;
+    if (
+      event.key === "Enter" &&
+      (event.target === template.yesNoDialog ||
+        event.target === template.confirmButton)
+    ) {
+      event.preventDefault();
+      this.onConfirmClicked();
+    }
   }
 
   bind(): void {
@@ -66,6 +76,16 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
         element: this._yesNoComponent.template.yesNoDialog,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
+      },
+      {
+        element: this._yesNoComponent.template.yesNoDialog,
+        event: "close",
+        handler: () => this._freeKeyboard(),
+      },
+      {
+        element: this._yesNoComponent.template.yesNoDialog,
+        event: "keydown",
+        handler: (event: KeyboardEvent) => this.onKeydown(event),
       },
       {
         element: this._yesNoComponent.template.confirmButton,

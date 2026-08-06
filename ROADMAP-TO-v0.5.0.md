@@ -31,6 +31,8 @@ sake and more on targeted changes that directly unlock the MVP.
 - Phase 4 is complete.
 - Phase 5 is complete.
 - Current focus should move to Phase 6 stabilization for `0.5.0`.
+- Phase 6 Stages 0-2 are complete. Stage 3 core correctness is in progress; its
+  playback/cursor and playback-time editing-lock slices are complete.
 - Phase 0 follow-ups that are intentionally deferred are listed under Phase 0.
 
 ### Phase 0 - Foundation
@@ -51,7 +53,8 @@ Completed in Phase 0:
   current editing flows.
 - Active automated tests now exist in `tests/model/` and `tests/controller/`
   and run via `npm test`.
-- Active suite currently covers 18 suites / 87 tests.
+- At the 2026-07-22 Phase 6 checkpoint, the active suite covers 60 suites / 435
+  tests. Earlier Phase 0 counts are historical baseline measurements.
 - Repeatable fixture routing is in place via `fixture=empty`,
   `fixture=feature_showcase`, and `fixture=performance_stress`.
 
@@ -286,6 +289,30 @@ Exit criteria:
 
 ### Phase 6 - MVP Stabilization for 0.5.0
 
+**Status: in progress.**
+
+Completed so far:
+
+- Established the release baseline and repaired the update benchmark.
+- Defined and validated the package/consumer contract.
+- Added lifecycle disposal, focused keyboard ownership, independent instance
+  dimensions, and multi-instance regression coverage.
+- Hardened playback controls, bounded ranges, repeats, loops, lookahead failure
+  handling, cursor synchronization, viewport following, and stale-event scoping.
+- Disabled editing mutations and editing UI while playback is active while
+  preserving copy, transport, track selection, and track mix controls.
+- Completed bend/dialog safety and the instance-scoped host state, event, error,
+  and explicit layout-refresh API.
+- Closed the P0 gate with automated validation, desktop Chrome/Firefox smoke
+  testing, and fixes for retained tempo/meter text and inserted-note ownership.
+
+Next P1 work:
+
+- Continue multimodal input, baseline accessibility, notation quality, and
+  release validation after completing responsive embedding and view-only mode.
+
+See `PHASE-6-ROADMAP.md` for current status, remaining work, and release gates.
+
 - Fix high-value bugs discovered in previous phases.
 - Expand tests around the most failure-prone model and element paths.
 - Review the integration surface needed by host frontend applications, with the
@@ -312,7 +339,7 @@ Exit criteria:
 
 ## Things That May Be Deferred
 
-- If needed, full classical notation support can be postponed after an initial usable implementation.
-- Drum notation should only proceed if it fits naturally into the same notation architecture.
+- Sheet and drum notation are deferred until after the tablature-focused `0.5.0`
+  milestone.
 - Audio realism is secondary to getting reliable multi-track playback working.
 - Cleanup work should stay focused on changes that directly help reach 0.5.0.

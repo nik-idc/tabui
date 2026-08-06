@@ -5,10 +5,10 @@ import {
   INSTRUMENT_TONES,
   StringInstrumentTone,
   TrackInstrumentChangeMode,
-} from "@/notation/model";
-import { NotationComponent } from "@/notation/notation-component";
-import { ListenerConfig, ListenerManager } from "@/shared/misc";
-import { TrackSettingsControlsComponent } from "@/ui/top-controls/score-controls/track-controls/track-settings";
+} from "../../../../../notation/model";
+import { NotationComponent } from "../../../../../notation/notation-component";
+import { ListenerConfig, ListenerManager } from "../../../../../shared/misc";
+import { TrackSettingsControlsComponent } from "./";
 
 export interface TrackSettingsControlsCallbacks {
   readonly tuningErrorText: string;
@@ -72,7 +72,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       )
     ) {
       this._trackSettingsComponent.template.dialog.close();
-      this._freeKeyboard();
     }
   }
 
@@ -89,7 +88,20 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   }
 
   onConfirmClicked(): void {
-    this._trackSettingsComponent.applyTrackSettings();
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
+      this._trackSettingsComponent.template.dialog.close();
+      return;
+    }
+    const changed = this._notationComponent.trackController.setTrackInstrument(
+      this._trackSettingsComponent.track,
+      this._trackSettingsComponent.makeInstrument(),
+      this._trackSettingsComponent.tuningChangeMode
+    );
+    if (!changed) {
+      this._trackSettingsComponent.template.dialog.close();
+      return;
+    }
     if (
       this._notationComponent.trackController.track ===
       this._trackSettingsComponent.track
@@ -99,12 +111,22 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
     this._renderFunc();
 
     this._trackSettingsComponent.template.dialog.close();
-    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._trackSettingsComponent.template.dialog.close();
-    this._freeKeyboard();
+  }
+
+  onKeydown(event: KeyboardEvent): void {
+    const template = this._trackSettingsComponent.template;
+    if (
+      event.key === "Enter" &&
+      (event.target === template.dialog ||
+        event.target === template.confirmButton)
+    ) {
+      event.preventDefault();
+      this.onConfirmClicked();
+    }
   }
 
   bind(): void {
@@ -115,6 +137,18 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
+    configs.push(
+      {
+        element: this._trackSettingsComponent.template.dialog as HTMLElement,
+        event: "close",
+        handler: () => this._freeKeyboard(),
+      },
+      {
+        element: this._trackSettingsComponent.template.dialog as HTMLElement,
+        event: "keydown",
+        handler: (event: KeyboardEvent) => this.onKeydown(event),
+      }
+    );
 
     const families = Object.values(InstrumentFamily);
     const familiesButtons =

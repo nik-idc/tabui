@@ -1,15 +1,10 @@
 import { SetFretCommand } from "../../src/notation/controller/editor/command";
-import { TrackController } from "../../src/notation/controller/track-controller";
 import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
 import { GuitarNote, Score } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
-import { ensureLayoutConfigured } from "./helpers";
+import { createTestTrackController } from "./helpers";
 
 describe("SetFretCommand", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("execute, undo, and redo update fret", () => {
     const { bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
@@ -128,11 +123,24 @@ describe("SetFretCommand", () => {
       throw Error("Expected guitar note in test beat");
     }
 
-    const controller = new TrackController(track);
+    const controller = createTestTrackController(track);
+    controller.trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 0 },
+    });
+    controller.trackElement.consumeDiff();
     const beatElement = controller.trackElement.getBeatElement(note.beat);
     const noteElement = beatElement?.noteElements[0] as TabNoteElement;
 
     controller.setSelectedNoteFret(7);
+    controller.trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 0 },
+      rebuildSkeleton: false,
+      forceElements: false,
+      dematerializeOutsideRange: {
+        startLineIndex: 0,
+        endLineIndex: 0,
+      },
+    });
 
     expect(
       controller.trackElement.elementDiff.updated.get(TabNoteElement)
@@ -151,7 +159,11 @@ describe("SetFretCommand", () => {
     }
 
     note.fret = 5;
-    const controller = new TrackController(track);
+    const controller = createTestTrackController(track);
+    controller.trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 0 },
+    });
+    controller.trackElement.consumeDiff();
     const beatElement = controller.trackElement.getBeatElement(note.beat);
     const noteElement = beatElement?.noteElements[0] as TabNoteElement;
 

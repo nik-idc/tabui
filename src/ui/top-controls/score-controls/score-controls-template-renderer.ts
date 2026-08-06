@@ -1,8 +1,8 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { renderOnce, setImageAsset } from "@/ui/shared";
+import { NotationComponent } from "../../../notation/notation-component";
+import { renderOnce, setImageAsset } from "../../shared";
 import { ScoreControlsTemplate } from "./score-controls-template";
-import { Score } from "@/notation";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { Score } from "../../../notation";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 const minVolume = 0;
 const maxVolume = 100;
@@ -79,9 +79,19 @@ export class ScoreControlsTemplateRenderer {
       "img/ui/add.svg",
       "New track"
     );
+    const controller = this.notationComponent.trackController;
+    const editingDisabled = !controller.editingEnabled || controller.isPlaying;
+    this.template.newTrackButton.classList.toggle(
+      "tu-disabled-img",
+      editingDisabled
+    );
+    this.template.newTrackButton.setAttribute(
+      "aria-disabled",
+      `${editingDisabled}`
+    );
   }
 
-  private renderMasterVolumeInput(): void {
+  private renderMasterVolumeInput(score: Score): void {
     const cssClass = "tu-master-volume-input";
     this.template.masterVolumeInput.classList.add(cssClass);
     this.template.masterVolumeInput.type = "range";
@@ -89,10 +99,12 @@ export class ScoreControlsTemplateRenderer {
     this.template.masterVolumeInput.max = `${maxVolume}`;
     this.template.masterVolumeInput.step = `${volumeStep}`;
 
-    this.template.masterVolumeInput.value = `${(minVolume + maxVolume) / 2}`;
+    this.template.masterVolumeInput.value = `${score.masterVolume * 100}`;
+    this.template.masterVolumeInput.disabled =
+      !this.notationComponent.trackController.editingEnabled;
   }
 
-  private renderMasterPanningInput(): void {
+  private renderMasterPanningInput(score: Score): void {
     const cssClass = "tu-master-panning-input";
     this.template.masterPanningInput.classList.add(cssClass);
     this.template.masterPanningInput.type = "range";
@@ -100,13 +112,18 @@ export class ScoreControlsTemplateRenderer {
     this.template.masterPanningInput.max = `${maxPanning}`;
     this.template.masterPanningInput.step = `${panningStep}`;
 
-    this.template.masterPanningInput.value = `${0}`;
+    this.template.masterPanningInput.value = `${score.masterPan}`;
+    this.template.masterPanningInput.disabled =
+      !this.notationComponent.trackController.editingEnabled;
   }
 
   private renderScoreNameInput(): void {
     const cssClass = "tu-score-name-input";
     this.template.scoreNameInput.classList.add(cssClass);
     this.template.scoreNameInput.value = this._currentScoreName;
+    const controller = this.notationComponent.trackController;
+    this.template.scoreNameInput.disabled =
+      !controller.editingEnabled || controller.isPlaying;
   }
 
   private renderTracksContainer(): void {
@@ -119,8 +136,8 @@ export class ScoreControlsTemplateRenderer {
 
     this.renderShowButton();
     this.renderNewTrackButton();
-    this.renderMasterVolumeInput();
-    this.renderMasterPanningInput();
+    this.renderMasterVolumeInput(score);
+    this.renderMasterPanningInput(score);
     this.renderScoreNameInput();
     this.renderTracksContainer();
 

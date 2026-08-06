@@ -3,9 +3,9 @@ import {
   TabBeatElement,
   TrackController,
   TrackLineIdentity,
-} from "@/notation/controller";
-import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
-import { createSVGRect } from "@/shared";
+} from "../../controller";
+import { TabNoteElement } from "../../controller/element/note/tab-note-element";
+import { createSVGRect } from "../../../shared";
 
 /**
  * Renders all selection-layer overlays (preview, selected note, beat selection)
@@ -96,7 +96,7 @@ export class SelectionOverlayRenderer {
       this._selectionGroup.appendChild(this._selectedNoteRect);
     }
 
-    const rect = selectedNoteElement.textRectGlobal;
+    const rect = selectedNoteElement.selectionRect;
     this._selectedNoteRect.setAttribute("x", `${rect.x}`);
     this._selectedNoteRect.setAttribute("y", `${rect.y}`);
     this._selectedNoteRect.setAttribute("width", `${rect.width}`);

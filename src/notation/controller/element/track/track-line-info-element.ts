@@ -1,8 +1,7 @@
-import { MasterBar, Track } from "@/notation/model";
-import { Point, Rect, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { MasterBar, Track } from "../../../model";
+import { Point, Rect, randomInt } from "../../../../shared";
+import { TrackElement } from "../track-element";
+import { NotationElement } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { TrackLineElement } from "./track-line-element";
 
@@ -37,6 +36,8 @@ export class TrackLineInfoElement implements NotationElement {
   private _boundingBox: Rect;
   /** Stores all the bars whose tempo to display & the tempo rect */
   private _barTempoRectsMap: Map<BarElement, Rect>;
+  /** Displayed tempo captured during build for stale pre-update diffing. */
+  private _barTempoState: Map<BarElement, number>;
   /**
    * Class representing the visual info about all
    * info that needs to be on this track line element
@@ -48,8 +49,14 @@ export class TrackLineInfoElement implements NotationElement {
     this.trackLineElement = trackLineElement;
     this.trackElement = this.trackLineElement.trackElement;
 
-    this._boundingBox = new Rect(0, 0, EditorLayoutDimensions.WIDTH, 0);
+    this._boundingBox = new Rect(
+      0,
+      0,
+      this.trackElement.layoutDimensions.WIDTH,
+      0
+    );
     this._barTempoRectsMap = new Map();
+    this._barTempoState = new Map();
 
     this.build();
   }
@@ -60,6 +67,7 @@ export class TrackLineInfoElement implements NotationElement {
   public build(): void {
     this._boundingBox.height = 0;
     this._barTempoRectsMap.clear();
+    this._barTempoState.clear();
 
     const barElements =
       this.trackLineElement.staffLineElements[0].styleLinesAsArray[0]
@@ -72,10 +80,11 @@ export class TrackLineInfoElement implements NotationElement {
         const rect = new Rect(
           barElement.boundingBox.x,
           0,
-          EditorLayoutDimensions.TEMPO_RECT_WIDTH,
-          EditorLayoutDimensions.TEMPO_RECT_HEIGHT
+          this.trackElement.layoutDimensions.TEMPO_RECT_WIDTH,
+          this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
         );
         this._barTempoRectsMap.set(barElement, rect);
+        this._barTempoState.set(barElement, barElement.bar.masterBar.tempo);
       }
     }
   }
@@ -86,9 +95,12 @@ export class TrackLineInfoElement implements NotationElement {
   public measure(): void {
     const height =
       this._barTempoRectsMap.size !== 0
-        ? EditorLayoutDimensions.TEMPO_RECT_HEIGHT
+        ? this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
         : 0;
-    this._boundingBox.setDimensions(EditorLayoutDimensions.WIDTH, height);
+    this._boundingBox.setDimensions(
+      this.trackElement.layoutDimensions.WIDTH,
+      height
+    );
   }
 
   private buildStateHash(): string {
@@ -105,6 +117,7 @@ export class TrackLineInfoElement implements NotationElement {
       hashArr.push(`${rect.y}`);
       hashArr.push(`${rect.width}`);
       hashArr.push(`${rect.height}`);
+      hashArr.push(`${this._barTempoState.get(barElement)}`);
     }
 
     return hashArr.join("");
@@ -182,7 +195,7 @@ export class TrackLineInfoElement implements NotationElement {
 
     return new Point(
       barTempoRect.x + barTempoRect.width,
-      EditorLayoutDimensions.TEMPO_TEXT_SIZE
+      this.trackElement.layoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 
@@ -197,7 +210,8 @@ export class TrackLineInfoElement implements NotationElement {
 
     return new Point(
       barTempoRect.x + barTempoRect.width,
-      this.lineLocalCoords.y + EditorLayoutDimensions.TEMPO_TEXT_SIZE
+      this.lineLocalCoords.y +
+        this.trackElement.layoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 
@@ -215,7 +229,7 @@ export class TrackLineInfoElement implements NotationElement {
     return new Point(
       barTempoRect.x + barTempoRect.width,
       this.trackLineElement.globalCoords.y +
-        EditorLayoutDimensions.TEMPO_TEXT_SIZE
+        this.trackElement.layoutDimensions.TEMPO_TEXT_SIZE
     );
   }
 
@@ -228,7 +242,8 @@ export class TrackLineInfoElement implements NotationElement {
       return undefined;
     }
 
-    return `=${barElement.bar.masterBar.tempo}`;
+    const tempo = this._barTempoState.get(barElement);
+    return tempo === undefined ? undefined : `=${tempo}`;
   }
 
   /** String encoding the state of this element */

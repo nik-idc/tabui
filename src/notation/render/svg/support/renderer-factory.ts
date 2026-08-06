@@ -2,28 +2,25 @@ import {
   NotationElement,
   NotationElementClass,
   TrackController,
-} from "@/notation/controller";
-import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
-import { TrackLineInfoElement } from "@/notation/controller/element/track/track-line-info-element";
-import { StaffLineElement } from "@/notation/controller/element/staff/staff-line-element";
-import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
-import { TechGapElement } from "@/notation/controller/element/staff/tech-gap-element";
-import { BarElement } from "@/notation/controller/element/bar/bar-element";
-import { VoiceBarElement } from "@/notation/controller/element/bar/voice-bar-element";
-import { VoiceBarRhythmElement } from "@/notation/controller/element/bar/voice-bar-rhythm-element";
-import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
-import { TabBeatRhythmElement } from "@/notation/controller/element/beat/tab-beat-rhythm-element";
-import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
-import { GuitarTechniqueElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element";
-import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
-import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segment-element";
-import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
-import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
-import {
-  ElementRenderer,
-  ElementRendererClass,
-} from "@/notation/render/element-renderer";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+} from "../../../controller";
+import { TrackLineElement } from "../../../controller/element/track/track-line-element";
+import { TrackLineInfoElement } from "../../../controller/element/track/track-line-info-element";
+import { StaffLineElement } from "../../../controller/element/staff/staff-line-element";
+import { NotationStyleLineElement } from "../../../controller/element/staff/notation-style-line-element";
+import { TechGapElement } from "../../../controller/element/staff/tech-gap-element";
+import { BarElement } from "../../../controller/element/bar/bar-element";
+import { VoiceBarElement } from "../../../controller/element/bar/voice-bar-element";
+import { VoiceBarRhythmElement } from "../../../controller/element/bar/voice-bar-rhythm-element";
+import { TabBeatElement } from "../../../controller/element/beat/tab-beat-element";
+import { TabBeatRhythmElement } from "../../../controller/element/beat/tab-beat-rhythm-element";
+import { TabNoteElement } from "../../../controller/element/note/tab-note-element";
+import { GuitarTechniqueElement } from "../../../controller/element/technique/guitar-technique/guitar-technique-element";
+import { GuitarTechniqueLabelElement } from "../../../controller/element/technique/guitar-technique/guitar-technique-label-element";
+import { BeamSegmentElement } from "../../../controller/element/bar/beam-segment-element";
+import { BarTupletGroupElement } from "../../../controller/element/bar/bar-tuplet-group-element";
+import { TechGapLineElement } from "../../../controller/element/staff/tech-gap-line-element";
+import { ElementRenderer, ElementRendererClass } from "../../element-renderer";
+import type { ResolvedAssetConfig } from "../../../../config/asset-url-resolver";
 import { SVGTrackLineRenderer } from "../svg-track-line-renderer";
 import { SVGTrackLineInfoRenderer } from "../svg-track-line-info-renderer";
 import { SVGStaffLineRenderer } from "../svg-staff-line-renderer";

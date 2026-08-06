@@ -1,6 +1,6 @@
-import { Staff, Beat, Note, Track, VoiceNumber } from "@/notation/model";
-import { BeatElement } from "@/notation/controller/element/beat/beat-element";
-import { NoteElement } from "@/notation/controller/element/note/note-element";
+import { Staff, Beat, Note, Track, VoiceNumber } from "../../model";
+import { BeatElement } from "../element/beat/beat-element";
+import { NoteElement } from "../element/note/note-element";
 import { SelectedNote, MoveRightOutput } from "./selected-note";
 
 /**
@@ -84,7 +84,7 @@ export class SelectionManager {
   /**
    * Move selected note left
    */
-  public moveSelectedNoteLeft(): void {
+  public moveSelectedNoteLeft(editingEnabled: boolean = true): void {
     if (this._selectedNote === undefined) {
       throw Error("No note selected");
     }
@@ -106,13 +106,16 @@ export class SelectionManager {
       throw Error("No note selected");
     }
 
-    this._selectedNote.moveLeft();
+    this._selectedNote.moveLeft(editingEnabled);
+    this._activeVoiceNumber = this._selectedNote.voiceNumber;
   }
 
   /**
    * Move selected note right
    */
-  public moveSelectedNoteRight(): MoveRightOutput {
+  public moveSelectedNoteRight(
+    editingEnabled: boolean = true
+  ): MoveRightOutput {
     if (this._selectedNote === undefined) {
       throw Error("No note selected");
     }
@@ -135,7 +138,9 @@ export class SelectionManager {
       throw Error("No note selected");
     }
 
-    return this._selectedNote.moveRight();
+    const output = this._selectedNote.moveRight(editingEnabled);
+    this._activeVoiceNumber = this._selectedNote.voiceNumber;
+    return output;
   }
 
   /**
@@ -177,11 +182,13 @@ export class SelectionManager {
       this._selectedNote = undefined;
     }
 
-    if (
-      this._baseSelectionBeat !== undefined &&
-      beat.voiceBar.bar.staff !== this._baseSelectionBeat.voiceBar.bar.staff
-    ) {
-      // Don't add beats from a different staff to selection
+    const baseSelectionVoiceBar = this._baseSelectionBeat?.voiceBar;
+    const isDifferentSelectionLane =
+      baseSelectionVoiceBar !== undefined &&
+      (beat.voiceBar.bar.staff !== baseSelectionVoiceBar.bar.staff ||
+        beat.voiceBar.voiceNumber !== baseSelectionVoiceBar.voiceNumber);
+    if (isDifferentSelectionLane) {
+      // Don't extend an anchored range into another staff or voice.
       return;
     }
 

@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../notation/notation-component";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import { MeasureControlsTemplateRenderer } from "./measure-controls-template-renderer";
 import { TimeSigControlsComponent } from "./time-sig-controls";
@@ -42,10 +42,12 @@ export class MeasureControlsComponent {
   }
 
   public showTempoControls(): void {
+    this.tempoControlsComponent.render();
     this.tempoControlsComponent.template.dialog.showModal();
   }
 
   public showTimeSigControls(): void {
+    this.timeSigControlsComponent.render();
     this.timeSigControlsComponent.template.dialog.showModal();
   }
 }

@@ -2,13 +2,17 @@ import {
   BendType,
   GuitarTechnique,
   GuitarTechniqueType,
-} from "@/notation/model";
-import { Point, Rect, getPitchRatioNums, randomInt } from "@/shared";
+} from "../../../../model";
+import {
+  Point,
+  Rect,
+  getPitchRatioNums,
+  randomInt,
+} from "../../../../../shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { BeatElement } from "@/notation/controller/element/beat/beat-element";
-import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
+import { TrackElement } from "../../track-element";
+import { BeatElement } from "../../beat/beat-element";
+import { TechGapLineElement } from "../../staff/tech-gap-line-element";
 import { TechniqueLabelElement } from "../technique-label-element";
 import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
 import type { BarElement } from "../../bar/bar-element";
@@ -87,7 +91,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     }
 
     const nums = getPitchRatioNums(this.technique.bendOptions.bendPitch);
-    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const x = this._boundingBox.x + this._boundingBox.width - bigNumSize / 2;
     const y =
       this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
@@ -115,7 +119,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         GuitarTechniqueDescriptors.createTextDescriptor(
           x,
           y,
-          EditorLayoutDimensions.NOTE_TEXT_SIZE,
+          this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
           text
         ),
       ];
@@ -147,7 +151,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
     const nums = getPitchRatioNums(this.technique.bendOptions.prebendPitch);
 
-    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const x = this._boundingBox.x + this._boundingBox.width / 2;
     const y =
       this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
@@ -189,13 +193,13 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       return;
     }
 
-    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const xBend = this._boundingBox.x + this._boundingBox.width - bigNumSize;
     const xRelease = xBend + bigNumSize * 1.5;
     const y =
       this._boundingBox.y +
       this._boundingBox.height / 2 -
-      EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
 
     const bendNums = getPitchRatioNums(this.technique.bendOptions.bendPitch);
     const bendDescriptors = GuitarTechniqueDescriptors.createRatioDescriptors(
@@ -256,14 +260,14 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       return;
     }
 
-    const bigNumSize = EditorLayoutDimensions.NOTE_TEXT_SIZE;
+    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const xPrebend =
       this._boundingBox.x + this._boundingBox.width / 2 + bigNumSize / 4;
     const xRelease = xPrebend + bigNumSize * 1.5;
     const y =
       this._boundingBox.y +
       this._boundingBox.height / 2 -
-      EditorLayoutDimensions.NOTE_TEXT_SIZE / 2;
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
 
     const prebendNums = getPitchRatioNums(
       this.technique.bendOptions.prebendPitch
@@ -327,18 +331,26 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Generates Palm Mute HTML
    */
   private createPalmMutePath(): void {
+    this.createRepeatedTextPath("P.M.");
+  }
+
+  private createLetRingPath(): void {
+    this.createRepeatedTextPath("LR");
+  }
+
+  private createRepeatedTextPath(text: string): void {
     const x =
       this._boundingBox.x +
       this._boundingBox.width / 2 -
-      EditorLayoutDimensions.NOTE_TEXT_SIZE;
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const y = this._boundingBox.y + this._boundingBox.height / 2;
     this._pathDescriptors = [];
     this._textDescriptors = [
       GuitarTechniqueDescriptors.createTextDescriptor(
         x,
         y,
-        EditorLayoutDimensions.NOTE_TEXT_SIZE,
-        "P.M."
+        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
+        text
       ),
     ];
   }
@@ -366,9 +378,32 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       case BendType.PrebendAndRelease:
         this.createPrebendAndReleasePitchPath();
         break;
+      case BendType.Hold:
+        this.createBendTypeText("hold");
+        break;
+      case BendType.PrebendBend:
+        this.createBendTypeText("prebend / bend");
+        break;
+      case BendType.Release:
+        this.createBendTypeText("release");
+        break;
       default:
         break;
     }
+  }
+
+  private createBendTypeText(text: string): void {
+    const fontSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
+    this._pathDescriptors = [];
+    this._textDescriptors = [
+      GuitarTechniqueDescriptors.createTextDescriptor(
+        0,
+        this._boundingBox.height / 2,
+        fontSize,
+        text,
+        this._boundingBox.width
+      ),
+    ];
   }
 
   public build(): void {
@@ -382,7 +417,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   public measure(): void {
     this._boundingBox.setDimensions(
       this.beatElement.boundingBox.width,
-      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+      this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
     );
   }
 
@@ -441,6 +476,9 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         break;
       case GuitarTechniqueType.PalmMute:
         this.createPalmMutePath();
+        break;
+      case GuitarTechniqueType.LetRing:
+        this.createLetRingPath();
         break;
     }
   }

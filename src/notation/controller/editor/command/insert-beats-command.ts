@@ -1,4 +1,4 @@
-import { Beat, ScoreEditor, Staff, VoiceNumber } from "@/notation/model";
+import { Beat, ScoreEditor, Staff, VoiceNumber } from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**

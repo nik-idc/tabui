@@ -57,28 +57,17 @@ type BenchmarkCase = {
 
 const MASTER_BARS_COUNT = 1000;
 const BEATS_PER_BAR = 32;
+const layoutDimensions = new EditorLayoutDimensions({
+  width: 1200,
+  noteTextSize: 12,
+  timeSigTextSize: 48,
+  tempoTextSize: 24,
+  durationsHeight: 30,
+  horizontalPadding: 12,
+});
 const WARMUP_RUNS = Number(process.env.BENCHMARK_WARMUPS ?? 0);
 const MEASURED_RUNS = Number(process.env.BENCHMARK_RUNS ?? 1);
 const CASE_FILTER = process.env.BENCHMARK_CASE_FILTER?.toLowerCase();
-
-function ensureLayoutConfigured(): void {
-  try {
-    EditorLayoutDimensions.configure({
-      width: 1200,
-      noteTextSize: 12,
-      timeSigTextSize: 48,
-      tempoTextSize: 24,
-      durationsHeight: 30,
-    });
-  } catch (error) {
-    if (
-      !(error instanceof Error) ||
-      error.message !== "Layout dimensions already configured"
-    ) {
-      throw error;
-    }
-  }
-}
 
 function createBenchmarkScore(): Score {
   const denseBarsInfo = Array.from({ length: MASTER_BARS_COUNT }, () => ({
@@ -102,7 +91,21 @@ function createBenchmarkScore(): Score {
 }
 
 function getBeat(score: Score, barIndex: number, beatIndex: number): Beat {
-  return score.tracks[0].staves[0].bars[barIndex].beats[beatIndex];
+  const voiceBar = score.tracks[0].staves[0].bars[barIndex].getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error(`Expected voice bar 1 at bar ${barIndex}`);
+  }
+
+  return voiceBar.beats[beatIndex];
+}
+
+function getVoiceBar(score: Score, barIndex: number) {
+  const voiceBar = score.tracks[0].staves[0].bars[barIndex].getVoiceBar(1);
+  if (voiceBar === null) {
+    throw Error(`Expected voice bar 1 at bar ${barIndex}`);
+  }
+
+  return voiceBar;
 }
 
 function getNote(
@@ -140,8 +143,7 @@ function createScenario(
   buildCommands: (score: Score) => Command[]
 ): BenchmarkScenario {
   const score = createBenchmarkScore();
-  const trackElement = new TrackElement(score.tracks[0]);
-  trackElement.updateFull();
+  const trackElement = new TrackElement(score.tracks[0], layoutDimensions);
 
   return {
     trackElement,
@@ -188,8 +190,7 @@ function createBeatInsertionCase(
     name,
     buildScenario: () =>
       createScenario((score) => {
-        const bar = score.tracks[0].staves[0].bars[barIndex];
-        return [new InsertBeatCommand(bar, beatIndex)];
+        return [new InsertBeatCommand(getVoiceBar(score, barIndex), beatIndex)];
       }),
   };
 }
@@ -512,6 +513,12 @@ function formatRequests(requests: AffectedModel[][]): string {
     .join(", ");
 }
 
+function getMasterBarIndices(request: AffectedModel[]): number[] {
+  return Array.from(new Set(request.map((model) => model.masterBarIndex))).sort(
+    (a, b) => a - b
+  );
+}
+
 function measureScenario(
   scenario: BenchmarkScenario,
   path: BenchmarkPath
@@ -527,10 +534,12 @@ function measureScenario(
   const start = performance.now();
   if (path === "focused") {
     for (const request of requests) {
-      scenario.trackElement.update(request);
+      scenario.trackElement.update({
+        affectedMasterBarIndices: getMasterBarIndices(request),
+      });
     }
   } else {
-    scenario.trackElement.updateFull();
+    scenario.trackElement.update();
   }
   const elapsedMs = performance.now() - start;
 
@@ -587,8 +596,6 @@ function runBenchmark(benchmarkCase: BenchmarkCase): BenchmarkResult {
     speedup: mean(fullRuns) / mean(focusedRuns),
   };
 }
-
-ensureLayoutConfigured();
 
 const benchmarkCases = createBenchmarkCases().filter((benchmarkCase) =>
   CASE_FILTER === undefined

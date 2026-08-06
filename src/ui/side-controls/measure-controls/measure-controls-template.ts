@@ -1,4 +1,4 @@
-import { createDiv, createImage } from "@/shared";
+import { createDiv, createImage } from "../../../shared";
 import { TimeSigControlsTemplate } from "./time-sig-controls";
 import { TempoControlsTemplate } from "./tempo-controls";
 

@@ -1,4 +1,11 @@
-import { Track } from "@/notation/model";
+import { Track } from "../notation/model";
+
+export interface MasterAudioBus {
+  /** Gain node used for score-wide output volume. */
+  gainNode: GainNode;
+  /** Panner node used for score-wide stereo output placement. */
+  pannerNode: StereoPannerNode;
+}
 
 export interface TrackAudioBus {
   /** Track whose audio is routed through this bus. */
@@ -21,4 +28,6 @@ export interface ScheduledAudioNode {
   track: Track;
   /** Gain node used only for the note envelope. */
   gainNode: GainNode;
+  /** Absolute audio context time when the source is scheduled to start. */
+  startTime: number;
 }

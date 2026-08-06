@@ -1,7 +1,7 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { MeasureControlsComponent } from "@/ui";
-import { TempoControlsComponent } from "@/ui/side-controls/measure-controls/tempo-controls";
-import { TimeSigControlsComponent } from "@/ui/side-controls/measure-controls/time-sig-controls";
+import { NotationComponent } from "../../../notation/notation-component";
+import { MeasureControlsComponent } from "../..";
+import { TempoControlsComponent } from "./tempo-controls";
+import { TimeSigControlsComponent } from "./time-sig-controls";
 import {
   TempoControlsCallbacks,
   TempoControlsDefaultCallbacks,
@@ -10,8 +10,8 @@ import {
   TimeSigControlsCallbacks,
   TimeSigControlsDefaultCallbacks,
 } from "./time-sig-controls/time-sig-controls-callbacks";
-import { ListenerManager } from "@/shared/misc";
-import { BarRepeatStatus } from "@/notation/model";
+import { ListenerManager } from "../../../shared/misc";
+import { BarRepeatStatus } from "../../../notation/model";
 
 export interface MeasureControlsCallbacks {
   onTempoClicked(): void;

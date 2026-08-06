@@ -1,5 +1,5 @@
 export * from "./editor-svg-renderer";
-export * from "./player-svg-animator";
+export * from "./player-overlay-renderer";
 export * from "./svg-bar-renderer";
 export * from "./svg-beat-renderer";
 export * from "./svg-tab-note-renderer";

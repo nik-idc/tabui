@@ -22,6 +22,9 @@ describe("InsertBeatCommand", () => {
     expect(voiceBar.beats[2].uuid).toBe(originalBeatUUIDs[1]);
     expect(voiceBar.beats[1].baseDuration).toBe(NoteDuration.Quarter);
     expect(command.insertBeatResult?.beats[0]).toBe(voiceBar.beats[1]);
+    for (const note of voiceBar.beats[1].notes ?? []) {
+      expect(note.beat).toBe(voiceBar.beats[1]);
+    }
 
     command.undo();
     expect(voiceBar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
@@ -29,5 +32,8 @@ describe("InsertBeatCommand", () => {
     command.redo();
     expect(voiceBar.beats).toHaveLength(3);
     expect(voiceBar.beats[1]).toBe(command.insertBeatResult?.beats[0]);
+    for (const note of voiceBar.beats[1].notes ?? []) {
+      expect(note.beat).toBe(voiceBar.beats[1]);
+    }
   });
 });

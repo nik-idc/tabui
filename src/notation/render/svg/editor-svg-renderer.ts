@@ -3,11 +3,10 @@ import {
   NoteElement,
   NotationElement,
   NotationElementClass,
-  EditorLayoutDimensions,
   TrackController,
-} from "@/notation/controller";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
-import { createSVG, createSVGG, Rect } from "@/shared";
+} from "../../controller";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import { createSVG, createSVGG, Rect } from "../../../shared";
 import { EditorRenderer } from "../editor-renderer";
 import { EditorRenderOptions } from "../editor-renderer";
 import { ElementRenderer } from "../element-renderer";
@@ -15,24 +14,23 @@ import {
   ELEMENT_ORDER,
   ElementDiff,
   TrackElement,
-  TrackElementUpdateDepth,
-} from "@/notation/controller/element/track-element";
-import { BarElement } from "@/notation/controller/element/bar/bar-element";
-import { VoiceBarElement } from "@/notation/controller/element/bar/voice-bar-element";
-import { VoiceBarRhythmElement } from "@/notation/controller/element/bar/voice-bar-rhythm-element";
-import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
-import { TabBeatRhythmElement } from "@/notation/controller/element/beat/tab-beat-rhythm-element";
-import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
-import { GuitarTechniqueElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-element";
-import { GuitarTechniqueLabelElement } from "@/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
-import { BeamSegmentElement } from "@/notation/controller/element/bar/beam-segment-element";
-import { BarTupletGroupElement } from "@/notation/controller/element/bar/bar-tuplet-group-element";
-import { VoiceNumber } from "@/notation/model";
+} from "../../controller/element/track-element";
+import { BarElement } from "../../controller/element/bar/bar-element";
+import { VoiceBarElement } from "../../controller/element/bar/voice-bar-element";
+import { VoiceBarRhythmElement } from "../../controller/element/bar/voice-bar-rhythm-element";
+import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
+import { TabBeatRhythmElement } from "../../controller/element/beat/tab-beat-rhythm-element";
+import { TabNoteElement } from "../../controller/element/note/tab-note-element";
+import { GuitarTechniqueElement } from "../../controller/element/technique/guitar-technique/guitar-technique-element";
+import { GuitarTechniqueLabelElement } from "../../controller/element/technique/guitar-technique/guitar-technique-label-element";
+import { BeamSegmentElement } from "../../controller/element/bar/beam-segment-element";
+import { BarTupletGroupElement } from "../../controller/element/bar/bar-tuplet-group-element";
+import { VoiceNumber } from "../../model";
 import { createRendererForElement } from "./support/renderer-factory";
 import { SelectionOverlayRenderer } from "./selection-overlay-renderer";
 import { BeatInteractionRenderer } from "./beat-interaction-renderer";
 import { PlayerOverlayRenderer } from "./player-overlay-renderer";
-import { TrackLineElement } from "@/notation/controller/element/track/track-line-element";
+import { TrackLineElement } from "../../controller/element/track/track-line-element";
 
 enum VoicePart {
   Content = "content",
@@ -86,6 +84,8 @@ const DEFAULT_RENDER_OPTIONS: EditorRenderOptions = {
   },
 };
 
+const TRACK_LINE_VIEWPORT_MARGIN_RATIO = 0.25;
+
 /**
  * Render a track window using SVG
  */
@@ -96,6 +96,8 @@ export class EditorSVGRenderer implements EditorRenderer {
    * the last visible track line
    */
   private static readonly VIEWPORT_OVERSCAN_LINES = 2;
+  /** Extra materialized lines retained beyond rendered overscan. */
+  private static readonly MATERIALIZED_LINE_CACHE_MARGIN = 2;
 
   /** Notation-only scroll viewport wrapper. */
   readonly notationViewportDiv: HTMLDivElement;
@@ -132,22 +134,53 @@ export class EditorSVGRenderer implements EditorRenderer {
   /** Player overlay renderer (player cursor) */
   private _playerOverlayRenderer: PlayerOverlayRenderer;
 
+  private calculateScrollTopForTrackLine(lineBounds: Rect): number | undefined {
+    if (this._viewportRect.height <= 0) {
+      return undefined;
+    }
+
+    let targetScrollTop: number | undefined;
+    if (lineBounds.height >= this._viewportRect.height) {
+      if (
+        lineBounds.y < this._viewportRect.y ||
+        lineBounds.bottom > this._viewportRect.bottom
+      ) {
+        targetScrollTop = lineBounds.y;
+      }
+    } else {
+      const viewportMargin =
+        this._viewportRect.height * TRACK_LINE_VIEWPORT_MARGIN_RATIO;
+      const safeZoneTop = this._viewportRect.y + viewportMargin;
+      const safeZoneBottom = this._viewportRect.bottom - viewportMargin;
+      if (lineBounds.y < safeZoneTop || lineBounds.bottom > safeZoneBottom) {
+        targetScrollTop = lineBounds.y - viewportMargin;
+      }
+    }
+
+    if (targetScrollTop === undefined) {
+      return undefined;
+    }
+
+    targetScrollTop = Math.max(0, targetScrollTop);
+    return targetScrollTop === this._viewportRect.y
+      ? undefined
+      : targetScrollTop;
+  }
+
   /**
    * Render a track window using SVG
    * @param rootDiv Root container element
    * @param assetsPath Path to assets
    */
   constructor(
-    rootDiv: HTMLDivElement,
+    notationViewportDiv: HTMLDivElement,
     trackController: TrackController,
     assetsPath: ResolvedAssetConfig
   ) {
-    this.notationViewportDiv = document.createElement("div");
-    this.notationViewportDiv.classList.add("tu-notation-viewport");
+    this.notationViewportDiv = notationViewportDiv;
     this.rootSVGElement = createSVG();
     this.rootSVGElement.classList.add("tu-root-svg");
     this.notationViewportDiv.appendChild(this.rootSVGElement);
-    rootDiv.appendChild(this.notationViewportDiv);
 
     this.assetsPath = assetsPath;
     this.trackController = trackController;
@@ -176,7 +209,8 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._playerSVGGroup.setAttribute("id", "tu-player");
     this._playerOverlayRenderer = new PlayerOverlayRenderer(
       this._playerSVGGroup,
-      this.trackController
+      this.trackController,
+      this.ensureTrackLineVisible.bind(this)
     );
 
     this.mountRootLayers();
@@ -205,6 +239,13 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   private mountRootLayers(): void {
+    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
+    const contentTransform = `translate(${padding}, 0)`;
+    this._interactionSVGGroup.setAttribute("transform", contentTransform);
+    this._notationSVGGroup.setAttribute("transform", contentTransform);
+    this._selectionSVGGroup.setAttribute("transform", contentTransform);
+    this._playerSVGGroup.setAttribute("transform", contentTransform);
+
     this.rootSVGElement.appendChild(this._interactionSVGGroup);
     this.rootSVGElement.appendChild(this._notationSVGGroup);
     this.rootSVGElement.appendChild(this._selectionSVGGroup);
@@ -220,13 +261,58 @@ export class EditorSVGRenderer implements EditorRenderer {
     );
   }
 
-  public attachViewportScrollEvent(eventHandler: (event: Event) => void): void {
-    if (this._viewportScrollListener !== undefined) {
-      this.notationViewportDiv.removeEventListener(
-        "scroll",
-        this._viewportScrollListener
+  private ensureTrackLineVisible(trackLineElement: TrackLineElement): void {
+    this.setViewportRect();
+    const scrollTop = this.calculateScrollTopForTrackLine(
+      trackLineElement.globalBoundingBox
+    );
+    const lineIndex =
+      this.trackController.trackElement.trackLineElements.indexOf(
+        trackLineElement
       );
+    const isMaterialized =
+      this.trackController.trackElement.materializedLineIndices.has(lineIndex);
+    if (scrollTop === undefined && isMaterialized) {
+      return;
     }
+
+    if (scrollTop !== undefined) {
+      this.notationViewportDiv.scrollTop = scrollTop;
+      this.setViewportRect();
+    }
+    this.renderNotation({
+      renderNotation: true,
+      forceNotation: !isMaterialized,
+      overlays: { selection: false, player: false },
+    });
+  }
+
+  /** Positions the initial viewport around a known track line before rendering. */
+  public prepareViewportForTrackLine(trackLineElement: TrackLineElement): void {
+    this.setViewportRect();
+    const scrollTop = this.calculateScrollTopForTrackLine(
+      trackLineElement.globalBoundingBox
+    );
+    if (scrollTop !== undefined) {
+      this.notationViewportDiv.scrollTop = scrollTop;
+      this.setViewportRect();
+    }
+  }
+
+  public detachViewportScrollEvent(): void {
+    if (this._viewportScrollListener === undefined) {
+      return;
+    }
+
+    this.notationViewportDiv.removeEventListener(
+      "scroll",
+      this._viewportScrollListener
+    );
+    this._viewportScrollListener = undefined;
+  }
+
+  public attachViewportScrollEvent(eventHandler: (event: Event) => void): void {
+    this.detachViewportScrollEvent();
 
     this._viewportScrollListener = eventHandler as EventListener;
     this.notationViewportDiv.addEventListener(
@@ -261,9 +347,24 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
 
     if (firstVisibleIndex === -1 || lastVisibleIndex === -1) {
+      // Find the nearest line to the current scroll position
+      let nearestLineIndex = 0;
+      for (let i = 0; i < trackLines.length; i++) {
+        if (trackLines[i].globalBoundingBox.y > viewportTop) {
+          break;
+        }
+        nearestLineIndex = i;
+      }
+
       return {
-        start: 0,
-        end: Math.max(0, trackLines.length - 1),
+        start: Math.max(
+          0,
+          nearestLineIndex - EditorSVGRenderer.VIEWPORT_OVERSCAN_LINES
+        ),
+        end: Math.min(
+          trackLines.length - 1,
+          nearestLineIndex + EditorSVGRenderer.VIEWPORT_OVERSCAN_LINES
+        ),
       };
     }
 
@@ -714,12 +815,12 @@ export class EditorSVGRenderer implements EditorRenderer {
 
   private syncRootSVGDimensions(): void {
     const trackWindowHeight = this.trackController.trackElement.height;
-    const VB = `0 0 ${EditorLayoutDimensions.WIDTH} ${trackWindowHeight}`;
+    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
+    const trackWindowWidth =
+      this.trackController.layoutDimensions.WIDTH + padding * 2;
+    const VB = `0 0 ${trackWindowWidth} ${trackWindowHeight}`;
     this.rootSVGElement.setAttribute("viewBox", VB);
-    this.rootSVGElement.setAttribute(
-      "width",
-      `${EditorLayoutDimensions.WIDTH}`
-    );
+    this.rootSVGElement.setAttribute("width", `${trackWindowWidth}`);
     this.rootSVGElement.setAttribute("height", `${trackWindowHeight}`);
   }
 
@@ -736,9 +837,26 @@ export class EditorSVGRenderer implements EditorRenderer {
       return;
     }
 
-    // Ensure that the viewport's elements are up to date
-    this.trackController.trackElement.update(start, end, {
-      depth: TrackElementUpdateDepth.Elements,
+    const lastLineIndex =
+      this.trackController.trackElement.trackLineElements.length - 1;
+    const retainedStart = Math.max(
+      0,
+      start - EditorSVGRenderer.MATERIALIZED_LINE_CACHE_MARGIN
+    );
+    const retainedEnd = Math.min(
+      lastLineIndex,
+      end + EditorSVGRenderer.MATERIALIZED_LINE_CACHE_MARGIN
+    );
+
+    // Ensure that the viewport's elements are up to date.
+    this.trackController.trackElement.update({
+      lineRange: { startLineIndex: start, endLineIndex: end },
+      rebuildSkeleton: false,
+      forceElements: false,
+      dematerializeOutsideRange: {
+        startLineIndex: retainedStart,
+        endLineIndex: retainedEnd,
+      },
     });
     const visibleLines =
       this.trackController.trackElement.trackLineElements.slice(start, end + 1);
@@ -802,7 +920,8 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   public dispose(): void {
+    this.detachViewportScrollEvent();
     this.unrender();
-    this.notationViewportDiv.remove();
+    this.notationViewportDiv.replaceChildren();
   }
 }

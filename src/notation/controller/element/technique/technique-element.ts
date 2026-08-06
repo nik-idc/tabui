@@ -1,7 +1,7 @@
-import { Technique } from "@/notation/model";
+import { Technique } from "../../../model";
 import { NoteElement } from "../note/note-element";
-import { Point, Rect } from "@/shared";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { Point, Rect } from "../../../../shared";
+import { NotationElement } from "../notation-element";
 
 export interface SVGPathDescriptor {
   d: string;

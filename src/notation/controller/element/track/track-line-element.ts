@@ -1,14 +1,10 @@
-import { Track } from "@/notation/model";
-import { Point, Rect, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import {
-  NotationStyle,
-  StaffLineElement,
-} from "@/notation/controller/element/staff/staff-line-element";
+import { Track } from "../../../model";
+import { Point, Rect, randomInt } from "../../../../shared";
+import { TrackElement } from "../track-element";
+import { StaffLineElement } from "../staff/staff-line-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
-import { VertLine } from "@/shared/rendering/geometry/line";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { VertLine } from "../../../../shared/rendering/geometry/line";
+import { NotationElement } from "../notation-element";
 import type { BarElement } from "../bar/bar-element";
 /**
  * Bar placement data for one master bar inside a presentation track line.
@@ -23,6 +19,7 @@ export type TrackLineBar = {
 export type TrackElementSkeletonLine = {
   trackLineBars: TrackLineBar[];
   finalLineHeight: number;
+  y: number;
 };
 
 export type TrackElementSkeleton = {
@@ -105,7 +102,24 @@ export class TrackLineElement implements NotationElement {
       this._skeletonLine.trackLineBars
     );
 
-    this.build();
+    // A new track line starts as a geometry-only shell until materialized.
+    this._ownedNotationElements = [this];
+    this.setGeometryFromSkeleton(skeletonLine);
+  }
+
+  /** Applies whole-track skeleton geometry without building descendants. */
+  public setGeometryFromSkeleton(skeletonLine: TrackElementSkeletonLine): void {
+    this._skeletonLine = skeletonLine;
+    this._stableIdentity = TrackLineElement.createStableIdentity(
+      this.track,
+      skeletonLine.trackLineBars
+    );
+    this._boundingBox.set(
+      0,
+      skeletonLine.y,
+      this.trackElement.layoutDimensions.WIDTH,
+      skeletonLine.finalLineHeight
+    );
   }
 
   /**
@@ -205,25 +219,25 @@ export class TrackLineElement implements NotationElement {
     if (this._outlineLines === undefined) {
       return;
     }
-    const xLeft = 0;
-    // const xRight = this._boundingBox.width;
-    const barElements =
-      this._staffLineElements[0].styleLinesAsArray[0].barElements;
-    const xRight = barElements[barElements.length - 1].globalBoundingBox.right;
 
-    // Known limitation: outline layout currently assumes tablature geometry.
-    const y1 =
-      this._trackLineInfoElement.boundingBox.bottom +
-      // Since visually the staff lines begin a bit lower than the element
-      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2 +
-      this._staffLineElements[0].styleLinesAsArray[0].techGapElement.boundingBox
-        .bottom;
-    const y2 =
-      this._staffLineElements[this._staffLineElements.length - 1].boundingBox
-        .bottom -
-      EditorLayoutDimensions.TUPLET_RECT_HEIGHT -
-      EditorLayoutDimensions.DURATIONS_HEIGHT -
-      EditorLayoutDimensions.NOTE_RECT_HEIGHT / 2;
+    const firstStaffLine = this._staffLineElements[0];
+    const lastStaffLine =
+      this._staffLineElements[this._staffLineElements.length - 1];
+    const firstStyleLine = firstStaffLine.styleLinesAsArray[0];
+    const lastStyleLine =
+      lastStaffLine.styleLinesAsArray[
+        lastStaffLine.styleLinesAsArray.length - 1
+      ];
+    const firstBar = firstStyleLine.barElements[0];
+    const lastBar =
+      lastStyleLine.barElements[lastStyleLine.barElements.length - 1];
+    const firstMaterializedBarStaffLine = firstBar.staffLinesLineLocal[0];
+    const lastMaterializedBarStaffLine =
+      lastBar.staffLinesLineLocal[lastBar.staffLinesLineLocal.length - 1];
+    const xLeft = firstMaterializedBarStaffLine.x1;
+    const xRight = lastMaterializedBarStaffLine.x2;
+    const y1 = firstMaterializedBarStaffLine.y;
+    const y2 = lastMaterializedBarStaffLine.y;
 
     this._outlineLines.left.set(xLeft, y1, y2);
     this._outlineLines.right.set(xRight, y1, y2);

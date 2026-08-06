@@ -1,11 +1,11 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../notation/notation-component";
 import { ScoreControlsTemplate } from "./score-controls-template";
 import { ScoreControlsTemplateRenderer } from "./score-controls-template-renderer";
 import { TrackControlsComponent } from "./track-controls/track-controls-component";
 import { NewTrackControlsComponent } from "./new-track/new-track-controls-component";
-import { Score, Track } from "@/notation";
+import { Score, Track } from "../../../notation";
 import { TrackSettingsControlsComponent } from "./track-controls/track-settings";
-import { YesNoComponent } from "@/ui/shared/yes-no";
+import { YesNoComponent } from "../../shared/yes-no";
 
 export class ScoreControlsComponent {
   readonly parentDiv: HTMLDivElement;
@@ -62,6 +62,18 @@ export class ScoreControlsComponent {
     this.newTrackComponent.render();
     this.trackSettingsComponent.render();
     this.trackRemoveComponent.render();
+    const controller = this.notationComponent.trackController;
+    const editingDisabled = !controller.editingEnabled || controller.isPlaying;
+    const editingDialogs = [
+      this.newTrackComponent.template.dialog,
+      this.trackSettingsComponent.template.dialog,
+      this.trackRemoveComponent.template.yesNoDialog,
+    ];
+    for (const dialog of editingDialogs) {
+      dialog.inert = editingDisabled;
+      dialog.classList.toggle("tu-editing-disabled", editingDisabled);
+      dialog.setAttribute("aria-disabled", `${editingDisabled}`);
+    }
 
     this.reconcileTrackComponents();
   }
@@ -112,16 +124,28 @@ export class ScoreControlsComponent {
   }
 
   public showNewTrackDialog(): void {
+    const controller = this.notationComponent.trackController;
+    if (controller.isPlaying) {
+      return;
+    }
     this.newTrackComponent.template.dialog.showModal();
   }
 
   public showTrackSettingsDialog(track: Track): void {
+    const controller = this.notationComponent.trackController;
+    if (controller.isPlaying) {
+      return;
+    }
     this.trackSettingsComponent.setTrack(track);
     this.trackSettingsComponent.render();
     this.trackSettingsComponent.template.dialog.showModal();
   }
 
   public showTrackRemoveDialog(track: Track): void {
+    const controller = this.notationComponent.trackController;
+    if (controller.isPlaying) {
+      return;
+    }
     this._trackToRemove = track;
     this.trackRemoveComponent.setText(
       `Are you sure you want to delete track "${track.name}"?`
@@ -130,7 +154,10 @@ export class ScoreControlsComponent {
   }
 
   public removeSelectedTrack(): void {
-    if (this._trackToRemove === null) {
+    if (
+      this.notationComponent.trackController.isPlaying ||
+      this._trackToRemove === null
+    ) {
       return;
     }
 

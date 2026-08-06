@@ -1,6 +1,5 @@
 import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
-import { InstrumentType } from "./instrument/instrument-type";
 import { Beat } from "./beat";
 import { Technique } from "./technique";
 import { TechniqueType } from "./technique-type";
@@ -25,16 +24,10 @@ export enum NoteValue {
   None = "",
 }
 
-/**
- * Base note JSON format
- */
-export interface NoteJSON {
-  instrumentType: InstrumentType;
+export type NoteType = {
   noteValue: NoteValue;
   octave: number | null;
-}
-
-export type NoteType = Omit<NoteJSON, "instrumentType">;
+};
 
 /**
  * Note interface
@@ -59,8 +52,7 @@ export interface Note<I extends MusicInstrument = MusicInstrument> {
 
   compare(otherNote: Note<I>): boolean;
 
-  deepCopy(): Note<I>;
-  toJSON(): NoteJSON | null;
+  deepCopy(beat?: Beat<I>): Note<I>;
 }
 
 /** Array of all 12 musical notes */
@@ -180,6 +172,11 @@ export function getNoteFrequency(note: Note): number {
   return getFrequencyFromNoteType(note);
 }
 
+/** A4 reference frequency in Hz, the equal-temperament tuning anchor. */
+const A4_REFERENCE_FREQUENCY_HZ = 440;
+/** Semitone offset of A4 from C0: 4 octaves * 12 + A's semitone offset (9). */
+const A4_SEMITONES_FROM_C0 = getSemitonesFromNote(NoteValue.A, 4);
+
 export function getFrequencyFromNoteType(note: NoteType): number {
   if (note.noteValue === NoteValue.Dead || note.noteValue === NoteValue.None) {
     return 0;
@@ -190,8 +187,10 @@ export function getFrequencyFromNoteType(note: NoteType): number {
   }
 
   const semitonesFromC0 = getSemitonesFromNote(note.noteValue, note.octave);
-  // A4 (440Hz) is semitone #57 if we start counting from C0.
-  return 440 * Math.pow(2, (semitonesFromC0 - 57) / 12);
+  const semitonesFromA4 = semitonesFromC0 - A4_SEMITONES_FROM_C0;
+  return (
+    A4_REFERENCE_FREQUENCY_HZ * Math.pow(2, semitonesFromA4 / NOTES_PER_OCTAVE)
+  );
 }
 
 /**

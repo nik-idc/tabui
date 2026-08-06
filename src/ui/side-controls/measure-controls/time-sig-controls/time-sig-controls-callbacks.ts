@@ -1,15 +1,26 @@
-import { NoteDuration } from "@/notation/model";
-import { NotationComponent } from "@/notation/notation-component";
-import { TimeSigControlsComponent } from "@/ui/side-controls/measure-controls/time-sig-controls";
-import { ListenerManager } from "@/shared/misc";
+import { NoteDuration } from "../../../../notation/model";
+import {
+  MAX_MASTER_BAR_BEATS_COUNT,
+  MIN_MASTER_BAR_BEATS_COUNT,
+} from "../../../../notation/model";
+import { NotationComponent } from "../../../../notation/notation-component";
+import { TimeSigControlsComponent } from "./";
+import { ListenerManager } from "../../../../shared/misc";
+
+/**
+ * Beat-unit denominators offered by the time-signature selector. This is a UI
+ * presentation choice (a subset of {@link NoteDuration}); the storage layer
+ * also accepts other valid {@link NoteDuration} values such as SixtyFourth.
+ */
+export const AVAILABLE_TIME_SIG_DURATIONS = [1, 2, 4, 8, 16, 32];
 
 export interface TimeSigControlsCallbacks {
   readonly beatsCountErrorText: string;
   readonly durationErrorText: string;
 
   onDialogClicked(event: MouseEvent): void;
-  onBeatsChanged(event: InputEvent): void;
-  onDurationChanged(event: InputEvent): void;
+  onBeatsStep(delta: number): void;
+  onDurationChanged(): void;
   onConfirmClicked(): void;
   onCancelClicked(): void;
   bind(): void;
@@ -26,12 +37,6 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
 
   readonly beatsCountErrorText: string = "Invalid beats count";
   readonly durationErrorText: string = "Invalid duration";
-
-  private _minBeatsCount = 1;
-  private _maxBeatsCount = 32;
-  private _beatsCount: number = 4;
-  private _availableDurations = [1, 2, 4, 8, 16, 32];
-  private _duration: NoteDuration = NoteDuration.Quarter;
 
   constructor(
     timeSigComponent: TimeSigControlsComponent,
@@ -50,9 +55,9 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
   private beatsCountValid(beatsCountValue: string): boolean {
     const beatsCountNum = Number(beatsCountValue);
     if (
-      Number.isNaN(beatsCountNum) ||
-      beatsCountNum < this._minBeatsCount ||
-      beatsCountNum > this._maxBeatsCount
+      !Number.isInteger(beatsCountNum) ||
+      beatsCountNum < MIN_MASTER_BAR_BEATS_COUNT ||
+      beatsCountNum > MAX_MASTER_BAR_BEATS_COUNT
     ) {
       return false;
     }
@@ -64,7 +69,7 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
     const durationNum = Number(durationValue);
     if (
       Number.isNaN(durationNum) ||
-      !this._availableDurations.includes(durationNum)
+      !AVAILABLE_TIME_SIG_DURATIONS.includes(durationNum)
     ) {
       return false;
     }
@@ -79,50 +84,83 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
       )
     ) {
       this._timeSigComponent.template.dialog.close();
-      this._freeKeyboard();
     }
   }
 
-  onBeatsChanged(event: InputEvent): void {
-    const inputValue = this._timeSigComponent.template.beatsInput.value;
-    if (!this.beatsCountValid(inputValue)) {
-      this._timeSigComponent.template.beatsErrorText.textContent =
-        this.beatsCountErrorText;
-      this._timeSigComponent.template.confirmButton.disabled = true;
-    } else {
-      this._timeSigComponent.template.beatsErrorText.textContent = " ";
-      this._timeSigComponent.template.confirmButton.disabled = false;
-      this._beatsCount = Number(inputValue);
-    }
+  onBeatsStep(delta: number): void {
+    const template = this._timeSigComponent.template;
+    const parsedValue = Number(template.beatsValue.textContent);
+    const currentValue = Number.isInteger(parsedValue)
+      ? parsedValue
+      : MIN_MASTER_BAR_BEATS_COUNT;
+    const value = Math.max(
+      MIN_MASTER_BAR_BEATS_COUNT,
+      Math.min(MAX_MASTER_BAR_BEATS_COUNT, currentValue + delta)
+    );
+    template.beatsValue.textContent = `${value}`;
+    template.beatsDownButton.disabled = value <= MIN_MASTER_BAR_BEATS_COUNT;
+    template.beatsUpButton.disabled = value >= MAX_MASTER_BAR_BEATS_COUNT;
+    template.beatsErrorText.textContent = " ";
+    template.confirmButton.disabled = false;
   }
 
-  onDurationChanged(event: InputEvent): void {
-    const inputValue = this._timeSigComponent.template.durationInput.value;
-    if (!this.durationValid(inputValue)) {
-      this._timeSigComponent.template.durationErrorText.textContent =
-        this.durationErrorText;
-      this._timeSigComponent.template.confirmButton.disabled = true;
+  onDurationChanged(): void {
+    const template = this._timeSigComponent.template;
+    const inputValue = template.durationSelect.value;
+    const durationValid = this.durationValid(inputValue);
+    if (!durationValid) {
+      template.durationErrorText.textContent = this.durationErrorText;
     } else {
-      this._timeSigComponent.template.durationErrorText.textContent = " ";
-      this._timeSigComponent.template.confirmButton.disabled = false;
-      this._duration = 1 / Number(inputValue);
+      template.durationErrorText.textContent = " ";
     }
+    template.confirmButton.disabled = !durationValid;
   }
 
   onConfirmClicked(): void {
+    const template = this._timeSigComponent.template;
+    const beatsValue = template.beatsValue.textContent;
+    const durationValue = template.durationSelect.value;
+    if (
+      !this.beatsCountValid(beatsValue) ||
+      !this.durationValid(durationValue)
+    ) {
+      template.beatsErrorText.textContent = this.beatsCountErrorText;
+      template.durationErrorText.textContent = this.durationErrorText;
+      template.confirmButton.disabled = true;
+      return;
+    }
     this._notationComponent.trackController.setSelectedBarTimeSignature(
-      this._beatsCount,
-      this._duration
+      Number(beatsValue),
+      1 / Number(durationValue)
     );
     this._renderFunc();
 
     this._timeSigComponent.template.dialog.close();
-    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._timeSigComponent.template.dialog.close();
-    this._freeKeyboard();
+  }
+
+  onKeydown(event: KeyboardEvent): void {
+    const template = this._timeSigComponent.template;
+    const canConfirm =
+      event.target === template.dialog ||
+      event.target === template.durationSelect ||
+      event.target === template.confirmButton;
+    if (
+      event.key === "Enter" &&
+      canConfirm &&
+      !template.confirmButton.disabled
+    ) {
+      event.preventDefault();
+      this.onConfirmClicked();
+    }
+  }
+
+  onWheel(event: WheelEvent): void {
+    event.preventDefault();
+    this.onBeatsStep(event.deltaY < 0 ? 1 : -1);
   }
 
   bind(): void {
@@ -133,14 +171,34 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
         handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
       },
       {
-        element: this._timeSigComponent.template.beatsInput,
-        event: "input",
-        handler: (event: Event) => this.onBeatsChanged(event as InputEvent),
+        element: this._timeSigComponent.template.dialog,
+        event: "close",
+        handler: () => this._freeKeyboard(),
       },
       {
-        element: this._timeSigComponent.template.durationInput,
-        event: "input",
-        handler: (event: Event) => this.onDurationChanged(event as InputEvent),
+        element: this._timeSigComponent.template.dialog,
+        event: "keydown",
+        handler: (event: KeyboardEvent) => this.onKeydown(event),
+      },
+      {
+        element: this._timeSigComponent.template.beatsDownButton,
+        event: "click",
+        handler: () => this.onBeatsStep(-1),
+      },
+      {
+        element: this._timeSigComponent.template.beatsUpButton,
+        event: "click",
+        handler: () => this.onBeatsStep(1),
+      },
+      {
+        element: this._timeSigComponent.template.beatsControl,
+        event: "wheel",
+        handler: (event: WheelEvent) => this.onWheel(event),
+      },
+      {
+        element: this._timeSigComponent.template.durationSelect,
+        event: "change",
+        handler: () => this.onDurationChanged(),
       },
       {
         element: this._timeSigComponent.template.confirmButton,

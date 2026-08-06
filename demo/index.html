@@ -21,14 +21,126 @@
         project once a dynamic template builder is added.
       </p>
       <div class="demo-controls">
-        <label class="demo-control">
-          <span>Fixture</span>
-          <select id="fixture-select"></select>
-        </label>
-        <label class="demo-control">
-          <span>Theme</span>
-          <select id="theme-select"></select>
-        </label>
+        <fieldset class="demo-control-section">
+          <legend>Fixture</legend>
+          <div class="demo-control-grid">
+            <label class="demo-control">
+              <span>Score fixture</span>
+              <select id="fixture-select"></select>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="demo-control-section">
+          <legend>Theme</legend>
+          <div class="demo-control-grid">
+            <label class="demo-control">
+              <span>Color theme</span>
+              <select id="theme-select"></select>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="demo-control-section demo-control-section-wide">
+          <legend>Panel visibility</legend>
+          <div class="demo-control-grid">
+            <label class="demo-control">
+              <span>Score panel</span>
+              <select id="score-panel-visibility-select">
+                <option value="default">Default</option>
+                <option value="visible">Visible</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </label>
+            <label class="demo-control">
+              <span>Side panel</span>
+              <select id="side-panel-visibility-select">
+                <option value="default">Default</option>
+                <option value="visible">Visible</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="demo-control-section demo-control-section-wide">
+          <legend>Panel state &amp; initial state</legend>
+          <div class="demo-setting-rows">
+            <div class="demo-setting-row">
+              <div class="demo-setting-row-title">Interaction</div>
+              <div class="demo-control-grid">
+                <label class="demo-control">
+                  <span>Mode</span>
+                  <select id="interaction-mode-select">
+                    <option value="edit">Edit</option>
+                    <option value="view-only">View only</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="demo-setting-row">
+              <div class="demo-setting-row-title">Score panel settings</div>
+              <div class="demo-control-grid">
+                <label class="demo-control">
+                  <span>Placement</span>
+                  <select id="score-panel-placement-select">
+                    <option value="top">Top</option>
+                    <option value="bottom">Bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="demo-setting-row">
+              <div class="demo-setting-row-title">Side panel settings</div>
+              <div class="demo-control-grid">
+                <label class="demo-control">
+                  <span>Placement</span>
+                  <select id="side-panel-placement-select">
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                  </select>
+                </label>
+                <label class="demo-control">
+                  <span>Collapse</span>
+                  <select id="side-panel-collapsible-select">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+                <label class="demo-control">
+                  <span>Initial state</span>
+                  <select id="side-panel-collapsed-select">
+                    <option value="false">Expanded</option>
+                    <option value="true">Collapsed</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="demo-control-section demo-control-section-wide">
+          <legend>Serialization</legend>
+          <div class="demo-persistence-actions">
+            <button id="serialize-score" type="button">Serialize score</button>
+            <button id="deserialize-score" type="button">
+              Deserialize file
+            </button>
+            <input
+              id="score-file"
+              type="file"
+              accept=".json,.tabui.json,application/json"
+              hidden
+            />
+          </div>
+          <div
+            id="score-persistence-status"
+            class="demo-persistence-status"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></div>
+        </fieldset>
       </div>
       <a href="https://github.com/nik-idc/tabui">GitHub Repo</a>
     </div>

@@ -1,12 +1,11 @@
 import { TempoControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/tempo-controls/tempo-controls-callbacks";
+import { DEFAULT_MASTER_BAR } from "../../src/notation/model";
 import {
   createNotationComponentMock,
   dispatchClick,
-  dispatchInput,
   FakeElement,
   makeButton,
   makeDialog,
-  makeInput,
   makeText,
 } from "./helpers";
 
@@ -14,7 +13,13 @@ function createTempoHarness() {
   const dialog = makeDialog();
   const dialogContent = new FakeElement();
   dialog.appendChild(dialogContent);
-  const input = makeInput("120");
+  const valueControl = new FakeElement();
+  const decreaseTenButton = makeButton();
+  const decreaseButton = makeButton();
+  const value = new FakeElement();
+  value.textContent = "120";
+  const increaseButton = makeButton();
+  const increaseTenButton = makeButton();
   const confirmButton = makeButton();
   const cancelButton = makeButton();
   const errorText = makeText();
@@ -22,7 +27,12 @@ function createTempoHarness() {
     template: {
       dialog,
       dialogContent,
-      input,
+      valueControl,
+      decreaseTenButton,
+      decreaseButton,
+      value,
+      increaseButton,
+      increaseTenButton,
       confirmButton,
       cancelButton,
       errorText,
@@ -50,18 +60,40 @@ function createTempoHarness() {
 }
 
 describe("TempoControlsDefaultCallbacks", () => {
-  test("invalid and valid tempo input update dialog state", () => {
+  test("tempo buttons step and clamp the displayed value", () => {
     const { callbacks, component } = createTempoHarness();
 
-    dispatchInput(component.template.input, "0");
-    callbacks.onTempoChanged({} as InputEvent);
-    expect(component.template.confirmButton.disabled).toBe(true);
-    expect(component.template.errorText.textContent).not.toBe(" ");
-
-    dispatchInput(component.template.input, "180");
-    callbacks.onTempoChanged({} as InputEvent);
+    callbacks.onTempoStep(10);
+    expect(component.template.value.textContent).toBe("130");
+    callbacks.onTempoStep(-500);
+    expect(component.template.value.textContent).toBe("1");
+    expect(component.template.decreaseButton.disabled).toBe(true);
     expect(component.template.confirmButton.disabled).toBe(false);
-    expect(component.template.errorText.textContent).toBe(" ");
+  });
+
+  test("a non-numeric displayed tempo resets to the model default on step", () => {
+    const { callbacks, component } = createTempoHarness();
+    component.template.value.textContent = "not a number";
+
+    callbacks.onTempoStep(1);
+
+    expect(component.template.value.textContent).toBe(
+      `${DEFAULT_MASTER_BAR.tempo + 1}`
+    );
+  });
+
+  test("mouse wheel adjusts tempo", () => {
+    const { callbacks, component } = createTempoHarness();
+    const preventDefault = jest.fn();
+    callbacks.bind();
+
+    component.template.valueControl.dispatch("wheel", {
+      deltaY: -1,
+      preventDefault,
+    });
+
+    expect(component.template.value.textContent).toBe("121");
+    expect(preventDefault).toHaveBeenCalledTimes(1);
   });
 
   test("confirm commits tempo, renders, closes dialog, and frees keyboard", () => {
@@ -73,8 +105,8 @@ describe("TempoControlsDefaultCallbacks", () => {
       freeKeyboard,
     } = createTempoHarness();
 
-    component.template.input.value = "180";
-    callbacks.onTempoChanged({} as InputEvent);
+    callbacks.bind();
+    component.template.value.textContent = "180";
     callbacks.onConfirmClicked();
 
     expect(
@@ -88,6 +120,7 @@ describe("TempoControlsDefaultCallbacks", () => {
   test("dialog clicks close only when clicking outside content", () => {
     const { callbacks, component, freeKeyboard } = createTempoHarness();
     const outsideTarget = new FakeElement();
+    callbacks.bind();
 
     callbacks.onDialogClicked({
       target: component.template.dialogContent,
@@ -110,7 +143,7 @@ describe("TempoControlsDefaultCallbacks", () => {
     const setTempo = notationComponent.trackController.setSelectedBarTempo;
 
     callbacks.bind();
-    dispatchInput(component.template.input, "200");
+    component.template.value.textContent = "200";
     dispatchClick(component.template.confirmButton);
 
     expect(setTempo).toHaveBeenCalledTimes(1);
@@ -119,7 +152,7 @@ describe("TempoControlsDefaultCallbacks", () => {
     const tempoCallsBeforeUnbind = setTempo.mock.calls.length;
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
-    dispatchInput(component.template.input, "220");
+    component.template.value.textContent = "220";
     dispatchClick(component.template.confirmButton);
     expect(setTempo).toHaveBeenCalledTimes(tempoCallsBeforeUnbind);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
@@ -129,7 +162,7 @@ describe("TempoControlsDefaultCallbacks", () => {
     const tempoCallsBeforeRebindClick = setTempo.mock.calls.length;
     const renderCallsBeforeRebindClick = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeRebindClick = freeKeyboard.mock.calls.length;
-    dispatchInput(component.template.input, "240");
+    component.template.value.textContent = "240";
     dispatchClick(component.template.confirmButton);
     expect(setTempo).toHaveBeenCalledTimes(tempoCallsBeforeRebindClick + 1);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeRebindClick + 1);

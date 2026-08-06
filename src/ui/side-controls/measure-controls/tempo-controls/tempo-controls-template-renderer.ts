@@ -1,9 +1,14 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
+import {
+  DEFAULT_MASTER_BAR,
+  MAX_MASTER_BAR_TEMPO,
+  MIN_MASTER_BAR_TEMPO,
+} from "../../../../notation/model";
 import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
-} from "@/ui/shared";
+} from "../../../shared";
 import { TempoControlsTemplate } from "./tempo-controls-template";
 
 export class TempoControlsTemplateRenderer {
@@ -38,7 +43,7 @@ export class TempoControlsTemplateRenderer {
           className: "tu-tempo-inputs",
           children: [
             this.template.textContainer,
-            this.template.input,
+            this.template.valueControl,
             this.template.errorText,
           ],
         },
@@ -48,6 +53,13 @@ export class TempoControlsTemplateRenderer {
           children: [this.template.confirmButton, this.template.cancelButton],
         },
       ]
+    );
+    this.template.valueControl.append(
+      this.template.decreaseTenButton,
+      this.template.decreaseButton,
+      this.template.value,
+      this.template.increaseButton,
+      this.template.increaseTenButton
     );
   }
 
@@ -63,12 +75,20 @@ export class TempoControlsTemplateRenderer {
     const tempoInitValue =
       selectedNote !== undefined
         ? `${selectedNote.bar.masterBar.tempo}`
-        : "120";
+        : `${DEFAULT_MASTER_BAR.tempo}`;
 
-    const beatsCSSClass = "tu-tempo-input";
-    this.template.input.classList.add(beatsCSSClass);
-    this.template.input.type = "number";
-    this.template.input.value = tempoInitValue;
+    this.template.valueControl.classList.add("tu-number-stepper");
+    this.template.decreaseTenButton.textContent = "-10";
+    this.template.decreaseButton.textContent = "-";
+    this.template.value.classList.add("tu-number-stepper-value");
+    this.template.value.textContent = tempoInitValue;
+    this.template.increaseButton.textContent = "+";
+    this.template.increaseTenButton.textContent = "+10";
+    const tempo = Number(tempoInitValue);
+    this.template.decreaseTenButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;
+    this.template.decreaseButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;
+    this.template.increaseButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
+    this.template.increaseTenButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
     const beatsErrorCSSClass = "tu-tempo-error";
     this.template.errorText.classList.add(beatsErrorCSSClass);
   }

@@ -1,4 +1,4 @@
-import { Beat, GuitarNote } from "@/notation/model";
+import { Beat, GuitarNote } from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**

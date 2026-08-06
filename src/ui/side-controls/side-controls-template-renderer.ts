@@ -1,6 +1,6 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../notation/notation-component";
 import { SideControlsTemplate } from "./side-controls-template";
-import { renderOnce } from "@/ui/shared";
+import { renderOnce } from "../shared";
 
 export class SideControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -29,6 +29,14 @@ export class SideControlsTemplateRenderer {
   }
 
   public render(): void {
+    const controller = this.notationComponent.trackController;
+    const editingDisabled = !controller.editingEnabled || controller.isPlaying;
+    this.template.container.inert = editingDisabled;
+    this.template.container.classList.toggle(
+      "tu-editing-disabled",
+      editingDisabled
+    );
+    this.template.container.setAttribute("aria-disabled", `${editingDisabled}`);
     this._assembled = renderOnce(this._assembled, () =>
       this.assembleContainer()
     );

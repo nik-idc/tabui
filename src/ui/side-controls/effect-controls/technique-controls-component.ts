@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../notation/notation-component";
 import { template } from "@babel/core";
 
 import { BendControlsComponent } from "./bend-controls/bend-controls-component";
@@ -38,6 +38,7 @@ export class TechniqueControlsComponent {
   }
 
   public showBendControls(): void {
+    this.bendControlsComponent.prepareForOpen();
     this.bendControlsComponent.template.dialog.showModal();
   }
 }

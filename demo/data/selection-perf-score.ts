@@ -2,7 +2,7 @@ import {
   DEFAULT_ELECTRIC_GUITARS,
   NoteDuration,
   Score,
-} from "@/notation/model";
+} from "../../src/notation/model";
 import { createScore } from "./helpers";
 
 const MASTER_BARS_COUNT = 1000;

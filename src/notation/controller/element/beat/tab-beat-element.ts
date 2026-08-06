@@ -4,12 +4,11 @@ import {
   GuitarNote,
   NoteDuration,
   VoiceNumber,
-} from "@/notation/model";
-import { Rect, Point, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
-import { Circle } from "@/shared/rendering/geometry/circle";
-import { TrackElement } from "@/notation/controller/element/track-element";
+} from "../../../model";
+import { Rect, Point, randomInt } from "../../../../shared";
+import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
+import { Circle } from "../../../../shared/rendering/geometry/circle";
+import { TrackElement } from "../track-element";
 import { TabNoteElement } from "../note/tab-note-element";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
@@ -119,12 +118,13 @@ export class TabBeatElement implements BeatElement {
   public measure(): void {
     const width = this.voiceBarElement.getBeatWidth(this.beat);
     const notesHeight =
-      this._noteElements.length * EditorLayoutDimensions.NOTE_RECT_HEIGHT;
+      this._noteElements.length *
+      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT;
     this._boundingBox.setDimensions(width, notesHeight);
     this._restRect = this.beat.isRest() ? new Rect() : null;
     this._restRect?.setDimensions(
-      EditorLayoutDimensions.NOTE_TEXT_SIZE,
-      EditorLayoutDimensions.NOTE_TEXT_SIZE
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE
     );
 
     for (const noteElement of this._noteElements) {
@@ -141,7 +141,7 @@ export class TabBeatElement implements BeatElement {
     this._boundingBox.setCoords(x, 0);
 
     this._restRect?.setCoords(
-      this.attackLocalX - EditorLayoutDimensions.NOTE_TEXT_SIZE / 2,
+      this.attackLocalX - this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2,
       this._boundingBox.height / 2 - this._restRect.height / 2
     );
 
@@ -209,6 +209,10 @@ export class TabBeatElement implements BeatElement {
     return this.barLocalCoords.x + this.attackLocalX;
   }
 
+  public get attackXGlobal(): number {
+    return this.barElement.globalCoords.x + this.attackXBarLocal;
+  }
+
   /**
    * Gets next note element
    * @param noteElement Note element
@@ -255,6 +259,35 @@ export class TabBeatElement implements BeatElement {
       this._restRect.width,
       this._restRect.height
     );
+  }
+
+  /**
+   * Bounds used for selection overlays and beat-level hit testing.
+   * Unlike the layout bounding box, this includes tab note/rest text that can
+   * extend left of the beat attack while centered on the staff line.
+   */
+  public getGlobalVisualBounds(): Rect {
+    const rect = new Rect(
+      this.barElement.globalCoords.x + this.barLocalBoundingBox.x,
+      this.barElement.globalCoords.y + this.barLocalBoundingBox.y,
+      this.barLocalBoundingBox.width,
+      this.barLocalBoundingBox.height
+    );
+
+    const restRect = this.restRectBarLocal;
+    if (restRect !== null) {
+      const restLeft = this.barElement.globalCoords.x + restRect.x;
+      rect.x = Math.min(rect.x, restLeft);
+    }
+
+    for (const noteElement of this.noteElements) {
+      if (noteElement.note === null) {
+        continue;
+      }
+      rect.x = Math.min(rect.x, noteElement.textRectGlobal.x);
+    }
+
+    return rect;
   }
 
   public get durationStemLine(): VertLine | undefined {

@@ -1,4 +1,7 @@
-import { GuitarTechniqueType, TECHNIQUE_TYPE_TO_LABEL } from "@/notation/model";
+import {
+  GuitarTechniqueType,
+  TECHNIQUE_TYPE_TO_LABEL,
+} from "../../../../model";
 
 /**
  * If the value is true, then the technique supports having

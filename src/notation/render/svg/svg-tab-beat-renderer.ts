@@ -3,15 +3,15 @@ import {
   createSVGG,
   createSVGLine,
   createSVGRect,
-} from "@/shared";
+} from "../../../shared";
 import {
   BeatElement,
   NotationElement,
   TrackController,
-} from "@/notation/controller";
+} from "../../controller";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
-import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
+import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
 
 /**
  * Class for rendering a beat element using SVG

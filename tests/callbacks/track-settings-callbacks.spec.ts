@@ -38,6 +38,7 @@ function createTrackSettingsHarness() {
   const typeButtons = [makeButton(), makeButton(), makeButton(), makeButton()];
   const toneButtons = [makeButton(), makeButton(), makeButton()];
   const track = { name: "Track 1" };
+  const madeInstrument = { id: 1 };
   const component = {
     template: {
       dialog,
@@ -60,6 +61,7 @@ function createTrackSettingsHarness() {
     trackName: "Track 1",
     instrumentFamily: InstrumentFamily.Strings,
     instrumentType: StringInstrumentType.ElectricGuitar,
+    tuningChangeMode: TrackInstrumentChangeMode.KeepFrets,
     setFamily: jest.fn(),
     setType: jest.fn(),
     setTone: jest.fn(),
@@ -67,9 +69,7 @@ function createTrackSettingsHarness() {
     shiftWholeTuning: jest.fn(),
     setTuningChangeMode: jest.fn(),
     render: jest.fn(),
-    applyTrackSettings: jest.fn(() => {
-      component.track.name = component.trackName;
-    }),
+    makeInstrument: jest.fn(() => madeInstrument),
   } as any;
   const renderFunc = jest.fn();
   const freeKeyboard = jest.fn();
@@ -135,7 +135,13 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     expect(freeKeyboard).toHaveBeenCalledTimes(
       freeKeyboardCallsBeforeConfirm + 1
     );
-    expect(component.applyTrackSettings).toHaveBeenCalledTimes(1);
+    expect(
+      notationComponent.trackController.setTrackInstrument
+    ).toHaveBeenCalledWith(
+      component.track,
+      component.makeInstrument.mock.results[0].value,
+      TrackInstrumentChangeMode.KeepFrets
+    );
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();

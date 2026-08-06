@@ -1,5 +1,5 @@
-import { SideControlsComponent } from "@/ui";
-import { NotationComponent } from "@/notation/notation-component";
+import { SideControlsComponent } from "..";
+import { NotationComponent } from "../../notation/notation-component";
 import {
   TechniqueControlsCallbacks,
   TechniqueControlsDefaultCallbacks,

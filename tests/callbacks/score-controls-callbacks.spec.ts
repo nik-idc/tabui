@@ -3,6 +3,7 @@ import { TrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-c
 import { NewTrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/new-track/new-track-controls-callbacks";
 import { TrackSettingsControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-settings/track-settings-controls-callbacks";
 import { YesNoDefaultCallbacks } from "../../src/ui/shared/yes-no/yes-no-callbacks";
+import { ScoreControlsTemplateRenderer } from "../../src/ui/top-controls/score-controls/score-controls-template-renderer";
 import {
   createNotationComponentMock,
   dispatchClick,
@@ -13,6 +14,36 @@ import {
 } from "./helpers";
 
 describe("ScoreControlsDefaultCallbacks", () => {
+  test("score editing controls render disabled during playback", () => {
+    const newTrackButton = {
+      classList: { add: jest.fn(), toggle: jest.fn() },
+      setAttribute: jest.fn(),
+      src: "",
+      alt: "",
+    };
+    const scoreNameInput = {
+      classList: { add: jest.fn() },
+      value: "",
+      disabled: false,
+    };
+    const renderer = Object.create(ScoreControlsTemplateRenderer.prototype);
+    renderer.template = { newTrackButton, scoreNameInput };
+    renderer.notationComponent = {
+      trackController: { isPlaying: true, editingEnabled: true },
+    };
+    renderer.assetsPath = { baseUrl: "", variant: "light" };
+    renderer._currentScoreName = "Score";
+
+    renderer.renderNewTrackButton();
+    renderer.renderScoreNameInput();
+
+    expect(newTrackButton.classList.toggle).toHaveBeenCalledWith(
+      "tu-disabled-img",
+      true
+    );
+    expect(scoreNameInput.disabled).toBe(true);
+  });
+
   test("score controls dispatch behavior and child callback lifecycle correctly", () => {
     const trackBindSpy = jest
       .spyOn(TrackControlsDefaultCallbacks.prototype, "bind")
@@ -43,13 +74,13 @@ describe("ScoreControlsDefaultCallbacks", () => {
     const captureKeyboard = jest.fn();
     const freeKeyboard = jest.fn();
     const showTrackSettings = jest.fn();
-    const score = { name: "Old" };
+    const score = { name: "Old", masterVolume: 1, masterPan: 0 };
     const component = {
       template: {
         showTracksButton: makeButton(),
         newTrackButton: makeButton(),
-        masterVolumeInput: makeButton(),
-        masterPanningInput: makeButton(),
+        masterVolumeInput: makeInput("75"),
+        masterPanningInput: makeInput("-0.5"),
         scoreNameInput: makeInput("New Name"),
       },
       newTrackComponent: {},
@@ -80,6 +111,8 @@ describe("ScoreControlsDefaultCallbacks", () => {
     callbacks.bind();
     dispatchClick(component.template.showTracksButton);
     dispatchClick(component.template.newTrackButton);
+    dispatchInput(component.template.masterVolumeInput, "75");
+    dispatchInput(component.template.masterPanningInput, "-0.5");
     dispatchInput(component.template.scoreNameInput, "New Name");
     dispatchEvent(component.template.scoreNameInput, "focus");
     dispatchEvent(component.template.scoreNameInput, "focusout");
@@ -88,12 +121,28 @@ describe("ScoreControlsDefaultCallbacks", () => {
     expect(component.render).toHaveBeenCalledTimes(1);
     expect(trackBindSpy).toHaveBeenCalledTimes(4);
     expect(component.showNewTrackDialog).toHaveBeenCalledTimes(1);
+    expect(score.masterVolume).toBe(0.75);
+    expect(score.masterPan).toBe(-0.5);
+    expect(
+      notationComponent.trackController.setMasterVolume
+    ).toHaveBeenCalledWith(score, 0.75);
+    expect(notationComponent.trackController.setMasterPan).toHaveBeenCalledWith(
+      score,
+      -0.5
+    );
     expect(captureKeyboard).toHaveBeenCalledTimes(2);
     expect(score.name).toBe("New Name");
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
     expect(newTrackBindSpy).toHaveBeenCalledTimes(1);
     expect(trackSettingsBindSpy).toHaveBeenCalledTimes(1);
     expect(yesNoBindSpy).toHaveBeenCalledTimes(1);
+
+    notationComponent.trackController.isPlaying = true;
+    component.template.scoreNameInput.value = "Blocked";
+    callbacks.onNewTrackButtonClicked();
+    callbacks.onScoreNameChanged();
+    expect(component.showNewTrackDialog).toHaveBeenCalledTimes(1);
+    expect(score.name).toBe("New Name");
 
     const renderCallsBeforeUnbind = component.render.mock.calls.length;
     callbacks.unbind();
@@ -112,5 +161,35 @@ describe("ScoreControlsDefaultCallbacks", () => {
     trackSettingsUnbindSpy.mockRestore();
     yesNoBindSpy.mockRestore();
     yesNoUnbindSpy.mockRestore();
+  });
+
+  test("master controls render score state without resetting it", () => {
+    const masterVolumeInput = {
+      classList: { add: jest.fn() },
+      value: "",
+      type: "",
+      min: "",
+      max: "",
+      step: "",
+    };
+    const masterPanningInput = {
+      classList: { add: jest.fn() },
+      value: "",
+      type: "",
+      min: "",
+      max: "",
+      step: "",
+    };
+    const renderer = Object.create(ScoreControlsTemplateRenderer.prototype);
+    renderer.template = { masterVolumeInput, masterPanningInput };
+    renderer.notationComponent = {
+      trackController: { editingEnabled: true },
+    };
+
+    renderer.renderMasterVolumeInput({ masterVolume: 0.7 });
+    renderer.renderMasterPanningInput({ masterPan: -0.25 });
+
+    expect(masterVolumeInput.value).toBe("70");
+    expect(masterPanningInput.value).toBe("-0.25");
   });
 });

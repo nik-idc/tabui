@@ -1,16 +1,15 @@
-import { Point, randomInt, Rect } from "@/shared";
-import { GuitarTechnique, Technique, TechniqueType } from "@/notation/model";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { NotationElement } from "@/notation/controller/element/notation-element";
-import { BeatElement } from "@/notation/controller/element/beat/beat-element";
-import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
+import { Point, randomInt, Rect } from "../../../../shared";
+import { GuitarTechnique, Technique, TechniqueType } from "../../../model";
+import { TrackElement } from "../track-element";
+import { NotationElement } from "../notation-element";
+import { BeatElement } from "../beat/beat-element";
+import { TabBeatElement } from "../beat/tab-beat-element";
 import {
   GuitarTechniqueLabelElement,
   TECHNIQUE_ALLOWS_STACKING,
   TechLineNumber,
-} from "@/notation/controller/element/technique/guitar-technique";
-import { TechniqueLabelElement } from "@/notation/controller/element/technique";
+} from "../technique/guitar-technique";
+import { TechniqueLabelElement } from "../technique";
 import { TechGapElement } from "./tech-gap-element";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
@@ -130,7 +129,7 @@ export class TechGapLineElement implements NotationElement {
         0,
         0,
         this.techGapElement.boundingBox.width,
-        EditorLayoutDimensions.TECH_LABEL_HEIGHT
+        this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
       );
     }
   }
@@ -160,7 +159,7 @@ export class TechGapLineElement implements NotationElement {
     }
     this._boundingBox.setDimensions(
       this.techGapElement.boundingBox.width,
-      EditorLayoutDimensions.TECH_LABEL_HEIGHT
+      this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
     );
 
     for (const label of this._labelElements) {

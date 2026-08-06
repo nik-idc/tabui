@@ -1,5 +1,5 @@
-import { randomInt } from "@/shared";
-import { Bar, BarJSON } from "./bar";
+import { randomInt } from "../../shared";
+import { Bar } from "./bar";
 import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
 import { ClefType } from "./clef-type";
@@ -7,16 +7,6 @@ import { MasterBar } from "./master-bar";
 import { Track } from "./track";
 import { Beat } from "./beat";
 import { VoiceBar, VoiceNumber } from "./voice-bar";
-
-/**
- * Staff JSON format
- */
-export interface StaffJSON {
-  bars: BarJSON[];
-  clefType: ClefType;
-  showTablature: boolean;
-  showClassicNotation: boolean;
-}
 
 /**
  * A staff in this context is a representation of an
@@ -328,23 +318,6 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
       this._showTablature,
       this._showClassicNotation
     );
-  }
-
-  /**
-   * Converts staff to JSON format
-   */
-  public toJSON(): StaffJSON {
-    const barsJSON: BarJSON[] = [];
-    for (const bar of this._bars) {
-      barsJSON.push(bar.toJSON());
-    }
-
-    return {
-      bars: barsJSON,
-      clefType: this._clefType,
-      showTablature: this._showTablature,
-      showClassicNotation: this._showClassicNotation,
-    };
   }
 
   /** Bars getter */

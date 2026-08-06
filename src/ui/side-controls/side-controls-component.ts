@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../notation/notation-component";
 import { NoteControlsComponent } from "./note-controls/note-controls-component";
 import { SideControlsTemplate } from "./side-controls-template";
 import { SideControlsTemplateRenderer } from "./side-controls-template-renderer";

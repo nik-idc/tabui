@@ -1,7 +1,7 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { Track } from "@/notation";
-import { ScoreControlsComponent } from "@/ui";
-import { ListenerManager } from "@/shared/misc";
+import { NotationComponent } from "../../../notation/notation-component";
+import { Track } from "../../../notation";
+import { ScoreControlsComponent } from "../..";
+import { ListenerManager } from "../../../shared/misc";
 import {
   TrackControlsCallbacks,
   TrackControlsDefaultCallbacks,
@@ -17,7 +17,7 @@ import {
 import {
   YesNoCallbacks,
   YesNoDefaultCallbacks,
-} from "@/ui/shared/yes-no/yes-no-callbacks";
+} from "../../shared/yes-no/yes-no-callbacks";
 
 export interface ScoreControlsCallbacks {
   onShowTracksButtonClicked(): void;
@@ -98,21 +98,37 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   onNewTrackButtonClicked(): void {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
+      return;
+    }
     this._captureKeyboard();
     this._scoreComponent.showNewTrackDialog();
   }
 
   onMasterVolumeChanged(): void {
-    throw new Error("Method not implemented");
+    this._notationComponent.trackController.setMasterVolume(
+      this._scoreComponent.score,
+      Number(this._scoreComponent.template.masterVolumeInput.value) / 100
+    );
   }
 
   onMasterPanningChanged(): void {
-    throw new Error("Method not implemented");
+    this._notationComponent.trackController.setMasterPan(
+      this._scoreComponent.score,
+      Number(this._scoreComponent.template.masterPanningInput.value)
+    );
   }
 
   onScoreNameChanged(): void {
-    this._scoreComponent.score.name =
-      this._scoreComponent.template.scoreNameInput.value;
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaying) {
+      return;
+    }
+    this._notationComponent.trackController.setScoreName(
+      this._scoreComponent.score,
+      this._scoreComponent.template.scoreNameInput.value
+    );
   }
 
   onScoreNameFocusGained(): void {
@@ -163,12 +179,12 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
       },
       {
         element: this._scoreComponent.template.masterVolumeInput,
-        event: "change",
+        event: "input",
         handler: () => this.onMasterVolumeChanged(),
       },
       {
         element: this._scoreComponent.template.masterPanningInput,
-        event: "change",
+        event: "input",
         handler: () => this.onMasterPanningChanged(),
       },
       {

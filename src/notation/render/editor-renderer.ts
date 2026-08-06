@@ -39,6 +39,7 @@ export interface EditorRenderer {
   ): void;
 
   attachViewportScrollEvent(eventHandler: (event: Event) => void): void;
+  detachViewportScrollEvent(): void;
 
   render(options?: EditorRenderOptions): ElementRenderer[];
   unrender(): void;

@@ -6,7 +6,7 @@ import {
   NoteDuration,
   Score,
   Track,
-} from "@/notation/model";
+} from "../../src/notation/model";
 import { createScore } from "./helpers";
 
 const rhythmChordFrets = [

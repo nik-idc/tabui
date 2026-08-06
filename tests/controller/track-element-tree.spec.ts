@@ -1,21 +1,29 @@
-import {
-  TrackElement,
-  TrackElementUpdateDepth,
-} from "../../src/notation/controller/element/track-element";
+import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
 import { TrackLineElement } from "../../src/notation/controller/element/track/track-line-element";
-import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import {
   DEFAULT_MASTER_BAR,
+  Guitar,
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
+  NoteDuration,
+  Track,
+  VoiceNumber,
 } from "../../src/notation/model";
-import { createScoreGraph } from "../model/helpers";
-import { NoteDuration } from "../../src/notation/model";
-import { ensureLayoutConfigured } from "./helpers";
+import { createBeat, createScoreGraph } from "../model/helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 import { SetTechniqueCommand } from "../../src/notation/controller/editor/command";
+import { createMultiVoiceTwoStaffScoreFixture } from "../../demo/data/multi-voice-score";
+
+const FINAL_STAFF_VOICE_CASES: Array<[VoiceNumber[]]> = [
+  [[1]],
+  [[1, 2]],
+  [[1, 2, 3]],
+  [[1, 2, 3, 4]],
+  [[1, 3]],
+];
 
 function getLineOwnershipKeys(trackElement: TrackElement): string[] {
   return trackElement.trackLineElements.map((line) =>
@@ -53,12 +61,51 @@ function updateMasterBars(
   trackElement: TrackElement,
   masterBarIndices: number[]
 ): void {
-  const lineRange = trackElement.rebuildSkeleton(masterBarIndices);
-  if (lineRange !== null) {
-    trackElement.update(lineRange.startLineIndex, lineRange.endLineIndex, {
-      depth: TrackElementUpdateDepth.Elements,
-    });
+  trackElement.update({ affectedMasterBarIndices: masterBarIndices });
+}
+
+function setFinalStaffVoices(voiceNumbers: VoiceNumber[]) {
+  const score = createMultiVoiceTwoStaffScoreFixture();
+  const track = score.tracks[0] as Track<Guitar>;
+  const finalStaff = track.staves[track.staves.length - 1];
+
+  for (const bar of finalStaff.bars) {
+    for (const voiceNumber of [1, 2, 3, 4] as VoiceNumber[]) {
+      bar.removeVoiceBar(voiceNumber);
+    }
+    for (const voiceNumber of voiceNumbers) {
+      const voiceBar = bar.insertVoiceBar(voiceNumber);
+      voiceBar.replaceBeats([createBeat(voiceBar, NoteDuration.Quarter)]);
+    }
   }
+
+  return { track, finalStaff };
+}
+
+function expectOutlineToMatchTabStaffLines(trackElement: TrackElement): void {
+  const trackLine = trackElement.trackLineElements[0];
+  const outline = trackLine.outlineLinesLineLocal;
+  if (outline === undefined) {
+    throw Error("Expected multi-staff outline");
+  }
+
+  const firstStyleLine = trackLine.staffLineElements[0].styleLinesAsArray[0];
+  const finalStaffLine =
+    trackLine.staffLineElements[trackLine.staffLineElements.length - 1];
+  const finalStyleLine = finalStaffLine.styleLinesAsArray[0];
+  const firstBar = firstStyleLine.barElements[0];
+  const lastBar =
+    finalStyleLine.barElements[finalStyleLine.barElements.length - 1];
+  const firstRenderedStaffLine = firstBar.staffLinesLineLocal[0];
+  const lastRenderedStaffLine =
+    lastBar.staffLinesLineLocal[lastBar.staffLinesLineLocal.length - 1];
+
+  expect(outline.left.x).toBeCloseTo(firstRenderedStaffLine.x1);
+  expect(outline.right.x).toBeCloseTo(lastRenderedStaffLine.x2);
+  expect(outline.left.y1).toBeCloseTo(firstRenderedStaffLine.y);
+  expect(outline.right.y1).toBeCloseTo(firstRenderedStaffLine.y);
+  expect(outline.left.y2).toBeCloseTo(lastRenderedStaffLine.y);
+  expect(outline.right.y2).toBeCloseTo(lastRenderedStaffLine.y);
 }
 
 function expectHorizontalUpdateToMatchLegacy(
@@ -96,13 +143,13 @@ function findBarElement(trackElement: TrackElement, barUUID: number) {
 
 describe("TrackElement tree", () => {
   beforeAll(() => {
-    ensureLayoutConfigured();
+    TEST_LAYOUT_DIMENSIONS;
   });
 
   test("horizontal updates refresh multi-staff outline geometry", () => {
     const { track, bar } = createScoreGraph();
     track.insertStaff(1);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const beforeLine = trackElement.trackLineElements[0];
@@ -127,9 +174,53 @@ describe("TrackElement tree", () => {
     expect(afterLine.stateHash).not.toBe(beforeHash);
   });
 
+  test("multi-voice two-staff outline matches rendered staff-line geometry", () => {
+    const score = createMultiVoiceTwoStaffScoreFixture();
+    const trackElement = new TrackElement(
+      score.tracks[0],
+      TEST_LAYOUT_DIMENSIONS
+    );
+
+    trackElement.update();
+
+    expectOutlineToMatchTabStaffLines(trackElement);
+  });
+
+  test.each(FINAL_STAFF_VOICE_CASES)(
+    "outline matches rendered staff lines for final-staff voices %j",
+    (voiceNumbers) => {
+      const { track } = setFinalStaffVoices(voiceNumbers);
+      const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+
+      trackElement.update();
+
+      expectOutlineToMatchTabStaffLines(trackElement);
+    }
+  );
+
+  test("voice additions and removals refresh outline from staff-line geometry", () => {
+    const { track, finalStaff } = setFinalStaffVoices([1]);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    expectOutlineToMatchTabStaffLines(trackElement);
+
+    for (const bar of finalStaff.bars) {
+      const voiceBar = bar.insertVoiceBar(3);
+      voiceBar.replaceBeats([createBeat(voiceBar, NoteDuration.Quarter)]);
+    }
+    updateMasterBars(trackElement, [0, 1, 2]);
+    expectOutlineToMatchTabStaffLines(trackElement);
+
+    for (const bar of finalStaff.bars) {
+      bar.removeVoiceBar(3);
+    }
+    updateMasterBars(trackElement, [0, 1, 2]);
+    expectOutlineToMatchTabStaffLines(trackElement);
+  });
+
   test("builds the expected hierarchy for a single default bar", () => {
     const { track } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -151,7 +242,7 @@ describe("TrackElement tree", () => {
 
   test("line-local geometry is exposed for track line and immediate children", () => {
     const { track } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -218,7 +309,7 @@ describe("TrackElement tree", () => {
     }
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const trackLine = trackElement.trackLineElements[0];
@@ -277,7 +368,7 @@ describe("TrackElement tree", () => {
     }
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const trackLine = trackElement.trackLineElements[0];
@@ -346,7 +437,7 @@ describe("TrackElement tree", () => {
     }
     note.fret = 7;
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const trackLine = trackElement.trackLineElements[0];
@@ -399,7 +490,7 @@ describe("TrackElement tree", () => {
 
   test("registry lookup returns the beat element by model beat", () => {
     const { track, bar } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -409,9 +500,9 @@ describe("TrackElement tree", () => {
     expect(beatElement?.beat.uuid).toBe(beat.uuid);
   });
 
-  test("no-op update rebuilds presentation element objects", () => {
+  test("no-op update preserves the line shell and rebuilds descendants", () => {
     const { track } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
@@ -427,7 +518,7 @@ describe("TrackElement tree", () => {
 
     trackElement.update();
 
-    expect(trackElement.trackLineElements[0]).not.toBe(trackLine);
+    expect(trackElement.trackLineElements[0]).toBe(trackLine);
     expect(trackElement.trackLineElements[0].staffLineElements[0]).not.toBe(
       staffLine
     );
@@ -460,7 +551,7 @@ describe("TrackElement tree", () => {
 
   test("element diff reports beat additions and removals", () => {
     const { track, bar } = createScoreGraph();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
     trackElement.clearElementDiff();
@@ -499,8 +590,8 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
-    const legacyTrackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     legacyTrackElement.update();
 
@@ -528,8 +619,8 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
-    const legacyTrackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     legacyTrackElement.update();
 
@@ -557,7 +648,7 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const beforeByBarUUID = new Map(
@@ -615,8 +706,8 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
-    const legacyTrackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const removeIndex = 4;
@@ -634,8 +725,8 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
-    const legacyTrackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const insertIndex = 4;
@@ -653,7 +744,7 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const firstVoiceBar = track.staves[0].bars[0].getVoiceBar(1);
@@ -702,7 +793,7 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const lines = trackElement.trackLineElements;
@@ -723,11 +814,11 @@ describe("TrackElement tree", () => {
     expect(
       firstLineStyle.barElements[firstLineStyle.barElements.length - 1]
         .boundingBox.right
-    ).toBeCloseTo(EditorLayoutDimensions.WIDTH);
+    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.WIDTH);
     expect(
       secondLineStyle.barElements[secondLineStyle.barElements.length - 1]
         .boundingBox.right
-    ).toBeLessThanOrEqual(EditorLayoutDimensions.WIDTH);
+    ).toBeLessThanOrEqual(TEST_LAYOUT_DIMENSIONS.WIDTH);
 
     for (const line of lines) {
       const styleLine = line.staffLineElements[0].styleLinesAsArray[0];
@@ -777,13 +868,66 @@ describe("TrackElement tree", () => {
     expect(selectionRects[0].width).toBeGreaterThan(0);
     expect(selectionRects[1].width).toBeGreaterThan(0);
     expect(selectionRects[1].y).toBeGreaterThan(selectionRects[0].y);
-    expect(selectionRects[0].x).toBeCloseTo(
-      // WARNING: This is bad but delayed until a conrecte decision on BeatElement is made
-      firstLineBeatElement!.globalCoords.x
+    expect(selectionRects[0].x).toBeLessThan(
+      firstLineBeatElement!.barElement.globalCoords.x +
+        firstLineBeatElement!.barLocalBoundingBox.x
     );
-    expect(selectionRects[1].x).toBeCloseTo(
-      secondLineBeatElement!.globalCoords.x
+    expect(selectionRects[1].x).toBeLessThan(
+      secondLineBeatElement!.barElement.globalCoords.x +
+        secondLineBeatElement!.barLocalBoundingBox.x
     );
+  });
+
+  test("initializes whole-track shell geometry without materializing every line", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 20; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const lines = trackElement.trackLineElements;
+
+    expect(lines.length).toBeGreaterThan(2);
+    expect(trackElement.materializedLineIndices.size).toBe(0);
+    expect(lines[1].staffLineElements).toEqual([]);
+    expect(lines[1].boundingBox.y).toBe(lines[0].boundingBox.bottom);
+    expect(trackElement.height).toBe(
+      lines.reduce(
+        (height, line) => height + line.skeletonLine.finalLineHeight,
+        0
+      )
+    );
+  });
+
+  test("viewport materialization preserves shell positions and total height", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 20; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const initialHeight = trackElement.height;
+    const lastLineIndex = trackElement.trackLineElements.length - 1;
+    const laterLineY =
+      trackElement.trackLineElements[lastLineIndex].boundingBox.y;
+
+    trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 1 },
+      rebuildSkeleton: false,
+      forceElements: false,
+      dematerializeOutsideRange: {
+        startLineIndex: 0,
+        endLineIndex: 1,
+      },
+    });
+
+    expect([...trackElement.materializedLineIndices]).toEqual([0, 1]);
+    expect(
+      trackElement.trackLineElements[lastLineIndex].staffLineElements
+    ).toEqual([]);
+    expect(trackElement.trackLineElements[lastLineIndex].boundingBox.y).toBe(
+      laterLineY
+    );
+    expect(trackElement.height).toBe(initialHeight);
   });
 
   test("second-line tempo info shifts down when first line grows from technique labels", () => {
@@ -792,7 +936,7 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const secondLineStartIndex =

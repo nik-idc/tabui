@@ -3,14 +3,13 @@ import {
   DURATION_TO_FLAG_COUNT,
   NoteDuration,
   VoiceNumber,
-} from "@/notation/model";
+} from "../../../model";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { Point, randomInt, Rect } from "@/shared";
+import { Point, randomInt, Rect } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { HorLine, VertLine } from "@/shared/rendering/geometry/line";
-import { Circle } from "@/shared/rendering/geometry/circle";
+import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
+import { Circle } from "../../../../shared/rendering/geometry/circle";
 import { NotationElement } from "../notation-element";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { VoiceBarRhythmElement } from "../bar/voice-bar-rhythm-element";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
@@ -115,15 +114,18 @@ export class TabBeatRhythmElement implements NotationElement {
   measure(): void {
     const notesHeight =
       this.beatElement.noteElements.length *
-      EditorLayoutDimensions.NOTE_RECT_HEIGHT;
-    const height = notesHeight + EditorLayoutDimensions.DURATIONS_HEIGHT;
+      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT;
+    const height =
+      notesHeight + this.trackElement.layoutDimensions.DURATIONS_HEIGHT;
     this._boundingBox.setDimensions(this.beatElement.boundingBox.width, height);
 
     if (this._dot1Circle !== undefined) {
-      this._dot1Circle.diameter = EditorLayoutDimensions.DOT_DIAMETER;
+      this._dot1Circle.diameter =
+        this.trackElement.layoutDimensions.DOT_DIAMETER;
     }
     if (this._dot2Circle !== undefined) {
-      this._dot2Circle.diameter = EditorLayoutDimensions.DOT_DIAMETER;
+      this._dot2Circle.diameter =
+        this.trackElement.layoutDimensions.DOT_DIAMETER;
     }
   }
 
@@ -132,10 +134,11 @@ export class TabBeatRhythmElement implements NotationElement {
       return;
     }
     const stemY1 = 0;
-    const stemY2 = stemY1 + EditorLayoutDimensions.DURATIONS_HEIGHT;
+    const stemY2 = stemY1 + this.trackElement.layoutDimensions.DURATIONS_HEIGHT;
     this._durationStemLine.set(this.beatElement.attackLocalX, stemY1, stemY2);
     if (this.beat.baseDuration === NoteDuration.Half) {
-      this._durationStemLine.y1 += EditorLayoutDimensions.DURATIONS_HEIGHT / 2;
+      this._durationStemLine.y1 +=
+        this.trackElement.layoutDimensions.DURATIONS_HEIGHT / 2;
     }
 
     if (this._durationFlagLines === undefined) {
@@ -146,7 +149,7 @@ export class TabBeatRhythmElement implements NotationElement {
       const x1 = this.beatElement.attackLocalX;
       const flagWidth = this._boundingBox.width / 4;
       flagLine.set(x1, x1 + flagWidth, y);
-      y -= EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
+      y -= this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT * 2;
     }
   }
 
@@ -176,9 +179,11 @@ export class TabBeatRhythmElement implements NotationElement {
     }
 
     return (
-      EditorLayoutDimensions.TUPLET_RECT_HEIGHT -
-      EditorLayoutDimensions.DURATION_FLAG_HEIGHT -
-      (durationLevelCount - 1) * EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2
+      this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT -
+      this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT -
+      (durationLevelCount - 1) *
+        this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT *
+        2
     );
   }
 
@@ -191,14 +196,17 @@ export class TabBeatRhythmElement implements NotationElement {
     }
 
     const newDot1X =
-      this.beatElement.attackLocalX + EditorLayoutDimensions.DOT_DIAMETER * 2;
+      this.beatElement.attackLocalX +
+      this.trackElement.layoutDimensions.DOT_DIAMETER * 2;
 
     let newDotY =
-      EditorLayoutDimensions.DURATIONS_HEIGHT -
-      EditorLayoutDimensions.DOT_DIAMETER / 2;
+      this.trackElement.layoutDimensions.DURATIONS_HEIGHT -
+      this.trackElement.layoutDimensions.DOT_DIAMETER / 2;
     const topDurationDecorationY = this.getTopDurationDecorationY();
     if (topDurationDecorationY !== undefined) {
-      newDotY = topDurationDecorationY - EditorLayoutDimensions.DOT_DIAMETER;
+      newDotY =
+        topDurationDecorationY -
+        this.trackElement.layoutDimensions.DOT_DIAMETER;
     }
     this._dot1Circle.setCoords(newDot1X, newDotY);
 
@@ -206,7 +214,7 @@ export class TabBeatRhythmElement implements NotationElement {
       return;
     }
     this._dot2Circle.setCoords(
-      newDot1X + EditorLayoutDimensions.DOT_DIAMETER,
+      newDot1X + this.trackElement.layoutDimensions.DOT_DIAMETER,
       newDotY
     );
   }

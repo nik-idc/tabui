@@ -1,7 +1,7 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { renderOnce, setImageAsset } from "@/ui/shared";
+import { NotationComponent } from "../../../notation/notation-component";
+import { renderOnce, setImageAsset } from "../../shared";
 import { PlayControlsTemplate } from "./play-controls-template";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 const buttonSize = `30px`;
 
@@ -108,6 +108,14 @@ export class PlayControlsTemplateRenderer {
         width: buttonSize,
         height: buttonSize,
       }
+    );
+    this.template.loopButton.classList.toggle(
+      "tu-track-control-active",
+      this.notationComponent.trackController.isLooped
+    );
+    this.template.loopButton.setAttribute(
+      "aria-pressed",
+      String(this.notationComponent.trackController.isLooped)
     );
   }
   /**

@@ -1,10 +1,24 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
-} from "@/ui/shared";
-import { BendControlsTemplate } from "./bend-controls-template";
+} from "../../../shared";
+import {
+  BEND_TYPE_BUTTON_ORDER,
+  BendControlsTemplate,
+} from "./bend-controls-template";
+import { BendType } from "../../../../notation/model";
+
+const bendTypeLabels: Record<BendType, string> = {
+  [BendType.Bend]: "Bend",
+  [BendType.BendAndRelease]: "Bend / Release",
+  [BendType.Hold]: "Hold",
+  [BendType.Prebend]: "Prebend",
+  [BendType.PrebendAndRelease]: "Prebend / Release",
+  [BendType.PrebendBend]: "Prebend / Bend",
+  [BendType.Release]: "Release",
+};
 
 export class BendControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -44,13 +58,19 @@ export class BendControlsTemplateRenderer {
         {
           element: this.template.actionsContent,
           className: "tu-bend-controls-actions-content",
-          children: [this.template.confirmButton, this.template.cancelButton],
+          children: [
+            this.template.confirmButton,
+            this.template.removeButton,
+            this.template.cancelButton,
+          ],
         },
       ]
     );
 
     this.template.bendTypeListContainer.append(
-      ...this.template.bendTypesButtons
+      ...BEND_TYPE_BUTTON_ORDER.map(
+        (bendType) => this.template.bendTypesButtons[bendType]
+      )
     );
   }
 
@@ -58,10 +78,10 @@ export class BendControlsTemplateRenderer {
     const cssClass = "tu-bend-types";
     this.template.bendTypeListContainer.classList.add(cssClass);
 
-    this.template.bendTypesButtons[0].textContent = "Bend";
-    this.template.bendTypesButtons[1].textContent = "Prebend";
-    this.template.bendTypesButtons[2].textContent = "Bend / Release";
-    this.template.bendTypesButtons[3].textContent = "Prebend / Release";
+    for (const bendType of BEND_TYPE_BUTTON_ORDER) {
+      this.template.bendTypesButtons[bendType].textContent =
+        bendTypeLabels[bendType];
+    }
   }
 
   private renderSVGGraph(): void {
@@ -80,6 +100,17 @@ export class BendControlsTemplateRenderer {
       "tu-bend-controls-confirm-button",
       "tu-bend-controls-cancel-button"
     );
+    this.template.removeButton.textContent = "Remove";
+    this.template.removeButton.classList.add("tu-bend-controls-remove-button");
+  }
+
+  public setSelectedBendType(selectedType: BendType): void {
+    for (const bendType of BEND_TYPE_BUTTON_ORDER) {
+      this.template.bendTypesButtons[bendType].classList.toggle(
+        "tu-applied-button",
+        bendType === selectedType
+      );
+    }
   }
 
   public render(): void {

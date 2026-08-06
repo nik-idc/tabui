@@ -6,7 +6,7 @@ import {
   TechniqueType,
   GuitarTechnique,
   GuitarTechniqueType,
-} from "@/notation/model";
+} from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
@@ -52,11 +52,7 @@ export class SetTechniqueCommand implements Command {
    * Execute set technique command
    */
   execute(): void {
-    this._executed = ScoreEditor.setTechniqueNotes(
-      this._notes,
-      this._newTechniqueType,
-      this._newBendOptions
-    );
+    this._executed = this.applyTechnique();
   }
 
   /**
@@ -94,7 +90,11 @@ export class SetTechniqueCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    ScoreEditor.setTechniqueNotes(
+    this.applyTechnique();
+  }
+
+  private applyTechnique(): boolean {
+    return ScoreEditor.setTechniqueNotes(
       this._notes,
       this._newTechniqueType,
       this._newBendOptions

@@ -1,7 +1,7 @@
-import { Bar, Beat, VoiceBar } from "@/notation/model";
-import { Rect, Point } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { Bar, Beat, VoiceBar } from "../../../model";
+import { Rect, Point } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { NotationElement } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
 import { VoiceBarElement } from "../bar/voice-bar-element";
@@ -28,21 +28,24 @@ export interface BeatElement extends NotationElement {
  * @param bar Owning bar context for width calculation
  * @returns Beat element base width
  */
-export function getBeatWidth(beat: Beat): number {
+export function getBeatWidth(
+  beat: Beat,
+  layoutDimensions: EditorLayoutDimensions
+): number {
   // Calc rect base width by duration
-  let width = EditorLayoutDimensions.WIDTH_MAPPING[beat.baseDuration];
+  let width = layoutDimensions.WIDTH_MAPPING[beat.baseDuration];
 
   // Scale rect width based on number of dots
-  width *= EditorLayoutDimensions.DOT_WIDTH_FACTORS[beat.dots];
+  width *= layoutDimensions.DOT_WIDTH_FACTORS[beat.dots];
 
   // Scale the rect width based on tuplet settings
   if (beat.tupletSettings !== null) {
     const tupletScale =
       beat.tupletSettings.tupletCount / beat.tupletSettings.normalCount;
     width *= tupletScale;
-    if (width < EditorLayoutDimensions.NOTE_RECT_WIDTH_MIN) {
+    if (width < layoutDimensions.NOTE_RECT_WIDTH_MIN) {
       // To make sure beats don't get too small causing UI errors
-      width = EditorLayoutDimensions.NOTE_RECT_WIDTH_MIN;
+      width = layoutDimensions.NOTE_RECT_WIDTH_MIN;
     }
   }
 

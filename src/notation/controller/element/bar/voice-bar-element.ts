@@ -6,23 +6,24 @@ import {
   BarRepeatStatus,
   Bar,
   VoiceNumber,
-} from "@/notation/model";
-import { Rect, Point, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { calculateMasterBarDurationUnits } from "@/notation/controller/layout/bar-layout";
-import { NotationElement } from "@/notation/controller/element/notation-element";
-import {
-  NotationStyle,
-  StaffLineElement,
-} from "@/notation/controller/element/staff/staff-line-element";
-import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
+} from "../../../model";
+import { Rect, Point, randomInt } from "../../../../shared";
+import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+import { TrackElement } from "../track-element";
+import { calculateMasterBarDurationUnits } from "../../layout/bar-layout";
+import { NotationElement } from "../notation-element";
+import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
+import { NotationStyleLineElement } from "../staff/notation-style-line-element";
 import { BeamSegmentElement } from "./beam-segment-element";
 import { BarTupletGroupElement } from "./bar-tuplet-group-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { SheetBeatElement } from "../beat/sheet-beat-element";
 import { BeatElement, getBeatWidth } from "../beat/beat-element";
-import { HorLine, Line, VertLine } from "@/shared/rendering/geometry/line";
+import {
+  HorLine,
+  Line,
+  VertLine,
+} from "../../../../shared/rendering/geometry/line";
 import { BarElement } from "./bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
@@ -129,7 +130,7 @@ export class VoiceBarElement implements NotationElement {
     // const height =
     //   this._beatElements[0]?.boundingBox.height ??
     //   this.voiceBar.trackContext.instrument.maxPolyphony *
-    //     EditorLayoutDimensions.NOTE_RECT_HEIGHT;
+    //     layoutDimensions.NOTE_RECT_HEIGHT;
     //
     // this._boundingBox.setDimensions(this.barElement.voiceContentWidth, height);
 
@@ -185,7 +186,7 @@ export class VoiceBarElement implements NotationElement {
     const beatStartRatio = beatStartUnits / durationUnits;
 
     return (
-      EditorLayoutDimensions.RHYTHM_ATTACK_PADDING +
+      this.trackElement.layoutDimensions.RHYTHM_ATTACK_PADDING +
       beatStartRatio * this.voiceDurationSpanWidth
     );
   }
@@ -207,7 +208,7 @@ export class VoiceBarElement implements NotationElement {
     const beatDurationRatio = beatDurationUnits / durationUnits;
 
     return Math.max(
-      EditorLayoutDimensions.MIN_RHYTHM_COLUMN_GAP,
+      this.trackElement.layoutDimensions.MIN_RHYTHM_COLUMN_GAP,
       beatDurationRatio * this.voiceDurationSpanWidth
     );
   }
@@ -216,7 +217,7 @@ export class VoiceBarElement implements NotationElement {
     return Math.max(
       0,
       this.barElement.voiceContentWidth -
-        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING * 2
+        this.trackElement.layoutDimensions.RHYTHM_ATTACK_PADDING * 2
     );
   }
 
@@ -321,11 +322,14 @@ export class VoiceBarElement implements NotationElement {
   }
 }
 
-export function getVoiceBarWidth(voiceBar: VoiceBar): number {
+export function getVoiceBarWidth(
+  voiceBar: VoiceBar,
+  layoutDimensions: EditorLayoutDimensions
+): number {
   let width = 0;
 
   if (voiceBar.bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
-    width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
+    width += layoutDimensions.REPEAT_SIGN_WIDTH;
   }
 
   const prevBar: Bar | null = voiceBar.bar.staff.getPrevBar(voiceBar.bar);
@@ -333,15 +337,15 @@ export function getVoiceBarWidth(voiceBar: VoiceBar): number {
     prevBar === null ||
     prevBar.masterBar.maxDuration !== voiceBar.bar.masterBar.maxDuration
   ) {
-    width += EditorLayoutDimensions.TIME_SIG_RECT_WIDTH;
+    width += layoutDimensions.TIME_SIG_RECT_WIDTH;
   }
 
   for (const beat of voiceBar.beats) {
-    width += getBeatWidth(beat);
+    width += getBeatWidth(beat, layoutDimensions);
   }
 
   if (voiceBar.bar.masterBar.repeatStatus === BarRepeatStatus.End) {
-    width += EditorLayoutDimensions.REPEAT_SIGN_WIDTH;
+    width += layoutDimensions.REPEAT_SIGN_WIDTH;
   }
 
   return width;

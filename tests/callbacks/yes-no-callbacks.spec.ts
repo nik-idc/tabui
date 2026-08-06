@@ -50,11 +50,11 @@ describe("YesNoDefaultCallbacks", () => {
     callbacks.onDialogClicked({ target: component.yesNoDialogContent } as any);
     expect(component.yesNoDialog.close).not.toHaveBeenCalled();
 
+    callbacks.bind();
     callbacks.onDialogClicked({ target: outsideTarget } as any);
     expect(component.yesNoDialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
 
-    callbacks.bind();
     callbacks.bind();
     const confirmCallsBefore = onConfirm.mock.calls.length;
     const renderCallsBefore = renderFunc.mock.calls.length;

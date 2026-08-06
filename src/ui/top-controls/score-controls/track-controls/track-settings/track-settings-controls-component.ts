@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../../notation/notation-component";
 import {
   ElectricGuitarTone,
   Guitar,
@@ -14,7 +14,7 @@ import {
   StringInstrumentType,
   Track,
   TrackInstrumentChangeMode,
-} from "@/notation";
+} from "../../../../../notation";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
 import { TrackSettingsControlsTemplateRenderer } from "./track-settings-controls-template-renderer";
 
@@ -119,22 +119,23 @@ export class TrackSettingsControlsComponent {
     this.render();
   }
 
-  public applyTrackSettings(): void {
+  public makeInstrument(): Guitar {
     if (!isStringInstrumentType(this._instrumentType)) {
       throw new Error("Unsupported instrument selection");
     }
 
     const tuning = parseTuningStrSimple(this._tuning);
-    this._track.setInstrument(
-      new Guitar(
-        this._instrumentType,
-        this._instrumentTone,
-        this._track.name,
-        this._stringCount,
-        tuning
-      ),
-      this._tuningChangeMode
+    return new Guitar(
+      this._instrumentType,
+      this._instrumentTone,
+      this._track.name,
+      this._stringCount,
+      tuning
     );
+  }
+
+  public get tuningChangeMode(): TrackInstrumentChangeMode {
+    return this._tuningChangeMode;
   }
 
   public setTuning(tuning: string): void {

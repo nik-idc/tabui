@@ -20,6 +20,136 @@ guitar-oriented workflows.
 
 TabUI is still pre-`1.0.0` and under active development.
 
+## Package Usage
+
+```ts
+import {
+  PlaybackErrorCode,
+  Score,
+  TabUIEditor,
+  TabUIScorePanelPlacement,
+  TabUISidePanelPlacement,
+} from "@atikincode/tabui";
+import "@atikincode/tabui/styles.css";
+
+const root = document.getElementById("tabui-editor") as HTMLDivElement;
+const editor = new TabUIEditor(root, new Score(), {
+  assets: { baseUrl: "/tabui-assets" },
+  panels: {
+    score: { placement: TabUIScorePanelPlacement.Top },
+    side: {
+      placement: TabUISidePanelPlacement.Left,
+      collapsible: true,
+      initiallyCollapsed: false,
+    },
+  },
+  layout: {
+    width: 1200,
+    noteTextSize: 12,
+    timeSigTextSize: 48,
+    tempoTextSize: 24,
+    durationsHeight: 30,
+  },
+});
+
+editor.init();
+
+const unsubscribe = editor.subscribe((event) => {
+  if (event.type === "change") {
+    console.log(event.state.activeTrack, event.state.playback);
+  } else {
+    if (event.error.code === PlaybackErrorCode.ContextStart) {
+      console.error("Browser audio could not start", event.error.cause);
+    }
+  }
+});
+
+// Re-measure the notation host after an explicit container layout change.
+editor.refreshLayout();
+
+// Stop playback, release listeners, and clear editor-owned root contents.
+window.addEventListener(
+  "beforeunload",
+  () => {
+    unsubscribe();
+    editor.dispose();
+  },
+  { once: true }
+);
+```
+
+The root export is the supported framework-agnostic API. Styles are available
+from `@atikincode/tabui/styles.css`. Runtime icons are packaged under
+`@atikincode/tabui/assets/*`; serve those files from your app and pass the public
+base URL through `assets.baseUrl`. Playback samples are host-provided through the
+`playback` config and fall back to oscillator playback when omitted.
+
+Pass a dedicated empty root element to `TabUIEditor`. The host owns the root;
+TabUI owns its contents while mounted. `init()` is synchronous and may be called
+once. `dispose()` is idempotent, but a disposed editor is terminal. To replace a
+score, dispose the editor and construct a new instance.
+
+`getState()` returns a `TabUIEditorStateSnapshot` containing the current active
+track, playback flags, model-level selection, and rendered layout size. Its
+identity remains stable until a `"change"` notification, so it can be used with
+external-store adapters.
+`subscribe()` is editor-instance scoped and returns an idempotent unsubscribe
+function. Asynchronous playback failures arrive as `"error"` events with a
+`PlaybackErrorCode`, message, and original cause. Editors without an explicit
+`layout.width` automatically reflow when their notation viewport changes size.
+`refreshLayout(width?)` remains available for explicit host-driven refreshes.
+
+The score panel can be placed above or below notation. The side editing panel
+can be placed left or right, hidden, or made collapsible. Collapsing a measured
+layout automatically reflows notation; an explicit `layout.width` remains fixed.
+The demo exposes these construction-time options and recreates the editor when
+they change.
+
+## Score Persistence
+
+Use the versioned score serialization API for persistence:
+
+Model-level JSON methods and types have been removed. Use
+`JSON.stringify(serializeScore(score))` rather than stringifying model instances
+directly.
+
+```ts
+import {
+  ScoreSerializationError,
+  deserializeScore,
+  serializeScore,
+} from "@atikincode/tabui";
+
+const document = serializeScore(score);
+localStorage.setItem("score", JSON.stringify(document));
+
+const stored = localStorage.getItem("score");
+if (stored !== null) {
+  try {
+    const restoredScore = deserializeScore(JSON.parse(stored));
+  } catch (error) {
+    if (error instanceof ScoreSerializationError) {
+      console.error(error.path, error.message);
+    }
+  }
+}
+```
+
+The current `tabui-score` V1 document covers guitar/tablature score metadata,
+master bars, track mix and instruments, staves, sparse voices, rests, tuplets,
+notes, techniques, and bends. Runtime UUIDs and derived timing/beaming state are
+regenerated. Deserialization validates all persisted values it consumes and
+reports an exact property path through `ScoreSerializationError`. Empty non-null
+voice bars are rejected until rendering semantics for them are defined. The
+`format` field identifies a JSON object as a TabUI score before its version is
+dispatched.
+Error paths use a JSONPath-like rooted form such as
+`$.tracks[0].staves[0].bars`.
+
+`SerializedScoreV1` and its nested document types use dedicated `Serialized*`
+enums. These enums define the persisted V1 wire tokens independently from the
+runtime model enums; use the serialized enums when constructing typed documents.
+
 The refactor and optimization work from `tu-69-refactor-and-optimization` has
 been merged into `master` and now serves as the current development baseline.
 
@@ -30,13 +160,30 @@ first target integration.
 
 ## Current Focus
 
-- Introduce a tick-based timing model across the project.
-- Strengthen the model and element layers with focused automated tests.
-- Improve performance for large-score layout and rendering updates.
-- Expand notation support beyond tablature, with non-tablature notation viewing
-  as the minimum target for `0.5.0`.
-- Improve playback quality and multi-track playback behavior.
+- Continue remaining notation/layout correctness, embedding, responsive behavior,
+  and release-candidate validation now that score persistence is complete.
+- Keep `0.5.0` focused on a dependable tablature editor. Sheet and drum notation
+  are explicitly deferred.
+
+## CI And Deployment
+
+Pull requests targeting `master` and pushes to `master` run the deterministic
+CI gate through `npm run verify`: tests, package build, packed-consumer validation,
+and demo build. The timing benchmark remains a deliberate local/release check
+rather than a shared-runner CI gate.
+
+Tags matching `v*` run the same gate and upload `demo/dist` through GitHub's
+official Pages artifact workflow. Deployment occurs only after verification
+passes. The repository's GitHub Pages source must be set to **GitHub Actions**.
+Creating and pushing a release tag remains a maintainer action. Protect the
+`github-pages` environment with a required maintainer reviewer when deployment
+approval is desired.
+
+Workflow actions are pinned to immutable commits. Dependabot checks GitHub
+Actions and npm dependencies monthly; npm minor and patch updates are grouped,
+while major updates remain individually reviewable.
 
 ## Roadmap
 
-See `ROADMAP.md` for the current plan toward `0.5.0` and beyond.
+See `ROADMAP-TO-v0.5.0.md` for the project roadmap and
+`PHASE-6-ROADMAP.md` for the current stabilization status and next task.

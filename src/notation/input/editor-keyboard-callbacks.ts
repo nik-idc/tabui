@@ -1,82 +1,88 @@
-import {
-  BendTechniqueOptions,
-  GuitarTechniqueType,
-  NoteValue,
-} from "@/notation/model";
-import { SelectedMoveDirection } from "@/notation/controller";
-import { NotationComponent } from "@/notation/notation-component";
-import { KeyChecker } from "@/shared";
-import { UIComponent } from "@/ui";
+import { BendTechniqueOptions, GuitarTechniqueType, NoteValue } from "../model";
+import { SelectedMoveDirection } from "../controller";
+import { NotationComponent } from "../notation-component";
+import { KeyChecker } from "../../shared";
+import { UIComponent } from "../../ui";
 
 export interface EditorKeyboardCallbacks {
-  ctrlCEvent(event: KeyboardEvent): void;
-  ctrlVEvent(event: KeyboardEvent): void;
-  ctrlZEvent(event: KeyboardEvent): void;
-  ctrlYEvent(event: KeyboardEvent): void;
-  deleteEvent(event: KeyboardEvent): void;
-  setTechnique(
-    type: GuitarTechniqueType,
-    bendOptions?: BendTechniqueOptions
-  ): void;
-  shiftVEvent(event: KeyboardEvent): void;
-  shiftPEvent(event: KeyboardEvent): void;
-  shiftBEvent(event: KeyboardEvent): void;
-  spaceEvent(event: KeyboardEvent): void;
-  onNumberDown(key: string): void;
-  onArrowDown(key: string): void;
-  onBackspacePress(): void;
-  onCtrlDel(): void;
+  copyEvent(): void;
+  pasteEvent(): void;
+  undoEvent(): void;
+  redoEvent(): void;
+  deleteSelectionEvent(): void;
+  vibratoEvent(): void;
+  palmMuteEvent(): void;
+  bendEvent(): void;
+  togglePlaybackEvent(): void;
+  fretInputEvent(key: string): void;
+  moveSelectionEvent(key: string): void;
+  clearFretEvent(): void;
   onKeyDown(event: KeyboardEvent): void;
   bind(): void;
   unbind(): void;
 }
 
 export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
+  /** Editor root that most recently captured document-level keyboard ownership. */
+  private static _activeRootElement?: HTMLElement;
+
   readonly eventsTimeEpsilon: number = 250;
 
   private _uiComponent: UIComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
+  /** Root for this editor instance; used to ignore other editors' key events. */
+  private _rootElement: HTMLElement;
 
   private _bound: boolean = false;
   private _prevKeyPress?: { time: number; key: string };
-  private _boundOnKeyDown?: (event: KeyboardEvent) => void;
+  private _boundOnKeyDown: (event: KeyboardEvent) => void;
+  private _boundCaptureEditorFocus: () => void;
 
   constructor(
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void
+    renderFunc: () => void,
+    rootElement: HTMLElement
   ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
+    this._rootElement = rootElement;
+
+    this._boundOnKeyDown = this.onKeyDown.bind(this);
+    this._boundCaptureEditorFocus = this.captureEditorFocus.bind(this);
   }
 
-  public ctrlCEvent(event: KeyboardEvent): void {
+  private captureEditorFocus(): void {
+    EditorKeyboardDefCallbacks._activeRootElement = this._rootElement;
+  }
+
+  public copyEvent(): void {
     this._notationComponent.trackController.copy();
   }
 
-  public ctrlVEvent(event: KeyboardEvent): void {
+  public pasteEvent(): void {
     this._notationComponent.trackController.paste();
     this._renderFunc();
   }
 
-  public ctrlZEvent(event: KeyboardEvent): void {
+  public undoEvent(): void {
     this._notationComponent.trackController.undo();
     this._renderFunc();
   }
 
-  public ctrlYEvent(event: KeyboardEvent): void {
+  public redoEvent(): void {
     this._notationComponent.trackController.redo();
     this._renderFunc();
   }
 
-  public deleteEvent(event: KeyboardEvent): void {
+  public deleteSelectionEvent(): void {
     this._notationComponent.trackController.deleteSelectedBeats();
     this._renderFunc();
   }
 
-  public setTechnique(
+  private setTechnique(
     type: GuitarTechniqueType,
     bendOptions?: BendTechniqueOptions
   ): void {
@@ -85,24 +91,22 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
 
     this._notationComponent.trackController.setTechnique(type, bendOptions);
-
     this._renderFunc();
   }
 
-  public shiftVEvent(event: KeyboardEvent): void {
+  public vibratoEvent(): void {
     this.setTechnique(GuitarTechniqueType.Vibrato);
   }
 
-  public shiftPEvent(event: KeyboardEvent): void {
+  public palmMuteEvent(): void {
     this.setTechnique(GuitarTechniqueType.PalmMute);
   }
 
-  public shiftBEvent(event: KeyboardEvent): void {
-    void event;
+  public bendEvent(): void {
     this._uiComponent.sideComponent.techniqueControlsComponent.showBendControls();
   }
 
-  public spaceEvent(event: KeyboardEvent): void {
+  public togglePlaybackEvent(): void {
     if (this._notationComponent.trackController.isPlaying) {
       this._notationComponent.trackController.stopPlayer();
     } else {
@@ -112,7 +116,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._renderFunc();
   }
 
-  public onNumberDown(key: string): void {
+  public fretInputEvent(key: string): void {
     if (!this._notationComponent.trackController.hasSelectedNote) {
       return;
     }
@@ -125,7 +129,6 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     if (this._prevKeyPress === undefined) {
       this._prevKeyPress = { time: new Date().getTime(), key: key };
       this._notationComponent.trackController.setSelectedNoteFret(newFret);
-
       this._renderFunc();
       return;
     }
@@ -143,7 +146,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._renderFunc();
   }
 
-  public onArrowDown(key: string): void {
+  public moveSelectionEvent(key: string): void {
     if (!this._notationComponent.trackController.hasSelectedNote) {
       return;
     }
@@ -174,7 +177,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._renderFunc();
   }
 
-  public onBackspacePress(): void {
+  public clearFretEvent(): void {
     const selectedNote = this._notationComponent.trackController.selectedNote;
     if (selectedNote === undefined) {
       return;
@@ -186,13 +189,25 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
 
     this._notationComponent.trackController.setSelectedNoteFret(null);
-
     this._renderFunc();
   }
 
-  public onCtrlDel(): void {}
-
   public onKeyDown(event: KeyboardEvent): void {
+    if (EditorKeyboardDefCallbacks._activeRootElement !== this._rootElement) {
+      return;
+    }
+
+    // Defending against input events leaking into the notation editor
+    const target = event.target;
+    if (typeof Element !== "undefined" && target instanceof Element) {
+      const editable =
+        target.matches("input, textarea, select, [contenteditable='true']") ||
+        target.closest("dialog[open]") !== null;
+      if (editable) {
+        return;
+      }
+    }
+
     const key = event.key.toLowerCase(); // normalize
     if (key.length !== 1 && key[0] === "f") {
       return;
@@ -200,35 +215,55 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     event.preventDefault();
 
+    if (this._notationComponent.trackController.isPlaying) {
+      if (event.ctrlKey && !event.shiftKey && key === "c") {
+        this.copyEvent();
+      } else if (key === " " && !event.ctrlKey && !event.shiftKey) {
+        this.togglePlaybackEvent();
+      }
+      return;
+    }
+
+    if (!this._notationComponent.trackController.editingEnabled) {
+      if (event.ctrlKey && !event.shiftKey && key === "c") {
+        this.copyEvent();
+      } else if (key === " " && !event.ctrlKey && !event.shiftKey) {
+        this.togglePlaybackEvent();
+      } else if (KeyChecker.isArrow(key) && !event.ctrlKey && !event.shiftKey) {
+        this.moveSelectionEvent(key);
+      }
+      return;
+    }
+
     if (event.ctrlKey && !event.shiftKey) {
       if (key === "c") {
-        this.ctrlCEvent(event);
+        this.copyEvent();
       } else if (key === "v") {
-        this.ctrlVEvent(event);
+        this.pasteEvent();
       } else if (key === "z") {
-        this.ctrlZEvent(event);
+        this.undoEvent();
       } else if (key === "y") {
-        this.ctrlYEvent(event);
+        this.redoEvent();
       }
     } else if (!event.ctrlKey && event.shiftKey) {
       if (key === "v") {
-        this.shiftVEvent(event);
+        this.vibratoEvent();
       } else if (key === "p") {
-        this.shiftPEvent(event);
+        this.palmMuteEvent();
       } else if (key === "b") {
-        this.shiftBEvent(event);
+        this.bendEvent();
       }
     } else if (!event.ctrlKey && !event.shiftKey) {
       if (key === "delete") {
-        this.deleteEvent(event);
+        this.deleteSelectionEvent();
       } else if (key === " ") {
-        this.spaceEvent(event);
+        this.togglePlaybackEvent();
       } else if (KeyChecker.isNumber(key)) {
-        this.onNumberDown(key);
+        this.fretInputEvent(key);
       } else if (KeyChecker.isArrow(key)) {
-        this.onArrowDown(key);
+        this.moveSelectionEvent(key);
       } else if (KeyChecker.isBackspace(key)) {
-        this.onBackspacePress();
+        this.clearFretEvent();
       }
     }
   }
@@ -240,14 +275,37 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
     document.addEventListener("keydown", this._boundOnKeyDown);
+    this._rootElement.addEventListener(
+      "focusin",
+      this._boundCaptureEditorFocus
+    );
+    this._rootElement.addEventListener(
+      "mousedown",
+      this._boundCaptureEditorFocus
+    );
+    if (this._rootElement.contains?.(document.activeElement)) {
+      this.captureEditorFocus();
+    }
     this._bound = true;
   }
 
   public unbind(): void {
-    if (this._bound && this._boundOnKeyDown !== undefined) {
-      document.removeEventListener("keydown", this._boundOnKeyDown);
-      this._boundOnKeyDown = undefined;
-      this._bound = false;
+    if (!this._bound) {
+      return;
     }
+
+    document.removeEventListener("keydown", this._boundOnKeyDown);
+    this._rootElement.removeEventListener(
+      "focusin",
+      this._boundCaptureEditorFocus
+    );
+    this._rootElement.removeEventListener(
+      "mousedown",
+      this._boundCaptureEditorFocus
+    );
+    if (EditorKeyboardDefCallbacks._activeRootElement === this._rootElement) {
+      EditorKeyboardDefCallbacks._activeRootElement = undefined;
+    }
+    this._bound = false;
   }
 }

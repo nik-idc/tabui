@@ -1,7 +1,6 @@
-import { Point, randomInt, Rect } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { Point, randomInt, Rect } from "../../../../shared";
+import { TrackElement } from "../track-element";
+import { NotationElement } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { NotationStyle, StaffLineElement } from "./staff-line-element";
 import { TechGapElement } from "./tech-gap-element";
@@ -98,7 +97,7 @@ export class NotationStyleLineElement implements NotationElement {
    * Calculates the dimensions for all bar elements & their children
    */
   public measure(): void {
-    this._boundingBox.width = EditorLayoutDimensions.WIDTH;
+    this._boundingBox.width = this.trackElement.layoutDimensions.WIDTH;
 
     let sumWidth = 0;
     for (const barElement of this._barElements) {

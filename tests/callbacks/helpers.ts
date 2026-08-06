@@ -8,7 +8,7 @@ export class FakeElement {
   classList = {
     toggle: jest.fn(),
   };
-  close = jest.fn();
+  close = jest.fn(() => this.dispatch("close"));
   setAttribute = jest.fn();
 
   private _children: FakeElement[] = [];
@@ -86,11 +86,48 @@ export function createNotationComponentMock() {
   return {
     trackController: {
       isPlaying: false,
+      editingEnabled: true,
       startPlayer: jest.fn(),
       stopPlayer: jest.fn(),
       toggleLoop: jest.fn(),
       syncTrackPlaybackState: jest.fn(),
-      moveTrack: jest.fn(),
+      syncMasterPlaybackState: jest.fn(),
+      moveTrack: jest.fn(() => true),
+      setScoreName: jest.fn((score, name) => {
+        score.name = name;
+        return true;
+      }),
+      setMasterVolume: jest.fn((score, volume) => {
+        score.masterVolume = volume;
+        return true;
+      }),
+      setMasterPan: jest.fn((score, pan) => {
+        score.masterPan = pan;
+        return true;
+      }),
+      setTrackName: jest.fn((track, name) => {
+        track.name = name;
+        return true;
+      }),
+      setTrackVolume: jest.fn((track, volume) => {
+        track.volume = volume;
+        return true;
+      }),
+      setTrackPan: jest.fn((track, pan) => {
+        track.pan = pan;
+        return true;
+      }),
+      toggleTrackMuted: jest.fn((track) => {
+        track.muted = !track.muted;
+        return true;
+      }),
+      toggleTrackSoloed: jest.fn((track) => {
+        track.soloed = !track.soloed;
+        return true;
+      }),
+      addTrack: jest.fn(),
+      removeTrack: jest.fn(() => true),
+      setTrackInstrument: jest.fn(() => true),
       setSelectedBarTempo: jest.fn(),
       setSelectedBarTimeSignature: jest.fn(),
       setSelectedBeatsTuplet: jest.fn(),

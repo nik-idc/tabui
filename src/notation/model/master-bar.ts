@@ -1,4 +1,4 @@
-import { randomInt } from "@/shared";
+import { randomInt } from "../../shared";
 import { NoteDuration } from "./note-duration";
 import { BarRepeatStatus } from "./bar-repeat-status";
 import { getBaseDurationFraction, TimingFraction } from "./timing";
@@ -10,6 +10,15 @@ export type MasterBarData = {
   repeatStatus: BarRepeatStatus;
   repeatCount: number | null;
 };
+
+/** Lowest accepted tempo in BPM. Shared with serialization & UI. */
+export const MIN_MASTER_BAR_TEMPO = 1;
+/** Highest accepted tempo in BPM. Shared with serialization & UI. */
+export const MAX_MASTER_BAR_TEMPO = 999;
+/** Lowest accepted beats-per-measure numerator. Shared with serialization & UI. */
+export const MIN_MASTER_BAR_BEATS_COUNT = 1;
+/** Highest accepted beats-per-measure numerator. Shared with serialization & UI. */
+export const MAX_MASTER_BAR_BEATS_COUNT = 32;
 
 export const DEFAULT_MASTER_BAR: MasterBarData = {
   tempo: 120,
@@ -33,9 +42,9 @@ export class MasterBar {
   readonly uuid: number;
 
   /** Tempo of the bar */
-  private _tempo: number;
+  private _tempo: number = DEFAULT_MASTER_BAR.tempo;
   /** Number of beats for the bar */
-  private _beatsCount: number;
+  private _beatsCount: number = DEFAULT_MASTER_BAR.beatsCount;
   /** The duration of the note that constitutes a whole bar */
   private _duration: NoteDuration;
   /** Whether this bar is a repeat start, repeat end or a regular bar */
@@ -52,16 +61,16 @@ export class MasterBar {
    * @param repeatCount Repeat count (only when end of repeat section)
    */
   constructor({
-    tempo = 120,
-    beatsCount = 4,
-    duration = NoteDuration.Quarter,
-    repeatStatus = BarRepeatStatus.None,
-    repeatCount = null,
+    tempo = DEFAULT_MASTER_BAR.tempo,
+    beatsCount = DEFAULT_MASTER_BAR.beatsCount,
+    duration = DEFAULT_MASTER_BAR.duration,
+    repeatStatus = DEFAULT_MASTER_BAR.repeatStatus,
+    repeatCount = DEFAULT_MASTER_BAR.repeatCount,
   }: MasterBarData) {
     this.uuid = randomInt();
 
-    this._tempo = tempo;
-    this._beatsCount = beatsCount;
+    this.tempo = tempo;
+    this.beatsCount = beatsCount;
     this._duration = duration;
     this._repeatStatus = repeatStatus;
     this._repeatCount = repeatCount;
@@ -69,6 +78,15 @@ export class MasterBar {
 
   /** Tempo setter */
   public set tempo(newTempo: number) {
+    if (
+      !Number.isFinite(newTempo) ||
+      newTempo < MIN_MASTER_BAR_TEMPO ||
+      newTempo > MAX_MASTER_BAR_TEMPO
+    ) {
+      throw new Error(
+        `Tempo ${newTempo} is outside ${MIN_MASTER_BAR_TEMPO}..${MAX_MASTER_BAR_TEMPO}`
+      );
+    }
     this._tempo = newTempo;
   }
   /** Tempo getter */
@@ -78,6 +96,15 @@ export class MasterBar {
 
   /** Beats count setter */
   public set beatsCount(newBeatsCount: number) {
+    if (
+      !Number.isInteger(newBeatsCount) ||
+      newBeatsCount < MIN_MASTER_BAR_BEATS_COUNT ||
+      newBeatsCount > MAX_MASTER_BAR_BEATS_COUNT
+    ) {
+      throw new Error(
+        `Beats count ${newBeatsCount} is outside ${MIN_MASTER_BAR_BEATS_COUNT}..${MAX_MASTER_BAR_BEATS_COUNT}`
+      );
+    }
     this._beatsCount = newBeatsCount;
   }
   /** Beats count getter */

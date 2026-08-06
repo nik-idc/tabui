@@ -1,9 +1,8 @@
-import { Point, Rect, randomInt } from "@/shared";
-import { EditorLayoutDimensions } from "@/notation/controller/editor-layout-dimensions";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { Point, Rect, randomInt } from "../../../../shared";
+import { TrackElement } from "../track-element";
+import { NotationElement } from "../notation-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { DURATION_TO_FLAG_COUNT, VoiceNumber } from "@/notation/model";
+import { DURATION_TO_FLAG_COUNT, VoiceNumber } from "../../../model";
 import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
 import { VoiceBarElement } from "./voice-bar-element";
 import type { BarElement } from "./bar-element";
@@ -181,7 +180,10 @@ export class BeamSegmentElement implements NotationElement {
   public measure(): void {
     if (this.nextBeatElement !== undefined) {
       for (const rect of this._longRects) {
-        rect.setDimensions(0, EditorLayoutDimensions.DURATION_FLAG_HEIGHT);
+        rect.setDimensions(
+          0,
+          this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT
+        );
       }
     }
 
@@ -189,7 +191,7 @@ export class BeamSegmentElement implements NotationElement {
     for (const rect of this._shortRects) {
       rect.setDimensions(
         shortWidth,
-        EditorLayoutDimensions.DURATION_FLAG_HEIGHT
+        this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT
       );
     }
   }
@@ -211,20 +213,23 @@ export class BeamSegmentElement implements NotationElement {
     const shortTailDirection = this.getShortTailDirection();
     const shortWidth = 10;
 
-    const baseY = EditorLayoutDimensions.DURATIONS_HEIGHT;
+    const baseY = this.trackElement.layoutDimensions.DURATIONS_HEIGHT;
 
     const curFlags = this.getFlagCount(this.curBeatElement);
     let longRectIndex = 0;
     let shortRectIndex = 0;
     for (let level = 1; level <= curFlags; level++) {
       const y =
-        baseY - (level - 1) * EditorLayoutDimensions.DURATION_FLAG_HEIGHT * 2;
+        baseY -
+        (level - 1) *
+          this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT *
+          2;
 
       if (this.isLongRectLevel(level)) {
         // Width depends on laid-out beat attack columns, not measure-time data.
         this._longRects[longRectIndex]?.setDimensions(
           longWidth,
-          EditorLayoutDimensions.DURATION_FLAG_HEIGHT
+          this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT
         );
         this._longRects[longRectIndex]?.setCoords(longX, y);
         longRectIndex++;

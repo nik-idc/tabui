@@ -216,6 +216,73 @@ describe("Timing rebuild commands", () => {
     );
   });
 
+  test("ReplaceBeatsCommand owns default rests created during replacement", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Half },
+      { baseDuration: NoteDuration.Half },
+    ]);
+    const replacementBeats = [createBeat(bar, NoteDuration.Whole)];
+    const command = new ReplaceBeatsCommand(beats, replacementBeats);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+
+    command.execute();
+    expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Whole,
+    ]);
+
+    command.undo();
+    expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+      NoteDuration.Half,
+    ]);
+
+    command.redo();
+    expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Whole,
+    ]);
+    expect(voiceBar.bar.staff.nonEmptyVoiceNumbers).toEqual([1]);
+  });
+
+  test("ReplaceBeatsCommand keeps a replaced secondary voice attached", () => {
+    const { bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const voiceBar = bar.insertVoiceBar(2);
+    voiceBar.replaceBeats([
+      createBeat(voiceBar, NoteDuration.Half),
+      createBeat(voiceBar, NoteDuration.Half),
+    ]);
+    const command = new ReplaceBeatsCommand(
+      [...voiceBar.beats],
+      [createBeat(voiceBar, NoteDuration.Whole)]
+    );
+
+    command.execute();
+    expect(bar.getVoiceBar(2)).toBe(voiceBar);
+    expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Whole,
+    ]);
+    expect(bar.staff.nonEmptyVoiceNumbers).toEqual([1, 2]);
+
+    command.undo();
+    expect(bar.getVoiceBar(2)).toBe(voiceBar);
+    expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+      NoteDuration.Half,
+    ]);
+    expect(bar.staff.nonEmptyVoiceNumbers).toEqual([1, 2]);
+
+    command.redo();
+    expect(bar.getVoiceBar(2)).toBe(voiceBar);
+    expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Whole,
+    ]);
+    expect(bar.staff.nonEmptyVoiceNumbers).toEqual([1, 2]);
+  });
+
   test("ReplaceBeatsCommand inserts additional beats in order and restores original sequence on undo", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

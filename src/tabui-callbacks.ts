@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "./notation/notation-component";
 import {
   EditorKeyboardCallbacks,
   EditorKeyboardDefCallbacks,
@@ -6,7 +6,7 @@ import {
   EditorMouseDefCallbacks,
   RenderType,
 } from "./notation/input";
-import { UIComponent } from "@/ui";
+import { UIComponent } from "./ui";
 import { UICallbacks } from "./ui/ui-callbacks";
 
 export class TabUICallbacks {
@@ -16,14 +16,25 @@ export class TabUICallbacks {
   private _mouseCallbacks: EditorMouseCallbacks;
   private _keyboardCallbacks: EditorKeyboardCallbacks;
   private _uiCallbacks: UICallbacks;
+  private _rootDiv: HTMLDivElement;
+  private _onStateChanged: () => void;
   /** Pending requestAnimationFrame id for coalesced notation scroll renders. */
   private _notationRenderRafId?: number;
   /** Pending requestAnimationFrame id for coalesced selection/UI updates. */
   private _selectionRenderRafId?: number;
+  private _bound = false;
+  private _keyboardCaptured = false;
 
-  constructor(uiComponent: UIComponent, notationComponent: NotationComponent) {
+  constructor(
+    uiComponent: UIComponent,
+    notationComponent: NotationComponent,
+    rootDiv: HTMLDivElement,
+    onStateChanged: () => void = () => {}
+  ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
+    this._rootDiv = rootDiv;
+    this._onStateChanged = onStateChanged;
 
     this._mouseCallbacks = new EditorMouseDefCallbacks(
       this._uiComponent,
@@ -33,7 +44,8 @@ export class TabUICallbacks {
     this._keyboardCallbacks = new EditorKeyboardDefCallbacks(
       this._uiComponent,
       this._notationComponent,
-      () => this.render(RenderType.Full)
+      () => this.render(RenderType.Full),
+      this._rootDiv
     );
     this._uiCallbacks = new UICallbacks(
       this._uiComponent,
@@ -45,9 +57,20 @@ export class TabUICallbacks {
     );
   }
 
-  private renderAndBindFull(): void {
-    const activeRenderers = this._notationComponent.render();
+  private renderAndBindFull(forceNotation: boolean = false): void {
+    this._mouseCallbacks.unbind();
+    const renderOptions = forceNotation
+      ? {
+          renderNotation: true,
+          forceNotation: true,
+          overlays: { selection: true, player: true },
+        }
+      : undefined;
+    const activeRenderers = this._notationComponent.render(renderOptions);
     this._mouseCallbacks.bind(activeRenderers);
+    this._notationComponent.renderer.attachViewportScrollEvent(() =>
+      this.render(RenderType.NotationOnly)
+    );
 
     this._uiCallbacks.unbind();
     this._uiComponent.render();
@@ -57,6 +80,9 @@ export class TabUICallbacks {
   private renderNotationOnly(): void {
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
+    this._notationComponent.renderer.attachViewportScrollEvent(() =>
+      this.render(RenderType.NotationOnly)
+    );
   }
 
   private renderSelectionOverlayAndUI(): void {
@@ -80,6 +106,9 @@ export class TabUICallbacks {
       overlays: { selection: true, player: true },
     });
     this._mouseCallbacks.bind(activeRenderers);
+    this._notationComponent.renderer.attachViewportScrollEvent(() =>
+      this.render(RenderType.NotationOnly)
+    );
 
     this._uiCallbacks.unbind();
     this._uiComponent.render();
@@ -129,9 +158,10 @@ export class TabUICallbacks {
   /**
    * Dispatches render by mode.
    * Full/NotationOnly are immediate; DragSelection is rAF-coalesced;
-   * NoteSelection is immediate to keep click selection feedback synchronous.
+   * SelectionRefresh is immediate to keep selection feedback synchronous.
    */
   private render(type: RenderType): void {
+    let stateChanged = true;
     switch (type) {
       case RenderType.Full:
         this.cancelPendingNotationRender();
@@ -140,11 +170,12 @@ export class TabUICallbacks {
         break;
       case RenderType.NotationOnly:
         this.scheduleNotationRender();
+        stateChanged = false;
         break;
       case RenderType.DragSelection:
         this.scheduleSelectionRender();
         break;
-      case RenderType.NoteSelection:
+      case RenderType.SelectionRefresh:
         this.cancelPendingSelectionRender();
         this.renderSelectionOverlayAndUI();
         break;
@@ -154,19 +185,51 @@ export class TabUICallbacks {
         break;
       case RenderType.PlayerCursor:
         // Reserved for future cursor-only render path.
+        stateChanged = false;
         break;
+    }
+
+    if (stateChanged) {
+      this._onStateChanged();
     }
   }
 
+  /** Forces a full refresh for explicit host-driven layout changes. */
+  public refresh(): void {
+    this.cancelPendingNotationRender();
+    this.cancelPendingSelectionRender();
+    this.renderAndBindFull(true);
+    this._onStateChanged();
+  }
+
   private captureKeyboard(): void {
+    if (!this._bound || this._keyboardCaptured) {
+      return;
+    }
+
+    this._keyboardCaptured = true;
     this._keyboardCallbacks.unbind();
   }
 
   private freeKeyboard(): void {
+    if (!this._keyboardCaptured) {
+      return;
+    }
+
+    this._keyboardCaptured = false;
+    if (!this._bound) {
+      return;
+    }
+
     this._keyboardCallbacks.bind();
   }
 
   public bind(): void {
+    if (this._bound) {
+      return;
+    }
+
+    this._bound = true;
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
     this._notationComponent.renderer.attachViewportScrollEvent(() =>
@@ -179,9 +242,16 @@ export class TabUICallbacks {
   }
 
   public unbind(): void {
+    if (!this._bound) {
+      return;
+    }
+
     this.cancelPendingNotationRender();
     this.cancelPendingSelectionRender();
-    // this._mouseCallbacks.unbind();
+    this._mouseCallbacks.unbind();
+    this._notationComponent.renderer.detachViewportScrollEvent();
+    this.freeKeyboard();
+    this._bound = false;
     this._keyboardCallbacks.unbind();
     this._uiCallbacks.unbind();
   }

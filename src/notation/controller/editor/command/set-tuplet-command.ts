@@ -1,4 +1,4 @@
-import { Beat, ScoreEditor, TupletSettings } from "@/notation/model";
+import { Beat, ScoreEditor, TupletSettings } from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**

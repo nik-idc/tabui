@@ -100,4 +100,29 @@ describe("MeasureControlsDefaultCallbacks", () => {
     timeBindSpy.mockRestore();
     timeUnbindSpy.mockRestore();
   });
+
+  test("measure callbacks dispatch in view-only mode", () => {
+    const notationComponent = createNotationComponentMock();
+    notationComponent.trackController.editingEnabled = false;
+    const component = {
+      template: {},
+      tempoControlsComponent: {},
+      timeSigControlsComponent: {},
+      showTempoControls: jest.fn(),
+      showTimeSigControls: jest.fn(),
+    } as any;
+    const callbacks = new MeasureControlsDefaultCallbacks(
+      component,
+      notationComponent,
+      jest.fn(),
+      jest.fn(),
+      jest.fn()
+    );
+
+    callbacks.onTempoClicked();
+    callbacks.onTimeSignatureClicked();
+
+    expect(component.showTempoControls).toHaveBeenCalledTimes(1);
+    expect(component.showTimeSigControls).toHaveBeenCalledTimes(1);
+  });
 });

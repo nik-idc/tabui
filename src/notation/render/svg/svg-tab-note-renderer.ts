@@ -1,12 +1,8 @@
-import {
-  EditorLayoutDimensions,
-  NotationElement,
-  TrackController,
-} from "@/notation/controller";
-import { createSVGG, createSVGRect, createSVGText } from "@/shared";
-import { TabNoteElement } from "@/notation/controller/element/note/tab-note-element";
+import { NotationElement, TrackController } from "../../controller";
+import { createSVGG, createSVGRect, createSVGText } from "../../../shared";
+import { TabNoteElement } from "../../controller/element/note/tab-note-element";
 import { SVGNoteRenderer } from "./svg-note-renderer";
-import { NoteValue, VoiceNumber } from "@/notation/model";
+import { NoteValue, VoiceNumber } from "../../model";
 
 /**
  * Class for rendering a note element using SVG
@@ -328,13 +324,11 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._textSVG = createSVGText();
 
       // Set only-set-once attributes
-      const fontSize = `${EditorLayoutDimensions.NOTE_TEXT_SIZE}px`;
+      const fontSize = `${this.trackController.layoutDimensions.NOTE_TEXT_SIZE}px`;
       this._textSVG.setAttribute("font-size", fontSize);
       this._textSVG.setAttribute("text-anchor", "middle");
       this._textSVG.setAttribute("dominant-baseline", "middle");
-      this._textSVG.setAttribute("fill", "var(--tu-notation-text)");
       this._textSVG.setAttribute("pointer-events", "none");
-      this._textSVG.setAttribute("fill", "var(--tu-notation-text)");
 
       // Set id
       this._textSVG.setAttribute("id", `note-text-${noteUUID}`);
@@ -347,7 +341,8 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     const y = `${this.noteElement.textCoordsBarLocal.y}`;
     this._textSVG.setAttribute("x", x);
     this._textSVG.setAttribute("y", y);
-    this._textSVG.textContent = `${note.fret}`;
+    this._textSVG.setAttribute("fill", "var(--tu-notation-text)");
+    this._textSVG.textContent = this.noteElement.noteText;
     this._containerGroupSVG.appendChild(this._textSVG);
   }
 

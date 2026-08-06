@@ -2,10 +2,10 @@ import {
   NotationElement,
   TechniqueLabelElement,
   TrackController,
-} from "@/notation/controller";
-import { createSVGG, createSVGPath, createSVGText } from "@/shared";
+} from "../../controller";
+import { createSVGG, createSVGPath, createSVGText } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 /**
  * Class for rendering a technique label using SVG

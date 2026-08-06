@@ -2,6 +2,7 @@ node_modules/
 .node_modules/
 built/*
 dist/*
+demo/dist/
 tests/cases/rwc/*
 tests/cases/perf/*
 !tests/cases/webharness/compilerToString.js
@@ -61,7 +62,6 @@ yarn-error.log
 tests/baselines/reference/dt
 .failed-tests
 TEST-results.xml
-package-lock.json
 .eslintcache
 *v8.log
 /lib/

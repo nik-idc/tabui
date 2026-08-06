@@ -2,16 +2,18 @@ import {
   BendTechniqueOptions,
   BendType,
   GuitarTechniqueType,
-} from "@/notation/model";
-import { NotationComponent } from "@/notation/notation-component";
-import { BendControlsComponent } from "@/ui";
-import { ListenerManager } from "@/shared/misc";
+} from "../../../../notation/model";
+import { NotationComponent } from "../../../../notation/notation-component";
+import { BendControlsComponent } from "../../..";
+import { ListenerManager } from "../../../../shared/misc";
+import { BEND_TYPE_BUTTON_ORDER } from "./bend-controls-template";
 
 export interface BendControlsCallbacks {
   onDialogClicked(event: MouseEvent): void;
   onBendTypeClicked(bendType: BendType): void;
   onConfirmClicked(): void;
   onCancelClicked(): void;
+  onRemoveClicked(): void;
   bind(): void;
   unbind(): void;
 }
@@ -24,6 +26,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
   private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
+  private _keyboardCaptured = false;
 
   constructor(
     bendComponent: BendControlsComponent,
@@ -44,35 +47,96 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
       !this._bendComponent.template.dialogContent.contains(event.target as Node)
     ) {
       this._bendComponent.template.dialog.close();
-      this._freeKeyboard();
     }
   }
 
   onBendTypeClicked(bendType: BendType): void {
+    if (this._bendComponent.template.bendTypesButtons[bendType].disabled) {
+      return;
+    }
     this._bendComponent.bendSelectorManager.changeBendType(bendType);
+    this._bendComponent.templateRenderer.setSelectedBendType(bendType);
   }
 
   onConfirmClicked(): void {
     const bendOptions =
       this._bendComponent.bendSelectorManager.getCurrentTechnique();
 
+    let validatedOptions: BendTechniqueOptions;
+    try {
+      validatedOptions = new BendTechniqueOptions(bendOptions);
+    } catch {
+      return;
+    }
     this._notationComponent.trackController.setTechnique(
       GuitarTechniqueType.Bend,
-      new BendTechniqueOptions(bendOptions)
+      validatedOptions
     );
     this._renderFunc();
 
     this._bendComponent.template.dialog.close();
-    this._freeKeyboard();
   }
 
   onCancelClicked(): void {
     this._bendComponent.template.dialog.close();
-    this._freeKeyboard();
+  }
+
+  onRemoveClicked(): void {
+    if (this._bendComponent.template.removeButton.disabled) {
+      return;
+    }
+    this._notationComponent.trackController.setTechnique(
+      GuitarTechniqueType.Bend
+    );
+    this._renderFunc();
+    this._bendComponent.template.dialog.close();
+  }
+
+  private onDialogFocus(): void {
+    if (this._keyboardCaptured) {
+      return;
+    }
+    this._captureKeyboard();
+    this._keyboardCaptured = true;
+  }
+
+  private onDialogClosed(): void {
+    this._bendComponent.bendSelectorManager.dispose();
+    if (this._keyboardCaptured) {
+      this._freeKeyboard();
+      this._keyboardCaptured = false;
+    }
+  }
+
+  private onDialogKeyDown(event: KeyboardEvent): void {
+    if (
+      event.key !== "Enter" ||
+      this._bendComponent.template.confirmButton.disabled
+    ) {
+      return;
+    }
+    if (
+      event.target === this._bendComponent.template.cancelButton ||
+      event.target === this._bendComponent.template.removeButton ||
+      BEND_TYPE_BUTTON_ORDER.some(
+        (bendType) =>
+          event.target ===
+          this._bendComponent.template.bendTypesButtons[bendType]
+      )
+    ) {
+      return;
+    }
+    event.preventDefault();
+    this.onConfirmClicked();
   }
 
   public bind(): void {
     this._listeners.bindAll([
+      ...BEND_TYPE_BUTTON_ORDER.map((bendType) => ({
+        element: this._bendComponent.template.bendTypesButtons[bendType],
+        event: "click" as const,
+        handler: () => this.onBendTypeClicked(bendType),
+      })),
       {
         element: this._bendComponent.template.dialog,
         event: "click",
@@ -81,38 +145,32 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
         },
       },
       {
-        element: this._bendComponent.template.bendTypesButtons[0],
-        event: "click",
-        handler: () => {
-          this.onBendTypeClicked(BendType.Bend);
-        },
+        element: this._bendComponent.template.dialog,
+        event: "focusin",
+        handler: () => this.onDialogFocus(),
       },
       {
-        element: this._bendComponent.template.bendTypesButtons[1],
-        event: "click",
-        handler: () => {
-          this.onBendTypeClicked(BendType.Prebend);
-        },
+        element: this._bendComponent.template.dialog,
+        event: "close",
+        handler: () => this.onDialogClosed(),
       },
       {
-        element: this._bendComponent.template.bendTypesButtons[2],
-        event: "click",
-        handler: () => {
-          this.onBendTypeClicked(BendType.BendAndRelease);
-        },
-      },
-      {
-        element: this._bendComponent.template.bendTypesButtons[3],
-        event: "click",
-        handler: () => {
-          this.onBendTypeClicked(BendType.PrebendAndRelease);
-        },
+        element: this._bendComponent.template.dialog,
+        event: "keydown",
+        handler: (event: KeyboardEvent) => this.onDialogKeyDown(event),
       },
       {
         element: this._bendComponent.template.confirmButton,
         event: "click",
         handler: () => {
           this.onConfirmClicked();
+        },
+      },
+      {
+        element: this._bendComponent.template.removeButton,
+        event: "click",
+        handler: () => {
+          this.onRemoveClicked();
         },
       },
       {
@@ -127,5 +185,6 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
 
   public unbind(): void {
     this._listeners.unbindAll();
+    this.onDialogClosed();
   }
 }

@@ -1,7 +1,45 @@
 import { BarRepeatStatus, NoteDuration } from "../../src/notation/model";
-import { createBarWithBeats } from "./helpers";
+import { createBarWithBeats, createBeat, createScoreGraph } from "./helpers";
 
 describe("Bar beaming", () => {
+  test.each([
+    ["1/1", NoteDuration.Whole, NoteDuration.Eighth, 8],
+    ["1/2", NoteDuration.Half, NoteDuration.Eighth, 4],
+    ["1/4", NoteDuration.Quarter, NoteDuration.Eighth, 2],
+    ["1/8", NoteDuration.Eighth, NoteDuration.Sixteenth, 2],
+    ["1/16", NoteDuration.Sixteenth, NoteDuration.ThirtySecond, 2],
+    ["1/32", NoteDuration.ThirtySecond, NoteDuration.SixtyFourth, 2],
+  ])(
+    "%s accepts a complete subdivision",
+    (_signature, meterDuration, beatDuration, beatCount) => {
+      const { bar } = createScoreGraph({
+        tempo: 120,
+        beatsCount: 1,
+        duration: meterDuration,
+        repeatStatus: BarRepeatStatus.None,
+        repeatCount: null,
+      });
+      const voiceBar = bar.getVoiceBar(1);
+      if (voiceBar === null) {
+        throw Error("Expected voice 1 bar");
+      }
+      const beats = Array.from({ length: beatCount }, () =>
+        createBeat(voiceBar, beatDuration)
+      );
+
+      voiceBar.replaceBeats(beats);
+
+      expect(voiceBar.getActualBarDuration()).toBe(meterDuration);
+      expect(beats.map((beat) => beat.beamGroupId)).toEqual(
+        Array(beatCount).fill(0)
+      );
+      expect(beats.map((beat) => beat.lastInBeamGroup)).toEqual([
+        ...Array(beatCount - 1).fill(false),
+        true,
+      ]);
+    }
+  );
+
   test("simple-meter eighth notes beam into expected groups", () => {
     const { beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Eighth },

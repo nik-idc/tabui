@@ -104,10 +104,15 @@ export function buildIrregularBeams(
  * Returns beaming rules for a given time signature.
  * @param beatsCount - top number of the time signature (e.g., 4 in 4/4, 7 in 7/8)
  * @param duration - bottom number of the time signature (e.g., 4 = quarter note, 8 = eighth note)
- * @returns Array of group sizes in "duration" subdivisions (e.g., [2,2,2,2] for 4/4 eighths)
+ * @returns Array of group sizes in subdivisions of the beaming unit, which is
+ * the time-signature denominator or an eighth note, whichever is shorter
  */
 export function getBeaming(beatsCount: number, duration: number) {
-  const isSimple = beatsCount === 2 || beatsCount === 3 || beatsCount === 4;
+  const isSimple =
+    beatsCount === 1 ||
+    beatsCount === 2 ||
+    beatsCount === 3 ||
+    beatsCount === 4;
   const isCompound = beatsCount % 3 === 0 && beatsCount !== 3 && duration === 8;
   const isIrregular = !isSimple && !isCompound;
 
@@ -127,14 +132,17 @@ export function getBeaming(beatsCount: number, duration: number) {
     return groups;
   }
 
-  // Simple meter: top = 2, 3, or 4
+  // Simple meters beam once per denominator beat, but group sizes are expressed
+  // in denominator-normalized beaming units: the denominator itself for eighth
+  // notes and shorter, or eighth notes for longer values. Thus 4/4 becomes
+  // [2, 2, 2, 2] because each quarter contains two eighth-note units; 3/8 is
+  // [1, 1, 1]; and 2/16 is [1, 1].
   if (isSimple) {
-    // Group by 2 or 4 subdivisions, depending on duration
-    // Example: 4/4 (quarter) → [2,2,2,2] eighth notes
-    //          3/4 (quarter) → [2,2,2] eighth notes
+    const beamingUnit = duration < 8 ? 8 : duration;
+    const subdivisionsPerBeat = beamingUnit / duration;
     const groups = [];
     for (let i = 0; i < beatsCount; i++) {
-      groups.push(2); // each beat = 2 subdivisions (eighths)
+      groups.push(subdivisionsPerBeat);
     }
     return groups;
   }

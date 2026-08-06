@@ -15,6 +15,7 @@ export * from "./master-bar";
 export * from "./note";
 export * from "./note-duration";
 export * from "./score";
+export * from "./serialization";
 export * from "./staff";
 export * from "./technique";
 export * from "./technique-type";

@@ -1,9 +1,16 @@
 import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { SVGTabNoteRenderer } from "../../src/notation/render/svg/svg-tab-note-renderer";
-import { Beat, GuitarNote, NoteDuration } from "../../src/notation/model";
+import { SelectionOverlayRenderer } from "../../src/notation/render/svg/selection-overlay-renderer";
+import {
+  Beat,
+  GuitarNote,
+  GuitarTechnique,
+  GuitarTechniqueType,
+  NoteDuration,
+} from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
-import { ensureLayoutConfigured } from "./helpers";
+import { createTestTrackController } from "./helpers";
 
 function getNoteElement(controller: TrackController, note: GuitarNote) {
   const noteElement = controller.trackElement.trackLineElements
@@ -41,17 +48,13 @@ function getBackingNote(beat: Beat) {
 function createLaidOutController(
   track: ConstructorParameters<typeof TrackController>[0]
 ) {
-  const controller = new TrackController(track);
+  const controller = createTestTrackController(track);
   controller.trackElement.update();
 
   return controller;
 }
 
 describe("SVGTabNoteRenderer", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("active empty slot yields hit rect to lowest filled inactive voice", () => {
     const { track, bar } = createScoreGraph();
     const voice1 = bar.getVoiceBar(1);
@@ -177,5 +180,109 @@ describe("SVGTabNoteRenderer", () => {
 
     expect(shouldRenderHitRect(controller, activeNote)).toBe(true);
     expect(shouldRenderHitRect(controller, inactiveNote)).toBe(false);
+  });
+
+  test("Let Ring notes render their fret in parentheses", () => {
+    const { track, bar } = createScoreGraph();
+    const note = bar.getVoiceBar(1)?.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    note.fret = 5;
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
+
+    const controller = createLaidOutController(track);
+    const noteElement = getNoteElement(controller, note);
+
+    expect(noteElement.noteText).toBe("(5)");
+    expect(noteElement.textRect.width).toBeGreaterThan(
+      controller.layoutDimensions.NOTE_TEXT_SIZE
+    );
+  });
+
+  test("normal and Let Ring notes use the same larger square selection geometry", () => {
+    const { track, bar } = createScoreGraph();
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice bar");
+    }
+    voiceBar.appendBeats();
+    const normalNote = getBackingNote(voiceBar.beats[0]);
+    const letRingNote = getBackingNote(voiceBar.beats[1]);
+    normalNote.fret = 12;
+    letRingNote.fret = 12;
+    letRingNote.addTechnique(
+      new GuitarTechnique(letRingNote, GuitarTechniqueType.LetRing)
+    );
+    const controller = createLaidOutController(track);
+    const normalElement = getNoteElement(controller, normalNote);
+    const letRingElement = getNoteElement(controller, letRingNote);
+
+    expect(normalElement.selectionRect.width).toBe(
+      letRingElement.selectionRect.width
+    );
+    expect(normalElement.selectionRect.height).toBe(
+      letRingElement.selectionRect.height
+    );
+    expect(normalElement.selectionRect.width).toBe(
+      normalElement.selectionRect.height
+    );
+    expect(normalElement.selectionRect.width).toBe(
+      controller.layoutDimensions.NOTE_TEXT_SIZE * 1.5
+    );
+  });
+
+  test("selection preview and selected-note outline use identical geometry", () => {
+    const { track, bar } = createScoreGraph();
+    const note = bar.getVoiceBar(1)?.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    note.fret = 12;
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
+    const controller = createLaidOutController(track);
+    const noteElement = getNoteElement(controller, note);
+    controller.selectNoteElement(noteElement);
+    const originalDocument = globalThis.document;
+    const elements: Array<{
+      attrs: Map<string, string>;
+      setAttribute: (name: string, value: string) => void;
+    }> = [];
+    const selectionGroup = {
+      appendChild: jest.fn(),
+      removeChild: jest.fn(),
+    } as unknown as SVGGElement;
+    (
+      globalThis as unknown as {
+        document: { createElementNS: () => SVGRectElement };
+      }
+    ).document = {
+      createElementNS: () => {
+        const attrs = new Map<string, string>();
+        const element = {
+          attrs,
+          setAttribute: (name: string, value: string) => attrs.set(name, value),
+        };
+        elements.push(element);
+        return element as unknown as SVGRectElement;
+      },
+    };
+    const overlay = new SelectionOverlayRenderer(selectionGroup, controller);
+
+    overlay.showSelectionPreview(noteElement);
+    overlay.render();
+
+    const preview = elements[0]?.attrs;
+    const selected = elements[1]?.attrs;
+    expect(preview?.get("width")).toBe(selected?.get("width"));
+    expect(preview?.get("height")).toBe(selected?.get("height"));
+    expect(preview?.get("x")).toBe(selected?.get("x"));
+    expect(preview?.get("y")).toBe(selected?.get("y"));
+
+    if (originalDocument === undefined) {
+      delete (globalThis as unknown as { document?: Document }).document;
+    } else {
+      globalThis.document = originalDocument;
+    }
   });
 });

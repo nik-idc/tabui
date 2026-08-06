@@ -1,7 +1,7 @@
-import { Note } from "@/notation/model";
-import { Point, Rect } from "@/shared";
+import { Note } from "../../../model";
+import { Point, Rect } from "../../../../shared";
 import { TechniqueElement } from "../technique";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { NotationElement } from "../notation-element";
 import { BeatElement } from "../beat/beat-element";
 
 /**

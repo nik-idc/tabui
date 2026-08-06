@@ -1,8 +1,8 @@
-import { NotationElement, TrackController } from "@/notation/controller";
-import { TechGapLineElement } from "@/notation/controller/element/staff/tech-gap-line-element";
-import { createSVGG } from "@/shared";
+import { NotationElement, TrackController } from "../../controller";
+import { TechGapLineElement } from "../../controller/element/staff/tech-gap-line-element";
+import { createSVGG } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 /**
  * Class for rendering a tech gap line element using SVG

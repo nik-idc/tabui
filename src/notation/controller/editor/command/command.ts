@@ -1,4 +1,4 @@
-import { Beat } from "@/notation/model";
+import { Beat } from "../../../model";
 
 export type AffectedModel = {
   masterBarIndex: number;

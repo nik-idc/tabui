@@ -10,7 +10,7 @@ import {
 } from "./helpers";
 
 describe("TrackControlsDefaultCallbacks", () => {
-  function renderRemoveButton(trackCount: number) {
+  function renderRemoveButton(trackCount: number, isPlaying: boolean = false) {
     const removeButton = {
       classList: { add: jest.fn() },
       disabled: false,
@@ -22,7 +22,10 @@ describe("TrackControlsDefaultCallbacks", () => {
     };
     const renderer = Object.create(TrackControlsTemplateRenderer.prototype);
     renderer.template = { removeButton };
-    renderer.notationComponent = { score: { tracks: new Array(trackCount) } };
+    renderer.notationComponent = {
+      score: { tracks: new Array(trackCount) },
+      trackController: { isPlaying, editingEnabled: true },
+    };
     renderer.assetsPath = { baseUrl: "", variant: "light" };
 
     renderer.renderRemoveButton();
@@ -33,6 +36,134 @@ describe("TrackControlsDefaultCallbacks", () => {
   test("remove button is disabled for the only track", () => {
     expect(renderRemoveButton(1).disabled).toBe(true);
     expect(renderRemoveButton(2).disabled).toBe(false);
+    expect(renderRemoveButton(2, true).disabled).toBe(true);
+  });
+
+  test("track editing controls render disabled during playback", () => {
+    const makeElement = () => ({
+      classList: { add: jest.fn(), toggle: jest.fn() },
+      disabled: false,
+      dataset: {},
+      title: "",
+      textContent: "",
+      value: "",
+      src: "",
+      alt: "",
+      removeAttribute: jest.fn(),
+      setAttribute: jest.fn(),
+    });
+    const track = { name: "Lead" };
+    const template = {
+      moveUpButton: makeElement(),
+      moveDownButton: makeElement(),
+      trackNameInput: makeElement(),
+      removeButton: makeElement(),
+      settingsButton: makeElement(),
+    };
+    const renderer = Object.create(TrackControlsTemplateRenderer.prototype);
+    renderer.template = template;
+    renderer.track = track;
+    renderer.notationComponent = {
+      score: { tracks: [track, {}] },
+      trackController: { isPlaying: true, editingEnabled: true },
+    };
+    renderer.assetsPath = { baseUrl: "", variant: "light" };
+
+    renderer.renderMoveButtons();
+    renderer.renderTrackNameInput();
+    renderer.renderRemoveButton();
+    renderer.renderScoreSettingsButton();
+
+    expect(template.moveUpButton.disabled).toBe(true);
+    expect(template.moveDownButton.disabled).toBe(true);
+    expect(template.trackNameInput.disabled).toBe(true);
+    expect(template.removeButton.disabled).toBe(true);
+    expect(template.settingsButton.classList.toggle).toHaveBeenCalledWith(
+      "tu-disabled-img",
+      true
+    );
+  });
+
+  test("playback blocks track editing but preserves mix controls", () => {
+    const notationComponent = createNotationComponentMock();
+    notationComponent.trackController.isPlaying = true;
+    const track = {
+      name: "Lead",
+      volume: 0.5,
+      pan: 0,
+      muted: false,
+      soloed: false,
+    };
+    const component = {
+      template: {
+        trackNameInput: makeInput("Blocked"),
+      },
+      track,
+    } as any;
+    notationComponent.score = { tracks: [track] };
+    const showSettings = jest.fn();
+    const showRemove = jest.fn();
+    const callbacks = new TrackControlsDefaultCallbacks(
+      component,
+      notationComponent,
+      jest.fn(),
+      jest.fn(),
+      jest.fn(),
+      showSettings,
+      showRemove
+    );
+
+    callbacks.onTrackSelected();
+    callbacks.onTrackMoveUpClicked();
+    callbacks.onTrackNameChanged();
+    callbacks.onTrackRemoveClicked();
+    callbacks.onTrackSettingsClicked();
+    callbacks.onTrackVolumeChanged({
+      target: makeInput("75"),
+    } as any);
+    callbacks.onMuteButtonClicked();
+
+    expect(notationComponent.loadTrack).toHaveBeenCalledWith(track);
+    expect(notationComponent.trackController.moveTrack).not.toHaveBeenCalled();
+    expect(track.name).toBe("Lead");
+    expect(showRemove).not.toHaveBeenCalled();
+    expect(showSettings).not.toHaveBeenCalled();
+    expect(track.volume).toBe(0.75);
+    expect(track.muted).toBe(true);
+  });
+
+  test("persisted mix callbacks dispatch in view-only mode", () => {
+    const notationComponent = createNotationComponentMock();
+    notationComponent.trackController.editingEnabled = false;
+    const track = { volume: 0.5, pan: 0, muted: false, soloed: false };
+    const callbacks = new TrackControlsDefaultCallbacks(
+      { track, template: {} } as any,
+      notationComponent,
+      jest.fn(),
+      jest.fn(),
+      jest.fn(),
+      jest.fn(),
+      jest.fn()
+    );
+
+    callbacks.onTrackVolumeChanged({ target: makeInput("75") } as any);
+    callbacks.onTrackPanningChanged({ target: makeInput("-0.5") } as any);
+    callbacks.onMuteButtonClicked();
+    callbacks.onSoloButtonClicked();
+
+    expect(
+      notationComponent.trackController.setTrackVolume
+    ).toHaveBeenCalledWith(track, 0.75);
+    expect(notationComponent.trackController.setTrackPan).toHaveBeenCalledWith(
+      track,
+      -0.5
+    );
+    expect(
+      notationComponent.trackController.toggleTrackMuted
+    ).toHaveBeenCalledWith(track);
+    expect(
+      notationComponent.trackController.toggleTrackSoloed
+    ).toHaveBeenCalledWith(track);
   });
 
   test("top-level actions dispatch correctly and child callbacks are bound idempotently", () => {
@@ -109,8 +240,12 @@ describe("TrackControlsDefaultCallbacks", () => {
     expect(track.muted).toBe(true);
     expect(track.soloed).toBe(true);
     expect(
-      notationComponent.trackController.syncTrackPlaybackState
-    ).toHaveBeenCalledTimes(4);
+      notationComponent.trackController.setTrackVolume
+    ).toHaveBeenCalledWith(track, 0.75);
+    expect(notationComponent.trackController.setTrackPan).toHaveBeenCalledWith(
+      track,
+      -0.5
+    );
     expect(renderFunc).toHaveBeenCalledTimes(5);
     expect(captureKeyboard).toHaveBeenCalledTimes(3);
     expect(showTrackRemove).toHaveBeenCalledTimes(1);

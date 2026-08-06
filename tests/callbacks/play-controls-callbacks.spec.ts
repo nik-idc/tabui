@@ -1,4 +1,5 @@
 import { PlayControlsDefaultCallbacks } from "../../src/ui/top-controls/play-controls/play-controls-callbacks";
+import { PlayControlsTemplateRenderer } from "../../src/ui/top-controls/play-controls/play-controls-template-renderer";
 import { dispatchClick, makeButton } from "./helpers";
 
 describe("PlayControlsDefaultCallbacks", () => {
@@ -83,5 +84,82 @@ describe("PlayControlsDefaultCallbacks", () => {
     callbacks.unbind();
     dispatchClick((callbacks as any)._playComponent.template.loopButton);
     expect(toggleLoop).toHaveBeenCalledTimes(loopCallsBeforeUnbind);
+  });
+
+  test("bar traversal buttons delegate to the track controller", () => {
+    const trackController = {
+      isPlaying: false,
+      startPlayer: jest.fn(),
+      stopPlayer: jest.fn(),
+      toggleLoop: jest.fn(),
+      selectFirstBar: jest.fn(),
+      selectPreviousBar: jest.fn(),
+      selectNextBar: jest.fn(),
+      selectLastBar: jest.fn(),
+    };
+    const renderFunc = jest.fn();
+    const callbacks = new PlayControlsDefaultCallbacks(
+      {
+        template: {
+          firstButton: {},
+          prevButton: {},
+          playButton: {},
+          nextButton: {},
+          lastButton: {},
+          loopButton: {},
+        },
+      } as any,
+      { trackController } as any,
+      renderFunc,
+      jest.fn(),
+      jest.fn()
+    );
+
+    callbacks.onFirstClicked();
+    callbacks.onPrevClicked();
+    callbacks.onNextClicked();
+    callbacks.onLastClicked();
+
+    expect(trackController.selectFirstBar).toHaveBeenCalledTimes(1);
+    expect(trackController.selectPreviousBar).toHaveBeenCalledTimes(1);
+    expect(trackController.selectNextBar).toHaveBeenCalledTimes(1);
+    expect(trackController.selectLastBar).toHaveBeenCalledTimes(1);
+    expect(renderFunc).toHaveBeenCalledTimes(4);
+  });
+
+  test("render marks loop button active when loop is enabled", () => {
+    const template = {
+      container: makeButton(),
+      firstButton: makeButton(),
+      prevButton: makeButton(),
+      playButton: makeButton(),
+      nextButton: makeButton(),
+      lastButton: makeButton(),
+      loopButton: makeButton(),
+    };
+    const renderer = new PlayControlsTemplateRenderer(
+      makeButton() as any,
+      {
+        config: {
+          assets: { baseUrl: "", variant: "light" },
+        },
+        trackController: {
+          isPlaying: false,
+          isLooped: true,
+        },
+      } as any,
+      template as any
+    );
+
+    (renderer as any).renderPlayButtons();
+
+    expect(template.loopButton.classList.toggle).toHaveBeenCalledWith(
+      "tu-track-control-active",
+      true
+    );
+    expect(template.loopButton.setAttribute).toHaveBeenCalledWith(
+      "aria-pressed",
+      "true"
+    );
   });
 });

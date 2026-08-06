@@ -2,15 +2,15 @@ import {
   NotationElement,
   StaffLineElement,
   TrackController,
-} from "@/notation/controller";
-import { createSVGG, Point } from "@/shared";
+} from "../../controller";
+import { createSVGG, Point } from "../../../shared";
 import { SVGBarRenderer } from "./svg-bar-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { ElementRenderer } from "../element-renderer";
 import { SVGNoteRenderer } from "./svg-note-renderer";
-import { NotationStyleLineElement } from "@/notation/controller/element/staff/notation-style-line-element";
+import { NotationStyleLineElement } from "../../controller/element/staff/notation-style-line-element";
 import { SVGTechGapRenderer } from "./svg-tech-gap-renderer";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 /**
  * Class for rendering a notation style line element using SVG

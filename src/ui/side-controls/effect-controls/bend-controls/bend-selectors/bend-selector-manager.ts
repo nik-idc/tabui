@@ -1,21 +1,12 @@
-import { BendOptionsData, BendType, GuitarTechnique } from "@/notation/model";
-import { createSVGLine, createSVGText } from "@/shared";
-import { BendData, Selector } from "./selector";
-import { BendReleaseSelector } from "./bend-release-selector";
-import { BendSelector } from "./bend-selector";
-import { PrebendReleaseSelector } from "./prebend-release-selector";
-import { PrebendSelector } from "./prebend-selector";
+import {
+  BendOptionsData,
+  BendType,
+  NOTES_PER_OCTAVE,
+} from "../../../../../notation/model";
+import { createSVGLine, createSVGText } from "../../../../../shared";
+import { Selector } from "./selector";
 import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
-
-const selectorMap = {
-  [BendType.Bend]: BendSelector,
-  [BendType.BendAndRelease]: BendReleaseSelector,
-  [BendType.Hold]: null,
-  [BendType.Prebend]: PrebendSelector,
-  [BendType.PrebendAndRelease]: PrebendReleaseSelector,
-  [BendType.PrebendBend]: null,
-  [BendType.Release]: null,
-} as const;
+import { BendCurveSelector } from "./bend-curve-selector";
 
 function getPitchLabel(pitch: number): string {
   const labels: { [key: number]: string } = {
@@ -33,7 +24,9 @@ function getPitchLabel(pitch: number): string {
 export class BendSelectorManager {
   private _bendGraphSVG: SVGSVGElement;
   private _currentOptions: BendSelectorManagerOptions;
-  private _currentSelector: Selector;
+  private _currentSelector?: Selector;
+  private _currentTechnique: BendOptionsData;
+  private _continuationPitch?: number;
 
   constructor(
     bendGraphSVG: SVGSVGElement,
@@ -48,18 +41,17 @@ export class BendSelectorManager {
             width: 420,
             height: 300,
             gridOffset: 20,
-            rowsCount: 12,
-            colsCount: 12,
+            rowsCount: NOTES_PER_OCTAVE,
+            colsCount: NOTES_PER_OCTAVE,
           }
         : bendOptions;
 
-    const SelectorType =
-      bendType === undefined ? BendSelector : selectorMap[bendType];
-
-    this._currentSelector = new SelectorType!(
-      this._bendGraphSVG,
-      this._currentOptions
-    );
+    this._currentTechnique = {
+      type: bendType ?? BendType.Bend,
+      bendPitch: 1,
+      bendDuration: 0.75,
+    };
+    this._continuationPitch = undefined;
   }
 
   private initGrid(): void {
@@ -118,8 +110,24 @@ export class BendSelectorManager {
   /**
    * Initializes the grid & current bend selector graph
    */
-  public init(): void {
+  public init(
+    bendOptions: BendOptionsData = {
+      type: BendType.Bend,
+      bendPitch: 1,
+      bendDuration: 0.75,
+    },
+    continuationPitch?: number
+  ): void {
+    this._currentSelector?.dispose();
+    this._currentTechnique = bendOptions;
+    this._continuationPitch = continuationPitch;
     this.initGrid();
+    this._currentSelector = new BendCurveSelector(
+      this._bendGraphSVG,
+      this._currentOptions,
+      bendOptions,
+      continuationPitch
+    );
     this._currentSelector.init();
   }
 
@@ -128,20 +136,18 @@ export class BendSelectorManager {
    * @param bendType Bend type
    */
   public changeBendType(bendType: BendType): void {
-    this._currentSelector.dispose();
-
-    this.initGrid();
-
-    const SelectorType =
-      bendType === undefined ? BendSelector : selectorMap[bendType];
-    this._currentSelector = new SelectorType!(
-      this._bendGraphSVG,
-      this._currentOptions
-    );
-    this._currentSelector.init();
+    this.init({ type: bendType }, this._continuationPitch);
   }
 
   public getCurrentTechnique(): BendOptionsData {
+    if (this._currentSelector === undefined) {
+      return this._currentTechnique;
+    }
     return this._currentSelector.getBendTechnique();
+  }
+
+  public dispose(): void {
+    this._currentSelector?.dispose();
+    this._currentSelector = undefined;
   }
 }

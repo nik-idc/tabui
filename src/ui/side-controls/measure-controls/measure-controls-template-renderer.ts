@@ -1,8 +1,8 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { renderOnce, setImageAsset } from "@/ui/shared";
+import { NotationComponent } from "../../../notation/notation-component";
+import { renderOnce, setImageAsset } from "../../shared";
 import { MeasureControlsTemplate } from "./measure-controls-template";
-import { BarRepeatStatus } from "@/notation";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { BarRepeatStatus } from "../../../notation";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 export class MeasureControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

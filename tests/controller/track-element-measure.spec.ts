@@ -1,23 +1,18 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
-import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import {
   BarRepeatStatus,
   DEFAULT_MASTER_BAR,
   NoteDuration,
 } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
-import { ensureLayoutConfigured } from "./helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 describe("TrackElement measure", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("hides repeated time signature on consecutive bars and removes its leading width", () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const barElements =
@@ -27,22 +22,22 @@ describe("TrackElement measure", () => {
     expect(barElements[0].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect).toBeUndefined();
     expect(barElements[0].startGap.width).toBe(
-      EditorLayoutDimensions.TIME_SIG_RECT_WIDTH +
-        EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 2
+      TEST_LAYOUT_DIMENSIONS.TIME_SIG_RECT_WIDTH +
+        TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH * 2
     );
     expect(barElements[0].endGap.width).toBe(
-      EditorLayoutDimensions.REPEAT_SIGN_WIDTH
+      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH
     );
     expect(barElements[1].startGap.width).toBe(
-      EditorLayoutDimensions.REPEAT_SIGN_WIDTH * 2
+      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH * 2
     );
     expect(barElements[1].endGap.width).toBe(
-      EditorLayoutDimensions.REPEAT_SIGN_WIDTH
+      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH
     );
     expect(barElements[1].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
-      EditorLayoutDimensions.REPEAT_SIGN_WIDTH +
-        EditorLayoutDimensions.REPEAT_SIGN_WIDTH +
-        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING
+      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH +
+        TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH +
+        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING
     );
   });
 
@@ -54,7 +49,7 @@ describe("TrackElement measure", () => {
       duration: NoteDuration.Eighth,
     });
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const barElements =
@@ -64,15 +59,15 @@ describe("TrackElement measure", () => {
     expect(barElements[0].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect?.width).toBe(
-      EditorLayoutDimensions.TIME_SIG_RECT_WIDTH
+      TEST_LAYOUT_DIMENSIONS.TIME_SIG_RECT_WIDTH
     );
     expect(barElements[1].timeSigRect?.height).toBe(
-      EditorLayoutDimensions.TIME_SIG_TEXT_SIZE * 2
+      TEST_LAYOUT_DIMENSIONS.TIME_SIG_TEXT_SIZE * 2
     );
     expect(barElements[1].timeSigRect?.x).toBe(0);
     expect(barElements[1].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
       barElements[1].startGap.right +
-        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING
+        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING
     );
   });
 
@@ -83,7 +78,7 @@ describe("TrackElement measure", () => {
     const appendOutput = score.appendMasterBar(DEFAULT_MASTER_BAR);
     appendOutput.masterBar.repeatStatus = BarRepeatStatus.End;
 
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const barElements =
@@ -96,24 +91,24 @@ describe("TrackElement measure", () => {
     expect(barElements[1].repeatEndRect).toBeDefined();
 
     expect(barElements[0].repeatStartRect?.width).toBe(
-      EditorLayoutDimensions.REPEAT_SIGN_WIDTH
+      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH
     );
     expect(barElements[0].repeatStartRect?.height).toBe(
-      EditorLayoutDimensions.getStaffHeight(track.context.instrument)
+      TEST_LAYOUT_DIMENSIONS.getStaffHeight(track.context.instrument)
     );
     expect(barElements[0].repeatStartRect?.x).toBeCloseTo(
       barElements[0].timeSigRect?.right ?? 0
     );
     expect(barElements[0].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
       barElements[0].startGap.right +
-        EditorLayoutDimensions.RHYTHM_ATTACK_PADDING
+        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING
     );
 
     expect(barElements[1].repeatEndRect?.width).toBe(
-      EditorLayoutDimensions.REPEAT_SIGN_WIDTH
+      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH
     );
     expect(barElements[1].repeatEndRect?.height).toBe(
-      EditorLayoutDimensions.getStaffHeight(track.context.instrument)
+      TEST_LAYOUT_DIMENSIONS.getStaffHeight(track.context.instrument)
     );
     expect(barElements[1].repeatEndRect?.right).toBeCloseTo(
       barElements[1].boundingBox.width
@@ -127,7 +122,7 @@ describe("TrackElement measure", () => {
   test("repeat status does not change bar width", () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const beforeWidths =

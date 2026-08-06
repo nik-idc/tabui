@@ -1,32 +1,24 @@
-import { randomInt } from "@/shared";
+import { randomInt } from "../../shared";
 import { Beat } from "./beat";
 import { TrackContext } from "./track-context";
-import { GuitarTechniqueJSON, GuitarTechnique } from "./guitar-technique";
+import { GuitarTechnique } from "./guitar-technique";
 import { Guitar } from "./instrument/guitar";
-import { InstrumentType } from "./instrument/instrument-type";
 import {
   NoteValue,
   Note,
   LOWEST_OCTAVE,
   HIGHEST_OCTAVE,
-  NOTE_VALUES_ARR,
   getNoteFromSemitones,
   getSemitonesFromNote,
 } from "./note";
 import { GuitarTechniqueType } from "./technique-type";
-import { TECHNIQUES_INCOMPATIBILITY } from "./guitar-technique-lists";
-
-/**
- * Guitar note JSON format
- */
-export interface GuitarNoteJSON {
-  instrumentType: InstrumentType;
-  noteValue: NoteValue;
-  octave: number | null;
-  stringNum: number;
-  fret: number | null;
-  techniques: GuitarTechniqueJSON[];
-}
+import { BEND_TYPE_INCOMPATIBILITY } from "./guitar-technique-lists";
+import {
+  guitarTechniquesIncompatible,
+  guitarTechniqueTypesIncompatible,
+  isBendValidForContinuation,
+} from "./guitar-technique-validation";
+import { BendTechniqueOptions } from "./bend-options";
 
 /**
  * Class that represents a guitar note
@@ -185,20 +177,71 @@ export class GuitarNote implements Note<Guitar> {
     }
   }
 
+  public getBendContinuationPitch(): number | undefined {
+    if (!this.hasTechnique(GuitarTechniqueType.LetRing)) {
+      return undefined;
+    }
+    const previousBeat = this.beat.voiceBar.bar.staff.getPrevBeat(this.beat);
+    const previousNote = previousBeat?.notes?.find(
+      (n) => n instanceof GuitarNote && n.stringNum === this.stringNum
+    );
+    if (!(previousNote instanceof GuitarNote)) {
+      return undefined;
+    }
+    const previousBend = previousNote.techniques.find(
+      (t) => t.type === GuitarTechniqueType.Bend
+    );
+    return previousBend?.bendOptions?.terminalPitch;
+  }
+
+  /**
+   * Applies, updates, or removes a technique on this note.
+   */
+  public setTechnique(
+    type: GuitarTechniqueType,
+    bendOptions: BendTechniqueOptions | null = null
+  ): boolean {
+    const existingTechnique = this._techniques.find((t) => t.type === type);
+    if (existingTechnique !== undefined) {
+      if (
+        existingTechnique.type === GuitarTechniqueType.Bend &&
+        bendOptions !== null
+      ) {
+        if (!isBendValidForContinuation(this, bendOptions)) {
+          return false;
+        }
+        const incompatibleTypes = BEND_TYPE_INCOMPATIBILITY[bendOptions.type];
+        if (
+          this._techniques.some(
+            (t) => t !== existingTechnique && incompatibleTypes.includes(t.type)
+          )
+        ) {
+          return false;
+        }
+        return existingTechnique.replaceBendOptions(bendOptions);
+      }
+      return this.removeTechnique(type);
+    }
+
+    return this.addTechnique(new GuitarTechnique(this, type, bendOptions));
+  }
+
   /**
    * Adds new technique to the note
    * @param guitarTechnique Guitar technique to add
    * @returns True if technique added succesfully, false if can't add this technique
    */
   public addTechnique(guitarTechnique: GuitarTechnique): boolean {
+    if (
+      guitarTechnique.bendOptions !== null &&
+      !isBendValidForContinuation(this, guitarTechnique.bendOptions)
+    ) {
+      return false;
+    }
+
     // Check if technique to be added is compatible with all the other techniques
     for (const technique of this._techniques) {
-      const curIncompatibility = TECHNIQUES_INCOMPATIBILITY[technique.type];
-      if (
-        curIncompatibility.some((incompatibleType) => {
-          return incompatibleType === guitarTechnique.type;
-        })
-      ) {
+      if (guitarTechniquesIncompatible(technique, guitarTechnique)) {
         // One of the techniques is incompatible with the
         // to be added technique => discard and return false
         return false;
@@ -246,8 +289,8 @@ export class GuitarNote implements Note<Guitar> {
    * @returns True if applicable, false otherwise
    */
   public techniqueApplicable(type: GuitarTechniqueType): boolean {
-    return !this._techniques.some((e) =>
-      TECHNIQUES_INCOMPATIBILITY[e.type].includes(type)
+    return !this._techniques.some((t) =>
+      guitarTechniqueTypesIncompatible(t.type, type)
     );
   }
 
@@ -277,93 +320,21 @@ export class GuitarNote implements Note<Guitar> {
 
   /**
    * Deep copy of the guitar note
+   * @param beat Beat that will own the copied note
    * @returns Deep copy of the guitar note
    */
-  public deepCopy(): GuitarNote {
+  public deepCopy(beat: Beat<Guitar> = this.beat): GuitarNote {
     const note = new GuitarNote(
-      this.beat,
-      this.trackContext,
+      beat,
+      beat.trackContext,
       this._stringNum,
       this._fret
     );
-
-    for (const technique of this._techniques) {
-      this.addTechnique(technique.deepCopy());
-    }
+    note._techniques = this._techniques.map((technique) =>
+      technique.deepCopy(note)
+    );
 
     return note;
-  }
-
-  /**
-   * Parses guitar note into JSON string
-   * @returns Parsed JSON string
-   */
-  public toJSON(): GuitarNoteJSON | null {
-    if (this._fret === undefined) {
-      return null;
-    }
-
-    const fxJSON: GuitarTechniqueJSON[] = [];
-    for (const technique of this._techniques) {
-      fxJSON.push(technique.toJSON());
-    }
-
-    return {
-      instrumentType: this.trackContext.instrument.type,
-      stringNum: this._stringNum,
-      fret: this._fret,
-      noteValue: this._noteValue,
-      octave: this._octave,
-      techniques: fxJSON,
-    };
-  }
-
-  /**
-   * Validates that the passed object is a valid guitar note serialization
-   * @param obj Object to validate
-   */
-  static validateGuitarNote(obj: Record<string, unknown>): GuitarNoteJSON {
-    const requiredFields = [
-      "noteValue",
-      "octave",
-      "stringNum",
-      "fret",
-      "techniques",
-    ];
-    for (const key of requiredFields) {
-      if (obj[key] === undefined) {
-        throw new Error(`Missing property: ${key}`);
-      }
-    }
-
-    if (!NOTE_VALUES_ARR.includes(obj.noteValue as NoteValue)) {
-      throw new Error(`Invalid note value: ${obj.noteValue}`);
-    }
-
-    if (typeof obj.octave !== "number" && obj.octave !== null) {
-      throw new Error(`Invalid octave: expected number or null`);
-    }
-
-    if (typeof obj.fret !== "number" && obj.fret !== null) {
-      throw new Error(`Invalid fret: expected number or null`);
-    }
-
-    if (typeof obj.stringNum !== "number") {
-      throw new Error(`Invalid stringNum: expected number`);
-    }
-
-    if (!Array.isArray(obj.techniques)) {
-      throw new Error(`Invalid techniques: expected array`);
-    }
-
-    return {
-      instrumentType: obj.instrumentType as InstrumentType,
-      noteValue: obj.noteValue as NoteValue,
-      octave: obj.octave,
-      stringNum: obj.stringNum,
-      fret: obj.fret,
-      techniques: [],
-    };
   }
 
   /** Note value setter */

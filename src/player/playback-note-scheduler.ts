@@ -6,8 +6,9 @@ import {
   GuitarTechniqueType,
   Note,
   getNoteFrequency,
+  NOTES_PER_OCTAVE,
   ticksToSeconds,
-} from "@/notation/model";
+} from "../notation/model";
 import { PlaybackSampleManager } from "./playback-sample-manager";
 import {
   getPlaybackToneProfile,
@@ -147,7 +148,7 @@ export class PlaybackNoteScheduler {
 
   /** Converts semitone distance into a frequency/playbackRate multiplier. */
   private semitonesToRate(semitones: number): number {
-    return 2 ** (semitones / 12);
+    return 2 ** (semitones / NOTES_PER_OCTAVE);
   }
 
   /** Returns playback shaping defaults for the note's instrument tone. */
@@ -211,11 +212,23 @@ export class PlaybackNoteScheduler {
     const bendValue = baseValue * this.semitonesToRate(bendPitch);
     const prebendValue = baseValue * this.semitonesToRate(prebendPitch);
     const releaseValue = baseValue * this.semitonesToRate(releasePitch);
+    const continuationPitch =
+      params.note instanceof GuitarNote
+        ? params.note.getBendContinuationPitch()
+        : undefined;
+    const continuationValue =
+      continuationPitch === undefined
+        ? baseValue
+        : baseValue * this.semitonesToRate(continuationPitch);
+    const bendStartValue =
+      options.type === BendType.Bend || options.type === BendType.BendAndRelease
+        ? continuationValue
+        : baseValue;
 
     return {
       bendRamp: {
         pitchParam,
-        startValue: baseValue,
+        startValue: bendStartValue,
         endValue: bendValue,
         startTime,
         endTime: bendEndTime,
@@ -239,6 +252,19 @@ export class PlaybackNoteScheduler {
     };
   }
 
+  private getContinuationValue(params: PitchAutomationParams): number {
+    if (!(params.note instanceof GuitarNote)) {
+      throw Error("Bend continuation requires a guitar note");
+    }
+    const continuationPitch = params.note.getBendContinuationPitch();
+    if (continuationPitch === undefined) {
+      throw Error(
+        "Hold and Release playback require a previous bend continuation"
+      );
+    }
+    return params.baseValue * this.semitonesToRate(continuationPitch);
+  }
+
   /** Dispatches bend automation based on the concrete bend type. */
   private applyBendAutomation(
     bend: GuitarTechnique,
@@ -254,8 +280,10 @@ export class PlaybackNoteScheduler {
 
     switch (options.type) {
       case BendType.Bend:
-      case BendType.Hold:
         this.applyPitchRamp(values.bendRamp);
+        break;
+      case BendType.Hold:
+        pitchParam.setValueAtTime(this.getContinuationValue(params), startTime);
         break;
       case BendType.BendAndRelease:
         this.applyPitchRamp(values.bendRamp);
@@ -265,8 +293,13 @@ export class PlaybackNoteScheduler {
         pitchParam.setValueAtTime(values.prebendValue, startTime);
         break;
       case BendType.PrebendAndRelease:
-      case BendType.Release:
         this.applyPitchRamp(values.releaseRamp);
+        break;
+      case BendType.Release:
+        this.applyPitchRamp({
+          ...values.releaseRamp,
+          startValue: this.getContinuationValue(params),
+        });
         break;
       case BendType.PrebendBend:
         this.applyPitchRamp(values.prebendBendRamp);
@@ -494,13 +527,15 @@ export class PlaybackNoteScheduler {
    * @param note Note to schedule
    * @param startTime Absolute audio context start time
    * @param stopTime Absolute audio context stop time
+   * @param maxStopTime Hard playback boundary that techniques may not exceed
    * @returns Created audio nodes, or null for unplayable notes
    */
   public scheduleNote(
     note: Note,
     startTime: number,
     stopTime: number,
-    trackBus: TrackAudioBus
+    trackBus: TrackAudioBus,
+    maxStopTime?: number
   ): ScheduledAudioNode | null {
     const frequency = getNoteFrequency(note);
     if (frequency <= 0) {
@@ -514,7 +549,10 @@ export class PlaybackNoteScheduler {
       stopTime,
       startTime
     );
-    const effectiveStopTime = envelopeSettings.stopTime;
+    const effectiveStopTime = Math.min(
+      envelopeSettings.stopTime,
+      maxStopTime ?? Infinity
+    );
     const attackEndTime = startTime + envelopeSettings.attackSeconds;
     const releaseStartTime = Math.max(
       attackEndTime,
@@ -537,15 +575,27 @@ export class PlaybackNoteScheduler {
       note.hasTechnique(GuitarTechniqueType.Slide) ? stopTime : null
     );
 
-    sourceNode.connect(gainNode);
-    gainNode.connect(trackBus.gainNode);
-    sourceNode.start(startTime);
-    sourceNode.stop(effectiveStopTime);
+    try {
+      sourceNode.connect(gainNode);
+      gainNode.connect(trackBus.gainNode);
+      sourceNode.start(startTime);
+      sourceNode.stop(effectiveStopTime);
+    } catch (error) {
+      try {
+        sourceNode.stop(this._audioContext.currentTime);
+      } catch {
+        // The source may not have started or may already be stopped.
+      }
+      sourceNode.disconnect();
+      gainNode.disconnect();
+      throw error;
+    }
 
     return {
       sourceNode,
       track,
       gainNode,
+      startTime,
     };
   }
 }

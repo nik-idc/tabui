@@ -1,20 +1,20 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
   setImageAsset,
   setupDialogActionButtons,
-} from "@/ui/shared";
+} from "../../../shared";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
-import { createButton, createDiv, createImage } from "@/shared";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { createButton, createDiv, createImage } from "../../../../shared";
+import type { ResolvedAssetConfig } from "../../../../config/asset-url-resolver";
 import {
   InstrumentFamily,
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
   InstrumentType,
   StringInstrumentType,
-} from "@/notation/model";
+} from "../../../../notation/model";
 
 export class NewTrackControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

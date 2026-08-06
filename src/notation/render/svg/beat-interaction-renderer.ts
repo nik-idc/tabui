@@ -2,9 +2,9 @@ import {
   BeatElement,
   NotationElement,
   TrackController,
-} from "@/notation/controller";
-import { TabBeatElement } from "@/notation/controller/element/beat/tab-beat-element";
-import { createSVGRect } from "@/shared";
+} from "../../controller";
+import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
+import { createSVGRect } from "../../../shared";
 
 export class BeatInteractionRenderer {
   readonly trackController: TrackController;
@@ -49,7 +49,7 @@ export class BeatInteractionRenderer {
         this._beatInteractionRects.set(modelUUID, rect);
       }
 
-      const globalBoundingBox = element.globalBoundingBox;
+      const globalBoundingBox = element.getGlobalVisualBounds();
       rect.setAttribute("x", `${globalBoundingBox.x}`);
       rect.setAttribute("y", `${globalBoundingBox.y}`);
       rect.setAttribute("width", `${globalBoundingBox.width}`);

@@ -1,4 +1,4 @@
-import { BeatElement, TrackController } from "@/notation/controller";
+import { BeatElement, TrackController } from "../../controller";
 
 /**
  * Class for rendering a beat element using SVG

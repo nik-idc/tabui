@@ -2,11 +2,9 @@ import { TupletControlsDefaultCallbacks } from "../../src/ui/side-controls/note-
 import {
   createNotationComponentMock,
   dispatchClick,
-  dispatchInput,
   FakeElement,
   makeButton,
   makeDialog,
-  makeInput,
   makeText,
 } from "./helpers";
 
@@ -14,8 +12,16 @@ function createTupletHarness() {
   const dialog = makeDialog();
   const dialogContent = new FakeElement();
   dialog.appendChild(dialogContent);
-  const normalInput = makeInput("3");
-  const input = makeInput("2");
+  const normalControl = new FakeElement();
+  const normalDownButton = makeButton();
+  const normalValue = new FakeElement();
+  normalValue.textContent = "3";
+  const normalUpButton = makeButton();
+  const tupletControl = new FakeElement();
+  const tupletDownButton = makeButton();
+  const tupletValue = new FakeElement();
+  tupletValue.textContent = "2";
+  const tupletUpButton = makeButton();
   const confirmButton = makeButton();
   const cancelButton = makeButton();
   const normalErrorText = makeText();
@@ -24,8 +30,14 @@ function createTupletHarness() {
     template: {
       dialog,
       dialogContent,
-      normalInput,
-      input,
+      normalControl,
+      normalDownButton,
+      normalValue,
+      normalUpButton,
+      tupletControl,
+      tupletDownButton,
+      tupletValue,
+      tupletUpButton,
       confirmButton,
       cancelButton,
       normalErrorText,
@@ -47,28 +59,46 @@ function createTupletHarness() {
 }
 
 describe("TupletControlsDefaultCallbacks", () => {
-  test("input validation updates confirm state and errors", () => {
+  test("button controls step and clamp both tuplet values", () => {
     const { callbacks, component } = createTupletHarness();
 
-    dispatchInput(component.template.normalInput, "1");
-    callbacks.onNormalCountChanged({} as InputEvent);
+    callbacks.onNormalCountStep(2);
+    callbacks.onTupletCountStep(2);
+    expect(component.template.normalValue.textContent).toBe("5");
+    expect(component.template.tupletValue.textContent).toBe("4");
+    callbacks.onTupletCountStep(-100);
+    expect(component.template.tupletValue.textContent).toBe("2");
+    expect(component.template.tupletDownButton.disabled).toBe(true);
+  });
+
+  test("mouse wheel adjusts each tuplet value independently", () => {
+    const { callbacks, component } = createTupletHarness();
+    callbacks.bind();
+
+    component.template.normalControl.dispatch("wheel", {
+      deltaY: -1,
+      preventDefault: jest.fn(),
+    });
+    component.template.tupletControl.dispatch("wheel", {
+      deltaY: -1,
+      preventDefault: jest.fn(),
+    });
+
+    expect(component.template.normalValue.textContent).toBe("4");
+    expect(component.template.tupletValue.textContent).toBe("3");
+  });
+
+  test("one valid field cannot re-enable confirm while the other is invalid", () => {
+    const { callbacks, component, notationComponent } = createTupletHarness();
+
+    component.template.normalValue.textContent = "1";
+    component.template.tupletValue.textContent = "4";
+    callbacks.onConfirmClicked();
+
     expect(component.template.confirmButton.disabled).toBe(true);
-    expect(component.template.normalErrorText.textContent).not.toBe(" ");
-
-    dispatchInput(component.template.normalInput, "5");
-    callbacks.onNormalCountChanged({} as InputEvent);
-    expect(component.template.confirmButton.disabled).toBe(false);
-    expect(component.template.normalErrorText.textContent).toBe(" ");
-
-    dispatchInput(component.template.input, "1");
-    callbacks.onTupletCountChanged({} as InputEvent);
-    expect(component.template.confirmButton.disabled).toBe(true);
-    expect(component.template.tupletErrorText.textContent).not.toBe(" ");
-
-    dispatchInput(component.template.input, "4");
-    callbacks.onTupletCountChanged({} as InputEvent);
-    expect(component.template.confirmButton.disabled).toBe(false);
-    expect(component.template.tupletErrorText.textContent).toBe(" ");
+    expect(
+      notationComponent.trackController.setSelectedBeatsTuplet
+    ).not.toHaveBeenCalled();
   });
 
   test("confirm commits tuplet settings and lifecycle wiring is idempotent", () => {
@@ -86,8 +116,8 @@ describe("TupletControlsDefaultCallbacks", () => {
     const tupletCallsBeforeConfirm = setTuplet.mock.calls.length;
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
-    dispatchInput(component.template.normalInput, "5");
-    dispatchInput(component.template.input, "4");
+    component.template.normalValue.textContent = "5";
+    component.template.tupletValue.textContent = "4";
     dispatchClick(component.template.confirmButton);
 
     expect(setTuplet).toHaveBeenCalledTimes(tupletCallsBeforeConfirm + 1);

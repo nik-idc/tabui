@@ -1,5 +1,5 @@
-import { randomInt } from "@/shared";
-import { Beat, BeatJSON } from "./beat";
+import { randomInt } from "../../shared";
+import { Beat } from "./beat";
 import { NoteDuration } from "./note-duration";
 import { getBeaming } from "./bar-beaming";
 import { MusicInstrument } from "./instrument/instrument";
@@ -27,13 +27,6 @@ export type BeatRemovalOutput<I extends MusicInstrument = MusicInstrument> = {
   inserted: BeatArrayOperationOutput<I>[];
   removedVoiceNumbers: VoiceNumber[] | null;
 };
-
-/**
- * Voice bar JSON format
- */
-export interface VoiceBarJSON {
-  beats: BeatJSON[];
-}
 
 type MetricSpan = {
   startTick: number;
@@ -434,7 +427,7 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     const wasEmpty = this.isEmpty();
     const beatsCopies: Beat<I>[] = [];
     for (const beat of beats) {
-      beatsCopies.push(beat.deepCopy());
+      beatsCopies.push(beat.deepCopy(this));
     }
     this.beats.splice(index, 0, ...beatsCopies);
     if (wasEmpty && !this.isEmpty()) {
@@ -518,11 +511,11 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
       throw Error(`${index} is invalid beat index`);
     }
 
-    const wasEmpty = this.isEmpty();
-    const removed = { index, beats: this.beats.splice(index, 1) };
-    if (!wasEmpty && this.isEmpty()) {
+    const willBecomeEmpty = this.beats.length === 1;
+    if (willBecomeEmpty) {
       this.bar.staff.recordVoiceBarRemoved(this);
     }
+    const removed = { index, beats: this.beats.splice(index, 1) };
 
     if (this.beats.length === 0) {
       const { inserted, removedVoiceNumbers } =
@@ -563,7 +556,7 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     );
     voiceBar.beats.splice(0, voiceBar.beats.length);
     for (const beat of this.beats) {
-      voiceBar.beats.push(beat.deepCopy());
+      voiceBar.beats.push(beat.deepCopy(voiceBar));
     }
     voiceBar.rebuildTiming();
     return voiceBar;
@@ -609,25 +602,6 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   /** Actual sum of all beat ticks */
   public get actualTicks(): number {
     return this._actualTicks;
-  }
-
-  /**
-   * Parses bar into JSON
-   * @returns Bar JSON
-   */
-  public toJSON(): VoiceBarJSON {
-    if (this.isEmpty()) {
-      return { beats: [] };
-    }
-
-    const beatsJSON: BeatJSON[] = [];
-    for (const beat of this.beats) {
-      beatsJSON.push(beat.toJSON());
-    }
-
-    return {
-      beats: beatsJSON,
-    };
   }
 
   /**

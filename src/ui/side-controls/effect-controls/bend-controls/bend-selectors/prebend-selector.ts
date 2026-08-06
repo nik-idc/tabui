@@ -3,7 +3,7 @@ import {
   createSVGText,
   createSVGPath,
   createSVGCircle,
-} from "@/shared";
+} from "../../../../../shared";
 import { BendData, Selector } from "./selector";
 import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
 import {
@@ -11,7 +11,7 @@ import {
   BendType,
   GuitarTechnique,
   GuitarTechniqueType,
-} from "@/notation";
+} from "../../../../../notation";
 
 export class PrebendSelector implements Selector {
   readonly bendGraphSVG: SVGSVGElement;
@@ -20,6 +20,9 @@ export class PrebendSelector implements Selector {
 
   private _bendCircle: SVGCircleElement;
   private _isDragging: boolean;
+  private _boundOnCircleMouseDown: (event: MouseEvent) => void;
+  private _boundOnDocumentMouseMove: (event: MouseEvent) => void;
+  private _boundOnDocumentMouseUp: (event: MouseEvent) => void;
 
   constructor(
     bendGraphSVG: SVGSVGElement,
@@ -31,6 +34,9 @@ export class PrebendSelector implements Selector {
 
     this._isDragging = false;
     this._bendCircle = createSVGCircle();
+    this._boundOnCircleMouseDown = this.onCircleMouseDown.bind(this);
+    this._boundOnDocumentMouseMove = this.onDocumentMouseMove.bind(this);
+    this._boundOnDocumentMouseUp = this.onDocumentMouseUp.bind(this);
   }
 
   public init(): void {
@@ -59,11 +65,16 @@ export class PrebendSelector implements Selector {
 
     this._bendCircle.addEventListener(
       "mousedown",
-      this.onCircleMouseDown.bind(this)
+      this._boundOnCircleMouseDown
     );
   }
 
   public dispose(): void {
+    this._bendCircle.removeEventListener(
+      "mousedown",
+      this._boundOnCircleMouseDown
+    );
+    this.removeDocumentDragListeners();
     this.bendGraphSVG.innerHTML = "";
   }
 
@@ -82,8 +93,13 @@ export class PrebendSelector implements Selector {
 
   private onCircleMouseDown(event: MouseEvent) {
     this._isDragging = true;
-    document.addEventListener("mousemove", this.onDocumentMouseMove.bind(this));
-    document.addEventListener("mouseup", this.onDocumentMouseUp.bind(this));
+    document.addEventListener("mousemove", this._boundOnDocumentMouseMove);
+    document.addEventListener("mouseup", this._boundOnDocumentMouseUp);
+  }
+
+  private removeDocumentDragListeners(): void {
+    document.removeEventListener("mousemove", this._boundOnDocumentMouseMove);
+    document.removeEventListener("mouseup", this._boundOnDocumentMouseUp);
   }
 
   private onDocumentMouseMove(event: MouseEvent) {
@@ -118,10 +134,6 @@ export class PrebendSelector implements Selector {
 
   private onDocumentMouseUp(event: MouseEvent) {
     this._isDragging = false;
-    document.removeEventListener(
-      "mousemove",
-      this.onDocumentMouseMove.bind(this)
-    );
-    document.removeEventListener("mouseup", this.onDocumentMouseUp.bind(this));
+    this.removeDocumentDragListeners();
   }
 }

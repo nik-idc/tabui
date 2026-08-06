@@ -1,6 +1,6 @@
-import { NotationComponent } from "@/notation/notation-component";
-import { PlayControlsComponent } from "@/ui";
-import { ListenerManager } from "@/shared/misc";
+import { NotationComponent } from "../../../notation/notation-component";
+import { PlayControlsComponent } from "../..";
+import { ListenerManager } from "../../../shared/misc";
 
 export interface PlayControlsCallbacks {
   onFirstClicked(): void;
@@ -37,10 +37,12 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
   }
 
   onFirstClicked(): void {
-    throw new Error("Method not implemented");
+    this._notationComponent.trackController.selectFirstBar();
+    this._renderFunc();
   }
   onPrevClicked(): void {
-    throw new Error("Method not implemented");
+    this._notationComponent.trackController.selectPreviousBar();
+    this._renderFunc();
   }
   onPlayClicked(): void {
     if (this._notationComponent.trackController.isPlaying) {
@@ -52,13 +54,16 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     this._renderFunc();
   }
   onNextClicked(): void {
-    throw new Error("Method not implemented");
+    this._notationComponent.trackController.selectNextBar();
+    this._renderFunc();
   }
   onLastClicked(): void {
-    throw new Error("Method not implemented");
+    this._notationComponent.trackController.selectLastBar();
+    this._renderFunc();
   }
   onLoopClicked(): void {
     this._notationComponent.trackController.toggleLoop();
+    this._renderFunc();
   }
 
   bind(): void {

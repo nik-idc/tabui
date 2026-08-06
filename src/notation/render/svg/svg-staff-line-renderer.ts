@@ -2,11 +2,11 @@ import {
   NotationElement,
   StaffLineElement,
   TrackController,
-} from "@/notation/controller";
+} from "../../controller";
 import { ElementRenderer } from "../element-renderer";
 import { SVGStyleLineRenderer } from "./svg-style-line-renderer";
-import { createSVGG } from "@/shared";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import { createSVGG } from "../../../shared";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 /**
  * Class for rendering a staff line element using SVG

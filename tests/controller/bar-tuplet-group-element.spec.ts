@@ -1,9 +1,8 @@
 import { BarTupletGroupElement } from "../../src/notation/controller/element/bar/bar-tuplet-group-element";
 import { TrackElement } from "../../src/notation/controller/element/track-element";
-import { EditorLayoutDimensions } from "../../src/notation/controller/editor-layout-dimensions";
 import { NoteDuration } from "../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
-import { ensureLayoutConfigured } from "./helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 function getBarElement(trackElement: TrackElement) {
   return trackElement.trackLineElements[0].staffLineElements[0]
@@ -22,10 +21,6 @@ function getTupletElement(trackElement: TrackElement): BarTupletGroupElement {
 }
 
 describe("BarTupletGroupElement", () => {
-  beforeAll(() => {
-    ensureLayoutConfigured();
-  });
-
   test("complete tuplets use one outer rect and no incomplete rects", () => {
     const { track, bar } = createBarWithBeats([
       {
@@ -46,7 +41,7 @@ describe("BarTupletGroupElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const tupletElement = getTupletElement(trackElement);
@@ -58,7 +53,7 @@ describe("BarTupletGroupElement", () => {
     expect(tupletElement.incompleteRects).toBeUndefined();
     expect(tupletElement.boundingBox.width).toBeCloseTo(expectedWidth);
     expect(tupletElement.boundingBox.height).toBe(
-      EditorLayoutDimensions.TUPLET_RECT_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.TUPLET_RECT_HEIGHT
     );
     expect(tupletElement.completeText).toBe("3");
   });
@@ -80,7 +75,7 @@ describe("BarTupletGroupElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const tupletElement = getTupletElement(trackElement);
@@ -98,7 +93,7 @@ describe("BarTupletGroupElement", () => {
     );
     expect(
       incompleteRects?.every(
-        (rect) => rect.height === EditorLayoutDimensions.TUPLET_RECT_HEIGHT
+        (rect) => rect.height === TEST_LAYOUT_DIMENSIONS.TUPLET_RECT_HEIGHT
       )
     ).toBe(true);
   });
@@ -131,7 +126,7 @@ describe("BarTupletGroupElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const barElement = getBarElement(trackElement);
@@ -147,7 +142,7 @@ describe("BarTupletGroupElement", () => {
     expect(tupletElement.boundingBox.width).toBeCloseTo(sumWidth);
     expect(tupletElement.boundingBox.y).toBeCloseTo(
       tupletElement.voiceBarRhythmElement.boundingBox.height -
-        EditorLayoutDimensions.TUPLET_RECT_HEIGHT
+        TEST_LAYOUT_DIMENSIONS.TUPLET_RECT_HEIGHT
     );
     expect(tupletElement.completeText).toBe("5:3");
   });
@@ -172,7 +167,7 @@ describe("BarTupletGroupElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const tupletElement = getTupletElement(trackElement);
@@ -186,7 +181,7 @@ describe("BarTupletGroupElement", () => {
     expect(pathRect?.width).toBeCloseTo(
       tupletElement.boundingBox.width - firstBeatWidth / 2 - lastBeatWidth / 2
     );
-    expect(pathRect?.height).toBe(EditorLayoutDimensions.TUPLET_PATH_HEIGHT);
+    expect(pathRect?.height).toBe(TEST_LAYOUT_DIMENSIONS.TUPLET_PATH_HEIGHT);
     expect(pathRect?.x).toBeCloseTo(
       tupletElement.globalCoords.x + firstBeatWidth / 2
     );
@@ -212,7 +207,7 @@ describe("BarTupletGroupElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const tupletElement = getTupletElement(trackElement);
@@ -229,7 +224,7 @@ describe("BarTupletGroupElement", () => {
     expect(tupletElement.comleteTextCoordsGlobal?.y).toBeCloseTo(
       tupletElement.globalCoords.y +
         tupletElement.boundingBox.height / 2 +
-        EditorLayoutDimensions.TUPLET_PATH_HEIGHT * 2
+        TEST_LAYOUT_DIMENSIONS.TUPLET_PATH_HEIGHT * 2
     );
   });
 
@@ -250,7 +245,7 @@ describe("BarTupletGroupElement", () => {
       throw Error("Expected voice 1 bar");
     }
     voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
     const tupletElement = getTupletElement(trackElement);

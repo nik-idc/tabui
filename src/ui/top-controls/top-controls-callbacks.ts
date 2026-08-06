@@ -1,5 +1,5 @@
-import { TopControlsComponent } from "@/ui";
-import { NotationComponent } from "@/notation/notation-component";
+import { TopControlsComponent } from "..";
+import { NotationComponent } from "../../notation/notation-component";
 import {
   PlayControlsCallbacks,
   PlayControlsDefaultCallbacks,
@@ -8,7 +8,11 @@ import {
   ScoreControlsCallbacks,
   ScoreControlsDefaultCallbacks,
 } from "./score-controls/score-controls-callbacks";
-import { trackEvent, TrackEventType } from "@/shared/events";
+import {
+  TrackEventArgs,
+  trackEvent,
+  TrackEventType,
+} from "../../shared/events";
 
 export class TopControlsCallbacks {
   private _topComponent: TopControlsComponent;
@@ -20,7 +24,9 @@ export class TopControlsCallbacks {
   private _scoreCallbacks: ScoreControlsCallbacks;
   private _playCallbacks: PlayControlsCallbacks;
   /** Bound playback state listener used to rerender controls */
-  private _onPlayerStateChanged: () => void;
+  private _onPlayerStateChanged: (
+    args: TrackEventArgs[TrackEventType.PlayerStateChanged]
+  ) => void;
   private _bound = false;
 
   constructor(
@@ -52,7 +58,11 @@ export class TopControlsCallbacks {
       this._captureKeyboard,
       this._freeKeyboard
     );
-    this._onPlayerStateChanged = () => this._renderFunc();
+    this._onPlayerStateChanged = ({ playerUUID }) => {
+      if (playerUUID === this._notationComponent.trackController.playerUUID) {
+        this._renderFunc();
+      }
+    };
   }
 
   public bind(): void {

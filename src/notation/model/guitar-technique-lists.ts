@@ -1,4 +1,18 @@
+import { BendType } from "./bend-type";
 import { GuitarTechniqueType } from "./technique-type";
+
+export const BEND_TYPE_INCOMPATIBILITY: Record<
+  BendType,
+  GuitarTechniqueType[]
+> = {
+  [BendType.Bend]: [],
+  [BendType.BendAndRelease]: [],
+  [BendType.Hold]: [],
+  [BendType.Prebend]: [GuitarTechniqueType.LetRing],
+  [BendType.PrebendAndRelease]: [GuitarTechniqueType.LetRing],
+  [BendType.PrebendBend]: [GuitarTechniqueType.LetRing],
+  [BendType.Release]: [],
+};
 
 /**
  * Techniques incompatibility mapping

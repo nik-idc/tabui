@@ -1,7 +1,7 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import { TrackControlsTemplate } from "./track-controls-template";
 import { TrackControlsTemplateRenderer } from "./track-controls-template-renderer";
-import { Track } from "@/notation";
+import { Track } from "../../../../notation";
 
 export class TrackControlsComponent {
   readonly parentDiv: HTMLDivElement;

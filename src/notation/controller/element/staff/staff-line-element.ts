@@ -1,7 +1,7 @@
-import { Staff, VoiceNumber } from "@/notation/model";
-import { Rect, Point, randomInt } from "@/shared";
-import { TrackElement } from "@/notation/controller/element/track-element";
-import { NotationElement } from "@/notation/controller/element/notation-element";
+import { Staff, VoiceNumber } from "../../../model";
+import { Rect, Point, randomInt } from "../../../../shared";
+import { TrackElement } from "../track-element";
+import { NotationElement } from "../notation-element";
 import { TrackLineBar, TrackLineElement } from "../track/track-line-element";
 import { NotationStyleLineElement } from "./notation-style-line-element";
 import type { BarElement } from "../bar/bar-element";

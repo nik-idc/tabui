@@ -1,19 +1,10 @@
-import { randomInt } from "@/shared";
+import { randomInt } from "../../shared";
 import { MusicInstrument } from "./instrument/instrument";
 import { MasterBar } from "./master-bar";
 import { TrackContext } from "./track-context";
 import { Staff } from "./staff";
 import { Beat } from "./beat";
-import {
-  BeatArrayOperationOutput,
-  VoiceBar,
-  VoiceBarJSON,
-  VoiceNumber,
-} from "./voice-bar";
-
-export interface BarJSON {
-  voiceBars: Record<VoiceNumber, VoiceBarJSON | null>;
-}
+import { BeatArrayOperationOutput, VoiceBar, VoiceNumber } from "./voice-bar";
 
 export const VOICE_NUMBERS: VoiceNumber[] = [1, 2, 3, 4];
 
@@ -168,20 +159,6 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
 
   public checkDurationsFit(): boolean {
     return this.voiceBarsAsArray.every((vb) => vb.checkDurationsFit());
-  }
-
-  public toJSON(): BarJSON {
-    const voiceBarsJSON = {
-      1: null,
-      2: null,
-      3: null,
-      4: null,
-    } as Record<VoiceNumber, VoiceBarJSON | null>;
-    for (const voiceNumber of VOICE_NUMBERS) {
-      voiceBarsJSON[voiceNumber] =
-        this._voiceBars[voiceNumber]?.toJSON() ?? null;
-    }
-    return { voiceBars: voiceBarsJSON };
   }
 
   public compare(otherBar: Bar<I>): boolean {

@@ -1,4 +1,4 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../notation/notation-component";
 import { PlayControlsTemplate } from "./play-controls-template";
 import { PlayControlsTemplateRenderer } from "./play-controls-template-renderer";
 

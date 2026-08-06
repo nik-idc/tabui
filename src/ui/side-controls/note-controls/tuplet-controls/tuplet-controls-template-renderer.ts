@@ -1,10 +1,18 @@
-import { NotationComponent } from "@/notation/notation-component";
+import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
-} from "@/ui/shared";
+} from "../../../shared";
 import { TupletControlsTemplate } from "./tuplet-controls-template";
+import {
+  DEFAULT_NORMAL_COUNT,
+  DEFAULT_TUPLET_COUNT,
+  MAX_NORMAL_COUNT,
+  MAX_TUPLET_COUNT,
+  MIN_NORMAL_COUNT,
+  MIN_TUPLET_COUNT,
+} from "./tuplet-controls-callbacks";
 
 export class TupletControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -38,9 +46,11 @@ export class TupletControlsTemplateRenderer {
           className: "tu-tuplet-inputs",
           children: [
             this.template.textContainer,
-            this.template.normalInput,
+            this.template.normalLabel,
+            this.template.normalControl,
             this.template.normalErrorText,
-            this.template.input,
+            this.template.tupletLabel,
+            this.template.tupletControl,
             this.template.tupletErrorText,
           ],
         },
@@ -50,6 +60,16 @@ export class TupletControlsTemplateRenderer {
           children: [this.template.confirmButton, this.template.cancelButton],
         },
       ]
+    );
+    this.template.normalControl.append(
+      this.template.normalDownButton,
+      this.template.normalValue,
+      this.template.normalUpButton
+    );
+    this.template.tupletControl.append(
+      this.template.tupletDownButton,
+      this.template.tupletValue,
+      this.template.tupletUpButton
     );
   }
 
@@ -71,19 +91,32 @@ export class TupletControlsTemplateRenderer {
       normalInitValue = `${selectedNote.beat.tupletSettings.normalCount}`;
       tupletInitValue = `${selectedNote.beat.tupletSettings.tupletCount}`;
     } else {
-      normalInitValue = "3";
-      tupletInitValue = "2";
+      normalInitValue = `${DEFAULT_NORMAL_COUNT}`;
+      tupletInitValue = `${DEFAULT_TUPLET_COUNT}`;
     }
 
-    const inputCSSClass = "tu-tuplet-input";
     const tupletErrorCSSClass = "tu-tuplet-error";
-    this.template.normalInput.classList.add(inputCSSClass);
-    this.template.normalInput.type = "number";
-    this.template.normalInput.value = normalInitValue;
+    this.template.normalLabel.textContent = "Normal notes";
+    this.template.normalControl.classList.add("tu-number-stepper");
+    this.template.normalDownButton.textContent = "-";
+    this.template.normalValue.classList.add("tu-number-stepper-value");
+    this.template.normalValue.textContent = normalInitValue;
+    this.template.normalUpButton.textContent = "+";
+    this.template.normalDownButton.disabled =
+      Number(normalInitValue) <= MIN_NORMAL_COUNT;
+    this.template.normalUpButton.disabled =
+      Number(normalInitValue) >= MAX_NORMAL_COUNT;
     this.template.normalErrorText.classList.add(tupletErrorCSSClass);
-    this.template.input.classList.add(inputCSSClass);
-    this.template.input.type = "number";
-    this.template.input.value = tupletInitValue;
+    this.template.tupletLabel.textContent = "Tuplet notes";
+    this.template.tupletControl.classList.add("tu-number-stepper");
+    this.template.tupletDownButton.textContent = "-";
+    this.template.tupletValue.classList.add("tu-number-stepper-value");
+    this.template.tupletValue.textContent = tupletInitValue;
+    this.template.tupletUpButton.textContent = "+";
+    this.template.tupletDownButton.disabled =
+      Number(tupletInitValue) <= MIN_TUPLET_COUNT;
+    this.template.tupletUpButton.disabled =
+      Number(tupletInitValue) >= MAX_TUPLET_COUNT;
     this.template.tupletErrorText.classList.add(tupletErrorCSSClass);
   }
 

@@ -1,12 +1,12 @@
-import { randomInt } from "@/shared";
+import { randomInt } from "../../shared";
 import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
-import { NoteJSON, Note } from "./note";
+import { Note } from "./note";
 import { NoteDuration } from "./note-duration";
 import {
-  TupletSettingsJSON,
   TupletSettings,
   tupletSettingsEqual,
+  tupletSettingsInRange,
 } from "./tuplet-settings";
 import { TechniqueType } from "./technique-type";
 import { Guitar } from "./instrument";
@@ -27,18 +27,6 @@ export type NoteArrayOperationOutput<
 };
 
 export type BeatDots = 0 | 1 | 2;
-
-/**
- * Beat JSON format
- */
-export interface BeatJSON {
-  notes: (NoteJSON | null)[];
-  duration: NoteDuration;
-  dots: number;
-  tupletSettings: TupletSettingsJSON | undefined;
-  beamGroupId: number | undefined;
-  lastInBeamGroup: boolean;
-}
 
 /**
  * Class that represents a beat
@@ -101,7 +89,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._baseDuration = baseDuration;
     this._dots = dots === undefined ? 0 : dots;
     this._lastInBeamGroup = false;
-    this._tupletSettings = tupletSettings;
+    this.tupletSettings = tupletSettings;
     this._beamGroupId = beamGroupId;
     this._lastInBeamGroup = lastInBeamGroup;
     this._baseDurationTicks = 0;
@@ -173,7 +161,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
       throw Error(`${index} is invalid note index`);
     }
 
-    this._notes[index] = note.deepCopy();
+    this._notes[index] = note.deepCopy(this);
 
     return {
       index: index,
@@ -227,17 +215,10 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
 
   /**
    * Creates a deep copy of the beat
+   * @param voiceBar Voice bar that will own the copied beat
    * @returns Beat's deep copy
    */
-  public deepCopy(): Beat<I> {
-    let notes: Note<I>[] | null = null;
-    if (this._notes !== null) {
-      notes = [];
-      for (let i = 0; i < this._notes.length; i++) {
-        notes[i] = this._notes[i].deepCopy();
-      }
-    }
-
+  public deepCopy(voiceBar: VoiceBar<I> = this.voiceBar): Beat<I> {
     const tupletSettingsCopy: TupletSettings | null =
       this._tupletSettings !== null
         ? {
@@ -247,37 +228,22 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
         : null;
 
     const beat = new Beat<I>(
-      this.voiceBar,
-      this.trackContext,
-      notes,
+      voiceBar,
+      voiceBar.trackContext,
+      this._notes === null ? null : [],
       this._baseDuration,
       this._dots,
       tupletSettingsCopy,
       this._beamGroupId,
       this._lastInBeamGroup
     );
-
-    return beat;
-  }
-
-  /**
-   * Parses beat into JSON string
-   * @returns Parsed JSON string
-   */
-  public toJSON(): BeatJSON {
-    const notesJSON = [];
-    for (const note of this._notes ?? []) {
-      notesJSON.push(note.toJSON());
+    if (this._notes !== null && beat._notes !== null) {
+      for (let i = 0; i < this._notes.length; i++) {
+        beat._notes[i] = this._notes[i].deepCopy(beat);
+      }
     }
 
-    return {
-      notes: notesJSON,
-      duration: this._baseDuration,
-      dots: this._dots,
-      tupletSettings: this._tupletSettings ?? undefined,
-      beamGroupId: this._beamGroupId ?? undefined,
-      lastInBeamGroup: this._lastInBeamGroup,
-    };
+    return beat;
   }
 
   /** Notes getter */
@@ -344,6 +310,12 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
 
   /** Tuplet settings setter */
   public set tupletSettings(newSettings: TupletSettings | null) {
+    if (newSettings !== null && !tupletSettingsInRange(newSettings)) {
+      const { normalCount, tupletCount } = newSettings;
+      throw new Error(
+        `Tuplet settings {${normalCount},${tupletCount}} are outside the supported range`
+      );
+    }
     this._tupletSettings = newSettings;
   }
   /** Tuplet settings getter */

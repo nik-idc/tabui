@@ -2,10 +2,10 @@ import {
   NotationElement,
   TrackController,
   VoiceBarElement,
-} from "@/notation/controller";
-import { createSVGG } from "@/shared";
+} from "../../controller";
+import { createSVGG } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "@/config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 export class SVGVoiceBarRenderer implements ElementRenderer {
   readonly trackController: TrackController;
