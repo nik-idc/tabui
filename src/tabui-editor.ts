@@ -85,9 +85,6 @@ export class TabUIEditor {
   private initializeShell(): void {
     this._shellComponent = new EditorShellComponent(this.rootDiv, this.config);
     this._shellComponent.render();
-    this._shellCallbacks = new EditorShellCallbacks(this._shellComponent, () =>
-      this.refreshLayout()
-    );
   }
 
   /** Resolves initial width from config, host measurement, or fallback. */
@@ -132,7 +129,6 @@ export class TabUIEditor {
   private initializeOwnedComponents(): void {
     if (
       this._shellComponent === undefined ||
-      this._shellCallbacks === undefined ||
       this._layoutDimensions === undefined
     ) {
       throw new Error("TabUIEditor shell and layout are not initialized");
@@ -158,7 +154,12 @@ export class TabUIEditor {
       this.emitStateChanged.bind(this)
     );
 
-    this._uiComponent.render();
+    this._uiComponent.render(this._shellComponent.sidePanelCollapsed);
+    this._shellCallbacks = new EditorShellCallbacks(
+      this._shellComponent,
+      this._uiComponent.sideComponent,
+      () => this.refreshLayout()
+    );
     this._callbacksBound = true;
     this._callbacks.bind();
     this._shellCallbacks.bind();

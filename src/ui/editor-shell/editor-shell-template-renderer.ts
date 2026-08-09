@@ -1,7 +1,4 @@
-import {
-  ResolvedTabUIConfig,
-  TabUISidePanelPlacement,
-} from "../../config/tabui-config";
+import { ResolvedTabUIConfig } from "../../config/tabui-config";
 import { runCleanupSteps } from "../../shared/misc/run-cleanup-steps";
 import { EditorShellTemplate } from "./editor-shell-template";
 
@@ -39,8 +36,7 @@ export class EditorShellTemplateRenderer {
   }
 
   private assemble(): void {
-    const { scorePanelHost, sidePanelHost, notationViewport, sidePanelToggle } =
-      this.template;
+    const { scorePanelHost, sidePanelHost, notationViewport } = this.template;
     this.rootDiv.classList.add("tu-editor");
     this.applyTheme();
 
@@ -62,37 +58,10 @@ export class EditorShellTemplateRenderer {
     }
     this.rootDiv.classList.add(...shellClasses);
 
-    if (
-      this.config.panels.side.visible &&
-      this.config.panels.side.collapsible
-    ) {
-      sidePanelToggle.type = "button";
-      sidePanelToggle.classList.add("tu-side-controls-toggle");
-      sidePanelHost.appendChild(sidePanelToggle);
-    }
-
     this.rootDiv.appendChild(scorePanelHost);
     this.rootDiv.appendChild(sidePanelHost);
     this.rootDiv.appendChild(notationViewport);
     this._assembled = true;
-  }
-
-  private updateSidePanelToggle(collapsed: boolean): void {
-    if (
-      !this.config.panels.side.visible ||
-      !this.config.panels.side.collapsible
-    ) {
-      return;
-    }
-
-    const toggle = this.template.sidePanelToggle;
-    const isLeft =
-      this.config.panels.side.placement === TabUISidePanelPlacement.Left;
-    const label = `${collapsed ? "Expand" : "Collapse"} side panel`;
-    toggle.textContent = isLeft === collapsed ? ">" : "<";
-    toggle.title = label;
-    toggle.setAttribute("aria-label", label);
-    toggle.setAttribute("aria-expanded", `${!collapsed}`);
   }
 
   public render(collapsed: boolean): void {
@@ -105,7 +74,6 @@ export class EditorShellTemplateRenderer {
     } else {
       this.rootDiv.classList.remove("tu-side-controls-collapsed");
     }
-    this.updateSidePanelToggle(collapsed);
   }
 
   public measureAvailableWidth(): number | undefined {

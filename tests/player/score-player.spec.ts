@@ -506,13 +506,11 @@ describe("ScorePlayer", () => {
     );
   });
 
-  test("hammer-on and pull-off playback uses softer attack", async () => {
+  test("legato playback uses softer attack", async () => {
     const { score, track, bar } = createScoreGraph();
     setBeatFret(firstBeatOf(bar), 0);
     const note = firstNoteOf(bar);
-    note.addTechnique(
-      new GuitarTechnique(note, GuitarTechniqueType.HammerOnOrPullOff)
-    );
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Legato));
 
     const player = new ScorePlayer(score, track);
     await player.start({ startBeat: firstBeatOf(bar) });

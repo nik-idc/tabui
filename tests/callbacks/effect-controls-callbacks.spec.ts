@@ -25,8 +25,7 @@ describe("TechniqueControlsDefaultCallbacks", () => {
         letRingButton: makeButton(),
         nhButton: makeButton(),
         phButton: makeButton(),
-        hammerOnButton: makeButton(),
-        pullOffButton: makeButton(),
+        legatoButton: makeButton(),
         slideButton: makeButton(),
         bendButton: makeButton(),
       },
@@ -45,7 +44,7 @@ describe("TechniqueControlsDefaultCallbacks", () => {
     callbacks.bind();
     dispatchClick(component.template.vibratoButton);
     dispatchClick(component.template.letRingButton);
-    dispatchClick(component.template.pullOffButton);
+    dispatchClick(component.template.legatoButton);
     dispatchClick(component.template.slideButton);
     dispatchClick(component.template.bendButton);
 
@@ -57,7 +56,7 @@ describe("TechniqueControlsDefaultCallbacks", () => {
     ).toHaveBeenNthCalledWith(2, GuitarTechniqueType.LetRing);
     expect(
       notationComponent.trackController.setTechnique
-    ).toHaveBeenNthCalledWith(3, GuitarTechniqueType.HammerOnOrPullOff);
+    ).toHaveBeenNthCalledWith(3, GuitarTechniqueType.Legato);
     expect(
       notationComponent.trackController.setTechnique
     ).toHaveBeenNthCalledWith(4, GuitarTechniqueType.Slide);

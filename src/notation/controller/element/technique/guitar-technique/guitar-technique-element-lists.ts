@@ -11,7 +11,7 @@ export const TECHNIQUE_ALLOWS_STACKING: Record<GuitarTechniqueType, boolean> = {
   [GuitarTechniqueType.Bend]: true,
   [GuitarTechniqueType.Vibrato]: false,
   [GuitarTechniqueType.Slide]: false,
-  [GuitarTechniqueType.HammerOnOrPullOff]: false,
+  [GuitarTechniqueType.Legato]: false,
   [GuitarTechniqueType.PinchHarmonic]: false,
   [GuitarTechniqueType.NaturalHarmonic]: false,
   [GuitarTechniqueType.PalmMute]: false,
@@ -36,7 +36,7 @@ export const TECHNIQUE_TO_LINE_NUMBER: Record<
   TechLineNumber | null
 > = {
   [GuitarTechniqueType.Slide]: null,
-  [GuitarTechniqueType.HammerOnOrPullOff]: null,
+  [GuitarTechniqueType.Legato]: null,
   [GuitarTechniqueType.PinchHarmonic]: null,
   [GuitarTechniqueType.NaturalHarmonic]: null,
   [GuitarTechniqueType.Vibrato]: 1,
@@ -52,7 +52,7 @@ export const TECHNIQUE_IS_INLINE: Record<GuitarTechniqueType, boolean> = {
   [GuitarTechniqueType.Bend]: true,
   [GuitarTechniqueType.Vibrato]: false,
   [GuitarTechniqueType.Slide]: true,
-  [GuitarTechniqueType.HammerOnOrPullOff]: true,
+  [GuitarTechniqueType.Legato]: true,
   [GuitarTechniqueType.PinchHarmonic]: true,
   [GuitarTechniqueType.NaturalHarmonic]: true,
   [GuitarTechniqueType.PalmMute]: false,

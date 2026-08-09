@@ -51,7 +51,11 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
 
   onTrackRemoveClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaying) {
+    if (
+      controller.isPlaying ||
+      !controller.editingEnabled ||
+      this._notationComponent.score.tracks.length <= 1
+    ) {
       return;
     }
     this._captureKeyboard();

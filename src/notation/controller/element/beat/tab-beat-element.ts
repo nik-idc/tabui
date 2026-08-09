@@ -123,8 +123,8 @@ export class TabBeatElement implements BeatElement {
     this._boundingBox.setDimensions(width, notesHeight);
     this._restRect = this.beat.isRest() ? new Rect() : null;
     this._restRect?.setDimensions(
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE
+      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT * 1.75,
+      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT * 1.75
     );
 
     for (const noteElement of this._noteElements) {
@@ -141,7 +141,7 @@ export class TabBeatElement implements BeatElement {
     this._boundingBox.setCoords(x, 0);
 
     this._restRect?.setCoords(
-      this.attackLocalX - this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2,
+      this.attackLocalX - this._restRect.width / 2,
       this._boundingBox.height / 2 - this._restRect.height / 2
     );
 

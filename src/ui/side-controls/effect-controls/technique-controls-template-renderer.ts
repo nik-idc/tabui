@@ -38,12 +38,11 @@ export class TechniqueControlsTemplateRenderer {
       this.template.vibratoButton,
       this.template.palmMuteButton,
       this.template.letRingButton,
-      this.template.nhButton,
-      this.template.phButton,
-      this.template.hammerOnButton,
-      this.template.pullOffButton,
+      this.template.legatoButton,
       this.template.slideButton,
-      this.template.bendButton
+      this.template.bendButton,
+      this.template.nhButton,
+      this.template.phButton
     );
     this.parentDiv.appendChild(this.template.container);
   }
@@ -162,25 +161,14 @@ export class TechniqueControlsTemplateRenderer {
     );
 
     setImageAsset(
-      this.template.hammerOnButton,
+      this.template.legatoButton,
       this.assetsPath,
-      "img/techniques/hammer-on.svg",
-      "Hammer-on"
+      "img/techniques/legato.svg",
+      "Legato"
     );
     this.renderTechniqueButtonState(
-      GuitarTechniqueType.HammerOnOrPullOff,
-      this.template.hammerOnButton
-    );
-
-    setImageAsset(
-      this.template.pullOffButton,
-      this.assetsPath,
-      "img/techniques/pull-off.svg",
-      "Pull-off"
-    );
-    this.renderTechniqueButtonState(
-      GuitarTechniqueType.HammerOnOrPullOff,
-      this.template.pullOffButton
+      GuitarTechniqueType.Legato,
+      this.template.legatoButton
     );
 
     setImageAsset(

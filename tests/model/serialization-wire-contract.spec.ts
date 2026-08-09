@@ -71,7 +71,7 @@ const REPEAT_PAIRS: readonly WirePair[] = [
 
 const TECHNIQUE_PAIRS: readonly WirePair[] = [
   [GuitarTechniqueType.Bend, "bend"],
-  [GuitarTechniqueType.HammerOnOrPullOff, "hammer-on-or-pull-off"],
+  [GuitarTechniqueType.Legato, "hammer-on-or-pull-off"],
   [GuitarTechniqueType.LetRing, "let-ring"],
   [GuitarTechniqueType.NaturalHarmonic, "natural-harmonic"],
   [GuitarTechniqueType.PalmMute, "palm-mute"],

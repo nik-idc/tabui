@@ -2,7 +2,7 @@ import {
   createSVGCircle,
   createSVGG,
   createSVGLine,
-  createSVGRect,
+  createSVGImage,
 } from "../../../shared";
 import {
   BeatElement,
@@ -12,6 +12,9 @@ import {
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
+import { resolveAssetUrl } from "../../../config/asset-url-resolver";
+import { DURATION_TO_NAME } from "../../model/note-duration";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 /**
  * Class for rendering a beat element using SVG
@@ -35,7 +38,8 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
   private _dot2CircleSVG?: SVGCircleElement;
   /** Beat selection rectangle */
   private _beatSelectionSVG?: SVGRectElement;
-  private _restRectSVG?: SVGRectElement;
+  private _restRectSVG?: SVGImageElement;
+  readonly assetsPath: ResolvedAssetConfig;
 
   /** Any events attached to the rendered group */
   private _attachedEvents: Map<string, EventListener> = new Map();
@@ -44,16 +48,16 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
    * Class for rendering a beat element using SVG
    * @param trackController Track controller
    * @param beatElement Beat element
-   * @param assetsPath Unused. Kept for uniform renderer constructor signature.
+   * @param assetsPath Assets paths
    */
   constructor(
     trackController: TrackController,
     beatElement: TabBeatElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.beatElement = beatElement;
-    void assetsPath;
+    this.assetsPath = assetsPath;
 
     this._attachedEvents = new Map();
   }
@@ -336,16 +340,20 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
     }
 
     if (this._restRectSVG === undefined) {
-      this._restRectSVG = createSVGRect();
+      this._restRectSVG = createSVGImage();
       this._restRectSVG.setAttribute(
         "id",
         `beat-rest-${this.beatElement.beat.uuid}`
       );
-      this._restRectSVG.setAttribute("fill", "var(--tu-notation-ink)");
       this._restRectSVG.setAttribute("pointer-events", "none");
       this._containerGroupSVG.appendChild(this._restRectSVG);
     }
 
+    const duration = DURATION_TO_NAME[this.beatElement.beat.baseDuration];
+    this._restRectSVG.setAttribute(
+      "href",
+      resolveAssetUrl(this.assetsPath, `img/notes/rest-${duration}.svg`)
+    );
     this._restRectSVG.setAttribute("x", `${rect.x}`);
     this._restRectSVG.setAttribute("y", `${rect.y}`);
     this._restRectSVG.setAttribute("width", `${rect.width}`);

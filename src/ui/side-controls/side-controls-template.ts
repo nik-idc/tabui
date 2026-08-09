@@ -1,4 +1,4 @@
-import { createDiv } from "../../shared";
+import { createButton, createDiv, createImage } from "../../shared";
 
 /**
  * Interface defining the template of side controls:
@@ -8,4 +8,6 @@ import { createDiv } from "../../shared";
  */
 export class SideControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
+  readonly sidePanelToggle: HTMLButtonElement = createButton();
+  readonly sidePanelToggleImage: HTMLImageElement = createImage();
 }

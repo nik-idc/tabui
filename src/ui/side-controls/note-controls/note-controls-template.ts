@@ -1,4 +1,4 @@
-import { createButton, createDiv, createImage } from "../../../shared";
+import { createDiv, createImage } from "../../../shared";
 
 type NoteDurationButtons = readonly [
   HTMLImageElement, // Whole
@@ -11,10 +11,10 @@ type NoteDurationButtons = readonly [
 ];
 
 type VoiceButtons = readonly [
-  HTMLButtonElement,
-  HTMLButtonElement,
-  HTMLButtonElement,
-  HTMLButtonElement,
+  HTMLImageElement,
+  HTMLImageElement,
+  HTMLImageElement,
+  HTMLImageElement,
 ];
 
 /**
@@ -23,6 +23,12 @@ type VoiceButtons = readonly [
  */
 export class NoteControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
+  readonly durationSection: HTMLDivElement = createDiv();
+  readonly durationGrid: HTMLDivElement = createDiv();
+  readonly beatSection: HTMLDivElement = createDiv();
+  readonly beatGrid: HTMLDivElement = createDiv();
+  readonly voiceSection: HTMLDivElement = createDiv();
+  readonly voiceGrid: HTMLDivElement = createDiv();
   readonly durationButtons: NoteDurationButtons = [
     createImage(), // Whole
     createImage(), // Half
@@ -32,12 +38,12 @@ export class NoteControlsTemplate {
     createImage(), // Thirty-second
     createImage(), // Sixty-fourth
   ];
-  readonly restButton: HTMLButtonElement = createButton();
+  readonly restButton: HTMLImageElement = createImage();
   readonly voiceButtons: VoiceButtons = [
-    createButton(),
-    createButton(),
-    createButton(),
-    createButton(),
+    createImage(),
+    createImage(),
+    createImage(),
+    createImage(),
   ];
   readonly dot1Button: HTMLImageElement = createImage();
   readonly dot2Button: HTMLImageElement = createImage();

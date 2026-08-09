@@ -7,7 +7,7 @@ export const TECHNIQUE_TYPE_TO_LABEL: Record<GuitarTechniqueType, boolean> = {
   [GuitarTechniqueType.Bend]: true,
   [GuitarTechniqueType.Vibrato]: true,
   [GuitarTechniqueType.Slide]: false,
-  [GuitarTechniqueType.HammerOnOrPullOff]: false,
+  [GuitarTechniqueType.Legato]: false,
   [GuitarTechniqueType.PinchHarmonic]: false,
   [GuitarTechniqueType.NaturalHarmonic]: false,
   [GuitarTechniqueType.PalmMute]: true,

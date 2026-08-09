@@ -38,9 +38,33 @@ jest.mock("../../src/notation/notation-component", () => ({
 }));
 
 jest.mock("../../src/ui", () => ({
-  UIComponent: jest.fn().mockImplementation(() => ({
-    render: jest.fn(),
-  })),
+  UIComponent: jest
+    .fn()
+    .mockImplementation(
+      (_topHost: unknown, sideHost: any, _notation: unknown, config: any) => {
+        const sidePanelToggle = (globalThis as any).document.createElement(
+          "button"
+        );
+        if (config.panels.side.visible && config.panels.side.collapsible) {
+          sideHost.appendChild(sidePanelToggle);
+        }
+
+        const sideComponent = {
+          template: { sidePanelToggle },
+          renderToggle: jest.fn((collapsed: boolean) => {
+            sidePanelToggle.setAttribute("aria-expanded", `${!collapsed}`);
+          }),
+        };
+        return {
+          render: jest.fn((collapsed?: boolean) => {
+            if (collapsed !== undefined) {
+              sideComponent.renderToggle(collapsed);
+            }
+          }),
+          sideComponent,
+        };
+      }
+    ),
 }));
 
 jest.mock("../../src/tabui-callbacks", () => ({

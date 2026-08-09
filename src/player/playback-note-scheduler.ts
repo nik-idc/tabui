@@ -455,7 +455,7 @@ export class PlaybackNoteScheduler {
       return settings;
     }
 
-    if (note.hasTechnique(GuitarTechniqueType.HammerOnOrPullOff)) {
+    if (note.hasTechnique(GuitarTechniqueType.Legato)) {
       settings.attackSeconds = hammerOnPullOffAttackSeconds;
       settings.peakGain = hammerOnPullOffGain;
     }

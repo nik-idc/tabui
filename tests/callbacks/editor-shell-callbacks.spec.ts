@@ -4,6 +4,10 @@ import { FakeElement } from "./helpers";
 function createShellComponent() {
   const root = new FakeElement();
   const toggle = new FakeElement();
+  const sideControls = {
+    template: { sidePanelToggle: toggle },
+    renderToggle: jest.fn(),
+  };
   let collapsed = false;
   const component = {
     rootDiv: root,
@@ -22,14 +26,18 @@ function createShellComponent() {
       collapsed = nextCollapsed;
     }),
   };
-  return { component, toggle };
+  return { component, toggle, sideControls };
 }
 
 describe("EditorShellCallbacks", () => {
   test("refreshes layout immediately after toggling", () => {
-    const { component, toggle } = createShellComponent();
+    const { component, toggle, sideControls } = createShellComponent();
     const refreshLayout = jest.fn();
-    const callbacks = new EditorShellCallbacks(component as any, refreshLayout);
+    const callbacks = new EditorShellCallbacks(
+      component as any,
+      sideControls as any,
+      refreshLayout
+    );
     callbacks.bind();
 
     toggle.dispatch("click");
@@ -40,10 +48,14 @@ describe("EditorShellCallbacks", () => {
   });
 
   test("rolls panel state back when layout refresh fails", () => {
-    const { component, toggle } = createShellComponent();
-    const callbacks = new EditorShellCallbacks(component as any, () => {
-      throw new Error("layout failed");
-    });
+    const { component, toggle, sideControls } = createShellComponent();
+    const callbacks = new EditorShellCallbacks(
+      component as any,
+      sideControls as any,
+      () => {
+        throw new Error("layout failed");
+      }
+    );
     callbacks.bind();
 
     expect(() => toggle.dispatch("click")).toThrow("layout failed");
@@ -54,9 +66,13 @@ describe("EditorShellCallbacks", () => {
   });
 
   test("removes the toggle listener when unbound", () => {
-    const { component, toggle } = createShellComponent();
+    const { component, toggle, sideControls } = createShellComponent();
     const refreshLayout = jest.fn();
-    const callbacks = new EditorShellCallbacks(component as any, refreshLayout);
+    const callbacks = new EditorShellCallbacks(
+      component as any,
+      sideControls as any,
+      refreshLayout
+    );
     callbacks.bind();
     callbacks.unbind();
 
