@@ -1,9 +1,95 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <ellipse cx="22" cy="48" rx="11" ry="8" transform="rotate(-20 22 48)" fill="#000"/>
-  <rect x="31" y="10" width="4" height="39" fill="#000"/>
-  <path d="M35 10 C47 13 52 19 54 27 L50 27 C48 22 43 19 35 17 Z" fill="#000"/>
-  <path d="M35 20 C47 23 52 29 54 37 L50 37 C48 32 43 29 35 27 Z" fill="#000"/>
-  <path d="M35 30 C47 33 52 39 54 47 L50 47 C48 42 43 39 35 37 Z" fill="#000"/>
-  <path d="M35 40 C47 43 52 49 54 57 L50 57 C48 52 43 49 35 47 Z" fill="#000"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="64"
+   height="64"
+   viewBox="0 0 64 64"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   sodipodi:docname="64.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="true"
+     inkscape:zoom="9.093827"
+     inkscape:cx="32.054711"
+     inkscape:cy="29.030682"
+     inkscape:window-width="1536"
+     inkscape:window-height="891"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <inkscape:grid
+       id="grid1"
+       units="mm"
+       originx="0"
+       originy="0"
+       spacingx="0.99999998"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="4"
+       enabled="true"
+       visible="true" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="-3.4829044 : 52.685255 : 1"
+       inkscape:vp_y="87.155744 : 996.19471 : 0"
+       inkscape:vp_z="20.517096 : 52.685255 : 1"
+       inkscape:persp3d-origin="8.5170956 : 48.685255 : 1"
+       id="perspective2" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#000000;stroke:none;stroke-width:0.938083;stroke-linejoin:round;stroke-miterlimit:5.6"
+       id="rect1"
+       width="4"
+       height="44"
+       x="40"
+       y="3.9999995" />
+    <circle
+       style="fill:#000000;stroke-width:3.39411;stroke-linejoin:round;stroke-miterlimit:5.6"
+       id="path1"
+       cx="32"
+       cy="48"
+       r="12" />
+    <path
+       style="fill:#000000;stroke-width:0.4;stroke-linejoin:round;stroke-miterlimit:5.6"
+       d="m 44,3.9999998 16,7.9999992 v 4 L 44,7.9999998 Z"
+       id="path2" />
+    <path
+       style="fill:#000000;stroke-width:0.4;stroke-linejoin:round;stroke-miterlimit:5.6"
+       d="m 44,11.999999 16,8 v 4 l -16,-8 z"
+       id="path2-0" />
+    <path
+       style="fill:#000000;stroke-width:0.4;stroke-linejoin:round;stroke-miterlimit:5.6"
+       d="m 44,19.999999 16,8 v 4 l -16,-8 z"
+       id="path2-0-1" />
+    <path
+       style="fill:#000000;stroke-width:0.4;stroke-linejoin:round;stroke-miterlimit:5.6"
+       d="m 44,28 16,8 v 4 L 44,32 Z"
+       id="path2-0-1-4" />
+  </g>
 </svg>

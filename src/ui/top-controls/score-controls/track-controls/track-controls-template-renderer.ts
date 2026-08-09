@@ -106,20 +106,27 @@ export class TrackControlsTemplateRenderer {
   private renderRemoveButton(): void {
     const cssClass = "tu-track-remove-button";
     this.template.removeButton.classList.add(cssClass);
-    this.template.removeButton.disabled =
+    const disabled =
       !this.notationComponent.trackController.editingEnabled ||
       this.notationComponent.trackController.isPlaying ||
       this.notationComponent.score.tracks.length <= 1;
-    this.template.removeButton.title = this.template.removeButton.disabled
+    this.template.removeButton.classList.toggle("tu-disabled-img", disabled);
+    this.template.removeButton.setAttribute("aria-disabled", `${disabled}`);
+    this.template.removeButton.title = disabled
       ? "Cannot remove the only track"
       : "Remove track";
-    if (this.template.removeButton.disabled) {
+    setImageAsset(
+      this.template.removeButton,
+      this.assetsPath,
+      "img/ui/remove.svg",
+      "Remove track"
+    );
+    if (disabled) {
       this.template.removeButton.dataset.tooltip =
         this.template.removeButton.title;
     } else {
       this.template.removeButton.removeAttribute("data-tooltip");
     }
-    this.template.removeButton.textContent = "−";
     this.template.removeButton.setAttribute(
       "aria-label",
       this.template.removeButton.title

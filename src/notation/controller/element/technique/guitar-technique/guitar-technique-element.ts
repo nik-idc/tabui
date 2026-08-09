@@ -355,7 +355,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /**
    * Calc hammer-on or pull-off path
    */
-  private createHammerOnOrPullOffPath(): void {
+  private createLegatoPath(): void {
     const hpStartX = this._startPoint.x;
     const hpStartY = this._startPoint.y;
     const hpWidth = this.noteElement.boundingBox.width;
@@ -463,8 +463,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
       case GuitarTechniqueType.Slide:
         this.createSlidePath();
         break;
-      case GuitarTechniqueType.HammerOnOrPullOff:
-        this.createHammerOnOrPullOffPath();
+      case GuitarTechniqueType.Legato:
+        this.createLegatoPath();
         break;
       case GuitarTechniqueType.PinchHarmonic:
         this.createPinchHarmonicPath();

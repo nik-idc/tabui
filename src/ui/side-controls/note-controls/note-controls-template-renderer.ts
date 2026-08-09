@@ -29,18 +29,49 @@ export class NoteControlsTemplateRenderer {
     const cssClass = "tu-note-controls";
     this.template.container.classList.add(cssClass);
 
-    this.template.container.append(...this.template.durationButtons);
-    this.template.container.append(this.template.restButton);
-    this.template.container.append(...this.template.voiceButtons);
-    this.template.container.append(
+    this.template.durationSection.classList.add("tu-control-section");
+    this.template.durationGrid.classList.add(
+      "tu-control-grid",
+      "tu-duration-grid"
+    );
+    this.template.durationSection.append(
+      "Duration:",
+      this.template.durationGrid
+    );
+    this.template.durationGrid.append(
+      this.template.durationButtons[0],
+      this.template.durationButtons[1],
+      this.template.durationButtons[2],
+      this.template.durationButtons[3],
+      this.template.durationButtons[4],
+      this.template.durationButtons[5],
+      this.template.durationButtons[6],
       this.template.dot1Button,
-      this.template.dot2Button,
+      this.template.dot2Button
+    );
+
+    this.template.beatSection.classList.add("tu-control-section");
+    this.template.beatGrid.classList.add("tu-control-grid", "tu-beat-grid");
+    this.template.beatSection.append("Beat:", this.template.beatGrid);
+    this.template.beatGrid.append(
+      this.template.restButton,
       this.template.insertBeatBeforeButton,
       this.template.insertBeatAfterButton,
       this.template.removeBeatButton,
       this.template.tuplet2Button,
       this.template.tuplet3Button,
       this.template.tupletButton
+    );
+
+    this.template.voiceSection.classList.add("tu-control-section");
+    this.template.voiceGrid.classList.add("tu-control-grid", "tu-voice-grid");
+    this.template.voiceSection.append("Voices:", this.template.voiceGrid);
+    this.template.voiceGrid.append(...this.template.voiceButtons);
+
+    this.template.container.append(
+      this.template.durationSection,
+      this.template.beatSection,
+      this.template.voiceSection
     );
 
     this.parentDiv.appendChild(this.template.container);
@@ -86,7 +117,12 @@ export class NoteControlsTemplateRenderer {
     }
 
     const hasRest = selection.find((beat) => beat.isRest()) !== undefined;
-    this.template.restButton.textContent = "Rest";
+    setImageAsset(
+      this.template.restButton,
+      this.assetsPath,
+      "img/notes/rest-4.svg",
+      "Quarter rest"
+    );
     this.template.restButton.title = "Set selected beat as rest";
     this.template.restButton.dataset["beatAction"] = "rest";
     this.template.restButton.classList.add("tu-rest-button");
@@ -105,7 +141,12 @@ export class NoteControlsTemplateRenderer {
     for (let i = 0; i < this.template.voiceButtons.length; i++) {
       const voiceNumber = i + 1;
       const button = this.template.voiceButtons[i];
-      button.textContent = `${voiceNumber}`;
+      setImageAsset(
+        button,
+        this.assetsPath,
+        `img/ui/voice-${voiceNumber}.svg`,
+        `Voice ${voiceNumber}`
+      );
       button.title = `Activate voice ${voiceNumber}`;
       button.dataset["voiceNumber"] = `${voiceNumber}`;
       button.classList.add("tu-voice-button");
@@ -239,7 +280,7 @@ export class NoteControlsTemplateRenderer {
     setImageAsset(
       this.template.insertBeatBeforeButton,
       this.assetsPath,
-      "img/ui/add.svg",
+      "img/ui/add-before.svg",
       "Insert beat before",
       {
         "data-beat-action": "insert-before",
@@ -250,7 +291,7 @@ export class NoteControlsTemplateRenderer {
     setImageAsset(
       this.template.insertBeatAfterButton,
       this.assetsPath,
-      "img/ui/add.svg",
+      "img/ui/add-after.svg",
       "Insert beat after",
       {
         "data-beat-action": "insert-after",

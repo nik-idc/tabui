@@ -12,8 +12,7 @@ import {
 describe("TrackControlsDefaultCallbacks", () => {
   function renderRemoveButton(trackCount: number, isPlaying: boolean = false) {
     const removeButton = {
-      classList: { add: jest.fn() },
-      disabled: false,
+      classList: { add: jest.fn(), toggle: jest.fn() },
       dataset: {},
       title: "",
       style: { backgroundImage: "" },
@@ -34,9 +33,18 @@ describe("TrackControlsDefaultCallbacks", () => {
   }
 
   test("remove button is disabled for the only track", () => {
-    expect(renderRemoveButton(1).disabled).toBe(true);
-    expect(renderRemoveButton(2).disabled).toBe(false);
-    expect(renderRemoveButton(2, true).disabled).toBe(true);
+    expect(renderRemoveButton(1).classList.toggle).toHaveBeenCalledWith(
+      "tu-disabled-img",
+      true
+    );
+    expect(renderRemoveButton(2).classList.toggle).toHaveBeenCalledWith(
+      "tu-disabled-img",
+      false
+    );
+    expect(renderRemoveButton(2, true).classList.toggle).toHaveBeenCalledWith(
+      "tu-disabled-img",
+      true
+    );
   });
 
   test("track editing controls render disabled during playback", () => {
@@ -77,7 +85,10 @@ describe("TrackControlsDefaultCallbacks", () => {
     expect(template.moveUpButton.disabled).toBe(true);
     expect(template.moveDownButton.disabled).toBe(true);
     expect(template.trackNameInput.disabled).toBe(true);
-    expect(template.removeButton.disabled).toBe(true);
+    expect(template.removeButton.classList.toggle).toHaveBeenCalledWith(
+      "tu-disabled-img",
+      true
+    );
     expect(template.settingsButton.classList.toggle).toHaveBeenCalledWith(
       "tu-disabled-img",
       true

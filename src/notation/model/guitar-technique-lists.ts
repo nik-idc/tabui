@@ -23,12 +23,12 @@ export const TECHNIQUES_INCOMPATIBILITY: Record<
 > = {
   [GuitarTechniqueType.Bend]: [
     GuitarTechniqueType.Bend,
-    GuitarTechniqueType.HammerOnOrPullOff,
+    GuitarTechniqueType.Legato,
     GuitarTechniqueType.NaturalHarmonic,
     GuitarTechniqueType.Slide,
   ],
-  [GuitarTechniqueType.HammerOnOrPullOff]: [
-    GuitarTechniqueType.HammerOnOrPullOff,
+  [GuitarTechniqueType.Legato]: [
+    GuitarTechniqueType.Legato,
     GuitarTechniqueType.NaturalHarmonic,
     GuitarTechniqueType.Slide,
   ],
@@ -38,7 +38,7 @@ export const TECHNIQUES_INCOMPATIBILITY: Record<
   ],
   [GuitarTechniqueType.NaturalHarmonic]: [
     GuitarTechniqueType.Bend,
-    GuitarTechniqueType.HammerOnOrPullOff,
+    GuitarTechniqueType.Legato,
     GuitarTechniqueType.NaturalHarmonic,
     GuitarTechniqueType.PinchHarmonic,
     GuitarTechniqueType.Slide,
@@ -53,7 +53,7 @@ export const TECHNIQUES_INCOMPATIBILITY: Record<
   ],
   [GuitarTechniqueType.Slide]: [
     GuitarTechniqueType.Bend,
-    GuitarTechniqueType.HammerOnOrPullOff,
+    GuitarTechniqueType.Legato,
     GuitarTechniqueType.NaturalHarmonic,
     GuitarTechniqueType.Slide,
   ],

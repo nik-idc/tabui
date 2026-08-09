@@ -181,7 +181,7 @@ export class SetTechniqueCommand implements Command {
 
   private isInlineTechniqueType(type: TechniqueType): boolean {
     return (
-      type === GuitarTechniqueType.HammerOnOrPullOff ||
+      type === GuitarTechniqueType.Legato ||
       type === GuitarTechniqueType.NaturalHarmonic ||
       type === GuitarTechniqueType.PinchHarmonic ||
       type === GuitarTechniqueType.Slide

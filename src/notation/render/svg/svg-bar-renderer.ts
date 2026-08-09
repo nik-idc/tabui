@@ -1,15 +1,51 @@
 import { BarElement, NotationElement, TrackController } from "../../controller";
-import { resolveAssetUrl } from "../../../config/asset-url-resolver";
 import { BarRepeatStatus } from "../../model";
 import {
   createSVGG,
   createSVGLine,
-  createSVGImage,
+  createSVGPath,
   createSVGText,
 } from "../../../shared";
+import type { Rect } from "../../../shared";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+
+// WARNING: Mixes responsibilities of Element and Renderer layers.
+// But no obvious solution is currently known. The path for a repeat sign is fairly complex.
+// A potential solution is a custom "ComplexShape" class which contains any number of shapes:
+// ```ts
+// class ComplexShape {
+//   public circles: Circle[] = [];
+//   public rects: Rect[] = [];
+//   public lines: Line[] = [];
+// }
+// ```
+// and then the BarElement owns something like `BarElement.repeatSign: ComplexShape`.
+// But this is just a suggestion
+function repeatPath(rect: Rect, start: boolean): string {
+  const thickBarWidth = Math.max(1, rect.width * 0.2);
+  const thinBarWidth = Math.max(0.5, rect.width * 0.1);
+  const radius = Math.max(1, rect.width * 0.16);
+  const firstBar = start ? 0 : 0.8;
+  const secondBar = start ? 0.35 : 0.45;
+  const dot = start ? 0.8 : 0.2;
+  const bar = (position: number, width: number): string =>
+    `M ${rect.x + rect.width * position} ${rect.y} ` +
+    `h ${width} v ${rect.height} h -${width} Z`;
+  const circle = (position: number, y: number): string => {
+    const cx = rect.x + rect.width * position;
+    const cy = rect.y + rect.height * y;
+    return `M ${cx - radius} ${cy} a ${radius} ${radius} 0 1 0 ${
+      radius * 2
+    } 0 a ${radius} ${radius} 0 1 0 -${radius * 2} 0`;
+  };
+
+  return `${bar(firstBar, thickBarWidth)} ${bar(
+    secondBar,
+    thinBarWidth
+  )} ${circle(dot, 0.38)} ${circle(dot, 0.62)}`;
+}
 
 /**
  * Class for rendering a bar element using SVG
@@ -28,10 +64,9 @@ export class SVGBarRenderer implements ElementRenderer {
   private _staffLinesSVG?: SVGLineElement[];
   /** Array of bar border lines as SVG line elements */
   private _borderLinesSVG?: SVGLineElement[];
-  /** Bar repeat sign SVG image */
-  private _repeatStartSVG?: SVGImageElement;
-  /** Bar repeat sign SVG image */
-  private _repeatEndSVG?: SVGImageElement;
+  /** Bar repeat sign SVG paths */
+  private _repeatStartSVG?: SVGPathElement;
+  private _repeatEndSVG?: SVGPathElement;
   /** Array of bar time signature text elements (beats count + duration) */
   private _timeSigTextsSVG?: SVGTextElement[];
 
@@ -287,15 +322,9 @@ export class SVGBarRenderer implements ElementRenderer {
       this._repeatStartSVG === undefined &&
       this.barElement.repeatStartRect !== undefined
     ) {
-      // Set only-set-once attributes
-      this._repeatStartSVG = createSVGImage();
-
-      const href = resolveAssetUrl(
-        this.assetsPath,
-        "img/ui/repeat-start-applied_.svg"
-      );
-      this._repeatStartSVG.setAttribute("href", href);
+      this._repeatStartSVG = createSVGPath();
       this._repeatStartSVG.setAttribute("id", `bar-rep-start-${barUUID}`);
+      this._repeatStartSVG.setAttribute("fill", "var(--tu-notation-ink)");
 
       this._containerGroupSVG.appendChild(this._repeatStartSVG);
     }
@@ -303,38 +332,22 @@ export class SVGBarRenderer implements ElementRenderer {
       this._repeatEndSVG === undefined &&
       this.barElement.repeatEndRect !== undefined
     ) {
-      this._repeatEndSVG = createSVGImage();
-
-      const href = resolveAssetUrl(
-        this.assetsPath,
-        "img/ui/repeat-end-applied_.svg"
-      );
-      this._repeatEndSVG.setAttribute("href", href);
+      this._repeatEndSVG = createSVGPath();
       this._repeatEndSVG.setAttribute("id", `bar-rep-end-${barUUID}`);
+      this._repeatEndSVG.setAttribute("fill", "var(--tu-notation-ink)");
 
       this._containerGroupSVG.appendChild(this._repeatEndSVG);
     }
 
     if (this._repeatStartSVG !== undefined && repStartLineLocal !== undefined) {
-      const x = `${repStartLineLocal.x}`;
-      const y = `${repStartLineLocal.y}`;
-      const width = `${repStartLineLocal.width}`;
-      const height = `${repStartLineLocal.height}`;
-      this._repeatStartSVG.setAttribute("x", x);
-      this._repeatStartSVG.setAttribute("y", y);
-      this._repeatStartSVG.setAttribute("width", width);
-      this._repeatStartSVG.setAttribute("height", height);
+      this._repeatStartSVG.setAttribute(
+        "d",
+        repeatPath(repStartLineLocal, true)
+      );
     }
 
     if (this._repeatEndSVG !== undefined && repEndLineLocal !== undefined) {
-      const x = `${repEndLineLocal.x}`;
-      const y = `${repEndLineLocal.y}`;
-      const width = `${repEndLineLocal.width}`;
-      const height = `${repEndLineLocal.height}`;
-      this._repeatEndSVG.setAttribute("x", x);
-      this._repeatEndSVG.setAttribute("y", y);
-      this._repeatEndSVG.setAttribute("width", width);
-      this._repeatEndSVG.setAttribute("height", height);
+      this._repeatEndSVG.setAttribute("d", repeatPath(repEndLineLocal, false));
     }
   }
 

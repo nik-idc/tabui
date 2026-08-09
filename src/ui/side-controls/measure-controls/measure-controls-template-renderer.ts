@@ -31,10 +31,10 @@ export class MeasureControlsTemplateRenderer {
     this.template.container.classList.add(cssClass);
 
     this.template.container.append(
-      this.template.tempoButton,
-      this.template.timeSignatureButton,
       this.template.repeatStartButton,
       this.template.repeatEndButton,
+      this.template.timeSignatureButton,
+      this.template.tempoButton,
       this.template.insertBarBeforeButton,
       this.template.insertBarAfterButton,
       this.template.removeBarButton
@@ -106,7 +106,7 @@ export class MeasureControlsTemplateRenderer {
     setImageAsset(
       this.template.insertBarBeforeButton,
       this.assetsPath,
-      "img/ui/add.svg",
+      "img/ui/add-before.svg",
       "Insert bar before",
       {
         "data-bar-action": "insert-before",
@@ -117,7 +117,7 @@ export class MeasureControlsTemplateRenderer {
     setImageAsset(
       this.template.insertBarAfterButton,
       this.assetsPath,
-      "img/ui/add.svg",
+      "img/ui/add-after.svg",
       "Insert bar after",
       {
         "data-bar-action": "insert-after",

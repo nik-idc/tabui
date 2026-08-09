@@ -7,8 +7,7 @@ import { createDiv, createImage } from "../../../shared";
  * - Let Ring
  * - NH
  * - PH
- * - Hammer-on
- * - Pull-off
+ * - Legato
  * - Slide
  * - Bend
  */
@@ -20,8 +19,7 @@ export class TechniqueControlsTemplate {
   readonly letRingButton: HTMLImageElement = createImage();
   readonly nhButton: HTMLImageElement = createImage();
   readonly phButton: HTMLImageElement = createImage();
-  readonly hammerOnButton: HTMLImageElement = createImage();
-  readonly pullOffButton: HTMLImageElement = createImage();
+  readonly legatoButton: HTMLImageElement = createImage();
   readonly slideButton: HTMLImageElement = createImage();
   readonly bendButton: HTMLImageElement = createImage();
 }

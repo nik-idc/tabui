@@ -75,8 +75,7 @@ export const SERIALIZED_TECHNIQUE_TYPES: Record<
   SerializedTechniqueType
 > = {
   [GuitarTechniqueType.Bend]: SerializedTechniqueType.Bend,
-  [GuitarTechniqueType.HammerOnOrPullOff]:
-    SerializedTechniqueType.HammerOnOrPullOff,
+  [GuitarTechniqueType.Legato]: SerializedTechniqueType.HammerOnOrPullOff,
   [GuitarTechniqueType.LetRing]: SerializedTechniqueType.LetRing,
   [GuitarTechniqueType.NaturalHarmonic]:
     SerializedTechniqueType.NaturalHarmonic,
@@ -89,8 +88,7 @@ export const SERIALIZED_TECHNIQUE_TYPES: Record<
 /** Supported v1 wire values for validated guitar-technique reads. */
 const TECHNIQUE_BY_VALUE: Record<string, GuitarTechniqueType> = {
   [SerializedTechniqueType.Bend]: GuitarTechniqueType.Bend,
-  [SerializedTechniqueType.HammerOnOrPullOff]:
-    GuitarTechniqueType.HammerOnOrPullOff,
+  [SerializedTechniqueType.HammerOnOrPullOff]: GuitarTechniqueType.Legato,
   [SerializedTechniqueType.LetRing]: GuitarTechniqueType.LetRing,
   [SerializedTechniqueType.NaturalHarmonic]:
     GuitarTechniqueType.NaturalHarmonic,

@@ -3,7 +3,7 @@
  */
 export enum GuitarTechniqueType {
   Bend,
-  HammerOnOrPullOff,
+  Legato,
   LetRing,
   NaturalHarmonic,
   PalmMute,

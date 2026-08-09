@@ -29,12 +29,13 @@ export class UIComponent {
     );
     this.sideComponent = new SideControlsComponent(
       this.sideHost,
-      this.notationComponent
+      this.notationComponent,
+      config
     );
   }
 
-  public render(): void {
+  public render(collapsed?: boolean): void {
     this.topComponent.render();
-    this.sideComponent.render();
+    this.sideComponent.render(collapsed);
   }
 }

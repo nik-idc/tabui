@@ -13,8 +13,7 @@ export interface TechniqueControlsCallbacks {
   onLetRingClicked(): void;
   onNHClicked(): void;
   onPHClicked(): void;
-  onHammerOnClicked(): void;
-  onPullOffClicked(): void;
+  onLegatoClicked(): void;
   onSlideClicked(): void;
   onBendClicked(): void;
   bind(): void;
@@ -89,16 +88,9 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
     this._renderFunc();
   }
 
-  public onHammerOnClicked(): void {
+  public onLegatoClicked(): void {
     this._notationComponent.trackController.setTechnique(
-      GuitarTechniqueType.HammerOnOrPullOff
-    );
-    this._renderFunc();
-  }
-
-  public onPullOffClicked(): void {
-    this._notationComponent.trackController.setTechnique(
-      GuitarTechniqueType.HammerOnOrPullOff
+      GuitarTechniqueType.Legato
     );
     this._renderFunc();
   }
@@ -142,14 +134,9 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
         handler: () => this.onPHClicked(),
       },
       {
-        element: this._techniquesComponent.template.hammerOnButton,
+        element: this._techniquesComponent.template.legatoButton,
         event: "click",
-        handler: () => this.onHammerOnClicked(),
-      },
-      {
-        element: this._techniquesComponent.template.pullOffButton,
-        event: "click",
-        handler: () => this.onPullOffClicked(),
+        handler: () => this.onLegatoClicked(),
       },
       {
         element: this._techniquesComponent.template.slideButton,

@@ -76,6 +76,11 @@ export class PlayControlsTemplateRenderer {
         height: buttonSize,
       }
     );
+    this.template.playButton.classList.toggle(
+      "tu-track-control-active",
+      isPlaying
+    );
+    this.template.playButton.setAttribute("aria-pressed", `${isPlaying}`);
 
     setImageAsset(
       this.template.nextButton,
