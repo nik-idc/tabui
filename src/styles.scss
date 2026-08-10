@@ -547,6 +547,7 @@
   }
 
   .tu-root-svg {
+    touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;

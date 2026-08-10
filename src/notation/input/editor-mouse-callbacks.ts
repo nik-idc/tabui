@@ -9,16 +9,15 @@ import { SelectionDragController } from "./selection-drag-controller";
 
 export interface EditorMouseCallbacks {
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
-  onNoteMouseDown(event: MouseEvent, noteElement: NoteElement): void;
-  onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void;
-  onNoteMouseMove(event: MouseEvent, noteElement: NoteElement): void;
-  onNoteMouseLeave(event: MouseEvent, noteElement: NoteElement): void;
+  onNotePointerDown(event: PointerEvent, noteElement: NoteElement): void;
+  onNotePointerEnter(event: PointerEvent, noteElement: NoteElement): void;
+  onNotePointerMove(event: PointerEvent, noteElement: NoteElement): void;
+  onNotePointerLeave(event: PointerEvent, noteElement: NoteElement): void;
   onBeatClick(event: MouseEvent, beatElement: BeatElement): void;
-  onBeatMouseDown(event: MouseEvent, beatElement: BeatElement): void;
-  onBeatMouseEnter(event: MouseEvent, beatElement: BeatElement): void;
-  onBeatMouseMove(event: MouseEvent, beatElement: BeatElement): void;
-  onBeatMouseUp(): void;
-  onWindowMouseUp(): void;
+  onBeatPointerDown(event: PointerEvent, beatElement: BeatElement): void;
+  onBeatPointerMove(event: PointerEvent, beatElement: BeatElement): void;
+  onBeatPointerUp(event: PointerEvent): void;
+  onWindowPointerUp(event: PointerEvent): void;
   bind(activeRenderers: ElementRenderer[]): void;
   unbind(): void;
 }
@@ -32,21 +31,14 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Render dispatcher callback. */
   readonly renderFunc: (type: RenderType) => void;
 
-  /** True once global window mouseup handler is attached. */
-  private _globalMouseUpBound: boolean = false;
+  /** True once global pointer completion handlers are attached. */
+  private _globalPointerCompletionBound: boolean = false;
   /** True once delegated beat interaction handlers are attached. */
   private _beatInteractionBound: boolean = false;
-  /** Note renderers that already have note mouse handlers attached. */
+  /** Note renderers that already have note pointer handlers attached. */
   private _boundNoteRenderers: Set<SVGTabNoteRenderer>;
-  /** Bound global window mouseup listener reference. */
-  private _boundOnWindowMouseUp?: (event: MouseEvent) => void;
-  /** Bound beat interaction handlers by event type. */
-  private _boundBeatHandlers: Partial<
-    Record<
-      "click" | "mousedown" | "mousemove" | "mouseup",
-      (event: MouseEvent, beatElement: BeatElement) => void
-    >
-  >;
+  /** Bound global pointer completion listener reference. */
+  private _boundOnWindowPointerUp?: (event: PointerEvent) => void;
   /** Selection drag state machine. */
   private _selectionDragController: SelectionDragController;
 
@@ -63,16 +55,21 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this.renderFunc = renderFunc;
 
     this._boundNoteRenderers = new Set();
-    this._boundBeatHandlers = {};
     this._selectionDragController = new SelectionDragController();
   }
 
   private detachNoteRenderer(renderer: SVGTabNoteRenderer): void {
-    renderer.detachMouseEvent("mousedown");
+    renderer.detachMouseEvent("pointerdown");
     renderer.detachMouseEvent("click");
-    renderer.detachMouseEvent("mouseenter");
-    renderer.detachMouseEvent("mousemove");
-    renderer.detachMouseEvent("mouseleave");
+    renderer.detachMouseEvent("pointerenter");
+    renderer.detachMouseEvent("pointermove");
+    renderer.detachMouseEvent("pointerleave");
+  }
+
+  private isPrimarySelectionPointer(event: PointerEvent): boolean {
+    return (
+      event.isPrimary && (event.pointerType !== "mouse" || event.button === 0)
+    );
   }
 
   private reconcileNoteRenderers(activeRenderers: ElementRenderer[]): void {
@@ -121,7 +118,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /**
    * Starts drag-selection from note pointer-down.
    */
-  public onNoteMouseDown(event: MouseEvent, noteElement: NoteElement): void {
+  public onNotePointerDown(
+    event: PointerEvent,
+    noteElement: NoteElement
+  ): void {
     if (this.notationComponent.trackController.isPlaying) {
       return;
     }
@@ -133,16 +133,24 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
+    if (!this.isPrimarySelectionPointer(event)) {
+      return;
+    }
+
     this._selectionDragController.begin(
       noteElement.beatElement,
-      new Point(event.pageX, event.pageY)
+      new Point(event.pageX, event.pageY),
+      event.pointerId
     );
   }
 
   /**
    * Handles note hover/enter for preview or drag-selection continuation.
    */
-  public onNoteMouseEnter(event: MouseEvent, noteElement: NoteElement): void {
+  public onNotePointerEnter(
+    event: PointerEvent,
+    noteElement: NoteElement
+  ): void {
     const tc = this.notationComponent.trackController;
     if (tc.isPlaying) {
       this._selectionDragController.reset();
@@ -170,7 +178,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /**
    * Hides note selection preview when pointer leaves a note.
    */
-  public onNoteMouseLeave(event: MouseEvent, noteElement: NoteElement): void {
+  public onNotePointerLeave(
+    event: PointerEvent,
+    noteElement: NoteElement
+  ): void {
     void event;
     void noteElement;
     this.notationComponent.renderer.hideSelectionPreview();
@@ -179,7 +190,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /**
    * Forwards note pointer movement to beat drag-selection logic.
    */
-  public onNoteMouseMove(event: MouseEvent, noteElement: NoteElement): void {
+  public onNotePointerMove(
+    event: PointerEvent,
+    noteElement: NoteElement
+  ): void {
     if (this.notationComponent.trackController.isPlaying) {
       this._selectionDragController.reset();
       return;
@@ -199,7 +213,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
-    this.onBeatMouseMove(event, noteElement.beatElement);
+    this.onBeatPointerMove(event, noteElement.beatElement);
   }
 
   /**
@@ -221,46 +235,32 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /**
    * Starts drag-selection from beat pointer-down.
    */
-  public onBeatMouseDown(event: MouseEvent, beatElement: BeatElement): void {
+  public onBeatPointerDown(
+    event: PointerEvent,
+    beatElement: BeatElement
+  ): void {
     if (this.notationComponent.trackController.isPlaying) {
+      return;
+    }
+
+    if (!this.isPrimarySelectionPointer(event)) {
       return;
     }
 
     this._selectionDragController.begin(
       beatElement,
-      new Point(event.pageX, event.pageY)
+      new Point(event.pageX, event.pageY),
+      event.pointerId
     );
-  }
-
-  /**
-   * Continues drag-selection while entering beat hitboxes.
-   */
-  public onBeatMouseEnter(event: MouseEvent, beatElement: BeatElement): void {
-    const tc = this.notationComponent.trackController;
-    if (tc.isPlaying) {
-      this._selectionDragController.reset();
-      return;
-    }
-
-    const isLeftPressed = (event.buttons & 1) === 1;
-    if (
-      isLeftPressed &&
-      !this._selectionDragController.isSelectingBeats &&
-      !this._selectionDragController.isDragPending
-    ) {
-      this.onBeatMouseDown(event, beatElement);
-    }
-
-    if (this._selectionDragController.isSelectingBeats) {
-      tc.selectBeat(beatElement);
-      this.renderFunc(RenderType.DragSelection);
-    }
   }
 
   /**
    * Handles beat pointer movement and drag-selection threshold transitions.
    */
-  public onBeatMouseMove(event: MouseEvent, beatElement: BeatElement): void {
+  public onBeatPointerMove(
+    event: PointerEvent,
+    beatElement: BeatElement
+  ): void {
     const tc = this.notationComponent.trackController;
     if (tc.isPlaying) {
       this._selectionDragController.reset();
@@ -269,7 +269,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
     const dragMoveResult = this._selectionDragController.handleMove(
       new Point(event.pageX, event.pageY),
-      beatElement
+      beatElement,
+      event.pointerId
     );
 
     if (dragMoveResult.startedSelection) {
@@ -289,12 +290,14 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /**
    * Finalizes current drag-selection interaction.
    */
-  public onBeatMouseUp(): void {
+  public onBeatPointerUp(event: PointerEvent): void {
     const interactionActive =
       this._selectionDragController.isSelectingBeats ||
       this._selectionDragController.isDragPending;
-    this._selectionDragController.reset();
-    if (interactionActive) {
+    if (
+      this._selectionDragController.finish(event.pointerId) &&
+      interactionActive
+    ) {
       this.renderFunc(RenderType.DragSelection);
     }
   }
@@ -305,32 +308,37 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   public bind(activeRenderers: ElementRenderer[]): void {
     this.reconcileNoteRenderers(activeRenderers);
 
-    if (!this._globalMouseUpBound) {
-      this._boundOnWindowMouseUp = this.onWindowMouseUp.bind(this);
-      window.addEventListener("mouseup", this._boundOnWindowMouseUp);
-      this._globalMouseUpBound = true;
+    if (!this._globalPointerCompletionBound) {
+      this._boundOnWindowPointerUp = this.onWindowPointerUp.bind(this);
+      window.addEventListener("pointerup", this._boundOnWindowPointerUp);
+      window.addEventListener("pointercancel", this._boundOnWindowPointerUp);
+      this._globalPointerCompletionBound = true;
     }
 
     if (!this._beatInteractionBound) {
-      this._boundBeatHandlers.click = this.onBeatClick.bind(this);
-      this._boundBeatHandlers.mousedown = this.onBeatMouseDown.bind(this);
-      this._boundBeatHandlers.mousemove = this.onBeatMouseMove.bind(this);
-      this._boundBeatHandlers.mouseup = this.onBeatMouseUp.bind(this);
+      const onBeatClick = this.onBeatClick.bind(this);
+      const onBeatPointerDown = this.onBeatPointerDown.bind(this);
+      const onBeatPointerMove = this.onBeatPointerMove.bind(this);
+      const onBeatPointerUp = this.onBeatPointerUp.bind(this);
       this.notationComponent.renderer.attachBeatInteractionEvent(
         "click",
-        this._boundBeatHandlers.click
+        onBeatClick
       );
       this.notationComponent.renderer.attachBeatInteractionEvent(
-        "mousedown",
-        this._boundBeatHandlers.mousedown
+        "pointerdown",
+        onBeatPointerDown
       );
       this.notationComponent.renderer.attachBeatInteractionEvent(
-        "mousemove",
-        this._boundBeatHandlers.mousemove
+        "pointermove",
+        onBeatPointerMove
       );
       this.notationComponent.renderer.attachBeatInteractionEvent(
-        "mouseup",
-        this._boundBeatHandlers.mouseup
+        "pointerup",
+        onBeatPointerUp
+      );
+      this.notationComponent.renderer.attachBeatInteractionEvent(
+        "pointercancel",
+        onBeatPointerUp
       );
       this._beatInteractionBound = true;
     }
@@ -341,16 +349,22 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
           continue;
         }
 
-        renderer.attachMouseEvent("mousedown", this.onNoteMouseDown.bind(this));
+        renderer.attachMouseEvent(
+          "pointerdown",
+          this.onNotePointerDown.bind(this)
+        );
         renderer.attachMouseEvent("click", this.onNoteClick.bind(this));
         renderer.attachMouseEvent(
-          "mouseenter",
-          this.onNoteMouseEnter.bind(this)
+          "pointerenter",
+          this.onNotePointerEnter.bind(this)
         );
-        renderer.attachMouseEvent("mousemove", this.onNoteMouseMove.bind(this));
         renderer.attachMouseEvent(
-          "mouseleave",
-          this.onNoteMouseLeave.bind(this)
+          "pointermove",
+          this.onNotePointerMove.bind(this)
+        );
+        renderer.attachMouseEvent(
+          "pointerleave",
+          this.onNotePointerLeave.bind(this)
         );
         this._boundNoteRenderers.add(renderer);
       }
@@ -358,18 +372,24 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   }
 
   public unbind(): void {
-    if (this._globalMouseUpBound && this._boundOnWindowMouseUp !== undefined) {
-      window.removeEventListener("mouseup", this._boundOnWindowMouseUp);
-      this._boundOnWindowMouseUp = undefined;
-      this._globalMouseUpBound = false;
+    if (
+      this._globalPointerCompletionBound &&
+      this._boundOnWindowPointerUp !== undefined
+    ) {
+      window.removeEventListener("pointerup", this._boundOnWindowPointerUp);
+      window.removeEventListener("pointercancel", this._boundOnWindowPointerUp);
+      this._boundOnWindowPointerUp = undefined;
+      this._globalPointerCompletionBound = false;
     }
 
     if (this._beatInteractionBound) {
       this.notationComponent.renderer.detachBeatInteractionEvent("click");
-      this.notationComponent.renderer.detachBeatInteractionEvent("mousedown");
-      this.notationComponent.renderer.detachBeatInteractionEvent("mousemove");
-      this.notationComponent.renderer.detachBeatInteractionEvent("mouseup");
-      this._boundBeatHandlers = {};
+      this.notationComponent.renderer.detachBeatInteractionEvent("pointerdown");
+      this.notationComponent.renderer.detachBeatInteractionEvent("pointermove");
+      this.notationComponent.renderer.detachBeatInteractionEvent("pointerup");
+      this.notationComponent.renderer.detachBeatInteractionEvent(
+        "pointercancel"
+      );
       this._beatInteractionBound = false;
     }
 
@@ -381,9 +401,9 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   }
 
   /**
-   * Legacy interface bridge: maps global mouseup to beat mouseup flow.
+   * Maps global pointer completion to beat pointer completion flow.
    */
-  public onWindowMouseUp(): void {
-    this.onBeatMouseUp();
+  public onWindowPointerUp(event: PointerEvent): void {
+    this.onBeatPointerUp(event);
   }
 }

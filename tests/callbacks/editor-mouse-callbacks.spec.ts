@@ -14,6 +14,23 @@ function createMouseEvent(
   } as MouseEvent;
 }
 
+function createPointerEvent(
+  x: number,
+  y: number,
+  pointerId: number = 1,
+  pointerType: string = "mouse",
+  isPrimary: boolean = true
+): PointerEvent {
+  return {
+    pageX: x,
+    pageY: y,
+    pointerId,
+    pointerType,
+    isPrimary,
+    button: 0,
+  } as PointerEvent;
+}
+
 function createRendererBackedNoteRenderer(noteElement: any) {
   const handlers = new Map<string, Function>();
   const renderer = Object.create(SVGTabNoteRenderer.prototype) as any;
@@ -119,10 +136,10 @@ describe("EditorMouseDefCallbacks", () => {
     ).toHaveBeenCalledWith(noteElement);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
 
-    callbacks.onNoteMouseEnter(createMouseEvent(10, 10), noteElement);
+    callbacks.onNotePointerEnter(createPointerEvent(10, 10), noteElement);
     expect(renderer.showSelectionPreview).toHaveBeenCalledWith(noteElement);
 
-    callbacks.onNoteMouseLeave(createMouseEvent(10, 10), noteElement);
+    callbacks.onNotePointerLeave(createPointerEvent(10, 10), noteElement);
     expect(renderer.hideSelectionPreview).toHaveBeenCalledTimes(2);
   });
 
@@ -191,10 +208,10 @@ describe("EditorMouseDefCallbacks", () => {
     (callbacks as any)._selectionDragController = dragController;
     setIsPlaying(true);
 
-    callbacks.onNoteMouseDown(createMouseEvent(1, 2), noteElement);
-    callbacks.onBeatMouseDown(createMouseEvent(1, 2), beatElement);
-    callbacks.onBeatMouseMove(createMouseEvent(20, 2), beatElement);
-    callbacks.onNoteMouseEnter(createMouseEvent(20, 2), noteElement);
+    callbacks.onNotePointerDown(createPointerEvent(1, 2), noteElement);
+    callbacks.onBeatPointerDown(createPointerEvent(1, 2), beatElement);
+    callbacks.onBeatPointerMove(createPointerEvent(20, 2), beatElement);
+    callbacks.onNotePointerEnter(createPointerEvent(20, 2), noteElement);
 
     expect(dragController.begin).not.toHaveBeenCalled();
     expect(dragController.handleMove).not.toHaveBeenCalled();
@@ -226,19 +243,21 @@ describe("EditorMouseDefCallbacks", () => {
           startedSelection: false,
           shouldSelectCurrentBeat: true,
         }),
+      finish: jest.fn().mockReturnValue(true),
       reset: jest.fn(),
       isSelectingBeats: false,
       isDragPending: false,
     };
     (callbacks as any)._selectionDragController = dragController;
 
-    callbacks.onNoteMouseDown(createMouseEvent(1, 2), noteElement);
-    expect(dragController.begin).toHaveBeenCalledWith(noteElement.beatElement, {
-      x: 1,
-      y: 2,
-    });
+    callbacks.onNotePointerDown(createPointerEvent(1, 2), noteElement);
+    expect(dragController.begin).toHaveBeenCalledWith(
+      noteElement.beatElement,
+      { x: 1, y: 2 },
+      1
+    );
 
-    callbacks.onBeatMouseMove(createMouseEvent(5, 6), beatElement);
+    callbacks.onBeatPointerMove(createPointerEvent(5, 6), beatElement);
     expect(
       notationComponent.trackController.clearSelection
     ).toHaveBeenCalledTimes(1);
@@ -250,19 +269,19 @@ describe("EditorMouseDefCallbacks", () => {
       notationComponent.trackController.selectBeat
     ).toHaveBeenNthCalledWith(2, beatElement);
 
-    callbacks.onBeatMouseMove(createMouseEvent(7, 8), beatElement);
+    callbacks.onBeatPointerMove(createPointerEvent(7, 8), beatElement);
     expect(
       notationComponent.trackController.selectBeat
     ).toHaveBeenNthCalledWith(3, beatElement);
 
-    callbacks.onBeatMouseUp();
-    expect(dragController.reset).toHaveBeenCalledTimes(1);
+    callbacks.onBeatPointerUp(createPointerEvent(7, 8));
+    expect(dragController.finish).toHaveBeenCalledWith(1);
   });
 
-  test("idle global mouseup does not render", () => {
+  test("idle global pointerup does not render", () => {
     const { callbacks, renderFunc } = createHarness();
 
-    callbacks.onBeatMouseUp();
+    callbacks.onBeatPointerUp(createPointerEvent(1, 1));
 
     expect(renderFunc).not.toHaveBeenCalled();
   });
@@ -276,8 +295,8 @@ describe("EditorMouseDefCallbacks", () => {
     callbacks.bind([noteRenderer]);
     callbacks.bind([noteRenderer]);
 
-    expect(win.addEventListener).toHaveBeenCalledTimes(1);
-    expect(renderer.attachBeatInteractionEvent).toHaveBeenCalledTimes(4);
+    expect(win.addEventListener).toHaveBeenCalledTimes(2);
+    expect(renderer.attachBeatInteractionEvent).toHaveBeenCalledTimes(5);
     expect(noteRenderer.attachMouseEvent).toHaveBeenCalledTimes(5);
 
     noteRenderer.trigger("click", createMouseEvent(10, 10));
@@ -289,8 +308,8 @@ describe("EditorMouseDefCallbacks", () => {
     const noteSelectionCallsBeforeUnbind =
       notationComponent.trackController.selectNoteElement.mock.calls.length;
     callbacks.unbind();
-    expect(win.removeEventListener).toHaveBeenCalledTimes(1);
-    expect(renderer.detachBeatInteractionEvent).toHaveBeenCalledTimes(4);
+    expect(win.removeEventListener).toHaveBeenCalledTimes(2);
+    expect(renderer.detachBeatInteractionEvent).toHaveBeenCalledTimes(5);
     expect(noteRenderer.detachMouseEvent).toHaveBeenCalledTimes(5);
     expect(noteRenderer.hasHandler("click")).toBe(false);
 
@@ -300,7 +319,7 @@ describe("EditorMouseDefCallbacks", () => {
     ).toHaveBeenCalledTimes(noteSelectionCallsBeforeUnbind);
 
     callbacks.bind([noteRenderer]);
-    expect(win.addEventListener).toHaveBeenCalledTimes(2);
+    expect(win.addEventListener).toHaveBeenCalledTimes(4);
     expect(noteRenderer.attachMouseEvent).toHaveBeenCalledTimes(10);
   });
 
@@ -330,5 +349,51 @@ describe("EditorMouseDefCallbacks", () => {
     expect(
       notationComponent.trackController.selectNoteElement
     ).toHaveBeenCalledTimes(selectedCallsBeforeOldTrigger + 1);
+  });
+
+  test("touch and pen drags use their owning pointer only", () => {
+    const { callbacks, beatElement, notationComponent } = createHarness();
+    const dragController = {
+      begin: jest.fn(),
+      handleMove: jest.fn().mockReturnValue({
+        startedSelection: false,
+        shouldSelectCurrentBeat: false,
+      }),
+      finish: jest.fn().mockReturnValue(false),
+      reset: jest.fn(),
+      isSelectingBeats: false,
+      isDragPending: false,
+    };
+    (callbacks as any)._selectionDragController = dragController;
+
+    callbacks.onBeatPointerDown(
+      createPointerEvent(1, 2, 7, "touch"),
+      beatElement
+    );
+    callbacks.onBeatPointerDown(
+      createPointerEvent(1, 2, 8, "pen", false),
+      beatElement
+    );
+    callbacks.onBeatPointerMove(
+      createPointerEvent(4, 2, 7, "touch"),
+      beatElement
+    );
+    callbacks.onBeatPointerUp(createPointerEvent(4, 2, 8, "pen", false));
+
+    expect(dragController.begin).toHaveBeenCalledTimes(1);
+    expect(dragController.begin).toHaveBeenCalledWith(
+      beatElement,
+      { x: 1, y: 2 },
+      7
+    );
+    expect(dragController.handleMove).toHaveBeenCalledWith(
+      { x: 4, y: 2 },
+      beatElement,
+      7
+    );
+    expect(dragController.finish).toHaveBeenCalledWith(8);
+    expect(
+      notationComponent.trackController.clearSelection
+    ).not.toHaveBeenCalled();
   });
 });

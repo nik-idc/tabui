@@ -195,8 +195,8 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
 5. (**NEXT**) Add deliberate multimodal input and baseline accessibility across
    desktop, laptop, hybrid, and large-tablet configurations. Full phone-sized
    editing remains P2.
-   5.1. Replace mouse-only notation drag ownership with pointer behavior for
-   mouse, touch, and pen while preserving touchpad scrolling and selection.
+   5.1. (**COMPLETED**) Replace mouse-only notation drag ownership with pointer
+   behavior for mouse, touch, and pen while preserving touchpad scrolling and selection.
    5.2. Remove keyboard focus traps and add basic names, roles, labels, focus
    order, activation, pressed/disabled state, dialog focus behavior, and an
    explicit accessibility boundary for notation SVG.
