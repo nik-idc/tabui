@@ -80,6 +80,9 @@ const scoreFileInput = requiredElement<HTMLInputElement>("score-file");
 const persistenceStatus = requiredElement<HTMLDivElement>(
   "score-persistence-status"
 );
+const resetDemoSettingsButton = requiredElement<HTMLButtonElement>(
+  "reset-demo-settings"
+);
 
 const selectedFixture = resolveEditorFixtureKey(searchParams);
 const selectedTheme = resolveEditorThemeKey(searchParams);
@@ -347,6 +350,12 @@ for (const control of editorConfigControls) {
   control.addEventListener("change", handleEditorConfigChange);
 }
 
+function handleResetDemoSettings(): void {
+  window.location.search = "";
+}
+
+resetDemoSettingsButton.addEventListener("click", handleResetDemoSettings);
+
 const unbindPersistenceControls = bindScorePersistenceControls({
   serializeButton,
   deserializeButton,
@@ -365,6 +374,7 @@ import.meta.hot?.dispose(() => {
   for (const control of editorConfigControls) {
     control.removeEventListener("change", handleEditorConfigChange);
   }
+  resetDemoSettingsButton.removeEventListener("click", handleResetDemoSettings);
   unbindPersistenceControls();
   tabuiEditor.dispose();
 });

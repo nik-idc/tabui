@@ -5,20 +5,21 @@ import { EditorMouseCallbacks } from "./editor-mouse-callbacks";
 import { SVGTabBeatRenderer } from "../render/svg/svg-tab-beat-renderer";
 
 export class EditorCallbackBinder {
-  private _globalMouseEventsBound = false;
+  private _globalPointerEventsBound = false;
   private _keyboardBound = false;
-  private _boundOnWindowMouseUp?: (event: MouseEvent) => void;
+  private _boundOnWindowPointerUp?: (event: PointerEvent) => void;
   private _boundOnKeyDown?: (event: KeyboardEvent) => void;
 
-  private bindGlobalMouseEvents(mouseCallbacks: EditorMouseCallbacks): void {
-    if (this._globalMouseEventsBound) {
+  private bindGlobalPointerEvents(mouseCallbacks: EditorMouseCallbacks): void {
+    if (this._globalPointerEventsBound) {
       return;
     }
 
-    this._boundOnWindowMouseUp =
-      mouseCallbacks.onWindowMouseUp.bind(mouseCallbacks);
-    window.addEventListener("mouseup", this._boundOnWindowMouseUp);
-    this._globalMouseEventsBound = true;
+    this._boundOnWindowPointerUp =
+      mouseCallbacks.onWindowPointerUp.bind(mouseCallbacks);
+    window.addEventListener("pointerup", this._boundOnWindowPointerUp);
+    window.addEventListener("pointercancel", this._boundOnWindowPointerUp);
+    this._globalPointerEventsBound = true;
   }
 
   public bindMouseEvents(
@@ -28,20 +29,16 @@ export class EditorCallbackBinder {
     for (const renderer of renderers) {
       if (renderer instanceof SVGTabBeatRenderer) {
         renderer.attachMouseEvent(
-          "mousedown",
-          mouseCallbacks.onBeatMouseDown.bind(mouseCallbacks)
+          "pointerdown",
+          mouseCallbacks.onBeatPointerDown.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
-          "mouseenter",
-          mouseCallbacks.onBeatMouseEnter.bind(mouseCallbacks)
+          "pointermove",
+          mouseCallbacks.onBeatPointerMove.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
-          "mousemove",
-          mouseCallbacks.onBeatMouseMove.bind(mouseCallbacks)
-        );
-        renderer.attachMouseEvent(
-          "mouseup",
-          mouseCallbacks.onBeatMouseUp.bind(mouseCallbacks)
+          "pointerup",
+          mouseCallbacks.onBeatPointerUp.bind(mouseCallbacks)
         );
       } else if (renderer instanceof SVGTabNoteRenderer) {
         renderer.attachMouseEvent(
@@ -49,12 +46,12 @@ export class EditorCallbackBinder {
           mouseCallbacks.onNoteClick.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
-          "mouseenter",
-          mouseCallbacks.onNoteMouseEnter.bind(mouseCallbacks)
+          "pointerenter",
+          mouseCallbacks.onNotePointerEnter.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
-          "mouseleave",
-          mouseCallbacks.onNoteMouseLeave.bind(mouseCallbacks)
+          "pointerleave",
+          mouseCallbacks.onNotePointerLeave.bind(mouseCallbacks)
         );
       }
     }
@@ -75,8 +72,8 @@ export class EditorCallbackBinder {
     keyboardCallbacks: EditorKeyboardCallbacks,
     renderers: ElementRenderer[]
   ): void {
-    if (!this._globalMouseEventsBound) {
-      this.bindGlobalMouseEvents(mouseCallbacks);
+    if (!this._globalPointerEventsBound) {
+      this.bindGlobalPointerEvents(mouseCallbacks);
     }
 
     this.bindMouseEvents(mouseCallbacks, renderers);
@@ -85,13 +82,14 @@ export class EditorCallbackBinder {
 
   public dispose(): void {
     if (
-      this._globalMouseEventsBound &&
-      this._boundOnWindowMouseUp !== undefined
+      this._globalPointerEventsBound &&
+      this._boundOnWindowPointerUp !== undefined
     ) {
-      window.removeEventListener("mouseup", this._boundOnWindowMouseUp);
+      window.removeEventListener("pointerup", this._boundOnWindowPointerUp);
+      window.removeEventListener("pointercancel", this._boundOnWindowPointerUp);
 
-      this._boundOnWindowMouseUp = undefined;
-      this._globalMouseEventsBound = false;
+      this._boundOnWindowPointerUp = undefined;
+      this._globalPointerEventsBound = false;
     }
     if (this._keyboardBound && this._boundOnKeyDown !== undefined) {
       document.removeEventListener("keydown", this._boundOnKeyDown);

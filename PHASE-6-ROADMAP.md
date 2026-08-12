@@ -195,12 +195,12 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
 5. (**NEXT**) Add deliberate multimodal input and baseline accessibility across
    desktop, laptop, hybrid, and large-tablet configurations. Full phone-sized
    editing remains P2.
-   5.1. Replace mouse-only notation drag ownership with pointer behavior for
-   mouse, touch, and pen while preserving touchpad scrolling and selection.
-   5.2. Remove keyboard focus traps and add basic names, roles, labels, focus
+   5.1. (**COMPLETED**) Replace mouse-only notation drag ownership with pointer
+   behavior for mouse, touch, and pen while preserving touchpad scrolling and selection.
+   5.2. (**COMPLETED**) Remove keyboard focus traps and add basic names, roles, labels, focus
    order, activation, pressed/disabled state, dialog focus behavior, and an
    explicit accessibility boundary for notation SVG.
-   5.3. Validate keyboard-only, mouse, touchpad, touch, pen, hybrid-device,
+   5.3. (**NEXT**) Validate keyboard-only, mouse, touchpad, touch, pen, hybrid-device,
    orientation, zoom, coarse-pointer, and reduced-motion behavior. Add browser
    automation where unit fakes cannot verify CSS, focus, accessibility trees,
    pointer behavior, or native dialogs.
@@ -230,7 +230,21 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
 - Over-reliance on mocks when real source code could be used
 - Anything else that makes the test suite worse
 
-10. Create new demos using different JS frontend frameworks to ensure that packing
+10. Explore the feasability and implementaton of E2E testing using Playwright.
+    Especially interesting to see testing under different configs:
+    - Edit/view only
+    - Side panel: collapes/expanded
+    - Side panel: visible/hidden
+    - Using different device presets:
+      - Normal PC
+      - Laptop (touchpad)
+      - Phones
+      - Tablets
+      - Drawing tablets (is possible)
+      - Other platforms I might be forgetting (eg do gaming consoles allow browser use?)
+    - etc
+
+11. Create new demos using different JS frontend frameworks to ensure that packing
     actually works correctly. Suggested frameworks to test:
 
 - React (important to note that once TabUI v0.5.0 ships this will be the frontend tech)
@@ -240,7 +254,7 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
 - Svelte
 - Any other major frontend framework I might have missed
 
-11. Test how this library would work in a headless/backend context. I.e.
+12. Test how this library would work in a headless/backend context. I.e.
     getting just the geometry from a Model. Or rendering once into a specified file/buffer.
     May require large scale code changes.
 

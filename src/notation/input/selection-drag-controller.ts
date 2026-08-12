@@ -21,13 +21,20 @@ export class SelectionDragController {
   private _dragStartBeat?: BeatElement;
   /** Pointer position at drag start. */
   private _selectionStartPoint?: Point;
+  /** Identifier of the pointer which owns the current drag. */
+  private _pointerId?: number;
 
   /**
    * Starts a new drag interaction from a beat and pointer position.
    */
-  public begin(beatElement: BeatElement, startPoint: Point): void {
+  public begin(
+    beatElement: BeatElement,
+    startPoint: Point,
+    pointerId: number
+  ): void {
     this._dragStartBeat = beatElement;
     this._selectionStartPoint = startPoint;
+    this._pointerId = pointerId;
     this._isDragPending = true;
     this._isSelectingBeats = false;
   }
@@ -37,8 +44,13 @@ export class SelectionDragController {
    */
   public handleMove(
     point: Point,
-    beatElement: BeatElement
+    beatElement: BeatElement,
+    pointerId: number
   ): SelectionDragMoveResult {
+    if (this._pointerId !== pointerId) {
+      return { shouldSelectCurrentBeat: false, startedSelection: false };
+    }
+
     if (!this._isSelectingBeats && !this._isDragPending) {
       return { shouldSelectCurrentBeat: false, startedSelection: false };
     }
@@ -76,6 +88,17 @@ export class SelectionDragController {
     this._isSelectingBeats = false;
     this._dragStartBeat = undefined;
     this._selectionStartPoint = undefined;
+    this._pointerId = undefined;
+  }
+
+  /** Ends the interaction only when called by its owning pointer. */
+  public finish(pointerId: number): boolean {
+    if (this._pointerId !== pointerId) {
+      return false;
+    }
+
+    this.reset();
+    return true;
   }
 
   /** Whether beat drag-selection is currently active. */

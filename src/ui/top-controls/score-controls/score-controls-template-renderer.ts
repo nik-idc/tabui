@@ -122,8 +122,9 @@ export class ScoreControlsTemplateRenderer {
     this.template.scoreNameInput.classList.add(cssClass);
     this.template.scoreNameInput.value = this._currentScoreName;
     const controller = this.notationComponent.trackController;
-    this.template.scoreNameInput.disabled =
-      !controller.editingEnabled || controller.isPlaying;
+    const readOnly = !controller.editingEnabled || controller.isPlaying;
+    this.template.scoreNameInput.disabled = readOnly;
+    this.template.scoreNameInput.tabIndex = readOnly ? -1 : 0;
   }
 
   private renderTracksContainer(): void {

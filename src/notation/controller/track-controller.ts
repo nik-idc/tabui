@@ -407,6 +407,11 @@ export class TrackController {
     return this._trackControllerEditor.editingEnabled;
   }
 
+  /** Enables or disables all score mutations for this active track. */
+  public setEditingEnabled(editingEnabled: boolean): void {
+    this._trackControllerEditor.editingEnabled = editingEnabled;
+  }
+
   /** Currently selected note, or undefined if no note is selected */
   public get selectedNote(): SelectedNote | undefined {
     return this._trackControllerEditor.selectionManager.selectedNote;

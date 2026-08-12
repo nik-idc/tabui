@@ -56,7 +56,8 @@ export interface TabUIConfig {
   };
   layout?: {
     width?: number;
-    minWidth?: number;
+    viewOnlyModeWidthThreshold?: number;
+    unrestrictedModeWidthThreshold?: number;
     noteTextSize?: number;
     timeSigTextSize?: number;
     tempoTextSize?: number;
@@ -119,7 +120,8 @@ export interface ResolvedTabUIConfig {
   };
   layout: {
     width?: number;
-    minWidth: number;
+    viewOnlyModeWidthThreshold: number;
+    unrestrictedModeWidthThreshold: number;
     noteTextSize: number;
     timeSigTextSize: number;
     tempoTextSize: number;
@@ -145,7 +147,8 @@ export interface ResolvedTabUIConfig {
 }
 
 const DEFAULT_LAYOUT = {
-  minWidth: 320,
+  viewOnlyModeWidthThreshold: 500,
+  unrestrictedModeWidthThreshold: 1000,
   noteTextSize: 12,
   timeSigTextSize: 48,
   tempoTextSize: 24,
@@ -286,6 +289,31 @@ export function resolveTabUIConfig(
 ): ResolvedTabUIConfig {
   const mode = config.interaction?.mode ?? TabUIEditorMode.Edit;
   const sideCollapsible = config.panels?.side?.collapsible ?? true;
+  const viewOnlyModeWidthThreshold =
+    config.layout?.viewOnlyModeWidthThreshold ??
+    DEFAULT_LAYOUT.viewOnlyModeWidthThreshold;
+  const unrestrictedModeWidthThreshold =
+    config.layout?.unrestrictedModeWidthThreshold ??
+    DEFAULT_LAYOUT.unrestrictedModeWidthThreshold;
+  if (
+    !Number.isFinite(viewOnlyModeWidthThreshold) ||
+    !Number.isFinite(unrestrictedModeWidthThreshold) ||
+    viewOnlyModeWidthThreshold < 0 ||
+    unrestrictedModeWidthThreshold <= viewOnlyModeWidthThreshold
+  ) {
+    throw new Error(
+      "TabUIEditor layout thresholds must be finite, non-negative, and ascending"
+    );
+  }
+  const width = config.layout?.width;
+  if (
+    width !== undefined &&
+    (!Number.isFinite(width) || width < viewOnlyModeWidthThreshold)
+  ) {
+    throw new Error(
+      "TabUIEditor layout width must be finite and fit the view-only threshold"
+    );
+  }
   return {
     assets: {
       baseUrl: normalizeAssetBaseUrl(config.assets?.baseUrl?.trim() ?? ""),
@@ -293,8 +321,9 @@ export function resolveTabUIConfig(
     },
     interaction: { mode },
     layout: {
-      width: config.layout?.width,
-      minWidth: config.layout?.minWidth ?? DEFAULT_LAYOUT.minWidth,
+      width,
+      viewOnlyModeWidthThreshold,
+      unrestrictedModeWidthThreshold,
       noteTextSize: config.layout?.noteTextSize ?? DEFAULT_LAYOUT.noteTextSize,
       timeSigTextSize:
         config.layout?.timeSigTextSize ?? DEFAULT_LAYOUT.timeSigTextSize,
@@ -313,7 +342,9 @@ export function resolveTabUIConfig(
           config.panels?.score?.placement ?? TabUIScorePanelPlacement.Top,
       },
       side: {
-        visible: config.panels?.side?.visible ?? mode === TabUIEditorMode.Edit,
+        visible:
+          mode === TabUIEditorMode.Edit &&
+          (config.panels?.side?.visible ?? true),
         placement:
           config.panels?.side?.placement ?? TabUISidePanelPlacement.Left,
         collapsible: sideCollapsible,

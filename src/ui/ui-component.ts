@@ -38,4 +38,15 @@ export class UIComponent {
     this.topComponent.render();
     this.sideComponent.render(collapsed);
   }
+
+  /** Closes editor-owned dialogs before their controls become unavailable. */
+  public closeOpenDialogs(): void {
+    for (const host of [this.topHost, this.sideHost]) {
+      for (const dialog of host.querySelectorAll?.("dialog") ?? []) {
+        if (dialog.open) {
+          dialog.close();
+        }
+      }
+    }
+  }
 }

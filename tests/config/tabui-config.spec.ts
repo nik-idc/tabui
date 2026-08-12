@@ -31,7 +31,8 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#000000");
     expect(config.layout).toEqual({
       width: undefined,
-      minWidth: 320,
+      viewOnlyModeWidthThreshold: 500,
+      unrestrictedModeWidthThreshold: 1000,
       noteTextSize: 12,
       timeSigTextSize: 48,
       tempoTextSize: 24,
@@ -105,7 +106,8 @@ describe("tabui-config", () => {
     const config = resolveTabUIConfig({
       layout: {
         width: 720,
-        minWidth: 400,
+        viewOnlyModeWidthThreshold: 600,
+        unrestrictedModeWidthThreshold: 1200,
         noteTextSize: 16,
         timeSigTextSize: 50,
         tempoTextSize: 28,
@@ -116,13 +118,34 @@ describe("tabui-config", () => {
 
     expect(config.layout).toEqual({
       width: 720,
-      minWidth: 400,
+      viewOnlyModeWidthThreshold: 600,
+      unrestrictedModeWidthThreshold: 1200,
       noteTextSize: 16,
       timeSigTextSize: 50,
       tempoTextSize: 28,
       durationsHeight: 36,
       horizontalPadding: 18,
     });
+  });
+
+  it("rejects invalid responsive layout thresholds", () => {
+    expect(() =>
+      resolveTabUIConfig({
+        layout: {
+          viewOnlyModeWidthThreshold: 900,
+          unrestrictedModeWidthThreshold: 900,
+        },
+      })
+    ).toThrow("layout thresholds");
+  });
+
+  it("rejects fixed widths that cannot fit view-only notation", () => {
+    expect(() => resolveTabUIConfig({ layout: { width: 499 } })).toThrow(
+      "layout width"
+    );
+    expect(() => resolveTabUIConfig({ layout: { width: Infinity } })).toThrow(
+      "layout width"
+    );
   });
 
   it("hides the editing side panel by default in view-only mode", () => {
@@ -135,7 +158,7 @@ describe("tabui-config", () => {
     expect(config.panels.side.visible).toBe(false);
   });
 
-  it("resolves explicit panel visibility and placement", () => {
+  it("omits the editing side panel in view-only mode", () => {
     const config = resolveTabUIConfig({
       interaction: { mode: TabUIEditorMode.ViewOnly },
       panels: {
@@ -158,7 +181,7 @@ describe("tabui-config", () => {
         placement: TabUIScorePanelPlacement.Bottom,
       },
       side: {
-        visible: true,
+        visible: false,
         placement: TabUISidePanelPlacement.Right,
         collapsible: false,
         initiallyCollapsed: false,

@@ -5,11 +5,16 @@ import { UIComponent } from "./ui";
 import {
   ResolvedTabUIConfig,
   TabUIConfig,
+  TabUIEditorMode,
   resolveTabUIConfig,
 } from "./config/tabui-config";
 import { EditorLayoutDimensions } from "./notation/controller/editor-layout-dimensions";
 import { PlaybackError } from "./player";
-import { EditorShellCallbacks, EditorShellComponent } from "./ui/editor-shell";
+import {
+  EditorShellCallbacks,
+  EditorShellComponent,
+  ResponsiveInteractionMode,
+} from "./ui/editor-shell";
 import { TabUIEditorStateStore } from "./tabui-editor-state-store";
 import {
   TabUIEditorListener,
@@ -63,6 +68,9 @@ export class TabUIEditor {
   private _windowResizeHandler?: EventListener;
   /** Pending coalesced responsive layout refresh. */
   private _layoutResizeRafId?: number;
+  /** Current responsive restriction applied above the configured mode. */
+  private _responsiveInteractionMode: ResponsiveInteractionMode =
+    ResponsiveInteractionMode.Normal;
   /** Current terminal lifecycle state. */
   private _state: TabUIEditorLifecycleState;
   /** Stable snapshots and instance-scoped host events. */
@@ -97,15 +105,43 @@ export class TabUIEditor {
     return measuredWidth ?? DEFAULT_WIDTH_PX;
   }
 
-  /** Creates instance dimensions after validating the initial width. */
-  private initializeLayoutDimensions(): void {
-    const width = this.resolveLayoutWidth();
-    if (width < this.config.layout.minWidth) {
-      throw new Error(
-        `TabUIEditor width must be at least ${this.config.layout.minWidth}px`
-      );
+  private resolveResponsiveInteractionMode():
+    | ResponsiveInteractionMode
+    | undefined {
+    const viewportWidth =
+      this._shellComponent?.measureResponsiveViewportWidth();
+    if (viewportWidth === undefined) {
+      return undefined;
     }
 
+    const fixedWidth = this.config.layout.width;
+    if (fixedWidth !== undefined) {
+      return viewportWidth < fixedWidth
+        ? ResponsiveInteractionMode.Blocked
+        : ResponsiveInteractionMode.Normal;
+    }
+
+    return viewportWidth < this.config.layout.viewOnlyModeWidthThreshold
+      ? ResponsiveInteractionMode.Blocked
+      : viewportWidth < this.config.layout.unrestrictedModeWidthThreshold
+        ? ResponsiveInteractionMode.ViewOnly
+        : ResponsiveInteractionMode.Normal;
+  }
+
+  /** Applies the initial responsive shell state before notation is rendered. */
+  private initializeResponsiveShellMode(): void {
+    const mode = this.resolveResponsiveInteractionMode();
+    if (mode === undefined) {
+      return;
+    }
+
+    this._responsiveInteractionMode = mode;
+    this._shellComponent?.setResponsiveMode(mode);
+  }
+
+  /** Creates instance dimensions from the initial host or configured width. */
+  private initializeLayoutDimensions(): void {
+    const width = this.resolveLayoutWidth();
     this._layoutDimensions = new EditorLayoutDimensions({
       width,
       noteTextSize: this.config.layout.noteTextSize,
@@ -165,6 +201,41 @@ export class TabUIEditor {
     this._shellCallbacks.bind();
   }
 
+  /** Applies the responsive interaction policy using notation viewport pixels. */
+  private refreshResponsiveInteractionMode(force: boolean = false): void {
+    const shellComponent = this._shellComponent;
+    const notationComponent = this._notationComponent;
+    const uiComponent = this._uiComponent;
+    if (
+      shellComponent === undefined ||
+      notationComponent === undefined ||
+      uiComponent === undefined
+    ) {
+      return;
+    }
+
+    const nextMode = this.resolveResponsiveInteractionMode();
+    if (nextMode === undefined) {
+      return;
+    }
+    if (!force && nextMode === this._responsiveInteractionMode) {
+      return;
+    }
+
+    this._responsiveInteractionMode = nextMode;
+    const editingEnabled =
+      nextMode === ResponsiveInteractionMode.Normal &&
+      this.config.interaction.mode === TabUIEditorMode.Edit;
+    notationComponent.setEditingEnabled(editingEnabled);
+    shellComponent.setResponsiveMode(nextMode);
+    if (nextMode !== ResponsiveInteractionMode.Normal) {
+      uiComponent.closeOpenDialogs();
+    }
+    shellComponent.template.responsiveMessage.textContent =
+      "This area is too small. Rotate your device, expand the window, or use a larger screen.";
+    uiComponent.render(shellComponent.sidePanelCollapsed);
+  }
+
   /** Queues one layout refresh using the latest measured viewport width. */
   private scheduleResponsiveLayoutRefresh(): void {
     if (
@@ -180,24 +251,26 @@ export class TabUIEditor {
         return;
       }
 
-      const width = this._shellComponent?.measureAvailableWidth();
+      this.refreshResponsiveInteractionMode();
+
       if (
-        width === undefined ||
-        width < this.config.layout.minWidth ||
-        width === this._layoutDimensions?.WIDTH
+        this.config.layout.width !== undefined ||
+        this._responsiveInteractionMode === ResponsiveInteractionMode.Blocked
       ) {
+        return;
+      }
+
+      const width = this._shellComponent?.measureAvailableWidth();
+      if (width === undefined || width === this._layoutDimensions?.WIDTH) {
         return;
       }
       this.refreshLayout(width);
     });
   }
 
-  /** Observes responsive viewport width only when no fixed width is configured. */
+  /** Observes responsive interaction and auto-width layout changes. */
   private initializeResponsiveLayout(): void {
-    if (
-      this.config.layout.width !== undefined ||
-      this._shellComponent === undefined
-    ) {
+    if (this._shellComponent === undefined) {
       return;
     }
 
@@ -279,6 +352,7 @@ export class TabUIEditor {
 
     try {
       this.initializeShell();
+      this.initializeResponsiveShellMode();
       this.initializeLayoutDimensions();
       this.initializeOwnedComponents();
 
@@ -293,6 +367,7 @@ export class TabUIEditor {
         this._notationComponent,
         this._layoutDimensions
       );
+      this.refreshResponsiveInteractionMode(true);
       this.initializeResponsiveLayout();
     } catch (error) {
       this._state = TabUIEditorLifecycleState.Disposed;
@@ -402,13 +477,8 @@ export class TabUIEditor {
       this.config.layout.width ??
       measuredWidth ??
       layoutDimensions.WIDTH;
-    if (
-      !Number.isFinite(nextWidth) ||
-      nextWidth < this.config.layout.minWidth
-    ) {
-      throw new Error(
-        `TabUIEditor width must be at least ${this.config.layout.minWidth}px`
-      );
+    if (!Number.isFinite(nextWidth) || nextWidth < 0) {
+      throw new Error("TabUIEditor width must be a non-negative finite number");
     }
 
     const previousWidth = layoutDimensions.WIDTH;

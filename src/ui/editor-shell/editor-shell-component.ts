@@ -1,6 +1,7 @@
 import { ResolvedTabUIConfig } from "../../config/tabui-config";
 import { EditorShellTemplate } from "./editor-shell-template";
 import { EditorShellTemplateRenderer } from "./editor-shell-template-renderer";
+import { ResponsiveInteractionMode } from "./responsive-interaction-mode";
 
 export class EditorShellComponent {
   readonly rootDiv: HTMLDivElement;
@@ -41,6 +42,18 @@ export class EditorShellComponent {
 
   public measureAvailableWidth(): number | undefined {
     return this.templateRenderer.measureAvailableWidth();
+  }
+
+  public measureViewportWidth(): number | undefined {
+    return this.templateRenderer.measureViewportWidth();
+  }
+
+  public measureResponsiveViewportWidth(): number | undefined {
+    return this.templateRenderer.measureResponsiveViewportWidth();
+  }
+
+  public setResponsiveMode(mode: ResponsiveInteractionMode): void {
+    this.templateRenderer.setResponsiveMode(mode);
   }
 
   public get sidePanelCollapsed(): boolean {
