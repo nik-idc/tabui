@@ -56,7 +56,7 @@ import {
  * Class responsible for managing editing & element state
  */
 export class TrackControllerEditor {
-  readonly editingEnabled: boolean;
+  editingEnabled: boolean;
   /** Command manager */
   private readonly _commandManager: CommandManager;
 

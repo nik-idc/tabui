@@ -9,6 +9,8 @@ import {
   TabUISidePanelPlacement,
 } from "../../src/config/tabui-config";
 
+let rootWidth: number;
+
 jest.mock("../../src/notation/notation-component", () => ({
   NotationComponent: jest
     .fn()
@@ -22,6 +24,7 @@ jest.mock("../../src/notation/notation-component", () => ({
       ) => ({
         loadTrack: jest.fn(),
         refreshLayout: jest.fn(),
+        setEditingEnabled: jest.fn(),
         dispose: jest.fn(),
         emitPlaybackError: onPlaybackError,
         trackController: {
@@ -61,6 +64,7 @@ jest.mock("../../src/ui", () => ({
               sideComponent.renderToggle(collapsed);
             }
           }),
+          closeOpenDialogs: jest.fn(),
           sideComponent,
         };
       }
@@ -89,7 +93,9 @@ function createRoot() {
   const children: any[] = [];
   const listeners = new Map<string, Set<(...args: any[]) => void>>();
   return {
-    clientWidth: 900,
+    get clientWidth() {
+      return rootWidth;
+    },
     appendChild: jest.fn((child: any) => {
       children.push(child);
       return child;
@@ -97,6 +103,7 @@ function createRoot() {
     classList: {
       add: jest.fn(),
       remove: jest.fn(),
+      toggle: jest.fn(),
     },
     style: {
       setProperty: jest.fn(),
@@ -196,6 +203,7 @@ describe("TabUIEditor lifecycle", () => {
     originalCancelAnimationFrame = (globalThis as any).cancelAnimationFrame;
     originalWindow = (globalThis as any).window;
     notationViewportWidth = 690;
+    rootWidth = 900;
     (globalThis as any).document = {
       createElement: jest.fn((tagName: string) => {
         if (tagName === "div") {
@@ -258,7 +266,7 @@ describe("TabUIEditor lifecycle", () => {
     const notation = jest.mocked(NotationComponent).mock.results[0].value;
     const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
 
-    expect(ui.render).toHaveBeenCalledTimes(1);
+    expect(ui.render).toHaveBeenCalledTimes(2);
     expect(notation.loadTrack).not.toHaveBeenCalled();
     expect(callbacks.bind).toHaveBeenCalledTimes(1);
     expect(callbacks.unbind).toHaveBeenCalledTimes(1);
@@ -274,7 +282,10 @@ describe("TabUIEditor lifecycle", () => {
       "tu-side-controls-right",
       "tu-score-panel-hidden",
       "tu-side-controls-hidden",
-      "tu-side-controls-collapsed"
+      "tu-side-controls-collapsed",
+      "tu-responsive-view-only",
+      "tu-responsive-blocked",
+      "tu-view-only"
     );
   });
 
@@ -336,7 +347,7 @@ describe("TabUIEditor lifecycle", () => {
     editor.init();
 
     expect(editor.layoutDimensions.WIDTH).toBe(666);
-    expect(root.appendChild).toHaveBeenCalledTimes(3);
+    expect(root.appendChild).toHaveBeenCalledTimes(4);
     expect(
       (root.appendChild as jest.Mock).mock.calls[2][0].classList.contains(
         "tu-notation-viewport"
@@ -476,20 +487,13 @@ describe("TabUIEditor lifecycle", () => {
     expect(sideHost.children).toHaveLength(0);
   });
 
-  test("rejects widths below the resolved minimum", () => {
-    const root = createRoot();
-    const editor = new TabUIEditor(root, createScore(), {
-      layout: {
-        width: 200,
-      },
-    });
-
-    expect(() => editor.init()).toThrow(
-      "TabUIEditor width must be at least 320px"
-    );
-    expect(root.replaceChildren).toHaveBeenCalledTimes(1);
-    expect(root.classList.remove).toHaveBeenCalledWith("tu-editor");
-    expect(() => editor.init()).toThrow("TabUIEditor already disposed");
+  test("rejects explicit widths below the view-only threshold", () => {
+    expect(
+      () =>
+        new TabUIEditor(createRoot(), createScore(), {
+          layout: { width: 200 },
+        })
+    ).toThrow("layout width");
   });
 
   test("rolls back a partial init failure and allows a clean remount", () => {
@@ -704,6 +708,72 @@ describe("TabUIEditor lifecycle", () => {
     expect(disconnect).toHaveBeenCalledTimes(1);
   });
 
+  test("enforces responsive blocked and view-only modes from notation width", () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    let frameCallback: FrameRequestCallback | undefined;
+    (globalThis as any).ResizeObserver = jest
+      .fn()
+      .mockImplementation((callback: ResizeObserverCallback) => {
+        resizeCallback = callback;
+        return { observe: jest.fn(), disconnect: jest.fn() };
+      });
+    (globalThis as any).requestAnimationFrame = jest.fn(
+      (callback: FrameRequestCallback) => {
+        frameCallback = callback;
+        return 1;
+      }
+    );
+    notationViewportWidth = 490;
+    rootWidth = 490;
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore());
+
+    editor.init();
+    const notation = jest.mocked(NotationComponent).mock.results[0].value;
+    const ui = jest.mocked(UIComponent).mock.results[0].value;
+    expect(notation.setEditingEnabled).toHaveBeenLastCalledWith(false);
+    expect(ui.closeOpenDialogs).toHaveBeenCalledTimes(1);
+    expect(root.classList.toggle).toHaveBeenCalledWith(
+      "tu-responsive-blocked",
+      true
+    );
+
+    notationViewportWidth = 700;
+    rootWidth = 700;
+    resizeCallback?.([], {} as ResizeObserver);
+    frameCallback?.(0);
+    expect(root.classList.toggle).toHaveBeenCalledWith(
+      "tu-responsive-view-only",
+      true
+    );
+    expect(notation.setEditingEnabled).toHaveBeenLastCalledWith(false);
+    expect(ui.closeOpenDialogs).toHaveBeenCalledTimes(2);
+
+    notationViewportWidth = 1000;
+    rootWidth = 1000;
+    resizeCallback?.([], {} as ResizeObserver);
+    frameCallback?.(1);
+    expect(root.classList.toggle).toHaveBeenCalledWith(
+      "tu-responsive-view-only",
+      false
+    );
+    expect(notation.setEditingEnabled).toHaveBeenLastCalledWith(true);
+  });
+
+  test("mounts a blocked editor below the view-only threshold", () => {
+    notationViewportWidth = 280;
+    rootWidth = 280;
+    const root = createRoot();
+    const editor = new TabUIEditor(root, createScore());
+
+    expect(() => editor.init()).not.toThrow();
+    expect(editor.layoutDimensions.WIDTH).toBe(256);
+    expect(root.classList.toggle).toHaveBeenCalledWith(
+      "tu-responsive-blocked",
+      true
+    );
+  });
+
   test("ignores transient invalid responsive widths and later recovers", () => {
     let resizeCallback: ResizeObserverCallback | undefined;
     let frameCallback: FrameRequestCallback | undefined;
@@ -731,14 +801,14 @@ describe("TabUIEditor lifecycle", () => {
     resizeCallback?.([], {} as ResizeObserver);
     frameCallback?.(1);
 
-    expect(editor.layoutDimensions.WIDTH).toBe(666);
-    expect(notation.refreshLayout).not.toHaveBeenCalled();
+    expect(editor.layoutDimensions.WIDTH).toBe(276);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
 
     notationViewportWidth = 720;
     resizeCallback?.([], {} as ResizeObserver);
     frameCallback?.(2);
     expect(editor.layoutDimensions.WIDTH).toBe(696);
-    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
+    expect(notation.refreshLayout).toHaveBeenCalledTimes(2);
   });
 
   test("rolls back when responsive observer setup fails", () => {
@@ -761,8 +831,11 @@ describe("TabUIEditor lifecycle", () => {
     expect(() => editor.getState()).toThrow("TabUIEditor already disposed");
   });
 
-  test("does not observe or resize editors with configured widths", () => {
-    const ResizeObserverMock = jest.fn();
+  test("observes responsive interaction without resizing configured widths", () => {
+    const ResizeObserverMock = jest.fn().mockImplementation(() => ({
+      observe: jest.fn(),
+      disconnect: jest.fn(),
+    }));
     (globalThis as any).ResizeObserver = ResizeObserverMock;
     const editor = new TabUIEditor(createRoot(), createScore(), {
       layout: { width: 640 },
@@ -771,7 +844,7 @@ describe("TabUIEditor lifecycle", () => {
     editor.init();
     notationViewportWidth = 800;
 
-    expect(ResizeObserverMock).not.toHaveBeenCalled();
+    expect(ResizeObserverMock).toHaveBeenCalledTimes(1);
     expect(editor.layoutDimensions.WIDTH).toBe(640);
   });
 
@@ -888,14 +961,14 @@ describe("TabUIEditor lifecycle", () => {
     expect(notation.refreshLayout).toHaveBeenCalledTimes(2);
   });
 
-  test("rejects invalid refresh widths before changing layout", () => {
+  test("rejects negative refresh widths before changing layout", () => {
     const editor = new TabUIEditor(createRoot(), createScore());
     editor.init();
     const notation = jest.mocked(NotationComponent).mock.results[0].value;
     const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
 
-    expect(() => editor.refreshLayout(200)).toThrow(
-      "TabUIEditor width must be at least 320px"
+    expect(() => editor.refreshLayout(-1)).toThrow(
+      "non-negative finite number"
     );
     expect(editor.layoutDimensions.WIDTH).toBe(666);
     expect(notation.refreshLayout).not.toHaveBeenCalled();

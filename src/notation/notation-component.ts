@@ -31,6 +31,8 @@ export class NotationComponent {
   private readonly _scorePlayer: ScorePlayer;
   /** True after the notation component has been disposed. */
   private _disposed: boolean = false;
+  /** Current mutation capability, including responsive restrictions. */
+  private _editingEnabled: boolean;
 
   /**
    * Responsible for controllong everything notation-wise
@@ -50,6 +52,8 @@ export class NotationComponent {
     this.rootDiv = notationHostDiv;
     this.config = config;
     this.layoutDimensions = layoutDimensions;
+    this._editingEnabled =
+      this.config.interaction.mode === TabUIEditorMode.Edit;
     this._scorePlayer = new ScorePlayer(
       this.score,
       this.score.tracks[0],
@@ -60,7 +64,7 @@ export class NotationComponent {
       this.score.tracks[0],
       this.layoutDimensions,
       this._scorePlayer,
-      this.config.interaction.mode === TabUIEditorMode.Edit
+      this._editingEnabled
     );
     this._renderer =
       renderer === undefined
@@ -95,7 +99,7 @@ export class NotationComponent {
       newTrack,
       this.layoutDimensions,
       this._scorePlayer,
-      this.config.interaction.mode === TabUIEditorMode.Edit
+      this._editingEnabled
     );
     this._trackController = newTrackController;
     const renderer = new EditorSVGRenderer(
@@ -131,6 +135,12 @@ export class NotationComponent {
   /** Rebuilds active-track geometry after explicit host layout refresh. */
   public refreshLayout(): void {
     this._trackController.trackElement.refreshLayout();
+  }
+
+  /** Applies the current runtime mutation capability to active and future tracks. */
+  public setEditingEnabled(editingEnabled: boolean): void {
+    this._editingEnabled = editingEnabled;
+    this._trackController.setEditingEnabled(editingEnabled);
   }
 
   /**

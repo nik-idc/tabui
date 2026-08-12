@@ -93,6 +93,10 @@
   &.tu-side-controls-hidden {
     grid-template-columns: 1fr;
 
+    .tu-side-controls-host {
+      display: none;
+    }
+
     .tu-top-controls-host,
     .tu-notation-viewport {
       grid-column: 1 / 2;
@@ -544,6 +548,81 @@
     overflow-y: scroll;
     scrollbar-gutter: stable;
     min-height: 0;
+  }
+
+  .tu-responsive-message {
+    grid-area: 1 / 1 / -1 / -1;
+    align-self: center;
+    justify-self: center;
+    max-width: 28rem;
+    padding: 1.5rem;
+    border-radius: var(--tu-border-radius);
+    background: var(--tu-primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  &.tu-view-only,
+  &.tu-responsive-view-only {
+    grid-template-columns: 1fr;
+
+    .tu-side-controls-host {
+      display: none;
+    }
+
+    .tu-top-controls-host,
+    .tu-notation-viewport {
+      grid-column: 1 / 2;
+    }
+
+    .tu-score-controls
+      .tu-master-controls
+      .tu-settings
+      > :not(.tu-show-tracks-button) {
+      display: none;
+    }
+
+    .tu-score-controls .tu-tracks .tu-track-controls {
+      grid-template-columns: 2.6rem minmax(0, 1fr);
+      grid-template-rows: 2.6rem;
+      width: 100%;
+
+      > :not(.tu-track-select-button):not(.tu-track-name-input) {
+        display: none;
+      }
+
+      .tu-track-select-button,
+      .tu-track-name-input {
+        grid-row: 1;
+      }
+
+      .tu-track-name-input {
+        grid-column: 2;
+      }
+    }
+
+    .tu-score-name-input:disabled {
+      cursor: default;
+      pointer-events: none;
+    }
+  }
+
+  &.tu-responsive-blocked {
+    grid-template-columns: 1fr;
+
+    .tu-top-controls-host,
+    .tu-notation-viewport {
+      visibility: hidden;
+    }
+
+    .tu-side-controls-host {
+      display: none;
+    }
+
+    .tu-notation-viewport {
+      grid-column: 1 / 2;
+    }
   }
 
   .tu-root-svg {
