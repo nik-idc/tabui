@@ -197,10 +197,10 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
    editing remains P2.
    5.1. (**COMPLETED**) Replace mouse-only notation drag ownership with pointer
    behavior for mouse, touch, and pen while preserving touchpad scrolling and selection.
-   5.2. Remove keyboard focus traps and add basic names, roles, labels, focus
+   5.2. (**COMPLETED**) Remove keyboard focus traps and add basic names, roles, labels, focus
    order, activation, pressed/disabled state, dialog focus behavior, and an
    explicit accessibility boundary for notation SVG.
-   5.3. Validate keyboard-only, mouse, touchpad, touch, pen, hybrid-device,
+   5.3. (**NEXT**) Validate keyboard-only, mouse, touchpad, touch, pen, hybrid-device,
    orientation, zoom, coarse-pointer, and reduced-motion behavior. Add browser
    automation where unit fakes cannot verify CSS, focus, accessibility trees,
    pointer behavior, or native dialogs.
