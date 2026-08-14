@@ -69,3 +69,5 @@ TEST-results.xml
 test-render/result/*
 test-data
 /editor/dist/*
+test-results/
+playwright-report/

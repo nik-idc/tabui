@@ -200,10 +200,12 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
    5.2. (**COMPLETED**) Remove keyboard focus traps and add basic names, roles, labels, focus
    order, activation, pressed/disabled state, dialog focus behavior, and an
    explicit accessibility boundary for notation SVG.
-   5.3. (**NEXT**) Validate keyboard-only, mouse, touchpad, touch, pen, hybrid-device,
+   5.3. (**COMPLETED**) Validate keyboard-only, mouse, touchpad, touch, pen, hybrid-device,
    orientation, zoom, coarse-pointer, and reduced-motion behavior. Add browser
    automation where unit fakes cannot verify CSS, focus, accessibility trees,
    pointer behavior, or native dialogs.
+   ALSO: Added a small E2E test suite of the most basic functionality.
+   5.4 (**NEXT**) Fix bend drag mobile bug. If deemed doable, implement mobile drag selection
 6. Revisit Element architecture, cross-track widths, and single-line mode only
    when profiling or a release requirement justifies them.
 7. Apply final visual/icon polish, performance budgets, package/browser gates,
@@ -244,7 +246,10 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
       - Other platforms I might be forgetting (eg do gaming consoles allow browser use?)
     - etc
 
-11. Create new demos using different JS frontend frameworks to ensure that packing
+11. Replace `HTMLDialogElement` with custom bialog behavior divs. Needed to ensure native dialogs
+    only appear as modal in TabUI itself, not the host app.
+
+12. Create new demos using different JS frontend frameworks to ensure that packing
     actually works correctly. Suggested frameworks to test:
 
 - React (important to note that once TabUI v0.5.0 ships this will be the frontend tech)
@@ -254,7 +259,7 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
 - Svelte
 - Any other major frontend framework I might have missed
 
-12. Test how this library would work in a headless/backend context. I.e.
+13. Test how this library would work in a headless/backend context. I.e.
     getting just the geometry from a Model. Or rendering once into a specified file/buffer.
     May require large scale code changes.
 
