@@ -9,7 +9,7 @@ type ControlPoint = {
   y: number;
   movableX: boolean;
   circle: SVGCircleElement;
-  onMouseDown: (event: MouseEvent) => void;
+  onPointerDown: (event: PointerEvent) => void;
 };
 
 type BendPathPoints = {
@@ -153,8 +153,9 @@ export class BendCurveSelector implements Selector {
   readonly bendPath = createSVGPath();
   private _points: ControlPoint[] = [];
   private _draggedPoint?: ControlPoint;
-  private _boundMouseMove: (event: MouseEvent) => void;
-  private _boundMouseUp: () => void;
+  private _dragPointerId?: number;
+  private _boundPointerMove: (event: PointerEvent) => void;
+  private _boundPointerUp: (event: PointerEvent) => void;
 
   constructor(
     readonly bendGraphSVG: SVGSVGElement,
@@ -162,8 +163,8 @@ export class BendCurveSelector implements Selector {
     private _bendOptions: BendOptionsData,
     private _continuationPitch?: number
   ) {
-    this._boundMouseMove = this.onMouseMove.bind(this);
-    this._boundMouseUp = this.onMouseUp.bind(this);
+    this._boundPointerMove = this.onPointerMove.bind(this);
+    this._boundPointerUp = this.onPointerUp.bind(this);
   }
 
   private addPoint(
@@ -180,7 +181,7 @@ export class BendCurveSelector implements Selector {
       y: this.pitchToY(pitch),
       movableX,
       circle,
-      onMouseDown: () => this.onMouseDown(point),
+      onPointerDown: (event) => this.onPointerDown(event, point),
     };
     circle.setAttribute("cx", `${point.x}`);
     circle.setAttribute("cy", `${point.y}`);
@@ -188,7 +189,7 @@ export class BendCurveSelector implements Selector {
     circle.setAttribute("fill", "var(--tu-bend-handle)");
     if (draggable) {
       circle.style.cursor = "pointer";
-      circle.addEventListener("mousedown", point.onMouseDown);
+      circle.addEventListener("pointerdown", point.onPointerDown);
     }
     this._points.push(point);
     this.bendGraphSVG.appendChild(circle);
@@ -250,14 +251,28 @@ export class BendCurveSelector implements Selector {
     );
   }
 
-  private onMouseDown(point: ControlPoint): void {
+  private onPointerDown(event: PointerEvent, point: ControlPoint): void {
+    if (
+      !event.isPrimary ||
+      (event.pointerType === "mouse" && event.button !== 0)
+    ) {
+      return;
+    }
+
+    event.preventDefault();
     this._draggedPoint = point;
-    document.addEventListener("mousemove", this._boundMouseMove);
-    document.addEventListener("mouseup", this._boundMouseUp);
+    this._dragPointerId = event.pointerId;
+    point.circle.setPointerCapture(event.pointerId);
+    document.addEventListener("pointermove", this._boundPointerMove);
+    document.addEventListener("pointerup", this._boundPointerUp);
+    document.addEventListener("pointercancel", this._boundPointerUp);
   }
 
-  private onMouseMove(event: MouseEvent): void {
-    if (this._draggedPoint === undefined) {
+  private onPointerMove(event: PointerEvent): void {
+    if (
+      this._draggedPoint === undefined ||
+      this._dragPointerId !== event.pointerId
+    ) {
       return;
     }
     const svgPoint = this.bendGraphSVG.createSVGPoint();
@@ -503,19 +518,28 @@ export class BendCurveSelector implements Selector {
     );
   }
 
-  private onMouseUp(): void {
+  private onPointerUp(event: PointerEvent): void {
+    if (this._dragPointerId !== event.pointerId) {
+      return;
+    }
+
+    if (this._draggedPoint?.circle.hasPointerCapture(event.pointerId)) {
+      this._draggedPoint.circle.releasePointerCapture(event.pointerId);
+    }
     this._draggedPoint = undefined;
+    this._dragPointerId = undefined;
     this.removeDocumentListeners();
   }
 
   private removeDocumentListeners(): void {
-    document.removeEventListener("mousemove", this._boundMouseMove);
-    document.removeEventListener("mouseup", this._boundMouseUp);
+    document.removeEventListener("pointermove", this._boundPointerMove);
+    document.removeEventListener("pointerup", this._boundPointerUp);
+    document.removeEventListener("pointercancel", this._boundPointerUp);
   }
 
   public dispose(): void {
     for (const point of this._points) {
-      point.circle.removeEventListener("mousedown", point.onMouseDown);
+      point.circle.removeEventListener("pointerdown", point.onPointerDown);
     }
     this.removeDocumentListeners();
     this._points = [];

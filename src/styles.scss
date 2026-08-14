@@ -713,6 +713,10 @@
     }
   }
 
+  .tu-bend-controls-svg {
+    touch-action: none;
+  }
+
   .tu-number-stepper {
     display: grid;
     grid-template-columns: repeat(2, auto) minmax(4rem, 1fr) repeat(2, auto);
