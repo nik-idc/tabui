@@ -105,6 +105,12 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
+    if (tc.hasExplicitSelectionAnchor) {
+      tc.selectBeat(noteElement.beatElement);
+      this.renderFunc(RenderType.SelectionRefresh);
+      return;
+    }
+
     const prevActiveVoiceNumber = tc.activeVoiceNumber;
     tc.selectNoteElement(noteElement);
 

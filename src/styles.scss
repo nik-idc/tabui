@@ -415,6 +415,13 @@
       border-radius: var(--tu-border-radius);
     }
 
+    .tu-range-selection-button {
+      width: 2.5rem;
+      height: 2.5rem;
+      padding: 0.25rem;
+      box-sizing: border-box;
+    }
+
     .tu-track-selector {
       padding: 0.5rem 1rem;
       border: 1px solid var(--tu-border-color);

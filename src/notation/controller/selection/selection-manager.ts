@@ -18,6 +18,10 @@ export class SelectionManager {
   private _selectedNote?: SelectedNote;
   /** Base beat of the selection */
   private _baseSelectionBeat?: Beat;
+  /** Most recent beat used to extend the anchored range. */
+  private _selectionEndBeat?: Beat;
+  /** Whether the current range was initiated with the anchor control. */
+  private _selectionAnchorExplicitlySet: boolean = false;
   /** Selection beats */
   private _selectionBeats: Beat[];
   /** Copied data */
@@ -219,6 +223,7 @@ export class SelectionManager {
       beatSeqIndex === baseBeatSeqIndex
     ) {
       this._baseSelectionBeat = beat;
+      this._selectionAnchorExplicitlySet = false;
       startBeatUUID = beat.uuid;
       endBeatUUID = beat.uuid;
     } else if (beatSeqIndex > baseBeatSeqIndex) {
@@ -234,6 +239,30 @@ export class SelectionManager {
 
     // Select all beats in new selection
     this.selectBeatsInBetween(startBeatUUID, endBeatUUID);
+    this._selectionEndBeat = beat;
+  }
+
+  /** Anchors a one-beat range at the current note or selected beat. */
+  public setSelectionAnchor(): boolean {
+    const beat = this._selectedNote?.beat ?? this._selectionBeats[0];
+    if (beat === undefined) {
+      return false;
+    }
+
+    this.selectBeat(beat);
+    this._selectionAnchorExplicitlySet = true;
+    return true;
+  }
+
+  /** Clears a range and restores a note cursor at its anchor beat. */
+  public clearRange(): boolean {
+    const anchor = this._baseSelectionBeat;
+    if (anchor === undefined) {
+      return false;
+    }
+
+    this.selectBeatCursor(anchor, 0);
+    return true;
   }
 
   /**
@@ -241,6 +270,8 @@ export class SelectionManager {
    */
   public clearSelection(): void {
     this._baseSelectionBeat = undefined;
+    this._selectionEndBeat = undefined;
+    this._selectionAnchorExplicitlySet = false;
     this._selectionBeats = [];
   }
 
@@ -298,6 +329,21 @@ export class SelectionManager {
   /** Selection beats */
   public get selectionBeats(): Beat[] {
     return this._selectionBeats;
+  }
+
+  /** Whether a beat range currently has an anchor. */
+  public get hasSelectionAnchor(): boolean {
+    return this._baseSelectionBeat !== undefined;
+  }
+
+  /** Whether the current range was initiated with the anchor control. */
+  public get hasExplicitSelectionAnchor(): boolean {
+    return this._selectionAnchorExplicitlySet;
+  }
+
+  /** Most recent beat used to extend the anchored range. */
+  public get selectionEndBeat(): Beat | undefined {
+    return this._selectionEndBeat;
   }
 
   /** Either beats selection array or selected note's beat as a 1 element array */
