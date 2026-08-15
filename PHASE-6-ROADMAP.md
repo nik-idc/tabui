@@ -205,8 +205,8 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
    automation where unit fakes cannot verify CSS, focus, accessibility trees,
    pointer behavior, or native dialogs.
    ALSO: Added a small E2E test suite of the most basic functionality.
-   5.4 (**NEXT**) Fix bend drag mobile bug. If deemed doable, implement mobile drag selection
-6. Revisit Element architecture, cross-track widths, and single-line mode only
+   5.4 (**COMPLETED**) Fix bend drag mobile bug. If deemed doable, implement mobile drag selection
+6. (**NEXT**) Revisit Element architecture, cross-track widths, and single-line mode only
    when profiling or a release requirement justifies them.
 7. Apply final visual/icon polish, performance budgets, package/browser gates,
    release notes, and a feature freeze for the release candidate.
