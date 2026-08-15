@@ -6,6 +6,7 @@ export class FakeElement {
   disabled = false;
   dataset: Record<string, string> = {};
   classList = {
+    add: jest.fn(),
     toggle: jest.fn(),
   };
   close = jest.fn(() => this.dispatch("close"));

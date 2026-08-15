@@ -195,6 +195,25 @@ describe("TrackController", () => {
     });
   });
 
+  test("playback start loops an explicitly anchored single beat", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const [beatElement] = getBeatElements(controller);
+    const player = mockScorePlayerInstances[0];
+    controller.selectBeat(beatElement);
+
+    controller.startPlayer();
+
+    expect(player.setSelectionLoopSection).toHaveBeenCalledWith(
+      beatElement.beat,
+      beatElement.beat
+    );
+    expect(player.start).toHaveBeenCalledWith({
+      startBeat: beatElement.beat,
+      loopEndBeat: beatElement.beat,
+    });
+  });
+
   test("selection playback preserves an enabled loop choice", () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
@@ -393,6 +412,31 @@ describe("TrackController", () => {
     expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[1]);
 
     controller.selectFirstBar();
+    expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[0]);
+  });
+
+  test("anchored bar traversal extends from the active range endpoint", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+
+    expect(controller.setSelectionAnchor()).toBe(true);
+    expect(controller.selectionBeats).toHaveLength(1);
+
+    controller.selectNextBar();
+    controller.selectNextBar();
+    expect(controller.selectionBeats).toEqual([
+      track.staves[0].bars[0].getVoiceBar(1)?.beats[0],
+      track.staves[0].bars[1].getVoiceBar(1)?.beats[0],
+      track.staves[0].bars[2].getVoiceBar(1)?.beats[0],
+    ]);
+
+    controller.selectPreviousBar();
+    expect(controller.selectionBeats).toHaveLength(2);
+
+    expect(controller.clearSelectionRange()).toBe(true);
+    expect(controller.selectionBeats).toEqual([]);
     expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[0]);
   });
 

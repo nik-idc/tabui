@@ -16,4 +16,5 @@ export class PlayControlsTemplate {
   readonly nextButton: HTMLImageElement = createImage();
   readonly lastButton: HTMLImageElement = createImage();
   readonly loopButton: HTMLImageElement = createImage();
+  readonly rangeButton: HTMLImageElement = createImage();
 }

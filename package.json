@@ -35,6 +35,9 @@
     "preview_vite": "vite preview",
     "serve_vite": "npx vite",
     "test": "tsc --project tsconfig.test.json && npx jest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:webkit": "PLAYWRIGHT_WEBKIT=1 playwright test --project=webkit",
     "test:pack-consumer": "node tests/package/pack-consumer-smoke.mjs",
     "prepare": "husky",
     "format": "npx prettier --write ."
@@ -42,6 +45,7 @@
   "devDependencies": {
     "@babel/core": "^7.24.5",
     "@babel/preset-env": "^7.24.5",
+    "@playwright/test": "^1.62.1",
     "@types/jest": "^29.5.14",
     "babel-jest": "^29.7.0",
     "husky": "^9.1.7",

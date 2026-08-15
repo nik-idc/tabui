@@ -9,6 +9,7 @@ export interface PlayControlsCallbacks {
   onNextClicked(): void;
   onLastClicked(): void;
   onLoopClicked(): void;
+  onRangeClicked(): void;
   bind(): void;
   unbind(): void;
 }
@@ -65,6 +66,15 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     this._notationComponent.trackController.toggleLoop();
     this._renderFunc();
   }
+  onRangeClicked(): void {
+    const controller = this._notationComponent.trackController;
+    if (controller.hasSelectionAnchor) {
+      controller.clearSelectionRange();
+    } else {
+      controller.setSelectionAnchor();
+    }
+    this._renderFunc();
+  }
 
   bind(): void {
     this._listeners.bindAll([
@@ -97,6 +107,11 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
         element: this._playComponent.template.loopButton,
         event: "click",
         handler: () => this.onLoopClicked(),
+      },
+      {
+        element: this._playComponent.template.rangeButton,
+        event: "click",
+        handler: () => this.onRangeClicked(),
       },
     ]);
   }

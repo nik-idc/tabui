@@ -70,7 +70,7 @@ export class TrackController {
     const selection =
       this._trackControllerEditor.selectionManager.selectionAsBeats;
     const playbackOptions: PlaybackOptions = { startBeat: selection[0] };
-    if (selection.length > 1) {
+    if (this._trackControllerEditor.selectionManager.hasSelectionAnchor) {
       this._scorePlayer.setSelectionLoopSection(
         selection[0],
         selection[selection.length - 1]
@@ -154,9 +154,29 @@ export class TrackController {
     return undefined;
   }
 
+  private extendSelectionToBar(bar: Bar): boolean {
+    const end = this._trackControllerEditor.selectionManager.selectionEndBeat;
+    if (end === undefined) {
+      return false;
+    }
+
+    const beat = bar.getVoiceBar(end.voiceBar.voiceNumber)?.beats[0];
+    if (beat === undefined) {
+      return false;
+    }
+
+    this._trackControllerEditor.selectionManager.selectBeat(beat);
+    return true;
+  }
+
   /** Selects the first bar and seeks active playback to it. */
   public selectFirstBar(): void {
     if (!this._scorePlayer?.isPlaying) {
+      const end = this._trackControllerEditor.selectionManager.selectionEndBeat;
+      if (end !== undefined) {
+        this.extendSelectionToBar(end.voiceBar.bar.staff.bars[0]);
+        return;
+      }
       this._trackControllerEditor.selectFirstBar();
       return;
     }
@@ -180,6 +200,14 @@ export class TrackController {
   /** Selects the previous bar and seeks active playback to it. */
   public selectPreviousBar(): void {
     if (!this._scorePlayer?.isPlaying) {
+      const end = this._trackControllerEditor.selectionManager.selectionEndBeat;
+      if (end !== undefined) {
+        const previousBar = end.voiceBar.bar.staff.getPrevBar(end.voiceBar.bar);
+        if (previousBar !== null) {
+          this.extendSelectionToBar(previousBar);
+        }
+        return;
+      }
       this._trackControllerEditor.selectPreviousBar();
       return;
     }
@@ -206,6 +234,14 @@ export class TrackController {
   /** Selects the next bar and seeks active playback to it. */
   public selectNextBar(): void {
     if (!this._scorePlayer?.isPlaying) {
+      const end = this._trackControllerEditor.selectionManager.selectionEndBeat;
+      if (end !== undefined) {
+        const nextBar = end.voiceBar.bar.staff.getNextBar(end.voiceBar.bar);
+        if (nextBar !== null) {
+          this.extendSelectionToBar(nextBar);
+        }
+        return;
+      }
       this._trackControllerEditor.selectNextBar();
       return;
     }
@@ -232,6 +268,12 @@ export class TrackController {
   /** Selects the last bar and seeks active playback to it. */
   public selectLastBar(): void {
     if (!this._scorePlayer?.isPlaying) {
+      const end = this._trackControllerEditor.selectionManager.selectionEndBeat;
+      if (end !== undefined) {
+        const bars = end.voiceBar.bar.staff.bars;
+        this.extendSelectionToBar(bars[bars.length - 1]);
+        return;
+      }
       this._trackControllerEditor.selectLastBar();
       return;
     }
@@ -659,6 +701,35 @@ export class TrackController {
    */
   public clearSelection(): void {
     this._trackControllerEditor.clearSelection();
+  }
+
+  /** Anchors a beat range at the current cursor. */
+  public setSelectionAnchor(): boolean {
+    if (this.isPlaying) {
+      return false;
+    }
+
+    return this._trackControllerEditor.selectionManager.setSelectionAnchor();
+  }
+
+  /** Clears the beat range and restores its anchor as the current cursor. */
+  public clearSelectionRange(): boolean {
+    if (this.isPlaying) {
+      return false;
+    }
+
+    return this._trackControllerEditor.selectionManager.clearRange();
+  }
+
+  /** Whether a range anchor is available for extension. */
+  public get hasSelectionAnchor(): boolean {
+    return this._trackControllerEditor.selectionManager.hasSelectionAnchor;
+  }
+
+  /** Whether the current range was initiated with the anchor control. */
+  public get hasExplicitSelectionAnchor(): boolean {
+    return this._trackControllerEditor.selectionManager
+      .hasExplicitSelectionAnchor;
   }
 
   /**

@@ -37,7 +37,8 @@ export class PlayControlsTemplateRenderer {
       this.template.playButton,
       this.template.nextButton,
       this.template.lastButton,
-      this.template.loopButton
+      this.template.loopButton,
+      this.template.rangeButton
     );
     this.parentDiv.appendChild(this.template.container);
   }
@@ -122,6 +123,19 @@ export class PlayControlsTemplateRenderer {
       "aria-pressed",
       String(this.notationComponent.trackController.isLooped)
     );
+
+    const hasSelectionAnchor =
+      this.notationComponent.trackController.hasSelectionAnchor;
+    this.template.rangeButton.classList.add("tu-range-selection-button");
+    const label = hasSelectionAnchor ? "Clear range" : "Set anchor";
+    setImageAsset(
+      this.template.rangeButton,
+      this.assetsPath,
+      `img/ui/${hasSelectionAnchor ? "clear-range" : "set-anchor"}.svg`,
+      label,
+      { width: buttonSize, height: buttonSize }
+    );
+    this.template.rangeButton.title = label;
   }
   /**
    * Responsible for setting up the note controls:

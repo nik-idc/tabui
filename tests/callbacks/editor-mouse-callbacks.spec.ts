@@ -161,6 +161,22 @@ describe("EditorMouseDefCallbacks", () => {
     expect(renderFunc).toHaveBeenCalledWith(RenderType.ActiveVoiceSelection);
   });
 
+  test("note click extends a range initiated through the anchor control", () => {
+    const { callbacks, noteElement, notationComponent, renderFunc } =
+      createHarness();
+    notationComponent.trackController.hasExplicitSelectionAnchor = true;
+
+    callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
+
+    expect(notationComponent.trackController.selectBeat).toHaveBeenCalledWith(
+      noteElement.beatElement
+    );
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).not.toHaveBeenCalled();
+    expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+  });
+
   test("clicking notes and beats during playback seeks without selecting", () => {
     const {
       callbacks,

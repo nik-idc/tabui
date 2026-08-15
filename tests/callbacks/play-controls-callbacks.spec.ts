@@ -18,6 +18,7 @@ describe("PlayControlsDefaultCallbacks", () => {
           nextButton: {},
           lastButton: {},
           loopButton: {},
+          rangeButton: {},
         },
       } as any,
       {
@@ -60,6 +61,7 @@ describe("PlayControlsDefaultCallbacks", () => {
           nextButton: makeButton(),
           lastButton: makeButton(),
           loopButton: makeButton(),
+          rangeButton: makeButton(),
         },
       } as any,
       {
@@ -107,6 +109,7 @@ describe("PlayControlsDefaultCallbacks", () => {
           nextButton: {},
           lastButton: {},
           loopButton: {},
+          rangeButton: {},
         },
       } as any,
       { trackController } as any,
@@ -127,6 +130,48 @@ describe("PlayControlsDefaultCallbacks", () => {
     expect(renderFunc).toHaveBeenCalledTimes(4);
   });
 
+  test("range button anchors or clears the current range", () => {
+    let hasSelectionAnchor = false;
+    const setSelectionAnchor = jest.fn(() => {
+      hasSelectionAnchor = true;
+    });
+    const clearSelectionRange = jest.fn(() => {
+      hasSelectionAnchor = false;
+    });
+    const controller = {
+      get hasSelectionAnchor() {
+        return hasSelectionAnchor;
+      },
+      setSelectionAnchor,
+      clearSelectionRange,
+    };
+    const renderFunc = jest.fn();
+    const callbacks = new PlayControlsDefaultCallbacks(
+      {
+        template: {
+          firstButton: {},
+          prevButton: {},
+          playButton: {},
+          nextButton: {},
+          lastButton: {},
+          loopButton: {},
+          rangeButton: {},
+        },
+      } as any,
+      { trackController: controller } as any,
+      renderFunc,
+      jest.fn(),
+      jest.fn()
+    );
+
+    callbacks.onRangeClicked();
+    callbacks.onRangeClicked();
+
+    expect(setSelectionAnchor).toHaveBeenCalledTimes(1);
+    expect(clearSelectionRange).toHaveBeenCalledTimes(1);
+    expect(renderFunc).toHaveBeenCalledTimes(2);
+  });
+
   test("render marks loop button active when loop is enabled", () => {
     const template = {
       container: makeButton(),
@@ -136,6 +181,7 @@ describe("PlayControlsDefaultCallbacks", () => {
       nextButton: makeButton(),
       lastButton: makeButton(),
       loopButton: makeButton(),
+      rangeButton: makeButton(),
     };
     const renderer = new PlayControlsTemplateRenderer(
       makeButton() as any,
@@ -146,6 +192,7 @@ describe("PlayControlsDefaultCallbacks", () => {
         trackController: {
           isPlaying: false,
           isLooped: true,
+          hasSelectionAnchor: false,
         },
       } as any,
       template as any
