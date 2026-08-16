@@ -1,6 +1,10 @@
 import { Point, randomInt, Rect } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import {
   TechLineNumber,
   TECHNIQUE_TO_LINE_NUMBER,
@@ -13,7 +17,9 @@ import type { TrackLineElement } from "../track/track-line-element";
 /**
  * Class that handles all visually relevant info of a technique gap
  */
-export class TechGapElement implements NotationElement {
+export class TechGapElement implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
     notationStyleLineElement: NotationStyleLineElement
   ): string {
@@ -151,11 +157,11 @@ export class TechGapElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     for (const line of this.techGapLinesAsArray) {
-      elements.push(...line.refreshOwnedNotationElements());
+      elements.push(...line.refreshOwnedNotationNodes());
     }
 
     return elements;

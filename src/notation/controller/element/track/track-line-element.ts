@@ -4,7 +4,12 @@ import { TrackElement } from "../track-element";
 import { StaffLineElement } from "../staff/staff-line-element";
 import { TrackLineInfoElement } from "./track-line-info-element";
 import { VertLine } from "../../../../shared/rendering/geometry/line";
-import { NotationElement } from "../notation-element";
+import {
+  isNotationElement,
+  NotationElement,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import type { BarElement } from "../bar/bar-element";
 /**
  * Bar placement data for one master bar inside a presentation track line.
@@ -35,6 +40,8 @@ type OutlineLines = {
  * Class that handles all geometry & visually relevant info of a track line
  */
 export class TrackLineElement implements NotationElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(
     track: Track,
     trackLineBars: TrackLineBar[]
@@ -66,8 +73,10 @@ export class TrackLineElement implements NotationElement {
   private _staffLineElements: StaffLineElement[];
   /** Track line info (tempo) */
   private _trackLineInfoElement: TrackLineInfoElement | null;
-  /** Notation elements owned by this track line in traversal order. */
-  private _ownedNotationElements: NotationElement[];
+  /** Notation nodes owned by this track line in traversal order. */
+  private _ownedNotationNodes: NotationNode[];
+  /** Drawable nodes owned by this track line in paint traversal order. */
+  private _drawableNotationElements: NotationElement[];
 
   /** Track line encapsulating rectangle */
   private _boundingBox: Rect;
@@ -93,7 +102,8 @@ export class TrackLineElement implements NotationElement {
 
     this._staffLineElements = [];
     this._trackLineInfoElement = null;
-    this._ownedNotationElements = [];
+    this._ownedNotationNodes = [];
+    this._drawableNotationElements = [];
 
     this._boundingBox = new Rect();
     this._skeletonLine = skeletonLine;
@@ -103,7 +113,8 @@ export class TrackLineElement implements NotationElement {
     );
 
     // A new track line starts as a geometry-only shell until materialized.
-    this._ownedNotationElements = [this];
+    this._ownedNotationNodes = [this];
+    this._drawableNotationElements = [this];
     this.setGeometryFromSkeleton(skeletonLine);
   }
 
@@ -143,7 +154,7 @@ export class TrackLineElement implements NotationElement {
     }
 
     this._trackLineInfoElement = new TrackLineInfoElement(this);
-    this.refreshOwnedNotationElements();
+    this.refreshOwnedNotationNodes();
   }
 
   /**
@@ -295,20 +306,19 @@ export class TrackLineElement implements NotationElement {
    *    TrackElement then remains an orchestrator/builder rather than
    *    traversal owner.
    */
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     if (this._trackLineInfoElement !== null) {
-      elements.push(
-        ...this._trackLineInfoElement.refreshOwnedNotationElements()
-      );
+      elements.push(...this._trackLineInfoElement.refreshOwnedNotationNodes());
     }
 
     for (const staffLine of this._staffLineElements) {
-      elements.push(...staffLine.refreshOwnedNotationElements());
+      elements.push(...staffLine.refreshOwnedNotationNodes());
     }
 
-    this._ownedNotationElements = elements;
+    this._ownedNotationNodes = elements;
+    this._drawableNotationElements = elements.filter(isNotationElement);
     return elements;
   }
 
@@ -346,8 +356,13 @@ export class TrackLineElement implements NotationElement {
     return this._trackLineInfoElement;
   }
 
-  public get ownedNotationElements(): NotationElement[] {
-    return this._ownedNotationElements;
+  public get ownedNotationNodes(): NotationNode[] {
+    return this._ownedNotationNodes;
+  }
+
+  /** Drawable elements owned by this materialized track line. */
+  public get drawableNotationElements(): NotationElement[] {
+    return this._drawableNotationElements;
   }
 
   /** Left & right outline line for when there are more than 1 staves */

@@ -11,7 +11,11 @@ import { Rect, Point, randomInt } from "../../../../shared";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
 import { calculateMasterBarDurationUnits } from "../../layout/bar-layout";
-import { NotationElement } from "../notation-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
 import { NotationStyleLineElement } from "../staff/notation-style-line-element";
 import { BeamSegmentElement } from "./beam-segment-element";
@@ -30,7 +34,9 @@ import type { TrackLineElement } from "../track/track-line-element";
 /**
  * Class that handles geometry & visually relevant info of a bar
  */
-export class VoiceBarElement implements NotationElement {
+export class VoiceBarElement implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
     notationStyle: NotationStyle,
     voiceBar: VoiceBar
@@ -160,11 +166,11 @@ export class VoiceBarElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     elements.push(
-      ...this._beatElements.flatMap((be) => be.refreshOwnedNotationElements())
+      ...this._beatElements.flatMap((be) => be.refreshOwnedNotationNodes())
     );
 
     return elements;

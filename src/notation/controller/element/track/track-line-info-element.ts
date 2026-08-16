@@ -1,7 +1,7 @@
 import { MasterBar, Track } from "../../../model";
 import { Point, Rect, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import { NotationElement, NotationNodeType } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { TrackLineElement } from "./track-line-element";
 
@@ -10,6 +10,8 @@ import { TrackLineElement } from "./track-line-element";
  * info that needs to be on this track line element
  */
 export class TrackLineInfoElement implements NotationElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(
     trackLineElement: TrackLineElement
   ): string {
@@ -141,7 +143,7 @@ export class TrackLineInfoElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationElement[] {
     return [this];
   }
 

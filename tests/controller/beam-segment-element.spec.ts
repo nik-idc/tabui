@@ -21,7 +21,7 @@ function getBarElementAt(trackElement: TrackElement, index: number) {
 
 function getBeamSegments(trackElement: TrackElement): BeamSegmentElement[] {
   return getBarElementAt(trackElement, 0)
-    .refreshOwnedNotationElements()
+    .refreshOwnedNotationNodes()
     .filter(
       (element): element is BeamSegmentElement =>
         element instanceof BeamSegmentElement
@@ -30,13 +30,13 @@ function getBeamSegments(trackElement: TrackElement): BeamSegmentElement[] {
 
 function getTupletElements(trackElement: TrackElement, barIndex = 0) {
   return getBarElementAt(trackElement, barIndex)
-    .refreshOwnedNotationElements()
+    .refreshOwnedNotationNodes()
     .filter((element) => element.constructor.name === "BarTupletGroupElement");
 }
 
 function getVoiceBarRhythmElement(trackElement: TrackElement) {
   return getBarElement(trackElement)
-    .refreshOwnedNotationElements()
+    .refreshOwnedNotationNodes()
     .find(
       (element) => element.constructor.name === "VoiceBarRhythmElement"
     ) as any;

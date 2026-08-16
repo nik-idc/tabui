@@ -1,7 +1,7 @@
 import { BarTupletGroup, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import { NotationElement, NotationNodeType } from "../notation-element";
 import { BeatElement } from "../beat/beat-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
@@ -12,6 +12,8 @@ import type { TrackLineElement } from "../track/track-line-element";
  * Class that handles geometry & visually relevant info of a bar tuplet group
  */
 export class BarTupletGroupElement implements NotationElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(
     voiceBarRhythmElement: VoiceBarRhythmElement,
     tupletGroup: BarTupletGroup
@@ -146,7 +148,7 @@ export class BarTupletGroupElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationElement[] {
     return [this];
   }
 

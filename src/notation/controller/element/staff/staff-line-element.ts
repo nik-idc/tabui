@@ -1,7 +1,11 @@
 import { Staff, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import { TrackLineBar, TrackLineElement } from "../track/track-line-element";
 import { NotationStyleLineElement } from "./notation-style-line-element";
 import type { BarElement } from "../bar/bar-element";
@@ -17,7 +21,9 @@ export enum NotationStyle {
 /**
  * Class that handles all geometry & visually relevant info of a staff line
  */
-export class StaffLineElement implements NotationElement {
+export class StaffLineElement implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
     trackLineElement: TrackLineElement,
     staff: Staff
@@ -206,11 +212,11 @@ export class StaffLineElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     for (const styleLine of this.styleLinesAsArray) {
-      elements.push(...styleLine.refreshOwnedNotationElements());
+      elements.push(...styleLine.refreshOwnedNotationNodes());
     }
 
     return elements;

@@ -16,8 +16,6 @@ import {
   TrackElement,
 } from "../../controller/element/track-element";
 import { BarElement } from "../../controller/element/bar/bar-element";
-import { VoiceBarElement } from "../../controller/element/bar/voice-bar-element";
-import { VoiceBarRhythmElement } from "../../controller/element/bar/voice-bar-rhythm-element";
 import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
 import { TabBeatRhythmElement } from "../../controller/element/beat/tab-beat-rhythm-element";
 import { TabNoteElement } from "../../controller/element/note/tab-note-element";
@@ -65,11 +63,9 @@ const BAR_OWNED_ELEMENT_CLASSES = new Set<NotationElementClass>([
 ]);
 
 const ELEMENT_VOICE_PART = new Map<NotationElementClass, VoicePart>([
-  [VoiceBarElement, VoicePart.Content],
   [TabBeatElement, VoicePart.Content],
   [TabNoteElement, VoicePart.Content],
   [GuitarTechniqueElement, VoicePart.Content],
-  [VoiceBarRhythmElement, VoicePart.Rhythm],
   [TabBeatRhythmElement, VoicePart.Rhythm],
   [BeamSegmentElement, VoicePart.Rhythm],
   [BarTupletGroupElement, VoicePart.Rhythm],
@@ -861,7 +857,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     const visibleLines =
       this.trackController.trackElement.trackLineElements.slice(start, end + 1);
     const visibleElements = visibleLines.flatMap(
-      (l) => l.ownedNotationElements
+      (l) => l.drawableNotationElements
     );
 
     // Prepare retained SVG scaffolding before mounting renderer content into it.

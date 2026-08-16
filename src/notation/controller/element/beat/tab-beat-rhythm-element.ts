@@ -9,12 +9,14 @@ import { Point, randomInt, Rect } from "../../../../shared";
 import { TrackElement } from "../track-element";
 import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
 import { Circle } from "../../../../shared/rendering/geometry/circle";
-import { NotationElement } from "../notation-element";
+import { NotationElement, NotationNodeType } from "../notation-element";
 import { VoiceBarRhythmElement } from "../bar/voice-bar-rhythm-element";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
 export class TabBeatRhythmElement implements NotationElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(beat: Beat): string {
     return `tab-beat-rhythm:${beat.uuid}`;
   }
@@ -388,7 +390,7 @@ export class TabBeatRhythmElement implements NotationElement {
     return TabBeatRhythmElement.createStableIdentity(this.beat);
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationElement[] {
     return [this];
   }
 }

@@ -9,23 +9,15 @@ import {
 } from "./track/track-line-element";
 import { buildTrackElementSkeleton } from "./track/track-element-skeleton-builder";
 import { BeatElement } from "./beat/beat-element";
-import { StaffLineElement } from "./staff/staff-line-element";
 import { NotationElement, NotationElementClass } from "./notation-element";
 import { TabNoteElement } from "./note/tab-note-element";
 import { TabBeatElement } from "./beat/tab-beat-element";
 import { TabBeatRhythmElement } from "./beat/tab-beat-rhythm-element";
-import { NotationStyleLineElement } from "./staff/notation-style-line-element";
-import { VoiceBarElement } from "./bar/voice-bar-element";
-import { VoiceBarRhythmElement } from "./bar/voice-bar-rhythm-element";
 import { BeamSegmentElement } from "./bar/beam-segment-element";
 import { BarTupletGroupElement } from "./bar/bar-tuplet-group-element";
-import { TechGapElement } from "./staff/tech-gap-element";
-import { TechGapLineElement } from "./staff/tech-gap-line-element";
 import { TrackLineInfoElement } from "./track/track-line-info-element";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
-import { SheetBeatElement } from "./beat/sheet-beat-element";
-import { NoteElement } from "./note/note-element";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 
 function snapshotElements(elements: NotationElement[]): ElementSnapshot {
@@ -50,20 +42,14 @@ function snapshotElements(elements: NotationElement[]): ElementSnapshot {
 export const ELEMENT_ORDER: Array<NotationElementClass> = [
   TrackLineElement,
   TrackLineInfoElement,
-  StaffLineElement,
-  NotationStyleLineElement,
-  TechGapElement,
   BarElement,
-  VoiceBarElement,
   TabBeatElement,
   TabNoteElement,
   GuitarTechniqueElement,
-  VoiceBarRhythmElement,
   TabBeatRhythmElement,
   GuitarTechniqueLabelElement,
   BeamSegmentElement,
   BarTupletGroupElement,
-  TechGapLineElement,
 ];
 
 export type ElementIdentity = string;
@@ -200,7 +186,7 @@ export class TrackElement {
     const materializedElements: NotationElement[] = [];
     for (const lineIndex of this._materializedLineIndices) {
       materializedElements.push(
-        ...(this._trackLineElements[lineIndex]?.ownedNotationElements ?? [])
+        ...(this._trackLineElements[lineIndex]?.drawableNotationElements ?? [])
       );
     }
 
@@ -326,11 +312,11 @@ export class TrackElement {
         nextLine = new TrackLineElement(this, skeletonLine);
         if (oldEntry?.isMaterialized) {
           const oldEntrySnapshot = snapshotElements(
-            oldEntry.line.ownedNotationElements
+            oldEntry.line.drawableNotationElements
           );
           this.reconcileSnapshot(
             oldEntrySnapshot,
-            nextLine.ownedNotationElements
+            nextLine.drawableNotationElements
           );
           oldLinesByIdentity.delete(identity);
         }
@@ -346,7 +332,7 @@ export class TrackElement {
         continue;
       }
 
-      for (const element of line.ownedNotationElements) {
+      for (const element of line.drawableNotationElements) {
         this.addToDiff(DiffPart.Removed, element);
       }
     }
@@ -412,7 +398,7 @@ export class TrackElement {
       }
 
       const previousSnapshot = snapshotElements(
-        oldTrackLine?.ownedNotationElements ?? []
+        oldTrackLine?.drawableNotationElements ?? []
       );
       const nextTrackLine =
         oldTrackLine ?? new TrackLineElement(this, nextSkeletonLine);
@@ -429,7 +415,7 @@ export class TrackElement {
 
       this.reconcileSnapshot(
         previousSnapshot,
-        nextTrackLine.ownedNotationElements
+        nextTrackLine.drawableNotationElements
       );
     }
 
@@ -460,8 +446,10 @@ export class TrackElement {
       const shell = new TrackLineElement(this, this._skeleton.lines[lineIndex]);
       this._trackLineElements[lineIndex] = shell;
       this._materializedLineIndices.delete(lineIndex);
-      const oldLineSnapshot = snapshotElements(oldLine.ownedNotationElements);
-      this.reconcileSnapshot(oldLineSnapshot, shell.ownedNotationElements);
+      const oldLineSnapshot = snapshotElements(
+        oldLine.drawableNotationElements
+      );
+      this.reconcileSnapshot(oldLineSnapshot, shell.drawableNotationElements);
     }
   }
 

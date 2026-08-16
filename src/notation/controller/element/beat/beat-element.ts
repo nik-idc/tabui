@@ -1,7 +1,7 @@
 import { Bar, Beat, VoiceBar } from "../../../model";
 import { Rect, Point } from "../../../../shared";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
-import { NotationElement } from "../notation-element";
+import { NotationNode } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
 import { VoiceBarElement } from "../bar/voice-bar-element";
@@ -9,7 +9,7 @@ import { VoiceBarElement } from "../bar/voice-bar-element";
 /**
  * Interface representing a specific notation styleА beat element
  */
-export interface BeatElement extends NotationElement {
+export interface BeatElement extends NotationNode {
   readonly beat: Beat;
   readonly voiceBarElement: VoiceBarElement;
   readonly barElement: BarElement;

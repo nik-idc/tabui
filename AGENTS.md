@@ -21,26 +21,16 @@ npm run format       # Format all files
 
 - Active tests are in `tests/`.
 - Source of truth for test config: `jest.config.cjs`.
-- Prefer TDD: whenever possible & makes sense, first make tests and only
-  then write the actual functionality. Main goal - avoiding writing tests
-  that test only the happy path and/or current flow of execution. Instead,
-  tests should check correctness of implementation of intended functionality.
+- Prefer TDD whenever possible & makes sense.
+  First make tests and only then write the actual functionality. Main goal -
+  avoiding writing tests that test only the happy path and/or flow of execution.
+  Tests must check **correctness** of implementation of intended functionality.
 
 ## Validation Notes
 
-- `npm test` is the primary regression check for active work.
-- Release-facing changes should also run `npm run build`, `npm run build_vite`,
-  and `npm run test:pack-consumer` as applicable.
-
-## Editor Fixtures
-
-The editor supports fixture selection through the `fixture` query parameter:
-
-- `fixture=empty` -> empty score fixture
-- `fixture=feature_showcase` (or missing) -> feature showcase fixture
-- `fixture=multi_voice_single_staff` -> multi-voice single-staff fixture
-- `fixture=multi_voice_two_staff` -> multi-voice two-staff fixture
-- `fixture=performance_stress` -> larger performance stress fixture
+- `npm run verify` runs a whole CI pipieline: builds, demo builds, tests etc.
+  Read the script for more details. Use this command when you want to validate
+  the state of the entire codebase.
 
 ## TypeScript and Imports
 
@@ -58,6 +48,8 @@ array.find((v) => v.property === neededProp); // GOOD
   depend on repository-only aliases.
 - Prefer named exports and barrel exports where they improve discoverability.
 - For internal module boundaries, prefer direct imports over broad barrels when possible.
+- Avoice `any`, `!`, `as` and other "trust me bro" operators at all costs. The goal is to
+  make TS in this project as strict and as definitive as it possibly can be.
 
 ## Code Style Guidelines
 
@@ -72,6 +64,18 @@ array.find((v) => v.property === neededProp); // GOOD
 - Keep `for`, `if`, and similar control-flow headers on one line. If the header
   would become too long, extract local variables before the statement rather than
   splitting the header across lines.
+- Prefer correctness and clarity over broad refactors during stabilization-focused work.
+- Prefer locality of behavior. Do not introduce trivial one-line
+  getters/helpers that only wrap a simple property access used in one
+  place.
+- If a getter or helper would be a single obvious line such as
+  `return this._foo?.bar;`, prefer inlining that expression at the call
+  site instead of creating a dedicated method.
+- Extract only when the logic is reused, meaningfully named, or complex
+  enough that the abstraction improves readability.
+- Avoid adding comments unless the logic is non-obvious.
+- Document all new functionality using JSDoc. Keep it consice, simple but informative.
+  Ideally 1-2 sentences that are easy to read and explain clearly what the function does.
 
 ## Architecture Overview
 
@@ -149,15 +153,28 @@ array.find((v) => v.property === neededProp); // GOOD
   reintroduce eager update-type semantics such as horizontal/vertical/targeted
   command update requests.
 - Keep behavior changes small and verifiable with tests.
-- Prefer correctness and clarity over broad refactors during stabilization-focused work.
-- Prefer locality of behavior. Do not introduce trivial one-line
-  getters/helpers that only wrap a simple property access used in one
-  place.
-- If a getter or helper would be a single obvious line such as
-  `return this._foo?.bar;`, prefer inlining that expression at the call
-  site instead of creating a dedicated method.
-- Extract only when the logic is reused, meaningfully named, or complex
-  enough that the abstraction improves readability.
-- Avoid adding comments unless the logic is non-obvious.
-- Phase 6 status and the next release-blocking task are tracked in
-  `PHASE-6-ROADMAP.md`.
+- **Do not commit/push anything** yourself unless specifically and explicitly
+  prompted by the user.
+
+## Communication & Response Guidelines
+
+Follow the principles of the **Google Developer Documentation Style Guide** and
+**ASD-STE100 (Simplified Technical English)** across all text outputs.
+
+1. **Directness & Tone**
+   - Write in dry, plain, unambiguous Technical English.
+   - Use active voice, present tense, and second person ("you").
+   - Omit meta-commentary, introductory fluff, or polite preamble. Lead directly with
+     the answer or action.
+
+2. **Clarity & Consistency**
+   - One concept per sentence. Keep sentence structure simple and scannable.
+   - Maintain consistent terminology (do not swap terms or invent new jargon/synonyms
+     for the same concept).
+   - Use technical jargon only when it is strictly shorter and more precise than plain phrasing.
+
+3. **Formatting & Scanning**
+   - Bold the main idea of a point at the beginning of a line/bullet.
+   - Limit bolding to at most one short phrase per point (never bold whole
+     sentences or paragraphs).
+   - Prefer structured lists or short tables over dense walls of text.

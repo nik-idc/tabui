@@ -1,6 +1,10 @@
 import { Point, randomInt, Rect } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { NotationStyle, StaffLineElement } from "./staff-line-element";
 import { TechGapElement } from "./tech-gap-element";
@@ -12,7 +16,9 @@ import { TrackLineBar, TrackLineElement } from "../track/track-line-element";
  * case the StaffLineElement will contain 2 notation style line elements -
  * NotationStyleLineElement for the tab and the other for sheet notation
  */
-export class NotationStyleLineElement implements NotationElement {
+export class NotationStyleLineElement implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
     staffLineElement: StaffLineElement,
     notationStyle: NotationStyle
@@ -149,12 +155,12 @@ export class NotationStyleLineElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
-    elements.push(...this._techGapElement.refreshOwnedNotationElements());
+    elements.push(...this._techGapElement.refreshOwnedNotationNodes());
     for (const barElement of this._barElements) {
-      elements.push(...barElement.refreshOwnedNotationElements());
+      elements.push(...barElement.refreshOwnedNotationNodes());
     }
 
     return elements;

@@ -17,11 +17,14 @@ import { TechniqueLabelElement } from "../technique-label-element";
 import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
 import type { BarElement } from "../../bar/bar-element";
 import type { TrackLineElement } from "../../track/track-line-element";
+import { NotationNodeType } from "../../notation-element";
 
 /**
  * Class that contains a guitar technique label
  */
 export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(
     gapLineElement: TechGapLineElement,
     technique: GuitarTechnique,
@@ -456,7 +459,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): TechniqueLabelElement[] {
+  public refreshOwnedNotationNodes(): TechniqueLabelElement[] {
     return [this];
   }
 

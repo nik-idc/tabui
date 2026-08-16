@@ -14,14 +14,20 @@ import { Circle } from "../../../../shared/rendering/geometry/circle";
 import { VertLine, HorLine } from "../../../../shared/rendering/geometry/line";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
-import { NotationElement } from "../notation-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import { VoiceBarElement } from "../bar/voice-bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
  */
-export class SheetBeatElement implements BeatElement {
+export class SheetBeatElement implements BeatElement, NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
     voiceBarElement: VoiceBarElement,
     beat: Beat
@@ -205,7 +211,7 @@ export class SheetBeatElement implements BeatElement {
 
   public update(): void {}
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationNode[] {
     return [this];
   }
 

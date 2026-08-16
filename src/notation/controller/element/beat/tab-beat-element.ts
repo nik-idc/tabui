@@ -13,7 +13,7 @@ import { TabNoteElement } from "../note/tab-note-element";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
-import { NotationElement } from "../notation-element";
+import { NotationNode, NotationNodeType } from "../notation-element";
 import { VoiceBarElement } from "../bar/voice-bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
@@ -21,6 +21,8 @@ import type { TrackLineElement } from "../track/track-line-element";
  * Class that handles geometry & visually relevant info of a beat
  */
 export class TabBeatElement implements BeatElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity_NEW(
     trackLineStableIdentity: string,
     beat: Beat
@@ -174,11 +176,11 @@ export class TabBeatElement implements BeatElement {
     return hashArr.join("");
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     for (const noteElement of this._noteElements) {
-      elements.push(...noteElement.refreshOwnedNotationElements());
+      elements.push(...noteElement.refreshOwnedNotationNodes());
     }
 
     return elements;

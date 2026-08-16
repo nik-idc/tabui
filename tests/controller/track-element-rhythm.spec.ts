@@ -32,7 +32,7 @@ function fillBarWithDenseSixtyFourthBeats(
 
 function getRhythmElements(trackElement: TrackElement): any[] {
   return trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0]
-    .refreshOwnedNotationElements()
+    .refreshOwnedNotationNodes()
     .filter((element) => element.constructor.name === "TabBeatRhythmElement");
 }
 

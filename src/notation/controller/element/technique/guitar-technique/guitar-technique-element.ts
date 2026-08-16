@@ -7,7 +7,7 @@ import {
 } from "../../../../model";
 import { Point, Rect, randomInt } from "../../../../../shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
-import { NotationElement } from "../../notation-element";
+import { NotationElement, NotationNodeType } from "../../notation-element";
 import { TrackElement } from "../../track-element";
 import { SVGPathDescriptor, TechniqueElement } from "../technique-element";
 import { TabNoteElement } from "../../note/tab-note-element";
@@ -22,6 +22,8 @@ import type { TrackLineElement } from "../../track/track-line-element";
  * to which the technique is applied
  */
 export class GuitarTechniqueElement implements TechniqueElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(
     noteElement: TabNoteElement,
     technique: GuitarTechnique
@@ -525,7 +527,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationElement[] {
     return [this];
   }
 

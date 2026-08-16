@@ -4,7 +4,6 @@ export * from "./svg-bar-renderer";
 export * from "./svg-beat-renderer";
 export * from "./svg-tab-note-renderer";
 export * from "./svg-note-renderer";
-export * from "./svg-staff-line-renderer";
 export * from "./svg-technique-label-renderer";
 export * from "./svg-technique-renderer";
 export * from "./svg-track-line-renderer";

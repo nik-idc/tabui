@@ -1,7 +1,11 @@
 import { Point, randomInt, Rect } from "../../../../shared";
 import { GuitarTechnique, Technique, TechniqueType } from "../../../model";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import { BeatElement } from "../beat/beat-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import {
@@ -17,7 +21,9 @@ import type { TrackLineElement } from "../track/track-line-element";
 /**
  * Class representing a single line of a staff line's technique label gap
  */
-export class TechGapLineElement implements NotationElement {
+export class TechGapLineElement implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
     techGapElement: TechGapElement,
     techLineNumber: TechLineNumber
@@ -203,11 +209,11 @@ export class TechGapLineElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationNode[] {
     return [
       this,
       ...this._labelElements.flatMap((label) =>
-        label.refreshOwnedNotationElements()
+        label.refreshOwnedNotationNodes()
       ),
     ];
   }

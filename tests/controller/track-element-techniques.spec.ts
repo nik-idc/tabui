@@ -14,6 +14,10 @@ import { TechGapLineElement } from "../../src/notation/controller/element/staff/
 import { GuitarTechniqueLabelElement } from "../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { GuitarTechniqueElement } from "../../src/notation/controller/element/technique/guitar-technique/guitar-technique-element";
 import { SetTechniqueCommand } from "../../src/notation/controller/editor/command";
+import {
+  isNotationContainer,
+  isNotationElement,
+} from "../../src/notation/controller/element/notation-element";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
@@ -138,7 +142,7 @@ describe("TrackElement techniques", () => {
     expect(noteElement?.techniqueElements).toHaveLength(1);
     expect(techniqueElement).toBeInstanceOf(GuitarTechniqueElement);
     expect(
-      trackElement.trackLineElements[0].ownedNotationElements.some(
+      trackElement.trackLineElements[0].ownedNotationNodes.some(
         (element) => element === techniqueElement
       )
     ).toBe(true);
@@ -289,7 +293,7 @@ describe("TrackElement techniques", () => {
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
-    const bendElements = trackElement.trackLineElements[0].ownedNotationElements
+    const bendElements = trackElement.trackLineElements[0].ownedNotationNodes
       .filter((element) => element instanceof GuitarTechniqueElement)
       .filter((element) => element.technique.type === GuitarTechniqueType.Bend);
     const elementFor = (type: BendType) =>
@@ -630,7 +634,7 @@ describe("TrackElement techniques", () => {
     ).toBe(line3LabelIdentity);
   });
 
-  test("ownedNotationElements includes technique gap subtree elements", () => {
+  test("ownedNotationNodes includes technique gap subtree nodes", () => {
     const { track, bar } = createScoreGraph();
     const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {
@@ -644,8 +648,7 @@ describe("TrackElement techniques", () => {
       lineRange: { startLineIndex: 0, endLineIndex: 0 },
     });
 
-    const ownedElements =
-      trackElement.trackLineElements[0].ownedNotationElements;
+    const ownedElements = trackElement.trackLineElements[0].ownedNotationNodes;
 
     expect(
       ownedElements.some((element) => element instanceof TechGapElement)
@@ -658,9 +661,39 @@ describe("TrackElement techniques", () => {
         (element) => element instanceof GuitarTechniqueLabelElement
       )
     ).toBe(true);
+
+    const drawableElements =
+      trackElement.trackLineElements[0].drawableNotationElements;
+    expect(
+      drawableElements.some((element) => element instanceof TechGapElement)
+    ).toBe(false);
+    expect(
+      drawableElements.some((element) => element instanceof TechGapLineElement)
+    ).toBe(false);
+    expect(
+      drawableElements.some(
+        (element) => element instanceof GuitarTechniqueLabelElement
+      )
+    ).toBe(true);
+
+    const techGapNode = ownedElements.find(
+      (element) => element instanceof TechGapElement
+    );
+    const labelNode = ownedElements.find(
+      (element) => element instanceof GuitarTechniqueLabelElement
+    );
+    expect(techGapNode).toBeDefined();
+    expect(labelNode).toBeDefined();
+    if (techGapNode === undefined || labelNode === undefined) {
+      throw Error("Expected technique gap and label nodes");
+    }
+    expect(isNotationContainer(techGapNode)).toBe(true);
+    expect(isNotationElement(techGapNode)).toBe(false);
+    expect(isNotationElement(labelNode)).toBe(true);
+    expect(isNotationContainer(labelNode)).toBe(false);
   });
 
-  test("ownedNotationElements updates after line rematerialization", () => {
+  test("ownedNotationNodes updates after line rematerialization", () => {
     const { track, bar } = createScoreGraph();
     const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {
@@ -669,7 +702,7 @@ describe("TrackElement techniques", () => {
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     expect(
-      trackElement.trackLineElements[0].ownedNotationElements.some(
+      trackElement.trackLineElements[0].ownedNotationNodes.some(
         (element) => element instanceof GuitarTechniqueElement
       )
     ).toBe(false);
@@ -680,7 +713,7 @@ describe("TrackElement techniques", () => {
     });
 
     expect(
-      trackElement.trackLineElements[0].ownedNotationElements.some(
+      trackElement.trackLineElements[0].ownedNotationNodes.some(
         (element) => element instanceof GuitarTechniqueElement
       )
     ).toBe(true);
@@ -856,7 +889,7 @@ describe("TrackElement techniques", () => {
     );
     expect(
       trackElement.trackLineElements
-        .flatMap((line) => line.ownedNotationElements)
+        .flatMap((line) => line.ownedNotationNodes)
         .filter(
           (element) =>
             element instanceof GuitarTechniqueLabelElement &&

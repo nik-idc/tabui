@@ -5,12 +5,14 @@ import { GuitarTechniqueElement } from "../technique/guitar-technique/guitar-tec
 import { TechniqueElement } from "../technique/technique-element";
 import { NoteElement } from "./note-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { NotationElement } from "../notation-element";
+import { NotationNode, NotationNodeType } from "../notation-element";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
 /** Class that handles geometry & visually relevant info of a tab note slot. */
 export class TabNoteElement implements NoteElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(
     beatElement: TabBeatElement,
     stringNumber: number
@@ -159,11 +161,11 @@ export class TabNoteElement implements NoteElement {
       : fret;
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationNode[] {
     return [
       this,
       ...this._techniqueElements.flatMap((technique) =>
-        technique.refreshOwnedNotationElements()
+        technique.refreshOwnedNotationNodes()
       ),
     ];
   }

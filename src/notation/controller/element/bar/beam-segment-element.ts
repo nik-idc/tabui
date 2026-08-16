@@ -1,6 +1,6 @@
 import { Point, Rect, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import { NotationElement, NotationNodeType } from "../notation-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { DURATION_TO_FLAG_COUNT, VoiceNumber } from "../../../model";
 import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
@@ -14,6 +14,8 @@ type ShortTailDirection = "left" | "right";
  * Class that handles geometry & visually relevant info of a beam segment
  */
 export class BeamSegmentElement implements NotationElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(
     voiceBarElement: VoiceBarRhythmElement,
     curBeatElement: TabBeatElement,
@@ -282,7 +284,7 @@ export class BeamSegmentElement implements NotationElement {
     return hashArr.join("");
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationElement[] {
     return [this];
   }
 

@@ -3,7 +3,9 @@ import { TrackElement } from "../track-element";
 import {
   BarTupletGroupElement,
   BeamSegmentElement,
-  NotationElement,
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
   TabBeatElement,
 } from "..";
 import { Point, randomInt, Rect } from "../../../../shared";
@@ -12,7 +14,9 @@ import { TabBeatRhythmElement } from "../beat/tab-beat-rhythm-element";
 import { BarElement } from "./bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
-export class VoiceBarRhythmElement implements NotationElement {
+export class VoiceBarRhythmElement implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   /** Unique identifier for the bar element */
   readonly uuid: number;
   /** The bar */
@@ -328,17 +332,17 @@ export class VoiceBarRhythmElement implements NotationElement {
     return `voice-bar-rhythm:${this.barElement.getStableIdentity()}:${this.voiceNumber}`;
   }
 
-  refreshOwnedNotationElements(): NotationElement[] {
+  refreshOwnedNotationNodes(): NotationNode[] {
     return [
       this,
       ...this._beatRhythmElements.flatMap((element) =>
-        element.refreshOwnedNotationElements()
+        element.refreshOwnedNotationNodes()
       ),
       ...this._beamSegments.flatMap((element) =>
-        element.refreshOwnedNotationElements()
+        element.refreshOwnedNotationNodes()
       ),
       ...this._tupletElements.flatMap((element) =>
-        element.refreshOwnedNotationElements()
+        element.refreshOwnedNotationNodes()
       ),
     ];
   }

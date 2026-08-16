@@ -14,7 +14,7 @@ import { createTestTrackController } from "./helpers";
 
 function getNoteElement(controller: TrackController, note: GuitarNote) {
   const noteElement = controller.trackElement.trackLineElements
-    .flatMap((line) => line.ownedNotationElements)
+    .flatMap((line) => line.ownedNotationNodes)
     .find((element) => {
       return element instanceof TabNoteElement && element.note === note;
     });

@@ -6,7 +6,11 @@ import {
 } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import {
+  NotationElement,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
 import { NotationStyleLineElement } from "../staff/notation-style-line-element";
 import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
@@ -19,6 +23,8 @@ import type { TrackLineElement } from "../track/track-line-element";
  * Class that handles geometry & visually relevant info of a bar
  */
 export class BarElement implements NotationElement {
+  readonly nodeType = NotationNodeType.Element;
+
   private static readonly startRepeatWidthFactor = 2;
   private static readonly endRepeatWidthFactor = 1;
 
@@ -331,17 +337,17 @@ export class BarElement implements NotationElement {
     return nextBarRhythmElement ?? null;
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     elements.push(
       ...Object.values(this._voiceBarElements).flatMap((segment) =>
-        segment.refreshOwnedNotationElements()
+        segment.refreshOwnedNotationNodes()
       )
     );
     elements.push(
       ...Object.values(this._voiceBarRhythmElements).flatMap((segment) =>
-        segment.refreshOwnedNotationElements()
+        segment.refreshOwnedNotationNodes()
       )
     );
 
