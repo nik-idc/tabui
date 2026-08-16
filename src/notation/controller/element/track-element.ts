@@ -109,6 +109,8 @@ export class TrackElement {
   private _materializedElementsByIdentity: Map<string, NotationElement>;
   /** Structural diff for materialized line work. */
   private _elementDiff: ElementDiff;
+  /** Last materialized state consumed by the renderer. */
+  private _diffBaselineSnapshot: ElementSnapshot | null;
   /** Materialized lines have full descendants; other lines are geometry shells. */
   private _materializedLineIndices: Set<number>;
 
@@ -129,6 +131,7 @@ export class TrackElement {
       updated: new Map(),
       removed: new Map(),
     };
+    this._diffBaselineSnapshot = null;
     this._materializedLineIndices = new Set();
     this.build();
   }
@@ -152,6 +155,7 @@ export class TrackElement {
       updated: new Map(),
       removed: new Map(),
     };
+    this._diffBaselineSnapshot = null;
   }
 
   /** Consumes the materialized-line diff and resets it. */
@@ -206,8 +210,10 @@ export class TrackElement {
       this.track,
       this.layoutDimensions
     );
-    for (const skeletonLine of this._skeleton.lines) {
-      this._trackLineElements.push(new TrackLineElement(this, skeletonLine));
+    for (let i = 0; i < this._skeleton.lines.length; i++) {
+      this._trackLineElements.push(
+        new TrackLineElement(this, this._skeleton.lines[i], i)
+      );
     }
 
     this.refreshMaterializedElements();
@@ -262,6 +268,11 @@ export class TrackElement {
     prevSnapshot: ElementSnapshot,
     nextElements: NotationElement[]
   ): void {
+    this._elementDiff = {
+      added: new Map(),
+      updated: new Map(),
+      removed: new Map(),
+    };
     const remainingPrevElements = new Map(prevSnapshot.elements);
 
     for (const element of nextElements) {
@@ -280,6 +291,27 @@ export class TrackElement {
     }
   }
 
+  private beginDiffing(): void {
+    if (this._diffBaselineSnapshot !== null) {
+      return;
+    }
+
+    this._diffBaselineSnapshot = snapshotElements([
+      ...this._materializedElementsByIdentity.values(),
+    ]);
+  }
+
+  private completeDiffing(): void {
+    this.refreshMaterializedElements();
+    if (this._diffBaselineSnapshot === null) {
+      throw Error("Cannot complete element diff without a baseline snapshot");
+    }
+
+    this.reconcileSnapshot(this._diffBaselineSnapshot, [
+      ...this._materializedElementsByIdentity.values(),
+    ]);
+  }
+
   private reconcileSkeletonLines(): void {
     const oldLinesByIdentity = new Map(
       this._trackLineElements.map((line, index) => [
@@ -292,10 +324,7 @@ export class TrackElement {
 
     for (let i = 0; i < this._skeleton.lines.length; i++) {
       const skeletonLine = this._skeleton.lines[i];
-      const identity = TrackLineElement.createStableIdentity(
-        this.track,
-        skeletonLine.trackLineBars
-      );
+      const identity = TrackLineElement.createStableIdentity(this.track, i);
       const oldEntry = oldLinesByIdentity.get(identity);
       let nextLine: TrackLineElement;
       if (
@@ -309,32 +338,13 @@ export class TrackElement {
         }
         oldLinesByIdentity.delete(identity);
       } else {
-        nextLine = new TrackLineElement(this, skeletonLine);
-        if (oldEntry?.isMaterialized) {
-          const oldEntrySnapshot = snapshotElements(
-            oldEntry.line.drawableNotationElements
-          );
-          this.reconcileSnapshot(
-            oldEntrySnapshot,
-            nextLine.drawableNotationElements
-          );
+        nextLine = new TrackLineElement(this, skeletonLine, i);
+        if (oldEntry !== undefined) {
           oldLinesByIdentity.delete(identity);
         }
       }
 
       nextLines.push(nextLine);
-    }
-
-    // Entries left here no longer exist in the rebuilt skeleton. Materialized
-    // lines may still own renderer identities that must be removed.
-    for (const { line, isMaterialized } of oldLinesByIdentity.values()) {
-      if (!isMaterialized) {
-        continue;
-      }
-
-      for (const element of line.drawableNotationElements) {
-        this.addToDiff(DiffPart.Removed, element);
-      }
     }
 
     this._trackLineElements = nextLines;
@@ -397,11 +407,8 @@ export class TrackElement {
         continue;
       }
 
-      const previousSnapshot = snapshotElements(
-        oldTrackLine?.drawableNotationElements ?? []
-      );
       const nextTrackLine =
-        oldTrackLine ?? new TrackLineElement(this, nextSkeletonLine);
+        oldTrackLine ?? new TrackLineElement(this, nextSkeletonLine, i);
       nextTrackLine.setGeometryFromSkeleton(nextSkeletonLine);
       nextTrackLine.build();
       nextTrackLine.measure();
@@ -412,11 +419,6 @@ export class TrackElement {
       }
       nextTrackLines[i] = nextTrackLine;
       this._materializedLineIndices.add(i);
-
-      this.reconcileSnapshot(
-        previousSnapshot,
-        nextTrackLine.drawableNotationElements
-      );
     }
 
     // Assigning here because `TrackLineElement.layout` depends on `_trackLineElements`
@@ -442,14 +444,13 @@ export class TrackElement {
         continue;
       }
 
-      const oldLine = this._trackLineElements[lineIndex];
-      const shell = new TrackLineElement(this, this._skeleton.lines[lineIndex]);
+      const shell = new TrackLineElement(
+        this,
+        this._skeleton.lines[lineIndex],
+        lineIndex
+      );
       this._trackLineElements[lineIndex] = shell;
       this._materializedLineIndices.delete(lineIndex);
-      const oldLineSnapshot = snapshotElements(
-        oldLine.drawableNotationElements
-      );
-      this.reconcileSnapshot(oldLineSnapshot, shell.drawableNotationElements);
     }
   }
 
@@ -466,8 +467,9 @@ export class TrackElement {
    * without a viewport range would materialize the whole track.
    */
   public refreshLayout(): void {
+    this.beginDiffing();
     this.rebuildSkeletonGeometry();
-    this.refreshMaterializedElements();
+    this.completeDiffing();
   }
 
   private normalizeLineRange(
@@ -485,6 +487,7 @@ export class TrackElement {
   }
 
   public update(options: TrackElementLineUpdateOptions = {}): void {
+    this.beginDiffing();
     const affectedMasterBarIndices = options.affectedMasterBarIndices;
     const modelUpdate = affectedMasterBarIndices !== undefined;
     const rebuildSkeleton = modelUpdate || options.rebuildSkeleton !== false;
@@ -498,13 +501,13 @@ export class TrackElement {
       lineRange =
         this.getAffectedLineRange(affectedMasterBarIndices) ?? undefined;
       if (lineRange === undefined) {
-        this.refreshMaterializedElements();
+        this.completeDiffing();
         return;
       }
     }
 
     if (this._skeleton.lines.length === 0) {
-      this.refreshMaterializedElements();
+      this.completeDiffing();
       return;
     }
 
@@ -517,7 +520,7 @@ export class TrackElement {
         options.dematerializeOutsideRange.endLineIndex
       );
     }
-    this.refreshMaterializedElements();
+    this.completeDiffing();
   }
 
   public getTrackLineElementForBeat(beat: Beat): TrackLineElement | undefined {
@@ -537,14 +540,7 @@ export class TrackElement {
       return undefined;
     }
 
-    const trackLineIdentity = TrackLineElement.createStableIdentity(
-      this.track,
-      trackLineElement.trackLineBars
-    );
-    const identity = TabBeatElement.createStableIdentity_NEW(
-      trackLineIdentity,
-      beat
-    );
+    const identity = TabBeatElement.createStableIdentity(beat);
 
     const element = this._materializedElementsByIdentity.get(identity);
     return element instanceof TabBeatElement ? element : undefined;

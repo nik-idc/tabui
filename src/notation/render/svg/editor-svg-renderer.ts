@@ -593,7 +593,7 @@ export class EditorSVGRenderer implements EditorRenderer {
         continue;
       }
 
-      this.unmountDomChild(this._notationSVGGroup, barContainer.wrapper);
+      barContainer.wrapper.remove();
       lineContainer.barContainers.delete(stableIdentity);
     }
   }
@@ -727,13 +727,12 @@ export class EditorSVGRenderer implements EditorRenderer {
       // Renderer identity is stable, but rematerialization can replace the
       // element object carrying current geometry and ownership references.
       renderer.updateElementReference(element);
+      this.mountRenderer(renderer, element);
 
       if (wasMounted && !shouldRender) {
         activeRenderers.push(renderer);
         continue;
       }
-
-      this.mountRenderer(renderer, element);
 
       if (shouldRender) {
         renderer.render();

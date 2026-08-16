@@ -28,13 +28,8 @@ import type { TrackLineElement } from "../track/track-line-element";
 export class SheetBeatElement implements BeatElement, NotationContainer {
   readonly nodeType = NotationNodeType.Container;
 
-  public static createStableIdentity(
-    voiceBarElement: VoiceBarElement,
-    beat: Beat
-  ): string {
-    const trackLineStableIdentity =
-      voiceBarElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `beat:${trackLineStableIdentity}:${beat.uuid}`;
+  public static createStableIdentity(beat: Beat): string {
+    return `sheet-beat:${beat.uuid}`;
   }
 
   /** Beat element's unique identifier */
@@ -151,10 +146,7 @@ export class SheetBeatElement implements BeatElement, NotationContainer {
   }
 
   public getStableIdentity(): string {
-    return SheetBeatElement.createStableIdentity(
-      this.voiceBarElement,
-      this.beat
-    );
+    return SheetBeatElement.createStableIdentity(this.beat);
   }
 
   public get barElement(): BarElement {

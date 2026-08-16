@@ -23,23 +23,8 @@ import type { TrackLineElement } from "../track/track-line-element";
 export class TabBeatElement implements BeatElement {
   readonly nodeType = NotationNodeType.Element;
 
-  public static createStableIdentity_NEW(
-    trackLineStableIdentity: string,
-    beat: Beat
-  ): string {
-    return `tab-beat:${trackLineStableIdentity}:${beat.uuid}`;
-  }
-
-  public static createStableIdentity(
-    voiceBarElement: VoiceBarElement,
-    beat: Beat
-  ): string {
-    const trackLineStableIdentity =
-      voiceBarElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return TabBeatElement.createStableIdentity_NEW(
-      trackLineStableIdentity,
-      beat
-    );
+  public static createStableIdentity(beat: Beat): string {
+    return `tab-beat:${beat.uuid}`;
   }
 
   /** Beat element's unique identifier */
@@ -192,7 +177,7 @@ export class TabBeatElement implements BeatElement {
   }
 
   public getStableIdentity(): string {
-    return TabBeatElement.createStableIdentity(this.voiceBarElement, this.beat);
+    return TabBeatElement.createStableIdentity(this.beat);
   }
 
   public get barElement(): BarElement {

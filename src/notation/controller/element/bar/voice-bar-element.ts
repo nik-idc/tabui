@@ -95,7 +95,7 @@ export class VoiceBarElement implements NotationContainer {
     this._beatElements = [];
     for (const beat of this.voiceBar.beats) {
       const existingBeatElement = prevBeatElements.get(
-        TabBeatElement.createStableIdentity(this, beat)
+        TabBeatElement.createStableIdentity(beat)
       );
       if (existingBeatElement !== undefined) {
         existingBeatElement.build();

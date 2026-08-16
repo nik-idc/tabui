@@ -30,9 +30,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     technique: GuitarTechnique,
     beatElement: BeatElement
   ): string {
-    const trackLineStableIdentity =
-      gapLineElement.techGapElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `technique-label:${trackLineStableIdentity}:${gapLineElement.techLineNumber}:${technique.uuid}:${beatElement.beat.uuid}`;
+    return `technique-label:${gapLineElement.techLineNumber}:${technique.uuid}:${beatElement.beat.uuid}`;
   }
 
   /** Technique label element's unique identifier */

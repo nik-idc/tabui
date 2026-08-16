@@ -17,9 +17,7 @@ export class TabNoteElement implements NoteElement {
     beatElement: TabBeatElement,
     stringNumber: number
   ): string {
-    const trackLineStableIdentity =
-      beatElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `note-slot:${trackLineStableIdentity}:${beatElement.beat.uuid}:${stringNumber}`;
+    return `note-slot:${beatElement.beat.uuid}:${stringNumber}`;
   }
 
   /** Guitar note element's unique identifier */
@@ -93,7 +91,7 @@ export class TabNoteElement implements NoteElement {
     for (const technique of this.note?.techniques ?? []) {
       const techniqueElement =
         prevTechniqueElements.get(
-          GuitarTechniqueElement.createStableIdentity(this, technique)
+          GuitarTechniqueElement.createStableIdentity(technique)
         ) ?? new GuitarTechniqueElement(technique, this);
       techniqueElement.build();
       this._techniqueElements.push(techniqueElement);

@@ -24,13 +24,8 @@ import type { TrackLineElement } from "../../track/track-line-element";
 export class GuitarTechniqueElement implements TechniqueElement {
   readonly nodeType = NotationNodeType.Element;
 
-  public static createStableIdentity(
-    noteElement: TabNoteElement,
-    technique: GuitarTechnique
-  ): string {
-    const trackLineStableIdentity =
-      noteElement.beatElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `technique:${trackLineStableIdentity}:${technique.uuid}`;
+  public static createStableIdentity(technique: GuitarTechnique): string {
+    return `technique:${technique.uuid}`;
   }
 
   /** Guitar note element's unique identifier */
@@ -537,10 +532,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
   }
 
   public getStableIdentity(): string {
-    return GuitarTechniqueElement.createStableIdentity(
-      this.noteElement,
-      this.technique
-    );
+    return GuitarTechniqueElement.createStableIdentity(this.technique);
   }
 
   /** Start point */

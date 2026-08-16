@@ -22,14 +22,12 @@ export class BeamSegmentElement implements NotationElement {
     nextBeatElement?: TabBeatElement,
     prevBeatElement?: TabBeatElement
   ): string {
-    const trackLineStableIdentity =
-      voiceBarElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
     const prevUUID = prevBeatElement?.beat.uuid ?? 0;
     const curUUID = curBeatElement.beat.uuid;
     const nextUUID = nextBeatElement?.beat.uuid ?? 0;
     const terminalFlag = nextBeatElement === undefined ? 1 : 0;
 
-    return `beam:${trackLineStableIdentity}:${voiceBarElement.voiceNumber}:${prevUUID}:${curUUID}:${nextUUID}:${terminalFlag}`;
+    return `beam:${voiceBarElement.voiceNumber}:${prevUUID}:${curUUID}:${nextUUID}:${terminalFlag}`;
   }
 
   /** Unique identifier for the beam segment element */

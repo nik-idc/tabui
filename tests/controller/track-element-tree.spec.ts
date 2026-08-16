@@ -1,7 +1,6 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
 import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
-import { TrackLineElement } from "../../src/notation/controller/element/track/track-line-element";
 import {
   DEFAULT_MASTER_BAR,
   Guitar,
@@ -27,10 +26,7 @@ const FINAL_STAFF_VOICE_CASES: Array<[VoiceNumber[]]> = [
 
 function getLineOwnershipKeys(trackElement: TrackElement): string[] {
   return trackElement.trackLineElements.map((line) =>
-    TrackLineElement.createStableIdentity(
-      trackElement.track,
-      line.trackLineData
-    )
+    line.trackLineData.map((bar) => bar.masterBarUUID).join(":")
   );
 }
 
@@ -151,7 +147,6 @@ describe("TrackElement tree", () => {
     track.insertStaff(1);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
-
     const beforeLine = trackElement.trackLineElements[0];
     const beforeOutline = beforeLine.outlineLinesLineLocal;
     const voiceBar = bar.getVoiceBar(1);
@@ -650,6 +645,9 @@ describe("TrackElement tree", () => {
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
+    const lineIdentities = trackElement.trackLineElements.map((line) =>
+      line.getStableIdentity()
+    );
 
     const beforeByBarUUID = new Map(
       track.staves[0].bars.map((bar) => {
@@ -659,12 +657,16 @@ describe("TrackElement tree", () => {
           bar.uuid,
           {
             barElement: barElement!,
+            beatIdentity: barElement!.beatElements[0].getStableIdentity(),
+            noteIdentity:
+              barElement!.beatElements[0].noteElements[0].getStableIdentity(),
             stableIdentity: barElement!.getStableIdentity(),
             styleLine: barElement!.notationStyleLineElement,
           },
         ];
       })
     );
+    trackElement.clearElementDiff();
 
     const firstLine = trackElement.trackLineElements[0];
     const affectedMasterBarIndex =
@@ -680,6 +682,10 @@ describe("TrackElement tree", () => {
     affectedVoiceBar.rebuildTiming();
 
     trackElement.update();
+
+    expect(
+      trackElement.trackLineElements.map((line) => line.getStableIdentity())
+    ).toEqual(lineIdentities);
 
     const movedBarUUID = track.staves[0].bars.find((bar) => {
       const before = beforeByBarUUID.get(bar.uuid);
@@ -697,7 +703,43 @@ describe("TrackElement tree", () => {
     const after = findBarElement(trackElement, movedBarUUID!);
     expect(after).not.toBe(before.barElement);
     expect(after?.getStableIdentity()).toBe(before.stableIdentity);
+    expect(after?.beatElements[0].getStableIdentity()).toBe(
+      before.beatIdentity
+    );
+    expect(after?.beatElements[0].noteElements[0].getStableIdentity()).toBe(
+      before.noteIdentity
+    );
     expect(after?.notationStyleLineElement).not.toBe(before.styleLine);
+    expect(
+      trackElement.elementDiff.added
+        .get(TabBeatElement)
+        ?.has(before.beatIdentity)
+    ).not.toBe(true);
+    expect(
+      trackElement.elementDiff.removed
+        .get(TabBeatElement)
+        ?.has(before.beatIdentity)
+    ).not.toBe(true);
+    expect(
+      trackElement.elementDiff.updated
+        .get(TabBeatElement)
+        ?.has(before.beatIdentity)
+    ).toBe(true);
+    expect(
+      trackElement.elementDiff.added
+        .get(TabNoteElement)
+        ?.has(before.noteIdentity)
+    ).not.toBe(true);
+    expect(
+      trackElement.elementDiff.removed
+        .get(TabNoteElement)
+        ?.has(before.noteIdentity)
+    ).not.toBe(true);
+    expect(
+      trackElement.elementDiff.updated
+        .get(TabNoteElement)
+        ?.has(before.noteIdentity)
+    ).toBe(true);
   });
 
   test("horizontal update matches legacy rebuild after deleting a bar in the middle", () => {

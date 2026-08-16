@@ -18,9 +18,7 @@ export class BarTupletGroupElement implements NotationElement {
     voiceBarRhythmElement: VoiceBarRhythmElement,
     tupletGroup: BarTupletGroup
   ): string {
-    const trackLineStableIdentity =
-      voiceBarRhythmElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `tuplet:${trackLineStableIdentity}:${voiceBarRhythmElement.voiceNumber}:${tupletGroup.uuid}`;
+    return `tuplet:${voiceBarRhythmElement.voiceNumber}:${tupletGroup.uuid}`;
   }
 
   /** UUID of the tuplet element */

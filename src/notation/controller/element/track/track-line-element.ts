@@ -42,15 +42,8 @@ type OutlineLines = {
 export class TrackLineElement implements NotationElement {
   readonly nodeType = NotationNodeType.Element;
 
-  public static createStableIdentity(
-    track: Track,
-    trackLineBars: TrackLineBar[]
-  ): string {
-    const ownershipKey = trackLineBars
-      .map((data) => data.masterBarUUID)
-      .join(":");
-
-    return `track-line:${track.uuid}:${ownershipKey}`;
+  public static createStableIdentity(track: Track, lineIndex: number): string {
+    return `track-line:${track.uuid}:${lineIndex}`;
   }
 
   /** Unique identifier for the track line element */
@@ -94,7 +87,8 @@ export class TrackLineElement implements NotationElement {
    */
   constructor(
     trackElement: TrackElement,
-    skeletonLine: TrackElementSkeletonLine
+    skeletonLine: TrackElementSkeletonLine,
+    lineIndex: number
   ) {
     this.uuid = randomInt();
     this.track = trackElement.track;
@@ -109,7 +103,7 @@ export class TrackLineElement implements NotationElement {
     this._skeletonLine = skeletonLine;
     this._stableIdentity = TrackLineElement.createStableIdentity(
       this.track,
-      this._skeletonLine.trackLineBars
+      lineIndex
     );
 
     // A new track line starts as a geometry-only shell until materialized.
@@ -121,10 +115,6 @@ export class TrackLineElement implements NotationElement {
   /** Applies whole-track skeleton geometry without building descendants. */
   public setGeometryFromSkeleton(skeletonLine: TrackElementSkeletonLine): void {
     this._skeletonLine = skeletonLine;
-    this._stableIdentity = TrackLineElement.createStableIdentity(
-      this.track,
-      skeletonLine.trackLineBars
-    );
     this._boundingBox.set(
       0,
       skeletonLine.y,
