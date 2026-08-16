@@ -19,6 +19,7 @@ import { TrackLineInfoElement } from "./track/track-line-info-element";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
+import { ScoreLayoutPlanner } from "../layout/score-layout-plan";
 
 function snapshotElements(elements: NotationElement[]): ElementSnapshot {
   const snapshot: ElementSnapshot = {
@@ -100,6 +101,8 @@ export class TrackElement {
   readonly track: Track;
   /** Layout dimensions */
   readonly layoutDimensions: EditorLayoutDimensions;
+  /** Score-wide widths and wrapped ranges shared by active track views. */
+  readonly scoreLayoutPlanner: ScoreLayoutPlanner;
 
   /** Track line element */
   private _trackLineElements: TrackLineElement[];
@@ -118,10 +121,17 @@ export class TrackElement {
    * Class that handles all geometry & visually relevant info of a track
    * @param track Track
    */
-  constructor(track: Track, layoutDimensions: EditorLayoutDimensions) {
+  constructor(
+    track: Track,
+    layoutDimensions: EditorLayoutDimensions,
+    scoreLayoutPlanner?: ScoreLayoutPlanner
+  ) {
     this.uuid = randomInt();
     this.track = track;
     this.layoutDimensions = layoutDimensions;
+    this.scoreLayoutPlanner =
+      scoreLayoutPlanner ??
+      new ScoreLayoutPlanner(track.score, layoutDimensions);
 
     this._trackLineElements = [];
     this._skeleton = { lines: [] };
@@ -206,9 +216,11 @@ export class TrackElement {
   private build(): void {
     this._trackLineElements = [];
     this._materializedLineIndices.clear();
+    this.scoreLayoutPlanner.rebuild();
     this._skeleton = buildTrackElementSkeleton(
       this.track,
-      this.layoutDimensions
+      this.layoutDimensions,
+      this.scoreLayoutPlanner.plan
     );
     for (let i = 0; i < this._skeleton.lines.length; i++) {
       this._trackLineElements.push(
@@ -385,6 +397,39 @@ export class TrackElement {
     };
   }
 
+  /** Returns the master bars whose descendants existed in the last snapshot. */
+  private getMaterializedMasterBarIndices(): number[] {
+    const indices = new Set<number>();
+    for (const lineIndex of this._materializedLineIndices) {
+      const trackLineBars =
+        this._skeleton.lines[lineIndex]?.trackLineBars ?? [];
+      for (const lineBar of trackLineBars) {
+        indices.add(lineBar.masterBarIndex);
+      }
+    }
+    return [...indices];
+  }
+
+  private mergeLineRanges(
+    a: TrackElementLineRange | null,
+    b: TrackElementLineRange | null
+  ): TrackElementLineRange | undefined {
+    if (a === null && b === null) {
+      return undefined;
+    }
+    if (a === null) {
+      return b ?? undefined;
+    }
+    if (b === null) {
+      return a;
+    }
+
+    return {
+      startLineIndex: Math.min(a.startLineIndex, b.startLineIndex),
+      endLineIndex: Math.max(a.endLineIndex, b.endLineIndex),
+    };
+  }
+
   /** Builds full descendant element trees for shells in the requested range. */
   private materializeLineRange(
     startLineIndex: number,
@@ -455,9 +500,11 @@ export class TrackElement {
   }
 
   private rebuildSkeletonGeometry(): void {
+    this.scoreLayoutPlanner.rebuild();
     this._skeleton = buildTrackElementSkeleton(
       this.track,
-      this.layoutDimensions
+      this.layoutDimensions,
+      this.scoreLayoutPlanner.plan
     );
     this.reconcileSkeletonLines();
   }
@@ -493,13 +540,18 @@ export class TrackElement {
     const rebuildSkeleton = modelUpdate || options.rebuildSkeleton !== false;
     const forceElements = options.forceElements ?? rebuildSkeleton;
     let lineRange = options.lineRange;
+    const materializedMasterBarIndices = modelUpdate
+      ? this.getMaterializedMasterBarIndices()
+      : [];
 
     if (rebuildSkeleton) {
       this.rebuildSkeletonGeometry();
     }
     if (modelUpdate) {
-      lineRange =
-        this.getAffectedLineRange(affectedMasterBarIndices) ?? undefined;
+      lineRange = this.mergeLineRanges(
+        this.getAffectedLineRange(affectedMasterBarIndices),
+        this.getAffectedLineRange(materializedMasterBarIndices)
+      );
       if (lineRange === undefined) {
         this.completeDiffing();
         return;

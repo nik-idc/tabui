@@ -10,7 +10,6 @@ import {
 import { Rect, Point, randomInt } from "../../../../shared";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
-import { calculateMasterBarDurationUnits } from "../../layout/bar-layout";
 import {
   NotationContainer,
   NotationNode,
@@ -180,16 +179,16 @@ export class VoiceBarElement implements NotationContainer {
     const masterBarIndex = this.voiceBar.bar.staff.bars.indexOf(
       this.voiceBar.bar
     );
-    const durationUnits = calculateMasterBarDurationUnits(
-      this.trackElement.track,
-      masterBarIndex
-    );
-    if (durationUnits === 0) {
+    const masterBar = this.trackElement.track.score.masterBars[masterBarIndex];
+    const durationFraction =
+      masterBar.barDurationFraction.numerator /
+      masterBar.barDurationFraction.denominator;
+    if (durationFraction === 0) {
       return 0;
     }
 
     const beatStartUnits = beat.startTick / this.voiceBar.tickResolution;
-    const beatStartRatio = beatStartUnits / durationUnits;
+    const beatStartRatio = beatStartUnits / durationFraction;
 
     return (
       this.trackElement.layoutDimensions.RHYTHM_ATTACK_PADDING +
@@ -201,17 +200,17 @@ export class VoiceBarElement implements NotationContainer {
     const masterBarIndex = this.voiceBar.bar.staff.bars.indexOf(
       this.voiceBar.bar
     );
-    const durationUnits = calculateMasterBarDurationUnits(
-      this.trackElement.track,
-      masterBarIndex
-    );
-    if (durationUnits === 0) {
+    const masterBar = this.trackElement.track.score.masterBars[masterBarIndex];
+    const durationFraction =
+      masterBar.barDurationFraction.numerator /
+      masterBar.barDurationFraction.denominator;
+    if (durationFraction === 0) {
       return 0;
     }
 
     const beatDurationTicks = beat.endTick - beat.startTick;
     const beatDurationUnits = beatDurationTicks / this.voiceBar.tickResolution;
-    const beatDurationRatio = beatDurationUnits / durationUnits;
+    const beatDurationRatio = beatDurationUnits / durationFraction;
 
     return Math.max(
       this.trackElement.layoutDimensions.MIN_RHYTHM_COLUMN_GAP,

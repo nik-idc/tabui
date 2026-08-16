@@ -9,6 +9,7 @@ import { TrackController } from "./controller";
 import { ResolvedTabUIConfig, TabUIEditorMode } from "../config/tabui-config";
 import { EditorLayoutDimensions } from "./controller/editor-layout-dimensions";
 import { PlaybackErrorListener, ScorePlayer } from "../player";
+import { ScoreLayoutPlanner } from "./controller/layout/score-layout-plan";
 
 /**
  * Responsible for controllong everything notation-wise
@@ -24,6 +25,8 @@ export class NotationComponent {
   readonly config: ResolvedTabUIConfig;
   /** Layout dimensions */
   readonly layoutDimensions: EditorLayoutDimensions;
+  /** Shared score-wide width and wrapped-range planner for active tracks. */
+  readonly scoreLayoutPlanner: ScoreLayoutPlanner;
 
   /** Track controller */
   private _trackController: TrackController;
@@ -54,6 +57,10 @@ export class NotationComponent {
     this.layoutDimensions = layoutDimensions;
     this._editingEnabled =
       this.config.interaction.mode === TabUIEditorMode.Edit;
+    this.scoreLayoutPlanner = new ScoreLayoutPlanner(
+      this.score,
+      this.layoutDimensions
+    );
     this._scorePlayer = new ScorePlayer(
       this.score,
       this.score.tracks[0],
@@ -64,7 +71,8 @@ export class NotationComponent {
       this.score.tracks[0],
       this.layoutDimensions,
       this._scorePlayer,
-      this._editingEnabled
+      this._editingEnabled,
+      this.scoreLayoutPlanner
     );
     this._renderer =
       renderer === undefined
@@ -99,7 +107,8 @@ export class NotationComponent {
       newTrack,
       this.layoutDimensions,
       this._scorePlayer,
-      this._editingEnabled
+      this._editingEnabled,
+      this.scoreLayoutPlanner
     );
     this._trackController = newTrackController;
     const renderer = new EditorSVGRenderer(

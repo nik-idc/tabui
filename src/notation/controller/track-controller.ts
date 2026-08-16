@@ -19,6 +19,7 @@ import { SelectedNote, SelectedMoveDirection } from "./selection/selected-note";
 import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
+import { ScoreLayoutPlanner } from "./layout/score-layout-plan";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -44,12 +45,17 @@ export class TrackController {
     track: Track,
     layoutDimensions: EditorLayoutDimensions,
     scorePlayer?: ScorePlayer,
-    editingEnabled: boolean = true
+    editingEnabled: boolean = true,
+    scoreLayoutPlanner?: ScoreLayoutPlanner
   ) {
     this.track = track;
     this.layoutDimensions = layoutDimensions;
 
-    this._trackElement = new TrackElement(this.track, this.layoutDimensions);
+    this._trackElement = new TrackElement(
+      this.track,
+      this.layoutDimensions,
+      scoreLayoutPlanner
+    );
     this._trackControllerEditor = new TrackControllerEditor(
       this._trackElement,
       editingEnabled

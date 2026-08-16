@@ -156,7 +156,9 @@ describe("TrackElement tree", () => {
     const beforeHash = beforeLine.stateHash;
     const beforeRightX = beforeOutline.right.x;
 
-    voiceBar.insertBeat(1);
+    for (let i = 0; i < 16; i++) {
+      voiceBar.insertBeat(i + 1);
+    }
     updateMasterBars(trackElement, [0]);
 
     const afterLine = trackElement.trackLineElements[0];
@@ -678,10 +680,11 @@ describe("TrackElement tree", () => {
     if (affectedVoiceBar === null) {
       throw Error("Expected voice 1 in affected bar");
     }
-    affectedVoiceBar.beats[0].baseDuration = NoteDuration.Whole;
-    affectedVoiceBar.rebuildTiming();
+    for (let i = 0; i < 16; i++) {
+      affectedVoiceBar.insertBeat(i + 1);
+    }
 
-    trackElement.update();
+    updateMasterBars(trackElement, [affectedMasterBarIndex]);
 
     expect(
       trackElement.trackLineElements.map((line) => line.getStableIdentity())

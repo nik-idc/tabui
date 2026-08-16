@@ -1,46 +1,26 @@
-import { NoteDuration, Track } from "../../model";
+import { MasterBar, NoteDuration, Track } from "../../model";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 
 export type MasterBarLayoutMetrics = {
-  durationUnits: number;
+  durationFraction: number;
   rhythmColumnCount: number;
   contentMinWidth: number;
   structuralWidth: number;
   minWidth: number;
 };
 
-export const TRACK_LINE_DURATION_BUDGET_UNITS = 4;
-const WHOLE_NOTE_WIDTH_UNITS = 4;
-
-export function calculateMasterBarDurationUnits(
-  track: Track,
-  masterBarIndex: number
-): number {
-  const masterBar = track.score.masterBars[masterBarIndex];
-  const nominalDurationUnits =
-    masterBar.barDurationFraction.numerator /
-    masterBar.barDurationFraction.denominator;
-  let durationUnits = 0;
-
-  for (const staff of track.staves) {
-    const bar = staff.bars[masterBarIndex];
-    for (const voiceBar of bar.voiceBarsAsArray) {
-      durationUnits = Math.max(
-        durationUnits,
-        voiceBar.actualTicks / voiceBar.tickResolution
-      );
-    }
-  }
-
-  return durationUnits === 0 ? nominalDurationUnits : durationUnits;
-}
+export const TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES = 4;
+const QUARTER_NOTES_PER_WHOLE_NOTE = 4;
 
 export function calculateMasterBarLayoutMetrics(
   track: Track,
   masterBarIndex: number,
   layoutDimensions: EditorLayoutDimensions
 ): MasterBarLayoutMetrics {
-  const durationUnits = calculateMasterBarDurationUnits(track, masterBarIndex);
+  const masterBar = track.score.masterBars[masterBarIndex];
+  const durationFraction =
+    masterBar.barDurationFraction.numerator /
+    masterBar.barDurationFraction.denominator;
   const rhythmColumns = new Set<number>();
   for (const staff of track.staves) {
     const bar = staff.bars[masterBarIndex];
@@ -58,7 +38,7 @@ export function calculateMasterBarLayoutMetrics(
   const sortedColumns = [...rhythmColumns].sort((a, b) => a - b);
 
   const structuralWidth = calculateStructuralWidth(
-    track,
+    track.score.masterBars,
     masterBarIndex,
     layoutDimensions
   );
@@ -66,13 +46,13 @@ export function calculateMasterBarLayoutMetrics(
     sortedColumns.length * layoutDimensions.MIN_RHYTHM_COLUMN_GAP;
   const attackCollisionMinWidth = calculateAttackCollisionMinWidth(
     sortedColumns,
-    durationUnits,
+    durationFraction,
     layoutDimensions
   );
   const durationMinWidth =
-    durationUnits *
+    durationFraction *
     layoutDimensions.WIDTH_MAPPING[NoteDuration.Quarter] *
-    WHOLE_NOTE_WIDTH_UNITS;
+    QUARTER_NOTES_PER_WHOLE_NOTE;
   const contentMinWidth =
     sortedColumns.length === 0
       ? 0
@@ -84,7 +64,7 @@ export function calculateMasterBarLayoutMetrics(
         layoutDimensions.RHYTHM_ATTACK_PADDING * 2;
 
   return {
-    durationUnits,
+    durationFraction,
     rhythmColumnCount: rhythmColumns.size,
     contentMinWidth,
     structuralWidth,
@@ -94,10 +74,10 @@ export function calculateMasterBarLayoutMetrics(
 
 function calculateAttackCollisionMinWidth(
   sortedColumns: number[],
-  durationUnits: number,
+  durationFraction: number,
   layoutDimensions: EditorLayoutDimensions
 ): number {
-  if (sortedColumns.length < 2 || durationUnits === 0) {
+  if (sortedColumns.length < 2 || durationFraction === 0) {
     return 0;
   }
 
@@ -111,16 +91,17 @@ function calculateAttackCollisionMinWidth(
 
   return minColumnDelta === 0 || !Number.isFinite(minColumnDelta)
     ? 0
-    : (layoutDimensions.MIN_RHYTHM_COLUMN_GAP * durationUnits) / minColumnDelta;
+    : (layoutDimensions.MIN_RHYTHM_COLUMN_GAP * durationFraction) /
+        minColumnDelta;
 }
 
 function calculateStructuralWidth(
-  track: Track,
+  masterBars: MasterBar[],
   masterBarIndex: number,
   layoutDimensions: EditorLayoutDimensions
 ): number {
-  const masterBar = track.score.masterBars[masterBarIndex];
-  const prevMasterBar = track.score.masterBars[masterBarIndex - 1];
+  const masterBar = masterBars[masterBarIndex];
+  const prevMasterBar = masterBars[masterBarIndex - 1];
   let width = 0;
 
   if (

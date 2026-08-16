@@ -1,61 +1,12 @@
 import { Staff, Track } from "../../../model";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
-import {
-  calculateMasterBarLayoutMetrics,
-  MasterBarLayoutMetrics,
-  TRACK_LINE_DURATION_BUDGET_UNITS,
-} from "../../layout/bar-layout";
+import { ScoreLayoutPlan } from "../../layout/score-layout-plan";
 import { TECHNIQUE_TO_LINE_NUMBER } from "../technique/guitar-technique/guitar-technique-element-lists";
 import {
   TrackElementSkeleton,
   TrackElementSkeletonLine,
   TrackLineBar,
 } from "./track-line-element";
-
-function createTrackLineBar(
-  track: Track,
-  masterBarIndex: number,
-  finalizedWidth: number
-): TrackLineBar {
-  return {
-    finalizedWidth,
-    masterBarUUID: track.score.masterBars[masterBarIndex].uuid,
-    masterBarIndex,
-  };
-}
-
-function finalizeTrackLineBars(
-  lineBars: TrackLineBar[],
-  metrics: MasterBarLayoutMetrics[],
-  stretch: boolean,
-  layoutDimensions: EditorLayoutDimensions
-): void {
-  const minWidth = lineBars.reduce(
-    (sum, lineBar) => sum + lineBar.finalizedWidth,
-    0
-  );
-
-  if (!stretch || minWidth === 0) {
-    return;
-  }
-
-  const structuralWidth = lineBars.reduce((sum, lineBar) => {
-    return sum + metrics[lineBar.masterBarIndex].structuralWidth;
-  }, 0);
-  const contentMinWidth = lineBars.reduce((sum, lineBar) => {
-    return sum + metrics[lineBar.masterBarIndex].contentMinWidth;
-  }, 0);
-  const contentScale =
-    contentMinWidth === 0
-      ? 1
-      : Math.max(0, layoutDimensions.WIDTH - structuralWidth) / contentMinWidth;
-
-  for (const lineBar of lineBars) {
-    const metric = metrics[lineBar.masterBarIndex];
-    lineBar.finalizedWidth =
-      metric.structuralWidth + metric.contentMinWidth * contentScale;
-  }
-}
 
 function getTabTechniqueGapHeight(
   staff: Staff,
@@ -168,51 +119,21 @@ function createSkeletonLine(
 
 export function buildTrackElementSkeleton(
   track: Track,
-  layoutDimensions: EditorLayoutDimensions
+  layoutDimensions: EditorLayoutDimensions,
+  scoreLayoutPlan: ScoreLayoutPlan
 ): TrackElementSkeleton {
-  let currentLineBars: TrackLineBar[] = [];
   const lines: TrackElementSkeletonLine[] = [];
-  const masterBars = track.score.masterBars;
-  const metrics = masterBars.map((_, index) =>
-    calculateMasterBarLayoutMetrics(track, index, layoutDimensions)
-  );
-  let lineMinWidth = 0;
-  let lineDurationUnits = 0;
   let lineY = 0;
 
-  for (let i = 0; i < masterBars.length; i++) {
-    const metric = metrics[i];
-    const finalizedWidth = Math.min(metric.minWidth, layoutDimensions.WIDTH);
-    const fitsWidth = lineMinWidth + finalizedWidth <= layoutDimensions.WIDTH;
-    const fitsDuration =
-      lineDurationUnits + metric.durationUnits <=
-      TRACK_LINE_DURATION_BUDGET_UNITS;
-
-    if (currentLineBars.length !== 0 && (!fitsWidth || !fitsDuration)) {
-      finalizeTrackLineBars(currentLineBars, metrics, true, layoutDimensions);
-      const line = createSkeletonLine(
-        track,
-        currentLineBars,
-        layoutDimensions,
-        lineY
-      );
-      lines.push(line);
-      lineY += line.finalLineHeight;
-      currentLineBars = [];
-      lineMinWidth = 0;
-      lineDurationUnits = 0;
-    }
-
-    currentLineBars.push(createTrackLineBar(track, i, finalizedWidth));
-    lineMinWidth += finalizedWidth;
-    lineDurationUnits += metric.durationUnits;
-  }
-
-  if (currentLineBars.length !== 0) {
-    finalizeTrackLineBars(currentLineBars, metrics, false, layoutDimensions);
-    lines.push(
-      createSkeletonLine(track, currentLineBars, layoutDimensions, lineY)
+  for (const scoreLine of scoreLayoutPlan.lines) {
+    const line = createSkeletonLine(
+      track,
+      scoreLine.bars,
+      layoutDimensions,
+      lineY
     );
+    lines.push(line);
+    lineY += line.finalLineHeight;
   }
 
   return { lines };

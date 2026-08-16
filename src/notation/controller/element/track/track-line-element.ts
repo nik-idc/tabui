@@ -11,15 +11,12 @@ import {
   NotationNodeType,
 } from "../notation-element";
 import type { BarElement } from "../bar/bar-element";
+import type { ScoreLayoutBar } from "../../layout/score-layout-plan";
 /**
  * Bar placement data for one master bar inside a presentation track line.
  * Presentation shells create the actual BarElements from this placement data.
  */
-export type TrackLineBar = {
-  finalizedWidth: number;
-  masterBarUUID: number;
-  masterBarIndex: number;
-};
+export type TrackLineBar = ScoreLayoutBar;
 
 export type TrackElementSkeletonLine = {
   trackLineBars: TrackLineBar[];
