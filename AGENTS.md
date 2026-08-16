@@ -5,16 +5,21 @@ This document provides practical guidance for AI agents working on the TabUI cod
 ## Core Commands
 
 ```bash
-npm run build        # Build package ESM/CSS and TypeScript declarations
-npm run benchmark:updates # Run focused-vs-full update benchmark
-npm run verify       # Run deterministic CI and pre-deployment checks
-npm run clean        # Clean build artifacts
-npm run dev          # Start Vite dev server for the editor
-npm run build_vite   # Build the editor with Vite
-npm run preview_vite # Preview the Vite build
-npm run test         # Run active Jest test suites
-npm run test:pack-consumer # Build/install the packed external-consumer fixture
-npm run format       # Format all files
+npm run clean              # Clean package build artifacts
+npm run dev                # Start the demo Vite server
+npm run preview_vite       # Preview the demo Vite build
+npm run serve_vite         # Start the demo Vite server without package wrapping
+npm run format             # Format all files
+npm run benchmark:updates  # Run the focused-versus-full update benchmark
+npm run build:package      # Build package ESM, CSS, and TypeScript declarations
+npm run build:demo         # Build the demo with Vite
+npm run test               # Run Jest unit and integration tests
+npm run test:e2e           # Run Playwright tests in Chromium and Firefox
+npm run test:e2e:ui        # Open the Playwright test UI
+npm run test:e2e:webkit    # Run Playwright tests in WebKit
+npm run test:pack-consumer # Build and test the packed consumer fixture
+npm run test:all           # Run Jest, packed-consumer, and default Playwright tests
+npm run verify             # Run the complete deterministic verification gate
 ```
 
 ## Tests
@@ -28,9 +33,8 @@ npm run format       # Format all files
 
 ## Validation Notes
 
-- `npm run verify` runs a whole CI pipieline: builds, demo builds, tests etc.
-  Read the script for more details. Use this command when you want to validate
-  the state of the entire codebase.
+- `npm run verify` type checks, builds the package, runs `test:all`, and builds
+  the demo. Use this command to validate the complete repository state.
 
 ## TypeScript and Imports
 

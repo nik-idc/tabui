@@ -19,8 +19,9 @@ package. Prefer clean pre-`1.0.0` ownership/API decisions and record new issues 
 | P1 1-4  | Correctness, persistence, constants, responsive embedding     | Complete |
 | P1 5    | Multimodal input and accessibility                            | Next     |
 
-Current automated checkpoint: 78 suites / 736 tests. `npm test`, `npm run build`,
-`npm run build_vite`, `npm run test:pack-consumer`, and `git diff --check` pass
+Current automated checkpoint: 78 suites / 736 tests. `npm test`,
+`npm run build:package`, `npm run build:demo`, `npm run test:pack-consumer`,
+and `git diff --check` pass
 after P1 Stage 4. The benchmark was last rerun after the magic-number audit;
 all 28 focused-update scenarios retained their previously verified substantial
 speedup over full updates.
@@ -131,7 +132,7 @@ speedup over full updates.
 Stage 4 completed on 2026-08-01:
 
 - Automated gate passed from clean output on 2026-08-01: `npm test`,
-  `npm run build`, `npm run build_vite`, `npm run test:pack-consumer`,
+  `npm run build:package`, `npm run build:demo`, `npm run test:pack-consumer`,
   `npm run benchmark:updates`, and `git diff --check`. All 28 benchmark scenarios
   retained a substantial focused-update speedup over full updates.
 - User smoke testing in Chrome and Firefox accepted the desktop P0 workflows and

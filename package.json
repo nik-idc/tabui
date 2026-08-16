@@ -26,21 +26,22 @@
     "/dist/styles.mjs.map"
   ],
   "scripts": {
-    "build": "vite build --config vite.config.lib.js && tsc --build",
-    "benchmark:updates": "npx tsx scripts/benchmark-updates.ts",
-    "verify": "npm test && npm run build && npm run test:pack-consumer && npm run build_vite",
     "clean": "rm -rf dist",
     "dev": "vite",
-    "build_vite": "vite build",
     "preview_vite": "vite preview",
     "serve_vite": "npx vite",
+    "prepare": "husky",
+    "format": "npx prettier --write .",
+    "benchmark:updates": "npx tsx scripts/benchmark-updates.ts",
+    "build:package": "vite build --config vite.config.lib.js && tsc --build",
+    "build:demo": "vite build",
     "test": "tsc --project tsconfig.test.json && npx jest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:webkit": "PLAYWRIGHT_WEBKIT=1 playwright test --project=webkit",
     "test:pack-consumer": "node tests/package/pack-consumer-smoke.mjs",
-    "prepare": "husky",
-    "format": "npx prettier --write ."
+    "test:all": "npm test && npm run test:pack-consumer && npm run test:e2e",
+    "verify": "tsc --noEmit && npm run build:package && npm run test:all && npm run build:demo"
   },
   "devDependencies": {
     "@babel/core": "^7.24.5",
