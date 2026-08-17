@@ -72,7 +72,8 @@ export class NotationComponent {
       this.layoutDimensions,
       this._scorePlayer,
       this._editingEnabled,
-      this.scoreLayoutPlanner
+      this.scoreLayoutPlanner,
+      this.config.layout.mode
     );
     this._renderer =
       renderer === undefined
@@ -100,6 +101,8 @@ export class NotationComponent {
   public loadTrack(newTrack: Track): ElementRenderer[] {
     const newTrackPlaybackBeat =
       this._scorePlayer.getCurrentBeatForTrack(newTrack);
+    const previousScrollLeft = this.rootDiv.scrollLeft;
+    const previousScrollTop = this.rootDiv.scrollTop;
     this._renderer.dispose();
 
     // Render new stuff
@@ -108,7 +111,8 @@ export class NotationComponent {
       this.layoutDimensions,
       this._scorePlayer,
       this._editingEnabled,
-      this.scoreLayoutPlanner
+      this.scoreLayoutPlanner,
+      this.config.layout.mode
     );
     this._trackController = newTrackController;
     const renderer = new EditorSVGRenderer(
@@ -117,14 +121,10 @@ export class NotationComponent {
       this.config.assets
     );
     this._renderer = renderer;
+    this.rootDiv.scrollLeft = previousScrollLeft;
+    this.rootDiv.scrollTop = previousScrollTop;
     if (newTrackPlaybackBeat !== undefined) {
-      const playbackLine =
-        this._trackController.trackElement.getTrackLineElementForBeat(
-          newTrackPlaybackBeat
-        );
-      if (playbackLine !== undefined) {
-        renderer.prepareViewportForTrackLine(playbackLine);
-      }
+      renderer.ensureBeatVisible(newTrackPlaybackBeat, true);
     }
     const activeRenderers = renderer.render();
     this._scorePlayer.setActiveTrack(newTrack);
@@ -144,6 +144,14 @@ export class NotationComponent {
   /** Rebuilds active-track geometry after explicit host layout refresh. */
   public refreshLayout(): void {
     this._trackController.trackElement.refreshLayout();
+  }
+
+  /** Materializes and follows the current model-level selection cursor. */
+  public ensureSelectedNoteVisible(): void {
+    const selectedBeat = this._trackController.selectedNote?.beat;
+    if (selectedBeat !== undefined) {
+      this._renderer.ensureBeatVisible(selectedBeat, true);
+    }
   }
 
   /** Applies the current runtime mutation capability to active and future tracks. */

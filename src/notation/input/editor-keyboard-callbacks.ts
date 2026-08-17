@@ -174,6 +174,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         break;
     }
 
+    this._notationComponent.ensureSelectedNoteVisible();
     this._renderFunc();
   }
 

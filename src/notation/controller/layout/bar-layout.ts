@@ -3,6 +3,8 @@ import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 
 export type MasterBarLayoutMetrics = {
   durationFraction: number;
+  /** Visual content extent used for collision layout, not score timing. */
+  contentEndFraction: number;
   rhythmColumnCount: number;
   contentMinWidth: number;
   structuralWidth: number;
@@ -22,6 +24,7 @@ export function calculateMasterBarLayoutMetrics(
     masterBar.barDurationFraction.numerator /
     masterBar.barDurationFraction.denominator;
   const rhythmColumns = new Set<number>();
+  let contentEndFraction = durationFraction;
   for (const staff of track.staves) {
     const bar = staff.bars[masterBarIndex];
     for (const voiceBar of bar.voiceBarsAsArray) {
@@ -31,6 +34,10 @@ export function calculateMasterBarLayoutMetrics(
 
       for (const beat of voiceBar.beats) {
         rhythmColumns.add(beat.startTick / voiceBar.tickResolution);
+        contentEndFraction = Math.max(
+          contentEndFraction,
+          beat.endTick / voiceBar.tickResolution
+        );
       }
     }
   }
@@ -46,11 +53,11 @@ export function calculateMasterBarLayoutMetrics(
     sortedColumns.length * layoutDimensions.MIN_RHYTHM_COLUMN_GAP;
   const attackCollisionMinWidth = calculateAttackCollisionMinWidth(
     sortedColumns,
-    durationFraction,
+    contentEndFraction,
     layoutDimensions
   );
   const durationMinWidth =
-    durationFraction *
+    contentEndFraction *
     layoutDimensions.WIDTH_MAPPING[NoteDuration.Quarter] *
     QUARTER_NOTES_PER_WHOLE_NOTE;
   const contentMinWidth =
@@ -65,6 +72,7 @@ export function calculateMasterBarLayoutMetrics(
 
   return {
     durationFraction,
+    contentEndFraction,
     rhythmColumnCount: rhythmColumns.size,
     contentMinWidth,
     structuralWidth,
@@ -74,10 +82,10 @@ export function calculateMasterBarLayoutMetrics(
 
 function calculateAttackCollisionMinWidth(
   sortedColumns: number[],
-  durationFraction: number,
+  contentEndFraction: number,
   layoutDimensions: EditorLayoutDimensions
 ): number {
-  if (sortedColumns.length < 2 || durationFraction === 0) {
+  if (sortedColumns.length < 2 || contentEndFraction === 0) {
     return 0;
   }
 
@@ -91,7 +99,7 @@ function calculateAttackCollisionMinWidth(
 
   return minColumnDelta === 0 || !Number.isFinite(minColumnDelta)
     ? 0
-    : (layoutDimensions.MIN_RHYTHM_COLUMN_GAP * durationFraction) /
+    : (layoutDimensions.MIN_RHYTHM_COLUMN_GAP * contentEndFraction) /
         minColumnDelta;
 }
 

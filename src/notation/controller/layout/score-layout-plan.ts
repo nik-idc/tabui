@@ -9,8 +9,10 @@ import {
 /** One finalized master-bar placement shared by every track. */
 export type ScoreLayoutBar = {
   finalizedWidth: number;
+  contentEndFraction: number;
   masterBarUUID: number;
   masterBarIndex: number;
+  x: number;
 };
 
 /** One shared wrapped master-bar range. */
@@ -18,11 +20,21 @@ export type ScoreLayoutLine = {
   bars: ScoreLayoutBar[];
 };
 
-/** Score-wide metrics and wrapped ranges used by every active track. */
+/** Score-wide metrics and placements used by every active track. */
 export type ScoreLayoutPlan = {
-  lines: ScoreLayoutLine[];
   metrics: MasterBarLayoutMetrics[];
+  wrappedLines: ScoreLayoutLine[];
+  intrinsicBars: ScoreLayoutBar[];
 };
+
+/** Assigns each bar its horizontal position within one layout line. */
+function positionLineBars(bars: ScoreLayoutBar[]): void {
+  let x = 0;
+  for (const bar of bars) {
+    bar.x = x;
+    x += bar.finalizedWidth;
+  }
+}
 
 function finalizeLineBars(
   bars: ScoreLayoutBar[],
@@ -46,6 +58,7 @@ function finalizeLineBars(
     bar.finalizedWidth =
       metric.structuralWidth + metric.contentMinWidth * contentScale;
   }
+  positionLineBars(bars);
 }
 
 /** Owns the current score-wide layout plan for one notation runtime. */
@@ -66,6 +79,7 @@ export class ScoreLayoutPlanner {
       let firstMetric: MasterBarLayoutMetrics | undefined;
       let rhythmColumnCount = 0;
       let contentMinWidth = 0;
+      let contentEndFraction = 0;
       for (const track of this._score.tracks) {
         const metric = calculateMasterBarLayoutMetrics(
           track,
@@ -78,6 +92,10 @@ export class ScoreLayoutPlanner {
           metric.rhythmColumnCount
         );
         contentMinWidth = Math.max(contentMinWidth, metric.contentMinWidth);
+        contentEndFraction = Math.max(
+          contentEndFraction,
+          metric.contentEndFraction
+        );
       }
       if (firstMetric === undefined) {
         throw Error("Cannot calculate score layout without tracks");
@@ -85,6 +103,7 @@ export class ScoreLayoutPlanner {
 
       metrics.push({
         durationFraction: firstMetric.durationFraction,
+        contentEndFraction,
         rhythmColumnCount,
         contentMinWidth,
         structuralWidth: firstMetric.structuralWidth,
@@ -126,25 +145,50 @@ export class ScoreLayoutPlanner {
 
       bars.push({
         finalizedWidth,
+        contentEndFraction: metric.contentEndFraction,
         masterBarUUID: this._score.masterBars[i].uuid,
         masterBarIndex: i,
+        x: 0,
       });
       lineMinWidth += finalizedWidth;
       lineDurationWholeNotes += metric.durationFraction;
     }
 
     if (bars.length !== 0) {
+      positionLineBars(bars);
       lines.push({ bars });
     }
 
     return lines;
   }
 
-  /** Calculates shared bar widths and wrapped ranges from the current score. */
+  /** Calculates unwrapped intrinsic-width placements for every master bar. */
+  private calculateIntrinsicBars(
+    metrics: MasterBarLayoutMetrics[]
+  ): ScoreLayoutBar[] {
+    const bars: ScoreLayoutBar[] = [];
+    let x = 0;
+    for (let i = 0; i < this._score.masterBars.length; i++) {
+      const finalizedWidth = metrics[i].minWidth;
+      bars.push({
+        finalizedWidth,
+        contentEndFraction: metrics[i].contentEndFraction,
+        masterBarUUID: this._score.masterBars[i].uuid,
+        masterBarIndex: i,
+        x,
+      });
+      x += finalizedWidth;
+    }
+
+    return bars;
+  }
+
+  /** Calculates shared bar widths, wrapped ranges, and intrinsic placements. */
   private calculatePlan(): ScoreLayoutPlan {
     const metrics = this.calculateMasterBarMetrics();
-    const lines = this.calculateWrappedLines(metrics);
-    return { lines, metrics };
+    const wrappedLines = this.calculateWrappedLines(metrics);
+    const intrinsicBars = this.calculateIntrinsicBars(metrics);
+    return { metrics, wrappedLines, intrinsicBars };
   }
 
   /** Recalculates all shared widths and wrapped master-bar ranges. */

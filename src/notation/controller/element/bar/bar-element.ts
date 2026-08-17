@@ -57,6 +57,8 @@ export class BarElement implements NotationElement {
 
   /** Finalized width for this bar's master bar as determined in the skeleton */
   private _finalizedWidth: number;
+  /** Visual time extent reserved for invalid overflowing content. */
+  private _contentEndFraction: number;
 
   /** Voice bar elements containing each voice bar's notation elements */
   private _voiceBarElements: VoiceBarElement[];
@@ -93,6 +95,8 @@ export class BarElement implements NotationElement {
     trackElement: TrackElement,
     notationStyle: NotationStyle,
     finalizedWidth: number,
+    contentEndFraction: number,
+    lineX: number,
     notationStyleLineElement?: NotationStyleLineElement
   ) {
     this.uuid = randomInt();
@@ -103,6 +107,8 @@ export class BarElement implements NotationElement {
       this.notationStyleLineElement = notationStyleLineElement;
     }
     this._finalizedWidth = finalizedWidth;
+    this._contentEndFraction = contentEndFraction;
+    this._boundingBox = new Rect(lineX, 0);
 
     this._showTempo = false;
     this._durationsFit = false;
@@ -115,7 +121,6 @@ export class BarElement implements NotationElement {
     this._voiceBarElements = [];
     this._voiceBarRhythmElements = [];
 
-    this._boundingBox = new Rect();
     this._staffLines = Array.from(
       { length: this.bar.trackContext.instrument.maxPolyphony },
       () => new HorLine()
@@ -261,11 +266,8 @@ export class BarElement implements NotationElement {
    * Sets the outer rectangle coordinates
    */
   private layoutRect(): void {
-    const prevBarElement =
-      this.notationStyleLineElement.getPrevBarElement(this);
-    const x = prevBarElement?.boundingBox.right ?? 0;
-    const y = this.notationStyleLineElement.techGapElement.boundingBox.bottom;
-    this._boundingBox.setCoords(x, y);
+    this._boundingBox.y =
+      this.notationStyleLineElement.techGapElement.boundingBox.bottom;
   }
 
   /**
@@ -386,6 +388,11 @@ export class BarElement implements NotationElement {
 
   public get finalizedWidth(): number {
     return this._finalizedWidth;
+  }
+
+  /** Visual content extent used only to keep overflowing beats inside the bar. */
+  public get contentEndFraction(): number {
+    return this._contentEndFraction;
   }
 
   public get voiceContentHeight(): number {

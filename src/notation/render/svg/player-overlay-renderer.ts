@@ -2,6 +2,7 @@ import { TrackController } from "../../controller";
 import { BeatElement } from "../../controller/element/beat/beat-element";
 import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
 import { TrackLineElement } from "../../controller/element/track/track-line-element";
+import { Beat } from "../../model";
 import { createSVGRect } from "../../../shared";
 import {
   trackEvent,
@@ -26,6 +27,13 @@ const PLAYER_CURSOR_WIDTH_PX = 5;
 const PLAYER_CURSOR_ADD_HEIGHT_PX = 10;
 
 export class PlayerOverlayRenderer {
+  private readonly trackController: TrackController;
+  private readonly ensureBeatVisible: (
+    beat: Beat,
+    follow: boolean
+  ) => BeatElement | undefined;
+  private readonly followHorizontalPosition: (x: number) => void = () => {};
+
   private _playerGroup: SVGGElement;
   private readonly _playerCursorRect: SVGRectElement;
   private _animationFrame?: number;
@@ -39,11 +47,14 @@ export class PlayerOverlayRenderer {
 
   constructor(
     playerGroup: SVGGElement,
-    private readonly trackController: TrackController,
-    private readonly ensureTrackLineVisible: (
-      trackLine: TrackLineElement
-    ) => void
+    trackController: TrackController,
+    ensureBeatVisible: (beat: Beat, follow: boolean) => BeatElement | undefined,
+    followHorizontalPosition: (x: number) => void = () => {}
   ) {
+    this.trackController = trackController;
+    this.ensureBeatVisible = ensureBeatVisible;
+    this.followHorizontalPosition = followHorizontalPosition;
+
     this._playerGroup = playerGroup;
     this._playerCursorRect = createSVGRect();
     this._playerCursorRect.setAttribute("id", "playerCursor");
@@ -112,6 +123,7 @@ export class PlayerOverlayRenderer {
       "x",
       `${x - PLAYER_CURSOR_WIDTH_PX / 2}`
     );
+    this.followHorizontalPosition(x);
   }
 
   private snapToBeat(beatElement: BeatElement): void {
@@ -144,6 +156,7 @@ export class PlayerOverlayRenderer {
     const animationX = animation.startX + animationProgress;
     const x = animationX - PLAYER_CURSOR_WIDTH_PX / 2;
     this._playerCursorRect.setAttribute("x", `${x}`);
+    this.followHorizontalPosition(animationX);
     if (progress < 1) {
       this._animationFrame = requestAnimationFrame(this._boundUpdateAnimation);
     } else {
@@ -227,16 +240,9 @@ export class PlayerOverlayRenderer {
       return undefined;
     }
 
-    let trackLineElement =
+    const beatElement = this.ensureBeatVisible(beat, true);
+    const trackLineElement =
       this.trackController.trackElement.getTrackLineElementForBeat(beat);
-    if (trackLineElement === undefined) {
-      return undefined;
-    }
-
-    this.ensureTrackLineVisible(trackLineElement);
-    trackLineElement =
-      this.trackController.trackElement.getTrackLineElementForBeat(beat);
-    const beatElement = this.trackController.trackElement.getBeatElement(beat);
     if (trackLineElement === undefined || beatElement === undefined) {
       return undefined;
     }
@@ -276,8 +282,7 @@ export class PlayerOverlayRenderer {
       return;
     }
 
-    const nextBeatElement =
-      this.trackController.trackElement.getBeatElement(nextBeat);
+    const nextBeatElement = this.ensureBeatVisible(nextBeat, false);
     if (nextBeatElement === undefined) {
       this.snapToBeat(beatElement);
       return;
@@ -330,8 +335,11 @@ export class PlayerOverlayRenderer {
     this._activeBeatChange = undefined;
     this.cancelAnimation();
 
+    const lastStartedBeat = this.trackController.playerLastStartedBeat;
     const lastStartedBeatElement =
-      this.trackController.playerLastStartedBeatElement;
+      lastStartedBeat === undefined
+        ? undefined
+        : this.ensureBeatVisible(lastStartedBeat, true);
     if (lastStartedBeatElement === undefined) {
       this.hideCursor();
       return;

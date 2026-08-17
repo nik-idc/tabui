@@ -2,6 +2,7 @@ import { NotationElement } from "../../src/notation/controller";
 import { EditorRenderOptions } from "../../src/notation/render";
 import { ElementRenderer } from "../../src/notation/render/element-renderer";
 import { EditorSVGRenderer } from "../../src/notation/render/svg/editor-svg-renderer";
+import { Rect } from "../../src/shared";
 
 type RendererReconciliationHarness = {
   renderVisibleElementRenderers(
@@ -11,6 +12,22 @@ type RendererReconciliationHarness = {
   createRendererElement: jest.Mock;
   isRendererMounted: jest.Mock;
   mountRenderer: jest.Mock;
+};
+
+type HorizontalViewportHarness = {
+  trackController: {
+    trackElement: {
+      trackLineElements: Array<{
+        trackLineBars: Array<{
+          x: number;
+          finalizedWidth: number;
+          masterBarIndex: number;
+        }>;
+      }>;
+    };
+  };
+  _viewportRect: Rect;
+  getMasterBarsInViewport(): { start: number; end: number };
 };
 
 describe("EditorSVGRenderer ownership", () => {
@@ -51,5 +68,27 @@ describe("EditorSVGRenderer ownership", () => {
     );
     expect(elementRenderer.render).not.toHaveBeenCalled();
     expect(renderers).toEqual([elementRenderer]);
+  });
+
+  test("adds bounded master-bar overscan to the horizontal viewport", () => {
+    const harness = Object.create(
+      EditorSVGRenderer.prototype
+    ) as HorizontalViewportHarness;
+    harness.trackController = {
+      trackElement: {
+        trackLineElements: [
+          {
+            trackLineBars: Array.from({ length: 10 }, (_, i) => ({
+              x: i * 100,
+              finalizedWidth: 100,
+              masterBarIndex: i,
+            })),
+          },
+        ],
+      },
+    };
+    harness._viewportRect = new Rect(250, 0, 200, 100);
+
+    expect(harness.getMasterBarsInViewport()).toEqual({ start: 0, end: 6 });
   });
 });

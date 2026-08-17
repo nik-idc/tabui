@@ -9,6 +9,10 @@ import { BarElement } from "../bar/bar-element";
 import { NotationStyle, StaffLineElement } from "./staff-line-element";
 import { TechGapElement } from "./tech-gap-element";
 import { TrackLineBar, TrackLineElement } from "../track/track-line-element";
+import {
+  TechLineNumber,
+  TECHNIQUE_TO_LINE_NUMBER,
+} from "../technique/guitar-technique/guitar-technique-element-lists";
 
 /**
  * Class that handles geometry of a single notation style line in the staff
@@ -92,6 +96,8 @@ export class NotationStyleLineElement implements NotationContainer {
           this.trackElement,
           this.notationStyle,
           lineBar.finalizedWidth,
+          lineBar.contentEndFraction,
+          lineBar.x,
           this
         )
     );
@@ -103,16 +109,12 @@ export class NotationStyleLineElement implements NotationContainer {
    * Calculates the dimensions for all bar elements & their children
    */
   public measure(): void {
-    this._boundingBox.width = this.trackElement.layoutDimensions.WIDTH;
+    this._boundingBox.width =
+      this.staffLineElement.trackLineElement.boundingBox.width;
 
-    let sumWidth = 0;
     for (const barElement of this._barElements) {
       barElement.measure();
-      sumWidth += barElement.boundingBox.width;
     }
-    // // Set width BEFORE measure tech gap since gap's width = parent notation
-    // // style line's width
-    // this._boundingBox.width = sumWidth;
 
     this._techGapElement.measure();
     // Set height AFTER tech gap measure since notation style line height
@@ -137,11 +139,9 @@ export class NotationStyleLineElement implements NotationContainer {
    * Calculates the coordinates for all bar elements & their children
    */
   public layout(): void {
-    let sumWidth = 0;
     this._techGapElement.layout();
     for (const barElement of this._barElements) {
       barElement.layout();
-      sumWidth += barElement.boundingBox.width;
     }
   }
 
@@ -166,28 +166,6 @@ export class NotationStyleLineElement implements NotationContainer {
     return elements;
   }
 
-  /**
-   * Gets next bar element
-   * @param barElement Bar element
-   * @returns Next bar element or null
-   */
-  public getNextBarElement(barElement: BarElement): BarElement | null {
-    const barIndex = this._barElements.indexOf(barElement);
-    const nextBar = this._barElements[barIndex + 1];
-    return nextBar ?? null;
-  }
-
-  /**
-   * Gets prev bar element
-   * @param barElement Bar element
-   * @returns Prev bar element or null
-   */
-  public getPrevBarElement(barElement: BarElement): BarElement | null {
-    const barIndex = this._barElements.indexOf(barElement);
-    const prevBar = this._barElements[barIndex - 1];
-    return prevBar ?? null;
-  }
-
   /** String encoding the state of this element */
   public get stateHash(): string {
     return this.buildStateHash();
@@ -208,6 +186,25 @@ export class NotationStyleLineElement implements NotationContainer {
   /** Bar placement data used to build this notation style line. */
   public get trackLineBars(): TrackLineBar[] {
     return this._trackLineBars;
+  }
+
+  /** True when complete line ownership reserves this technique-label row. */
+  public hasTechniqueLine(lineNumber: TechLineNumber): boolean {
+    for (const { masterBarIndex } of this.staffLineElement.trackLineBars) {
+      const bar = this.staffLineElement.staff.bars[masterBarIndex];
+      for (const voiceBar of bar.voiceBarsAsArray) {
+        for (const beat of voiceBar.beats) {
+          for (const note of beat.notes ?? []) {
+            for (const technique of note.techniques) {
+              if (TECHNIQUE_TO_LINE_NUMBER[technique.type] === lineNumber) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /** Tech gap element */

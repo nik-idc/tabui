@@ -20,6 +20,7 @@ import {
   Track,
 } from "../../src/notation/model";
 import { createTestLayoutDimensions, TEST_LAYOUT_DIMENSIONS } from "./helpers";
+import { TabUILayoutMode } from "../../src/config/tabui-config";
 
 function createGraph(masterBarData?: Partial<MasterBarData>): {
   score: Score;
@@ -108,6 +109,20 @@ describe("bar layout metrics", () => {
       calculateMasterBarLayoutMetrics(track, 0, TEST_LAYOUT_DIMENSIONS)
         .durationFraction
     ).toBe(1);
+  });
+
+  test("tracks overflowing content separately from canonical duration", () => {
+    const { track, bar } = createGraph();
+    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter, NoteDuration.Whole]);
+
+    const metrics = calculateMasterBarLayoutMetrics(
+      track,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    );
+
+    expect(metrics.durationFraction).toBe(1);
+    expect(metrics.contentEndFraction).toBe(1.25);
   });
 
   test("counts unique rhythm columns across staves", () => {
@@ -606,5 +621,269 @@ describe("score-wide bar layout", () => {
     expect(updated.has(firstBeatIdentity)).toBe(true);
     expect(added.has(firstBeatIdentity)).toBe(false);
     expect(removed.has(firstBeatIdentity)).toBe(false);
+  });
+});
+
+describe("score layout planner", () => {
+  test("uses intrinsic metric widths in one prefix-positioned sequence", () => {
+    const { score } = createGraph({
+      beatsCount: 1,
+      duration: NoteDuration.Quarter,
+    });
+    score.appendMasterBar({
+      tempo: 120,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      repeatStatus: BarRepeatStatus.None,
+      repeatCount: null,
+    });
+
+    const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
+
+    expect(plan.intrinsicBars.map((b) => b.finalizedWidth)).toEqual(
+      plan.metrics.map((m) => m.minWidth)
+    );
+    expect(plan.intrinsicBars[0].x).toBe(0);
+    expect(plan.intrinsicBars[1].x).toBe(plan.metrics[0].minWidth);
+  });
+
+  test("does not clamp oversized intrinsic bars", () => {
+    const { score, bar } = createGraph();
+    replaceVoiceBeats(
+      bar,
+      1,
+      Array.from({ length: 64 }, () => NoteDuration.SixtyFourth)
+    );
+
+    const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
+
+    expect(plan.metrics[0].minWidth).toBeGreaterThan(
+      TEST_LAYOUT_DIMENSIONS.WIDTH
+    );
+    expect(plan.intrinsicBars[0].finalizedWidth).toBe(plan.metrics[0].minWidth);
+    expect(plan.wrappedLines[0].bars[0].finalizedWidth).toBe(
+      TEST_LAYOUT_DIMENSIONS.WIDTH
+    );
+  });
+
+  test("stretches non-final wrapped lines and keeps the final line intrinsic", () => {
+    const { score, track, bar } = createGraph();
+    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
+    for (let i = 0; i < 4; i++) {
+      const appended = score.appendMasterBar({
+        tempo: 120,
+        beatsCount: 4,
+        duration: NoteDuration.Quarter,
+        repeatStatus: BarRepeatStatus.None,
+        repeatCount: null,
+      });
+      const appendedBar = appended.bars.get(track.staves[0].uuid);
+      if (appendedBar === undefined) {
+        throw Error("Expected appended bar for track");
+      }
+      replaceVoiceBeats(appendedBar as Bar<Guitar>, 1, [NoteDuration.Quarter]);
+    }
+
+    const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
+    const firstLine = plan.wrappedLines[0].bars;
+    const finalLine = plan.wrappedLines[1].bars;
+
+    expect(firstLine).toHaveLength(4);
+    expect(firstLine[3].x + firstLine[3].finalizedWidth).toBeCloseTo(
+      TEST_LAYOUT_DIMENSIONS.WIDTH
+    );
+    expect(finalLine).toHaveLength(1);
+    expect(finalLine[0].finalizedWidth).toBe(plan.metrics[4].minWidth);
+  });
+
+  test("shares the densest track width across score placements", () => {
+    const { score, bar } = createGraph();
+    const secondTrack = score.addTrack(new Guitar(), "Track 2")
+      .tracks[0] as Track<Guitar>;
+    const secondBar = secondTrack.staves[0].bars[0] as Bar<Guitar>;
+    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
+    replaceVoiceBeats(
+      secondBar,
+      1,
+      Array.from({ length: 16 }, () => NoteDuration.Sixteenth)
+    );
+
+    const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
+    const denseWidth = calculateMasterBarLayoutMetrics(
+      secondTrack,
+      0,
+      TEST_LAYOUT_DIMENSIONS
+    ).minWidth;
+
+    expect(plan.metrics[0].minWidth).toBe(denseWidth);
+    expect(plan.intrinsicBars[0].finalizedWidth).toBe(denseWidth);
+    expect(plan.wrappedLines[0].bars[0].finalizedWidth).toBe(denseWidth);
+  });
+
+  test("preserves intrinsic widths while responsive wrapping changes", () => {
+    const { score } = createGraph({
+      beatsCount: 1,
+      duration: NoteDuration.Quarter,
+    });
+    for (let i = 0; i < 5; i++) {
+      score.appendMasterBar({
+        tempo: 120,
+        beatsCount: 1,
+        duration: NoteDuration.Quarter,
+        repeatStatus: BarRepeatStatus.None,
+        repeatCount: null,
+      });
+    }
+    const layoutDimensions = createTestLayoutDimensions();
+    const planner = new ScoreLayoutPlanner(score, layoutDimensions);
+    const initialIntrinsicWidths = planner.plan.intrinsicBars.map(
+      (b) => b.finalizedWidth
+    );
+    const initialRanges = planner.plan.wrappedLines.map((l) =>
+      l.bars.map((b) => b.masterBarIndex)
+    );
+
+    layoutDimensions.setWidth(200);
+    planner.rebuild();
+
+    expect(planner.plan.intrinsicBars.map((b) => b.finalizedWidth)).toEqual(
+      initialIntrinsicWidths
+    );
+    expect(
+      planner.plan.wrappedLines.map((l) => l.bars.map((b) => b.masterBarIndex))
+    ).not.toEqual(initialRanges);
+  });
+});
+
+describe("single-line score layout", () => {
+  test("uses one line with score-wide intrinsic widths", () => {
+    const { score, track, bar } = createGraph();
+    const secondTrack = score.addTrack(new Guitar(), "Track 2")
+      .tracks[0] as Track<Guitar>;
+    const secondBar = secondTrack.staves[0].bars[0] as Bar<Guitar>;
+    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
+    replaceVoiceBeats(
+      secondBar,
+      1,
+      Array.from({ length: 16 }, () => NoteDuration.Sixteenth)
+    );
+    score.appendMasterBar({
+      tempo: 120,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      repeatStatus: BarRepeatStatus.None,
+      repeatCount: null,
+    });
+    const planner = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS);
+
+    const first = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      planner,
+      TabUILayoutMode.SingleLine
+    );
+    const second = new TrackElement(
+      secondTrack,
+      TEST_LAYOUT_DIMENSIONS,
+      planner,
+      TabUILayoutMode.SingleLine
+    );
+    first.update();
+    second.update();
+
+    expect(first.trackLineElements).toHaveLength(1);
+    expect(second.trackLineElements).toHaveLength(1);
+    expect(first.trackLineElements[0].trackLineBars).toEqual(
+      planner.plan.intrinsicBars
+    );
+    expect(second.trackLineElements[0].trackLineBars).toEqual(
+      planner.plan.intrinsicBars
+    );
+    expect(first.width).toBe(
+      planner.plan.intrinsicBars.reduce(
+        (width, placement) => width + placement.finalizedWidth,
+        0
+      )
+    );
+  });
+
+  test("aligns equal-score-time beats across tracks", () => {
+    const { score, track, bar } = createGraph();
+    const secondTrack = score.addTrack(new Guitar(), "Track 2")
+      .tracks[0] as Track<Guitar>;
+    const secondBar = secondTrack.staves[0].bars[0] as Bar<Guitar>;
+    const firstBeats = replaceVoiceBeats(bar, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const secondBeats = replaceVoiceBeats(secondBar, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const planner = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS);
+    const first = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      planner,
+      TabUILayoutMode.SingleLine
+    );
+    const second = new TrackElement(
+      secondTrack,
+      TEST_LAYOUT_DIMENSIONS,
+      planner,
+      TabUILayoutMode.SingleLine
+    );
+    first.update();
+    second.update();
+
+    expect(findBeatElement(first, firstBeats[1])?.globalCoords.x).toBe(
+      findBeatElement(second, secondBeats[1])?.globalCoords.x
+    );
+  });
+
+  test("contains overflowing beats without changing score timing", () => {
+    const { score, track, bar } = createGraph();
+    const secondTrack = score.addTrack(new Guitar(), "Track 2")
+      .tracks[0] as Track<Guitar>;
+    const secondBar = secondTrack.staves[0].bars[0] as Bar<Guitar>;
+    const firstBeats = replaceVoiceBeats(bar, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Whole,
+      NoteDuration.Quarter,
+    ]);
+    const secondBeats = replaceVoiceBeats(secondBar, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const planner = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS);
+    const first = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      planner,
+      TabUILayoutMode.SingleLine
+    );
+    const second = new TrackElement(
+      secondTrack,
+      TEST_LAYOUT_DIMENSIONS,
+      planner,
+      TabUILayoutMode.SingleLine
+    );
+    first.update();
+    second.update();
+
+    expect(planner.plan.metrics[0].durationFraction).toBe(1);
+    expect(planner.plan.metrics[0].contentEndFraction).toBe(1.75);
+    expect(findBeatElement(first, firstBeats[1])?.globalCoords.x).toBe(
+      findBeatElement(second, secondBeats[1])?.globalCoords.x
+    );
+    const firstBarElement =
+      first.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0]
+        .barElements[0];
+    for (const beatElement of firstBarElement.beatElements) {
+      expect(beatElement.barLocalBoundingBox.right).toBeLessThanOrEqual(
+        firstBarElement.boundingBox.width
+      );
+    }
   });
 });

@@ -20,6 +20,7 @@ import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
 import { ScoreLayoutPlanner } from "./layout/score-layout-plan";
+import { TabUILayoutMode } from "../../config/tabui-config";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -46,7 +47,8 @@ export class TrackController {
     layoutDimensions: EditorLayoutDimensions,
     scorePlayer?: ScorePlayer,
     editingEnabled: boolean = true,
-    scoreLayoutPlanner?: ScoreLayoutPlanner
+    scoreLayoutPlanner?: ScoreLayoutPlanner,
+    layoutMode: TabUILayoutMode = TabUILayoutMode.Wrapped
   ) {
     this.track = track;
     this.layoutDimensions = layoutDimensions;
@@ -54,7 +56,8 @@ export class TrackController {
     this._trackElement = new TrackElement(
       this.track,
       this.layoutDimensions,
-      scoreLayoutPlanner
+      scoreLayoutPlanner,
+      layoutMode
     );
     this._trackControllerEditor = new TrackControllerEditor(
       this._trackElement,
@@ -766,6 +769,11 @@ export class TrackController {
     }
 
     return this._trackElement.getBeatElement(this._scorePlayer.lastStartedBeat);
+  }
+
+  /** Last started active-track beat model, independent of materialization. */
+  public get playerLastStartedBeat(): Beat | undefined {
+    return this._scorePlayer?.lastStartedBeat;
   }
 
   /** Current Web Audio clock time used by playback cursor animation. */

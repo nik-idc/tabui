@@ -23,12 +23,13 @@ import { GuitarTechniqueElement } from "../../controller/element/technique/guita
 import { GuitarTechniqueLabelElement } from "../../controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { BeamSegmentElement } from "../../controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "../../controller/element/bar/bar-tuplet-group-element";
-import { VoiceNumber } from "../../model";
+import { Beat, VoiceNumber } from "../../model";
 import { createRendererForElement } from "./support/renderer-factory";
 import { SelectionOverlayRenderer } from "./selection-overlay-renderer";
 import { BeatInteractionRenderer } from "./beat-interaction-renderer";
 import { PlayerOverlayRenderer } from "./player-overlay-renderer";
 import { TrackLineElement } from "../../controller/element/track/track-line-element";
+import { TabUILayoutMode } from "../../../config/tabui-config";
 
 enum VoicePart {
   Content = "content",
@@ -81,6 +82,7 @@ const DEFAULT_RENDER_OPTIONS: EditorRenderOptions = {
 };
 
 const TRACK_LINE_VIEWPORT_MARGIN_RATIO = 0.25;
+const SINGLE_LINE_VIEWPORT_MARGIN_RATIO = 0.2;
 
 /**
  * Render a track window using SVG
@@ -94,6 +96,8 @@ export class EditorSVGRenderer implements EditorRenderer {
   private static readonly VIEWPORT_OVERSCAN_LINES = 2;
   /** Extra materialized lines retained beyond rendered overscan. */
   private static readonly MATERIALIZED_LINE_CACHE_MARGIN = 2;
+  /** Master bars retained before and after the horizontal viewport. */
+  private static readonly VIEWPORT_OVERSCAN_BARS = 2;
 
   /** Notation-only scroll viewport wrapper. */
   readonly notationViewportDiv: HTMLDivElement;
@@ -110,6 +114,8 @@ export class EditorSVGRenderer implements EditorRenderer {
   private _mountedRendererIdentities: Set<string>;
   private _lastRenderedViewportStart?: number;
   private _lastRenderedViewportEnd?: number;
+  private _lastRenderedMasterBarStart?: number;
+  private _lastRenderedMasterBarEnd?: number;
   /** Viewport scroll listener. */
   private _viewportScrollListener?: EventListener;
   /** Viewport rectangle inside notation scroll container. */
@@ -174,6 +180,10 @@ export class EditorSVGRenderer implements EditorRenderer {
     assetsPath: ResolvedAssetConfig
   ) {
     this.notationViewportDiv = notationViewportDiv;
+    this.notationViewportDiv.classList.toggle(
+      "tu-single-line-notation",
+      trackController.trackElement.layoutMode === TabUILayoutMode.SingleLine
+    );
     this.rootSVGElement = createSVG();
     this.rootSVGElement.classList.add("tu-root-svg");
     this.notationViewportDiv.appendChild(this.rootSVGElement);
@@ -206,10 +216,12 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._playerOverlayRenderer = new PlayerOverlayRenderer(
       this._playerSVGGroup,
       this.trackController,
-      this.ensureTrackLineVisible.bind(this)
+      this.ensureBeatVisible.bind(this),
+      this.followHorizontalPosition.bind(this)
     );
 
     this.mountRootLayers();
+    this.syncRootSVGDimensions();
   }
 
   private mountDomChild(
@@ -249,50 +261,135 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   private setViewportRect(): void {
+    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
     this._viewportRect.set(
-      0,
+      this.notationViewportDiv.scrollLeft - padding,
       this.notationViewportDiv.scrollTop,
       this.notationViewportDiv.clientWidth,
       this.notationViewportDiv.clientHeight
     );
   }
 
-  private ensureTrackLineVisible(trackLineElement: TrackLineElement): void {
+  private calculateScrollLeftForBounds(bounds: Rect): number | undefined {
+    if (this._viewportRect.width <= 0) {
+      return undefined;
+    }
+
+    const margin = this._viewportRect.width * SINGLE_LINE_VIEWPORT_MARGIN_RATIO;
+    const safeLeft = this._viewportRect.x + margin;
+    const safeRight = this._viewportRect.right - margin;
+    let target: number | undefined;
+    if (bounds.width >= this._viewportRect.width) {
+      if (
+        bounds.x < this._viewportRect.x ||
+        bounds.right > this._viewportRect.right
+      ) {
+        target = bounds.x;
+      }
+    } else if (bounds.x < safeLeft) {
+      target = bounds.x - margin;
+    } else if (bounds.right > safeRight) {
+      target = bounds.right - this._viewportRect.width + margin;
+    }
+
+    if (target === undefined) {
+      return undefined;
+    }
+    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
+    return Math.max(0, target + padding);
+  }
+
+  /** Keeps an animated cursor position inside the horizontal safe area. */
+  private followHorizontalPosition(x: number): void {
+    if (
+      this.trackController.trackElement.layoutMode !==
+      TabUILayoutMode.SingleLine
+    ) {
+      return;
+    }
     this.setViewportRect();
-    const scrollTop = this.calculateScrollTopForTrackLine(
-      trackLineElement.globalBoundingBox
+    const scrollLeft = this.calculateScrollLeftForBounds(new Rect(x, 0, 1, 1));
+    if (scrollLeft === undefined) {
+      return;
+    }
+
+    this.notationViewportDiv.scrollLeft = scrollLeft;
+    this.setViewportRect();
+  }
+
+  /** Materializes a beat's bar and optionally follows it in the viewport. */
+  public ensureBeatVisible(
+    beat: Beat,
+    follow: boolean
+  ): BeatElement | undefined {
+    let trackLineElement =
+      this.trackController.trackElement.getTrackLineElementForBeat(beat);
+    const placement =
+      this.trackController.trackElement.getTrackLineBarForBeat(beat);
+    if (trackLineElement === undefined || placement === undefined) {
+      return undefined;
+    }
+
+    this.setViewportRect();
+    if (follow) {
+      const scrollTop = this.calculateScrollTopForTrackLine(
+        trackLineElement.globalBoundingBox
+      );
+      if (scrollTop !== undefined) {
+        this.notationViewportDiv.scrollTop = scrollTop;
+      }
+      if (
+        this.trackController.trackElement.layoutMode ===
+        TabUILayoutMode.SingleLine
+      ) {
+        const scrollLeft = this.calculateScrollLeftForBounds(
+          new Rect(placement.x, 0, placement.finalizedWidth, 1)
+        );
+        if (scrollLeft !== undefined) {
+          this.notationViewportDiv.scrollLeft = scrollLeft;
+        }
+      }
+      this.setViewportRect();
+    }
+
+    const masterBarIndex = placement.masterBarIndex;
+    const lastMasterBarIndex =
+      this.trackController.track.score.masterBars.length - 1;
+    const startMasterBarIndex = Math.max(
+      0,
+      masterBarIndex - EditorSVGRenderer.VIEWPORT_OVERSCAN_BARS
+    );
+    const endMasterBarIndex = Math.min(
+      lastMasterBarIndex,
+      masterBarIndex + EditorSVGRenderer.VIEWPORT_OVERSCAN_BARS
     );
     const lineIndex =
       this.trackController.trackElement.trackLineElements.indexOf(
         trackLineElement
       );
-    const isMaterialized =
-      this.trackController.trackElement.materializedLineIndices.has(lineIndex);
-    if (scrollTop === undefined && isMaterialized) {
-      return;
-    }
-
-    if (scrollTop !== undefined) {
-      this.notationViewportDiv.scrollTop = scrollTop;
-      this.setViewportRect();
-    }
+    this.trackController.trackElement.update({
+      lineRange: { startLineIndex: lineIndex, endLineIndex: lineIndex },
+      masterBarRange: { startMasterBarIndex, endMasterBarIndex },
+      rebuildSkeleton: false,
+      forceElements: false,
+      dematerializeOutsideRange: {
+        startLineIndex: lineIndex,
+        endLineIndex: lineIndex,
+      },
+      dematerializeOutsideMasterBarRange: {
+        startMasterBarIndex,
+        endMasterBarIndex,
+      },
+    });
+    this._lastRenderedViewportStart = undefined;
     this.renderNotation({
       renderNotation: true,
-      forceNotation: !isMaterialized,
+      forceNotation: false,
       overlays: { selection: false, player: false },
     });
-  }
-
-  /** Positions the initial viewport around a known track line before rendering. */
-  public prepareViewportForTrackLine(trackLineElement: TrackLineElement): void {
-    this.setViewportRect();
-    const scrollTop = this.calculateScrollTopForTrackLine(
-      trackLineElement.globalBoundingBox
-    );
-    if (scrollTop !== undefined) {
-      this.notationViewportDiv.scrollTop = scrollTop;
-      this.setViewportRect();
-    }
+    trackLineElement =
+      this.trackController.trackElement.getTrackLineElementForBeat(beat);
+    return this.trackController.trackElement.getBeatElement(beat);
   }
 
   public detachViewportScrollEvent(): void {
@@ -372,6 +469,42 @@ export class EditorSVGRenderer implements EditorRenderer {
       end: Math.min(
         trackLines.length - 1,
         lastVisibleIndex + EditorSVGRenderer.VIEWPORT_OVERSCAN_LINES
+      ),
+    };
+  }
+
+  private getMasterBarsInViewport(): { start: number; end: number } {
+    const bars =
+      this.trackController.trackElement.trackLineElements[0]?.trackLineBars;
+    if (bars === undefined || bars.length === 0) {
+      return { start: 0, end: -1 };
+    }
+
+    let firstVisible = -1;
+    let lastVisible = -1;
+    for (const bar of bars) {
+      const intersects =
+        bar.x + bar.finalizedWidth >= this._viewportRect.x &&
+        bar.x <= this._viewportRect.right;
+      if (!intersects) {
+        continue;
+      }
+      firstVisible = firstVisible === -1 ? bar.masterBarIndex : firstVisible;
+      lastVisible = bar.masterBarIndex;
+    }
+    if (firstVisible === -1) {
+      firstVisible = bars[bars.length - 1].masterBarIndex;
+      lastVisible = firstVisible;
+    }
+
+    return {
+      start: Math.max(
+        0,
+        firstVisible - EditorSVGRenderer.VIEWPORT_OVERSCAN_BARS
+      ),
+      end: Math.min(
+        bars.length - 1,
+        lastVisible + EditorSVGRenderer.VIEWPORT_OVERSCAN_BARS
       ),
     };
   }
@@ -635,11 +768,19 @@ export class EditorSVGRenderer implements EditorRenderer {
     }
   }
 
-  private disposeRemovedRenderers(diff: ElementDiff): void {
+  private disposeRemovedRenderers(
+    diff: ElementDiff,
+    diffIncludesSkeletonRebuild: boolean
+  ): void {
     for (const stableIdentities of diff.removed.values()) {
       for (const stableIdentity of stableIdentities) {
         const renderer = this._rendererRegistry.get(stableIdentity);
         if (renderer === undefined) {
+          continue;
+        }
+
+        if (!diffIncludesSkeletonRebuild) {
+          this.unmountRenderer(stableIdentity, renderer);
           continue;
         }
 
@@ -748,12 +889,14 @@ export class EditorSVGRenderer implements EditorRenderer {
     visibleElements: NotationElement[],
     options: EditorRenderOptions
   ): ElementRenderer[] {
+    const diffIncludesSkeletonRebuild =
+      this.trackController.trackElement.skeletonWasRebuilt;
     const diff = this.trackController.trackElement.consumeDiff();
     const visibleIdentities = new Set(
       visibleElements.map((ve) => ve.getStableIdentity())
     );
 
-    this.disposeRemovedRenderers(diff);
+    this.disposeRemovedRenderers(diff, diffIncludesSkeletonRebuild);
     this.detachOffscreenRenderers(visibleIdentities);
     const updatedIdentities = this.getUpdatedVisibleIdentities(
       diff,
@@ -812,7 +955,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     const trackWindowHeight = this.trackController.trackElement.height;
     const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
     const trackWindowWidth =
-      this.trackController.layoutDimensions.WIDTH + padding * 2;
+      this.trackController.trackElement.width + padding * 2;
     const VB = `0 0 ${trackWindowWidth} ${trackWindowHeight}`;
     this.rootSVGElement.setAttribute("viewBox", VB);
     this.rootSVGElement.setAttribute("width", `${trackWindowWidth}`);
@@ -823,10 +966,21 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.setViewportRect();
 
     const { start, end } = this.getLinesInViewport();
+    const singleLine =
+      this.trackController.trackElement.layoutMode ===
+      TabUILayoutMode.SingleLine;
+    const masterBarRange = singleLine
+      ? this.getMasterBarsInViewport()
+      : {
+          start: 0,
+          end: this.trackController.track.score.masterBars.length - 1,
+        };
     if (
       !options.forceNotation &&
       this._lastRenderedViewportStart === start &&
       this._lastRenderedViewportEnd === end &&
+      this._lastRenderedMasterBarStart === masterBarRange.start &&
+      this._lastRenderedMasterBarEnd === masterBarRange.end &&
       !this.trackController.trackElement.hasPendingElementDiff()
     ) {
       return;
@@ -846,11 +1000,19 @@ export class EditorSVGRenderer implements EditorRenderer {
     // Ensure that the viewport's elements are up to date.
     this.trackController.trackElement.update({
       lineRange: { startLineIndex: start, endLineIndex: end },
+      masterBarRange: {
+        startMasterBarIndex: masterBarRange.start,
+        endMasterBarIndex: masterBarRange.end,
+      },
       rebuildSkeleton: false,
       forceElements: false,
       dematerializeOutsideRange: {
         startLineIndex: retainedStart,
         endLineIndex: retainedEnd,
+      },
+      dematerializeOutsideMasterBarRange: {
+        startMasterBarIndex: masterBarRange.start,
+        endMasterBarIndex: masterBarRange.end,
       },
     });
     const visibleLines =
@@ -866,6 +1028,8 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.reconcileRendererState(visibleElements, options);
     this._lastRenderedViewportStart = start;
     this._lastRenderedViewportEnd = end;
+    this._lastRenderedMasterBarStart = masterBarRange.start;
+    this._lastRenderedMasterBarEnd = masterBarRange.end;
 
     this._beatInteractionRenderer.render(visibleElements);
 
@@ -906,6 +1070,8 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._mountedRendererIdentities.clear();
     this._lastRenderedViewportStart = undefined;
     this._lastRenderedViewportEnd = undefined;
+    this._lastRenderedMasterBarStart = undefined;
+    this._lastRenderedMasterBarEnd = undefined;
     this._playerOverlayRenderer.unrender();
     this._selectionOverlayRenderer.unrender();
     this._beatInteractionRenderer.unrender();
@@ -918,5 +1084,6 @@ export class EditorSVGRenderer implements EditorRenderer {
     this.detachViewportScrollEvent();
     this.unrender();
     this.notationViewportDiv.replaceChildren();
+    this.notationViewportDiv.classList.remove("tu-single-line-notation");
   }
 }

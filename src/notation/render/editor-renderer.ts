@@ -1,4 +1,5 @@
 import { BeatElement, NoteElement } from "../controller";
+import { Beat } from "../model";
 import { ElementRenderer } from "./element-renderer";
 
 export type EditorRenderOptions = {
@@ -40,6 +41,9 @@ export interface EditorRenderer {
 
   attachViewportScrollEvent(eventHandler: (event: Event) => void): void;
   detachViewportScrollEvent(): void;
+
+  /** Materializes a beat and optionally follows it in the notation viewport. */
+  ensureBeatVisible(beat: Beat, follow: boolean): BeatElement | undefined;
 
   render(options?: EditorRenderOptions): ElementRenderer[];
   unrender(): void;

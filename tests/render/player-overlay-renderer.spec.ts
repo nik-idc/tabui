@@ -61,7 +61,7 @@ function createAnimationOverlay(
   const overlay = new PlayerOverlayRenderer(
     {} as SVGGElement,
     trackController,
-    () => {}
+    () => undefined
   );
   (overlay as any)._playerCursorRect = cursorElement;
   return overlay;
@@ -84,7 +84,7 @@ describe("PlayerOverlayRenderer cursor geometry", () => {
     const overlay = new PlayerOverlayRenderer(
       {} as SVGGElement,
       controller,
-      () => {}
+      () => undefined
     );
     (overlay as any)._playerCursorRect = cursorElement;
 
@@ -127,7 +127,7 @@ describe("PlayerOverlayRenderer cursor geometry", () => {
     const overlay = new PlayerOverlayRenderer(
       {} as SVGGElement,
       controller,
-      () => {}
+      () => undefined
     );
     (overlay as any)._playerCursorRect = cursorElement;
 
@@ -298,14 +298,12 @@ describe("PlayerOverlayRenderer", () => {
     const trackLineElement = {} as any;
     const beatElement = {} as any;
     const nextBeatElement = {} as any;
-    const ensureTrackLineVisible = jest.fn();
+    const ensureBeatVisible = jest.fn((resolvedBeat: unknown) =>
+      resolvedBeat === beat ? beatElement : nextBeatElement
+    );
     const animateBetweenBeats = jest.fn();
     const trackElement = {
       getTrackLineElementForBeat: jest.fn(() => trackLineElement),
-      getBeatElement: jest.fn((resolvedBeat: unknown) => {
-        expect(ensureTrackLineVisible).toHaveBeenCalledWith(trackLineElement);
-        return resolvedBeat === beat ? beatElement : nextBeatElement;
-      }),
     };
     const trackController = {
       track: { uuid: 1 },
@@ -317,7 +315,7 @@ describe("PlayerOverlayRenderer", () => {
     const overlay = new PlayerOverlayRenderer(
       {} as SVGGElement,
       trackController,
-      ensureTrackLineVisible
+      ensureBeatVisible
     );
     (overlay as any).animateBetweenBeats = animateBetweenBeats;
 
@@ -332,6 +330,8 @@ describe("PlayerOverlayRenderer", () => {
     });
 
     expect(trackController.getBeatByUUID).toHaveBeenCalledWith(42);
+    expect(ensureBeatVisible).toHaveBeenCalledWith(beat, true);
+    expect(ensureBeatVisible).toHaveBeenCalledWith(nextBeat, false);
     expect(animateBetweenBeats).toHaveBeenCalledWith(
       beatElement,
       nextBeatElement,
@@ -342,7 +342,7 @@ describe("PlayerOverlayRenderer", () => {
   });
 
   test("safely ignores a playback beat that cannot be resolved", () => {
-    const ensureTrackLineVisible = jest.fn();
+    const ensureBeatVisible = jest.fn();
     const snapToBeat = jest.fn();
     const overlay = new PlayerOverlayRenderer(
       {} as SVGGElement,
@@ -353,7 +353,7 @@ describe("PlayerOverlayRenderer", () => {
         getBeatByUUID: jest.fn(() => undefined),
         trackElement: {},
       } as any,
-      ensureTrackLineVisible
+      ensureBeatVisible
     );
     (overlay as any).snapToBeat = snapToBeat;
 
@@ -366,7 +366,7 @@ describe("PlayerOverlayRenderer", () => {
         playbackRunId: 1,
       })
     ).not.toThrow();
-    expect(ensureTrackLineVisible).not.toHaveBeenCalled();
+    expect(ensureBeatVisible).not.toHaveBeenCalled();
     expect(snapToBeat).not.toHaveBeenCalled();
   });
 
@@ -380,7 +380,7 @@ describe("PlayerOverlayRenderer", () => {
         playerRunId: 1,
         getBeatByUUID,
       } as any,
-      () => {}
+      () => undefined
     );
 
     (overlay as any).onBeatChanged({
@@ -396,83 +396,7 @@ describe("PlayerOverlayRenderer", () => {
   });
 });
 
-function createPlaybackFollowHarness(
-  lineBounds: Rect,
-  materialized: boolean = true
-) {
-  const trackLineElement = { globalBoundingBox: lineBounds } as any;
-  const notationViewportDiv = {
-    scrollTop: 100,
-    clientWidth: 800,
-    clientHeight: 400,
-  };
-  const renderNotation = jest.fn();
-  const renderer = Object.create(EditorSVGRenderer.prototype) as any;
-  renderer.notationViewportDiv = notationViewportDiv;
-  renderer.trackController = {
-    trackElement: {
-      trackLineElements: [trackLineElement],
-      materializedLineIndices: materialized ? new Set([0]) : new Set(),
-    },
-  };
-  renderer._viewportRect = new Rect();
-  renderer.renderNotation = renderNotation;
-
-  return {
-    renderer,
-    trackLineElement,
-    notationViewportDiv,
-    renderNotation,
-  };
-}
-
-describe("EditorSVGRenderer track line visibility", () => {
-  function followLine(lineBounds: Rect) {
-    const harness = createPlaybackFollowHarness(lineBounds);
-    harness.renderer.ensureTrackLineVisible(harness.trackLineElement);
-    return harness;
-  }
-
-  test("does not scroll for a line inside the viewport safe zone", () => {
-    const { notationViewportDiv, renderNotation } = followLine(
-      new Rect(0, 250, 800, 80)
-    );
-
-    expect(notationViewportDiv.scrollTop).toBe(100);
-    expect(renderNotation).not.toHaveBeenCalled();
-  });
-
-  test("scrolls a lower line to one quarter of the viewport", () => {
-    const { notationViewportDiv } = followLine(new Rect(0, 390, 800, 80));
-
-    expect(notationViewportDiv.scrollTop).toBe(290);
-  });
-
-  test("scrolls an upper line to one quarter of the viewport", () => {
-    const { notationViewportDiv } = followLine(new Rect(0, 120, 800, 80));
-
-    expect(notationViewportDiv.scrollTop).toBe(20);
-  });
-
-  test("aligns an oversized line to the viewport top", () => {
-    const { notationViewportDiv } = followLine(new Rect(0, 550, 800, 500));
-
-    expect(notationViewportDiv.scrollTop).toBe(550);
-  });
-
-  test("materializes an unmaterialized line without requiring a scroll", () => {
-    const { renderer, trackLineElement, renderNotation } =
-      createPlaybackFollowHarness(new Rect(0, 250, 800, 80), false);
-
-    renderer.ensureTrackLineVisible(trackLineElement);
-
-    expect(renderNotation).toHaveBeenCalledWith({
-      renderNotation: true,
-      forceNotation: true,
-      overlays: { selection: false, player: false },
-    });
-  });
-
+describe("EditorSVGRenderer viewport ranges", () => {
   test("uses a bounded nearest-line range outside the current viewport", () => {
     const renderer = Object.create(EditorSVGRenderer.prototype) as any;
     renderer._viewportRect = new Rect(0, 10_000, 800, 400);

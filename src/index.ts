@@ -8,6 +8,7 @@ export type {
 } from "./config/tabui-config";
 export {
   TabUIEditorMode,
+  TabUILayoutMode,
   TabUIScorePanelPlacement,
   TabUISidePanelPlacement,
 } from "./config/tabui-config";

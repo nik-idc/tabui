@@ -15,6 +15,11 @@ import { createBeat, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 import { SetTechniqueCommand } from "../../src/notation/controller/editor/command";
 import { createMultiVoiceTwoStaffScoreFixture } from "../../demo/data/multi-voice-score";
+import { TabUILayoutMode } from "../../src/config/tabui-config";
+import { BeamSegmentElement } from "../../src/notation/controller/element/bar/beam-segment-element";
+import { BarTupletGroupElement } from "../../src/notation/controller/element/bar/bar-tuplet-group-element";
+import { GuitarTechniqueElement } from "../../src/notation/controller/element/technique/guitar-technique/guitar-technique-element";
+import { GuitarTechniqueLabelElement } from "../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 
 const FINAL_STAFF_VOICE_CASES: Array<[VoiceNumber[]]> = [
   [[1]],
@@ -26,7 +31,7 @@ const FINAL_STAFF_VOICE_CASES: Array<[VoiceNumber[]]> = [
 
 function getLineOwnershipKeys(trackElement: TrackElement): string[] {
   return trackElement.trackLineElements.map((line) =>
-    line.trackLineData.map((bar) => bar.masterBarUUID).join(":")
+    line.trackLineBars.map((bar) => bar.masterBarUUID).join(":")
   );
 }
 
@@ -594,7 +599,7 @@ describe("TrackElement tree", () => {
 
     const lastLineIndex = trackElement.trackLineElements.length - 1;
     const affectedMasterBarIndex =
-      trackElement.trackLineElements[lastLineIndex].trackLineData[0]
+      trackElement.trackLineElements[lastLineIndex].trackLineBars[0]
         .masterBarIndex;
     const affectedBar = track.staves[0].bars[affectedMasterBarIndex];
     const affectedVoiceBar = affectedBar.getVoiceBar(1);
@@ -623,7 +628,7 @@ describe("TrackElement tree", () => {
 
     const secondLastLineIndex = trackElement.trackLineElements.length - 2;
     const affectedMasterBarIndex =
-      trackElement.trackLineElements[secondLastLineIndex].trackLineData[0]
+      trackElement.trackLineElements[secondLastLineIndex].trackLineBars[0]
         .masterBarIndex;
     const affectedBar = track.staves[0].bars[affectedMasterBarIndex];
     const affectedVoiceBar = affectedBar.getVoiceBar(1);
@@ -672,7 +677,7 @@ describe("TrackElement tree", () => {
 
     const firstLine = trackElement.trackLineElements[0];
     const affectedMasterBarIndex =
-      firstLine.trackLineData[firstLine.trackLineData.length - 1]
+      firstLine.trackLineBars[firstLine.trackLineBars.length - 1]
         .masterBarIndex;
     const affectedBar = track.staves[0].bars[affectedMasterBarIndex];
 
@@ -867,11 +872,11 @@ describe("TrackElement tree", () => {
 
     for (const line of lines) {
       const styleLine = line.staffLineElements[0].styleLinesAsArray[0];
-      expect(styleLine.barElements).toHaveLength(line.trackLineData.length);
+      expect(styleLine.barElements).toHaveLength(line.trackLineBars.length);
       expect(styleLine.barElements[0].boundingBox.x).toBeCloseTo(0);
 
-      for (let i = 0; i < line.trackLineData.length; i++) {
-        const masterBarIndex = line.trackLineData[i].masterBarIndex;
+      for (let i = 0; i < line.trackLineBars.length; i++) {
+        const masterBarIndex = line.trackLineBars[i].masterBarIndex;
         expect(styleLine.barElements[i].bar).toBe(
           track.staves[0].bars[masterBarIndex]
         );
@@ -886,14 +891,14 @@ describe("TrackElement tree", () => {
 
     const firstLineVoiceBar =
       track.staves[0].bars[
-        firstLine.trackLineData[0].masterBarIndex
+        firstLine.trackLineBars[0].masterBarIndex
       ].getVoiceBar(1);
     if (firstLineVoiceBar === null) {
       throw Error("Expected voice 1 in first line bar");
     }
     const secondLineVoiceBar =
       track.staves[0].bars[
-        secondLine.trackLineData[0].masterBarIndex
+        secondLine.trackLineBars[0].masterBarIndex
       ].getVoiceBar(1);
     if (secondLineVoiceBar === null) {
       throw Error("Expected voice 1 in second line bar");
@@ -975,6 +980,191 @@ describe("TrackElement tree", () => {
     expect(trackElement.height).toBe(initialHeight);
   });
 
+  test("retains skeleton rebuild provenance until the diff is consumed", () => {
+    const { track } = createScoreGraph();
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    trackElement.consumeDiff();
+
+    trackElement.update({ affectedMasterBarIndices: [0] });
+    trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 0 },
+      rebuildSkeleton: false,
+      forceElements: false,
+    });
+
+    expect(trackElement.skeletonWasRebuilt).toBe(true);
+    trackElement.consumeDiff();
+    expect(trackElement.skeletonWasRebuilt).toBe(false);
+  });
+
+  test("materializes and dematerializes single-line master-bar ranges", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 8; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const trackElement = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      undefined,
+      TabUILayoutMode.SingleLine
+    );
+    const firstBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
+    const laterBeat = track.staves[0].bars[6].getVoiceBar(1)?.beats[0];
+    if (firstBeat === undefined || laterBeat === undefined) {
+      throw Error("Expected beats in materialization test bars");
+    }
+
+    trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 0 },
+      masterBarRange: { startMasterBarIndex: 1, endMasterBarIndex: 2 },
+      rebuildSkeleton: false,
+      dematerializeOutsideRange: { startLineIndex: 0, endLineIndex: 0 },
+      dematerializeOutsideMasterBarRange: {
+        startMasterBarIndex: 1,
+        endMasterBarIndex: 2,
+      },
+    });
+    const firstIdentity = trackElement
+      .getBeatElement(firstBeat)
+      ?.getStableIdentity();
+    const firstMaterializedBars =
+      trackElement.trackLineElements[0].staffLineElements[0]
+        .styleLinesAsArray[0].barElements;
+    expect(firstMaterializedBars.map((b) => b.bar)).toEqual(
+      track.staves[0].bars.slice(1, 3)
+    );
+    expect(firstMaterializedBars[0].boundingBox.x).toBe(
+      trackElement.trackLineElements[0].trackLineBars[1].x
+    );
+
+    trackElement.consumeDiff();
+    trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 0 },
+      masterBarRange: { startMasterBarIndex: 5, endMasterBarIndex: 6 },
+      rebuildSkeleton: false,
+      dematerializeOutsideRange: { startLineIndex: 0, endLineIndex: 0 },
+      dematerializeOutsideMasterBarRange: {
+        startMasterBarIndex: 5,
+        endMasterBarIndex: 6,
+      },
+    });
+
+    expect(trackElement.getBeatElement(firstBeat)).toBeUndefined();
+    expect(trackElement.getBeatElement(laterBeat)).toBeDefined();
+    expect(trackElement.materializedBarRangesByLineIndex.get(0)).toEqual({
+      startMasterBarIndex: 5,
+      endMasterBarIndex: 6,
+    });
+    expect(
+      trackElement.elementDiff.removed
+        .get(TabBeatElement)
+        ?.has(firstIdentity ?? "")
+    ).toBe(true);
+    expect(
+      trackElement.elementDiff.added
+        .get(TabBeatElement)
+        ?.has(trackElement.getBeatElement(laterBeat)?.getStableIdentity() ?? "")
+    ).toBe(true);
+
+    trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 0 },
+      masterBarRange: { startMasterBarIndex: 1, endMasterBarIndex: 2 },
+      rebuildSkeleton: false,
+      dematerializeOutsideRange: { startLineIndex: 0, endLineIndex: 0 },
+      dematerializeOutsideMasterBarRange: {
+        startMasterBarIndex: 1,
+        endMasterBarIndex: 2,
+      },
+    });
+    expect(trackElement.getBeatElement(firstBeat)?.getStableIdentity()).toBe(
+      firstIdentity
+    );
+  });
+
+  test("keeps descendant identities stable after single-line rematerialization", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 5; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const targetVoice = track.staves[0].bars[1].getVoiceBar(1);
+    if (targetVoice === null) {
+      throw Error("Expected target voice bar");
+    }
+    targetVoice.replaceBeats([
+      createBeat(targetVoice, NoteDuration.Eighth, 0, {
+        normalCount: 3,
+        tupletCount: 2,
+      }),
+      createBeat(targetVoice, NoteDuration.Eighth, 0, {
+        normalCount: 3,
+        tupletCount: 2,
+      }),
+      createBeat(targetVoice, NoteDuration.Eighth, 0, {
+        normalCount: 3,
+        tupletCount: 2,
+      }),
+    ]);
+    const note = targetVoice.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected target guitar note");
+    }
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
+    const trackElement = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      undefined,
+      TabUILayoutMode.SingleLine
+    );
+    const materialize = (startMasterBarIndex: number): void => {
+      trackElement.update({
+        lineRange: { startLineIndex: 0, endLineIndex: 0 },
+        masterBarRange: {
+          startMasterBarIndex,
+          endMasterBarIndex: startMasterBarIndex + 1,
+        },
+        rebuildSkeleton: false,
+        dematerializeOutsideRange: {
+          startLineIndex: 0,
+          endLineIndex: 0,
+        },
+        dematerializeOutsideMasterBarRange: {
+          startMasterBarIndex,
+          endMasterBarIndex: startMasterBarIndex + 1,
+        },
+      });
+    };
+    const identitySnapshot = (): string[] => {
+      const classes = [
+        TabBeatElement,
+        TabNoteElement,
+        GuitarTechniqueElement,
+        GuitarTechniqueLabelElement,
+        BeamSegmentElement,
+        BarTupletGroupElement,
+      ];
+      return trackElement.trackLineElements[0].drawableNotationElements
+        .filter((element) => classes.some((c) => element instanceof c))
+        .map((element) => element.getStableIdentity())
+        .sort();
+    };
+
+    materialize(1);
+    const before = identitySnapshot();
+    expect(before.some((identity) => identity.startsWith("technique:"))).toBe(
+      true
+    );
+    expect(before.some((identity) => identity.startsWith("beam:"))).toBe(true);
+    expect(before.some((identity) => identity.startsWith("tuplet:"))).toBe(
+      true
+    );
+
+    materialize(4);
+    materialize(1);
+
+    expect(identitySnapshot()).toEqual(before);
+  });
+
   test("second-line tempo info shifts down when first line grows from technique labels", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 12; i++) {
@@ -985,7 +1175,7 @@ describe("TrackElement tree", () => {
     trackElement.update();
 
     const secondLineStartIndex =
-      trackElement.trackLineElements[1].trackLineData[0].masterBarIndex;
+      trackElement.trackLineElements[1].trackLineBars[0].masterBarIndex;
     score.masterBars[secondLineStartIndex].tempo = 160;
     const secondLineVoiceBar =
       track.staves[0].bars[secondLineStartIndex].getVoiceBar(1);

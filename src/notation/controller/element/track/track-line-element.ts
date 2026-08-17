@@ -21,6 +21,7 @@ export type TrackLineBar = ScoreLayoutBar;
 export type TrackElementSkeletonLine = {
   trackLineBars: TrackLineBar[];
   finalLineHeight: number;
+  finalLineWidth: number;
   y: number;
 };
 
@@ -115,7 +116,7 @@ export class TrackLineElement implements NotationElement {
     this._boundingBox.set(
       0,
       skeletonLine.y,
-      this.trackElement.layoutDimensions.WIDTH,
+      skeletonLine.finalLineWidth,
       skeletonLine.finalLineHeight
     );
   }
@@ -123,11 +124,18 @@ export class TrackLineElement implements NotationElement {
   /**
    * Fills staff lines array
    */
-  public build(): void {
+  public build(
+    materializedTrackLineBars = this._skeletonLine.trackLineBars
+  ): void {
     this._staffLineElements = [];
     for (const staff of this.track.staves) {
       this._staffLineElements.push(
-        new StaffLineElement(staff, this, this._skeletonLine.trackLineBars)
+        new StaffLineElement(
+          staff,
+          this,
+          this._skeletonLine.trackLineBars,
+          materializedTrackLineBars
+        )
       );
     }
 
@@ -318,13 +326,6 @@ export class TrackLineElement implements NotationElement {
     return this._stableIdentity;
   }
 
-  public setTrackLineBars(trackLineBars: TrackLineBar[]): void {
-    this._skeletonLine = {
-      ...this._skeletonLine,
-      trackLineBars,
-    };
-  }
-
   /** Staff line element on this track line */
   public get staffLineElements(): StaffLineElement[] {
     return this._staffLineElements;
@@ -429,15 +430,16 @@ export class TrackLineElement implements NotationElement {
     return this._skeletonLine.trackLineBars;
   }
 
-  public get skeletonLine(): TrackElementSkeletonLine {
-    return this._skeletonLine;
+  /** True when complete line ownership reserves a tempo row. */
+  public get hasTempo(): boolean {
+    return this._skeletonLine.trackLineBars.some(({ masterBarIndex }) => {
+      const masterBar = this.track.score.masterBars[masterBarIndex];
+      const previous = this.track.score.masterBars[masterBarIndex - 1];
+      return previous === undefined || previous.tempo !== masterBar.tempo;
+    });
   }
 
-  /**
-   * Transitional legacy test/helper alias. Prefer trackLineBars and remove this
-   * before commit after callers have been migrated.
-   */
-  public get trackLineData(): TrackLineBar[] {
-    return this._skeletonLine.trackLineBars;
+  public get skeletonLine(): TrackElementSkeletonLine {
+    return this._skeletonLine;
   }
 }

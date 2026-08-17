@@ -848,7 +848,7 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const secondLineStartIndex =
-      trackElement.trackLineElements[1].trackLineData[0].masterBarIndex;
+      trackElement.trackLineElements[1].trackLineBars[0].masterBarIndex;
     const secondLineVoiceBar = staff.bars[secondLineStartIndex].getVoiceBar(1);
     if (secondLineVoiceBar === null) {
       throw Error("Expected voice 1 in second line bar");

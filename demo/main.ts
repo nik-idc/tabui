@@ -2,6 +2,7 @@ import { TabUIEditor } from "../src/tabui-editor";
 import {
   TabUIConfig,
   TabUIEditorMode,
+  TabUILayoutMode,
   TabUIScorePanelPlacement,
   TabUISidePanelPlacement,
 } from "../src/config/tabui-config";
@@ -55,6 +56,8 @@ const themeSelect = document.getElementById(
 const interactionModeSelect = requiredElement<HTMLSelectElement>(
   "interaction-mode-select"
 );
+const layoutModeSelect =
+  requiredElement<HTMLSelectElement>("layout-mode-select");
 const scorePanelVisibilitySelect = requiredElement<HTMLSelectElement>(
   "score-panel-visibility-select"
 );
@@ -97,6 +100,12 @@ function resolveInteractionMode(value: string | null): TabUIEditorMode {
     : TabUIEditorMode.Edit;
 }
 
+function resolveLayoutMode(value: string | null): TabUILayoutMode {
+  return value === TabUILayoutMode.SingleLine
+    ? TabUILayoutMode.SingleLine
+    : TabUILayoutMode.Wrapped;
+}
+
 function resolveScorePanelPlacement(
   value: string | null
 ): TabUIScorePanelPlacement {
@@ -123,6 +132,7 @@ function visibilityOverride(value: DemoPanelVisibility): boolean | undefined {
 
 function applyConfigControlValues(params: URLSearchParams): void {
   interactionModeSelect.value = resolveInteractionMode(params.get("mode"));
+  layoutModeSelect.value = resolveLayoutMode(params.get("layoutMode"));
   scorePanelVisibilitySelect.value = resolvePanelVisibility(
     params.get("scorePanel")
   );
@@ -153,6 +163,7 @@ function syncSideCollapseControl(): void {
 function persistConfigControlValues(): void {
   const params = new URLSearchParams(window.location.search);
   params.set("mode", interactionModeSelect.value);
+  params.set("layoutMode", layoutModeSelect.value);
   params.set("scorePanel", scorePanelVisibilitySelect.value);
   params.set("scorePanelPlacement", scorePanelPlacementSelect.value);
   params.set("sidePanel", sidePanelVisibilitySelect.value);
@@ -288,6 +299,9 @@ function createEditorConfig(): TabUIConfig {
     interaction: {
       mode: resolveInteractionMode(interactionModeSelect.value),
     },
+    layout: {
+      mode: resolveLayoutMode(layoutModeSelect.value),
+    },
     panels: {
       score: {
         ...(scoreVisibility === undefined ? {} : { visible: scoreVisibility }),
@@ -339,6 +353,7 @@ function handleEditorConfigChange(): void {
 
 const editorConfigControls = [
   interactionModeSelect,
+  layoutModeSelect,
   scorePanelVisibilitySelect,
   scorePanelPlacementSelect,
   sidePanelVisibilitySelect,

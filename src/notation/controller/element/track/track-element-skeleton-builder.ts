@@ -1,6 +1,7 @@
 import { Staff, Track } from "../../../model";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { ScoreLayoutPlan } from "../../layout/score-layout-plan";
+import { TabUILayoutMode } from "../../../../config/tabui-config";
 import { TECHNIQUE_TO_LINE_NUMBER } from "../technique/guitar-technique/guitar-technique-element-lists";
 import {
   TrackElementSkeleton,
@@ -108,11 +109,13 @@ function createSkeletonLine(
   track: Track,
   trackLineBars: TrackLineBar[],
   layoutDimensions: EditorLayoutDimensions,
-  y: number
+  y: number,
+  finalLineWidth: number
 ): TrackElementSkeletonLine {
   return {
     trackLineBars,
     finalLineHeight: getTrackLineHeight(track, trackLineBars, layoutDimensions),
+    finalLineWidth,
     y,
   };
 }
@@ -120,17 +123,25 @@ function createSkeletonLine(
 export function buildTrackElementSkeleton(
   track: Track,
   layoutDimensions: EditorLayoutDimensions,
-  scoreLayoutPlan: ScoreLayoutPlan
+  scoreLayoutPlan: ScoreLayoutPlan,
+  layoutMode: TabUILayoutMode
 ): TrackElementSkeleton {
   const lines: TrackElementSkeletonLine[] = [];
   let lineY = 0;
 
-  for (const scoreLine of scoreLayoutPlan.lines) {
+  const scoreLines =
+    layoutMode === TabUILayoutMode.SingleLine
+      ? [{ bars: scoreLayoutPlan.intrinsicBars }]
+      : scoreLayoutPlan.wrappedLines;
+  for (const scoreLine of scoreLines) {
     const line = createSkeletonLine(
       track,
       scoreLine.bars,
       layoutDimensions,
-      lineY
+      lineY,
+      layoutMode === TabUILayoutMode.SingleLine
+        ? scoreLine.bars.reduce((sum, b) => sum + b.finalizedWidth, 0)
+        : layoutDimensions.WIDTH
     );
     lines.push(line);
     lineY += line.finalLineHeight;

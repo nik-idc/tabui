@@ -36,6 +36,12 @@ export enum TabUIEditorMode {
   ViewOnly = "view-only",
 }
 
+/** Controls whether score bars wrap to the available notation width. */
+export enum TabUILayoutMode {
+  Wrapped = "wrapped",
+  SingleLine = "single-line",
+}
+
 export enum TabUIScorePanelPlacement {
   Top = "top",
   Bottom = "bottom",
@@ -55,6 +61,7 @@ export interface TabUIConfig {
     mode?: TabUIEditorMode;
   };
   layout?: {
+    mode?: TabUILayoutMode;
     width?: number;
     viewOnlyModeWidthThreshold?: number;
     unrestrictedModeWidthThreshold?: number;
@@ -119,6 +126,7 @@ export interface ResolvedTabUIConfig {
     mode: TabUIEditorMode;
   };
   layout: {
+    mode: TabUILayoutMode;
     width?: number;
     viewOnlyModeWidthThreshold: number;
     unrestrictedModeWidthThreshold: number;
@@ -147,6 +155,7 @@ export interface ResolvedTabUIConfig {
 }
 
 const DEFAULT_LAYOUT = {
+  mode: TabUILayoutMode.Wrapped,
   viewOnlyModeWidthThreshold: 500,
   unrestrictedModeWidthThreshold: 1000,
   noteTextSize: 12,
@@ -314,6 +323,13 @@ export function resolveTabUIConfig(
       "TabUIEditor layout width must be finite and fit the view-only threshold"
     );
   }
+  const layoutMode = config.layout?.mode ?? DEFAULT_LAYOUT.mode;
+  if (
+    layoutMode !== TabUILayoutMode.Wrapped &&
+    layoutMode !== TabUILayoutMode.SingleLine
+  ) {
+    throw new Error("TabUIEditor layout mode is invalid");
+  }
   return {
     assets: {
       baseUrl: normalizeAssetBaseUrl(config.assets?.baseUrl?.trim() ?? ""),
@@ -321,6 +337,7 @@ export function resolveTabUIConfig(
     },
     interaction: { mode },
     layout: {
+      mode: layoutMode,
       width,
       viewOnlyModeWidthThreshold,
       unrestrictedModeWidthThreshold,

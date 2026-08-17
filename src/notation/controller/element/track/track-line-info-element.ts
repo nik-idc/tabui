@@ -54,7 +54,7 @@ export class TrackLineInfoElement implements NotationElement {
     this._boundingBox = new Rect(
       0,
       0,
-      this.trackElement.layoutDimensions.WIDTH,
+      this.trackLineElement.boundingBox.width,
       0
     );
     this._barTempoRectsMap = new Map();
@@ -95,12 +95,11 @@ export class TrackLineInfoElement implements NotationElement {
    * Sets the dimensions of the outer rectangle
    */
   public measure(): void {
-    const height =
-      this._barTempoRectsMap.size !== 0
-        ? this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
-        : 0;
+    const height = this.trackLineElement.hasTempo
+      ? this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
+      : 0;
     this._boundingBox.setDimensions(
-      this.trackElement.layoutDimensions.WIDTH,
+      this.trackLineElement.boundingBox.width,
       height
     );
   }

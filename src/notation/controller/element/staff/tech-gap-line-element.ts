@@ -155,7 +155,11 @@ export class TechGapLineElement implements NotationContainer {
    * Goes through all the technique labels and sets their dimensions
    */
   public measure(): void {
-    if (this._labelElements.length === 0) {
+    const reservesRow =
+      this.techGapElement.notationStyleLineElement.hasTechniqueLine(
+        this.techLineNumber
+      );
+    if (this._labelElements.length === 0 && !reservesRow) {
       this._boundingBox = undefined;
       return;
     }

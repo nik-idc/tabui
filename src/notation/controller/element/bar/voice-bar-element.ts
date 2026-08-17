@@ -176,19 +176,13 @@ export class VoiceBarElement implements NotationContainer {
   }
 
   public getBeatX(beat: Beat): number {
-    const masterBarIndex = this.voiceBar.bar.staff.bars.indexOf(
-      this.voiceBar.bar
-    );
-    const masterBar = this.trackElement.track.score.masterBars[masterBarIndex];
-    const durationFraction =
-      masterBar.barDurationFraction.numerator /
-      masterBar.barDurationFraction.denominator;
-    if (durationFraction === 0) {
+    const contentEnd = this.barElement.contentEndFraction;
+    if (contentEnd === 0) {
       return 0;
     }
 
     const beatStartUnits = beat.startTick / this.voiceBar.tickResolution;
-    const beatStartRatio = beatStartUnits / durationFraction;
+    const beatStartRatio = beatStartUnits / contentEnd;
 
     return (
       this.trackElement.layoutDimensions.RHYTHM_ATTACK_PADDING +
@@ -197,24 +191,24 @@ export class VoiceBarElement implements NotationContainer {
   }
 
   public getBeatWidth(beat: Beat): number {
-    const masterBarIndex = this.voiceBar.bar.staff.bars.indexOf(
-      this.voiceBar.bar
-    );
-    const masterBar = this.trackElement.track.score.masterBars[masterBarIndex];
-    const durationFraction =
-      masterBar.barDurationFraction.numerator /
-      masterBar.barDurationFraction.denominator;
-    if (durationFraction === 0) {
+    const contentEnd = this.barElement.contentEndFraction;
+    if (contentEnd === 0) {
       return 0;
     }
 
     const beatDurationTicks = beat.endTick - beat.startTick;
     const beatDurationUnits = beatDurationTicks / this.voiceBar.tickResolution;
-    const beatDurationRatio = beatDurationUnits / durationFraction;
+    const beatDurationRatio = beatDurationUnits / contentEnd;
+    const beatStartUnits = beat.startTick / this.voiceBar.tickResolution;
+    const remainingUnits = Math.max(0, contentEnd - beatStartUnits);
+    const remainingRatio = remainingUnits / contentEnd;
 
-    return Math.max(
-      this.trackElement.layoutDimensions.MIN_RHYTHM_COLUMN_GAP,
-      beatDurationRatio * this.voiceDurationSpanWidth
+    return Math.min(
+      Math.max(
+        this.trackElement.layoutDimensions.MIN_RHYTHM_COLUMN_GAP,
+        beatDurationRatio * this.voiceDurationSpanWidth
+      ),
+      remainingRatio * this.voiceDurationSpanWidth
     );
   }
 

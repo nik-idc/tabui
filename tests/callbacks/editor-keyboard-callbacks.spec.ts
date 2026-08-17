@@ -54,6 +54,7 @@ function createHarness(rootElement: FakeRootElement = createRootElement()) {
     },
   };
   const notationComponent = {
+    ensureSelectedNoteVisible: jest.fn(),
     trackController: {
       undo: jest.fn(),
       redo: jest.fn(),

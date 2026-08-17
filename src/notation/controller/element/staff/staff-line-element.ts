@@ -56,6 +56,8 @@ export class StaffLineElement implements NotationContainer {
   >;
   /** Bar placement data shared by every staff on this track line. */
   private _trackLineBars: TrackLineBar[];
+  /** Bars whose descendants exist in the current materialized range. */
+  private _materializedTrackLineBars: TrackLineBar[];
   /** Non-empty voices present anywhere on this staff line. */
   private _lineNonEmptyVoiceNumbers: VoiceNumber[];
 
@@ -71,13 +73,15 @@ export class StaffLineElement implements NotationContainer {
   constructor(
     staff: Staff,
     trackLineElement: TrackLineElement,
-    trackLineBars: TrackLineBar[]
+    trackLineBars: TrackLineBar[],
+    materializedTrackLineBars: TrackLineBar[]
   ) {
     this.uuid = randomInt();
     this.staff = staff;
     this.trackLineElement = trackLineElement;
     this.trackElement = this.trackLineElement.trackElement;
     this._trackLineBars = trackLineBars;
+    this._materializedTrackLineBars = materializedTrackLineBars;
     this._lineNonEmptyVoiceNumbers = [];
 
     this._notationStyleLineElements = {
@@ -106,10 +110,12 @@ export class StaffLineElement implements NotationContainer {
 
   private getStyleLineBars(notationStyle: NotationStyle): TrackLineBar[] {
     if (notationStyle === NotationStyle.Classic) {
-      return this.staff.showClassicNotation ? this._trackLineBars : [];
+      return this.staff.showClassicNotation
+        ? this._materializedTrackLineBars
+        : [];
     }
 
-    return this.staff.showTablature ? this._trackLineBars : [];
+    return this.staff.showTablature ? this._materializedTrackLineBars : [];
   }
 
   /**
@@ -139,11 +145,6 @@ export class StaffLineElement implements NotationContainer {
     } else {
       this._notationStyleLineElements[NotationStyle.Tablature] = null;
     }
-  }
-
-  public setTrackLineBars(trackLineBars: TrackLineBar[]): void {
-    this._trackLineBars = trackLineBars;
-    this._lineNonEmptyVoiceNumbers = this.computeLineNonEmptyVoiceNumbers();
   }
 
   /**

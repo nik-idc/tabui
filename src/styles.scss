@@ -555,6 +555,10 @@
     overflow-y: scroll;
     scrollbar-gutter: stable;
     min-height: 0;
+
+    &.tu-single-line-notation {
+      overflow-x: auto;
+    }
   }
 
   .tu-responsive-message {
