@@ -140,7 +140,7 @@ export class PlayControlsTemplateRenderer {
     setImageAsset(
       this.template.rangeButton,
       this.assetsPath,
-      `img/ui/${hasSelectionAnchor ? "clear-range" : "set-anchor"}.svg`,
+      `img/ui/${hasSelectionAnchor ? "clear-selection" : "start-selection"}.svg`,
       label,
       { width: buttonSize, height: buttonSize }
     );
