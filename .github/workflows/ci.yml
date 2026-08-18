@@ -33,8 +33,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox
-
       - name: Verify and build
-        run: npm run verify
+        run: npm run verify:ci
