@@ -1,5 +1,6 @@
 import {
   TabUIEditorMode,
+  TabUILayoutMode,
   TabUIScorePanelPlacement,
   TabUISidePanelPlacement,
   resolveTabUIConfig,
@@ -30,6 +31,7 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-font-notation"]).toContain("Roboto");
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#000000");
     expect(config.layout).toEqual({
+      mode: TabUILayoutMode.Wrapped,
       width: undefined,
       viewOnlyModeWidthThreshold: 500,
       unrestrictedModeWidthThreshold: 1000,
@@ -106,6 +108,7 @@ describe("tabui-config", () => {
     const config = resolveTabUIConfig({
       layout: {
         width: 720,
+        mode: TabUILayoutMode.SingleLine,
         viewOnlyModeWidthThreshold: 600,
         unrestrictedModeWidthThreshold: 1200,
         noteTextSize: 16,
@@ -117,6 +120,7 @@ describe("tabui-config", () => {
     });
 
     expect(config.layout).toEqual({
+      mode: TabUILayoutMode.SingleLine,
       width: 720,
       viewOnlyModeWidthThreshold: 600,
       unrestrictedModeWidthThreshold: 1200,
@@ -146,6 +150,13 @@ describe("tabui-config", () => {
     expect(() => resolveTabUIConfig({ layout: { width: Infinity } })).toThrow(
       "layout width"
     );
+  });
+
+  it("rejects an invalid layout mode at the runtime boundary", () => {
+    const config = { layout: {} };
+    Reflect.set(config.layout, "mode", "invalid");
+
+    expect(() => resolveTabUIConfig(config)).toThrow("layout mode");
   });
 
   it("hides the editing side panel by default in view-only mode", () => {

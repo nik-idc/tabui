@@ -9,24 +9,18 @@ import {
 } from "./track/track-line-element";
 import { buildTrackElementSkeleton } from "./track/track-element-skeleton-builder";
 import { BeatElement } from "./beat/beat-element";
-import { StaffLineElement } from "./staff/staff-line-element";
 import { NotationElement, NotationElementClass } from "./notation-element";
-import { TabNoteElement } from "./note/tab-note-element";
+import { TabNoteSlotElement } from "./note/tab-note-slot-element";
 import { TabBeatElement } from "./beat/tab-beat-element";
 import { TabBeatRhythmElement } from "./beat/tab-beat-rhythm-element";
-import { NotationStyleLineElement } from "./staff/notation-style-line-element";
-import { VoiceBarElement } from "./bar/voice-bar-element";
-import { VoiceBarRhythmElement } from "./bar/voice-bar-rhythm-element";
 import { BeamSegmentElement } from "./bar/beam-segment-element";
 import { BarTupletGroupElement } from "./bar/bar-tuplet-group-element";
-import { TechGapElement } from "./staff/tech-gap-element";
-import { TechGapLineElement } from "./staff/tech-gap-line-element";
 import { TrackLineInfoElement } from "./track/track-line-info-element";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
-import { SheetBeatElement } from "./beat/sheet-beat-element";
-import { NoteElement } from "./note/note-element";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
+import { ScoreLayoutPlanner } from "../layout/score-layout-plan";
+import { TabUILayoutMode } from "../../../config/tabui-config";
 
 function snapshotElements(elements: NotationElement[]): ElementSnapshot {
   const snapshot: ElementSnapshot = {
@@ -50,20 +44,14 @@ function snapshotElements(elements: NotationElement[]): ElementSnapshot {
 export const ELEMENT_ORDER: Array<NotationElementClass> = [
   TrackLineElement,
   TrackLineInfoElement,
-  StaffLineElement,
-  NotationStyleLineElement,
-  TechGapElement,
   BarElement,
-  VoiceBarElement,
   TabBeatElement,
-  TabNoteElement,
+  TabNoteSlotElement,
   GuitarTechniqueElement,
-  VoiceBarRhythmElement,
   TabBeatRhythmElement,
   GuitarTechniqueLabelElement,
   BeamSegmentElement,
   BarTupletGroupElement,
-  TechGapLineElement,
 ];
 
 export type ElementIdentity = string;
@@ -91,11 +79,20 @@ export type TrackElementLineRange = {
   endLineIndex: number;
 };
 
-export type TrackElementLineUpdateOptions = {
+export type TrackElementMasterBarRange = {
+  startMasterBarIndex: number;
+  endMasterBarIndex: number;
+};
+
+export type TrackElementUpdateOptions = {
   /** Explicit line range requested by viewport or test work. */
   lineRange?: TrackElementLineRange;
+  /** Explicit master-bar range requested inside the selected lines. */
+  masterBarRange?: TrackElementMasterBarRange;
   /** Replace materialized lines outside this retained range with shells. */
   dematerializeOutsideRange?: TrackElementLineRange;
+  /** Retain descendants only for these master bars. */
+  dematerializeOutsideMasterBarRange?: TrackElementMasterBarRange;
   /** Model changes whose line range must be resolved after skeleton rebuild. */
   affectedMasterBarIndices?: number[];
   /** Rebuild whole-track line ownership and shell geometry before updating. */
@@ -114,6 +111,10 @@ export class TrackElement {
   readonly track: Track;
   /** Layout dimensions */
   readonly layoutDimensions: EditorLayoutDimensions;
+  /** Score-wide widths and wrapped ranges shared by active track views. */
+  readonly scoreLayoutPlanner: ScoreLayoutPlanner;
+  /** Immutable layout mode selected for this track view. */
+  readonly layoutMode: TabUILayoutMode;
 
   /** Track line element */
   private _trackLineElements: TrackLineElement[];
@@ -123,17 +124,33 @@ export class TrackElement {
   private _materializedElementsByIdentity: Map<string, NotationElement>;
   /** Structural diff for materialized line work. */
   private _elementDiff: ElementDiff;
-  /** Materialized lines have full descendants; other lines are geometry shells. */
-  private _materializedLineIndices: Set<number>;
+  /** Last materialized state consumed by the renderer. */
+  private _diffBaselineSnapshot: ElementSnapshot | null;
+  /** Materialized master-bar interval for each line with descendants. */
+  private _materializedBarRangesByLineIndex: Map<
+    number,
+    TrackElementMasterBarRange
+  >;
+  /** Whether  */
+  private _skeletonWasRebuilt: boolean;
 
   /**
    * Class that handles all geometry & visually relevant info of a track
    * @param track Track
    */
-  constructor(track: Track, layoutDimensions: EditorLayoutDimensions) {
+  constructor(
+    track: Track,
+    layoutDimensions: EditorLayoutDimensions,
+    scoreLayoutPlanner?: ScoreLayoutPlanner,
+    layoutMode: TabUILayoutMode = TabUILayoutMode.Wrapped
+  ) {
     this.uuid = randomInt();
     this.track = track;
     this.layoutDimensions = layoutDimensions;
+    this.scoreLayoutPlanner =
+      scoreLayoutPlanner ??
+      new ScoreLayoutPlanner(track.score, layoutDimensions);
+    this.layoutMode = layoutMode;
 
     this._trackLineElements = [];
     this._skeleton = { lines: [] };
@@ -143,7 +160,9 @@ export class TrackElement {
       updated: new Map(),
       removed: new Map(),
     };
-    this._materializedLineIndices = new Set();
+    this._diffBaselineSnapshot = null;
+    this._materializedBarRangesByLineIndex = new Map();
+    this._skeletonWasRebuilt = false;
     this.build();
   }
 
@@ -166,9 +185,11 @@ export class TrackElement {
       updated: new Map(),
       removed: new Map(),
     };
+    this._diffBaselineSnapshot = null;
+    this._skeletonWasRebuilt = false;
   }
 
-  /** Consumes the materialized-line diff and resets it. */
+  /** Consumes the final materialized-range diff and resets its provenance. */
   public consumeDiff(): ElementDiff {
     const consumedDiff = this._elementDiff;
 
@@ -198,9 +219,9 @@ export class TrackElement {
     this._materializedElementsByIdentity.clear();
 
     const materializedElements: NotationElement[] = [];
-    for (const lineIndex of this._materializedLineIndices) {
+    for (const lineIndex of this._materializedBarRangesByLineIndex.keys()) {
       materializedElements.push(
-        ...(this._trackLineElements[lineIndex]?.ownedNotationElements ?? [])
+        ...(this._trackLineElements[lineIndex]?.drawableNotationElements ?? [])
       );
     }
 
@@ -215,13 +236,18 @@ export class TrackElement {
   /** Rebuilds the whole-track skeleton geometry without line descendants. */
   private build(): void {
     this._trackLineElements = [];
-    this._materializedLineIndices.clear();
+    this._materializedBarRangesByLineIndex.clear();
+    this.scoreLayoutPlanner.rebuild();
     this._skeleton = buildTrackElementSkeleton(
       this.track,
-      this.layoutDimensions
+      this.layoutDimensions,
+      this.scoreLayoutPlanner.plan,
+      this.layoutMode
     );
-    for (const skeletonLine of this._skeleton.lines) {
-      this._trackLineElements.push(new TrackLineElement(this, skeletonLine));
+    for (let i = 0; i < this._skeleton.lines.length; i++) {
+      this._trackLineElements.push(
+        new TrackLineElement(this, this._skeleton.lines[i], i)
+      );
     }
 
     this.refreshMaterializedElements();
@@ -256,6 +282,9 @@ export class TrackElement {
     if (a.finalLineHeight !== b.finalLineHeight) {
       return false;
     }
+    if (a.finalLineWidth !== b.finalLineWidth) {
+      return false;
+    }
 
     if (!this.isSameLineOwnership(a, b)) {
       return false;
@@ -267,6 +296,9 @@ export class TrackElement {
       if (aFinalWidth !== bFinalWidth) {
         return false;
       }
+      if (a.trackLineBars[i].x !== b.trackLineBars[i].x) {
+        return false;
+      }
     }
 
     return true;
@@ -276,6 +308,11 @@ export class TrackElement {
     prevSnapshot: ElementSnapshot,
     nextElements: NotationElement[]
   ): void {
+    this._elementDiff = {
+      added: new Map(),
+      updated: new Map(),
+      removed: new Map(),
+    };
     const remainingPrevElements = new Map(prevSnapshot.elements);
 
     for (const element of nextElements) {
@@ -294,22 +331,47 @@ export class TrackElement {
     }
   }
 
+  private beginDiffing(): void {
+    if (this._diffBaselineSnapshot !== null) {
+      return;
+    }
+
+    this._diffBaselineSnapshot = snapshotElements([
+      ...this._materializedElementsByIdentity.values(),
+    ]);
+  }
+
+  private completeDiffing(): void {
+    this.refreshMaterializedElements();
+    if (this._diffBaselineSnapshot === null) {
+      throw Error("Cannot complete element diff without a baseline snapshot");
+    }
+
+    this.reconcileSnapshot(this._diffBaselineSnapshot, [
+      ...this._materializedElementsByIdentity.values(),
+    ]);
+  }
+
   private reconcileSkeletonLines(): void {
     const oldLinesByIdentity = new Map(
       this._trackLineElements.map((line, index) => [
         line.getStableIdentity(),
-        { line, isMaterialized: this._materializedLineIndices.has(index) },
+        {
+          line,
+          materializedBarRange:
+            this._materializedBarRangesByLineIndex.get(index),
+        },
       ])
     );
     const nextLines: TrackLineElement[] = [];
-    const nextMaterializedIndices = new Set<number>();
+    const nextMaterializedIndices = new Map<
+      number,
+      TrackElementMasterBarRange
+    >();
 
     for (let i = 0; i < this._skeleton.lines.length; i++) {
       const skeletonLine = this._skeleton.lines[i];
-      const identity = TrackLineElement.createStableIdentity(
-        this.track,
-        skeletonLine.trackLineBars
-      );
+      const identity = TrackLineElement.createStableIdentity(this.track, i);
       const oldEntry = oldLinesByIdentity.get(identity);
       let nextLine: TrackLineElement;
       if (
@@ -318,20 +380,13 @@ export class TrackElement {
       ) {
         nextLine = oldEntry.line;
         nextLine.setGeometryFromSkeleton(skeletonLine);
-        if (oldEntry.isMaterialized) {
-          nextMaterializedIndices.add(i);
+        if (oldEntry.materializedBarRange !== undefined) {
+          nextMaterializedIndices.set(i, oldEntry.materializedBarRange);
         }
         oldLinesByIdentity.delete(identity);
       } else {
-        nextLine = new TrackLineElement(this, skeletonLine);
-        if (oldEntry?.isMaterialized) {
-          const oldEntrySnapshot = snapshotElements(
-            oldEntry.line.ownedNotationElements
-          );
-          this.reconcileSnapshot(
-            oldEntrySnapshot,
-            nextLine.ownedNotationElements
-          );
+        nextLine = new TrackLineElement(this, skeletonLine, i);
+        if (oldEntry !== undefined) {
           oldLinesByIdentity.delete(identity);
         }
       }
@@ -339,20 +394,8 @@ export class TrackElement {
       nextLines.push(nextLine);
     }
 
-    // Entries left here no longer exist in the rebuilt skeleton. Materialized
-    // lines may still own renderer identities that must be removed.
-    for (const { line, isMaterialized } of oldLinesByIdentity.values()) {
-      if (!isMaterialized) {
-        continue;
-      }
-
-      for (const element of line.ownedNotationElements) {
-        this.addToDiff(DiffPart.Removed, element);
-      }
-    }
-
     this._trackLineElements = nextLines;
-    this._materializedLineIndices = nextMaterializedIndices;
+    this._materializedBarRangesByLineIndex = nextMaterializedIndices;
   }
 
   private getAffectedLineRange(
@@ -389,10 +432,49 @@ export class TrackElement {
     };
   }
 
+  /** Returns the master bars whose descendants existed in the last snapshot. */
+  private getMaterializedMasterBarIndices(): number[] {
+    const indices = new Set<number>();
+    for (const [lineIndex, range] of this._materializedBarRangesByLineIndex) {
+      const trackLineBars =
+        this._skeleton.lines[lineIndex]?.trackLineBars ?? [];
+      for (const lineBar of trackLineBars) {
+        if (
+          lineBar.masterBarIndex >= range.startMasterBarIndex &&
+          lineBar.masterBarIndex <= range.endMasterBarIndex
+        ) {
+          indices.add(lineBar.masterBarIndex);
+        }
+      }
+    }
+    return [...indices];
+  }
+
+  private mergeLineRanges(
+    a: TrackElementLineRange | null,
+    b: TrackElementLineRange | null
+  ): TrackElementLineRange | undefined {
+    if (a === null && b === null) {
+      return undefined;
+    }
+    if (a === null) {
+      return b ?? undefined;
+    }
+    if (b === null) {
+      return a;
+    }
+
+    return {
+      startLineIndex: Math.min(a.startLineIndex, b.startLineIndex),
+      endLineIndex: Math.max(a.endLineIndex, b.endLineIndex),
+    };
+  }
+
   /** Builds full descendant element trees for shells in the requested range. */
-  private materializeLineRange(
+  private materializeRange(
     startLineIndex: number,
     endLineIndex: number,
+    masterBarRange: TrackElementMasterBarRange,
     force: boolean
   ): void {
     const nextTrackLines = this._trackLineElements.slice(
@@ -402,22 +484,36 @@ export class TrackElement {
     for (let i = startLineIndex; i <= endLineIndex; i++) {
       const oldTrackLine = this._trackLineElements[i];
       const nextSkeletonLine = this._skeleton.lines[i];
+      const materializedBars = nextSkeletonLine.trackLineBars.filter((b) => {
+        return (
+          b.masterBarIndex >= masterBarRange.startMasterBarIndex &&
+          b.masterBarIndex <= masterBarRange.endMasterBarIndex
+        );
+      });
+      if (materializedBars.length === 0) {
+        continue;
+      }
+      const nextBarRange = {
+        startMasterBarIndex: materializedBars[0].masterBarIndex,
+        endMasterBarIndex:
+          materializedBars[materializedBars.length - 1].masterBarIndex,
+      };
+      const prevBarRange = this._materializedBarRangesByLineIndex.get(i);
       if (
         !force &&
         oldTrackLine !== undefined &&
-        this._materializedLineIndices.has(i) &&
+        prevBarRange?.startMasterBarIndex ===
+          nextBarRange.startMasterBarIndex &&
+        prevBarRange.endMasterBarIndex === nextBarRange.endMasterBarIndex &&
         this.isSameSkeletonLine(oldTrackLine.skeletonLine, nextSkeletonLine)
       ) {
         continue;
       }
 
-      const previousSnapshot = snapshotElements(
-        oldTrackLine?.ownedNotationElements ?? []
-      );
       const nextTrackLine =
-        oldTrackLine ?? new TrackLineElement(this, nextSkeletonLine);
+        oldTrackLine ?? new TrackLineElement(this, nextSkeletonLine, i);
       nextTrackLine.setGeometryFromSkeleton(nextSkeletonLine);
-      nextTrackLine.build();
+      nextTrackLine.build(materializedBars);
       nextTrackLine.measure();
       if (
         nextTrackLine.boundingBox.height !== nextSkeletonLine.finalLineHeight
@@ -425,19 +521,14 @@ export class TrackElement {
         throw Error("Predicted track line height does not match measurement");
       }
       nextTrackLines[i] = nextTrackLine;
-      this._materializedLineIndices.add(i);
-
-      this.reconcileSnapshot(
-        previousSnapshot,
-        nextTrackLine.ownedNotationElements
-      );
+      this._materializedBarRangesByLineIndex.set(i, nextBarRange);
     }
 
     // Assigning here because `TrackLineElement.layout` depends on `_trackLineElements`
     this._trackLineElements = nextTrackLines;
 
     for (let i = startLineIndex; i < this._trackLineElements.length; i++) {
-      if (i <= endLineIndex && this._materializedLineIndices.has(i)) {
+      if (i <= endLineIndex && this._materializedBarRangesByLineIndex.has(i)) {
         this._trackLineElements[i].layout();
         continue;
       }
@@ -447,30 +538,65 @@ export class TrackElement {
   }
 
   /** Replaces materialized lines outside the range with geometry-only shells. */
-  private dematerializeOutsideLineRange(
+  private dematerializeOutsideRange(
     startLineIndex: number,
-    endLineIndex: number
+    endLineIndex: number,
+    masterBarRange: TrackElementMasterBarRange
   ): void {
-    for (const lineIndex of [...this._materializedLineIndices]) {
-      if (lineIndex >= startLineIndex && lineIndex <= endLineIndex) {
+    for (const [lineIndex, range] of this._materializedBarRangesByLineIndex) {
+      const retainedStart = Math.max(
+        range.startMasterBarIndex,
+        masterBarRange.startMasterBarIndex
+      );
+      const retainedEnd = Math.min(
+        range.endMasterBarIndex,
+        masterBarRange.endMasterBarIndex
+      );
+      const lineRetained =
+        lineIndex >= startLineIndex &&
+        lineIndex <= endLineIndex &&
+        retainedStart <= retainedEnd;
+      if (
+        lineRetained &&
+        retainedStart === range.startMasterBarIndex &&
+        retainedEnd === range.endMasterBarIndex
+      ) {
         continue;
       }
 
-      const oldLine = this._trackLineElements[lineIndex];
-      const shell = new TrackLineElement(this, this._skeleton.lines[lineIndex]);
+      if (lineRetained) {
+        this.materializeRange(
+          lineIndex,
+          lineIndex,
+          {
+            startMasterBarIndex: retainedStart,
+            endMasterBarIndex: retainedEnd,
+          },
+          false
+        );
+        continue;
+      }
+
+      const shell = new TrackLineElement(
+        this,
+        this._skeleton.lines[lineIndex],
+        lineIndex
+      );
       this._trackLineElements[lineIndex] = shell;
-      this._materializedLineIndices.delete(lineIndex);
-      const oldLineSnapshot = snapshotElements(oldLine.ownedNotationElements);
-      this.reconcileSnapshot(oldLineSnapshot, shell.ownedNotationElements);
+      this._materializedBarRangesByLineIndex.delete(lineIndex);
     }
   }
 
   private rebuildSkeletonGeometry(): void {
+    this.scoreLayoutPlanner.rebuild();
     this._skeleton = buildTrackElementSkeleton(
       this.track,
-      this.layoutDimensions
+      this.layoutDimensions,
+      this.scoreLayoutPlanner.plan,
+      this.layoutMode
     );
     this.reconcileSkeletonLines();
+    this._skeletonWasRebuilt = true;
   }
 
   /**
@@ -478,8 +604,9 @@ export class TrackElement {
    * without a viewport range would materialize the whole track.
    */
   public refreshLayout(): void {
+    this.beginDiffing();
     this.rebuildSkeletonGeometry();
-    this.refreshMaterializedElements();
+    this.completeDiffing();
   }
 
   private normalizeLineRange(
@@ -496,40 +623,82 @@ export class TrackElement {
     return { startLineIndex, endLineIndex };
   }
 
-  public update(options: TrackElementLineUpdateOptions = {}): void {
+  private normalizeMasterBarRange(
+    range: TrackElementMasterBarRange | undefined
+  ): TrackElementMasterBarRange {
+    const startMasterBarIndex = Math.max(0, range?.startMasterBarIndex ?? 0);
+    const endMasterBarIndex = Math.min(
+      this.track.score.masterBars.length - 1,
+      range?.endMasterBarIndex ?? Number.MAX_SAFE_INTEGER
+    );
+    if (startMasterBarIndex > endMasterBarIndex) {
+      throw Error("Invalid track element master-bar range");
+    }
+    return { startMasterBarIndex, endMasterBarIndex };
+  }
+
+  public update(options: TrackElementUpdateOptions = {}): void {
+    this.beginDiffing();
     const affectedMasterBarIndices = options.affectedMasterBarIndices;
     const modelUpdate = affectedMasterBarIndices !== undefined;
     const rebuildSkeleton = modelUpdate || options.rebuildSkeleton !== false;
     const forceElements = options.forceElements ?? rebuildSkeleton;
     let lineRange = options.lineRange;
+    let masterBarRange = options.masterBarRange;
+    const materializedMasterBarIndices = modelUpdate
+      ? this.getMaterializedMasterBarIndices()
+      : [];
 
     if (rebuildSkeleton) {
       this.rebuildSkeletonGeometry();
     }
     if (modelUpdate) {
-      lineRange =
-        this.getAffectedLineRange(affectedMasterBarIndices) ?? undefined;
+      lineRange = this.mergeLineRanges(
+        this.getAffectedLineRange(affectedMasterBarIndices),
+        this.getAffectedLineRange(materializedMasterBarIndices)
+      );
       if (lineRange === undefined) {
-        this.refreshMaterializedElements();
+        this.completeDiffing();
         return;
+      }
+      if (this.layoutMode === TabUILayoutMode.SingleLine) {
+        const demandedMasterBarIndices = [
+          ...affectedMasterBarIndices,
+          ...materializedMasterBarIndices,
+        ];
+        masterBarRange = {
+          startMasterBarIndex: Math.min(...demandedMasterBarIndices),
+          endMasterBarIndex: Math.max(...demandedMasterBarIndices),
+        };
       }
     }
 
     if (this._skeleton.lines.length === 0) {
-      this.refreshMaterializedElements();
+      this.completeDiffing();
       return;
     }
 
     const { startLineIndex, endLineIndex } = this.normalizeLineRange(lineRange);
+    const normalizedMasterBarRange =
+      this.normalizeMasterBarRange(masterBarRange);
 
-    this.materializeLineRange(startLineIndex, endLineIndex, forceElements);
+    this.materializeRange(
+      startLineIndex,
+      endLineIndex,
+      normalizedMasterBarRange,
+      forceElements
+    );
     if (options.dematerializeOutsideRange !== undefined) {
-      this.dematerializeOutsideLineRange(
+      const retainedMasterBarRange = this.normalizeMasterBarRange(
+        options.dematerializeOutsideMasterBarRange
+      );
+      this.dematerializeOutsideRange(
         options.dematerializeOutsideRange.startLineIndex,
-        options.dematerializeOutsideRange.endLineIndex
+        options.dematerializeOutsideRange.endLineIndex,
+        retainedMasterBarRange
       );
     }
-    this.refreshMaterializedElements();
+    this.completeDiffing();
   }
 
   public getTrackLineElementForBeat(beat: Beat): TrackLineElement | undefined {
@@ -543,20 +712,32 @@ export class TrackElement {
     return lineIndex === -1 ? undefined : this._trackLineElements[lineIndex];
   }
 
+  /** Returns the score master-bar index that owns a model beat. */
+  public getMasterBarIndexForBeat(beat: Beat): number {
+    return beat.voiceBar.bar.staff.bars.indexOf(beat.voiceBar.bar);
+  }
+
+  /** Returns complete line-local placement data for a model beat's bar. */
+  public getTrackLineBarForBeat(beat: Beat): TrackLineBar | undefined {
+    const masterBarIndex = this.getMasterBarIndexForBeat(beat);
+    for (const line of this._skeleton.lines) {
+      const placement = line.trackLineBars.find(
+        (b) => b.masterBarIndex === masterBarIndex
+      );
+      if (placement !== undefined) {
+        return placement;
+      }
+    }
+    return undefined;
+  }
+
   public getBeatElement(beat: Beat): BeatElement | undefined {
     const trackLineElement = this.getTrackLineElementForBeat(beat);
     if (trackLineElement === undefined) {
       return undefined;
     }
 
-    const trackLineIdentity = TrackLineElement.createStableIdentity(
-      this.track,
-      trackLineElement.trackLineBars
-    );
-    const identity = TabBeatElement.createStableIdentity_NEW(
-      trackLineIdentity,
-      beat
-    );
+    const identity = TabBeatElement.createStableIdentity(beat);
 
     const element = this._materializedElementsByIdentity.get(identity);
     return element instanceof TabBeatElement ? element : undefined;
@@ -609,13 +790,13 @@ export class TrackElement {
     const rects: Rect[] = [];
     let curLineRect: Rect | undefined;
 
-    for (const lineIndex of this._materializedLineIndices) {
+    for (const lineIndex of this._materializedBarRangesByLineIndex.keys()) {
       const trackLine = this._trackLineElements[lineIndex];
       if (trackLine === undefined) {
         continue;
       }
 
-      for (const staffLine of trackLine.staffLineElements) {
+      for (const staffLine of trackLine.staffLineContainers) {
         if (curLineRect !== undefined) {
           rects.push(curLineRect);
         }
@@ -659,8 +840,8 @@ export class TrackElement {
   }
 
   public getNoteElementsForNoteSlot(
-    sourceNoteElement: TabNoteElement
-  ): TabNoteElement[] {
+    sourceNoteElement: TabNoteSlotElement
+  ): TabNoteSlotElement[] {
     const bar = sourceNoteElement.beatElement.beat.voiceBar.bar;
     const commonTickRes = lcmAll(
       bar.voiceBarsAsArray.map((voiceBar) => voiceBar.tickResolution)
@@ -685,12 +866,12 @@ export class TrackElement {
         }
 
         const noteElement = this._materializedElementsByIdentity.get(
-          TabNoteElement.createStableIdentity(
+          TabNoteSlotElement.createStableIdentity(
             beatElement,
             sourceNoteElement.stringNumber
           )
         );
-        if (!(noteElement instanceof TabNoteElement)) {
+        if (!(noteElement instanceof TabNoteSlotElement)) {
           throw new Error("Note's element is not a valid NoteElement");
         }
 
@@ -711,7 +892,18 @@ export class TrackElement {
   }
 
   public get materializedLineIndices(): ReadonlySet<number> {
-    return this._materializedLineIndices;
+    return new Set(this._materializedBarRangesByLineIndex.keys());
+  }
+
+  public get materializedBarRangesByLineIndex(): ReadonlyMap<
+    number,
+    TrackElementMasterBarRange
+  > {
+    return this._materializedBarRangesByLineIndex;
+  }
+
+  public get skeletonWasRebuilt(): boolean {
+    return this._skeletonWasRebuilt;
   }
 
   /** Global coords of the track element (in most cases X=0, Y=0) */
@@ -724,5 +916,13 @@ export class TrackElement {
   public get height(): number {
     const lastLine = this._skeleton.lines[this._skeleton.lines.length - 1];
     return lastLine === undefined ? 0 : lastLine.y + lastLine.finalLineHeight;
+  }
+
+  /** Width of the complete score line or wrapped notation viewport. */
+  public get width(): number {
+    return this._skeleton.lines.reduce(
+      (width, line) => Math.max(width, line.finalLineWidth),
+      0
+    );
   }
 }

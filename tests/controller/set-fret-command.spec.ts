@@ -1,5 +1,5 @@
 import { SetFretCommand } from "../../src/notation/controller/editor/command";
-import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
+import { TabNoteSlotElement } from "../../src/notation/controller/element/note/tab-note-slot-element";
 import { GuitarNote, Score } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 import { createTestTrackController } from "./helpers";
@@ -129,7 +129,7 @@ describe("SetFretCommand", () => {
     });
     controller.trackElement.consumeDiff();
     const beatElement = controller.trackElement.getBeatElement(note.beat);
-    const noteElement = beatElement?.noteElements[0] as TabNoteElement;
+    const noteElement = beatElement?.noteElements[0] as TabNoteSlotElement;
 
     controller.setSelectedNoteFret(7);
     controller.trackElement.update({
@@ -143,7 +143,7 @@ describe("SetFretCommand", () => {
     });
 
     expect(
-      controller.trackElement.elementDiff.updated.get(TabNoteElement)
+      controller.trackElement.elementDiff.updated.get(TabNoteSlotElement)
     ).toContain(noteElement.getStableIdentity());
   });
 
@@ -165,12 +165,12 @@ describe("SetFretCommand", () => {
     });
     controller.trackElement.consumeDiff();
     const beatElement = controller.trackElement.getBeatElement(note.beat);
-    const noteElement = beatElement?.noteElements[0] as TabNoteElement;
+    const noteElement = beatElement?.noteElements[0] as TabNoteSlotElement;
 
     controller.setSelectedNoteFret(7);
 
     expect(
-      controller.trackElement.elementDiff.updated.get(TabNoteElement)
+      controller.trackElement.elementDiff.updated.get(TabNoteSlotElement)
     ).toContain(noteElement.getStableIdentity());
   });
 

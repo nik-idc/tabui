@@ -78,7 +78,11 @@ export class TabUICallbacks {
   }
 
   private renderNotationOnly(): void {
-    const activeRenderers = this._notationComponent.render();
+    const activeRenderers = this._notationComponent.render({
+      renderNotation: true,
+      forceNotation: false,
+      overlays: { selection: true, player: false },
+    });
     this._mouseCallbacks.bind(activeRenderers);
     this._notationComponent.renderer.attachViewportScrollEvent(() =>
       this.render(RenderType.NotationOnly)

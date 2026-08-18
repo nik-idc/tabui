@@ -5,19 +5,19 @@ import { GuitarTechniqueElement } from "../technique/guitar-technique/guitar-tec
 import { TechniqueElement } from "../technique/technique-element";
 import { NoteElement } from "./note-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { NotationElement } from "../notation-element";
+import { NotationNode, NotationNodeType } from "../notation-element";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
 /** Class that handles geometry & visually relevant info of a tab note slot. */
-export class TabNoteElement implements NoteElement {
+export class TabNoteSlotElement implements NoteElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(
     beatElement: TabBeatElement,
     stringNumber: number
   ): string {
-    const trackLineStableIdentity =
-      beatElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `note-slot:${trackLineStableIdentity}:${beatElement.beat.uuid}:${stringNumber}`;
+    return `note-slot:${beatElement.beat.uuid}:${stringNumber}`;
   }
 
   /** Guitar note element's unique identifier */
@@ -91,7 +91,7 @@ export class TabNoteElement implements NoteElement {
     for (const technique of this.note?.techniques ?? []) {
       const techniqueElement =
         prevTechniqueElements.get(
-          GuitarTechniqueElement.createStableIdentity(this, technique)
+          GuitarTechniqueElement.createStableIdentity(technique)
         ) ?? new GuitarTechniqueElement(technique, this);
       techniqueElement.build();
       this._techniqueElements.push(techniqueElement);
@@ -159,11 +159,11 @@ export class TabNoteElement implements NoteElement {
       : fret;
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationNode[] {
     return [
       this,
       ...this._techniqueElements.flatMap((technique) =>
-        technique.refreshOwnedNotationElements()
+        technique.refreshOwnedNotationNodes()
       ),
     ];
   }
@@ -186,7 +186,7 @@ export class TabNoteElement implements NoteElement {
   }
 
   public getStableIdentity(): string {
-    return TabNoteElement.createStableIdentity(
+    return TabNoteSlotElement.createStableIdentity(
       this.beatElement,
       this.stringNumber
     );

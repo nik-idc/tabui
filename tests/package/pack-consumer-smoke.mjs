@@ -98,6 +98,7 @@ try {
   SerializedNoteDuration,
   TabUIEditor,
   TabUIEditorMode,
+  TabUILayoutMode,
   TabUIScorePanelPlacement,
   TabUISidePanelPlacement,
   deserializeScore,
@@ -120,6 +121,7 @@ const restoredScore = deserializeScore(
 const config: TabUIConfig = {
   assets: { baseUrl: "/tabui-assets" },
   interaction: { mode: TabUIEditorMode.Edit },
+  layout: { mode: TabUILayoutMode.SingleLine },
   panels: {
     score: { placement: TabUIScorePanelPlacement.Top },
     side: {

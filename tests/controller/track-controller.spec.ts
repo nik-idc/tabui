@@ -17,7 +17,7 @@ import {
   VoiceBar,
   serializeScore,
 } from "../../src/notation/model";
-import { SelectedMoveDirection } from "../../src/notation/controller/selection/selected-note";
+import { SelectedMoveDirection } from "../../src/notation/controller/selection/selection-cursor";
 import { BarElement } from "../../src/notation/controller/element/bar/bar-element";
 import { TrackLineInfoElement } from "../../src/notation/controller/element/track/track-line-info-element";
 import {
@@ -50,7 +50,7 @@ function getBeatElements(controller: TrackController) {
   const beatElements: BeatElement[] = [];
 
   for (const trackLine of controller.trackElement.trackLineElements) {
-    for (const staffLine of trackLine.staffLineElements) {
+    for (const staffLine of trackLine.staffLineContainers) {
       for (const styleLine of staffLine.styleLinesAsArray) {
         for (const barElement of styleLine.barElements) {
           beatElements.push(...barElement.beatElements);
@@ -158,8 +158,8 @@ describe("TrackController", () => {
     controller.trackElement.update();
 
     expect(voiceBar.beats).toHaveLength(2);
-    expect(controller.selectedNote?.bar).toBe(bar);
-    expect(controller.selectedNote?.beatIndex).toBe(1);
+    expect(controller.selectionCursor?.bar).toBe(bar);
+    expect(controller.selectionCursor?.beatIndex).toBe(1);
   });
 
   test("playback start does not disable an existing loop choice", () => {
@@ -384,7 +384,7 @@ describe("TrackController", () => {
 
     controller.restartPlayerFromBeat(targetBeatElement.beat);
 
-    expect(controller.selectedNote).toBeUndefined();
+    expect(controller.selectionCursor).toBeUndefined();
     expect(controller.selectionBeats).toEqual([]);
     expect(
       mockScorePlayerInstances[0].clearSelectionLoopSection
@@ -403,16 +403,16 @@ describe("TrackController", () => {
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     controller.selectNextBar();
-    expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[1]);
+    expect(controller.selectionCursor?.bar).toBe(track.staves[0].bars[1]);
 
     controller.selectLastBar();
-    expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[2]);
+    expect(controller.selectionCursor?.bar).toBe(track.staves[0].bars[2]);
 
     controller.selectPreviousBar();
-    expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[1]);
+    expect(controller.selectionCursor?.bar).toBe(track.staves[0].bars[1]);
 
     controller.selectFirstBar();
-    expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[0]);
+    expect(controller.selectionCursor?.bar).toBe(track.staves[0].bars[0]);
   });
 
   test("anchored bar traversal extends from the active range endpoint", () => {
@@ -437,7 +437,7 @@ describe("TrackController", () => {
 
     expect(controller.clearSelectionRange()).toBe(true);
     expect(controller.selectionBeats).toEqual([]);
-    expect(controller.selectedNote?.bar).toBe(track.staves[0].bars[0]);
+    expect(controller.selectionCursor?.bar).toBe(track.staves[0].bars[0]);
   });
 
   test("bar traversal restarts active playback from the current bar", () => {
@@ -451,7 +451,7 @@ describe("TrackController", () => {
 
     controller.selectNextBar();
 
-    expect(controller.selectedNote).toBeUndefined();
+    expect(controller.selectionCursor).toBeUndefined();
     expect(player.start).toHaveBeenCalledTimes(1);
     expect(player.start).toHaveBeenCalledWith({
       startBeat: track.staves[0].bars[1].getVoiceBar(1)?.beats[0],
@@ -656,12 +656,12 @@ describe("TrackController", () => {
     controller.moveSelectedNote(SelectedMoveDirection.Right);
 
     expect(secondBar.getVoiceBar(2)).not.toBeNull();
-    expect(controller.selectedNote?.bar).toBe(secondBar);
+    expect(controller.selectionCursor?.bar).toBe(secondBar);
     expect(updateSpy).toHaveBeenCalledWith({
       affectedMasterBarIndices: [1],
     });
     expect(
-      controller.trackElement.getBeatElement(controller.selectedNote!.beat)
+      controller.trackElement.getBeatElement(controller.selectionCursor!.beat)
     ).toBeDefined();
   });
 
@@ -685,12 +685,12 @@ describe("TrackController", () => {
     controller.moveSelectedNote(SelectedMoveDirection.Left);
 
     expect(firstBar.getVoiceBar(2)).not.toBeNull();
-    expect(controller.selectedNote?.bar).toBe(firstBar);
+    expect(controller.selectionCursor?.bar).toBe(firstBar);
     expect(updateSpy).toHaveBeenCalledWith({
       affectedMasterBarIndices: [0],
     });
     expect(
-      controller.trackElement.getBeatElement(controller.selectedNote!.beat)
+      controller.trackElement.getBeatElement(controller.selectionCursor!.beat)
     ).toBeDefined();
   });
 
@@ -745,7 +745,7 @@ describe("TrackController", () => {
 
     expect(beats).toHaveLength(3);
     expect(beats[2].uuid).toBe(secondBeatUUID);
-    expect(controller.selectedNote?.beat).toBe(beats[1]);
+    expect(controller.selectionCursor?.beat).toBe(beats[1]);
 
     const insertedBeatElement = controller.trackElement.getBeatElement(
       beats[1]
@@ -754,8 +754,8 @@ describe("TrackController", () => {
       throw Error("Expected inserted beat element");
     }
     controller.selectNoteElement(insertedBeatElement.noteElements[0]);
-    expect(controller.selectedNote?.beat).toBe(beats[1]);
-    expect(controller.selectedNote?.noteIndex).toBe(0);
+    expect(controller.selectionCursor?.beat).toBe(beats[1]);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
   });
 
   test("insert beat after selected inserts and selects the new beat", () => {
@@ -775,7 +775,7 @@ describe("TrackController", () => {
 
     expect(beats).toHaveLength(3);
     expect(beats[2].uuid).toBe(secondBeatUUID);
-    expect(controller.selectedNote?.beat).toBe(beats[1]);
+    expect(controller.selectionCursor?.beat).toBe(beats[1]);
 
     const insertedBeatElement = controller.trackElement.getBeatElement(
       beats[1]
@@ -784,8 +784,8 @@ describe("TrackController", () => {
       throw Error("Expected inserted beat element");
     }
     controller.selectNoteElement(insertedBeatElement.noteElements[0]);
-    expect(controller.selectedNote?.beat).toBe(beats[1]);
-    expect(controller.selectedNote?.noteIndex).toBe(0);
+    expect(controller.selectionCursor?.beat).toBe(beats[1]);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
   });
 
   test("remove selected beat deletes current beat and clears selection", () => {
@@ -805,7 +805,7 @@ describe("TrackController", () => {
 
     expect(beats).toHaveLength(1);
     expect(beats[0].uuid).toBe(secondBeatUUID);
-    expect(controller.selectedNote?.beat).toBe(beats[0]);
+    expect(controller.selectionCursor?.beat).toBe(beats[0]);
   });
 
   test("remove selected last beat keeps cursor on replacement rest", () => {
@@ -822,9 +822,9 @@ describe("TrackController", () => {
 
     expect(voiceBar.beats).toHaveLength(1);
     expect(voiceBar.beats[0].isRest()).toBe(true);
-    expect(controller.selectedNote).not.toBeUndefined();
-    expect(controller.selectedNote?.beat).toBe(voiceBar.beats[0]);
-    expect(controller.selectedNote?.note).toBeNull();
+    expect(controller.selectionCursor).not.toBeUndefined();
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
+    expect(controller.selectionCursor?.note).toBeNull();
   });
 
   test("insert bar before selected note inserts and selects the new bar", () => {
@@ -842,7 +842,7 @@ describe("TrackController", () => {
     expect(score.masterBars).toHaveLength(2);
     expect(score.masterBars[1].uuid).toBe(originalUUID);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(voiceBar.beats[0]);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
   });
 
   test("insert bar after selected note inserts and selects the new bar", () => {
@@ -860,7 +860,7 @@ describe("TrackController", () => {
     expect(score.masterBars).toHaveLength(2);
     expect(score.masterBars[0].uuid).toBe(originalUUID);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(voiceBar.beats[0]);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
   });
 
   test("insert beat before active selection inserts before first selected beat", () => {
@@ -887,7 +887,7 @@ describe("TrackController", () => {
     expect(beats[2].uuid).toBe(originalUUIDs[1]);
     expect(beats[3].uuid).toBe(originalUUIDs[2]);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(beats[1]);
+    expect(controller.selectionCursor?.beat).toBe(beats[1]);
   });
 
   test("insert beat after active selection inserts after last selected beat", () => {
@@ -914,7 +914,7 @@ describe("TrackController", () => {
     expect(beats[1].uuid).toBe(originalUUIDs[1]);
     expect(beats[3].uuid).toBe(originalUUIDs[2]);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(beats[2]);
+    expect(controller.selectionCursor?.beat).toBe(beats[2]);
   });
 
   test("remove active selection selects the beat before selection", () => {
@@ -942,7 +942,7 @@ describe("TrackController", () => {
     expect(beats[0].uuid).toBe(beforeSelectionUUID);
     expect(beats[1].uuid).toBe(afterSelectionUUID);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(beats[0]);
+    expect(controller.selectionCursor?.beat).toBe(beats[0]);
   });
 
   test("insert bar before active selection inserts before first selected bar", () => {
@@ -970,7 +970,7 @@ describe("TrackController", () => {
     expect(score.masterBars.length).toBeGreaterThanOrEqual(3);
     expect(score.masterBars[1].uuid).toBe(originalUUIDs[0]);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(voiceBar.beats[0]);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
   });
 
   test("insert bar after active selection inserts after last selected bar", () => {
@@ -999,7 +999,7 @@ describe("TrackController", () => {
     expect(score.masterBars[0].uuid).toBe(originalUUIDs[0]);
     expect(score.masterBars[1].uuid).toBe(originalUUIDs[1]);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(voiceBar.beats[0]);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
   });
 
   test("remove selected bar removes the current bar and selects the previous bar", () => {
@@ -1024,7 +1024,7 @@ describe("TrackController", () => {
 
     expect(score.masterBars).toHaveLength(1);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(firstBarFirstBeat);
+    expect(controller.selectionCursor?.beat).toBe(firstBarFirstBeat);
   });
 
   test("remove active selection removes all touched bars in order", () => {
@@ -1057,7 +1057,7 @@ describe("TrackController", () => {
 
     expect(score.masterBars).toHaveLength(1);
     expect(controller.selectionBeats).toHaveLength(0);
-    expect(controller.selectedNote?.beat).toBe(voiceBar.beats[0]);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
   });
 
   test("remove active selection removes contiguous middle bars by original index", () => {
@@ -1093,7 +1093,7 @@ describe("TrackController", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
     }
-    expect(controller.selectedNote?.beat).toBe(voiceBar.beats[0]);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
   });
 
   test("remove all selected beats can leave a true empty voice bar", () => {
@@ -1646,7 +1646,7 @@ describe("TrackController", () => {
     controller.trackElement.update();
 
     const lastBar = staff.bars[staff.bars.length - 1];
-    while (controller.selectedNote?.bar !== lastBar) {
+    while (controller.selectionCursor?.bar !== lastBar) {
       controller.moveSelectedNote(SelectedMoveDirection.Right);
     }
 
@@ -1673,8 +1673,8 @@ describe("TrackController", () => {
     expect(secondLastLine.boundingBox.bottom).toBeCloseTo(
       lastLine.boundingBox.y
     );
-    expect(controller.selectedNote?.beat).toBeDefined();
-    expect(controller.selectedNote?.bar).toBeDefined();
+    expect(controller.selectionCursor?.beat).toBeDefined();
+    expect(controller.selectionCursor?.bar).toBeDefined();
   });
 
   test("vibrato apply undo redo uses vertical update behavior", () => {
@@ -1729,7 +1729,7 @@ describe("TrackController", () => {
     const secondLine = controller.trackElement.trackLineElements[1];
     const thirdLine = controller.trackElement.trackLineElements[2];
     const firstNoteOnSecondLine =
-      secondLine.staffLineElements[0].styleLinesAsArray[0].barElements[0]
+      secondLine.staffLineContainers[0].styleLinesAsArray[0].barElements[0]
         .beatElements[0].noteElements[0];
     const initialThirdLineY = thirdLine.boundingBox.y;
 
@@ -1815,7 +1815,7 @@ describe("TrackController", () => {
 
     controller.setSelectedBarTimeSignature(3, NoteDuration.Quarter);
     let barElement =
-      controller.trackElement.trackLineElements[0].staffLineElements[0]
+      controller.trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
     const firstHash = barElement.stateHash;
     const firstDiff = controller.trackElement.consumeDiff();
@@ -1826,7 +1826,7 @@ describe("TrackController", () => {
 
     controller.setSelectedBarTimeSignature(5, NoteDuration.Quarter);
     barElement =
-      controller.trackElement.trackLineElements[0].staffLineElements[0]
+      controller.trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
     const secondDiff = controller.trackElement.consumeDiff();
 
@@ -1837,7 +1837,7 @@ describe("TrackController", () => {
 
     controller.undo();
     barElement =
-      controller.trackElement.trackLineElements[0].staffLineElements[0]
+      controller.trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
     const undoDiff = controller.trackElement.consumeDiff();
     expect(track.score.masterBars[0].beatsCount).toBe(3);
@@ -1847,7 +1847,7 @@ describe("TrackController", () => {
 
     controller.redo();
     barElement =
-      controller.trackElement.trackLineElements[0].staffLineElements[0]
+      controller.trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
     const redoDiff = controller.trackElement.consumeDiff();
     expect(track.score.masterBars[0].beatsCount).toBe(5);

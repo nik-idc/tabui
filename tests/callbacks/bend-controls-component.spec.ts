@@ -6,8 +6,8 @@ import {
   GuitarTechniqueType,
   NoteDuration,
 } from "../../src/notation/model";
-import { BendControlsComponent } from "../../src/ui/side-controls/effect-controls/bend-controls/bend-controls-component";
-import { BendControlsTemplateRenderer } from "../../src/ui/side-controls/effect-controls/bend-controls/bend-controls-template-renderer";
+import { BendControlsComponent } from "../../src/ui/side-controls/technique-controls/bend-controls/bend-controls-component";
+import { BendControlsTemplateRenderer } from "../../src/ui/side-controls/technique-controls/bend-controls/bend-controls-template-renderer";
 import { createBarWithBeats } from "../model/helpers";
 import { makeButton } from "./helpers";
 
@@ -36,7 +36,7 @@ function makeComponent(note: GuitarNote) {
   const templateRenderer = { setSelectedBendType: jest.fn() };
   const component = {
     notationComponent: {
-      trackController: { selectedNote: { note } },
+      trackController: { selectionCursor: { note } },
     },
     bendSelectorManager,
     templateRenderer,

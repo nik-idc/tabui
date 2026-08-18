@@ -1,5 +1,5 @@
-import { TechniqueControlsDefaultCallbacks } from "../../src/ui/side-controls/effect-controls/effect-controls-callbacks";
-import { BendControlsDefaultCallbacks } from "../../src/ui/side-controls/effect-controls/bend-controls/bend-controls-callbacks";
+import { TechniqueControlsDefaultCallbacks } from "../../src/ui/side-controls/technique-controls/technique-controls-callbacks";
+import { BendControlsDefaultCallbacks } from "../../src/ui/side-controls/technique-controls/bend-controls/bend-controls-callbacks";
 import { GuitarTechniqueType } from "../../src/notation/model";
 import {
   createNotationComponentMock,
@@ -8,7 +8,7 @@ import {
 } from "./helpers";
 
 describe("TechniqueControlsDefaultCallbacks", () => {
-  test("effect buttons map to techniques and repeated bind does not double fire", () => {
+  test("technique buttons map to techniques and repeated bind does not double fire", () => {
     const bendBindSpy = jest
       .spyOn(BendControlsDefaultCallbacks.prototype, "bind")
       .mockImplementation(() => {});

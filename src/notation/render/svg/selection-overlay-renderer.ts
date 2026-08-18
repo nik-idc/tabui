@@ -4,7 +4,7 @@ import {
   TrackController,
   TrackLineIdentity,
 } from "../../controller";
-import { TabNoteElement } from "../../controller/element/note/tab-note-element";
+import { TabNoteSlotElement } from "../../controller/element/note/tab-note-slot-element";
 import { createSVGRect } from "../../../shared";
 
 /**
@@ -19,7 +19,7 @@ export class SelectionOverlayRenderer {
   /** Hover preview rectangle for note selection. */
   private _selectionPreviewRect?: SVGRectElement;
   /** Outline rectangle for currently selected note. */
-  private _selectedNoteRect?: SVGRectElement;
+  private _selectionCursorRect?: SVGRectElement;
   /** Beat selection rectangles reused across renders. */
   private _selectionRects?: SVGRectElement[];
 
@@ -36,71 +36,71 @@ export class SelectionOverlayRenderer {
    * NOTE: Could (and probably should) be extracted to TrackController
    * Resolves currently selected tab note element from track element registry.
    */
-  private getSelectedTabNoteElement(): TabNoteElement | undefined {
-    const selectedNote = this.trackController.selectedNote;
-    if (selectedNote === undefined) {
+  private getSelectedTabNoteElement(): TabNoteSlotElement | undefined {
+    const selectionCursor = this.trackController.selectionCursor;
+    if (selectionCursor === undefined) {
       return undefined;
     }
 
     const beatElement = this.trackController.getBeatElementByUUID(
-      selectedNote.beat.uuid
+      selectionCursor.beat.uuid
     );
     if (!(beatElement instanceof TabBeatElement)) {
       return undefined;
     }
 
-    const identity = TabNoteElement.createStableIdentity(
+    const identity = TabNoteSlotElement.createStableIdentity(
       beatElement,
-      selectedNote.noteIndex + 1
+      selectionCursor.noteIndex + 1
     );
-    const selectedNoteElement =
+    const selectionCursorElement =
       this.trackController.trackElement.getMaterializedElementByIdentity(
         identity
       );
 
     if (
-      selectedNoteElement === undefined ||
-      !(selectedNoteElement instanceof TabNoteElement)
+      selectionCursorElement === undefined ||
+      !(selectionCursorElement instanceof TabNoteSlotElement)
     ) {
       return undefined;
     }
 
-    return selectedNoteElement;
+    return selectionCursorElement;
   }
 
   /**
-   * Renders or clears selected-note outline rectangle.
+   * Renders or clears the selection cursor outline rectangle.
    */
   private renderSelectedNoteOverlay(): void {
-    const selectedNoteElement = this.getSelectedTabNoteElement();
+    const selectionCursorElement = this.getSelectedTabNoteElement();
 
-    if (selectedNoteElement === undefined) {
-      if (this._selectedNoteRect !== undefined) {
-        this._selectionGroup.removeChild(this._selectedNoteRect);
-        this._selectedNoteRect = undefined;
+    if (selectionCursorElement === undefined) {
+      if (this._selectionCursorRect !== undefined) {
+        this._selectionGroup.removeChild(this._selectionCursorRect);
+        this._selectionCursorRect = undefined;
       }
       return;
     }
 
-    if (this._selectedNoteRect === undefined) {
-      this._selectedNoteRect = createSVGRect();
-      this._selectedNoteRect.setAttribute("fill", "none");
-      this._selectedNoteRect.setAttribute(
+    if (this._selectionCursorRect === undefined) {
+      this._selectionCursorRect = createSVGRect();
+      this._selectionCursorRect.setAttribute("fill", "none");
+      this._selectionCursorRect.setAttribute(
         "stroke",
         "var(--tu-notation-selection-stroke)"
       );
-      this._selectedNoteRect.setAttribute("stroke-width", "1");
-      this._selectedNoteRect.setAttribute("rx", "3");
-      this._selectedNoteRect.setAttribute("ry", "3");
-      this._selectedNoteRect.setAttribute("pointer-events", "none");
-      this._selectionGroup.appendChild(this._selectedNoteRect);
+      this._selectionCursorRect.setAttribute("stroke-width", "1");
+      this._selectionCursorRect.setAttribute("rx", "3");
+      this._selectionCursorRect.setAttribute("ry", "3");
+      this._selectionCursorRect.setAttribute("pointer-events", "none");
+      this._selectionGroup.appendChild(this._selectionCursorRect);
     }
 
-    const rect = selectedNoteElement.selectionRect;
-    this._selectedNoteRect.setAttribute("x", `${rect.x}`);
-    this._selectedNoteRect.setAttribute("y", `${rect.y}`);
-    this._selectedNoteRect.setAttribute("width", `${rect.width}`);
-    this._selectedNoteRect.setAttribute("height", `${rect.height}`);
+    const rect = selectionCursorElement.selectionRect;
+    this._selectionCursorRect.setAttribute("x", `${rect.x}`);
+    this._selectionCursorRect.setAttribute("y", `${rect.y}`);
+    this._selectionCursorRect.setAttribute("width", `${rect.width}`);
+    this._selectionCursorRect.setAttribute("height", `${rect.height}`);
   }
 
   /**
@@ -187,7 +187,7 @@ export class SelectionOverlayRenderer {
       this._selectionGroup.appendChild(this._selectionPreviewRect);
     }
 
-    if (!(noteElement instanceof TabNoteElement)) {
+    if (!(noteElement instanceof TabNoteSlotElement)) {
       throw Error("Unsupported note style");
     }
 
@@ -236,9 +236,9 @@ export class SelectionOverlayRenderer {
       this._selectionPreviewRect = undefined;
     }
 
-    if (this._selectedNoteRect !== undefined) {
-      this._selectionGroup.removeChild(this._selectedNoteRect);
-      this._selectedNoteRect = undefined;
+    if (this._selectionCursorRect !== undefined) {
+      this._selectionGroup.removeChild(this._selectionCursorRect);
+      this._selectionCursorRect = undefined;
     }
 
     this.unrenderSelectionRects();

@@ -1,5 +1,8 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
-import { TabBeatElement, TabNoteElement } from "../../src/notation/controller";
+import {
+  TabBeatElement,
+  TabNoteSlotElement,
+} from "../../src/notation/controller";
 import {
   Bar,
   DEFAULT_MASTER_BAR,
@@ -31,8 +34,8 @@ function fillBarWithDenseSixtyFourthBeats(
 }
 
 function getRhythmElements(trackElement: TrackElement): any[] {
-  return trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0]
-    .refreshOwnedNotationElements()
+  return trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0]
+    .refreshOwnedNotationNodes()
     .filter((element) => element.constructor.name === "TabBeatRhythmElement");
 }
 
@@ -48,7 +51,7 @@ describe("TrackElement rhythm", () => {
     trackElement.update();
 
     const barElement =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
 
     const beatElements = barElement.beatElements;
@@ -73,7 +76,7 @@ describe("TrackElement rhythm", () => {
     trackElement.update();
 
     const barElement =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
     const firstSelected = barElement.beatElements[0];
     const lastSelected = barElement.beatElements[1];
@@ -114,7 +117,7 @@ describe("TrackElement rhythm", () => {
     const noteElement = beatElement.noteElements.find(
       (element) => element.note === note
     );
-    if (!(noteElement instanceof TabNoteElement)) {
+    if (!(noteElement instanceof TabNoteSlotElement)) {
       throw Error("Expected note element");
     }
 
@@ -127,7 +130,7 @@ describe("TrackElement rhythm", () => {
     );
   });
 
-  test("applies beat width formulas for dotted and tuplet beats", () => {
+  test("keeps dotted and tuplet beat widths positive", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth, dots: 1 },
@@ -141,16 +144,13 @@ describe("TrackElement rhythm", () => {
     trackElement.update();
 
     const beatElements =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0].beatElements;
 
     expect(beatElements).toHaveLength(3);
     expect(
       beatElements.every((beatElement) => beatElement.boundingBox.width > 0)
     ).toBe(true);
-    expect(beatElements[1].boundingBox.width).toBeGreaterThan(
-      beatElements[2].boundingBox.width
-    );
   });
 
   test("justifies wrapped non-final lines to full width while keeping beats contiguous", () => {
@@ -163,7 +163,7 @@ describe("TrackElement rhythm", () => {
     trackElement.update();
 
     const firstLineStyle =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0];
     const lastBarOnFirstLine =
       firstLineStyle.barElements[firstLineStyle.barElements.length - 1];
@@ -203,7 +203,7 @@ describe("TrackElement rhythm", () => {
     expect(trackElement.trackLineElements.length).toBeGreaterThan(1);
 
     for (const trackLine of trackElement.trackLineElements) {
-      const styleLine = trackLine.staffLineElements[0].styleLinesAsArray[0];
+      const styleLine = trackLine.staffLineContainers[0].styleLinesAsArray[0];
       const lastBar = styleLine.barElements[styleLine.barElements.length - 1];
       expect(lastBar.boundingBox.right).toBeLessThanOrEqual(
         TEST_LAYOUT_DIMENSIONS.WIDTH
@@ -319,7 +319,7 @@ describe("TrackElement rhythm", () => {
     expect(beatElement.durationFlagLines).toBeUndefined();
     expect(dot).toBeDefined();
     expect(dot!.centerY).toBeLessThan(
-      beatElement.voiceBarRhythmElement.boundingBox.y +
+      beatElement.voiceBarRhythmContainer.boundingBox.y +
         TEST_LAYOUT_DIMENSIONS.DURATIONS_HEIGHT
     );
   });

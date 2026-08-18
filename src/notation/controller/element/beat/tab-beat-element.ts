@@ -9,35 +9,22 @@ import { Rect, Point, randomInt } from "../../../../shared";
 import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
 import { Circle } from "../../../../shared/rendering/geometry/circle";
 import { TrackElement } from "../track-element";
-import { TabNoteElement } from "../note/tab-note-element";
+import { TabNoteSlotElement } from "../note/tab-note-slot-element";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
 import { NoteElement } from "../note/note-element";
-import { NotationElement } from "../notation-element";
-import { VoiceBarElement } from "../bar/voice-bar-element";
+import { NotationNode, NotationNodeType } from "../notation-element";
+import { VoiceBarContainer } from "../bar/voice-bar-container";
 import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
  */
 export class TabBeatElement implements BeatElement {
-  public static createStableIdentity_NEW(
-    trackLineStableIdentity: string,
-    beat: Beat
-  ): string {
-    return `tab-beat:${trackLineStableIdentity}:${beat.uuid}`;
-  }
+  readonly nodeType = NotationNodeType.Element;
 
-  public static createStableIdentity(
-    voiceBarElement: VoiceBarElement,
-    beat: Beat
-  ): string {
-    const trackLineStableIdentity =
-      voiceBarElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return TabBeatElement.createStableIdentity_NEW(
-      trackLineStableIdentity,
-      beat
-    );
+  public static createStableIdentity(beat: Beat): string {
+    return `tab-beat:${beat.uuid}`;
   }
 
   /** Beat element's unique identifier */
@@ -45,7 +32,7 @@ export class TabBeatElement implements BeatElement {
   /** The beat */
   readonly beat: Beat;
   /** Parent bar element */
-  readonly voiceBarElement: VoiceBarElement;
+  readonly voiceBarContainer: VoiceBarContainer;
   /** Root track element */
   readonly trackElement: TrackElement;
 
@@ -62,7 +49,7 @@ export class TabBeatElement implements BeatElement {
   }
 
   /** Note elements */
-  private _noteElements: TabNoteElement[];
+  private _noteElements: TabNoteSlotElement[];
 
   /** This beat's rect */
   private _boundingBox: Rect;
@@ -71,13 +58,13 @@ export class TabBeatElement implements BeatElement {
   /**
    * Class that handles geometry & visually relevant info of a beat
    * @param beat Beat
-   * @param voiceBarElement Parent bar element
+   * @param voiceBarContainer Parent bar element
    */
-  constructor(beat: Beat, voiceBarElement: VoiceBarElement) {
+  constructor(beat: Beat, voiceBarContainer: VoiceBarContainer) {
     this.uuid = randomInt();
     this.beat = beat;
-    this.voiceBarElement = voiceBarElement;
-    this.trackElement = this.voiceBarElement.trackElement;
+    this.voiceBarContainer = voiceBarContainer;
+    this.trackElement = this.voiceBarContainer.trackElement;
 
     this._noteElements = [];
 
@@ -99,7 +86,7 @@ export class TabBeatElement implements BeatElement {
     for (let i = 0; i < maxPolyphony; i++) {
       const note = (this.beat.notes?.[i] as GuitarNote | undefined) ?? null;
       const existingNoteElement = prevNoteElements.get(
-        TabNoteElement.createStableIdentity(this, i + 1)
+        TabNoteSlotElement.createStableIdentity(this, i + 1)
       );
       if (existingNoteElement !== undefined) {
         existingNoteElement.setNote(note);
@@ -108,7 +95,7 @@ export class TabBeatElement implements BeatElement {
         continue;
       }
 
-      this._noteElements.push(new TabNoteElement(this, i + 1, note));
+      this._noteElements.push(new TabNoteSlotElement(this, i + 1, note));
     }
   }
 
@@ -116,7 +103,7 @@ export class TabBeatElement implements BeatElement {
    * Calculates the dimensions of the tab beat element & it's children
    */
   public measure(): void {
-    const width = this.voiceBarElement.getBeatWidth(this.beat);
+    const width = this.voiceBarContainer.getBeatWidth(this.beat);
     const notesHeight =
       this._noteElements.length *
       this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT;
@@ -136,7 +123,7 @@ export class TabBeatElement implements BeatElement {
    * Calculates the coordinates of tab beat element & it's child note elements
    */
   public layout(): void {
-    const x = this.voiceBarElement.getBeatX(this.beat);
+    const x = this.voiceBarContainer.getBeatX(this.beat);
 
     this._boundingBox.setCoords(x, 0);
 
@@ -174,11 +161,11 @@ export class TabBeatElement implements BeatElement {
     return hashArr.join("");
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     for (const noteElement of this._noteElements) {
-      elements.push(...noteElement.refreshOwnedNotationElements());
+      elements.push(...noteElement.refreshOwnedNotationNodes());
     }
 
     return elements;
@@ -190,11 +177,11 @@ export class TabBeatElement implements BeatElement {
   }
 
   public getStableIdentity(): string {
-    return TabBeatElement.createStableIdentity(this.voiceBarElement, this.beat);
+    return TabBeatElement.createStableIdentity(this.beat);
   }
 
   public get barElement(): BarElement {
-    return this.voiceBarElement.barElement;
+    return this.voiceBarContainer.barElement;
   }
 
   public get attackLocalX(): number {
@@ -219,8 +206,8 @@ export class TabBeatElement implements BeatElement {
    * @returns Next note element or null
    */
   public getNextNoteElement(
-    noteElement: TabNoteElement
-  ): TabNoteElement | null {
+    noteElement: TabNoteSlotElement
+  ): TabNoteSlotElement | null {
     const noteIndex = this._noteElements.indexOf(noteElement);
     const nextNote = this._noteElements[noteIndex + 1];
     return nextNote ?? null;
@@ -232,15 +219,15 @@ export class TabBeatElement implements BeatElement {
    * @returns Prev note element or null
    */
   public getPrevNoteElement(
-    noteElement: TabNoteElement
-  ): TabNoteElement | null {
+    noteElement: TabNoteSlotElement
+  ): TabNoteSlotElement | null {
     const noteIndex = this._noteElements.indexOf(noteElement);
     const prevNote = this._noteElements[noteIndex - 1];
     return prevNote ?? null;
   }
 
   /** Beat's note element */
-  public get noteElements(): TabNoteElement[] {
+  public get noteElements(): TabNoteSlotElement[] {
     return this._noteElements;
   }
 
@@ -322,8 +309,8 @@ export class TabBeatElement implements BeatElement {
   /** Coords of this element in bar-local coordinates */
   public get barLocalCoords(): Point {
     return new Point(
-      this.voiceBarElement.boundingBox.x + this._boundingBox.x,
-      this.voiceBarElement.boundingBox.y + this._boundingBox.y
+      this.voiceBarContainer.boundingBox.x + this._boundingBox.x,
+      this.voiceBarContainer.boundingBox.y + this._boundingBox.y
     );
   }
 
@@ -340,8 +327,8 @@ export class TabBeatElement implements BeatElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.voiceBarElement.lineLocalCoords.x + this.barLocalCoords.x,
-      this.voiceBarElement.lineLocalCoords.y + this.barLocalCoords.y
+      this.voiceBarContainer.lineLocalCoords.x + this.barLocalCoords.x,
+      this.voiceBarContainer.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -376,8 +363,8 @@ export class TabBeatElement implements BeatElement {
   /** Global coords of the tab beat element */
   public get globalCoords(): Point {
     return new Point(
-      this.voiceBarElement.globalCoords.x + this.barLocalCoords.x,
-      this.voiceBarElement.globalCoords.y + this.barLocalCoords.y
+      this.voiceBarContainer.globalCoords.x + this.barLocalCoords.x,
+      this.voiceBarContainer.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

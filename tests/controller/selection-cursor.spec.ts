@@ -1,7 +1,7 @@
 import {
   MoveRightResult,
-  SelectedNote,
-} from "../../src/notation/controller/selection/selected-note";
+  SelectionCursor,
+} from "../../src/notation/controller/selection/selection-cursor";
 import {
   Bar,
   DEFAULT_MASTER_BAR,
@@ -10,7 +10,7 @@ import {
 } from "../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 
-describe("SelectedNote", () => {
+describe("SelectionCursor", () => {
   test("can represent a cursor on a rest beat lane", () => {
     const score = new Score();
     const bar = score.tracks[0].staves[0].bars[0];
@@ -19,12 +19,12 @@ describe("SelectedNote", () => {
       throw Error("Expected voice 1 bar");
     }
     const beat = voiceBar.beats[0];
-    const selectedNote = new SelectedNote(beat, 2);
+    const selectionCursor = new SelectionCursor(beat, 2);
 
     expect(beat.isRest()).toBe(true);
-    expect(selectedNote.beat).toBe(beat);
-    expect(selectedNote.note).toBeNull();
-    expect(selectedNote.noteIndex).toBe(2);
+    expect(selectionCursor.beat).toBe(beat);
+    expect(selectionCursor.note).toBeNull();
+    expect(selectionCursor.noteIndex).toBe(2);
   });
 
   test("moveRight advances to the next beat slot when adding a beat from seed state", () => {
@@ -33,14 +33,14 @@ describe("SelectedNote", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 1 bar");
     }
-    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
 
-    const result = selectedNote.moveRight();
+    const result = selectionCursor.moveRight();
 
     expect(result.result).toBe(MoveRightResult.AddedBeat);
     expect(result.addedBar).toBe(false);
-    expect(selectedNote.bar).toBe(bar);
-    expect(selectedNote.beatIndex).toBe(1);
+    expect(selectionCursor.bar).toBe(bar);
+    expect(selectionCursor.beatIndex).toBe(1);
   });
 
   test("moveLeft from the very first beat keeps selection in place", () => {
@@ -50,12 +50,12 @@ describe("SelectedNote", () => {
       throw Error("Expected voice 1 bar");
     }
     const beat = voiceBar.beats[0];
-    const selectedNote = new SelectedNote(beat, 0);
+    const selectionCursor = new SelectionCursor(beat, 0);
 
-    selectedNote.moveLeft();
+    selectionCursor.moveLeft();
 
-    expect(selectedNote.barIndex).toBe(0);
-    expect(selectedNote.beatIndex).toBe(0);
+    expect(selectionCursor.barIndex).toBe(0);
+    expect(selectionCursor.beatIndex).toBe(0);
   });
 
   test("moveLeft from first beat of next bar jumps to previous bar last beat", () => {
@@ -68,17 +68,17 @@ describe("SelectedNote", () => {
       throw Error("Expected voice 1 bar");
     }
     const beat = voiceBarBefore.beats[0];
-    const selectedNote = new SelectedNote(beat, 0);
+    const selectionCursor = new SelectionCursor(beat, 0);
 
-    selectedNote.moveLeft();
+    selectionCursor.moveLeft();
 
-    expect(selectedNote.barIndex).toBe(0);
+    expect(selectionCursor.barIndex).toBe(0);
     const voiceBarAfter = bar.getVoiceBar(1);
     if (voiceBarAfter === null) {
       throw Error("Expected voice 1 bar");
     }
-    expect(selectedNote.beatIndex).toBe(voiceBarAfter.beats.length - 1);
-    expect(selectedNote.bar).toBe(bar);
+    expect(selectionCursor.beatIndex).toBe(voiceBarAfter.beats.length - 1);
+    expect(selectionCursor.bar).toBe(bar);
   });
 
   test("moveRight from full final bar requests adding a new bar", () => {
@@ -87,16 +87,16 @@ describe("SelectedNote", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 1 bar");
     }
-    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
 
     voiceBar.appendBeats();
     voiceBar.appendBeats();
     voiceBar.appendBeats();
 
-    selectedNote.moveRight();
-    selectedNote.moveRight();
-    selectedNote.moveRight();
-    const result = selectedNote.moveRight();
+    selectionCursor.moveRight();
+    selectionCursor.moveRight();
+    selectionCursor.moveRight();
+    const result = selectionCursor.moveRight();
 
     expect(result.result).toBe(MoveRightResult.AddedBar);
     expect(result.addedBar).toBe(true);
@@ -109,21 +109,21 @@ describe("SelectedNote", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 1 bar");
     }
-    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
 
     voiceBar.appendBeats();
     voiceBar.appendBeats();
     voiceBar.appendBeats();
 
-    selectedNote.moveRight();
-    selectedNote.moveRight();
-    selectedNote.moveRight();
-    const result = selectedNote.moveRight();
+    selectionCursor.moveRight();
+    selectionCursor.moveRight();
+    selectionCursor.moveRight();
+    const result = selectionCursor.moveRight();
 
     expect(result.result).toBe(MoveRightResult.Nothing);
     expect(result.addedBar).toBe(false);
-    expect(selectedNote.barIndex).toBe(1);
-    expect(selectedNote.beatIndex).toBe(0);
+    expect(selectionCursor.barIndex).toBe(1);
+    expect(selectionCursor.beatIndex).toBe(0);
   });
 
   test("moveRight seeds selected voice when next bar has no voice slot", () => {
@@ -131,22 +131,22 @@ describe("SelectedNote", () => {
     const voiceBar = bar.insertVoiceBar(3);
     score.appendMasterBar(DEFAULT_MASTER_BAR, 1);
     const nextBar = bar.staff.bars[1];
-    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
 
     voiceBar.appendBeats();
     voiceBar.appendBeats();
     voiceBar.appendBeats();
 
-    selectedNote.moveRight();
-    selectedNote.moveRight();
-    selectedNote.moveRight();
-    const result = selectedNote.moveRight();
+    selectionCursor.moveRight();
+    selectionCursor.moveRight();
+    selectionCursor.moveRight();
+    const result = selectionCursor.moveRight();
 
     expect(result.result).toBe(MoveRightResult.Nothing);
     expect(nextBar.getVoiceBar(3)).not.toBeNull();
-    expect(selectedNote.bar).toBe(nextBar);
-    expect(selectedNote.voiceBar).toBe(nextBar.getVoiceBar(3));
-    expect(selectedNote.beatIndex).toBe(0);
+    expect(selectionCursor.bar).toBe(nextBar);
+    expect(selectionCursor.voiceBar).toBe(nextBar.getVoiceBar(3));
+    expect(selectionCursor.beatIndex).toBe(0);
   });
 
   test("view-only moveRight selects the closest existing voice", () => {
@@ -159,12 +159,12 @@ describe("SelectedNote", () => {
     voiceBar.appendBeats();
     voiceBar.appendBeats();
     voiceBar.appendBeats();
-    const selectedNote = new SelectedNote(voiceBar.beats[3], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[3], 0);
 
-    selectedNote.moveRight(false);
+    selectionCursor.moveRight(false);
 
-    expect(selectedNote.bar).toBe(nextBar);
-    expect(selectedNote.voiceNumber).toBe(4);
+    expect(selectionCursor.bar).toBe(nextBar);
+    expect(selectionCursor.voiceNumber).toBe(4);
     expect(nextBar.getVoiceBar(3)).toBeNull();
   });
 
@@ -178,11 +178,11 @@ describe("SelectedNote", () => {
     voiceBar.appendBeats();
     voiceBar.appendBeats();
     voiceBar.appendBeats();
-    const selectedNote = new SelectedNote(voiceBar.beats[3], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[3], 0);
 
-    selectedNote.moveRight(false);
+    selectionCursor.moveRight(false);
 
-    expect(selectedNote.voiceNumber).toBe(2);
+    expect(selectionCursor.voiceNumber).toBe(2);
   });
 
   test("view-only moveLeft selects the closest existing voice", () => {
@@ -195,12 +195,12 @@ describe("SelectedNote", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 3 bar");
     }
-    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
 
-    selectedNote.moveLeft(false);
+    selectionCursor.moveLeft(false);
 
-    expect(selectedNote.bar).toBe(bar);
-    expect(selectedNote.voiceNumber).toBe(4);
+    expect(selectionCursor.bar).toBe(bar);
+    expect(selectionCursor.voiceNumber).toBe(4);
     expect(bar.getVoiceBar(3)).toBeNull();
   });
 
@@ -210,13 +210,13 @@ describe("SelectedNote", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 1 bar");
     }
-    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
 
-    const result = selectedNote.moveRight(false);
+    const result = selectionCursor.moveRight(false);
 
     expect(result.result).toBe(MoveRightResult.Nothing);
     expect(voiceBar.beats).toHaveLength(1);
-    expect(selectedNote.beatIndex).toBe(0);
+    expect(selectionCursor.beatIndex).toBe(0);
   });
 
   test("moveUp and moveDown wrap between first and last note indices", () => {
@@ -225,15 +225,15 @@ describe("SelectedNote", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 1 bar");
     }
-    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
 
-    selectedNote.moveUp();
-    expect(selectedNote.noteIndex).toBe(
+    selectionCursor.moveUp();
+    expect(selectionCursor.noteIndex).toBe(
       bar.trackContext.instrument.maxPolyphony - 1
     );
 
-    selectedNote.moveDown();
-    expect(selectedNote.noteIndex).toBe(0);
+    selectionCursor.moveDown();
+    expect(selectionCursor.noteIndex).toBe(0);
   });
 
   test("afterAddedBar throws if last move right was not AddedBar", () => {
@@ -242,9 +242,9 @@ describe("SelectedNote", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 1 bar");
     }
-    const selectedNote = new SelectedNote(voiceBar.beats[0], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
 
-    expect(() => selectedNote.afterAddedBar()).toThrow(
+    expect(() => selectionCursor.afterAddedBar()).toThrow(
       "After added bar called when last move right result is not added bar"
     );
   });
@@ -260,11 +260,11 @@ describe("SelectedNote", () => {
     secondVoiceBar.appendBeats();
     secondVoiceBar.appendBeats();
 
-    const selectedNote = new SelectedNote(secondVoiceBar.beats[2], 0);
+    const selectionCursor = new SelectionCursor(secondVoiceBar.beats[2], 0);
 
     score.removeMasterBar(1);
-    selectedNote.syncToStructure();
-    expect(selectedNote.barIndex).toBe(0);
+    selectionCursor.syncToStructure();
+    expect(selectionCursor.barIndex).toBe(0);
 
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -272,12 +272,12 @@ describe("SelectedNote", () => {
     }
     voiceBar.appendBeats();
     voiceBar.appendBeats();
-    selectedNote.moveRight();
-    selectedNote.moveRight();
+    selectionCursor.moveRight();
+    selectionCursor.moveRight();
     voiceBar.removeBeat(2);
     voiceBar.removeBeat(1);
 
-    selectedNote.syncToStructure();
-    expect(selectedNote.beatIndex).toBe(0);
+    selectionCursor.syncToStructure();
+    expect(selectionCursor.beatIndex).toBe(0);
   });
 });

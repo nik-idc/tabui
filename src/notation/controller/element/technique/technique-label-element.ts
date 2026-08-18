@@ -2,7 +2,7 @@ import { Technique } from "../../../model";
 import { Point, Rect } from "../../../../shared";
 import { NotationElement } from "../notation-element";
 import { BeatElement } from "../beat/beat-element";
-import { TechGapLineElement } from "../staff/tech-gap-line-element";
+import { TechGapLineContainer } from "../staff/tech-gap-line-container";
 import { SVGPathDescriptor, SVGTextDescriptor } from "./technique-element";
 
 /**
@@ -11,7 +11,7 @@ import { SVGPathDescriptor, SVGTextDescriptor } from "./technique-element";
  */
 export interface TechniqueLabelElement extends NotationElement {
   readonly technique: Technique;
-  readonly gapLineElement: TechGapLineElement;
+  readonly gapLineContainer: TechGapLineContainer;
   readonly beatElement: BeatElement;
 
   createPath(): void;

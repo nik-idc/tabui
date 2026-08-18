@@ -1,7 +1,7 @@
 import { BendType } from "../../src/notation/model";
 import { Point } from "../../src/shared";
-import { buildBendPath } from "../../src/ui/side-controls/effect-controls/bend-controls/bend-selectors/bend-curve-selector";
-import { BendCurveSelector } from "../../src/ui/side-controls/effect-controls/bend-controls/bend-selectors/bend-curve-selector";
+import { buildBendPath } from "../../src/ui/side-controls/technique-controls/bend-controls/bend-selectors/bend-curve-selector";
+import { BendCurveSelector } from "../../src/ui/side-controls/technique-controls/bend-controls/bend-selectors/bend-curve-selector";
 import { FakeElement } from "./helpers";
 
 const options = {

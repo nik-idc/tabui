@@ -72,15 +72,16 @@ export class TimeSigControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const selectedNote = this.notationComponent.trackController.selectedNote;
+    const selectionCursor =
+      this.notationComponent.trackController.selectionCursor;
 
     const beatsInitValue =
-      selectedNote !== undefined
-        ? `${selectedNote.bar.masterBar.beatsCount}`
+      selectionCursor !== undefined
+        ? `${selectionCursor.bar.masterBar.beatsCount}`
         : "4";
     const durationInitValue =
-      selectedNote !== undefined
-        ? `${1 / selectedNote.bar.masterBar.duration}`
+      selectionCursor !== undefined
+        ? `${1 / selectionCursor.bar.masterBar.duration}`
         : "4";
 
     this.template.beatsLabel.textContent = "Beats per measure";

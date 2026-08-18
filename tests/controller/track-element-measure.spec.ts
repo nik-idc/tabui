@@ -16,7 +16,7 @@ describe("TrackElement measure", () => {
     trackElement.update();
 
     const barElements =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
 
     expect(barElements[0].timeSigRect).toBeDefined();
@@ -53,7 +53,7 @@ describe("TrackElement measure", () => {
     trackElement.update();
 
     const barElements =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
 
     expect(barElements[0].timeSigRect).toBeDefined();
@@ -82,7 +82,7 @@ describe("TrackElement measure", () => {
     trackElement.update();
 
     const barElements =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
 
     expect(barElements[0].repeatStartRect).toBeDefined();
@@ -126,7 +126,7 @@ describe("TrackElement measure", () => {
     trackElement.update();
 
     const beforeWidths =
-      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements.map(
+      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements.map(
         (barElement) => barElement.boundingBox.width
       );
     score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
@@ -134,7 +134,7 @@ describe("TrackElement measure", () => {
     trackElement.update();
 
     const afterWidths =
-      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements.map(
+      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements.map(
         (barElement) => barElement.boundingBox.width
       );
     expect(afterWidths).toEqual(beforeWidths);

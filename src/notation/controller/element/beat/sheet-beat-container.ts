@@ -14,21 +14,22 @@ import { Circle } from "../../../../shared/rendering/geometry/circle";
 import { VertLine, HorLine } from "../../../../shared/rendering/geometry/line";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
-import { NotationElement } from "../notation-element";
-import { VoiceBarElement } from "../bar/voice-bar-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
+import { VoiceBarContainer } from "../bar/voice-bar-container";
 import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class that handles geometry & visually relevant info of a beat
  */
-export class SheetBeatElement implements BeatElement {
-  public static createStableIdentity(
-    voiceBarElement: VoiceBarElement,
-    beat: Beat
-  ): string {
-    const trackLineStableIdentity =
-      voiceBarElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `beat:${trackLineStableIdentity}:${beat.uuid}`;
+export class SheetBeatContainer implements BeatElement, NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
+  public static createStableIdentity(beat: Beat): string {
+    return `sheet-beat:${beat.uuid}`;
   }
 
   /** Beat element's unique identifier */
@@ -36,7 +37,7 @@ export class SheetBeatElement implements BeatElement {
   /** The beat */
   readonly beat: Beat;
   /** Parent beat element */
-  readonly voiceBarElement: VoiceBarElement;
+  readonly voiceBarContainer: VoiceBarContainer;
   /** Reference to track element */
   readonly trackElement: TrackElement;
   readonly voiceNumber = null;
@@ -72,11 +73,11 @@ export class SheetBeatElement implements BeatElement {
    * @param beat Beat
    * @param beatElement Parent bar element
    */
-  constructor(beat: Beat, voiceBarElement: VoiceBarElement) {
+  constructor(beat: Beat, voiceBarContainer: VoiceBarContainer) {
     this.uuid = randomInt();
     this.beat = beat;
-    this.voiceBarElement = voiceBarElement;
-    this.trackElement = voiceBarElement.trackElement;
+    this.voiceBarContainer = voiceBarContainer;
+    this.trackElement = voiceBarContainer.trackElement;
 
     this._noteElements = [];
     this._techniqueLabelElements = [];
@@ -129,8 +130,8 @@ export class SheetBeatElement implements BeatElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.voiceBarElement.lineLocalCoords.x + this.barLocalCoords.x,
-      this.voiceBarElement.lineLocalCoords.y + this.barLocalCoords.y
+      this.voiceBarContainer.lineLocalCoords.x + this.barLocalCoords.x,
+      this.voiceBarContainer.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -145,14 +146,11 @@ export class SheetBeatElement implements BeatElement {
   }
 
   public getStableIdentity(): string {
-    return SheetBeatElement.createStableIdentity(
-      this.voiceBarElement,
-      this.beat
-    );
+    return SheetBeatContainer.createStableIdentity(this.beat);
   }
 
   public get barElement(): BarElement {
-    return this.voiceBarElement.barElement;
+    return this.voiceBarContainer.barElement;
   }
 
   public get durationRect(): Rect {
@@ -177,8 +175,8 @@ export class SheetBeatElement implements BeatElement {
 
   public get globalCoords(): Point {
     return new Point(
-      this.voiceBarElement.globalCoords.x + this.barLocalCoords.x,
-      this.voiceBarElement.globalCoords.y + this.barLocalCoords.y
+      this.voiceBarContainer.globalCoords.x + this.barLocalCoords.x,
+      this.voiceBarContainer.globalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -205,7 +203,7 @@ export class SheetBeatElement implements BeatElement {
 
   public update(): void {}
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationNode[] {
     return [this];
   }
 

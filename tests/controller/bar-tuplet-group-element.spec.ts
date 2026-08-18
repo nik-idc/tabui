@@ -5,13 +5,13 @@ import { createBarWithBeats } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 function getBarElement(trackElement: TrackElement) {
-  return trackElement.trackLineElements[0].staffLineElements[0]
+  return trackElement.trackLineElements[0].staffLineContainers[0]
     .styleLinesAsArray[0].barElements[0];
 }
 
 function getTupletElement(trackElement: TrackElement): BarTupletGroupElement {
   const tupletElement = getBarElement(trackElement)
-    .refreshOwnedNotationElements()
+    .refreshOwnedNotationNodes()
     .find((element) => element.constructor.name === "BarTupletGroupElement");
   if (!(tupletElement instanceof BarTupletGroupElement)) {
     throw Error("Expected rendered tuplet element");
@@ -141,7 +141,7 @@ describe("BarTupletGroupElement", () => {
     );
     expect(tupletElement.boundingBox.width).toBeCloseTo(sumWidth);
     expect(tupletElement.boundingBox.y).toBeCloseTo(
-      tupletElement.voiceBarRhythmElement.boundingBox.height -
+      tupletElement.voiceBarRhythmContainer.boundingBox.height -
         TEST_LAYOUT_DIMENSIONS.TUPLET_RECT_HEIGHT
     );
     expect(tupletElement.completeText).toBe("5:3");

@@ -54,11 +54,11 @@ export class TechniqueControlsTemplateRenderer {
     const tc = this.notationComponent.trackController;
 
     const selection = tc.selectionBeats;
-    const selectedNote = tc.selectedNote;
+    const selectionCursor = tc.selectionCursor;
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
 
-    if (selectedNote === undefined) {
+    if (selectionCursor === undefined) {
       if (TECHNIQUE_TYPE_TO_LABEL[type]) {
         button.classList.remove(appliedCSSClass);
         button.classList.add(disabledCSSClass);
@@ -74,7 +74,7 @@ export class TechniqueControlsTemplateRenderer {
       button.classList.remove(appliedCSSClass);
       button.classList.remove(disabledCSSClass);
     } else {
-      const note = selectedNote.note;
+      const note = selectionCursor.note;
       if (note === null) {
         button.classList.remove(appliedCSSClass);
         button.classList.add(disabledCSSClass);

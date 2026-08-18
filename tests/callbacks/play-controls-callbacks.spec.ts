@@ -89,6 +89,7 @@ describe("PlayControlsDefaultCallbacks", () => {
   });
 
   test("bar traversal buttons delegate to the track controller", () => {
+    const ensureSelectedNoteVisible = jest.fn();
     const trackController = {
       isPlaying: false,
       startPlayer: jest.fn(),
@@ -112,7 +113,7 @@ describe("PlayControlsDefaultCallbacks", () => {
           rangeButton: {},
         },
       } as any,
-      { trackController } as any,
+      { trackController, ensureSelectedNoteVisible } as any,
       renderFunc,
       jest.fn(),
       jest.fn()
@@ -127,6 +128,7 @@ describe("PlayControlsDefaultCallbacks", () => {
     expect(trackController.selectPreviousBar).toHaveBeenCalledTimes(1);
     expect(trackController.selectNextBar).toHaveBeenCalledTimes(1);
     expect(trackController.selectLastBar).toHaveBeenCalledTimes(1);
+    expect(ensureSelectedNoteVisible).toHaveBeenCalledTimes(4);
     expect(renderFunc).toHaveBeenCalledTimes(4);
   });
 

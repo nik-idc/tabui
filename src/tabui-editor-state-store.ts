@@ -21,14 +21,14 @@ export class TabUIEditorStateStore {
     layoutDimensions: EditorLayoutDimensions
   ): TabUIEditorStateSnapshot {
     const controller = notationComponent.trackController;
-    const selectedNote = controller.selectedNote;
+    const selectionCursor = controller.selectionCursor;
     const cursor =
-      selectedNote === undefined
+      selectionCursor === undefined
         ? null
         : {
-            beat: selectedNote.beat,
-            note: selectedNote.note,
-            noteIndex: selectedNote.noteIndex,
+            beat: selectionCursor.beat,
+            note: selectionCursor.note,
+            noteIndex: selectionCursor.noteIndex,
           };
 
     return {

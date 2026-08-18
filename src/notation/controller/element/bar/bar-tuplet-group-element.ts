@@ -1,10 +1,10 @@
 import { BarTupletGroup, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import { NotationElement, NotationNodeType } from "../notation-element";
 import { BeatElement } from "../beat/beat-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
+import { VoiceBarRhythmContainer } from "./voice-bar-rhythm-container";
 import type { BarElement } from "./bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
@@ -12,13 +12,13 @@ import type { TrackLineElement } from "../track/track-line-element";
  * Class that handles geometry & visually relevant info of a bar tuplet group
  */
 export class BarTupletGroupElement implements NotationElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(
-    voiceBarRhythmElement: VoiceBarRhythmElement,
+    voiceBarRhythmContainer: VoiceBarRhythmContainer,
     tupletGroup: BarTupletGroup
   ): string {
-    const trackLineStableIdentity =
-      voiceBarRhythmElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `tuplet:${trackLineStableIdentity}:${voiceBarRhythmElement.voiceNumber}:${tupletGroup.uuid}`;
+    return `tuplet:${voiceBarRhythmContainer.voiceNumber}:${tupletGroup.uuid}`;
   }
 
   /** UUID of the tuplet element */
@@ -26,20 +26,20 @@ export class BarTupletGroupElement implements NotationElement {
   /** Tuplet group this element represents */
   readonly tupletGroup: BarTupletGroup;
   /** Parent voice bar rhythm element */
-  readonly voiceBarRhythmElement: VoiceBarRhythmElement;
+  readonly voiceBarRhythmContainer: VoiceBarRhythmContainer;
   /** Root track element */
   readonly trackElement: TrackElement;
 
   public get voiceNumber(): VoiceNumber {
-    return this.voiceBarRhythmElement.voiceNumber;
+    return this.voiceBarRhythmContainer.voiceNumber;
   }
 
   public get owningTrackLineElement(): TrackLineElement {
-    return this.voiceBarRhythmElement.owningTrackLineElement;
+    return this.voiceBarRhythmContainer.owningTrackLineElement;
   }
 
   public get owningBarElement(): BarElement {
-    return this.voiceBarRhythmElement.barElement;
+    return this.voiceBarRhythmContainer.barElement;
   }
 
   /** Tuplet element's outer rectangle */
@@ -51,18 +51,18 @@ export class BarTupletGroupElement implements NotationElement {
   /**
    * Class that handles geometry & visually relevant info of a bar tuplet group
    * @param tupletGroup Tuplet group
-   * @param voiceBarRhythmElement Voice bar rhythm element
+   * @param voiceBarRhythmContainer Voice bar rhythm element
    * @param beatElements Beat elements
    */
   constructor(
     tupletGroup: BarTupletGroup,
-    voiceBarRhythmElement: VoiceBarRhythmElement,
+    voiceBarRhythmContainer: VoiceBarRhythmContainer,
     beatElements: TabBeatElement[]
   ) {
     this.uuid = randomInt();
     this.tupletGroup = tupletGroup;
-    this.voiceBarRhythmElement = voiceBarRhythmElement;
-    this.trackElement = this.voiceBarRhythmElement.trackElement;
+    this.voiceBarRhythmContainer = voiceBarRhythmContainer;
+    this.trackElement = this.voiceBarRhythmContainer.trackElement;
     this._beatElements = beatElements;
 
     this._boundingBox = new Rect();
@@ -109,7 +109,7 @@ export class BarTupletGroupElement implements NotationElement {
     const tupletWidth =
       lastBeatElement.attackX + lastBeatElement.boundingBox.width - baseX;
     const y =
-      this.voiceBarRhythmElement.boundingBox.height -
+      this.voiceBarRhythmContainer.boundingBox.height -
       this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT;
 
     // Width depends on laid-out beat attack columns, not measure-time data.
@@ -146,7 +146,7 @@ export class BarTupletGroupElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationElement[] {
     return [this];
   }
 
@@ -197,7 +197,7 @@ export class BarTupletGroupElement implements NotationElement {
 
   public getStableIdentity(): string {
     return BarTupletGroupElement.createStableIdentity(
-      this.voiceBarRhythmElement,
+      this.voiceBarRhythmContainer,
       this.tupletGroup
     );
   }
@@ -218,8 +218,8 @@ export class BarTupletGroupElement implements NotationElement {
   /** Coords of this element in bar-local coordinates */
   public get barLocalCoords(): Point {
     return new Point(
-      this.voiceBarRhythmElement.boundingBox.x + this._boundingBox.x,
-      this.voiceBarRhythmElement.boundingBox.y + this._boundingBox.y
+      this.voiceBarRhythmContainer.boundingBox.x + this._boundingBox.x,
+      this.voiceBarRhythmContainer.boundingBox.y + this._boundingBox.y
     );
   }
 
@@ -236,8 +236,8 @@ export class BarTupletGroupElement implements NotationElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.voiceBarRhythmElement.lineLocalCoords.x + this.barLocalCoords.x,
-      this.voiceBarRhythmElement.lineLocalCoords.y + this.barLocalCoords.y
+      this.voiceBarRhythmContainer.lineLocalCoords.x + this.barLocalCoords.x,
+      this.voiceBarRhythmContainer.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -488,8 +488,8 @@ export class BarTupletGroupElement implements NotationElement {
   /** Global coords of the bar tuplet group element */
   public get globalCoords(): Point {
     return new Point(
-      this.voiceBarRhythmElement.globalCoords.x + this.barLocalCoords.x,
-      this.voiceBarRhythmElement.globalCoords.y + this.barLocalCoords.y
+      this.voiceBarRhythmContainer.globalCoords.x + this.barLocalCoords.x,
+      this.voiceBarRhythmContainer.globalCoords.y + this.barLocalCoords.y
     );
   }
 }

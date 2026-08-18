@@ -1,35 +1,41 @@
 import { Point, randomInt, Rect } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import {
   TechLineNumber,
   TECHNIQUE_TO_LINE_NUMBER,
 } from "../technique/guitar-technique/guitar-technique-element-lists";
-import { TechGapLineElement } from "./tech-gap-line-element";
-import { NotationStyleLineElement } from "./notation-style-line-element";
+import { TechGapLineContainer } from "./tech-gap-line-container";
+import { NotationStyleLineContainer } from "./notation-style-line-container";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class that handles all visually relevant info of a technique gap
  */
-export class TechGapElement implements NotationElement {
+export class TechGapContainer implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
-    notationStyleLineElement: NotationStyleLineElement
+    notationStyleLineContainer: NotationStyleLineContainer
   ): string {
-    return `tech-gap:${notationStyleLineElement.getStableIdentity()}`;
+    return `tech-gap:${notationStyleLineContainer.getStableIdentity()}`;
   }
 
   /** Unique identifier for this element */
   readonly uuid: number;
   /** Parent notation style line element */
-  readonly notationStyleLineElement: NotationStyleLineElement;
+  readonly notationStyleLineContainer: NotationStyleLineContainer;
   /** Root track element */
   readonly trackElement: TrackElement;
   readonly voiceNumber = null;
 
   public get owningTrackLineElement(): TrackLineElement {
-    return this.notationStyleLineElement.staffLineElement.trackLineElement;
+    return this.notationStyleLineContainer.staffLineContainer.trackLineElement;
   }
 
   public get owningBarElement(): BarElement | null {
@@ -37,20 +43,20 @@ export class TechGapElement implements NotationElement {
   }
 
   /** Child tech gap line elements */
-  private _techGapLines: Record<TechLineNumber, TechGapLineElement | null>;
+  private _techGapLines: Record<TechLineNumber, TechGapLineContainer | null>;
   /** Stable key for each child gap line */
-  private _techGapLinesByIdentity: Map<string, TechGapLineElement>;
+  private _techGapLinesByIdentity: Map<string, TechGapLineContainer>;
 
   /** Outer rectangle */
   private _boundingBox: Rect;
   /**
    * Class that handles all visually relevant info of a technique gap
-   * @param notationStyleLineElement Parent notation style line element
+   * @param notationStyleLineContainer Parent notation style line element
    */
-  constructor(notationStyleLineElement: NotationStyleLineElement) {
+  constructor(notationStyleLineContainer: NotationStyleLineContainer) {
     this.uuid = randomInt();
-    this.notationStyleLineElement = notationStyleLineElement;
-    this.trackElement = this.notationStyleLineElement.trackElement;
+    this.notationStyleLineContainer = notationStyleLineContainer;
+    this.trackElement = this.notationStyleLineContainer.trackElement;
 
     this._techGapLines = {
       1: null,
@@ -70,13 +76,13 @@ export class TechGapElement implements NotationElement {
     this._techGapLinesByIdentity.clear();
 
     for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {
-      const stableIdentity = TechGapLineElement.createStableIdentity(
+      const stableIdentity = TechGapLineContainer.createStableIdentity(
         this,
         lineNumber
       );
       let gapLine = prevGapLines.get(stableIdentity);
       if (gapLine === undefined) {
-        gapLine = new TechGapLineElement(this, lineNumber);
+        gapLine = new TechGapLineContainer(this, lineNumber);
       }
 
       this._techGapLines[lineNumber] = gapLine;
@@ -84,7 +90,7 @@ export class TechGapElement implements NotationElement {
       gapLine.build();
     }
 
-    for (const barElement of this.notationStyleLineElement.barElements) {
+    for (const barElement of this.notationStyleLineContainer.barElements) {
       for (const beatElement of barElement.beatElements) {
         for (const note of beatElement.beat.notes ?? []) {
           for (const technique of note.techniques) {
@@ -116,7 +122,7 @@ export class TechGapElement implements NotationElement {
       0
     );
     this._boundingBox.setDimensions(
-      this.notationStyleLineElement.boundingBox.width,
+      this.notationStyleLineContainer.boundingBox.width,
       height
     );
   }
@@ -151,19 +157,19 @@ export class TechGapElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     for (const line of this.techGapLinesAsArray) {
-      elements.push(...line.refreshOwnedNotationElements());
+      elements.push(...line.refreshOwnedNotationNodes());
     }
 
     return elements;
   }
 
   public getPrevGapLine(
-    techGapLine: TechGapLineElement
-  ): TechGapLineElement | null {
+    techGapLine: TechGapLineContainer
+  ): TechGapLineContainer | null {
     for (let i = techGapLine.techLineNumber - 1; i >= 1; i--) {
       const prevLine = this._techGapLines[i as TechLineNumber];
       if ((prevLine?.boundingBox.height ?? 0) > 0) {
@@ -175,8 +181,8 @@ export class TechGapElement implements NotationElement {
   }
 
   public getNextGapLine(
-    techGapLine: TechGapLineElement
-  ): TechGapLineElement | null {
+    techGapLine: TechGapLineContainer
+  ): TechGapLineContainer | null {
     switch (techGapLine.techLineNumber) {
       case 1:
         return this._techGapLines[2];
@@ -193,14 +199,16 @@ export class TechGapElement implements NotationElement {
   }
 
   public getStableIdentity(): string {
-    return TechGapElement.createStableIdentity(this.notationStyleLineElement);
+    return TechGapContainer.createStableIdentity(
+      this.notationStyleLineContainer
+    );
   }
 
   /** This tech gap line's global coords */
   public get globalCoords(): Point {
     return new Point(
-      this.notationStyleLineElement.globalCoords.x + this._boundingBox.x,
-      this.notationStyleLineElement.globalCoords.y + this._boundingBox.y
+      this.notationStyleLineContainer.globalCoords.x + this._boundingBox.x,
+      this.notationStyleLineContainer.globalCoords.y + this._boundingBox.y
     );
   }
 
@@ -212,8 +220,8 @@ export class TechGapElement implements NotationElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.notationStyleLineElement.lineLocalCoords.x + this._boundingBox.x,
-      this.notationStyleLineElement.lineLocalCoords.y + this._boundingBox.y
+      this.notationStyleLineContainer.lineLocalCoords.x + this._boundingBox.x,
+      this.notationStyleLineContainer.lineLocalCoords.y + this._boundingBox.y
     );
   }
 
@@ -246,12 +254,15 @@ export class TechGapElement implements NotationElement {
   }
 
   /** Child tech gap line elements */
-  public get techGapLines(): Record<TechLineNumber, TechGapLineElement | null> {
+  public get techGapLines(): Record<
+    TechLineNumber,
+    TechGapLineContainer | null
+  > {
     return this._techGapLines;
   }
 
   /** Child tech gap line elements */
-  public get techGapLinesAsArray(): TechGapLineElement[] {
+  public get techGapLinesAsArray(): TechGapLineContainer[] {
     const result = [];
     if (this._techGapLines[1] !== null) {
       result.push(this._techGapLines[1]);

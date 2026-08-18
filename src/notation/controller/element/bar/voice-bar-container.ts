@@ -10,14 +10,20 @@ import {
 import { Rect, Point, randomInt } from "../../../../shared";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
-import { calculateMasterBarDurationUnits } from "../../layout/bar-layout";
-import { NotationElement } from "../notation-element";
-import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
-import { NotationStyleLineElement } from "../staff/notation-style-line-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
+import {
+  NotationStyle,
+  StaffLineContainer,
+} from "../staff/staff-line-container";
+import { NotationStyleLineContainer } from "../staff/notation-style-line-container";
 import { BeamSegmentElement } from "./beam-segment-element";
 import { BarTupletGroupElement } from "./bar-tuplet-group-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { SheetBeatElement } from "../beat/sheet-beat-element";
+import { SheetBeatContainer } from "../beat/sheet-beat-container";
 import { BeatElement, getBeatWidth } from "../beat/beat-element";
 import {
   HorLine,
@@ -30,7 +36,9 @@ import type { TrackLineElement } from "../track/track-line-element";
 /**
  * Class that handles geometry & visually relevant info of a bar
  */
-export class VoiceBarElement implements NotationElement {
+export class VoiceBarContainer implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
     notationStyle: NotationStyle,
     voiceBar: VoiceBar
@@ -89,7 +97,7 @@ export class VoiceBarElement implements NotationElement {
     this._beatElements = [];
     for (const beat of this.voiceBar.beats) {
       const existingBeatElement = prevBeatElements.get(
-        TabBeatElement.createStableIdentity(this, beat)
+        TabBeatElement.createStableIdentity(beat)
       );
       if (existingBeatElement !== undefined) {
         existingBeatElement.build();
@@ -100,7 +108,7 @@ export class VoiceBarElement implements NotationElement {
       let beatElement: BeatElement;
       switch (this.barElement.notationStyle) {
         case NotationStyle.Classic:
-          beatElement = new SheetBeatElement(beat, this);
+          beatElement = new SheetBeatContainer(beat, this);
           break;
         case NotationStyle.Tablature:
           beatElement = new TabBeatElement(beat, this);
@@ -160,30 +168,24 @@ export class VoiceBarElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     elements.push(
-      ...this._beatElements.flatMap((be) => be.refreshOwnedNotationElements())
+      ...this._beatElements.flatMap((be) => be.refreshOwnedNotationNodes())
     );
 
     return elements;
   }
 
   public getBeatX(beat: Beat): number {
-    const masterBarIndex = this.voiceBar.bar.staff.bars.indexOf(
-      this.voiceBar.bar
-    );
-    const durationUnits = calculateMasterBarDurationUnits(
-      this.trackElement.track,
-      masterBarIndex
-    );
-    if (durationUnits === 0) {
+    const contentEnd = this.barElement.contentEndFraction;
+    if (contentEnd === 0) {
       return 0;
     }
 
     const beatStartUnits = beat.startTick / this.voiceBar.tickResolution;
-    const beatStartRatio = beatStartUnits / durationUnits;
+    const beatStartRatio = beatStartUnits / contentEnd;
 
     return (
       this.trackElement.layoutDimensions.RHYTHM_ATTACK_PADDING +
@@ -192,24 +194,24 @@ export class VoiceBarElement implements NotationElement {
   }
 
   public getBeatWidth(beat: Beat): number {
-    const masterBarIndex = this.voiceBar.bar.staff.bars.indexOf(
-      this.voiceBar.bar
-    );
-    const durationUnits = calculateMasterBarDurationUnits(
-      this.trackElement.track,
-      masterBarIndex
-    );
-    if (durationUnits === 0) {
+    const contentEnd = this.barElement.contentEndFraction;
+    if (contentEnd === 0) {
       return 0;
     }
 
     const beatDurationTicks = beat.endTick - beat.startTick;
     const beatDurationUnits = beatDurationTicks / this.voiceBar.tickResolution;
-    const beatDurationRatio = beatDurationUnits / durationUnits;
+    const beatDurationRatio = beatDurationUnits / contentEnd;
+    const beatStartUnits = beat.startTick / this.voiceBar.tickResolution;
+    const remainingUnits = Math.max(0, contentEnd - beatStartUnits);
+    const remainingRatio = remainingUnits / contentEnd;
 
-    return Math.max(
-      this.trackElement.layoutDimensions.MIN_RHYTHM_COLUMN_GAP,
-      beatDurationRatio * this.voiceDurationSpanWidth
+    return Math.min(
+      Math.max(
+        this.trackElement.layoutDimensions.MIN_RHYTHM_COLUMN_GAP,
+        beatDurationRatio * this.voiceDurationSpanWidth
+      ),
+      remainingRatio * this.voiceDurationSpanWidth
     );
   }
 
@@ -261,7 +263,7 @@ export class VoiceBarElement implements NotationElement {
   }
 
   public getStableIdentity(): string {
-    return VoiceBarElement.createStableIdentity(
+    return VoiceBarContainer.createStableIdentity(
       this.barElement.notationStyle,
       this.voiceBar
     );

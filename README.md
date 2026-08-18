@@ -32,6 +32,7 @@ import {
   Score,
   TabUIEditor,
   TabUIEditorMode,
+  TabUILayoutMode,
   TabUIScorePanelPlacement,
   TabUISidePanelPlacement,
 } from "@atikincode/tabui";
@@ -48,6 +49,7 @@ const editor = new TabUIEditor(root, new Score(), {
     },
   },
   layout: {
+    mode: TabUILayoutMode.SingleLine,
     viewOnlyModeWidthThreshold: 500,
     unrestrictedModeWidthThreshold: 1000,
   },
@@ -110,6 +112,11 @@ finite, non-negative, and ascending. `layout.width` is an opt-in fixed notation
 width. It must be finite and at least the view-only threshold. A host narrower
 than that fixed width shows the same size message; otherwise TabUI renders at
 exactly the configured width and respects the configured interaction mode.
+
+`layout.mode` accepts `TabUILayoutMode.Wrapped` (the default) or
+`TabUILayoutMode.SingleLine`. Single-line mode keeps all master bars on one
+horizontally scrollable line and materializes only the visible bar range plus
+overscan. Configure the mode when you construct the editor.
 
 The score panel can be placed above or below notation. In edit mode, the side
 panel can be placed left or right, hidden, or collapsible. View-only mode always

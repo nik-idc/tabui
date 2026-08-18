@@ -6,12 +6,19 @@ import {
 } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
-import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
-import { NotationStyleLineElement } from "../staff/notation-style-line-element";
+import {
+  NotationElement,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
+import {
+  NotationStyle,
+  StaffLineContainer,
+} from "../staff/staff-line-container";
+import { NotationStyleLineContainer } from "../staff/notation-style-line-container";
 import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
-import { VoiceBarElement } from "./voice-bar-element";
-import { VoiceBarRhythmElement } from "./voice-bar-rhythm-element";
+import { VoiceBarContainer } from "./voice-bar-container";
+import { VoiceBarRhythmContainer } from "./voice-bar-rhythm-container";
 import { BeatElement } from "../beat/beat-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
@@ -19,6 +26,8 @@ import type { TrackLineElement } from "../track/track-line-element";
  * Class that handles geometry & visually relevant info of a bar
  */
 export class BarElement implements NotationElement {
+  readonly nodeType = NotationNodeType.Element;
+
   private static readonly startRepeatWidthFactor = 2;
   private static readonly endRepeatWidthFactor = 1;
 
@@ -36,13 +45,13 @@ export class BarElement implements NotationElement {
   /** Notation style for this bar element. */
   readonly notationStyle: NotationStyle;
   /** Parent bars line element */
-  public notationStyleLineElement!: NotationStyleLineElement;
+  public notationStyleLineContainer: NotationStyleLineContainer;
   /** Root track element */
   readonly trackElement: TrackElement;
   readonly voiceNumber = null;
 
   public get owningTrackLineElement(): TrackLineElement {
-    return this.notationStyleLineElement.staffLineElement.trackLineElement;
+    return this.notationStyleLineContainer.staffLineContainer.trackLineElement;
   }
 
   public get owningBarElement(): BarElement {
@@ -51,11 +60,13 @@ export class BarElement implements NotationElement {
 
   /** Finalized width for this bar's master bar as determined in the skeleton */
   private _finalizedWidth: number;
+  /** Visual time extent reserved for invalid overflowing content. */
+  private _contentEndFraction: number;
 
   /** Voice bar elements containing each voice bar's notation elements */
-  private _voiceBarElements: VoiceBarElement[];
+  private _voiceBarContainers: VoiceBarContainer[];
   /** Voice bar rhythm elements containing each voice bar's rhythm elements stacked vertically */
-  private _voiceBarRhythmElements: VoiceBarRhythmElement[];
+  private _voiceBarRhythmContainers: VoiceBarRhythmContainer[];
 
   /** Bar element rectangle */
   private _boundingBox: Rect;
@@ -78,7 +89,7 @@ export class BarElement implements NotationElement {
   /**
    * Class that handles geometry & visually relevant info of a bar
    * @param bar Bar
-   * @param notationStyleLineElement Parent notation style line element
+   * @param notationStyleLineContainer Parent notation style line element
    * @param finalizedWidth Finalized width for this bar's master bar as
    * determined in the skeleton
    */
@@ -87,16 +98,19 @@ export class BarElement implements NotationElement {
     trackElement: TrackElement,
     notationStyle: NotationStyle,
     finalizedWidth: number,
-    notationStyleLineElement?: NotationStyleLineElement
+    contentEndFraction: number,
+    lineX: number,
+    notationStyleLineContainer: NotationStyleLineContainer
   ) {
     this.uuid = randomInt();
     this.bar = bar;
     this.trackElement = trackElement;
     this.notationStyle = notationStyle;
-    if (notationStyleLineElement !== undefined) {
-      this.notationStyleLineElement = notationStyleLineElement;
-    }
+    this.notationStyleLineContainer = notationStyleLineContainer;
+
     this._finalizedWidth = finalizedWidth;
+    this._contentEndFraction = contentEndFraction;
+    this._boundingBox = new Rect(lineX, 0);
 
     this._showTempo = false;
     this._durationsFit = false;
@@ -106,16 +120,15 @@ export class BarElement implements NotationElement {
       duration: this.bar.masterBar.duration,
     };
 
-    this._voiceBarElements = [];
-    this._voiceBarRhythmElements = [];
+    this._voiceBarContainers = [];
+    this._voiceBarRhythmContainers = [];
 
-    this._boundingBox = new Rect();
     this._staffLines = Array.from(
       { length: this.bar.trackContext.instrument.maxPolyphony },
       () => new HorLine()
     );
     this._timeSigRect = new Rect();
-    if (notationStyleLineElement !== undefined) {
+    if (notationStyleLineContainer !== undefined) {
       this.build();
     }
   }
@@ -147,46 +160,47 @@ export class BarElement implements NotationElement {
     }
   }
 
-  private buildVoiceBarElements(): void {
-    const prevVoiceBarElements = new Map(
-      this._voiceBarElements.map((e) => [e.getStableIdentity(), e])
+  private buildVoiceBarContainers(): void {
+    const prevVoiceBarContainers = new Map(
+      this._voiceBarContainers.map((e) => [e.getStableIdentity(), e])
     );
 
-    this._voiceBarElements = [];
+    this._voiceBarContainers = [];
     for (const voiceBar of this.bar.voiceBarsAsArray) {
-      const existingVoiceBar = prevVoiceBarElements.get(
-        VoiceBarElement.createStableIdentity(this.notationStyle, voiceBar)
+      const existingVoiceBar = prevVoiceBarContainers.get(
+        VoiceBarContainer.createStableIdentity(this.notationStyle, voiceBar)
       );
       if (existingVoiceBar) {
         existingVoiceBar.build();
-        this._voiceBarElements.push(existingVoiceBar);
+        this._voiceBarContainers.push(existingVoiceBar);
         continue;
       }
 
-      this._voiceBarElements.push(new VoiceBarElement(voiceBar, this));
+      this._voiceBarContainers.push(new VoiceBarContainer(voiceBar, this));
     }
   }
 
-  private buildVoiceBarRhythmElements(): void {
-    this._voiceBarRhythmElements = [];
+  private buildVoiceBarRhythmContainers(): void {
+    this._voiceBarRhythmContainers = [];
 
     const nonEmptyVoices =
-      this.notationStyleLineElement.staffLineElement.lineNonEmptyVoiceNumbers;
+      this.notationStyleLineContainer.staffLineContainer
+        .lineNonEmptyVoiceNumbers;
     for (const voiceNumber of nonEmptyVoices) {
-      const voiceBarElement = this._voiceBarElements.find(
+      const voiceBarContainer = this._voiceBarContainers.find(
         (e) => e.voiceBar.voiceNumber === voiceNumber
       );
 
-      this._voiceBarRhythmElements.push(
-        new VoiceBarRhythmElement(this, voiceNumber, voiceBarElement)
+      this._voiceBarRhythmContainers.push(
+        new VoiceBarRhythmContainer(this, voiceNumber, voiceBarContainer)
       );
     }
   }
 
   public build(): void {
     this.buildStructuralElements();
-    this.buildVoiceBarElements();
-    this.buildVoiceBarRhythmElements();
+    this.buildVoiceBarContainers();
+    this.buildVoiceBarRhythmContainers();
   }
 
   /**
@@ -208,15 +222,15 @@ export class BarElement implements NotationElement {
    * Calc main outer rectangle dimensions
    */
   private measureRect(): void {
-    const voiceBarElementsArr = Object.values(this._voiceBarElements);
-    const rhythmRowsHeight = this._voiceBarRhythmElements.reduce(
+    const voiceBarContainersArr = Object.values(this._voiceBarContainers);
+    const rhythmRowsHeight = this._voiceBarRhythmContainers.reduce(
       (sum, row) => sum + row.boundingBox.height,
       0
     );
 
     this._boundingBox.setDimensions(
       this._finalizedWidth,
-      (voiceBarElementsArr[0]?.boundingBox.height ??
+      (voiceBarContainersArr[0]?.boundingBox.height ??
         this.trackElement.layoutDimensions.getStaffHeight(
           this.bar.trackContext.instrument
         )) + rhythmRowsHeight
@@ -239,12 +253,12 @@ export class BarElement implements NotationElement {
   public measure(): void {
     this.measureTimeSigRect();
 
-    for (const voiceBarElement of this._voiceBarElements) {
-      voiceBarElement.measure();
+    for (const voiceBarContainer of this._voiceBarContainers) {
+      voiceBarContainer.measure();
     }
 
-    for (const voiceBarRhythmElement of this._voiceBarRhythmElements) {
-      voiceBarRhythmElement.measure();
+    for (const voiceBarRhythmContainer of this._voiceBarRhythmContainers) {
+      voiceBarRhythmContainer.measure();
     }
 
     this.measureRect();
@@ -255,11 +269,8 @@ export class BarElement implements NotationElement {
    * Sets the outer rectangle coordinates
    */
   private layoutRect(): void {
-    const prevBarElement =
-      this.notationStyleLineElement.getPrevBarElement(this);
-    const x = prevBarElement?.boundingBox.right ?? 0;
-    const y = this.notationStyleLineElement.techGapElement.boundingBox.bottom;
-    this._boundingBox.setCoords(x, y);
+    this._boundingBox.y =
+      this.notationStyleLineContainer.techGapContainer.boundingBox.bottom;
   }
 
   /**
@@ -270,7 +281,7 @@ export class BarElement implements NotationElement {
       return;
     }
 
-    const staffHeight = this._voiceBarElements[0].boundingBox.bottom; // - layoutDimensions.DURATIONS_HEIGHT;
+    const staffHeight = this._voiceBarContainers[0].boundingBox.bottom; // - layoutDimensions.DURATIONS_HEIGHT;
     const yOffset = (staffHeight - this._timeSigRect.height) / 2;
     this._timeSigRect.setCoords(0, yOffset);
   }
@@ -297,12 +308,12 @@ export class BarElement implements NotationElement {
     this.layoutTimeSigRect();
     this.layoutStaffLines();
 
-    for (const voiceBarElement of this._voiceBarElements) {
-      voiceBarElement.layout();
+    for (const voiceBarContainer of this._voiceBarContainers) {
+      voiceBarContainer.layout();
     }
 
-    for (const voiceBarRhythmElement of this._voiceBarRhythmElements) {
-      voiceBarRhythmElement.layout();
+    for (const voiceBarRhythmContainer of this._voiceBarRhythmContainers) {
+      voiceBarRhythmContainer.layout();
     }
   }
 
@@ -315,33 +326,37 @@ export class BarElement implements NotationElement {
     this.layout();
   }
 
-  public getPrevVoiceBarRhythmElement(
-    voiceBarRhythmElement: VoiceBarRhythmElement
-  ): VoiceBarRhythmElement | null {
-    const index = this._voiceBarRhythmElements.indexOf(voiceBarRhythmElement);
-    const prevBarRhythmElement = this._voiceBarRhythmElements[index - 1];
-    return prevBarRhythmElement ?? null;
+  public getPrevVoiceBarRhythmContainer(
+    voiceBarRhythmContainer: VoiceBarRhythmContainer
+  ): VoiceBarRhythmContainer | null {
+    const index = this._voiceBarRhythmContainers.indexOf(
+      voiceBarRhythmContainer
+    );
+    const prevBarRhythmContainer = this._voiceBarRhythmContainers[index - 1];
+    return prevBarRhythmContainer ?? null;
   }
 
-  public getNextVoiceBarRhythmElement(
-    voiceBarRhythmElement: VoiceBarRhythmElement
-  ): VoiceBarRhythmElement | null {
-    const index = this._voiceBarRhythmElements.indexOf(voiceBarRhythmElement);
-    const nextBarRhythmElement = this._voiceBarRhythmElements[index + 1];
-    return nextBarRhythmElement ?? null;
+  public getNextVoiceBarRhythmContainer(
+    voiceBarRhythmContainer: VoiceBarRhythmContainer
+  ): VoiceBarRhythmContainer | null {
+    const index = this._voiceBarRhythmContainers.indexOf(
+      voiceBarRhythmContainer
+    );
+    const nextBarRhythmContainer = this._voiceBarRhythmContainers[index + 1];
+    return nextBarRhythmContainer ?? null;
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     elements.push(
-      ...Object.values(this._voiceBarElements).flatMap((segment) =>
-        segment.refreshOwnedNotationElements()
+      ...Object.values(this._voiceBarContainers).flatMap((segment) =>
+        segment.refreshOwnedNotationNodes()
       )
     );
     elements.push(
-      ...Object.values(this._voiceBarRhythmElements).flatMap((segment) =>
-        segment.refreshOwnedNotationElements()
+      ...Object.values(this._voiceBarRhythmContainers).flatMap((segment) =>
+        segment.refreshOwnedNotationNodes()
       )
     );
 
@@ -382,9 +397,14 @@ export class BarElement implements NotationElement {
     return this._finalizedWidth;
   }
 
+  /** Visual content extent used only to keep overflowing beats inside the bar. */
+  public get contentEndFraction(): number {
+    return this._contentEndFraction;
+  }
+
   public get voiceContentHeight(): number {
     return (
-      this._voiceBarElements[0]?.boundingBox.height ??
+      this._voiceBarContainers[0]?.boundingBox.height ??
       this.trackElement.layoutDimensions.getStaffHeight(
         this.bar.trackContext.instrument
       )
@@ -396,7 +416,7 @@ export class BarElement implements NotationElement {
   }
 
   public get beatElements(): BeatElement[] {
-    return this._voiceBarElements.flatMap((element) => element.beatElements);
+    return this._voiceBarContainers.flatMap((element) => element.beatElements);
   }
 
   public getStableIdentity(): string {
@@ -643,8 +663,8 @@ export class BarElement implements NotationElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.notationStyleLineElement.lineLocalCoords.x + this._boundingBox.x,
-      this.notationStyleLineElement.lineLocalCoords.y + this._boundingBox.y
+      this.notationStyleLineContainer.lineLocalCoords.x + this._boundingBox.x,
+      this.notationStyleLineContainer.lineLocalCoords.y + this._boundingBox.y
     );
   }
 
@@ -824,8 +844,8 @@ export class BarElement implements NotationElement {
   /** Global coords of the bar element */
   public get globalCoords(): Point {
     return new Point(
-      this.notationStyleLineElement.globalCoords.x + this._boundingBox.x,
-      this.notationStyleLineElement.globalCoords.y + this._boundingBox.y
+      this.notationStyleLineContainer.globalCoords.x + this._boundingBox.x,
+      this.notationStyleLineContainer.globalCoords.y + this._boundingBox.y
     );
   }
 }

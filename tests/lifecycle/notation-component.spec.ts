@@ -10,7 +10,6 @@ const mockTrackControllers: Array<{
   player: unknown;
   trackElement: {
     update: jest.Mock;
-    getTrackLineElementForBeat: jest.Mock;
     refreshLayout: jest.Mock;
   };
 }> = [];
@@ -21,7 +20,7 @@ const mockRenderers: Array<{
   dispose: jest.Mock;
   attachViewportScrollEvent: jest.Mock;
   detachViewportScrollEvent: jest.Mock;
-  prepareViewportForTrackLine: jest.Mock;
+  ensureBeatVisible: jest.Mock;
 }> = [];
 
 const mockPlayers: Array<{
@@ -29,7 +28,6 @@ const mockPlayers: Array<{
   setActiveTrack: jest.Mock;
   getCurrentBeatForTrack: jest.Mock;
 }> = [];
-let mockPlaybackLineForTrack: unknown;
 
 jest.mock("../../src/notation/controller", () => ({
   TrackController: jest
@@ -42,7 +40,6 @@ jest.mock("../../src/notation/controller", () => ({
           player,
           trackElement: {
             update: jest.fn(),
-            getTrackLineElementForBeat: jest.fn(() => mockPlaybackLineForTrack),
             refreshLayout: jest.fn(),
           },
         };
@@ -65,7 +62,7 @@ jest.mock("../../src/notation/render", () => ({
           dispose: jest.fn(),
           attachViewportScrollEvent: jest.fn(),
           detachViewportScrollEvent: jest.fn(),
-          prepareViewportForTrackLine: jest.fn(),
+          ensureBeatVisible: jest.fn(),
         };
         mockRenderers.push(instance);
         return instance;
@@ -90,7 +87,6 @@ describe("NotationComponent", () => {
     mockTrackControllers.length = 0;
     mockRenderers.length = 0;
     mockPlayers.length = 0;
-    mockPlaybackLineForTrack = undefined;
     jest.clearAllMocks();
   });
 
@@ -134,12 +130,11 @@ describe("NotationComponent", () => {
     expect(mockRenderers[2].dispose).toHaveBeenCalledTimes(1);
   });
 
-  test("prepares the buffered playback line before rendering and retargeting", () => {
+  test("prepares the buffered playback beat before rendering and retargeting", () => {
     const { score, track } = createScoreGraph();
     const nextTrack = score.addTrack(track.context.instrument, "Track 2")
       .tracks[0];
     const playbackBeat = {};
-    mockPlaybackLineForTrack = {};
     const notation = new NotationComponent(
       { appendChild: jest.fn() } as unknown as HTMLDivElement,
       score,
@@ -155,14 +150,12 @@ describe("NotationComponent", () => {
 
     notation.loadTrack(nextTrack);
 
-    expect(
-      mockTrackControllers[1].trackElement.getTrackLineElementForBeat
-    ).toHaveBeenCalledWith(playbackBeat);
-    expect(mockRenderers[1].prepareViewportForTrackLine).toHaveBeenCalledWith(
-      mockPlaybackLineForTrack
+    expect(mockRenderers[1].ensureBeatVisible).toHaveBeenCalledWith(
+      playbackBeat,
+      true
     );
     expect(
-      mockRenderers[1].prepareViewportForTrackLine.mock.invocationCallOrder[0]
+      mockRenderers[1].ensureBeatVisible.mock.invocationCallOrder[0]
     ).toBeLessThan(mockRenderers[1].render.mock.invocationCallOrder[0]);
     expect(mockRenderers[1].render.mock.invocationCallOrder[0]).toBeLessThan(
       mockPlayers[0].setActiveTrack.mock.invocationCallOrder[0]

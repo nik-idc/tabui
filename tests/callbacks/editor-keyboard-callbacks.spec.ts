@@ -50,10 +50,11 @@ function createHarness(rootElement: FakeRootElement = createRootElement()) {
     setSelectedNoteFret: jest.fn(),
     moveSelectedNote: jest.fn(),
     selectionManager: {
-      selectedNote: undefined as any,
+      selectionCursor: undefined as any,
     },
   };
   const notationComponent = {
+    ensureSelectedNoteVisible: jest.fn(),
     trackController: {
       undo: jest.fn(),
       redo: jest.fn(),
@@ -67,7 +68,7 @@ function createHarness(rootElement: FakeRootElement = createRootElement()) {
       setTechnique: jest.fn(),
       setSelectedNoteFret: jest.fn(),
       moveSelectedNote: jest.fn(),
-      selectedNote: undefined as any,
+      selectionCursor: undefined as any,
       hasSelectedNote: false,
       trackControllerEditor,
     },
@@ -234,7 +235,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       notationComponent.trackController.setTechnique
     ).not.toHaveBeenCalled();
 
-    notationComponent.trackController.selectedNote = {
+    notationComponent.trackController.selectionCursor = {
       note: { noteValue: NoteValue.C },
     };
     notationComponent.trackController.hasSelectedNote = true;
@@ -258,7 +259,7 @@ describe("EditorKeyboardDefCallbacks", () => {
   test("number entry combines only within the configured time epsilon", () => {
     const { callbacks, notationComponent, renderFunc } =
       createHarness(createRootElement());
-    notationComponent.trackController.selectedNote = {
+    notationComponent.trackController.selectionCursor = {
       note: { noteValue: NoteValue.C },
     };
     notationComponent.trackController.hasSelectedNote = true;
@@ -292,7 +293,7 @@ describe("EditorKeyboardDefCallbacks", () => {
   test("arrow keys and backspace update the selected note correctly", () => {
     const { callbacks, notationComponent, renderFunc } =
       createHarness(createRootElement());
-    notationComponent.trackController.selectedNote = {
+    notationComponent.trackController.selectionCursor = {
       note: { noteValue: NoteValue.C },
     };
     notationComponent.trackController.hasSelectedNote = true;
@@ -319,7 +320,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenCalledWith(null);
 
-    notationComponent.trackController.selectedNote = {
+    notationComponent.trackController.selectionCursor = {
       note: { noteValue: NoteValue.None },
     };
     callbacks.clearFretEvent();

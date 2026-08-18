@@ -39,10 +39,12 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
 
   onFirstClicked(): void {
     this._notationComponent.trackController.selectFirstBar();
+    this._notationComponent.ensureSelectedNoteVisible();
     this._renderFunc();
   }
   onPrevClicked(): void {
     this._notationComponent.trackController.selectPreviousBar();
+    this._notationComponent.ensureSelectedNoteVisible();
     this._renderFunc();
   }
   onPlayClicked(): void {
@@ -56,10 +58,12 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
   }
   onNextClicked(): void {
     this._notationComponent.trackController.selectNextBar();
+    this._notationComponent.ensureSelectedNoteVisible();
     this._renderFunc();
   }
   onLastClicked(): void {
     this._notationComponent.trackController.selectLastBar();
+    this._notationComponent.ensureSelectedNoteVisible();
     this._renderFunc();
   }
   onLoopClicked(): void {

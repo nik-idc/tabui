@@ -1,7 +1,7 @@
 import { Staff, Beat, Note, Track, VoiceNumber } from "../../model";
 import { BeatElement } from "../element/beat/beat-element";
 import { NoteElement } from "../element/note/note-element";
-import { SelectedNote, MoveRightOutput } from "./selected-note";
+import { SelectionCursor, MoveRightOutput } from "./selection-cursor";
 
 /**
  * Class that manages selection state
@@ -15,7 +15,7 @@ export class SelectionManager {
   /** Current voice number */
   private _activeVoiceNumber: VoiceNumber;
   /** Selected note element */
-  private _selectedNote?: SelectedNote;
+  private _selectionCursor?: SelectionCursor;
   /** Base beat of the selection */
   private _baseSelectionBeat?: Beat;
   /** Most recent beat used to extend the anchored range. */
@@ -50,7 +50,7 @@ export class SelectionManager {
     const noteIndex = note.beat.notes?.indexOf(note) ?? 0;
 
     this.clearSelection();
-    this._selectedNote = new SelectedNote(note.beat, noteIndex);
+    this._selectionCursor = new SelectionCursor(note.beat, noteIndex);
   }
 
   public selectBeatCursor(beat: Beat, noteIndex: number): void {
@@ -58,38 +58,38 @@ export class SelectionManager {
     this._activeVoiceNumber = beat.voiceBar.voiceNumber;
 
     this.clearSelection();
-    this._selectedNote = new SelectedNote(beat, noteIndex);
+    this._selectionCursor = new SelectionCursor(beat, noteIndex);
   }
 
   /**
    * Move selected note up
    */
   public moveSelectedNoteUp(): void {
-    if (this.selectedNote === undefined) {
+    if (this.selectionCursor === undefined) {
       throw Error("No note selected");
     }
 
     this.clearSelection();
-    this.selectedNote.moveUp();
+    this.selectionCursor.moveUp();
   }
 
   /**
    * Move selected note down
    */
   public moveSelectedNoteDown(): void {
-    if (this.selectedNote === undefined) {
+    if (this.selectionCursor === undefined) {
       throw Error("No note selected");
     }
 
     this.clearSelection();
-    this.selectedNote.moveDown();
+    this.selectionCursor.moveDown();
   }
 
   /**
    * Move selected note left
    */
   public moveSelectedNoteLeft(editingEnabled: boolean = true): void {
-    if (this._selectedNote === undefined) {
+    if (this._selectionCursor === undefined) {
       throw Error("No note selected");
     }
 
@@ -98,7 +98,7 @@ export class SelectionManager {
       const leftMostBeat = this._selectionBeats[0];
       const leftMostNote =
         leftMostBeat.notes?.[
-          this.selectedNote ? this.selectedNote.noteIndex : 0
+          this.selectionCursor ? this.selectionCursor.noteIndex : 0
         ];
 
       if (leftMostNote !== undefined) {
@@ -106,12 +106,15 @@ export class SelectionManager {
       }
     }
 
-    if (this._selectionBeats.length === 0 && this.selectedNote === undefined) {
+    if (
+      this._selectionBeats.length === 0 &&
+      this.selectionCursor === undefined
+    ) {
       throw Error("No note selected");
     }
 
-    this._selectedNote.moveLeft(editingEnabled);
-    this._activeVoiceNumber = this._selectedNote.voiceNumber;
+    this._selectionCursor.moveLeft(editingEnabled);
+    this._activeVoiceNumber = this._selectionCursor.voiceNumber;
   }
 
   /**
@@ -120,7 +123,7 @@ export class SelectionManager {
   public moveSelectedNoteRight(
     editingEnabled: boolean = true
   ): MoveRightOutput {
-    if (this._selectedNote === undefined) {
+    if (this._selectionCursor === undefined) {
       throw Error("No note selected");
     }
 
@@ -130,7 +133,7 @@ export class SelectionManager {
         this._selectionBeats[this._selectionBeats.length - 1];
       const rightMostNote =
         rightMostBeat.notes?.[
-          this.selectedNote ? this.selectedNote.noteIndex : 0
+          this.selectionCursor ? this.selectionCursor.noteIndex : 0
         ];
 
       if (rightMostNote !== undefined) {
@@ -138,12 +141,15 @@ export class SelectionManager {
       }
     }
 
-    if (this._selectionBeats.length === 0 && this.selectedNote === undefined) {
+    if (
+      this._selectionBeats.length === 0 &&
+      this.selectionCursor === undefined
+    ) {
       throw Error("No note selected");
     }
 
-    const output = this._selectedNote.moveRight(editingEnabled);
-    this._activeVoiceNumber = this._selectedNote.voiceNumber;
+    const output = this._selectionCursor.moveRight(editingEnabled);
+    this._activeVoiceNumber = this._selectionCursor.voiceNumber;
     return output;
   }
 
@@ -182,8 +188,8 @@ export class SelectionManager {
    * @param beat Beat to select
    */
   public selectBeat(beat: Beat): void {
-    if (this._selectedNote) {
-      this._selectedNote = undefined;
+    if (this._selectionCursor) {
+      this._selectionCursor = undefined;
     }
 
     const baseSelectionVoiceBar = this._baseSelectionBeat?.voiceBar;
@@ -244,7 +250,7 @@ export class SelectionManager {
 
   /** Anchors a one-beat range at the current note or selected beat. */
   public setSelectionAnchor(): boolean {
-    const beat = this._selectedNote?.beat ?? this._selectionBeats[0];
+    const beat = this._selectionCursor?.beat ?? this._selectionBeats[0];
     if (beat === undefined) {
       return false;
     }
@@ -279,23 +285,23 @@ export class SelectionManager {
    * Clears selected element
    */
   public clearSelectedNote(): void {
-    this._selectedNote = undefined;
+    this._selectionCursor = undefined;
   }
 
   /**
    * Syncs currently selected note to current runtime structure.
    */
   public syncSelection(): void {
-    this._selectedNote?.syncToStructure();
+    this._selectionCursor?.syncToStructure();
   }
 
   /**
    * Copy selected note/beats (depending on which is currently selected)
    */
   public copy(): void {
-    const selectedNote = this._selectedNote?.note;
-    this._clipboard = selectedNote
-      ? selectedNote.deepCopy()
+    const selectionCursor = this._selectionCursor?.note;
+    this._clipboard = selectionCursor
+      ? selectionCursor.deepCopy()
       : this._selectionBeats.map((beat) => beat.deepCopy());
   }
 
@@ -305,16 +311,16 @@ export class SelectionManager {
    * @returns True if selected, false otherwise
    */
   public isNoteElementSelected(noteElement: NoteElement): boolean {
-    if (this._selectedNote === undefined) {
+    if (this._selectionCursor === undefined) {
       throw Error("No note selected");
     }
 
-    return this._selectedNote.note?.uuid === noteElement.note?.uuid;
+    return this._selectionCursor.note?.uuid === noteElement.note?.uuid;
   }
 
   /** Selected note element */
-  public get selectedNote(): SelectedNote | undefined {
-    return this._selectedNote;
+  public get selectionCursor(): SelectionCursor | undefined {
+    return this._selectionCursor;
   }
 
   /** Current voice number */
@@ -348,9 +354,9 @@ export class SelectionManager {
 
   /** Either beats selection array or selected note's beat as a 1 element array */
   public get selectionAsBeats(): Beat[] {
-    return this._selectedNote === undefined
+    return this._selectionCursor === undefined
       ? this._selectionBeats
-      : [this._selectedNote.beat];
+      : [this._selectionCursor.beat];
   }
 
   /** Copied data */

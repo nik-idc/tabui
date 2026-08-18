@@ -1,7 +1,11 @@
 import { Point, randomInt, Rect } from "../../../../shared";
 import { GuitarTechnique, Technique, TechniqueType } from "../../../model";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import { BeatElement } from "../beat/beat-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
 import {
@@ -10,25 +14,27 @@ import {
   TechLineNumber,
 } from "../technique/guitar-technique";
 import { TechniqueLabelElement } from "../technique";
-import { TechGapElement } from "./tech-gap-element";
+import { TechGapContainer } from "./tech-gap-container";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
 /**
  * Class representing a single line of a staff line's technique label gap
  */
-export class TechGapLineElement implements NotationElement {
+export class TechGapLineContainer implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
-    techGapElement: TechGapElement,
+    techGapContainer: TechGapContainer,
     techLineNumber: TechLineNumber
   ): string {
-    return `tech-gap-line:${techGapElement.getStableIdentity()}:${techLineNumber}`;
+    return `tech-gap-line:${techGapContainer.getStableIdentity()}:${techLineNumber}`;
   }
 
   /** Technique label element's unique identifier */
   readonly uuid: number;
   /** Parent staff gap element */
-  readonly techGapElement: TechGapElement;
+  readonly techGapContainer: TechGapContainer;
   /** Line number in tech gap (1/2/3) */
   readonly techLineNumber: TechLineNumber;
   /** Root track element */
@@ -36,7 +42,7 @@ export class TechGapLineElement implements NotationElement {
   readonly voiceNumber = null;
 
   public get owningTrackLineElement(): TrackLineElement {
-    return this.techGapElement.notationStyleLineElement.staffLineElement
+    return this.techGapContainer.notationStyleLineContainer.staffLineContainer
       .trackLineElement;
   }
 
@@ -59,14 +65,17 @@ export class TechGapLineElement implements NotationElement {
   /**
    * Class representing a single line of a staff line's
    * technique label gap
-   * @param techGapElement Tech gap element
+   * @param techGapContainer Tech gap element
    * @param techLineNumber Line number in the gap
    */
-  constructor(techGapElement: TechGapElement, techLineNumber: TechLineNumber) {
+  constructor(
+    techGapContainer: TechGapContainer,
+    techLineNumber: TechLineNumber
+  ) {
     this.uuid = randomInt();
-    this.techGapElement = techGapElement;
+    this.techGapContainer = techGapContainer;
     this.techLineNumber = techLineNumber;
-    this.trackElement = this.techGapElement.trackElement;
+    this.trackElement = this.techGapContainer.trackElement;
 
     this._beatsLabelsMap = new Map();
     this._labelElements = [];
@@ -128,7 +137,7 @@ export class TechGapLineElement implements NotationElement {
       this._boundingBox = new Rect(
         0,
         0,
-        this.techGapElement.boundingBox.width,
+        this.techGapContainer.boundingBox.width,
         this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
       );
     }
@@ -149,7 +158,11 @@ export class TechGapLineElement implements NotationElement {
    * Goes through all the technique labels and sets their dimensions
    */
   public measure(): void {
-    if (this._labelElements.length === 0) {
+    const reservesRow =
+      this.techGapContainer.notationStyleLineContainer.hasTechniqueLine(
+        this.techLineNumber
+      );
+    if (this._labelElements.length === 0 && !reservesRow) {
       this._boundingBox = undefined;
       return;
     }
@@ -158,7 +171,7 @@ export class TechGapLineElement implements NotationElement {
       this._boundingBox = new Rect();
     }
     this._boundingBox.setDimensions(
-      this.techGapElement.boundingBox.width,
+      this.techGapContainer.boundingBox.width,
       this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
     );
 
@@ -188,7 +201,7 @@ export class TechGapLineElement implements NotationElement {
       return;
     }
 
-    const prevLine = this.techGapElement.getPrevGapLine(this);
+    const prevLine = this.techGapContainer.getPrevGapLine(this);
     const y = prevLine?.boundingBox.bottom ?? 0;
     this._boundingBox.setCoords(0, y);
 
@@ -203,11 +216,11 @@ export class TechGapLineElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationNode[] {
     return [
       this,
       ...this._labelElements.flatMap((label) =>
-        label.refreshOwnedNotationElements()
+        label.refreshOwnedNotationNodes()
       ),
     ];
   }
@@ -218,8 +231,8 @@ export class TechGapLineElement implements NotationElement {
   }
 
   public getStableIdentity(): string {
-    return TechGapLineElement.createStableIdentity(
-      this.techGapElement,
+    return TechGapLineContainer.createStableIdentity(
+      this.techGapContainer,
       this.techLineNumber
     );
   }
@@ -227,8 +240,8 @@ export class TechGapLineElement implements NotationElement {
   /** Global coords of the notation style line element */
   public get globalCoords(): Point {
     return new Point(
-      this.techGapElement.globalCoords.x + (this._boundingBox?.x ?? 0),
-      this.techGapElement.globalCoords.y + (this._boundingBox?.y ?? 0)
+      this.techGapContainer.globalCoords.x + (this._boundingBox?.x ?? 0),
+      this.techGapContainer.globalCoords.y + (this._boundingBox?.y ?? 0)
     );
   }
 
@@ -241,8 +254,8 @@ export class TechGapLineElement implements NotationElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.techGapElement.lineLocalCoords.x + (this._boundingBox?.x ?? 0),
-      this.techGapElement.lineLocalCoords.y + (this._boundingBox?.y ?? 0)
+      this.techGapContainer.lineLocalCoords.x + (this._boundingBox?.x ?? 0),
+      this.techGapContainer.lineLocalCoords.y + (this._boundingBox?.y ?? 0)
     );
   }
 

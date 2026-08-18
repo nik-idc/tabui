@@ -9,11 +9,15 @@ import {
   NoteDuration,
   ScoreEditor,
 } from "../../src/notation/model";
-import { TechGapElement } from "../../src/notation/controller/element/staff/tech-gap-element";
-import { TechGapLineElement } from "../../src/notation/controller/element/staff/tech-gap-line-element";
+import { TechGapContainer } from "../../src/notation/controller/element/staff/tech-gap-container";
+import { TechGapLineContainer } from "../../src/notation/controller/element/staff/tech-gap-line-container";
 import { GuitarTechniqueLabelElement } from "../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { GuitarTechniqueElement } from "../../src/notation/controller/element/technique/guitar-technique/guitar-technique-element";
 import { SetTechniqueCommand } from "../../src/notation/controller/editor/command";
+import {
+  isNotationContainer,
+  isNotationElement,
+} from "../../src/notation/controller/element/notation-element";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
@@ -53,7 +57,7 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const firstBeatElement =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0];
     const firstNoteElement = firstBeatElement.noteElements[0];
     const slideElement = firstNoteElement.techniqueElements[0];
@@ -97,7 +101,7 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const firstBeatElement =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0];
     const firstNoteElement = firstBeatElement.noteElements[0];
     const slideElement = firstNoteElement.techniqueElements[0];
@@ -138,7 +142,7 @@ describe("TrackElement techniques", () => {
     expect(noteElement?.techniqueElements).toHaveLength(1);
     expect(techniqueElement).toBeInstanceOf(GuitarTechniqueElement);
     expect(
-      trackElement.trackLineElements[0].ownedNotationElements.some(
+      trackElement.trackLineElements[0].ownedNotationNodes.some(
         (element) => element === techniqueElement
       )
     ).toBe(true);
@@ -189,8 +193,8 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const techGap =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement;
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer;
     const line1 = techGap.techGapLines[1];
     const line2 = techGap.techGapLines[2];
     const line3 = techGap.techGapLines[3];
@@ -289,7 +293,7 @@ describe("TrackElement techniques", () => {
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
-    const bendElements = trackElement.trackLineElements[0].ownedNotationElements
+    const bendElements = trackElement.trackLineElements[0].ownedNotationNodes
       .filter((element) => element instanceof GuitarTechniqueElement)
       .filter((element) => element.technique.type === GuitarTechniqueType.Bend);
     const elementFor = (type: BendType) =>
@@ -339,10 +343,10 @@ describe("TrackElement techniques", () => {
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     const styleLine =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0];
     const barElement = styleLine.barElements[0];
-    const labels = (styleLine.techGapElement.techGapLines[3]?.labelElements ??
+    const labels = (styleLine.techGapContainer.techGapLines[3]?.labelElements ??
       []) as GuitarTechniqueLabelElement[];
 
     expect(labels).toHaveLength(3);
@@ -405,8 +409,8 @@ describe("TrackElement techniques", () => {
       throw Error("Expected guitar note in test beat");
     }
     const secondLineBeatElement =
-      secondLineBefore.staffLineElements[0].styleLinesAsArray[0].barElements[0]
-        .beatElements[0];
+      secondLineBefore.staffLineContainers[0].styleLinesAsArray[0]
+        .barElements[0].beatElements[0];
 
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
     trackElement.update({
@@ -419,11 +423,12 @@ describe("TrackElement techniques", () => {
 
     const firstLineAfter = trackElement.trackLineElements[0];
     const firstLineTechGap =
-      firstLineAfter.staffLineElements[0].styleLinesAsArray[0].techGapElement;
+      firstLineAfter.staffLineContainers[0].styleLinesAsArray[0]
+        .techGapContainer;
 
     expect(firstLineAfter).not.toBe(firstLineBefore);
     expect(trackElement.trackLineElements[1]).not.toBe(secondLineBefore);
-    expect(trackElement.trackLineElements[1].staffLineElements).toEqual([]);
+    expect(trackElement.trackLineElements[1].staffLineContainers).toEqual([]);
     expect(trackElement.materializedLineIndices.has(0)).toBe(true);
     expect(trackElement.materializedLineIndices.has(1)).toBe(false);
     expect(
@@ -459,8 +464,8 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const beforeTechGap =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement;
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer;
     expect(beforeTechGap.boundingBox.height).toBe(0);
 
     const command = new SetTechniqueCommand(
@@ -471,8 +476,8 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const afterTechGap =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement;
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer;
     expect(afterTechGap.boundingBox.height).toBe(
       TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
     );
@@ -509,8 +514,8 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const techGap =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement;
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer;
     const line1 = techGap.techGapLines[1];
     const line3 = techGap.techGapLines[3];
 
@@ -546,12 +551,12 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const line3 =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement.techGapLines[3];
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer.techGapLines[3];
 
     expect(line3).not.toBeNull();
     const beatElement =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0];
     const noteElement = beatElement.noteElements[0];
     const bendElement = noteElement.techniqueElements[0];
@@ -602,8 +607,8 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const techGap =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement;
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer;
     const line1 = techGap.techGapLines[1];
     const line3 = techGap.techGapLines[3];
     const line1Label = line1?.labelElements[0];
@@ -614,8 +619,8 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const nextTechGap =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement;
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer;
 
     expect(nextTechGap).not.toBe(techGap);
     expect(nextTechGap.techGapLines[1]).not.toBe(line1);
@@ -630,7 +635,7 @@ describe("TrackElement techniques", () => {
     ).toBe(line3LabelIdentity);
   });
 
-  test("ownedNotationElements includes technique gap subtree elements", () => {
+  test("ownedNotationNodes includes technique gap subtree nodes", () => {
     const { track, bar } = createScoreGraph();
     const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {
@@ -644,23 +649,54 @@ describe("TrackElement techniques", () => {
       lineRange: { startLineIndex: 0, endLineIndex: 0 },
     });
 
-    const ownedElements =
-      trackElement.trackLineElements[0].ownedNotationElements;
+    const ownedElements = trackElement.trackLineElements[0].ownedNotationNodes;
 
     expect(
-      ownedElements.some((element) => element instanceof TechGapElement)
+      ownedElements.some((element) => element instanceof TechGapContainer)
     ).toBe(true);
     expect(
-      ownedElements.some((element) => element instanceof TechGapLineElement)
+      ownedElements.some((element) => element instanceof TechGapLineContainer)
     ).toBe(true);
     expect(
       ownedElements.some(
         (element) => element instanceof GuitarTechniqueLabelElement
       )
     ).toBe(true);
+
+    const drawableElements =
+      trackElement.trackLineElements[0].drawableNotationElements;
+    expect(
+      drawableElements.some((element) => element instanceof TechGapContainer)
+    ).toBe(false);
+    expect(
+      drawableElements.some(
+        (element) => element instanceof TechGapLineContainer
+      )
+    ).toBe(false);
+    expect(
+      drawableElements.some(
+        (element) => element instanceof GuitarTechniqueLabelElement
+      )
+    ).toBe(true);
+
+    const techGapNode = ownedElements.find(
+      (element) => element instanceof TechGapContainer
+    );
+    const labelNode = ownedElements.find(
+      (element) => element instanceof GuitarTechniqueLabelElement
+    );
+    expect(techGapNode).toBeDefined();
+    expect(labelNode).toBeDefined();
+    if (techGapNode === undefined || labelNode === undefined) {
+      throw Error("Expected technique gap and label nodes");
+    }
+    expect(isNotationContainer(techGapNode)).toBe(true);
+    expect(isNotationElement(techGapNode)).toBe(false);
+    expect(isNotationElement(labelNode)).toBe(true);
+    expect(isNotationContainer(labelNode)).toBe(false);
   });
 
-  test("ownedNotationElements updates after line rematerialization", () => {
+  test("ownedNotationNodes updates after line rematerialization", () => {
     const { track, bar } = createScoreGraph();
     const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {
@@ -669,7 +705,7 @@ describe("TrackElement techniques", () => {
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     expect(
-      trackElement.trackLineElements[0].ownedNotationElements.some(
+      trackElement.trackLineElements[0].ownedNotationNodes.some(
         (element) => element instanceof GuitarTechniqueElement
       )
     ).toBe(false);
@@ -680,7 +716,7 @@ describe("TrackElement techniques", () => {
     });
 
     expect(
-      trackElement.trackLineElements[0].ownedNotationElements.some(
+      trackElement.trackLineElements[0].ownedNotationNodes.some(
         (element) => element instanceof GuitarTechniqueElement
       )
     ).toBe(true);
@@ -715,8 +751,8 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const techGap =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement;
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer;
     const vibratoLine = techGap.techGapLines[1];
     const palmMuteLine = techGap.techGapLines[2];
     const vibratoLabel = vibratoLine?.labelElements[0];
@@ -766,11 +802,12 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const beatElement =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0];
     const palmMuteLabel =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement.techGapLines[2]?.labelElements[0];
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer.techGapLines[2]
+        ?.labelElements[0];
     const descriptorX = Number(
       palmMuteLabel?.textDescriptors?.[0]?.attrs?.x ?? 0
     );
@@ -798,8 +835,9 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const label =
-      trackElement.trackLineElements[0].staffLineElements[0]
-        .styleLinesAsArray[0].techGapElement.techGapLines[2]?.labelElements[0];
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer.techGapLines[2]
+        ?.labelElements[0];
 
     expect(label?.textDescriptors).toHaveLength(1);
     expect(label?.textDescriptors?.[0].text).toBe("LR");
@@ -815,7 +853,7 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const secondLineStartIndex =
-      trackElement.trackLineElements[1].trackLineData[0].masterBarIndex;
+      trackElement.trackLineElements[1].trackLineBars[0].masterBarIndex;
     const secondLineVoiceBar = staff.bars[secondLineStartIndex].getVoiceBar(1);
     if (secondLineVoiceBar === null) {
       throw Error("Expected voice 1 in second line bar");
@@ -842,10 +880,10 @@ describe("TrackElement techniques", () => {
     trackElement.update();
 
     const secondLineStyle =
-      trackElement.trackLineElements[1].staffLineElements[0]
+      trackElement.trackLineElements[1].staffLineContainers[0]
         .styleLinesAsArray[0];
-    const line1 = secondLineStyle.techGapElement.techGapLines[1];
-    const line2 = secondLineStyle.techGapElement.techGapLines[2];
+    const line1 = secondLineStyle.techGapContainer.techGapLines[1];
+    const line2 = secondLineStyle.techGapContainer.techGapLines[2];
     const vibratoLabel = line1?.labelElements[0];
     const palmMuteLabel = line2?.labelElements[0];
 
@@ -856,7 +894,7 @@ describe("TrackElement techniques", () => {
     );
     expect(
       trackElement.trackLineElements
-        .flatMap((line) => line.ownedNotationElements)
+        .flatMap((line) => line.ownedNotationNodes)
         .filter(
           (element) =>
             element instanceof GuitarTechniqueLabelElement &&

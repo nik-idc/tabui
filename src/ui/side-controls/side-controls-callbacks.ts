@@ -3,7 +3,7 @@ import { NotationComponent } from "../../notation/notation-component";
 import {
   TechniqueControlsCallbacks,
   TechniqueControlsDefaultCallbacks,
-} from "./effect-controls/effect-controls-callbacks";
+} from "./technique-controls/technique-controls-callbacks";
 import {
   MeasureControlsCallbacks,
   MeasureControlsDefaultCallbacks,

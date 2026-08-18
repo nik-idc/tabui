@@ -7,10 +7,10 @@ import {
 } from "../../../../model";
 import { Point, Rect, randomInt } from "../../../../../shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
-import { NotationElement } from "../../notation-element";
+import { NotationElement, NotationNodeType } from "../../notation-element";
 import { TrackElement } from "../../track-element";
 import { SVGPathDescriptor, TechniqueElement } from "../technique-element";
-import { TabNoteElement } from "../../note/tab-note-element";
+import { TabNoteSlotElement } from "../../note/tab-note-slot-element";
 import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
 import type { BarElement } from "../../bar/bar-element";
 import type { TrackLineElement } from "../../track/track-line-element";
@@ -22,13 +22,10 @@ import type { TrackLineElement } from "../../track/track-line-element";
  * to which the technique is applied
  */
 export class GuitarTechniqueElement implements TechniqueElement {
-  public static createStableIdentity(
-    noteElement: TabNoteElement,
-    technique: GuitarTechnique
-  ): string {
-    const trackLineStableIdentity =
-      noteElement.beatElement.barElement.notationStyleLineElement.staffLineElement.trackLineElement.getStableIdentity();
-    return `technique:${trackLineStableIdentity}:${technique.uuid}`;
+  readonly nodeType = NotationNodeType.Element;
+
+  public static createStableIdentity(technique: GuitarTechnique): string {
+    return `technique:${technique.uuid}`;
   }
 
   /** Guitar note element's unique identifier */
@@ -36,7 +33,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /** Technique */
   readonly technique: GuitarTechnique;
   /** Parent guitar note element */
-  readonly noteElement: TabNoteElement;
+  readonly noteElement: TabNoteSlotElement;
   /** Root track element */
   readonly trackElement: TrackElement;
 
@@ -62,7 +59,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * @param technique Technique
    * @param noteElement Parent note element
    */
-  constructor(technique: GuitarTechnique, noteElement: TabNoteElement) {
+  constructor(technique: GuitarTechnique, noteElement: TabNoteSlotElement) {
     this.uuid = randomInt();
     this.technique = technique;
     this.noteElement = noteElement;
@@ -525,7 +522,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationElement[] {
     return [this];
   }
 
@@ -535,10 +532,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
   }
 
   public getStableIdentity(): string {
-    return GuitarTechniqueElement.createStableIdentity(
-      this.noteElement,
-      this.technique
-    );
+    return GuitarTechniqueElement.createStableIdentity(this.technique);
   }
 
   /** Start point */

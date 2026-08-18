@@ -1,24 +1,27 @@
 import { Track } from "../../../model";
 import { Point, Rect, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { StaffLineElement } from "../staff/staff-line-element";
+import { StaffLineContainer } from "../staff/staff-line-container";
 import { TrackLineInfoElement } from "./track-line-info-element";
 import { VertLine } from "../../../../shared/rendering/geometry/line";
-import { NotationElement } from "../notation-element";
+import {
+  isNotationElement,
+  NotationElement,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import type { BarElement } from "../bar/bar-element";
+import type { ScoreLayoutBar } from "../../layout/score-layout-plan";
 /**
  * Bar placement data for one master bar inside a presentation track line.
  * Presentation shells create the actual BarElements from this placement data.
  */
-export type TrackLineBar = {
-  finalizedWidth: number;
-  masterBarUUID: number;
-  masterBarIndex: number;
-};
+export type TrackLineBar = ScoreLayoutBar;
 
 export type TrackElementSkeletonLine = {
   trackLineBars: TrackLineBar[];
   finalLineHeight: number;
+  finalLineWidth: number;
   y: number;
 };
 
@@ -35,15 +38,10 @@ type OutlineLines = {
  * Class that handles all geometry & visually relevant info of a track line
  */
 export class TrackLineElement implements NotationElement {
-  public static createStableIdentity(
-    track: Track,
-    trackLineBars: TrackLineBar[]
-  ): string {
-    const ownershipKey = trackLineBars
-      .map((data) => data.masterBarUUID)
-      .join(":");
+  readonly nodeType = NotationNodeType.Element;
 
-    return `track-line:${track.uuid}:${ownershipKey}`;
+  public static createStableIdentity(track: Track, lineIndex: number): string {
+    return `track-line:${track.uuid}:${lineIndex}`;
   }
 
   /** Unique identifier for the track line element */
@@ -63,11 +61,13 @@ export class TrackLineElement implements NotationElement {
   }
 
   /** Staff line element on this track line */
-  private _staffLineElements: StaffLineElement[];
+  private _staffLineContainers: StaffLineContainer[];
   /** Track line info (tempo) */
   private _trackLineInfoElement: TrackLineInfoElement | null;
-  /** Notation elements owned by this track line in traversal order. */
-  private _ownedNotationElements: NotationElement[];
+  /** Notation nodes owned by this track line in traversal order. */
+  private _ownedNotationNodes: NotationNode[];
+  /** Drawable nodes owned by this track line in paint traversal order. */
+  private _drawableNotationElements: NotationElement[];
 
   /** Track line encapsulating rectangle */
   private _boundingBox: Rect;
@@ -85,39 +85,38 @@ export class TrackLineElement implements NotationElement {
    */
   constructor(
     trackElement: TrackElement,
-    skeletonLine: TrackElementSkeletonLine
+    skeletonLine: TrackElementSkeletonLine,
+    lineIndex: number
   ) {
     this.uuid = randomInt();
     this.track = trackElement.track;
     this.trackElement = trackElement;
 
-    this._staffLineElements = [];
+    this._staffLineContainers = [];
     this._trackLineInfoElement = null;
-    this._ownedNotationElements = [];
+    this._ownedNotationNodes = [];
+    this._drawableNotationElements = [];
 
     this._boundingBox = new Rect();
     this._skeletonLine = skeletonLine;
     this._stableIdentity = TrackLineElement.createStableIdentity(
       this.track,
-      this._skeletonLine.trackLineBars
+      lineIndex
     );
 
     // A new track line starts as a geometry-only shell until materialized.
-    this._ownedNotationElements = [this];
+    this._ownedNotationNodes = [this];
+    this._drawableNotationElements = [this];
     this.setGeometryFromSkeleton(skeletonLine);
   }
 
   /** Applies whole-track skeleton geometry without building descendants. */
   public setGeometryFromSkeleton(skeletonLine: TrackElementSkeletonLine): void {
     this._skeletonLine = skeletonLine;
-    this._stableIdentity = TrackLineElement.createStableIdentity(
-      this.track,
-      skeletonLine.trackLineBars
-    );
     this._boundingBox.set(
       0,
       skeletonLine.y,
-      this.trackElement.layoutDimensions.WIDTH,
+      skeletonLine.finalLineWidth,
       skeletonLine.finalLineHeight
     );
   }
@@ -125,11 +124,18 @@ export class TrackLineElement implements NotationElement {
   /**
    * Fills staff lines array
    */
-  public build(): void {
-    this._staffLineElements = [];
+  public build(
+    materializedTrackLineBars = this._skeletonLine.trackLineBars
+  ): void {
+    this._staffLineContainers = [];
     for (const staff of this.track.staves) {
-      this._staffLineElements.push(
-        new StaffLineElement(staff, this, this._skeletonLine.trackLineBars)
+      this._staffLineContainers.push(
+        new StaffLineContainer(
+          staff,
+          this,
+          this._skeletonLine.trackLineBars,
+          materializedTrackLineBars
+        )
       );
     }
 
@@ -143,14 +149,14 @@ export class TrackLineElement implements NotationElement {
     }
 
     this._trackLineInfoElement = new TrackLineInfoElement(this);
-    this.refreshOwnedNotationElements();
+    this.refreshOwnedNotationNodes();
   }
 
   /**
    * Calculates the dimensions of all sub elements of this track line element
    */
   public measure(): void {
-    if (this._staffLineElements.length === 0) {
+    if (this._staffLineContainers.length === 0) {
       throw Error("Empty track line element's staff lines array at measure");
     }
 
@@ -159,14 +165,14 @@ export class TrackLineElement implements NotationElement {
     }
 
     let sumStaffHeight = 0;
-    for (const staffLine of this._staffLineElements) {
+    for (const staffLine of this._staffLineContainers) {
       staffLine.measure();
       sumStaffHeight += staffLine.boundingBox.height;
     }
 
     this._trackLineInfoElement.measure();
 
-    const width = this._staffLineElements[0].boundingBox.width;
+    const width = this._staffLineContainers[0].boundingBox.width;
     const height =
       sumStaffHeight + this._trackLineInfoElement.boundingBox.height;
     this._boundingBox.setDimensions(width, height);
@@ -198,7 +204,7 @@ export class TrackLineElement implements NotationElement {
    * Calculates coordinates for this & all child elements
    */
   public layout(): void {
-    if (this._staffLineElements.length === 0) {
+    if (this._staffLineContainers.length === 0) {
       throw Error("Empty track line element's staff lines array at layout");
     }
 
@@ -212,7 +218,7 @@ export class TrackLineElement implements NotationElement {
 
     this._trackLineInfoElement.layout();
 
-    for (const staffLine of this._staffLineElements) {
+    for (const staffLine of this._staffLineContainers) {
       staffLine.layout();
     }
 
@@ -220,9 +226,9 @@ export class TrackLineElement implements NotationElement {
       return;
     }
 
-    const firstStaffLine = this._staffLineElements[0];
+    const firstStaffLine = this._staffLineContainers[0];
     const lastStaffLine =
-      this._staffLineElements[this._staffLineElements.length - 1];
+      this._staffLineContainers[this._staffLineContainers.length - 1];
     const firstStyleLine = firstStaffLine.styleLinesAsArray[0];
     const lastStyleLine =
       lastStaffLine.styleLinesAsArray[
@@ -260,11 +266,11 @@ export class TrackLineElement implements NotationElement {
    * @param staffElement Staff element
    * @returns Next staff element or null
    */
-  public getNextStaffLineElement(
-    staffLineElement: StaffLineElement
-  ): StaffLineElement | null {
-    const staffIndex = this._staffLineElements.indexOf(staffLineElement);
-    const nextStaff = this._staffLineElements[staffIndex + 1];
+  public getNextStaffLineContainer(
+    staffLineContainer: StaffLineContainer
+  ): StaffLineContainer | null {
+    const staffIndex = this._staffLineContainers.indexOf(staffLineContainer);
+    const nextStaff = this._staffLineContainers[staffIndex + 1];
     return nextStaff ?? null;
   }
 
@@ -273,11 +279,11 @@ export class TrackLineElement implements NotationElement {
    * @param staffElement Staff element
    * @returns Prev staff element or null
    */
-  public getPrevStaffLineElement(
-    staffLineElement: StaffLineElement
-  ): StaffLineElement | null {
-    const staffIndex = this._staffLineElements.indexOf(staffLineElement);
-    const prevStaff = this._staffLineElements[staffIndex - 1];
+  public getPrevStaffLineContainer(
+    staffLineContainer: StaffLineContainer
+  ): StaffLineContainer | null {
+    const staffIndex = this._staffLineContainers.indexOf(staffLineContainer);
+    const prevStaff = this._staffLineContainers[staffIndex - 1];
     return prevStaff ?? null;
   }
 
@@ -295,20 +301,19 @@ export class TrackLineElement implements NotationElement {
    *    TrackElement then remains an orchestrator/builder rather than
    *    traversal owner.
    */
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     if (this._trackLineInfoElement !== null) {
-      elements.push(
-        ...this._trackLineInfoElement.refreshOwnedNotationElements()
-      );
+      elements.push(...this._trackLineInfoElement.refreshOwnedNotationNodes());
     }
 
-    for (const staffLine of this._staffLineElements) {
-      elements.push(...staffLine.refreshOwnedNotationElements());
+    for (const staffLine of this._staffLineContainers) {
+      elements.push(...staffLine.refreshOwnedNotationNodes());
     }
 
-    this._ownedNotationElements = elements;
+    this._ownedNotationNodes = elements;
+    this._drawableNotationElements = elements.filter(isNotationElement);
     return elements;
   }
 
@@ -321,20 +326,13 @@ export class TrackLineElement implements NotationElement {
     return this._stableIdentity;
   }
 
-  public setTrackLineBars(trackLineBars: TrackLineBar[]): void {
-    this._skeletonLine = {
-      ...this._skeletonLine,
-      trackLineBars,
-    };
-  }
-
   /** Staff line element on this track line */
-  public get staffLineElements(): StaffLineElement[] {
-    return this._staffLineElements;
+  public get staffLineContainers(): StaffLineContainer[] {
+    return this._staffLineContainers;
   }
 
   public *allBarElements(): Generator<BarElement> {
-    for (const staff of this._staffLineElements) {
+    for (const staff of this._staffLineContainers) {
       for (const style of staff.styleLinesAsArray) {
         yield* style.barElements;
       }
@@ -346,8 +344,13 @@ export class TrackLineElement implements NotationElement {
     return this._trackLineInfoElement;
   }
 
-  public get ownedNotationElements(): NotationElement[] {
-    return this._ownedNotationElements;
+  public get ownedNotationNodes(): NotationNode[] {
+    return this._ownedNotationNodes;
+  }
+
+  /** Drawable elements owned by this materialized track line. */
+  public get drawableNotationElements(): NotationElement[] {
+    return this._drawableNotationElements;
   }
 
   /** Left & right outline line for when there are more than 1 staves */
@@ -427,15 +430,16 @@ export class TrackLineElement implements NotationElement {
     return this._skeletonLine.trackLineBars;
   }
 
-  public get skeletonLine(): TrackElementSkeletonLine {
-    return this._skeletonLine;
+  /** True when complete line ownership reserves a tempo row. */
+  public get hasTempo(): boolean {
+    return this._skeletonLine.trackLineBars.some(({ masterBarIndex }) => {
+      const masterBar = this.track.score.masterBars[masterBarIndex];
+      const previous = this.track.score.masterBars[masterBarIndex - 1];
+      return previous === undefined || previous.tempo !== masterBar.tempo;
+    });
   }
 
-  /**
-   * Transitional legacy test/helper alias. Prefer trackLineBars and remove this
-   * before commit after callers have been migrated.
-   */
-  public get trackLineData(): TrackLineBar[] {
-    return this._skeletonLine.trackLineBars;
+  public get skeletonLine(): TrackElementSkeletonLine {
+    return this._skeletonLine;
   }
 }

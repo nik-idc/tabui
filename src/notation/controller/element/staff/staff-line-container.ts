@@ -1,9 +1,13 @@
 import { Staff, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { NotationElement } from "../notation-element";
+import {
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
+} from "../notation-element";
 import { TrackLineBar, TrackLineElement } from "../track/track-line-element";
-import { NotationStyleLineElement } from "./notation-style-line-element";
+import { NotationStyleLineContainer } from "./notation-style-line-container";
 import type { BarElement } from "../bar/bar-element";
 
 /**
@@ -17,7 +21,9 @@ export enum NotationStyle {
 /**
  * Class that handles all geometry & visually relevant info of a staff line
  */
-export class StaffLineElement implements NotationElement {
+export class StaffLineContainer implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   public static createStableIdentity(
     trackLineElement: TrackLineElement,
     staff: Staff
@@ -44,12 +50,14 @@ export class StaffLineElement implements NotationElement {
   }
 
   /** Notation style line elements of this staff line */
-  private _notationStyleLineElements: Record<
+  private _notationStyleLineContainers: Record<
     NotationStyle,
-    NotationStyleLineElement | null
+    NotationStyleLineContainer | null
   >;
   /** Bar placement data shared by every staff on this track line. */
   private _trackLineBars: TrackLineBar[];
+  /** Bars whose descendants exist in the current materialized range. */
+  private _materializedTrackLineBars: TrackLineBar[];
   /** Non-empty voices present anywhere on this staff line. */
   private _lineNonEmptyVoiceNumbers: VoiceNumber[];
 
@@ -65,16 +73,18 @@ export class StaffLineElement implements NotationElement {
   constructor(
     staff: Staff,
     trackLineElement: TrackLineElement,
-    trackLineBars: TrackLineBar[]
+    trackLineBars: TrackLineBar[],
+    materializedTrackLineBars: TrackLineBar[]
   ) {
     this.uuid = randomInt();
     this.staff = staff;
     this.trackLineElement = trackLineElement;
     this.trackElement = this.trackLineElement.trackElement;
     this._trackLineBars = trackLineBars;
+    this._materializedTrackLineBars = materializedTrackLineBars;
     this._lineNonEmptyVoiceNumbers = [];
 
-    this._notationStyleLineElements = {
+    this._notationStyleLineContainers = {
       [NotationStyle.Classic]: null,
       [NotationStyle.Tablature]: null,
     };
@@ -100,10 +110,12 @@ export class StaffLineElement implements NotationElement {
 
   private getStyleLineBars(notationStyle: NotationStyle): TrackLineBar[] {
     if (notationStyle === NotationStyle.Classic) {
-      return this.staff.showClassicNotation ? this._trackLineBars : [];
+      return this.staff.showClassicNotation
+        ? this._materializedTrackLineBars
+        : [];
     }
 
-    return this.staff.showTablature ? this._trackLineBars : [];
+    return this.staff.showTablature ? this._materializedTrackLineBars : [];
   }
 
   /**
@@ -113,45 +125,40 @@ export class StaffLineElement implements NotationElement {
     this._lineNonEmptyVoiceNumbers = this.computeLineNonEmptyVoiceNumbers();
 
     if (this.staff.showClassicNotation) {
-      const styleLine = new NotationStyleLineElement(
+      const styleLine = new NotationStyleLineContainer(
         this,
         NotationStyle.Classic,
         this.getStyleLineBars(NotationStyle.Classic)
       );
-      this._notationStyleLineElements[NotationStyle.Classic] = styleLine;
+      this._notationStyleLineContainers[NotationStyle.Classic] = styleLine;
     } else {
-      this._notationStyleLineElements[NotationStyle.Classic] = null;
+      this._notationStyleLineContainers[NotationStyle.Classic] = null;
     }
 
     if (this.staff.showTablature) {
-      const styleLine = new NotationStyleLineElement(
+      const styleLine = new NotationStyleLineContainer(
         this,
         NotationStyle.Tablature,
         this.getStyleLineBars(NotationStyle.Tablature)
       );
-      this._notationStyleLineElements[NotationStyle.Tablature] = styleLine;
+      this._notationStyleLineContainers[NotationStyle.Tablature] = styleLine;
     } else {
-      this._notationStyleLineElements[NotationStyle.Tablature] = null;
+      this._notationStyleLineContainers[NotationStyle.Tablature] = null;
     }
-  }
-
-  public setTrackLineBars(trackLineBars: TrackLineBar[]): void {
-    this._trackLineBars = trackLineBars;
-    this._lineNonEmptyVoiceNumbers = this.computeLineNonEmptyVoiceNumbers();
   }
 
   /**
    * Calculates the dimensions of all sub elements of this staff line element
    */
   public measure(): void {
-    const classicNot = this._notationStyleLineElements[NotationStyle.Classic];
+    const classicNot = this._notationStyleLineContainers[NotationStyle.Classic];
     const tablatureNot =
-      this._notationStyleLineElements[NotationStyle.Tablature];
+      this._notationStyleLineContainers[NotationStyle.Tablature];
     if (classicNot === null && tablatureNot === null) {
       throw Error("Both classic & tablature notations null at measure");
     }
 
-    this._notationStyleLineElements[NotationStyle.Classic]?.measure();
+    this._notationStyleLineContainers[NotationStyle.Classic]?.measure();
     tablatureNot?.measure();
 
     let width = 0;
@@ -181,22 +188,22 @@ export class StaffLineElement implements NotationElement {
    * Calculates layout for all child elements, i.e. their X and Y coordinates
    */
   public layout(): void {
-    const classicNot = this._notationStyleLineElements[NotationStyle.Classic];
+    const classicNot = this._notationStyleLineContainers[NotationStyle.Classic];
     const tablatureNot =
-      this._notationStyleLineElements[NotationStyle.Tablature];
+      this._notationStyleLineContainers[NotationStyle.Tablature];
     if (classicNot === null && tablatureNot === null) {
       throw Error("Both classic & tablature notations null at layout");
     }
 
-    const prevStaffLine = this.trackLineElement.getPrevStaffLineElement(this);
+    const prevStaffLine = this.trackLineElement.getPrevStaffLineContainer(this);
     const y =
       prevStaffLine?.boundingBox.bottom ??
       this.trackLineElement.trackLineInfoElement?.boundingBox.bottom ??
       0;
     this._boundingBox.setCoords(0, y);
 
-    this._notationStyleLineElements[NotationStyle.Classic]?.layout();
-    this._notationStyleLineElements[NotationStyle.Tablature]?.layout();
+    this._notationStyleLineContainers[NotationStyle.Classic]?.layout();
+    this._notationStyleLineContainers[NotationStyle.Tablature]?.layout();
   }
 
   public update(): void {
@@ -206,11 +213,11 @@ export class StaffLineElement implements NotationElement {
     this.layout();
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
-    const elements: NotationElement[] = [this];
+  public refreshOwnedNotationNodes(): NotationNode[] {
+    const elements: NotationNode[] = [this];
 
     for (const styleLine of this.styleLinesAsArray) {
-      elements.push(...styleLine.refreshOwnedNotationElements());
+      elements.push(...styleLine.refreshOwnedNotationNodes());
     }
 
     return elements;
@@ -222,28 +229,28 @@ export class StaffLineElement implements NotationElement {
   }
 
   public getStableIdentity(): string {
-    return StaffLineElement.createStableIdentity(
+    return StaffLineContainer.createStableIdentity(
       this.trackLineElement,
       this.staff
     );
   }
 
   /** Style line elements record object */
-  public get notationStyleLineElements(): Record<
+  public get notationStyleLineContainers(): Record<
     NotationStyle,
-    NotationStyleLineElement | null
+    NotationStyleLineContainer | null
   > {
-    return this._notationStyleLineElements;
+    return this._notationStyleLineContainers;
   }
 
   /** Style line elements as array */
-  public get styleLinesAsArray(): NotationStyleLineElement[] {
+  public get styleLinesAsArray(): NotationStyleLineContainer[] {
     const result = [];
-    if (this._notationStyleLineElements[NotationStyle.Classic] !== null) {
-      result.push(this._notationStyleLineElements[NotationStyle.Classic]);
+    if (this._notationStyleLineContainers[NotationStyle.Classic] !== null) {
+      result.push(this._notationStyleLineContainers[NotationStyle.Classic]);
     }
-    if (this._notationStyleLineElements[NotationStyle.Tablature] !== null) {
-      result.push(this._notationStyleLineElements[NotationStyle.Tablature]);
+    if (this._notationStyleLineContainers[NotationStyle.Tablature] !== null) {
+      result.push(this._notationStyleLineContainers[NotationStyle.Tablature]);
     }
 
     return result;

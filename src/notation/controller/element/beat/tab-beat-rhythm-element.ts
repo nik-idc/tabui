@@ -9,12 +9,14 @@ import { Point, randomInt, Rect } from "../../../../shared";
 import { TrackElement } from "../track-element";
 import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
 import { Circle } from "../../../../shared/rendering/geometry/circle";
-import { NotationElement } from "../notation-element";
-import { VoiceBarRhythmElement } from "../bar/voice-bar-rhythm-element";
+import { NotationElement, NotationNodeType } from "../notation-element";
+import { VoiceBarRhythmContainer } from "../bar/voice-bar-rhythm-container";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
 export class TabBeatRhythmElement implements NotationElement {
+  readonly nodeType = NotationNodeType.Element;
+
   public static createStableIdentity(beat: Beat): string {
     return `tab-beat-rhythm:${beat.uuid}`;
   }
@@ -24,22 +26,22 @@ export class TabBeatRhythmElement implements NotationElement {
   /** The beat */
   readonly beat: Beat;
   /** Parent bar element */
-  readonly voiceBarRhythmElement: VoiceBarRhythmElement;
+  readonly voiceBarRhythmContainer: VoiceBarRhythmContainer;
   /** Parent beat element */
   readonly beatElement: TabBeatElement;
   /** Root track element */
   readonly trackElement: TrackElement;
 
   public get voiceNumber(): VoiceNumber {
-    return this.voiceBarRhythmElement.voiceNumber;
+    return this.voiceBarRhythmContainer.voiceNumber;
   }
 
   public get owningTrackLineElement(): TrackLineElement {
-    return this.voiceBarRhythmElement.owningTrackLineElement;
+    return this.voiceBarRhythmContainer.owningTrackLineElement;
   }
 
   public get owningBarElement(): BarElement {
-    return this.voiceBarRhythmElement.barElement;
+    return this.voiceBarRhythmContainer.barElement;
   }
 
   /** This beat's rect */
@@ -54,11 +56,11 @@ export class TabBeatRhythmElement implements NotationElement {
   private _dot2Circle?: Circle;
 
   constructor(
-    voiceBarRhythmElement: VoiceBarRhythmElement,
+    voiceBarRhythmContainer: VoiceBarRhythmContainer,
     beatElement: TabBeatElement
   ) {
     this.uuid = randomInt();
-    this.voiceBarRhythmElement = voiceBarRhythmElement;
+    this.voiceBarRhythmContainer = voiceBarRhythmContainer;
     this.beat = beatElement.beat;
     this.beatElement = beatElement;
     this.trackElement = this.beatElement.trackElement;
@@ -329,8 +331,8 @@ export class TabBeatRhythmElement implements NotationElement {
   /** Coords of this element in bar-local coordinates */
   public get barLocalCoords(): Point {
     return new Point(
-      this.voiceBarRhythmElement.boundingBox.x + this._boundingBox.x,
-      this.voiceBarRhythmElement.boundingBox.y + this._boundingBox.y
+      this.voiceBarRhythmContainer.boundingBox.x + this._boundingBox.x,
+      this.voiceBarRhythmContainer.boundingBox.y + this._boundingBox.y
     );
   }
 
@@ -346,8 +348,8 @@ export class TabBeatRhythmElement implements NotationElement {
 
   public get lineLocalCoords(): Point {
     return new Point(
-      this.voiceBarRhythmElement.lineLocalCoords.x + this._boundingBox.x,
-      this.voiceBarRhythmElement.lineLocalCoords.y + this._boundingBox.y
+      this.voiceBarRhythmContainer.lineLocalCoords.x + this._boundingBox.x,
+      this.voiceBarRhythmContainer.lineLocalCoords.y + this._boundingBox.y
     );
   }
 
@@ -362,8 +364,8 @@ export class TabBeatRhythmElement implements NotationElement {
 
   public get globalCoords(): Point {
     return new Point(
-      this.voiceBarRhythmElement.globalCoords.x + this._boundingBox.x,
-      this.voiceBarRhythmElement.globalCoords.y + this._boundingBox.y
+      this.voiceBarRhythmContainer.globalCoords.x + this._boundingBox.x,
+      this.voiceBarRhythmContainer.globalCoords.y + this._boundingBox.y
     );
   }
 
@@ -388,7 +390,7 @@ export class TabBeatRhythmElement implements NotationElement {
     return TabBeatRhythmElement.createStableIdentity(this.beat);
   }
 
-  public refreshOwnedNotationElements(): NotationElement[] {
+  public refreshOwnedNotationNodes(): NotationElement[] {
     return [this];
   }
 }

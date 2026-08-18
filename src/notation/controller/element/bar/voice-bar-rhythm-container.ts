@@ -3,16 +3,20 @@ import { TrackElement } from "../track-element";
 import {
   BarTupletGroupElement,
   BeamSegmentElement,
-  NotationElement,
+  NotationContainer,
+  NotationNode,
+  NotationNodeType,
   TabBeatElement,
 } from "..";
 import { Point, randomInt, Rect } from "../../../../shared";
-import { VoiceBarElement } from "./voice-bar-element";
+import { VoiceBarContainer } from "./voice-bar-container";
 import { TabBeatRhythmElement } from "../beat/tab-beat-rhythm-element";
 import { BarElement } from "./bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
-export class VoiceBarRhythmElement implements NotationElement {
+export class VoiceBarRhythmContainer implements NotationContainer {
+  readonly nodeType = NotationNodeType.Container;
+
   /** Unique identifier for the bar element */
   readonly uuid: number;
   /** The bar */
@@ -22,7 +26,7 @@ export class VoiceBarRhythmElement implements NotationElement {
   /** Parent bar element */
   public barElement: BarElement;
   /** Corresponding voice bar element */
-  public voiceBarElement?: VoiceBarElement;
+  public voiceBarContainer?: VoiceBarContainer;
   /** Root track element */
   readonly trackElement: TrackElement;
 
@@ -47,14 +51,14 @@ export class VoiceBarRhythmElement implements NotationElement {
   constructor(
     barElement: BarElement,
     voiceNumber: VoiceNumber,
-    voiceBarElement?: VoiceBarElement
+    voiceBarContainer?: VoiceBarContainer
   ) {
     this.uuid = randomInt();
-    this.voiceBar = voiceBarElement?.voiceBar;
+    this.voiceBar = voiceBarContainer?.voiceBar;
     this.voiceNumber = voiceNumber;
     this.trackElement = barElement.trackElement;
     this.barElement = barElement;
-    this.voiceBarElement = voiceBarElement;
+    this.voiceBarContainer = voiceBarContainer;
 
     this._beatRhythmElements = [];
     this._beamSegments = [];
@@ -70,11 +74,11 @@ export class VoiceBarRhythmElement implements NotationElement {
       this._beatRhythmElements.map((e) => [e.getStableIdentity(), e])
     );
     this._beatRhythmElements = [];
-    if (this.voiceBar === undefined || this.voiceBarElement === undefined) {
+    if (this.voiceBar === undefined || this.voiceBarContainer === undefined) {
       return;
     }
 
-    for (const beatElement of this.voiceBarElement.beatElements) {
+    for (const beatElement of this.voiceBarContainer.beatElements) {
       const stableIdentity = beatElement.getStableIdentity();
       const existingRhythmElement = prevRhythmElements.get(stableIdentity);
       if (existingRhythmElement !== undefined) {
@@ -97,12 +101,12 @@ export class VoiceBarRhythmElement implements NotationElement {
       this._beamSegments.map((e) => [e.getStableIdentity(), e])
     );
     this._beamSegments = [];
-    if (this.voiceBar === undefined || this.voiceBarElement === undefined) {
+    if (this.voiceBar === undefined || this.voiceBarContainer === undefined) {
       return;
     }
 
     for (let i = 0; i < this.voiceBar.beamingGroups.length; i++) {
-      const beamGroupBeats = this.voiceBarElement.beatElements.filter(
+      const beamGroupBeats = this.voiceBarContainer.beatElements.filter(
         (be) => be.beat.beamGroupId === i
       );
 
@@ -171,11 +175,12 @@ export class VoiceBarRhythmElement implements NotationElement {
       this._tupletElements.map((e) => [e.getStableIdentity(), e])
     );
     this._tupletElements = [];
-    if (this.voiceBar === undefined || this.voiceBarElement === undefined) {
+    if (this.voiceBar === undefined || this.voiceBarContainer === undefined) {
       return;
     }
 
-    const beatElements = this.voiceBarElement.beatElements as TabBeatElement[];
+    const beatElements = this.voiceBarContainer
+      .beatElements as TabBeatElement[];
 
     for (const tupletGroup of this.voiceBar.tupletGroups) {
       const tupletTabBeatElements = beatElements.filter((b) =>
@@ -218,7 +223,7 @@ export class VoiceBarRhythmElement implements NotationElement {
     }
 
     this._boundingBox.setDimensions(
-      this.voiceBarElement?.boundingBox.width ??
+      this.voiceBarContainer?.boundingBox.width ??
         this.barElement.voiceContentWidth,
       this.trackElement.layoutDimensions.DURATIONS_HEIGHT +
         this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT
@@ -226,10 +231,10 @@ export class VoiceBarRhythmElement implements NotationElement {
   }
 
   layout(): void {
-    const prevVoiceBarRhythmElement =
-      this.barElement.getPrevVoiceBarRhythmElement(this);
+    const prevVoiceBarRhythmContainer =
+      this.barElement.getPrevVoiceBarRhythmContainer(this);
     const y =
-      prevVoiceBarRhythmElement?.boundingBox.bottom ??
+      prevVoiceBarRhythmContainer?.boundingBox.bottom ??
       this.barElement.voiceContentHeight;
     this._boundingBox.setCoords(this.barElement.startGap.right, y);
 
@@ -328,17 +333,17 @@ export class VoiceBarRhythmElement implements NotationElement {
     return `voice-bar-rhythm:${this.barElement.getStableIdentity()}:${this.voiceNumber}`;
   }
 
-  refreshOwnedNotationElements(): NotationElement[] {
+  refreshOwnedNotationNodes(): NotationNode[] {
     return [
       this,
       ...this._beatRhythmElements.flatMap((element) =>
-        element.refreshOwnedNotationElements()
+        element.refreshOwnedNotationNodes()
       ),
       ...this._beamSegments.flatMap((element) =>
-        element.refreshOwnedNotationElements()
+        element.refreshOwnedNotationNodes()
       ),
       ...this._tupletElements.flatMap((element) =>
-        element.refreshOwnedNotationElements()
+        element.refreshOwnedNotationNodes()
       ),
     ];
   }

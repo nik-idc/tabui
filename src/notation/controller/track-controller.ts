@@ -15,10 +15,15 @@ import {
 import { TrackElement, BeatElement, NoteElement } from "./element";
 import { TrackControllerEditor } from "./editor/track-controller-editor";
 import { Rect } from "../../shared";
-import { SelectedNote, SelectedMoveDirection } from "./selection/selected-note";
+import {
+  SelectionCursor,
+  SelectedMoveDirection,
+} from "./selection/selection-cursor";
 import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
+import { ScoreLayoutPlanner } from "./layout/score-layout-plan";
+import { TabUILayoutMode } from "../../config/tabui-config";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -44,12 +49,19 @@ export class TrackController {
     track: Track,
     layoutDimensions: EditorLayoutDimensions,
     scorePlayer?: ScorePlayer,
-    editingEnabled: boolean = true
+    editingEnabled: boolean = true,
+    scoreLayoutPlanner?: ScoreLayoutPlanner,
+    layoutMode: TabUILayoutMode = TabUILayoutMode.Wrapped
   ) {
     this.track = track;
     this.layoutDimensions = layoutDimensions;
 
-    this._trackElement = new TrackElement(this.track, this.layoutDimensions);
+    this._trackElement = new TrackElement(
+      this.track,
+      this.layoutDimensions,
+      scoreLayoutPlanner,
+      layoutMode
+    );
     this._trackControllerEditor = new TrackControllerEditor(
       this._trackElement,
       editingEnabled
@@ -455,14 +467,14 @@ export class TrackController {
   }
 
   /** Currently selected note, or undefined if no note is selected */
-  public get selectedNote(): SelectedNote | undefined {
-    return this._trackControllerEditor.selectionManager.selectedNote;
+  public get selectionCursor(): SelectionCursor | undefined {
+    return this._trackControllerEditor.selectionManager.selectionCursor;
   }
 
   /** True if a note is currently selected */
   public get hasSelectedNote(): boolean {
     return (
-      this._trackControllerEditor.selectionManager.selectedNote !== undefined
+      this._trackControllerEditor.selectionManager.selectionCursor !== undefined
     );
   }
 
@@ -760,6 +772,11 @@ export class TrackController {
     }
 
     return this._trackElement.getBeatElement(this._scorePlayer.lastStartedBeat);
+  }
+
+  /** Last started active-track beat model, independent of materialization. */
+  public get playerLastStartedBeat(): Beat | undefined {
+    return this._scorePlayer?.lastStartedBeat;
   }
 
   /** Current Web Audio clock time used by playback cursor animation. */
