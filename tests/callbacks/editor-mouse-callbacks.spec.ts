@@ -11,6 +11,7 @@ function createMouseEvent(
     pageX: x,
     pageY: y,
     buttons,
+    button: 0,
   } as MouseEvent;
 }
 
@@ -227,7 +228,7 @@ describe("EditorMouseDefCallbacks", () => {
     (callbacks as any)._selectionDragController = dragController;
     setIsPlaying(true);
 
-    callbacks.onNotePointerDown(createPointerEvent(1, 2), noteElement);
+    callbacks.onNotePointerDown(createMouseEvent(1, 2), noteElement);
     callbacks.onBeatPointerDown(createPointerEvent(1, 2), beatElement);
     callbacks.onBeatPointerMove(createPointerEvent(20, 2), beatElement);
     callbacks.onNotePointerEnter(createPointerEvent(20, 2), noteElement);
@@ -269,14 +270,14 @@ describe("EditorMouseDefCallbacks", () => {
     };
     (callbacks as any)._selectionDragController = dragController;
 
-    callbacks.onNotePointerDown(createPointerEvent(1, 2), noteElement);
+    callbacks.onNotePointerDown(createMouseEvent(1, 2), noteElement);
     expect(dragController.begin).toHaveBeenCalledWith(
       noteElement.beatElement,
       { x: 1, y: 2 },
-      1
+      0
     );
 
-    callbacks.onBeatPointerMove(createPointerEvent(5, 6), beatElement);
+    callbacks.onBeatPointerMove(createMouseEvent(5, 6), beatElement);
     expect(
       notationComponent.trackController.clearSelection
     ).toHaveBeenCalledTimes(1);
@@ -288,13 +289,13 @@ describe("EditorMouseDefCallbacks", () => {
       notationComponent.trackController.selectBeat
     ).toHaveBeenNthCalledWith(2, beatElement);
 
-    callbacks.onBeatPointerMove(createPointerEvent(7, 8), beatElement);
+    callbacks.onBeatPointerMove(createMouseEvent(7, 8), beatElement);
     expect(
       notationComponent.trackController.selectBeat
     ).toHaveBeenNthCalledWith(3, beatElement);
 
-    callbacks.onBeatPointerUp(createPointerEvent(7, 8));
-    expect(dragController.finish).toHaveBeenCalledWith(1);
+    callbacks.onBeatPointerUp(createMouseEvent(7, 8));
+    expect(dragController.finish).toHaveBeenCalledWith(0);
   });
 
   test("idle global pointerup does not render", () => {
@@ -314,8 +315,8 @@ describe("EditorMouseDefCallbacks", () => {
     callbacks.bind([noteRenderer]);
     callbacks.bind([noteRenderer]);
 
-    expect(win.addEventListener).toHaveBeenCalledTimes(2);
-    expect(renderer.attachBeatInteractionEvent).toHaveBeenCalledTimes(5);
+    expect(win.addEventListener).toHaveBeenCalledTimes(1);
+    expect(renderer.attachBeatInteractionEvent).toHaveBeenCalledTimes(4);
     expect(noteRenderer.attachMouseEvent).toHaveBeenCalledTimes(5);
 
     noteRenderer.trigger("click", createMouseEvent(10, 10));
@@ -327,8 +328,8 @@ describe("EditorMouseDefCallbacks", () => {
     const noteSelectionCallsBeforeUnbind =
       notationComponent.trackController.selectNoteElement.mock.calls.length;
     callbacks.unbind();
-    expect(win.removeEventListener).toHaveBeenCalledTimes(2);
-    expect(renderer.detachBeatInteractionEvent).toHaveBeenCalledTimes(5);
+    expect(win.removeEventListener).toHaveBeenCalledTimes(1);
+    expect(renderer.detachBeatInteractionEvent).toHaveBeenCalledTimes(4);
     expect(noteRenderer.detachMouseEvent).toHaveBeenCalledTimes(5);
     expect(noteRenderer.hasHandler("click")).toBe(false);
 
@@ -338,7 +339,7 @@ describe("EditorMouseDefCallbacks", () => {
     ).toHaveBeenCalledTimes(noteSelectionCallsBeforeUnbind);
 
     callbacks.bind([noteRenderer]);
-    expect(win.addEventListener).toHaveBeenCalledTimes(4);
+    expect(win.addEventListener).toHaveBeenCalledTimes(2);
     expect(noteRenderer.attachMouseEvent).toHaveBeenCalledTimes(10);
   });
 
@@ -370,7 +371,7 @@ describe("EditorMouseDefCallbacks", () => {
     ).toHaveBeenCalledTimes(selectedCallsBeforeOldTrigger + 1);
   });
 
-  test("touch and pen drags use their owning pointer only", () => {
+  test("pointer events do not start or update drag selection", () => {
     const { callbacks, beatElement, notationComponent } = createHarness();
     const dragController = {
       begin: jest.fn(),
@@ -399,18 +400,9 @@ describe("EditorMouseDefCallbacks", () => {
     );
     callbacks.onBeatPointerUp(createPointerEvent(4, 2, 8, "pen", false));
 
-    expect(dragController.begin).toHaveBeenCalledTimes(1);
-    expect(dragController.begin).toHaveBeenCalledWith(
-      beatElement,
-      { x: 1, y: 2 },
-      7
-    );
-    expect(dragController.handleMove).toHaveBeenCalledWith(
-      { x: 4, y: 2 },
-      beatElement,
-      7
-    );
-    expect(dragController.finish).toHaveBeenCalledWith(8);
+    expect(dragController.begin).not.toHaveBeenCalled();
+    expect(dragController.handleMove).not.toHaveBeenCalled();
+    expect(dragController.finish).not.toHaveBeenCalled();
     expect(
       notationComponent.trackController.clearSelection
     ).not.toHaveBeenCalled();

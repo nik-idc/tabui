@@ -1371,7 +1371,7 @@ describe("ScorePlayer", () => {
     });
 
     const player = new ScorePlayer(score, track, {
-      preloadAudio: false,
+      preloadAudio: true,
       samples: {
         [ElectricGuitarTone.Clean]: {
           url: "/samples/clean-electric-guitar.wav",
@@ -1383,6 +1383,7 @@ describe("ScorePlayer", () => {
         },
       },
     });
+    await player.initialize();
     await player.start({ startBeat: firstBeatOf(bar) });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -1393,6 +1394,37 @@ describe("ScorePlayer", () => {
     expect(createdBufferSources[0].playbackRate.value).toBe(1);
     expect(createdBufferSources[0].start).toHaveBeenCalledWith(0.05);
     expect(createdOscillators).toHaveLength(0);
+  });
+
+  test("starts with oscillator fallback while configured samples load", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    let resolveFetch: (() => void) | undefined;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              ok: true,
+              arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+            });
+        })
+    );
+    const player = new ScorePlayer(score, track, {
+      preloadAudio: false,
+      samples: {
+        [ElectricGuitarTone.Clean]: {
+          url: "/samples/slow-clean-electric-guitar.wav",
+          rootFrequency: getNoteFrequency(firstBeatOf(bar).notes![0]),
+        },
+      },
+    });
+
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(player.playbackState).toBe(PlaybackState.Playing);
+    expect(oscillatorFrequencies()).toHaveLength(1);
+    resolveFetch?.();
   });
 
   test("preloads configured score samples without starting playback", async () => {
@@ -1450,7 +1482,7 @@ describe("ScorePlayer", () => {
 
     const noteFrequency = getNoteFrequency(firstBeatOf(bar).notes![0]);
     const player = new ScorePlayer(score, track, {
-      preloadAudio: false,
+      preloadAudio: true,
       samples: {
         [ElectricGuitarTone.Clean]: {
           url: "/samples/clean.wav",
@@ -1462,6 +1494,7 @@ describe("ScorePlayer", () => {
         },
       },
     });
+    await player.initialize();
     await player.start({ startBeat: firstBeatOf(bar) });
 
     expect(fetchMock).toHaveBeenCalledWith("/samples/clean.wav");
