@@ -92,8 +92,16 @@ function setBarDurations(
 }
 
 jest.mock("../../src/player", () => ({
+  PlaybackState: {
+    Idle: "idle",
+    Starting: "starting",
+    Playing: "playing",
+  },
   ScorePlayer: class {
     public isPlaying = false;
+    public get playbackState(): "idle" | "playing" {
+      return this.isPlaying ? "playing" : "idle";
+    }
     public isLooped = false;
     public lastStartedBeat: Beat | undefined = undefined;
     public playbackAnchorBeat: Beat | undefined = undefined;
@@ -119,7 +127,7 @@ class TrackController extends BaseTrackController {
     track: ConstructorParameters<typeof BaseTrackController>[0],
     layoutDimensions: ConstructorParameters<typeof BaseTrackController>[1]
   ) {
-    super(track, layoutDimensions, new ScorePlayer(track.score, track, {}));
+    super(track, layoutDimensions, new ScorePlayer(track.score, track));
   }
 }
 
@@ -139,7 +147,7 @@ describe("TrackController", () => {
       controller.syncTrackPlaybackState();
       controller.syncMasterPlaybackState();
     }).not.toThrow();
-    expect(controller.isPlaying).toBe(false);
+    expect(controller.playbackState).toBe("idle");
     expect(controller.isLooped).toBe(false);
     expect(controller.playerCurrentTime).toBeUndefined();
     expect(controller.playerRunId).toBeUndefined();

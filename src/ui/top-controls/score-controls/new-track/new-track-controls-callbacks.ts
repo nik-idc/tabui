@@ -112,7 +112,7 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
 
   onConfirmClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaying) {
+    if (controller.isPlaybackActive) {
       this._newTrackComponent.template.dialog.close();
       return;
     }

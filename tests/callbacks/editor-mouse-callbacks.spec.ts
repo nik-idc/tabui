@@ -75,7 +75,10 @@ function createHarness() {
       selectBeat: jest.fn(),
       clearSelection: jest.fn(),
       restartPlayerFromBeat: jest.fn(),
-      get isPlaying() {
+      get playbackState() {
+        return isPlaying ? "playing" : "idle";
+      },
+      get isPlaybackActive() {
         return isPlaying;
       },
       get activeVoiceNumber() {

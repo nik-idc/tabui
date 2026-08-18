@@ -67,6 +67,7 @@ export class NotationComponent {
       this.config.playback,
       onPlaybackError
     );
+    void this._scorePlayer.initialize();
     this._trackController = new TrackController(
       this.score.tracks[0],
       this.layoutDimensions,

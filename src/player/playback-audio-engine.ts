@@ -1,4 +1,4 @@
-import { ResolvedPlaybackConfig } from "../config/tabui-config";
+import { ResolvedPlaybackSampleConfigs } from "../config/tabui-config";
 import {
   Beat,
   GuitarNote,
@@ -18,7 +18,7 @@ import type {
 /** Owns Web Audio resources and renders scheduled score material. */
 export class PlaybackAudioEngine {
   private readonly _score: Score;
-  private readonly _playbackConfig: ResolvedPlaybackConfig;
+  private readonly _playbackSamples: ResolvedPlaybackSampleConfigs;
   private _sampleManager?: PlaybackSampleManager;
   private _noteScheduler?: PlaybackNoteScheduler;
   private _scheduledAudioNodes: Set<ScheduledAudioNode>;
@@ -26,9 +26,9 @@ export class PlaybackAudioEngine {
   private _masterAudioBus?: MasterAudioBus;
   private _audioContext?: AudioContext;
 
-  constructor(score: Score, playbackConfig: ResolvedPlaybackConfig) {
+  constructor(score: Score, playbackSamples: ResolvedPlaybackSampleConfigs) {
     this._score = score;
-    this._playbackConfig = playbackConfig;
+    this._playbackSamples = playbackSamples;
     this._scheduledAudioNodes = new Set();
     this._trackAudioBuses = new Map();
   }
@@ -117,7 +117,7 @@ export class PlaybackAudioEngine {
     try {
       this._sampleManager = new PlaybackSampleManager(
         audioContext,
-        this._playbackConfig
+        this._playbackSamples
       );
       this._noteScheduler = new PlaybackNoteScheduler(
         audioContext,
@@ -160,7 +160,9 @@ export class PlaybackAudioEngine {
     if (this._sampleManager === undefined) {
       throw Error("Playback sample manager is not initialized");
     }
-    await this._sampleManager.loadConfiguredSamples();
+    await this._sampleManager.loadSamplesForTones(
+      this._score.tracks.map((track) => track.context.instrument.tone)
+    );
   }
 
   private noteIsSlideTarget(note: unknown): boolean {

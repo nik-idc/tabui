@@ -30,7 +30,8 @@ export class SideControlsTemplateRenderer {
 
   public render(): void {
     const controller = this.notationComponent.trackController;
-    const editingDisabled = !controller.editingEnabled || controller.isPlaying;
+    const editingDisabled =
+      !controller.editingEnabled || controller.isPlaybackActive;
     this.template.container.inert = editingDisabled;
     this.template.container.classList.toggle(
       "tu-editing-disabled",

@@ -1,6 +1,6 @@
 import { SelectionCursorSnapshot } from "./notation/controller/selection";
 import { Beat, Track, VoiceNumber } from "./notation/model";
-import { PlaybackErrorCode } from "./player";
+import { PlaybackErrorCode, PlaybackState } from "./player";
 
 /** Stable host-observable editor state captured at a change boundary. */
 export interface TabUIEditorStateSnapshot {
@@ -8,8 +8,8 @@ export interface TabUIEditorStateSnapshot {
   readonly activeTrack: Track;
   /** Score-wide playback state. */
   readonly playback: {
-    /** Whether playback is active or starting. */
-    readonly isPlaying: boolean;
+    /** Current score transport state. */
+    readonly state: PlaybackState;
     /** Whether playback loop mode is enabled. */
     readonly isLooped: boolean;
   };

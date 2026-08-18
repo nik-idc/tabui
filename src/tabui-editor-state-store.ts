@@ -34,7 +34,7 @@ export class TabUIEditorStateStore {
     return {
       activeTrack: controller.track,
       playback: {
-        isPlaying: controller.isPlaying,
+        state: controller.playbackState,
         isLooped: controller.isLooped,
       },
       selection: {

@@ -9,6 +9,7 @@ import {
   TrackEventArgs,
   TrackEventType,
 } from "../../../shared/events";
+import { PlaybackState } from "../../../player";
 
 type CursorAnimation = {
   startX: number;
@@ -313,7 +314,7 @@ export class PlayerOverlayRenderer {
   }
 
   public render(): void {
-    if (this.trackController.isPlaying) {
+    if (this.trackController.playbackState === PlaybackState.Playing) {
       this.renderPlaying();
     } else {
       this.hide();

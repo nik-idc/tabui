@@ -87,6 +87,9 @@ export function createNotationComponentMock() {
   return {
     trackController: {
       isPlaying: false,
+      get isPlaybackActive() {
+        return this.isPlaying;
+      },
       editingEnabled: true,
       startPlayer: jest.fn(),
       stopPlayer: jest.fn(),

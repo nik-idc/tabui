@@ -1,4 +1,4 @@
-import { ScorePlayer } from "../../player";
+import { PlaybackState, ScorePlayer } from "../../player";
 import type { PlaybackOptions } from "../../player";
 import {
   Track,
@@ -104,14 +104,18 @@ export class TrackController {
 
   /** Clears edit selection and seeks active playback to the provided beat. */
   public restartPlayerFromBeat(beat: Beat): void {
-    if (!this._scorePlayer?.isPlaying) {
+    const scorePlayer = this._scorePlayer;
+    if (
+      scorePlayer === undefined ||
+      scorePlayer.playbackState === PlaybackState.Idle
+    ) {
       return;
     }
 
     this._trackControllerEditor.clearSelection();
     this._trackControllerEditor.clearSelectedNote();
-    this._scorePlayer.clearSelectionLoopSection();
-    void this._scorePlayer.start({ startBeat: beat });
+    scorePlayer.clearSelectionLoopSection();
+    void scorePlayer.start({ startBeat: beat });
   }
 
   private getBarPlaybackStartBeat(
@@ -183,7 +187,11 @@ export class TrackController {
 
   /** Selects the first bar and seeks active playback to it. */
   public selectFirstBar(): void {
-    if (!this._scorePlayer?.isPlaying) {
+    const scorePlayer = this._scorePlayer;
+    if (
+      scorePlayer === undefined ||
+      scorePlayer.playbackState === PlaybackState.Idle
+    ) {
       const end = this._trackControllerEditor.selectionManager.selectionEndBeat;
       if (end !== undefined) {
         this.extendSelectionToBar(end.voiceBar.bar.staff.bars[0]);
@@ -193,7 +201,7 @@ export class TrackController {
       return;
     }
 
-    const playbackAnchorBeat = this._scorePlayer.playbackAnchorBeat;
+    const playbackAnchorBeat = scorePlayer.playbackAnchorBeat;
     if (playbackAnchorBeat === undefined) {
       return;
     }
@@ -211,7 +219,11 @@ export class TrackController {
 
   /** Selects the previous bar and seeks active playback to it. */
   public selectPreviousBar(): void {
-    if (!this._scorePlayer?.isPlaying) {
+    const scorePlayer = this._scorePlayer;
+    if (
+      scorePlayer === undefined ||
+      scorePlayer.playbackState === PlaybackState.Idle
+    ) {
       const end = this._trackControllerEditor.selectionManager.selectionEndBeat;
       if (end !== undefined) {
         const previousBar = end.voiceBar.bar.staff.getPrevBar(end.voiceBar.bar);
@@ -224,7 +236,7 @@ export class TrackController {
       return;
     }
 
-    const playbackAnchorBeat = this._scorePlayer.playbackAnchorBeat;
+    const playbackAnchorBeat = scorePlayer.playbackAnchorBeat;
     if (playbackAnchorBeat === undefined) {
       return;
     }
@@ -245,7 +257,11 @@ export class TrackController {
 
   /** Selects the next bar and seeks active playback to it. */
   public selectNextBar(): void {
-    if (!this._scorePlayer?.isPlaying) {
+    const scorePlayer = this._scorePlayer;
+    if (
+      scorePlayer === undefined ||
+      scorePlayer.playbackState === PlaybackState.Idle
+    ) {
       const end = this._trackControllerEditor.selectionManager.selectionEndBeat;
       if (end !== undefined) {
         const nextBar = end.voiceBar.bar.staff.getNextBar(end.voiceBar.bar);
@@ -258,7 +274,7 @@ export class TrackController {
       return;
     }
 
-    const playbackAnchorBeat = this._scorePlayer.playbackAnchorBeat;
+    const playbackAnchorBeat = scorePlayer.playbackAnchorBeat;
     if (playbackAnchorBeat === undefined) {
       return;
     }
@@ -279,7 +295,11 @@ export class TrackController {
 
   /** Selects the last bar and seeks active playback to it. */
   public selectLastBar(): void {
-    if (!this._scorePlayer?.isPlaying) {
+    const scorePlayer = this._scorePlayer;
+    if (
+      scorePlayer === undefined ||
+      scorePlayer.playbackState === PlaybackState.Idle
+    ) {
       const end = this._trackControllerEditor.selectionManager.selectionEndBeat;
       if (end !== undefined) {
         const bars = end.voiceBar.bar.staff.bars;
@@ -290,7 +310,7 @@ export class TrackController {
       return;
     }
 
-    const playbackAnchorBeat = this._scorePlayer.playbackAnchorBeat;
+    const playbackAnchorBeat = scorePlayer.playbackAnchorBeat;
     if (playbackAnchorBeat === undefined) {
       return;
     }
@@ -328,14 +348,14 @@ export class TrackController {
   }
 
   public moveTrack(track: Track, targetIndex: number): boolean {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return false;
     }
     return this._trackControllerEditor.moveTrack(track, targetIndex);
   }
 
   public setScoreName(score: Score, name: string): boolean {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return false;
     }
     return this._trackControllerEditor.setScoreName(score, name);
@@ -362,21 +382,21 @@ export class TrackController {
     instrument: MusicInstrument,
     name: string
   ): Track | undefined {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return undefined;
     }
     return this._trackControllerEditor.addTrack(score, instrument, name);
   }
 
   public removeTrack(score: Score, track: Track): Track | undefined {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return undefined;
     }
     return this._trackControllerEditor.removeTrack(score, track);
   }
 
   public setTrackName(track: Track, name: string): boolean {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return false;
     }
     return this._trackControllerEditor.setTrackName(track, name);
@@ -419,7 +439,7 @@ export class TrackController {
     instrument: MusicInstrument,
     mode: TrackInstrumentChangeMode
   ): boolean {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return false;
     }
     return this._trackControllerEditor.setTrackInstrument(
@@ -431,7 +451,7 @@ export class TrackController {
 
   /** Undo previous action */
   public undo(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.undoCommand();
@@ -440,16 +460,21 @@ export class TrackController {
 
   /** Redo previous action */
   public redo(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.redoCommand();
     this._trackControllerEditor.syncSelection();
   }
 
-  /** True while score playback is active. */
-  public get isPlaying(): boolean {
-    return this._scorePlayer?.isPlaying ?? false;
+  /** Current score transport state. */
+  public get playbackState(): PlaybackState {
+    return this._scorePlayer?.playbackState ?? PlaybackState.Idle;
+  }
+
+  /** True while score transport is starting or playing. */
+  public get isPlaybackActive(): boolean {
+    return this.playbackState !== PlaybackState.Idle;
   }
 
   /** True while score playback is looped. */
@@ -488,7 +513,7 @@ export class TrackController {
    * @param newFret New fret value (null to clear)
    */
   public setSelectedNoteFret(newFret: number | null): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setSelectedNoteFret(newFret);
@@ -499,14 +524,14 @@ export class TrackController {
    * @param newDuration New duration
    */
   public setDuration(newDuration: NoteDuration): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setDuration(newDuration);
   }
 
   public setSelectedBeatRest(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setSelectedBeatRest();
@@ -517,7 +542,7 @@ export class TrackController {
    * @param newDots New dot count
    */
   public setDots(newDots: number): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setDots(newDots);
@@ -532,7 +557,7 @@ export class TrackController {
     normalCount: number,
     tupletCount: number
   ): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setSelectedBeatsTuplet(
@@ -546,7 +571,7 @@ export class TrackController {
    * @param newTempo New tempo value
    */
   public setSelectedBarTempo(newTempo: number): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setSelectedBarTempo(newTempo);
@@ -561,7 +586,7 @@ export class TrackController {
     beatsCount?: number,
     duration?: NoteDuration
   ): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setSelectedBarTimeSignature(
@@ -575,7 +600,7 @@ export class TrackController {
    * @param status New repeat status
    */
   public setSelectedBarRepeatStatus(status: BarRepeatStatus): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setSelectedBarRepeatStatus(status);
@@ -590,7 +615,7 @@ export class TrackController {
     type: TechniqueType,
     bendOptions?: BendTechniqueOptions
   ): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setTechnique(type, bendOptions);
@@ -601,7 +626,7 @@ export class TrackController {
    * @param direction Move direction
    */
   public moveSelectedNote(direction: SelectedMoveDirection): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.moveSelectedNote(direction);
@@ -618,7 +643,7 @@ export class TrackController {
    * Paste from clipboard at the current selection
    */
   public paste(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.paste();
@@ -628,56 +653,56 @@ export class TrackController {
    * Delete all selected beats
    */
   public deleteSelectedBeats(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.deleteSelectedBeats();
   }
 
   public insertBeatBeforeSelected(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.insertBeatBeforeSelected();
   }
 
   public insertBeatAfterSelected(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.insertBeatAfterSelected();
   }
 
   public removeSelectedBeat(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.removeSelectedBeat();
   }
 
   public setActiveVoiceNumber(voiceNumber: VoiceNumber): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.setActiveVoiceNumber(voiceNumber);
   }
 
   public insertBarBeforeSelected(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.insertBarBeforeSelected();
   }
 
   public insertBarAfterSelected(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.insertBarAfterSelected();
   }
 
   public removeSelectedBar(): void {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.removeSelectedBar();
@@ -717,7 +742,7 @@ export class TrackController {
 
   /** Anchors a beat range at the current cursor. */
   public setSelectionAnchor(): boolean {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return false;
     }
 
@@ -726,7 +751,7 @@ export class TrackController {
 
   /** Clears the beat range and restores its anchor as the current cursor. */
   public clearSelectionRange(): boolean {
-    if (this.isPlaying) {
+    if (this.playbackState !== PlaybackState.Idle) {
       return false;
     }
 

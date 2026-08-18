@@ -99,7 +99,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
 
   onNewTrackButtonClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaying) {
+    if (controller.isPlaybackActive) {
       return;
     }
     this._captureKeyboard();
@@ -122,7 +122,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
 
   onScoreNameChanged(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaying) {
+    if (controller.isPlaybackActive) {
       return;
     }
     this._notationComponent.trackController.setScoreName(

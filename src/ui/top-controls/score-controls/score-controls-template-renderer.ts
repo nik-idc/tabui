@@ -80,7 +80,8 @@ export class ScoreControlsTemplateRenderer {
       "New track"
     );
     const controller = this.notationComponent.trackController;
-    const editingDisabled = !controller.editingEnabled || controller.isPlaying;
+    const editingDisabled =
+      !controller.editingEnabled || controller.isPlaybackActive;
     this.template.newTrackButton.classList.toggle(
       "tu-disabled-img",
       editingDisabled
@@ -122,7 +123,7 @@ export class ScoreControlsTemplateRenderer {
     this.template.scoreNameInput.classList.add(cssClass);
     this.template.scoreNameInput.value = this._currentScoreName;
     const controller = this.notationComponent.trackController;
-    const readOnly = !controller.editingEnabled || controller.isPlaying;
+    const readOnly = !controller.editingEnabled || controller.isPlaybackActive;
     this.template.scoreNameInput.disabled = readOnly;
     this.template.scoreNameInput.tabIndex = readOnly ? -1 : 0;
   }

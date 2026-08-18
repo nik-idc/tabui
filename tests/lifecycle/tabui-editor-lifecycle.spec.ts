@@ -29,7 +29,7 @@ jest.mock("../../src/notation/notation-component", () => ({
         emitPlaybackError: onPlaybackError,
         trackController: {
           track: score.tracks[0],
-          isPlaying: false,
+          playbackState: "idle",
           isLooped: false,
           activeVoiceNumber: 1,
           selectionBeats: [],
@@ -538,7 +538,7 @@ describe("TabUIEditor lifecycle", () => {
     const notation = jest.mocked(NotationComponent).mock.results[0].value;
     const selectedBeat = { uuid: 10 };
     const selectionCursor = { uuid: 11 };
-    notation.trackController.isPlaying = true;
+    notation.trackController.playbackState = "playing";
     notation.trackController.isLooped = true;
     notation.trackController.activeVoiceNumber = 2;
     notation.trackController.selectionBeats = [selectedBeat];
@@ -554,7 +554,7 @@ describe("TabUIEditor lifecycle", () => {
 
     expect(state).toEqual({
       activeTrack: editor.score.tracks[0],
-      playback: { isPlaying: true, isLooped: true },
+      playback: { state: "playing", isLooped: true },
       selection: {
         activeVoiceNumber: 2,
         beats: [selectedBeat],

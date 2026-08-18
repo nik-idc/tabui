@@ -6,6 +6,7 @@ import { Point } from "../../shared";
 import { UIComponent } from "../../ui";
 import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
+import { PlaybackState } from "../../player";
 
 export interface EditorMouseCallbacks {
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
@@ -98,7 +99,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const tc = this.notationComponent.trackController;
 
     this.notationComponent.renderer.hideSelectionPreview();
-    if (tc.isPlaying) {
+    if (tc.playbackState !== PlaybackState.Idle) {
       this._selectionDragController.reset();
       tc.restartPlayerFromBeat(noteElement.beatElement.beat);
       this.renderFunc(RenderType.SelectionRefresh);
@@ -128,7 +129,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     event: PointerEvent,
     noteElement: NoteElement
   ): void {
-    if (this.notationComponent.trackController.isPlaying) {
+    if (
+      this.notationComponent.trackController.playbackState !==
+      PlaybackState.Idle
+    ) {
       return;
     }
 
@@ -158,7 +162,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     noteElement: NoteElement
   ): void {
     const tc = this.notationComponent.trackController;
-    if (tc.isPlaying) {
+    if (tc.playbackState !== PlaybackState.Idle) {
       this._selectionDragController.reset();
       this.notationComponent.renderer.hideSelectionPreview();
       return;
@@ -200,7 +204,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     event: PointerEvent,
     noteElement: NoteElement
   ): void {
-    if (this.notationComponent.trackController.isPlaying) {
+    if (
+      this.notationComponent.trackController.playbackState !==
+      PlaybackState.Idle
+    ) {
       this._selectionDragController.reset();
       return;
     }
@@ -228,7 +235,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   public onBeatClick(event: MouseEvent, beatElement: BeatElement): void {
     void event;
     const tc = this.notationComponent.trackController;
-    if (!tc.isPlaying) {
+    if (tc.playbackState === PlaybackState.Idle) {
       return;
     }
 
@@ -245,7 +252,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     event: PointerEvent,
     beatElement: BeatElement
   ): void {
-    if (this.notationComponent.trackController.isPlaying) {
+    if (
+      this.notationComponent.trackController.playbackState !==
+      PlaybackState.Idle
+    ) {
       return;
     }
 
@@ -268,7 +278,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     beatElement: BeatElement
   ): void {
     const tc = this.notationComponent.trackController;
-    if (tc.isPlaying) {
+    if (tc.playbackState !== PlaybackState.Idle) {
       this._selectionDragController.reset();
       return;
     }

@@ -29,7 +29,7 @@ describe("ScoreControlsDefaultCallbacks", () => {
     const renderer = Object.create(ScoreControlsTemplateRenderer.prototype);
     renderer.template = { newTrackButton, scoreNameInput };
     renderer.notationComponent = {
-      trackController: { isPlaying: true, editingEnabled: true },
+      trackController: { isPlaybackActive: true, editingEnabled: true },
     };
     renderer.assetsPath = { baseUrl: "", variant: "light" };
     renderer._currentScoreName = "Score";
