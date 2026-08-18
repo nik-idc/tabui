@@ -1,4 +1,4 @@
-import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
+import { TabNoteSlotElement } from "../../src/notation/controller/element/note/tab-note-slot-element";
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { SVGTabNoteRenderer } from "../../src/notation/render/svg/svg-tab-note-renderer";
 import { SelectionOverlayRenderer } from "../../src/notation/render/svg/selection-overlay-renderer";
@@ -16,9 +16,9 @@ function getNoteElement(controller: TrackController, note: GuitarNote) {
   const noteElement = controller.trackElement.trackLineElements
     .flatMap((line) => line.ownedNotationNodes)
     .find((element) => {
-      return element instanceof TabNoteElement && element.note === note;
+      return element instanceof TabNoteSlotElement && element.note === note;
     });
-  if (!(noteElement instanceof TabNoteElement)) {
+  if (!(noteElement instanceof TabNoteSlotElement)) {
     throw Error("Expected tab note element");
   }
 
@@ -232,7 +232,7 @@ describe("SVGTabNoteRenderer", () => {
     );
   });
 
-  test("selection preview and selected-note outline use identical geometry", () => {
+  test("selection preview and cursor outline use identical geometry", () => {
     const { track, bar } = createScoreGraph();
     const note = bar.getVoiceBar(1)?.beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {

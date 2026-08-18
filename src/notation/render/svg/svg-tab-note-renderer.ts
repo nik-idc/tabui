@@ -1,6 +1,6 @@
 import { NotationElement, TrackController } from "../../controller";
 import { createSVGG, createSVGRect, createSVGText } from "../../../shared";
-import { TabNoteElement } from "../../controller/element/note/tab-note-element";
+import { TabNoteSlotElement } from "../../controller/element/note/tab-note-slot-element";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { NoteValue, VoiceNumber } from "../../model";
 
@@ -11,7 +11,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Guitar note element */
-  noteElement: TabNoteElement;
+  noteElement: TabNoteSlotElement;
 
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
@@ -37,7 +37,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
    */
   constructor(
     trackController: TrackController,
-    noteElement: TabNoteElement,
+    noteElement: TabNoteSlotElement,
     assetsPath: string
   ) {
     this.trackController = trackController;
@@ -71,7 +71,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
-  public updateElementReference(element: TabNoteElement): void {
+  public updateElementReference(element: TabNoteSlotElement): void {
     this.noteElement = element;
   }
 
@@ -408,7 +408,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     eventType: K,
     eventHandler: (
       event: SVGElementEventMap[K],
-      noteElement: TabNoteElement
+      noteElement: TabNoteSlotElement
     ) => void
   ): void {
     if (this._containerGroupSVG === undefined) {

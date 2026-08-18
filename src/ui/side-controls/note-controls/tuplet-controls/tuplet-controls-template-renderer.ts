@@ -80,16 +80,17 @@ export class TupletControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const selectedNote = this.notationComponent.trackController.selectedNote;
+    const selectionCursor =
+      this.notationComponent.trackController.selectionCursor;
 
     let normalInitValue: string;
     let tupletInitValue: string;
     if (
-      selectedNote !== undefined &&
-      selectedNote.beat.tupletSettings !== null
+      selectionCursor !== undefined &&
+      selectionCursor.beat.tupletSettings !== null
     ) {
-      normalInitValue = `${selectedNote.beat.tupletSettings.normalCount}`;
-      tupletInitValue = `${selectedNote.beat.tupletSettings.tupletCount}`;
+      normalInitValue = `${selectionCursor.beat.tupletSettings.normalCount}`;
+      tupletInitValue = `${selectionCursor.beat.tupletSettings.tupletCount}`;
     } else {
       normalInitValue = `${DEFAULT_NORMAL_COUNT}`;
       tupletInitValue = `${DEFAULT_TUPLET_COUNT}`;

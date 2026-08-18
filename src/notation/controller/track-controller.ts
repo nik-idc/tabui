@@ -15,7 +15,10 @@ import {
 import { TrackElement, BeatElement, NoteElement } from "./element";
 import { TrackControllerEditor } from "./editor/track-controller-editor";
 import { Rect } from "../../shared";
-import { SelectedNote, SelectedMoveDirection } from "./selection/selected-note";
+import {
+  SelectionCursor,
+  SelectedMoveDirection,
+} from "./selection/selection-cursor";
 import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
@@ -464,14 +467,14 @@ export class TrackController {
   }
 
   /** Currently selected note, or undefined if no note is selected */
-  public get selectedNote(): SelectedNote | undefined {
-    return this._trackControllerEditor.selectionManager.selectedNote;
+  public get selectionCursor(): SelectionCursor | undefined {
+    return this._trackControllerEditor.selectionManager.selectionCursor;
   }
 
   /** True if a note is currently selected */
   public get hasSelectedNote(): boolean {
     return (
-      this._trackControllerEditor.selectionManager.selectedNote !== undefined
+      this._trackControllerEditor.selectionManager.selectionCursor !== undefined
     );
   }
 

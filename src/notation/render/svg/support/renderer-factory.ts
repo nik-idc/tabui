@@ -8,7 +8,7 @@ import { TrackLineInfoElement } from "../../../controller/element/track/track-li
 import { BarElement } from "../../../controller/element/bar/bar-element";
 import { TabBeatElement } from "../../../controller/element/beat/tab-beat-element";
 import { TabBeatRhythmElement } from "../../../controller/element/beat/tab-beat-rhythm-element";
-import { TabNoteElement } from "../../../controller/element/note/tab-note-element";
+import { TabNoteSlotElement } from "../../../controller/element/note/tab-note-slot-element";
 import { GuitarTechniqueElement } from "../../../controller/element/technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "../../../controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { BeamSegmentElement } from "../../../controller/element/bar/beam-segment-element";
@@ -32,7 +32,7 @@ const RENDERER_CTORS = new Map<NotationElementClass, ElementRendererClass>([
   [TrackLineInfoElement, SVGTrackLineInfoRenderer],
   [BarElement, SVGBarRenderer],
   [TabBeatElement, SVGTabBeatRenderer],
-  [TabNoteElement, SVGTabNoteRenderer],
+  [TabNoteSlotElement, SVGTabNoteRenderer],
   [GuitarTechniqueElement, SVGTechniqueRenderer],
   [GuitarTechniqueLabelElement, SVGTechniqueLabelRenderer],
   [TabBeatRhythmElement, SVGTabBeatRhythmRenderer],

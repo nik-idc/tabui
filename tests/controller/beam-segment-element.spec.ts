@@ -10,12 +10,12 @@ import {
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 function getBarElement(trackElement: TrackElement) {
-  return trackElement.trackLineElements[0].staffLineElements[0]
+  return trackElement.trackLineElements[0].staffLineContainers[0]
     .styleLinesAsArray[0].barElements[0];
 }
 
 function getBarElementAt(trackElement: TrackElement, index: number) {
-  return trackElement.trackLineElements[0].staffLineElements[0]
+  return trackElement.trackLineElements[0].staffLineContainers[0]
     .styleLinesAsArray[0].barElements[index];
 }
 
@@ -34,11 +34,11 @@ function getTupletElements(trackElement: TrackElement, barIndex = 0) {
     .filter((element) => element.constructor.name === "BarTupletGroupElement");
 }
 
-function getVoiceBarRhythmElement(trackElement: TrackElement) {
+function getVoiceBarRhythmContainer(trackElement: TrackElement) {
   return getBarElement(trackElement)
     .refreshOwnedNotationNodes()
     .find(
-      (element) => element.constructor.name === "VoiceBarRhythmElement"
+      (element) => element.constructor.name === "VoiceBarRhythmContainer"
     ) as any;
 }
 
@@ -186,7 +186,7 @@ describe("BeamSegmentElement", () => {
     expect(
       () =>
         new BeamSegmentElement(
-          getVoiceBarRhythmElement(trackElement),
+          getVoiceBarRhythmContainer(trackElement),
           beatElement
         )
     ).toThrow("Beam segment for a beat with a non-beamable duration");

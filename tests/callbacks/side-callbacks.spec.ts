@@ -1,6 +1,6 @@
 import { SideControlsCallbacks } from "../../src/ui/side-controls/side-controls-callbacks";
 import { NoteControlsDefaultCallbacks } from "../../src/ui/side-controls/note-controls/note-controls-callbacks";
-import { TechniqueControlsDefaultCallbacks } from "../../src/ui/side-controls/effect-controls/effect-controls-callbacks";
+import { TechniqueControlsDefaultCallbacks } from "../../src/ui/side-controls/technique-controls/technique-controls-callbacks";
 import { MeasureControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/measure-controls-callbacks";
 
 describe("SideControlsCallbacks", () => {

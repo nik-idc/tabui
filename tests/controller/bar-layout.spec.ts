@@ -59,7 +59,7 @@ function findBeatElement(
   beat: Beat<Guitar>
 ): BeatElement | undefined {
   return trackElement.trackLineElements
-    .flatMap((line) => line.staffLineElements)
+    .flatMap((line) => line.staffLineContainers)
     .flatMap((staffLine) => staffLine.styleLinesAsArray)
     .flatMap((styleLine) => styleLine.barElements)
     .flatMap((barElement) => barElement.beatElements)
@@ -227,7 +227,7 @@ describe("musical beat layout", () => {
     trackElement.update();
 
     const barElements = trackElement.trackLineElements.flatMap((line) =>
-      line.staffLineElements.flatMap((staffLine) =>
+      line.staffLineContainers.flatMap((staffLine) =>
         staffLine.styleLinesAsArray.flatMap(
           (styleLine) => styleLine.barElements
         )
@@ -269,7 +269,7 @@ describe("musical beat layout", () => {
     trackElement.update();
 
     const firstLineBarElements =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
     const lastBar = firstLineBarElements[firstLineBarElements.length - 1];
     expect(lastBar.boundingBox.right).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.WIDTH);
@@ -350,7 +350,7 @@ describe("musical beat layout", () => {
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     const barElement =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
 
     expect(barElement.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.WIDTH);
@@ -878,7 +878,7 @@ describe("single-line score layout", () => {
       findBeatElement(second, secondBeats[1])?.globalCoords.x
     );
     const firstBarElement =
-      first.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0]
+      first.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0]
         .barElements[0];
     for (const beatElement of firstBarElement.beatElements) {
       expect(beatElement.barLocalBoundingBox.right).toBeLessThanOrEqual(

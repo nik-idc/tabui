@@ -33,7 +33,7 @@ jest.mock("../../src/notation/notation-component", () => ({
           isLooped: false,
           activeVoiceNumber: 1,
           selectionBeats: [],
-          selectedNote: undefined,
+          selectionCursor: undefined,
           windowHeight: layoutDimensions.WIDTH / 2,
         },
       })
@@ -537,14 +537,14 @@ describe("TabUIEditor lifecycle", () => {
     editor.init();
     const notation = jest.mocked(NotationComponent).mock.results[0].value;
     const selectedBeat = { uuid: 10 };
-    const selectedNote = { uuid: 11 };
+    const selectionCursor = { uuid: 11 };
     notation.trackController.isPlaying = true;
     notation.trackController.isLooped = true;
     notation.trackController.activeVoiceNumber = 2;
     notation.trackController.selectionBeats = [selectedBeat];
-    notation.trackController.selectedNote = {
+    notation.trackController.selectionCursor = {
       beat: selectedBeat,
-      note: selectedNote,
+      note: selectionCursor,
       noteIndex: 3,
     };
     const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
@@ -558,7 +558,7 @@ describe("TabUIEditor lifecycle", () => {
       selection: {
         activeVoiceNumber: 2,
         beats: [selectedBeat],
-        cursor: { beat: selectedBeat, note: selectedNote, noteIndex: 3 },
+        cursor: { beat: selectedBeat, note: selectionCursor, noteIndex: 3 },
       },
       layout: { width: 666, height: 333 },
     });

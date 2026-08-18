@@ -113,9 +113,10 @@ describe("PlayerOverlayRenderer cursor geometry", () => {
       throw Error("Expected tab beat element");
     }
     const trackLine = beatElement.owningTrackLineElement;
-    const firstStyleLine = trackLine.staffLineElements[0].styleLinesAsArray[0];
+    const firstStyleLine =
+      trackLine.staffLineContainers[0].styleLinesAsArray[0];
     const finalStaffLine =
-      trackLine.staffLineElements[trackLine.staffLineElements.length - 1];
+      trackLine.staffLineContainers[trackLine.staffLineContainers.length - 1];
     const finalStyleLine = finalStaffLine.styleLinesAsArray[0];
     const firstRenderedStaffLine =
       firstStyleLine.barElements[0].staffLinesGlobal[0];

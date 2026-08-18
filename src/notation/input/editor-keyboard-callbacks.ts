@@ -179,12 +179,13 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public clearFretEvent(): void {
-    const selectedNote = this._notationComponent.trackController.selectedNote;
-    if (selectedNote === undefined) {
+    const selectionCursor =
+      this._notationComponent.trackController.selectionCursor;
+    if (selectionCursor === undefined) {
       return;
     }
 
-    const note = selectedNote.note;
+    const note = selectionCursor.note;
     if (note === null || note.noteValue === NoteValue.None) {
       return;
     }

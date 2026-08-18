@@ -15,12 +15,15 @@ import {
   NotationNode,
   NotationNodeType,
 } from "../notation-element";
-import { NotationStyle, StaffLineElement } from "../staff/staff-line-element";
-import { NotationStyleLineElement } from "../staff/notation-style-line-element";
+import {
+  NotationStyle,
+  StaffLineContainer,
+} from "../staff/staff-line-container";
+import { NotationStyleLineContainer } from "../staff/notation-style-line-container";
 import { BeamSegmentElement } from "./beam-segment-element";
 import { BarTupletGroupElement } from "./bar-tuplet-group-element";
 import { TabBeatElement } from "../beat/tab-beat-element";
-import { SheetBeatElement } from "../beat/sheet-beat-element";
+import { SheetBeatContainer } from "../beat/sheet-beat-container";
 import { BeatElement, getBeatWidth } from "../beat/beat-element";
 import {
   HorLine,
@@ -33,7 +36,7 @@ import type { TrackLineElement } from "../track/track-line-element";
 /**
  * Class that handles geometry & visually relevant info of a bar
  */
-export class VoiceBarElement implements NotationContainer {
+export class VoiceBarContainer implements NotationContainer {
   readonly nodeType = NotationNodeType.Container;
 
   public static createStableIdentity(
@@ -105,7 +108,7 @@ export class VoiceBarElement implements NotationContainer {
       let beatElement: BeatElement;
       switch (this.barElement.notationStyle) {
         case NotationStyle.Classic:
-          beatElement = new SheetBeatElement(beat, this);
+          beatElement = new SheetBeatContainer(beat, this);
           break;
         case NotationStyle.Tablature:
           beatElement = new TabBeatElement(beat, this);
@@ -260,7 +263,7 @@ export class VoiceBarElement implements NotationContainer {
   }
 
   public getStableIdentity(): string {
-    return VoiceBarElement.createStableIdentity(
+    return VoiceBarContainer.createStableIdentity(
       this.barElement.notationStyle,
       this.voiceBar
     );

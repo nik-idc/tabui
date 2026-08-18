@@ -12,7 +12,7 @@ import {
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
 import { TrackElement } from "../../track-element";
 import { BeatElement } from "../../beat/beat-element";
-import { TechGapLineElement } from "../../staff/tech-gap-line-element";
+import { TechGapLineContainer } from "../../staff/tech-gap-line-container";
 import { TechniqueLabelElement } from "../technique-label-element";
 import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
 import type { BarElement } from "../../bar/bar-element";
@@ -26,11 +26,11 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   readonly nodeType = NotationNodeType.Element;
 
   public static createStableIdentity(
-    gapLineElement: TechGapLineElement,
+    gapLineContainer: TechGapLineContainer,
     technique: GuitarTechnique,
     beatElement: BeatElement
   ): string {
-    return `technique-label:${gapLineElement.techLineNumber}:${technique.uuid}:${beatElement.beat.uuid}`;
+    return `technique-label:${gapLineContainer.techLineNumber}:${technique.uuid}:${beatElement.beat.uuid}`;
   }
 
   /** Technique label element's unique identifier */
@@ -38,7 +38,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /** Technique */
   readonly technique: GuitarTechnique;
   /** Parent tech gap line element */
-  readonly gapLineElement: TechGapLineElement;
+  readonly gapLineContainer: TechGapLineContainer;
   /** Parent beat element */
   readonly beatElement: BeatElement;
   /** Root track element */
@@ -46,7 +46,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   readonly voiceNumber = null;
 
   public get owningTrackLineElement(): TrackLineElement {
-    return this.gapLineElement.owningTrackLineElement;
+    return this.gapLineContainer.owningTrackLineElement;
   }
 
   public get owningBarElement(): BarElement {
@@ -64,17 +64,17 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Class that contains an technique label
    * @param technique Technique
    * @param beatElement Corresponding beat element
-   * @param gapLineElement Parent gap line element
+   * @param gapLineContainer Parent gap line container
    */
   constructor(
     technique: GuitarTechnique,
-    gapLineElement: TechGapLineElement,
+    gapLineContainer: TechGapLineContainer,
     beatElement: BeatElement
   ) {
     this.uuid = randomInt();
     this.technique = technique;
-    this.gapLineElement = gapLineElement;
-    this.trackElement = this.gapLineElement.trackElement;
+    this.gapLineContainer = gapLineContainer;
+    this.trackElement = this.gapLineContainer.trackElement;
     this.beatElement = beatElement;
 
     this._boundingBox = new Rect();
@@ -491,7 +491,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
   public getStableIdentity(): string {
     return GuitarTechniqueLabelElement.createStableIdentity(
-      this.gapLineElement,
+      this.gapLineContainer,
       this.technique,
       this.beatElement
     );
@@ -513,7 +513,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       //   barLineLocalCoords.x +
       //   this._boundingBox.x,
       this.beatElement.barLocalCoords.x + this._boundingBox.x,
-      this.gapLineElement.lineLocalCoords.y -
+      this.gapLineContainer.lineLocalCoords.y -
         barLineLocalCoords.y +
         this._boundingBox.y
     );

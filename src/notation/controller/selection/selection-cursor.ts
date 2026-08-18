@@ -34,13 +34,9 @@ export type MoveRightOutput =
   | { result: MoveRightResult.AddedBeat; addedBar: false }
   | { result: MoveRightResult.AddedBar; addedBar: true };
 
-/**
- * Legacy name: this is moving from note-object selection toward an edit cursor
- * position (staff/bar/voice/beat/note lane). Once rests are stabilized, rename
- * to SelectionCursor or similar.
- */
-export class SelectedNote {
-  /** Selected note's staff */
+/** Tracks the editable cursor position across staff, bar, voice, beat, and slot. */
+export class SelectionCursor {
+  /** Cursor's staff. */
   readonly staff: Staff;
 
   /** Index of the selected note's bar */
@@ -49,7 +45,7 @@ export class SelectedNote {
   private _voiceNumber: VoiceNumber = 1;
   /** Index of the selected note's beat (within the bar) */
   private _beatIndex: number = 0;
-  /** Index of the selected note */
+  /** Index of the cursor slot. */
   private _noteIndex: number = 0;
   /** last move right result */
   private _lastMoveRightResult?: MoveRightResult;

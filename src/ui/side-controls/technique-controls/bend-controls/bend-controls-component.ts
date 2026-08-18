@@ -45,7 +45,7 @@ export class BendControlsComponent {
   }
 
   public prepareForOpen(): void {
-    const note = this.notationComponent.trackController.selectedNote?.note;
+    const note = this.notationComponent.trackController.selectionCursor?.note;
     const bend =
       note instanceof GuitarNote
         ? note.techniques.find((t) => t.type === GuitarTechniqueType.Bend)

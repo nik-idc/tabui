@@ -2,7 +2,7 @@ import { NotationComponent } from "../../notation/notation-component";
 import { NoteControlsComponent } from "./note-controls/note-controls-component";
 import { SideControlsTemplate } from "./side-controls-template";
 import { SideControlsTemplateRenderer } from "./side-controls-template-renderer";
-import { TechniqueControlsComponent } from "./effect-controls";
+import { TechniqueControlsComponent } from "./technique-controls";
 import { MeasureControlsComponent } from "./measure-controls";
 import {
   ResolvedTabUIConfig,

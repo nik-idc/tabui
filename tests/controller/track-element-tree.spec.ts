@@ -1,6 +1,6 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
-import { TabNoteElement } from "../../src/notation/controller/element/note/tab-note-element";
+import { TabNoteSlotElement } from "../../src/notation/controller/element/note/tab-note-slot-element";
 import {
   DEFAULT_MASTER_BAR,
   Guitar,
@@ -37,12 +37,12 @@ function getLineOwnershipKeys(trackElement: TrackElement): string[] {
 
 function getAllNoteX(trackElement: TrackElement): number[] {
   return trackElement.trackLineElements.flatMap((trackLineElement) =>
-    trackLineElement.staffLineElements.flatMap((staffLineElement) =>
-      staffLineElement.styleLinesAsArray.flatMap((styleLineElement) =>
+    trackLineElement.staffLineContainers.flatMap((staffLineContainer) =>
+      staffLineContainer.styleLinesAsArray.flatMap((styleLineElement) =>
         styleLineElement.barElements.flatMap((barElement) =>
           barElement.beatElements.map((beatElement) => {
             const noteElement = beatElement.noteElements[0];
-            if (!(noteElement instanceof TabNoteElement)) {
+            if (!(noteElement instanceof TabNoteSlotElement)) {
               throw Error("Expected tab note element");
             }
 
@@ -90,9 +90,9 @@ function expectOutlineToMatchTabStaffLines(trackElement: TrackElement): void {
     throw Error("Expected multi-staff outline");
   }
 
-  const firstStyleLine = trackLine.staffLineElements[0].styleLinesAsArray[0];
+  const firstStyleLine = trackLine.staffLineContainers[0].styleLinesAsArray[0];
   const finalStaffLine =
-    trackLine.staffLineElements[trackLine.staffLineElements.length - 1];
+    trackLine.staffLineContainers[trackLine.staffLineContainers.length - 1];
   const finalStyleLine = finalStaffLine.styleLinesAsArray[0];
   const firstBar = firstStyleLine.barElements[0];
   const lastBar =
@@ -127,7 +127,7 @@ function expectHorizontalUpdateToMatchLegacy(
 
 function findBarElement(trackElement: TrackElement, barUUID: number) {
   for (const trackLine of trackElement.trackLineElements) {
-    for (const staffLine of trackLine.staffLineElements) {
+    for (const staffLine of trackLine.staffLineContainers) {
       for (const styleLine of staffLine.styleLinesAsArray) {
         const barElement = styleLine.barElements.find(
           (element) => element.bar.uuid === barUUID
@@ -229,9 +229,9 @@ describe("TrackElement tree", () => {
     expect(trackElement.trackLineElements).toHaveLength(1);
 
     const line = trackElement.trackLineElements[0];
-    expect(line.staffLineElements).toHaveLength(1);
+    expect(line.staffLineContainers).toHaveLength(1);
 
-    const staffLine = line.staffLineElements[0];
+    const staffLine = line.staffLineContainers[0];
     expect(staffLine.styleLinesAsArray).toHaveLength(1);
 
     const styleLine = staffLine.styleLinesAsArray[0];
@@ -250,7 +250,7 @@ describe("TrackElement tree", () => {
 
     const trackLine = trackElement.trackLineElements[0];
     const trackLineInfo = trackLine.trackLineInfoElement;
-    const staffLine = trackLine.staffLineElements[0];
+    const staffLine = trackLine.staffLineContainers[0];
 
     expect(trackLine.lineLocalCoords?.x).toBeCloseTo(0);
     expect(trackLine.lineLocalCoords?.y).toBeCloseTo(0);
@@ -315,12 +315,12 @@ describe("TrackElement tree", () => {
     trackElement.update();
 
     const trackLine = trackElement.trackLineElements[0];
-    const staffLine = trackLine.staffLineElements[0];
+    const staffLine = trackLine.staffLineContainers[0];
     const styleLine = staffLine.styleLinesAsArray[0];
     const barElement = styleLine.barElements[0];
     const beatElement = barElement.beatElements[0];
     const noteElement = beatElement.noteElements[0];
-    const gapLine = styleLine.techGapElement.techGapLinesAsArray.find(
+    const gapLine = styleLine.techGapContainer.techGapLinesAsArray.find(
       (line) => line.labelElements.length > 0
     );
     expect(gapLine).toBeDefined();
@@ -379,11 +379,11 @@ describe("TrackElement tree", () => {
       throw Error("Expected track line info element");
     }
     const barElement =
-      trackLine.staffLineElements[0].styleLinesAsArray[0].barElements[0];
+      trackLine.staffLineContainers[0].styleLinesAsArray[0].barElements[0];
     const noteElement = barElement.beatElements[0].noteElements[0];
     const techniqueElement = noteElement.techniqueElements[0];
     const gapLine =
-      trackLine.staffLineElements[0].styleLinesAsArray[0].techGapElement.techGapLinesAsArray.find(
+      trackLine.staffLineContainers[0].styleLinesAsArray[0].techGapContainer.techGapLinesAsArray.find(
         (line) => line.labelElements.length > 0
       );
     if (gapLine === undefined) {
@@ -444,13 +444,13 @@ describe("TrackElement tree", () => {
 
     const trackLine = trackElement.trackLineElements[0];
     const barElement =
-      trackLine.staffLineElements[0].styleLinesAsArray[0].barElements[0];
+      trackLine.staffLineContainers[0].styleLinesAsArray[0].barElements[0];
     const beatElement = barElement.beatElements[0];
     const noteElement = beatElement.noteElements[0];
     if (!(beatElement instanceof TabBeatElement)) {
       throw Error("Expected tab beat element");
     }
-    if (!(noteElement instanceof TabNoteElement)) {
+    if (!(noteElement instanceof TabNoteSlotElement)) {
       throw Error("Expected tab note element");
     }
 
@@ -509,7 +509,7 @@ describe("TrackElement tree", () => {
     trackElement.update();
 
     const trackLine = trackElement.trackLineElements[0];
-    const staffLine = trackLine.staffLineElements[0];
+    const staffLine = trackLine.staffLineContainers[0];
     const styleLine = staffLine.styleLinesAsArray[0];
     const barElement = styleLine.barElements[0];
     const beatElement = barElement.beatElements[0];
@@ -521,33 +521,33 @@ describe("TrackElement tree", () => {
     trackElement.update();
 
     expect(trackElement.trackLineElements[0]).toBe(trackLine);
-    expect(trackElement.trackLineElements[0].staffLineElements[0]).not.toBe(
+    expect(trackElement.trackLineElements[0].staffLineContainers[0]).not.toBe(
       staffLine
     );
     expect(
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0]
     ).not.toBe(styleLine);
     expect(
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0]
     ).not.toBe(barElement);
     expect(
-      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].getStableIdentity()
+      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0].getStableIdentity()
     ).toBe(barIdentity);
     expect(
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0]
     ).not.toBe(beatElement);
     expect(
-      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements[0].getStableIdentity()
+      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0].beatElements[0].getStableIdentity()
     ).toBe(beatIdentity);
     expect(
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0]
     ).not.toBe(noteElement);
     expect(
-      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0].getStableIdentity()
+      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0].getStableIdentity()
     ).toBe(noteIdentity);
   });
 
@@ -567,7 +567,7 @@ describe("TrackElement tree", () => {
 
     const addDiff = trackElement.elementDiff;
     const addedBeatElement =
-      trackElement.trackLineElements[0].staffLineElements[0].styleLinesAsArray[0].barElements[0].beatElements.find(
+      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0].beatElements.find(
         (beatElement) => beatElement.beat === addedBeat
       );
     expect(addedBeatElement).toBeDefined();
@@ -668,7 +668,7 @@ describe("TrackElement tree", () => {
             noteIdentity:
               barElement!.beatElements[0].noteElements[0].getStableIdentity(),
             stableIdentity: barElement!.getStableIdentity(),
-            styleLine: barElement!.notationStyleLineElement,
+            styleLine: barElement!.notationStyleLineContainer,
           },
         ];
       })
@@ -702,7 +702,7 @@ describe("TrackElement tree", () => {
         before !== undefined &&
         after !== undefined &&
         after !== before.barElement &&
-        after.notationStyleLineElement !== before.styleLine
+        after.notationStyleLineContainer !== before.styleLine
       );
     })?.uuid;
     expect(movedBarUUID).toBeDefined();
@@ -717,7 +717,7 @@ describe("TrackElement tree", () => {
     expect(after?.beatElements[0].noteElements[0].getStableIdentity()).toBe(
       before.noteIdentity
     );
-    expect(after?.notationStyleLineElement).not.toBe(before.styleLine);
+    expect(after?.notationStyleLineContainer).not.toBe(before.styleLine);
     expect(
       trackElement.elementDiff.added
         .get(TabBeatElement)
@@ -735,17 +735,17 @@ describe("TrackElement tree", () => {
     ).toBe(true);
     expect(
       trackElement.elementDiff.added
-        .get(TabNoteElement)
+        .get(TabNoteSlotElement)
         ?.has(before.noteIdentity)
     ).not.toBe(true);
     expect(
       trackElement.elementDiff.removed
-        .get(TabNoteElement)
+        .get(TabNoteSlotElement)
         ?.has(before.noteIdentity)
     ).not.toBe(true);
     expect(
       trackElement.elementDiff.updated
-        .get(TabNoteElement)
+        .get(TabNoteSlotElement)
         ?.has(before.noteIdentity)
     ).toBe(true);
   });
@@ -857,10 +857,11 @@ describe("TrackElement tree", () => {
     expect(secondLine.boundingBox.y).toBeCloseTo(firstLine.boundingBox.bottom);
 
     const secondLineStyle =
-      secondLine.staffLineElements[0].styleLinesAsArray[0];
+      secondLine.staffLineContainers[0].styleLinesAsArray[0];
     expect(secondLineStyle.barElements[0].boundingBox.x).toBeCloseTo(0);
 
-    const firstLineStyle = firstLine.staffLineElements[0].styleLinesAsArray[0];
+    const firstLineStyle =
+      firstLine.staffLineContainers[0].styleLinesAsArray[0];
     expect(
       firstLineStyle.barElements[firstLineStyle.barElements.length - 1]
         .boundingBox.right
@@ -871,7 +872,7 @@ describe("TrackElement tree", () => {
     ).toBeLessThanOrEqual(TEST_LAYOUT_DIMENSIONS.WIDTH);
 
     for (const line of lines) {
-      const styleLine = line.staffLineElements[0].styleLinesAsArray[0];
+      const styleLine = line.staffLineContainers[0].styleLinesAsArray[0];
       expect(styleLine.barElements).toHaveLength(line.trackLineBars.length);
       expect(styleLine.barElements[0].boundingBox.x).toBeCloseTo(0);
 
@@ -939,7 +940,7 @@ describe("TrackElement tree", () => {
 
     expect(lines.length).toBeGreaterThan(2);
     expect(trackElement.materializedLineIndices.size).toBe(0);
-    expect(lines[1].staffLineElements).toEqual([]);
+    expect(lines[1].staffLineContainers).toEqual([]);
     expect(lines[1].boundingBox.y).toBe(lines[0].boundingBox.bottom);
     expect(trackElement.height).toBe(
       lines.reduce(
@@ -972,7 +973,7 @@ describe("TrackElement tree", () => {
 
     expect([...trackElement.materializedLineIndices]).toEqual([0, 1]);
     expect(
-      trackElement.trackLineElements[lastLineIndex].staffLineElements
+      trackElement.trackLineElements[lastLineIndex].staffLineContainers
     ).toEqual([]);
     expect(trackElement.trackLineElements[lastLineIndex].boundingBox.y).toBe(
       laterLineY
@@ -1029,7 +1030,7 @@ describe("TrackElement tree", () => {
       .getBeatElement(firstBeat)
       ?.getStableIdentity();
     const firstMaterializedBars =
-      trackElement.trackLineElements[0].staffLineElements[0]
+      trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
     expect(firstMaterializedBars.map((b) => b.bar)).toEqual(
       track.staves[0].bars.slice(1, 3)
@@ -1137,7 +1138,7 @@ describe("TrackElement tree", () => {
     const identitySnapshot = (): string[] => {
       const classes = [
         TabBeatElement,
-        TabNoteElement,
+        TabNoteSlotElement,
         GuitarTechniqueElement,
         GuitarTechniqueLabelElement,
         BeamSegmentElement,

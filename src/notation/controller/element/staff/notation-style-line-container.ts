@@ -6,8 +6,8 @@ import {
   NotationNodeType,
 } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
-import { NotationStyle, StaffLineElement } from "./staff-line-element";
-import { TechGapElement } from "./tech-gap-element";
+import { NotationStyle, StaffLineContainer } from "./staff-line-container";
+import { TechGapContainer } from "./tech-gap-container";
 import { TrackLineBar, TrackLineElement } from "../track/track-line-element";
 import {
   TechLineNumber,
@@ -17,23 +17,23 @@ import {
 /**
  * Class that handles geometry of a single notation style line in the staff
  * line. E.g., a staff line with tab & sheet notations both enabled: in that
- * case the StaffLineElement will contain 2 notation style line elements -
- * NotationStyleLineElement for the tab and the other for sheet notation
+ * case the StaffLineContainer will contain 2 notation style line containers -
+ * NotationStyleLineContainer for the tab and the other for sheet notation
  */
-export class NotationStyleLineElement implements NotationContainer {
+export class NotationStyleLineContainer implements NotationContainer {
   readonly nodeType = NotationNodeType.Container;
 
   public static createStableIdentity(
-    staffLineElement: StaffLineElement,
+    staffLineContainer: StaffLineContainer,
     notationStyle: NotationStyle
   ): string {
-    return `style-line:${staffLineElement.getStableIdentity()}:${notationStyle}`;
+    return `style-line:${staffLineContainer.getStableIdentity()}:${notationStyle}`;
   }
 
   /** Unique identifier for the staff line element */
   readonly uuid: number;
   /** Parent staff line element */
-  readonly staffLineElement: StaffLineElement;
+  readonly staffLineContainer: StaffLineContainer;
   /** Notation style for this particular line */
   readonly notationStyle: NotationStyle;
   /** Root track element */
@@ -41,7 +41,7 @@ export class NotationStyleLineElement implements NotationContainer {
   readonly voiceNumber = null;
 
   public get owningTrackLineElement(): TrackLineElement {
-    return this.staffLineElement.trackLineElement;
+    return this.staffLineContainer.trackLineElement;
   }
 
   public get owningBarElement(): BarElement | null {
@@ -53,30 +53,30 @@ export class NotationStyleLineElement implements NotationContainer {
   /** Bar placement data shared by every staff on this track line. */
   private _trackLineBars: TrackLineBar[];
   /** Tech gap element */
-  private _techGapElement: TechGapElement;
+  private _techGapContainer: TechGapContainer;
 
   /** Line encapsulating rectangle */
   private _boundingBox: Rect;
 
   /**
    * Class that handles geometry of a single notation style line in the staff line
-   * @param staffLineElement Parent staff element
+   * @param staffLineContainer Parent staff element
    * @param notationStyle Notation style
    */
   constructor(
-    staffLineElement: StaffLineElement,
+    staffLineContainer: StaffLineContainer,
     notationStyle: NotationStyle,
     trackLineBars: TrackLineBar[]
   ) {
     this.uuid = randomInt();
-    this.staffLineElement = staffLineElement;
-    this.trackElement = this.staffLineElement.trackElement;
+    this.staffLineContainer = staffLineContainer;
+    this.trackElement = this.staffLineContainer.trackLineElement.trackElement;
     this.notationStyle = notationStyle;
 
     this._barElements = [];
     this._trackLineBars = trackLineBars;
-    this._techGapElement = new TechGapElement(this);
-    this._techGapElement.build();
+    this._techGapContainer = new TechGapContainer(this);
+    this._techGapContainer.build();
 
     this._boundingBox = new Rect();
 
@@ -87,12 +87,12 @@ export class NotationStyleLineElement implements NotationContainer {
    * Builds the bar elements array for this notation style line
    */
   public build(): void {
-    this._techGapElement = new TechGapElement(this);
+    this._techGapContainer = new TechGapContainer(this);
 
     this._barElements = this._trackLineBars.map(
       (lineBar) =>
         new BarElement(
-          this.staffLineElement.staff.bars[lineBar.masterBarIndex],
+          this.staffLineContainer.staff.bars[lineBar.masterBarIndex],
           this.trackElement,
           this.notationStyle,
           lineBar.finalizedWidth,
@@ -102,7 +102,7 @@ export class NotationStyleLineElement implements NotationContainer {
         )
     );
 
-    this._techGapElement.build();
+    this._techGapContainer.build();
   }
 
   /**
@@ -110,17 +110,17 @@ export class NotationStyleLineElement implements NotationContainer {
    */
   public measure(): void {
     this._boundingBox.width =
-      this.staffLineElement.trackLineElement.boundingBox.width;
+      this.staffLineContainer.trackLineElement.boundingBox.width;
 
     for (const barElement of this._barElements) {
       barElement.measure();
     }
 
-    this._techGapElement.measure();
+    this._techGapContainer.measure();
     // Set height AFTER tech gap measure since notation style line height
     // depends on both the height of bar elements & the height of the tech gap
     this._boundingBox.height =
-      this._techGapElement.boundingBox.height +
+      this._techGapContainer.boundingBox.height +
       this._barElements[0].boundingBox.height;
   }
 
@@ -139,7 +139,7 @@ export class NotationStyleLineElement implements NotationContainer {
    * Calculates the coordinates for all bar elements & their children
    */
   public layout(): void {
-    this._techGapElement.layout();
+    this._techGapContainer.layout();
     for (const barElement of this._barElements) {
       barElement.layout();
     }
@@ -158,7 +158,7 @@ export class NotationStyleLineElement implements NotationContainer {
   public refreshOwnedNotationNodes(): NotationNode[] {
     const elements: NotationNode[] = [this];
 
-    elements.push(...this._techGapElement.refreshOwnedNotationNodes());
+    elements.push(...this._techGapContainer.refreshOwnedNotationNodes());
     for (const barElement of this._barElements) {
       elements.push(...barElement.refreshOwnedNotationNodes());
     }
@@ -172,8 +172,8 @@ export class NotationStyleLineElement implements NotationContainer {
   }
 
   public getStableIdentity(): string {
-    return NotationStyleLineElement.createStableIdentity(
-      this.staffLineElement,
+    return NotationStyleLineContainer.createStableIdentity(
+      this.staffLineContainer,
       this.notationStyle
     );
   }
@@ -190,8 +190,8 @@ export class NotationStyleLineElement implements NotationContainer {
 
   /** True when complete line ownership reserves this technique-label row. */
   public hasTechniqueLine(lineNumber: TechLineNumber): boolean {
-    for (const { masterBarIndex } of this.staffLineElement.trackLineBars) {
-      const bar = this.staffLineElement.staff.bars[masterBarIndex];
+    for (const { masterBarIndex } of this.staffLineContainer.trackLineBars) {
+      const bar = this.staffLineContainer.staff.bars[masterBarIndex];
       for (const voiceBar of bar.voiceBarsAsArray) {
         for (const beat of voiceBar.beats) {
           for (const note of beat.notes ?? []) {
@@ -208,8 +208,8 @@ export class NotationStyleLineElement implements NotationContainer {
   }
 
   /** Tech gap element */
-  public get techGapElement(): TechGapElement {
-    return this._techGapElement;
+  public get techGapContainer(): TechGapContainer {
+    return this._techGapContainer;
   }
 
   /** Line layout bounding box */
@@ -220,8 +220,8 @@ export class NotationStyleLineElement implements NotationContainer {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.staffLineElement.lineLocalCoords.x + this._boundingBox.x,
-      this.staffLineElement.lineLocalCoords.y + this._boundingBox.y
+      this.staffLineContainer.lineLocalCoords.x + this._boundingBox.x,
+      this.staffLineContainer.lineLocalCoords.y + this._boundingBox.y
     );
   }
 
@@ -256,8 +256,8 @@ export class NotationStyleLineElement implements NotationContainer {
   /** Global coords of the notation style line element */
   public get globalCoords(): Point {
     return new Point(
-      this.staffLineElement.globalCoords.x + this._boundingBox.x,
-      this.staffLineElement.globalCoords.y + this._boundingBox.y
+      this.staffLineContainer.globalCoords.x + this._boundingBox.x,
+      this.staffLineContainer.globalCoords.y + this._boundingBox.y
     );
   }
 }

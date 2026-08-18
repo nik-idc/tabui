@@ -10,7 +10,7 @@ import {
 import { buildTrackElementSkeleton } from "./track/track-element-skeleton-builder";
 import { BeatElement } from "./beat/beat-element";
 import { NotationElement, NotationElementClass } from "./notation-element";
-import { TabNoteElement } from "./note/tab-note-element";
+import { TabNoteSlotElement } from "./note/tab-note-slot-element";
 import { TabBeatElement } from "./beat/tab-beat-element";
 import { TabBeatRhythmElement } from "./beat/tab-beat-rhythm-element";
 import { BeamSegmentElement } from "./bar/beam-segment-element";
@@ -46,7 +46,7 @@ export const ELEMENT_ORDER: Array<NotationElementClass> = [
   TrackLineInfoElement,
   BarElement,
   TabBeatElement,
-  TabNoteElement,
+  TabNoteSlotElement,
   GuitarTechniqueElement,
   TabBeatRhythmElement,
   GuitarTechniqueLabelElement,
@@ -796,7 +796,7 @@ export class TrackElement {
         continue;
       }
 
-      for (const staffLine of trackLine.staffLineElements) {
+      for (const staffLine of trackLine.staffLineContainers) {
         if (curLineRect !== undefined) {
           rects.push(curLineRect);
         }
@@ -840,8 +840,8 @@ export class TrackElement {
   }
 
   public getNoteElementsForNoteSlot(
-    sourceNoteElement: TabNoteElement
-  ): TabNoteElement[] {
+    sourceNoteElement: TabNoteSlotElement
+  ): TabNoteSlotElement[] {
     const bar = sourceNoteElement.beatElement.beat.voiceBar.bar;
     const commonTickRes = lcmAll(
       bar.voiceBarsAsArray.map((voiceBar) => voiceBar.tickResolution)
@@ -866,12 +866,12 @@ export class TrackElement {
         }
 
         const noteElement = this._materializedElementsByIdentity.get(
-          TabNoteElement.createStableIdentity(
+          TabNoteSlotElement.createStableIdentity(
             beatElement,
             sourceNoteElement.stringNumber
           )
         );
-        if (!(noteElement instanceof TabNoteElement)) {
+        if (!(noteElement instanceof TabNoteSlotElement)) {
           throw new Error("Note's element is not a valid NoteElement");
         }
 

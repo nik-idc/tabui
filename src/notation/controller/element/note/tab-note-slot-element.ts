@@ -10,7 +10,7 @@ import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
 /** Class that handles geometry & visually relevant info of a tab note slot. */
-export class TabNoteElement implements NoteElement {
+export class TabNoteSlotElement implements NoteElement {
   readonly nodeType = NotationNodeType.Element;
 
   public static createStableIdentity(
@@ -186,7 +186,7 @@ export class TabNoteElement implements NoteElement {
   }
 
   public getStableIdentity(): string {
-    return TabNoteElement.createStableIdentity(
+    return TabNoteSlotElement.createStableIdentity(
       this.beatElement,
       this.stringNumber
     );

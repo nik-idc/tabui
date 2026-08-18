@@ -70,11 +70,12 @@ export class TempoControlsTemplateRenderer {
   }
 
   private renderInputs(): void {
-    const selectedNote = this.notationComponent.trackController.selectedNote;
+    const selectionCursor =
+      this.notationComponent.trackController.selectionCursor;
 
     const tempoInitValue =
-      selectedNote !== undefined
-        ? `${selectedNote.bar.masterBar.tempo}`
+      selectionCursor !== undefined
+        ? `${selectionCursor.bar.masterBar.tempo}`
         : `${DEFAULT_MASTER_BAR.tempo}`;
 
     this.template.valueControl.classList.add("tu-number-stepper");

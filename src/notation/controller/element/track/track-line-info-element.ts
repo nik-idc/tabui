@@ -72,7 +72,7 @@ export class TrackLineInfoElement implements NotationElement {
     this._barTempoState.clear();
 
     const barElements =
-      this.trackLineElement.staffLineElements[0].styleLinesAsArray[0]
+      this.trackLineElement.staffLineContainers[0].styleLinesAsArray[0]
         .barElements;
     if (barElements === undefined) {
       throw Error("Bar elements undefine in track line info build");

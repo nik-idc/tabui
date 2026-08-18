@@ -1,7 +1,7 @@
 import { Track } from "../../../model";
 import { Point, Rect, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
-import { StaffLineElement } from "../staff/staff-line-element";
+import { StaffLineContainer } from "../staff/staff-line-container";
 import { TrackLineInfoElement } from "./track-line-info-element";
 import { VertLine } from "../../../../shared/rendering/geometry/line";
 import {
@@ -61,7 +61,7 @@ export class TrackLineElement implements NotationElement {
   }
 
   /** Staff line element on this track line */
-  private _staffLineElements: StaffLineElement[];
+  private _staffLineContainers: StaffLineContainer[];
   /** Track line info (tempo) */
   private _trackLineInfoElement: TrackLineInfoElement | null;
   /** Notation nodes owned by this track line in traversal order. */
@@ -92,7 +92,7 @@ export class TrackLineElement implements NotationElement {
     this.track = trackElement.track;
     this.trackElement = trackElement;
 
-    this._staffLineElements = [];
+    this._staffLineContainers = [];
     this._trackLineInfoElement = null;
     this._ownedNotationNodes = [];
     this._drawableNotationElements = [];
@@ -127,10 +127,10 @@ export class TrackLineElement implements NotationElement {
   public build(
     materializedTrackLineBars = this._skeletonLine.trackLineBars
   ): void {
-    this._staffLineElements = [];
+    this._staffLineContainers = [];
     for (const staff of this.track.staves) {
-      this._staffLineElements.push(
-        new StaffLineElement(
+      this._staffLineContainers.push(
+        new StaffLineContainer(
           staff,
           this,
           this._skeletonLine.trackLineBars,
@@ -156,7 +156,7 @@ export class TrackLineElement implements NotationElement {
    * Calculates the dimensions of all sub elements of this track line element
    */
   public measure(): void {
-    if (this._staffLineElements.length === 0) {
+    if (this._staffLineContainers.length === 0) {
       throw Error("Empty track line element's staff lines array at measure");
     }
 
@@ -165,14 +165,14 @@ export class TrackLineElement implements NotationElement {
     }
 
     let sumStaffHeight = 0;
-    for (const staffLine of this._staffLineElements) {
+    for (const staffLine of this._staffLineContainers) {
       staffLine.measure();
       sumStaffHeight += staffLine.boundingBox.height;
     }
 
     this._trackLineInfoElement.measure();
 
-    const width = this._staffLineElements[0].boundingBox.width;
+    const width = this._staffLineContainers[0].boundingBox.width;
     const height =
       sumStaffHeight + this._trackLineInfoElement.boundingBox.height;
     this._boundingBox.setDimensions(width, height);
@@ -204,7 +204,7 @@ export class TrackLineElement implements NotationElement {
    * Calculates coordinates for this & all child elements
    */
   public layout(): void {
-    if (this._staffLineElements.length === 0) {
+    if (this._staffLineContainers.length === 0) {
       throw Error("Empty track line element's staff lines array at layout");
     }
 
@@ -218,7 +218,7 @@ export class TrackLineElement implements NotationElement {
 
     this._trackLineInfoElement.layout();
 
-    for (const staffLine of this._staffLineElements) {
+    for (const staffLine of this._staffLineContainers) {
       staffLine.layout();
     }
 
@@ -226,9 +226,9 @@ export class TrackLineElement implements NotationElement {
       return;
     }
 
-    const firstStaffLine = this._staffLineElements[0];
+    const firstStaffLine = this._staffLineContainers[0];
     const lastStaffLine =
-      this._staffLineElements[this._staffLineElements.length - 1];
+      this._staffLineContainers[this._staffLineContainers.length - 1];
     const firstStyleLine = firstStaffLine.styleLinesAsArray[0];
     const lastStyleLine =
       lastStaffLine.styleLinesAsArray[
@@ -266,11 +266,11 @@ export class TrackLineElement implements NotationElement {
    * @param staffElement Staff element
    * @returns Next staff element or null
    */
-  public getNextStaffLineElement(
-    staffLineElement: StaffLineElement
-  ): StaffLineElement | null {
-    const staffIndex = this._staffLineElements.indexOf(staffLineElement);
-    const nextStaff = this._staffLineElements[staffIndex + 1];
+  public getNextStaffLineContainer(
+    staffLineContainer: StaffLineContainer
+  ): StaffLineContainer | null {
+    const staffIndex = this._staffLineContainers.indexOf(staffLineContainer);
+    const nextStaff = this._staffLineContainers[staffIndex + 1];
     return nextStaff ?? null;
   }
 
@@ -279,11 +279,11 @@ export class TrackLineElement implements NotationElement {
    * @param staffElement Staff element
    * @returns Prev staff element or null
    */
-  public getPrevStaffLineElement(
-    staffLineElement: StaffLineElement
-  ): StaffLineElement | null {
-    const staffIndex = this._staffLineElements.indexOf(staffLineElement);
-    const prevStaff = this._staffLineElements[staffIndex - 1];
+  public getPrevStaffLineContainer(
+    staffLineContainer: StaffLineContainer
+  ): StaffLineContainer | null {
+    const staffIndex = this._staffLineContainers.indexOf(staffLineContainer);
+    const prevStaff = this._staffLineContainers[staffIndex - 1];
     return prevStaff ?? null;
   }
 
@@ -308,7 +308,7 @@ export class TrackLineElement implements NotationElement {
       elements.push(...this._trackLineInfoElement.refreshOwnedNotationNodes());
     }
 
-    for (const staffLine of this._staffLineElements) {
+    for (const staffLine of this._staffLineContainers) {
       elements.push(...staffLine.refreshOwnedNotationNodes());
     }
 
@@ -327,12 +327,12 @@ export class TrackLineElement implements NotationElement {
   }
 
   /** Staff line element on this track line */
-  public get staffLineElements(): StaffLineElement[] {
-    return this._staffLineElements;
+  public get staffLineContainers(): StaffLineContainer[] {
+    return this._staffLineContainers;
   }
 
   public *allBarElements(): Generator<BarElement> {
-    for (const staff of this._staffLineElements) {
+    for (const staff of this._staffLineContainers) {
       for (const style of staff.styleLinesAsArray) {
         yield* style.barElements;
       }

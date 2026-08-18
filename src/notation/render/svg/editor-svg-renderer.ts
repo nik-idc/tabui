@@ -18,7 +18,7 @@ import {
 import { BarElement } from "../../controller/element/bar/bar-element";
 import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
 import { TabBeatRhythmElement } from "../../controller/element/beat/tab-beat-rhythm-element";
-import { TabNoteElement } from "../../controller/element/note/tab-note-element";
+import { TabNoteSlotElement } from "../../controller/element/note/tab-note-slot-element";
 import { GuitarTechniqueElement } from "../../controller/element/technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "../../controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { BeamSegmentElement } from "../../controller/element/bar/beam-segment-element";
@@ -65,7 +65,7 @@ const BAR_OWNED_ELEMENT_CLASSES = new Set<NotationElementClass>([
 
 const ELEMENT_VOICE_PART = new Map<NotationElementClass, VoicePart>([
   [TabBeatElement, VoicePart.Content],
-  [TabNoteElement, VoicePart.Content],
+  [TabNoteSlotElement, VoicePart.Content],
   [GuitarTechniqueElement, VoicePart.Content],
   [TabBeatRhythmElement, VoicePart.Rhythm],
   [BeamSegmentElement, VoicePart.Rhythm],

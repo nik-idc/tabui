@@ -10,7 +10,7 @@ import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
 import { NotationElement, NotationNodeType } from "../../notation-element";
 import { TrackElement } from "../../track-element";
 import { SVGPathDescriptor, TechniqueElement } from "../technique-element";
-import { TabNoteElement } from "../../note/tab-note-element";
+import { TabNoteSlotElement } from "../../note/tab-note-slot-element";
 import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
 import type { BarElement } from "../../bar/bar-element";
 import type { TrackLineElement } from "../../track/track-line-element";
@@ -33,7 +33,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
   /** Technique */
   readonly technique: GuitarTechnique;
   /** Parent guitar note element */
-  readonly noteElement: TabNoteElement;
+  readonly noteElement: TabNoteSlotElement;
   /** Root track element */
   readonly trackElement: TrackElement;
 
@@ -59,7 +59,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * @param technique Technique
    * @param noteElement Parent note element
    */
-  constructor(technique: GuitarTechnique, noteElement: TabNoteElement) {
+  constructor(technique: GuitarTechnique, noteElement: TabNoteSlotElement) {
     this.uuid = randomInt();
     this.technique = technique;
     this.noteElement = noteElement;

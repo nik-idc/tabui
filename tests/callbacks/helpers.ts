@@ -142,7 +142,7 @@ export function createNotationComponentMock() {
       insertBarBeforeSelected: jest.fn(),
       insertBarAfterSelected: jest.fn(),
       removeSelectedBar: jest.fn(),
-      selectedNote: undefined,
+      selectionCursor: undefined,
       hasSelectedNote: false,
       trackControllerEditor: {
         setSelectedBarTempo: jest.fn(),

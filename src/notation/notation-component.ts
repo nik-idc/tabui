@@ -148,7 +148,7 @@ export class NotationComponent {
 
   /** Materializes and follows the current model-level selection cursor. */
   public ensureSelectedNoteVisible(): void {
-    const selectedBeat = this._trackController.selectedNote?.beat;
+    const selectedBeat = this._trackController.selectionCursor?.beat;
     if (selectedBeat !== undefined) {
       this._renderer.ensureBeatVisible(selectedBeat, true);
     }
