@@ -36,11 +36,20 @@ async function run(command, args, options = {}) {
 }
 
 try {
-  const { stdout } = await execFileAsync("npm", ["pack", "--json"], {
-    cwd: rootDir,
-    maxBuffer: 1024 * 1024 * 10,
-  });
-  const [packInfo] = JSON.parse(stdout);
+  const { stdout } = await execFileAsync(
+    "npm",
+    ["pack", "--json", "--ignore-scripts"],
+    {
+      cwd: rootDir,
+      env: { ...process.env, HUSKY: "0" },
+      maxBuffer: 1024 * 1024 * 10,
+    }
+  );
+  const jsonStart = stdout.indexOf("[");
+  if (jsonStart === -1) {
+    throw new Error(`npm pack did not return JSON:\n${stdout}`);
+  }
+  const [packInfo] = JSON.parse(stdout.slice(jsonStart));
   const tarballPath = path.join(rootDir, packInfo.filename);
 
   await writeFile(
