@@ -17,6 +17,7 @@ jobs:
     timeout-minutes: 20
     env:
       HUSKY: "0"
+      HOME: /root
     container:
       image: ghcr.io/nik-idc/tabui/tabui-cicd:0.1
 
@@ -41,7 +42,7 @@ jobs:
         run: npm ci
 
       - name: Start PulseAudio for Firefox Web Audio
-        run: HOME=/root pulseaudio --start --exit-idle-time=-1
+        run: pulseaudio --start --exit-idle-time=-1
 
       - name: Verify and build
         run: npm run verify
