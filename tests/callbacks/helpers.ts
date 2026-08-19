@@ -138,6 +138,7 @@ export function createNotationComponentMock() {
       setSelectedBarRepeatStatus: jest.fn(),
       setDuration: jest.fn(),
       setDots: jest.fn(),
+      setSelectedNoteFret: jest.fn(),
       setTechnique: jest.fn(),
       insertBeatBeforeSelected: jest.fn(),
       insertBeatAfterSelected: jest.fn(),

@@ -153,6 +153,10 @@ export class TabNoteSlotElement implements NoteElement {
     if (this.note === null || this.note.fret === null) {
       return "";
     }
+    if (this.note.fret === -1) {
+      return "x";
+    }
+
     const fret = `${this.note.fret}`;
     return this.note.hasTechnique(GuitarTechniqueType.LetRing)
       ? `(${fret})`

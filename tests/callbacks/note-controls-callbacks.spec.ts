@@ -25,6 +25,7 @@ describe("NoteControlsDefaultCallbacks", () => {
     const component = {
       template: {
         durationButtons,
+        fretButton: makeButton(),
         restButton: makeButton(),
         dot1Button: makeButton(),
         dot2Button: makeButton(),
@@ -37,6 +38,18 @@ describe("NoteControlsDefaultCallbacks", () => {
         tupletButton: makeButton(),
       },
       tupletComponent: {},
+      fretComponent: {
+        template: {
+          dialog: makeButton(),
+          dialogContent: makeButton(),
+          noFretButton: makeButton(),
+          deadButton: makeButton(),
+          input: makeButton(),
+          confirmButton: makeButton(),
+          cancelButton: makeButton(),
+        },
+        showControls: jest.fn(),
+      },
       showTupletControls: jest.fn(),
     } as any;
     const callbacks = new NoteControlsDefaultCallbacks(
