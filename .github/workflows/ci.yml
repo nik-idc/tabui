@@ -36,7 +36,7 @@ jobs:
         run: npm ci
 
       - name: Start PulseAudio for Firefox Web Audio
-        run: pulseaudio --start --exit-idle-time=-1
+        run: HOME=/root pulseaudio --start --exit-idle-time=-1
 
       - name: Verify and build
         run: npm run verify
