@@ -33,5 +33,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright browsers
+        run: npx playwright install chromium firefox
+
+      - name: Start PulseAudio for Firefox Web Audio
+        run: |
+          sudo apt-get install -y pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+
       - name: Verify and build
-        run: npm run verify:ci
+        run: npm run verify

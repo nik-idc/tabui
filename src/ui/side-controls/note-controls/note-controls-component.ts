@@ -2,6 +2,7 @@ import { NotationComponent } from "../../../notation/notation-component";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NoteControlsTemplateRenderer } from "./note-controls-template-renderer";
 import { TupletControlsComponent } from "./tuplet-controls";
+import { FretControlsComponent } from "./fret-controls";
 
 export class NoteControlsComponent {
   readonly parentDiv: HTMLDivElement;
@@ -11,6 +12,7 @@ export class NoteControlsComponent {
   readonly templateRenderer: NoteControlsTemplateRenderer;
 
   readonly tupletComponent: TupletControlsComponent;
+  readonly fretComponent: FretControlsComponent;
 
   constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
     this.parentDiv = parentDiv;
@@ -27,12 +29,17 @@ export class NoteControlsComponent {
       this.template.container,
       this.notationComponent
     );
+    this.fretComponent = new FretControlsComponent(
+      this.template.container,
+      this.notationComponent
+    );
   }
 
   public render(): void {
     this.templateRenderer.render();
 
     this.tupletComponent.render();
+    this.fretComponent.render();
   }
 
   public showTupletControls(): void {

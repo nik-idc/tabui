@@ -691,6 +691,58 @@
     }
   }
 
+  .tu-fret-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-fret-dialog-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .tu-fret-inputs {
+        display: flex;
+        flex-direction: column;
+
+        .tu-fret-text {
+          padding: 3px;
+          text-align: center;
+          font-size: 20px;
+        }
+
+        .tu-fret-value-control {
+          display: flex;
+          gap: 0.35rem;
+          justify-content: space-between;
+          margin: 0.35rem 0;
+
+          button {
+            @extend %tu-button-style;
+            flex: 1 1 0;
+          }
+        }
+
+        input {
+          @extend %tu-input-number-style;
+          box-sizing: border-box;
+          width: 100%;
+          margin: 0.35rem 0;
+        }
+      }
+
+      .tu-fret-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-top: 10px;
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
+  }
+
   .tu-bend-controls-dialog {
     @extend %tu-modal-dialog;
 

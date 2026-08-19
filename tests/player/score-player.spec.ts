@@ -1,4 +1,8 @@
-import { PlaybackErrorCode, ScorePlayer } from "../../src/player";
+import {
+  PlaybackErrorCode,
+  PlaybackState,
+  ScorePlayer,
+} from "../../src/player";
 import {
   createBarWithBeats,
   createBeat,
@@ -723,14 +727,14 @@ describe("ScorePlayer", () => {
       )
     );
     const onError = jest.fn();
-    const player = new ScorePlayer(score, track, {}, onError);
+    const player = new ScorePlayer(score, track, undefined, onError);
     const consoleErrorSpy = jest
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
     await player.start({ startBeat: firstBeatOf(bar) });
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       "Failed to schedule playback",
       expect.objectContaining({
@@ -1060,7 +1064,7 @@ describe("ScorePlayer", () => {
 
     player.toggleLoop();
     await player.start({ startBeat: firstBeat });
-    expect(player.isPlaying).toBe(true);
+    expect(player.playbackState).toBe(PlaybackState.Playing);
     expect(player.isLooped).toBe(true);
     expect(player.playbackRunId).toBe(1);
     jest.advanceTimersByTime(50);
@@ -1367,20 +1371,94 @@ describe("ScorePlayer", () => {
     });
 
     const player = new ScorePlayer(score, track, {
-      [ElectricGuitarTone.Clean]: {
-        url: "/samples/clean-electric-guitar.wav",
-        rootFrequency: getNoteFrequency(firstBeatOf(bar).notes![0]),
+      preloadAudio: true,
+      samples: {
+        [ElectricGuitarTone.Clean]: {
+          url: "/samples/clean-electric-guitar.wav",
+          rootFrequency: getNoteFrequency(firstBeatOf(bar).notes![0]),
+        },
+        [ElectricGuitarTone.Overdrive]: {
+          url: "/samples/unused-overdrive.wav",
+          rootFrequency: getNoteFrequency(firstBeatOf(bar).notes![0]),
+        },
       },
     });
+    await player.initialize();
     await player.start({ startBeat: firstBeatOf(bar) });
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/samples/clean-electric-guitar.wav"
     );
+    expect(fetchMock).not.toHaveBeenCalledWith("/samples/unused-overdrive.wav");
     expect(createdBufferSources).toHaveLength(1);
     expect(createdBufferSources[0].playbackRate.value).toBe(1);
     expect(createdBufferSources[0].start).toHaveBeenCalledWith(0.05);
     expect(createdOscillators).toHaveLength(0);
+  });
+
+  test("starts with oscillator fallback while configured samples load", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    let resolveFetch: (() => void) | undefined;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              ok: true,
+              arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+            });
+        })
+    );
+    const player = new ScorePlayer(score, track, {
+      preloadAudio: false,
+      samples: {
+        [ElectricGuitarTone.Clean]: {
+          url: "/samples/slow-clean-electric-guitar.wav",
+          rootFrequency: getNoteFrequency(firstBeatOf(bar).notes![0]),
+        },
+      },
+    });
+
+    await player.start({ startBeat: firstBeatOf(bar) });
+
+    expect(player.playbackState).toBe(PlaybackState.Playing);
+    expect(oscillatorFrequencies()).toHaveLength(1);
+    resolveFetch?.();
+  });
+
+  test("preloads configured score samples without starting playback", async () => {
+    const { score, track, bar } = createScoreGraph();
+    setBeatFret(firstBeatOf(bar), 0);
+    fetchMock.mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+    });
+    const player = new ScorePlayer(score, track, {
+      preloadAudio: true,
+      samples: {
+        [ElectricGuitarTone.Clean]: {
+          url: "/samples/clean-electric-guitar.wav",
+          rootFrequency: getNoteFrequency(firstBeatOf(bar).notes![0]),
+        },
+      },
+    });
+
+    await player.initialize();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/samples/clean-electric-guitar.wav"
+    );
+    expect(player.playbackState).toBe(PlaybackState.Idle);
+  });
+
+  test("does not prepare audio when preload is disabled", async () => {
+    const { score, track } = createScoreGraph();
+    const player = new ScorePlayer(score, track);
+
+    await player.initialize();
+
+    expect(createdAudioContexts).toHaveLength(0);
   });
 
   test("uses separate configured samples for different tones", async () => {
@@ -1404,15 +1482,19 @@ describe("ScorePlayer", () => {
 
     const noteFrequency = getNoteFrequency(firstBeatOf(bar).notes![0]);
     const player = new ScorePlayer(score, track, {
-      [ElectricGuitarTone.Clean]: {
-        url: "/samples/clean.wav",
-        rootFrequency: noteFrequency,
-      },
-      [ElectricGuitarTone.Overdrive]: {
-        url: "/samples/overdrive.wav",
-        rootFrequency: noteFrequency / 2,
+      preloadAudio: true,
+      samples: {
+        [ElectricGuitarTone.Clean]: {
+          url: "/samples/clean.wav",
+          rootFrequency: noteFrequency,
+        },
+        [ElectricGuitarTone.Overdrive]: {
+          url: "/samples/overdrive.wav",
+          rootFrequency: noteFrequency / 2,
+        },
       },
     });
+    await player.initialize();
     await player.start({ startBeat: firstBeatOf(bar) });
 
     expect(fetchMock).toHaveBeenCalledWith("/samples/clean.wav");
@@ -1434,9 +1516,12 @@ describe("ScorePlayer", () => {
       .mockImplementation(() => {});
 
     const player = new ScorePlayer(score, track, {
-      [ElectricGuitarTone.Clean]: {
-        url: "/samples/missing.wav",
-        rootFrequency: 82.4068892282175,
+      preloadAudio: false,
+      samples: {
+        [ElectricGuitarTone.Clean]: {
+          url: "/samples/missing.wav",
+          rootFrequency: 82.4068892282175,
+        },
       },
     });
     await player.start({ startBeat: firstBeatOf(bar) });
@@ -1800,7 +1885,7 @@ describe("ScorePlayer", () => {
 
     expect(createdOscillators[2].stop).toHaveBeenLastCalledWith(0.9);
     jest.advanceTimersByTime(200);
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
   });
 
   test("disabling loop preserves scheduled notation repeat passes", async () => {
@@ -1891,7 +1976,7 @@ describe("ScorePlayer", () => {
 
     expect(oscillatorStarts().slice(0, 3)).toEqual([0.05, 0.55, 1.05]);
     jest.advanceTimersByTime(200);
-    expect(player.isPlaying).toBe(true);
+    expect(player.playbackState).toBe(PlaybackState.Playing);
   });
 
   test("live loop scheduling failure stops playback cleanly", async () => {
@@ -1910,7 +1995,7 @@ describe("ScorePlayer", () => {
     jest.setSystemTime(900);
     expect(() => player.toggleLoop()).not.toThrow();
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(consoleErrorSpy).toHaveBeenCalled();
 
     consoleErrorSpy.mockRestore();
@@ -1928,7 +2013,7 @@ describe("ScorePlayer", () => {
     const player = new ScorePlayer(score, track);
     await player.start();
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(emitSpy).toHaveBeenCalledWith(TrackEventType.PlayerStateChanged, {
       playerUUID: player.uuid,
     });
@@ -1951,14 +2036,14 @@ describe("ScorePlayer", () => {
 
     await player.start({ startBeat: beat });
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(player.playbackAnchorBeat).toBe(beat);
     expect(emitSpy).toHaveBeenCalledWith(TrackEventType.PlayerStateChanged, {
       playerUUID: player.uuid,
     });
 
     await player.start();
-    expect(player.isPlaying).toBe(true);
+    expect(player.playbackState).toBe(PlaybackState.Playing);
     expect(oscillatorFrequencies()).toEqual([
       getNoteFrequency(firstNoteOfBeat(beat)),
     ]);
@@ -1981,13 +2066,13 @@ describe("ScorePlayer", () => {
 
     await player.start({ startBeat: beat });
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(createdAudioContexts[0].close).toHaveBeenCalledTimes(1);
     expect(createdGains[0].disconnect).toHaveBeenCalled();
     expect(createdPanners[0].disconnect).toHaveBeenCalled();
 
     await player.start();
-    expect(player.isPlaying).toBe(true);
+    expect(player.playbackState).toBe(PlaybackState.Playing);
     expect(oscillatorFrequencies()).toEqual([
       getNoteFrequency(firstNoteOfBeat(beat)),
     ]);
@@ -2010,7 +2095,7 @@ describe("ScorePlayer", () => {
 
     await player.start({ startBeat: beat });
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(player.playbackAnchorBeat).toBe(beat);
     expect(emitSpy).toHaveBeenLastCalledWith(
       TrackEventType.PlayerStateChanged,
@@ -2041,7 +2126,7 @@ describe("ScorePlayer", () => {
 
     await player.start({ startBeat: beat });
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(createdOscillators[0].disconnect).toHaveBeenCalled();
     expect(createdGains[createdGains.length - 1].disconnect).toHaveBeenCalled();
 
@@ -2079,7 +2164,7 @@ describe("ScorePlayer", () => {
 
     jest.advanceTimersByTime(100);
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(player.playbackAnchorBeat).toBe(firstBeat);
     expect(emitSpy).toHaveBeenCalledWith(TrackEventType.PlayerStateChanged, {
       playerUUID: player.uuid,
@@ -2106,7 +2191,7 @@ describe("ScorePlayer", () => {
 
     await player.start({ startBeat: firstBeatOf(bars[1]) });
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(player.playbackAnchorBeat).toBe(firstBeatOf(bars[1]));
     expect(emitSpy).toHaveBeenCalledWith(TrackEventType.PlayerStateChanged, {
       playerUUID: player.uuid,
@@ -2135,12 +2220,12 @@ describe("ScorePlayer", () => {
 
     const player = new ScorePlayer(score, track);
     const startPromise = player.start({ startBeat: firstBeatOf(bar) });
-    expect(player.isPlaying).toBe(true);
+    expect(player.playbackState).toBe(PlaybackState.Starting);
     player.stop();
     resolveResume?.();
     await startPromise;
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(createdOscillators).toHaveLength(0);
   });
 
@@ -2169,7 +2254,7 @@ describe("ScorePlayer", () => {
     await firstStart;
     await secondStart;
 
-    expect(player.isPlaying).toBe(true);
+    expect(player.playbackState).toBe(PlaybackState.Playing);
     expect(oscillatorFrequencies()).toHaveLength(1);
   });
 
@@ -2188,13 +2273,13 @@ describe("ScorePlayer", () => {
 
     const seekPromise = player.start({ startBeat: seekBeat });
 
-    expect(player.isPlaying).toBe(true);
+    expect(player.playbackState).toBe(PlaybackState.Starting);
     expect(player.lastStartedBeat).toBeUndefined();
     expect(player.playbackAnchorBeat).toBe(seekBeat);
 
     resolveResume?.();
     await seekPromise;
-    expect(player.isPlaying).toBe(true);
+    expect(player.playbackState).toBe(PlaybackState.Playing);
     expect(player.playbackAnchorBeat).toBe(seekBeat);
   });
 
@@ -2322,7 +2407,7 @@ describe("ScorePlayer", () => {
     player.stop();
     jest.advanceTimersByTime(1000);
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(
       emitSpy.mock.calls.filter(
         ([eventType]) => eventType === TrackEventType.PlayerCurBeatChanged
@@ -2342,7 +2427,7 @@ describe("ScorePlayer", () => {
     player.dispose();
     await Promise.resolve();
 
-    expect(player.isPlaying).toBe(false);
+    expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(createdAudioContexts[0].close).toHaveBeenCalledTimes(1);
   });
 });

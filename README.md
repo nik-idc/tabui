@@ -77,6 +77,10 @@ The package is framework-agnostic. Import its styles from
 `@atikincode/tabui/assets/*`; serve them from your application and provide their
 public base URL with `assets.baseUrl`.
 
+Set `playback.preloadAudio` to `true` to prepare configured `playback.samples` in the
+background during initialization. It does not block `init()` or resume audio;
+the first Play action still satisfies browser user-gesture requirements.
+
 Pass a dedicated empty root to `TabUIEditor`. The host owns that root and TabUI
 owns its contents while mounted. `init()` is synchronous and may be called once.
 `dispose()` is idempotent and terminal. Replace a score by disposing the editor

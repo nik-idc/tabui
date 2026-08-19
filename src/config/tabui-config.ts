@@ -17,9 +17,16 @@ export interface PlaybackSampleConfig {
   rootNote?: NoteType;
 }
 
-export type PlaybackConfig = Partial<
+export type PlaybackSampleConfigs = Partial<
   Record<InstrumentTone, PlaybackSampleConfig>
 >;
+
+export interface PlaybackConfig {
+  /** Loads configured score samples during editor initialization. */
+  preloadAudio?: boolean;
+  /** Sample configuration keyed by instrument tone. */
+  samples?: PlaybackSampleConfigs;
+}
 
 export interface ResolvedPlaybackSampleConfig {
   url: string;
@@ -27,9 +34,14 @@ export interface ResolvedPlaybackSampleConfig {
   rootFrequency: number;
 }
 
-export type ResolvedPlaybackConfig = Partial<
+export type ResolvedPlaybackSampleConfigs = Partial<
   Record<InstrumentTone, ResolvedPlaybackSampleConfig>
 >;
+
+export interface ResolvedPlaybackConfig {
+  preloadAudio: boolean;
+  samples: ResolvedPlaybackSampleConfigs;
+}
 
 export enum TabUIEditorMode {
   Edit = "edit",
@@ -198,13 +210,16 @@ const DEFAULT_SAMPLE_ROOT_NOTE = {
 function resolvePlaybackConfig(
   config: PlaybackConfig = {}
 ): ResolvedPlaybackConfig {
-  const resolved: ResolvedPlaybackConfig = {};
-  for (const [tone, sampleConfig] of Object.entries(config)) {
+  const resolved: ResolvedPlaybackConfig = {
+    preloadAudio: config.preloadAudio ?? false,
+    samples: {},
+  };
+  for (const [tone, sampleConfig] of Object.entries(config.samples ?? {})) {
     if (sampleConfig === undefined) {
       continue;
     }
 
-    resolved[tone as InstrumentTone] = {
+    resolved.samples[tone as InstrumentTone] = {
       url: sampleConfig.url,
       rootFrequency: getFrequencyFromNoteType(
         sampleConfig.rootNote ?? DEFAULT_SAMPLE_ROOT_NOTE

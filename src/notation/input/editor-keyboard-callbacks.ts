@@ -3,6 +3,7 @@ import { SelectedMoveDirection } from "../controller";
 import { NotationComponent } from "../notation-component";
 import { KeyChecker } from "../../shared";
 import { UIComponent } from "../../ui";
+import { PlaybackState } from "../../player";
 
 export interface EditorKeyboardCallbacks {
   copyEvent(): void;
@@ -107,7 +108,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public togglePlaybackEvent(): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    if (
+      this._notationComponent.trackController.playbackState !==
+      PlaybackState.Idle
+    ) {
       this._notationComponent.trackController.stopPlayer();
     } else {
       this._notationComponent.trackController.startPlayer();
@@ -217,7 +221,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     event.preventDefault();
 
-    if (this._notationComponent.trackController.isPlaying) {
+    if (
+      this._notationComponent.trackController.playbackState !==
+      PlaybackState.Idle
+    ) {
       if (event.ctrlKey && !event.shiftKey && key === "c") {
         this.copyEvent();
       } else if (key === " " && !event.ctrlKey && !event.shiftKey) {

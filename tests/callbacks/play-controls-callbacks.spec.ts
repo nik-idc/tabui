@@ -23,7 +23,7 @@ describe("PlayControlsDefaultCallbacks", () => {
       } as any,
       {
         trackController: {
-          get isPlaying() {
+          get isPlaybackActive() {
             return isPlaying;
           },
           startPlayer,

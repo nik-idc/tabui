@@ -241,46 +241,49 @@ themeSelect?.addEventListener("change", handleThemeChange);
 const baseEditorConfig = {
   ...selectedThemeConfig,
   playback: {
-    [ElectricGuitarTone.Clean]: {
-      url: CLEAN_GUITAR_SAMPLE_URL,
-      rootNote: {
-        noteValue: NoteValue.C,
-        octave: 3,
+    preloadAudio: true,
+    samples: {
+      [ElectricGuitarTone.Clean]: {
+        url: CLEAN_GUITAR_SAMPLE_URL,
+        rootNote: {
+          noteValue: NoteValue.C,
+          octave: 3,
+        },
       },
-    },
-    [ElectricGuitarTone.Overdrive]: {
-      url: OVERDRIVEN_GUITAR_SAMPLE_URL,
-      rootNote: {
-        noteValue: NoteValue.C,
-        octave: 3,
+      [ElectricGuitarTone.Overdrive]: {
+        url: OVERDRIVEN_GUITAR_SAMPLE_URL,
+        rootNote: {
+          noteValue: NoteValue.C,
+          octave: 3,
+        },
       },
-    },
-    [ElectricGuitarTone.Distortion]: {
-      url: DISTORTED_GUITAR_SAMPLE_URL,
-      rootNote: {
-        noteValue: NoteValue.C,
-        octave: 3,
+      [ElectricGuitarTone.Distortion]: {
+        url: DISTORTED_GUITAR_SAMPLE_URL,
+        rootNote: {
+          noteValue: NoteValue.C,
+          octave: 3,
+        },
       },
-    },
-    [BassGuitarTone.Clean]: {
-      url: SLAP_BASS_SAMPLE_URL,
-      rootNote: {
-        noteValue: NoteValue.C,
-        octave: 2,
+      [BassGuitarTone.Clean]: {
+        url: SLAP_BASS_SAMPLE_URL,
+        rootNote: {
+          noteValue: NoteValue.C,
+          octave: 2,
+        },
       },
-    },
-    [AcousticGuitarTone.Nylon]: {
-      url: NYLON_GUITAR_SAMPLE_URL,
-      rootNote: {
-        noteValue: NoteValue.C,
-        octave: 4,
+      [AcousticGuitarTone.Nylon]: {
+        url: NYLON_GUITAR_SAMPLE_URL,
+        rootNote: {
+          noteValue: NoteValue.C,
+          octave: 4,
+        },
       },
-    },
-    [AcousticGuitarTone.Steel]: {
-      url: STEEL_GUITAR_SAMPLE_URL,
-      rootNote: {
-        noteValue: NoteValue.C,
-        octave: 4,
+      [AcousticGuitarTone.Steel]: {
+        url: STEEL_GUITAR_SAMPLE_URL,
+        rootNote: {
+          noteValue: NoteValue.C,
+          octave: 4,
+        },
       },
     },
   },

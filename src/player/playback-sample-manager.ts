@@ -1,4 +1,4 @@
-import { ResolvedPlaybackConfig } from "../config/tabui-config";
+import { ResolvedPlaybackSampleConfigs } from "../config/tabui-config";
 import { InstrumentTone } from "../notation/model";
 
 /**
@@ -10,7 +10,7 @@ export class PlaybackSampleManager {
   /** Audio context used to decode sample data. */
   private _audioContext: AudioContext;
   /** Resolved playback sample configuration by instrument tone. */
-  private _playbackConfig: ResolvedPlaybackConfig;
+  private _playbackSamples: ResolvedPlaybackSampleConfigs;
   /** Decoded samples ready for scheduling. */
   private _samples: Map<InstrumentTone, AudioBuffer>;
   /** In-flight sample load promises used to deduplicate concurrent loads. */
@@ -23,10 +23,10 @@ export class PlaybackSampleManager {
    */
   constructor(
     audioContext: AudioContext,
-    playbackConfig: ResolvedPlaybackConfig
+    playbackSamples: ResolvedPlaybackSampleConfigs
   ) {
     this._audioContext = audioContext;
-    this._playbackConfig = playbackConfig;
+    this._playbackSamples = playbackSamples;
     this._samples = new Map();
     this._sampleLoads = new Map();
   }
@@ -56,7 +56,7 @@ export class PlaybackSampleManager {
    * @param tone Instrument tone
    */
   private async loadSample(tone: InstrumentTone): Promise<void> {
-    const sampleConfig = this._playbackConfig[tone];
+    const sampleConfig = this._playbackSamples[tone];
     if (sampleConfig === undefined || this._samples.has(tone)) {
       return;
     }
@@ -72,13 +72,13 @@ export class PlaybackSampleManager {
     return sampleLoad;
   }
 
-  /** Loads every sample present in the resolved playback config. */
-  public async loadConfiguredSamples(): Promise<void> {
-    const loads = Object.keys(this._playbackConfig).map((tone) =>
-      this.loadSample(tone as InstrumentTone)
-    );
+  /** Loads samples for the tones that the current score can schedule. */
+  public async loadSamplesForTones(
+    tones: Iterable<InstrumentTone>
+  ): Promise<void> {
+    const loads = new Set(tones);
 
-    await Promise.all(loads);
+    await Promise.all([...loads].map((tone) => this.loadSample(tone)));
   }
 
   /**
@@ -96,6 +96,6 @@ export class PlaybackSampleManager {
    * @returns Root frequency, or undefined when no sample is configured
    */
   public getRootFrequency(tone: InstrumentTone): number | undefined {
-    return this._playbackConfig[tone]?.rootFrequency;
+    return this._playbackSamples[tone]?.rootFrequency;
   }
 }

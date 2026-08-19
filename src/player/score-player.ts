@@ -30,6 +30,13 @@ export enum PlaybackErrorCode {
   Scheduling = "scheduling",
 }
 
+/** Current score transport state. */
+export enum PlaybackState {
+  Idle = "idle",
+  Starting = "starting",
+  Playing = "playing",
+}
+
 export interface PlaybackError {
   code: PlaybackErrorCode;
   message: string;
@@ -52,6 +59,8 @@ export class ScorePlayer {
 
   /** Score timeline planner and traversal coordinator. */
   private readonly _scheduler: PlaybackScheduler;
+  /** Whether initialization should prepare audio before user playback. */
+  private readonly _preloadAudio: boolean;
   /** Context-bound audio graph and note renderer. */
   private readonly _audioEngine: PlaybackAudioEngine;
   /** Interval handle for rolling lookahead scheduling. */
@@ -63,8 +72,8 @@ export class ScorePlayer {
 
   /** Visible-track cursor projection and event coordination. */
   private readonly _cursorCoordinator: PlaybackCursorCoordinator;
-  /** Indicates if playback is active or starting. */
-  private _isPlaying: boolean = false;
+  /** Current score transport state. */
+  private _playbackState: PlaybackState = PlaybackState.Idle;
   /** Monotonic playback generation used to ignore stale async start completions. */
   private _playbackRunId: number = 0;
   /** True after disposal; async start work must not resume playback. */
@@ -81,15 +90,22 @@ export class ScorePlayer {
   constructor(
     score: Score,
     activeTrack: Track,
-    playbackConfig: ResolvedPlaybackConfig = {},
+    playbackConfig: ResolvedPlaybackConfig = {
+      preloadAudio: false,
+      samples: {},
+    },
     onError?: PlaybackErrorListener
   ) {
     this.uuid = randomInt();
     this._schedulingReady = false;
+    this._preloadAudio = playbackConfig.preloadAudio ?? false;
 
     this.score = score;
     this._onError = onError;
-    this._audioEngine = new PlaybackAudioEngine(this.score, playbackConfig);
+    this._audioEngine = new PlaybackAudioEngine(
+      this.score,
+      playbackConfig.samples
+    );
     this._scheduler = new PlaybackScheduler(this.score, this._audioEngine);
     this._cursorCoordinator = new PlaybackCursorCoordinator(
       this.score,
@@ -118,7 +134,7 @@ export class ScorePlayer {
     message: string
   ): void {
     this._playbackRunId++;
-    this._isPlaying = false;
+    this._playbackState = PlaybackState.Idle;
     this.resetPlayback();
     this._cursorCoordinator.setPlaybackAnchorBeat(playbackAnchorBeat);
     this.emitPlaybackStateChanged();
@@ -143,7 +159,10 @@ export class ScorePlayer {
     );
     this._stopTimeout = setTimeout(() => {
       this._stopTimeout = undefined;
-      if (!this._isPlaying || playbackRunId !== this._playbackRunId) {
+      if (
+        this._playbackState === PlaybackState.Idle ||
+        playbackRunId !== this._playbackRunId
+      ) {
         return;
       }
 
@@ -153,7 +172,7 @@ export class ScorePlayer {
 
   /** Schedules the next lookahead window and handles scheduler results. */
   private scheduleLookahead(): void {
-    if (!this._isPlaying) {
+    if (this._playbackState === PlaybackState.Idle) {
       return;
     }
 
@@ -214,60 +233,63 @@ export class ScorePlayer {
     return this._disposed || playbackRunId !== this._playbackRunId;
   }
 
-  private async initializeAudioForStart(
+  private async prepareAudioForStart(
     playbackRunId: number,
     playbackAnchorBeat: Beat | undefined
   ): Promise<boolean> {
     try {
-      this._audioEngine.initialize();
+      await this.prepareAudio(true, false);
     } catch (error) {
+      // Report preparation failures only while this playback run is current
       if (!this.startIsStale(playbackRunId)) {
         this.handlePlaybackFailure(
           error,
           playbackAnchorBeat,
           PlaybackErrorCode.ContextInit,
-          "Failed to initialize audio context"
+          "Failed to prepare audio"
         );
       }
       return false;
     }
 
-    try {
-      await this._audioEngine.resume();
-    } catch (error) {
-      if (!this.startIsStale(playbackRunId)) {
-        this.handlePlaybackFailure(
-          error,
-          playbackAnchorBeat,
-          PlaybackErrorCode.ContextStart,
-          "Failed to start audio context"
-        );
-      }
-      return false;
-    }
-
+    // By the time this promise completes, `playbackRunId`
+    // may already be stale -> that's why we return this
     return !this.startIsStale(playbackRunId);
   }
 
-  private async loadSamplesForStart(
-    playbackRunId: number,
-    playbackAnchorBeat: Beat | undefined
-  ): Promise<boolean> {
-    try {
-      await this._audioEngine.loadSamples();
-    } catch (error) {
-      if (!this.startIsStale(playbackRunId)) {
-        this.handlePlaybackFailure(
-          error,
-          playbackAnchorBeat,
-          PlaybackErrorCode.SampleLoading,
-          "Failed to load playback samples"
-        );
-      }
-      return false;
+  /**
+   * Prepares the audio graph and configured score samples.
+   * @param resumeAudio Whether this preparation follows a user Play action. For
+   * example, a user can stop playback, add a bass track, then load its samples
+   * in the background without resuming audio. A later Play action resumes the
+   * context when needed and schedules playback.
+   * @param waitForSamples Whether preparation waits for decoded samples.
+   */
+  private async prepareAudio(
+    resumeAudio: boolean,
+    waitForSamples: boolean
+  ): Promise<void> {
+    this._audioEngine.initialize();
+    if (resumeAudio) {
+      await this._audioEngine.resume();
+    }
+    const sampleLoad = this._audioEngine.loadSamples();
+    if (waitForSamples) {
+      await sampleLoad;
+    }
+  }
+
+  /** Starts optional background audio preparation without blocking initialization. */
+  public async initialize(): Promise<void> {
+    if (!this._preloadAudio) {
+      return;
     }
 
-    return !this.startIsStale(playbackRunId);
+    try {
+      await this.prepareAudio(false, true);
+    } catch {
+      // A later user-initiated start retries preparation and reports its failure.
+    }
   }
 
   private initializeScheduleForStart(
@@ -291,6 +313,10 @@ export class ScorePlayer {
       }
 
       this.scheduleScore();
+      if (!this.startIsStale(playbackRunId)) {
+        this._playbackState = PlaybackState.Playing;
+        this.emitPlaybackStateChanged();
+      }
     } catch (error) {
       if (!this.startIsStale(playbackRunId)) {
         this.handlePlaybackFailure(
@@ -319,24 +345,14 @@ export class ScorePlayer {
 
     this.resetPlayback();
     this._cursorCoordinator.setPlaybackAnchorBeat(playbackAnchorBeat);
-    if (!this._isPlaying) {
-      this._isPlaying = true;
-      this.emitPlaybackStateChanged();
-    }
+    this._playbackState = PlaybackState.Starting;
+    this.emitPlaybackStateChanged();
 
-    const audioInitialized = await this.initializeAudioForStart(
+    const audioPrepared = await this.prepareAudioForStart(
       playbackRunId,
       playbackAnchorBeat
     );
-    if (!audioInitialized) {
-      return;
-    }
-
-    const samplesLoaded = await this.loadSamplesForStart(
-      playbackRunId,
-      playbackAnchorBeat
-    );
-    if (!samplesLoaded) {
+    if (!audioPrepared) {
       return;
     }
 
@@ -373,13 +389,13 @@ export class ScorePlayer {
   /** Stops playback and clears scheduled events. */
   public stop(): void {
     this._playbackRunId++;
-    this._isPlaying = false;
+    this._playbackState = PlaybackState.Idle;
     this.resetPlayback();
     this.emitPlaybackStateChanged();
   }
 
   private applyLiveLoopChange(): void {
-    if (!this._isPlaying || !this._schedulingReady) {
+    if (this._playbackState === PlaybackState.Idle || !this._schedulingReady) {
       return;
     }
 
@@ -446,9 +462,10 @@ export class ScorePlayer {
       throw Error("Track is not part of this score");
     }
 
-    const currentTime = this._isPlaying
-      ? this._audioEngine.currentTime
-      : undefined;
+    const currentTime =
+      this._playbackState !== PlaybackState.Idle
+        ? this._audioEngine.currentTime
+        : undefined;
     this._cursorCoordinator.setActiveTrack(
       track,
       currentTime,
@@ -461,7 +478,7 @@ export class ScorePlayer {
     const currentTime = this._audioEngine.currentTime;
     if (
       !this.score.tracks.includes(track) ||
-      !this._isPlaying ||
+      this._playbackState === PlaybackState.Idle ||
       currentTime === undefined
     ) {
       return undefined;
@@ -505,9 +522,9 @@ export class ScorePlayer {
     this._audioEngine.dispose();
   }
 
-  /** Indicates if playback is active. */
-  public get isPlaying(): boolean {
-    return this._isPlaying;
+  /** Current score transport state. */
+  public get playbackState(): PlaybackState {
+    return this._playbackState;
   }
 
   /** Indicates if loop mode is enabled. */

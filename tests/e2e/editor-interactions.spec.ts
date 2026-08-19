@@ -40,7 +40,7 @@ test("starts and pauses playback from the transport control", async ({
   await expect(cursor).toHaveAttribute("width", "5");
   const cursorXBefore = await cursor.getAttribute("x");
   await expect
-    .poll(async () => cursor.getAttribute("x"), { timeout: 1_000 })
+    .poll(async () => cursor.getAttribute("x"), { timeout: 2_000 })
     .not.toBe(cursorXBefore);
 
   // Click the updated transport image to pause playback again.

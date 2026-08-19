@@ -48,7 +48,7 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     this._renderFunc();
   }
   onPlayClicked(): void {
-    if (this._notationComponent.trackController.isPlaying) {
+    if (this._notationComponent.trackController.isPlaybackActive) {
       this._notationComponent.trackController.stopPlayer();
     } else {
       this._notationComponent.trackController.startPlayer();

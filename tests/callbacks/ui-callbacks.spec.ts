@@ -9,7 +9,7 @@ describe("UICallbacks", () => {
     const container = makeButton() as any;
     const renderer = Object.create(SideControlsTemplateRenderer.prototype);
     renderer.notationComponent = {
-      trackController: { isPlaying: true, editingEnabled: true },
+      trackController: { isPlaybackActive: true, editingEnabled: true },
     };
     renderer.template = { container };
     renderer._assembled = true;

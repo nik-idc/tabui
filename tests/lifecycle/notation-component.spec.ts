@@ -24,6 +24,7 @@ const mockRenderers: Array<{
 }> = [];
 
 const mockPlayers: Array<{
+  initialize: jest.Mock;
   dispose: jest.Mock;
   setActiveTrack: jest.Mock;
   getCurrentBeatForTrack: jest.Mock;
@@ -73,6 +74,7 @@ jest.mock("../../src/notation/render", () => ({
 jest.mock("../../src/player", () => ({
   ScorePlayer: jest.fn().mockImplementation(() => {
     const instance = {
+      initialize: jest.fn(),
       dispose: jest.fn(),
       setActiveTrack: jest.fn(),
       getCurrentBeatForTrack: jest.fn(),
@@ -113,6 +115,7 @@ describe("NotationComponent", () => {
     notation.dispose();
 
     expect(ScorePlayer).toHaveBeenCalledTimes(1);
+    expect(mockPlayers[0].initialize).toHaveBeenCalledTimes(1);
     expect(TrackController).toHaveBeenCalledTimes(3);
     expect(mockTrackControllers[0].player).toBe(mockTrackControllers[1].player);
     expect(mockTrackControllers[1].player).toBe(mockTrackControllers[2].player);

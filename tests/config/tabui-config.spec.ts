@@ -88,20 +88,24 @@ describe("tabui-config", () => {
   it("resolves playback samples by instrument tone", () => {
     const config = resolveTabUIConfig({
       playback: {
-        [ElectricGuitarTone.Clean]: {
-          url: "/samples/clean.wav",
-          rootNote: {
-            noteValue: NoteValue.C,
-            octave: 3,
+        preloadAudio: true,
+        samples: {
+          [ElectricGuitarTone.Clean]: {
+            url: "/samples/clean.wav",
+            rootNote: {
+              noteValue: NoteValue.C,
+              octave: 3,
+            },
           },
         },
       },
     });
 
-    expect(config.playback[ElectricGuitarTone.Clean]).toEqual({
+    expect(config.playback.samples[ElectricGuitarTone.Clean]).toEqual({
       url: "/samples/clean.wav",
       rootFrequency: 130.8127826502993,
     });
+    expect(config.playback.preloadAudio).toBe(true);
   });
 
   it("resolves layout overrides", () => {

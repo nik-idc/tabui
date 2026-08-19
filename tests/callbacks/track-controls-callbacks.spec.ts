@@ -10,7 +10,7 @@ import {
 } from "./helpers";
 
 describe("TrackControlsDefaultCallbacks", () => {
-  function renderRemoveButton(trackCount: number, isPlaying: boolean = false) {
+  function renderRemoveButton(trackCount: number, isPlaybackActive = false) {
     const removeButton = {
       classList: { add: jest.fn(), toggle: jest.fn() },
       dataset: {},
@@ -23,7 +23,7 @@ describe("TrackControlsDefaultCallbacks", () => {
     renderer.template = { removeButton };
     renderer.notationComponent = {
       score: { tracks: new Array(trackCount) },
-      trackController: { isPlaying, editingEnabled: true },
+      trackController: { isPlaybackActive, editingEnabled: true },
     };
     renderer.assetsPath = { baseUrl: "", variant: "light" };
 
@@ -73,7 +73,7 @@ describe("TrackControlsDefaultCallbacks", () => {
     renderer.track = track;
     renderer.notationComponent = {
       score: { tracks: [track, {}] },
-      trackController: { isPlaying: true, editingEnabled: true },
+      trackController: { isPlaybackActive: true, editingEnabled: true },
     };
     renderer.assetsPath = { baseUrl: "", variant: "light" };
 

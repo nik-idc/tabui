@@ -87,6 +87,9 @@ export function createNotationComponentMock() {
   return {
     trackController: {
       isPlaying: false,
+      get isPlaybackActive() {
+        return this.isPlaying;
+      },
       editingEnabled: true,
       startPlayer: jest.fn(),
       stopPlayer: jest.fn(),
@@ -135,6 +138,7 @@ export function createNotationComponentMock() {
       setSelectedBarRepeatStatus: jest.fn(),
       setDuration: jest.fn(),
       setDots: jest.fn(),
+      setSelectedNoteFret: jest.fn(),
       setTechnique: jest.fn(),
       insertBeatBeforeSelected: jest.fn(),
       insertBeatAfterSelected: jest.fn(),

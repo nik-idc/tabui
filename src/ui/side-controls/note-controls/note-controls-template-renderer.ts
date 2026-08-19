@@ -29,6 +29,9 @@ export class NoteControlsTemplateRenderer {
     const cssClass = "tu-note-controls";
     this.template.container.classList.add(cssClass);
 
+    this.template.fretSection.classList.add("tu-control-section");
+    this.template.fretSection.append("Fret:", this.template.fretButton);
+
     this.template.durationSection.classList.add("tu-control-section");
     this.template.durationGrid.classList.add(
       "tu-control-grid",
@@ -69,6 +72,7 @@ export class NoteControlsTemplateRenderer {
     this.template.voiceGrid.append(...this.template.voiceButtons);
 
     this.template.container.append(
+      this.template.fretSection,
       this.template.durationSection,
       this.template.beatSection,
       this.template.voiceSection
@@ -311,6 +315,16 @@ export class NoteControlsTemplateRenderer {
     this.template.removeBeatButton.title = "Remove beat";
   }
 
+  private renderFretButton(): void {
+    setImageAsset(
+      this.template.fretButton,
+      this.assetsPath,
+      "img/ui/edit-fret.svg",
+      "Edit fret"
+    );
+    this.template.fretButton.title = "Edit fret";
+  }
+
   /**
    * Responsible for setting up the note controls:
    * Duration change, Dots & Tuplets
@@ -320,6 +334,7 @@ export class NoteControlsTemplateRenderer {
     this.renderVoiceButtons();
     this.renderDotButtons();
     this.renderBeatEditButtons();
+    this.renderFretButton();
     this.renderTupletButtons();
 
     this._assembled = renderOnce(this._assembled, () =>

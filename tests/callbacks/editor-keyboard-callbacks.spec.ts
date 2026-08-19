@@ -61,6 +61,12 @@ function createHarness(rootElement: FakeRootElement = createRootElement()) {
       startPlayer: jest.fn(),
       stopPlayer: jest.fn(),
       isPlaying: false,
+      get playbackState() {
+        return this.isPlaying ? "playing" : "idle";
+      },
+      get isPlaybackActive() {
+        return this.isPlaying;
+      },
       editingEnabled: true,
       copy: jest.fn(),
       paste: jest.fn(),

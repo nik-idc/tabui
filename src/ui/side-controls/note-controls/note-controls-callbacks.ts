@@ -6,6 +6,7 @@ import {
   TupletControlsCallbacks,
   TupletControlsDefaultCallbacks,
 } from "./tuplet-controls/tuplet-controls-callbacks";
+import { FretControlsDefaultCallbacks } from "./fret-controls";
 
 export interface NoteControlsCallbacks {
   onDurationClicked(noteDuration: NoteDuration): void;
@@ -32,6 +33,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   private _listeners = new ListenerManager();
 
   private _tupletCallbacks: TupletControlsCallbacks;
+  private _fretCallbacks: FretControlsDefaultCallbacks;
 
   constructor(
     noteComponent: NoteControlsComponent,
@@ -50,6 +52,13 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
 
     this._tupletCallbacks = new TupletControlsDefaultCallbacks(
       this._noteComponent.tupletComponent,
+      this._notationComponent,
+      this._renderFunc,
+      this._captureKeyboard,
+      this._freeKeyboard
+    );
+    this._fretCallbacks = new FretControlsDefaultCallbacks(
+      this._noteComponent.fretComponent,
       this._notationComponent,
       this._renderFunc,
       this._captureKeyboard,
@@ -135,6 +144,11 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     // Bind dot and tuplet buttons
     const otherConfigs: ListenerConfig[] = [
       {
+        element: this._noteComponent.template.fretButton,
+        event: "click",
+        handler: () => this._fretCallbacks.onFretButtonClicked(),
+      },
+      {
         element: this._noteComponent.template.restButton,
         event: "click",
         handler: () => this.onRestClicked(),
@@ -188,10 +202,12 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     ]);
 
     this._tupletCallbacks.bind();
+    this._fretCallbacks.bind();
   }
 
   unbind(): void {
     this._listeners.unbindAll();
     this._tupletCallbacks.unbind();
+    this._fretCallbacks.unbind();
   }
 }

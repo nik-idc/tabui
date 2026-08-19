@@ -2,6 +2,7 @@ import { NotationComponent } from "../../../notation/notation-component";
 import { renderOnce, setImageAsset } from "../../shared";
 import { PlayControlsTemplate } from "./play-controls-template";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import { PlaybackState } from "../../../player";
 
 const buttonSize = `30px`;
 
@@ -66,12 +67,19 @@ export class PlayControlsTemplateRenderer {
       }
     );
 
-    const isPlaying = this.notationComponent.trackController.isPlaying;
+    const playbackState = this.notationComponent.trackController.playbackState;
+    const isActive = playbackState !== PlaybackState.Idle;
+    const playLabel =
+      playbackState === PlaybackState.Starting
+        ? "Loading audio"
+        : playbackState === PlaybackState.Playing
+          ? "Pause"
+          : "Play";
     setImageAsset(
       this.template.playButton,
       this.assetsPath,
-      isPlaying ? "img/ui/pause.svg" : "img/ui/play.svg",
-      isPlaying ? "Pause" : "Play",
+      isActive ? "img/ui/pause.svg" : "img/ui/play.svg",
+      playLabel,
       {
         width: buttonSize,
         height: buttonSize,
@@ -79,9 +87,10 @@ export class PlayControlsTemplateRenderer {
     );
     this.template.playButton.classList.toggle(
       "tu-track-control-active",
-      isPlaying
+      isActive
     );
-    this.template.playButton.setAttribute("aria-pressed", `${isPlaying}`);
+    this.template.playButton.setAttribute("aria-pressed", `${isActive}`);
+    this.template.playButton.title = playLabel;
 
     setImageAsset(
       this.template.nextButton,
@@ -131,7 +140,7 @@ export class PlayControlsTemplateRenderer {
     setImageAsset(
       this.template.rangeButton,
       this.assetsPath,
-      `img/ui/${hasSelectionAnchor ? "clear-range" : "set-anchor"}.svg`,
+      `img/ui/${hasSelectionAnchor ? "clear-selection" : "start-selection"}.svg`,
       label,
       { width: buttonSize, height: buttonSize }
     );

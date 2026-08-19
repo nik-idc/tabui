@@ -7,7 +7,7 @@ import { SVGTabBeatRenderer } from "../render/svg/svg-tab-beat-renderer";
 export class EditorCallbackBinder {
   private _globalPointerEventsBound = false;
   private _keyboardBound = false;
-  private _boundOnWindowPointerUp?: (event: PointerEvent) => void;
+  private _boundOnWindowPointerUp?: (event: MouseEvent) => void;
   private _boundOnKeyDown?: (event: KeyboardEvent) => void;
 
   private bindGlobalPointerEvents(mouseCallbacks: EditorMouseCallbacks): void {
@@ -17,8 +17,7 @@ export class EditorCallbackBinder {
 
     this._boundOnWindowPointerUp =
       mouseCallbacks.onWindowPointerUp.bind(mouseCallbacks);
-    window.addEventListener("pointerup", this._boundOnWindowPointerUp);
-    window.addEventListener("pointercancel", this._boundOnWindowPointerUp);
+    window.addEventListener("mouseup", this._boundOnWindowPointerUp);
     this._globalPointerEventsBound = true;
   }
 
@@ -29,15 +28,15 @@ export class EditorCallbackBinder {
     for (const renderer of renderers) {
       if (renderer instanceof SVGTabBeatRenderer) {
         renderer.attachMouseEvent(
-          "pointerdown",
+          "mousedown",
           mouseCallbacks.onBeatPointerDown.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
-          "pointermove",
+          "mousemove",
           mouseCallbacks.onBeatPointerMove.bind(mouseCallbacks)
         );
         renderer.attachMouseEvent(
-          "pointerup",
+          "mouseup",
           mouseCallbacks.onBeatPointerUp.bind(mouseCallbacks)
         );
       } else if (renderer instanceof SVGTabNoteRenderer) {
@@ -85,8 +84,7 @@ export class EditorCallbackBinder {
       this._globalPointerEventsBound &&
       this._boundOnWindowPointerUp !== undefined
     ) {
-      window.removeEventListener("pointerup", this._boundOnWindowPointerUp);
-      window.removeEventListener("pointercancel", this._boundOnWindowPointerUp);
+      window.removeEventListener("mouseup", this._boundOnWindowPointerUp);
 
       this._boundOnWindowPointerUp = undefined;
       this._globalPointerEventsBound = false;
