@@ -37,10 +37,10 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
   }
 
   onDialogClicked(event: MouseEvent): void {
+    const target = event.target;
     if (
-      !this._yesNoComponent.template.yesNoDialogContent.contains(
-        event.target as Node
-      )
+      !(typeof Node !== "undefined" && target instanceof Node) ||
+      !this._yesNoComponent.template.yesNoDialogContent.contains(target)
     ) {
       this._yesNoComponent.template.yesNoDialog.close();
     }

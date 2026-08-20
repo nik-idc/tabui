@@ -46,8 +46,17 @@ describe("YesNoDefaultCallbacks", () => {
     const { callbacks, component, onConfirm, renderFunc, freeKeyboard } =
       createYesNoHarness();
     const outsideTarget = new FakeElement();
+    class RuntimeNode {}
+    Object.defineProperty(globalThis, "Node", {
+      configurable: true,
+      value: RuntimeNode,
+    });
+    const insideTarget = new RuntimeNode();
+    component.yesNoDialogContent.contains = jest.fn(
+      (target) => target === insideTarget
+    );
 
-    callbacks.onDialogClicked({ target: component.yesNoDialogContent } as any);
+    callbacks.onDialogClicked({ target: insideTarget } as any);
     expect(component.yesNoDialog.close).not.toHaveBeenCalled();
 
     callbacks.bind();

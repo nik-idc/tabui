@@ -120,11 +120,18 @@ describe("TempoControlsDefaultCallbacks", () => {
   test("dialog clicks close only when clicking outside content", () => {
     const { callbacks, component, freeKeyboard } = createTempoHarness();
     const outsideTarget = new FakeElement();
+    class RuntimeNode {}
+    Object.defineProperty(globalThis, "Node", {
+      configurable: true,
+      value: RuntimeNode,
+    });
+    const insideTarget = new RuntimeNode();
+    component.template.dialogContent.contains = jest.fn(
+      (target) => target === insideTarget
+    );
     callbacks.bind();
 
-    callbacks.onDialogClicked({
-      target: component.template.dialogContent,
-    } as any);
+    callbacks.onDialogClicked({ target: insideTarget } as any);
     expect(component.template.dialog.close).not.toHaveBeenCalled();
 
     callbacks.onDialogClicked({ target: outsideTarget } as any);

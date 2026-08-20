@@ -113,6 +113,38 @@ describe("TrackElement techniques", () => {
     expect(startY).toBeLessThan(endY);
   });
 
+  test("clears an inline slide path when its target loses its fret", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const firstNote = beats[0].notes?.[0];
+    const nextNote = beats[1].notes?.[0];
+    if (
+      !(firstNote instanceof GuitarNote) ||
+      !(nextNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected guitar notes in test beats");
+    }
+    firstNote.fret = 5;
+    nextNote.fret = 7;
+    firstNote.addTechnique(
+      new GuitarTechnique(firstNote, GuitarTechniqueType.Slide)
+    );
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    nextNote.fret = null;
+    trackElement.update();
+
+    const firstBeatElement =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements[0].beatElements[0];
+    expect(
+      firstBeatElement.noteElements[0].techniqueElements[0].pathDescriptors
+    ).toBeUndefined();
+  });
+
   test("targeted inline technique update adds technique element diff", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

@@ -25,8 +25,10 @@ import { SVGTechniqueRenderer } from "../svg-technique-renderer";
 import { SVGTechniqueLabelRenderer } from "../svg-technique-label-renderer";
 import { SVGBeamSegmentRenderer } from "../svg-beam-segment-renderer";
 import { SVGTupletRenderer } from "../tuplet/svg-tuplet-renderer";
-import { RendererCtor } from "./renderer-types";
 
+// WARNING: This heterogeneous map erases the relationship between each element
+// class and its renderer constructor. The factory assertion below is therefore
+// an intentional type-safety boundary until the registry receives a typed design.
 const RENDERER_CTORS = new Map<NotationElementClass, ElementRendererClass>([
   [TrackLineElement, SVGTrackLineRenderer],
   [TrackLineInfoElement, SVGTrackLineInfoRenderer],

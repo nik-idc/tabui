@@ -55,10 +55,10 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   }
 
   onDialogClicked(event: MouseEvent): void {
+    const target = event.target;
     if (
-      !this._newTrackComponent.template.dialogContent.contains(
-        event.target as Node
-      )
+      !(typeof Node !== "undefined" && target instanceof Node) ||
+      !this._newTrackComponent.template.dialogContent.contains(target)
     ) {
       this._newTrackComponent.template.dialog.close();
     }
@@ -161,7 +161,7 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     configs.push({
       element: this._newTrackComponent.template.dialog as HTMLElement,
       event: "click",
-      handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
+      handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
     configs.push(
       {

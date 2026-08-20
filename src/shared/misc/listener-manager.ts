@@ -1,16 +1,27 @@
-export interface ListenerConfig {
+type ListenerEventMap = GlobalEventHandlersEventMap;
+
+type ListenerConfigFor<K extends keyof ListenerEventMap> = {
   element: HTMLElement;
-  event: keyof GlobalEventHandlersEventMap;
-  handler: (...args: any[]) => void;
-}
+  event: K;
+  handler: (event: ListenerEventMap[K]) => void;
+};
+
+export type ListenerConfig = {
+  [K in keyof ListenerEventMap]: ListenerConfigFor<K>;
+}[keyof ListenerEventMap];
+
+type ListenerCleanup = () => void;
 
 export class ListenerManager {
-  private listeners: ListenerConfig[] = [];
+  private listeners: ListenerCleanup[] = [];
 
+  /** Registers a typed DOM listener and tracks it for a matching removal. */
   addListener(config: ListenerConfig): void {
-    // Store the handler and bind it
-    this.listeners.push(config);
-    config.element.addEventListener(config.event, config.handler);
+    const handler = config.handler as EventListener;
+    config.element.addEventListener(config.event, handler);
+    this.listeners.push(() =>
+      config.element.removeEventListener(config.event, handler)
+    );
   }
 
   bindAll(configs: ListenerConfig[]): void {
@@ -19,9 +30,7 @@ export class ListenerManager {
   }
 
   unbindAll(): void {
-    this.listeners.forEach(({ element, event, handler }) => {
-      element.removeEventListener(event, handler);
-    });
+    this.listeners.forEach((cleanup) => cleanup());
     this.listeners = [];
   }
 }

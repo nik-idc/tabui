@@ -92,6 +92,26 @@ describe("NotationComponent", () => {
     jest.clearAllMocks();
   });
 
+  test("rejects a score without a track", () => {
+    const { score } = createScoreGraph();
+    score.tracks.splice(0, 1);
+
+    expect(
+      () =>
+        new NotationComponent(
+          { appendChild: jest.fn() } as unknown as HTMLDivElement,
+          score,
+          {
+            assets: {} as any,
+            playback: {} as any,
+            layout: {} as any,
+            interaction: { mode: "edit" },
+          } as any,
+          TEST_LAYOUT_DIMENSIONS
+        )
+    ).toThrow("NotationComponent requires a score with at least one track");
+  });
+
   test("reuses one player across repeated track loads and disposes it once", () => {
     const { score, track } = createScoreGraph();
     const nextTrack = score.addTrack(track.context.instrument, "Track 2")

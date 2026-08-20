@@ -163,6 +163,95 @@ describe("tabui-config", () => {
     expect(() => resolveTabUIConfig(config)).toThrow("layout mode");
   });
 
+  it("rejects an invalid interaction mode at the runtime boundary", () => {
+    const config = { interaction: {} };
+    Reflect.set(config.interaction, "mode", "invalid");
+
+    expect(() => resolveTabUIConfig(config)).toThrow("interaction mode");
+  });
+
+  it("rejects an invalid asset variant at the runtime boundary", () => {
+    const config = { assets: {} };
+    Reflect.set(config.assets, "variant", "invalid");
+
+    expect(() => resolveTabUIConfig(config)).toThrow("asset variant");
+  });
+
+  it("rejects invalid panel placements at the runtime boundary", () => {
+    const scoreConfig = { panels: { score: {} } };
+    Reflect.set(scoreConfig.panels.score, "placement", "invalid");
+    const sideConfig = { panels: { side: {} } };
+    Reflect.set(sideConfig.panels.side, "placement", "invalid");
+
+    expect(() => resolveTabUIConfig(scoreConfig)).toThrow("score panel");
+    expect(() => resolveTabUIConfig(sideConfig)).toThrow("side panel");
+  });
+
+  it.each([
+    "noteTextSize",
+    "timeSigTextSize",
+    "tempoTextSize",
+    "durationsHeight",
+  ])("rejects a non-positive %s", (name) => {
+    const layout = {};
+    Reflect.set(layout, name, 0);
+
+    expect(() => resolveTabUIConfig({ layout })).toThrow(name);
+  });
+
+  it.each([
+    "noteTextSize",
+    "timeSigTextSize",
+    "tempoTextSize",
+    "durationsHeight",
+    "horizontalPadding",
+  ])("rejects a non-finite %s", (name) => {
+    const layout = {};
+    Reflect.set(layout, name, NaN);
+
+    expect(() => resolveTabUIConfig({ layout })).toThrow(name);
+  });
+
+  it("rejects negative horizontal padding", () => {
+    const layout = {};
+    Reflect.set(layout, "horizontalPadding", -1);
+
+    expect(() => resolveTabUIConfig({ layout })).toThrow("horizontalPadding");
+  });
+
+  it("rejects an unknown playback sample tone", () => {
+    const samples = {};
+    Reflect.set(samples, "Unknown tone", { url: "/samples/unknown.wav" });
+
+    expect(() => resolveTabUIConfig({ playback: { samples } })).toThrow(
+      "sample tone"
+    );
+  });
+
+  it.each([null, [], "sample"])(
+    "rejects a non-object playback sample entry: %p",
+    (sample) => {
+      const samples = {};
+      Reflect.set(samples, ElectricGuitarTone.Clean, sample);
+
+      expect(() => resolveTabUIConfig({ playback: { samples } })).toThrow(
+        "sample config must be an object"
+      );
+    }
+  );
+
+  it.each([undefined, null, 42, {}])(
+    "rejects a playback sample with an invalid URL: %p",
+    (url) => {
+      const samples = {};
+      Reflect.set(samples, ElectricGuitarTone.Clean, { url });
+
+      expect(() => resolveTabUIConfig({ playback: { samples } })).toThrow(
+        "sample URL must be a string"
+      );
+    }
+  );
+
   it("hides the editing side panel by default in view-only mode", () => {
     const config = resolveTabUIConfig({
       interaction: { mode: TabUIEditorMode.ViewOnly },

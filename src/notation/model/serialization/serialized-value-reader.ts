@@ -6,6 +6,10 @@ import {
   SerializationPath,
 } from "./serialization-path";
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /**
  * Validates an unknown serialized value while retaining its JSON-style path.
  * Child readers move the path cursor without eagerly validating the child's
@@ -37,14 +41,10 @@ export class SerializedValueReader {
    * JSON-visible keys exactly against `expectedKeys`.
    */
   readObject(expectedKeys?: readonly string[]): Record<string, unknown> {
-    if (
-      typeof this._value !== "object" ||
-      this._value === null ||
-      Array.isArray(this._value)
-    ) {
+    if (!isObjectRecord(this._value)) {
       this.fail("expected object");
     }
-    const object = this._value as Record<string, unknown>;
+    const object = this._value;
     if (expectedKeys !== undefined) {
       this.expectKeys(expectedKeys);
     }
@@ -101,9 +101,8 @@ export class SerializedValueReader {
     );
     for (const key of Object.keys(array)) {
       if (!expectedKeys.has(key)) {
-        const valuesByKey = array as unknown as Record<string, unknown>;
         new SerializedValueReader(
-          valuesByKey[key],
+          undefined,
           propertyPath(this._path, key)
         ).fail("unknown property");
       }
@@ -125,7 +124,7 @@ export class SerializedValueReader {
     if (typeof this._value !== "string") {
       this.fail("expected string");
     }
-    return this._value as string;
+    return this._value;
   }
 
   /** Reads a boolean or fails at the current cursor. */
@@ -133,7 +132,7 @@ export class SerializedValueReader {
     if (typeof this._value !== "boolean") {
       this.fail("expected boolean");
     }
-    return this._value as boolean;
+    return this._value;
   }
 
   /** Reads a finite number, rejecting `NaN` and infinities. */
@@ -141,7 +140,7 @@ export class SerializedValueReader {
     if (typeof this._value !== "number" || !Number.isFinite(this._value)) {
       this.fail("expected finite number");
     }
-    return this._value as number;
+    return this._value;
   }
 
   /** Reads a safe integer. */

@@ -22,7 +22,7 @@ export interface ElementRenderer {
    */
   updateElementReference(element: NotationElement): void;
 
-  render(...params: any): void;
+  render(): void;
 
   unrender(): void;
 }

@@ -1,28 +1,28 @@
 # Phase 6 Roadmap - MVP Stabilization for 0.5.0
 
-Last updated: 2026-08-05 (P1 Stage 4 complete). This is the source of truth for
+Last updated: 2026-08-20 (P1 Stage 8 complete). This is the source of truth for
 turning the completed editor foundations into a dependable, embeddable `0.5.0`
 package. Prefer clean pre-`1.0.0` ownership/API decisions and record new issues in
 `PRE-RELEASE-STABILIZATION.md` before changing priority or scope here.
 
 ## Status
 
-| Stage   | Scope                                                         | Status   |
-| ------- | ------------------------------------------------------------- | -------- |
-| 0       | Baseline, benchmark, fixtures, issue classification           | Complete |
-| 1       | Package and external-consumer contract                        | Complete |
-| 2       | Lifecycle, disposal, ownership, multi-instance safety         | Complete |
-| 3.1-3.4 | Playback, selection, editing locks, controls, track switching | Complete |
-| 3.5     | Bends and dialog input safety                                 | Complete |
-| 3.6     | Minimum host event/API surface                                | Complete |
-| 4       | P0 validation and closeout                                    | Complete |
-| P1 1-4  | Correctness, persistence, constants, responsive embedding     | Complete |
-| P1 5    | Multimodal input and accessibility                            | Next     |
+| Stage   | Scope                                                             | Status   |
+| ------- | ----------------------------------------------------------------- | -------- |
+| 0       | Baseline, benchmark, fixtures, issue classification               | Complete |
+| 1       | Package and external-consumer contract                            | Complete |
+| 2       | Lifecycle, disposal, ownership, multi-instance safety             | Complete |
+| 3.1-3.4 | Playback, selection, editing locks, controls, track switching     | Complete |
+| 3.5     | Bends and dialog input safety                                     | Complete |
+| 3.6     | Minimum host event/API surface                                    | Complete |
+| 4       | P0 validation and closeout                                        | Complete |
+| P1 1-4  | Correctness, persistence, constants, responsive embedding         | Complete |
+| P1 5-8  | Input/accessibility, architecture, release polish, quality audits | Complete |
 
-Current automated checkpoint: 78 suites / 736 tests. `npm test`,
-`npm run build:package`, `npm run build:demo`, `npm run test:pack-consumer`,
-and `git diff --check` pass
-after P1 Stage 4. The benchmark was last rerun after the magic-number audit;
+Current automated checkpoint: 81 suites / 795 tests. `npm test`,
+`npm run build:package`, `npm run build:demo`, and `git diff --check` pass after
+P1 Stage 8. `npm run test:pack-consumer` was last verified after P1 Stage 4.
+The benchmark was last rerun after the magic-number audit;
 all 28 focused-update scenarios retained their previously verified substantial
 speedup over full updates.
 
@@ -209,12 +209,12 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
    5.4 (**COMPLETED**) Fix bend drag mobile bug. If deemed doable, implement mobile drag selection
 6. (**COMPLETED**) Revisit Element architecture, cross-track widths, and single-line mode only
    when profiling or a release requirement justifies them.
-7. (**NEXT**) Apply final visual/icon polish, performance budgets, package/browser gates,
+7. (**COMPLETED**) Apply final visual/icon polish, performance budgets, package/browser gates,
    release notes, and a feature freeze for the release candidate.
-8. Audit the source code for:
+8. (**COMPLETED**) Audit the source code for:
 
-- Non-reliance on tests. I remember there were moments when an agent
-  would structure the code in an unnatural way just to make testing simpler.
+- Reliance on tests. I remember there were moments when an agent would
+  structure the code in an unnatural way just to make testing simpler and/or possible.
   This is bad - tests should only affect understanding of code correctness,
   not its structure.
 - Type strictness, meaning:
@@ -222,6 +222,28 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
   - `!`
   - `as`
     etc should be minimized or removed entirely
+
+  Audit result:
+  - No test-environment branches, coverage exceptions, or test globals exist in
+    production source. Only the `TrackController.selectionManager` test-facing
+    getter was removed; the `TrackControllerEditor` accessor remains production-used.
+    Renderer construction no longer uses a uniform test-friendly constructor
+    argument that one renderer ignored.
+  - The listener `any` was removed. Remaining explicit `any` uses belong to the
+    accepted heterogeneous renderer-constructor registry boundary. The renderer
+    registry cannot preserve each element/renderer pair through its current
+    generalized map, so a searchable warning marks its factory assertion for a
+    separate typed design.
+  - All source non-null assertions were removed. Redundant SVG DOM assertions
+    and Web Audio source assertions were also removed, while assertions required
+    at weakly typed DOM and constructor boundaries remain local.
+  - Enabling `noUncheckedIndexedAccess` currently reports 412 diagnostics across
+    57 source files. Do not enable it by adding assertions in
+    bulk; migrate public-input, selection, playback, and serialization paths to
+    guards before typing invariant-heavy geometry as non-empty structures.
+  - Optional renderer/player/layout dependencies remain internal composition
+    seams. Revisit them only when runtime ownership changes; moving them solely
+    to satisfy this audit would couple production construction to test builders.
 
 9. Audit the test suite for:
 

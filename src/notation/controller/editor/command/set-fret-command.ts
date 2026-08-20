@@ -29,7 +29,7 @@ export class SetFretCommand implements Command {
   }
 
   private getTargetNote(): GuitarNote {
-    const note = this._beat.notes![this._stringNumber - 1];
+    const note = this._beat.notes?.[this._stringNumber - 1];
     if (!(note instanceof GuitarNote)) {
       throw Error("Can't set fret of a non-guitar note");
     }

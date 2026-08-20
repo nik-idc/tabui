@@ -22,6 +22,22 @@ export interface NoteControlsCallbacks {
   unbind(): void;
 }
 
+function parseVoiceNumber(value: string | undefined): VoiceNumber {
+  const voiceNumber = Number(value);
+  switch (voiceNumber) {
+    case 1:
+      return 1;
+    case 2:
+      return 2;
+    case 3:
+      return 3;
+    case 4:
+      return 4;
+    default:
+      throw Error(`Unsupported voice number: ${value}`);
+  }
+}
+
 export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   private _noteComponent: NoteControlsComponent;
   private _notationComponent: NotationComponent;
@@ -119,27 +135,21 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
 
   bind(): void {
     // Bind duration buttons
-    const durationConfigs = this._noteComponent.template.durationButtons.map(
-      (button) =>
-        ({
-          element: button,
-          event: "click",
-          handler: () =>
-            this.onDurationClicked(1 / Number(button.dataset["duration"])),
-        }) as ListenerConfig
-    );
+    const durationConfigs: ListenerConfig[] =
+      this._noteComponent.template.durationButtons.map((button) => ({
+        element: button,
+        event: "click",
+        handler: () =>
+          this.onDurationClicked(1 / Number(button.dataset["duration"])),
+      }));
 
-    const voiceConfigs = this._noteComponent.template.voiceButtons.map(
-      (button) =>
-        ({
-          element: button,
-          event: "click",
-          handler: () =>
-            this.onVoiceClicked(
-              Number(button.dataset["voiceNumber"]) as VoiceNumber
-            ),
-        }) as ListenerConfig
-    );
+    const voiceConfigs: ListenerConfig[] =
+      this._noteComponent.template.voiceButtons.map((button) => ({
+        element: button,
+        event: "click",
+        handler: () =>
+          this.onVoiceClicked(parseVoiceNumber(button.dataset["voiceNumber"])),
+      }));
 
     // Bind dot and tuplet buttons
     const otherConfigs: ListenerConfig[] = [

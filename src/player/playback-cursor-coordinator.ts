@@ -26,11 +26,17 @@ export class PlaybackCursorCoordinator {
   private _playbackRunId: number;
 
   constructor(score: Score, activeTrack: Track, playerUUID: number) {
+    const activeStaff = activeTrack.staves[0];
+    if (activeStaff === undefined) {
+      throw new Error(
+        `PlaybackCursorCoordinator invariant violated: track ${activeTrack.uuid} has no staff`
+      );
+    }
     this._score = score;
     this._playerUUID = playerUUID;
     this._scheduledTimeouts = new Map();
     this._activeTrackUUID = activeTrack.uuid;
-    this._activeStaffUUID = activeTrack.staves[0].uuid;
+    this._activeStaffUUID = activeStaff.uuid;
     this._activeVoiceNumber = 1;
     this._retainedBeatChanges = [];
     this._playbackRunId = 0;
@@ -311,9 +317,15 @@ export class PlaybackCursorCoordinator {
     currentTime: number | undefined,
     playbackRunId: number
   ): void {
+    const activeStaff = track.staves[0];
+    if (activeStaff === undefined) {
+      throw new Error(
+        `PlaybackCursorCoordinator invariant violated: track ${track.uuid} has no staff`
+      );
+    }
     this._playbackRunId = playbackRunId;
     this._activeTrackUUID = track.uuid;
-    this._activeStaffUUID = track.staves[0].uuid;
+    this._activeStaffUUID = activeStaff.uuid;
     if (currentTime === undefined) {
       this._activeVoiceNumber = 1;
       this._lastStartedBeat = undefined;
@@ -327,10 +339,16 @@ export class PlaybackCursorCoordinator {
     track: Track,
     currentTime: number
   ): Beat | undefined {
+    const activeStaff = track.staves[0];
+    if (activeStaff === undefined) {
+      throw new Error(
+        `PlaybackCursorCoordinator invariant violated: track ${track.uuid} has no staff`
+      );
+    }
     const cursorBeatChanges = this.getCursorBeatChanges(
       this._retainedBeatChanges,
       track.uuid,
-      track.staves[0].uuid,
+      activeStaff.uuid,
       this._activeVoiceNumber
     );
     return (

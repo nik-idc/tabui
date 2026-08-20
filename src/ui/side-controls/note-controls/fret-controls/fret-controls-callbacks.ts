@@ -36,8 +36,10 @@ export class FretControlsDefaultCallbacks {
   }
 
   public onDialogClicked(event: MouseEvent): void {
+    const target = event.target;
     if (
-      !this._fretComponent.template.dialogContent.contains(event.target as Node)
+      !(typeof Node !== "undefined" && target instanceof Node) ||
+      !this._fretComponent.template.dialogContent.contains(target)
     ) {
       this._fretComponent.template.dialog.close();
     }
@@ -78,7 +80,7 @@ export class FretControlsDefaultCallbacks {
       {
         element: template.dialog,
         event: "click",
-        handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
+        handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
         element: template.dialog,

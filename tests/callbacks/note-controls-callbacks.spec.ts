@@ -37,7 +37,19 @@ describe("NoteControlsDefaultCallbacks", () => {
         tuplet3Button: makeButton(),
         tupletButton: makeButton(),
       },
-      tupletComponent: {},
+      tupletComponent: {
+        template: {
+          dialog: makeButton(),
+          normalDownButton: makeButton(),
+          normalUpButton: makeButton(),
+          normalControl: makeButton(),
+          tupletDownButton: makeButton(),
+          tupletUpButton: makeButton(),
+          tupletControl: makeButton(),
+          confirmButton: makeButton(),
+          cancelButton: makeButton(),
+        },
+      },
       fretComponent: {
         template: {
           dialog: makeButton(),
@@ -135,5 +147,65 @@ describe("NoteControlsDefaultCallbacks", () => {
       NoteDuration.Quarter
     );
     expect(component.showTupletControls).toHaveBeenCalledTimes(1);
+  });
+
+  test("rejects unsupported voice numbers from button datasets", () => {
+    const notationComponent = createNotationComponentMock();
+    const voiceButton = makeButton();
+    voiceButton.dataset.voiceNumber = "5";
+    const component = {
+      template: {
+        durationButtons: [],
+        voiceButtons: [voiceButton],
+        fretButton: makeButton(),
+        restButton: makeButton(),
+        dot1Button: makeButton(),
+        dot2Button: makeButton(),
+        insertBeatBeforeButton: makeButton(),
+        insertBeatAfterButton: makeButton(),
+        removeBeatButton: makeButton(),
+        tuplet2Button: makeButton(),
+        tuplet3Button: makeButton(),
+        tupletButton: makeButton(),
+      },
+      tupletComponent: {
+        template: {
+          dialog: makeButton(),
+          normalDownButton: makeButton(),
+          normalUpButton: makeButton(),
+          normalControl: makeButton(),
+          tupletDownButton: makeButton(),
+          tupletUpButton: makeButton(),
+          tupletControl: makeButton(),
+          confirmButton: makeButton(),
+          cancelButton: makeButton(),
+        },
+      },
+      fretComponent: {
+        template: {
+          dialog: makeButton(),
+          noFretButton: makeButton(),
+          deadButton: makeButton(),
+          input: makeButton(),
+          confirmButton: makeButton(),
+          cancelButton: makeButton(),
+        },
+        showControls: jest.fn(),
+      },
+    } as any;
+    const callbacks = new NoteControlsDefaultCallbacks(
+      component,
+      notationComponent,
+      jest.fn(),
+      jest.fn(),
+      jest.fn(),
+      jest.fn()
+    );
+
+    callbacks.bind();
+
+    expect(() => dispatchClick(voiceButton)).toThrow(
+      "Unsupported voice number: 5"
+    );
   });
 });

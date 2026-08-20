@@ -87,4 +87,4 @@ export function isNotationContainer(
 }
 
 /** Constructor type for concrete notation elements. */
-export type NotationElementClass = new (...args: any[]) => NotationElement;
+export type NotationElementClass = new (...args: never[]) => NotationElement;

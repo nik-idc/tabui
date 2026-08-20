@@ -92,10 +92,10 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   }
 
   onDialogClicked(event: MouseEvent): void {
+    const target = event.target;
     if (
-      !this._tupletComponent.template.dialogContent.contains(
-        event.target as Node
-      )
+      !(typeof Node !== "undefined" && target instanceof Node) ||
+      !this._tupletComponent.template.dialogContent.contains(target)
     ) {
       this._tupletComponent.template.dialog.close();
     }
@@ -191,7 +191,7 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
       {
         element: this._tupletComponent.template.dialog,
         event: "click",
-        handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
+        handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
         element: this._tupletComponent.template.dialog,

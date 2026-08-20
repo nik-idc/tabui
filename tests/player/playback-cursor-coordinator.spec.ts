@@ -50,6 +50,15 @@ describe("PlaybackCursorCoordinator", () => {
     expect(coordinator.lastStartedBeat).toBe(beat);
   });
 
+  test("rejects an active track without a staff", () => {
+    const { score, track } = createScoreGraph();
+    track.staves.splice(0, 1);
+
+    expect(() => new PlaybackCursorCoordinator(score, track, 42)).toThrow(
+      `PlaybackCursorCoordinator invariant violated: track ${track.uuid} has no staff`
+    );
+  });
+
   test("rejects stale playback generations", () => {
     const { score, track, bar } = createScoreGraph();
     const emitSpy = jest.spyOn(trackEvent, "emit");

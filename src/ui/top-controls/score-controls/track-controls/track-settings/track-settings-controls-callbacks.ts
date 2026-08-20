@@ -66,10 +66,10 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   }
 
   onDialogClicked(event: MouseEvent): void {
+    const target = event.target;
     if (
-      !this._trackSettingsComponent.template.dialogContent.contains(
-        event.target as Node
-      )
+      !(typeof Node !== "undefined" && target instanceof Node) ||
+      !this._trackSettingsComponent.template.dialogContent.contains(target)
     ) {
       this._trackSettingsComponent.template.dialog.close();
     }

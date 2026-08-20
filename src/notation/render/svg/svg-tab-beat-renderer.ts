@@ -418,11 +418,9 @@ export class SVGTabBeatRenderer implements SVGBeatRenderer {
       eventHandler(event as SVGElementEventMap[K], this.beatElement);
     };
 
-    if (this._attachedEvents.has(eventType)) {
-      this._containerGroupSVG.removeEventListener(
-        eventType,
-        this._attachedEvents.get(eventType)!
-      );
+    const attachedEvent = this._attachedEvents.get(eventType);
+    if (attachedEvent !== undefined) {
+      this._containerGroupSVG.removeEventListener(eventType, attachedEvent);
     }
 
     this._containerGroupSVG.addEventListener(eventType, listener);

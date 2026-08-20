@@ -37,54 +37,76 @@ const SLAP_BASS_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-S4-Plus-
 const NYLON_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Nylon-String-Guitar-C4.wav`;
 const STEEL_GUITAR_SAMPLE_URL = `${import.meta.env.BASE_URL}samples/Alesis-Fusion-Steel-String-Guitar-C4.wav`;
 
-function requiredElement<T extends HTMLElement>(id: string): T {
+function requiredElement<T extends HTMLElement>(
+  id: string,
+  constructor: { new (): T }
+): T {
   const element = document.getElementById(id);
-  if (element === null) {
+  if (element === null || !(element instanceof constructor)) {
     throw new Error(`Could not get #${id} element`);
   }
-  return element as T;
+  return element;
 }
 
-const rootDiv = requiredElement<HTMLDivElement>("tabui-editor");
+const rootDiv = requiredElement<HTMLDivElement>("tabui-editor", HTMLDivElement);
 const searchParams = new URLSearchParams(window.location.search);
-const fixtureSelect = document.getElementById(
-  "fixture-select"
-) as HTMLSelectElement | null;
-const themeSelect = document.getElementById(
-  "theme-select"
-) as HTMLSelectElement | null;
+const fixtureElement = document.getElementById("fixture-select");
+const fixtureSelect =
+  fixtureElement instanceof HTMLSelectElement ? fixtureElement : null;
+const themeElement = document.getElementById("theme-select");
+const themeSelect =
+  themeElement instanceof HTMLSelectElement ? themeElement : null;
 const interactionModeSelect = requiredElement<HTMLSelectElement>(
-  "interaction-mode-select"
+  "interaction-mode-select",
+  HTMLSelectElement
 );
-const layoutModeSelect =
-  requiredElement<HTMLSelectElement>("layout-mode-select");
+const layoutModeSelect = requiredElement<HTMLSelectElement>(
+  "layout-mode-select",
+  HTMLSelectElement
+);
 const scorePanelVisibilitySelect = requiredElement<HTMLSelectElement>(
-  "score-panel-visibility-select"
+  "score-panel-visibility-select",
+  HTMLSelectElement
 );
 const scorePanelPlacementSelect = requiredElement<HTMLSelectElement>(
-  "score-panel-placement-select"
+  "score-panel-placement-select",
+  HTMLSelectElement
 );
 const sidePanelVisibilitySelect = requiredElement<HTMLSelectElement>(
-  "side-panel-visibility-select"
+  "side-panel-visibility-select",
+  HTMLSelectElement
 );
 const sidePanelPlacementSelect = requiredElement<HTMLSelectElement>(
-  "side-panel-placement-select"
+  "side-panel-placement-select",
+  HTMLSelectElement
 );
 const sidePanelCollapsibleSelect = requiredElement<HTMLSelectElement>(
-  "side-panel-collapsible-select"
+  "side-panel-collapsible-select",
+  HTMLSelectElement
 );
 const sidePanelCollapsedSelect = requiredElement<HTMLSelectElement>(
-  "side-panel-collapsed-select"
+  "side-panel-collapsed-select",
+  HTMLSelectElement
 );
-const serializeButton = requiredElement<HTMLButtonElement>("serialize-score");
-const deserializeButton =
-  requiredElement<HTMLButtonElement>("deserialize-score");
-const scoreFileInput = requiredElement<HTMLInputElement>("score-file");
+const serializeButton = requiredElement<HTMLButtonElement>(
+  "serialize-score",
+  HTMLButtonElement
+);
+const deserializeButton = requiredElement<HTMLButtonElement>(
+  "deserialize-score",
+  HTMLButtonElement
+);
+const scoreFileInput = requiredElement<HTMLInputElement>(
+  "score-file",
+  HTMLInputElement
+);
 const persistenceStatus = requiredElement<HTMLDivElement>(
-  "score-persistence-status"
+  "score-persistence-status",
+  HTMLDivElement
 );
 const resetDemoSettingsButton = requiredElement<HTMLButtonElement>(
-  "reset-demo-settings"
+  "reset-demo-settings",
+  HTMLButtonElement
 );
 
 const selectedFixture = resolveEditorFixtureKey(searchParams);

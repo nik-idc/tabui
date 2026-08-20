@@ -3,6 +3,7 @@ import {
   InstrumentTone,
   NoteType,
   NoteValue,
+  STRING_TONES,
   getFrequencyFromNoteType,
 } from "../notation/model";
 
@@ -207,6 +208,46 @@ const DEFAULT_SAMPLE_ROOT_NOTE = {
   octave: 2,
 } satisfies NoteType;
 
+const VALID_INSTRUMENT_TONES = new Set<string>(
+  Object.values(STRING_TONES).flat()
+);
+
+function isValidValue<T extends string>(
+  value: unknown,
+  validValues: readonly T[]
+): value is T {
+  return typeof value === "string" && validValues.some((v) => v === value);
+}
+
+function isValidInstrumentTone(value: string): value is InstrumentTone {
+  return VALID_INSTRUMENT_TONES.has(value);
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Resolves a layout number and rejects values outside its public contract. */
+function resolveLayoutNumber(
+  value: number | undefined,
+  defaultValue: number,
+  name: string,
+  minimum: number,
+  exclusiveMinimum: boolean
+): number {
+  const resolved = value === undefined ? defaultValue : value;
+  const meetsMinimum = exclusiveMinimum
+    ? resolved > minimum
+    : resolved >= minimum;
+  if (!Number.isFinite(resolved) || !meetsMinimum) {
+    const comparison = exclusiveMinimum ? "greater than" : "non-negative";
+    throw new Error(
+      `TabUIEditor layout ${name} must be finite and ${comparison}`
+    );
+  }
+  return resolved;
+}
+
 function resolvePlaybackConfig(
   config: PlaybackConfig = {}
 ): ResolvedPlaybackConfig {
@@ -215,11 +256,24 @@ function resolvePlaybackConfig(
     samples: {},
   };
   for (const [tone, sampleConfig] of Object.entries(config.samples ?? {})) {
+    if (!isValidInstrumentTone(tone)) {
+      throw new Error(`TabUIEditor playback sample tone is invalid: ${tone}`);
+    }
     if (sampleConfig === undefined) {
       continue;
     }
+    if (!isObjectRecord(sampleConfig)) {
+      throw new Error(
+        `TabUIEditor playback sample config must be an object for tone: ${tone}`
+      );
+    }
+    if (typeof sampleConfig.url !== "string") {
+      throw new Error(
+        `TabUIEditor playback sample URL must be a string for tone: ${tone}`
+      );
+    }
 
-    resolved.samples[tone as InstrumentTone] = {
+    resolved.samples[tone] = {
       url: sampleConfig.url,
       rootFrequency: getFrequencyFromNoteType(
         sampleConfig.rootNote ?? DEFAULT_SAMPLE_ROOT_NOTE
@@ -311,14 +365,50 @@ function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
 export function resolveTabUIConfig(
   config: TabUIConfig = {}
 ): ResolvedTabUIConfig {
-  const mode = config.interaction?.mode ?? TabUIEditorMode.Edit;
-  const sideCollapsible = config.panels?.side?.collapsible ?? true;
-  const viewOnlyModeWidthThreshold =
-    config.layout?.viewOnlyModeWidthThreshold ??
-    DEFAULT_LAYOUT.viewOnlyModeWidthThreshold;
-  const unrestrictedModeWidthThreshold =
-    config.layout?.unrestrictedModeWidthThreshold ??
-    DEFAULT_LAYOUT.unrestrictedModeWidthThreshold;
+  const mode =
+    config.interaction?.mode === undefined
+      ? TabUIEditorMode.Edit
+      : config.interaction.mode;
+  if (!isValidValue(mode, Object.values(TabUIEditorMode))) {
+    throw new Error("TabUIEditor interaction mode is invalid");
+  }
+  const assetVariant =
+    config.assets?.variant === undefined ? "light" : config.assets.variant;
+  if (!isValidValue(assetVariant, ["light", "dark"] as const)) {
+    throw new Error("TabUIEditor asset variant is invalid");
+  }
+  const scorePlacement =
+    config.panels?.score?.placement === undefined
+      ? TabUIScorePanelPlacement.Top
+      : config.panels.score.placement;
+  if (!isValidValue(scorePlacement, Object.values(TabUIScorePanelPlacement))) {
+    throw new Error("TabUIEditor score panel placement is invalid");
+  }
+  const sidePlacement =
+    config.panels?.side?.placement === undefined
+      ? TabUISidePanelPlacement.Left
+      : config.panels.side.placement;
+  if (!isValidValue(sidePlacement, Object.values(TabUISidePanelPlacement))) {
+    throw new Error("TabUIEditor side panel placement is invalid");
+  }
+  const sideCollapsible =
+    config.panels?.side?.collapsible === undefined
+      ? true
+      : config.panels.side.collapsible;
+  const viewOnlyModeWidthThreshold = resolveLayoutNumber(
+    config.layout?.viewOnlyModeWidthThreshold,
+    DEFAULT_LAYOUT.viewOnlyModeWidthThreshold,
+    "view-only mode width threshold",
+    0,
+    false
+  );
+  const unrestrictedModeWidthThreshold = resolveLayoutNumber(
+    config.layout?.unrestrictedModeWidthThreshold,
+    DEFAULT_LAYOUT.unrestrictedModeWidthThreshold,
+    "unrestricted mode width threshold",
+    0,
+    false
+  );
   if (
     !Number.isFinite(viewOnlyModeWidthThreshold) ||
     !Number.isFinite(unrestrictedModeWidthThreshold) ||
@@ -338,17 +428,17 @@ export function resolveTabUIConfig(
       "TabUIEditor layout width must be finite and fit the view-only threshold"
     );
   }
-  const layoutMode = config.layout?.mode ?? DEFAULT_LAYOUT.mode;
-  if (
-    layoutMode !== TabUILayoutMode.Wrapped &&
-    layoutMode !== TabUILayoutMode.SingleLine
-  ) {
+  const layoutMode =
+    config.layout?.mode === undefined
+      ? DEFAULT_LAYOUT.mode
+      : config.layout.mode;
+  if (!isValidValue(layoutMode, Object.values(TabUILayoutMode))) {
     throw new Error("TabUIEditor layout mode is invalid");
   }
   return {
     assets: {
       baseUrl: normalizeAssetBaseUrl(config.assets?.baseUrl?.trim() ?? ""),
-      variant: config.assets?.variant ?? "light",
+      variant: assetVariant,
     },
     interaction: { mode },
     layout: {
@@ -356,29 +446,53 @@ export function resolveTabUIConfig(
       width,
       viewOnlyModeWidthThreshold,
       unrestrictedModeWidthThreshold,
-      noteTextSize: config.layout?.noteTextSize ?? DEFAULT_LAYOUT.noteTextSize,
-      timeSigTextSize:
-        config.layout?.timeSigTextSize ?? DEFAULT_LAYOUT.timeSigTextSize,
-      tempoTextSize:
-        config.layout?.tempoTextSize ?? DEFAULT_LAYOUT.tempoTextSize,
-      durationsHeight:
-        config.layout?.durationsHeight ?? DEFAULT_LAYOUT.durationsHeight,
-      horizontalPadding:
-        config.layout?.horizontalPadding ?? DEFAULT_LAYOUT.horizontalPadding,
+      noteTextSize: resolveLayoutNumber(
+        config.layout?.noteTextSize,
+        DEFAULT_LAYOUT.noteTextSize,
+        "noteTextSize",
+        0,
+        true
+      ),
+      timeSigTextSize: resolveLayoutNumber(
+        config.layout?.timeSigTextSize,
+        DEFAULT_LAYOUT.timeSigTextSize,
+        "timeSigTextSize",
+        0,
+        true
+      ),
+      tempoTextSize: resolveLayoutNumber(
+        config.layout?.tempoTextSize,
+        DEFAULT_LAYOUT.tempoTextSize,
+        "tempoTextSize",
+        0,
+        true
+      ),
+      durationsHeight: resolveLayoutNumber(
+        config.layout?.durationsHeight,
+        DEFAULT_LAYOUT.durationsHeight,
+        "durationsHeight",
+        0,
+        true
+      ),
+      horizontalPadding: resolveLayoutNumber(
+        config.layout?.horizontalPadding,
+        DEFAULT_LAYOUT.horizontalPadding,
+        "horizontalPadding",
+        0,
+        false
+      ),
     },
     playback: resolvePlaybackConfig(config.playback),
     panels: {
       score: {
         visible: config.panels?.score?.visible ?? true,
-        placement:
-          config.panels?.score?.placement ?? TabUIScorePanelPlacement.Top,
+        placement: scorePlacement,
       },
       side: {
         visible:
           mode === TabUIEditorMode.Edit &&
           (config.panels?.side?.visible ?? true),
-        placement:
-          config.panels?.side?.placement ?? TabUISidePanelPlacement.Left,
+        placement: sidePlacement,
         collapsible: sideCollapsible,
         initiallyCollapsed:
           sideCollapsible && (config.panels?.side?.initiallyCollapsed ?? false),

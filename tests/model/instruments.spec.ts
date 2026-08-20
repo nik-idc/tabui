@@ -19,6 +19,21 @@ import {
 import { createScoreGraph } from "./helpers";
 
 describe("Default instruments", () => {
+  test("rejects tuning that does not match the string count", () => {
+    expect(() => new Guitar(undefined, undefined, undefined, 6, [])).toThrow(
+      "Guitar tuning length must match string count"
+    );
+  });
+
+  test("uses the first supported default tuning for the string count", () => {
+    const guitar = new Guitar(undefined, undefined, undefined, 4);
+
+    expect(guitar.tuning).toEqual(
+      DEFAULT_BASS_GUITARS[BassGuitarTone.Clean].tuning
+    );
+    expect(guitar.tuning).toHaveLength(guitar.stringsCount);
+  });
+
   test("ukulele default uses four strings and matching tuning", () => {
     const ukulele = DEFAULT_OTHER_STRING[OtherStringTone.Ukulele];
 
