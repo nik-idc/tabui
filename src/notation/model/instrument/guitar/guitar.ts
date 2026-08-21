@@ -43,7 +43,7 @@ export class Guitar implements MusicInstrument {
     tone: StringInstrumentTone = ElectricGuitarTone.Clean,
     name: string = "Electric Guitar",
     stringsCount: number = 6,
-    tuning: NoteType[] = DEFAULT_TUNINGS[6].Standard,
+    tuning?: NoteType[],
     fretsCount: number = 24
   ) {
     this._type = type;
@@ -51,8 +51,23 @@ export class Guitar implements MusicInstrument {
     this._name = name;
     this._program = TONE_TO_MIDI[this._tone];
 
+    const defaultTuning = Object.entries(DEFAULT_TUNINGS).find(
+      ([count]) => Number(count) === stringsCount
+    );
+    const resolvedTuning =
+      tuning ??
+      (defaultTuning === undefined
+        ? undefined
+        : Object.values(defaultTuning[1])[0]);
+
+    if (
+      resolvedTuning === undefined ||
+      resolvedTuning.length !== stringsCount
+    ) {
+      throw new Error("Guitar tuning length must match string count");
+    }
     this._stringsCount = stringsCount;
-    this._tuning = tuning;
+    this._tuning = resolvedTuning;
     this._fretsCount = fretsCount;
   }
 

@@ -107,7 +107,7 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     this._freeKeyboard();
   }
 
-  onTrackVolumeChanged(event: InputEvent): void {
+  onTrackVolumeChanged(event: Event): void {
     const input = event.target as HTMLInputElement;
     this._notationComponent.trackController.setTrackVolume(
       this._trackComponent.track,
@@ -115,7 +115,7 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     );
   }
 
-  onTrackPanningChanged(event: InputEvent): void {
+  onTrackPanningChanged(event: Event): void {
     const input = event.target as HTMLInputElement;
     this._notationComponent.trackController.setTrackPan(
       this._trackComponent.track,
@@ -196,14 +196,14 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
       {
         element: this._trackComponent.template.volumeInput,
         event: "input",
-        handler: (event: InputEvent) => {
+        handler: (event: Event) => {
           this.onTrackVolumeChanged(event);
         },
       },
       {
         element: this._trackComponent.template.panningInput,
         event: "input",
-        handler: (event: InputEvent) => {
+        handler: (event: Event) => {
           this.onTrackPanningChanged(event);
         },
       },

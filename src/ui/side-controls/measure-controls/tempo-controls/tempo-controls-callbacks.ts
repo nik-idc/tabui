@@ -59,10 +59,10 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   }
 
   onDialogClicked(event: MouseEvent): void {
+    const target = event.target;
     if (
-      !this._tempoComponent.template.dialogContent.contains(
-        event.target as Node
-      )
+      !(typeof Node !== "undefined" && target instanceof Node) ||
+      !this._tempoComponent.template.dialogContent.contains(target)
     ) {
       this._tempoComponent.template.dialog.close();
     }
@@ -131,7 +131,7 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
       {
         element: this._tempoComponent.template.dialog,
         event: "click",
-        handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
+        handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
         element: this._tempoComponent.template.dialog,

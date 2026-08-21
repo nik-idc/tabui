@@ -307,6 +307,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc slide path
    */
   private createSlidePath(): void {
+    this._pathDescriptors = undefined;
+
     const note = this.note;
     if (note.fret === null) {
       return;
@@ -322,7 +324,10 @@ export class GuitarTechniqueElement implements TechniqueElement {
       return;
     }
 
-    const nextNote = nextBeat.notes[note.stringNum - 1] as GuitarNote;
+    const nextNote = nextBeat.notes[note.stringNum - 1];
+    if (!(nextNote instanceof GuitarNote)) {
+      return;
+    }
     if (nextNote.fret === null) {
       return;
     }

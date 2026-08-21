@@ -20,18 +20,41 @@ export function buildIrregularBeams(
   // Create all possible counts for when the max num of notes per beam is:
   //
   const counts = [
-    [Array(Math.floor(adjBeatsCount / 12)).fill(12), adjBeatsCount % 12],
-    [Array(Math.floor(adjBeatsCount / 8)).fill(8), adjBeatsCount % 8],
-    [Array(Math.floor(adjBeatsCount / 6)).fill(6), adjBeatsCount % 6],
-    [Array(Math.floor(adjBeatsCount / 4)).fill(4), adjBeatsCount % 4],
-    [Array(Math.floor(adjBeatsCount / 2)).fill(2), adjBeatsCount % 2],
+    {
+      beams: Array(Math.floor(adjBeatsCount / 12)).fill(12),
+      remainder: adjBeatsCount % 12,
+    },
+    {
+      beams: Array(Math.floor(adjBeatsCount / 8)).fill(8),
+      remainder: adjBeatsCount % 8,
+    },
+    {
+      beams: Array(Math.floor(adjBeatsCount / 6)).fill(6),
+      remainder: adjBeatsCount % 6,
+    },
+    {
+      beams: Array(Math.floor(adjBeatsCount / 4)).fill(4),
+      remainder: adjBeatsCount % 4,
+    },
+    {
+      beams: Array(Math.floor(adjBeatsCount / 2)).fill(2),
+      remainder: adjBeatsCount % 2,
+    },
   ]
-    .filter((v) => (v[0] as number[]).length > 0)
-    .sort((a, b) => (a[0] as number[]).length - (b[0] as number[]).length);
+    .filter((v) => v.beams.length > 0)
+    .sort((a, b) => a.beams.length - b.beams.length);
 
-  let biggestBeamNotesCount = (counts[0][0] as number[])[0];
-  const biggestBeamsCount = (counts[0][0] as number[]).length;
-  let remainderBeamNotesCount = counts[0][1] as number;
+  const firstCount = counts[0];
+  if (firstCount === undefined) {
+    return [];
+  }
+  const firstBeam = firstCount.beams[0];
+  if (firstBeam === undefined) {
+    return [];
+  }
+  let biggestBeamNotesCount = firstBeam;
+  const biggestBeamsCount = firstCount.beams.length;
+  let remainderBeamNotesCount = firstCount.remainder;
 
   // Adjust the biggest beam count by moving notes to the remainder beam
   // The goal is:

@@ -276,7 +276,7 @@ export type SerializedGuitarTechnique =
 
 /** A fretted note and the techniques applied to it. */
 export type SerializedGuitarNote = {
-  fret: number | null;
+  fret: number;
   techniques: SerializedGuitarTechnique[];
 };
 

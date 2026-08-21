@@ -51,7 +51,8 @@ Completed in Phase 0:
   undo/redo behavior and structural selection sync.
 - Renderer stale-state regressions were addressed in targeted paths needed for
   current editing flows.
-- Active automated tests now exist in `tests/model/` and `tests/controller/`
+- Active automated tests now exist in `tests/unit/model/` and
+  `tests/unit/controller/`
   and run via `npm test`.
 - At the 2026-07-22 Phase 6 checkpoint, the active suite covers 60 suites / 435
   tests. Earlier Phase 0 counts are historical baseline measurements.

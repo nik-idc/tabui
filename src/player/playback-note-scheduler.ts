@@ -16,6 +16,8 @@ import {
 } from "./playback-tone-profile";
 import { ScheduledAudioNode, TrackAudioBus } from "./scheduled-audio-node";
 
+type PlaybackSourceNode = OscillatorNode | AudioBufferSourceNode;
+
 // Conservative peak keeps summed multi-track playback from clipping quickly.
 const notePeakGain = 0.06;
 // Short attack avoids clicks while preserving plucked-note immediacy.
@@ -117,10 +119,7 @@ export class PlaybackNoteScheduler {
    * @param frequency Note frequency in Hz
    * @returns Sample source when configured and loaded, otherwise oscillator
    */
-  private createSourceNode(
-    note: Note,
-    frequency: number
-  ): AudioScheduledSourceNode {
+  private createSourceNode(note: Note, frequency: number): PlaybackSourceNode {
     const tone = note.trackContext.instrument.tone;
     const sample = this._sampleManager.getSample(tone);
     const rootFrequency = this._sampleManager.getRootFrequency(tone);
@@ -176,17 +175,12 @@ export class PlaybackNoteScheduler {
   }
 
   /** Returns the source parameter that controls pitch. */
-  private getSourcePitchParam(
-    sourceNode: AudioScheduledSourceNode
-  ): AudioParam {
+  private getSourcePitchParam(sourceNode: PlaybackSourceNode): AudioParam {
     if ("frequency" in sourceNode) {
-      return (sourceNode as OscillatorNode).frequency;
-    }
-    if ("playbackRate" in sourceNode) {
-      return (sourceNode as AudioBufferSourceNode).playbackRate;
+      return sourceNode.frequency;
     }
 
-    throw new Error("Unsupported playback source node");
+    return sourceNode.playbackRate;
   }
 
   /** Schedules a linear pitch change between two values. */
@@ -377,7 +371,7 @@ export class PlaybackNoteScheduler {
   /** Applies pitch automation for all techniques on one scheduled note. */
   private applyTechniqueAutomation(
     note: Note,
-    sourceNode: AudioScheduledSourceNode,
+    sourceNode: PlaybackSourceNode,
     frequency: number,
     startTime: number,
     stopTime: number,
@@ -385,9 +379,7 @@ export class PlaybackNoteScheduler {
   ): void {
     const pitchParam = this.getSourcePitchParam(sourceNode);
     const isOscillator = "frequency" in sourceNode;
-    const baseValue = isOscillator
-      ? frequency
-      : (sourceNode as AudioBufferSourceNode).playbackRate.value;
+    const baseValue = isOscillator ? frequency : sourceNode.playbackRate.value;
     const hasHarmonic =
       note.hasTechnique(GuitarTechniqueType.NaturalHarmonic) ||
       note.hasTechnique(GuitarTechniqueType.PinchHarmonic);

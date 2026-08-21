@@ -234,8 +234,13 @@ export function serializeInstrument(
   validateInstrument(instrument, path);
   validateInstrumentMetadata(instrument, path);
   const tuningPath = propertyPath(path, "tuning");
+  const family = SERIALIZED_INSTRUMENT_FAMILIES[InstrumentFamily.Strings];
+  if (family === undefined) {
+    throw new Error("String instrument family serialization is not configured");
+  }
+
   const serialized: SerializedGuitarInstrumentCommon = {
-    family: SERIALIZED_INSTRUMENT_FAMILIES[InstrumentFamily.Strings]!,
+    family,
     name: instrument.name,
     program: instrument.program,
     stringsCount: instrument.stringsCount,

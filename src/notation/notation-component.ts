@@ -51,6 +51,12 @@ export class NotationComponent {
     onPlaybackError?: PlaybackErrorListener,
     renderer?: EditorRenderer
   ) {
+    const activeTrack = score.tracks[0];
+    if (activeTrack === undefined) {
+      throw new Error(
+        "NotationComponent requires a score with at least one track"
+      );
+    }
     this.score = score;
     this.rootDiv = notationHostDiv;
     this.config = config;
@@ -63,13 +69,13 @@ export class NotationComponent {
     );
     this._scorePlayer = new ScorePlayer(
       this.score,
-      this.score.tracks[0],
+      activeTrack,
       this.config.playback,
       onPlaybackError
     );
     void this._scorePlayer.initialize();
     this._trackController = new TrackController(
-      this.score.tracks[0],
+      activeTrack,
       this.layoutDimensions,
       this._scorePlayer,
       this._editingEnabled,

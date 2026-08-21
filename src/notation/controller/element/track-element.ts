@@ -85,7 +85,7 @@ export type TrackElementMasterBarRange = {
 };
 
 export type TrackElementUpdateOptions = {
-  /** Explicit line range requested by viewport or test work. */
+  /** Explicit line range requested for viewport materialization. */
   lineRange?: TrackElementLineRange;
   /** Explicit master-bar range requested inside the selected lines. */
   masterBarRange?: TrackElementMasterBarRange;

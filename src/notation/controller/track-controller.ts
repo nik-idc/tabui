@@ -19,7 +19,6 @@ import {
   SelectionCursor,
   SelectedMoveDirection,
 } from "./selection/selection-cursor";
-import { SelectionManager } from "./selection/selection-manager";
 import { BendTechniqueOptions } from "../model/bend-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
 import { ScoreLayoutPlanner } from "./layout/score-layout-plan";
@@ -846,11 +845,6 @@ export class TrackController {
   /** Track element */
   public get trackElement(): TrackElement {
     return this._trackElement;
-  }
-
-  /** Selection manager (for tests and advanced use) */
-  public get selectionManager(): SelectionManager {
-    return this._trackControllerEditor.selectionManager;
   }
 
   /** Current active voice number. */

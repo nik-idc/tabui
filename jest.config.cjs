@@ -1,8 +1,8 @@
 module.exports = {
   testEnvironment: "node",
-  roots: ["<rootDir>/tests"],
+  roots: ["<rootDir>/tests/unit"],
   testMatch: ["**/*.spec.ts"],
-  testPathIgnorePatterns: ["/node_modules/", "/tests/e2e/"],
+  testPathIgnorePatterns: ["/node_modules/"],
   transform: {
     "^.+\\.(ts|tsx)$": "babel-jest",
   },

@@ -100,7 +100,7 @@ export class EditorLayoutDimensions {
     this._TEMPO_RECT_HEIGHT = this._DURATIONS_HEIGHT;
 
     this._REPEAT_SIGN_WIDTH =
-      0.75 * this._WIDTH_MAPPING[NoteDuration.SixtyFourth]!;
+      0.75 * this._WIDTH_MAPPING[NoteDuration.SixtyFourth];
 
     this._TECH_LABEL_HEIGHT = this._NOTE_RECT_HEIGHT;
   }

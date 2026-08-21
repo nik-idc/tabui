@@ -206,12 +206,13 @@ export class PlaybackScheduler {
     const beatChanges: ScheduledBeatChange[] = [];
     for (const track of this._score.tracks) {
       for (const staff of track.staves) {
-        beatChanges.push(
-          ...this.calculateBarBeatChanges(
-            masterBarIndex,
-            staff.bars[masterBarIndex]
-          )
-        );
+        const bar = staff.bars[masterBarIndex];
+        if (bar === undefined) {
+          throw new Error(
+            `PlaybackScheduler invariant violated: staff ${staff.uuid} has no bar at master bar index ${masterBarIndex}`
+          );
+        }
+        beatChanges.push(...this.calculateBarBeatChanges(masterBarIndex, bar));
       }
     }
     return beatChanges;
@@ -229,6 +230,11 @@ export class PlaybackScheduler {
     for (const track of this._score.tracks) {
       for (const staff of track.staves) {
         const bar = staff.bars[masterBarIndex];
+        if (bar === undefined) {
+          throw new Error(
+            `PlaybackScheduler invariant violated: staff ${staff.uuid} has no bar at master bar index ${masterBarIndex}`
+          );
+        }
         beatChanges.push(...this.scheduleBar(masterBarIndex, bar));
       }
     }

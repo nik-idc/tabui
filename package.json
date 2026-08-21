@@ -35,14 +35,17 @@
     "benchmark:updates": "npx tsx scripts/benchmark-updates.ts",
     "build:package": "vite build --config vite.config.lib.js && tsc --build",
     "build:demo": "vite build",
-    "test": "tsc --project tsconfig.test.json && npx jest",
+    "test": "npm run test:unit",
+    "test:unit": "tsc --project tsconfig.test.json && npx jest",
+    "test:performance-stress": "tsc --project tsconfig.test.json && TABUI_RUN_PERFORMANCE_STRESS_TEST=1 npx jest tests/unit/demo/editor-fixture.spec.ts",
+    "test:integration": "npm run test:pack-consumer",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:webkit": "PLAYWRIGHT_WEBKIT=1 playwright test --project=webkit",
-    "test:pack-consumer": "node tests/package/pack-consumer-smoke.mjs",
-    "test:all": "npm test && npm run test:pack-consumer && npm run test:e2e",
+    "test:pack-consumer": "node tests/integration/package-consumer/pack-consumer-smoke.mjs",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "verify": "tsc --noEmit && npm run build:package && npm run test:all && npm run build:demo",
-    "verify:ci": "tsc --noEmit && npm run build:package && npm test && npm run test:pack-consumer && npm run build:demo"
+    "verify:ci": "tsc --noEmit && npm run build:package && npm run test:unit && npm run test:integration && npm run build:demo"
   },
   "devDependencies": {
     "@babel/core": "^7.24.5",

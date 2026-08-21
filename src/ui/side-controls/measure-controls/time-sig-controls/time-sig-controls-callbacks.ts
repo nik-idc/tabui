@@ -78,10 +78,10 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
   }
 
   onDialogClicked(event: MouseEvent): void {
+    const target = event.target;
     if (
-      !this._timeSigComponent.template.dialogContent.contains(
-        event.target as Node
-      )
+      !(typeof Node !== "undefined" && target instanceof Node) ||
+      !this._timeSigComponent.template.dialogContent.contains(target)
     ) {
       this._timeSigComponent.template.dialog.close();
     }
@@ -168,7 +168,7 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
       {
         element: this._timeSigComponent.template.dialog,
         event: "click",
-        handler: (event: Event) => this.onDialogClicked(event as MouseEvent),
+        handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
         element: this._timeSigComponent.template.dialog,

@@ -29,7 +29,12 @@ export class SetNoteCommand implements Command {
   }
 
   private getTargetNote(): Note {
-    return this._beat.notes![this._stringNumber - 1];
+    const note = this._beat.notes?.[this._stringNumber - 1];
+    if (note === undefined) {
+      throw Error("Can't set a note outside the beat's note lanes");
+    }
+
+    return note;
   }
 
   execute(): void {

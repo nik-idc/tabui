@@ -28,7 +28,7 @@ if (process.env.PLAYWRIGHT_WEBKIT === "1") {
 }
 
 export default defineConfig({
-  // Browser tests live separately from Jest's unit and integration tests.
+  // Browser tests live separately from Jest's unit tests.
   testDir: "./tests/e2e",
   // Keep tests within each file sequential while this initial suite stays small.
   fullyParallel: false,

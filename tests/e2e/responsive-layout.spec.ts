@@ -1,4 +1,41 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { requiredBoundingBox } from "./helpers";
+
+type PanelPlacement = "top-left" | "bottom-right";
+
+/** Verifies panel placement against the notation's rendered browser rectangle. */
+async function expectPanelPlacement(
+  page: Page,
+  placement: PanelPlacement
+): Promise<void> {
+  const editor = page.locator("#tabui-editor");
+  const notationBox = await requiredBoundingBox(
+    editor.locator(".tu-notation-viewport")
+  );
+  const scorePanelBox = await requiredBoundingBox(
+    editor.locator(".tu-top-controls-host")
+  );
+  const sidePanelBox = await requiredBoundingBox(
+    editor.locator(".tu-side-controls-host")
+  );
+
+  if (placement === "top-left") {
+    expect(scorePanelBox.y + scorePanelBox.height).toBeLessThanOrEqual(
+      notationBox.y
+    );
+    expect(sidePanelBox.x + sidePanelBox.width).toBeLessThanOrEqual(
+      notationBox.x
+    );
+    return;
+  }
+
+  expect(scorePanelBox.y).toBeGreaterThanOrEqual(
+    notationBox.y + notationBox.height
+  );
+  expect(sidePanelBox.x).toBeGreaterThanOrEqual(
+    notationBox.x + notationBox.width
+  );
+}
 
 test("adapts between unrestricted, view-only, and blocked widths", async ({
   page,
@@ -43,8 +80,7 @@ test("collapses the side panel and gives notation its space", async ({
   const notation = editor.locator(".tu-notation-viewport");
 
   // Read the visible notation width before the user collapses controls.
-  const widthBefore = (await notation.boundingBox())?.width;
-  expect(widthBefore).toBeDefined();
+  const widthBefore = (await requiredBoundingBox(notation)).width;
 
   // Click the actual accessibility-labelled collapse control.
   await editor.getByRole("button", { name: "Collapse side panel" }).click();
@@ -57,28 +93,14 @@ test("collapses the side panel and gives notation its space", async ({
 
   // Collapsing removes the editing controls and increases notation width.
   await expect(editor.locator(".tu-side-controls")).toBeHidden();
-  const widthAfter = (await notation.boundingBox())?.width;
-  expect(widthAfter).toBeGreaterThan(widthBefore ?? 0);
+  const widthAfter = (await requiredBoundingBox(notation)).width;
+  expect(widthAfter).toBeGreaterThan(widthBefore);
 });
 
 test("uses the default top-left panel placement", async ({ page }) => {
   // The default configuration places score controls above notation and side controls left.
   await page.goto("/tabui/?fixture=empty");
-  const defaultEditor = page.locator("#tabui-editor");
-  const defaultNotation = defaultEditor.locator(".tu-notation-viewport");
-  const defaultScorePanel = defaultEditor.locator(".tu-top-controls-host");
-  const defaultSidePanel = defaultEditor.locator(".tu-side-controls-host");
-
-  // Compare real browser rectangles for the default top-left placement.
-  const defaultNotationBox = await defaultNotation.boundingBox();
-  const defaultScorePanelBox = await defaultScorePanel.boundingBox();
-  const defaultSidePanelBox = await defaultSidePanel.boundingBox();
-  expect(
-    (defaultScorePanelBox?.y ?? 0) + (defaultScorePanelBox?.height ?? 0)
-  ).toBeLessThanOrEqual(defaultNotationBox?.y ?? 0);
-  expect(
-    (defaultSidePanelBox?.x ?? 0) + (defaultSidePanelBox?.width ?? 0)
-  ).toBeLessThanOrEqual(defaultNotationBox?.x ?? 0);
+  await expectPanelPlacement(page, "top-left");
 });
 
 test("uses configured bottom-right panel placement", async ({ page }) => {
@@ -86,21 +108,7 @@ test("uses configured bottom-right panel placement", async ({ page }) => {
   await page.goto(
     "/tabui/?fixture=empty&scorePanelPlacement=bottom&sidePanelPlacement=right"
   );
-  const editor = page.locator("#tabui-editor");
-  const notation = editor.locator(".tu-notation-viewport");
-  const scorePanel = editor.locator(".tu-top-controls-host");
-  const sidePanel = editor.locator(".tu-side-controls-host");
-
-  // Compare real browser rectangles instead of relying on CSS implementation details.
-  const notationBox = await notation.boundingBox();
-  const scorePanelBox = await scorePanel.boundingBox();
-  const sidePanelBox = await sidePanel.boundingBox();
-  expect(scorePanelBox?.y).toBeGreaterThanOrEqual(
-    (notationBox?.y ?? 0) + (notationBox?.height ?? 0)
-  );
-  expect(sidePanelBox?.x).toBeGreaterThanOrEqual(
-    (notationBox?.x ?? 0) + (notationBox?.width ?? 0)
-  );
+  await expectPanelPlacement(page, "bottom-right");
 });
 
 test("configured view-only keeps only track selection, names, and playback", async ({
