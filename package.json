@@ -37,6 +37,7 @@
     "build:demo": "vite build",
     "test": "npm run test:unit",
     "test:unit": "tsc --project tsconfig.test.json && npx jest",
+    "test:performance-stress": "tsc --project tsconfig.test.json && TABUI_RUN_PERFORMANCE_STRESS_TEST=1 npx jest tests/unit/demo/editor-fixture.spec.ts",
     "test:integration": "npm run test:pack-consumer",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

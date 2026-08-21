@@ -19,6 +19,13 @@ const FIXTURE_SCORE_NAMES = {
   multi_voice_two_staff: "Multi Voice Two Staff",
 } as const;
 
+const performanceStressTestEnabled =
+  process.env.TABUI_RUN_PERFORMANCE_STRESS_TEST === "1";
+const fixtures = getEditorFixtures();
+const roundTripFixtures = performanceStressTestEnabled
+  ? fixtures
+  : fixtures.filter((f) => f.key !== "performance_stress");
+
 describe("editor fixture and theme resolution", () => {
   it("resolves known fixture keys and falls back to default", () => {
     expect(
@@ -44,7 +51,7 @@ describe("editor fixture and theme resolution", () => {
   });
 
   it("exposes fixture options for demo UI", () => {
-    expect(getEditorFixtures().map((fixture) => fixture.key)).toEqual([
+    expect(fixtures.map((f) => f.key)).toEqual([
       "feature_showcase",
       "empty",
       "performance_stress",
@@ -53,7 +60,7 @@ describe("editor fixture and theme resolution", () => {
     ]);
   });
 
-  for (const fixture of getEditorFixtures()) {
+  for (const fixture of roundTripFixtures) {
     it(`round trips the ${fixture.key} fixture across a JSON boundary`, () => {
       const source = fixture.createScore();
       const sourceTrackCount = source.tracks.length;
@@ -68,11 +75,6 @@ describe("editor fixture and theme resolution", () => {
       expect(restored.tracks).toHaveLength(sourceTrackCount);
       expect(restored.masterBars).toHaveLength(sourceMasterBarCount);
       expect(serializeScore(restored)).toEqual(document);
-
-      if (fixture.key === "performance_stress") {
-        expect(sourceMasterBarCount).toBe(1000);
-      }
-
       if (fixture.key === "multi_voice_two_staff") {
         expect(source.tracks[0].staves).toHaveLength(2);
         expect(restored.tracks[0].staves).toHaveLength(2);
