@@ -1,6 +1,5 @@
 import {
   Bar,
-  BarRepeatStatus,
   Beat,
   BeatDots,
   DEFAULT_MASTER_BAR,
@@ -53,14 +52,11 @@ export function createScoreGraph(
 }
 
 export function createBeat(
-  voiceBar: VoiceBar<Guitar> | Bar<Guitar> | null,
+  voiceBar: VoiceBar<Guitar> | Bar<Guitar>,
   baseDuration: NoteDuration,
   dots: BeatDots = 0,
   tupletSettings: TupletSettings | null = null
 ): Beat<Guitar> {
-  if (voiceBar === null) {
-    throw Error("Cannot create beat for an empty voice slot");
-  }
   let targetVoiceBar: VoiceBar<Guitar>;
   if (voiceBar instanceof VoiceBar) {
     targetVoiceBar = voiceBar;
@@ -88,13 +84,7 @@ export function createBarWithBeats(
     dots?: BeatDots;
     tupletSettings?: TupletSettings | null;
   }>,
-  masterBarData: MasterBarData = {
-    tempo: 120,
-    beatsCount: 4,
-    duration: NoteDuration.Quarter,
-    repeatStatus: BarRepeatStatus.None,
-    repeatCount: null,
-  }
+  masterBarData: MasterBarData = DEFAULT_MASTER_BAR
 ): ScoreGraph & {
   beats: Beat<Guitar>[];
 } {

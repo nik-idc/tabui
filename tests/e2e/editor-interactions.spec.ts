@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("accepts timed keyboard fret input", async ({ page }) => {
   // Load one deterministic editable score.
+  await page.clock.install();
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
@@ -15,7 +16,7 @@ test("accepts timed keyboard fret input", async ({ page }) => {
   await expect(editor.locator('[id^="note-text-"]')).toHaveText(/12/);
 
   // Waiting past the timeout makes the next digit replace the previous fret.
-  await page.waitForTimeout(350);
+  await page.clock.fastForward(251);
   await page.keyboard.press("3");
   await expect(editor.locator('[id^="note-text-"]')).toHaveText("3");
 });

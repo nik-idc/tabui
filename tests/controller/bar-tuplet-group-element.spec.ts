@@ -12,7 +12,7 @@ function getBarElement(trackElement: TrackElement) {
 function getTupletElement(trackElement: TrackElement): BarTupletGroupElement {
   const tupletElement = getBarElement(trackElement)
     .refreshOwnedNotationNodes()
-    .find((element) => element.constructor.name === "BarTupletGroupElement");
+    .find((element) => element instanceof BarTupletGroupElement);
   if (!(tupletElement instanceof BarTupletGroupElement)) {
     throw Error("Expected rendered tuplet element");
   }

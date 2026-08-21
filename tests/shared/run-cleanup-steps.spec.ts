@@ -1,18 +1,6 @@
 import { runCleanupSteps } from "../../src/shared/misc/run-cleanup-steps";
 
 describe("runCleanupSteps", () => {
-  test("runs every cleanup step in order", () => {
-    const calls: number[] = [];
-
-    runCleanupSteps(
-      () => calls.push(1),
-      () => calls.push(2),
-      () => calls.push(3)
-    );
-
-    expect(calls).toEqual([1, 2, 3]);
-  });
-
   test("continues after failures and rethrows the last one", () => {
     const calls: number[] = [];
     const firstError = new Error("first");

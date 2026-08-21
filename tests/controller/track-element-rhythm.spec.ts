@@ -1,4 +1,5 @@
 import { TrackElement } from "../../src/notation/controller/element/track-element";
+import { TabBeatRhythmElement } from "../../src/notation/controller/element/beat/tab-beat-rhythm-element";
 import {
   TabBeatElement,
   TabNoteSlotElement,
@@ -33,10 +34,13 @@ function fillBarWithDenseSixtyFourthBeats(
   voiceBar.rebuildTiming();
 }
 
-function getRhythmElements(trackElement: TrackElement): any[] {
+function getRhythmElements(trackElement: TrackElement): TabBeatRhythmElement[] {
   return trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0]
     .refreshOwnedNotationNodes()
-    .filter((element) => element.constructor.name === "TabBeatRhythmElement");
+    .filter(
+      (element): element is TabBeatRhythmElement =>
+        element instanceof TabBeatRhythmElement
+    );
 }
 
 describe("TrackElement rhythm", () => {

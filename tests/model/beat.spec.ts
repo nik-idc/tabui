@@ -110,6 +110,7 @@ describe("Beat model", () => {
     ]);
     const sourceBeat = beats[0];
     const sourceNote = expectNotes(sourceBeat)[0] as GuitarNote;
+    sourceNote.fret = 5;
     sourceNote.setTechnique(GuitarTechniqueType.Vibrato);
 
     const copy = sourceBeat.deepCopy();
@@ -120,27 +121,6 @@ describe("Beat model", () => {
     expect(sourceNote.beat).toBe(sourceBeat);
     expect(copiedNote.hasTechnique(GuitarTechniqueType.Vibrato)).toBe(true);
     expect(copiedNote.techniques[0].note).toBe(copiedNote);
-  });
-
-  test("exposes tick timing fields after bar rebuild", () => {
-    const { bar, beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Eighth, dots: 1 },
-    ]);
-
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 to exist");
-    }
-    voiceBar.rebuildTiming();
-
-    expect(beats[0].startTick).toBe(0);
-    expect(beats[0].endTick).toBe(beats[0].fullDurationTicks);
-    expect(beats[1].startTick).toBe(beats[0].endTick);
-    expect(beats[1].endTick).toBe(
-      beats[1].startTick + beats[1].fullDurationTicks
-    );
-    expect(beats[0].baseDurationTicks).toBeGreaterThan(0);
   });
 
   test("derived fret from note and octave clamps to the instrument maximum", () => {

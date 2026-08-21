@@ -1,5 +1,6 @@
 import { TupletControlsDefaultCallbacks } from "../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-callbacks";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   FakeElement,
@@ -49,7 +50,7 @@ function createTupletHarness() {
   const freeKeyboard = jest.fn();
   const callbacks = new TupletControlsDefaultCallbacks(
     component,
-    notationComponent,
+    asNotationComponent(notationComponent),
     renderFunc,
     jest.fn(),
     freeKeyboard

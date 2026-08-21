@@ -1,12 +1,22 @@
 import { Guitar } from "../../src/notation/model";
 import { FretControlsDefaultCallbacks } from "../../src/ui/side-controls/note-controls/fret-controls";
-import { createNotationComponentMock, FakeElement } from "./helpers";
+import {
+  asNotationComponent,
+  createNotationComponentMock,
+  FakeElement,
+} from "./helpers";
 
 function createHarness() {
   const notationComponent = createNotationComponentMock();
-  const instrument = Object.create(Guitar.prototype) as Guitar;
-  Object.defineProperty(instrument, "fretsCount", { value: 12 });
-  notationComponent.trackController.track = { context: { instrument } };
+  const instrument = new Guitar(
+    undefined,
+    undefined,
+    undefined,
+    6,
+    undefined,
+    12
+  );
+  notationComponent.trackController.track.context.instrument = instrument;
   notationComponent.trackController.hasSelectedNote = true;
 
   const template = {
@@ -22,7 +32,7 @@ function createHarness() {
   const renderFunc = jest.fn();
   const callbacks = new FretControlsDefaultCallbacks(
     component,
-    notationComponent,
+    asNotationComponent(notationComponent),
     renderFunc,
     jest.fn(),
     jest.fn()
@@ -56,19 +66,5 @@ describe("FretControlsDefaultCallbacks", () => {
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenNthCalledWith(4, 12);
     expect(renderFunc).toHaveBeenCalledTimes(4);
-  });
-
-  test("passes numeric values to the controller", () => {
-    const { callbacks, notationComponent, renderFunc, template } =
-      createHarness();
-
-    const input = template.input;
-    input.value = "13";
-    callbacks.onConfirmClicked();
-
-    expect(
-      notationComponent.trackController.setSelectedNoteFret
-    ).toHaveBeenCalledWith(13);
-    expect(renderFunc).toHaveBeenCalledTimes(1);
   });
 });

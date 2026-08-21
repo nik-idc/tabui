@@ -1,6 +1,7 @@
 import { TimeSigControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/time-sig-controls/time-sig-controls-callbacks";
 import { NoteDuration } from "../../src/notation/model";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   FakeElement,
@@ -44,7 +45,7 @@ function createTimeSigHarness() {
   const freeKeyboard = jest.fn();
   const callbacks = new TimeSigControlsDefaultCallbacks(
     component,
-    notationComponent,
+    asNotationComponent(notationComponent),
     renderFunc,
     jest.fn(),
     freeKeyboard

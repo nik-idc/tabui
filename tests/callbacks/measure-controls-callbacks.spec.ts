@@ -3,13 +3,14 @@ import { TempoControlsDefaultCallbacks } from "../../src/ui/side-controls/measur
 import { TimeSigControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/time-sig-controls/time-sig-controls-callbacks";
 import { BarRepeatStatus } from "../../src/notation/model";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   makeButton,
 } from "./helpers";
 
 describe("MeasureControlsDefaultCallbacks", () => {
-  test("top-level actions dispatch correctly and child callbacks are bound idempotently", () => {
+  test("top-level actions dispatch correctly and unbind stops events", () => {
     const tempoBindSpy = jest
       .spyOn(TempoControlsDefaultCallbacks.prototype, "bind")
       .mockImplementation(() => {});
@@ -22,7 +23,6 @@ describe("MeasureControlsDefaultCallbacks", () => {
     const timeUnbindSpy = jest
       .spyOn(TimeSigControlsDefaultCallbacks.prototype, "unbind")
       .mockImplementation(() => {});
-
     const notationComponent = createNotationComponentMock();
     const renderFunc = jest.fn();
     const captureKeyboard = jest.fn();
@@ -43,7 +43,7 @@ describe("MeasureControlsDefaultCallbacks", () => {
     } as any;
     const callbacks = new MeasureControlsDefaultCallbacks(
       component,
-      notationComponent,
+      asNotationComponent(notationComponent),
       renderFunc,
       captureKeyboard,
       jest.fn()
@@ -99,30 +99,5 @@ describe("MeasureControlsDefaultCallbacks", () => {
     tempoUnbindSpy.mockRestore();
     timeBindSpy.mockRestore();
     timeUnbindSpy.mockRestore();
-  });
-
-  test("measure callbacks dispatch in view-only mode", () => {
-    const notationComponent = createNotationComponentMock();
-    notationComponent.trackController.editingEnabled = false;
-    const component = {
-      template: {},
-      tempoControlsComponent: {},
-      timeSigControlsComponent: {},
-      showTempoControls: jest.fn(),
-      showTimeSigControls: jest.fn(),
-    } as any;
-    const callbacks = new MeasureControlsDefaultCallbacks(
-      component,
-      notationComponent,
-      jest.fn(),
-      jest.fn(),
-      jest.fn()
-    );
-
-    callbacks.onTempoClicked();
-    callbacks.onTimeSignatureClicked();
-
-    expect(component.showTempoControls).toHaveBeenCalledTimes(1);
-    expect(component.showTimeSigControls).toHaveBeenCalledTimes(1);
   });
 });

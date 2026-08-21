@@ -19,6 +19,7 @@ function createNote(): GuitarNote {
   if (!(note instanceof GuitarNote)) {
     throw Error("Expected guitar note");
   }
+  note.fret = 5;
   return note;
 }
 
@@ -79,6 +80,7 @@ describe("BendControlsComponent", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note");
     }
+    note.fret = 5;
     const options = new BendTechniqueOptions({
       type: BendType.PrebendBend,
       prebendPitch: 0.5,
@@ -110,6 +112,8 @@ describe("BendControlsComponent", () => {
     if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
+    previous.fret = 5;
+    current.fret = 5;
     previous.addTechnique(
       new GuitarTechnique(
         previous,
@@ -147,6 +151,8 @@ describe("BendControlsComponent", () => {
     if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
+    previous.fret = 5;
+    current.fret = 5;
     previous.addTechnique(
       new GuitarTechnique(
         previous,
@@ -205,6 +211,8 @@ describe("BendControlsComponent", () => {
     if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
+    previous.fret = 5;
+    current.fret = 5;
     previous.addTechnique(
       new GuitarTechnique(
         previous,

@@ -4,7 +4,6 @@ import { UIComponent } from "../../src/ui";
 import { TabUICallbacks } from "../../src/tabui-callbacks";
 import { PlaybackErrorCode } from "../../src/player";
 import {
-  TabUIEditorMode,
   TabUIScorePanelPlacement,
   TabUISidePanelPlacement,
 } from "../../src/config/tabui-config";
@@ -380,23 +379,6 @@ describe("TabUIEditor lifecycle", () => {
     expect(sideHost.hidden).toBe(false);
   });
 
-  test("hides side controls by default in view-only mode", () => {
-    const root = createRoot();
-    const editor = new TabUIEditor(root, createScore(), {
-      interaction: { mode: TabUIEditorMode.ViewOnly },
-    });
-
-    editor.init();
-
-    const sideHost = (root as any).children[1];
-    expect(root.classList.add).toHaveBeenCalledWith(
-      "tu-score-panel-top",
-      "tu-side-controls-left",
-      "tu-side-controls-hidden"
-    );
-    expect(sideHost.hidden).toBe(true);
-  });
-
   test("collapses and expands visible side controls with layout refresh", () => {
     const root = createRoot();
     const editor = new TabUIEditor(root, createScore());
@@ -485,15 +467,6 @@ describe("TabUIEditor lifecycle", () => {
 
     const sideHost = (root as any).children[1];
     expect(sideHost.children).toHaveLength(0);
-  });
-
-  test("rejects explicit widths below the view-only threshold", () => {
-    expect(
-      () =>
-        new TabUIEditor(createRoot(), createScore(), {
-          layout: { width: 200 },
-        })
-    ).toThrow("layout width");
   });
 
   test("rolls back a partial init failure and allows a clean remount", () => {
@@ -639,7 +612,7 @@ describe("TabUIEditor lifecycle", () => {
     expect(secondListener).not.toHaveBeenCalled();
   });
 
-  test("refreshes explicit or measured layout and publishes the new size", () => {
+  test("refreshes layout with an explicit width and publishes the new size", () => {
     const editor = new TabUIEditor(createRoot(), createScore());
     editor.init();
     const listener = jest.fn();

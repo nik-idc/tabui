@@ -85,34 +85,11 @@ describe("tabui-config", () => {
     );
   });
 
-  it("resolves playback samples by instrument tone", () => {
-    const config = resolveTabUIConfig({
-      playback: {
-        preloadAudio: true,
-        samples: {
-          [ElectricGuitarTone.Clean]: {
-            url: "/samples/clean.wav",
-            rootNote: {
-              noteValue: NoteValue.C,
-              octave: 3,
-            },
-          },
-        },
-      },
-    });
-
-    expect(config.playback.samples[ElectricGuitarTone.Clean]).toEqual({
-      url: "/samples/clean.wav",
-      rootFrequency: 130.8127826502993,
-    });
-    expect(config.playback.preloadAudio).toBe(true);
-  });
-
-  it("resolves layout overrides", () => {
+  it("merges combined layout overrides", () => {
     const config = resolveTabUIConfig({
       layout: {
-        width: 720,
         mode: TabUILayoutMode.SingleLine,
+        width: 720,
         viewOnlyModeWidthThreshold: 600,
         unrestrictedModeWidthThreshold: 1200,
         noteTextSize: 16,
@@ -134,6 +111,29 @@ describe("tabui-config", () => {
       durationsHeight: 36,
       horizontalPadding: 18,
     });
+  });
+
+  it("resolves playback samples by instrument tone", () => {
+    const config = resolveTabUIConfig({
+      playback: {
+        preloadAudio: true,
+        samples: {
+          [ElectricGuitarTone.Clean]: {
+            url: "/samples/clean.wav",
+            rootNote: {
+              noteValue: NoteValue.C,
+              octave: 3,
+            },
+          },
+        },
+      },
+    });
+
+    expect(config.playback.samples[ElectricGuitarTone.Clean]).toEqual({
+      url: "/samples/clean.wav",
+      rootFrequency: 130.8127826502993,
+    });
+    expect(config.playback.preloadAudio).toBe(true);
   });
 
   it("rejects invalid responsive layout thresholds", () => {

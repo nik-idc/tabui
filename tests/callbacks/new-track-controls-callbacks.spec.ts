@@ -1,10 +1,13 @@
 import { NewTrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/new-track/new-track-controls-callbacks";
 import {
   ElectricGuitarTone,
+  Guitar,
   InstrumentFamily,
   StringInstrumentType,
+  Track,
 } from "../../src/notation/model";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   dispatchInput,
@@ -34,8 +37,9 @@ function createNewTrackHarness() {
   const familyButtons = [makeButton(), makeButton(), makeButton()];
   const typeButtons = [makeButton(), makeButton(), makeButton(), makeButton()];
   const toneButtons = [makeButton(), makeButton(), makeButton()];
-  const madeTrack = { id: 1 };
-  const madeInstrument = { id: 2 };
+  const notationComponent = createNotationComponentMock();
+  const madeInstrument = new Guitar();
+  const madeTrack = new Track(notationComponent.score, madeInstrument, "Lead");
   const component = {
     template: {
       dialog,
@@ -69,14 +73,13 @@ function createNewTrackHarness() {
     shiftWholeTuning: jest.fn(),
     makeInstrument: jest.fn(() => madeInstrument),
   } as any;
-  const notationComponent = createNotationComponentMock();
   notationComponent.trackController.addTrack.mockReturnValue(madeTrack);
   const renderFunc = jest.fn();
   const captureKeyboard = jest.fn();
   const freeKeyboard = jest.fn();
   const callbacks = new NewTrackControlsDefaultCallbacks(
     component,
-    notationComponent,
+    asNotationComponent(notationComponent),
     renderFunc,
     captureKeyboard,
     freeKeyboard
@@ -133,7 +136,6 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     expect(component.shiftWholeTuning).toHaveBeenCalledWith(1);
     dispatchClick(component.template.wholeTuningDownButton);
     expect(component.shiftWholeTuning).toHaveBeenCalledWith(-1);
-
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
     dispatchClick(component.template.confirmButton);

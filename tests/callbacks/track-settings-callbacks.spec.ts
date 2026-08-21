@@ -4,11 +4,11 @@ import {
   ElectricGuitarTone,
   Guitar,
   InstrumentFamily,
-  parseTuningStrSimple,
   StringInstrumentType,
   TrackInstrumentChangeMode,
 } from "../../src/notation/model";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   FakeElement,
@@ -37,8 +37,10 @@ function createTrackSettingsHarness() {
   ];
   const typeButtons = [makeButton(), makeButton(), makeButton(), makeButton()];
   const toneButtons = [makeButton(), makeButton(), makeButton()];
-  const track = { name: "Track 1" };
-  const madeInstrument = { id: 1 };
+  const notationComponent = createNotationComponentMock();
+  const track = notationComponent.score.tracks[0];
+  track.name = "Track 1";
+  const madeInstrument = new Guitar();
   const component = {
     template: {
       dialog,
@@ -73,11 +75,10 @@ function createTrackSettingsHarness() {
   } as any;
   const renderFunc = jest.fn();
   const freeKeyboard = jest.fn();
-  const notationComponent = createNotationComponentMock();
   notationComponent.trackController.track = track;
   const callbacks = new TrackSettingsControlsDefaultCallbacks(
     component,
-    notationComponent,
+    asNotationComponent(notationComponent),
     renderFunc,
     jest.fn(),
     freeKeyboard
@@ -147,22 +148,6 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     callbacks.unbind();
     dispatchClick(component.template.confirmButton);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
-  });
-
-  test("simple tuning strings use conventional low-to-high order", () => {
-    const tunings = ["E A D G", "G D G B D", "D A F C G C"];
-
-    for (const tuning of tunings) {
-      const guitar = new Guitar(
-        StringInstrumentType.ElectricGuitar,
-        ElectricGuitarTone.Clean,
-        "Custom",
-        tuning.split(" ").length,
-        parseTuningStrSimple(tuning)
-      );
-
-      expect(guitar.getTuningStrSimple()).toBe(tuning);
-    }
   });
 
   test("tuning steppers update conventional tuning string", () => {

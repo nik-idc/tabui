@@ -1,8 +1,13 @@
-import { UICallbacks } from "../../src/ui/ui-callbacks";
-import { TopControlsCallbacks } from "../../src/ui/top-controls/top-controls-callbacks";
-import { SideControlsCallbacks } from "../../src/ui/side-controls/side-controls-callbacks";
 import { SideControlsTemplateRenderer } from "../../src/ui/side-controls/side-controls-template-renderer";
-import { makeButton } from "./helpers";
+import { SideControlsCallbacks } from "../../src/ui/side-controls/side-controls-callbacks";
+import { TopControlsCallbacks } from "../../src/ui/top-controls/top-controls-callbacks";
+import { UICallbacks } from "../../src/ui/ui-callbacks";
+import { UIComponent } from "../../src/ui";
+import {
+  asNotationComponent,
+  createNotationComponentMock,
+  makeButton,
+} from "./helpers";
 
 describe("UICallbacks", () => {
   test("side editing controls render inert during playback", () => {
@@ -27,55 +32,44 @@ describe("UICallbacks", () => {
     );
   });
 
-  test("bind and unbind delegate to top and side callbacks", () => {
-    const topBindSpy = jest
+  test("bind and unbind delegate no more than once on repeated bind/unbind calls", () => {
+    const topBind = jest
       .spyOn(TopControlsCallbacks.prototype, "bind")
       .mockImplementation(() => {});
-    const topUnbindSpy = jest
+    const topUnbind = jest
       .spyOn(TopControlsCallbacks.prototype, "unbind")
       .mockImplementation(() => {});
-    const sideBindSpy = jest
+    const sideBind = jest
       .spyOn(SideControlsCallbacks.prototype, "bind")
       .mockImplementation(() => {});
-    const sideUnbindSpy = jest
+    const sideUnbind = jest
       .spyOn(SideControlsCallbacks.prototype, "unbind")
       .mockImplementation(() => {});
 
     const callbacks = new UICallbacks(
       {
-        topComponent: {
-          scoreComponent: {
-            newTrackComponent: {},
-            trackComponents: [],
-            template: {},
-          },
-          playComponent: {},
-        },
+        topComponent: { scoreComponent: {}, playComponent: {} },
         sideComponent: {
           noteControlsComponent: {},
           techniqueControlsComponent: {},
           measureControlsComponent: {},
         },
-      } as any,
-      {} as any,
-      jest.fn(),
-      jest.fn(),
-      jest.fn(),
-      jest.fn()
+      } as unknown as UIComponent,
+      asNotationComponent(createNotationComponentMock()),
+      () => {},
+      () => {},
+      () => {},
+      () => {}
     );
 
     callbacks.bind();
     callbacks.bind();
-    expect(topBindSpy).toHaveBeenCalledTimes(1);
-    expect(sideBindSpy).toHaveBeenCalledTimes(1);
-
     callbacks.unbind();
-    expect(topUnbindSpy).toHaveBeenCalledTimes(1);
-    expect(sideUnbindSpy).toHaveBeenCalledTimes(1);
+    callbacks.unbind();
 
-    topBindSpy.mockRestore();
-    topUnbindSpy.mockRestore();
-    sideBindSpy.mockRestore();
-    sideUnbindSpy.mockRestore();
+    expect(topBind).toHaveBeenCalledTimes(1);
+    expect(topUnbind).toHaveBeenCalledTimes(1);
+    expect(sideBind).toHaveBeenCalledTimes(1);
+    expect(sideUnbind).toHaveBeenCalledTimes(1);
   });
 });

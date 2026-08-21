@@ -1,6 +1,7 @@
 import { BendControlsDefaultCallbacks } from "../../src/ui/side-controls/technique-controls/bend-controls/bend-controls-callbacks";
 import { BendType, GuitarTechniqueType } from "../../src/notation/model";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   FakeElement,
@@ -53,7 +54,7 @@ function createBendHarness() {
   const freeKeyboard = jest.fn();
   const callbacks = new BendControlsDefaultCallbacks(
     component,
-    notationComponent,
+    asNotationComponent(notationComponent),
     renderFunc,
     captureKeyboard,
     freeKeyboard

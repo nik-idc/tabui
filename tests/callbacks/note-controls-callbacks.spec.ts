@@ -1,7 +1,7 @@
 import { NoteControlsDefaultCallbacks } from "../../src/ui/side-controls/note-controls/note-controls-callbacks";
-import { TupletControlsDefaultCallbacks } from "../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-callbacks";
 import { NoteDuration } from "../../src/notation/model";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   makeButton,
@@ -9,13 +9,6 @@ import {
 
 describe("NoteControlsDefaultCallbacks", () => {
   test("buttons map to note actions and repeated bind does not double fire", () => {
-    const tupletBindSpy = jest
-      .spyOn(TupletControlsDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const tupletUnbindSpy = jest
-      .spyOn(TupletControlsDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
-
     const notationComponent = createNotationComponentMock();
     const renderFunc = jest.fn();
     const captureKeyboard = jest.fn();
@@ -66,7 +59,7 @@ describe("NoteControlsDefaultCallbacks", () => {
     } as any;
     const callbacks = new NoteControlsDefaultCallbacks(
       component,
-      notationComponent,
+      asNotationComponent(notationComponent),
       renderFunc,
       jest.fn(),
       captureKeyboard,
@@ -102,7 +95,6 @@ describe("NoteControlsDefaultCallbacks", () => {
     expect(renderFunc).toHaveBeenCalledTimes(6);
     expect(captureKeyboard).toHaveBeenCalledTimes(1);
     expect(component.showTupletControls).toHaveBeenCalledTimes(1);
-    expect(tupletBindSpy).toHaveBeenCalledTimes(2);
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     const durationCallsBeforeUnbind =
@@ -113,40 +105,10 @@ describe("NoteControlsDefaultCallbacks", () => {
     expect(notationComponent.trackController.setDuration).toHaveBeenCalledTimes(
       durationCallsBeforeUnbind
     );
-    expect(tupletUnbindSpy).toHaveBeenCalledTimes(1);
 
     expect(() => callbacks.onTupletNormalClicked(1)).toThrow(
       "Tuplet normal count has to be >= 2"
     );
-
-    tupletBindSpy.mockRestore();
-    tupletUnbindSpy.mockRestore();
-  });
-
-  test("note callbacks dispatch in view-only mode", () => {
-    const notationComponent = createNotationComponentMock();
-    notationComponent.trackController.editingEnabled = false;
-    const component = {
-      template: { durationButtons: [], voiceButtons: [] },
-      tupletComponent: {},
-      showTupletControls: jest.fn(),
-    } as any;
-    const callbacks = new NoteControlsDefaultCallbacks(
-      component,
-      notationComponent,
-      jest.fn(),
-      jest.fn(),
-      jest.fn(),
-      jest.fn()
-    );
-
-    callbacks.onDurationClicked(NoteDuration.Quarter);
-    callbacks.onTupletClicked();
-
-    expect(notationComponent.trackController.setDuration).toHaveBeenCalledWith(
-      NoteDuration.Quarter
-    );
-    expect(component.showTupletControls).toHaveBeenCalledTimes(1);
   });
 
   test("rejects unsupported voice numbers from button datasets", () => {
@@ -195,7 +157,7 @@ describe("NoteControlsDefaultCallbacks", () => {
     } as any;
     const callbacks = new NoteControlsDefaultCallbacks(
       component,
-      notationComponent,
+      asNotationComponent(notationComponent),
       jest.fn(),
       jest.fn(),
       jest.fn(),

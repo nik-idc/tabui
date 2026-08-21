@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { requiredBoundingBox } from "./helpers";
 
 test("moves a bend handle without scrolling notation", async ({ page }) => {
   // Load an editable score with an empty note slot.
@@ -19,16 +20,14 @@ test("moves a bend handle without scrolling notation", async ({ page }) => {
 
   // Record the handle position and notation scroll state before dragging.
   const handle = graph.locator("circle").last();
-  const handleBox = await handle.boundingBox();
+  const handleBox = await requiredBoundingBox(handle);
   const handleYBefore = await handle.getAttribute("cy");
   const scrollTopBefore = await notation.evaluate(
     (element) => element.scrollTop
   );
-  expect(handleBox).not.toBeNull();
-
   // Drag the handle upward far enough to cross one snapped graph row.
-  const handleX = (handleBox?.x ?? 0) + (handleBox?.width ?? 0) / 2;
-  const handleY = (handleBox?.y ?? 0) + (handleBox?.height ?? 0) / 2;
+  const handleX = handleBox.x + handleBox.width / 2;
+  const handleY = handleBox.y + handleBox.height / 2;
   await page.mouse.move(handleX, handleY);
   await page.mouse.down();
   await page.mouse.move(handleX, handleY - 100);
@@ -60,13 +59,12 @@ test("moves a bend handle through a touch gesture", async ({
   const graph = editor.locator(".tu-bend-controls-svg");
   await expect(graph).toHaveCSS("touch-action", "none");
   const handle = graph.locator("circle").last();
-  const handleBox = await handle.boundingBox();
+  const handleBox = await requiredBoundingBox(handle);
   const handleYBefore = await handle.getAttribute("cy");
-  expect(handleBox).not.toBeNull();
 
   // Send a real browser touch start, move, and end at the handle's screen position.
-  const handleX = (handleBox?.x ?? 0) + (handleBox?.width ?? 0) / 2;
-  const handleY = (handleBox?.y ?? 0) + (handleBox?.height ?? 0) / 2;
+  const handleX = handleBox.x + handleBox.width / 2;
+  const handleY = handleBox.y + handleBox.height / 2;
   const client = await page.context().newCDPSession(page);
   await client.send("Input.dispatchTouchEvent", {
     type: "touchStart",

@@ -57,13 +57,17 @@ export class GuitarNote implements Note<Guitar> {
     fret: number | null = null,
     techniques: GuitarTechnique[] = []
   ) {
+    if (fret === null && techniques.length > 0) {
+      throw new Error("Cannot apply techniques to an empty guitar note");
+    }
+
     this.uuid = randomInt();
     this.beat = beat;
     this.trackContext = trackContext;
 
     this._stringNum = stringNum;
-    this.fret = fret;
     this._techniques = techniques;
+    this.fret = fret;
 
     this.calcNoteFromFret();
   }
@@ -110,6 +114,7 @@ export class GuitarNote implements Note<Guitar> {
   public calculateFretFromNote(): void {
     if (this._noteValue === NoteValue.None) {
       this._fret = null;
+      this.clearTechniques();
       return;
     }
 
@@ -232,6 +237,10 @@ export class GuitarNote implements Note<Guitar> {
    * @returns True if technique added succesfully, false if can't add this technique
    */
   public addTechnique(guitarTechnique: GuitarTechnique): boolean {
+    if (this._fret === null) {
+      return false;
+    }
+
     if (
       guitarTechnique.bendOptions !== null &&
       !isBendValidForContinuation(this, guitarTechnique.bendOptions)
@@ -289,8 +298,11 @@ export class GuitarNote implements Note<Guitar> {
    * @returns True if applicable, false otherwise
    */
   public techniqueApplicable(type: GuitarTechniqueType): boolean {
-    return !this._techniques.some((t) =>
-      guitarTechniqueTypesIncompatible(t.type, type)
+    return (
+      this._fret !== null &&
+      !this._techniques.some((t) =>
+        guitarTechniqueTypesIncompatible(t.type, type)
+      )
     );
   }
 
@@ -364,6 +376,7 @@ export class GuitarNote implements Note<Guitar> {
       this._fret = Math.min(newFret, fretsCount);
     } else {
       this._fret = null;
+      this.clearTechniques();
     }
     this.calcNoteFromFret();
   }

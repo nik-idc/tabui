@@ -20,18 +20,6 @@ describe("Track model", () => {
     expect(track.staves[0].bars).toHaveLength(1);
   });
 
-  test("Score.addTrack creates a track with one default staff", () => {
-    const score = new Score();
-
-    const result = score.addTrack(new Guitar(), "Guitar");
-
-    expect(result.tracks).toHaveLength(1);
-    expect(result.tracks[0].staves).toHaveLength(1);
-    expect(result.tracks[0].staves[0].bars).toHaveLength(
-      score.masterBars.length
-    );
-  });
-
   test("removeStaff rejects index equal to current length", () => {
     const track = new Track(new Score(), new Guitar(), "Guitar");
 

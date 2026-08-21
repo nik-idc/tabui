@@ -182,3 +182,6 @@ Follow the principles of the **Google Developer Documentation Style Guide** and
    - Limit bolding to at most one short phrase per point (never bold whole
      sentences or paragraphs).
    - Prefer structured lists or short tables over dense walls of text.
+
+To reiterate:
+When reporting info to me, be extremely concise and sacrifice grammar for the sake of cohesion.

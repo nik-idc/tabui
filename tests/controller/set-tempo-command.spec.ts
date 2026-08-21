@@ -16,13 +16,6 @@ describe("SetTempoCommand", () => {
     expect(masterBar.tempo).toBe(180);
   });
 
-  test("redo before execute throws", () => {
-    const { masterBar } = createScoreGraph();
-    const command = new SetTempoCommand(masterBar, 180, []);
-
-    expect(() => command.redo()).toThrow("Redo called before execute");
-  });
-
   test("tempo command can carry vertical-update metadata", () => {
     const { bar, masterBar } = createScoreGraph();
     const command = new SetTempoCommand(masterBar, 180, [

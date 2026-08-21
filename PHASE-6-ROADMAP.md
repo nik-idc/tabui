@@ -1,27 +1,28 @@
 # Phase 6 Roadmap - MVP Stabilization for 0.5.0
 
-Last updated: 2026-08-20 (P1 Stage 8 complete). This is the source of truth for
+Last updated: 2026-08-20 (P1 Stage 9 complete). This is the source of truth for
 turning the completed editor foundations into a dependable, embeddable `0.5.0`
 package. Prefer clean pre-`1.0.0` ownership/API decisions and record new issues in
 `PRE-RELEASE-STABILIZATION.md` before changing priority or scope here.
 
 ## Status
 
-| Stage   | Scope                                                             | Status   |
-| ------- | ----------------------------------------------------------------- | -------- |
-| 0       | Baseline, benchmark, fixtures, issue classification               | Complete |
-| 1       | Package and external-consumer contract                            | Complete |
-| 2       | Lifecycle, disposal, ownership, multi-instance safety             | Complete |
-| 3.1-3.4 | Playback, selection, editing locks, controls, track switching     | Complete |
-| 3.5     | Bends and dialog input safety                                     | Complete |
-| 3.6     | Minimum host event/API surface                                    | Complete |
-| 4       | P0 validation and closeout                                        | Complete |
-| P1 1-4  | Correctness, persistence, constants, responsive embedding         | Complete |
-| P1 5-8  | Input/accessibility, architecture, release polish, quality audits | Complete |
+| Stage   | Scope                                                                     | Status   |
+| ------- | ------------------------------------------------------------------------- | -------- |
+| 0       | Baseline, benchmark, fixtures, issue classification                       | Complete |
+| 1       | Package and external-consumer contract                                    | Complete |
+| 2       | Lifecycle, disposal, ownership, multi-instance safety                     | Complete |
+| 3.1-3.4 | Playback, selection, editing locks, controls, track switching             | Complete |
+| 3.5     | Bends and dialog input safety                                             | Complete |
+| 3.6     | Minimum host event/API surface                                            | Complete |
+| 4       | P0 validation and closeout                                                | Complete |
+| P1 1-4  | Correctness, persistence, constants, responsive embedding                 | Complete |
+| P1 5-9  | Input/accessibility, architecture, release polish, quality and E2E audits | Complete |
 
-Current automated checkpoint: 81 suites / 795 tests. `npm test`,
-`npm run build:package`, `npm run build:demo`, and `git diff --check` pass after
-P1 Stage 8. `npm run test:pack-consumer` was last verified after P1 Stage 4.
+Current automated checkpoint: 82 suites / 754 unit tests. `npm run verify` and
+`git diff --check` pass after P1 Stage 9. The packed consumer passes; default E2E
+now has 39 passed with one intentional Firefox touch skip across 20 logical tests
+and 40 browser cases.
 The benchmark was last rerun after the magic-number audit;
 all 28 focused-update scenarios retained their previously verified substantial
 speedup over full updates.
@@ -227,8 +228,8 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
   - No test-environment branches, coverage exceptions, or test globals exist in
     production source. Only the `TrackController.selectionManager` test-facing
     getter was removed; the `TrackControllerEditor` accessor remains production-used.
-    Renderer construction no longer uses a uniform test-friendly constructor
-    argument that one renderer ignored.
+    Registry restoration retained the uniform test-friendly renderer constructor
+    argument as an accepted boundary because it remains part of that registry.
   - The listener `any` was removed. Remaining explicit `any` uses belong to the
     accepted heterogeneous renderer-constructor registry boundary. The renderer
     registry cannot preserve each element/renderer pair through its current
@@ -245,15 +246,25 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     seams. Revisit them only when runtime ownership changes; moving them solely
     to satisfy this audit would couple production construction to test builders.
 
-9. Audit the test suite for:
+9. (**COMPLETED**) Audit the test suite for:
 
 - Over/under-exhaustiveness
 - Stale tests/tests that no longer make sense and are only green because of
   code crutches that essentially force the test to be green
 - Type correctness
-- Type strictness, just like the source code
+- Type strictness, where applicable and would be an improvement
 - Over-reliance on mocks when real source code could be used
 - Anything else that makes the test suite worse
+
+  Audit result: Multi-domain Luna audits plus Terra architecture reviews removed
+  41 net unit tests (795 to 754) and roughly 2,700 net test lines. Duplicate,
+  mock-call, default, and implementation-sequence tests were pruned. Serialization
+  large fixtures were replaced by compact explicit wire/validation/ownership/
+  timing matrices. The 78-test all-stack `ScorePlayer` harness was reduced to
+  orchestration; coverage moved to the new `PlaybackNoteScheduler` and
+  `PlaybackSampleManager` plus existing owner suites. Independent reviews restored
+  compact unique contracts. One low-value E2E was removed and the remaining 20
+  were improved. Stage 10 owns expansion.
 
 10. Explore the feasability and implementaton of E2E testing using Playwright.
     Especially interesting to see testing under different configs:

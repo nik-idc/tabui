@@ -14,6 +14,7 @@ describe("Bar model", () => {
     expect(voiceBar.beats).toHaveLength(1);
     expect(voiceBar.beats[0].isRest()).toBe(true);
     expect(voiceBar.beats[0].baseDuration).toBe(NoteDuration.Quarter);
+    expect(bar.hasContent()).toBe(true);
   });
 
   test("removeBeat rejects index equal to current length", () => {
@@ -28,13 +29,6 @@ describe("Bar model", () => {
     }
 
     expect(() => voiceBar.removeBeat(voiceBar.beats.length)).toThrow(Error);
-  });
-
-  test("bar with one default rest beat has content", () => {
-    const score = new Score();
-    const bar = score.tracks[0].staves[0].bars[0];
-
-    expect(bar.hasContent()).toBe(true);
   });
 
   test("removeBeat replaces the last note beat with a default rest", () => {

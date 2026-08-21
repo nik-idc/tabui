@@ -232,8 +232,7 @@ function serializeTechniques(
 }
 
 /**
- * Serializes an owned guitar-string slot, collapsing a fretless note without
- * techniques to null while retaining technique-only note state.
+ * Serializes an owned guitar-string slot, collapsing an empty note to null.
  */
 function serializeNote(
   note: GuitarNote,
@@ -243,7 +242,13 @@ function serializeNote(
   if (note.beat !== beat || note.trackContext !== beat.trackContext) {
     throw new ScoreSerializationError(path, "note ownership mismatch");
   }
-  if (note.fret === null && note.techniques.length === 0) {
+  if (note.fret === null) {
+    if (note.techniques.length > 0) {
+      throw new ScoreSerializationError(
+        indexPath(propertyPath(path, "techniques"), 0),
+        "technique requires a note value"
+      );
+    }
     return null;
   }
   if (
@@ -462,11 +467,8 @@ function deserializeNote(
 ): DeferredNoteTechniques {
   reader.readObject(["fret", "techniques"]);
   const fretReader = reader.property("fret");
-  const fret = fretReader.readNullableInteger();
-  if (
-    fret !== null &&
-    (fret < -1 || fret > note.trackContext.instrument.fretsCount)
-  ) {
+  const fret = fretReader.readInteger();
+  if (fret < -1 || fret > note.trackContext.instrument.fretsCount) {
     fretReader.fail("out of range");
   }
   fretReader.runModelOperation(() => {

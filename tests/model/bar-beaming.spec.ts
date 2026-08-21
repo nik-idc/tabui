@@ -136,47 +136,6 @@ describe("Bar beaming", () => {
     expect([beats[0].beamGroupId, beats[4].beamGroupId]).toEqual([0, 1]);
   });
 
-  test("beam group IDs start at zero", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Eighth },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      { baseDuration: NoteDuration.Quarter },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-    ]);
-
-    const uniqueNonNullIds = [
-      ...new Set(
-        beats
-          .map((beat) => beat.beamGroupId)
-          .filter((id): id is number => id !== null)
-      ),
-    ];
-
-    expect(uniqueNonNullIds).toEqual([0, 1]);
-  });
-
   test("unbeamed beats do not get stray last-in-group markers", () => {
     const { beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -189,18 +148,14 @@ describe("Bar beaming", () => {
     expect(beats.every((beat) => beat.lastInBeamGroup === false)).toBe(true);
   });
 
-  test("single-beat bars expose no beaming groups", () => {
+  test("single-beat bars expose no beaming groups or metadata", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
 
     expect(beats[0].beamGroupId).toBeNull();
     expect(beats[0].lastInBeamGroup).toBe(false);
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    expect(voiceBar.beamingGroups).toEqual([]);
+    expect(bar.getVoiceBar(1)?.beamingGroups).toEqual([]);
   });
 
   test("3/4 beaming groups eighth notes by quarter-note beats", () => {

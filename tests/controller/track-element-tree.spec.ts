@@ -109,20 +109,22 @@ function expectOutlineToMatchTabStaffLines(trackElement: TrackElement): void {
   expect(outline.right.y2).toBeCloseTo(lastRenderedStaffLine.y);
 }
 
-function expectHorizontalUpdateToMatchLegacy(
+function expectTargetedUpdateToMatchFullRebuild(
   trackElement: TrackElement,
-  legacyTrackElement: TrackElement
+  fullRebuildTrackElement: TrackElement
 ): void {
   expect(getLineOwnershipKeys(trackElement)).toEqual(
-    getLineOwnershipKeys(legacyTrackElement)
+    getLineOwnershipKeys(fullRebuildTrackElement)
   );
   expect(trackElement.trackLineElements.length).toBe(
-    legacyTrackElement.trackLineElements.length
+    fullRebuildTrackElement.trackLineElements.length
   );
   expect(getTrackLineY(trackElement)).toEqual(
-    getTrackLineY(legacyTrackElement)
+    getTrackLineY(fullRebuildTrackElement)
   );
-  expect(getAllNoteX(trackElement)).toEqual(getAllNoteX(legacyTrackElement));
+  expect(getAllNoteX(trackElement)).toEqual(
+    getAllNoteX(fullRebuildTrackElement)
+  );
 }
 
 function findBarElement(trackElement: TrackElement, barUUID: number) {
@@ -143,10 +145,6 @@ function findBarElement(trackElement: TrackElement, barUUID: number) {
 }
 
 describe("TrackElement tree", () => {
-  beforeAll(() => {
-    TEST_LAYOUT_DIMENSIONS;
-  });
-
   test("horizontal updates refresh multi-staff outline geometry", () => {
     const { track, bar } = createScoreGraph();
     track.insertStaff(1);
@@ -309,6 +307,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -368,6 +367,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -586,16 +586,19 @@ describe("TrackElement tree", () => {
     );
   });
 
-  test("horizontal duration update matches legacy rebuild when line ownership stays the same", () => {
+  test("targeted duration update matches full rebuild when line ownership stays the same", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const fullRebuildTrackElement = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS
+    );
     trackElement.update();
-    legacyTrackElement.update();
+    fullRebuildTrackElement.update();
 
     const lastLineIndex = trackElement.trackLineElements.length - 1;
     const affectedMasterBarIndex =
@@ -610,21 +613,27 @@ describe("TrackElement tree", () => {
     affectedVoiceBar.rebuildTiming();
 
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
-    legacyTrackElement.update();
+    fullRebuildTrackElement.update();
 
-    expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
+    expectTargetedUpdateToMatchFullRebuild(
+      trackElement,
+      fullRebuildTrackElement
+    );
   });
 
-  test("horizontal duration update matches legacy rebuild when a late window regroups", () => {
+  test("targeted duration update matches full rebuild when a late window regroups", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const fullRebuildTrackElement = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS
+    );
     trackElement.update();
-    legacyTrackElement.update();
+    fullRebuildTrackElement.update();
 
     const secondLastLineIndex = trackElement.trackLineElements.length - 2;
     const affectedMasterBarIndex =
@@ -639,9 +648,12 @@ describe("TrackElement tree", () => {
     affectedVoiceBar.rebuildTiming();
 
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
-    legacyTrackElement.update();
+    fullRebuildTrackElement.update();
 
-    expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
+    expectTargetedUpdateToMatchFullRebuild(
+      trackElement,
+      fullRebuildTrackElement
+    );
   });
 
   test("presentation shell rebuild replaces moved bar element object", () => {
@@ -750,42 +762,54 @@ describe("TrackElement tree", () => {
     ).toBe(true);
   });
 
-  test("horizontal update matches legacy rebuild after deleting a bar in the middle", () => {
+  test("targeted update matches full rebuild after deleting a bar in the middle", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const fullRebuildTrackElement = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS
+    );
     trackElement.update();
 
     const removeIndex = 4;
     score.removeMasterBar(removeIndex);
 
     updateMasterBars(trackElement, [removeIndex]);
-    legacyTrackElement.update();
+    fullRebuildTrackElement.update();
 
-    expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
+    expectTargetedUpdateToMatchFullRebuild(
+      trackElement,
+      fullRebuildTrackElement
+    );
   });
 
-  test("horizontal update matches legacy rebuild after inserting a bar in the middle", () => {
+  test("targeted update matches full rebuild after inserting a bar in the middle", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const fullRebuildTrackElement = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS
+    );
     trackElement.update();
 
     const insertIndex = 4;
     score.insertMasterBar(insertIndex, DEFAULT_MASTER_BAR);
 
     updateMasterBars(trackElement, [insertIndex]);
-    legacyTrackElement.update();
+    fullRebuildTrackElement.update();
 
-    expectHorizontalUpdateToMatchLegacy(trackElement, legacyTrackElement);
+    expectTargetedUpdateToMatchFullRebuild(
+      trackElement,
+      fullRebuildTrackElement
+    );
   });
 
   test("horizontal append keeps earlier beats in model registry", () => {
@@ -826,6 +850,7 @@ describe("TrackElement tree", () => {
     if (!(affectedNote instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    affectedNote.fret = 5;
     const setTechCommand = new SetTechniqueCommand(
       [affectedNote],
       GuitarTechniqueType.PalmMute
@@ -1110,6 +1135,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected target guitar note");
     }
+    note.fret = 5;
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
     const trackElement = new TrackElement(
       track,
@@ -1199,6 +1225,7 @@ describe("TrackElement tree", () => {
     if (!(firstLineNote instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    firstLineNote.fret = 5;
     firstLineNote.addTechnique(
       new GuitarTechnique(firstLineNote, GuitarTechniqueType.Vibrato)
     );

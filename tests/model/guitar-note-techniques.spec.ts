@@ -14,10 +14,28 @@ function createNote(): GuitarNote {
   if (!(note instanceof GuitarNote)) {
     throw Error("Expected guitar note in test beat");
   }
+  note.fret = 0;
   return note;
 }
 
 describe("GuitarNote technique updates", () => {
+  test("rejects techniques on empty notes and clears them when emptied", () => {
+    const note = createNote();
+    note.fret = null;
+
+    expect(note.techniqueApplicable(GuitarTechniqueType.Vibrato)).toBe(false);
+    expect(note.setTechnique(GuitarTechniqueType.Vibrato)).toBe(false);
+    expect(
+      note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato))
+    ).toBe(false);
+
+    note.fret = 3;
+    expect(note.setTechnique(GuitarTechniqueType.Vibrato)).toBe(true);
+
+    note.fret = null;
+    expect(note.techniques).toEqual([]);
+  });
+
   test.each([
     new BendTechniqueOptions({
       type: BendType.Prebend,
@@ -148,6 +166,8 @@ describe("GuitarNote technique updates", () => {
     if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
+    previous.fret = 5;
+    current.fret = 5;
     previous.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions({
@@ -187,6 +207,8 @@ describe("GuitarNote technique updates", () => {
       ) {
         throw Error("Expected guitar notes");
       }
+      previous.fret = 5;
+      current.fret = 5;
       previous.setTechnique(
         GuitarTechniqueType.Bend,
         new BendTechniqueOptions({
@@ -228,6 +250,8 @@ describe("GuitarNote technique updates", () => {
     if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
+    previous.fret = 5;
+    current.fret = 5;
     previous.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions({
@@ -281,6 +305,8 @@ describe("GuitarNote technique updates", () => {
       ) {
         throw Error("Expected guitar notes");
       }
+      previous.fret = 5;
+      current.fret = 5;
       previous.setTechnique(
         GuitarTechniqueType.Bend,
         new BendTechniqueOptions({

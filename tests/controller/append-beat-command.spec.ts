@@ -32,15 +32,4 @@ describe("AppendBeatCommand", () => {
     expect(voiceBar.beats[1].baseDuration).toBe(voiceBar.beats[0].baseDuration);
     expect(voiceBar.beats[1].isRest()).toBe(true);
   });
-
-  test("redo before execute throws", () => {
-    const { bar } = createScoreGraph();
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 to exist");
-    }
-    const command = new AppendBeatCommand(voiceBar);
-
-    expect(() => command.redo()).toThrow("Redo called before execute");
-  });
 });

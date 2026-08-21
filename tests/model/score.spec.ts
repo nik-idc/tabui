@@ -18,6 +18,18 @@ describe("Score model", () => {
     expect(score.masterPan).toBe(0);
   });
 
+  test("addTrack creates an aligned track with one default staff", () => {
+    const score = new Score();
+
+    const output = score.addTrack(new Guitar(), "Track 2");
+    const track = output.tracks[0];
+
+    expect(output.index).toBe(1);
+    expect(score.tracks).toHaveLength(2);
+    expect(track.staves).toHaveLength(1);
+    expect(track.staves[0].bars).toHaveLength(score.masterBars.length);
+  });
+
   test("insertReadyMasterBar inserts the master bar at the requested index", () => {
     const score = new Score();
     const track = score.tracks[0];
@@ -37,7 +49,7 @@ describe("Score model", () => {
     expect(staff.bars[1]).toBe(insertedBar);
   });
 
-  test("removeTrack removes exactly one track", () => {
+  test("removeTrack removes the requested track and returns its neighbor", () => {
     const score = new Score();
     const track1 = score.tracks[0];
     const track2 = new Track(score, new Guitar(), "Track 2");

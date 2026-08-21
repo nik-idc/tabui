@@ -1,5 +1,6 @@
 import { YesNoDefaultCallbacks } from "../../src/ui/shared/yes-no/yes-no-callbacks";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   FakeElement,
@@ -25,7 +26,7 @@ function createYesNoHarness() {
         cancelButton,
       },
     } as any,
-    createNotationComponentMock(),
+    asNotationComponent(createNotationComponentMock()),
     renderFunc,
     jest.fn(),
     freeKeyboard,

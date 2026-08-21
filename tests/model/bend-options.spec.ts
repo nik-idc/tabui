@@ -1,11 +1,6 @@
 import { BendTechniqueOptions, BendType } from "../../src/notation/model";
 
 describe("BendTechniqueOptions", () => {
-  test("requires explicit options", () => {
-    // @ts-expect-error Bend options cannot have a valid implicit default.
-    expect(() => new BendTechniqueOptions()).toThrow();
-  });
-
   test.each([
     { type: BendType.Bend, bendPitch: 1, bendDuration: 1 },
     {

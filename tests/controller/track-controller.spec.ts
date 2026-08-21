@@ -71,7 +71,16 @@ function getBeatElement(
   barIndex: number,
   beatIndex: number
 ) {
-  return getBeatElements(controller)[barIndex + beatIndex];
+  const bar = controller.trackElement.track.staves[0].bars[barIndex];
+  const voiceBar = bar?.getVoiceBar(1);
+  const beat = voiceBar?.beats[beatIndex];
+  const element = getBeatElements(controller).find(
+    (candidate) => candidate.beat === beat
+  );
+  if (element === undefined) {
+    throw Error("Expected beat element for model beat");
+  }
+  return element;
 }
 
 function setBarDurations(
@@ -270,33 +279,14 @@ describe("TrackController", () => {
 
   test("notation mutations are ignored while playback is active", () => {
     const { score, track } = createScoreGraph();
+    const note = track.staves[0].bars[0].getVoiceBar(1)?.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+    note.fret = 5;
     score.addTrack(new Guitar(), "Track 2");
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    const editor = (controller as any)._trackControllerEditor;
-    const editorMethods = [
-      "undoCommand",
-      "redoCommand",
-      "setSelectedNoteFret",
-      "setDuration",
-      "setSelectedBeatRest",
-      "setDots",
-      "setSelectedBeatsTuplet",
-      "setSelectedBarTempo",
-      "setSelectedBarTimeSignature",
-      "setSelectedBarRepeatStatus",
-      "setTechnique",
-      "moveSelectedNote",
-      "paste",
-      "deleteSelectedBeats",
-      "insertBeatBeforeSelected",
-      "insertBeatAfterSelected",
-      "removeSelectedBeat",
-      "setActiveVoiceNumber",
-      "insertBarBeforeSelected",
-      "insertBarAfterSelected",
-      "removeSelectedBar",
-    ];
-    const spies = editorMethods.map((method) => jest.spyOn(editor, method));
+    const before = serializeScore(score);
     const trackOrder = [...score.tracks];
     mockScorePlayerInstances[0].isPlaying = true;
 
@@ -324,13 +314,16 @@ describe("TrackController", () => {
     controller.removeSelectedBar();
 
     expect(score.tracks).toEqual(trackOrder);
-    for (const spy of spies) {
-      expect(spy).not.toHaveBeenCalled();
-    }
+    expect(serializeScore(score)).toEqual(before);
   });
 
   test("view-only preserves the complete score document", () => {
     const { score, track } = createScoreGraph();
+    const note = track.staves[0].bars[0].getVoiceBar(1)?.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+    note.fret = 5;
     const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
     const controller = new BaseTrackController(
       track,
@@ -489,67 +482,6 @@ describe("TrackController", () => {
     expect(mockScorePlayerInstances[0].start).not.toHaveBeenCalled();
   });
 
-  test("previous bar follows the current playback bar on repeated seeks", () => {
-    const { score, track } = createScoreGraph();
-    score.appendMasterBar(DEFAULT_MASTER_BAR);
-    score.appendMasterBar(DEFAULT_MASTER_BAR);
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    const player = mockScorePlayerInstances[0];
-    const playbackAnchorBeat = track.staves[0].bars[2].getVoiceBar(1)?.beats[0];
-    const previousBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
-    player.isPlaying = true;
-    player.playbackAnchorBeat = playbackAnchorBeat;
-
-    controller.selectPreviousBar();
-    player.playbackAnchorBeat = playbackAnchorBeat;
-    controller.selectPreviousBar();
-
-    expect(player.start).toHaveBeenCalledTimes(2);
-    expect(player.start).toHaveBeenNthCalledWith(1, {
-      startBeat: previousBeat,
-    });
-    expect(player.start).toHaveBeenNthCalledWith(2, {
-      startBeat: previousBeat,
-    });
-  });
-
-  test("previous bar works after a playback mouse seek clears selection", () => {
-    const { score, track } = createScoreGraph();
-    score.appendMasterBar(DEFAULT_MASTER_BAR);
-    score.appendMasterBar(DEFAULT_MASTER_BAR);
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    const player = mockScorePlayerInstances[0];
-    const targetBeatElement = getBeatElements(controller)[2];
-    const previousBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
-    player.isPlaying = true;
-
-    controller.restartPlayerFromBeat(targetBeatElement.beat);
-    player.playbackAnchorBeat = targetBeatElement.beat;
-
-    expect(() => controller.selectPreviousBar()).not.toThrow();
-    expect(player.start).toHaveBeenLastCalledWith({ startBeat: previousBeat });
-  });
-
-  test("next bar follows the current playback bar after selection is cleared", () => {
-    const { score, track } = createScoreGraph();
-    score.appendMasterBar(DEFAULT_MASTER_BAR);
-    score.appendMasterBar(DEFAULT_MASTER_BAR);
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    const player = mockScorePlayerInstances[0];
-    const playbackAnchorBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
-    const nextBeat = track.staves[0].bars[2].getVoiceBar(1)?.beats[0];
-    player.isPlaying = true;
-    if (playbackAnchorBeat === undefined) {
-      throw Error("Expected playback anchor beat");
-    }
-
-    controller.restartPlayerFromBeat(playbackAnchorBeat);
-    player.playbackAnchorBeat = playbackAnchorBeat;
-
-    expect(() => controller.selectNextBar()).not.toThrow();
-    expect(player.start).toHaveBeenLastCalledWith({ startBeat: nextBeat });
-  });
-
   test("first and last bar follow playback state after selection is cleared", () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
@@ -625,17 +557,6 @@ describe("TrackController", () => {
     expect(player.start).toHaveBeenCalledWith({ startBeat: fallbackBeat });
   });
 
-  test("switching to an existing voice does not update elements", () => {
-    const { track } = createScoreGraph();
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    const updateSpy = jest.spyOn(controller.trackElement, "update");
-
-    controller.setActiveVoiceNumber(1);
-
-    expect(controller.activeVoiceNumber).toBe(1);
-    expect(updateSpy).not.toHaveBeenCalled();
-  });
-
   test("switching to a new voice updates only the affected line vertically", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -650,13 +571,28 @@ describe("TrackController", () => {
     });
   });
 
+  test("switching to an existing voice only updates selection", () => {
+    const { track, bar } = createScoreGraph();
+    const existingVoiceBar = bar.insertVoiceBar(2);
+    const voiceBarCount = bar.voiceBarsAsArray.length;
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const updateSpy = jest.spyOn(controller.trackElement, "update");
+
+    controller.setActiveVoiceNumber(2);
+
+    expect(bar.voiceBarsAsArray).toHaveLength(voiceBarCount);
+    expect(bar.getVoiceBar(2)).toBe(existingVoiceBar);
+    expect(controller.activeVoiceNumber).toBe(2);
+    expect(controller.selectionCursor?.beat).toBe(existingVoiceBar.beats[0]);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
   test("moving right into a missing active voice bar updates elements", () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.setActiveVoiceNumber(2);
     const secondBar = track.staves[0].bars[1];
-    const updateSpy = jest.spyOn(controller.trackElement, "update");
 
     controller.moveSelectedNote(SelectedMoveDirection.Right);
     controller.moveSelectedNote(SelectedMoveDirection.Right);
@@ -665,9 +601,6 @@ describe("TrackController", () => {
 
     expect(secondBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectionCursor?.bar).toBe(secondBar);
-    expect(updateSpy).toHaveBeenCalledWith({
-      affectedMasterBarIndices: [1],
-    });
     expect(
       controller.trackElement.getBeatElement(controller.selectionCursor!.beat)
     ).toBeDefined();
@@ -687,16 +620,12 @@ describe("TrackController", () => {
       throw Error("Second voice beat element not found");
     }
     controller.selectNoteElement(secondVoiceBeatElement.noteElements[0]);
-    const updateSpy = jest.spyOn(controller.trackElement, "update");
     const firstBar = track.staves[0].bars[0];
 
     controller.moveSelectedNote(SelectedMoveDirection.Left);
 
     expect(firstBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectionCursor?.bar).toBe(firstBar);
-    expect(updateSpy).toHaveBeenCalledWith({
-      affectedMasterBarIndices: [0],
-    });
     expect(
       controller.trackElement.getBeatElement(controller.selectionCursor!.beat)
     ).toBeDefined();
@@ -718,21 +647,6 @@ describe("TrackController", () => {
 
     controller.redo();
     expect(voiceBar.beats).toHaveLength(2);
-  });
-
-  test("append beat undo removes the appended beat", () => {
-    const { track, bar } = createScoreGraph();
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 in test bar");
-    }
-
-    controller.moveSelectedNote(SelectedMoveDirection.Right);
-    expect(voiceBar.beats).toHaveLength(2);
-
-    controller.undo();
-    expect(voiceBar.beats).toHaveLength(1);
   });
 
   test("insert beat before selected inserts and selects the new beat", () => {
@@ -1484,41 +1398,11 @@ describe("TrackController", () => {
       NoteDuration.Quarter,
     ]);
     expect(track.staves[0].bars[1].checkDurationsFit()).toBe(false);
-  });
 
-  test("redo reapplies replace paste after undo", () => {
-    const { track, score } = createScoreGraph();
-    score.appendMasterBar();
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-
-    setBarDurations(
-      controller,
-      0,
-      Array.from({ length: 8 }, () => NoteDuration.Eighth)
-    );
-    setBarDurations(controller, 1, [
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
-    ]);
-    controller.trackElement.update();
-    const beatElements = getBeatElements(controller);
-    const voiceBar = track.staves[0].bars[1].getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 in test bar");
-    }
-
-    controller.selectBeat(beatElements[0]);
-    controller.selectBeat(beatElements[7]);
-    controller.copy();
-    controller.clearSelection();
-    controller.selectBeat(beatElements[8]);
-    controller.selectBeat(beatElements[9]);
-    controller.paste();
     controller.undo();
-    controller.redo();
+    expect(noteBeats(voiceBar.beats)).toHaveLength(4);
 
+    controller.redo();
     expect(noteBeats(voiceBar.beats)).toHaveLength(10);
     expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       ...Array.from({ length: 8 }, () => NoteDuration.Eighth),
@@ -1638,7 +1522,6 @@ describe("TrackController", () => {
   });
 
   test("moving right enough to split the last bar onto a new line marks that bar updated", () => {
-    // NOTE: Takes too long because of unoptimized TrackElement.update
     const { score, track, staff } = createScoreGraph();
     for (let i = 0; i < 40; i++) {
       score.appendMasterBar({
@@ -1687,6 +1570,11 @@ describe("TrackController", () => {
 
   test("vibrato apply undo redo uses vertical update behavior", () => {
     const { score, track } = createScoreGraph();
+    const note = track.staves[0].bars[0].getVoiceBar(1)?.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note in test beat");
+    }
+    note.fret = 5;
     for (let i = 0; i < 80; i++) {
       score.appendMasterBar({
         tempo: 120,

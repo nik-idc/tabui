@@ -59,21 +59,24 @@ describe("SetRestCommand", () => {
     expect(beat.isRest()).toBe(true);
   });
 
-  test("setting the current rest state is a no-op", () => {
+  test("execute, undo, and redo preserve an existing rest", () => {
     const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth, dots: 1 },
     ]);
     const beat = beats[0];
-
-    const noteCommand = new SetRestCommand([beat], false);
-    noteCommand.execute();
-    expect(beat.isRest()).toBe(false);
-
     beat.makeRest();
+    const command = new SetRestCommand([beat], true);
 
-    const restCommand = new SetRestCommand([beat], true);
-    restCommand.execute();
+    command.execute();
     expect(beat.isRest()).toBe(true);
+
+    command.undo();
+    expect(beat.isRest()).toBe(true);
+
+    command.redo();
+    expect(beat.isRest()).toBe(true);
+    expect(beat.baseDuration).toBe(NoteDuration.Eighth);
+    expect(beat.dots).toBe(1);
   });
 
   test("execute applies rest state to multiple beats", () => {

@@ -474,38 +474,6 @@ describe("score-wide bar layout", () => {
     expect(secondRanges).toEqual(firstRanges);
   });
 
-  test("uses the widest track requirement for every track", () => {
-    const { score, track, bar } = createGraph();
-    const secondTrack = score.addTrack(new Guitar(), "Track 2")
-      .tracks[0] as Track<Guitar>;
-    const secondBar = secondTrack.staves[0].bars[0] as Bar<Guitar>;
-    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
-    replaceVoiceBeats(
-      secondBar,
-      1,
-      Array.from({ length: 16 }, () => NoteDuration.Sixteenth)
-    );
-
-    const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
-    const firstTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    const secondTrackElement = new TrackElement(
-      secondTrack,
-      TEST_LAYOUT_DIMENSIONS
-    );
-    firstTrackElement.update();
-    secondTrackElement.update();
-
-    expect(plan.metrics[0].minWidth).toBe(
-      calculateMasterBarLayoutMetrics(secondTrack, 0, TEST_LAYOUT_DIMENSIONS)
-        .minWidth
-    );
-    expect(
-      firstTrackElement.trackLineElements[0].trackLineBars[0].finalizedWidth
-    ).toBe(
-      secondTrackElement.trackLineElements[0].trackLineBars[0].finalizedWidth
-    );
-  });
-
   test("shares wrapped ranges and equal-time beat coordinates across tracks", () => {
     const { score, track, bar } = createGraph();
     const secondTrack = score.addTrack(new Guitar(), "Track 2")

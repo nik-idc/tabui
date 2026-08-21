@@ -9,11 +9,7 @@ import {
   resolveEditorTheme,
   resolveEditorThemeKey,
 } from "../../demo/data/theme";
-import {
-  deserializeScore,
-  Score,
-  serializeScore,
-} from "../../src/notation/model";
+import { deserializeScore, serializeScore } from "../../src/notation/model";
 
 const FIXTURE_SCORE_NAMES = {
   feature_showcase: "Feature Showcase Score",
@@ -22,26 +18,6 @@ const FIXTURE_SCORE_NAMES = {
   multi_voice_single_staff: "Multi Voice Single Staff",
   multi_voice_two_staff: "Multi Voice Two Staff",
 } as const;
-
-function expectOwnershipBasics(score: Score): void {
-  for (const track of score.tracks) {
-    expect(track.score).toBe(score);
-    for (const staff of track.staves) {
-      expect(staff.track).toBe(track);
-      for (let barIndex = 0; barIndex < staff.bars.length; barIndex++) {
-        const bar = staff.bars[barIndex];
-        expect(bar.staff).toBe(staff);
-        expect(bar.masterBar).toBe(score.masterBars[barIndex]);
-        for (const voiceBar of bar.voiceBarsAsArray) {
-          expect(voiceBar.bar).toBe(bar);
-          for (const beat of voiceBar.beats) {
-            expect(beat.voiceBar).toBe(voiceBar);
-          }
-        }
-      }
-    }
-  }
-}
 
 describe("editor fixture and theme resolution", () => {
   it("resolves known fixture keys and falls back to default", () => {
@@ -92,10 +68,20 @@ describe("editor fixture and theme resolution", () => {
       expect(restored.tracks).toHaveLength(sourceTrackCount);
       expect(restored.masterBars).toHaveLength(sourceMasterBarCount);
       expect(serializeScore(restored)).toEqual(document);
-      expectOwnershipBasics(restored);
 
       if (fixture.key === "performance_stress") {
         expect(sourceMasterBarCount).toBe(1000);
+      }
+
+      if (fixture.key === "multi_voice_two_staff") {
+        expect(source.tracks[0].staves).toHaveLength(2);
+        expect(restored.tracks[0].staves).toHaveLength(2);
+        expect(restored.tracks[0].staves[0].bars[0].getVoiceBar(2)).not.toBe(
+          undefined
+        );
+        expect(restored.tracks[0].staves[1].bars[0].getVoiceBar(3)).not.toBe(
+          undefined
+        );
       }
     });
   }

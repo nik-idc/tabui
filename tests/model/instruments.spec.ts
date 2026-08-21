@@ -16,6 +16,7 @@ import {
   BassGuitarTone,
   OtherStringTone,
 } from "../../src/notation/model/instrument/instrument-tone";
+import { DEFAULT_TUNINGS } from "../../src/notation/model/instrument/guitar/default-tunings";
 import { createScoreGraph } from "./helpers";
 
 describe("Default instruments", () => {
@@ -34,18 +35,14 @@ describe("Default instruments", () => {
     expect(guitar.tuning).toHaveLength(guitar.stringsCount);
   });
 
-  test("ukulele default uses four strings and matching tuning", () => {
+  test("ukulele default has four strings with matching tuning", () => {
     const ukulele = DEFAULT_OTHER_STRING[OtherStringTone.Ukulele];
 
-    expect(ukulele).toBeInstanceOf(Guitar);
-    expect((ukulele as Guitar).stringsCount).toBe(4);
-    expect((ukulele as Guitar).tuning).toHaveLength(4);
-  });
-
-  test("default bass uses tuning length matching string count", () => {
-    const bass = DEFAULT_BASS_GUITARS[BassGuitarTone.Clean] as Guitar;
-
-    expect(bass.tuning).toHaveLength(bass.stringsCount);
+    if (!(ukulele instanceof Guitar)) {
+      throw Error("Expected ukulele to be a Guitar");
+    }
+    expect(ukulele.stringsCount).toBe(4);
+    expect(ukulele.tuning).toEqual(DEFAULT_TUNINGS[4].UkuleleStandard);
   });
 
   test("guitar fret pitches stay chromatic across octave boundaries", () => {

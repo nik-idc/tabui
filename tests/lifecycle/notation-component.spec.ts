@@ -2,8 +2,14 @@ import { NotationComponent } from "../../src/notation/notation-component";
 import { TrackController } from "../../src/notation/controller";
 import { EditorSVGRenderer } from "../../src/notation/render";
 import { ScorePlayer } from "../../src/player";
+import {
+  ResolvedTabUIConfig,
+  resolveTabUIConfig,
+} from "../../src/config/tabui-config";
 import { createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
+
+const TEST_CONFIG: ResolvedTabUIConfig = resolveTabUIConfig();
 
 const mockTrackControllers: Array<{
   track: unknown;
@@ -101,12 +107,7 @@ describe("NotationComponent", () => {
         new NotationComponent(
           { appendChild: jest.fn() } as unknown as HTMLDivElement,
           score,
-          {
-            assets: {} as any,
-            playback: {} as any,
-            layout: {} as any,
-            interaction: { mode: "edit" },
-          } as any,
+          TEST_CONFIG,
           TEST_LAYOUT_DIMENSIONS
         )
     ).toThrow("NotationComponent requires a score with at least one track");
@@ -120,12 +121,7 @@ describe("NotationComponent", () => {
     const notation = new NotationComponent(
       rootDiv,
       score,
-      {
-        assets: {} as any,
-        playback: {} as any,
-        layout: {} as any,
-        interaction: { mode: "edit" },
-      } as any,
+      TEST_CONFIG,
       TEST_LAYOUT_DIMENSIONS
     );
 
@@ -161,12 +157,7 @@ describe("NotationComponent", () => {
     const notation = new NotationComponent(
       { appendChild: jest.fn() } as unknown as HTMLDivElement,
       score,
-      {
-        assets: {} as any,
-        playback: {} as any,
-        layout: {} as any,
-        interaction: { mode: "edit" },
-      } as any,
+      TEST_CONFIG,
       TEST_LAYOUT_DIMENSIONS
     );
     mockPlayers[0].getCurrentBeatForTrack.mockReturnValue(playbackBeat);
@@ -190,12 +181,7 @@ describe("NotationComponent", () => {
     const notation = new NotationComponent(
       { appendChild: jest.fn() } as unknown as HTMLDivElement,
       score,
-      {
-        assets: {} as any,
-        playback: {} as any,
-        layout: {} as any,
-        interaction: { mode: "edit" },
-      } as any,
+      TEST_CONFIG,
       TEST_LAYOUT_DIMENSIONS
     );
 

@@ -1,6 +1,7 @@
 import { TempoControlsDefaultCallbacks } from "../../src/ui/side-controls/measure-controls/tempo-controls/tempo-controls-callbacks";
 import { DEFAULT_MASTER_BAR } from "../../src/notation/model";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   FakeElement,
@@ -44,7 +45,7 @@ function createTempoHarness() {
   const freeKeyboard = jest.fn();
   const callbacks = new TempoControlsDefaultCallbacks(
     component,
-    notationComponent,
+    asNotationComponent(notationComponent),
     renderFunc,
     captureKeyboard,
     freeKeyboard

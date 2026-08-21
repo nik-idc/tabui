@@ -19,6 +19,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
 
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const command = new SetTechniqueCommand(
@@ -50,6 +51,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
 
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const command = new SetTechniqueCommand(
@@ -79,6 +81,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
 
     const vibratoCommand = new SetTechniqueCommand(
       [note],
@@ -113,6 +116,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
 
     const harmonicCommand = new SetTechniqueCommand(
       [note],
@@ -141,6 +145,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
 
     const command = new SetTechniqueCommand(
       [note],
@@ -164,6 +169,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
 
     note.addTechnique(
       new GuitarTechnique(
@@ -209,6 +215,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
     note.addTechnique(
       new GuitarTechnique(
         note,

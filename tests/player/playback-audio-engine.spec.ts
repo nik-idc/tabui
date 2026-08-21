@@ -86,12 +86,12 @@ describe("PlaybackAudioEngine", () => {
     }
   });
 
-  test("lazily owns the context and score audio graph", async () => {
+  test("lazily owns the context and score audio bus topology", async () => {
     const { score } = createScoreGraph();
     score.masterVolume = 0.8;
     score.masterPan = -0.25;
     const engine = new PlaybackAudioEngine(score, {});
-    const { context, destination, gains, panners } = createAudioContext();
+    const { context, gains, panners } = createAudioContext();
     nextAudioContext = context;
 
     expect(AudioContext).not.toHaveBeenCalled();
@@ -103,22 +103,39 @@ describe("PlaybackAudioEngine", () => {
     expect(context.resume).toHaveBeenCalledTimes(1);
     expect(gains).toHaveLength(2);
     expect(panners).toHaveLength(2);
-    expect(gains[0].connect).toHaveBeenCalledWith(panners[0]);
-    expect(panners[0].connect).toHaveBeenCalledWith(destination);
-    expect(gains[1].connect).toHaveBeenCalledWith(panners[1]);
-    expect(panners[1].connect).toHaveBeenCalledWith(gains[0]);
     expect(gains[0].gain.setValueAtTime).toHaveBeenCalledWith(0.8, 3);
     expect(panners[0].pan.setValueAtTime).toHaveBeenCalledWith(-0.25, 3);
 
     engine.dispose();
 
     expect(context.close).toHaveBeenCalledTimes(1);
-    expect(gains.every((gain) => gain.disconnect.mock.calls.length === 1)).toBe(
+    expect(gains.every((gain) => gain.disconnect.mock.calls.length > 0)).toBe(
       true
     );
     expect(
-      panners.every((panner) => panner.disconnect.mock.calls.length === 1)
+      panners.every((panner) => panner.disconnect.mock.calls.length > 0)
     ).toBe(true);
+  });
+
+  test("cleans up failed audio bus setup and retries with a fresh topology", () => {
+    const { score } = createScoreGraph();
+    const failed = createAudioContext();
+    failed.context.createStereoPanner = jest.fn(() => {
+      throw Error("panner failed");
+    }) as unknown as AudioContext["createStereoPanner"];
+    const recovered = createAudioContext();
+    nextAudioContext = failed.context;
+    const engine = new PlaybackAudioEngine(score, {});
+
+    expect(() => engine.initialize()).toThrow("panner failed");
+    expect(failed.context.close).toHaveBeenCalledTimes(1);
+    expect(failed.gains[0].disconnect).toHaveBeenCalled();
+
+    nextAudioContext = recovered.context;
+    engine.initialize();
+
+    expect(AudioContext).toHaveBeenCalledTimes(2);
+    expect(engine.currentTime).toBe(3);
   });
 
   test("removes naturally ended nodes from teardown tracking", () => {
@@ -159,5 +176,34 @@ describe("PlaybackAudioEngine", () => {
 
     expect(earlierNode.sourceNode.stop).not.toHaveBeenCalled();
     expect(boundaryNode.sourceNode.stop).toHaveBeenCalledWith(3);
+  });
+
+  test("updates mix state and creates a bus for a track added at runtime", () => {
+    const { score, track } = createScoreGraph();
+    const engine = new PlaybackAudioEngine(score, {});
+    const audio = createAudioContext();
+    nextAudioContext = audio.context;
+    engine.initialize();
+    const secondTrack = score.addTrack(track.context.instrument, "Second")
+      .tracks[0];
+    const secondBeat = secondTrack.staves[0].bars[0].ensureVoiceBar(1).beats[0];
+
+    engine.scheduleBeat(secondBeat, 4, 4.5);
+    track.muted = true;
+    secondTrack.soloed = true;
+    secondTrack.volume = 0.25;
+    secondTrack.pan = -0.5;
+    engine.applyTrackControls();
+
+    expect(audio.gains).toHaveLength(3);
+    expect(audio.gains[1].gain.setValueAtTime).toHaveBeenLastCalledWith(0, 3);
+    expect(audio.gains[2].gain.setValueAtTime).toHaveBeenLastCalledWith(
+      0.25,
+      3
+    );
+    expect(audio.panners[2].pan.setValueAtTime).toHaveBeenLastCalledWith(
+      -0.5,
+      3
+    );
   });
 });

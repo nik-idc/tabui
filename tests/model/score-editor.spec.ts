@@ -61,6 +61,22 @@ describe("ScoreEditor", () => {
     expect(beat.tupletSettings).toEqual({ normalCount: 3, tupletCount: 1 });
   });
 
+  test("setTupletGroupSettings clears when passed the same settings", () => {
+    const { beats } = createBarWithBeats([
+      {
+        baseDuration: NoteDuration.Eighth,
+        tupletSettings: { normalCount: 3, tupletCount: 2 },
+      },
+    ]);
+
+    ScoreEditor.setTupletGroupSettings(beats[0], {
+      normalCount: 3,
+      tupletCount: 2,
+    });
+
+    expect(beats[0].tupletSettings).toBeNull();
+  });
+
   test("setTupletGroupSettings recomputes bar tuplets and beaming", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Eighth },
@@ -80,37 +96,6 @@ describe("ScoreEditor", () => {
     }
     expect(voiceBar.tupletGroups).toHaveLength(1);
     expect(voiceBar.tupletGroups[0].beats[0]).toBe(beat);
-  });
-
-  test("setDots refreshes tuplet group calculated durations", () => {
-    const { bar, beats } = createBarWithBeats([
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-    ]);
-
-    ScoreEditor.setDots([beats[0]], 1);
-
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    expect(voiceBar.tupletGroups[0].getCalculatedDurationAt(0)).toBeCloseTo(
-      1 / 8,
-      10
-    );
-    expect(voiceBar.tupletGroups[0].getDurationTicksAt(0)).toBe(
-      beats[0].fullDurationTicks
-    );
   });
 
   test("setDots toggles to zero when setting the same value", () => {
@@ -133,22 +118,6 @@ describe("ScoreEditor", () => {
     expect(() => ScoreEditor.setDots([beats[0]], 3)).toThrow(
       "3 is an invalid dots value"
     );
-  });
-
-  test("setTupletGroupSettings clears tuplet when same settings are passed", () => {
-    const { beats } = createBarWithBeats([
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-    ]);
-
-    ScoreEditor.setTupletGroupSettings(beats[0], {
-      normalCount: 3,
-      tupletCount: 2,
-    });
-
-    expect(beats[0].tupletSettings).toBeNull();
   });
 
   test("setTuplet toggles matching settings off across multiple beats", () => {
@@ -366,6 +335,7 @@ describe("ScoreEditor", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
     const initialOptions = new BendTechniqueOptions({
       type: BendType.Bend,
       bendPitch: 0.5,
@@ -411,6 +381,8 @@ describe("ScoreEditor", () => {
     if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
       throw Error("Expected guitar notes in test beat");
     }
+    first.fret = 5;
+    second.fret = 5;
     ScoreEditor.setTechniqueNotes(
       [first],
       GuitarTechniqueType.Bend,
@@ -445,6 +417,7 @@ describe("ScoreEditor", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
+    note.fret = 5;
     ScoreEditor.setTechniqueNotes(
       [note],
       GuitarTechniqueType.Bend,

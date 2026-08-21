@@ -94,10 +94,10 @@ describe("demo score persistence controls", () => {
 
     expect(downloadDocument).toHaveBeenCalledTimes(1);
     const [contents, filename] = downloadDocument.mock.calls[0];
-    const document = JSON.parse(contents) as {
+    const persistedScore = JSON.parse(contents) as {
       name: string;
     };
-    expect(document.name).toBe("Current score");
+    expect(persistedScore.name).toBe("Current score");
     expect(filename).toBe("current-score.tabui.json");
     expect(controls.status.dataset.state).toBe("success");
     unbind();
@@ -118,12 +118,12 @@ describe("demo score persistence controls", () => {
 
     dispatchClick(controls.deserializeButton);
     expect(controls.fileInput.click).toHaveBeenCalledTimes(1);
-    const document = serializeScore(source);
-    document.name = "Restored from file";
+    const serializedScore = serializeScore(source);
+    serializedScore.name = "Restored from file";
     selectFile(
       controls.fileInput,
       "restored.tabui.json",
-      JSON.stringify(document)
+      JSON.stringify(serializedScore)
     );
     await flushPromises();
 

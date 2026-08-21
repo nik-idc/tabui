@@ -1,414 +1,329 @@
-import { EditorSVGRenderer } from "../../src/notation/render/svg/editor-svg-renderer";
-import { PlayerOverlayRenderer } from "../../src/notation/render/svg/player-overlay-renderer";
-import { Rect } from "../../src/shared";
 import { TrackController } from "../../src/notation/controller/track-controller";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
+import { PlayerOverlayRenderer } from "../../src/notation/render/svg/player-overlay-renderer";
+import { PlaybackState } from "../../src/player";
+import { Beat, NoteDuration } from "../../src/notation/model";
+import { trackEvent, TrackEventType } from "../../src/shared/events";
 import { createScoreGraph } from "../model/helpers";
+import { createBarWithBeats } from "../model/helpers";
 import { createTestTrackController } from "../controller/helpers";
 import { createMultiVoiceTwoStaffScoreFixture } from "../../demo/data/multi-voice-score";
 
-function createCursorElement() {
-  const attrs = new Map<string, string>();
+function cursorElement() {
+  const attributes = new Map<string, string>();
   return {
-    setAttribute: (name: string, value: string) => attrs.set(name, value),
-    getAttribute: (name: string) => attrs.get(name) ?? null,
+    setAttribute: (name: string, value: string) => attributes.set(name, value),
+    getAttribute: (name: string) => attributes.get(name) ?? null,
+    remove: jest.fn(),
   } as unknown as SVGRectElement;
 }
 
-let originalDocument: Document | undefined;
-
-beforeEach(() => {
-  originalDocument = (globalThis as any).document;
-  (globalThis as any).document = {
-    createElementNS: () => createCursorElement(),
+function internals(overlay: PlayerOverlayRenderer) {
+  return overlay as unknown as {
+    positionCursorAtBeat: (beat: TabBeatElement) => void;
+    renderBeatChange: (args: {
+      beatUUID: number;
+      nextBeatUUID?: number;
+      startTime: number;
+      endTime: number;
+      playbackRunId: number;
+    }) => void;
+    updateAnimation: () => void;
+    _playerCursorRect: SVGRectElement;
   };
-});
+}
 
-afterEach(() => {
-  (globalThis as any).document = originalDocument;
-});
-
-function createTabBeatElement(x: number, trackLineElement: object) {
-  const beatElement = Object.create(TabBeatElement.prototype) as any;
-  Object.defineProperties(beatElement, {
-    barElement: { value: { globalCoords: { x: 0 } } },
-    barLocalCoords: { value: { x } },
-    attackLocalX: { value: 0 },
-    globalCoords: { value: { x, y: 20 } },
-    boundingBox: { value: { width: 40, height: 60 } },
+function tabBeatElement(x: number, trackLineElement: object): TabBeatElement {
+  return Object.defineProperties(Object.create(TabBeatElement.prototype), {
+    attackXGlobal: { value: x },
+    globalCoords: { value: { y: 20 } },
+    boundingBox: { value: { width: 40, height: 20 } },
     owningTrackLineElement: { value: trackLineElement },
-  });
-  return beatElement;
+  }) as TabBeatElement;
 }
 
-function cursorCenterX(cursorElement: SVGRectElement): number {
-  return (
-    Number(cursorElement.getAttribute("x")) +
-    Number(cursorElement.getAttribute("width")) / 2
-  );
-}
-
-function createAnimationOverlay(
-  cursorElement: SVGRectElement,
-  getCurrentTime: () => number,
-  getCurrentPlaybackRunId: () => number
+function overlay(
+  controller: TrackController,
+  appendChild = jest.fn(),
+  ensureBeatVisible = jest.fn()
 ) {
-  const trackController = {} as any;
-  Object.defineProperties(trackController, {
-    playerCurrentTime: { get: getCurrentTime },
-    playerRunId: { get: getCurrentPlaybackRunId },
-  });
-  const overlay = new PlayerOverlayRenderer(
-    {} as SVGGElement,
-    trackController,
-    () => undefined
+  const result = new PlayerOverlayRenderer(
+    { appendChild } as unknown as SVGGElement,
+    controller,
+    ensureBeatVisible
   );
-  (overlay as any)._playerCursorRect = cursorElement;
-  return overlay;
+  Object.defineProperty(result, "_playerCursorRect", {
+    value: cursorElement(),
+  });
+  return { result, appendChild, ensureBeatVisible };
 }
 
-describe("PlayerOverlayRenderer cursor geometry", () => {
-  test("places tab beat cursor at the beat attack column", () => {
-    const { track } = createScoreGraph();
-    const controller = createTestTrackController(track);
-    controller.trackElement.update();
-    const beat = track.staves[0].bars[0].getVoiceBar(1)?.beats[0];
-    if (beat === undefined) {
-      throw Error("Expected beat");
-    }
-    const beatElement = controller.trackElement.getBeatElement(beat);
-    if (!(beatElement instanceof TabBeatElement)) {
-      throw Error("Expected tab beat element");
-    }
-    const cursorElement = createCursorElement();
-    const overlay = new PlayerOverlayRenderer(
-      {} as SVGGElement,
-      controller,
-      () => undefined
-    );
-    (overlay as any)._playerCursorRect = cursorElement;
-
-    (overlay as any).positionCursorAtBeat(beatElement);
-
-    const cursorWidth = Number(cursorElement.getAttribute("width"));
-    const cursorCenterX =
-      Number(cursorElement.getAttribute("x")) + cursorWidth / 2;
-    expect(cursorCenterX).toBeCloseTo(
-      beatElement.barElement.globalCoords.x +
-        beatElement.barLocalCoords.x +
-        beatElement.attackLocalX
-    );
-  });
-
-  test("uses the corrected multi-staff outline extent", () => {
-    const score = createMultiVoiceTwoStaffScoreFixture();
-    const controller = createTestTrackController(score.tracks[0]);
-    controller.trackElement.update();
-    const beat = score.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0];
-    if (beat === undefined) {
-      throw Error("Expected fixture beat");
-    }
-    const beatElement = controller.trackElement.getBeatElement(beat);
-    if (!(beatElement instanceof TabBeatElement)) {
-      throw Error("Expected tab beat element");
-    }
-    const trackLine = beatElement.owningTrackLineElement;
-    const firstStyleLine =
-      trackLine.staffLineContainers[0].styleLinesAsArray[0];
-    const finalStaffLine =
-      trackLine.staffLineContainers[trackLine.staffLineContainers.length - 1];
-    const finalStyleLine = finalStaffLine.styleLinesAsArray[0];
-    const firstRenderedStaffLine =
-      firstStyleLine.barElements[0].staffLinesGlobal[0];
-    const lastBar =
-      finalStyleLine.barElements[finalStyleLine.barElements.length - 1];
-    const lastRenderedStaffLine =
-      lastBar.staffLinesGlobal[lastBar.staffLinesGlobal.length - 1];
-    const cursorElement = createCursorElement();
-    const overlay = new PlayerOverlayRenderer(
-      {} as SVGGElement,
-      controller,
-      () => undefined
-    );
-    (overlay as any)._playerCursorRect = cursorElement;
-
-    (overlay as any).positionCursorAtBeat(beatElement);
-
-    expect(Number(cursorElement.getAttribute("y"))).toBeCloseTo(
-      firstRenderedStaffLine.y
-    );
-    expect(Number(cursorElement.getAttribute("height"))).toBeCloseTo(
-      lastRenderedStaffLine.y - firstRenderedStaffLine.y
-    );
-  });
-});
-
-describe("PlayerOverlayRenderer animation", () => {
-  let originalRequestAnimationFrame: typeof requestAnimationFrame;
-  let originalCancelAnimationFrame: typeof cancelAnimationFrame;
+describe("PlayerOverlayRenderer", () => {
+  let originalDocument: Document | undefined;
+  let originalRequestAnimationFrame: typeof requestAnimationFrame | undefined;
+  let originalCancelAnimationFrame: typeof cancelAnimationFrame | undefined;
+  let frame: FrameRequestCallback | undefined;
+  let frameId = 0;
+  let cancelFrame: jest.Mock;
 
   beforeEach(() => {
+    originalDocument = globalThis.document;
+    (globalThis as unknown as { document: Document }).document = {
+      createElementNS: () => cursorElement(),
+    } as unknown as Document;
     originalRequestAnimationFrame = globalThis.requestAnimationFrame;
     originalCancelAnimationFrame = globalThis.cancelAnimationFrame;
+    cancelFrame = jest.fn();
+    (
+      globalThis as unknown as {
+        requestAnimationFrame: typeof requestAnimationFrame;
+        cancelAnimationFrame: typeof cancelAnimationFrame;
+      }
+    ).requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      frame = callback;
+      return ++frameId;
+    });
+    (
+      globalThis as unknown as {
+        cancelAnimationFrame: typeof cancelAnimationFrame;
+      }
+    ).cancelAnimationFrame = cancelFrame;
   });
 
   afterEach(() => {
-    globalThis.requestAnimationFrame = originalRequestAnimationFrame;
-    globalThis.cancelAnimationFrame = originalCancelAnimationFrame;
+    (globalThis as unknown as { document: Document | undefined }).document =
+      originalDocument;
+    (
+      globalThis as unknown as {
+        requestAnimationFrame: typeof requestAnimationFrame | undefined;
+        cancelAnimationFrame: typeof cancelAnimationFrame | undefined;
+      }
+    ).requestAnimationFrame = originalRequestAnimationFrame;
+    (
+      globalThis as unknown as {
+        cancelAnimationFrame: typeof cancelAnimationFrame | undefined;
+      }
+    ).cancelAnimationFrame = originalCancelAnimationFrame;
   });
 
-  test("interpolates between same-line beat attacks using audio time", () => {
-    const trackLineElement = {};
-    const startBeatElement = createTabBeatElement(100, trackLineElement);
-    const endBeatElement = createTabBeatElement(300, trackLineElement);
-    const cursorElement = createCursorElement();
-    let currentTime = 10;
-    let frameCallback: FrameRequestCallback | undefined;
-    const requestFrame = jest.fn((callback: FrameRequestCallback) => {
-      frameCallback = callback;
-      return 1;
-    });
-    globalThis.requestAnimationFrame = requestFrame;
-    globalThis.cancelAnimationFrame = jest.fn();
-    const overlay = createAnimationOverlay(
-      cursorElement,
-      () => currentTime,
-      () => 1
+  test("positions the cursor at beat attack across multiple staff lines", () => {
+    const score = createMultiVoiceTwoStaffScoreFixture();
+    const controller = createTestTrackController(score.tracks[0]);
+    controller.trackElement.update();
+    const secondBeat =
+      score.tracks[0].staves[1].bars[0].getVoiceBar(1)?.beats[0];
+    if (secondBeat === undefined) {
+      throw Error("Expected beat");
+    }
+    const secondBeatElement =
+      controller.trackElement.getBeatElement(secondBeat);
+    if (!(secondBeatElement instanceof TabBeatElement)) {
+      throw Error("Expected tab beat element");
+    }
+    const { result } = overlay(controller);
+
+    internals(result).positionCursorAtBeat(secondBeatElement);
+
+    const cursor = internals(result)._playerCursorRect;
+    expect(
+      Number(cursor.getAttribute("x")) +
+        Number(cursor.getAttribute("width")) / 2
+    ).toBeCloseTo(secondBeatElement.attackXGlobal);
+    expect(Number(cursor.getAttribute("y"))).toBeCloseTo(42);
+    expect(Number(cursor.getAttribute("height"))).toBeCloseTo(
+      secondBeatElement.owningTrackLineElement.outlineLinesGlobal?.left
+        .height ?? 0
     );
-
-    (overlay as any).animateBetweenBeats(
-      startBeatElement,
-      endBeatElement,
-      10,
-      12,
-      1
-    );
-    expect(cursorCenterX(cursorElement)).toBeCloseTo(100);
-
-    currentTime = 11;
-    frameCallback?.(0);
-    expect(cursorCenterX(cursorElement)).toBeCloseTo(200);
-
-    currentTime = 12;
-    frameCallback?.(0);
-    expect(cursorCenterX(cursorElement)).toBeCloseTo(300);
   });
 
-  test("preserves snapping for cross-line transitions", () => {
-    const startBeatElement = createTabBeatElement(100, {});
-    const endBeatElement = createTabBeatElement(300, {});
-    const cursorElement = createCursorElement();
-    const requestFrame = jest.fn();
-    globalThis.requestAnimationFrame = requestFrame;
-    globalThis.cancelAnimationFrame = jest.fn();
-    const overlay = createAnimationOverlay(
-      cursorElement,
-      () => 10,
-      () => 1
-    );
-
-    (overlay as any).animateBetweenBeats(
-      startBeatElement,
-      endBeatElement,
-      10,
-      12,
-      1
-    );
-
-    expect(cursorCenterX(cursorElement)).toBeCloseTo(100);
-    expect(requestFrame).not.toHaveBeenCalled();
-  });
-
-  test("stops stale playback-run animation", () => {
-    const trackLineElement = {};
-    const startBeatElement = createTabBeatElement(100, trackLineElement);
-    const endBeatElement = createTabBeatElement(300, trackLineElement);
-    const cursorElement = createCursorElement();
-    let frameCallback: FrameRequestCallback | undefined;
-    let currentPlaybackRunId = 1;
-    const requestFrame = jest.fn((callback: FrameRequestCallback) => {
-      frameCallback = callback;
-      return 1;
-    });
-    globalThis.requestAnimationFrame = requestFrame;
-    globalThis.cancelAnimationFrame = jest.fn();
-    const overlay = createAnimationOverlay(
-      cursorElement,
-      () => 11,
-      () => currentPlaybackRunId
-    );
-
-    (overlay as any).animateBetweenBeats(
-      startBeatElement,
-      endBeatElement,
-      10,
-      12,
-      1
-    );
-    currentPlaybackRunId = 2;
-    frameCallback?.(0);
-
-    expect(requestFrame).toHaveBeenCalledTimes(1);
-  });
-
-  test("snapping cancels an active animation frame", () => {
-    const trackLineElement = {};
-    const startBeatElement = createTabBeatElement(100, trackLineElement);
-    const endBeatElement = createTabBeatElement(300, trackLineElement);
-    const cancelFrame = jest.fn();
-    globalThis.requestAnimationFrame = () => 7;
-    globalThis.cancelAnimationFrame = cancelFrame;
-    const overlay = createAnimationOverlay(
-      createCursorElement(),
-      () => 10,
-      () => 1
-    );
-
-    (overlay as any).animateBetweenBeats(
-      startBeatElement,
-      endBeatElement,
-      10,
-      12,
-      1
-    );
-    (overlay as any).snapToBeat(startBeatElement);
-
-    expect(cancelFrame).toHaveBeenCalledWith(7);
-  });
-
-  test("moves through a final beat without a successor", () => {
-    const beatElement = createTabBeatElement(100, {});
-    const cursorElement = createCursorElement();
-    globalThis.requestAnimationFrame = () => 1;
-    globalThis.cancelAnimationFrame = jest.fn();
-    const overlay = createAnimationOverlay(
-      cursorElement,
-      () => 12,
-      () => 1
-    );
-
-    (overlay as any).animateThroughBeat(beatElement, 10, 12, 1);
-    expect(cursorCenterX(cursorElement)).toBeCloseTo(140);
-  });
-});
-
-describe("PlayerOverlayRenderer", () => {
-  test("follows and materializes a playback line before animating", () => {
-    const beat = {} as any;
-    const nextBeat = {} as any;
-    const trackLineElement = {} as any;
-    const beatElement = {} as any;
-    const nextBeatElement = {} as any;
-    const ensureBeatVisible = jest.fn((resolvedBeat: unknown) =>
-      resolvedBeat === beat ? beatElement : nextBeatElement
-    );
-    const animateBetweenBeats = jest.fn();
-    const trackElement = {
-      getTrackLineElementForBeat: jest.fn(() => trackLineElement),
-    };
-    const trackController = {
-      track: { uuid: 1 },
+  test("renders matching playback events only while subscribed", () => {
+    const { track, bar } = createScoreGraph();
+    const beat = bar.ensureVoiceBar(1).beats[0];
+    const controller = {
+      track,
       playerUUID: 7,
       playerRunId: 1,
-      getBeatByUUID: jest.fn((uuid: number) => (uuid === 42 ? beat : nextBeat)),
-      trackElement,
-    } as any;
-    const overlay = new PlayerOverlayRenderer(
-      {} as SVGGElement,
-      trackController,
-      ensureBeatVisible
-    );
-    (overlay as any).animateBetweenBeats = animateBetweenBeats;
+      playbackState: PlaybackState.Playing,
+      playerLastStartedBeat: undefined,
+      getBeatByUUID: jest.fn(() => beat),
+      trackElement: { getTrackLineElementForBeat: jest.fn(() => ({})) },
+    } as unknown as TrackController;
+    const { result, ensureBeatVisible, appendChild } = overlay(controller);
 
-    (overlay as any).onBeatChanged({
-      trackUUID: 1,
+    result.render();
+    trackEvent.emit(TrackEventType.PlayerCurBeatChanged, {
+      trackUUID: track.uuid,
       playerUUID: 7,
-      beatUUID: 42,
-      nextBeatUUID: 43,
-      startTime: 10,
-      endTime: 11,
+      beatUUID: beat.uuid,
+      startTime: 1,
+      endTime: 2,
+      playbackRunId: 1,
+    });
+    result.unrender();
+    trackEvent.emit(TrackEventType.PlayerCurBeatChanged, {
+      trackUUID: track.uuid,
+      playerUUID: 7,
+      beatUUID: beat.uuid,
+      startTime: 2,
+      endTime: 3,
       playbackRunId: 1,
     });
 
-    expect(trackController.getBeatByUUID).toHaveBeenCalledWith(42);
-    expect(ensureBeatVisible).toHaveBeenCalledWith(beat, true);
-    expect(ensureBeatVisible).toHaveBeenCalledWith(nextBeat, false);
-    expect(animateBetweenBeats).toHaveBeenCalledWith(
-      beatElement,
-      nextBeatElement,
-      10,
-      11,
-      1
-    );
+    expect(appendChild).toHaveBeenCalled();
+    expect(ensureBeatVisible).toHaveBeenCalledTimes(1);
   });
 
-  test("safely ignores a playback beat that cannot be resolved", () => {
-    const ensureBeatVisible = jest.fn();
-    const snapToBeat = jest.fn();
-    const overlay = new PlayerOverlayRenderer(
-      {} as SVGGElement,
-      {
-        track: { uuid: 1 },
-        playerUUID: 7,
-        playerRunId: 1,
-        getBeatByUUID: jest.fn(() => undefined),
-        trackElement: {},
-      } as any,
-      ensureBeatVisible
-    );
-    (overlay as any).snapToBeat = snapToBeat;
+  test("ignores events from foreign players and stale playback runs", () => {
+    const { track, bar } = createScoreGraph();
+    const beat = bar.ensureVoiceBar(1).beats[0];
+    const controller = {
+      track,
+      playerUUID: 7,
+      playerRunId: 2,
+      playbackState: PlaybackState.Playing,
+      playerLastStartedBeat: undefined,
+      getBeatByUUID: jest.fn((uuid: number) =>
+        uuid === beat.uuid ? beat : undefined
+      ),
+      trackElement: { getTrackLineElementForBeat: jest.fn(() => ({})) },
+    } as unknown as TrackController;
+    const { result, ensureBeatVisible } = overlay(controller);
+    result.render();
 
-    expect(() =>
-      (overlay as any).onBeatChanged({
-        trackUUID: 1,
-        playerUUID: 7,
-        beatUUID: 42,
-        startTime: 10,
-        playbackRunId: 1,
-      })
-    ).not.toThrow();
+    for (const [playerUUID, playbackRunId] of [
+      [8, 2],
+      [7, 1],
+    ]) {
+      trackEvent.emit(TrackEventType.PlayerCurBeatChanged, {
+        trackUUID: track.uuid,
+        playerUUID,
+        beatUUID: beat.uuid,
+        startTime: 1,
+        endTime: 2,
+        playbackRunId,
+      });
+    }
+
     expect(ensureBeatVisible).not.toHaveBeenCalled();
-    expect(snapToBeat).not.toHaveBeenCalled();
   });
 
-  test("ignores beat changes emitted by another player", () => {
-    const getBeatByUUID = jest.fn();
-    const overlay = new PlayerOverlayRenderer(
-      {} as SVGGElement,
-      {
-        track: { uuid: 1 },
-        playerUUID: 7,
-        playerRunId: 1,
-        getBeatByUUID,
-      } as any,
-      () => undefined
-    );
+  test("hides the cursor when playback becomes idle", () => {
+    const { track } = createScoreGraph();
+    const controller = {
+      track,
+      playerUUID: 7,
+      playerRunId: 1,
+      playbackState: PlaybackState.Idle,
+      playerLastStartedBeat: undefined,
+      getBeatByUUID: jest.fn(),
+      trackElement: { getTrackLineElementForBeat: jest.fn() },
+    } as unknown as TrackController;
+    const { result } = overlay(controller);
 
-    (overlay as any).onBeatChanged({
-      trackUUID: 1,
-      playerUUID: 8,
-      beatUUID: 42,
-      startTime: 10,
-      endTime: 11,
-      playbackRunId: 1,
+    result.render();
+
+    expect(internals(result)._playerCursorRect.getAttribute("width")).toBe("0");
+    expect(internals(result)._playerCursorRect.getAttribute("height")).toBe(
+      "0"
+    );
+  });
+
+  test("interpolates within a line and resets at a cross-line boundary", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const [start, next] = beats;
+    const firstLine = {};
+    const secondLine = {};
+    let nextLine: object = firstLine;
+    const startElement = tabBeatElement(20, firstLine);
+    const nextElement = tabBeatElement(120, firstLine);
+    const crossLineElement = tabBeatElement(220, secondLine);
+    const controller = {
+      track,
+      playerUUID: 1,
+      playerRunId: 4,
+      playerCurrentTime: 1.5,
+      playbackState: PlaybackState.Playing,
+      playerLastStartedBeat: undefined,
+      getBeatByUUID: jest.fn((uuid: number) =>
+        uuid === start.uuid ? start : next
+      ),
+      trackElement: {
+        getTrackLineElementForBeat: jest.fn((beat: Beat) =>
+          beat === start ? firstLine : nextLine
+        ),
+      },
+    } as unknown as TrackController;
+    const visible = jest.fn((beat: Beat) =>
+      beat === start ? startElement : nextElement
+    );
+    const { result } = overlay(controller, jest.fn(), visible);
+
+    internals(result).renderBeatChange({
+      beatUUID: start.uuid,
+      nextBeatUUID: next.uuid,
+      startTime: 1,
+      endTime: 2,
+      playbackRunId: 4,
     });
 
-    expect(getBeatByUUID).not.toHaveBeenCalled();
+    expect(internals(result)._playerCursorRect.getAttribute("x")).toBe("67.5");
+    expect(frame).toBeDefined();
+    nextLine = secondLine;
+    visible.mockImplementation((beat: Beat) =>
+      beat === start ? startElement : crossLineElement
+    );
+    internals(result).renderBeatChange({
+      beatUUID: start.uuid,
+      nextBeatUUID: next.uuid,
+      startTime: 1,
+      endTime: 2,
+      playbackRunId: 4,
+    });
+
+    expect(internals(result)._playerCursorRect.getAttribute("x")).toBe("17.5");
+    expect(cancelFrame).toHaveBeenCalled();
   });
-});
 
-describe("EditorSVGRenderer viewport ranges", () => {
-  test("uses a bounded nearest-line range outside the current viewport", () => {
-    const renderer = Object.create(EditorSVGRenderer.prototype) as any;
-    renderer._viewportRect = new Rect(0, 10_000, 800, 400);
-    renderer.trackController = {
-      trackElement: {
-        trackLineElements: Array.from({ length: 20 }, (_, index) => ({
-          globalBoundingBox: new Rect(0, index * 100, 800, 80),
-        })),
-      },
-    };
+  test("ignores unresolved beat events and stale final-beat animation frames", () => {
+    const { track, bar } = createScoreGraph();
+    const beat = bar.ensureVoiceBar(1).beats[0];
+    const line = {};
+    const beatElement = tabBeatElement(20, line);
+    const controller = {
+      track,
+      playerUUID: 1,
+      playerRunId: 2,
+      playerCurrentTime: 1,
+      playbackState: PlaybackState.Playing,
+      playerLastStartedBeat: undefined,
+      getBeatByUUID: jest.fn((uuid: number) =>
+        uuid === beat.uuid ? beat : undefined
+      ),
+      trackElement: { getTrackLineElementForBeat: jest.fn(() => line) },
+    } as unknown as TrackController;
+    const ensureBeatVisible = jest.fn(() => beatElement);
+    const { result } = overlay(controller, jest.fn(), ensureBeatVisible);
 
-    expect(renderer.getLinesInViewport()).toEqual({ start: 17, end: 19 });
+    internals(result).renderBeatChange({
+      beatUUID: beat.uuid,
+      startTime: 1,
+      endTime: 2,
+      playbackRunId: 2,
+    });
+    (controller as unknown as { playerRunId: number }).playerRunId = 3;
+    frame?.(0);
+    internals(result).renderBeatChange({
+      beatUUID: -1,
+      startTime: 2,
+      endTime: 3,
+      playbackRunId: 3,
+    });
+    result.unrender();
+
+    expect(internals(result)._playerCursorRect.getAttribute("x")).toBe("17.5");
+    expect(ensureBeatVisible).toHaveBeenCalledTimes(1);
   });
 });

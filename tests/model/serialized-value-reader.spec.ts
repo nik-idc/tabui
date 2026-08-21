@@ -5,8 +5,9 @@ function getError(operation: () => unknown): ScoreSerializationError {
   try {
     operation();
   } catch (error) {
-    expect(error).toBeInstanceOf(ScoreSerializationError);
-    return error as ScoreSerializationError;
+    if (error instanceof ScoreSerializationError) {
+      return error;
+    }
   }
   throw Error("Expected operation to fail");
 }

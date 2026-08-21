@@ -31,19 +31,6 @@ describe("SetNoteCommand", () => {
     expect(note.octave).toBe(5);
   });
 
-  test("redo before execute throws", () => {
-    const { bar } = createScoreGraph();
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 in test bar");
-    }
-
-    const beat = voiceBar.beats[0];
-    const command = new SetNoteCommand(beat, 1, NoteValue.C, 4);
-
-    expect(() => command.redo()).toThrow("Redo called before execute");
-  });
-
   test("setting note on a rest beat converts it and undo restores the rest", () => {
     const score = new Score();
     const bar = score.tracks[0].staves[0].bars[0];

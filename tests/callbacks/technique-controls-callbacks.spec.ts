@@ -2,6 +2,7 @@ import { TechniqueControlsDefaultCallbacks } from "../../src/ui/side-controls/te
 import { BendControlsDefaultCallbacks } from "../../src/ui/side-controls/technique-controls/bend-controls/bend-controls-callbacks";
 import { GuitarTechniqueType } from "../../src/notation/model";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   makeButton,
@@ -34,7 +35,7 @@ describe("TechniqueControlsDefaultCallbacks", () => {
     } as any;
     const callbacks = new TechniqueControlsDefaultCallbacks(
       component,
-      notationComponent,
+      asNotationComponent(notationComponent),
       renderFunc,
       jest.fn(),
       jest.fn()

@@ -1,6 +1,8 @@
 import { TrackControlsDefaultCallbacks } from "../../src/ui/top-controls/score-controls/track-controls/track-controls-callbacks";
 import { TrackControlsTemplateRenderer } from "../../src/ui/top-controls/score-controls/track-controls/track-controls-template-renderer";
+import { Guitar, Score } from "../../src/notation/model";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   dispatchEvent,
@@ -11,6 +13,10 @@ import {
 
 describe("TrackControlsDefaultCallbacks", () => {
   function renderRemoveButton(trackCount: number, isPlaybackActive = false) {
+    const score = new Score();
+    while (score.tracks.length < trackCount) {
+      score.addTrack(new Guitar(), `Track ${score.tracks.length + 1}`);
+    }
     const removeButton = {
       classList: { add: jest.fn(), toggle: jest.fn() },
       dataset: {},
@@ -22,7 +28,7 @@ describe("TrackControlsDefaultCallbacks", () => {
     const renderer = Object.create(TrackControlsTemplateRenderer.prototype);
     renderer.template = { removeButton };
     renderer.notationComponent = {
-      score: { tracks: new Array(trackCount) },
+      score,
       trackController: { isPlaybackActive, editingEnabled: true },
     };
     renderer.assetsPath = { baseUrl: "", variant: "light" };
@@ -60,7 +66,10 @@ describe("TrackControlsDefaultCallbacks", () => {
       removeAttribute: jest.fn(),
       setAttribute: jest.fn(),
     });
-    const track = { name: "Lead" };
+    const score = new Score();
+    const track = score.tracks[0];
+    track.name = "Lead";
+    score.addTrack(new Guitar(), "Track 2");
     const template = {
       moveUpButton: makeElement(),
       moveDownButton: makeElement(),
@@ -72,7 +81,7 @@ describe("TrackControlsDefaultCallbacks", () => {
     renderer.template = template;
     renderer.track = track;
     renderer.notationComponent = {
-      score: { tracks: [track, {}] },
+      score,
       trackController: { isPlaybackActive: true, editingEnabled: true },
     };
     renderer.assetsPath = { baseUrl: "", variant: "light" };
@@ -98,25 +107,23 @@ describe("TrackControlsDefaultCallbacks", () => {
   test("playback blocks track editing but preserves mix controls", () => {
     const notationComponent = createNotationComponentMock();
     notationComponent.trackController.isPlaying = true;
-    const track = {
-      name: "Lead",
-      volume: 0.5,
-      pan: 0,
-      muted: false,
-      soloed: false,
-    };
+    const track = notationComponent.score.tracks[0];
+    track.name = "Lead";
+    track.volume = 0.5;
+    track.pan = 0;
+    track.muted = false;
+    track.soloed = false;
     const component = {
       template: {
         trackNameInput: makeInput("Blocked"),
       },
       track,
     } as any;
-    notationComponent.score = { tracks: [track] };
     const showSettings = jest.fn();
     const showRemove = jest.fn();
     const callbacks = new TrackControlsDefaultCallbacks(
       component,
-      notationComponent,
+      asNotationComponent(notationComponent),
       jest.fn(),
       jest.fn(),
       jest.fn(),
@@ -146,10 +153,14 @@ describe("TrackControlsDefaultCallbacks", () => {
   test("persisted mix callbacks dispatch in view-only mode", () => {
     const notationComponent = createNotationComponentMock();
     notationComponent.trackController.editingEnabled = false;
-    const track = { volume: 0.5, pan: 0, muted: false, soloed: false };
+    const track = notationComponent.score.tracks[0];
+    track.volume = 0.5;
+    track.pan = 0;
+    track.muted = false;
+    track.soloed = false;
     const callbacks = new TrackControlsDefaultCallbacks(
       { track, template: {} } as any,
-      notationComponent,
+      asNotationComponent(notationComponent),
       jest.fn(),
       jest.fn(),
       jest.fn(),
@@ -177,20 +188,20 @@ describe("TrackControlsDefaultCallbacks", () => {
     ).toHaveBeenCalledWith(track);
   });
 
-  test("top-level actions dispatch correctly and child callbacks are bound idempotently", () => {
+  test("top-level actions dispatch correctly and unbind stops events", () => {
     const notationComponent = createNotationComponentMock();
     const renderFunc = jest.fn();
     const captureKeyboard = jest.fn();
     const showTrackSettings = jest.fn();
     const showTrackRemove = jest.fn();
-    const track = {
-      id: 1,
-      name: "Lead",
-      volume: 0.5,
-      pan: 0,
-      muted: false,
-      soloed: false,
-    };
+    const score = notationComponent.score;
+    const firstTrack = score.tracks[0];
+    const track = score.addTrack(new Guitar(), "Lead").tracks[0];
+    score.addTrack(new Guitar(), "Track 3");
+    track.volume = 0.5;
+    track.pan = 0;
+    track.muted = false;
+    track.soloed = false;
     const component = {
       template: {
         removeButton: makeButton(),
@@ -206,12 +217,9 @@ describe("TrackControlsDefaultCallbacks", () => {
       },
       track,
     } as any;
-    notationComponent.score = {
-      tracks: [{}, track, {}],
-    };
     const callbacks = new TrackControlsDefaultCallbacks(
       component,
-      notationComponent,
+      asNotationComponent(notationComponent),
       renderFunc,
       captureKeyboard,
       jest.fn(),
@@ -238,7 +246,7 @@ describe("TrackControlsDefaultCallbacks", () => {
     expect(notationComponent.trackController.moveTrack).toHaveBeenNthCalledWith(
       1,
       track,
-      0
+      score.tracks.indexOf(firstTrack)
     );
     expect(notationComponent.trackController.moveTrack).toHaveBeenNthCalledWith(
       2,

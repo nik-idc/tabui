@@ -5,6 +5,7 @@ import { TrackSettingsControlsDefaultCallbacks } from "../../src/ui/top-controls
 import { YesNoDefaultCallbacks } from "../../src/ui/shared/yes-no/yes-no-callbacks";
 import { ScoreControlsTemplateRenderer } from "../../src/ui/top-controls/score-controls/score-controls-template-renderer";
 import {
+  asNotationComponent,
   createNotationComponentMock,
   dispatchClick,
   dispatchEvent,
@@ -44,7 +45,7 @@ describe("ScoreControlsDefaultCallbacks", () => {
     expect(scoreNameInput.disabled).toBe(true);
   });
 
-  test("score controls dispatch behavior and child callback lifecycle correctly", () => {
+  test("score controls dispatch behavior and unbind stops events", () => {
     const trackBindSpy = jest
       .spyOn(TrackControlsDefaultCallbacks.prototype, "bind")
       .mockImplementation(() => {});
@@ -69,12 +70,12 @@ describe("ScoreControlsDefaultCallbacks", () => {
     const yesNoUnbindSpy = jest
       .spyOn(YesNoDefaultCallbacks.prototype, "unbind")
       .mockImplementation(() => {});
-
     const notationComponent = createNotationComponentMock();
     const captureKeyboard = jest.fn();
     const freeKeyboard = jest.fn();
     const showTrackSettings = jest.fn();
-    const score = { name: "Old", masterVolume: 1, masterPan: 0 };
+    const score = notationComponent.score;
+    score.name = "Old";
     const component = {
       template: {
         showTracksButton: makeButton(),
@@ -100,7 +101,7 @@ describe("ScoreControlsDefaultCallbacks", () => {
     } as any;
     const callbacks = new ScoreControlsDefaultCallbacks(
       component,
-      notationComponent,
+      asNotationComponent(notationComponent),
       jest.fn(),
       captureKeyboard,
       freeKeyboard,

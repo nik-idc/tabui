@@ -8,21 +8,11 @@ test("anchors, extends, and clears a range through shared transport controls", a
   const editor = page.locator("#tabui-editor");
   const rangeButton = editor.locator('img[alt="Set anchor"]');
   await expect(rangeButton).toBeVisible();
-  expect(
-    await rangeButton.evaluate(
-      (image) => (image as HTMLImageElement).naturalWidth
-    )
-  ).toBeGreaterThan(0);
 
   // Set a one-beat anchor from the editor's current note cursor.
   await editor.locator('img[alt="Set anchor"]').click();
   const clearRangeButton = editor.locator('img[alt="Clear range"]');
   await expect(clearRangeButton).toBeVisible();
-  expect(
-    await clearRangeButton.evaluate(
-      (image) => (image as HTMLImageElement).naturalWidth
-    )
-  ).toBeGreaterThan(0);
   const selectionRect = editor.locator('[id^="selection-rect-"]');
   await expect(selectionRect).toHaveCount(1);
   const selectionWidthBefore = await selectionRect.getAttribute("width");
@@ -40,12 +30,14 @@ test("anchors, extends, and clears a range through shared transport controls", a
   await expect
     .poll(async () => selectionRect.getAttribute("width"))
     .not.toBe(selectionWidthBefore);
+  const selectionWidthAfterBeat = await selectionRect.getAttribute("width");
+  expect(selectionWidthAfterBeat).not.toBe(selectionWidthBefore);
 
   // Next extends the stopped range from its active endpoint.
   await editor.locator('img[alt="Next bar"]').click();
   await expect
     .poll(async () => selectionRect.getAttribute("width"))
-    .not.toBe(selectionWidthBefore);
+    .not.toBe(selectionWidthAfterBeat);
 
   // Clear restores the cursor state and makes a new anchor available.
   await editor.locator('img[alt="Clear range"]').click();

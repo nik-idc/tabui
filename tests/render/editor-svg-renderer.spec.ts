@@ -30,8 +30,18 @@ type HorizontalViewportHarness = {
   getMasterBarsInViewport(): { start: number; end: number };
 };
 
+type VerticalViewportHarness = {
+  trackController: {
+    trackElement: {
+      trackLineElements: Array<{ globalBoundingBox: Rect }>;
+    };
+  };
+  _viewportRect: Rect;
+  getLinesInViewport(): { start: number; end: number };
+};
+
 describe("EditorSVGRenderer ownership", () => {
-  test("verifies the parent of a retained unchanged renderer", () => {
+  test("mounts a retained renderer after updating its element reference", () => {
     const element = {
       getStableIdentity: () => "note-slot:1:1",
     } as unknown as NotationElement;
@@ -70,7 +80,7 @@ describe("EditorSVGRenderer ownership", () => {
     expect(renderers).toEqual([elementRenderer]);
   });
 
-  test("adds bounded master-bar overscan to the horizontal viewport", () => {
+  test("includes bounded master-bar overscan in the horizontal viewport", () => {
     const harness = Object.create(
       EditorSVGRenderer.prototype
     ) as HorizontalViewportHarness;
@@ -90,5 +100,21 @@ describe("EditorSVGRenderer ownership", () => {
     harness._viewportRect = new Rect(250, 0, 200, 100);
 
     expect(harness.getMasterBarsInViewport()).toEqual({ start: 0, end: 6 });
+  });
+
+  test("returns the bounded nearest-line range outside the vertical viewport", () => {
+    const harness = Object.create(
+      EditorSVGRenderer.prototype
+    ) as VerticalViewportHarness;
+    harness._viewportRect = new Rect(0, 10_000, 800, 400);
+    harness.trackController = {
+      trackElement: {
+        trackLineElements: Array.from({ length: 20 }, (_, i) => ({
+          globalBoundingBox: new Rect(0, i * 100, 800, 80),
+        })),
+      },
+    };
+
+    expect(harness.getLinesInViewport()).toEqual({ start: 17, end: 19 });
   });
 });

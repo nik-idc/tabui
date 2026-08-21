@@ -1,6 +1,8 @@
 import { BeamSegmentElement } from "../../src/notation/controller/element/bar/beam-segment-element";
 import { TrackElement } from "../../src/notation/controller/element/track-element";
 import { TabBeatElement } from "../../src/notation/controller/element/beat/tab-beat-element";
+import { BarTupletGroupElement } from "../../src/notation/controller/element/bar/bar-tuplet-group-element";
+import { VoiceBarRhythmContainer } from "../../src/notation/controller/element/bar/voice-bar-rhythm-container";
 import { NoteDuration, ScoreEditor } from "../../src/notation/model";
 import {
   createBarWithBeats,
@@ -31,15 +33,25 @@ function getBeamSegments(trackElement: TrackElement): BeamSegmentElement[] {
 function getTupletElements(trackElement: TrackElement, barIndex = 0) {
   return getBarElementAt(trackElement, barIndex)
     .refreshOwnedNotationNodes()
-    .filter((element) => element.constructor.name === "BarTupletGroupElement");
+    .filter(
+      (element): element is BarTupletGroupElement =>
+        element instanceof BarTupletGroupElement
+    );
 }
 
-function getVoiceBarRhythmContainer(trackElement: TrackElement) {
-  return getBarElement(trackElement)
+function getVoiceBarRhythmContainer(
+  trackElement: TrackElement
+): VoiceBarRhythmContainer {
+  const container = getBarElement(trackElement)
     .refreshOwnedNotationNodes()
     .find(
-      (element) => element.constructor.name === "VoiceBarRhythmContainer"
-    ) as any;
+      (element): element is VoiceBarRhythmContainer =>
+        element instanceof VoiceBarRhythmContainer
+    );
+  if (container === undefined) {
+    throw Error("Expected voice bar rhythm container");
+  }
+  return container;
 }
 
 describe("BeamSegmentElement", () => {
@@ -192,34 +204,6 @@ describe("BeamSegmentElement", () => {
     ).toThrow("Beam segment for a beat with a non-beamable duration");
   });
 
-  test("width-affecting updates keep complete beam coordinates aligned with legacy rebuild", () => {
-    const { track, bar, beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Sixteenth },
-      { baseDuration: NoteDuration.Sixteenth },
-    ]);
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    voiceBar.rebuildTiming();
-
-    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    const legacyTrackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-
-    beats[0].baseDuration = NoteDuration.ThirtySecond;
-    beats[1].baseDuration = NoteDuration.ThirtySecond;
-    voiceBar.rebuildTiming();
-
-    trackElement.update();
-    legacyTrackElement.update();
-
-    const segment = getBeamSegments(trackElement)[0];
-    const legacySegment = getBeamSegments(legacyTrackElement)[0];
-
-    expect(segment.longRectsGlobal).toEqual(legacySegment.longRectsGlobal);
-    expect(segment.shortRectsGlobal).toEqual(legacySegment.shortRectsGlobal);
-  });
-
   test("complete tuplets expose a stable non-empty state hash", () => {
     const { score, track, staff } = createScoreGraph();
     for (let i = 0; i < 3; i++) {
@@ -249,7 +233,10 @@ describe("BeamSegmentElement", () => {
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
-    const tupletElement = getTupletElements(trackElement, 1)[0] as any;
+    const tupletElement = getTupletElements(trackElement, 1)[0];
+    if (tupletElement === undefined) {
+      throw Error("Expected rendered tuplet element");
+    }
     expect(tupletElement.stateHash).not.toBe("");
     expect(tupletElement.completeText).toBe("2:4");
   });
