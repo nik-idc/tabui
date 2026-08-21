@@ -59,7 +59,7 @@
     "sass-embedded": "^1.93.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
-    "vite": "^6.3.1"
+    "vite": "^8.2.1"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.24.1",
