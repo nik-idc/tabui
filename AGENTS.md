@@ -13,7 +13,9 @@ npm run format             # Format all files
 npm run benchmark:updates  # Run the focused-versus-full update benchmark
 npm run build:package      # Build package ESM, CSS, and TypeScript declarations
 npm run build:demo         # Build the demo with Vite
-npm run test               # Run Jest unit and integration tests
+npm run test               # Run the default unit-test suite
+npm run test:unit          # Run Jest unit tests
+npm run test:integration   # Run package integration tests
 npm run test:e2e           # Run Playwright tests in Chromium and Firefox
 npm run test:e2e:ui        # Open the Playwright test UI
 npm run test:e2e:webkit    # Run Playwright tests in WebKit
@@ -24,7 +26,8 @@ npm run verify             # Run the complete deterministic verification gate
 
 ## Tests
 
-- Active tests are in `tests/`.
+- Unit tests are in `tests/unit/`, integration tests are in
+  `tests/integration/`, and Playwright tests are in `tests/e2e/`.
 - Source of truth for test config: `jest.config.cjs`.
 - Prefer TDD whenever possible & makes sense.
   First make tests and only then write the actual functionality. Main goal -
