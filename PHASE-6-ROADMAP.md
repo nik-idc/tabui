@@ -266,7 +266,68 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
   compact unique contracts. One low-value E2E was removed and the remaining 20
   were improved. Stage 10 owns expansion.
 
-10. Explore the feasability and implementaton of E2E testing using Playwright.
+10. Address known release blocking issues (list may extend upon further use/manual testing):
+1. Copy-pasted beats don't retain techniques
+1. Multi beat Technique application. If **any** in selection has technique, remove it first.
+   Then toggle between all on and off
+1. Inline technique elements have incorrect X coord calculation.
+   Likely a remnant of the old, beat-centered calculation method.
+1. Current duration is only highlighted when drag selection is active. What is highlighted
+   during drag selection should be highlighted per note as well.
+1. Drag selection technique button disabling is currently incorrect. Should be much simpler:
+   - Disabled: Bend
+   - Enabled: Everything else
+1. When applying a per-note technique, it should only be applied to notes with values **and**
+   if that technique is applicable in that particular spot
+1. Aria + tooltips for all interactable elements
+1. Tuplets (incomplete) are offset horizontally as well
+1. Fret 0 is a special case - can't apply most techniques to it
+1. Note selection currently is too tight. Either the demo has a font that is too small or the
+   selection preview has to be a tad more aggressive. Not too much - voices.
+1. Adding a note by clicking the far right end of an incomplete bar. Present in Songsterr &
+   GuitarPro. Hell, even I find myself automatically attempting the same behavior when testing
+   manually in the empty score.
+1. Usage of `HTMLDialogElement` directly conflicts with the embeddable nature of TabUI.
+   Replace `HTMLDialogElement` with custom bialog behavior divs. Needed to ensure native dialogs
+   only appear as modal in TabUI itself, not the host app. Preferrably keep the exact same API
+   so that the desired effect is achieved with minimal code or at least with code contained to
+   a specific area.
+1. Revisit Palm Mute, Vibrato & Let Ring application methods. Do these really belong
+   at the Note level? They _can_ but **should** they? If not, I currently see 2 ways
+   of doing it:
+   - Expanding the Beat model with a Technique array, just like Notes are.
+     Probably best long-term, but could prove tricky to get right
+   - On PM/LR/Vibrato application, fill/clear the corresponding technique from every note.
+     Less code probably but also is a very hacky, terrible long-term solution.
+     Also revisit transitional techniques such as Slide/Legato and their ownership.
+     Having them always belong to a note leads to hacky code to ensure correctness.
+1. Pressing left arrow/right arrow while beat selection is active doesn't clear selection
+   and move in the respected direction. That behavior **was** present in the project some
+   time ago. It got either axed or there is a bug.
+1. A bar can be both repeat start **and** end. Current code prohibits this explicitly.
+   Need to loosen this restriction.
+
+Suggested order:
+
+- Immediate priority. Correctness issues:
+  - 1
+  - 3
+  - 4
+  - 5
+  - 6 + 9
+  - 8
+- Secondary priority. Essential UX improvements:
+  - 2
+  - 10
+  - 12
+  - 14
+  - 15
+- Last priority. Very desirable for `v0.5.0`:
+  - 7
+  - 11
+  - 13
+
+11. Expand E2E Playwright suite.
     Especially interesting to see testing under different configs:
     - Edit/view only
     - Side panel: collapes/expanded
@@ -279,9 +340,6 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
       - Drawing tablets (is possible)
       - Other platforms I might be forgetting (eg do gaming consoles allow browser use?)
     - etc
-
-11. Replace `HTMLDialogElement` with custom bialog behavior divs. Needed to ensure native dialogs
-    only appear as modal in TabUI itself, not the host app.
 
 12. Create new demos using different JS frontend frameworks to ensure that packing
     actually works correctly. Suggested frameworks to test:
