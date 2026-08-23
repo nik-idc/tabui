@@ -27,6 +27,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory /__w/tabui/tabui
+
       - name: Verify tagged commit belongs to master
         run: |
           git fetch origin master --no-tags
