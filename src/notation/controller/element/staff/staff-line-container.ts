@@ -264,6 +264,16 @@ export class StaffLineContainer implements NotationContainer {
     return this._lineNonEmptyVoiceNumbers;
   }
 
+  /** Returns one voice's shared rhythm-row height on this staff line. */
+  public getRhythmRowHeight(voiceNumber: VoiceNumber): number {
+    const hasTuplet = this._trackLineBars.some(({ masterBarIndex }) => {
+      const voiceBar = this.staff.bars[masterBarIndex].getVoiceBar(voiceNumber);
+      return voiceBar !== null && voiceBar.tupletGroups.length > 0;
+    });
+
+    return this.trackElement.layoutDimensions.getRhythmRowHeight(hasTuplet);
+  }
+
   /** Line layout bounding box getter */
   public get boundingBox(): Rect {
     return this._boundingBox;

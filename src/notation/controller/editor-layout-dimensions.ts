@@ -137,6 +137,22 @@ export class EditorLayoutDimensions {
     return this._NOTE_RECT_HEIGHT * (instrument.maxPolyphony - 1);
   }
 
+  /** Returns the height required by one voice's rhythm row. */
+  public getRhythmRowHeight(hasTuplet: boolean): number {
+    if (!hasTuplet) {
+      return this._DURATIONS_HEIGHT + this._TUPLET_RECT_HEIGHT;
+    }
+
+    const visibleTupletHeight =
+      this._TUPLET_RECT_HEIGHT / 2 +
+      this._TUPLET_PATH_HEIGHT * 2 +
+      this._TEMPO_TEXT_SIZE / 2;
+    return (
+      this._DURATIONS_HEIGHT +
+      Math.max(this._TUPLET_RECT_HEIGHT, visibleTupletHeight)
+    );
+  }
+
   get WIDTH(): number {
     return this._WIDTH;
   }

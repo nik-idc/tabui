@@ -1,22 +1,26 @@
 import { TrackElement } from "../../../src/notation/controller/element/track-element";
 import { TabBeatRhythmElement } from "../../../src/notation/controller/element/beat/tab-beat-rhythm-element";
+import { BarTupletGroupElement } from "../../../src/notation/controller/element/bar/bar-tuplet-group-element";
+import { VoiceBarRhythmContainer } from "../../../src/notation/controller/element/bar/voice-bar-rhythm-container";
 import {
   TabBeatElement,
   TabNoteSlotElement,
 } from "../../../src/notation/controller";
+import { TabUILayoutMode } from "../../../src/config/tabui-config";
 import {
   Bar,
   DEFAULT_MASTER_BAR,
   Guitar,
   GuitarNote,
   NoteDuration,
+  VoiceBar,
 } from "../../../src/notation/model";
 import {
   createBarWithBeats,
   createBeat,
   createScoreGraph,
 } from "../model/helpers";
-import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
+import { createTestLayoutDimensions, TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
 function fillBarWithDenseSixtyFourthBeats(
   bar: Bar<Guitar>,
@@ -41,6 +45,17 @@ function getRhythmElements(trackElement: TrackElement): TabBeatRhythmElement[] {
       (element): element is TabBeatRhythmElement =>
         element instanceof TabBeatRhythmElement
     );
+}
+
+function setTripletBeats(voiceBar: VoiceBar<Guitar>, count: number): void {
+  const beats = Array.from({ length: count }, () =>
+    createBeat(voiceBar, NoteDuration.Eighth, 0, {
+      normalCount: 3,
+      tupletCount: 2,
+    })
+  );
+  voiceBar.beats.splice(0, voiceBar.beats.length, ...beats);
+  voiceBar.rebuildTiming();
 }
 
 describe("TrackElement rhythm", () => {
@@ -244,6 +259,163 @@ describe("TrackElement rhythm", () => {
       trackElement.trackLineElements[1].boundingBox.height
     ).toBeGreaterThan(secondLineHeightBefore);
   });
+
+  test("preserves tuplet clearance in rhythm rows without tuplets", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const secondVoice = bar.insertVoiceBar(2);
+    secondVoice.beats.push(createBeat(secondVoice, NoteDuration.Quarter));
+    secondVoice.rebuildTiming();
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+
+    const trackLineElement = trackElement.trackLineElements[0];
+    const staffLineContainer = trackLineElement.staffLineContainers[0];
+    const styleLineContainer = staffLineContainer.styleLinesAsArray[0];
+    const barElement = styleLineContainer.barElements[0];
+    const notationNodes = barElement.refreshOwnedNotationNodes();
+    const row = notationNodes.find((n) => n instanceof VoiceBarRhythmContainer);
+    if (!(row instanceof VoiceBarRhythmContainer)) {
+      throw Error("Expected rhythm row");
+    }
+
+    expect(row.boundingBox.height).toBe(
+      TEST_LAYOUT_DIMENSIONS.DURATIONS_HEIGHT +
+        TEST_LAYOUT_DIMENSIONS.TUPLET_RECT_HEIGHT
+    );
+  });
+
+  test("aligns sparse voice rows across bars on one staff line", () => {
+    const { score, track, staff, bar } = createBarWithBeats([]);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const firstVoice = bar.getVoiceBar(1);
+    const secondBar = staff.bars[1];
+    if (firstVoice === null || secondBar === undefined) {
+      throw Error("Expected test voice bars");
+    }
+    setTripletBeats(firstVoice, 3);
+    setTripletBeats(secondBar.insertVoiceBar(3), 2);
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+
+    const trackLineElement = trackElement.trackLineElements[0];
+    const staffLineContainer = trackLineElement.staffLineContainers[0];
+    const styleLineContainer = staffLineContainer.styleLinesAsArray[0];
+    const rowsByBar = styleLineContainer.barElements.map((barElement) => {
+      const nodes = barElement.refreshOwnedNotationNodes();
+      const firstVoiceRow = nodes.find(
+        (n) => n instanceof VoiceBarRhythmContainer && n.voiceNumber === 1
+      );
+      const thirdVoiceRow = nodes.find(
+        (n) => n instanceof VoiceBarRhythmContainer && n.voiceNumber === 3
+      );
+      if (
+        !(firstVoiceRow instanceof VoiceBarRhythmContainer) ||
+        !(thirdVoiceRow instanceof VoiceBarRhythmContainer)
+      ) {
+        throw Error("Expected voice 1 and voice 3 rhythm rows");
+      }
+
+      return { firstVoiceRow, thirdVoiceRow };
+    });
+    const firstBarRows = rowsByBar[0];
+    const secondBarRows = rowsByBar[1];
+    if (firstBarRows === undefined || secondBarRows === undefined) {
+      throw Error("Expected two rendered bars");
+    }
+
+    for (const rows of rowsByBar) {
+      expect(rows.firstVoiceRow.boundingBox.bottom).toBeCloseTo(
+        rows.thirdVoiceRow.boundingBox.y
+      );
+    }
+    expect(firstBarRows.firstVoiceRow.boundingBox.y).toBeCloseTo(
+      secondBarRows.firstVoiceRow.boundingBox.y
+    );
+    expect(firstBarRows.firstVoiceRow.boundingBox.height).toBeCloseTo(
+      secondBarRows.firstVoiceRow.boundingBox.height
+    );
+    expect(firstBarRows.thirdVoiceRow.boundingBox.y).toBeCloseTo(
+      secondBarRows.thirdVoiceRow.boundingBox.y
+    );
+    expect(firstBarRows.thirdVoiceRow.boundingBox.height).toBeCloseTo(
+      secondBarRows.thirdVoiceRow.boundingBox.height
+    );
+  });
+
+  test.each([TabUILayoutMode.Wrapped, TabUILayoutMode.SingleLine])(
+    "keeps same-position cross-voice incomplete tuplets clear in %s layout",
+    (layoutMode) => {
+      const { score, track, staff, bar } = createBarWithBeats([]);
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+      const bars = [bar, staff.bars[1]];
+      for (const targetBar of bars) {
+        const firstVoice = targetBar.getVoiceBar(1);
+        if (firstVoice === null) {
+          throw Error("Expected voice 1 bar");
+        }
+        setTripletBeats(firstVoice, 2);
+        setTripletBeats(targetBar.insertVoiceBar(3), 2);
+      }
+
+      const dimensions = createTestLayoutDimensions();
+      dimensions.setWidth(150);
+      const trackElement = new TrackElement(
+        track,
+        dimensions,
+        undefined,
+        layoutMode
+      );
+      trackElement.update();
+
+      const lines = trackElement.trackLineElements;
+      if (layoutMode === TabUILayoutMode.Wrapped && lines.length < 2) {
+        throw Error("Expected wrapped fixture to produce multiple lines");
+      }
+
+      for (const line of lines) {
+        for (const barElement of line.allBarElements()) {
+          const nodes = barElement.refreshOwnedNotationNodes();
+          const firstVoiceTuplet = nodes.find(
+            (n) => n instanceof BarTupletGroupElement && n.voiceNumber === 1
+          );
+          const thirdVoiceTuplet = nodes.find(
+            (n) => n instanceof BarTupletGroupElement && n.voiceNumber === 3
+          );
+          const firstVoiceRow = nodes.find(
+            (n) => n instanceof VoiceBarRhythmContainer && n.voiceNumber === 1
+          );
+          const thirdVoiceRow = nodes.find(
+            (n) => n instanceof VoiceBarRhythmContainer && n.voiceNumber === 3
+          );
+          if (
+            !(firstVoiceTuplet instanceof BarTupletGroupElement) ||
+            !(thirdVoiceTuplet instanceof BarTupletGroupElement) ||
+            !(firstVoiceRow instanceof VoiceBarRhythmContainer) ||
+            !(thirdVoiceRow instanceof VoiceBarRhythmContainer)
+          ) {
+            throw Error("Expected voice 1 and voice 3 tuplets and rhythm rows");
+          }
+
+          const firstLabelY =
+            firstVoiceTuplet.incompleteTextsCoordsBarLocal?.[0].y;
+          const thirdLabelY =
+            thirdVoiceTuplet.incompleteTextsCoordsBarLocal?.[0].y;
+          if (firstLabelY === undefined || thirdLabelY === undefined) {
+            throw Error("Expected incomplete tuplet label coordinates");
+          }
+          expect(
+            firstLabelY + dimensions.TEMPO_TEXT_SIZE / 2
+          ).toBeLessThanOrEqual(firstVoiceRow.boundingBox.bottom);
+          expect(
+            thirdLabelY + dimensions.TEMPO_TEXT_SIZE / 2
+          ).toBeLessThanOrEqual(thirdVoiceRow.boundingBox.bottom);
+        }
+      }
+    }
+  );
 
   test("invalid beam group ids do not suppress standalone duration flags", () => {
     const { track, bar } = createBarWithBeats([

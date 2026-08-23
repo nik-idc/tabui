@@ -108,9 +108,7 @@ export class BarTupletGroupElement implements NotationElement {
     const lastBeatElement = this.beatElements[this.beatElements.length - 1];
     const tupletWidth =
       lastBeatElement.attackX + lastBeatElement.boundingBox.width - baseX;
-    const y =
-      this.voiceBarRhythmContainer.boundingBox.height -
-      this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT;
+    const y = this.trackElement.layoutDimensions.DURATIONS_HEIGHT;
 
     // Width depends on laid-out beat attack columns, not measure-time data.
     this._boundingBox.setDimensions(tupletWidth, this._boundingBox.height);
@@ -305,7 +303,7 @@ export class BarTupletGroupElement implements NotationElement {
     for (const rect of this._incompleteRects) {
       result.push(
         new Point(
-          this.barLocalCoords.x + rect.middleX,
+          this.barLocalCoords.x + rect.x,
           this.barLocalCoords.y +
             rect.height / 2 +
             this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT * 2
@@ -322,19 +320,14 @@ export class BarTupletGroupElement implements NotationElement {
       return this._incompleteRects;
     }
 
-    const result = [];
-    for (const rect of this._incompleteRects) {
-      result.push(
+    const barLocalCoords = this.incompleteTextsCoordsBarLocal;
+    return barLocalCoords?.map(
+      (coords) =>
         new Point(
-          this.lineLocalCoords.x + rect.middleX,
-          this.lineLocalCoords.y +
-            rect.height / 2 +
-            this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT * 2
+          this.owningBarElement.lineLocalCoords.x + coords.x,
+          this.owningBarElement.lineLocalCoords.y + coords.y
         )
-      );
-    }
-
-    return result;
+    );
   }
 
   /** Global coords of incomplete texts */
@@ -343,19 +336,14 @@ export class BarTupletGroupElement implements NotationElement {
       return this._incompleteRects;
     }
 
-    const result = [];
-    for (const rect of this._incompleteRects) {
-      result.push(
+    const barLocalCoords = this.incompleteTextsCoordsBarLocal;
+    return barLocalCoords?.map(
+      (coords) =>
         new Point(
-          this.globalCoords.x + rect.middleX,
-          this.globalCoords.y +
-            rect.height / 2 +
-            this.trackElement.layoutDimensions.TUPLET_PATH_HEIGHT * 2
+          this.owningBarElement.globalCoords.x + coords.x,
+          this.owningBarElement.globalCoords.y + coords.y
         )
-      );
-    }
-
-    return result;
+    );
   }
 
   /** Text for a complete tuplet */
