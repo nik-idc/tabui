@@ -1,4 +1,5 @@
 import {
+  Beat,
   BendType,
   GuitarNote,
   GuitarTechnique,
@@ -303,6 +304,34 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this._pathDescriptors = [prebendLine, prebendArrow, bendCurve, bendArrow];
   }
 
+  /** Returns the next same-string note element when it is on this track line. */
+  private getNextNoteElement(nextBeat: Beat): TabNoteSlotElement | null {
+    const styleLine =
+      this.noteElement.beatElement.barElement.notationStyleLineContainer;
+    const nextBeatElement = styleLine.getBeatElement(nextBeat);
+    const nextNoteElement =
+      nextBeatElement?.noteElements[this.note.stringNum - 1];
+    return nextNoteElement instanceof TabNoteSlotElement
+      ? nextNoteElement
+      : null;
+  }
+
+  /** Returns a transition endpoint in the source note's local coordinates. */
+  private getTransitionEndX(
+    nextNoteElement: TabNoteSlotElement | null
+  ): number {
+    if (nextNoteElement !== null) {
+      return (
+        nextNoteElement.textRectGlobal.left - this.noteElement.globalCoords.x
+      );
+    }
+
+    return (
+      this.owningTrackLineElement.lineLocalBoundingBox.right -
+      this.noteElement.lineLocalCoords.x
+    );
+  }
+
   /**
    * Calc slide path
    */
@@ -334,15 +363,11 @@ export class GuitarTechniqueElement implements TechniqueElement {
 
     const upCoef = nextNote.fret >= note.fret ? 1 : -1;
 
-    const slideWidth =
-      this.noteElement.boundingBox.width -
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
     const slideHeight = this.noteElement.boundingBox.height / 3;
-    const slideStartX =
-      this._startPoint.x +
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    const slideStartX = this._startPoint.x;
     const slideStartY = this._startPoint.y + (slideHeight / 2) * upCoef;
-    const slideEndX = slideStartX + slideWidth;
+    const nextNoteElement = this.getNextNoteElement(nextBeat);
+    const slideEndX = this.getTransitionEndX(nextNoteElement);
     const slideEndY = slideStartY - slideHeight * upCoef;
     const slideLine = GuitarTechniqueDescriptors.createLinePath(
       slideStartX,
@@ -358,31 +383,45 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc hammer-on or pull-off path
    */
   private createLegatoPath(): void {
-    const hpStartX = this._startPoint.x;
-    const hpStartY = this._startPoint.y;
-    const hpWidth = this.noteElement.boundingBox.width;
-    const hpHeight = this.noteElement.boundingBox.height / 2;
-    const slideLine = GuitarTechniqueDescriptors.createHorizontalCurvePath(
-      hpStartX,
-      hpStartY,
-      hpWidth,
-      hpHeight
+    const nextBeat = this.note.beat.voiceBar.bar.staff.getNextBeat(
+      this.note.beat
+    );
+    const nextNote = nextBeat?.notes?.[this.note.stringNum - 1];
+    if (
+      nextBeat === null ||
+      !(nextNote instanceof GuitarNote) ||
+      nextNote.fret === null
+    ) {
+      this._pathDescriptors = undefined;
+      return;
+    }
+    const nextNoteElement = this.getNextNoteElement(nextBeat);
+
+    const legatoStartX = this._startPoint.x;
+    const legatoStartY = this._startPoint.y;
+    const legatoEndX = this.getTransitionEndX(nextNoteElement);
+    const legatoWidth = legatoEndX - legatoStartX;
+    const legatoHeight = this.noteElement.boundingBox.height / 2;
+    const legatoCurve = GuitarTechniqueDescriptors.createHorizontalCurvePath(
+      legatoStartX,
+      legatoStartY,
+      legatoWidth,
+      legatoHeight
     );
 
     // this._rect = new Rect(hpStartX, hpStartY, hpWidth, hpHeight);
 
-    this._pathDescriptors = [slideLine];
+    this._pathDescriptors = [legatoCurve];
   }
 
   /**
    * Calc natural harmonic path
    */
   private createNaturalHarmonicPath(): void {
-    const nhStartX =
-      this._startPoint.x -
-      5 * (this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 4);
-    const nhStartY = this._startPoint.y;
     const nhWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    const harmonicGap = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 4;
+    const nhStartX = this.noteElement.textRect.left - nhWidth - harmonicGap;
+    const nhStartY = this._startPoint.y;
     const nhHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
     const nhLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
       nhStartX,
@@ -401,11 +440,10 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc pinch harmonic path
    */
   private createPinchHarmonicPath(): void {
-    const phStartX =
-      this._startPoint.x -
-      5 * (this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 4);
-    const phStartY = this._startPoint.y;
     const phWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    const harmonicGap = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 4;
+    const phStartX = this.noteElement.textRect.left - phWidth - harmonicGap;
+    const phStartY = this._startPoint.y;
     const phHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
     const phLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
       phStartX,
@@ -511,8 +549,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
    */
   layout(): void {
     this._startPoint = new Point(
-      this.noteElement.boundingBox.width / 2,
-      this.noteElement.boundingBox.height / 2
+      this.noteElement.textRect.right,
+      this.noteElement.textRect.middleY
     );
 
     this.createPath();

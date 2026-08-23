@@ -13,6 +13,8 @@ import {
   TechLineNumber,
   TECHNIQUE_TO_LINE_NUMBER,
 } from "../technique/guitar-technique/guitar-technique-element-lists";
+import { Beat } from "../../../model";
+import { BeatElement } from "../beat/beat-element";
 
 /**
  * Class that handles geometry of a single notation style line in the staff
@@ -143,6 +145,30 @@ export class NotationStyleLineContainer implements NotationContainer {
     for (const barElement of this._barElements) {
       barElement.layout();
     }
+
+    for (const barElement of this._barElements) {
+      for (const beatElement of barElement.beatElements) {
+        for (const noteElement of beatElement.noteElements) {
+          for (const techniqueElement of noteElement.techniqueElements) {
+            techniqueElement.layout();
+          }
+        }
+      }
+    }
+  }
+
+  /** Returns this style line's element for the given model beat. */
+  public getBeatElement(beat: Beat): BeatElement | null {
+    for (const barElement of this._barElements) {
+      const beatElement = barElement.beatElements.find(
+        (candidate) => candidate.beat === beat
+      );
+      if (beatElement !== undefined) {
+        return beatElement;
+      }
+    }
+
+    return null;
   }
 
   /**
