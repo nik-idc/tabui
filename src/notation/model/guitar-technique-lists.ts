@@ -62,3 +62,8 @@ export const TECHNIQUES_INCOMPATIBILITY: Record<
     GuitarTechniqueType.Vibrato,
   ],
 };
+
+export const TRANSITIONAL_TECHNIQUES: Set<GuitarTechniqueType> = new Set([
+  GuitarTechniqueType.Slide,
+  GuitarTechniqueType.Legato,
+]);

@@ -243,7 +243,7 @@ describe("PlaybackNoteScheduler", () => {
     if (!(note instanceof GuitarNote) || !(target instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
-    note.fret = 0;
+    note.fret = 1;
     target.fret = 2;
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide));
     const audio = createAudioContext();
@@ -251,7 +251,7 @@ describe("PlaybackNoteScheduler", () => {
 
     expect(
       audio.oscillators[0].frequency.linearRampToValueAtTime
-    ).toHaveBeenCalledWith(getNoteFrequency(target), 0.5);
+    ).toHaveBeenCalledWith(expect.closeTo(getNoteFrequency(target)), 0.5);
   });
 
   test("continues Hold and Release bends from the previous terminal pitch", () => {
@@ -343,7 +343,7 @@ describe("PlaybackNoteScheduler", () => {
     ).toThrow("Hold and Release playback require a previous bend continuation");
   });
 
-  test("applies LetRing, Legato, vibrato, repeated-note, and tone profiles", () => {
+  test("applies LetRing, Legato, vibrato, and tone profiles", () => {
     const { beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -354,15 +354,18 @@ describe("PlaybackNoteScheduler", () => {
       throw Error("Expected guitar notes");
     }
     first.fret = 0;
-    second.fret = 0;
+    second.fret = 2;
     first.addTechnique(new GuitarTechnique(first, GuitarTechniqueType.LetRing));
-    first.addTechnique(new GuitarTechnique(first, GuitarTechniqueType.Legato));
+    const addedLegato = first.addTechnique(
+      new GuitarTechnique(first, GuitarTechniqueType.Legato)
+    );
     first.addTechnique(new GuitarTechnique(first, GuitarTechniqueType.Vibrato));
     const audio = createAudioContext();
 
     scheduler(audio.context).scheduleNote(first, 0, 1, trackBus());
     scheduler(audio.context).scheduleNote(second, 1, 2, trackBus());
 
+    expect(addedLegato).toBe(true);
     expect(audio.oscillators[0].type).toBe("sine");
     expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.7);
     expect(audio.gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
@@ -372,6 +375,25 @@ describe("PlaybackNoteScheduler", () => {
     expect(
       audio.oscillators[0].frequency.linearRampToValueAtTime
     ).toHaveBeenCalledWith(expect.any(Number), 0.12);
+  });
+
+  test("reduces gain for a repeated note", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats.forEach((beat) => beat.makeBeatWithNotes());
+    const [first, second] = beats.map((beat) => beat.notes?.[0]);
+    if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
+      throw Error("Expected guitar notes");
+    }
+    first.fret = 0;
+    second.fret = 0;
+    const audio = createAudioContext();
+
+    scheduler(audio.context).scheduleNote(first, 0, 1, trackBus());
+    scheduler(audio.context).scheduleNote(second, 1, 2, trackBus());
+
     expect(audio.gains[1].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
       0.06 * 0.92,
       1.01

@@ -93,7 +93,7 @@ export class TechniqueControlsTemplateRenderer {
         return;
       }
 
-      if (note.techniqueApplicable(type)) {
+      if (note.isTechniqueApplicable(type)) {
         button.classList.remove(appliedCSSClass);
         button.classList.remove(disabledCSSClass);
         return;

@@ -931,7 +931,9 @@ describe("TrackElement techniques", () => {
       )
     ).toBe(false);
 
-    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide));
+    note.addTechnique(
+      new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
+    );
     trackElement.update({
       lineRange: { startLineIndex: 0, endLineIndex: 0 },
     });

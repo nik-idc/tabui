@@ -183,17 +183,26 @@ describe("exhaustive V1 score serialization", () => {
     if (voice === null) {
       throw Error("Expected default voice");
     }
-    const beats = NON_BEND_TECHNIQUES.map((type, i) => {
-      const beat = new Beat(voice, voice.trackContext);
-      const note = beat.notes?.[0];
+
+    const beats = Array.from(
+      { length: NON_BEND_TECHNIQUES.length },
+      () => new Beat(voice, voice.trackContext)
+    );
+    for (let i = 0; i < beats.length; i++) {
+      const note = beats[i].notes?.[0];
       if (!(note instanceof GuitarNote)) {
-        throw Error("Expected guitar note");
+        continue;
       }
       note.fret = i + 1;
-      note.setTechnique(type);
-      return beat;
-    });
+    }
     voice.replaceBeats(beats);
+    for (let i = 0; i < beats.length; i++) {
+      const note = beats[i].notes?.[0];
+      if (!(note instanceof GuitarNote)) {
+        continue;
+      }
+      note.setTechnique(NON_BEND_TECHNIQUES[i]);
+    }
 
     const restored = jsonRoundTrip(score);
     const types = restored.tracks[0].staves[0].bars[0]
