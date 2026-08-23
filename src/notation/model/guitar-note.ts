@@ -12,7 +12,10 @@ import {
   getSemitonesFromNote,
 } from "./note";
 import { GuitarTechniqueType } from "./technique-type";
-import { BEND_TYPE_INCOMPATIBILITY } from "./guitar-technique-lists";
+import {
+  BEND_TYPE_INCOMPATIBILITY,
+  TRANSITIONAL_TECHNIQUES,
+} from "./guitar-technique-lists";
 import {
   guitarTechniquesIncompatible,
   guitarTechniqueTypesIncompatible,
@@ -237,7 +240,7 @@ export class GuitarNote implements Note<Guitar> {
    * @returns True if technique added succesfully, false if can't add this technique
    */
   public addTechnique(guitarTechnique: GuitarTechnique): boolean {
-    if (this._fret === null) {
+    if (!this.isTechniqueApplicable(guitarTechnique.type)) {
       return false;
     }
 
@@ -248,17 +251,14 @@ export class GuitarNote implements Note<Guitar> {
       return false;
     }
 
-    // Check if technique to be added is compatible with all the other techniques
-    for (const technique of this._techniques) {
-      if (guitarTechniquesIncompatible(technique, guitarTechnique)) {
-        // One of the techniques is incompatible with the
-        // to be added technique => discard and return false
-        return false;
-      }
+    if (
+      this._techniques.some((technique) =>
+        guitarTechniquesIncompatible(technique, guitarTechnique)
+      )
+    ) {
+      return false;
     }
 
-    // All techniques are compatible with each
-    // other => add new technique and return true
     this._techniques.push(guitarTechnique);
     return true;
   }
@@ -297,12 +297,24 @@ export class GuitarNote implements Note<Guitar> {
    * @param type Technique type
    * @returns True if applicable, false otherwise
    */
-  public techniqueApplicable(type: GuitarTechniqueType): boolean {
-    return (
-      this._fret !== null &&
-      !this._techniques.some((t) =>
-        guitarTechniqueTypesIncompatible(t.type, type)
-      )
+  public isTechniqueApplicable(type: GuitarTechniqueType): boolean {
+    if (this._fret === null || this._fret === -1) {
+      return false;
+    }
+
+    if (type === GuitarTechniqueType.Slide && this._fret === 0) {
+      return false;
+    }
+
+    if (TRANSITIONAL_TECHNIQUES.has(type)) {
+      const nextNote = this.beat.voiceBar.bar.staff.getNextNote(this);
+      if (!(nextNote instanceof GuitarNote) || nextNote._fret === this._fret) {
+        return false;
+      }
+    }
+
+    return !this._techniques.some((technique) =>
+      guitarTechniqueTypesIncompatible(technique.type, type)
     );
   }
 

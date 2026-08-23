@@ -13,6 +13,7 @@ import { TechGapContainer } from "../../../src/notation/controller/element/staff
 import { TechGapLineContainer } from "../../../src/notation/controller/element/staff/tech-gap-line-container";
 import { GuitarTechniqueLabelElement } from "../../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { GuitarTechniqueElement } from "../../../src/notation/controller/element/technique/guitar-technique/guitar-technique-element";
+import { TabNoteSlotElement } from "../../../src/notation/controller/element/note/tab-note-slot-element";
 import { SetTechniqueCommand } from "../../../src/notation/controller/editor/command";
 import {
   isNotationContainer,
@@ -30,6 +31,24 @@ function parseLinePath(svgPath: string): [number, number, number, number] {
   }
 
   return match.slice(1).map(Number) as [number, number, number, number];
+}
+
+function parsePathNumbers(svgPath: string): number[] {
+  return (svgPath.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+}
+
+function parsePathEndpoints(svgPath: string): [number, number, number, number] {
+  const numbers = parsePathNumbers(svgPath);
+  if (numbers.length < 4) {
+    throw new Error(`Failed to parse path endpoints: ${svgPath}`);
+  }
+
+  return [
+    numbers[0],
+    numbers[1],
+    numbers[numbers.length - 2],
+    numbers[numbers.length - 1],
+  ];
 }
 
 describe("TrackElement techniques", () => {
@@ -77,6 +96,36 @@ describe("TrackElement techniques", () => {
     );
   });
 
+  test("anchors inline techniques to the note text rectangle", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const note = beats[0].notes?.[0];
+    const nextNote = beats[1].notes?.[0];
+    if (!(note instanceof GuitarNote) || !(nextNote instanceof GuitarNote)) {
+      throw Error("Expected guitar notes in test beats");
+    }
+    note.fret = 5;
+    nextNote.fret = 7;
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide));
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+
+    const beatElements =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements[0].beatElements;
+    const start = beatElements[0].noteElements[0] as TabNoteSlotElement;
+    const end = beatElements[1].noteElements[0] as TabNoteSlotElement;
+    const path = start.techniqueElements[0].pathDescriptors?.[0]?.d ?? "";
+    const [startX, , endX] = parsePathEndpoints(path);
+    const expectedEndX = end.textRectGlobal.left - start.globalCoords.x;
+
+    expect(startX).toBeCloseTo(start.textRect.right);
+    expect(endX).toBeCloseTo(expectedEndX);
+  });
+
   test("creates a descending slide path for higher-to-lower notes", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -111,6 +160,128 @@ describe("TrackElement techniques", () => {
 
     expect(endX).toBeGreaterThan(startX);
     expect(startY).toBeLessThan(endY);
+  });
+
+  test("connects slide and legato paths to the next beat across a bar boundary", () => {
+    const { score, track, staff, bar } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const sourceBeat = bar.getVoiceBar(1)?.beats[0];
+    const targetBeat = staff.bars[1].getVoiceBar(1)?.beats[0];
+    if (sourceBeat === undefined || targetBeat === undefined) {
+      throw Error("Expected beats on both sides of the bar boundary");
+    }
+    targetBeat.makeBeatWithNotes();
+    const sourceSlideNote = sourceBeat.notes?.[0];
+    const sourceLegatoNote = sourceBeat.notes?.[1];
+    const targetSlideNote = targetBeat.notes?.[0];
+    const targetLegatoNote = targetBeat.notes?.[1];
+    if (
+      !(sourceSlideNote instanceof GuitarNote) ||
+      !(sourceLegatoNote instanceof GuitarNote) ||
+      !(targetSlideNote instanceof GuitarNote) ||
+      !(targetLegatoNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected guitar notes on both sides of the bar boundary");
+    }
+    sourceSlideNote.fret = 5;
+    sourceLegatoNote.fret = 7;
+    targetSlideNote.fret = 8;
+    targetLegatoNote.fret = 4;
+    sourceSlideNote.addTechnique(
+      new GuitarTechnique(sourceSlideNote, GuitarTechniqueType.Slide)
+    );
+    sourceLegatoNote.addTechnique(
+      new GuitarTechnique(sourceLegatoNote, GuitarTechniqueType.Legato)
+    );
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+
+    const sourceBeatElement = trackElement.getBeatElement(sourceBeat);
+    const targetBeatElement = trackElement.getBeatElement(targetBeat);
+    if (sourceBeatElement === undefined || targetBeatElement === undefined) {
+      throw Error("Expected rendered beats on both sides of the bar boundary");
+    }
+
+    for (const stringIndex of [0, 1]) {
+      const sourceNoteElement = sourceBeatElement.noteElements[
+        stringIndex
+      ] as TabNoteSlotElement;
+      const targetNoteElement = targetBeatElement.noteElements[
+        stringIndex
+      ] as TabNoteSlotElement;
+      const path =
+        sourceNoteElement.techniqueElements[0].pathDescriptors?.[0]?.d ?? "";
+      const [startX, , endX] = parsePathEndpoints(path);
+      const expectedEndX =
+        targetNoteElement.textRectGlobal.left -
+        sourceNoteElement.globalCoords.x;
+
+      expect(startX).toBeCloseTo(sourceNoteElement.textRect.right);
+      expect(endX).toBeCloseTo(expectedEndX);
+    }
+  });
+
+  test("extends slide and legato paths to the track line end before the next line", () => {
+    const { score, track, staff } = createScoreGraph();
+    for (let i = 0; i < 12; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    const secondLineStartIndex =
+      trackElement.trackLineElements[1].trackLineBars[0].masterBarIndex;
+    const sourceBar = staff.bars[secondLineStartIndex - 1];
+    const targetBar = staff.bars[secondLineStartIndex];
+    const sourceBeat = sourceBar.getVoiceBar(1)?.beats.at(-1);
+    const targetBeat = targetBar.getVoiceBar(1)?.beats[0];
+    if (sourceBeat === undefined || targetBeat === undefined) {
+      throw Error("Expected beats on both sides of the track line boundary");
+    }
+    sourceBeat.makeBeatWithNotes();
+    targetBeat.makeBeatWithNotes();
+    const sourceSlideNote = sourceBeat.notes?.[0];
+    const sourceLegatoNote = sourceBeat.notes?.[1];
+    const targetSlideNote = targetBeat.notes?.[0];
+    const targetLegatoNote = targetBeat.notes?.[1];
+    if (
+      !(sourceSlideNote instanceof GuitarNote) ||
+      !(sourceLegatoNote instanceof GuitarNote) ||
+      !(targetSlideNote instanceof GuitarNote) ||
+      !(targetLegatoNote instanceof GuitarNote)
+    ) {
+      throw Error("Expected notes on both sides of the track line boundary");
+    }
+    sourceSlideNote.fret = 5;
+    sourceLegatoNote.fret = 7;
+    targetSlideNote.fret = 8;
+    targetLegatoNote.fret = 4;
+    sourceSlideNote.addTechnique(
+      new GuitarTechnique(sourceSlideNote, GuitarTechniqueType.Slide)
+    );
+    sourceLegatoNote.addTechnique(
+      new GuitarTechnique(sourceLegatoNote, GuitarTechniqueType.Legato)
+    );
+
+    trackElement.update();
+
+    const sourceBeatElement = trackElement.getBeatElement(sourceBeat);
+    if (sourceBeatElement === undefined) {
+      throw Error("Expected the source beat on the first track line");
+    }
+    for (const stringIndex of [0, 1]) {
+      const sourceNoteElement = sourceBeatElement.noteElements[
+        stringIndex
+      ] as TabNoteSlotElement;
+      const path =
+        sourceNoteElement.techniqueElements[0].pathDescriptors?.[0]?.d ?? "";
+      const [, , endX] = parsePathEndpoints(path);
+      const expectedEndX =
+        sourceNoteElement.owningTrackLineElement.lineLocalBoundingBox.right -
+        sourceNoteElement.lineLocalCoords.x;
+
+      expect(endX).toBeCloseTo(expectedEndX);
+    }
   });
 
   test("clears an inline slide path when its target loses its fret", () => {
@@ -760,7 +931,9 @@ describe("TrackElement techniques", () => {
       )
     ).toBe(false);
 
-    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide));
+    note.addTechnique(
+      new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
+    );
     trackElement.update({
       lineRange: { startLineIndex: 0, endLineIndex: 0 },
     });

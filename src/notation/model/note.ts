@@ -48,7 +48,7 @@ export interface Note<I extends MusicInstrument = MusicInstrument> {
   clearTechniques(): void;
   sortTechniques(): void;
   hasTechnique(type: TechniqueType): boolean;
-  techniqueApplicable(type: TechniqueType): boolean;
+  isTechniqueApplicable(type: TechniqueType): boolean;
 
   compare(otherNote: Note<I>): boolean;
 

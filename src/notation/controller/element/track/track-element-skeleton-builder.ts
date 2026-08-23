@@ -45,22 +45,30 @@ function getTabMainContentHeight(
   trackLineBars: TrackLineBar[],
   layoutDimensions: EditorLayoutDimensions
 ): number {
-  const voiceRows = new Set<number>();
+  const voiceRowsByHasTuplet = new Map<number, boolean>();
   for (const { masterBarIndex } of trackLineBars) {
     const bar = staff.bars[masterBarIndex];
     for (const voiceBar of bar.voiceBarsAsArray) {
-      if (!voiceBar.isEmpty()) {
-        voiceRows.add(voiceBar.voiceNumber);
+      if (voiceBar.isEmpty()) {
+        continue;
       }
+
+      const hasTuplet = voiceRowsByHasTuplet.get(voiceBar.voiceNumber) ?? false;
+      voiceRowsByHasTuplet.set(
+        voiceBar.voiceNumber,
+        hasTuplet || voiceBar.tupletGroups.length > 0
+      );
     }
   }
 
-  return (
+  const notesHeight =
     layoutDimensions.NOTE_RECT_HEIGHT *
-      staff.track.context.instrument.maxPolyphony +
-    voiceRows.size *
-      (layoutDimensions.DURATIONS_HEIGHT + layoutDimensions.TUPLET_RECT_HEIGHT)
-  );
+    staff.track.context.instrument.maxPolyphony;
+  let rhythmRowsHeight = 0;
+  for (const [_, hasTuplet] of voiceRowsByHasTuplet) {
+    rhythmRowsHeight += layoutDimensions.getRhythmRowHeight(hasTuplet);
+  }
+  return notesHeight + rhythmRowsHeight;
 }
 
 function getStaffLineHeight(

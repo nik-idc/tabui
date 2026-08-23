@@ -7,6 +7,7 @@ import { MasterBar } from "./master-bar";
 import { Track } from "./track";
 import { Beat } from "./beat";
 import { VoiceBar, VoiceNumber } from "./voice-bar";
+import { Note } from "./note";
 
 /**
  * A staff in this context is a representation of an
@@ -249,7 +250,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * @param beat Beat before which to find the prev beat
    * @returns Prev beat or null if passed beat is the first one
    */
-  public getPrevBeat(beat: Beat<I>): Beat | null {
+  public getPrevBeat(beat: Beat<I>): Beat<I> | null {
     const beatIndex = beat.voiceBar.beats.indexOf(beat);
     const prevBeatInBar = beat.voiceBar.beats[beatIndex - 1];
     if (prevBeatInBar !== undefined) {
@@ -264,6 +265,44 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     }
 
     return null;
+  }
+
+  /**
+   * Get next note in the staff (same string, next beat)
+   * @param note Note after which to find the next note
+   * @returns Next note or null if passed note is the last one
+   */
+  public getNextNote(note: Note<I>): Note<I> | null {
+    const noteIndex = note.beat.notes?.indexOf(note);
+    if (noteIndex === undefined) {
+      throw new Error("Could not locate note inside beat");
+    }
+
+    const nextBeat = this.getNextBeat(note.beat);
+    if (nextBeat === null || nextBeat.notes === null) {
+      return null;
+    }
+
+    return nextBeat.notes[noteIndex];
+  }
+
+  /**
+   * Get prev note in the staff (same string, prev beat)
+   * @param note Note after which to find the prev note
+   * @returns Prev note or null if passed note is the last one
+   */
+  public getPrevNote(note: Note<I>): Note<I> | null {
+    const noteIndex = note.beat.notes?.indexOf(note);
+    if (noteIndex === undefined) {
+      throw new Error("Could not locate note inside beat");
+    }
+
+    const nextBeat = this.getPrevBeat(note.beat);
+    if (nextBeat === null || nextBeat.notes === null) {
+      return null;
+    }
+
+    return nextBeat.notes[noteIndex];
   }
 
   /**

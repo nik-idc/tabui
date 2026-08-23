@@ -225,8 +225,9 @@ export class VoiceBarRhythmContainer implements NotationContainer {
     this._boundingBox.setDimensions(
       this.voiceBarContainer?.boundingBox.width ??
         this.barElement.voiceContentWidth,
-      this.trackElement.layoutDimensions.DURATIONS_HEIGHT +
-        this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT
+      this.barElement.notationStyleLineContainer.staffLineContainer.getRhythmRowHeight(
+        this.voiceNumber
+      )
     );
   }
 

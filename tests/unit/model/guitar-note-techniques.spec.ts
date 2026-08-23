@@ -23,7 +23,7 @@ describe("GuitarNote technique updates", () => {
     const note = createNote();
     note.fret = null;
 
-    expect(note.techniqueApplicable(GuitarTechniqueType.Vibrato)).toBe(false);
+    expect(note.isTechniqueApplicable(GuitarTechniqueType.Vibrato)).toBe(false);
     expect(note.setTechnique(GuitarTechniqueType.Vibrato)).toBe(false);
     expect(
       note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato))
@@ -110,7 +110,7 @@ describe("GuitarNote technique updates", () => {
       const note = createNote();
 
       expect(note.setTechnique(a)).toBe(true);
-      expect(note.techniqueApplicable(b)).toBe(false);
+      expect(note.isTechniqueApplicable(b)).toBe(false);
       expect(note.setTechnique(b)).toBe(false);
       expect(note.hasTechnique(a)).toBe(true);
       expect(note.hasTechnique(b)).toBe(false);
@@ -335,6 +335,48 @@ describe("GuitarNote technique updates", () => {
           new GuitarTechnique(current, GuitarTechniqueType.Bend, options)
         )
       ).toBe(false);
+    }
+  );
+
+  test.each([GuitarTechniqueType.Legato, GuitarTechniqueType.Slide])(
+    "rejects technique %s when next note is the same fret",
+    (type) => {
+      const { beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const current = beats[0].notes?.[0];
+      const next = beats[1].notes?.[0];
+      if (!(current instanceof GuitarNote) || !(next instanceof GuitarNote)) {
+        throw Error("Expected guitar notes");
+      }
+      current.fret = 5;
+      next.fret = 5;
+
+      expect(current.isTechniqueApplicable(type)).toBe(false);
+      current.setTechnique(type);
+
+      const setTechResult = current.setTechnique(type);
+      expect(setTechResult).toBe(false);
+    }
+  );
+
+  test.each([GuitarTechniqueType.Legato, GuitarTechniqueType.Slide])(
+    "allows technique %s when the next note has a different fret",
+    (type) => {
+      const { beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const current = beats[0].notes?.[0];
+      const next = beats[1].notes?.[0];
+      if (!(current instanceof GuitarNote) || !(next instanceof GuitarNote)) {
+        throw Error("Expected guitar notes");
+      }
+      current.fret = 5;
+      next.fret = 7;
+
+      expect(current.isTechniqueApplicable(type)).toBe(true);
     }
   );
 });
