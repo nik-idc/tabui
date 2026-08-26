@@ -2,7 +2,7 @@ import {
   Beat,
   DURATION_TO_FLAG_COUNT,
   GuitarNote,
-  NoteDuration,
+  Note,
   VoiceNumber,
 } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
@@ -198,6 +198,19 @@ export class TabBeatElement implements BeatElement {
 
   public get attackXGlobal(): number {
     return this.barElement.globalCoords.x + this.attackXBarLocal;
+  }
+
+  /**
+   * Finds corresponding note element
+   * @param note - Note whose element to find
+   * @returns Note element or undefined if not found
+   */
+  public getNoteElement(note: Note): TabNoteSlotElement | null {
+    if (this.beat.notes === null) {
+      return null;
+    }
+
+    return this.noteElements[this.beat.notes.indexOf(note)] ?? null;
   }
 
   /**

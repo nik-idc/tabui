@@ -13,6 +13,7 @@ import type { TrackLineElement } from "../track/track-line-element";
 export class TabNoteSlotElement implements NoteElement {
   readonly nodeType = NotationNodeType.Element;
 
+  // TODO: Remove dependence on beatElement - just beat is enough
   public static createStableIdentity(
     beatElement: TabBeatElement,
     stringNumber: number

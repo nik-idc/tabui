@@ -8,6 +8,7 @@ import {
   Rect,
   getPitchRatioNums,
   randomInt,
+  ratioNumsToChar,
 } from "../../../../../shared";
 import { GuitarTechniqueDescriptors } from "./guitar-technique-descriptors";
 import { TrackElement } from "../../track-element";
@@ -18,6 +19,8 @@ import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
 import type { BarElement } from "../../bar/bar-element";
 import type { TrackLineElement } from "../../track/track-line-element";
 import { NotationNodeType } from "../../notation-element";
+import { TabBeatElement } from "../../beat/tab-beat-element";
+import { GuitarTechniqueElement } from "./guitar-technique-element";
 
 /**
  * Class that contains a guitar technique label
@@ -40,7 +43,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   /** Parent tech gap line element */
   readonly gapLineContainer: TechGapLineContainer;
   /** Parent beat element */
-  readonly beatElement: BeatElement;
+  readonly beatElement: TabBeatElement;
   /** Root track element */
   readonly trackElement: TrackElement;
   readonly voiceNumber = null;
@@ -69,7 +72,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   constructor(
     technique: GuitarTechnique,
     gapLineContainer: TechGapLineContainer,
-    beatElement: BeatElement
+    beatElement: TabBeatElement
   ) {
     this.uuid = randomInt();
     this.technique = technique;
@@ -78,6 +81,45 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this.beatElement = beatElement;
 
     this._boundingBox = new Rect();
+  }
+
+  /** Returns bend curve ends in this label's descriptor coordinates. */
+  private getBendCurveEndXs(): number[] {
+    const noteElement = this.beatElement.getNoteElement(this.technique.note);
+    const bendOptions = this.technique.bendOptions;
+    if (noteElement === null || bendOptions === null) {
+      throw Error(
+        "Can't align bend label without its note element and options"
+      );
+    }
+    const techniqueElement = noteElement.techniqueElements.find(
+      (t) => t.technique === this.technique
+    );
+    if (!(techniqueElement instanceof GuitarTechniqueElement)) {
+      throw Error("Could not find corresponding beat technique element");
+    }
+
+    return techniqueElement.calculateBendCurveEndXs(bendOptions.type);
+  }
+
+  /** Creates centered plain-text pitch labels at the bend curve ends. */
+  private createPitchTexts(pitches: number[]): void {
+    const curveEndXs = this.getBendCurveEndXs();
+    if (curveEndXs.length !== pitches.length) {
+      throw Error("Bend pitches must match bend curve ends");
+    }
+
+    const fontSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
+    const y = this._boundingBox.y + this._boundingBox.height / 2 - fontSize / 2;
+    this._pathDescriptors = [];
+    this._textDescriptors = pitches.map((pitch, index) =>
+      GuitarTechniqueDescriptors.createTextDescriptor(
+        curveEndXs[index],
+        y,
+        fontSize,
+        ratioNumsToChar(getPitchRatioNums(pitch))
+      )
+    );
   }
 
   /**
@@ -90,53 +132,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     if (this.technique.bendOptions.bendPitch === undefined) {
       throw Error("Can't do bend label element - bend pitch null");
     }
-
-    const nums = getPitchRatioNums(this.technique.bendOptions.bendPitch);
-    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
-    const x = this._boundingBox.x + this._boundingBox.width - bigNumSize / 2;
-    const y =
-      this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
-
-    this._pathDescriptors = [];
-    this._textDescriptors = [];
-
-    if ([1, 2, 3].includes(nums[0]) && nums[1] === 0) {
-      let text: string;
-      switch (nums[0]) {
-        case 1:
-          text = "full";
-          break;
-        case 2:
-          text = "2";
-          break;
-        case 3:
-          text = "3";
-          break;
-        default:
-          text = "full";
-          break;
-      }
-      this._textDescriptors = [
-        GuitarTechniqueDescriptors.createTextDescriptor(
-          x,
-          y,
-          this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
-          text
-        ),
-      ];
-      return;
-    }
-
-    const ratio = GuitarTechniqueDescriptors.createRatioDescriptors(
-      nums[0],
-      nums[1],
-      nums[2],
-      x,
-      y,
-      bigNumSize
-    );
-    this._pathDescriptors = ratio.pathDescriptors;
-    this._textDescriptors = ratio.textDescriptors;
+    this.createPitchTexts([this.technique.bendOptions.bendPitch]);
   }
 
   /**
@@ -150,22 +146,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       throw Error("Can't do prebend label element - prebend pitch null");
     }
 
-    const nums = getPitchRatioNums(this.technique.bendOptions.prebendPitch);
-
-    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
-    const x = this._boundingBox.x + this._boundingBox.width / 2;
-    const y =
-      this._boundingBox.y + this._boundingBox.height / 2 - bigNumSize / 2;
-    const ratio = GuitarTechniqueDescriptors.createRatioDescriptors(
-      nums[0],
-      nums[1],
-      nums[2],
-      x,
-      y,
-      bigNumSize
-    );
-    this._pathDescriptors = ratio.pathDescriptors;
-    this._textDescriptors = ratio.textDescriptors;
+    this.createPitchTexts([this.technique.bendOptions.prebendPitch]);
   }
 
   /**
@@ -186,53 +167,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       );
     }
 
-    if (
-      this.technique.bendOptions.bendPitch ===
-      this.technique.bendOptions.releasePitch
-    ) {
-      this.createBendPitchPath();
-      return;
-    }
-
-    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
-    const xBend = this._boundingBox.x + this._boundingBox.width - bigNumSize;
-    const xRelease = xBend + bigNumSize * 1.5;
-    const y =
-      this._boundingBox.y +
-      this._boundingBox.height / 2 -
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
-
-    const bendNums = getPitchRatioNums(this.technique.bendOptions.bendPitch);
-    const bendDescriptors = GuitarTechniqueDescriptors.createRatioDescriptors(
-      bendNums[0],
-      bendNums[1],
-      bendNums[2],
-      xBend,
-      y,
-      bigNumSize
-    );
-
-    const releaseNums = getPitchRatioNums(
-      this.technique.bendOptions.releasePitch
-    );
-    const releaseDescriptors =
-      GuitarTechniqueDescriptors.createRatioDescriptors(
-        releaseNums[0],
-        releaseNums[1],
-        releaseNums[2],
-        xRelease,
-        y,
-        bigNumSize
-      );
-
-    this._pathDescriptors = [
-      ...bendDescriptors.pathDescriptors,
-      ...releaseDescriptors.pathDescriptors,
-    ];
-    this._textDescriptors = [
-      ...bendDescriptors.textDescriptors,
-      ...releaseDescriptors.textDescriptors,
-    ];
+    this.createPitchTexts([
+      this.technique.bendOptions.bendPitch,
+      this.technique.bendOptions.releasePitch,
+    ]);
   }
 
   /**
@@ -253,79 +191,83 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       );
     }
 
-    if (
-      this.technique.bendOptions.prebendPitch ===
-      this.technique.bendOptions.releasePitch
-    ) {
-      this.createPrebendPitchPath();
-      return;
+    this.createPitchTexts([
+      this.technique.bendOptions.prebendPitch,
+      this.technique.bendOptions.releasePitch,
+    ]);
+  }
+
+  /** Generates a release pitch label. */
+  private createReleasePitchPath(): void {
+    const releasePitch = this.technique.bendOptions?.releasePitch;
+    if (releasePitch === undefined) {
+      throw Error("Can't do release label element - release pitch null");
     }
 
-    const bigNumSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
-    const xPrebend =
-      this._boundingBox.x + this._boundingBox.width / 2 + bigNumSize / 4;
-    const xRelease = xPrebend + bigNumSize * 1.5;
-    const y =
-      this._boundingBox.y +
-      this._boundingBox.height / 2 -
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    this.createPitchTexts([releasePitch]);
+  }
 
-    const prebendNums = getPitchRatioNums(
-      this.technique.bendOptions.prebendPitch
-    );
-    const prebendDescriptors =
-      GuitarTechniqueDescriptors.createRatioDescriptors(
-        prebendNums[0],
-        prebendNums[1],
-        prebendNums[2],
-        xPrebend,
-        y,
-        bigNumSize
-      );
+  /** Generates prebend and bend pitch labels. */
+  private createPrebendBendPitchPath(): void {
+    const prebendPitch = this.technique.bendOptions?.prebendPitch;
+    const bendPitch = this.technique.bendOptions?.bendPitch;
+    if (prebendPitch === undefined || bendPitch === undefined) {
+      throw Error("Can't do prebend/bend labels - pitch null");
+    }
 
-    const releaseNums = getPitchRatioNums(
-      this.technique.bendOptions.releasePitch
-    );
-    const releaseDescriptors =
-      GuitarTechniqueDescriptors.createRatioDescriptors(
-        releaseNums[0],
-        releaseNums[1],
-        releaseNums[2],
-        xRelease,
-        y,
-        bigNumSize
-      );
-
-    this._pathDescriptors = [
-      ...prebendDescriptors.pathDescriptors,
-      ...releaseDescriptors.pathDescriptors,
-    ];
-    this._textDescriptors = [
-      ...prebendDescriptors.textDescriptors,
-      ...releaseDescriptors.textDescriptors,
-    ];
+    this.createPitchTexts([prebendPitch, bendPitch]);
   }
 
   /**
    * Generates regular vibrato HTML
    */
   private createVibratoPath(): void {
-    const x =
-      this._boundingBox.x +
-      this._boundingBox.width / 2 -
-      this._boundingBox.width / 4;
+    const currentBeat = this.beatElement.beat;
+    const nextBeat = currentBeat.voiceBar.bar.staff.getNextBeat(currentBeat);
+    const nextBeatElement =
+      nextBeat === null
+        ? null
+        : (this.beatElement.trackElement.getBeatElement(nextBeat) ?? null);
+
+    const x = this._boundingBox.x;
     const y = this._boundingBox.y + this._boundingBox.height / 2;
     const vibratoHeight = this.boundingBox.height / 6;
-    const vibratoWidth = this.boundingBox.width / 2;
+    const nextBeatLineX =
+      (nextBeatElement?.barElement.lineLocalCoords.x ?? 0) +
+      (nextBeatElement?.barLocalCoords.x ?? 0);
+    const voiceBarContainer = this.beatElement.voiceBarContainer;
+    const nextBeatDistance =
+      nextBeat?.voiceBar === this.beatElement.beat.voiceBar
+        ? voiceBarContainer.getBeatX(nextBeat) -
+          voiceBarContainer.getBeatX(this.beatElement.beat)
+        : nextBeatLineX - this.lineLocalCoords.x;
+    const vibratoWidth =
+      nextBeatDistance > 0 ? nextBeatDistance : this.boundingBox.width;
+    const phaseX = this.lineLocalCoords.x;
     this._pathDescriptors = [
       GuitarTechniqueDescriptors.createHorizontalVibratoPath(
         x,
         y,
         vibratoHeight,
-        vibratoWidth
+        vibratoWidth,
+        phaseX
       ),
     ];
     this._textDescriptors = [];
+  }
+
+  private createRepeatedTextPath(text: string): void {
+    const x = this._boundingBox.x;
+    const y = this._boundingBox.y + this._boundingBox.height / 2;
+    this._pathDescriptors = [];
+    this._textDescriptors = [
+      GuitarTechniqueDescriptors.createTextDescriptor(
+        x,
+        y,
+        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
+        text
+      ),
+    ];
   }
 
   /**
@@ -337,23 +279,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
   private createLetRingPath(): void {
     this.createRepeatedTextPath("LR");
-  }
-
-  private createRepeatedTextPath(text: string): void {
-    const x =
-      this._boundingBox.x +
-      this._boundingBox.width / 2 -
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
-    const y = this._boundingBox.y + this._boundingBox.height / 2;
-    this._pathDescriptors = [];
-    this._textDescriptors = [
-      GuitarTechniqueDescriptors.createTextDescriptor(
-        x,
-        y,
-        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
-        text
-      ),
-    ];
   }
 
   /**
@@ -383,10 +308,10 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         this.createBendTypeText("hold");
         break;
       case BendType.PrebendBend:
-        this.createBendTypeText("prebend / bend");
+        this.createPrebendBendPitchPath();
         break;
       case BendType.Release:
-        this.createBendTypeText("release");
+        this.createReleasePitchPath();
         break;
       default:
         break;
@@ -398,7 +323,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._pathDescriptors = [];
     this._textDescriptors = [
       GuitarTechniqueDescriptors.createTextDescriptor(
-        0,
+        this._boundingBox.width / 2,
         this._boundingBox.height / 2,
         fontSize,
         text,

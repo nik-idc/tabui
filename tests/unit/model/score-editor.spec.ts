@@ -203,6 +203,40 @@ describe("ScoreEditor", () => {
     });
   });
 
+  test("replaceBeats copies note techniques", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const source = createBarWithBeats([{ baseDuration: NoteDuration.Quarter }])
+      .beats[0];
+    const sourceNote = source.notes?.[0];
+    if (!(sourceNote instanceof GuitarNote)) {
+      throw Error("Expected guitar note in source beat");
+    }
+    sourceNote.fret = 5;
+    ScoreEditor.setTechniqueNotes(
+      [sourceNote],
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 1,
+        bendDuration: 1,
+      })
+    );
+
+    ScoreEditor.replaceBeats(beats, [source]);
+
+    const voiceBar = bar.getVoiceBar(1);
+    const copiedNote = voiceBar?.beats[0].notes?.[0];
+    if (!(copiedNote instanceof GuitarNote)) {
+      throw Error("Expected guitar note in copied beat");
+    }
+    expect(copiedNote.hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
+    expect(copiedNote.techniques[0]).not.toBe(sourceNote.techniques[0]);
+    expect(copiedNote.techniques[0].bendOptions?.bendPitch).toBe(1);
+    expect(copiedNote.techniques[0].note).toBe(copiedNote);
+  });
+
   test("replaceBeats updates timing when replacing with more beats", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

@@ -59,7 +59,7 @@ export class TechniqueControlsTemplateRenderer {
     const disabledCSSClass = "tu-disabled-img";
 
     if (selectionCursor === undefined) {
-      if (TECHNIQUE_TYPE_TO_LABEL[type]) {
+      if (type === GuitarTechniqueType.Bend) {
         button.classList.remove(appliedCSSClass);
         button.classList.add(disabledCSSClass);
         return;

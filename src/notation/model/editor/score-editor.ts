@@ -90,10 +90,7 @@ export class ScoreEditor {
       sourceBeat.notes.length
     );
     for (let i = 0; i < smallerNoteCount; i++) {
-      targetBeat.notes[i].setNote(
-        sourceBeat.notes[i].noteValue,
-        sourceBeat.notes[i].octave
-      );
+      targetBeat.setNote(i, sourceBeat.notes[i]);
     }
   }
 

@@ -141,10 +141,10 @@ export class NotationStyleLineContainer implements NotationContainer {
    * Calculates the coordinates for all bar elements & their children
    */
   public layout(): void {
-    this._techGapContainer.layout();
     for (const barElement of this._barElements) {
       barElement.layout();
     }
+    this._techGapContainer.layout();
 
     for (const barElement of this._barElements) {
       for (const beatElement of barElement.beatElements) {
