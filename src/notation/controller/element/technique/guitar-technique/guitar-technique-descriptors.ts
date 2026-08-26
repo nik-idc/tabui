@@ -1,10 +1,5 @@
 import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
 
-export interface SVGRatioDescriptors {
-  pathDescriptors: SVGPathDescriptor[];
-  textDescriptors: SVGTextDescriptor[];
-}
-
 /**
  * Builder utilities for guitar technique SVG descriptors and label markup.
  */
@@ -222,58 +217,11 @@ export class GuitarTechniqueDescriptors {
         "font-size": `${fontSize}`,
         "font-weight": "bold",
         "font-style": "italic",
-        "text-anchor": "start",
+        "text-anchor": "middle",
         "dominant-baseline": "hanging",
         fill: "var(--tu-notation-text)",
         ...textAttrs,
       },
-    };
-  }
-
-  public static createRatioDescriptors(
-    wholePart: number,
-    topNum: number,
-    bottomNum: number,
-    x: number,
-    y: number,
-    bigNumSize: number
-  ): SVGRatioDescriptors {
-    const numSize = bigNumSize / 2;
-
-    let wholePartX = 0;
-    let wholePartY = 0;
-    const textDescriptors: SVGTextDescriptor[] = [];
-    if (wholePart !== 0) {
-      wholePartX = x;
-      wholePartY = y;
-      textDescriptors.push(
-        this.createTextDescriptor(
-          wholePartX,
-          wholePartY,
-          bigNumSize,
-          `${wholePart}`
-        )
-      );
-    }
-
-    const topNumX =
-      wholePartX === 0 ? x + bigNumSize / 2 : wholePartX + bigNumSize / 2;
-    const topNumY = y;
-    const bottomNumX = topNumX + numSize;
-    const bottomNumY = y + bigNumSize / 2;
-    const lineX1 = topNumX;
-    const lineY1 = y + bigNumSize;
-    const lineX2 = bottomNumX + numSize / 2;
-    const lineY2 = y;
-
-    textDescriptors.push(
-      this.createTextDescriptor(topNumX, topNumY, numSize, `${topNum}`),
-      this.createTextDescriptor(bottomNumX, bottomNumY, numSize, `${bottomNum}`)
-    );
-
-    return {
-      pathDescriptors: [this.createLinePath(lineX1, lineY1, lineX2, lineY2)],
-      textDescriptors,
     };
   }
 }

@@ -515,40 +515,30 @@ describe("TrackElement techniques", () => {
     expect(elementFor(BendType.PrebendBend)?.pathDescriptors).toHaveLength(4);
   });
 
-  test("constrains long bend labels to adjacent short beat geometry", () => {
+  test("constrains hold labels to adjacent short beat geometry", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.SixtyFourth },
       { baseDuration: NoteDuration.SixtyFourth },
       { baseDuration: NoteDuration.SixtyFourth },
     ]);
-    const bendTypes = [BendType.Hold, BendType.Release, BendType.PrebendBend];
-
-    beats.forEach((beat, index) => {
+    for (const beat of beats) {
       const note = beat.notes?.[0];
       if (!(note instanceof GuitarNote)) {
         throw Error("Expected guitar note in test beat");
       }
       note.fret = 5;
-      const type = bendTypes[index];
       note.addTechnique(
         new GuitarTechnique(
           note,
           GuitarTechniqueType.Bend,
-          new BendTechniqueOptions(
-            type === BendType.Hold
-              ? { type, holdPitch: 1, bendDuration: 1 }
-              : type === BendType.Release
-                ? { type, releasePitch: 0, bendDuration: 1 }
-                : {
-                    type,
-                    prebendPitch: 0.5,
-                    bendPitch: 1,
-                    bendDuration: 1,
-                  }
-          )
+          new BendTechniqueOptions({
+            type: BendType.Hold,
+            holdPitch: 1,
+            bendDuration: 1,
+          })
         )
       );
-    });
+    }
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
@@ -562,8 +552,9 @@ describe("TrackElement techniques", () => {
     expect(labels).toHaveLength(3);
     for (const label of labels) {
       const descriptor = label.textDescriptors?.[0];
+      const expectedX = `${label.boundingBox.width / 2}`;
 
-      expect(descriptor?.attrs?.x).toBe("0");
+      expect(descriptor?.attrs?.x).toBe(expectedX);
       expect(Number(descriptor?.attrs?.textLength)).toBe(
         label.boundingBox.width
       );
@@ -741,53 +732,119 @@ describe("TrackElement techniques", () => {
     expect(line3?.boundingBox.y).toBeCloseTo(line1?.boundingBox.bottom ?? 0);
   });
 
-  test("creates a bend inline element path and matching line-3 label geometry", () => {
-    const { track, bar } = createScoreGraph();
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 in test bar");
+  test.each([
+    [
+      "Bend",
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 1,
+        bendDuration: 1,
+      }),
+      [1],
+      ["full"],
+    ],
+    [
+      "Prebend",
+      new BendTechniqueOptions({
+        type: BendType.Prebend,
+        prebendPitch: 0.5,
+      }),
+      [1],
+      ["½"],
+    ],
+    [
+      "Bend/Release",
+      new BendTechniqueOptions({
+        type: BendType.BendAndRelease,
+        bendPitch: 1,
+        releasePitch: 1,
+        bendDuration: 1,
+      }),
+      [1, 3],
+      ["full", "full"],
+    ],
+    [
+      "Prebend/Release",
+      new BendTechniqueOptions({
+        type: BendType.PrebendAndRelease,
+        prebendPitch: 1,
+        releasePitch: 0.5,
+        bendDuration: 1,
+      }),
+      [1, 3],
+      ["full", "½"],
+    ],
+    [
+      "Release",
+      new BendTechniqueOptions({
+        type: BendType.Release,
+        releasePitch: 0.5,
+        bendDuration: 1,
+      }),
+      [1],
+      ["½"],
+    ],
+    [
+      "Prebend/Bend",
+      new BendTechniqueOptions({
+        type: BendType.PrebendBend,
+        prebendPitch: 0.5,
+        bendPitch: 1,
+        bendDuration: 1,
+      }),
+      [1, 3],
+      ["½", "full"],
+    ],
+  ])(
+    "centers %s pitch labels on their inline curve endpoints",
+    (_, options, arrowIndexes, expectedTexts) => {
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const note = beats[1].notes?.[0];
+      if (!(note instanceof GuitarNote)) {
+        throw Error("Expected guitar note in test beat");
+      }
+      note.fret = 5;
+      note.addTechnique(
+        new GuitarTechnique(note, GuitarTechniqueType.Bend, options)
+      );
+
+      const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+      trackElement.update();
+      const styleLine =
+        trackElement.trackLineElements[0].staffLineContainers[0]
+          .styleLinesAsArray[0];
+      const beatElement = styleLine.barElements[0].beatElements[1];
+      const bendElement = beatElement.noteElements[0].techniqueElements[0];
+      const bendLabel =
+        styleLine.techGapContainer.techGapLines[3]?.labelElements[0];
+      if (
+        !(bendElement instanceof GuitarTechniqueElement) ||
+        !(bendLabel instanceof GuitarTechniqueLabelElement)
+      ) {
+        throw Error("Expected bend element and label in test beat");
+      }
+      const textDescriptors = bendLabel.textDescriptors ?? [];
+      const actualTexts = textDescriptors.map((descriptor) => descriptor.text);
+
+      expect(beatElement.barLocalCoords.x).toBeGreaterThan(0);
+      expect(actualTexts).toEqual(expectedTexts);
+      expect(bendLabel.pathDescriptors).toEqual([]);
+      for (let i = 0; i < arrowIndexes.length; i++) {
+        const arrowPath =
+          bendElement.pathDescriptors?.[arrowIndexes[i]]?.d ?? "";
+        const arrowLocalX = parsePathNumbers(arrowPath)[0];
+        const labelLocalX = Number(textDescriptors[i]?.attrs?.x);
+        const arrowX = bendElement.pathOriginBarLocal.x + arrowLocalX;
+        const labelX = bendLabel.descriptorOriginBarLocal.x + labelLocalX;
+
+        expect(textDescriptors[i]?.attrs?.["text-anchor"]).toBe("middle");
+        expect(labelX).toBeCloseTo(arrowX);
+      }
     }
-    const note = voiceBar.beats[0].notes?.[0];
-    if (!(note instanceof GuitarNote)) {
-      throw Error("Expected guitar note in test beat");
-    }
-    note.fret = 5;
-
-    note.addTechnique(
-      new GuitarTechnique(
-        note,
-        GuitarTechniqueType.Bend,
-        new BendTechniqueOptions({
-          type: BendType.Bend,
-          bendPitch: 1,
-          bendDuration: 1,
-        })
-      )
-    );
-    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    trackElement.update();
-
-    const line3 =
-      trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].techGapContainer.techGapLines[3];
-
-    expect(line3).not.toBeNull();
-    const beatElement =
-      trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].barElements[0].beatElements[0];
-    const noteElement = beatElement.noteElements[0];
-    const bendElement = noteElement.techniqueElements[0];
-    const bendLabel = line3?.labelElements[0];
-    expect(noteElement.techniqueElements).toHaveLength(1);
-    expect(bendElement.pathDescriptors).toBeDefined();
-    expect(bendElement.pathDescriptors).toHaveLength(2);
-    expect(line3?.labelElements).toHaveLength(1);
-    expect(bendLabel?.boundingBox.width).toBeCloseTo(
-      beatElement.boundingBox.width
-    );
-    expect(bendLabel?.globalCoords.x).toBeGreaterThanOrEqual(0);
-    expect(bendLabel?.globalCoords.y).toBeCloseTo(line3?.globalCoords.y ?? 0);
-  });
+  );
 
   test("no-op update rebuilds technique gap shells", () => {
     const { track, bar } = createScoreGraph();
@@ -1039,10 +1096,11 @@ describe("TrackElement techniques", () => {
     );
     const descriptorAnchor =
       palmMuteLabel?.textDescriptors?.[0]?.attrs?.["text-anchor"];
+    const expectedX = (palmMuteLabel?.boundingBox.width ?? 0) / 2;
 
     expect(palmMuteLabel).toBeDefined();
-    expect(descriptorAnchor).toBe("start");
-    expect(descriptorX).toBeGreaterThan(0);
+    expect(descriptorAnchor).toBe("middle");
+    expect(descriptorX).toBeCloseTo(expectedX);
     expect(palmMuteLabel?.boundingBox.width).toBeCloseTo(
       beatElement.boundingBox.width
     );

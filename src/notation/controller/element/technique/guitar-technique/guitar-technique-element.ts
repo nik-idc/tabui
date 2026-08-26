@@ -82,6 +82,28 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return this.noteElement.note;
   }
 
+  /** Calculates curve-end X coordinates in pitch-label order. */
+  public calculateBendCurveEndXs(type: BendType): number[] {
+    const startX =
+      this.noteElement.beatElement.attackLocalX +
+      this.noteElement.textRect.width / 2;
+    const quarterWidth = this.noteElement.boundingBox.width / 4;
+    switch (type) {
+      case BendType.Bend:
+      case BendType.Release:
+        return [startX + quarterWidth * 2];
+      case BendType.BendAndRelease:
+        return [startX + quarterWidth * 2, startX + quarterWidth * 3];
+      case BendType.Prebend:
+        return [startX + quarterWidth];
+      case BendType.PrebendAndRelease:
+      case BendType.PrebendBend:
+        return [startX + quarterWidth, startX + quarterWidth * 2];
+      case BendType.Hold:
+        return [];
+    }
+  }
+
   /**
    * Build a regular bend path SVG path HTML element
    */
@@ -100,7 +122,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       verticalOffset
     );
 
-    const arrowX = x + this.noteElement.boundingBox.width / 2;
+    const arrowX = this.calculateBendCurveEndXs(BendType.Bend)[0];
     const arrowY = y - verticalOffset;
     const arrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
       arrowX,
@@ -130,7 +152,9 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     // Step 2: build bend arrow
-    const bendArrowX = bendX + this.noteElement.boundingBox.width / 2;
+    const [bendArrowX, releaseArrowX] = this.calculateBendCurveEndXs(
+      BendType.BendAndRelease
+    );
     const bendArrowY = bendY - verticalOffset;
     const bendArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
       bendArrowX,
@@ -149,7 +173,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     // Step 4: build release arrow
-    const releaseArrowX = releaseX + this.noteElement.boundingBox.width / 4;
     const releaseArrowY = releaseY + verticalOffset;
     const releaseArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
       releaseArrowX,
@@ -170,8 +193,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       this.noteElement.boundingBox.height / 2;
 
     // Step 1: build line
-    const prebendLineX =
-      this._startPoint.x + this.noteElement.boundingBox.width / 4;
+    const prebendLineX = this.calculateBendCurveEndXs(BendType.Prebend)[0];
     const prebendLineY = this._startPoint.y;
     const lineHeight = verticalOffset;
     const prebendLine = GuitarTechniqueDescriptors.createVerticalLinePath(
@@ -201,8 +223,9 @@ export class GuitarTechniqueElement implements TechniqueElement {
       this.noteElement.boundingBox.height / 2;
 
     // Step 1: build line
-    const prebendLineX =
-      this._startPoint.x + this.noteElement.boundingBox.width / 4;
+    const [prebendLineX, releaseArrowX] = this.calculateBendCurveEndXs(
+      BendType.PrebendAndRelease
+    );
     const prebendLineY = this._startPoint.y;
     const lineHeight = verticalOffset;
     const prebendLine = GuitarTechniqueDescriptors.createVerticalLinePath(
@@ -231,7 +254,6 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     // Step 4: build release arrow
-    const releaseArrowX = releaseX + this.noteElement.boundingBox.width / 4;
     const releaseArrowY = releaseY + verticalOffset;
     const releaseArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
       releaseArrowX,
@@ -265,8 +287,9 @@ export class GuitarTechniqueElement implements TechniqueElement {
       this.noteElement.boundingBox.height / 4,
       verticalOffset
     );
+    const releaseArrowX = this.calculateBendCurveEndXs(BendType.Release)[0];
     const releaseArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
-      releaseX + releaseWidth,
+      releaseArrowX,
       releaseY + verticalOffset,
       false
     );
@@ -277,8 +300,10 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const verticalOffset =
       this.noteElement.boundingBox.height * (this.note.stringNum - 1) +
       this.noteElement.boundingBox.height / 2;
-    const prebendX =
-      this._startPoint.x + this.noteElement.boundingBox.width / 4;
+
+    const [prebendX, bendArrowX] = this.calculateBendCurveEndXs(
+      BendType.PrebendBend
+    );
     const prebendY = this._startPoint.y;
     const prebendLine = GuitarTechniqueDescriptors.createVerticalLinePath(
       prebendX,
@@ -290,7 +315,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       prebendX,
       prebendTopY
     );
-    const bendHeight = this.noteElement.boundingBox.height / 2;
+    const bendHeight = this.noteElement.boundingBox.height / 4;
     const bendCurve = GuitarTechniqueDescriptors.createUpCurvePath(
       prebendX,
       prebendTopY,
@@ -298,7 +323,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       bendHeight
     );
     const bendArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
-      prebendX + this.noteElement.boundingBox.width / 4,
+      bendArrowX,
       prebendTopY - bendHeight
     );
     this._pathDescriptors = [prebendLine, prebendArrow, bendCurve, bendArrow];
