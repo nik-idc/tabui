@@ -502,9 +502,20 @@ export class TrackController {
     );
   }
 
-  /** Selected beats as model objects */
+  /**
+   * @deprecated Only returns drag selection beats. Selection cursor isn't taken into account
+   * Selected beats as model objects
+   */
   public get selectionBeats(): Beat[] {
     return this._trackControllerEditor.selectionManager.selectionBeats;
+  }
+
+  /**
+   * Selected beats as model objects
+   * Either drag selection beats or cursor's beat as array
+   */
+  public get selectionAsBeats(): Beat[] {
+    return this._trackControllerEditor.selectionManager.selectionAsBeats;
   }
 
   /**

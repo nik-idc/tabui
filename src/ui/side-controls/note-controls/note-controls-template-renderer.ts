@@ -91,7 +91,8 @@ export class NoteControlsTemplateRenderer {
       { num: 32, alt: "Thirty-second" },
       { num: 64, alt: "Sixty-fourth" },
     ];
-    const selection = this.notationComponent.trackController.selectionBeats;
+    const selectedBeats =
+      this.notationComponent.trackController.selectionAsBeats;
     const appliedCSSClass = "tu-applied-img";
 
     for (let i = 0; i < notes.length; i++) {
@@ -110,7 +111,7 @@ export class NoteControlsTemplateRenderer {
       );
 
       // Mark applied status
-      const beatsOfCurDuration = selection.find(
+      const beatsOfCurDuration = selectedBeats.find(
         (b) => b.baseDuration === 1 / notes[i].num
       );
       if (beatsOfCurDuration !== undefined) {
@@ -120,7 +121,7 @@ export class NoteControlsTemplateRenderer {
       }
     }
 
-    const hasRest = selection.find((beat) => beat.isRest()) !== undefined;
+    const hasRest = selectedBeats.find((beat) => beat.isRest()) !== undefined;
     setImageAsset(
       this.template.restButton,
       this.assetsPath,
@@ -163,7 +164,8 @@ export class NoteControlsTemplateRenderer {
   }
 
   private renderDotButtons(): void {
-    const selection = this.notationComponent.trackController.selectionBeats;
+    const selectedBeats =
+      this.notationComponent.trackController.selectionAsBeats;
     const appliedCSSClass = "tu-applied-img";
 
     // Image attributes
@@ -188,7 +190,7 @@ export class NoteControlsTemplateRenderer {
     );
 
     // Mark singular dot applied status
-    const beatsDot1 = selection.find((b) => b.dots === 1);
+    const beatsDot1 = selectedBeats.find((b) => b.dots === 1);
     if (beatsDot1 !== undefined) {
       this.template.dot1Button.classList.add(appliedCSSClass);
     } else {
@@ -196,7 +198,7 @@ export class NoteControlsTemplateRenderer {
     }
 
     // Mark double dot applied status
-    const beatsDot2 = selection.find((b) => b.dots === 2);
+    const beatsDot2 = selectedBeats.find((b) => b.dots === 2);
     if (beatsDot2 !== undefined) {
       this.template.dot2Button.classList.add(appliedCSSClass);
     } else {
@@ -205,7 +207,8 @@ export class NoteControlsTemplateRenderer {
   }
 
   private renderTupletButtons(): void {
-    const selection = this.notationComponent.trackController.selectionBeats;
+    const selectedBeats =
+      this.notationComponent.trackController.selectionAsBeats;
     const appliedCSSClass = "tu-applied-img";
 
     setImageAsset(
@@ -241,7 +244,7 @@ export class NoteControlsTemplateRenderer {
     let hasTuplet2: boolean = false;
     let hasTuplet3: boolean = false;
     let hasTuplet: boolean = false;
-    for (const beat of selection) {
+    for (const beat of selectedBeats) {
       if (beat.tupletSettings === null) {
         continue;
       }
