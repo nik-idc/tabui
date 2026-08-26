@@ -295,27 +295,29 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
 1. Revisit Palm Mute, Vibrato & Let Ring application methods. Do these really belong
    at the Note level? They _can_ but **should** they? If not, I currently see 2 ways
    of doing it:
-   - Expanding the Beat model with a Technique array, just like Notes are.
-     Probably best long-term, but could prove tricky to get right
-   - On PM/LR/Vibrato application, fill/clear the corresponding technique from every note.
-     Less code probably but also is a very hacky, terrible long-term solution.
-     Also revisit transitional techniques such as Slide/Legato and their ownership.
-     Having them always belong to a note leads to hacky code to ensure correctness.
-1. Pressing left arrow/right arrow while beat selection is active doesn't clear selection
-   and move in the respected direction. That behavior **was** present in the project some
-   time ago. It got either axed or there is a bug.
-1. A bar can be both repeat start **and** end. Current code prohibits this explicitly.
-   Need to loosen this restriction.
+
+- Expanding the Beat model with a Technique array, just like Notes are.
+  Probably best long-term, but could prove tricky to get right
+- On PM/LR/Vibrato application, fill/clear the corresponding technique from every note.
+  Less code probably but also is a very hacky, terrible long-term solution.
+  Also revisit transitional techniques such as Slide/Legato and their ownership.
+  Having them always belong to a note leads to hacky code to ensure correctness.
+
+14. Pressing left arrow/right arrow while beat selection is active doesn't clear selection
+    and move in the respected direction. That behavior **was** present in the project some
+    time ago. It got either axed or there is a bug.
+15. A bar can be both repeat start **and** end. Current code prohibits this explicitly.
+    Need to loosen this restriction.
 
 Suggested order:
 
 - Immediate priority. Correctness issues:
   - 1
-  - 3
-  - 4
-  - 5
-  - 6 + 9
-  - 8
+  - 3 - DONE
+  - 4 -
+  - 5 -
+  - 6 + 9 - DONE
+  - 8 - DONE
 - Secondary priority. Essential UX improvements:
   - 2
   - 10
