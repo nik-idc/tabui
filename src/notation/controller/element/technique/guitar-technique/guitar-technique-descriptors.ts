@@ -159,35 +159,65 @@ export class GuitarTechniqueDescriptors {
     };
   }
 
+  /**
+   * Builds one beat's section of a fixed-size track-line wave.
+   * Cubic controls make adjacent beat sections join smoothly.
+   */
   public static createHorizontalVibratoPath(
     x: number,
     y: number,
     height: number,
-    width: number
+    width: number,
+    lineStartX: number
   ): SVGPathDescriptor {
-    const edgeWidth = width / 8;
-    // Start at the vertical middle to make the humps symmetrical
-    const startY = y + height / 2;
+    const curvePartWidth = height / 2;
+    const halfHeight = height / 2;
+    const radiansPerPixel = Math.PI / (2 * curvePartWidth);
+    const centerY = y + halfHeight;
 
-    const d =
-      `M ${x} ${startY} ` +
-      // q [controlX] [controlY] [endX] [endY]
-      `q ${edgeWidth / 2} ${-height} ${edgeWidth} 0 ` + // Upward hump
-      `t ${edgeWidth} 0 ` + // Smooth shorthand (Automatic reflection)
-      `t ${edgeWidth} 0 ` +
-      `t ${edgeWidth} 0 ` +
-      `t ${edgeWidth} 0 ` +
-      `t ${edgeWidth} 0 ` +
-      `t ${edgeWidth} 0 ` +
-      `t ${edgeWidth} 0 `;
+    const lineEndX = lineStartX + width;
+    const splitPoints = [lineStartX];
+    const initSplitX =
+      (Math.floor(lineStartX / curvePartWidth) + 1) * curvePartWidth;
+    for (let splitX = initSplitX; splitX < lineEndX; splitX += curvePartWidth) {
+      splitPoints.push(splitX);
+    }
+    splitPoints.push(lineEndX);
+
+    const ys: number[] = [];
+    const tangentSlopes: number[] = [];
+    for (let i = 0; i < splitPoints.length; i++) {
+      const angle = splitPoints[i] * radiansPerPixel;
+      ys.push(centerY - halfHeight * Math.sin(angle));
+      tangentSlopes.push(-halfHeight * radiansPerPixel * Math.cos(angle));
+    }
+
+    let localX = x;
+    const commands = [`M ${localX} ${ys[0]}`];
+    for (let i = 1; i < splitPoints.length; i++) {
+      const partWidth = splitPoints[i] - splitPoints[i - 1];
+      const localStartX = localX;
+      localX += partWidth;
+
+      const control1X = localStartX + partWidth / 3;
+      const control1Y = ys[i - 1] + (tangentSlopes[i - 1] * partWidth) / 3;
+      const control2X = localX - partWidth / 3;
+      const control2Y = ys[i] - (tangentSlopes[i] * partWidth) / 3;
+      const endX = localX;
+      const endY = ys[i];
+
+      const controlPointsSegment = `${control1X} ${control1Y} ${control2X} ${control2Y}`;
+      const endPointSegment = `${endX} ${endY}`;
+      commands.push(`C ${controlPointsSegment} ${endPointSegment}`);
+    }
 
     return {
-      d,
+      d: commands.join(" "),
       attrs: {
         stroke: "var(--tu-notation-ink)",
         fill: "none",
-        strokeLinecap: "round", // Makes the ends look professional
-        "stroke-width": "1.5", // Vibrato usually needs a bit of weight
+        "stroke-linecap": "round",
+        "stroke-width": "1.5",
       },
     };
   }

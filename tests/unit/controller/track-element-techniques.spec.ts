@@ -51,6 +51,34 @@ function parsePathEndpoints(svgPath: string): [number, number, number, number] {
   ];
 }
 
+function parseVibratoPath(svgPath: string): {
+  start: [number, number];
+  segments: Array<[number, number, number, number, number, number]>;
+} {
+  const start = svgPath.match(/M\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/);
+  if (start === null) {
+    throw Error(`Failed to parse vibrato path: ${svgPath}`);
+  }
+  const segments = Array.from(
+    svgPath.matchAll(
+      /C\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g
+    ),
+    (match) => match.slice(1).map(Number)
+  );
+
+  return {
+    start: [Number(start[1]), Number(start[2])],
+    segments: segments.map((segment) => [
+      segment[0],
+      segment[1],
+      segment[2],
+      segment[3],
+      segment[4],
+      segment[5],
+    ]),
+  };
+}
+
 describe("TrackElement techniques", () => {
   test("creates an inline slide path between two fretted notes with ascending slope for lower-to-higher notes", () => {
     const { track, beats } = createBarWithBeats([
@@ -732,6 +760,91 @@ describe("TrackElement techniques", () => {
     expect(line3?.boundingBox.y).toBeCloseTo(line1?.boundingBox.bottom ?? 0);
   });
 
+  test("joins adjacent mixed-duration vibratos smoothly", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.SixtyFourth },
+      { baseDuration: NoteDuration.Eighth, dots: 1 },
+      {
+        baseDuration: NoteDuration.Quarter,
+        tupletSettings: { normalCount: 3, tupletCount: 2 },
+      },
+    ]);
+    const notes: GuitarNote[] = [];
+    for (const beat of beats) {
+      const note = beat.notes?.[0];
+      if (!(note instanceof GuitarNote)) {
+        throw Error("Expected guitar note in test beat");
+      }
+      note.fret = 5;
+      notes.push(note);
+    }
+    notes[0].addTechnique(
+      new GuitarTechnique(notes[0], GuitarTechniqueType.Vibrato)
+    );
+    notes[2].addTechnique(
+      new GuitarTechnique(notes[2], GuitarTechniqueType.Vibrato)
+    );
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    const initialLabels =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer.techGapLines[1]?.labelElements ??
+      [];
+    const initialFirstPath = initialLabels[0]?.pathDescriptors?.[0]?.d;
+
+    notes[1].addTechnique(
+      new GuitarTechnique(notes[1], GuitarTechniqueType.Vibrato)
+    );
+    trackElement.update();
+    const labels =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer.techGapLines[1]?.labelElements ??
+      [];
+    const vibratos = labels.map((label) =>
+      parseVibratoPath(label.pathDescriptors?.[0]?.d ?? "")
+    );
+    const expectedSegmentWidth = TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT / 12;
+    const interiorWidths = vibratos.flatMap((vibrato) =>
+      vibrato.segments.slice(1, -1).map((segment, index) => {
+        const previousEndX = vibrato.segments[index][4];
+        return segment[4] - previousEndX;
+      })
+    );
+    const hasFixedSegmentWidths = interiorWidths.every(
+      (width) => Math.abs(width - expectedSegmentWidth) < 0.00001
+    );
+    const endpointYs = vibratos.flatMap((vibrato) =>
+      vibrato.segments.map((segment) => segment[5])
+    );
+    const vibratoHeight = Math.max(...endpointYs) - Math.min(...endpointYs);
+    const expectedHeight = TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT / 6;
+    const finalFirstPath = labels[0]?.pathDescriptors?.[0]?.d;
+
+    expect(labels).toHaveLength(3);
+    expect(finalFirstPath).toBe(initialFirstPath);
+    expect(hasFixedSegmentWidths).toBe(true);
+    expect(vibratoHeight).toBeCloseTo(expectedHeight);
+    for (let i = 0; i < labels.length - 1; i++) {
+      const left = vibratos[i];
+      const right = vibratos[i + 1];
+      const leftEnd = left.segments[left.segments.length - 1];
+      const rightFirst = right.segments[0];
+      const leftOriginX = labels[i].descriptorOriginLineLocal.x;
+      const rightOriginX = labels[i + 1].descriptorOriginLineLocal.x;
+      const leftEndX = leftOriginX + leftEnd[4];
+      const rightStartX = rightOriginX + right.start[0];
+      const incomingSlope =
+        (leftEnd[5] - leftEnd[3]) / (leftEnd[4] - leftEnd[2]);
+      const outgoingSlope =
+        (rightFirst[1] - right.start[1]) / (rightFirst[0] - right.start[0]);
+
+      expect(leftEndX).toBeCloseTo(rightStartX);
+      expect(leftEnd[5]).toBeCloseTo(right.start[1]);
+      expect(incomingSlope).toBeCloseTo(outgoingSlope);
+    }
+  });
+
   test.each([
     [
       "Bend",
@@ -1096,7 +1209,7 @@ describe("TrackElement techniques", () => {
     );
     const descriptorAnchor =
       palmMuteLabel?.textDescriptors?.[0]?.attrs?.["text-anchor"];
-    const expectedX = (palmMuteLabel?.boundingBox.width ?? 0) / 2;
+    const expectedX = 0;
 
     expect(palmMuteLabel).toBeDefined();
     expect(descriptorAnchor).toBe("middle");

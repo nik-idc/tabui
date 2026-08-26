@@ -222,22 +222,52 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Generates regular vibrato HTML
    */
   private createVibratoPath(): void {
-    const x =
-      this._boundingBox.x +
-      this._boundingBox.width / 2 -
-      this._boundingBox.width / 4;
+    const currentBeat = this.beatElement.beat;
+    const nextBeat = currentBeat.voiceBar.bar.staff.getNextBeat(currentBeat);
+    const nextBeatElement =
+      nextBeat === null
+        ? null
+        : (this.beatElement.trackElement.getBeatElement(nextBeat) ?? null);
+
+    const x = this._boundingBox.x;
     const y = this._boundingBox.y + this._boundingBox.height / 2;
     const vibratoHeight = this.boundingBox.height / 6;
-    const vibratoWidth = this.boundingBox.width / 2;
+    const nextBeatLineX =
+      (nextBeatElement?.barElement.lineLocalCoords.x ?? 0) +
+      (nextBeatElement?.barLocalCoords.x ?? 0);
+    const voiceBarContainer = this.beatElement.voiceBarContainer;
+    const nextBeatDistance =
+      nextBeat?.voiceBar === this.beatElement.beat.voiceBar
+        ? voiceBarContainer.getBeatX(nextBeat) -
+          voiceBarContainer.getBeatX(this.beatElement.beat)
+        : nextBeatLineX - this.lineLocalCoords.x;
+    const vibratoWidth =
+      nextBeatDistance > 0 ? nextBeatDistance : this.boundingBox.width;
+    const phaseX = this.lineLocalCoords.x;
     this._pathDescriptors = [
       GuitarTechniqueDescriptors.createHorizontalVibratoPath(
         x,
         y,
         vibratoHeight,
-        vibratoWidth
+        vibratoWidth,
+        phaseX
       ),
     ];
     this._textDescriptors = [];
+  }
+
+  private createRepeatedTextPath(text: string): void {
+    const x = this._boundingBox.x;
+    const y = this._boundingBox.y + this._boundingBox.height / 2;
+    this._pathDescriptors = [];
+    this._textDescriptors = [
+      GuitarTechniqueDescriptors.createTextDescriptor(
+        x,
+        y,
+        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
+        text
+      ),
+    ];
   }
 
   /**
@@ -249,20 +279,6 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
   private createLetRingPath(): void {
     this.createRepeatedTextPath("LR");
-  }
-
-  private createRepeatedTextPath(text: string): void {
-    const x = this._boundingBox.x + this._boundingBox.width / 2;
-    const y = this._boundingBox.y + this._boundingBox.height / 2;
-    this._pathDescriptors = [];
-    this._textDescriptors = [
-      GuitarTechniqueDescriptors.createTextDescriptor(
-        x,
-        y,
-        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
-        text
-      ),
-    ];
   }
 
   /**
