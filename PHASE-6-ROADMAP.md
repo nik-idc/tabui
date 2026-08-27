@@ -267,19 +267,19 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
   were improved. Stage 10 owns expansion.
 
 10. Address known release blocking issues (list may extend upon further use/manual testing):
-    1 Copy-pasted beats don't retain techniques
+    ~1 Copy-pasted beats don't retain techniques~
     2 Multi beat Technique application. If **any** in selection has technique, remove it first.
     Then toggle between all on and off
-    3 Inline technique elements have incorrect X coord calculation.
-    Likely a remnant of the old, beat-centered calculation method.
-    4 Current duration is only highlighted when drag selection is active. What is highlighted
-    during drag selection should be highlighted per note as well.
-    5 Drag selection technique button disabling is currently incorrect. Should be much simpler: - Disabled: Bend - Enabled: Everything else
-    6 When applying a per-note technique, it should only be applied to notes with values **and**
-    if that technique is applicable in that particular spot
+    ~3 Inline technique elements have incorrect X coord calculation.
+    Likely a remnant of the old, beat-centered calculation method.~
+    ~4 Current duration is only highlighted when drag selection is active. What is highlighted
+    during drag selection should be highlighted per note as well.~
+    ~5 Drag selection technique button disabling is currently incorrect. Should be much simpler: - Disabled: Bend - Enabled: Everything else~
+    ~6 When applying a per-note technique, it should only be applied to notes with values **and**
+    if that technique is applicable in that particular spot~
     7 Aria + tooltips for all interactable elements
-    8 Tuplets (incomplete) are offset horizontally as well
-    9 Fret 0 is a special case - can't apply most techniques to it
+    ~8 Tuplets (incomplete) are offset horizontally as well~
+    ~9 Fret 0 is a special case - can't apply most techniques to it~
     10 Note selection currently is too tight. Either the demo has a font that is too small or the
     selection preview has to be a tad more aggressive. Not too much - voices.
     11 Adding a note by clicking the far right end of an incomplete bar. Present in Songsterr &
@@ -302,6 +302,7 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     time ago. It got either axed or there is a bug.
     15 A bar can be both repeat start **and** end. Current code prohibits this explicitly.
     Need to loosen this restriction.
+    16 keyboard based beat selection. Shift + Left/Right selects appropriate beat
 
 Suggested order:
 

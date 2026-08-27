@@ -182,8 +182,9 @@ export class ScoreEditor {
     bendOptions: BendTechniqueOptions | null = null
   ): boolean {
     let changesMade = false;
-    const hasAnyWithTechnique = notes.some((n) => n.hasTechnique(type));
-    const removeFromSelection = hasAnyWithTechnique && bendOptions === null;
+    const hasAllWithTechnique =
+      notes.length > 0 && notes.every((n) => n.hasTechnique(type));
+    const removeFromSelection = hasAllWithTechnique && bendOptions === null;
 
     for (const note of notes) {
       if (!(note instanceof GuitarNote)) {
@@ -191,6 +192,14 @@ export class ScoreEditor {
       }
 
       if (removeFromSelection && !note.hasTechnique(type)) {
+        continue;
+      }
+
+      if (
+        !removeFromSelection &&
+        bendOptions === null &&
+        note.hasTechnique(type)
+      ) {
         continue;
       }
 
@@ -248,8 +257,10 @@ export class ScoreEditor {
       throw Error(`${newDots} is an invalid dots value`);
     }
 
+    const removeDots =
+      beats.length > 0 && beats.every((beat) => beat.dots === newDots);
     for (const beat of beats) {
-      beat.dots = newDots === beat.dots ? 0 : newDots;
+      beat.dots = (removeDots ? 0 : newDots) as BeatDots;
     }
 
     this.rebuildAffectedBars(beats);
@@ -299,18 +310,17 @@ export class ScoreEditor {
     beats: Beat<I>[],
     tupletSettings: TupletSettings | null
   ): void {
+    const removeTuplet =
+      beats.length > 0 &&
+      beats.every((b) => tupletSettingsEqual(b.tupletSettings, tupletSettings));
     for (const beat of beats) {
-      if (tupletSettingsEqual(beat.tupletSettings, tupletSettings)) {
-        beat.tupletSettings = null;
-      } else {
-        beat.tupletSettings =
-          tupletSettings !== null
-            ? {
-                normalCount: tupletSettings.normalCount,
-                tupletCount: tupletSettings.tupletCount,
-              }
-            : null;
-      }
+      beat.tupletSettings =
+        removeTuplet || tupletSettings === null
+          ? null
+          : {
+              normalCount: tupletSettings.normalCount,
+              tupletCount: tupletSettings.tupletCount,
+            };
     }
 
     this.rebuildAffectedBars(beats);

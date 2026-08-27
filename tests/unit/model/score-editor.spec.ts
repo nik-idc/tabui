@@ -110,6 +110,17 @@ describe("ScoreEditor", () => {
     expect(beats[0].dots).toBe(0);
   });
 
+  test("setDots applies the requested value to a mixed selection", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter, dots: 1 },
+      { baseDuration: NoteDuration.Quarter, dots: 0 },
+    ]);
+
+    ScoreEditor.setDots(beats, 1);
+
+    expect(beats.map((beat) => beat.dots)).toEqual([1, 1]);
+  });
+
   test("setDots rejects invalid dot values", () => {
     const { beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -118,6 +129,20 @@ describe("ScoreEditor", () => {
     expect(() => ScoreEditor.setDots([beats[0]], 3)).toThrow(
       "3 is an invalid dots value"
     );
+  });
+
+  test("setDurations applies the requested value to a mixed selection", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+    ]);
+
+    ScoreEditor.setDurations(beats, NoteDuration.Quarter);
+
+    expect(beats.map((beat) => beat.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
   });
 
   test("setTuplet toggles matching settings off across multiple beats", () => {
@@ -136,6 +161,23 @@ describe("ScoreEditor", () => {
 
     expect(beats[0].tupletSettings).toBeNull();
     expect(beats[1].tupletSettings).toBeNull();
+  });
+
+  test("setTuplet applies the requested settings to a mixed selection", () => {
+    const { beats } = createBarWithBeats([
+      {
+        baseDuration: NoteDuration.Eighth,
+        tupletSettings: { normalCount: 3, tupletCount: 2 },
+      },
+      { baseDuration: NoteDuration.Eighth },
+    ]);
+
+    ScoreEditor.setTuplet(beats, { normalCount: 3, tupletCount: 2 });
+
+    expect(beats.map((beat) => beat.tupletSettings)).toEqual([
+      { normalCount: 3, tupletCount: 2 },
+      { normalCount: 3, tupletCount: 2 },
+    ]);
   });
 
   test("setTimeSignature updates every bar tied to a master bar", () => {
@@ -478,7 +520,7 @@ describe("ScoreEditor", () => {
     expect(note.techniques[0].bendOptions?.bendPitch).toBe(0.5);
   });
 
-  test("setTechniqueNotes on mixed selection removes only already-applied notes", () => {
+  test("setTechniqueNotes on mixed selection applies to unapplied notes", () => {
     const { beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
     ]);
@@ -499,6 +541,45 @@ describe("ScoreEditor", () => {
     );
 
     expect(changed).toBe(true);
+    expect(first.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
+    expect(second.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
+  });
+
+  test("setDots removes dots only when all notes have it", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const first = beats[0];
+    const second = beats[1];
+
+    ScoreEditor.setDots([first, second], 1); // Set first
+    ScoreEditor.setDots([first, second], 1); // Apply the second time to remove
+
+    expect(first.dots).toBe(0);
+    expect(second.dots).toBe(0);
+  });
+
+  test("setTechniqueNotes removes a technique only when all notes have it", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const first = beats[0].notes?.[0];
+    const second = beats[0].notes?.[1];
+    if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
+      throw Error("Expected guitar notes in test beat");
+    }
+
+    first.fret = 3;
+    second.fret = 5;
+    ScoreEditor.setTechniqueNotes([first, second], GuitarTechniqueType.LetRing);
+
+    expect(
+      ScoreEditor.setTechniqueNotes(
+        [first, second],
+        GuitarTechniqueType.LetRing
+      )
+    ).toBe(true);
     expect(first.hasTechnique(GuitarTechniqueType.LetRing)).toBe(false);
     expect(second.hasTechnique(GuitarTechniqueType.LetRing)).toBe(false);
   });
