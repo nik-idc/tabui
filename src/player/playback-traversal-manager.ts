@@ -1,5 +1,4 @@
 import {
-  BarRepeatStatus,
   Beat,
   fractionEq,
   fractionLt,
@@ -349,7 +348,7 @@ export class PlaybackTraversalManager {
     const masterBar = this.score.masterBars[currentMasterBarIndex];
 
     if (
-      masterBar.repeatStatus === BarRepeatStatus.Start &&
+      masterBar.isRepeatStart &&
       this._repeatStartMasterBarIndex !== currentMasterBarIndex
     ) {
       this._repeatStartMasterBarIndex = currentMasterBarIndex;
@@ -358,7 +357,7 @@ export class PlaybackTraversalManager {
 
     if (
       honorRepeatEnd &&
-      masterBar.repeatStatus === BarRepeatStatus.End &&
+      masterBar.isRepeatEnd &&
       this._repeatStartMasterBarIndex !== undefined
     ) {
       const repeatCount = masterBar.repeatCount ?? 2;

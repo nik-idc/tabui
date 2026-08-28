@@ -11,8 +11,10 @@ export class SetRepeatStatusCommand implements Command {
   private _track: Track;
   /** New repeat status value */
   private _newRepeatStatus: BarRepeatStatus;
-  /** Old repeat status value */
-  private _oldRepeatStatus: BarRepeatStatus;
+  /** Old repeat boundary values */
+  private _oldRepeatStart: boolean;
+  private _oldRepeatEnd: boolean;
+  private _oldRepeatCount: number | null;
   /** True if executed, false otherwise*/
   private _executed: boolean = false;
 
@@ -25,14 +27,16 @@ export class SetRepeatStatusCommand implements Command {
     this._bar = bar;
     this._track = track;
     this._newRepeatStatus = newRepeatStatus;
-    this._oldRepeatStatus = bar.repeatStatus;
+    this._oldRepeatStart = bar.isRepeatStart;
+    this._oldRepeatEnd = bar.isRepeatEnd;
+    this._oldRepeatCount = bar.repeatCount;
   }
 
   /**
    * Execute set repeat status command
    */
   execute(): void {
-    this._bar.repeatStatus = this._newRepeatStatus;
+    this._bar.toggleRepeatBoundary(this._newRepeatStatus);
     this._executed = true;
   }
 
@@ -44,7 +48,11 @@ export class SetRepeatStatusCommand implements Command {
       return;
     }
 
-    this._bar.repeatStatus = this._oldRepeatStatus;
+    this._bar.isRepeatStart = this._oldRepeatStart;
+    this._bar.isRepeatEnd = this._oldRepeatEnd;
+    if (this._oldRepeatEnd && this._oldRepeatCount !== null) {
+      this._bar.repeatCount = this._oldRepeatCount;
+    }
   }
 
   /**
@@ -55,7 +63,7 @@ export class SetRepeatStatusCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    this._bar.repeatStatus = this._newRepeatStatus;
+    this._bar.toggleRepeatBoundary(this._newRepeatStatus);
   }
 
   public get affectedModels(): AffectedModel[] {

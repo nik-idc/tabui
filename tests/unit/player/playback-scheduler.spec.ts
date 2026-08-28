@@ -278,8 +278,8 @@ describe("PlaybackScheduler model invariants", () => {
     if (secondBar === undefined) {
       throw Error("Expected second bar");
     }
-    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
-    score.masterBars[1].repeatStatus = BarRepeatStatus.End;
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatEnd = true;
     score.masterBars[1].repeatCount = 2;
     const firstBeat = bar.ensureVoiceBar(1).beats[0];
     const secondBeat = secondBar.ensureVoiceBar(1).beats[0];

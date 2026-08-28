@@ -18,15 +18,6 @@ export enum SerializedNoteDuration {
 }
 
 /**
- * Wire tokens for repeat boundaries, frozen independently from the model enum.
- */
-export enum SerializedRepeatStatus {
-  None = "none",
-  Start = "start",
-  End = "end",
-}
-
-/**
  * Wire tokens that discriminate guitar techniques in V1 payloads, independent
  * from the model enum.
  */
@@ -118,22 +109,12 @@ export type SerializedMasterBarCommon = {
   duration: SerializedNoteDuration;
 };
 
-/** A repeat-end master bar whose discriminant requires a repeat count. */
-export type SerializedRepeatEndMasterBar = SerializedMasterBarCommon & {
-  repeatStatus: SerializedRepeatStatus.End;
-  repeatCount: number;
+/** Repeat boundaries and count for a serialized master bar. */
+export type SerializedMasterBar = SerializedMasterBarCommon & {
+  isRepeatStart: boolean;
+  isRepeatEnd: boolean;
+  repeatCount: number | null;
 };
-
-/** A non-ending master bar whose discriminant requires a null repeat count. */
-export type SerializedNonRepeatEndMasterBar = SerializedMasterBarCommon & {
-  repeatStatus: SerializedRepeatStatus.None | SerializedRepeatStatus.Start;
-  repeatCount: null;
-};
-
-/** Master-bar union discriminated by `repeatStatus`. */
-export type SerializedMasterBar =
-  | SerializedRepeatEndMasterBar
-  | SerializedNonRepeatEndMasterBar;
 
 /** A tuning pitch expressed as a chromatic note token and octave. */
 export type SerializedTuningNote = {

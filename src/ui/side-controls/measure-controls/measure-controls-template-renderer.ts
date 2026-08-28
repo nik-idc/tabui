@@ -1,7 +1,6 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { renderOnce, setImageAsset } from "../../shared";
 import { MeasureControlsTemplate } from "./measure-controls-template";
-import { BarRepeatStatus } from "../../../notation";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 export class MeasureControlsTemplateRenderer {
@@ -55,27 +54,17 @@ export class MeasureControlsTemplateRenderer {
       this.template.repeatEndButton.classList.remove(appliedCSSClass);
       this.template.repeatEndButton.classList.add(disabledCSSClass);
     } else {
-      const repeatStatus = selectionCursor.bar.masterBar.repeatStatus;
-      switch (repeatStatus) {
-        case BarRepeatStatus.Start:
-          this.template.repeatStartButton.classList.add(appliedCSSClass);
-          this.template.repeatStartButton.classList.remove(disabledCSSClass);
-          this.template.repeatEndButton.classList.remove(appliedCSSClass);
-          this.template.repeatEndButton.classList.remove(disabledCSSClass);
-          break;
-        case BarRepeatStatus.End:
-          this.template.repeatStartButton.classList.remove(appliedCSSClass);
-          this.template.repeatStartButton.classList.remove(disabledCSSClass);
-          this.template.repeatEndButton.classList.add(appliedCSSClass);
-          this.template.repeatEndButton.classList.remove(disabledCSSClass);
-          break;
-        default:
-          this.template.repeatStartButton.classList.remove(appliedCSSClass);
-          this.template.repeatStartButton.classList.remove(disabledCSSClass);
-          this.template.repeatEndButton.classList.remove(appliedCSSClass);
-          this.template.repeatEndButton.classList.remove(disabledCSSClass);
-          break;
-      }
+      const masterBar = selectionCursor.bar.masterBar;
+      this.template.repeatStartButton.classList.toggle(
+        appliedCSSClass,
+        masterBar.isRepeatStart
+      );
+      this.template.repeatEndButton.classList.toggle(
+        appliedCSSClass,
+        masterBar.isRepeatEnd
+      );
+      this.template.repeatStartButton.classList.remove(disabledCSSClass);
+      this.template.repeatEndButton.classList.remove(disabledCSSClass);
     }
   }
 

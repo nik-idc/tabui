@@ -33,7 +33,8 @@ export function createScoreGraph(
   masterBar.tempo = masterBarData.tempo;
   masterBar.beatsCount = masterBarData.beatsCount;
   masterBar.duration = masterBarData.duration;
-  masterBar.repeatStatus = masterBarData.repeatStatus;
+  masterBar.isRepeatStart = masterBarData.isRepeatStart;
+  masterBar.isRepeatEnd = masterBarData.isRepeatEnd;
   if (masterBarData.repeatCount !== null) {
     masterBar.repeatCount = masterBarData.repeatCount;
   }

@@ -7,7 +7,8 @@ export type MasterBarData = {
   tempo: number;
   beatsCount: number;
   duration: NoteDuration;
-  repeatStatus: BarRepeatStatus;
+  isRepeatStart: boolean;
+  isRepeatEnd: boolean;
   repeatCount: number | null;
 };
 
@@ -24,7 +25,8 @@ export const DEFAULT_MASTER_BAR: MasterBarData = {
   tempo: 120,
   beatsCount: 4,
   duration: NoteDuration.Quarter,
-  repeatStatus: BarRepeatStatus.None,
+  isRepeatStart: false,
+  isRepeatEnd: false,
   repeatCount: null,
 };
 
@@ -47,8 +49,10 @@ export class MasterBar {
   private _beatsCount: number = DEFAULT_MASTER_BAR.beatsCount;
   /** The duration of the note that constitutes a whole bar */
   private _duration: NoteDuration;
-  /** Whether this bar is a repeat start, repeat end or a regular bar */
-  private _repeatStatus: BarRepeatStatus;
+  /** Whether this bar starts a repeat section. */
+  private _isRepeatStart: boolean;
+  /** Whether this bar ends a repeat section. */
+  private _isRepeatEnd: boolean;
   /** How many times a repeat section should repeat */
   private _repeatCount: number | null = null;
 
@@ -57,14 +61,16 @@ export class MasterBar {
    * @param tempo Tempo
    * @param beatsCount Beast count
    * @param duration Bar duration
-   * @param repeatStatus Repeat status
+   * @param isRepeatStart Whether this bar starts a repeat section
+   * @param isRepeatEnd Whether this bar ends a repeat section
    * @param repeatCount Repeat count (only when end of repeat section)
    */
   constructor({
     tempo = DEFAULT_MASTER_BAR.tempo,
     beatsCount = DEFAULT_MASTER_BAR.beatsCount,
     duration = DEFAULT_MASTER_BAR.duration,
-    repeatStatus = DEFAULT_MASTER_BAR.repeatStatus,
+    isRepeatStart = DEFAULT_MASTER_BAR.isRepeatStart,
+    isRepeatEnd = DEFAULT_MASTER_BAR.isRepeatEnd,
     repeatCount = DEFAULT_MASTER_BAR.repeatCount,
   }: MasterBarData) {
     this.uuid = randomInt();
@@ -72,8 +78,9 @@ export class MasterBar {
     this.tempo = tempo;
     this.beatsCount = beatsCount;
     this._duration = duration;
-    this._repeatStatus = repeatStatus;
-    this._repeatCount = repeatCount;
+    this._isRepeatStart = isRepeatStart;
+    this._isRepeatEnd = isRepeatEnd;
+    this._repeatCount = isRepeatEnd ? (repeatCount ?? 2) : null;
   }
 
   /** Tempo setter */
@@ -131,24 +138,50 @@ export class MasterBar {
     return this._duration;
   }
 
-  /** Repeat status setter */
-  public set repeatStatus(newStatus: BarRepeatStatus) {
-    this._repeatStatus =
-      newStatus === this._repeatStatus ? BarRepeatStatus.None : newStatus;
-    if (this._repeatStatus === BarRepeatStatus.End) {
-      this._repeatCount = 2; // Default repeat count
+  /** Toggles a repeat boundary on this bar. */
+  public toggleRepeatBoundary(
+    boundary: BarRepeatStatus,
+    repeatCount: number = 2
+  ): void {
+    if (boundary === BarRepeatStatus.Start) {
+      this._isRepeatStart = !this._isRepeatStart;
+      return;
+    }
+    if (boundary !== BarRepeatStatus.End) {
+      throw Error("Cannot toggle an empty repeat boundary");
+    }
+
+    this._isRepeatEnd = !this._isRepeatEnd;
+    if (this._isRepeatEnd) {
+      this._repeatCount = repeatCount;
     } else {
       this._repeatCount = null;
     }
   }
-  /** Repeat status getter */
-  public get repeatStatus(): BarRepeatStatus {
-    return this._repeatStatus;
+  /** Whether this bar starts a repeat section. */
+  public get isRepeatStart(): boolean {
+    return this._isRepeatStart;
   }
-
+  /** Sets whether this bar starts a repeat section. */
+  public set isRepeatStart(value: boolean) {
+    this._isRepeatStart = value;
+  }
+  /** Whether this bar ends a repeat section. */
+  public get isRepeatEnd(): boolean {
+    return this._isRepeatEnd;
+  }
+  /** Sets whether this bar ends a repeat section. */
+  public set isRepeatEnd(value: boolean) {
+    this._isRepeatEnd = value;
+    if (!value) {
+      this._repeatCount = null;
+    } else if (this._repeatCount === null) {
+      this._repeatCount = 2;
+    }
+  }
   /** Repeat count setter  */
   public set repeatCount(newCount: number) {
-    if (this._repeatStatus !== BarRepeatStatus.End) {
+    if (!this._isRepeatEnd) {
       throw Error("Attempted to set repeat count of a non-repeat-end bar");
     }
     this._repeatCount = newCount;
@@ -182,7 +215,8 @@ export class MasterBar {
       tempo: this._tempo,
       beatsCount: this._beatsCount,
       duration: this._duration,
-      repeatStatus: this._repeatStatus,
+      isRepeatStart: this._isRepeatStart,
+      isRepeatEnd: this._isRepeatEnd,
       repeatCount: this._repeatCount,
     };
   }
@@ -196,7 +230,8 @@ export class MasterBar {
       tempo: this._tempo,
       beatsCount: this._beatsCount,
       duration: this._duration,
-      repeatStatus: this._repeatStatus,
+      isRepeatStart: this._isRepeatStart,
+      isRepeatEnd: this._isRepeatEnd,
       repeatCount: this._repeatCount,
     });
   }

@@ -1,5 +1,4 @@
 import { Bar, VOICE_NUMBERS } from "../../bar";
-import { BarRepeatStatus } from "../../bar-repeat-status";
 import { Guitar } from "../../instrument/guitar/guitar";
 import {
   MasterBar,
@@ -20,11 +19,7 @@ import {
   SerializationPath,
 } from "../serialization-path";
 import { serializeInstrument } from "./instrument-serialization";
-import {
-  SERIALIZED_CLEF_TYPES,
-  SERIALIZED_NOTE_DURATIONS,
-  SERIALIZED_REPEAT_STATUSES,
-} from "./mappings";
+import { SERIALIZED_CLEF_TYPES, SERIALIZED_NOTE_DURATIONS } from "./mappings";
 import { serializeVoiceBar } from "./voice-bar-serialization";
 import {
   SCORE_SERIALIZATION_FORMAT,
@@ -32,7 +27,6 @@ import {
   SerializedBar,
   SerializedMasterBar,
   SerializedMasterBarCommon,
-  SerializedRepeatStatus,
   SerializedScoreV1,
   SerializedStaff,
   SerializedTrack,
@@ -226,12 +220,12 @@ function serializeTrack(
   };
 }
 
-/** Validates the coupled repeat status and count before encoding either shape. */
+/** Validates the coupled repeat state and count before encoding. */
 function validateMasterBarRepeat(
   masterBar: MasterBar,
   path: SerializationPath
 ): void {
-  if (masterBar.repeatStatus === BarRepeatStatus.End) {
+  if (masterBar.isRepeatEnd) {
     if (
       masterBar.repeatCount === null ||
       !Number.isSafeInteger(masterBar.repeatCount) ||
@@ -248,43 +242,20 @@ function validateMasterBarRepeat(
       "repeat count requires repeat end status"
     );
   }
-  if (
-    !Object.prototype.hasOwnProperty.call(
-      SERIALIZED_REPEAT_STATUSES,
-      masterBar.repeatStatus
-    )
-  ) {
-    throw new ScoreSerializationError(
-      propertyPath(path, "repeatStatus"),
-      "unsupported repeat status"
-    );
-  }
 }
 
-/** Narrows validated repeat data to the schema's discriminated representation. */
+/** Constructs validated repeat data for the serialized master bar. */
 function constructSerializedMasterBar(
   masterBar: MasterBar,
   serialized: SerializedMasterBarCommon,
   path: SerializationPath
 ): SerializedMasterBar {
-  if (
-    masterBar.repeatStatus === BarRepeatStatus.End &&
-    masterBar.repeatCount !== null
-  ) {
-    return {
-      ...serialized,
-      repeatStatus: SerializedRepeatStatus.End,
-      repeatCount: masterBar.repeatCount,
-    };
-  }
-  const repeatStatus = SERIALIZED_REPEAT_STATUSES[masterBar.repeatStatus];
-  if (repeatStatus === SerializedRepeatStatus.End) {
-    throw new ScoreSerializationError(
-      propertyPath(path, "repeatStatus"),
-      "repeat status mismatch"
-    );
-  }
-  return { ...serialized, repeatStatus, repeatCount: null };
+  return {
+    ...serialized,
+    isRepeatStart: masterBar.isRepeatStart,
+    isRepeatEnd: masterBar.isRepeatEnd,
+    repeatCount: masterBar.repeatCount,
+  };
 }
 
 /** Serializes meter, tempo, duration, and internally consistent repeat data. */

@@ -873,7 +873,8 @@ describe("TrackController", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -901,7 +902,8 @@ describe("TrackController", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -930,7 +932,8 @@ describe("TrackController", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -955,14 +958,16 @@ describe("TrackController", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     score.appendMasterBar({
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -990,7 +995,8 @@ describe("TrackController", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: 0,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -1528,7 +1534,8 @@ describe("TrackController", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: 0,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -1580,7 +1587,8 @@ describe("TrackController", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: 0,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -1614,7 +1622,8 @@ describe("TrackController", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: 0,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }

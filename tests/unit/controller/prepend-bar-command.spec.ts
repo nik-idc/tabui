@@ -27,7 +27,8 @@ describe("PrependBarCommand", () => {
     const command = new PrependBarCommand(score, {
       ...DEFAULT_MASTER_BAR,
       tempo: 90,
-      repeatStatus: BarRepeatStatus.Start,
+      isRepeatStart: true,
+      isRepeatEnd: false,
     });
 
     command.execute();

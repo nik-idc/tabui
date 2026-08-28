@@ -57,8 +57,8 @@ describe("PlaybackTraversalManager loop state", () => {
       { baseDuration: NoteDuration.Whole },
     ]);
     score.appendMasterBar();
-    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
-    score.masterBars[1].repeatStatus = BarRepeatStatus.End;
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatEnd = true;
     score.masterBars[1].repeatCount = 2;
     const traversal = new PlaybackTraversalManager(score);
     traversal.setPlaybackRange(beats[0]);
@@ -77,8 +77,8 @@ describe("PlaybackTraversalManager loop state", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     score.appendMasterBar();
-    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
-    score.masterBars[1].repeatStatus = BarRepeatStatus.End;
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatEnd = true;
     const traversal = new PlaybackTraversalManager(score);
     traversal.setPlaybackRange(beats[0], beats[1]);
 
@@ -98,8 +98,8 @@ describe("PlaybackTraversalManager loop state", () => {
       throw Error("Expected second bar");
     }
     const selectedEndBeat = secondBar.ensureVoiceBar(1).beats[0];
-    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
-    score.masterBars[1].repeatStatus = BarRepeatStatus.End;
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatEnd = true;
     const traversal = new PlaybackTraversalManager(score);
     traversal.setPlaybackRange(beats[0], selectedEndBeat);
 
@@ -117,8 +117,8 @@ describe("PlaybackTraversalManager loop state", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     score.appendMasterBar();
-    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
-    score.masterBars[1].repeatStatus = BarRepeatStatus.End;
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatEnd = true;
     const traversal = new PlaybackTraversalManager(score);
     traversal.setPlaybackRange(beats[1]);
 

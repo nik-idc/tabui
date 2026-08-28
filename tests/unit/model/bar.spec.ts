@@ -151,7 +151,8 @@ describe("Bar model", () => {
       tempo: 120,
       beatsCount: 1,
       duration: NoteDuration.Whole,
-      repeatStatus: BarRepeatStatus.None,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
 

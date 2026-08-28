@@ -268,8 +268,8 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
 
 10. Address known release blocking issues (list may extend upon further use/manual testing):
     ~1 Copy-pasted beats don't retain techniques~
-    2 Multi beat Technique application. If **any** in selection has technique, remove it first.
-    Then toggle between all on and off
+    ~2 Multi beat Technique application. If **any** in selection has technique, remove it first.
+    Then toggle between all on and off~
     ~3 Inline technique elements have incorrect X coord calculation.
     Likely a remnant of the old, beat-centered calculation method.~
     ~4 Current duration is only highlighted when drag selection is active. What is highlighted
@@ -300,9 +300,10 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     14 Pressing left arrow/right arrow while beat selection is active doesn't clear selection
     and move in the respected direction. That behavior **was** present in the project some
     time ago. It got either axed or there is a bug.
-    15 A bar can be both repeat start **and** end. Current code prohibits this explicitly.
-    Need to loosen this restriction.
-    16 keyboard based beat selection. Shift + Left/Right selects appropriate beat
+    ~15 A bar can be both repeat start **and** end. Current code prohibits this explicitly.
+    Need to loosen this restriction.~
+    - Additionally would be very cool to also implement repeat count setter dialog window
+      16 keyboard based beat selection. Shift + Left/Right selects appropriate beat
 
 Suggested order:
 
@@ -314,11 +315,11 @@ Suggested order:
   - 6 + 9 - DONE
   - 8 - DONE
 - Secondary priority. Essential UX improvements:
-  - 2
+  - 2 - DONE
   - 10
   - 12
   - 14
-  - 15
+  - 15 - ALMOST DONE
 - Last priority. Very desirable for `v0.5.0`:
   - 7
   - 11

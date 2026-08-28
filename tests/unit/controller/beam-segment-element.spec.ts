@@ -211,7 +211,8 @@ describe("BeamSegmentElement", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: 0,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }

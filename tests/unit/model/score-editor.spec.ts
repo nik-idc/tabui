@@ -26,7 +26,8 @@ describe("ScoreEditor", () => {
         tempo: 120 + i * 10,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }

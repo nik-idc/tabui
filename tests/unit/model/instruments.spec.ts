@@ -50,7 +50,8 @@ describe("Default instruments", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: BarRepeatStatus.None,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const beat = bar.getVoiceBar(1)!.beats[0];

@@ -1,9 +1,4 @@
-import {
-  Bar,
-  BarRepeatStatus,
-  NoteDuration,
-  VoiceNumber,
-} from "../../../model";
+import { Bar, NoteDuration, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
 import {
@@ -77,7 +72,8 @@ export class BarElement implements NotationElement {
   /** Kept as separate because is part of geometry state that has to be fully stale pre-update */
   private _durationsFit: boolean;
   /** Repeat status captured during build for stale pre-update diffing. */
-  private _repeatStatusState: BarRepeatStatus;
+  private _isRepeatStartState: boolean;
+  private _isRepeatEndState: boolean;
   /** Time signature captured during build for stale pre-update diffing. */
   private _timeSignatureState: {
     beatsCount: number;
@@ -114,7 +110,8 @@ export class BarElement implements NotationElement {
 
     this._showTempo = false;
     this._durationsFit = false;
-    this._repeatStatusState = this.bar.masterBar.repeatStatus;
+    this._isRepeatStartState = this.bar.masterBar.isRepeatStart;
+    this._isRepeatEndState = this.bar.masterBar.isRepeatEnd;
     this._timeSignatureState = {
       beatsCount: this.bar.masterBar.beatsCount,
       duration: this.bar.masterBar.duration,
@@ -144,7 +141,8 @@ export class BarElement implements NotationElement {
         ? this.bar.masterBar.tempo !== prevBar.masterBar.tempo
         : true;
     this._durationsFit = this.bar.checkDurationsFit();
-    this._repeatStatusState = this.bar.masterBar.repeatStatus;
+    this._isRepeatStartState = this.bar.masterBar.isRepeatStart;
+    this._isRepeatEndState = this.bar.masterBar.isRepeatEnd;
     this._timeSignatureState = {
       beatsCount: this.bar.masterBar.beatsCount,
       duration: this.bar.masterBar.duration,
@@ -373,7 +371,8 @@ export class BarElement implements NotationElement {
     ];
 
     hashArr.push(`${this._showTempo}`);
-    hashArr.push(`${this._repeatStatusState}`);
+    hashArr.push(`${this._isRepeatStartState}`);
+    hashArr.push(`${this._isRepeatEndState}`);
 
     if (this._timeSigRect !== undefined) {
       hashArr.push(`${this._timeSignatureState.beatsCount}`);
@@ -745,7 +744,7 @@ export class BarElement implements NotationElement {
 
   /** Repeat start sign rectangle */
   public get repeatStartRect(): Rect | undefined {
-    if (this._repeatStatusState !== BarRepeatStatus.Start) {
+    if (!this._isRepeatStartState) {
       return undefined;
     }
 
@@ -791,7 +790,7 @@ export class BarElement implements NotationElement {
 
   /** Repeat end sign rectangle */
   public get repeatEndRect(): Rect | undefined {
-    if (this._repeatStatusState !== BarRepeatStatus.End) {
+    if (!this._isRepeatEndState) {
       return undefined;
     }
 

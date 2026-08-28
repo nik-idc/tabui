@@ -1,5 +1,4 @@
 import { BarElement, NotationElement, TrackController } from "../../controller";
-import { BarRepeatStatus } from "../../model";
 import {
   createSVGG,
   createSVGLine,

@@ -21,7 +21,8 @@ function masterBar(
     tempo: number;
     beatsCount: number;
     duration: NoteDuration;
-    repeatStatus: BarRepeatStatus;
+    isRepeatStart: boolean;
+    isRepeatEnd: boolean;
     repeatCount: number | null;
   }> = {}
 ) {
@@ -29,7 +30,8 @@ function masterBar(
     tempo: overrides.tempo ?? 120,
     beatsCount: overrides.beatsCount ?? 4,
     duration: overrides.duration ?? NoteDuration.Quarter,
-    repeatStatus: overrides.repeatStatus ?? BarRepeatStatus.None,
+    isRepeatStart: overrides.isRepeatStart ?? false,
+    isRepeatEnd: overrides.isRepeatEnd ?? false,
     repeatCount: overrides.repeatCount ?? null,
   });
 }

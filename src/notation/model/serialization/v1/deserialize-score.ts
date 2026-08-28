@@ -1,5 +1,4 @@
 import { Bar, VOICE_NUMBERS } from "../../bar";
-import { BarRepeatStatus } from "../../bar-repeat-status";
 import { Guitar } from "../../instrument/guitar/guitar";
 import {
   MasterBar,
@@ -13,7 +12,7 @@ import { Staff } from "../../staff";
 import { Track } from "../../track";
 import { SerializedValueReader } from "../serialized-value-reader";
 import { deserializeInstrument } from "./instrument-serialization";
-import { readClefType, readNoteDuration, readRepeatStatus } from "./mappings";
+import { readClefType, readNoteDuration } from "./mappings";
 import { deserializeVoiceBar } from "./voice-bar-serialization";
 import {
   SCORE_SERIALIZATION_FORMAT,
@@ -91,17 +90,19 @@ function readScoreData(reader: SerializedValueReader): ScoreData {
 /** Reconstructs a master bar after validating its meter and repeat invariants. */
 function deserializeMasterBar(reader: SerializedValueReader): MasterBar {
   reader.readObject();
-  const repeatStatus = readRepeatStatus(reader.property("repeatStatus"));
   reader.expectKeys([
     "tempo",
     "beatsCount",
     "duration",
-    "repeatStatus",
+    "isRepeatStart",
+    "isRepeatEnd",
     "repeatCount",
   ]);
+  const isRepeatStart = reader.property("isRepeatStart").readBoolean();
+  const isRepeatEnd = reader.property("isRepeatEnd").readBoolean();
   const repeatCountReader = reader.property("repeatCount");
   const repeatCount = repeatCountReader.readNullableInteger();
-  if (repeatStatus === BarRepeatStatus.End) {
+  if (isRepeatEnd) {
     if (repeatCount === null || repeatCount < 2) {
       repeatCountReader.fail("repeat end requires a count of at least 2");
     }
@@ -119,7 +120,8 @@ function deserializeMasterBar(reader: SerializedValueReader): MasterBar {
         MAX_MASTER_BAR_BEATS_COUNT
       ),
     duration: readNoteDuration(reader.property("duration")),
-    repeatStatus,
+    isRepeatStart,
+    isRepeatEnd,
     repeatCount,
   });
 }

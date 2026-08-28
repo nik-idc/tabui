@@ -101,7 +101,7 @@ describe("score serialization", () => {
     score.masterBars[0].tempo = 144;
     score.masterBars[0].beatsCount = 7;
     score.masterBars[0].duration = NoteDuration.Eighth;
-    score.masterBars[0].repeatStatus = BarRepeatStatus.End;
+    score.masterBars[0].isRepeatEnd = true;
     score.masterBars[0].repeatCount = 3;
     const beat = score.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0];
     if (beat === undefined) {
@@ -142,7 +142,7 @@ describe("score serialization", () => {
     expect(restoredMasterBar.tempo).toBe(144);
     expect(restoredMasterBar.beatsCount).toBe(7);
     expect(restoredMasterBar.duration).toBe(NoteDuration.Eighth);
-    expect(restoredMasterBar.repeatStatus).toBe(BarRepeatStatus.End);
+    expect(restoredMasterBar.isRepeatEnd).toBe(true);
     expect(restoredMasterBar.repeatCount).toBe(3);
     expect(restoredBeat?.tupletSettings).toEqual({
       normalCount: 3,
@@ -188,6 +188,28 @@ describe("score serialization", () => {
       expect.objectContaining({ dots: 2 }),
     ]);
     expect(restoredBeats?.map((b) => b.dots)).toEqual([1, 2]);
+  });
+
+  test("serializes and restores a bar with both repeat boundaries", () => {
+    const score = new Score();
+    const masterBar = score.masterBars[0];
+    masterBar.isRepeatStart = true;
+    masterBar.isRepeatEnd = true;
+    masterBar.repeatCount = 3;
+
+    const serialized = serializeScore(score);
+    const restored = deserializeScore(
+      JSON.parse(JSON.stringify(serialized)) as unknown
+    );
+
+    expect(serialized.masterBars[0]).toMatchObject({
+      isRepeatStart: true,
+      isRepeatEnd: true,
+      repeatCount: 3,
+    });
+    expect(restored.masterBars[0].isRepeatStart).toBe(true);
+    expect(restored.masterBars[0].isRepeatEnd).toBe(true);
+    expect(restored.masterBars[0].repeatCount).toBe(3);
   });
 
   test("preserves sparse voices, rests, and sparse note slots", () => {
@@ -426,7 +448,8 @@ describe("score serialization", () => {
     [
       "repeat end count",
       (d: ReturnType<typeof serializeScore>) => {
-        Reflect.set(d.masterBars[0], "repeatStatus", "end");
+        Reflect.set(d.masterBars[0], "isRepeatEnd", true);
+        Reflect.set(d.masterBars[0], "repeatCount", null);
       },
       "$.masterBars[0].repeatCount",
     ],
@@ -528,7 +551,7 @@ describe("score serialization", () => {
     [
       "fractional repeat",
       (s: Score) => {
-        s.masterBars[0].repeatStatus = BarRepeatStatus.End;
+        s.masterBars[0].isRepeatEnd = true;
         s.masterBars[0].repeatCount = 2.5;
       },
       "$.masterBars[0].repeatCount",
@@ -547,7 +570,7 @@ describe("score serialization", () => {
     [
       "unsafe repeat integer",
       (s: Score) => {
-        s.masterBars[0].repeatStatus = BarRepeatStatus.End;
+        s.masterBars[0].isRepeatEnd = true;
         s.masterBars[0].repeatCount = Number.MAX_SAFE_INTEGER + 1;
       },
       "$.masterBars[0].repeatCount",

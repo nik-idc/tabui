@@ -16,7 +16,8 @@ describe("Bar beaming", () => {
         tempo: 120,
         beatsCount: 1,
         duration: meterDuration,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
       const voiceBar = bar.getVoiceBar(1);
@@ -125,7 +126,8 @@ describe("Bar beaming", () => {
         tempo: 120,
         beatsCount: 8,
         duration: NoteDuration.Eighth,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       }
     );
@@ -172,7 +174,8 @@ describe("Bar beaming", () => {
         tempo: 120,
         beatsCount: 3,
         duration: NoteDuration.Quarter,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       }
     );
@@ -194,7 +197,8 @@ describe("Bar beaming", () => {
         tempo: 120,
         beatsCount: 6,
         duration: NoteDuration.Eighth,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       }
     );
@@ -244,7 +248,8 @@ describe("Bar beaming", () => {
         tempo: 120,
         beatsCount: 13,
         duration: NoteDuration.Eighth,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       }
     );

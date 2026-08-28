@@ -73,10 +73,10 @@ describe("TrackElement measure", () => {
 
   test("creates repeat start and repeat end rectangles with correct geometry", () => {
     const { score, track } = createScoreGraph();
-    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
+    score.masterBars[0].isRepeatStart = true;
 
     const appendOutput = score.appendMasterBar(DEFAULT_MASTER_BAR);
-    appendOutput.masterBar.repeatStatus = BarRepeatStatus.End;
+    appendOutput.masterBar.isRepeatEnd = true;
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
@@ -129,8 +129,8 @@ describe("TrackElement measure", () => {
       trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements.map(
         (barElement) => barElement.boundingBox.width
       );
-    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
-    score.masterBars[1].repeatStatus = BarRepeatStatus.End;
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatEnd = true;
     trackElement.update();
 
     const afterWidths =
