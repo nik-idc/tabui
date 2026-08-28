@@ -552,7 +552,7 @@ describe("score serialization", () => {
       "fractional repeat",
       (s: Score) => {
         s.masterBars[0].isRepeatEnd = true;
-        s.masterBars[0].repeatCount = 2.5;
+        Reflect.set(s.masterBars[0], "_repeatCount", 2.5);
       },
       "$.masterBars[0].repeatCount",
     ],
@@ -571,7 +571,11 @@ describe("score serialization", () => {
       "unsafe repeat integer",
       (s: Score) => {
         s.masterBars[0].isRepeatEnd = true;
-        s.masterBars[0].repeatCount = Number.MAX_SAFE_INTEGER + 1;
+        Reflect.set(
+          s.masterBars[0],
+          "_repeatCount",
+          Number.MAX_SAFE_INTEGER + 1
+        );
       },
       "$.masterBars[0].repeatCount",
     ],

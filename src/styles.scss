@@ -811,6 +811,62 @@
     grid-template-columns: auto minmax(4rem, 1fr) auto;
   }
 
+  .tu-repeat-count-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-repeat-count-dialog-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      .tu-repeat-count-inputs {
+        display: flex;
+        flex-direction: column;
+
+        .tu-repeat-count-text {
+          padding: 3px;
+          text-align: center;
+          font-size: 20px;
+        }
+
+        .tu-repeat-count-value-control {
+          display: flex;
+          gap: 0.35rem;
+          justify-content: space-between;
+          margin: 0.35rem 0;
+
+          button {
+            @extend %tu-button-style;
+            flex: 1 1 0;
+          }
+        }
+
+        .tu-repeat-count-input {
+          @extend %tu-input-number-style;
+          box-sizing: border-box;
+          width: 100%;
+          margin: 0.35rem 0;
+        }
+
+        .tu-repeat-count-error {
+          @extend %tu-input-error-text;
+        }
+      }
+
+      .tu-repeat-count-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-top: 10px;
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
+  }
+
   .tu-time-sig-dialog {
     @extend %tu-modal-dialog;
 

@@ -609,11 +609,22 @@ export class TrackController {
    * Set repeat status of the bar containing the selected note
    * @param status New repeat status
    */
-  public setSelectedBarRepeatStatus(status: BarRepeatStatus): void {
+  public setSelectedBarRepeatStatus(
+    status: BarRepeatStatus,
+    repeatCount: number = 2
+  ): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
-    this._trackControllerEditor.setSelectedBarRepeatStatus(status);
+    this._trackControllerEditor.setSelectedBarRepeatStatus(status, repeatCount);
+  }
+
+  /** Removes the selected bar's repeat end when one is set. */
+  public toggleSelectedBarRepeatEnd(): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.toggleSelectedBarRepeatEnd();
   }
 
   /**

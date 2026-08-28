@@ -640,7 +640,10 @@ export class TrackControllerEditor {
    * Set selected bar repeat status
    * @param status New status
    */
-  public setSelectedBarRepeatStatus(status: BarRepeatStatus): void {
+  public setSelectedBarRepeatStatus(
+    status: BarRepeatStatus,
+    repeatCount: number = 2
+  ): void {
     if (!this.editingEnabled) {
       return;
     }
@@ -655,9 +658,27 @@ export class TrackControllerEditor {
       new SetRepeatStatusCommand(
         selectionCursor.bar.masterBar,
         status,
-        selectionCursor.staff.track
+        selectionCursor.staff.track,
+        repeatCount
       )
     );
+  }
+
+  /** Removes the selected bar's repeat end when one is set. */
+  public toggleSelectedBarRepeatEnd(): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    const selectionCursor = this._selectionManager.selectionCursor;
+    if (selectionCursor === undefined) {
+      return false;
+    }
+    if (!selectionCursor.bar.masterBar.isRepeatEnd) {
+      return false;
+    }
+
+    this.setSelectedBarRepeatStatus(BarRepeatStatus.End);
+    return true;
   }
 
   /**

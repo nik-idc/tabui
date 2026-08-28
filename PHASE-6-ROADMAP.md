@@ -302,8 +302,8 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     time ago. It got either axed or there is a bug.
     ~15 A bar can be both repeat start **and** end. Current code prohibits this explicitly.
     Need to loosen this restriction.~
-    - Additionally would be very cool to also implement repeat count setter dialog window
-      16 keyboard based beat selection. Shift + Left/Right selects appropriate beat
+    ~- Additionally would be very cool to also implement repeat count setter dialog window~
+    16 keyboard based beat selection. Shift + Left/Right selects appropriate beat
 
 Suggested order:
 

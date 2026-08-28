@@ -20,6 +20,8 @@ export const MAX_MASTER_BAR_TEMPO = 999;
 export const MIN_MASTER_BAR_BEATS_COUNT = 1;
 /** Highest accepted beats-per-measure numerator. Shared with serialization & UI. */
 export const MAX_MASTER_BAR_BEATS_COUNT = 32;
+/** Lowest accepted repeat count. */
+export const MIN_MASTER_BAR_REPEAT_COUNT = 2;
 
 export const DEFAULT_MASTER_BAR: MasterBarData = {
   tempo: 120,
@@ -80,7 +82,12 @@ export class MasterBar {
     this._duration = duration;
     this._isRepeatStart = isRepeatStart;
     this._isRepeatEnd = isRepeatEnd;
-    this._repeatCount = isRepeatEnd ? (repeatCount ?? 2) : null;
+    this._repeatCount = isRepeatEnd
+      ? (repeatCount ?? MIN_MASTER_BAR_REPEAT_COUNT)
+      : null;
+    if (isRepeatEnd) {
+      this.validateRepeatCount(repeatCount ?? MIN_MASTER_BAR_REPEAT_COUNT);
+    }
   }
 
   /** Tempo setter */
@@ -138,10 +145,14 @@ export class MasterBar {
     return this._duration;
   }
 
-  /** Toggles a repeat boundary on this bar. */
+  /**
+   * Toggles a repeat boundary on this bar.
+   * @param boundary Boundary to toggle
+   * @param repeatCount Count to use when enabling the repeat end
+   */
   public toggleRepeatBoundary(
     boundary: BarRepeatStatus,
-    repeatCount: number = 2
+    repeatCount: number = MIN_MASTER_BAR_REPEAT_COUNT
   ): void {
     if (boundary === BarRepeatStatus.Start) {
       this._isRepeatStart = !this._isRepeatStart;
@@ -151,12 +162,15 @@ export class MasterBar {
       throw Error("Cannot toggle an empty repeat boundary");
     }
 
-    this._isRepeatEnd = !this._isRepeatEnd;
     if (this._isRepeatEnd) {
-      this._repeatCount = repeatCount;
-    } else {
+      this._isRepeatEnd = false;
       this._repeatCount = null;
+      return;
     }
+
+    this.validateRepeatCount(repeatCount);
+    this._isRepeatEnd = true;
+    this._repeatCount = repeatCount;
   }
   /** Whether this bar starts a repeat section. */
   public get isRepeatStart(): boolean {
@@ -176,7 +190,7 @@ export class MasterBar {
     if (!value) {
       this._repeatCount = null;
     } else if (this._repeatCount === null) {
-      this._repeatCount = 2;
+      this._repeatCount = MIN_MASTER_BAR_REPEAT_COUNT;
     }
   }
   /** Repeat count setter  */
@@ -184,11 +198,20 @@ export class MasterBar {
     if (!this._isRepeatEnd) {
       throw Error("Attempted to set repeat count of a non-repeat-end bar");
     }
+    this.validateRepeatCount(newCount);
     this._repeatCount = newCount;
   }
   /** How many times a repeat section should repeat */
   public get repeatCount(): number | null {
     return this._repeatCount;
+  }
+
+  private validateRepeatCount(value: number): void {
+    if (!Number.isSafeInteger(value) || value < MIN_MASTER_BAR_REPEAT_COUNT) {
+      throw Error(
+        `Repeat count ${value} must be a safe integer >= ${MIN_MASTER_BAR_REPEAT_COUNT}`
+      );
+    }
   }
 
   /** Gets max duration of the bar */

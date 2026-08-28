@@ -2,6 +2,7 @@ import { NotationComponent } from "../../../notation/notation-component";
 import { MeasureControlsComponent } from "../..";
 import { TempoControlsComponent } from "./tempo-controls";
 import { TimeSigControlsComponent } from "./time-sig-controls";
+import { RepeatCountControlsDefaultCallbacks } from "./repeat-count-controls";
 import {
   TempoControlsCallbacks,
   TempoControlsDefaultCallbacks,
@@ -36,6 +37,7 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
 
   private _tempoCallbacks: TempoControlsCallbacks;
   private _timeSigCallbacks: TimeSigControlsCallbacks;
+  private _repeatCountCallbacks: RepeatCountControlsDefaultCallbacks;
 
   constructor(
     measureComponent: MeasureControlsComponent,
@@ -64,6 +66,12 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
       this._captureKeyboard,
       this._freeKeyboard
     );
+    this._repeatCountCallbacks = new RepeatCountControlsDefaultCallbacks(
+      this._measureComponent.repeatCountControlsComponent,
+      this._notationComponent,
+      this._renderFunc,
+      this._freeKeyboard
+    );
   }
 
   onTempoClicked(): void {
@@ -84,10 +92,12 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
   }
 
   onRepeatEndClicked(): void {
-    this._notationComponent.trackController.setSelectedBarRepeatStatus(
-      BarRepeatStatus.End
-    );
-    this._renderFunc();
+    if (this._notationComponent.trackController.toggleSelectedBarRepeatEnd()) {
+      this._renderFunc();
+      return;
+    }
+    this._captureKeyboard();
+    this._measureComponent.showRepeatCountControls();
   }
 
   onInsertBarBeforeClicked(): void {
@@ -146,11 +156,13 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
 
     this._tempoCallbacks.bind();
     this._timeSigCallbacks.bind();
+    this._repeatCountCallbacks.bind();
   }
 
   public unbind(): void {
     this._listeners.unbindAll();
     this._tempoCallbacks.unbind();
     this._timeSigCallbacks.unbind();
+    this._repeatCountCallbacks.unbind();
   }
 }

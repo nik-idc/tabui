@@ -3,6 +3,7 @@ import { MeasureControlsTemplate } from "./measure-controls-template";
 import { MeasureControlsTemplateRenderer } from "./measure-controls-template-renderer";
 import { TimeSigControlsComponent } from "./time-sig-controls";
 import { TempoControlsComponent } from "./tempo-controls";
+import { RepeatCountControlsComponent } from "./repeat-count-controls";
 
 export class MeasureControlsComponent {
   readonly parentDiv: HTMLDivElement;
@@ -13,6 +14,7 @@ export class MeasureControlsComponent {
 
   readonly timeSigControlsComponent: TimeSigControlsComponent;
   readonly tempoControlsComponent: TempoControlsComponent;
+  readonly repeatCountControlsComponent: RepeatCountControlsComponent;
 
   constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
     this.parentDiv = parentDiv;
@@ -33,12 +35,17 @@ export class MeasureControlsComponent {
       this.template.container,
       this.notationComponent
     );
+    this.repeatCountControlsComponent = new RepeatCountControlsComponent(
+      this.template.container,
+      this.notationComponent
+    );
   }
 
   public render(): void {
     this.templateRenderer.render();
     this.timeSigControlsComponent.render();
     this.tempoControlsComponent.render();
+    this.repeatCountControlsComponent.render();
   }
 
   public showTempoControls(): void {
@@ -49,5 +56,10 @@ export class MeasureControlsComponent {
   public showTimeSigControls(): void {
     this.timeSigControlsComponent.render();
     this.timeSigControlsComponent.template.dialog.showModal();
+  }
+
+  public showRepeatCountControls(): void {
+    this.repeatCountControlsComponent.render();
+    this.repeatCountControlsComponent.template.dialog.showModal();
   }
 }

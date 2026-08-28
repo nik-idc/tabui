@@ -75,6 +75,19 @@ describe("MasterBar domain bounds", () => {
       bar.beatsCount = beatsCount;
     }).toThrow(/outside/);
   });
+
+  test.each([[1], [2.5], [Number.POSITIVE_INFINITY]])(
+    "rejects repeat count %p",
+    (repeatCount) => {
+      expect(() => masterBar({ isRepeatEnd: true, repeatCount })).toThrow(
+        /safe integer/
+      );
+      const bar = masterBar({ isRepeatEnd: true });
+      expect(() => {
+        bar.repeatCount = repeatCount;
+      }).toThrow(/safe integer/);
+    }
+  );
 });
 
 describe("Beat tuplet domain bounds", () => {
