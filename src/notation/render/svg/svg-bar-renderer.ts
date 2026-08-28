@@ -66,6 +66,8 @@ export class SVGBarRenderer implements ElementRenderer {
   /** Bar repeat sign SVG paths */
   private _repeatStartSVG?: SVGPathElement;
   private _repeatEndSVG?: SVGPathElement;
+  /** Repeat count SVG text */
+  private _repeatCountSVG?: SVGTextElement;
   /** Array of bar time signature text elements (beats count + duration) */
   private _timeSigTextsSVG?: SVGTextElement[];
 
@@ -338,6 +340,31 @@ export class SVGBarRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(this._repeatEndSVG);
     }
 
+    const repeatCount = this.barElement.bar.masterBar.repeatCount;
+    const repeatEndRectGlobal = this.barElement.repeatEndRectGlobal;
+    if (repeatCount !== null && repeatEndRectGlobal !== undefined) {
+      const repeatFontSize =
+        this.trackController.layoutDimensions.NOTE_TEXT_SIZE;
+      if (this._repeatCountSVG === undefined) {
+        this._repeatCountSVG = createSVGText();
+        this._repeatCountSVG.setAttribute("id", `bar-rep-count-${barUUID}`);
+        this._repeatCountSVG.setAttribute("fill", "var(--tu-notation-text)");
+        this._repeatCountSVG.setAttribute("font-size", `${repeatFontSize}`);
+        this._containerGroupSVG.appendChild(this._repeatCountSVG);
+      }
+
+      const barGlobalCoords = this.barElement.globalCoords;
+      this._repeatCountSVG.setAttribute(
+        "x",
+        `${repeatEndRectGlobal.x - barGlobalCoords.x + repeatEndRectGlobal.width / 2}`
+      );
+      this._repeatCountSVG.setAttribute(
+        "y",
+        `${repeatEndRectGlobal.y - barGlobalCoords.y - repeatFontSize / 2}`
+      );
+      this._repeatCountSVG.textContent = `x${repeatCount}`;
+    }
+
     if (this._repeatStartSVG !== undefined && repStartLineLocal !== undefined) {
       this._repeatStartSVG.setAttribute(
         "d",
@@ -365,6 +392,10 @@ export class SVGBarRenderer implements ElementRenderer {
     if (this._repeatEndSVG !== undefined) {
       this._containerGroupSVG.removeChild(this._repeatEndSVG);
       this._repeatEndSVG = undefined;
+    }
+    if (this._repeatCountSVG !== undefined) {
+      this._containerGroupSVG.removeChild(this._repeatCountSVG);
+      this._repeatCountSVG = undefined;
     }
   }
 
