@@ -150,31 +150,22 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._renderFunc();
   }
 
+  /** Moves a note cursor or exits a beat range through a horizontal edge. */
   public moveSelectionEvent(key: string): void {
-    if (!this._notationComponent.trackController.hasSelectedNote) {
-      return;
-    }
+    const trackController = this._notationComponent.trackController;
 
     switch (key) {
       case "arrowdown":
-        this._notationComponent.trackController.moveSelectedNote(
-          SelectedMoveDirection.Down
-        );
+        trackController.moveSelectedNote(SelectedMoveDirection.Down);
         break;
       case "arrowup":
-        this._notationComponent.trackController.moveSelectedNote(
-          SelectedMoveDirection.Up
-        );
+        trackController.moveSelectedNote(SelectedMoveDirection.Up);
         break;
       case "arrowleft":
-        this._notationComponent.trackController.moveSelectedNote(
-          SelectedMoveDirection.Left
-        );
+        trackController.moveSelectedNote(SelectedMoveDirection.Left);
         break;
       case "arrowright":
-        this._notationComponent.trackController.moveSelectedNote(
-          SelectedMoveDirection.Right
-        );
+        trackController.moveSelectedNote(SelectedMoveDirection.Right);
         break;
     }
 

@@ -413,18 +413,19 @@ export class TrackControllerEditor {
     return true;
   }
 
-  /**
-   * Moves selected note left
-   */
+  /** Moves the cursor left from its note or selected range. */
   private moveSelectedNoteLeft(): void {
-    const selectionCursor = this._selectionManager.selectionCursor;
-    if (selectionCursor === undefined) {
-      throw Error("Can't move left, selected note is undefined");
+    if (this._selectionManager.selectionAsBeats.length === 0) {
+      return;
     }
 
     this._selectionManager.moveSelectedNoteLeft(this.editingEnabled);
     if (!this.editingEnabled) {
       return;
+    }
+    const selectionCursor = this._selectionManager.selectionCursor;
+    if (selectionCursor === undefined) {
+      throw Error("Can't move left, selected note is undefined");
     }
     this.updateInsertedVoiceBar(
       selectionCursor.bar,
@@ -432,13 +433,10 @@ export class TrackControllerEditor {
     );
   }
 
-  /**
-   * Moves selected note right
-   */
+  /** Moves the cursor right from its note or selected range. */
   private moveSelectedNoteRight(): void {
-    const selectionCursor = this._selectionManager.selectionCursor;
-    if (selectionCursor === undefined) {
-      throw Error("Can't move right, selected note is undefined");
+    if (this._selectionManager.selectionAsBeats.length === 0) {
+      return;
     }
 
     const moveRightResult = this._selectionManager.moveSelectedNoteRight(
@@ -447,6 +445,10 @@ export class TrackControllerEditor {
     this.handleMoveRight(moveRightResult);
     if (!this.editingEnabled) {
       return;
+    }
+    const selectionCursor = this._selectionManager.selectionCursor;
+    if (selectionCursor === undefined) {
+      throw Error("Can't move right, selected note is undefined");
     }
     this.updateInsertedVoiceBar(
       selectionCursor.bar,

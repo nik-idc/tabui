@@ -637,6 +637,30 @@ describe("TrackController", () => {
     ).toBeDefined();
   });
 
+  test("horizontal movement leaves an active beat range at its outer edge", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+    controller.selectBeat(getBeatElement(controller, 0, 2));
+    controller.moveSelectedNote(SelectedMoveDirection.Left);
+
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(beats[0]);
+
+    controller.selectBeat(getBeatElement(controller, 0, 2));
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(beats[3]);
+  });
+
   test("redo on TrackController redoes the previously undone command", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);

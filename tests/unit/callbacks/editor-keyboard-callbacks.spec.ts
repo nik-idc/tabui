@@ -75,6 +75,7 @@ function createHarness(rootElement: FakeRootElement = createRootElement()) {
       setSelectedNoteFret: jest.fn(),
       moveSelectedNote: jest.fn(),
       selectionCursor: undefined as any,
+      selectionAsBeats: [] as any[],
       hasSelectedNote: false,
       trackControllerEditor,
     },
@@ -334,6 +335,30 @@ describe("EditorKeyboardDefCallbacks", () => {
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenCalledTimes(1);
     expect(renderFunc).toHaveBeenCalledTimes(5);
+  });
+
+  test("horizontal arrows move an active beat range", () => {
+    const { callbacks, notationComponent, renderFunc } =
+      createHarness(createRootElement());
+    notationComponent.trackController.selectionAsBeats = [{}];
+
+    callbacks.moveSelectionEvent("arrowleft");
+    callbacks.moveSelectionEvent("arrowright");
+    callbacks.moveSelectionEvent("arrowup");
+
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenNthCalledWith(1, SelectedMoveDirection.Left);
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenNthCalledWith(2, SelectedMoveDirection.Right);
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenCalledTimes(3);
+    expect(notationComponent.ensureSelectedNoteVisible).toHaveBeenCalledTimes(
+      3
+    );
+    expect(renderFunc).toHaveBeenCalledTimes(3);
   });
 
   test("onKeyDown routes handled keys and ignores function keys", () => {
