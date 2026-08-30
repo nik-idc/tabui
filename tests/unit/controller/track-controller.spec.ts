@@ -300,7 +300,10 @@ describe("TrackController", () => {
     controller.setSelectedBeatsTuplet(3, 2);
     controller.setSelectedBarTempo(90);
     controller.setSelectedBarTimeSignature(3, NoteDuration.Quarter);
-    controller.setSelectedBarRepeatStatus(BarRepeatStatus.Start);
+    controller.setSelectedBarRepeatStatus({
+      status: BarRepeatStatus.Start,
+      enabled: true,
+    });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
     controller.moveSelectedNote(SelectedMoveDirection.Right);
     controller.paste();
@@ -358,7 +361,10 @@ describe("TrackController", () => {
     controller.setSelectedBeatsTuplet(3, 2);
     controller.setSelectedBarTempo(90);
     controller.setSelectedBarTimeSignature(3, NoteDuration.Quarter);
-    controller.setSelectedBarRepeatStatus(BarRepeatStatus.Start);
+    controller.setSelectedBarRepeatStatus({
+      status: BarRepeatStatus.Start,
+      enabled: true,
+    });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
     controller.paste();
     controller.deleteSelectedBeats();

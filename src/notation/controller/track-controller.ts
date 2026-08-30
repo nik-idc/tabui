@@ -5,7 +5,7 @@ import {
   Bar,
   Beat,
   NoteDuration,
-  BarRepeatStatus,
+  BarRepeatStatusChange,
   TechniqueType,
   VoiceNumber,
   Score,
@@ -607,24 +607,13 @@ export class TrackController {
 
   /**
    * Set repeat status of the bar containing the selected note
-   * @param status New repeat status
+   * @param change Desired repeat status state
    */
-  public setSelectedBarRepeatStatus(
-    status: BarRepeatStatus,
-    repeatCount: number = 2
-  ): void {
+  public setSelectedBarRepeatStatus(change: BarRepeatStatusChange): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
-    this._trackControllerEditor.setSelectedBarRepeatStatus(status, repeatCount);
-  }
-
-  /** Removes the selected bar's repeat end when one is set. */
-  public toggleSelectedBarRepeatEnd(): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
-      return false;
-    }
-    return this._trackControllerEditor.toggleSelectedBarRepeatEnd();
+    this._trackControllerEditor.setSelectedBarRepeatStatus(change);
   }
 
   /**

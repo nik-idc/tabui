@@ -1,6 +1,7 @@
 import { NotationComponent } from "../../../../notation/notation-component";
 import {
   BarRepeatStatus,
+  MAX_MASTER_BAR_REPEAT_COUNT,
   MIN_MASTER_BAR_REPEAT_COUNT,
 } from "../../../../notation/model";
 import { ListenerManager } from "../../../../shared/misc";
@@ -19,13 +20,18 @@ export class RepeatCountControlsDefaultCallbacks {
   private step(delta: number): void {
     const template = this._component.template;
     const current = Number(template.value.value);
-    const value = Math.max(
-      MIN_MASTER_BAR_REPEAT_COUNT,
-      (Number.isSafeInteger(current) ? current : MIN_MASTER_BAR_REPEAT_COUNT) +
-        delta
+    const value = Math.min(
+      MAX_MASTER_BAR_REPEAT_COUNT,
+      Math.max(
+        MIN_MASTER_BAR_REPEAT_COUNT,
+        (Number.isSafeInteger(current)
+          ? current
+          : MIN_MASTER_BAR_REPEAT_COUNT) + delta
+      )
     );
     template.value.value = `${value}`;
     template.decreaseButton.disabled = value <= MIN_MASTER_BAR_REPEAT_COUNT;
+    template.increaseButton.disabled = value >= MAX_MASTER_BAR_REPEAT_COUNT;
     template.errorText.textContent = " ";
     template.confirmButton.disabled = false;
   }
@@ -48,15 +54,30 @@ export class RepeatCountControlsDefaultCallbacks {
 
   private onConfirmClicked(): void {
     const value = Number(this._component.template.value.value);
-    if (!Number.isSafeInteger(value) || value < MIN_MASTER_BAR_REPEAT_COUNT) {
+    const isOutsideRange =
+      !Number.isSafeInteger(value) ||
+      value < MIN_MASTER_BAR_REPEAT_COUNT ||
+      value > MAX_MASTER_BAR_REPEAT_COUNT;
+    if (isOutsideRange) {
       this._component.template.errorText.textContent = "Invalid repeat count";
       this._component.template.confirmButton.disabled = true;
       return;
     }
-    this._notationComponent.trackController.setSelectedBarRepeatStatus(
-      BarRepeatStatus.End,
-      value
-    );
+    this._notationComponent.trackController.setSelectedBarRepeatStatus({
+      status: BarRepeatStatus.End,
+      enabled: true,
+      repeatCount: value,
+    });
+    this._renderFunc();
+    this._component.template.dialog.close();
+  }
+
+  /** Removes the repeat end from the selected bar and closes the dialog. */
+  private onRemoveClicked(): void {
+    this._notationComponent.trackController.setSelectedBarRepeatStatus({
+      status: BarRepeatStatus.End,
+      enabled: false,
+    });
     this._renderFunc();
     this._component.template.dialog.close();
   }
@@ -123,6 +144,11 @@ export class RepeatCountControlsDefaultCallbacks {
         element: template.cancelButton,
         event: "click",
         handler: () => template.dialog.close(),
+      },
+      {
+        element: template.removeButton,
+        event: "click",
+        handler: () => this.onRemoveClicked(),
       },
     ]);
   }

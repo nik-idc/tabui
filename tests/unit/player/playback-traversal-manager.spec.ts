@@ -131,6 +131,56 @@ describe("PlaybackTraversalManager loop state", () => {
     });
   });
 
+  test("ignores unmatched repeat boundaries", () => {
+    const { score } = createBarWithBeats([
+      { baseDuration: NoteDuration.Whole },
+    ]);
+    score.appendMasterBar();
+    score.masterBars[0].isRepeatStart = true;
+    const traversal = new PlaybackTraversalManager(score);
+
+    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(1);
+    score.masterBars[1].isRepeatEnd = true;
+    score.masterBars[0].isRepeatStart = false;
+
+    expect(traversal.completeMasterBar(1).nextMasterBarIndex).toBeNull();
+  });
+
+  test("closes then opens repeats at a shared boundary bar", () => {
+    const { score } = createBarWithBeats([
+      { baseDuration: NoteDuration.Whole },
+    ]);
+    score.appendMasterBar();
+    score.appendMasterBar();
+    score.appendMasterBar();
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatEnd = true;
+    score.masterBars[2].isRepeatStart = true;
+    score.masterBars[3].isRepeatEnd = true;
+    const traversal = new PlaybackTraversalManager(score);
+
+    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(1);
+    expect(traversal.completeMasterBar(1).nextMasterBarIndex).toBe(0);
+    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(1);
+    expect(traversal.completeMasterBar(1).nextMasterBarIndex).toBe(2);
+    expect(traversal.completeMasterBar(2).nextMasterBarIndex).toBe(3);
+    expect(traversal.completeMasterBar(3).nextMasterBarIndex).toBe(2);
+    expect(traversal.completeMasterBar(2).nextMasterBarIndex).toBe(3);
+    expect(traversal.completeMasterBar(3).nextMasterBarIndex).toBeNull();
+  });
+
+  test("repeats a single bar with both repeat boundaries", () => {
+    const { score } = createBarWithBeats([
+      { baseDuration: NoteDuration.Whole },
+    ]);
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[0].isRepeatEnd = true;
+    const traversal = new PlaybackTraversalManager(score);
+
+    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(0);
+    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBeNull();
+  });
+
   test("preserves explicit loop state when selection looping changes", () => {
     const { score, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

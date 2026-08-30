@@ -1,6 +1,6 @@
 import { randomInt } from "../../shared";
+import { BarRepeatStatus, BarRepeatStatusChange } from "./bar-repeat-status";
 import { NoteDuration } from "./note-duration";
-import { BarRepeatStatus } from "./bar-repeat-status";
 import { getBaseDurationFraction, TimingFraction } from "./timing";
 
 export type MasterBarData = {
@@ -22,6 +22,8 @@ export const MIN_MASTER_BAR_BEATS_COUNT = 1;
 export const MAX_MASTER_BAR_BEATS_COUNT = 32;
 /** Lowest accepted repeat count. */
 export const MIN_MASTER_BAR_REPEAT_COUNT = 2;
+/** Highest accepted repeat count. */
+export const MAX_MASTER_BAR_REPEAT_COUNT = 32;
 
 export const DEFAULT_MASTER_BAR: MasterBarData = {
   tempo: 120,
@@ -146,32 +148,36 @@ export class MasterBar {
   }
 
   /**
-   * Toggles a repeat boundary on this bar.
-   * @param boundary Boundary to toggle
-   * @param repeatCount Count to use when enabling the repeat end
+   * Adds or updates one repeat status on this bar.
+   * @param change Bar repeat status change info:
+   * - Status
+   * - Enabled/disabled
+   * - Repeat count (only if is repeat end)
    */
-  public toggleRepeatBoundary(
-    boundary: BarRepeatStatus,
-    repeatCount: number = MIN_MASTER_BAR_REPEAT_COUNT
-  ): void {
-    if (boundary === BarRepeatStatus.Start) {
-      this._isRepeatStart = !this._isRepeatStart;
-      return;
-    }
-    if (boundary !== BarRepeatStatus.End) {
-      throw Error("Cannot toggle an empty repeat boundary");
+  public setRepeatStatus(change: BarRepeatStatusChange): void {
+    const { status, enabled, repeatCount } = change;
+    if (status === BarRepeatStatus.Start && repeatCount) {
+      throw Error("Repeat start cannot have a repeat count");
     }
 
-    if (this._isRepeatEnd) {
-      this._isRepeatEnd = false;
-      this._repeatCount = null;
-      return;
+    if (repeatCount) {
+      this.validateRepeatCount(repeatCount);
     }
 
-    this.validateRepeatCount(repeatCount);
-    this._isRepeatEnd = true;
-    this._repeatCount = repeatCount;
+    if (status === BarRepeatStatus.Start) {
+      this._isRepeatStart = enabled;
+    } else {
+      this._isRepeatEnd = enabled;
+      this._repeatCount = enabled
+        ? (repeatCount ?? MIN_MASTER_BAR_REPEAT_COUNT)
+        : null;
+    }
   }
+
+  public isSelfContainedRepeat(): boolean {
+    return this._isRepeatStart && this._isRepeatEnd;
+  }
+
   /** Whether this bar starts a repeat section. */
   public get isRepeatStart(): boolean {
     return this._isRepeatStart;
@@ -207,10 +213,14 @@ export class MasterBar {
   }
 
   private validateRepeatCount(value: number): void {
-    if (!Number.isSafeInteger(value) || value < MIN_MASTER_BAR_REPEAT_COUNT) {
-      throw Error(
-        `Repeat count ${value} must be a safe integer >= ${MIN_MASTER_BAR_REPEAT_COUNT}`
-      );
+    const isOutsideRange =
+      !Number.isSafeInteger(value) ||
+      value < MIN_MASTER_BAR_REPEAT_COUNT ||
+      value > MAX_MASTER_BAR_REPEAT_COUNT;
+    if (isOutsideRange) {
+      const bounds =
+        `${MIN_MASTER_BAR_REPEAT_COUNT}..` + `${MAX_MASTER_BAR_REPEAT_COUNT}`;
+      throw Error(`Repeat count ${value} is outside ${bounds}`);
     }
   }
 

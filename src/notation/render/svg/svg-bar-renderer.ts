@@ -146,7 +146,7 @@ export class SVGBarRenderer implements ElementRenderer {
       }
     }
 
-    const strokeColor = this.barElement.bar.checkDurationsFit()
+    const strokeColor = this.barElement.barValidState
       ? "var(--tu-notation-ink)"
       : "var(--tu-notation-danger)";
     for (let i = 0; i < this.barElement.staffLines.length; i++) {

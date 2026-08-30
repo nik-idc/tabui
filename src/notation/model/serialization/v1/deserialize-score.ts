@@ -3,8 +3,10 @@ import { Guitar } from "../../instrument/guitar/guitar";
 import {
   MasterBar,
   MAX_MASTER_BAR_BEATS_COUNT,
+  MAX_MASTER_BAR_REPEAT_COUNT,
   MAX_MASTER_BAR_TEMPO,
   MIN_MASTER_BAR_BEATS_COUNT,
+  MIN_MASTER_BAR_REPEAT_COUNT,
   MIN_MASTER_BAR_TEMPO,
 } from "../../master-bar";
 import { Score } from "../../score";
@@ -103,8 +105,14 @@ function deserializeMasterBar(reader: SerializedValueReader): MasterBar {
   const repeatCountReader = reader.property("repeatCount");
   const repeatCount = repeatCountReader.readNullableInteger();
   if (isRepeatEnd) {
-    if (repeatCount === null || repeatCount < 2) {
-      repeatCountReader.fail("repeat end requires a count of at least 2");
+    const countOutsideRange =
+      repeatCount === null ||
+      repeatCount < MIN_MASTER_BAR_REPEAT_COUNT ||
+      repeatCount > MAX_MASTER_BAR_REPEAT_COUNT;
+    if (countOutsideRange) {
+      const bounds =
+        `${MIN_MASTER_BAR_REPEAT_COUNT}..` + `${MAX_MASTER_BAR_REPEAT_COUNT}`;
+      repeatCountReader.fail(`repeat end requires a count in ${bounds}`);
     }
   } else if (repeatCount !== null) {
     repeatCountReader.fail("repeat count requires repeat end status");

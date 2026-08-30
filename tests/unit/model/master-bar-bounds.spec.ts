@@ -3,6 +3,7 @@ import {
   Beat,
   MasterBar,
   MAX_MASTER_BAR_BEATS_COUNT,
+  MAX_MASTER_BAR_REPEAT_COUNT,
   MAX_MASTER_BAR_TEMPO,
   MIN_MASTER_BAR_BEATS_COUNT,
   MIN_MASTER_BAR_TEMPO,
@@ -76,16 +77,25 @@ describe("MasterBar domain bounds", () => {
     }).toThrow(/outside/);
   });
 
-  test.each([[1], [2.5], [Number.POSITIVE_INFINITY]])(
-    "rejects repeat count %p",
+  test.each([
+    [1],
+    [MAX_MASTER_BAR_REPEAT_COUNT + 1],
+    [2.5],
+    [Number.POSITIVE_INFINITY],
+  ])("rejects repeat count %p", (repeatCount) => {
+    expect(() => masterBar({ isRepeatEnd: true, repeatCount })).toThrow(
+      /outside/
+    );
+    const bar = masterBar({ isRepeatEnd: true });
+    expect(() => {
+      bar.repeatCount = repeatCount;
+    }).toThrow(/outside/);
+  });
+
+  test.each([[2], [MAX_MASTER_BAR_REPEAT_COUNT]])(
+    "accepts repeat count %i",
     (repeatCount) => {
-      expect(() => masterBar({ isRepeatEnd: true, repeatCount })).toThrow(
-        /safe integer/
-      );
-      const bar = masterBar({ isRepeatEnd: true });
-      expect(() => {
-        bar.repeatCount = repeatCount;
-      }).toThrow(/safe integer/);
+      expect(() => masterBar({ isRepeatEnd: true, repeatCount })).not.toThrow();
     }
   );
 });

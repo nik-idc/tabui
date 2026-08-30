@@ -3,8 +3,10 @@ import { Guitar } from "../../instrument/guitar/guitar";
 import {
   MasterBar,
   MAX_MASTER_BAR_BEATS_COUNT,
+  MAX_MASTER_BAR_REPEAT_COUNT,
   MAX_MASTER_BAR_TEMPO,
   MIN_MASTER_BAR_BEATS_COUNT,
+  MIN_MASTER_BAR_REPEAT_COUNT,
   MIN_MASTER_BAR_TEMPO,
 } from "../../master-bar";
 import { Score } from "../../score";
@@ -226,14 +228,17 @@ function validateMasterBarRepeat(
   path: SerializationPath
 ): void {
   if (masterBar.isRepeatEnd) {
-    if (
+    const countOutsideRange =
       masterBar.repeatCount === null ||
       !Number.isSafeInteger(masterBar.repeatCount) ||
-      masterBar.repeatCount < 2
-    ) {
+      masterBar.repeatCount < MIN_MASTER_BAR_REPEAT_COUNT ||
+      masterBar.repeatCount > MAX_MASTER_BAR_REPEAT_COUNT;
+    if (countOutsideRange) {
+      const bounds =
+        `${MIN_MASTER_BAR_REPEAT_COUNT}..` + `${MAX_MASTER_BAR_REPEAT_COUNT}`;
       throw new ScoreSerializationError(
         propertyPath(path, "repeatCount"),
-        "repeat end requires a count of at least 2"
+        `repeat end requires a count in ${bounds}`
       );
     }
   } else if (masterBar.repeatCount !== null) {

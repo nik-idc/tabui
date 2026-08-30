@@ -3,7 +3,7 @@ import {
   NoteDuration,
   GuitarNote,
   Bar,
-  BarRepeatStatus,
+  BarRepeatStatusChange,
   TechniqueType,
   BendTechniqueOptions,
   MasterBarData,
@@ -638,12 +638,9 @@ export class TrackControllerEditor {
 
   /**
    * Set selected bar repeat status
-   * @param status New status
+   * @param change Desired repeat status state
    */
-  public setSelectedBarRepeatStatus(
-    status: BarRepeatStatus,
-    repeatCount: number = 2
-  ): void {
+  public setSelectedBarRepeatStatus(change: BarRepeatStatusChange): void {
     if (!this.editingEnabled) {
       return;
     }
@@ -657,28 +654,10 @@ export class TrackControllerEditor {
     this.executeCommand(
       new SetRepeatStatusCommand(
         selectionCursor.bar.masterBar,
-        status,
-        selectionCursor.staff.track,
-        repeatCount
+        change,
+        selectionCursor.staff.track
       )
     );
-  }
-
-  /** Removes the selected bar's repeat end when one is set. */
-  public toggleSelectedBarRepeatEnd(): boolean {
-    if (!this.editingEnabled) {
-      return false;
-    }
-    const selectionCursor = this._selectionManager.selectionCursor;
-    if (selectionCursor === undefined) {
-      return false;
-    }
-    if (!selectionCursor.bar.masterBar.isRepeatEnd) {
-      return false;
-    }
-
-    this.setSelectedBarRepeatStatus(BarRepeatStatus.End);
-    return true;
   }
 
   /**

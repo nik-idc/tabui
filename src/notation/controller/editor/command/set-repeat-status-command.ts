@@ -1,4 +1,9 @@
-import { BarRepeatStatus, MasterBar, Track } from "../../../model";
+import {
+  BarRepeatStatus,
+  BarRepeatStatusChange,
+  MasterBar,
+  Track,
+} from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**
@@ -9,31 +14,27 @@ export class SetRepeatStatusCommand implements Command {
   private _bar: MasterBar;
   /** Track whose rendered staff bars should be refreshed. */
   private _track: Track;
-  /** New repeat status value */
-  private _newRepeatStatus: BarRepeatStatus;
-  private _newRepeatCount: number;
-  /** Old repeat boundary values */
+  /** Desired repeat status state. */
+  private _change: BarRepeatStatusChange;
+  /** Old repeat start value */
   private _oldRepeatStart: boolean;
+  /** Old repeat end value */
   private _oldRepeatEnd: boolean;
+  /** Old repeat count value */
   private _oldRepeatCount: number | null;
-  /** True if executed, false otherwise*/
+  /** True if executed, false otherwise */
   private _executed: boolean = false;
 
   /**
    * Set guitar bar repeat status command
    * @param bar Bar whose repeat status to set
-   * @param newRepeatStatus New repeat status value
+   * @param change Desired repeat status state
+   * @param track Track whose rendered bars must refresh
    */
-  constructor(
-    bar: MasterBar,
-    newRepeatStatus: BarRepeatStatus,
-    track: Track,
-    newRepeatCount: number = 2
-  ) {
+  constructor(bar: MasterBar, change: BarRepeatStatusChange, track: Track) {
     this._bar = bar;
     this._track = track;
-    this._newRepeatStatus = newRepeatStatus;
-    this._newRepeatCount = newRepeatCount;
+    this._change = change;
     this._oldRepeatStart = bar.isRepeatStart;
     this._oldRepeatEnd = bar.isRepeatEnd;
     this._oldRepeatCount = bar.repeatCount;
@@ -43,7 +44,7 @@ export class SetRepeatStatusCommand implements Command {
    * Execute set repeat status command
    */
   execute(): void {
-    this._bar.toggleRepeatBoundary(this._newRepeatStatus, this._newRepeatCount);
+    this._bar.setRepeatStatus(this._change);
     this._executed = true;
   }
 
@@ -70,15 +71,15 @@ export class SetRepeatStatusCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    this._bar.toggleRepeatBoundary(this._newRepeatStatus, this._newRepeatCount);
+    this._bar.setRepeatStatus(this._change);
   }
 
   public get affectedModels(): AffectedModel[] {
-    const masterBarIndex = this._track.score.masterBars.indexOf(this._bar);
-
-    return this._track.staves.map((staff) => ({
-      masterBarIndex,
-      modelUUID: staff.bars[masterBarIndex].uuid,
-    }));
+    return this._track.staves.flatMap((s) =>
+      s.bars.map((b, bi) => ({
+        masterBarIndex: bi,
+        modelUUID: b.uuid,
+      }))
+    );
   }
 }

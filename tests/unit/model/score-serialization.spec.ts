@@ -9,6 +9,7 @@ import {
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
+  MAX_MASTER_BAR_REPEAT_COUNT,
   NoteDuration,
   SCORE_SERIALIZATION_FORMAT,
   SCORE_SERIALIZATION_VERSION,
@@ -454,6 +455,18 @@ describe("score serialization", () => {
       "$.masterBars[0].repeatCount",
     ],
     [
+      "repeat end maximum",
+      (d: ReturnType<typeof serializeScore>) => {
+        Reflect.set(d.masterBars[0], "isRepeatEnd", true);
+        Reflect.set(
+          d.masterBars[0],
+          "repeatCount",
+          MAX_MASTER_BAR_REPEAT_COUNT + 1
+        );
+      },
+      "$.masterBars[0].repeatCount",
+    ],
+    [
       "tuning count",
       (d: ReturnType<typeof serializeScore>) => {
         d.tracks[0].instrument.tuning.pop();
@@ -575,6 +588,18 @@ describe("score serialization", () => {
           s.masterBars[0],
           "_repeatCount",
           Number.MAX_SAFE_INTEGER + 1
+        );
+      },
+      "$.masterBars[0].repeatCount",
+    ],
+    [
+      "repeat above maximum",
+      (s: Score) => {
+        s.masterBars[0].isRepeatEnd = true;
+        Reflect.set(
+          s.masterBars[0],
+          "_repeatCount",
+          MAX_MASTER_BAR_REPEAT_COUNT + 1
         );
       },
       "$.masterBars[0].repeatCount",

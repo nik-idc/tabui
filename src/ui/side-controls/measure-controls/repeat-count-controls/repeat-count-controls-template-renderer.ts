@@ -1,5 +1,9 @@
 import { NotationComponent } from "../../../../notation/notation-component";
-import { DEFAULT_MASTER_BAR } from "../../../../notation/model";
+import {
+  DEFAULT_MASTER_BAR,
+  MAX_MASTER_BAR_REPEAT_COUNT,
+  MIN_MASTER_BAR_REPEAT_COUNT,
+} from "../../../../notation/model";
 import {
   assembleDialog,
   renderOnce,
@@ -37,7 +41,11 @@ export class RepeatCountControlsTemplateRenderer {
         {
           element: this.template.actionsContent,
           className: "tu-repeat-count-actions",
-          children: [this.template.confirmButton, this.template.cancelButton],
+          children: [
+            this.template.confirmButton,
+            this.template.cancelButton,
+            this.template.removeButton,
+          ],
         },
       ]
     );
@@ -60,7 +68,8 @@ export class RepeatCountControlsTemplateRenderer {
     this.template.decreaseButton.textContent = "-1";
     this.template.value.type = "number";
     this.template.value.inputMode = "numeric";
-    this.template.value.min = "2";
+    this.template.value.min = `${MIN_MASTER_BAR_REPEAT_COUNT}`;
+    this.template.value.max = `${MAX_MASTER_BAR_REPEAT_COUNT}`;
     this.template.value.step = "1";
     this.template.value.classList.add("tu-repeat-count-input");
     this.template.value.value = `${
@@ -68,7 +77,9 @@ export class RepeatCountControlsTemplateRenderer {
     }`;
     this.template.increaseButton.textContent = "+1";
     this.template.decreaseButton.disabled =
-      Number(this.template.value.value) <= 2;
+      Number(this.template.value.value) <= MIN_MASTER_BAR_REPEAT_COUNT;
+    this.template.increaseButton.disabled =
+      Number(this.template.value.value) >= MAX_MASTER_BAR_REPEAT_COUNT;
     this.template.errorText.textContent = " ";
     this.template.errorText.classList.add("tu-repeat-count-error");
     setupDialogActionButtons(
@@ -77,6 +88,9 @@ export class RepeatCountControlsTemplateRenderer {
       "tu-repeat-count-confirm-button",
       "tu-repeat-count-cancel-button"
     );
+    this.template.removeButton.classList.add("tu-repeat-count-remove-button");
+    this.template.removeButton.textContent = "Remove";
+    this.template.removeButton.disabled = !selectedBar?.isRepeatEnd;
     this._assembled = renderOnce(this._assembled, () =>
       this.assembleContainer()
     );

@@ -18,4 +18,5 @@ export class RepeatCountControlsTemplate {
   readonly actionsContent: HTMLDivElement = createDiv();
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
+  readonly removeButton: HTMLButtonElement = createButton();
 }

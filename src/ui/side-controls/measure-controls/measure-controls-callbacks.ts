@@ -85,17 +85,17 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
   }
 
   onRepeatStartClicked(): void {
-    this._notationComponent.trackController.setSelectedBarRepeatStatus(
-      BarRepeatStatus.Start
-    );
+    const trackController = this._notationComponent.trackController;
+    const enabled =
+      !trackController.selectionCursor?.bar.masterBar.isRepeatStart;
+    trackController.setSelectedBarRepeatStatus({
+      status: BarRepeatStatus.Start,
+      enabled,
+    });
     this._renderFunc();
   }
 
   onRepeatEndClicked(): void {
-    if (this._notationComponent.trackController.toggleSelectedBarRepeatEnd()) {
-      this._renderFunc();
-      return;
-    }
     this._captureKeyboard();
     this._measureComponent.showRepeatCountControls();
   }

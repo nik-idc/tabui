@@ -63,22 +63,25 @@ export class BarElement implements NotationElement {
   /** Voice bar rhythm elements containing each voice bar's rhythm elements stacked vertically */
   private _voiceBarRhythmContainers: VoiceBarRhythmContainer[];
 
-  /** Bar element rectangle */
-  private _boundingBox: Rect;
-  /** Bar element's lines */
-  private _staffLines: HorLine[];
   /** Kept as separate because is part of geometry state that has to be fully stale pre-update */
+  // TODO: Rename to `showTempoState`
   private _showTempo: boolean;
   /** Kept as separate because is part of geometry state that has to be fully stale pre-update */
-  private _durationsFit: boolean;
+  private _barValidState: boolean;
   /** Repeat status captured during build for stale pre-update diffing. */
   private _isRepeatStartState: boolean;
   private _isRepeatEndState: boolean;
+  private _repeatCountState: number | null = null;
   /** Time signature captured during build for stale pre-update diffing. */
   private _timeSignatureState: {
     beatsCount: number;
     duration: NoteDuration;
   };
+
+  /** Bar element rectangle */
+  private _boundingBox: Rect;
+  /** Bar element's lines */
+  private _staffLines: HorLine[];
   /** Time signature rectangle */
   private _timeSigRect?: Rect;
 
@@ -109,9 +112,10 @@ export class BarElement implements NotationElement {
     this._boundingBox = new Rect(lineX, 0);
 
     this._showTempo = false;
-    this._durationsFit = false;
+    this._barValidState = this.bar.isValid();
     this._isRepeatStartState = this.bar.masterBar.isRepeatStart;
     this._isRepeatEndState = this.bar.masterBar.isRepeatEnd;
+    this._repeatCountState = this.bar.masterBar.repeatCount;
     this._timeSignatureState = {
       beatsCount: this.bar.masterBar.beatsCount,
       duration: this.bar.masterBar.duration,
@@ -140,9 +144,10 @@ export class BarElement implements NotationElement {
       prevBar !== null
         ? this.bar.masterBar.tempo !== prevBar.masterBar.tempo
         : true;
-    this._durationsFit = this.bar.checkDurationsFit();
+    this._barValidState = this.bar.isValid();
     this._isRepeatStartState = this.bar.masterBar.isRepeatStart;
     this._isRepeatEndState = this.bar.masterBar.isRepeatEnd;
+    this._repeatCountState = this.bar.masterBar.repeatCount;
     this._timeSignatureState = {
       beatsCount: this.bar.masterBar.beatsCount,
       duration: this.bar.masterBar.duration,
@@ -373,6 +378,7 @@ export class BarElement implements NotationElement {
     hashArr.push(`${this._showTempo}`);
     hashArr.push(`${this._isRepeatStartState}`);
     hashArr.push(`${this._isRepeatEndState}`);
+    hashArr.push(`${this._repeatCountState}`);
 
     if (this._timeSigRect !== undefined) {
       hashArr.push(`${this._timeSignatureState.beatsCount}`);
@@ -387,13 +393,18 @@ export class BarElement implements NotationElement {
       hashArr.push(`${line.x1}${line.x2}${line.y}`);
     }
 
-    hashArr.push(`${this._durationsFit ? 1 : 0}`);
+    hashArr.push(`${this._barValidState ? 1 : 0}`);
 
     return hashArr.join("");
   }
 
   public get finalizedWidth(): number {
     return this._finalizedWidth;
+  }
+
+  /** Whether the bar has valid durations and repeat boundaries. */
+  public get barValidState(): boolean {
+    return this._barValidState;
   }
 
   /** Visual content extent used only to keep overflowing beats inside the bar. */
