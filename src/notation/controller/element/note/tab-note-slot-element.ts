@@ -9,6 +9,8 @@ import { NotationNode, NotationNodeType } from "../notation-element";
 import type { BarElement } from "../bar/bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
+export const SELECTION_SIZE_FACTOR = 1.33;
+
 /** Class that handles geometry & visually relevant info of a tab note slot. */
 export class TabNoteSlotElement implements NoteElement {
   readonly nodeType = NotationNodeType.Element;
@@ -331,10 +333,27 @@ export class TabNoteSlotElement implements NoteElement {
 
   /** Note selection rectangle */
   public get selectionRect(): Rect {
-    const size = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 1.5;
+    const size =
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE *
+      1.5 *
+      SELECTION_SIZE_FACTOR;
     return new Rect(
       this.globalCoords.x + this.textCoords.x - size / 2,
       this.globalCoords.y + this.textCoords.y - size / 2,
+      size,
+      size
+    );
+  }
+
+  /** Note selection rectangle in bar-local coordinates. */
+  public get selectionRectBarLocal(): Rect {
+    const size =
+      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE *
+      1.5 *
+      SELECTION_SIZE_FACTOR;
+    return new Rect(
+      this.barLocalCoords.x + this.textCoords.x - size / 2,
+      this.barLocalCoords.y + this.textCoords.y - size / 2,
       size,
       size
     );

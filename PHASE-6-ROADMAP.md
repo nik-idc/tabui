@@ -280,8 +280,8 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     7 Aria + tooltips for all interactable elements
     ~8 Tuplets (incomplete) are offset horizontally as well~
     ~9 Fret 0 is a special case - can't apply most techniques to it~
-    10 Note selection currently is too tight. Either the demo has a font that is too small or the
-    selection preview has to be a tad more aggressive. Not too much - voices.
+    ~10 Note selection currently is too tight. Either the demo has a font that is too small or the
+    selection preview has to be a tad more aggressive. Not too much - voices.~
     11 Adding a note by clicking the far right end of an incomplete bar. Present in Songsterr &
     GuitarPro. Hell, even I find myself automatically attempting the same behavior when testing
     manually in the empty score.
@@ -297,13 +297,14 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     Less code probably but also is a very hacky, terrible long-term solution.
     Also revisit transitional techniques such as Slide/Legato and their ownership.
     Having them always belong to a note leads to hacky code to ensure correctness.
-    14 Pressing left arrow/right arrow while beat selection is active doesn't clear selection
+    ~14 Pressing left arrow/right arrow while beat selection is active doesn't clear selection
     and move in the respected direction. That behavior **was** present in the project some
-    time ago. It got either axed or there is a bug.
+    time ago. It got either axed or there is a bug.~
     ~15 A bar can be both repeat start **and** end. Current code prohibits this explicitly.
     Need to loosen this restriction.~
     ~- Additionally would be very cool to also implement repeat count setter dialog window~
-    16 keyboard based beat selection. Shift + Left/Right selects appropriate beat
+    ~16 keyboard based beat selection. Shift + Left/Right selects appropriate beat.
+    Escape cancels selection.~
 
 Suggested order:
 
@@ -316,7 +317,7 @@ Suggested order:
   - 8 - DONE
 - Secondary priority. Essential UX improvements:
   - 2 - DONE
-  - 10
+  - 10 - DONE
   - 12
   - 14 - DONE
   - 15 - DONE
