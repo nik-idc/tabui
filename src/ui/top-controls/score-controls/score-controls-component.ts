@@ -23,7 +23,11 @@ export class ScoreControlsComponent {
 
   private _tracksAreDisplayed: boolean = false;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this.score = this.notationComponent.score;
@@ -39,15 +43,18 @@ export class ScoreControlsComponent {
 
     this.newTrackComponent = new NewTrackControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
     this.trackSettingsComponent = new TrackSettingsControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent,
       this.score.tracks[0]
     );
     this.trackRemoveComponent = new YesNoComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
   }

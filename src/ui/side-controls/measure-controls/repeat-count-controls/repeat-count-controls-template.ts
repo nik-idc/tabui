@@ -6,7 +6,7 @@ import {
 } from "../../../../shared";
 
 export class RepeatCountControlsTemplate {
-  readonly dialog: HTMLDialogElement = createDialog();
+  readonly dialog: HTMLDialogElement;
   readonly dialogContent: HTMLDivElement = createDiv();
   readonly inputContent: HTMLDivElement = createDiv();
   readonly textContainer: HTMLDivElement = createDiv();
@@ -19,4 +19,8 @@ export class RepeatCountControlsTemplate {
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
   readonly removeButton: HTMLButtonElement = createButton();
+
+  constructor(dialogHost: HTMLDivElement) {
+    this.dialog = createDialog(dialogHost);
+  }
 }

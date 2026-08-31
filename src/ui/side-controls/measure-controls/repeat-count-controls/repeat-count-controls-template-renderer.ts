@@ -22,7 +22,6 @@ export class RepeatCountControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this._parentDiv,
       this.template.dialog,
       "tu-repeat-count-dialog",
       this.template.dialogContent,

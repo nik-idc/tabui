@@ -16,7 +16,11 @@ export class MeasureControlsComponent {
   readonly tempoControlsComponent: TempoControlsComponent;
   readonly repeatCountControlsComponent: RepeatCountControlsComponent;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
@@ -29,14 +33,17 @@ export class MeasureControlsComponent {
 
     this.timeSigControlsComponent = new TimeSigControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
     this.tempoControlsComponent = new TempoControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
     this.repeatCountControlsComponent = new RepeatCountControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
   }

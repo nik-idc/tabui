@@ -6,8 +6,12 @@ export class RepeatCountControlsComponent {
   readonly template: RepeatCountControlsTemplate;
   readonly templateRenderer: RepeatCountControlsTemplateRenderer;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
-    this.template = new RepeatCountControlsTemplate();
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
+    this.template = new RepeatCountControlsTemplate(dialogHost);
     this.templateRenderer = new RepeatCountControlsTemplateRenderer(
       parentDiv,
       notationComponent,

@@ -20,6 +20,8 @@
 
 .tu-editor {
   display: grid;
+  position: relative;
+  isolation: isolate;
   grid-template-rows: auto 1fr;
   grid-template-columns: max-content minmax(0, 1fr);
   gap: 0.5rem;
@@ -33,6 +35,17 @@
   .tu-top-controls-host {
     grid-area: 1 / 1 / 2 / 3;
     min-width: 0;
+  }
+
+  .tu-dialog-host {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+
+    .tu-dialog {
+      pointer-events: auto;
+    }
   }
 
   .tu-side-controls-host {
@@ -968,10 +981,12 @@
 
   .tu-nt-dialog {
     @extend %tu-modal-dialog;
-    width: 600px;
 
     .tu-nt-content {
       @extend %tu-modal-dialog-content;
+      width: 600px;
+      max-width: 100%;
+      box-sizing: border-box;
 
       .tu-nt-settings-container {
         display: flex;
@@ -1138,10 +1153,12 @@
 
   .tu-ts-dialog {
     @extend %tu-modal-dialog;
-    width: 400px;
 
     .tu-ts-content {
       @extend %tu-modal-dialog-content;
+      width: 400px;
+      max-width: 100%;
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
 
@@ -1268,16 +1285,38 @@
 }
 
 %tu-modal-dialog {
-  border-radius: var(--tu-border-radius);
   border: none;
   padding: 0;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  background-color: var(--tu-primary-color);
   color: var(--tu-font-color);
+
+  &:not([open]) {
+    display: none;
+  }
+
+  &[data-tu-dialog-mode="modal"] {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.35);
+
+    > :first-child {
+      margin: auto;
+    }
+  }
+
+  &[data-tu-dialog-mode="nonmodal"] {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+  }
 }
 
 %tu-modal-dialog-content {
   padding: 1.5rem;
+  border-radius: var(--tu-border-radius);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  background-color: var(--tu-primary-color);
   color: inherit;
 }
 

@@ -1,3 +1,8 @@
+import {
+  ContainedDialogBehavior,
+  ContainedDialogElement,
+} from "./contained-dialog";
+
 export function createDiv(): HTMLDivElement {
   return document.createElement("div");
 }
@@ -38,8 +43,11 @@ export function createSVG(): SVGSVGElement {
   return document.createElementNS("http://www.w3.org/2000/svg", "svg");
 }
 
-export function createDialog(): HTMLDialogElement {
-  return document.createElement("dialog");
+/** Creates and permanently mounts a dialog in the supplied dialog host. */
+export function createDialog(
+  dialogHost: HTMLDivElement
+): ContainedDialogElement {
+  return ContainedDialogBehavior.create(dialogHost);
 }
 
 export function createOption(): HTMLOptionElement {

@@ -21,11 +21,15 @@ export class BendControlsComponent {
   readonly bendSelectorManager: BendSelectorManager;
   private _initialized = false;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new BendControlsTemplate();
+    this.template = new BendControlsTemplate(dialogHost);
     this.templateRenderer = new BendControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

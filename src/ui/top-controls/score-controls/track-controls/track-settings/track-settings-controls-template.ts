@@ -8,7 +8,7 @@ import {
 } from "../../../../../shared";
 
 export class TrackSettingsControlsTemplate {
-  readonly dialog: HTMLDialogElement = createDialog();
+  readonly dialog: HTMLDialogElement;
   /**/ readonly dialogContent: HTMLDivElement = createDiv();
   /****/ readonly settingsContainer: HTMLDivElement = createDiv();
   /******/ readonly instrFamiliesContainer: HTMLDivElement = createDiv();
@@ -35,4 +35,8 @@ export class TrackSettingsControlsTemplate {
   /****/ readonly actionsContainer: HTMLDivElement = createDiv();
   /******/ readonly confirmButton: HTMLButtonElement = createButton();
   /******/ readonly cancelButton: HTMLButtonElement = createButton();
+
+  constructor(dialogHost: HTMLDivElement) {
+    this.dialog = createDialog(dialogHost);
+  }
 }

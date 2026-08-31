@@ -14,7 +14,11 @@ export class NoteControlsComponent {
   readonly tupletComponent: TupletControlsComponent;
   readonly fretComponent: FretControlsComponent;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
@@ -27,10 +31,12 @@ export class NoteControlsComponent {
 
     this.tupletComponent = new TupletControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
     this.fretComponent = new FretControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
   }

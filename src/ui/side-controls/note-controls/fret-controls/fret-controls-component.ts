@@ -9,10 +9,14 @@ export class FretControlsComponent {
   readonly template: FretControlsTemplate;
   readonly templateRenderer: FretControlsTemplateRenderer;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
-    this.template = new FretControlsTemplate();
+    this.template = new FretControlsTemplate(dialogHost);
     this.templateRenderer = new FretControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

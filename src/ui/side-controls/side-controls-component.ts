@@ -24,6 +24,7 @@ export class SideControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
     notationComponent: NotationComponent,
     config: ResolvedTabUIConfig
   ) {
@@ -40,14 +41,17 @@ export class SideControlsComponent {
 
     this.noteControlsComponent = new NoteControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
     this.techniqueControlsComponent = new TechniqueControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
     this.measureControlsComponent = new MeasureControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
   }

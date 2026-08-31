@@ -13,7 +13,7 @@ test("moves a bend handle without scrolling notation", async ({ page }) => {
 
   // Open the bend dialog through the same control a user clicks.
   await editor.locator('img[alt="Bend"]').click();
-  const dialog = editor.locator("dialog.tu-bend-controls-dialog");
+  const dialog = editor.locator(".tu-dialog.tu-bend-controls-dialog");
   const graph = dialog.locator(".tu-bend-controls-svg");
   await expect(dialog).toHaveAttribute("open", "");
   await expect(graph).toBeVisible();

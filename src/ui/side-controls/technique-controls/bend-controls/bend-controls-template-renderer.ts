@@ -41,7 +41,6 @@ export class BendControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.parentDiv,
       this.template.dialog,
       "tu-bend-controls-dialog",
       this.template.dialogContent,

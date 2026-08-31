@@ -285,11 +285,11 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     11 Adding a note by clicking the far right end of an incomplete bar. Present in Songsterr &
     GuitarPro. Hell, even I find myself automatically attempting the same behavior when testing
     manually in the empty score.
-    12 Usage of `HTMLDialogElement` directly conflicts with the embeddable nature of TabUI.
+    ~12 Usage of `HTMLDialogElement` directly conflicts with the embeddable nature of TabUI.
     Replace `HTMLDialogElement` with custom bialog behavior divs. Needed to ensure native dialogs
     only appear as modal in TabUI itself, not the host app. Preferrably keep the exact same API
     so that the desired effect is achieved with minimal code or at least with code contained to
-    a specific area.
+    a specific area.~
     13 Revisit Palm Mute, Vibrato & Let Ring application methods. Do these really belong
     at the Note level? They _can_ but **should** they? If not, I currently see 2 ways
     of doing it: - Expanding the Beat model with a Technique array, just like Notes are.
@@ -305,6 +305,9 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     ~- Additionally would be very cool to also implement repeat count setter dialog window~
     ~16 keyboard based beat selection. Shift + Left/Right selects appropriate beat.
     Escape cancels selection.~
+    17 Bug. Shift + B opens bend dialog - correct. Escape exits the dialog - also correct.
+    But then another Shift + B doesn't do anything. Switching to a different note and pressing
+    Shift + B does actually open the dialog though. I suppose this must be some rendering issue.
 
 Suggested order:
 
@@ -315,10 +318,11 @@ Suggested order:
   - 5 - DONE
   - 6 + 9 - DONE
   - 8 - DONE
+  - 17
 - Secondary priority. Essential UX improvements:
   - 2 - DONE
   - 10 - DONE
-  - 12
+  - 12 - DONE
   - 14 - DONE
   - 15 - DONE
   - 16

@@ -28,7 +28,6 @@ export class FretControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.parentDiv,
       this.template.dialog,
       "tu-fret-dialog",
       this.template.dialogContent,
