@@ -180,6 +180,7 @@ export class TabUIEditor {
     this._uiComponent = new UIComponent(
       this._shellComponent.template.scorePanelHost,
       this._shellComponent.template.sidePanelHost,
+      this._shellComponent.template.dialogHost,
       this._notationComponent,
       this.config
     );

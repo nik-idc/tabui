@@ -9,11 +9,15 @@ export class TimeSigControlsComponent {
   readonly template: TimeSigControlsTemplate;
   readonly templateRenderer: TimeSigControlsTemplateRenderer;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new TimeSigControlsTemplate();
+    this.template = new TimeSigControlsTemplate(dialogHost);
     this.templateRenderer = new TimeSigControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

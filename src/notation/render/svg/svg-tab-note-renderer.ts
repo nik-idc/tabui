@@ -162,7 +162,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     const hitRect =
       this.noteElement.note === null
         ? this.noteElement.barLocalBoundingBox
-        : this.noteElement.textRectBarLocal;
+        : this.noteElement.selectionRectBarLocal;
     const x = `${hitRect.x}`;
     const y = `${hitRect.y}`;
     const width = `${hitRect.width}`;

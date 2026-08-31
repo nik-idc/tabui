@@ -1,5 +1,4 @@
 import {
-  BarRepeatStatus,
   Beat,
   fractionEq,
   fractionLt,
@@ -347,35 +346,51 @@ export class PlaybackTraversalManager {
     honorRepeatEnd: boolean = true
   ): PlaybackTraversalResult {
     const masterBar = this.score.masterBars[currentMasterBarIndex];
-
-    if (
-      masterBar.repeatStatus === BarRepeatStatus.Start &&
-      this._repeatStartMasterBarIndex !== currentMasterBarIndex
-    ) {
+    const repeatStatusValid =
+      this.score.isMasterBarRepeatStatusValid(masterBar);
+    const isSelfContainedRepeat =
+      repeatStatusValid &&
+      masterBar.isRepeatStart &&
+      masterBar.isRepeatEnd &&
+      this._repeatStartMasterBarIndex === undefined;
+    const initializesSelfContainedRepeat = isSelfContainedRepeat;
+    if (initializesSelfContainedRepeat) {
       this._repeatStartMasterBarIndex = currentMasterBarIndex;
       this._repeatPassCount = 0;
     }
-
-    if (
-      honorRepeatEnd &&
-      masterBar.repeatStatus === BarRepeatStatus.End &&
-      this._repeatStartMasterBarIndex !== undefined
-    ) {
+    const repeatStartIndex = this._repeatStartMasterBarIndex;
+    const closesActiveRepeat =
+      repeatStatusValid &&
+      masterBar.isRepeatEnd &&
+      repeatStartIndex !== undefined &&
+      (isSelfContainedRepeat || repeatStartIndex !== currentMasterBarIndex);
+    const appliesRepeatEnd = honorRepeatEnd && closesActiveRepeat;
+    if (appliesRepeatEnd && repeatStartIndex !== undefined) {
       const repeatCount = masterBar.repeatCount ?? 2;
       const isRepeatInsidePlayback = this.isRepeatInsidePlayback(
-        this._repeatStartMasterBarIndex,
+        repeatStartIndex,
         currentMasterBarIndex
       );
       if (isRepeatInsidePlayback && this._repeatPassCount < repeatCount - 1) {
         this._repeatPassCount++;
         return {
-          nextMasterBarIndex: this._repeatStartMasterBarIndex,
+          nextMasterBarIndex: repeatStartIndex,
           loopRestarted: false,
           repeatJumped: true,
         };
       }
 
       this._repeatStartMasterBarIndex = undefined;
+      this._repeatPassCount = 0;
+    }
+
+    const opensNewRepeat =
+      !isSelfContainedRepeat &&
+      repeatStatusValid &&
+      masterBar.isRepeatStart &&
+      this._repeatStartMasterBarIndex !== currentMasterBarIndex;
+    if (opensNewRepeat) {
+      this._repeatStartMasterBarIndex = currentMasterBarIndex;
       this._repeatPassCount = 0;
     }
 

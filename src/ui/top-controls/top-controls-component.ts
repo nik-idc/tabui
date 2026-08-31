@@ -17,7 +17,11 @@ export class TopControlsComponent {
   readonly scoreComponent: ScoreControlsComponent;
   readonly playComponent: PlayControlsComponent;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
@@ -29,6 +33,7 @@ export class TopControlsComponent {
     );
     this.scoreComponent = new ScoreControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
     this.playComponent = new PlayControlsComponent(

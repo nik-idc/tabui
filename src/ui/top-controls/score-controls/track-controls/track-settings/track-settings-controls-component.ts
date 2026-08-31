@@ -37,6 +37,7 @@ export class TrackSettingsControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
     notationComponent: NotationComponent,
     track: Track
   ) {
@@ -44,7 +45,7 @@ export class TrackSettingsControlsComponent {
     this.notationComponent = notationComponent;
     this._track = track;
 
-    this.template = new TrackSettingsControlsTemplate();
+    this.template = new TrackSettingsControlsTemplate(dialogHost);
     this.templateRenderer = new TrackSettingsControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

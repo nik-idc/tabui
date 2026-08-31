@@ -9,11 +9,15 @@ export class TupletControlsComponent {
   readonly template: TupletControlsTemplate;
   readonly templateRenderer: TupletControlsTemplateRenderer;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new TupletControlsTemplate();
+    this.template = new TupletControlsTemplate(dialogHost);
     this.templateRenderer = new TupletControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

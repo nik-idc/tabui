@@ -1,6 +1,5 @@
 import {
   AcousticGuitarTone,
-  BarRepeatStatus,
   BassGuitarTone,
   BendType,
   ClefType,
@@ -16,7 +15,6 @@ import {
   SerializedInstrumentFamily,
   SerializedNoteDuration,
   SerializedPlayableNoteValue,
-  SerializedRepeatStatus,
   SerializedStringInstrumentTone,
   SerializedStringInstrumentType,
   SerializedTechniqueType,
@@ -28,7 +26,6 @@ import {
   readInstrumentFamily,
   readNoteDuration,
   readNoteValue,
-  readRepeatStatus,
   readStringInstrumentType,
   readStringTone,
   readTechniqueType,
@@ -36,7 +33,6 @@ import {
   SERIALIZED_INSTRUMENT_FAMILIES,
   SERIALIZED_NOTE_DURATIONS,
   SERIALIZED_PLAYABLE_NOTE_VALUES,
-  SERIALIZED_REPEAT_STATUSES,
   SERIALIZED_STRING_INSTRUMENT_TYPES,
   SERIALIZED_STRING_TONES,
   SERIALIZED_TECHNIQUE_TYPES,
@@ -52,11 +48,6 @@ const DURATIONS: readonly WirePair[] = [
   [NoteDuration.Sixteenth, "sixteenth"],
   [NoteDuration.ThirtySecond, "thirty-second"],
   [NoteDuration.SixtyFourth, "sixty-fourth"],
-];
-const REPEATS: readonly WirePair[] = [
-  [BarRepeatStatus.None, "none"],
-  [BarRepeatStatus.Start, "start"],
-  [BarRepeatStatus.End, "end"],
 ];
 const CLEFS: readonly WirePair[] = [
   [ClefType.Treble, "Treble"],
@@ -106,7 +97,6 @@ const MAPPINGS: readonly [
   readonly WirePair[],
 ][] = [
   ["durations", SERIALIZED_NOTE_DURATIONS, DURATIONS],
-  ["repeats", SERIALIZED_REPEAT_STATUSES, REPEATS],
   ["clefs", SERIALIZED_CLEF_TYPES, CLEFS],
   ["techniques", SERIALIZED_TECHNIQUE_TYPES, TECHNIQUES],
   ["tuning notes", SERIALIZED_PLAYABLE_NOTE_VALUES, TUNING_NOTES],
@@ -149,14 +139,13 @@ const READERS: readonly [
   readonly WirePair[],
 ][] = [
   ["durations", readNoteDuration, DURATIONS],
-  ["repeats", readRepeatStatus, REPEATS],
   ["clefs", readClefType, CLEFS],
   ["techniques", readTechniqueType, TECHNIQUES],
   ["bend tokens", readBendType, BENDS],
   ["tuning notes", readNoteValue, TUNING_NOTES],
   ["families", readInstrumentFamily, [[InstrumentFamily.Strings, "Strings"]]],
-  ["instrument types", readStringInstrumentType, MAPPINGS[6][2]],
-  ["tones", readStringTone, MAPPINGS[7][2]],
+  ["instrument types", readStringInstrumentType, MAPPINGS[5][2]],
+  ["tones", readStringTone, MAPPINGS[6][2]],
 ];
 
 const SERIALIZED_ENUMS = [
@@ -172,11 +161,6 @@ const SERIALIZED_ENUMS = [
       ThirtySecond: "thirty-second",
       SixtyFourth: "sixty-fourth",
     },
-  ],
-  [
-    "repeat statuses",
-    SerializedRepeatStatus,
-    { None: "none", Start: "start", End: "end" },
   ],
   [
     "techniques",

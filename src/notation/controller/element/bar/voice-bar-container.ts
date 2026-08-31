@@ -3,7 +3,6 @@ import {
   Beat,
   DURATION_TO_FLAG_COUNT,
   Guitar,
-  BarRepeatStatus,
   Bar,
   VoiceNumber,
 } from "../../../model";
@@ -330,7 +329,7 @@ export function getVoiceBarWidth(
 ): number {
   let width = 0;
 
-  if (voiceBar.bar.masterBar.repeatStatus === BarRepeatStatus.Start) {
+  if (voiceBar.bar.masterBar.isRepeatStart) {
     width += layoutDimensions.REPEAT_SIGN_WIDTH;
   }
 
@@ -346,7 +345,7 @@ export function getVoiceBarWidth(
     width += getBeatWidth(beat, layoutDimensions);
   }
 
-  if (voiceBar.bar.masterBar.repeatStatus === BarRepeatStatus.End) {
+  if (voiceBar.bar.masterBar.isRepeatEnd) {
     width += layoutDimensions.REPEAT_SIGN_WIDTH;
   }
 

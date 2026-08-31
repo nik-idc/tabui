@@ -150,35 +150,81 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._renderFunc();
   }
 
+  /** Moves a note cursor or exits a beat range through a horizontal edge. */
   public moveSelectionEvent(key: string): void {
-    if (!this._notationComponent.trackController.hasSelectedNote) {
-      return;
-    }
+    const trackController = this._notationComponent.trackController;
 
     switch (key) {
       case "arrowdown":
-        this._notationComponent.trackController.moveSelectedNote(
-          SelectedMoveDirection.Down
-        );
+        trackController.moveSelectedNote(SelectedMoveDirection.Down);
         break;
       case "arrowup":
-        this._notationComponent.trackController.moveSelectedNote(
-          SelectedMoveDirection.Up
-        );
+        trackController.moveSelectedNote(SelectedMoveDirection.Up);
         break;
       case "arrowleft":
-        this._notationComponent.trackController.moveSelectedNote(
-          SelectedMoveDirection.Left
-        );
+        trackController.moveSelectedNote(SelectedMoveDirection.Left);
         break;
       case "arrowright":
-        this._notationComponent.trackController.moveSelectedNote(
-          SelectedMoveDirection.Right
-        );
+        trackController.moveSelectedNote(SelectedMoveDirection.Right);
         break;
     }
 
     this._notationComponent.ensureSelectedNoteVisible();
+    this._renderFunc();
+  }
+
+  /** Extends a beat range horizontally by one beat or one bar. */
+  private extendSelectionEvent(key: string, byBar: boolean): void {
+    const direction =
+      key === "arrowleft"
+        ? SelectedMoveDirection.Left
+        : key === "arrowright"
+          ? SelectedMoveDirection.Right
+          : undefined;
+    if (direction === undefined) {
+      return;
+    }
+
+    const trackController = this._notationComponent.trackController;
+    const extended = byBar
+      ? trackController.extendSelectionByBar(direction)
+      : trackController.extendSelectionByBeat(direction);
+    if (!extended) {
+      return;
+    }
+
+    this._notationComponent.ensureSelectedNoteVisible();
+    this._renderFunc();
+  }
+
+  /** Moves the current cursor or range endpoint by one bar boundary. */
+  private moveSelectionByBarEvent(key: string): void {
+    const direction =
+      key === "arrowleft"
+        ? SelectedMoveDirection.Left
+        : key === "arrowright"
+          ? SelectedMoveDirection.Right
+          : undefined;
+    if (direction === undefined) {
+      return;
+    }
+
+    const moved =
+      this._notationComponent.trackController.moveSelectionByBar(direction);
+    if (!moved) {
+      return;
+    }
+
+    this._notationComponent.ensureSelectedNoteVisible();
+    this._renderFunc();
+  }
+
+  /** Cancels an active beat range and restores its anchor cursor. */
+  private cancelSelectionEvent(): void {
+    if (!this._notationComponent.trackController.clearSelectionRange()) {
+      return;
+    }
+
     this._renderFunc();
   }
 
@@ -208,7 +254,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     if (typeof Element !== "undefined" && target instanceof Element) {
       const editable =
         target.matches("input, textarea, select, [contenteditable='true']") ||
-        target.closest("dialog[open]") !== null;
+        target.closest("dialog[open], .tu-dialog[open]") !== null;
       if (editable) {
         return;
       }
@@ -233,19 +279,41 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
 
+    if (key === "escape" && !event.ctrlKey && !event.shiftKey) {
+      this.cancelSelectionEvent();
+      return;
+    }
+
     if (!this._notationComponent.trackController.editingEnabled) {
       if (event.ctrlKey && !event.shiftKey && key === "c") {
         this.copyEvent();
       } else if (key === " " && !event.ctrlKey && !event.shiftKey) {
         this.togglePlaybackEvent();
+      } else if (
+        event.ctrlKey &&
+        !event.shiftKey &&
+        (key === "arrowleft" || key === "arrowright")
+      ) {
+        this.moveSelectionByBarEvent(key);
+      } else if (
+        event.shiftKey &&
+        (key === "arrowleft" || key === "arrowright")
+      ) {
+        this.extendSelectionEvent(key, event.ctrlKey);
       } else if (KeyChecker.isArrow(key) && !event.ctrlKey && !event.shiftKey) {
         this.moveSelectionEvent(key);
       }
       return;
     }
 
-    if (event.ctrlKey && !event.shiftKey) {
-      if (key === "c") {
+    if (event.ctrlKey && event.shiftKey) {
+      if (key === "arrowleft" || key === "arrowright") {
+        this.extendSelectionEvent(key, true);
+      }
+    } else if (event.ctrlKey && !event.shiftKey) {
+      if (key === "arrowleft" || key === "arrowright") {
+        this.moveSelectionByBarEvent(key);
+      } else if (key === "c") {
         this.copyEvent();
       } else if (key === "v") {
         this.pasteEvent();
@@ -255,7 +323,9 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         this.redoEvent();
       }
     } else if (!event.ctrlKey && event.shiftKey) {
-      if (key === "v") {
+      if (key === "arrowleft" || key === "arrowright") {
+        this.extendSelectionEvent(key, false);
+      } else if (key === "v") {
         this.vibratoEvent();
       } else if (key === "p") {
         this.palmMuteEvent();

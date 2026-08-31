@@ -93,6 +93,61 @@ export class Score {
     }
   }
 
+  public isMasterBarRepeatStatusValid(masterBar: MasterBar): boolean {
+    if (!masterBar.isRepeatStart && !masterBar.isRepeatEnd) {
+      return true;
+    }
+
+    const barIndex = this._masterBars.indexOf(masterBar);
+    if (barIndex === -1) {
+      throw new Error("Master bar not found in the score");
+    }
+
+    if (
+      masterBar.isRepeatStart &&
+      masterBar.isRepeatEnd &&
+      masterBar.repeatCount
+    ) {
+      return true;
+    }
+
+    if (masterBar.isRepeatStart) {
+      for (let i = barIndex + 1; i < this._masterBars.length; i++) {
+        const currentBar = this._masterBars[i];
+
+        if (currentBar.isRepeatStart) {
+          // Nesting repeats aren't allowed yet
+          return false;
+        }
+
+        if (currentBar.isRepeatEnd && currentBar.repeatCount) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    if (masterBar.isRepeatEnd) {
+      for (let i = barIndex - 1; i >= 0; i--) {
+        const currentBar = this._masterBars[i];
+
+        if (currentBar.isRepeatEnd) {
+          // Nesting repeats aren't allowed yet
+          return false;
+        }
+
+        if (currentBar.isRepeatStart) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    return true;
+  }
+
   /**
    * Inserts an existing master bar & associated bars into the score
    * @param index Index

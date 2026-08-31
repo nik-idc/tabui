@@ -1,4 +1,3 @@
-import { BarRepeatStatus } from "../../bar-repeat-status";
 import { BeatDots } from "../../beat";
 import { BendType } from "../../bend-type";
 import { ClefType } from "../../clef-type";
@@ -21,7 +20,6 @@ import {
   SerializedInstrumentFamily,
   SerializedNoteDuration,
   SerializedPlayableNoteValue,
-  SerializedRepeatStatus,
   SerializedStringInstrumentTone,
   SerializedStringInstrumentType,
   SerializedTechniqueType,
@@ -50,23 +48,6 @@ const NOTE_DURATION_BY_VALUE: Record<string, NoteDuration> = {
   [SerializedNoteDuration.Sixteenth]: NoteDuration.Sixteenth,
   [SerializedNoteDuration.ThirtySecond]: NoteDuration.ThirtySecond,
   [SerializedNoteDuration.SixtyFourth]: NoteDuration.SixtyFourth,
-};
-
-/** Stable v1 mapping from model bar repeat states to wire values. */
-export const SERIALIZED_REPEAT_STATUSES: Record<
-  BarRepeatStatus,
-  SerializedRepeatStatus
-> = {
-  [BarRepeatStatus.None]: SerializedRepeatStatus.None,
-  [BarRepeatStatus.Start]: SerializedRepeatStatus.Start,
-  [BarRepeatStatus.End]: SerializedRepeatStatus.End,
-};
-
-/** Supported v1 wire values for validated bar repeat-state reads. */
-const REPEAT_STATUS_BY_VALUE: Record<string, BarRepeatStatus> = {
-  [SerializedRepeatStatus.None]: BarRepeatStatus.None,
-  [SerializedRepeatStatus.Start]: BarRepeatStatus.Start,
-  [SerializedRepeatStatus.End]: BarRepeatStatus.End,
 };
 
 /** Stable v1 mapping from model guitar techniques to wire values. */
@@ -246,12 +227,6 @@ export function readNoteDuration(reader: SerializedValueReader): NoteDuration {
 }
 
 /** Reads and validates a v1 bar repeat state at the reader's current path. */
-export function readRepeatStatus(
-  reader: SerializedValueReader
-): BarRepeatStatus {
-  return reader.readEnumValue(REPEAT_STATUS_BY_VALUE);
-}
-
 /** Reads and validates a v1 guitar technique at the reader's current path. */
 export function readTechniqueType(
   reader: SerializedValueReader

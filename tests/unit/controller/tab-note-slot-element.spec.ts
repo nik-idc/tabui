@@ -1,4 +1,7 @@
-import { TabNoteSlotElement } from "../../../src/notation/controller/element/note/tab-note-slot-element";
+import {
+  SELECTION_SIZE_FACTOR,
+  TabNoteSlotElement,
+} from "../../../src/notation/controller/element/note/tab-note-slot-element";
 import { TrackController } from "../../../src/notation/controller/track-controller";
 import { SVGTabNoteRenderer } from "../../../src/notation/render/svg/svg-tab-note-renderer";
 import { SelectionOverlayRenderer } from "../../../src/notation/render/svg/selection-overlay-renderer";
@@ -228,7 +231,7 @@ describe("SVGTabNoteRenderer", () => {
       normalElement.selectionRect.height
     );
     expect(normalElement.selectionRect.width).toBe(
-      controller.layoutDimensions.NOTE_TEXT_SIZE * 1.5
+      controller.layoutDimensions.NOTE_TEXT_SIZE * 1.5 * SELECTION_SIZE_FACTOR
     );
   });
 

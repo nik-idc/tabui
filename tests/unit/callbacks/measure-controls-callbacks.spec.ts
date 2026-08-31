@@ -1,6 +1,7 @@
 import { MeasureControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/measure-controls-callbacks";
 import { TempoControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/tempo-controls/tempo-controls-callbacks";
 import { TimeSigControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/time-sig-controls/time-sig-controls-callbacks";
+import { RepeatCountControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/repeat-count-controls/repeat-count-controls-callbacks";
 import { BarRepeatStatus } from "../../../src/notation/model";
 import {
   asNotationComponent,
@@ -23,6 +24,12 @@ describe("MeasureControlsDefaultCallbacks", () => {
     const timeUnbindSpy = jest
       .spyOn(TimeSigControlsDefaultCallbacks.prototype, "unbind")
       .mockImplementation(() => {});
+    const repeatBindSpy = jest
+      .spyOn(RepeatCountControlsDefaultCallbacks.prototype, "bind")
+      .mockImplementation(() => {});
+    const repeatUnbindSpy = jest
+      .spyOn(RepeatCountControlsDefaultCallbacks.prototype, "unbind")
+      .mockImplementation(() => {});
     const notationComponent = createNotationComponentMock();
     const renderFunc = jest.fn();
     const captureKeyboard = jest.fn();
@@ -38,8 +45,10 @@ describe("MeasureControlsDefaultCallbacks", () => {
       },
       tempoControlsComponent: {},
       timeSigControlsComponent: {},
+      repeatCountControlsComponent: {},
       showTempoControls: jest.fn(),
       showTimeSigControls: jest.fn(),
+      showRepeatCountControls: jest.fn(),
     } as any;
     const callbacks = new MeasureControlsDefaultCallbacks(
       component,
@@ -60,15 +69,16 @@ describe("MeasureControlsDefaultCallbacks", () => {
     dispatchClick(component.template.insertBarAfterButton);
     dispatchClick(component.template.removeBarButton);
 
-    expect(captureKeyboard).toHaveBeenCalledTimes(2);
+    expect(captureKeyboard).toHaveBeenCalledTimes(3);
     expect(component.showTempoControls).toHaveBeenCalledTimes(1);
     expect(component.showTimeSigControls).toHaveBeenCalledTimes(1);
     expect(
       notationComponent.trackController.setSelectedBarRepeatStatus
-    ).toHaveBeenNthCalledWith(1, BarRepeatStatus.Start);
-    expect(
-      notationComponent.trackController.setSelectedBarRepeatStatus
-    ).toHaveBeenNthCalledWith(2, BarRepeatStatus.End);
+    ).toHaveBeenNthCalledWith(1, {
+      status: BarRepeatStatus.Start,
+      enabled: true,
+    });
+    expect(component.showRepeatCountControls).toHaveBeenCalledTimes(1);
     expect(
       notationComponent.trackController.insertBarBeforeSelected
     ).toHaveBeenCalledTimes(1);
@@ -78,9 +88,10 @@ describe("MeasureControlsDefaultCallbacks", () => {
     expect(
       notationComponent.trackController.removeSelectedBar
     ).toHaveBeenCalledTimes(1);
-    expect(renderFunc).toHaveBeenCalledTimes(5);
+    expect(renderFunc).toHaveBeenCalledTimes(4);
     expect(tempoBindSpy).toHaveBeenCalledTimes(2);
     expect(timeBindSpy).toHaveBeenCalledTimes(2);
+    expect(repeatBindSpy).toHaveBeenCalledTimes(2);
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     const repeatStatusCallsBeforeUnbind =
@@ -94,10 +105,53 @@ describe("MeasureControlsDefaultCallbacks", () => {
     ).toHaveBeenCalledTimes(repeatStatusCallsBeforeUnbind);
     expect(tempoUnbindSpy).toHaveBeenCalledTimes(1);
     expect(timeUnbindSpy).toHaveBeenCalledTimes(1);
+    expect(repeatUnbindSpy).toHaveBeenCalledTimes(1);
 
     tempoBindSpy.mockRestore();
     tempoUnbindSpy.mockRestore();
     timeBindSpy.mockRestore();
     timeUnbindSpy.mockRestore();
+    repeatBindSpy.mockRestore();
+    repeatUnbindSpy.mockRestore();
+  });
+
+  test("repeat start click explicitly clears an existing boundary", () => {
+    const notationComponent = createNotationComponentMock();
+    notationComponent.trackController.selectionCursor = {
+      bar: { masterBar: { isRepeatStart: true } },
+    };
+    const component = {
+      template: {
+        tempoButton: makeButton(),
+        timeSignatureButton: makeButton(),
+        repeatStartButton: makeButton(),
+        repeatEndButton: makeButton(),
+        insertBarBeforeButton: makeButton(),
+        insertBarAfterButton: makeButton(),
+        removeBarButton: makeButton(),
+      },
+      tempoControlsComponent: {},
+      timeSigControlsComponent: {},
+      repeatCountControlsComponent: {},
+      showTempoControls: jest.fn(),
+      showTimeSigControls: jest.fn(),
+      showRepeatCountControls: jest.fn(),
+    } as any;
+    const callbacks = new MeasureControlsDefaultCallbacks(
+      component,
+      asNotationComponent(notationComponent),
+      jest.fn(),
+      jest.fn(),
+      jest.fn()
+    );
+
+    callbacks.onRepeatStartClicked();
+
+    expect(
+      notationComponent.trackController.setSelectedBarRepeatStatus
+    ).toHaveBeenCalledWith({
+      status: BarRepeatStatus.Start,
+      enabled: false,
+    });
   });
 });

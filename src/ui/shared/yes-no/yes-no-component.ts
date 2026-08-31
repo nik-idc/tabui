@@ -13,6 +13,7 @@ export class YesNoComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
     notationComponent: NotationComponent,
     text: string = "Are you sure?"
   ) {
@@ -21,7 +22,7 @@ export class YesNoComponent {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new YesNoTemplate();
+    this.template = new YesNoTemplate(dialogHost);
     this.templateRenderer = new YesNoTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

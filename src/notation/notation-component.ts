@@ -153,9 +153,11 @@ export class NotationComponent {
     this._trackController.trackElement.refreshLayout();
   }
 
-  /** Materializes and follows the current model-level selection cursor. */
+  /** Materializes and follows the current cursor or range endpoint. */
   public ensureSelectedNoteVisible(): void {
-    const selectedBeat = this._trackController.selectionCursor?.beat;
+    const selectedBeat =
+      this._trackController.selectionCursor?.beat ??
+      this._trackController.selectionEndBeat;
     if (selectedBeat !== undefined) {
       this._renderer.ensureBeatVisible(selectedBeat, true);
     }

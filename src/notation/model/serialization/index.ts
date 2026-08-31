@@ -9,7 +9,6 @@ export {
   SerializedInstrumentFamily,
   SerializedNoteDuration,
   SerializedPlayableNoteValue,
-  SerializedRepeatStatus,
   SerializedStringInstrumentTone,
   SerializedStringInstrumentType,
   SerializedTechniqueType,

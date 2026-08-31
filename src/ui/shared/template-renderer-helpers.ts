@@ -50,7 +50,6 @@ export function setupDialogActionButtons(
 }
 
 export function assembleDialog(
-  parentDiv: HTMLDivElement,
   dialog: HTMLDialogElement,
   dialogClassName: string,
   dialogContent: HTMLDivElement,
@@ -70,6 +69,4 @@ export function assembleDialog(
       section.element.append(...section.children);
     }
   }
-
-  parentDiv.appendChild(dialog);
 }

@@ -161,6 +161,14 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     return this.voiceBarsAsArray.every((vb) => vb.checkDurationsFit());
   }
 
+  public checkRepeatStatusValidity(): boolean {
+    return this.staff.track.score.isMasterBarRepeatStatusValid(this.masterBar);
+  }
+
+  public isValid(): boolean {
+    return this.checkDurationsFit() && this.checkRepeatStatusValidity();
+  }
+
   public compare(otherBar: Bar<I>): boolean {
     if (this.masterBar !== otherBar.masterBar) {
       return false;

@@ -17,7 +17,7 @@ export const BEND_TYPE_BUTTON_ORDER = [
 ] as const;
 
 export class BendControlsTemplate {
-  readonly dialog: HTMLDialogElement = createDialog();
+  readonly dialog: HTMLDialogElement;
   readonly dialogContent: HTMLDivElement = createDiv();
 
   readonly bendSelectorContent: HTMLDivElement = createDiv();
@@ -37,4 +37,8 @@ export class BendControlsTemplate {
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
   readonly removeButton: HTMLButtonElement = createButton();
+
+  constructor(dialogHost: HTMLDivElement) {
+    this.dialog = createDialog(dialogHost);
+  }
 }

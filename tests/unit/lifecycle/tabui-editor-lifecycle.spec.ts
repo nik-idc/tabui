@@ -43,7 +43,13 @@ jest.mock("../../../src/ui", () => ({
   UIComponent: jest
     .fn()
     .mockImplementation(
-      (_topHost: unknown, sideHost: any, _notation: unknown, config: any) => {
+      (
+        _topHost: unknown,
+        sideHost: any,
+        _dialogHost: unknown,
+        _notation: unknown,
+        config: any
+      ) => {
         const sidePanelToggle = (globalThis as any).document.createElement(
           "button"
         );
@@ -346,7 +352,7 @@ describe("TabUIEditor lifecycle", () => {
     editor.init();
 
     expect(editor.layoutDimensions.WIDTH).toBe(666);
-    expect(root.appendChild).toHaveBeenCalledTimes(4);
+    expect(root.appendChild).toHaveBeenCalledTimes(5);
     expect(
       (root.appendChild as jest.Mock).mock.calls[2][0].classList.contains(
         "tu-notation-viewport"

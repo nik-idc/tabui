@@ -46,6 +46,7 @@ export class EditorShellTemplateRenderer {
       sidePanelHost,
       notationViewport,
       responsiveMessage,
+      dialogHost,
     } = this.template;
     this.rootDiv.classList.add("tu-editor");
     this.rootDiv.classList.toggle(
@@ -61,6 +62,7 @@ export class EditorShellTemplateRenderer {
     responsiveMessage.setAttribute("role", "status");
     responsiveMessage.setAttribute("aria-live", "polite");
     responsiveMessage.hidden = true;
+    dialogHost.classList.add("tu-dialog-host");
     scorePanelHost.hidden = !this.config.panels.score.visible;
     sidePanelHost.hidden = !this.config.panels.side.visible;
 
@@ -80,6 +82,7 @@ export class EditorShellTemplateRenderer {
     this.rootDiv.appendChild(sidePanelHost);
     this.rootDiv.appendChild(notationViewport);
     this.rootDiv.appendChild(responsiveMessage);
+    this.rootDiv.appendChild(dialogHost);
     this._assembled = true;
   }
 

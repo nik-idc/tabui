@@ -73,10 +73,10 @@ describe("TrackElement measure", () => {
 
   test("creates repeat start and repeat end rectangles with correct geometry", () => {
     const { score, track } = createScoreGraph();
-    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
+    score.masterBars[0].isRepeatStart = true;
 
     const appendOutput = score.appendMasterBar(DEFAULT_MASTER_BAR);
-    appendOutput.masterBar.repeatStatus = BarRepeatStatus.End;
+    appendOutput.masterBar.isRepeatEnd = true;
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
@@ -129,8 +129,8 @@ describe("TrackElement measure", () => {
       trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements.map(
         (barElement) => barElement.boundingBox.width
       );
-    score.masterBars[0].repeatStatus = BarRepeatStatus.Start;
-    score.masterBars[1].repeatStatus = BarRepeatStatus.End;
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatEnd = true;
     trackElement.update();
 
     const afterWidths =
@@ -138,5 +138,52 @@ describe("TrackElement measure", () => {
         (barElement) => barElement.boundingBox.width
       );
     expect(afterWidths).toEqual(beforeWidths);
+  });
+
+  test("marks bars invalid for unmatched repeat boundaries", () => {
+    const oneQuarterBar = {
+      ...DEFAULT_MASTER_BAR,
+      beatsCount: 1,
+    };
+    const { score, track } = createScoreGraph(oneQuarterBar);
+    score.appendMasterBar(oneQuarterBar);
+    score.masterBars[0].isRepeatStart = true;
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+
+    trackElement.update();
+
+    const barElements =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements;
+    expect(barElements[0].barValidState).toBe(false);
+    expect(barElements[1].barValidState).toBe(true);
+
+    score.masterBars[1].isRepeatEnd = true;
+    trackElement.update();
+
+    const updatedBarElements =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements;
+    expect(updatedBarElements[0].barValidState).toBe(true);
+    expect(updatedBarElements[1].barValidState).toBe(true);
+  });
+
+  test("accepts repeat start and end on the same bar", () => {
+    const oneQuarterBar = {
+      ...DEFAULT_MASTER_BAR,
+      beatsCount: 1,
+      isRepeatStart: true,
+      isRepeatEnd: true,
+      repeatCount: 2,
+    };
+    const { track } = createScoreGraph(oneQuarterBar);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+
+    trackElement.update();
+
+    const barElement =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements[0];
+    expect(barElement.barValidState).toBe(true);
   });
 });

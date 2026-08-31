@@ -32,11 +32,15 @@ export class NewTrackControlsComponent {
   private _stringCount: number = 6;
   private _tuning: string = "E A D G B E";
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new NewTrackControlsTemplate();
+    this.template = new NewTrackControlsTemplate(dialogHost);
     this.templateRenderer = new NewTrackControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

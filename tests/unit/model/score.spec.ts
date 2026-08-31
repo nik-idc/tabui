@@ -147,4 +147,57 @@ describe("Score model", () => {
     expect(addedTrack.staves).toHaveLength(1);
     expect(addedTrack.staves[0].bars).toHaveLength(3);
   });
+
+  test("validates matched and unmatched repeat boundaries", () => {
+    const score = new Score();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatEnd = true;
+    score.masterBars[2].isRepeatStart = true;
+
+    expect(score.isMasterBarRepeatStatusValid(score.masterBars[0])).toBe(true);
+    expect(score.isMasterBarRepeatStatusValid(score.masterBars[1])).toBe(true);
+    expect(score.isMasterBarRepeatStatusValid(score.masterBars[2])).toBe(false);
+  });
+
+  test("closes then opens repeat sections at a shared boundary bar", () => {
+    const score = new Score();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[0].isRepeatEnd = true;
+    score.masterBars[1].isRepeatStart = true;
+    score.masterBars[2].isRepeatEnd = true;
+    score.masterBars[3].isRepeatStart = true;
+    score.masterBars[4].isRepeatEnd = true;
+
+    for (const masterBar of score.masterBars) {
+      expect(score.isMasterBarRepeatStatusValid(masterBar)).toBe(true);
+    }
+  });
+
+  test("supersedes an unmatched repeat start with a later start", () => {
+    const score = new Score();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[1].isRepeatStart = true;
+    score.masterBars[2].isRepeatEnd = true;
+
+    expect(score.isMasterBarRepeatStatusValid(score.masterBars[0])).toBe(false);
+    expect(score.isMasterBarRepeatStatusValid(score.masterBars[1])).toBe(true);
+    expect(score.isMasterBarRepeatStatusValid(score.masterBars[2])).toBe(true);
+  });
+
+  test("matches repeat boundaries on the same master bar", () => {
+    const score = new Score();
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[0].isRepeatEnd = true;
+
+    expect(score.isMasterBarRepeatStatusValid(score.masterBars[0])).toBe(true);
+  });
 });

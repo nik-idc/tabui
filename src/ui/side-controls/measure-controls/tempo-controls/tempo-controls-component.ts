@@ -9,11 +9,15 @@ export class TempoControlsComponent {
   readonly template: TempoControlsTemplate;
   readonly templateRenderer: TempoControlsTemplateRenderer;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new TempoControlsTemplate();
+    this.template = new TempoControlsTemplate(dialogHost);
     this.templateRenderer = new TempoControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

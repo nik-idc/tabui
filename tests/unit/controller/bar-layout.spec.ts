@@ -35,7 +35,8 @@ function createGraph(masterBarData?: Partial<MasterBarData>): {
   masterBar.tempo = masterBarData?.tempo ?? 120;
   masterBar.beatsCount = masterBarData?.beatsCount ?? 4;
   masterBar.duration = masterBarData?.duration ?? NoteDuration.Quarter;
-  masterBar.repeatStatus = masterBarData?.repeatStatus ?? BarRepeatStatus.None;
+  masterBar.isRepeatStart = masterBarData?.isRepeatStart ?? false;
+  masterBar.isRepeatEnd = masterBarData?.isRepeatEnd ?? false;
 
   return { score, track, staff, bar: staff.bars[0] as Bar<Guitar> };
 }
@@ -168,13 +169,13 @@ describe("bar layout metrics", () => {
       TEST_LAYOUT_DIMENSIONS
     );
 
-    masterBar.repeatStatus = BarRepeatStatus.Start;
+    masterBar.isRepeatStart = true;
     const afterStart = calculateMasterBarLayoutMetrics(
       track,
       0,
       TEST_LAYOUT_DIMENSIONS
     );
-    masterBar.repeatStatus = BarRepeatStatus.End;
+    masterBar.isRepeatEnd = true;
     const afterEnd = calculateMasterBarLayoutMetrics(
       track,
       0,
@@ -204,7 +205,8 @@ describe("musical beat layout", () => {
     const { score, track, bar } = createGraph({
       beatsCount: 1,
       duration: NoteDuration.Quarter,
-      repeatStatus: BarRepeatStatus.None,
+      isRepeatStart: false,
+      isRepeatEnd: false,
     });
     replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
     const secondBar = score
@@ -212,7 +214,8 @@ describe("musical beat layout", () => {
         tempo: 120,
         beatsCount: TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES,
         duration: NoteDuration.Quarter,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       })
       .bars.get(track.staves[0].uuid) as Bar<Guitar>;
@@ -253,7 +256,8 @@ describe("musical beat layout", () => {
           tempo: 120,
           beatsCount: TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES,
           duration: NoteDuration.Quarter,
-          repeatStatus: BarRepeatStatus.None,
+          isRepeatStart: false,
+          isRepeatEnd: false,
           repeatCount: null,
         })
         .bars.get(track.staves[0].uuid) as Bar<Guitar>;
@@ -382,7 +386,8 @@ describe("score-wide bar layout", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -437,7 +442,8 @@ describe("score-wide bar layout", () => {
         tempo: 120,
         beatsCount: 1,
         duration: NoteDuration.Quarter,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -496,7 +502,8 @@ describe("score-wide bar layout", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
       replaceVoiceBeats(
@@ -545,7 +552,8 @@ describe("score-wide bar layout", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -602,7 +610,8 @@ describe("score layout planner", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: BarRepeatStatus.None,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
 
@@ -642,7 +651,8 @@ describe("score layout planner", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
       const appendedBar = appended.bars.get(track.staves[0].uuid);
@@ -698,7 +708,8 @@ describe("score layout planner", () => {
         tempo: 120,
         beatsCount: 1,
         duration: NoteDuration.Quarter,
-        repeatStatus: BarRepeatStatus.None,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -739,7 +750,8 @@ describe("single-line score layout", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: BarRepeatStatus.None,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const planner = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS);

@@ -6,7 +6,7 @@ import {
 } from "../../../../shared";
 
 export class TimeSigControlsTemplate {
-  readonly dialog: HTMLDialogElement = createDialog();
+  readonly dialog: HTMLDialogElement;
   readonly dialogContent: HTMLDivElement = createDiv();
 
   readonly inputContent: HTMLDivElement = createDiv();
@@ -24,4 +24,8 @@ export class TimeSigControlsTemplate {
   readonly actionsContent: HTMLDivElement = createDiv();
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
+
+  constructor(dialogHost: HTMLDivElement) {
+    this.dialog = createDialog(dialogHost);
+  }
 }

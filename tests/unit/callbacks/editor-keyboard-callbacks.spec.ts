@@ -74,7 +74,12 @@ function createHarness(rootElement: FakeRootElement = createRootElement()) {
       setTechnique: jest.fn(),
       setSelectedNoteFret: jest.fn(),
       moveSelectedNote: jest.fn(),
+      moveSelectionByBar: jest.fn(() => true),
+      extendSelectionByBeat: jest.fn(() => true),
+      extendSelectionByBar: jest.fn(() => true),
+      clearSelectionRange: jest.fn(() => true),
       selectionCursor: undefined as any,
+      selectionAsBeats: [] as any[],
       hasSelectedNote: false,
       trackControllerEditor,
     },
@@ -205,6 +210,7 @@ describe("EditorKeyboardDefCallbacks", () => {
     callbacks.onKeyDown(createKeyboardEvent("7"));
     callbacks.onKeyDown(createKeyboardEvent("Backspace"));
     callbacks.onKeyDown(createKeyboardEvent("ArrowRight"));
+    callbacks.onKeyDown(createKeyboardEvent("ArrowLeft", { ctrlKey: true }));
     callbacks.onKeyDown(createKeyboardEvent(" "));
 
     expect(notationComponent.trackController.copy).toHaveBeenCalledTimes(1);
@@ -226,10 +232,13 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(
       notationComponent.trackController.moveSelectedNote
     ).toHaveBeenCalledWith(SelectedMoveDirection.Right);
+    expect(
+      notationComponent.trackController.moveSelectionByBar
+    ).toHaveBeenCalledWith(SelectedMoveDirection.Left);
     expect(notationComponent.trackController.startPlayer).toHaveBeenCalledTimes(
       1
     );
-    expect(renderFunc).toHaveBeenCalledTimes(2);
+    expect(renderFunc).toHaveBeenCalledTimes(3);
   });
 
   test("technique shortcuts respect selection and bend shortcut opens bend controls", () => {
@@ -334,6 +343,134 @@ describe("EditorKeyboardDefCallbacks", () => {
       notationComponent.trackController.setSelectedNoteFret
     ).toHaveBeenCalledTimes(1);
     expect(renderFunc).toHaveBeenCalledTimes(5);
+  });
+
+  test("horizontal arrows move an active beat range", () => {
+    const { callbacks, notationComponent, renderFunc } =
+      createHarness(createRootElement());
+    notationComponent.trackController.selectionAsBeats = [{}];
+
+    callbacks.moveSelectionEvent("arrowleft");
+    callbacks.moveSelectionEvent("arrowright");
+    callbacks.moveSelectionEvent("arrowup");
+
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenNthCalledWith(1, SelectedMoveDirection.Left);
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenNthCalledWith(2, SelectedMoveDirection.Right);
+    expect(
+      notationComponent.trackController.moveSelectedNote
+    ).toHaveBeenCalledTimes(3);
+    expect(notationComponent.ensureSelectedNoteVisible).toHaveBeenCalledTimes(
+      3
+    );
+    expect(renderFunc).toHaveBeenCalledTimes(3);
+  });
+
+  test("shift arrows extend selection by beat or bar", () => {
+    const { callbacks, notationComponent, renderFunc, rootElement } =
+      createHarness(createRootElement());
+    callbacks.bind();
+    rootElement.dispatch("focusin");
+
+    callbacks.onKeyDown(createKeyboardEvent("ArrowLeft", { shiftKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("ArrowRight", { shiftKey: true }));
+    callbacks.onKeyDown(
+      createKeyboardEvent("ArrowLeft", { ctrlKey: true, shiftKey: true })
+    );
+    callbacks.onKeyDown(
+      createKeyboardEvent("ArrowRight", { ctrlKey: true, shiftKey: true })
+    );
+
+    expect(
+      notationComponent.trackController.extendSelectionByBeat
+    ).toHaveBeenNthCalledWith(1, SelectedMoveDirection.Left);
+    expect(
+      notationComponent.trackController.extendSelectionByBeat
+    ).toHaveBeenNthCalledWith(2, SelectedMoveDirection.Right);
+    expect(
+      notationComponent.trackController.extendSelectionByBar
+    ).toHaveBeenNthCalledWith(1, SelectedMoveDirection.Left);
+    expect(
+      notationComponent.trackController.extendSelectionByBar
+    ).toHaveBeenNthCalledWith(2, SelectedMoveDirection.Right);
+    expect(notationComponent.ensureSelectedNoteVisible).toHaveBeenCalledTimes(
+      4
+    );
+    expect(renderFunc).toHaveBeenCalledTimes(4);
+
+    callbacks.unbind();
+  });
+
+  test("shift arrows extend selection when editing is disabled", () => {
+    const { callbacks, notationComponent, rootElement } =
+      createHarness(createRootElement());
+    notationComponent.trackController.editingEnabled = false;
+    callbacks.bind();
+    rootElement.dispatch("focusin");
+
+    callbacks.onKeyDown(createKeyboardEvent("ArrowLeft", { shiftKey: true }));
+    callbacks.onKeyDown(
+      createKeyboardEvent("ArrowRight", { ctrlKey: true, shiftKey: true })
+    );
+
+    expect(
+      notationComponent.trackController.extendSelectionByBeat
+    ).toHaveBeenCalledWith(SelectedMoveDirection.Left);
+    expect(
+      notationComponent.trackController.extendSelectionByBar
+    ).toHaveBeenCalledWith(SelectedMoveDirection.Right);
+
+    callbacks.unbind();
+  });
+
+  test("ctrl arrows traverse by bar only after successful movement", () => {
+    const { callbacks, notationComponent, renderFunc, rootElement } =
+      createHarness(createRootElement());
+    notationComponent.trackController.moveSelectionByBar
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+    callbacks.bind();
+    rootElement.dispatch("focusin");
+
+    callbacks.onKeyDown(createKeyboardEvent("ArrowLeft", { ctrlKey: true }));
+    callbacks.onKeyDown(createKeyboardEvent("ArrowRight", { ctrlKey: true }));
+
+    expect(
+      notationComponent.trackController.moveSelectionByBar
+    ).toHaveBeenNthCalledWith(1, SelectedMoveDirection.Left);
+    expect(
+      notationComponent.trackController.moveSelectionByBar
+    ).toHaveBeenNthCalledWith(2, SelectedMoveDirection.Right);
+    expect(notationComponent.ensureSelectedNoteVisible).toHaveBeenCalledTimes(
+      1
+    );
+    expect(renderFunc).toHaveBeenCalledTimes(1);
+
+    callbacks.unbind();
+  });
+
+  test("escape cancels a range only when one is active", () => {
+    const { callbacks, notationComponent, renderFunc, rootElement } =
+      createHarness(createRootElement());
+    notationComponent.trackController.editingEnabled = false;
+    notationComponent.trackController.clearSelectionRange
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+    callbacks.bind();
+    rootElement.dispatch("focusin");
+
+    callbacks.onKeyDown(createKeyboardEvent("Escape"));
+    callbacks.onKeyDown(createKeyboardEvent("Escape"));
+
+    expect(
+      notationComponent.trackController.clearSelectionRange
+    ).toHaveBeenCalledTimes(2);
+    expect(renderFunc).toHaveBeenCalledTimes(1);
+
+    callbacks.unbind();
   });
 
   test("onKeyDown routes handled keys and ignores function keys", () => {

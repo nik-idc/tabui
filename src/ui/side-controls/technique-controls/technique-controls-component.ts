@@ -15,7 +15,11 @@ export class TechniqueControlsComponent {
 
   readonly bendControlsComponent: BendControlsComponent;
 
-  constructor(parentDiv: HTMLDivElement, notationComponent: NotationComponent) {
+  constructor(
+    parentDiv: HTMLDivElement,
+    dialogHost: HTMLDivElement,
+    notationComponent: NotationComponent
+  ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
@@ -28,6 +32,7 @@ export class TechniqueControlsComponent {
 
     this.bendControlsComponent = new BendControlsComponent(
       this.template.container,
+      dialogHost,
       this.notationComponent
     );
   }

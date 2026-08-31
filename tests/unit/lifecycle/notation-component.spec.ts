@@ -14,6 +14,8 @@ const TEST_CONFIG: ResolvedTabUIConfig = resolveTabUIConfig();
 const mockTrackControllers: Array<{
   track: unknown;
   player: unknown;
+  selectionCursor?: { beat: unknown };
+  selectionEndBeat?: unknown;
   trackElement: {
     update: jest.Mock;
     refreshLayout: jest.Mock;
@@ -45,6 +47,8 @@ jest.mock("../../../src/notation/controller", () => ({
           track,
           layoutDimensions,
           player,
+          selectionCursor: undefined,
+          selectionEndBeat: undefined,
           trackElement: {
             update: jest.fn(),
             refreshLayout: jest.fn(),
@@ -173,6 +177,25 @@ describe("NotationComponent", () => {
     ).toBeLessThan(mockRenderers[1].render.mock.invocationCallOrder[0]);
     expect(mockRenderers[1].render.mock.invocationCallOrder[0]).toBeLessThan(
       mockPlayers[0].setActiveTrack.mock.invocationCallOrder[0]
+    );
+  });
+
+  test("follows the active range endpoint when no cursor is selected", () => {
+    const { score } = createScoreGraph();
+    const notation = new NotationComponent(
+      { appendChild: jest.fn() } as unknown as HTMLDivElement,
+      score,
+      TEST_CONFIG,
+      TEST_LAYOUT_DIMENSIONS
+    );
+    const rangeEndBeat = {};
+    mockTrackControllers[0].selectionEndBeat = rangeEndBeat;
+
+    notation.ensureSelectedNoteVisible();
+
+    expect(mockRenderers[0].ensureBeatVisible).toHaveBeenCalledWith(
+      rangeEndBeat,
+      true
     );
   });
 

@@ -1,7 +1,14 @@
 import { Staff, Beat, Note, Track, VoiceNumber } from "../../model";
 import { BeatElement } from "../element/beat/beat-element";
 import { NoteElement } from "../element/note/note-element";
-import { SelectionCursor, MoveRightOutput } from "./selection-cursor";
+import {
+  SelectionCursor,
+  MoveRightOutput,
+  SelectedMoveDirection,
+} from "./selection-cursor";
+
+type HorizontalOffset = -1 | 1;
+type BarOffset = HorizontalOffset | 0;
 
 /**
  * Class that manages selection state
@@ -85,31 +92,17 @@ export class SelectionManager {
     this.selectionCursor.moveDown();
   }
 
-  /**
-   * Move selected note left
-   */
+  /** Moves the cursor left, starting outside the selected range if active. */
   public moveSelectedNoteLeft(editingEnabled: boolean = true): void {
-    if (this._selectionCursor === undefined) {
-      throw Error("No note selected");
-    }
-
     if (this._selectionBeats.length !== 0) {
-      // Select left most element of selection
       const leftMostBeat = this._selectionBeats[0];
-      const leftMostNote =
-        leftMostBeat.notes?.[
-          this.selectionCursor ? this.selectionCursor.noteIndex : 0
-        ];
-
-      if (leftMostNote !== undefined) {
-        this.selectNote(leftMostNote);
+      if (leftMostBeat === undefined) {
+        throw Error("Selected beat range is empty");
       }
+      this.selectBeatCursor(leftMostBeat, 0);
     }
 
-    if (
-      this._selectionBeats.length === 0 &&
-      this.selectionCursor === undefined
-    ) {
+    if (this._selectionCursor === undefined) {
       throw Error("No note selected");
     }
 
@@ -117,40 +110,144 @@ export class SelectionManager {
     this._activeVoiceNumber = this._selectionCursor.voiceNumber;
   }
 
-  /**
-   * Move selected note right
-   */
+  /** Moves the cursor right, starting outside the selected range if active. */
   public moveSelectedNoteRight(
     editingEnabled: boolean = true
   ): MoveRightOutput {
-    if (this._selectionCursor === undefined) {
-      throw Error("No note selected");
-    }
-
     if (this._selectionBeats.length !== 0) {
-      // Select right most element of selection
       const rightMostBeat =
         this._selectionBeats[this._selectionBeats.length - 1];
-      const rightMostNote =
-        rightMostBeat.notes?.[
-          this.selectionCursor ? this.selectionCursor.noteIndex : 0
-        ];
-
-      if (rightMostNote !== undefined) {
-        this.selectNote(rightMostNote);
+      if (rightMostBeat === undefined) {
+        throw Error("Selected beat range is empty");
       }
+      this.selectBeatCursor(rightMostBeat, 0);
     }
 
-    if (
-      this._selectionBeats.length === 0 &&
-      this.selectionCursor === undefined
-    ) {
+    if (this._selectionCursor === undefined) {
       throw Error("No note selected");
     }
 
     const output = this._selectionCursor.moveRight(editingEnabled);
     this._activeVoiceNumber = this._selectionCursor.voiceNumber;
     return output;
+  }
+
+  /** Starts a range at the cursor if needed, then moves its active endpoint. */
+  private extendSelectionTo(beat: Beat): void {
+    const cursorBeat = this._selectionCursor?.beat;
+    if (cursorBeat !== undefined) {
+      this.selectBeat(cursorBeat);
+    }
+    this.selectBeat(beat);
+  }
+
+  /** Finds the requested edge beat in this beat's current or adjacent bar. */
+  private getBarEdgeBeat(
+    beat: Beat,
+    barOffset: BarOffset,
+    edgeOffset: HorizontalOffset
+  ): Beat | undefined {
+    const staff = beat.voiceBar.bar.staff;
+    const barIndex = staff.bars.indexOf(beat.voiceBar.bar);
+    if (barIndex === -1) {
+      return undefined;
+    }
+    const targetBar = staff.bars[barIndex + barOffset];
+    const targetBeats = targetBar?.getVoiceBar(
+      beat.voiceBar.voiceNumber
+    )?.beats;
+    if (targetBeats === undefined) {
+      return undefined;
+    }
+
+    return edgeOffset === -1
+      ? targetBeats[0]
+      : targetBeats[targetBeats.length - 1];
+  }
+
+  /** Extends the fixed-anchor range by one beat in either direction. */
+  public extendSelectionByBeat(direction: SelectedMoveDirection): boolean {
+    const offset = direction === SelectedMoveDirection.Left ? -1 : 1;
+    const endBeat = this._selectionEndBeat ?? this._selectionCursor?.beat;
+    if (endBeat === undefined) {
+      return false;
+    }
+
+    const beats = endBeat.voiceBar.bar.staff.getBeatsSeq(
+      endBeat.voiceBar.voiceNumber
+    );
+    const endIndex = beats.indexOf(endBeat);
+    if (endIndex === -1) {
+      return false;
+    }
+    const targetBeat = beats[endIndex + offset];
+    if (targetBeat === undefined) {
+      return false;
+    }
+
+    this.extendSelectionTo(targetBeat);
+    return true;
+  }
+
+  /** Finds the next beat (if moving by bar) without changing selection state */
+  public moveByBar(direction: SelectedMoveDirection): Beat | undefined {
+    const directionOffset: HorizontalOffset =
+      direction === SelectedMoveDirection.Left ? -1 : 1;
+    const currentBeat = this._selectionEndBeat ?? this._selectionCursor?.beat;
+    if (currentBeat === undefined) {
+      return undefined;
+    }
+
+    const staff = currentBeat.voiceBar.bar.staff;
+    const beats = staff.getBeatsSeq(currentBeat.voiceBar.voiceNumber);
+    const anchorBeat = this._baseSelectionBeat ?? currentBeat;
+    const currentIndex = beats.indexOf(currentBeat);
+    const anchorIndex = beats.indexOf(anchorBeat);
+    if (currentIndex === -1 || anchorIndex === -1) {
+      return undefined;
+    }
+
+    const isMovingTowardAnchor =
+      (currentIndex - anchorIndex) * directionOffset < 0;
+    const isAnchorInAnotherBar =
+      anchorBeat.voiceBar.bar !== currentBeat.voiceBar.bar;
+    if (isMovingTowardAnchor && isAnchorInAnotherBar) {
+      const nearEdgeOffset = (directionOffset * -1) as HorizontalOffset;
+      return this.getBarEdgeBeat(currentBeat, directionOffset, nearEdgeOffset);
+    }
+
+    const currentEdge = this.getBarEdgeBeat(currentBeat, 0, directionOffset);
+    if (currentEdge === undefined) {
+      return undefined;
+    }
+    if (currentBeat !== currentEdge) {
+      return currentEdge;
+    }
+
+    return this.getBarEdgeBeat(currentBeat, directionOffset, directionOffset);
+  }
+
+  /** Moves the cursor by bar, or replaces a range from its active endpoint. */
+  public moveSelectionByBar(direction: SelectedMoveDirection): boolean {
+    const targetBeat = this.moveByBar(direction);
+    if (targetBeat === undefined) {
+      return false;
+    }
+
+    const noteIndex = this._selectionCursor?.noteIndex ?? 0;
+    this.selectBeatCursor(targetBeat, noteIndex);
+    return true;
+  }
+
+  /** Extends the fixed-anchor range to the next bar edge in either direction. */
+  public extendSelectionByBar(direction: SelectedMoveDirection): boolean {
+    const targetBeat = this.moveByBar(direction);
+    if (targetBeat === undefined) {
+      return false;
+    }
+
+    this.extendSelectionTo(targetBeat);
+    return true;
   }
 
   /**

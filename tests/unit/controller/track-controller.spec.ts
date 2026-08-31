@@ -300,7 +300,10 @@ describe("TrackController", () => {
     controller.setSelectedBeatsTuplet(3, 2);
     controller.setSelectedBarTempo(90);
     controller.setSelectedBarTimeSignature(3, NoteDuration.Quarter);
-    controller.setSelectedBarRepeatStatus(BarRepeatStatus.Start);
+    controller.setSelectedBarRepeatStatus({
+      status: BarRepeatStatus.Start,
+      enabled: true,
+    });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
     controller.moveSelectedNote(SelectedMoveDirection.Right);
     controller.paste();
@@ -358,7 +361,10 @@ describe("TrackController", () => {
     controller.setSelectedBeatsTuplet(3, 2);
     controller.setSelectedBarTempo(90);
     controller.setSelectedBarTimeSignature(3, NoteDuration.Quarter);
-    controller.setSelectedBarRepeatStatus(BarRepeatStatus.Start);
+    controller.setSelectedBarRepeatStatus({
+      status: BarRepeatStatus.Start,
+      enabled: true,
+    });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
     controller.paste();
     controller.deleteSelectedBeats();
@@ -439,6 +445,244 @@ describe("TrackController", () => {
     expect(controller.clearSelectionRange()).toBe(true);
     expect(controller.selectionBeats).toEqual([]);
     expect(controller.selectionCursor?.bar).toBe(track.staves[0].bars[0]);
+  });
+
+  test("beat selection extension keeps its anchor while moving the endpoint", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+
+    expect(controller.extendSelectionByBeat(SelectedMoveDirection.Right)).toBe(
+      true
+    );
+    expect(controller.selectionBeats).toEqual([beats[1], beats[2]]);
+
+    controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+    expect(controller.selectionBeats).toEqual([beats[1], beats[2], beats[3]]);
+
+    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
+    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
+    expect(controller.selectionBeats).toEqual([beats[1]]);
+
+    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
+    expect(controller.selectionBeats).toEqual([beats[0], beats[1]]);
+  });
+
+  test("bar selection extension moves from its active endpoint", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const bars = track.staves[0].bars;
+    const firstBeat = bars[0].getVoiceBar(1)?.beats[0];
+    const secondBeat = bars[1].getVoiceBar(1)?.beats[0];
+    const thirdBeat = bars[2].getVoiceBar(1)?.beats[0];
+
+    expect(controller.extendSelectionByBar(SelectedMoveDirection.Left)).toBe(
+      false
+    );
+    expect(controller.selectionCursor?.beat).toBe(firstBeat);
+
+    controller.extendSelectionByBar(SelectedMoveDirection.Right);
+    controller.extendSelectionByBar(SelectedMoveDirection.Right);
+    expect(controller.selectionBeats).toEqual([
+      firstBeat,
+      secondBeat,
+      thirdBeat,
+    ]);
+
+    controller.extendSelectionByBar(SelectedMoveDirection.Left);
+    expect(controller.selectionBeats).toEqual([firstBeat, secondBeat]);
+  });
+
+  test("initial bar selection uses normal traversal at bar edges", () => {
+    const { score, track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+
+    expect(controller.extendSelectionByBar(SelectedMoveDirection.Left)).toBe(
+      false
+    );
+    expect(controller.selectionBeats).toEqual([]);
+
+    for (let i = 0; i < 3; i++) {
+      controller.moveSelectedNote(SelectedMoveDirection.Right);
+    }
+    const secondBarLastBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
+
+    expect(controller.extendSelectionByBar(SelectedMoveDirection.Right)).toBe(
+      true
+    );
+    expect(controller.selectionBeats).toEqual([beats[3], secondBarLastBeat]);
+  });
+
+  test("bar selection skips a partially shortened bar toward its anchor", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    for (let barIndex = 0; barIndex < 2; barIndex++) {
+      setBarDurations(controller, barIndex, [
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+      ]);
+    }
+    const firstBarBeats = track.staves[0].bars[0].getVoiceBar(1)?.beats;
+    if (firstBarBeats === undefined) {
+      throw Error("Expected beats in the first bar");
+    }
+
+    controller.extendSelectionByBar(SelectedMoveDirection.Right);
+    controller.extendSelectionByBar(SelectedMoveDirection.Right);
+    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
+    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
+    controller.extendSelectionByBar(SelectedMoveDirection.Left);
+
+    expect(controller.selectionBeats).toEqual(firstBarBeats);
+  });
+
+  test("bar selection extension uses near edges when moving toward its anchor", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    for (let barIndex = 0; barIndex < 3; barIndex++) {
+      setBarDurations(controller, barIndex, [
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+      ]);
+    }
+    const firstBarBeats = track.staves[0].bars[0].getVoiceBar(1)?.beats;
+    const anchorBarBeats = track.staves[0].bars[1].getVoiceBar(1)?.beats;
+    if (firstBarBeats === undefined || anchorBarBeats === undefined) {
+      throw Error("Expected beats in the first two bars");
+    }
+    for (let i = 0; i < 5; i++) {
+      controller.moveSelectedNote(SelectedMoveDirection.Right);
+    }
+
+    controller.extendSelectionByBar(SelectedMoveDirection.Right);
+    expect(controller.selectionBeats).toEqual(anchorBarBeats?.slice(1));
+
+    controller.extendSelectionByBar(SelectedMoveDirection.Left);
+    expect(controller.selectionBeats).toEqual(anchorBarBeats.slice(0, 2));
+
+    controller.extendSelectionByBar(SelectedMoveDirection.Left);
+    expect(controller.selectionBeats).toEqual([
+      ...firstBarBeats,
+      ...anchorBarBeats.slice(0, 2),
+    ]);
+
+    controller.extendSelectionByBar(SelectedMoveDirection.Right);
+    expect(controller.selectionBeats).toEqual(anchorBarBeats.slice(0, 2));
+  });
+
+  test("bar selection reversal traverses the anchor bar before leaving it", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    for (let barIndex = 0; barIndex < 2; barIndex++) {
+      setBarDurations(controller, barIndex, [
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+      ]);
+    }
+    const firstBarBeats = track.staves[0].bars[0].getVoiceBar(1)?.beats;
+    if (firstBarBeats === undefined) {
+      throw Error("Expected beats in the first bar");
+    }
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+
+    controller.extendSelectionByBar(SelectedMoveDirection.Left);
+    controller.extendSelectionByBar(SelectedMoveDirection.Right);
+
+    expect(controller.selectionBeats).toEqual(firstBarBeats.slice(2));
+  });
+
+  test("plain bar traversal moves to matching bar edges", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    for (let barIndex = 0; barIndex < 2; barIndex++) {
+      setBarDurations(controller, barIndex, [
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+        NoteDuration.Quarter,
+      ]);
+    }
+    const bars = track.staves[0].bars;
+    const firstBarBeats = bars[0].getVoiceBar(1)?.beats;
+    const secondBarBeats = bars[1].getVoiceBar(1)?.beats;
+    if (firstBarBeats === undefined || secondBarBeats === undefined) {
+      throw Error("Expected beats in both bars");
+    }
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.moveSelectedNote(SelectedMoveDirection.Down);
+
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Right)).toBe(
+      true
+    );
+    expect(controller.selectionCursor?.beat).toBe(firstBarBeats[3]);
+    expect(controller.selectionCursor?.noteIndex).toBe(1);
+
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Right)).toBe(
+      true
+    );
+    expect(controller.selectionCursor?.beat).toBe(secondBarBeats[3]);
+    expect(controller.selectionCursor?.noteIndex).toBe(1);
+  });
+
+  test("plain bar traversal collapses a range from its active endpoint", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const firstBarBeats = track.staves[0].bars[0].getVoiceBar(1)?.beats;
+    if (firstBarBeats === undefined) {
+      throw Error("Expected beats in the first bar");
+    }
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.extendSelectionByBar(SelectedMoveDirection.Left);
+
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Right)).toBe(
+      true
+    );
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(firstBarBeats[3]);
+  });
+
+  test("plain bar traversal preserves selection when no target exists", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const initialCursor = controller.selectionCursor;
+
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Left)).toBe(
+      false
+    );
+    expect(controller.selectionCursor).toBe(initialCursor);
   });
 
   test("bar traversal restarts active playback from the current bar", () => {
@@ -629,6 +873,30 @@ describe("TrackController", () => {
     expect(
       controller.trackElement.getBeatElement(controller.selectionCursor!.beat)
     ).toBeDefined();
+  });
+
+  test("horizontal movement leaves an active beat range at its outer edge", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+    controller.selectBeat(getBeatElement(controller, 0, 2));
+    controller.moveSelectedNote(SelectedMoveDirection.Left);
+
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(beats[0]);
+
+    controller.selectBeat(getBeatElement(controller, 0, 2));
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(beats[3]);
   });
 
   test("redo on TrackController redoes the previously undone command", () => {
@@ -873,7 +1141,8 @@ describe("TrackController", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -901,7 +1170,8 @@ describe("TrackController", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -930,7 +1200,8 @@ describe("TrackController", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -955,14 +1226,16 @@ describe("TrackController", () => {
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     score.appendMasterBar({
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
-      repeatStatus: 0,
+      isRepeatStart: false,
+      isRepeatEnd: false,
       repeatCount: null,
     });
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -990,7 +1263,8 @@ describe("TrackController", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: 0,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -1528,7 +1802,8 @@ describe("TrackController", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: 0,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -1580,7 +1855,8 @@ describe("TrackController", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: 0,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }
@@ -1614,7 +1890,8 @@ describe("TrackController", () => {
         tempo: 120,
         beatsCount: 4,
         duration: NoteDuration.Quarter,
-        repeatStatus: 0,
+        isRepeatStart: false,
+        isRepeatEnd: false,
         repeatCount: null,
       });
     }

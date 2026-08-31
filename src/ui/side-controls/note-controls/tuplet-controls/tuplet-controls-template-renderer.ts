@@ -35,7 +35,6 @@ export class TupletControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.parentDiv,
       this.template.dialog,
       "tu-tuplet-dialog",
       this.template.dialogContent,

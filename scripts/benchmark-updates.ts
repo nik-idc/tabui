@@ -319,7 +319,13 @@ function createRepeatStatusCase(
           (index, i) =>
             new SetRepeatStatusCommand(
               score.masterBars[index],
-              statuses[i] ?? statuses[0],
+              (statuses[i] ?? statuses[0]) === BarRepeatStatus.Start
+                ? { status: BarRepeatStatus.Start, enabled: true }
+                : {
+                    status: BarRepeatStatus.End,
+                    enabled: true,
+                    repeatCount: 2,
+                  },
               score.tracks[0]
             )
         )

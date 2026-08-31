@@ -5,4 +5,5 @@ export class EditorShellTemplate {
   readonly sidePanelHost: HTMLDivElement = createDiv();
   readonly notationViewport: HTMLDivElement = createDiv();
   readonly responsiveMessage: HTMLDivElement = createDiv();
+  readonly dialogHost: HTMLDivElement = createDiv();
 }

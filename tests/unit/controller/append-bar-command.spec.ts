@@ -26,7 +26,8 @@ describe("AppendBarCommand", () => {
     const command = new AppendBarCommand(score, {
       ...DEFAULT_MASTER_BAR,
       tempo: 160,
-      repeatStatus: BarRepeatStatus.End,
+      isRepeatStart: false,
+      isRepeatEnd: true,
     });
 
     command.execute();

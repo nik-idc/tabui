@@ -3,6 +3,7 @@ import {
   Beat,
   MasterBar,
   MAX_MASTER_BAR_BEATS_COUNT,
+  MAX_MASTER_BAR_REPEAT_COUNT,
   MAX_MASTER_BAR_TEMPO,
   MIN_MASTER_BAR_BEATS_COUNT,
   MIN_MASTER_BAR_TEMPO,
@@ -21,7 +22,8 @@ function masterBar(
     tempo: number;
     beatsCount: number;
     duration: NoteDuration;
-    repeatStatus: BarRepeatStatus;
+    isRepeatStart: boolean;
+    isRepeatEnd: boolean;
     repeatCount: number | null;
   }> = {}
 ) {
@@ -29,7 +31,8 @@ function masterBar(
     tempo: overrides.tempo ?? 120,
     beatsCount: overrides.beatsCount ?? 4,
     duration: overrides.duration ?? NoteDuration.Quarter,
-    repeatStatus: overrides.repeatStatus ?? BarRepeatStatus.None,
+    isRepeatStart: overrides.isRepeatStart ?? false,
+    isRepeatEnd: overrides.isRepeatEnd ?? false,
     repeatCount: overrides.repeatCount ?? null,
   });
 }
@@ -73,6 +76,28 @@ describe("MasterBar domain bounds", () => {
       bar.beatsCount = beatsCount;
     }).toThrow(/outside/);
   });
+
+  test.each([
+    [1],
+    [MAX_MASTER_BAR_REPEAT_COUNT + 1],
+    [2.5],
+    [Number.POSITIVE_INFINITY],
+  ])("rejects repeat count %p", (repeatCount) => {
+    expect(() => masterBar({ isRepeatEnd: true, repeatCount })).toThrow(
+      /outside/
+    );
+    const bar = masterBar({ isRepeatEnd: true });
+    expect(() => {
+      bar.repeatCount = repeatCount;
+    }).toThrow(/outside/);
+  });
+
+  test.each([[2], [MAX_MASTER_BAR_REPEAT_COUNT]])(
+    "accepts repeat count %i",
+    (repeatCount) => {
+      expect(() => masterBar({ isRepeatEnd: true, repeatCount })).not.toThrow();
+    }
+  );
 });
 
 describe("Beat tuplet domain bounds", () => {
