@@ -495,6 +495,11 @@ export class TrackController {
     return this._trackControllerEditor.selectionManager.selectionCursor;
   }
 
+  /** Active endpoint of the current beat range. */
+  public get selectionEndBeat(): Beat | undefined {
+    return this._trackControllerEditor.selectionManager.selectionEndBeat;
+  }
+
   /** True if a note is currently selected */
   public get hasSelectedNote(): boolean {
     return (
@@ -640,6 +645,39 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.moveSelectedNote(direction);
+  }
+
+  /** Moves the current cursor or range endpoint by one bar boundary. */
+  public moveSelectionByBar(direction: SelectedMoveDirection): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+
+    return this._trackControllerEditor.selectionManager.moveSelectionByBar(
+      direction
+    );
+  }
+
+  /** Extends the current selection by one beat in either direction. */
+  public extendSelectionByBeat(direction: SelectedMoveDirection): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+
+    return this._trackControllerEditor.selectionManager.extendSelectionByBeat(
+      direction
+    );
+  }
+
+  /** Extends the current selection by one bar in either direction. */
+  public extendSelectionByBar(direction: SelectedMoveDirection): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+
+    return this._trackControllerEditor.selectionManager.extendSelectionByBar(
+      direction
+    );
   }
 
   /**

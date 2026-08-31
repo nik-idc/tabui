@@ -318,8 +318,9 @@ Suggested order:
   - 2 - DONE
   - 10
   - 12
-  - 14
-  - 15 - ALMOST DONE
+  - 14 - DONE
+  - 15 - DONE
+  - 16
 - Last priority. Very desirable for `v0.5.0`:
   - 7
   - 11
