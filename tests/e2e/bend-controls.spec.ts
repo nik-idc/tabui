@@ -1,6 +1,25 @@
 import { expect, test } from "@playwright/test";
 import { requiredBoundingBox } from "./helpers";
 
+test("reopens the bend dialog from the keyboard after Escape", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  await editor.locator('.tu-root-svg [id^="note-rect-"]').first().click();
+  await page.keyboard.press("1");
+
+  const dialog = editor.locator(".tu-dialog.tu-bend-controls-dialog");
+  await page.keyboard.press("Shift+B");
+  await expect(dialog).toHaveAttribute("open", "");
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toHaveAttribute("open", "");
+
+  await page.keyboard.press("Shift+B");
+
+  await expect(dialog).toHaveAttribute("open", "");
+});
+
 test("moves a bend handle without scrolling notation", async ({ page }) => {
   // Load an editable score with an empty note slot.
   await page.goto("/tabui/?fixture=empty");

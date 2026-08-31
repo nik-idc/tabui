@@ -254,7 +254,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     if (typeof Element !== "undefined" && target instanceof Element) {
       const editable =
         target.matches("input, textarea, select, [contenteditable='true']") ||
-        target.closest("dialog[open], .tu-dialog") !== null;
+        target.closest("dialog[open], .tu-dialog[open]") !== null;
       if (editable) {
         return;
       }

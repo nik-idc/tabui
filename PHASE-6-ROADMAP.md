@@ -318,14 +318,14 @@ Suggested order:
   - 5 - DONE
   - 6 + 9 - DONE
   - 8 - DONE
-  - 17
+  - 17 - DONE
 - Secondary priority. Essential UX improvements:
   - 2 - DONE
   - 10 - DONE
   - 12 - DONE
   - 14 - DONE
   - 15 - DONE
-  - 16
+  - 16 - DONE
 - Last priority. Very desirable for `v0.5.0`:
   - 7
   - 11
