@@ -61,6 +61,10 @@ export class TrackControlsTemplateRenderer {
       this.notationComponent.trackController.track === this.track;
     this.template.selectButton.classList.add(cssClass);
     this.template.selectButton.textContent = isActive ? "●" : "○";
+    this.template.selectButton.setAttribute(
+      "aria-label",
+      `Select track: ${this.track.name}`
+    );
     this.template.selectButton.classList.toggle(
       "tu-track-control-active",
       isActive
@@ -80,7 +84,10 @@ export class TrackControlsTemplateRenderer {
       !controller.editingEnabled || controller.isPlaybackActive;
     this.template.moveUpButton.disabled = editingDisabled || trackIndex <= 0;
     this.template.moveUpButton.title = "Move track up";
-    this.template.moveUpButton.setAttribute("aria-label", "Move track up");
+    this.template.moveUpButton.setAttribute(
+      "aria-label",
+      `Move ${this.track.name} up`
+    );
 
     this.template.moveDownButton.classList.add(
       "tu-track-move-button",
@@ -92,12 +99,19 @@ export class TrackControlsTemplateRenderer {
       trackIndex === -1 ||
       trackIndex >= this.notationComponent.score.tracks.length - 1;
     this.template.moveDownButton.title = "Move track down";
-    this.template.moveDownButton.setAttribute("aria-label", "Move track down");
+    this.template.moveDownButton.setAttribute(
+      "aria-label",
+      `Move ${this.track.name} down`
+    );
   }
 
   private renderTrackNameInput(): void {
     const cssClass = "tu-track-name-input";
     this.template.trackNameInput.classList.add(cssClass);
+    this.template.trackNameInput.setAttribute(
+      "aria-label",
+      `${this.track.name} name`
+    );
     this.template.trackNameInput.value = this.track.name;
     const controller = this.notationComponent.trackController;
     this.template.trackNameInput.disabled =
@@ -120,7 +134,9 @@ export class TrackControlsTemplateRenderer {
       "img/ui/remove.svg",
       "Remove track"
     );
-    const label = disabled ? "Cannot remove the only track" : "Remove track";
+    const label = disabled
+      ? `Cannot remove ${this.track.name}; it is the only track`
+      : `Remove ${this.track.name}`;
     this.template.removeButton.title = label;
     this.template.removeButton.dataset.tooltip = label;
     this.template.removeButton.setAttribute("aria-label", label);
@@ -133,6 +149,10 @@ export class TrackControlsTemplateRenderer {
     this.template.volumeInput.min = `${minVolume}`;
     this.template.volumeInput.max = `${maxVolume}`;
     this.template.volumeInput.step = `${volumeStep}`;
+    this.template.volumeInput.setAttribute(
+      "aria-label",
+      `${this.track.name} volume`
+    );
 
     this.template.volumeInput.value = `${this.track.volume * maxVolume}`;
     this.template.volumeInput.disabled =
@@ -146,6 +166,10 @@ export class TrackControlsTemplateRenderer {
     this.template.panningInput.min = `${minPanning}`;
     this.template.panningInput.max = `${maxPanning}`;
     this.template.panningInput.step = `${panningStep}`;
+    this.template.panningInput.setAttribute(
+      "aria-label",
+      `${this.track.name} panning`
+    );
 
     this.template.panningInput.value = `${this.track.pan}`;
     this.template.panningInput.disabled =
@@ -159,7 +183,7 @@ export class TrackControlsTemplateRenderer {
       this.template.muteButton,
       this.assetsPath,
       "img/ui/mute.svg",
-      "Mute"
+      `${this.track.name} mute`
     );
   }
 
@@ -170,7 +194,7 @@ export class TrackControlsTemplateRenderer {
       this.template.soloButton,
       this.assetsPath,
       "img/ui/solo.svg",
-      "Solo"
+      `${this.track.name} solo`
     );
   }
 
@@ -207,7 +231,7 @@ export class TrackControlsTemplateRenderer {
       this.template.settingsButton,
       this.assetsPath,
       "img/ui/settings.svg",
-      "Track settings"
+      `${this.track.name} settings`
     );
     const controller = this.notationComponent.trackController;
     const editingDisabled =

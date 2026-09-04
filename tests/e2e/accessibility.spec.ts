@@ -14,6 +14,115 @@ test("icon buttons expose state and are focusable", async ({ page }) => {
   await expect(firstBar).toBeFocused();
 });
 
+test("Tab and Shift+Tab move through and out of editor controls", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  const firstBar = editor.getByRole("button", { name: "First bar" });
+  const previousBar = editor.getByRole("button", { name: "Prev bar" });
+
+  await firstBar.focus();
+  await page.keyboard.press("Tab");
+  await expect(previousBar).toBeFocused();
+
+  await page.keyboard.press("Shift+Tab");
+  await expect(firstBar).toBeFocused();
+
+  await page.evaluate(() => {
+    const before = document.createElement("button");
+    before.textContent = "Before editor";
+    const after = document.createElement("button");
+    after.textContent = "After editor";
+    const editor = document.querySelector("#tabui-editor");
+    editor?.before(before);
+    editor?.after(after);
+  });
+
+  const beforeEditor = page.getByRole("button", { name: "Before editor" });
+  await beforeEditor.focus();
+  await page.keyboard.press("Tab");
+  const tracks = editor.getByRole("button", { name: "Tracks" });
+  await expect(tracks).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(beforeEditor).toBeFocused();
+  await page.keyboard.press("Tab");
+
+  const afterEditor = page.getByRole("button", { name: "After editor" });
+  const tabStops = editor.locator(
+    "button:visible:not(:disabled), input:visible:not(:disabled), " +
+      "select:visible:not(:disabled), textarea:visible:not(:disabled), " +
+      "[tabindex]:visible:not([tabindex='-1']), " +
+      ".tu-notation-viewport:visible"
+  );
+  const tabStopCount = await tabStops.count();
+  for (let i = 0; i < tabStopCount; i++) {
+    await page.keyboard.press("Tab");
+    if (await afterEditor.evaluate((el) => el === document.activeElement)) {
+      break;
+    }
+  }
+  await expect(afterEditor).toBeFocused();
+});
+
+test("basic controls expose accessible names and native behavior", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  const controls = editor.locator(
+    "button:visible, input:visible, select:visible, textarea:visible"
+  );
+  const controlCount = await controls.count();
+  for (let i = 0; i < controlCount; i++) {
+    await expect(controls.nth(i)).toHaveAccessibleName(/\S/);
+  }
+
+  await expect(
+    editor.getByRole("textbox", { name: "Score name" })
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("slider", { name: "Master volume" })
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("slider", { name: "Master panning" })
+  ).toBeVisible();
+
+  const tracks = editor.getByRole("button", { name: "Tracks" });
+  await expect(tracks).toHaveAttribute("aria-expanded", "false");
+  await tracks.focus();
+  await page.keyboard.press("Space");
+  await expect(tracks).toHaveAttribute("aria-expanded", "true");
+
+  for (const name of ["Rhythm track", "Lead track", "Bass track"]) {
+    await expect(
+      editor.getByRole("button", { name: `Select track: ${name}` })
+    ).toBeVisible();
+    await expect(
+      editor.getByRole("textbox", { name: `${name} name` })
+    ).toBeVisible();
+    await expect(
+      editor.getByRole("slider", { name: `${name} volume` })
+    ).toBeVisible();
+    await expect(
+      editor.getByRole("slider", { name: `${name} panning` })
+    ).toBeVisible();
+  }
+
+  const rhythmTrack = editor.getByRole("button", {
+    name: "Select track: Rhythm track",
+  });
+  await expect(rhythmTrack).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    editor.getByRole("button", { name: "Move Rhythm track up" })
+  ).toBeDisabled();
+  await rhythmTrack.focus();
+  await page.keyboard.press("Tab");
+  await expect(
+    editor.getByRole("button", { name: "Move Rhythm track down" })
+  ).toBeFocused();
+});
+
 test("provides icon tooltips on hover and keyboard focus", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");

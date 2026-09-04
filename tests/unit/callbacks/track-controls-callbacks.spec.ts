@@ -24,6 +24,7 @@ describe("TrackControlsDefaultCallbacks", () => {
       score,
       trackController: { isPlaybackActive, editingEnabled: true },
     };
+    renderer.track = score.tracks[0];
     renderer.assetsPath = { baseUrl: "", variant: "light" };
 
     renderer.renderRemoveButton();

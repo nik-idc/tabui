@@ -515,6 +515,10 @@ describe("EditorKeyboardDefCallbacks", () => {
     callbacks.onKeyDown(functionKey);
     expect(functionKey.preventDefault).not.toHaveBeenCalled();
 
+    const tab = createKeyboardEvent("Tab");
+    callbacks.onKeyDown(tab);
+    expect(tab.preventDefault).not.toHaveBeenCalled();
+
     callbacks.unbind();
   });
 

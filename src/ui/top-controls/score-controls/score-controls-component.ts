@@ -64,7 +64,7 @@ export class ScoreControlsComponent {
   }
 
   public render(): void {
-    this.templateRenderer.render(this.score);
+    this.templateRenderer.render(this.score, this._tracksAreDisplayed);
 
     this.newTrackComponent.render();
     this.trackSettingsComponent.render();

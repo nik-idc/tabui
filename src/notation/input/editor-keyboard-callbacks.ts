@@ -249,19 +249,20 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
 
-    // Defending against input events leaking into the notation editor
+    // Defending against control events leaking into the notation editor
     const target = event.target;
     if (typeof Element !== "undefined" && target instanceof Element) {
-      const editable =
-        target.matches("input, textarea, select, [contenteditable='true']") ||
-        target.closest("dialog[open], .tu-dialog[open]") !== null;
-      if (editable) {
+      const interactive =
+        target.matches(
+          "button, input, textarea, select, [contenteditable='true']"
+        ) || target.closest("dialog[open], .tu-dialog[open]") !== null;
+      if (interactive) {
         return;
       }
     }
 
     const key = event.key.toLowerCase(); // normalize
-    if (key.length !== 1 && key[0] === "f") {
+    if (key === "tab" || (key.length !== 1 && key[0] === "f")) {
       return;
     }
 

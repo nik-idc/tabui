@@ -64,10 +64,14 @@ export class ScoreControlsTemplateRenderer {
     this.parentDiv.appendChild(this.template.container);
   }
 
-  private renderShowButton(): void {
+  private renderShowButton(tracksAreDisplayed: boolean): void {
     const cssClass = "tu-show-tracks-button";
     this.template.showTracksButton.classList.add(cssClass);
     this.template.showTracksButton.textContent = "Tracks";
+    this.template.showTracksButton.setAttribute(
+      "aria-expanded",
+      `${tracksAreDisplayed}`
+    );
   }
 
   private renderNewTrackButton(): void {
@@ -100,6 +104,7 @@ export class ScoreControlsTemplateRenderer {
     this.template.masterVolumeInput.min = `${minVolume}`;
     this.template.masterVolumeInput.max = `${maxVolume}`;
     this.template.masterVolumeInput.step = `${volumeStep}`;
+    this.template.masterVolumeInput.ariaLabel = "Master volume";
 
     this.template.masterVolumeInput.value = `${score.masterVolume * 100}`;
     this.template.masterVolumeInput.disabled =
@@ -113,6 +118,7 @@ export class ScoreControlsTemplateRenderer {
     this.template.masterPanningInput.min = `${minPanning}`;
     this.template.masterPanningInput.max = `${maxPanning}`;
     this.template.masterPanningInput.step = `${panningStep}`;
+    this.template.masterPanningInput.ariaLabel = "Master panning";
 
     this.template.masterPanningInput.value = `${score.masterPan}`;
     this.template.masterPanningInput.disabled =
@@ -122,6 +128,7 @@ export class ScoreControlsTemplateRenderer {
   private renderScoreNameInput(): void {
     const cssClass = "tu-score-name-input";
     this.template.scoreNameInput.classList.add(cssClass);
+    this.template.scoreNameInput.ariaLabel = "Score name";
     this.template.scoreNameInput.value = this._currentScoreName;
     const controller = this.notationComponent.trackController;
     const readOnly = !controller.editingEnabled || controller.isPlaybackActive;
@@ -134,10 +141,10 @@ export class ScoreControlsTemplateRenderer {
     this.template.tracksContainer.classList.add(cssClass);
   }
 
-  public render(score: Score): void {
+  public render(score: Score, tracksAreDisplayed: boolean): void {
     this._currentScoreName = score.name;
 
-    this.renderShowButton();
+    this.renderShowButton(tracksAreDisplayed);
     this.renderNewTrackButton();
     this.renderMasterVolumeInput(score);
     this.renderMasterPanningInput(score);
