@@ -28,7 +28,6 @@ export class MeasureControlsTemplateRenderer {
   private assembleContainer(): void {
     const cssClass = "tu-measure-controls";
     this.template.container.classList.add(cssClass);
-
     this.template.container.append(
       this.template.repeatStartButton,
       this.template.repeatEndButton,
@@ -48,24 +47,33 @@ export class MeasureControlsTemplateRenderer {
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
 
+    this.template.repeatStartButton.disabled = selectionCursor === undefined;
+    this.template.repeatEndButton.disabled = selectionCursor === undefined;
     if (selectionCursor === undefined) {
       this.template.repeatStartButton.classList.remove(appliedCSSClass);
       this.template.repeatStartButton.classList.add(disabledCSSClass);
       this.template.repeatEndButton.classList.remove(appliedCSSClass);
       this.template.repeatEndButton.classList.add(disabledCSSClass);
     } else {
-      const masterBar = selectionCursor.bar.masterBar;
       this.template.repeatStartButton.classList.toggle(
         appliedCSSClass,
-        masterBar.isRepeatStart
+        selectionCursor.bar.masterBar.isRepeatStart
       );
       this.template.repeatEndButton.classList.toggle(
         appliedCSSClass,
-        masterBar.isRepeatEnd
+        selectionCursor.bar.masterBar.isRepeatEnd
       );
       this.template.repeatStartButton.classList.remove(disabledCSSClass);
       this.template.repeatEndButton.classList.remove(disabledCSSClass);
     }
+    this.template.repeatStartButton.setAttribute(
+      "aria-pressed",
+      `${selectionCursor?.bar.masterBar.isRepeatStart ?? false}`
+    );
+    this.template.repeatEndButton.setAttribute(
+      "aria-pressed",
+      `${selectionCursor?.bar.masterBar.isRepeatEnd ?? false}`
+    );
   }
 
   private renderMeasureButtons(): void {
@@ -91,7 +99,7 @@ export class MeasureControlsTemplateRenderer {
       this.template.repeatEndButton,
       this.assetsPath,
       "img/ui/repeat-end.svg",
-      "Repeat Start"
+      "Repeat End"
     );
     setImageAsset(
       this.template.insertBarBeforeButton,

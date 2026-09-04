@@ -5,14 +5,21 @@ import { createBarWithBeats } from "../model/helpers";
 function createButton() {
   const classes = new Set<string>();
   return {
-    classes,
-    dataset: {} as Record<string, string>,
     classList: {
       add: (name: string) => classes.add(name),
-      remove: (name: string) => classes.delete(name),
+      toggle: (name: string, force: boolean) => {
+        if (force) {
+          classes.add(name);
+        } else {
+          classes.delete(name);
+        }
+      },
+      contains: (name: string) => classes.has(name),
     },
+    dataset: {} as Record<string, string>,
+    querySelector: () => ({ src: "", alt: "" }),
     setAttribute: jest.fn(),
-  } as unknown as HTMLImageElement;
+  } as unknown as HTMLButtonElement;
 }
 
 describe("NoteControlsTemplateRenderer", () => {
@@ -73,20 +80,8 @@ describe("NoteControlsTemplateRenderer", () => {
     ).renderTupletButtons;
     renderTuplets.call(renderer);
 
-    expect(
-      (durationButtons[3] as unknown as { classes: Set<string> }).classes.has(
-        "tu-applied-img"
-      )
-    ).toBe(true);
-    expect(
-      (dot2Button as unknown as { classes: Set<string> }).classes.has(
-        "tu-applied-img"
-      )
-    ).toBe(true);
-    expect(
-      (tuplet3Button as unknown as { classes: Set<string> }).classes.has(
-        "tu-applied-img"
-      )
-    ).toBe(true);
+    expect(durationButtons[3].classList.contains("tu-applied-img")).toBe(true);
+    expect(dot2Button.classList.contains("tu-applied-img")).toBe(true);
+    expect(tuplet3Button.classList.contains("tu-applied-img")).toBe(true);
   });
 });

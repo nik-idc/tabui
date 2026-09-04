@@ -1,4 +1,4 @@
-import { createDiv, createImage } from "../../../shared";
+import { createButton, createDiv } from "../../../shared";
 import { TimeSigControlsTemplate } from "./time-sig-controls";
 import { TempoControlsTemplate } from "./tempo-controls";
 
@@ -10,12 +10,11 @@ import { TempoControlsTemplate } from "./tempo-controls";
  */
 export class MeasureControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
-
-  readonly tempoButton: HTMLImageElement = createImage();
-  readonly timeSignatureButton: HTMLImageElement = createImage();
-  readonly repeatStartButton: HTMLImageElement = createImage();
-  readonly repeatEndButton: HTMLImageElement = createImage();
-  readonly insertBarBeforeButton: HTMLImageElement = createImage();
-  readonly insertBarAfterButton: HTMLImageElement = createImage();
-  readonly removeBarButton: HTMLImageElement = createImage();
+  readonly tempoButton: HTMLButtonElement = createButton();
+  readonly timeSignatureButton: HTMLButtonElement = createButton();
+  readonly repeatStartButton: HTMLButtonElement = createButton();
+  readonly repeatEndButton: HTMLButtonElement = createButton();
+  readonly insertBarBeforeButton: HTMLButtonElement = createButton();
+  readonly insertBarAfterButton: HTMLButtonElement = createButton();
+  readonly removeBarButton: HTMLButtonElement = createButton();
 }

@@ -31,7 +31,7 @@ test("moves a bend handle without scrolling notation", async ({ page }) => {
   await page.keyboard.press("1");
 
   // Open the bend dialog through the same control a user clicks.
-  await editor.locator('img[alt="Bend"]').click();
+  await editor.getByRole("button", { name: "Bend" }).click();
   const dialog = editor.locator(".tu-dialog.tu-bend-controls-dialog");
   const graph = dialog.locator(".tu-bend-controls-svg");
   await expect(dialog).toHaveAttribute("open", "");
@@ -72,7 +72,7 @@ test("moves a bend handle through a touch gesture", async ({
   const editor = page.locator("#tabui-editor");
   await editor.locator('.tu-root-svg [id^="note-rect-"]').first().click();
   await page.keyboard.press("1");
-  await editor.locator('img[alt="Bend"]').click();
+  await editor.getByRole("button", { name: "Bend" }).click();
 
   // The graph explicitly owns touch gestures instead of allowing browser panning.
   const graph = editor.locator(".tu-bend-controls-svg");

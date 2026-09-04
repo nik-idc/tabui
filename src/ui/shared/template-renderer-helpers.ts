@@ -22,16 +22,23 @@ export function renderOnce(
 }
 
 export function setImageAsset(
-  image: HTMLImageElement,
+  button: HTMLButtonElement,
   assets: ResolvedAssetConfig,
   assetPath: string,
   alt: string,
   attrs: Record<string, string> = {}
 ): void {
-  image.src = resolveAssetUrl(assets, assetPath);
-  image.alt = alt;
+  const imageElement =
+    button.querySelector("img") ??
+    button.appendChild(document.createElement("img"));
+  imageElement.src = resolveAssetUrl(assets, assetPath);
+  imageElement.alt = "";
+  button.classList.add("tu-icon-button");
+  button.setAttribute("aria-label", alt);
+  button.title = alt;
+  button.dataset.tooltip = alt;
   for (const [key, value] of Object.entries(attrs)) {
-    image.setAttribute(key, value);
+    button.setAttribute(key, value);
   }
 }
 

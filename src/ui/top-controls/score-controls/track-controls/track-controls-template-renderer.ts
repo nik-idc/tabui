@@ -112,26 +112,18 @@ export class TrackControlsTemplateRenderer {
       this.notationComponent.trackController.isPlaybackActive ||
       this.notationComponent.score.tracks.length <= 1;
     this.template.removeButton.classList.toggle("tu-disabled-img", disabled);
+    this.template.removeButton.disabled = disabled;
     this.template.removeButton.setAttribute("aria-disabled", `${disabled}`);
-    this.template.removeButton.title = disabled
-      ? "Cannot remove the only track"
-      : "Remove track";
     setImageAsset(
       this.template.removeButton,
       this.assetsPath,
       "img/ui/remove.svg",
       "Remove track"
     );
-    if (disabled) {
-      this.template.removeButton.dataset.tooltip =
-        this.template.removeButton.title;
-    } else {
-      this.template.removeButton.removeAttribute("data-tooltip");
-    }
-    this.template.removeButton.setAttribute(
-      "aria-label",
-      this.template.removeButton.title
-    );
+    const label = disabled ? "Cannot remove the only track" : "Remove track";
+    this.template.removeButton.title = label;
+    this.template.removeButton.dataset.tooltip = label;
+    this.template.removeButton.setAttribute("aria-label", label);
   }
 
   private renderVolumeInput(): void {
@@ -187,6 +179,7 @@ export class TrackControlsTemplateRenderer {
       !this.notationComponent.trackController.editingEnabled;
     for (const button of [this.template.muteButton, this.template.soloButton]) {
       button.classList.toggle("tu-disabled-img", editingDisabled);
+      button.disabled = editingDisabled;
       button.setAttribute("aria-disabled", `${editingDisabled}`);
     }
     this.template.muteButton.classList.toggle(
@@ -223,6 +216,7 @@ export class TrackControlsTemplateRenderer {
       "tu-disabled-img",
       editingDisabled
     );
+    this.template.settingsButton.disabled = editingDisabled;
     this.template.settingsButton.setAttribute(
       "aria-disabled",
       `${editingDisabled}`

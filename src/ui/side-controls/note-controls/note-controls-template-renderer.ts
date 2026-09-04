@@ -114,11 +114,9 @@ export class NoteControlsTemplateRenderer {
       const beatsOfCurDuration = selectedBeats.find(
         (b) => b.baseDuration === 1 / notes[i].num
       );
-      if (beatsOfCurDuration !== undefined) {
-        button.classList.add(appliedCSSClass);
-      } else {
-        button.classList.remove(appliedCSSClass);
-      }
+      const isApplied = beatsOfCurDuration !== undefined;
+      button.classList.toggle(appliedCSSClass, isApplied);
+      button.setAttribute("aria-pressed", `${isApplied}`);
     }
 
     const hasRest = selectedBeats.find((beat) => beat.isRest()) !== undefined;
@@ -131,11 +129,8 @@ export class NoteControlsTemplateRenderer {
     this.template.restButton.title = "Set selected beat as rest";
     this.template.restButton.dataset["beatAction"] = "rest";
     this.template.restButton.classList.add("tu-rest-button");
-    if (hasRest) {
-      this.template.restButton.classList.add(appliedCSSClass);
-    } else {
-      this.template.restButton.classList.remove(appliedCSSClass);
-    }
+    this.template.restButton.classList.toggle(appliedCSSClass, hasRest);
+    this.template.restButton.setAttribute("aria-pressed", `${hasRest}`);
   }
 
   private renderVoiceButtons(): void {
@@ -155,11 +150,9 @@ export class NoteControlsTemplateRenderer {
       button.title = `Activate voice ${voiceNumber}`;
       button.dataset["voiceNumber"] = `${voiceNumber}`;
       button.classList.add("tu-voice-button");
-      if (voiceNumber === activeVoiceNumber) {
-        button.classList.add(appliedCSSClass);
-      } else {
-        button.classList.remove(appliedCSSClass);
-      }
+      const isActive = voiceNumber === activeVoiceNumber;
+      button.classList.toggle(appliedCSSClass, isActive);
+      button.setAttribute("aria-pressed", `${isActive}`);
     }
   }
 
@@ -191,19 +184,15 @@ export class NoteControlsTemplateRenderer {
 
     // Mark singular dot applied status
     const beatsDot1 = selectedBeats.find((b) => b.dots === 1);
-    if (beatsDot1 !== undefined) {
-      this.template.dot1Button.classList.add(appliedCSSClass);
-    } else {
-      this.template.dot1Button.classList.remove(appliedCSSClass);
-    }
+    const hasDot1 = beatsDot1 !== undefined;
+    this.template.dot1Button.classList.toggle(appliedCSSClass, hasDot1);
+    this.template.dot1Button.setAttribute("aria-pressed", `${hasDot1}`);
 
     // Mark double dot applied status
     const beatsDot2 = selectedBeats.find((b) => b.dots === 2);
-    if (beatsDot2 !== undefined) {
-      this.template.dot2Button.classList.add(appliedCSSClass);
-    } else {
-      this.template.dot2Button.classList.remove(appliedCSSClass);
-    }
+    const hasDot2 = beatsDot2 !== undefined;
+    this.template.dot2Button.classList.toggle(appliedCSSClass, hasDot2);
+    this.template.dot2Button.setAttribute("aria-pressed", `${hasDot2}`);
   }
 
   private renderTupletButtons(): void {
@@ -264,23 +253,14 @@ export class NoteControlsTemplateRenderer {
       }
     }
 
-    if (hasTuplet2) {
-      this.template.tuplet2Button.classList.add(appliedCSSClass);
-    } else {
-      this.template.tuplet2Button.classList.remove(appliedCSSClass);
-    }
+    this.template.tuplet2Button.classList.toggle(appliedCSSClass, hasTuplet2);
+    this.template.tuplet2Button.setAttribute("aria-pressed", `${hasTuplet2}`);
 
-    if (hasTuplet3) {
-      this.template.tuplet3Button.classList.add(appliedCSSClass);
-    } else {
-      this.template.tuplet3Button.classList.remove(appliedCSSClass);
-    }
+    this.template.tuplet3Button.classList.toggle(appliedCSSClass, hasTuplet3);
+    this.template.tuplet3Button.setAttribute("aria-pressed", `${hasTuplet3}`);
 
-    if (hasTuplet) {
-      this.template.tupletButton.classList.add(appliedCSSClass);
-    } else {
-      this.template.tupletButton.classList.remove(appliedCSSClass);
-    }
+    this.template.tupletButton.classList.toggle(appliedCSSClass, hasTuplet);
+    this.template.tupletButton.setAttribute("aria-pressed", `${hasTuplet}`);
   }
 
   private renderBeatEditButtons(): void {

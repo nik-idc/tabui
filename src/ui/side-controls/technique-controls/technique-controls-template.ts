@@ -1,4 +1,4 @@
-import { createDiv, createImage } from "../../../shared";
+import { createButton, createDiv } from "../../../shared";
 
 /**
  * Interface defining the template of technique controls:
@@ -13,13 +13,12 @@ import { createDiv, createImage } from "../../../shared";
  */
 export class TechniqueControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
-
-  readonly vibratoButton: HTMLImageElement = createImage();
-  readonly palmMuteButton: HTMLImageElement = createImage();
-  readonly letRingButton: HTMLImageElement = createImage();
-  readonly nhButton: HTMLImageElement = createImage();
-  readonly phButton: HTMLImageElement = createImage();
-  readonly legatoButton: HTMLImageElement = createImage();
-  readonly slideButton: HTMLImageElement = createImage();
-  readonly bendButton: HTMLImageElement = createImage();
+  readonly vibratoButton: HTMLButtonElement = createButton();
+  readonly palmMuteButton: HTMLButtonElement = createButton();
+  readonly letRingButton: HTMLButtonElement = createButton();
+  readonly nhButton: HTMLButtonElement = createButton();
+  readonly phButton: HTMLButtonElement = createButton();
+  readonly legatoButton: HTMLButtonElement = createButton();
+  readonly slideButton: HTMLButtonElement = createButton();
+  readonly bendButton: HTMLButtonElement = createButton();
 }

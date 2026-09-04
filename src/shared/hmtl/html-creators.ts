@@ -32,7 +32,9 @@ export function createLI(): HTMLLIElement {
 }
 
 export function createButton(): HTMLButtonElement {
-  return document.createElement("button");
+  const button = document.createElement("button");
+  button.type = "button";
+  return button;
 }
 
 export function createH3(): HTMLHeadingElement {

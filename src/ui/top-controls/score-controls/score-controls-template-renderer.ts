@@ -90,6 +90,7 @@ export class ScoreControlsTemplateRenderer {
       "aria-disabled",
       `${editingDisabled}`
     );
+    this.template.newTrackButton.disabled = editingDisabled;
   }
 
   private renderMasterVolumeInput(score: Score): void {

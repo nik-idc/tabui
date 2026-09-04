@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("contains modal behavior within the editor", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  const opener = editor.locator('img[alt="New track"]');
+  const opener = editor.getByRole("button", { name: "New track" });
 
   await opener.evaluate((element) => {
     element.tabIndex = 0;
@@ -57,7 +57,7 @@ test("contains modal behavior within the editor", async ({ page }) => {
 test("traps focus and closes with Escape", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  const opener = editor.locator('img[alt="New track"]');
+  const opener = editor.getByRole("button", { name: "New track" });
   await opener.evaluate((element) => {
     element.tabIndex = 0;
   });
@@ -72,7 +72,6 @@ test("traps focus and closes with Escape", async ({ page }) => {
   const first = focusable.first();
   const last = focusable.last();
   await expect(first).toBeFocused();
-
   await page.keyboard.press("Shift+Tab");
   await expect(last).toBeFocused();
   await page.keyboard.press("Tab");
@@ -99,7 +98,7 @@ test("traps focus and closes with Escape", async ({ page }) => {
 test("matches the native dialog method contract", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  await editor.locator('img[alt="New track"]').click();
+  await editor.getByRole("button", { name: "New track" }).click();
   const dialog = editor.locator(".tu-dialog.tu-nt-dialog");
 
   const result = await dialog.evaluate((element) => {
@@ -165,7 +164,7 @@ test("keeps the editor inert until all modal dialogs close", async ({
 }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  await editor.locator('img[alt="New track"]').click();
+  await editor.getByRole("button", { name: "New track" }).click();
   const firstDialog = editor.locator(".tu-dialog.tu-nt-dialog");
   const secondDialog = editor.locator(".tu-dialog.tu-ts-dialog");
   await secondDialog.evaluate((element: HTMLDialogElement) =>

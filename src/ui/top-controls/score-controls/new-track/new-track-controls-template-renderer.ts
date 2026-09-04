@@ -6,7 +6,7 @@ import {
   setupDialogActionButtons,
 } from "../../../shared";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
-import { createButton, createDiv, createImage } from "../../../../shared";
+import { createButton, createDiv } from "../../../../shared";
 import type { ResolvedAssetConfig } from "../../../../config/asset-url-resolver";
 import {
   InstrumentFamily,
@@ -117,7 +117,7 @@ export class NewTrackControlsTemplateRenderer {
     const families = Object.values(InstrumentFamily);
     if (this.template.instrFamiliesButtons.length === 0) {
       for (const family of families) {
-        this.template.instrFamiliesButtons.push(createImage());
+        this.template.instrFamiliesButtons.push(createButton());
       }
     }
 
@@ -134,6 +134,10 @@ export class NewTrackControlsTemplateRenderer {
         this.assetsPath,
         `img/ui/${family.toLowerCase()}.svg`,
         family
+      );
+      imageButton.setAttribute(
+        "aria-pressed",
+        `${family === this._currentFamily}`
       );
     }
   }

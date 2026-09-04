@@ -2,7 +2,6 @@ import {
   createButton,
   createDialog,
   createDiv,
-  createImage,
   createInput,
   createSVG,
 } from "../../../../../shared";
@@ -12,7 +11,7 @@ export class TrackSettingsControlsTemplate {
   /**/ readonly dialogContent: HTMLDivElement = createDiv();
   /****/ readonly settingsContainer: HTMLDivElement = createDiv();
   /******/ readonly instrFamiliesContainer: HTMLDivElement = createDiv();
-  /********/ readonly instrFamiliesButtons: HTMLImageElement[] = [];
+  /********/ readonly instrFamiliesButtons: HTMLButtonElement[] = [];
   /******/ readonly instrSelectContainer: HTMLDivElement = createDiv();
   /********/ readonly instrTypesContainer: HTMLDivElement = createDiv();
   /**********/ readonly instrTypesButtons: HTMLButtonElement[] = [];

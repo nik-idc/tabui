@@ -17,6 +17,9 @@ describe("UICallbacks", () => {
       trackController: { isPlaybackActive: true, editingEnabled: true },
     };
     renderer.template = { container };
+    renderer.config = {
+      panels: { side: { visible: false, collapsible: false } },
+    };
     renderer._assembled = true;
 
     renderer.render();

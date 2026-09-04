@@ -1,10 +1,6 @@
 import { renderOnce, setImageAsset } from "../../shared";
 import { NotationComponent } from "../../../notation/notation-component";
-import {
-  GuitarTechniqueType,
-  NoteValue,
-  TECHNIQUE_TYPE_TO_LABEL,
-} from "../../../notation/model";
+import { GuitarTechniqueType } from "../../../notation/model";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
@@ -33,7 +29,6 @@ export class TechniqueControlsTemplateRenderer {
   private assembleContainer(): void {
     const cssClass = "tu-technique-controls";
     this.template.container.classList.add(cssClass);
-
     this.template.container.append(
       this.template.vibratoButton,
       this.template.palmMuteButton,
@@ -49,7 +44,7 @@ export class TechniqueControlsTemplateRenderer {
 
   private renderTechniqueButtonState(
     type: GuitarTechniqueType,
-    button: HTMLImageElement
+    button: HTMLButtonElement
   ): void {
     const tc = this.notationComponent.trackController;
 
@@ -57,51 +52,26 @@ export class TechniqueControlsTemplateRenderer {
     const selectionCursor = tc.selectionCursor;
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
+    let isApplied = false;
+    let isDisabled = false;
 
     if (selectionCursor === undefined) {
-      if (type === GuitarTechniqueType.Bend) {
-        button.classList.remove(appliedCSSClass);
-        button.classList.add(disabledCSSClass);
-        return;
-      }
-
-      if (selection.some((b) => b.hasTechnique(type))) {
-        button.classList.add(appliedCSSClass);
-        button.classList.remove(disabledCSSClass);
-        return;
-      }
-
-      button.classList.remove(appliedCSSClass);
-      button.classList.remove(disabledCSSClass);
+      isDisabled = type === GuitarTechniqueType.Bend;
+      isApplied =
+        !isDisabled && selection.some((beat) => beat.hasTechnique(type));
     } else {
       const note = selectionCursor.note;
-      if (note === null) {
-        button.classList.remove(appliedCSSClass);
-        button.classList.add(disabledCSSClass);
-        return;
+      isDisabled = note === null;
+      if (note !== null) {
+        isApplied = note.hasTechnique(type);
+        isDisabled = !isApplied && !note.isTechniqueApplicable(type);
       }
-
-      if (TECHNIQUE_TYPE_TO_LABEL[type] && note.noteValue === NoteValue.None) {
-        button.classList.remove(appliedCSSClass);
-        button.classList.add(disabledCSSClass);
-        return;
-      }
-
-      if (note.hasTechnique(type)) {
-        button.classList.add(appliedCSSClass);
-        button.classList.remove(disabledCSSClass);
-        return;
-      }
-
-      if (note.isTechniqueApplicable(type)) {
-        button.classList.remove(appliedCSSClass);
-        button.classList.remove(disabledCSSClass);
-        return;
-      }
-
-      button.classList.remove(appliedCSSClass);
-      button.classList.add(disabledCSSClass);
     }
+
+    button.disabled = isDisabled;
+    button.classList.toggle(appliedCSSClass, isApplied);
+    button.classList.toggle(disabledCSSClass, isDisabled);
+    button.setAttribute("aria-pressed", `${isApplied}`);
   }
 
   private renderTechniqueButtons(): void {

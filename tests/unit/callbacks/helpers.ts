@@ -41,6 +41,9 @@ export class FakeElement {
   };
   close = jest.fn(() => this.dispatch("close"));
   setAttribute = jest.fn();
+  querySelector = jest.fn((selector: string) =>
+    selector === "img" ? { src: "", alt: "" } : null
+  );
 
   private _children: FakeElement[] = [];
   private _listeners = new Map<string, Set<Handler>>();

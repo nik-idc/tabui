@@ -377,8 +377,11 @@
             border-radius: var(--tu-border-radius);
             background: transparent;
             box-sizing: border-box;
-            filter: brightness(0) saturate(100%) invert(40%) sepia(70%)
-              saturate(900%) hue-rotate(315deg) brightness(90%);
+
+            > img {
+              filter: brightness(0) saturate(100%) invert(40%) sepia(70%)
+                saturate(900%) hue-rotate(315deg) brightness(90%);
+            }
 
             &:hover {
               background: transparent !important;
@@ -386,26 +389,12 @@
 
             &.tu-disabled-img {
               cursor: not-allowed;
-              opacity: 0.35;
-              filter: grayscale(1);
-            }
+              opacity: 1;
 
-            &[aria-disabled="true"]:hover::after {
-              content: attr(data-tooltip);
-              position: absolute;
-              z-index: 10;
-              left: 50%;
-              top: calc(100% + 6px);
-              transform: translateX(-50%);
-              width: max-content;
-              max-width: 180px;
-              padding: 4px 6px;
-              border-radius: var(--tu-border-radius);
-              background: var(--tu-secondary-color);
-              color: var(--tu-text-color);
-              font-size: 12px;
-              white-space: normal;
-              pointer-events: none;
+              > img {
+                opacity: 0.35;
+                filter: grayscale(1);
+              }
             }
           }
         }
@@ -1408,4 +1397,98 @@
 .tu-editing-disabled {
   opacity: 0.5;
   pointer-events: none;
+}
+
+.tu-editor .tu-icon-button {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 32px;
+  height: 32px;
+  // min-width: 40px;
+  // min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--tu-transition-speed),
+    transform var(--tu-transition-speed);
+
+  &:hover {
+    background: var(--tu-hover-color);
+    transform: scale(1.1);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  > img {
+    width: 32px;
+    height: 32px;
+    pointer-events: none;
+    transform: none;
+
+    &:hover {
+      background: transparent;
+      transform: none;
+    }
+  }
+
+  &[aria-pressed="true"],
+  &.tu-applied-img,
+  &.tu-track-control-active {
+    background: var(--tu-applied-color);
+    box-shadow: inset 0 0 0 2px var(--tu-font-color);
+  }
+}
+
+.tu-editor .tu-side-controls .tu-icon-button {
+  flex-basis: 2.4rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  min-width: 2.4rem;
+  min-height: 2.4rem;
+  padding: 0.25rem;
+  border-radius: var(--tu-border-radius);
+
+  > img {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.tu-editor [data-tooltip] {
+  position: relative;
+}
+
+.tu-editor [data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 200;
+  left: 50%;
+  bottom: calc(100% + 0.4rem);
+  display: none;
+  width: max-content;
+  max-width: min(18rem, 90vw);
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--tu-border-color);
+  border-radius: var(--tu-border-radius);
+  background: var(--tu-primary-color);
+  color: var(--tu-font-color);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: normal;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.tu-editor [data-tooltip]:hover::after,
+.tu-editor [data-tooltip]:focus-visible::after {
+  display: block;
 }

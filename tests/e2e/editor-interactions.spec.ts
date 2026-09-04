@@ -30,8 +30,8 @@ test("starts and pauses playback from the transport control", async ({
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
 
   // Click the visible transport image and assert its browser-visible state changes.
-  await editor.locator('img[alt="Play"]').click();
-  await expect(editor.locator('img[alt="Pause"]')).toHaveAttribute(
+  await editor.getByRole("button", { name: "Play" }).click();
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
     "aria-pressed",
     "true"
   );
@@ -45,8 +45,8 @@ test("starts and pauses playback from the transport control", async ({
     .not.toBe(cursorXBefore);
 
   // Click the updated transport image to pause playback again.
-  await editor.locator('img[alt="Pause"]').click();
-  await expect(editor.locator('img[alt="Play"]')).toHaveAttribute(
+  await editor.getByRole("button", { name: "Pause" }).click();
+  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
     "aria-pressed",
     "false"
   );
@@ -64,7 +64,7 @@ test("starts and pauses playback with Space", async ({ page }) => {
 
   // Space starts playback through the editor's keyboard handler.
   await page.keyboard.press("Space");
-  await expect(editor.locator('img[alt="Pause"]')).toHaveAttribute(
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
     "aria-pressed",
     "true"
   );
@@ -79,7 +79,7 @@ test("starts and pauses playback with Space", async ({ page }) => {
 
   // A second Space press uses the same keyboard path to pause playback.
   await page.keyboard.press("Space");
-  await expect(editor.locator('img[alt="Play"]')).toHaveAttribute(
+  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
     "aria-pressed",
     "false"
   );
