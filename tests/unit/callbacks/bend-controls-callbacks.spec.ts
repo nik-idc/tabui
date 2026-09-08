@@ -6,13 +6,13 @@ import {
   dispatchClick,
   FakeElement,
   makeButton,
-  makeDialog,
+  makeDialogFixture,
 } from "./helpers";
 
 function createBendHarness() {
-  const dialog = makeDialog();
+  const { dialog, dialogContainer } = makeDialogFixture();
   const dialogContent = new FakeElement();
-  dialog.appendChild(dialogContent);
+  dialogContainer.appendChild(dialogContent);
   const bendTypesButtons = {
     [BendType.Bend]: makeButton(),
     [BendType.BendAndRelease]: makeButton(),
@@ -35,8 +35,9 @@ function createBendHarness() {
     dispose: jest.fn(),
   };
   const component = {
+    dialog,
     template: {
-      dialog,
+      dialogContainer,
       dialogContent,
       bendTypesButtons,
       confirmButton,
@@ -140,9 +141,9 @@ describe("BendControlsDefaultCallbacks", () => {
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
     dispatchClick(component.template.bendTypesButtons[BendType.BendAndRelease]);
-    component.template.dialog.dispatch("focusin");
+    component.template.dialogContainer.dispatch("focusin");
     dispatchClick(component.template.confirmButton);
-    component.template.dialog.dispatch("close");
+    component.template.dialogContainer.dispatch("close");
 
     expect(setTechnique).toHaveBeenCalledTimes(techniqueCallsBeforeConfirm + 1);
     expect(setTechnique).toHaveBeenCalledWith(
@@ -150,7 +151,7 @@ describe("BendControlsDefaultCallbacks", () => {
       expect.anything()
     );
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
-    expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(
       freeKeyboardCallsBeforeConfirm + 1
     );
@@ -177,7 +178,7 @@ describe("BendControlsDefaultCallbacks", () => {
       notationComponent.trackController.setTechnique
     ).not.toHaveBeenCalled();
     expect(renderFunc).not.toHaveBeenCalled();
-    expect(component.template.dialog.close).not.toHaveBeenCalled();
+    expect(component.dialog.close).not.toHaveBeenCalled();
   });
 
   test("remove uses the undoable controller operation", () => {
@@ -190,7 +191,7 @@ describe("BendControlsDefaultCallbacks", () => {
       GuitarTechniqueType.Bend
     );
     expect(renderFunc).toHaveBeenCalledTimes(1);
-    expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
   });
 
   test("remove is ignored when the selected note has no bend", () => {
@@ -202,7 +203,7 @@ describe("BendControlsDefaultCallbacks", () => {
     expect(
       notationComponent.trackController.setTechnique
     ).not.toHaveBeenCalled();
-    expect(component.template.dialog.close).not.toHaveBeenCalled();
+    expect(component.dialog.close).not.toHaveBeenCalled();
   });
 
   test("close cleanup captures and releases keyboard exactly once", () => {
@@ -215,11 +216,11 @@ describe("BendControlsDefaultCallbacks", () => {
     } = createBendHarness();
     callbacks.bind();
 
-    component.template.dialog.dispatch("focusin");
-    component.template.dialog.dispatch("focusin");
+    component.template.dialogContainer.dispatch("focusin");
+    component.template.dialogContainer.dispatch("focusin");
     callbacks.onCancelClicked();
-    component.template.dialog.dispatch("close");
-    component.template.dialog.dispatch("close");
+    component.template.dialogContainer.dispatch("close");
+    component.template.dialogContainer.dispatch("close");
 
     expect(captureKeyboard).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
@@ -231,11 +232,11 @@ describe("BendControlsDefaultCallbacks", () => {
     const preventDefault = jest.fn();
     callbacks.bind();
 
-    component.template.dialog.dispatch("keydown", {
+    component.template.dialogContainer.dispatch("keydown", {
       key: "Enter",
       preventDefault,
     });
-    component.template.dialog.dispatch("keydown", {
+    component.template.dialogContainer.dispatch("keydown", {
       key: "Escape",
       preventDefault,
     });

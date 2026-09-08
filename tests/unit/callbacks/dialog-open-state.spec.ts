@@ -22,10 +22,8 @@ describe("dialog open state", () => {
           calls.push("render");
           draftValue = modelValue;
         }),
-        template: {
-          dialog: {
-            showModal: jest.fn(() => calls.push(`show:${draftValue}`)),
-          },
+        dialog: {
+          showModal: jest.fn(() => calls.push(`show:${draftValue}`)),
         },
       };
       const component = {
@@ -55,10 +53,8 @@ describe("dialog open state", () => {
         calls.push("render");
         draftValue = modelValue;
       }),
-      template: {
-        dialog: {
-          showModal: jest.fn(() => calls.push(`show:${draftValue}`)),
-        },
+      dialog: {
+        showModal: jest.fn(() => calls.push(`show:${draftValue}`)),
       },
     };
     const component = { tupletComponent: child } as any;

@@ -5,13 +5,13 @@ import {
   dispatchClick,
   FakeElement,
   makeButton,
-  makeDialog,
+  makeDialogFixture,
 } from "./helpers";
 
 function createYesNoHarness() {
-  const yesNoDialog = makeDialog();
+  const { dialog, dialogContainer } = makeDialogFixture();
   const yesNoDialogContent = new FakeElement();
-  yesNoDialog.appendChild(yesNoDialogContent);
+  dialogContainer.appendChild(yesNoDialogContent);
   const confirmButton = makeButton();
   const cancelButton = makeButton();
   const onConfirm = jest.fn();
@@ -19,8 +19,9 @@ function createYesNoHarness() {
   const freeKeyboard = jest.fn();
   const callbacks = new YesNoDefaultCallbacks(
     {
+      dialog,
       template: {
-        yesNoDialog,
+        dialogContainer,
         yesNoDialogContent,
         confirmButton,
         cancelButton,
@@ -35,7 +36,7 @@ function createYesNoHarness() {
 
   return {
     callbacks,
-    component: { yesNoDialog, yesNoDialogContent, confirmButton, cancelButton },
+    component: { dialog, yesNoDialogContent, confirmButton, cancelButton },
     onConfirm,
     renderFunc,
     freeKeyboard,
@@ -58,11 +59,11 @@ describe("YesNoDefaultCallbacks", () => {
     );
 
     callbacks.onDialogClicked({ target: insideTarget } as any);
-    expect(component.yesNoDialog.close).not.toHaveBeenCalled();
+    expect(component.dialog.close).not.toHaveBeenCalled();
 
     callbacks.bind();
     callbacks.onDialogClicked({ target: outsideTarget } as any);
-    expect(component.yesNoDialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
 
     callbacks.bind();
@@ -78,10 +79,9 @@ describe("YesNoDefaultCallbacks", () => {
     expect(onConfirm).toHaveBeenCalledTimes(confirmCallsBeforeUnbind);
 
     callbacks.bind();
-    const closeCallsBeforeCancel =
-      component.yesNoDialog.close.mock.calls.length;
+    const closeCallsBeforeCancel = component.dialog.close.mock.calls.length;
     dispatchClick(component.cancelButton);
-    expect(component.yesNoDialog.close).toHaveBeenCalledTimes(
+    expect(component.dialog.close).toHaveBeenCalledTimes(
       closeCallsBeforeCancel + 1
     );
   });

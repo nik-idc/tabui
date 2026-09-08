@@ -1,4 +1,6 @@
 import { TabUIEditor } from "../../../src/tabui-editor";
+import { EditorShellComponent } from "../../../src/ui/editor-shell/editor-shell-component";
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import { UIComponent } from "../../../src/ui";
 import { TabUICallbacks } from "../../../src/tabui-callbacks";
@@ -294,6 +296,60 @@ describe("TabUIEditor lifecycle", () => {
     );
   });
 
+  test("mounts the announcer only on parent changes and cancels stale text", () => {
+    jest.useFakeTimers();
+    const root = createRoot();
+    const editor = new EditorShellComponent(root, resolveTabUIConfig());
+    try {
+      editor.render();
+      const announce = editor.announce.bind(editor);
+      const mountAnnouncer = editor.mountAnnouncer.bind(editor);
+      const region = root.children[5];
+      let parent: HTMLElement = root;
+      Object.defineProperty(region, "parentElement", { get: () => parent });
+      const dialog = createShellElement();
+      jest.mocked(dialog.appendChild).mockImplementation((child) => {
+        parent = dialog;
+        return child;
+      });
+
+      announce("Repeat");
+      mountAnnouncer(root);
+      expect(region.textContent).toBe("Repeat");
+      expect(root.appendChild).toHaveBeenCalledTimes(6);
+
+      announce("Repeat");
+      mountAnnouncer(root);
+      jest.runOnlyPendingTimers();
+      expect(region.textContent).toBe("Repeat");
+
+      announce("Repeat");
+      mountAnnouncer(dialog);
+      expect(dialog.appendChild).toHaveBeenCalledTimes(1);
+      expect(dialog.appendChild).toHaveBeenCalledWith(region);
+      expect(region.textContent).toBe("");
+      jest.runOnlyPendingTimers();
+      expect(region.textContent).toBe("");
+
+      announce("Stale");
+      mountAnnouncer(root);
+      expect(root.appendChild).toHaveBeenLastCalledWith(region);
+      expect(region.textContent).toBe("");
+
+      announce("Pending disposal");
+      announce("Pending disposal");
+      editor.dispose();
+      jest.runOnlyPendingTimers();
+      announce("Disposed");
+      mountAnnouncer(dialog);
+      expect(region.textContent).toBe("");
+      expect(dialog.appendChild).toHaveBeenCalledTimes(1);
+    } finally {
+      editor.dispose();
+      jest.useRealTimers();
+    }
+  });
+
   test("keeps theme variables scoped to the editor root", () => {
     const root = createRoot();
     const editor = new TabUIEditor(root, createScore());
@@ -352,7 +408,7 @@ describe("TabUIEditor lifecycle", () => {
     editor.init();
 
     expect(editor.layoutDimensions.WIDTH).toBe(666);
-    expect(root.appendChild).toHaveBeenCalledTimes(5);
+    expect(root.appendChild).toHaveBeenCalledTimes(6);
     expect(
       (root.appendChild as jest.Mock).mock.calls[2][0].classList.contains(
         "tu-notation-viewport"

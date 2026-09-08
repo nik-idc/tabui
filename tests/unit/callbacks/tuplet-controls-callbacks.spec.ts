@@ -5,14 +5,14 @@ import {
   dispatchClick,
   FakeElement,
   makeButton,
-  makeDialog,
+  makeDialogFixture,
   makeText,
 } from "./helpers";
 
 function createTupletHarness() {
-  const dialog = makeDialog();
+  const { dialog, dialogContainer } = makeDialogFixture();
   const dialogContent = new FakeElement();
-  dialog.appendChild(dialogContent);
+  dialogContainer.appendChild(dialogContent);
   const normalControl = new FakeElement();
   const normalDownButton = makeButton();
   const normalValue = new FakeElement();
@@ -28,8 +28,9 @@ function createTupletHarness() {
   const normalErrorText = makeText();
   const tupletErrorText = makeText();
   const component = {
+    dialog,
     template: {
-      dialog,
+      dialogContainer,
       dialogContent,
       normalControl,
       normalDownButton,
@@ -124,7 +125,7 @@ describe("TupletControlsDefaultCallbacks", () => {
     expect(setTuplet).toHaveBeenCalledTimes(tupletCallsBeforeConfirm + 1);
     expect(setTuplet).toHaveBeenCalledWith(5, 4);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
-    expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(
       freeKeyboardCallsBeforeConfirm + 1
     );

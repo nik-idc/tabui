@@ -1,8 +1,11 @@
+import { ContainedDialog } from "../../../shared/hmtl/contained-dialog";
+import { DialogEnforcer } from "../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../notation/notation-component";
 import { YesNoTemplateRenderer } from "./yes-no-template-renderer";
 import { YesNoTemplate } from "./yes-no-template";
 
 export class YesNoComponent {
+  readonly dialog: ContainedDialog;
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
@@ -13,7 +16,7 @@ export class YesNoComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
+    dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
     text: string = "Are you sure?"
   ) {
@@ -22,7 +25,11 @@ export class YesNoComponent {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new YesNoTemplate(dialogHost);
+    this.template = new YesNoTemplate();
+    this.dialog = new ContainedDialog(
+      this.template.dialogContainer,
+      dialogEnforcer
+    );
     this.templateRenderer = new YesNoTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

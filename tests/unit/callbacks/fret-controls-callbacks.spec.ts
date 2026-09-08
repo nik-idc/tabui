@@ -20,7 +20,7 @@ function createHarness() {
   notationComponent.trackController.hasSelectedNote = true;
 
   const template = {
-    dialog: new FakeElement(),
+    dialogContainer: new FakeElement(),
     dialogContent: new FakeElement(),
     noFretButton: new FakeElement(),
     deadButton: new FakeElement(),
@@ -28,7 +28,7 @@ function createHarness() {
     confirmButton: new FakeElement(),
     cancelButton: new FakeElement(),
   };
-  const component = { template } as any;
+  const component = { template, dialog: { close: jest.fn() } } as any;
   const renderFunc = jest.fn();
   const callbacks = new FretControlsDefaultCallbacks(
     component,

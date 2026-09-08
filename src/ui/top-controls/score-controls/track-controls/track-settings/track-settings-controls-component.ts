@@ -1,3 +1,5 @@
+import { ContainedDialog } from "../../../../../shared/hmtl/contained-dialog";
+import { DialogEnforcer } from "../../../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../../../notation/notation-component";
 import {
   ElectricGuitarTone,
@@ -19,6 +21,7 @@ import { TrackSettingsControlsTemplate } from "./track-settings-controls-templat
 import { TrackSettingsControlsTemplateRenderer } from "./track-settings-controls-template-renderer";
 
 export class TrackSettingsControlsComponent {
+  readonly dialog: ContainedDialog;
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   private _track: Track;
@@ -37,7 +40,7 @@ export class TrackSettingsControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
+    dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
     track: Track
   ) {
@@ -45,7 +48,11 @@ export class TrackSettingsControlsComponent {
     this.notationComponent = notationComponent;
     this._track = track;
 
-    this.template = new TrackSettingsControlsTemplate(dialogHost);
+    this.template = new TrackSettingsControlsTemplate();
+    this.dialog = new ContainedDialog(
+      this.template.dialogContainer,
+      dialogEnforcer
+    );
     this.templateRenderer = new TrackSettingsControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

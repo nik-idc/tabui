@@ -30,6 +30,7 @@ export class BendSelectorManager {
 
   constructor(
     bendGraphSVG: SVGSVGElement,
+    private readonly _announce: (text: string) => void,
     bendOptions?: BendSelectorManagerOptions,
     bendType?: BendType
   ) {
@@ -67,6 +68,7 @@ export class BendSelectorManager {
       line.setAttribute("x2", `${this._currentOptions.width}`);
       line.setAttribute("y2", `${y}`);
       line.setAttribute("stroke", "var(--tu-bend-grid)");
+      line.setAttribute("aria-hidden", "true");
       this._bendGraphSVG.appendChild(line);
 
       const pitch = Math.round(
@@ -86,6 +88,7 @@ export class BendSelectorManager {
       text.classList.add("pitch-label");
       text.setAttribute("font-size", "12px");
       text.setAttribute("fill", "var(--tu-bend-label)");
+      text.setAttribute("aria-hidden", "true");
 
       const label = getPitchLabel(pitch);
       text.textContent = label;
@@ -103,6 +106,7 @@ export class BendSelectorManager {
       line.setAttribute("x2", `${x}`);
       line.setAttribute("y2", `${this._currentOptions.height}`);
       line.setAttribute("stroke", "var(--tu-bend-grid)");
+      line.setAttribute("aria-hidden", "true");
       this._bendGraphSVG.appendChild(line);
     }
   }
@@ -126,6 +130,7 @@ export class BendSelectorManager {
       this._bendGraphSVG,
       this._currentOptions,
       bendOptions,
+      this._announce,
       continuationPitch
     );
     this._currentSelector.init();

@@ -180,9 +180,10 @@ export class TabUIEditor {
     this._uiComponent = new UIComponent(
       this._shellComponent.template.scorePanelHost,
       this._shellComponent.template.sidePanelHost,
-      this._shellComponent.template.dialogHost,
+      this._shellComponent.dialogEnforcer,
       this._notationComponent,
-      this.config
+      this.config,
+      this._shellComponent.announce.bind(this._shellComponent)
     );
     this._callbacks = new TabUICallbacks(
       this._uiComponent,
@@ -234,6 +235,11 @@ export class TabUIEditor {
     }
     shellComponent.template.responsiveMessage.textContent =
       "This area is too small. Rotate your device, expand the window, or use a larger screen.";
+    if (nextMode === ResponsiveInteractionMode.Blocked) {
+      shellComponent.announce(
+        shellComponent.template.responsiveMessage.textContent
+      );
+    }
     uiComponent.render(shellComponent.sidePanelCollapsed);
   }
 

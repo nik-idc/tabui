@@ -39,7 +39,6 @@ export class FakeElement {
     add: jest.fn(),
     toggle: jest.fn(),
   };
-  close = jest.fn(() => this.dispatch("close"));
   setAttribute = jest.fn();
   querySelector = jest.fn((selector: string) =>
     selector === "img" ? { src: "", alt: "" } : null
@@ -105,8 +104,13 @@ export function makeText(): FakeElement {
   return new FakeElement();
 }
 
-export function makeDialog(): FakeElement {
-  return new FakeElement();
+/** Separates component behavior from the template's event target. */
+export function makeDialogFixture() {
+  const dialogContainer = new FakeElement();
+  const dialog = {
+    close: jest.fn(() => dialogContainer.dispatch("close")),
+  };
+  return { dialog, dialogContainer };
 }
 
 export function dispatchClick(

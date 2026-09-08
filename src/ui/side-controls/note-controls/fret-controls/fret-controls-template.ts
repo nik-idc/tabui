@@ -1,13 +1,8 @@
-import {
-  createButton,
-  createDialog,
-  createDiv,
-  createInput,
-} from "../../../../shared";
+import { createButton, createDiv, createInput } from "../../../../shared";
 
 /** Template elements for editing the selected note's fret. */
 export class FretControlsTemplate {
-  readonly dialog: HTMLDialogElement;
+  readonly dialogContainer: HTMLDivElement = createDiv();
   readonly dialogContent: HTMLDivElement = createDiv();
   readonly inputContent: HTMLDivElement = createDiv();
   readonly textContainer: HTMLDivElement = createDiv();
@@ -18,8 +13,4 @@ export class FretControlsTemplate {
   readonly actionsContent: HTMLDivElement = createDiv();
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
-
-  constructor(dialogHost: HTMLDivElement) {
-    this.dialog = createDialog(dialogHost);
-  }
 }

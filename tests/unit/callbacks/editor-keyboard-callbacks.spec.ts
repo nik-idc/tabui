@@ -21,6 +21,21 @@ type FakeRootElement = HTMLElement & {
 function createRootElement(): FakeRootElement {
   const listeners = new Map<string, Set<(...args: any[]) => void>>();
   return {
+    /** Models DOM containment through the parent chain, including self. */
+    contains(node: Node | null): boolean {
+      while (node) {
+        if (node === this) {
+          return true;
+        }
+        node = node.parentNode;
+      }
+      return false;
+    },
+    /** Moves document focus before notifying root focus listeners. */
+    focus(): void {
+      (document as any).activeElement = this;
+      this.dispatch("focusin");
+    },
     addEventListener: jest.fn(
       (event: string, handler: (...args: any[]) => void) => {
         const handlers = listeners.get(event) ?? new Set();
@@ -115,6 +130,7 @@ describe("EditorKeyboardDefCallbacks", () => {
   beforeEach(() => {
     originalDocument = (globalThis as any).document;
     (globalThis as any).document = {
+      activeElement: null,
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     };
@@ -541,6 +557,47 @@ describe("EditorKeyboardDefCallbacks", () => {
       "keydown",
       expect.any(Function)
     );
+  });
+
+  test("restores editor ownership after temporary keyboard capture", () => {
+    const root = createRootElement();
+    const { callbacks, notationComponent } = createHarness(root);
+    callbacks.bind();
+    root.focus();
+
+    callbacks.unbind();
+    callbacks.bind();
+    callbacks.onKeyDown(createKeyboardEvent(" "));
+
+    expect(notationComponent.trackController.startPlayer).toHaveBeenCalledTimes(
+      1
+    );
+    callbacks.unbind();
+  });
+
+  test("rebind does not steal ownership when focus is outside the editor", () => {
+    const editorA = createHarness();
+    const editorB = createHarness();
+    editorA.callbacks.bind();
+    editorB.callbacks.bind();
+    editorA.rootElement.focus();
+
+    editorA.callbacks.unbind();
+    editorB.rootElement.focus();
+    editorA.callbacks.bind();
+    const event = createKeyboardEvent(" ");
+    editorA.callbacks.onKeyDown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    editorB.callbacks.onKeyDown(event);
+
+    expect(
+      editorA.notationComponent.trackController.startPlayer
+    ).not.toHaveBeenCalled();
+    expect(
+      editorB.notationComponent.trackController.startPlayer
+    ).toHaveBeenCalledTimes(1);
+    editorA.callbacks.unbind();
+    editorB.callbacks.unbind();
   });
 
   test("global keyboard input is scoped to the active editor root", () => {

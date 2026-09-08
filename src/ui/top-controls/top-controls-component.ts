@@ -1,3 +1,4 @@
+import { DialogEnforcer } from "../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../notation/notation-component";
 import { template } from "@babel/core";
 import { TrackControlsComponent } from "./score-controls/track-controls";
@@ -19,7 +20,7 @@ export class TopControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
+    dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent
   ) {
     this.parentDiv = parentDiv;
@@ -33,7 +34,7 @@ export class TopControlsComponent {
     );
     this.scoreComponent = new ScoreControlsComponent(
       this.template.container,
-      dialogHost,
+      dialogEnforcer,
       this.notationComponent
     );
     this.playComponent = new PlayControlsComponent(

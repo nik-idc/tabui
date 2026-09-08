@@ -41,8 +41,9 @@ export class BendControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-bend-controls-dialog",
+      "Bend",
       this.template.dialogContent,
       "tu-bend-controls-content",
       [
@@ -64,6 +65,11 @@ export class BendControlsTemplateRenderer {
           ],
         },
       ]
+    );
+    this.template.dialogContainer.setAttribute(
+      "aria-description",
+      "Pitch uses half-semitone steps. Tab moves between controls. " +
+        "Arrow keys adjust pitch and duration."
     );
 
     this.template.bendTypeListContainer.append(
@@ -88,6 +94,11 @@ export class BendControlsTemplateRenderer {
     this.template.bendSelectorGraphSVG.classList.add(cssClass);
     this.template.bendSelectorGraphSVG.setAttribute("width", "420px");
     this.template.bendSelectorGraphSVG.setAttribute("height", "300px");
+    this.template.bendSelectorGraphSVG.setAttribute("role", "group");
+    this.template.bendSelectorGraphSVG.setAttribute(
+      "aria-label",
+      "Bend curve editor"
+    );
   }
 
   private renderActionButtons(): void {
@@ -108,6 +119,10 @@ export class BendControlsTemplateRenderer {
       this.template.bendTypesButtons[bendType].classList.toggle(
         "tu-applied-button",
         bendType === selectedType
+      );
+      this.template.bendTypesButtons[bendType].setAttribute(
+        "aria-pressed",
+        `${bendType === selectedType}`
       );
     }
   }

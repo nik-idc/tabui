@@ -16,6 +16,8 @@ import { ScoreLayoutPlanner } from "./controller/layout/score-layout-plan";
  */
 export class NotationComponent {
   /** Root div element */
+  // FIX: RENAME INTO "notationViewport" !!
+  // `rootDiv` is too ambigous
   readonly rootDiv: HTMLDivElement;
   /** Score */
   readonly score: Score;

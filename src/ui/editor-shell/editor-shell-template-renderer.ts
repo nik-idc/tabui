@@ -42,6 +42,7 @@ export class EditorShellTemplateRenderer {
 
   private assemble(): void {
     const {
+      announcementHost,
       scorePanelHost,
       sidePanelHost,
       notationViewport,
@@ -55,16 +56,26 @@ export class EditorShellTemplateRenderer {
     );
     this.applyTheme();
 
+    announcementHost.classList.add("tu-announcement-host");
+    announcementHost.setAttribute("role", "status");
+    announcementHost.ariaLive = "polite";
+    announcementHost.ariaAtomic = "true";
+
     scorePanelHost.classList.add("tu-top-controls-host");
-    sidePanelHost.classList.add("tu-side-controls-host");
-    notationViewport.classList.add("tu-notation-viewport");
-    responsiveMessage.classList.add("tu-responsive-message");
-    responsiveMessage.setAttribute("role", "status");
-    responsiveMessage.setAttribute("aria-live", "polite");
-    responsiveMessage.hidden = true;
-    dialogHost.classList.add("tu-dialog-host");
     scorePanelHost.hidden = !this.config.panels.score.visible;
+
+    sidePanelHost.classList.add("tu-side-controls-host");
     sidePanelHost.hidden = !this.config.panels.side.visible;
+
+    notationViewport.classList.add("tu-notation-viewport");
+    // WARNING: Temporarily remove notation from tab interactions
+    notationViewport.tabIndex = -1;
+    notationViewport.setAttribute("aria-label", "Notation editor");
+
+    responsiveMessage.classList.add("tu-responsive-message");
+    responsiveMessage.hidden = true;
+
+    dialogHost.classList.add("tu-dialog-host");
 
     const shellClasses = [
       `tu-score-panel-${this.config.panels.score.placement}`,
@@ -83,6 +94,7 @@ export class EditorShellTemplateRenderer {
     this.rootDiv.appendChild(notationViewport);
     this.rootDiv.appendChild(responsiveMessage);
     this.rootDiv.appendChild(dialogHost);
+    this.rootDiv.appendChild(announcementHost);
     this._assembled = true;
   }
 

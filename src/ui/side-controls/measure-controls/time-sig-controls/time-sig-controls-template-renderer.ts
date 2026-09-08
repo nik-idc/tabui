@@ -32,8 +32,9 @@ export class TimeSigControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-time-sig-dialog",
+      "Time signature",
       this.template.dialogContent,
       "tu-time-sig-dialog-content",
       [

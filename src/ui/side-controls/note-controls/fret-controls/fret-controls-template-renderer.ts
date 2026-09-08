@@ -28,8 +28,9 @@ export class FretControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-fret-dialog",
+      "Fret",
       this.template.dialogContent,
       "tu-fret-dialog-content",
       [

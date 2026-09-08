@@ -48,7 +48,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._bendComponent.template.dialogContent.contains(target)
     ) {
-      this._bendComponent.template.dialog.close();
+      this._bendComponent.dialog.close();
     }
   }
 
@@ -76,11 +76,11 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     );
     this._renderFunc();
 
-    this._bendComponent.template.dialog.close();
+    this._bendComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._bendComponent.template.dialog.close();
+    this._bendComponent.dialog.close();
   }
 
   onRemoveClicked(): void {
@@ -91,7 +91,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
       GuitarTechniqueType.Bend
     );
     this._renderFunc();
-    this._bendComponent.template.dialog.close();
+    this._bendComponent.dialog.close();
   }
 
   private onDialogFocus(): void {
@@ -140,24 +140,24 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
         handler: () => this.onBendTypeClicked(bendType),
       })),
       {
-        element: this._bendComponent.template.dialog,
+        element: this._bendComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => {
           this.onDialogClicked(event);
         },
       },
       {
-        element: this._bendComponent.template.dialog,
+        element: this._bendComponent.template.dialogContainer,
         event: "focusin",
         handler: () => this.onDialogFocus(),
       },
       {
-        element: this._bendComponent.template.dialog,
+        element: this._bendComponent.template.dialogContainer,
         event: "close",
         handler: () => this.onDialogClosed(),
       },
       {
-        element: this._bendComponent.template.dialog,
+        element: this._bendComponent.template.dialogContainer,
         event: "keydown",
         handler: (event: KeyboardEvent) => this.onDialogKeyDown(event),
       },

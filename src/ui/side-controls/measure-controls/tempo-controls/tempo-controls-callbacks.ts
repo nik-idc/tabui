@@ -64,7 +64,7 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._tempoComponent.template.dialogContent.contains(target)
     ) {
-      this._tempoComponent.template.dialog.close();
+      this._tempoComponent.dialog.close();
     }
   }
 
@@ -99,17 +99,17 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
     this._notationComponent.trackController.setSelectedBarTempo(tempo);
     this._renderFunc();
 
-    this._tempoComponent.template.dialog.close();
+    this._tempoComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._tempoComponent.template.dialog.close();
+    this._tempoComponent.dialog.close();
   }
 
   onKeydown(event: KeyboardEvent): void {
     const template = this._tempoComponent.template;
     const canConfirm =
-      event.target === template.dialog ||
+      event.target === template.dialogContainer ||
       event.target === template.confirmButton;
     if (
       event.key === "Enter" &&
@@ -129,17 +129,17 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._tempoComponent.template.dialog,
+        element: this._tempoComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
-        element: this._tempoComponent.template.dialog,
+        element: this._tempoComponent.template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
       },
       {
-        element: this._tempoComponent.template.dialog,
+        element: this._tempoComponent.template.dialogContainer,
         event: "keydown",
         handler: (event: KeyboardEvent) => this.onKeydown(event),
       },

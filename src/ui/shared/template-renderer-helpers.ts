@@ -56,13 +56,16 @@ export function setupDialogActionButtons(
   cancelButton.textContent = cancelLabel;
 }
 
+/** Assembles dialog sections and assigns the dialog's accessible name. */
 export function assembleDialog(
-  dialog: HTMLDialogElement,
+  dialog: HTMLDivElement,
   dialogClassName: string,
+  accessibleName: string,
   dialogContent: HTMLDivElement,
   dialogContentClassName: string,
   sections: DialogSection[]
 ): void {
+  dialog.setAttribute("aria-label", accessibleName);
   dialog.classList.add(dialogClassName);
   dialogContent.classList.add(dialogContentClassName);
   for (const section of sections) {

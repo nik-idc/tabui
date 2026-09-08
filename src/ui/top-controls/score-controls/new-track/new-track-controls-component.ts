@@ -1,3 +1,5 @@
+import { ContainedDialog } from "../../../../shared/hmtl/contained-dialog";
+import { DialogEnforcer } from "../../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../../notation/notation-component";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
 import { NewTrackControlsTemplateRenderer } from "./new-track-controls-template-renderer";
@@ -19,6 +21,7 @@ import {
 } from "../../../../notation/model";
 
 export class NewTrackControlsComponent {
+  readonly dialog: ContainedDialog;
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
@@ -34,13 +37,17 @@ export class NewTrackControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
+    dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new NewTrackControlsTemplate(dialogHost);
+    this.template = new NewTrackControlsTemplate();
+    this.dialog = new ContainedDialog(
+      this.template.dialogContainer,
+      dialogEnforcer
+    );
     this.templateRenderer = new NewTrackControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,

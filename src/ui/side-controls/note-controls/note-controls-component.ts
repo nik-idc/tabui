@@ -1,3 +1,4 @@
+import { DialogEnforcer } from "../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../notation/notation-component";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NoteControlsTemplateRenderer } from "./note-controls-template-renderer";
@@ -16,7 +17,7 @@ export class NoteControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
+    dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent
   ) {
     this.parentDiv = parentDiv;
@@ -31,12 +32,12 @@ export class NoteControlsComponent {
 
     this.tupletComponent = new TupletControlsComponent(
       this.template.container,
-      dialogHost,
+      dialogEnforcer,
       this.notationComponent
     );
     this.fretComponent = new FretControlsComponent(
       this.template.container,
-      dialogHost,
+      dialogEnforcer,
       this.notationComponent
     );
   }
@@ -50,6 +51,6 @@ export class NoteControlsComponent {
 
   public showTupletControls(): void {
     this.tupletComponent.render();
-    this.tupletComponent.template.dialog.showModal();
+    this.tupletComponent.dialog.showModal();
   }
 }

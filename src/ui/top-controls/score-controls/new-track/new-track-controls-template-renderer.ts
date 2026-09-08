@@ -47,8 +47,9 @@ export class NewTrackControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-nt-dialog",
+      "New track",
       this.template.dialogContent,
       "tu-nt-content",
       [

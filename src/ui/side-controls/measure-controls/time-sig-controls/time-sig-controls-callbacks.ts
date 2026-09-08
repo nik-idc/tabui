@@ -83,7 +83,7 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._timeSigComponent.template.dialogContent.contains(target)
     ) {
-      this._timeSigComponent.template.dialog.close();
+      this._timeSigComponent.dialog.close();
     }
   }
 
@@ -135,17 +135,17 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
     );
     this._renderFunc();
 
-    this._timeSigComponent.template.dialog.close();
+    this._timeSigComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._timeSigComponent.template.dialog.close();
+    this._timeSigComponent.dialog.close();
   }
 
   onKeydown(event: KeyboardEvent): void {
     const template = this._timeSigComponent.template;
     const canConfirm =
-      event.target === template.dialog ||
+      event.target === template.dialogContainer ||
       event.target === template.durationSelect ||
       event.target === template.confirmButton;
     if (
@@ -166,17 +166,17 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._timeSigComponent.template.dialog,
+        element: this._timeSigComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
-        element: this._timeSigComponent.template.dialog,
+        element: this._timeSigComponent.template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
       },
       {
-        element: this._timeSigComponent.template.dialog,
+        element: this._timeSigComponent.template.dialogContainer,
         event: "keydown",
         handler: (event: KeyboardEvent) => this.onKeydown(event),
       },

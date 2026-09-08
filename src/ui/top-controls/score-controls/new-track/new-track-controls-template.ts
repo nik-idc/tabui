@@ -1,13 +1,12 @@
 import {
   createButton,
-  createDialog,
   createDiv,
   createInput,
   createSVG,
 } from "../../../../shared";
 
 export class NewTrackControlsTemplate {
-  readonly dialog: HTMLDialogElement;
+  readonly dialogContainer: HTMLDivElement = createDiv();
   /**/ readonly dialogContent: HTMLDivElement = createDiv();
   /****/ readonly settingsContainer: HTMLDivElement = createDiv();
   /******/ readonly instrFamiliesContainer: HTMLDivElement = createDiv();
@@ -40,8 +39,4 @@ export class NewTrackControlsTemplate {
   /****/ readonly actionsContainer: HTMLDivElement = createDiv();
   /******/ readonly confirmButton: HTMLButtonElement = createButton();
   /******/ readonly cancelButton: HTMLButtonElement = createButton();
-
-  constructor(dialogHost: HTMLDivElement) {
-    this.dialog = createDialog(dialogHost);
-  }
 }

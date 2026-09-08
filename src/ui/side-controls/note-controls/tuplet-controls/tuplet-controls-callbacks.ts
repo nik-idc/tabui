@@ -97,7 +97,7 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._tupletComponent.template.dialogContent.contains(target)
     ) {
-      this._tupletComponent.template.dialog.close();
+      this._tupletComponent.dialog.close();
     }
   }
 
@@ -154,17 +154,17 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     );
     this._renderFunc();
 
-    this._tupletComponent.template.dialog.close();
+    this._tupletComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._tupletComponent.template.dialog.close();
+    this._tupletComponent.dialog.close();
   }
 
   onKeydown(event: KeyboardEvent): void {
     const template = this._tupletComponent.template;
     const canConfirm =
-      event.target === template.dialog ||
+      event.target === template.dialogContainer ||
       event.target === template.confirmButton;
     if (
       event.key === "Enter" &&
@@ -189,17 +189,17 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._tupletComponent.template.dialog,
+        element: this._tupletComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
-        element: this._tupletComponent.template.dialog,
+        element: this._tupletComponent.template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
       },
       {
-        element: this._tupletComponent.template.dialog,
+        element: this._tupletComponent.template.dialogContainer,
         event: "keydown",
         handler: (event: KeyboardEvent) => this.onKeydown(event),
       },

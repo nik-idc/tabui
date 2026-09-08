@@ -1,3 +1,4 @@
+import { DialogEnforcer } from "../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../notation/notation-component";
 import { NoteControlsComponent } from "./note-controls/note-controls-component";
 import { SideControlsTemplate } from "./side-controls-template";
@@ -19,9 +20,10 @@ export class SideControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
+    dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
-    config: ResolvedTabUIConfig
+    config: ResolvedTabUIConfig,
+    announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -36,17 +38,18 @@ export class SideControlsComponent {
 
     this.noteControlsComponent = new NoteControlsComponent(
       this.template.container,
-      dialogHost,
+      dialogEnforcer,
       this.notationComponent
     );
     this.techniqueControlsComponent = new TechniqueControlsComponent(
       this.template.container,
-      dialogHost,
-      this.notationComponent
+      dialogEnforcer,
+      this.notationComponent,
+      announce
     );
     this.measureControlsComponent = new MeasureControlsComponent(
       this.template.container,
-      dialogHost,
+      dialogEnforcer,
       this.notationComponent
     );
   }

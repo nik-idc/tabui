@@ -91,6 +91,7 @@ describe("BendCurveSelector", () => {
         holdPitch: 2,
         bendDuration: 0.5,
       },
+      () => {},
       1
     );
 
@@ -135,6 +136,7 @@ describe("BendCurveSelector", () => {
               releasePitch: 0,
               bendDuration: 0.5,
             },
+        () => {},
         1.5
       );
 

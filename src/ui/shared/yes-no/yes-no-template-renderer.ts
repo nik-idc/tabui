@@ -27,8 +27,9 @@ export class YesNoTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.yesNoDialog,
+      this.template.dialogContainer,
       "tu-yes-no-dialog",
+      "Confirmation",
       this.template.yesNoDialogContent,
       "tu-yes-no-dialog-content",
       [

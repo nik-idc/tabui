@@ -60,7 +60,7 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._newTrackComponent.template.dialogContent.contains(target)
     ) {
-      this._newTrackComponent.template.dialog.close();
+      this._newTrackComponent.dialog.close();
     }
   }
 
@@ -113,7 +113,7 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   onConfirmClicked(): void {
     const controller = this._notationComponent.trackController;
     if (controller.isPlaybackActive) {
-      this._newTrackComponent.template.dialog.close();
+      this._newTrackComponent.dialog.close();
       return;
     }
     this.onTrackNameChanged();
@@ -126,23 +126,23 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       this._newTrackComponent.trackName
     );
     if (track === undefined) {
-      this._newTrackComponent.template.dialog.close();
+      this._newTrackComponent.dialog.close();
       return;
     }
     this._notationComponent.loadTrack(track);
     this._renderFunc();
 
-    this._newTrackComponent.template.dialog.close();
+    this._newTrackComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._newTrackComponent.template.dialog.close();
+    this._newTrackComponent.dialog.close();
   }
 
   onKeydown(event: KeyboardEvent): void {
     const template = this._newTrackComponent.template;
     const canConfirm =
-      event.target === template.dialog ||
+      event.target === template.dialogContainer ||
       event.target === template.trackNameInput ||
       event.target === template.confirmButton;
     if (
@@ -159,18 +159,20 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     const configs: ListenerConfig[] = [];
 
     configs.push({
-      element: this._newTrackComponent.template.dialog as HTMLElement,
+      element: this._newTrackComponent.template.dialogContainer as HTMLElement,
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
     configs.push(
       {
-        element: this._newTrackComponent.template.dialog as HTMLElement,
+        element: this._newTrackComponent.template
+          .dialogContainer as HTMLElement,
         event: "close",
         handler: () => this._freeKeyboard(),
       },
       {
-        element: this._newTrackComponent.template.dialog as HTMLElement,
+        element: this._newTrackComponent.template
+          .dialogContainer as HTMLElement,
         event: "keydown",
         handler: (event: KeyboardEvent) => this.onKeydown(event),
       }

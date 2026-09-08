@@ -1,7 +1,7 @@
-import { createButton, createDialog, createDiv } from "../../../shared";
+import { createButton, createDiv } from "../../../shared";
 
 export class YesNoTemplate {
-  readonly yesNoDialog: HTMLDialogElement;
+  readonly dialogContainer: HTMLDivElement = createDiv();
   readonly yesNoDialogContent: HTMLDivElement = createDiv();
 
   readonly yesNoInfoContainer: HTMLDivElement = createDiv();
@@ -10,8 +10,4 @@ export class YesNoTemplate {
   readonly yesNoActionsContent: HTMLDivElement = createDiv();
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
-
-  constructor(dialogHost: HTMLDivElement) {
-    this.yesNoDialog = createDialog(dialogHost);
-  }
 }

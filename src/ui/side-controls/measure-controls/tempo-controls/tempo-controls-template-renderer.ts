@@ -32,8 +32,9 @@ export class TempoControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-tempo-dialog",
+      "Tempo",
       this.template.dialogContent,
       "tu-tempo-dialog-content",
       [

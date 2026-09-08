@@ -1,3 +1,5 @@
+import { ContainedDialog } from "../../../../shared/hmtl/contained-dialog";
+import { DialogEnforcer } from "../../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../../notation/notation-component";
 import { BendControlsTemplate } from "./bend-controls-template";
 import { BendControlsTemplateRenderer } from "./bend-controls-template-renderer";
@@ -13,6 +15,7 @@ import {
 import { BEND_TYPE_BUTTON_ORDER } from "./bend-controls-template";
 
 export class BendControlsComponent {
+  readonly dialog: ContainedDialog;
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
 
@@ -23,20 +26,26 @@ export class BendControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
-    notationComponent: NotationComponent
+    dialogEnforcer: DialogEnforcer,
+    notationComponent: NotationComponent,
+    announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
 
-    this.template = new BendControlsTemplate(dialogHost);
+    this.template = new BendControlsTemplate();
+    this.dialog = new ContainedDialog(
+      this.template.dialogContainer,
+      dialogEnforcer
+    );
     this.templateRenderer = new BendControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,
       this.template
     );
     this.bendSelectorManager = new BendSelectorManager(
-      this.template.bendSelectorGraphSVG
+      this.template.bendSelectorGraphSVG,
+      announce
     );
   }
 

@@ -50,8 +50,9 @@ export class TrackSettingsControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-ts-dialog",
+      "Track settings",
       this.template.dialogContent,
       "tu-ts-content",
       [

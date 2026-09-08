@@ -48,7 +48,7 @@ export class RepeatCountControlsDefaultCallbacks {
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._component.template.dialogContent.contains(target)
     ) {
-      this._component.template.dialog.close();
+      this._component.dialog.close();
     }
   }
 
@@ -69,7 +69,7 @@ export class RepeatCountControlsDefaultCallbacks {
       repeatCount: value,
     });
     this._renderFunc();
-    this._component.template.dialog.close();
+    this._component.dialog.close();
   }
 
   /** Removes the repeat end from the selected bar and closes the dialog. */
@@ -79,7 +79,7 @@ export class RepeatCountControlsDefaultCallbacks {
       enabled: false,
     });
     this._renderFunc();
-    this._component.template.dialog.close();
+    this._component.dialog.close();
   }
 
   private onKeydown(event: KeyboardEvent): void {
@@ -101,17 +101,17 @@ export class RepeatCountControlsDefaultCallbacks {
     const template = this._component.template;
     this._listeners.bindAll([
       {
-        element: template.dialog,
+        element: template.dialogContainer,
         event: "click",
         handler: (e: MouseEvent) => this.onDialogClicked(e),
       },
       {
-        element: template.dialog,
+        element: template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
       },
       {
-        element: template.dialog,
+        element: template.dialogContainer,
         event: "keydown",
         handler: (e: KeyboardEvent) => this.onKeydown(e),
       },
@@ -143,7 +143,7 @@ export class RepeatCountControlsDefaultCallbacks {
       {
         element: template.cancelButton,
         event: "click",
-        handler: () => template.dialog.close(),
+        handler: () => this._component.dialog.close(),
       },
       {
         element: template.removeButton,
