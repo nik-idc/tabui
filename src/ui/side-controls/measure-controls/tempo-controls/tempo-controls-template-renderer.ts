@@ -80,11 +80,15 @@ export class TempoControlsTemplateRenderer {
 
     this.template.valueControl.classList.add("tu-number-stepper");
     this.template.decreaseTenButton.textContent = "-10";
+    this.template.decreaseTenButton.ariaLabel = "Decrease tempo by 10 BPM";
     this.template.decreaseButton.textContent = "-";
+    this.template.decreaseButton.ariaLabel = "Decrease tempo by 1 BPM";
     this.template.value.classList.add("tu-number-stepper-value");
     this.template.value.textContent = tempoInitValue;
     this.template.increaseButton.textContent = "+";
+    this.template.increaseButton.ariaLabel = "Increase tempo by 1 BPM";
     this.template.increaseTenButton.textContent = "+10";
+    this.template.increaseTenButton.ariaLabel = "Increase tempo by 10 BPM";
     const tempo = Number(tempoInitValue);
     this.template.decreaseTenButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;
     this.template.decreaseButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;

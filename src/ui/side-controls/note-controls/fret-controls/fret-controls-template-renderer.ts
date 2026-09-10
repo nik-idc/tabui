@@ -72,6 +72,7 @@ export class FretControlsTemplateRenderer {
     this.template.valueControl.classList.add("tu-fret-value-control");
     this.template.noFretButton.textContent = "Clear";
     this.template.deadButton.textContent = "x";
+    this.template.deadButton.ariaLabel = "Set dead note";
     this.template.input.type = "number";
     this.template.input.inputMode = "numeric";
     this.template.input.min = "0";

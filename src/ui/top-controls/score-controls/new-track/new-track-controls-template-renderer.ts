@@ -198,11 +198,14 @@ export class NewTrackControlsTemplateRenderer {
       "tu-nt-string-count-container"
     );
     this.template.stringCountDownButton.textContent = "-";
+    this.template.stringCountDownButton.ariaLabel =
+      "Decrease string count by 1";
     this.template.stringCountDownButton.disabled =
       this._currentStringCount <= 1;
     this.template.stringCountValue.classList.add("tu-nt-string-count-value");
     this.template.stringCountValue.textContent = `${this._currentStringCount}`;
     this.template.stringCountUpButton.textContent = "+";
+    this.template.stringCountUpButton.ariaLabel = "Increase string count by 1";
     this.template.stringCountUpButton.disabled = this._currentStringCount >= 12;
     this.template.stringCountError.classList.add(newTrackErrorCSSClass);
 
@@ -236,7 +239,11 @@ export class NewTrackControlsTemplateRenderer {
       "tu-nt-whole-tuning-container"
     );
     this.template.wholeTuningDownButton.textContent = "All -1";
+    this.template.wholeTuningDownButton.ariaLabel =
+      "Lower all strings by 1 semitone";
     this.template.wholeTuningUpButton.textContent = "All +1";
+    this.template.wholeTuningUpButton.ariaLabel =
+      "Raise all strings by 1 semitone";
 
     for (let i = 0; i < notes.length; i++) {
       const stringNumber = notes.length - i;
@@ -250,10 +257,14 @@ export class NewTrackControlsTemplateRenderer {
         this.getStringLabel(stringNumber);
       this.template.tuningUpButtons[i].classList.add("tu-nt-tuning-step");
       this.template.tuningUpButtons[i].textContent = "▲";
+      this.template.tuningUpButtons[i].ariaLabel =
+        `Raise string ${stringNumber} by 1 semitone`;
       this.template.tuningNoteLabels[i].classList.add("tu-nt-tuning-note");
       this.template.tuningNoteLabels[i].textContent = notes[i];
       this.template.tuningDownButtons[i].classList.add("tu-nt-tuning-step");
       this.template.tuningDownButtons[i].textContent = "▼";
+      this.template.tuningDownButtons[i].ariaLabel =
+        `Lower string ${stringNumber} by 1 semitone`;
     }
   }
 

@@ -231,7 +231,11 @@ export class TrackSettingsControlsTemplateRenderer {
       "tu-ts-whole-tuning-container"
     );
     this.template.wholeTuningDownButton.textContent = "All -1";
+    this.template.wholeTuningDownButton.ariaLabel =
+      "Lower all strings by 1 semitone";
     this.template.wholeTuningUpButton.textContent = "All +1";
+    this.template.wholeTuningUpButton.ariaLabel =
+      "Raise all strings by 1 semitone";
 
     for (let i = 0; i < notes.length; i++) {
       const stringNumber = notes.length - i;
@@ -245,10 +249,14 @@ export class TrackSettingsControlsTemplateRenderer {
         this.getStringLabel(stringNumber);
       this.template.tuningUpButtons[i].classList.add("tu-ts-tuning-step");
       this.template.tuningUpButtons[i].textContent = "▲";
+      this.template.tuningUpButtons[i].ariaLabel =
+        `Raise string ${stringNumber} by 1 semitone`;
       this.template.tuningNoteLabels[i].classList.add("tu-ts-tuning-note");
       this.template.tuningNoteLabels[i].textContent = notes[i];
       this.template.tuningDownButtons[i].classList.add("tu-ts-tuning-step");
       this.template.tuningDownButtons[i].textContent = "▼";
+      this.template.tuningDownButtons[i].ariaLabel =
+        `Lower string ${stringNumber} by 1 semitone`;
     }
   }
 

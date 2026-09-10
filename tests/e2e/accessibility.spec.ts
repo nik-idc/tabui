@@ -134,3 +134,32 @@ test("provides icon tooltips on hover and keyboard focus", async ({ page }) => {
   await play.focus();
   await expect(play).toHaveCSS("position", "relative");
 });
+
+test("new track string-count actions update per-string tuning labels", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  await editor.getByRole("button", { name: "New track" }).click();
+  const dialog = editor.getByRole("dialog", { name: "New track" });
+  const value = dialog.locator(".tu-nt-string-count-value");
+
+  for (const [action, count] of [
+    ["Decrease string count by 1", 5],
+    ["Increase string count by 1", 6],
+  ] as const) {
+    await dialog.getByRole("button", { name: action, exact: true }).click();
+    await expect(value).toHaveText(`${count}`);
+    const stringValues = dialog.locator(".tu-nt-tuning-string");
+    await expect(stringValues).toHaveCount(count);
+    for (let index = 0; index < count; index++) {
+      const buttons = stringValues.nth(index).getByRole("button");
+      await expect(buttons.first()).toHaveAccessibleName(
+        `Raise string ${count - index} by 1 semitone`
+      );
+      await expect(buttons.last()).toHaveAccessibleName(
+        `Lower string ${count - index} by 1 semitone`
+      );
+    }
+  }
+});
