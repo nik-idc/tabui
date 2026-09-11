@@ -1,5 +1,64 @@
 import { expect, test } from "@playwright/test";
 
+test("Enter confirms from a text field but not from another button", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  await editor.getByRole("button", { name: "New track", exact: true }).click();
+  const dialog = editor.getByRole("dialog", { name: "New track" });
+  const increase = dialog.getByRole("button", {
+    name: "Increase string count by 1",
+    exact: true,
+  });
+  await increase.press("Enter");
+  await expect(dialog).toBeVisible();
+  const input = dialog.getByRole("textbox", { name: "Track name" });
+  await input.fill("Native track");
+  await input.press("Enter");
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    editor.getByRole("button", {
+      name: "Select track: Native track",
+      exact: true,
+    })
+  ).toHaveCount(1);
+  await expect(page).toHaveURL(/\/tabui\/\?fixture=empty$/);
+});
+
+test("Enter on a select does not confirm the dialog", async ({ page }) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  await editor
+    .getByRole("button", { name: "Time Signature", exact: true })
+    .click();
+  const dialog = editor.getByRole("dialog");
+  await dialog.getByRole("combobox").press("Enter");
+  await expect(dialog).toBeVisible();
+});
+
+test("Enter validates and confirms a repeat count", async ({ page }) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  const opener = editor.getByRole("button", {
+    name: "Repeat End",
+    exact: true,
+  });
+  await opener.click();
+  const dialog = editor.getByRole("dialog", { name: "Repeat count" });
+  const input = dialog.getByRole("spinbutton");
+  await input.fill("1.5");
+  await input.press("Enter");
+  await expect(
+    dialog.getByText("Invalid repeat count", { exact: true })
+  ).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Confirm" })).toBeDisabled();
+  await input.fill("4");
+  await input.press("Enter");
+  await expect(dialog).toHaveCount(0);
+});
+
 test("keeps one announcement region inside the active modal before focus", async ({
   page,
 }) => {

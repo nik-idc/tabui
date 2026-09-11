@@ -155,6 +155,7 @@ export class TrackSettingsControlsTemplateRenderer {
     for (let i = 0; i < types.length; i++) {
       const typeButton = this.template.instrTypesButtons[i];
       typeButton.textContent = `${types[i]}`;
+      typeButton.ariaPressed = `${types[i] === this._currentType}`;
       typeButton.classList.toggle(
         "tu-applied-button",
         types[i] === this._currentType
@@ -176,6 +177,7 @@ export class TrackSettingsControlsTemplateRenderer {
     for (let i = 0; i < tones.length; i++) {
       const toneButton = this.template.instrTonesButtons[i];
       toneButton.textContent = `${tones[i]}`;
+      toneButton.ariaPressed = `${tones[i] === this._currentTone}`;
       toneButton.classList.toggle(
         "tu-applied-button",
         tones[i] === this._currentTone
@@ -195,6 +197,12 @@ export class TrackSettingsControlsTemplateRenderer {
       this._currentTuning === this._originalTuning ? "hidden" : "visible";
     this.template.keepFretsButton.textContent = "Keep frets";
     this.template.transposeButton.textContent = "Transpose";
+    this.template.keepFretsButton.ariaPressed = `${
+      this._currentTuningChangeMode === TrackInstrumentChangeMode.KeepFrets
+    }`;
+    this.template.transposeButton.ariaPressed = `${
+      this._currentTuningChangeMode === TrackInstrumentChangeMode.Transpose
+    }`;
     this.template.keepFretsButton.classList.toggle(
       "tu-applied-button",
       this._currentTuningChangeMode === TrackInstrumentChangeMode.KeepFrets
@@ -223,9 +231,15 @@ export class TrackSettingsControlsTemplateRenderer {
       this.template.tuningDownButtons.push(downButton);
     }
 
-    this.template.tuningContainer.replaceChildren(
-      ...this.template.tuningStringContainers.slice(0, notes.length)
-    );
+    // Keep existing controls mounted so tuning edits retain keyboard focus.
+    for (let i = 0; i < this.template.tuningStringContainers.length; i++) {
+      const container = this.template.tuningStringContainers[i];
+      if (i >= notes.length) {
+        container.remove();
+      } else if (container.parentElement !== this.template.tuningContainer) {
+        this.template.tuningContainer.append(container);
+      }
+    }
     this.template.tuningContainer.classList.add("tu-ts-tuning-container");
     this.template.wholeTuningContainer.classList.add(
       "tu-ts-whole-tuning-container"

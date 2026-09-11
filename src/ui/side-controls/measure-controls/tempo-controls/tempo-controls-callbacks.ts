@@ -4,7 +4,6 @@ import {
   MAX_MASTER_BAR_TEMPO,
   MIN_MASTER_BAR_TEMPO,
 } from "../../../../notation/model";
-import { MeasureControlsComponent } from "../../..";
 import { TempoControlsComponent } from "./";
 import { ListenerManager } from "../../../../shared/misc";
 
@@ -85,6 +84,8 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
     template.increaseTenButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
     template.errorText.textContent = " ";
     template.confirmButton.disabled = false;
+
+    this._tempoComponent.announceValue();
   }
 
   onConfirmClicked(): void {
@@ -106,21 +107,6 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
     this._tempoComponent.dialog.close();
   }
 
-  onKeydown(event: KeyboardEvent): void {
-    const template = this._tempoComponent.template;
-    const canConfirm =
-      event.target === template.dialogContainer ||
-      event.target === template.confirmButton;
-    if (
-      event.key === "Enter" &&
-      canConfirm &&
-      !template.confirmButton.disabled
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
-  }
-
   onWheel(event: WheelEvent): void {
     event.preventDefault();
     this.onTempoStep(event.deltaY < 0 ? 1 : -1);
@@ -137,11 +123,6 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
         element: this._tempoComponent.template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
-      },
-      {
-        element: this._tempoComponent.template.dialogContainer,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
       },
       {
         element: this._tempoComponent.template.decreaseTenButton,
@@ -169,9 +150,14 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
         handler: (event: WheelEvent) => this.onWheel(event),
       },
       {
-        element: this._tempoComponent.template.confirmButton,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._tempoComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._tempoComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._tempoComponent.template.cancelButton,

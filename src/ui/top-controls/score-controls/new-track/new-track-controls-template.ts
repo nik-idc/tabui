@@ -7,7 +7,7 @@ import {
 
 export class NewTrackControlsTemplate {
   readonly dialogContainer: HTMLDivElement = createDiv();
-  /**/ readonly dialogContent: HTMLDivElement = createDiv();
+  /**/ readonly dialogContent: HTMLFormElement = document.createElement("form");
   /****/ readonly settingsContainer: HTMLDivElement = createDiv();
   /******/ readonly instrFamiliesContainer: HTMLDivElement = createDiv();
   /********/ readonly instrFamiliesButtons: HTMLButtonElement[] = [];

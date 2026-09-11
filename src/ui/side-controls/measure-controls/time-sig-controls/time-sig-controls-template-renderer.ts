@@ -111,6 +111,7 @@ export class TimeSigControlsTemplateRenderer {
       }
     }
     this.template.durationSelect.value = durationInitValue;
+    this.template.durationSelect.ariaLabel = "Beat unit denominator";
     const durationErrorCSSClass = "tu-time-sig-duration-error";
     this.template.durationErrorText.classList.add(durationErrorCSSClass);
   }

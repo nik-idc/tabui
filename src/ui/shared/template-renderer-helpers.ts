@@ -9,6 +9,21 @@ export interface DialogSection {
   children?: Node[];
 }
 
+/** Describes tuning in displayed string order, with spoken accidentals. */
+export function getTuningValueText(
+  tuning: string,
+  stringIndex?: number
+): string {
+  const notes = tuning
+    .trim()
+    .split(/\s+/)
+    .map((note) => note.replace(/#/g, " sharp").replace(/b/g, " flat"));
+  if (stringIndex !== undefined) {
+    return `String ${notes.length - stringIndex}: ${notes[stringIndex]}`;
+  }
+  return `Tuning, strings ${notes.length} to 1: ${notes.join(", ")}`;
+}
+
 export function renderOnce(
   isAssembled: boolean,
   assemble: () => void
@@ -42,6 +57,7 @@ export function setImageAsset(
   }
 }
 
+/** Configures native form confirmation and action labels. */
 export function setupDialogActionButtons(
   confirmButton: HTMLButtonElement,
   cancelButton: HTMLButtonElement,
@@ -50,6 +66,7 @@ export function setupDialogActionButtons(
   confirmLabel: string = "Confirm",
   cancelLabel: string = "Cancel"
 ): void {
+  confirmButton.type = "submit";
   confirmButton.classList.add(confirmClassName);
   confirmButton.textContent = confirmLabel;
   cancelButton.classList.add(cancelClassName);
@@ -61,13 +78,15 @@ export function assembleDialog(
   dialog: HTMLDivElement,
   dialogClassName: string,
   accessibleName: string,
-  dialogContent: HTMLDivElement,
+  dialogContent: HTMLFormElement,
   dialogContentClassName: string,
   sections: DialogSection[]
 ): void {
   dialog.setAttribute("aria-label", accessibleName);
   dialog.classList.add(dialogClassName);
   dialogContent.classList.add(dialogContentClassName);
+  // Keep domain validation and its inline errors instead of browser popups.
+  dialogContent.noValidate = true;
   for (const section of sections) {
     section.element.classList.add(section.className);
   }

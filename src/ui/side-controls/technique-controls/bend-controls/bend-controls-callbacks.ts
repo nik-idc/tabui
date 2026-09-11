@@ -110,28 +110,6 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     }
   }
 
-  private onDialogKeyDown(event: KeyboardEvent): void {
-    if (
-      event.key !== "Enter" ||
-      this._bendComponent.template.confirmButton.disabled
-    ) {
-      return;
-    }
-    if (
-      event.target === this._bendComponent.template.cancelButton ||
-      event.target === this._bendComponent.template.removeButton ||
-      BEND_TYPE_BUTTON_ORDER.some(
-        (bendType) =>
-          event.target ===
-          this._bendComponent.template.bendTypesButtons[bendType]
-      )
-    ) {
-      return;
-    }
-    event.preventDefault();
-    this.onConfirmClicked();
-  }
-
   public bind(): void {
     this._listeners.bindAll([
       ...BEND_TYPE_BUTTON_ORDER.map((bendType) => ({
@@ -157,14 +135,12 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
         handler: () => this.onDialogClosed(),
       },
       {
-        element: this._bendComponent.template.dialogContainer,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onDialogKeyDown(event),
-      },
-      {
-        element: this._bendComponent.template.confirmButton,
-        event: "click",
-        handler: () => {
+        element: this._bendComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._bendComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
           this.onConfirmClicked();
         },
       },

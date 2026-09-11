@@ -27,7 +27,8 @@ export class ScoreControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -45,13 +46,15 @@ export class ScoreControlsComponent {
     this.newTrackComponent = new NewTrackControlsComponent(
       this.template.container,
       dialogEnforcer,
-      this.notationComponent
+      this.notationComponent,
+      announce
     );
     this.trackSettingsComponent = new TrackSettingsControlsComponent(
       this.template.container,
       dialogEnforcer,
       this.notationComponent,
-      this.score.tracks[0]
+      this.score.tracks[0],
+      announce
     );
     this.trackRemoveComponent = new YesNoComponent(
       this.template.container,

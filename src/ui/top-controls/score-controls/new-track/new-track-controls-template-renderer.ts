@@ -15,6 +15,7 @@ import {
   InstrumentType,
   StringInstrumentType,
 } from "../../../../notation/model";
+import { template } from "@babel/core";
 
 export class NewTrackControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -157,6 +158,7 @@ export class NewTrackControlsTemplateRenderer {
     for (let i = 0; i < types.length; i++) {
       const typeButton = this.template.instrTypesButtons[i];
       typeButton.textContent = `${types[i]}`;
+      typeButton.ariaPressed = `${types[i] === this._currentType}`;
       typeButton.classList.toggle(
         "tu-applied-button",
         types[i] === this._currentType
@@ -179,6 +181,7 @@ export class NewTrackControlsTemplateRenderer {
     for (let i = 0; i < tones.length; i++) {
       const toneButton = this.template.instrTonesButtons[i];
       toneButton.textContent = `${tones[i]}`;
+      toneButton.ariaPressed = `${tones[i] === this._currentTone}`;
       toneButton.classList.toggle(
         "tu-applied-button",
         tones[i] === this._currentTone
@@ -192,6 +195,7 @@ export class NewTrackControlsTemplateRenderer {
 
     this.template.trackNameInput.classList.add(newTrackInputCSSClass);
     this.template.trackNameInput.value = this._currentTrackName;
+    this.template.trackNameInput.ariaLabel = "Track name";
     this.template.trackNameError.classList.add(newTrackErrorCSSClass);
 
     this.template.stringCountContainer.classList.add(
@@ -231,9 +235,15 @@ export class NewTrackControlsTemplateRenderer {
       this.template.tuningDownButtons.push(downButton);
     }
 
-    this.template.tuningContainer.replaceChildren(
-      ...this.template.tuningStringContainers.slice(0, notes.length)
-    );
+    // Keep existing controls mounted so tuning edits retain keyboard focus.
+    for (let i = 0; i < this.template.tuningStringContainers.length; i++) {
+      const container = this.template.tuningStringContainers[i];
+      if (i >= notes.length) {
+        container.remove();
+      } else if (container.parentElement !== this.template.tuningContainer) {
+        this.template.tuningContainer.append(container);
+      }
+    }
     this.template.tuningContainer.classList.add("tu-nt-tuning-container");
     this.template.wholeTuningContainer.classList.add(
       "tu-nt-whole-tuning-container"

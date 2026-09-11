@@ -57,19 +57,6 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
     this._yesNoComponent.dialog.close();
   }
 
-  onKeydown(event: KeyboardEvent): void {
-    // Making Enter act as confirm button
-    const template = this._yesNoComponent.template;
-    if (
-      event.key === "Enter" &&
-      (event.target === template.dialogContainer ||
-        event.target === template.confirmButton)
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
-  }
-
   bind(): void {
     this._listeners.bindAll([
       {
@@ -83,14 +70,14 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
         handler: () => this._freeKeyboard(),
       },
       {
-        element: this._yesNoComponent.template.dialogContainer,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
-      },
-      {
-        element: this._yesNoComponent.template.confirmButton,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._yesNoComponent.template.yesNoDialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._yesNoComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._yesNoComponent.template.cancelButton,

@@ -15,7 +15,8 @@ export class TimeSigControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    private readonly _announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -29,6 +30,17 @@ export class TimeSigControlsComponent {
       this.parentDiv,
       this.notationComponent,
       this.template
+    );
+    this.template.beatsControl.addEventListener("focusin", () =>
+      this.announceValue()
+    );
+  }
+
+  /** Announces both parts of the draft signature for the beats stepper. */
+  public announceValue(): void {
+    this._announce(
+      `Time signature ${this.template.beatsValue.textContent} over ` +
+        this.template.durationSelect.value
     );
   }
 

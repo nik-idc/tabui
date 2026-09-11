@@ -39,7 +39,8 @@ export class SideControlsComponent {
     this.noteControlsComponent = new NoteControlsComponent(
       this.template.container,
       dialogEnforcer,
-      this.notationComponent
+      this.notationComponent,
+      announce
     );
     this.techniqueControlsComponent = new TechniqueControlsComponent(
       this.template.container,
@@ -50,7 +51,8 @@ export class SideControlsComponent {
     this.measureControlsComponent = new MeasureControlsComponent(
       this.template.container,
       dialogEnforcer,
-      this.notationComponent
+      this.notationComponent,
+      announce
     );
   }
 

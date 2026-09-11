@@ -3,7 +3,6 @@ import { DEFAULT_MASTER_BAR } from "../../../src/notation/model";
 import {
   asNotationComponent,
   createNotationComponentMock,
-  dispatchClick,
   FakeElement,
   makeButton,
   makeDialogFixture,
@@ -26,6 +25,7 @@ function createTempoHarness() {
   const errorText = makeText();
   const component = {
     dialog,
+    announceValue: jest.fn(),
     template: {
       dialogContainer,
       dialogContent,
@@ -153,7 +153,7 @@ describe("TempoControlsDefaultCallbacks", () => {
 
     callbacks.bind();
     component.template.value.textContent = "200";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
 
     expect(setTempo).toHaveBeenCalledTimes(1);
     expect(renderFunc).toHaveBeenCalledTimes(1);
@@ -162,7 +162,7 @@ describe("TempoControlsDefaultCallbacks", () => {
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
     component.template.value.textContent = "220";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(setTempo).toHaveBeenCalledTimes(tempoCallsBeforeUnbind);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
 
@@ -172,7 +172,7 @@ describe("TempoControlsDefaultCallbacks", () => {
     const renderCallsBeforeRebindClick = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeRebindClick = freeKeyboard.mock.calls.length;
     component.template.value.textContent = "240";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(setTempo).toHaveBeenCalledTimes(tempoCallsBeforeRebindClick + 1);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeRebindClick + 1);
     expect(freeKeyboard).toHaveBeenCalledTimes(

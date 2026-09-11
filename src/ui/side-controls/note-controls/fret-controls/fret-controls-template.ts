@@ -3,7 +3,7 @@ import { createButton, createDiv, createInput } from "../../../../shared";
 /** Template elements for editing the selected note's fret. */
 export class FretControlsTemplate {
   readonly dialogContainer: HTMLDivElement = createDiv();
-  readonly dialogContent: HTMLDivElement = createDiv();
+  readonly dialogContent: HTMLFormElement = document.createElement("form");
   readonly inputContent: HTMLDivElement = createDiv();
   readonly textContainer: HTMLDivElement = createDiv();
   readonly valueControl: HTMLDivElement = createDiv();

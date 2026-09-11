@@ -142,7 +142,7 @@ describe("BendControlsDefaultCallbacks", () => {
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
     dispatchClick(component.template.bendTypesButtons[BendType.BendAndRelease]);
     component.template.dialogContainer.dispatch("focusin");
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     component.template.dialogContainer.dispatch("close");
 
     expect(setTechnique).toHaveBeenCalledTimes(techniqueCallsBeforeConfirm + 1);
@@ -159,7 +159,7 @@ describe("BendControlsDefaultCallbacks", () => {
     const techniqueCallsBeforeUnbind = setTechnique.mock.calls.length;
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(setTechnique).toHaveBeenCalledTimes(techniqueCallsBeforeUnbind);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
   });
@@ -225,25 +225,5 @@ describe("BendControlsDefaultCallbacks", () => {
     expect(captureKeyboard).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
     expect(bendSelectorManager.dispose).toHaveBeenCalledTimes(3);
-  });
-
-  test("Enter confirms while Escape remains native dialog behavior", () => {
-    const { callbacks, component, notationComponent } = createBendHarness();
-    const preventDefault = jest.fn();
-    callbacks.bind();
-
-    component.template.dialogContainer.dispatch("keydown", {
-      key: "Enter",
-      preventDefault,
-    });
-    component.template.dialogContainer.dispatch("keydown", {
-      key: "Escape",
-      preventDefault,
-    });
-
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.setTechnique
-    ).toHaveBeenCalledTimes(1);
   });
 });

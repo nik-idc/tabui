@@ -20,7 +20,8 @@ export class MeasureControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -35,17 +36,20 @@ export class MeasureControlsComponent {
     this.timeSigControlsComponent = new TimeSigControlsComponent(
       this.template.container,
       dialogEnforcer,
-      this.notationComponent
+      this.notationComponent,
+      announce
     );
     this.tempoControlsComponent = new TempoControlsComponent(
       this.template.container,
       dialogEnforcer,
-      this.notationComponent
+      this.notationComponent,
+      announce
     );
     this.repeatCountControlsComponent = new RepeatCountControlsComponent(
       this.template.container,
       dialogEnforcer,
-      this.notationComponent
+      this.notationComponent,
+      announce
     );
   }
 

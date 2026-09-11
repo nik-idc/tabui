@@ -31,7 +31,8 @@ export class UIComponent {
     this.topComponent = new TopControlsComponent(
       this.topHost,
       this.dialogEnforcer,
-      this.notationComponent
+      this.notationComponent,
+      announce
     );
     this.sideComponent = new SideControlsComponent(
       this.sideHost,

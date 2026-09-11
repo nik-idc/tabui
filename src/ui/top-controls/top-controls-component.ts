@@ -21,7 +21,8 @@ export class TopControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -35,7 +36,8 @@ export class TopControlsComponent {
     this.scoreComponent = new ScoreControlsComponent(
       this.template.container,
       dialogEnforcer,
-      this.notationComponent
+      this.notationComponent,
+      announce
     );
     this.playComponent = new PlayControlsComponent(
       this.template.container,

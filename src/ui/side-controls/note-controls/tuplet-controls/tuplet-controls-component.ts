@@ -15,7 +15,8 @@ export class TupletControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    private readonly _announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -29,6 +30,20 @@ export class TupletControlsComponent {
       this.parentDiv,
       this.notationComponent,
       this.template
+    );
+    for (const control of [
+      this.template.normalControl,
+      this.template.tupletControl,
+    ]) {
+      control.addEventListener("focusin", () => this.announceValue());
+    }
+  }
+
+  /** Announces both draft counts so each step retains the ratio context. */
+  public announceValue(): void {
+    this._announce(
+      `Normal count ${this.template.normalValue.textContent}, ` +
+        `tuplet count ${this.template.tupletValue.textContent}`
     );
   }
 

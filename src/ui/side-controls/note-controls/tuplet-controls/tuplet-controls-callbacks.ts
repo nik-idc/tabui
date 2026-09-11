@@ -116,6 +116,8 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     template.normalUpButton.disabled = value >= MAX_NORMAL_COUNT;
     template.normalErrorText.textContent = " ";
     template.confirmButton.disabled = false;
+
+    this._tupletComponent.announceValue();
   }
 
   onTupletCountStep(delta: number): void {
@@ -133,6 +135,8 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     template.tupletUpButton.disabled = value >= MAX_TUPLET_COUNT;
     template.tupletErrorText.textContent = " ";
     template.confirmButton.disabled = false;
+
+    this._tupletComponent.announceValue();
   }
 
   onConfirmClicked(): void {
@@ -161,21 +165,6 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
     this._tupletComponent.dialog.close();
   }
 
-  onKeydown(event: KeyboardEvent): void {
-    const template = this._tupletComponent.template;
-    const canConfirm =
-      event.target === template.dialogContainer ||
-      event.target === template.confirmButton;
-    if (
-      event.key === "Enter" &&
-      canConfirm &&
-      !template.confirmButton.disabled
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
-  }
-
   onNormalWheel(event: WheelEvent): void {
     event.preventDefault();
     this.onNormalCountStep(event.deltaY < 0 ? 1 : -1);
@@ -197,11 +186,6 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
         element: this._tupletComponent.template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
-      },
-      {
-        element: this._tupletComponent.template.dialogContainer,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
       },
       {
         element: this._tupletComponent.template.normalDownButton,
@@ -234,9 +218,14 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
         handler: (event: WheelEvent) => this.onTupletWheel(event),
       },
       {
-        element: this._tupletComponent.template.confirmButton,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._tupletComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._tupletComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._tupletComponent.template.cancelButton,

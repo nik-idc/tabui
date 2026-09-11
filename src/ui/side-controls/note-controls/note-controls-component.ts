@@ -18,7 +18,8 @@ export class NoteControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -33,7 +34,8 @@ export class NoteControlsComponent {
     this.tupletComponent = new TupletControlsComponent(
       this.template.container,
       dialogEnforcer,
-      this.notationComponent
+      this.notationComponent,
+      announce
     );
     this.fretComponent = new FretControlsComponent(
       this.template.container,

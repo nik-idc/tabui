@@ -2,7 +2,7 @@ import { createButton, createDiv } from "../../../shared";
 
 export class YesNoTemplate {
   readonly dialogContainer: HTMLDivElement = createDiv();
-  readonly yesNoDialogContent: HTMLDivElement = createDiv();
+  readonly yesNoDialogContent: HTMLFormElement = document.createElement("form");
 
   readonly yesNoInfoContainer: HTMLDivElement = createDiv();
   readonly yesNoText: HTMLDivElement = createDiv();

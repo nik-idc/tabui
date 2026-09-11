@@ -68,6 +68,7 @@ export class RepeatCountControlsTemplateRenderer {
     this.template.decreaseButton.textContent = "-1";
     this.template.decreaseButton.ariaLabel = "Decrease repeat count by 1";
     this.template.value.type = "number";
+    this.template.value.ariaLabel = "Repeat count";
     this.template.value.inputMode = "numeric";
     this.template.value.min = `${MIN_MASTER_BAR_REPEAT_COUNT}`;
     this.template.value.max = `${MAX_MASTER_BAR_REPEAT_COUNT}`;

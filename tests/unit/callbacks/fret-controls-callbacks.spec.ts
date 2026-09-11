@@ -28,7 +28,10 @@ function createHarness() {
     confirmButton: new FakeElement(),
     cancelButton: new FakeElement(),
   };
-  const component = { template, dialog: { close: jest.fn() } } as any;
+  const component = {
+    template,
+    dialog: { open: true, close: jest.fn() },
+  } as any;
   const renderFunc = jest.fn();
   const callbacks = new FretControlsDefaultCallbacks(
     component,
@@ -38,7 +41,7 @@ function createHarness() {
     jest.fn()
   );
 
-  return { callbacks, notationComponent, renderFunc, template };
+  return { callbacks, component, notationComponent, renderFunc, template };
 }
 
 describe("FretControlsDefaultCallbacks", () => {

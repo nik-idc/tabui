@@ -130,7 +130,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
 
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
     expect(notationComponent.loadTrack).toHaveBeenCalledWith(component.track);
     expect(component.dialog.close).toHaveBeenCalledTimes(1);
@@ -147,7 +147,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
   });
 
@@ -156,6 +156,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
       TrackSettingsControlsComponent.prototype
     ) as any;
     component._tuning = "E A D G B E";
+    component._announce = jest.fn();
     component.render = jest.fn();
 
     component.shiftTuningString(0, 1);

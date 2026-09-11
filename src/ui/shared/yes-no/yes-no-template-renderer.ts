@@ -29,7 +29,7 @@ export class YesNoTemplateRenderer {
     assembleDialog(
       this.template.dialogContainer,
       "tu-yes-no-dialog",
-      "Confirmation",
+      this._text,
       this.template.yesNoDialogContent,
       "tu-yes-no-dialog-content",
       [
@@ -47,10 +47,12 @@ export class YesNoTemplateRenderer {
     );
   }
 
+  /** Keeps the dialog name aligned with the pending action and its target. */
   private renderText(): void {
     const cssClass = "tu-yes-no-text";
     this.template.yesNoText.classList.add(cssClass);
     this.template.yesNoText.textContent = this._text;
+    this.template.dialogContainer.ariaLabel = this._text;
   }
 
   private renderButtons(): void {
@@ -60,6 +62,7 @@ export class YesNoTemplateRenderer {
       "tu-yes-no-confirm-button",
       "tu-yes-no-cancel-button"
     );
+    this.template.cancelButton.autofocus = true;
   }
 
   public setText(text: string): void {

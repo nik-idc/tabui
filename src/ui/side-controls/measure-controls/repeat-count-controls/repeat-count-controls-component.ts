@@ -12,7 +12,8 @@ export class RepeatCountControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    private readonly _announce: (text: string) => void
   ) {
     this.template = new RepeatCountControlsTemplate();
     this.dialog = new ContainedDialog(
@@ -24,6 +25,14 @@ export class RepeatCountControlsComponent {
       notationComponent,
       this.template
     );
+    this.template.valueControl.addEventListener("focusin", () =>
+      this.announceValue()
+    );
+  }
+
+  /** Announces the draft count for custom steps, not native input edits. */
+  public announceValue(): void {
+    this._announce(`Repeat count ${this.template.value.value}`);
   }
 
   public render(): void {

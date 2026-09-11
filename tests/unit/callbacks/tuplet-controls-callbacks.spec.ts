@@ -2,7 +2,6 @@ import { TupletControlsDefaultCallbacks } from "../../../src/ui/side-controls/no
 import {
   asNotationComponent,
   createNotationComponentMock,
-  dispatchClick,
   FakeElement,
   makeButton,
   makeDialogFixture,
@@ -29,6 +28,7 @@ function createTupletHarness() {
   const tupletErrorText = makeText();
   const component = {
     dialog,
+    announceValue: jest.fn(),
     template: {
       dialogContainer,
       dialogContent,
@@ -120,7 +120,7 @@ describe("TupletControlsDefaultCallbacks", () => {
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
     component.template.normalValue.textContent = "5";
     component.template.tupletValue.textContent = "4";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
 
     expect(setTuplet).toHaveBeenCalledTimes(tupletCallsBeforeConfirm + 1);
     expect(setTuplet).toHaveBeenCalledWith(5, 4);
@@ -133,7 +133,7 @@ describe("TupletControlsDefaultCallbacks", () => {
     const tupletCallsBeforeUnbind = setTuplet.mock.calls.length;
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(setTuplet).toHaveBeenCalledTimes(tupletCallsBeforeUnbind);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
   });

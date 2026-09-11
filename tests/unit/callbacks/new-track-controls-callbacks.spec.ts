@@ -139,7 +139,7 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     expect(component.shiftWholeTuning).toHaveBeenCalledWith(-1);
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(notationComponent.trackController.addTrack).toHaveBeenCalledWith(
       notationComponent.score,
       component.makeInstrument.mock.results[0].value,
@@ -157,7 +157,7 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     const loadTrackCallsBeforeUnbind =
       notationComponent.loadTrack.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(notationComponent.loadTrack).toHaveBeenCalledTimes(
       loadTrackCallsBeforeUnbind
     );

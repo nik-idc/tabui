@@ -3,6 +3,7 @@ import { DialogEnforcer } from "../../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../../notation/notation-component";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
 import { NewTrackControlsTemplateRenderer } from "./new-track-controls-template-renderer";
+import { getTuningValueText } from "../../../shared";
 import {
   Guitar,
   InstrumentFamily,
@@ -38,7 +39,8 @@ export class NewTrackControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    private readonly _announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -53,6 +55,20 @@ export class NewTrackControlsComponent {
       this.notationComponent,
       this.template
     );
+    this.template.stringCountContainer.addEventListener("focusin", () =>
+      this._announce(`String count ${this._stringCount}`)
+    );
+    this.template.wholeTuningContainer.addEventListener("focusin", () =>
+      this._announce(getTuningValueText(this._tuning))
+    );
+    this.template.tuningContainer.addEventListener("focusin", (event) => {
+      const index = this.template.tuningStringContainers.findIndex((element) =>
+        element.contains(event.target as Node)
+      );
+      if (index >= 0) {
+        this._announce(getTuningValueText(this._tuning, index));
+      }
+    });
   }
 
   public render(): void {
@@ -121,6 +137,9 @@ export class NewTrackControlsComponent {
     }
 
     this.setStringCount(nextStringCount);
+    this._announce(
+      `String count ${this._stringCount}. ${getTuningValueText(this._tuning)}`
+    );
   }
 
   public setTuning(tuning: string): void {
@@ -128,13 +147,21 @@ export class NewTrackControlsComponent {
   }
 
   public shiftTuningString(stringIndex: number, semitones: number): void {
+    const previous = this._tuning;
     this._tuning = shiftTuningString(this._tuning, stringIndex, semitones);
     this.render();
+    if (this._tuning !== previous) {
+      this._announce(getTuningValueText(this._tuning, stringIndex));
+    }
   }
 
   public shiftWholeTuning(semitones: number): void {
+    const previous = this._tuning;
     this._tuning = shiftTuningWhole(this._tuning, semitones);
     this.render();
+    if (this._tuning !== previous) {
+      this._announce(getTuningValueText(this._tuning));
+    }
   }
 
   public makeInstrument(): Guitar {

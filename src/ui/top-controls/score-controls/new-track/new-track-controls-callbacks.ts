@@ -99,7 +99,13 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   }
 
   onStringCountStep(delta: number): void {
+    const previousCount = this._newTrackComponent.stringCount;
     this._newTrackComponent.shiftStringCount(delta);
+    if (this._newTrackComponent.stringCount !== previousCount) {
+      // A larger string count creates tuning buttons that need listeners.
+      this.unbind();
+      this.bind();
+    }
   }
 
   onTuningStringStep(stringIndex: number, semitones: number): void {
@@ -139,22 +145,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     this._newTrackComponent.dialog.close();
   }
 
-  onKeydown(event: KeyboardEvent): void {
-    const template = this._newTrackComponent.template;
-    const canConfirm =
-      event.target === template.dialogContainer ||
-      event.target === template.trackNameInput ||
-      event.target === template.confirmButton;
-    if (
-      event.key === "Enter" &&
-      canConfirm &&
-      !template.confirmButton.disabled
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
-  }
-
   bind(): void {
     const configs: ListenerConfig[] = [];
 
@@ -163,20 +153,11 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
-    configs.push(
-      {
-        element: this._newTrackComponent.template
-          .dialogContainer as HTMLElement,
-        event: "close",
-        handler: () => this._freeKeyboard(),
-      },
-      {
-        element: this._newTrackComponent.template
-          .dialogContainer as HTMLElement,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
-      }
-    );
+    configs.push({
+      element: this._newTrackComponent.template.dialogContainer as HTMLElement,
+      event: "close",
+      handler: () => this._freeKeyboard(),
+    });
 
     const families = Object.values(InstrumentFamily);
     const familiesButtons =
@@ -241,9 +222,14 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
         handler: () => this.onWholeTuningStep(1),
       },
       {
-        element: this._newTrackComponent.template.confirmButton as HTMLElement,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._newTrackComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._newTrackComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._newTrackComponent.template.cancelButton as HTMLElement,

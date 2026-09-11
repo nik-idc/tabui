@@ -370,7 +370,7 @@ export class BendCurveSelector implements Selector {
     this.syncCircles();
     this.updatePath();
     const value = this.getPointValueText(point);
-    if (value !== previousValue) this._announce(value);
+    this._announce(value);
   }
 
   /** Describes both coordinates of a bend point for the shell announcer. */

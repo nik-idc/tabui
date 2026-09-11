@@ -69,13 +69,13 @@ describe("YesNoDefaultCallbacks", () => {
     callbacks.bind();
     const confirmCallsBefore = onConfirm.mock.calls.length;
     const renderCallsBefore = renderFunc.mock.calls.length;
-    dispatchClick(component.confirmButton);
+    component.yesNoDialogContent.dispatch("submit");
     expect(onConfirm).toHaveBeenCalledTimes(confirmCallsBefore + 1);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBefore + 1);
 
     const confirmCallsBeforeUnbind = onConfirm.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.confirmButton);
+    component.yesNoDialogContent.dispatch("submit");
     expect(onConfirm).toHaveBeenCalledTimes(confirmCallsBeforeUnbind);
 
     callbacks.bind();

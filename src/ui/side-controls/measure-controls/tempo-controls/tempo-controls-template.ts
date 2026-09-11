@@ -2,7 +2,7 @@ import { createButton, createDiv } from "../../../../shared";
 
 export class TempoControlsTemplate {
   readonly dialogContainer: HTMLDivElement = createDiv();
-  readonly dialogContent: HTMLDivElement = createDiv();
+  readonly dialogContent: HTMLFormElement = document.createElement("form");
 
   readonly inputContent: HTMLDivElement = createDiv();
   readonly textContainer: HTMLDivElement = createDiv();

@@ -3,7 +3,6 @@ import { NoteDuration } from "../../../src/notation/model";
 import {
   asNotationComponent,
   createNotationComponentMock,
-  dispatchClick,
   FakeElement,
   makeButton,
   makeDialogFixture,
@@ -27,6 +26,7 @@ function createTimeSigHarness() {
   const durationErrorText = makeText();
   const component = {
     dialog,
+    announceValue: jest.fn(),
     template: {
       dialogContainer,
       dialogContent,
@@ -116,7 +116,7 @@ describe("TimeSigControlsDefaultCallbacks", () => {
     callbacks.bind();
     component.template.beatsValue.textContent = "7";
     component.template.durationSelect.value = "8";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
 
     expect(setTimeSignature).toHaveBeenCalledTimes(1);
     expect(setTimeSignature).toHaveBeenCalledWith(7, NoteDuration.Eighth);
@@ -126,7 +126,7 @@ describe("TimeSigControlsDefaultCallbacks", () => {
 
     const timeSignatureCallsBeforeUnbind = setTimeSignature.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(setTimeSignature).toHaveBeenCalledTimes(
       timeSignatureCallsBeforeUnbind
     );

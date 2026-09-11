@@ -13,7 +13,7 @@ export const BEND_TYPE_BUTTON_ORDER = [
 
 export class BendControlsTemplate {
   readonly dialogContainer: HTMLDivElement = createDiv();
-  readonly dialogContent: HTMLDivElement = createDiv();
+  readonly dialogContent: HTMLFormElement = document.createElement("form");
 
   readonly bendSelectorContent: HTMLDivElement = createDiv();
   readonly bendTypeListContainer: HTMLDivElement = createDiv();

@@ -103,9 +103,14 @@ export class FretControlsDefaultCallbacks {
         handler: () => this.onInput(),
       },
       {
-        element: template.confirmButton,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog } = this._fretComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: template.cancelButton,

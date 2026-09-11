@@ -2,11 +2,12 @@ import { NotationComponent } from "../../../src/notation/notation-component";
 import { TrackController } from "../../../src/notation/controller";
 import { Score, Track } from "../../../src/notation/model";
 
-type FakeEvent = { target: FakeElement };
+type FakeEvent = { target: FakeElement; preventDefault: () => void };
 
 type EventName =
   | "click"
   | "input"
+  | "submit"
   | "focus"
   | "focusout"
   | "focusin"
@@ -85,7 +86,7 @@ export class FakeElement {
     }
 
     for (const handler of handlers) {
-      handler({ target: this, ...payload });
+      handler({ target: this, preventDefault: jest.fn(), ...payload });
     }
   }
 }
@@ -108,6 +109,7 @@ export function makeText(): FakeElement {
 export function makeDialogFixture() {
   const dialogContainer = new FakeElement();
   const dialog = {
+    open: true,
     close: jest.fn(() => dialogContainer.dispatch("close")),
   };
   return { dialog, dialogContainer };

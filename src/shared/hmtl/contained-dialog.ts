@@ -24,7 +24,7 @@ export class ContainedDialog {
   ) {
     this._element = element;
     this._element.classList.add("tu-dialog");
-    this._element.setAttribute("role", "dialog");
+    this._element.role = "dialog";
     this._element.tabIndex = -1;
     this._element.addEventListener("keydown", (event) => this.onKeydown(event));
     this._enforcer.dialogHost.appendChild(element);

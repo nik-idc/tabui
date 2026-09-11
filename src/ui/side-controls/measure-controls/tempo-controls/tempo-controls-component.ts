@@ -15,7 +15,8 @@ export class TempoControlsComponent {
   constructor(
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
-    notationComponent: NotationComponent
+    notationComponent: NotationComponent,
+    private readonly _announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -30,6 +31,14 @@ export class TempoControlsComponent {
       this.notationComponent,
       this.template
     );
+    this.template.valueControl.addEventListener("focusin", () =>
+      this.announceValue()
+    );
+  }
+
+  /** Announces the current draft tempo on focus or a successful step. */
+  public announceValue(): void {
+    this._announce(`Tempo ${this.template.value.textContent} beats per minute`);
   }
 
   public render(): void {

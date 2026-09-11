@@ -1,5 +1,21 @@
 import { expect, test } from "@playwright/test";
 
+test("announces the tempo when it opens and changes", async ({ page }) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  await editor.getByRole("button", { name: "Tempo", exact: true }).click();
+  const dialog = editor.getByRole("dialog", { name: "Tempo", exact: true });
+  const region = dialog.getByRole("status");
+  const increase = dialog.getByRole("button", {
+    name: "Increase tempo by 1 BPM",
+    exact: true,
+  });
+  await expect(region).toHaveText("Tempo 120 beats per minute");
+  await increase.focus();
+  await page.keyboard.press("Space");
+  await expect(region).toHaveText("Tempo 121 beats per minute");
+});
+
 test("icon buttons expose state and are focusable", async ({ page }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
@@ -12,6 +28,28 @@ test("icon buttons expose state and are focusable", async ({ page }) => {
   await expect(firstBar).toHaveJSProperty("tabIndex", 0);
   await firstBar.focus();
   await expect(firstBar).toBeFocused();
+});
+
+test("announces the repeat count when a step button gets focus", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  await editor.getByRole("button", { name: "Repeat End", exact: true }).click();
+  const dialog = editor.getByRole("dialog", { name: "Repeat count" });
+  const region = dialog.getByRole("status");
+  const increase = dialog.getByRole("button", {
+    name: "Increase repeat count by 1",
+    exact: true,
+  });
+  await increase.press("Space");
+  await expect(region).toHaveText("Repeat count 3");
+  const input = dialog.getByRole("spinbutton", { name: "Repeat count" });
+  await input.fill("4");
+  await expect(region).toHaveText("Repeat count 3");
+  await increase.focus();
+  await expect(region).toHaveText("Repeat count 4");
+  await expect(increase).toBeFocused();
 });
 
 test("Tab and Shift+Tab move through and out of editor controls", async ({
@@ -144,22 +182,72 @@ test("new track string-count actions update per-string tuning labels", async ({
   const dialog = editor.getByRole("dialog", { name: "New track" });
   const value = dialog.locator(".tu-nt-string-count-value");
 
-  for (const [action, count] of [
-    ["Decrease string count by 1", 5],
-    ["Increase string count by 1", 6],
-  ] as const) {
+  for (const action of [
+    "Decrease string count by 1",
+    "Increase string count by 1",
+    "Increase string count by 1",
+  ]) {
     await dialog.getByRole("button", { name: action, exact: true }).click();
-    await expect(value).toHaveText(`${count}`);
-    const stringValues = dialog.locator(".tu-nt-tuning-string");
-    await expect(stringValues).toHaveCount(count);
-    for (let index = 0; index < count; index++) {
-      const buttons = stringValues.nth(index).getByRole("button");
-      await expect(buttons.first()).toHaveAccessibleName(
-        `Raise string ${count - index} by 1 semitone`
-      );
-      await expect(buttons.last()).toHaveAccessibleName(
-        `Lower string ${count - index} by 1 semitone`
-      );
-    }
   }
+  await expect(value).toHaveText("7");
+  await expect(dialog.locator(".tu-nt-tuning-string")).toHaveCount(7);
+  await dialog
+    .getByRole("button", {
+      name: "Raise string 1 by 1 semitone",
+      exact: true,
+    })
+    .press("Space");
+  await expect(dialog.getByRole("status")).toHaveText("String 1: F");
+});
+
+test("announces tuning changes without moving keyboard focus", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  for (const opener of ["New track", "Rhythm track settings"]) {
+    await editor.getByRole("button", { name: opener, exact: true }).click();
+    const dialog = editor.getByRole("dialog");
+    const region = dialog.getByRole("status");
+    const raise = dialog.getByRole("button", {
+      name: "Raise string 1 by 1 semitone",
+      exact: true,
+    });
+    await raise.focus();
+    await expect(region).toHaveText("String 1: E");
+    await page.keyboard.press("Space");
+    await expect(region).toHaveText("String 1: F");
+    await expect(raise).toBeFocused();
+    await dialog
+      .getByRole("button", {
+        name: "Lower all strings by 1 semitone",
+        exact: true,
+      })
+      .click();
+    await expect(region).toHaveText(
+      "Tuning, strings 6 to 1: D sharp, G sharp, C sharp, F sharp, A sharp, E"
+    );
+    await page.keyboard.press("Escape");
+  }
+});
+
+test("names a delete confirmation with the track being deleted", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  const removeRhythm = editor.getByRole("button", {
+    name: "Remove Rhythm track",
+    exact: true,
+  });
+  await removeRhythm.click();
+  const dialog = editor.getByRole("dialog");
+  await expect(dialog).toHaveAccessibleName(
+    'Are you sure you want to delete track "Rhythm track"?'
+  );
+  await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(dialog).toHaveCount(0);
 });

@@ -74,6 +74,7 @@ export class FretControlsTemplateRenderer {
     this.template.deadButton.textContent = "x";
     this.template.deadButton.ariaLabel = "Set dead note";
     this.template.input.type = "number";
+    this.template.input.ariaLabel = "Fret";
     this.template.input.inputMode = "numeric";
     this.template.input.min = "0";
     this.template.input.max = `${maxFrets}`;

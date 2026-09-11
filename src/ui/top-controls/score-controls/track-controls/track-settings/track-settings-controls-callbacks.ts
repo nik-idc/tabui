@@ -117,18 +117,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
     this._trackSettingsComponent.dialog.close();
   }
 
-  onKeydown(event: KeyboardEvent): void {
-    const template = this._trackSettingsComponent.template;
-    if (
-      event.key === "Enter" &&
-      (event.target === template.dialogContainer ||
-        event.target === template.confirmButton)
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
-  }
-
   bind(): void {
     const configs: ListenerConfig[] = [];
 
@@ -138,20 +126,12 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
-    configs.push(
-      {
-        element: this._trackSettingsComponent.template
-          .dialogContainer as HTMLElement,
-        event: "close",
-        handler: () => this._freeKeyboard(),
-      },
-      {
-        element: this._trackSettingsComponent.template
-          .dialogContainer as HTMLElement,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
-      }
-    );
+    configs.push({
+      element: this._trackSettingsComponent.template
+        .dialogContainer as HTMLElement,
+      event: "close",
+      handler: () => this._freeKeyboard(),
+    });
 
     const families = Object.values(InstrumentFamily);
     const familiesButtons =
@@ -216,10 +196,14 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
         handler: () => this.onWholeTuningStep(1),
       },
       {
-        element: this._trackSettingsComponent.template
-          .confirmButton as HTMLElement,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._trackSettingsComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._trackSettingsComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._trackSettingsComponent.template
