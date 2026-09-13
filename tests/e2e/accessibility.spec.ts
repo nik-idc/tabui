@@ -30,6 +30,61 @@ test("icon buttons expose state and are focusable", async ({ page }) => {
   await expect(firstBar).toBeFocused();
 });
 
+for (const fixture of ["empty", "feature_showcase"] as const) {
+  test(`announces notation on ${fixture} skip-link entrance`, async ({
+    page,
+  }) => {
+    await page.goto(`/tabui/?fixture=${fixture}`);
+    const editor = page.locator("#tabui-editor");
+    const notation = editor.locator(".tu-notation-viewport");
+    const status = editor.getByRole("status");
+    await expect(status).toHaveText("");
+
+    const skipLink = editor.getByRole("link", { name: "Skip to notation" });
+    await skipLink.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(notation).toBeFocused();
+    await expect(status).toHaveText(/Track .*Staff .*Bar .*Beat/);
+  });
+
+  test(`announces notation on ${fixture} Tab entrance`, async ({ page }) => {
+    await page.goto(`/tabui/?fixture=${fixture}`);
+    const editor = page.locator("#tabui-editor");
+    const notation = editor.locator(".tu-notation-viewport");
+    const status = editor.getByRole("status");
+    await expect(status).toHaveText("");
+
+    await notation.evaluate((element) => {
+      const before = document.createElement("button");
+      before.textContent = "Before notation";
+      element.before(before);
+    });
+    await page.getByRole("button", { name: "Before notation" }).focus();
+    await page.keyboard.press("Tab");
+
+    await expect(notation).toBeFocused();
+    await expect(status).toHaveText(/Track .*Staff .*Bar .*Beat/);
+  });
+}
+
+test("announces the selected context when entering notation with the mouse", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  const notation = editor.locator(".tu-notation-viewport");
+  const note = editor.locator('[id^="note-rect-"]:visible').first();
+
+  await note.click();
+
+  await expect(notation).toBeFocused();
+  await expect(editor.getByRole("status")).toHaveText(
+    "Track Rhythm track. Staff 1, voice 1. Bar 1, 4/4, 120 BPM. " +
+      "Beat 1, whole. String 1, empty."
+  );
+});
+
 test("announces the repeat count when a step button gets focus", async ({
   page,
 }) => {
@@ -78,10 +133,15 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
   });
 
   const beforeEditor = page.getByRole("button", { name: "Before editor" });
+  const skipLink = editor.getByRole("link", { name: "Skip to notation" });
   await beforeEditor.focus();
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
   await page.keyboard.press("Tab");
   const tracks = editor.getByRole("button", { name: "Tracks" });
   await expect(tracks).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(skipLink).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(beforeEditor).toBeFocused();
   await page.keyboard.press("Tab");
@@ -94,7 +154,7 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
       ".tu-notation-viewport:visible"
   );
   const tabStopCount = await tabStops.count();
-  for (let i = 0; i < tabStopCount; i++) {
+  for (let i = 0; i <= tabStopCount; i++) {
     await page.keyboard.press("Tab");
     if (await afterEditor.evaluate((el) => el === document.activeElement)) {
       break;

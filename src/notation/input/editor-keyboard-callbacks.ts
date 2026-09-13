@@ -4,6 +4,11 @@ import { NotationComponent } from "../notation-component";
 import { KeyChecker } from "../../shared";
 import { UIComponent } from "../../ui";
 import { PlaybackState } from "../../player";
+import {
+  captureSelectionCursor,
+  notationSelectionsEqual,
+  NotationSelectionSnapshot,
+} from "../accessibility/notation-selection-announcement";
 
 export interface EditorKeyboardCallbacks {
   copyEvent(): void;
@@ -34,6 +39,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   private _renderFunc: () => void;
   /** Root for this editor instance; used to ignore other editors' key events. */
   private _rootElement: HTMLElement;
+  private _announce: (previous?: NotationSelectionSnapshot) => void;
 
   private _bound: boolean = false;
   private _prevKeyPress?: { time: number; key: string };
@@ -44,12 +50,14 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    rootElement: HTMLElement
+    rootElement: HTMLElement,
+    announce: (previous?: NotationSelectionSnapshot) => void = () => {}
   ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
     this._rootElement = rootElement;
+    this._announce = announce;
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
     this._boundCaptureEditorFocus = this.captureEditorFocus.bind(this);
@@ -153,6 +161,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   /** Moves a note cursor or exits a beat range through a horizontal edge. */
   public moveSelectionEvent(key: string): void {
     const trackController = this._notationComponent.trackController;
+    const previous = captureSelectionCursor(trackController.selectionCursor);
 
     switch (key) {
       case "arrowdown":
@@ -171,6 +180,11 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     this._notationComponent.ensureSelectedNoteVisible();
     this._renderFunc();
+    const current = captureSelectionCursor(trackController.selectionCursor);
+    // Temporary measure while announcement is being reworked
+    if (!notationSelectionsEqual(previous, current) && current !== undefined) {
+      this._announce(previous);
+    }
   }
 
   /** Extends a beat range horizontally by one beat or one bar. */
@@ -254,7 +268,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     if (typeof Element !== "undefined" && target instanceof Element) {
       const interactive =
         target.matches(
-          "button, input, textarea, select, [contenteditable='true']"
+          "button, input, textarea, select, a, [contenteditable='true']"
         ) || target.closest("dialog[open], .tu-dialog[open]") !== null;
       if (interactive) {
         return;

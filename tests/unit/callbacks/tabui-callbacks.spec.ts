@@ -1,5 +1,6 @@
 import { TabUICallbacks } from "../../../src/tabui-callbacks";
 import { RenderType } from "../../../src/notation/input";
+import { FakeElement } from "./helpers";
 
 jest.mock("../../../src/notation/input", () => {
   class MockEditorMouseDefCallbacks {
@@ -60,6 +61,7 @@ describe("TabUICallbacks", () => {
     const notationComponent = {
       render: jest.fn(() => []),
       renderer,
+      rootDiv: new FakeElement(),
     } as any;
     const uiComponent = {
       render: jest.fn(),
@@ -77,6 +79,7 @@ describe("TabUICallbacks", () => {
       callbacks,
       keyboardCallbacks: (callbacks as any)._keyboardCallbacks,
       uiCallbacks: (callbacks as any)._uiCallbacks,
+      rootDiv: notationComponent.rootDiv,
     };
   }
 
@@ -126,6 +129,25 @@ describe("TabUICallbacks", () => {
     uiCallbacks.freeKeyboard();
 
     expect(keyboardCallbacks.bind).toHaveBeenCalledTimes(1);
+  });
+
+  test("announces once on initial focus and after one rebind", () => {
+    const { callbacks, rootDiv } = createHarness();
+    const announceSelection = jest
+      .spyOn(callbacks as any, "announceSelection")
+      .mockImplementation(() => {});
+
+    callbacks.bind();
+    rootDiv.dispatch("focus");
+    expect(announceSelection).toHaveBeenCalledTimes(1);
+
+    callbacks.unbind();
+    rootDiv.dispatch("focus");
+    expect(announceSelection).toHaveBeenCalledTimes(1);
+
+    callbacks.bind();
+    rootDiv.dispatch("focus");
+    expect(announceSelection).toHaveBeenCalledTimes(2);
   });
 
   test("preserves keyboard capture across temporary UI unbind and rebind", () => {

@@ -189,7 +189,8 @@ export class TabUIEditor {
       this._uiComponent,
       this._notationComponent,
       this.rootDiv,
-      this.emitStateChanged.bind(this)
+      this.emitStateChanged.bind(this),
+      this._shellComponent.announce.bind(this._shellComponent)
     );
 
     this._uiComponent.render(this._shellComponent.sidePanelCollapsed);

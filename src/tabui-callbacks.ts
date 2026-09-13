@@ -8,6 +8,11 @@ import {
 } from "./notation/input";
 import { UIComponent } from "./ui";
 import { UICallbacks } from "./ui/ui-callbacks";
+import {
+  captureSelectionCursor,
+  formatNotationSelection,
+  NotationSelectionSnapshot,
+} from "./notation/accessibility/notation-selection-announcement";
 
 export class TabUICallbacks {
   private _uiComponent: UIComponent;
@@ -18,6 +23,9 @@ export class TabUICallbacks {
   private _uiCallbacks: UICallbacks;
   private _rootDiv: HTMLDivElement;
   private _onStateChanged: () => void;
+  private _announce: (text: string) => void;
+  private _suppressViewportFocusAnnouncement = false;
+  private _boundOnViewportFocus: () => void;
   /** Pending requestAnimationFrame id for coalesced notation scroll renders. */
   private _notationRenderRafId?: number;
   /** Pending requestAnimationFrame id for coalesced selection/UI updates. */
@@ -29,23 +37,29 @@ export class TabUICallbacks {
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
     rootDiv: HTMLDivElement,
-    onStateChanged: () => void = () => {}
+    onStateChanged: () => void = () => {},
+    announce: (text: string) => void = () => {}
   ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
     this._rootDiv = rootDiv;
     this._onStateChanged = onStateChanged;
+    this._announce = announce;
+    this._boundOnViewportFocus = this.onViewportFocus.bind(this);
 
     this._mouseCallbacks = new EditorMouseDefCallbacks(
       this._uiComponent,
       this._notationComponent,
-      this.render.bind(this)
+      this.render.bind(this),
+      this.announceSelection.bind(this),
+      this.focusViewport.bind(this)
     );
     this._keyboardCallbacks = new EditorKeyboardDefCallbacks(
       this._uiComponent,
       this._notationComponent,
       () => this.render(RenderType.Full),
-      this._rootDiv
+      this._rootDiv,
+      this.announceSelection.bind(this)
     );
     this._uiCallbacks = new UICallbacks(
       this._uiComponent,
@@ -55,6 +69,34 @@ export class TabUICallbacks {
       this.captureKeyboard.bind(this),
       this.freeKeyboard.bind(this)
     );
+  }
+
+  /** Announces the current cursor after a successful interaction. */
+  private announceSelection(previous?: NotationSelectionSnapshot): void {
+    const current = captureSelectionCursor(
+      this._notationComponent.trackController.selectionCursor
+    );
+    if (current !== undefined) {
+      this._announce(formatNotationSelection(current, previous));
+    }
+  }
+
+  /** Focuses notation without allowing the focus event to announce stale state. */
+  private focusViewport(): void {
+    const viewport = this._notationComponent.rootDiv;
+    if (document.activeElement === viewport) return;
+    this._suppressViewportFocusAnnouncement = true;
+    viewport.focus({
+      preventScroll: true,
+      focusVisible: false,
+    } as FocusOptions & {
+      focusVisible: boolean;
+    });
+    this._suppressViewportFocusAnnouncement = false;
+  }
+
+  private onViewportFocus(): void {
+    if (!this._suppressViewportFocusAnnouncement) this.announceSelection();
   }
 
   private renderAndBindFull(forceNotation: boolean = false): void {
@@ -241,6 +283,10 @@ export class TabUICallbacks {
     );
 
     this._keyboardCallbacks.bind();
+    this._notationComponent.rootDiv?.addEventListener(
+      "focus",
+      this._boundOnViewportFocus
+    );
 
     this._uiCallbacks.bind();
   }
@@ -257,6 +303,10 @@ export class TabUICallbacks {
     this.freeKeyboard();
     this._bound = false;
     this._keyboardCallbacks.unbind();
+    this._notationComponent.rootDiv?.removeEventListener(
+      "focus",
+      this._boundOnViewportFocus
+    );
     this._uiCallbacks.unbind();
   }
 }

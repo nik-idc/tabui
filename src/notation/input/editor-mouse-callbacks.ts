@@ -7,6 +7,10 @@ import { UIComponent } from "../../ui";
 import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
 import { PlaybackState } from "../../player";
+import {
+  captureSelectionCursor,
+  NotationSelectionSnapshot,
+} from "../accessibility/notation-selection-announcement";
 
 export interface EditorMouseCallbacks {
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
@@ -42,6 +46,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private _boundOnWindowPointerUp?: (event: MouseEvent) => void;
   /** Selection drag state machine. */
   private _selectionDragController: SelectionDragController;
+  private _announce: (previous?: NotationSelectionSnapshot) => void;
+  private _focusViewport: () => void;
 
   /**
    * Creates mouse callbacks for note/beat interactions.
@@ -49,11 +55,15 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   constructor(
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
-    renderFunc: (type: RenderType) => void
+    renderFunc: (type: RenderType) => void,
+    announce: (previous?: NotationSelectionSnapshot) => void = () => {},
+    focusViewport: () => void = () => {}
   ) {
     this.uiComponent = uiComponent;
     this.notationComponent = notationComponent;
     this.renderFunc = renderFunc;
+    this._announce = announce;
+    this._focusViewport = focusViewport;
 
     this._boundNoteRenderers = new Set();
     this._selectionDragController = new SelectionDragController();
@@ -118,12 +128,21 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         ? RenderType.SelectionRefresh
         : RenderType.ActiveVoiceSelection
     );
+    const current = captureSelectionCursor(tc.selectionCursor);
+    if (current !== undefined) {
+      this._announce();
+    }
   }
 
   /**
    * Starts drag-selection from note mouse-down.
    */
   public onNotePointerDown(event: MouseEvent, noteElement: NoteElement): void {
+    if (!this.isPrimarySelectionPointer(event)) {
+      return;
+    }
+
+    this._focusViewport();
     if (
       this.notationComponent.trackController.playbackState !==
       PlaybackState.Idle
@@ -135,10 +154,6 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       noteElement.beatElement.beat.voiceBar.voiceNumber !==
       this.notationComponent.trackController.activeVoiceNumber
     ) {
-      return;
-    }
-
-    if (!this.isPrimarySelectionPointer(event)) {
       return;
     }
 

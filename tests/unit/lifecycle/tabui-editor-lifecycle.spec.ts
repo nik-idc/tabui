@@ -193,6 +193,12 @@ function createScore() {
   return { tracks: [{ uuid: Math.random(), name: "Track" }] } as any;
 }
 
+function getRootChild(root: HTMLDivElement, className: string): any {
+  return (root as any).children.find((child: any) =>
+    child.classList.contains(className)
+  );
+}
+
 describe("TabUIEditor lifecycle", () => {
   let originalDocument: any;
   let originalGetComputedStyle: any;
@@ -264,7 +270,7 @@ describe("TabUIEditor lifecycle", () => {
     const editor = new TabUIEditor(root, createScore());
 
     editor.init();
-    const sideHost = (root as any).children[1];
+    const sideHost = getRootChild(root, "tu-side-controls-host");
     const sideToggle = sideHost.children[0];
     editor.dispose();
     editor.dispose();
@@ -304,7 +310,7 @@ describe("TabUIEditor lifecycle", () => {
       editor.render();
       const announce = editor.announce.bind(editor);
       const mountAnnouncer = editor.mountAnnouncer.bind(editor);
-      const region = root.children[5];
+      const region = getRootChild(root, "tu-announcement-host");
       let parent: HTMLElement = root;
       Object.defineProperty(region, "parentElement", { get: () => parent });
       const dialog = createShellElement();
@@ -316,7 +322,7 @@ describe("TabUIEditor lifecycle", () => {
       announce("Repeat");
       mountAnnouncer(root);
       expect(region.textContent).toBe("Repeat");
-      expect(root.appendChild).toHaveBeenCalledTimes(6);
+      expect(root.appendChild).toHaveBeenCalledTimes(7);
 
       announce("Repeat");
       mountAnnouncer(root);
@@ -408,12 +414,8 @@ describe("TabUIEditor lifecycle", () => {
     editor.init();
 
     expect(editor.layoutDimensions.WIDTH).toBe(666);
-    expect(root.appendChild).toHaveBeenCalledTimes(6);
-    expect(
-      (root.appendChild as jest.Mock).mock.calls[2][0].classList.contains(
-        "tu-notation-viewport"
-      )
-    ).toBe(true);
+    expect(root.appendChild).toHaveBeenCalledTimes(7);
+    expect(getRootChild(root, "tu-notation-viewport")).toBeDefined();
   });
 
   test("applies configured panel placement and visibility to the shell", () => {
@@ -430,8 +432,8 @@ describe("TabUIEditor lifecycle", () => {
 
     editor.init();
 
-    const topHost = (root as any).children[0];
-    const sideHost = (root as any).children[1];
+    const topHost = getRootChild(root, "tu-top-controls-host");
+    const sideHost = getRootChild(root, "tu-side-controls-host");
     expect(root.classList.add).toHaveBeenCalledWith(
       "tu-score-panel-bottom",
       "tu-side-controls-right",
@@ -445,7 +447,7 @@ describe("TabUIEditor lifecycle", () => {
     const root = createRoot();
     const editor = new TabUIEditor(root, createScore());
     editor.init();
-    const sideHost = (root as any).children[1];
+    const sideHost = getRootChild(root, "tu-side-controls-host");
     const toggle = sideHost.children[0];
     const notation = jest.mocked(NotationComponent).mock.results[0].value;
 
@@ -480,7 +482,7 @@ describe("TabUIEditor lifecycle", () => {
 
     editor.init();
 
-    const sideHost = (root as any).children[1];
+    const sideHost = getRootChild(root, "tu-side-controls-host");
     const toggle = sideHost.children[0];
     expect(root.classList.add).toHaveBeenCalledWith(
       "tu-score-panel-top",
@@ -499,7 +501,7 @@ describe("TabUIEditor lifecycle", () => {
     const root = createRoot();
     const editor = new TabUIEditor(root, createScore());
     editor.init();
-    const sideHost = (root as any).children[1];
+    const sideHost = getRootChild(root, "tu-side-controls-host");
     const toggle = sideHost.children[0];
     jest.spyOn(editor, "refreshLayout").mockImplementation(() => {
       throw new Error("layout failed");
@@ -527,7 +529,7 @@ describe("TabUIEditor lifecycle", () => {
 
     editor.init();
 
-    const sideHost = (root as any).children[1];
+    const sideHost = getRootChild(root, "tu-side-controls-host");
     expect(sideHost.children).toHaveLength(0);
   });
 
@@ -719,7 +721,9 @@ describe("TabUIEditor lifecycle", () => {
     const listener = jest.fn();
     editor.subscribe(listener);
 
-    expect(observe).toHaveBeenCalledWith((root as any).children[2]);
+    expect(observe).toHaveBeenCalledWith(
+      getRootChild(root, "tu-notation-viewport")
+    );
     notationViewportWidth = 740;
     resizeCallback?.([], {} as ResizeObserver);
     notationViewportWidth = 780;

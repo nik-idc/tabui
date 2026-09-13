@@ -23,6 +23,7 @@ export class EditorShellTemplateRenderer {
   readonly template: EditorShellTemplate;
 
   private _assembled = false;
+  private _boundActivateSkipLink: (event: MouseEvent) => void;
 
   constructor(
     rootDiv: HTMLDivElement,
@@ -32,6 +33,10 @@ export class EditorShellTemplateRenderer {
     this.rootDiv = rootDiv;
     this.config = config;
     this.template = template;
+    this._boundActivateSkipLink = (event) => {
+      event.preventDefault();
+      this.template.notationViewport.focus({ preventScroll: true });
+    };
   }
 
   private applyTheme(): void {
@@ -43,6 +48,7 @@ export class EditorShellTemplateRenderer {
   private assemble(): void {
     const {
       announcementHost,
+      skipLink,
       scorePanelHost,
       sidePanelHost,
       notationViewport,
@@ -61,6 +67,11 @@ export class EditorShellTemplateRenderer {
     announcementHost.ariaLive = "polite";
     announcementHost.ariaAtomic = "true";
 
+    skipLink.classList.add("tu-skip-link", "tu-visually-hidden");
+    skipLink.href = `#${notationViewport.id}`;
+    skipLink.textContent = "Skip to notation";
+    skipLink.addEventListener("click", this._boundActivateSkipLink);
+
     scorePanelHost.classList.add("tu-top-controls-host");
     scorePanelHost.hidden = !this.config.panels.score.visible;
 
@@ -68,8 +79,8 @@ export class EditorShellTemplateRenderer {
     sidePanelHost.hidden = !this.config.panels.side.visible;
 
     notationViewport.classList.add("tu-notation-viewport");
-    // WARNING: Temporarily remove notation from tab interactions
-    notationViewport.tabIndex = -1;
+    notationViewport.tabIndex = 0;
+    notationViewport.setAttribute("role", "application");
     notationViewport.setAttribute("aria-label", "Notation editor");
 
     responsiveMessage.classList.add("tu-responsive-message");
@@ -89,6 +100,7 @@ export class EditorShellTemplateRenderer {
     }
     this.rootDiv.classList.add(...shellClasses);
 
+    this.rootDiv.appendChild(skipLink);
     this.rootDiv.appendChild(scorePanelHost);
     this.rootDiv.appendChild(sidePanelHost);
     this.rootDiv.appendChild(notationViewport);
@@ -165,6 +177,11 @@ export class EditorShellTemplateRenderer {
 
   public dispose(): void {
     runCleanupSteps(
+      () =>
+        this.template.skipLink.removeEventListener(
+          "click",
+          this._boundActivateSkipLink
+        ),
       () => this.rootDiv.replaceChildren(),
       () => {
         this.rootDiv.classList.remove("tu-editor");
