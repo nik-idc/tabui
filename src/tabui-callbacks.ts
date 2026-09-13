@@ -23,7 +23,8 @@ export class TabUICallbacks {
   private _uiCallbacks: UICallbacks;
   private _rootDiv: HTMLDivElement;
   private _onStateChanged: () => void;
-  private _announce: (text: string) => void;
+  private _announce: (text: string, repeat?: boolean) => void;
+  private _lastSelectionDescription?: string;
   private _suppressViewportFocusAnnouncement = false;
   private _boundOnViewportFocus: () => void;
   /** Pending requestAnimationFrame id for coalesced notation scroll renders. */
@@ -38,7 +39,7 @@ export class TabUICallbacks {
     notationComponent: NotationComponent,
     rootDiv: HTMLDivElement,
     onStateChanged: () => void = () => {},
-    announce: (text: string) => void = () => {}
+    announce: (text: string, repeat?: boolean) => void = () => {}
   ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
@@ -76,9 +77,33 @@ export class TabUICallbacks {
     const current = captureSelectionCursor(
       this._notationComponent.trackController.selectionCursor
     );
-    if (current !== undefined) {
-      this._announce(formatNotationSelection(current, previous));
+    if (current === undefined) {
+      this._lastSelectionDescription = undefined;
+      return;
     }
+
+    this._lastSelectionDescription = formatNotationSelection(current);
+    const formatted = formatNotationSelection(current, previous);
+    this._announce(formatted, true);
+  }
+
+  /** Announces a changed cursor using its complete current description. */
+  public announceSelectionIfChanged(): void {
+    const current = captureSelectionCursor(
+      this._notationComponent.trackController.selectionCursor
+    );
+    if (current === undefined) {
+      this._lastSelectionDescription = undefined;
+      return;
+    }
+
+    const description = formatNotationSelection(current);
+    if (description === this._lastSelectionDescription) {
+      return;
+    }
+
+    this._lastSelectionDescription = description;
+    this._announce(description);
   }
 
   /** Focuses notation without allowing the focus event to announce stale state. */
@@ -278,6 +303,11 @@ export class TabUICallbacks {
     this._bound = true;
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
+    const current = captureSelectionCursor(
+      this._notationComponent.trackController.selectionCursor
+    );
+    this._lastSelectionDescription =
+      current === undefined ? undefined : formatNotationSelection(current);
     this._notationComponent.renderer.attachViewportScrollEvent(() =>
       this.render(RenderType.NotationOnly)
     );

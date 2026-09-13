@@ -68,6 +68,8 @@ export class TabUIEditor {
   private _windowResizeHandler?: EventListener;
   /** Pending coalesced responsive layout refresh. */
   private _layoutResizeRafId?: number;
+  /** Whether a cursor announcement check is queued for the current turn. */
+  private _selectionAnnouncementQueued = false;
   /** Current responsive restriction applied above the configured mode. */
   private _responsiveInteractionMode: ResponsiveInteractionMode =
     ResponsiveInteractionMode.Normal;
@@ -434,6 +436,18 @@ export class TabUIEditor {
       throw new Error("TabUIEditor initialized without owned components");
     }
     this._stateStore.emitChange(notationComponent, layoutDimensions);
+    if (this._selectionAnnouncementQueued) {
+      return;
+    }
+
+    this._selectionAnnouncementQueued = true;
+    queueMicrotask(() => {
+      this._selectionAnnouncementQueued = false;
+      if (this._state !== TabUIEditorLifecycleState.Initialized) {
+        return;
+      }
+      this._callbacks?.announceSelectionIfChanged();
+    });
   }
 
   /**

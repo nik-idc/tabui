@@ -167,10 +167,7 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
     observer.disconnect();
     return messages;
   });
-  expect(updates).toEqual([
-    "",
-    "Bend point. Pitch two and a quarter tones. Duration 67 percent.",
-  ]);
+  expect(updates).toEqual([]);
   for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowUp");
   await expect(status).toHaveText(
     "Bend point. Pitch three tones. Duration 67 percent."

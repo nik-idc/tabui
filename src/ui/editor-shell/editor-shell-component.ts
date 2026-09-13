@@ -13,6 +13,8 @@ export class EditorShellComponent {
 
   private _sidePanelCollapsed: boolean;
   private _announcementTimer?: ReturnType<typeof setTimeout>;
+  /** Text waiting for the explicit repeat announcement update. */
+  private _pendingAnnouncementText?: string;
   private _disposed = false;
 
   constructor(rootDiv: HTMLDivElement, config: ResolvedTabUIConfig) {
@@ -49,27 +51,37 @@ export class EditorShellComponent {
     container.appendChild(region);
   }
 
-  /** Announces text; repeats clear briefly so they produce a fresh update. */
-  public announce(text: string): void {
+  /** Publishes changed text; repeat permits replaying identical feedback. */
+  public announce(text: string, repeat: boolean = false): void {
     if (this._disposed) {
+      return;
+    }
+
+    const region = this.template.announcementHost;
+
+    const currentText = this._pendingAnnouncementText ?? region.textContent;
+    if (!repeat && text !== "" && currentText === text) {
       return;
     }
 
     clearTimeout(this._announcementTimer);
     this._announcementTimer = undefined;
-    const region = this.template.announcementHost;
+    this._pendingAnnouncementText = undefined;
 
-    if (text === "" || region.textContent !== text) {
+    if (region.textContent !== text) {
       region.textContent = text;
       return;
     }
+    if (!repeat || text === "") {
+      return;
+    }
 
-    // 1. Resetting ARIA state to trigger a change
-    // 2. Using a timer to ensure sync textContent change isn't collapsed
-    //    into one action
+    // Separate removal and reinsertion so an explicit repeat is a fresh update.
     region.textContent = "";
+    this._pendingAnnouncementText = text;
     this._announcementTimer = setTimeout(() => {
       region.textContent = text;
+      this._pendingAnnouncementText = undefined;
       this._announcementTimer = undefined;
     }, 50);
   }

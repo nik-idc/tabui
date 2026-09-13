@@ -16,6 +16,45 @@ test("announces the tempo when it opens and changes", async ({ page }) => {
   await expect(region).toHaveText("Tempo 121 beats per minute");
 });
 
+test("publishes the final full selection after tempo confirmation", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.locator('[id^="note-rect-"]').first().click();
+  await editor.getByRole("button", { name: "Tempo", exact: true }).click();
+  const dialog = editor.getByRole("dialog", { name: "Tempo", exact: true });
+  await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
+  await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(editor.locator(".tu-announcement-host")).toHaveText(
+    /Track .*Staff .*Bar 1, 4\/4, 121 BPM.*Beat 1/
+  );
+});
+
+test("does not automatically announce unchanged or cancelled tempo", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  const announcement = editor.locator(".tu-announcement-host");
+  for (const change of [false, true]) {
+    await editor.getByRole("button", { name: "Tempo", exact: true }).click();
+    const dialog = editor.getByRole("dialog", { name: "Tempo", exact: true });
+    if (change) {
+      await dialog
+        .getByRole("button", { name: "Increase tempo by 1 BPM" })
+        .click();
+    }
+    await dialog
+      .getByRole("button", { name: change ? "Cancel" : "Confirm", exact: true })
+      .click();
+    await expect(dialog).toBeHidden();
+    await expect(announcement).toHaveText("");
+  }
+});
+
 test("icon buttons expose state and are focusable", async ({ page }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");

@@ -92,6 +92,7 @@ jest.mock("../../../src/tabui-callbacks", () => ({
         unbind: jest.fn(),
         refresh: jest.fn(onStateChanged),
         emitStateChanged: onStateChanged,
+        announceSelectionIfChanged: jest.fn(),
       })
     ),
 }));
@@ -324,12 +325,12 @@ describe("TabUIEditor lifecycle", () => {
       expect(region.textContent).toBe("Repeat");
       expect(root.appendChild).toHaveBeenCalledTimes(7);
 
-      announce("Repeat");
+      announce("Repeat", true);
       mountAnnouncer(root);
       jest.runOnlyPendingTimers();
       expect(region.textContent).toBe("Repeat");
 
-      announce("Repeat");
+      announce("Repeat", true);
       mountAnnouncer(dialog);
       expect(dialog.appendChild).toHaveBeenCalledTimes(1);
       expect(dialog.appendChild).toHaveBeenCalledWith(region);
@@ -343,13 +344,65 @@ describe("TabUIEditor lifecycle", () => {
       expect(region.textContent).toBe("");
 
       announce("Pending disposal");
-      announce("Pending disposal");
+      announce("Pending disposal", true);
       editor.dispose();
       jest.runOnlyPendingTimers();
       announce("Disposed");
       mountAnnouncer(dialog);
       expect(region.textContent).toBe("");
       expect(dialog.appendChild).toHaveBeenCalledTimes(1);
+    } finally {
+      editor.dispose();
+      jest.useRealTimers();
+    }
+  });
+
+  test("deduplicates announcements and preserves explicit repeats", () => {
+    jest.useFakeTimers();
+    const editor = new EditorShellComponent(createRoot(), resolveTabUIConfig());
+    try {
+      editor.render();
+      const region = editor.template.announcementHost;
+      let value = "";
+      let writes = 0;
+      Object.defineProperty(region, "textContent", {
+        configurable: true,
+        get: () => value,
+        set: (next: string) => {
+          value = next;
+          writes++;
+        },
+      });
+
+      editor.announce("");
+      editor.announce("");
+      expect(writes).toBe(0);
+      expect(jest.getTimerCount()).toBe(0);
+
+      editor.announce("Repeat", true);
+      expect(value).toBe("Repeat");
+      expect(jest.getTimerCount()).toBe(0);
+      expect(writes).toBe(1);
+      editor.announce("Repeat");
+      expect(writes).toBe(1);
+
+      editor.announce("Repeat", true);
+      expect(value).toBe("");
+      expect(jest.getTimerCount()).toBe(1);
+      const writesBeforeDeduplication = writes;
+      editor.announce("Repeat");
+      expect(writes).toBe(writesBeforeDeduplication);
+      expect(jest.getTimerCount()).toBe(1);
+
+      jest.runOnlyPendingTimers();
+      expect(value).toBe("Repeat");
+      expect(writes).toBe(writesBeforeDeduplication + 1);
+      editor.announce("Repeat", true);
+      editor.announce("New text");
+      expect(value).toBe("New text");
+      expect(jest.getTimerCount()).toBe(0);
+      jest.runOnlyPendingTimers();
+      expect(value).toBe("New text");
     } finally {
       editor.dispose();
       jest.useRealTimers();
@@ -1032,5 +1085,31 @@ describe("TabUIEditor lifecycle", () => {
     expect(() => editor.refreshLayout()).toThrow(
       "TabUIEditor already disposed"
     );
+  });
+
+  test("defers and coalesces automatic selection announcement checks", async () => {
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+
+    callbacks.emitStateChanged();
+    callbacks.emitStateChanged();
+    expect(callbacks.announceSelectionIfChanged).not.toHaveBeenCalled();
+
+    await Promise.resolve();
+
+    expect(callbacks.announceSelectionIfChanged).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not check automatic selection announcements after disposal", async () => {
+    const editor = new TabUIEditor(createRoot(), createScore());
+    editor.init();
+    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
+
+    callbacks.emitStateChanged();
+    editor.dispose();
+    await Promise.resolve();
+
+    expect(callbacks.announceSelectionIfChanged).not.toHaveBeenCalled();
   });
 });

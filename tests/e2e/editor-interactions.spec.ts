@@ -21,6 +21,58 @@ test("accepts timed keyboard fret input", async ({ page }) => {
   await expect(editor.locator('[id^="note-text-"]')).toHaveText("3");
 });
 
+test("announces a fret change but not an unchanged fret DOM write", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  const note = editor.locator('.tu-root-svg [id^="note-rect-"]').first();
+  await note.click();
+  await page.keyboard.press("5");
+
+  const announcement = editor.locator(".tu-announcement-host");
+  await expect(announcement).toHaveText(
+    /Track .*Staff .*Bar .*Beat .*String 1, fret 5\./
+  );
+  await announcement.evaluate((element) => {
+    const observer = new MutationObserver(() => {});
+    observer.observe(element, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    (window as any).__tabuiAnnouncementObserver = observer;
+  });
+  await page.clock.fastForward(251);
+  await page.keyboard.press("5");
+  await page.evaluate(() => Promise.resolve());
+  const mutations = await announcement.evaluate((element) => {
+    const observer = (window as any)
+      .__tabuiAnnouncementObserver as MutationObserver;
+    const records = observer.takeRecords().length;
+    observer.disconnect();
+    delete (window as any).__tabuiAnnouncementObserver;
+    return records;
+  });
+
+  expect(mutations).toBe(0);
+  await expect(editor.locator('[id^="note-text-"]')).toHaveText("5");
+});
+
+test("keeps concise arrow announcements after the automatic flush", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.locator('.tu-root-svg [id^="note-rect-"]').first().click();
+  await page.keyboard.press("ArrowRight");
+
+  await expect(editor.locator(".tu-announcement-host")).toHaveText(
+    /^Bar 2, 4\/4, 120 BPM\. Voice 1\./
+  );
+});
+
 test("starts and pauses playback from the transport control", async ({
   page,
 }) => {
