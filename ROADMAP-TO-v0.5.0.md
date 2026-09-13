@@ -344,3 +344,14 @@ Exit criteria:
   milestone.
 - Audio realism is secondary to getting reliable multi-track playback working.
 - Cleanup work should stay focused on changes that directly help reach 0.5.0.
+- This idea of a deferred announcement system:
+
+```
+  Then I also think it makes sense that a full action description system is deferred.
+  By "action description system" I mean a system that will output a consice string explaining
+  what the latest action has done. So for example:
+  - Fret changed -> "Track `Track name`, Staff 1, ..."
+  Now becomes
+  - Fret changed -> "Changed fret value from A to B". This assumes that the user remembers where
+    they are, which I think is reasonable. Unless it's not actually.
+```

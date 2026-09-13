@@ -69,7 +69,7 @@ test("keeps concise arrow announcements after the automatic flush", async ({
   await page.keyboard.press("ArrowRight");
 
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
-    /^Bar 2, 4\/4, 120 BPM\. Voice 1\./
+    /^Bar 2, 4\/4, 120 BPM, Voice 1,/
   );
 });
 

@@ -144,16 +144,16 @@ export function formatNotationSelection(
   const beat = current.beat;
   const bar = beat.voiceBar.bar;
   const masterBar = bar.masterBar;
-  const beatText = `Beat ${current.beatIndex + 1}, ${formatRhythm(beat)}. ${formatSlot(current)}`;
-  const voiceText = `Voice ${current.voiceNumber}. ${beatText}`;
-  const barText = `Bar ${current.barIndex + 1}, ${masterBar.beatsCount}/${1 / masterBar.duration}, ${masterBar.tempo} BPM${formatRepeats(beat)}. ${voiceText}`;
-  const staffText = `Staff ${current.staffIndex + 1}, voice ${current.voiceNumber}. Bar ${current.barIndex + 1}, ${masterBar.beatsCount}/${1 / masterBar.duration}, ${masterBar.tempo} BPM${formatRepeats(beat)}. ${beatText}`;
+  const beatText = `Beat ${current.beatIndex + 1}, ${formatRhythm(beat)}, ${formatSlot(current)}`;
+  const voiceText = `Voice ${current.voiceNumber}, ${beatText}`;
+  const barText = `Bar ${current.barIndex + 1}, ${masterBar.beatsCount}/${1 / masterBar.duration}, ${masterBar.tempo} BPM${formatRepeats(beat)}, ${voiceText}`;
+  const staffText = `Staff ${current.staffIndex + 1}, voice ${current.voiceNumber}, Bar ${current.barIndex + 1}, ${masterBar.beatsCount}/${1 / masterBar.duration}, ${masterBar.tempo} BPM${formatRepeats(beat)}, ${beatText}`;
   if (previous === undefined || previous.trackUuid !== current.trackUuid) {
     const name =
       bar.staff.track.name.trim() === ""
         ? `${current.trackIndex + 1}`
         : bar.staff.track.name;
-    return `Track ${name}. ${staffText}`;
+    return `Track ${name}, ${staffText}`;
   }
   if (previous.staffUuid !== current.staffUuid) return staffText;
   if (previous.barUuid !== current.barUuid) return barText;

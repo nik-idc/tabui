@@ -119,8 +119,8 @@ test("announces the selected context when entering notation with the mouse", asy
 
   await expect(notation).toBeFocused();
   await expect(editor.getByRole("status")).toHaveText(
-    "Track Rhythm track. Staff 1, voice 1. Bar 1, 4/4, 120 BPM. " +
-      "Beat 1, whole. String 1, empty."
+    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
+      "Beat 1, whole, String 1, empty."
   );
 });
 
