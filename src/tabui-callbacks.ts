@@ -77,6 +77,10 @@ export class TabUICallbacks {
     onlyIfChanged: boolean,
     previous?: NotationCursorPosition
   ): void {
+    if (this._mouseCallbacks.isSelectingBeats) {
+      return;
+    }
+
     if (onlyIfChanged && this._selectionRenderRafId !== undefined) {
       return;
     }

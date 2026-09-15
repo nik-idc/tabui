@@ -9,6 +9,7 @@ import { SelectionDragController } from "./selection-drag-controller";
 import { PlaybackState } from "../../player";
 
 export interface EditorMouseCallbacks {
+  readonly isSelectingBeats: boolean;
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
   onNotePointerDown(event: MouseEvent, noteElement: NoteElement): void;
   onNotePointerEnter(event: PointerEvent, noteElement: NoteElement): void;
@@ -63,6 +64,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
     this._boundNoteRenderers = new Set();
     this._selectionDragController = new SelectionDragController();
+  }
+
+  /** Whether beat drag-selection is active rather than pending. */
+  public get isSelectingBeats(): boolean {
+    return this._selectionDragController.isSelectingBeats;
   }
 
   private detachNoteRenderer(renderer: SVGTabNoteRenderer): void {

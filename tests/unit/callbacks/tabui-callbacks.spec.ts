@@ -8,6 +8,7 @@ import { createScoreGraph } from "../model/helpers";
 
 jest.mock("../../../src/notation/input", () => {
   class MockEditorMouseDefCallbacks {
+    public isSelectingBeats = false;
     public bind = jest.fn();
     public unbind = jest.fn();
     constructor() {}
@@ -84,6 +85,7 @@ describe("TabUICallbacks", () => {
 
     return {
       callbacks,
+      mouseCallbacks: (callbacks as any)._mouseCallbacks,
       keyboardCallbacks: (callbacks as any)._keyboardCallbacks,
       uiCallbacks: (callbacks as any)._uiCallbacks,
       rootDiv: notationComponent.rootDiv,
@@ -376,22 +378,39 @@ describe("TabUICallbacks", () => {
       else globalThis.cancelAnimationFrame = originalCancel;
     });
 
-    test("coalesces drag changes and announces only the latest state after rendering", () => {
-      const { callbacks, selection, beats, announce, notationComponent } =
-        createRangeHarness();
-      selection.selectBeat(beats[1]);
-      (callbacks as any).render(RenderType.DragSelection);
-      selection.selectBeat(beats[2]);
-      (callbacks as any).render(RenderType.DragSelection);
-      expect(frames.size).toBe(1);
-      expect(announce).not.toHaveBeenCalled();
+    test("renders held drag frames silently and announces the latest range on release", () => {
+      const {
+        callbacks,
+        mouseCallbacks,
+        selection,
+        beats,
+        announce,
+        notationComponent,
+      } = createRangeHarness();
+      mouseCallbacks.isSelectingBeats = true;
       notationComponent.render.mockClear();
       notationComponent.render.mockImplementation(() => {
         expect(announce).not.toHaveBeenCalled();
         return [];
       });
+      for (const index of [1, 2, 1, 2]) {
+        selection.selectBeat(beats[index]);
+        (callbacks as any).render(RenderType.DragSelection);
+        (callbacks as any).render(RenderType.DragSelection);
+        expect(frames.size).toBe(1);
+        for (const frame of frames.values()) frame(0);
+        frames.clear();
+        callbacks.announceSelection(false);
+        callbacks.announceSelection(true);
+        expect(announce).not.toHaveBeenCalled();
+      }
+      expect(notationComponent.render).toHaveBeenCalledTimes(4);
+      mouseCallbacks.isSelectingBeats = false;
+      (callbacks as any).render(RenderType.DragSelection);
+      expect(announce).not.toHaveBeenCalled();
       for (const frame of frames.values()) frame(0);
-      expect(notationComponent.render).toHaveBeenCalledTimes(1);
+      frames.clear();
+      expect(notationComponent.render).toHaveBeenCalledTimes(5);
       expect(announce).toHaveBeenCalledTimes(1);
       expect(announce).toHaveBeenCalledWith(
         "Track Guitar, Staff 1, voice 1, 3 beats selected, " +

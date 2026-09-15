@@ -140,6 +140,18 @@ describe("EditorMouseDefCallbacks", () => {
     ).toHaveBeenCalledWith(noteElement);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
 
+    expect(callbacks.isSelectingBeats).toBe(false);
+    callbacks.onNotePointerDown(createMouseEvent(10, 10), noteElement);
+    expect(callbacks.isSelectingBeats).toBe(false);
+    callbacks.onNotePointerMove(createMouseEvent(30, 10), noteElement);
+    expect(callbacks.isSelectingBeats).toBe(true);
+    callbacks.onWindowPointerUp({ ...createMouseEvent(30, 10), button: 2 });
+    expect(callbacks.isSelectingBeats).toBe(true);
+    renderFunc.mockClear();
+    callbacks.onWindowPointerUp(createMouseEvent(30, 10, 0));
+    expect(callbacks.isSelectingBeats).toBe(false);
+    expect(renderFunc).toHaveBeenCalledWith(RenderType.DragSelection);
+
     callbacks.onNotePointerEnter(createPointerEvent(10, 10), noteElement);
     expect(renderer.showSelectionPreview).toHaveBeenCalledWith(noteElement);
 
