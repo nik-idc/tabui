@@ -9,9 +9,8 @@ import {
 import { UIComponent } from "./ui";
 import { UICallbacks } from "./ui/ui-callbacks";
 import {
-  captureSelectionCursor,
   formatNotationSelection,
-  NotationSelectionSnapshot,
+  NotationCursorPosition,
 } from "./notation/accessibility/notation-selection-announcement";
 
 export class TabUICallbacks {
@@ -52,7 +51,8 @@ export class TabUICallbacks {
       this._uiComponent,
       this._notationComponent,
       this.render.bind(this),
-      this.announceSelection.bind(this),
+      (previous?: NotationCursorPosition) =>
+        this.announceSelection(false, previous),
       this.focusViewport.bind(this)
     );
     this._keyboardCallbacks = new EditorKeyboardDefCallbacks(
@@ -60,7 +60,7 @@ export class TabUICallbacks {
       this._notationComponent,
       () => this.render(RenderType.Full),
       this._rootDiv,
-      this.announceSelection.bind(this)
+      (previous) => this.announceSelection(false, previous)
     );
     this._uiCallbacks = new UICallbacks(
       this._uiComponent,
@@ -72,38 +72,35 @@ export class TabUICallbacks {
     );
   }
 
-  /** Announces the current cursor after a successful interaction. */
-  private announceSelection(previous?: NotationSelectionSnapshot): void {
-    const current = captureSelectionCursor(
-      this._notationComponent.trackController.selectionCursor
-    );
-    if (current === undefined) {
-      this._lastSelectionDescription = undefined;
+  /** Announces changed selections or explicitly repeats optional concise output. */
+  public announceSelection(
+    onlyIfChanged: boolean,
+    previous?: NotationCursorPosition
+  ): void {
+    if (onlyIfChanged && this._selectionRenderRafId !== undefined) {
       return;
     }
 
-    this._lastSelectionDescription = formatNotationSelection(current);
-    const formatted = formatNotationSelection(current, previous);
-    this._announce(formatted, true);
-  }
-
-  /** Announces a changed cursor using its complete current description. */
-  public announceSelectionIfChanged(): void {
-    const current = captureSelectionCursor(
-      this._notationComponent.trackController.selectionCursor
-    );
-    if (current === undefined) {
-      this._lastSelectionDescription = undefined;
-      return;
-    }
-
-    const description = formatNotationSelection(current);
-    if (description === this._lastSelectionDescription) {
+    const source = this._notationComponent.trackController;
+    const description = formatNotationSelection(source);
+    if (onlyIfChanged && description === this._lastSelectionDescription) {
       return;
     }
 
     this._lastSelectionDescription = description;
-    this._announce(description);
+    if (description === undefined) {
+      return;
+    }
+
+    const formatted =
+      onlyIfChanged || previous === undefined
+        ? description
+        : formatNotationSelection(source, previous);
+    if (formatted === undefined) {
+      return;
+    }
+
+    this._announce(formatted, !onlyIfChanged);
   }
 
   /** Focuses notation without allowing the focus event to announce stale state. */
@@ -121,7 +118,7 @@ export class TabUICallbacks {
   }
 
   private onViewportFocus(): void {
-    if (!this._suppressViewportFocusAnnouncement) this.announceSelection();
+    if (!this._suppressViewportFocusAnnouncement) this.announceSelection(false);
   }
 
   private renderAndBindFull(forceNotation: boolean = false): void {
@@ -223,6 +220,7 @@ export class TabUICallbacks {
     this._selectionRenderRafId = requestAnimationFrame(() => {
       this._selectionRenderRafId = undefined;
       this.renderSelectionOverlayAndUI();
+      this.announceSelection(true);
     });
   }
 
@@ -303,11 +301,9 @@ export class TabUICallbacks {
     this._bound = true;
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
-    const current = captureSelectionCursor(
-      this._notationComponent.trackController.selectionCursor
+    this._lastSelectionDescription = formatNotationSelection(
+      this._notationComponent.trackController
     );
-    this._lastSelectionDescription =
-      current === undefined ? undefined : formatNotationSelection(current);
     this._notationComponent.renderer.attachViewportScrollEvent(() =>
       this.render(RenderType.NotationOnly)
     );

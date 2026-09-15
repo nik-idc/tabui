@@ -92,7 +92,7 @@ jest.mock("../../../src/tabui-callbacks", () => ({
         unbind: jest.fn(),
         refresh: jest.fn(onStateChanged),
         emitStateChanged: onStateChanged,
-        announceSelectionIfChanged: jest.fn(),
+        announceSelection: jest.fn(),
       })
     ),
 }));
@@ -1094,11 +1094,12 @@ describe("TabUIEditor lifecycle", () => {
 
     callbacks.emitStateChanged();
     callbacks.emitStateChanged();
-    expect(callbacks.announceSelectionIfChanged).not.toHaveBeenCalled();
+    expect(callbacks.announceSelection).not.toHaveBeenCalled();
 
     await Promise.resolve();
 
-    expect(callbacks.announceSelectionIfChanged).toHaveBeenCalledTimes(1);
+    expect(callbacks.announceSelection).toHaveBeenCalledTimes(1);
+    expect(callbacks.announceSelection).toHaveBeenCalledWith(true);
   });
 
   test("does not check automatic selection announcements after disposal", async () => {
@@ -1110,6 +1111,6 @@ describe("TabUIEditor lifecycle", () => {
     editor.dispose();
     await Promise.resolve();
 
-    expect(callbacks.announceSelectionIfChanged).not.toHaveBeenCalled();
+    expect(callbacks.announceSelection).not.toHaveBeenCalled();
   });
 });

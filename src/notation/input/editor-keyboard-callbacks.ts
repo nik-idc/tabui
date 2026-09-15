@@ -7,7 +7,7 @@ import { PlaybackState } from "../../player";
 import {
   captureSelectionCursor,
   notationSelectionsEqual,
-  NotationSelectionSnapshot,
+  NotationCursorPosition,
 } from "../accessibility/notation-selection-announcement";
 
 export interface EditorKeyboardCallbacks {
@@ -39,7 +39,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   private _renderFunc: () => void;
   /** Root for this editor instance; used to ignore other editors' key events. */
   private _rootElement: HTMLElement;
-  private _announce: (previous?: NotationSelectionSnapshot) => void;
+  private _announce: (previous?: NotationCursorPosition) => void;
 
   private _bound: boolean = false;
   private _prevKeyPress?: { time: number; key: string };
@@ -51,7 +51,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     notationComponent: NotationComponent,
     renderFunc: () => void,
     rootElement: HTMLElement,
-    announce: (previous?: NotationSelectionSnapshot) => void = () => {}
+    announce: (previous?: NotationCursorPosition) => void = () => {}
   ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
@@ -181,7 +181,6 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._notationComponent.ensureSelectedNoteVisible();
     this._renderFunc();
     const current = captureSelectionCursor(trackController.selectionCursor);
-    // Temporary measure while announcement is being reworked
     if (!notationSelectionsEqual(previous, current) && current !== undefined) {
       this._announce(previous);
     }

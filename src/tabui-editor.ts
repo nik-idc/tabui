@@ -446,7 +446,7 @@ export class TabUIEditor {
       if (this._state !== TabUIEditorLifecycleState.Initialized) {
         return;
       }
-      this._callbacks?.announceSelectionIfChanged();
+      this._callbacks?.announceSelection(true);
     });
   }
 

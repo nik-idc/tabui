@@ -7,10 +7,6 @@ import { UIComponent } from "../../ui";
 import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
 import { PlaybackState } from "../../player";
-import {
-  captureSelectionCursor,
-  NotationSelectionSnapshot,
-} from "../accessibility/notation-selection-announcement";
 
 export interface EditorMouseCallbacks {
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
@@ -46,7 +42,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private _boundOnWindowPointerUp?: (event: MouseEvent) => void;
   /** Selection drag state machine. */
   private _selectionDragController: SelectionDragController;
-  private _announce: (previous?: NotationSelectionSnapshot) => void;
+  private _announce: () => void;
   private _focusViewport: () => void;
 
   /**
@@ -56,7 +52,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
     renderFunc: (type: RenderType) => void,
-    announce: (previous?: NotationSelectionSnapshot) => void = () => {},
+    announce: () => void = () => {},
     focusViewport: () => void = () => {}
   ) {
     this.uiComponent = uiComponent;
@@ -128,8 +124,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         ? RenderType.SelectionRefresh
         : RenderType.ActiveVoiceSelection
     );
-    const current = captureSelectionCursor(tc.selectionCursor);
-    if (current !== undefined) {
+    if (tc.selectionCursor !== undefined) {
       this._announce();
     }
   }
