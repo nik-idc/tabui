@@ -8,7 +8,13 @@ import {
   GuitarTechniqueType,
   NoteValue,
 } from "../model";
-import { SelectionCursor, TrackController } from "../controller";
+import { SelectionCursor } from "../controller";
+
+interface NotationSelectionSource {
+  readonly selectionCursor: SelectionCursor | undefined;
+  readonly selectionAsBeats: Beat[];
+  readonly selectionEndBeat: Beat | undefined;
+}
 
 const TECHNIQUE_NAMES: Record<GuitarTechniqueType, string> = {
   [GuitarTechniqueType.Bend]: "bend",
@@ -154,7 +160,7 @@ function formatRepeats(beat: Beat): string {
 
 /** Formats full context or the smallest changed navigation layer. */
 export function formatNotationSelection(
-  source: TrackController,
+  source: NotationSelectionSource,
   previous?: NotationCursorPosition
 ): string | undefined {
   const current = source.selectionCursor;
@@ -179,7 +185,7 @@ export function formatNotationSelection(
       `Track ${name}, Staff ${track.staves.indexOf(staff) + 1},` +
       ` voice ${voiceBar.voiceNumber},` +
       ` ${beats.length} beat${beats.length === 1 ? "" : "s"} selected,` +
-      ` ${formatRangeEndpoint(start)} to ${formatRangeEndpoint(end)}, ` +
+      ` ${formatRangeEndpoint(start)} to ${formatRangeEndpoint(end)},` +
       ` anchor ${formatRangeEndpoint(anchor)},` +
       ` active end ${formatRangeEndpoint(activeEnd)}.`
     );
@@ -197,11 +203,13 @@ export function formatNotationSelection(
     `Beat ${voiceBar.beats.indexOf(beat) + 1},` +
     ` ${formatRhythm(beat)}, ${formatNoteSlot(current)}`;
   const voiceText = `Voice ${voiceNumber}, ${beatText}`;
-  const barText =
+  const barPrefix =
     `Bar ${barIndex + 1}, ${masterBar.beatsCount}/${1 / masterBar.duration},` +
-    ` ${masterBar.tempo} BPM${formatRepeats(beat)}, ${voiceText}`;
+    ` ${masterBar.tempo} BPM${formatRepeats(beat)}`;
+  const barText = `${barPrefix}, ${voiceText}`;
   const staffText =
-    `Staff ${track.staves.indexOf(staff) + 1},` + voiceText + barText;
+    `Staff ${track.staves.indexOf(staff) + 1}, voice ${voiceNumber}, ` +
+    `${barPrefix}, ${beatText}`;
 
   if (previous?.trackUuid !== track.uuid) {
     const name =

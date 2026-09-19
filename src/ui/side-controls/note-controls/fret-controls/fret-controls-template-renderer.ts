@@ -3,6 +3,7 @@ import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
+  setShortcutTooltip,
   setupDialogActionButtons,
 } from "../../../shared";
 import { FretControlsTemplate } from "./fret-controls-template";
@@ -73,6 +74,7 @@ export class FretControlsTemplateRenderer {
     this.template.noFretButton.textContent = "Clear";
     this.template.deadButton.textContent = "x";
     this.template.deadButton.ariaLabel = "Set dead note";
+    setShortcutTooltip(this.template.deadButton, "Set dead note", "x");
     this.template.input.type = "number";
     this.template.input.ariaLabel = "Fret";
     this.template.input.inputMode = "numeric";

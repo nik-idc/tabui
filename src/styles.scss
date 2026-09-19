@@ -246,9 +246,7 @@
 
         .tu-track-controls {
           display: grid;
-          grid-template-columns:
-            3rem 2.4rem 16rem 12rem 12rem 2.4rem 2.4rem 2.4rem
-            2.4rem;
+          grid-template-columns: 3rem 2.4rem 16rem 12rem 12rem 2.4rem 2.4rem 2.4rem 2.4rem;
           grid-template-rows: repeat(2, 1.6rem);
           align-items: center;
           gap: 0.35rem;
@@ -640,18 +638,16 @@
 
   &.tu-responsive-blocked {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(min-content, 1fr);
 
     .tu-top-controls-host,
     .tu-notation-viewport {
+      grid-column: 1 / 2;
       visibility: hidden;
     }
 
     .tu-side-controls-host {
       display: none;
-    }
-
-    .tu-notation-viewport {
-      grid-column: 1 / 2;
     }
   }
 

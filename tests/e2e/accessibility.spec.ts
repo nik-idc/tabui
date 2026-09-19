@@ -190,15 +190,33 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
     "button:visible:not(:disabled), input:visible:not(:disabled), " +
       "select:visible:not(:disabled), textarea:visible:not(:disabled), " +
       "[tabindex]:visible:not([tabindex='-1']), " +
-      ".tu-notation-viewport:visible"
+      ".tu-notation-viewport:visible, summary:visible"
   );
   const tabStopCount = await tabStops.count();
-  for (let i = 0; i <= tabStopCount; i++) {
+  let exitedEditor = false;
+  await page.exposeFunction("onEditorExit", () => {
+    exitedEditor = true;
+  });
+  // Observe native focus once instead of resolving the exit button per Tab.
+  await afterEditor.evaluate((element) => {
+    element.addEventListener(
+      "focusin",
+      () => {
+        const observer = window as unknown as Window & {
+          onEditorExit: () => Promise<void>;
+        };
+        void observer.onEditorExit();
+      },
+      { once: true }
+    );
+  });
+  for (let i = 0; i <= tabStopCount && !exitedEditor; i++) {
     await page.keyboard.press("Tab");
-    if (await afterEditor.evaluate((el) => el === document.activeElement)) {
-      break;
-    }
   }
+  await expect(afterEditor).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
   await expect(afterEditor).toBeFocused();
 });
 
@@ -270,6 +288,21 @@ test("provides icon tooltips on hover and keyboard focus", async ({ page }) => {
   await expect(play).toHaveAttribute("data-tooltip", "Play");
   await play.focus();
   await expect(play).toHaveCSS("position", "relative");
+
+  for (const [name, tooltip] of [
+    ["Tempo", "Tempo (m)"],
+    ["Repeat End", "Repeat End and count (Shift+R)"],
+    ["Time Signature", "Time Signature (Shift+M)"],
+    ["Whole note", "Whole note (+: lengthen, -: shorten)"],
+    ["Voice 1", "Activate voice 1 (Shift+V)"],
+  ]) {
+    const button = editor.getByRole("button", { name, exact: true });
+    await button.hover();
+    await expect(button).toHaveAttribute("title", tooltip);
+    await expect(button).toHaveAttribute("data-tooltip", tooltip);
+    await button.focus();
+    await expect(button).toHaveAccessibleName(name);
+  }
 });
 
 test("new track string-count actions update per-string tuning labels", async ({

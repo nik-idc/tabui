@@ -213,7 +213,6 @@ export class BendCurveSelector implements Selector {
       // A two-dimensional graph point has no matching ARIA widget role.
       const label = name.charAt(0).toUpperCase() + name.slice(1);
       circle.setAttribute("aria-label", `${label} point`);
-      circle.setAttribute("role", "slider");
       point.onKeyDown = (event) => this.onPointKeyDown(event, point);
       point.onFocus = () => this._announce(this.getPointValueText(point));
       circle.addEventListener("pointerdown", point.onPointerDown);

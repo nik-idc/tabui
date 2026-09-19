@@ -58,7 +58,7 @@ export class TabUICallbacks {
     this._keyboardCallbacks = new EditorKeyboardDefCallbacks(
       this._uiComponent,
       this._notationComponent,
-      () => this.render(RenderType.Full),
+      (type = RenderType.Full) => this.render(type),
       this._rootDiv,
       (previous) => this.announceSelection(false, previous)
     );

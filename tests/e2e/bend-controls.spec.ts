@@ -218,13 +218,13 @@ test("reopens the bend dialog from the keyboard after Escape", async ({
   await page.keyboard.press("1");
 
   const dialog = editor.locator(".tu-dialog.tu-bend-controls-dialog");
-  await page.keyboard.press("Shift+B");
+  await page.keyboard.press("b");
   await expect(dialog).toHaveAttribute("open", "");
   await page.keyboard.press("Escape");
   await expect(dialog).not.toHaveAttribute("open", "");
   await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
 
-  await page.keyboard.press("Shift+B");
+  await page.keyboard.press("b");
 
   await expect(dialog).toHaveAttribute("open", "");
 });

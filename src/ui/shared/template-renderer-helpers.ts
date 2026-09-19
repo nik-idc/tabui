@@ -57,6 +57,17 @@ export function setImageAsset(
   }
 }
 
+/** Adds a keyboard binding to a tooltip without changing the button's name. */
+export function setShortcutTooltip(
+  button: HTMLButtonElement,
+  label: string,
+  shortcut: string
+): void {
+  const text = `${label} (${shortcut})`;
+  button.title = text;
+  button.dataset.tooltip = text;
+}
+
 /** Configures native form confirmation and action labels. */
 export function setupDialogActionButtons(
   confirmButton: HTMLButtonElement,

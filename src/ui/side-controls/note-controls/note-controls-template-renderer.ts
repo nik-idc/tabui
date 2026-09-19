@@ -1,4 +1,4 @@
-import { renderOnce, setImageAsset } from "../../shared";
+import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NotationComponent } from "../../../notation/notation-component";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
@@ -109,6 +109,7 @@ export class NoteControlsTemplateRenderer {
           "data-duration": dataDuration,
         }
       );
+      setShortcutTooltip(button, alt, "+: lengthen, -: shorten");
 
       // Mark applied status
       const beatsOfCurDuration = selectedBeats.find(
@@ -126,7 +127,11 @@ export class NoteControlsTemplateRenderer {
       "img/notes/rest-4.svg",
       "Quarter rest"
     );
-    this.template.restButton.title = "Set selected beat as rest";
+    setShortcutTooltip(
+      this.template.restButton,
+      "Set selected beat as rest",
+      "Shift+X"
+    );
     this.template.restButton.dataset["beatAction"] = "rest";
     this.template.restButton.classList.add("tu-rest-button");
     this.template.restButton.classList.toggle(appliedCSSClass, hasRest);
@@ -147,7 +152,7 @@ export class NoteControlsTemplateRenderer {
         `img/ui/voice-${voiceNumber}.svg`,
         `Voice ${voiceNumber}`
       );
-      button.title = `Activate voice ${voiceNumber}`;
+      setShortcutTooltip(button, `Activate voice ${voiceNumber}`, "Shift+V");
       button.dataset["voiceNumber"] = `${voiceNumber}`;
       button.classList.add("tu-voice-button");
       const isActive = voiceNumber === activeVoiceNumber;
@@ -171,6 +176,7 @@ export class NoteControlsTemplateRenderer {
         "data-dot": "1",
       }
     );
+    setShortcutTooltip(this.template.dot1Button, "Dot", ".");
 
     setImageAsset(
       this.template.dot2Button,
@@ -181,6 +187,7 @@ export class NoteControlsTemplateRenderer {
         "data-dot": "2",
       }
     );
+    setShortcutTooltip(this.template.dot2Button, "Double dot", ".");
 
     // Mark singular dot applied status
     const beatsDot1 = selectedBeats.find((b) => b.dots === 1);
@@ -209,6 +216,7 @@ export class NoteControlsTemplateRenderer {
         "data-tuplet": "2",
       }
     );
+    setShortcutTooltip(this.template.tuplet2Button, "Tuplet preset", "t");
 
     setImageAsset(
       this.template.tuplet3Button,
@@ -219,6 +227,7 @@ export class NoteControlsTemplateRenderer {
         "data-tuplet": "3",
       }
     );
+    setShortcutTooltip(this.template.tuplet3Button, "Triplet preset", "t");
 
     setImageAsset(
       this.template.tupletButton,
@@ -229,6 +238,7 @@ export class NoteControlsTemplateRenderer {
         "data-tuplet": "0",
       }
     );
+    setShortcutTooltip(this.template.tupletButton, "Custom tuplet", "Shift+T");
 
     let hasTuplet2: boolean = false;
     let hasTuplet3: boolean = false;
@@ -273,7 +283,11 @@ export class NoteControlsTemplateRenderer {
         "data-beat-action": "insert-before",
       }
     );
-    this.template.insertBeatBeforeButton.title = "Insert beat before";
+    setShortcutTooltip(
+      this.template.insertBeatBeforeButton,
+      "Insert beat before",
+      "Shift+A"
+    );
 
     setImageAsset(
       this.template.insertBeatAfterButton,
@@ -284,7 +298,11 @@ export class NoteControlsTemplateRenderer {
         "data-beat-action": "insert-after",
       }
     );
-    this.template.insertBeatAfterButton.title = "Insert beat after";
+    setShortcutTooltip(
+      this.template.insertBeatAfterButton,
+      "Insert beat after",
+      "a"
+    );
 
     setImageAsset(
       this.template.removeBeatButton,
@@ -295,7 +313,7 @@ export class NoteControlsTemplateRenderer {
         "data-beat-action": "remove",
       }
     );
-    this.template.removeBeatButton.title = "Remove beat";
+    setShortcutTooltip(this.template.removeBeatButton, "Remove beat", "Delete");
   }
 
   private renderFretButton(): void {
@@ -305,7 +323,11 @@ export class NoteControlsTemplateRenderer {
       "img/ui/edit-fret.svg",
       "Edit fret"
     );
-    this.template.fretButton.title = "Edit fret";
+    setShortcutTooltip(
+      this.template.fretButton,
+      "Edit fret",
+      "0–9 set fret / Backspace clear"
+    );
   }
 
   /**

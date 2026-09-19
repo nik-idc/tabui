@@ -1,4 +1,4 @@
-import { renderOnce, setImageAsset } from "../../shared";
+import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { NotationComponent } from "../../../notation/notation-component";
 import { GuitarTechniqueType } from "../../../notation/model";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
@@ -81,6 +81,7 @@ export class TechniqueControlsTemplateRenderer {
       "img/techniques/vibrato.svg",
       "Vibrato"
     );
+    setShortcutTooltip(this.template.vibratoButton, "Vibrato", "v");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.Vibrato,
       this.template.vibratoButton
@@ -92,6 +93,7 @@ export class TechniqueControlsTemplateRenderer {
       "img/techniques/pm.svg",
       "Palm Mute"
     );
+    setShortcutTooltip(this.template.palmMuteButton, "Palm Mute", "p");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.PalmMute,
       this.template.palmMuteButton
@@ -103,6 +105,7 @@ export class TechniqueControlsTemplateRenderer {
       "img/techniques/lr.svg",
       "Let Ring"
     );
+    setShortcutTooltip(this.template.letRingButton, "Let Ring", "Shift+L");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.LetRing,
       this.template.letRingButton
@@ -114,6 +117,7 @@ export class TechniqueControlsTemplateRenderer {
       "img/techniques/nh.svg",
       "Nat. Harmonic"
     );
+    setShortcutTooltip(this.template.nhButton, "Nat. Harmonic", "h");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.NaturalHarmonic,
       this.template.nhButton
@@ -125,6 +129,7 @@ export class TechniqueControlsTemplateRenderer {
       "img/techniques/ph.svg",
       "Pinch Harmonic"
     );
+    setShortcutTooltip(this.template.phButton, "Pinch Harmonic", "Shift+H");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.PinchHarmonic,
       this.template.phButton
@@ -136,6 +141,7 @@ export class TechniqueControlsTemplateRenderer {
       "img/techniques/legato.svg",
       "Legato"
     );
+    setShortcutTooltip(this.template.legatoButton, "Legato", "l");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.Legato,
       this.template.legatoButton
@@ -147,6 +153,7 @@ export class TechniqueControlsTemplateRenderer {
       "img/techniques/slide-up.svg",
       "Slide"
     );
+    setShortcutTooltip(this.template.slideButton, "Slide", "s");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.Slide,
       this.template.slideButton
@@ -158,6 +165,7 @@ export class TechniqueControlsTemplateRenderer {
       "img/techniques/bend.svg",
       "Bend"
     );
+    setShortcutTooltip(this.template.bendButton, "Bend", "b");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.Bend,
       this.template.bendButton

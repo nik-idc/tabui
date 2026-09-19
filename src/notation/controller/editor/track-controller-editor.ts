@@ -557,7 +557,7 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return;
     }
-    if (normalCount === tupletCount) {
+    if (normalCount === tupletCount && normalCount !== 1) {
       return;
     }
     const selection = this._selectionManager.selectionAsBeats;
@@ -565,7 +565,10 @@ export class TrackControllerEditor {
       throw Error("Selection length = 0");
     }
 
-    const settings: TupletSettings = { normalCount, tupletCount };
+    const settings: TupletSettings | null =
+      normalCount === 1 && tupletCount === 1
+        ? null
+        : { normalCount, tupletCount };
     this.executeCommand(new SetTupletCommand(selection, settings));
   }
 

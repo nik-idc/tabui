@@ -1,5 +1,5 @@
 import { NotationComponent } from "../../../notation/notation-component";
-import { renderOnce, setImageAsset } from "../../shared";
+import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
@@ -83,11 +83,17 @@ export class MeasureControlsTemplateRenderer {
       "img/ui/tempo.svg",
       "Tempo"
     );
+    setShortcutTooltip(this.template.tempoButton, "Tempo", "m");
     setImageAsset(
       this.template.timeSignatureButton,
       this.assetsPath,
       "img/ui/measure.svg",
       "Time Signature"
+    );
+    setShortcutTooltip(
+      this.template.timeSignatureButton,
+      "Time Signature",
+      "Shift+M"
     );
     setImageAsset(
       this.template.repeatStartButton,
@@ -95,11 +101,17 @@ export class MeasureControlsTemplateRenderer {
       "img/ui/repeat-start.svg",
       "Repeat Start"
     );
+    setShortcutTooltip(this.template.repeatStartButton, "Repeat Start", "r");
     setImageAsset(
       this.template.repeatEndButton,
       this.assetsPath,
       "img/ui/repeat-end.svg",
       "Repeat End"
+    );
+    setShortcutTooltip(
+      this.template.repeatEndButton,
+      "Repeat End and count",
+      "Shift+R"
     );
     setImageAsset(
       this.template.insertBarBeforeButton,
@@ -110,7 +122,11 @@ export class MeasureControlsTemplateRenderer {
         "data-bar-action": "insert-before",
       }
     );
-    this.template.insertBarBeforeButton.title = "Insert bar before";
+    setShortcutTooltip(
+      this.template.insertBarBeforeButton,
+      "Insert bar before",
+      "Shift+I"
+    );
 
     setImageAsset(
       this.template.insertBarAfterButton,
@@ -121,7 +137,11 @@ export class MeasureControlsTemplateRenderer {
         "data-bar-action": "insert-after",
       }
     );
-    this.template.insertBarAfterButton.title = "Insert bar after";
+    setShortcutTooltip(
+      this.template.insertBarAfterButton,
+      "Insert bar after",
+      "i"
+    );
 
     setImageAsset(
       this.template.removeBarButton,
@@ -132,7 +152,11 @@ export class MeasureControlsTemplateRenderer {
         "data-bar-action": "remove",
       }
     );
-    this.template.removeBarButton.title = "Remove bar";
+    setShortcutTooltip(
+      this.template.removeBarButton,
+      "Remove all selected bars",
+      "Shift+Delete"
+    );
 
     this.renderRepeatButtonsState();
   }
