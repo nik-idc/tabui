@@ -1,3 +1,4 @@
+import { DialogEnforcer } from "../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../notation/notation-component";
 import { template } from "@babel/core";
 
@@ -17,8 +18,9 @@ export class TechniqueControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
-    notationComponent: NotationComponent
+    dialogEnforcer: DialogEnforcer,
+    notationComponent: NotationComponent,
+    announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -32,8 +34,9 @@ export class TechniqueControlsComponent {
 
     this.bendControlsComponent = new BendControlsComponent(
       this.template.container,
-      dialogHost,
-      this.notationComponent
+      dialogEnforcer,
+      this.notationComponent,
+      announce
     );
   }
 
@@ -44,6 +47,6 @@ export class TechniqueControlsComponent {
 
   public showBendControls(): void {
     this.bendControlsComponent.prepareForOpen();
-    this.bendControlsComponent.template.dialog.showModal();
+    this.bendControlsComponent.dialog.showModal();
   }
 }

@@ -1,3 +1,5 @@
+import { DialogEnforcer } from "./dialog-enforcer";
+
 const FOCUSABLE_SELECTOR = [
   "button:not([disabled])",
   "input:not([disabled])",
@@ -8,113 +10,24 @@ const FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
-type DialogAPI = Pick<
-  HTMLDialogElement,
-  "close" | "open" | "requestClose" | "returnValue" | "show" | "showModal"
->;
-
-interface DialogHostState {
-  modalCount: number;
-  inertStates: Map<HTMLElement, boolean>;
-  previousFocus?: HTMLElement;
-}
-
-const DIALOG_HOST_STATES = new WeakMap<HTMLDivElement, DialogHostState>();
-
-/** A div element with the same dialog-specific API as HTMLDialogElement. */
-export type ContainedDialogElement = HTMLDivElement & DialogAPI;
-
 /** Implements dialog behavior without using the browser's document top layer. */
-export class ContainedDialogBehavior {
+export class ContainedDialog {
   private readonly _element: HTMLDivElement;
-  private readonly _dialogHost: HTMLDivElement;
   private _previousFocus?: HTMLElement;
-  private _returnValue = "";
+  returnValue = "";
   private _modal = false;
 
-  private constructor(element: HTMLDivElement, dialogHost: HTMLDivElement) {
+  /** Attaches behavior to a template-owned container and mounts it once. */
+  constructor(
+    element: HTMLDivElement,
+    private readonly _enforcer: DialogEnforcer
+  ) {
     this._element = element;
-    this._dialogHost = dialogHost;
     this._element.classList.add("tu-dialog");
-    this._element.setAttribute("role", "dialog");
+    this._element.role = "dialog";
     this._element.tabIndex = -1;
     this._element.addEventListener("keydown", (event) => this.onKeydown(event));
-  }
-
-  /** Creates a div-backed element with the native dialog API. */
-  static create(dialogHost: HTMLDivElement): ContainedDialogElement {
-    const behavior = new ContainedDialogBehavior(
-      document.createElement("div"),
-      dialogHost
-    );
-    const element = behavior._element;
-    dialogHost.appendChild(element);
-
-    Object.defineProperties(element, {
-      close: { value: (value?: string) => behavior.close(value) },
-      open: {
-        get: () => element.hasAttribute("open"),
-        set: (open: boolean) => behavior.setOpen(open),
-      },
-      requestClose: {
-        value: (value?: string) => behavior.requestClose(value),
-      },
-      returnValue: {
-        get: () => behavior._returnValue,
-        set: (value: string) => {
-          behavior._returnValue = `${value}`;
-        },
-      },
-      show: { value: () => behavior.show(false) },
-      showModal: { value: () => behavior.show(true) },
-    });
-
-    return element as ContainedDialogElement;
-  }
-
-  private setSiblingsInert(scope: HTMLElement): void {
-    const currentState = DIALOG_HOST_STATES.get(this._dialogHost);
-    if (currentState !== undefined) {
-      currentState.modalCount += 1;
-      return;
-    }
-
-    const inertStates = new Map<HTMLElement, boolean>();
-    for (const child of scope.children) {
-      if (!(child instanceof HTMLElement) || child === this._dialogHost) {
-        continue;
-      }
-      inertStates.set(child, child.inert);
-      child.inert = true;
-    }
-    DIALOG_HOST_STATES.set(this._dialogHost, {
-      modalCount: 1,
-      inertStates,
-      previousFocus: this._previousFocus,
-    });
-  }
-
-  private restoreSiblingsInert(): void {
-    const state = DIALOG_HOST_STATES.get(this._dialogHost);
-    if (state === undefined) {
-      return;
-    }
-    state.modalCount -= 1;
-    if (state.modalCount > 0) {
-      return;
-    }
-
-    for (const [element, inert] of state.inertStates) {
-      element.inert = inert;
-    }
-    DIALOG_HOST_STATES.delete(this._dialogHost);
-    state.previousFocus?.focus();
-  }
-
-  private focusInitialElement(): void {
-    const focusable = this.getFocusableElements();
-    const autofocus = focusable.find((e) => e.hasAttribute("autofocus"));
-    (autofocus ?? focusable[0] ?? this._element).focus();
+    this._enforcer.dialogHost.appendChild(element);
   }
 
   private getFocusableElements(): HTMLElement[] {
@@ -144,6 +57,95 @@ export class ContainedDialogBehavior {
     }
   }
 
+  private focusInitialElement(): void {
+    const focusable = this.getFocusableElements();
+    const autofocus = focusable.find((e) => e.hasAttribute("autofocus"));
+    (autofocus ?? focusable[0] ?? this._element).focus();
+  }
+
+  /** Validates ownership, then opens, mounts the announcer, and focuses. */
+  private showInMode(modal: boolean): void {
+    if (this._element.hasAttribute("open")) {
+      if (this._modal !== modal) {
+        throw new DOMException(
+          "The dialog is already open in a different mode.",
+          "InvalidStateError"
+        );
+      }
+
+      return;
+    }
+
+    this._enforcer.claim(this, modal);
+    const activeElement = document.activeElement;
+    this._previousFocus =
+      activeElement instanceof HTMLElement ? activeElement : undefined;
+    this._modal = modal;
+    this._element.dataset.tuDialogMode = modal ? "modal" : "nonmodal";
+    this._element.setAttribute("open", "");
+    if (modal) {
+      this._element.setAttribute("aria-modal", "true");
+    }
+    this._enforcer.activate(this._element, modal);
+    this.focusInitialElement();
+  }
+
+  /** Opens without making the editor's other controls inert. */
+  public show(): void {
+    this.showInMode(false);
+  }
+
+  /** Opens with editor-local inert siblings and keyboard focus containment. */
+  public showModal(): void {
+    this.showInMode(true);
+  }
+
+  /** Reports whether this dialog is visible. */
+  public get open(): boolean {
+    return this._element.hasAttribute("open");
+  }
+
+  private hide(dispatchClose: boolean): void {
+    if (!this._element.hasAttribute("open")) {
+      return;
+    }
+
+    this._element.removeAttribute("open");
+    this._element.removeAttribute("aria-modal");
+    delete this._element.dataset.tuDialogMode;
+    this._modal = false;
+    const previousFocus = this._previousFocus;
+    this._previousFocus = undefined;
+    this._enforcer.release();
+    previousFocus?.focus();
+    if (dispatchClose) {
+      this._element.dispatchEvent(new Event("close"));
+    }
+  }
+
+  /** Closes, optionally records a result, and dispatches the close event. */
+  public close(returnValue?: string): void {
+    if (!this._element.hasAttribute("open")) {
+      return;
+    }
+    if (returnValue !== undefined) {
+      this.returnValue = returnValue;
+    }
+    this.hide(true);
+  }
+
+  /** Requests cancellation; a prevented cancel retains active ownership. */
+  public requestClose(returnValue?: string): void {
+    if (!this._element.hasAttribute("open")) {
+      return;
+    }
+
+    const cancelEvent = new Event("cancel", { cancelable: true });
+    if (this._element.dispatchEvent(cancelEvent)) {
+      this.close(returnValue);
+    }
+  }
+
   private onKeydown(event: KeyboardEvent): void {
     if (!this._modal) {
       return;
@@ -160,91 +162,12 @@ export class ContainedDialogBehavior {
     }
   }
 
-  private show(modal: boolean): void {
-    if (this._element.hasAttribute("open")) {
-      if (this._modal !== modal) {
-        throw new DOMException(
-          "The dialog is already open in a different mode.",
-          "InvalidStateError"
-        );
-      }
-
-      return;
-    }
-
-    if (modal) {
-      const scope = this._dialogHost.parentElement;
-      if (scope === null || !this._dialogHost.isConnected) {
-        throw new DOMException(
-          "The dialog host must be connected.",
-          "InvalidStateError"
-        );
-      }
-      const activeElement = document.activeElement;
-      this._previousFocus =
-        activeElement instanceof HTMLElement ? activeElement : undefined;
-      this._modal = true;
-      this._element.dataset.tuDialogMode = "modal";
-      this._element.setAttribute("open", "");
-      this._element.setAttribute("aria-modal", "true");
-      this.setSiblingsInert(scope);
-    } else {
-      const activeElement = document.activeElement;
-      this._previousFocus =
-        activeElement instanceof HTMLElement ? activeElement : undefined;
-      this._modal = false;
-      this._element.dataset.tuDialogMode = "nonmodal";
-      this._element.setAttribute("open", "");
-    }
-    this.focusInitialElement();
-  }
-
-  private setOpen(open: boolean): void {
+  /** Opens modelessly or hides without dispatching a close event. */
+  public set open(open: boolean) {
     if (open) {
-      this.show(false);
+      this.show();
     } else {
       this.hide(false);
-    }
-  }
-
-  private hide(dispatchClose: boolean): void {
-    if (!this._element.hasAttribute("open")) {
-      return;
-    }
-
-    this._element.removeAttribute("open");
-    this._element.removeAttribute("aria-modal");
-    delete this._element.dataset.tuDialogMode;
-    if (this._modal) {
-      this.restoreSiblingsInert();
-    } else {
-      this._previousFocus?.focus();
-    }
-    this._modal = false;
-    this._previousFocus = undefined;
-    if (dispatchClose) {
-      this._element.dispatchEvent(new Event("close"));
-    }
-  }
-
-  private close(returnValue?: string): void {
-    if (!this._element.hasAttribute("open")) {
-      return;
-    }
-    if (returnValue !== undefined) {
-      this._returnValue = `${returnValue}`;
-    }
-    this.hide(true);
-  }
-
-  private requestClose(returnValue?: string): void {
-    if (!this._element.hasAttribute("open")) {
-      return;
-    }
-
-    const cancelEvent = new Event("cancel", { cancelable: true });
-    if (this._element.dispatchEvent(cancelEvent)) {
-      this.close(returnValue);
     }
   }
 }

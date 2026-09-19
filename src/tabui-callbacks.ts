@@ -8,6 +8,10 @@ import {
 } from "./notation/input";
 import { UIComponent } from "./ui";
 import { UICallbacks } from "./ui/ui-callbacks";
+import {
+  formatNotationSelection,
+  NotationCursorPosition,
+} from "./notation/accessibility/notation-selection-announcement";
 
 export class TabUICallbacks {
   private _uiComponent: UIComponent;
@@ -18,6 +22,10 @@ export class TabUICallbacks {
   private _uiCallbacks: UICallbacks;
   private _rootDiv: HTMLDivElement;
   private _onStateChanged: () => void;
+  private _announce: (text: string, repeat?: boolean) => void;
+  private _lastSelectionDescription?: string;
+  private _suppressViewportFocusAnnouncement = false;
+  private _boundOnViewportFocus: () => void;
   /** Pending requestAnimationFrame id for coalesced notation scroll renders. */
   private _notationRenderRafId?: number;
   /** Pending requestAnimationFrame id for coalesced selection/UI updates. */
@@ -29,23 +37,30 @@ export class TabUICallbacks {
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
     rootDiv: HTMLDivElement,
-    onStateChanged: () => void = () => {}
+    onStateChanged: () => void = () => {},
+    announce: (text: string, repeat?: boolean) => void = () => {}
   ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
     this._rootDiv = rootDiv;
     this._onStateChanged = onStateChanged;
+    this._announce = announce;
+    this._boundOnViewportFocus = this.onViewportFocus.bind(this);
 
     this._mouseCallbacks = new EditorMouseDefCallbacks(
       this._uiComponent,
       this._notationComponent,
-      this.render.bind(this)
+      this.render.bind(this),
+      (previous?: NotationCursorPosition) =>
+        this.announceSelection(false, previous),
+      this.focusViewport.bind(this)
     );
     this._keyboardCallbacks = new EditorKeyboardDefCallbacks(
       this._uiComponent,
       this._notationComponent,
-      () => this.render(RenderType.Full),
-      this._rootDiv
+      (type = RenderType.Full) => this.render(type),
+      this._rootDiv,
+      (previous) => this.announceSelection(false, previous)
     );
     this._uiCallbacks = new UICallbacks(
       this._uiComponent,
@@ -55,6 +70,59 @@ export class TabUICallbacks {
       this.captureKeyboard.bind(this),
       this.freeKeyboard.bind(this)
     );
+  }
+
+  /** Announces changed selections or explicitly repeats optional concise output. */
+  public announceSelection(
+    onlyIfChanged: boolean,
+    previous?: NotationCursorPosition
+  ): void {
+    if (this._mouseCallbacks.isSelectingBeats) {
+      return;
+    }
+
+    if (onlyIfChanged && this._selectionRenderRafId !== undefined) {
+      return;
+    }
+
+    const source = this._notationComponent.trackController;
+    const description = formatNotationSelection(source);
+    if (onlyIfChanged && description === this._lastSelectionDescription) {
+      return;
+    }
+
+    this._lastSelectionDescription = description;
+    if (description === undefined) {
+      return;
+    }
+
+    const formatted =
+      onlyIfChanged || previous === undefined
+        ? description
+        : formatNotationSelection(source, previous);
+    if (formatted === undefined) {
+      return;
+    }
+
+    this._announce(formatted, !onlyIfChanged);
+  }
+
+  /** Focuses notation without allowing the focus event to announce stale state. */
+  private focusViewport(): void {
+    const viewport = this._notationComponent.rootDiv;
+    if (document.activeElement === viewport) return;
+    this._suppressViewportFocusAnnouncement = true;
+    viewport.focus({
+      preventScroll: true,
+      focusVisible: false,
+    } as FocusOptions & {
+      focusVisible: boolean;
+    });
+    this._suppressViewportFocusAnnouncement = false;
+  }
+
+  private onViewportFocus(): void {
+    if (!this._suppressViewportFocusAnnouncement) this.announceSelection(false);
   }
 
   private renderAndBindFull(forceNotation: boolean = false): void {
@@ -156,6 +224,7 @@ export class TabUICallbacks {
     this._selectionRenderRafId = requestAnimationFrame(() => {
       this._selectionRenderRafId = undefined;
       this.renderSelectionOverlayAndUI();
+      this.announceSelection(true);
     });
   }
 
@@ -236,11 +305,18 @@ export class TabUICallbacks {
     this._bound = true;
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
+    this._lastSelectionDescription = formatNotationSelection(
+      this._notationComponent.trackController
+    );
     this._notationComponent.renderer.attachViewportScrollEvent(() =>
       this.render(RenderType.NotationOnly)
     );
 
     this._keyboardCallbacks.bind();
+    this._notationComponent.rootDiv?.addEventListener(
+      "focus",
+      this._boundOnViewportFocus
+    );
 
     this._uiCallbacks.bind();
   }
@@ -257,6 +333,10 @@ export class TabUICallbacks {
     this.freeKeyboard();
     this._bound = false;
     this._keyboardCallbacks.unbind();
+    this._notationComponent.rootDiv?.removeEventListener(
+      "focus",
+      this._boundOnViewportFocus
+    );
     this._uiCallbacks.unbind();
   }
 }

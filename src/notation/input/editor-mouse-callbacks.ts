@@ -9,6 +9,7 @@ import { SelectionDragController } from "./selection-drag-controller";
 import { PlaybackState } from "../../player";
 
 export interface EditorMouseCallbacks {
+  readonly isSelectingBeats: boolean;
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
   onNotePointerDown(event: MouseEvent, noteElement: NoteElement): void;
   onNotePointerEnter(event: PointerEvent, noteElement: NoteElement): void;
@@ -42,6 +43,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private _boundOnWindowPointerUp?: (event: MouseEvent) => void;
   /** Selection drag state machine. */
   private _selectionDragController: SelectionDragController;
+  private _announce: () => void;
+  private _focusViewport: () => void;
 
   /**
    * Creates mouse callbacks for note/beat interactions.
@@ -49,14 +52,23 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   constructor(
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
-    renderFunc: (type: RenderType) => void
+    renderFunc: (type: RenderType) => void,
+    announce: () => void = () => {},
+    focusViewport: () => void = () => {}
   ) {
     this.uiComponent = uiComponent;
     this.notationComponent = notationComponent;
     this.renderFunc = renderFunc;
+    this._announce = announce;
+    this._focusViewport = focusViewport;
 
     this._boundNoteRenderers = new Set();
     this._selectionDragController = new SelectionDragController();
+  }
+
+  /** Whether beat drag-selection is active rather than pending. */
+  public get isSelectingBeats(): boolean {
+    return this._selectionDragController.isSelectingBeats;
   }
 
   private detachNoteRenderer(renderer: SVGTabNoteRenderer): void {
@@ -118,12 +130,20 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         ? RenderType.SelectionRefresh
         : RenderType.ActiveVoiceSelection
     );
+    if (tc.selectionCursor !== undefined) {
+      this._announce();
+    }
   }
 
   /**
    * Starts drag-selection from note mouse-down.
    */
   public onNotePointerDown(event: MouseEvent, noteElement: NoteElement): void {
+    if (!this.isPrimarySelectionPointer(event)) {
+      return;
+    }
+
+    this._focusViewport();
     if (
       this.notationComponent.trackController.playbackState !==
       PlaybackState.Idle
@@ -135,10 +155,6 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       noteElement.beatElement.beat.voiceBar.voiceNumber !==
       this.notationComponent.trackController.activeVoiceNumber
     ) {
-      return;
-    }
-
-    if (!this.isPrimarySelectionPointer(event)) {
       return;
     }
 

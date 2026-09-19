@@ -1,8 +1,8 @@
-import { createButton, createDialog, createDiv } from "../../../../shared";
+import { createButton, createDiv } from "../../../../shared";
 
 export class TupletControlsTemplate {
-  readonly dialog: HTMLDialogElement;
-  readonly dialogContent: HTMLDivElement = createDiv();
+  readonly dialogContainer: HTMLDivElement = createDiv();
+  readonly dialogContent: HTMLFormElement = document.createElement("form");
 
   readonly inputContent: HTMLDivElement = createDiv();
   readonly textContainer: HTMLDivElement = createDiv();
@@ -22,8 +22,4 @@ export class TupletControlsTemplate {
   readonly actionsContent: HTMLDivElement = createDiv();
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
-
-  constructor(dialogHost: HTMLDivElement) {
-    this.dialog = createDialog(dialogHost);
-  }
 }

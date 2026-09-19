@@ -3,17 +3,16 @@ import { NoteDuration } from "../../../src/notation/model";
 import {
   asNotationComponent,
   createNotationComponentMock,
-  dispatchClick,
   FakeElement,
   makeButton,
-  makeDialog,
+  makeDialogFixture,
   makeText,
 } from "./helpers";
 
 function createTimeSigHarness() {
-  const dialog = makeDialog();
+  const { dialog, dialogContainer } = makeDialogFixture();
   const dialogContent = new FakeElement();
-  dialog.appendChild(dialogContent);
+  dialogContainer.appendChild(dialogContent);
   const beatsControl = new FakeElement();
   const beatsDownButton = makeButton();
   const beatsValue = new FakeElement();
@@ -26,8 +25,10 @@ function createTimeSigHarness() {
   const beatsErrorText = makeText();
   const durationErrorText = makeText();
   const component = {
+    dialog,
+    announceValue: jest.fn(),
     template: {
-      dialog,
+      dialogContainer,
       dialogContent,
       beatsControl,
       beatsDownButton,
@@ -115,17 +116,17 @@ describe("TimeSigControlsDefaultCallbacks", () => {
     callbacks.bind();
     component.template.beatsValue.textContent = "7";
     component.template.durationSelect.value = "8";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
 
     expect(setTimeSignature).toHaveBeenCalledTimes(1);
     expect(setTimeSignature).toHaveBeenCalledWith(7, NoteDuration.Eighth);
     expect(renderFunc).toHaveBeenCalledTimes(1);
-    expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
 
     const timeSignatureCallsBeforeUnbind = setTimeSignature.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(setTimeSignature).toHaveBeenCalledTimes(
       timeSignatureCallsBeforeUnbind
     );

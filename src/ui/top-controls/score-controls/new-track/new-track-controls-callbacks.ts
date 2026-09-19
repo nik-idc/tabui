@@ -60,7 +60,7 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._newTrackComponent.template.dialogContent.contains(target)
     ) {
-      this._newTrackComponent.template.dialog.close();
+      this._newTrackComponent.dialog.close();
     }
   }
 
@@ -99,7 +99,13 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   }
 
   onStringCountStep(delta: number): void {
+    const previousCount = this._newTrackComponent.stringCount;
     this._newTrackComponent.shiftStringCount(delta);
+    if (this._newTrackComponent.stringCount !== previousCount) {
+      // A larger string count creates tuning buttons that need listeners.
+      this.unbind();
+      this.bind();
+    }
   }
 
   onTuningStringStep(stringIndex: number, semitones: number): void {
@@ -113,7 +119,7 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   onConfirmClicked(): void {
     const controller = this._notationComponent.trackController;
     if (controller.isPlaybackActive) {
-      this._newTrackComponent.template.dialog.close();
+      this._newTrackComponent.dialog.close();
       return;
     }
     this.onTrackNameChanged();
@@ -126,55 +132,32 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       this._newTrackComponent.trackName
     );
     if (track === undefined) {
-      this._newTrackComponent.template.dialog.close();
+      this._newTrackComponent.dialog.close();
       return;
     }
     this._notationComponent.loadTrack(track);
     this._renderFunc();
 
-    this._newTrackComponent.template.dialog.close();
+    this._newTrackComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._newTrackComponent.template.dialog.close();
-  }
-
-  onKeydown(event: KeyboardEvent): void {
-    const template = this._newTrackComponent.template;
-    const canConfirm =
-      event.target === template.dialog ||
-      event.target === template.trackNameInput ||
-      event.target === template.confirmButton;
-    if (
-      event.key === "Enter" &&
-      canConfirm &&
-      !template.confirmButton.disabled
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
+    this._newTrackComponent.dialog.close();
   }
 
   bind(): void {
     const configs: ListenerConfig[] = [];
 
     configs.push({
-      element: this._newTrackComponent.template.dialog as HTMLElement,
+      element: this._newTrackComponent.template.dialogContainer as HTMLElement,
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
-    configs.push(
-      {
-        element: this._newTrackComponent.template.dialog as HTMLElement,
-        event: "close",
-        handler: () => this._freeKeyboard(),
-      },
-      {
-        element: this._newTrackComponent.template.dialog as HTMLElement,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
-      }
-    );
+    configs.push({
+      element: this._newTrackComponent.template.dialogContainer as HTMLElement,
+      event: "close",
+      handler: () => this._freeKeyboard(),
+    });
 
     const families = Object.values(InstrumentFamily);
     const familiesButtons =
@@ -239,9 +222,14 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
         handler: () => this.onWholeTuningStep(1),
       },
       {
-        element: this._newTrackComponent.template.confirmButton as HTMLElement,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._newTrackComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._newTrackComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._newTrackComponent.template.cancelButton as HTMLElement,

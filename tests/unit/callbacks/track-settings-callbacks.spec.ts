@@ -13,14 +13,14 @@ import {
   dispatchClick,
   FakeElement,
   makeButton,
-  makeDialog,
+  makeDialogFixture,
   makeText,
 } from "./helpers";
 
 function createTrackSettingsHarness() {
-  const dialog = makeDialog();
+  const { dialog, dialogContainer } = makeDialogFixture();
   const dialogContent = new FakeElement();
-  dialog.appendChild(dialogContent);
+  dialogContainer.appendChild(dialogContent);
   const tuningUpButtons = [makeButton(), makeButton(), makeButton()];
   const tuningDownButtons = [makeButton(), makeButton(), makeButton()];
   const wholeTuningUpButton = makeButton();
@@ -42,8 +42,9 @@ function createTrackSettingsHarness() {
   track.name = "Track 1";
   const madeInstrument = new Guitar();
   const component = {
+    dialog,
     template: {
-      dialog,
+      dialogContainer,
       dialogContent,
       tuningUpButtons,
       tuningDownButtons,
@@ -129,10 +130,10 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
 
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
     expect(notationComponent.loadTrack).toHaveBeenCalledWith(component.track);
-    expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(
       freeKeyboardCallsBeforeConfirm + 1
     );
@@ -146,7 +147,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
 
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
   });
 
@@ -155,6 +156,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
       TrackSettingsControlsComponent.prototype
     ) as any;
     component._tuning = "E A D G B E";
+    component._announce = jest.fn();
     component.render = jest.fn();
 
     component.shiftTuningString(0, 1);

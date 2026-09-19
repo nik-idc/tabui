@@ -4,7 +4,6 @@ import {
   MAX_MASTER_BAR_TEMPO,
   MIN_MASTER_BAR_TEMPO,
 } from "../../../../notation/model";
-import { MeasureControlsComponent } from "../../..";
 import { TempoControlsComponent } from "./";
 import { ListenerManager } from "../../../../shared/misc";
 
@@ -64,7 +63,7 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._tempoComponent.template.dialogContent.contains(target)
     ) {
-      this._tempoComponent.template.dialog.close();
+      this._tempoComponent.dialog.close();
     }
   }
 
@@ -85,6 +84,8 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
     template.increaseTenButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
     template.errorText.textContent = " ";
     template.confirmButton.disabled = false;
+
+    this._tempoComponent.announceValue();
   }
 
   onConfirmClicked(): void {
@@ -99,26 +100,11 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
     this._notationComponent.trackController.setSelectedBarTempo(tempo);
     this._renderFunc();
 
-    this._tempoComponent.template.dialog.close();
+    this._tempoComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._tempoComponent.template.dialog.close();
-  }
-
-  onKeydown(event: KeyboardEvent): void {
-    const template = this._tempoComponent.template;
-    const canConfirm =
-      event.target === template.dialog ||
-      event.target === template.confirmButton;
-    if (
-      event.key === "Enter" &&
-      canConfirm &&
-      !template.confirmButton.disabled
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
+    this._tempoComponent.dialog.close();
   }
 
   onWheel(event: WheelEvent): void {
@@ -129,19 +115,14 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._tempoComponent.template.dialog,
+        element: this._tempoComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
-        element: this._tempoComponent.template.dialog,
+        element: this._tempoComponent.template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
-      },
-      {
-        element: this._tempoComponent.template.dialog,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
       },
       {
         element: this._tempoComponent.template.decreaseTenButton,
@@ -169,9 +150,14 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
         handler: (event: WheelEvent) => this.onWheel(event),
       },
       {
-        element: this._tempoComponent.template.confirmButton,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._tempoComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._tempoComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._tempoComponent.template.cancelButton,

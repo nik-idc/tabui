@@ -32,8 +32,9 @@ export class TimeSigControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-time-sig-dialog",
+      "Time signature",
       this.template.dialogContent,
       "tu-time-sig-dialog-content",
       [
@@ -86,9 +87,11 @@ export class TimeSigControlsTemplateRenderer {
     this.template.beatsLabel.textContent = "Beats per measure";
     this.template.beatsControl.classList.add("tu-number-stepper");
     this.template.beatsDownButton.textContent = "-";
+    this.template.beatsDownButton.ariaLabel = "Decrease beats per measure by 1";
     this.template.beatsValue.classList.add("tu-number-stepper-value");
     this.template.beatsValue.textContent = beatsInitValue;
     this.template.beatsUpButton.textContent = "+";
+    this.template.beatsUpButton.ariaLabel = "Increase beats per measure by 1";
     this.template.beatsDownButton.disabled =
       Number(beatsInitValue) <= MIN_MASTER_BAR_BEATS_COUNT;
     this.template.beatsUpButton.disabled =
@@ -108,6 +111,7 @@ export class TimeSigControlsTemplateRenderer {
       }
     }
     this.template.durationSelect.value = durationInitValue;
+    this.template.durationSelect.ariaLabel = "Beat unit denominator";
     const durationErrorCSSClass = "tu-time-sig-duration-error";
     this.template.durationErrorText.classList.add(durationErrorCSSClass);
   }

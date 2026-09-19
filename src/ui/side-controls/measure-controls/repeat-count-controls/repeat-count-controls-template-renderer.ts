@@ -22,8 +22,9 @@ export class RepeatCountControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-repeat-count-dialog",
+      "Repeat count",
       this.template.dialogContent,
       "tu-repeat-count-dialog-content",
       [
@@ -65,7 +66,9 @@ export class RepeatCountControlsTemplateRenderer {
     this.renderTextContainer();
     this.template.valueControl.classList.add("tu-repeat-count-value-control");
     this.template.decreaseButton.textContent = "-1";
+    this.template.decreaseButton.ariaLabel = "Decrease repeat count by 1";
     this.template.value.type = "number";
+    this.template.value.ariaLabel = "Repeat count";
     this.template.value.inputMode = "numeric";
     this.template.value.min = `${MIN_MASTER_BAR_REPEAT_COUNT}`;
     this.template.value.max = `${MAX_MASTER_BAR_REPEAT_COUNT}`;
@@ -75,6 +78,7 @@ export class RepeatCountControlsTemplateRenderer {
       selectedBar?.repeatCount ?? DEFAULT_MASTER_BAR.repeatCount ?? 2
     }`;
     this.template.increaseButton.textContent = "+1";
+    this.template.increaseButton.ariaLabel = "Increase repeat count by 1";
     this.template.decreaseButton.disabled =
       Number(this.template.value.value) <= MIN_MASTER_BAR_REPEAT_COUNT;
     this.template.increaseButton.disabled =

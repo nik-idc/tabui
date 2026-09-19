@@ -13,15 +13,15 @@ import {
   dispatchInput,
   FakeElement,
   makeButton,
-  makeDialog,
+  makeDialogFixture,
   makeInput,
   makeText,
 } from "./helpers";
 
 function createNewTrackHarness() {
-  const dialog = makeDialog();
+  const { dialog, dialogContainer } = makeDialogFixture();
   const dialogContent = new FakeElement();
-  dialog.appendChild(dialogContent);
+  dialogContainer.appendChild(dialogContent);
   const trackNameInput = makeInput("Lead");
   const stringCountDownButton = makeButton();
   const stringCountUpButton = makeButton();
@@ -41,8 +41,9 @@ function createNewTrackHarness() {
   const madeInstrument = new Guitar();
   const madeTrack = new Track(notationComponent.score, madeInstrument, "Lead");
   const component = {
+    dialog,
     template: {
-      dialog,
+      dialogContainer,
       dialogContent,
       instrFamiliesButtons: familyButtons,
       instrTypesButtons: typeButtons,
@@ -138,7 +139,7 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     expect(component.shiftWholeTuning).toHaveBeenCalledWith(-1);
     const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(notationComponent.trackController.addTrack).toHaveBeenCalledWith(
       notationComponent.score,
       component.makeInstrument.mock.results[0].value,
@@ -148,7 +149,7 @@ describe("NewTrackControlsDefaultCallbacks", () => {
       notationComponent.trackController.addTrack.mock.results[0].value
     );
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
-    expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(
       freeKeyboardCallsBeforeConfirm + 1
     );
@@ -156,7 +157,7 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     const loadTrackCallsBeforeUnbind =
       notationComponent.loadTrack.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(notationComponent.loadTrack).toHaveBeenCalledTimes(
       loadTrackCallsBeforeUnbind
     );

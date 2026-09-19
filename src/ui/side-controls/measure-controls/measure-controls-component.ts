@@ -1,3 +1,4 @@
+import { DialogEnforcer } from "../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../notation/notation-component";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import { MeasureControlsTemplateRenderer } from "./measure-controls-template-renderer";
@@ -18,8 +19,9 @@ export class MeasureControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
-    notationComponent: NotationComponent
+    dialogEnforcer: DialogEnforcer,
+    notationComponent: NotationComponent,
+    announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -33,18 +35,21 @@ export class MeasureControlsComponent {
 
     this.timeSigControlsComponent = new TimeSigControlsComponent(
       this.template.container,
-      dialogHost,
-      this.notationComponent
+      dialogEnforcer,
+      this.notationComponent,
+      announce
     );
     this.tempoControlsComponent = new TempoControlsComponent(
       this.template.container,
-      dialogHost,
-      this.notationComponent
+      dialogEnforcer,
+      this.notationComponent,
+      announce
     );
     this.repeatCountControlsComponent = new RepeatCountControlsComponent(
       this.template.container,
-      dialogHost,
-      this.notationComponent
+      dialogEnforcer,
+      this.notationComponent,
+      announce
     );
   }
 
@@ -57,16 +62,16 @@ export class MeasureControlsComponent {
 
   public showTempoControls(): void {
     this.tempoControlsComponent.render();
-    this.tempoControlsComponent.template.dialog.showModal();
+    this.tempoControlsComponent.dialog.showModal();
   }
 
   public showTimeSigControls(): void {
     this.timeSigControlsComponent.render();
-    this.timeSigControlsComponent.template.dialog.showModal();
+    this.timeSigControlsComponent.dialog.showModal();
   }
 
   public showRepeatCountControls(): void {
     this.repeatCountControlsComponent.render();
-    this.repeatCountControlsComponent.template.dialog.showModal();
+    this.repeatCountControlsComponent.dialog.showModal();
   }
 }

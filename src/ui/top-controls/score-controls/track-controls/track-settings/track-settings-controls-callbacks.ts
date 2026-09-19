@@ -71,7 +71,7 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._trackSettingsComponent.template.dialogContent.contains(target)
     ) {
-      this._trackSettingsComponent.template.dialog.close();
+      this._trackSettingsComponent.dialog.close();
     }
   }
 
@@ -90,7 +90,7 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   onConfirmClicked(): void {
     const controller = this._notationComponent.trackController;
     if (controller.isPlaybackActive) {
-      this._trackSettingsComponent.template.dialog.close();
+      this._trackSettingsComponent.dialog.close();
       return;
     }
     const changed = this._notationComponent.trackController.setTrackInstrument(
@@ -99,7 +99,7 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       this._trackSettingsComponent.tuningChangeMode
     );
     if (!changed) {
-      this._trackSettingsComponent.template.dialog.close();
+      this._trackSettingsComponent.dialog.close();
       return;
     }
     if (
@@ -110,45 +110,28 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
     }
     this._renderFunc();
 
-    this._trackSettingsComponent.template.dialog.close();
+    this._trackSettingsComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._trackSettingsComponent.template.dialog.close();
-  }
-
-  onKeydown(event: KeyboardEvent): void {
-    const template = this._trackSettingsComponent.template;
-    if (
-      event.key === "Enter" &&
-      (event.target === template.dialog ||
-        event.target === template.confirmButton)
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
+    this._trackSettingsComponent.dialog.close();
   }
 
   bind(): void {
     const configs: ListenerConfig[] = [];
 
     configs.push({
-      element: this._trackSettingsComponent.template.dialog as HTMLElement,
+      element: this._trackSettingsComponent.template
+        .dialogContainer as HTMLElement,
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
-    configs.push(
-      {
-        element: this._trackSettingsComponent.template.dialog as HTMLElement,
-        event: "close",
-        handler: () => this._freeKeyboard(),
-      },
-      {
-        element: this._trackSettingsComponent.template.dialog as HTMLElement,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
-      }
-    );
+    configs.push({
+      element: this._trackSettingsComponent.template
+        .dialogContainer as HTMLElement,
+      event: "close",
+      handler: () => this._freeKeyboard(),
+    });
 
     const families = Object.values(InstrumentFamily);
     const familiesButtons =
@@ -213,10 +196,14 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
         handler: () => this.onWholeTuningStep(1),
       },
       {
-        element: this._trackSettingsComponent.template
-          .confirmButton as HTMLElement,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._trackSettingsComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._trackSettingsComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._trackSettingsComponent.template

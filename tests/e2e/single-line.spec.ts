@@ -137,7 +137,7 @@ test("follows an offscreen selected bar in single-line mode", async ({
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
   expect(await viewport.evaluate((e) => e.scrollLeft)).toBe(0);
 
-  await editor.locator('img[alt="Last bar"]').click();
+  await editor.getByRole("button", { name: "Last bar" }).click();
 
   await expect
     .poll(() => viewport.evaluate((e) => e.scrollLeft))
@@ -153,8 +153,8 @@ test("follows playback to an offscreen bar in single-line mode", async ({
   const viewport = editor.locator(".tu-notation-viewport");
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
 
-  await editor.locator('img[alt="Play"]').click();
-  await editor.locator('img[alt="Last bar"]').click();
+  await editor.getByRole("button", { name: "Play" }).click();
+  await editor.getByRole("button", { name: "Last bar" }).click();
 
   await expect
     .poll(() => viewport.evaluate((e) => e.scrollLeft))
@@ -189,7 +189,7 @@ test("keeps adjacent bars separate after a visible duration change", async ({
   }, editedBar);
   expect(noteIndex).toBeGreaterThanOrEqual(0);
   await noteRects.nth(noteIndex).click();
-  await editor.locator('img[alt="Whole note"]').click();
+  await editor.getByRole("button", { name: "Whole note" }).click();
 
   const after = await renderedBarExtents(editor);
   for (let i = 0; i < after.length - 1; i++) {

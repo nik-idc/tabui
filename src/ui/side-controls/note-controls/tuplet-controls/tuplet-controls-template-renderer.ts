@@ -35,8 +35,9 @@ export class TupletControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-tuplet-dialog",
+      "Tuplet",
       this.template.dialogContent,
       "tu-tuplet-dialog-content",
       [
@@ -99,9 +100,11 @@ export class TupletControlsTemplateRenderer {
     this.template.normalLabel.textContent = "Normal notes";
     this.template.normalControl.classList.add("tu-number-stepper");
     this.template.normalDownButton.textContent = "-";
+    this.template.normalDownButton.ariaLabel = "Decrease normal notes by 1";
     this.template.normalValue.classList.add("tu-number-stepper-value");
     this.template.normalValue.textContent = normalInitValue;
     this.template.normalUpButton.textContent = "+";
+    this.template.normalUpButton.ariaLabel = "Increase normal notes by 1";
     this.template.normalDownButton.disabled =
       Number(normalInitValue) <= MIN_NORMAL_COUNT;
     this.template.normalUpButton.disabled =
@@ -110,9 +113,11 @@ export class TupletControlsTemplateRenderer {
     this.template.tupletLabel.textContent = "Tuplet notes";
     this.template.tupletControl.classList.add("tu-number-stepper");
     this.template.tupletDownButton.textContent = "-";
+    this.template.tupletDownButton.ariaLabel = "Decrease tuplet notes by 1";
     this.template.tupletValue.classList.add("tu-number-stepper-value");
     this.template.tupletValue.textContent = tupletInitValue;
     this.template.tupletUpButton.textContent = "+";
+    this.template.tupletUpButton.ariaLabel = "Increase tuplet notes by 1";
     this.template.tupletDownButton.disabled =
       Number(tupletInitValue) <= MIN_TUPLET_COUNT;
     this.template.tupletUpButton.disabled =

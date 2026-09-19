@@ -8,7 +8,7 @@ export class SetTupletCommand implements Command {
   /** Beats whose dot value to set */
   private _beats: Beat[];
   /** New tuplet settings value */
-  private _newTupletSettings: TupletSettings;
+  private _newTupletSettings: TupletSettings | null;
   /** Old tuplet settings map */
   private _oldTupletMap: Map<number, TupletSettings | null>;
   /** True if executed, false otherwise*/
@@ -20,7 +20,7 @@ export class SetTupletCommand implements Command {
    * @param beats Beats whose dot value to set
    * @param newTupletSettings New tuplet
    */
-  constructor(beats: Beat[], newTupletSettings: TupletSettings) {
+  constructor(beats: Beat[], newTupletSettings: TupletSettings | null) {
     this._beats = beats;
     this._newTupletSettings = newTupletSettings;
     this._affectedModels = getAffectedModelsFromBeats(beats);

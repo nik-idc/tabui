@@ -10,6 +10,8 @@ type ControlPoint = {
   movableX: boolean;
   circle: SVGCircleElement;
   onPointerDown: (event: PointerEvent) => void;
+  onKeyDown?: (event: KeyboardEvent) => void;
+  onFocus?: () => void;
 };
 
 type BendPathPoints = {
@@ -18,6 +20,23 @@ type BendPathPoints = {
   hold?: Point;
   release?: Point;
   start?: Point;
+};
+
+/** Spoken labels for each pitch available on the bend grid. */
+const SPOKEN_PITCHES: Record<number, string> = {
+  0: "zero",
+  0.25: "quarter tone",
+  0.5: "half tone",
+  0.75: "three quarters of a tone",
+  1: "full tone",
+  1.25: "one and a quarter tones",
+  1.5: "one and a half tones",
+  1.75: "one and three quarters tones",
+  2: "two tones",
+  2.25: "two and a quarter tones",
+  2.5: "two and a half tones",
+  2.75: "two and three quarters tones",
+  3: "three tones",
 };
 
 function buildStandardBendPath(
@@ -161,6 +180,7 @@ export class BendCurveSelector implements Selector {
     readonly bendGraphSVG: SVGSVGElement,
     readonly bendManagerOptions: BendSelectorManagerOptions,
     private _bendOptions: BendOptionsData,
+    private readonly _announce: (text: string) => void,
     private _continuationPitch?: number
   ) {
     this._boundPointerMove = this.onPointerMove.bind(this);
@@ -189,7 +209,17 @@ export class BendCurveSelector implements Selector {
     circle.setAttribute("fill", "var(--tu-bend-handle)");
     if (draggable) {
       circle.style.cursor = "pointer";
+      circle.setAttribute("tabindex", "0");
+      // A two-dimensional graph point has no matching ARIA widget role.
+      const label = name.charAt(0).toUpperCase() + name.slice(1);
+      circle.setAttribute("aria-label", `${label} point`);
+      point.onKeyDown = (event) => this.onPointKeyDown(event, point);
+      point.onFocus = () => this._announce(this.getPointValueText(point));
       circle.addEventListener("pointerdown", point.onPointerDown);
+      circle.addEventListener("keydown", point.onKeyDown);
+      circle.addEventListener("focus", point.onFocus);
+    } else {
+      circle.setAttribute("aria-hidden", "true");
     }
     this._points.push(point);
     this.bendGraphSVG.appendChild(circle);
@@ -309,6 +339,48 @@ export class BendCurveSelector implements Selector {
     this.updatePath();
   }
 
+  /** Moves one focused bend point with arrow keys. */
+  private onPointKeyDown(event: KeyboardEvent, point: ControlPoint): void {
+    if (!event.key.startsWith("Arrow")) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    const previousValue = this.getPointValueText(point);
+    const xStep = this.width / this.bendManagerOptions.colsCount;
+    const yStep =
+      this.bendManagerOptions.height / this.bendManagerOptions.rowsCount;
+    if (event.key === "ArrowUp") {
+      point.y -= yStep;
+    } else if (event.key === "ArrowDown") {
+      point.y += yStep;
+    } else if (event.key === "ArrowLeft" && point.movableX) {
+      point.x -= xStep;
+    } else if (event.key === "ArrowRight" && point.movableX) {
+      point.x += xStep;
+    }
+    point.x = Math.max(
+      this.bendManagerOptions.gridOffset + (point.movableX ? xStep : 0),
+      Math.min(this.bendManagerOptions.width, point.x)
+    );
+    point.y = Math.max(0, Math.min(this.bendManagerOptions.height, point.y));
+    this.constrainPoints(xStep, yStep);
+    this.syncCircles();
+    this.updatePath();
+    const value = this.getPointValueText(point);
+    this._announce(value);
+  }
+
+  /** Describes both coordinates of a bend point for the shell announcer. */
+  private getPointValueText(point: ControlPoint): string {
+    const pitch = this.yToPitch(point.y);
+    const position = Math.round(this.xToDuration(point.x) * 100);
+    const spokenPitch = SPOKEN_PITCHES[pitch] ?? `${pitch} tones`;
+    const name = point.name.charAt(0).toUpperCase() + point.name.slice(1);
+    return `${name} point. Pitch ${spokenPitch}. Duration ${position} percent.`;
+  }
+
   private constrainPoints(xStep: number, yStep: number): void {
     const bend = this.getPoint("bend");
     const prebend = this.getPoint("prebend");
@@ -383,6 +455,7 @@ export class BendCurveSelector implements Selector {
     this.bendPath.setAttribute("stroke", "var(--tu-bend-curve)");
     this.bendPath.setAttribute("stroke-width", "2");
     this.bendPath.setAttribute("fill", "none");
+    this.bendPath.setAttribute("aria-hidden", "true");
     this.bendGraphSVG.appendChild(this.bendPath);
 
     const duration = this._bendOptions.bendDuration ?? 0.75;
@@ -540,6 +613,12 @@ export class BendCurveSelector implements Selector {
   public dispose(): void {
     for (const point of this._points) {
       point.circle.removeEventListener("pointerdown", point.onPointerDown);
+      if (point.onKeyDown !== undefined) {
+        point.circle.removeEventListener("keydown", point.onKeyDown);
+      }
+      if (point.onFocus !== undefined) {
+        point.circle.removeEventListener("focus", point.onFocus);
+      }
     }
     this.removeDocumentListeners();
     this._points = [];

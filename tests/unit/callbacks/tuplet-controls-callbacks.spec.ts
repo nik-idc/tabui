@@ -2,17 +2,16 @@ import { TupletControlsDefaultCallbacks } from "../../../src/ui/side-controls/no
 import {
   asNotationComponent,
   createNotationComponentMock,
-  dispatchClick,
   FakeElement,
   makeButton,
-  makeDialog,
+  makeDialogFixture,
   makeText,
 } from "./helpers";
 
 function createTupletHarness() {
-  const dialog = makeDialog();
+  const { dialog, dialogContainer } = makeDialogFixture();
   const dialogContent = new FakeElement();
-  dialog.appendChild(dialogContent);
+  dialogContainer.appendChild(dialogContent);
   const normalControl = new FakeElement();
   const normalDownButton = makeButton();
   const normalValue = new FakeElement();
@@ -28,8 +27,10 @@ function createTupletHarness() {
   const normalErrorText = makeText();
   const tupletErrorText = makeText();
   const component = {
+    dialog,
+    announceValue: jest.fn(),
     template: {
-      dialog,
+      dialogContainer,
       dialogContent,
       normalControl,
       normalDownButton,
@@ -119,12 +120,12 @@ describe("TupletControlsDefaultCallbacks", () => {
     const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
     component.template.normalValue.textContent = "5";
     component.template.tupletValue.textContent = "4";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
 
     expect(setTuplet).toHaveBeenCalledTimes(tupletCallsBeforeConfirm + 1);
     expect(setTuplet).toHaveBeenCalledWith(5, 4);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
-    expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(
       freeKeyboardCallsBeforeConfirm + 1
     );
@@ -132,7 +133,7 @@ describe("TupletControlsDefaultCallbacks", () => {
     const tupletCallsBeforeUnbind = setTuplet.mock.calls.length;
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(setTuplet).toHaveBeenCalledTimes(tupletCallsBeforeUnbind);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
   });

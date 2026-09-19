@@ -1,3 +1,5 @@
+import { ContainedDialog } from "../../../../../shared/hmtl/contained-dialog";
+import { DialogEnforcer } from "../../../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../../../notation/notation-component";
 import {
   ElectricGuitarTone,
@@ -17,8 +19,10 @@ import {
 } from "../../../../../notation";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
 import { TrackSettingsControlsTemplateRenderer } from "./track-settings-controls-template-renderer";
+import { getTuningValueText } from "../../../../shared";
 
 export class TrackSettingsControlsComponent {
+  readonly dialog: ContainedDialog;
   readonly parentDiv: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   private _track: Track;
@@ -37,15 +41,20 @@ export class TrackSettingsControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
-    dialogHost: HTMLDivElement,
+    dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
-    track: Track
+    track: Track,
+    private readonly _announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
     this._track = track;
 
-    this.template = new TrackSettingsControlsTemplate(dialogHost);
+    this.template = new TrackSettingsControlsTemplate();
+    this.dialog = new ContainedDialog(
+      this.template.dialogContainer,
+      dialogEnforcer
+    );
     this.templateRenderer = new TrackSettingsControlsTemplateRenderer(
       this.parentDiv,
       this.notationComponent,
@@ -58,6 +67,17 @@ export class TrackSettingsControlsComponent {
     this._originalTuning = "E A D G B E";
     this._tuning = "E A D G B E";
     this.setTrack(track);
+    this.template.wholeTuningContainer.addEventListener("focusin", () =>
+      this._announce(getTuningValueText(this._tuning))
+    );
+    this.template.tuningContainer.addEventListener("focusin", (event) => {
+      const index = this.template.tuningStringContainers.findIndex((element) =>
+        element.contains(event.target as Node)
+      );
+      if (index >= 0) {
+        this._announce(getTuningValueText(this._tuning, index));
+      }
+    });
   }
 
   public setTrack(track: Track): void {
@@ -144,13 +164,21 @@ export class TrackSettingsControlsComponent {
   }
 
   public shiftTuningString(stringIndex: number, semitones: number): void {
+    const previous = this._tuning;
     this._tuning = shiftTuningString(this._tuning, stringIndex, semitones);
     this.render();
+    if (this._tuning !== previous) {
+      this._announce(getTuningValueText(this._tuning, stringIndex));
+    }
   }
 
   public shiftWholeTuning(semitones: number): void {
+    const previous = this._tuning;
     this._tuning = shiftTuningWhole(this._tuning, semitones);
     this.render();
+    if (this._tuning !== previous) {
+      this._announce(getTuningValueText(this._tuning));
+    }
   }
 
   public setTuningChangeMode(mode: TrackInstrumentChangeMode): void {

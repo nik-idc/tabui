@@ -6,17 +6,28 @@ import {
 import { TechniqueControlsTemplateRenderer } from "../../../src/ui/side-controls/technique-controls/technique-controls-template-renderer";
 import { createBarWithBeats } from "../model/helpers";
 
+function createButton(): HTMLButtonElement {
+  const classes = new Set<string>();
+  return {
+    classList: {
+      toggle: (name: string, force: boolean) => {
+        if (force) {
+          classes.add(name);
+        } else {
+          classes.delete(name);
+        }
+      },
+      contains: (name: string) => classes.has(name),
+    },
+    setAttribute: jest.fn(),
+  } as unknown as HTMLButtonElement;
+}
+
 function renderButtonState(
   note: GuitarNote | undefined,
   type: GuitarTechniqueType
 ) {
-  const classes = new Set<string>();
-  const button = {
-    classList: {
-      add: (name: string) => classes.add(name),
-      remove: (name: string) => classes.delete(name),
-    },
-  } as unknown as HTMLImageElement;
+  const button = createButton();
   const renderer = {
     notationComponent: {
       trackController: {
@@ -30,12 +41,12 @@ function renderButtonState(
     TechniqueControlsTemplateRenderer.prototype as unknown as {
       renderTechniqueButtonState(
         techniqueType: GuitarTechniqueType,
-        techniqueButton: HTMLImageElement
+        techniqueButton: HTMLButtonElement
       ): void;
     }
   ).renderTechniqueButtonState;
   renderState.call(renderer, type, button);
-  return classes;
+  return button.classList;
 }
 
 describe("TechniqueControlsTemplateRenderer", () => {
@@ -48,13 +59,7 @@ describe("TechniqueControlsTemplateRenderer", () => {
     GuitarTechniqueType.Legato,
     GuitarTechniqueType.Slide,
   ])("enables technique %s during drag selection", (type) => {
-    const classes = new Set<string>();
-    const button = {
-      classList: {
-        add: (name: string) => classes.add(name),
-        remove: (name: string) => classes.delete(name),
-      },
-    } as unknown as HTMLImageElement;
+    const button = createButton();
     const renderer = {
       notationComponent: {
         trackController: {
@@ -68,19 +73,19 @@ describe("TechniqueControlsTemplateRenderer", () => {
       TechniqueControlsTemplateRenderer.prototype as unknown as {
         renderTechniqueButtonState(
           techniqueType: GuitarTechniqueType,
-          techniqueButton: HTMLImageElement
+          techniqueButton: HTMLButtonElement
         ): void;
       }
     ).renderTechniqueButtonState;
     renderState.call(renderer, type, button);
 
-    expect(classes.has("tu-disabled-img")).toBe(false);
+    expect(button.classList.contains("tu-disabled-img")).toBe(false);
   });
 
   test("disables bend during drag selection", () => {
     const classes = renderButtonState(undefined, GuitarTechniqueType.Bend);
 
-    expect(classes.has("tu-disabled-img")).toBe(true);
+    expect(classes.contains("tu-disabled-img")).toBe(true);
   });
 
   test.each([GuitarTechniqueType.Legato, GuitarTechniqueType.Slide])(
@@ -98,7 +103,7 @@ describe("TechniqueControlsTemplateRenderer", () => {
       current.fret = 5;
       next.fret = 5;
 
-      expect(renderButtonState(current, type).has("tu-disabled-img")).toBe(
+      expect(renderButtonState(current, type).contains("tu-disabled-img")).toBe(
         true
       );
     }

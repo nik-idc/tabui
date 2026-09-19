@@ -145,6 +145,10 @@ export class PlayControlsTemplateRenderer {
       { width: buttonSize, height: buttonSize }
     );
     this.template.rangeButton.title = label;
+    this.template.rangeButton.setAttribute(
+      "aria-pressed",
+      `${hasSelectionAnchor}`
+    );
   }
   /**
    * Responsible for setting up the note controls:

@@ -3,6 +3,7 @@ import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
+  setShortcutTooltip,
   setupDialogActionButtons,
 } from "../../../shared";
 import { FretControlsTemplate } from "./fret-controls-template";
@@ -28,8 +29,9 @@ export class FretControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-fret-dialog",
+      "Fret",
       this.template.dialogContent,
       "tu-fret-dialog-content",
       [
@@ -71,7 +73,10 @@ export class FretControlsTemplateRenderer {
     this.template.valueControl.classList.add("tu-fret-value-control");
     this.template.noFretButton.textContent = "Clear";
     this.template.deadButton.textContent = "x";
+    this.template.deadButton.ariaLabel = "Set dead note";
+    setShortcutTooltip(this.template.deadButton, "Set dead note", "x");
     this.template.input.type = "number";
+    this.template.input.ariaLabel = "Fret";
     this.template.input.inputMode = "numeric";
     this.template.input.min = "0";
     this.template.input.max = `${maxFrets}`;

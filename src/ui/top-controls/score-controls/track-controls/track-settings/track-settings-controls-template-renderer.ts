@@ -6,7 +6,7 @@ import {
   setupDialogActionButtons,
 } from "../../../../shared";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
-import { createButton, createDiv, createImage } from "../../../../../shared";
+import { createButton, createDiv } from "../../../../../shared";
 import type { ResolvedAssetConfig } from "../../../../../config/asset-url-resolver";
 import {
   InstrumentFamily,
@@ -50,8 +50,9 @@ export class TrackSettingsControlsTemplateRenderer {
 
   private assembleContainer(): void {
     assembleDialog(
-      this.template.dialog,
+      this.template.dialogContainer,
       "tu-ts-dialog",
+      "Track settings",
       this.template.dialogContent,
       "tu-ts-content",
       [
@@ -116,7 +117,7 @@ export class TrackSettingsControlsTemplateRenderer {
     const families = Object.values(InstrumentFamily);
     if (this.template.instrFamiliesButtons.length === 0) {
       for (const family of families) {
-        this.template.instrFamiliesButtons.push(createImage());
+        this.template.instrFamiliesButtons.push(createButton());
       }
     }
 
@@ -132,6 +133,10 @@ export class TrackSettingsControlsTemplateRenderer {
         this.assetsPath,
         `img/ui/${family.toLowerCase()}.svg`,
         family
+      );
+      imageButton.setAttribute(
+        "aria-pressed",
+        `${family === this._currentFamily}`
       );
     }
   }
@@ -150,6 +155,7 @@ export class TrackSettingsControlsTemplateRenderer {
     for (let i = 0; i < types.length; i++) {
       const typeButton = this.template.instrTypesButtons[i];
       typeButton.textContent = `${types[i]}`;
+      typeButton.ariaPressed = `${types[i] === this._currentType}`;
       typeButton.classList.toggle(
         "tu-applied-button",
         types[i] === this._currentType
@@ -171,6 +177,7 @@ export class TrackSettingsControlsTemplateRenderer {
     for (let i = 0; i < tones.length; i++) {
       const toneButton = this.template.instrTonesButtons[i];
       toneButton.textContent = `${tones[i]}`;
+      toneButton.ariaPressed = `${tones[i] === this._currentTone}`;
       toneButton.classList.toggle(
         "tu-applied-button",
         tones[i] === this._currentTone
@@ -190,6 +197,12 @@ export class TrackSettingsControlsTemplateRenderer {
       this._currentTuning === this._originalTuning ? "hidden" : "visible";
     this.template.keepFretsButton.textContent = "Keep frets";
     this.template.transposeButton.textContent = "Transpose";
+    this.template.keepFretsButton.ariaPressed = `${
+      this._currentTuningChangeMode === TrackInstrumentChangeMode.KeepFrets
+    }`;
+    this.template.transposeButton.ariaPressed = `${
+      this._currentTuningChangeMode === TrackInstrumentChangeMode.Transpose
+    }`;
     this.template.keepFretsButton.classList.toggle(
       "tu-applied-button",
       this._currentTuningChangeMode === TrackInstrumentChangeMode.KeepFrets
@@ -218,15 +231,25 @@ export class TrackSettingsControlsTemplateRenderer {
       this.template.tuningDownButtons.push(downButton);
     }
 
-    this.template.tuningContainer.replaceChildren(
-      ...this.template.tuningStringContainers.slice(0, notes.length)
-    );
+    // Keep existing controls mounted so tuning edits retain keyboard focus.
+    for (let i = 0; i < this.template.tuningStringContainers.length; i++) {
+      const container = this.template.tuningStringContainers[i];
+      if (i >= notes.length) {
+        container.remove();
+      } else if (container.parentElement !== this.template.tuningContainer) {
+        this.template.tuningContainer.append(container);
+      }
+    }
     this.template.tuningContainer.classList.add("tu-ts-tuning-container");
     this.template.wholeTuningContainer.classList.add(
       "tu-ts-whole-tuning-container"
     );
     this.template.wholeTuningDownButton.textContent = "All -1";
+    this.template.wholeTuningDownButton.ariaLabel =
+      "Lower all strings by 1 semitone";
     this.template.wholeTuningUpButton.textContent = "All +1";
+    this.template.wholeTuningUpButton.ariaLabel =
+      "Raise all strings by 1 semitone";
 
     for (let i = 0; i < notes.length; i++) {
       const stringNumber = notes.length - i;
@@ -240,10 +263,14 @@ export class TrackSettingsControlsTemplateRenderer {
         this.getStringLabel(stringNumber);
       this.template.tuningUpButtons[i].classList.add("tu-ts-tuning-step");
       this.template.tuningUpButtons[i].textContent = "▲";
+      this.template.tuningUpButtons[i].ariaLabel =
+        `Raise string ${stringNumber} by 1 semitone`;
       this.template.tuningNoteLabels[i].classList.add("tu-ts-tuning-note");
       this.template.tuningNoteLabels[i].textContent = notes[i];
       this.template.tuningDownButtons[i].classList.add("tu-ts-tuning-step");
       this.template.tuningDownButtons[i].textContent = "▼";
+      this.template.tuningDownButtons[i].ariaLabel =
+        `Lower string ${stringNumber} by 1 semitone`;
     }
   }
 

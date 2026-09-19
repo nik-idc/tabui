@@ -68,6 +68,8 @@ export class TabUIEditor {
   private _windowResizeHandler?: EventListener;
   /** Pending coalesced responsive layout refresh. */
   private _layoutResizeRafId?: number;
+  /** Whether a cursor announcement check is queued for the current turn. */
+  private _selectionAnnouncementQueued = false;
   /** Current responsive restriction applied above the configured mode. */
   private _responsiveInteractionMode: ResponsiveInteractionMode =
     ResponsiveInteractionMode.Normal;
@@ -180,15 +182,17 @@ export class TabUIEditor {
     this._uiComponent = new UIComponent(
       this._shellComponent.template.scorePanelHost,
       this._shellComponent.template.sidePanelHost,
-      this._shellComponent.template.dialogHost,
+      this._shellComponent.dialogEnforcer,
       this._notationComponent,
-      this.config
+      this.config,
+      this._shellComponent.announce.bind(this._shellComponent)
     );
     this._callbacks = new TabUICallbacks(
       this._uiComponent,
       this._notationComponent,
       this.rootDiv,
-      this.emitStateChanged.bind(this)
+      this.emitStateChanged.bind(this),
+      this._shellComponent.announce.bind(this._shellComponent)
     );
 
     this._uiComponent.render(this._shellComponent.sidePanelCollapsed);
@@ -234,6 +238,11 @@ export class TabUIEditor {
     }
     shellComponent.template.responsiveMessage.textContent =
       "This area is too small. Rotate your device, expand the window, or use a larger screen.";
+    if (nextMode === ResponsiveInteractionMode.Blocked) {
+      shellComponent.announce(
+        shellComponent.template.responsiveMessage.textContent
+      );
+    }
     uiComponent.render(shellComponent.sidePanelCollapsed);
   }
 
@@ -427,6 +436,18 @@ export class TabUIEditor {
       throw new Error("TabUIEditor initialized without owned components");
     }
     this._stateStore.emitChange(notationComponent, layoutDimensions);
+    if (this._selectionAnnouncementQueued) {
+      return;
+    }
+
+    this._selectionAnnouncementQueued = true;
+    queueMicrotask(() => {
+      this._selectionAnnouncementQueued = false;
+      if (this._state !== TabUIEditorLifecycleState.Initialized) {
+        return;
+      }
+      this._callbacks?.announceSelection(true);
+    });
   }
 
   /**

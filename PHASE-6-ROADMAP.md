@@ -278,6 +278,9 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     ~6 When applying a per-note technique, it should only be applied to notes with values **and**
     if that technique is applicable in that particular spot~
     7 Aria + tooltips for all interactable elements
+    ~- Announcement for beat selection~
+    ~- Improve announcement quality & pacing~ (Larger announcement system deferred)
+    ~- Implement keyboard shortcuts for every action~
     ~8 Tuplets (incomplete) are offset horizontally as well~
     ~9 Fret 0 is a special case - can't apply most techniques to it~
     ~10 Note selection currently is too tight. Either the demo has a font that is too small or the
@@ -305,9 +308,11 @@ preserving exact execute/undo/redo behavior across single- and multi-voice bars.
     ~- Additionally would be very cool to also implement repeat count setter dialog window~
     ~16 keyboard based beat selection. Shift + Left/Right selects appropriate beat.
     Escape cancels selection.~
-    17 Bug. Shift + B opens bend dialog - correct. Escape exits the dialog - also correct.
+    ~17 Bug. Shift + B opens bend dialog - correct. Escape exits the dialog - also correct.
     But then another Shift + B doesn't do anything. Switching to a different note and pressing
-    Shift + B does actually open the dialog though. I suppose this must be some rendering issue.
+    Shift + B does actually open the dialog though. I suppose this must be some rendering issue.~
+    18 Replace all/most callback dependencies to direct owner dependency. Makes understanding
+    what code is actually called much easier.
 
 Suggested order:
 
@@ -330,6 +335,7 @@ Suggested order:
   - 7
   - 11
   - 13
+  - 18
 
 11. Expand E2E Playwright suite.
     Especially interesting to see testing under different configs:

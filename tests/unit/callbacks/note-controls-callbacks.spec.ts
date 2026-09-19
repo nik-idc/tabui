@@ -32,7 +32,8 @@ describe("NoteControlsDefaultCallbacks", () => {
       },
       tupletComponent: {
         template: {
-          dialog: makeButton(),
+          dialogContainer: makeButton(),
+          dialogContent: makeButton(),
           normalDownButton: makeButton(),
           normalUpButton: makeButton(),
           normalControl: makeButton(),
@@ -45,7 +46,7 @@ describe("NoteControlsDefaultCallbacks", () => {
       },
       fretComponent: {
         template: {
-          dialog: makeButton(),
+          dialogContainer: makeButton(),
           dialogContent: makeButton(),
           noFretButton: makeButton(),
           deadButton: makeButton(),
@@ -132,7 +133,8 @@ describe("NoteControlsDefaultCallbacks", () => {
       },
       tupletComponent: {
         template: {
-          dialog: makeButton(),
+          dialogContainer: makeButton(),
+          dialogContent: makeButton(),
           normalDownButton: makeButton(),
           normalUpButton: makeButton(),
           normalControl: makeButton(),
@@ -145,7 +147,8 @@ describe("NoteControlsDefaultCallbacks", () => {
       },
       fretComponent: {
         template: {
-          dialog: makeButton(),
+          dialogContainer: makeButton(),
+          dialogContent: makeButton(),
           noFretButton: makeButton(),
           deadButton: makeButton(),
           input: makeButton(),

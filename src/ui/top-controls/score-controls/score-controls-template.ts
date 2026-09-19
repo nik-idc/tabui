@@ -1,9 +1,4 @@
-import {
-  createButton,
-  createDiv,
-  createImage,
-  createInput,
-} from "../../../shared";
+import { createButton, createDiv, createInput } from "../../../shared";
 import { TrackControlsTemplate } from "./track-controls/track-controls-template";
 
 /**
@@ -16,7 +11,7 @@ export class ScoreControlsTemplate {
   /**/ readonly masterContainer: HTMLDivElement = createDiv();
   /****/ readonly settingsContainer: HTMLDivElement = createDiv();
   /******/ readonly showTracksButton: HTMLButtonElement = createButton();
-  /******/ readonly newTrackButton: HTMLImageElement = createImage();
+  /******/ readonly newTrackButton: HTMLButtonElement = createButton();
   /******/ readonly masterVolumeInput: HTMLInputElement = createInput();
   /******/ readonly masterPanningInput: HTMLInputElement = createInput();
   /****/ readonly scoreNameInput: HTMLInputElement = createInput();

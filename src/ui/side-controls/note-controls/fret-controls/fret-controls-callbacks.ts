@@ -32,7 +32,7 @@ export class FretControlsDefaultCallbacks {
 
     this._notationComponent.trackController.setSelectedNoteFret(fret);
     this._renderFunc();
-    this._fretComponent.template.dialog.close();
+    this._fretComponent.dialog.close();
   }
 
   public onDialogClicked(event: MouseEvent): void {
@@ -41,7 +41,7 @@ export class FretControlsDefaultCallbacks {
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._fretComponent.template.dialogContent.contains(target)
     ) {
-      this._fretComponent.template.dialog.close();
+      this._fretComponent.dialog.close();
     }
   }
 
@@ -67,7 +67,7 @@ export class FretControlsDefaultCallbacks {
   }
 
   public onCancelClicked(): void {
-    this._fretComponent.template.dialog.close();
+    this._fretComponent.dialog.close();
   }
 
   public onDialogClosed(): void {
@@ -78,12 +78,12 @@ export class FretControlsDefaultCallbacks {
     const template = this._fretComponent.template;
     this._listeners.bindAll([
       {
-        element: template.dialog,
+        element: template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
-        element: template.dialog,
+        element: template.dialogContainer,
         event: "close",
         handler: () => this.onDialogClosed(),
       },
@@ -103,9 +103,14 @@ export class FretControlsDefaultCallbacks {
         handler: () => this.onInput(),
       },
       {
-        element: template.confirmButton,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog } = this._fretComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: template.cancelButton,

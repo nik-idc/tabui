@@ -1,4 +1,4 @@
-import { renderOnce, setImageAsset } from "../../shared";
+import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NotationComponent } from "../../../notation/notation-component";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
@@ -109,16 +109,15 @@ export class NoteControlsTemplateRenderer {
           "data-duration": dataDuration,
         }
       );
+      setShortcutTooltip(button, alt, "+: lengthen, -: shorten");
 
       // Mark applied status
       const beatsOfCurDuration = selectedBeats.find(
         (b) => b.baseDuration === 1 / notes[i].num
       );
-      if (beatsOfCurDuration !== undefined) {
-        button.classList.add(appliedCSSClass);
-      } else {
-        button.classList.remove(appliedCSSClass);
-      }
+      const isApplied = beatsOfCurDuration !== undefined;
+      button.classList.toggle(appliedCSSClass, isApplied);
+      button.setAttribute("aria-pressed", `${isApplied}`);
     }
 
     const hasRest = selectedBeats.find((beat) => beat.isRest()) !== undefined;
@@ -128,14 +127,15 @@ export class NoteControlsTemplateRenderer {
       "img/notes/rest-4.svg",
       "Quarter rest"
     );
-    this.template.restButton.title = "Set selected beat as rest";
+    setShortcutTooltip(
+      this.template.restButton,
+      "Set selected beat as rest",
+      "Shift+X"
+    );
     this.template.restButton.dataset["beatAction"] = "rest";
     this.template.restButton.classList.add("tu-rest-button");
-    if (hasRest) {
-      this.template.restButton.classList.add(appliedCSSClass);
-    } else {
-      this.template.restButton.classList.remove(appliedCSSClass);
-    }
+    this.template.restButton.classList.toggle(appliedCSSClass, hasRest);
+    this.template.restButton.setAttribute("aria-pressed", `${hasRest}`);
   }
 
   private renderVoiceButtons(): void {
@@ -152,14 +152,12 @@ export class NoteControlsTemplateRenderer {
         `img/ui/voice-${voiceNumber}.svg`,
         `Voice ${voiceNumber}`
       );
-      button.title = `Activate voice ${voiceNumber}`;
+      setShortcutTooltip(button, `Activate voice ${voiceNumber}`, "Shift+V");
       button.dataset["voiceNumber"] = `${voiceNumber}`;
       button.classList.add("tu-voice-button");
-      if (voiceNumber === activeVoiceNumber) {
-        button.classList.add(appliedCSSClass);
-      } else {
-        button.classList.remove(appliedCSSClass);
-      }
+      const isActive = voiceNumber === activeVoiceNumber;
+      button.classList.toggle(appliedCSSClass, isActive);
+      button.setAttribute("aria-pressed", `${isActive}`);
     }
   }
 
@@ -178,6 +176,7 @@ export class NoteControlsTemplateRenderer {
         "data-dot": "1",
       }
     );
+    setShortcutTooltip(this.template.dot1Button, "Dot", ".");
 
     setImageAsset(
       this.template.dot2Button,
@@ -188,22 +187,19 @@ export class NoteControlsTemplateRenderer {
         "data-dot": "2",
       }
     );
+    setShortcutTooltip(this.template.dot2Button, "Double dot", ".");
 
     // Mark singular dot applied status
     const beatsDot1 = selectedBeats.find((b) => b.dots === 1);
-    if (beatsDot1 !== undefined) {
-      this.template.dot1Button.classList.add(appliedCSSClass);
-    } else {
-      this.template.dot1Button.classList.remove(appliedCSSClass);
-    }
+    const hasDot1 = beatsDot1 !== undefined;
+    this.template.dot1Button.classList.toggle(appliedCSSClass, hasDot1);
+    this.template.dot1Button.setAttribute("aria-pressed", `${hasDot1}`);
 
     // Mark double dot applied status
     const beatsDot2 = selectedBeats.find((b) => b.dots === 2);
-    if (beatsDot2 !== undefined) {
-      this.template.dot2Button.classList.add(appliedCSSClass);
-    } else {
-      this.template.dot2Button.classList.remove(appliedCSSClass);
-    }
+    const hasDot2 = beatsDot2 !== undefined;
+    this.template.dot2Button.classList.toggle(appliedCSSClass, hasDot2);
+    this.template.dot2Button.setAttribute("aria-pressed", `${hasDot2}`);
   }
 
   private renderTupletButtons(): void {
@@ -220,6 +216,7 @@ export class NoteControlsTemplateRenderer {
         "data-tuplet": "2",
       }
     );
+    setShortcutTooltip(this.template.tuplet2Button, "Tuplet preset", "t");
 
     setImageAsset(
       this.template.tuplet3Button,
@@ -230,6 +227,7 @@ export class NoteControlsTemplateRenderer {
         "data-tuplet": "3",
       }
     );
+    setShortcutTooltip(this.template.tuplet3Button, "Triplet preset", "t");
 
     setImageAsset(
       this.template.tupletButton,
@@ -240,6 +238,7 @@ export class NoteControlsTemplateRenderer {
         "data-tuplet": "0",
       }
     );
+    setShortcutTooltip(this.template.tupletButton, "Custom tuplet", "Shift+T");
 
     let hasTuplet2: boolean = false;
     let hasTuplet3: boolean = false;
@@ -264,23 +263,14 @@ export class NoteControlsTemplateRenderer {
       }
     }
 
-    if (hasTuplet2) {
-      this.template.tuplet2Button.classList.add(appliedCSSClass);
-    } else {
-      this.template.tuplet2Button.classList.remove(appliedCSSClass);
-    }
+    this.template.tuplet2Button.classList.toggle(appliedCSSClass, hasTuplet2);
+    this.template.tuplet2Button.setAttribute("aria-pressed", `${hasTuplet2}`);
 
-    if (hasTuplet3) {
-      this.template.tuplet3Button.classList.add(appliedCSSClass);
-    } else {
-      this.template.tuplet3Button.classList.remove(appliedCSSClass);
-    }
+    this.template.tuplet3Button.classList.toggle(appliedCSSClass, hasTuplet3);
+    this.template.tuplet3Button.setAttribute("aria-pressed", `${hasTuplet3}`);
 
-    if (hasTuplet) {
-      this.template.tupletButton.classList.add(appliedCSSClass);
-    } else {
-      this.template.tupletButton.classList.remove(appliedCSSClass);
-    }
+    this.template.tupletButton.classList.toggle(appliedCSSClass, hasTuplet);
+    this.template.tupletButton.setAttribute("aria-pressed", `${hasTuplet}`);
   }
 
   private renderBeatEditButtons(): void {
@@ -293,7 +283,11 @@ export class NoteControlsTemplateRenderer {
         "data-beat-action": "insert-before",
       }
     );
-    this.template.insertBeatBeforeButton.title = "Insert beat before";
+    setShortcutTooltip(
+      this.template.insertBeatBeforeButton,
+      "Insert beat before",
+      "Shift+A"
+    );
 
     setImageAsset(
       this.template.insertBeatAfterButton,
@@ -304,7 +298,11 @@ export class NoteControlsTemplateRenderer {
         "data-beat-action": "insert-after",
       }
     );
-    this.template.insertBeatAfterButton.title = "Insert beat after";
+    setShortcutTooltip(
+      this.template.insertBeatAfterButton,
+      "Insert beat after",
+      "a"
+    );
 
     setImageAsset(
       this.template.removeBeatButton,
@@ -315,7 +313,7 @@ export class NoteControlsTemplateRenderer {
         "data-beat-action": "remove",
       }
     );
-    this.template.removeBeatButton.title = "Remove beat";
+    setShortcutTooltip(this.template.removeBeatButton, "Remove beat", "Delete");
   }
 
   private renderFretButton(): void {
@@ -325,7 +323,11 @@ export class NoteControlsTemplateRenderer {
       "img/ui/edit-fret.svg",
       "Edit fret"
     );
-    this.template.fretButton.title = "Edit fret";
+    setShortcutTooltip(
+      this.template.fretButton,
+      "Edit fret",
+      "0–9 set fret / Backspace clear"
+    );
   }
 
   /**

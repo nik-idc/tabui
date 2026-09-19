@@ -16,12 +16,7 @@ import {
 
 describe("ScoreControlsDefaultCallbacks", () => {
   test("score editing controls render disabled during playback", () => {
-    const newTrackButton = {
-      classList: { add: jest.fn(), toggle: jest.fn() },
-      setAttribute: jest.fn(),
-      src: "",
-      alt: "",
-    };
+    const newTrackButton = makeButton();
     const scoreNameInput = {
       classList: { add: jest.fn() },
       value: "",

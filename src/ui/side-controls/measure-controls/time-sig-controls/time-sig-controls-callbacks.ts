@@ -83,7 +83,7 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._timeSigComponent.template.dialogContent.contains(target)
     ) {
-      this._timeSigComponent.template.dialog.close();
+      this._timeSigComponent.dialog.close();
     }
   }
 
@@ -102,6 +102,8 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
     template.beatsUpButton.disabled = value >= MAX_MASTER_BAR_BEATS_COUNT;
     template.beatsErrorText.textContent = " ";
     template.confirmButton.disabled = false;
+
+    this._timeSigComponent.announceValue();
   }
 
   onDurationChanged(): void {
@@ -114,6 +116,8 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
       template.durationErrorText.textContent = " ";
     }
     template.confirmButton.disabled = !durationValid;
+
+    this._timeSigComponent.announceValue();
   }
 
   onConfirmClicked(): void {
@@ -135,27 +139,11 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
     );
     this._renderFunc();
 
-    this._timeSigComponent.template.dialog.close();
+    this._timeSigComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._timeSigComponent.template.dialog.close();
-  }
-
-  onKeydown(event: KeyboardEvent): void {
-    const template = this._timeSigComponent.template;
-    const canConfirm =
-      event.target === template.dialog ||
-      event.target === template.durationSelect ||
-      event.target === template.confirmButton;
-    if (
-      event.key === "Enter" &&
-      canConfirm &&
-      !template.confirmButton.disabled
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
+    this._timeSigComponent.dialog.close();
   }
 
   onWheel(event: WheelEvent): void {
@@ -166,19 +154,14 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._timeSigComponent.template.dialog,
+        element: this._timeSigComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
-        element: this._timeSigComponent.template.dialog,
+        element: this._timeSigComponent.template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
-      },
-      {
-        element: this._timeSigComponent.template.dialog,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
       },
       {
         element: this._timeSigComponent.template.beatsDownButton,
@@ -201,9 +184,14 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
         handler: () => this.onDurationChanged(),
       },
       {
-        element: this._timeSigComponent.template.confirmButton,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._timeSigComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._timeSigComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._timeSigComponent.template.cancelButton,

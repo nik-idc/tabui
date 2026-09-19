@@ -48,7 +48,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._bendComponent.template.dialogContent.contains(target)
     ) {
-      this._bendComponent.template.dialog.close();
+      this._bendComponent.dialog.close();
     }
   }
 
@@ -76,11 +76,11 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     );
     this._renderFunc();
 
-    this._bendComponent.template.dialog.close();
+    this._bendComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._bendComponent.template.dialog.close();
+    this._bendComponent.dialog.close();
   }
 
   onRemoveClicked(): void {
@@ -91,7 +91,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
       GuitarTechniqueType.Bend
     );
     this._renderFunc();
-    this._bendComponent.template.dialog.close();
+    this._bendComponent.dialog.close();
   }
 
   private onDialogFocus(): void {
@@ -110,28 +110,6 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     }
   }
 
-  private onDialogKeyDown(event: KeyboardEvent): void {
-    if (
-      event.key !== "Enter" ||
-      this._bendComponent.template.confirmButton.disabled
-    ) {
-      return;
-    }
-    if (
-      event.target === this._bendComponent.template.cancelButton ||
-      event.target === this._bendComponent.template.removeButton ||
-      BEND_TYPE_BUTTON_ORDER.some(
-        (bendType) =>
-          event.target ===
-          this._bendComponent.template.bendTypesButtons[bendType]
-      )
-    ) {
-      return;
-    }
-    event.preventDefault();
-    this.onConfirmClicked();
-  }
-
   public bind(): void {
     this._listeners.bindAll([
       ...BEND_TYPE_BUTTON_ORDER.map((bendType) => ({
@@ -140,31 +118,29 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
         handler: () => this.onBendTypeClicked(bendType),
       })),
       {
-        element: this._bendComponent.template.dialog,
+        element: this._bendComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => {
           this.onDialogClicked(event);
         },
       },
       {
-        element: this._bendComponent.template.dialog,
+        element: this._bendComponent.template.dialogContainer,
         event: "focusin",
         handler: () => this.onDialogFocus(),
       },
       {
-        element: this._bendComponent.template.dialog,
+        element: this._bendComponent.template.dialogContainer,
         event: "close",
         handler: () => this.onDialogClosed(),
       },
       {
-        element: this._bendComponent.template.dialog,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onDialogKeyDown(event),
-      },
-      {
-        element: this._bendComponent.template.confirmButton,
-        event: "click",
-        handler: () => {
+        element: this._bendComponent.template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._bendComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
           this.onConfirmClicked();
         },
       },

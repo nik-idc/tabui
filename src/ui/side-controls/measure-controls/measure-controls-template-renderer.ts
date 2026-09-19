@@ -1,5 +1,5 @@
 import { NotationComponent } from "../../../notation/notation-component";
-import { renderOnce, setImageAsset } from "../../shared";
+import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
@@ -28,7 +28,6 @@ export class MeasureControlsTemplateRenderer {
   private assembleContainer(): void {
     const cssClass = "tu-measure-controls";
     this.template.container.classList.add(cssClass);
-
     this.template.container.append(
       this.template.repeatStartButton,
       this.template.repeatEndButton,
@@ -48,24 +47,33 @@ export class MeasureControlsTemplateRenderer {
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
 
+    this.template.repeatStartButton.disabled = selectionCursor === undefined;
+    this.template.repeatEndButton.disabled = selectionCursor === undefined;
     if (selectionCursor === undefined) {
       this.template.repeatStartButton.classList.remove(appliedCSSClass);
       this.template.repeatStartButton.classList.add(disabledCSSClass);
       this.template.repeatEndButton.classList.remove(appliedCSSClass);
       this.template.repeatEndButton.classList.add(disabledCSSClass);
     } else {
-      const masterBar = selectionCursor.bar.masterBar;
       this.template.repeatStartButton.classList.toggle(
         appliedCSSClass,
-        masterBar.isRepeatStart
+        selectionCursor.bar.masterBar.isRepeatStart
       );
       this.template.repeatEndButton.classList.toggle(
         appliedCSSClass,
-        masterBar.isRepeatEnd
+        selectionCursor.bar.masterBar.isRepeatEnd
       );
       this.template.repeatStartButton.classList.remove(disabledCSSClass);
       this.template.repeatEndButton.classList.remove(disabledCSSClass);
     }
+    this.template.repeatStartButton.setAttribute(
+      "aria-pressed",
+      `${selectionCursor?.bar.masterBar.isRepeatStart ?? false}`
+    );
+    this.template.repeatEndButton.setAttribute(
+      "aria-pressed",
+      `${selectionCursor?.bar.masterBar.isRepeatEnd ?? false}`
+    );
   }
 
   private renderMeasureButtons(): void {
@@ -75,11 +83,17 @@ export class MeasureControlsTemplateRenderer {
       "img/ui/tempo.svg",
       "Tempo"
     );
+    setShortcutTooltip(this.template.tempoButton, "Tempo", "m");
     setImageAsset(
       this.template.timeSignatureButton,
       this.assetsPath,
       "img/ui/measure.svg",
       "Time Signature"
+    );
+    setShortcutTooltip(
+      this.template.timeSignatureButton,
+      "Time Signature",
+      "Shift+M"
     );
     setImageAsset(
       this.template.repeatStartButton,
@@ -87,11 +101,17 @@ export class MeasureControlsTemplateRenderer {
       "img/ui/repeat-start.svg",
       "Repeat Start"
     );
+    setShortcutTooltip(this.template.repeatStartButton, "Repeat Start", "r");
     setImageAsset(
       this.template.repeatEndButton,
       this.assetsPath,
       "img/ui/repeat-end.svg",
-      "Repeat Start"
+      "Repeat End"
+    );
+    setShortcutTooltip(
+      this.template.repeatEndButton,
+      "Repeat End and count",
+      "Shift+R"
     );
     setImageAsset(
       this.template.insertBarBeforeButton,
@@ -102,7 +122,11 @@ export class MeasureControlsTemplateRenderer {
         "data-bar-action": "insert-before",
       }
     );
-    this.template.insertBarBeforeButton.title = "Insert bar before";
+    setShortcutTooltip(
+      this.template.insertBarBeforeButton,
+      "Insert bar before",
+      "Shift+I"
+    );
 
     setImageAsset(
       this.template.insertBarAfterButton,
@@ -113,7 +137,11 @@ export class MeasureControlsTemplateRenderer {
         "data-bar-action": "insert-after",
       }
     );
-    this.template.insertBarAfterButton.title = "Insert bar after";
+    setShortcutTooltip(
+      this.template.insertBarAfterButton,
+      "Insert bar after",
+      "i"
+    );
 
     setImageAsset(
       this.template.removeBarButton,
@@ -124,7 +152,11 @@ export class MeasureControlsTemplateRenderer {
         "data-bar-action": "remove",
       }
     );
-    this.template.removeBarButton.title = "Remove bar";
+    setShortcutTooltip(
+      this.template.removeBarButton,
+      "Remove all selected bars",
+      "Shift+Delete"
+    );
 
     this.renderRepeatButtonsState();
   }

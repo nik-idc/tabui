@@ -42,7 +42,7 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._yesNoComponent.template.yesNoDialogContent.contains(target)
     ) {
-      this._yesNoComponent.template.yesNoDialog.close();
+      this._yesNoComponent.dialog.close();
     }
   }
 
@@ -50,47 +50,34 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
     this._onConfirm();
     this._renderFunc();
 
-    this._yesNoComponent.template.yesNoDialog.close();
+    this._yesNoComponent.dialog.close();
   }
 
   onCancelClicked(): void {
-    this._yesNoComponent.template.yesNoDialog.close();
-  }
-
-  onKeydown(event: KeyboardEvent): void {
-    // Making Enter act as confirm button
-    const template = this._yesNoComponent.template;
-    if (
-      event.key === "Enter" &&
-      (event.target === template.yesNoDialog ||
-        event.target === template.confirmButton)
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
+    this._yesNoComponent.dialog.close();
   }
 
   bind(): void {
     this._listeners.bindAll([
       {
-        element: this._yesNoComponent.template.yesNoDialog,
+        element: this._yesNoComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
-        element: this._yesNoComponent.template.yesNoDialog,
+        element: this._yesNoComponent.template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
       },
       {
-        element: this._yesNoComponent.template.yesNoDialog,
-        event: "keydown",
-        handler: (event: KeyboardEvent) => this.onKeydown(event),
-      },
-      {
-        element: this._yesNoComponent.template.confirmButton,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: this._yesNoComponent.template.yesNoDialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog, template } = this._yesNoComponent;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: this._yesNoComponent.template.cancelButton,

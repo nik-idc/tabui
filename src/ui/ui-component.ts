@@ -1,3 +1,4 @@
+import { DialogEnforcer } from "../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../notation/notation-component";
 import { ResolvedTabUIConfig } from "../config/tabui-config";
 import { SideControlsComponent } from "./side-controls/side-controls-component";
@@ -6,7 +7,7 @@ import { TopControlsComponent } from "./top-controls";
 export class UIComponent {
   readonly topHost: HTMLDivElement;
   readonly sideHost: HTMLDivElement;
-  readonly dialogHost: HTMLDivElement;
+  readonly dialogEnforcer: DialogEnforcer;
   readonly notationComponent: NotationComponent;
   readonly config: ResolvedTabUIConfig;
 
@@ -16,26 +17,29 @@ export class UIComponent {
   constructor(
     topHost: HTMLDivElement,
     sideHost: HTMLDivElement,
-    dialogHost: HTMLDivElement,
+    dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
-    config: ResolvedTabUIConfig
+    config: ResolvedTabUIConfig,
+    announce: (text: string) => void
   ) {
     this.topHost = topHost;
     this.sideHost = sideHost;
-    this.dialogHost = dialogHost;
+    this.dialogEnforcer = dialogEnforcer;
     this.notationComponent = notationComponent;
     this.config = config;
 
     this.topComponent = new TopControlsComponent(
       this.topHost,
-      this.dialogHost,
-      this.notationComponent
+      this.dialogEnforcer,
+      this.notationComponent,
+      announce
     );
     this.sideComponent = new SideControlsComponent(
       this.sideHost,
-      this.dialogHost,
+      this.dialogEnforcer,
       this.notationComponent,
-      config
+      config,
+      announce
     );
   }
 
@@ -46,10 +50,6 @@ export class UIComponent {
 
   /** Closes editor-owned dialogs before their controls become unavailable. */
   public closeOpenDialogs(): void {
-    const dialogs =
-      this.dialogHost.querySelectorAll<HTMLDialogElement>(".tu-dialog[open]");
-    for (const dialog of dialogs) {
-      dialog.close();
-    }
+    this.dialogEnforcer.activeDialog?.close();
   }
 }

@@ -17,20 +17,14 @@ describe("TrackControlsDefaultCallbacks", () => {
     while (score.tracks.length < trackCount) {
       score.addTrack(new Guitar(), `Track ${score.tracks.length + 1}`);
     }
-    const removeButton = {
-      classList: { add: jest.fn(), toggle: jest.fn() },
-      dataset: {},
-      title: "",
-      style: { backgroundImage: "" },
-      removeAttribute: jest.fn(),
-      setAttribute: jest.fn(),
-    };
+    const removeButton = makeButton();
     const renderer = Object.create(TrackControlsTemplateRenderer.prototype);
     renderer.template = { removeButton };
     renderer.notationComponent = {
       score,
       trackController: { isPlaybackActive, editingEnabled: true },
     };
+    renderer.track = score.tracks[0];
     renderer.assetsPath = { baseUrl: "", variant: "light" };
 
     renderer.renderRemoveButton();
@@ -54,18 +48,9 @@ describe("TrackControlsDefaultCallbacks", () => {
   });
 
   test("track editing controls render disabled during playback", () => {
-    const makeElement = () => ({
-      classList: { add: jest.fn(), toggle: jest.fn() },
-      disabled: false,
-      dataset: {},
-      title: "",
-      textContent: "",
-      value: "",
-      src: "",
-      alt: "",
-      removeAttribute: jest.fn(),
-      setAttribute: jest.fn(),
-    });
+    const makeElement = () => {
+      return makeButton();
+    };
     const score = new Score();
     const track = score.tracks[0];
     track.name = "Lead";

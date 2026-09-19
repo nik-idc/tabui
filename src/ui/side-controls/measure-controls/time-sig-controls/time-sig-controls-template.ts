@@ -1,13 +1,8 @@
-import {
-  createButton,
-  createDialog,
-  createDiv,
-  createSelect,
-} from "../../../../shared";
+import { createButton, createDiv, createSelect } from "../../../../shared";
 
 export class TimeSigControlsTemplate {
-  readonly dialog: HTMLDialogElement;
-  readonly dialogContent: HTMLDivElement = createDiv();
+  readonly dialogContainer: HTMLDivElement = createDiv();
+  readonly dialogContent: HTMLFormElement = document.createElement("form");
 
   readonly inputContent: HTMLDivElement = createDiv();
   readonly textContainer: HTMLDivElement = createDiv();
@@ -24,8 +19,4 @@ export class TimeSigControlsTemplate {
   readonly actionsContent: HTMLDivElement = createDiv();
   readonly confirmButton: HTMLButtonElement = createButton();
   readonly cancelButton: HTMLButtonElement = createButton();
-
-  constructor(dialogHost: HTMLDivElement) {
-    this.dialog = createDialog(dialogHost);
-  }
 }

@@ -3,17 +3,16 @@ import { DEFAULT_MASTER_BAR } from "../../../src/notation/model";
 import {
   asNotationComponent,
   createNotationComponentMock,
-  dispatchClick,
   FakeElement,
   makeButton,
-  makeDialog,
+  makeDialogFixture,
   makeText,
 } from "./helpers";
 
 function createTempoHarness() {
-  const dialog = makeDialog();
+  const { dialog, dialogContainer } = makeDialogFixture();
   const dialogContent = new FakeElement();
-  dialog.appendChild(dialogContent);
+  dialogContainer.appendChild(dialogContent);
   const valueControl = new FakeElement();
   const decreaseTenButton = makeButton();
   const decreaseButton = makeButton();
@@ -25,8 +24,10 @@ function createTempoHarness() {
   const cancelButton = makeButton();
   const errorText = makeText();
   const component = {
+    dialog,
+    announceValue: jest.fn(),
     template: {
-      dialog,
+      dialogContainer,
       dialogContent,
       valueControl,
       decreaseTenButton,
@@ -114,7 +115,7 @@ describe("TempoControlsDefaultCallbacks", () => {
       notationComponent.trackController.setSelectedBarTempo
     ).toHaveBeenCalledWith(180);
     expect(renderFunc).toHaveBeenCalledTimes(1);
-    expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
   });
 
@@ -133,10 +134,10 @@ describe("TempoControlsDefaultCallbacks", () => {
     callbacks.bind();
 
     callbacks.onDialogClicked({ target: insideTarget } as any);
-    expect(component.template.dialog.close).not.toHaveBeenCalled();
+    expect(component.dialog.close).not.toHaveBeenCalled();
 
     callbacks.onDialogClicked({ target: outsideTarget } as any);
-    expect(component.template.dialog.close).toHaveBeenCalledTimes(1);
+    expect(component.dialog.close).toHaveBeenCalledTimes(1);
     expect(freeKeyboard).toHaveBeenCalledTimes(1);
   });
 
@@ -152,7 +153,7 @@ describe("TempoControlsDefaultCallbacks", () => {
 
     callbacks.bind();
     component.template.value.textContent = "200";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
 
     expect(setTempo).toHaveBeenCalledTimes(1);
     expect(renderFunc).toHaveBeenCalledTimes(1);
@@ -161,7 +162,7 @@ describe("TempoControlsDefaultCallbacks", () => {
     const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
     callbacks.unbind();
     component.template.value.textContent = "220";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(setTempo).toHaveBeenCalledTimes(tempoCallsBeforeUnbind);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
 
@@ -171,7 +172,7 @@ describe("TempoControlsDefaultCallbacks", () => {
     const renderCallsBeforeRebindClick = renderFunc.mock.calls.length;
     const freeKeyboardCallsBeforeRebindClick = freeKeyboard.mock.calls.length;
     component.template.value.textContent = "240";
-    dispatchClick(component.template.confirmButton);
+    component.template.dialogContent.dispatch("submit");
     expect(setTempo).toHaveBeenCalledTimes(tempoCallsBeforeRebindClick + 1);
     expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeRebindClick + 1);
     expect(freeKeyboard).toHaveBeenCalledTimes(

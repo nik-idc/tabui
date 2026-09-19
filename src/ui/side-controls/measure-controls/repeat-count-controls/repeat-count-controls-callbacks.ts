@@ -34,6 +34,7 @@ export class RepeatCountControlsDefaultCallbacks {
     template.increaseButton.disabled = value >= MAX_MASTER_BAR_REPEAT_COUNT;
     template.errorText.textContent = " ";
     template.confirmButton.disabled = false;
+    this._component.announceValue();
   }
 
   private onInput(): void {
@@ -48,7 +49,7 @@ export class RepeatCountControlsDefaultCallbacks {
       !(typeof Node !== "undefined" && target instanceof Node) ||
       !this._component.template.dialogContent.contains(target)
     ) {
-      this._component.template.dialog.close();
+      this._component.dialog.close();
     }
   }
 
@@ -69,7 +70,7 @@ export class RepeatCountControlsDefaultCallbacks {
       repeatCount: value,
     });
     this._renderFunc();
-    this._component.template.dialog.close();
+    this._component.dialog.close();
   }
 
   /** Removes the repeat end from the selected bar and closes the dialog. */
@@ -79,17 +80,7 @@ export class RepeatCountControlsDefaultCallbacks {
       enabled: false,
     });
     this._renderFunc();
-    this._component.template.dialog.close();
-  }
-
-  private onKeydown(event: KeyboardEvent): void {
-    if (
-      event.key === "Enter" &&
-      !this._component.template.confirmButton.disabled
-    ) {
-      event.preventDefault();
-      this.onConfirmClicked();
-    }
+    this._component.dialog.close();
   }
 
   private onWheel(event: WheelEvent): void {
@@ -101,19 +92,14 @@ export class RepeatCountControlsDefaultCallbacks {
     const template = this._component.template;
     this._listeners.bindAll([
       {
-        element: template.dialog,
+        element: template.dialogContainer,
         event: "click",
         handler: (e: MouseEvent) => this.onDialogClicked(e),
       },
       {
-        element: template.dialog,
+        element: template.dialogContainer,
         event: "close",
         handler: () => this._freeKeyboard(),
-      },
-      {
-        element: template.dialog,
-        event: "keydown",
-        handler: (e: KeyboardEvent) => this.onKeydown(e),
       },
       {
         element: template.decreaseButton,
@@ -136,14 +122,19 @@ export class RepeatCountControlsDefaultCallbacks {
         handler: (e: WheelEvent) => this.onWheel(e),
       },
       {
-        element: template.confirmButton,
-        event: "click",
-        handler: () => this.onConfirmClicked(),
+        element: template.dialogContent,
+        event: "submit",
+        handler: (event: SubmitEvent) => {
+          event.preventDefault();
+          const { dialog } = this._component;
+          if (!dialog.open || template.confirmButton.disabled) return;
+          this.onConfirmClicked();
+        },
       },
       {
         element: template.cancelButton,
         event: "click",
-        handler: () => template.dialog.close(),
+        handler: () => this._component.dialog.close(),
       },
       {
         element: template.removeButton,

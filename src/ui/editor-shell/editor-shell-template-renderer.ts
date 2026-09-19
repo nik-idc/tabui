@@ -23,6 +23,7 @@ export class EditorShellTemplateRenderer {
   readonly template: EditorShellTemplate;
 
   private _assembled = false;
+  private _boundActivateSkipLink: (event: MouseEvent) => void;
 
   constructor(
     rootDiv: HTMLDivElement,
@@ -32,6 +33,10 @@ export class EditorShellTemplateRenderer {
     this.rootDiv = rootDiv;
     this.config = config;
     this.template = template;
+    this._boundActivateSkipLink = (event) => {
+      event.preventDefault();
+      this.template.notationViewport.focus({ preventScroll: true });
+    };
   }
 
   private applyTheme(): void {
@@ -42,6 +47,8 @@ export class EditorShellTemplateRenderer {
 
   private assemble(): void {
     const {
+      announcementHost,
+      skipLink,
       scorePanelHost,
       sidePanelHost,
       notationViewport,
@@ -55,16 +62,31 @@ export class EditorShellTemplateRenderer {
     );
     this.applyTheme();
 
+    announcementHost.classList.add("tu-announcement-host");
+    announcementHost.setAttribute("role", "status");
+    announcementHost.ariaLive = "polite";
+    announcementHost.ariaAtomic = "true";
+
+    skipLink.classList.add("tu-skip-link", "tu-visually-hidden");
+    skipLink.href = `#${notationViewport.id}`;
+    skipLink.textContent = "Skip to notation";
+    skipLink.addEventListener("click", this._boundActivateSkipLink);
+
     scorePanelHost.classList.add("tu-top-controls-host");
-    sidePanelHost.classList.add("tu-side-controls-host");
-    notationViewport.classList.add("tu-notation-viewport");
-    responsiveMessage.classList.add("tu-responsive-message");
-    responsiveMessage.setAttribute("role", "status");
-    responsiveMessage.setAttribute("aria-live", "polite");
-    responsiveMessage.hidden = true;
-    dialogHost.classList.add("tu-dialog-host");
     scorePanelHost.hidden = !this.config.panels.score.visible;
+
+    sidePanelHost.classList.add("tu-side-controls-host");
     sidePanelHost.hidden = !this.config.panels.side.visible;
+
+    notationViewport.classList.add("tu-notation-viewport");
+    notationViewport.tabIndex = 0;
+    notationViewport.setAttribute("role", "application");
+    notationViewport.setAttribute("aria-label", "Notation editor");
+
+    responsiveMessage.classList.add("tu-responsive-message");
+    responsiveMessage.hidden = true;
+
+    dialogHost.classList.add("tu-dialog-host");
 
     const shellClasses = [
       `tu-score-panel-${this.config.panels.score.placement}`,
@@ -78,11 +100,13 @@ export class EditorShellTemplateRenderer {
     }
     this.rootDiv.classList.add(...shellClasses);
 
+    this.rootDiv.appendChild(skipLink);
     this.rootDiv.appendChild(scorePanelHost);
     this.rootDiv.appendChild(sidePanelHost);
     this.rootDiv.appendChild(notationViewport);
     this.rootDiv.appendChild(responsiveMessage);
     this.rootDiv.appendChild(dialogHost);
+    this.rootDiv.appendChild(announcementHost);
     this._assembled = true;
   }
 
@@ -153,6 +177,11 @@ export class EditorShellTemplateRenderer {
 
   public dispose(): void {
     runCleanupSteps(
+      () =>
+        this.template.skipLink.removeEventListener(
+          "click",
+          this._boundActivateSkipLink
+        ),
       () => this.rootDiv.replaceChildren(),
       () => {
         this.rootDiv.classList.remove("tu-editor");
