@@ -23,6 +23,140 @@ test("accepts timed keyboard fret input", async ({ page }) => {
   await expect(editor.locator('[id^="note-text-"]')).toHaveText("3");
 });
 
+test("clicks an underfilled bar end gap to append and select a beat", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+
+  const notes = editor.locator('.tu-root-svg [id^="note-rect-"]');
+  await notes.first().click();
+  const gap = editor.locator("[data-bar-end-gap-uuid]");
+  await expect(gap).toHaveCount(1);
+  const hint = editor.locator(".tu-end-gap-hint");
+  await expect(hint).toHaveText("+");
+  await expect(hint).toBeHidden();
+  await gap.hover();
+  await expect(hint).toBeVisible();
+  await notes.first().hover();
+  await expect(hint).toBeHidden();
+  await gap.click();
+  await expect(editor.locator("[data-beat-uuid]")).toHaveCount(2);
+
+  await page.keyboard.press("7");
+  await expect(editor.locator('[id^="note-text-"]')).toContainText("7");
+
+  const beats = editor.locator("[data-beat-uuid]");
+  const firstBeat = await beats.nth(0).boundingBox();
+  const secondBeat = await beats.nth(1).boundingBox();
+  expect(firstBeat).not.toBeNull();
+  expect(secondBeat).not.toBeNull();
+  await page.mouse.move(firstBeat!.x + firstBeat!.width / 2, firstBeat!.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(
+    secondBeat!.x + secondBeat!.width / 2,
+    secondBeat!.y + 10
+  );
+  const gapBounds = await gap.boundingBox();
+  expect(gapBounds).not.toBeNull();
+  await page.mouse.move(
+    gapBounds!.x + gapBounds!.width / 2,
+    gapBounds!.y + gapBounds!.height / 2
+  );
+  await page.mouse.up();
+  await expect(beats).toHaveCount(2);
+  await gap.click();
+  await expect(beats).toHaveCount(3);
+
+  await gap.click();
+  await expect(editor.locator("[data-bar-end-gap-uuid]")).toHaveCount(0);
+  await expect(hint).toHaveCount(0);
+  await expect(editor.locator("[data-beat-uuid]")).toHaveCount(4);
+});
+
+test("hides the end-gap hint during playback and restores hover visibility", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  const gap = editor.locator("[data-bar-end-gap-uuid]");
+  const hint = editor.locator(".tu-end-gap-hint");
+  await expect(gap).toHaveCount(1);
+
+  await gap.hover();
+  await expect(hint).toBeVisible();
+
+  await editor.getByRole("button", { name: "Play" }).click();
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await gap.hover();
+  await expect(hint).toBeHidden();
+
+  await editor.getByRole("button", { name: "Pause" }).click();
+  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
+    "aria-pressed",
+    "false"
+  );
+  await gap.hover();
+  await expect(hint).toBeVisible();
+});
+
+for (const fixture of ["empty", "feature_showcase"] as const) {
+  test(`centers the end-gap hint on staff lines: ${fixture}`, async ({
+    page,
+  }) => {
+    await page.goto(`/tabui/?fixture=${fixture}`);
+    const editor = page.locator("#tabui-editor");
+    if (fixture === "feature_showcase") {
+      await editor.locator('.tu-root-svg [id^="note-rect-"]').first().click();
+      await page.keyboard.press("Delete");
+    }
+    const gap = editor.locator("[data-bar-end-gap-uuid]").first();
+    await expect(gap).toBeVisible();
+    await gap.hover();
+
+    const geometry = await editor.evaluate(() => {
+      const gapElement = document.querySelector<SVGRectElement>(
+        "[data-bar-end-gap-uuid]"
+      );
+      const hint = document.querySelector<SVGTextElement>(".tu-end-gap-hint");
+      if (gapElement === null || hint === null) {
+        throw Error("End-gap geometry is missing");
+      }
+      const uuid = gapElement.dataset["barEndGapUuid"];
+      const firstLine = document.querySelector<SVGLineElement>(
+        `[id="bar-staff-${uuid}-0"]`
+      );
+      const lastLine = document.querySelectorAll<SVGLineElement>(
+        `[id^="bar-staff-${uuid}-"]`
+      );
+      if (firstLine === null || lastLine.length === 0) {
+        throw Error("Bar staff geometry is missing");
+      }
+      const firstY = firstLine.getBoundingClientRect().top;
+      const lastY = lastLine[lastLine.length - 1].getBoundingClientRect().top;
+      const hintBounds = hint.getBoundingClientRect();
+      const gapBounds = gapElement.getBoundingClientRect();
+      return {
+        staffCenter: (firstY + lastY) / 2,
+        hintCenter: hintBounds.top + hintBounds.height / 2,
+        targetCenterX: gapBounds.left + gapBounds.width / 2,
+        hintCenterX: hintBounds.left + hintBounds.width / 2,
+      };
+    });
+
+    expect(Math.abs(geometry.hintCenter - geometry.staffCenter)).toBeLessThan(
+      1
+    );
+    expect(
+      Math.abs(geometry.hintCenterX - geometry.targetCenterX)
+    ).toBeLessThan(1);
+  });
+}
+
 for (const selection of ["keyboard", "mouse"]) {
   test(`rapid fret digits stay on their selected notes: ${selection}`, async ({
     page,

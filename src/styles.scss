@@ -658,6 +658,18 @@
     -moz-user-select: none;
     -ms-user-select: none;
     display: block;
+
+    .tu-end-gap-hint {
+      visibility: hidden;
+    }
+
+    [data-bar-end-gap-uuid]:hover + .tu-end-gap-hint {
+      visibility: visible;
+    }
+
+    #tu-interaction[data-playback-active="true"] .tu-end-gap-hint {
+      visibility: hidden;
+    }
   }
 
   .tu-tuplet-dialog {
