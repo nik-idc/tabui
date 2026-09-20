@@ -145,6 +145,34 @@ describe("TrackController", () => {
     mockScorePlayerInstances.length = 0;
   });
 
+  test("explicit beat insertion supports undo, redo, playback, and view-only guards", () => {
+    const { track, bar } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+
+    const anchor = voiceBar.beats[0];
+    controller.insertBeatAfterSelected(anchor);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[1]);
+    expect(voiceBar.beats).toHaveLength(2);
+
+    controller.undo();
+    expect(voiceBar.beats).toHaveLength(1);
+    controller.redo();
+    expect(voiceBar.beats).toHaveLength(2);
+
+    mockScorePlayerInstances[0].isPlaying = true;
+    controller.insertBeatAfterSelected(anchor);
+    expect(voiceBar.beats).toHaveLength(2);
+    mockScorePlayerInstances[0].isPlaying = false;
+
+    controller.setEditingEnabled(false);
+    controller.insertBeatAfterSelected(anchor);
+    expect(voiceBar.beats).toHaveLength(2);
+  });
+
   test("supports headless use without a score player", () => {
     const { track } = createScoreGraph();
     const controller = new BaseTrackController(track, TEST_LAYOUT_DIMENSIONS);

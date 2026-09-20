@@ -917,13 +917,17 @@ export class TrackControllerEditor {
     this.selectInsertedBeat(command, noteIndex);
   }
 
-  public insertBeatAfterSelected(): void {
+  /** Inserts and selects a beat after the anchor or current selection. */
+  public insertBeatAfterSelected(anchor?: Beat): void {
     if (!this.editingEnabled) {
       return;
     }
     const noteIndex = this._selectionManager.selectionCursor?.noteIndex ?? 0;
-    const selectionBeats = this._selectionManager.selectionAsBeats;
-    const lastBeat = selectionBeats[selectionBeats.length - 1];
+    const lastBeat =
+      anchor ??
+      this._selectionManager.selectionAsBeats[
+        this._selectionManager.selectionAsBeats.length - 1
+      ];
     const insertIndex = lastBeat.voiceBar.beats.indexOf(lastBeat) + 1;
 
     const command = this.executeCommand(

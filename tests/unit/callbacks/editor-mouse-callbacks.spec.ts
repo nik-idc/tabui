@@ -2,6 +2,10 @@ import { EditorMouseDefCallbacks } from "../../../src/notation/input/editor-mous
 import { RenderType } from "../../../src/notation/input/render-type";
 import { SVGTabNoteRenderer } from "../../../src/notation/render/svg/svg-tab-note-renderer";
 
+class TestElement {
+  closest = jest.fn();
+}
+
 function createMouseEvent(
   x: number,
   y: number,
@@ -56,7 +60,7 @@ function createRendererBackedNoteRenderer(noteElement: any) {
 
 function createHarness() {
   let activeVoiceNumber = 1;
-  let isPlaying = false;
+  let playbackState = "idle";
   const beatElement = {
     beat: { voiceBar: { voiceNumber: 1 } },
     boundingBox: { width: 40 },
@@ -77,10 +81,10 @@ function createHarness() {
       clearSelection: jest.fn(),
       restartPlayerFromBeat: jest.fn(),
       get playbackState() {
-        return isPlaying ? "playing" : "idle";
+        return playbackState;
       },
       get isPlaybackActive() {
-        return isPlaying;
+        return playbackState !== "idle";
       },
       get activeVoiceNumber() {
         return activeVoiceNumber;
@@ -88,6 +92,8 @@ function createHarness() {
       setActiveVoiceNumber(voiceNumber: number) {
         activeVoiceNumber = voiceNumber;
       },
+      editingEnabled: true,
+      insertBeatAfterSelected: jest.fn(),
     },
   } as any;
   const renderFunc = jest.fn();
@@ -108,24 +114,31 @@ function createHarness() {
       activeVoiceNumber = voiceNumber;
     },
     setIsPlaying: (value: boolean) => {
-      isPlaying = value;
+      playbackState = value ? "playing" : "idle";
+    },
+    setPlaybackState: (value: string) => {
+      playbackState = value;
     },
   };
 }
 
 describe("EditorMouseDefCallbacks", () => {
   let originalWindow: any;
+  let originalElement: any;
 
   beforeEach(() => {
     originalWindow = (globalThis as any).window;
+    originalElement = (globalThis as any).Element;
     (globalThis as any).window = {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     };
+    (globalThis as any).Element = TestElement;
   });
 
   afterEach(() => {
     (globalThis as any).window = originalWindow;
+    (globalThis as any).Element = originalElement;
     jest.restoreAllMocks();
   });
 
@@ -220,6 +233,120 @@ describe("EditorMouseDefCallbacks", () => {
     expect(renderFunc).toHaveBeenCalledTimes(2);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
   });
+
+  test("ordinary idle beat clicks are no-ops", () => {
+    const { callbacks, beatElement, notationComponent, renderFunc } =
+      createHarness();
+
+    callbacks.onBeatClick(createMouseEvent(20, 10), beatElement);
+
+    expect(
+      notationComponent.trackController.restartPlayerFromBeat
+    ).not.toHaveBeenCalled();
+    expect(renderFunc).not.toHaveBeenCalled();
+  });
+
+  test("paused playback clicks seek without selecting", () => {
+    const { callbacks, beatElement, notationComponent, setPlaybackState } =
+      createHarness();
+    setPlaybackState("paused");
+
+    callbacks.onBeatClick(createMouseEvent(20, 10), beatElement);
+
+    expect(
+      notationComponent.trackController.restartPlayerFromBeat
+    ).toHaveBeenCalledWith(beatElement.beat);
+  });
+
+  test("end-gap click inserts after the clicked bar's last active beat", () => {
+    const { callbacks, notationComponent, renderFunc } = createHarness();
+    const lastBeat = { uuid: 7 } as any;
+    const voiceBar = {
+      voiceNumber: 1,
+      beats: [lastBeat],
+      actualTicks: 4,
+      barTicks: 16,
+    };
+    lastBeat.voiceBar = voiceBar;
+    const beatElement = { beat: lastBeat } as any;
+    const gap = new TestElement();
+    gap.closest.mockReturnValue({});
+
+    callbacks.onBeatClick(
+      { ...createMouseEvent(10, 10), target: gap } as unknown as MouseEvent,
+      beatElement
+    );
+
+    expect(
+      notationComponent.trackController.insertBeatAfterSelected
+    ).toHaveBeenCalledWith(beatElement.beat);
+    expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
+  });
+
+  test.each(["playing", "paused"])(
+    "end-gap click during %s seeks the supplied last beat without insertion",
+    (playbackState) => {
+      const { callbacks, notationComponent, renderFunc, setPlaybackState } =
+        createHarness();
+      const lastBeat = { uuid: 7 } as any;
+      lastBeat.voiceBar = {
+        voiceNumber: 1,
+        beats: [lastBeat],
+        actualTicks: 4,
+        barTicks: 16,
+      };
+      const target = new TestElement();
+      target.closest.mockReturnValue({});
+      setPlaybackState(playbackState);
+
+      callbacks.onBeatClick(
+        { ...createMouseEvent(10, 10), target } as unknown as MouseEvent,
+        { beat: lastBeat } as any
+      );
+
+      expect(
+        notationComponent.trackController.restartPlayerFromBeat
+      ).toHaveBeenCalledWith(lastBeat);
+      expect(
+        notationComponent.trackController.insertBeatAfterSelected
+      ).not.toHaveBeenCalled();
+      expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+    }
+  );
+
+  test.each(["full", "overflow", "read-only", "voice", "button"])(
+    "ignores an ineligible end-gap click: %s",
+    (reason) => {
+      const { callbacks, notationComponent, setIsPlaying, renderFunc } =
+        createHarness();
+      const beat = { uuid: 7 } as any;
+      beat.voiceBar = {
+        voiceNumber: reason === "voice" ? 2 : 1,
+        beats: [beat],
+        actualTicks: reason === "full" ? 16 : reason === "overflow" ? 20 : 4,
+        barTicks: 16,
+      };
+      setIsPlaying(reason === "playback");
+      notationComponent.trackController.editingEnabled = reason !== "read-only";
+      const target = new TestElement();
+      target.closest.mockReturnValue({});
+      callbacks.onBeatClick(
+        {
+          ...createPointerEvent(10, 10),
+          button: reason === "button" ? 2 : 0,
+          target,
+        } as unknown as MouseEvent,
+        { beat } as any
+      );
+      expect(
+        notationComponent.trackController.insertBeatAfterSelected
+      ).not.toHaveBeenCalled();
+      expect(
+        notationComponent.trackController.restartPlayerFromBeat
+      ).not.toHaveBeenCalled();
+      expect(renderFunc).not.toHaveBeenCalled();
+    }
+  );
 
   test("playback prevents drag selection from starting or changing selection", () => {
     const {

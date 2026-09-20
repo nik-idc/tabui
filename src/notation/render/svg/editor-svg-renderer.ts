@@ -983,6 +983,14 @@ export class EditorSVGRenderer implements EditorRenderer {
       this._lastRenderedMasterBarEnd === masterBarRange.end &&
       !this.trackController.trackElement.hasPendingElementDiff()
     ) {
+      const visibleLines =
+        this.trackController.trackElement.trackLineElements.slice(
+          start,
+          end + 1
+        );
+      this._beatInteractionRenderer.render(
+        visibleLines.flatMap((l) => l.drawableNotationElements)
+      );
       return;
     }
 

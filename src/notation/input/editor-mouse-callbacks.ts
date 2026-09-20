@@ -241,20 +241,58 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this.onBeatPointerMove(event, noteElement.beatElement);
   }
 
-  /**
-   * Seeks active playback to a clicked beat without selecting it for editing.
-   */
-  public onBeatClick(event: MouseEvent, beatElement: BeatElement): void {
-    void event;
+  /** Seeks active playback to the supplied beat. */
+  private transitionPlaybackToBeat(beatElement: BeatElement): void {
     const tc = this.notationComponent.trackController;
-    if (tc.playbackState === PlaybackState.Idle) {
-      return;
-    }
-
     this._selectionDragController.reset();
     this.notationComponent.renderer.hideSelectionPreview();
     tc.restartPlayerFromBeat(beatElement.beat);
     this.renderFunc(RenderType.SelectionRefresh);
+  }
+
+  /** Inserts a beat when an eligible end-gap target receives a primary click. */
+  private insertBeatFromEndGap(
+    event: MouseEvent,
+    beatElement: BeatElement
+  ): void {
+    const tc = this.notationComponent.trackController;
+    if (event.button !== 0 || !tc.editingEnabled) {
+      return;
+    }
+
+    const voiceBar = beatElement.beat.voiceBar;
+    const lastBeat = voiceBar.beats[voiceBar.beats.length - 1];
+    if (
+      voiceBar.voiceNumber !== tc.activeVoiceNumber ||
+      voiceBar.actualTicks >= voiceBar.barTicks ||
+      lastBeat !== beatElement.beat
+    ) {
+      return;
+    }
+
+    tc.insertBeatAfterSelected(beatElement.beat);
+    this._focusViewport();
+    this._announce();
+    this.renderFunc(RenderType.Full);
+  }
+
+  /**
+   * Routes beat clicks to playback or end-gap insertion behavior.
+   */
+  public onBeatClick(event: MouseEvent, beatElement: BeatElement): void {
+    const tc = this.notationComponent.trackController;
+    const isEndGapTarget =
+      event.target instanceof Element &&
+      event.target.closest("[data-bar-end-gap-uuid]") !== null;
+
+    if (tc.playbackState !== PlaybackState.Idle) {
+      this.transitionPlaybackToBeat(beatElement);
+      return;
+    }
+
+    if (isEndGapTarget) {
+      this.insertBeatFromEndGap(event, beatElement);
+    }
   }
 
   /**

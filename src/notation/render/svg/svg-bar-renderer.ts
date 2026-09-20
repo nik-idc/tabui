@@ -140,6 +140,7 @@ export class SVGBarRenderer implements ElementRenderer {
         // Set id
         const id = `bar-staff-${barUUID}-${i}`;
         this._staffLinesSVG[i].setAttribute("id", id);
+        this._staffLinesSVG[i].setAttribute("pointer-events", "none");
 
         // Add element to root SVG element
         this._containerGroupSVG.appendChild(this._staffLinesSVG[i]);
@@ -326,6 +327,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this._repeatStartSVG = createSVGPath();
       this._repeatStartSVG.setAttribute("id", `bar-rep-start-${barUUID}`);
       this._repeatStartSVG.setAttribute("fill", "var(--tu-notation-ink)");
+      this._repeatStartSVG.setAttribute("pointer-events", "none");
 
       this._containerGroupSVG.appendChild(this._repeatStartSVG);
     }
@@ -336,6 +338,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this._repeatEndSVG = createSVGPath();
       this._repeatEndSVG.setAttribute("id", `bar-rep-end-${barUUID}`);
       this._repeatEndSVG.setAttribute("fill", "var(--tu-notation-ink)");
+      this._repeatEndSVG.setAttribute("pointer-events", "none");
 
       this._containerGroupSVG.appendChild(this._repeatEndSVG);
     }
@@ -349,6 +352,7 @@ export class SVGBarRenderer implements ElementRenderer {
         this._repeatCountSVG = createSVGText();
         this._repeatCountSVG.setAttribute("id", `bar-rep-count-${barUUID}`);
         this._repeatCountSVG.setAttribute("fill", "var(--tu-notation-text)");
+        this._repeatCountSVG.setAttribute("pointer-events", "none");
         this._repeatCountSVG.setAttribute("font-size", `${repeatFontSize}`);
         this._containerGroupSVG.appendChild(this._repeatCountSVG);
       }

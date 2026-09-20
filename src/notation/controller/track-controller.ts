@@ -714,11 +714,12 @@ export class TrackController {
     this._trackControllerEditor.insertBeatBeforeSelected();
   }
 
-  public insertBeatAfterSelected(): void {
+  /** Inserts after an explicit anchor, or after the current selection. */
+  public insertBeatAfterSelected(anchor?: Beat): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
-    this._trackControllerEditor.insertBeatAfterSelected();
+    this._trackControllerEditor.insertBeatAfterSelected(anchor);
   }
 
   public removeSelectedBeat(): void {
