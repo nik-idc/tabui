@@ -70,6 +70,10 @@ export class SVGBarRenderer implements ElementRenderer {
   private _repeatCountSVG?: SVGTextElement;
   /** Array of bar time signature text elements (beats count + duration) */
   private _timeSigTextsSVG?: SVGTextElement[];
+  /** Time signature SVG group. */
+  private _timeSigGroupSVG?: SVGGElement;
+  /** Supplied callbacks keyed by event type. */
+  private _attachedEvents = new Map<string, EventListener>();
 
   /**
    * Class for rendering a beat element using SVG
@@ -108,7 +112,41 @@ export class SVGBarRenderer implements ElementRenderer {
       return;
     }
 
+    for (const eventType of this._attachedEvents.keys()) {
+      this.detachMouseEvent(eventType as keyof SVGElementEventMap);
+    }
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  /** Attaches a supplied callback using the renderer's current bar element. */
+  public attachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K,
+    eventHandler: (event: SVGElementEventMap[K], barElement: BarElement) => void
+  ): void {
+    const group = this.ensureContainerGroup();
+    this.detachMouseEvent(eventType);
+    const listener = (event: Event) => {
+      const target = event.target;
+      const signature = this._timeSigGroupSVG;
+      if (!(target instanceof Element) || !signature?.contains(target)) {
+        return;
+      }
+      eventHandler(event as SVGElementEventMap[K], this.barElement);
+    };
+    group.addEventListener(eventType, listener);
+    this._attachedEvents.set(eventType, listener);
+  }
+
+  /** Detaches a previously supplied callback. */
+  public detachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K
+  ): void {
+    const listener = this._attachedEvents.get(eventType);
+    if (listener === undefined) {
+      return;
+    }
+    this._containerGroupSVG?.removeEventListener(eventType, listener);
+    this._attachedEvents.delete(eventType);
   }
 
   public updateElementReference(element: BarElement): void {
@@ -252,6 +290,8 @@ export class SVGBarRenderer implements ElementRenderer {
     const barUUID = this.barElement.bar.uuid;
     if (this._timeSigTextsSVG === undefined) {
       this._timeSigTextsSVG = [createSVGText(), createSVGText()];
+      this._timeSigGroupSVG = createSVGG();
+      this._timeSigGroupSVG.setAttribute("class", "tu-time-signature");
 
       // Set only-set-once attributes
       const fontSize = `${this.trackController.layoutDimensions.TIME_SIG_TEXT_SIZE}`;
@@ -267,8 +307,9 @@ export class SVGBarRenderer implements ElementRenderer {
       this._timeSigTextsSVG[1].setAttribute("id", `bar-sig-${barUUID}-1`);
 
       // Add element to root SVG element
-      this._containerGroupSVG.appendChild(this._timeSigTextsSVG[0]);
-      this._containerGroupSVG.appendChild(this._timeSigTextsSVG[1]);
+      this._timeSigGroupSVG.appendChild(this._timeSigTextsSVG[0]);
+      this._timeSigGroupSVG.appendChild(this._timeSigTextsSVG[1]);
+      this._containerGroupSVG.appendChild(this._timeSigGroupSVG);
     }
 
     const beatsX = `${this.barElement.timeSigBeatsTextCoords.x}`;
@@ -298,9 +339,9 @@ export class SVGBarRenderer implements ElementRenderer {
       return;
     }
 
-    this._containerGroupSVG.removeChild(this._timeSigTextsSVG[0]);
-    this._containerGroupSVG.removeChild(this._timeSigTextsSVG[1]);
+    this._timeSigGroupSVG?.parentNode?.removeChild(this._timeSigGroupSVG);
     this._timeSigTextsSVG = undefined;
+    this._timeSigGroupSVG = undefined;
   }
 
   /**

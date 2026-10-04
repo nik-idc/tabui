@@ -1571,3 +1571,23 @@
     fill: var(--tu-notation-selection-stroke);
   }
 }
+
+.tu-editor .tu-time-signature,
+.tu-editor .tu-tempo,
+.tu-editor .tu-tuplet {
+  cursor: pointer;
+}
+
+.tu-editor .tu-time-signature:hover text,
+.tu-editor .tu-tuplet:hover text,
+.tu-editor text.tu-tuplet:hover {
+  fill: var(--tu-notation-selection-stroke);
+}
+
+.tu-editor .tu-tuplet:hover path {
+  stroke: var(--tu-notation-selection-stroke);
+}
+
+.tu-editor .tu-tempo:hover text {
+  fill: var(--tu-notation-selection-stroke);
+}

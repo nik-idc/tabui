@@ -3,6 +3,9 @@ import { RenderType } from "../../../src/notation/input/render-type";
 import { SVGTabNoteRenderer } from "../../../src/notation/render/svg/svg-tab-note-renderer";
 import { SVGTechniqueLabelRenderer } from "../../../src/notation/render/svg/svg-technique-label-renderer";
 import { GuitarTechniqueType } from "../../../src/notation/model";
+import { SVGBarRenderer } from "../../../src/notation/render/svg/svg-bar-renderer";
+import { SVGTrackLineInfoRenderer } from "../../../src/notation/render/svg/svg-track-line-info-renderer";
+import { SVGTupletRenderer } from "../../../src/notation/render/svg/tuplet/svg-tuplet-renderer";
 
 class TestElement {
   closest = jest.fn();
@@ -69,6 +72,7 @@ function createHarness() {
     rect: { width: 40 },
   } as any;
   const noteElement = { beatElement } as any;
+  beatElement.noteElements = [noteElement];
   const renderer = {
     showSelectionPreview: jest.fn(),
     hideSelectionPreview: jest.fn(),
@@ -100,8 +104,17 @@ function createHarness() {
     },
   } as any;
   const renderFunc = jest.fn();
+  const uiComponent = {
+    sideComponent: {
+      measureControlsComponent: {
+        showTempoControls: jest.fn(),
+        showTimeSigControls: jest.fn(),
+      },
+      noteControlsComponent: { showTupletControls: jest.fn() },
+    },
+  } as any;
   const callbacks = new EditorMouseDefCallbacks(
-    {} as any,
+    uiComponent,
     notationComponent,
     renderFunc
   );
@@ -113,6 +126,7 @@ function createHarness() {
     renderer,
     notationComponent,
     renderFunc,
+    uiComponent,
     setActiveVoiceNumber: (voiceNumber: number) => {
       activeVoiceNumber = voiceNumber;
     },
@@ -126,6 +140,174 @@ function createHarness() {
 }
 
 describe("EditorMouseDefCallbacks", () => {
+  test.each([
+    "onTempoClicked",
+    "onTimeSignatureClicked",
+    "onTupletClick",
+  ] as const)("%s throws when the clicked context has no beats", (method) => {
+    const { callbacks, uiComponent, renderFunc } = createHarness();
+    expect(() =>
+      callbacks[method](createMouseEvent(0, 0), {
+        beatElements: [],
+      } as any)
+    ).toThrow("Clicked notation has no beat");
+    expect(renderFunc).not.toHaveBeenCalled();
+    expect(
+      uiComponent.sideComponent.measureControlsComponent.showTempoControls
+    ).not.toHaveBeenCalled();
+    expect(
+      uiComponent.sideComponent.measureControlsComponent.showTimeSigControls
+    ).not.toHaveBeenCalled();
+    expect(
+      uiComponent.sideComponent.noteControlsComponent.showTupletControls
+    ).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    "onTempoClicked",
+    "onTimeSignatureClicked",
+    "onTupletClick",
+  ] as const)("%s throws when the clicked beat has no note slots", (method) => {
+    const { callbacks, renderFunc } = createHarness();
+    expect(() =>
+      callbacks[method](createMouseEvent(0, 0), {
+        beatElements: [
+          { beat: { voiceBar: { voiceNumber: 1 } }, noteElements: [] },
+        ],
+      } as any)
+    ).toThrow("Clicked notation's beat has no note slots");
+    expect(renderFunc).not.toHaveBeenCalled();
+  });
+
+  test.each(["tempo", "timeSignature"] as const)(
+    "%s clicks select the clicked bar before opening the dialog",
+    (dialog) => {
+      const {
+        callbacks,
+        uiComponent,
+        notationComponent,
+        noteElement,
+        beatElement,
+        renderFunc,
+      } = createHarness();
+      const otherVoice = { beat: { voiceBar: { voiceNumber: 2 } } };
+      const callback =
+        dialog === "tempo"
+          ? callbacks.onTempoClicked.bind(callbacks)
+          : callbacks.onTimeSignatureClicked.bind(callbacks);
+      callback(createMouseEvent(0, 0), {
+        beatElements: [otherVoice, beatElement],
+      } as any);
+      expect(
+        notationComponent.trackController.selectNoteElement
+      ).toHaveBeenCalledWith(noteElement);
+      expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+      const controls = uiComponent.sideComponent.measureControlsComponent;
+      expect(
+        dialog === "tempo"
+          ? controls.showTempoControls
+          : controls.showTimeSigControls
+      ).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  test("complete tuplets replace old selection with their full group", () => {
+    const { callbacks, uiComponent, notationComponent, beatElement } =
+      createHarness();
+    const last = { noteElements: [{}] };
+    callbacks.onTupletClick(createMouseEvent(0, 0), {
+      beatElements: [beatElement, last],
+    } as any);
+    expect(
+      notationComponent.trackController.clearSelection
+    ).toHaveBeenCalledTimes(1);
+    expect(notationComponent.trackController.selectBeat.mock.calls).toEqual([
+      [beatElement],
+      [last],
+    ]);
+    expect(
+      uiComponent.sideComponent.noteControlsComponent.showTupletControls
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  test("incomplete tuplet labels select only their corresponding beat", () => {
+    const { callbacks, uiComponent, notationComponent, beatElement } =
+      createHarness();
+    const note = {};
+    const last = { noteElements: [note] };
+    callbacks.onTupletClick(
+      createMouseEvent(0, 0),
+      {
+        beatElements: [beatElement, last],
+      } as any,
+      1
+    );
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).toHaveBeenCalledWith(note);
+    expect(notationComponent.trackController.selectBeat).not.toHaveBeenCalled();
+    expect(
+      uiComponent.sideComponent.noteControlsComponent.showTupletControls
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["secondary", "playing", "view-only"])(
+    "notation dialogs reject %s clicks without changing selection",
+    (mode) => {
+      const {
+        callbacks,
+        uiComponent,
+        notationComponent,
+        beatElement,
+        setIsPlaying,
+        renderFunc,
+      } = createHarness();
+      if (mode === "playing") setIsPlaying(true);
+      if (mode === "view-only")
+        notationComponent.trackController.editingEnabled = false;
+      const event = { button: mode === "secondary" ? 2 : 0 } as MouseEvent;
+      callbacks.onTempoClicked(event, { beatElements: [beatElement] } as any);
+      callbacks.onTimeSignatureClicked(event, {
+        beatElements: [beatElement],
+      } as any);
+      callbacks.onTupletClick(event, { beatElements: [beatElement] } as any);
+      expect(
+        notationComponent.trackController.selectNoteElement
+      ).not.toHaveBeenCalled();
+      expect(
+        notationComponent.trackController.selectBeat
+      ).not.toHaveBeenCalled();
+      expect(renderFunc).not.toHaveBeenCalled();
+      expect(
+        uiComponent.sideComponent.measureControlsComponent.showTempoControls
+      ).not.toHaveBeenCalled();
+      expect(
+        uiComponent.sideComponent.measureControlsComponent.showTimeSigControls
+      ).not.toHaveBeenCalled();
+      expect(
+        uiComponent.sideComponent.noteControlsComponent.showTupletControls
+      ).not.toHaveBeenCalled();
+    }
+  );
+
+  test.each([SVGBarRenderer, SVGTrackLineInfoRenderer, SVGTupletRenderer])(
+    "notation dialog bindings reconcile and unbind without duplicates",
+    (Renderer) => {
+      const { callbacks } = createHarness();
+      const renderer = Object.create(Renderer.prototype);
+      renderer.attachMouseEvent = jest.fn();
+      renderer.detachMouseEvent = jest.fn();
+      callbacks.bind([renderer]);
+      callbacks.bind([renderer]);
+      expect(renderer.attachMouseEvent).toHaveBeenCalledTimes(1);
+      callbacks.bind([]);
+      expect(renderer.detachMouseEvent).toHaveBeenCalledWith("click");
+      callbacks.bind([renderer]);
+      callbacks.unbind();
+      expect(renderer.detachMouseEvent).toHaveBeenCalledTimes(2);
+    }
+  );
+
   test("shared labels remove only matching notes from their owning beat", () => {
     const { callbacks, notationComponent, renderFunc } = createHarness();
     const notes = [true, false, true].map((hasTechnique) => ({

@@ -11,12 +11,23 @@ import { SVGTechniqueRenderer } from "../render/svg/svg-technique-renderer";
 import type { TechniqueElement, TechniqueLabelElement } from "../controller";
 import { SVGTechniqueLabelRenderer } from "../render/svg/svg-technique-label-renderer";
 import { GuitarTechniqueType } from "../model";
+import type { BarElement, BarTupletGroupElement } from "../controller";
+import { SVGBarRenderer } from "../render/svg/svg-bar-renderer";
+import { SVGTrackLineInfoRenderer } from "../render/svg/svg-track-line-info-renderer";
+import { SVGTupletRenderer } from "../render/svg/tuplet/svg-tuplet-renderer";
 
 export interface EditorMouseCallbacks {
   readonly isSelectingBeats: boolean;
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
   onTechniqueClick(event: MouseEvent, techniqueElement: TechniqueElement): void;
   onLabelClick(event: MouseEvent, labelElement: TechniqueLabelElement): void;
+  onTempoClicked(event: MouseEvent, barElement: BarElement): void;
+  onTimeSignatureClicked(event: MouseEvent, barElement: BarElement): void;
+  onTupletClick(
+    event: MouseEvent,
+    element: BarTupletGroupElement,
+    beatIndex?: number
+  ): void;
   onNotePointerDown(event: MouseEvent, noteElement: NoteElement): void;
   onNotePointerEnter(event: PointerEvent, noteElement: NoteElement): void;
   onNotePointerMove(event: MouseEvent, noteElement: NoteElement): void;
@@ -170,6 +181,93 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     if (this.notationComponent.trackController.removeTechniques(notes, type)) {
       this.renderFunc(RenderType.Full);
     }
+  }
+
+  /**
+   * Selects the clicked notation's context before opening an edit dialog. Example:
+   * Selection is in bar 2 -> bar 1's tempo clicked -> need to move selection to bar 1
+   * @throws If the clicked context has no beat or note slot.
+   */
+  private selectDialogContext(beats: BeatElement[], range: boolean): void {
+    const tc = this.notationComponent.trackController;
+    const first = beats[0];
+    if (first === undefined) {
+      throw new Error("Clicked notation has no beat");
+    }
+    const noteSlot = first.noteElements[0];
+    if (noteSlot === undefined) {
+      throw new Error("Clicked notation's beat has no note slots");
+    }
+
+    this._focusViewport();
+    this.notationComponent.renderer.hideSelectionPreview();
+    const previousVoice = tc.activeVoiceNumber;
+    if (range) {
+      tc.clearSelection();
+      tc.selectBeat(first);
+      tc.selectBeat(beats[beats.length - 1]);
+    } else {
+      tc.selectNoteElement(noteSlot);
+    }
+
+    this.renderFunc(
+      previousVoice === tc.activeVoiceNumber
+        ? RenderType.SelectionRefresh
+        : RenderType.ActiveVoiceSelection
+    );
+  }
+
+  /** Opens the tempo dialog for the clicked bar. */
+  public onTempoClicked(event: MouseEvent, bar: BarElement): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit =
+      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
+    if (event.button !== 0 || !canEdit) {
+      return;
+    }
+    const voice = tc.activeVoiceNumber;
+    const beat =
+      bar.beatElements.find((e) => e.beat.voiceBar.voiceNumber === voice) ??
+      bar.beatElements[0];
+    this.selectDialogContext([beat], false);
+    this.uiComponent.sideComponent.measureControlsComponent.showTempoControls();
+  }
+
+  /** Opens the time-signature dialog for the clicked bar. */
+  public onTimeSignatureClicked(event: MouseEvent, bar: BarElement): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit =
+      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
+    if (event.button !== 0 || !canEdit) {
+      return;
+    }
+    const voice = tc.activeVoiceNumber;
+    const beat =
+      bar.beatElements.find(
+        (element) => element.beat.voiceBar.voiceNumber === voice
+      ) ?? bar.beatElements[0];
+    this.selectDialogContext([beat], false);
+    this.uiComponent.sideComponent.measureControlsComponent.showTimeSigControls();
+  }
+
+  /** Opens the tuplet dialog for a complete group or an incomplete beat label. */
+  public onTupletClick(
+    event: MouseEvent,
+    element: BarTupletGroupElement,
+    beatIndex?: number
+  ): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit =
+      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
+    if (event.button !== 0 || !canEdit) {
+      return;
+    }
+    const beats =
+      beatIndex === undefined
+        ? element.beatElements
+        : element.beatElements.slice(beatIndex, beatIndex + 1);
+    this.selectDialogContext(beats, beatIndex === undefined);
+    this.uiComponent.sideComponent.noteControlsComponent.showTupletControls();
   }
 
   /**
@@ -448,7 +546,28 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         continue;
       }
 
-      if (renderer instanceof SVGTechniqueRenderer) {
+      if (renderer instanceof SVGBarRenderer) {
+        renderer.attachMouseEvent(
+          "click",
+          this.onTimeSignatureClicked.bind(this)
+        );
+
+        this._boundRenderers.set(renderer, () =>
+          renderer.detachMouseEvent("click")
+        );
+      } else if (renderer instanceof SVGTrackLineInfoRenderer) {
+        renderer.attachMouseEvent("click", this.onTempoClicked.bind(this));
+
+        this._boundRenderers.set(renderer, () =>
+          renderer.detachMouseEvent("click")
+        );
+      } else if (renderer instanceof SVGTupletRenderer) {
+        renderer.attachMouseEvent("click", this.onTupletClick.bind(this));
+
+        this._boundRenderers.set(renderer, () =>
+          renderer.detachMouseEvent("click")
+        );
+      } else if (renderer instanceof SVGTechniqueRenderer) {
         renderer.attachMouseEvent("click", this.onTechniqueClick.bind(this));
 
         this._boundRenderers.set(renderer, () => {
