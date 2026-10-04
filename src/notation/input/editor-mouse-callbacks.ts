@@ -7,10 +7,13 @@ import { UIComponent } from "../../ui";
 import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
 import { PlaybackState } from "../../player";
+import { SVGTechniqueRenderer } from "../render/svg/svg-technique-renderer";
+import type { TechniqueElement } from "../controller";
 
 export interface EditorMouseCallbacks {
   readonly isSelectingBeats: boolean;
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
+  onTechniqueClick(event: MouseEvent, techniqueElement: TechniqueElement): void;
   onNotePointerDown(event: MouseEvent, noteElement: NoteElement): void;
   onNotePointerEnter(event: PointerEvent, noteElement: NoteElement): void;
   onNotePointerMove(event: MouseEvent, noteElement: NoteElement): void;
@@ -37,8 +40,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private _globalPointerCompletionBound: boolean = false;
   /** True once delegated beat interaction handlers are attached. */
   private _beatInteractionBound: boolean = false;
-  /** Note renderers that already have note pointer handlers attached. */
-  private _boundNoteRenderers: Set<SVGTabNoteRenderer>;
+  /** Bound renderers and cleanup for this module's attached handlers. */
+  private _boundRenderers = new Map<ElementRenderer, () => void>();
   /** Bound global pointer completion listener reference. */
   private _boundOnWindowPointerUp?: (event: MouseEvent) => void;
   /** Selection drag state machine. */
@@ -62,7 +65,6 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this._announce = announce;
     this._focusViewport = focusViewport;
 
-    this._boundNoteRenderers = new Set();
     this._selectionDragController = new SelectionDragController();
   }
 
@@ -83,21 +85,16 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     return !("pointerType" in event) && event.button === 0;
   }
 
-  private reconcileNoteRenderers(activeRenderers: ElementRenderer[]): void {
-    const activeNoteRenderers = new Set<SVGTabNoteRenderer>();
-    for (const renderer of activeRenderers) {
-      if (renderer instanceof SVGTabNoteRenderer) {
-        activeNoteRenderers.add(renderer);
-      }
-    }
-
-    for (const renderer of this._boundNoteRenderers) {
-      if (activeNoteRenderers.has(renderer)) {
+  /** Releases callbacks for renderers no longer mounted. */
+  private reconcileBoundRenderers(activeRenderers: ElementRenderer[]): void {
+    const active = new Set(activeRenderers);
+    for (const [renderer, unbind] of this._boundRenderers) {
+      if (active.has(renderer)) {
         continue;
       }
 
-      this.detachNoteRenderer(renderer);
-      this._boundNoteRenderers.delete(renderer);
+      unbind();
+      this._boundRenderers.delete(renderer);
     }
   }
 
@@ -133,6 +130,24 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     if (tc.selectionCursor !== undefined) {
       this._announce();
     }
+  }
+
+  /** Removes only the clicked inline technique, preserving selection. */
+  public onTechniqueClick(event: MouseEvent, element: TechniqueElement): void {
+    const note = element.noteElement.note;
+    if (event.button !== 0 || note === null) {
+      return;
+    }
+
+    const changed = this.notationComponent.trackController.removeTechnique(
+      note,
+      element.technique.type
+    );
+    if (!changed) {
+      return;
+    }
+
+    this.renderFunc(RenderType.Full);
   }
 
   /**
@@ -374,7 +389,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Binds one-time global/delegated handlers and note renderer handlers.
    */
   public bind(activeRenderers: ElementRenderer[]): void {
-    this.reconcileNoteRenderers(activeRenderers);
+    this.reconcileBoundRenderers(activeRenderers);
 
     if (!this._globalPointerCompletionBound) {
       this._boundOnWindowPointerUp = this.onWindowPointerUp.bind(this);
@@ -407,11 +422,17 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     for (const renderer of activeRenderers) {
-      if (renderer instanceof SVGTabNoteRenderer) {
-        if (this._boundNoteRenderers.has(renderer)) {
-          continue;
-        }
+      if (this._boundRenderers.has(renderer)) {
+        continue;
+      }
 
+      if (renderer instanceof SVGTechniqueRenderer) {
+        renderer.attachMouseEvent("click", this.onTechniqueClick.bind(this));
+
+        this._boundRenderers.set(renderer, () => {
+          renderer.detachMouseEvent("click");
+        });
+      } else if (renderer instanceof SVGTabNoteRenderer) {
         renderer.attachMouseEvent(
           "mousedown",
           this.onNotePointerDown.bind(this)
@@ -429,7 +450,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
           "pointerleave",
           this.onNotePointerLeave.bind(this)
         );
-        this._boundNoteRenderers.add(renderer);
+
+        this._boundRenderers.set(renderer, () => {
+          this.detachNoteRenderer(renderer);
+        });
       }
     }
   }
@@ -452,10 +476,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       this._beatInteractionBound = false;
     }
 
-    for (const renderer of this._boundNoteRenderers) {
-      this.detachNoteRenderer(renderer);
+    for (const unbind of this._boundRenderers.values()) {
+      unbind();
     }
-    this._boundNoteRenderers.clear();
+
+    this._boundRenderers.clear();
     this._selectionDragController.reset();
   }
 

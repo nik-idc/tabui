@@ -347,7 +347,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
   ): number {
     if (nextNoteElement !== null) {
       return (
-        nextNoteElement.textRectGlobal.left - this.noteElement.globalCoords.x
+        nextNoteElement.selectionRect.left - this.noteElement.globalCoords.x
       );
     }
 
@@ -389,7 +389,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const upCoef = nextNote.fret >= note.fret ? 1 : -1;
 
     const slideHeight = this.noteElement.boundingBox.height / 3;
-    const slideStartX = this._startPoint.x;
+    const slideStartX =
+      this.noteElement.selectionRect.right - this.noteElement.globalCoords.x;
     const slideStartY = this._startPoint.y + (slideHeight / 2) * upCoef;
     const nextNoteElement = this.getNextNoteElement(nextBeat);
     const slideEndX = this.getTransitionEndX(nextNoteElement);
@@ -422,7 +423,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
     }
     const nextNoteElement = this.getNextNoteElement(nextBeat);
 
-    const legatoStartX = this._startPoint.x;
+    const legatoStartX =
+      this.noteElement.selectionRect.right - this.noteElement.globalCoords.x;
     const legatoStartY = this._startPoint.y;
     const legatoEndX = this.getTransitionEndX(nextNoteElement);
     const legatoWidth = legatoEndX - legatoStartX;
@@ -443,11 +445,13 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc natural harmonic path
    */
   private createNaturalHarmonicPath(): void {
-    const nhWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
-    const harmonicGap = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 4;
-    const nhStartX = this.noteElement.textRect.left - nhWidth - harmonicGap;
+    const nhWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 0.8;
+    const nhStartX =
+      this.noteElement.selectionRect.left -
+      this.noteElement.globalCoords.x -
+      nhWidth;
     const nhStartY = this._startPoint.y;
-    const nhHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    const nhHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 0.8;
     const nhLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
       nhStartX,
       nhStartY,
@@ -465,11 +469,13 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc pinch harmonic path
    */
   private createPinchHarmonicPath(): void {
-    const phWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
-    const harmonicGap = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 4;
-    const phStartX = this.noteElement.textRect.left - phWidth - harmonicGap;
+    const phWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 0.8;
+    const phStartX =
+      this.noteElement.selectionRect.left -
+      this.noteElement.globalCoords.x -
+      phWidth;
     const phStartY = this._startPoint.y;
-    const phHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    const phHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 0.8;
     const phLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
       phStartX,
       phStartY,

@@ -1545,3 +1545,17 @@
   background: var(--tu-primary-color);
   color: var(--tu-font-color);
 }
+.tu-editor .tu-inline-technique {
+  cursor: pointer;
+
+  &:hover .tu-technique-visible-path[stroke]:not([stroke="none"]) {
+    stroke: var(--tu-notation-selection-stroke);
+  }
+
+  &:hover
+    .tu-technique-visible-path[fill]:not([fill="none"]):not(
+      [fill="var(--tu-notation-note-background)"]
+    ) {
+    fill: var(--tu-notation-selection-stroke);
+  }
+}

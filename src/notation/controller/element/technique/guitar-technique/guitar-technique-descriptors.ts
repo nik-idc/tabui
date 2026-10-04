@@ -154,7 +154,9 @@ export class GuitarTechniqueDescriptors {
         `L ${line4X} ${line4Y} Z`,
       attrs: {
         ...this.DEFAULT_STROKE_ATTRS,
-        fill: fill ? "var(--tu-notation-ink)" : "none",
+        fill: fill
+          ? "var(--tu-notation-ink)"
+          : "var(--tu-notation-note-background)",
       },
     };
   }

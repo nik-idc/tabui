@@ -23,6 +23,7 @@ import { BendTechniqueOptions } from "../model/bend-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
 import { ScoreLayoutPlanner } from "./layout/score-layout-plan";
 import { TabUILayoutMode } from "../../config/tabui-config";
+import type { Note } from "../model";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -634,6 +635,15 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.setTechnique(type, bendOptions);
+  }
+
+  /** Removes a note's technique as one guarded, undoable edit. */
+  public removeTechnique(note: Note, type: TechniqueType): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+
+    return this._trackControllerEditor.removeTechnique(note, type);
   }
 
   /**

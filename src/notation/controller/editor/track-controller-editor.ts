@@ -51,6 +51,7 @@ import {
   Command,
   AffectedModel,
 } from "./command";
+import type { Note } from "../../model";
 
 /**
  * Class responsible for managing editing & element state
@@ -690,6 +691,16 @@ export class TrackControllerEditor {
     this.executeCommand(
       new SetTechniqueCommand(selectionNotes, type, bendOptions)
     );
+  }
+
+  /** Removes a note's technique without changing selection. */
+  public removeTechnique(note: Note, type: TechniqueType): boolean {
+    if (!this.editingEnabled || !note.hasTechnique(type)) {
+      return false;
+    }
+
+    this.executeCommand(new SetTechniqueCommand([note], type));
+    return true;
   }
 
   /**
