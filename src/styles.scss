@@ -1574,8 +1574,19 @@
 
 .tu-editor .tu-time-signature,
 .tu-editor .tu-tempo,
-.tu-editor .tu-tuplet {
+.tu-editor .tu-tuplet,
+.tu-editor .tu-repeat-start,
+.tu-editor .tu-repeat-end {
   cursor: pointer;
+}
+
+.tu-editor .tu-repeat-start:hover {
+  fill: var(--tu-notation-selection-stroke);
+}
+
+.tu-editor .tu-repeat-end:hover path,
+.tu-editor .tu-repeat-end:hover text {
+  fill: var(--tu-notation-selection-stroke);
 }
 
 .tu-editor .tu-time-signature:hover text,

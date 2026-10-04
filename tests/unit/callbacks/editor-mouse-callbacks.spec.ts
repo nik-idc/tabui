@@ -2,7 +2,10 @@ import { EditorMouseDefCallbacks } from "../../../src/notation/input/editor-mous
 import { RenderType } from "../../../src/notation/input/render-type";
 import { SVGTabNoteRenderer } from "../../../src/notation/render/svg/svg-tab-note-renderer";
 import { SVGTechniqueLabelRenderer } from "../../../src/notation/render/svg/svg-technique-label-renderer";
-import { GuitarTechniqueType } from "../../../src/notation/model";
+import {
+  BarRepeatStatus,
+  GuitarTechniqueType,
+} from "../../../src/notation/model";
 import { SVGBarRenderer } from "../../../src/notation/render/svg/svg-bar-renderer";
 import { SVGTrackLineInfoRenderer } from "../../../src/notation/render/svg/svg-track-line-info-renderer";
 import { SVGTupletRenderer } from "../../../src/notation/render/svg/tuplet/svg-tuplet-renderer";
@@ -101,6 +104,7 @@ function createHarness() {
       editingEnabled: true,
       insertBeatAfterSelected: jest.fn(),
       removeTechniques: jest.fn().mockReturnValue(true),
+      setRepeatStatus: jest.fn().mockReturnValue(true),
     },
   } as any;
   const renderFunc = jest.fn();
@@ -109,6 +113,7 @@ function createHarness() {
       measureControlsComponent: {
         showTempoControls: jest.fn(),
         showTimeSigControls: jest.fn(),
+        showRepeatCountControls: jest.fn(),
       },
       noteControlsComponent: { showTupletControls: jest.fn() },
     },
@@ -140,9 +145,53 @@ function createHarness() {
 }
 
 describe("EditorMouseDefCallbacks", () => {
+  test("repeat-start clicks remove the clicked mark and preserve selection", () => {
+    const { callbacks, notationComponent, renderFunc } = createHarness();
+    const bar = { bar: {} } as any;
+    callbacks.onRepeatStartClicked(createMouseEvent(0, 0), bar);
+    expect(
+      notationComponent.trackController.setRepeatStatus
+    ).toHaveBeenCalledWith(bar.bar, {
+      status: BarRepeatStatus.Start,
+      enabled: false,
+    });
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).not.toHaveBeenCalled();
+    expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
+    renderFunc.mockClear();
+    notationComponent.trackController.setRepeatStatus.mockReturnValue(false);
+    callbacks.onRepeatStartClicked(createMouseEvent(0, 0), bar);
+    callbacks.onRepeatStartClicked({ button: 2 } as MouseEvent, bar);
+    expect(
+      notationComponent.trackController.setRepeatStatus
+    ).toHaveBeenCalledTimes(2);
+    expect(renderFunc).not.toHaveBeenCalled();
+  });
+
+  test("repeat-end clicks select the clicked bar before opening its dialog", () => {
+    const {
+      callbacks,
+      beatElement,
+      noteElement,
+      uiComponent,
+      notationComponent,
+    } = createHarness();
+    callbacks.onRepeatEndClicked(createMouseEvent(0, 0), {
+      beatElements: [beatElement],
+    } as any);
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).toHaveBeenCalledWith(noteElement);
+    expect(
+      uiComponent.sideComponent.measureControlsComponent.showRepeatCountControls
+    ).toHaveBeenCalledTimes(1);
+  });
+
   test.each([
     "onTempoClicked",
     "onTimeSignatureClicked",
+    "onRepeatEndClicked",
     "onTupletClick",
   ] as const)("%s throws when the clicked context has no beats", (method) => {
     const { callbacks, uiComponent, renderFunc } = createHarness();
@@ -166,6 +215,7 @@ describe("EditorMouseDefCallbacks", () => {
   test.each([
     "onTempoClicked",
     "onTimeSignatureClicked",
+    "onRepeatEndClicked",
     "onTupletClick",
   ] as const)("%s throws when the clicked beat has no note slots", (method) => {
     const { callbacks, renderFunc } = createHarness();
@@ -270,6 +320,9 @@ describe("EditorMouseDefCallbacks", () => {
       callbacks.onTimeSignatureClicked(event, {
         beatElements: [beatElement],
       } as any);
+      callbacks.onRepeatEndClicked(event, {
+        beatElements: [beatElement],
+      } as any);
       callbacks.onTupletClick(event, { beatElements: [beatElement] } as any);
       expect(
         notationComponent.trackController.selectNoteElement
@@ -286,6 +339,10 @@ describe("EditorMouseDefCallbacks", () => {
       ).not.toHaveBeenCalled();
       expect(
         uiComponent.sideComponent.noteControlsComponent.showTupletControls
+      ).not.toHaveBeenCalled();
+      expect(
+        uiComponent.sideComponent.measureControlsComponent
+          .showRepeatCountControls
       ).not.toHaveBeenCalled();
     }
   );

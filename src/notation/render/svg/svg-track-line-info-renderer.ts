@@ -95,25 +95,34 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
   ): void {
     const group = this.ensureContainerGroup();
     this.detachMouseEvent(eventType);
-    const listener = (event: Event) => {
-      const target = event.target;
-      if (!(target instanceof Element)) {
-        return;
-      }
-      for (const [barElement, tempo] of this._temposSVG) {
-        if (tempo.group.contains(target)) {
-          const currentBar = [
-            ...this.trackLineInfoElement.barTempoRectsMap.keys(),
-          ].find((bar) => bar.bar.uuid === barElement.bar.uuid);
-          if (currentBar !== undefined) {
-            eventHandler(event as SVGElementEventMap[K], currentBar);
-          }
-          return;
-        }
-      }
-    };
+    const listener = (this.dispatchMouseEvent<K>).bind(this, eventHandler);
     group.addEventListener(eventType, listener);
     this._attachedEvents.set(eventType, listener);
+  }
+
+  /** Dispatches an event using the renderer's current tempo bar elements. */
+  private dispatchMouseEvent<K extends keyof SVGElementEventMap>(
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      barElement: BarElement
+    ) => void,
+    event: Event
+  ): void {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    for (const [barElement, tempo] of this._temposSVG) {
+      if (tempo.group.contains(target)) {
+        for (const currentBar of this.trackLineInfoElement.barTempoRectsMap.keys()) {
+          if (currentBar.bar.uuid === barElement.bar.uuid) {
+            eventHandler(event as SVGElementEventMap[K], currentBar);
+            break;
+          }
+        }
+        return;
+      }
+    }
   }
 
   /** Detaches a previously supplied callback. */

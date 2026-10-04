@@ -66,6 +66,8 @@ export class SVGBarRenderer implements ElementRenderer {
   /** Bar repeat sign SVG paths */
   private _repeatStartSVG?: SVGPathElement;
   private _repeatEndSVG?: SVGPathElement;
+  /** Repeat end SVG group */
+  private _repeatEndGroupSVG?: SVGGElement;
   /** Repeat count SVG text */
   private _repeatCountSVG?: SVGTextElement;
   /** Array of bar time signature text elements (beats count + duration) */
@@ -121,20 +123,57 @@ export class SVGBarRenderer implements ElementRenderer {
   /** Attaches a supplied callback using the renderer's current bar element. */
   public attachMouseEvent<K extends keyof SVGElementEventMap>(
     eventType: K,
-    eventHandler: (event: SVGElementEventMap[K], barElement: BarElement) => void
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      barElement: BarElement,
+      target: "timeSignature" | "repeatStart" | "repeatEnd"
+    ) => void
   ): void {
     const group = this.ensureContainerGroup();
     this.detachMouseEvent(eventType);
-    const listener = (event: Event) => {
-      const target = event.target;
-      const signature = this._timeSigGroupSVG;
-      if (!(target instanceof Element) || !signature?.contains(target)) {
-        return;
-      }
-      eventHandler(event as SVGElementEventMap[K], this.barElement);
-    };
+    const listener = (this.dispatchMouseEvent<K>).bind(this, eventHandler);
     group.addEventListener(eventType, listener);
     this._attachedEvents.set(eventType, listener);
+  }
+
+  /** Dispatches an event using the renderer's current bar and SVG elements. */
+  private dispatchMouseEvent<K extends keyof SVGElementEventMap>(
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      barElement: BarElement,
+      target: "timeSignature" | "repeatStart" | "repeatEnd"
+    ) => void,
+    event: Event
+  ): void {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (target === this._repeatStartSVG) {
+      eventHandler(
+        event as SVGElementEventMap[K],
+        this.barElement,
+        "repeatStart"
+      );
+      return;
+    }
+    if (this._repeatEndGroupSVG?.contains(target)) {
+      eventHandler(
+        event as SVGElementEventMap[K],
+        this.barElement,
+        "repeatEnd"
+      );
+      return;
+    }
+    const signature = this._timeSigGroupSVG;
+    if (!signature?.contains(target)) {
+      return;
+    }
+    eventHandler(
+      event as SVGElementEventMap[K],
+      this.barElement,
+      "timeSignature"
+    );
   }
 
   /** Detaches a previously supplied callback. */
@@ -367,8 +406,8 @@ export class SVGBarRenderer implements ElementRenderer {
     ) {
       this._repeatStartSVG = createSVGPath();
       this._repeatStartSVG.setAttribute("id", `bar-rep-start-${barUUID}`);
+      this._repeatStartSVG.setAttribute("class", "tu-repeat-start");
       this._repeatStartSVG.setAttribute("fill", "var(--tu-notation-ink)");
-      this._repeatStartSVG.setAttribute("pointer-events", "none");
 
       this._containerGroupSVG.appendChild(this._repeatStartSVG);
     }
@@ -379,9 +418,11 @@ export class SVGBarRenderer implements ElementRenderer {
       this._repeatEndSVG = createSVGPath();
       this._repeatEndSVG.setAttribute("id", `bar-rep-end-${barUUID}`);
       this._repeatEndSVG.setAttribute("fill", "var(--tu-notation-ink)");
-      this._repeatEndSVG.setAttribute("pointer-events", "none");
+      this._repeatEndGroupSVG = createSVGG();
+      this._repeatEndGroupSVG.setAttribute("class", "tu-repeat-end");
+      this._repeatEndGroupSVG.appendChild(this._repeatEndSVG);
 
-      this._containerGroupSVG.appendChild(this._repeatEndSVG);
+      this._containerGroupSVG.appendChild(this._repeatEndGroupSVG);
     }
 
     const repeatCount = this.barElement.bar.masterBar.repeatCount;
@@ -393,9 +434,11 @@ export class SVGBarRenderer implements ElementRenderer {
         this._repeatCountSVG = createSVGText();
         this._repeatCountSVG.setAttribute("id", `bar-rep-count-${barUUID}`);
         this._repeatCountSVG.setAttribute("fill", "var(--tu-notation-text)");
-        this._repeatCountSVG.setAttribute("pointer-events", "none");
         this._repeatCountSVG.setAttribute("font-size", `${repeatFontSize}`);
-        this._containerGroupSVG.appendChild(this._repeatCountSVG);
+        if (this._repeatEndGroupSVG === undefined) {
+          throw Error("Repeat end group SVG undefined for repeat count");
+        }
+        this._repeatEndGroupSVG.appendChild(this._repeatCountSVG);
       }
 
       const barGlobalCoords = this.barElement.globalCoords;
@@ -435,12 +478,22 @@ export class SVGBarRenderer implements ElementRenderer {
       this._repeatStartSVG = undefined;
     }
     if (this._repeatEndSVG !== undefined) {
-      this._containerGroupSVG.removeChild(this._repeatEndSVG);
+      if (this._repeatEndGroupSVG === undefined) {
+        throw Error("Repeat end group SVG undefined for repeat path");
+      }
+      this._repeatEndGroupSVG.removeChild(this._repeatEndSVG);
       this._repeatEndSVG = undefined;
     }
     if (this._repeatCountSVG !== undefined) {
-      this._containerGroupSVG.removeChild(this._repeatCountSVG);
+      if (this._repeatEndGroupSVG === undefined) {
+        throw Error("Repeat end group SVG undefined for repeat count");
+      }
+      this._repeatEndGroupSVG.removeChild(this._repeatCountSVG);
       this._repeatCountSVG = undefined;
+    }
+    if (this._repeatEndGroupSVG !== undefined) {
+      this._containerGroupSVG.removeChild(this._repeatEndGroupSVG);
+      this._repeatEndGroupSVG = undefined;
     }
   }
 

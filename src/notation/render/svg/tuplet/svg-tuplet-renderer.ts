@@ -87,26 +87,39 @@ export class SVGTupletRenderer implements ElementRenderer {
   ): void {
     const group = this.ensureContainerGroup();
     this.detachMouseEvent(eventType);
-    const listener = (event: Event) => {
-      const target = event.target;
-      if (!(target instanceof Element)) {
-        return;
-      }
-      const targetGroup = target.closest(".tu-tuplet");
-      if (targetGroup === null || !group.contains(targetGroup)) {
-        return;
-      }
-      const beatAttribute = targetGroup.getAttribute("data-tuplet-beat-index");
-      const beatIndex =
-        beatAttribute === null ? undefined : Number(beatAttribute);
-      eventHandler(
-        event as SVGElementEventMap[K],
-        this.tupletElement,
-        Number.isNaN(beatIndex) ? undefined : beatIndex
-      );
-    };
+    const listener = (this.dispatchMouseEvent<K>).bind(this, eventHandler);
     group.addEventListener(eventType, listener);
     this._attachedEvents.set(eventType, listener);
+  }
+
+  /** Dispatches an event using the renderer's current tuplet group. */
+  private dispatchMouseEvent<K extends keyof SVGElementEventMap>(
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      tupletElement: BarTupletGroupElement,
+      beatIndex?: number
+    ) => void,
+    event: Event
+  ): void {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const targetGroup = target.closest(".tu-tuplet");
+    if (
+      targetGroup === null ||
+      !this._containerGroupSVG?.contains(targetGroup)
+    ) {
+      return;
+    }
+    const beatAttribute = targetGroup.getAttribute("data-tuplet-beat-index");
+    const beatIndex =
+      beatAttribute === null ? undefined : Number(beatAttribute);
+    eventHandler(
+      event as SVGElementEventMap[K],
+      this.tupletElement,
+      Number.isNaN(beatIndex) ? undefined : beatIndex
+    );
   }
 
   /** Detaches a previously supplied callback. */

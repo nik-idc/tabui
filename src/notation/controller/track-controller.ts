@@ -622,6 +622,14 @@ export class TrackController {
     this._trackControllerEditor.setSelectedBarRepeatStatus(change);
   }
 
+  /** Sets a bar's repeat status without changing selection. */
+  public setRepeatStatus(bar: Bar, change: BarRepeatStatusChange): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setRepeatStatus(bar, change);
+  }
+
   /**
    * Set technique on the selected note/beats
    * @param type Technique type

@@ -10,7 +10,7 @@ import { PlaybackState } from "../../player";
 import { SVGTechniqueRenderer } from "../render/svg/svg-technique-renderer";
 import type { TechniqueElement, TechniqueLabelElement } from "../controller";
 import { SVGTechniqueLabelRenderer } from "../render/svg/svg-technique-label-renderer";
-import { GuitarTechniqueType } from "../model";
+import { BarRepeatStatus, GuitarTechniqueType } from "../model";
 import type { BarElement, BarTupletGroupElement } from "../controller";
 import { SVGBarRenderer } from "../render/svg/svg-bar-renderer";
 import { SVGTrackLineInfoRenderer } from "../render/svg/svg-track-line-info-renderer";
@@ -23,6 +23,8 @@ export interface EditorMouseCallbacks {
   onLabelClick(event: MouseEvent, labelElement: TechniqueLabelElement): void;
   onTempoClicked(event: MouseEvent, barElement: BarElement): void;
   onTimeSignatureClicked(event: MouseEvent, barElement: BarElement): void;
+  onRepeatStartClicked(event: MouseEvent, barElement: BarElement): void;
+  onRepeatEndClicked(event: MouseEvent, barElement: BarElement): void;
   onTupletClick(
     event: MouseEvent,
     element: BarTupletGroupElement,
@@ -175,9 +177,12 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       throw new Error("Label attached to a rest beat");
     }
 
-    const notes = element.beatElement.beat.notes.filter((n) =>
-      n.hasTechnique(type)
-    );
+    const notes = [];
+    for (const note of element.beatElement.beat.notes) {
+      if (note.hasTechnique(type)) {
+        notes.push(note);
+      }
+    }
     if (this.notationComponent.trackController.removeTechniques(notes, type)) {
       this.renderFunc(RenderType.Full);
     }
@@ -217,6 +222,32 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     );
   }
 
+  /** Finds the clicked bar's first beat in the active voice, if present. */
+  private getBarDialogBeat(bar: BarElement): BeatElement {
+    const voice = this.notationComponent.trackController.activeVoiceNumber;
+    for (const element of bar.beatElements) {
+      if (element.beat.voiceBar.voiceNumber === voice) {
+        return element;
+      }
+    }
+    return bar.beatElements[0];
+  }
+
+  /** Routes clicks on the bar's interactive notation. */
+  private onBarClicked(
+    event: MouseEvent,
+    bar: BarElement,
+    target: "timeSignature" | "repeatStart" | "repeatEnd"
+  ): void {
+    if (target === "repeatStart") {
+      this.onRepeatStartClicked(event, bar);
+    } else if (target === "repeatEnd") {
+      this.onRepeatEndClicked(event, bar);
+    } else {
+      this.onTimeSignatureClicked(event, bar);
+    }
+  }
+
   /** Opens the tempo dialog for the clicked bar. */
   public onTempoClicked(event: MouseEvent, bar: BarElement): void {
     const tc = this.notationComponent.trackController;
@@ -225,10 +256,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     if (event.button !== 0 || !canEdit) {
       return;
     }
-    const voice = tc.activeVoiceNumber;
-    const beat =
-      bar.beatElements.find((e) => e.beat.voiceBar.voiceNumber === voice) ??
-      bar.beatElements[0];
+    const beat = this.getBarDialogBeat(bar);
     this.selectDialogContext([beat], false);
     this.uiComponent.sideComponent.measureControlsComponent.showTempoControls();
   }
@@ -241,13 +269,41 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     if (event.button !== 0 || !canEdit) {
       return;
     }
-    const voice = tc.activeVoiceNumber;
-    const beat =
-      bar.beatElements.find(
-        (element) => element.beat.voiceBar.voiceNumber === voice
-      ) ?? bar.beatElements[0];
+    const beat = this.getBarDialogBeat(bar);
     this.selectDialogContext([beat], false);
     this.uiComponent.sideComponent.measureControlsComponent.showTimeSigControls();
+  }
+
+  /** Removes the clicked repeat start without changing selection. */
+  public onRepeatStartClicked(event: MouseEvent, bar: BarElement): void {
+    if (event.button !== 0) {
+      return;
+    }
+    const changed = this.notationComponent.trackController.setRepeatStatus(
+      bar.bar,
+      {
+        status: BarRepeatStatus.Start,
+        enabled: false,
+      }
+    );
+    if (!changed) {
+      return;
+    }
+
+    this.renderFunc(RenderType.Full);
+  }
+
+  /** Opens the repeat-count dialog for the clicked bar. */
+  public onRepeatEndClicked(event: MouseEvent, bar: BarElement): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit =
+      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
+    if (event.button !== 0 || !canEdit) {
+      return;
+    }
+    const beat = this.getBarDialogBeat(bar);
+    this.selectDialogContext([beat], false);
+    this.uiComponent.sideComponent.measureControlsComponent.showRepeatCountControls();
   }
 
   /** Opens the tuplet dialog for a complete group or an incomplete beat label. */
@@ -547,32 +603,33 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       }
 
       if (renderer instanceof SVGBarRenderer) {
-        renderer.attachMouseEvent(
-          "click",
-          this.onTimeSignatureClicked.bind(this)
-        );
+        renderer.attachMouseEvent("click", this.onBarClicked.bind(this));
 
-        this._boundRenderers.set(renderer, () =>
-          renderer.detachMouseEvent("click")
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
         );
       } else if (renderer instanceof SVGTrackLineInfoRenderer) {
         renderer.attachMouseEvent("click", this.onTempoClicked.bind(this));
 
-        this._boundRenderers.set(renderer, () =>
-          renderer.detachMouseEvent("click")
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
         );
       } else if (renderer instanceof SVGTupletRenderer) {
         renderer.attachMouseEvent("click", this.onTupletClick.bind(this));
 
-        this._boundRenderers.set(renderer, () =>
-          renderer.detachMouseEvent("click")
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
         );
       } else if (renderer instanceof SVGTechniqueRenderer) {
         renderer.attachMouseEvent("click", this.onTechniqueClick.bind(this));
 
-        this._boundRenderers.set(renderer, () => {
-          renderer.detachMouseEvent("click");
-        });
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
       } else if (renderer instanceof SVGTechniqueLabelRenderer) {
         const type = renderer.techniqueLabelElement.technique.type;
         if (type === GuitarTechniqueType.Bend) {
@@ -581,9 +638,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
         renderer.attachMouseEvent("click", this.onLabelClick.bind(this));
 
-        this._boundRenderers.set(renderer, () => {
-          renderer.detachMouseEvent("click");
-        });
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
       } else if (renderer instanceof SVGTabNoteRenderer) {
         renderer.attachMouseEvent(
           "mousedown",
@@ -603,9 +661,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
           this.onNotePointerLeave.bind(this)
         );
 
-        this._boundRenderers.set(renderer, () => {
-          this.detachNoteRenderer(renderer);
-        });
+        this._boundRenderers.set(
+          renderer,
+          this.detachNoteRenderer.bind(this, renderer)
+        );
       }
     }
   }

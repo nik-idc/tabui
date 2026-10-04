@@ -657,13 +657,19 @@ export class TrackControllerEditor {
       );
     }
 
+    this.setRepeatStatus(selectionCursor.bar, change);
+  }
+
+  /** Sets a bar's repeat status in one command, preserving selection. */
+  public setRepeatStatus(bar: Bar, change: BarRepeatStatusChange): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+
     this.executeCommand(
-      new SetRepeatStatusCommand(
-        selectionCursor.bar.masterBar,
-        change,
-        selectionCursor.staff.track
-      )
+      new SetRepeatStatusCommand(bar.masterBar, change, bar.staff.track)
     );
+    return true;
   }
 
   /**

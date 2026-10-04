@@ -142,6 +142,113 @@ class TrackController extends BaseTrackController {
 }
 
 describe("TrackController", () => {
+  test("explicit repeat status supports enabling marks, count changes, and removal", () => {
+    const { track, bar } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const cursor = controller.selectionCursor;
+    expect(
+      controller.setRepeatStatus(bar, {
+        status: BarRepeatStatus.Start,
+        enabled: true,
+      })
+    ).toBe(true);
+    expect(bar.masterBar.isRepeatStart).toBe(true);
+    controller.undo();
+    expect(bar.masterBar.isRepeatStart).toBe(false);
+    controller.redo();
+    expect(bar.masterBar.isRepeatStart).toBe(true);
+    expect(
+      controller.setRepeatStatus(bar, {
+        status: BarRepeatStatus.End,
+        enabled: true,
+        repeatCount: 5,
+      })
+    ).toBe(true);
+    expect(bar.masterBar.isRepeatEnd).toBe(true);
+    expect(bar.masterBar.repeatCount).toBe(5);
+    expect(
+      controller.setRepeatStatus(bar, {
+        status: BarRepeatStatus.End,
+        enabled: false,
+      })
+    ).toBe(true);
+    expect(bar.masterBar.isRepeatEnd).toBe(false);
+    expect(bar.masterBar.repeatCount).toBeNull();
+    controller.undo();
+    expect(bar.masterBar.isRepeatEnd).toBe(true);
+    expect(bar.masterBar.repeatCount).toBe(5);
+    expect(controller.selectionCursor).toBe(cursor);
+  });
+
+  test("repeat-start removal targets its bar, preserves selection, and supports undo", () => {
+    const { score, track, bar } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const otherBar = track.staves[0].bars[1];
+    bar.masterBar.setRepeatStatus({
+      status: BarRepeatStatus.Start,
+      enabled: true,
+    });
+    bar.masterBar.setRepeatStatus({
+      status: BarRepeatStatus.End,
+      enabled: true,
+      repeatCount: 3,
+    });
+    otherBar.masterBar.setRepeatStatus({
+      status: BarRepeatStatus.Start,
+      enabled: true,
+    });
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const otherBeat = getBeatElements(controller).find(
+      (e) => e.beat.voiceBar.bar === otherBar
+    );
+    if (otherBeat === undefined) throw Error("Expected beat in the other bar");
+    controller.selectNoteElement(otherBeat.noteElements[0]);
+    const cursor = controller.selectionCursor;
+    expect(
+      controller.setRepeatStatus(bar, {
+        status: BarRepeatStatus.Start,
+        enabled: false,
+      })
+    ).toBe(true);
+    expect(bar.masterBar.isRepeatStart).toBe(false);
+    expect(otherBar.masterBar.isRepeatStart).toBe(true);
+    expect(bar.masterBar.isRepeatEnd).toBe(true);
+    expect(bar.masterBar.repeatCount).toBe(3);
+    expect(controller.selectionCursor).toBe(cursor);
+    controller.undo();
+    expect(bar.masterBar.isRepeatStart).toBe(true);
+    controller.redo();
+    expect(bar.masterBar.isRepeatStart).toBe(false);
+  });
+
+  test.each(["playing", "view-only"])(
+    "explicit repeat status rejects %s edits",
+    (mode) => {
+      const { track, bar } = createScoreGraph();
+      bar.masterBar.setRepeatStatus({
+        status: BarRepeatStatus.Start,
+        enabled: true,
+      });
+      const controller =
+        mode === "playing"
+          ? new TrackController(track, TEST_LAYOUT_DIMENSIONS)
+          : new BaseTrackController(
+              track,
+              TEST_LAYOUT_DIMENSIONS,
+              undefined,
+              false
+            );
+      if (mode === "playing") mockScorePlayerInstances[0].isPlaying = true;
+      expect(
+        controller.setRepeatStatus(bar, {
+          status: BarRepeatStatus.Start,
+          enabled: false,
+        })
+      ).toBe(false);
+      expect(bar.masterBar.isRepeatStart).toBe(true);
+    }
+  );
+
   test("removes only a supplied note's technique with undo and unchanged cursor", () => {
     const { track, bar } = createScoreGraph();
     const notes = bar.getVoiceBar(1)!.beats[0].notes! as GuitarNote[];

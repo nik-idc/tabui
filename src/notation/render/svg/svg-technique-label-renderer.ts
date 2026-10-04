@@ -96,11 +96,20 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   ): void {
     const group = this.ensureContainerGroup();
     this.detachMouseEvent(eventType);
-    const listener = (event: Event) => {
-      eventHandler(event as SVGElementEventMap[K], this.techniqueLabelElement);
-    };
+    const listener = (this.dispatchMouseEvent<K>).bind(this, eventHandler);
     group.addEventListener(eventType, listener);
     this._attachedEvents.set(eventType, listener);
+  }
+
+  /** Dispatches an event using the renderer's current technique label. */
+  private dispatchMouseEvent<K extends keyof SVGElementEventMap>(
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      techniqueLabelElement: TechniqueLabelElement
+    ) => void,
+    event: Event
+  ): void {
+    eventHandler(event as SVGElementEventMap[K], this.techniqueLabelElement);
   }
 
   /** Detaches a previously supplied callback. */
