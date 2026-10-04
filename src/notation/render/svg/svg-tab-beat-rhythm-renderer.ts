@@ -4,7 +4,12 @@ import {
   TabBeatRhythmElement,
   TrackController,
 } from "../../controller";
-import { createSVGCircle, createSVGG, createSVGLine } from "../../../shared";
+import {
+  createSVGCircle,
+  createSVGG,
+  createSVGLine,
+  createSVGPath,
+} from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
@@ -14,10 +19,15 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
   readonly assetsPath: ResolvedAssetConfig;
 
   private _containerGroupSVG?: SVGGElement;
+  private _durationGroupSVG?: SVGGElement;
+  private _dotsGroupSVG?: SVGGElement;
   private _durationStemSVG?: SVGLineElement;
   private _durationFlagsSVG?: SVGLineElement[];
   private _dot1CircleSVG?: SVGCircleElement;
   private _dot2CircleSVG?: SVGCircleElement;
+  private _durationHitTargetSVG?: SVGPathElement;
+  private _dotsHitTargetSVG?: SVGPathElement;
+  private _attachedEvents = new Map<string, EventListener>();
 
   constructor(
     trackController: TrackController,
@@ -43,6 +53,9 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
   }
 
   public detachContainerGroup(): void {
+    for (const eventType of this._attachedEvents.keys()) {
+      this.detachMouseEvent(eventType as keyof SVGElementEventMap);
+    }
     this._containerGroupSVG?.parentNode?.removeChild(this._containerGroupSVG);
   }
 
@@ -50,8 +63,86 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
     this.beatRhythmElement = element;
   }
 
-  private renderDurationStem(): void {
+  /** Attaches a callback to duration or dot hit targets. */
+  public attachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K,
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      element: TabBeatRhythmElement,
+      target: "duration" | "dots"
+    ) => void
+  ): void {
     const group = this.ensureContainerGroup();
+    this.detachMouseEvent(eventType);
+    const listener = (this.dispatchMouseEvent<K>).bind(this, eventHandler);
+    group.addEventListener(eventType, listener);
+    this._attachedEvents.set(eventType, listener);
+  }
+
+  /** Dispatches an event for the current beat rhythm element. */
+  private dispatchMouseEvent<K extends keyof SVGElementEventMap>(
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      element: TabBeatRhythmElement,
+      target: "duration" | "dots"
+    ) => void,
+    event: Event
+  ): void {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (this._durationGroupSVG?.contains(target)) {
+      eventHandler(
+        event as SVGElementEventMap[K],
+        this.beatRhythmElement,
+        "duration"
+      );
+      return;
+    }
+    if (this._dotsGroupSVG?.contains(target)) {
+      eventHandler(
+        event as SVGElementEventMap[K],
+        this.beatRhythmElement,
+        "dots"
+      );
+    }
+  }
+
+  /** Detaches a previously supplied callback. */
+  public detachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K
+  ): void {
+    const listener = this._attachedEvents.get(eventType);
+    if (listener === undefined) {
+      return;
+    }
+    this._containerGroupSVG?.removeEventListener(eventType, listener);
+    this._attachedEvents.delete(eventType);
+  }
+
+  /** Creates the shared stem and flag target group when needed. */
+  private ensureDurationGroup(): SVGGElement {
+    if (this._durationGroupSVG === undefined) {
+      this._durationGroupSVG = createSVGG();
+      this._durationGroupSVG.setAttribute("class", "tu-beat-duration");
+      this.ensureContainerGroup().appendChild(this._durationGroupSVG);
+    }
+    return this._durationGroupSVG;
+  }
+
+  /** Creates the shared augmentation dot target group when needed. */
+  private ensureDotsGroup(): SVGGElement {
+    if (this._dotsGroupSVG === undefined) {
+      this._dotsGroupSVG = createSVGG();
+      this._dotsGroupSVG.setAttribute("class", "tu-beat-dots");
+      this.ensureContainerGroup().appendChild(this._dotsGroupSVG);
+    }
+    return this._dotsGroupSVG;
+  }
+
+  private renderDurationStem(): void {
+    const group = this.ensureDurationGroup();
     const stemBarLocal = this.beatRhythmElement.durationStemLineBarLocal;
     if (stemBarLocal === undefined) {
       this.unrenderDurationStem();
@@ -79,12 +170,12 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
       return;
     }
 
-    this._containerGroupSVG?.removeChild(this._durationStemSVG);
+    this._durationGroupSVG?.removeChild(this._durationStemSVG);
     this._durationStemSVG = undefined;
   }
 
   private renderDurationFlag(flagIndex: number): void {
-    const group = this.ensureContainerGroup();
+    const group = this.ensureDurationGroup();
     const flagLinesBarLocal = this.beatRhythmElement.durationFlagLinesBarLocal;
     if (flagLinesBarLocal === undefined) {
       return;
@@ -137,8 +228,48 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
     }
   }
 
+  /** Widens the stem and flag geometry without changing visible strokes. */
+  private renderDurationHitTarget(): void {
+    const stem = this.beatRhythmElement.durationStemLineBarLocal;
+    const flags = this.beatRhythmElement.durationFlagLinesBarLocal;
+    if (stem === undefined && (flags === undefined || flags.length === 0)) {
+      this.unrenderDurationHitTarget();
+      this._durationGroupSVG?.parentNode?.removeChild(this._durationGroupSVG);
+      this._durationGroupSVG = undefined;
+      return;
+    }
+    const group = this.ensureDurationGroup();
+    if (this._durationHitTargetSVG === undefined) {
+      this._durationHitTargetSVG = createSVGPath();
+    }
+    group.appendChild(this._durationHitTargetSVG);
+    const parts: string[] = [];
+    if (stem !== undefined) {
+      parts.push(`M ${stem.x} ${stem.y1} L ${stem.x} ${stem.y2}`);
+    }
+    for (const flag of flags ?? []) {
+      parts.push(`M ${flag.x1} ${flag.y} L ${flag.x2} ${flag.y}`);
+    }
+    const width = this.trackController.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    this._durationHitTargetSVG.setAttribute("d", parts.join(" "));
+    this._durationHitTargetSVG.setAttribute("stroke", "transparent");
+    this._durationHitTargetSVG.setAttribute("stroke-width", `${width}`);
+    this._durationHitTargetSVG.setAttribute("stroke-linecap", "round");
+    this._durationHitTargetSVG.setAttribute("stroke-linejoin", "round");
+    this._durationHitTargetSVG.setAttribute("pointer-events", "stroke");
+    this._durationHitTargetSVG.setAttribute("fill", "none");
+  }
+
+  /** Removes the duration's invisible target. */
+  private unrenderDurationHitTarget(): void {
+    this._durationHitTargetSVG?.parentNode?.removeChild(
+      this._durationHitTargetSVG
+    );
+    this._durationHitTargetSVG = undefined;
+  }
+
   private renderDotCircle(dot1: boolean): void {
-    const group = this.ensureContainerGroup();
+    const group = this.ensureDotsGroup();
     let dotCircle = dot1 ? this._dot1CircleSVG : this._dot2CircleSVG;
     if (dotCircle === undefined) {
       dotCircle = createSVGCircle();
@@ -180,10 +311,51 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
     }
   }
 
+  /** Covers the beat's dots with padded transparent path geometry. */
+  private renderDotsHitTarget(): void {
+    if (this.beatRhythmElement.beat.dots === 0) {
+      this.unrenderDotsHitTarget();
+      this._dotsGroupSVG?.parentNode?.removeChild(this._dotsGroupSVG);
+      this._dotsGroupSVG = undefined;
+      return;
+    }
+    const group = this.ensureDotsGroup();
+    if (this._dotsHitTargetSVG === undefined) {
+      this._dotsHitTargetSVG = createSVGPath();
+    }
+    group.appendChild(this._dotsHitTargetSVG);
+    const padding = this.trackController.layoutDimensions.NOTE_TEXT_SIZE / 8;
+    const circles = [
+      this.beatRhythmElement.dot1CircleBarLocal,
+      this.beatRhythmElement.dot2CircleBarLocal,
+    ];
+    const paths: string[] = [];
+    for (let i = 0; i < this.beatRhythmElement.beat.dots; i++) {
+      const circle = circles[i];
+      if (circle === undefined) {
+        throw Error("Tried to render dot target when circle undefined");
+      }
+      const radius = circle.diameter / 2 + padding;
+      paths.push(
+        `M ${circle.centerX - radius} ${circle.centerY - radius} h ${radius * 2} v ${radius * 2} h -${radius * 2} Z`
+      );
+    }
+    this._dotsHitTargetSVG.setAttribute("d", paths.join(" "));
+    this._dotsHitTargetSVG.setAttribute("fill", "transparent");
+    this._dotsHitTargetSVG.setAttribute("pointer-events", "fill");
+  }
+
+  /** Removes the dots' invisible target. */
+  private unrenderDotsHitTarget(): void {
+    this._dotsHitTargetSVG?.parentNode?.removeChild(this._dotsHitTargetSVG);
+    this._dotsHitTargetSVG = undefined;
+  }
+
   public render(): void {
     this.ensureContainerGroup();
     this.renderDurationStem();
     this.renderDurationFlags();
+    this.renderDurationHitTarget();
 
     this.unrenderDotCircle(true);
     this.unrenderDotCircle(false);
@@ -193,12 +365,19 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
         this.renderDotCircle(false);
       }
     }
+    this.renderDotsHitTarget();
   }
 
   public unrender(): void {
     this.unrenderDurationStem();
     this.unrenderDurationFlags();
+    this.unrenderDurationHitTarget();
     this.unrenderDotCircle(true);
     this.unrenderDotCircle(false);
+    this.unrenderDotsHitTarget();
+    this._durationGroupSVG?.parentNode?.removeChild(this._durationGroupSVG);
+    this._dotsGroupSVG?.parentNode?.removeChild(this._dotsGroupSVG);
+    this._durationGroupSVG = undefined;
+    this._dotsGroupSVG = undefined;
   }
 }

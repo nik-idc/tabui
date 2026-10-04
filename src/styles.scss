@@ -1602,3 +1602,18 @@
 .tu-editor .tu-tempo:hover text {
   fill: var(--tu-notation-selection-stroke);
 }
+
+.tu-editor .tu-beat-duration,
+.tu-editor .tu-beat-dots,
+.tu-editor .tu-beam {
+  cursor: pointer;
+}
+
+.tu-editor .tu-beat-duration:hover line {
+  stroke: var(--tu-notation-selection-stroke);
+}
+
+.tu-editor .tu-beat-dots:hover circle,
+.tu-editor .tu-beam-hover .tu-beam-visible {
+  fill: var(--tu-notation-selection-stroke);
+}

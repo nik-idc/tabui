@@ -142,6 +142,55 @@ class TrackController extends BaseTrackController {
 }
 
 describe("TrackController", () => {
+  test("explicit dot removal clears both dots and preserves selection through undo", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const first = getBeatElement(controller, 0, 0);
+    const second = getBeatElement(controller, 0, 1);
+    first.beat.dots = 2;
+    second.beat.dots = 1;
+    controller.selectNoteElement(second.noteElements[0]);
+    const cursor = controller.selectionCursor;
+    expect(controller.setBeatDots(first.beat, 0)).toBe(true);
+    expect(first.beat.dots).toBe(0);
+    expect(second.beat.dots).toBe(1);
+    expect(controller.selectionCursor).toBe(cursor);
+    expect(controller.setBeatDots(first.beat, 0)).toBe(false);
+    controller.undo();
+    expect(first.beat.dots).toBe(2);
+    controller.redo();
+    expect(first.beat.dots).toBe(0);
+  });
+
+  test.each(["playing", "view-only"])(
+    "explicit dots reject %s edits",
+    (mode) => {
+      const { track } = createScoreGraph();
+      const controller =
+        mode === "playing"
+          ? new TrackController(track, TEST_LAYOUT_DIMENSIONS)
+          : new BaseTrackController(
+              track,
+              TEST_LAYOUT_DIMENSIONS,
+              undefined,
+              false
+            );
+      const beat = getBeatElement(controller as TrackController, 0, 0).beat;
+      beat.dots = 2;
+      if (mode === "playing") {
+        const player = mockScorePlayerInstances.at(-1);
+        if (player === undefined) throw Error("Expected test player");
+        player.isPlaying = true;
+      }
+      expect(controller.setBeatDots(beat, 0)).toBe(false);
+      expect(beat.dots).toBe(2);
+    }
+  );
+
   test("explicit repeat status supports enabling marks, count changes, and removal", () => {
     const { track, bar } = createScoreGraph();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);

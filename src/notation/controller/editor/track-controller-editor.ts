@@ -516,6 +516,15 @@ export class TrackControllerEditor {
     this.executeCommand(new SetDotsCommand(selection, newDots));
   }
 
+  /** Sets one beat's dots */
+  public setBeatDots(beat: Beat, newDots: number): boolean {
+    if (!this.editingEnabled || beat.dots === newDots) {
+      return false;
+    }
+    this.executeCommand(new SetDotsCommand([beat], newDots));
+    return true;
+  }
+
   /**
    * Sets selection duration
    * @param newDuration New duration

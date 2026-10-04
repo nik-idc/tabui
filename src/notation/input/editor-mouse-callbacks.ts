@@ -15,6 +15,9 @@ import type { BarElement, BarTupletGroupElement } from "../controller";
 import { SVGBarRenderer } from "../render/svg/svg-bar-renderer";
 import { SVGTrackLineInfoRenderer } from "../render/svg/svg-track-line-info-renderer";
 import { SVGTupletRenderer } from "../render/svg/tuplet/svg-tuplet-renderer";
+import { SVGTabBeatRhythmRenderer } from "../render/svg/svg-tab-beat-rhythm-renderer";
+import { SVGBeamSegmentRenderer } from "../render/svg/svg-beam-segment-renderer";
+import type { TabBeatRhythmElement, BeamSegmentElement } from "../controller";
 
 export interface EditorMouseCallbacks {
   readonly isSelectingBeats: boolean;
@@ -25,6 +28,9 @@ export interface EditorMouseCallbacks {
   onTimeSignatureClicked(event: MouseEvent, barElement: BarElement): void;
   onRepeatStartClicked(event: MouseEvent, barElement: BarElement): void;
   onRepeatEndClicked(event: MouseEvent, barElement: BarElement): void;
+  onDurationClick(event: MouseEvent, element: TabBeatRhythmElement): void;
+  onDotsClick(event: MouseEvent, element: TabBeatRhythmElement): void;
+  onBeamClick(event: MouseEvent, element: BeamSegmentElement): void;
   onTupletClick(
     event: MouseEvent,
     element: BarTupletGroupElement,
@@ -89,6 +95,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     return this._selectionDragController.isSelectingBeats;
   }
 
+  // TODO: Doesn't this belong more to the note renderer?
   private detachNoteRenderer(renderer: SVGTabNoteRenderer): void {
     renderer.detachMouseEvent("mousedown");
     renderer.detachMouseEvent("click");
@@ -189,11 +196,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   }
 
   /**
-   * Selects the clicked notation's context before opening an edit dialog. Example:
+   * Selects the clicked notation's context for selection or an edit dialog. Example:
    * Selection is in bar 2 -> bar 1's tempo clicked -> need to move selection to bar 1
    * @throws If the clicked context has no beat or note slot.
    */
-  private selectDialogContext(beats: BeatElement[], range: boolean): void {
+  private selectNotationContext(beats: BeatElement[], range: boolean): void {
     const tc = this.notationComponent.trackController;
     const first = beats[0];
     if (first === undefined) {
@@ -220,6 +227,68 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         ? RenderType.SelectionRefresh
         : RenderType.ActiveVoiceSelection
     );
+  }
+
+  /** Routes rhythm targets to their separate click callbacks. */
+  private dispatchRhythmClick(
+    event: MouseEvent,
+    element: TabBeatRhythmElement,
+    target: "duration" | "dots"
+  ): void {
+    if (target === "dots") {
+      this.onDotsClick(event, element);
+    } else if (target === "duration") {
+      this.onDurationClick(event, element);
+    }
+  }
+
+  /** Selects the beat whose stem or flags were clicked. */
+  public onDurationClick(
+    event: MouseEvent,
+    element: TabBeatRhythmElement
+  ): void {
+    const tc = this.notationComponent.trackController;
+    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+
+    this.selectNotationContext([element.beatElement], true);
+  }
+
+  /** Clears all dots from the clicked beat without changing selection. */
+  public onDotsClick(event: MouseEvent, element: TabBeatRhythmElement): void {
+    const tc = this.notationComponent.trackController;
+    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+
+    if (!tc.setBeatDots(element.beat, 0)) {
+      return;
+    }
+
+    this.renderFunc(RenderType.Full);
+  }
+
+  /** Selects every beat in the clicked connected beam group. */
+  public onBeamClick(event: MouseEvent, element: BeamSegmentElement): void {
+    const tc = this.notationComponent.trackController;
+    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+
+    const groupId = element.curBeatElement.beat.beamGroupId;
+    if (groupId === null) {
+      throw Error("Clicked beam has no beam group");
+    }
+
+    const beats = [];
+    for (const beat of element.voiceBarContainer.beatElements) {
+      if (beat.beat.beamGroupId === groupId) {
+        beats.push(beat);
+      }
+    }
+
+    this.selectNotationContext(beats, true);
   }
 
   /** Finds the clicked bar's first beat in the active voice, if present. */
@@ -257,7 +326,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
     const beat = this.getBarDialogBeat(bar);
-    this.selectDialogContext([beat], false);
+    this.selectNotationContext([beat], false);
     this.uiComponent.sideComponent.measureControlsComponent.showTempoControls();
   }
 
@@ -270,7 +339,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
     const beat = this.getBarDialogBeat(bar);
-    this.selectDialogContext([beat], false);
+    this.selectNotationContext([beat], false);
     this.uiComponent.sideComponent.measureControlsComponent.showTimeSigControls();
   }
 
@@ -302,7 +371,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
     const beat = this.getBarDialogBeat(bar);
-    this.selectDialogContext([beat], false);
+    this.selectNotationContext([beat], false);
     this.uiComponent.sideComponent.measureControlsComponent.showRepeatCountControls();
   }
 
@@ -322,7 +391,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       beatIndex === undefined
         ? element.beatElements
         : element.beatElements.slice(beatIndex, beatIndex + 1);
-    this.selectDialogContext(beats, beatIndex === undefined);
+    this.selectNotationContext(beats, beatIndex === undefined);
     this.uiComponent.sideComponent.noteControlsComponent.showTupletControls();
   }
 
@@ -602,7 +671,21 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         continue;
       }
 
-      if (renderer instanceof SVGBarRenderer) {
+      if (renderer instanceof SVGTabBeatRhythmRenderer) {
+        renderer.attachMouseEvent("click", this.dispatchRhythmClick.bind(this));
+
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
+      } else if (renderer instanceof SVGBeamSegmentRenderer) {
+        renderer.attachMouseEvent("click", this.onBeamClick.bind(this));
+
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
+      } else if (renderer instanceof SVGBarRenderer) {
         renderer.attachMouseEvent("click", this.onBarClicked.bind(this));
 
         this._boundRenderers.set(

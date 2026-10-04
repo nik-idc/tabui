@@ -564,6 +564,14 @@ export class TrackController {
     this._trackControllerEditor.setDots(newDots);
   }
 
+  /** Sets one beat's dots without changing selection. */
+  public setBeatDots(beat: Beat, newDots: number): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setBeatDots(beat, newDots);
+  }
+
   /**
    * Set tuplet for selected beats
    * @param normalCount Normal count
