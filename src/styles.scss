@@ -1559,3 +1559,15 @@
     fill: var(--tu-notation-selection-stroke);
   }
 }
+
+.tu-editor .tu-technique-label-interactive {
+  cursor: pointer;
+
+  &:hover .tu-technique-label-visible-path[stroke]:not([stroke="none"]) {
+    stroke: var(--tu-notation-selection-stroke);
+  }
+
+  &:hover .tu-technique-label-visible-text {
+    fill: var(--tu-notation-selection-stroke);
+  }
+}

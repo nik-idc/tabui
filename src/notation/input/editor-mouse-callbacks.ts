@@ -8,12 +8,15 @@ import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
 import { PlaybackState } from "../../player";
 import { SVGTechniqueRenderer } from "../render/svg/svg-technique-renderer";
-import type { TechniqueElement } from "../controller";
+import type { TechniqueElement, TechniqueLabelElement } from "../controller";
+import { SVGTechniqueLabelRenderer } from "../render/svg/svg-technique-label-renderer";
+import { GuitarTechniqueType } from "../model";
 
 export interface EditorMouseCallbacks {
   readonly isSelectingBeats: boolean;
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
   onTechniqueClick(event: MouseEvent, techniqueElement: TechniqueElement): void;
+  onLabelClick(event: MouseEvent, labelElement: TechniqueLabelElement): void;
   onNotePointerDown(event: MouseEvent, noteElement: NoteElement): void;
   onNotePointerEnter(event: PointerEvent, noteElement: NoteElement): void;
   onNotePointerMove(event: MouseEvent, noteElement: NoteElement): void;
@@ -139,8 +142,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
-    const changed = this.notationComponent.trackController.removeTechnique(
-      note,
+    const changed = this.notationComponent.trackController.removeTechniques(
+      [note],
       element.technique.type
     );
     if (!changed) {
@@ -148,6 +151,25 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     this.renderFunc(RenderType.Full);
+  }
+
+  /** Removes the clicked label's techniques from its beat, preserving selection. */
+  public onLabelClick(event: MouseEvent, element: TechniqueLabelElement): void {
+    const type = element.technique.type;
+    if (event.button !== 0 || type === GuitarTechniqueType.Bend) {
+      return;
+    }
+
+    if (element.beatElement.beat.notes === null) {
+      throw new Error("Label attached to a rest beat");
+    }
+
+    const notes = element.beatElement.beat.notes.filter((n) =>
+      n.hasTechnique(type)
+    );
+    if (this.notationComponent.trackController.removeTechniques(notes, type)) {
+      this.renderFunc(RenderType.Full);
+    }
   }
 
   /**
@@ -428,6 +450,17 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
       if (renderer instanceof SVGTechniqueRenderer) {
         renderer.attachMouseEvent("click", this.onTechniqueClick.bind(this));
+
+        this._boundRenderers.set(renderer, () => {
+          renderer.detachMouseEvent("click");
+        });
+      } else if (renderer instanceof SVGTechniqueLabelRenderer) {
+        const type = renderer.techniqueLabelElement.technique.type;
+        if (type === GuitarTechniqueType.Bend) {
+          continue;
+        }
+
+        renderer.attachMouseEvent("click", this.onLabelClick.bind(this));
 
         this._boundRenderers.set(renderer, () => {
           renderer.detachMouseEvent("click");

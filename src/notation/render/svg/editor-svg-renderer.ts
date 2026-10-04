@@ -31,6 +31,10 @@ import { PlayerOverlayRenderer } from "./player-overlay-renderer";
 import { TrackLineElement } from "../../controller/element/track/track-line-element";
 import { TabUILayoutMode } from "../../../config/tabui-config";
 
+// TODO: Very much unnecessary but still:
+// Make sure that **every** `setAttribute` call is exactly 1 line. Usually by extracting
+// the value calculation into another const variable
+
 enum VoicePart {
   Content = "content",
   Rhythm = "rhythm",

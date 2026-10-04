@@ -1,6 +1,8 @@
 import { EditorMouseDefCallbacks } from "../../../src/notation/input/editor-mouse-callbacks";
 import { RenderType } from "../../../src/notation/input/render-type";
 import { SVGTabNoteRenderer } from "../../../src/notation/render/svg/svg-tab-note-renderer";
+import { SVGTechniqueLabelRenderer } from "../../../src/notation/render/svg/svg-technique-label-renderer";
+import { GuitarTechniqueType } from "../../../src/notation/model";
 
 class TestElement {
   closest = jest.fn();
@@ -94,6 +96,7 @@ function createHarness() {
       },
       editingEnabled: true,
       insertBeatAfterSelected: jest.fn(),
+      removeTechniques: jest.fn().mockReturnValue(true),
     },
   } as any;
   const renderFunc = jest.fn();
@@ -123,6 +126,75 @@ function createHarness() {
 }
 
 describe("EditorMouseDefCallbacks", () => {
+  test("shared labels remove only matching notes from their owning beat", () => {
+    const { callbacks, notationComponent, renderFunc } = createHarness();
+    const notes = [true, false, true].map((hasTechnique) => ({
+      hasTechnique: jest.fn().mockReturnValue(hasTechnique),
+    }));
+    const label = {
+      technique: { type: GuitarTechniqueType.PalmMute, note: notes[0] },
+      beatElement: { beat: { notes } },
+    } as any;
+    callbacks.onLabelClick(createMouseEvent(0, 0), label);
+    expect(
+      notationComponent.trackController.removeTechniques
+    ).toHaveBeenCalledWith([notes[0], notes[2]], GuitarTechniqueType.PalmMute);
+    expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
+    expect(
+      notationComponent.trackController.selectNoteElement
+    ).not.toHaveBeenCalled();
+  });
+
+  test("bend label clicks do not remove techniques", () => {
+    const { callbacks, notationComponent } = createHarness();
+    const notes = [{}, {}];
+    callbacks.onLabelClick(createMouseEvent(0, 0), {
+      technique: { type: GuitarTechniqueType.Bend, note: notes[1] },
+      beatElement: { beat: { notes } },
+    } as any);
+    expect(
+      notationComponent.trackController.removeTechniques
+    ).not.toHaveBeenCalled();
+  });
+
+  test("label clicks ignore secondary buttons and render only successful edits", () => {
+    const { callbacks, notationComponent, renderFunc } = createHarness();
+    const label = {
+      technique: { type: GuitarTechniqueType.PalmMute, note: {} },
+      beatElement: { beat: { notes: [] } },
+    } as any;
+    callbacks.onLabelClick({ button: 2 } as MouseEvent, label);
+    expect(
+      notationComponent.trackController.removeTechniques
+    ).not.toHaveBeenCalled();
+    notationComponent.trackController.removeTechniques.mockReturnValue(false);
+    callbacks.onLabelClick(createMouseEvent(0, 0), label);
+    expect(renderFunc).not.toHaveBeenCalled();
+  });
+
+  test("label renderer bindings reconcile and unbind without duplicates", () => {
+    const { callbacks } = createHarness();
+    const renderer = Object.create(SVGTechniqueLabelRenderer.prototype);
+    renderer.techniqueLabelElement = {
+      technique: { type: GuitarTechniqueType.PalmMute },
+    };
+    renderer.attachMouseEvent = jest.fn();
+    renderer.detachMouseEvent = jest.fn();
+    callbacks.bind([renderer]);
+    callbacks.bind([renderer]);
+    expect(renderer.attachMouseEvent).toHaveBeenCalledTimes(1);
+    callbacks.bind([]);
+    expect(renderer.detachMouseEvent).toHaveBeenCalledWith("click");
+    callbacks.bind([renderer]);
+    callbacks.unbind();
+    expect(renderer.detachMouseEvent).toHaveBeenCalledTimes(2);
+    renderer.techniqueLabelElement = {
+      technique: { type: GuitarTechniqueType.Bend },
+    };
+    callbacks.bind([renderer]);
+    expect(renderer.attachMouseEvent).toHaveBeenCalledTimes(2);
+  });
+
   let originalWindow: any;
   let originalElement: any;
 

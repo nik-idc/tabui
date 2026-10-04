@@ -637,13 +637,13 @@ export class TrackController {
     this._trackControllerEditor.setTechnique(type, bendOptions);
   }
 
-  /** Removes a note's technique as one guarded, undoable edit. */
-  public removeTechnique(note: Note, type: TechniqueType): boolean {
+  /** Removes matching techniques from notes in one guarded, undoable edit. */
+  public removeTechniques(notes: Note[], type: TechniqueType): boolean {
     if (this.playbackState !== PlaybackState.Idle) {
       return false;
     }
 
-    return this._trackControllerEditor.removeTechnique(note, type);
+    return this._trackControllerEditor.removeTechniques(notes, type);
   }
 
   /**

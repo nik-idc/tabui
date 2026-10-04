@@ -693,13 +693,18 @@ export class TrackControllerEditor {
     );
   }
 
-  /** Removes a note's technique without changing selection. */
-  public removeTechnique(note: Note, type: TechniqueType): boolean {
-    if (!this.editingEnabled || !note.hasTechnique(type)) {
+  /** Removes matching techniques in one command without changing selection. */
+  public removeTechniques(notes: Note[], type: TechniqueType): boolean {
+    if (!this.editingEnabled) {
       return false;
     }
 
-    this.executeCommand(new SetTechniqueCommand([note], type));
+    const affectedNotes = notes.filter((note) => note.hasTechnique(type));
+    if (affectedNotes.length === 0) {
+      return false;
+    }
+
+    this.executeCommand(new SetTechniqueCommand(affectedNotes, type));
     return true;
   }
 

@@ -6,6 +6,7 @@ import {
 import { createSVGG, createSVGPath, createSVGText } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import { GuitarTechniqueType } from "../../model";
 
 /**
  * Class for rendering a technique label using SVG
@@ -26,6 +27,12 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   private _labelPathsSVG?: SVGPathElement[];
   /** Technique label text nodes */
   private _labelTextsSVG?: SVGTextElement[];
+  /** Reusable widened targets following descriptor paths. */
+  private _hitPathsSVG: SVGPathElement[] = [];
+  /** Reusable targets covering rendered text labels. */
+  private _hitTextPathsSVG: SVGPathElement[] = [];
+  /** Supplied callbacks keyed by event type. */
+  private _attachedEvents = new Map<string, EventListener>();
 
   /**
    * Class for rendering a technique label using SVG
@@ -59,6 +66,7 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
       "id",
       `technique-label-${techLabelUUID}`
     );
+    this._containerGroupSVG.setAttribute("class", "tu-technique-label");
 
     return this._containerGroupSVG;
   }
@@ -68,11 +76,43 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
       return;
     }
 
+    for (const eventType of this._attachedEvents.keys()) {
+      this.detachMouseEvent(eventType as keyof SVGElementEventMap);
+    }
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
   public updateElementReference(element: TechniqueLabelElement): void {
     this.techniqueLabelElement = element;
+  }
+
+  /** Attaches a supplied callback using the renderer's current element. */
+  public attachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K,
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      techniqueLabelElement: TechniqueLabelElement
+    ) => void
+  ): void {
+    const group = this.ensureContainerGroup();
+    this.detachMouseEvent(eventType);
+    const listener = (event: Event) => {
+      eventHandler(event as SVGElementEventMap[K], this.techniqueLabelElement);
+    };
+    group.addEventListener(eventType, listener);
+    this._attachedEvents.set(eventType, listener);
+  }
+
+  /** Detaches a previously supplied callback. */
+  public detachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K
+  ): void {
+    const listener = this._attachedEvents.get(eventType);
+    if (listener === undefined) {
+      return;
+    }
+    this._containerGroupSVG?.removeEventListener(eventType, listener);
+    this._attachedEvents.delete(eventType);
   }
 
   /**
@@ -169,6 +209,7 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
           pathElement.setAttribute(key, value);
         }
       }
+      pathElement.setAttribute("class", "tu-technique-label-visible-path");
     }
 
     for (let i = 0; i < textDescriptors.length; i++) {
@@ -180,6 +221,96 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
           textElement.setAttribute(key, value);
         }
       }
+      textElement.setAttribute("class", "tu-technique-label-visible-text");
+    }
+
+    const interactive =
+      this.techniqueLabelElement.technique.type !== GuitarTechniqueType.Bend;
+    this._containerGroupSVG.setAttribute(
+      "class",
+      interactive
+        ? "tu-technique-label tu-technique-label-interactive"
+        : "tu-technique-label"
+    );
+    this.renderHitPaths(interactive ? pathDescriptors : []);
+    this.renderTextHitPaths(interactive ? textDescriptors : []);
+  }
+
+  /** Updates invisible stroke targets using descriptor path geometry. */
+  private renderHitPaths(
+    pathDescriptors: NonNullable<TechniqueLabelElement["pathDescriptors"]>
+  ): void {
+    const group = this._containerGroupSVG!;
+    const descriptorGroup = this._techniqueLabelSVG!;
+    const uuid = this.techniqueLabelElement.technique.uuid;
+    while (this._hitPathsSVG.length < pathDescriptors.length) {
+      const index = this._hitPathsSVG.length;
+      const path = createSVGPath();
+      path.setAttribute("id", `technique-label-hit-path-${uuid}-${index}`);
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "transparent");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      path.setAttribute("pointer-events", "stroke");
+      group.appendChild(path);
+      this._hitPathsSVG.push(path);
+    }
+    while (this._hitPathsSVG.length > pathDescriptors.length) {
+      group.removeChild(this._hitPathsSVG.pop()!);
+    }
+
+    const strokeWidth = `${
+      this.trackController.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2
+    }`;
+    for (let i = 0; i < pathDescriptors.length; i++) {
+      const path = this._hitPathsSVG[i];
+      path.setAttribute("d", pathDescriptors[i].d);
+      path.setAttribute("stroke-width", strokeWidth);
+      path.setAttribute(
+        "transform",
+        descriptorGroup.getAttribute("transform") ?? ""
+      );
+    }
+  }
+
+  /** Updates transparent rectangular targets around rendered text labels. */
+  private renderTextHitPaths(
+    textDescriptors: NonNullable<TechniqueLabelElement["textDescriptors"]>
+  ): void {
+    const group = this._containerGroupSVG!;
+    const descriptorGroup = this._techniqueLabelSVG!;
+    const uuid = this.techniqueLabelElement.technique.uuid;
+    while (this._hitTextPathsSVG.length < textDescriptors.length) {
+      const index = this._hitTextPathsSVG.length;
+      const path = createSVGPath();
+      path.setAttribute("id", `technique-label-hit-text-${uuid}-${index}`);
+      path.setAttribute("fill", "transparent");
+      path.setAttribute("stroke", "none");
+      path.setAttribute("pointer-events", "all");
+      group.appendChild(path);
+      this._hitTextPathsSVG.push(path);
+    }
+    while (this._hitTextPathsSVG.length > textDescriptors.length) {
+      group.removeChild(this._hitTextPathsSVG.pop()!);
+    }
+
+    const padding =
+      this.trackController.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 8;
+    for (let i = 0; i < textDescriptors.length; i++) {
+      const box = this._labelTextsSVG![i].getBBox();
+      const x = box.x - padding;
+      const y = box.y - padding;
+      const width = box.width + padding * 2;
+      const height = box.height + padding * 2;
+      const path = this._hitTextPathsSVG[i];
+      path.setAttribute(
+        "d",
+        `M ${x} ${y} H ${x + width} V ${y + height} H ${x} Z`
+      );
+      path.setAttribute(
+        "transform",
+        descriptorGroup.getAttribute("transform") ?? ""
+      );
     }
   }
 
@@ -208,6 +339,15 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
       }
       this._labelTextsSVG = undefined;
     }
+
+    for (const path of this._hitPathsSVG) {
+      this._containerGroupSVG.removeChild(path);
+    }
+    this._hitPathsSVG = [];
+    for (const path of this._hitTextPathsSVG) {
+      this._containerGroupSVG.removeChild(path);
+    }
+    this._hitTextPathsSVG = [];
 
     this._containerGroupSVG.removeChild(this._techniqueLabelSVG);
     this._techniqueLabelSVG = undefined;
