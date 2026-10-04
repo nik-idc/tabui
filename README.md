@@ -2,6 +2,8 @@
 
 TabUI is a guitar tablature editing engine.
 
+For development rules, see [Contributing](CONTRIBUTING.md).
+
 ## Demo
 
 [GitHub Pages Demo](https://nik-idc.github.io/tabui/)
