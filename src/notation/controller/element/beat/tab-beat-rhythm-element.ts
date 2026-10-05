@@ -116,18 +116,18 @@ export class TabBeatRhythmElement implements NotationElement {
   measure(): void {
     const notesHeight =
       this.beatElement.noteElements.length *
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT;
+      this.trackElement.layoutDimensions.noteRectHeight;
     const height =
-      notesHeight + this.trackElement.layoutDimensions.DURATIONS_HEIGHT;
+      notesHeight + this.trackElement.layoutDimensions.durationsHeight;
     this._boundingBox.setDimensions(this.beatElement.boundingBox.width, height);
 
     if (this._dot1Circle !== undefined) {
       this._dot1Circle.diameter =
-        this.trackElement.layoutDimensions.DOT_DIAMETER;
+        this.trackElement.layoutDimensions.dotDiameter;
     }
     if (this._dot2Circle !== undefined) {
       this._dot2Circle.diameter =
-        this.trackElement.layoutDimensions.DOT_DIAMETER;
+        this.trackElement.layoutDimensions.dotDiameter;
     }
   }
 
@@ -136,11 +136,11 @@ export class TabBeatRhythmElement implements NotationElement {
       return;
     }
     const stemY1 = 0;
-    const stemY2 = stemY1 + this.trackElement.layoutDimensions.DURATIONS_HEIGHT;
+    const stemY2 = stemY1 + this.trackElement.layoutDimensions.durationsHeight;
     this._durationStemLine.set(this.beatElement.attackLocalX, stemY1, stemY2);
     if (this.beat.baseDuration === NoteDuration.Half) {
       this._durationStemLine.y1 +=
-        this.trackElement.layoutDimensions.DURATIONS_HEIGHT / 2;
+        this.trackElement.layoutDimensions.durationsHeight / 2;
     }
 
     if (this._durationFlagLines === undefined) {
@@ -151,7 +151,7 @@ export class TabBeatRhythmElement implements NotationElement {
       const x1 = this.beatElement.attackLocalX;
       const flagWidth = this._boundingBox.width / 4;
       flagLine.set(x1, x1 + flagWidth, y);
-      y -= this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT * 2;
+      y -= this.trackElement.layoutDimensions.durationFlagHeight * 2;
     }
   }
 
@@ -181,10 +181,10 @@ export class TabBeatRhythmElement implements NotationElement {
     }
 
     return (
-      this.trackElement.layoutDimensions.TUPLET_RECT_HEIGHT -
-      this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT -
+      this.trackElement.layoutDimensions.tupletRectHeight -
+      this.trackElement.layoutDimensions.durationFlagHeight -
       (durationLevelCount - 1) *
-        this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT *
+        this.trackElement.layoutDimensions.durationFlagHeight *
         2
     );
   }
@@ -199,16 +199,15 @@ export class TabBeatRhythmElement implements NotationElement {
 
     const newDot1X =
       this.beatElement.attackLocalX +
-      this.trackElement.layoutDimensions.DOT_DIAMETER * 2;
+      this.trackElement.layoutDimensions.dotDiameter * 2;
 
     let newDotY =
-      this.trackElement.layoutDimensions.DURATIONS_HEIGHT -
-      this.trackElement.layoutDimensions.DOT_DIAMETER / 2;
+      this.trackElement.layoutDimensions.durationsHeight -
+      this.trackElement.layoutDimensions.dotDiameter / 2;
     const topDurationDecorationY = this.getTopDurationDecorationY();
     if (topDurationDecorationY !== undefined) {
       newDotY =
-        topDurationDecorationY -
-        this.trackElement.layoutDimensions.DOT_DIAMETER;
+        topDurationDecorationY - this.trackElement.layoutDimensions.dotDiameter;
     }
     this._dot1Circle.setCoords(newDot1X, newDotY);
 
@@ -216,7 +215,7 @@ export class TabBeatRhythmElement implements NotationElement {
       return;
     }
     this._dot2Circle.setCoords(
-      newDot1X + this.trackElement.layoutDimensions.DOT_DIAMETER,
+      newDot1X + this.trackElement.layoutDimensions.dotDiameter,
       newDotY
     );
   }

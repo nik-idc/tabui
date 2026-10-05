@@ -1,4 +1,3 @@
-import { MasterBar, Track } from "../../../model";
 import { Point, Rect, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
 import { NotationElement, NotationNodeType } from "../notation-element";
@@ -82,8 +81,8 @@ export class TrackLineInfoElement implements NotationElement {
         const rect = new Rect(
           barElement.boundingBox.x,
           0,
-          this.trackElement.layoutDimensions.TEMPO_RECT_WIDTH,
-          this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
+          this.trackElement.layoutDimensions.tempoRectWidth,
+          this.trackElement.layoutDimensions.tempoRectHeight
         );
         this._barTempoRectsMap.set(barElement, rect);
         this._barTempoState.set(barElement, barElement.bar.masterBar.tempo);
@@ -96,7 +95,7 @@ export class TrackLineInfoElement implements NotationElement {
    */
   public measure(): void {
     const height = this.trackLineElement.hasTempo
-      ? this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
+      ? this.trackElement.layoutDimensions.tempoRectHeight
       : 0;
     this._boundingBox.setDimensions(
       this.trackLineElement.boundingBox.width,
@@ -196,7 +195,7 @@ export class TrackLineInfoElement implements NotationElement {
 
     return new Point(
       barTempoRect.x + barTempoRect.width,
-      this.trackElement.layoutDimensions.TEMPO_TEXT_SIZE
+      this.trackElement.layoutDimensions.tempoTextSize
     );
   }
 
@@ -211,8 +210,7 @@ export class TrackLineInfoElement implements NotationElement {
 
     return new Point(
       barTempoRect.x + barTempoRect.width,
-      this.lineLocalCoords.y +
-        this.trackElement.layoutDimensions.TEMPO_TEXT_SIZE
+      this.lineLocalCoords.y + this.trackElement.layoutDimensions.tempoTextSize
     );
   }
 
@@ -230,7 +228,7 @@ export class TrackLineInfoElement implements NotationElement {
     return new Point(
       barTempoRect.x + barTempoRect.width,
       this.trackLineElement.globalCoords.y +
-        this.trackElement.layoutDimensions.TEMPO_TEXT_SIZE
+        this.trackElement.layoutDimensions.tempoTextSize
     );
   }
 

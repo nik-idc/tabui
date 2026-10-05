@@ -16,7 +16,6 @@ import {
   shiftTuningWhole,
   StringInstrumentTone,
   StringInstrumentType,
-  Track,
   ElectricGuitarTone,
   getDefaultTuningStrSimple,
 } from "../../../../notation/model";

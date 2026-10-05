@@ -13,7 +13,6 @@ import { ElementRenderer } from "../element-renderer";
 import {
   ELEMENT_ORDER,
   ElementDiff,
-  TrackElement,
 } from "../../controller/element/track-element";
 import { BarElement } from "../../controller/element/bar/bar-element";
 import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
@@ -97,11 +96,11 @@ export class EditorSVGRenderer implements EditorRenderer {
    * to render before the first visible track line and after
    * the last visible track line
    */
-  private static readonly VIEWPORT_OVERSCAN_LINES = 2;
+  private static readonly _VIEWPORT_OVERSCAN_LINES = 2;
   /** Extra materialized lines retained beyond rendered overscan. */
-  private static readonly MATERIALIZED_LINE_CACHE_MARGIN = 2;
+  private static readonly _MATERIALIZED_LINE_CACHE_MARGIN = 2;
   /** Master bars retained before and after the horizontal viewport. */
-  private static readonly VIEWPORT_OVERSCAN_BARS = 2;
+  private static readonly _VIEWPORT_OVERSCAN_BARS = 2;
 
   /** Notation-only scroll viewport wrapper. */
   readonly notationViewportDiv: HTMLDivElement;
@@ -251,7 +250,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   private mountRootLayers(): void {
-    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
+    const padding = this.trackController.layoutDimensions.horizontalPadding;
     const contentTransform = `translate(${padding}, 0)`;
     this._interactionSVGGroup.setAttribute("transform", contentTransform);
     this._notationSVGGroup.setAttribute("transform", contentTransform);
@@ -265,7 +264,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   }
 
   private setViewportRect(): void {
-    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
+    const padding = this.trackController.layoutDimensions.horizontalPadding;
     this._viewportRect.set(
       this.notationViewportDiv.scrollLeft - padding,
       this.notationViewportDiv.scrollTop,
@@ -299,7 +298,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     if (target === undefined) {
       return undefined;
     }
-    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
+    const padding = this.trackController.layoutDimensions.horizontalPadding;
     return Math.max(0, target + padding);
   }
 
@@ -326,7 +325,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     beat: Beat,
     follow: boolean
   ): BeatElement | undefined {
-    let trackLineElement =
+    const trackLineElement =
       this.trackController.trackElement.getTrackLineElementForBeat(beat);
     const placement =
       this.trackController.trackElement.getTrackLineBarForBeat(beat);
@@ -361,11 +360,11 @@ export class EditorSVGRenderer implements EditorRenderer {
       this.trackController.track.score.masterBars.length - 1;
     const startMasterBarIndex = Math.max(
       0,
-      masterBarIndex - EditorSVGRenderer.VIEWPORT_OVERSCAN_BARS
+      masterBarIndex - EditorSVGRenderer._VIEWPORT_OVERSCAN_BARS
     );
     const endMasterBarIndex = Math.min(
       lastMasterBarIndex,
-      masterBarIndex + EditorSVGRenderer.VIEWPORT_OVERSCAN_BARS
+      masterBarIndex + EditorSVGRenderer._VIEWPORT_OVERSCAN_BARS
     );
     const lineIndex =
       this.trackController.trackElement.trackLineElements.indexOf(
@@ -391,8 +390,6 @@ export class EditorSVGRenderer implements EditorRenderer {
       forceNotation: false,
       overlays: { selection: false, player: false },
     });
-    trackLineElement =
-      this.trackController.trackElement.getTrackLineElementForBeat(beat);
     return this.trackController.trackElement.getBeatElement(beat);
   }
 
@@ -456,11 +453,11 @@ export class EditorSVGRenderer implements EditorRenderer {
       return {
         start: Math.max(
           0,
-          nearestLineIndex - EditorSVGRenderer.VIEWPORT_OVERSCAN_LINES
+          nearestLineIndex - EditorSVGRenderer._VIEWPORT_OVERSCAN_LINES
         ),
         end: Math.min(
           trackLines.length - 1,
-          nearestLineIndex + EditorSVGRenderer.VIEWPORT_OVERSCAN_LINES
+          nearestLineIndex + EditorSVGRenderer._VIEWPORT_OVERSCAN_LINES
         ),
       };
     }
@@ -468,11 +465,11 @@ export class EditorSVGRenderer implements EditorRenderer {
     return {
       start: Math.max(
         0,
-        firstVisibleIndex - EditorSVGRenderer.VIEWPORT_OVERSCAN_LINES
+        firstVisibleIndex - EditorSVGRenderer._VIEWPORT_OVERSCAN_LINES
       ),
       end: Math.min(
         trackLines.length - 1,
-        lastVisibleIndex + EditorSVGRenderer.VIEWPORT_OVERSCAN_LINES
+        lastVisibleIndex + EditorSVGRenderer._VIEWPORT_OVERSCAN_LINES
       ),
     };
   }
@@ -504,11 +501,11 @@ export class EditorSVGRenderer implements EditorRenderer {
     return {
       start: Math.max(
         0,
-        firstVisible - EditorSVGRenderer.VIEWPORT_OVERSCAN_BARS
+        firstVisible - EditorSVGRenderer._VIEWPORT_OVERSCAN_BARS
       ),
       end: Math.min(
         bars.length - 1,
-        lastVisible + EditorSVGRenderer.VIEWPORT_OVERSCAN_BARS
+        lastVisible + EditorSVGRenderer._VIEWPORT_OVERSCAN_BARS
       ),
     };
   }
@@ -957,7 +954,7 @@ export class EditorSVGRenderer implements EditorRenderer {
 
   private syncRootSVGDimensions(): void {
     const trackWindowHeight = this.trackController.trackElement.height;
-    const padding = this.trackController.layoutDimensions.HORIZONTAL_PADDING;
+    const padding = this.trackController.layoutDimensions.horizontalPadding;
     const trackWindowWidth =
       this.trackController.trackElement.width + padding * 2;
     const VB = `0 0 ${trackWindowWidth} ${trackWindowHeight}`;
@@ -1002,11 +999,11 @@ export class EditorSVGRenderer implements EditorRenderer {
       this.trackController.trackElement.trackLineElements.length - 1;
     const retainedStart = Math.max(
       0,
-      start - EditorSVGRenderer.MATERIALIZED_LINE_CACHE_MARGIN
+      start - EditorSVGRenderer._MATERIALIZED_LINE_CACHE_MARGIN
     );
     const retainedEnd = Math.min(
       lastLineIndex,
-      end + EditorSVGRenderer.MATERIALIZED_LINE_CACHE_MARGIN
+      end + EditorSVGRenderer._MATERIALIZED_LINE_CACHE_MARGIN
     );
 
     // Ensure that the viewport's elements are up to date.

@@ -12,7 +12,7 @@ import { Bar } from "../bar";
 import { Beat, BeatDots } from "../beat";
 import { MusicInstrument } from "../instrument/instrument";
 import { GuitarNote } from "../guitar-note";
-import { Note, NoteValue } from "../note";
+import { Note } from "../note";
 import { NoteDuration } from "../note-duration";
 import { BeatRemovalOutput, VoiceBar } from "../voice-bar";
 import { VoiceNumber } from "../voice-bar";

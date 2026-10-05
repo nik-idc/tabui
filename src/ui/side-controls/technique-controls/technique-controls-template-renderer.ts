@@ -53,7 +53,7 @@ export class TechniqueControlsTemplateRenderer {
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
     let isApplied = false;
-    let isDisabled = false;
+    let isDisabled: boolean;
 
     if (selectionCursor === undefined) {
       isDisabled = type === GuitarTechniqueType.Bend;

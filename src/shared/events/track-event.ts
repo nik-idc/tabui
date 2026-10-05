@@ -28,7 +28,7 @@ export type TrackEventArgs = {
   [TrackEventType.PlayerStateChanged]: {
     playerUUID: number;
   };
-  [TrackEventType.RenderComplete]: {};
+  [TrackEventType.RenderComplete]: Record<string, never>;
 };
 
 /** Typed event emitter used by both internal and host-facing event owners. */

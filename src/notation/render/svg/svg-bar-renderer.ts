@@ -1,4 +1,4 @@
-import { BarElement, NotationElement, TrackController } from "../../controller";
+import { BarElement, TrackController } from "../../controller";
 import {
   createSVGG,
   createSVGLine,
@@ -333,7 +333,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this._timeSigGroupSVG.setAttribute("class", "tu-time-signature");
 
       // Set only-set-once attributes
-      const fontSize = `${this.trackController.layoutDimensions.TIME_SIG_TEXT_SIZE}`;
+      const fontSize = `${this.trackController.layoutDimensions.timeSigTextSize}`;
       this._timeSigTextsSVG[0].setAttribute("text-anchor", "start");
       this._timeSigTextsSVG[0].setAttribute("dominant-baseline", "hanging");
       this._timeSigTextsSVG[0].setAttribute("font-size", fontSize);
@@ -428,8 +428,7 @@ export class SVGBarRenderer implements ElementRenderer {
     const repeatCount = this.barElement.bar.masterBar.repeatCount;
     const repeatEndRectGlobal = this.barElement.repeatEndRectGlobal;
     if (repeatCount !== null && repeatEndRectGlobal !== undefined) {
-      const repeatFontSize =
-        this.trackController.layoutDimensions.NOTE_TEXT_SIZE;
+      const repeatFontSize = this.trackController.layoutDimensions.noteTextSize;
       if (this._repeatCountSVG === undefined) {
         this._repeatCountSVG = createSVGText();
         this._repeatCountSVG.setAttribute("id", `bar-rep-count-${barUUID}`);

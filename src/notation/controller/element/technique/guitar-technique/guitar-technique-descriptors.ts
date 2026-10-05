@@ -7,7 +7,7 @@ export class GuitarTechniqueDescriptors {
   static readonly arrowWidth: number = 5;
   static readonly arrowHeight: number = 8;
 
-  private static readonly DEFAULT_STROKE_ATTRS = {
+  private static readonly _DEFAULT_STROKE_ATTRS = {
     stroke: "var(--tu-notation-ink)",
     fill: "none",
     "stroke-linecap": "round",
@@ -29,7 +29,7 @@ export class GuitarTechniqueDescriptors {
         ` l -${this.arrowWidth / 2} ${(this.arrowHeight / 2) * topCoef}` +
         ` l ${this.arrowWidth / 2} 0`,
       attrs: {
-        ...this.DEFAULT_STROKE_ATTRS,
+        ...this._DEFAULT_STROKE_ATTRS,
         fill: "var(--tu-notation-ink)",
       },
     };
@@ -52,7 +52,7 @@ export class GuitarTechniqueDescriptors {
         `C ${curveBeginX} ${curveBeginY} ` +
         `${curveMiddleX} ${curveMiddleY} ` +
         `${curveMiddleX} ${curveMiddleY}`,
-      attrs: this.DEFAULT_STROKE_ATTRS,
+      attrs: this._DEFAULT_STROKE_ATTRS,
     };
   }
 
@@ -76,7 +76,7 @@ export class GuitarTechniqueDescriptors {
         `C ${curveBeginX} ${curveBeginY} ` +
         `${curveMiddleX} ${curveMiddleY} ` +
         `${curveEndX} ${curveEndY}`,
-      attrs: this.DEFAULT_STROKE_ATTRS,
+      attrs: this._DEFAULT_STROKE_ATTRS,
     };
   }
 
@@ -99,7 +99,7 @@ export class GuitarTechniqueDescriptors {
         `C ${curveBeginX} ${curveBeginY} ` +
         `${curveMiddleX} ${curveMiddleY} ` +
         `${curveEndX} ${curveEndY}`,
-      attrs: this.DEFAULT_STROKE_ATTRS,
+      attrs: this._DEFAULT_STROKE_ATTRS,
     };
   }
 
@@ -113,7 +113,7 @@ export class GuitarTechniqueDescriptors {
 
     return {
       d: `m ${dx} ${dy} l 0 ${height * topCoef}`,
-      attrs: this.DEFAULT_STROKE_ATTRS,
+      attrs: this._DEFAULT_STROKE_ATTRS,
     };
   }
 
@@ -125,7 +125,7 @@ export class GuitarTechniqueDescriptors {
   ): SVGPathDescriptor {
     return {
       d: `m ${dx1} ${dy1} L ${dx2} ${dy2}`,
-      attrs: this.DEFAULT_STROKE_ATTRS,
+      attrs: this._DEFAULT_STROKE_ATTRS,
     };
   }
 
@@ -153,7 +153,7 @@ export class GuitarTechniqueDescriptors {
         `L ${line3X} ${line3Y} ` +
         `L ${line4X} ${line4Y} Z`,
       attrs: {
-        ...this.DEFAULT_STROKE_ATTRS,
+        ...this._DEFAULT_STROKE_ATTRS,
         fill: fill
           ? "var(--tu-notation-ink)"
           : "var(--tu-notation-note-background)",
@@ -231,7 +231,7 @@ export class GuitarTechniqueDescriptors {
     text: string,
     textWidth?: number
   ): SVGTextDescriptor {
-    let textAttrs: { textLength: string; lengthAdjust: string } | {};
+    let textAttrs: Record<string, string>;
     if (textWidth !== undefined) {
       textAttrs = {
         textLength: `${textWidth}`,

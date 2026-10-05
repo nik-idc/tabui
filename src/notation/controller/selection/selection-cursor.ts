@@ -227,7 +227,6 @@ export class SelectionCursor {
       this._barIndex = 0;
     }
 
-    const bar = this.staff.bars[this._barIndex];
     const voiceBar = this.voiceBar;
     if (voiceBar.beats.length === 0) {
       throw Error("Selected note sync called with no beats in bar");

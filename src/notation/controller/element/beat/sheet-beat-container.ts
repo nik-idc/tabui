@@ -1,13 +1,8 @@
-import {
-  Beat,
-  Guitar,
-  GuitarTechnique,
-  TECHNIQUE_TYPE_TO_LABEL,
-} from "../../../model";
+import { Beat } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
+
 import { TrackElement } from "../track-element";
-import { GuitarTechniqueLabelElement } from "../technique/guitar-technique/guitar-technique-label-element";
+
 import { TechniqueLabelElement } from "../technique/technique-label-element";
 import { NoteElement } from "../note/note-element";
 import { Circle } from "../../../../shared/rendering/geometry/circle";
@@ -207,11 +202,13 @@ export class SheetBeatContainer implements BeatElement, NotationContainer {
     return [this];
   }
 
-  public getNextNoteElement(noteElement: NoteElement): NoteElement | null {
-    return null;
+  /** Throws because sheet-note navigation is not implemented. */
+  public getNextNoteElement(_noteElement: NoteElement): NoteElement | null {
+    throw new Error("Sheet-note navigation is not implemented yet");
   }
 
-  public getPrevNoteElement(noteElement: NoteElement): NoteElement | null {
-    return null;
+  /** Throws because sheet-note navigation is not implemented. */
+  public getPrevNoteElement(_noteElement: NoteElement): NoteElement | null {
+    throw new Error("Sheet-note navigation is not implemented yet");
   }
 }

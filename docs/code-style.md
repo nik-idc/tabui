@@ -2,23 +2,21 @@
 
 These rules apply to all TabUI contributors.
 
+ESLint enforces additional rules in [`eslint.config.mjs`](../eslint.config.mjs).
+Run `npx eslint .` to check them.
+
 ## TypeScript and Imports
 
 - Keep strict type checking enabled in `tsconfig.json`.
-- Avoid `any`, non-null assertions (`!`), and type assertions (`as`). Prefer
-  types, narrowing, and runtime checks that prove a value is valid.
+- Prefer `unknown` for unvalidated input. Narrow it with runtime checks before
+  use.
 - Prefer enums for finite named value sets. Use types or interfaces for object
   shapes, unions of structurally different objects, and composition.
-- The demo's `vite.config.js` defines the `@/` alias. Package source and output
-  must not depend on that demo-only alias.
 - Prefer named exports. Use barrel exports where they improve discoverability.
   For internal module boundaries, prefer direct imports over broad barrels.
 
-## Names and Formatting
+## Formatting
 
-- Use PascalCase for classes and interfaces.
-- Use camelCase for variables, methods, and properties.
-- Prefix private fields with an underscore, for example `_trackElement`.
 - Follow [`.prettierrc`](../.prettierrc) for formatting. Run `npm run format`
   to format the repository.
 - Keep `for`, `if`, and similar control-flow headers on one line. If a header

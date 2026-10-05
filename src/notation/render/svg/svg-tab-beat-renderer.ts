@@ -4,11 +4,7 @@ import {
   createSVGLine,
   createSVGImage,
 } from "../../../shared";
-import {
-  BeatElement,
-  NotationElement,
-  TrackController,
-} from "../../controller";
+import { BeatElement, TrackController } from "../../controller";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";

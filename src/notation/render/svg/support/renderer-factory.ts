@@ -26,10 +26,13 @@ import { SVGTechniqueLabelRenderer } from "../svg-technique-label-renderer";
 import { SVGBeamSegmentRenderer } from "../svg-beam-segment-renderer";
 import { SVGTupletRenderer } from "../tuplet/svg-tuplet-renderer";
 
-// WARNING: This heterogeneous map erases the relationship between each element
-// class and its renderer constructor. The factory assertion below is therefore
-// an intentional type-safety boundary until the registry receives a typed design.
-const RENDERER_CTORS = new Map<NotationElementClass, ElementRendererClass>([
+// Each renderer accepts a different element type. `never` lets us store them
+// together without allowing direct calls. After lookup, the assertion below
+// trusts that each element class is paired with the correct renderer.
+const RENDERER_CTORS = new Map<
+  NotationElementClass,
+  ElementRendererClass<never>
+>([
   [TrackLineElement, SVGTrackLineRenderer],
   [TrackLineInfoElement, SVGTrackLineInfoRenderer],
   [BarElement, SVGBarRenderer],
@@ -52,5 +55,7 @@ export function createRendererForElement(
     return undefined;
   }
 
-  return new ctor(trackController, element as any, assetsPath);
+  // The map cannot express the matching element type; trust the registered pair.
+  const rendererClass = ctor as ElementRendererClass<NotationElement>;
+  return new rendererClass(trackController, element, assetsPath);
 }

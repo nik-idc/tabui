@@ -1,9 +1,4 @@
-import {
-  NoteElement,
-  TabBeatElement,
-  TrackController,
-  TrackLineIdentity,
-} from "../../controller";
+import { NoteElement, TabBeatElement, TrackController } from "../../controller";
 import { TabNoteSlotElement } from "../../controller/element/note/tab-note-slot-element";
 import { createSVGRect } from "../../../shared";
 

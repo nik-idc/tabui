@@ -32,7 +32,7 @@ function shouldRenderHitRect(controller: TrackController, note: GuitarNote) {
   const renderer = new SVGTabNoteRenderer(
     controller,
     getNoteElement(controller, note),
-    ""
+    { baseUrl: "", variant: "light" }
   );
 
   return renderer.shouldRenderHitRect();
@@ -199,7 +199,7 @@ describe("SVGTabNoteRenderer", () => {
 
     expect(noteElement.noteText).toBe("(5)");
     expect(noteElement.textRect.width).toBeGreaterThan(
-      controller.layoutDimensions.NOTE_TEXT_SIZE
+      controller.layoutDimensions.noteTextSize
     );
   });
 
@@ -231,7 +231,7 @@ describe("SVGTabNoteRenderer", () => {
       normalElement.selectionRect.height
     );
     expect(normalElement.selectionRect.width).toBe(
-      controller.layoutDimensions.NOTE_TEXT_SIZE * 1.5 * SELECTION_SIZE_FACTOR
+      controller.layoutDimensions.noteTextSize * 1.5 * SELECTION_SIZE_FACTOR
     );
   });
 

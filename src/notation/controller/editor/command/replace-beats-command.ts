@@ -2,7 +2,6 @@ import {
   Beat,
   BeatRemovalOutput,
   BeatRestoreSnapshot,
-  Score,
   ScoreEditor,
 } from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";

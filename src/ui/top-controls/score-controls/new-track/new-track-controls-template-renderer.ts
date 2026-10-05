@@ -15,7 +15,6 @@ import {
   InstrumentType,
   StringInstrumentType,
 } from "../../../../notation/model";
-import { template } from "@babel/core";
 
 export class NewTrackControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -118,7 +117,7 @@ export class NewTrackControlsTemplateRenderer {
   private renderInstrumentFamiliesButtons(): void {
     const families = Object.values(InstrumentFamily);
     if (this.template.instrFamiliesButtons.length === 0) {
-      for (const family of families) {
+      for (let i = 0; i < families.length; i++) {
         this.template.instrFamiliesButtons.push(createButton());
       }
     }
@@ -147,7 +146,7 @@ export class NewTrackControlsTemplateRenderer {
   private renderInstrumentTypesButtons(): void {
     const types = INSTRUMENT_TYPES[this._currentFamily];
     if (this.template.instrTypesButtons.length === 0) {
-      for (const type of types) {
+      for (let i = 0; i < types.length; i++) {
         this.template.instrTypesButtons.push(createButton());
       }
       this.template.instrTypesContainer.append(
@@ -170,7 +169,7 @@ export class NewTrackControlsTemplateRenderer {
     const tones = INSTRUMENT_TONES[this._currentType] ?? [];
 
     if (this.template.instrTonesButtons.length === 0) {
-      for (const tone of tones) {
+      for (let i = 0; i < tones.length; i++) {
         this.template.instrTonesButtons.push(createButton());
       }
       this.template.instrTonesContainer.append(

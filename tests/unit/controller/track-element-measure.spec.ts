@@ -22,22 +22,22 @@ describe("TrackElement measure", () => {
     expect(barElements[0].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect).toBeUndefined();
     expect(barElements[0].startGap.width).toBe(
-      TEST_LAYOUT_DIMENSIONS.TIME_SIG_RECT_WIDTH +
-        TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH * 2
+      TEST_LAYOUT_DIMENSIONS.timeSigRectWidth +
+        TEST_LAYOUT_DIMENSIONS.repeatSignWidth * 2
     );
     expect(barElements[0].endGap.width).toBe(
-      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH
+      TEST_LAYOUT_DIMENSIONS.repeatSignWidth
     );
     expect(barElements[1].startGap.width).toBe(
-      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH * 2
+      TEST_LAYOUT_DIMENSIONS.repeatSignWidth * 2
     );
     expect(barElements[1].endGap.width).toBe(
-      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH
+      TEST_LAYOUT_DIMENSIONS.repeatSignWidth
     );
     expect(barElements[1].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
-      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH +
-        TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH +
-        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING
+      TEST_LAYOUT_DIMENSIONS.repeatSignWidth +
+        TEST_LAYOUT_DIMENSIONS.repeatSignWidth +
+        TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding
     );
   });
 
@@ -59,15 +59,14 @@ describe("TrackElement measure", () => {
     expect(barElements[0].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect).toBeDefined();
     expect(barElements[1].timeSigRect?.width).toBe(
-      TEST_LAYOUT_DIMENSIONS.TIME_SIG_RECT_WIDTH
+      TEST_LAYOUT_DIMENSIONS.timeSigRectWidth
     );
     expect(barElements[1].timeSigRect?.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TIME_SIG_TEXT_SIZE * 2
+      TEST_LAYOUT_DIMENSIONS.timeSigTextSize * 2
     );
     expect(barElements[1].timeSigRect?.x).toBe(0);
     expect(barElements[1].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
-      barElements[1].startGap.right +
-        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING
+      barElements[1].startGap.right + TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding
     );
   });
 
@@ -91,7 +90,7 @@ describe("TrackElement measure", () => {
     expect(barElements[1].repeatEndRect).toBeDefined();
 
     expect(barElements[0].repeatStartRect?.width).toBe(
-      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH
+      TEST_LAYOUT_DIMENSIONS.repeatSignWidth
     );
     expect(barElements[0].repeatStartRect?.height).toBe(
       TEST_LAYOUT_DIMENSIONS.getStaffHeight(track.context.instrument)
@@ -100,12 +99,11 @@ describe("TrackElement measure", () => {
       barElements[0].timeSigRect?.right ?? 0
     );
     expect(barElements[0].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
-      barElements[0].startGap.right +
-        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING
+      barElements[0].startGap.right + TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding
     );
 
     expect(barElements[1].repeatEndRect?.width).toBe(
-      TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH
+      TEST_LAYOUT_DIMENSIONS.repeatSignWidth
     );
     expect(barElements[1].repeatEndRect?.height).toBe(
       TEST_LAYOUT_DIMENSIONS.getStaffHeight(track.context.instrument)

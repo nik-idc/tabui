@@ -187,7 +187,7 @@ describe("TrackElement rhythm", () => {
     const lastBarOnFirstLine =
       firstLineStyle.barElements[firstLineStyle.barElements.length - 1];
     expect(lastBarOnFirstLine.boundingBox.right).toBeCloseTo(
-      TEST_LAYOUT_DIMENSIONS.WIDTH
+      TEST_LAYOUT_DIMENSIONS.width
     );
 
     for (const barElement of firstLineStyle.barElements) {
@@ -225,7 +225,7 @@ describe("TrackElement rhythm", () => {
       const styleLine = trackLine.staffLineContainers[0].styleLinesAsArray[0];
       const lastBar = styleLine.barElements[styleLine.barElements.length - 1];
       expect(lastBar.boundingBox.right).toBeLessThanOrEqual(
-        TEST_LAYOUT_DIMENSIONS.WIDTH
+        TEST_LAYOUT_DIMENSIONS.width
       );
     }
   });
@@ -281,8 +281,8 @@ describe("TrackElement rhythm", () => {
     }
 
     expect(row.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.DURATIONS_HEIGHT +
-        TEST_LAYOUT_DIMENSIONS.TUPLET_RECT_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.durationsHeight +
+        TEST_LAYOUT_DIMENSIONS.tupletRectHeight
     );
   });
 
@@ -407,10 +407,10 @@ describe("TrackElement rhythm", () => {
             throw Error("Expected incomplete tuplet label coordinates");
           }
           expect(
-            firstLabelY + dimensions.TEMPO_TEXT_SIZE / 2
+            firstLabelY + dimensions.tempoTextSize / 2
           ).toBeLessThanOrEqual(firstVoiceRow.boundingBox.bottom);
           expect(
-            thirdLabelY + dimensions.TEMPO_TEXT_SIZE / 2
+            thirdLabelY + dimensions.tempoTextSize / 2
           ).toBeLessThanOrEqual(thirdVoiceRow.boundingBox.bottom);
         }
       }
@@ -469,10 +469,10 @@ describe("TrackElement rhythm", () => {
     expect(beatElement.durationFlagLines).toHaveLength(3);
     expect(
       beatElement.durationFlagLines![0].y - beatElement.durationFlagLines![1].y
-    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT * 2);
+    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2);
     expect(
       beatElement.durationFlagLines![1].y - beatElement.durationFlagLines![2].y
-    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT * 2);
+    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2);
   });
 
   test("beamed dotted beats lift dots to account for beam levels", () => {
@@ -496,7 +496,7 @@ describe("TrackElement rhythm", () => {
     expect(dot).toBeDefined();
     expect(dot!.centerY).toBeLessThan(
       beatElement.voiceBarRhythmContainer.boundingBox.y +
-        TEST_LAYOUT_DIMENSIONS.DURATIONS_HEIGHT
+        TEST_LAYOUT_DIMENSIONS.durationsHeight
     );
   });
 
@@ -519,7 +519,7 @@ describe("TrackElement rhythm", () => {
 
     expect(beatElement.dot1CircleBarLocal).toBeDefined();
     expect(beatElement.dot1CircleBarLocal!.centerY).toBeCloseTo(
-      topFlagY - TEST_LAYOUT_DIMENSIONS.DOT_DIAMETER
+      topFlagY - TEST_LAYOUT_DIMENSIONS.dotDiameter
     );
   });
 });

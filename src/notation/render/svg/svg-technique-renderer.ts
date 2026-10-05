@@ -1,8 +1,4 @@
-import {
-  NotationElement,
-  TechniqueElement,
-  TrackController,
-} from "../../controller";
+import { TechniqueElement, TrackController } from "../../controller";
 import { createSVGG, createSVGPath } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
@@ -177,7 +173,12 @@ export class SVGTechniqueRenderer implements ElementRenderer {
 
   /** Updates invisible stroke targets using the visible lines' geometry. */
   private renderHitPaths(): void {
-    const group = this._containerGroupSVG!;
+    const group = this._containerGroupSVG;
+    if (group === undefined) {
+      throw Error(
+        "Tried to render technique hit paths before SVG group was initialized"
+      );
+    }
     const descriptors = this.techniqueElement.pathDescriptors ?? [];
 
     // TODO: Add a config option to disable wider hit targets for performance.
@@ -195,11 +196,14 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       this._hitPathsSVG.push(path);
     }
     while (this._hitPathsSVG.length > descriptors.length) {
-      group.removeChild(this._hitPathsSVG.pop()!);
+      const path = this._hitPathsSVG.pop();
+      if (path !== undefined) {
+        group.removeChild(path);
+      }
     }
 
     const origin = this.techniqueElement.pathOriginBarLocal;
-    const strokeWidth = `${this.trackController.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2}`;
+    const strokeWidth = `${this.trackController.trackElement.layoutDimensions.noteTextSize / 2}`;
     for (let i = 0; i < descriptors.length; i++) {
       const hasFill =
         descriptors[i].attrs?.fill !== undefined &&

@@ -481,7 +481,7 @@ describe("TrackElement techniques", () => {
     const line3 = techGap.techGapLines[3];
 
     expect(techGap.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT * 3
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight * 3
     );
     expect(line1).not.toBeNull();
     expect(line2).not.toBeNull();
@@ -489,13 +489,13 @@ describe("TrackElement techniques", () => {
     expect(line2?.boundingBox.y).toBeCloseTo(line1?.boundingBox.bottom ?? 0);
     expect(line3?.boundingBox.y).toBeCloseTo(line2?.boundingBox.bottom ?? 0);
     expect(line1?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(line2?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(line3?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(line1?.labelElements).toHaveLength(1);
     expect(line2?.labelElements).toHaveLength(1);
@@ -638,7 +638,7 @@ describe("TrackElement techniques", () => {
         barElement.boundingBox.width
       );
       expect(label.lineLocalBoundingBox.right).toBeLessThanOrEqual(
-        TEST_LAYOUT_DIMENSIONS.WIDTH
+        TEST_LAYOUT_DIMENSIONS.width
       );
     }
   });
@@ -718,7 +718,7 @@ describe("TrackElement techniques", () => {
       firstLineAfter.boundingBox.height
     );
     expect(firstLineTechGap.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
   });
 
@@ -759,7 +759,7 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
     expect(afterTechGap.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
   });
 
@@ -802,7 +802,7 @@ describe("TrackElement techniques", () => {
     const line3 = techGap.techGapLines[3];
 
     expect(techGap.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT * 2
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight * 2
     );
     expect(line3?.boundingBox.y).toBeCloseTo(line1?.boundingBox.bottom ?? 0);
   });
@@ -851,7 +851,7 @@ describe("TrackElement techniques", () => {
     const vibratos = labels.map((label) =>
       parseVibratoPath(label.pathDescriptors?.[0]?.d ?? "")
     );
-    const expectedSegmentWidth = TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT / 12;
+    const expectedSegmentWidth = TEST_LAYOUT_DIMENSIONS.techLabelHeight / 12;
     const interiorWidths = vibratos.flatMap((vibrato) =>
       vibrato.segments.slice(1, -1).map((segment, index) => {
         const previousEndX = vibrato.segments[index][4];
@@ -865,7 +865,7 @@ describe("TrackElement techniques", () => {
       vibrato.segments.map((segment) => segment[5])
     );
     const vibratoHeight = Math.max(...endpointYs) - Math.min(...endpointYs);
-    const expectedHeight = TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT / 6;
+    const expectedHeight = TEST_LAYOUT_DIMENSIONS.techLabelHeight / 6;
     const finalFirstPath = labels[0]?.pathDescriptors?.[0]?.d;
 
     expect(labels).toHaveLength(3);
@@ -1205,10 +1205,10 @@ describe("TrackElement techniques", () => {
     expect(vibratoLabel).toBeDefined();
     expect(palmMuteLabel).toBeDefined();
     expect(vibratoLine?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(palmMuteLine?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(palmMuteLine?.boundingBox.y).toBeCloseTo(
       vibratoLine?.boundingBox.bottom ?? 0

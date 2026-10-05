@@ -1,11 +1,4 @@
-import {
-  VoiceBar,
-  Beat,
-  DURATION_TO_FLAG_COUNT,
-  Guitar,
-  Bar,
-  VoiceNumber,
-} from "../../../model";
+import { VoiceBar, Beat, Bar, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
@@ -14,21 +7,12 @@ import {
   NotationNode,
   NotationNodeType,
 } from "../notation-element";
-import {
-  NotationStyle,
-  StaffLineContainer,
-} from "../staff/staff-line-container";
-import { NotationStyleLineContainer } from "../staff/notation-style-line-container";
-import { BeamSegmentElement } from "./beam-segment-element";
-import { BarTupletGroupElement } from "./bar-tuplet-group-element";
+import { NotationStyle } from "../staff/staff-line-container";
+
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { SheetBeatContainer } from "../beat/sheet-beat-container";
 import { BeatElement, getBeatWidth } from "../beat/beat-element";
-import {
-  HorLine,
-  Line,
-  VertLine,
-} from "../../../../shared/rendering/geometry/line";
+
 import { BarElement } from "./bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
 
@@ -137,7 +121,7 @@ export class VoiceBarContainer implements NotationContainer {
     // const height =
     //   this._beatElements[0]?.boundingBox.height ??
     //   this.voiceBar.trackContext.instrument.maxPolyphony *
-    //     layoutDimensions.NOTE_RECT_HEIGHT;
+    //     layoutDimensions.noteRectHeight;
     //
     // this._boundingBox.setDimensions(this.barElement.voiceContentWidth, height);
 
@@ -187,7 +171,7 @@ export class VoiceBarContainer implements NotationContainer {
     const beatStartRatio = beatStartUnits / contentEnd;
 
     return (
-      this.trackElement.layoutDimensions.RHYTHM_ATTACK_PADDING +
+      this.trackElement.layoutDimensions.rhythmAttackPadding +
       beatStartRatio * this.voiceDurationSpanWidth
     );
   }
@@ -207,7 +191,7 @@ export class VoiceBarContainer implements NotationContainer {
 
     return Math.min(
       Math.max(
-        this.trackElement.layoutDimensions.MIN_RHYTHM_COLUMN_GAP,
+        this.trackElement.layoutDimensions.minRhythmColumnGap,
         beatDurationRatio * this.voiceDurationSpanWidth
       ),
       remainingRatio * this.voiceDurationSpanWidth
@@ -218,7 +202,7 @@ export class VoiceBarContainer implements NotationContainer {
     return Math.max(
       0,
       this.barElement.voiceContentWidth -
-        this.trackElement.layoutDimensions.RHYTHM_ATTACK_PADDING * 2
+        this.trackElement.layoutDimensions.rhythmAttackPadding * 2
     );
   }
 
@@ -330,7 +314,7 @@ export function getVoiceBarWidth(
   let width = 0;
 
   if (voiceBar.bar.masterBar.isRepeatStart) {
-    width += layoutDimensions.REPEAT_SIGN_WIDTH;
+    width += layoutDimensions.repeatSignWidth;
   }
 
   const prevBar: Bar | null = voiceBar.bar.staff.getPrevBar(voiceBar.bar);
@@ -338,7 +322,7 @@ export function getVoiceBarWidth(
     prevBar === null ||
     prevBar.masterBar.maxDuration !== voiceBar.bar.masterBar.maxDuration
   ) {
-    width += layoutDimensions.TIME_SIG_RECT_WIDTH;
+    width += layoutDimensions.timeSigRectWidth;
   }
 
   for (const beat of voiceBar.beats) {
@@ -346,7 +330,7 @@ export function getVoiceBarWidth(
   }
 
   if (voiceBar.bar.masterBar.isRepeatEnd) {
-    width += layoutDimensions.REPEAT_SIGN_WIDTH;
+    width += layoutDimensions.repeatSignWidth;
   }
 
   return width;

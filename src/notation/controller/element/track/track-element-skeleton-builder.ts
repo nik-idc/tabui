@@ -28,7 +28,7 @@ function getTabTechniqueGapHeight(
               rows.add(lineNumber);
 
               if (rows.size === maxRowCount) {
-                return maxRowCount * layoutDimensions.TECH_LABEL_HEIGHT;
+                return maxRowCount * layoutDimensions.techLabelHeight;
               }
             }
           }
@@ -37,7 +37,7 @@ function getTabTechniqueGapHeight(
     }
   }
 
-  return rows.size * layoutDimensions.TECH_LABEL_HEIGHT;
+  return rows.size * layoutDimensions.techLabelHeight;
 }
 
 function getTabMainContentHeight(
@@ -62,10 +62,10 @@ function getTabMainContentHeight(
   }
 
   const notesHeight =
-    layoutDimensions.NOTE_RECT_HEIGHT *
+    layoutDimensions.noteRectHeight *
     staff.track.context.instrument.maxPolyphony;
   let rhythmRowsHeight = 0;
-  for (const [_, hasTuplet] of voiceRowsByHasTuplet) {
+  for (const hasTuplet of voiceRowsByHasTuplet.values()) {
     rhythmRowsHeight += layoutDimensions.getRhythmRowHeight(hasTuplet);
   }
   return notesHeight + rhythmRowsHeight;
@@ -109,7 +109,7 @@ function getTrackLineHeight(
   return track.staves.reduce(
     (sum, staff) =>
       sum + getStaffLineHeight(staff, trackLineBars, layoutDimensions),
-    hasTempo ? layoutDimensions.TEMPO_RECT_HEIGHT : 0
+    hasTempo ? layoutDimensions.tempoRectHeight : 0
   );
 }
 
@@ -149,7 +149,7 @@ export function buildTrackElementSkeleton(
       lineY,
       layoutMode === TabUILayoutMode.SingleLine
         ? scoreLine.bars.reduce((sum, b) => sum + b.finalizedWidth, 0)
-        : layoutDimensions.WIDTH
+        : layoutDimensions.width
     );
     lines.push(line);
     lineY += line.finalLineHeight;

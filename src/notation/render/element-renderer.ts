@@ -1,4 +1,5 @@
 import { NotationElement, TrackController } from "../controller";
+import type { ResolvedAssetConfig } from "../../config/asset-url-resolver";
 
 export interface ElementRenderer {
   readonly trackController: TrackController;
@@ -27,4 +28,9 @@ export interface ElementRenderer {
   unrender(): void;
 }
 
-export type ElementRendererClass = new (...args: any[]) => ElementRenderer;
+/** Constructor shared by renderers, retaining the supported element type. */
+export type ElementRendererClass<E extends NotationElement> = new (
+  trackController: TrackController,
+  element: E,
+  assetsPath: ResolvedAssetConfig
+) => ElementRenderer;

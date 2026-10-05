@@ -113,7 +113,10 @@ export class BeatInteractionRenderer {
       rect.setAttribute("y", `${barBounds.y}`);
       rect.setAttribute("width", `${targetWidth}`);
       rect.setAttribute("height", `${barBounds.height}`);
-      const hint = this._endGapHints.get(modelUUID)!;
+      const hint = this._endGapHints.get(modelUUID);
+      if (hint === undefined) {
+        throw Error("Bar end-gap hint was not initialized");
+      }
       hint.setAttribute("x", `${targetX + targetWidth / 2}`);
       const staffLines = element.staffLinesGlobal;
       const firstStaffLine = staffLines[0];
@@ -135,7 +138,11 @@ export class BeatInteractionRenderer {
       }
       this._interactionGroup.removeChild(rect);
       this._endGapRects.delete(modelUUID);
-      this._interactionGroup.removeChild(this._endGapHints.get(modelUUID)!);
+      const hint = this._endGapHints.get(modelUUID);
+      if (hint === undefined) {
+        throw Error("Bar end-gap hint was not initialized");
+      }
+      this._interactionGroup.removeChild(hint);
       this._endGapHints.delete(modelUUID);
       this._endGapElements.delete(modelUUID);
     }

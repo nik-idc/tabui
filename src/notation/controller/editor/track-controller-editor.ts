@@ -1,7 +1,6 @@
 import {
   Beat,
   NoteDuration,
-  GuitarNote,
   Bar,
   BarRepeatStatusChange,
   TechniqueType,
@@ -9,7 +8,6 @@ import {
   MasterBarData,
   TupletSettings,
   DEFAULT_MASTER_BAR,
-  GuitarTechniqueType,
   VoiceNumber,
   ScoreEditor,
   Score,

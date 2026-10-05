@@ -1,5 +1,5 @@
 import { Staff, Beat, Note, Track, VoiceNumber } from "../../model";
-import { BeatElement } from "../element/beat/beat-element";
+
 import { NoteElement } from "../element/note/note-element";
 import {
   SelectionCursor,

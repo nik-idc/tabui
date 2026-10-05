@@ -50,7 +50,7 @@ export function calculateMasterBarLayoutMetrics(
     layoutDimensions
   );
   const columnCountMinWidth =
-    sortedColumns.length * layoutDimensions.MIN_RHYTHM_COLUMN_GAP;
+    sortedColumns.length * layoutDimensions.minRhythmColumnGap;
   const attackCollisionMinWidth = calculateAttackCollisionMinWidth(
     sortedColumns,
     contentEndFraction,
@@ -58,7 +58,7 @@ export function calculateMasterBarLayoutMetrics(
   );
   const durationMinWidth =
     contentEndFraction *
-    layoutDimensions.WIDTH_MAPPING[NoteDuration.Quarter] *
+    layoutDimensions.widthMapping[NoteDuration.Quarter] *
     QUARTER_NOTES_PER_WHOLE_NOTE;
   const contentMinWidth =
     sortedColumns.length === 0
@@ -68,7 +68,7 @@ export function calculateMasterBarLayoutMetrics(
           columnCountMinWidth,
           attackCollisionMinWidth
         ) +
-        layoutDimensions.RHYTHM_ATTACK_PADDING * 2;
+        layoutDimensions.rhythmAttackPadding * 2;
 
   return {
     durationFraction,
@@ -99,7 +99,7 @@ function calculateAttackCollisionMinWidth(
 
   return minColumnDelta === 0 || !Number.isFinite(minColumnDelta)
     ? 0
-    : (layoutDimensions.MIN_RHYTHM_COLUMN_GAP * contentEndFraction) /
+    : (layoutDimensions.minRhythmColumnGap * contentEndFraction) /
         minColumnDelta;
 }
 
@@ -116,10 +116,10 @@ function calculateStructuralWidth(
     prevMasterBar === undefined ||
     prevMasterBar.maxDuration !== masterBar.maxDuration
   ) {
-    width += layoutDimensions.TIME_SIG_RECT_WIDTH;
+    width += layoutDimensions.timeSigRectWidth;
   }
 
-  width += layoutDimensions.REPEAT_SIGN_WIDTH * 3;
+  width += layoutDimensions.repeatSignWidth * 3;
 
   return width;
 }

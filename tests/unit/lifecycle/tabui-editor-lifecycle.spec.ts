@@ -35,7 +35,7 @@ jest.mock("../../../src/notation/notation-component", () => ({
           activeVoiceNumber: 1,
           selectionBeats: [],
           selectionCursor: undefined,
-          windowHeight: layoutDimensions.WIDTH / 2,
+          windowHeight: layoutDimensions.width / 2,
         },
       })
     ),
@@ -452,12 +452,12 @@ describe("TabUIEditor lifecycle", () => {
 
     editor.init();
 
-    expect(editor.layoutDimensions.WIDTH).toBe(640);
-    expect(editor.layoutDimensions.NOTE_TEXT_SIZE).toBe(14);
-    expect(editor.layoutDimensions.TIME_SIG_TEXT_SIZE).toBe(52);
-    expect(editor.layoutDimensions.TEMPO_TEXT_SIZE).toBe(26);
-    expect(editor.layoutDimensions.DURATIONS_HEIGHT).toBe(40);
-    expect(editor.layoutDimensions.HORIZONTAL_PADDING).toBe(18);
+    expect(editor.layoutDimensions.width).toBe(640);
+    expect(editor.layoutDimensions.noteTextSize).toBe(14);
+    expect(editor.layoutDimensions.timeSigTextSize).toBe(52);
+    expect(editor.layoutDimensions.tempoTextSize).toBe(26);
+    expect(editor.layoutDimensions.durationsHeight).toBe(40);
+    expect(editor.layoutDimensions.horizontalPadding).toBe(18);
   });
 
   test("measures notation host width instead of full root width", () => {
@@ -466,7 +466,7 @@ describe("TabUIEditor lifecycle", () => {
 
     editor.init();
 
-    expect(editor.layoutDimensions.WIDTH).toBe(666);
+    expect(editor.layoutDimensions.width).toBe(666);
     expect(root.appendChild).toHaveBeenCalledTimes(7);
     expect(getRootChild(root, "tu-notation-viewport")).toBeDefined();
   });
@@ -739,7 +739,7 @@ describe("TabUIEditor lifecycle", () => {
 
     editor.refreshLayout(720);
 
-    expect(editor.layoutDimensions.WIDTH).toBe(720);
+    expect(editor.layoutDimensions.width).toBe(720);
     expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
     expect(callbacks.refresh).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenLastCalledWith({
@@ -784,7 +784,7 @@ describe("TabUIEditor lifecycle", () => {
 
     expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
     frameCallback?.(0);
-    expect(editor.layoutDimensions.WIDTH).toBe(756);
+    expect(editor.layoutDimensions.width).toBe(756);
     expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
     expect(callbacks.refresh).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledTimes(1);
@@ -859,7 +859,7 @@ describe("TabUIEditor lifecycle", () => {
     const editor = new TabUIEditor(root, createScore());
 
     expect(() => editor.init()).not.toThrow();
-    expect(editor.layoutDimensions.WIDTH).toBe(256);
+    expect(editor.layoutDimensions.width).toBe(256);
     expect(root.classList.toggle).toHaveBeenCalledWith(
       "tu-responsive-blocked",
       true
@@ -893,13 +893,13 @@ describe("TabUIEditor lifecycle", () => {
     resizeCallback?.([], {} as ResizeObserver);
     frameCallback?.(1);
 
-    expect(editor.layoutDimensions.WIDTH).toBe(276);
+    expect(editor.layoutDimensions.width).toBe(276);
     expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
 
     notationViewportWidth = 720;
     resizeCallback?.([], {} as ResizeObserver);
     frameCallback?.(2);
-    expect(editor.layoutDimensions.WIDTH).toBe(696);
+    expect(editor.layoutDimensions.width).toBe(696);
     expect(notation.refreshLayout).toHaveBeenCalledTimes(2);
   });
 
@@ -937,7 +937,7 @@ describe("TabUIEditor lifecycle", () => {
     notationViewportWidth = 800;
 
     expect(ResizeObserverMock).toHaveBeenCalledTimes(1);
-    expect(editor.layoutDimensions.WIDTH).toBe(640);
+    expect(editor.layoutDimensions.width).toBe(640);
   });
 
   test("cancels pending responsive work during disposal", () => {
@@ -1001,7 +1001,7 @@ describe("TabUIEditor lifecycle", () => {
     frameCallback?.(0);
 
     expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
-    expect(editor.layoutDimensions.WIDTH).toBe(726);
+    expect(editor.layoutDimensions.width).toBe(726);
     expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
 
     editor.dispose();
@@ -1017,7 +1017,7 @@ describe("TabUIEditor lifecycle", () => {
 
     editor.refreshLayout();
 
-    expect(editor.layoutDimensions.WIDTH).toBe(640);
+    expect(editor.layoutDimensions.width).toBe(640);
     expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
   });
 
@@ -1032,7 +1032,7 @@ describe("TabUIEditor lifecycle", () => {
 
     expect(() => editor.refreshLayout(720)).toThrow("refresh failed");
 
-    expect(editor.layoutDimensions.WIDTH).toBe(666);
+    expect(editor.layoutDimensions.width).toBe(666);
     expect(notation.refreshLayout).toHaveBeenCalledTimes(2);
     expect(callbacks.refresh).toHaveBeenCalledTimes(1);
   });
@@ -1049,7 +1049,7 @@ describe("TabUIEditor lifecycle", () => {
 
     expect(() => editor.refreshLayout(720)).toThrow("listener failed");
 
-    expect(dimensions.WIDTH).toBe(666);
+    expect(dimensions.width).toBe(666);
     expect(notation.refreshLayout).toHaveBeenCalledTimes(2);
   });
 
@@ -1062,7 +1062,7 @@ describe("TabUIEditor lifecycle", () => {
     expect(() => editor.refreshLayout(-1)).toThrow(
       "non-negative finite number"
     );
-    expect(editor.layoutDimensions.WIDTH).toBe(666);
+    expect(editor.layoutDimensions.width).toBe(666);
     expect(notation.refreshLayout).not.toHaveBeenCalled();
     expect(callbacks.refresh).not.toHaveBeenCalled();
   });

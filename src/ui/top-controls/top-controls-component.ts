@@ -1,7 +1,5 @@
 import { DialogEnforcer } from "../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../notation/notation-component";
-import { template } from "@babel/core";
-import { TrackControlsComponent } from "./score-controls/track-controls";
 
 import { TopControlsTemplate } from "./top-controls-template";
 import { TopControlsTemplateRenderer } from "./top-controls-template-renderer";

@@ -109,7 +109,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       throw Error("Bend pitches must match bend curve ends");
     }
 
-    const fontSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
+    const fontSize = this.trackElement.layoutDimensions.noteTextSize;
     const y = this._boundingBox.y + this._boundingBox.height / 2 - fontSize / 2;
     this._pathDescriptors = [];
     this._textDescriptors = pitches.map((pitch, index) =>
@@ -264,7 +264,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       GuitarTechniqueDescriptors.createTextDescriptor(
         x,
         y,
-        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE,
+        this.trackElement.layoutDimensions.noteTextSize,
         text
       ),
     ];
@@ -319,7 +319,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   private createBendTypeText(text: string): void {
-    const fontSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
+    const fontSize = this.trackElement.layoutDimensions.noteTextSize;
     this._pathDescriptors = [];
     this._textDescriptors = [
       GuitarTechniqueDescriptors.createTextDescriptor(
@@ -343,7 +343,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   public measure(): void {
     this._boundingBox.setDimensions(
       this.beatElement.boundingBox.width,
-      this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
+      this.trackElement.layoutDimensions.techLabelHeight
     );
   }
 

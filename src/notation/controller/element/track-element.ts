@@ -1,4 +1,4 @@
-import { Bar, Beat, lcmAll, Track } from "../../model";
+import { Beat, lcmAll, Track } from "../../model";
 import { randomInt, Point, Rect } from "../../../shared";
 import { BarElement } from "./bar/bar-element";
 import {

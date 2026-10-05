@@ -1,9 +1,4 @@
-import {
-  MasterBarArrayOperationOutput,
-  Beat,
-  BeatArrayOperationOutput,
-  VoiceBar,
-} from "../../../model";
+import { BeatArrayOperationOutput, VoiceBar } from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**

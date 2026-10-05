@@ -79,7 +79,7 @@ describe("BarTupletGroupElement", () => {
     expect(tupletElement.incompleteRects).toBeUndefined();
     expect(tupletElement.boundingBox.width).toBeCloseTo(expectedWidth);
     expect(tupletElement.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TUPLET_RECT_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.tupletRectHeight
     );
     expect(tupletElement.completeText).toBe("3");
   });
@@ -100,7 +100,7 @@ describe("BarTupletGroupElement", () => {
     );
     expect(
       incompleteRects?.every(
-        (rect) => rect.height === TEST_LAYOUT_DIMENSIONS.TUPLET_RECT_HEIGHT
+        (rect) => rect.height === TEST_LAYOUT_DIMENSIONS.tupletRectHeight
       )
     ).toBe(true);
   });
@@ -164,7 +164,7 @@ describe("BarTupletGroupElement", () => {
     );
     expect(tupletElement.boundingBox.width).toBeCloseTo(sumWidth);
     expect(tupletElement.boundingBox.y).toBeCloseTo(
-      TEST_LAYOUT_DIMENSIONS.DURATIONS_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.durationsHeight
     );
     expect(tupletElement.completeText).toBe("5:3");
   });
@@ -203,7 +203,7 @@ describe("BarTupletGroupElement", () => {
     expect(pathRect?.width).toBeCloseTo(
       tupletElement.boundingBox.width - firstBeatWidth / 2 - lastBeatWidth / 2
     );
-    expect(pathRect?.height).toBe(TEST_LAYOUT_DIMENSIONS.TUPLET_PATH_HEIGHT);
+    expect(pathRect?.height).toBe(TEST_LAYOUT_DIMENSIONS.tupletPathHeight);
     expect(pathRect?.x).toBeCloseTo(
       tupletElement.globalCoords.x + firstBeatWidth / 2
     );
@@ -246,7 +246,7 @@ describe("BarTupletGroupElement", () => {
     expect(tupletElement.comleteTextCoordsGlobal?.y).toBeCloseTo(
       tupletElement.globalCoords.y +
         tupletElement.boundingBox.height / 2 +
-        TEST_LAYOUT_DIMENSIONS.TUPLET_PATH_HEIGHT * 2
+        TEST_LAYOUT_DIMENSIONS.tupletPathHeight * 2
     );
   });
 

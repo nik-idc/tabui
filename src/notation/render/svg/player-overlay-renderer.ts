@@ -28,8 +28,8 @@ const PLAYER_CURSOR_WIDTH_PX = 5;
 const PLAYER_CURSOR_ADD_HEIGHT_PX = 10;
 
 export class PlayerOverlayRenderer {
-  private readonly trackController: TrackController;
-  private readonly ensureBeatVisible: (
+  private readonly _trackController: TrackController;
+  private readonly _ensureBeatVisible: (
     beat: Beat,
     follow: boolean
   ) => BeatElement | undefined;
@@ -52,8 +52,8 @@ export class PlayerOverlayRenderer {
     ensureBeatVisible: (beat: Beat, follow: boolean) => BeatElement | undefined,
     followHorizontalPosition: (x: number) => void = () => {}
   ) {
-    this.trackController = trackController;
-    this.ensureBeatVisible = ensureBeatVisible;
+    this._trackController = trackController;
+    this._ensureBeatVisible = ensureBeatVisible;
     this.followHorizontalPosition = followHorizontalPosition;
 
     this._playerGroup = playerGroup;
@@ -137,13 +137,13 @@ export class PlayerOverlayRenderer {
     const animation = this._activeAnimation;
     if (
       animation === undefined ||
-      animation.playbackRunId !== this.trackController.playerRunId
+      animation.playbackRunId !== this._trackController.playerRunId
     ) {
       this._activeAnimation = undefined;
       return;
     }
 
-    const currentTime = this.trackController.playerCurrentTime;
+    const currentTime = this._trackController.playerCurrentTime;
     if (currentTime === undefined) {
       this._activeAnimation = undefined;
       return;
@@ -173,7 +173,7 @@ export class PlayerOverlayRenderer {
     playbackRunId: number
   ): void {
     this.cancelAnimation();
-    if (playbackRunId !== this.trackController.playerRunId) {
+    if (playbackRunId !== this._trackController.playerRunId) {
       return;
     }
 
@@ -236,14 +236,14 @@ export class PlayerOverlayRenderer {
   }
 
   private resolveVisibleBeat(beatUUID: number): ResolvedCursorBeat | undefined {
-    const beat = this.trackController.getBeatByUUID(beatUUID);
+    const beat = this._trackController.getBeatByUUID(beatUUID);
     if (beat === undefined) {
       return undefined;
     }
 
-    const beatElement = this.ensureBeatVisible(beat, true);
+    const beatElement = this._ensureBeatVisible(beat, true);
     const trackLineElement =
-      this.trackController.trackElement.getTrackLineElementForBeat(beat);
+      this._trackController.trackElement.getTrackLineElementForBeat(beat);
     if (trackLineElement === undefined || beatElement === undefined) {
       return undefined;
     }
@@ -270,20 +270,20 @@ export class PlayerOverlayRenderer {
       return;
     }
 
-    const nextBeat = this.trackController.getBeatByUUID(args.nextBeatUUID);
+    const nextBeat = this._trackController.getBeatByUUID(args.nextBeatUUID);
     if (nextBeat === undefined) {
       this.snapToBeat(beatElement);
       return;
     }
 
     const nextTrackLineElement =
-      this.trackController.trackElement.getTrackLineElementForBeat(nextBeat);
+      this._trackController.trackElement.getTrackLineElementForBeat(nextBeat);
     if (nextTrackLineElement !== trackLineElement) {
       this.snapToBeat(beatElement);
       return;
     }
 
-    const nextBeatElement = this.ensureBeatVisible(nextBeat, false);
+    const nextBeatElement = this._ensureBeatVisible(nextBeat, false);
     if (nextBeatElement === undefined) {
       this.snapToBeat(beatElement);
       return;
@@ -302,9 +302,9 @@ export class PlayerOverlayRenderer {
     args: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]
   ): void {
     if (
-      args.trackUUID !== this.trackController.track.uuid ||
-      args.playerUUID !== this.trackController.playerUUID ||
-      args.playbackRunId !== this.trackController.playerRunId
+      args.trackUUID !== this._trackController.track.uuid ||
+      args.playerUUID !== this._trackController.playerUUID ||
+      args.playbackRunId !== this._trackController.playerRunId
     ) {
       return;
     }
@@ -314,7 +314,7 @@ export class PlayerOverlayRenderer {
   }
 
   public render(): void {
-    if (this.trackController.playbackState === PlaybackState.Playing) {
+    if (this._trackController.playbackState === PlaybackState.Playing) {
       this.renderPlaying();
     } else {
       this.hide();
@@ -328,7 +328,7 @@ export class PlayerOverlayRenderer {
     this._playerCursorRect.setAttribute("fill", "var(--tu-notation-cursor)");
     if (
       this._activeBeatChange !== undefined &&
-      this._activeBeatChange.playbackRunId === this.trackController.playerRunId
+      this._activeBeatChange.playbackRunId === this._trackController.playerRunId
     ) {
       this.renderBeatChange(this._activeBeatChange);
       return;
@@ -336,11 +336,11 @@ export class PlayerOverlayRenderer {
     this._activeBeatChange = undefined;
     this.cancelAnimation();
 
-    const lastStartedBeat = this.trackController.playerLastStartedBeat;
+    const lastStartedBeat = this._trackController.playerLastStartedBeat;
     const lastStartedBeatElement =
       lastStartedBeat === undefined
         ? undefined
-        : this.ensureBeatVisible(lastStartedBeat, true);
+        : this._ensureBeatVisible(lastStartedBeat, true);
     if (lastStartedBeatElement === undefined) {
       this.hideCursor();
       return;

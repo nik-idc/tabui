@@ -1,9 +1,5 @@
 import { DURATION_TO_FLAG_COUNT } from "../../model";
-import {
-  NotationElement,
-  TabBeatRhythmElement,
-  TrackController,
-} from "../../controller";
+import { TabBeatRhythmElement, TrackController } from "../../controller";
 import {
   createSVGCircle,
   createSVGG,
@@ -250,7 +246,7 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
     for (const flag of flags ?? []) {
       parts.push(`M ${flag.x1} ${flag.y} L ${flag.x2} ${flag.y}`);
     }
-    const width = this.trackController.layoutDimensions.NOTE_TEXT_SIZE / 2;
+    const width = this.trackController.layoutDimensions.noteTextSize / 2;
     this._durationHitTargetSVG.setAttribute("d", parts.join(" "));
     this._durationHitTargetSVG.setAttribute("stroke", "transparent");
     this._durationHitTargetSVG.setAttribute("stroke-width", `${width}`);
@@ -324,7 +320,7 @@ export class SVGTabBeatRhythmRenderer implements ElementRenderer {
       this._dotsHitTargetSVG = createSVGPath();
     }
     group.appendChild(this._dotsHitTargetSVG);
-    const padding = this.trackController.layoutDimensions.NOTE_TEXT_SIZE / 8;
+    const padding = this.trackController.layoutDimensions.noteTextSize / 8;
     const circles = [
       this.beatRhythmElement.dot1CircleBarLocal,
       this.beatRhythmElement.dot2CircleBarLocal,

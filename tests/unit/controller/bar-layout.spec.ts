@@ -87,11 +87,11 @@ describe("bar layout metrics", () => {
     expect(metrics.rhythmColumnCount).toBe(4);
     expect(metrics.contentMinWidth).toBe(
       Math.max(
-        TEST_LAYOUT_DIMENSIONS.WIDTH_MAPPING[NoteDuration.Quarter] * 4,
-        4 * TEST_LAYOUT_DIMENSIONS.MIN_RHYTHM_COLUMN_GAP,
-        TEST_LAYOUT_DIMENSIONS.MIN_RHYTHM_COLUMN_GAP / 0.125
+        TEST_LAYOUT_DIMENSIONS.widthMapping[NoteDuration.Quarter] * 4,
+        4 * TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap,
+        TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap / 0.125
       ) +
-        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING * 2
+        TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding * 2
     );
   });
 
@@ -152,8 +152,8 @@ describe("bar layout metrics", () => {
     );
 
     expect(metrics.structuralWidth).toBe(
-      TEST_LAYOUT_DIMENSIONS.TIME_SIG_RECT_WIDTH +
-        TEST_LAYOUT_DIMENSIONS.REPEAT_SIGN_WIDTH * 3
+      TEST_LAYOUT_DIMENSIONS.timeSigRectWidth +
+        TEST_LAYOUT_DIMENSIONS.repeatSignWidth * 3
     );
     expect(metrics.minWidth).toBe(
       metrics.structuralWidth + metrics.contentMinWidth
@@ -276,7 +276,7 @@ describe("musical beat layout", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
     const lastBar = firstLineBarElements[firstLineBarElements.length - 1];
-    expect(lastBar.boundingBox.right).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.WIDTH);
+    expect(lastBar.boundingBox.right).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.width);
   });
 
   test("shorter voice-bar columns do not widen duration-dominated bars", () => {
@@ -317,8 +317,8 @@ describe("musical beat layout", () => {
     );
 
     expect(metrics.contentMinWidth).toBeGreaterThan(
-      beats.length * TEST_LAYOUT_DIMENSIONS.MIN_RHYTHM_COLUMN_GAP +
-        TEST_LAYOUT_DIMENSIONS.RHYTHM_ATTACK_PADDING * 2
+      beats.length * TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap +
+        TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding * 2
     );
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -331,7 +331,7 @@ describe("musical beat layout", () => {
 
     for (let i = 1; i < attackXs.length; i++) {
       expect(attackXs[i] - attackXs[i - 1]).toBeGreaterThanOrEqual(
-        TEST_LAYOUT_DIMENSIONS.MIN_RHYTHM_COLUMN_GAP
+        TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap
       );
     }
   });
@@ -349,7 +349,7 @@ describe("musical beat layout", () => {
       TEST_LAYOUT_DIMENSIONS
     );
 
-    expect(metrics.minWidth).toBeGreaterThan(TEST_LAYOUT_DIMENSIONS.WIDTH);
+    expect(metrics.minWidth).toBeGreaterThan(TEST_LAYOUT_DIMENSIONS.width);
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
@@ -357,7 +357,7 @@ describe("musical beat layout", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
 
-    expect(barElement.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.WIDTH);
+    expect(barElement.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.width);
 
     const firstBeatElement = findBeatElement(trackElement, beats[0]);
     const secondBeatElement = findBeatElement(trackElement, beats[1]);
@@ -365,7 +365,7 @@ describe("musical beat layout", () => {
     expect(secondBeatElement).toBeDefined();
     expect(
       secondBeatElement!.barLocalCoords.x - firstBeatElement!.barLocalCoords.x
-    ).toBeLessThan(TEST_LAYOUT_DIMENSIONS.MIN_RHYTHM_COLUMN_GAP);
+    ).toBeLessThan(TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap);
   });
 });
 
@@ -635,11 +635,11 @@ describe("score layout planner", () => {
     const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
 
     expect(plan.metrics[0].minWidth).toBeGreaterThan(
-      TEST_LAYOUT_DIMENSIONS.WIDTH
+      TEST_LAYOUT_DIMENSIONS.width
     );
     expect(plan.intrinsicBars[0].finalizedWidth).toBe(plan.metrics[0].minWidth);
     expect(plan.wrappedLines[0].bars[0].finalizedWidth).toBe(
-      TEST_LAYOUT_DIMENSIONS.WIDTH
+      TEST_LAYOUT_DIMENSIONS.width
     );
   });
 
@@ -668,7 +668,7 @@ describe("score layout planner", () => {
 
     expect(firstLine).toHaveLength(4);
     expect(firstLine[3].x + firstLine[3].finalizedWidth).toBeCloseTo(
-      TEST_LAYOUT_DIMENSIONS.WIDTH
+      TEST_LAYOUT_DIMENSIONS.width
     );
     expect(finalLine).toHaveLength(1);
     expect(finalLine[0].finalizedWidth).toBe(plan.metrics[4].minWidth);

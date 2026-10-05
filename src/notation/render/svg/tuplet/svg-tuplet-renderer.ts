@@ -219,7 +219,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       this._completeTupletTextSVG = createSVGText();
 
       // Set only-set-once attributes
-      const fontSize = `${this.trackController.layoutDimensions.TEMPO_TEXT_SIZE}`;
+      const fontSize = `${this.trackController.layoutDimensions.tempoTextSize}`;
       this._completeTupletTextSVG.setAttribute("text-anchor", "middle");
       this._completeTupletTextSVG.setAttribute("dominant-baseline", "middle");
       this._completeTupletTextSVG.setAttribute("font-size", fontSize);
@@ -290,7 +290,7 @@ export class SVGTupletRenderer implements ElementRenderer {
       renderedText = this._incompleteTupletTextsSVG[index];
 
       // Set only-set-once attributes
-      const fontSize = `${this.trackController.layoutDimensions.TEMPO_TEXT_SIZE}`;
+      const fontSize = `${this.trackController.layoutDimensions.tempoTextSize}`;
       renderedText.setAttribute("text-anchor", "middle");
       renderedText.setAttribute("dominant-baseline", "middle");
       renderedText.setAttribute("font-size", fontSize);

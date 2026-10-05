@@ -252,8 +252,7 @@ function validateMasterBarRepeat(
 /** Constructs validated repeat data for the serialized master bar. */
 function constructSerializedMasterBar(
   masterBar: MasterBar,
-  serialized: SerializedMasterBarCommon,
-  path: SerializationPath
+  serialized: SerializedMasterBarCommon
 ): SerializedMasterBar {
   return {
     ...serialized,
@@ -297,7 +296,7 @@ function serializeMasterBar(
     beatsCount: masterBar.beatsCount,
     duration: SERIALIZED_NOTE_DURATIONS[masterBar.duration],
   };
-  return constructSerializedMasterBar(masterBar, serialized, path);
+  return constructSerializedMasterBar(masterBar, serialized);
 }
 
 /**

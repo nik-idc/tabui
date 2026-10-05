@@ -41,7 +41,7 @@ function setupRenderer() {
     descriptorOriginBarLocal: { x: 4, y: 5 },
   } as any;
   const renderer = new SVGTechniqueLabelRenderer(
-    { trackElement: { layoutDimensions: { NOTE_TEXT_SIZE: 16 } } } as any,
+    { trackElement: { layoutDimensions: { noteTextSize: 16 } } } as any,
     element,
     {} as any
   );

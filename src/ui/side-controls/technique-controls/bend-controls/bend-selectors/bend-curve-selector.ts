@@ -347,7 +347,6 @@ export class BendCurveSelector implements Selector {
 
     event.preventDefault();
     event.stopPropagation();
-    const previousValue = this.getPointValueText(point);
     const xStep = this.width / this.bendManagerOptions.colsCount;
     const yStep =
       this.bendManagerOptions.height / this.bendManagerOptions.rowsCount;

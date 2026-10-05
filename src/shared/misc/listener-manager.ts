@@ -13,13 +13,13 @@ export type ListenerConfig = {
 type ListenerCleanup = () => void;
 
 export class ListenerManager {
-  private listeners: ListenerCleanup[] = [];
+  private _listeners: ListenerCleanup[] = [];
 
   /** Registers a typed DOM listener and tracks it for a matching removal. */
   addListener(config: ListenerConfig): void {
     const handler = config.handler as EventListener;
     config.element.addEventListener(config.event, handler);
-    this.listeners.push(() =>
+    this._listeners.push(() =>
       config.element.removeEventListener(config.event, handler)
     );
   }
@@ -30,7 +30,7 @@ export class ListenerManager {
   }
 
   unbindAll(): void {
-    this.listeners.forEach((cleanup) => cleanup());
-    this.listeners = [];
+    this._listeners.forEach((cleanup) => cleanup());
+    this._listeners = [];
   }
 }

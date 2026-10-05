@@ -1,9 +1,8 @@
 import { DialogEnforcer } from "../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../notation/notation-component";
-import { template } from "@babel/core";
 
 import { BendControlsComponent } from "./bend-controls/bend-controls-component";
-import { TimeSigControlsComponent } from "../measure-controls/time-sig-controls";
+
 import { TechniqueControlsTemplate } from "./technique-controls-template";
 import { TechniqueControlsTemplateRenderer } from "./technique-controls-template-renderer";
 

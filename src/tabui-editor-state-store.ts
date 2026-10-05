@@ -43,7 +43,7 @@ export class TabUIEditorStateStore {
         cursor,
       },
       layout: {
-        width: layoutDimensions.WIDTH,
+        width: layoutDimensions.width,
         height: controller.windowHeight,
       },
     };

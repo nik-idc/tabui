@@ -12,7 +12,7 @@ export interface EditorLayoutDimensionsConfig {
 export class EditorLayoutDimensions {
   /* ==== NOTATION VIEW ==== */
   /** Width of the tab */
-  private _WIDTH: number;
+  private _width: number;
   /** Horizontal page margin around the notation content. */
   private readonly _HORIZONTAL_PADDING: number;
 
@@ -64,7 +64,7 @@ export class EditorLayoutDimensions {
   private readonly _TECH_LABEL_HEIGHT: number;
 
   constructor(config: EditorLayoutDimensionsConfig) {
-    this._WIDTH = config.width;
+    this._width = config.width;
     this._HORIZONTAL_PADDING = config.horizontalPadding;
     this._NOTE_TEXT_SIZE = config.noteTextSize;
     this._TIME_SIG_TEXT_SIZE = config.timeSigTextSize;
@@ -153,63 +153,63 @@ export class EditorLayoutDimensions {
     );
   }
 
-  get WIDTH(): number {
-    return this._WIDTH;
+  get width(): number {
+    return this._width;
   }
 
   public setWidth(width: number): void {
-    this._WIDTH = width;
+    this._width = width;
   }
 
-  get HORIZONTAL_PADDING(): number {
+  get horizontalPadding(): number {
     return this._HORIZONTAL_PADDING;
   }
 
-  get NOTE_TEXT_SIZE(): number {
+  get noteTextSize(): number {
     return this._NOTE_TEXT_SIZE;
   }
 
-  get TIME_SIG_TEXT_SIZE(): number {
+  get timeSigTextSize(): number {
     return this._TIME_SIG_TEXT_SIZE;
   }
 
-  get TEMPO_TEXT_SIZE(): number {
+  get tempoTextSize(): number {
     return this._TEMPO_TEXT_SIZE;
   }
 
-  get NOTE_RECT_WIDTH_MIN(): number {
+  get noteRectWidthMin(): number {
     return this._NOTE_RECT_WIDTH_MIN;
   }
 
-  get MIN_RHYTHM_COLUMN_GAP(): number {
+  get minRhythmColumnGap(): number {
     return this._MIN_RHYTHM_COLUMN_GAP;
   }
 
-  get RHYTHM_ATTACK_PADDING(): number {
+  get rhythmAttackPadding(): number {
     return this._RHYTHM_ATTACK_PADDING;
   }
 
-  get WIDTH_MAPPING(): Record<NoteDuration, number> {
+  get widthMapping(): Record<NoteDuration, number> {
     return this._WIDTH_MAPPING;
   }
 
-  get NOTE_RECT_HEIGHT(): number {
+  get noteRectHeight(): number {
     return this._NOTE_RECT_HEIGHT;
   }
 
-  get TECHNIQUE_LABEL_HEIGHT(): number {
+  get techniqueLabelHeight(): number {
     return this._TECHNIQUE_LABEL_HEIGHT;
   }
 
-  get DURATIONS_WIDTH(): number {
+  get durationsWidth(): number {
     return this._DURATIONS_WIDTH;
   }
 
-  get DURATIONS_HEIGHT(): number {
+  get durationsHeight(): number {
     return this._DURATIONS_HEIGHT;
   }
 
-  get DOT_WIDTH_FACTORS(): Record<number, number> {
+  get dotWidthFactors(): Record<number, number> {
     return {
       0: 1,
       1: 1.05,
@@ -217,39 +217,39 @@ export class EditorLayoutDimensions {
     };
   }
 
-  get DOT_DIAMETER(): number {
+  get dotDiameter(): number {
     return this._DOT_DIAMETER;
   }
 
-  get DURATION_FLAG_HEIGHT(): number {
+  get durationFlagHeight(): number {
     return this._DURATION_FLAG_HEIGHT;
   }
 
-  get TIME_SIG_RECT_WIDTH(): number {
+  get timeSigRectWidth(): number {
     return this._TIME_SIG_RECT_WIDTH;
   }
 
-  get TEMPO_RECT_WIDTH(): number {
+  get tempoRectWidth(): number {
     return this._TEMPO_RECT_WIDTH;
   }
 
-  get TEMPO_RECT_HEIGHT(): number {
+  get tempoRectHeight(): number {
     return this._TEMPO_RECT_HEIGHT;
   }
 
-  get REPEAT_SIGN_WIDTH(): number {
+  get repeatSignWidth(): number {
     return this._REPEAT_SIGN_WIDTH;
   }
 
-  get TUPLET_RECT_HEIGHT(): number {
+  get tupletRectHeight(): number {
     return this._TUPLET_RECT_HEIGHT;
   }
 
-  get TUPLET_PATH_HEIGHT(): number {
+  get tupletPathHeight(): number {
     return this._TUPLET_PATH_HEIGHT;
   }
 
-  get TECH_LABEL_HEIGHT(): number {
+  get techLabelHeight(): number {
     return this._TECH_LABEL_HEIGHT;
   }
 }

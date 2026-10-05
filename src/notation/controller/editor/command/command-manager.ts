@@ -4,8 +4,8 @@ import { Command } from "./command";
  * Command manager class
  */
 export class CommandManager {
-  private undoStack: Command[] = [];
-  private redoStack: Command[] = [];
+  private _undoStack: Command[] = [];
+  private _redoStack: Command[] = [];
 
   /**
    * Execute provided command, push it the undo stack & clear redo stack
@@ -13,8 +13,8 @@ export class CommandManager {
    */
   execute(command: Command): Command {
     command.execute();
-    this.undoStack.push(command);
-    this.redoStack = [];
+    this._undoStack.push(command);
+    this._redoStack = [];
     return command;
   }
 
@@ -22,10 +22,10 @@ export class CommandManager {
    * Undo command & put it into redo stack
    */
   undo(): Command | undefined {
-    const command = this.undoStack.pop();
+    const command = this._undoStack.pop();
     if (command !== undefined) {
       command.undo();
-      this.redoStack.push(command);
+      this._redoStack.push(command);
     }
     return command;
   }
@@ -34,10 +34,10 @@ export class CommandManager {
    * Redo command
    */
   redo(): Command | undefined {
-    const command = this.redoStack.pop();
+    const command = this._redoStack.pop();
     if (command) {
       command.redo();
-      this.undoStack.push(command);
+      this._undoStack.push(command);
     }
     return command;
   }
@@ -46,17 +46,17 @@ export class CommandManager {
    * Clears both undo & redo stacks
    */
   clear(): void {
-    this.undoStack = [];
-    this.redoStack = [];
+    this._undoStack = [];
+    this._redoStack = [];
   }
 
   /** True if can perform undo, false otherwise */
   public get canUndo(): boolean {
-    return this.undoStack.length > 0;
+    return this._undoStack.length > 0;
   }
 
   /** True if can perform redo, false otherwise */
   public get canRedo(): boolean {
-    return this.redoStack.length > 0;
+    return this._redoStack.length > 0;
   }
 }

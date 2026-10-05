@@ -416,7 +416,7 @@ export class SVGBeamSegmentRenderer implements ElementRenderer {
       this._containerGroupSVG.appendChild(paths[index]);
     }
     const padding =
-      this.trackController.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 8;
+      this.trackController.trackElement.layoutDimensions.noteTextSize / 8;
     const x = rect.x - padding;
     const y = rect.y - padding;
     const width = rect.width + padding * 2;

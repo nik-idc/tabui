@@ -167,16 +167,16 @@ describe("BeamSegmentElement", () => {
 
     expect(segment.longRects).toHaveLength(3);
     expect(segment.longRects[0].height).toBe(
-      TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.durationFlagHeight
     );
     expect(segment.longRects[1].height).toBe(
-      TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.durationFlagHeight
     );
     expect(segment.longRects[0].y - segment.longRects[1].y).toBeCloseTo(
-      TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT * 2
+      TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2
     );
     expect(segment.longRects[1].y - segment.longRects[2].y).toBeCloseTo(
-      TEST_LAYOUT_DIMENSIONS.DURATION_FLAG_HEIGHT * 2
+      TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2
     );
   });
 

@@ -1,9 +1,4 @@
-import {
-  createButton,
-  createDiv,
-  createInput,
-  createSVG,
-} from "../../../../shared";
+import { createButton, createDiv, createInput } from "../../../../shared";
 
 export class NewTrackControlsTemplate {
   readonly dialogContainer: HTMLDivElement = createDiv();

@@ -1,8 +1,4 @@
-import {
-  NotationElement,
-  TechniqueLabelElement,
-  TrackController,
-} from "../../controller";
+import { TechniqueLabelElement, TrackController } from "../../controller";
 import { createSVGG, createSVGPath, createSVGText } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
@@ -249,8 +245,13 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   private renderHitPaths(
     pathDescriptors: NonNullable<TechniqueLabelElement["pathDescriptors"]>
   ): void {
-    const group = this._containerGroupSVG!;
-    const descriptorGroup = this._techniqueLabelSVG!;
+    const group = this._containerGroupSVG;
+    const descriptorGroup = this._techniqueLabelSVG;
+    if (group === undefined || descriptorGroup === undefined) {
+      throw Error(
+        "Tried to render technique label hit paths before SVG groups were initialized"
+      );
+    }
     const uuid = this.techniqueLabelElement.technique.uuid;
     while (this._hitPathsSVG.length < pathDescriptors.length) {
       const index = this._hitPathsSVG.length;
@@ -265,11 +266,14 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
       this._hitPathsSVG.push(path);
     }
     while (this._hitPathsSVG.length > pathDescriptors.length) {
-      group.removeChild(this._hitPathsSVG.pop()!);
+      const path = this._hitPathsSVG.pop();
+      if (path !== undefined) {
+        group.removeChild(path);
+      }
     }
 
     const strokeWidth = `${
-      this.trackController.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2
+      this.trackController.trackElement.layoutDimensions.noteTextSize / 2
     }`;
     for (let i = 0; i < pathDescriptors.length; i++) {
       const path = this._hitPathsSVG[i];
@@ -286,8 +290,15 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
   private renderTextHitPaths(
     textDescriptors: NonNullable<TechniqueLabelElement["textDescriptors"]>
   ): void {
-    const group = this._containerGroupSVG!;
-    const descriptorGroup = this._techniqueLabelSVG!;
+    const group = this._containerGroupSVG;
+    const descriptorGroup = this._techniqueLabelSVG;
+    const labelTexts = this._labelTextsSVG;
+    const groupsMissing = group === undefined || descriptorGroup === undefined;
+    if (groupsMissing || labelTexts === undefined) {
+      throw Error(
+        "Tried to render technique label text targets before SVG elements were initialized"
+      );
+    }
     const uuid = this.techniqueLabelElement.technique.uuid;
     while (this._hitTextPathsSVG.length < textDescriptors.length) {
       const index = this._hitTextPathsSVG.length;
@@ -300,13 +311,16 @@ export class SVGTechniqueLabelRenderer implements ElementRenderer {
       this._hitTextPathsSVG.push(path);
     }
     while (this._hitTextPathsSVG.length > textDescriptors.length) {
-      group.removeChild(this._hitTextPathsSVG.pop()!);
+      const path = this._hitTextPathsSVG.pop();
+      if (path !== undefined) {
+        group.removeChild(path);
+      }
     }
 
     const padding =
-      this.trackController.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 8;
+      this.trackController.trackElement.layoutDimensions.noteTextSize / 8;
     for (let i = 0; i < textDescriptors.length; i++) {
-      const box = this._labelTextsSVG![i].getBBox();
+      const box = labelTexts[i].getBBox();
       const x = box.x - padding;
       const y = box.y - padding;
       const width = box.width + padding * 2;

@@ -1,7 +1,6 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { MeasureControlsComponent } from "../..";
-import { TempoControlsComponent } from "./tempo-controls";
-import { TimeSigControlsComponent } from "./time-sig-controls";
+
 import { RepeatCountControlsDefaultCallbacks } from "./repeat-count-controls";
 import {
   TempoControlsCallbacks,

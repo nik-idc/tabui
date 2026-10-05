@@ -1,8 +1,9 @@
-import { NotationElement, TrackController } from "../../controller";
+import { TrackController } from "../../controller";
 import { createSVGG, createSVGRect, createSVGText } from "../../../shared";
 import { TabNoteSlotElement } from "../../controller/element/note/tab-note-slot-element";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { NoteValue, VoiceNumber } from "../../model";
+import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
 /**
  * Class for rendering a note element using SVG
@@ -38,7 +39,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
   constructor(
     trackController: TrackController,
     noteElement: TabNoteSlotElement,
-    assetsPath: string
+    assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
     this.noteElement = noteElement;
@@ -324,7 +325,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
       this._textSVG = createSVGText();
 
       // Set only-set-once attributes
-      const fontSize = `${this.trackController.layoutDimensions.NOTE_TEXT_SIZE}px`;
+      const fontSize = `${this.trackController.layoutDimensions.noteTextSize}px`;
       this._textSVG.setAttribute("font-size", fontSize);
       this._textSVG.setAttribute("text-anchor", "middle");
       this._textSVG.setAttribute("dominant-baseline", "middle");

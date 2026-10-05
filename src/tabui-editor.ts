@@ -271,7 +271,7 @@ export class TabUIEditor {
       }
 
       const width = this._shellComponent?.measureAvailableWidth();
-      if (width === undefined || width === this._layoutDimensions?.WIDTH) {
+      if (width === undefined || width === this._layoutDimensions?.width) {
         return;
       }
       this.refreshLayout(width);
@@ -498,12 +498,12 @@ export class TabUIEditor {
       width ??
       this.config.layout.width ??
       measuredWidth ??
-      layoutDimensions.WIDTH;
+      layoutDimensions.width;
     if (!Number.isFinite(nextWidth) || nextWidth < 0) {
       throw new Error("TabUIEditor width must be a non-negative finite number");
     }
 
-    const previousWidth = layoutDimensions.WIDTH;
+    const previousWidth = layoutDimensions.width;
     layoutDimensions.setWidth(nextWidth);
     try {
       notationComponent.refreshLayout();

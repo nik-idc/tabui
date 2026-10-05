@@ -107,10 +107,10 @@ export class TabNoteSlotElement implements NoteElement {
   public measure(): void {
     this._boundingBox.setDimensions(
       this.beatElement.boundingBox.width,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT
+      this.trackElement.layoutDimensions.noteRectHeight
     );
 
-    const textSize = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE;
+    const textSize = this.trackElement.layoutDimensions.noteTextSize;
     const textWidth = Math.max(textSize, this.noteText.length * textSize * 0.6);
     this._textRect.setDimensions(textWidth, textSize);
   }
@@ -126,12 +126,12 @@ export class TabNoteSlotElement implements NoteElement {
     this._textRect.setCoords(
       this.beatElement.attackLocalX - this._textRect.width / 2,
       this._boundingBox.height / 2 -
-        this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2
+        this.trackElement.layoutDimensions.noteTextSize / 2
     );
 
     this._textCoords.set(
       this.beatElement.attackLocalX,
-      this._textRect.y + this.trackElement.layoutDimensions.NOTE_TEXT_SIZE / 2
+      this._textRect.y + this.trackElement.layoutDimensions.noteTextSize / 2
     );
 
     for (const techniqueElement of this._techniqueElements) {
@@ -334,7 +334,7 @@ export class TabNoteSlotElement implements NoteElement {
   /** Note selection rectangle */
   public get selectionRect(): Rect {
     const size =
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE *
+      this.trackElement.layoutDimensions.noteTextSize *
       1.5 *
       SELECTION_SIZE_FACTOR;
     return new Rect(
@@ -348,7 +348,7 @@ export class TabNoteSlotElement implements NoteElement {
   /** Note selection rectangle in bar-local coordinates. */
   public get selectionRectBarLocal(): Rect {
     const size =
-      this.trackElement.layoutDimensions.NOTE_TEXT_SIZE *
+      this.trackElement.layoutDimensions.noteTextSize *
       1.5 *
       SELECTION_SIZE_FACTOR;
     return new Rect(

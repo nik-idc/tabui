@@ -890,11 +890,11 @@ describe("TrackElement tree", () => {
     expect(
       firstLineStyle.barElements[firstLineStyle.barElements.length - 1]
         .boundingBox.right
-    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.WIDTH);
+    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.width);
     expect(
       secondLineStyle.barElements[secondLineStyle.barElements.length - 1]
         .boundingBox.right
-    ).toBeLessThanOrEqual(TEST_LAYOUT_DIMENSIONS.WIDTH);
+    ).toBeLessThanOrEqual(TEST_LAYOUT_DIMENSIONS.width);
 
     for (const line of lines) {
       const styleLine = line.staffLineContainers[0].styleLinesAsArray[0];

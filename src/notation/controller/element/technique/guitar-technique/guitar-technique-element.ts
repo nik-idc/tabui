@@ -445,13 +445,13 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc natural harmonic path
    */
   private createNaturalHarmonicPath(): void {
-    const nhWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 0.8;
+    const nhWidth = this.trackElement.layoutDimensions.noteTextSize * 0.8;
     const nhStartX =
       this.noteElement.selectionRect.left -
       this.noteElement.globalCoords.x -
       nhWidth;
     const nhStartY = this._startPoint.y;
-    const nhHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 0.8;
+    const nhHeight = this.trackElement.layoutDimensions.noteTextSize * 0.8;
     const nhLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
       nhStartX,
       nhStartY,
@@ -469,13 +469,13 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc pinch harmonic path
    */
   private createPinchHarmonicPath(): void {
-    const phWidth = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 0.8;
+    const phWidth = this.trackElement.layoutDimensions.noteTextSize * 0.8;
     const phStartX =
       this.noteElement.selectionRect.left -
       this.noteElement.globalCoords.x -
       phWidth;
     const phStartY = this._startPoint.y;
-    const phHeight = this.trackElement.layoutDimensions.NOTE_TEXT_SIZE * 0.8;
+    const phHeight = this.trackElement.layoutDimensions.noteTextSize * 0.8;
     const phLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
       phStartX,
       phStartY,

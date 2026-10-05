@@ -13,7 +13,7 @@ export const VOICE_NUMBERS: VoiceNumber[] = [1, 2, 3, 4];
  */
 export class Bar<I extends MusicInstrument = MusicInstrument> {
   /** Fallback voice number where otherwise the entire bar will be empty */
-  private static readonly fallbackVoiceNumber: VoiceNumber = 1;
+  private static readonly _fallbackVoiceNumber: VoiceNumber = 1;
 
   /** Bar's unqiue identifier */
   readonly uuid: number;
@@ -99,7 +99,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     const removedVoiceNumbers: VoiceNumber[] = [];
 
     const hasContent = this.voiceBarsAsArray.some((vb) => !vb.isEmpty());
-    const voiceNumberToKeep = hasContent ? null : Bar.fallbackVoiceNumber;
+    const voiceNumberToKeep = hasContent ? null : Bar._fallbackVoiceNumber;
 
     for (const voiceBar of this.voiceBarsAsArray) {
       if (!voiceBar.isEmpty() || voiceBar.voiceNumber === voiceNumberToKeep) {

@@ -1,6 +1,4 @@
-import { createButton, createDiv } from "../../shared";
-import { PlayControlsTemplate } from "./play-controls";
-import { ScoreControlsTemplate } from "./score-controls";
+import { createDiv } from "../../shared";
 
 /**
  * Interface defining the template of top controls:

@@ -1,13 +1,8 @@
-import {
-  BarElement,
-  EditorLayoutDimensions,
-  NotationElement,
-  TrackController,
-} from "../../controller";
+import { BarElement, TrackController } from "../../controller";
 import { resolveAssetUrl } from "../../../config/asset-url-resolver";
 import { createSVGG, createSVGImage, createSVGText } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
-import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
+
 import { TrackLineInfoElement } from "../../controller/element/track/track-line-info-element";
 import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
 
@@ -216,7 +211,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       throw Error("Tried to render bar sig when SVG group undefined");
     }
 
-    let renderedTempo = this._temposSVG.get(barElement);
+    const renderedTempo = this._temposSVG.get(barElement);
     if (renderedTempo === undefined) {
       return;
     }
@@ -233,7 +228,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
     const curBarElements = new Set(
       this.trackLineInfoElement.barTempoRectsMap.keys()
     );
-    for (const [barElement, _] of this._temposSVG) {
+    for (const barElement of this._temposSVG.keys()) {
       if (!curBarElements.has(barElement)) {
         this.unrenderTempoText(barElement);
       }
@@ -253,7 +248,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       throw Error("Tried to render bar sig when SVG group undefined");
     }
 
-    for (const [barElement, _] of this.trackLineInfoElement.barTempoRectsMap) {
+    for (const barElement of this.trackLineInfoElement.barTempoRectsMap.keys()) {
       this.unrenderTempoText(barElement);
     }
 
