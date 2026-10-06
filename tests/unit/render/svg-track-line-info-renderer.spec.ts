@@ -1,4 +1,5 @@
 import { SVGTrackLineInfoRenderer } from "../../../src/notation/render/svg/svg-track-line-info-renderer";
+import { required } from "../required";
 
 test("tempo callbacks resolve current bars and detach before renderer reuse", () => {
   class Target {}
@@ -36,15 +37,17 @@ test("tempo callbacks resolve current bars and detach before renderer reuse", ()
       barTempoRectsMap: new Map([[currentBar, {}]]),
     } as any);
     const event = { target } as unknown as Event;
-    listeners.get("click")!(event);
+    required(listeners.get("click"))(event);
     expect(oldHandler).not.toHaveBeenCalled();
     expect(handler).toHaveBeenCalledWith(event, currentBar);
-    listeners.get("click")!({ target: new Target() } as unknown as Event);
+    required(listeners.get("click"))({
+      target: new Target(),
+    } as unknown as Event);
     expect(handler).toHaveBeenCalledTimes(1);
     renderer.detachContainerGroup();
     expect(listeners.size).toBe(0);
     renderer.attachMouseEvent("click", handler);
-    listeners.get("click")!(event);
+    required(listeners.get("click"))(event);
     expect(handler).toHaveBeenCalledTimes(2);
     renderer.detachMouseEvent("click");
     expect(listeners.size).toBe(0);

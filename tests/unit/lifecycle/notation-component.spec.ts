@@ -1,6 +1,5 @@
 import { NotationComponent } from "../../../src/notation/notation-component";
 import { TrackController } from "../../../src/notation/controller";
-import { EditorSVGRenderer } from "../../../src/notation/render";
 import { ScorePlayer } from "../../../src/player";
 import {
   ResolvedTabUIConfig,
@@ -39,6 +38,7 @@ const mockPlayers: Array<{
 }> = [];
 
 jest.mock("../../../src/notation/controller", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
   TrackController: jest
     .fn()
     .mockImplementation(
@@ -61,6 +61,7 @@ jest.mock("../../../src/notation/controller", () => ({
 }));
 
 jest.mock("../../../src/notation/render", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
   EditorSVGRenderer: jest
     .fn()
     .mockImplementation(
@@ -82,6 +83,7 @@ jest.mock("../../../src/notation/render", () => ({
 }));
 
 jest.mock("../../../src/player", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
   ScorePlayer: jest.fn().mockImplementation(() => {
     const instance = {
       initialize: jest.fn(),

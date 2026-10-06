@@ -152,7 +152,6 @@ describe("BarTupletGroupElement", () => {
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
-    const barElement = getBarElement(trackElement);
     const tupletElement = getTupletElement(trackElement);
     const sumWidth = tupletElement.beatElements.reduce(
       (sum: number, beatElement) => sum + beatElement.boundingBox.width,

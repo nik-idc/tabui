@@ -6,7 +6,8 @@ async function labelHitPoint(label: Locator) {
   await target.scrollIntoViewIfNeeded();
   return target.evaluate((node) => {
     const path = node as SVGPathElement;
-    const matrix = path.getScreenCTM()!;
+    const matrix = path.getScreenCTM();
+    if (matrix === null) throw Error("Expected technique label transform");
     for (let step = 1; step < 20; step++) {
       const point = path
         .getPointAtLength((path.getTotalLength() * step) / 20)

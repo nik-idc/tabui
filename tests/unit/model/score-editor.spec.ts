@@ -1,5 +1,4 @@
 import {
-  BarRepeatStatus,
   BendTechniqueOptions,
   BendType,
   Beat,

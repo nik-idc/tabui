@@ -26,6 +26,7 @@ type HorizontalViewportHarness = {
       }>;
     };
   };
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the private field.
   _viewportRect: Rect;
   getMasterBarsInViewport(): { start: number; end: number };
 };
@@ -36,6 +37,7 @@ type VerticalViewportHarness = {
       trackLineElements: Array<{ globalBoundingBox: Rect }>;
     };
   };
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the private field.
   _viewportRect: Rect;
   getLinesInViewport(): { start: number; end: number };
 };

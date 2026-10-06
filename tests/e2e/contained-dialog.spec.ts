@@ -73,12 +73,15 @@ test("keeps one announcement region inside the active modal before focus", async
   await expect(region).not.toHaveAttribute("hidden");
   await expect(region).toHaveCSS("position", "absolute");
   const result = await editor.evaluate((root) => {
-    const status = root.querySelector('[role="status"]')!;
-    const first = root.querySelector<HTMLDivElement>(".tu-nt-dialog")!;
+    const status = root.querySelector('[role="status"]');
+    const first = root.querySelector<HTMLDivElement>(".tu-nt-dialog");
     const placements: boolean[] = [];
     const opener = root.querySelector<HTMLButtonElement>(
       'button[aria-label="New track"]'
-    )!;
+    );
+    if (status === null || first === null || opener === null) {
+      throw Error("Expected dialog status, dialog, and opener");
+    }
     opener.focus();
     let restoredBeforeFocus = false;
     opener.addEventListener("focus", () => {
@@ -90,11 +93,15 @@ test("keeps one announcement region inside the active modal before focus", async
     });
     opener.click();
     const insideFirst = status.parentElement === first;
-    first.querySelector<HTMLButtonElement>(".tu-nt-cancel-button")!.click();
+    const firstCancel = first.querySelector<HTMLButtonElement>(
+      ".tu-nt-cancel-button"
+    );
+    if (firstCancel === null) throw Error("Expected dialog cancel button");
+    firstCancel.click();
     opener.click();
     const insideSecond = status.parentElement === first;
     const notInert = status.closest("[inert]") === null;
-    first.querySelector<HTMLButtonElement>(".tu-nt-cancel-button")!.click();
+    firstCancel.click();
     return {
       insideFirst,
       insideSecond,
@@ -239,7 +246,8 @@ test("implements the instance dialog method contract", async ({ page }) => {
     modal.requestClose("accepted");
     const closedValue = modal.returnValue;
     modal.show();
-    const status = element.querySelector('[role="status"]')!;
+    const status = element.querySelector('[role="status"]');
+    if (status === null) throw Error("Expected dialog status region");
     const modeless =
       modal.open &&
       !element.hasAttribute("aria-modal") &&
@@ -301,7 +309,8 @@ for (const mode of ["show", "showModal"] as const) {
           const { root } = fixture;
           const first = fixture.first.dialog;
           const second = fixture.second.dialog;
-          const status = root.querySelector('[role="status"]')!;
+          const status = root.querySelector('[role="status"]');
+          if (status === null) throw Error("Expected dialog status region");
           first[mode]();
           const focus = document.activeElement;
           let focusEvents = 0;
@@ -445,33 +454,54 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
   const result = await page.evaluate(async (workspace) => {
     const editorPath = `/tabui/@fs${workspace}/src/tabui-editor.ts`;
     const fixturePath = "/tabui/data/fixture.ts";
-    const { TabUIEditor } = (await import(
+    const { TabUIEditor: editorClass } = (await import(
       editorPath
     )) as typeof import("../../src/tabui-editor");
     const { resolveEditorFixture } = await import(fixturePath);
     const otherRoot = document.createElement("div");
     document.body.appendChild(otherRoot);
-    const otherEditor = new TabUIEditor(
+    const otherEditor = new editorClass(
       otherRoot,
       resolveEditorFixture(new URLSearchParams("fixture=empty"))
     );
     otherEditor.init();
-    const root = document.querySelector("#tabui-editor")!;
-    const first = root.querySelector<HTMLDivElement>(".tu-nt-dialog")!;
-    const second = otherRoot.querySelector<HTMLDivElement>(".tu-nt-dialog")!;
-    root
-      .querySelector<HTMLButtonElement>('button[aria-label="New track"]')!
-      .click();
-    otherRoot
-      .querySelector<HTMLButtonElement>('button[aria-label="New track"]')!
-      .click();
+    const root = document.querySelector("#tabui-editor");
+    if (root === null) throw Error("Expected primary editor root");
+    const first = root.querySelector<HTMLDivElement>(".tu-nt-dialog");
+    const second = otherRoot.querySelector<HTMLDivElement>(".tu-nt-dialog");
+    const opener = root.querySelector<HTMLButtonElement>(
+      'button[aria-label="New track"]'
+    );
+    const otherOpener = otherRoot.querySelector<HTMLButtonElement>(
+      'button[aria-label="New track"]'
+    );
+    const dialogsMissing = first === null || second === null;
+    const openersMissing = opener === null || otherOpener === null;
+    if (dialogsMissing || openersMissing) {
+      throw Error("Expected both editor dialogs and openers");
+    }
+    opener.click();
+    otherOpener.click();
     const bothOpen = first.hasAttribute("open") && second.hasAttribute("open");
-    first.querySelector<HTMLButtonElement>(".tu-nt-cancel-button")!.click();
+    const firstCancel = first.querySelector<HTMLButtonElement>(
+      ".tu-nt-cancel-button"
+    );
+    const secondCancel = second.querySelector<HTMLButtonElement>(
+      ".tu-nt-cancel-button"
+    );
+    const otherHost = otherRoot.querySelector<HTMLElement>(
+      ".tu-top-controls-host"
+    );
+    const status = otherRoot.querySelector('[role="status"]');
+    const cancelButtonsMissing = firstCancel === null || secondCancel === null;
+    const controlsMissing = otherHost === null || status === null;
+    if (cancelButtonsMissing || controlsMissing) {
+      throw Error("Expected both dialog cancel buttons and controls");
+    }
+    firstCancel.click();
     const independent =
-      second.hasAttribute("open") &&
-      otherRoot.querySelector<HTMLElement>(".tu-top-controls-host")!.inert &&
-      second.contains(otherRoot.querySelector('[role="status"]'));
-    second.querySelector<HTMLButtonElement>(".tu-nt-cancel-button")!.click();
+      second.hasAttribute("open") && otherHost.inert && second.contains(status);
+    secondCancel.click();
     otherEditor.dispose();
     otherRoot.remove();
     return { bothOpen, independent };

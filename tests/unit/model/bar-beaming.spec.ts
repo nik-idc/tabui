@@ -1,4 +1,4 @@
-import { BarRepeatStatus, NoteDuration } from "../../../src/notation/model";
+import { NoteDuration } from "../../../src/notation/model";
 import { createBarWithBeats, createBeat, createScoreGraph } from "./helpers";
 
 describe("Bar beaming", () => {

@@ -28,11 +28,14 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
     );
     const originalFill = await path.getAttribute("fill");
     const hitPath = editor.locator('[id^="technique-hit-path-"]').first();
-    await expect(hitPath).toHaveAttribute("d", (await path.getAttribute("d"))!);
+    const pathData = await path.getAttribute("d");
+    if (pathData === null) throw Error("Expected technique path data");
+    await expect(hitPath).toHaveAttribute("d", pathData);
     await expect(hitPath).toHaveCSS("stroke", "rgba(0, 0, 0, 0)");
     const point = await hitPath.evaluate((node) => {
       const geometry = node as SVGPathElement;
-      const matrix = geometry.getScreenCTM()!;
+      const matrix = geometry.getScreenCTM();
+      if (matrix === null) throw Error("Expected inline geometry transform");
       for (let step = 1; step < 20; step++) {
         const local = geometry.getPointAtLength(
           (geometry.getTotalLength() * step) / 20
@@ -55,7 +58,8 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
     if (shortcut !== "b") {
       const geometry = await path.evaluate((node) => {
         const path = node as SVGPathElement;
-        const matrix = path.getScreenCTM()!;
+        const matrix = path.getScreenCTM();
+        if (matrix === null) throw Error("Expected technique path transform");
         const start = path.getPointAtLength(0).matrixTransform(matrix);
         const end = path
           .getPointAtLength(path.getTotalLength())
@@ -72,7 +76,9 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
         .evaluateAll((nodes) =>
           nodes.map((node) => {
             const rect = node as SVGRectElement;
-            const matrix = rect.getScreenCTM()!;
+            const matrix = rect.getScreenCTM();
+            if (matrix === null)
+              throw Error("Expected note rectangle transform");
             const left = new DOMPoint(
               rect.x.baseVal.value,
               rect.y.baseVal.value
@@ -98,7 +104,8 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
       .poll(() => path.evaluate((node) => getComputedStyle(node).stroke))
       .not.toBe(originalStroke);
     await expect(path).toHaveCSS("cursor", "pointer");
-    await expect(path).toHaveAttribute("fill", originalFill!);
+    if (originalFill === null) throw Error("Expected original technique fill");
+    await expect(path).toHaveAttribute("fill", originalFill);
     await expect(hitPath).toHaveCSS("stroke", "rgba(0, 0, 0, 0)");
     await page.mouse.move(0, 0);
     await expect(path).toHaveCSS("stroke", originalStroke);

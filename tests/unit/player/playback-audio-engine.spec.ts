@@ -9,12 +9,14 @@ let nextAudioContext: AudioContext;
 let originalAudioContext: typeof AudioContext | undefined;
 
 jest.mock("../../../src/player/playback-sample-manager", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
   PlaybackSampleManager: class {
     public loadConfiguredSamples = mockLoadConfiguredSamples;
   },
 }));
 
 jest.mock("../../../src/player/playback-note-scheduler", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
   PlaybackNoteScheduler: class {
     public scheduleNote = mockScheduleNote;
   },
@@ -71,7 +73,10 @@ describe("PlaybackAudioEngine", () => {
     jest.clearAllMocks();
     originalAudioContext = globalThis.AudioContext;
     (
-      globalThis as unknown as { AudioContext: typeof AudioContext }
+      globalThis as unknown as {
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- Mirrors the browser API.
+        AudioContext: typeof AudioContext;
+      }
     ).AudioContext = jest.fn(
       () => nextAudioContext
     ) as unknown as typeof AudioContext;
@@ -79,8 +84,12 @@ describe("PlaybackAudioEngine", () => {
 
   afterEach(() => {
     if (originalAudioContext === undefined) {
-      delete (globalThis as unknown as { AudioContext?: typeof AudioContext })
-        .AudioContext;
+      delete (
+        globalThis as unknown as {
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- Mirrors the browser API.
+          AudioContext?: typeof AudioContext;
+        }
+      ).AudioContext;
     } else {
       globalThis.AudioContext = originalAudioContext;
     }

@@ -22,6 +22,7 @@ import {
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 import { EditorLayoutDimensions } from "../../../src/notation/controller/editor-layout-dimensions";
+import { required } from "../required";
 
 function parseLinePath(svgPath: string): [number, number, number, number] {
   const match = svgPath.match(
@@ -204,7 +205,7 @@ describe("TrackElement techniques", () => {
       const { track, beats } = createBarWithBeats([
         { baseDuration: NoteDuration.Quarter },
       ]);
-      const note = beats[0].notes![0] as GuitarNote;
+      const note = required(beats[0].notes)[0] as GuitarNote;
       note.fret = 24;
       note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
       note.addTechnique(
@@ -220,13 +221,15 @@ describe("TrackElement techniques", () => {
       });
       const trackElement = new TrackElement(track, dimensions);
       trackElement.update();
-      const element = trackElement.getBeatElement(beats[0])!
+      const element = required(trackElement.getBeatElement(beats[0]))
         .noteElements[0] as TabNoteSlotElement;
-      const harmonic = element.techniqueElements.find(
-        (candidate) =>
-          candidate.technique.type === GuitarTechniqueType.NaturalHarmonic
-      )!;
-      const numbers = parsePathNumbers(harmonic.pathDescriptors![0].d);
+      const harmonic = required(
+        element.techniqueElements.find(
+          (candidate) =>
+            candidate.technique.type === GuitarTechniqueType.NaturalHarmonic
+        )
+      );
+      const numbers = parsePathNumbers(required(harmonic.pathDescriptors)[0].d);
       const right = Math.max(
         ...numbers.filter((_value, index) => index % 2 === 0)
       );

@@ -4,7 +4,7 @@ import { createBarWithBeats, createBeat } from "../model/helpers";
 
 describe("InsertBeatsCommand", () => {
   test("execute inserts beats at the requested index preserving surrounding order", () => {
-    const { score, track, bar, beats } = createBarWithBeats([
+    const { score, bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Half },
       { baseDuration: NoteDuration.Quarter },

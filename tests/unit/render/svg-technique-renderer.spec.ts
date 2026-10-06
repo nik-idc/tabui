@@ -1,4 +1,5 @@
 import { SVGTechniqueRenderer } from "../../../src/notation/render/svg/svg-technique-renderer";
+import { required } from "../required";
 
 test("bindings use the current element and detach before reuse", () => {
   const listeners = new Map<string, EventListener>();
@@ -21,14 +22,14 @@ test("bindings use the current element and detach before reuse", () => {
     renderer.attachMouseEvent("click", oldHandler);
     renderer.attachMouseEvent("click", handler);
     renderer.updateElementReference(current);
-    listeners.get("click")!(event);
+    required(listeners.get("click"))(event);
     expect(oldHandler).not.toHaveBeenCalled();
     expect(handler).toHaveBeenCalledWith(event, current);
 
     renderer.detachContainerGroup();
     expect(listeners.size).toBe(0);
     renderer.attachMouseEvent("click", handler);
-    listeners.get("click")!(event);
+    required(listeners.get("click"))(event);
     expect(handler).toHaveBeenCalledTimes(2);
     renderer.detachMouseEvent("click");
     expect(listeners.size).toBe(0);

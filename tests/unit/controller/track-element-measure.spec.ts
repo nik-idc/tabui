@@ -1,9 +1,5 @@
 import { TrackElement } from "../../../src/notation/controller/element/track-element";
-import {
-  BarRepeatStatus,
-  DEFAULT_MASTER_BAR,
-  NoteDuration,
-} from "../../../src/notation/model";
+import { DEFAULT_MASTER_BAR, NoteDuration } from "../../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 

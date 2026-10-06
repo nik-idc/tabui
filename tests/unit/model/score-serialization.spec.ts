@@ -1,5 +1,4 @@
 import {
-  BarRepeatStatus,
   BassGuitarTone,
   Beat,
   BendTechniqueOptions,

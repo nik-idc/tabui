@@ -103,7 +103,8 @@ for (const [key, name, dialogName] of [
     await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
     await editor.getByRole("button", { name: new RegExp(`^${name}`) }).click();
     await expect(dialog).toBeVisible();
-    await expect(dialog).toHaveText(keyboardText!);
+    if (keyboardText === null) throw Error("Expected dialog text");
+    await expect(dialog).toHaveText(keyboardText);
     await dialog.getByRole("button", { name: "Cancel" }).click();
     expect(await editingState(editor)).toEqual(before);
   });
@@ -339,14 +340,14 @@ test("keyboard ownership follows focus between two live editors", async ({
   await page.evaluate(async (workspace) => {
     const editorPath = `/tabui/@fs${workspace}/src/tabui-editor.ts`;
     const fixturePath = "/tabui/data/fixture.ts";
-    const { TabUIEditor } = (await import(
+    const { TabUIEditor: editorClass } = (await import(
       editorPath
     )) as typeof import("../../src/tabui-editor");
     const { resolveEditorFixture } = await import(fixturePath);
     const root = document.createElement("div");
     root.id = "other-editor";
     document.body.appendChild(root);
-    new TabUIEditor(
+    new editorClass(
       root,
       resolveEditorFixture(new URLSearchParams("fixture=empty"))
     ).init();

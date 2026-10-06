@@ -11,6 +11,7 @@ import { SVGTrackLineInfoRenderer } from "../../../src/notation/render/svg/svg-t
 import { SVGTupletRenderer } from "../../../src/notation/render/svg/tuplet/svg-tuplet-renderer";
 import { SVGTabBeatRhythmRenderer } from "../../../src/notation/render/svg/svg-tab-beat-rhythm-renderer";
 import { SVGBeamSegmentRenderer } from "../../../src/notation/render/svg/svg-beam-segment-renderer";
+import type { TabNoteSlotElement } from "../../../src/notation/controller/element/note/tab-note-slot-element";
 
 class TestElement {
   closest = jest.fn();
@@ -46,12 +47,16 @@ function createPointerEvent(
   } as PointerEvent;
 }
 
-function createRendererBackedNoteRenderer(noteElement: any) {
-  const handlers = new Map<string, Function>();
+function createRendererBackedNoteRenderer(noteElement: TabNoteSlotElement) {
+  type NoteMouseHandler = (
+    event: MouseEvent,
+    noteElement: TabNoteSlotElement
+  ) => void;
+  const handlers = new Map<string, NoteMouseHandler>();
   const renderer = Object.create(SVGTabNoteRenderer.prototype) as any;
   renderer.noteElement = noteElement;
   renderer.attachMouseEvent = jest.fn(
-    (eventType: string, handler: Function) => {
+    (eventType: string, handler: NoteMouseHandler) => {
       handlers.set(eventType, handler);
     }
   );

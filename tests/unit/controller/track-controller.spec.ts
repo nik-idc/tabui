@@ -2,8 +2,6 @@ import { TrackController as BaseTrackController } from "../../../src/notation/co
 import { ScorePlayer } from "../../../src/player";
 import { BeatElement } from "../../../src/notation/controller/element/beat/beat-element";
 import {
-  BendTechniqueOptions,
-  BendType,
   BarRepeatStatus,
   DEFAULT_MASTER_BAR,
   Beat,
@@ -27,6 +25,7 @@ import {
   createScoreGraph,
 } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
+import { required } from "../required";
 
 const mockScorePlayerInstances: Array<{
   isPlaying: boolean;
@@ -101,6 +100,8 @@ function setBarDurations(
   voiceBar.rebuildTiming();
 }
 
+// Mock keys mirror the production module exports and enum members.
+/* eslint-disable @typescript-eslint/naming-convention */
 jest.mock("../../../src/player", () => ({
   PlaybackState: {
     Idle: "idle",
@@ -131,6 +132,7 @@ jest.mock("../../../src/player", () => ({
     }
   },
 }));
+/* eslint-enable @typescript-eslint/naming-convention */
 
 class TrackController extends BaseTrackController {
   constructor(
@@ -300,7 +302,9 @@ describe("TrackController", () => {
 
   test("removes only a supplied note's technique with undo and unchanged cursor", () => {
     const { track, bar } = createScoreGraph();
-    const notes = bar.getVoiceBar(1)!.beats[0].notes! as GuitarNote[];
+    const notes = required(
+      required(bar.getVoiceBar(1)).beats[0].notes
+    ) as GuitarNote[];
     for (const note of notes.slice(0, 2)) {
       note.fret = 5;
       note.addTechnique(
@@ -339,7 +343,9 @@ describe("TrackController", () => {
   });
   test("removes matching techniques together with one undo and unchanged cursor", () => {
     const { track, bar } = createScoreGraph();
-    const notes = bar.getVoiceBar(1)!.beats[0].notes! as GuitarNote[];
+    const notes = required(
+      required(bar.getVoiceBar(1)).beats[0].notes
+    ) as GuitarNote[];
     for (const note of notes.slice(0, 2)) {
       note.fret = 5;
       note.addTechnique(
@@ -1072,7 +1078,7 @@ describe("TrackController", () => {
   });
 
   test("switching to a new voice updates only the affected line vertically", () => {
-    const { track, bar } = createScoreGraph();
+    const { track } = createScoreGraph();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const updateSpy = jest.spyOn(controller.trackElement, "update");
 
@@ -1116,7 +1122,9 @@ describe("TrackController", () => {
     expect(secondBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectionCursor?.bar).toBe(secondBar);
     expect(
-      controller.trackElement.getBeatElement(controller.selectionCursor!.beat)
+      controller.trackElement.getBeatElement(
+        required(controller.selectionCursor).beat
+      )
     ).toBeDefined();
   });
 
@@ -1141,7 +1149,9 @@ describe("TrackController", () => {
     expect(firstBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectionCursor?.bar).toBe(firstBar);
     expect(
-      controller.trackElement.getBeatElement(controller.selectionCursor!.beat)
+      controller.trackElement.getBeatElement(
+        required(controller.selectionCursor).beat
+      )
     ).toBeDefined();
   });
 

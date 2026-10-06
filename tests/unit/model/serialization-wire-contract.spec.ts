@@ -148,6 +148,8 @@ const READERS: readonly [
   ["tones", readStringTone, MAPPINGS[6][2]],
 ];
 
+// This table intentionally uses the serialized enum member names.
+/* eslint-disable @typescript-eslint/naming-convention */
 const SERIALIZED_ENUMS = [
   [
     "note durations",
@@ -247,6 +249,7 @@ const SERIALIZED_ENUMS = [
     },
   ],
 ] as const;
+/* eslint-enable @typescript-eslint/naming-convention */
 
 describe("V1 serialization wire contract", () => {
   test.each(SERIALIZED_ENUMS)(

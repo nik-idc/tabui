@@ -1,7 +1,6 @@
 import { PlaybackAudioEngine } from "../../../src/player/playback-audio-engine";
 import { PlaybackScheduler } from "../../../src/player/playback-scheduler";
 import {
-  BarRepeatStatus,
   Guitar,
   GuitarNote,
   GuitarTechnique,
@@ -25,7 +24,7 @@ describe("PlaybackScheduler model invariants", () => {
   });
 
   test("schedules beats from all tracks at the same start time", () => {
-    const { score, track, bar } = createScoreGraph();
+    const { score, bar } = createScoreGraph();
     const secondTrack = score.addTrack(new Guitar(), "Second").tracks[0];
     const scheduleBeat = jest.fn();
     const scheduler = new PlaybackScheduler(score, {

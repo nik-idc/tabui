@@ -1,6 +1,7 @@
 import { SetRestCommand } from "../../../src/notation/controller/editor/command";
 import { GuitarNote, NoteDuration } from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
+import { required } from "../required";
 
 describe("SetRestCommand", () => {
   test("execute converts a note beat to a rest and preserves rhythm", () => {
@@ -8,7 +9,7 @@ describe("SetRestCommand", () => {
       { baseDuration: NoteDuration.Eighth, dots: 1 },
     ]);
     const beat = beats[0];
-    const note = beat.notes![0] as GuitarNote;
+    const note = required(beat.notes)[0] as GuitarNote;
     note.fret = 7;
     const command = new SetRestCommand([beat], true);
 
@@ -25,7 +26,7 @@ describe("SetRestCommand", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     const beat = beats[0];
-    const note = beat.notes![0] as GuitarNote;
+    const note = required(beat.notes)[0] as GuitarNote;
     note.fret = 5;
     const command = new SetRestCommand([beat], true);
 
@@ -33,7 +34,7 @@ describe("SetRestCommand", () => {
     command.undo();
 
     expect(beat.isRest()).toBe(false);
-    expect((beat.notes![0] as GuitarNote).fret).toBe(5);
+    expect((required(beat.notes)[0] as GuitarNote).fret).toBe(5);
 
     command.redo();
 
@@ -84,8 +85,8 @@ describe("SetRestCommand", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
     ]);
-    (beats[0].notes![0] as GuitarNote).fret = 2;
-    (beats[1].notes![0] as GuitarNote).fret = 4;
+    (required(beats[0].notes)[0] as GuitarNote).fret = 2;
+    (required(beats[1].notes)[0] as GuitarNote).fret = 4;
     const command = new SetRestCommand(beats, true);
 
     command.execute();
@@ -95,7 +96,7 @@ describe("SetRestCommand", () => {
     command.undo();
 
     expect(beats.every((beat) => !beat.isRest())).toBe(true);
-    expect((beats[0].notes![0] as GuitarNote).fret).toBe(2);
-    expect((beats[1].notes![0] as GuitarNote).fret).toBe(4);
+    expect((required(beats[0].notes)[0] as GuitarNote).fret).toBe(2);
+    expect((required(beats[1].notes)[0] as GuitarNote).fret).toBe(4);
   });
 });

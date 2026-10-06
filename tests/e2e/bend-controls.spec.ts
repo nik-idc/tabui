@@ -150,8 +150,11 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
     "Bend point. Pitch two and a quarter tones. Duration 67 percent."
   );
   const updates = await dialog.evaluate(async (element) => {
-    const region = element.querySelector('[role="status"]')!;
-    const point = element.querySelector<SVGCircleElement>("circle[tabindex]")!;
+    const region = element.querySelector('[role="status"]');
+    const point = element.querySelector<SVGCircleElement>("circle[tabindex]");
+    if (region === null || point === null) {
+      throw Error("Expected bend status region and control point");
+    }
     const messages: string[] = [];
     const observer = new MutationObserver(() => {
       messages.push(region.textContent ?? "");
@@ -173,8 +176,11 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
     "Bend point. Pitch three tones. Duration 67 percent."
   );
   const cleanup = await dialog.evaluate(async (element) => {
-    const region = element.querySelector('[role="status"]')!;
-    const point = element.querySelector<SVGCircleElement>("circle[tabindex]")!;
+    const region = element.querySelector('[role="status"]');
+    const point = element.querySelector<SVGCircleElement>("circle[tabindex]");
+    if (region === null || point === null) {
+      throw Error("Expected bend status region and control point");
+    }
     const observer = new MutationObserver(() => {});
     observer.observe(region, {
       childList: true,
@@ -186,9 +192,11 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
     observer.disconnect();
     point.blur();
     point.focus();
-    element
-      .querySelector<HTMLButtonElement>(".tu-bend-controls-cancel-button")!
-      .click();
+    const cancel = element.querySelector<HTMLButtonElement>(
+      ".tu-bend-controls-cancel-button"
+    );
+    if (cancel === null) throw Error("Expected bend cancel button");
+    cancel.click();
     await new Promise((resolve) => setTimeout(resolve, 100));
     return { clampedUpdates, text: region.textContent };
   });

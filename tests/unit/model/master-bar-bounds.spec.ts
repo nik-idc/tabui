@@ -1,5 +1,4 @@
 import {
-  BarRepeatStatus,
   Beat,
   MasterBar,
   MAX_MASTER_BAR_BEATS_COUNT,

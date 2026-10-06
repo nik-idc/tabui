@@ -52,17 +52,17 @@ test("clicks an underfilled bar end gap to append and select a beat", async ({
   const secondBeat = await beats.nth(1).boundingBox();
   expect(firstBeat).not.toBeNull();
   expect(secondBeat).not.toBeNull();
-  await page.mouse.move(firstBeat!.x + firstBeat!.width / 2, firstBeat!.y + 10);
+  if (firstBeat === null || secondBeat === null)
+    throw Error("Expected beat bounds");
+  await page.mouse.move(firstBeat.x + firstBeat.width / 2, firstBeat.y + 10);
   await page.mouse.down();
-  await page.mouse.move(
-    secondBeat!.x + secondBeat!.width / 2,
-    secondBeat!.y + 10
-  );
+  await page.mouse.move(secondBeat.x + secondBeat.width / 2, secondBeat.y + 10);
   const gapBounds = await gap.boundingBox();
   expect(gapBounds).not.toBeNull();
+  if (gapBounds === null) throw Error("Expected gap bounds");
   await page.mouse.move(
-    gapBounds!.x + gapBounds!.width / 2,
-    gapBounds!.y + gapBounds!.height / 2
+    gapBounds.x + gapBounds.width / 2,
+    gapBounds.y + gapBounds.height / 2
   );
   await page.mouse.up();
   await expect(beats).toHaveCount(2);
@@ -256,7 +256,8 @@ test("starts and pauses playback from the transport control", async ({
       let before: number | undefined;
       /** Captures native-clock cursor motion before stopping playback. */
       const observe = () => {
-        const cursor = element.querySelector("#playerCursor")!;
+        const cursor = element.querySelector("#playerCursor");
+        if (cursor === null) throw Error("Expected playback cursor");
         const visible = cursor.getAttribute("width") === "5";
         const x = Number(cursor.getAttribute("x"));
         if (visible && before === undefined) {
@@ -328,7 +329,8 @@ test("starts and pauses playback with Space", async ({ page }) => {
   await expect(cursor).toHaveAttribute("width", "5");
   const cursorXBefore = await cursor.getAttribute("x");
   await page.clock.runFor(100);
-  await expect(cursor).not.toHaveAttribute("x", cursorXBefore!);
+  if (cursorXBefore === null) throw Error("Expected playback cursor position");
+  await expect(cursor).not.toHaveAttribute("x", cursorXBefore);
 
   // A second Space press uses the same keyboard path to pause playback.
   await page.keyboard.press("Space");

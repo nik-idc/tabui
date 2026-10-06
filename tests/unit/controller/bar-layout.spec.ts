@@ -10,7 +10,6 @@ import { ScoreLayoutPlanner } from "../../../src/notation/controller/layout/scor
 import { BeatElement } from "../../../src/notation/controller/element/beat/beat-element";
 import {
   Bar,
-  BarRepeatStatus,
   Beat,
   Guitar,
   MasterBarData,
@@ -21,6 +20,7 @@ import {
 } from "../../../src/notation/model";
 import { createTestLayoutDimensions, TEST_LAYOUT_DIMENSIONS } from "./helpers";
 import { TabUILayoutMode } from "../../../src/config/tabui-config";
+import { required } from "../required";
 
 function createGraph(masterBarData?: Partial<MasterBarData>): {
   score: Score;
@@ -326,7 +326,7 @@ describe("musical beat layout", () => {
     const attackXs = beats.map((beat) => {
       const beatElement = findBeatElement(trackElement, beat);
       expect(beatElement).toBeDefined();
-      return beatElement!.barLocalCoords.x;
+      return required(beatElement).barLocalCoords.x;
     });
 
     for (let i = 1; i < attackXs.length; i++) {
@@ -364,7 +364,8 @@ describe("musical beat layout", () => {
     expect(firstBeatElement).toBeDefined();
     expect(secondBeatElement).toBeDefined();
     expect(
-      secondBeatElement!.barLocalCoords.x - firstBeatElement!.barLocalCoords.x
+      required(secondBeatElement).barLocalCoords.x -
+        required(firstBeatElement).barLocalCoords.x
     ).toBeLessThan(TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap);
   });
 });

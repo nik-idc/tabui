@@ -1,6 +1,5 @@
 import { PlaybackTraversalManager } from "../../../src/player/playback-traversal-manager";
 import { NoteDuration } from "../../../src/notation/model";
-import { BarRepeatStatus } from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 
 describe("PlaybackTraversalManager loop state", () => {

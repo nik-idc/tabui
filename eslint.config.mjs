@@ -82,6 +82,13 @@ export default defineConfig(
     },
   },
   {
+    files: ["tests/**/*.ts"],
+    rules: {
+      // Temporary exception until the planned test audit.
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  {
     files: ["src/**/*.ts"],
     rules: {
       "no-restricted-imports": "off",

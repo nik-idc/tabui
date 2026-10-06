@@ -20,6 +20,8 @@ jest.mock("../../../src/notation/input", () => {
     constructor() {}
   }
 
+  // These keys mirror the mocked module's public exports and enum members.
+  /* eslint-disable @typescript-eslint/naming-convention */
   return {
     EditorMouseDefCallbacks: MockEditorMouseDefCallbacks,
     EditorKeyboardDefCallbacks: MockEditorKeyboardDefCallbacks,
@@ -32,6 +34,7 @@ jest.mock("../../../src/notation/input", () => {
       PlayerCursor: 5,
     },
   };
+  /* eslint-enable @typescript-eslint/naming-convention */
 });
 
 jest.mock("../../../src/ui/ui-callbacks", () => {
@@ -54,6 +57,7 @@ jest.mock("../../../src/ui/ui-callbacks", () => {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
   return { UICallbacks: MockUICallbacks };
 });
 

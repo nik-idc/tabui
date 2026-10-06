@@ -60,7 +60,7 @@ function setTripletBeats(voiceBar: VoiceBar<Guitar>, count: number): void {
 
 describe("TrackElement rhythm", () => {
   test("lays out beat x positions from start gap and beat widths", () => {
-    const { track, beats } = createBarWithBeats([
+    const { track } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
       { baseDuration: NoteDuration.Sixteenth },
@@ -150,7 +150,7 @@ describe("TrackElement rhythm", () => {
   });
 
   test("keeps dotted and tuplet beat widths positive", () => {
-    const { track, beats } = createBarWithBeats([
+    const { track } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth, dots: 1 },
       {
@@ -467,12 +467,14 @@ describe("TrackElement rhythm", () => {
     const beatElement = getRhythmElements(trackElement)[0];
 
     expect(beatElement.durationFlagLines).toHaveLength(3);
-    expect(
-      beatElement.durationFlagLines![0].y - beatElement.durationFlagLines![1].y
-    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2);
-    expect(
-      beatElement.durationFlagLines![1].y - beatElement.durationFlagLines![2].y
-    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2);
+    const flagLines = beatElement.durationFlagLines;
+    if (flagLines === undefined) throw Error("Expected duration flag lines");
+    expect(flagLines[0].y - flagLines[1].y).toBeCloseTo(
+      TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2
+    );
+    expect(flagLines[1].y - flagLines[2].y).toBeCloseTo(
+      TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2
+    );
   });
 
   test("beamed dotted beats lift dots to account for beam levels", () => {
@@ -494,7 +496,8 @@ describe("TrackElement rhythm", () => {
 
     expect(beatElement.durationFlagLines).toBeUndefined();
     expect(dot).toBeDefined();
-    expect(dot!.centerY).toBeLessThan(
+    if (dot === undefined) throw Error("Expected duration dot");
+    expect(dot.centerY).toBeLessThan(
       beatElement.voiceBarRhythmContainer.boundingBox.y +
         TEST_LAYOUT_DIMENSIONS.durationsHeight
     );
@@ -515,10 +518,15 @@ describe("TrackElement rhythm", () => {
     trackElement.update();
 
     const beatElement = getRhythmElements(trackElement)[0];
-    const topFlagY = beatElement.durationFlagLinesBarLocal![2].y;
+    const flagLines = beatElement.durationFlagLinesBarLocal;
+    if (flagLines === undefined)
+      throw Error("Expected bar-local duration flag lines");
+    const topFlagY = flagLines[2].y;
 
     expect(beatElement.dot1CircleBarLocal).toBeDefined();
-    expect(beatElement.dot1CircleBarLocal!.centerY).toBeCloseTo(
+    const dot = beatElement.dot1CircleBarLocal;
+    if (dot === undefined) throw Error("Expected duration dot");
+    expect(dot.centerY).toBeCloseTo(
       topFlagY - TEST_LAYOUT_DIMENSIONS.dotDiameter
     );
   });

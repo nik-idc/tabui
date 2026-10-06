@@ -13,6 +13,7 @@ import {
 let rootWidth: number;
 
 jest.mock("../../../src/notation/notation-component", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
   NotationComponent: jest
     .fn()
     .mockImplementation(
@@ -42,6 +43,7 @@ jest.mock("../../../src/notation/notation-component", () => ({
 }));
 
 jest.mock("../../../src/ui", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
   UIComponent: jest
     .fn()
     .mockImplementation(
@@ -79,6 +81,7 @@ jest.mock("../../../src/ui", () => ({
 }));
 
 jest.mock("../../../src/tabui-callbacks", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
   TabUICallbacks: jest
     .fn()
     .mockImplementation(
@@ -250,7 +253,7 @@ describe("TabUIEditor lifecycle", () => {
         },
       },
     };
-    (globalThis as any).getComputedStyle = jest.fn((element: any) => ({
+    (globalThis as any).getComputedStyle = jest.fn((_element: any) => ({
       paddingLeft: "0px",
       paddingRight: "0px",
     }));
@@ -924,11 +927,11 @@ describe("TabUIEditor lifecycle", () => {
   });
 
   test("observes responsive interaction without resizing configured widths", () => {
-    const ResizeObserverMock = jest.fn().mockImplementation(() => ({
+    const resizeObserverMock = jest.fn().mockImplementation(() => ({
       observe: jest.fn(),
       disconnect: jest.fn(),
     }));
-    (globalThis as any).ResizeObserver = ResizeObserverMock;
+    (globalThis as any).ResizeObserver = resizeObserverMock;
     const editor = new TabUIEditor(createRoot(), createScore(), {
       layout: { width: 640 },
     });
@@ -936,7 +939,7 @@ describe("TabUIEditor lifecycle", () => {
     editor.init();
     notationViewportWidth = 800;
 
-    expect(ResizeObserverMock).toHaveBeenCalledTimes(1);
+    expect(resizeObserverMock).toHaveBeenCalledTimes(1);
     expect(editor.layoutDimensions.width).toBe(640);
   });
 

@@ -1,9 +1,4 @@
-import {
-  BarRepeatStatus,
-  DEFAULT_MASTER_BAR,
-  Guitar,
-  Score,
-} from "../../../src/notation/model";
+import { DEFAULT_MASTER_BAR, Guitar, Score } from "../../../src/notation/model";
 import { AppendBarCommand } from "../../../src/notation/controller/editor/command";
 import { createScoreGraph } from "../model/helpers";
 
