@@ -1,5 +1,5 @@
 import { NotationElement, TrackController } from "../controller";
-import type { ResolvedAssetConfig } from "../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../assets";
 
 export interface ElementRenderer {
   readonly trackController: TrackController;

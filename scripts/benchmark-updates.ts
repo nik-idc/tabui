@@ -617,7 +617,7 @@ const results = benchmarkCases.map(runBenchmark);
 
 console.table(
   results.map((result) => ({
-    Operation: result.operation,
+    operation: result.operation,
     "Focused request(s)": result.focusedRequestSummary,
     "Focused mean (ms)": result.focusedMeanMs.toFixed(2),
     "Full mean (ms)": result.fullMeanMs.toFixed(2),
@@ -625,6 +625,6 @@ console.table(
     "Full min": result.fullMinMs.toFixed(2),
     "Focused max": result.focusedMaxMs.toFixed(2),
     "Full max": result.fullMaxMs.toFixed(2),
-    Speedup: `${result.speedup.toFixed(2)}x`,
+    speedup: `${result.speedup.toFixed(2)}x`,
   }))
 );

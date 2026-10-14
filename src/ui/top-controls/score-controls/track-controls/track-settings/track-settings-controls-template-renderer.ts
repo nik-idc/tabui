@@ -7,7 +7,7 @@ import {
 } from "../../../../shared";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
 import { createButton, createDiv } from "../../../../../shared";
-import type { ResolvedAssetConfig } from "../../../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../../../assets";
 import {
   InstrumentFamily,
   INSTRUMENT_TYPES,

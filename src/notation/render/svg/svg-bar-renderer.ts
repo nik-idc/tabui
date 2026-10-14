@@ -8,7 +8,7 @@ import {
 import type { Rect } from "../../../shared";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 // WARNING: Mixes responsibilities of Element and Renderer layers.
 // But no obvious solution is currently known. The path for a repeat sign is fairly complex.

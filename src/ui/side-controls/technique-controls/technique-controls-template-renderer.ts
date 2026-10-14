@@ -2,7 +2,7 @@ import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { NotationComponent } from "../../../notation/notation-component";
 import { GuitarTechniqueType } from "../../../notation/model";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 export class TechniqueControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

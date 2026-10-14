@@ -3,7 +3,7 @@ import { createSVGG, createSVGRect, createSVGText } from "../../../shared";
 import { TabNoteSlotElement } from "../../controller/element/note/tab-note-slot-element";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { NoteValue, VoiceNumber } from "../../model";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 /**
  * Class for rendering a note element using SVG

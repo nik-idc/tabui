@@ -22,31 +22,8 @@ These rules apply to both human and agent contributors. See
 
 ## Architecture Overview
 
-- TabUI currently renders tablature. Classic notation has partial scaffolding
-  but is not implemented.
-- Each `NotationComponent` displays one active track at a time.
-- Playback schedules all tracks through per-track audio buses, including muted
-  and non-soloed tracks. Bus gains control which tracks are audible.
-
-### Model (conceptual)
-
-Models are under `src/notation/model/`:
-
-```text
-Score
-  masterBars: MasterBar[]
-  tracks: Track[]
-    staves: Staff[]
-      bars: Bar[]
-        voiceBars: Record<VoiceNumber, VoiceBar | null>
-          beats: Beat[]
-            notes: Note[] | null
-              techniques: Technique[]
-```
-
-- `VoiceNumber` is `1 | 2 | 3 | 4`; each slot can be `null`.
-- `Beat.notes === null` means rest beat.
-- `VoiceBar.isEmpty()` means `beats.length === 0`.
+Read [Domain Model and Terms](docs/domain.md) before working on notation code.
+It describes score structure, voice/rest conventions, and shared vocabulary.
 
 ### Notation controller structure (current)
 
@@ -80,7 +57,7 @@ Score
 ### Playback
 
 - Playback is implemented directly with Web Audio under `src/player/`.
-- See [Playback Architecture](PLAYBACK.md) for module roles and scheduling.
+- See [Playback Architecture](docs/playback.md) for module roles and scheduling.
 
 ## Patterns and Practices
 

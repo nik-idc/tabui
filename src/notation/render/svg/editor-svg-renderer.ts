@@ -5,7 +5,7 @@ import {
   NotationElementClass,
   TrackController,
 } from "../../controller";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 import { createSVG, createSVGG, Rect } from "../../../shared";
 import { EditorRenderer } from "../editor-renderer";
 import { EditorRenderOptions } from "../editor-renderer";

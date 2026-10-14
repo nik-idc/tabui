@@ -1,7 +1,7 @@
 import { TechniqueLabelElement, TrackController } from "../../controller";
 import { createSVGG, createSVGPath, createSVGText } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 import { GuitarTechniqueType } from "../../model";
 
 /**

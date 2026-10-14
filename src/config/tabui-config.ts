@@ -1,4 +1,3 @@
-import { normalizeAssetBaseUrl } from "./asset-url-resolver";
 import {
   InstrumentTone,
   NoteType,
@@ -67,7 +66,9 @@ export enum TabUISidePanelPlacement {
 
 export interface TabUIConfig {
   assets?: {
+    /** Optional public icon folder URL. Omit or leave empty to use bundled icons. */
     baseUrl?: string;
+    /** Selects the light (default) or dark icon set. */
     variant?: "light" | "dark";
   };
   interaction?: {
@@ -360,6 +361,15 @@ function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
       ? { "--tu-notation-danger": config.theme.notation.colors.danger }
       : {}),
   };
+}
+
+/** Removes a trailing slash while preserving an explicit root-folder override. */
+export function normalizeAssetBaseUrl(baseUrl: string): string {
+  if (baseUrl === "" || baseUrl === "/") {
+    return baseUrl;
+  }
+
+  return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
 }
 
 export function resolveTabUIConfig(

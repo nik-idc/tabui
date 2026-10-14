@@ -1,5 +1,5 @@
 import { createSVGG, createSVGPath, createSVGText } from "../../../../shared";
-import type { ResolvedAssetConfig } from "../../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../../assets";
 import { ElementRenderer } from "../../element-renderer";
 import {
   BarTupletGroupElement,

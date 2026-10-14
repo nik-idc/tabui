@@ -1,7 +1,7 @@
 import { TechniqueElement, TrackController } from "../../controller";
 import { createSVGG, createSVGPath } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 /**
  * Class for rendering a guitar technique element using SVG

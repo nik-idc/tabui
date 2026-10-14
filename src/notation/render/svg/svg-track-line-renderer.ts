@@ -2,7 +2,7 @@ import { ElementRenderer } from "../element-renderer";
 import { TrackLineElement } from "../../controller/element/track/track-line-element";
 import { TrackController } from "../../controller";
 import { createSVGG, createSVGLine } from "../../../shared";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 type OutlineLinesRendered = {
   left: SVGLineElement;

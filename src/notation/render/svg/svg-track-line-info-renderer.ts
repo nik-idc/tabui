@@ -1,10 +1,10 @@
 import { BarElement, TrackController } from "../../controller";
-import { resolveAssetUrl } from "../../../config/asset-url-resolver";
+import { resolveAssetUrl } from "../../../assets";
 import { createSVGG, createSVGImage, createSVGText } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 
 import { TrackLineInfoElement } from "../../controller/element/track/track-line-info-element";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 type TempoSVG = {
   group: SVGGElement;

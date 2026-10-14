@@ -14,7 +14,7 @@ import { GuitarTechniqueLabelElement } from "../../../controller/element/techniq
 import { BeamSegmentElement } from "../../../controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "../../../controller/element/bar/bar-tuplet-group-element";
 import { ElementRenderer, ElementRendererClass } from "../../element-renderer";
-import type { ResolvedAssetConfig } from "../../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../../assets";
 import { SVGTrackLineRenderer } from "../svg-track-line-renderer";
 import { SVGTrackLineInfoRenderer } from "../svg-track-line-info-renderer";
 import { SVGBarRenderer } from "../svg-bar-renderer";

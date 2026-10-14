@@ -1,7 +1,7 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { MeasureControlsTemplate } from "./measure-controls-template";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 export class MeasureControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

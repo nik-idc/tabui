@@ -16,8 +16,6 @@ type BarsInfo = {
   beatsDuration: NoteDuration;
 };
 
-const excludedStrings = [1, 5, 6];
-
 export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
   const voiceBar = bar.getVoiceBar(1) ?? bar.insertVoiceBar(1);
   const beats: Beat<Guitar>[] = [];
@@ -32,10 +30,6 @@ export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
     newBeat.baseDuration = barsInfo.beatsDuration;
     newBeat.makeBeatWithNotes();
     for (let j = 0; j < bar.trackContext.instrument.maxPolyphony; j++) {
-      // if (excludedStrings.includes(j + 1)) {
-      //   continue;
-      // }
-
       const note = new GuitarNote(
         newBeat,
         newBeat.trackContext as TrackContext<Guitar>,
