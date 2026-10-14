@@ -43,6 +43,38 @@ const labelX = barX + barWidth - labelWidth;
 element.setAttribute("x", labelX.toString());
 ```
 
+- Structure the code in logical blocks. Example:
+
+```js
+// Don't
+const object = await fetch(someLink);
+const parser = new CustomObjectParser();
+const formatted = await parser.parse(object);
+const response = `some whole lotta text that really should probably be split but since I don't care for readability I will keep this 150+ characters string as is cause why not`;
+const responseObject = new CustomObject(response);
+const result = await fetch(someLink, {
+  method: "POST",
+  body: JSON.stringify(responseObject.toJSON()),
+});
+
+// Do
+const object = await fetch(someLink);
+
+const parser = new CustomObjectParser();
+const formatted = await parser.parse(object);
+
+const response =
+  `some whole lotta text that really should probably be split ` +
+  `but since I don't care for readability I will keep this 150+ characters ` +
+  `string as is cause why not`;
+const responseObject = new CustomObject(response);
+
+const result = await fetch(someLink, {
+  method: "POST",
+  body: JSON.stringify(responseObject.toJSON()),
+});
+```
+
 ## Documentation
 
 - Document all new functionality with concise JSDoc. Prefer one or two
