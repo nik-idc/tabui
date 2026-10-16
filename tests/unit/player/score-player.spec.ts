@@ -1,4 +1,9 @@
 import { createScoreGraph } from "../model/helpers";
+import {
+  PlaybackErrorCode,
+  PlaybackState,
+  ScorePlayer,
+} from "../../../src/player";
 import type {
   PlaybackScheduleResult,
   ScheduledBeatChange,
@@ -77,21 +82,22 @@ class MockCursorCoordinator {
   }
 }
 
+// Defer access to local mock classes until construction, after imports run.
 jest.mock("../../../src/player/playback-audio-engine", () => ({
-  PlaybackAudioEngine: MockAudioEngine,
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
+  PlaybackAudioEngine: jest.fn(() => new MockAudioEngine()),
 }));
 jest.mock("../../../src/player/playback-scheduler", () => ({
-  PlaybackScheduler: MockScheduler,
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
+  PlaybackScheduler: jest.fn(() => new MockScheduler()),
 }));
 jest.mock("../../../src/player/playback-cursor-coordinator", () => ({
-  PlaybackCursorCoordinator: MockCursorCoordinator,
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
+  PlaybackCursorCoordinator: jest.fn(
+    (_score: unknown, track: { uuid: number }) =>
+      new MockCursorCoordinator(_score, track)
+  ),
 }));
-
-const {
-  PlaybackErrorCode,
-  PlaybackState,
-  ScorePlayer,
-}: typeof import("../../../src/player") = require("../../../src/player");
 
 describe("ScorePlayer", () => {
   beforeEach(() => {

@@ -1,4 +1,4 @@
-import { Bar, NoteDuration, VoiceNumber } from "../../../model";
+import { Bar, NoteDuration } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
 import {
@@ -6,10 +6,7 @@ import {
   NotationNode,
   NotationNodeType,
 } from "../notation-element";
-import {
-  NotationStyle,
-  StaffLineContainer,
-} from "../staff/staff-line-container";
+import { NotationStyle } from "../staff/staff-line-container";
 import { NotationStyleLineContainer } from "../staff/notation-style-line-container";
 import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
 import { VoiceBarContainer } from "./voice-bar-container";
@@ -23,8 +20,8 @@ import type { TrackLineElement } from "../track/track-line-element";
 export class BarElement implements NotationElement {
   readonly nodeType = NotationNodeType.Element;
 
-  private static readonly startRepeatWidthFactor = 2;
-  private static readonly endRepeatWidthFactor = 1;
+  private static readonly _startRepeatWidthFactor = 2;
+  private static readonly _endRepeatWidthFactor = 1;
 
   public static createStableIdentity(
     notationStyle: NotationStyle,
@@ -216,8 +213,8 @@ export class BarElement implements NotationElement {
 
     // Time signature rectangle
     this._timeSigRect.setDimensions(
-      this.trackElement.layoutDimensions.TIME_SIG_RECT_WIDTH,
-      this.trackElement.layoutDimensions.TIME_SIG_TEXT_SIZE * 2
+      this.trackElement.layoutDimensions.timeSigRectWidth,
+      this.trackElement.layoutDimensions.timeSigTextSize * 2
     );
   }
 
@@ -284,7 +281,7 @@ export class BarElement implements NotationElement {
       return;
     }
 
-    const staffHeight = this._voiceBarContainers[0].boundingBox.bottom; // - layoutDimensions.DURATIONS_HEIGHT;
+    const staffHeight = this._voiceBarContainers[0].boundingBox.bottom; // - layoutDimensions.durationsHeight;
     const yOffset = (staffHeight - this._timeSigRect.height) / 2;
     this._timeSigRect.setCoords(0, yOffset);
   }
@@ -294,11 +291,11 @@ export class BarElement implements NotationElement {
    */
   private layoutStaffLines(): void {
     // Make lines
-    let y = this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2;
+    let y = this.trackElement.layoutDimensions.noteRectHeight / 2;
     for (let i = 0; i < this.bar.trackContext.instrument.maxPolyphony; i++) {
       this._staffLines[i].y = y;
 
-      y += this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT;
+      y += this.trackElement.layoutDimensions.noteRectHeight;
     }
   }
 
@@ -531,8 +528,8 @@ export class BarElement implements NotationElement {
   get barLeftBorderLine(): VertLine {
     return new VertLine(
       0,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.trackElement.layoutDimensions.noteRectHeight / 2,
+      this.trackElement.layoutDimensions.noteRectHeight / 2 +
         this.trackElement.layoutDimensions.getStaffHeight(
           this.bar.trackContext.instrument
         )
@@ -552,9 +549,9 @@ export class BarElement implements NotationElement {
   get barLeftBorderLineGlobal(): VertLine {
     return new VertLine(
       this.globalCoords.x,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.trackElement.layoutDimensions.noteRectHeight / 2 +
         this.globalCoords.y,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.trackElement.layoutDimensions.noteRectHeight / 2 +
         this.globalCoords.y +
         this.trackElement.layoutDimensions.getStaffHeight(
           this.bar.trackContext.instrument
@@ -566,8 +563,8 @@ export class BarElement implements NotationElement {
   get barRightBorderLine(): VertLine {
     return new VertLine(
       this._boundingBox.width,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.trackElement.layoutDimensions.noteRectHeight / 2,
+      this.trackElement.layoutDimensions.noteRectHeight / 2 +
         this.trackElement.layoutDimensions.getStaffHeight(
           this.bar.trackContext.instrument
         )
@@ -578,9 +575,9 @@ export class BarElement implements NotationElement {
   get barRightBorderLineLineLocal(): VertLine {
     return new VertLine(
       this.lineLocalCoords.x + this._boundingBox.width,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.trackElement.layoutDimensions.noteRectHeight / 2 +
         this.lineLocalCoords.y,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.trackElement.layoutDimensions.noteRectHeight / 2 +
         this.lineLocalCoords.y +
         this.trackElement.layoutDimensions.getStaffHeight(
           this.bar.trackContext.instrument
@@ -592,9 +589,9 @@ export class BarElement implements NotationElement {
   get barRightBorderLineGlobal(): VertLine {
     return new VertLine(
       this.globalCoords.x + this._boundingBox.width,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.trackElement.layoutDimensions.noteRectHeight / 2 +
         this.globalCoords.y,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2 +
+      this.trackElement.layoutDimensions.noteRectHeight / 2 +
         this.globalCoords.y +
         this.trackElement.layoutDimensions.getStaffHeight(
           this.bar.trackContext.instrument
@@ -606,11 +603,11 @@ export class BarElement implements NotationElement {
   get startGap(): Rect {
     const x = 0;
     const y = this.showTempo
-      ? this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
+      ? this.trackElement.layoutDimensions.tempoRectHeight
       : 0;
     let width =
-      this.trackElement.layoutDimensions.REPEAT_SIGN_WIDTH *
-      BarElement.startRepeatWidthFactor;
+      this.trackElement.layoutDimensions.repeatSignWidth *
+      BarElement._startRepeatWidthFactor;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
     }
@@ -622,11 +619,11 @@ export class BarElement implements NotationElement {
   get startGapGlobal(): Rect {
     const x = 0;
     const y = this.showTempo
-      ? this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
+      ? this.trackElement.layoutDimensions.tempoRectHeight
       : 0;
     let width =
-      this.trackElement.layoutDimensions.REPEAT_SIGN_WIDTH *
-      BarElement.startRepeatWidthFactor;
+      this.trackElement.layoutDimensions.repeatSignWidth *
+      BarElement._startRepeatWidthFactor;
     if (this._timeSigRect !== undefined) {
       width += this._timeSigRect.width;
     }
@@ -642,12 +639,12 @@ export class BarElement implements NotationElement {
   /** Gap at the fron of the bar (repeat end) */
   get endGap(): Rect {
     const width =
-      this.trackElement.layoutDimensions.REPEAT_SIGN_WIDTH *
-      BarElement.endRepeatWidthFactor;
+      this.trackElement.layoutDimensions.repeatSignWidth *
+      BarElement._endRepeatWidthFactor;
     const height = this._boundingBox.height;
     const x = this._boundingBox.right - width;
     const y = this.showTempo
-      ? this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
+      ? this.trackElement.layoutDimensions.tempoRectHeight
       : 0;
     return new Rect(x, y, width, height);
   }
@@ -655,12 +652,12 @@ export class BarElement implements NotationElement {
   /** Gap at the fron of the bar (repeat end) in global coords */
   get endGapGlobal(): Rect {
     const width =
-      this.trackElement.layoutDimensions.REPEAT_SIGN_WIDTH *
-      BarElement.endRepeatWidthFactor;
+      this.trackElement.layoutDimensions.repeatSignWidth *
+      BarElement._endRepeatWidthFactor;
     const height = this._boundingBox.height;
     const x = this._boundingBox.right - width;
     const y = this.showTempo
-      ? this.trackElement.layoutDimensions.TEMPO_RECT_HEIGHT
+      ? this.trackElement.layoutDimensions.tempoRectHeight
       : 0;
     return new Rect(
       this.globalCoords.x + x,
@@ -761,8 +758,8 @@ export class BarElement implements NotationElement {
 
     return new Rect(
       this._timeSigRect?.right ?? 0,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2,
-      this.trackElement.layoutDimensions.REPEAT_SIGN_WIDTH,
+      this.trackElement.layoutDimensions.noteRectHeight / 2,
+      this.trackElement.layoutDimensions.repeatSignWidth,
       this.trackElement.layoutDimensions.getStaffHeight(
         this.bar.trackContext.instrument
       )
@@ -807,9 +804,9 @@ export class BarElement implements NotationElement {
 
     return new Rect(
       this._boundingBox.width -
-        this.trackElement.layoutDimensions.REPEAT_SIGN_WIDTH,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT / 2,
-      this.trackElement.layoutDimensions.REPEAT_SIGN_WIDTH,
+        this.trackElement.layoutDimensions.repeatSignWidth,
+      this.trackElement.layoutDimensions.noteRectHeight / 2,
+      this.trackElement.layoutDimensions.repeatSignWidth,
       this.trackElement.layoutDimensions.getStaffHeight(
         this.bar.trackContext.instrument
       )

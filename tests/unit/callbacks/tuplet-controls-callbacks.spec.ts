@@ -1,4 +1,5 @@
 import { TupletControlsDefaultCallbacks } from "../../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-callbacks";
+import { TupletControlsTemplateRenderer } from "../../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-template-renderer";
 import {
   asNotationComponent,
   createNotationComponentMock,
@@ -61,6 +62,24 @@ function createTupletHarness() {
 }
 
 describe("TupletControlsDefaultCallbacks", () => {
+  test("dialog inputs use the selected group's existing tuplet ratio", () => {
+    const { component, notationComponent } = createTupletHarness();
+    notationComponent.trackController.selectionCursor = undefined;
+    (notationComponent.trackController as any).selectionAsBeats = [
+      {
+        tupletSettings: { normalCount: 5, tupletCount: 4 },
+      },
+    ];
+    component.template.normalLabel = makeText();
+    component.template.tupletLabel = makeText();
+    const renderer = Object.create(TupletControlsTemplateRenderer.prototype);
+    renderer.notationComponent = notationComponent;
+    renderer.template = component.template;
+    renderer.renderInputs();
+    expect(component.template.normalValue.textContent).toBe("5");
+    expect(component.template.tupletValue.textContent).toBe("4");
+  });
+
   test("button controls step and clamp both tuplet values", () => {
     const { callbacks, component } = createTupletHarness();
 

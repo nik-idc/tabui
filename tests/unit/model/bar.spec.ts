@@ -1,8 +1,4 @@
-import {
-  BarRepeatStatus,
-  NoteDuration,
-  Score,
-} from "../../../src/notation/model";
+import { NoteDuration, Score } from "../../../src/notation/model";
 import { createBarWithBeats, createBeat, createScoreGraph } from "./helpers";
 import { fillBar } from "../../../demo/data/helpers";
 

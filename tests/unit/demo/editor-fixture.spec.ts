@@ -11,6 +11,8 @@ import {
 } from "../../../demo/data/theme";
 import { deserializeScore, serializeScore } from "../../../src/notation/model";
 
+// Keys are fixture identifiers defined by the demo data contract.
+/* eslint-disable @typescript-eslint/naming-convention */
 const FIXTURE_SCORE_NAMES = {
   feature_showcase: "Feature Showcase Score",
   empty: "Unknown",
@@ -18,6 +20,7 @@ const FIXTURE_SCORE_NAMES = {
   multi_voice_single_staff: "Multi Voice Single Staff",
   multi_voice_two_staff: "Multi Voice Two Staff",
 } as const;
+/* eslint-enable @typescript-eslint/naming-convention */
 
 const performanceStressTestEnabled =
   process.env.TABUI_RUN_PERFORMANCE_STRESS_TEST === "1";

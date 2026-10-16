@@ -79,8 +79,10 @@ export class GuitarTechnique implements Technique {
 
     const keys = Object.keys(this._bendOptions);
     for (const key of keys) {
-      this._bendOptions[key as keyof BendTechniqueOptions] === undefined &&
-        delete this._bendOptions[key as keyof BendTechniqueOptions];
+      const optionKey = key as keyof BendTechniqueOptions;
+      if (this._bendOptions[optionKey] === undefined) {
+        delete this._bendOptions[optionKey];
+      }
     }
   }
 

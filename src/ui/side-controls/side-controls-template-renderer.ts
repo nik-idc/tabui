@@ -5,7 +5,7 @@ import {
   ResolvedTabUIConfig,
   TabUISidePanelPlacement,
 } from "../../config/tabui-config";
-import { resolveAssetUrl } from "../../config/asset-url-resolver";
+import { resolveAssetUrl } from "../../assets";
 
 export class SideControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

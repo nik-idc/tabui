@@ -1,5 +1,5 @@
 import { Technique } from "../../../model";
-import { Point, Rect } from "../../../../shared";
+import { Point } from "../../../../shared";
 import { NotationElement } from "../notation-element";
 import { BeatElement } from "../beat/beat-element";
 import { TechGapLineContainer } from "../staff/tech-gap-line-container";

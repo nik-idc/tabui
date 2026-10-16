@@ -2,12 +2,7 @@ import {
   MoveRightResult,
   SelectionCursor,
 } from "../../../src/notation/controller/selection/selection-cursor";
-import {
-  Bar,
-  DEFAULT_MASTER_BAR,
-  Guitar,
-  Score,
-} from "../../../src/notation/model";
+import { DEFAULT_MASTER_BAR, Score } from "../../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 
 describe("SelectionCursor", () => {
@@ -62,7 +57,6 @@ describe("SelectionCursor", () => {
     const { score, bar } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
 
-    const secondBar = bar.staff.bars[1];
     const voiceBarBefore = bar.getVoiceBar(1);
     if (voiceBarBefore === null) {
       throw Error("Expected voice 1 bar");

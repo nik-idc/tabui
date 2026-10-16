@@ -7,10 +7,35 @@ import { UIComponent } from "../../ui";
 import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
 import { PlaybackState } from "../../player";
+import { SVGTechniqueRenderer } from "../render/svg/svg-technique-renderer";
+import type { TechniqueElement, TechniqueLabelElement } from "../controller";
+import { SVGTechniqueLabelRenderer } from "../render/svg/svg-technique-label-renderer";
+import { BarRepeatStatus, GuitarTechniqueType } from "../model";
+import type { BarElement, BarTupletGroupElement } from "../controller";
+import { SVGBarRenderer } from "../render/svg/svg-bar-renderer";
+import { SVGTrackLineInfoRenderer } from "../render/svg/svg-track-line-info-renderer";
+import { SVGTupletRenderer } from "../render/svg/tuplet/svg-tuplet-renderer";
+import { SVGTabBeatRhythmRenderer } from "../render/svg/svg-tab-beat-rhythm-renderer";
+import { SVGBeamSegmentRenderer } from "../render/svg/svg-beam-segment-renderer";
+import type { TabBeatRhythmElement, BeamSegmentElement } from "../controller";
 
 export interface EditorMouseCallbacks {
   readonly isSelectingBeats: boolean;
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
+  onTechniqueClick(event: MouseEvent, techniqueElement: TechniqueElement): void;
+  onLabelClick(event: MouseEvent, labelElement: TechniqueLabelElement): void;
+  onTempoClicked(event: MouseEvent, barElement: BarElement): void;
+  onTimeSignatureClicked(event: MouseEvent, barElement: BarElement): void;
+  onRepeatStartClicked(event: MouseEvent, barElement: BarElement): void;
+  onRepeatEndClicked(event: MouseEvent, barElement: BarElement): void;
+  onDurationClick(event: MouseEvent, element: TabBeatRhythmElement): void;
+  onDotsClick(event: MouseEvent, element: TabBeatRhythmElement): void;
+  onBeamClick(event: MouseEvent, element: BeamSegmentElement): void;
+  onTupletClick(
+    event: MouseEvent,
+    element: BarTupletGroupElement,
+    beatIndex?: number
+  ): void;
   onNotePointerDown(event: MouseEvent, noteElement: NoteElement): void;
   onNotePointerEnter(event: PointerEvent, noteElement: NoteElement): void;
   onNotePointerMove(event: MouseEvent, noteElement: NoteElement): void;
@@ -37,8 +62,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private _globalPointerCompletionBound: boolean = false;
   /** True once delegated beat interaction handlers are attached. */
   private _beatInteractionBound: boolean = false;
-  /** Note renderers that already have note pointer handlers attached. */
-  private _boundNoteRenderers: Set<SVGTabNoteRenderer>;
+  /** Bound renderers and cleanup for this module's attached handlers. */
+  private _boundRenderers = new Map<ElementRenderer, () => void>();
   /** Bound global pointer completion listener reference. */
   private _boundOnWindowPointerUp?: (event: MouseEvent) => void;
   /** Selection drag state machine. */
@@ -62,7 +87,6 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this._announce = announce;
     this._focusViewport = focusViewport;
 
-    this._boundNoteRenderers = new Set();
     this._selectionDragController = new SelectionDragController();
   }
 
@@ -71,6 +95,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     return this._selectionDragController.isSelectingBeats;
   }
 
+  // TODO: Doesn't this belong more to the note renderer?
   private detachNoteRenderer(renderer: SVGTabNoteRenderer): void {
     renderer.detachMouseEvent("mousedown");
     renderer.detachMouseEvent("click");
@@ -83,21 +108,16 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     return !("pointerType" in event) && event.button === 0;
   }
 
-  private reconcileNoteRenderers(activeRenderers: ElementRenderer[]): void {
-    const activeNoteRenderers = new Set<SVGTabNoteRenderer>();
-    for (const renderer of activeRenderers) {
-      if (renderer instanceof SVGTabNoteRenderer) {
-        activeNoteRenderers.add(renderer);
-      }
-    }
-
-    for (const renderer of this._boundNoteRenderers) {
-      if (activeNoteRenderers.has(renderer)) {
+  /** Releases callbacks for renderers no longer mounted. */
+  private reconcileBoundRenderers(activeRenderers: ElementRenderer[]): void {
+    const active = new Set(activeRenderers);
+    for (const [renderer, unbind] of this._boundRenderers) {
+      if (active.has(renderer)) {
         continue;
       }
 
-      this.detachNoteRenderer(renderer);
-      this._boundNoteRenderers.delete(renderer);
+      unbind();
+      this._boundRenderers.delete(renderer);
     }
   }
 
@@ -133,6 +153,246 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     if (tc.selectionCursor !== undefined) {
       this._announce();
     }
+  }
+
+  /** Removes only the clicked inline technique, preserving selection. */
+  public onTechniqueClick(event: MouseEvent, element: TechniqueElement): void {
+    const note = element.noteElement.note;
+    if (event.button !== 0 || note === null) {
+      return;
+    }
+
+    const changed = this.notationComponent.trackController.removeTechniques(
+      [note],
+      element.technique.type
+    );
+    if (!changed) {
+      return;
+    }
+
+    this.renderFunc(RenderType.Full);
+  }
+
+  /** Removes the clicked label's techniques from its beat, preserving selection. */
+  public onLabelClick(event: MouseEvent, element: TechniqueLabelElement): void {
+    const type = element.technique.type;
+    if (event.button !== 0 || type === GuitarTechniqueType.Bend) {
+      return;
+    }
+
+    if (element.beatElement.beat.notes === null) {
+      throw new Error("Label attached to a rest beat");
+    }
+
+    const notes = [];
+    for (const note of element.beatElement.beat.notes) {
+      if (note.hasTechnique(type)) {
+        notes.push(note);
+      }
+    }
+    if (this.notationComponent.trackController.removeTechniques(notes, type)) {
+      this.renderFunc(RenderType.Full);
+    }
+  }
+
+  /**
+   * Selects the clicked notation's context for selection or an edit dialog. Example:
+   * Selection is in bar 2 -> bar 1's tempo clicked -> need to move selection to bar 1
+   * @throws If the clicked context has no beat or note slot.
+   */
+  private selectNotationContext(beats: BeatElement[], range: boolean): void {
+    const tc = this.notationComponent.trackController;
+    const first = beats[0];
+    if (first === undefined) {
+      throw new Error("Clicked notation has no beat");
+    }
+    const noteSlot = first.noteElements[0];
+    if (noteSlot === undefined) {
+      throw new Error("Clicked notation's beat has no note slots");
+    }
+
+    this._focusViewport();
+    this.notationComponent.renderer.hideSelectionPreview();
+    const previousVoice = tc.activeVoiceNumber;
+    if (range) {
+      tc.clearSelection();
+      tc.selectBeat(first);
+      tc.selectBeat(beats[beats.length - 1]);
+    } else {
+      tc.selectNoteElement(noteSlot);
+    }
+
+    this.renderFunc(
+      previousVoice === tc.activeVoiceNumber
+        ? RenderType.SelectionRefresh
+        : RenderType.ActiveVoiceSelection
+    );
+  }
+
+  /** Routes rhythm targets to their separate click callbacks. */
+  private dispatchRhythmClick(
+    event: MouseEvent,
+    element: TabBeatRhythmElement,
+    target: "duration" | "dots"
+  ): void {
+    if (target === "dots") {
+      this.onDotsClick(event, element);
+    } else if (target === "duration") {
+      this.onDurationClick(event, element);
+    }
+  }
+
+  /** Selects the beat whose stem or flags were clicked. */
+  public onDurationClick(
+    event: MouseEvent,
+    element: TabBeatRhythmElement
+  ): void {
+    const tc = this.notationComponent.trackController;
+    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+
+    this.selectNotationContext([element.beatElement], true);
+  }
+
+  /** Clears all dots from the clicked beat without changing selection. */
+  public onDotsClick(event: MouseEvent, element: TabBeatRhythmElement): void {
+    const tc = this.notationComponent.trackController;
+    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+
+    if (!tc.setBeatDots(element.beat, 0)) {
+      return;
+    }
+
+    this.renderFunc(RenderType.Full);
+  }
+
+  /** Selects every beat in the clicked connected beam group. */
+  public onBeamClick(event: MouseEvent, element: BeamSegmentElement): void {
+    const tc = this.notationComponent.trackController;
+    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+
+    const groupId = element.curBeatElement.beat.beamGroupId;
+    if (groupId === null) {
+      throw Error("Clicked beam has no beam group");
+    }
+
+    const beats = [];
+    for (const beat of element.voiceBarContainer.beatElements) {
+      if (beat.beat.beamGroupId === groupId) {
+        beats.push(beat);
+      }
+    }
+
+    this.selectNotationContext(beats, true);
+  }
+
+  /** Finds the clicked bar's first beat in the active voice, if present. */
+  private getBarDialogBeat(bar: BarElement): BeatElement {
+    const voice = this.notationComponent.trackController.activeVoiceNumber;
+    for (const element of bar.beatElements) {
+      if (element.beat.voiceBar.voiceNumber === voice) {
+        return element;
+      }
+    }
+    return bar.beatElements[0];
+  }
+
+  /** Routes clicks on the bar's interactive notation. */
+  private onBarClicked(
+    event: MouseEvent,
+    bar: BarElement,
+    target: "timeSignature" | "repeatStart" | "repeatEnd"
+  ): void {
+    if (target === "repeatStart") {
+      this.onRepeatStartClicked(event, bar);
+    } else if (target === "repeatEnd") {
+      this.onRepeatEndClicked(event, bar);
+    } else {
+      this.onTimeSignatureClicked(event, bar);
+    }
+  }
+
+  /** Opens the tempo dialog for the clicked bar. */
+  public onTempoClicked(event: MouseEvent, bar: BarElement): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit =
+      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
+    if (event.button !== 0 || !canEdit) {
+      return;
+    }
+    const beat = this.getBarDialogBeat(bar);
+    this.selectNotationContext([beat], false);
+    this.uiComponent.sideComponent.measureControlsComponent.showTempoControls();
+  }
+
+  /** Opens the time-signature dialog for the clicked bar. */
+  public onTimeSignatureClicked(event: MouseEvent, bar: BarElement): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit =
+      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
+    if (event.button !== 0 || !canEdit) {
+      return;
+    }
+    const beat = this.getBarDialogBeat(bar);
+    this.selectNotationContext([beat], false);
+    this.uiComponent.sideComponent.measureControlsComponent.showTimeSigControls();
+  }
+
+  /** Removes the clicked repeat start without changing selection. */
+  public onRepeatStartClicked(event: MouseEvent, bar: BarElement): void {
+    if (event.button !== 0) {
+      return;
+    }
+    const changed = this.notationComponent.trackController.setRepeatStatus(
+      bar.bar,
+      {
+        status: BarRepeatStatus.Start,
+        enabled: false,
+      }
+    );
+    if (!changed) {
+      return;
+    }
+
+    this.renderFunc(RenderType.Full);
+  }
+
+  /** Opens the repeat-count dialog for the clicked bar. */
+  public onRepeatEndClicked(event: MouseEvent, bar: BarElement): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit =
+      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
+    if (event.button !== 0 || !canEdit) {
+      return;
+    }
+    const beat = this.getBarDialogBeat(bar);
+    this.selectNotationContext([beat], false);
+    this.uiComponent.sideComponent.measureControlsComponent.showRepeatCountControls();
+  }
+
+  /** Opens the tuplet dialog for a complete group or an incomplete beat label. */
+  public onTupletClick(
+    event: MouseEvent,
+    element: BarTupletGroupElement,
+    beatIndex?: number
+  ): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit =
+      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
+    if (event.button !== 0 || !canEdit) {
+      return;
+    }
+    const beats =
+      beatIndex === undefined
+        ? element.beatElements
+        : element.beatElements.slice(beatIndex, beatIndex + 1);
+    this.selectNotationContext(beats, beatIndex === undefined);
+    this.uiComponent.sideComponent.noteControlsComponent.showTupletControls();
   }
 
   /**
@@ -374,7 +634,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Binds one-time global/delegated handlers and note renderer handlers.
    */
   public bind(activeRenderers: ElementRenderer[]): void {
-    this.reconcileNoteRenderers(activeRenderers);
+    this.reconcileBoundRenderers(activeRenderers);
 
     if (!this._globalPointerCompletionBound) {
       this._boundOnWindowPointerUp = this.onWindowPointerUp.bind(this);
@@ -407,11 +667,65 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     for (const renderer of activeRenderers) {
-      if (renderer instanceof SVGTabNoteRenderer) {
-        if (this._boundNoteRenderers.has(renderer)) {
+      if (this._boundRenderers.has(renderer)) {
+        continue;
+      }
+
+      if (renderer instanceof SVGTabBeatRhythmRenderer) {
+        renderer.attachMouseEvent("click", this.dispatchRhythmClick.bind(this));
+
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
+      } else if (renderer instanceof SVGBeamSegmentRenderer) {
+        renderer.attachMouseEvent("click", this.onBeamClick.bind(this));
+
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
+      } else if (renderer instanceof SVGBarRenderer) {
+        renderer.attachMouseEvent("click", this.onBarClicked.bind(this));
+
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
+      } else if (renderer instanceof SVGTrackLineInfoRenderer) {
+        renderer.attachMouseEvent("click", this.onTempoClicked.bind(this));
+
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
+      } else if (renderer instanceof SVGTupletRenderer) {
+        renderer.attachMouseEvent("click", this.onTupletClick.bind(this));
+
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
+      } else if (renderer instanceof SVGTechniqueRenderer) {
+        renderer.attachMouseEvent("click", this.onTechniqueClick.bind(this));
+
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
+      } else if (renderer instanceof SVGTechniqueLabelRenderer) {
+        const type = renderer.techniqueLabelElement.technique.type;
+        if (type === GuitarTechniqueType.Bend) {
           continue;
         }
 
+        renderer.attachMouseEvent("click", this.onLabelClick.bind(this));
+
+        this._boundRenderers.set(
+          renderer,
+          renderer.detachMouseEvent.bind(renderer, "click")
+        );
+      } else if (renderer instanceof SVGTabNoteRenderer) {
         renderer.attachMouseEvent(
           "mousedown",
           this.onNotePointerDown.bind(this)
@@ -429,7 +743,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
           "pointerleave",
           this.onNotePointerLeave.bind(this)
         );
-        this._boundNoteRenderers.add(renderer);
+
+        this._boundRenderers.set(
+          renderer,
+          this.detachNoteRenderer.bind(this, renderer)
+        );
       }
     }
   }
@@ -452,10 +770,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       this._beatInteractionBound = false;
     }
 
-    for (const renderer of this._boundNoteRenderers) {
-      this.detachNoteRenderer(renderer);
+    for (const unbind of this._boundRenderers.values()) {
+      unbind();
     }
-    this._boundNoteRenderers.clear();
+
+    this._boundRenderers.clear();
     this._selectionDragController.reset();
   }
 

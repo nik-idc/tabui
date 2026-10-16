@@ -1,9 +1,4 @@
-import {
-  BarRepeatStatus,
-  BarRepeatStatusChange,
-  MasterBar,
-  Track,
-} from "../../../model";
+import { BarRepeatStatusChange, MasterBar, Track } from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**

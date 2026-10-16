@@ -4,17 +4,13 @@ import {
   createSVGLine,
   createSVGImage,
 } from "../../../shared";
-import {
-  BeatElement,
-  NotationElement,
-  TrackController,
-} from "../../controller";
+import { BeatElement, TrackController } from "../../controller";
 import { SVGNoteRenderer } from "./svg-note-renderer";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
-import { resolveAssetUrl } from "../../../config/asset-url-resolver";
+import { resolveAssetUrl } from "../../../assets";
 import { DURATION_TO_NAME } from "../../model/note-duration";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 /**
  * Class for rendering a beat element using SVG

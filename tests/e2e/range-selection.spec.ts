@@ -57,7 +57,9 @@ test("announces a mouse range once on release, not during held drag frames", asy
     const width = await selection.getAttribute("width");
     expect(width).not.toBe(previousWidth);
     previousWidth = width;
-    await expect(announcement).toHaveText(initialText!);
+    if (initialText === null)
+      throw Error("Expected initial selection announcement");
+    await expect(announcement).toHaveText(initialText);
     expect(
       await page.evaluate(
         () => (window as any).__tabuiDragAnnouncements.changes.mutations

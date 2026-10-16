@@ -138,7 +138,7 @@ export class TechGapLineContainer implements NotationContainer {
         0,
         0,
         this.techGapContainer.boundingBox.width,
-        this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
+        this.trackElement.layoutDimensions.techLabelHeight
       );
     }
   }
@@ -172,7 +172,7 @@ export class TechGapLineContainer implements NotationContainer {
     }
     this._boundingBox.setDimensions(
       this.techGapContainer.boundingBox.width,
-      this.trackElement.layoutDimensions.TECH_LABEL_HEIGHT
+      this.trackElement.layoutDimensions.techLabelHeight
     );
 
     for (const label of this._labelElements) {

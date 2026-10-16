@@ -1,4 +1,4 @@
-import { BarElement, NotationElement, TrackController } from "../../controller";
+import { BarElement, TrackController } from "../../controller";
 import {
   createSVGG,
   createSVGLine,
@@ -8,7 +8,7 @@ import {
 import type { Rect } from "../../../shared";
 import { SVGBeatRenderer } from "./svg-beat-renderer";
 import { ElementRenderer } from "../element-renderer";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 // WARNING: Mixes responsibilities of Element and Renderer layers.
 // But no obvious solution is currently known. The path for a repeat sign is fairly complex.
@@ -66,10 +66,16 @@ export class SVGBarRenderer implements ElementRenderer {
   /** Bar repeat sign SVG paths */
   private _repeatStartSVG?: SVGPathElement;
   private _repeatEndSVG?: SVGPathElement;
+  /** Repeat end SVG group */
+  private _repeatEndGroupSVG?: SVGGElement;
   /** Repeat count SVG text */
   private _repeatCountSVG?: SVGTextElement;
   /** Array of bar time signature text elements (beats count + duration) */
   private _timeSigTextsSVG?: SVGTextElement[];
+  /** Time signature SVG group. */
+  private _timeSigGroupSVG?: SVGGElement;
+  /** Supplied callbacks keyed by event type. */
+  private _attachedEvents = new Map<string, EventListener>();
 
   /**
    * Class for rendering a beat element using SVG
@@ -108,7 +114,78 @@ export class SVGBarRenderer implements ElementRenderer {
       return;
     }
 
+    for (const eventType of this._attachedEvents.keys()) {
+      this.detachMouseEvent(eventType as keyof SVGElementEventMap);
+    }
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
+  }
+
+  /** Attaches a supplied callback using the renderer's current bar element. */
+  public attachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K,
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      barElement: BarElement,
+      target: "timeSignature" | "repeatStart" | "repeatEnd"
+    ) => void
+  ): void {
+    const group = this.ensureContainerGroup();
+    this.detachMouseEvent(eventType);
+    const listener = (this.dispatchMouseEvent<K>).bind(this, eventHandler);
+    group.addEventListener(eventType, listener);
+    this._attachedEvents.set(eventType, listener);
+  }
+
+  /** Dispatches an event using the renderer's current bar and SVG elements. */
+  private dispatchMouseEvent<K extends keyof SVGElementEventMap>(
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      barElement: BarElement,
+      target: "timeSignature" | "repeatStart" | "repeatEnd"
+    ) => void,
+    event: Event
+  ): void {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (target === this._repeatStartSVG) {
+      eventHandler(
+        event as SVGElementEventMap[K],
+        this.barElement,
+        "repeatStart"
+      );
+      return;
+    }
+    if (this._repeatEndGroupSVG?.contains(target)) {
+      eventHandler(
+        event as SVGElementEventMap[K],
+        this.barElement,
+        "repeatEnd"
+      );
+      return;
+    }
+    const signature = this._timeSigGroupSVG;
+    if (!signature?.contains(target)) {
+      return;
+    }
+    eventHandler(
+      event as SVGElementEventMap[K],
+      this.barElement,
+      "timeSignature"
+    );
+  }
+
+  /** Detaches a previously supplied callback. */
+  public detachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K
+  ): void {
+    const listener = this._attachedEvents.get(eventType);
+    if (listener === undefined) {
+      return;
+    }
+    this._containerGroupSVG?.removeEventListener(eventType, listener);
+    this._attachedEvents.delete(eventType);
   }
 
   public updateElementReference(element: BarElement): void {
@@ -252,9 +329,11 @@ export class SVGBarRenderer implements ElementRenderer {
     const barUUID = this.barElement.bar.uuid;
     if (this._timeSigTextsSVG === undefined) {
       this._timeSigTextsSVG = [createSVGText(), createSVGText()];
+      this._timeSigGroupSVG = createSVGG();
+      this._timeSigGroupSVG.setAttribute("class", "tu-time-signature");
 
       // Set only-set-once attributes
-      const fontSize = `${this.trackController.layoutDimensions.TIME_SIG_TEXT_SIZE}`;
+      const fontSize = `${this.trackController.layoutDimensions.timeSigTextSize}`;
       this._timeSigTextsSVG[0].setAttribute("text-anchor", "start");
       this._timeSigTextsSVG[0].setAttribute("dominant-baseline", "hanging");
       this._timeSigTextsSVG[0].setAttribute("font-size", fontSize);
@@ -267,8 +346,9 @@ export class SVGBarRenderer implements ElementRenderer {
       this._timeSigTextsSVG[1].setAttribute("id", `bar-sig-${barUUID}-1`);
 
       // Add element to root SVG element
-      this._containerGroupSVG.appendChild(this._timeSigTextsSVG[0]);
-      this._containerGroupSVG.appendChild(this._timeSigTextsSVG[1]);
+      this._timeSigGroupSVG.appendChild(this._timeSigTextsSVG[0]);
+      this._timeSigGroupSVG.appendChild(this._timeSigTextsSVG[1]);
+      this._containerGroupSVG.appendChild(this._timeSigGroupSVG);
     }
 
     const beatsX = `${this.barElement.timeSigBeatsTextCoords.x}`;
@@ -298,9 +378,9 @@ export class SVGBarRenderer implements ElementRenderer {
       return;
     }
 
-    this._containerGroupSVG.removeChild(this._timeSigTextsSVG[0]);
-    this._containerGroupSVG.removeChild(this._timeSigTextsSVG[1]);
+    this._timeSigGroupSVG?.parentNode?.removeChild(this._timeSigGroupSVG);
     this._timeSigTextsSVG = undefined;
+    this._timeSigGroupSVG = undefined;
   }
 
   /**
@@ -326,8 +406,8 @@ export class SVGBarRenderer implements ElementRenderer {
     ) {
       this._repeatStartSVG = createSVGPath();
       this._repeatStartSVG.setAttribute("id", `bar-rep-start-${barUUID}`);
+      this._repeatStartSVG.setAttribute("class", "tu-repeat-start");
       this._repeatStartSVG.setAttribute("fill", "var(--tu-notation-ink)");
-      this._repeatStartSVG.setAttribute("pointer-events", "none");
 
       this._containerGroupSVG.appendChild(this._repeatStartSVG);
     }
@@ -338,23 +418,26 @@ export class SVGBarRenderer implements ElementRenderer {
       this._repeatEndSVG = createSVGPath();
       this._repeatEndSVG.setAttribute("id", `bar-rep-end-${barUUID}`);
       this._repeatEndSVG.setAttribute("fill", "var(--tu-notation-ink)");
-      this._repeatEndSVG.setAttribute("pointer-events", "none");
+      this._repeatEndGroupSVG = createSVGG();
+      this._repeatEndGroupSVG.setAttribute("class", "tu-repeat-end");
+      this._repeatEndGroupSVG.appendChild(this._repeatEndSVG);
 
-      this._containerGroupSVG.appendChild(this._repeatEndSVG);
+      this._containerGroupSVG.appendChild(this._repeatEndGroupSVG);
     }
 
     const repeatCount = this.barElement.bar.masterBar.repeatCount;
     const repeatEndRectGlobal = this.barElement.repeatEndRectGlobal;
     if (repeatCount !== null && repeatEndRectGlobal !== undefined) {
-      const repeatFontSize =
-        this.trackController.layoutDimensions.NOTE_TEXT_SIZE;
+      const repeatFontSize = this.trackController.layoutDimensions.noteTextSize;
       if (this._repeatCountSVG === undefined) {
         this._repeatCountSVG = createSVGText();
         this._repeatCountSVG.setAttribute("id", `bar-rep-count-${barUUID}`);
         this._repeatCountSVG.setAttribute("fill", "var(--tu-notation-text)");
-        this._repeatCountSVG.setAttribute("pointer-events", "none");
         this._repeatCountSVG.setAttribute("font-size", `${repeatFontSize}`);
-        this._containerGroupSVG.appendChild(this._repeatCountSVG);
+        if (this._repeatEndGroupSVG === undefined) {
+          throw Error("Repeat end group SVG undefined for repeat count");
+        }
+        this._repeatEndGroupSVG.appendChild(this._repeatCountSVG);
       }
 
       const barGlobalCoords = this.barElement.globalCoords;
@@ -394,12 +477,22 @@ export class SVGBarRenderer implements ElementRenderer {
       this._repeatStartSVG = undefined;
     }
     if (this._repeatEndSVG !== undefined) {
-      this._containerGroupSVG.removeChild(this._repeatEndSVG);
+      if (this._repeatEndGroupSVG === undefined) {
+        throw Error("Repeat end group SVG undefined for repeat path");
+      }
+      this._repeatEndGroupSVG.removeChild(this._repeatEndSVG);
       this._repeatEndSVG = undefined;
     }
     if (this._repeatCountSVG !== undefined) {
-      this._containerGroupSVG.removeChild(this._repeatCountSVG);
+      if (this._repeatEndGroupSVG === undefined) {
+        throw Error("Repeat end group SVG undefined for repeat count");
+      }
+      this._repeatEndGroupSVG.removeChild(this._repeatCountSVG);
       this._repeatCountSVG = undefined;
+    }
+    if (this._repeatEndGroupSVG !== undefined) {
+      this._containerGroupSVG.removeChild(this._repeatEndGroupSVG);
+      this._repeatEndGroupSVG = undefined;
     }
   }
 

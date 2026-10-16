@@ -24,6 +24,7 @@ import {
  * Normalized event.key values (lowercase), not complete shortcuts.
  * Routing explicitly checks modifiers; duplicate values name distinct actions.
  */
+/* eslint-disable @typescript-eslint/no-duplicate-enum-values -- Actions share keys; modifiers distinguish shortcuts. */
 export enum EditorKey {
   // Ctrl only.
   Copy = "c",
@@ -74,6 +75,8 @@ export enum EditorKey {
   MoveUp = "arrowup",
   MoveDown = "arrowdown",
 }
+
+/* eslint-enable @typescript-eslint/no-duplicate-enum-values */
 
 export interface EditorKeyboardCallbacks {
   copyEvent(): void;

@@ -1,7 +1,6 @@
 import {
   Beat,
   NoteDuration,
-  GuitarNote,
   Bar,
   BarRepeatStatusChange,
   TechniqueType,
@@ -9,7 +8,6 @@ import {
   MasterBarData,
   TupletSettings,
   DEFAULT_MASTER_BAR,
-  GuitarTechniqueType,
   VoiceNumber,
   ScoreEditor,
   Score,
@@ -51,6 +49,7 @@ import {
   Command,
   AffectedModel,
 } from "./command";
+import type { Note } from "../../model";
 
 /**
  * Class responsible for managing editing & element state
@@ -515,6 +514,15 @@ export class TrackControllerEditor {
     this.executeCommand(new SetDotsCommand(selection, newDots));
   }
 
+  /** Sets one beat's dots */
+  public setBeatDots(beat: Beat, newDots: number): boolean {
+    if (!this.editingEnabled || beat.dots === newDots) {
+      return false;
+    }
+    this.executeCommand(new SetDotsCommand([beat], newDots));
+    return true;
+  }
+
   /**
    * Sets selection duration
    * @param newDuration New duration
@@ -656,13 +664,19 @@ export class TrackControllerEditor {
       );
     }
 
+    this.setRepeatStatus(selectionCursor.bar, change);
+  }
+
+  /** Sets a bar's repeat status in one command, preserving selection. */
+  public setRepeatStatus(bar: Bar, change: BarRepeatStatusChange): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+
     this.executeCommand(
-      new SetRepeatStatusCommand(
-        selectionCursor.bar.masterBar,
-        change,
-        selectionCursor.staff.track
-      )
+      new SetRepeatStatusCommand(bar.masterBar, change, bar.staff.track)
     );
+    return true;
   }
 
   /**
@@ -690,6 +704,21 @@ export class TrackControllerEditor {
     this.executeCommand(
       new SetTechniqueCommand(selectionNotes, type, bendOptions)
     );
+  }
+
+  /** Removes matching techniques in one command without changing selection. */
+  public removeTechniques(notes: Note[], type: TechniqueType): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+
+    const affectedNotes = notes.filter((note) => note.hasTechnique(type));
+    if (affectedNotes.length === 0) {
+      return false;
+    }
+
+    this.executeCommand(new SetTechniqueCommand(affectedNotes, type));
+    return true;
   }
 
   /**

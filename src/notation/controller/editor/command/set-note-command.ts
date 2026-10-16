@@ -71,8 +71,7 @@ export class SetNoteCommand implements Command {
       return;
     }
 
-    note.octave = octave;
-    note.noteValue = value;
+    note.setNote(value, octave);
   }
 
   public get affectedModels(): AffectedModel[] {

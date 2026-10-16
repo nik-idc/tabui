@@ -1,17 +1,7 @@
-import {
-  createSVGLine,
-  createSVGText,
-  createSVGPath,
-  createSVGCircle,
-} from "../../../../../shared";
-import { BendData, Selector } from "./selector";
+import { createSVGPath, createSVGCircle } from "../../../../../shared";
+import { Selector } from "./selector";
 import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
-import {
-  BendOptionsData,
-  BendType,
-  GuitarTechnique,
-  GuitarTechniqueType,
-} from "../../../../../notation";
+import { BendOptionsData, BendType } from "../../../../../notation";
 
 export class BendSelector implements Selector {
   readonly bendGraphSVG: SVGSVGElement;
@@ -92,7 +82,7 @@ export class BendSelector implements Selector {
     };
   }
 
-  private onCircleMouseDown(event: MouseEvent) {
+  private onCircleMouseDown(_event: MouseEvent) {
     this._isDragging = true;
     document.addEventListener("mousemove", this._boundOnDocumentMouseMove);
     document.addEventListener("mouseup", this._boundOnDocumentMouseUp);
@@ -154,7 +144,7 @@ export class BendSelector implements Selector {
     this.bendPath.setAttribute("d", d);
   }
 
-  private onDocumentMouseUp(event: MouseEvent) {
+  private onDocumentMouseUp(_event: MouseEvent) {
     this._isDragging = false;
     this.removeDocumentDragListeners();
   }

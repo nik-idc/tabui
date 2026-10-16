@@ -1,4 +1,3 @@
-import { MusicInstrument } from "./instrument";
 import { InstrumentType, StringInstrumentType } from "./instrument-type";
 
 export enum AcousticGuitarTone {

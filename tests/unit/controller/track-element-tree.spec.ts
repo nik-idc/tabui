@@ -323,7 +323,8 @@ describe("TrackElement tree", () => {
       (line) => line.labelElements.length > 0
     );
     expect(gapLine).toBeDefined();
-    const labelElement = gapLine!.labelElements[0];
+    if (gapLine === undefined) throw Error("Expected technique gap line");
+    const labelElement = gapLine.labelElements[0];
 
     expect(styleLine.lineLocalCoords?.x).toBeCloseTo(
       (staffLine.lineLocalCoords?.x ?? 0) + styleLine.boundingBox.x
@@ -391,9 +392,12 @@ describe("TrackElement tree", () => {
     }
     const labelElement = gapLine.labelElements[0];
 
-    const tempoRectGlobal = trackLineInfo.getBarTempoRectGlobal(barElement)!;
+    const tempoRectGlobal = trackLineInfo.getBarTempoRectGlobal(barElement);
     const tempoRectLineLocal =
-      trackLineInfo.getBarTempoRectLineLocal(barElement)!;
+      trackLineInfo.getBarTempoRectLineLocal(barElement);
+    if (tempoRectGlobal === undefined || tempoRectLineLocal === undefined) {
+      throw Error("Expected tempo rectangles");
+    }
     expect(tempoRectGlobal.x - trackLine.globalCoords.x).toBeCloseTo(
       tempoRectLineLocal.x
     );
@@ -402,9 +406,12 @@ describe("TrackElement tree", () => {
     );
 
     const tempoTextGlobal =
-      trackLineInfo.getBarTempoTextCoordsGlobal(barElement)!;
+      trackLineInfo.getBarTempoTextCoordsGlobal(barElement);
     const tempoTextLineLocal =
-      trackLineInfo.getBarTempoTextCoordsLineLocal(barElement)!;
+      trackLineInfo.getBarTempoTextCoordsLineLocal(barElement);
+    if (tempoTextGlobal === undefined || tempoTextLineLocal === undefined) {
+      throw Error("Expected tempo text coordinates");
+    }
     expect(tempoTextGlobal.x - trackLine.globalCoords.x).toBeCloseTo(
       tempoTextLineLocal.x
     );
@@ -571,7 +578,9 @@ describe("TrackElement tree", () => {
         (beatElement) => beatElement.beat === addedBeat
       );
     expect(addedBeatElement).toBeDefined();
-    const addedBeatIdentity = addedBeatElement!.getStableIdentity();
+    if (addedBeatElement === undefined)
+      throw Error("Expected added beat element");
+    const addedBeatIdentity = addedBeatElement.getStableIdentity();
     expect(addDiff.added.get(TabBeatElement)?.has(addedBeatIdentity)).toBe(
       true
     );
@@ -672,15 +681,16 @@ describe("TrackElement tree", () => {
       track.staves[0].bars.map((bar) => {
         const barElement = findBarElement(trackElement, bar.uuid);
         expect(barElement).toBeDefined();
+        if (barElement === undefined) throw Error("Expected bar element");
         return [
           bar.uuid,
           {
-            barElement: barElement!,
-            beatIdentity: barElement!.beatElements[0].getStableIdentity(),
+            barElement,
+            beatIdentity: barElement.beatElements[0].getStableIdentity(),
             noteIdentity:
-              barElement!.beatElements[0].noteElements[0].getStableIdentity(),
-            stableIdentity: barElement!.getStableIdentity(),
-            styleLine: barElement!.notationStyleLineContainer,
+              barElement.beatElements[0].noteElements[0].getStableIdentity(),
+            stableIdentity: barElement.getStableIdentity(),
+            styleLine: barElement.notationStyleLineContainer,
           },
         ];
       })
@@ -718,9 +728,11 @@ describe("TrackElement tree", () => {
       );
     })?.uuid;
     expect(movedBarUUID).toBeDefined();
+    if (movedBarUUID === undefined) throw Error("Expected moved bar UUID");
 
-    const before = beforeByBarUUID.get(movedBarUUID!)!;
-    const after = findBarElement(trackElement, movedBarUUID!);
+    const before = beforeByBarUUID.get(movedBarUUID);
+    if (before === undefined) throw Error("Expected original bar element");
+    const after = findBarElement(trackElement, movedBarUUID);
     expect(after).not.toBe(before.barElement);
     expect(after?.getStableIdentity()).toBe(before.stableIdentity);
     expect(after?.beatElements[0].getStableIdentity()).toBe(
@@ -890,11 +902,11 @@ describe("TrackElement tree", () => {
     expect(
       firstLineStyle.barElements[firstLineStyle.barElements.length - 1]
         .boundingBox.right
-    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.WIDTH);
+    ).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.width);
     expect(
       secondLineStyle.barElements[secondLineStyle.barElements.length - 1]
         .boundingBox.right
-    ).toBeLessThanOrEqual(TEST_LAYOUT_DIMENSIONS.WIDTH);
+    ).toBeLessThanOrEqual(TEST_LAYOUT_DIMENSIONS.width);
 
     for (const line of lines) {
       const styleLine = line.staffLineContainers[0].styleLinesAsArray[0];
@@ -940,17 +952,21 @@ describe("TrackElement tree", () => {
 
     expect(firstLineBeatElement).toBeDefined();
     expect(secondLineBeatElement).toBeDefined();
+    if (firstLineBeatElement === undefined)
+      throw Error("Expected first line beat element");
+    if (secondLineBeatElement === undefined)
+      throw Error("Expected second line beat element");
     expect(selectionRects).toHaveLength(2);
     expect(selectionRects[0].width).toBeGreaterThan(0);
     expect(selectionRects[1].width).toBeGreaterThan(0);
     expect(selectionRects[1].y).toBeGreaterThan(selectionRects[0].y);
     expect(selectionRects[0].x).toBeLessThan(
-      firstLineBeatElement!.barElement.globalCoords.x +
-        firstLineBeatElement!.barLocalBoundingBox.x
+      firstLineBeatElement.barElement.globalCoords.x +
+        firstLineBeatElement.barLocalBoundingBox.x
     );
     expect(selectionRects[1].x).toBeLessThan(
-      secondLineBeatElement!.barElement.globalCoords.x +
-        secondLineBeatElement!.barLocalBoundingBox.x
+      secondLineBeatElement.barElement.globalCoords.x +
+        secondLineBeatElement.barLocalBoundingBox.x
     );
   });
 

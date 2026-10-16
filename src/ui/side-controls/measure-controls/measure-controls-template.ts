@@ -1,6 +1,4 @@
 import { createButton, createDiv } from "../../../shared";
-import { TimeSigControlsTemplate } from "./time-sig-controls";
-import { TempoControlsTemplate } from "./tempo-controls";
 
 /**
  * Interface defining the template of measure controls:

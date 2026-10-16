@@ -1,5 +1,4 @@
 import { createButton, createDiv, createInput } from "../../../shared";
-import { TrackControlsTemplate } from "./track-controls/track-controls-template";
 
 /**
  * Interface defining the template of score controls:

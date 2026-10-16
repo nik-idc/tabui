@@ -6,6 +6,7 @@ import {
 import { SelectionManager } from "../../../src/notation/controller/selection/selection-manager";
 import { DEFAULT_MASTER_BAR, NoteDuration } from "../../../src/notation/model";
 import { createBeat, createScoreGraph } from "../model/helpers";
+import { required } from "../required";
 
 /** Builds a real selection model with two two-beat bars. */
 function createSelection() {
@@ -13,7 +14,7 @@ function createSelection() {
   track.name = "Guitar";
   score.appendMasterBar(DEFAULT_MASTER_BAR);
   for (const bar of staff.bars) {
-    const voice = bar.getVoiceBar(1)!;
+    const voice = required(bar.getVoiceBar(1));
     voice.beats.splice(
       0,
       voice.beats.length,
@@ -61,13 +62,13 @@ describe("notation selection announcements", () => {
     selection.selectBeat(beats[3]);
     const range = captureSelectionCursor(selection.selectionCursor);
     selection.clearRange();
-    const cursor = captureSelectionCursor(selection.selectionCursor)!;
+    const cursor = required(captureSelectionCursor(selection.selectionCursor));
     expect(formatNotationSelection(selection, range)).toBe(
       "Track Guitar, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
         "Beat 1, half, String 1, empty."
     );
     selection.selectBeatCursor(beats[1], 0);
-    const next = captureSelectionCursor(selection.selectionCursor)!;
+    const next = required(captureSelectionCursor(selection.selectionCursor));
     expect(formatNotationSelection(selection, cursor)).toBe(
       "Beat 2, half, String 1, empty."
     );
@@ -120,7 +121,7 @@ describe("notation selection announcements", () => {
   test("retains the previous position when the same cursor moves", () => {
     const { selection, beats } = createSelection();
     selection.selectBeatCursor(beats[0], 0);
-    const cursor = selection.selectionCursor!;
+    const cursor = required(selection.selectionCursor);
     const previous = captureSelectionCursor(cursor);
     cursor.moveRight(false);
     cursor.moveDown();

@@ -2,13 +2,12 @@ import { TrackController as BaseTrackController } from "../../../src/notation/co
 import { ScorePlayer } from "../../../src/player";
 import { BeatElement } from "../../../src/notation/controller/element/beat/beat-element";
 import {
-  BendTechniqueOptions,
-  BendType,
   BarRepeatStatus,
   DEFAULT_MASTER_BAR,
   Beat,
   Guitar,
   GuitarNote,
+  GuitarTechnique,
   GuitarTechniqueType,
   NoteDuration,
   NoteValue,
@@ -26,6 +25,7 @@ import {
   createScoreGraph,
 } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
+import { required } from "../required";
 
 const mockScorePlayerInstances: Array<{
   isPlaying: boolean;
@@ -100,6 +100,8 @@ function setBarDurations(
   voiceBar.rebuildTiming();
 }
 
+// Mock keys mirror the production module exports and enum members.
+/* eslint-disable @typescript-eslint/naming-convention */
 jest.mock("../../../src/player", () => ({
   PlaybackState: {
     Idle: "idle",
@@ -130,6 +132,7 @@ jest.mock("../../../src/player", () => ({
     }
   },
 }));
+/* eslint-enable @typescript-eslint/naming-convention */
 
 class TrackController extends BaseTrackController {
   constructor(
@@ -141,6 +144,239 @@ class TrackController extends BaseTrackController {
 }
 
 describe("TrackController", () => {
+  test("explicit dot removal clears both dots and preserves selection through undo", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const first = getBeatElement(controller, 0, 0);
+    const second = getBeatElement(controller, 0, 1);
+    first.beat.dots = 2;
+    second.beat.dots = 1;
+    controller.selectNoteElement(second.noteElements[0]);
+    const cursor = controller.selectionCursor;
+    expect(controller.setBeatDots(first.beat, 0)).toBe(true);
+    expect(first.beat.dots).toBe(0);
+    expect(second.beat.dots).toBe(1);
+    expect(controller.selectionCursor).toBe(cursor);
+    expect(controller.setBeatDots(first.beat, 0)).toBe(false);
+    controller.undo();
+    expect(first.beat.dots).toBe(2);
+    controller.redo();
+    expect(first.beat.dots).toBe(0);
+  });
+
+  test.each(["playing", "view-only"])(
+    "explicit dots reject %s edits",
+    (mode) => {
+      const { track } = createScoreGraph();
+      const controller =
+        mode === "playing"
+          ? new TrackController(track, TEST_LAYOUT_DIMENSIONS)
+          : new BaseTrackController(
+              track,
+              TEST_LAYOUT_DIMENSIONS,
+              undefined,
+              false
+            );
+      const beat = getBeatElement(controller as TrackController, 0, 0).beat;
+      beat.dots = 2;
+      if (mode === "playing") {
+        const player = mockScorePlayerInstances.at(-1);
+        if (player === undefined) throw Error("Expected test player");
+        player.isPlaying = true;
+      }
+      expect(controller.setBeatDots(beat, 0)).toBe(false);
+      expect(beat.dots).toBe(2);
+    }
+  );
+
+  test("explicit repeat status supports enabling marks, count changes, and removal", () => {
+    const { track, bar } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const cursor = controller.selectionCursor;
+    expect(
+      controller.setRepeatStatus(bar, {
+        status: BarRepeatStatus.Start,
+        enabled: true,
+      })
+    ).toBe(true);
+    expect(bar.masterBar.isRepeatStart).toBe(true);
+    controller.undo();
+    expect(bar.masterBar.isRepeatStart).toBe(false);
+    controller.redo();
+    expect(bar.masterBar.isRepeatStart).toBe(true);
+    expect(
+      controller.setRepeatStatus(bar, {
+        status: BarRepeatStatus.End,
+        enabled: true,
+        repeatCount: 5,
+      })
+    ).toBe(true);
+    expect(bar.masterBar.isRepeatEnd).toBe(true);
+    expect(bar.masterBar.repeatCount).toBe(5);
+    expect(
+      controller.setRepeatStatus(bar, {
+        status: BarRepeatStatus.End,
+        enabled: false,
+      })
+    ).toBe(true);
+    expect(bar.masterBar.isRepeatEnd).toBe(false);
+    expect(bar.masterBar.repeatCount).toBeNull();
+    controller.undo();
+    expect(bar.masterBar.isRepeatEnd).toBe(true);
+    expect(bar.masterBar.repeatCount).toBe(5);
+    expect(controller.selectionCursor).toBe(cursor);
+  });
+
+  test("repeat-start removal targets its bar, preserves selection, and supports undo", () => {
+    const { score, track, bar } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const otherBar = track.staves[0].bars[1];
+    bar.masterBar.setRepeatStatus({
+      status: BarRepeatStatus.Start,
+      enabled: true,
+    });
+    bar.masterBar.setRepeatStatus({
+      status: BarRepeatStatus.End,
+      enabled: true,
+      repeatCount: 3,
+    });
+    otherBar.masterBar.setRepeatStatus({
+      status: BarRepeatStatus.Start,
+      enabled: true,
+    });
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const otherBeat = getBeatElements(controller).find(
+      (e) => e.beat.voiceBar.bar === otherBar
+    );
+    if (otherBeat === undefined) throw Error("Expected beat in the other bar");
+    controller.selectNoteElement(otherBeat.noteElements[0]);
+    const cursor = controller.selectionCursor;
+    expect(
+      controller.setRepeatStatus(bar, {
+        status: BarRepeatStatus.Start,
+        enabled: false,
+      })
+    ).toBe(true);
+    expect(bar.masterBar.isRepeatStart).toBe(false);
+    expect(otherBar.masterBar.isRepeatStart).toBe(true);
+    expect(bar.masterBar.isRepeatEnd).toBe(true);
+    expect(bar.masterBar.repeatCount).toBe(3);
+    expect(controller.selectionCursor).toBe(cursor);
+    controller.undo();
+    expect(bar.masterBar.isRepeatStart).toBe(true);
+    controller.redo();
+    expect(bar.masterBar.isRepeatStart).toBe(false);
+  });
+
+  test.each(["playing", "view-only"])(
+    "explicit repeat status rejects %s edits",
+    (mode) => {
+      const { track, bar } = createScoreGraph();
+      bar.masterBar.setRepeatStatus({
+        status: BarRepeatStatus.Start,
+        enabled: true,
+      });
+      const controller =
+        mode === "playing"
+          ? new TrackController(track, TEST_LAYOUT_DIMENSIONS)
+          : new BaseTrackController(
+              track,
+              TEST_LAYOUT_DIMENSIONS,
+              undefined,
+              false
+            );
+      if (mode === "playing") mockScorePlayerInstances[0].isPlaying = true;
+      expect(
+        controller.setRepeatStatus(bar, {
+          status: BarRepeatStatus.Start,
+          enabled: false,
+        })
+      ).toBe(false);
+      expect(bar.masterBar.isRepeatStart).toBe(true);
+    }
+  );
+
+  test("removes only a supplied note's technique with undo and unchanged cursor", () => {
+    const { track, bar } = createScoreGraph();
+    const notes = required(
+      required(bar.getVoiceBar(1)).beats[0].notes
+    ) as GuitarNote[];
+    for (const note of notes.slice(0, 2)) {
+      note.fret = 5;
+      note.addTechnique(
+        new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
+      );
+    }
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const cursor = controller.selectionCursor;
+    expect(
+      controller.removeTechniques(
+        [notes[1]],
+        GuitarTechniqueType.NaturalHarmonic
+      )
+    ).toBe(true);
+    expect(notes[0].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
+      true
+    );
+    expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
+      false
+    );
+    expect(controller.selectionCursor).toBe(cursor);
+    expect(
+      controller.removeTechniques(
+        [notes[1]],
+        GuitarTechniqueType.NaturalHarmonic
+      )
+    ).toBe(false);
+    controller.undo();
+    expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
+      true
+    );
+    controller.redo();
+    expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
+      false
+    );
+  });
+  test("removes matching techniques together with one undo and unchanged cursor", () => {
+    const { track, bar } = createScoreGraph();
+    const notes = required(
+      required(bar.getVoiceBar(1)).beats[0].notes
+    ) as GuitarNote[];
+    for (const note of notes.slice(0, 2)) {
+      note.fret = 5;
+      note.addTechnique(
+        new GuitarTechnique(note, GuitarTechniqueType.PalmMute)
+      );
+    }
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const cursor = controller.selectionCursor;
+    expect(
+      controller.removeTechniques(notes, GuitarTechniqueType.PalmMute)
+    ).toBe(true);
+    expect(
+      notes.every((note) => !note.hasTechnique(GuitarTechniqueType.PalmMute))
+    ).toBe(true);
+    expect(controller.selectionCursor).toBe(cursor);
+    expect(
+      controller.removeTechniques(notes, GuitarTechniqueType.PalmMute)
+    ).toBe(false);
+    controller.undo();
+    expect(
+      notes
+        .slice(0, 2)
+        .every((note) => note.hasTechnique(GuitarTechniqueType.PalmMute))
+    ).toBe(true);
+    expect(notes[2].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+    controller.redo();
+    expect(
+      notes.every((note) => !note.hasTechnique(GuitarTechniqueType.PalmMute))
+    ).toBe(true);
+  });
+
   beforeEach(() => {
     mockScorePlayerInstances.length = 0;
   });
@@ -313,6 +549,9 @@ describe("TrackController", () => {
     }
     note.fret = 5;
     score.addTrack(new Guitar(), "Track 2");
+    note.addTechnique(
+      new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
+    );
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const before = serializeScore(score);
     const trackOrder = [...score.tracks];
@@ -334,6 +573,9 @@ describe("TrackController", () => {
     });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
     controller.moveSelectedNote(SelectedMoveDirection.Right);
+    expect(
+      controller.removeTechniques([note], GuitarTechniqueType.NaturalHarmonic)
+    ).toBe(false);
     controller.paste();
     controller.deleteSelectedBeats();
     controller.insertBeatBeforeSelected();
@@ -356,6 +598,9 @@ describe("TrackController", () => {
     }
     note.fret = 5;
     const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
+    note.addTechnique(
+      new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
+    );
     const controller = new BaseTrackController(
       track,
       TEST_LAYOUT_DIMENSIONS,
@@ -395,6 +640,9 @@ describe("TrackController", () => {
     });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
     controller.paste();
+    expect(
+      controller.removeTechniques([note], GuitarTechniqueType.NaturalHarmonic)
+    ).toBe(false);
     controller.deleteSelectedBeats();
     controller.insertBeatBeforeSelected();
     controller.insertBeatAfterSelected();
@@ -830,7 +1078,7 @@ describe("TrackController", () => {
   });
 
   test("switching to a new voice updates only the affected line vertically", () => {
-    const { track, bar } = createScoreGraph();
+    const { track } = createScoreGraph();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const updateSpy = jest.spyOn(controller.trackElement, "update");
 
@@ -874,7 +1122,9 @@ describe("TrackController", () => {
     expect(secondBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectionCursor?.bar).toBe(secondBar);
     expect(
-      controller.trackElement.getBeatElement(controller.selectionCursor!.beat)
+      controller.trackElement.getBeatElement(
+        required(controller.selectionCursor).beat
+      )
     ).toBeDefined();
   });
 
@@ -899,7 +1149,9 @@ describe("TrackController", () => {
     expect(firstBar.getVoiceBar(2)).not.toBeNull();
     expect(controller.selectionCursor?.bar).toBe(firstBar);
     expect(
-      controller.trackElement.getBeatElement(controller.selectionCursor!.beat)
+      controller.trackElement.getBeatElement(
+        required(controller.selectionCursor).beat
+      )
     ).toBeDefined();
   });
 

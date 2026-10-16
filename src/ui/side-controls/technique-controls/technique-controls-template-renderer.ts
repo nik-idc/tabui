@@ -2,7 +2,7 @@ import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { NotationComponent } from "../../../notation/notation-component";
 import { GuitarTechniqueType } from "../../../notation/model";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 export class TechniqueControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -53,7 +53,7 @@ export class TechniqueControlsTemplateRenderer {
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
     let isApplied = false;
-    let isDisabled = false;
+    let isDisabled: boolean;
 
     if (selectionCursor === undefined) {
       isDisabled = type === GuitarTechniqueType.Bend;

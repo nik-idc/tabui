@@ -1,17 +1,13 @@
-import {
-  BarElement,
-  EditorLayoutDimensions,
-  NotationElement,
-  TrackController,
-} from "../../controller";
-import { resolveAssetUrl } from "../../../config/asset-url-resolver";
+import { BarElement, TrackController } from "../../controller";
+import { resolveAssetUrl } from "../../../assets";
 import { createSVGG, createSVGImage, createSVGText } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
-import { SVGTechniqueLabelRenderer } from "./svg-technique-label-renderer";
+
 import { TrackLineInfoElement } from "../../controller/element/track/track-line-info-element";
-import type { ResolvedAssetConfig } from "../../../config/asset-url-resolver";
+import type { ResolvedAssetConfig } from "../../../assets";
 
 type TempoSVG = {
+  group: SVGGElement;
   image: SVGImageElement;
   text: SVGTextElement;
 };
@@ -32,6 +28,8 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
 
   /** Map of tempo svg text element */
   private _temposSVG: Map<BarElement, TempoSVG>;
+  /** Supplied callbacks keyed by event type. */
+  private _attachedEvents = new Map<string, EventListener>();
 
   /**
    * Class for rendering a tech gap line element using SVG
@@ -75,11 +73,63 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       return;
     }
 
+    for (const eventType of this._attachedEvents.keys()) {
+      this.detachMouseEvent(eventType as keyof SVGElementEventMap);
+    }
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
   public updateElementReference(element: TrackLineInfoElement): void {
     this.trackLineInfoElement = element;
+  }
+
+  /** Attaches a supplied callback using the current tempo's bar element. */
+  public attachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K,
+    eventHandler: (event: SVGElementEventMap[K], barElement: BarElement) => void
+  ): void {
+    const group = this.ensureContainerGroup();
+    this.detachMouseEvent(eventType);
+    const listener = (this.dispatchMouseEvent<K>).bind(this, eventHandler);
+    group.addEventListener(eventType, listener);
+    this._attachedEvents.set(eventType, listener);
+  }
+
+  /** Dispatches an event using the renderer's current tempo bar elements. */
+  private dispatchMouseEvent<K extends keyof SVGElementEventMap>(
+    eventHandler: (
+      event: SVGElementEventMap[K],
+      barElement: BarElement
+    ) => void,
+    event: Event
+  ): void {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    for (const [barElement, tempo] of this._temposSVG) {
+      if (tempo.group.contains(target)) {
+        for (const currentBar of this.trackLineInfoElement.barTempoRectsMap.keys()) {
+          if (currentBar.bar.uuid === barElement.bar.uuid) {
+            eventHandler(event as SVGElementEventMap[K], currentBar);
+            break;
+          }
+        }
+        return;
+      }
+    }
+  }
+
+  /** Detaches a previously supplied callback. */
+  public detachMouseEvent<K extends keyof SVGElementEventMap>(
+    eventType: K
+  ): void {
+    const listener = this._attachedEvents.get(eventType);
+    if (listener === undefined) {
+      return;
+    }
+    this._containerGroupSVG?.removeEventListener(eventType, listener);
+    this._attachedEvents.delete(eventType);
   }
 
   /**
@@ -107,8 +157,13 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
 
     let renderedTempo = this._temposSVG.get(barElement);
     if (renderedTempo === undefined) {
-      renderedTempo = { image: createSVGImage(), text: createSVGText() };
+      renderedTempo = {
+        group: createSVGG(),
+        image: createSVGImage(),
+        text: createSVGText(),
+      };
       this._temposSVG.set(barElement, renderedTempo);
+      renderedTempo.group.setAttribute("class", "tu-tempo");
 
       // Set id
       const barUUID = barElement.bar.uuid;
@@ -117,8 +172,9 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       renderedTempo.text.setAttribute("id", `tempo-text-${barUUID}`);
 
       // Add element to root SVG element
-      this._containerGroupSVG.appendChild(renderedTempo.image);
-      this._containerGroupSVG.appendChild(renderedTempo.text);
+      renderedTempo.group.appendChild(renderedTempo.image);
+      renderedTempo.group.appendChild(renderedTempo.text);
+      this._containerGroupSVG.appendChild(renderedTempo.group);
     }
 
     const tempoRect =
@@ -155,13 +211,12 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       throw Error("Tried to render bar sig when SVG group undefined");
     }
 
-    let renderedTempo = this._temposSVG.get(barElement);
+    const renderedTempo = this._temposSVG.get(barElement);
     if (renderedTempo === undefined) {
       return;
     }
 
-    this._containerGroupSVG.removeChild(renderedTempo.image);
-    this._containerGroupSVG.removeChild(renderedTempo.text);
+    this._containerGroupSVG.removeChild(renderedTempo.group);
     this._temposSVG.delete(barElement);
   }
 
@@ -173,7 +228,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
     const curBarElements = new Set(
       this.trackLineInfoElement.barTempoRectsMap.keys()
     );
-    for (const [barElement, _] of this._temposSVG) {
+    for (const barElement of this._temposSVG.keys()) {
       if (!curBarElements.has(barElement)) {
         this.unrenderTempoText(barElement);
       }
@@ -193,7 +248,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       throw Error("Tried to render bar sig when SVG group undefined");
     }
 
-    for (const [barElement, _] of this.trackLineInfoElement.barTempoRectsMap) {
+    for (const barElement of this.trackLineInfoElement.barTempoRectsMap.keys()) {
       this.unrenderTempoText(barElement);
     }
 

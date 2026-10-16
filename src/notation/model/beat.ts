@@ -9,8 +9,7 @@ import {
   tupletSettingsInRange,
 } from "./tuplet-settings";
 import { TechniqueType } from "./technique-type";
-import { Guitar } from "./instrument";
-import { GuitarNote } from "./guitar-note";
+
 import {
   applyDotsToFraction,
   applyTupletToFraction,

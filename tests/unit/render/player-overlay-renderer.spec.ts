@@ -29,6 +29,7 @@ function internals(overlay: PlayerOverlayRenderer) {
       playbackRunId: number;
     }) => void;
     updateAnimation: () => void;
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the private field.
     _playerCursorRect: SVGRectElement;
   };
 }

@@ -195,7 +195,7 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       {
         element: this._newTrackComponent.template.trackNameInput as HTMLElement,
         event: "input",
-        handler: (event: Event) => this.onTrackNameChanged(),
+        handler: (_event: Event) => this.onTrackNameChanged(),
       },
       {
         element: this._newTrackComponent.template

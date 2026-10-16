@@ -51,7 +51,7 @@ function finalizeLineBars(
   const contentScale =
     contentMinWidth === 0
       ? 1
-      : Math.max(0, layoutDimensions.WIDTH - structuralWidth) / contentMinWidth;
+      : Math.max(0, layoutDimensions.width - structuralWidth) / contentMinWidth;
 
   for (const bar of bars) {
     const metric = metrics[bar.masterBarIndex];
@@ -127,10 +127,10 @@ export class ScoreLayoutPlanner {
       const metric = metrics[i];
       const finalizedWidth = Math.min(
         metric.minWidth,
-        this._layoutDimensions.WIDTH
+        this._layoutDimensions.width
       );
       const fitsWidth =
-        lineMinWidth + finalizedWidth <= this._layoutDimensions.WIDTH;
+        lineMinWidth + finalizedWidth <= this._layoutDimensions.width;
       const fitsDuration =
         lineDurationWholeNotes + metric.durationFraction <=
         TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES;

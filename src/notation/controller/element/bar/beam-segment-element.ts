@@ -182,7 +182,7 @@ export class BeamSegmentElement implements NotationElement {
       for (const rect of this._longRects) {
         rect.setDimensions(
           0,
-          this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT
+          this.trackElement.layoutDimensions.durationFlagHeight
         );
       }
     }
@@ -191,7 +191,7 @@ export class BeamSegmentElement implements NotationElement {
     for (const rect of this._shortRects) {
       rect.setDimensions(
         shortWidth,
-        this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT
+        this.trackElement.layoutDimensions.durationFlagHeight
       );
     }
   }
@@ -213,7 +213,7 @@ export class BeamSegmentElement implements NotationElement {
     const shortTailDirection = this.getShortTailDirection();
     const shortWidth = 10;
 
-    const baseY = this.trackElement.layoutDimensions.DURATIONS_HEIGHT;
+    const baseY = this.trackElement.layoutDimensions.durationsHeight;
 
     const curFlags = this.getFlagCount(this.curBeatElement);
     let longRectIndex = 0;
@@ -221,15 +221,13 @@ export class BeamSegmentElement implements NotationElement {
     for (let level = 1; level <= curFlags; level++) {
       const y =
         baseY -
-        (level - 1) *
-          this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT *
-          2;
+        (level - 1) * this.trackElement.layoutDimensions.durationFlagHeight * 2;
 
       if (this.isLongRectLevel(level)) {
         // Width depends on laid-out beat attack columns, not measure-time data.
         this._longRects[longRectIndex]?.setDimensions(
           longWidth,
-          this.trackElement.layoutDimensions.DURATION_FLAG_HEIGHT
+          this.trackElement.layoutDimensions.durationFlagHeight
         );
         this._longRects[longRectIndex]?.setCoords(longX, y);
         longRectIndex++;

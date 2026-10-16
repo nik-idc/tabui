@@ -23,6 +23,7 @@ import { BendTechniqueOptions } from "../model/bend-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
 import { ScoreLayoutPlanner } from "./layout/score-layout-plan";
 import { TabUILayoutMode } from "../../config/tabui-config";
+import type { Note } from "../model";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -563,6 +564,14 @@ export class TrackController {
     this._trackControllerEditor.setDots(newDots);
   }
 
+  /** Sets one beat's dots without changing selection. */
+  public setBeatDots(beat: Beat, newDots: number): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setBeatDots(beat, newDots);
+  }
+
   /**
    * Set tuplet for selected beats
    * @param normalCount Normal count
@@ -621,6 +630,14 @@ export class TrackController {
     this._trackControllerEditor.setSelectedBarRepeatStatus(change);
   }
 
+  /** Sets a bar's repeat status without changing selection. */
+  public setRepeatStatus(bar: Bar, change: BarRepeatStatusChange): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setRepeatStatus(bar, change);
+  }
+
   /**
    * Set technique on the selected note/beats
    * @param type Technique type
@@ -634,6 +651,15 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.setTechnique(type, bendOptions);
+  }
+
+  /** Removes matching techniques from notes in one guarded, undoable edit. */
+  public removeTechniques(notes: Note[], type: TechniqueType): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+
+    return this._trackControllerEditor.removeTechniques(notes, type);
   }
 
   /**

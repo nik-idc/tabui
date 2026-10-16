@@ -1,5 +1,4 @@
 import {
-  BarRepeatStatus,
   DEFAULT_BASS_GUITARS,
   DEFAULT_OTHER_STRING,
   Guitar,
@@ -18,6 +17,7 @@ import {
 } from "../../../src/notation/model/instrument/instrument-tone";
 import { DEFAULT_TUNINGS } from "../../../src/notation/model/instrument/guitar/default-tunings";
 import { createScoreGraph } from "./helpers";
+import { required } from "../required";
 
 describe("Default instruments", () => {
   test("rejects tuning that does not match the string count", () => {
@@ -54,7 +54,7 @@ describe("Default instruments", () => {
       isRepeatEnd: false,
       repeatCount: null,
     });
-    const beat = bar.getVoiceBar(1)!.beats[0];
+    const beat = required(bar.getVoiceBar(1)).beats[0];
     const expectedNotes = [
       [NoteValue.E, 2],
       [NoteValue.F, 2],

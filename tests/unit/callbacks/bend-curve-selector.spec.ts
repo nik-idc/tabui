@@ -145,6 +145,7 @@ describe("BendCurveSelector", () => {
       expect(selector.getBendTechnique().bendPitch).toBeGreaterThanOrEqual(1.5);
       const bend = (
         selector as unknown as {
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the private field.
           _points: Array<{ name: string; y: number }>;
         }
       )._points.find((point) => point.name === "bend");

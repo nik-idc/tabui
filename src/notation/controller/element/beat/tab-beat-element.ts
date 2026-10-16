@@ -1,10 +1,4 @@
-import {
-  Beat,
-  DURATION_TO_FLAG_COUNT,
-  GuitarNote,
-  Note,
-  VoiceNumber,
-} from "../../../model";
+import { Beat, GuitarNote, Note, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
 import { Circle } from "../../../../shared/rendering/geometry/circle";
@@ -12,7 +6,7 @@ import { TrackElement } from "../track-element";
 import { TabNoteSlotElement } from "../note/tab-note-slot-element";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
-import { NoteElement } from "../note/note-element";
+
 import { NotationNode, NotationNodeType } from "../notation-element";
 import { VoiceBarContainer } from "../bar/voice-bar-container";
 import type { TrackLineElement } from "../track/track-line-element";
@@ -106,12 +100,12 @@ export class TabBeatElement implements BeatElement {
     const width = this.voiceBarContainer.getBeatWidth(this.beat);
     const notesHeight =
       this._noteElements.length *
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT;
+      this.trackElement.layoutDimensions.noteRectHeight;
     this._boundingBox.setDimensions(width, notesHeight);
     this._restRect = this.beat.isRest() ? new Rect() : null;
     this._restRect?.setDimensions(
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT * 1.75,
-      this.trackElement.layoutDimensions.NOTE_RECT_HEIGHT * 1.75
+      this.trackElement.layoutDimensions.noteRectHeight * 1.75,
+      this.trackElement.layoutDimensions.noteRectHeight * 1.75
     );
 
     for (const noteElement of this._noteElements) {

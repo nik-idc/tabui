@@ -21,6 +21,8 @@ import {
 } from "../../../src/notation/controller/element/notation-element";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
+import { EditorLayoutDimensions } from "../../../src/notation/controller/editor-layout-dimensions";
+import { required } from "../required";
 
 function parseLinePath(svgPath: string): [number, number, number, number] {
   const match = svgPath.match(
@@ -106,7 +108,8 @@ describe("TrackElement techniques", () => {
     const firstBeatElement =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0].beatElements[0];
-    const firstNoteElement = firstBeatElement.noteElements[0];
+    const firstNoteElement = firstBeatElement
+      .noteElements[0] as TabNoteSlotElement;
     const slideElement = firstNoteElement.techniqueElements[0];
     const [startX, startY, endX, endY] = parseLinePath(
       slideElement.pathDescriptors?.[0]?.d ?? ""
@@ -120,11 +123,11 @@ describe("TrackElement techniques", () => {
     expect(startY).toBeGreaterThan(endY);
     expect(startX).toBeGreaterThan(firstNoteElement.boundingBox.x);
     expect(endX - startX).toBeCloseTo(
-      firstNoteElement.boundingBox.width - TEST_LAYOUT_DIMENSIONS.NOTE_TEXT_SIZE
+      firstNoteElement.boundingBox.width - firstNoteElement.selectionRect.width
     );
   });
 
-  test("anchors inline techniques to the note text rectangle", () => {
+  test("anchors transition endpoints to note selection edges", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -148,10 +151,16 @@ describe("TrackElement techniques", () => {
     const end = beatElements[1].noteElements[0] as TabNoteSlotElement;
     const path = start.techniqueElements[0].pathDescriptors?.[0]?.d ?? "";
     const [startX, , endX] = parsePathEndpoints(path);
-    const expectedEndX = end.textRectGlobal.left - start.globalCoords.x;
+    const expectedEndX = end.selectionRect.left - start.globalCoords.x;
 
-    expect(startX).toBeCloseTo(start.textRect.right);
+    expect(startX).toBeCloseTo(
+      start.selectionRect.right - start.globalCoords.x
+    );
     expect(endX).toBeCloseTo(expectedEndX);
+    expect(startX + start.globalCoords.x).toBeCloseTo(
+      start.selectionRect.right
+    );
+    expect(endX + start.globalCoords.x).toBeCloseTo(end.selectionRect.left);
   });
 
   test("creates a descending slide path for higher-to-lower notes", () => {
@@ -189,6 +198,46 @@ describe("TrackElement techniques", () => {
     expect(endX).toBeGreaterThan(startX);
     expect(startY).toBeLessThan(endY);
   });
+
+  test.each([8, 16, 32])(
+    "anchors harmonics to the selection left edge at text size %s",
+    (textSize) => {
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const note = required(beats[0].notes)[0] as GuitarNote;
+      note.fret = 24;
+      note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
+      note.addTechnique(
+        new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
+      );
+      const dimensions = new EditorLayoutDimensions({
+        width: 1200,
+        noteTextSize: textSize,
+        timeSigTextSize: 48,
+        tempoTextSize: 24,
+        durationsHeight: 30,
+        horizontalPadding: 12,
+      });
+      const trackElement = new TrackElement(track, dimensions);
+      trackElement.update();
+      const element = required(trackElement.getBeatElement(beats[0]))
+        .noteElements[0] as TabNoteSlotElement;
+      const harmonic = required(
+        element.techniqueElements.find(
+          (candidate) =>
+            candidate.technique.type === GuitarTechniqueType.NaturalHarmonic
+        )
+      );
+      const numbers = parsePathNumbers(required(harmonic.pathDescriptors)[0].d);
+      const right = Math.max(
+        ...numbers.filter((_value, index) => index % 2 === 0)
+      );
+      expect(element.globalCoords.x + right).toBeCloseTo(
+        element.selectionRect.left
+      );
+    }
+  );
 
   test("connects slide and legato paths to the next beat across a bar boundary", () => {
     const { score, track, staff, bar } = createScoreGraph();
@@ -242,10 +291,11 @@ describe("TrackElement techniques", () => {
         sourceNoteElement.techniqueElements[0].pathDescriptors?.[0]?.d ?? "";
       const [startX, , endX] = parsePathEndpoints(path);
       const expectedEndX =
-        targetNoteElement.textRectGlobal.left -
-        sourceNoteElement.globalCoords.x;
+        targetNoteElement.selectionRect.left - sourceNoteElement.globalCoords.x;
 
-      expect(startX).toBeCloseTo(sourceNoteElement.textRect.right);
+      expect(startX).toBeCloseTo(
+        sourceNoteElement.selectionRect.right - sourceNoteElement.globalCoords.x
+      );
       expect(endX).toBeCloseTo(expectedEndX);
     }
   });
@@ -434,7 +484,7 @@ describe("TrackElement techniques", () => {
     const line3 = techGap.techGapLines[3];
 
     expect(techGap.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT * 3
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight * 3
     );
     expect(line1).not.toBeNull();
     expect(line2).not.toBeNull();
@@ -442,13 +492,13 @@ describe("TrackElement techniques", () => {
     expect(line2?.boundingBox.y).toBeCloseTo(line1?.boundingBox.bottom ?? 0);
     expect(line3?.boundingBox.y).toBeCloseTo(line2?.boundingBox.bottom ?? 0);
     expect(line1?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(line2?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(line3?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(line1?.labelElements).toHaveLength(1);
     expect(line2?.labelElements).toHaveLength(1);
@@ -591,7 +641,7 @@ describe("TrackElement techniques", () => {
         barElement.boundingBox.width
       );
       expect(label.lineLocalBoundingBox.right).toBeLessThanOrEqual(
-        TEST_LAYOUT_DIMENSIONS.WIDTH
+        TEST_LAYOUT_DIMENSIONS.width
       );
     }
   });
@@ -671,7 +721,7 @@ describe("TrackElement techniques", () => {
       firstLineAfter.boundingBox.height
     );
     expect(firstLineTechGap.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
   });
 
@@ -712,7 +762,7 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
     expect(afterTechGap.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
   });
 
@@ -755,7 +805,7 @@ describe("TrackElement techniques", () => {
     const line3 = techGap.techGapLines[3];
 
     expect(techGap.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT * 2
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight * 2
     );
     expect(line3?.boundingBox.y).toBeCloseTo(line1?.boundingBox.bottom ?? 0);
   });
@@ -804,7 +854,7 @@ describe("TrackElement techniques", () => {
     const vibratos = labels.map((label) =>
       parseVibratoPath(label.pathDescriptors?.[0]?.d ?? "")
     );
-    const expectedSegmentWidth = TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT / 12;
+    const expectedSegmentWidth = TEST_LAYOUT_DIMENSIONS.techLabelHeight / 12;
     const interiorWidths = vibratos.flatMap((vibrato) =>
       vibrato.segments.slice(1, -1).map((segment, index) => {
         const previousEndX = vibrato.segments[index][4];
@@ -818,7 +868,7 @@ describe("TrackElement techniques", () => {
       vibrato.segments.map((segment) => segment[5])
     );
     const vibratoHeight = Math.max(...endpointYs) - Math.min(...endpointYs);
-    const expectedHeight = TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT / 6;
+    const expectedHeight = TEST_LAYOUT_DIMENSIONS.techLabelHeight / 6;
     const finalFirstPath = labels[0]?.pathDescriptors?.[0]?.d;
 
     expect(labels).toHaveLength(3);
@@ -1158,10 +1208,10 @@ describe("TrackElement techniques", () => {
     expect(vibratoLabel).toBeDefined();
     expect(palmMuteLabel).toBeDefined();
     expect(vibratoLine?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(palmMuteLine?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.TECH_LABEL_HEIGHT
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
     expect(palmMuteLine?.boundingBox.y).toBeCloseTo(
       vibratoLine?.boundingBox.bottom ?? 0

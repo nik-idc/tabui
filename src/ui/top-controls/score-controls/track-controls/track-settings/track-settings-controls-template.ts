@@ -1,9 +1,4 @@
-import {
-  createButton,
-  createDiv,
-  createInput,
-  createSVG,
-} from "../../../../../shared";
+import { createButton, createDiv } from "../../../../../shared";
 
 export class TrackSettingsControlsTemplate {
   readonly dialogContainer: HTMLDivElement = createDiv();

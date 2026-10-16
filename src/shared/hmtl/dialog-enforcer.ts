@@ -39,7 +39,14 @@ export class DialogEnforcer {
       return;
     }
 
-    for (const child of this.dialogHost.parentElement!.children) {
+    const parent = this.dialogHost.parentElement;
+    if (parent === null) {
+      throw new DOMException(
+        "The dialog host must have a parent.",
+        "InvalidStateError"
+      );
+    }
+    for (const child of parent.children) {
       if (!(child instanceof HTMLElement) || child === this.dialogHost) {
         continue;
       }
@@ -56,6 +63,13 @@ export class DialogEnforcer {
     }
     this._inertStates.clear();
     this.activeDialog = undefined;
-    this._mountAnnouncer(this.dialogHost.parentElement!);
+    const parent = this.dialogHost.parentElement;
+    if (parent === null) {
+      throw new DOMException(
+        "The dialog host must have a parent.",
+        "InvalidStateError"
+      );
+    }
+    this._mountAnnouncer(parent);
   }
 }

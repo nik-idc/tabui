@@ -11,6 +11,9 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { createServer } from "node:http";
+import assert from "node:assert/strict";
+import { chromium } from "@playwright/test";
 
 const execFileAsync = promisify(execFile);
 const rootDir = path.resolve(
@@ -31,6 +34,115 @@ async function run(command, args, options = {}) {
     const stderr = error.stderr ? `\nstderr:\n${error.stderr}` : "";
     throw new Error(
       `Command failed: ${command} ${args.join(" ")}${stdout}${stderr}`
+    );
+  }
+}
+
+async function checkBundledIcons() {
+  const server = createServer(async (request, response) => {
+    const pathname = new URL(request.url, "http://localhost").pathname;
+    const filename = pathname === "/" ? "index.html" : pathname.slice(1);
+    try {
+      const contents = await readFile(path.join(workspace, "dist", filename));
+      const contentTypes = {
+        ".html": "text/html",
+        ".js": "text/javascript",
+        ".css": "text/css",
+      };
+      response.setHeader(
+        "Content-Type",
+        contentTypes[path.extname(filename)] ?? "application/octet-stream"
+      );
+      response.end(contents);
+    } catch {
+      response.writeHead(404).end();
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  let browser;
+  try {
+    const address = server.address();
+    assert(address !== null && typeof address !== "string");
+    browser = await chromium.launch();
+    const page = await browser.newPage({
+      viewport: { width: 1600, height: 1000 },
+    });
+    const imageRequests = [];
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (route) => {
+      const request = route.request();
+      if (request.resourceType() === "image") {
+        imageRequests.push(request.url());
+        return route.abort();
+      }
+      return route.continue();
+    });
+
+    const firstIcons = [];
+    for (const variant of ["light", "dark"]) {
+      await page.goto(`http://127.0.0.1:${address.port}/?variant=${variant}`);
+      await page.waitForFunction(() => document.body.dataset.initialTrack);
+      await page
+        .getByRole("button", { name: "New track", exact: true })
+        .click();
+      const result = await page
+        .locator("#tabui-editor")
+        .evaluate(async (root) => {
+          const urls = [
+            ...Array.from(root.querySelectorAll("img"), (v) => v.src),
+            ...Array.from(
+              root.querySelectorAll("svg image"),
+              (v) =>
+                v.getAttribute("href") ??
+                v.getAttributeNS("http://www.w3.org/1999/xlink", "href")
+            ),
+          ];
+          const htmlIcons = root.querySelectorAll("img").length;
+          const svgIcons = root.querySelectorAll("svg image").length;
+          for (const url of new Set(urls)) {
+            if (url === null || !url.startsWith("data:image/svg+xml")) {
+              throw new Error(`Expected bundled SVG data URL, got ${url}`);
+            }
+            await new Promise((resolve, reject) => {
+              const image = new Image();
+              image.onload = () =>
+                image.naturalWidth > 0
+                  ? resolve()
+                  : reject(new Error("Bundled icon has no image dimensions"));
+              image.onerror = () =>
+                reject(new Error("Bundled icon failed to load"));
+              image.src = url;
+            });
+          }
+          return { htmlIcons, svgIcons, firstIcon: urls[0] };
+        });
+      assert(result.htmlIcons > 0, "Packed editor must display HTML icons");
+      assert(
+        result.svgIcons > 0,
+        "Packed editor must display notation SVG icons"
+      );
+      firstIcons.push(result.firstIcon);
+    }
+    assert.notEqual(
+      firstIcons[0],
+      firstIcons[1],
+      "Icon variant must change the bundled image"
+    );
+    assert.deepEqual(
+      imageRequests,
+      [],
+      "Default icons must not make HTTP requests"
+    );
+    assert.deepEqual(
+      errors,
+      [],
+      "Packed editor must initialize without browser errors"
+    );
+  } finally {
+    await browser?.close();
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve()))
     );
   }
 }
@@ -128,7 +240,11 @@ const restoredScore = deserializeScore(
   JSON.parse(JSON.stringify(serializedScore)) as unknown
 );
 const config: TabUIConfig = {
-  assets: { baseUrl: "/tabui-assets" },
+  assets: {
+    variant: new URLSearchParams(window.location.search).get("variant") === "dark"
+      ? "dark"
+      : "light",
+  },
   interaction: { mode: TabUIEditorMode.Edit },
   layout: { mode: TabUILayoutMode.SingleLine },
   panels: {
@@ -186,6 +302,7 @@ document.body.dataset.restoredTrack = restoredScore.tracks[0].name;
 
   await run(path.join(rootDir, "node_modules/.bin/tsc"), ["--noEmit"]);
   await run(path.join(rootDir, "node_modules/.bin/vite"), ["build"]);
+  await checkBundledIcons();
 
   await rm(tarballPath, { force: true });
   console.log(`Pack consumer smoke passed in ${workspace}`);

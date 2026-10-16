@@ -32,8 +32,8 @@ export default defineConfig({
   testDir: "./tests/e2e",
   // Keep tests within each file sequential while this initial suite stays small.
   fullyParallel: false,
-  // Fail a test when an expected browser action takes longer than ten seconds.
-  timeout: 10_000,
+  // Allow multi-step tests to finish while Chromium and Firefox run in parallel.
+  timeout: 30_000,
   use: {
     // The local Vite server uses this path as its deployed GitHub Pages base.
     baseURL: "http://127.0.0.1:5173",

@@ -1,4 +1,3 @@
-import { NoteDuration } from "../../../../notation/model";
 import {
   MAX_MASTER_BAR_BEATS_COUNT,
   MIN_MASTER_BAR_BEATS_COUNT,

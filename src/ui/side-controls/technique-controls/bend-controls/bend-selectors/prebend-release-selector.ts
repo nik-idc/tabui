@@ -1,17 +1,7 @@
-import {
-  createSVGLine,
-  createSVGText,
-  createSVGPath,
-  createSVGCircle,
-} from "../../../../../shared";
-import { BendData, Selector } from "./selector";
+import { createSVGPath, createSVGCircle } from "../../../../../shared";
+import { Selector } from "./selector";
 import { BendSelectorManagerOptions } from "./bend-selector-manager-options";
-import {
-  BendOptionsData,
-  BendType,
-  GuitarTechnique,
-  GuitarTechniqueType,
-} from "../../../../../notation";
+import { BendOptionsData, BendType } from "../../../../../notation";
 
 export class PrebendReleaseSelector implements Selector {
   readonly bendGraphSVG: SVGSVGElement;
@@ -88,9 +78,7 @@ export class PrebendReleaseSelector implements Selector {
     const pitchUnitHeight =
       this.bendManagerOptions.height / this.bendManagerOptions.rowsCount;
 
-    const startX = Number(this._startCircle.getAttribute("cx"));
     const startY = Number(this._startCircle.getAttribute("cy"));
-    const releaseX = Number(this._releaseCircle.getAttribute("cx"));
     const releaseY = Number(this._releaseCircle.getAttribute("cy"));
 
     const startPitch =
@@ -205,7 +193,7 @@ export class PrebendReleaseSelector implements Selector {
     this.bendPath.setAttribute("d", d);
   }
 
-  private onDocumentMouseUp(event: MouseEvent) {
+  private onDocumentMouseUp(_event: MouseEvent) {
     this._isDragging = false;
     this._draggedCircle = this._startCircle;
     this.removeDocumentDragListeners();

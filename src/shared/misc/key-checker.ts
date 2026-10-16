@@ -20,7 +20,7 @@ export class KeyChecker {
     return key == "delete";
   }
 
-  static isLetter(key: string): boolean {
+  static isLetter(_key: string): boolean {
     return true;
   }
 }

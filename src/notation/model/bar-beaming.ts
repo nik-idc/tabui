@@ -11,10 +11,8 @@ export function buildIrregularBeams(
   // Adjust beats count and duration to the provided duration
   // (anything below 8 gets multiplied by 8/x: for 4 multiply by 2, for 2 - by 4)
   let adjBeatsCount = beatsCount;
-  let adjDuration = duration;
   if (duration < 8) {
     adjBeatsCount *= 8 / duration;
-    adjDuration *= 8 / duration;
   }
 
   // Create all possible counts for when the max num of notes per beam is:
@@ -106,7 +104,7 @@ export function buildIrregularBeams(
     return result;
   }
 
-  for (let i = result.length - 1; i >= 0; i++) {
+  for (let i = result.length - 1; i >= 0; i--) {
     if (resultSum > beatsCount * factor) {
       result[i] -= 1 * factor;
       resultSum -= 1 * factor;
