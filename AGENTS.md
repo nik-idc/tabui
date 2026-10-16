@@ -4,9 +4,9 @@ This document provides practical guidance for AI agents working on the TabUI cod
 
 ## Core Commands
 
-`npm run verify` checks types, builds the package, runs unit, package-consumer,
-and Playwright tests, then builds the demo. A passing run does not prove that
-all behavior is correct. See `package.json` for individual commands.
+`npm run verify` checks types, builds the package, runs unit, no-framework
+integration, and Playwright tests, then builds the demo. A passing run does not
+prove that all behavior is correct. See `package.json` for individual commands.
 
 ## Coding Rules
 

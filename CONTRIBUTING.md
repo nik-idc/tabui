@@ -26,26 +26,32 @@ npx playwright install --with-deps chromium firefox
 ```
 
 Run `npm run verify` before submitting a change. It checks TypeScript, builds the
-package, runs unit, packed-consumer, and browser tests, then builds the demo.
+package, runs unit, no-framework integration, and browser tests, then builds the
+demo.
 Also run `npx eslint .` and `git diff --check`.
 
 Useful focused commands:
 
-| Command                      | Purpose                                                             |
-| ---------------------------- | ------------------------------------------------------------------- |
-| `npm run test:unit`          | Unit tests and test TypeScript checks                               |
-| `npm run test:pack-consumer` | Build a separate packed-package app and check its icons in Chromium |
-| `npm run test:e2e`           | Chromium and Firefox browser tests                                  |
-| `npm run benchmark:updates`  | Local layout/update performance comparison                          |
-| `npm run build:package`      | Library output in `dist/`                                           |
-| `npm run build:demo`         | Demo output in `demo/dist/`                                         |
+| Command                                 | Purpose                                                |
+| --------------------------------------- | ------------------------------------------------------ |
+| `npm run test:unit`                     | Unit tests and test TypeScript checks                  |
+| `npm run test:no-framework-integration` | Packed-package app: types, build, and browser behavior |
+| `npm run test:e2e`                      | Chromium and Firefox browser tests                     |
+| `npm run benchmark:updates`             | Local layout/update performance comparison             |
+| `npm run build:package`                 | Library output in `dist/`                              |
+| `npm run build:demo`                    | Demo output in `demo/dist/`                            |
+
+Run `npm run build:package` before the focused integration command so that the
+tarball contains the current library build. The consumer fixture in
+`tests/integration/no-framework/fixture/` is type-checked inside its temporary
+consumer project, against the installed package rather than the source tree.
 
 ## Repository layout
 
 - `src/`: library code.
 - `demo/`: browser demo and score fixtures.
 - `assets/`: shared runtime icons and demo audio samples. Only icons ship in npm.
-- `tests/`: unit, package-consumer, and browser tests.
+- `tests/`: unit, no-framework integration, and browser tests.
 - `docs/`: usage, code style, and playback architecture.
 - `AGENTS.md`: model overview and coding-agent guidance.
 - `ROADMAP.md`: release work and future plans.
