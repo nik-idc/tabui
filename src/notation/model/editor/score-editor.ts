@@ -182,8 +182,12 @@ export class ScoreEditor {
     bendOptions: BendTechniqueOptions | null = null
   ): boolean {
     let changesMade = false;
+    const applicableNotes = notes.filter(
+      (note) => note instanceof GuitarNote && note.fret !== null
+    );
     const hasAllWithTechnique =
-      notes.length > 0 && notes.every((n) => n.hasTechnique(type));
+      applicableNotes.length > 0 &&
+      applicableNotes.every((note) => note.hasTechnique(type));
     const removeFromSelection = hasAllWithTechnique && bendOptions === null;
 
     for (const note of notes) {

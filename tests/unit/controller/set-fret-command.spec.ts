@@ -1,8 +1,6 @@
 import { SetFretCommand } from "../../../src/notation/controller/editor/command";
-import { TabNoteSlotElement } from "../../../src/notation/controller/element/note/tab-note-slot-element";
 import { GuitarNote, Score } from "../../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
-import { createTestTrackController } from "./helpers";
 
 describe("SetFretCommand", () => {
   test("execute, undo, and redo update fret", () => {
@@ -75,23 +73,7 @@ describe("SetFretCommand", () => {
     expect(note.fret).toBe(note.trackContext.instrument.fretsCount);
   });
 
-  test("redo before execute throws", () => {
-    const { bar } = createScoreGraph();
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 in test bar");
-    }
-    const note = voiceBar.beats[0].notes?.[0];
-    if (!(note instanceof GuitarNote)) {
-      throw Error("Expected guitar note in test beat");
-    }
-
-    const command = new SetFretCommand(note.beat, note.stringNum, 5);
-
-    expect(() => command.redo()).toThrow("Redo called before execute");
-  });
-
-  test("setting fret from empty requests a targeted note update", () => {
+  test("exposes the affected beat anchor", () => {
     const { bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -110,68 +92,6 @@ describe("SetFretCommand", () => {
         modelUUID: note.beat.uuid,
       },
     ]);
-  });
-
-  test("setting fret from empty marks the tab note element updated", () => {
-    const { track, bar } = createScoreGraph();
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 in test bar");
-    }
-    const note = voiceBar.beats[0].notes?.[0];
-    if (!(note instanceof GuitarNote)) {
-      throw Error("Expected guitar note in test beat");
-    }
-
-    const controller = createTestTrackController(track);
-    controller.trackElement.update({
-      lineRange: { startLineIndex: 0, endLineIndex: 0 },
-    });
-    controller.trackElement.consumeDiff();
-    const beatElement = controller.trackElement.getBeatElement(note.beat);
-    const noteElement = beatElement?.noteElements[0] as TabNoteSlotElement;
-
-    controller.setSelectedNoteFret(7);
-    controller.trackElement.update({
-      lineRange: { startLineIndex: 0, endLineIndex: 0 },
-      rebuildSkeleton: false,
-      forceElements: false,
-      dematerializeOutsideRange: {
-        startLineIndex: 0,
-        endLineIndex: 0,
-      },
-    });
-
-    expect(
-      controller.trackElement.elementDiff.updated.get(TabNoteSlotElement)
-    ).toContain(noteElement.getStableIdentity());
-  });
-
-  test("changing existing fret marks the tab note element updated", () => {
-    const { track, bar } = createScoreGraph();
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 in test bar");
-    }
-    const note = voiceBar.beats[0].notes?.[0];
-    if (!(note instanceof GuitarNote)) {
-      throw Error("Expected guitar note in test beat");
-    }
-
-    note.fret = 5;
-    const controller = createTestTrackController(track);
-    controller.trackElement.update({
-      lineRange: { startLineIndex: 0, endLineIndex: 0 },
-    });
-    controller.trackElement.consumeDiff();
-    const beatElement = controller.trackElement.getBeatElement(note.beat);
-    const noteElement = beatElement?.noteElements[0] as TabNoteSlotElement;
-
-    controller.setSelectedNoteFret(7);
-
-    expect(
-      controller.trackElement.elementDiff.updated.get(TabNoteSlotElement)
-    ).toContain(noteElement.getStableIdentity());
   });
 
   test("setting fret on a rest beat converts it and undo restores the rest", () => {

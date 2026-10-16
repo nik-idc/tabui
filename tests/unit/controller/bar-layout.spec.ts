@@ -1,11 +1,4 @@
-import {
-  DiffPart,
-  TrackElement,
-} from "../../../src/notation/controller/element/track-element";
-import {
-  calculateMasterBarLayoutMetrics,
-  TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES,
-} from "../../../src/notation/controller/layout/bar-layout";
+import { TrackElement } from "../../../src/notation/controller/element/track-element";
 import { ScoreLayoutPlanner } from "../../../src/notation/controller/layout/score-layout-plan";
 import { BeatElement } from "../../../src/notation/controller/element/beat/beat-element";
 import {
@@ -67,152 +60,180 @@ function findBeatElement(
     .find((beatElement) => beatElement.beat === beat);
 }
 
-describe("bar layout metrics", () => {
-  test("uses canonical master-bar duration with rhythm column count", () => {
+describe("bar spacing", () => {
+  test("reserves the full measure width for underfilled voices", () => {
     const { track, bar } = createGraph();
-    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter, NoteDuration.Quarter]);
-    replaceVoiceBeats(bar, 2, [
+    const quarters = [NoteDuration.Quarter, NoteDuration.Quarter];
+    const eighths = [
       NoteDuration.Eighth,
       NoteDuration.Eighth,
       NoteDuration.Eighth,
       NoteDuration.Eighth,
+    ];
+    const underfilledBeats = replaceVoiceBeats(bar, 1, quarters);
+    replaceVoiceBeats(bar, 2, eighths);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    const before = required(findBeatElement(trackElement, underfilledBeats[1]));
+    const width = required(before.owningBarElement).boundingBox.width;
+    const secondAttackX = before.barLocalCoords.x;
+
+    const filledBeats = replaceVoiceBeats(bar, 1, [
+      ...quarters,
+      NoteDuration.Half,
     ]);
+    replaceVoiceBeats(bar, 2, [...eighths, NoteDuration.Half]);
+    trackElement.update();
 
-    const metrics = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
-    );
-
-    expect(metrics.rhythmColumnCount).toBe(4);
-    expect(metrics.contentMinWidth).toBe(
-      Math.max(
-        TEST_LAYOUT_DIMENSIONS.widthMapping[NoteDuration.Quarter] * 4,
-        4 * TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap,
-        TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap / 0.125
-      ) +
-        TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding * 2
-    );
+    const after = required(findBeatElement(trackElement, filledBeats[1]));
+    expect(required(after.owningBarElement).boundingBox.width).toBe(width);
+    expect(after.barLocalCoords.x).toBe(secondAttackX);
   });
 
-  test("does not shorten or lengthen canonical duration for invalid content", () => {
+  test("keeps overflowing content inside a wrapped bar", () => {
     const { track, bar } = createGraph();
-    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
+    const beats = replaceVoiceBeats(bar, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Whole,
+      NoteDuration.Quarter,
+    ]);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
 
-    expect(
-      calculateMasterBarLayoutMetrics(track, 0, TEST_LAYOUT_DIMENSIONS)
-        .durationFraction
-    ).toBe(1);
-
-    replaceVoiceBeats(bar, 1, [NoteDuration.Whole, NoteDuration.Whole]);
-
-    expect(
-      calculateMasterBarLayoutMetrics(track, 0, TEST_LAYOUT_DIMENSIONS)
-        .durationFraction
-    ).toBe(1);
-  });
-
-  test("tracks overflowing content separately from canonical duration", () => {
-    const { track, bar } = createGraph();
-    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter, NoteDuration.Whole]);
-
-    const metrics = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
+    const elements = beats.map((b) =>
+      required(findBeatElement(trackElement, b))
     );
-
-    expect(metrics.durationFraction).toBe(1);
-    expect(metrics.contentEndFraction).toBe(1.25);
+    for (let i = 1; i < elements.length; i++) {
+      expect(elements[i].barLocalCoords.x).toBeGreaterThan(
+        elements[i - 1].barLocalCoords.x
+      );
+    }
+    const last = elements[elements.length - 1];
+    expect(last.barLocalBoundingBox.right).toBeLessThanOrEqual(
+      required(last.owningBarElement).boundingBox.width
+    );
   });
 
-  test("counts unique rhythm columns across staves", () => {
+  test("shares attack columns across staves with different rhythms", () => {
     const { track, bar } = createGraph();
     const secondStaff = track.insertStaff(1).staves[0];
     const secondBar = secondStaff.bars[0];
-    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter, NoteDuration.Quarter]);
-    replaceVoiceBeats(secondBar, 1, [NoteDuration.Eighth, NoteDuration.Eighth]);
+    const quarters = replaceVoiceBeats(bar, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const eighths = replaceVoiceBeats(secondBar, 1, [
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Quarter,
+    ]);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
 
-    const metrics = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
+    const quarterXs = quarters.map(
+      (b) => required(findBeatElement(trackElement, b)).globalCoords.x
     );
-
-    expect(metrics.rhythmColumnCount).toBe(3);
+    const eighthXs = eighths.map(
+      (b) => required(findBeatElement(trackElement, b)).globalCoords.x
+    );
+    expect(eighthXs[0]).toBe(quarterXs[0]);
+    expect(eighthXs[1]).toBeGreaterThan(quarterXs[0]);
+    expect(eighthXs[1]).toBeLessThan(quarterXs[1]);
+    expect(eighthXs[2]).toBe(quarterXs[1]);
   });
 
-  test("keeps structural width separate from content minimum", () => {
-    const { track } = createGraph();
+  test("leaves space for the time signature before musical content", () => {
+    const { track, bar } = createGraph();
+    const beats = replaceVoiceBeats(bar, 1, [NoteDuration.Whole]);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
 
-    const metrics = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
+    const beatElement = required(findBeatElement(trackElement, beats[0]));
+    const barElement = required(beatElement.owningBarElement);
+    expect(beatElement.barLocalCoords.x).toBeGreaterThan(
+      required(barElement.timeSigRect).right
     );
-
-    expect(metrics.structuralWidth).toBe(
-      TEST_LAYOUT_DIMENSIONS.timeSigRectWidth +
-        TEST_LAYOUT_DIMENSIONS.repeatSignWidth * 3
-    );
-    expect(metrics.minWidth).toBe(
-      metrics.structuralWidth + metrics.contentMinWidth
+    expect(beatElement.barLocalBoundingBox.right).toBeLessThanOrEqual(
+      barElement.boundingBox.width
     );
   });
 
-  test("repeat status does not affect layout metrics", () => {
-    const { track } = createGraph();
+  test("adding repeat signs preserves bar width and attack positions", () => {
+    const { track, bar } = createGraph();
+    const beats = replaceVoiceBeats(bar, 1, [
+      NoteDuration.Half,
+      NoteDuration.Half,
+    ]);
     const masterBar = track.score.masterBars[0];
-    const before = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    const first = required(findBeatElement(trackElement, beats[0]));
+    const width = required(first.owningBarElement).boundingBox.width;
+    const attackXs = beats.map(
+      (b) => required(findBeatElement(trackElement, b)).barLocalCoords.x
     );
 
     masterBar.isRepeatStart = true;
-    const afterStart = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
+    trackElement.update();
+    const afterStart = required(
+      required(findBeatElement(trackElement, beats[0])).owningBarElement
     );
-    masterBar.isRepeatEnd = true;
-    const afterEnd = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
-    );
+    expect(afterStart.repeatStartRect).toBeDefined();
+    expect(afterStart.boundingBox.width).toBe(width);
+    expect(
+      beats.map(
+        (b) => required(findBeatElement(trackElement, b)).barLocalCoords.x
+      )
+    ).toEqual(attackXs);
 
-    expect(afterStart).toEqual(before);
-    expect(afterEnd).toEqual(before);
+    masterBar.isRepeatEnd = true;
+    trackElement.update();
+    const afterEnd = required(
+      required(findBeatElement(trackElement, beats[0])).owningBarElement
+    );
+    expect(afterEnd.repeatEndRect).toBeDefined();
+    expect(afterEnd.boundingBox.width).toBe(width);
+    expect(
+      beats.map(
+        (b) => required(findBeatElement(trackElement, b)).barLocalCoords.x
+      )
+    ).toEqual(attackXs);
   });
 });
 
 describe("musical beat layout", () => {
   test("aligns same-time beats across voices", () => {
     const { track, bar } = createGraph();
-    const voiceOneBeats = replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
-    const voiceTwoBeats = replaceVoiceBeats(bar, 2, [NoteDuration.Quarter]);
+    const voiceOneBeats = replaceVoiceBeats(bar, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const voiceTwoBeats = replaceVoiceBeats(bar, 2, [
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Quarter,
+    ]);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
-    expect(
-      findBeatElement(trackElement, voiceOneBeats[0])?.barLocalCoords.x
-    ).toBe(findBeatElement(trackElement, voiceTwoBeats[0])?.barLocalCoords.x);
+    const first = required(findBeatElement(trackElement, voiceOneBeats[0]));
+    const quarter = required(findBeatElement(trackElement, voiceOneBeats[1]));
+    const eighth = required(findBeatElement(trackElement, voiceTwoBeats[2]));
+    expect(quarter.barLocalCoords.x).toBeGreaterThan(first.barLocalCoords.x);
+    expect(quarter.barLocalCoords.x).toBe(eighth.barLocalCoords.x);
   });
 
   test("gives shorter bars less width than longer bars on the last line", () => {
     const { score, track, bar } = createGraph({
       beatsCount: 1,
       duration: NoteDuration.Quarter,
-      isRepeatStart: false,
-      isRepeatEnd: false,
     });
     replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
     const secondBar = score
       .appendMasterBar({
         tempo: 120,
-        beatsCount: TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES,
+        beatsCount: 4,
         duration: NoteDuration.Quarter,
         isRepeatStart: false,
         isRepeatEnd: false,
@@ -229,20 +250,18 @@ describe("musical beat layout", () => {
 
     trackElement.update();
 
-    const barElements = trackElement.trackLineElements.flatMap((line) =>
-      line.staffLineContainers.flatMap((staffLine) =>
-        staffLine.styleLinesAsArray.flatMap(
-          (styleLine) => styleLine.barElements
-        )
-      )
-    );
+    expect(trackElement.trackLineElements).toHaveLength(1);
+    const barElements =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements;
+    expect(barElements).toHaveLength(2);
 
     expect(barElements[0].boundingBox.width).toBeLessThan(
       barElements[1].boundingBox.width
     );
   });
 
-  test("finalizes non-last line width without post-layout scaling", () => {
+  test("fills the available width on non-final lines", () => {
     const { score, track, bar } = createGraph();
     replaceVoiceBeats(bar, 1, [
       NoteDuration.Quarter,
@@ -250,11 +269,11 @@ describe("musical beat layout", () => {
       NoteDuration.Quarter,
       NoteDuration.Quarter,
     ]);
-    for (let i = 0; i < TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES; i++) {
+    for (let i = 0; i < 4; i++) {
       const nextBar = score
         .appendMasterBar({
           tempo: 120,
-          beatsCount: TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES,
+          beatsCount: 4,
           duration: NoteDuration.Quarter,
           isRepeatStart: false,
           isRepeatEnd: false,
@@ -272,11 +291,15 @@ describe("musical beat layout", () => {
 
     trackElement.update();
 
+    expect(trackElement.trackLineElements).toHaveLength(2);
     const firstLineBarElements =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
     const lastBar = firstLineBarElements[firstLineBarElements.length - 1];
-    expect(lastBar.boundingBox.right).toBeCloseTo(TEST_LAYOUT_DIMENSIONS.width);
+    expect(firstLineBarElements).toHaveLength(4);
+    expect(lastBar.lineLocalBoundingBox.right).toBeCloseTo(
+      TEST_LAYOUT_DIMENSIONS.width
+    );
   });
 
   test("shorter voice-bar columns do not widen duration-dominated bars", () => {
@@ -284,23 +307,22 @@ describe("musical beat layout", () => {
     const secondStaff = track.insertStaff(1).staves[0];
     const secondBar = secondStaff.bars[0];
     replaceVoiceBeats(bar, 1, [NoteDuration.Half, NoteDuration.Half]);
-    replaceVoiceBeats(secondBar, 1, [NoteDuration.Half, NoteDuration.Half]);
-    const halfMetrics = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
-    );
+    const secondBeats = replaceVoiceBeats(secondBar, 1, [
+      NoteDuration.Half,
+      NoteDuration.Half,
+    ]);
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    const before = required(findBeatElement(trackElement, secondBeats[1]));
+    const width = required(before.owningBarElement).boundingBox.width;
+    const attackX = before.globalCoords.x;
 
     replaceVoiceBeats(bar, 1, [NoteDuration.Half]);
-    const shorterVoiceMetrics = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
-    );
+    trackElement.update();
 
-    expect(shorterVoiceMetrics.contentMinWidth).toBe(
-      halfMetrics.contentMinWidth
-    );
+    const after = required(findBeatElement(trackElement, secondBeats[1]));
+    expect(required(after.owningBarElement).boundingBox.width).toBe(width);
+    expect(after.globalCoords.x).toBe(attackX);
   });
 
   test("keeps dense uneven attack columns from colliding", () => {
@@ -310,17 +332,6 @@ describe("musical beat layout", () => {
       NoteDuration.Sixteenth,
       NoteDuration.Half,
     ]);
-    const metrics = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
-    );
-
-    expect(metrics.contentMinWidth).toBeGreaterThan(
-      beats.length * TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap +
-        TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding * 2
-    );
-
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     const attackXs = beats.map((beat) => {
@@ -343,14 +354,6 @@ describe("musical beat layout", () => {
       1,
       Array.from({ length: 64 }, () => NoteDuration.SixtyFourth)
     );
-    const metrics = calculateMasterBarLayoutMetrics(
-      track,
-      0,
-      TEST_LAYOUT_DIMENSIONS
-    );
-
-    expect(metrics.minWidth).toBeGreaterThan(TEST_LAYOUT_DIMENSIONS.width);
-
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
     const barElement =
@@ -359,19 +362,25 @@ describe("musical beat layout", () => {
 
     expect(barElement.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.width);
 
-    const firstBeatElement = findBeatElement(trackElement, beats[0]);
-    const secondBeatElement = findBeatElement(trackElement, beats[1]);
-    expect(firstBeatElement).toBeDefined();
-    expect(secondBeatElement).toBeDefined();
-    expect(
-      required(secondBeatElement).barLocalCoords.x -
-        required(firstBeatElement).barLocalCoords.x
-    ).toBeLessThan(TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap);
+    const elements = beats.map((b) =>
+      required(findBeatElement(trackElement, b))
+    );
+    for (let i = 1; i < elements.length; i++) {
+      const gap =
+        elements[i].barLocalCoords.x - elements[i - 1].barLocalCoords.x;
+      expect(gap).toBeGreaterThan(0);
+      expect(gap).toBeLessThan(TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap);
+    }
+    for (const element of elements) {
+      expect(element.barLocalBoundingBox.right).toBeLessThanOrEqual(
+        barElement.boundingBox.width
+      );
+    }
   });
 });
 
 describe("score-wide bar layout", () => {
-  test("uses shared widths and ranges after replacing the active track", () => {
+  test("shares wrapped widths and ranges across tracks with different rhythms", () => {
     const { score, track, bar } = createGraph();
     const secondTrack = score.addTrack(new Guitar(), "Track 2")
       .tracks[0] as Track<Guitar>;
@@ -408,9 +417,7 @@ describe("score-wide bar layout", () => {
     );
     secondTrackElement.update();
 
-    expect(secondTrackElement.scoreLayoutPlanner).toBe(
-      firstTrackElement.scoreLayoutPlanner
-    );
+    expect(firstTrackElement.trackLineElements.length).toBeGreaterThan(1);
     expect(
       secondTrackElement.trackLineElements.map((l) =>
         l.trackLineBars.map((b) => b.masterBarIndex)
@@ -477,7 +484,7 @@ describe("score-wide bar layout", () => {
     const secondRanges = secondTrackElement.trackLineElements.map((l) =>
       l.trackLineBars.map((b) => b.masterBarIndex)
     );
-    expect(firstRanges).not.toEqual(beforeRanges);
+    expect(firstRanges.length).toBeGreaterThan(beforeRanges.length);
     expect(secondRanges).toEqual(firstRanges);
   });
 
@@ -492,12 +499,11 @@ describe("score-wide bar layout", () => {
       NoteDuration.Quarter,
       NoteDuration.Quarter,
     ]);
-    const secondBeats = replaceVoiceBeats(secondBar, 1, [
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
-    ]);
+    const secondBeats = replaceVoiceBeats(
+      secondBar,
+      1,
+      Array.from({ length: 8 }, () => NoteDuration.Eighth)
+    );
     for (let i = 0; i < 4; i++) {
       const appended = score.appendMasterBar({
         tempo: 120,
@@ -536,18 +542,28 @@ describe("score-wide bar layout", () => {
         l.trackLineBars.map((b) => b.masterBarIndex)
       )
     );
-    expect(
-      findBeatElement(firstTrackElement, firstBeats[1])?.barLocalCoords.x
-    ).toBe(
-      findBeatElement(secondTrackElement, secondBeats[1])?.barLocalCoords.x
+    const quarter = required(findBeatElement(firstTrackElement, firstBeats[1]));
+    const eighth = required(
+      findBeatElement(secondTrackElement, secondBeats[2])
+    );
+    const intervening = required(
+      findBeatElement(secondTrackElement, secondBeats[1])
+    );
+    expect(quarter.globalCoords.x).toBe(eighth.globalCoords.x);
+    expect(intervening.globalCoords.x).toBeLessThan(quarter.globalCoords.x);
+    expect(intervening.globalCoords.x).toBeGreaterThan(
+      required(findBeatElement(firstTrackElement, firstBeats[0])).globalCoords.x
     );
   });
 
-  test("keeps materialized descendants updated during shared-width regrouping", () => {
+  test("refreshes beat geometry when another track changes shared wrapped widths", () => {
     const { score, track, bar } = createGraph();
     const secondTrack = score.addTrack(new Guitar(), "Track 2")
       .tracks[0] as Track<Guitar>;
-    const firstBeats = replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
+    const firstBeats = replaceVoiceBeats(bar, 1, [
+      NoteDuration.Half,
+      NoteDuration.Half,
+    ]);
     for (let i = 0; i < 4; i++) {
       score.appendMasterBar({
         tempo: 120,
@@ -560,7 +576,11 @@ describe("score-wide bar layout", () => {
     }
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
-    trackElement.consumeDiff();
+    const beforeX = required(findBeatElement(trackElement, firstBeats[1]))
+      .globalCoords.x;
+    const beforeRanges = trackElement.trackLineElements.map((l) =>
+      l.trackLineBars.map((b) => b.masterBarIndex)
+    );
     const secondTrackBar = secondTrack.staves[0].bars[0] as Bar<Guitar>;
     replaceVoiceBeats(
       secondTrackBar,
@@ -570,43 +590,26 @@ describe("score-wide bar layout", () => {
 
     trackElement.update({ affectedMasterBarIndices: [0] });
 
-    const diff = trackElement.elementDiff;
-    const added = new Set(
-      [...diff[DiffPart.Added].values()].flatMap((identities) => [
-        ...identities,
-      ])
+    const after = required(findBeatElement(trackElement, firstBeats[1]));
+    expect(after.globalCoords.x).toBeGreaterThan(beforeX);
+    expect(
+      trackElement.trackLineElements.map((l) =>
+        l.trackLineBars.map((b) => b.masterBarIndex)
+      )
+    ).not.toEqual(beforeRanges);
+    expect(after.barLocalBoundingBox.right).toBeLessThanOrEqual(
+      required(after.owningBarElement).boundingBox.width
     );
-    const removed = new Set(
-      [...diff[DiffPart.Removed].values()].flatMap((identities) => [
-        ...identities,
-      ])
-    );
-    const updated = new Set(
-      [...diff[DiffPart.Updated].values()].flatMap((identities) => [
-        ...identities,
-      ])
-    );
-    const firstBeatIdentity = findBeatElement(
-      trackElement,
-      firstBeats[0]
-    )?.getStableIdentity();
-
-    expect(firstBeatIdentity).toBeDefined();
-    if (firstBeatIdentity === undefined) {
-      throw Error("Expected first beat to remain materialized");
-    }
-    expect(updated.has(firstBeatIdentity)).toBe(true);
-    expect(added.has(firstBeatIdentity)).toBe(false);
-    expect(removed.has(firstBeatIdentity)).toBe(false);
   });
 });
 
-describe("score layout planner", () => {
-  test("uses intrinsic metric widths in one prefix-positioned sequence", () => {
-    const { score } = createGraph({
+describe("wrapped and intrinsic bar widths", () => {
+  test("places intrinsic bars contiguously with duration-sensitive widths", () => {
+    const { score, track, bar } = createGraph({
       beatsCount: 1,
       duration: NoteDuration.Quarter,
     });
+    replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
     score.appendMasterBar({
       tempo: 120,
       beatsCount: 4,
@@ -616,32 +619,61 @@ describe("score layout planner", () => {
       repeatCount: null,
     });
 
-    const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
-
-    expect(plan.intrinsicBars.map((b) => b.finalizedWidth)).toEqual(
-      plan.metrics.map((m) => m.minWidth)
+    const trackElement = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      undefined,
+      TabUILayoutMode.SingleLine
     );
-    expect(plan.intrinsicBars[0].x).toBe(0);
-    expect(plan.intrinsicBars[1].x).toBe(plan.metrics[0].minWidth);
+    trackElement.update();
+
+    const bars =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements;
+    expect(bars).toHaveLength(2);
+    expect(bars[0].lineLocalBoundingBox.x).toBe(0);
+    expect(bars[1].lineLocalBoundingBox.x).toBeCloseTo(
+      bars[0].lineLocalBoundingBox.right
+    );
+    expect(bars[0].boundingBox.width).toBeLessThan(bars[1].boundingBox.width);
   });
 
-  test("does not clamp oversized intrinsic bars", () => {
-    const { score, bar } = createGraph();
-    replaceVoiceBeats(
+  test("keeps dense single-line attacks collision-free while wrapped bars fit the page", () => {
+    const { track, bar } = createGraph();
+    const beats = replaceVoiceBeats(
       bar,
       1,
       Array.from({ length: 64 }, () => NoteDuration.SixtyFourth)
     );
 
-    const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
+    const singleLine = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      undefined,
+      TabUILayoutMode.SingleLine
+    );
+    const wrapped = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    singleLine.update();
+    wrapped.update();
 
-    expect(plan.metrics[0].minWidth).toBeGreaterThan(
+    const intrinsicBar = required(
+      required(findBeatElement(singleLine, beats[0])).owningBarElement
+    );
+    const wrappedBar = required(
+      required(findBeatElement(wrapped, beats[0])).owningBarElement
+    );
+    expect(intrinsicBar.boundingBox.width).toBeGreaterThan(
       TEST_LAYOUT_DIMENSIONS.width
     );
-    expect(plan.intrinsicBars[0].finalizedWidth).toBe(plan.metrics[0].minWidth);
-    expect(plan.wrappedLines[0].bars[0].finalizedWidth).toBe(
-      TEST_LAYOUT_DIMENSIONS.width
+    expect(wrappedBar.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.width);
+    const attacks = beats.map(
+      (b) => required(findBeatElement(singleLine, b)).globalCoords.x
     );
+    for (let i = 1; i < attacks.length; i++) {
+      expect(attacks[i] - attacks[i - 1]).toBeGreaterThanOrEqual(
+        TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap
+      );
+    }
   });
 
   test("stretches non-final wrapped lines and keeps the final line intrinsic", () => {
@@ -663,44 +695,70 @@ describe("score layout planner", () => {
       replaceVoiceBeats(appendedBar as Bar<Guitar>, 1, [NoteDuration.Quarter]);
     }
 
-    const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
-    const firstLine = plan.wrappedLines[0].bars;
-    const finalLine = plan.wrappedLines[1].bars;
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    const firstLine =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements;
+    const finalLine =
+      trackElement.trackLineElements[1].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements;
 
     expect(firstLine).toHaveLength(4);
-    expect(firstLine[3].x + firstLine[3].finalizedWidth).toBeCloseTo(
+    expect(firstLine[3].lineLocalBoundingBox.right).toBeCloseTo(
       TEST_LAYOUT_DIMENSIONS.width
     );
     expect(finalLine).toHaveLength(1);
-    expect(finalLine[0].finalizedWidth).toBe(plan.metrics[4].minWidth);
+    const singleLine = new TrackElement(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      undefined,
+      TabUILayoutMode.SingleLine
+    );
+    singleLine.update();
+    const intrinsicFinal =
+      singleLine.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements[4];
+    expect(finalLine[0].boundingBox.width).toBe(
+      intrinsicFinal.boundingBox.width
+    );
+    expect(finalLine[0].lineLocalBoundingBox.right).toBeLessThan(
+      TEST_LAYOUT_DIMENSIONS.width
+    );
   });
 
-  test("shares the densest track width across score placements", () => {
-    const { score, bar } = createGraph();
+  test("widens both tracks when one track gains denser attacks", () => {
+    const { score, track, bar } = createGraph();
     const secondTrack = score.addTrack(new Guitar(), "Track 2")
       .tracks[0] as Track<Guitar>;
     const secondBar = secondTrack.staves[0].bars[0] as Bar<Guitar>;
     replaceVoiceBeats(bar, 1, [NoteDuration.Quarter]);
+    const sparse = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    sparse.update();
+    const beforeWidth =
+      sparse.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0]
+        .barElements[0].boundingBox.width;
     replaceVoiceBeats(
       secondBar,
       1,
       Array.from({ length: 16 }, () => NoteDuration.Sixteenth)
     );
 
-    const plan = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS).plan;
-    const denseWidth = calculateMasterBarLayoutMetrics(
-      secondTrack,
-      0,
-      TEST_LAYOUT_DIMENSIONS
-    ).minWidth;
-
-    expect(plan.metrics[0].minWidth).toBe(denseWidth);
-    expect(plan.intrinsicBars[0].finalizedWidth).toBe(denseWidth);
-    expect(plan.wrappedLines[0].bars[0].finalizedWidth).toBe(denseWidth);
+    sparse.update();
+    const dense = new TrackElement(secondTrack, TEST_LAYOUT_DIMENSIONS);
+    dense.update();
+    const sparseWidth =
+      sparse.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0]
+        .barElements[0].boundingBox.width;
+    const denseWidth =
+      dense.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0]
+        .barElements[0].boundingBox.width;
+    expect(sparseWidth).toBeGreaterThan(beforeWidth);
+    expect(sparseWidth).toBe(denseWidth);
   });
 
   test("preserves intrinsic widths while responsive wrapping changes", () => {
-    const { score } = createGraph({
+    const { score, track } = createGraph({
       beatsCount: 1,
       duration: NoteDuration.Quarter,
     });
@@ -715,22 +773,36 @@ describe("score layout planner", () => {
       });
     }
     const layoutDimensions = createTestLayoutDimensions();
-    const planner = new ScoreLayoutPlanner(score, layoutDimensions);
-    const initialIntrinsicWidths = planner.plan.intrinsicBars.map(
-      (b) => b.finalizedWidth
+    const singleLine = new TrackElement(
+      track,
+      layoutDimensions,
+      undefined,
+      TabUILayoutMode.SingleLine
     );
-    const initialRanges = planner.plan.wrappedLines.map((l) =>
-      l.bars.map((b) => b.masterBarIndex)
+    const wrapped = new TrackElement(track, layoutDimensions);
+    singleLine.update();
+    wrapped.update();
+    const initialIntrinsicWidths =
+      singleLine.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements.map(
+        (b) => b.boundingBox.width
+      );
+    const initialRanges = wrapped.trackLineElements.map((l) =>
+      l.trackLineBars.map((b) => b.masterBarIndex)
     );
 
     layoutDimensions.setWidth(200);
-    planner.rebuild();
+    singleLine.refreshLayout();
+    wrapped.refreshLayout();
 
-    expect(planner.plan.intrinsicBars.map((b) => b.finalizedWidth)).toEqual(
-      initialIntrinsicWidths
-    );
     expect(
-      planner.plan.wrappedLines.map((l) => l.bars.map((b) => b.masterBarIndex))
+      singleLine.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements.map(
+        (b) => b.boundingBox.width
+      )
+    ).toEqual(initialIntrinsicWidths);
+    expect(
+      wrapped.trackLineElements.map((l) =>
+        l.trackLineBars.map((b) => b.masterBarIndex)
+      )
     ).not.toEqual(initialRanges);
   });
 });
@@ -747,7 +819,7 @@ describe("single-line score layout", () => {
       1,
       Array.from({ length: 16 }, () => NoteDuration.Sixteenth)
     );
-    score.appendMasterBar({
+    const appended = score.appendMasterBar({
       tempo: 120,
       beatsCount: 4,
       duration: NoteDuration.Quarter,
@@ -755,37 +827,44 @@ describe("single-line score layout", () => {
       isRepeatEnd: false,
       repeatCount: null,
     });
-    const planner = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS);
+    replaceVoiceBeats(
+      required(appended.bars.get(track.staves[0].uuid)) as Bar<Guitar>,
+      1,
+      [NoteDuration.Quarter]
+    );
+    const dimensions = createTestLayoutDimensions();
+    dimensions.setWidth(400);
+    const planner = new ScoreLayoutPlanner(score, dimensions);
 
     const first = new TrackElement(
       track,
-      TEST_LAYOUT_DIMENSIONS,
+      dimensions,
       planner,
       TabUILayoutMode.SingleLine
     );
     const second = new TrackElement(
       secondTrack,
-      TEST_LAYOUT_DIMENSIONS,
+      dimensions,
       planner,
       TabUILayoutMode.SingleLine
     );
     first.update();
     second.update();
 
-    expect(first.trackLineElements).toHaveLength(1);
-    expect(second.trackLineElements).toHaveLength(1);
-    expect(first.trackLineElements[0].trackLineBars).toEqual(
-      planner.plan.intrinsicBars
-    );
-    expect(second.trackLineElements[0].trackLineBars).toEqual(
-      planner.plan.intrinsicBars
-    );
-    expect(first.width).toBe(
-      planner.plan.intrinsicBars.reduce(
-        (width, placement) => width + placement.finalizedWidth,
-        0
-      )
-    );
+    // Sixteen attacks need 576 px plus 24 px padding and 110.25 px
+    // structure. The sparse bar needs 187.2 + 24 + 74.25 px.
+    for (const element of [first, second]) {
+      expect(element.trackLineElements).toHaveLength(1);
+      const placements = element.trackLineElements[0].trackLineBars;
+      expect(placements.map((b) => b.masterBarUUID)).toEqual(
+        score.masterBars.map((b) => b.uuid)
+      );
+      expect(placements.map((b) => b.masterBarIndex)).toEqual([0, 1]);
+      expect(placements.map((b) => b.x)).toEqual([0, 710.25]);
+      expect(placements[0].finalizedWidth).toBeCloseTo(710.25);
+      expect(placements[1].finalizedWidth).toBeCloseTo(285.45);
+      expect(element.width).toBeCloseTo(995.7);
+    }
   });
 
   test("aligns equal-score-time beats across tracks", () => {
@@ -798,8 +877,10 @@ describe("single-line score layout", () => {
       NoteDuration.Quarter,
     ]);
     const secondBeats = replaceVoiceBeats(secondBar, 1, [
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
     ]);
     const planner = new ScoreLayoutPlanner(score, TEST_LAYOUT_DIMENSIONS);
     const first = new TrackElement(
@@ -817,9 +898,15 @@ describe("single-line score layout", () => {
     first.update();
     second.update();
 
-    expect(findBeatElement(first, firstBeats[1])?.globalCoords.x).toBe(
-      findBeatElement(second, secondBeats[1])?.globalCoords.x
+    const firstXs = firstBeats.map(
+      (b) => required(findBeatElement(first, b)).globalCoords.x
     );
+    const secondXs = secondBeats.map(
+      (b) => required(findBeatElement(second, b)).globalCoords.x
+    );
+    expect(firstXs).toEqual([secondXs[0], secondXs[2]]);
+    expect(secondXs[1]).toBeGreaterThan(firstXs[0]);
+    expect(secondXs[1]).toBeLessThan(firstXs[1]);
   });
 
   test("contains overflowing beats without changing score timing", () => {
@@ -853,15 +940,22 @@ describe("single-line score layout", () => {
     first.update();
     second.update();
 
-    expect(planner.plan.metrics[0].durationFraction).toBe(1);
-    expect(planner.plan.metrics[0].contentEndFraction).toBe(1.75);
-    expect(findBeatElement(first, firstBeats[1])?.globalCoords.x).toBe(
-      findBeatElement(second, secondBeats[1])?.globalCoords.x
+    const duration = bar.masterBar.barDurationFraction;
+    expect(duration.numerator / duration.denominator).toBe(1);
+    const voiceBar = required(bar.getVoiceBar(1));
+    expect(firstBeats[3].endTick / voiceBar.tickResolution).toBe(1.75);
+    expect(first.trackLineElements[0].trackLineBars[0].contentEndFraction).toBe(
+      1.75
+    );
+    expect(required(findBeatElement(first, firstBeats[1])).globalCoords.x).toBe(
+      required(findBeatElement(second, secondBeats[1])).globalCoords.x
     );
     const firstBarElement =
       first.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0]
         .barElements[0];
+    expect(firstBarElement.beatElements.map((b) => b.beat)).toEqual(firstBeats);
     for (const beatElement of firstBarElement.beatElements) {
+      expect(beatElement.barLocalBoundingBox.left).toBeGreaterThanOrEqual(0);
       expect(beatElement.barLocalBoundingBox.right).toBeLessThanOrEqual(
         firstBarElement.boundingBox.width
       );

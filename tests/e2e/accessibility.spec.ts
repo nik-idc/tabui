@@ -325,6 +325,13 @@ test("new track string-count actions update per-string tuning labels", async ({
   await expect(dialog.locator(".tu-nt-tuning-string")).toHaveCount(7);
   await dialog
     .getByRole("button", {
+      name: "Raise string 7 by 1 semitone",
+      exact: true,
+    })
+    .press("Space");
+  await expect(dialog.getByRole("status")).toHaveText("String 7: C");
+  await dialog
+    .getByRole("button", {
       name: "Raise string 1 by 1 semitone",
       exact: true,
     })

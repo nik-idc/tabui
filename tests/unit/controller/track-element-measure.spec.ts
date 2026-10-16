@@ -62,7 +62,9 @@ describe("TrackElement measure", () => {
     );
     expect(barElements[1].timeSigRect?.x).toBe(0);
     expect(barElements[1].beatElements[0].barLocalBoundingBox.x).toBeCloseTo(
-      barElements[1].startGap.right + TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding
+      TEST_LAYOUT_DIMENSIONS.timeSigRectWidth +
+        TEST_LAYOUT_DIMENSIONS.repeatSignWidth * 2 +
+        TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding
     );
   });
 

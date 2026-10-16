@@ -156,12 +156,13 @@ describe("TrackElement tree", () => {
     if (beforeOutline === undefined || voiceBar === null) {
       throw Error("Expected multi-staff outline and voice bar");
     }
-    const beforeHash = beforeLine.stateHash;
     const beforeRightX = beforeOutline.right.x;
 
-    for (let i = 0; i < 16; i++) {
-      voiceBar.insertBeat(i + 1);
-    }
+    voiceBar.replaceBeats(
+      Array.from({ length: 16 }, () =>
+        createBeat(voiceBar, NoteDuration.Sixteenth)
+      )
+    );
     updateMasterBars(trackElement, [0]);
 
     const afterLine = trackElement.trackLineElements[0];
@@ -170,8 +171,8 @@ describe("TrackElement tree", () => {
       throw Error("Expected multi-staff outline after update");
     }
 
-    expect(afterOutline.right.x).not.toBe(beforeRightX);
-    expect(afterLine.stateHash).not.toBe(beforeHash);
+    expect(afterOutline.right.x).toBeGreaterThan(beforeRightX);
+    expectOutlineToMatchTabStaffLines(trackElement);
   });
 
   test("multi-voice two-staff outline matches rendered staff-line geometry", () => {
@@ -219,7 +220,7 @@ describe("TrackElement tree", () => {
   });
 
   test("builds the expected hierarchy for a single default bar", () => {
-    const { track } = createScoreGraph();
+    const { track, staff, bar } = createScoreGraph();
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
@@ -230,71 +231,70 @@ describe("TrackElement tree", () => {
     expect(line.staffLineContainers).toHaveLength(1);
 
     const staffLine = line.staffLineContainers[0];
+    expect(staffLine.staff).toBe(staff);
     expect(staffLine.styleLinesAsArray).toHaveLength(1);
 
     const styleLine = staffLine.styleLinesAsArray[0];
     expect(styleLine.barElements).toHaveLength(1);
     expect(styleLine.barElements[0].beatElements).toHaveLength(1);
-    expect(styleLine.barElements[0].beatElements[0]).toBeInstanceOf(
-      TabBeatElement
-    );
+    const barElement = styleLine.barElements[0];
+    const beatElement = barElement.beatElements[0];
+    if (!(beatElement instanceof TabBeatElement)) {
+      throw Error("Expected a tablature beat");
+    }
+    expect(barElement.bar).toBe(bar);
+    expect(beatElement.beat).toBe(bar.voiceBarsAsArray[0].beats[0]);
+    expect(beatElement.noteElements.map((v) => v.stringNumber)).toEqual([
+      1, 2, 3, 4, 5, 6,
+    ]);
+    beatElement.noteElements.forEach((v, i) => {
+      expect(v.note).toBe(beatElement.beat.notes?.[i]);
+    });
   });
 
-  test("line-local geometry is exposed for track line and immediate children", () => {
-    const { track } = createScoreGraph();
+  test("line-local geometry excludes the preceding line height for immediate children", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 4; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    score.masterBars[4].tempo = 144;
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
 
-    const trackLine = trackElement.trackLineElements[0];
+    expect(trackElement.trackLineElements).toHaveLength(2);
+    const trackLine = trackElement.trackLineElements[1];
     const trackLineInfo = trackLine.trackLineInfoElement;
     const staffLine = trackLine.staffLineContainers[0];
 
-    expect(trackLine.lineLocalCoords?.x).toBeCloseTo(0);
-    expect(trackLine.lineLocalCoords?.y).toBeCloseTo(0);
-    expect(trackLine.lineLocalBoundingBox?.x).toBeCloseTo(0);
-    expect(trackLine.lineLocalBoundingBox?.y).toBeCloseTo(0);
-    expect(trackLine.lineLocalBoundingBox?.width).toBeCloseTo(
-      trackLine.boundingBox.width
-    );
-    expect(trackLine.lineLocalBoundingBox?.height).toBeCloseTo(
-      trackLine.boundingBox.height
-    );
+    // Six 24px string slots, a 60px rhythm row, and 30px tempo space = 234px.
+    expect(trackLine.globalCoords).toEqual({ x: 0, y: 234 });
+    expect(trackLine.lineLocalCoords).toEqual({ x: 0, y: 0 });
+    expect(trackLine.lineLocalBoundingBox).toEqual({
+      x: 0,
+      y: 0,
+      width: 1200,
+      height: 234,
+    });
 
-    expect(trackLineInfo).not.toBeNull();
-    expect(trackLineInfo?.lineLocalCoords?.x).toBeCloseTo(
-      trackLineInfo?.boundingBox.x ?? 0
-    );
-    expect(trackLineInfo?.lineLocalCoords?.y).toBeCloseTo(
-      trackLineInfo?.boundingBox.y ?? 0
-    );
-    expect(trackLineInfo?.lineLocalBoundingBox?.x).toBeCloseTo(
-      trackLineInfo?.boundingBox.x ?? 0
-    );
-    expect(trackLineInfo?.lineLocalBoundingBox?.y).toBeCloseTo(
-      trackLineInfo?.boundingBox.y ?? 0
-    );
-    expect(trackLineInfo?.globalCoords.x).toBeCloseTo(
-      trackLine.globalCoords.x + (trackLineInfo?.lineLocalCoords?.x ?? 0)
-    );
-    expect(trackLineInfo?.globalCoords.y).toBeCloseTo(
-      trackLine.globalCoords.y + (trackLineInfo?.lineLocalCoords?.y ?? 0)
-    );
+    if (trackLineInfo === null) throw Error("Expected tempo information");
+    expect(trackLineInfo.lineLocalCoords).toEqual({ x: 0, y: 0 });
+    expect(trackLineInfo.lineLocalBoundingBox).toEqual({
+      x: 0,
+      y: 0,
+      width: 1200,
+      height: 30,
+    });
+    expect(trackLineInfo.globalCoords).toEqual({ x: 0, y: 234 });
 
-    expect(staffLine.lineLocalCoords?.x).toBeCloseTo(staffLine.boundingBox.x);
-    expect(staffLine.lineLocalCoords?.y).toBeCloseTo(staffLine.boundingBox.y);
-    expect(staffLine.lineLocalBoundingBox?.x).toBeCloseTo(
-      staffLine.boundingBox.x
-    );
-    expect(staffLine.lineLocalBoundingBox?.y).toBeCloseTo(
-      staffLine.boundingBox.y
-    );
-    expect(staffLine.globalCoords.x).toBeCloseTo(
-      trackLine.globalCoords.x + (staffLine.lineLocalCoords?.x ?? 0)
-    );
-    expect(staffLine.globalCoords.y).toBeCloseTo(
-      trackLine.globalCoords.y + (staffLine.lineLocalCoords?.y ?? 0)
-    );
+    expect(staffLine.lineLocalCoords).toEqual({ x: 0, y: 30 });
+    expect(staffLine.lineLocalBoundingBox).toEqual({
+      x: 0,
+      y: 30,
+      width: 1200,
+      height: 204,
+    });
+    expect(staffLine.globalCoords).toEqual({ x: 0, y: 264 });
   });
 
   test("line-local geometry composes through bar beat note and label descendants", () => {
@@ -322,48 +322,46 @@ describe("TrackElement tree", () => {
     const gapLine = styleLine.techGapContainer.techGapLinesAsArray.find(
       (line) => line.labelElements.length > 0
     );
-    expect(gapLine).toBeDefined();
     if (gapLine === undefined) throw Error("Expected technique gap line");
     const labelElement = gapLine.labelElements[0];
 
-    expect(styleLine.lineLocalCoords?.x).toBeCloseTo(
-      (staffLine.lineLocalCoords?.x ?? 0) + styleLine.boundingBox.x
-    );
-    expect(styleLine.lineLocalCoords?.y).toBeCloseTo(
-      (staffLine.lineLocalCoords?.y ?? 0) + styleLine.boundingBox.y
-    );
+    // The 30px tempo row precedes a 24px palm-mute label row.
+    expect(styleLine.lineLocalCoords).toEqual({ x: 0, y: 30 });
+    expect(barElement.lineLocalCoords).toEqual({ x: 0, y: 54 });
 
-    expect(barElement.lineLocalCoords?.x).toBeCloseTo(
-      (styleLine.lineLocalCoords?.x ?? 0) + barElement.boundingBox.x
+    // The first attack is 12px beyond the 85.5px signature/repeat reserve.
+    expect(beatElement.voiceBarContainer.boundingBox.x).toBeCloseTo(85.5);
+    expect(beatElement.lineLocalCoords).toEqual({ x: 97.5, y: 54 });
+    expect(beatElement.globalCoords).toEqual({ x: 97.5, y: 54 });
+    expect(beatElement.lineLocalCoords.x).toBeCloseTo(
+      barElement.lineLocalCoords.x + beatElement.barLocalCoords.x
     );
-    expect(barElement.lineLocalCoords?.y).toBeCloseTo(
-      (styleLine.lineLocalCoords?.y ?? 0) + barElement.boundingBox.y
-    );
-
-    expect(beatElement.lineLocalCoords?.x).toBeGreaterThanOrEqual(0);
     expect(beatElement.lineLocalCoords?.y).toBeCloseTo(
-      (barElement.lineLocalCoords?.y ?? 0) + beatElement.boundingBox.y
+      barElement.lineLocalCoords.y + beatElement.barLocalCoords.y
+    );
+    expect(beatElement.globalCoords.x).toBeCloseTo(
+      barElement.globalCoords.x + beatElement.barLocalCoords.x
+    );
+    expect(beatElement.globalCoords.y).toBeCloseTo(
+      barElement.globalCoords.y + beatElement.barLocalCoords.y
     );
 
-    expect(noteElement.lineLocalCoords?.x).toBeCloseTo(
-      (beatElement.lineLocalCoords?.x ?? 0) + noteElement.boundingBox.x
-    );
-    expect(noteElement.lineLocalCoords?.y).toBeCloseTo(
-      (beatElement.lineLocalCoords?.y ?? 0) + noteElement.boundingBox.y
-    );
-
-    expect(labelElement.lineLocalCoords?.x).toBeGreaterThanOrEqual(0);
-    expect(labelElement.lineLocalCoords?.y).toBeCloseTo(
-      gapLine?.lineLocalCoords?.y ?? 0
-    );
+    expect(noteElement.lineLocalCoords).toEqual({ x: 97.5, y: 54 });
+    expect(labelElement.lineLocalCoords).toEqual({ x: 97.5, y: 30 });
   });
 
-  test("line-local helper origins match previous global geometry contracts", () => {
-    const { track, bar } = createScoreGraph();
+  test("tempo and technique origins include the preceding line height only in global space", () => {
+    const { score, track } = createScoreGraph();
+    for (let i = 0; i < 4; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    score.masterBars[4].tempo = 144;
+    const bar = track.staves[0].bars[4];
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
     }
+    voiceBar.replaceBeats([createBeat(voiceBar, NoteDuration.Quarter)]);
     const note = voiceBar.beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
@@ -374,7 +372,8 @@ describe("TrackElement tree", () => {
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
-    const trackLine = trackElement.trackLineElements[0];
+    expect(trackElement.trackLineElements).toHaveLength(2);
+    const trackLine = trackElement.trackLineElements[1];
     const trackLineInfo = trackLine.trackLineInfoElement;
     if (trackLineInfo === null) {
       throw Error("Expected track line info element");
@@ -398,12 +397,10 @@ describe("TrackElement tree", () => {
     if (tempoRectGlobal === undefined || tempoRectLineLocal === undefined) {
       throw Error("Expected tempo rectangles");
     }
-    expect(tempoRectGlobal.x - trackLine.globalCoords.x).toBeCloseTo(
-      tempoRectLineLocal.x
-    );
-    expect(tempoRectGlobal.y - trackLine.globalCoords.y).toBeCloseTo(
-      tempoRectLineLocal.y
-    );
+    // The first line is 234px tall; the new tempo occupies the next 30px.
+    expect(trackLine.globalCoords).toEqual({ x: 0, y: 234 });
+    expect(tempoRectLineLocal).toEqual({ x: 0, y: 0, width: 30, height: 30 });
+    expect(tempoRectGlobal).toEqual({ x: 0, y: 234, width: 30, height: 30 });
 
     const tempoTextGlobal =
       trackLineInfo.getBarTempoTextCoordsGlobal(barElement);
@@ -412,34 +409,29 @@ describe("TrackElement tree", () => {
     if (tempoTextGlobal === undefined || tempoTextLineLocal === undefined) {
       throw Error("Expected tempo text coordinates");
     }
-    expect(tempoTextGlobal.x - trackLine.globalCoords.x).toBeCloseTo(
-      tempoTextLineLocal.x
-    );
-    expect(tempoTextGlobal.y - trackLine.globalCoords.y).toBeCloseTo(
-      tempoTextLineLocal.y
-    );
+    expect(tempoTextLineLocal).toEqual({ x: 30, y: 24 });
+    expect(tempoTextGlobal).toEqual({ x: 30, y: 258 });
 
-    expect(
-      techniqueElement.pathOrigin.x - trackLine.globalCoords.x
-    ).toBeCloseTo(techniqueElement.pathOriginLineLocal.x);
-    expect(
-      techniqueElement.pathOrigin.y - trackLine.globalCoords.y
-    ).toBeCloseTo(techniqueElement.pathOriginLineLocal.y);
-
-    expect(
-      labelElement.descriptorOrigin.x - trackLine.globalCoords.x
-    ).toBeCloseTo(labelElement.descriptorOriginLineLocal.x);
-    expect(
-      labelElement.descriptorOrigin.y - trackLine.globalCoords.y
-    ).toBeCloseTo(labelElement.descriptorOriginLineLocal.y);
+    // This line has no time signature: 49.5px repeat reserve + 12px attack padding.
+    expect(techniqueElement.pathOriginLineLocal).toEqual({ x: 61.5, y: 54 });
+    expect(techniqueElement.pathOrigin).toEqual({ x: 61.5, y: 288 });
+    expect(labelElement.descriptorOriginLineLocal).toEqual({ x: 61.5, y: 30 });
+    expect(labelElement.descriptorOrigin).toEqual({ x: 61.5, y: 264 });
   });
 
-  test("line-local core notation geometry matches previous global contracts", () => {
-    const { track, bar } = createScoreGraph();
+  test("staff outlines borders and note text use the owning line coordinate space", () => {
+    const { score, track } = createScoreGraph();
+    track.insertStaff(1);
+    for (let i = 0; i < 4; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    score.masterBars[4].tempo = 144;
+    const bar = track.staves[0].bars[4];
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 in test bar");
     }
+    voiceBar.replaceBeats([createBeat(voiceBar, NoteDuration.Quarter)]);
     const note = voiceBar.beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
@@ -449,7 +441,8 @@ describe("TrackElement tree", () => {
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
-    const trackLine = trackElement.trackLineElements[0];
+    expect(trackElement.trackLineElements).toHaveLength(2);
+    const trackLine = trackElement.trackLineElements[1];
     const barElement =
       trackLine.staffLineContainers[0].styleLinesAsArray[0].barElements[0];
     const beatElement = barElement.beatElements[0];
@@ -463,38 +456,54 @@ describe("TrackElement tree", () => {
 
     const outlineGlobal = trackLine.outlineLinesGlobal;
     const outlineLineLocal = trackLine.outlineLinesLineLocal;
-    if (outlineGlobal !== undefined && outlineLineLocal !== undefined) {
-      expect(outlineGlobal.left.y1 - trackLine.globalCoords.y).toBeCloseTo(
-        outlineLineLocal.left.y1
-      );
-      expect(outlineGlobal.right.y2 - trackLine.globalCoords.y).toBeCloseTo(
-        outlineLineLocal.right.y2
-      );
+    if (outlineGlobal === undefined || outlineLineLocal === undefined) {
+      throw Error("Expected a two-staff outline");
     }
 
-    expect(
-      barElement.barLeftBorderLineGlobal.x - trackLine.globalCoords.x
-    ).toBeCloseTo(barElement.barLeftBorderLineLineLocal.x);
-    expect(
-      barElement.barRightBorderLineGlobal.y1 - trackLine.globalCoords.y
-    ).toBeCloseTo(barElement.barRightBorderLineLineLocal.y1);
-    expect(
-      barElement.staffLinesGlobal[0].x1 - trackLine.globalCoords.x
-    ).toBeCloseTo(barElement.staffLinesLineLocal[0].x1);
-    expect(
-      barElement.staffLinesGlobal[0].y - trackLine.globalCoords.y
-    ).toBeCloseTo(barElement.staffLinesLineLocal[0].y);
+    // Two 204px staves and 30px tempo space precede this line (438px).
+    // Its first string is 12px below its own 30px tempo row.
+    expect(trackLine.globalCoords).toEqual({ x: 0, y: 438 });
+    expect(outlineLineLocal.left).toEqual({ x: 0, y1: 42, y2: 366 });
+    expect(outlineGlobal.left).toEqual({ x: 0, y1: 480, y2: 804 });
+    expect(outlineLineLocal.right.y2).toBe(366);
+    expect(outlineGlobal.right.y2).toBe(804);
 
-    expect(noteElement.textRectLineLocal.width).toBeCloseTo(
-      noteElement.textRectGlobal.width
-    );
-    expect(noteElement.textRectGlobal.y - trackLine.globalCoords.y).toBeCloseTo(
-      noteElement.textRectLineLocal.y
-    );
-    expect(noteElement.textCoordsLineLocal.x).toBeGreaterThanOrEqual(0);
-    expect(
-      noteElement.textCoordsGlobal.y - trackLine.globalCoords.y
-    ).toBeCloseTo(noteElement.textCoordsLineLocal.y);
+    expect(barElement.barLeftBorderLineLineLocal).toEqual({
+      x: 0,
+      y1: 42,
+      y2: 162,
+    });
+    expect(barElement.barLeftBorderLineGlobal).toEqual({
+      x: 0,
+      y1: 480,
+      y2: 600,
+    });
+    expect(barElement.barRightBorderLineLineLocal.y1).toBe(42);
+    expect(barElement.barRightBorderLineGlobal.y1).toBe(480);
+    expect(barElement.staffLinesLineLocal.map((v) => v.y)).toEqual([
+      42, 66, 90, 114, 138, 162,
+    ]);
+    expect(barElement.staffLinesGlobal.map((v) => v.y)).toEqual([
+      480, 504, 528, 552, 576, 600,
+    ]);
+    expect(barElement.staffLinesLineLocal[0].x1).toBe(0);
+    expect(barElement.staffLinesGlobal[0].x1).toBe(0);
+
+    // A 12px fret glyph is centered on the 61.5px attack and first string.
+    expect(noteElement.textRectLineLocal).toEqual({
+      x: 55.5,
+      y: 36,
+      width: 12,
+      height: 12,
+    });
+    expect(noteElement.textRectGlobal).toEqual({
+      x: 55.5,
+      y: 474,
+      width: 12,
+      height: 12,
+    });
+    expect(noteElement.textCoordsLineLocal).toEqual({ x: 61.5, y: 42 });
+    expect(noteElement.textCoordsGlobal).toEqual({ x: 61.5, y: 480 });
   });
 
   test("registry lookup returns the beat element by model beat", () => {
@@ -506,10 +515,10 @@ describe("TrackElement tree", () => {
     const beat = bar.voiceBarsAsArray[0].beats[0];
     const beatElement = trackElement.getBeatElement(beat);
     expect(beatElement).toBeDefined();
-    expect(beatElement?.beat.uuid).toBe(beat.uuid);
+    expect(beatElement?.beat).toBe(beat);
   });
 
-  test("no-op update preserves the line shell and rebuilds descendants", () => {
+  test("no-op update preserves stable identities for renderer reconciliation", () => {
     const { track } = createScoreGraph();
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
@@ -528,42 +537,20 @@ describe("TrackElement tree", () => {
     trackElement.update();
 
     expect(trackElement.trackLineElements[0]).toBe(trackLine);
-    expect(trackElement.trackLineElements[0].staffLineContainers[0]).not.toBe(
-      staffLine
-    );
-    expect(
+    const afterBar =
       trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0]
-    ).not.toBe(styleLine);
-    expect(
-      trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].barElements[0]
-    ).not.toBe(barElement);
-    expect(
-      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0].getStableIdentity()
-    ).toBe(barIdentity);
-    expect(
-      trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].barElements[0].beatElements[0]
-    ).not.toBe(beatElement);
-    expect(
-      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0].beatElements[0].getStableIdentity()
-    ).toBe(beatIdentity);
-    expect(
-      trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0]
-    ).not.toBe(noteElement);
-    expect(
-      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0].beatElements[0].noteElements[0].getStableIdentity()
-    ).toBe(noteIdentity);
+        .styleLinesAsArray[0].barElements[0];
+    const afterBeat = afterBar.beatElements[0];
+    expect(afterBar.getStableIdentity()).toBe(barIdentity);
+    expect(afterBeat.getStableIdentity()).toBe(beatIdentity);
+    expect(afterBeat.noteElements[0].getStableIdentity()).toBe(noteIdentity);
   });
 
-  test("element diff reports beat additions and removals", () => {
+  test("beat lookup includes added beats and drops removed beats after updates", () => {
     const { track, bar } = createScoreGraph();
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
-    trackElement.clearElementDiff();
 
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -572,26 +559,17 @@ describe("TrackElement tree", () => {
     const addedBeat = voiceBar.appendBeats().beats[0];
     trackElement.update();
 
-    const addDiff = trackElement.elementDiff;
-    const addedBeatElement =
-      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements[0].beatElements.find(
-        (beatElement) => beatElement.beat === addedBeat
-      );
-    expect(addedBeatElement).toBeDefined();
-    if (addedBeatElement === undefined)
-      throw Error("Expected added beat element");
-    const addedBeatIdentity = addedBeatElement.getStableIdentity();
-    expect(addDiff.added.get(TabBeatElement)?.has(addedBeatIdentity)).toBe(
-      true
+    expect(trackElement.getBeatElement(addedBeat)?.beat).toBe(addedBeat);
+    expect(findBarElement(trackElement, bar.uuid)?.beatElements).toHaveLength(
+      2
     );
 
-    trackElement.clearElementDiff();
     voiceBar.removeBeat(1);
     trackElement.update();
 
-    const removeDiff = trackElement.elementDiff;
-    expect(removeDiff.removed.get(TabBeatElement)?.has(addedBeatIdentity)).toBe(
-      true
+    expect(trackElement.getBeatElement(addedBeat)).toBeUndefined();
+    expect(findBarElement(trackElement, bar.uuid)?.beatElements).toHaveLength(
+      1
     );
   });
 
@@ -599,6 +577,11 @@ describe("TrackElement tree", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const finalVoiceBar = track.staves[0].bars[12].getVoiceBar(1);
+    if (finalVoiceBar === null) throw Error("Expected final voice bar");
+    for (let i = 0; i < 3; i++) {
+      finalVoiceBar.appendBeats();
     }
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -608,6 +591,9 @@ describe("TrackElement tree", () => {
     );
     trackElement.update();
     fullRebuildTrackElement.update();
+
+    const beforeOwnership = getLineOwnershipKeys(trackElement);
+    const beforeNoteX = getAllNoteX(trackElement);
 
     const lastLineIndex = trackElement.trackLineElements.length - 1;
     const affectedMasterBarIndex =
@@ -624,13 +610,15 @@ describe("TrackElement tree", () => {
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
     fullRebuildTrackElement.update();
 
+    expect(getLineOwnershipKeys(trackElement)).toEqual(beforeOwnership);
+    expect(getAllNoteX(trackElement)).not.toEqual(beforeNoteX);
     expectTargetedUpdateToMatchFullRebuild(
       trackElement,
       fullRebuildTrackElement
     );
   });
 
-  test("targeted duration update matches full rebuild when a late window regroups", () => {
+  test("targeted update matches full rebuild when an expanded late bar regroups lines", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
@@ -644,6 +632,8 @@ describe("TrackElement tree", () => {
     trackElement.update();
     fullRebuildTrackElement.update();
 
+    const beforeOwnership = getLineOwnershipKeys(trackElement);
+
     const secondLastLineIndex = trackElement.trackLineElements.length - 2;
     const affectedMasterBarIndex =
       trackElement.trackLineElements[secondLastLineIndex].trackLineBars[0]
@@ -654,18 +644,22 @@ describe("TrackElement tree", () => {
       throw Error("Expected voice 1 in affected bar");
     }
     affectedVoiceBar.beats[0].baseDuration = NoteDuration.Whole;
+    for (let i = 0; i < 16; i++) {
+      affectedVoiceBar.insertBeat(i + 1);
+    }
     affectedVoiceBar.rebuildTiming();
 
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
     fullRebuildTrackElement.update();
 
+    expect(getLineOwnershipKeys(trackElement)).not.toEqual(beforeOwnership);
     expectTargetedUpdateToMatchFullRebuild(
       trackElement,
       fullRebuildTrackElement
     );
   });
 
-  test("presentation shell rebuild replaces moved bar element object", () => {
+  test("bars retain stable identities when wrapping moves them to another line", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
@@ -685,17 +679,19 @@ describe("TrackElement tree", () => {
         return [
           bar.uuid,
           {
-            barElement,
+            lineIndex: trackElement.trackLineElements.findIndex((l) =>
+              l.trackLineBars.some(
+                (b) => b.masterBarUUID === bar.masterBar.uuid
+              )
+            ),
             beatIdentity: barElement.beatElements[0].getStableIdentity(),
             noteIdentity:
               barElement.beatElements[0].noteElements[0].getStableIdentity(),
             stableIdentity: barElement.getStableIdentity(),
-            styleLine: barElement.notationStyleLineContainer,
           },
         ];
       })
     );
-    trackElement.clearElementDiff();
 
     const firstLine = trackElement.trackLineElements[0];
     const affectedMasterBarIndex =
@@ -723,8 +719,9 @@ describe("TrackElement tree", () => {
       return (
         before !== undefined &&
         after !== undefined &&
-        after !== before.barElement &&
-        after.notationStyleLineContainer !== before.styleLine
+        trackElement.trackLineElements.findIndex((l) =>
+          l.trackLineBars.some((b) => b.masterBarUUID === bar.masterBar.uuid)
+        ) !== before.lineIndex
       );
     })?.uuid;
     expect(movedBarUUID).toBeDefined();
@@ -733,7 +730,6 @@ describe("TrackElement tree", () => {
     const before = beforeByBarUUID.get(movedBarUUID);
     if (before === undefined) throw Error("Expected original bar element");
     const after = findBarElement(trackElement, movedBarUUID);
-    expect(after).not.toBe(before.barElement);
     expect(after?.getStableIdentity()).toBe(before.stableIdentity);
     expect(after?.beatElements[0].getStableIdentity()).toBe(
       before.beatIdentity
@@ -741,37 +737,6 @@ describe("TrackElement tree", () => {
     expect(after?.beatElements[0].noteElements[0].getStableIdentity()).toBe(
       before.noteIdentity
     );
-    expect(after?.notationStyleLineContainer).not.toBe(before.styleLine);
-    expect(
-      trackElement.elementDiff.added
-        .get(TabBeatElement)
-        ?.has(before.beatIdentity)
-    ).not.toBe(true);
-    expect(
-      trackElement.elementDiff.removed
-        .get(TabBeatElement)
-        ?.has(before.beatIdentity)
-    ).not.toBe(true);
-    expect(
-      trackElement.elementDiff.updated
-        .get(TabBeatElement)
-        ?.has(before.beatIdentity)
-    ).toBe(true);
-    expect(
-      trackElement.elementDiff.added
-        .get(TabNoteSlotElement)
-        ?.has(before.noteIdentity)
-    ).not.toBe(true);
-    expect(
-      trackElement.elementDiff.removed
-        .get(TabNoteSlotElement)
-        ?.has(before.noteIdentity)
-    ).not.toBe(true);
-    expect(
-      trackElement.elementDiff.updated
-        .get(TabNoteSlotElement)
-        ?.has(before.noteIdentity)
-    ).toBe(true);
   });
 
   test("targeted update matches full rebuild after deleting a bar in the middle", () => {
@@ -837,19 +802,13 @@ describe("TrackElement tree", () => {
     if (firstVoiceBar === null) {
       throw Error("Expected voice 1 in first bar");
     }
-    const firstBeatUUID = firstVoiceBar.beats[0].uuid;
+    const firstBeat = firstVoiceBar.beats[0];
     const affectedMasterBarIndex = score.masterBars.length;
     score.appendMasterBar(DEFAULT_MASTER_BAR);
 
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
 
-    const firstBeat = track.staves[0].bars[0].getVoiceBar(1);
-    if (firstBeat === null) {
-      throw Error("Expected voice 1 in first bar");
-    }
-    const firstBeatValue = firstBeat.beats[0];
-    expect(firstBeatValue.uuid).toBe(firstBeatUUID);
-    expect(firstBeatValue).toBe(firstBeat.beats[0]);
+    expect(trackElement.getBeatElement(firstBeat)?.beat).toBe(firstBeat);
   });
 
   test("vertical palm mute command reports the affected note", () => {
@@ -885,6 +844,12 @@ describe("TrackElement tree", () => {
 
     const lines = trackElement.trackLineElements;
     expect(lines.length).toBeGreaterThan(1);
+    const renderedBars = lines.flatMap((l) =>
+      l.staffLineContainers[0].styleLinesAsArray[0].barElements.map(
+        (b) => b.bar
+      )
+    );
+    expect(renderedBars).toEqual(track.staves[0].bars);
 
     const firstLine = lines[0];
     const secondLine = lines[1];
@@ -968,6 +933,19 @@ describe("TrackElement tree", () => {
       secondLineBeatElement.barElement.globalCoords.x +
         secondLineBeatElement.barLocalBoundingBox.x
     );
+    const selectedElements = [firstLineBeatElement, secondLineBeatElement];
+    for (const [i, beatElement] of selectedElements.entries()) {
+      const noteElement = beatElement.noteElements[0];
+      if (!(noteElement instanceof TabNoteSlotElement))
+        throw Error("Expected tab note slot");
+      const noteBounds = noteElement.textRectGlobal;
+      expect(selectionRects[i].x).toBeLessThanOrEqual(noteBounds.x);
+      expect(selectionRects[i].right).toBeGreaterThanOrEqual(noteBounds.right);
+      expect(selectionRects[i].y).toBeLessThanOrEqual(noteBounds.y);
+      expect(selectionRects[i].bottom).toBeGreaterThanOrEqual(
+        noteBounds.bottom
+      );
+    }
   });
 
   test("initializes whole-track shell geometry without materializing every line", () => {
@@ -981,14 +959,25 @@ describe("TrackElement tree", () => {
 
     expect(lines.length).toBeGreaterThan(2);
     expect(trackElement.materializedLineIndices.size).toBe(0);
-    expect(lines[1].staffLineContainers).toEqual([]);
-    expect(lines[1].boundingBox.y).toBe(lines[0].boundingBox.bottom);
+    expect(lines[0].boundingBox.y).toBe(0);
+    for (const [i, line] of lines.entries()) {
+      expect(line.staffLineContainers).toEqual([]);
+      expect(line.boundingBox.height).toBeGreaterThan(0);
+      if (i > 0) {
+        expect(line.boundingBox.y).toBe(lines[i - 1].boundingBox.bottom);
+      }
+    }
     expect(trackElement.height).toBe(
-      lines.reduce(
-        (height, line) => height + line.skeletonLine.finalLineHeight,
-        0
-      )
+      lines[lines.length - 1].boundingBox.bottom
     );
+
+    const predictedBounds = lines.map((v) => v.globalBoundingBox);
+    trackElement.update();
+
+    expect(trackElement.materializedLineIndices.size).toBe(lines.length);
+    expect(
+      trackElement.trackLineElements.map((v) => v.globalBoundingBox)
+    ).toEqual(predictedBounds);
   });
 
   test("viewport materialization preserves shell positions and total height", () => {
@@ -998,9 +987,10 @@ describe("TrackElement tree", () => {
     }
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     const initialHeight = trackElement.height;
-    const lastLineIndex = trackElement.trackLineElements.length - 1;
-    const laterLineY =
-      trackElement.trackLineElements[lastLineIndex].boundingBox.y;
+    const initialBounds = trackElement.trackLineElements.map(
+      (v) => v.globalBoundingBox
+    );
+    expect(initialBounds.length).toBeGreaterThan(2);
 
     trackElement.update({
       lineRange: { startLineIndex: 0, endLineIndex: 1 },
@@ -1013,12 +1003,12 @@ describe("TrackElement tree", () => {
     });
 
     expect([...trackElement.materializedLineIndices]).toEqual([0, 1]);
+    for (const line of trackElement.trackLineElements.slice(2)) {
+      expect(line.staffLineContainers).toEqual([]);
+    }
     expect(
-      trackElement.trackLineElements[lastLineIndex].staffLineContainers
-    ).toEqual([]);
-    expect(trackElement.trackLineElements[lastLineIndex].boundingBox.y).toBe(
-      laterLineY
-    );
+      trackElement.trackLineElements.map((v) => v.globalBoundingBox)
+    ).toEqual(initialBounds);
     expect(trackElement.height).toBe(initialHeight);
   });
 
@@ -1070,6 +1060,7 @@ describe("TrackElement tree", () => {
     const firstIdentity = trackElement
       .getBeatElement(firstBeat)
       ?.getStableIdentity();
+    expect(firstIdentity).toBeDefined();
     const firstMaterializedBars =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
@@ -1079,8 +1070,8 @@ describe("TrackElement tree", () => {
     expect(firstMaterializedBars[0].boundingBox.x).toBe(
       trackElement.trackLineElements[0].trackLineBars[1].x
     );
+    expect(firstMaterializedBars[0].boundingBox.x).toBeGreaterThan(0);
 
-    trackElement.consumeDiff();
     trackElement.update({
       lineRange: { startLineIndex: 0, endLineIndex: 0 },
       masterBarRange: { startMasterBarIndex: 5, endMasterBarIndex: 6 },
@@ -1094,20 +1085,11 @@ describe("TrackElement tree", () => {
 
     expect(trackElement.getBeatElement(firstBeat)).toBeUndefined();
     expect(trackElement.getBeatElement(laterBeat)).toBeDefined();
-    expect(trackElement.materializedBarRangesByLineIndex.get(0)).toEqual({
-      startMasterBarIndex: 5,
-      endMasterBarIndex: 6,
-    });
     expect(
-      trackElement.elementDiff.removed
-        .get(TabBeatElement)
-        ?.has(firstIdentity ?? "")
-    ).toBe(true);
-    expect(
-      trackElement.elementDiff.added
-        .get(TabBeatElement)
-        ?.has(trackElement.getBeatElement(laterBeat)?.getStableIdentity() ?? "")
-    ).toBe(true);
+      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].barElements.map(
+        (b) => b.bar
+      )
+    ).toEqual(track.staves[0].bars.slice(5, 7));
 
     trackElement.update({
       lineRange: { startLineIndex: 0, endLineIndex: 0 },
@@ -1122,6 +1104,7 @@ describe("TrackElement tree", () => {
     expect(trackElement.getBeatElement(firstBeat)?.getStableIdentity()).toBe(
       firstIdentity
     );
+    expect(trackElement.getBeatElement(laterBeat)).toBeUndefined();
   });
 
   test("keeps descendant identities stable after single-line rematerialization", () => {
@@ -1177,15 +1160,15 @@ describe("TrackElement tree", () => {
         },
       });
     };
+    const classes = [
+      TabBeatElement,
+      TabNoteSlotElement,
+      GuitarTechniqueElement,
+      GuitarTechniqueLabelElement,
+      BeamSegmentElement,
+      BarTupletGroupElement,
+    ];
     const identitySnapshot = (): string[] => {
-      const classes = [
-        TabBeatElement,
-        TabNoteSlotElement,
-        GuitarTechniqueElement,
-        GuitarTechniqueLabelElement,
-        BeamSegmentElement,
-        BarTupletGroupElement,
-      ];
       return trackElement.trackLineElements[0].drawableNotationElements
         .filter((element) => classes.some((c) => element instanceof c))
         .map((element) => element.getStableIdentity())
@@ -1194,15 +1177,16 @@ describe("TrackElement tree", () => {
 
     materialize(1);
     const before = identitySnapshot();
-    expect(before.some((identity) => identity.startsWith("technique:"))).toBe(
-      true
-    );
-    expect(before.some((identity) => identity.startsWith("beam:"))).toBe(true);
-    expect(before.some((identity) => identity.startsWith("tuplet:"))).toBe(
-      true
-    );
+    for (const elementClass of classes) {
+      expect(
+        trackElement.trackLineElements[0].drawableNotationElements.some(
+          (e) => e instanceof elementClass
+        )
+      ).toBe(true);
+    }
 
     materialize(4);
+    expect(trackElement.getBeatElement(targetVoice.beats[0])).toBeUndefined();
     materialize(1);
 
     expect(identitySnapshot()).toEqual(before);
@@ -1220,18 +1204,20 @@ describe("TrackElement tree", () => {
     const secondLineStartIndex =
       trackElement.trackLineElements[1].trackLineBars[0].masterBarIndex;
     score.masterBars[secondLineStartIndex].tempo = 160;
-    const secondLineVoiceBar =
-      track.staves[0].bars[secondLineStartIndex].getVoiceBar(1);
-    if (secondLineVoiceBar === null) {
-      throw Error("Expected voice 1 in second line bar");
-    }
-    secondLineVoiceBar.rebuildTiming();
 
     trackElement.update();
 
-    const beforeY =
-      trackElement.trackLineElements[1].trackLineInfoElement?.globalCoords.y ??
-      0;
+    const beforeLine = trackElement.trackLineElements[1];
+    const beforeBar =
+      beforeLine.staffLineContainers[0].styleLinesAsArray[0].barElements[0];
+    const beforeInfo = beforeLine.trackLineInfoElement;
+    const beforeTempo = beforeInfo?.getBarTempoRectGlobal(beforeBar);
+    const beforeLocalTempo = beforeInfo?.getBarTempoRectLineLocal(beforeBar);
+    if (beforeTempo === undefined || beforeLocalTempo === undefined) {
+      throw Error("Expected second-line tempo rectangle");
+    }
+    const beforeFirstLineHeight =
+      trackElement.trackLineElements[0].boundingBox.height;
 
     const firstLineVoiceBar = track.staves[0].bars[0].getVoiceBar(1);
     if (firstLineVoiceBar === null) {
@@ -1248,8 +1234,25 @@ describe("TrackElement tree", () => {
 
     trackElement.update();
 
-    expect(
-      trackElement.trackLineElements[1].trackLineInfoElement?.globalCoords.y
-    ).toBeGreaterThan(beforeY);
+    const afterLine = trackElement.trackLineElements[1];
+    const afterBar =
+      afterLine.staffLineContainers[0].styleLinesAsArray[0].barElements[0];
+    const afterInfo = afterLine.trackLineInfoElement;
+    const afterTempo = afterInfo?.getBarTempoRectGlobal(afterBar);
+    if (afterTempo === undefined) {
+      throw Error(
+        "Expected second-line tempo rectangle after technique update"
+      );
+    }
+
+    const rowHeight = TEST_LAYOUT_DIMENSIONS.techLabelHeight;
+    expect(trackElement.trackLineElements[0].boundingBox.height).toBe(
+      beforeFirstLineHeight + rowHeight
+    );
+    expect(afterTempo.y).toBe(beforeTempo.y + rowHeight);
+    expect(afterTempo.x).toBe(beforeTempo.x);
+    expect(afterInfo?.getBarTempoRectLineLocal(afterBar)).toEqual(
+      beforeLocalTempo
+    );
   });
 });

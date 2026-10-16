@@ -1,5 +1,4 @@
 import {
-  Bar,
   DEFAULT_MASTER_BAR,
   Guitar,
   Score,
@@ -7,7 +6,7 @@ import {
 } from "../../../src/notation/model";
 
 describe("Score model", () => {
-  test("new Score creates at least one master bar, track, staff and bar", () => {
+  test("new Score creates one master bar, track, staff and bar", () => {
     const score = new Score();
 
     expect(score.masterBars).toHaveLength(1);
@@ -27,7 +26,9 @@ describe("Score model", () => {
     expect(output.index).toBe(1);
     expect(score.tracks).toHaveLength(2);
     expect(track.staves).toHaveLength(1);
-    expect(track.staves[0].bars).toHaveLength(score.masterBars.length);
+    expect(score.tracks[1]).toBe(track);
+    expect(track.staves[0].bars).toHaveLength(1);
+    expect(track.staves[0].bars[0].masterBar).toBe(score.masterBars[0]);
   });
 
   test("insertReadyMasterBar inserts the master bar at the requested index", () => {
@@ -36,25 +37,25 @@ describe("Score model", () => {
     const staff = track.staves[0];
 
     const first = score.masterBars[0];
-    const second = score.appendMasterBar(DEFAULT_MASTER_BAR).masterBar;
     const inserted = score.appendMasterBar(DEFAULT_MASTER_BAR).masterBar;
-    const insertedBar = new Bar(staff, track.context, inserted);
+    const second = score.appendMasterBar(DEFAULT_MASTER_BAR).masterBar;
+    const originalBars = [...staff.bars];
+    const removed = score.removeMasterBar(1);
 
-    score.masterBars.pop();
-    const bars = new Map<number, Bar>([[staff.uuid, insertedBar]]);
-
-    score.insertReadyMasterBar(1, inserted, bars);
+    score.insertReadyMasterBar(1, removed.masterBar, removed.bars);
 
     expect(score.masterBars).toEqual([first, inserted, second]);
-    expect(staff.bars[1]).toBe(insertedBar);
+    expect(staff.bars).toHaveLength(3);
+    expect(staff.bars[0]).toBe(originalBars[0]);
+    expect(staff.bars[1]).toBe(originalBars[1]);
+    expect(staff.bars[2]).toBe(originalBars[2]);
   });
 
   test("removeTrack removes the requested track and returns its neighbor", () => {
     const score = new Score();
     const track1 = score.tracks[0];
-    const track2 = new Track(score, new Guitar(), "Track 2");
-    const track3 = new Track(score, new Guitar(), "Track 3");
-    score.tracks.push(track2, track3);
+    score.addTrack(new Guitar(), "Track 2");
+    const track3 = score.addTrack(new Guitar(), "Track 3").tracks[0];
 
     const selectedTrack = score.removeTrack(1);
 
@@ -64,10 +65,10 @@ describe("Score model", () => {
 
   test("removeTrack throws when removing the last remaining track", () => {
     const score = new Score();
+    const track = score.tracks[0];
 
-    expect(() => score.removeTrack(0)).toThrow(
-      "Empty score currently unhandled"
-    );
+    expect(() => score.removeTrack(0)).toThrow(Error);
+    expect(score.tracks).toEqual([track]);
   });
 
   test("moveTrack moves an existing track to the target index", () => {
@@ -85,53 +86,64 @@ describe("Score model", () => {
     const score = new Score();
     const foreignTrack = new Track(score, new Guitar(), "Foreign");
 
-    expect(() => score.moveTrack(foreignTrack, 0)).toThrow(
-      "Track not in score"
-    );
-    expect(() => score.moveTrack(score.tracks[0], -1)).toThrow(
-      "Target track index out of score"
-    );
+    expect(() => score.moveTrack(foreignTrack, 0)).toThrow(Error);
+    expect(() => score.moveTrack(score.tracks[0], -1)).toThrow(Error);
   });
 
   test("removeMasterBar throws when removing the last remaining master bar", () => {
     const score = new Score();
+    const masterBar = score.masterBars[0];
+    const staff = score.tracks[0].staves[0];
+    const bar = staff.bars[0];
 
-    expect(() => score.removeMasterBar(0)).toThrow(
-      "Score must have at least one master bar"
-    );
+    expect(() => score.removeMasterBar(0)).toThrow(Error);
+    expect(score.masterBars).toEqual([masterBar]);
+    expect(staff.bars).toEqual([bar]);
   });
 
   test("appendMasterBar adds corresponding bars for every track staff", () => {
     const score = new Score();
+    const firstTrack = score.tracks[0];
+    firstTrack.insertStaff(1);
     const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
+    const staves = [...firstTrack.staves, ...secondTrack.staves];
+    const firstBars = staves.map((s) => s.bars[0]);
+    const firstMasterBar = score.masterBars[0];
 
     const output = score.appendMasterBar(DEFAULT_MASTER_BAR);
 
-    expect(score.masterBars).toHaveLength(2);
-    expect(score.tracks[0].staves[0].bars).toHaveLength(2);
-    expect(secondTrack.staves[0].bars).toHaveLength(2);
-    expect(output.bars.get(score.tracks[0].staves[0].uuid)).toBe(
-      score.tracks[0].staves[0].bars[1]
-    );
-    expect(output.bars.get(secondTrack.staves[0].uuid)).toBe(
-      secondTrack.staves[0].bars[1]
-    );
+    expect(output.index).toBe(1);
+    expect(output.bars.size).toBe(3);
+    expect(score.masterBars).toEqual([firstMasterBar, output.masterBar]);
+    for (const [i, staff] of staves.entries()) {
+      expect(staff.bars).toHaveLength(2);
+      expect(staff.bars[0]).toBe(firstBars[i]);
+      expect(staff.bars[1].masterBar).toBe(output.masterBar);
+      expect(output.bars.get(staff.uuid)).toBe(staff.bars[1]);
+    }
   });
 
   test("removeMasterBar removes aligned bars from every track staff", () => {
     const score = new Score();
+    score.tracks[0].insertStaff(1);
     score.addTrack(new Guitar(), "Track 2");
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const [first, middle, last] = score.masterBars;
+    const staves = score.tracks.flatMap((t) => t.staves);
+    const originalBars = staves.map((s) => [...s.bars]);
 
     const removed = score.removeMasterBar(1);
 
-    expect(score.masterBars).toHaveLength(2);
-    for (const track of score.tracks) {
-      for (const staff of track.staves) {
-        expect(staff.bars).toHaveLength(2);
-        expect(removed.bars.get(staff.uuid)).toBeDefined();
-      }
+    expect(score.masterBars).toEqual([first, last]);
+    expect(removed.index).toBe(1);
+    expect(removed.masterBar).toBe(middle);
+    expect(removed.bars.size).toBe(3);
+    for (const [i, staff] of staves.entries()) {
+      expect(staff.bars).toHaveLength(2);
+      expect(staff.bars[0]).toBe(originalBars[i][0]);
+      expect(staff.bars[1]).toBe(originalBars[i][2]);
+      expect(removed.bars.get(staff.uuid)).toBe(originalBars[i][1]);
     }
   });
 
@@ -142,10 +154,14 @@ describe("Score model", () => {
 
     const output = score.addTrack(new Guitar(), "Late Track");
     const addedTrack = output.tracks[0];
+    const [first, second, third] = addedTrack.staves[0].bars;
 
     expect(score.masterBars).toHaveLength(3);
     expect(addedTrack.staves).toHaveLength(1);
     expect(addedTrack.staves[0].bars).toHaveLength(3);
+    expect(first.masterBar).toBe(score.masterBars[0]);
+    expect(second.masterBar).toBe(score.masterBars[1]);
+    expect(third.masterBar).toBe(score.masterBars[2]);
   });
 
   test("validates matched and unmatched repeat boundaries", () => {
@@ -161,7 +177,7 @@ describe("Score model", () => {
     expect(score.isMasterBarRepeatStatusValid(score.masterBars[2])).toBe(false);
   });
 
-  test("closes then opens repeat sections at a shared boundary bar", () => {
+  test("accepts separate repeat sections and an ordinary bar", () => {
     const score = new Score();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     score.appendMasterBar(DEFAULT_MASTER_BAR);

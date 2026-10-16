@@ -15,7 +15,7 @@ test("accepts timed keyboard fret input", async ({ page }) => {
   // Digits entered within the accumulation window form a two-digit fret.
   await page.keyboard.press("1");
   await page.keyboard.press("2");
-  await expect(editor.locator('[id^="note-text-"]')).toHaveText(/12/);
+  await expect(editor.locator('[id^="note-text-"]')).toHaveText("12");
 
   // Waiting past the timeout makes the next digit replace the previous fret.
   await page.clock.fastForward(251);
@@ -32,6 +32,8 @@ test("clicks an underfilled bar end gap to append and select a beat", async ({
 
   const notes = editor.locator('.tu-root-svg [id^="note-rect-"]');
   await notes.first().click();
+  await page.keyboard.press("1");
+  await expect(editor.locator('[id^="note-text-"]')).toHaveText("1");
   const gap = editor.locator("[data-bar-end-gap-uuid]");
   await expect(gap).toHaveCount(1);
   const hint = editor.locator(".tu-end-gap-hint");
@@ -45,7 +47,7 @@ test("clicks an underfilled bar end gap to append and select a beat", async ({
   await expect(editor.locator("[data-beat-uuid]")).toHaveCount(2);
 
   await page.keyboard.press("7");
-  await expect(editor.locator('[id^="note-text-"]')).toContainText("7");
+  await expect(editor.locator('[id^="note-text-"]')).toHaveText(["1", "7"]);
 
   const beats = editor.locator("[data-beat-uuid]");
   const firstBeat = await beats.nth(0).boundingBox();
@@ -118,19 +120,19 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await expect(gap).toBeVisible();
     await gap.hover();
 
-    const geometry = await editor.evaluate(() => {
-      const gapElement = document.querySelector<SVGRectElement>(
+    const geometry = await editor.evaluate((root) => {
+      const gapElement = root.querySelector<SVGRectElement>(
         "[data-bar-end-gap-uuid]"
       );
-      const hint = document.querySelector<SVGTextElement>(".tu-end-gap-hint");
+      const hint = root.querySelector<SVGTextElement>(".tu-end-gap-hint");
       if (gapElement === null || hint === null) {
         throw Error("End-gap geometry is missing");
       }
       const uuid = gapElement.dataset["barEndGapUuid"];
-      const firstLine = document.querySelector<SVGLineElement>(
+      const firstLine = root.querySelector<SVGLineElement>(
         `[id="bar-staff-${uuid}-0"]`
       );
-      const lastLine = document.querySelectorAll<SVGLineElement>(
+      const lastLine = root.querySelectorAll<SVGLineElement>(
         `[id^="bar-staff-${uuid}-"]`
       );
       if (firstLine === null || lastLine.length === 0) {
@@ -188,46 +190,50 @@ test("announces a fret change but not an unchanged fret DOM write", async ({
   const note = editor.locator('.tu-root-svg [id^="note-rect-"]').first();
   await note.click();
 
-  const announcement = editor.locator(".tu-announcement-host");
-  await announcement.evaluate((element) => {
-    (window as any).__tabuiAnnouncementMutations = 0;
-    const observer = new MutationObserver((records) => {
-      (window as any).__tabuiAnnouncementMutations += records.length;
-    });
-    observer.observe(element, {
+  const announcement = editor.getByRole("status");
+  await expect(announcement).toHaveAttribute("aria-live", "polite");
+  await expect(announcement).toHaveAttribute("aria-atomic", "true");
+  await page.clock.runFor(100);
+  const observation = await announcement.evaluateHandle((element) => {
+    const state = {
+      mutations: 0,
+      observer: new MutationObserver((records) => {
+        state.mutations += records.length;
+      }),
+    };
+    state.observer.observe(element, {
       childList: true,
       subtree: true,
       characterData: true,
     });
-    (window as any).__tabuiAnnouncementObserver = observer;
+    return state;
   });
-  await page.keyboard.press("5");
-  await expect(announcement).toHaveText(
-    /Track .*Staff .*Bar .*Beat .*String 1, fret 5\./
-  );
-  const changedMutations = await page.evaluate(() => {
-    const count = (window as any).__tabuiAnnouncementMutations;
-    (window as any).__tabuiAnnouncementMutations = 0;
-    return count;
-  });
-  expect(changedMutations).toBeGreaterThan(0);
-  await page.clock.fastForward(251);
-  await page.keyboard.press("5");
-  await page.evaluate(() => Promise.resolve());
-  const mutations = await page.evaluate(() => {
-    const observer = (window as any)
-      .__tabuiAnnouncementObserver as MutationObserver;
-    const records =
-      (window as any).__tabuiAnnouncementMutations +
-      observer.takeRecords().length;
-    observer.disconnect();
-    delete (window as any).__tabuiAnnouncementObserver;
-    delete (window as any).__tabuiAnnouncementMutations;
-    return records;
-  });
+  try {
+    await page.keyboard.press("5");
+    await expect(announcement).toHaveText(
+      /Track .*Staff .*Bar .*Beat .*String 1, fret 5\./
+    );
+    // Finish the first edit and digit window before observing the unchanged edit.
+    await page.clock.runFor(300);
+    const changedMutations = await observation.evaluate((state) => {
+      const count = state.mutations + state.observer.takeRecords().length;
+      state.mutations = 0;
+      return count;
+    });
+    expect(changedMutations).toBeGreaterThan(0);
 
-  expect(mutations).toBe(0);
-  await expect(editor.locator('[id^="note-text-"]')).toHaveText("5");
+    await page.keyboard.press("5");
+    // Include animation frames and any delayed clear-and-reinsert announcement.
+    await page.clock.runFor(100);
+    const mutations = await observation.evaluate(
+      (state) => state.mutations + state.observer.takeRecords().length
+    );
+    expect(mutations).toBe(0);
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText("5");
+  } finally {
+    await observation.evaluate((state) => state.observer.disconnect());
+    await observation.dispose();
+  }
 });
 
 test("keeps concise arrow announcements after the automatic flush", async ({

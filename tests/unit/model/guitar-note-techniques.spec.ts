@@ -64,6 +64,7 @@ describe("GuitarNote technique updates", () => {
       )
     ).toBe(false);
     expect(note.hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
+    expect(note.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
   });
 
   test.each([
@@ -89,6 +90,8 @@ describe("GuitarNote technique updates", () => {
 
     expect(note.setTechnique(GuitarTechniqueType.LetRing)).toBe(false);
     expect(note.hasTechnique(GuitarTechniqueType.LetRing)).toBe(false);
+    expect(note.techniques).toHaveLength(1);
+    expect(note.techniques[0].bendOptions).toEqual(options);
   });
 
   test("setTechnique toggles an ordinary technique", () => {
@@ -140,8 +143,14 @@ describe("GuitarNote technique updates", () => {
         })
       )
     ).toBe(true);
-    expect(note.techniques).toEqual([bend]);
-    expect(note.techniques[0].bendOptions?.type).toBe(BendType.PrebendBend);
+    expect(note.techniques).toHaveLength(1);
+    expect(note.techniques[0]).toBe(bend);
+    expect(note.techniques[0].bendOptions).toMatchObject({
+      type: BendType.PrebendBend,
+      prebendPitch: 0.5,
+      bendPitch: 1,
+      bendDuration: 0.75,
+    });
   });
 
   test("setTechnique reports no change for identical bend options", () => {
@@ -154,6 +163,8 @@ describe("GuitarNote technique updates", () => {
     note.setTechnique(GuitarTechniqueType.Bend, options);
 
     expect(note.setTechnique(GuitarTechniqueType.Bend, options)).toBe(false);
+    expect(note.techniques).toHaveLength(1);
+    expect(note.techniques[0].bendOptions).toEqual(options);
   });
 
   test("resolves continuation pitch from the previous same-string bend", () => {
@@ -354,10 +365,8 @@ describe("GuitarNote technique updates", () => {
       next.fret = 5;
 
       expect(current.isTechniqueApplicable(type)).toBe(false);
-      current.setTechnique(type);
-
-      const setTechResult = current.setTechnique(type);
-      expect(setTechResult).toBe(false);
+      expect(current.setTechnique(type)).toBe(false);
+      expect(current.hasTechnique(type)).toBe(false);
     }
   );
 
@@ -377,6 +386,8 @@ describe("GuitarNote technique updates", () => {
       next.fret = 7;
 
       expect(current.isTechniqueApplicable(type)).toBe(true);
+      expect(current.setTechnique(type)).toBe(true);
+      expect(current.hasTechnique(type)).toBe(true);
     }
   );
 });

@@ -1,4 +1,4 @@
-import { expect, Locator, Page, test } from "@playwright/test";
+import { expect, Locator, test } from "@playwright/test";
 
 async function selectTrack(editor: Locator, trackIndex: number): Promise<void> {
   const trackButtons = editor.locator(".tu-track-select-button");
@@ -9,15 +9,25 @@ async function selectTrack(editor: Locator, trackIndex: number): Promise<void> {
   );
 }
 
-async function getVisibleBarBorderXs(page: Page): Promise<number[]> {
-  return page.locator('line[id^="bar-border-"]').evaluateAll((lines) => {
-    return lines
-      .map((line) => {
-        const svgLine = line as SVGGraphicsElement;
-        const matrix = svgLine.getCTM();
-        return (matrix?.e ?? 0) + Number(svgLine.getAttribute("x1"));
-      })
-      .sort((a, b) => a - b);
+async function getBarBorderXsByRow(editor: Locator): Promise<number[][]> {
+  return editor.locator('line[id^="bar-border-"]').evaluateAll((lines) => {
+    const rows = new Map<number, number[]>();
+    for (const line of lines) {
+      const svgLine = line as SVGLineElement;
+      const matrix = svgLine.getScreenCTM();
+      if (matrix === null) throw Error("Expected a rendered bar border");
+      const point = new DOMPoint(
+        svgLine.x1.baseVal.value,
+        svgLine.y1.baseVal.value
+      ).matrixTransform(matrix);
+      const row = rows.get(point.y) ?? [];
+      row.push(point.x);
+      rows.set(point.y, row);
+    }
+    // Row heights can differ by instrument; horizontal alignment must not.
+    return [...rows.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map((r) => r[1].sort((a, b) => a - b));
   });
 }
 
@@ -47,14 +57,18 @@ test("keeps visible bar borders aligned across track switches", async ({
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
   await editor.getByRole("button", { name: "Tracks" }).click();
 
-  const firstTrackBorderXs = await getVisibleBarBorderXs(page);
+  const firstTrackBorderXs = await getBarBorderXsByRow(editor);
   expect(firstTrackBorderXs.length).toBeGreaterThan(0);
 
   await selectTrack(editor, 1);
-  expect(await getVisibleBarBorderXs(page)).toEqual(firstTrackBorderXs);
+  await expect
+    .poll(() => getBarBorderXsByRow(editor))
+    .toEqual(firstTrackBorderXs);
 
   await selectTrack(editor, 2);
-  expect(await getVisibleBarBorderXs(page)).toEqual(firstTrackBorderXs);
+  await expect
+    .poll(() => getBarBorderXsByRow(editor))
+    .toEqual(firstTrackBorderXs);
 });
 
 test("restores the original notation after switching away and back", async ({

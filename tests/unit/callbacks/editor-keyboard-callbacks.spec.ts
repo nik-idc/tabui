@@ -1,14 +1,12 @@
 import { EditorKeyboardDefCallbacks } from "../../../src/notation/input/editor-keyboard-callbacks";
-import { RenderType } from "../../../src/notation/input/render-type";
 import {
   BarRepeatStatus,
   DEFAULT_MASTER_BAR,
+  GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
   NoteValue,
 } from "../../../src/notation/model";
-import { SetTupletCommand } from "../../../src/notation/controller/editor/command/set-tuplet-command";
-import { SetDotsCommand } from "../../../src/notation/controller/editor/command/set-dots-command";
 import { createBarWithBeats } from "../model/helpers";
 import { TrackController } from "../../../src/notation/controller/track-controller";
 import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
@@ -178,39 +176,6 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test.each([
-    ["x", false, "setSelectedNoteFret", [-1]],
-    ["X", true, "setSelectedBeatRest", []],
-    ["a", false, "insertBeatAfterSelected", []],
-    ["A", true, "insertBeatBeforeSelected", []],
-    ["i", false, "insertBarAfterSelected", []],
-    ["I", true, "insertBarBeforeSelected", []],
-    ["Delete", false, "removeSelectedBeat", []],
-    ["Delete", true, "removeSelectedBar", []],
-  ] as const)(
-    "%s shift=%s uses the mouse operation",
-    (key, shiftKey, method, args) => {
-      const { callbacks, notationComponent, rootElement, renderFunc } =
-        createHarness();
-      const controller = notationComponent.trackController;
-      controller.selectionAsBeats = [{}, {}];
-      const { track } = createBarWithBeats([
-        { baseDuration: NoteDuration.Quarter },
-      ]);
-      controller.selectionCursor = new TrackController(
-        track,
-        TEST_LAYOUT_DIMENSIONS
-      ).selectionCursor;
-      rootElement.focus();
-      const event = createKeyboardEvent(key, { shiftKey });
-      callbacks.onKeyDown(event);
-      expect(controller[method]).toHaveBeenCalledWith(...args);
-      expect(controller.deleteSelectedBeats).not.toHaveBeenCalled();
-      expect(renderFunc).toHaveBeenCalledTimes(1);
-      expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    }
-  );
-
-  test.each([
     ["t", true, "noteControlsComponent", "showTupletControls"],
     ["r", true, "measureControlsComponent", "showRepeatCountControls"],
     ["m", false, "measureControlsComponent", "showTempoControls"],
@@ -252,88 +217,162 @@ describe("EditorKeyboardDefCallbacks", () => {
   ] as const)(
     "%s shift=%s applies and removes eligible range techniques",
     (key, shiftKey, type) => {
-      const { callbacks, notationComponent, rootElement } = createHarness();
-      const controller = notationComponent.trackController;
-      const note = {
-        hasTechnique: jest.fn(() => false),
-        isTechniqueApplicable: jest.fn(() => true),
-      };
-      controller.selectionAsBeats = [{ notes: [note] }];
+      const { callbacks, notationComponent, rootElement, renderFunc } =
+        createHarness();
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const notes = beats.map((b) => b.notes?.[0]);
+      for (const [index, beat] of beats.entries()) {
+        for (const note of beat.notes ?? []) {
+          if (!(note instanceof GuitarNote)) {
+            throw Error("Expected guitar note");
+          }
+          note.fret = [5, 7, 9][index];
+        }
+      }
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      notationComponent.trackController = controller;
+      controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+      expect(controller.selectionAsBeats).toEqual(beats.slice(0, 2));
       rootElement.focus();
-      for (const applied of [false, true]) {
-        note.hasTechnique.mockReturnValue(applied);
-        note.isTechniqueApplicable.mockReturnValue(!applied);
+      for (const applied of [true, false]) {
         const event = createKeyboardEvent(key, { shiftKey });
         callbacks.onKeyDown(event);
-        expect(controller.setTechnique).toHaveBeenLastCalledWith(
-          type,
-          undefined
-        );
+        expect(notes.map((n) => n?.hasTechnique(type))).toEqual([
+          applied,
+          applied,
+          false,
+        ]);
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
       }
-      expect(controller.setTechnique).toHaveBeenCalledTimes(2);
-      note.hasTechnique.mockReturnValue(false);
+      controller.undo();
+      expect(notes.map((n) => n?.hasTechnique(type))).toEqual([
+        true,
+        true,
+        false,
+      ]);
+      controller.redo();
+      expect(notes.map((n) => n?.hasTechnique(type))).toEqual([
+        false,
+        false,
+        false,
+      ]);
+      expect(renderFunc).toHaveBeenCalledTimes(2);
+      for (const beat of beats) {
+        for (const note of beat.notes ?? []) {
+          if (note instanceof GuitarNote) note.fret = null;
+        }
+      }
       const disabled = createKeyboardEvent(key, { shiftKey });
       callbacks.onKeyDown(disabled);
       expect(disabled.preventDefault).not.toHaveBeenCalled();
-      expect(controller.setTechnique).toHaveBeenCalledTimes(2);
+      expect(notes.map((n) => n?.techniques)).toEqual([[], [], []]);
+      expect(renderFunc).toHaveBeenCalledTimes(2);
     }
   );
 
-  test.each([1, 2, 3, 4])("voice %s advances and wraps", (voice) => {
-    const { callbacks, notationComponent, rootElement, renderFunc } =
-      createHarness();
-    notationComponent.trackController.activeVoiceNumber = voice;
-    rootElement.focus();
-    callbacks.onKeyDown(createKeyboardEvent("V", { shiftKey: true }));
-    expect(
-      notationComponent.trackController.setActiveVoiceNumber
-    ).toHaveBeenCalledWith((voice % 4) + 1);
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.ActiveVoiceSelection);
-  });
+  test.each([false, true])(
+    "Ctrl shortcuts copy, paste, undo and redo note values (uppercase=%s)",
+    (uppercase) => {
+      const { callbacks, notationComponent, rootElement, renderFunc } =
+        createHarness();
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      notationComponent.trackController = controller;
+      controller.setSelectedNoteFret(9);
+      controller.moveSelectedNote(SelectedMoveDirection.Right);
+      controller.setSelectedNoteFret(5);
+      controller.moveSelectedNote(SelectedMoveDirection.Left);
+      rootElement.focus();
 
-  test.each([
-    ["c", "copy"],
-    ["v", "paste"],
-    ["z", "undo"],
-    ["y", "redo"],
-  ])("Ctrl+%s keeps its existing command", (key, method) => {
-    const { callbacks, notationComponent, rootElement } = createHarness();
-    rootElement.focus();
-    const event = createKeyboardEvent(key, { ctrlKey: true });
-    callbacks.onKeyDown(event);
-    expect(notationComponent.trackController[method]).toHaveBeenCalledTimes(1);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-  });
+      const copy = createKeyboardEvent(uppercase ? "C" : "c", {
+        ctrlKey: true,
+      });
+      callbacks.onKeyDown(copy);
+      expect(copy.preventDefault).toHaveBeenCalledTimes(1);
+      expect(renderFunc).not.toHaveBeenCalled();
+      expect(beats[0].notes?.[0]).toEqual(expect.objectContaining({ fret: 9 }));
+      controller.moveSelectedNote(SelectedMoveDirection.Right);
 
-  test.each([
-    null,
-    {
-      hasTechnique: () => false,
-      isTechniqueApplicable: () => false,
-    },
-  ])("empty or ineligible cursor notes reject techniques: %j", (note) => {
-    const { callbacks, notationComponent, rootElement, uiComponent } =
-      createHarness();
-    notationComponent.trackController.selectionCursor = { note };
-    rootElement.focus();
-    for (const key of ["v", "p", "l", "s", "b", "h"]) {
-      const event = createKeyboardEvent(key);
-      callbacks.onKeyDown(event);
-      expect(event.preventDefault).not.toHaveBeenCalled();
+      for (const [key, fret] of [
+        ["v", 9],
+        ["z", 5],
+        ["y", 9],
+      ] as const) {
+        renderFunc.mockClear();
+        const event = createKeyboardEvent(uppercase ? key.toUpperCase() : key, {
+          ctrlKey: true,
+        });
+        callbacks.onKeyDown(event);
+        expect(beats[1].notes?.[0]).toEqual(expect.objectContaining({ fret }));
+        expect(beats[0].notes?.[0]).toEqual(
+          expect.objectContaining({ fret: 9 })
+        );
+        expect(event.preventDefault).toHaveBeenCalledTimes(1);
+        expect(renderFunc).toHaveBeenCalledTimes(1);
+      }
     }
-    expect(
-      notationComponent.trackController.setTechnique
-    ).not.toHaveBeenCalled();
-    expect(
-      uiComponent.sideComponent.techniqueControlsComponent.showBendControls
-    ).not.toHaveBeenCalled();
-  });
+  );
+
+  test.each(["rest", "empty note"] as const)(
+    "%s cursor rejects techniques",
+    (state) => {
+      const {
+        callbacks,
+        notationComponent,
+        rootElement,
+        uiComponent,
+        renderFunc,
+      } = createHarness();
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      notationComponent.trackController = controller;
+      if (state === "rest") controller.setSelectedBeatRest();
+      rootElement.focus();
+      for (const key of ["v", "p", "l", "s", "b", "h"]) {
+        const event = createKeyboardEvent(key);
+        callbacks.onKeyDown(event);
+        expect(event.preventDefault).not.toHaveBeenCalled();
+      }
+      if (state === "rest") {
+        expect(beats[0].notes).toBeNull();
+      } else {
+        expect(beats[0].notes).toEqual(
+          Array(6).fill(expect.objectContaining({ fret: null, techniques: [] }))
+        );
+      }
+      expect(renderFunc).not.toHaveBeenCalled();
+      expect(
+        uiComponent.sideComponent.techniqueControlsComponent.showBendControls
+      ).not.toHaveBeenCalled();
+    }
+  );
 
   test("ranges reject cursor-only dialogs, repeats, and dead notes", () => {
-    const { callbacks, notationComponent, rootElement, renderFunc } =
-      createHarness();
-    notationComponent.trackController.selectionAsBeats = [{}, {}];
+    const {
+      callbacks,
+      notationComponent,
+      rootElement,
+      renderFunc,
+      uiComponent,
+    } = createHarness();
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    controller.setSelectedNoteFret(5);
+    controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+    expect(controller.selectionAsBeats).toEqual(beats);
     rootElement.focus();
     for (const key of ["x", "b", "r", "m"]) {
       const event = createKeyboardEvent(key);
@@ -346,6 +385,19 @@ describe("EditorKeyboardDefCallbacks", () => {
       expect(event.preventDefault).not.toHaveBeenCalled();
     }
     expect(renderFunc).not.toHaveBeenCalled();
+    expect(beats[0].notes?.[0]).toEqual(expect.objectContaining({ fret: 5 }));
+    expect(beats[1].notes?.[0]).toEqual(
+      expect.objectContaining({ fret: null })
+    );
+    expect(beats[0].voiceBar.bar.masterBar.isRepeatStart).toBe(false);
+    expect(beats[0].voiceBar.bar.masterBar.isRepeatEnd).toBe(false);
+    for (const component of Object.values(uiComponent.sideComponent)) {
+      for (const open of Object.values(
+        component as Record<string, jest.Mock>
+      )) {
+        expect(open).not.toHaveBeenCalled();
+      }
+    }
   });
 
   test.each([false, true])("repeat start toggles from %s", (enabled) => {
@@ -368,105 +420,145 @@ describe("EditorKeyboardDefCallbacks", () => {
     { key: "=", shiftKey: false },
     { key: "-", shiftKey: false },
   ])("duration steps clamp; $key shifted=$shiftKey", ({ key, shiftKey }) => {
-    const { callbacks, notationComponent, rootElement } = createHarness();
-    const controller = notationComponent.trackController;
-    const durations = [
-      NoteDuration.SixtyFourth,
-      NoteDuration.ThirtySecond,
-      NoteDuration.Sixteenth,
-      NoteDuration.Eighth,
-      NoteDuration.Quarter,
-      NoteDuration.Half,
-      NoteDuration.Whole,
-    ];
+    const { callbacks, notationComponent, rootElement, renderFunc } =
+      createHarness();
+    // Each row is a worked duration step, including both clamped endpoints.
+    const steps = [
+      [
+        NoteDuration.SixtyFourth,
+        NoteDuration.ThirtySecond,
+        NoteDuration.SixtyFourth,
+      ],
+      [
+        NoteDuration.ThirtySecond,
+        NoteDuration.Sixteenth,
+        NoteDuration.SixtyFourth,
+      ],
+      [NoteDuration.Sixteenth, NoteDuration.Eighth, NoteDuration.ThirtySecond],
+      [NoteDuration.Eighth, NoteDuration.Quarter, NoteDuration.Sixteenth],
+      [NoteDuration.Quarter, NoteDuration.Half, NoteDuration.Eighth],
+      [NoteDuration.Half, NoteDuration.Whole, NoteDuration.Quarter],
+      [NoteDuration.Whole, NoteDuration.Whole, NoteDuration.Half],
+    ] as const;
     rootElement.focus();
-    durations.forEach((baseDuration, index) => {
-      const active = { baseDuration };
-      controller.selectionAsBeats = [
-        active,
+    for (const [baseDuration, longer, shorter] of steps) {
+      const { track, beats } = createBarWithBeats([
+        { baseDuration },
         { baseDuration: NoteDuration.Quarter },
-      ];
-      controller.selectionEndBeat = active;
-      callbacks.onKeyDown(createKeyboardEvent(key, { shiftKey }));
-      expect(controller.setDuration).toHaveBeenLastCalledWith(
-        durations[
-          key === "-"
-            ? Math.max(index - 1, 0)
-            : Math.min(index + 1, durations.length - 1)
-        ]
-      );
-    });
+        { baseDuration: NoteDuration.Half },
+      ]);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      notationComponent.trackController = controller;
+      controller.moveSelectedNote(SelectedMoveDirection.Right);
+      controller.extendSelectionByBeat(SelectedMoveDirection.Left);
+      expect(controller.selectionEndBeat).toBe(beats[0]);
+
+      renderFunc.mockClear();
+      const event = createKeyboardEvent(key, { shiftKey });
+      callbacks.onKeyDown(event);
+      const expected = key === "-" ? shorter : longer;
+      expect(beats.map((beat) => beat.baseDuration)).toEqual([
+        expected,
+        expected,
+        NoteDuration.Half,
+      ]);
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+      expect(renderFunc).toHaveBeenCalledTimes(1);
+
+      controller.undo();
+      expect(beats.map((beat) => beat.baseDuration)).toEqual([
+        baseDuration,
+        NoteDuration.Quarter,
+        NoteDuration.Half,
+      ]);
+    }
   });
 
   test("dot cycles use the active end and preserve command undo/redo", () => {
-    const { callbacks, notationComponent, rootElement } = createHarness();
-    const { beats } = createBarWithBeats([
+    const { callbacks, notationComponent, rootElement, renderFunc } =
+      createHarness();
+    const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Eighth },
       { baseDuration: NoteDuration.Eighth, dots: 1 },
+      { baseDuration: NoteDuration.Eighth, dots: 2 },
     ]);
-    const controller = notationComponent.trackController;
-    controller.selectionAsBeats = beats;
-    controller.selectionEndBeat = beats[0];
-    const commands: SetDotsCommand[] = [];
-    controller.setDots.mockImplementation((dots: number) => {
-      const command = new SetDotsCommand(beats, dots);
-      command.execute();
-      commands.push(command);
-    });
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
+    expect(controller.selectionEndBeat).toBe(beats[0]);
     rootElement.focus();
     for (const expected of [1, 2, 0]) {
-      callbacks.onKeyDown(createKeyboardEvent("."));
-      expect(beats.map((beat) => beat.dots)).toEqual([expected, expected]);
+      renderFunc.mockClear();
+      const event = createKeyboardEvent(".");
+      callbacks.onKeyDown(event);
+      expect(beats.map((beat) => beat.dots)).toEqual([expected, expected, 2]);
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+      expect(renderFunc).toHaveBeenCalledTimes(1);
     }
-    commands.reverse().forEach((command) => command.undo());
-    expect(beats.map((beat) => beat.dots)).toEqual([0, 1]);
-    commands.reverse().forEach((command) => command.redo());
-    expect(beats.map((beat) => beat.dots)).toEqual([0, 0]);
+    for (const expected of [
+      [2, 2, 2],
+      [1, 1, 2],
+      [0, 1, 2],
+    ]) {
+      controller.undo();
+      expect(beats.map((beat) => beat.dots)).toEqual(expected);
+    }
+    for (const expected of [
+      [1, 1, 2],
+      [2, 2, 2],
+      [0, 0, 2],
+    ]) {
+      controller.redo();
+      expect(beats.map((beat) => beat.dots)).toEqual(expected);
+    }
   });
 
   test.each([null, { normalCount: 5, tupletCount: 4 }])(
     "tuplet cycles normalize mixed ranges from active end %j",
     (initial) => {
-      const { callbacks, notationComponent, rootElement } = createHarness();
+      const { callbacks, notationComponent, rootElement, renderFunc } =
+        createHarness();
       const duplet = { normalCount: 2, tupletCount: 1 };
       const triplet = { normalCount: 3, tupletCount: 2 };
-      const { beats } = createBarWithBeats([
-        { baseDuration: NoteDuration.Eighth, tupletSettings: initial },
+      const { track, beats } = createBarWithBeats([
         { baseDuration: NoteDuration.Eighth, tupletSettings: duplet },
+        { baseDuration: NoteDuration.Eighth, tupletSettings: initial },
+        { baseDuration: NoteDuration.Quarter },
       ]);
-      const controller = notationComponent.trackController;
-      controller.selectionAsBeats = beats;
-      controller.selectionEndBeat = beats[0];
-      const commands: SetTupletCommand[] = [];
-      controller.setSelectedBeatsTuplet.mockImplementation(
-        (normalCount: number, tupletCount: number) => {
-          const command = new SetTupletCommand(
-            beats,
-            normalCount === 1 ? null : { normalCount, tupletCount }
-          );
-          command.execute();
-          commands.push(command);
-        }
-      );
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      notationComponent.trackController = controller;
+      controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+      expect(controller.selectionEndBeat).toBe(beats[1]);
       rootElement.focus();
       const expectedCycle =
         initial === null
           ? [duplet, triplet, null]
           : [null, duplet, triplet, null];
       for (const expected of expectedCycle) {
-        callbacks.onKeyDown(createKeyboardEvent("t"));
+        renderFunc.mockClear();
+        const event = createKeyboardEvent("t");
+        callbacks.onKeyDown(event);
         expect(beats.map((beat) => beat.tupletSettings)).toEqual([
           expected,
           expected,
+          null,
         ]);
+        expect(event.preventDefault).toHaveBeenCalledTimes(1);
+        expect(renderFunc).toHaveBeenCalledTimes(1);
       }
-      commands.reverse().forEach((command) => command.undo());
+      for (let i = 0; i < expectedCycle.length; i++) controller.undo();
       expect(beats.map((beat) => beat.tupletSettings)).toEqual([
-        initial,
         duplet,
+        initial,
+        null,
       ]);
-      commands.reverse().forEach((command) => command.redo());
-      expect(beats.map((beat) => beat.tupletSettings)).toEqual([null, null]);
+      for (let i = 0; i < expectedCycle.length; i++) controller.redo();
+      expect(beats.map((beat) => beat.tupletSettings)).toEqual([
+        null,
+        null,
+        null,
+      ]);
     }
   );
 
@@ -774,12 +866,10 @@ describe("EditorKeyboardDefCallbacks", () => {
     controller.setSelectedNoteFret(5);
     controller.setSelectedBeatRest();
     expect(controller.selectionCursor?.note).toBeNull();
-    const setFret = jest.spyOn(controller, "setSelectedNoteFret");
     rootElement.focus();
     const event = createKeyboardEvent("x");
     callbacks.onKeyDown(event);
     expect(beats[0].isRest()).toBe(true);
-    expect(setFret).not.toHaveBeenCalled();
     expect(renderFunc).not.toHaveBeenCalled();
     expect(event.preventDefault).not.toHaveBeenCalled();
     controller.undo();
@@ -801,59 +891,33 @@ describe("EditorKeyboardDefCallbacks", () => {
       expect(
         notationComponent.trackController.setSelectedNoteFret
       ).not.toHaveBeenCalled();
-      expect(callbacks.clearFretEvent()).toBe(false);
     }
   );
 
-  test("backspace prevents default when clearing a populated note", () => {
+  test("backspace clears a populated note and restores it through history", () => {
     const { callbacks, notationComponent, rootElement, renderFunc } =
       createHarness();
-    notationComponent.trackController.selectionCursor = {
-      note: { noteValue: NoteValue.C },
-    };
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    controller.setSelectedNoteFret(7);
     rootElement.focus();
     const event = createKeyboardEvent("Backspace");
     callbacks.onKeyDown(event);
+    expect(beats[0].notes?.[0]).toEqual(
+      expect.objectContaining({ fret: null })
+    );
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(renderFunc).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.setSelectedNoteFret
-    ).toHaveBeenCalledWith(null);
-  });
 
-  test("direct command handlers dispatch expected editor actions", () => {
-    const { callbacks, notationComponent, renderFunc } =
-      createHarness(createRootElement());
-
-    callbacks.copyEvent();
-    expect(notationComponent.trackController.copy).toHaveBeenCalledTimes(1);
-    expect(renderFunc).not.toHaveBeenCalled();
-
-    callbacks.pasteEvent();
-    expect(notationComponent.trackController.paste).toHaveBeenCalledTimes(1);
-
-    callbacks.undoEvent();
-    expect(notationComponent.trackController.undo).toHaveBeenCalledTimes(1);
-
-    callbacks.redoEvent();
-    expect(notationComponent.trackController.redo).toHaveBeenCalledTimes(1);
-
-    callbacks.deleteSelectionEvent();
-    expect(
-      notationComponent.trackController.removeSelectedBeat
-    ).toHaveBeenCalledTimes(1);
-
-    callbacks.togglePlaybackEvent();
-    expect(notationComponent.trackController.startPlayer).toHaveBeenCalledTimes(
-      1
+    callbacks.onKeyDown(createKeyboardEvent("z", { ctrlKey: true }));
+    expect(beats[0].notes?.[0]).toEqual(expect.objectContaining({ fret: 7 }));
+    callbacks.onKeyDown(createKeyboardEvent("y", { ctrlKey: true }));
+    expect(beats[0].notes?.[0]).toEqual(
+      expect.objectContaining({ fret: null })
     );
-
-    notationComponent.trackController.isPlaying = true;
-    callbacks.togglePlaybackEvent();
-    expect(notationComponent.trackController.stopPlayer).toHaveBeenCalledTimes(
-      1
-    );
-    expect(renderFunc).toHaveBeenCalledTimes(6);
   });
 
   test("playback suppresses editing shortcuts but preserves Space", () => {
@@ -940,31 +1004,30 @@ describe("EditorKeyboardDefCallbacks", () => {
   test("technique shortcuts respect selection and bend shortcut opens bend controls", () => {
     const { callbacks, uiComponent, notationComponent, renderFunc } =
       createHarness(createRootElement());
+    notationComponent.trackController = new TrackController(
+      createBarWithBeats([]).track,
+      TEST_LAYOUT_DIMENSIONS
+    );
+    callbacks.vibratoEvent();
+    expect(notationComponent.trackController.selectionCursor).toBeUndefined();
+    expect(notationComponent.trackController.selectionAsBeats).toEqual([]);
+    expect(renderFunc).not.toHaveBeenCalled();
+
+    const { track } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+
+    controller.setSelectedNoteFret(5);
+    const note = controller.selectionCursor?.note;
 
     callbacks.vibratoEvent();
-    expect(
-      notationComponent.trackController.setTechnique
-    ).not.toHaveBeenCalled();
-
-    notationComponent.trackController.selectionCursor = {
-      note: {
-        noteValue: NoteValue.C,
-        hasTechnique: () => false,
-        isTechniqueApplicable: () => true,
-      },
-    };
-    notationComponent.trackController.hasSelectedNote = true;
-
-    callbacks.vibratoEvent();
+    expect(note?.hasTechnique(GuitarTechniqueType.Vibrato)).toBe(true);
     callbacks.palmMuteEvent();
+    expect(note?.hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
     callbacks.bendEvent();
 
-    expect(
-      notationComponent.trackController.setTechnique
-    ).toHaveBeenNthCalledWith(1, GuitarTechniqueType.Vibrato, undefined);
-    expect(
-      notationComponent.trackController.setTechnique
-    ).toHaveBeenNthCalledWith(2, GuitarTechniqueType.PalmMute, undefined);
     expect(
       uiComponent.sideComponent.techniqueControlsComponent.showBendControls
     ).toHaveBeenCalledTimes(1);
@@ -979,31 +1042,30 @@ describe("EditorKeyboardDefCallbacks", () => {
     ]);
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     notationComponent.trackController = controller;
-    jest.spyOn(controller, "setSelectedNoteFret");
     const getTimeSpy = jest.spyOn(Date.prototype, "getTime");
 
     getTimeSpy.mockReturnValueOnce(1000);
     callbacks.fretInputEvent("1");
-    expect(
-      notationComponent.trackController.setSelectedNoteFret
-    ).toHaveBeenNthCalledWith(1, 1);
+    expect(controller.selectionCursor?.note).toEqual(
+      expect.objectContaining({ fret: 1 })
+    );
 
     getTimeSpy.mockReturnValueOnce(1100);
     callbacks.fretInputEvent("2");
-    expect(
-      notationComponent.trackController.setSelectedNoteFret
-    ).toHaveBeenNthCalledWith(2, 12);
+    expect(controller.selectionCursor?.note).toEqual(
+      expect.objectContaining({ fret: 12 })
+    );
 
     getTimeSpy.mockReturnValueOnce(1500);
     callbacks.fretInputEvent("3");
-    expect(
-      notationComponent.trackController.setSelectedNoteFret
-    ).toHaveBeenNthCalledWith(3, 3);
+    expect(controller.selectionCursor?.note).toEqual(
+      expect.objectContaining({ fret: 3 })
+    );
 
     callbacks.fretInputEvent("x");
-    expect(
-      notationComponent.trackController.setSelectedNoteFret
-    ).toHaveBeenCalledTimes(3);
+    expect(controller.selectionCursor?.note).toEqual(
+      expect.objectContaining({ fret: 3 })
+    );
     expect(renderFunc).toHaveBeenCalledTimes(3);
   });
 
@@ -1026,44 +1088,51 @@ describe("EditorKeyboardDefCallbacks", () => {
     );
   });
 
-  test("arrow keys and backspace update the selected note correctly", () => {
-    const { callbacks, notationComponent, renderFunc } =
-      createHarness(createRootElement());
-    notationComponent.trackController.selectionCursor = {
-      note: { noteValue: NoteValue.C },
-    };
-    notationComponent.trackController.hasSelectedNote = true;
+  // NOTE: This is what I mean by tests that don't make sense to me
+  // What purpose does this serve? Moving is one operation,
+  // clearing with a backspace is another operation and most importantly
+  // **why are they tested together?** This is barely a **unit** test
+  test("Up/Down select the note cleared by backspace", () => {
+    const { callbacks, notationComponent, rootElement, renderFunc } =
+      createHarness();
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    controller.setSelectedNoteFret(5);
+    controller.moveSelectedNote(SelectedMoveDirection.Down);
+    controller.setSelectedNoteFret(9);
+    controller.moveSelectedNote(SelectedMoveDirection.Up);
+    const upperNote = beats[0].notes?.[0];
+    const lowerNote = beats[0].notes?.[1];
+    rootElement.focus();
 
-    callbacks.moveSelectionEvent("arrowdown");
-    callbacks.moveSelectionEvent("arrowup");
-    callbacks.moveSelectionEvent("arrowleft");
-    callbacks.moveSelectionEvent("arrowright");
-    expect(
-      notationComponent.trackController.moveSelectedNote
-    ).toHaveBeenNthCalledWith(1, SelectedMoveDirection.Down);
-    expect(
-      notationComponent.trackController.moveSelectedNote
-    ).toHaveBeenNthCalledWith(2, SelectedMoveDirection.Up);
-    expect(
-      notationComponent.trackController.moveSelectedNote
-    ).toHaveBeenNthCalledWith(3, SelectedMoveDirection.Left);
-    expect(
-      notationComponent.trackController.moveSelectedNote
-    ).toHaveBeenNthCalledWith(4, SelectedMoveDirection.Right);
+    const down = createKeyboardEvent("ArrowDown");
+    callbacks.onKeyDown(down);
+    expect(controller.selectionCursor?.note).toBe(lowerNote);
+    expect(down.preventDefault).toHaveBeenCalledTimes(1);
 
-    callbacks.clearFretEvent();
-    expect(
-      notationComponent.trackController.setSelectedNoteFret
-    ).toHaveBeenCalledWith(null);
+    const clearLower = createKeyboardEvent("Backspace");
+    callbacks.onKeyDown(clearLower);
+    expect(lowerNote).toEqual(expect.objectContaining({ fret: null }));
+    expect(upperNote).toEqual(expect.objectContaining({ fret: 5 }));
+    expect(clearLower.preventDefault).toHaveBeenCalledTimes(1);
 
-    notationComponent.trackController.selectionCursor = {
-      note: { noteValue: NoteValue.None },
-    };
-    callbacks.clearFretEvent();
-    expect(
-      notationComponent.trackController.setSelectedNoteFret
-    ).toHaveBeenCalledTimes(1);
-    expect(renderFunc).toHaveBeenCalledTimes(5);
+    controller.undo();
+    expect(lowerNote).toEqual(expect.objectContaining({ fret: 9 }));
+
+    const up = createKeyboardEvent("ArrowUp");
+    callbacks.onKeyDown(up);
+    expect(controller.selectionCursor?.note).toBe(upperNote);
+    expect(up.preventDefault).toHaveBeenCalledTimes(1);
+
+    const clearUpper = createKeyboardEvent("Backspace");
+    callbacks.onKeyDown(clearUpper);
+    expect(upperNote).toEqual(expect.objectContaining({ fret: null }));
+    expect(lowerNote).toEqual(expect.objectContaining({ fret: 9 }));
+    expect(clearUpper.preventDefault).toHaveBeenCalledTimes(1);
+    expect(renderFunc).toHaveBeenCalledTimes(4);
   });
 
   test("horizontal arrows move an active beat range", () => {
@@ -1209,63 +1278,32 @@ describe("EditorKeyboardDefCallbacks", () => {
     }
   );
 
-  test("onKeyDown routes handled keys and ignores function keys", () => {
-    const { callbacks, rootElement, notationComponent } =
-      createHarness(createRootElement());
-    notationComponent.trackController.selectionCursor = {
-      note: {
-        noteValue: NoteValue.C,
-        hasTechnique: () => false,
-        isTechniqueApplicable: () => true,
-      },
-    };
-    notationComponent.trackController.selectionAsBeats = [{}];
-    callbacks.bind();
-    rootElement.dispatch("focusin");
-    const copySpy = jest.spyOn(callbacks, "copyEvent");
-    const bendSpy = jest.spyOn(callbacks, "bendEvent");
-    const deleteSpy = jest.spyOn(callbacks, "deleteSelectionEvent");
-    const fretSpy = jest.spyOn(callbacks, "fretInputEvent");
-    const moveSpy = jest.spyOn(callbacks, "moveSelectionEvent");
-    const clearFretSpy = jest.spyOn(callbacks, "clearFretEvent");
-    const playbackSpy = jest.spyOn(callbacks, "togglePlaybackEvent");
+  test.each(["F2", "Tab"])(
+    "%s keeps browser behavior and leaves notation unchanged",
+    (key) => {
+      const { callbacks, rootElement, notationComponent, renderFunc } =
+        createHarness();
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      notationComponent.trackController = controller;
+      controller.setSelectedNoteFret(7);
+      const selectedBeat = controller.selectionCursor?.beat;
+      rootElement.focus();
 
-    const ctrlC = createKeyboardEvent("C", { ctrlKey: true });
-    callbacks.onKeyDown(ctrlC);
-    expect(copySpy).toHaveBeenCalledTimes(1);
-    expect(ctrlC.preventDefault).toHaveBeenCalledTimes(1);
-
-    const bend = createKeyboardEvent("B");
-    callbacks.onKeyDown(bend);
-    expect(bendSpy).toHaveBeenCalledTimes(1);
-    expect(bend.preventDefault).toHaveBeenCalledTimes(1);
-
-    const deleteEvent = createKeyboardEvent("Delete");
-    callbacks.onKeyDown(deleteEvent);
-    expect(deleteSpy).toHaveBeenCalledTimes(1);
-
-    callbacks.onKeyDown(createKeyboardEvent("7"));
-    expect(fretSpy).toHaveBeenCalledWith("7");
-
-    callbacks.onKeyDown(createKeyboardEvent("ArrowLeft"));
-    expect(moveSpy).toHaveBeenCalledWith("arrowleft");
-
-    callbacks.onKeyDown(createKeyboardEvent("Backspace"));
-    expect(clearFretSpy).toHaveBeenCalledTimes(1);
-
-    callbacks.onKeyDown(createKeyboardEvent(" "));
-    expect(playbackSpy).toHaveBeenCalledTimes(1);
-
-    const functionKey = createKeyboardEvent("F2");
-    callbacks.onKeyDown(functionKey);
-    expect(functionKey.preventDefault).not.toHaveBeenCalled();
-
-    const tab = createKeyboardEvent("Tab");
-    callbacks.onKeyDown(tab);
-    expect(tab.preventDefault).not.toHaveBeenCalled();
-
-    callbacks.unbind();
-  });
+      const event = createKeyboardEvent(key);
+      callbacks.onKeyDown(event);
+      expect(event.preventDefault).not.toHaveBeenCalled();
+      expect(renderFunc).not.toHaveBeenCalled();
+      expect(controller.selectionCursor?.beat).toBe(selectedBeat);
+      expect(beats[0].notes?.[0]).toEqual(expect.objectContaining({ fret: 7 }));
+      controller.undo();
+      expect(beats[0].notes?.[0]).toEqual(
+        expect.objectContaining({ fret: null })
+      );
+    }
+  );
 
   test("bind and unbind attach one keydown listener and are idempotent", () => {
     const { callbacks } = createHarness(createRootElement());

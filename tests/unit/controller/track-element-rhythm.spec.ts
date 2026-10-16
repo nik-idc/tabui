@@ -1,4 +1,5 @@
 import { TrackElement } from "../../../src/notation/controller/element/track-element";
+import { BeamSegmentElement } from "../../../src/notation/controller/element/bar/beam-segment-element";
 import { TabBeatRhythmElement } from "../../../src/notation/controller/element/beat/tab-beat-rhythm-element";
 import { BarTupletGroupElement } from "../../../src/notation/controller/element/bar/bar-tuplet-group-element";
 import { VoiceBarRhythmContainer } from "../../../src/notation/controller/element/bar/voice-bar-rhythm-container";
@@ -76,9 +77,13 @@ describe("TrackElement rhythm", () => {
     const beatElements = barElement.beatElements;
     expect(beatElements).toHaveLength(3);
 
-    let expectedX = beatElements[0].boundingBox.x;
+    // The configured 12px attack padding separates notes from the start gap.
+    let expectedX = 12;
     for (let i = 0; i < beatElements.length; i++) {
       expect(beatElements[i].boundingBox.x).toBeCloseTo(expectedX);
+      expect(beatElements[i].barLocalBoundingBox.x).toBeCloseTo(
+        barElement.startGap.right + expectedX
+      );
       expect(beatElements[i].boundingBox.width).toBeGreaterThan(0);
       expectedX += beatElements[i].boundingBox.width;
     }
@@ -99,18 +104,28 @@ describe("TrackElement rhythm", () => {
         .styleLinesAsArray[0].barElements[0];
     const firstSelected = barElement.beatElements[0];
     const lastSelected = barElement.beatElements[1];
+    const unselected = barElement.beatElements[2];
 
     const rects = trackElement.getSelectionRects([beats[0], beats[1]]);
     expect(rects).toHaveLength(1);
-    const firstSelectedX =
-      firstSelected.barElement.globalCoords.x +
-      firstSelected.barLocalBoundingBox.x;
-    expect(rects[0].x).toBeLessThan(firstSelectedX);
-    if (!(lastSelected instanceof TabBeatElement)) {
+    if (
+      !(firstSelected instanceof TabBeatElement) ||
+      !(lastSelected instanceof TabBeatElement) ||
+      !(unselected instanceof TabBeatElement)
+    ) {
       throw Error("Expected tab beat element");
     }
-    expect(rects[0].right).toBeCloseTo(
-      lastSelected.getGlobalVisualBounds().right
+    // A 12px note label extends 6px left of its attack column.
+    expect(rects[0].x).toBeCloseTo(firstSelected.attackXGlobal - 6);
+    expect(rects[0].width).toBeCloseTo(
+      firstSelected.boundingBox.width + lastSelected.boundingBox.width
+    );
+    expect(rects[0].right).toBeGreaterThan(lastSelected.attackXGlobal);
+    expect(rects[0].right).toBeLessThan(unselected.attackXGlobal);
+    expect(rects[0].y).toBeCloseTo(barElement.globalCoords.y);
+    expect(rects[0].height).toBeCloseTo(
+      barElement.notationStyleLineContainer.staffLineContainer.boundingBox
+        .height
     );
   });
 
@@ -130,8 +145,8 @@ describe("TrackElement rhythm", () => {
     trackElement.update();
 
     const beatElement = trackElement.getBeatElement(beats[0]);
-    if (beatElement === undefined) {
-      throw Error("Expected beat element");
+    if (!(beatElement instanceof TabBeatElement)) {
+      throw Error("Expected tab beat element");
     }
     const noteElement = beatElement.noteElements.find(
       (element) => element.note === note
@@ -143,10 +158,12 @@ describe("TrackElement rhythm", () => {
     const rects = trackElement.getSelectionRects([beats[0]]);
 
     expect(rects).toHaveLength(1);
-    expect(rects[0].x).toBeCloseTo(noteElement.textRectGlobal.x);
-    expect(rects[0].right).toBeCloseTo(
-      (beatElement as TabBeatElement).getGlobalVisualBounds().right
+    expect(noteElement.textRectGlobal.x).toBeLessThan(
+      beatElement.attackXGlobal
     );
+    expect(rects[0].x).toBeCloseTo(noteElement.textRectGlobal.x);
+    expect(rects[0].width).toBeCloseTo(beatElement.boundingBox.width);
+    expect(rects[0].right).toBeGreaterThan(noteElement.textRectGlobal.right);
   });
 
   test("keeps dotted and tuplet beat widths positive", () => {
@@ -181,6 +198,7 @@ describe("TrackElement rhythm", () => {
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
+    expect(trackElement.trackLineElements.length).toBeGreaterThan(1);
     const firstLineStyle =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0];
@@ -205,11 +223,7 @@ describe("TrackElement rhythm", () => {
     fillBarWithDenseSixtyFourthBeats(track.staves[0].bars[0], 64);
 
     for (let i = 0; i < 8; i++) {
-      score.appendMasterBar({
-        ...DEFAULT_MASTER_BAR,
-        beatsCount: 32,
-        duration: NoteDuration.SixtyFourth,
-      });
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
       fillBarWithDenseSixtyFourthBeats(
         track.staves[0].bars[track.staves[0].bars.length - 1],
         64
@@ -218,12 +232,18 @@ describe("TrackElement rhythm", () => {
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
-    expect(() => trackElement.update()).not.toThrow();
+    trackElement.update();
     expect(trackElement.trackLineElements.length).toBeGreaterThan(1);
 
     for (const trackLine of trackElement.trackLineElements) {
       const styleLine = trackLine.staffLineContainers[0].styleLinesAsArray[0];
       const lastBar = styleLine.barElements[styleLine.barElements.length - 1];
+      for (const barElement of styleLine.barElements) {
+        expect(barElement.beatElements).toHaveLength(64);
+        for (const beatElement of barElement.beatElements) {
+          expect(beatElement.boundingBox.width).toBeGreaterThan(0);
+        }
+      }
       expect(lastBar.boundingBox.right).toBeLessThanOrEqual(
         TEST_LAYOUT_DIMENSIONS.width
       );
@@ -249,15 +269,36 @@ describe("TrackElement rhythm", () => {
       trackElement.trackLineElements[1].trackLineBars[0].masterBarIndex;
     const secondLineFirstBar = track.staves[0].bars[secondLineFirstBarIndex];
 
-    secondLineFirstBar.insertVoiceBar(2);
+    const secondVoice = secondLineFirstBar.insertVoiceBar(2);
+    secondVoice.replaceBeats([createBeat(secondVoice, NoteDuration.Quarter)]);
     trackElement.update();
 
     expect(trackElement.trackLineElements[0].boundingBox.height).toBeCloseTo(
       firstLineHeightBefore
     );
-    expect(
-      trackElement.trackLineElements[1].boundingBox.height
-    ).toBeGreaterThan(secondLineHeightBefore);
+    expect(trackElement.trackLineElements[1].boundingBox.height).toBeCloseTo(
+      secondLineHeightBefore + 60
+    );
+
+    secondVoice.replaceBeats([]);
+    trackElement.update();
+
+    expect(trackElement.trackLineElements[0].boundingBox.height).toBeCloseTo(
+      firstLineHeightBefore
+    );
+    expect(trackElement.trackLineElements[1].boundingBox.height).toBeCloseTo(
+      secondLineHeightBefore
+    );
+
+    secondLineFirstBar.removeVoiceBar(2);
+    trackElement.update();
+
+    expect(trackElement.trackLineElements[0].boundingBox.height).toBeCloseTo(
+      firstLineHeightBefore
+    );
+    expect(trackElement.trackLineElements[1].boundingBox.height).toBeCloseTo(
+      secondLineHeightBefore
+    );
   });
 
   test("preserves tuplet clearance in rhythm rows without tuplets", () => {
@@ -265,7 +306,11 @@ describe("TrackElement rhythm", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     const secondVoice = bar.insertVoiceBar(2);
-    secondVoice.beats.push(createBeat(secondVoice, NoteDuration.Quarter));
+    secondVoice.beats.splice(
+      0,
+      secondVoice.beats.length,
+      createBeat(secondVoice, NoteDuration.Quarter)
+    );
     secondVoice.rebuildTiming();
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
@@ -275,15 +320,12 @@ describe("TrackElement rhythm", () => {
     const styleLineContainer = staffLineContainer.styleLinesAsArray[0];
     const barElement = styleLineContainer.barElements[0];
     const notationNodes = barElement.refreshOwnedNotationNodes();
-    const row = notationNodes.find((n) => n instanceof VoiceBarRhythmContainer);
-    if (!(row instanceof VoiceBarRhythmContainer)) {
-      throw Error("Expected rhythm row");
-    }
-
-    expect(row.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.durationsHeight +
-        TEST_LAYOUT_DIMENSIONS.tupletRectHeight
+    const rows = notationNodes.filter(
+      (n): n is VoiceBarRhythmContainer => n instanceof VoiceBarRhythmContainer
     );
+    expect(rows.map((r) => r.voiceNumber)).toEqual([1, 2]);
+    // Each row reserves 30px for durations and 30px for tuplets.
+    expect(rows.map((r) => r.boundingBox.height)).toEqual([60, 60]);
   });
 
   test("aligns sparse voice rows across bars on one staff line", () => {
@@ -303,8 +345,14 @@ describe("TrackElement rhythm", () => {
     const trackLineElement = trackElement.trackLineElements[0];
     const staffLineContainer = trackLineElement.staffLineContainers[0];
     const styleLineContainer = staffLineContainer.styleLinesAsArray[0];
+    expect(styleLineContainer.barElements).toHaveLength(2);
     const rowsByBar = styleLineContainer.barElements.map((barElement) => {
       const nodes = barElement.refreshOwnedNotationNodes();
+      expect(
+        nodes
+          .filter((n) => n instanceof VoiceBarRhythmContainer)
+          .map((n) => n.voiceNumber)
+      ).toEqual([1, 3]);
       const firstVoiceRow = nodes.find(
         (n) => n instanceof VoiceBarRhythmContainer && n.voiceNumber === 1
       );
@@ -320,29 +368,13 @@ describe("TrackElement rhythm", () => {
 
       return { firstVoiceRow, thirdVoiceRow };
     });
-    const firstBarRows = rowsByBar[0];
-    const secondBarRows = rowsByBar[1];
-    if (firstBarRows === undefined || secondBarRows === undefined) {
-      throw Error("Expected two rendered bars");
-    }
-
     for (const rows of rowsByBar) {
-      expect(rows.firstVoiceRow.boundingBox.bottom).toBeCloseTo(
-        rows.thirdVoiceRow.boundingBox.y
-      );
+      // Six 24px note lanes, then 69px per row including label clearance.
+      expect(rows.firstVoiceRow.boundingBox.y).toBe(144);
+      expect(rows.firstVoiceRow.boundingBox.height).toBe(69);
+      expect(rows.thirdVoiceRow.boundingBox.y).toBe(213);
+      expect(rows.thirdVoiceRow.boundingBox.height).toBe(69);
     }
-    expect(firstBarRows.firstVoiceRow.boundingBox.y).toBeCloseTo(
-      secondBarRows.firstVoiceRow.boundingBox.y
-    );
-    expect(firstBarRows.firstVoiceRow.boundingBox.height).toBeCloseTo(
-      secondBarRows.firstVoiceRow.boundingBox.height
-    );
-    expect(firstBarRows.thirdVoiceRow.boundingBox.y).toBeCloseTo(
-      secondBarRows.thirdVoiceRow.boundingBox.y
-    );
-    expect(firstBarRows.thirdVoiceRow.boundingBox.height).toBeCloseTo(
-      secondBarRows.thirdVoiceRow.boundingBox.height
-    );
   });
 
   test.each([TabUILayoutMode.Wrapped, TabUILayoutMode.SingleLine])(
@@ -371,9 +403,10 @@ describe("TrackElement rhythm", () => {
       trackElement.update();
 
       const lines = trackElement.trackLineElements;
-      if (layoutMode === TabUILayoutMode.Wrapped && lines.length < 2) {
-        throw Error("Expected wrapped fixture to produce multiple lines");
-      }
+      expect(lines).toHaveLength(
+        layoutMode === TabUILayoutMode.Wrapped ? 2 : 1
+      );
+      expect(lines.flatMap((l) => [...l.allBarElements()])).toHaveLength(2);
 
       for (const line of lines) {
         for (const barElement of line.allBarElements()) {
@@ -399,69 +432,69 @@ describe("TrackElement rhythm", () => {
             throw Error("Expected voice 1 and voice 3 tuplets and rhythm rows");
           }
 
-          const firstLabelY =
-            firstVoiceTuplet.incompleteTextsCoordsBarLocal?.[0].y;
-          const thirdLabelY =
-            thirdVoiceTuplet.incompleteTextsCoordsBarLocal?.[0].y;
-          if (firstLabelY === undefined || thirdLabelY === undefined) {
-            throw Error("Expected incomplete tuplet label coordinates");
+          for (const [tuplet, row] of [
+            [firstVoiceTuplet, firstVoiceRow],
+            [thirdVoiceTuplet, thirdVoiceRow],
+          ] as const) {
+            const labels = tuplet.incompleteTextsCoordsBarLocal;
+            expect(labels).toHaveLength(2);
+            if (labels === undefined) {
+              throw Error("Expected incomplete tuplet labels");
+            }
+            for (let i = 0; i < labels.length; i++) {
+              const beat = tuplet.beatElements[i];
+              const rhythm = nodes.find(
+                (n) => n instanceof TabBeatRhythmElement && n.beat === beat.beat
+              );
+              if (!(rhythm instanceof TabBeatRhythmElement)) {
+                throw Error("Expected beat rhythm");
+              }
+              const stem = rhythm.durationStemLineBarLocal;
+              if (stem === undefined) {
+                throw Error("Expected duration stem");
+              }
+
+              // Label, stem, and row bounds all use bar-local coordinates.
+              expect(labels[i].x).toBeCloseTo(beat.attackXBarLocal);
+              expect(
+                labels[i].y - dimensions.tempoTextSize / 2
+              ).toBeGreaterThan(stem.y2);
+              expect(
+                labels[i].y + dimensions.tempoTextSize / 2
+              ).toBeLessThanOrEqual(row.boundingBox.bottom);
+            }
           }
-          expect(
-            firstLabelY + dimensions.tempoTextSize / 2
-          ).toBeLessThanOrEqual(firstVoiceRow.boundingBox.bottom);
-          expect(
-            thirdLabelY + dimensions.tempoTextSize / 2
-          ).toBeLessThanOrEqual(thirdVoiceRow.boundingBox.bottom);
         }
       }
     }
   );
 
-  test("invalid beam group ids do not suppress standalone duration flags", () => {
-    const { track, bar } = createBarWithBeats([
+  test("beamed beats hide standalone flags while an isolated beat keeps them", () => {
+    const { track } = createBarWithBeats([
       { baseDuration: NoteDuration.ThirtySecond },
       { baseDuration: NoteDuration.ThirtySecond },
-      { baseDuration: NoteDuration.ThirtySecond },
-      { baseDuration: NoteDuration.ThirtySecond },
+      { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.ThirtySecond },
     ]);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-
-    expect(voiceBar.beamingGroups.length).toBeGreaterThan(0);
-
-    voiceBar.beats[3].beamGroupId = voiceBar.beamingGroups.length;
-    voiceBar.beats[4].beamGroupId = voiceBar.beamingGroups.length;
-    voiceBar.beats[3].lastInBeamGroup = false;
-    voiceBar.beats[4].lastInBeamGroup = false;
 
     trackElement.update();
 
     const beatRhythmElements = getRhythmElements(trackElement);
 
+    expect(beatRhythmElements).toHaveLength(4);
     expect(beatRhythmElements[0].durationFlagLines).toBeUndefined();
     expect(beatRhythmElements[1].durationFlagLines).toBeUndefined();
     expect(beatRhythmElements[2].durationFlagLines).toBeUndefined();
     expect(beatRhythmElements[3].durationFlagLines).toHaveLength(3);
-    expect(beatRhythmElements[4].durationFlagLines).toHaveLength(3);
   });
 
   test("standalone flag spacing matches beam level spacing", () => {
-    const { track, bar } = createBarWithBeats([
+    const { track } = createBarWithBeats([
       { baseDuration: NoteDuration.ThirtySecond },
     ]);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    voiceBar.beats[0].beamGroupId = null;
-    voiceBar.beats[0].lastInBeamGroup = false;
     trackElement.update();
 
     const beatElement = getRhythmElements(trackElement)[0];
@@ -477,44 +510,37 @@ describe("TrackElement rhythm", () => {
     );
   });
 
-  test("beamed dotted beats lift dots to account for beam levels", () => {
-    const { track, bar } = createBarWithBeats([
+  test("beamed dotted beats keep the whole dot above the top beam", () => {
+    const { track } = createBarWithBeats([
       { baseDuration: NoteDuration.ThirtySecond, dots: 1 },
       { baseDuration: NoteDuration.ThirtySecond, dots: 1 },
     ]);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    voiceBar.rebuildTiming();
     trackElement.update();
 
     const beatElement = getRhythmElements(trackElement)[0];
     const dot = beatElement.dot1CircleBarLocal;
+    const beam = beatElement.owningBarElement
+      .refreshOwnedNotationNodes()
+      .find((e): e is BeamSegmentElement => e instanceof BeamSegmentElement);
+    if (beam === undefined) throw Error("Expected beam segment");
+    expect(beam.longRectsBarLocal).toHaveLength(3);
+    const topBeamY = Math.min(...beam.longRectsBarLocal.map((r) => r.y));
 
     expect(beatElement.durationFlagLines).toBeUndefined();
     expect(dot).toBeDefined();
     if (dot === undefined) throw Error("Expected duration dot");
-    expect(dot.centerY).toBeLessThan(
-      beatElement.voiceBarRhythmContainer.boundingBox.y +
-        TEST_LAYOUT_DIMENSIONS.durationsHeight
-    );
+    // Dot and beam are both bar-local, including the same rhythm row origin.
+    expect(dot.centerY + dot.diameter / 2).toBeLessThan(topBeamY);
   });
 
   test("standalone dotted beats place dots above the top flag", () => {
-    const { track, bar } = createBarWithBeats([
+    const { track } = createBarWithBeats([
       { baseDuration: NoteDuration.ThirtySecond, dots: 1 },
     ]);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    voiceBar.beats[0].beamGroupId = null;
-    voiceBar.beats[0].lastInBeamGroup = false;
     trackElement.update();
 
     const beatElement = getRhythmElements(trackElement)[0];

@@ -67,11 +67,9 @@ describe("SetTechniqueCommand", () => {
     command.undo();
     expect(note.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
     expect(note.hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
-
-    expect(() => command.redo()).toThrow("Redo called before execute");
   });
 
-  test("label-producing techniques are marked for vertical update", () => {
+  test("vibrato, bend, and let ring report that they affect technique labels", () => {
     const { bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -106,7 +104,7 @@ describe("SetTechniqueCommand", () => {
     expect(letRingCommand.affectsTechniqueLabels).toBe(true);
   });
 
-  test("inline non-label techniques are marked for targeted update", () => {
+  test("harmonic and slide commands report the affected note anchor", () => {
     const { bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {

@@ -1,159 +1,151 @@
-import { TupletControlsDefaultCallbacks } from "../../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-callbacks";
-import { TupletControlsTemplateRenderer } from "../../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-template-renderer";
-import {
-  asNotationComponent,
-  createNotationComponentMock,
-  FakeElement,
-  makeButton,
-  makeDialogFixture,
-  makeText,
-} from "./helpers";
+/** @jest-environment jsdom */
 
-function createTupletHarness() {
-  const { dialog, dialogContainer } = makeDialogFixture();
-  const dialogContent = new FakeElement();
-  dialogContainer.appendChild(dialogContent);
-  const normalControl = new FakeElement();
-  const normalDownButton = makeButton();
-  const normalValue = new FakeElement();
-  normalValue.textContent = "3";
-  const normalUpButton = makeButton();
-  const tupletControl = new FakeElement();
-  const tupletDownButton = makeButton();
-  const tupletValue = new FakeElement();
-  tupletValue.textContent = "2";
-  const tupletUpButton = makeButton();
-  const confirmButton = makeButton();
-  const cancelButton = makeButton();
-  const normalErrorText = makeText();
-  const tupletErrorText = makeText();
-  const component = {
-    dialog,
-    announceValue: jest.fn(),
-    template: {
-      dialogContainer,
-      dialogContent,
-      normalControl,
-      normalDownButton,
-      normalValue,
-      normalUpButton,
-      tupletControl,
-      tupletDownButton,
-      tupletValue,
-      tupletUpButton,
-      confirmButton,
-      cancelButton,
-      normalErrorText,
-      tupletErrorText,
-    },
-  } as any;
-  const notationComponent = createNotationComponentMock();
-  const renderFunc = jest.fn();
-  const freeKeyboard = jest.fn();
+import { NotationComponent } from "../../../src/notation/notation-component";
+import { SelectedMoveDirection } from "../../../src/notation/controller";
+import { NoteDuration, TupletSettings } from "../../../src/notation/model";
+import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
+import { TupletControlsDefaultCallbacks } from "../../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-callbacks";
+import { TupletControlsComponent } from "../../../src/ui/side-controls/note-controls/tuplet-controls/tuplet-controls-component";
+import { createTestTrackController } from "../controller/helpers";
+import { createBarWithBeats } from "../model/helpers";
+
+function createTupletHarness(settings: TupletSettings | null = null) {
+  const { track, beats } = createBarWithBeats([
+    { baseDuration: NoteDuration.Eighth, tupletSettings: settings },
+    { baseDuration: NoteDuration.Eighth, tupletSettings: settings },
+  ]);
+  const controller = createTestTrackController(track);
+  const owner: Pick<NotationComponent, "trackController"> = {
+    trackController: controller,
+  };
+  const notationComponent = owner as NotationComponent;
+  const root = document.createElement("div");
+  const dialogHost = document.createElement("div");
+  root.appendChild(dialogHost);
+  document.body.appendChild(root);
+  const component = new TupletControlsComponent(
+    root,
+    new DialogEnforcer(dialogHost, () => {}),
+    notationComponent,
+    () => {}
+  );
   const callbacks = new TupletControlsDefaultCallbacks(
     component,
-    asNotationComponent(notationComponent),
-    renderFunc,
-    jest.fn(),
-    freeKeyboard
+    notationComponent,
+    () => {},
+    () => {},
+    () => {}
   );
+  component.render();
+  callbacks.bind();
+  component.dialog.showModal();
 
-  return { callbacks, component, notationComponent, renderFunc, freeKeyboard };
+  return { callbacks, component, controller, beat: beats[0] };
 }
 
 describe("TupletControlsDefaultCallbacks", () => {
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
   test("dialog inputs use the selected group's existing tuplet ratio", () => {
-    const { component, notationComponent } = createTupletHarness();
-    notationComponent.trackController.selectionCursor = undefined;
-    (notationComponent.trackController as any).selectionAsBeats = [
-      {
-        tupletSettings: { normalCount: 5, tupletCount: 4 },
-      },
-    ];
-    component.template.normalLabel = makeText();
-    component.template.tupletLabel = makeText();
-    const renderer = Object.create(TupletControlsTemplateRenderer.prototype);
-    renderer.notationComponent = notationComponent;
-    renderer.template = component.template;
-    renderer.renderInputs();
+    const { component, controller } = createTupletHarness({
+      normalCount: 5,
+      tupletCount: 4,
+    });
+    controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+    expect(controller.selectionCursor).toBeUndefined();
+    component.render();
+
     expect(component.template.normalValue.textContent).toBe("5");
     expect(component.template.tupletValue.textContent).toBe("4");
   });
 
   test("button controls step and clamp both tuplet values", () => {
-    const { callbacks, component } = createTupletHarness();
+    const { component } = createTupletHarness();
+    const template = component.template;
 
-    callbacks.onNormalCountStep(2);
-    callbacks.onTupletCountStep(2);
-    expect(component.template.normalValue.textContent).toBe("5");
-    expect(component.template.tupletValue.textContent).toBe("4");
-    callbacks.onTupletCountStep(-100);
-    expect(component.template.tupletValue.textContent).toBe("2");
-    expect(component.template.tupletDownButton.disabled).toBe(true);
+    template.normalUpButton.click();
+    expect(template.normalValue.textContent).toBe("4");
+    expect(template.tupletValue.textContent).toBe("2");
+    template.tupletUpButton.click();
+    expect(template.tupletValue.textContent).toBe("3");
+
+    template.normalDownButton.click();
+    template.normalDownButton.click();
+    template.normalDownButton.click();
+    template.tupletDownButton.click();
+    template.tupletDownButton.click();
+    expect(template.normalValue.textContent).toBe("2");
+    expect(template.tupletValue.textContent).toBe("2");
+    expect(template.normalDownButton.disabled).toBe(true);
+    expect(template.tupletDownButton.disabled).toBe(true);
   });
 
   test("mouse wheel adjusts each tuplet value independently", () => {
-    const { callbacks, component } = createTupletHarness();
-    callbacks.bind();
-
-    component.template.normalControl.dispatch("wheel", {
+    const { component } = createTupletHarness();
+    const template = component.template;
+    const normalWheel = new WheelEvent("wheel", {
       deltaY: -1,
-      preventDefault: jest.fn(),
+      cancelable: true,
     });
-    component.template.tupletControl.dispatch("wheel", {
-      deltaY: -1,
-      preventDefault: jest.fn(),
-    });
+    template.normalControl.dispatchEvent(normalWheel);
+    expect(normalWheel.defaultPrevented).toBe(true);
+    expect(template.normalValue.textContent).toBe("4");
+    expect(template.tupletValue.textContent).toBe("2");
 
-    expect(component.template.normalValue.textContent).toBe("4");
-    expect(component.template.tupletValue.textContent).toBe("3");
+    const tupletWheel = new WheelEvent("wheel", {
+      deltaY: -1,
+      cancelable: true,
+    });
+    template.tupletControl.dispatchEvent(tupletWheel);
+    expect(tupletWheel.defaultPrevented).toBe(true);
+    expect(template.normalValue.textContent).toBe("4");
+    expect(template.tupletValue.textContent).toBe("3");
   });
 
-  test("one valid field cannot re-enable confirm while the other is invalid", () => {
-    const { callbacks, component, notationComponent } = createTupletHarness();
+  test("confirm rejects a stored ratio below the dialog minimum", () => {
+    // The model accepts 1, but the dialog offers counts starting at 2.
+    const settings = { normalCount: 1, tupletCount: 4 };
+    const { callbacks, component, beat, controller } =
+      createTupletHarness(settings);
 
-    component.template.normalValue.textContent = "1";
-    component.template.tupletValue.textContent = "4";
     callbacks.onConfirmClicked();
 
     expect(component.template.confirmButton.disabled).toBe(true);
-    expect(
-      notationComponent.trackController.setSelectedBeatsTuplet
-    ).not.toHaveBeenCalled();
+    expect(component.template.normalErrorText.textContent?.trim()).not.toBe("");
+    expect(component.dialog.open).toBe(true);
+    expect(beat.tupletSettings).toEqual(settings);
+    controller.undo();
+    expect(beat.tupletSettings).toEqual(settings);
   });
 
-  test("confirm commits tuplet settings and lifecycle wiring is idempotent", () => {
-    const {
-      callbacks,
-      component,
-      notationComponent,
-      renderFunc,
-      freeKeyboard,
-    } = createTupletHarness();
-    const setTuplet = notationComponent.trackController.setSelectedBeatsTuplet;
-
+  test("confirm commits once after repeated binding and unbind removes listeners", () => {
+    const { callbacks, component, controller, beat } = createTupletHarness();
+    const template = component.template;
     callbacks.bind();
-    callbacks.bind();
-    const tupletCallsBeforeConfirm = setTuplet.mock.calls.length;
-    const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
-    const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
-    component.template.normalValue.textContent = "5";
-    component.template.tupletValue.textContent = "4";
-    component.template.dialogContent.dispatch("submit");
+    template.normalUpButton.click();
+    template.tupletUpButton.click();
+    expect(template.normalValue.textContent).toBe("4");
+    expect(template.tupletValue.textContent).toBe("3");
 
-    expect(setTuplet).toHaveBeenCalledTimes(tupletCallsBeforeConfirm + 1);
-    expect(setTuplet).toHaveBeenCalledWith(5, 4);
-    expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
-    expect(component.dialog.close).toHaveBeenCalledTimes(1);
-    expect(freeKeyboard).toHaveBeenCalledTimes(
-      freeKeyboardCallsBeforeConfirm + 1
-    );
+    const submit = new Event("submit", { cancelable: true });
+    template.dialogContent.dispatchEvent(submit);
+    expect(submit.defaultPrevented).toBe(true);
+    expect(beat.tupletSettings).toEqual({ normalCount: 4, tupletCount: 3 });
+    expect(component.dialog.open).toBe(false);
+    controller.undo();
+    expect(beat.tupletSettings).toBeNull();
+    controller.redo();
+    expect(beat.tupletSettings).toEqual({ normalCount: 4, tupletCount: 3 });
 
-    const tupletCallsBeforeUnbind = setTuplet.mock.calls.length;
-    const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
+    component.render();
+    component.dialog.showModal();
     callbacks.unbind();
-    component.template.dialogContent.dispatch("submit");
-    expect(setTuplet).toHaveBeenCalledTimes(tupletCallsBeforeUnbind);
-    expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
+    template.normalUpButton.click();
+    expect(template.normalValue.textContent).toBe("4");
+    template.dialogContent.dispatchEvent(new Event("submit"));
+    expect(component.dialog.open).toBe(true);
+    expect(beat.tupletSettings).toEqual({ normalCount: 4, tupletCount: 3 });
   });
 });

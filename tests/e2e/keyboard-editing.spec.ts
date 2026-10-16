@@ -221,10 +221,24 @@ for (const [key, name] of [
   });
 }
 
-test("Shift+V cycles all four voices without applying vibrato", async ({
+test("Shift+V cycles without vibrato and note clicks refresh the active voice", async ({
   page,
 }) => {
   const editor = await openEditor(page, "multi_voice_single_staff");
+  /** Keeps score content and toolbar state, excluding the voice's insertion hint. */
+  async function voiceEditingState() {
+    const state = await editingState(editor);
+    // The end-gap '+' can appear/disappear with voice capacity, without a score edit.
+    state.score = state.score.filter(
+      (e) =>
+        !e.attributes.some(
+          ([name, value]) =>
+            name === "class" && value.split(/\s+/).includes("tu-end-gap-hint")
+        )
+    );
+    return state;
+  }
+
   /** Captures voice opacity and note hit geometry, including empty strings. */
   async function voicePresentation() {
     return editor
@@ -243,16 +257,18 @@ test("Shift+V cycles all four voices without applying vibrato", async ({
       );
   }
   const initial = await voicePresentation();
+  const initialScore = (await voiceEditingState()).score;
   expect(initial.length).toBeGreaterThan(0);
   for (const voice of [2, 3, 4, 1]) {
     await page.keyboard.press("Shift+V");
     await expect(
       editor.locator(`[data-voice-number="${voice}"]`)
     ).toHaveAttribute("aria-pressed", "true");
-    const keyboard = await editingState(editor);
+    const keyboard = await voiceEditingState();
     const presentation = await voicePresentation();
     if (voice === 2) {
       // Both voices already exist, so no model diff can trigger this refresh.
+      expect(keyboard.score).toEqual(initialScore);
       expect(presentation.map((note) => note.id)).not.toEqual(
         initial.map((note) => note.id)
       );
@@ -269,10 +285,34 @@ test("Shift+V cycles all four voices without applying vibrato", async ({
       .locator(`[data-voice-number="${voice === 1 ? 4 : voice - 1}"]`)
       .click();
     await editor.locator(`[data-voice-number="${voice}"]`).click();
-    expect(await editingState(editor)).toEqual(keyboard);
+    expect(await voiceEditingState()).toEqual(keyboard);
     expect(await voicePresentation()).toEqual(presentation);
     await editor.locator(".tu-notation-viewport").focus();
   }
+
+  // A filled note in voice 2 remains clickable while voice 1 is active.
+  const inactiveNoteId = await editor
+    .locator('.tu-root-svg g[opacity="0.5"] g[id^="note-"]')
+    .filter({ has: page.locator('text[id^="note-text-"]') })
+    .first()
+    .getAttribute("id");
+  if (inactiveNoteId === null) {
+    throw Error("Expected a filled inactive note");
+  }
+  const inactiveNote = editor.locator(`[id="${inactiveNoteId}"]`);
+  const inactiveVoice = inactiveNote.locator("xpath=..");
+  await expect(inactiveVoice).toHaveAttribute("opacity", "0.5");
+  await inactiveNote.locator('[id^="note-rect-"]').click();
+
+  await expect(editor.locator('[data-voice-number="2"]')).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await expect(editor.locator('[data-voice-number="1"]')).toHaveAttribute(
+    "aria-pressed",
+    "false"
+  );
+  await expect(inactiveVoice).toHaveAttribute("opacity", "1");
 });
 
 test("rest shortcuts reject dead and clear without changing undo history", async ({
@@ -384,12 +424,18 @@ for (const [key, name] of [
     await page.clock.fastForward(251);
     await page.keyboard.press("7");
     await page.keyboard.press("ArrowLeft");
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5", "7"]);
+    await expect(editor.locator('[id^="technique-path-"]')).toHaveCount(0);
     await expectMouseParity(
       page,
       editor,
       key,
       editor.getByRole("button", { name: new RegExp(`^${name}`) })
     );
+    const path = editor.locator('[id^="technique-path-"]');
+    await expect(path).toHaveCount(1);
+    await expect(path).toBeVisible();
+    await expect(path).toHaveAttribute("d", /\S/);
   });
 }
 

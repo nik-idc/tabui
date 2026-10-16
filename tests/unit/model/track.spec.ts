@@ -28,11 +28,15 @@ describe("Track model", () => {
 
   test("removeStaff keeps one default staff when removing the last staff", () => {
     const track = new Track(new Score(), new Guitar(), "Guitar");
+    const removedStaff = track.staves[0];
 
     const outputs = track.removeStaff(0);
 
     expect(outputs).toHaveLength(2);
+    expect(outputs[0]).toEqual({ index: 0, staves: [removedStaff] });
+    expect(outputs[1]).toEqual({ index: 0, staves: [track.staves[0]] });
     expect(track.staves).toHaveLength(1);
+    expect(track.staves[0]).not.toBe(removedStaff);
     expect(track.staves[0].track).toBe(track);
     expect(track.staves[0].bars).toHaveLength(track.score.masterBars.length);
   });
@@ -45,7 +49,12 @@ describe("Track model", () => {
     const result = track.insertStaff(track.staves.length);
 
     expect(result.staves).toHaveLength(1);
-    expect(result.staves[0].bars).toHaveLength(score.masterBars.length);
+    expect(track.staves).toHaveLength(2);
+    expect(track.staves[1]).toBe(result.staves[0]);
+    expect(result.staves[0].track).toBe(track);
+    expect(result.staves[0].bars.map((b) => b.masterBar)).toEqual(
+      score.masterBars
+    );
   });
 
   test("setInstrument updates the track context instrument", () => {
@@ -122,7 +131,8 @@ describe("Track model", () => {
     beat.makeBeatWithNotes();
     const note = new GuitarNote(beat, beat.trackContext, 6, 3);
     const [storedNote] = beat.setNote(0, note).notes as GuitarNote[];
-    const originalPitch = storedNote.getNoteStr();
+    const upperNote = new GuitarNote(beat, beat.trackContext, 1, 3);
+    const [storedUpperNote] = beat.setNote(1, upperNote).notes as GuitarNote[];
 
     track.setInstrument(
       new Guitar(
@@ -135,7 +145,9 @@ describe("Track model", () => {
       TrackInstrumentChangeMode.Transpose
     );
 
-    expect(storedNote.getNoteStr()).toBe(originalPitch);
+    expect(storedNote.getNoteStr()).toBe("G2");
     expect(storedNote.fret).toBe(5);
+    expect(storedUpperNote.getNoteStr()).toBe("G4");
+    expect(storedUpperNote.fret).toBe(3);
   });
 });

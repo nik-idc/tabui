@@ -1,63 +1,52 @@
-import { TimeSigControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/time-sig-controls/time-sig-controls-callbacks";
-import { NoteDuration } from "../../../src/notation/model";
-import {
-  asNotationComponent,
-  createNotationComponentMock,
-  FakeElement,
-  makeButton,
-  makeDialogFixture,
-  makeText,
-} from "./helpers";
+/** @jest-environment jsdom */
 
-function createTimeSigHarness() {
-  const { dialog, dialogContainer } = makeDialogFixture();
-  const dialogContent = new FakeElement();
-  dialogContainer.appendChild(dialogContent);
-  const beatsControl = new FakeElement();
-  const beatsDownButton = makeButton();
-  const beatsValue = new FakeElement();
-  beatsValue.textContent = "4";
-  const beatsUpButton = makeButton();
-  const durationSelect = new FakeElement();
-  durationSelect.value = "4";
-  const confirmButton = makeButton();
-  const cancelButton = makeButton();
-  const beatsErrorText = makeText();
-  const durationErrorText = makeText();
-  const component = {
-    dialog,
-    announceValue: jest.fn(),
-    template: {
-      dialogContainer,
-      dialogContent,
-      beatsControl,
-      beatsDownButton,
-      beatsValue,
-      beatsUpButton,
-      durationSelect,
-      confirmButton,
-      cancelButton,
-      beatsErrorText,
-      durationErrorText,
-    },
-  } as any;
-  const notationComponent = createNotationComponentMock();
-  const renderFunc = jest.fn();
+import { NoteDuration, Score } from "../../../src/notation/model";
+import { NotationComponent } from "../../../src/notation/notation-component";
+import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
+import { TimeSigControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/time-sig-controls/time-sig-controls-callbacks";
+import { TimeSigControlsComponent } from "../../../src/ui/side-controls/measure-controls/time-sig-controls/time-sig-controls-component";
+import { createTestTrackController } from "../controller/helpers";
+
+function createTimeSigHarness(duration = NoteDuration.Quarter) {
+  const score = new Score();
+  score.masterBars[0].duration = duration;
+  const controller = createTestTrackController(score.tracks[0]);
+  const owner: Pick<NotationComponent, "trackController"> = {
+    trackController: controller,
+  };
+  const notationComponent = owner as NotationComponent;
+  const root = document.createElement("div");
+  const dialogHost = document.createElement("div");
+  root.appendChild(dialogHost);
+  document.body.appendChild(root);
+  const component = new TimeSigControlsComponent(
+    root,
+    new DialogEnforcer(dialogHost, () => {}),
+    notationComponent,
+    () => {}
+  );
   const freeKeyboard = jest.fn();
   const callbacks = new TimeSigControlsDefaultCallbacks(
     component,
-    asNotationComponent(notationComponent),
-    renderFunc,
-    jest.fn(),
+    notationComponent,
+    () => {},
+    () => {},
     freeKeyboard
   );
+  component.render();
+  component.dialog.showModal();
 
-  return { callbacks, component, notationComponent, renderFunc, freeKeyboard };
+  return { callbacks, component, controller, score, freeKeyboard };
 }
 
 describe("TimeSigControlsDefaultCallbacks", () => {
+  afterEach(() => document.body.replaceChildren());
+
   test("beats stepper clamps and duration selector validates", () => {
-    const { callbacks, component } = createTimeSigHarness();
+    // Storage supports 1/64, but the selector only offers denominators to 32.
+    const { callbacks, component, score } = createTimeSigHarness(
+      NoteDuration.SixtyFourth
+    );
 
     callbacks.onBeatsStep(3);
     expect(component.template.beatsValue.textContent).toBe("7");
@@ -65,70 +54,74 @@ describe("TimeSigControlsDefaultCallbacks", () => {
     expect(component.template.beatsValue.textContent).toBe("1");
     expect(component.template.beatsDownButton.disabled).toBe(true);
 
-    component.template.durationSelect.value = "3";
+    expect(component.template.durationSelect.value).toBe("");
     callbacks.onDurationChanged();
     expect(component.template.confirmButton.disabled).toBe(true);
-    expect(component.template.durationErrorText.textContent).not.toBe(" ");
+    expect(component.template.durationErrorText.textContent?.trim()).not.toBe(
+      ""
+    );
+    callbacks.onConfirmClicked();
+    expect(component.dialog.open).toBe(true);
+    expect(score.masterBars[0].beatsCount).toBe(4);
+    expect(score.masterBars[0].duration).toBe(NoteDuration.SixtyFourth);
 
     component.template.durationSelect.value = "8";
     callbacks.onDurationChanged();
     expect(component.template.confirmButton.disabled).toBe(false);
-    expect(component.template.durationErrorText.textContent).toBe(" ");
+    expect(component.template.durationErrorText.textContent?.trim()).toBe("");
   });
 
-  test("mouse wheel adjusts the beat count", () => {
+  test("wheel binding is idempotent, prevents scrolling, and can be removed", () => {
     const { callbacks, component } = createTimeSigHarness();
     callbacks.bind();
+    callbacks.bind();
+    const event = new WheelEvent("wheel", { deltaY: -1, cancelable: true });
 
-    component.template.beatsControl.dispatch("wheel", {
-      deltaY: -1,
-      preventDefault: jest.fn(),
-    });
+    component.template.beatsControl.dispatchEvent(event);
 
     expect(component.template.beatsValue.textContent).toBe("5");
-  });
-
-  test("one valid field cannot re-enable confirm while the other is invalid", () => {
-    const { callbacks, component, notationComponent } = createTimeSigHarness();
-
-    component.template.beatsValue.textContent = "0";
-    component.template.durationSelect.value = "8";
-    callbacks.onConfirmClicked();
-
-    expect(component.template.confirmButton.disabled).toBe(true);
-    expect(
-      notationComponent.trackController.setSelectedBarTimeSignature
-    ).not.toHaveBeenCalled();
-  });
-
-  test("confirm commits time signature and repeated bind does not double fire", () => {
-    const {
-      callbacks,
-      component,
-      notationComponent,
-      renderFunc,
-      freeKeyboard,
-    } = createTimeSigHarness();
-    const setTimeSignature =
-      notationComponent.trackController.setSelectedBarTimeSignature;
-
-    callbacks.bind();
-    callbacks.bind();
-    component.template.beatsValue.textContent = "7";
-    component.template.durationSelect.value = "8";
-    component.template.dialogContent.dispatch("submit");
-
-    expect(setTimeSignature).toHaveBeenCalledTimes(1);
-    expect(setTimeSignature).toHaveBeenCalledWith(7, NoteDuration.Eighth);
-    expect(renderFunc).toHaveBeenCalledTimes(1);
-    expect(component.dialog.close).toHaveBeenCalledTimes(1);
-    expect(freeKeyboard).toHaveBeenCalledTimes(1);
-
-    const timeSignatureCallsBeforeUnbind = setTimeSignature.mock.calls.length;
+    expect(event.defaultPrevented).toBe(true);
     callbacks.unbind();
-    component.template.dialogContent.dispatch("submit");
-    expect(setTimeSignature).toHaveBeenCalledTimes(
-      timeSignatureCallsBeforeUnbind
+    const unboundEvent = new WheelEvent("wheel", {
+      deltaY: -1,
+      cancelable: true,
+    });
+    component.template.beatsControl.dispatchEvent(unboundEvent);
+    expect(component.template.beatsValue.textContent).toBe("5");
+    expect(unboundEvent.defaultPrevented).toBe(false);
+  });
+
+  test("confirm commits time signature once after repeated bind and stops after unbind", () => {
+    const { callbacks, component, controller, score, freeKeyboard } =
+      createTimeSigHarness();
+    callbacks.bind();
+    callbacks.bind();
+    callbacks.onBeatsStep(3);
+    component.template.durationSelect.value = "8";
+    component.template.durationSelect.dispatchEvent(new Event("change"));
+
+    component.template.dialogContent.dispatchEvent(
+      new Event("submit", { cancelable: true })
     );
+
+    expect(score.masterBars[0].beatsCount).toBe(7);
+    expect(score.masterBars[0].duration).toBe(NoteDuration.Eighth);
+    expect(component.dialog.open).toBe(false);
+    expect(freeKeyboard).toHaveBeenCalledTimes(1);
+    controller.undo();
+    expect(score.masterBars[0].beatsCount).toBe(4);
+    expect(score.masterBars[0].duration).toBe(NoteDuration.Quarter);
+    controller.redo();
+    expect(score.masterBars[0].beatsCount).toBe(7);
+
+    callbacks.unbind();
+    component.dialog.showModal();
+    callbacks.onBeatsStep(-4);
+    component.template.dialogContent.dispatchEvent(
+      new Event("submit", { cancelable: true })
+    );
+    expect(score.masterBars[0].beatsCount).toBe(7);
+    expect(component.dialog.open).toBe(true);
+    component.dialog.close();
   });
 });

@@ -4,12 +4,14 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
   test(`inline ${shortcut}: local hover, removal, and undo`, async ({
     page,
   }) => {
+    await page.clock.install();
     await page.goto("/tabui/?fixture=empty&theme=obsidian");
     const editor = page.locator("#tabui-editor");
     await editor.locator('[id^="note-rect-"]').first().click();
     await page.keyboard.press("5");
     if (shortcut === "s" || shortcut === "l") {
       await page.keyboard.press("a");
+      await page.clock.fastForward(251);
       await page.keyboard.press("7");
       await page.keyboard.press("ArrowLeft");
     }
@@ -29,7 +31,7 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
     const originalFill = await path.getAttribute("fill");
     const hitPath = editor.locator('[id^="technique-hit-path-"]').first();
     const pathData = await path.getAttribute("d");
-    if (pathData === null) throw Error("Expected technique path data");
+    if (!pathData) throw Error("Expected technique path data");
     await expect(hitPath).toHaveAttribute("d", pathData);
     await expect(hitPath).toHaveCSS("stroke", "rgba(0, 0, 0, 0)");
     const point = await hitPath.evaluate((node) => {
@@ -55,6 +57,9 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
     });
     const frets = editor.locator('[id^="note-text-"]');
     const originalFrets = await frets.allTextContents();
+    expect(originalFrets).toEqual(
+      shortcut === "s" || shortcut === "l" ? ["5", "7"] : ["5"]
+    );
     if (shortcut !== "b") {
       const geometry = await path.evaluate((node) => {
         const path = node as SVGPathElement;
@@ -87,12 +92,18 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
               rect.x.baseVal.value + rect.width.baseVal.value,
               rect.y.baseVal.value
             ).matrixTransform(matrix).x;
-            return { left, right };
+            const fret =
+              rect.parentElement?.querySelector(
+                '[id^="note-text-"]'
+              )?.textContent;
+            return { left, right, fret };
           })
         );
-      const source = noteRects[0];
+      const source = noteRects.find((v) => v.fret === "5");
+      if (source === undefined) throw Error("Expected source fret geometry");
       if (shortcut === "s" || shortcut === "l") {
-        const target = noteRects[6];
+        const target = noteRects.find((v) => v.fret === "7");
+        if (target === undefined) throw Error("Expected target fret geometry");
         expect(geometry.startX).toBeCloseTo(source.right);
         expect(geometry.endX).toBeCloseTo(target.left);
       } else {
@@ -114,5 +125,7 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
     await expect(frets).toHaveText(originalFrets);
     await page.keyboard.press("Control+z");
     await expect(path).toBeVisible();
+    await expect(path).toHaveAttribute("d", pathData);
+    await expect(frets).toHaveText(originalFrets);
   });
 }
