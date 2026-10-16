@@ -6,6 +6,7 @@ import {
   TechniqueType,
   GuitarTechnique,
   GuitarTechniqueType,
+  GuitarNote,
 } from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
@@ -63,8 +64,9 @@ export class SetTechniqueCommand implements Command {
       return;
     }
 
-    for (const note of this._notes) {
-      const oldTechniques = this._oldTechniquesMap.get(note.uuid);
+    for (const originalNote of this._notes) {
+      const note = this.getCurrentNote(originalNote);
+      const oldTechniques = this._oldTechniquesMap.get(originalNote.uuid);
       if (oldTechniques === undefined) {
         continue;
       }
@@ -95,10 +97,22 @@ export class SetTechniqueCommand implements Command {
 
   private applyTechnique(): boolean {
     return ScoreEditor.setTechniqueNotes(
-      this._notes,
+      this._notes.map((note) => this.getCurrentNote(note)),
       this._newTechniqueType,
       this._newBendOptions
     );
+  }
+
+  /** Gets current state of the note from provided note's position in the tree. */
+  private getCurrentNote(note: Note): Note {
+    if (note instanceof GuitarNote) {
+      const currentNote = note.beat.notes?.[note.stringNum - 1];
+      if (currentNote instanceof GuitarNote) {
+        return currentNote;
+      }
+    }
+
+    return note;
   }
 
   /** True if executed, false otherwise */
@@ -128,7 +142,8 @@ export class SetTechniqueCommand implements Command {
     const affectedBeats = getAffectedModelsFromBeats(
       this._notes.map((note) => note.beat)
     );
-    return this._notes.map((note) => {
+    return this._notes.map((originalNote) => {
+      const note = this.getCurrentNote(originalNote);
       const affectedBeat = affectedBeats.find(
         (model) => model.modelUUID === note.beat.uuid
       );

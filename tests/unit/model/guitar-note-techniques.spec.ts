@@ -172,8 +172,8 @@ describe("GuitarNote technique updates", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const previous = beats[0].notes?.[0];
-    const current = beats[1].notes?.[0];
+    const previous = beats[0].notes?.[1];
+    const current = beats[1].notes?.[1];
     if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
@@ -187,6 +187,21 @@ describe("GuitarNote technique updates", () => {
         bendDuration: 0.75,
       })
     );
+    const otherString = beats[0].notes?.[0];
+    if (!(otherString instanceof GuitarNote)) {
+      throw Error("Expected guitar note on the other string");
+    }
+    otherString.fret = 5;
+    otherString.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 2,
+        bendDuration: 0.75,
+      })
+    );
+    expect(current.getBendContinuationPitch()).toBeUndefined();
+
     current.setTechnique(GuitarTechniqueType.LetRing);
 
     expect(current.getBendContinuationPitch()).toBe(1);
@@ -243,11 +258,17 @@ describe("GuitarNote technique updates", () => {
       expect(current.setTechnique(GuitarTechniqueType.Bend, options)).toBe(
         false
       );
+      expect(current.techniques.map((t) => t.type)).toEqual([
+        GuitarTechniqueType.LetRing,
+      ]);
       expect(
         current.addTechnique(
           new GuitarTechnique(current, GuitarTechniqueType.Bend, options)
         )
       ).toBe(false);
+      expect(current.techniques.map((t) => t.type)).toEqual([
+        GuitarTechniqueType.LetRing,
+      ]);
     }
   );
 
@@ -294,11 +315,19 @@ describe("GuitarNote technique updates", () => {
         })
       )
     ).toBe(false);
-    expect(
-      current.techniques.find(
-        (technique) => technique.type === GuitarTechniqueType.Bend
-      )?.bendOptions?.type
-    ).toBe(BendType.BendAndRelease);
+    expect(current.techniques.map((t) => t.type)).toEqual([
+      GuitarTechniqueType.LetRing,
+      GuitarTechniqueType.Bend,
+    ]);
+    const bend = current.techniques.find(
+      (t) => t.type === GuitarTechniqueType.Bend
+    );
+    expect(bend?.bendOptions).toMatchObject({
+      type: BendType.BendAndRelease,
+      bendPitch: 2,
+      releasePitch: 0,
+      bendDuration: 0.5,
+    });
   });
 
   test.each([BendType.Bend, BendType.BendAndRelease])(
@@ -341,11 +370,17 @@ describe("GuitarNote technique updates", () => {
       expect(current.setTechnique(GuitarTechniqueType.Bend, options)).toBe(
         false
       );
+      expect(current.techniques.map((t) => t.type)).toEqual([
+        GuitarTechniqueType.LetRing,
+      ]);
       expect(
         current.addTechnique(
           new GuitarTechnique(current, GuitarTechniqueType.Bend, options)
         )
       ).toBe(false);
+      expect(current.techniques.map((t) => t.type)).toEqual([
+        GuitarTechniqueType.LetRing,
+      ]);
     }
   );
 

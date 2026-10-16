@@ -144,23 +144,41 @@ test("bend labels do not highlight or remove bends", async ({ page }) => {
       .getByRole("dialog", { name: "Bend", exact: true })
       .getByRole("button", { name: "Confirm" })
       .click();
-    await page.keyboard.press("ArrowDown");
+    // Separate the pitch labels horizontally so both receive real pointer input.
+    if (fret === "5") await page.keyboard.press("a");
   }
   const labels = editor.locator(".tu-technique-label");
   const bends = editor.locator(".tu-inline-technique");
   await expect(labels).toHaveCount(2);
   await expect(bends).toHaveCount(2);
   await expect(labels.locator('[id^="technique-label-hit-"]')).toHaveCount(0);
-  const text = labels.nth(1).locator('[id^="technique-label-text-"]').first();
-  await text.scrollIntoViewIfNeeded();
-  await page.mouse.move(0, 0);
-  const originalFill = await text.evaluate(
-    (node) => getComputedStyle(node).fill
+  const paths = bends.locator('[id^="technique-path-"]');
+  await expect(paths).toHaveCount(4);
+  const originalPaths = await paths.evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute("d"))
   );
-  await text.hover();
-  await expect(text).toHaveCSS("fill", originalFill);
-  await expect(text).not.toHaveCSS("cursor", "pointer");
-  await text.click();
-  await expect(labels).toHaveCount(2);
-  await expect(bends).toHaveCount(2);
+  for (const path of originalPaths) expect(path).toMatch(/\d/);
+  for (let index = 0; index < 2; index++) {
+    const text = labels
+      .nth(index)
+      .locator('[id^="technique-label-text-"]')
+      .first();
+    await expect(text).toHaveText("full");
+    await text.scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    const originalFill = await text.evaluate(
+      (node) => getComputedStyle(node).fill
+    );
+    await text.hover();
+    await expect(text).toHaveCSS("fill", originalFill);
+    await expect(text).not.toHaveCSS("cursor", "pointer");
+    await text.click();
+    await expect(labels).toHaveCount(2);
+    await expect(bends).toHaveCount(2);
+    expect(
+      await paths.evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("d"))
+      )
+    ).toEqual(originalPaths);
+  }
 });

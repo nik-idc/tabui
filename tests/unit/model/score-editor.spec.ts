@@ -464,7 +464,7 @@ describe("ScoreEditor", () => {
       )
     ).toBe(true);
     expect(note.techniques).toHaveLength(1);
-    expect(note.techniques[0].bendOptions?.type).toBe(BendType.PrebendBend);
+    expect(note.techniques[0].bendOptions).toEqual(replacementOptions);
 
     expect(
       ScoreEditor.setTechniqueNotes(
@@ -473,6 +473,8 @@ describe("ScoreEditor", () => {
         replacementOptions
       )
     ).toBe(false);
+    expect(note.techniques).toHaveLength(1);
+    expect(note.techniques[0].bendOptions).toEqual(replacementOptions);
   });
 
   test("bend options replace and add across a mixed selection", () => {
@@ -508,8 +510,10 @@ describe("ScoreEditor", () => {
         replacementOptions
       )
     ).toBe(true);
-    expect(first.techniques[0].bendOptions?.bendPitch).toBe(1);
-    expect(second.techniques[0].bendOptions?.bendPitch).toBe(1);
+    expect(first.techniques).toHaveLength(1);
+    expect(second.techniques).toHaveLength(1);
+    expect(first.techniques[0].bendOptions).toEqual(replacementOptions);
+    expect(second.techniques[0].bendOptions).toEqual(replacementOptions);
   });
 
   test("invalid replacement options leave the existing bend unchanged", () => {
@@ -535,6 +539,7 @@ describe("ScoreEditor", () => {
       bendPitch: 1,
       bendDuration: 1,
     });
+    // JavaScript callers can change readonly options after construction.
     (invalidOptions as { bendPitch: number }).bendPitch = Number.NaN;
 
     expect(() =>
@@ -543,8 +548,13 @@ describe("ScoreEditor", () => {
         GuitarTechniqueType.Bend,
         invalidOptions
       )
-    ).toThrow("Invalid bend options");
-    expect(note.techniques[0].bendOptions?.bendPitch).toBe(0.5);
+    ).toThrow();
+    expect(note.techniques).toHaveLength(1);
+    expect(note.techniques[0].bendOptions).toMatchObject({
+      type: BendType.Bend,
+      bendPitch: 0.5,
+      bendDuration: 1,
+    });
   });
 
   test("setTechniqueNotes on mixed selection applies to unapplied notes", () => {

@@ -597,13 +597,55 @@ describe("TrackElement techniques", () => {
       .filter((element) => element instanceof GuitarTechniqueElement)
       .filter((element) => element.technique.type === GuitarTechniqueType.Bend);
     const elementFor = (type: BendType) =>
-      bendElements.find(
-        (element) => element.technique.bendOptions?.type === type
+      required(
+        bendElements.find(
+          (element) => element.technique.bendOptions?.type === type
+        )
       );
 
-    expect(elementFor(BendType.Hold)?.pathDescriptors).toEqual([]);
-    expect(elementFor(BendType.Release)?.pathDescriptors).toHaveLength(2);
-    expect(elementFor(BendType.PrebendBend)?.pathDescriptors).toHaveLength(4);
+    expect(bendElements).toHaveLength(3);
+    expect(elementFor(BendType.Hold).pathDescriptors).toEqual([]);
+    // A 46.8px beat has 11.7px quarters. The glyph ends at x=6.
+    // Strings 2 and 3 start 36px and 60px below the technique row.
+    const release = required(elementFor(BendType.Release).pathDescriptors);
+    const prebend = required(elementFor(BendType.PrebendBend).pathDescriptors);
+    expect(release).toHaveLength(2);
+    expect(prebend).toHaveLength(4);
+    expect(release[0].d).toContain(" C ");
+    expect(prebend[0].d).toContain(" l ");
+    expect(prebend[2].d).toContain(" C ");
+    const expectedPaths = [
+      [release[0], [6, -24, 29.4, -30, 29.4, 6, 29.4, 12]],
+      [prebend[0], [17.7, 12, 0, -60]],
+      [prebend[2], [17.7, -48, 29.4, -48, 29.4, -54, 29.4, -54]],
+    ] as const;
+    for (const [descriptor, expected] of expectedPaths) {
+      const numbers = parsePathNumbers(descriptor.d);
+      expect(numbers).toHaveLength(expected.length);
+      for (const [index, value] of expected.entries()) {
+        expect(numbers[index]).toBeCloseTo(value);
+      }
+    }
+    for (const [descriptor, x, y, tipY] of [
+      [release[1], 29.4, 12, 4],
+      [prebend[1], 17.7, -48, -4],
+      [prebend[3], 29.4, -54, -4],
+    ] as const) {
+      const numbers = parsePathNumbers(descriptor.d);
+      expect(numbers).toHaveLength(10);
+      expect(numbers[0]).toBeCloseTo(x);
+      expect(numbers[1]).toBeCloseTo(y);
+      expect(numbers.slice(2)).toEqual([
+        2.5,
+        0,
+        -2.5,
+        tipY,
+        -2.5,
+        -tipY,
+        2.5,
+        0,
+      ]);
+    }
   });
 
   test("constrains hold labels to adjacent short beat geometry", () => {
@@ -637,18 +679,24 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0];
     const barElement = styleLine.barElements[0];
-    const labels = (styleLine.techGapContainer.techGapLines[3]?.labelElements ??
-      []) as GuitarTechniqueLabelElement[];
+    const labels = required(
+      styleLine.techGapContainer.techGapLines[3]
+    ).labelElements;
 
     expect(labels).toHaveLength(3);
     for (const label of labels) {
-      const descriptor = label.textDescriptors?.[0];
-      const expectedX = `${label.boundingBox.width / 2}`;
+      if (!(label instanceof GuitarTechniqueLabelElement)) {
+        throw Error("Expected a guitar technique label");
+      }
+      const descriptor = required(label.textDescriptors?.[0]);
 
-      expect(descriptor?.attrs?.x).toBe(expectedX);
-      expect(Number(descriptor?.attrs?.textLength)).toBe(
-        label.boundingBox.width
-      );
+      // The short-beat minimum is 36px: center at 18px, fitted text 36px.
+      expect(label.boundingBox.width).toBe(36);
+      expect(descriptor.text).toBe("hold");
+      expect(descriptor.attrs?.x).toBe("18");
+      expect(descriptor.attrs?.textLength).toBe("36");
+      expect(descriptor.attrs?.["text-anchor"]).toBe("middle");
+      expect(descriptor.attrs?.lengthAdjust).toBe("spacingAndGlyphs");
       expect(label.barLocalBoundingBox.x).toBeGreaterThanOrEqual(0);
       expect(label.barLocalBoundingBox.right).toBeLessThanOrEqual(
         barElement.boundingBox.width
@@ -949,6 +997,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["full"],
+      [173.7],
     ],
     [
       "Prebend",
@@ -958,6 +1007,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["½"],
+      [162],
     ],
     [
       "Bend/Release",
@@ -969,6 +1019,7 @@ describe("TrackElement techniques", () => {
       }),
       [1, 3],
       ["full", "full"],
+      [173.7, 185.4],
     ],
     [
       "Prebend/Release",
@@ -980,6 +1031,7 @@ describe("TrackElement techniques", () => {
       }),
       [1, 3],
       ["full", "½"],
+      [162, 173.7],
     ],
     [
       "Release",
@@ -990,6 +1042,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["½"],
+      [173.7],
     ],
     [
       "Prebend/Bend",
@@ -1001,10 +1054,11 @@ describe("TrackElement techniques", () => {
       }),
       [1, 3],
       ["½", "full"],
+      [162, 173.7],
     ],
   ])(
     "centers %s pitch labels on their inline curve endpoints",
-    (_, options, arrowIndexes, expectedTexts) => {
+    (_, options, arrowIndexes, expectedTexts, expectedXs) => {
       const { track, beats } = createBarWithBeats([
         { baseDuration: NoteDuration.Quarter },
         { baseDuration: NoteDuration.Quarter },
@@ -1036,18 +1090,26 @@ describe("TrackElement techniques", () => {
       const textDescriptors = bendLabel.textDescriptors ?? [];
       const actualTexts = textDescriptors.map((descriptor) => descriptor.text);
 
-      expect(beatElement.barLocalCoords.x).toBeGreaterThan(0);
+      // This quarter beat starts at bar x=144.3 and has a 46.8px slot.
+      // From the glyph's right edge at x=150.3, quarter/half/three-quarter
+      // endpoints are x=162, 173.7, 185.4, independently of label placement.
+      expect(beatElement.barLocalCoords.x).toBeCloseTo(144.3);
+      expect(beatElement.boundingBox.width).toBeCloseTo(46.8);
       expect(actualTexts).toEqual(expectedTexts);
       expect(bendLabel.pathDescriptors).toEqual([]);
       for (let i = 0; i < arrowIndexes.length; i++) {
-        const arrowPath =
-          bendElement.pathDescriptors?.[arrowIndexes[i]]?.d ?? "";
-        const arrowLocalX = parsePathNumbers(arrowPath)[0];
+        const arrowPath = required(bendElement.pathDescriptors)[arrowIndexes[i]]
+          .d;
+        const numbers = parsePathNumbers(arrowPath);
+        expect(numbers).toHaveLength(10);
+        const arrowLocalX = numbers[0];
         const labelLocalX = Number(textDescriptors[i]?.attrs?.x);
         const arrowX = bendElement.pathOriginBarLocal.x + arrowLocalX;
         const labelX = bendLabel.descriptorOriginBarLocal.x + labelLocalX;
 
         expect(textDescriptors[i]?.attrs?.["text-anchor"]).toBe("middle");
+        expect(arrowX).toBeCloseTo(expectedXs[i]);
+        expect(labelX).toBeCloseTo(expectedXs[i]);
         expect(labelX).toBeCloseTo(arrowX);
       }
     }

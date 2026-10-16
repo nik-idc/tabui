@@ -3,6 +3,8 @@ import { ScorePlayer } from "../../../src/player";
 import { BeatElement } from "../../../src/notation/controller/element/beat/beat-element";
 import {
   BarRepeatStatus,
+  BendTechniqueOptions,
+  BendType,
   DEFAULT_MASTER_BAR,
   Beat,
   Guitar,
@@ -1251,6 +1253,96 @@ describe("TrackController", () => {
     expect(originalBeat.notes?.[0]).toEqual(
       expect.objectContaining({ fret: 7 })
     );
+  });
+
+  test("bend redo follows fret history from an actual rest", () => {
+    const score = new Score();
+    const track = score.tracks[0];
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const voiceBar = track.staves[0].bars[0].getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const beat = voiceBar.beats[0];
+    expect(beat.notes).toBeNull();
+    controller.selectNoteElement(
+      getBeatElement(controller, 0, 0).noteElements[2]
+    );
+
+    controller.setSelectedNoteFret(5);
+    const bendOptions = new BendTechniqueOptions({
+      type: BendType.BendAndRelease,
+      bendPitch: 1,
+      releasePitch: 0,
+      bendDuration: 1,
+    });
+    controller.setTechnique(GuitarTechniqueType.Bend, bendOptions);
+    const initialNote = beat.notes?.[2];
+    if (!(initialNote instanceof GuitarNote)) {
+      throw Error("Expected guitar note after setting fret");
+    }
+    expect(initialNote.fret).toBe(5);
+    expect(initialNote.techniques[0].bendOptions).toMatchObject({
+      type: BendType.BendAndRelease,
+      bendPitch: 1,
+      releasePitch: 0,
+      bendDuration: 1,
+    });
+
+    controller.undo();
+    const afterBendUndo = beat.notes?.[2];
+    expect(afterBendUndo?.fret).toBe(5);
+    expect(afterBendUndo?.hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
+    controller.undo();
+    expect(beat.isRest()).toBe(true);
+
+    controller.redo();
+    const afterFretRedo = beat.notes?.[2];
+    if (!(afterFretRedo instanceof GuitarNote)) {
+      throw Error("Expected guitar note after fret redo");
+    }
+    expect(afterFretRedo.fret).toBe(5);
+    expect(afterFretRedo.hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
+    controller.redo();
+    const afterBendRedo = beat.notes?.[2];
+    if (!(afterBendRedo instanceof GuitarNote)) {
+      throw Error("Expected guitar note after bend redo");
+    }
+    expect(afterBendRedo.fret).toBe(5);
+    expect(afterBendRedo.techniques[0].bendOptions).toMatchObject({
+      type: BendType.BendAndRelease,
+      bendPitch: 1,
+      releasePitch: 0,
+      bendDuration: 1,
+    });
+
+    controller.undo();
+    const afterRepeatedBendUndo = beat.notes?.[2];
+    expect(afterRepeatedBendUndo?.fret).toBe(5);
+    expect(afterRepeatedBendUndo?.hasTechnique(GuitarTechniqueType.Bend)).toBe(
+      false
+    );
+    controller.undo();
+    expect(beat.isRest()).toBe(true);
+    controller.redo();
+    const afterRepeatedFretRedo = beat.notes?.[2];
+    expect(afterRepeatedFretRedo?.fret).toBe(5);
+    expect(afterRepeatedFretRedo?.hasTechnique(GuitarTechniqueType.Bend)).toBe(
+      false
+    );
+    controller.redo();
+    const afterRepeatedRedo = beat.notes?.[2];
+    if (!(afterRepeatedRedo instanceof GuitarNote)) {
+      throw Error("Expected guitar note after repeated redo");
+    }
+    expect(afterRepeatedRedo.fret).toBe(5);
+    expect(afterRepeatedRedo.hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
+    expect(afterRepeatedRedo.techniques[0].bendOptions).toMatchObject({
+      type: BendType.BendAndRelease,
+      bendPitch: 1,
+      releasePitch: 0,
+      bendDuration: 1,
+    });
   });
 
   test("insert beat before selected inserts and selects the new beat", () => {

@@ -255,7 +255,7 @@ test("moves a bend handle without scrolling notation", async ({ page }) => {
   await expect(graph).toBeVisible();
 
   // Record the handle position and notation scroll state before dragging.
-  const handle = graph.locator("circle").last();
+  const handle = graph.locator('circle[aria-label="Bend point"]');
   const handleBox = await requiredBoundingBox(handle);
   const handleYBefore = await handle.getAttribute("cy");
   const scrollTopBefore = await notation.evaluate(
@@ -272,6 +272,21 @@ test("moves a bend handle without scrolling notation", async ({ page }) => {
   // The snapped graph point changes while the notation viewport stays still.
   await expect(handle).not.toHaveAttribute("cy", handleYBefore ?? "");
   await expect(notation).toHaveJSProperty("scrollTop", scrollTopBefore);
+  const editedY = await handle.getAttribute("cy");
+  if (editedY === null) throw Error("Expected a positioned bend handle");
+  await dialog.getByRole("button", { name: "Confirm" }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(editor.locator(".tu-inline-technique")).toHaveCount(1);
+
+  // Reopening must recover the dragged pitch from the committed bend.
+  await editor.getByRole("button", { name: "Bend", exact: true }).click();
+  await expect(handle).toHaveAttribute("cy", editedY);
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await notation.focus();
+  await page.keyboard.press("Control+z");
+  await expect(editor.locator(".tu-inline-technique")).toHaveCount(0);
+  await page.keyboard.press("Control+y");
+  await expect(editor.locator(".tu-inline-technique")).toHaveCount(1);
 });
 
 test("moves a bend handle through a touch gesture", async ({
@@ -294,7 +309,7 @@ test("moves a bend handle through a touch gesture", async ({
   // The graph explicitly owns touch gestures instead of allowing browser panning.
   const graph = editor.locator(".tu-bend-controls-svg");
   await expect(graph).toHaveCSS("touch-action", "none");
-  const handle = graph.locator("circle").last();
+  const handle = graph.locator('circle[aria-label="Bend point"]');
   const handleBox = await requiredBoundingBox(handle);
   const handleYBefore = await handle.getAttribute("cy");
 
@@ -302,18 +317,22 @@ test("moves a bend handle through a touch gesture", async ({
   const handleX = handleBox.x + handleBox.width / 2;
   const handleY = handleBox.y + handleBox.height / 2;
   const client = await page.context().newCDPSession(page);
-  await client.send("Input.dispatchTouchEvent", {
-    type: "touchStart",
-    touchPoints: [{ x: handleX, y: handleY, id: 1 }],
-  });
-  await client.send("Input.dispatchTouchEvent", {
-    type: "touchMove",
-    touchPoints: [{ x: handleX, y: handleY - 100, id: 1 }],
-  });
-  await client.send("Input.dispatchTouchEvent", {
-    type: "touchEnd",
-    touchPoints: [],
-  });
+  try {
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: handleX, y: handleY, id: 1 }],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: handleX, y: handleY - 100, id: 1 }],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  } finally {
+    await client.detach();
+  }
 
   // The touch gesture updates the snapped graph point through Pointer Events.
   await expect(handle).not.toHaveAttribute("cy", handleYBefore ?? "");

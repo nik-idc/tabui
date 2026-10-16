@@ -74,7 +74,10 @@ assigned shortcut table. See current status below.
 | 25. Technique application rules             | Sol assessment complete                            | Implemented; independent review passed |
 | 26. Inline transitions, harmonics, vibrato  | Sol assessment complete                            | Implemented; independent review passed |
 | 27. Technique labels and removal            | Sol assessment complete                            | Implemented; independent review passed |
-| 28–55                                       | Not started                                        | Not started                            |
+| 28. Bend rules and undo                     | Sol assessment complete                            | Implemented; independent review passed |
+| 29. Bend curves and geometry                | Sol assessment complete                            | Implemented; independent review passed |
+| 30. Bend dialog and pointer controls        | Sol assessment complete                            | Implemented; independent review passed |
+| 31–55                                       | Not started                                        | Not started                            |
 
 ## Current handoff scopes
 
@@ -1566,3 +1569,170 @@ remain. Six declarations are substantial replacements; no direct removals.
   No production or dependency changes were made. Existing audit/cleanup work is
   preserved. The mixed empty-slot toggle and reachable rejected-command redo
   failures are documented production follow-ups. Groups 28–55 are not started.
+
+### Groups 28–30: implemented and reviewed
+
+- Started on the user's `test-audit` branch with a clean working tree after their
+  checkpoint commit. Prior audit changes, production fixes, and cleanup are retained.
+- Separate Sol agents own bend rules/history, bend curve geometry, and bend dialog
+  controls. Each group receives an independent review before completion.
+- Before-round files are saved at
+  `/tmp/opencode/tabui-audit-groups-28-30-before/`. Ownership uses original baseline
+  titles, since current line numbers have changed. The coordinator owns this record
+  and combined browser/full verification.
+
+### Group 28: assessment and implementation
+
+Independent review passed. Thirteen owned declarations remain. Generated
+cases increase from 29 to 35 through six added parameter rows, not new declarations.
+
+- Bend options require every valid field, three additional invalid inputs (zero
+  duration, excessive pitch, wrong-type extra option), and terminal values for all
+  seven types, including nonzero releases.
+- Inheritance uses string two with a distinct string-one bend to detect incorrect
+  note lookup. Rejections preserve technique state through both public operations.
+  Accepted bend/release options and retained Let Ring are checked fully.
+- Command and editor tests require complete options, single-technique counts,
+  successful execution, replacement/no-op state, mixed-selection application, and
+  undo/redo restoration. Explicit affected-model note anchors remain.
+- Invalid replacement retains a documented JavaScript mutation of readonly options;
+  independent review will check the fixture's value. No behavior guarantees were
+  intentionally dropped; error-substring assertions became general rejection checks.
+- Four focused suites passed 77 tests and test compilation; scoped lint/format and
+  diff checks passed. No source changes or confirmed production bugs reported.
+- Independent review approved all owned declarations and six added rows, confirmed
+  same-string sensitivity, rejection preservation, independent expectations, and
+  the supported JavaScript mutation scenario. It passed 77 tests, test compilation,
+  scoped lint/format, and diff checks. No blockers or established production bugs.
+
+### Group 29: assessment and implementation
+
+Independent review passed. Owned declarations decrease from ten to nine;
+generated cases remain 21. No production edits or confirmed bugs reported.
+
+- Selector tests use public construction, real SVG, complete worked paths, and
+  emitted options instead of helper substrings or fabricated DOM. Hold/Prebend
+  equality becomes two explicit horizontal-path/pitch cases. Continuations require
+  full paths, inherited pitch/duration, and noneditable Hold geometry.
+- Private-point mutation for continuation floors becomes real keyboard handle
+  events: initialization, upward movement, and repeated downward clamps in both
+  emitted options and circle positions.
+- Controller shapes require worked curve coordinates, vertical segments, arrow
+  positions/directions, existing empty-path Hold, explicit short-Hold width/center,
+  required text fitting, and independent bar-space pitch label placement.
+- Browser checks interact with both Bend and Prebend labels, require full text
+  and nonempty numeric path data, and preserve hover styling/path data after each
+  click. Label interaction establishes text visibility, not curve visibility.
+- Direct removal: fabricated incomplete helper control points, not produced by
+  selector initialization. Given up: malformed-helper rejection/exact error.
+  Splitting the horizontal comparison adds one case, offsetting that removal.
+- Two focused suites passed 44 tests; test compilation, scoped lint/format, and
+  diff checks passed. Browser/full verification awaits the coordinator.
+- Independent review approved all owned declarations and the direct removal,
+  confirmed supported initialization/continuation fixtures and independent worked
+  coordinates. No blockers. Its optional wording correction is applied above;
+  review itself did not rerun tests.
+
+### Group 30: assessment and implementation
+
+Independent review passed. Owned declarations decrease from 23 to 21 and
+cases from 29 to 27 (before browser-project multiplication). Callback declarations
+decrease from eight to six; all seven component and eight browser declarations
+remain. No production changes.
+
+- Real DOM/public construction/controller outcomes replace routing mocks and
+  prototype/fake DOM setup. A shared bend-controls test helper owns setup/cleanup.
+- Two routing declarations merge into one seven-type behavioral scenario. Seven
+  disabled-type cases use real states and unchanged graph points after rejected
+  clicks/callbacks. Confirm checks options, closure, undo/redo, repeated binding,
+  single history entry, and unbinding. Removal checks full options/history; no-bend
+  removal leaves state/dialog/history unchanged. Close checks keyboard ownership,
+  old handle cleanup, cancellation, and controls after reopening.
+- Components check actual classes/ARIA, saved coordinates/type/removal, inherited
+  pitch, maximum continuation, Let Ring conditions, and releasing predecessors.
+- Browser mouse dragging commits and persists the named handle's pitch across
+  reopening/undo/redo. Touch retains CDP input with reliable session cleanup.
+  Keyboard confirmation requires a rendered bend/full label plus parity/focus/undo.
+  The previously failing Firefox reopen declaration remains unchanged.
+- Direct removal: mocked incomplete selector output with no established UI path.
+  Model invalid-option coverage remains in Group 28. Given up: fabricated selector
+  rejection and exact internal forwarding/disposal call counts.
+- Two focused suites passed nineteen tests; test compilation, scoped lint/format,
+  and diff checks passed. Independent review checks removal justification and all
+  owned scenarios, including retained browser declarations.
+- Independent review approved all declarations/helper cleanup and both reductions,
+  then passed nineteen tests across two suites and scoped diff checks. No audit
+  blockers remain. Browser/full verification remains with the coordinator.
+
+### Group 30 production finding: bend missing after two-edit redo
+
+- User confirmed the failure when starting from an actual rest (`notes === null`),
+  distinct from an empty string slot on an existing note beat, and requested a
+  Luna fix. Implementation and regression coverage are in progress. Fret entry and
+  bend application are separate atomic commands; the failure follows undoing each
+  once, then redoing each once.
+- Reported public-controller reproduction: default rest, enter fret 5, apply
+  Bend/Release, undo twice, then redo twice. The fret returns but the bend does not.
+  Redoing only the bend succeeds. No existing two-edit sequence coverage was removed.
+- No production fix was made. Independent review reproduced the full sequence:
+  fret 5 returns without the bend, whereas undo/redo of just the bend restores it.
+  This is a separate production history bug, not removed baseline coverage.
+- User-requested fix is now implemented by Luna: technique execution/undo resolves
+  the current note from its beat/string lane instead of editing a discarded note
+  after rest restoration/recreation. Initial red/green regression and all 95 unit
+  suites/981 tests passed. The regression is being strengthened to exercise public
+  controller/history behavior and each intermediate state; affected-model anchors
+  are being checked for the same stale-reference issue. Final review/verification
+  are pending.
+- Final regression uses public controller/history from a verified rest, checks
+  initial fret/options, bend removal, restored rest, fret-only redo, full bend redo,
+  and the repeated cycle on the current note. One new declaration is justified by
+  this previously uncovered two-command sequence; earlier declarations remain.
+- `affectedModels` also resolves the current note UUID after recreation. Its
+  existing contract test was strengthened and failed before the anchor fix.
+  Final implementation passed all 95 unit suites/981 tests, production/test type
+  checks, scoped lint, and diff checks. Independent Sol review and full verify are
+  running; log: `/tmp/opencode/tabui-rest-bend-redo-verify.log`.
+- Repository-wide lint and changed-source/test formatting passed. No commits or
+  dependency changes were made.
+- Independent Sol review approved the production fix and passed two focused
+  suites/84 tests. It requested reading the current model again after bend redo;
+  that assertion correction and optional intermediate fret-preservation checks
+  were applied, passed the focused regression, and received final review signoff.
+  No production correctness blockers remain. Final full verification is pending.
+- Final `npm run verify` passed: production/test type checks, package build, all
+  95 unit suites/981 tests, consumer smoke, Chromium/Firefox (249 passed, one
+  skipped), and demo build. Log: `/tmp/opencode/tabui-rest-bend-redo-verify.log`.
+  The review's final assertion-only strengthening also passed its focused run.
+  The user-requested rest/bend redo fix is complete and independently reviewed.
+
+### Groups 28–30 repository verification
+
+- Full verification passed production/test type checks, package build, all 95 unit
+  suites (980 tests), and consumer smoke. Log:
+  `/tmp/opencode/tabui-audit-groups-28-30-verify.log`.
+- Browser execution: 247 passed, one skipped, two failed. Group 29's changed
+  bend-label test failed in both browsers because adjacent labels overlap and
+  intercept the required pointer interaction. This is a fixture failure, not an
+  unexplained timeout. Correction and independent recheck are pending; no clean
+  full-run pass is claimed. Demo build is running separately.
+- Repository-wide lint, changed-test/helper formatting, audit formatting, and diff
+  checks passed before the browser-fixture correction.
+- Fixture correction places Prebend on the next quarter-note beat with the public
+  `a` shortcut, rather than a different string on the same beat. Normal hover/click
+  and both-label/style/count/path guarantees remain. Test compilation, scoped
+  lint/format/diff passed. Independent recheck and the entire changed label browser
+  spec in both browsers are running.
+- The separate demo build passed; log:
+  `/tmp/opencode/tabui-audit-groups-28-30-demo.log`.
+- The corrected complete label browser spec passed all eight cases across Chromium
+  and Firefox. Log: `/tmp/opencode/tabui-audit-groups-28-30-browser-rerun.log`.
+  Independent recheck approved the separate-beat fixture and preserved normal
+  pointer, label/style/count, and unchanged-path guarantees without blockers.
+- Final repository-wide lint, changed-test/new-helper formatting, audit formatting,
+  and diff checks passed. All three groups are implemented and independently
+  reviewed. The original full run remains failed; no later clean full run is claimed.
+- Net scope change: three fewer declarations, four more generated unit cases
+  (95 suites/980 tests). No production/dependency changes or commits were made.
+  Prior checkpoint work remains intact. The reproduced two-edit bend redo failure
+  remains a separate production follow-up. Groups 31–55 are not started.

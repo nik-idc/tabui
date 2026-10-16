@@ -1,8 +1,8 @@
-import { BendType } from "../../../src/notation/model";
-import { Point } from "../../../src/shared";
-import { buildBendPath } from "../../../src/ui/side-controls/technique-controls/bend-controls/bend-selectors/bend-curve-selector";
+/** @jest-environment jsdom */
+
+import { BendOptionsData, BendType } from "../../../src/notation/model";
 import { BendCurveSelector } from "../../../src/ui/side-controls/technique-controls/bend-controls/bend-selectors/bend-curve-selector";
-import { FakeElement } from "./helpers";
+import { required } from "../required";
 
 const options = {
   width: 420,
@@ -12,161 +12,158 @@ const options = {
   colsCount: 12,
 };
 
-describe("buildBendPath", () => {
-  test.each([
-    [BendType.Bend, { bend: new Point(300, 100) }],
+function createSelector(bend: BendOptionsData, continuationPitch?: number) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  document.body.appendChild(svg);
+  const selector = new BendCurveSelector(
+    svg,
+    options,
+    bend,
+    () => {},
+    continuationPitch
+  );
+  selector.init();
+  return { svg, selector };
+}
+
+afterEach(() => document.body.replaceChildren());
+
+describe("BendCurveSelector", () => {
+  // The 400px time axis starts at x=20; half duration is x=220.
+  // The pitch grid spans 0–3 tones: full tone is y=200, half tone y=250.
+  test.each<[BendOptionsData, string]>([
     [
-      BendType.BendAndRelease,
-      { bend: new Point(220, 100), release: new Point(320, 250) },
+      { type: BendType.Bend, bendPitch: 1, bendDuration: 0.5 },
+      "M 20 300 Q 220 300, 220 200 L 420 200",
     ],
     [
-      BendType.PrebendAndRelease,
-      { prebend: new Point(20, 100), release: new Point(300, 250) },
+      {
+        type: BendType.BendAndRelease,
+        bendPitch: 1,
+        releasePitch: 0,
+        bendDuration: 0.5,
+      },
+      "M 20 300 Q 220 300, 220 200 Q 320 200, 320 300",
     ],
     [
-      BendType.PrebendBend,
-      { prebend: new Point(20, 200), bend: new Point(300, 100) },
+      {
+        type: BendType.PrebendAndRelease,
+        prebendPitch: 1,
+        releasePitch: 0,
+        bendDuration: 0.75,
+      },
+      "M 20 200 L 160 200 Q 320 200, 320 300 L 420 300",
     ],
     [
-      BendType.Release,
-      { start: new Point(20, 100), release: new Point(300, 250) },
+      {
+        type: BendType.PrebendBend,
+        prebendPitch: 0.5,
+        bendPitch: 1,
+        bendDuration: 0.5,
+      },
+      "M 20 250 L 110 250 Q 220 250, 220 200 L 420 200",
     ],
-  ])("uses a quadratic curve for bend type %s", (type, points) => {
-    expect(buildBendPath(type, points, options)).toContain(" Q ");
+    [
+      { type: BendType.Release, releasePitch: 0, bendDuration: 0.75 },
+      "M 20 200 L 160 200 Q 320 200, 320 300 L 420 300",
+    ],
+  ])("renders the complete curve for %j", (bend, expectedPath) => {
+    const { svg, selector } = createSelector(bend);
+    try {
+      expect(svg.querySelector("path")?.getAttribute("d")).toBe(expectedPath);
+      expect(selector.getBendTechnique()).toEqual(bend);
+    } finally {
+      selector.dispose();
+    }
   });
 
-  test("rejects a shape with missing control points", () => {
-    expect(() => buildBendPath(BendType.Bend, {}, options)).toThrow(
-      "Missing 'bend' control point"
-    );
-  });
-
-  test("Hold and Prebend use the same horizontal shape", () => {
-    const point = new Point(20, 100);
-
-    expect(buildBendPath(BendType.Hold, { hold: point }, options)).toBe(
-      buildBendPath(BendType.Prebend, { prebend: point }, options)
-    );
+  test.each<[BendOptionsData]>([
+    [{ type: BendType.Hold, holdPitch: 2, bendDuration: 1 }],
+    [{ type: BendType.Prebend, prebendPitch: 2 }],
+  ])("renders a horizontal pitch line for %j", (bend) => {
+    const { svg, selector } = createSelector(bend);
+    try {
+      expect(svg.querySelector("path")?.getAttribute("d")).toBe(
+        "M 20 100 L 420 100"
+      );
+      expect(selector.getBendTechnique()).toEqual(bend);
+    } finally {
+      selector.dispose();
+    }
   });
 
   test.each([BendType.Bend, BendType.BendAndRelease])(
     "starts continuation bend type %s at the inherited pitch",
     (type) => {
-      const path = buildBendPath(
-        type,
+      const { svg, selector } = createSelector(
         {
-          start: new Point(20, 150),
-          bend: new Point(220, 100),
-          release:
-            type === BendType.BendAndRelease ? new Point(320, 250) : undefined,
+          type,
+          bendPitch: 2,
+          bendDuration: 0.5,
+          ...(type === BendType.BendAndRelease ? { releasePitch: 0.5 } : {}),
         },
-        options
+        1.5
       );
-
-      expect(path).toContain("M 20 150");
-      expect(path).toContain("Q 220 150, 220 100");
+      try {
+        expect(svg.querySelector("path")?.getAttribute("d")).toBe(
+          type === BendType.Bend
+            ? "M 20 150 Q 220 150, 220 100 L 420 100"
+            : "M 20 150 Q 220 150, 220 100 Q 320 100, 320 250"
+        );
+      } finally {
+        selector.dispose();
+      }
     }
   );
-});
 
-describe("BendCurveSelector", () => {
   test("emits Hold at the fixed continuation pitch", () => {
-    const originalDocument = globalThis.document;
-    const createElementNS = jest.fn(() => {
-      const element = new FakeElement() as FakeElement & {
-        style: Record<string, string>;
-      };
-      element.style = {};
-      return element;
-    });
-    (
-      globalThis as unknown as { document: { createElementNS: jest.Mock } }
-    ).document = { createElementNS };
-    const svg = new FakeElement() as unknown as SVGSVGElement;
-    const selector = new BendCurveSelector(
-      svg,
-      options,
-      {
-        type: BendType.Hold,
-        holdPitch: 2,
-        bendDuration: 0.5,
-      },
-      () => {},
+    const { svg, selector } = createSelector(
+      { type: BendType.Hold, holdPitch: 2, bendDuration: 0.5 },
       1
     );
-
-    selector.init();
-
-    expect(selector.getBendTechnique()).toEqual({
-      type: BendType.Hold,
-      holdPitch: 1,
-      bendDuration: 0.5,
-    });
-
-    if (originalDocument === undefined) {
-      delete (globalThis as unknown as { document?: Document }).document;
-    } else {
-      globalThis.document = originalDocument;
+    try {
+      expect(selector.getBendTechnique()).toEqual({
+        type: BendType.Hold,
+        holdPitch: 1,
+        bendDuration: 0.5,
+      });
+      expect(svg.querySelector("path")?.getAttribute("d")).toBe(
+        "M 20 200 L 420 200"
+      );
+      expect(svg.querySelectorAll('[tabindex="0"]')).toHaveLength(0);
+    } finally {
+      selector.dispose();
     }
   });
 
   test.each([BendType.Bend, BendType.BendAndRelease])(
     "does not emit continuation bend type %s below its inherited pitch",
     (type) => {
-      const originalDocument = globalThis.document;
-      const createElementNS = jest.fn(() => {
-        const element = new FakeElement() as FakeElement & {
-          style: Record<string, string>;
-        };
-        element.style = {};
-        return element;
-      });
-      (
-        globalThis as unknown as { document: { createElementNS: jest.Mock } }
-      ).document = { createElementNS };
-      const svg = new FakeElement() as unknown as SVGSVGElement;
-      const selector = new BendCurveSelector(
-        svg,
-        options,
-        type === BendType.Bend
-          ? { type, bendPitch: 0.5, bendDuration: 0.5 }
-          : {
-              type,
-              bendPitch: 0.5,
-              releasePitch: 0,
-              bendDuration: 0.5,
-            },
-        () => {},
+      const { svg, selector } = createSelector(
+        {
+          type,
+          bendPitch: 0.5,
+          bendDuration: 0.5,
+          ...(type === BendType.BendAndRelease ? { releasePitch: 0 } : {}),
+        },
         1.5
       );
-
-      selector.init();
-
-      expect(selector.getBendTechnique().bendPitch).toBeGreaterThanOrEqual(1.5);
-      const bend = (
-        selector as unknown as {
-          // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the private field.
-          _points: Array<{ name: string; y: number }>;
+      try {
+        const handle = required(svg.querySelector('[aria-label="Bend point"]'));
+        expect(selector.getBendTechnique().bendPitch).toBe(1.5);
+        expect(handle.getAttribute("cy")).toBe("150");
+        handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
+        expect(selector.getBendTechnique().bendPitch).toBe(1.75);
+        expect(handle.getAttribute("cy")).toBe("125");
+        for (let i = 0; i < 3; i++) {
+          handle.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowDown" })
+          );
         }
-      )._points.find((point) => point.name === "bend");
-      if (bend === undefined) {
-        throw Error("Expected bend control point");
-      }
-      bend.y = options.height;
-      (
-        selector as unknown as {
-          constrainPoints: (xStep: number, yStep: number) => void;
-        }
-      ).constrainPoints(
-        (options.width - options.gridOffset) / options.colsCount,
-        options.height / options.rowsCount
-      );
-      expect(selector.getBendTechnique().bendPitch).toBeGreaterThanOrEqual(1.5);
-
-      if (originalDocument === undefined) {
-        delete (globalThis as unknown as { document?: Document }).document;
-      } else {
-        globalThis.document = originalDocument;
+        expect(selector.getBendTechnique().bendPitch).toBe(1.5);
+        expect(handle.getAttribute("cy")).toBe("150");
+      } finally {
+        selector.dispose();
       }
     }
   );

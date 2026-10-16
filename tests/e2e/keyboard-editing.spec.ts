@@ -527,6 +527,10 @@ test("bend confirmation matches mouse and restores notation focus", async ({
   const dialog = editor.getByRole("dialog", { name: "Bend", exact: true });
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
+  await expect(editor.locator(".tu-inline-technique")).toHaveCount(1);
+  await expect(editor.locator('[id^="technique-label-text-"]')).toHaveText(
+    "full"
+  );
   const keyboard = await editingState(editor);
   expect(keyboard).not.toEqual(before);
   await page.keyboard.press("Control+z");
