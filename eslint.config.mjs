@@ -57,7 +57,7 @@ const namingConventions = [
 export default defineConfig(
   globalIgnores(["dist/**", "demo/dist/**", ".agents/**"]),
   {
-    files: ["**/*.{js,ts}"],
+    files: ["**/*.{js,ts,tsx}"],
     extends: [js.configs.recommended, tseslint.configs.recommended],
     rules: {
       "@typescript-eslint/no-unused-vars": [

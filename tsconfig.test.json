@@ -6,5 +6,8 @@
     "types": ["jest", "node"]
   },
   "include": ["src/**/*", "demo/**/*", "tests/**/*"],
-  "exclude": ["tests/integration/no-framework/fixture"]
+  "exclude": [
+    "tests/integration/no-framework/fixture",
+    "tests/integration/react/fixture"
+  ]
 }

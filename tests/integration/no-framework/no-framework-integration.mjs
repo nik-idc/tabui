@@ -1,45 +1,16 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import {
-  cp,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import { chromium, expect } from "@playwright/test";
 import { preview } from "vite";
+import { createConsumerProject } from "../consumer-project.mjs";
 
-const execFileAsync = promisify(execFile);
 const directory = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(directory, "../../..");
-const workspace = await mkdtemp(path.join(tmpdir(), "tabui-no-framework-"));
-const consumer = path.join(workspace, "consumer");
-
-/** Runs a bounded command and keeps its output and cause in failure diagnostics. */
-async function run(command, args, options = {}) {
-  try {
-    return await execFileAsync(command, args, {
-      cwd: consumer,
-      timeout: 120_000,
-      maxBuffer: 10 * 1024 * 1024,
-      ...options,
-    });
-  } catch (cause) {
-    const stdout = cause.stdout ? `\nstdout:\n${cause.stdout}` : "";
-    const stderr = cause.stderr ? `\nstderr:\n${cause.stderr}` : "";
-    throw new Error(
-      `Command failed: ${command} ${args.join(" ")}${stdout}${stderr}`,
-      { cause }
-    );
-  }
-}
+const project = await createConsumerProject(
+  path.join(directory, "fixture"),
+  "no-framework"
+);
+const consumer = project.directory;
 
 /** Decodes the real default icons and the icon imported through the asset export. */
 async function checkIcons(page) {
@@ -268,61 +239,12 @@ async function checkBrowser() {
 }
 
 try {
-  await mkdir(consumer);
-  const packed = await run(
-    "npm",
-    ["pack", "--json", "--ignore-scripts", "--pack-destination", workspace],
-    {
-      cwd: rootDir,
-      env: { ...process.env, HUSKY: "0" },
-    }
-  );
-  const jsonStart = packed.stdout.indexOf("[");
-  assert(jsonStart !== -1, `npm pack did not return JSON:\n${packed.stdout}`);
-  const [info] = JSON.parse(packed.stdout.slice(jsonStart));
-  const tarball = path.join(workspace, info.filename);
-  const versions = {};
-  for (const name of ["vite", "typescript"]) {
-    const manifest = JSON.parse(
-      await readFile(
-        path.join(rootDir, "node_modules", name, "package.json"),
-        "utf8"
-      )
-    );
-    versions[name] = manifest.version;
-  }
-  await cp(path.join(directory, "fixture"), consumer, { recursive: true });
-  await writeFile(
-    path.join(consumer, "package.json"),
-    JSON.stringify(
-      {
-        private: true,
-        type: "module",
-        scripts: { build: "vite build", typecheck: "tsc --noEmit" },
-        dependencies: { "@atikincode/tabui": tarball },
-        devDependencies: versions,
-      },
-      null,
-      2
-    )
-  );
-  await run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund"]);
-  const packageRoot = path.join(consumer, "node_modules/@atikincode/tabui");
-  const packagedFiles = [
-    "dist/index.mjs",
-    "dist/index.d.ts",
-    "dist/styles.css",
-    "assets/img/ui/play.svg",
-  ];
-  for (const file of packagedFiles) {
-    await stat(path.join(packageRoot, file));
-  }
-  await run(path.join(consumer, "node_modules/.bin/tsc"), ["--noEmit"]);
-  await run(path.join(consumer, "node_modules/.bin/vite"), ["build"]);
+  await project.run(path.join(consumer, "node_modules/.bin/tsc"), ["--noEmit"]);
+  await project.run(path.join(consumer, "node_modules/.bin/vite"), ["build"]);
   await checkBrowser();
   console.log(
     "No-framework integration passed (installed npm tarball, consumer type-check and production build)"
   );
 } finally {
-  await rm(workspace, { force: true, recursive: true });
+  await project.dispose();
 }
