@@ -7,6 +7,7 @@ module.exports = {
     "^.+\\.(ts|tsx)$": "babel-jest",
   },
   moduleNameMapper: {
+    "^@atikincode/tabui$": "<rootDir>/src/index.ts",
     "^@/(.*)$": "<rootDir>/src/$1",
   },
 };

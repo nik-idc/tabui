@@ -1,6 +1,6 @@
 import { NoteDuration, Score } from "../../../src/notation/model";
 import { createBarWithBeats, createBeat, createScoreGraph } from "./helpers";
-import { fillBar } from "../../../demo/data/helpers";
+import { fillBar } from "../../../fixtures/score-builder";
 
 describe("Bar model", () => {
   test("new bar starts with one default rest beat", () => {

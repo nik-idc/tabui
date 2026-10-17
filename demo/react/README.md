@@ -1,6 +1,6 @@
 # React integration and demo
 
-This fixture is a small React 19.3.1 application. It is both the automated
+This demo is a small React 19.3.1 application. It is both the automated
 integration consumer and a runnable example. It installs TabUI from a locally
 packed npm tarball and uses only public package exports.
 
@@ -14,7 +14,7 @@ npm run demo:react
 
 This builds TabUI, installs the consumer in a temporary directory, checks its
 types, and starts Vite at `http://127.0.0.1:5174`. Press Ctrl+C to close the server
-and remove the temporary installation. The example source stays in `fixture/`.
+and remove the temporary installation. The example source stays in `demo/react/`.
 
 Use the editor to select tracks and edit notation. The React controls resize,
 unmount, remount, and switch the complete light/dark theme. Each theme pairs
@@ -65,7 +65,7 @@ Checks cover:
 
 ## Lifecycle pattern
 
-`fixture/tabui.tsx` uses a ref for the host element and an effect for the editor.
+`tabui.tsx` uses a ref for the host element and an effect for the editor.
 Each effect setup creates a fresh `TabUIEditor`. Cleanup unsubscribes and disposes
 that instance. A disposed instance cannot be reused during Strict Mode's next
 setup.

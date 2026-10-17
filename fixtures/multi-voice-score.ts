@@ -9,7 +9,8 @@ import {
   TrackContext,
   VoiceBar,
   VoiceNumber,
-} from "../../src/notation/model";
+} from "@atikincode/tabui";
+import { createScore } from "./score-builder";
 
 type BeatSpec = {
   duration: NoteDuration;
@@ -312,57 +313,44 @@ function fillBarVoices(bar: Bar<Guitar>, specs: VoiceSpec[]): void {
   }
 }
 
-function createBaseScore(name: string): Score {
-  const score = new Score([], name, "TabUI", name);
-  score.tracks.splice(0, score.tracks.length);
-  score.masterBars.splice(0, score.masterBars.length);
-  for (let i = 0; i < 3; i++) {
-    score.appendMasterBar();
-  }
-
-  return score;
-}
-
 export function createMultiVoiceSingleStaffScoreFixture(): Score {
-  const score = createBaseScore("Multi Voice Single Staff");
-  const track = score.addTrack(
-    DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
-    "Two voices"
-  ).tracks[0];
-  const staff = track.staves[0] as (typeof track.staves)[0] & {
-    bars: Bar<Guitar>[];
-  };
-
-  for (let i = 0; i < SINGLE_STAFF_SPECS.length; i++) {
-    fillBarVoices(staff.bars[i], SINGLE_STAFF_SPECS[i]);
-  }
-
-  return score;
+  return createScore(
+    "Multi Voice Single Staff",
+    "TabUI",
+    "Multi Voice Single Staff",
+    3,
+    [
+      {
+        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
+        name: "Two voices",
+        stavesInfo: [
+          (staff) => {
+            for (let i = 0; i < SINGLE_STAFF_SPECS.length; i++) {
+              fillBarVoices(staff.bars[i], SINGLE_STAFF_SPECS[i]);
+            }
+          },
+        ],
+      },
+    ]
+  );
 }
 
 export function createMultiVoiceTwoStaffScoreFixture(): Score {
-  const score = createBaseScore("Multi Voice Two Staff");
-  const track = score.addTrack(
-    DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
-    "Two staves, two voices"
-  ).tracks[0];
-  track.insertStaff(1);
-
-  for (let staffIndex = 0; staffIndex < TWO_STAFF_SPECS.length; staffIndex++) {
-    const staff = track.staves[staffIndex] as (typeof track.staves)[0] & {
-      bars: Bar<Guitar>[];
-    };
-    for (
-      let barIndex = 0;
-      barIndex < TWO_STAFF_SPECS[staffIndex].length;
-      barIndex++
-    ) {
-      fillBarVoices(
-        staff.bars[barIndex],
-        TWO_STAFF_SPECS[staffIndex][barIndex]
-      );
-    }
-  }
-
-  return score;
+  return createScore(
+    "Multi Voice Two Staff",
+    "TabUI",
+    "Multi Voice Two Staff",
+    3,
+    [
+      {
+        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
+        name: "Two staves, two voices",
+        stavesInfo: TWO_STAFF_SPECS.map((v) => (staff) => {
+          for (let i = 0; i < v.length; i++) {
+            fillBarVoices(staff.bars[i], v[i]);
+          }
+        }),
+      },
+    ]
+  );
 }

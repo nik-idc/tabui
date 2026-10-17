@@ -26,22 +26,23 @@ npx playwright install --with-deps chromium firefox
 ```
 
 Run `npm run verify` before submitting a change. It checks TypeScript, builds the
-package, runs unit, no-framework and React integration, and browser tests, then
+package, runs unit, raw and React integration, and browser tests, then
 builds the demo.
 Also run `npx eslint .` and `git diff --check`.
 
 Useful focused commands:
 
-| Command                                 | Purpose                                                  |
-| --------------------------------------- | -------------------------------------------------------- |
-| `npm run test:unit`                     | Unit tests and test TypeScript checks                    |
-| `npm run test:no-framework-integration` | Packed-package app: types, build, and browser behavior   |
-| `npm run test:react-integration`        | React consumer: types, Strict Mode, and production build |
-| `npm run demo:react`                    | Build TabUI and launch the React integration demo        |
-| `npm run test:e2e`                      | Chromium and Firefox browser tests                       |
-| `npm run benchmark:updates`             | Local layout/update performance comparison               |
-| `npm run build:package`                 | Library output in `dist/`                                |
-| `npm run build:demo`                    | Demo output in `demo/dist/`                              |
+| Command                          | Purpose                                                             |
+| -------------------------------- | ------------------------------------------------------------------- |
+| `npm run test:unit`              | Unit tests and test TypeScript checks                               |
+| `npm run test:raw-integration`   | Raw showcase and lifecycle: package types, builds, browser behavior |
+| `npm run demo:raw`               | Launch the main showcase with source hot reload                     |
+| `npm run test:react-integration` | React consumer: types, Strict Mode, and production build            |
+| `npm run demo:react`             | Build TabUI and launch the React integration demo                   |
+| `npm run test:e2e`               | Chromium and Firefox browser tests                                  |
+| `npm run benchmark:updates`      | Local layout/update performance comparison                          |
+| `npm run build:package`          | Library output in `dist/`                                           |
+| `npm run build:demo`             | Demo output in `demo/dist/`                                         |
 
 Run `npm run build:package` before a focused integration test so that the tarball
 contains the current library build. Each fixture is type-checked inside its
@@ -50,15 +51,18 @@ tree. `npm run test:integration` runs both consumer tests.
 
 The React demo uses the same fixture as the React integration test. It opens at
 `http://127.0.0.1:5174`; press Ctrl+C to stop it and remove its temporary install.
-See [React integration](tests/integration/react/README.md) for the example's
+See [React integration](demo/react/README.md) for the example's
 lifecycle and test coverage.
 
 ## Repository layout
 
 - `src/`: library code.
-- `demo/`: browser demo and score fixtures.
+- `demo/raw/`: main showcase; deployed to GitHub Pages.
+- `demo/react/`: React consumer demo, also used by its integration test.
 - `assets/`: shared runtime icons and demo audio samples. Only icons ship in npm.
 - `tests/`: unit, framework integration, and browser tests.
+- `tests/helpers/`: test-only utilities.
+- `fixtures/`: score builders and factories shared by demos, tests, and benchmarks.
 - `docs/`: usage, code style, and playback architecture.
 - `AGENTS.md`: model overview and coding-agent guidance.
 - `ROADMAP.md`: release work and future plans.

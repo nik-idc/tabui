@@ -7,7 +7,7 @@ import { createConsumerProject } from "../consumer-project.mjs";
 
 const fixture = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
-  "fixture"
+  "../../../demo/react"
 );
 const project = await createConsumerProject(fixture, "react", {
   react: "19.3.1",

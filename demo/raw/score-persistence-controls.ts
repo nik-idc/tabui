@@ -1,4 +1,4 @@
-import { deserializeScore, Score, serializeScore } from "../src/notation/model";
+import { deserializeScore, Score, serializeScore } from "@atikincode/tabui";
 
 export type ScorePersistenceControlsOptions = {
   serializeButton: HTMLButtonElement;

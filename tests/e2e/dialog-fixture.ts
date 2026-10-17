@@ -3,7 +3,7 @@ import { EditorLayoutDimensions } from "../../src/notation/controller/editor-lay
 import { NotationComponent } from "../../src/notation/notation-component";
 import { EditorShellComponent } from "../../src/ui/editor-shell/editor-shell-component";
 import { UIComponent } from "../../src/ui/ui-component";
-import { resolveEditorFixture } from "../../demo/data/fixture";
+import { createEmptyScoreFixture } from "../../fixtures/empty-score";
 
 /** Renders real components for dialog methods that have no user control. */
 export function createDialogFixture() {
@@ -14,7 +14,7 @@ export function createDialogFixture() {
   shell.render();
   const notation = new NotationComponent(
     shell.template.notationViewport,
-    resolveEditorFixture(new URLSearchParams("fixture=empty")),
+    createEmptyScoreFixture(),
     config,
     new EditorLayoutDimensions({ ...config.layout, width: 1000 })
   );

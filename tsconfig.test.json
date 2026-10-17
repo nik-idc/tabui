@@ -3,11 +3,9 @@
   "compilerOptions": {
     "noEmit": true,
     "rootDir": ".",
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "paths": { "@atikincode/tabui": ["./src/index.ts"] }
   },
-  "include": ["src/**/*", "demo/**/*", "tests/**/*"],
-  "exclude": [
-    "tests/integration/no-framework/fixture",
-    "tests/integration/react/fixture"
-  ]
+  "include": ["src/**/*", "demo/**/*", "tests/**/*", "fixtures/**/*"],
+  "exclude": ["tests/integration/raw/fixture", "demo/react"]
 }

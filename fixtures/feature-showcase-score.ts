@@ -6,8 +6,8 @@ import {
   NoteDuration,
   Score,
   Track,
-} from "../../src/notation/model";
-import { createScore } from "./helpers";
+} from "@atikincode/tabui";
+import { createScore } from "./score-builder";
 
 const rhythmChordFrets = [
   [null, 2, 2, 1, null, null],

@@ -2,13 +2,13 @@ import {
   getEditorFixtures,
   resolveEditorFixture,
   resolveEditorFixtureKey,
-} from "../../../demo/data/fixture";
+} from "../../../demo/raw/data/fixture";
 import {
   applyEditorThemeToPage,
   getEditorThemes,
   resolveEditorTheme,
   resolveEditorThemeKey,
-} from "../../../demo/data/theme";
+} from "../../../demo/raw/data/theme";
 import { deserializeScore, serializeScore } from "../../../src/notation/model";
 
 // Keys are fixture identifiers defined by the demo data contract.

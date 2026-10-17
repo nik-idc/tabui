@@ -1,11 +1,11 @@
-import { Score } from "../../src/notation/model";
-import { createEmptyScoreFixture } from "./empty-score";
-import { createFeatureShowcaseScoreFixture } from "./full-score";
+import { Score } from "@atikincode/tabui";
+import { createEmptyScoreFixture } from "../../../fixtures/empty-score";
+import { createFeatureShowcaseScoreFixture } from "../../../fixtures/feature-showcase-score";
 import {
   createMultiVoiceSingleStaffScoreFixture,
   createMultiVoiceTwoStaffScoreFixture,
-} from "./multi-voice-score";
-import { createPerformanceStressScoreFixture } from "./selection-perf-score";
+} from "../../../fixtures/multi-voice-score";
+import { createPerformanceStressScoreFixture } from "../../../fixtures/performance-stress-score";
 
 export type EditorFixtureKey =
   | "feature_showcase"

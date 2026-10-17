@@ -9,11 +9,20 @@ import {
   Staff,
   MusicInstrument,
   TrackContext,
-} from "../../src/notation/model";
+} from "@atikincode/tabui";
 
 type BarsInfo = {
   beatsCount: number;
   beatsDuration: NoteDuration;
+};
+
+/** A staff uses repeated-beat data or a custom function for detailed notation. */
+type StaffInfo = BarsInfo[] | ((staff: Staff<Guitar>) => void);
+
+type TrackInfo = {
+  instrument: MusicInstrument;
+  stavesInfo: StaffInfo[];
+  name: string;
 };
 
 export function fillBar(bar: Bar<Guitar>, barsInfo: BarsInfo): void {
@@ -54,34 +63,35 @@ export function fillStaff(staff: Staff<Guitar>, barsInfo: BarsInfo[]): void {
   }
 }
 
-export function fillTrack(
-  track: Track<Guitar>,
-  info: {
-    instrument: MusicInstrument;
-    stavesInfo: BarsInfo[][];
-    name: string;
-  }
-): void {
+export function fillTrack(track: Track<Guitar>, info: TrackInfo): void {
   for (let i = 0; i < info.stavesInfo.length; i++) {
     const staff =
       i === 0
         ? track.staves[0]
         : track.insertStaff(track.staves.length).staves[0];
 
-    fillStaff(staff, info.stavesInfo[i]);
+    const staffInfo = info.stavesInfo[i];
+    if (typeof staffInfo === "function") {
+      staffInfo(staff);
+    } else {
+      fillStaff(staff, staffInfo);
+    }
   }
 }
 
+/** Builds a fresh score and its staff structure; no arguments produce the default empty score. */
 export function createScore(
-  scoreName: string,
-  artist: string,
-  songName: string,
-  masterBarsCount: number,
-  tracksInfo: {
-    instrument: MusicInstrument;
-    stavesInfo: BarsInfo[][];
-    name: string;
-  }[]
+  scoreName?: string,
+  artist?: string,
+  songName?: string,
+  masterBarsCount = 1,
+  tracksInfo: TrackInfo[] = [
+    {
+      instrument: new Guitar(),
+      stavesInfo: [[]],
+      name: "Track 1",
+    },
+  ]
 ): Score {
   const score = new Score([], scoreName, artist, songName);
 

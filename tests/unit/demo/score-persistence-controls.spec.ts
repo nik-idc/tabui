@@ -2,7 +2,7 @@ import { Score, serializeScore } from "../../../src/notation/model";
 import {
   bindScorePersistenceControls,
   downloadScoreDocument,
-} from "../../../demo/score-persistence-controls";
+} from "../../../demo/raw/score-persistence-controls";
 import {
   dispatchClick,
   dispatchEvent,

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { cp, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, expect } from "@playwright/test";
@@ -8,9 +9,97 @@ import { createConsumerProject } from "../consumer-project.mjs";
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const project = await createConsumerProject(
   path.join(directory, "fixture"),
-  "no-framework"
+  "raw"
 );
 const consumer = project.directory;
+const rootDir = path.resolve(directory, "../../..");
+
+/** Checks the unchanged public showcase against the installed package at a Pages-like base. */
+async function checkShowcase(page, origin) {
+  await page.goto(`${origin}/tabui/showcase/`, { timeout: 15_000 });
+  const root = page.locator("#tabui-editor");
+  await expect(
+    page.getByRole("heading", { name: "TabUI Demo", exact: true })
+  ).toBeVisible();
+  await expect(root.locator(".tu-root-svg")).toBeVisible();
+  await expect(page.locator("#fixture-select")).toHaveValue("feature_showcase");
+  await expect(page.locator("#theme-select")).toHaveValue("obsidian");
+  await expect(root).toHaveCSS("background-color", "rgb(26, 26, 26)");
+  await expect(page.locator("body")).toHaveCSS(
+    "background-color",
+    "rgb(26, 26, 26)"
+  );
+  const darkIcon = await root.locator("img").first().getAttribute("src");
+  await page.locator("#theme-select").selectOption("paper");
+  await expect(root).toHaveCSS("background-color", "rgb(244, 239, 230)");
+  await expect(page.locator("body")).toHaveCSS(
+    "background-color",
+    "rgb(244, 239, 230)"
+  );
+  assert.notEqual(
+    await root.locator("img").first().getAttribute("src"),
+    darkIcon
+  );
+
+  const downloadEvent = page.waitForEvent("download");
+  await page.locator("#serialize-score").click();
+  const download = await downloadEvent;
+  assert.equal(
+    download.suggestedFilename(),
+    "feature-showcase-score.tabui.json"
+  );
+  const filename = await download.path();
+  assert(filename !== null);
+  const contents = await readFile(filename, "utf8");
+  const document = JSON.parse(contents);
+  assert.equal(document.name, "Feature Showcase Score");
+  assert(
+    document.tracks.length > 1,
+    "Showcase must retain its multiple tracks"
+  );
+
+  await page.locator("#fixture-select").selectOption("empty");
+  await expect(page.locator("#fixture-select")).toHaveValue("empty");
+  await expect(root.locator(".tu-root-svg")).toBeVisible();
+  await page.locator("#score-file").setInputFiles({
+    name: "showcase.tabui.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(contents),
+  });
+  await expect(page.locator("#score-persistence-status")).toHaveText(
+    "Mounted score from showcase.tabui.json."
+  );
+  await expect(root.locator(".tu-root-svg")).toHaveCount(1);
+  await page.locator("#layout-mode-select").selectOption("single-line");
+  await expect(root.locator(".tu-root-svg")).toHaveCount(1);
+  await expect(page).toHaveURL(/layoutMode=single-line/);
+  await page.locator("#reset-demo-settings").click();
+  await expect(page.locator("#fixture-select")).toHaveValue("feature_showcase");
+  await expect(page.locator("#theme-select")).toHaveValue("obsidian");
+
+  // Samples remain demo-owned files, outside the npm package. Check all six real
+  // WAVs at the same base URL used by the unchanged playback configuration.
+  const samples = [
+    "Alesis-Fusion-Clean-Guitar-C3.wav",
+    "Roland-SC-88-Overdriven-Guitar-C3.wav",
+    "Roland-SC-88-Distorted-Guitar-C3.wav",
+    "Alesis-S4-Plus-FatSynSlap-C2.wav",
+    "Alesis-Fusion-Nylon-String-Guitar-C4.wav",
+    "Alesis-Fusion-Steel-String-Guitar-C4.wav",
+  ];
+  for (const sample of samples) {
+    const response = await page.request.get(
+      `${origin}/tabui/showcase/samples/${sample}`
+    );
+    assert.equal(response.status(), 200);
+    const bytes = await response.body();
+    assert.equal(bytes.toString("ascii", 0, 4), "RIFF");
+    assert.equal(bytes.toString("ascii", 8, 12), "WAVE");
+  }
+  console.log(
+    "  showcase: themes, fixture selection, save/load, layout, reset, sample files passed"
+  );
+}
 
 /** Decodes the real default icons and the icon imported through the asset export. */
 async function checkIcons(page) {
@@ -176,6 +265,7 @@ async function checkBrowser() {
   const server = await preview({
     root: consumer,
     configFile: false,
+    base: "/tabui/",
     preview: { host: "127.0.0.1", port: 0, strictPort: true },
   });
   let browser;
@@ -199,6 +289,11 @@ async function checkBrowser() {
     });
     await page.route("**/*", (route) => {
       const request = route.request();
+      // The showcase retains its existing Google Fonts links. Keep this check
+      // deterministic offline without changing the deployed demo's font setup.
+      if (new URL(request.url()).hostname === "fonts.googleapis.com") {
+        return route.fulfill({ contentType: "text/css", body: "" });
+      }
       if (!request.url().startsWith(`${origin}/`)) {
         errors.push(`Unexpected external request: ${request.url()}`);
         return route.abort();
@@ -208,7 +303,9 @@ async function checkBrowser() {
     });
     const variants = [];
     for (const variant of ["light", "dark"]) {
-      await page.goto(`${origin}/?variant=${variant}`, { timeout: 15_000 });
+      await page.goto(`${origin}/tabui/?variant=${variant}`, {
+        timeout: 15_000,
+      });
       variants.push(await checkConsumer(page, variant));
     }
     assert.notEqual(
@@ -221,6 +318,12 @@ async function checkBrowser() {
       imageRequests.filter((v) => !exportedIcons.has(v)),
       [],
       "Default icons must not make HTTP requests"
+    );
+    await checkShowcase(page, origin);
+    assert.deepEqual(
+      imageRequests.filter((v) => !exportedIcons.has(v)),
+      [],
+      "Showcase default icons must also remain bundled"
     );
     assert.deepEqual(
       errors,
@@ -239,11 +342,40 @@ async function checkBrowser() {
 }
 
 try {
+  const showcase = path.join(consumer, "demo/raw");
+  await cp(path.join(rootDir, "demo/raw"), showcase, { recursive: true });
+  // Preserve shared fixture imports without copying library source into the consumer.
+  await cp(path.join(rootDir, "fixtures"), path.join(consumer, "fixtures"), {
+    recursive: true,
+  });
+  await cp(
+    path.join(rootDir, "assets/samples"),
+    path.join(showcase, "public/samples"),
+    { recursive: true }
+  );
   await project.run(path.join(consumer, "node_modules/.bin/tsc"), ["--noEmit"]);
-  await project.run(path.join(consumer, "node_modules/.bin/vite"), ["build"]);
+  await project.run(path.join(consumer, "node_modules/.bin/tsc"), [
+    "--project",
+    "demo/raw/tsconfig.json",
+    "--noEmit",
+  ]);
+  await project.run(path.join(consumer, "node_modules/.bin/vite"), [
+    "build",
+    "--base",
+    "/tabui/",
+  ]);
+  await project.run(path.join(consumer, "node_modules/.bin/vite"), [
+    "build",
+    "demo/raw",
+    "--base",
+    "/tabui/showcase/",
+    "--outDir",
+    "../../dist/showcase",
+    "--emptyOutDir",
+  ]);
   await checkBrowser();
   console.log(
-    "No-framework integration passed (installed npm tarball, consumer type-check and production build)"
+    "Raw integration passed (installed npm tarball, consumer type-check and production build)"
   );
 } finally {
   await project.dispose();

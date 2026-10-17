@@ -2,8 +2,8 @@ import {
   DEFAULT_ELECTRIC_GUITARS,
   NoteDuration,
   Score,
-} from "../../src/notation/model";
-import { createScore } from "./helpers";
+} from "@atikincode/tabui";
+import { createScore } from "./score-builder";
 
 const MASTER_BARS_COUNT = 1000;
 

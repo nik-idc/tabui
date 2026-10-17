@@ -1,19 +1,19 @@
-import { TabUIEditor } from "../src/tabui-editor";
+import { TabUIEditor } from "@atikincode/tabui";
 import {
   TabUIConfig,
   TabUIEditorMode,
   TabUILayoutMode,
   TabUIScorePanelPlacement,
   TabUISidePanelPlacement,
-} from "../src/config/tabui-config";
-import "../src/styles.scss";
+} from "@atikincode/tabui";
+import "@atikincode/tabui/styles.css";
 import {
   AcousticGuitarTone,
   BassGuitarTone,
   ElectricGuitarTone,
   NoteValue,
   Score,
-} from "../src/notation";
+} from "@atikincode/tabui";
 import {
   getEditorFixtures,
   resolveEditorFixture,

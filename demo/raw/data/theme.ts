@@ -1,5 +1,4 @@
-import { resolveTabUIConfig } from "../../src/config/tabui-config";
-import type { TabUIConfig } from "../../src/config/tabui-config";
+import type { TabUIConfig } from "@atikincode/tabui";
 
 export type EditorThemeKey = "midnight" | "obsidian" | "paper" | "contrast";
 
@@ -213,8 +212,19 @@ export function applyEditorThemeToPage(
   style: Pick<CSSStyleDeclaration, "setProperty"> = document.documentElement
     .style
 ): void {
-  const cssVars = resolveTabUIConfig(config).theme.cssVars;
+  const colors = config.theme?.ui?.colors;
+  // The page needs only its chrome colours. TabUI applies the full theme to its
+  // own root through public configuration.
+  const cssVars = {
+    "--tu-background-color": colors?.background,
+    "--tu-primary-color": colors?.surface,
+    "--tu-secondary-color": colors?.surfaceAlt,
+    "--tu-border-color": colors?.border,
+    "--tu-font-color": colors?.text,
+  };
   for (const [name, value] of Object.entries(cssVars)) {
-    style.setProperty(name, value);
+    if (value !== undefined) {
+      style.setProperty(name, value);
+    }
   }
 }

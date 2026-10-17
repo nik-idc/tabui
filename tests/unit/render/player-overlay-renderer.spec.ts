@@ -7,7 +7,7 @@ import { trackEvent, TrackEventType } from "../../../src/shared/events";
 import { createScoreGraph } from "../model/helpers";
 import { createBarWithBeats } from "../model/helpers";
 import { createTestTrackController } from "../controller/helpers";
-import { createMultiVoiceTwoStaffScoreFixture } from "../../../demo/data/multi-voice-score";
+import { createMultiVoiceTwoStaffScoreFixture } from "../../../fixtures/multi-voice-score";
 
 function cursorElement() {
   const attributes = new Map<string, string>();
