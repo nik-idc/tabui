@@ -11,6 +11,8 @@ test("announces the tempo when it opens and changes", async ({ page }) => {
     exact: true,
   });
   await expect(region).toHaveText("Tempo 120 beats per minute");
+  await expect(region).toHaveAttribute("aria-live", "polite");
+  await expect(region).toHaveAttribute("aria-atomic", "true");
   await increase.focus();
   await page.keyboard.press("Space");
   await expect(region).toHaveText("Tempo 121 beats per minute");
@@ -29,13 +31,15 @@ test("publishes the final full selection after tempo confirmation", async ({
 
   await expect(dialog).toBeHidden();
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
-    /Track .*Staff .*Bar 1, 4\/4, 121 BPM.*Beat 1/
+    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 121 BPM, " +
+      "Beat 1, whole, String 1, empty."
   );
 });
 
 test("does not automatically announce unchanged or cancelled tempo", async ({
   page,
 }) => {
+  await page.clock.install();
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
   const announcement = editor.locator(".tu-announcement-host");
@@ -51,6 +55,8 @@ test("does not automatically announce unchanged or cancelled tempo", async ({
       .getByRole("button", { name: change ? "Cancel" : "Confirm", exact: true })
       .click();
     await expect(dialog).toBeHidden();
+    // Include deferred announcement and animation-frame work before checking silence.
+    await page.clock.runFor(100);
     await expect(announcement).toHaveText("");
   }
 });
@@ -84,7 +90,11 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await page.keyboard.press("Enter");
 
     await expect(notation).toBeFocused();
-    await expect(status).toHaveText(/Track .*Staff .*Bar .*Beat/);
+    await expect(status).toHaveText(
+      fixture === "empty"
+        ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
+        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, whole, String 1, empty."
+    );
   });
 
   test(`announces notation on ${fixture} Tab entrance`, async ({ page }) => {
@@ -103,7 +113,11 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await page.keyboard.press("Tab");
 
     await expect(notation).toBeFocused();
-    await expect(status).toHaveText(/Track .*Staff .*Bar .*Beat/);
+    await expect(status).toHaveText(
+      fixture === "empty"
+        ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
+        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, whole, String 1, empty."
+    );
   });
 }
 

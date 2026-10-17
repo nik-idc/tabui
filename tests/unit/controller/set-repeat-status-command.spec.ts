@@ -68,6 +68,7 @@ describe("SetRepeatStatusCommand", () => {
     endCommand.undo();
     expect(masterBar.isRepeatStart).toBe(true);
     expect(masterBar.isRepeatEnd).toBe(false);
+    expect(masterBar.repeatCount).toBeNull();
   });
 
   test("setting an existing boundary leaves it set", () => {
@@ -82,16 +83,22 @@ describe("SetRepeatStatusCommand", () => {
     command.execute();
 
     expect(masterBar.isRepeatStart).toBe(true);
+
+    command.undo();
+    expect(masterBar.isRepeatStart).toBe(true);
+    command.redo();
+    expect(masterBar.isRepeatStart).toBe(true);
   });
 
   test("uses the supplied repeat count when enabling an end boundary", () => {
-    const { masterBar } = createScoreGraph();
+    const { masterBar, track } = createScoreGraph();
 
-    masterBar.setRepeatStatus({
-      status: BarRepeatStatus.End,
-      enabled: true,
-      repeatCount: 4,
-    });
+    const command = new SetRepeatStatusCommand(
+      masterBar,
+      { status: BarRepeatStatus.End, enabled: true, repeatCount: 4 },
+      track
+    );
+    command.execute();
 
     expect(masterBar.isRepeatEnd).toBe(true);
     expect(masterBar.repeatCount).toBe(4);
@@ -118,6 +125,10 @@ describe("SetRepeatStatusCommand", () => {
     command.undo();
     expect(masterBar.isRepeatEnd).toBe(true);
     expect(masterBar.repeatCount).toBe(6);
+
+    command.redo();
+    expect(masterBar.isRepeatEnd).toBe(true);
+    expect(masterBar.repeatCount).toBe(5);
   });
 
   test("clears and restores an existing repeat end", () => {

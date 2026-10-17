@@ -125,7 +125,6 @@ describe("notation selection announcements", () => {
     const previous = captureSelectionCursor(cursor);
     cursor.moveRight(false);
     cursor.moveDown();
-    expect(selection.selectionCursor).toBe(cursor);
     expect(formatNotationSelection(selection, previous)).toBe(
       "Beat 2, half, String 2, empty."
     );

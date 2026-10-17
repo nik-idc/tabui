@@ -57,6 +57,7 @@ test("Enter validates and confirms a repeat count", async ({ page }) => {
   await input.fill("4");
   await input.press("Enter");
   await expect(dialog).toHaveCount(0);
+  await expect(editor.locator('[id^="bar-rep-count-"]')).toHaveText("x4");
 });
 
 test("keeps one announcement region inside the active modal before focus", async ({

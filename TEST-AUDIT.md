@@ -77,7 +77,13 @@ assigned shortcut table. See current status below.
 | 28. Bend rules and undo                     | Sol assessment complete                            | Implemented; independent review passed |
 | 29. Bend curves and geometry                | Sol assessment complete                            | Implemented; independent review passed |
 | 30. Bend dialog and pointer controls        | Sol assessment complete                            | Implemented; independent review passed |
-| 31–55                                       | Not started                                        | Not started                            |
+| 31. Repeats                                 | Sol assessment complete                            | Implemented; independent review passed |
+| 32. Tempo                                   | Sol assessment complete                            | Implemented; independent review passed |
+| 33. Shared notation-dialog routing          | Sol assessment complete                            | Implemented; independent review passed |
+| 34. Range anchors and traversal             | Sol assessment complete                            | Implemented; independent review passed |
+| 35. Drag selection                          | Sol assessment complete                            | Implemented; independent review passed |
+| 36. Selection announcements                 | Sol assessment complete                            | Implemented; independent review passed |
+| 37–55                                       | Not started                                        | Not started                            |
 
 ## Current handoff scopes
 
@@ -1736,3 +1742,295 @@ remain. No production changes.
   (95 suites/980 tests). No production/dependency changes or commits were made.
   Prior checkpoint work remains intact. The reproduced two-edit bend redo failure
   remains a separate production follow-up. Groups 31–55 are not started.
+
+### Groups 31–33: implemented and reviewed
+
+- Started with a clean working tree on `test-audit` after the user's checkpoint.
+  Separate Sol agents own repeats, tempo, and shared notation-dialog routing;
+  each implementation receives an independent review.
+- Before-round files are saved at
+  `/tmp/opencode/tabui-audit-groups-31-33-before/`. Shared files use disjoint
+  declarations mapped from original baseline titles rather than current lines.
+- Existing audit improvements, cleanup, and production fixes are preserved.
+  The coordinator owns this document and combined browser/full verification.
+  Current `AGENTS.md` specifies no-framework integration in full verification.
+
+### Group 32: assessment and implementation
+
+Independent review passed. Sixteen owned declarations/cases become fifteen:
+unit eleven to ten, browser five unchanged. Seven substantial replacements.
+
+- Tempo controls use real DOM events/model/history for all four buttons, clamping,
+  disabled states, wheel direction/scroll prevention, submit, dialog closure and
+  reopening, nested-button/backdrop behavior, and repeated bind/unbind/rebind.
+- Renderer tests create required real SVG nodes and dispatch against rebuilt bar
+  elements, preserving current context, handler replacement, unmatched targets,
+  detachment/reattachment, and listener removal. Explicit affected-model and tempo
+  visibility contracts remain; hash/diff checks become model/public tempo output.
+- Controller tests require tempo/visibility, later-line movement, undo geometry,
+  matching redo geometry, and exactly one corresponding tempo bar. Browser edits
+  cover existing text and visible history as well as hover/context/cancel.
+- Announcements require live-region semantics, complete selection text, and
+  controlled deferred work before silence assertions. Repeat-focus behavior stays.
+- Direct removal: noneditable displayed tempo corrupted through fake input. Given
+  up: corrupted-DOM reset, internal hash/diff membership and collaborator counts.
+- Eight whole-file tests, two owned controller tests, and the latest shared
+  controller suite (76 tests) passed; scoped lint/format/diff passed. Initial test
+  compilation is blocked by concurrent edits in Groups 31/33. No source bug found.
+- Implementation used checkpoint HEAD `078f6f4737e04050686b12619fe21f71d62cd352`
+  because access to external before snapshots was denied.
+- Independent review approved all owned declarations/removal, confirmed the browser
+  supplies visible tempo-update coverage beyond model-backed getters, and passed
+  eight whole-file tests plus both owned controller tests and scoped checks.
+  Applied optional direct callback-identity assertions and a more accurate confirm
+  title; no additional coverage is claimed for refreshing a changed draft.
+
+### Group 31: assessment and implementation
+
+Independent review passed. Owned declarations decrease 25 to 24; generated
+cases decrease 27 to 25. Eight files changed; no production bug established.
+
+- Repeat commands retain state/history and explicit affected-model anchors;
+  supplied counts now run through the command, and undo/redo preserve counts and
+  independent start/end state. Geometry retains clearance/validity coverage and
+  requires repeat rectangles to exist before width-preservation assertions.
+- Controls use real notation/DOM/controller state, dialogs, keyboard ownership,
+  insertion order/selection/history, repeated binding, and unbinding. Count controls
+  require real validation, disabled state, unchanged invalid model, committed four,
+  closure, undo/redo. Keyboard start toggles use actual state/history in both rows.
+- Controller checks existing count 5 to 4 with history, selected bar/note indices,
+  and real view-only rejection. Mouse start removal preserves non-target marks and
+  selection while checking secondary-button rejection and undo.
+- Direct removals: repeat-end mock-only routing declaration (real clicked-bar
+  browser editing remains), and fake-player generated rejection row (real browser
+  playback rejection remains). Given up: internal forwarding/order, child binding
+  counts, forced-false setter choreography, isolated fake-player rejection.
+- All three repeat browser cases remain; Enter confirmation adds rendered x4.
+- Focused seven-suite execution passed 23 tests (21 owned unit cases plus two
+  shared meter cases). Scoped lint/diff passed; owned formatting passed while
+  shared Group 33 edits remained in progress. Compilation reported `Note.fret`
+  typing errors in the earlier rest/bend regression; combined checks will resolve
+  these after concurrent implementation completes.
+- Independent review approved all owned declarations and both removals, confirming
+  retained browser playback/clicked-bar coverage and real state/history/lifecycle
+  assertions. Seven-suite filtered run passed 26 tests including nearby cases.
+  No audit blockers or important lost user-facing guarantees were found.
+
+### Group 33: assessment and implementation
+
+Independent review passed after the explicit empty-selection coverage disposition.
+Fifteen declarations/49 generated cases become
+fourteen/42. Eleven declarations are replaced or strengthened; three browser
+declarations/ten cases remain unchanged. New shared notation-dialog fixture.
+
+- Reopening uses real cancelled drafts/current displayed tempo, meter, and tuplet
+  ratios. Mouse routing uses real controller/dialog owners, active voice two,
+  clicked-bar selection/values, one open dialog, and refresh notification.
+- Deliberate missing-beat/missing-note malformed inputs retain documented errors
+  with unchanged selection, closed dialogs, and no render. Secondary, playback,
+  and view-only rejection use unchanged real selection/dialog state.
+- Five real SVG renderer lifecycle rows check repeated bind/reconcile/rebind/unbind
+  outcomes. SVG bar tests use actual repeat/signature targets, current-element
+  forwarding, replacement/cleanup, and ignored borders.
+- Keyboard tests check real named dialogs, consumed events, preserved model and no
+  rendering; public empty selection retains four no-op keys and default 3:2 tuplet
+  opening. Browser gating, parity, cancellation/focus and confirm/undo remain.
+- Direct removal: seven-case empty-selection mocked routing table. It hid real
+  controller exceptions; routing, prevention/render-once/no-throw claims are given
+  up. Review is explicitly checking whether that loss and fixture are justified.
+- Four focused suites passed 128 cases, scoped lint/format/diff. Initial test
+  compilation reported three earlier rest/bend regression `Note.fret` accesses.
+- Independent review approved all eleven rewrites and three retained browser
+  declarations. Its documentation recheck approved the explicit deferred production
+  requirement below; no audit blockers remain. Applied optional direct SVG callback
+  identity and exactly-one selection notification checks; both affected suites
+  passed afterward.
+
+### Group 33 open contract finding: empty-selection shortcut exceptions
+
+- **Required follow-up before closing the full audit:** the user accepts the
+  current throwing behavior and requested no fix for now. Revisit/document the
+  selection precondition, supported API boundary, and UI reachability before
+  declaring the entire audit complete. No no-op behavior has been agreed.
+- `TrackController` is internal to the package: it is not exported by the package
+  entry point or exposed through `TabUIEditor`. A TypeScript-public method is not
+  necessarily a supported consumer API. The probes below demonstrate internal
+  reachability, not an established normal keyboard/UI path. The original bug
+  classification was too strong; this is an unresolved contract/coverage finding.
+- Independent review confirmed empty selection is a valid public state, reached
+  through `selectBeat(beatElement)` followed by `clearSelection()`. The retained
+  no-op test uses that setup. These are internal controller methods, not a supported
+  consumer entry point. No equivalent surviving boundary coverage is claimed.
+- Its runtime probe confirmed all seven failures: Shift+X throws selection length
+  zero; A, Shift+A, and Delete access undefined `voiceBar`; I, Shift+I, and
+  Shift+Delete throw selected bar undefined. Keyboard callbacks route without an
+  empty-selection guard, so the exception prevents event consumption and rendering.
+- Intentionally removed: the fake table's seven no-throw/default-handling and
+  render-once assertions. It could not prove those behaviors with real controllers.
+  Selected-note/range tests do not cover this boundary; no equivalent coverage is
+  claimed. Deferred requirement: decide the intended precondition/error contract
+  and appropriate regression coverage, including model/history effects and keyboard
+  handling for these seven shortcuts. Throwing remains acceptable for now.
+- No production fix or exception-characterization test was added in this audit.
+  The eleven rewritten declarations and retained browser scenarios passed review;
+  final documentation recheck approved this explicit disposition.
+
+### Groups 31–33 repository verification
+
+- Corrected three missing `GuitarNote` narrowings in the supervisor's final
+  rest/bend assertion additions from the previous round. Runtime assertions remain;
+  the prior full verification had started before those final additions, and focused
+  runtime checks did not expose these type errors. This is a test typing correction.
+- `npm run verify` is running after that correction; log:
+  `/tmp/opencode/tabui-audit-groups-31-33-verify.log`.
+- Full verification passed: production/test type checks, package build, all 95 unit
+  suites/971 tests, configured integration consumer smoke, Chromium/Firefox (249
+  passed, one skipped), and demo build. The executed integration script still
+  reports packed-consumer smoke; this records actual command output despite the
+  updated AGENTS description.
+- Final assertion-only review follow-ups passed their focused suites and scoped
+  lint/format/diff. Repository-wide lint, changed-test/new-fixture formatting and
+  audit formatting passed. No production changes, dependencies, or commits.
+- All three groups are implemented and independently reviewed. Net reduction:
+  three declarations and ten generated unit cases (981 to 971). The seven-key
+  empty-selection failure and coverage requirement remain explicit follow-ups.
+  Prior checkpoint work is preserved. Groups 34–55 are not started.
+
+### Groups 34–36: implemented and reviewed
+
+- Separate Sol agents own range anchors/traversal, drag selection, and selection
+  announcements. Each group receives an independent review and combined verification.
+- Before-round files are saved at
+  `/tmp/opencode/tabui-audit-groups-34-36-before/`. Groups 31–33 remain uncommitted
+  and are preserved, so HEAD alone is not this round's before-reference.
+- Shared files use disjoint original-baseline declarations mapped by title. The
+  coordinator owns this document and combined browser/full verification.
+- User accepts empty-selection exceptions for now. The API/precondition/reachability
+  decision is explicitly required before closing the full audit; no production fix
+  or assumed no-op requirement is part of this round.
+
+### Group 35: assessment and implementation
+
+Independent review passed. All twelve owned declarations/cases remain.
+
+- Seven drag-state tests use real beat elements and retain idle/pending, exact
+  quarter-width threshold, original anchor, continuing movement, reset, and pointer
+  ownership. Another-voice controller selection coverage remains unchanged.
+- Three mouse declarations replace private injection/mock calls with real DOM,
+  controller and SVG behavior. Drag replaces/extends ranges, requires literal SVG
+  widths, stops after release, and edits only selected beats through history.
+  Pointer-event rejection includes mouse/touch/pen and compatibility mouse movement.
+- A shared drag fixture owns real layout, events, rendering and transport. Playback
+  rejection uses actual Starting state and preserves an existing two-beat range;
+  it gives up the fabricated Playing row and does not claim a distinct Playing
+  guarantee. Exact internal call ordering/counts are also given up.
+- Browser observation is typed and reliably disconnected/disposed; live-region
+  semantics, zero held-drag mutations, exact final range and one insertion remain.
+- Three focused suites passed 130 tests; test compilation, scoped lint/format/diff
+  passed. No production edits or confirmed bugs. Browser verification is pending.
+- Independent review approved every owned declaration/fixture and passed all three
+  focused suites (130 tests). It confirmed independent drag-width/history checks
+  and the documented Starting versus Playing tradeoff. Applied its optional title
+  correction to describe startup range preservation precisely. No blockers.
+
+### Group 34: assessment and implementation
+
+Independent review passed after two coverage corrections. All 24 declarations/27 generated cases remain;
+eleven callback declarations are rewritten. No production or shared setup edits.
+
+- Controller traversal requires real multi-beat first-beat identities, unchanged
+  serialized scores, and exact ranges before shortening/reversing/collapsing.
+  Existing edge, anchor, string-lane, and rejected-target guarantees remain.
+- Keyboard tests use real boundaries, consumed events, rejected/successful
+  movement, range collapse/extension in both directions, view-only preservation,
+  Ctrl bar traversal, and Escape range clear/anchor restoration/second rejection.
+- Mouse tests use real cursor/string selection, visible SVG preview, actual ranges,
+  release-button behavior, public anchors, and idle-click unchanged state.
+  Transport controls require actual bar destinations and range anchor/clear state.
+- Browser transport range requires exact two-beat announcement and positive growing
+  widths. Existing keyboard range/clear/navigation scenario remains unchanged.
+- Given up: internal routing/counts, old Up-routing assertion, mocked scroll-follow
+  counts. Observable selection, event consumption, preview and score state remain.
+- Four focused files passed 205 tests; test compilation, scoped lint/format/diff
+  passed. No production findings; accepted empty-selection behavior is unchanged.
+- Reviewer passed four focused suites/205 tests and approved remaining scope, but
+  found lost rendering notifications in three successful keyboard selection tests
+  (including view-only) and a hover-preview visibility check insensitive to the
+  hovered note. Corrections retain real state and add notification plus matching
+  hovered-note SVG geometry checks. These are test-review gaps, not source bugs.
+- Reviewer used baseline titles and HEAD because before-snapshot access was denied;
+  it did not claim the saved pre-edit comparison. Prior G31–33 changes were excluded.
+- Correction now checks default render notifications after every successful action
+  in all three keyboard tests, retaining boundary silence. Hover requires all SVG
+  attributes, positive dimensions, and x/y/width/height matching the hovered third
+  string's selection rectangle before clicking. No declarations/cases changed.
+- Test-process-only sensitivity probes failed all three keyboard tests when render
+  notifications were suppressed, and failed hover geometry at y 30.03 versus
+  expected 78.03 when redirected to string one. Focused execution passed 124 tests,
+  test compilation, scoped lint/format/diff. Independent recheck is running.
+- Independent recheck confirmed both blockers resolved, with exact destinations,
+  consumed events, view-only score preservation, boundary silence, and hover/click
+  guarantees retained. It passed diff checking and approved the corrected scope;
+  it did not rerun the reported focused checks.
+
+### Group 36: assessment and implementation
+
+Independent review passed. All 22 declarations/27 generated cases remain.
+Twelve owned declarations move into real integration-style lifecycle coverage in
+`tests/unit/lifecycle/selection-announcements.spec.ts`; no direct removals.
+
+- Formatter coverage retains normalized range bounds/endpoints, singular wording,
+  full/concise movement, incomplete-range rejection, and captured previous position.
+  Cursor object identity is given up while position/output guarantees remain.
+- Eight callbacks and four lifecycle declarations use real shell/editor/controller
+  and DOM. Focus/unbind/rebind, fret/rhythm full output, deduplication, flushed
+  silence with positive control, concise string movement, range/focus repeats, and
+  held-drag release require exact announcement output, with real live-region checks.
+  Some callback cases observe a forwarding announcement spy alongside real shell
+  integration; no claim is made that every oracle directly reads the live region.
+- Real drag cancellation covers refresh/note click/unbind. Parent moves/disposal,
+  explicit clear/reinsert, stale repeat cancellation, deferred latest host state,
+  subscription notification and disposal flushing retain timing/cleanup guarantees.
+  Platform shims supply missing jsdom SVG rectangle and mouse page coordinates.
+- Browser keyboard output uses controlled work flushing/exact text; skip/Tab entry
+  requires fixture-specific context and real focus; mouse entry remains unchanged.
+- Given up: internal render, frame/timer, automatic-check invocation counts, and
+  cursor identity. Four focused suites passed 56 tests; scoped lint/format/diff
+  passed. Latest compilation was blocked by a concurrent hover-note type access;
+  the current Group 34 correction includes the explicit tablature-slot guard.
+- Independent review approved every owned declaration and cleanup/timing fixtures,
+  passed four suites/56 tests, and passed test compilation including Group 34's
+  current guard. No blockers; applied its documentation precision correction above.
+
+### Groups 34–36 repository verification
+
+- Full `npm run verify` is running after all implementations and Group 34 review
+  corrections. Log: `/tmp/opencode/tabui-audit-groups-34-36-verify.log`.
+- Full execution passed production/test type checks, package build, 96 unit suites
+  (971 tests), and consumer smoke. Browser result: 247 passed, one skipped, two
+  failures. Group 34's changed transport-range exact announcement expects two beats
+  through bar 2 beat 1; both browsers report three through bar 2 beat 2. Fixture and
+  actions are being checked before correcting the oracle. No clean full-run pass
+  is claimed. Separate demo build passed; log:
+  `/tmp/opencode/tabui-audit-groups-34-36-demo.log`.
+- Browser correction selects bar 2 beat 1 string 1 by rendered bar wrapper/beat ID,
+  not geometric ordering. Fixture counts are independently checked: one whole beat
+  in bar 1, two half beats in bar 2, four quarters in bar 3. Controller checks agree
+  on two beats after the click and four after Next bar; exact announcements and
+  positive growing selection widths remain.
+- Complete range browser spec passed six cases across Chromium and Firefox after
+  correction. Log: `/tmp/opencode/tabui-audit-groups-34-36-range-rerun.log`.
+  Independent final browser-target recheck passed with no blockers. The original full-run
+  failure remains recorded; targeted success is not a clean full-run pass.
+- Reviewer confirmed rendered identity is only the click target, not a copy of
+  range calculation, and that normal event binding plus all announcement/width/
+  clearing/context guarantees remain. All three groups are complete and reviewed.
+- Final repository-wide lint, changed-test/new-file formatting, audit formatting,
+  and diff checks passed after the browser correction.
+- The user subsequently reported that verification passes and approved committing
+  the combined Groups 31–36 work. Earlier execution results remain recorded above.
+- This round changes no declaration or generated-case counts (96 suites/971 unit
+  tests); the new announcement suite accounts for the suite-count increase.
+  No production/dependency changes or commits were made. Prior uncommitted work
+  is preserved. Groups 37–55 are not started. Empty-selection contract follow-up
+  remains required before closing the full audit, with throwing accepted for now.

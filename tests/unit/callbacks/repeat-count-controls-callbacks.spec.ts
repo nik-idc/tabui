@@ -1,53 +1,69 @@
+/** @jest-environment jsdom */
+
+import { NotationComponent } from "../../../src/notation/notation-component";
+import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
 import { RepeatCountControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/repeat-count-controls/repeat-count-controls-callbacks";
-import {
-  asNotationComponent,
-  createNotationComponentMock,
-  FakeElement,
-  makeDialogFixture,
-} from "./helpers";
+import { RepeatCountControlsComponent } from "../../../src/ui/side-controls/measure-controls/repeat-count-controls/repeat-count-controls-component";
+import { createTestTrackController } from "../controller/helpers";
+import { createScoreGraph } from "../model/helpers";
 
 test("rejects an invalid repeat count and accepts a valid one", () => {
-  const { dialog, dialogContainer } = makeDialogFixture();
-  const template = {
-    dialogContainer,
-    dialogContent: new FakeElement(),
-    decreaseButton: new FakeElement(),
-    increaseButton: new FakeElement(),
-    value: new FakeElement(),
-    valueControl: new FakeElement(),
-    errorText: new FakeElement(),
-    confirmButton: new FakeElement(),
-    cancelButton: new FakeElement(),
-    removeButton: new FakeElement(),
+  const { track, masterBar } = createScoreGraph();
+  const controller = createTestTrackController(track);
+  const owner: Pick<NotationComponent, "trackController"> = {
+    trackController: controller,
   };
-  const notation = createNotationComponentMock();
-  const render = jest.fn();
+  const notation = owner as NotationComponent;
+  const root = document.createElement("div");
+  const dialogHost = document.createElement("div");
+  root.append(dialogHost);
+  document.body.append(root);
+  const controls = new RepeatCountControlsComponent(
+    root,
+    new DialogEnforcer(dialogHost, () => {}),
+    notation,
+    () => {}
+  );
   const callbacks = new RepeatCountControlsDefaultCallbacks(
-    { dialog, template } as any,
-    asNotationComponent(notation),
-    render,
-    jest.fn()
+    controls,
+    notation,
+    () => controls.render(),
+    () => {}
   );
-  callbacks.bind();
 
-  template.value.value = "1.5";
-  template.dialogContent.dispatch("submit");
-  expect(template.errorText.textContent).toBe("Invalid repeat count");
-  expect(
-    notation.trackController.setSelectedBarRepeatStatus
-  ).not.toHaveBeenCalled();
+  try {
+    controls.render();
+    callbacks.bind();
+    callbacks.bind();
+    controls.dialog.showModal();
+    const { template } = controls;
+    template.value.value = "1.5";
+    template.dialogContent.dispatchEvent(
+      new Event("submit", { cancelable: true })
+    );
+    expect(template.errorText.textContent).toBe("Invalid repeat count");
+    expect(template.confirmButton.disabled).toBe(true);
+    expect(controls.dialog.open).toBe(true);
+    expect(masterBar.isRepeatEnd).toBe(false);
+    expect(masterBar.repeatCount).toBeNull();
 
-  template.value.value = "4";
-  template.value.dispatch("input");
-  template.dialogContent.dispatch("submit");
-
-  expect(
-    notation.trackController.setSelectedBarRepeatStatus
-  ).toHaveBeenCalledTimes(1);
-  expect(
-    notation.trackController.setSelectedBarRepeatStatus
-  ).toHaveBeenCalledWith(
-    expect.objectContaining({ enabled: true, repeatCount: 4 })
-  );
-  expect(render).toHaveBeenCalledTimes(1);
+    template.value.value = "4";
+    template.value.dispatchEvent(new Event("input"));
+    expect(template.confirmButton.disabled).toBe(false);
+    template.dialogContent.dispatchEvent(
+      new Event("submit", { cancelable: true })
+    );
+    expect(masterBar.isRepeatEnd).toBe(true);
+    expect(masterBar.repeatCount).toBe(4);
+    expect(controls.dialog.open).toBe(false);
+    controller.undo();
+    expect(masterBar.isRepeatEnd).toBe(false);
+    expect(masterBar.repeatCount).toBeNull();
+    controller.redo();
+    expect(masterBar.repeatCount).toBe(4);
+  } finally {
+    controls.dialog.close();
+    callbacks.unbind();
+    root.remove();
+  }
 });

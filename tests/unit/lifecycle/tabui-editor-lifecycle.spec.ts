@@ -1,6 +1,4 @@
 import { TabUIEditor } from "../../../src/tabui-editor";
-import { EditorShellComponent } from "../../../src/ui/editor-shell/editor-shell-component";
-import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import { UIComponent } from "../../../src/ui";
 import { TabUICallbacks } from "../../../src/tabui-callbacks";
@@ -304,112 +302,6 @@ describe("TabUIEditor lifecycle", () => {
       "tu-responsive-blocked",
       "tu-view-only"
     );
-  });
-
-  test("mounts the announcer only on parent changes and cancels stale text", () => {
-    jest.useFakeTimers();
-    const root = createRoot();
-    const editor = new EditorShellComponent(root, resolveTabUIConfig());
-    try {
-      editor.render();
-      const announce = editor.announce.bind(editor);
-      const mountAnnouncer = editor.mountAnnouncer.bind(editor);
-      const region = getRootChild(root, "tu-announcement-host");
-      let parent: HTMLElement = root;
-      Object.defineProperty(region, "parentElement", { get: () => parent });
-      const dialog = createShellElement();
-      jest.mocked(dialog.appendChild).mockImplementation((child) => {
-        parent = dialog;
-        return child;
-      });
-
-      announce("Repeat");
-      mountAnnouncer(root);
-      expect(region.textContent).toBe("Repeat");
-      expect(root.appendChild).toHaveBeenCalledTimes(7);
-
-      announce("Repeat", true);
-      mountAnnouncer(root);
-      jest.runOnlyPendingTimers();
-      expect(region.textContent).toBe("Repeat");
-
-      announce("Repeat", true);
-      mountAnnouncer(dialog);
-      expect(dialog.appendChild).toHaveBeenCalledTimes(1);
-      expect(dialog.appendChild).toHaveBeenCalledWith(region);
-      expect(region.textContent).toBe("");
-      jest.runOnlyPendingTimers();
-      expect(region.textContent).toBe("");
-
-      announce("Stale");
-      mountAnnouncer(root);
-      expect(root.appendChild).toHaveBeenLastCalledWith(region);
-      expect(region.textContent).toBe("");
-
-      announce("Pending disposal");
-      announce("Pending disposal", true);
-      editor.dispose();
-      jest.runOnlyPendingTimers();
-      announce("Disposed");
-      mountAnnouncer(dialog);
-      expect(region.textContent).toBe("");
-      expect(dialog.appendChild).toHaveBeenCalledTimes(1);
-    } finally {
-      editor.dispose();
-      jest.useRealTimers();
-    }
-  });
-
-  test("deduplicates announcements and preserves explicit repeats", () => {
-    jest.useFakeTimers();
-    const editor = new EditorShellComponent(createRoot(), resolveTabUIConfig());
-    try {
-      editor.render();
-      const region = editor.template.announcementHost;
-      let value = "";
-      let writes = 0;
-      Object.defineProperty(region, "textContent", {
-        configurable: true,
-        get: () => value,
-        set: (next: string) => {
-          value = next;
-          writes++;
-        },
-      });
-
-      editor.announce("");
-      editor.announce("");
-      expect(writes).toBe(0);
-      expect(jest.getTimerCount()).toBe(0);
-
-      editor.announce("Repeat", true);
-      expect(value).toBe("Repeat");
-      expect(jest.getTimerCount()).toBe(0);
-      expect(writes).toBe(1);
-      editor.announce("Repeat");
-      expect(writes).toBe(1);
-
-      editor.announce("Repeat", true);
-      expect(value).toBe("");
-      expect(jest.getTimerCount()).toBe(1);
-      const writesBeforeDeduplication = writes;
-      editor.announce("Repeat");
-      expect(writes).toBe(writesBeforeDeduplication);
-      expect(jest.getTimerCount()).toBe(1);
-
-      jest.runOnlyPendingTimers();
-      expect(value).toBe("Repeat");
-      expect(writes).toBe(writesBeforeDeduplication + 1);
-      editor.announce("Repeat", true);
-      editor.announce("New text");
-      expect(value).toBe("New text");
-      expect(jest.getTimerCount()).toBe(0);
-      jest.runOnlyPendingTimers();
-      expect(value).toBe("New text");
-    } finally {
-      editor.dispose();
-      jest.useRealTimers();
-    }
   });
 
   test("keeps theme variables scoped to the editor root", () => {
@@ -1088,32 +980,5 @@ describe("TabUIEditor lifecycle", () => {
     expect(() => editor.refreshLayout()).toThrow(
       "TabUIEditor already disposed"
     );
-  });
-
-  test("defers and coalesces automatic selection announcement checks", async () => {
-    const editor = new TabUIEditor(createRoot(), createScore());
-    editor.init();
-    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
-
-    callbacks.emitStateChanged();
-    callbacks.emitStateChanged();
-    expect(callbacks.announceSelection).not.toHaveBeenCalled();
-
-    await Promise.resolve();
-
-    expect(callbacks.announceSelection).toHaveBeenCalledTimes(1);
-    expect(callbacks.announceSelection).toHaveBeenCalledWith(true);
-  });
-
-  test("does not check automatic selection announcements after disposal", async () => {
-    const editor = new TabUIEditor(createRoot(), createScore());
-    editor.init();
-    const callbacks = jest.mocked(TabUICallbacks).mock.results[0].value;
-
-    callbacks.emitStateChanged();
-    editor.dispose();
-    await Promise.resolve();
-
-    expect(callbacks.announceSelection).not.toHaveBeenCalled();
   });
 });

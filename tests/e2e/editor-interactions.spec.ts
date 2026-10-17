@@ -239,13 +239,15 @@ test("announces a fret change but not an unchanged fret DOM write", async ({
 test("keeps concise arrow announcements after the automatic flush", async ({
   page,
 }) => {
+  await page.clock.install();
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
   await editor.locator('.tu-root-svg [id^="note-rect-"]').first().click();
   await page.keyboard.press("ArrowRight");
+  await page.clock.runFor(100);
 
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
-    /^Bar 2, 4\/4, 120 BPM, Voice 1,/
+    "Bar 2, 4/4, 120 BPM, Voice 1, Beat 1, half, String 1, empty."
   );
 });
 

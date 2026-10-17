@@ -1,6 +1,10 @@
 import { PlayControlsDefaultCallbacks } from "../../../src/ui/top-controls/play-controls/play-controls-callbacks";
 import { PlayControlsTemplateRenderer } from "../../../src/ui/top-controls/play-controls/play-controls-template-renderer";
 import { dispatchClick, makeButton } from "./helpers";
+import { TrackController } from "../../../src/notation/controller/track-controller";
+import { DEFAULT_MASTER_BAR } from "../../../src/notation/model";
+import { createScoreGraph } from "../model/helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
 
 describe("PlayControlsDefaultCallbacks", () => {
   test("play click toggles playback based on controller state", () => {
@@ -88,18 +92,13 @@ describe("PlayControlsDefaultCallbacks", () => {
     expect(toggleLoop).toHaveBeenCalledTimes(loopCallsBeforeUnbind);
   });
 
-  test("bar traversal buttons delegate to the track controller", () => {
-    const ensureSelectedNoteVisible = jest.fn();
-    const trackController = {
-      isPlaying: false,
-      startPlayer: jest.fn(),
-      stopPlayer: jest.fn(),
-      toggleLoop: jest.fn(),
-      selectFirstBar: jest.fn(),
-      selectPreviousBar: jest.fn(),
-      selectNextBar: jest.fn(),
-      selectLastBar: jest.fn(),
-    };
+  test("bar traversal buttons select the requested bar", () => {
+    const ensureSelectedNoteVisible = () => {};
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const trackController = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const bars = track.staves[0].bars;
     const renderFunc = jest.fn();
     const callbacks = new PlayControlsDefaultCallbacks(
       {
@@ -119,34 +118,22 @@ describe("PlayControlsDefaultCallbacks", () => {
       jest.fn()
     );
 
-    callbacks.onFirstClicked();
-    callbacks.onPrevClicked();
     callbacks.onNextClicked();
+    expect(trackController.selectionCursor?.bar).toBe(bars[1]);
     callbacks.onLastClicked();
+    expect(trackController.selectionCursor?.bar).toBe(bars[2]);
+    callbacks.onPrevClicked();
+    expect(trackController.selectionCursor?.bar).toBe(bars[1]);
+    callbacks.onFirstClicked();
+    expect(trackController.selectionCursor?.bar).toBe(bars[0]);
 
-    expect(trackController.selectFirstBar).toHaveBeenCalledTimes(1);
-    expect(trackController.selectPreviousBar).toHaveBeenCalledTimes(1);
-    expect(trackController.selectNextBar).toHaveBeenCalledTimes(1);
-    expect(trackController.selectLastBar).toHaveBeenCalledTimes(1);
-    expect(ensureSelectedNoteVisible).toHaveBeenCalledTimes(4);
     expect(renderFunc).toHaveBeenCalledTimes(4);
   });
 
   test("range button anchors or clears the current range", () => {
-    let hasSelectionAnchor = false;
-    const setSelectionAnchor = jest.fn(() => {
-      hasSelectionAnchor = true;
-    });
-    const clearSelectionRange = jest.fn(() => {
-      hasSelectionAnchor = false;
-    });
-    const controller = {
-      get hasSelectionAnchor() {
-        return hasSelectionAnchor;
-      },
-      setSelectionAnchor,
-      clearSelectionRange,
-    };
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const anchor = controller.selectionCursor?.beat;
     const renderFunc = jest.fn();
     const callbacks = new PlayControlsDefaultCallbacks(
       {
@@ -167,10 +154,13 @@ describe("PlayControlsDefaultCallbacks", () => {
     );
 
     callbacks.onRangeClicked();
+    expect(controller.hasSelectionAnchor).toBe(true);
+    expect(controller.selectionBeats).toEqual([anchor]);
     callbacks.onRangeClicked();
 
-    expect(setSelectionAnchor).toHaveBeenCalledTimes(1);
-    expect(clearSelectionRange).toHaveBeenCalledTimes(1);
+    expect(controller.hasSelectionAnchor).toBe(false);
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(anchor);
     expect(renderFunc).toHaveBeenCalledTimes(2);
   });
 

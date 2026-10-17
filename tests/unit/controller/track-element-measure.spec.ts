@@ -134,6 +134,11 @@ describe("TrackElement measure", () => {
         (barElement) => barElement.boundingBox.width
       );
     expect(afterWidths).toEqual(beforeWidths);
+    const updatedBars =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].barElements;
+    expect(updatedBars[0].repeatStartRect).toBeDefined();
+    expect(updatedBars[1].repeatEndRect).toBeDefined();
   });
 
   test("marks bars invalid for unmatched repeat boundaries", () => {
