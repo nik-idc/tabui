@@ -45,45 +45,48 @@ assigned shortcut table. See current status below.
 
 ## Progress
 
-| Group                                       | Assessment                                         | Implementation                         |
-| ------------------------------------------- | -------------------------------------------------- | -------------------------------------- |
-| 1. Fret entry                               | Complete: Sol verified and corrected Luna findings | Implemented; independent review passed |
-| 2. Fret controls and announcements          | Complete: Sol retry succeeded                      | Implemented; independent review passed |
-| 3. Note/rest values and controls            | Complete: Sol verified and corrected Luna findings | Implemented; independent review passed |
-| 4. Voice slots and cursor movement          | Sol assessment complete                            | Implemented; independent review passed |
-| 5. Score/staff invariants                   | Sol assessment complete                            | Implemented; independent review passed |
-| 6. Instruments, tuning, and track settings  | Sol assessment complete                            | Implemented; independent review passed |
-| 7. Beat insertion/removal                   | Sol assessment complete                            | Implemented; independent review passed |
-| 8. Bar insertion/removal                    | Sol assessment complete                            | Implemented; independent review passed |
-| 9. Undo history and general shortcuts       | Sol assessment complete                            | Implemented; independent review passed |
-| 10. Beat replacement and data ownership     | Sol assessment complete                            | Implemented; independent review passed |
-| 11. Clipboard/paste                         | Sol assessment complete                            | Implemented; independent review passed |
-| 12. Duration, dots, and timing rebuild      | Sol assessment complete                            | Implemented; independent review passed |
-| 13. Tuplets                                 | Sol assessment complete                            | Implemented; independent review passed |
-| 14. Meter and signature rebuild             | Sol assessment complete                            | Implemented; independent review passed |
-| 15. Rhythm pointer targets                  | Sol assessment complete                            | Implemented; independent review passed |
-| 16. Beams, flags, and dotted geometry       | Sol assessment complete                            | Implemented; independent review passed |
-| 17. Rhythm rows and selection rectangles    | Sol assessment complete                            | Implemented; independent review passed |
-| 18. Bar spacing                             | Sol assessment complete                            | Implemented; independent review passed |
-| 19. Wrapped widths and track alignment      | Sol assessment complete                            | Implemented; independent review passed |
-| 20. Single-line widths                      | Sol assessment complete                            | Implemented; independent review passed |
-| 21. Viewport materialization and following  | Sol assessment complete                            | Implemented; independent review passed |
-| 22. Tree structure and coordinates          | Sol assessment complete                            | Implemented; independent review passed |
-| 23. Incremental updates and renderer reuse  | Sol assessment complete                            | Implemented; independent review passed |
-| 24. Vertical layout and technique ownership | Sol assessment complete                            | Implemented; independent review passed |
-| 25. Technique application rules             | Sol assessment complete                            | Implemented; independent review passed |
-| 26. Inline transitions, harmonics, vibrato  | Sol assessment complete                            | Implemented; independent review passed |
-| 27. Technique labels and removal            | Sol assessment complete                            | Implemented; independent review passed |
-| 28. Bend rules and undo                     | Sol assessment complete                            | Implemented; independent review passed |
-| 29. Bend curves and geometry                | Sol assessment complete                            | Implemented; independent review passed |
-| 30. Bend dialog and pointer controls        | Sol assessment complete                            | Implemented; independent review passed |
-| 31. Repeats                                 | Sol assessment complete                            | Implemented; independent review passed |
-| 32. Tempo                                   | Sol assessment complete                            | Implemented; independent review passed |
-| 33. Shared notation-dialog routing          | Sol assessment complete                            | Implemented; independent review passed |
-| 34. Range anchors and traversal             | Sol assessment complete                            | Implemented; independent review passed |
-| 35. Drag selection                          | Sol assessment complete                            | Implemented; independent review passed |
-| 36. Selection announcements                 | Sol assessment complete                            | Implemented; independent review passed |
-| 37–55                                       | Not started                                        | Not started                            |
+| Group                                        | Assessment                                         | Implementation                         |
+| -------------------------------------------- | -------------------------------------------------- | -------------------------------------- |
+| 1. Fret entry                                | Complete: Sol verified and corrected Luna findings | Implemented; independent review passed |
+| 2. Fret controls and announcements           | Complete: Sol retry succeeded                      | Implemented; independent review passed |
+| 3. Note/rest values and controls             | Complete: Sol verified and corrected Luna findings | Implemented; independent review passed |
+| 4. Voice slots and cursor movement           | Sol assessment complete                            | Implemented; independent review passed |
+| 5. Score/staff invariants                    | Sol assessment complete                            | Implemented; independent review passed |
+| 6. Instruments, tuning, and track settings   | Sol assessment complete                            | Implemented; independent review passed |
+| 7. Beat insertion/removal                    | Sol assessment complete                            | Implemented; independent review passed |
+| 8. Bar insertion/removal                     | Sol assessment complete                            | Implemented; independent review passed |
+| 9. Undo history and general shortcuts        | Sol assessment complete                            | Implemented; independent review passed |
+| 10. Beat replacement and data ownership      | Sol assessment complete                            | Implemented; independent review passed |
+| 11. Clipboard/paste                          | Sol assessment complete                            | Implemented; independent review passed |
+| 12. Duration, dots, and timing rebuild       | Sol assessment complete                            | Implemented; independent review passed |
+| 13. Tuplets                                  | Sol assessment complete                            | Implemented; independent review passed |
+| 14. Meter and signature rebuild              | Sol assessment complete                            | Implemented; independent review passed |
+| 15. Rhythm pointer targets                   | Sol assessment complete                            | Implemented; independent review passed |
+| 16. Beams, flags, and dotted geometry        | Sol assessment complete                            | Implemented; independent review passed |
+| 17. Rhythm rows and selection rectangles     | Sol assessment complete                            | Implemented; independent review passed |
+| 18. Bar spacing                              | Sol assessment complete                            | Implemented; independent review passed |
+| 19. Wrapped widths and track alignment       | Sol assessment complete                            | Implemented; independent review passed |
+| 20. Single-line widths                       | Sol assessment complete                            | Implemented; independent review passed |
+| 21. Viewport materialization and following   | Sol assessment complete                            | Implemented; independent review passed |
+| 22. Tree structure and coordinates           | Sol assessment complete                            | Implemented; independent review passed |
+| 23. Incremental updates and renderer reuse   | Sol assessment complete                            | Implemented; independent review passed |
+| 24. Vertical layout and technique ownership  | Sol assessment complete                            | Implemented; independent review passed |
+| 25. Technique application rules              | Sol assessment complete                            | Implemented; independent review passed |
+| 26. Inline transitions, harmonics, vibrato   | Sol assessment complete                            | Implemented; independent review passed |
+| 27. Technique labels and removal             | Sol assessment complete                            | Implemented; independent review passed |
+| 28. Bend rules and undo                      | Sol assessment complete                            | Implemented; independent review passed |
+| 29. Bend curves and geometry                 | Sol assessment complete                            | Implemented; independent review passed |
+| 30. Bend dialog and pointer controls         | Sol assessment complete                            | Implemented; independent review passed |
+| 31. Repeats                                  | Sol assessment complete                            | Implemented; independent review passed |
+| 32. Tempo                                    | Sol assessment complete                            | Implemented; independent review passed |
+| 33. Shared notation-dialog routing           | Sol assessment complete                            | Implemented; independent review passed |
+| 34. Range anchors and traversal              | Sol assessment complete                            | Implemented; independent review passed |
+| 35. Drag selection                           | Sol assessment complete                            | Implemented; independent review passed |
+| 36. Selection announcements                  | Sol assessment complete                            | Implemented; independent review passed |
+| 37. Keyboard ownership and mode restrictions | Sol assessment complete                            | Implemented; independent review passed |
+| 38. Transport, loops, and seeking            | Sol assessment complete                            | Implemented; independent review passed |
+| 39. Traversal and scheduling                 | Sol assessment complete                            | Implemented; independent review passed |
+| 40–55                                        | Not started                                        | Not started                            |
 
 ## Current handoff scopes
 
@@ -2034,3 +2037,183 @@ Twelve owned declarations move into real integration-style lifecycle coverage in
   No production/dependency changes or commits were made. Prior uncommitted work
   is preserved. Groups 37–55 are not started. Empty-selection contract follow-up
   remains required before closing the full audit, with throwing accepted for now.
+
+### Groups 37–39: implemented and reviewed
+
+- Started from clean `test-audit` checkpoint `65fa914a`. The existing imperative
+  commit subject is retained; the user allowed explanation instead of rewording.
+- Separate Sol agents own keyboard ownership/modes, playback transport/loops/seeking,
+  and traversal/scheduling. Each group receives an independent review.
+- Before-round files are saved at
+  `/tmp/opencode/tabui-audit-groups-37-39-before/`. Ownership uses original baseline
+  declarations mapped by title. Prior audit/production/cleanup work is preserved.
+- The coordinator owns this document and combined browser/full verification.
+  Empty-selection throwing remains accepted pending the required closing follow-up.
+
+### Group 39: assessment and implementation
+
+Independent review passed. All 25 declarations remain; generated cases increase
+from 25 to 27. Only traversal and scheduler specs changed.
+
+- Scheduler uses real audio engine/traversal/sample/note scheduling with a local
+  Web Audio boundary recorder. Exact returned timing and actual source starts,
+  stops, and automation replace internal `scheduleBeat` calls/arguments.
+- Traversal strengthens bounded exclusion/timing, restored mid-bar loops and repeat
+  containment across passes, bounded complete repeat termination, and independent
+  unmatched start/end fixtures. The old shared-boundary fixture was adjacent repeat
+  sections; its exact sequence remains under an accurate title.
+- Scheduler fixtures require actual populated voices, overflow exclusion, explicit
+  silent preview, cross-voice end clipping, accepted fretted LetRing, worked dotted
+  and changed-tempo timing, full-bar lookahead without duplicates, loop offsets,
+  restart/truncation, and two new slide-pair clipping rows with source automation.
+- Direct removal: deliberately corrupted missing staff-bar invariant. Given up:
+  internal invariant error and mid-run track mutation, replaced by supported edits
+  between runs/reset; ordinary score editing is blocked during playback.
+- Two focused suites passed 27 tests; test compilation, scoped lint/format/diff
+  passed. No source changes. Independent review assesses all owned declarations,
+  the boundary recorder, and coverage tradeoffs.
+- Independent review approved every declaration/removal and the boundary recorder,
+  confirmed independent worked timing and useful slide clipping/target suppression
+  coverage, and passed both suites/27 cases, scoped lint/format/diff. No blockers.
+
+### Group 39 open finding: shared repeat boundary
+
+- User clarified that nearest-boundary pairing is an explicit v0.5.0 design choice.
+  The earlier probe assumed a combined boundary should chain two multi-bar repeat
+  sections; that assumption is not an agreed requirement. Do not treat this as a
+  confirmed bug or change pairing semantics without agreement. A bar bearing both
+  flags is currently accepted as self-contained; intervening boundaries can
+  invalidate outer pairings, as shown in the user's demo example.
+- A separate true shared-boundary probe uses three bars: bar 0 starts a repeat,
+  bar 1 ends and starts repeats, bar 2 ends. Completing bar 1 advances/repeats to
+  index 1 instead of repeating from 0. Reported validation checks a following
+  repeat-start before its repeat-end and rejects bar 0's pairing.
+- No production fix or failing test was left. Decide shared-boundary support and
+  document the intended pairing contract separately; the old adjacent-repeat test
+  did not cover this scenario. Existing design takes precedence over the probe's
+  proposed expectation.
+
+### Group 37: assessment and implementation
+
+Independent static review passed. Owned declarations decrease 17 to 16, generated
+cases 28 to 23: unit 12/23 to 10/16, browser 5/5 to 6/7. No production edits.
+
+- Real cleared/populated controllers and native events check unavailable actions,
+  invalid modifiers, prevented events, unchanged score/cursor/dialogs and defaults.
+  Actual shell/viewport/descendant/sibling/body focus has positive digit-entry
+  controls rather than fabricated focus objects.
+- View-only checks protect model/history and copy. Mode-routing mock tables merge
+  into real view-only tests and two browser transport cases: actual Starting with
+  held external audio resume, and Playing with controlled time. Both preserve
+  score/selection/dialogs/clipboard and Space transport behavior; idle navigation,
+  ranges and Escape retain prior real coverage.
+- Binding/capture/rebind/two-editor ownership use native dispatch, actual focus,
+  dot/fret results and undo, replacing listener arrays/call counts. Browser focus
+  has post-dialog Palm Mute positive output and view-only start/stop; Tab exit focus
+  is explicit. Existing two-editor and modifier browser declarations remain.
+- Given up: exact internal routing/listener counts, aggregate render choreography,
+  and some former mocked mode-specific default-prevention assertions. Review checks
+  that replacements retain important behavior; no unsupported API claim is made.
+- Keyboard file passed 70 tests; test compilation, scoped lint/format/diff passed.
+  Browser execution awaits combined supervisor verification.
+- Independent review approved all owned declarations and replacement-dependent
+  removals, confirmed native ownership positive controls and valid external audio
+  startup/time boundaries. It did not rerun tests; actual browser execution remains
+  required. No test-quality/coverage blockers.
+
+### Group 38: assessment and implementation
+
+Independent review passed after one coverage correction. All 36 declarations/cases remain: 34 replacements
+or strengthenings and two unchanged browser cases. No production edits.
+
+- A shared transport fixture replaces external Web Audio/time only; score player
+  tests now run real scheduler, traversal, samples, notes, cursor and audio engine.
+  Anchors, actual-audio cursor timing, preload/lazy samples, stop/pending startup,
+  newest overlapping start, retry and initial/rolling failure cleanup, completion,
+  live loops, retargeting, mix and terminal disposal use public outcomes.
+- Controller tests require actual loop passes and boundaries, explicit versus
+  selection-owned looping during seeks, stable live runs, mutation rejection with
+  populated history/clipboard, view-only history protection, cleared edit selection,
+  and all navigation variants including startup/missing voice/staff fallback.
+- Playback controls use DOM clicks/binding and public rendered states instead of
+  routing/private renderer setup. Mouse seeks use distinct actual targets without
+  score mutation/edit selection; fabricated paused transport becomes real startup.
+- Given up: internal calls/order and fabricated paused-state routing. Existing two
+  browser transport/cursor cases remain unchanged. Review checks all original
+  guarantees, lifecycle cleanup, and the new boundary fixture.
+- Four focused suites passed 142 tests; production/test compilation, scoped
+  lint/format/diff passed. Implementation compared checkpoint HEAD because external
+  snapshot access was denied.
+- Reviewer approved 35 cases/fixture but found single-beat looping insensitive to
+  full-score looping: one populated beat remained last-started at 550ms either way.
+  Correction will require distinct populated neighbors and repeated audio starts
+  only for the selected beat beyond its end. This restores selection-boundary
+  coverage, not a production fix. Other lifecycle/transport guarantees are approved.
+- Corrected single-beat case anchors G4 between populated E4/B4, requires only G4
+  sources and five starts at 0.05/0.55/1.05/1.55/2.05 seconds. Process-only probes
+  ignoring the start, end, or both boundaries fail on E4/B4 rather than G4, proving
+  both boundaries are meaningful. Existing loop/cursor/playing checks remain.
+- Optional disposal strengthening requires construction/resume/oscillator/sample
+  counts unchanged after post-disposal start/time advance. Both focused suites
+  passed 90 tests, test compilation, scoped lint/format/diff; independent recheck
+  is running. No declaration/case count change or production edits.
+- Independent recheck approved the fix and optional terminal-disposal strengthening,
+  confirming literal frequencies/times, buffered-source boundary discrimination,
+  repeat positive control, and fixture clock consistency. No remaining blockers;
+  it did not rerun reported checks. Pending-resume disposal remains separate.
+
+### Group 38 open finding: disposal during pending audio resume
+
+- User requested a Luna fix with existing regression coverage extended where
+  suitable. Implementation is in progress. The distinction is stale startup work
+  continuing after disposal, not proof that disposal fails to close the context.
+- Reported reproduction with real playback collaborators: dispose while external
+  `AudioContext.resume()` is pending, then resolve it. `prepareAudio()` proceeds to
+  load samples after disposal removed the sample manager, causing unhandled
+  `Playback sample manager is not initialized` rejection.
+- No source fix or failing test was left in the passing audit patch. Independent
+  review assesses this separately; a lifecycle regression/fix needs follow-up.
+- Review confirmed the defect by source: after awaited resume, sample loading can
+  reject following disposal; with `waitForSamples === false` that promise is not
+  handled. No baseline disposal-during-resume guarantee was removed by the audit.
+
+### Group 38 pending-resume disposal follow-up: fixed and reviewed
+
+- Luna added a disposed-state check after awaited audio resume. Disposed startup
+  returns before loading samples from released resources; context cleanup remains
+  owned by disposal. No active-run error behavior was intentionally changed.
+- One new focused regression configures samples and holds external resume, starts,
+  disposes, resolves resume, then flushes work. It requires no fetch/scheduling,
+  exactly one context close, and idle state. Existing stop-during-start and
+  ready-player disposal tests remain; this is their previously uncovered crossing.
+- Red run failed with the unhandled missing-sample-manager error against old source;
+  green passed. All 96 unit suites/967 tests, production/test compilation, scoped
+  lint/format/diff passed. Prior Group 37–39 work is preserved.
+- Independent Sol review and full verify are running. Log:
+  `/tmp/opencode/tabui-pending-audio-disposal-verify.log`.
+- Independent review approved the three-line guard and justified separate regression,
+  passed fifteen ScorePlayer tests, and confirmed stale rejection handling, later
+  start rejection, single cleanup, and unchanged preload path. No blockers.
+  Applied optional empty sample-source assertion alongside empty oscillators.
+- Full `npm run verify` passed: production/test compilation, package build, 96 unit
+  suites/967 tests, consumer smoke, Chromium/Firefox (253 passed, one skipped), and
+  demo build. The final sample-source assertion also passed its focused regression.
+  Repository-wide lint, scoped source/test/audit formatting, and diff checks passed.
+  User-requested lifecycle fix is complete; no dependency changes or commits.
+
+### Groups 37–39 repository verification
+
+- `npm run verify` passed: production/test type checks, package build, all 96 unit
+  suites/966 tests, consumer smoke, Chromium/Firefox (253 passed, one skipped), and
+  demo build. Log: `/tmp/opencode/tabui-audit-groups-37-39-verify.log`.
+- Group 38's final assertion/fixture-only review correction passed two focused
+  suites/90 tests and test compilation. Full verification ran alongside that review;
+  those final assertions have separate focused evidence. Final repository-wide
+  lint, changed-test/new-helper formatting, audit formatting, and diff checks passed.
+- All three groups are independently reviewed. Net change: one fewer declaration,
+  five fewer generated unit cases (971 to 966), with two new browser transport
+  cases per browser (249 to 253 passing browser executions).
+- No production/dependency changes or commits were made. Prior work is preserved.
+  Shared repeat-boundary validation and pending-resume disposal need separate
+  follow-up. Accepted empty-selection exceptions still require contract/reachability
+  review before final audit closure. Groups 40–55 are not started.

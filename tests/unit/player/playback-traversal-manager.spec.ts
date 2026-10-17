@@ -2,7 +2,7 @@ import { PlaybackTraversalManager } from "../../../src/player/playback-traversal
 import { NoteDuration } from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 
-describe("PlaybackTraversalManager loop state", () => {
+describe("PlaybackTraversalManager", () => {
   test("enables selection looping and restores the prior loop mode", () => {
     const { score, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -21,6 +21,7 @@ describe("PlaybackTraversalManager loop state", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
     ]);
     const traversal = new PlaybackTraversalManager(score);
     traversal.setPlaybackRange(beats[1], beats[2]);
@@ -29,6 +30,9 @@ describe("PlaybackTraversalManager loop state", () => {
     expect(traversal.beatOutsideBoundaries(0, beats[0])).toBe(true);
     expect(traversal.beatOutsideBoundaries(0, beats[1])).toBe(false);
     expect(traversal.beatOutsideBoundaries(0, beats[2])).toBe(false);
+    expect(traversal.beatOutsideBoundaries(0, beats[3])).toBe(true);
+    expect(traversal.getMasterBarStartOffsetSeconds(0)).toBe(0.5);
+    expect(traversal.getPlaybackEndOffsetSeconds(0)).toBe(1.5);
     expect(traversal.getMasterBarDurationSeconds(0)).toBe(1);
   });
 
@@ -36,11 +40,14 @@ describe("PlaybackTraversalManager loop state", () => {
     const { score, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
     ]);
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[0].isRepeatEnd = true;
     const traversal = new PlaybackTraversalManager(score);
-    traversal.setLoopSection(beats[0], beats[1]);
+    traversal.setLoopSection(beats[1], beats[2]);
     traversal.toggleLoop();
-    traversal.setPlaybackRange(beats[0], beats[1]);
+    traversal.setPlaybackRange();
 
     const result = traversal.completeMasterBar(0);
 
@@ -49,24 +56,40 @@ describe("PlaybackTraversalManager loop state", () => {
       loopRestarted: true,
       repeatJumped: false,
     });
+    expect(traversal.getMasterBarStartOffsetSeconds(0)).toBe(0.5);
+    expect(traversal.getMasterBarDurationSeconds(0)).toBe(1);
+    expect(traversal.beatOutsideBoundaries(0, beats[0])).toBe(true);
+    expect(traversal.completeMasterBar(0)).toEqual(result);
   });
 
   test("applies repeats fully contained in the playback range", () => {
-    const { score, beats } = createBarWithBeats([
+    const { score, beats, track } = createBarWithBeats([
       { baseDuration: NoteDuration.Whole },
     ]);
     score.appendMasterBar();
+    const endVoice = track.staves[0].bars[1].ensureVoiceBar(1);
+    const endBeat = endVoice.beats[0];
+    endBeat.baseDuration = NoteDuration.Whole;
+    endVoice.rebuildTiming();
     score.masterBars[0].isRepeatStart = true;
     score.masterBars[1].isRepeatEnd = true;
-    score.masterBars[1].repeatCount = 2;
+    score.masterBars[1].repeatCount = 3;
     const traversal = new PlaybackTraversalManager(score);
-    traversal.setPlaybackRange(beats[0]);
+    traversal.setPlaybackRange(beats[0], endBeat);
 
     expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(1);
     expect(traversal.completeMasterBar(1)).toEqual({
       nextMasterBarIndex: 0,
       loopRestarted: false,
       repeatJumped: true,
+    });
+    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(1);
+    expect(traversal.completeMasterBar(1).nextMasterBarIndex).toBe(0);
+    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(1);
+    expect(traversal.completeMasterBar(1)).toEqual({
+      nextMasterBarIndex: null,
+      loopRestarted: false,
+      repeatJumped: false,
     });
   });
 
@@ -130,22 +153,20 @@ describe("PlaybackTraversalManager loop state", () => {
     });
   });
 
-  test("ignores unmatched repeat boundaries", () => {
+  test.each(["start", "end"])("ignores an unmatched repeat %s", (boundary) => {
     const { score } = createBarWithBeats([
       { baseDuration: NoteDuration.Whole },
     ]);
     score.appendMasterBar();
-    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[0].isRepeatStart = boundary === "start";
+    score.masterBars[1].isRepeatEnd = boundary === "end";
     const traversal = new PlaybackTraversalManager(score);
 
     expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(1);
-    score.masterBars[1].isRepeatEnd = true;
-    score.masterBars[0].isRepeatStart = false;
-
     expect(traversal.completeMasterBar(1).nextMasterBarIndex).toBeNull();
   });
 
-  test("closes then opens repeats at a shared boundary bar", () => {
+  test("plays adjacent repeat sections independently", () => {
     const { score } = createBarWithBeats([
       { baseDuration: NoteDuration.Whole },
     ]);

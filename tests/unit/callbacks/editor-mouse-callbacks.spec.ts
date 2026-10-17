@@ -27,7 +27,11 @@ import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
 import { required } from "../required";
 import { TabBeatRhythmElement } from "../../../src/notation/controller/element/beat/tab-beat-rhythm-element";
 import { BeamSegmentElement } from "../../../src/notation/controller/element/bar/beam-segment-element";
-import { PlaybackState, type ScorePlayer } from "../../../src/player";
+import { PlaybackState, ScorePlayer } from "../../../src/player";
+import {
+  installTransportAudio,
+  settleTransport,
+} from "../player/transport-audio";
 import { withNotationDialog } from "./notation-dialog-fixture";
 import { EditorSVGRenderer } from "../../../src/notation/render/svg/editor-svg-renderer";
 import { withDragSelection } from "./drag-selection-fixture";
@@ -882,32 +886,87 @@ describe("EditorMouseDefCallbacks", () => {
     });
   });
 
-  test("clicking notes and beats during playback seeks without selecting", () => {
-    const {
-      callbacks,
-      beatElement,
-      noteElement,
-      notationComponent,
-      renderFunc,
-      setIsPlaying,
-    } = createHarness();
-    setIsPlaying(true);
+  async function withMouseTransport(
+    action: (fixture: {
+      callbacks: EditorMouseDefCallbacks;
+      controller: TrackController;
+      player: ScorePlayer;
+      beats: ReturnType<typeof createBarWithBeats>["beats"];
+      render: jest.Mock;
+    }) => Promise<void>
+  ) {
+    jest.useFakeTimers();
+    const audio = installTransportAudio();
+    const dom = new JSDOM();
+    const previous = Object.getOwnPropertyDescriptor(globalThis, "document");
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: dom.window.document,
+    });
+    const { score, track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const player = new ScorePlayer(score, track);
+    try {
+      const controller = new TrackController(
+        track,
+        TEST_LAYOUT_DIMENSIONS,
+        player
+      );
+      controller.trackElement.update();
+      const root = document.createElement("div");
+      const renderer = new EditorSVGRenderer(root, controller, {
+        baseUrl: "",
+        variant: "light",
+      });
+      const render = jest.fn();
+      const callbacks = new EditorMouseDefCallbacks(
+        {} as any,
+        { trackController: controller, renderer, rootDiv: root } as any,
+        render
+      );
+      await action({ callbacks, controller, player, beats, render });
+    } finally {
+      player.dispose();
+      audio.restore();
+      jest.useRealTimers();
+      if (previous) Object.defineProperty(globalThis, "document", previous);
+      else Reflect.deleteProperty(globalThis, "document");
+      dom.window.close();
+    }
+  }
 
-    callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
-    callbacks.onBeatClick(createMouseEvent(20, 10), beatElement);
-
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).not.toHaveBeenCalled();
-    expect(notationComponent.trackController.selectBeat).not.toHaveBeenCalled();
-    expect(
-      notationComponent.trackController.restartPlayerFromBeat
-    ).toHaveBeenNthCalledWith(1, beatElement.beat);
-    expect(
-      notationComponent.trackController.restartPlayerFromBeat
-    ).toHaveBeenNthCalledWith(2, beatElement.beat);
-    expect(renderFunc).toHaveBeenCalledTimes(2);
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+  test("clicking notes and beats during playback seeks without selecting", async () => {
+    await withMouseTransport(
+      async ({ callbacks, controller, player, beats, render }) => {
+        await player.start({ startBeat: beats[0] });
+        const before = serializeScore(player.score);
+        const noteTarget = required(
+          controller.trackElement.getBeatElement(beats[1])
+        );
+        callbacks.onNoteClick(
+          createMouseEvent(10, 10),
+          noteTarget.noteElements[0]
+        );
+        await settleTransport();
+        expect(player.playbackAnchorBeat).toBe(beats[1]);
+        expect(controller.selectionCursor).toBeUndefined();
+        expect(controller.selectionBeats).toEqual([]);
+        const beatTarget = required(
+          controller.trackElement.getBeatElement(beats[2])
+        );
+        callbacks.onBeatClick(createMouseEvent(20, 10), beatTarget);
+        await settleTransport();
+        expect(player.playbackAnchorBeat).toBe(beats[2]);
+        expect(controller.selectionCursor).toBeUndefined();
+        expect(controller.selectionBeats).toEqual([]);
+        expect(serializeScore(player.score)).toEqual(before);
+        expect(render).toHaveBeenCalledTimes(2);
+        expect(render).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+      }
+    );
   });
 
   test("ordinary idle beat clicks are no-ops", () => {
@@ -939,16 +998,23 @@ describe("EditorMouseDefCallbacks", () => {
     });
   });
 
-  test("paused playback clicks seek without selecting", () => {
-    const { callbacks, beatElement, notationComponent, setPlaybackState } =
-      createHarness();
-    setPlaybackState("paused");
-
-    callbacks.onBeatClick(createMouseEvent(20, 10), beatElement);
-
-    expect(
-      notationComponent.trackController.restartPlayerFromBeat
-    ).toHaveBeenCalledWith(beatElement.beat);
+  test("clicking a beat during audio startup seeks without selecting", async () => {
+    await withMouseTransport(
+      async ({ callbacks, controller, player, beats }) => {
+        const start = player.start({ startBeat: beats[0] });
+        expect(player.playbackState).toBe(PlaybackState.Starting);
+        callbacks.onBeatClick(
+          createMouseEvent(20, 10),
+          required(controller.trackElement.getBeatElement(beats[2]))
+        );
+        await start;
+        await settleTransport();
+        expect(player.playbackState).toBe(PlaybackState.Playing);
+        expect(player.playbackAnchorBeat).toBe(beats[2]);
+        expect(controller.selectionCursor).toBeUndefined();
+        expect(controller.selectionBeats).toEqual([]);
+      }
+    );
   });
 
   function clickEndGap(

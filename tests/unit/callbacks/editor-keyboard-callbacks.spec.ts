@@ -160,6 +160,31 @@ function createHarness(rootElement: FakeRootElement = createRootElement()) {
   };
 }
 
+/** Exercises keyboard ownership with native focus and the real score controller. */
+function withKeyboardFixture(
+  action: (
+    fixture: Parameters<Parameters<typeof withNotationDialog>[0]>[0] & {
+      callbacks: EditorKeyboardDefCallbacks;
+      render: jest.Mock;
+    }
+  ) => void
+) {
+  withNotationDialog((fixture) => {
+    const render = jest.fn();
+    const callbacks = new EditorKeyboardDefCallbacks(
+      fixture.ui as ConstructorParameters<typeof EditorKeyboardDefCallbacks>[0],
+      fixture.notation,
+      render,
+      fixture.root
+    );
+    try {
+      action({ ...fixture, callbacks, render });
+    } finally {
+      callbacks.unbind();
+    }
+  });
+}
+
 describe("EditorKeyboardDefCallbacks", () => {
   let originalDocument: any;
 
@@ -644,12 +669,24 @@ describe("EditorKeyboardDefCallbacks", () => {
     ["b", {}],
     ["v", {}],
   ] as const)("unavailable %s is not consumed", (key, options) => {
-    const { callbacks, rootElement, renderFunc } = createHarness();
-    rootElement.focus();
-    const event = createKeyboardEvent(key, options);
-    expect(() => callbacks.onKeyDown(event)).not.toThrow();
-    expect(event.preventDefault).not.toHaveBeenCalled();
-    expect(renderFunc).not.toHaveBeenCalled();
+    withKeyboardFixture(({ callbacks, controller, root, render, beats }) => {
+      controller.selectBeat(
+        required(controller.trackElement.getBeatElement(beats[0]))
+      );
+      controller.clearSelection();
+      expect(controller.selectionAsBeats).toEqual([]);
+      const before = serializeScore(controller.track.score);
+      root.focus();
+      const event = new window.KeyboardEvent("keydown", {
+        key,
+        ...options,
+        cancelable: true,
+      });
+      callbacks.onKeyDown(event);
+      expect(event.defaultPrevented).toBe(false);
+      expect(serializeScore(controller.track.score)).toEqual(before);
+      expect(render).not.toHaveBeenCalled();
+    });
   });
 
   test.each([
@@ -659,88 +696,138 @@ describe("EditorKeyboardDefCallbacks", () => {
     { keyCode: 229 },
     { ctrlKey: true, shiftKey: true },
   ])("rejects invalid modifiers %j", (options) => {
-    const { callbacks, rootElement, renderFunc } = createHarness();
-    rootElement.focus();
-    for (const key of [
-      "x",
-      "+",
-      ".",
-      "t",
-      "v",
-      "p",
-      "l",
-      "s",
-      "b",
-      "h",
-      "r",
-      "m",
-      "a",
-      "i",
-      "Delete",
-      "z",
-      "y",
-      "c",
-      " ",
-    ]) {
-      const event = createKeyboardEvent(key, options);
-      callbacks.onKeyDown(event);
-      expect(event.preventDefault).not.toHaveBeenCalled();
-    }
-    expect(renderFunc).not.toHaveBeenCalled();
+    withKeyboardFixture(({ callbacks, controller, root, host, render }) => {
+      controller.setSelectedNoteFret(5);
+      const before = serializeScore(controller.track.score);
+      const selected = controller.selectionCursor?.note;
+      root.focus();
+      for (const key of [
+        "x",
+        "+",
+        ".",
+        "t",
+        "v",
+        "p",
+        "l",
+        "s",
+        "b",
+        "h",
+        "r",
+        "m",
+        "a",
+        "i",
+        "Delete",
+        "z",
+        "y",
+        "c",
+        " ",
+      ]) {
+        const event = new window.KeyboardEvent("keydown", {
+          key,
+          ...options,
+          cancelable: true,
+        });
+        callbacks.onKeyDown(event);
+        expect(event.defaultPrevented).toBe(false);
+        expect(serializeScore(controller.track.score)).toEqual(before);
+        expect(controller.selectionCursor?.note).toBe(selected);
+        expect(host.querySelector("[open]")).toBeNull();
+      }
+      expect(render).not.toHaveBeenCalled();
+    });
   });
 
   test("unknown keys, shifted aliases, and consumed events keep defaults", () => {
-    const { callbacks, rootElement } = createHarness();
-    rootElement.focus();
-    for (const key of ["q", "=", "_", "p", "b", "s", ".", "-", "1", " "]) {
-      const event = createKeyboardEvent(key, { shiftKey: true });
+    withKeyboardFixture(({ callbacks, controller, root, host, render }) => {
+      controller.setSelectedNoteFret(5);
+      const before = serializeScore(controller.track.score);
+      root.focus();
+      for (const key of ["q", "=", "_", "p", "b", "s", ".", "-", "1", " "]) {
+        const event = new window.KeyboardEvent("keydown", {
+          key,
+          shiftKey: true,
+          cancelable: true,
+        });
+        callbacks.onKeyDown(event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+      const event = new window.KeyboardEvent("keydown", {
+        key: "a",
+        cancelable: true,
+      });
+      event.preventDefault();
       callbacks.onKeyDown(event);
-      expect(event.preventDefault).not.toHaveBeenCalled();
-    }
-    const event = createKeyboardEvent(" ");
-    event.defaultPrevented = true;
-    callbacks.onKeyDown(event);
-    expect(event.preventDefault).not.toHaveBeenCalled();
+      expect(event.defaultPrevented).toBe(true);
+      expect(serializeScore(controller.track.score)).toEqual(before);
+      expect(host.querySelector("[open]")).toBeNull();
+      expect(render).not.toHaveBeenCalled();
+    });
   });
 
   test("only the notation viewport owns shortcuts, not its shell or descendants", () => {
-    const shell = createRootElement();
-    const { callbacks, notationComponent } = createHarness(shell);
-    const viewport = createRootElement();
-    Object.assign(viewport, { parentNode: shell });
-    notationComponent.rootDiv = viewport;
-    for (const target of [
-      shell,
-      { parentNode: shell },
-      { parentNode: viewport },
-      null,
-    ]) {
-      (document as any).activeElement = target;
-      const event = createKeyboardEvent(" ");
-      callbacks.onKeyDown(event);
-      expect(event.preventDefault).not.toHaveBeenCalled();
-    }
-    viewport.focus();
-    callbacks.onKeyDown(createKeyboardEvent(" "));
-    expect(notationComponent.trackController.startPlayer).toHaveBeenCalledTimes(
-      1
-    );
+    withKeyboardFixture(({ controller, root, notation, ui }) => {
+      const shell = document.createElement("div");
+      shell.tabIndex = 0;
+      root.before(shell);
+      shell.append(root);
+      const sibling = document.createElement("button");
+      shell.append(sibling);
+      const descendant = document.createElement("input");
+      root.append(descendant);
+      const callbacks = new EditorKeyboardDefCallbacks(
+        ui as ConstructorParameters<typeof EditorKeyboardDefCallbacks>[0],
+        notation,
+        () => {},
+        shell
+      );
+      callbacks.bind();
+      try {
+        for (const target of [shell, sibling, descendant, document.body]) {
+          if (target === document.body)
+            (document.activeElement as HTMLElement).blur();
+          else target.focus();
+          expect(document.activeElement).toBe(target);
+          const event = new window.KeyboardEvent("keydown", {
+            key: "5",
+            bubbles: true,
+            cancelable: true,
+          });
+          target.dispatchEvent(event);
+          expect(event.defaultPrevented).toBe(false);
+          expect(controller.selectionCursor?.note).toEqual(
+            expect.objectContaining({ fret: null })
+          );
+        }
+        root.focus();
+        const accepted = new window.KeyboardEvent("keydown", {
+          key: "5",
+          bubbles: true,
+          cancelable: true,
+        });
+        root.dispatchEvent(accepted);
+        expect(accepted.defaultPrevented).toBe(true);
+        expect(controller.selectionCursor?.note).toEqual(
+          expect.objectContaining({ fret: 5 })
+        );
+      } finally {
+        callbacks.unbind();
+      }
+    });
   });
 
-  test.each(["playing", "starting", "view-only"])(
-    "%s blocks every mutation without preventing defaults",
-    (mode) => {
-      const { callbacks, notationComponent, rootElement, renderFunc } =
-        createHarness();
-      const controller = notationComponent.trackController;
-      controller.editingEnabled = mode !== "view-only";
-      Object.defineProperty(controller, "playbackState", {
-        value: mode === "view-only" ? "idle" : mode,
-      });
-      controller.selectionAsBeats = [{}];
-      controller.selectionCursor = { note: null };
-      rootElement.focus();
+  test("view-only blocks mutations without changing score, selection, or history", () => {
+    withKeyboardFixture(({ callbacks, controller, root, host, render }) => {
+      controller.setSelectedNoteFret(5);
+      controller.setSelectedNoteFret(7);
+      controller.undo();
+      controller.copy();
+      controller.setEditingEnabled(false);
+      const before = serializeScore(controller.track.score);
+      const selected = controller.selectionCursor?.note;
+      root.focus();
       for (const key of [
+        "7",
+        "Backspace",
         "x",
         "+",
         "-",
@@ -759,48 +846,63 @@ describe("EditorKeyboardDefCallbacks", () => {
         "Delete",
       ]) {
         for (const shiftKey of [false, true]) {
-          const event = createKeyboardEvent(key, { shiftKey });
+          const event = new window.KeyboardEvent("keydown", {
+            key,
+            shiftKey,
+            cancelable: true,
+          });
           callbacks.onKeyDown(event);
-          expect(event.preventDefault).not.toHaveBeenCalled();
+          expect(event.defaultPrevented).toBe(false);
+          expect(serializeScore(controller.track.score)).toEqual(before);
+          expect(controller.selectionCursor?.note).toBe(selected);
+          expect(host.querySelector("[open]")).toBeNull();
         }
       }
-      expect(renderFunc).not.toHaveBeenCalled();
-    }
-  );
-
-  test.each(["editing", "view-only", "starting", "playing"])(
-    "%s routes shared shortcuts once with the same mode restrictions",
-    (mode) => {
-      const { callbacks, notationComponent, rootElement } = createHarness();
-      const controller = notationComponent.trackController;
-      const idle = mode === "editing" || mode === "view-only";
-      controller.editingEnabled = mode !== "view-only";
-      Object.defineProperty(controller, "playbackState", {
-        value: idle ? "idle" : mode,
-      });
-      rootElement.focus();
-      const routes = [
-        ["C", { ctrlKey: true }, "copy", true],
-        [" ", {}, idle ? "startPlayer" : "stopPlayer", true],
-        ["Escape", {}, "clearSelectionRange", idle],
-        ["ArrowUp", {}, "moveSelectedNote", idle],
-        ["ArrowLeft", { ctrlKey: true }, "moveSelectionByBar", idle],
-        ["ArrowRight", { shiftKey: true }, "extendSelectionByBeat", idle],
-        [
-          "ArrowRight",
-          { ctrlKey: true, shiftKey: true },
-          "extendSelectionByBar",
-          idle,
-        ],
-      ] as const;
-      for (const [key, options, method, accepted] of routes) {
-        const event = createKeyboardEvent(key, options);
+      for (const key of ["v", "z", "y"]) {
+        const event = new window.KeyboardEvent("keydown", {
+          key,
+          ctrlKey: true,
+          cancelable: true,
+        });
         callbacks.onKeyDown(event);
-        expect(controller[method]).toHaveBeenCalledTimes(accepted ? 1 : 0);
-        expect(event.preventDefault).toHaveBeenCalledTimes(accepted ? 1 : 0);
+        expect(event.defaultPrevented).toBe(false);
       }
-    }
-  );
+      expect(serializeScore(controller.track.score)).toEqual(before);
+      expect(render).not.toHaveBeenCalled();
+      controller.setEditingEnabled(true);
+      controller.redo();
+      expect(controller.selectionCursor?.note).toEqual(
+        expect.objectContaining({ fret: 7 })
+      );
+      controller.undo();
+      controller.undo();
+      expect(controller.selectionCursor?.note).toEqual(
+        expect.objectContaining({ fret: null })
+      );
+    });
+  });
+
+  test("view-only copy preserves the selected value for a later editable paste", () => {
+    withKeyboardFixture(({ callbacks, controller, root, beats }) => {
+      controller.setSelectedNoteFret(5);
+      controller.setEditingEnabled(false);
+      root.focus();
+      const event = new window.KeyboardEvent("keydown", {
+        key: "C",
+        ctrlKey: true,
+        cancelable: true,
+      });
+      callbacks.onKeyDown(event);
+      expect(event.defaultPrevented).toBe(true);
+      controller.setEditingEnabled(true);
+      controller.moveSelectedNote(SelectedMoveDirection.Right);
+      controller.paste();
+      expect(beats.map((b) => b.notes?.[0])).toEqual([
+        expect.objectContaining({ fret: 5 }),
+        expect.objectContaining({ fret: 5 }),
+      ]);
+    });
+  });
 
   test.each([true, false])(
     "unchanged range extension still consumes arrows, editing=%s",
@@ -957,87 +1059,6 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(beats[0].notes?.[0]).toEqual(
       expect.objectContaining({ fret: null })
     );
-  });
-
-  test("playback suppresses editing shortcuts but preserves Space", () => {
-    const { callbacks, notationComponent, rootElement, uiComponent } =
-      createHarness();
-    callbacks.bind();
-    rootElement.dispatch("focusin");
-    notationComponent.trackController.isPlaying = true;
-    notationComponent.trackController.hasSelectedNote = true;
-
-    callbacks.onKeyDown(createKeyboardEvent("c", { ctrlKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("v", { ctrlKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("b", { shiftKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("Delete"));
-    callbacks.onKeyDown(createKeyboardEvent(" "));
-
-    expect(notationComponent.trackController.paste).not.toHaveBeenCalled();
-    expect(notationComponent.trackController.copy).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.deleteSelectedBeats
-    ).not.toHaveBeenCalled();
-    expect(
-      uiComponent.sideComponent.techniqueControlsComponent.showBendControls
-    ).not.toHaveBeenCalled();
-    expect(notationComponent.trackController.stopPlayer).toHaveBeenCalledTimes(
-      1
-    );
-  });
-
-  test("view-only dispatches only non-mutating keyboard actions", () => {
-    const {
-      callbacks,
-      notationComponent,
-      rootElement,
-      uiComponent,
-      renderFunc,
-    } = createHarness();
-    callbacks.bind();
-    rootElement.dispatch("focusin");
-    notationComponent.trackController.editingEnabled = false;
-    notationComponent.trackController.hasSelectedNote = true;
-    callbacks.onKeyDown(createKeyboardEvent("c", { ctrlKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("v", { ctrlKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("z", { ctrlKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("y", { ctrlKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("v", { shiftKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("p", { shiftKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("b", { shiftKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent("Delete"));
-    callbacks.onKeyDown(createKeyboardEvent("7"));
-    callbacks.onKeyDown(createKeyboardEvent("Backspace"));
-    callbacks.onKeyDown(createKeyboardEvent("ArrowRight"));
-    callbacks.onKeyDown(createKeyboardEvent("ArrowLeft", { ctrlKey: true }));
-    callbacks.onKeyDown(createKeyboardEvent(" "));
-
-    expect(notationComponent.trackController.copy).toHaveBeenCalledTimes(1);
-    expect(notationComponent.trackController.paste).not.toHaveBeenCalled();
-    expect(notationComponent.trackController.undo).not.toHaveBeenCalled();
-    expect(notationComponent.trackController.redo).not.toHaveBeenCalled();
-    expect(
-      notationComponent.trackController.deleteSelectedBeats
-    ).not.toHaveBeenCalled();
-    expect(
-      notationComponent.trackController.setTechnique
-    ).not.toHaveBeenCalled();
-    expect(
-      notationComponent.trackController.setSelectedNoteFret
-    ).not.toHaveBeenCalled();
-    expect(
-      uiComponent.sideComponent.techniqueControlsComponent.showBendControls
-    ).not.toHaveBeenCalled();
-    expect(
-      notationComponent.trackController.moveSelectedNote
-    ).toHaveBeenCalledWith(SelectedMoveDirection.Right);
-    expect(
-      notationComponent.trackController.moveSelectionByBar
-    ).toHaveBeenCalledWith(SelectedMoveDirection.Left);
-    expect(notationComponent.trackController.startPlayer).toHaveBeenCalledTimes(
-      1
-    );
-    expect(renderFunc).toHaveBeenCalledTimes(3);
   });
 
   test("technique shortcuts respect selection and bend shortcut opens bend controls", () => {
@@ -1391,131 +1412,121 @@ describe("EditorKeyboardDefCallbacks", () => {
     }
   );
 
-  test("bind and unbind attach one keydown listener and are idempotent", () => {
-    const { callbacks } = createHarness(createRootElement());
-    const doc = (globalThis as any).document;
-
-    callbacks.bind();
-    callbacks.bind();
-    expect(doc.addEventListener).toHaveBeenCalledTimes(1);
-    expect(doc.addEventListener).toHaveBeenCalledWith(
-      "keydown",
-      expect.any(Function)
-    );
-
-    callbacks.unbind();
-    callbacks.unbind();
-    expect(doc.removeEventListener).toHaveBeenCalledTimes(1);
-    expect(doc.removeEventListener).toHaveBeenCalledWith(
-      "keydown",
-      expect.any(Function)
-    );
+  test("bind and unbind handle each key once and stop handling after cleanup", () => {
+    withKeyboardFixture(({ callbacks, controller, root }) => {
+      root.focus();
+      callbacks.bind();
+      callbacks.bind();
+      root.dispatchEvent(
+        new window.KeyboardEvent("keydown", { key: ".", bubbles: true })
+      );
+      expect(controller.selectionCursor?.beat.dots).toBe(1);
+      callbacks.unbind();
+      callbacks.unbind();
+      root.dispatchEvent(
+        new window.KeyboardEvent("keydown", { key: ".", bubbles: true })
+      );
+      expect(controller.selectionCursor?.beat.dots).toBe(1);
+      controller.undo();
+      expect(controller.selectionCursor?.beat.dots).toBe(0);
+    });
   });
 
   test("restores editor ownership after temporary keyboard capture", () => {
-    const root = createRootElement();
-    const { callbacks, notationComponent } = createHarness(root);
-    callbacks.bind();
-    root.focus();
-
-    callbacks.unbind();
-    callbacks.bind();
-    callbacks.onKeyDown(createKeyboardEvent(" "));
-
-    expect(notationComponent.trackController.startPlayer).toHaveBeenCalledTimes(
-      1
-    );
-    callbacks.unbind();
+    withKeyboardFixture(({ callbacks, controller, root }) => {
+      callbacks.bind();
+      root.focus();
+      callbacks.unbind();
+      root.dispatchEvent(
+        new window.KeyboardEvent("keydown", { key: ".", bubbles: true })
+      );
+      expect(controller.selectionCursor?.beat.dots).toBe(0);
+      callbacks.bind();
+      root.dispatchEvent(
+        new window.KeyboardEvent("keydown", { key: ".", bubbles: true })
+      );
+      expect(controller.selectionCursor?.beat.dots).toBe(1);
+    });
   });
 
   test("rebind does not steal ownership when focus is outside the editor", () => {
-    const editorA = createHarness();
-    const editorB = createHarness();
-    editorA.callbacks.bind();
-    editorB.callbacks.bind();
-    editorA.rootElement.focus();
-
-    editorA.callbacks.unbind();
-    editorB.rootElement.focus();
-    editorA.callbacks.bind();
-    const event = createKeyboardEvent(" ");
-    editorA.callbacks.onKeyDown(event);
-    expect(event.preventDefault).not.toHaveBeenCalled();
-    editorB.callbacks.onKeyDown(event);
-
-    expect(
-      editorA.notationComponent.trackController.startPlayer
-    ).not.toHaveBeenCalled();
-    expect(
-      editorB.notationComponent.trackController.startPlayer
-    ).toHaveBeenCalledTimes(1);
-    editorA.callbacks.unbind();
-    editorB.callbacks.unbind();
+    withKeyboardFixture(({ callbacks, controller, root }) => {
+      const outside = document.createElement("input");
+      document.body.append(outside);
+      callbacks.bind();
+      root.focus();
+      callbacks.unbind();
+      outside.focus();
+      callbacks.bind();
+      const event = new window.KeyboardEvent("keydown", {
+        key: "5",
+        bubbles: true,
+        cancelable: true,
+      });
+      outside.dispatchEvent(event);
+      expect(document.activeElement).toBe(outside);
+      expect(event.defaultPrevented).toBe(false);
+      expect(controller.selectionCursor?.note).toEqual(
+        expect.objectContaining({ fret: null })
+      );
+      root.focus();
+      root.dispatchEvent(
+        new window.KeyboardEvent("keydown", { key: "5", bubbles: true })
+      );
+      expect(controller.selectionCursor?.note).toEqual(
+        expect.objectContaining({ fret: 5 })
+      );
+    });
   });
 
   test("global keyboard input is scoped to the active editor root", () => {
-    const rootA = createRootElement();
-    const rootB = createRootElement();
-    const editorA = createHarness(rootA);
-    const editorB = createHarness(rootB);
-    const doc = (globalThis as any).document;
-    const keydownHandlers: ((event: KeyboardEvent) => void)[] = [];
-    doc.addEventListener.mockImplementation(
-      (event: string, handler: (event: KeyboardEvent) => void) => {
-        if (event === "keydown") {
-          keydownHandlers.push(handler);
-        }
+    withKeyboardFixture(({ callbacks, controller, root, ui, notation }) => {
+      const otherRoot = document.createElement("div");
+      otherRoot.tabIndex = 0;
+      document.body.append(otherRoot);
+      const other = new TrackController(
+        createBarWithBeats([{ baseDuration: NoteDuration.Quarter }]).track,
+        TEST_LAYOUT_DIMENSIONS
+      );
+      const otherCallbacks = new EditorKeyboardDefCallbacks(
+        ui as ConstructorParameters<typeof EditorKeyboardDefCallbacks>[0],
+        {
+          ...notation,
+          rootDiv: otherRoot,
+          trackController: other,
+        } as typeof notation,
+        () => {},
+        otherRoot
+      );
+      callbacks.bind();
+      otherCallbacks.bind();
+      try {
+        document.dispatchEvent(
+          new window.KeyboardEvent("keydown", { key: "." })
+        );
+        expect(controller.selectionCursor?.beat.dots).toBe(0);
+        expect(other.selectionCursor?.beat.dots).toBe(0);
+        root.focus();
+        root.dispatchEvent(
+          new window.KeyboardEvent("keydown", { key: ".", bubbles: true })
+        );
+        expect(controller.selectionCursor?.beat.dots).toBe(1);
+        expect(other.selectionCursor?.beat.dots).toBe(0);
+        otherRoot.focus();
+        otherRoot.dispatchEvent(
+          new window.KeyboardEvent("keydown", { key: ".", bubbles: true })
+        );
+        expect(controller.selectionCursor?.beat.dots).toBe(1);
+        expect(other.selectionCursor?.beat.dots).toBe(1);
+        callbacks.unbind();
+        otherCallbacks.unbind();
+        otherRoot.dispatchEvent(
+          new window.KeyboardEvent("keydown", { key: ".", bubbles: true })
+        );
+        expect(other.selectionCursor?.beat.dots).toBe(1);
+      } finally {
+        otherCallbacks.unbind();
       }
-    );
-    doc.removeEventListener.mockImplementation(
-      (event: string, handler: (event: KeyboardEvent) => void) => {
-        if (event !== "keydown") {
-          return;
-        }
-        const index = keydownHandlers.indexOf(handler);
-        if (index !== -1) {
-          keydownHandlers.splice(index, 1);
-        }
-      }
-    );
-
-    editorA.callbacks.bind();
-    editorB.callbacks.bind();
-
-    for (const handler of keydownHandlers) {
-      handler(createKeyboardEvent(" "));
-    }
-    expect(
-      editorA.notationComponent.trackController.startPlayer
-    ).toHaveBeenCalledTimes(0);
-    expect(
-      editorB.notationComponent.trackController.startPlayer
-    ).toHaveBeenCalledTimes(0);
-
-    rootA.dispatch("focusin");
-    for (const handler of keydownHandlers) {
-      handler(createKeyboardEvent(" "));
-    }
-    expect(
-      editorA.notationComponent.trackController.startPlayer
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      editorB.notationComponent.trackController.startPlayer
-    ).toHaveBeenCalledTimes(0);
-
-    rootB.dispatch("mousedown");
-    for (const handler of keydownHandlers) {
-      handler(createKeyboardEvent(" "));
-    }
-    expect(
-      editorA.notationComponent.trackController.startPlayer
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      editorB.notationComponent.trackController.startPlayer
-    ).toHaveBeenCalledTimes(1);
-
-    editorA.callbacks.unbind();
-    editorB.callbacks.unbind();
-    expect(keydownHandlers).toHaveLength(0);
+    });
   });
 });

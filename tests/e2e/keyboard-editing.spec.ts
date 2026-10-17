@@ -357,6 +357,7 @@ test("shortcuts do not leak from outside, toolbar, or dialog focus", async ({
   ]) {
     await target.evaluate((element) => element.setAttribute("tabindex", "-1"));
     await target.focus();
+    await expect(target).toBeFocused();
     for (const key of ["a", "-", ".", "t", "Shift+X", "Delete"]) {
       await page.keyboard.press(key);
     }
@@ -366,11 +367,18 @@ test("shortcuts do not leak from outside, toolbar, or dialog focus", async ({
   await page.keyboard.press("Shift+R");
   const dialog = editor.getByRole("dialog", { name: "Repeat count" });
   await dialog.getByRole("spinbutton").focus();
+  await expect(dialog.getByRole("spinbutton")).toBeFocused();
   for (const key of ["a", "t", "Shift+X", "Delete"]) {
     await page.keyboard.press(key);
   }
   await expect(dialog).toBeVisible();
   expect(await editingState(editor)).toEqual(before);
+  await page.keyboard.press("Escape");
+  await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
+  await page.keyboard.press("p");
+  await expect(
+    editor.getByRole("button", { name: /^Palm Mute/ })
+  ).toHaveAttribute("aria-pressed", "true");
 });
 
 test("keyboard ownership follows focus between two live editors", async ({
@@ -578,7 +586,104 @@ test("view-only mode rejects editing shortcuts but permits navigation", async ({
   }
   await page.keyboard.press("ArrowRight");
   await expect(editor.locator(".tu-announcement-host")).toContainText("Bar 2");
+  await page.keyboard.press("Space");
+  await expect(
+    editor.getByRole("button", { name: "Pause", exact: true })
+  ).toBeVisible();
+  await page.keyboard.press("Space");
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
 });
+
+for (const mode of ["starting", "playing"] as const) {
+  test(`${mode} blocks edits and navigation but permits copy and Space to stop`, async ({
+    page,
+  }) => {
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+    if (mode === "starting") {
+      // Hold the external audio boundary so startup remains pending.
+      await page.addInitScript(() => {
+        AudioContext.prototype.resume = () => new Promise<void>(() => {});
+      });
+    }
+    const editor = await openEditor(page);
+    await page.keyboard.press("5");
+    await page.keyboard.press("a");
+    await page.clock.fastForward(251);
+    await page.keyboard.press("7");
+    await page.keyboard.press("ArrowLeft");
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5", "7"]);
+    await page.clock.pauseAt(new Date("2026-01-01T00:01:00Z"));
+    await page.keyboard.press("Space");
+    await expect(
+      editor.getByRole("button", {
+        name: mode === "starting" ? "Loading audio" : "Pause",
+        exact: true,
+      })
+    ).toHaveAttribute("aria-pressed", "true");
+    const before = await editingState(editor);
+    const selection = await editor
+      .locator(".tu-announcement-host")
+      .textContent();
+    for (const key of [
+      "5",
+      "x",
+      "Shift+X",
+      "Backspace",
+      "+",
+      "-",
+      ".",
+      "t",
+      "Shift+T",
+      "v",
+      "Shift+V",
+      "p",
+      "l",
+      "Shift+L",
+      "s",
+      "b",
+      "h",
+      "Shift+H",
+      "r",
+      "Shift+R",
+      "m",
+      "Shift+M",
+      "a",
+      "Shift+A",
+      "i",
+      "Shift+I",
+      "Delete",
+      "Shift+Delete",
+      "Control+v",
+      "Control+z",
+      "Control+y",
+      "Escape",
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "Control+ArrowLeft",
+      "Shift+ArrowRight",
+      "Control+Shift+ArrowRight",
+    ]) {
+      await page.keyboard.press(key);
+      expect(await editingState(editor)).toEqual(before);
+      await expect(editor.locator(".tu-announcement-host")).toHaveText(
+        selection ?? ""
+      );
+      await expect(editor.getByRole("dialog")).toHaveCount(0);
+    }
+    await page.keyboard.press("Control+c");
+    await page.keyboard.press("Space");
+    await expect(
+      editor.getByRole("button", { name: "Play", exact: true })
+    ).toHaveAttribute("aria-pressed", "false");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Control+v");
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5", "5"]);
+  });
+}
 
 test("disabled techniques and range-only restrictions ignore shortcuts", async ({
   page,

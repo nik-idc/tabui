@@ -229,7 +229,9 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
   }
   await expect(afterEditor).toBeFocused();
   await page.keyboard.press("Shift+Tab");
+  await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
   await page.keyboard.press("Enter");
+  await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(afterEditor).toBeFocused();
 });
