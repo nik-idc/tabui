@@ -86,7 +86,10 @@ assigned shortcut table. See current status below.
 | 37. Keyboard ownership and mode restrictions | Sol assessment complete                            | Implemented; independent review passed |
 | 38. Transport, loops, and seeking            | Sol assessment complete                            | Implemented; independent review passed |
 | 39. Traversal and scheduling                 | Sol assessment complete                            | Implemented; independent review passed |
-| 40–55                                        | Not started                                        | Not started                            |
+| 40. Note synthesis and teardown              | Sol assessment complete                            | Implemented; independent review passed |
+| 41. Audio buses and samples                  | Sol assessment complete                            | Implemented; independent review passed |
+| 42. Playback cursor and overlays             | Sol assessment complete                            | Implemented; independent review passed |
+| 43–55                                        | Not started                                        | Not started                            |
 
 ## Current handoff scopes
 
@@ -2217,3 +2220,154 @@ or strengthenings and two unchanged browser cases. No production edits.
   Shared repeat-boundary validation and pending-resume disposal need separate
   follow-up. Accepted empty-selection exceptions still require contract/reachability
   review before final audit closure. Groups 40–55 are not started.
+
+### Groups 40–42: implemented and reviewed
+
+- Started from clean `test-audit` checkpoint `2dda19bc`. Separate Sol agents own
+  note synthesis/teardown, audio buses/samples, and playback cursor/overlays. Each
+  implementation receives an independent review.
+- Before-round files are saved at
+  `/tmp/opencode/tabui-audit-groups-40-42-before/`. Prior audit and production fixes,
+  including pending-resume disposal, are preserved. No auto-commit is requested.
+- Web Audio, clocks and networking are valid external test boundaries. Coverage
+  value is assessed separately from test quality; no target case count applies.
+- The coordinator owns this document and full verification. Empty-selection throws
+  remain accepted pending audit-closing contract/reachability review; repeat pairing
+  follows the user's nearest-boundary design, not the earlier probe's assumption.
+
+### Group 40: assessment and implementation
+
+Independent review passed. All twelve declarations remain; generated cases
+increase twelve to seventeen. Only the note-scheduler spec changed.
+
+- Independent fretted A4/B4/880Hz expectations replace production-derived pitch
+  oracles. Oscillator profiles, envelope/routing/times/handles, no-resource dead
+  notes, harmonic gain, slide pitch/sustain, mute caps/boundaries, bend timing,
+  continuation Hold/Release, LetRing/legato/vibrato and repeat-gain negative controls
+  require explicit boundary output. Failure preserves the expected error message and
+  stops/disconnects the source/envelope at the current clock.
+- Sample tests use the real manager with network/decode fakes, including plain and
+  harmonic rates. Given up: artificial loaded-without-root state, replaced by
+  supported configured-but-unloaded fallback. Internal collaborator mocks, weak
+  numeric matchers, unasserted setup/actions and mutable-loop fixtures are removed.
+- Seventeen focused tests, scoped lint/format/diff passed. Test compilation reported
+  only a concurrent Group 41 readonly-clock assignment. No source bug confirmed.
+- Independent review approved all owned declarations/tradeoffs and passed seventeen
+  cases, scoped lint/format/diff. It confirmed valid external boundary assertions,
+  independent worked pitch/time/gain and sufficient AudioParam recording. Corrected
+  wording: thrown error message is checked, not strict error-object identity.
+
+### Group 42: assessment and implementation
+
+Independent review passed after one sensitivity correction. All twelve declarations/cases remain. Only cursor
+coordinator and overlay specs changed; no source bugs found or shared helper edits.
+
+- Coordinator output uses public subscriptions, nonzero audio origin and 499/500ms
+  timing, scoped payloads, stale-generation rejection/new positive output, inclusive
+  truncation/query exclusion, track retargeting/old cancellation, and reset/new-run
+  output. The constructor's missing-staff invariant remains for review.
+- All six overlays use real player/controller/rendered SVG instead of fake DOM,
+  private methods/field injection, prototype elements or collaborator mocks. They
+  require attack/vertical/full-line geometry, visible subscription lifetime and
+  frozen detached output, two-player isolation positives, and real stop clearing.
+- Interpolation uses audio-clock progress and independently rendered fret spacing;
+  cross-line snap, distant materialization/follow, final-beat progression, unresolved
+  events and captured stale stop/restart callbacks retain boundary coverage.
+- Only external audio/time/frames are faked. Given up: internal call counts; all
+  prior behavior is claimed through observable replacements, subject to review.
+- Twelve focused tests, scoped lint/format/diff passed. Test compilation reported
+  only Group 41's concurrent readonly-clock assignment.
+- Reviewer approved the other behavior and passed focused/static checks, but stale
+  frame rejection used an unchanged audio clock, so an accepted stale callback
+  could appear stationary or queue hidden frame work. Correction will require
+  captured callbacks, clock advancement, unchanged position and no new queued frames
+  before any render can clear them. This is a test gap, not a source bug finding.
+- Corrected case requires captured callbacks, advances audio 25ms before the new
+  run's first beat, invokes stale callbacks before render, and requires unchanged
+  center/zero queued frames. Process-only bypass of the stale-run guard fails at
+  center 123.24 versus 120.9. Reset now clears a genuinely populated last-started
+  beat, retaining pending cancellation and new-run positives. Twelve tests, test
+  compilation and scoped lint/format/diff passed; independent recheck is pending.
+- Independent recheck confirmed both nonvacuous corrections and passed twelve
+  focused tests/scoped diff. It approved the reported guard-only probe mechanism,
+  but could not inspect its temporary artifact due to access denial. No blockers.
+
+### Group 41: assessment and implementation
+
+Independent review passed. Seven declarations/cases become eleven declarations
+and fifteen cases: engine five/five to eight/nine, samples two/two to three/six.
+No direct removals or source changes; only the two owned specs changed.
+
+- Real scheduling replaces internal mocks/fabricated nodes. Lazy single context,
+  clock/topology/master state, master/track setup failure cleanup/retry, naturally
+  ended resources, inclusive cancellation and harmless stop failure require actual
+  external boundary output. Buffered notes exercise mute/solo reversibility,
+  independent master controls and removed-track bus cleanup.
+- Samples require deduplicated concurrent requests, pending decode, exact URL/bytes,
+  publication only after decode, identity/root/cache; network/HTTP/body/decode
+  failures leave one tone unavailable without blocking another configured tone.
+- Four new declarations cover resume failure/retry, engine disposal during pending
+  resume, used-score sample scheduling/routing/cleanup, and unconfigured no-fetch.
+  Review explicitly checks added value versus existing transport/disposal coverage.
+- Given up: internal collaborator mocking and fabricated-node fixtures; no behavior
+  guarantees intentionally dropped. Fifteen focused cases, test compilation,
+  scoped lint/format/diff passed; concurrent readonly-clock issue is resolved.
+- Independent review approved all original/new coverage, distinct engine-level
+  value versus transport tests, and external boundary recorders. It passed both
+  suites/fifteen cases and confirmed the separate failed-load retry finding. No
+  blockers; no retained baseline guarantee claimed retry recovery.
+
+### Group 41 open finding: failed sample load prevents retry
+
+- User requested a Luna fix. Implementation and regression coverage are running,
+  preferably extending existing failure cases while preserving concurrent loading,
+  successful cache behavior and independent-tone isolation.
+- Public sample-manager probe: fail a configured tone's first network request,
+  request it again; only one fetch occurs and the sample remains unavailable.
+  Failed completed loads remain in `_sampleLoads` and are reused indefinitely.
+- No source fix or failing test was left. Failed-load eviction/retry needs separate
+  follow-up; independent review assesses the finding and baseline coverage.
+
+### Group 41 sample retry follow-up: fixed and reviewed
+
+- Luna removes a completed in-flight load only if it is still the cached promise.
+  Failed loads no longer block later fetches; pending requests deduplicate and
+  successfully decoded buffers remain cached separately.
+- Existing four-stage failure cases now require successful retry, cached retry
+  result, and independent-tone isolation, using URL-based fetch fakes. All four
+  failed against original production code before passing with the fix.
+- No declarations/cases were added. All 96 unit suites/980 tests, production/test
+  compilation, scoped lint/format/diff passed. Existing Group 40–42 work is retained.
+- Independent Sol review and full verify are running. Log:
+  `/tmp/opencode/tabui-sample-retry-verify.log`.
+- Independent Sol review approved the root fix, pending-load identity cleanup,
+  fulfilled failure promises, concurrent deduplication and successful buffer cache.
+  It passed six focused cases; no blockers. Before-snapshot access was denied, so
+  review separated retry additions from earlier audit rewrites using HEAD/current.
+- Full `npm run verify` passed: production/test compilation, package build, all
+  96 unit suites/980 tests, consumer smoke, Chromium/Firefox (253 passed, one
+  skipped), and demo build. Repository-wide lint, scoped source/test/audit
+  formatting and diff checks passed. The requested retry fix is complete and
+  independently reviewed, with no added test cases, dependencies, or commits.
+- At the user's request, simplified completion cleanup to plain `await sampleLoad`
+  followed by conditional cache deletion. `fetchSample()` already catches expected
+  load failures, so no separate `.then()`/`void` or `try` block is needed here.
+  Both focused sample/engine suites passed fifteen cases; production type checking,
+  scoped lint/format and diff checks passed after this control-flow simplification.
+
+### Groups 40–42 repository verification
+
+- `npm run verify` passed: production/test type checks, package build, all 96 unit
+  suites/980 tests, consumer smoke, Chromium/Firefox (253 passed, one skipped), and
+  demo build. Log: `/tmp/opencode/tabui-audit-groups-40-42-verify.log`.
+- Group 42's final review corrections also passed both focused suites/twelve tests
+  and test compilation; full verification ran alongside review, so those final
+  assertions have separate focused evidence. Final repository-wide lint,
+  changed-test/audit formatting and diff checks passed.
+- All three groups are implemented and independently reviewed. Net additions:
+  four declarations and thirteen generated unit cases (967 to 980), with no direct
+  declaration removals. No production/dependency changes or commits were made.
+- Failed sample-load retry is a separate source follow-up. Accepted empty-selection
+  throwing still requires contract/reachability review before full audit closure;
+  nearest repeat-boundary pairing remains the user's intended design. Prior work
+  is preserved. Groups 43–55 are not started.
