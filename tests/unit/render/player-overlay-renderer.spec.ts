@@ -12,8 +12,10 @@ import {
 import { ScorePlayer } from "../../../src/player";
 import { trackEvent, TrackEventType } from "../../../src/shared/events";
 import { createBarWithBeats } from "../model/helpers";
-import { createTestTrackController } from "../controller/helpers";
+import { createTestLayoutDimensions } from "../controller/helpers";
 import { createMultiVoiceTwoStaffScoreFixture } from "../../../fixtures/multi-voice-score";
+import { installTransportAudio } from "../player/transport-audio";
+import { required } from "../required";
 
 function populatedScore() {
   const graph = createBarWithBeats(

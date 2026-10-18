@@ -11,7 +11,15 @@ import {
   resolveEditorTheme,
   resolveEditorThemeKey,
 } from "../../../demo/raw/data/theme";
-import { deserializeScore, serializeScore } from "../../../src/notation/model";
+import {
+  Bar,
+  Beat,
+  deserializeScore,
+  GuitarNote,
+  NoteDuration,
+  serializeScore,
+  VoiceNumber,
+} from "../../../src/notation/model";
 
 // Keys are fixture identifiers defined by the demo data contract.
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -311,10 +319,11 @@ describe("editor fixture and theme resolution", () => {
         "#f4efe6"
       );
       expect(root.style.getPropertyValue("--tu-primary-color")).toBe("#fffdf8");
-      expect(root.style.getPropertyValue("--tu-font-body")).toBe(
-        '"Merriweather", serif'
+      expect(root.style.getPropertyValue("--tu-secondary-color")).toBe(
+        "#ebe2d2"
       );
-      expect(root.style.getPropertyValue("--tu-notation-ink")).toBe("#433422");
+      expect(root.style.getPropertyValue("--tu-border-color")).toBe("#c8b79c");
+      expect(root.style.getPropertyValue("--tu-font-color")).toBe("#433422");
 
       applyEditorThemeToPage(
         resolveEditorTheme(new URLSearchParams("theme=midnight"))
@@ -324,10 +333,11 @@ describe("editor fixture and theme resolution", () => {
         "#0f172a"
       );
       expect(root.style.getPropertyValue("--tu-primary-color")).toBe("#111827");
-      expect(root.style.getPropertyValue("--tu-font-body")).toBe(
-        '"Inter", sans-serif'
+      expect(root.style.getPropertyValue("--tu-secondary-color")).toBe(
+        "#1f2937"
       );
-      expect(root.style.getPropertyValue("--tu-notation-ink")).toBe("#e5eefb");
+      expect(root.style.getPropertyValue("--tu-border-color")).toBe("#334155");
+      expect(root.style.getPropertyValue("--tu-font-color")).toBe("#e5eefb");
       expect(root.style.getPropertyValue("--demo-host-color")).toBe("tomato");
     } finally {
       if (originalStyle === null) {

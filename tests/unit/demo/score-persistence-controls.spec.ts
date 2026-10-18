@@ -7,14 +7,7 @@ import {
   bindScorePersistenceControls,
   downloadScoreDocument,
 } from "../../../demo/raw/score-persistence-controls";
-import {
-  dispatchClick,
-  dispatchEvent,
-  FakeElement,
-  makeButton,
-  makeInput,
-  makeText,
-} from "../callbacks/helpers";
+import { required } from "../required";
 
 // A known V1 file, independent of the serializer used by the export controls.
 function importedDocument(name = "Imported study", fret = 7): string {
