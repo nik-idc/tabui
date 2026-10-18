@@ -4,7 +4,8 @@ A framework-agnostic guitar tablature editor for the browser, written in
 TypeScript.
 
 [Try the demo](https://nik-idc.github.io/tabui/) ·
-[Usage guide](docs/usage.md) · [Roadmap](ROADMAP.md)
+[Usage guide](docs/usage.md) · [Keyboard shortcuts](docs/keyboard-shortcuts.md) ·
+[Roadmap](ROADMAP.md)
 
 ## Features
 
@@ -13,19 +14,24 @@ TypeScript.
 - Guitar techniques, including bends, slides, harmonics, and palm mute.
 - Multi-track playback with volume, pan, mute, solo, and looping.
 - Wrapped and single-line layouts, view-only mode, and configurable themes.
-- Screen reader compatibility (NVDA, Orca).
+- Screen reader compatibility (NVDA, Orca), with keyboard navigation and selection
+  announcements. See [accessibility](docs/usage.md#accessibility).
 
 ## Quick start
+
+Install:
 
 ```sh
 npm install @atikincode/tabui
 ```
 
-Default icons are bundled with the library; no asset setup is needed.
+Container for the editor:
 
 ```html
 <div id="tabui-editor"></div>
 ```
+
+Initialize and attach TabUI:
 
 ```ts
 import { Score, TabUIEditor } from "@atikincode/tabui";
@@ -51,7 +57,8 @@ and lifecycle details.
 TabUI is under active development toward v0.5.0. APIs and saved-score formats
 may change before v1.0.0.
 
-Tablature is supported; standard and drum notation are not yet implemented.
+**Only guitar tablature is supported**. Standard and drum notation are not yet implemented.
+
 One track is displayed at a time, while playback includes all tracks. Playback
 uses synthesized tones unless you provide audio samples.
 

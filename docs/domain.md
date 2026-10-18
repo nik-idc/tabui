@@ -1,7 +1,7 @@
 # Domain Model and Terms
 
 TabUI models and renders editable guitar tablature. Standard notation has partial
-scaffolding but is not implemented.
+scaffolding but is not implemented yet.
 
 ## Score structure
 

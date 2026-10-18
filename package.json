@@ -29,6 +29,7 @@
     "/assets/img",
     "/assets/img-dark",
     "/docs/usage.md",
+    "/docs/keyboard-shortcuts.md",
     "/dist/**/*.d.ts",
     "/dist/index.mjs",
     "/dist/index.mjs.map",
