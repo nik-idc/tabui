@@ -64,9 +64,22 @@ test("does not automatically announce unchanged or cancelled tempo", async ({
 test("icon buttons expose state and are focusable", async ({ page }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
-  for (const name of ["Play", "Loop", "Mute", "Bend"]) {
-    const button = editor.getByRole("button", { name });
-    await expect(button).toHaveAttribute("aria-pressed", /true|false/);
+  await editor.locator('[id^="note-rect-"]').first().click();
+  await page.keyboard.press("5");
+  for (const name of ["Play", "Loop", "Palm Mute", "Bend"]) {
+    const button = editor.getByRole("button", { name, exact: true });
+    await expect(button).toHaveAttribute("aria-pressed", "false");
+    await button.focus();
+    await expect(button).toBeFocused();
+  }
+  for (const name of ["Loop", "Palm Mute"]) {
+    const button = editor.getByRole("button", { name, exact: true });
+    await button.focus();
+    await page.keyboard.press("Space");
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+    await expect(button).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(button).toHaveAttribute("aria-pressed", "false");
   }
 
   const firstBar = editor.getByRole("button", { name: "First bar" });
@@ -245,6 +258,7 @@ test("basic controls expose accessible names and native behavior", async ({
     "button:visible, input:visible, select:visible, textarea:visible"
   );
   const controlCount = await controls.count();
+  expect(controlCount).toBeGreaterThan(0);
   for (let i = 0; i < controlCount; i++) {
     await expect(controls.nth(i)).toHaveAccessibleName(/\S/);
   }
@@ -264,6 +278,11 @@ test("basic controls expose accessible names and native behavior", async ({
   await tracks.focus();
   await page.keyboard.press("Space");
   await expect(tracks).toHaveAttribute("aria-expanded", "true");
+  const expandedControlCount = await controls.count();
+  expect(expandedControlCount).toBeGreaterThan(controlCount);
+  for (let i = 0; i < expandedControlCount; i++) {
+    await expect(controls.nth(i)).toHaveAccessibleName(/\S/);
+  }
 
   for (const name of ["Rhythm track", "Lead track", "Bass track"]) {
     await expect(
@@ -298,12 +317,33 @@ test("provides icon tooltips on hover and keyboard focus", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
   const play = editor.getByRole("button", { name: "Play" });
+  // Firefox preserves this attr() expression; Chromium returns its resolved text.
+  const tooltipContent = (button: typeof play) =>
+    button.evaluate((element) => {
+      const content = getComputedStyle(element, "::after").content;
+      return content === "attr(data-tooltip)"
+        ? JSON.stringify(element.getAttribute("data-tooltip"))
+        : content;
+    });
 
   await play.hover();
   await expect(play).toHaveAttribute("title", "Play");
   await expect(play).toHaveAttribute("data-tooltip", "Play");
+  await expect
+    .poll(() =>
+      play.evaluate((element) => getComputedStyle(element, "::after").display)
+    )
+    .toBe("block");
+  await page.mouse.move(0, 0);
+  await page.keyboard.press("Tab");
   await play.focus();
-  await expect(play).toHaveCSS("position", "relative");
+  await expect(play).toBeFocused();
+  await expect
+    .poll(() =>
+      play.evaluate((element) => getComputedStyle(element, "::after").display)
+    )
+    .toBe("block");
+  await expect.poll(() => tooltipContent(play)).toBe('"Play"');
 
   for (const [name, tooltip] of [
     ["Tempo", "Tempo (m)"],
@@ -316,7 +356,27 @@ test("provides icon tooltips on hover and keyboard focus", async ({ page }) => {
     await button.hover();
     await expect(button).toHaveAttribute("title", tooltip);
     await expect(button).toHaveAttribute("data-tooltip", tooltip);
+    await expect
+      .poll(() =>
+        button.evaluate(
+          (element) => getComputedStyle(element, "::after").display
+        )
+      )
+      .toBe("block");
+    await page.mouse.move(0, 0);
+    await page.keyboard.press("Tab");
     await button.focus();
+    await expect(button).toBeFocused();
+    await expect
+      .poll(() =>
+        button.evaluate(
+          (element) => getComputedStyle(element, "::after").display
+        )
+      )
+      .toBe("block");
+    await expect
+      .poll(() => tooltipContent(button))
+      .toBe(JSON.stringify(tooltip));
     await expect(button).toHaveAccessibleName(name);
   }
 });

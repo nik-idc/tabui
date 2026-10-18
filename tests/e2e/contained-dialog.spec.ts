@@ -14,6 +14,9 @@ test("Enter confirms from a text field but not from another button", async ({
   });
   await increase.press("Enter");
   await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Raise string 7 by 1 semitone" })
+  ).toBeVisible();
   const input = dialog.getByRole("textbox", { name: "Track name" });
   await input.fill("Native track");
   await input.press("Enter");
@@ -24,6 +27,9 @@ test("Enter confirms from a text field but not from another button", async ({
       exact: true,
     })
   ).toHaveCount(1);
+  await expect(
+    editor.getByRole("button", { name: /^Select track:/ })
+  ).toHaveCount(2);
   await expect(page).toHaveURL(/\/tabui\/\?fixture=empty$/);
 });
 
@@ -33,9 +39,18 @@ test("Enter on a select does not confirm the dialog", async ({ page }) => {
   await editor
     .getByRole("button", { name: "Time Signature", exact: true })
     .click();
-  const dialog = editor.getByRole("dialog");
-  await dialog.getByRole("combobox").press("Enter");
+  const dialog = editor.getByRole("dialog", { name: "Time signature" });
+  const unit = dialog.getByRole("combobox", { name: "Beat unit denominator" });
+  await unit.selectOption("8");
+  await unit.press("Enter");
   await expect(dialog).toBeVisible();
+  await expect(unit).toHaveValue("8");
+  await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await editor
+    .getByRole("button", { name: "Time Signature", exact: true })
+    .click();
+  await expect(unit).toHaveValue("8");
 });
 
 test("Enter validates and confirms a repeat count", async ({ page }) => {
@@ -65,7 +80,11 @@ test("keeps one announcement region inside the active modal before focus", async
 }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  const region = editor.locator('[role="status"], [aria-live]');
+  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  const opener = editor.getByRole("button", { name: "New track", exact: true });
+  const dialog = editor.getByRole("dialog", { name: "New track" });
+  const region = editor.getByRole("status");
+  await expect(editor.locator('[role="status"], [aria-live]')).toHaveCount(1);
   await expect(region).toHaveCount(1);
   await expect(region).toHaveText("");
   await expect(region).toHaveAttribute("role", "status");
@@ -73,152 +92,148 @@ test("keeps one announcement region inside the active modal before focus", async
   await expect(region).toHaveAttribute("aria-atomic", "true");
   await expect(region).not.toHaveAttribute("hidden");
   await expect(region).toHaveCSS("position", "absolute");
-  const result = await editor.evaluate((root) => {
+  await expect(region).toHaveCSS("width", "1px");
+  await expect(region).toHaveCSS("height", "1px");
+  await expect(region).toHaveCSS("overflow", "hidden");
+  await expect(region).toHaveCSS("clip-path", "inset(50%)");
+  // Observe accessibility placement at focus time, while browser actions below
+  // open and close the dialog through the visible controls.
+  const observations = await editor.evaluateHandle((root) => {
     const status = root.querySelector('[role="status"]');
-    const first = root.querySelector<HTMLDivElement>(".tu-nt-dialog");
-    const placements: boolean[] = [];
-    const opener = root.querySelector<HTMLButtonElement>(
-      'button[aria-label="New track"]'
-    );
-    if (status === null || first === null || opener === null) {
-      throw Error("Expected dialog status, dialog, and opener");
-    }
-    opener.focus();
-    let restoredBeforeFocus = false;
-    opener.addEventListener("focus", () => {
-      restoredBeforeFocus = status.parentElement === root;
-    });
-    root.addEventListener("focusin", (event) => {
-      const modal = (event.target as Element).closest('[aria-modal="true"]');
-      if (modal) placements.push(status.parentElement === modal);
-    });
-    opener.click();
-    const insideFirst = status.parentElement === first;
-    const firstCancel = first.querySelector<HTMLButtonElement>(
-      ".tu-nt-cancel-button"
-    );
-    if (firstCancel === null) throw Error("Expected dialog cancel button");
-    firstCancel.click();
-    opener.click();
-    const insideSecond = status.parentElement === first;
-    const notInert = status.closest("[inert]") === null;
-    firstCancel.click();
-    return {
-      insideFirst,
-      insideSecond,
-      notInert,
-      restoredRoot: status.parentElement === root,
-      restoredBeforeFocus,
-      sameRegion: status === root.querySelector('[role="status"]'),
-      placements,
+    if (status === null) throw Error("Expected editor status region");
+    const result = {
+      modalFocus: [] as boolean[],
+      openerFocus: [] as boolean[],
     };
+    root.addEventListener("focusin", (event) => {
+      const target = event.target as Element;
+      const modal = target.closest('[aria-modal="true"]');
+      if (modal) {
+        result.modalFocus.push(
+          modal.contains(status) && !status.closest("[inert]")
+        );
+      }
+      if (target.getAttribute("aria-label") === "New track") {
+        result.openerFocus.push(status.parentElement === root);
+      }
+    });
+    return result;
   });
-  expect(result).toEqual({
-    insideFirst: true,
-    insideSecond: true,
-    notInert: true,
-    restoredRoot: true,
-    restoredBeforeFocus: true,
-    sameRegion: true,
-    placements: [true, true],
-  });
-  await expect(region).toHaveCount(1);
+  for (let cycle = 0; cycle < 2; cycle++) {
+    await opener.click();
+    await expect(dialog.getByRole("status")).toHaveCount(1);
+    const raise = dialog.getByRole("button", {
+      name: "Raise string 1 by 1 semitone",
+      exact: true,
+    });
+    await raise.focus();
+    await expect(region).toHaveText("String 1: E");
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(opener).toBeFocused();
+    await expect(region).toHaveCount(1);
+    expect(await region.evaluate((node) => node.parentElement?.id)).toBe(
+      "tabui-editor"
+    );
+  }
+  const result = await observations.jsonValue();
+  expect(result.modalFocus.length).toBeGreaterThanOrEqual(2);
+  expect(result.modalFocus).not.toContain(false);
+  expect(result.openerFocus.length).toBeGreaterThanOrEqual(2);
+  expect(result.openerFocus).not.toContain(false);
+  await observations.dispose();
+  await expect(editor.locator('[role="status"], [aria-live]')).toHaveCount(1);
 });
 
 test("contains modal behavior within the editor", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  const opener = editor.getByRole("button", { name: "New track" });
-
-  await opener.evaluate((element) => {
-    element.tabIndex = 0;
-  });
-  await opener.focus();
+  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  const opener = editor.getByRole("button", { name: "New track", exact: true });
   await opener.click();
 
-  const dialog = editor.locator(".tu-dialog.tu-nt-dialog");
-  await expect(dialog).toHaveJSProperty("tagName", "DIV");
-  await expect(dialog).toHaveAttribute("open", "");
-  await expect(dialog).toHaveAttribute("role", "dialog");
-  await expect(dialog).toHaveAccessibleName("New track");
+  const dialog = editor.getByRole("dialog", { name: "New track" });
+  await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute("aria-modal", "true");
-
-  const bounds = await page.evaluate(() => {
-    const root = document.querySelector("#tabui-editor");
-    const modal = root?.querySelector(".tu-dialog.tu-nt-dialog");
-    if (!(root instanceof HTMLElement) || !(modal instanceof HTMLElement)) {
-      throw new Error("Expected an open editor dialog");
-    }
-    const rootRect = root.getBoundingClientRect();
-    const modalRect = modal.getBoundingClientRect();
-    return {
-      root: [rootRect.x, rootRect.y, rootRect.width, rootRect.height],
-      modal: [modalRect.x, modalRect.y, modalRect.width, modalRect.height],
-      parentIsDialogHost:
-        modal.parentElement === root?.querySelector(".tu-dialog-host"),
-      editorSiblingsInert: Array.from(root.children)
-        .filter((element) => element !== root?.querySelector(".tu-dialog-host"))
-        .every((element) => element instanceof HTMLElement && element.inert),
-    };
+  const rootBounds = await editor.boundingBox();
+  expect(rootBounds).not.toBeNull();
+  expect(await dialog.boundingBox()).toEqual(rootBounds);
+  // Hidden accessibility-tree controls must still exist and be inert.
+  const tracks = editor.getByRole("button", {
+    name: "Tracks",
+    exact: true,
+    includeHidden: true,
   });
-  expect(bounds.modal).toEqual(bounds.root);
-  expect(bounds.parentIsDialogHost).toBe(true);
-  expect(bounds.editorSiblingsInert).toBe(true);
+  expect(
+    await tracks.evaluate((node) => node.closest("[inert]") !== null)
+  ).toBe(true);
 
-  await page.evaluate(() => {
-    const button = document.createElement("button");
-    button.id = "host-action";
-    button.textContent = "Host action";
-    button.addEventListener("click", () => {
-      button.dataset.clicked = "true";
-    });
-    document.body.prepend(button);
+  // Use real host-page UI to prove that editor-local modality does not block it.
+  const about = page.getByText("About this demo", { exact: true });
+  const description = page.getByText("This is a demo of TabUI.", {
+    exact: false,
   });
-  const hostAction = page.locator("#host-action");
-  await hostAction.click();
-  await expect(hostAction).toHaveAttribute("data-clicked", "true");
-  await expect(dialog).toHaveAttribute("open", "");
+  await expect(description).toBeVisible();
+  await about.click();
+  await expect(description).toBeHidden();
+  await expect(dialog).toBeVisible();
+  await about.click();
+  await expect(description).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Cancel", exact: true })
+    .scrollIntoViewIfNeeded();
+  expect(await dialog.boundingBox()).toEqual(await editor.boundingBox());
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    editor.getByRole("button", { name: "Tracks", exact: true })
+  ).toBeVisible();
+  expect(
+    await tracks.evaluate((node) => node.closest("[inert]") !== null)
+  ).toBe(false);
 });
 
 test("traps focus and closes with Escape", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  const opener = editor.getByRole("button", { name: "New track" });
-  await opener.evaluate((element) => {
-    element.tabIndex = 0;
-  });
-  await opener.focus();
+  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  const opener = editor.getByRole("button", { name: "New track", exact: true });
   await opener.click();
 
-  const dialog = editor.locator(".tu-dialog.tu-nt-dialog");
-  const focusable = dialog.locator(
-    "button:not([disabled]), input:not([disabled]), select:not([disabled]), " +
-      "[tabindex]:not([tabindex='-1'])"
-  );
-  const first = focusable.first();
-  const last = focusable.last();
+  const dialog = editor.getByRole("dialog", { name: "New track" });
+  const first = dialog.getByRole("button", { name: "Strings", exact: true });
+  const last = dialog.getByRole("button", { name: "Cancel", exact: true });
+  await expect(first).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(
+    dialog.getByRole("button", { name: "Orchestra", exact: true })
+  ).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
   await expect(first).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(last).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(first).toBeFocused();
 
-  await dialog.evaluate((element) => {
-    element.addEventListener("cancel", () => {
-      element.dataset.cancelled = "true";
-    });
-    element.addEventListener("close", () => {
-      element.dataset.closed = "true";
-    });
-  });
+  await dialog
+    .getByRole("textbox", { name: "Track name" })
+    .fill("Discarded draft");
   await page.keyboard.press("Escape");
 
-  await expect(dialog).not.toHaveAttribute("open", "");
-  await expect(dialog).toHaveAttribute("data-cancelled", "true");
-  await expect(dialog).toHaveAttribute("data-closed", "true");
+  await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
-  await expect(dialog).not.toHaveAttribute("aria-modal", "true");
-  await expect(dialog).not.toHaveAttribute("data-tu-dialog-mode", "modal");
+  await expect(
+    editor.getByRole("button", { name: /^Select track:/ })
+  ).toHaveCount(1);
+  await opener.click();
+  await expect(first).toBeFocused();
+  // A backdrop click is distinct from a click on the form's controls.
+  await dialog.click({ position: { x: 2, y: 2 } });
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  await expect(
+    editor.getByRole("button", { name: /^Select track:/ })
+  ).toHaveCount(1);
 });
 
 test("implements the instance dialog method contract", async ({ page }) => {

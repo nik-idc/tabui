@@ -18,6 +18,23 @@ async function expectPanelPlacement(
   const sidePanelBox = await requiredBoundingBox(
     editor.locator(".tu-side-controls-host")
   );
+  for (const box of [notationBox, scorePanelBox, sidePanelBox]) {
+    expect(box.width).toBeGreaterThan(0);
+    expect(box.height).toBeGreaterThan(0);
+  }
+  // Panels must share the notation's column/row, not just be somewhere outside it.
+  expect(
+    Math.min(
+      scorePanelBox.x + scorePanelBox.width,
+      notationBox.x + notationBox.width
+    )
+  ).toBeGreaterThan(Math.max(scorePanelBox.x, notationBox.x));
+  expect(
+    Math.min(
+      sidePanelBox.y + sidePanelBox.height,
+      notationBox.y + notationBox.height
+    )
+  ).toBeGreaterThan(Math.max(sidePanelBox.y, notationBox.y));
 
   if (placement === "top-left") {
     expect(scorePanelBox.y + scorePanelBox.height).toBeLessThanOrEqual(
@@ -248,7 +265,7 @@ test("configured view-only keeps only track selection, names, and playback", asy
   page,
 }) => {
   // Load the explicit configuration rather than relying on responsive restriction.
-  await page.goto("/tabui/?fixture=empty&mode=view-only");
+  await page.goto("/tabui/?fixture=feature_showcase&mode=view-only");
   const editor = page.locator("#tabui-editor");
   await expect(editor).toHaveClass(/tu-view-only/);
   await expect(editor.locator(".tu-side-controls-host")).toBeHidden();
@@ -259,8 +276,46 @@ test("configured view-only keeps only track selection, names, and playback", asy
   // Track selection and score/track names remain available for viewing.
   await expect(editor.getByRole("button", { name: "Tracks" })).toBeVisible();
   await expect(editor.locator(".tu-score-name-input")).toBeDisabled();
-  await expect(editor.locator(".tu-track-select-button")).toBeVisible();
-  await expect(editor.locator(".tu-track-name-input")).toBeVisible();
+  await expect(editor.locator(".tu-track-select-button")).toHaveCount(3);
+  for (const name of ["Rhythm track", "Lead track", "Bass track"]) {
+    await expect(
+      editor.getByRole("button", { name: `Select track: ${name}`, exact: true })
+    ).toBeVisible();
+    await expect(
+      editor.getByRole("textbox", { name: `${name} name`, exact: true })
+    ).toBeDisabled();
+  }
+  const lead = editor.getByRole("button", {
+    name: "Select track: Lead track",
+    exact: true,
+  });
+  const rhythm = editor.getByRole("button", {
+    name: "Select track: Rhythm track",
+    exact: true,
+  });
+  await expect(rhythm).toHaveAttribute("aria-pressed", "true");
+  await lead.focus();
+  await expect(lead).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(lead).toHaveAttribute("aria-pressed", "true");
+  await expect(rhythm).toHaveAttribute("aria-pressed", "false");
+  const notation = editor.locator(".tu-notation-viewport");
+  await notation.focus();
+  await expect(notation).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(lead).toHaveAttribute("aria-pressed", "true");
+  await expect(rhythm).toHaveAttribute("aria-pressed", "false");
+  await expect(editor.getByRole("status")).toHaveText(
+    "Bar 2, 4/4, 120 BPM, Voice 1, Beat 1, half, String 1, fret 15."
+  );
+  await page.keyboard.press("ArrowLeft");
+  await expect(editor.getByRole("status")).toContainText("Bar 1");
+  await expect(editor.getByRole("status")).toContainText("Beat 1");
+  await expect(editor.getByRole("status")).toContainText("fret 12.");
+  await expect(lead).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toBeEnabled();
 
   // Score creation and mix controls are absent from the compact presentation.
   await expect(editor.locator(".tu-new-track-button")).toBeHidden();
@@ -268,12 +323,16 @@ test("configured view-only keeps only track selection, names, and playback", asy
   await expect(editor.locator(".tu-master-panning-input")).toBeHidden();
 
   // Track movement, mix, settings, and removal controls are absent too.
-  await expect(editor.locator(".tu-track-move-up-button")).toBeHidden();
-  await expect(editor.locator(".tu-track-move-down-button")).toBeHidden();
-  await expect(editor.locator(".tu-track-volume-input")).toBeHidden();
-  await expect(editor.locator(".tu-track-panning-input")).toBeHidden();
-  await expect(editor.locator(".tu-track-mute-button")).toBeHidden();
-  await expect(editor.locator(".tu-track-solo-button")).toBeHidden();
-  await expect(editor.locator(".tu-track-settings-button")).toBeHidden();
-  await expect(editor.locator(".tu-track-remove-button")).toBeHidden();
+  for (const selector of [
+    ".tu-track-move-up-button",
+    ".tu-track-move-down-button",
+    ".tu-track-volume-input",
+    ".tu-track-panning-input",
+    ".tu-track-mute-button",
+    ".tu-track-solo-button",
+    ".tu-track-settings-button",
+    ".tu-track-remove-button",
+  ]) {
+    await expect(editor.locator(`${selector}:visible`)).toHaveCount(0);
+  }
 });

@@ -92,7 +92,10 @@ assigned shortcut table. See current status below.
 | 43. Track/score controls and switching       | Sol assessment complete                            | Implemented; independent review passed |
 | 44. Lifecycle and subscription cleanup       | Sol assessment complete                            | Implemented; independent review passed |
 | 45. Responsive sizing                        | Sol assessment complete                            | Implemented; independent review passed |
-| 46–55                                        | Not started                                        | Not started                            |
+| 46. Panels and accessible controls           | Sol assessment complete                            | Implemented; independent review passed |
+| 47. Configuration, assets, and cleanup       | Sol assessment complete                            | Implemented; independent review passed |
+| 48. Dialog confirmation and focus            | Sol assessment complete                            | Implemented; independent review passed |
+| 49–55                                        | Not started                                        | Not started                            |
 
 ## Current handoff scopes
 
@@ -2547,3 +2550,140 @@ No direct removals or source changes; only the two owned specs changed.
 - Groups 46–55 are not started. Empty-selection preconditions/API boundary/UI
   reachability still need review before full audit closure; nearest-boundary repeat
   pairing remains the intended design.
+
+### Groups 46–48: complete
+
+- User requested a checkpoint commit and the next three groups. Committed Groups
+  43–45 as `c5953010`, **Improve editor controls and lifecycle tests**. Nothing pushed.
+- Separate Sol implementations own panels/accessibility, configuration/assets/
+  cleanup, and confirmation-dialog focus. Each receives an independent Sol review.
+  Shared configuration ownership is declaration-level, mapped from original titles.
+- Before-round files and checkpoint hash are saved at
+  `/tmp/opencode/tabui-audit-groups-46-48-before/`. Group 47's asset resolver spec
+  now lives at `tests/unit/assets/asset-url-resolver.spec.ts`; the original manifest
+  path records its former location. Existing moves and cleanup are preserved.
+- Approved seams and review discipline remain unchanged. The coordinator owns this
+  record and combined browser/full verification. No further commit is requested.
+
+### Group 47: assessment and implementation
+
+- All original owned declarations and current asset replacements/additions reviewed.
+  Checkpoint ownership grows twenty-one to twenty-three declarations and thirty-four
+  to thirty-six cases; two additions cover independent resolved configuration and
+  successful ordered cleanup. No direct declaration removals. Original nineteen/
+  thirty-one differs because bundled assets were already changed before this round.
+- Configuration strengthens literal defaults/playback, partial merges/untouched
+  defaults/linked colors, two independent C3/E2 sample root expectations, non-positive
+  and non-finite fields, and accepted zero padding. Runtime validation of modes,
+  asset variants, panel positions and invalid sample keys/entries/URLs remains.
+  Mutating one resolved result must preserve caller input, another result and fresh
+  defaults; base normalization must not mutate the caller.
+- Assets use actual URL resolution instead of normalization-helper calls, covering
+  whitespace/slashes/root/dark/custom roots, actual bundled light/dark SVG content,
+  shorthand output and missing-icon rejection. Prior asset moves/behavior preserved.
+  Cleanup requires ordered effects, exact final error identity, a successful step
+  after the last failure, thrown undefined, and all-success completion.
+- Tradeoffs: direct helper calls become observable URL resolution; exact pitch bits
+  become numeric tolerance. These are approved module seams, not additional package
+  API claims. No source bugs found. Forty-seven cases across three whole files,
+  test compilation and scoped lint/format/diff passed. Independent review runs.
+- Independent review approved all owned declarations and both additions as distinct
+  contracts, preserving earlier bundled-asset behavior. It confirmed independent
+  literal oracles, meaningful pitch tolerance and public module seams, and passed
+  forty-seven cases, test compilation and scoped lint/format/diff. No blockers or
+  optional changes. Snapshot access denied; comparison used both Git baselines.
+
+### Group 46: assessment and implementation
+
+- All seventeen original declarations assessed; fifteen remain after merging two
+  duplicate callback declarations into real lifecycle coverage. The callback file
+  is deleted only after collapse/refresh, rollback and listener-removal guarantees
+  have observable replacements. No direct behavior coverage removals intended.
+- Real editor/DOM tests require panel placement/visibility, synchronous collapse/
+  expansion SVG widths, initial collapsed expansion, rollback/recovery through a
+  throwing public subscriber, non-collapsible controls without a toggle, and a
+  retained detached toggle remaining inactive after disposal. Old internal mocks
+  and fake DOM are removed. Internal refresh injection becomes host-callback failure
+  coverage; exact counts/setter choreography become state/render assertions.
+- Three config contracts remain unchanged: view-only hides the editing panel by
+  default and despite an explicit override, and collapsible initial state resolves.
+- Browser placement requires positive panel/notation boxes and correct row/column
+  overlap. Three-track view-only coverage checks disabled names, keyboard track and
+  notation navigation, playback availability and hidden editing controls. Accessible
+  icons require populated selection, exact initial states, keyboard toggles/focus;
+  controls require nonempty named inventory after expansion. Tooltips require actual
+  pseudo-element visibility/content for hover and uncontaminated keyboard focus.
+- Twenty-three lifecycle and thirty-seven config tests, test compilation and scoped
+  lint/format/diff passed. No source edits; prior real tests/fixes preserved.
+  Independent review is running; browser/full verification remains supervisor-owned.
+- Independent review approved all seventeen original declarations and the two
+  merges, with no lost behavior scenario. It passed twenty-three lifecycle and
+  thirty-seven config cases, test compilation and scoped lint/format/diff. It
+  confirmed independent geometry and uncontaminated keyboard tooltip checks. The
+  rollback title now names the throwing subscriber to make the accepted seam
+  tradeoff clear; only the title changed after review.
+
+### Group 48: assessment and implementation
+
+- All six declarations remain: one unit replacement and five strengthened browser
+  tests. Only yes/no callbacks and owned contained-dialog browser declarations change.
+  Group 31 repeat-count (`x4`) and the entire Group 49 suffix remain byte-identical
+  to checkpoint. Original ownership uses the documented baseline ending a761.
+- Real DOM, YesNoComponent, ContainedDialog and notation replace fabricated Node/
+  elements and mocked containment/component shapes. Public consumer callbacks check
+  inside/cancel/backdrop, disabled/closed guards, confirmation, duplicate binding,
+  unbind and rebind. Exact internal render counts are given up.
+- Enter tests require real string addition/exactly one track, non-confirming button
+  behavior and denominator persistence. Modal announcements require one original
+  live region, hidden styling, real tuning output and correct placement at focus
+  across two cycles. Containment requires positive root-sized bounds before/after
+  scrolling, inert editor controls and a working host disclosure.
+- Focus tests cover initial/normal/both-wrap tab navigation, Escape draft rejection,
+  return focus, reopening and actual backdrop dismissal without track creation.
+  Given up: all-sibling inert enumeration, native cancel/close flags and internal
+  mode-marker cleanup, replaced by named controls, actual focus/dismissal and reuse.
+- One focused unit case, test compilation and scoped lint/format/diff passed.
+  No source/shared-helper changes. Independent review is running.
+- Independent review approved all six declarations and stated tradeoffs. It
+  confirmed independent DOM/browser oracles and preserved byte-identical Group 31
+  and Group 49 declarations. No blockers; scoped diff passed. Runtime browser/full
+  verification remains supervisor-owned. Draft-field reset on reopening is optional
+  additional coverage, not a removed baseline guarantee.
+
+### Groups 46–48 combined verification
+
+- Full `npm run verify` is running after all three implementations. Log:
+  `/tmp/opencode/tabui-audit-groups-46-48-verify.log`. Final review corrections, if
+  needed, receive separately recorded checks when they postdate the full run.
+- Full run failed: all 95 unit suites/987 cases and packed-consumer passed; browser
+  output was 250 passed, one skipped, three failed. Both browsers reject the new
+  track-name prefix expectation on ordinary beat navigation (actual output names
+  Bar 2/Beat 1/fret 15). Firefox serializes tooltip pseudo-content as
+  `attr(data-tooltip)` rather than resolved `"Play"`. Group 46 corrects these
+  browser expectations while preserving active-track identity, navigation and
+  independently specified visible tooltip behavior. Demo phase not reached.
+- Corrections require Lead track pressed states and exact Bar 2/Beat 1/fret 15
+  then Bar 1/Beat 1/fret 12 announcements without an unsupported repeated track
+  prefix. Tooltip resolution accepts only the exact `attr(data-tooltip)` expression
+  as an alternate browser serialization, resolves its attribute and still requires
+  independent expected text; visibility/focus/title/data-attribute checks remain.
+  This observes the computed CSS/attribute relationship, not pixel-rendered text.
+  Test compilation and scoped lint/format/diff passed; no count/source changes.
+- Independent recheck and fresh full verification are running. Fresh log:
+  `/tmp/opencode/tabui-audit-groups-46-48-final-verify.log`.
+- Independent static recheck approved both fixes with no remaining changes needed:
+  announcements match actual track-change/bar-context behavior, and exact CSS
+  expression handling retains literal tooltip/visibility/focus requirements. Fresh
+  runtime verification is pending; the earlier failed run remains failed.
+- Fresh full `npm run verify` passed with both browser corrections included:
+  production/test compilation, package build, all 95 unit suites/987 tests,
+  packed-consumer smoke, Chromium/Firefox (253 passed, one skipped), and demo build.
+  Repository-wide lint, changed-test/audit formatting and diff checks passed.
+- All three groups are implemented and independently reviewed. Relative to the
+  round checkpoint, Group 46 merges two duplicate declarations and Group 47 adds
+  two distinct declarations; Group 48 retains all six. Net declarations and unit
+  cases are unchanged. Suite count falls from 96 to 95 because the obsolete shell
+  callback spec was replaced by real lifecycle coverage. No production/dependency
+  changes or new source bugs. No further commit or push was made.
+- Groups 49–55 are not started. Empty-selection preconditions/API boundary/UI
+  reachability remain an audit-closing follow-up; nearest repeat pairing is intended.

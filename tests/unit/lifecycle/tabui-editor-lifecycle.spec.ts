@@ -1,387 +1,11 @@
 import { JSDOM } from "jsdom";
 import { TabUIEditor } from "../../../src/tabui-editor";
-import { NotationComponent } from "../../../src/notation/notation-component";
 import {
   TabUIConfig,
   TabUIScorePanelPlacement,
   TabUISidePanelPlacement,
 } from "../../../src/config/tabui-config";
 import { required } from "../required";
-
-let rootWidth: number;
-
-jest.mock("../../../src/notation/notation-component", () => ({
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
-  NotationComponent: jest
-    .fn()
-    .mockImplementation(
-      (
-        _root: unknown,
-        score: any,
-        _config: unknown,
-        layoutDimensions: any,
-        onPlaybackError?: (error: unknown) => void
-      ) => ({
-        loadTrack: jest.fn(),
-        refreshLayout: jest.fn(),
-        setEditingEnabled: jest.fn(),
-        dispose: jest.fn(),
-        emitPlaybackError: onPlaybackError,
-        trackController: {
-          track: score.tracks[0],
-          playbackState: "idle",
-          isLooped: false,
-          activeVoiceNumber: 1,
-          selectionBeats: [],
-          selectionCursor: undefined,
-          windowHeight: layoutDimensions.width / 2,
-        },
-      })
-    ),
-}));
-
-jest.mock("../../../src/ui", () => ({
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
-  UIComponent: jest
-    .fn()
-    .mockImplementation(
-      (
-        _topHost: unknown,
-        sideHost: any,
-        _dialogHost: unknown,
-        _notation: unknown,
-        config: any
-      ) => {
-        const sidePanelToggle = (globalThis as any).document.createElement(
-          "button"
-        );
-        if (config.panels.side.visible && config.panels.side.collapsible) {
-          sideHost.appendChild(sidePanelToggle);
-        }
-
-        const sideComponent = {
-          template: { sidePanelToggle },
-          renderToggle: jest.fn((collapsed: boolean) => {
-            sidePanelToggle.setAttribute("aria-expanded", `${!collapsed}`);
-          }),
-        };
-        return {
-          render: jest.fn((collapsed?: boolean) => {
-            if (collapsed !== undefined) {
-              sideComponent.renderToggle(collapsed);
-            }
-          }),
-          closeOpenDialogs: jest.fn(),
-          sideComponent,
-        };
-      }
-    ),
-}));
-
-jest.mock("../../../src/tabui-callbacks", () => ({
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
-  TabUICallbacks: jest
-    .fn()
-    .mockImplementation(
-      (
-        _ui: unknown,
-        _notation: unknown,
-        _root: unknown,
-        onStateChanged?: () => void
-      ) => ({
-        bind: jest.fn(),
-        unbind: jest.fn(),
-        refresh: jest.fn(onStateChanged),
-        emitStateChanged: onStateChanged,
-        announceSelection: jest.fn(),
-      })
-    ),
-}));
-
-function createRoot() {
-  const children: any[] = [];
-  const listeners = new Map<string, Set<(...args: any[]) => void>>();
-  return {
-    get clientWidth() {
-      return rootWidth;
-    },
-    appendChild: jest.fn((child: any) => {
-      children.push(child);
-      return child;
-    }),
-    classList: {
-      add: jest.fn(),
-      remove: jest.fn(),
-      toggle: jest.fn(),
-    },
-    style: {
-      setProperty: jest.fn(),
-      removeProperty: jest.fn(),
-    },
-    addEventListener: jest.fn(
-      (type: string, listener: (...args: any[]) => void) => {
-        const typeListeners =
-          listeners.get(type) ?? new Set<(...args: any[]) => void>();
-        typeListeners.add(listener);
-        listeners.set(type, typeListeners);
-      }
-    ),
-    removeEventListener: jest.fn(
-      (type: string, listener: (...args: any[]) => void) => {
-        listeners.get(type)?.delete(listener);
-      }
-    ),
-    dispatch: (type: string, event: Record<string, unknown> = {}) => {
-      for (const listener of listeners.get(type) ?? []) {
-        listener(event);
-      }
-    },
-    hidden: false,
-    replaceChildren: jest.fn(() => {
-      children.length = 0;
-    }),
-    children,
-  } as unknown as HTMLDivElement;
-}
-
-function createShellElement() {
-  const classes = new Set<string>();
-  const children: any[] = [];
-  const listeners = new Map<string, Set<() => void>>();
-  return {
-    classList: {
-      add: (...classNames: string[]) => {
-        for (const className of classNames) {
-          classes.add(className);
-        }
-      },
-      remove: (...classNames: string[]) => {
-        for (const className of classNames) {
-          classes.delete(className);
-        }
-      },
-      contains: (className: string) => classes.has(className),
-    },
-    clientWidth: 0,
-    getBoundingClientRect: () => ({ width: 0 }),
-    style: {
-      setProperty: jest.fn(),
-      removeProperty: jest.fn(),
-    },
-    children,
-    appendChild: jest.fn((child: any) => {
-      children.push(child);
-      return child;
-    }),
-    addEventListener: jest.fn((type: string, listener: () => void) => {
-      const typeListeners = listeners.get(type) ?? new Set<() => void>();
-      typeListeners.add(listener);
-      listeners.set(type, typeListeners);
-    }),
-    removeEventListener: jest.fn((type: string, listener: () => void) => {
-      listeners.get(type)?.delete(listener);
-    }),
-    dispatch: (type: string) => {
-      for (const listener of listeners.get(type) ?? []) {
-        listener();
-      }
-    },
-    setAttribute: jest.fn(),
-    hidden: false,
-  } as unknown as HTMLDivElement;
-}
-
-function createScore() {
-  return { tracks: [{ uuid: Math.random(), name: "Track" }] } as any;
-}
-
-function getRootChild(root: HTMLDivElement, className: string): any {
-  return (root as any).children.find((child: any) =>
-    child.classList.contains(className)
-  );
-}
-
-describe("TabUIEditor lifecycle", () => {
-  let originalDocument: any;
-  let originalGetComputedStyle: any;
-  let originalResizeObserver: any;
-  let originalRequestAnimationFrame: any;
-  let originalCancelAnimationFrame: any;
-  let originalWindow: any;
-  let notationViewportWidth: number;
-
-  beforeEach(() => {
-    originalDocument = (globalThis as any).document;
-    originalGetComputedStyle = (globalThis as any).getComputedStyle;
-    originalResizeObserver = (globalThis as any).ResizeObserver;
-    originalRequestAnimationFrame = (globalThis as any).requestAnimationFrame;
-    originalCancelAnimationFrame = (globalThis as any).cancelAnimationFrame;
-    originalWindow = (globalThis as any).window;
-    notationViewportWidth = 690;
-    rootWidth = 900;
-    (globalThis as any).document = {
-      createElement: jest.fn((tagName: string) => {
-        if (tagName === "div") {
-          const element = createShellElement();
-          Object.defineProperties(element, {
-            clientWidth: {
-              get() {
-                return element.classList.contains("tu-notation-viewport")
-                  ? notationViewportWidth
-                  : 0;
-              },
-            },
-            getBoundingClientRect: {
-              value: () => ({
-                width: element.classList.contains("tu-notation-viewport")
-                  ? notationViewportWidth
-                  : 0,
-              }),
-            },
-          });
-          return element;
-        }
-
-        return createShellElement();
-      }),
-      documentElement: {
-        style: {
-          setProperty: jest.fn(),
-          removeProperty: jest.fn(),
-        },
-      },
-    };
-    (globalThis as any).getComputedStyle = jest.fn((_element: any) => ({
-      paddingLeft: "0px",
-      paddingRight: "0px",
-    }));
-    jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    (globalThis as any).document = originalDocument;
-    (globalThis as any).getComputedStyle = originalGetComputedStyle;
-    (globalThis as any).ResizeObserver = originalResizeObserver;
-    (globalThis as any).requestAnimationFrame = originalRequestAnimationFrame;
-    (globalThis as any).cancelAnimationFrame = originalCancelAnimationFrame;
-    (globalThis as any).window = originalWindow;
-  });
-
-  test("applies configured panel placement and visibility to the shell", () => {
-    const root = createRoot();
-    const editor = new TabUIEditor(root, createScore(), {
-      panels: {
-        score: {
-          visible: false,
-          placement: TabUIScorePanelPlacement.Bottom,
-        },
-        side: { placement: TabUISidePanelPlacement.Right },
-      },
-    });
-
-    editor.init();
-
-    const topHost = getRootChild(root, "tu-top-controls-host");
-    const sideHost = getRootChild(root, "tu-side-controls-host");
-    expect(root.classList.add).toHaveBeenCalledWith(
-      "tu-score-panel-bottom",
-      "tu-side-controls-right",
-      "tu-score-panel-hidden"
-    );
-    expect(topHost.hidden).toBe(true);
-    expect(sideHost.hidden).toBe(false);
-  });
-
-  test("collapses and expands visible side controls with layout refresh", () => {
-    const root = createRoot();
-    const editor = new TabUIEditor(root, createScore());
-    editor.init();
-    const sideHost = getRootChild(root, "tu-side-controls-host");
-    const toggle = sideHost.children[0];
-    const notation = jest.mocked(NotationComponent).mock.results[0].value;
-
-    toggle.dispatch("click");
-
-    expect(root.classList.add).toHaveBeenCalledWith(
-      "tu-side-controls-collapsed"
-    );
-    expect(toggle.setAttribute).toHaveBeenLastCalledWith(
-      "aria-expanded",
-      "false"
-    );
-    expect(notation.refreshLayout).toHaveBeenCalledTimes(1);
-
-    toggle.dispatch("click");
-
-    expect(root.classList.remove).toHaveBeenCalledWith(
-      "tu-side-controls-collapsed"
-    );
-    expect(toggle.setAttribute).toHaveBeenLastCalledWith(
-      "aria-expanded",
-      "true"
-    );
-    expect(notation.refreshLayout).toHaveBeenCalledTimes(2);
-  });
-
-  test("supports an initially collapsed side panel", () => {
-    const root = createRoot();
-    const editor = new TabUIEditor(root, createScore(), {
-      panels: { side: { initiallyCollapsed: true } },
-    });
-
-    editor.init();
-
-    const sideHost = getRootChild(root, "tu-side-controls-host");
-    const toggle = sideHost.children[0];
-    expect(root.classList.add).toHaveBeenCalledWith(
-      "tu-score-panel-top",
-      "tu-side-controls-left"
-    );
-    expect(root.classList.add).toHaveBeenCalledWith(
-      "tu-side-controls-collapsed"
-    );
-    expect(toggle.setAttribute).toHaveBeenLastCalledWith(
-      "aria-expanded",
-      "false"
-    );
-  });
-
-  test("rolls collapse state back when layout refresh fails", () => {
-    const root = createRoot();
-    const editor = new TabUIEditor(root, createScore());
-    editor.init();
-    const sideHost = getRootChild(root, "tu-side-controls-host");
-    const toggle = sideHost.children[0];
-    jest.spyOn(editor, "refreshLayout").mockImplementation(() => {
-      throw new Error("layout failed");
-    });
-
-    expect(() => toggle.dispatch("click")).toThrow("layout failed");
-
-    expect(root.classList.add).toHaveBeenCalledWith(
-      "tu-side-controls-collapsed"
-    );
-    expect(root.classList.remove).toHaveBeenCalledWith(
-      "tu-side-controls-collapsed"
-    );
-    expect(toggle.setAttribute).toHaveBeenLastCalledWith(
-      "aria-expanded",
-      "true"
-    );
-  });
-
-  test("does not mount a toggle for a non-collapsible side panel", () => {
-    const root = createRoot();
-    const editor = new TabUIEditor(root, createScore(), {
-      panels: { side: { collapsible: false } },
-    });
-
-    editor.init();
-
-    const sideHost = getRootChild(root, "tu-side-controls-host");
-    expect(sideHost.children).toHaveLength(0);
-  });
-});
 
 describe("TabUIEditor responsive sizing with real components", () => {
   let dom: JSDOM;
@@ -507,6 +131,121 @@ describe("TabUIEditor responsive sizing with real components", () => {
     expect(Number(svg.getAttribute("height"))).toBeGreaterThan(0);
     expect(svg.querySelectorAll("path, line, text").length).toBeGreaterThan(0);
   }
+
+  test("applies configured panel placement and visibility to the shell", () => {
+    const { root } = mount({
+      panels: {
+        score: { visible: false, placement: TabUIScorePanelPlacement.Bottom },
+        side: { placement: TabUISidePanelPlacement.Right },
+      },
+    });
+    expect(root.classList.contains("tu-score-panel-bottom")).toBe(true);
+    expect(root.classList.contains("tu-side-controls-right")).toBe(true);
+    expect(
+      required(root.querySelector<HTMLElement>(".tu-top-controls-host")).hidden
+    ).toBe(true);
+    expect(
+      required(root.querySelector<HTMLElement>(".tu-side-controls-host")).hidden
+    ).toBe(false);
+    expect(
+      root.querySelector('[aria-label="Collapse side panel"]')
+    ).not.toBeNull();
+  });
+
+  test("collapses and expands visible side controls with layout refresh", () => {
+    const { root, editor } = mount();
+    const toggle = required(
+      root.querySelector<HTMLButtonElement>(
+        '[aria-label="Collapse side panel"]'
+      )
+    );
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    viewportWidth = 810;
+    toggle.click();
+    expect(root.classList.contains("tu-side-controls-collapsed")).toBe(true);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.getAttribute("aria-label")).toBe("Expand side panel");
+    expect(editor.getState().layout.width).toBe(786);
+    expectRenderedWidth(root, 810);
+    viewportWidth = 690;
+    toggle.click();
+    expect(root.classList.contains("tu-side-controls-collapsed")).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle.getAttribute("aria-label")).toBe("Collapse side panel");
+    expect(editor.getState().layout.width).toBe(666);
+    expectRenderedWidth(root, 690);
+  });
+
+  test("supports an initially collapsed side panel", () => {
+    const { root } = mount({ panels: { side: { initiallyCollapsed: true } } });
+    expect(root.classList.contains("tu-score-panel-top")).toBe(true);
+    expect(root.classList.contains("tu-side-controls-left")).toBe(true);
+    expect(root.classList.contains("tu-side-controls-collapsed")).toBe(true);
+    const toggle = required(
+      root.querySelector<HTMLButtonElement>('[aria-label="Expand side panel"]')
+    );
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    toggle.click();
+    expect(root.classList.contains("tu-side-controls-collapsed")).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  test("rolls collapse state back when a layout-change subscriber throws", () => {
+    const { root, editor } = mount();
+    const toggle = required(
+      root.querySelector<HTMLButtonElement>(
+        '[aria-label="Collapse side panel"]'
+      )
+    );
+    const failure = new Error("layout listener failed");
+    const errors: unknown[] = [];
+    dom.window.addEventListener("error", (event) => {
+      errors.push(event.error);
+      event.preventDefault();
+    });
+    const unsubscribe = editor.subscribe(() => {
+      throw failure;
+    });
+    viewportWidth = 810;
+    toggle.click();
+    expect(errors).toEqual([failure]);
+    expect(root.classList.contains("tu-side-controls-collapsed")).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle.getAttribute("aria-label")).toBe("Collapse side panel");
+    expectRenderedWidth(root, 690);
+    unsubscribe();
+    toggle.click();
+    expect(root.classList.contains("tu-side-controls-collapsed")).toBe(true);
+    expectRenderedWidth(root, 810);
+  });
+
+  test("does not mount a toggle for a non-collapsible side panel", () => {
+    const { root } = mount({ panels: { side: { collapsible: false } } });
+    const side = required(
+      root.querySelector<HTMLElement>(".tu-side-controls-host")
+    );
+    expect(side.hidden).toBe(false);
+    expect(side.querySelector(".tu-side-controls")).not.toBeNull();
+    expect(side.querySelector('[aria-label="Collapse side panel"]')).toBeNull();
+    expect(side.querySelector('[aria-label="Expand side panel"]')).toBeNull();
+  });
+
+  test("removes the toggle listener when unbound", () => {
+    const { root, editor } = mount();
+    const toggle = required(
+      root.querySelector<HTMLButtonElement>(
+        '[aria-label="Collapse side panel"]'
+      )
+    );
+    const changes = jest.fn();
+    editor.subscribe(changes);
+    editor.dispose();
+    toggle.click();
+    expect(root.childElementCount).toBe(0);
+    expect(root.classList.contains("tu-side-controls-collapsed")).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(changes).not.toHaveBeenCalled();
+  });
 
   test("applies layout config and explicit width override", () => {
     const { editor, root } = mount({
