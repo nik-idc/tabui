@@ -1,122 +1,62 @@
-import { NotationElement } from "../../../src/notation/controller";
-import { EditorRenderOptions } from "../../../src/notation/render";
-import { ElementRenderer } from "../../../src/notation/render/element-renderer";
+/** @jest-environment jsdom */
+
+import { TrackController } from "../../../src/notation/controller/track-controller";
+import { GuitarNote } from "../../../src/notation/model";
 import { EditorSVGRenderer } from "../../../src/notation/render/svg/editor-svg-renderer";
-import { Rect } from "../../../src/shared";
+import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
+import { createScoreGraph } from "../model/helpers";
 
-type RendererReconciliationHarness = {
-  renderVisibleElementRenderers(
-    elementsByUpdateStatus: Map<NotationElement, boolean>,
-    options: EditorRenderOptions
-  ): ElementRenderer[];
-  createRendererElement: jest.Mock;
-  isRendererMounted: jest.Mock;
-  mountRenderer: jest.Mock;
-};
-
-type HorizontalViewportHarness = {
-  trackController: {
-    trackElement: {
-      trackLineElements: Array<{
-        trackLineBars: Array<{
-          x: number;
-          finalizedWidth: number;
-          masterBarIndex: number;
-        }>;
-      }>;
-    };
-  };
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the private field.
-  _viewportRect: Rect;
-  getMasterBarsInViewport(): { start: number; end: number };
-};
-
-type VerticalViewportHarness = {
-  trackController: {
-    trackElement: {
-      trackLineElements: Array<{ globalBoundingBox: Rect }>;
-    };
-  };
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the private field.
-  _viewportRect: Rect;
-  getLinesInViewport(): { start: number; end: number };
-};
-
-describe("EditorSVGRenderer ownership", () => {
-  test("mounts a retained renderer after updating its element reference", () => {
-    const element = {
-      getStableIdentity: () => "note-slot:1:1",
-    } as unknown as NotationElement;
-    const elementRenderer = {
-      updateElementReference: jest.fn(),
-      render: jest.fn(),
-    } as unknown as ElementRenderer;
-    const harness = Object.create(
-      EditorSVGRenderer.prototype
-    ) as RendererReconciliationHarness;
-    harness.createRendererElement = jest.fn(() => ({
-      renderer: elementRenderer,
-      isNewRenderer: false,
-    }));
-    harness.isRendererMounted = jest.fn(() => true);
-    harness.mountRenderer = jest.fn();
-    const options: EditorRenderOptions = {
+test("retained note DOM follows rebuilt elements and renders later edits", () => {
+  const { track, bar } = createScoreGraph();
+  const note = bar.getVoiceBar(1)?.beats[0].notes?.[0];
+  if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
+  note.fret = 5;
+  const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+  const viewport = document.createElement("div");
+  Object.defineProperties(viewport, {
+    clientWidth: { value: 800 },
+    clientHeight: { value: 400 },
+  });
+  const renderer = new EditorSVGRenderer(viewport, controller, {
+    baseUrl: "/assets",
+    variant: "light",
+  });
+  const render = () =>
+    renderer.render({
       renderNotation: true,
       forceNotation: false,
       overlays: { selection: false, player: false },
-    };
+    });
 
-    const renderers = harness.renderVisibleElementRenderers(
-      new Map([[element, false]]),
-      options
-    );
+  try {
+    render();
+    const text = viewport.querySelector('text[id^="note-text-"]');
+    expect(text?.textContent).toBe("5");
+    if (text === null) throw Error("Expected rendered fret");
+    const textID = text.id;
+    expect(Number(text.getAttribute("x"))).toBeCloseTo(97.5);
 
-    expect(elementRenderer.updateElementReference).toHaveBeenCalledWith(
-      element
-    );
-    expect(harness.mountRenderer).toHaveBeenCalledWith(
-      elementRenderer,
-      element
-    );
-    expect(elementRenderer.render).not.toHaveBeenCalled();
-    expect(renderers).toEqual([elementRenderer]);
-  });
+    controller.trackElement.update();
+    render();
+    expect(viewport.querySelector(`[id="${textID}"]`)).toBe(text);
 
-  test("includes bounded master-bar overscan in the horizontal viewport", () => {
-    const harness = Object.create(
-      EditorSVGRenderer.prototype
-    ) as HorizontalViewportHarness;
-    harness.trackController = {
-      trackElement: {
-        trackLineElements: [
-          {
-            trackLineBars: Array.from({ length: 10 }, (_, i) => ({
-              x: i * 100,
-              finalizedWidth: 100,
-              masterBarIndex: i,
-            })),
-          },
-        ],
-      },
-    };
-    harness._viewportRect = new Rect(250, 0, 200, 100);
+    controller.setSelectedNoteFret(9);
+    render();
+    expect(viewport.querySelector(`[id="${textID}"]`)).toBe(text);
+    expect(text.textContent).toBe("9");
+    expect(viewport.querySelectorAll(`[id="${textID}"]`)).toHaveLength(1);
 
-    expect(harness.getMasterBarsInViewport()).toEqual({ start: 0, end: 6 });
-  });
-
-  test("returns the bounded nearest-line range outside the vertical viewport", () => {
-    const harness = Object.create(
-      EditorSVGRenderer.prototype
-    ) as VerticalViewportHarness;
-    harness._viewportRect = new Rect(0, 10_000, 800, 400);
-    harness.trackController = {
-      trackElement: {
-        trackLineElements: Array.from({ length: 20 }, (_, i) => ({
-          globalBoundingBox: new Rect(0, i * 100, 800, 80),
-        })),
-      },
-    };
-
-    expect(harness.getLinesInViewport()).toEqual({ start: 17, end: 19 });
-  });
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) throw Error("Expected voice bar");
+    voiceBar.insertBeat(0);
+    controller.trackElement.update({ affectedMasterBarIndices: [0] });
+    render();
+    expect(viewport.querySelector(`[id="${textID}"]`)).toBe(text);
+    // The inserted quarter shifts the attack 46.8px from its 97.5px origin.
+    expect(Number(text.getAttribute("x"))).toBeCloseTo(144.3);
+    expect(text.textContent).toBe("9");
+    expect(viewport.querySelectorAll(`[id="${textID}"]`)).toHaveLength(1);
+  } finally {
+    renderer.unrender();
+  }
 });

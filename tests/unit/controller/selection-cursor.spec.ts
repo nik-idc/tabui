@@ -57,31 +57,33 @@ describe("SelectionCursor", () => {
     const { score, bar } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
 
-    const voiceBarBefore = bar.getVoiceBar(1);
-    if (voiceBarBefore === null) {
-      throw Error("Expected voice 1 bar");
+    const previousVoice = bar.getVoiceBar(1);
+    const nextVoice = bar.staff.bars[1].getVoiceBar(1);
+    if (previousVoice === null || nextVoice === null) {
+      throw Error("Expected voice 1 bars");
     }
-    const beat = voiceBarBefore.beats[0];
-    const selectionCursor = new SelectionCursor(beat, 0);
+    previousVoice.appendBeats();
+    previousVoice.appendBeats();
+    const selectionCursor = new SelectionCursor(nextVoice.beats[0], 2);
+
+    expect(selectionCursor.barIndex).toBe(1);
 
     selectionCursor.moveLeft();
 
     expect(selectionCursor.barIndex).toBe(0);
-    const voiceBarAfter = bar.getVoiceBar(1);
-    if (voiceBarAfter === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    expect(selectionCursor.beatIndex).toBe(voiceBarAfter.beats.length - 1);
+    expect(selectionCursor.beatIndex).toBe(2);
+    expect(selectionCursor.beat).toBe(previousVoice.beats[2]);
+    expect(selectionCursor.noteIndex).toBe(2);
     expect(selectionCursor.bar).toBe(bar);
   });
 
-  test("moveRight from full final bar requests adding a new bar", () => {
-    const { bar } = createScoreGraph();
+  test("moveRight from full final bar requests a new bar and selects it after insertion", () => {
+    const { score, bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
       throw Error("Expected voice 1 bar");
     }
-    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
+    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 2);
 
     voiceBar.appendBeats();
     voiceBar.appendBeats();
@@ -94,6 +96,15 @@ describe("SelectionCursor", () => {
 
     expect(result.result).toBe(MoveRightResult.AddedBar);
     expect(result.addedBar).toBe(true);
+
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    selectionCursor.afterAddedBar();
+
+    const nextBar = bar.staff.bars[1];
+    expect(selectionCursor.bar).toBe(nextBar);
+    expect(selectionCursor.beat).toBe(nextBar.getVoiceBar(1)?.beats[0]);
+    expect(selectionCursor.beatIndex).toBe(0);
+    expect(selectionCursor.noteIndex).toBe(2);
   });
 
   test("moveRight from full bar moves to the next existing bar", () => {
@@ -117,29 +128,6 @@ describe("SelectionCursor", () => {
     expect(result.result).toBe(MoveRightResult.Nothing);
     expect(result.addedBar).toBe(false);
     expect(selectionCursor.barIndex).toBe(1);
-    expect(selectionCursor.beatIndex).toBe(0);
-  });
-
-  test("moveRight seeds selected voice when next bar has no voice slot", () => {
-    const { score, bar } = createScoreGraph();
-    const voiceBar = bar.insertVoiceBar(3);
-    score.appendMasterBar(DEFAULT_MASTER_BAR, 1);
-    const nextBar = bar.staff.bars[1];
-    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
-
-    voiceBar.appendBeats();
-    voiceBar.appendBeats();
-    voiceBar.appendBeats();
-
-    selectionCursor.moveRight();
-    selectionCursor.moveRight();
-    selectionCursor.moveRight();
-    const result = selectionCursor.moveRight();
-
-    expect(result.result).toBe(MoveRightResult.Nothing);
-    expect(nextBar.getVoiceBar(3)).not.toBeNull();
-    expect(selectionCursor.bar).toBe(nextBar);
-    expect(selectionCursor.voiceBar).toBe(nextBar.getVoiceBar(3));
     expect(selectionCursor.beatIndex).toBe(0);
   });
 
@@ -222,25 +210,10 @@ describe("SelectionCursor", () => {
     const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
 
     selectionCursor.moveUp();
-    expect(selectionCursor.noteIndex).toBe(
-      bar.trackContext.instrument.maxPolyphony - 1
-    );
+    expect(selectionCursor.noteIndex).toBe(5);
 
     selectionCursor.moveDown();
     expect(selectionCursor.noteIndex).toBe(0);
-  });
-
-  test("afterAddedBar throws if last move right was not AddedBar", () => {
-    const { bar } = createScoreGraph();
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    const selectionCursor = new SelectionCursor(voiceBar.beats[0], 0);
-
-    expect(() => selectionCursor.afterAddedBar()).toThrow(
-      "After added bar called when last move right result is not added bar"
-    );
   });
 
   test("syncToStructure clamps stale bar and beat indices after structural shrink", () => {

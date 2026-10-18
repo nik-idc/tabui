@@ -8,11 +8,15 @@ export class CommandManager {
   private _redoStack: Command[] = [];
 
   /**
-   * Execute provided command, push it the undo stack & clear redo stack
+   * Execute a command and record it unless it explicitly reports no edit.
+   * Recording a command clears redo history.
    * @param command
    */
   execute(command: Command): Command {
     command.execute();
+    if (command.executed === false) {
+      return command;
+    }
     this._undoStack.push(command);
     this._redoStack = [];
     return command;

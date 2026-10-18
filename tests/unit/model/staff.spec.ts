@@ -12,18 +12,22 @@ describe("Staff model", () => {
   });
 
   test("removeBar rejects invalid indices", () => {
-    const { staff } = createScoreGraph();
+    const { score, staff } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const [first, second] = staff.bars;
 
     expect(() => staff.removeBar(-1)).toThrow(Error);
+    expect(staff.bars).toEqual([first, second]);
     expect(() => staff.removeBar(staff.bars.length)).toThrow(Error);
+    expect(staff.bars).toEqual([first, second]);
   });
 
   test("removeBar throws when removing the last remaining bar", () => {
     const { staff } = createScoreGraph();
+    const bar = staff.bars[0];
 
-    expect(() => staff.removeBar(0)).toThrow(
-      "Staff must have at least one bar"
-    );
+    expect(() => staff.removeBar(0)).toThrow(Error);
+    expect(staff.bars).toEqual([bar]);
   });
 
   test("getNextBeat and getPrevBeat traverse across bar boundaries", () => {

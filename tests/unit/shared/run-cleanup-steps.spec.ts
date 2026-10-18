@@ -6,7 +6,8 @@ describe("runCleanupSteps", () => {
     const firstError = new Error("first");
     const lastError = new Error("last");
 
-    expect(() =>
+    let caught: unknown;
+    try {
       runCleanupSteps(
         () => {
           calls.push(1);
@@ -16,10 +17,32 @@ describe("runCleanupSteps", () => {
         () => {
           calls.push(3);
           throw lastError;
+        },
+        () => calls.push(4)
+      );
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBe(lastError);
+    expect(calls).toEqual([1, 2, 3, 4]);
+  });
+
+  test("runs successful cleanup steps in order without throwing", () => {
+    const remaining = new Set(["listener", "view"]);
+
+    expect(() =>
+      runCleanupSteps(
+        () => {
+          remaining.delete("listener");
+        },
+        () => {
+          expect(remaining.has("listener")).toBe(false);
+          remaining.delete("view");
         }
       )
-    ).toThrow(lastError);
-    expect(calls).toEqual([1, 2, 3]);
+    ).not.toThrow();
+    expect(remaining.size).toBe(0);
   });
 
   test("preserves an undefined thrown value", () => {

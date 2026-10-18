@@ -28,8 +28,25 @@ test("time signature hover and click use the clicked bar", async ({ page }) => {
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(clickedText).toHaveText("5");
   await expect(editor.locator(".tu-time-signature")).toHaveCount(2);
+
+  // A second edit must refresh the existing signature, not only create it.
+  await clickedText.click();
+  await expect(dialog.locator(".tu-number-stepper-value").first()).toHaveText(
+    "5"
+  );
+  await dialog
+    .getByRole("button", { name: "Increase beats per measure by 1" })
+    .click();
+  await dialog.getByRole("button", { name: "Confirm" }).click();
+  await expect(clickedText).toHaveText("6");
+  await page.keyboard.press("Control+z");
+  await expect(clickedText).toHaveText("5");
+  await page.keyboard.press("Control+y");
+  await expect(clickedText).toHaveText("6");
+  await page.keyboard.press("Control+z");
   await page.keyboard.press("Control+z");
   await expect(clickedText).toHaveText("4");
+  await expect(editor.locator(".tu-time-signature")).toHaveCount(1);
 });
 
 test("tempo hover and click use the clicked bar value", async ({ page }) => {
@@ -52,6 +69,12 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(text).toHaveText("=121");
 
+  await image.click();
+  await expect(dialog.locator(".tu-number-stepper-value")).toHaveText("121");
+  await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
+  await dialog.getByRole("button", { name: "Confirm" }).click();
+  await expect(text).toHaveText("=122");
+
   await tempos.nth(1).locator('[id^="tempo-img-"]').click();
   await expect(
     editor
@@ -64,6 +87,11 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
       name: "Cancel",
     })
     .click();
+  await page.keyboard.press("Control+z");
+  await expect(text).toHaveText("=121");
+  await page.keyboard.press("Control+y");
+  await expect(text).toHaveText("=122");
+  await page.keyboard.press("Control+z");
   await page.keyboard.press("Control+z");
   await expect(text).toHaveText("=120");
 });
@@ -92,6 +120,7 @@ test("complete tuplet click selects all beats and opens its existing dialog", as
   await page.goto("/tabui/?fixture=empty");
   await addTuplet(page, true);
   const editor = page.locator("#tabui-editor");
+  await editor.locator('[id^="note-rect-"]').first().click();
   const label = editor.locator('[id^="tuplet-complete-text-"]').first();
   const original = await label.evaluate((node) => getComputedStyle(node).fill);
   await label.hover();
@@ -118,29 +147,34 @@ test("incomplete tuplet label opens only its beat context", async ({
   page,
 }) => {
   await page.goto("/tabui/?fixture=empty");
-  await addTuplet(page, false);
+  await addTuplet(page, true);
   const editor = page.locator("#tabui-editor");
-  const labels = editor.locator('[id^="tuplet-incomplete-text-"]');
-  await expect(labels).toHaveCount(1);
-  const original = await labels
-    .first()
-    .evaluate((node) => getComputedStyle(node).fill);
-  await labels.first().hover();
-  await expect(labels.first()).not.toHaveCSS("fill", original);
-  await page.mouse.move(0, 0);
-  await expect(labels.first()).toHaveCSS("fill", original);
-  await labels.first().click();
+  await editor.locator('[id^="tuplet-complete-text-"]').click();
   const dialog = editor.getByRole("dialog", { name: "Tuplet" });
+  await dialog
+    .getByRole("button", { name: "Increase normal notes by 1" })
+    .click();
+  await dialog.getByRole("button", { name: "Confirm" }).click();
+  const labels = editor.locator('[id^="tuplet-incomplete-text-"]');
+  await expect(labels).toHaveText(["4:2", "4:2", "4:2"]);
+  const original = await labels
+    .nth(1)
+    .evaluate((node) => getComputedStyle(node).fill);
+  await labels.nth(1).hover();
+  await expect(labels.nth(1)).not.toHaveCSS("fill", original);
+  await page.mouse.move(0, 0);
+  await expect(labels.nth(1)).toHaveCSS("fill", original);
+  await labels.nth(1).click();
   await expect(dialog.locator(".tu-number-stepper-value").first()).toHaveText(
-    "3"
+    "4"
   );
   await dialog
     .getByRole("button", { name: "Increase normal notes by 1" })
     .click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
-  await expect(editor.locator('[id^="tuplet-incomplete-text-"]')).toHaveText(
-    "4:2"
-  );
+  await expect(labels).toHaveText(["4:2", "5:2", "4:2"]);
+  await page.keyboard.press("Control+z");
+  await expect(labels).toHaveText(["4:2", "4:2", "4:2"]);
 });
 
 test("notation clicks do not open dialogs in view-only mode or playback", async ({

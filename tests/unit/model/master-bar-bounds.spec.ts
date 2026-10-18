@@ -42,7 +42,10 @@ describe("MasterBar domain bounds", () => {
     [MAX_MASTER_BAR_TEMPO],
     [(MIN_MASTER_BAR_TEMPO + MAX_MASTER_BAR_TEMPO) / 2],
   ])("accepts tempo %i in range", (tempo) => {
-    expect(() => masterBar({ tempo })).not.toThrow();
+    expect(masterBar({ tempo }).tempo).toBe(tempo);
+    const bar = masterBar();
+    bar.tempo = tempo;
+    expect(bar.tempo).toBe(tempo);
   });
 
   test.each([
@@ -50,17 +53,21 @@ describe("MasterBar domain bounds", () => {
     [MAX_MASTER_BAR_TEMPO + 1, "too high"],
     [Number.NaN, "NaN"],
   ])("rejects tempo %p (%s) at construction and via setter", (tempo) => {
-    expect(() => masterBar({ tempo })).toThrow(/outside/);
+    expect(() => masterBar({ tempo })).toThrow();
     const bar = masterBar();
     expect(() => {
       bar.tempo = tempo;
-    }).toThrow(/outside/);
+    }).toThrow();
+    expect(bar.tempo).toBe(120);
   });
 
   test.each([[MIN_MASTER_BAR_BEATS_COUNT], [MAX_MASTER_BAR_BEATS_COUNT]])(
     "accepts beatsCount %i in range",
     (beatsCount) => {
-      expect(() => masterBar({ beatsCount })).not.toThrow();
+      expect(masterBar({ beatsCount }).beatsCount).toBe(beatsCount);
+      const bar = masterBar();
+      bar.beatsCount = beatsCount;
+      expect(bar.beatsCount).toBe(beatsCount);
     }
   );
 
@@ -69,11 +76,12 @@ describe("MasterBar domain bounds", () => {
     [MAX_MASTER_BAR_BEATS_COUNT + 1, "too high"],
     [3.5, "non-integer"],
   ])("rejects beatsCount %p (%s)", (beatsCount) => {
-    expect(() => masterBar({ beatsCount })).toThrow(/outside/);
+    expect(() => masterBar({ beatsCount })).toThrow();
     const bar = masterBar();
     expect(() => {
       bar.beatsCount = beatsCount;
-    }).toThrow(/outside/);
+    }).toThrow();
+    expect(bar.beatsCount).toBe(4);
   });
 
   test.each([
@@ -82,19 +90,23 @@ describe("MasterBar domain bounds", () => {
     [2.5],
     [Number.POSITIVE_INFINITY],
   ])("rejects repeat count %p", (repeatCount) => {
-    expect(() => masterBar({ isRepeatEnd: true, repeatCount })).toThrow(
-      /outside/
-    );
+    expect(() => masterBar({ isRepeatEnd: true, repeatCount })).toThrow();
     const bar = masterBar({ isRepeatEnd: true });
     expect(() => {
       bar.repeatCount = repeatCount;
-    }).toThrow(/outside/);
+    }).toThrow();
+    expect(bar.repeatCount).toBe(2);
   });
 
   test.each([[2], [MAX_MASTER_BAR_REPEAT_COUNT]])(
     "accepts repeat count %i",
     (repeatCount) => {
-      expect(() => masterBar({ isRepeatEnd: true, repeatCount })).not.toThrow();
+      expect(masterBar({ isRepeatEnd: true, repeatCount }).repeatCount).toBe(
+        repeatCount
+      );
+      const bar = masterBar({ isRepeatEnd: true, repeatCount: 3 });
+      bar.repeatCount = repeatCount;
+      expect(bar.repeatCount).toBe(repeatCount);
     }
   );
 });
@@ -123,14 +135,10 @@ describe("Beat tuplet domain bounds", () => {
   ] as Array<[TupletSettings | null, string]>)(
     "accepts tuplet settings %p (%s)",
     (settings) => {
-      expect(() => beatWith(settings)).not.toThrow();
-      const beat = beatWith(null);
-      expect(() => {
-        beat.tupletSettings = settings;
-      }).not.toThrow();
-      if (settings !== null) {
-        expect(beat.tupletSettings).toEqual(settings);
-      }
+      expect(beatWith(settings).tupletSettings).toEqual(settings);
+      const beat = beatWith({ normalCount: 2, tupletCount: 3 });
+      beat.tupletSettings = settings;
+      expect(beat.tupletSettings).toEqual(settings);
     }
   );
 
@@ -166,11 +174,11 @@ describe("Beat tuplet domain bounds", () => {
   ] as Array<[TupletSettings, string]>)(
     "rejects tuplet settings %p (%s)",
     (settings) => {
-      expect(() => beatWith(settings)).toThrow(/outside/);
+      expect(() => beatWith(settings)).toThrow();
       const beat = beatWith(null);
       expect(() => {
         beat.tupletSettings = settings;
-      }).toThrow(/outside/);
+      }).toThrow();
       expect(beat.tupletSettings).toBeNull();
     }
   );

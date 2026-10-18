@@ -1,14 +1,14 @@
 import { resolveAssetUrl } from "../../../src/assets";
-import { normalizeAssetBaseUrl } from "../../../src/config/tabui-config";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 describe("asset-url-resolver", () => {
   it("normalizes trailing slashes in base url", () => {
-    expect(normalizeAssetBaseUrl("/tabui/")).toBe("/tabui");
-    expect(normalizeAssetBaseUrl("/tabui")).toBe("/tabui");
-    expect(normalizeAssetBaseUrl("")).toBe("");
-    expect(normalizeAssetBaseUrl("/")).toBe("/");
+    for (const baseUrl of ["/tabui/", "/tabui", " /tabui/ "]) {
+      expect(resolveAssetUrl(baseUrl, "img/ui/play.svg")).toBe(
+        "/tabui/img/ui/play.svg"
+      );
+    }
   });
 
   it("joins base url and asset path consistently", () => {
@@ -19,6 +19,9 @@ describe("asset-url-resolver", () => {
       "/tabui/img/ui/play.svg"
     );
     expect(resolveAssetUrl("/", "img/ui/play.svg")).toBe("/img/ui/play.svg");
+    expect(
+      resolveAssetUrl({ baseUrl: "/", variant: "dark" }, "/img/ui/play.svg")
+    ).toBe("/img-dark/ui/play.svg");
   });
 
   it.each(["light", "dark"] as const)(
@@ -36,13 +39,19 @@ describe("asset-url-resolver", () => {
   );
 
   it("uses bundled light icons for the empty string shorthand", () => {
-    expect(resolveAssetUrl("", "img/ui/play.svg")).toBe(
-      resolveAssetUrl({ baseUrl: "", variant: "light" }, "img/ui/play.svg")
+    const url = resolveAssetUrl("", "img/ui/play.svg");
+    expect(url).toMatch(/^data:image\/svg\+xml,/);
+    const source = readFileSync(
+      path.resolve(__dirname, "../../../assets/img/ui/play.svg"),
+      "utf8"
     );
+    expect(decodeURIComponent(url.slice(url.indexOf(",") + 1))).toBe(source);
   });
 
   it("requires a bundled icon unless a custom base url is supplied", () => {
-    expect(() => resolveAssetUrl("", "img/custom.svg")).toThrow();
+    expect(() => resolveAssetUrl("", "img/custom.svg")).toThrow(
+      "Unknown bundled icon: img/custom.svg"
+    );
     expect(
       resolveAssetUrl("https://example.com/icons/", "img/custom.svg")
     ).toBe("https://example.com/icons/img/custom.svg");

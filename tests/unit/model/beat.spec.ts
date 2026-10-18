@@ -27,9 +27,14 @@ describe("Beat model", () => {
         baseDuration: NoteDuration.Eighth,
         tupletSettings: { normalCount: 3, tupletCount: 2 },
       },
+      {
+        baseDuration: NoteDuration.Eighth,
+        tupletSettings: { normalCount: 5, tupletCount: 4 },
+      },
     ]);
 
     expect(beats[0].compare(beats[1])).toBe(true);
+    expect(beats[0].compare(beats[2])).toBe(false);
   });
 
   test("setNote rejects index equal to notes length", () => {
@@ -120,7 +125,9 @@ describe("Beat model", () => {
     expect(copiedNote.beat).toBe(copy);
     expect(sourceNote.beat).toBe(sourceBeat);
     expect(copiedNote.hasTechnique(GuitarTechniqueType.Vibrato)).toBe(true);
+    expect(copiedNote.techniques[0]).not.toBe(sourceNote.techniques[0]);
     expect(copiedNote.techniques[0].note).toBe(copiedNote);
+    expect(sourceNote.techniques[0].note).toBe(sourceNote);
   });
 
   test("derived fret from note and octave clamps to the instrument maximum", () => {

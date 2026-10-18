@@ -1,11 +1,4 @@
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -22,6 +15,25 @@ const rootDir = path.resolve(
 );
 const workspace = await mkdtemp(path.join(tmpdir(), "tabui-pack-smoke-"));
 
+async function cleanup(steps, failures) {
+  for (const step of steps) {
+    try {
+      await step();
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  if (failures.length === 1) {
+    throw failures[0];
+  }
+  if (failures.length > 1) {
+    throw new AggregateError(
+      failures,
+      "Packed consumer check or cleanup failed"
+    );
+  }
+}
+
 async function run(command, args, options = {}) {
   try {
     return await execFileAsync(command, args, {
@@ -33,12 +45,13 @@ async function run(command, args, options = {}) {
     const stdout = error.stdout ? `\nstdout:\n${error.stdout}` : "";
     const stderr = error.stderr ? `\nstderr:\n${error.stderr}` : "";
     throw new Error(
-      `Command failed: ${command} ${args.join(" ")}${stdout}${stderr}`
+      `Command failed: ${command} ${args.join(" ")}${stdout}${stderr}`,
+      { cause: error }
     );
   }
 }
 
-async function checkBundledIcons() {
+async function checkPackedEditor() {
   const server = createServer(async (request, response) => {
     const pathname = new URL(request.url, "http://localhost").pathname;
     const filename = pathname === "/" ? "index.html" : pathname.slice(1);
@@ -48,6 +61,7 @@ async function checkBundledIcons() {
         ".html": "text/html",
         ".js": "text/javascript",
         ".css": "text/css",
+        ".svg": "image/svg+xml",
       };
       response.setHeader(
         "Content-Type",
@@ -58,31 +72,61 @@ async function checkBundledIcons() {
       response.writeHead(404).end();
     }
   });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   let browser;
+  const failures = [];
   try {
+    await new Promise((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolve);
+    });
     const address = server.address();
     assert(address !== null && typeof address !== "string");
     browser = await chromium.launch();
     const page = await browser.newPage({
       viewport: { width: 1600, height: 1000 },
     });
+    page.setDefaultTimeout(30_000);
     const imageRequests = [];
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.route("**/*", (route) => {
-      const request = route.request();
+    page.on("request", (request) => {
       if (request.resourceType() === "image") {
         imageRequests.push(request.url());
-        return route.abort();
       }
-      return route.continue();
     });
 
     const firstIcons = [];
     for (const variant of ["light", "dark"]) {
+      imageRequests.length = 0;
       await page.goto(`http://127.0.0.1:${address.port}/?variant=${variant}`);
       await page.waitForFunction(() => document.body.dataset.initialTrack);
+      const state = await page.evaluate(() => ({ ...document.body.dataset }));
+      assert.equal(state.initialTrack, "Packed consumer track");
+      assert.equal(state.restoredTrack, "Packed consumer track");
+      assert.equal(state.hasInitialCursor, "true");
+      assert.equal(state.scoreVersion, "1");
+      assert.equal(state.scoreDuration, "quarter");
+      assert.equal(state.noteValue, "C");
+      assert.equal(
+        await page
+          .locator("#tabui-editor")
+          .evaluate((root) => getComputedStyle(root).display),
+        "grid",
+        "Exported stylesheet must style the mounted editor"
+      );
+      const exportedIconUrl = await page
+        .locator("#exported-icon")
+        .evaluate(async (image) => {
+          await image.decode();
+          if (image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+            throw new Error("Exported SVG must have image dimensions");
+          }
+          return image.src;
+        });
+      assert.equal(
+        new URL(exportedIconUrl).origin,
+        `http://127.0.0.1:${address.port}`
+      );
       await page
         .getByRole("button", { name: "New track", exact: true })
         .click();
@@ -123,6 +167,31 @@ async function checkBundledIcons() {
         "Packed editor must display notation SVG icons"
       );
       firstIcons.push(result.firstIcon);
+      await page
+        .getByRole("textbox", { name: "Track name", exact: true })
+        .fill("Added by consumer");
+      await page.getByRole("button", { name: "Confirm", exact: true }).click();
+      await page.waitForFunction(
+        () => document.body.dataset.activeTrack === "Added by consumer"
+      );
+      assert.equal(
+        await page.locator("body").getAttribute("data-editor-error"),
+        null
+      );
+      await page
+        .getByRole("button", { name: "Dispose packed editor", exact: true })
+        .click();
+      assert.equal(
+        await page
+          .locator("#tabui-editor")
+          .evaluate((root) => root.childElementCount),
+        0
+      );
+      assert.deepEqual(
+        imageRequests,
+        [exportedIconUrl],
+        "Only the explicitly imported SVG may make an HTTP image request"
+      );
     }
     assert.notEqual(
       firstIcons[0],
@@ -130,27 +199,32 @@ async function checkBundledIcons() {
       "Icon variant must change the bundled image"
     );
     assert.deepEqual(
-      imageRequests,
-      [],
-      "Default icons must not make HTTP requests"
-    );
-    assert.deepEqual(
       errors,
       [],
       "Packed editor must initialize without browser errors"
     );
+  } catch (error) {
+    failures.push(error);
   } finally {
-    await browser?.close();
-    await new Promise((resolve, reject) =>
-      server.close((error) => (error ? reject(error) : resolve()))
+    await cleanup(
+      [
+        () => browser?.close(),
+        () =>
+          server.listening &&
+          new Promise((resolve, reject) =>
+            server.close((error) => (error ? reject(error) : resolve()))
+          ),
+      ],
+      failures
     );
   }
 }
 
+const failures = [];
 try {
   const { stdout } = await execFileAsync(
     "npm",
-    ["pack", "--json", "--ignore-scripts"],
+    ["pack", "--json", "--ignore-scripts", "--pack-destination", workspace],
     {
       cwd: rootDir,
       env: { ...process.env, HUSKY: "0" },
@@ -162,7 +236,7 @@ try {
     throw new Error(`npm pack did not return JSON:\n${stdout}`);
   }
   const [packInfo] = JSON.parse(stdout.slice(jsonStart));
-  const tarballPath = path.join(rootDir, packInfo.filename);
+  const tarballPath = path.join(workspace, packInfo.filename);
 
   await writeFile(
     path.join(workspace, "package.json"),
@@ -185,7 +259,7 @@ try {
   );
   await writeFile(
     path.join(workspace, "index.html"),
-    '<div id="tabui-editor"></div><script type="module" src="/src/main.ts"></script>\n'
+    '<div id="tabui-editor"></div><img id="exported-icon" alt="Exported play icon"><button id="dispose">Dispose packed editor</button><script type="module" src="/src/main.ts"></script>\n'
   );
   await writeFile(
     path.join(workspace, "tsconfig.json"),
@@ -235,6 +309,7 @@ import playIconUrl from "@atikincode/tabui/assets/img/ui/play.svg?url";
 
 const rootDiv = document.getElementById("tabui-editor") as HTMLDivElement;
 const score = new Score();
+score.tracks[0].name = "Packed consumer track";
 const serializedScore: SerializedScoreV1 = serializeScore(score);
 const restoredScore = deserializeScore(
   JSON.parse(JSON.stringify(serializedScore)) as unknown
@@ -257,7 +332,7 @@ const config: TabUIConfig = {
   playback: {},
 };
 
-const editor = new TabUIEditor(rootDiv, score, config);
+const editor = new TabUIEditor(rootDiv, restoredScore, config);
 editor.init();
 const initialState: TabUIEditorStateSnapshot = editor.getState();
 const initialCursor: SelectionCursorSnapshot | null =
@@ -273,9 +348,12 @@ const unsubscribe = editor.subscribe((event: TabUIEditorEvent) => {
   }
 });
 editor.refreshLayout(1200);
-window.addEventListener("beforeunload", unsubscribe, { once: true });
+document.getElementById("dispose")!.addEventListener("click", () => {
+  unsubscribe();
+  editor.dispose();
+});
 
-document.body.dataset.playIconUrl = playIconUrl;
+(document.getElementById("exported-icon") as HTMLImageElement).src = playIconUrl;
 document.body.dataset.noteValue = NoteValue.C;
 document.body.dataset.initialTrack = initialState.activeTrack.name;
 document.body.dataset.hasInitialCursor = String(initialCursor !== null);
@@ -287,25 +365,19 @@ document.body.dataset.restoredTrack = restoredScore.tracks[0].name;
 
   await run("npm", ["install", "--ignore-scripts"]);
 
-  const packageRoot = path.join(workspace, "node_modules/@atikincode/tabui");
-  await stat(path.join(packageRoot, "dist/index.mjs"));
-  await stat(path.join(packageRoot, "dist/index.d.ts"));
-  await stat(path.join(packageRoot, "dist/styles.css"));
-  await stat(path.join(packageRoot, "assets/img/ui/play.svg"));
-
-  const packageJson = JSON.parse(
-    await readFile(path.join(packageRoot, "package.json"), "utf8")
-  );
-  if (packageJson.exports["./styles.css"] !== "./dist/styles.css") {
-    throw new Error("Package styles export does not point at dist/styles.css");
-  }
-
   await run(path.join(rootDir, "node_modules/.bin/tsc"), ["--noEmit"]);
-  await run(path.join(rootDir, "node_modules/.bin/vite"), ["build"]);
-  await checkBundledIcons();
-
-  await rm(tarballPath, { force: true });
-  console.log(`Pack consumer smoke passed in ${workspace}`);
+  await run(path.join(rootDir, "node_modules/.bin/vite"), [
+    "build",
+    "--assetsInlineLimit",
+    "0",
+  ]);
+  await checkPackedEditor();
+} catch (error) {
+  failures.push(error);
 } finally {
-  await rm(workspace, { force: true, recursive: true });
+  await cleanup(
+    [() => rm(workspace, { force: true, recursive: true })],
+    failures
+  );
 }
+console.log("Pack consumer smoke passed");

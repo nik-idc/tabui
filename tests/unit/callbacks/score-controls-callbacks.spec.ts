@@ -1,191 +1,145 @@
+/** @jest-environment jsdom */
+
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
+import { NotationComponent } from "../../../src/notation/notation-component";
+import { PlaybackState } from "../../../src/player";
+import { Guitar, Score } from "../../../src/notation/model";
+import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
+import { ScoreControlsComponent } from "../../../src/ui/top-controls/score-controls/score-controls-component";
 import { ScoreControlsDefaultCallbacks } from "../../../src/ui/top-controls/score-controls/score-controls-callbacks";
-import { TrackControlsDefaultCallbacks } from "../../../src/ui/top-controls/score-controls/track-controls/track-controls-callbacks";
-import { NewTrackControlsDefaultCallbacks } from "../../../src/ui/top-controls/score-controls/new-track/new-track-controls-callbacks";
-import { TrackSettingsControlsDefaultCallbacks } from "../../../src/ui/top-controls/score-controls/track-controls/track-settings/track-settings-controls-callbacks";
-import { YesNoDefaultCallbacks } from "../../../src/ui/shared/yes-no/yes-no-callbacks";
-import { ScoreControlsTemplateRenderer } from "../../../src/ui/top-controls/score-controls/score-controls-template-renderer";
+import { createTestLayoutDimensions } from "../controller/helpers";
 import {
-  asNotationComponent,
-  createNotationComponentMock,
-  dispatchClick,
-  dispatchEvent,
-  dispatchInput,
-  makeButton,
-  makeInput,
-} from "./helpers";
+  installTransportAudio,
+  settleTransport,
+} from "../player/transport-audio";
 
-describe("ScoreControlsDefaultCallbacks", () => {
-  test("score editing controls render disabled during playback", () => {
-    const newTrackButton = makeButton();
-    const scoreNameInput = {
-      classList: { add: jest.fn() },
-      value: "",
-      disabled: false,
-    };
-    const renderer = Object.create(ScoreControlsTemplateRenderer.prototype);
-    renderer.template = { newTrackButton, scoreNameInput };
-    renderer.notationComponent = {
-      trackController: { isPlaybackActive: true, editingEnabled: true },
-    };
-    renderer.assetsPath = { baseUrl: "", variant: "light" };
-    renderer._currentScoreName = "Score";
+describe("Score controls", () => {
+  let notation: NotationComponent;
+  let controls: ScoreControlsComponent;
+  let callbacks: ScoreControlsDefaultCallbacks;
+  let root: HTMLDivElement;
+  let audio: ReturnType<typeof installTransportAudio>;
 
-    renderer.renderNewTrackButton();
-    renderer.renderScoreNameInput();
-
-    expect(newTrackButton.classList.toggle).toHaveBeenCalledWith(
-      "tu-disabled-img",
-      true
+  beforeEach(() => {
+    jest.useFakeTimers();
+    audio = installTransportAudio();
+    root = document.createElement("div");
+    const viewport = document.createElement("div");
+    const host = document.createElement("div");
+    const dialogs = document.createElement("div");
+    root.append(viewport, host, dialogs);
+    document.body.append(root);
+    const score = new Score();
+    score.name = "Original";
+    score.addTrack(new Guitar(), "Lead");
+    notation = new NotationComponent(
+      viewport,
+      score,
+      resolveTabUIConfig(),
+      createTestLayoutDimensions()
     );
-    expect(scoreNameInput.disabled).toBe(true);
+    controls = new ScoreControlsComponent(
+      host,
+      new DialogEnforcer(dialogs, () => {}),
+      notation,
+      () => {}
+    );
+    controls.render();
+    callbacks = new ScoreControlsDefaultCallbacks(
+      controls,
+      notation,
+      () => controls.render(),
+      () => {},
+      () => {},
+      (track) => controls.showTrackSettingsDialog(track)
+    );
+    callbacks.bind();
+    callbacks.bind();
   });
 
-  test("score controls dispatch behavior and unbind stops events", () => {
-    const trackBindSpy = jest
-      .spyOn(TrackControlsDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const trackUnbindSpy = jest
-      .spyOn(TrackControlsDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
-    const newTrackBindSpy = jest
-      .spyOn(NewTrackControlsDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const newTrackUnbindSpy = jest
-      .spyOn(NewTrackControlsDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
-    const trackSettingsBindSpy = jest
-      .spyOn(TrackSettingsControlsDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const trackSettingsUnbindSpy = jest
-      .spyOn(TrackSettingsControlsDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
-    const yesNoBindSpy = jest
-      .spyOn(YesNoDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const yesNoUnbindSpy = jest
-      .spyOn(YesNoDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
-    const notationComponent = createNotationComponentMock();
-    const captureKeyboard = jest.fn();
-    const freeKeyboard = jest.fn();
-    const showTrackSettings = jest.fn();
-    const score = notationComponent.score;
-    score.name = "Old";
-    const component = {
-      template: {
-        showTracksButton: makeButton(),
-        newTrackButton: makeButton(),
-        masterVolumeInput: makeInput("75"),
-        masterPanningInput: makeInput("-0.5"),
-        scoreNameInput: makeInput("New Name"),
-      },
-      newTrackComponent: {},
-      trackSettingsComponent: {},
-      trackRemoveComponent: {},
-      trackComponents: [{ track: { id: 1 } }, { track: { id: 2 } }],
-      tracksAreDisplayed: false,
-      score,
-      render: jest.fn(),
-      showNewTrackDialog: jest.fn(),
-      showTrackSettingsDialog: jest.fn(),
-      showTrackRemoveDialog: jest.fn(),
-      removeSelectedTrack: jest.fn(),
-      changeTracksAreDisplayed: jest.fn(() => {
-        component.tracksAreDisplayed = !component.tracksAreDisplayed;
-      }),
-    } as any;
-    const callbacks = new ScoreControlsDefaultCallbacks(
-      component,
-      asNotationComponent(notationComponent),
-      jest.fn(),
-      captureKeyboard,
-      freeKeyboard,
-      showTrackSettings
-    );
-
-    callbacks.bind();
-    callbacks.bind();
-    dispatchClick(component.template.showTracksButton);
-    dispatchClick(component.template.newTrackButton);
-    dispatchInput(component.template.masterVolumeInput, "75");
-    dispatchInput(component.template.masterPanningInput, "-0.5");
-    dispatchInput(component.template.scoreNameInput, "New Name");
-    dispatchEvent(component.template.scoreNameInput, "focus");
-    dispatchEvent(component.template.scoreNameInput, "focusout");
-
-    expect(component.changeTracksAreDisplayed).toHaveBeenCalledTimes(1);
-    expect(component.render).toHaveBeenCalledTimes(1);
-    expect(trackBindSpy).toHaveBeenCalledTimes(4);
-    expect(component.showNewTrackDialog).toHaveBeenCalledTimes(1);
-    expect(score.masterVolume).toBe(0.75);
-    expect(score.masterPan).toBe(-0.5);
-    expect(
-      notationComponent.trackController.setMasterVolume
-    ).toHaveBeenCalledWith(score, 0.75);
-    expect(notationComponent.trackController.setMasterPan).toHaveBeenCalledWith(
-      score,
-      -0.5
-    );
-    expect(captureKeyboard).toHaveBeenCalledTimes(2);
-    expect(score.name).toBe("New Name");
-    expect(freeKeyboard).toHaveBeenCalledTimes(1);
-    expect(newTrackBindSpy).toHaveBeenCalledTimes(1);
-    expect(trackSettingsBindSpy).toHaveBeenCalledTimes(1);
-    expect(yesNoBindSpy).toHaveBeenCalledTimes(1);
-
-    notationComponent.trackController.isPlaying = true;
-    component.template.scoreNameInput.value = "Blocked";
-    callbacks.onNewTrackButtonClicked();
-    callbacks.onScoreNameChanged();
-    expect(component.showNewTrackDialog).toHaveBeenCalledTimes(1);
-    expect(score.name).toBe("New Name");
-
-    const renderCallsBeforeUnbind = component.render.mock.calls.length;
+  afterEach(() => {
+    controls.newTrackComponent.dialog.close();
+    controls.trackSettingsComponent.dialog.close();
+    controls.trackRemoveComponent.dialog.close();
     callbacks.unbind();
-    dispatchClick(component.template.showTracksButton);
-    expect(component.render).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
-    expect(trackUnbindSpy).toHaveBeenCalledTimes(4);
-    expect(newTrackUnbindSpy).toHaveBeenCalledTimes(1);
-    expect(trackSettingsUnbindSpy).toHaveBeenCalledTimes(1);
-    expect(yesNoUnbindSpy).toHaveBeenCalledTimes(1);
-
-    trackBindSpy.mockRestore();
-    trackUnbindSpy.mockRestore();
-    newTrackBindSpy.mockRestore();
-    newTrackUnbindSpy.mockRestore();
-    trackSettingsBindSpy.mockRestore();
-    trackSettingsUnbindSpy.mockRestore();
-    yesNoBindSpy.mockRestore();
-    yesNoUnbindSpy.mockRestore();
+    notation.dispose();
+    root.remove();
+    audio.restore();
+    jest.useRealTimers();
   });
 
-  test("master controls render score state without resetting it", () => {
-    const masterVolumeInput = {
-      classList: { add: jest.fn() },
-      value: "",
-      type: "",
-      min: "",
-      max: "",
-      step: "",
-    };
-    const masterPanningInput = {
-      classList: { add: jest.fn() },
-      value: "",
-      type: "",
-      min: "",
-      max: "",
-      step: "",
-    };
-    const renderer = Object.create(ScoreControlsTemplateRenderer.prototype);
-    renderer.template = { masterVolumeInput, masterPanningInput };
-    renderer.notationComponent = {
-      trackController: { editingEnabled: true },
-    };
+  function input(element: HTMLInputElement, value: string) {
+    element.value = value;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  }
 
-    renderer.renderMasterVolumeInput({ masterVolume: 0.7 });
-    renderer.renderMasterPanningInput({ masterPan: -0.25 });
+  test("playback disables score editing and rejects changes while master mix remains available", async () => {
+    notation.trackController.startPlayer();
+    await settleTransport();
+    expect(notation.trackController.playbackState).toBe(PlaybackState.Playing);
+    controls.render();
+    expect(controls.template.newTrackButton.disabled).toBe(true);
+    expect(controls.template.scoreNameInput.disabled).toBe(true);
+    callbacks.onNewTrackButtonClicked();
+    input(controls.template.scoreNameInput, "Blocked");
+    expect(controls.newTrackComponent.dialog.open).toBe(false);
+    expect(notation.score.name).toBe("Original");
+    expect(notation.score.tracks).toHaveLength(2);
+    expect(controls.template.masterVolumeInput.disabled).toBe(false);
+    expect(controls.template.masterPanningInput.disabled).toBe(false);
+    input(controls.template.masterVolumeInput, "60");
+    input(controls.template.masterPanningInput, "0.5");
+    expect(notation.score.masterVolume).toBe(0.6);
+    expect(notation.score.masterPan).toBe(0.5);
+  });
 
-    expect(masterVolumeInput.value).toBe("70");
-    expect(masterPanningInput.value).toBe("-0.25");
+  test("score controls toggle tracks, rename and open dialogs; unbind stops events", () => {
+    controls.template.showTracksButton.click();
+    expect(controls.tracksAreDisplayed).toBe(true);
+    expect(controls.template.tracksContainer.children).toHaveLength(2);
+    const lead = controls.trackComponents[1];
+    lead.template.selectButton.click();
+    expect(notation.trackController.track).toBe(lead.track);
+    input(controls.template.scoreNameInput, "Renamed");
+    expect(notation.score.name).toBe("Renamed");
+    controls.template.newTrackButton.click();
+    expect(controls.newTrackComponent.dialog.open).toBe(true);
+    controls.newTrackComponent.dialog.close();
+    lead.template.settingsButton.click();
+    expect(controls.trackSettingsComponent.dialog.open).toBe(true);
+    controls.trackSettingsComponent.dialog.close();
+    lead.template.removeButton.click();
+    expect(controls.trackRemoveComponent.dialog.open).toBe(true);
+    controls.trackRemoveComponent.template.confirmButton.click();
+    expect(notation.score.tracks).toHaveLength(1);
+    expect(notation.score.tracks).not.toContain(lead.track);
+    callbacks.unbind();
+    controls.template.showTracksButton.click();
+    input(controls.template.scoreNameInput, "Detached");
+    input(controls.template.masterVolumeInput, "10");
+    expect(controls.tracksAreDisplayed).toBe(true);
+    expect(notation.score.name).toBe("Renamed");
+    expect(notation.score.masterVolume).toBe(1);
+  });
+
+  test("master controls preserve score and per-track mix across rerenders and switches", () => {
+    const score = notation.score;
+    score.tracks[0].volume = 0.3;
+    score.tracks[0].pan = 0.25;
+    score.tracks[1].muted = true;
+    score.tracks[1].soloed = true;
+    input(controls.template.masterVolumeInput, "70");
+    input(controls.template.masterPanningInput, "-0.25");
+    notation.loadTrack(score.tracks[1]);
+    controls.render();
+    expect(controls.template.masterVolumeInput.value).toBe("70");
+    expect(controls.template.masterPanningInput.value).toBe("-0.25");
+    expect([score.masterVolume, score.masterPan]).toEqual([0.7, -0.25]);
+    expect([
+      score.tracks[0].volume,
+      score.tracks[0].pan,
+      score.tracks[1].muted,
+      score.tracks[1].soloed,
+    ]).toEqual([0.3, 0.25, true, true]);
   });
 });

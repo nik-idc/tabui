@@ -1,88 +1,109 @@
+/** @jest-environment jsdom */
+
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
+import { NotationComponent } from "../../../src/notation/notation-component";
+import { Score } from "../../../src/notation/model";
+import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
 import { YesNoDefaultCallbacks } from "../../../src/ui/shared/yes-no/yes-no-callbacks";
-import {
-  asNotationComponent,
-  createNotationComponentMock,
-  dispatchClick,
-  FakeElement,
-  makeButton,
-  makeDialogFixture,
-} from "./helpers";
-
-function createYesNoHarness() {
-  const { dialog, dialogContainer } = makeDialogFixture();
-  const yesNoDialogContent = new FakeElement();
-  dialogContainer.appendChild(yesNoDialogContent);
-  const confirmButton = makeButton();
-  const cancelButton = makeButton();
-  const onConfirm = jest.fn();
-  const renderFunc = jest.fn();
-  const freeKeyboard = jest.fn();
-  const callbacks = new YesNoDefaultCallbacks(
-    {
-      dialog,
-      template: {
-        dialogContainer,
-        yesNoDialogContent,
-        confirmButton,
-        cancelButton,
-      },
-    } as any,
-    asNotationComponent(createNotationComponentMock()),
-    renderFunc,
-    jest.fn(),
-    freeKeyboard,
-    onConfirm
-  );
-
-  return {
-    callbacks,
-    component: { dialog, yesNoDialogContent, confirmButton, cancelButton },
-    onConfirm,
-    renderFunc,
-    freeKeyboard,
-  };
-}
+import { YesNoComponent } from "../../../src/ui/shared/yes-no/yes-no-component";
+import { createTestLayoutDimensions } from "../controller/helpers";
 
 describe("YesNoDefaultCallbacks", () => {
-  test("confirm, cancel, and outside clicks behave correctly with lifecycle wiring", () => {
-    const { callbacks, component, onConfirm, renderFunc, freeKeyboard } =
-      createYesNoHarness();
-    const outsideTarget = new FakeElement();
-    class RuntimeNode {}
-    Object.defineProperty(globalThis, "Node", {
-      configurable: true,
-      value: RuntimeNode,
-    });
-    const insideTarget = new RuntimeNode();
-    component.yesNoDialogContent.contains = jest.fn(
-      (target) => target === insideTarget
+  test("confirmation notifies the consumer once; cancellation and detached events do not", () => {
+    const root = document.createElement("div");
+    const viewport = document.createElement("div");
+    const host = document.createElement("div");
+    root.append(viewport, host);
+    document.body.append(root);
+    const score = new Score();
+    const notation = new NotationComponent(
+      viewport,
+      score,
+      resolveTabUIConfig(),
+      createTestLayoutDimensions()
     );
-
-    callbacks.onDialogClicked({ target: insideTarget } as any);
-    expect(component.dialog.close).not.toHaveBeenCalled();
-
-    callbacks.bind();
-    callbacks.onDialogClicked({ target: outsideTarget } as any);
-    expect(component.dialog.close).toHaveBeenCalledTimes(1);
-    expect(freeKeyboard).toHaveBeenCalledTimes(1);
-
-    callbacks.bind();
-    const confirmCallsBefore = onConfirm.mock.calls.length;
-    const renderCallsBefore = renderFunc.mock.calls.length;
-    component.yesNoDialogContent.dispatch("submit");
-    expect(onConfirm).toHaveBeenCalledTimes(confirmCallsBefore + 1);
-    expect(renderFunc).toHaveBeenCalledTimes(renderCallsBefore + 1);
-
-    const confirmCallsBeforeUnbind = onConfirm.mock.calls.length;
-    callbacks.unbind();
-    component.yesNoDialogContent.dispatch("submit");
-    expect(onConfirm).toHaveBeenCalledTimes(confirmCallsBeforeUnbind);
-
-    callbacks.bind();
-    const closeCallsBeforeCancel = component.dialog.close.mock.calls.length;
-    dispatchClick(component.cancelButton);
-    expect(component.dialog.close).toHaveBeenCalledTimes(
-      closeCallsBeforeCancel + 1
+    const component = new YesNoComponent(
+      host,
+      new DialogEnforcer(host, () => {}),
+      notation
     );
+    component.render();
+    // These callbacks are the consumer's confirmation and keyboard boundary.
+    const onConfirm = jest.fn();
+    const freeKeyboard = jest.fn();
+    const callbacks = new YesNoDefaultCallbacks(
+      component,
+      notation,
+      () => component.render(),
+      () => {},
+      freeKeyboard,
+      onConfirm
+    );
+    const { dialog } = component;
+    const { confirmButton, cancelButton, yesNoText, yesNoDialogContent } =
+      component.template;
+
+    try {
+      callbacks.bind();
+      callbacks.bind();
+      dialog.showModal();
+      yesNoText.click();
+      expect(dialog.open).toBe(true);
+      expect(onConfirm).not.toHaveBeenCalled();
+
+      cancelButton.click();
+      expect(dialog.open).toBe(false);
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(freeKeyboard).toHaveBeenCalledTimes(1);
+
+      dialog.showModal();
+      component.template.dialogContainer.click();
+      expect(dialog.open).toBe(false);
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(freeKeyboard).toHaveBeenCalledTimes(2);
+
+      dialog.showModal();
+      confirmButton.disabled = true;
+      yesNoDialogContent.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true })
+      );
+      expect(dialog.open).toBe(true);
+      expect(onConfirm).not.toHaveBeenCalled();
+      confirmButton.disabled = false;
+      confirmButton.click();
+      expect(dialog.open).toBe(false);
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+      expect(freeKeyboard).toHaveBeenCalledTimes(3);
+
+      yesNoDialogContent.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true })
+      );
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+
+      dialog.showModal();
+      callbacks.unbind();
+      // Prevent jsdom's unhandled native submit after the listener is removed.
+      const submit = new Event("submit", { bubbles: true, cancelable: true });
+      yesNoDialogContent.dispatchEvent(submit);
+      cancelButton.click();
+      component.template.dialogContainer.click();
+      expect(dialog.open).toBe(true);
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+      expect(submit.defaultPrevented).toBe(false);
+      dialog.close();
+      expect(freeKeyboard).toHaveBeenCalledTimes(3);
+
+      callbacks.bind();
+      dialog.showModal();
+      confirmButton.click();
+      expect(dialog.open).toBe(false);
+      expect(onConfirm).toHaveBeenCalledTimes(2);
+      expect(freeKeyboard).toHaveBeenCalledTimes(4);
+    } finally {
+      callbacks.unbind();
+      dialog.close();
+      notation.dispose();
+      root.remove();
+    }
   });
 });

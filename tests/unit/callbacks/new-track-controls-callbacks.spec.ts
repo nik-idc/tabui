@@ -1,165 +1,156 @@
-import { NewTrackControlsDefaultCallbacks } from "../../../src/ui/top-controls/score-controls/new-track/new-track-controls-callbacks";
+/** @jest-environment jsdom */
+
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
+import { NotationComponent } from "../../../src/notation/notation-component";
 import {
   ElectricGuitarTone,
   Guitar,
-  InstrumentFamily,
+  Score,
   StringInstrumentType,
-  Track,
 } from "../../../src/notation/model";
-import {
-  asNotationComponent,
-  createNotationComponentMock,
-  dispatchClick,
-  dispatchInput,
-  FakeElement,
-  makeButton,
-  makeDialogFixture,
-  makeInput,
-  makeText,
-} from "./helpers";
+import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
+import { NewTrackControlsDefaultCallbacks } from "../../../src/ui/top-controls/score-controls/new-track/new-track-controls-callbacks";
+import { NewTrackControlsComponent } from "../../../src/ui/top-controls/score-controls/new-track/new-track-controls-component";
+import { createTestLayoutDimensions } from "../controller/helpers";
 
-function createNewTrackHarness() {
-  const { dialog, dialogContainer } = makeDialogFixture();
-  const dialogContent = new FakeElement();
-  dialogContainer.appendChild(dialogContent);
-  const trackNameInput = makeInput("Lead");
-  const stringCountDownButton = makeButton();
-  const stringCountUpButton = makeButton();
-  const tuningUpButtons = [makeButton(), makeButton(), makeButton()];
-  const tuningDownButtons = [makeButton(), makeButton(), makeButton()];
-  const wholeTuningUpButton = makeButton();
-  const wholeTuningDownButton = makeButton();
-  const trackNameError = makeText();
-  const stringCountError = makeText();
-  const tuningError = makeText();
-  const confirmButton = makeButton();
-  const cancelButton = makeButton();
-  const familyButtons = [makeButton(), makeButton(), makeButton()];
-  const typeButtons = [makeButton(), makeButton(), makeButton(), makeButton()];
-  const toneButtons = [makeButton(), makeButton(), makeButton()];
-  const notationComponent = createNotationComponentMock();
-  const madeInstrument = new Guitar();
-  const madeTrack = new Track(notationComponent.score, madeInstrument, "Lead");
-  const component = {
-    dialog,
-    template: {
-      dialogContainer,
-      dialogContent,
-      instrFamiliesButtons: familyButtons,
-      instrTypesButtons: typeButtons,
-      instrTonesButtons: toneButtons,
-      trackNameInput,
-      stringCountDownButton,
-      stringCountUpButton,
-      tuningUpButtons,
-      tuningDownButtons,
-      wholeTuningUpButton,
-      wholeTuningDownButton,
-      trackNameError,
-      stringCountError,
-      tuningError,
-      confirmButton,
-      cancelButton,
-    },
-    stringCount: 6,
-    trackName: "Lead",
-    instrumentFamily: InstrumentFamily.Strings,
-    instrumentType: StringInstrumentType.ElectricGuitar,
-    setFamily: jest.fn(),
-    setType: jest.fn(),
-    setTone: jest.fn(),
-    setTrackName: jest.fn(),
-    shiftStringCount: jest.fn(),
-    shiftTuningString: jest.fn(),
-    shiftWholeTuning: jest.fn(),
-    makeInstrument: jest.fn(() => madeInstrument),
-  } as any;
-  notationComponent.trackController.addTrack.mockReturnValue(madeTrack);
-  const renderFunc = jest.fn();
-  const captureKeyboard = jest.fn();
-  const freeKeyboard = jest.fn();
-  const callbacks = new NewTrackControlsDefaultCallbacks(
-    component,
-    asNotationComponent(notationComponent),
-    renderFunc,
-    captureKeyboard,
-    freeKeyboard
+function createControls() {
+  const score = new Score();
+  const root = document.createElement("div");
+  const controlsHost = document.createElement("div");
+  const notationHost = document.createElement("div");
+  const dialogHost = document.createElement("div");
+  root.append(controlsHost, notationHost, dialogHost);
+  document.body.append(root);
+  const notation = new NotationComponent(
+    notationHost,
+    score,
+    resolveTabUIConfig(),
+    createTestLayoutDimensions()
   );
+  const enforcer = new DialogEnforcer(dialogHost, () => {});
+  const controls = new NewTrackControlsComponent(
+    controlsHost,
+    enforcer,
+    notation,
+    () => {}
+  );
+  const keyboard = { released: false };
+  const callbacks = new NewTrackControlsDefaultCallbacks(
+    controls,
+    notation,
+    () => {
+      controls.render();
+      callbacks.bind();
+    },
+    () => {},
+    () => {
+      keyboard.released = true;
+    }
+  );
+  controls.render();
+  controls.dialog.showModal();
 
   return {
+    score,
+    notation,
+    controls,
     callbacks,
-    component,
-    notationComponent,
-    renderFunc,
-    freeKeyboard,
+    enforcer,
+    keyboard,
+    dispose() {
+      controls.dialog.close();
+      callbacks.unbind();
+      notation.dispose();
+      root.remove();
+    },
   };
 }
 
 describe("NewTrackControlsDefaultCallbacks", () => {
-  test("validation and lifecycle behavior use the correct fields", () => {
-    const {
-      callbacks,
-      component,
-      notationComponent,
-      renderFunc,
-      freeKeyboard,
-    } = createNewTrackHarness();
+  let fixture: ReturnType<typeof createControls>;
 
-    dispatchInput(component.template.trackNameInput, "");
-    callbacks.onTrackNameChanged();
-    expect(component.template.trackNameError.textContent).toBe(
-      callbacks.trackNameErrorText
-    );
+  beforeEach(() => {
+    fixture = createControls();
+    fixture.callbacks.bind();
+    fixture.callbacks.bind();
+  });
+  afterEach(() => {
+    fixture.dispose();
+  });
 
-    dispatchInput(component.template.trackNameInput, "Lead");
-    callbacks.onTrackNameChanged();
-    expect(component.setTrackName).toHaveBeenCalledWith("Lead");
+  test("invalid names block creation, then a trimmed name creates and selects one track", () => {
+    const { controls, score, notation, enforcer } = fixture;
+    for (const name of [" ", "a".repeat(33)]) {
+      controls.template.trackNameInput.value = name;
+      controls.template.trackNameInput.dispatchEvent(new Event("input"));
+      expect(controls.template.trackNameError.textContent).toBe(
+        "Invalid track name"
+      );
+      expect(controls.template.confirmButton.disabled).toBe(true);
+      controls.template.dialogContent.dispatchEvent(
+        new Event("submit", { cancelable: true })
+      );
+      expect(score.tracks).toHaveLength(1);
+      expect(controls.dialog.open).toBe(true);
+    }
 
-    callbacks.bind();
-    callbacks.bind();
-    dispatchClick(component.template.instrFamiliesButtons[0]);
-    dispatchClick(component.template.instrTypesButtons[1]);
-    dispatchClick(component.template.instrTonesButtons[0]);
-    expect(component.setFamily).toHaveBeenCalledWith(InstrumentFamily.Strings);
-    expect(component.setType).toHaveBeenCalledWith(
-      StringInstrumentType.ElectricGuitar
-    );
-    expect(component.setTone).toHaveBeenCalledWith(ElectricGuitarTone.Clean);
-    dispatchClick(component.template.stringCountUpButton);
-    expect(component.shiftStringCount).toHaveBeenCalledWith(1);
-    dispatchClick(component.template.stringCountDownButton);
-    expect(component.shiftStringCount).toHaveBeenCalledWith(-1);
-    dispatchClick(component.template.tuningUpButtons[1]);
-    expect(component.shiftTuningString).toHaveBeenCalledWith(1, 1);
-    dispatchClick(component.template.tuningDownButtons[2]);
-    expect(component.shiftTuningString).toHaveBeenCalledWith(2, -1);
-    dispatchClick(component.template.wholeTuningUpButton);
-    expect(component.shiftWholeTuning).toHaveBeenCalledWith(1);
-    dispatchClick(component.template.wholeTuningDownButton);
-    expect(component.shiftWholeTuning).toHaveBeenCalledWith(-1);
-    const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
-    const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
-    component.template.dialogContent.dispatch("submit");
-    expect(notationComponent.trackController.addTrack).toHaveBeenCalledWith(
-      notationComponent.score,
-      component.makeInstrument.mock.results[0].value,
-      "Lead"
-    );
-    expect(notationComponent.loadTrack).toHaveBeenCalledWith(
-      notationComponent.trackController.addTrack.mock.results[0].value
-    );
-    expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
-    expect(component.dialog.close).toHaveBeenCalledTimes(1);
-    expect(freeKeyboard).toHaveBeenCalledTimes(
-      freeKeyboardCallsBeforeConfirm + 1
-    );
+    controls.template.trackNameInput.value = " Lead ";
+    controls.template.trackNameInput.dispatchEvent(new Event("input"));
+    expect(controls.trackName).toBe("Lead");
+    expect(controls.template.trackNameError.textContent.trim()).toBe("");
+    expect(controls.template.confirmButton.disabled).toBe(false);
+    controls.template.confirmButton.click();
+    expect(score.tracks).toHaveLength(2);
+    expect(score.tracks[1].name).toBe("Lead");
+    expect(notation.trackController.track).toBe(score.tracks[1]);
+    expect(controls.dialog.open).toBe(false);
+    expect(enforcer.activeDialog).toBeUndefined();
+    expect(fixture.keyboard.released).toBe(true);
 
-    const loadTrackCallsBeforeUnbind =
-      notationComponent.loadTrack.mock.calls.length;
-    callbacks.unbind();
-    component.template.dialogContent.dispatch("submit");
-    expect(notationComponent.loadTrack).toHaveBeenCalledTimes(
-      loadTrackCallsBeforeUnbind
+    controls.dialog.showModal();
+    fixture.callbacks.unbind();
+    controls.template.dialogContent.dispatchEvent(
+      new Event("submit", { cancelable: true })
     );
+    expect(score.tracks).toHaveLength(2);
+    expect(controls.dialog.open).toBe(true);
+  });
+
+  test("instrument, string-count, and tuning controls determine the created instrument", () => {
+    const { controls, score } = fixture;
+    controls.template.instrFamiliesButtons[0].click();
+    expect(controls.instrumentType).toBe(StringInstrumentType.AcousticGuitar);
+    controls.template.instrTypesButtons[1].click();
+    controls.template.instrTonesButtons[1].click();
+    controls.template.stringCountDownButton.click();
+    expect(controls.stringCount).toBe(5);
+    expect(controls.tuning).toBe("G D G B D");
+    controls.template.stringCountUpButton.click();
+    expect(controls.stringCount).toBe(6);
+    expect(controls.tuning).toBe("E A D G B E");
+    controls.template.stringCountUpButton.click();
+    expect(controls.stringCount).toBe(7);
+    expect(controls.tuning).toBe("B E A D G B E");
+    // The seventh tuning control was created by the string-count render.
+    controls.template.tuningUpButtons[6].click();
+    expect(controls.tuning).toBe("B E A D G B F");
+    controls.template.tuningUpButtons[1].click();
+    expect(controls.tuning).toBe("B F A D G B F");
+    controls.template.tuningDownButtons[2].click();
+    expect(controls.tuning).toBe("B F G# D G B F");
+    controls.template.wholeTuningUpButton.click();
+    expect(controls.tuning).toBe("C F# A D# G# C F#");
+    controls.template.wholeTuningDownButton.click();
+    expect(controls.tuning).toBe("B F G# D G B F");
+
+    controls.template.confirmButton.click();
+    expect(score.tracks).toHaveLength(2);
+    const instrument = score.tracks[1].context.instrument;
+    expect(instrument).toBeInstanceOf(Guitar);
+    if (!(instrument instanceof Guitar)) throw Error("Expected a guitar");
+    expect(instrument.type).toBe(StringInstrumentType.ElectricGuitar);
+    expect(instrument.tone).toBe(ElectricGuitarTone.Overdrive);
+    expect(instrument.stringsCount).toBe(7);
+    expect(instrument.getTuningStrSimple()).toBe("B F G# D G B F");
   });
 });

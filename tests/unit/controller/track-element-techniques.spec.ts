@@ -151,12 +151,6 @@ describe("TrackElement techniques", () => {
     const end = beatElements[1].noteElements[0] as TabNoteSlotElement;
     const path = start.techniqueElements[0].pathDescriptors?.[0]?.d ?? "";
     const [startX, , endX] = parsePathEndpoints(path);
-    const expectedEndX = end.selectionRect.left - start.globalCoords.x;
-
-    expect(startX).toBeCloseTo(
-      start.selectionRect.right - start.globalCoords.x
-    );
-    expect(endX).toBeCloseTo(expectedEndX);
     expect(startX + start.globalCoords.x).toBeCloseTo(
       start.selectionRect.right
     );
@@ -347,6 +341,10 @@ describe("TrackElement techniques", () => {
     if (sourceBeatElement === undefined) {
       throw Error("Expected the source beat on the first track line");
     }
+    const targetBeatElement = required(trackElement.getBeatElement(targetBeat));
+    expect(sourceBeatElement.owningTrackLineElement).not.toBe(
+      targetBeatElement.owningTrackLineElement
+    );
     for (const stringIndex of [0, 1]) {
       const sourceNoteElement = sourceBeatElement.noteElements[
         stringIndex
@@ -383,6 +381,10 @@ describe("TrackElement techniques", () => {
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
+    expect(
+      required(trackElement.getBeatElement(beats[0])).noteElements[0]
+        .techniqueElements[0].pathDescriptors
+    ).toHaveLength(1);
     nextNote.fret = null;
     trackElement.update();
 
@@ -394,7 +396,7 @@ describe("TrackElement techniques", () => {
     ).toBeUndefined();
   });
 
-  test("targeted inline technique update adds technique element diff", () => {
+  test("adding an inline slide updates its path and supports undo and redo", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -409,29 +411,52 @@ describe("TrackElement techniques", () => {
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
+    expect(
+      required(trackElement.getBeatElement(beats[0])).noteElements[0]
+        .techniqueElements
+    ).toHaveLength(0);
 
     const command = new SetTechniqueCommand([note], GuitarTechniqueType.Slide);
     command.execute();
-    {
-      trackElement.update();
-    }
+    trackElement.update();
 
-    const noteElement = trackElement.getBeatElement(beats[0])?.noteElements[0];
-    const techniqueElement = noteElement?.techniqueElements[0];
+    const noteElement = required(trackElement.getBeatElement(beats[0]))
+      .noteElements[0];
+    const techniqueElement = required(noteElement.techniqueElements[0]);
 
-    expect(command.affectedModels).toHaveLength(1);
-    expect(noteElement?.techniqueElements).toHaveLength(1);
-    expect(techniqueElement).toBeInstanceOf(GuitarTechniqueElement);
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: note.uuid },
+    ]);
+    expect(noteElement.techniqueElements).toHaveLength(1);
+    expect(techniqueElement.technique.type).toBe(GuitarTechniqueType.Slide);
+    const path = required(techniqueElement.pathDescriptors)[0].d;
+    const [startX, , endX] = parseLinePath(path);
+    const target = required(trackElement.getBeatElement(beats[1]))
+      .noteElements[0] as TabNoteSlotElement;
+    expect(startX + noteElement.globalCoords.x).toBeCloseTo(
+      (noteElement as TabNoteSlotElement).selectionRect.right
+    );
+    expect(endX + noteElement.globalCoords.x).toBeCloseTo(
+      target.selectionRect.left
+    );
     expect(
       trackElement.trackLineElements[0].ownedNotationNodes.some(
         (element) => element === techniqueElement
       )
     ).toBe(true);
+    command.undo();
+    trackElement.update();
     expect(
-      trackElement.elementDiff.added
-        .get(GuitarTechniqueElement)
-        ?.has(techniqueElement?.getStableIdentity() ?? "")
-    ).toBe(true);
+      required(trackElement.getBeatElement(beats[0])).noteElements[0]
+        .techniqueElements
+    ).toHaveLength(0);
+
+    command.redo();
+    trackElement.update();
+    const restored = required(trackElement.getBeatElement(beats[0]))
+      .noteElements[0].techniqueElements;
+    expect(restored).toHaveLength(1);
+    expect(required(restored[0].pathDescriptors)[0].d).toBe(path);
   });
 
   test("creates labels on all technique gap lines with stacked non-overlapping geometry", () => {
@@ -479,52 +504,40 @@ describe("TrackElement techniques", () => {
     const techGap =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
-    const line1 = techGap.techGapLines[1];
-    const line2 = techGap.techGapLines[2];
-    const line3 = techGap.techGapLines[3];
-
+    const lines = ([1, 2, 3] as const).map((v) =>
+      required(techGap.techGapLines[v])
+    );
     expect(techGap.boundingBox.height).toBe(
       TEST_LAYOUT_DIMENSIONS.techLabelHeight * 3
     );
-    expect(line1).not.toBeNull();
-    expect(line2).not.toBeNull();
-    expect(line3).not.toBeNull();
-    expect(line2?.boundingBox.y).toBeCloseTo(line1?.boundingBox.bottom ?? 0);
-    expect(line3?.boundingBox.y).toBeCloseTo(line2?.boundingBox.bottom ?? 0);
-    expect(line1?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.techLabelHeight
-    );
-    expect(line2?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.techLabelHeight
-    );
-    expect(line3?.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.techLabelHeight
-    );
-    expect(line1?.labelElements).toHaveLength(1);
-    expect(line2?.labelElements).toHaveLength(1);
-    expect(line3?.labelElements).toHaveLength(1);
+    for (const [index, line] of lines.entries()) {
+      expect(line.boundingBox.height).toBe(
+        TEST_LAYOUT_DIMENSIONS.techLabelHeight
+      );
+      expect(line.labelElements).toHaveLength(1);
+      const label = line.labelElements[0];
+      expect(label.technique.note).toBe(
+        [vibratoNote, palmMuteNote, bendNote][index]
+      );
+      expect(label.boundingBox.width).toBeCloseTo(
+        label.beatElement.boundingBox.width
+      );
+      if (index > 0) {
+        expect(line.boundingBox.y).toBeCloseTo(
+          lines[index - 1].boundingBox.bottom
+        );
+        expect(label.globalCoords.y).toBeGreaterThan(
+          lines[index - 1].labelElements[0].globalCoords.y
+        );
+      }
+    }
+    expect(lines[0].labelElements[0].pathDescriptors).toHaveLength(1);
     expect(
-      (line1?.labelElements[0].pathDescriptors?.length ?? 0) +
-        (line1?.labelElements[0].textDescriptors?.length ?? 0)
-    ).toBeGreaterThan(0);
+      lines[1].labelElements[0].textDescriptors?.map((v) => v.text)
+    ).toEqual(["P.M."]);
     expect(
-      (line2?.labelElements[0].pathDescriptors?.length ?? 0) +
-        (line2?.labelElements[0].textDescriptors?.length ?? 0)
-    ).toBeGreaterThan(0);
-    expect(
-      (line3?.labelElements[0].pathDescriptors?.length ?? 0) +
-        (line3?.labelElements[0].textDescriptors?.length ?? 0)
-    ).toBeGreaterThan(0);
-    expect(line1?.labelElements[0].boundingBox.width).toBeCloseTo(
-      line1?.labelElements[0].beatElement.boundingBox.width ?? 0
-    );
-    expect(line2?.labelElements[0].boundingBox.width).toBeCloseTo(
-      line2?.labelElements[0].beatElement.boundingBox.width ?? 0
-    );
-    expect(line3?.labelElements[0].boundingBox.width).toBeCloseTo(
-      line3?.labelElements[0].beatElement.boundingBox.width ?? 0
-    );
-    expect(line1?.labelElements[0].globalCoords.x).toBeGreaterThanOrEqual(0);
+      lines[2].labelElements[0].textDescriptors?.map((v) => v.text)
+    ).toEqual(["full"]);
   });
 
   test("renders Hold, Release, and Prebend/Bend inline elements", () => {
@@ -584,13 +597,55 @@ describe("TrackElement techniques", () => {
       .filter((element) => element instanceof GuitarTechniqueElement)
       .filter((element) => element.technique.type === GuitarTechniqueType.Bend);
     const elementFor = (type: BendType) =>
-      bendElements.find(
-        (element) => element.technique.bendOptions?.type === type
+      required(
+        bendElements.find(
+          (element) => element.technique.bendOptions?.type === type
+        )
       );
 
-    expect(elementFor(BendType.Hold)?.pathDescriptors).toEqual([]);
-    expect(elementFor(BendType.Release)?.pathDescriptors).toHaveLength(2);
-    expect(elementFor(BendType.PrebendBend)?.pathDescriptors).toHaveLength(4);
+    expect(bendElements).toHaveLength(3);
+    expect(elementFor(BendType.Hold).pathDescriptors).toEqual([]);
+    // A 46.8px beat has 11.7px quarters. The glyph ends at x=6.
+    // Strings 2 and 3 start 36px and 60px below the technique row.
+    const release = required(elementFor(BendType.Release).pathDescriptors);
+    const prebend = required(elementFor(BendType.PrebendBend).pathDescriptors);
+    expect(release).toHaveLength(2);
+    expect(prebend).toHaveLength(4);
+    expect(release[0].d).toContain(" C ");
+    expect(prebend[0].d).toContain(" l ");
+    expect(prebend[2].d).toContain(" C ");
+    const expectedPaths = [
+      [release[0], [6, -24, 29.4, -30, 29.4, 6, 29.4, 12]],
+      [prebend[0], [17.7, 12, 0, -60]],
+      [prebend[2], [17.7, -48, 29.4, -48, 29.4, -54, 29.4, -54]],
+    ] as const;
+    for (const [descriptor, expected] of expectedPaths) {
+      const numbers = parsePathNumbers(descriptor.d);
+      expect(numbers).toHaveLength(expected.length);
+      for (const [index, value] of expected.entries()) {
+        expect(numbers[index]).toBeCloseTo(value);
+      }
+    }
+    for (const [descriptor, x, y, tipY] of [
+      [release[1], 29.4, 12, 4],
+      [prebend[1], 17.7, -48, -4],
+      [prebend[3], 29.4, -54, -4],
+    ] as const) {
+      const numbers = parsePathNumbers(descriptor.d);
+      expect(numbers).toHaveLength(10);
+      expect(numbers[0]).toBeCloseTo(x);
+      expect(numbers[1]).toBeCloseTo(y);
+      expect(numbers.slice(2)).toEqual([
+        2.5,
+        0,
+        -2.5,
+        tipY,
+        -2.5,
+        -tipY,
+        2.5,
+        0,
+      ]);
+    }
   });
 
   test("constrains hold labels to adjacent short beat geometry", () => {
@@ -624,18 +679,24 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0];
     const barElement = styleLine.barElements[0];
-    const labels = (styleLine.techGapContainer.techGapLines[3]?.labelElements ??
-      []) as GuitarTechniqueLabelElement[];
+    const labels = required(
+      styleLine.techGapContainer.techGapLines[3]
+    ).labelElements;
 
     expect(labels).toHaveLength(3);
     for (const label of labels) {
-      const descriptor = label.textDescriptors?.[0];
-      const expectedX = `${label.boundingBox.width / 2}`;
+      if (!(label instanceof GuitarTechniqueLabelElement)) {
+        throw Error("Expected a guitar technique label");
+      }
+      const descriptor = required(label.textDescriptors?.[0]);
 
-      expect(descriptor?.attrs?.x).toBe(expectedX);
-      expect(Number(descriptor?.attrs?.textLength)).toBe(
-        label.boundingBox.width
-      );
+      // The short-beat minimum is 36px: center at 18px, fitted text 36px.
+      expect(label.boundingBox.width).toBe(36);
+      expect(descriptor.text).toBe("hold");
+      expect(descriptor.attrs?.x).toBe("18");
+      expect(descriptor.attrs?.textLength).toBe("36");
+      expect(descriptor.attrs?.["text-anchor"]).toBe("middle");
+      expect(descriptor.attrs?.lengthAdjust).toBe("spacingAndGlyphs");
       expect(label.barLocalBoundingBox.x).toBeGreaterThanOrEqual(0);
       expect(label.barLocalBoundingBox.right).toBeLessThanOrEqual(
         barElement.boundingBox.width
@@ -646,8 +707,10 @@ describe("TrackElement techniques", () => {
     }
   });
 
-  test("track element skeleton line stores final line height", () => {
+  test("predicts two technique rows before materializing the line", () => {
     const { track, bar } = createScoreGraph();
+    const baselineHeight = new TrackElement(track, TEST_LAYOUT_DIMENSIONS)
+      .height;
     const beat = bar.voiceBarsAsArray[0].beats[0];
     const vibratoNote = beat.notes?.[0];
     const palmMuteNote = beat.notes?.[1];
@@ -668,10 +731,20 @@ describe("TrackElement techniques", () => {
     );
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const predictedHeight =
+      trackElement.trackLineElements[0].boundingBox.height;
+    expect(predictedHeight).toBe(
+      baselineHeight + 2 * TEST_LAYOUT_DIMENSIONS.techLabelHeight
+    );
+    expect(trackElement.materializedLineIndices.size).toBe(0);
+
     trackElement.update();
 
     expect(trackElement.trackLineElements[0].skeletonLine.finalLineHeight).toBe(
-      trackElement.trackLineElements[0].boundingBox.height
+      predictedHeight
+    );
+    expect(trackElement.trackLineElements[0].boundingBox.height).toBe(
+      predictedHeight
     );
   });
 
@@ -683,7 +756,6 @@ describe("TrackElement techniques", () => {
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
-    const firstLineBefore = trackElement.trackLineElements[0];
     const secondLineBefore = trackElement.trackLineElements[1];
     const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {
@@ -708,21 +780,19 @@ describe("TrackElement techniques", () => {
       firstLineAfter.staffLineContainers[0].styleLinesAsArray[0]
         .techGapContainer;
 
-    expect(firstLineAfter).not.toBe(firstLineBefore);
-    expect(trackElement.trackLineElements[1]).not.toBe(secondLineBefore);
     expect(trackElement.trackLineElements[1].staffLineContainers).toEqual([]);
-    expect(trackElement.materializedLineIndices.has(0)).toBe(true);
-    expect(trackElement.materializedLineIndices.has(1)).toBe(false);
+    expect([...trackElement.materializedLineIndices]).toEqual([0]);
     expect(
       trackElement.getBeatElement(secondLineBeatElement.beat)
     ).toBeUndefined();
-    expect(trackElement.elementDiff.added.size).toBeGreaterThan(0);
     expect(firstLineAfter.skeletonLine.finalLineHeight).toBe(
       firstLineAfter.boundingBox.height
     );
     expect(firstLineTechGap.boundingBox.height).toBe(
       TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
+    const label = required(firstLineTechGap.techGapLines[1]?.labelElements[0]);
+    expect(label.technique).toBe(note.techniques[0]);
   });
 
   test("update rejects inverted non-empty line ranges", () => {
@@ -736,7 +806,7 @@ describe("TrackElement techniques", () => {
     ).toThrow("Invalid track element update range");
   });
 
-  test("targeted label technique update refreshes tech gap height facts", () => {
+  test("adding and removing a label expands and collapses the technique gap", () => {
     const { track, bar } = createScoreGraph();
     const note = bar.voiceBarsAsArray[0].beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {
@@ -764,6 +834,17 @@ describe("TrackElement techniques", () => {
     expect(afterTechGap.boundingBox.height).toBe(
       TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
+    expect(required(afterTechGap.techGapLines[1]).labelElements).toHaveLength(
+      1
+    );
+
+    command.undo();
+    trackElement.update();
+    const clearedGap =
+      trackElement.trackLineElements[0].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer;
+    expect(clearedGap.boundingBox.height).toBe(0);
+    expect(required(clearedGap.techGapLines[1]).labelElements).toEqual([]);
   });
 
   test("non-contiguous technique rows still use compact label positions", () => {
@@ -801,19 +882,26 @@ describe("TrackElement techniques", () => {
     const techGap =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
-    const line1 = techGap.techGapLines[1];
-    const line3 = techGap.techGapLines[3];
+    const line1 = required(techGap.techGapLines[1]);
+    const line3 = required(techGap.techGapLines[3]);
 
     expect(techGap.boundingBox.height).toBe(
       TEST_LAYOUT_DIMENSIONS.techLabelHeight * 2
     );
-    expect(line3?.boundingBox.y).toBeCloseTo(line1?.boundingBox.bottom ?? 0);
+    expect(required(techGap.techGapLines[2]).labelElements).toEqual([]);
+    expect(line1.labelElements).toHaveLength(1);
+    expect(line3.labelElements).toHaveLength(1);
+    expect(line3.boundingBox.y).toBeCloseTo(line1.boundingBox.bottom);
   });
 
   test("joins adjacent mixed-duration vibratos smoothly", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.SixtyFourth },
       { baseDuration: NoteDuration.Eighth, dots: 1 },
+      {
+        baseDuration: NoteDuration.Quarter,
+        tupletSettings: { normalCount: 3, tupletCount: 2 },
+      },
       {
         baseDuration: NoteDuration.Quarter,
         tupletSettings: { normalCount: 3, tupletCount: 2 },
@@ -837,51 +925,53 @@ describe("TrackElement techniques", () => {
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
-    const initialLabels =
+    const initialLabels = required(
       trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].techGapContainer.techGapLines[1]?.labelElements ??
-      [];
-    const initialFirstPath = initialLabels[0]?.pathDescriptors?.[0]?.d;
+        .styleLinesAsArray[0].techGapContainer.techGapLines[1]
+    ).labelElements;
+    expect(initialLabels).toHaveLength(2);
+    const initialFirstPath = required(initialLabels[0].pathDescriptors)[0].d;
 
     notes[1].addTechnique(
       new GuitarTechnique(notes[1], GuitarTechniqueType.Vibrato)
     );
     trackElement.update();
-    const labels =
+    const labels = required(
       trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].techGapContainer.techGapLines[1]?.labelElements ??
-      [];
+        .styleLinesAsArray[0].techGapContainer.techGapLines[1]
+    ).labelElements;
+    expect(labels).toHaveLength(3);
     const vibratos = labels.map((label) =>
-      parseVibratoPath(label.pathDescriptors?.[0]?.d ?? "")
+      parseVibratoPath(required(label.pathDescriptors)[0].d)
     );
-    const expectedSegmentWidth = TEST_LAYOUT_DIMENSIONS.techLabelHeight / 12;
     const interiorWidths = vibratos.flatMap((vibrato) =>
       vibrato.segments.slice(1, -1).map((segment, index) => {
         const previousEndX = vibrato.segments[index][4];
         return segment[4] - previousEndX;
       })
     );
-    const hasFixedSegmentWidths = interiorWidths.every(
-      (width) => Math.abs(width - expectedSegmentWidth) < 0.00001
-    );
     const endpointYs = vibratos.flatMap((vibrato) =>
       vibrato.segments.map((segment) => segment[5])
     );
     const vibratoHeight = Math.max(...endpointYs) - Math.min(...endpointYs);
-    const expectedHeight = TEST_LAYOUT_DIMENSIONS.techLabelHeight / 6;
-    const finalFirstPath = labels[0]?.pathDescriptors?.[0]?.d;
+    const finalFirstPath = required(labels[0].pathDescriptors)[0].d;
 
-    expect(labels).toHaveLength(3);
     expect(finalFirstPath).toBe(initialFirstPath);
-    expect(hasFixedSegmentWidths).toBe(true);
-    expect(vibratoHeight).toBeCloseTo(expectedHeight);
+    // The standard layout has 2px half-waves and a 4px peak-to-peak height.
+    expect(interiorWidths.length).toBeGreaterThan(0);
+    for (const width of interiorWidths) expect(width).toBeCloseTo(2, 5);
+    expect(vibratoHeight).toBeCloseTo(4);
+    for (const vibrato of vibratos)
+      expect(vibrato.segments.length).toBeGreaterThan(1);
     for (let i = 0; i < labels.length - 1; i++) {
       const left = vibratos[i];
       const right = vibratos[i + 1];
       const leftEnd = left.segments[left.segments.length - 1];
       const rightFirst = right.segments[0];
-      const leftOriginX = labels[i].descriptorOriginLineLocal.x;
-      const rightOriginX = labels[i + 1].descriptorOriginLineLocal.x;
+      const leftOrigin = labels[i].descriptorOriginLineLocal;
+      const rightOrigin = labels[i + 1].descriptorOriginLineLocal;
+      const leftOriginX = leftOrigin.x;
+      const rightOriginX = rightOrigin.x;
       const leftEndX = leftOriginX + leftEnd[4];
       const rightStartX = rightOriginX + right.start[0];
       const incomingSlope =
@@ -890,7 +980,9 @@ describe("TrackElement techniques", () => {
         (rightFirst[1] - right.start[1]) / (rightFirst[0] - right.start[0]);
 
       expect(leftEndX).toBeCloseTo(rightStartX);
-      expect(leftEnd[5]).toBeCloseTo(right.start[1]);
+      expect(leftOrigin.y + leftEnd[5]).toBeCloseTo(
+        rightOrigin.y + right.start[1]
+      );
       expect(incomingSlope).toBeCloseTo(outgoingSlope);
     }
   });
@@ -905,6 +997,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["full"],
+      [173.7],
     ],
     [
       "Prebend",
@@ -914,6 +1007,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["½"],
+      [162],
     ],
     [
       "Bend/Release",
@@ -925,6 +1019,7 @@ describe("TrackElement techniques", () => {
       }),
       [1, 3],
       ["full", "full"],
+      [173.7, 185.4],
     ],
     [
       "Prebend/Release",
@@ -936,6 +1031,7 @@ describe("TrackElement techniques", () => {
       }),
       [1, 3],
       ["full", "½"],
+      [162, 173.7],
     ],
     [
       "Release",
@@ -946,6 +1042,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["½"],
+      [173.7],
     ],
     [
       "Prebend/Bend",
@@ -957,10 +1054,11 @@ describe("TrackElement techniques", () => {
       }),
       [1, 3],
       ["½", "full"],
+      [162, 173.7],
     ],
   ])(
     "centers %s pitch labels on their inline curve endpoints",
-    (_, options, arrowIndexes, expectedTexts) => {
+    (_, options, arrowIndexes, expectedTexts, expectedXs) => {
       const { track, beats } = createBarWithBeats([
         { baseDuration: NoteDuration.Quarter },
         { baseDuration: NoteDuration.Quarter },
@@ -992,24 +1090,32 @@ describe("TrackElement techniques", () => {
       const textDescriptors = bendLabel.textDescriptors ?? [];
       const actualTexts = textDescriptors.map((descriptor) => descriptor.text);
 
-      expect(beatElement.barLocalCoords.x).toBeGreaterThan(0);
+      // This quarter beat starts at bar x=144.3 and has a 46.8px slot.
+      // From the glyph's right edge at x=150.3, quarter/half/three-quarter
+      // endpoints are x=162, 173.7, 185.4, independently of label placement.
+      expect(beatElement.barLocalCoords.x).toBeCloseTo(144.3);
+      expect(beatElement.boundingBox.width).toBeCloseTo(46.8);
       expect(actualTexts).toEqual(expectedTexts);
       expect(bendLabel.pathDescriptors).toEqual([]);
       for (let i = 0; i < arrowIndexes.length; i++) {
-        const arrowPath =
-          bendElement.pathDescriptors?.[arrowIndexes[i]]?.d ?? "";
-        const arrowLocalX = parsePathNumbers(arrowPath)[0];
+        const arrowPath = required(bendElement.pathDescriptors)[arrowIndexes[i]]
+          .d;
+        const numbers = parsePathNumbers(arrowPath);
+        expect(numbers).toHaveLength(10);
+        const arrowLocalX = numbers[0];
         const labelLocalX = Number(textDescriptors[i]?.attrs?.x);
         const arrowX = bendElement.pathOriginBarLocal.x + arrowLocalX;
         const labelX = bendLabel.descriptorOriginBarLocal.x + labelLocalX;
 
         expect(textDescriptors[i]?.attrs?.["text-anchor"]).toBe("middle");
+        expect(arrowX).toBeCloseTo(expectedXs[i]);
+        expect(labelX).toBeCloseTo(expectedXs[i]);
         expect(labelX).toBeCloseTo(arrowX);
       }
     }
   );
 
-  test("no-op update rebuilds technique gap shells", () => {
+  test("no-op update preserves technique label identities and geometry", () => {
     const { track, bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -1048,12 +1154,17 @@ describe("TrackElement techniques", () => {
     const techGap =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
-    const line1 = techGap.techGapLines[1];
-    const line3 = techGap.techGapLines[3];
-    const line1Label = line1?.labelElements[0];
-    const line3Label = line3?.labelElements[0];
-    const line1LabelIdentity = line1Label?.getStableIdentity();
-    const line3LabelIdentity = line3Label?.getStableIdentity();
+    const line1Label = required(techGap.techGapLines[1]?.labelElements[0]);
+    const line3Label = required(techGap.techGapLines[3]?.labelElements[0]);
+    const beforeLabels = [line1Label, line3Label].map((v) => ({
+      identity: v.getStableIdentity(),
+      technique: v.technique,
+      bounds: v.globalBoundingBox,
+    }));
+    expect(beforeLabels.map((v) => v.technique)).toEqual([
+      vibratoNote.techniques[0],
+      bendNote.techniques[0],
+    ]);
 
     trackElement.update();
 
@@ -1061,17 +1172,20 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
 
-    expect(nextTechGap).not.toBe(techGap);
-    expect(nextTechGap.techGapLines[1]).not.toBe(line1);
-    expect(nextTechGap.techGapLines[3]).not.toBe(line3);
-    expect(nextTechGap.techGapLines[1]?.labelElements[0]).not.toBe(line1Label);
-    expect(nextTechGap.techGapLines[3]?.labelElements[0]).not.toBe(line3Label);
+    const nextLabels = [
+      required(nextTechGap.techGapLines[1]?.labelElements[0]),
+      required(nextTechGap.techGapLines[3]?.labelElements[0]),
+    ];
     expect(
-      nextTechGap.techGapLines[1]?.labelElements[0]?.getStableIdentity()
-    ).toBe(line1LabelIdentity);
-    expect(
-      nextTechGap.techGapLines[3]?.labelElements[0]?.getStableIdentity()
-    ).toBe(line3LabelIdentity);
+      nextLabels.map((v) => ({
+        identity: v.getStableIdentity(),
+        technique: v.technique,
+        bounds: v.globalBoundingBox,
+      }))
+    ).toEqual(beforeLabels);
+    expect(nextTechGap.boundingBox.height).toBe(
+      2 * TEST_LAYOUT_DIMENSIONS.techLabelHeight
+    );
   });
 
   test("ownedNotationNodes includes technique gap subtree nodes", () => {
@@ -1089,51 +1203,39 @@ describe("TrackElement techniques", () => {
       lineRange: { startLineIndex: 0, endLineIndex: 0 },
     });
 
-    const ownedElements = trackElement.trackLineElements[0].ownedNotationNodes;
+    const line = trackElement.trackLineElements[0];
+    const techGap =
+      line.staffLineContainers[0].styleLinesAsArray[0].techGapContainer;
+    const gapLines = techGap.techGapLinesAsArray;
+    const label = required(techGap.techGapLines[1]?.labelElements[0]);
+    expect(label.technique).toBe(note.techniques[0]);
 
     expect(
-      ownedElements.some((element) => element instanceof TechGapContainer)
-    ).toBe(true);
+      line.ownedNotationNodes.filter((v) => v instanceof TechGapContainer)
+    ).toEqual([techGap]);
     expect(
-      ownedElements.some((element) => element instanceof TechGapLineContainer)
-    ).toBe(true);
+      line.ownedNotationNodes.filter((v) => v instanceof TechGapLineContainer)
+    ).toEqual(gapLines);
     expect(
-      ownedElements.some(
-        (element) => element instanceof GuitarTechniqueLabelElement
+      line.ownedNotationNodes.filter(
+        (v) => v instanceof GuitarTechniqueLabelElement
       )
-    ).toBe(true);
+    ).toEqual([label]);
+    expect(
+      line.drawableNotationElements.filter(
+        (v) => v instanceof GuitarTechniqueLabelElement
+      )
+    ).toEqual([label]);
 
-    const drawableElements =
-      trackElement.trackLineElements[0].drawableNotationElements;
-    expect(
-      drawableElements.some((element) => element instanceof TechGapContainer)
-    ).toBe(false);
-    expect(
-      drawableElements.some(
-        (element) => element instanceof TechGapLineContainer
-      )
-    ).toBe(false);
-    expect(
-      drawableElements.some(
-        (element) => element instanceof GuitarTechniqueLabelElement
-      )
-    ).toBe(true);
-
-    const techGapNode = ownedElements.find(
-      (element) => element instanceof TechGapContainer
-    );
-    const labelNode = ownedElements.find(
-      (element) => element instanceof GuitarTechniqueLabelElement
-    );
-    expect(techGapNode).toBeDefined();
-    expect(labelNode).toBeDefined();
-    if (techGapNode === undefined || labelNode === undefined) {
-      throw Error("Expected technique gap and label nodes");
+    for (const container of [techGap, ...gapLines]) {
+      expect(isNotationContainer(container)).toBe(true);
+      expect(isNotationElement(container)).toBe(false);
+      expect(container.owningTrackLineElement).toBe(line);
+      expect(line.drawableNotationElements).not.toContain(container);
     }
-    expect(isNotationContainer(techGapNode)).toBe(true);
-    expect(isNotationElement(techGapNode)).toBe(false);
-    expect(isNotationElement(labelNode)).toBe(true);
-    expect(isNotationContainer(labelNode)).toBe(false);
+    expect(isNotationElement(label)).toBe(true);
+    expect(isNotationContainer(label)).toBe(false);
+    expect(label.owningTrackLineElement).toBe(line);
   });
 
   test("ownedNotationNodes updates after line rematerialization", () => {
@@ -1144,6 +1246,7 @@ describe("TrackElement techniques", () => {
     }
     note.fret = 5;
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
 
     expect(
       trackElement.trackLineElements[0].ownedNotationNodes.some(
@@ -1158,11 +1261,27 @@ describe("TrackElement techniques", () => {
       lineRange: { startLineIndex: 0, endLineIndex: 0 },
     });
 
+    const line = trackElement.trackLineElements[0];
+    const techniques = line.ownedNotationNodes.filter(
+      (v) => v instanceof GuitarTechniqueElement
+    );
+    expect(techniques).toHaveLength(1);
+    const technique = required(techniques[0]);
+    expect(technique.technique).toBe(note.techniques[0]);
+    expect(technique.owningTrackLineElement).toBe(line);
+    expect(line.drawableNotationElements).toContain(technique);
+
+    note.removeTechnique(GuitarTechniqueType.NaturalHarmonic);
+    trackElement.update({ lineRange: { startLineIndex: 0, endLineIndex: 0 } });
+
+    const nextLine = trackElement.trackLineElements[0];
+    expect(nextLine.ownedNotationNodes).not.toContain(technique);
     expect(
-      trackElement.trackLineElements[0].ownedNotationNodes.some(
-        (element) => element instanceof GuitarTechniqueElement
+      nextLine.ownedNotationNodes.filter(
+        (v) => v instanceof GuitarTechniqueElement
       )
-    ).toBe(true);
+    ).toEqual([]);
+    expect(nextLine.drawableNotationElements).not.toContain(technique);
   });
 
   test("adding a second technique gap line preserves distinct label y positions", () => {
@@ -1198,31 +1317,32 @@ describe("TrackElement techniques", () => {
     const techGap =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
-    const vibratoLine = techGap.techGapLines[1];
-    const palmMuteLine = techGap.techGapLines[2];
-    const vibratoLabel = vibratoLine?.labelElements[0];
-    const palmMuteLabel = palmMuteLine?.labelElements[0];
+    const vibratoLine = required(techGap.techGapLines[1]);
+    const palmMuteLine = required(techGap.techGapLines[2]);
+    const vibratoLabel = required(vibratoLine.labelElements[0]);
+    const palmMuteLabel = required(palmMuteLine.labelElements[0]);
 
-    expect(vibratoLine).not.toBeNull();
-    expect(palmMuteLine).not.toBeNull();
-    expect(vibratoLabel).toBeDefined();
-    expect(palmMuteLabel).toBeDefined();
-    expect(vibratoLine?.boundingBox.height).toBe(
+    expect(vibratoLabel.technique.note).toBe(vibratoNote);
+    expect(palmMuteLabel.technique.note).toBe(palmMuteNote);
+    expect(vibratoLine.boundingBox.height).toBe(
       TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
-    expect(palmMuteLine?.boundingBox.height).toBe(
+    expect(palmMuteLine.boundingBox.height).toBe(
       TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
-    expect(palmMuteLine?.boundingBox.y).toBeCloseTo(
-      vibratoLine?.boundingBox.bottom ?? 0
+    expect(palmMuteLine.boundingBox.y).toBeCloseTo(
+      vibratoLine.boundingBox.bottom
     );
-    expect(palmMuteLabel?.globalCoords.y).toBeGreaterThan(
-      vibratoLabel?.globalCoords.y ?? 0
+    expect(palmMuteLabel.globalCoords.y).toBeGreaterThan(
+      vibratoLabel.globalCoords.y
     );
   });
 
-  test("palm mute label stays centered after justified width recalculation", () => {
-    const { score, track } = createScoreGraph();
+  test("palm mute label stays centered on its note after justified width recalculation", () => {
+    const { score, track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
@@ -1231,7 +1351,7 @@ describe("TrackElement techniques", () => {
     if (firstVoiceBar === null) {
       throw Error("Expected voice 1 in first bar");
     }
-    const palmMuteNote = firstVoiceBar.beats[0].notes?.[0];
+    const palmMuteNote = beats[1].notes?.[0];
     if (!(palmMuteNote instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
@@ -1242,53 +1362,67 @@ describe("TrackElement techniques", () => {
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
+    const originalBeat = required(trackElement.getBeatElement(beats[1]));
+    const originalX = originalBeat.barLocalCoords.x;
+    const originalWidth = originalBeat.boundingBox.width;
 
     firstVoiceBar.beats[0].baseDuration = NoteDuration.Eighth;
     firstVoiceBar.rebuildTiming();
     trackElement.update();
 
-    const beatElement =
+    const beatElement = required(trackElement.getBeatElement(beats[1]));
+    const palmMuteLabel = required(
       trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].barElements[0].beatElements[0];
-    const palmMuteLabel =
-      trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].techGapContainer.techGapLines[2]
-        ?.labelElements[0];
-    const descriptorX = Number(
-      palmMuteLabel?.textDescriptors?.[0]?.attrs?.x ?? 0
+        .styleLinesAsArray[0].techGapContainer.techGapLines[2]?.labelElements[0]
     );
-    const descriptorAnchor =
-      palmMuteLabel?.textDescriptors?.[0]?.attrs?.["text-anchor"];
-    const expectedX = 0;
+    const descriptor = required(palmMuteLabel.textDescriptors?.[0]);
+    const textX =
+      palmMuteLabel.descriptorOriginBarLocal.x + Number(descriptor.attrs?.x);
+    const noteElement = beatElement.noteElements[0] as TabNoteSlotElement;
+    const noteCenterX =
+      noteElement.selectionRect.x +
+      noteElement.selectionRect.width / 2 -
+      beatElement.barElement.globalCoords.x;
 
-    expect(palmMuteLabel).toBeDefined();
-    expect(descriptorAnchor).toBe("middle");
-    expect(descriptorX).toBeCloseTo(expectedX);
-    expect(palmMuteLabel?.boundingBox.width).toBeCloseTo(
+    expect(descriptor.text).toBe("P.M.");
+    expect(beatElement.barLocalCoords.x).not.toBeCloseTo(originalX);
+    expect(beatElement.boundingBox.width).not.toBeCloseTo(originalWidth);
+    expect(descriptor.attrs?.["text-anchor"]).toBe("middle");
+    expect(textX).toBeCloseTo(noteCenterX);
+    expect(palmMuteLabel.boundingBox.width).toBeCloseTo(
       beatElement.boundingBox.width
     );
   });
 
-  test("let ring renders an LR label on each applied note", () => {
-    const { track, bar } = createScoreGraph();
-    const voiceBar = bar.getVoiceBar(1);
-    const note = voiceBar?.beats[0].notes?.[0];
-    if (!(note instanceof GuitarNote)) {
-      throw Error("Expected guitar note in test beat");
+  test("let ring renders one shared LR label per applied beat", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const notes = [
+      required(beats[0].notes)[0],
+      required(beats[0].notes)[1],
+      required(beats[1].notes)[0],
+    ] as GuitarNote[];
+    for (const note of notes) {
+      note.fret = 5;
+      note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     }
-    note.fret = 5;
-    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
-    const label =
+    const labels = required(
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer.techGapLines[2]
-        ?.labelElements[0];
+    ).labelElements;
 
-    expect(label?.textDescriptors).toHaveLength(1);
-    expect(label?.textDescriptors?.[0].text).toBe("LR");
+    expect(labels).toHaveLength(2);
+    expect(labels.map((v) => v.beatElement.beat)).toEqual(beats);
+    expect(labels.map((v) => v.textDescriptors?.map((d) => d.text))).toEqual([
+      ["LR"],
+      ["LR"],
+    ]);
   });
 
   test("re-adding vibrato after removal keeps palm mute label registered and separated", () => {
@@ -1325,6 +1459,17 @@ describe("TrackElement techniques", () => {
     trackElement.update();
     ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.Vibrato);
     trackElement.update();
+    const afterRemovalGap =
+      trackElement.trackLineElements[1].staffLineContainers[0]
+        .styleLinesAsArray[0].techGapContainer;
+    expect(required(afterRemovalGap.techGapLines[1]).labelElements).toEqual([]);
+    expect(
+      required(afterRemovalGap.techGapLines[2]).labelElements
+    ).toHaveLength(1);
+    expect(afterRemovalGap.boundingBox.height).toBe(
+      TEST_LAYOUT_DIMENSIONS.techLabelHeight
+    );
+
     ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.Vibrato);
     trackElement.update();
 
@@ -1333,13 +1478,13 @@ describe("TrackElement techniques", () => {
         .styleLinesAsArray[0];
     const line1 = secondLineStyle.techGapContainer.techGapLines[1];
     const line2 = secondLineStyle.techGapContainer.techGapLines[2];
-    const vibratoLabel = line1?.labelElements[0];
-    const palmMuteLabel = line2?.labelElements[0];
+    const vibratoLabel = required(line1?.labelElements[0]);
+    const palmMuteLabel = required(line2?.labelElements[0]);
 
-    expect(vibratoLabel).toBeDefined();
-    expect(palmMuteLabel).toBeDefined();
-    expect(vibratoLabel?.globalCoords.y).toBeLessThan(
-      palmMuteLabel?.globalCoords.y ?? 0
+    expect(vibratoLabel.technique.note).toBe(note);
+    expect(palmMuteLabel.technique.note).toBe(note);
+    expect(vibratoLabel.globalCoords.y).toBeLessThan(
+      palmMuteLabel.globalCoords.y
     );
     expect(
       trackElement.trackLineElements

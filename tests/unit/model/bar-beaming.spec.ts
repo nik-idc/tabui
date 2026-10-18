@@ -31,10 +31,8 @@ describe("Bar beaming", () => {
       voiceBar.replaceBeats(beats);
 
       expect(voiceBar.getActualBarDuration()).toBe(meterDuration);
-      expect(beats.map((beat) => beat.beamGroupId)).toEqual(
-        Array(beatCount).fill(0)
-      );
-      expect(beats.map((beat) => beat.lastInBeamGroup)).toEqual([
+      expect(beats.map((b) => b.beamGroupId)).toEqual(Array(beatCount).fill(0));
+      expect(beats.map((b) => b.lastInBeamGroup)).toEqual([
         ...Array(beatCount - 1).fill(false),
         true,
       ]);
@@ -53,10 +51,8 @@ describe("Bar beaming", () => {
       { baseDuration: NoteDuration.Eighth },
     ]);
 
-    expect(beats.map((beat) => beat.beamGroupId)).toEqual([
-      0, 0, 1, 1, 2, 2, 3, 3,
-    ]);
-    expect(beats.map((beat) => beat.lastInBeamGroup)).toEqual([
+    expect(beats.map((b) => b.beamGroupId)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
+    expect(beats.map((b) => b.lastInBeamGroup)).toEqual([
       false,
       true,
       false,
@@ -132,10 +128,16 @@ describe("Bar beaming", () => {
       }
     );
 
-    expect(beats[0].beamGroupId).not.toBeNull();
-    expect(beats[4].beamGroupId).not.toBeNull();
-    expect(beats[0].beamGroupId).not.toBe(beats[4].beamGroupId);
-    expect([beats[0].beamGroupId, beats[4].beamGroupId]).toEqual([0, 1]);
+    expect(beats.map((b) => b.beamGroupId)).toEqual([0, 0, 0, null, 1, 1, 1]);
+    expect(beats.map((b) => b.lastInBeamGroup)).toEqual([
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+    ]);
   });
 
   test("unbeamed beats do not get stray last-in-group markers", () => {
@@ -146,8 +148,13 @@ describe("Bar beaming", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
 
-    expect(beats.every((beat) => beat.beamGroupId === null)).toBe(true);
-    expect(beats.every((beat) => beat.lastInBeamGroup === false)).toBe(true);
+    expect(beats.map((b) => b.beamGroupId)).toEqual([null, null, null, null]);
+    expect(beats.map((b) => b.lastInBeamGroup)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
   });
 
   test("single-beat bars expose no beaming groups or metadata", () => {
@@ -180,7 +187,7 @@ describe("Bar beaming", () => {
       }
     );
 
-    expect(beats.map((beat) => beat.beamGroupId)).toEqual([0, 0, 1, 1, 2, 2]);
+    expect(beats.map((b) => b.beamGroupId)).toEqual([0, 0, 1, 1, 2, 2]);
   });
 
   test("6/8 beaming groups eighth notes in compound pulses", () => {
@@ -203,7 +210,7 @@ describe("Bar beaming", () => {
       }
     );
 
-    expect(beats.map((beat) => beat.beamGroupId)).toEqual([0, 0, 0, 1, 1, 1]);
+    expect(beats.map((b) => b.beamGroupId)).toEqual([0, 0, 0, 1, 1, 1]);
   });
 
   test("mixed eighth and sixteenth durations keep dense beam IDs", () => {
@@ -222,12 +229,12 @@ describe("Bar beaming", () => {
       { baseDuration: NoteDuration.Sixteenth },
     ]);
 
-    expect(beats.map((beat) => beat.beamGroupId)).toEqual([
+    expect(beats.map((b) => b.beamGroupId)).toEqual([
       0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3,
     ]);
   });
 
-  test("13/8 creates deterministic beam groups", () => {
+  test("13/8 groups four compound pulses and leaves the final eighth unbeamed", () => {
     const { beats } = createBarWithBeats(
       [
         { baseDuration: NoteDuration.Eighth },
@@ -254,7 +261,7 @@ describe("Bar beaming", () => {
       }
     );
 
-    expect(beats.map((beat) => beat.beamGroupId)).toEqual([
+    expect(beats.map((b) => b.beamGroupId)).toEqual([
       0,
       0,
       0,
@@ -269,9 +276,20 @@ describe("Bar beaming", () => {
       3,
       null,
     ]);
-    expect(beats[2].lastInBeamGroup).toBe(true);
-    expect(beats[5].lastInBeamGroup).toBe(true);
-    expect(beats[8].lastInBeamGroup).toBe(true);
-    expect(beats[11].lastInBeamGroup).toBe(true);
+    expect(beats.map((b) => b.lastInBeamGroup)).toEqual([
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+    ]);
   });
 });

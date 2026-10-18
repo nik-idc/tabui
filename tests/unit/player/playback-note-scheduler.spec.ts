@@ -1,36 +1,33 @@
 import {
   BendTechniqueOptions,
   BendType,
+  ElectricGuitarTone,
+  Guitar,
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
   NoteDuration,
   NoteValue,
-  getNoteFrequency,
 } from "../../../src/notation/model";
 import { PlaybackNoteScheduler } from "../../../src/player/playback-note-scheduler";
+import { PlaybackSampleManager } from "../../../src/player/playback-sample-manager";
 import { createBarWithBeats } from "../model/helpers";
 
-type MockParam = {
+type RecordedAudioParam = {
   value: number;
   setValueAtTime: jest.Mock<void, [number, number]>;
   linearRampToValueAtTime: jest.Mock<void, [number, number]>;
 };
 
-function createParam(value = 0): MockParam {
-  const param: MockParam = {
+function createParam(value = 0): RecordedAudioParam {
+  return {
     value,
-    setValueAtTime: jest.fn((next: number, _time: number) => {
-      param.value = next;
-    }),
-    linearRampToValueAtTime: jest.fn((next: number, _time: number) => {
-      param.value = next;
-    }),
+    setValueAtTime: jest.fn(),
+    linearRampToValueAtTime: jest.fn(),
   };
-  return param;
 }
 
-function createAudioContext() {
+function createAudioContext(startError?: Error, currentTime = 0) {
   const oscillators: Array<{
     type: OscillatorType;
     frequency: ReturnType<typeof createParam>;
@@ -53,12 +50,14 @@ function createAudioContext() {
     disconnect: jest.Mock;
   }> = [];
   const context = {
-    currentTime: 0,
+    currentTime,
     createOscillator: jest.fn(() => {
       const oscillator = {
         type: "sine" as OscillatorType,
         frequency: createParam(),
-        start: jest.fn(),
+        start: jest.fn(() => {
+          if (startError !== undefined) throw startError;
+        }),
         stop: jest.fn(),
         connect: jest.fn(),
         disconnect: jest.fn(),
@@ -91,28 +90,24 @@ function createAudioContext() {
   return { context, oscillators, gains, bufferSources };
 }
 
-function firstNote(): GuitarNote {
-  const { beats } = createBarWithBeats([
-    { baseDuration: NoteDuration.Quarter },
-  ]);
-  beats[0].makeBeatWithNotes();
-  const note = beats[0].notes?.[0];
-  if (!(note instanceof GuitarNote)) {
-    throw Error("Expected note");
-  }
-  note.fret = 0;
-  return note;
+function notesAtFrets(...frets: number[]): GuitarNote[] {
+  const { beats } = createBarWithBeats(
+    frets.map(() => ({ baseDuration: NoteDuration.Quarter }))
+  );
+  return beats.map((b, i) => {
+    b.makeBeatWithNotes();
+    const note = b.notes?.[0];
+    if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
+    note.fret = frets[i];
+    return note;
+  });
 }
 
-function scheduler(
-  context: AudioContext,
-  sample?: AudioBuffer,
-  rootFrequency?: number
-): PlaybackNoteScheduler {
-  return new PlaybackNoteScheduler(context, {
-    getSample: jest.fn(() => sample),
-    getRootFrequency: jest.fn(() => rootFrequency),
-  } as unknown as ConstructorParameters<typeof PlaybackNoteScheduler>[1]);
+function scheduler(context: AudioContext): PlaybackNoteScheduler {
+  return new PlaybackNoteScheduler(
+    context,
+    new PlaybackSampleManager(context, {})
+  );
 }
 
 function trackBus() {
@@ -122,32 +117,77 @@ function trackBus() {
 }
 
 describe("PlaybackNoteScheduler", () => {
-  test("uses an oscillator fallback with a complete envelope", () => {
-    const note = firstNote();
-    const audio = createAudioContext();
+  const originalFetch = Object.getOwnPropertyDescriptor(globalThis, "fetch");
 
-    const scheduled = scheduler(audio.context).scheduleNote(
-      note,
-      1,
-      1.5,
-      trackBus()
-    );
-
-    expect(scheduled).not.toBeNull();
-    expect(audio.oscillators[0].frequency.value).toBe(getNoteFrequency(note));
-    expect(audio.oscillators[0].start).toHaveBeenCalledWith(1);
-    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.5);
-    expect(audio.gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
-      expect.any(Number),
-      1.01
-    );
-    expect(
-      audio.gains[0].gain.linearRampToValueAtTime
-    ).toHaveBeenLastCalledWith(0, 1.5);
+  afterEach(() => {
+    if (originalFetch === undefined) {
+      Reflect.deleteProperty(globalThis, "fetch");
+    } else {
+      Object.defineProperty(globalThis, "fetch", originalFetch);
+    }
   });
 
+  test.each([
+    {
+      tone: ElectricGuitarTone.Clean,
+      waveform: "sine",
+      peak: 0.0648,
+      attack: 1.01,
+      release: 1.48,
+    },
+    {
+      tone: ElectricGuitarTone.Distortion,
+      waveform: "sawtooth",
+      peak: 0.05832,
+      attack: 1.0085,
+      release: 1.476,
+    },
+  ])(
+    "uses the $tone oscillator profile with a complete envelope",
+    ({ tone, waveform, peak, attack, release }) => {
+      // Standard guitar string 1, fret 5 is A4 (440 Hz).
+      const [note] = notesAtFrets(5);
+      note.beat.voiceBar.bar.staff.track.setInstrument(
+        new Guitar(undefined, tone)
+      );
+      const audio = createAudioContext();
+      const bus = trackBus();
+
+      const scheduled = scheduler(audio.context).scheduleNote(
+        note,
+        1,
+        1.5,
+        bus
+      );
+
+      expect(scheduled).toEqual({
+        sourceNode: audio.oscillators[0],
+        gainNode: audio.gains[0],
+        track: note.beat.voiceBar.bar.staff.track,
+        startTime: 1,
+      });
+      expect(audio.oscillators[0].type).toBe(waveform);
+      expect(
+        audio.oscillators[0].frequency.setValueAtTime
+      ).toHaveBeenCalledWith(440, 1);
+      expect(audio.oscillators[0].connect).toHaveBeenCalledWith(audio.gains[0]);
+      expect(audio.gains[0].connect).toHaveBeenCalledWith(bus.gainNode);
+      expect(audio.oscillators[0].start).toHaveBeenCalledWith(1);
+      expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.5);
+      // The clean downbeat is 0.0648; distortion softens it to 0.05832.
+      expect(audio.gains[0].gain.setValueAtTime.mock.calls).toEqual([
+        [0, 1],
+        [expect.closeTo(peak, 8), release],
+      ]);
+      expect(audio.gains[0].gain.linearRampToValueAtTime.mock.calls).toEqual([
+        [expect.closeTo(peak, 8), attack],
+        [0, 1.5],
+      ]);
+    }
+  );
+
   test("returns no node for an unplayable note", () => {
-    const note = firstNote();
+    const [note] = notesAtFrets(5);
     note.setNote(NoteValue.Dead, null);
     const audio = createAudioContext();
 
@@ -155,70 +195,140 @@ describe("PlaybackNoteScheduler", () => {
       scheduler(audio.context).scheduleNote(note, 0, 1, trackBus())
     ).toBeNull();
     expect(audio.context.createOscillator).not.toHaveBeenCalled();
+    expect(audio.bufferSources).toHaveLength(0);
+    expect(audio.gains).toHaveLength(0);
   });
 
-  test("uses a loaded sample at the note playback ratio", () => {
-    const note = firstNote();
+  test.each([
+    { harmonic: false, ratio: 2, peak: 0.0648 },
+    { harmonic: true, ratio: 4, peak: 0.045 },
+  ])(
+    "uses a loaded sample at the note playback ratio (harmonic: $harmonic)",
+    async ({ harmonic, ratio, peak }) => {
+      const [note] = notesAtFrets(5);
+      if (harmonic) {
+        expect(
+          note.addTechnique(
+            new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
+          )
+        ).toBe(true);
+      }
+      const audio = createAudioContext();
+      const sample = {} as AudioBuffer;
+      Object.defineProperty(globalThis, "fetch", {
+        configurable: true,
+        value: jest.fn(async () => ({
+          ok: true,
+          arrayBuffer: async () => new ArrayBuffer(8),
+        })),
+      });
+      audio.context.decodeAudioData = jest.fn(async () => sample);
+      const samples = new PlaybackSampleManager(audio.context, {
+        [ElectricGuitarTone.Clean]: { url: "/clean.wav", rootFrequency: 220 },
+      });
+      await samples.loadSamplesForTones([ElectricGuitarTone.Clean]);
+      const bus = trackBus();
+
+      new PlaybackNoteScheduler(audio.context, samples).scheduleNote(
+        note,
+        2,
+        3,
+        bus
+      );
+
+      expect(audio.oscillators).toHaveLength(0);
+      expect(audio.bufferSources[0].buffer).toBe(sample);
+      // A3 -> A4 is rate 2; its octave harmonic A5 is rate 4.
+      expect(
+        audio.bufferSources[0].playbackRate.setValueAtTime
+      ).toHaveBeenCalledWith(ratio, 2);
+      expect(audio.bufferSources[0].connect).toHaveBeenCalledWith(
+        audio.gains[0]
+      );
+      expect(audio.gains[0].connect).toHaveBeenCalledWith(bus.gainNode);
+      expect(audio.bufferSources[0].start).toHaveBeenCalledWith(2);
+      expect(audio.bufferSources[0].stop).toHaveBeenCalledWith(3);
+      expect(audio.gains[0].gain.linearRampToValueAtTime.mock.calls).toEqual([
+        [expect.closeTo(peak, 8), 2.01],
+        [0, 3],
+      ]);
+    }
+  );
+
+  test("falls back to an oscillator while a configured sample is not loaded", () => {
+    const [note] = notesAtFrets(5);
     const audio = createAudioContext();
-    const sample = {} as AudioBuffer;
+    const samples = new PlaybackSampleManager(audio.context, {
+      [ElectricGuitarTone.Clean]: { url: "/clean.wav", rootFrequency: 220 },
+    });
 
-    scheduler(audio.context, sample, 110).scheduleNote(note, 0, 1, trackBus());
-
-    expect(audio.bufferSources[0].buffer).toBe(sample);
-    expect(audio.bufferSources[0].playbackRate.value).toBeCloseTo(
-      getNoteFrequency(note) / 110
+    new PlaybackNoteScheduler(audio.context, samples).scheduleNote(
+      note,
+      1,
+      2,
+      trackBus()
     );
-  });
-
-  test("falls back to an oscillator when a sample has no root frequency", () => {
-    const note = firstNote();
-    const audio = createAudioContext();
-    const sample = {} as AudioBuffer;
-
-    scheduler(audio.context, sample).scheduleNote(note, 1, 2, trackBus());
 
     expect(audio.oscillators).toHaveLength(1);
+    expect(audio.bufferSources).toHaveLength(0);
+    expect(audio.oscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(
+      440,
+      1
+    );
+    expect(audio.oscillators[0].start).toHaveBeenCalledWith(1);
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(2);
   });
 
-  test("applies technique envelope, pitch, and boundary shaping", () => {
-    const note = firstNote();
-    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
-    note.addTechnique(
-      new GuitarTechnique(
-        note,
-        GuitarTechniqueType.Bend,
-        new BendTechniqueOptions({
-          type: BendType.Bend,
-          bendPitch: 2,
-          bendDuration: 0.5,
-        })
-      )
-    );
-    const audio = createAudioContext();
+  test.each([
+    // The 180 ms palm-mute cap is shortened further by a 100 ms boundary.
+    // A half-duration bend reaches B4 at 50 ms or 90 ms after the start.
+    { boundary: 1.1, stop: 1.1, bendEnd: 1.05, release: 1.08 },
+    { boundary: undefined, stop: 1.18, bendEnd: 1.09, release: 1.16 },
+  ])(
+    "shapes a palm-muted bend with playback boundary $boundary",
+    ({ boundary, stop, bendEnd, release }) => {
+      const [note] = notesAtFrets(5);
+      note.addTechnique(
+        new GuitarTechnique(note, GuitarTechniqueType.PalmMute)
+      );
+      note.addTechnique(
+        new GuitarTechnique(
+          note,
+          GuitarTechniqueType.Bend,
+          new BendTechniqueOptions({
+            type: BendType.Bend,
+            bendPitch: 2,
+            bendDuration: 0.5,
+          })
+        )
+      );
+      const audio = createAudioContext();
 
-    scheduler(audio.context).scheduleNote(note, 1, 2, trackBus(), 1.1);
+      scheduler(audio.context).scheduleNote(note, 1, 2, trackBus(), boundary);
 
-    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.1);
-    expect(audio.gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
-      0.038,
-      1.01
-    );
-    expect(
-      audio.oscillators[0].frequency.linearRampToValueAtTime
-    ).toHaveBeenCalledWith(getNoteFrequency(note) * 2 ** (2 / 12), 1.05);
-  });
+      expect(audio.oscillators[0].stop).toHaveBeenCalledWith(stop);
+      expect(audio.gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+        0.038,
+        1.01
+      );
+      expect(
+        audio.oscillators[0].frequency.linearRampToValueAtTime
+      ).toHaveBeenCalledWith(
+        expect.closeTo(493.883301, 5),
+        expect.closeTo(bendEnd, 8)
+      );
+      expect(audio.gains[0].gain.setValueAtTime).toHaveBeenCalledWith(
+        0.038,
+        expect.closeTo(release, 8)
+      );
+      expect(
+        audio.gains[0].gain.linearRampToValueAtTime
+      ).toHaveBeenLastCalledWith(0, stop);
+    }
+  );
 
   test("doubles oscillator frequency for a natural harmonic", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    beats.forEach((beat) => beat.makeBeatWithNotes());
-    const note = beats[0].notes?.[0];
-    if (!(note instanceof GuitarNote)) {
-      throw Error("Expected guitar note");
-    }
-    note.fret = 0;
+    const [note] = notesAtFrets(5);
     note.addTechnique(
       new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
     );
@@ -227,48 +337,39 @@ describe("PlaybackNoteScheduler", () => {
     scheduler(audio.context).scheduleNote(note, 0, 0.5, trackBus());
 
     expect(audio.oscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(
-      getNoteFrequency(note) * 2,
+      880,
       0
+    );
+    expect(audio.gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+      0.045,
+      0.01
     );
   });
 
   test("slides to the same-string target note frequency", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    beats.forEach((beat) => beat.makeBeatWithNotes());
-    const note = beats[0].notes?.[0];
-    const target = beats[1].notes?.[0];
-    if (!(note instanceof GuitarNote) || !(target instanceof GuitarNote)) {
-      throw Error("Expected guitar notes");
-    }
-    note.fret = 1;
-    target.fret = 2;
-    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide));
+    const [note] = notesAtFrets(5, 7);
+    expect(
+      note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide))
+    ).toBe(true);
     const audio = createAudioContext();
     scheduler(audio.context).scheduleNote(note, 0, 0.5, trackBus());
 
     expect(
       audio.oscillators[0].frequency.linearRampToValueAtTime
-    ).toHaveBeenCalledWith(expect.closeTo(getNoteFrequency(target)), 0.5);
+    ).toHaveBeenCalledWith(expect.closeTo(493.883301, 5), 0.5);
+    expect(audio.oscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(
+      440,
+      0.175
+    );
+    // At 120 BPM the target quarter adds half a second of sustain.
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1);
   });
 
-  test("continues Hold and Release bends from the previous terminal pitch", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    beats.forEach((b) => b.makeBeatWithNotes());
-    const [source, continuation] = beats.map((b) => b.notes?.[0]);
-    if (
-      !(source instanceof GuitarNote) ||
-      !(continuation instanceof GuitarNote)
-    ) {
-      throw Error("Expected guitar notes");
-    }
-    source.fret = 0;
-    continuation.fret = 0;
+  test.each([
+    { name: "Hold", type: BendType.Hold },
+    { name: "Release", type: BendType.Release },
+  ])("continues $name from the previous terminal bend pitch", ({ type }) => {
+    const [source, continuation] = notesAtFrets(5, 5);
     source.addTechnique(
       new GuitarTechnique(
         source,
@@ -285,41 +386,36 @@ describe("PlaybackNoteScheduler", () => {
     );
     const audio = createAudioContext();
 
-    for (const options of [
-      new BendTechniqueOptions({
-        type: BendType.Hold,
-        holdPitch: 2,
-        bendDuration: 1,
-      }),
-      new BendTechniqueOptions({
-        type: BendType.Release,
-        releasePitch: 0,
-        bendDuration: 1,
-      }),
-    ]) {
-      continuation.techniques.splice(1);
+    const options = new BendTechniqueOptions({
+      type,
+      ...(type === BendType.Hold ? { holdPitch: 2 } : { releasePitch: 0 }),
+      bendDuration: 1,
+    });
+    expect(
       continuation.addTechnique(
         new GuitarTechnique(continuation, GuitarTechniqueType.Bend, options)
-      );
-      scheduler(audio.context).scheduleNote(continuation, 1, 2, trackBus());
-    }
+      )
+    ).toBe(true);
+    scheduler(audio.context).scheduleNote(continuation, 1, 2, trackBus());
 
-    const continuedPitch = getNoteFrequency(continuation) * 2 ** (2 / 12);
     expect(audio.oscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(
-      continuedPitch,
+      expect.closeTo(493.883301, 5),
       1
     );
-    expect(audio.oscillators[1].frequency.setValueAtTime).toHaveBeenCalledWith(
-      continuedPitch,
-      1
-    );
-    expect(
-      audio.oscillators[1].frequency.linearRampToValueAtTime
-    ).toHaveBeenCalledWith(getNoteFrequency(continuation), 2.7);
+    if (type === BendType.Release) {
+      expect(
+        audio.oscillators[0].frequency.linearRampToValueAtTime
+      ).toHaveBeenCalledWith(440, 2.7);
+    } else {
+      expect(
+        audio.oscillators[0].frequency.linearRampToValueAtTime
+      ).not.toHaveBeenCalled();
+    }
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(2.7);
   });
 
   test("rejects Hold continuation without a preceding sustained bend", () => {
-    const note = firstNote();
+    const [note] = notesAtFrets(5);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     note.addTechnique(
       new GuitarTechnique(
@@ -343,18 +439,8 @@ describe("PlaybackNoteScheduler", () => {
     ).toThrow("Hold and Release playback require a previous bend continuation");
   });
 
-  test("applies LetRing, Legato, vibrato, and tone profiles", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    beats.forEach((b) => b.makeBeatWithNotes());
-    const [first, second] = beats.map((b) => b.notes?.[0]);
-    if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
-      throw Error("Expected guitar notes");
-    }
-    first.fret = 0;
-    second.fret = 2;
+  test("extends a legato note with LetRing and modulates vibrato above and below its pitch", () => {
+    const [first] = notesAtFrets(5, 7);
     first.addTechnique(new GuitarTechnique(first, GuitarTechniqueType.LetRing));
     const addedLegato = first.addTechnique(
       new GuitarTechnique(first, GuitarTechniqueType.Legato)
@@ -363,7 +449,6 @@ describe("PlaybackNoteScheduler", () => {
     const audio = createAudioContext();
 
     scheduler(audio.context).scheduleNote(first, 0, 1, trackBus());
-    scheduler(audio.context).scheduleNote(second, 1, 2, trackBus());
 
     expect(addedLegato).toBe(true);
     expect(audio.oscillators[0].type).toBe("sine");
@@ -372,52 +457,50 @@ describe("PlaybackNoteScheduler", () => {
       0.048,
       0.018
     );
-    expect(
-      audio.oscillators[0].frequency.linearRampToValueAtTime
-    ).toHaveBeenCalledWith(expect.any(Number), 0.12);
-  });
-
-  test("reduces gain for a repeated note", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    beats.forEach((beat) => beat.makeBeatWithNotes());
-    const [first, second] = beats.map((beat) => beat.notes?.[0]);
-    if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
-      throw Error("Expected guitar notes");
-    }
-    first.fret = 0;
-    second.fret = 0;
-    const audio = createAudioContext();
-
-    scheduler(audio.context).scheduleNote(first, 0, 1, trackBus());
-    scheduler(audio.context).scheduleNote(second, 1, 2, trackBus());
-
-    expect(audio.gains[1].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
-      0.06 * 0.92,
-      1.01
+    const pitchRamps = audio.oscillators[0].frequency.linearRampToValueAtTime;
+    // A4 vibrato at +/-1.8% alternates by 7.92 Hz, then returns to A4.
+    expect(pitchRamps.mock.calls[0]).toEqual([expect.closeTo(447.92, 8), 0.12]);
+    expect(pitchRamps.mock.calls[1]).toEqual([expect.closeTo(432.08, 8), 0.2]);
+    expect(pitchRamps).toHaveBeenLastCalledWith(440, 1.7);
+    expect(audio.gains[0].gain.setValueAtTime).toHaveBeenCalledWith(
+      0.048,
+      1.68
     );
+    expect(
+      audio.gains[0].gain.linearRampToValueAtTime
+    ).toHaveBeenLastCalledWith(0, 1.7);
   });
+
+  test.each([
+    { fret: 5, peak: 0.0552 },
+    { fret: 7, peak: 0.06 },
+  ])(
+    "softens repeated pitches but preserves changed pitches (target fret $fret)",
+    ({ fret, peak }) => {
+      const [first, second] = notesAtFrets(5, fret);
+      const audio = createAudioContext();
+
+      scheduler(audio.context).scheduleNote(first, 0, 1, trackBus());
+      scheduler(audio.context).scheduleNote(second, 1, 2, trackBus());
+
+      expect(audio.gains[1].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+        peak,
+        1.01
+      );
+    }
+  );
 
   test("cleans up partially scheduled sources on a Web Audio failure", () => {
-    const note = firstNote();
-    const audio = createAudioContext();
-    audio.oscillators.length = 0;
-    audio.context.createOscillator = jest.fn(() => ({
-      type: "sine",
-      frequency: createParam(),
-      connect: jest.fn(),
-      disconnect: jest.fn(),
-      start: jest.fn(() => {
-        throw Error("start failed");
-      }),
-      stop: jest.fn(),
-    })) as unknown as AudioContext["createOscillator"];
+    const [note] = notesAtFrets(5);
+    const failure = Error("start failed");
+    const audio = createAudioContext(failure, 0.25);
 
     expect(() =>
-      scheduler(audio.context).scheduleNote(note, 0, 1, trackBus())
-    ).toThrow("start failed");
+      scheduler(audio.context).scheduleNote(note, 1, 2, trackBus())
+    ).toThrow(failure);
+    expect(audio.oscillators[0].start).toHaveBeenCalledWith(1);
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(0.25);
+    expect(audio.oscillators[0].disconnect).toHaveBeenCalled();
     expect(audio.gains[0].disconnect).toHaveBeenCalled();
   });
 });

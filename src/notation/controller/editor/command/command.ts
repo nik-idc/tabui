@@ -32,6 +32,8 @@ export function getAffectedModelsFromBeats(beats: Beat[]): AffectedModel[] {
 // Commands should own undo/redo state. Prefer ScoreEditor for structural model
 // edits; direct model mutation is acceptable for simple local value changes.
 export interface Command {
+  /** Explicit false means execution made no edit and must not enter history. */
+  readonly executed?: boolean;
   execute(): void;
   undo(): void;
   redo(): void;

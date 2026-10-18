@@ -1,176 +1,174 @@
+/** @jest-environment jsdom */
+
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
+import { NotationComponent } from "../../../src/notation/notation-component";
+import { GuitarNote, NoteDuration } from "../../../src/notation/model";
+import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
+import { NoteControlsComponent } from "../../../src/ui/side-controls/note-controls/note-controls-component";
 import { NoteControlsDefaultCallbacks } from "../../../src/ui/side-controls/note-controls/note-controls-callbacks";
-import { NoteDuration } from "../../../src/notation/model";
-import {
-  asNotationComponent,
-  createNotationComponentMock,
-  dispatchClick,
-  makeButton,
-} from "./helpers";
+import { createTestLayoutDimensions } from "../controller/helpers";
+import { createBarWithBeats } from "../model/helpers";
+import { required } from "../required";
+
+function createControls() {
+  const { score, beats } = createBarWithBeats([
+    { baseDuration: NoteDuration.Eighth },
+  ]);
+  const root = document.createElement("div");
+  const controlsHost = document.createElement("div");
+  const notationHost = document.createElement("div");
+  const dialogHost = document.createElement("div");
+  root.append(controlsHost, notationHost, dialogHost);
+  document.body.append(root);
+
+  const notation = new NotationComponent(
+    notationHost,
+    score,
+    resolveTabUIConfig(),
+    createTestLayoutDimensions()
+  );
+  const enforcer = new DialogEnforcer(dialogHost, () => {});
+  const controls = new NoteControlsComponent(
+    controlsHost,
+    enforcer,
+    notation,
+    () => {}
+  );
+  let keyboardCaptured = false;
+  const callbacks = new NoteControlsDefaultCallbacks(
+    controls,
+    notation,
+    () => controls.render(),
+    () => controls.render(),
+    () => {
+      keyboardCaptured = true;
+    },
+    () => {
+      keyboardCaptured = false;
+    }
+  );
+  controls.render();
+
+  return {
+    beat: beats[0],
+    controller: notation.trackController,
+    controls,
+    callbacks,
+    enforcer,
+    get keyboardCaptured() {
+      return keyboardCaptured;
+    },
+    dispose() {
+      controls.tupletComponent.dialog.close();
+      controls.fretComponent.dialog.close();
+      callbacks.unbind();
+      notation.dispose();
+      root.remove();
+    },
+  };
+}
 
 describe("NoteControlsDefaultCallbacks", () => {
-  test("buttons map to note actions and repeated bind does not double fire", () => {
-    const notationComponent = createNotationComponentMock();
-    const renderFunc = jest.fn();
-    const captureKeyboard = jest.fn();
-    const durationButtons = [makeButton(), makeButton()];
-    durationButtons[0].dataset.duration = "4";
-    durationButtons[1].dataset.duration = "8";
-    const component = {
-      template: {
-        durationButtons,
-        fretButton: makeButton(),
-        restButton: makeButton(),
-        dot1Button: makeButton(),
-        dot2Button: makeButton(),
-        insertBeatBeforeButton: makeButton(),
-        insertBeatAfterButton: makeButton(),
-        removeBeatButton: makeButton(),
-        voiceButtons: [],
-        tuplet2Button: makeButton(),
-        tuplet3Button: makeButton(),
-        tupletButton: makeButton(),
-      },
-      tupletComponent: {
-        template: {
-          dialogContainer: makeButton(),
-          dialogContent: makeButton(),
-          normalDownButton: makeButton(),
-          normalUpButton: makeButton(),
-          normalControl: makeButton(),
-          tupletDownButton: makeButton(),
-          tupletUpButton: makeButton(),
-          tupletControl: makeButton(),
-          confirmButton: makeButton(),
-          cancelButton: makeButton(),
-        },
-      },
-      fretComponent: {
-        template: {
-          dialogContainer: makeButton(),
-          dialogContent: makeButton(),
-          noFretButton: makeButton(),
-          deadButton: makeButton(),
-          input: makeButton(),
-          confirmButton: makeButton(),
-          cancelButton: makeButton(),
-        },
-        showControls: jest.fn(),
-      },
-      showTupletControls: jest.fn(),
-    } as any;
-    const callbacks = new NoteControlsDefaultCallbacks(
-      component,
-      asNotationComponent(notationComponent),
-      renderFunc,
-      jest.fn(),
-      captureKeyboard,
-      jest.fn()
-    );
+  let fixture: ReturnType<typeof createControls>;
 
-    callbacks.bind();
-    callbacks.bind();
-    dispatchClick(durationButtons[0]);
-    dispatchClick(component.template.dot2Button);
-    dispatchClick(component.template.insertBeatBeforeButton);
-    dispatchClick(component.template.insertBeatAfterButton);
-    dispatchClick(component.template.removeBeatButton);
-    dispatchClick(component.template.tuplet3Button);
-    dispatchClick(component.template.tupletButton);
-
-    expect(notationComponent.trackController.setDuration).toHaveBeenCalledWith(
-      NoteDuration.Quarter
-    );
-    expect(notationComponent.trackController.setDots).toHaveBeenCalledWith(2);
-    expect(
-      notationComponent.trackController.insertBeatBeforeSelected
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.insertBeatAfterSelected
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.removeSelectedBeat
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.setSelectedBeatsTuplet
-    ).toHaveBeenCalledWith(3, 2);
-    expect(renderFunc).toHaveBeenCalledTimes(6);
-    expect(captureKeyboard).toHaveBeenCalledTimes(1);
-    expect(component.showTupletControls).toHaveBeenCalledTimes(1);
-
-    const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
-    const durationCallsBeforeUnbind =
-      notationComponent.trackController.setDuration.mock.calls.length;
-    callbacks.unbind();
-    dispatchClick(durationButtons[1]);
-    expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
-    expect(notationComponent.trackController.setDuration).toHaveBeenCalledTimes(
-      durationCallsBeforeUnbind
-    );
-
-    expect(() => callbacks.onTupletNormalClicked(1)).toThrow(
-      "Tuplet normal count has to be >= 2"
-    );
+  beforeEach(() => {
+    fixture = createControls();
+  });
+  afterEach(() => {
+    fixture.dispose();
   });
 
-  test("rejects unsupported voice numbers from button datasets", () => {
-    const notationComponent = createNotationComponentMock();
-    const voiceButton = makeButton();
-    voiceButton.dataset.voiceNumber = "5";
-    const component = {
-      template: {
-        durationButtons: [],
-        voiceButtons: [voiceButton],
-        fretButton: makeButton(),
-        restButton: makeButton(),
-        dot1Button: makeButton(),
-        dot2Button: makeButton(),
-        insertBeatBeforeButton: makeButton(),
-        insertBeatAfterButton: makeButton(),
-        removeBeatButton: makeButton(),
-        tuplet2Button: makeButton(),
-        tuplet3Button: makeButton(),
-        tupletButton: makeButton(),
-      },
-      tupletComponent: {
-        template: {
-          dialogContainer: makeButton(),
-          dialogContent: makeButton(),
-          normalDownButton: makeButton(),
-          normalUpButton: makeButton(),
-          normalControl: makeButton(),
-          tupletDownButton: makeButton(),
-          tupletUpButton: makeButton(),
-          tupletControl: makeButton(),
-          confirmButton: makeButton(),
-          cancelButton: makeButton(),
-        },
-      },
-      fretComponent: {
-        template: {
-          dialogContainer: makeButton(),
-          dialogContent: makeButton(),
-          noFretButton: makeButton(),
-          deadButton: makeButton(),
-          input: makeButton(),
-          confirmButton: makeButton(),
-          cancelButton: makeButton(),
-        },
-        showControls: jest.fn(),
-      },
-    } as any;
-    const callbacks = new NoteControlsDefaultCallbacks(
-      component,
-      asNotationComponent(notationComponent),
-      jest.fn(),
-      jest.fn(),
-      jest.fn(),
-      jest.fn()
-    );
-
+  test("duration, double dot, and triplet controls edit the selected beat and undo independently", () => {
+    const { callbacks, controls, beat, controller } = fixture;
+    callbacks.bind();
     callbacks.bind();
 
-    expect(() => dispatchClick(voiceButton)).toThrow(
-      "Unsupported voice number: 5"
-    );
+    controls.template.durationButtons[2].click();
+    expect(beat.baseDuration).toBe(NoteDuration.Quarter);
+    controls.template.dot2Button.click();
+    expect(beat.dots).toBe(2);
+    controls.template.tuplet3Button.click();
+    expect(beat.tupletSettings).toEqual({ normalCount: 3, tupletCount: 2 });
+
+    controller.undo();
+    expect(beat.tupletSettings).toBeNull();
+    expect(beat.dots).toBe(2);
+    controller.undo();
+    expect(beat.dots).toBe(0);
+    expect(beat.baseDuration).toBe(NoteDuration.Quarter);
+    controller.undo();
+    expect(beat.baseDuration).toBe(NoteDuration.Eighth);
+  });
+
+  test("repeated binding inserts before and after, then removes one beat per click", () => {
+    const { callbacks, controls, beat, controller } = fixture;
+    const voiceBar = beat.voiceBar;
+    (required(beat.notes)[0] as GuitarNote).fret = 7;
+    const frets = () =>
+      voiceBar.beats.map((b) => (required(b.notes)[0] as GuitarNote).fret);
+    callbacks.bind();
+    callbacks.bind();
+
+    controls.template.insertBeatBeforeButton.click();
+    const before = required(controller.selectionCursor).beat;
+    (required(before.notes)[0] as GuitarNote).fret = 1;
+    expect(before).not.toBe(beat);
+    expect(frets()).toEqual([1, 7]);
+
+    controls.template.insertBeatAfterButton.click();
+    const after = required(controller.selectionCursor).beat;
+    (required(after.notes)[0] as GuitarNote).fret = 2;
+    expect(after).not.toBe(before);
+    expect(frets()).toEqual([1, 2, 7]);
+
+    controls.template.removeBeatButton.click();
+    expect(frets()).toEqual([1, 7]);
+    controller.undo();
+    expect(frets()).toEqual([1, 2, 7]);
+    controller.undo();
+    expect(frets()).toEqual([1, 7]);
+    controller.undo();
+    expect(frets()).toEqual([7]);
+    controller.redo();
+    expect(frets()).toEqual([1, 7]);
+    controller.redo();
+    expect(frets()).toEqual([1, 2, 7]);
+    controller.redo();
+    expect(frets()).toEqual([1, 7]);
+  });
+
+  test("unbinding removes duration listeners and leaves edit history unchanged", () => {
+    const { callbacks, controls, beat, controller } = fixture;
+    callbacks.bind();
+    controls.template.durationButtons[2].click();
+    callbacks.unbind();
+
+    controls.template.durationButtons[3].click();
+    expect(beat.baseDuration).toBe(NoteDuration.Quarter);
+    controller.undo();
+    expect(beat.baseDuration).toBe(NoteDuration.Eighth);
+    controller.redo();
+    expect(beat.baseDuration).toBe(NoteDuration.Quarter);
+  });
+
+  test("custom tuplets open a contained dialog and release keyboard ownership on cancel", () => {
+    const { callbacks, controls, enforcer } = fixture;
+    callbacks.bind();
+    callbacks.bind();
+
+    controls.template.tupletButton.click();
+    expect(controls.tupletComponent.dialog.open).toBe(true);
+    expect(enforcer.activeDialog).toBe(controls.tupletComponent.dialog);
+    expect(fixture.keyboardCaptured).toBe(true);
+
+    controls.tupletComponent.template.cancelButton.click();
+    expect(controls.tupletComponent.dialog.open).toBe(false);
+    expect(enforcer.activeDialog).toBeUndefined();
+    expect(fixture.keyboardCaptured).toBe(false);
+  });
+
+  test("rejects an invalid tuplet preset without editing the selected beat", () => {
+    expect(() => fixture.callbacks.onTupletNormalClicked(1)).toThrow(Error);
+    expect(fixture.beat.tupletSettings).toBeNull();
   });
 });

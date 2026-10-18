@@ -221,10 +221,24 @@ for (const [key, name] of [
   });
 }
 
-test("Shift+V cycles all four voices without applying vibrato", async ({
+test("Shift+V cycles without vibrato and note clicks refresh the active voice", async ({
   page,
 }) => {
   const editor = await openEditor(page, "multi_voice_single_staff");
+  /** Keeps score content and toolbar state, excluding the voice's insertion hint. */
+  async function voiceEditingState() {
+    const state = await editingState(editor);
+    // The end-gap '+' can appear/disappear with voice capacity, without a score edit.
+    state.score = state.score.filter(
+      (e) =>
+        !e.attributes.some(
+          ([name, value]) =>
+            name === "class" && value.split(/\s+/).includes("tu-end-gap-hint")
+        )
+    );
+    return state;
+  }
+
   /** Captures voice opacity and note hit geometry, including empty strings. */
   async function voicePresentation() {
     return editor
@@ -243,16 +257,18 @@ test("Shift+V cycles all four voices without applying vibrato", async ({
       );
   }
   const initial = await voicePresentation();
+  const initialScore = (await voiceEditingState()).score;
   expect(initial.length).toBeGreaterThan(0);
   for (const voice of [2, 3, 4, 1]) {
     await page.keyboard.press("Shift+V");
     await expect(
       editor.locator(`[data-voice-number="${voice}"]`)
     ).toHaveAttribute("aria-pressed", "true");
-    const keyboard = await editingState(editor);
+    const keyboard = await voiceEditingState();
     const presentation = await voicePresentation();
     if (voice === 2) {
       // Both voices already exist, so no model diff can trigger this refresh.
+      expect(keyboard.score).toEqual(initialScore);
       expect(presentation.map((note) => note.id)).not.toEqual(
         initial.map((note) => note.id)
       );
@@ -269,10 +285,34 @@ test("Shift+V cycles all four voices without applying vibrato", async ({
       .locator(`[data-voice-number="${voice === 1 ? 4 : voice - 1}"]`)
       .click();
     await editor.locator(`[data-voice-number="${voice}"]`).click();
-    expect(await editingState(editor)).toEqual(keyboard);
+    expect(await voiceEditingState()).toEqual(keyboard);
     expect(await voicePresentation()).toEqual(presentation);
     await editor.locator(".tu-notation-viewport").focus();
   }
+
+  // A filled note in voice 2 remains clickable while voice 1 is active.
+  const inactiveNoteId = await editor
+    .locator('.tu-root-svg g[opacity="0.5"] g[id^="note-"]')
+    .filter({ has: page.locator('text[id^="note-text-"]') })
+    .first()
+    .getAttribute("id");
+  if (inactiveNoteId === null) {
+    throw Error("Expected a filled inactive note");
+  }
+  const inactiveNote = editor.locator(`[id="${inactiveNoteId}"]`);
+  const inactiveVoice = inactiveNote.locator("xpath=..");
+  await expect(inactiveVoice).toHaveAttribute("opacity", "0.5");
+  await inactiveNote.locator('[id^="note-rect-"]').click();
+
+  await expect(editor.locator('[data-voice-number="2"]')).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await expect(editor.locator('[data-voice-number="1"]')).toHaveAttribute(
+    "aria-pressed",
+    "false"
+  );
+  await expect(inactiveVoice).toHaveAttribute("opacity", "1");
 });
 
 test("rest shortcuts reject dead and clear without changing undo history", async ({
@@ -317,6 +357,7 @@ test("shortcuts do not leak from outside, toolbar, or dialog focus", async ({
   ]) {
     await target.evaluate((element) => element.setAttribute("tabindex", "-1"));
     await target.focus();
+    await expect(target).toBeFocused();
     for (const key of ["a", "-", ".", "t", "Shift+X", "Delete"]) {
       await page.keyboard.press(key);
     }
@@ -326,11 +367,18 @@ test("shortcuts do not leak from outside, toolbar, or dialog focus", async ({
   await page.keyboard.press("Shift+R");
   const dialog = editor.getByRole("dialog", { name: "Repeat count" });
   await dialog.getByRole("spinbutton").focus();
+  await expect(dialog.getByRole("spinbutton")).toBeFocused();
   for (const key of ["a", "t", "Shift+X", "Delete"]) {
     await page.keyboard.press(key);
   }
   await expect(dialog).toBeVisible();
   expect(await editingState(editor)).toEqual(before);
+  await page.keyboard.press("Escape");
+  await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
+  await page.keyboard.press("p");
+  await expect(
+    editor.getByRole("button", { name: /^Palm Mute/ })
+  ).toHaveAttribute("aria-pressed", "true");
 });
 
 test("keyboard ownership follows focus between two live editors", async ({
@@ -384,12 +432,18 @@ for (const [key, name] of [
     await page.clock.fastForward(251);
     await page.keyboard.press("7");
     await page.keyboard.press("ArrowLeft");
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5", "7"]);
+    await expect(editor.locator('[id^="technique-path-"]')).toHaveCount(0);
     await expectMouseParity(
       page,
       editor,
       key,
       editor.getByRole("button", { name: new RegExp(`^${name}`) })
     );
+    const path = editor.locator('[id^="technique-path-"]');
+    await expect(path).toHaveCount(1);
+    await expect(path).toBeVisible();
+    await expect(path).toHaveAttribute("d", /\S/);
   });
 }
 
@@ -481,6 +535,10 @@ test("bend confirmation matches mouse and restores notation focus", async ({
   const dialog = editor.getByRole("dialog", { name: "Bend", exact: true });
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
+  await expect(editor.locator(".tu-inline-technique")).toHaveCount(1);
+  await expect(editor.locator('[id^="technique-label-text-"]')).toHaveText(
+    "full"
+  );
   const keyboard = await editingState(editor);
   expect(keyboard).not.toEqual(before);
   await page.keyboard.press("Control+z");
@@ -528,7 +586,104 @@ test("view-only mode rejects editing shortcuts but permits navigation", async ({
   }
   await page.keyboard.press("ArrowRight");
   await expect(editor.locator(".tu-announcement-host")).toContainText("Bar 2");
+  await page.keyboard.press("Space");
+  await expect(
+    editor.getByRole("button", { name: "Pause", exact: true })
+  ).toBeVisible();
+  await page.keyboard.press("Space");
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
 });
+
+for (const mode of ["starting", "playing"] as const) {
+  test(`${mode} blocks edits and navigation but permits copy and Space to stop`, async ({
+    page,
+  }) => {
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+    if (mode === "starting") {
+      // Hold the external audio boundary so startup remains pending.
+      await page.addInitScript(() => {
+        AudioContext.prototype.resume = () => new Promise<void>(() => {});
+      });
+    }
+    const editor = await openEditor(page);
+    await page.keyboard.press("5");
+    await page.keyboard.press("a");
+    await page.clock.fastForward(251);
+    await page.keyboard.press("7");
+    await page.keyboard.press("ArrowLeft");
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5", "7"]);
+    await page.clock.pauseAt(new Date("2026-01-01T00:01:00Z"));
+    await page.keyboard.press("Space");
+    await expect(
+      editor.getByRole("button", {
+        name: mode === "starting" ? "Loading audio" : "Pause",
+        exact: true,
+      })
+    ).toHaveAttribute("aria-pressed", "true");
+    const before = await editingState(editor);
+    const selection = await editor
+      .locator(".tu-announcement-host")
+      .textContent();
+    for (const key of [
+      "5",
+      "x",
+      "Shift+X",
+      "Backspace",
+      "+",
+      "-",
+      ".",
+      "t",
+      "Shift+T",
+      "v",
+      "Shift+V",
+      "p",
+      "l",
+      "Shift+L",
+      "s",
+      "b",
+      "h",
+      "Shift+H",
+      "r",
+      "Shift+R",
+      "m",
+      "Shift+M",
+      "a",
+      "Shift+A",
+      "i",
+      "Shift+I",
+      "Delete",
+      "Shift+Delete",
+      "Control+v",
+      "Control+z",
+      "Control+y",
+      "Escape",
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "Control+ArrowLeft",
+      "Shift+ArrowRight",
+      "Control+Shift+ArrowRight",
+    ]) {
+      await page.keyboard.press(key);
+      expect(await editingState(editor)).toEqual(before);
+      await expect(editor.locator(".tu-announcement-host")).toHaveText(
+        selection ?? ""
+      );
+      await expect(editor.getByRole("dialog")).toHaveCount(0);
+    }
+    await page.keyboard.press("Control+c");
+    await page.keyboard.press("Space");
+    await expect(
+      editor.getByRole("button", { name: "Play", exact: true })
+    ).toHaveAttribute("aria-pressed", "false");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Control+v");
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5", "5"]);
+  });
+}
 
 test("disabled techniques and range-only restrictions ignore shortcuts", async ({
   page,

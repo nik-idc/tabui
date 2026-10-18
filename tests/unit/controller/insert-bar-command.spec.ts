@@ -1,4 +1,5 @@
 import {
+  Bar,
   DEFAULT_MASTER_BAR,
   Guitar,
   NoteDuration,
@@ -15,16 +16,24 @@ function createMultiTrackScore() {
   return graph;
 }
 
-function getStaffBarCounts(score: Score) {
-  return score.tracks.map((track) =>
-    track.staves.map((staff) => staff.bars.length)
-  );
+function expectStaffBars(score: Score, expectedBars: Bar[][]) {
+  const staves = score.tracks.flatMap((v) => v.staves);
+  expect(staves).toHaveLength(expectedBars.length);
+  staves.forEach((s, i) => {
+    expect(s.bars).toHaveLength(expectedBars[i].length);
+    s.bars.forEach((b, j) => {
+      expect(b).toBe(expectedBars[i][j]);
+      expect(b.masterBar).toBe(score.masterBars[j]);
+    });
+  });
 }
 
 describe("InsertBarCommand", () => {
   test("execute, undo, and redo insert at the requested index across all staves", () => {
     const { score } = createMultiTrackScore();
-    const originalUUIDs = score.masterBars.map((bar) => bar.uuid);
+    const originalMasterBars = [...score.masterBars];
+    const staves = score.tracks.flatMap((v) => v.staves);
+    const originalBars = staves.map((v) => [...v.bars]);
     const command = new InsertBarCommand(score, 1, {
       ...DEFAULT_MASTER_BAR,
       beatsCount: 3,
@@ -33,19 +42,32 @@ describe("InsertBarCommand", () => {
 
     command.execute();
     expect(score.masterBars).toHaveLength(3);
-    expect(score.masterBars[0].uuid).toBe(originalUUIDs[0]);
-    expect(score.masterBars[2].uuid).toBe(originalUUIDs[1]);
+    expect(score.masterBars[0]).toBe(originalMasterBars[0]);
+    expect(score.masterBars[2]).toBe(originalMasterBars[1]);
     expect(score.masterBars[1].beatsCount).toBe(3);
     expect(score.masterBars[1].duration).toBe(NoteDuration.Eighth);
-    expect(getStaffBarCounts(score)).toEqual([[3, 3], [3]]);
+    const addedMasterBar = score.masterBars[1];
+    const addedBars = staves.map((v) => v.bars[1]);
+    const expectedBars = originalBars.map((v, i) => [v[0], addedBars[i], v[1]]);
+    expectStaffBars(score, expectedBars);
     expect(command.insertResult?.index).toBe(1);
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 1, modelUUID: addedMasterBar.uuid },
+    ]);
 
     command.undo();
-    expect(score.masterBars.map((bar) => bar.uuid)).toEqual(originalUUIDs);
+    expect(score.masterBars).toHaveLength(2);
+    expect(score.masterBars[0]).toBe(originalMasterBars[0]);
+    expect(score.masterBars[1]).toBe(originalMasterBars[1]);
+    expectStaffBars(score, originalBars);
 
     command.redo();
     expect(score.masterBars).toHaveLength(3);
     expect(score.masterBars[1].beatsCount).toBe(3);
-    expect(score.masterBars[2].uuid).toBe(originalUUIDs[1]);
+    expect(score.masterBars[0]).toBe(originalMasterBars[0]);
+    expect(score.masterBars[1]).toBe(addedMasterBar);
+    expect(score.masterBars[2]).toBe(originalMasterBars[1]);
+    expect(score.masterBars[1].duration).toBe(NoteDuration.Eighth);
+    expectStaffBars(score, expectedBars);
   });
 });

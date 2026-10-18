@@ -127,7 +127,10 @@ export class VoiceBarContainer implements NotationContainer {
 
     this._boundingBox.setDimensions(
       this.barElement.voiceContentWidth,
-      this._beatElements[0].boundingBox.height
+      this._beatElements[0]?.boundingBox.height ??
+        this.trackElement.layoutDimensions.getStaffHeight(
+          this.voiceBar.trackContext.instrument
+        )
     );
   }
 

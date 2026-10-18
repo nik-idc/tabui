@@ -334,8 +334,8 @@ export class TabBeatElement implements BeatElement {
   /** Coords of this element in its owning track line space */
   public get lineLocalCoords(): Point {
     return new Point(
-      this.voiceBarContainer.lineLocalCoords.x + this.barLocalCoords.x,
-      this.voiceBarContainer.lineLocalCoords.y + this.barLocalCoords.y
+      this.barElement.lineLocalCoords.x + this.barLocalCoords.x,
+      this.barElement.lineLocalCoords.y + this.barLocalCoords.y
     );
   }
 
@@ -370,8 +370,8 @@ export class TabBeatElement implements BeatElement {
   /** Global coords of the tab beat element */
   public get globalCoords(): Point {
     return new Point(
-      this.voiceBarContainer.globalCoords.x + this.barLocalCoords.x,
-      this.voiceBarContainer.globalCoords.y + this.barLocalCoords.y
+      this.barElement.globalCoords.x + this.barLocalCoords.x,
+      this.barElement.globalCoords.y + this.barLocalCoords.y
     );
   }
 }
