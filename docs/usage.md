@@ -88,6 +88,8 @@ layout size. Its identity is stable between change events. `subscribe()` is
 editor-instance scoped and returns an idempotent unsubscribe function. Playback
 failures arrive as structured `"error"` events.
 
+Import supported classes, functions, and types from `@atikincode/tabui`.
+
 ## Interaction And Responsive Behavior
 
 `interaction.mode` accepts `TabUIEditorMode.Edit` (the default) or
@@ -98,6 +100,19 @@ score mutations at the controller boundary.
 Notation selection uses Pointer Events for mouse, touch, and pen input. Desktop
 drag selection remains a single-pointer interaction. Full phone editing and
 two-handle touch selection are not currently supported.
+
+### Editing with no selection
+
+The shortcuts for rests and adding or removing beats and bars need a selected
+note slot or beat range.
+
+When you paste copied beats over a selected range, the editor can clear the
+selection. If you then press Shift+X, A, Shift+A, Delete, I, Shift+I, or
+Shift+Delete, the shortcut can cause an error instead of being ignored.
+
+This is a known limitation. Click a note slot to select it before editing again.
+
+### Responsive layout
 
 Editors without `layout.width` observe their notation host and reflow when it
 changes. The responsive policy uses notation width without the editing panel:

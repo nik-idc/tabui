@@ -1,5 +1,21 @@
 # Test audit
 
+## Final result
+
+All 55 groups are implemented and independently reviewed. Final repository checks
+passed: 94 unit suites/1,036 tests, 253 browser cases passed/one skipped,
+production/test compilation, package/demo builds and packed-consumer smoke.
+Repository-wide lint, changed-file formatting and diff checks passed. Final import
+assertions and consumer timeout cleanup received separate focused checks after the
+concurrent full run. The optional large fixture stress case was not run.
+
+The audit is complete with explicit coverage tradeoffs recorded below, not a claim
+of complete behavior coverage. Empty-selection shortcut exceptions remain a
+documented, user-accepted limitation reachable after range paste. Repeat pairing
+is the intended nearest-boundary design. Both closing dispositions received an
+independent source/documentation review. All user-requested production fixes are
+complete. Historical failed runs remain separate from passing results.
+
 ## Goal and process
 
 Make the suite comprehensible and assuring. There is no target test count.
@@ -98,7 +114,10 @@ assigned shortcut table. See current status below.
 | 49. Dialog ownership and multiple editors    | Sol assessment complete                            | Implemented; independent review passed |
 | 50. Serialization round trips                | Sol assessment complete                            | Implemented; independent review passed |
 | 51. Invalid serialized input                 | Sol assessment complete                            | Implemented; independent review passed |
-| 52–55                                        | Not started                                        | Not started                            |
+| 52. Wire-format contract                     | Sol assessment complete                            | Implemented; independent review passed |
+| 53. Demo import/export                       | Sol assessment complete                            | Implemented; independent review passed |
+| 54. Demo fixtures and themes                 | Sol assessment complete                            | Implemented; independent review passed |
+| 55. Published-package smoke                  | Sol assessment complete                            | Implemented; independent review passed |
 
 ## Current handoff scopes
 
@@ -1863,6 +1882,10 @@ declarations/ten cases remain unchanged. New shared notation-dialog fixture.
 
 ### Group 33 open contract finding: empty-selection shortcut exceptions
 
+**Closing status:** documented accepted limitation; see Closing contract review
+below for confirmed UI reachability, API boundary and coverage disposition. The
+following entries preserve the earlier investigation, including superseded claims.
+
 - **Required follow-up before closing the full audit:** the user accepts the
   current throwing behavior and requested no fix for now. Revisit/document the
   selection precondition, supported API boundary, and UI reachability before
@@ -2089,6 +2112,9 @@ from 25 to 27. Only traversal and scheduler specs changed.
   coverage, and passed both suites/27 cases, scoped lint/format/diff. No blockers.
 
 ### Group 39 open finding: shared repeat boundary
+
+**Closing status:** intended nearest-boundary design, now documented in domain and
+playback guidance. See Closing contract review below. No production bug is claimed.
 
 - User clarified that nearest-boundary pairing is an explicit v0.5.0 design choice.
   The earlier probe assumed a combined boundary should chain two multi-bar repeat
@@ -2816,3 +2842,199 @@ No direct removals or source changes; only the two owned specs changed.
   empty-selection preconditions, package API boundary, UI reachability and coverage
   disposition. Nearest-boundary repeat pairing remains intended and needs consistent
   documentation rather than an assumed semantic fix.
+
+### Groups 52–55: complete
+
+- User requested a checkpoint commit and the final four groups. Committed Groups
+  49–51 as `d6ce02dc`, **Improve dialog ownership and serialization tests**. Nothing
+  pushed. Separate Sol implementations own the wire contract, demo persistence,
+  demo fixtures/themes, and packed-package consumer. Each receives an independent
+  Sol review.
+- Before-round files and checkpoint hash are saved at
+  `/tmp/opencode/tabui-audit-groups-52-55-before/`. The coordinator owns this record
+  and all browser/packed-consumer/full verification. No further commit is requested.
+- Approved seams and review discipline remain unchanged. Prior fixes and user
+  cleanup are preserved. Audit closure also requires an explicit empty-selection
+  contract/API-boundary/UI-reachability disposition and consistent nearest-boundary
+  repeat documentation. Completing the groups alone does not close those findings.
+
+### Closing contract review: empty selection and repeat pairing
+
+- Confirmed normal UI reachability with real Chromium/Firefox actions: open the
+  feature-showcase fixture, select the first note, Shift+Right to select two beats,
+  Ctrl+C then Ctrl+V to replace that range. Notation retains focus, but the range
+  replacement clears the range without restoring a cursor. All seven previously
+  reported shortcut exceptions then reproduce: Shift+X, A, Shift+A, Delete, I,
+  Shift+I, Shift+Delete. Fourteen temporary probe cases passed across both browsers.
+  Evidence: `/tmp/opencode/tabui-audit-empty-selection-all-shortcuts.log` and saved
+  probe `/tmp/opencode/tabui-audit-empty-selection-probe.spec.ts`. The temporary
+  repository spec was removed; no permanent exception-locking test is added.
+- Package review confirms `TrackController` is neither exported from `src/index.ts`
+  nor exposed by `TabUIEditor`. That limits the API claim, not UI reachability.
+  Required precondition for these internal editing actions is a cursor or selected
+  range; the current UI can violate it. This is a known accepted limitation, not
+  evidence of a no-op contract or a fixed bug. The user accepted throwing for now.
+- `docs/usage.md` documents supported imports, the concrete range-paste limitation,
+  affected shortcuts and selecting a note slot before further editing. The removed
+  seven-row mocked no-throw/render-once guarantees remain intentionally uncovered.
+  Selected-note/range tests do not substitute for that missing empty-state contract.
+- `docs/domain.md` documents nearest repeat boundaries, no nesting, self-contained
+  dual-flag bars and invalidated outer pairings. Playback documentation links to
+  this intended rule. No semantic production change is proposed.
+- An independent Sol reviews these closing contracts and documentation before full
+  audit closure. Known limitation remediation remains a separate future decision.
+- Independent closure review approved all three documentation changes against the
+  source and accepted design. It confirmed seven paths, range-paste reachability,
+  non-exported controller boundary, no-op/consumption/render coverage disposition,
+  and repeat semantics. It did not rerun the probes; fourteen browser results are
+  supervisor evidence. These findings can close as documented accepted limitations
+  after the final groups/checks pass, without claiming a fix or complete coverage.
+
+### Group 55: assessment and implementation
+
+- One smoke script remains; six to sixteen Node assertion call sites, not test
+  declarations. Only the owned packed-consumer script changes. Both icon themes
+  keep nonempty HTML/SVG inventories, data-URL and positive decode checks, distinct
+  themes, and no uncaught browser errors.
+- Actual TypeScript resolution (`skipLibCheck: false`), installed-tarball Vite
+  bundling, rendered CSS and exported SVG loading replace four existence checks.
+  Given up: exact internal styles.css-to-dist mapping; exported CSS is consumed
+  instead. No workspace aliases/source imports. Exported icon now loads over HTTP
+  with inlining disabled; exact image request inventory observes rather than aborts
+  requests and detects default icon HTTP fallback.
+- Literal serialization-format version/duration/note tokens, named serialized/restored fixture
+  mounted into the editor, initial cursor, computed root grid, real UI track-change
+  subscription, absent host errors and disposed root require actual consumer output.
+- Temporary tarball is inside the workspace. Browser/server/workspace cleanup
+  preserves the original failure and aggregates additional cleanup errors; listen
+  failures reject, success is logged after cleanup. No source bug reported.
+- Node syntax, scoped lint/format/diff passed. No agent browser run; independent
+  review and supervisor packed-consumer execution are running.
+- Supervisor packed-consumer execution passed. Log:
+  `/tmp/opencode/tabui-audit-groups-52-55-consumer.log`.
+- Independent review approved package/type/CSS/icon/public lifecycle checks and
+  removal tradeoffs, but found unbounded standalone waitForFunction predicates.
+  Correction must set finite waits so regression failures reach cleanup. Optional
+  request-inventory timing/broader helper naming are being considered. Page errors
+  cover uncaught exceptions, not all console/resource errors. No runtime mutation
+  evidence claimed. The version literal pins wire format, not npm package version.
+- Corrected script sets page default timeout to 30 seconds before interactions,
+  bounding both predicate waits and locator actions so failures reach cleanup.
+  Image request inventory now follows track confirmation/disposal. Helper is renamed
+  checkPackedEditor; all sixteen assertions remain. Node syntax and scoped lint/
+  format/diff passed. Independent recheck approved with no blockers; final runtime
+  evidence after this correction is still required.
+
+### Group 52: assessment and implementation
+
+- Four original declarations/twenty-four cases become ten declarations/sixty-one
+  cases. Public serialized enum literals retain eight rows. Internal family-table
+  shape coverage is directly removed, giving up explicit undefined unsupported-
+  family entries; supported Strings serialization and Group 51 rejection remain.
+  Internal model/wire mapping tables become public serializer/deserializer cases.
+- Exact default and populated documents pin format/version, explicit nulls, all
+  persisted fields and exclusion of owners/identities/derived timing before JSON
+  conversion. Hand-written input is independent of serializer output and checks
+  metadata/mix/instruments, valid self-contained repeat, sparse voices, rests,
+  empty note lanes, open/dead/fretted notes and techniques.
+- Literal token tables cover seven durations at beat/master levels, six clefs, ten
+  instrument/tone pairs/programs, twelve pitches, eight techniques/options omission
+  and seven bend shapes/options. Valid public model fixtures preserve empty-voice
+  rejection. Group 50 overlap is deliberate: wire literals versus reconstructed graph.
+- Sixty-one owned cases and one-hundred-twenty-seven shared serialization cases,
+  test compilation and scoped lint/format/diff passed. No source/helper changes or
+  bugs. Actual APIs are serializeScore/deserializeScore, not Score JSON methods.
+  Independent review is running.
+- Independent review approved all original and replacement contracts, including
+  valid transitions, exact shape before JSON, exhaustive current tokens and distinct
+  Group 50 reconstruction coverage. Sixty-one cases, test compilation and scoped
+  lint/format/diff passed. Added case count exposes formerly looped tokens plus
+  full-document/bend-option contracts. No blockers or optional changes.
+
+### Group 53: assessment and implementation
+
+- Eight declarations become seven; eight cases remain after merging successful
+  cleanup into export and adding a malformed-schema row alongside malformed JSON.
+  All original declarations reviewed. Real DOM/files/serialization/editor mounting/
+  SVG replace internal model mocks and fake controls; external picker/download/
+  read timing and public host-failure boundaries remain valid fakes.
+- Export requires exact name/MIME/JSON formatting, restoration and attached/removed
+  anchor plus deferred URL revocation. Import requires actual picker wiring, fixed
+  document metadata/rendered fret, input reset and exporting the newly mounted score.
+- Invalid JSON/schema preserves score/SVG and permits same-filename retry; latest
+  file wins via controlled read timing with real parsing/mounting. Unbind invalidates
+  pending reads and all three DOM listeners. Host replacement failure requires visible
+  error, preserved score/SVG and input/busy reset. Failed browser download requires
+  visible error plus anchor/revocation cleanup. Given up: direct helper exception
+  assertions, replaced by user-visible failure effects. No behavior-only removals.
+- Eight focused cases, test compilation and scoped lint/format/diff passed. No source
+  bug found; independent review is running.
+- Independent review passed eight cases, test compilation and scoped lint/format/
+  diff, approving the other guarantees/tradeoffs. One blocker: after unbind, retained
+  file-change listeners could set busy state despite generation guards suppressing
+  replacement; current assertions missed that. Correction must require enabled
+  button/false aria-busy or no read on the later file after flush. No source bug.
+- Correction establishes pending read/busy positive state before unbind, then
+  requires enabled button, false aria-busy and no later file read after flush.
+  A process-only transform removing only change-listener cleanup fails the new
+  enabled-state assertion; source remains untouched. Eight cases, test compilation
+  and scoped lint/format/diff passed; no count delta. Independent recheck runs.
+- Independent recheck approved the final positive/negative lifecycle checks and
+  all remaining scope, passing eight cases, test compilation and scoped lint/
+  format/diff. It reviewed the mutation mechanism without rerunning it. These
+  focused checks cover final assertions separately from the concurrent full run.
+
+### Group 54: assessment and implementation
+
+- Eight declarations become twelve; normal cases eleven to twenty-seven, optional
+  stress-enabled twelve to twenty-eight. No direct removals. Resolution tables cover
+  five fixture/four theme keys plus unknown/missing fallbacks. Menu IDs and literal
+  paper config remain. Fresh showcase nested edits must preserve separate instances.
+- Round trips retain full document equality with independent graph counts and shared
+  master-bar identity; meaningless undefined checks that accepted null are replaced.
+  Four new declarations require known showcase chord/lead/bass/rhythm, real empty
+  rest/absent voices, dotted/tuplet timing in both multi-voice fixtures and actual
+  second-staff voice-three notes/timing. No technique-richness claim: fixtures have
+  none. Deliberately underfilled voices do not get artificial whole-bar assertions.
+- Page theme application uses actual CSS output for initial/replacement themes,
+  explicit/default targets and preserved host styles instead of call history. Cleanup
+  restores browser globals/styles. Gated stress remains optional, adding 32-note
+  thirty-second/full-bar timing at beginning/middle/end. It has not been run.
+- Twenty-seven cases, test compilation and scoped lint/format/diff passed. No bugs,
+  source/helper edits. Independent review is running.
+- Independent review approved all original/new fixture contracts, independent known
+  examples, real CSS and preserved optional stress gate. Twenty-seven cases and
+  scoped lint/format/diff passed. No blockers or optional changes. The stress case
+  was not independently run.
+
+### Groups 52–55 combined verification
+
+- Packed-consumer smoke passed separately after its implementation. Full
+  `npm run verify` passed after all four implementations and closing docs:
+  production/test compilation, package build, all 94 unit suites/1,036 tests,
+  packed-consumer smoke, Chromium/Firefox (253 passed, one skipped), and demo build.
+  Log: `/tmp/opencode/tabui-audit-groups-52-55-verify.log`.
+- The full run started before final import assertions and bounded consumer waits.
+  Final import checks passed eight cases, test compilation and independent review.
+  Supervisor reran the final consumer script successfully after its correction;
+  log: `/tmp/opencode/tabui-audit-groups-52-55-final-consumer.log`. These are separate
+  focused results, not a claim that the concurrent full run included later changes.
+- Final repository-wide lint, changed-test/docs/audit formatting and diff checks
+  passed. Optional large fixture stress was not run. No production or dependency
+  changes in this round; closing documentation records actual accepted contracts.
+- Net round delta: nine test declarations and fifty-three generated unit cases
+  added, chiefly replacing grouped internal wire-map loops with independent public
+  token cases and adding distinct fixture contracts. Group 53 consolidates one
+  declaration without changing its executed case count; consumer remains one smoke
+  script, not sixteen test declarations. Final counts are inventory, not quality
+  targets. All four groups passed independent review and required checks.
+- All 55 groups are complete. Closing findings have an independent disposition:
+  empty-selection throws remain a documented accepted limitation, with no invented
+  no-op guarantee or permanent test locking in exceptions; nearest repeat pairing
+  is documented intended behavior. Coverage reductions remain explicit above.
+  No further commit or push was made; final-round tests/docs remain uncommitted.
+- Final user documentation review keeps repeat rules/examples in `docs/domain.md`
+  and the selection limitation in `docs/usage.md`; the extra playback link and
+  internal-controller paragraph were removed. The API-boundary finding remains
+  recorded here. Repeat examples now use code blocks and a short rule summary.
+  These wording-only changes passed formatting/diff checks before the closing commit.
