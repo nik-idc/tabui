@@ -82,16 +82,18 @@ test("restores the original notation after switching away and back", async ({
   const firstTrackNotes = await editor
     .locator('[id^="note-text-"]')
     .allTextContents();
+  expect(firstTrackNotes.length).toBeGreaterThan(0);
   await selectTrack(editor, 1);
   const secondTrackNotes = await editor
     .locator('[id^="note-text-"]')
     .allTextContents();
+  expect(secondTrackNotes.length).toBeGreaterThan(0);
   expect(secondTrackNotes).not.toEqual(firstTrackNotes);
 
   await selectTrack(editor, 0);
   await expect(editor.locator(".tu-root-svg")).toHaveCount(1);
   await expect(editor.locator("#tu-notation")).toHaveCount(1);
-  expect(await editor.locator('[id^="note-text-"]').allTextContents()).toEqual(
+  await expect(editor.locator('[id^="note-text-"]')).toHaveText(
     firstTrackNotes
   );
 });

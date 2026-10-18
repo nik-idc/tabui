@@ -1,6 +1,5 @@
 import { EditorMouseDefCallbacks } from "../../../src/notation/input/editor-mouse-callbacks";
 import { RenderType } from "../../../src/notation/input/render-type";
-import { SVGTabNoteRenderer } from "../../../src/notation/render/svg/svg-tab-note-renderer";
 import { SVGTechniqueLabelRenderer } from "../../../src/notation/render/svg/svg-technique-label-renderer";
 import { GuitarTechniqueLabelElement } from "../../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import {
@@ -68,32 +67,6 @@ function createPointerEvent(
     isPrimary,
     button: 0,
   } as PointerEvent;
-}
-
-function createRendererBackedNoteRenderer(noteElement: TabNoteSlotElement) {
-  type NoteMouseHandler = (
-    event: MouseEvent,
-    noteElement: TabNoteSlotElement
-  ) => void;
-  const handlers = new Map<string, NoteMouseHandler>();
-  const renderer = Object.create(SVGTabNoteRenderer.prototype) as any;
-  renderer.noteElement = noteElement;
-  renderer.attachMouseEvent = jest.fn(
-    (eventType: string, handler: NoteMouseHandler) => {
-      handlers.set(eventType, handler);
-    }
-  );
-  renderer.detachMouseEvent = jest.fn((eventType: string) => {
-    handlers.delete(eventType);
-  });
-  renderer.detachAllMouseEvents = jest.fn(() => {
-    handlers.clear();
-  });
-  renderer.trigger = (eventType: string, event: MouseEvent) => {
-    handlers.get(eventType)?.(event, noteElement);
-  };
-  renderer.hasHandler = (eventType: string) => handlers.has(eventType);
-  return renderer;
 }
 
 function createHarness() {
@@ -1174,68 +1147,143 @@ describe("EditorMouseDefCallbacks", () => {
   });
 
   test("bind and unbind manage global, delegated, and note renderer listeners without leaks", () => {
-    const { callbacks, noteElement, renderer, notationComponent, renderFunc } =
-      createHarness();
-    const noteRenderer = createRendererBackedNoteRenderer(noteElement);
-    const win = (globalThis as any).window;
-
-    callbacks.bind([noteRenderer]);
-    callbacks.bind([noteRenderer]);
-
-    expect(win.addEventListener).toHaveBeenCalledTimes(1);
-    expect(renderer.attachBeatInteractionEvent).toHaveBeenCalledTimes(4);
-    expect(noteRenderer.attachMouseEvent).toHaveBeenCalledTimes(5);
-
-    noteRenderer.trigger("click", createMouseEvent(10, 10));
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledWith(noteElement);
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
-
-    const noteSelectionCallsBeforeUnbind =
-      notationComponent.trackController.selectNoteElement.mock.calls.length;
-    callbacks.unbind();
-    expect(win.removeEventListener).toHaveBeenCalledTimes(1);
-    expect(renderer.detachBeatInteractionEvent).toHaveBeenCalledTimes(4);
-    expect(noteRenderer.detachMouseEvent).toHaveBeenCalledTimes(5);
-    expect(noteRenderer.hasHandler("click")).toBe(false);
-
-    noteRenderer.trigger("click", createMouseEvent(20, 20));
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledTimes(noteSelectionCallsBeforeUnbind);
-
-    callbacks.bind([noteRenderer]);
-    expect(win.addEventListener).toHaveBeenCalledTimes(2);
-    expect(noteRenderer.attachMouseEvent).toHaveBeenCalledTimes(10);
+    withDragSelection(({ root, controller, beats, elements }) => {
+      const rectConstructor = Object.getOwnPropertyDescriptor(
+        globalThis,
+        "SVGRectElement"
+      );
+      Object.defineProperty(globalThis, "SVGRectElement", {
+        configurable: true,
+        value: document.createElementNS("http://www.w3.org/2000/svg", "rect")
+          .constructor,
+      });
+      const host = document.createElement("div");
+      root.appendChild(host);
+      const renderer = new EditorSVGRenderer(host, controller, {
+        baseUrl: "",
+        variant: "light",
+      });
+      const owner = {
+        renderer,
+        trackController: controller,
+      } as unknown as ConstructorParameters<typeof EditorMouseDefCallbacks>[1];
+      const render = jest.fn(() => renderer.render());
+      const callbacks = new EditorMouseDefCallbacks(
+        {} as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+        owner,
+        render
+      );
+      const active = renderer.render();
+      const note = required(
+        host.querySelector(
+          `[id="note-rect-${elements[1].noteElements[0].getStableIdentity()}"]`
+        )
+      );
+      const beat = required(
+        host.querySelector(`[data-beat-uuid="${beats[2].uuid}"]`)
+      );
+      const event = (type: string, x = 0) => {
+        const e = new window.MouseEvent(type, {
+          bubbles: true,
+          buttons: 1,
+          clientX: x,
+        });
+        Object.defineProperties(e, {
+          pageX: { value: x },
+          pageY: { value: 0 },
+        });
+        return e;
+      };
+      try {
+        callbacks.bind(active);
+        callbacks.bind(active);
+        note.dispatchEvent(event("click"));
+        expect(controller.selectionCursor?.beat).toBe(beats[1]);
+        expect(render).toHaveBeenCalledTimes(1);
+        beat.dispatchEvent(event("mousedown"));
+        required(
+          host.querySelector(`[data-beat-uuid="${beats[0].uuid}"]`)
+        ).dispatchEvent(event("mousemove", 100));
+        expect(callbacks.isSelectingBeats).toBe(true);
+        window.dispatchEvent(event("mouseup", 100));
+        expect(callbacks.isSelectingBeats).toBe(false);
+        callbacks.unbind();
+        callbacks.unbind();
+        controller.clearSelection();
+        controller.selectNoteElement(elements[0].noteElements[0]);
+        render.mockClear();
+        note.dispatchEvent(event("click"));
+        beat.dispatchEvent(event("mousedown"));
+        note.dispatchEvent(event("mousemove", 100));
+        expect(controller.selectionCursor?.beat).toBe(beats[0]);
+        expect(callbacks.isSelectingBeats).toBe(false);
+        expect(render).not.toHaveBeenCalled();
+        callbacks.bind(active);
+        note.dispatchEvent(event("click"));
+        expect(controller.selectionCursor?.beat).toBe(beats[1]);
+        expect(render).toHaveBeenCalledTimes(1);
+      } finally {
+        callbacks.unbind();
+        renderer.dispose();
+        if (rectConstructor)
+          Object.defineProperty(globalThis, "SVGRectElement", rectConstructor);
+        else Reflect.deleteProperty(globalThis, "SVGRectElement");
+      }
+    });
   });
 
   test("bind reconciles stale note renderers when the active renderer set changes", () => {
-    const { callbacks, noteElement, notationComponent } = createHarness();
-    const oldRenderer = createRendererBackedNoteRenderer(noteElement);
-    const newRenderer = createRendererBackedNoteRenderer(noteElement);
-
-    callbacks.bind([oldRenderer]);
-    expect(oldRenderer.attachMouseEvent).toHaveBeenCalledTimes(5);
-    expect(oldRenderer.hasHandler("click")).toBe(true);
-
-    callbacks.bind([newRenderer]);
-    expect(oldRenderer.detachMouseEvent).toHaveBeenCalledTimes(5);
-    expect(oldRenderer.hasHandler("click")).toBe(false);
-    expect(newRenderer.attachMouseEvent).toHaveBeenCalledTimes(5);
-    expect(newRenderer.hasHandler("click")).toBe(true);
-
-    const selectedCallsBeforeOldTrigger =
-      notationComponent.trackController.selectNoteElement.mock.calls.length;
-    oldRenderer.trigger("click", createMouseEvent(30, 30));
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledTimes(selectedCallsBeforeOldTrigger);
-
-    newRenderer.trigger("click", createMouseEvent(40, 40));
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledTimes(selectedCallsBeforeOldTrigger + 1);
+    withDragSelection(({ root, controller, beats, elements }) => {
+      const hosts = [
+        document.createElement("div"),
+        document.createElement("div"),
+      ];
+      hosts.forEach((h) => root.appendChild(h));
+      const renderers = hosts.map(
+        (h) =>
+          new EditorSVGRenderer(h, controller, {
+            baseUrl: "",
+            variant: "light",
+          })
+      );
+      const sets = renderers.map((r) => r.render());
+      const owner = {
+        renderer: renderers[1],
+        trackController: controller,
+      } as unknown as ConstructorParameters<typeof EditorMouseDefCallbacks>[1];
+      const callbacks = new EditorMouseDefCallbacks(
+        {} as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+        owner,
+        () => {}
+      );
+      const notes = hosts.map((h) =>
+        required(
+          h.querySelector(
+            `[id="note-rect-${elements[1].noteElements[0].getStableIdentity()}"]`
+          )
+        )
+      );
+      try {
+        callbacks.bind(sets[0]);
+        notes[0].dispatchEvent(
+          new window.MouseEvent("click", { bubbles: true })
+        );
+        expect(controller.selectionCursor?.beat).toBe(beats[1]);
+        controller.selectNoteElement(elements[0].noteElements[0]);
+        callbacks.bind(sets[1]);
+        notes[0].dispatchEvent(
+          new window.MouseEvent("click", { bubbles: true })
+        );
+        expect(controller.selectionCursor?.beat).toBe(beats[0]);
+        notes[1].dispatchEvent(
+          new window.MouseEvent("click", { bubbles: true })
+        );
+        expect(controller.selectionCursor?.beat).toBe(beats[1]);
+      } finally {
+        callbacks.unbind();
+        renderers.forEach((r) => r.dispose());
+      }
+    });
   });
 
   test("pointer events do not start or update drag selection", () => {

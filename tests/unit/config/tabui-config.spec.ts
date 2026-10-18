@@ -136,24 +136,46 @@ describe("tabui-config", () => {
     expect(config.playback.preloadAudio).toBe(true);
   });
 
-  it("rejects invalid responsive layout thresholds", () => {
-    expect(() =>
-      resolveTabUIConfig({
-        layout: {
-          viewOnlyModeWidthThreshold: 900,
-          unrestrictedModeWidthThreshold: 900,
-        },
-      })
-    ).toThrow("layout thresholds");
-  });
+  it.each([
+    [900, 900],
+    [901, 900],
+    [500, -1],
+    [-1, 1000],
+    [NaN, 1000],
+    [500, Infinity],
+  ])(
+    "rejects invalid responsive layout thresholds %p / %p",
+    (viewOnly, unrestricted) => {
+      expect(() =>
+        resolveTabUIConfig({
+          layout: {
+            viewOnlyModeWidthThreshold: viewOnly,
+            unrestrictedModeWidthThreshold: unrestricted,
+          },
+        })
+      ).toThrow(/layout.*threshold/);
+    }
+  );
 
   it("rejects fixed widths that cannot fit view-only notation", () => {
-    expect(() => resolveTabUIConfig({ layout: { width: 499 } })).toThrow(
-      "layout width"
+    for (const width of [499, 0, -1, NaN, Infinity]) {
+      expect(() => resolveTabUIConfig({ layout: { width } })).toThrow(
+        "layout width"
+      );
+    }
+    expect(resolveTabUIConfig({ layout: { width: 500 } }).layout.width).toBe(
+      500
     );
-    expect(() => resolveTabUIConfig({ layout: { width: Infinity } })).toThrow(
-      "layout width"
-    );
+    expect(() =>
+      resolveTabUIConfig({
+        layout: { width: 599, viewOnlyModeWidthThreshold: 600 },
+      })
+    ).toThrow("layout width");
+    expect(
+      resolveTabUIConfig({
+        layout: { width: 600, viewOnlyModeWidthThreshold: 600 },
+      }).layout.width
+    ).toBe(600);
   });
 
   it("rejects an invalid layout mode at the runtime boundary", () => {

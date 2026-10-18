@@ -405,4 +405,6 @@ test("names a delete confirmation with the track being deleted", async ({
   await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(dialog).toHaveCount(0);
+  await expect(removeRhythm).toBeVisible();
+  await expect(editor.locator(".tu-track-select-button")).toHaveCount(3);
 });

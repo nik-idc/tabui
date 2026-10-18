@@ -89,7 +89,10 @@ assigned shortcut table. See current status below.
 | 40. Note synthesis and teardown              | Sol assessment complete                            | Implemented; independent review passed |
 | 41. Audio buses and samples                  | Sol assessment complete                            | Implemented; independent review passed |
 | 42. Playback cursor and overlays             | Sol assessment complete                            | Implemented; independent review passed |
-| 43–55                                        | Not started                                        | Not started                            |
+| 43. Track/score controls and switching       | Sol assessment complete                            | Implemented; independent review passed |
+| 44. Lifecycle and subscription cleanup       | Sol assessment complete                            | Implemented; independent review passed |
+| 45. Responsive sizing                        | Sol assessment complete                            | Implemented; independent review passed |
+| 46–55                                        | Not started                                        | Not started                            |
 
 ## Current handoff scopes
 
@@ -2371,3 +2374,176 @@ No direct removals or source changes; only the two owned specs changed.
   throwing still requires contract/reachability review before full audit closure;
   nearest repeat-boundary pairing remains the user's intended design. Prior work
   is preserved. Groups 43–55 are not started.
+
+### Groups 43–45: complete
+
+- User requested a checkpoint commit and the next three groups. Committed Groups
+  40–42 and the sample retry fix as `4de06950`,
+  **Improve audio tests and fix sample retries**. Nothing pushed.
+- Separate Sol implementations own track/score controls and switching, lifecycle
+  and subscription cleanup, and responsive sizing. Each receives an independent
+  Sol review. Shared lifecycle ownership is declaration-level, mapped from original
+  baseline titles; other groups’ changes and prior guarantees must be preserved.
+- Before-round files and checkpoint hash are saved at
+  `/tmp/opencode/tabui-audit-groups-43-45-before/`. The coordinator owns this record
+  and combined browser/full verification. No further commit is requested.
+- Approved seams remain public behavior, real controls/rendering and browser output;
+  external clocks, audio and resize observers may be faked. Coverage value and test
+  quality are separate; no count target applies. Empty-selection preconditions and
+  reachability remain an audit-closing follow-up. Nearest repeat pairing is intended.
+
+### Group 43: assessment and implementation
+
+- All thirteen unit and three browser declarations remain. Twelve unit declarations
+  replace mocked dispatch/render choreography with real controls/model changes,
+  disabled states, dialogs/deletion, unbind behavior, and persisted master/track mix.
+- Track controls cover only-track removal, playback edit restrictions with working
+  selection/mix, view-only rejection, selection/reorder/rename/dialogs. Given up:
+  mocked setter dispatch in view-only mode, which falsely implied edits succeeded.
+- Notation tests retain no-track constructor rejection and require player/run/loop
+  identity and buffered audio across switches, disposal, offscreen cursor
+  materialization/following, range-endpoint following, and explicit refresh reflow
+  without score mutation. Internal constructor/call-order/count assertions removed.
+- Track-switch browser coverage keeps active-state/single-view checks, strengthens
+  populated notation on both tracks/restoration, and requires keyboard cancellation
+  of delete confirmation to preserve the track and all three controls.
+- No direct declaration removals or shared-helper/source edits; no source bug found.
+  Thirteen focused unit cases and scoped lint/format/diff passed. Test compilation
+  was blocked only by parallel Group 44/45 work. Independent review is running.
+- Independent review passed thirteen focused cases and approved the other retained
+  and replacement guarantees. One blocker: buffered cursor x reused production's
+  `attackXGlobal`, while y only exceeded 200. Correction must match both axes to a
+  required rendered target note/rest in the same coordinate space. No source bug.
+  Snapshot access was denied; review compared checkpoint/original Git baselines.
+- Correction now requires the unique rendered `9` and matching SVG hit rectangle;
+  root-SVG coordinates come from DOM attributes/ancestor translations. Cursor x
+  aligns and its vertical extent must contain the target rectangle. Scrolling,
+  materialization and positive cursor width remain. A process-only 200-unit upward
+  cursor shift fails containment. Mute/solo now toggle back explicitly; layout
+  refresh also preserves serialized score content. Thirteen unit cases, test
+  compilation, scoped lint/format/diff passed; independent recheck is running.
+- Independent recheck approved the corrected rendered-target oracle, mix reversal
+  and serialized score preservation, and passed thirteen tests/scoped static checks.
+  Reviewer inspected the assertions/probe mechanism but did not rerun the mutation.
+
+### Group 45: assessment and implementation
+
+- All twenty-one declarations remain: fifteen lifecycle, four configuration, two
+  browser. Nineteen strengthen replacements; combined-layout merge and invalid
+  runtime mode validation remain. Generated cases increase twenty-one to twenty-eight.
+- Real components/DOM replace internal layout mocks. External measurement, resize
+  observation and time fakes exercise explicit/measured/fixed width, actual SVG
+  output and notifications, latest-width coalescing/reuse/disconnect, host-width
+  restrictions, keyboard/dialog transitions, initial blocked state, invalid-width
+  recovery, observer setup rollback/remount and pending-work disposal.
+- Window fallback uses native resize events, coalescing and listener removal.
+  Rollback uses a throwing public change listener; listener disposal/throw retains
+  captured dimensions, empty root and terminal state. Given up: injected internal
+  notation-refresh failure at original line 1027, replaced by host-callback rollback.
+  Invalid refresh cases cover -1, NaN and Infinity without state/output/events.
+- Configuration tests retain fixed-width minimum boundaries and add equal,
+  reversed, negative/non-finite thresholds and custom limits. Browser tests require
+  populated notation, SVG size and matching-coordinate geometry across host-only
+  resizing, restriction recovery and side-panel collapse/expand restoration.
+- No direct removals/source edits or new bug reports. Fifty-eight focused cases
+  including shared-file tests passed. Owned formatting/lint/diff passed; compilation
+  and shared lifecycle unused imports awaited parallel Group 44 completion.
+  Independent review is running; browser/full verification is supervisor-owned.
+- Independent review approved the other coverage and explicit internal-failure
+  tradeoff, but requested two corrections: restricted keyboard checks must focus
+  notation before each event; host-only resize must require matching bar IDs to
+  move and restore geometry. Window-resize movement must also compare shared IDs,
+  not merely unequal arrays. Fifty-eight focused cases passed. Snapshot denied;
+  Git baselines used. Shared lint/format results reflected in-flight cleanup.
+- Corrected keyboard case requires focus before each restricted and unrestricted
+  key event. Separate process-only mutations enabling blocked/view-only edits each
+  fail the expected unchanged fret (`null` becomes `5`). No source file edits.
+- Window and host-only resize now require at least one matching bar ID to move
+  over 0.5 CSS pixels; recovery requires every baseline ID to return within 0.5px.
+  Bounds, positive output, SVG sizes and restriction classes remain. Unused shared
+  imports removed. Fifty-eight tests, test compilation and scoped lint/format/diff
+  passed. No count delta. Independent recheck is running.
+- Independent recheck approved both corrections and all twenty-one declarations,
+  passing fifty-eight cases, test compilation and scoped lint/format/diff. Browser
+  run then passed nine of ten cases; Chromium side-panel expansion read SVG 1171px
+  versus notation 1185.609375px immediately after detecting width growth. Agent
+  investigates the measurement/wait before final browser recheck. Log:
+  `/tmp/opencode/tabui-audit-groups-43-45-responsive.log`.
+- Browser-width correction compares SVG width to viewport `clientWidth`, measured
+  together and required positive, rather than the bounding rectangle which includes
+  the reserved scrollbar gutter. Production uses client width. Existing growth,
+  controls, expansion and restored width remain. Scoped lint/format/test compilation/
+  diff passed. No source bug found; independent recheck is running.
+- Independent recheck approved matching CSS-pixel content-width measurement,
+  simultaneous sampling, positive widths and repeated 0.5px convergence. Collapse
+  growth/control state/expansion restoration remain. No remaining review blockers.
+
+### Group 44: assessment and implementation
+
+- Twenty-two declarations remain: twenty replacements and two strengthened keeps.
+  Nine owned lifecycle declarations move to `ui-callbacks.spec.ts`; repeated
+  bind/unbind delegation moves from that file to `tabui-callbacks.spec.ts`.
+- Mounted editors exercise disposal of retained controls/keyboard/DOM, scoped theme
+  removal, fresh remount without revived controls, partial-init rollback/remount,
+  snapshots for real selection/edits/loop/playback, isolated disposable subscriptions,
+  snapshot identity until changes, owned startup errors, and terminal state APIs.
+- TabUI callback tests require scroll materialization after renderer replacement,
+  dialog keyboard capture across repeated cycles/UI refresh/final unbind, exact-once
+  observable top/side edits after binding cycles, edit notifications with silent
+  scrolling, and externally changed note content after explicit refresh.
+- UI/top tests require playback side-edit restrictions/recovery, isolated removable
+  and rebindable player-state subscriptions, and stable listener order across two
+  emissions. Mouse tests exercise native SVG selection/global release, inactive
+  unbound callbacks/working rebind, old targets before/after renderer replacement
+  and working new targets. Browser containment strengthens three remounts, page-wide
+  tree containment and working keyboard edits each time.
+- Given up: internal bind/render/dispose counts, private render-mode invocation,
+  render-option objects and synthetic ContextStart error payload. Real startup
+  failure now covers ContextInit/Failed to prepare audio. No direct removals or
+  source bug; unused fake note-renderer helper/imports removed.
+- Five focused suites/eighty-eight cases, test compilation and scoped callback/
+  browser lint/format/diff passed. Shared lifecycle declarations/import cleanup were
+  formatted by the coordinator after both owners completed. Independent review runs.
+- Independent review passed sixty-six focused cases and approved twenty-one
+  declarations. Partial-init failure occurred before notation ownership, losing
+  baseline teardown coverage. Correction must fail at a later browser boundary and
+  require owned-resource cleanup (preloaded audio context closure), while retaining
+  terminal state/remount. No source bug. Reviewer used Git because snapshot access
+  was denied. Toggle notification counts and subscription wording were optional.
+- Corrected failure occurs at browser `appendChild` during top-control rendering
+  after notation ownership. Preloaded audio provides a required live/open context
+  at failure; rollback closes it exactly once, including repeated disposal and
+  settled async work. Terminal state, empty root and successful remount remain.
+- Binding cycles now require exact observable change notification totals 1/2 then
+  3/4 after rebind, remaining 2 while unbound. Disposal wording now claims only
+  inactive controls and terminal APIs, not unproved stored-subscriber clearing.
+  Sixty-six tests, test compilation and scoped lint/format/diff passed; no count
+  change. Independent recheck is running. No mutation probe was run for rollback.
+- Independent recheck approved all twenty-two declarations, including owned audio
+  context cleanup and exact notification counts; two suites/seventeen tests and
+  scoped diff passed. No remaining Group 44 blockers.
+
+### Groups 43–45 combined verification
+
+- The initial full `npm run verify` exited with code 1 while Group 44/45 review
+  corrections were pending. Its log was lost when temporary storage reset; cause
+  and completed phases are unknown. This is a failed run, not a clean result.
+- Both correction agents hit usage limits. The user requested resumption after
+  limits reset; implementations/reviews resume from the existing worktree and Git
+  checkpoint because before-round snapshots are also no longer available.
+- A fresh full verification will run after final corrections, with new evidence
+  recorded separately from the failed initial run.
+- Fresh `npm run verify` passed with all review/browser corrections included:
+  production/test compilation, package build, all 96 unit suites/987 tests,
+  packed-consumer smoke, Chromium/Firefox (253 passed, one skipped), and demo build.
+  Log: `/tmp/opencode/tabui-audit-groups-43-45-final-verify.log`.
+- Repository-wide ESLint, changed-test/audit formatting and diff checks passed.
+  All three groups are implemented and independently reviewed. Declaration counts
+  remain unchanged: Group 43 sixteen, Group 44 twenty-two, Group 45 twenty-one.
+  Generated unit cases increase seven (980 to 987) through distinct validation
+  rows. No direct declaration removals, source/dependency changes, or new source
+  bug findings. Previous fixes and guarantees are preserved with explicit seam
+  tradeoffs above. No further commit or push was made.
+- Groups 46–55 are not started. Empty-selection preconditions/API boundary/UI
+  reachability still need review before full audit closure; nearest-boundary repeat
+  pairing remains the intended design.

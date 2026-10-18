@@ -1,204 +1,210 @@
+/** @jest-environment jsdom */
 import { TabUICallbacks } from "../../../src/tabui-callbacks";
-import { RenderType } from "../../../src/notation/input";
-import { FakeElement } from "./helpers";
-
-jest.mock("../../../src/notation/input", () => {
-  class MockEditorMouseDefCallbacks {
-    public isSelectingBeats = false;
-    public bind = jest.fn();
-    public unbind = jest.fn();
-    constructor() {}
-  }
-
-  class MockEditorKeyboardDefCallbacks {
-    public bind = jest.fn();
-    public unbind = jest.fn();
-    constructor() {}
-  }
-
-  // These keys mirror the mocked module's public exports and enum members.
-  /* eslint-disable @typescript-eslint/naming-convention */
-  return {
-    EditorMouseDefCallbacks: MockEditorMouseDefCallbacks,
-    EditorKeyboardDefCallbacks: MockEditorKeyboardDefCallbacks,
-    RenderType: {
-      Full: 0,
-      NotationOnly: 1,
-      DragSelection: 2,
-      SelectionRefresh: 3,
-      ActiveVoiceSelection: 4,
-      PlayerCursor: 5,
-    },
-  };
-  /* eslint-enable @typescript-eslint/naming-convention */
-});
-
-jest.mock("../../../src/ui/ui-callbacks", () => {
-  class MockUICallbacks {
-    public bind = jest.fn();
-    public unbind = jest.fn();
-    public captureKeyboard: () => void;
-    public freeKeyboard: () => void;
-
-    constructor(
-      _uiComponent: unknown,
-      _notationComponent: unknown,
-      _renderFunc: () => void,
-      _renderActiveVoiceFunc: () => void,
-      captureKeyboard: () => void,
-      freeKeyboard: () => void
-    ) {
-      this.captureKeyboard = captureKeyboard;
-      this.freeKeyboard = freeKeyboard;
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- Matches the module export.
-  return { UICallbacks: MockUICallbacks };
-});
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
+import { NotationComponent } from "../../../src/notation/notation-component";
+import { UIComponent } from "../../../src/ui";
+import { EditorShellComponent } from "../../../src/ui/editor-shell/editor-shell-component";
+import { DEFAULT_MASTER_BAR, GuitarNote } from "../../../src/notation/model";
+import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
+import { createScoreGraph } from "../model/helpers";
+import { required } from "../required";
 
 describe("TabUICallbacks", () => {
-  function createHarness(onStateChanged: () => void = () => {}) {
-    const renderer = {
-      attachViewportScrollEvent: jest.fn(),
-      detachViewportScrollEvent: jest.fn(),
-    };
-    const notationComponent = {
-      render: jest.fn(() => []),
-      renderer,
-      rootDiv: new FakeElement(),
-      trackController: { selectionCursor: undefined, selectionAsBeats: [] },
-    } as any;
-    const uiComponent = {
-      render: jest.fn(),
-      topComponent: {},
-      sideComponent: {},
-    } as any;
-    const announce = jest.fn();
-    const callbacks = new TabUICallbacks(
-      uiComponent,
-      notationComponent,
-      {} as HTMLDivElement,
-      onStateChanged,
-      announce
-    );
+  const cleanups: (() => void)[] = [];
+  beforeEach(() => {
+    jest.useFakeTimers();
+    Object.defineProperty(globalThis, "SVGRectElement", {
+      configurable: true,
+      value: document.createElementNS("http://www.w3.org/2000/svg", "rect")
+        .constructor,
+    });
+  });
+  afterEach(() => {
+    cleanups
+      .splice(0)
+      .reverse()
+      .forEach((c) => c());
+    Reflect.deleteProperty(globalThis, "SVGRectElement");
+    jest.useRealTimers();
+    document.body.replaceChildren();
+  });
 
+  function createHarness(long = false) {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const config = resolveTabUIConfig();
+    const shell = new EditorShellComponent(root, config);
+    shell.render();
+    cleanups.push(() => shell.dispose());
+    const { score, track, staff } = createScoreGraph();
+    if (long)
+      for (let i = 0; i < 80; i++) score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const viewport = shell.template.notationViewport;
+    Object.defineProperties(viewport, {
+      clientHeight: { value: 400 },
+      clientWidth: { value: 800 },
+    });
+    const notation = new NotationComponent(
+      viewport,
+      score,
+      config,
+      TEST_LAYOUT_DIMENSIONS
+    );
+    cleanups.push(() => notation.dispose());
+    const ui = new UIComponent(
+      shell.template.scorePanelHost,
+      shell.template.sidePanelHost,
+      shell.dialogEnforcer,
+      notation,
+      config,
+      () => {}
+    );
+    ui.render();
+    const changed = jest.fn();
+    const callbacks = new TabUICallbacks(ui, notation, root, changed);
+    cleanups.push(() => callbacks.unbind());
+    callbacks.bind();
+    const key = (value: string) => {
+      viewport.focus();
+      return viewport.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: value,
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    };
+    const tempo = ui.sideComponent.measureControlsComponent;
     return {
       callbacks,
-      mouseCallbacks: (callbacks as any)._mouseCallbacks,
-      keyboardCallbacks: (callbacks as any)._keyboardCallbacks,
-      uiCallbacks: (callbacks as any)._uiCallbacks,
-      rootDiv: notationComponent.rootDiv,
-      announce,
-      notationComponent,
+      notation,
+      ui,
+      root,
+      viewport,
+      changed,
+      key,
+      tempo,
+      track,
+      staff,
     };
   }
 
-  test("reattaches the current renderer scroll listener after a full render", () => {
-    const firstRenderer = {
-      attachViewportScrollEvent: jest.fn(),
-      detachViewportScrollEvent: jest.fn(),
-    };
-    const secondRenderer = {
-      attachViewportScrollEvent: jest.fn(),
-      detachViewportScrollEvent: jest.fn(),
-    };
-    const notationComponent = {
-      render: jest.fn(() => []),
-      renderer: firstRenderer,
-      trackController: { selectionCursor: undefined, selectionAsBeats: [] },
-    } as any;
-    const uiComponent = {
-      render: jest.fn(),
-      topComponent: {},
-      sideComponent: {},
-    } as any;
-    const callbacks = new TabUICallbacks(
-      uiComponent,
-      notationComponent,
-      {} as HTMLDivElement
-    );
-
-    callbacks.bind();
-    notationComponent.renderer = secondRenderer;
-    (callbacks as any).render(RenderType.Full);
-
-    expect(firstRenderer.attachViewportScrollEvent).toHaveBeenCalledTimes(1);
-    expect(secondRenderer.attachViewportScrollEvent).toHaveBeenCalledTimes(1);
+  test("scrolling still materializes notation after the active renderer is replaced", () => {
+    const { callbacks, notation, viewport, track, staff } = createHarness(true);
+    const firstBar = `bar-${staff.bars[0].uuid}`;
+    const lastBar = `bar-${staff.bars[80].uuid}`;
+    notation.loadTrack(track);
+    callbacks.refresh();
+    expect(viewport.querySelector(`[id="${firstBar}"]`)).not.toBeNull();
+    expect(viewport.querySelector(`[id="${lastBar}"]`)).toBeNull();
+    viewport.scrollTop = 1_000_000;
+    viewport.dispatchEvent(new Event("scroll"));
+    jest.advanceTimersByTime(20);
+    expect(viewport.querySelector(`[id="${lastBar}"]`)).not.toBeNull();
+    expect(viewport.querySelector(`[id="${firstBar}"]`)).toBeNull();
   });
 
-  test("captures and releases dialog keyboard ownership idempotently", () => {
-    const { callbacks, keyboardCallbacks, uiCallbacks } = createHarness();
-    callbacks.bind();
-    keyboardCallbacks.bind.mockClear();
-
-    uiCallbacks.captureKeyboard();
-    uiCallbacks.captureKeyboard();
-
-    expect(keyboardCallbacks.unbind).toHaveBeenCalledTimes(1);
-
-    uiCallbacks.freeKeyboard();
-    uiCallbacks.freeKeyboard();
-
-    expect(keyboardCallbacks.bind).toHaveBeenCalledTimes(1);
+  test("repeated dialog capture and close suspend and restore real keyboard editing", () => {
+    const { tempo, key, notation } = createHarness();
+    const note = required(notation.trackController.selectionCursor)
+      .note as GuitarNote;
+    key("5");
+    expect(note?.fret).toBe(5);
+    tempo.template.tempoButton.click();
+    tempo.template.tempoButton.click();
+    expect(tempo.tempoControlsComponent.dialog.open).toBe(true);
+    key("7");
+    expect(note?.fret).toBe(5);
+    tempo.tempoControlsComponent.dialog.close();
+    tempo.tempoControlsComponent.dialog.close();
+    key("Backspace");
+    expect(note?.fret).toBeNull();
   });
 
-  test("preserves keyboard capture across temporary UI unbind and rebind", () => {
-    const { callbacks, keyboardCallbacks, uiCallbacks } = createHarness();
+  test("repeated bind and unbind keep top and side controls active exactly once", () => {
+    const { callbacks, notation, ui, changed } = createHarness();
+    const loop = ui.topComponent.playComponent.template.loopButton;
+    const dot = ui.sideComponent.noteControlsComponent.template.dot1Button;
+    const beat = required(notation.trackController.selectionCursor).beat;
     callbacks.bind();
-    uiCallbacks.captureKeyboard();
-    keyboardCallbacks.bind.mockClear();
-    keyboardCallbacks.unbind.mockClear();
-
-    (callbacks as any).render(RenderType.SelectionRefresh);
-
-    expect(keyboardCallbacks.bind).not.toHaveBeenCalled();
-    expect(keyboardCallbacks.unbind).not.toHaveBeenCalled();
-
-    uiCallbacks.freeKeyboard();
-
-    expect(keyboardCallbacks.bind).toHaveBeenCalledTimes(1);
-  });
-
-  test("releases open dialog ownership once on final unbind", () => {
-    const { callbacks, keyboardCallbacks, uiCallbacks } = createHarness();
     callbacks.bind();
-    uiCallbacks.captureKeyboard();
-    keyboardCallbacks.bind.mockClear();
-    keyboardCallbacks.unbind.mockClear();
-
+    loop.click();
+    expect(changed).toHaveBeenCalledTimes(1);
+    dot.click();
+    expect(changed).toHaveBeenCalledTimes(2);
+    expect(notation.trackController.isLooped).toBe(true);
+    expect(beat.dots).toBe(1);
     callbacks.unbind();
     callbacks.unbind();
-
-    expect(keyboardCallbacks.bind).toHaveBeenCalledTimes(1);
-    expect(keyboardCallbacks.unbind).toHaveBeenCalledTimes(1);
-
-    uiCallbacks.freeKeyboard();
-
-    expect(keyboardCallbacks.bind).toHaveBeenCalledTimes(1);
+    loop.click();
+    dot.click();
+    expect(changed).toHaveBeenCalledTimes(2);
+    expect(notation.trackController.isLooped).toBe(true);
+    expect(beat.dots).toBe(1);
+    callbacks.bind();
+    loop.click();
+    expect(changed).toHaveBeenCalledTimes(3);
+    dot.click();
+    expect(changed).toHaveBeenCalledTimes(4);
+    expect(notation.trackController.isLooped).toBe(false);
+    expect(beat.dots).toBe(0);
   });
 
-  test("reports host state changes without reporting cursor-only renders", () => {
-    const onStateChanged = jest.fn();
-    const { callbacks } = createHarness(onStateChanged);
-
-    (callbacks as any).render(RenderType.SelectionRefresh);
-    (callbacks as any).render(RenderType.PlayerCursor);
-    callbacks.refresh();
-
-    expect(onStateChanged).toHaveBeenCalledTimes(2);
+  test("selection UI refresh preserves an open dialog's keyboard capture", () => {
+    const { tempo, key, notation, ui } = createHarness();
+    const note = required(notation.trackController.selectionCursor)
+      .note as GuitarNote;
+    key("5");
+    tempo.template.tempoButton.click();
+    // Changing loop rerenders and rebinds the UI while the dialog is open.
+    ui.topComponent.playComponent.template.loopButton.click();
+    expect(notation.trackController.isLooped).toBe(true);
+    expect(tempo.tempoControlsComponent.dialog.open).toBe(true);
+    key("Backspace");
+    expect(note?.fret).toBe(5);
+    tempo.tempoControlsComponent.dialog.close();
+    key("Backspace");
+    expect(note?.fret).toBeNull();
   });
 
-  test("forces notation geometry during an explicit layout refresh", () => {
-    const { callbacks } = createHarness();
-    const notationComponent = (callbacks as any)._notationComponent;
+  test("final unbind releases keyboard capture without reviving detached listeners", () => {
+    const { callbacks, tempo, key, notation } = createHarness();
+    const note = required(notation.trackController.selectionCursor)
+      .note as GuitarNote;
+    key("5");
+    tempo.template.tempoButton.click();
+    callbacks.unbind();
+    callbacks.unbind();
+    tempo.tempoControlsComponent.dialog.close();
+    key("Backspace");
+    expect(note?.fret).toBe(5);
+    callbacks.bind();
+    key("Backspace");
+    expect(note?.fret).toBeNull();
+  });
 
+  test("host changes report real selection edits but scrolling stays silent", () => {
+    const { callbacks, changed, key, viewport } = createHarness();
+    key("5");
+    expect(changed).toHaveBeenCalledTimes(1);
+    viewport.dispatchEvent(new Event("scroll"));
+    jest.advanceTimersByTime(20);
+    expect(changed).toHaveBeenCalledTimes(1);
     callbacks.refresh();
+    expect(changed).toHaveBeenCalledTimes(2);
+  });
 
-    expect(notationComponent.render).toHaveBeenCalledWith({
-      renderNotation: true,
-      forceNotation: true,
-      overlays: { selection: true, player: true },
-    });
+  test("explicit refresh displays externally changed note content", () => {
+    const { callbacks, notation, viewport } = createHarness();
+    const beat = required(notation.trackController.selectionCursor).beat;
+    const note = required(beat.notes?.[0]) as GuitarNote;
+    expect(
+      Array.from(viewport.querySelectorAll("text"), (e) => e.textContent)
+    ).not.toContain("7");
+    note.fret = 7;
+    callbacks.refresh();
+    expect(
+      Array.from(viewport.querySelectorAll("text"), (e) => e.textContent)
+    ).toContain("7");
   });
 });
