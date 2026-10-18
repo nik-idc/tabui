@@ -46,7 +46,7 @@ replace release validation.
       its 10-second limit in full runs, stopping the verification gate.~
       Determined that 10s is too little for these e2e tests. Increased timeout
       threshold to 30s
-- [ ] Run `npm run verify`, `npx eslint .`,
+- [x] Run `npm run verify`, `npx eslint .`,
       `git diff --check`, and `npm run benchmark:updates` from clean build output.
 
 ## Follow-up inbox
