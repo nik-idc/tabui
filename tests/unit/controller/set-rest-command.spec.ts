@@ -1,5 +1,9 @@
 import { SetRestCommand } from "../../../src/notation/controller/editor/command";
-import { GuitarNote, NoteDuration } from "../../../src/notation/model";
+import {
+  GuitarNote,
+  NoteDuration,
+  NoteValue,
+} from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 import { required } from "../required";
 
@@ -50,14 +54,31 @@ describe("SetRestCommand", () => {
     beat.makeRest();
     const command = new SetRestCommand([beat], false);
 
-    command.execute();
+    function expectEmptyNoteLanes() {
+      expect(beat.isRest()).toBe(false);
+      expect(beat.hasNotes()).toBe(true);
+      const notes = required(beat.notes) as GuitarNote[];
+      expect(notes).toHaveLength(6);
+      expect(notes.map((n) => n.stringNum)).toEqual([1, 2, 3, 4, 5, 6]);
+      for (const note of notes) {
+        expect(note.fret).toBeNull();
+        expect(note.noteValue).toBe(NoteValue.None);
+        expect(note.octave).toBeNull();
+        expect(note.techniques).toEqual([]);
+        expect(note.beat).toBe(beat);
+      }
+    }
 
-    expect(beat.isRest()).toBe(false);
-    expect(beat.hasNotes()).toBe(true);
+    command.execute();
+    expectEmptyNoteLanes();
 
     command.undo();
 
     expect(beat.isRest()).toBe(true);
+    expect(beat.notes).toBeNull();
+
+    command.redo();
+    expectEmptyNoteLanes();
   });
 
   test("execute, undo, and redo preserve an existing rest", () => {

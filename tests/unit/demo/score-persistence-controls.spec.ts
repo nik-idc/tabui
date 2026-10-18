@@ -1,4 +1,8 @@
-import { Score, serializeScore } from "../../../src/notation/model";
+import { File } from "node:buffer";
+import { setImmediate } from "node:timers";
+import { JSDOM } from "jsdom";
+import { deserializeScore, Score } from "../../../src/notation/model";
+import { TabUIEditor } from "../../../src/tabui-editor";
 import {
   bindScorePersistenceControls,
   downloadScoreDocument,
@@ -12,39 +16,86 @@ import {
   makeText,
 } from "../callbacks/helpers";
 
-jest.mock("../../../src/notation/model", () => {
-  const actual = jest.requireActual("../../../src/notation/model");
-  return {
-    ...actual,
-    serializeScore: jest.fn((score: Score) => ({ name: score.name })),
-    deserializeScore: jest.fn(
-      (document: { name?: string }) =>
-        new actual.Score([], document.name ?? "Restored score", "", "")
-    ),
-  };
-});
-
-function createControls() {
-  const serializeButton = makeButton() as unknown as HTMLButtonElement &
-    FakeElement;
-  const deserializeButton = makeButton() as unknown as HTMLButtonElement &
-    FakeElement;
-  const fileInput = makeInput() as unknown as HTMLInputElement & FakeElement;
-  Object.assign(fileInput, { click: jest.fn(), files: null });
-  const status = makeText() as unknown as HTMLElement & FakeElement;
-  return { serializeButton, deserializeButton, fileInput, status };
-}
-
-function selectFile(
-  fileInput: HTMLInputElement & FakeElement,
-  name: string,
-  contents: string | Promise<string>
-): void {
-  Object.defineProperty(fileInput, "files", {
-    configurable: true,
-    value: [{ name, text: () => Promise.resolve(contents) }],
+// A known V1 file, independent of the serializer used by the export controls.
+function importedDocument(name = "Imported study", fret = 7): string {
+  return JSON.stringify({
+    format: "tabui-score",
+    version: 1,
+    name,
+    artist: "Ada",
+    song: "Evening",
+    masterVolume: 0.8,
+    masterPan: -0.2,
+    masterBars: [
+      {
+        tempo: 96,
+        beatsCount: 4,
+        duration: "quarter",
+        isRepeatStart: false,
+        isRepeatEnd: false,
+        repeatCount: null,
+      },
+    ],
+    tracks: [
+      {
+        instrument: {
+          family: "Strings",
+          name: "Electric Guitar",
+          program: 27,
+          stringsCount: 6,
+          fretsCount: 24,
+          tuning: [
+            { noteValue: "E", octave: 4 },
+            { noteValue: "B", octave: 3 },
+            { noteValue: "G", octave: 3 },
+            { noteValue: "D", octave: 3 },
+            { noteValue: "A", octave: 2 },
+            { noteValue: "E", octave: 2 },
+          ],
+          type: "Electric Guitar",
+          tone: "Electric Clean",
+        },
+        name: "Lead guitar",
+        volume: 0.5,
+        pan: 0,
+        muted: false,
+        soloed: false,
+        staves: [
+          {
+            clefType: "Treble",
+            showTablature: true,
+            showClassicNotation: false,
+            bars: [
+              {
+                voices: [
+                  {
+                    beats: [
+                      {
+                        notes: [
+                          { fret, techniques: [] },
+                          null,
+                          null,
+                          null,
+                          null,
+                          null,
+                        ],
+                        duration: "quarter",
+                        dots: 0,
+                        tuplet: null,
+                      },
+                    ],
+                  },
+                  null,
+                  null,
+                  null,
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
   });
-  dispatchEvent(fileInput, "change");
 }
 
 function deferred<T>() {
@@ -56,272 +107,357 @@ function deferred<T>() {
 }
 
 async function flushPromises(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
-}
-
-function verifyUnbound(
-  controls: ReturnType<typeof createControls>,
-  downloadDocument: jest.Mock,
-  replaceScore: jest.Mock
-): void {
-  const downloadCalls = downloadDocument.mock.calls.length;
-  const replaceCalls = replaceScore.mock.calls.length;
-  const pickerCalls = (controls.fileInput.click as jest.Mock).mock.calls.length;
-  dispatchClick(controls.serializeButton);
-  dispatchClick(controls.deserializeButton);
-  dispatchEvent(controls.fileInput, "change");
-  expect(downloadDocument).toHaveBeenCalledTimes(downloadCalls);
-  expect(replaceScore).toHaveBeenCalledTimes(replaceCalls);
-  expect(controls.fileInput.click).toHaveBeenCalledTimes(pickerCalls);
+  // Let File.text() and the async DOM listener finish before the next turn.
+  await new Promise<void>((resolve) => setImmediate(resolve));
 }
 
 describe("demo score persistence controls", () => {
-  test("downloads the current score as formatted JSON", () => {
-    const controls = createControls();
-    const score = new Score([], "Current score", "Artist", "Song");
-    const downloadDocument = jest.fn<void, [string, string]>();
-    const replaceScore = jest.fn();
-    const unbind = bindScorePersistenceControls({
-      ...controls,
-      getScore: () => score,
-      replaceScore,
-      downloadDocument,
+  let dom: JSDOM;
+  const originalGlobals = new Map<string, PropertyDescriptor | undefined>();
+  const cleanups: (() => void)[] = [];
+
+  beforeEach(() => {
+    dom = new JSDOM("<!doctype html><html><body></body></html>", {
+      pretendToBeVisual: true,
     });
-
-    dispatchClick(controls.serializeButton);
-
-    expect(downloadDocument).toHaveBeenCalledTimes(1);
-    const [contents, filename] = downloadDocument.mock.calls[0];
-    const persistedScore = JSON.parse(contents) as {
-      name: string;
-    };
-    expect(persistedScore.name).toBe("Current score");
-    expect(filename).toBe("current-score.tabui.json");
-    expect(controls.status.dataset.state).toBe("success");
-    unbind();
-    verifyUnbound(controls, downloadDocument, replaceScore);
+    const browserGlobals = new Map<string, unknown>([
+      ["window", dom.window],
+      ["document", dom.window.document],
+      ["HTMLElement", dom.window.HTMLElement],
+      ["Element", dom.window.Element],
+      ["Node", dom.window.Node],
+      ["SVGElement", dom.window.SVGElement],
+      ["SVGRectElement", dom.window.SVGElement],
+      ["Event", dom.window.Event],
+      ["KeyboardEvent", dom.window.KeyboardEvent],
+      ["getComputedStyle", dom.window.getComputedStyle.bind(dom.window)],
+      ["ResizeObserver", undefined],
+      [
+        "requestAnimationFrame",
+        dom.window.requestAnimationFrame.bind(dom.window),
+      ],
+      [
+        "cancelAnimationFrame",
+        dom.window.cancelAnimationFrame.bind(dom.window),
+      ],
+    ]);
+    for (const [name, value] of browserGlobals) {
+      originalGlobals.set(
+        name,
+        Object.getOwnPropertyDescriptor(globalThis, name)
+      );
+      Object.defineProperty(globalThis, name, {
+        configurable: true,
+        writable: true,
+        value,
+      });
+    }
   });
 
-  test("opens a picker and replaces the score from the selected file", async () => {
-    const controls = createControls();
-    const source = new Score([], "Source", "Artist", "Song");
-    const replaceScore = jest.fn<void, [Score]>();
-    const downloadDocument = jest.fn();
-    const unbind = bindScorePersistenceControls({
-      ...controls,
-      getScore: () => source,
-      replaceScore,
-      downloadDocument,
-    });
+  afterEach(() => {
+    for (const cleanup of cleanups.splice(0).reverse()) cleanup();
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+    dom.window.close();
+    for (const [name, descriptor] of originalGlobals) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else Reflect.deleteProperty(globalThis, name);
+    }
+    originalGlobals.clear();
+  });
 
-    dispatchClick(controls.deserializeButton);
-    expect(controls.fileInput.click).toHaveBeenCalledTimes(1);
-    const serializedScore = serializeScore(source);
-    serializedScore.name = "Restored from file";
+  function mount(replaceScore?: (score: Score) => void) {
+    const root = document.createElement("div");
+    const serializeButton = document.createElement("button");
+    const deserializeButton = document.createElement("button");
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    const status = document.createElement("p");
+    document.body.append(
+      root,
+      serializeButton,
+      deserializeButton,
+      fileInput,
+      status
+    );
+    let editor = new TabUIEditor(
+      root,
+      new Score([], "Current score", "Artist", "Song"),
+      {
+        layout: { width: 1200 },
+      }
+    );
+    editor.init();
+    cleanups.push(() => editor.dispose());
+    const unbind = bindScorePersistenceControls({
+      serializeButton,
+      deserializeButton,
+      fileInput,
+      status,
+      getScore: () => editor.score,
+      replaceScore:
+        replaceScore ??
+        ((score) => {
+          editor.dispose();
+          editor = new TabUIEditor(root, score, { layout: { width: 1200 } });
+          editor.init();
+        }),
+      downloadDocument: downloadScoreDocument,
+    });
+    cleanups.push(unbind);
+    return {
+      root,
+      serializeButton,
+      deserializeButton,
+      fileInput,
+      status,
+      unbind,
+      score: () => editor.score,
+      frets: () =>
+        Array.from(
+          root.querySelectorAll(".tu-root-svg text"),
+          (v) => v.textContent
+        ),
+    };
+  }
+
+  function selectFile(fileInput: HTMLInputElement, file: File): void {
+    // jsdom cannot operate an OS picker. Supply its files/path at that boundary.
+    Object.defineProperties(fileInput, {
+      files: { configurable: true, value: [file] },
+      value: {
+        configurable: true,
+        writable: true,
+        value: `C:\\fakepath\\${file.name}`,
+      },
+    });
+    fileInput.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  }
+
+  function browserDownloads() {
+    jest.useFakeTimers();
+    cleanups.push(() => jest.runOnlyPendingTimers());
+    const blobs: Blob[] = [];
+    jest.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
+      if (!(blob instanceof Blob)) throw new Error("Expected a download Blob");
+      blobs.push(blob);
+      return "blob:score";
+    });
+    const revokeObjectURL = jest
+      .spyOn(URL, "revokeObjectURL")
+      .mockImplementation();
+    const anchors: HTMLAnchorElement[] = [];
+    const click = jest
+      .spyOn(dom.window.HTMLAnchorElement.prototype, "click")
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        expect(this.isConnected).toBe(true);
+        anchors.push(this);
+      });
+    return { blobs, revokeObjectURL, anchors, click };
+  }
+
+  test("downloads a restorable current score with JSON bytes, filename, and temporary resource cleanup", async () => {
+    const downloads = browserDownloads();
+    const controls = mount();
+
+    controls.serializeButton.click();
+
+    const anchor = required(downloads.anchors[0]);
+    expect(anchor.download).toBe("current-score.tabui.json");
+    expect(anchor.href).toBe("blob:score");
+    expect(anchor.isConnected).toBe(false);
+    const blob = required(downloads.blobs[0]);
+    expect(blob.type).toBe("application/json");
+    const contents = await blob.text();
+    expect(contents).toContain('\n  "format": "tabui-score",');
+    const restored = deserializeScore(JSON.parse(contents) as unknown);
+    expect(restored.name).toBe("Current score");
+    expect(restored.artist).toBe("Artist");
+    expect(restored.song).toBe("Song");
+    expect(restored.tracks).toHaveLength(1);
+    expect(
+      restored.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0].notes
+    ).toBeNull();
+    expect(controls.status.dataset.state).toBe("success");
+    expect(controls.status.textContent).toBe(
+      "Downloaded current-score.tabui.json."
+    );
+    expect(downloads.revokeObjectURL).not.toHaveBeenCalled();
+    jest.runOnlyPendingTimers();
+    expect(downloads.revokeObjectURL).toHaveBeenCalledWith("blob:score");
+  });
+
+  test("opens the picker, renders an imported score, and exports that score on the next click", async () => {
+    const downloads = browserDownloads();
+    const controls = mount();
+    const picker = jest.spyOn(controls.fileInput, "click").mockImplementation();
+    controls.deserializeButton.click();
+    expect(picker).toHaveBeenCalledTimes(1);
+
     selectFile(
       controls.fileInput,
-      "restored.tabui.json",
-      JSON.stringify(serializedScore)
+      new File([importedDocument()], "study.tabui.json")
     );
     await flushPromises();
 
-    expect(replaceScore).toHaveBeenCalledTimes(1);
-    expect(replaceScore.mock.calls[0][0]).not.toBe(source);
-    expect(replaceScore.mock.calls[0][0].name).toBe("Restored from file");
+    expect(controls.score().name).toBe("Imported study");
+    expect(controls.score().artist).toBe("Ada");
+    expect(controls.score().masterBars[0].tempo).toBe(96);
+    expect(controls.frets()).toContain("7");
     expect(controls.status.dataset.state).toBe("success");
-    expect(controls.deserializeButton.disabled).toBe(false);
-    expect(controls.status.setAttribute).toHaveBeenLastCalledWith(
-      "aria-busy",
-      "false"
+    expect(controls.status.textContent).toBe(
+      "Mounted score from study.tabui.json."
     );
-    unbind();
-    verifyUnbound(controls, downloadDocument, replaceScore);
+    expect(controls.deserializeButton.disabled).toBe(false);
+    expect(controls.status.getAttribute("aria-busy")).toBe("false");
+    expect(controls.fileInput.value).toBe("");
+
+    controls.serializeButton.click();
+    expect(required(downloads.anchors[0]).download).toBe(
+      "imported-study.tabui.json"
+    );
+    const contents = await required(downloads.blobs[0]).text();
+    expect(JSON.parse(contents)).toEqual(JSON.parse(importedDocument()));
   });
 
-  test("keeps the mounted score when the selected file is invalid", async () => {
-    const controls = createControls();
-    const replaceScore = jest.fn<void, [Score]>();
-    const downloadDocument = jest.fn();
-    const unbind = bindScorePersistenceControls({
-      ...controls,
-      getScore: () => new Score(),
-      replaceScore,
-      downloadDocument,
-    });
-    const consoleError = jest.spyOn(console, "error").mockImplementation();
+  test.each([
+    ["malformed JSON", "{invalid"],
+    ["invalid score data", '{"name":"Not a score"}'],
+  ])(
+    "preserves the mounted score after %s and permits retrying the same filename",
+    async (_description, contents) => {
+      jest.spyOn(console, "error").mockImplementation();
+      const controls = mount();
+      const original = controls.score();
+      const rendered = required(controls.root.querySelector(".tu-root-svg"));
 
-    selectFile(controls.fileInput, "broken.json", "{invalid");
-    await flushPromises();
+      selectFile(controls.fileInput, new File([contents], "study.json"));
+      await flushPromises();
 
-    expect(replaceScore).not.toHaveBeenCalled();
-    expect(controls.status.dataset.state).toBe("error");
-    expect(controls.status.textContent).toBeTruthy();
-    consoleError.mockRestore();
-    unbind();
-    verifyUnbound(controls, downloadDocument, replaceScore);
-  });
+      expect(controls.score()).toBe(original);
+      expect(controls.root.querySelector(".tu-root-svg")).toBe(rendered);
+      expect(controls.status.dataset.state).toBe("error");
+      expect(controls.status.textContent).not.toBe("");
+      expect(controls.fileInput.value).toBe("");
+      expect(controls.deserializeButton.disabled).toBe(false);
+      expect(controls.status.getAttribute("aria-busy")).toBe("false");
 
-  test("only applies the latest selected file when reads finish out of order", async () => {
-    const controls = createControls();
-    const source = new Score([], "Source", "Artist", "Song");
+      selectFile(
+        controls.fileInput,
+        new File([importedDocument()], "study.json")
+      );
+      await flushPromises();
+      expect(controls.frets()).toContain("7");
+      expect(controls.score().name).toBe("Imported study");
+      expect(controls.status.dataset.state).toBe("success");
+      expect(controls.fileInput.value).toBe("");
+    }
+  );
+
+  test("only renders the latest selected file when reads finish out of order", async () => {
+    const controls = mount();
     const firstRead = deferred<string>();
     const secondRead = deferred<string>();
-    const replaceScore = jest.fn<void, [Score]>();
-    const downloadDocument = jest.fn();
-    const unbind = bindScorePersistenceControls({
-      ...controls,
-      getScore: () => source,
-      replaceScore,
-      downloadDocument,
-    });
-    const firstDocument = serializeScore(source);
-    firstDocument.name = "Stale";
-    const secondDocument = serializeScore(source);
-    secondDocument.name = "Latest";
+    const firstFile = new File([importedDocument("Stale", 3)], "stale.json");
+    const secondFile = new File([importedDocument("Latest", 9)], "latest.json");
+    jest.spyOn(firstFile, "text").mockReturnValue(firstRead.promise);
+    jest.spyOn(secondFile, "text").mockReturnValue(secondRead.promise);
 
-    selectFile(controls.fileInput, "stale.json", firstRead.promise);
+    selectFile(controls.fileInput, firstFile);
     expect(controls.deserializeButton.disabled).toBe(true);
-    expect(controls.status.setAttribute).toHaveBeenLastCalledWith(
-      "aria-busy",
-      "true"
-    );
-    selectFile(controls.fileInput, "latest.json", secondRead.promise);
-    secondRead.resolve(JSON.stringify(secondDocument));
+    expect(controls.status.getAttribute("aria-busy")).toBe("true");
+    selectFile(controls.fileInput, secondFile);
+    secondRead.resolve(importedDocument("Latest", 9));
     await flushPromises();
-    firstRead.resolve(JSON.stringify(firstDocument));
+    const latest = controls.score();
+    firstRead.resolve(importedDocument("Stale", 3));
     await flushPromises();
 
-    expect(replaceScore).toHaveBeenCalledTimes(1);
-    expect(replaceScore.mock.calls[0][0].name).toBe("Latest");
+    expect(controls.score()).toBe(latest);
+    expect(controls.score().name).toBe("Latest");
+    expect(controls.frets()).toContain("9");
+    expect(controls.frets()).not.toContain("3");
     expect(controls.status.textContent).toBe("Mounted score from latest.json.");
     expect(controls.deserializeButton.disabled).toBe(false);
-    unbind();
-    verifyUnbound(controls, downloadDocument, replaceScore);
+    expect(controls.status.getAttribute("aria-busy")).toBe("false");
+    expect(controls.fileInput.value).toBe("");
   });
 
-  test("unbind invalidates a pending read and prevents later dispatch", async () => {
-    const controls = createControls();
-    const source = new Score([], "Source", "Artist", "Song");
+  test("unbind invalidates a pending read and removes all three DOM listeners", async () => {
+    const downloads = browserDownloads();
+    const controls = mount();
+    const original = controls.score();
+    const rendered = required(controls.root.querySelector(".tu-root-svg"));
+    const picker = jest.spyOn(controls.fileInput, "click").mockImplementation();
     const read = deferred<string>();
-    const replaceScore = jest.fn<void, [Score]>();
-    const downloadDocument = jest.fn();
-    const unbind = bindScorePersistenceControls({
-      ...controls,
-      getScore: () => source,
-      replaceScore,
-      downloadDocument,
-    });
+    const file = new File([importedDocument()], "pending.json");
+    const pendingRead = jest.spyOn(file, "text").mockReturnValue(read.promise);
+    selectFile(controls.fileInput, file);
+    expect(pendingRead).toHaveBeenCalledTimes(1);
+    expect(controls.deserializeButton.disabled).toBe(true);
+    expect(controls.status.getAttribute("aria-busy")).toBe("true");
 
-    selectFile(controls.fileInput, "pending.json", read.promise);
-    unbind();
+    controls.unbind();
     expect(controls.deserializeButton.disabled).toBe(false);
-    read.resolve(JSON.stringify(serializeScore(source)));
+    expect(controls.status.getAttribute("aria-busy")).toBe("false");
+    read.resolve(importedDocument());
+    await flushPromises();
+    controls.serializeButton.click();
+    controls.deserializeButton.click();
+    const laterFile = new File([importedDocument()], "later.json");
+    const laterRead = jest.spyOn(laterFile, "text");
+    selectFile(controls.fileInput, laterFile);
     await flushPromises();
 
-    expect(replaceScore).not.toHaveBeenCalled();
+    expect(controls.deserializeButton.disabled).toBe(false);
+    expect(controls.status.getAttribute("aria-busy")).toBe("false");
+    expect(laterRead).not.toHaveBeenCalled();
+    expect(controls.score()).toBe(original);
+    expect(controls.root.querySelector(".tu-root-svg")).toBe(rendered);
     expect(controls.status.textContent).toBe("");
-    verifyUnbound(controls, downloadDocument, replaceScore);
+    expect(downloads.anchors).toEqual([]);
+    expect(picker).not.toHaveBeenCalled();
   });
 
-  test("reports a score replacement failure without claiming success", async () => {
-    const controls = createControls();
-    const source = new Score([], "Source", "Artist", "Song");
-    const replaceScore = jest.fn(() => {
+  test("reports a host score replacement failure and releases the file input for retry", async () => {
+    jest.spyOn(console, "error").mockImplementation();
+    const controls = mount(() => {
       throw new Error("Could not mount restored score");
     });
-    const downloadDocument = jest.fn();
-    const unbind = bindScorePersistenceControls({
-      ...controls,
-      getScore: () => source,
-      replaceScore,
-      downloadDocument,
-    });
-    const consoleError = jest.spyOn(console, "error").mockImplementation();
-
+    const original = controls.score();
+    const rendered = required(controls.root.querySelector(".tu-root-svg"));
     selectFile(
       controls.fileInput,
-      "valid.json",
-      JSON.stringify(serializeScore(source))
+      new File([importedDocument()], "valid.json")
     );
     await flushPromises();
 
+    expect(controls.score()).toBe(original);
+    expect(controls.root.querySelector(".tu-root-svg")).toBe(rendered);
     expect(controls.status.dataset.state).toBe("error");
     expect(controls.status.textContent).toBe("Could not mount restored score");
-    consoleError.mockRestore();
-    unbind();
-    verifyUnbound(controls, downloadDocument, replaceScore);
+    expect(controls.fileInput.value).toBe("");
+    expect(controls.deserializeButton.disabled).toBe(false);
+    expect(controls.status.getAttribute("aria-busy")).toBe("false");
   });
 
-  test("cleans the download anchor and revokes its URL after click returns", () => {
-    jest.useFakeTimers();
-    const originalDocument = globalThis.document;
-    const originalUrl = globalThis.URL;
-    const anchor = {
-      click: jest.fn(),
-      remove: jest.fn(),
-      href: "",
-      download: "",
-    };
-    const appendChild = jest.fn();
-    const createObjectURL = jest.fn(() => "blob:score");
-    const revokeObjectURL = jest.fn();
-    (globalThis as any).document = {
-      createElement: jest.fn(() => anchor),
-      body: { appendChild },
-    };
-    (globalThis as any).URL = { createObjectURL, revokeObjectURL };
+  test("cleans download resources and reports failure when the browser blocks the click", () => {
+    jest.spyOn(console, "error").mockImplementation();
+    const downloads = browserDownloads();
+    const controls = mount();
+    downloads.click.mockImplementation(function (this: HTMLAnchorElement) {
+      expect(this.isConnected).toBe(true);
+      downloads.anchors.push(this);
+      throw new Error("download blocked");
+    });
 
-    try {
-      downloadScoreDocument("{}", "score.tabui.json");
+    controls.serializeButton.click();
 
-      expect(anchor.click).toHaveBeenCalledTimes(1);
-      expect(anchor.remove).toHaveBeenCalledTimes(1);
-      expect(revokeObjectURL).not.toHaveBeenCalled();
-      jest.runOnlyPendingTimers();
-      expect(revokeObjectURL).toHaveBeenCalledWith("blob:score");
-    } finally {
-      (globalThis as any).document = originalDocument;
-      (globalThis as any).URL = originalUrl;
-      jest.useRealTimers();
-    }
-  });
-
-  test("cleans download resources when the browser click fails", () => {
-    jest.useFakeTimers();
-    const originalDocument = globalThis.document;
-    const originalUrl = globalThis.URL;
-    const clickError = new Error("download blocked");
-    const anchor = {
-      click: jest.fn(() => {
-        throw clickError;
-      }),
-      remove: jest.fn(),
-      href: "",
-      download: "",
-    };
-    const revokeObjectURL = jest.fn();
-    (globalThis as any).document = {
-      createElement: jest.fn(() => anchor),
-      body: { appendChild: jest.fn() },
-    };
-    (globalThis as any).URL = {
-      createObjectURL: jest.fn(() => "blob:score"),
-      revokeObjectURL,
-    };
-
-    try {
-      expect(() => downloadScoreDocument("{}", "score.json")).toThrow(
-        clickError
-      );
-      expect(anchor.remove).toHaveBeenCalledTimes(1);
-      jest.runOnlyPendingTimers();
-      expect(revokeObjectURL).toHaveBeenCalledWith("blob:score");
-    } finally {
-      (globalThis as any).document = originalDocument;
-      (globalThis as any).URL = originalUrl;
-      jest.useRealTimers();
-    }
+    expect(required(downloads.anchors[0]).isConnected).toBe(false);
+    expect(controls.status.dataset.state).toBe("error");
+    expect(controls.status.textContent).toBe("download blocked");
+    expect(downloads.revokeObjectURL).not.toHaveBeenCalled();
+    jest.runOnlyPendingTimers();
+    expect(downloads.revokeObjectURL).toHaveBeenCalledWith("blob:score");
   });
 });

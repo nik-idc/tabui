@@ -3,7 +3,7 @@ import { createBarWithBeats } from "./helpers";
 
 describe("Bar tuplets", () => {
   test("contiguous beats with matching tuplet settings form one complete group", () => {
-    const { bar } = createBarWithBeats([
+    const { bar, beats } = createBarWithBeats([
       {
         baseDuration: NoteDuration.Eighth,
         tupletSettings: { normalCount: 3, tupletCount: 2 },
@@ -23,6 +23,7 @@ describe("Bar tuplets", () => {
       throw Error("Expected voice 1 bar");
     }
     expect(voiceBar.tupletGroups).toHaveLength(1);
+    expect(voiceBar.tupletGroups[0].beats).toEqual(beats);
     expect(voiceBar.tupletGroups[0].complete).toBe(true);
   });
 
@@ -73,7 +74,7 @@ describe("Bar tuplets", () => {
       10
     );
     expect(voiceBar.tupletGroups[0].getDurationTicksAt(1)).toBe(
-      beats[1].fullDurationTicks
+      voiceBar.tickResolution / 8
     );
   });
 
@@ -126,7 +127,7 @@ describe("Bar tuplets", () => {
   });
 
   test("tuplet grouping splits when contiguous settings are interrupted", () => {
-    const { bar } = createBarWithBeats([
+    const { bar, beats } = createBarWithBeats([
       {
         baseDuration: NoteDuration.Eighth,
         tupletSettings: { normalCount: 3, tupletCount: 2 },
@@ -153,8 +154,8 @@ describe("Bar tuplets", () => {
       throw Error("Expected voice 1 bar");
     }
     expect(voiceBar.tupletGroups).toHaveLength(2);
-    expect(voiceBar.tupletGroups[0].beats).toHaveLength(2);
-    expect(voiceBar.tupletGroups[1].beats).toHaveLength(2);
+    expect(voiceBar.tupletGroups[0].beats).toEqual(beats.slice(0, 2));
+    expect(voiceBar.tupletGroups[1].beats).toEqual(beats.slice(3));
     expect(voiceBar.tupletGroups[0].complete).toBe(false);
     expect(voiceBar.tupletGroups[1].complete).toBe(false);
   });

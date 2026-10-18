@@ -32,6 +32,45 @@ Bus gains control which tracks are audible.
 
 See [Playback Architecture](playback.md) for scheduling and audio module details.
 
+### Repeat sections
+
+Repeat signs mark a section to play again.
+
+A repeat section starts at a repeat-start sign and ends at the next repeat-end
+sign, with no other repeat signs between them. A bar with both signs repeats on
+its own. Nested repeats are not supported in version `0.5.0`.
+
+Examples:
+
+1. Two starts followed by two ends:
+
+   ```text
+   Bar 1: Start | Bar 2: Start | Bar 3 | Bar 4: End | Bar 5: End
+   ```
+
+   The repeat section is **Bar 2 to Bar 4**.
+   The repeat signs in Bars 1 and 5 are invalid.
+
+2. An end before a start:
+
+   ```text
+   Bar 1: End | Bar 2: Start | Bar 3
+   ```
+
+   No repeat section: Bar 1 has no start sign before it, and Bar 2 has no end sign
+   after it.
+
+3. Two separate sections:
+
+   ```text
+   Bar 1: Start | Bar 2: End | Bar 3 | Bar 4: Start | Bar 5: End
+   ```
+
+   Repeat sections are **Bar 1 to Bar 2** and **Bar 4 to Bar 5**.
+
+With nested repeats, the first example would have an outer section from
+**Bar 1 to Bar 5** and an inner section from **Bar 2 to Bar 4**.
+
 ## Terms
 
 ### Rhythm row

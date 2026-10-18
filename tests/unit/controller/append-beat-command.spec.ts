@@ -10,6 +10,9 @@ describe("AppendBeatCommand", () => {
     }
     const originalBeatUUIDs = voiceBar.beats.map((beat) => beat.uuid);
     const command = new AppendBeatCommand(voiceBar);
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: bar.masterBar.uuid },
+    ]);
 
     command.execute();
     expect(voiceBar.beats).toHaveLength(2);
@@ -28,6 +31,7 @@ describe("AppendBeatCommand", () => {
 
     command.redo();
     expect(voiceBar.beats).toHaveLength(2);
+    expect(voiceBar.beats[1].voiceBar).toBe(voiceBar);
     expect(voiceBar.beats[0].uuid).toBe(originalBeatUUIDs[0]);
     expect(voiceBar.beats[1].baseDuration).toBe(voiceBar.beats[0].baseDuration);
     expect(voiceBar.beats[1].isRest()).toBe(true);

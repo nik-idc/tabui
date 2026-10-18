@@ -1,9 +1,7 @@
 import {
-  DEFAULT_BASS_GUITARS,
   DEFAULT_OTHER_STRING,
   Guitar,
   GuitarNote,
-  NoteDuration,
   NoteValue,
   getNoteFrequency,
   getDefaultTuningStrSimple,
@@ -11,11 +9,7 @@ import {
   shiftTuningWhole,
   shiftTuningString,
 } from "../../../src/notation/model";
-import {
-  BassGuitarTone,
-  OtherStringTone,
-} from "../../../src/notation/model/instrument/instrument-tone";
-import { DEFAULT_TUNINGS } from "../../../src/notation/model/instrument/guitar/default-tunings";
+import { OtherStringTone } from "../../../src/notation/model/instrument/instrument-tone";
 import { createScoreGraph } from "./helpers";
 import { required } from "../required";
 
@@ -29,10 +23,13 @@ describe("Default instruments", () => {
   test("uses the first supported default tuning for the string count", () => {
     const guitar = new Guitar(undefined, undefined, undefined, 4);
 
-    expect(guitar.tuning).toEqual(
-      DEFAULT_BASS_GUITARS[BassGuitarTone.Clean].tuning
-    );
-    expect(guitar.tuning).toHaveLength(guitar.stringsCount);
+    expect(guitar.stringsCount).toBe(4);
+    expect(guitar.tuning).toEqual([
+      { noteValue: NoteValue.G, octave: 2 },
+      { noteValue: NoteValue.D, octave: 2 },
+      { noteValue: NoteValue.A, octave: 1 },
+      { noteValue: NoteValue.E, octave: 1 },
+    ]);
   });
 
   test("ukulele default has four strings with matching tuning", () => {
@@ -42,18 +39,16 @@ describe("Default instruments", () => {
       throw Error("Expected ukulele to be a Guitar");
     }
     expect(ukulele.stringsCount).toBe(4);
-    expect(ukulele.tuning).toEqual(DEFAULT_TUNINGS[4].UkuleleStandard);
+    expect(ukulele.tuning).toEqual([
+      { noteValue: NoteValue.A, octave: 4 },
+      { noteValue: NoteValue.E, octave: 4 },
+      { noteValue: NoteValue.C, octave: 3 },
+      { noteValue: NoteValue.G, octave: 4 },
+    ]);
   });
 
   test("guitar fret pitches stay chromatic across octave boundaries", () => {
-    const { bar } = createScoreGraph({
-      tempo: 120,
-      beatsCount: 4,
-      duration: NoteDuration.Quarter,
-      isRepeatStart: false,
-      isRepeatEnd: false,
-      repeatCount: null,
-    });
+    const { bar } = createScoreGraph();
     const beat = required(bar.getVoiceBar(1)).beats[0];
     const expectedNotes = [
       [NoteValue.E, 2],
@@ -79,6 +74,7 @@ describe("Default instruments", () => {
     const fret12 = new GuitarNote(beat, beat.trackContext, 6, 12);
     const fret24 = new GuitarNote(beat, beat.trackContext, 6, 24);
 
+    expect(getNoteFrequency(fret0)).toBeCloseTo(82.4069, 4);
     expect(getNoteFrequency(fret12)).toBeCloseTo(getNoteFrequency(fret0) * 2);
     expect(getNoteFrequency(fret24)).toBeCloseTo(getNoteFrequency(fret0) * 4);
   });

@@ -1,17 +1,39 @@
 import { EditorMouseDefCallbacks } from "../../../src/notation/input/editor-mouse-callbacks";
 import { RenderType } from "../../../src/notation/input/render-type";
-import { SVGTabNoteRenderer } from "../../../src/notation/render/svg/svg-tab-note-renderer";
 import { SVGTechniqueLabelRenderer } from "../../../src/notation/render/svg/svg-technique-label-renderer";
+import { GuitarTechniqueLabelElement } from "../../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import {
-  BarRepeatStatus,
+  BendTechniqueOptions,
+  BendType,
+  DEFAULT_MASTER_BAR,
+  GuitarNote,
+  GuitarTechnique,
   GuitarTechniqueType,
+  serializeScore,
 } from "../../../src/notation/model";
 import { SVGBarRenderer } from "../../../src/notation/render/svg/svg-bar-renderer";
 import { SVGTrackLineInfoRenderer } from "../../../src/notation/render/svg/svg-track-line-info-renderer";
 import { SVGTupletRenderer } from "../../../src/notation/render/svg/tuplet/svg-tuplet-renderer";
+import { BarTupletGroupElement } from "../../../src/notation/controller/element/bar/bar-tuplet-group-element";
 import { SVGTabBeatRhythmRenderer } from "../../../src/notation/render/svg/svg-tab-beat-rhythm-renderer";
 import { SVGBeamSegmentRenderer } from "../../../src/notation/render/svg/svg-beam-segment-renderer";
-import type { TabNoteSlotElement } from "../../../src/notation/controller/element/note/tab-note-slot-element";
+import { TabNoteSlotElement } from "../../../src/notation/controller/element/note/tab-note-slot-element";
+import { JSDOM } from "jsdom";
+import { TrackController } from "../../../src/notation/controller/track-controller";
+import { NoteDuration } from "../../../src/notation/model";
+import { createBarWithBeats } from "../model/helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
+import { required } from "../required";
+import { TabBeatRhythmElement } from "../../../src/notation/controller/element/beat/tab-beat-rhythm-element";
+import { BeamSegmentElement } from "../../../src/notation/controller/element/bar/beam-segment-element";
+import { PlaybackState, ScorePlayer } from "../../../src/player";
+import {
+  installTransportAudio,
+  settleTransport,
+} from "../player/transport-audio";
+import { withNotationDialog } from "./notation-dialog-fixture";
+import { EditorSVGRenderer } from "../../../src/notation/render/svg/editor-svg-renderer";
+import { withDragSelection } from "./drag-selection-fixture";
 
 class TestElement {
   closest = jest.fn();
@@ -45,32 +67,6 @@ function createPointerEvent(
     isPrimary,
     button: 0,
   } as PointerEvent;
-}
-
-function createRendererBackedNoteRenderer(noteElement: TabNoteSlotElement) {
-  type NoteMouseHandler = (
-    event: MouseEvent,
-    noteElement: TabNoteSlotElement
-  ) => void;
-  const handlers = new Map<string, NoteMouseHandler>();
-  const renderer = Object.create(SVGTabNoteRenderer.prototype) as any;
-  renderer.noteElement = noteElement;
-  renderer.attachMouseEvent = jest.fn(
-    (eventType: string, handler: NoteMouseHandler) => {
-      handlers.set(eventType, handler);
-    }
-  );
-  renderer.detachMouseEvent = jest.fn((eventType: string) => {
-    handlers.delete(eventType);
-  });
-  renderer.detachAllMouseEvents = jest.fn(() => {
-    handlers.clear();
-  });
-  renderer.trigger = (eventType: string, event: MouseEvent) => {
-    handlers.get(eventType)?.(event, noteElement);
-  };
-  renderer.hasHandler = (eventType: string) => handlers.has(eventType);
-  return renderer;
 }
 
 function createHarness() {
@@ -153,140 +149,164 @@ function createHarness() {
 }
 
 describe("EditorMouseDefCallbacks", () => {
+  function createRhythmHarness(playbackState = PlaybackState.Idle) {
+    const { track, beats } = createBarWithBeats(
+      Array.from({ length: 6 }, () => ({ baseDuration: NoteDuration.Eighth })),
+      { ...DEFAULT_MASTER_BAR, beatsCount: 6, duration: NoteDuration.Eighth }
+    );
+    // Only the transport state is supplied; selection and edits use the real controller.
+    const player = { playbackState } as ScorePlayer;
+    const controller = new TrackController(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      player
+    );
+    controller.trackElement.update();
+    const firstBeat = required(
+      controller.trackElement.getBeatElement(beats[0])
+    );
+    const nodes = firstBeat.barElement.refreshOwnedNotationNodes();
+    const rhythms = nodes.filter(
+      (v): v is TabBeatRhythmElement => v instanceof TabBeatRhythmElement
+    );
+    const beams = nodes.filter(
+      (v): v is BeamSegmentElement => v instanceof BeamSegmentElement
+    );
+    const notationOwner = {
+      trackController: controller,
+      renderer: { hideSelectionPreview() {} },
+    } as ConstructorParameters<typeof EditorMouseDefCallbacks>[1];
+    const renderFunc = jest.fn();
+    const callbacks = new EditorMouseDefCallbacks(
+      {} as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+      notationOwner,
+      renderFunc
+    );
+    return { controller, beats, rhythms, beams, callbacks, renderFunc };
+  }
+
   test("stem and flags select only their beat, including in view-only mode", () => {
-    const { callbacks, beatElement, notationComponent, renderFunc } =
-      createHarness();
-    notationComponent.trackController.editingEnabled = false;
-    callbacks.onDurationClick(createMouseEvent(0, 0), { beatElement } as any);
-    expect(
-      notationComponent.trackController.clearSelection
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.selectBeat
-    ).toHaveBeenNthCalledWith(1, beatElement);
-    expect(
-      notationComponent.trackController.selectBeat
-    ).toHaveBeenNthCalledWith(2, beatElement);
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).not.toHaveBeenCalled();
+    const { callbacks, controller, beats, rhythms, renderFunc } =
+      createRhythmHarness();
+    controller.selectBeat(
+      required(controller.trackElement.getBeatElement(beats[0]))
+    );
+    controller.selectBeat(
+      required(controller.trackElement.getBeatElement(beats[5]))
+    );
+    controller.setEditingEnabled(false);
+
+    callbacks.onDurationClick(createMouseEvent(0, 0), rhythms[1]);
+
+    expect(controller.selectionAsBeats).toEqual([beats[1]]);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
   });
 
   test("dots clear the clicked beat without changing selection", () => {
-    const { callbacks, beatElement, notationComponent, renderFunc } =
-      createHarness();
-    callbacks.onDotsClick(createMouseEvent(0, 0), {
-      beat: beatElement.beat,
-    } as any);
-    expect(notationComponent.trackController.setBeatDots).toHaveBeenCalledWith(
-      beatElement.beat,
-      0
+    const { callbacks, controller, beats, rhythms, renderFunc } =
+      createRhythmHarness();
+    beats[0].dots = 2;
+    controller.selectNoteElement(
+      required(controller.trackElement.getBeatElement(beats[5])).noteElements[2]
     );
-    expect(
-      notationComponent.trackController.clearSelection
-    ).not.toHaveBeenCalled();
+    const cursor = controller.selectionCursor;
+
+    callbacks.onDotsClick(createMouseEvent(0, 0), rhythms[0]);
+
+    expect(beats.map((v) => v.dots)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(controller.selectionCursor).toBe(cursor);
+    expect(controller.selectionCursor?.beat).toBe(beats[5]);
+    expect(controller.selectionCursor?.noteIndex).toBe(2);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
     renderFunc.mockClear();
-    notationComponent.trackController.setBeatDots.mockReturnValue(false);
-    callbacks.onDotsClick(createMouseEvent(0, 0), {
-      beat: beatElement.beat,
-    } as any);
+    callbacks.onDotsClick(createMouseEvent(0, 0), rhythms[0]);
     expect(renderFunc).not.toHaveBeenCalled();
+    controller.undo();
+    expect(beats[0].dots).toBe(2);
+    expect(controller.selectionCursor).toBe(cursor);
+    expect(controller.selectionCursor?.beat).toBe(beats[5]);
+    expect(controller.selectionCursor?.noteIndex).toBe(2);
   });
 
   test("any beam segment selects the full group, not adjacent groups", () => {
-    const { callbacks, beatElement, notationComponent } = createHarness();
-    notationComponent.trackController.editingEnabled = false;
-    beatElement.beat.beamGroupId = 1;
-    const middle = { ...beatElement, beat: { ...beatElement.beat } };
-    const last = { ...beatElement, beat: { ...beatElement.beat } };
-    const other = {
-      ...beatElement,
-      beat: { ...beatElement.beat, beamGroupId: 2 },
-    };
-    callbacks.onBeamClick(createMouseEvent(0, 0), {
-      curBeatElement: middle,
-      voiceBarContainer: { beatElements: [beatElement, middle, last, other] },
-    } as any);
+    const { callbacks, controller, beats, beams } = createRhythmHarness();
+    const firstGroup = beats.slice(0, 3);
+    const secondGroup = beats.slice(3);
+    controller.setEditingEnabled(false);
     expect(
-      notationComponent.trackController.selectBeat
-    ).toHaveBeenNthCalledWith(1, beatElement);
+      beams.some((v) => firstGroup.some((b) => b === v.curBeatElement.beat))
+    ).toBe(true);
     expect(
-      notationComponent.trackController.selectBeat
-    ).toHaveBeenNthCalledWith(2, last);
-    expect(notationComponent.trackController.selectBeat).toHaveBeenCalledTimes(
-      2
-    );
+      beams.some((v) => secondGroup.some((b) => b === v.curBeatElement.beat))
+    ).toBe(true);
+    for (const beam of beams) {
+      callbacks.onBeamClick(createMouseEvent(0, 0), beam);
+      expect(controller.selectionAsBeats).toEqual(
+        firstGroup.some((v) => v === beam.curBeatElement.beat)
+          ? firstGroup
+          : secondGroup
+      );
+    }
   });
 
   test.each(["starting", "playing", "secondary"])(
     "rhythm selection and dot edits reject %s",
     (mode) => {
-      const {
-        callbacks,
-        beatElement,
-        setPlaybackState,
-        notationComponent,
-        renderFunc,
-      } = createHarness();
-      if (mode !== "secondary") setPlaybackState(mode);
+      const state =
+        mode === "starting"
+          ? PlaybackState.Starting
+          : mode === "playing"
+            ? PlaybackState.Playing
+            : PlaybackState.Idle;
+      const { callbacks, controller, beats, rhythms, beams, renderFunc } =
+        createRhythmHarness(state);
+      beats[0].dots = 2;
+      const selection = controller.selectionAsBeats;
       const event = { button: mode === "secondary" ? 2 : 0 } as MouseEvent;
-      const rhythm = { beat: beatElement.beat, beatElement } as any;
-      callbacks.onDurationClick(event, rhythm);
-      callbacks.onDotsClick(event, rhythm);
-      callbacks.onBeamClick(event, {} as any);
-      expect(
-        notationComponent.trackController.selectBeat
-      ).not.toHaveBeenCalled();
-      expect(
-        notationComponent.trackController.setBeatDots
-      ).not.toHaveBeenCalled();
+      callbacks.onDurationClick(event, rhythms[5]);
+      callbacks.onDotsClick(event, rhythms[0]);
+      callbacks.onBeamClick(event, required(beams[0]));
+      expect(controller.selectionAsBeats).toEqual(selection);
+      expect(beats[0].dots).toBe(2);
       expect(renderFunc).not.toHaveBeenCalled();
     }
   );
 
   test("repeat-start clicks remove the clicked mark and preserve selection", () => {
     const { callbacks, notationComponent, renderFunc } = createHarness();
-    const bar = { bar: {} } as any;
-    callbacks.onRepeatStartClicked(createMouseEvent(0, 0), bar);
-    expect(
-      notationComponent.trackController.setRepeatStatus
-    ).toHaveBeenCalledWith(bar.bar, {
-      status: BarRepeatStatus.Start,
-      enabled: false,
-    });
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).not.toHaveBeenCalled();
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
-    renderFunc.mockClear();
-    notationComponent.trackController.setRepeatStatus.mockReturnValue(false);
-    callbacks.onRepeatStartClicked(createMouseEvent(0, 0), bar);
-    callbacks.onRepeatStartClicked({ button: 2 } as MouseEvent, bar);
-    expect(
-      notationComponent.trackController.setRepeatStatus
-    ).toHaveBeenCalledTimes(2);
-    expect(renderFunc).not.toHaveBeenCalled();
-  });
+    const { track, bar, score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    bar.masterBar.isRepeatStart = true;
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.trackElement.update();
+    notationComponent.trackController = controller;
+    const clickedBar = required(
+      controller.trackElement.getBeatElement(beats[0])
+    ).barElement;
+    const otherBar = track.staves[0].bars[1];
+    const otherBeat = required(otherBar.getVoiceBar(1)).beats[0];
+    const otherElement = required(
+      controller.trackElement.getBeatElement(otherBeat)
+    );
+    controller.selectNoteElement(otherElement.noteElements[2]);
+    const cursor = controller.selectionCursor;
 
-  test("repeat-end clicks select the clicked bar before opening its dialog", () => {
-    const {
-      callbacks,
-      beatElement,
-      noteElement,
-      uiComponent,
-      notationComponent,
-    } = createHarness();
-    callbacks.onRepeatEndClicked(createMouseEvent(0, 0), {
-      beatElements: [beatElement],
-    } as any);
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledWith(noteElement);
-    expect(
-      uiComponent.sideComponent.measureControlsComponent.showRepeatCountControls
-    ).toHaveBeenCalledTimes(1);
+    callbacks.onRepeatStartClicked({ button: 2 } as MouseEvent, clickedBar);
+    expect(bar.masterBar.isRepeatStart).toBe(true);
+    expect(renderFunc).not.toHaveBeenCalled();
+
+    callbacks.onRepeatStartClicked(createMouseEvent(0, 0), clickedBar);
+    expect(bar.masterBar.isRepeatStart).toBe(false);
+    expect(otherBar.masterBar.isRepeatStart).toBe(false);
+    expect(controller.selectionCursor).toBe(cursor);
+    expect(controller.selectionCursor?.bar).toBe(otherBar);
+    expect(controller.selectionCursor?.noteIndex).toBe(2);
+    expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
+    controller.undo();
+    expect(bar.masterBar.isRepeatStart).toBe(true);
+    expect(controller.selectionCursor).toBe(cursor);
   });
 
   test.each([
@@ -295,22 +315,25 @@ describe("EditorMouseDefCallbacks", () => {
     "onRepeatEndClicked",
     "onTupletClick",
   ] as const)("%s throws when the clicked context has no beats", (method) => {
-    const { callbacks, uiComponent, renderFunc } = createHarness();
-    expect(() =>
-      callbacks[method](createMouseEvent(0, 0), {
-        beatElements: [],
-      } as any)
-    ).toThrow("Clicked notation has no beat");
-    expect(renderFunc).not.toHaveBeenCalled();
-    expect(
-      uiComponent.sideComponent.measureControlsComponent.showTempoControls
-    ).not.toHaveBeenCalled();
-    expect(
-      uiComponent.sideComponent.measureControlsComponent.showTimeSigControls
-    ).not.toHaveBeenCalled();
-    expect(
-      uiComponent.sideComponent.noteControlsComponent.showTupletControls
-    ).not.toHaveBeenCalled();
+    withNotationDialog(({ controller, notation, ui, host }) => {
+      const render = jest.fn();
+      const callbacks = new EditorMouseDefCallbacks(
+        ui as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+        notation,
+        render
+      );
+      const cursor = controller.selectionCursor;
+      // Deliberately malformed public input exercises the documented error contract.
+      expect(() =>
+        callbacks[method](createMouseEvent(0, 0), {
+          beatElements: [],
+        } as unknown as BarTupletGroupElement &
+          Parameters<typeof callbacks.onTempoClicked>[1])
+      ).toThrow("Clicked notation has no beat");
+      expect(controller.selectionCursor).toBe(cursor);
+      expect(host.querySelectorAll("[open]")).toHaveLength(0);
+      expect(render).not.toHaveBeenCalled();
+    });
   });
 
   test.each([
@@ -319,132 +342,190 @@ describe("EditorMouseDefCallbacks", () => {
     "onRepeatEndClicked",
     "onTupletClick",
   ] as const)("%s throws when the clicked beat has no note slots", (method) => {
-    const { callbacks, renderFunc } = createHarness();
-    expect(() =>
-      callbacks[method](createMouseEvent(0, 0), {
-        beatElements: [
-          { beat: { voiceBar: { voiceNumber: 1 } }, noteElements: [] },
-        ],
-      } as any)
-    ).toThrow("Clicked notation's beat has no note slots");
-    expect(renderFunc).not.toHaveBeenCalled();
+    withNotationDialog(({ controller, notation, ui, host, beats }) => {
+      const render = jest.fn();
+      const callbacks = new EditorMouseDefCallbacks(
+        ui as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+        notation,
+        render
+      );
+      const cursor = controller.selectionCursor;
+      const invalid = { beatElements: [{ beat: beats[0], noteElements: [] }] };
+      expect(() =>
+        callbacks[method](
+          createMouseEvent(0, 0),
+          invalid as unknown as BarTupletGroupElement &
+            Parameters<typeof callbacks.onTempoClicked>[1]
+        )
+      ).toThrow("Clicked notation's beat has no note slots");
+      expect(controller.selectionCursor).toBe(cursor);
+      expect(host.querySelectorAll("[open]")).toHaveLength(0);
+      expect(render).not.toHaveBeenCalled();
+    });
   });
 
   test.each(["tempo", "timeSignature"] as const)(
     "%s clicks select the clicked bar before opening the dialog",
     (dialog) => {
-      const {
-        callbacks,
-        uiComponent,
-        notationComponent,
-        noteElement,
-        beatElement,
-        renderFunc,
-      } = createHarness();
-      const otherVoice = { beat: { voiceBar: { voiceNumber: 2 } } };
-      const callback =
-        dialog === "tempo"
-          ? callbacks.onTempoClicked.bind(callbacks)
-          : callbacks.onTimeSignatureClicked.bind(callbacks);
-      callback(createMouseEvent(0, 0), {
-        beatElements: [otherVoice, beatElement],
-      } as any);
-      expect(
-        notationComponent.trackController.selectNoteElement
-      ).toHaveBeenCalledWith(noteElement);
-      expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
-      const controls = uiComponent.sideComponent.measureControlsComponent;
-      expect(
-        dialog === "tempo"
-          ? controls.showTempoControls
-          : controls.showTimeSigControls
-      ).toHaveBeenCalledTimes(1);
+      withNotationDialog((f) => {
+        const { controller, notation, ui, measure, beats, host } = f;
+        controller.setSelectedBarTempo(90);
+        controller.setSelectedBarTimeSignature(7, NoteDuration.Eighth);
+        controller.setActiveVoiceNumber(2);
+        controller.setSelectedNoteFret(8);
+        controller.setActiveVoiceNumber(1);
+        controller.insertBarAfterSelected();
+        controller.selectLastBar();
+        controller.setActiveVoiceNumber(2);
+        controller.trackElement.update();
+        const bar = required(
+          controller.trackElement.getBeatElement(beats[0])
+        ).barElement;
+        const secondVoiceBeat = required(
+          bar.beatElements.find((v) => v.beat.voiceBar.voiceNumber === 2)
+        );
+        const render = jest.fn();
+        const callbacks = new EditorMouseDefCallbacks(
+          ui as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+          notation,
+          render
+        );
+        if (dialog === "tempo") {
+          callbacks.onTempoClicked(createMouseEvent(0, 0), bar);
+        } else {
+          callbacks.onTimeSignatureClicked(createMouseEvent(0, 0), bar);
+        }
+        expect(bar.beatElements[0].beat).toBe(beats[0]);
+        expect(controller.activeVoiceNumber).toBe(2);
+        expect(controller.selectionCursor?.beat).toBe(secondVoiceBeat.beat);
+        expect(controller.selectionCursor?.beat).not.toBe(beats[0]);
+        expect(render).toHaveBeenCalledTimes(1);
+        expect(render).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+        const component =
+          dialog === "tempo"
+            ? measure.tempoControlsComponent
+            : measure.timeSigControlsComponent;
+        expect(component.dialog.open).toBe(true);
+        expect(host.querySelectorAll("[open]")).toHaveLength(1);
+        const values = component.template.dialogContainer.querySelectorAll(
+          ".tu-number-stepper-value"
+        );
+        expect(Array.from(values, (v) => v.textContent)).toEqual(
+          dialog === "tempo" ? ["90"] : ["7"]
+        );
+        if (dialog === "timeSignature") {
+          expect(
+            measure.timeSigControlsComponent.template.durationSelect.value
+          ).toBe("8");
+        }
+      });
     }
   );
 
   test("complete tuplets replace old selection with their full group", () => {
-    const { callbacks, uiComponent, notationComponent, beatElement } =
-      createHarness();
-    const last = { noteElements: [{}] };
-    callbacks.onTupletClick(createMouseEvent(0, 0), {
-      beatElements: [beatElement, last],
-    } as any);
-    expect(
-      notationComponent.trackController.clearSelection
-    ).toHaveBeenCalledTimes(1);
-    expect(notationComponent.trackController.selectBeat.mock.calls).toEqual([
-      [beatElement],
-      [last],
+    const { callbacks, notationComponent } = createHarness();
+    const settings = { normalCount: 3, tupletCount: 2 };
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth, tupletSettings: settings },
+      { baseDuration: NoteDuration.Eighth, tupletSettings: settings },
+      { baseDuration: NoteDuration.Eighth, tupletSettings: settings },
     ]);
-    expect(
-      uiComponent.sideComponent.noteControlsComponent.showTupletControls
-    ).toHaveBeenCalledTimes(1);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    controller.trackElement.update();
+    const beatElement = required(
+      controller.trackElement.getBeatElement(beats[1])
+    );
+    const tuplet = required(
+      beatElement.barElement
+        .refreshOwnedNotationNodes()
+        .find(
+          (e): e is BarTupletGroupElement => e instanceof BarTupletGroupElement
+        )
+    );
+    expect(controller.selectionAsBeats).toEqual([beats[0]]);
+
+    callbacks.onTupletClick(createMouseEvent(0, 0), tuplet);
+
+    expect(controller.selectionAsBeats).toEqual(beats.slice(1));
   });
 
   test("incomplete tuplet labels select only their corresponding beat", () => {
-    const { callbacks, uiComponent, notationComponent, beatElement } =
-      createHarness();
-    const note = {};
-    const last = { noteElements: [note] };
-    callbacks.onTupletClick(
-      createMouseEvent(0, 0),
-      {
-        beatElements: [beatElement, last],
-      } as any,
-      1
+    const { callbacks, notationComponent } = createHarness();
+    const settings = { normalCount: 3, tupletCount: 2 };
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth, tupletSettings: settings },
+      { baseDuration: NoteDuration.Eighth, tupletSettings: settings },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    controller.trackElement.update();
+    const beatElement = required(
+      controller.trackElement.getBeatElement(beats[1])
     );
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledWith(note);
-    expect(notationComponent.trackController.selectBeat).not.toHaveBeenCalled();
-    expect(
-      uiComponent.sideComponent.noteControlsComponent.showTupletControls
-    ).toHaveBeenCalledTimes(1);
+    const tuplet = required(
+      beatElement.barElement
+        .refreshOwnedNotationNodes()
+        .find(
+          (e): e is BarTupletGroupElement => e instanceof BarTupletGroupElement
+        )
+    );
+
+    callbacks.onTupletClick(createMouseEvent(0, 0), tuplet, 1);
+
+    expect(controller.selectionAsBeats).toEqual([beats[2]]);
+    expect(controller.selectionCursor?.beat).toBe(beats[2]);
   });
 
   test.each(["secondary", "playing", "view-only"])(
     "notation dialogs reject %s clicks without changing selection",
     (mode) => {
-      const {
-        callbacks,
-        uiComponent,
-        notationComponent,
-        beatElement,
-        setIsPlaying,
-        renderFunc,
-      } = createHarness();
-      if (mode === "playing") setIsPlaying(true);
-      if (mode === "view-only")
-        notationComponent.trackController.editingEnabled = false;
-      const event = { button: mode === "secondary" ? 2 : 0 } as MouseEvent;
-      callbacks.onTempoClicked(event, { beatElements: [beatElement] } as any);
-      callbacks.onTimeSignatureClicked(event, {
-        beatElements: [beatElement],
-      } as any);
-      callbacks.onRepeatEndClicked(event, {
-        beatElements: [beatElement],
-      } as any);
-      callbacks.onTupletClick(event, { beatElements: [beatElement] } as any);
-      expect(
-        notationComponent.trackController.selectNoteElement
-      ).not.toHaveBeenCalled();
-      expect(
-        notationComponent.trackController.selectBeat
-      ).not.toHaveBeenCalled();
-      expect(renderFunc).not.toHaveBeenCalled();
-      expect(
-        uiComponent.sideComponent.measureControlsComponent.showTempoControls
-      ).not.toHaveBeenCalled();
-      expect(
-        uiComponent.sideComponent.measureControlsComponent.showTimeSigControls
-      ).not.toHaveBeenCalled();
-      expect(
-        uiComponent.sideComponent.noteControlsComponent.showTupletControls
-      ).not.toHaveBeenCalled();
-      expect(
-        uiComponent.sideComponent.measureControlsComponent
-          .showRepeatCountControls
-      ).not.toHaveBeenCalled();
+      withNotationDialog(({ controller, notation, ui, beats, host }) => {
+        const clicked = required(
+          controller.trackElement.getBeatElement(beats[1])
+        );
+        const bar = clicked.barElement;
+        controller.selectNoteElement(
+          required(controller.trackElement.getBeatElement(beats[0]))
+            .noteElements[2]
+        );
+        const cursor = controller.selectionCursor;
+        if (mode === "playing") {
+          // Transport is the only supplied state; selection uses the real controller.
+          const player = {
+            playbackState: PlaybackState.Playing,
+          } as ScorePlayer;
+          Object.assign(notation, {
+            trackController: new TrackController(
+              controller.track,
+              TEST_LAYOUT_DIMENSIONS,
+              player
+            ),
+          });
+        }
+        const active = notation.trackController;
+        if (mode === "view-only") active.setEditingEnabled(false);
+        const before = active.selectionCursor;
+        const render = jest.fn();
+        const callbacks = new EditorMouseDefCallbacks(
+          ui as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+          notation,
+          render
+        );
+        const event = { button: mode === "secondary" ? 2 : 0 } as MouseEvent;
+        callbacks.onTempoClicked(event, bar);
+        callbacks.onTimeSignatureClicked(event, bar);
+        callbacks.onRepeatEndClicked(event, bar);
+        callbacks.onTupletClick(event, {
+          beatElements: [clicked],
+        } as BarTupletGroupElement);
+        expect(active.selectionCursor).toBe(before);
+        if (mode !== "playing") expect(active.selectionCursor).toBe(cursor);
+        expect(host.querySelectorAll("[open]")).toHaveLength(0);
+        expect(render).not.toHaveBeenCalled();
+      });
     }
   );
 
@@ -457,88 +538,224 @@ describe("EditorMouseDefCallbacks", () => {
   ])(
     "notation dialog bindings reconcile and unbind without duplicates",
     (Renderer) => {
-      const { callbacks } = createHarness();
-      const renderer = Object.create(Renderer.prototype);
-      renderer.attachMouseEvent = jest.fn();
-      renderer.detachMouseEvent = jest.fn();
-      callbacks.bind([renderer]);
-      callbacks.bind([renderer]);
-      expect(renderer.attachMouseEvent).toHaveBeenCalledTimes(1);
-      callbacks.bind([]);
-      expect(renderer.detachMouseEvent).toHaveBeenCalledWith("click");
-      callbacks.bind([renderer]);
-      callbacks.unbind();
-      expect(renderer.detachMouseEvent).toHaveBeenCalledTimes(2);
+      withNotationDialog(({ notation, ui, root, host }) => {
+        const { controller, beats } = createRhythmHarness();
+        for (const beat of beats.slice(0, 3)) {
+          beat.tupletSettings = { normalCount: 3, tupletCount: 2 };
+        }
+        beats[0].voiceBar.computeBarTupletGroups();
+        controller.trackElement.update();
+        Object.assign(notation, { trackController: controller });
+        const editorRenderer = new EditorSVGRenderer(root, controller, {
+          baseUrl: "/assets",
+          variant: "light",
+        });
+        Object.assign(notation, { renderer: editorRenderer });
+        const renderers = editorRenderer.render({
+          renderNotation: true,
+          forceNotation: true,
+          overlays: { selection: false, player: false },
+        });
+        const renderer = renderers.find((v) => v instanceof Renderer);
+        if (renderer === undefined) throw Error(`Missing ${Renderer.name}`);
+        const render = jest.fn();
+        const callbacks = new EditorMouseDefCallbacks(
+          ui as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+          notation,
+          render
+        );
+        const selector =
+          Renderer === SVGBarRenderer
+            ? ".tu-time-signature text"
+            : Renderer === SVGTrackLineInfoRenderer
+              ? '[id^="tempo-text-"]'
+              : Renderer === SVGTupletRenderer
+                ? '[id^="tuplet-complete-text-"]'
+                : Renderer === SVGTabBeatRhythmRenderer
+                  ? '[id^="beat-rhythm-stem-"]'
+                  : ".tu-beam path";
+        const target = required(root.querySelector(selector));
+        const click = () =>
+          target.dispatchEvent(
+            new window.MouseEvent("click", { bubbles: true })
+          );
+        const dialogs = [
+          ui.sideComponent.measureControlsComponent.timeSigControlsComponent
+            .dialog,
+          ui.sideComponent.measureControlsComponent.tempoControlsComponent
+            .dialog,
+          ui.sideComponent.noteControlsComponent.tupletComponent.dialog,
+        ];
+        callbacks.bind([renderer]);
+        callbacks.bind([renderer]);
+        click();
+        expect(render).toHaveBeenCalledTimes(1);
+        const grouped =
+          Renderer === SVGTupletRenderer || Renderer === SVGBeamSegmentRenderer;
+        expect(controller.selectionAsBeats).toEqual(
+          grouped ? beats.slice(0, 3) : [beats[0]]
+        );
+        const opensDialog =
+          Renderer === SVGBarRenderer ||
+          Renderer === SVGTrackLineInfoRenderer ||
+          Renderer === SVGTupletRenderer;
+        expect(host.querySelectorAll("[open]")).toHaveLength(
+          opensDialog ? 1 : 0
+        );
+        for (const dialog of dialogs) dialog.close();
+        callbacks.bind([]);
+        const selected = controller.selectionAsBeats;
+        click();
+        expect(render).toHaveBeenCalledTimes(1);
+        expect(controller.selectionAsBeats).toEqual(selected);
+        expect(host.querySelectorAll("[open]")).toHaveLength(0);
+        callbacks.bind([renderer]);
+        click();
+        expect(render).toHaveBeenCalledTimes(2);
+        for (const dialog of dialogs) dialog.close();
+        callbacks.unbind();
+        click();
+        expect(render).toHaveBeenCalledTimes(2);
+        expect(host.querySelectorAll("[open]")).toHaveLength(0);
+      });
     }
   );
 
-  test("shared labels remove only matching notes from their owning beat", () => {
-    const { callbacks, notationComponent, renderFunc } = createHarness();
-    const notes = [true, false, true].map((hasTechnique) => ({
-      hasTechnique: jest.fn().mockReturnValue(hasTechnique),
-    }));
-    const label = {
-      technique: { type: GuitarTechniqueType.PalmMute, note: notes[0] },
-      beatElement: { beat: { notes } },
-    } as any;
-    callbacks.onLabelClick(createMouseEvent(0, 0), label);
-    expect(
-      notationComponent.trackController.removeTechniques
-    ).toHaveBeenCalledWith([notes[0], notes[2]], GuitarTechniqueType.PalmMute);
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).not.toHaveBeenCalled();
-  });
+  describe("technique label removal", () => {
+    function setupLabel(type = GuitarTechniqueType.PalmMute) {
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const notes = required(beats[0].notes) as GuitarNote[];
+      const otherNote = required(beats[1].notes)[0] as GuitarNote;
+      for (const note of [notes[0], notes[2], otherNote]) {
+        note.fret = 5;
+        const options =
+          type === GuitarTechniqueType.Bend
+            ? new BendTechniqueOptions({
+                type: BendType.Bend,
+                bendPitch: 1,
+                bendDuration: 1,
+              })
+            : null;
+        note.addTechnique(new GuitarTechnique(note, type, options));
+      }
+      notes[1].fret = 7;
+      notes[1].addTechnique(
+        new GuitarTechnique(notes[1], GuitarTechniqueType.NaturalHarmonic)
+      );
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      controller.trackElement.update();
+      controller.selectNoteElement(
+        required(controller.trackElement.getBeatElement(beats[1]))
+          .noteElements[0]
+      );
+      const label = required(
+        controller.trackElement.trackLineElements[0].drawableNotationElements.find(
+          (v) =>
+            v instanceof GuitarTechniqueLabelElement &&
+            v.technique.note === notes[0]
+        )
+      );
+      if (!(label instanceof GuitarTechniqueLabelElement)) {
+        throw Error("Expected technique label");
+      }
+      const harness = createHarness();
+      harness.notationComponent.trackController = controller;
+      return { ...harness, controller, notes, otherNote, label };
+    }
 
-  test("bend label clicks do not remove techniques", () => {
-    const { callbacks, notationComponent } = createHarness();
-    const notes = [{}, {}];
-    callbacks.onLabelClick(createMouseEvent(0, 0), {
-      technique: { type: GuitarTechniqueType.Bend, note: notes[1] },
-      beatElement: { beat: { notes } },
-    } as any);
-    expect(
-      notationComponent.trackController.removeTechniques
-    ).not.toHaveBeenCalled();
-  });
+    test("shared labels remove only matching notes from their owning beat", () => {
+      const { callbacks, controller, notes, otherNote, label, renderFunc } =
+        setupLabel();
+      callbacks.onLabelClick(createMouseEvent(0, 0), label);
 
-  test("label clicks ignore secondary buttons and render only successful edits", () => {
-    const { callbacks, notationComponent, renderFunc } = createHarness();
-    const label = {
-      technique: { type: GuitarTechniqueType.PalmMute, note: {} },
-      beatElement: { beat: { notes: [] } },
-    } as any;
-    callbacks.onLabelClick({ button: 2 } as MouseEvent, label);
-    expect(
-      notationComponent.trackController.removeTechniques
-    ).not.toHaveBeenCalled();
-    notationComponent.trackController.removeTechniques.mockReturnValue(false);
-    callbacks.onLabelClick(createMouseEvent(0, 0), label);
-    expect(renderFunc).not.toHaveBeenCalled();
-  });
+      expect(
+        notes.map((v) => v.hasTechnique(GuitarTechniqueType.PalmMute))
+      ).toEqual([false, false, false, false, false, false]);
+      expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
+        true
+      );
+      expect(otherNote.hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
+      expect(controller.selectionCursor?.note).toBe(otherNote);
+      expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
 
-  test("label renderer bindings reconcile and unbind without duplicates", () => {
-    const { callbacks } = createHarness();
-    const renderer = Object.create(SVGTechniqueLabelRenderer.prototype);
-    renderer.techniqueLabelElement = {
-      technique: { type: GuitarTechniqueType.PalmMute },
-    };
-    renderer.attachMouseEvent = jest.fn();
-    renderer.detachMouseEvent = jest.fn();
-    callbacks.bind([renderer]);
-    callbacks.bind([renderer]);
-    expect(renderer.attachMouseEvent).toHaveBeenCalledTimes(1);
-    callbacks.bind([]);
-    expect(renderer.detachMouseEvent).toHaveBeenCalledWith("click");
-    callbacks.bind([renderer]);
-    callbacks.unbind();
-    expect(renderer.detachMouseEvent).toHaveBeenCalledTimes(2);
-    renderer.techniqueLabelElement = {
-      technique: { type: GuitarTechniqueType.Bend },
-    };
-    callbacks.bind([renderer]);
-    expect(renderer.attachMouseEvent).toHaveBeenCalledTimes(2);
+      controller.undo();
+      expect(
+        notes.map((v) => v.hasTechnique(GuitarTechniqueType.PalmMute))
+      ).toEqual([true, false, true, false, false, false]);
+      controller.redo();
+      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+      expect(notes[2].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+      expect(controller.selectionCursor?.note).toBe(otherNote);
+    });
+
+    test("bend label clicks do not remove techniques", () => {
+      const { callbacks, notes, label, renderFunc } = setupLabel(
+        GuitarTechniqueType.Bend
+      );
+      callbacks.onLabelClick(createMouseEvent(0, 0), label);
+      expect(notes[0].hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
+      expect(notes[2].hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
+      expect(renderFunc).not.toHaveBeenCalled();
+    });
+
+    test("label clicks ignore secondary buttons and render only successful edits", () => {
+      const { callbacks, controller, notes, label, renderFunc } = setupLabel();
+      callbacks.onLabelClick({ button: 2 } as MouseEvent, label);
+      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
+      expect(renderFunc).not.toHaveBeenCalled();
+
+      callbacks.onLabelClick(createMouseEvent(0, 0), label);
+      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+      expect(renderFunc).toHaveBeenCalledTimes(1);
+      callbacks.onLabelClick(createMouseEvent(0, 0), label);
+      expect(renderFunc).toHaveBeenCalledTimes(1);
+      controller.undo();
+      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
+    });
+
+    test("label renderer bindings reconcile and unbind without duplicates", () => {
+      const { callbacks, controller, notes, label, renderFunc } = setupLabel();
+      const dom = new JSDOM();
+      const previousDocument = globalThis.document;
+      globalThis.document = dom.window.document;
+      try {
+        const renderer = new SVGTechniqueLabelRenderer(controller, label, {
+          baseUrl: "/assets",
+          variant: "light",
+        });
+        const click = () =>
+          renderer
+            .ensureContainerGroup()
+            .dispatchEvent(new dom.window.MouseEvent("click"));
+        callbacks.bind([renderer]);
+        callbacks.bind([renderer]);
+        click();
+        expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+        expect(renderFunc).toHaveBeenCalledTimes(1);
+        controller.undo();
+
+        callbacks.bind([]);
+        click();
+        expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
+        callbacks.bind([renderer]);
+        click();
+        expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+        expect(renderFunc).toHaveBeenCalledTimes(2);
+        controller.undo();
+
+        callbacks.unbind();
+        click();
+        expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
+        expect(renderFunc).toHaveBeenCalledTimes(2);
+      } finally {
+        callbacks.unbind();
+        globalThis.document = previousDocument;
+        dom.window.close();
+      }
+    });
   });
 
   let originalWindow: any;
@@ -561,399 +778,546 @@ describe("EditorMouseDefCallbacks", () => {
   });
 
   test("note click and hover behavior update preview and selection correctly", () => {
-    const { callbacks, noteElement, renderer, notationComponent, renderFunc } =
-      createHarness();
+    withNotationDialog(({ controller, beats, notation, ui, root }) => {
+      const noteElement = required(
+        controller.trackElement.getBeatElement(beats[1])
+      ).noteElements[2];
+      if (!(noteElement instanceof TabNoteSlotElement)) {
+        throw Error("Expected a tablature note slot for the hovered note");
+      }
+      const render = jest.fn();
+      const callbacks = new EditorMouseDefCallbacks(
+        ui as any,
+        notation,
+        render
+      );
+      callbacks.onNotePointerEnter(createPointerEvent(10, 10), noteElement);
+      const preview = required(root.querySelector("#selectionPreview"));
+      expect(preview.getAttribute("display")).toBe("block");
+      const expectedRect = noteElement.selectionRect;
+      expect(Number(required(preview.getAttribute("x")))).toBeCloseTo(
+        expectedRect.x
+      );
+      expect(Number(required(preview.getAttribute("y")))).toBeCloseTo(
+        expectedRect.y
+      );
+      const previewWidth = Number(required(preview.getAttribute("width")));
+      const previewHeight = Number(required(preview.getAttribute("height")));
+      expect(previewWidth).toBeGreaterThan(0);
+      expect(previewHeight).toBeGreaterThan(0);
+      expect(previewWidth).toBeCloseTo(expectedRect.width);
+      expect(previewHeight).toBeCloseTo(expectedRect.height);
 
-    callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
-    expect(renderer.hideSelectionPreview).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledWith(noteElement);
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+      callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
+      expect(controller.selectionCursor?.beat).toBe(beats[1]);
+      expect(controller.selectionCursor?.noteIndex).toBe(2);
+      expect(preview.getAttribute("display")).toBe("none");
+      expect(render).toHaveBeenCalledWith(RenderType.SelectionRefresh);
 
-    expect(callbacks.isSelectingBeats).toBe(false);
-    callbacks.onNotePointerDown(createMouseEvent(10, 10), noteElement);
-    expect(callbacks.isSelectingBeats).toBe(false);
-    callbacks.onNotePointerMove(createMouseEvent(30, 10), noteElement);
-    expect(callbacks.isSelectingBeats).toBe(true);
-    callbacks.onWindowPointerUp({ ...createMouseEvent(30, 10), button: 2 });
-    expect(callbacks.isSelectingBeats).toBe(true);
-    renderFunc.mockClear();
-    callbacks.onWindowPointerUp(createMouseEvent(30, 10, 0));
-    expect(callbacks.isSelectingBeats).toBe(false);
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.DragSelection);
+      expect(callbacks.isSelectingBeats).toBe(false);
+      callbacks.onNotePointerDown(createMouseEvent(10, 10), noteElement);
+      expect(callbacks.isSelectingBeats).toBe(false);
+      callbacks.onNotePointerMove(createMouseEvent(30, 10), noteElement);
+      expect(callbacks.isSelectingBeats).toBe(true);
+      expect(controller.selectionBeats).toEqual([beats[1]]);
+      callbacks.onWindowPointerUp({ ...createMouseEvent(30, 10), button: 2 });
+      expect(callbacks.isSelectingBeats).toBe(true);
+      render.mockClear();
+      callbacks.onWindowPointerUp(createMouseEvent(30, 10, 0));
+      expect(callbacks.isSelectingBeats).toBe(false);
+      expect(controller.selectionBeats).toEqual([beats[1]]);
+      expect(render).toHaveBeenCalledWith(RenderType.DragSelection);
 
-    callbacks.onNotePointerEnter(createPointerEvent(10, 10), noteElement);
-    expect(renderer.showSelectionPreview).toHaveBeenCalledWith(noteElement);
-
-    callbacks.onNotePointerLeave(createPointerEvent(10, 10), noteElement);
-    expect(renderer.hideSelectionPreview).toHaveBeenCalledTimes(2);
-  });
-
-  test("note click refreshes visible notation when active voice changes", () => {
-    const {
-      callbacks,
-      noteElement,
-      notationComponent,
-      renderFunc,
-      setActiveVoiceNumber,
-    } = createHarness();
-    setActiveVoiceNumber(2);
-    notationComponent.trackController.selectNoteElement.mockImplementation(() =>
-      setActiveVoiceNumber(1)
-    );
-
-    callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
-
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.ActiveVoiceSelection);
+      callbacks.onNotePointerEnter(createPointerEvent(10, 10), noteElement);
+      expect(preview.getAttribute("display")).toBe("block");
+      callbacks.onNotePointerLeave(createPointerEvent(10, 10), noteElement);
+      expect(preview.getAttribute("display")).toBe("none");
+    });
   });
 
   test("note click extends a range initiated through the anchor control", () => {
-    const { callbacks, noteElement, notationComponent, renderFunc } =
-      createHarness();
-    notationComponent.trackController.hasExplicitSelectionAnchor = true;
+    withNotationDialog(({ controller, beats, notation, ui }) => {
+      const noteElement = required(
+        controller.trackElement.getBeatElement(beats[1])
+      ).noteElements[2];
+      const render = jest.fn();
+      const callbacks = new EditorMouseDefCallbacks(
+        ui as any,
+        notation,
+        render
+      );
+      expect(controller.setSelectionAnchor()).toBe(true);
 
-    callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
+      callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
 
-    expect(notationComponent.trackController.selectBeat).toHaveBeenCalledWith(
-      noteElement.beatElement
-    );
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).not.toHaveBeenCalled();
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+      expect(controller.selectionBeats).toEqual(beats);
+      expect(controller.selectionCursor).toBeUndefined();
+      expect(controller.clearSelectionRange()).toBe(true);
+      expect(controller.selectionCursor?.beat).toBe(beats[0]);
+      expect(controller.selectionCursor?.noteIndex).toBe(0);
+      expect(render).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+    });
   });
 
-  test("clicking notes and beats during playback seeks without selecting", () => {
-    const {
-      callbacks,
-      beatElement,
-      noteElement,
-      notationComponent,
-      renderFunc,
-      setIsPlaying,
-    } = createHarness();
-    setIsPlaying(true);
+  async function withMouseTransport(
+    action: (fixture: {
+      callbacks: EditorMouseDefCallbacks;
+      controller: TrackController;
+      player: ScorePlayer;
+      beats: ReturnType<typeof createBarWithBeats>["beats"];
+      render: jest.Mock;
+    }) => Promise<void>
+  ) {
+    jest.useFakeTimers();
+    const audio = installTransportAudio();
+    const dom = new JSDOM();
+    const previous = Object.getOwnPropertyDescriptor(globalThis, "document");
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: dom.window.document,
+    });
+    const { score, track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const player = new ScorePlayer(score, track);
+    try {
+      const controller = new TrackController(
+        track,
+        TEST_LAYOUT_DIMENSIONS,
+        player
+      );
+      controller.trackElement.update();
+      const root = document.createElement("div");
+      const renderer = new EditorSVGRenderer(root, controller, {
+        baseUrl: "",
+        variant: "light",
+      });
+      const render = jest.fn();
+      const callbacks = new EditorMouseDefCallbacks(
+        {} as any,
+        { trackController: controller, renderer, rootDiv: root } as any,
+        render
+      );
+      await action({ callbacks, controller, player, beats, render });
+    } finally {
+      player.dispose();
+      audio.restore();
+      jest.useRealTimers();
+      if (previous) Object.defineProperty(globalThis, "document", previous);
+      else Reflect.deleteProperty(globalThis, "document");
+      dom.window.close();
+    }
+  }
 
-    callbacks.onNoteClick(createMouseEvent(10, 10), noteElement);
-    callbacks.onBeatClick(createMouseEvent(20, 10), beatElement);
-
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).not.toHaveBeenCalled();
-    expect(notationComponent.trackController.selectBeat).not.toHaveBeenCalled();
-    expect(
-      notationComponent.trackController.restartPlayerFromBeat
-    ).toHaveBeenNthCalledWith(1, beatElement.beat);
-    expect(
-      notationComponent.trackController.restartPlayerFromBeat
-    ).toHaveBeenNthCalledWith(2, beatElement.beat);
-    expect(renderFunc).toHaveBeenCalledTimes(2);
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+  test("clicking notes and beats during playback seeks without selecting", async () => {
+    await withMouseTransport(
+      async ({ callbacks, controller, player, beats, render }) => {
+        await player.start({ startBeat: beats[0] });
+        const before = serializeScore(player.score);
+        const noteTarget = required(
+          controller.trackElement.getBeatElement(beats[1])
+        );
+        callbacks.onNoteClick(
+          createMouseEvent(10, 10),
+          noteTarget.noteElements[0]
+        );
+        await settleTransport();
+        expect(player.playbackAnchorBeat).toBe(beats[1]);
+        expect(controller.selectionCursor).toBeUndefined();
+        expect(controller.selectionBeats).toEqual([]);
+        const beatTarget = required(
+          controller.trackElement.getBeatElement(beats[2])
+        );
+        callbacks.onBeatClick(createMouseEvent(20, 10), beatTarget);
+        await settleTransport();
+        expect(player.playbackAnchorBeat).toBe(beats[2]);
+        expect(controller.selectionCursor).toBeUndefined();
+        expect(controller.selectionBeats).toEqual([]);
+        expect(serializeScore(player.score)).toEqual(before);
+        expect(render).toHaveBeenCalledTimes(2);
+        expect(render).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+      }
+    );
   });
 
   test("ordinary idle beat clicks are no-ops", () => {
-    const { callbacks, beatElement, notationComponent, renderFunc } =
-      createHarness();
-
-    callbacks.onBeatClick(createMouseEvent(20, 10), beatElement);
-
-    expect(
-      notationComponent.trackController.restartPlayerFromBeat
-    ).not.toHaveBeenCalled();
-    expect(renderFunc).not.toHaveBeenCalled();
-  });
-
-  test("paused playback clicks seek without selecting", () => {
-    const { callbacks, beatElement, notationComponent, setPlaybackState } =
-      createHarness();
-    setPlaybackState("paused");
-
-    callbacks.onBeatClick(createMouseEvent(20, 10), beatElement);
-
-    expect(
-      notationComponent.trackController.restartPlayerFromBeat
-    ).toHaveBeenCalledWith(beatElement.beat);
-  });
-
-  test("end-gap click inserts after the clicked bar's last active beat", () => {
-    const { callbacks, notationComponent, renderFunc } = createHarness();
-    const lastBeat = { uuid: 7 } as any;
-    const voiceBar = {
-      voiceNumber: 1,
-      beats: [lastBeat],
-      actualTicks: 4,
-      barTicks: 16,
-    };
-    lastBeat.voiceBar = voiceBar;
-    const beatElement = { beat: lastBeat } as any;
-    const gap = new TestElement();
-    gap.closest.mockReturnValue({});
-
-    callbacks.onBeatClick(
-      { ...createMouseEvent(10, 10), target: gap } as unknown as MouseEvent,
-      beatElement
-    );
-
-    expect(
-      notationComponent.trackController.insertBeatAfterSelected
-    ).toHaveBeenCalledWith(beatElement.beat);
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
-  });
-
-  test.each(["playing", "paused"])(
-    "end-gap click during %s seeks the supplied last beat without insertion",
-    (playbackState) => {
-      const { callbacks, notationComponent, renderFunc, setPlaybackState } =
-        createHarness();
-      const lastBeat = { uuid: 7 } as any;
-      lastBeat.voiceBar = {
-        voiceNumber: 1,
-        beats: [lastBeat],
-        actualTicks: 4,
-        barTicks: 16,
-      };
-      const target = new TestElement();
-      target.closest.mockReturnValue({});
-      setPlaybackState(playbackState);
+    withNotationDialog(({ controller, beats, notation, ui, root }) => {
+      const beatElement = required(
+        controller.trackElement.getBeatElement(beats[1])
+      );
+      const render = jest.fn();
+      const callbacks = new EditorMouseDefCallbacks(
+        ui as any,
+        notation,
+        render
+      );
+      const initialCursor = controller.selectionCursor;
+      const before = serializeScore(controller.trackElement.track.score);
 
       callbacks.onBeatClick(
-        { ...createMouseEvent(10, 10), target } as unknown as MouseEvent,
-        { beat: lastBeat } as any
+        { ...createMouseEvent(20, 10), target: root } as unknown as MouseEvent,
+        beatElement
       );
 
-      expect(
-        notationComponent.trackController.restartPlayerFromBeat
-      ).toHaveBeenCalledWith(lastBeat);
-      expect(
-        notationComponent.trackController.insertBeatAfterSelected
-      ).not.toHaveBeenCalled();
-      expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
+      expect(controller.playbackState).toBe(PlaybackState.Idle);
+      expect(controller.selectionCursor).toBe(initialCursor);
+      expect(controller.selectionBeats).toEqual([]);
+      expect(serializeScore(controller.trackElement.track.score)).toEqual(
+        before
+      );
+      expect(render).not.toHaveBeenCalled();
+    });
+  });
+
+  test("clicking a beat during audio startup seeks without selecting", async () => {
+    await withMouseTransport(
+      async ({ callbacks, controller, player, beats }) => {
+        const start = player.start({ startBeat: beats[0] });
+        expect(player.playbackState).toBe(PlaybackState.Starting);
+        callbacks.onBeatClick(
+          createMouseEvent(20, 10),
+          required(controller.trackElement.getBeatElement(beats[2]))
+        );
+        await start;
+        await settleTransport();
+        expect(player.playbackState).toBe(PlaybackState.Playing);
+        expect(player.playbackAnchorBeat).toBe(beats[2]);
+        expect(controller.selectionCursor).toBeUndefined();
+        expect(controller.selectionBeats).toEqual([]);
+      }
+    );
+  });
+
+  function clickEndGap(
+    callbacks: EditorMouseDefCallbacks,
+    beatElement: Parameters<EditorMouseDefCallbacks["onBeatClick"]>[1],
+    button = 0
+  ): void {
+    const dom = new JSDOM('<div data-bar-end-gap-uuid="1"></div>');
+    const previousElement = globalThis.Element;
+    globalThis.Element = dom.window.Element;
+    try {
+      const gap = required(dom.window.document.querySelector("div"));
+      const event = new dom.window.MouseEvent("click", {
+        bubbles: true,
+        button,
+      });
+      gap.dispatchEvent(event);
+      callbacks.onBeatClick(event, beatElement);
+    } finally {
+      globalThis.Element = previousElement;
+      dom.window.close();
     }
-  );
+  }
+
+  function createEndGapCallbacks(controller: TrackController) {
+    const renderFunc = jest.fn();
+    const uiOwner = {} as ConstructorParameters<
+      typeof EditorMouseDefCallbacks
+    >[0];
+    const notationOwner = {
+      trackController: controller,
+    } as ConstructorParameters<typeof EditorMouseDefCallbacks>[1];
+    const callbacks = new EditorMouseDefCallbacks(
+      uiOwner,
+      notationOwner,
+      renderFunc
+    );
+    return { callbacks, renderFunc };
+  }
+
+  test("end-gap click inserts after the clicked bar's last active beat", () => {
+    const { track, bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const { callbacks, renderFunc } = createEndGapCallbacks(controller);
+    controller.trackElement.update();
+    const lastBeat = beats[1];
+    const beatElement = required(
+      controller.trackElement.getBeatElement(lastBeat)
+    );
+    const voiceBar = required(bar.getVoiceBar(1));
+    clickEndGap(callbacks, beatElement);
+
+    expect(voiceBar.beats).toHaveLength(3);
+    expect(voiceBar.beats[0]).toBe(beats[0]);
+    expect(voiceBar.beats[1]).toBe(lastBeat);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[2]);
+    expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
+
+    controller.undo();
+    expect(voiceBar.beats).toEqual(beats);
+    controller.redo();
+    expect(voiceBar.beats).toHaveLength(3);
+  });
 
   test.each(["full", "overflow", "read-only", "voice", "button"])(
     "ignores an ineligible end-gap click: %s",
     (reason) => {
-      const { callbacks, notationComponent, setIsPlaying, renderFunc } =
-        createHarness();
-      const beat = { uuid: 7 } as any;
-      beat.voiceBar = {
-        voiceNumber: reason === "voice" ? 2 : 1,
-        beats: [beat],
-        actualTicks: reason === "full" ? 16 : reason === "overflow" ? 20 : 4,
-        barTicks: 16,
-      };
-      setIsPlaying(reason === "playback");
-      notationComponent.trackController.editingEnabled = reason !== "read-only";
-      const target = new TestElement();
-      target.closest.mockReturnValue({});
-      callbacks.onBeatClick(
-        {
-          ...createPointerEvent(10, 10),
-          button: reason === "button" ? 2 : 0,
-          target,
-        } as unknown as MouseEvent,
-        { beat } as any
+      const count = reason === "full" ? 4 : reason === "overflow" ? 5 : 1;
+      const { track, bar } = createBarWithBeats(
+        Array.from({ length: count }, () => ({
+          baseDuration: NoteDuration.Quarter,
+        }))
       );
-      expect(
-        notationComponent.trackController.insertBeatAfterSelected
-      ).not.toHaveBeenCalled();
-      expect(
-        notationComponent.trackController.restartPlayerFromBeat
-      ).not.toHaveBeenCalled();
+      const voiceBar =
+        reason === "voice"
+          ? bar.insertVoiceBar(2)
+          : required(bar.getVoiceBar(1));
+      const originalBeats = [...voiceBar.beats];
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      const { callbacks, renderFunc } = createEndGapCallbacks(controller);
+      controller.setEditingEnabled(reason !== "read-only");
+      controller.trackElement.update();
+      const beatElement = required(
+        controller.trackElement.getBeatElement(
+          voiceBar.beats[voiceBar.beats.length - 1]
+        )
+      );
+      const selectedBeat = controller.selectionCursor?.beat;
+      clickEndGap(callbacks, beatElement, reason === "button" ? 2 : 0);
+
+      expect(voiceBar.beats).toEqual(originalBeats);
+      expect(controller.selectionCursor?.beat).toBe(selectedBeat);
       expect(renderFunc).not.toHaveBeenCalled();
     }
   );
 
-  test("playback prevents drag selection from starting or changing selection", () => {
-    const {
-      callbacks,
-      beatElement,
-      noteElement,
-      notationComponent,
-      renderFunc,
-      setIsPlaying,
-    } = createHarness();
-    const dragController = {
-      begin: jest.fn(),
-      handleMove: jest.fn(),
-      reset: jest.fn(),
-      isSelectingBeats: false,
-      isDragPending: false,
-    };
-    (callbacks as any)._selectionDragController = dragController;
-    setIsPlaying(true);
+  test("drag attempts preserve the range while playback is starting", () => {
+    withDragSelection((fixture) => {
+      const { callbacks, controller, player, beats, elements, mouse, pointer } =
+        fixture;
+      controller.selectBeat(elements[2]);
+      controller.selectBeat(elements[3]);
+      const starting = player.start();
+      expect(controller.playbackState).toBe(PlaybackState.Starting);
 
-    callbacks.onNotePointerDown(createMouseEvent(1, 2), noteElement);
-    callbacks.onBeatPointerDown(createPointerEvent(1, 2), beatElement);
-    callbacks.onBeatPointerMove(createPointerEvent(20, 2), beatElement);
-    callbacks.onNotePointerEnter(createPointerEvent(20, 2), noteElement);
+      callbacks.onNotePointerDown(mouse(0), elements[0].noteElements[0]);
+      callbacks.onBeatPointerDown(mouse(0), elements[0]);
+      callbacks.onBeatPointerMove(mouse(100), elements[1]);
+      callbacks.onNotePointerEnter(
+        pointer(100, "mouse"),
+        elements[1].noteElements[0]
+      );
 
-    expect(dragController.begin).not.toHaveBeenCalled();
-    expect(dragController.handleMove).not.toHaveBeenCalled();
-    expect(
-      notationComponent.trackController.clearSelection
-    ).not.toHaveBeenCalled();
-    expect(notationComponent.trackController.selectBeat).not.toHaveBeenCalled();
-    expect(renderFunc).not.toHaveBeenCalled();
+      expect(controller.selectionBeats).toEqual([beats[2], beats[3]]);
+      expect(callbacks.isSelectingBeats).toBe(false);
+      player.stop();
+      // Audio startup resumes after this synchronous interaction and sees the
+      // stopped generation. No browser audio implementation is needed here.
+      void starting;
+    });
   });
 
-  test("drag-selection behavior routes through the drag controller state machine", () => {
-    const {
-      callbacks,
-      beatElement,
-      noteElement,
-      notationComponent,
-      renderFunc,
-    } = createHarness();
-    const dragController = {
-      begin: jest.fn(),
-      handleMove: jest
-        .fn()
-        .mockReturnValueOnce({
-          startedSelection: true,
-          shouldSelectCurrentBeat: true,
-          anchorBeat: beatElement,
-        })
-        .mockReturnValueOnce({
-          startedSelection: false,
-          shouldSelectCurrentBeat: true,
-        }),
-      finish: jest.fn().mockReturnValue(true),
-      reset: jest.fn(),
-      isSelectingBeats: false,
-      isDragPending: false,
-    };
-    (callbacks as any)._selectionDragController = dragController;
+  test("mouse drag replaces a range, extends it, and stops changing it on release", () => {
+    withDragSelection((fixture) => {
+      const { callbacks, controller, beats, elements, root, mouse } = fixture;
+      controller.selectBeat(elements[3]);
+      callbacks.onNotePointerDown(mouse(0), elements[0].noteElements[0]);
+      callbacks.onBeatPointerMove(mouse(11), elements[0]);
+      expect(controller.selectionBeats).toEqual([beats[3]]);
+      expect(callbacks.isSelectingBeats).toBe(false);
 
-    callbacks.onNotePointerDown(createMouseEvent(1, 2), noteElement);
-    expect(dragController.begin).toHaveBeenCalledWith(
-      noteElement.beatElement,
-      { x: 1, y: 2 },
-      0
-    );
+      callbacks.onBeatPointerMove(mouse(12), elements[1]);
+      expect(controller.selectionBeats).toEqual([beats[0], beats[1]]);
+      expect(callbacks.isSelectingBeats).toBe(true);
+      const selection = required(root.querySelector('[id^="selection-rect-"]'));
+      expect(Number(selection.getAttribute("width"))).toBeCloseTo(93.6);
 
-    callbacks.onBeatPointerMove(createMouseEvent(5, 6), beatElement);
-    expect(
-      notationComponent.trackController.clearSelection
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.selectBeat
-    ).toHaveBeenNthCalledWith(1, beatElement);
-    expect(renderFunc).toHaveBeenNthCalledWith(1, RenderType.DragSelection);
-    expect(
-      notationComponent.trackController.selectBeat
-    ).toHaveBeenNthCalledWith(2, beatElement);
+      callbacks.onNotePointerMove(mouse(100), elements[2].noteElements[0]);
+      expect(controller.selectionBeats).toEqual([beats[0], beats[1], beats[2]]);
+      expect(Number(selection.getAttribute("width"))).toBeCloseTo(140.4);
 
-    callbacks.onBeatPointerMove(createMouseEvent(7, 8), beatElement);
-    expect(
-      notationComponent.trackController.selectBeat
-    ).toHaveBeenNthCalledWith(3, beatElement);
+      callbacks.onWindowPointerUp(mouse(100));
+      expect(callbacks.isSelectingBeats).toBe(false);
+      callbacks.onBeatPointerMove(mouse(200), elements[3]);
+      expect(controller.selectionBeats).toEqual([beats[0], beats[1], beats[2]]);
 
-    callbacks.onBeatPointerUp(createMouseEvent(7, 8));
-    expect(dragController.finish).toHaveBeenCalledWith(0);
+      controller.setDots(1);
+      expect(beats.map((v) => v.dots)).toEqual([1, 1, 1, 0]);
+      controller.undo();
+      expect(beats.map((v) => v.dots)).toEqual([0, 0, 0, 0]);
+      controller.redo();
+      expect(beats.map((v) => v.dots)).toEqual([1, 1, 1, 0]);
+    });
   });
 
   test("bind and unbind manage global, delegated, and note renderer listeners without leaks", () => {
-    const { callbacks, noteElement, renderer, notationComponent, renderFunc } =
-      createHarness();
-    const noteRenderer = createRendererBackedNoteRenderer(noteElement);
-    const win = (globalThis as any).window;
-
-    callbacks.bind([noteRenderer]);
-    callbacks.bind([noteRenderer]);
-
-    expect(win.addEventListener).toHaveBeenCalledTimes(1);
-    expect(renderer.attachBeatInteractionEvent).toHaveBeenCalledTimes(4);
-    expect(noteRenderer.attachMouseEvent).toHaveBeenCalledTimes(5);
-
-    noteRenderer.trigger("click", createMouseEvent(10, 10));
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledWith(noteElement);
-    expect(renderFunc).toHaveBeenCalledWith(RenderType.SelectionRefresh);
-
-    const noteSelectionCallsBeforeUnbind =
-      notationComponent.trackController.selectNoteElement.mock.calls.length;
-    callbacks.unbind();
-    expect(win.removeEventListener).toHaveBeenCalledTimes(1);
-    expect(renderer.detachBeatInteractionEvent).toHaveBeenCalledTimes(4);
-    expect(noteRenderer.detachMouseEvent).toHaveBeenCalledTimes(5);
-    expect(noteRenderer.hasHandler("click")).toBe(false);
-
-    noteRenderer.trigger("click", createMouseEvent(20, 20));
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledTimes(noteSelectionCallsBeforeUnbind);
-
-    callbacks.bind([noteRenderer]);
-    expect(win.addEventListener).toHaveBeenCalledTimes(2);
-    expect(noteRenderer.attachMouseEvent).toHaveBeenCalledTimes(10);
+    withDragSelection(({ root, controller, beats, elements }) => {
+      const rectConstructor = Object.getOwnPropertyDescriptor(
+        globalThis,
+        "SVGRectElement"
+      );
+      Object.defineProperty(globalThis, "SVGRectElement", {
+        configurable: true,
+        value: document.createElementNS("http://www.w3.org/2000/svg", "rect")
+          .constructor,
+      });
+      const host = document.createElement("div");
+      root.appendChild(host);
+      const renderer = new EditorSVGRenderer(host, controller, {
+        baseUrl: "",
+        variant: "light",
+      });
+      const owner = {
+        renderer,
+        trackController: controller,
+      } as unknown as ConstructorParameters<typeof EditorMouseDefCallbacks>[1];
+      const render = jest.fn(() => renderer.render());
+      const callbacks = new EditorMouseDefCallbacks(
+        {} as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+        owner,
+        render
+      );
+      const active = renderer.render();
+      const note = required(
+        host.querySelector(
+          `[id="note-rect-${elements[1].noteElements[0].getStableIdentity()}"]`
+        )
+      );
+      const beat = required(
+        host.querySelector(`[data-beat-uuid="${beats[2].uuid}"]`)
+      );
+      const event = (type: string, x = 0) => {
+        const e = new window.MouseEvent(type, {
+          bubbles: true,
+          buttons: 1,
+          clientX: x,
+        });
+        Object.defineProperties(e, {
+          pageX: { value: x },
+          pageY: { value: 0 },
+        });
+        return e;
+      };
+      try {
+        callbacks.bind(active);
+        callbacks.bind(active);
+        note.dispatchEvent(event("click"));
+        expect(controller.selectionCursor?.beat).toBe(beats[1]);
+        expect(render).toHaveBeenCalledTimes(1);
+        beat.dispatchEvent(event("mousedown"));
+        required(
+          host.querySelector(`[data-beat-uuid="${beats[0].uuid}"]`)
+        ).dispatchEvent(event("mousemove", 100));
+        expect(callbacks.isSelectingBeats).toBe(true);
+        window.dispatchEvent(event("mouseup", 100));
+        expect(callbacks.isSelectingBeats).toBe(false);
+        callbacks.unbind();
+        callbacks.unbind();
+        controller.clearSelection();
+        controller.selectNoteElement(elements[0].noteElements[0]);
+        render.mockClear();
+        note.dispatchEvent(event("click"));
+        beat.dispatchEvent(event("mousedown"));
+        note.dispatchEvent(event("mousemove", 100));
+        expect(controller.selectionCursor?.beat).toBe(beats[0]);
+        expect(callbacks.isSelectingBeats).toBe(false);
+        expect(render).not.toHaveBeenCalled();
+        callbacks.bind(active);
+        note.dispatchEvent(event("click"));
+        expect(controller.selectionCursor?.beat).toBe(beats[1]);
+        expect(render).toHaveBeenCalledTimes(1);
+      } finally {
+        callbacks.unbind();
+        renderer.dispose();
+        if (rectConstructor)
+          Object.defineProperty(globalThis, "SVGRectElement", rectConstructor);
+        else Reflect.deleteProperty(globalThis, "SVGRectElement");
+      }
+    });
   });
 
   test("bind reconciles stale note renderers when the active renderer set changes", () => {
-    const { callbacks, noteElement, notationComponent } = createHarness();
-    const oldRenderer = createRendererBackedNoteRenderer(noteElement);
-    const newRenderer = createRendererBackedNoteRenderer(noteElement);
-
-    callbacks.bind([oldRenderer]);
-    expect(oldRenderer.attachMouseEvent).toHaveBeenCalledTimes(5);
-    expect(oldRenderer.hasHandler("click")).toBe(true);
-
-    callbacks.bind([newRenderer]);
-    expect(oldRenderer.detachMouseEvent).toHaveBeenCalledTimes(5);
-    expect(oldRenderer.hasHandler("click")).toBe(false);
-    expect(newRenderer.attachMouseEvent).toHaveBeenCalledTimes(5);
-    expect(newRenderer.hasHandler("click")).toBe(true);
-
-    const selectedCallsBeforeOldTrigger =
-      notationComponent.trackController.selectNoteElement.mock.calls.length;
-    oldRenderer.trigger("click", createMouseEvent(30, 30));
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledTimes(selectedCallsBeforeOldTrigger);
-
-    newRenderer.trigger("click", createMouseEvent(40, 40));
-    expect(
-      notationComponent.trackController.selectNoteElement
-    ).toHaveBeenCalledTimes(selectedCallsBeforeOldTrigger + 1);
+    withDragSelection(({ root, controller, beats, elements }) => {
+      const hosts = [
+        document.createElement("div"),
+        document.createElement("div"),
+      ];
+      hosts.forEach((h) => root.appendChild(h));
+      const renderers = hosts.map(
+        (h) =>
+          new EditorSVGRenderer(h, controller, {
+            baseUrl: "",
+            variant: "light",
+          })
+      );
+      const sets = renderers.map((r) => r.render());
+      const owner = {
+        renderer: renderers[1],
+        trackController: controller,
+      } as unknown as ConstructorParameters<typeof EditorMouseDefCallbacks>[1];
+      const callbacks = new EditorMouseDefCallbacks(
+        {} as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
+        owner,
+        () => {}
+      );
+      const notes = hosts.map((h) =>
+        required(
+          h.querySelector(
+            `[id="note-rect-${elements[1].noteElements[0].getStableIdentity()}"]`
+          )
+        )
+      );
+      try {
+        callbacks.bind(sets[0]);
+        notes[0].dispatchEvent(
+          new window.MouseEvent("click", { bubbles: true })
+        );
+        expect(controller.selectionCursor?.beat).toBe(beats[1]);
+        controller.selectNoteElement(elements[0].noteElements[0]);
+        callbacks.bind(sets[1]);
+        notes[0].dispatchEvent(
+          new window.MouseEvent("click", { bubbles: true })
+        );
+        expect(controller.selectionCursor?.beat).toBe(beats[0]);
+        notes[1].dispatchEvent(
+          new window.MouseEvent("click", { bubbles: true })
+        );
+        expect(controller.selectionCursor?.beat).toBe(beats[1]);
+      } finally {
+        callbacks.unbind();
+        renderers.forEach((r) => r.dispose());
+      }
+    });
   });
 
   test("pointer events do not start or update drag selection", () => {
-    const { callbacks, beatElement, notationComponent } = createHarness();
-    const dragController = {
-      begin: jest.fn(),
-      handleMove: jest.fn().mockReturnValue({
-        startedSelection: false,
-        shouldSelectCurrentBeat: false,
-      }),
-      finish: jest.fn().mockReturnValue(false),
-      reset: jest.fn(),
-      isSelectingBeats: false,
-      isDragPending: false,
-    };
-    (callbacks as any)._selectionDragController = dragController;
+    withDragSelection((fixture) => {
+      const { callbacks, controller, beats, elements, mouse, pointer } =
+        fixture;
+      controller.selectBeat(elements[3]);
+      for (const type of ["mouse", "touch", "pen"]) {
+        callbacks.onNotePointerDown(
+          pointer(0, type),
+          elements[0].noteElements[0]
+        );
+        callbacks.onBeatPointerDown(pointer(0, type), elements[0]);
+        // A following compatibility mousemove must not find a pending drag.
+        callbacks.onBeatPointerMove(mouse(100), elements[1]);
+        expect(controller.selectionBeats).toEqual([beats[3]]);
+        expect(callbacks.isSelectingBeats).toBe(false);
+      }
 
-    callbacks.onBeatPointerDown(
-      createPointerEvent(1, 2, 7, "touch"),
-      beatElement
-    );
-    callbacks.onBeatPointerDown(
-      createPointerEvent(1, 2, 8, "pen", false),
-      beatElement
-    );
-    callbacks.onBeatPointerMove(
-      createPointerEvent(4, 2, 7, "touch"),
-      beatElement
-    );
-    callbacks.onBeatPointerUp(createPointerEvent(4, 2, 8, "pen", false));
-
-    expect(dragController.begin).not.toHaveBeenCalled();
-    expect(dragController.handleMove).not.toHaveBeenCalled();
-    expect(dragController.finish).not.toHaveBeenCalled();
-    expect(
-      notationComponent.trackController.clearSelection
-    ).not.toHaveBeenCalled();
+      callbacks.onBeatPointerDown(mouse(0), elements[0]);
+      callbacks.onBeatPointerMove(mouse(100), elements[1]);
+      expect(controller.selectionBeats).toEqual([beats[0], beats[1]]);
+      for (const type of ["mouse", "touch", "pen"]) {
+        callbacks.onBeatPointerMove(pointer(200, type), elements[3]);
+        callbacks.onNotePointerMove(
+          pointer(200, type),
+          elements[3].noteElements[0]
+        );
+        callbacks.onBeatPointerUp(pointer(200, type, false));
+        expect(controller.selectionBeats).toEqual([beats[0], beats[1]]);
+        expect(callbacks.isSelectingBeats).toBe(true);
+      }
+      callbacks.onBeatPointerUp(mouse(100));
+      expect(callbacks.isSelectingBeats).toBe(false);
+    });
   });
 });

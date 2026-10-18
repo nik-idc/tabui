@@ -1,87 +1,47 @@
+/** @jest-environment jsdom */
+
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
+import { NotationComponent } from "../../../src/notation/notation-component";
 import { NoteDuration } from "../../../src/notation/model";
+import { NoteControlsTemplate } from "../../../src/ui/side-controls/note-controls/note-controls-template";
 import { NoteControlsTemplateRenderer } from "../../../src/ui/side-controls/note-controls/note-controls-template-renderer";
+import { createTestLayoutDimensions } from "../controller/helpers";
 import { createBarWithBeats } from "../model/helpers";
 
-function createButton() {
-  const classes = new Set<string>();
-  return {
-    classList: {
-      add: (name: string) => classes.add(name),
-      toggle: (name: string, force: boolean) => {
-        if (force) {
-          classes.add(name);
-        } else {
-          classes.delete(name);
-        }
-      },
-      contains: (name: string) => classes.has(name),
-    },
-    dataset: {} as Record<string, string>,
-    querySelector: () => ({ src: "", alt: "" }),
-    setAttribute: jest.fn(),
-  } as unknown as HTMLButtonElement;
-}
-
 describe("NoteControlsTemplateRenderer", () => {
-  test("highlights the selected note's beat controls", () => {
-    const { beats } = createBarWithBeats([
+  test("highlights the selected note's eighth duration, double dot, and triplet", () => {
+    const { score } = createBarWithBeats([
       {
         baseDuration: NoteDuration.Eighth,
         dots: 2,
         tupletSettings: { normalCount: 3, tupletCount: 2 },
       },
     ]);
-    const durationButtons = Array.from({ length: 7 }, createButton);
-    const dot1Button = createButton();
-    const dot2Button = createButton();
-    const tuplet2Button = createButton();
-    const tuplet3Button = createButton();
-    const tupletButton = createButton();
-    const renderer = Object.assign(
-      Object.create(NoteControlsTemplateRenderer.prototype),
-      {
-        notationComponent: {
-          trackController: {
-            selectionAsBeats: [beats[0]],
-            selectionCursor: { beat: beats[0] },
-          },
-        },
-        template: {
-          durationButtons,
-          restButton: createButton(),
-          dot1Button,
-          dot2Button,
-          tuplet2Button,
-          tuplet3Button,
-          tupletButton,
-        },
-        assetsPath: { baseUrl: "", variant: "light" },
-      }
+    const host = document.createElement("div");
+    const notation = new NotationComponent(
+      document.createElement("div"),
+      score,
+      resolveTabUIConfig(),
+      createTestLayoutDimensions()
     );
+    const template = new NoteControlsTemplate();
+    const renderer = new NoteControlsTemplateRenderer(host, notation, template);
 
-    const renderDurations = (
-      NoteControlsTemplateRenderer.prototype as unknown as {
-        renderDurationButtons(): void;
-      }
-    ).renderDurationButtons;
-    renderDurations.call(renderer);
+    try {
+      renderer.render();
 
-    const renderDots = (
-      NoteControlsTemplateRenderer.prototype as unknown as {
-        renderDotButtons(): void;
-      }
-    ).renderDotButtons;
-    renderDots.call(renderer);
-
-    const renderTuplets = (
-      NoteControlsTemplateRenderer.prototype as unknown as {
-        renderTupletButtons(): void;
-      }
-    ).renderTupletButtons;
-    renderTuplets.call(renderer);
-
-    expect(durationButtons[3].classList.contains("tu-applied-img")).toBe(true);
-    expect(dot2Button.classList.contains("tu-applied-img")).toBe(true);
-    expect(tuplet3Button.classList.contains("tu-applied-img")).toBe(true);
+      expect(host.contains(template.container)).toBe(true);
+      expect(
+        template.durationButtons[3].classList.contains("tu-applied-img")
+      ).toBe(true);
+      expect(template.dot2Button.classList.contains("tu-applied-img")).toBe(
+        true
+      );
+      expect(template.tuplet3Button.classList.contains("tu-applied-img")).toBe(
+        true
+      );
+    } finally {
+      notation.dispose();
+    }
   });
 });

@@ -1,21 +1,13 @@
 import { SelectionDragController } from "../../../src/notation/input/selection-drag-controller";
 import { Point } from "../../../src/shared";
-
-function createBeatElement(width: number = 40) {
-  return {
-    boundingBox: {
-      width,
-    },
-    rect: {
-      width,
-    },
-  } as any;
-}
+import { createDragScore } from "./drag-selection-fixture";
 
 describe("SelectionDragController", () => {
   test("starts in idle state and idle moves are no-ops", () => {
     const controller = new SelectionDragController();
-    const beatElement = createBeatElement();
+    const {
+      elements: [beatElement],
+    } = createDragScore();
 
     expect(controller.isDragPending).toBe(false);
     expect(controller.isSelectingBeats).toBe(false);
@@ -28,7 +20,10 @@ describe("SelectionDragController", () => {
   test("begin enters drag-pending state", () => {
     const controller = new SelectionDragController();
 
-    controller.begin(createBeatElement(), new Point(0, 0), 1);
+    const {
+      elements: [beatElement],
+    } = createDragScore();
+    controller.begin(beatElement, new Point(0, 0), 1);
 
     expect(controller.isDragPending).toBe(true);
     expect(controller.isSelectingBeats).toBe(false);
@@ -36,11 +31,13 @@ describe("SelectionDragController", () => {
 
   test("move below threshold keeps drag pending and does not start selection", () => {
     const controller = new SelectionDragController();
-    const anchorBeat = createBeatElement(40);
+    const {
+      elements: [anchorBeat],
+    } = createDragScore();
 
     controller.begin(anchorBeat, new Point(0, 0), 1);
 
-    expect(controller.handleMove(new Point(9, 0), anchorBeat, 1)).toEqual({
+    expect(controller.handleMove(new Point(11, 0), anchorBeat, 1)).toEqual({
       shouldSelectCurrentBeat: false,
       startedSelection: false,
     });
@@ -50,12 +47,15 @@ describe("SelectionDragController", () => {
 
   test("move at threshold starts selection and returns the anchor beat", () => {
     const controller = new SelectionDragController();
-    const anchorBeat = createBeatElement(40);
-    const currentBeat = createBeatElement(40);
+    const {
+      elements: [anchorBeat, currentBeat],
+    } = createDragScore();
 
     controller.begin(anchorBeat, new Point(0, 0), 1);
 
-    expect(controller.handleMove(new Point(10, 0), currentBeat, 1)).toEqual({
+    // The public drag rule uses one quarter of the target beat's width.
+    const thresholdPoint = new Point(currentBeat.boundingBox.width / 4, 0);
+    expect(controller.handleMove(thresholdPoint, currentBeat, 1)).toEqual({
       shouldSelectCurrentBeat: true,
       startedSelection: true,
       anchorBeat,
@@ -66,11 +66,12 @@ describe("SelectionDragController", () => {
 
   test("subsequent moves while selecting continue selecting without restarting", () => {
     const controller = new SelectionDragController();
-    const anchorBeat = createBeatElement(40);
-    const currentBeat = createBeatElement(40);
+    const {
+      elements: [anchorBeat, currentBeat],
+    } = createDragScore();
 
     controller.begin(anchorBeat, new Point(0, 0), 1);
-    controller.handleMove(new Point(10, 0), currentBeat, 1);
+    controller.handleMove(new Point(12, 0), currentBeat, 1);
 
     expect(controller.handleMove(new Point(20, 5), currentBeat, 1)).toEqual({
       shouldSelectCurrentBeat: true,
@@ -82,10 +83,12 @@ describe("SelectionDragController", () => {
 
   test("reset returns the controller to idle state", () => {
     const controller = new SelectionDragController();
-    const anchorBeat = createBeatElement(40);
+    const {
+      elements: [anchorBeat],
+    } = createDragScore();
 
     controller.begin(anchorBeat, new Point(0, 0), 1);
-    controller.handleMove(new Point(10, 0), anchorBeat, 1);
+    controller.handleMove(new Point(12, 0), anchorBeat, 1);
 
     controller.reset();
 
@@ -99,7 +102,9 @@ describe("SelectionDragController", () => {
 
   test("ignores non-owning pointers and only finishes for the owner", () => {
     const controller = new SelectionDragController();
-    const beatElement = createBeatElement();
+    const {
+      elements: [beatElement],
+    } = createDragScore();
 
     controller.begin(beatElement, new Point(0, 0), 4);
 

@@ -1,6 +1,7 @@
 import { RemoveBeatsCommand } from "../../../src/notation/controller/editor/command";
-import { NoteDuration } from "../../../src/notation/model";
+import { GuitarNote, NoteDuration } from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
+import { required } from "../required";
 
 describe("RemoveBeatsCommand", () => {
   test("execute removes selected beats and undo restores them in place", () => {
@@ -15,6 +16,10 @@ describe("RemoveBeatsCommand", () => {
     }
 
     const command = new RemoveBeatsCommand([beats[1]]);
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: beats[1].uuid },
+    ]);
+    (required(beats[1].notes)[0] as GuitarNote).fret = 7;
 
     command.execute();
     expect(voiceBar.beats).toHaveLength(2);
@@ -25,6 +30,10 @@ describe("RemoveBeatsCommand", () => {
 
     command.undo();
     expect(voiceBar.beats).toHaveLength(3);
+    expect(voiceBar.beats[0]).toBe(beats[0]);
+    expect(voiceBar.beats[2]).toBe(beats[2]);
+    expect(voiceBar.beats[1].voiceBar).toBe(voiceBar);
+    expect((required(voiceBar.beats[1].notes)[0] as GuitarNote).fret).toBe(7);
     expect(voiceBar.beats.map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Eighth,
@@ -58,6 +67,7 @@ describe("RemoveBeatsCommand", () => {
 
     command.undo();
     expect(voiceBar.beats).toHaveLength(1);
+    expect(voiceBar.beats[0].voiceBar).toBe(voiceBar);
     expect(voiceBar.beats[0].baseDuration).toBe(NoteDuration.Quarter);
     expect(voiceBar.beats[0].isRest()).toBe(false);
 

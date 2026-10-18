@@ -1,69 +1,64 @@
-import { MeasureControlsComponent } from "../../../src/ui/side-controls/measure-controls/measure-controls-component";
-import { NoteControlsComponent } from "../../../src/ui/side-controls/note-controls/note-controls-component";
+import { withNotationDialog } from "./notation-dialog-fixture";
 
 describe("dialog open state", () => {
-  test.each([
-    ["tempo", "showTempoControls", "tempoControlsComponent", "120", "90"],
-    [
-      "time signature",
-      "showTimeSigControls",
-      "timeSigControlsComponent",
-      "4/4",
-      "7/8",
-    ],
-  ])(
-    "%s re-renders the current selected model state before every open",
-    (_name, showMethod, childName, initialValue, changedValue) => {
-      let modelValue = initialValue;
-      let draftValue = "";
-      const calls: string[] = [];
-      const child = {
-        render: jest.fn(() => {
-          calls.push("render");
-          draftValue = modelValue;
-        }),
-        dialog: {
-          showModal: jest.fn(() => calls.push(`show:${draftValue}`)),
-        },
-      };
-      const component = {
-        [childName]: child,
-      } as any;
-
-      (MeasureControlsComponent.prototype as any)[showMethod].call(component);
-      draftValue = "cancelled draft";
-      modelValue = changedValue;
-      (MeasureControlsComponent.prototype as any)[showMethod].call(component);
-
-      expect(calls).toEqual([
-        "render",
-        `show:${initialValue}`,
-        "render",
-        `show:${changedValue}`,
-      ]);
+  test.each(["tempo", "time signature"] as const)(
+    "%s discards cancelled drafts and reads the current selection on reopen",
+    (name) => {
+      withNotationDialog(({ controller, measure }) => {
+        const component =
+          name === "tempo"
+            ? measure.tempoControlsComponent
+            : measure.timeSigControlsComponent;
+        const open = () =>
+          name === "tempo"
+            ? measure.showTempoControls()
+            : measure.showTimeSigControls();
+        open();
+        const values = component.template.dialogContainer.querySelectorAll(
+          ".tu-number-stepper-value"
+        );
+        expect(Array.from(values, (v) => v.textContent)).toEqual(
+          name === "tempo" ? ["120"] : ["4"]
+        );
+        if (name === "time signature") {
+          expect(
+            measure.timeSigControlsComponent.template.durationSelect.value
+          ).toBe("4");
+        }
+        values[0].textContent = "99";
+        component.dialog.requestClose();
+        expect(component.dialog.open).toBe(false);
+        if (name === "tempo") controller.setSelectedBarTempo(90);
+        else controller.setSelectedBarTimeSignature(7, 1 / 8);
+        open();
+        expect(component.dialog.open).toBe(true);
+        expect(Array.from(values, (v) => v.textContent)).toEqual(
+          name === "tempo" ? ["90"] : ["7"]
+        );
+        if (name === "time signature") {
+          expect(
+            measure.timeSigControlsComponent.template.durationSelect.value
+          ).toBe("8");
+        }
+      });
     }
   );
 
-  test("tuplet re-renders the current selected model state before every open", () => {
-    let modelValue = "3:2";
-    let draftValue = "";
-    const calls: string[] = [];
-    const child = {
-      render: jest.fn(() => {
-        calls.push("render");
-        draftValue = modelValue;
-      }),
-      dialog: {
-        showModal: jest.fn(() => calls.push(`show:${draftValue}`)),
-      },
-    };
-    const component = { tupletComponent: child } as any;
-
-    NoteControlsComponent.prototype.showTupletControls.call(component);
-    draftValue = "cancelled draft";
-    modelValue = "5:4";
-    NoteControlsComponent.prototype.showTupletControls.call(component);
-
-    expect(calls).toEqual(["render", "show:3:2", "render", "show:5:4"]);
+  test("tuplet discards cancelled drafts and reads the current selection on reopen", () => {
+    withNotationDialog(({ controller, note }) => {
+      controller.setSelectedBeatsTuplet(3, 2);
+      note.showTupletControls();
+      const component = note.tupletComponent;
+      expect(component.template.normalValue.textContent).toBe("3");
+      expect(component.template.tupletValue.textContent).toBe("2");
+      component.template.normalValue.textContent = "99";
+      component.dialog.requestClose();
+      expect(component.dialog.open).toBe(false);
+      controller.setSelectedBeatsTuplet(5, 4);
+      note.showTupletControls();
+      expect(component.dialog.open).toBe(true);
+      expect(component.template.normalValue.textContent).toBe("5");
+      expect(component.template.tupletValue.textContent).toBe("4");
+    });
   });
 });

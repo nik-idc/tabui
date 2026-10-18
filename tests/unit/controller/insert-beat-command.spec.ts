@@ -1,5 +1,5 @@
 import { InsertBeatCommand } from "../../../src/notation/controller/editor/command/insert-beat-command";
-import { NoteDuration } from "../../../src/notation/model";
+import { GuitarNote, NoteDuration } from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 
 describe("InsertBeatCommand", () => {
@@ -14,6 +14,9 @@ describe("InsertBeatCommand", () => {
     }
     const originalBeatUUIDs = beats.map((beat) => beat.uuid);
     const command = new InsertBeatCommand(voiceBar, 1);
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: bar.masterBar.uuid },
+    ]);
 
     command.execute();
 
@@ -22,9 +25,14 @@ describe("InsertBeatCommand", () => {
     expect(voiceBar.beats[2].uuid).toBe(originalBeatUUIDs[1]);
     expect(voiceBar.beats[1].baseDuration).toBe(NoteDuration.Quarter);
     expect(command.insertBeatResult?.beats[0]).toBe(voiceBar.beats[1]);
-    for (const note of voiceBar.beats[1].notes ?? []) {
-      expect(note.beat).toBe(voiceBar.beats[1]);
+    const insertedBeat = voiceBar.beats[1];
+    expect(insertedBeat.isRest()).toBe(false);
+    expect(insertedBeat.notes).toHaveLength(6);
+    for (const note of insertedBeat.notes ?? []) {
+      expect(note.beat).toBe(insertedBeat);
+      expect((note as GuitarNote).fret).toBeNull();
     }
+    expect(insertedBeat.voiceBar).toBe(voiceBar);
 
     command.undo();
     expect(voiceBar.beats.map((beat) => beat.uuid)).toEqual(originalBeatUUIDs);
@@ -32,8 +40,17 @@ describe("InsertBeatCommand", () => {
     command.redo();
     expect(voiceBar.beats).toHaveLength(3);
     expect(voiceBar.beats[1]).toBe(command.insertBeatResult?.beats[0]);
+    expect(voiceBar.beats.map((v) => v.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Eighth,
+    ]);
+    expect(voiceBar.beats[0]).toBe(beats[0]);
+    expect(voiceBar.beats[2]).toBe(beats[1]);
+    expect(voiceBar.beats[1].notes).toHaveLength(6);
     for (const note of voiceBar.beats[1].notes ?? []) {
       expect(note.beat).toBe(voiceBar.beats[1]);
     }
+    expect(voiceBar.beats[1].voiceBar).toBe(voiceBar);
   });
 });

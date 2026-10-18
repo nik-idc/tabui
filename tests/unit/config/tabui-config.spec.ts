@@ -14,6 +14,7 @@ describe("tabui-config", () => {
     expect(config.assets.baseUrl).toBe("");
     expect(config.assets.variant).toBe("light");
     expect(config.interaction.mode).toBe(TabUIEditorMode.Edit);
+    expect(config.playback).toEqual({ preloadAudio: false, samples: {} });
     expect(config.panels).toEqual({
       score: {
         visible: true,
@@ -76,12 +77,54 @@ describe("tabui-config", () => {
     expect(config.assets.variant).toBe("dark");
     expect(config.theme.cssVars["--tu-background-color"]).toBe("#111111");
     expect(config.theme.cssVars["--tu-font-color"]).toBe("#eeeeee");
+    expect(config.theme.cssVars["--tu-bend-label"]).toBe("#eeeeee");
+    expect(config.theme.cssVars["--tu-primary-color"]).toBe("#ffffff");
     expect(config.theme.cssVars["--tu-font-body"]).toBe("Inter, sans-serif");
     expect(config.theme.cssVars["--tu-font-notation"]).toBe("Bravura, serif");
     expect(config.theme.cssVars["--tu-border-radius"]).toBe("12px");
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#f8fafc");
+    expect(config.theme.cssVars["--tu-bend-curve"]).toBe("#f8fafc");
+    expect(config.theme.cssVars["--tu-bend-handle"]).toBe("#f8fafc");
+    expect(config.theme.cssVars["--tu-notation-text"]).toBe("#000000");
     expect(config.theme.cssVars["--tu-notation-note-background"]).toBe(
       "#020617"
+    );
+  });
+
+  it("keeps caller input and separately resolved configuration independent", () => {
+    const input = {
+      assets: { baseUrl: " /icons/ " },
+      theme: { ui: { colors: { background: "#123456" } } },
+      playback: {
+        samples: {
+          [ElectricGuitarTone.Clean]: { url: "/samples/clean.wav" },
+        },
+      },
+    };
+    const first = resolveTabUIConfig(input);
+    const second = resolveTabUIConfig(input);
+
+    expect(input.assets.baseUrl).toBe(" /icons/ ");
+    expect(first.assets.baseUrl).toBe("/icons");
+    first.assets.baseUrl = "/changed";
+    first.theme.cssVars["--tu-background-color"] = "#abcdef";
+    const firstSample = first.playback.samples[ElectricGuitarTone.Clean];
+    if (firstSample === undefined) {
+      throw new Error("Expected the configured clean sample");
+    }
+    firstSample.url = "/changed.wav";
+
+    expect(second.assets.baseUrl).toBe("/icons");
+    expect(second.theme.cssVars["--tu-background-color"]).toBe("#123456");
+    expect(second.playback.samples[ElectricGuitarTone.Clean]?.url).toBe(
+      "/samples/clean.wav"
+    );
+    expect(input.theme.ui.colors.background).toBe("#123456");
+    expect(input.playback.samples[ElectricGuitarTone.Clean].url).toBe(
+      "/samples/clean.wav"
+    );
+    expect(resolveTabUIConfig().theme.cssVars["--tu-background-color"]).toBe(
+      "#f0f0f0"
     );
   });
 
@@ -125,35 +168,64 @@ describe("tabui-config", () => {
               octave: 3,
             },
           },
+          [ElectricGuitarTone.Overdrive]: {
+            url: "/samples/overdrive.wav",
+          },
         },
       },
     });
 
     expect(config.playback.samples[ElectricGuitarTone.Clean]).toEqual({
       url: "/samples/clean.wav",
-      rootFrequency: 130.8127826502993,
+      rootFrequency: expect.closeTo(130.8128, 4),
+    });
+    expect(config.playback.samples[ElectricGuitarTone.Overdrive]).toEqual({
+      url: "/samples/overdrive.wav",
+      rootFrequency: expect.closeTo(82.4069, 4),
     });
     expect(config.playback.preloadAudio).toBe(true);
   });
 
-  it("rejects invalid responsive layout thresholds", () => {
-    expect(() =>
-      resolveTabUIConfig({
-        layout: {
-          viewOnlyModeWidthThreshold: 900,
-          unrestrictedModeWidthThreshold: 900,
-        },
-      })
-    ).toThrow("layout thresholds");
-  });
+  it.each([
+    [900, 900],
+    [901, 900],
+    [500, -1],
+    [-1, 1000],
+    [NaN, 1000],
+    [500, Infinity],
+  ])(
+    "rejects invalid responsive layout thresholds %p / %p",
+    (viewOnly, unrestricted) => {
+      expect(() =>
+        resolveTabUIConfig({
+          layout: {
+            viewOnlyModeWidthThreshold: viewOnly,
+            unrestrictedModeWidthThreshold: unrestricted,
+          },
+        })
+      ).toThrow(/layout.*threshold/);
+    }
+  );
 
   it("rejects fixed widths that cannot fit view-only notation", () => {
-    expect(() => resolveTabUIConfig({ layout: { width: 499 } })).toThrow(
-      "layout width"
+    for (const width of [499, 0, -1, NaN, Infinity]) {
+      expect(() => resolveTabUIConfig({ layout: { width } })).toThrow(
+        "layout width"
+      );
+    }
+    expect(resolveTabUIConfig({ layout: { width: 500 } }).layout.width).toBe(
+      500
     );
-    expect(() => resolveTabUIConfig({ layout: { width: Infinity } })).toThrow(
-      "layout width"
-    );
+    expect(() =>
+      resolveTabUIConfig({
+        layout: { width: 599, viewOnlyModeWidthThreshold: 600 },
+      })
+    ).toThrow("layout width");
+    expect(
+      resolveTabUIConfig({
+        layout: { width: 600, viewOnlyModeWidthThreshold: 600 },
+      }).layout.width
+    ).toBe(600);
   });
 
   it("rejects an invalid layout mode at the runtime boundary", () => {
@@ -193,10 +265,12 @@ describe("tabui-config", () => {
     "tempoTextSize",
     "durationsHeight",
   ])("rejects a non-positive %s", (name) => {
-    const layout = {};
-    Reflect.set(layout, name, 0);
+    for (const value of [0, -1]) {
+      const layout = {};
+      Reflect.set(layout, name, value);
 
-    expect(() => resolveTabUIConfig({ layout })).toThrow(name);
+      expect(() => resolveTabUIConfig({ layout })).toThrow(name);
+    }
   });
 
   it.each([
@@ -206,10 +280,12 @@ describe("tabui-config", () => {
     "durationsHeight",
     "horizontalPadding",
   ])("rejects a non-finite %s", (name) => {
-    const layout = {};
-    Reflect.set(layout, name, NaN);
+    for (const value of [NaN, Infinity, -Infinity]) {
+      const layout = {};
+      Reflect.set(layout, name, value);
 
-    expect(() => resolveTabUIConfig({ layout })).toThrow(name);
+      expect(() => resolveTabUIConfig({ layout })).toThrow(name);
+    }
   });
 
   it("rejects negative horizontal padding", () => {
@@ -217,6 +293,10 @@ describe("tabui-config", () => {
     Reflect.set(layout, "horizontalPadding", -1);
 
     expect(() => resolveTabUIConfig({ layout })).toThrow("horizontalPadding");
+    expect(
+      resolveTabUIConfig({ layout: { horizontalPadding: 0 } }).layout
+        .horizontalPadding
+    ).toBe(0);
   });
 
   it("rejects an unknown playback sample tone", () => {

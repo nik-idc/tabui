@@ -1,4 +1,4 @@
-import { NoteDuration, Score } from "../../../src/notation/model";
+import { Bar, Guitar, NoteDuration, Score } from "../../../src/notation/model";
 import { createBarWithBeats, createBeat, createScoreGraph } from "./helpers";
 import { fillBar } from "../../../fixtures/score-builder";
 
@@ -28,7 +28,10 @@ describe("Bar model", () => {
       throw Error("Expected voice 1 to exist");
     }
 
+    const originalBeats = [...voiceBar.beats];
+
     expect(() => voiceBar.removeBeat(voiceBar.beats.length)).toThrow(Error);
+    expect(voiceBar.beats).toEqual(originalBeats);
   });
 
   test("removeBeat replaces the last note beat with a default rest", () => {
@@ -40,12 +43,16 @@ describe("Bar model", () => {
       throw Error("Expected voice 1 to exist");
     }
 
+    const originalBeat = voiceBar.beats[0];
     const result = voiceBar.removeBeat(0);
 
-    expect(result.removed.beats).toHaveLength(1);
+    expect(result.removed).toEqual({ index: 0, beats: [originalBeat] });
     expect(result.inserted).toHaveLength(1);
     expect(voiceBar.beats).toHaveLength(1);
+    expect(result.inserted[0]).toEqual({ index: 0, beats: voiceBar.beats });
+    expect(voiceBar.beats[0]).not.toBe(originalBeat);
     expect(voiceBar.beats[0].isRest()).toBe(true);
+    expect(voiceBar.beats[0].baseDuration).toBe(NoteDuration.Quarter);
     expect(voiceBar.isEmpty()).toBe(false);
   });
 
@@ -74,12 +81,15 @@ describe("Bar model", () => {
       throw Error("Expected voice 1 to exist");
     }
     const inputBeat = createBeat(voiceBar, NoteDuration.Eighth);
+    const originalBeat = voiceBar.beats[0];
 
     const result = voiceBar.appendBeats([inputBeat]);
 
     expect(result.index).toBe(1);
     expect(voiceBar.beats).toHaveLength(2);
     expect(result.beats[0]).toBe(voiceBar.beats[1]);
+    expect(voiceBar.beats[0]).toBe(originalBeat);
+    expect(voiceBar.beats[1]).not.toBe(inputBeat);
     expect(voiceBar.beats[1].baseDuration).toBe(NoteDuration.Eighth);
   });
 
@@ -92,19 +102,22 @@ describe("Bar model", () => {
       throw Error("Expected voice 1 to exist");
     }
     const inputBeat = createBeat(voiceBar, NoteDuration.Eighth);
+    const originalBeat = voiceBar.beats[0];
 
     const result = voiceBar.prependBeats([inputBeat]);
 
     expect(result.index).toBe(0);
     expect(voiceBar.beats).toHaveLength(2);
     expect(result.beats[0]).toBe(voiceBar.beats[0]);
+    expect(voiceBar.beats[1]).toBe(originalBeat);
+    expect(voiceBar.beats[0]).not.toBe(inputBeat);
     expect(voiceBar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
   });
 
   test("rebuildTiming computes bar and beat ticks", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Eighth, dots: 1 },
+      { baseDuration: NoteDuration.Eighth },
       { baseDuration: NoteDuration.Sixteenth },
     ]);
 
@@ -112,18 +125,22 @@ describe("Bar model", () => {
     if (voiceBar === null) {
       throw Error("Expected voice 1 to exist");
     }
+    beats[1].dots = 1;
     voiceBar.rebuildTiming();
 
     expect(voiceBar.tickResolution).toBeGreaterThan(0);
     expect(voiceBar.barTicks).toBe(voiceBar.tickResolution);
-    expect(voiceBar.actualTicks).toBe(
-      beats[0].fullDurationTicks +
-        beats[1].fullDurationTicks +
-        beats[2].fullDurationTicks
+    // A quarter, dotted eighth, and sixteenth occupy half of a 4/4 bar.
+    expect(voiceBar.actualTicks / voiceBar.tickResolution).toBe(1 / 2);
+    expect(
+      beats.map((beat) => beat.fullDurationTicks / voiceBar.tickResolution)
+    ).toEqual([1 / 4, 3 / 16, 1 / 16]);
+    expect(
+      beats.map((beat) => beat.startTick / voiceBar.tickResolution)
+    ).toEqual([0, 1 / 4, 7 / 16]);
+    expect(beats.map((beat) => beat.endTick / voiceBar.tickResolution)).toEqual(
+      [1 / 4, 7 / 16, 1 / 2]
     );
-    expect(beats[0].startTick).toBe(0);
-    expect(beats[1].startTick).toBe(beats[0].endTick);
-    expect(beats[2].startTick).toBe(beats[1].endTick);
   });
 
   test("checkDurationsFit and beatPlayable use tick-based bar bounds", () => {
@@ -140,28 +157,33 @@ describe("Bar model", () => {
     expect(voiceBar.checkDurationsFit()).toBe(false);
     expect(voiceBar.beatPlayable(beats[0])).toBe(true);
     expect(voiceBar.beatPlayable(beats[1])).toBe(false);
+
+    voiceBar.removeBeat(1);
+
+    expect(voiceBar.checkDurationsFit()).toBe(true);
+    expect(voiceBar.beatPlayable(beats[0])).toBe(true);
   });
 
   test("fillBar rebuilds timing for reused default-rest bars", () => {
-    const { bar } = createScoreGraph({
-      tempo: 120,
-      beatsCount: 1,
-      duration: NoteDuration.Whole,
-      isRepeatStart: false,
-      isRepeatEnd: false,
-      repeatCount: null,
-    });
+    const score = new Score();
+    const bar = score.tracks[0].staves[0].bars[0] as Bar<Guitar>;
+    const voiceBar = bar.getVoiceBar(1);
+    if (voiceBar === null) {
+      throw Error("Expected voice 1 to exist");
+    }
+    const originalBeat = voiceBar.beats[0];
+    expect(originalBeat.isRest()).toBe(true);
+    expect(originalBeat.baseDuration).toBe(NoteDuration.Quarter);
 
     fillBar(bar, {
       beatsCount: 1,
       beatsDuration: NoteDuration.Whole,
     });
 
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 to exist");
-    }
-
+    expect(voiceBar.beats).toHaveLength(1);
+    expect(voiceBar.beats[0]).not.toBe(originalBeat);
+    expect(voiceBar.beats[0].isRest()).toBe(false);
+    expect(voiceBar.beats[0].baseDuration).toBe(NoteDuration.Whole);
     expect(bar.checkDurationsFit()).toBe(true);
     expect(voiceBar.actualTicks).toBe(voiceBar.barTicks);
   });

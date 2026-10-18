@@ -1,89 +1,68 @@
-import { BendControlsDefaultCallbacks } from "../../../src/ui/side-controls/technique-controls/bend-controls/bend-controls-callbacks";
-import { BendType, GuitarTechniqueType } from "../../../src/notation/model";
+/** @jest-environment jsdom */
+
 import {
-  asNotationComponent,
-  createNotationComponentMock,
-  dispatchClick,
-  FakeElement,
-  makeButton,
-  makeDialogFixture,
-} from "./helpers";
-
-function createBendHarness() {
-  const { dialog, dialogContainer } = makeDialogFixture();
-  const dialogContent = new FakeElement();
-  dialogContainer.appendChild(dialogContent);
-  const bendTypesButtons = {
-    [BendType.Bend]: makeButton(),
-    [BendType.BendAndRelease]: makeButton(),
-    [BendType.Hold]: makeButton(),
-    [BendType.Prebend]: makeButton(),
-    [BendType.PrebendAndRelease]: makeButton(),
-    [BendType.PrebendBend]: makeButton(),
-    [BendType.Release]: makeButton(),
-  };
-  const confirmButton = makeButton();
-  const cancelButton = makeButton();
-  const removeButton = makeButton();
-  const bendSelectorManager = {
-    changeBendType: jest.fn(),
-    getCurrentTechnique: jest.fn(() => ({
-      type: BendType.Bend,
-      bendPitch: 1,
-      bendDuration: 1,
-    })),
-    dispose: jest.fn(),
-  };
-  const component = {
-    dialog,
-    template: {
-      dialogContainer,
-      dialogContent,
-      bendTypesButtons,
-      confirmButton,
-      cancelButton,
-      removeButton,
-    },
-    bendSelectorManager,
-    templateRenderer: {
-      setSelectedBendType: jest.fn(),
-    },
-  } as any;
-  const notationComponent = createNotationComponentMock();
-  const renderFunc = jest.fn();
-  const captureKeyboard = jest.fn();
-  const freeKeyboard = jest.fn();
-  const callbacks = new BendControlsDefaultCallbacks(
-    component,
-    asNotationComponent(notationComponent),
-    renderFunc,
-    captureKeyboard,
-    freeKeyboard
-  );
-
-  return {
-    callbacks,
-    component,
-    notationComponent,
-    renderFunc,
-    freeKeyboard,
-    captureKeyboard,
-    bendSelectorManager,
-  };
-}
+  BendTechniqueOptions,
+  BendType,
+  GuitarTechniqueType,
+} from "../../../src/notation/model";
+import { createBendControlsHarness } from "./bend-controls-test-helpers";
 
 describe("BendControlsDefaultCallbacks", () => {
-  test("bend type buttons map to bend selector manager", () => {
-    const { callbacks, component, bendSelectorManager } = createBendHarness();
+  let harness: ReturnType<typeof createBendControlsHarness>;
+  beforeEach(() => {
+    harness = createBendControlsHarness();
+  });
+  afterEach(() => harness.dispose());
 
-    callbacks.onBendTypeClicked(BendType.PrebendAndRelease);
+  test("bend type buttons select and commit their model type", () => {
+    const { component, callbacks, selectedNote, controller } = harness;
+    callbacks.bind();
 
-    expect(bendSelectorManager.changeBendType).toHaveBeenCalledWith(
-      BendType.PrebendAndRelease
+    for (const type of [
+      BendType.Bend,
+      BendType.BendAndRelease,
+      BendType.Prebend,
+      BendType.PrebendAndRelease,
+      BendType.PrebendBend,
+    ]) {
+      harness.open();
+      component.template.bendTypesButtons[type].click();
+      expect(
+        component.template.bendTypesButtons[type].getAttribute("aria-pressed")
+      ).toBe("true");
+      component.template.dialogContent.requestSubmit();
+      expect(
+        selectedNote().techniques.find(
+          (t) => t.type === GuitarTechniqueType.Bend
+        )?.bendOptions?.type
+      ).toBe(type);
+      expect(component.dialog.open).toBe(false);
+      controller.undo();
+      expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
+    }
+
+    controller.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 1,
+        bendDuration: 0.75,
+      })
     );
-    expect(component.templateRenderer.setSelectedBendType).toHaveBeenCalledWith(
-      BendType.PrebendAndRelease
-    );
+    controller.insertBeatAfterSelected();
+    controller.setSelectedNoteFret(5);
+    controller.setTechnique(GuitarTechniqueType.LetRing);
+    for (const type of [BendType.Hold, BendType.Release]) {
+      harness.open();
+      component.template.bendTypesButtons[type].click();
+      component.template.dialogContent.requestSubmit();
+      expect(
+        selectedNote().techniques.find(
+          (t) => t.type === GuitarTechniqueType.Bend
+        )?.bendOptions?.type
+      ).toBe(type);
+      controller.undo();
+    }
   });
 
   test.each([
@@ -95,135 +74,164 @@ describe("BendControlsDefaultCallbacks", () => {
     BendType.PrebendAndRelease,
     BendType.PrebendBend,
   ])("disabled conditional bend type %s cannot be selected", (type) => {
-    const { callbacks, component, bendSelectorManager } = createBendHarness();
-    component.template.bendTypesButtons[type].disabled = true;
+    const { controller, component, callbacks } = harness;
+    if (type === BendType.Bend || type === BendType.BendAndRelease) {
+      controller.setTechnique(
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 3,
+          bendDuration: 0.75,
+        })
+      );
+      controller.insertBeatAfterSelected();
+      controller.setSelectedNoteFret(5);
+      controller.setTechnique(GuitarTechniqueType.LetRing);
+    } else if (type !== BendType.Hold && type !== BendType.Release) {
+      controller.setTechnique(GuitarTechniqueType.LetRing);
+    }
+    callbacks.bind();
+    harness.open();
+    const graph = component.template.bendSelectorGraphSVG;
+    const points = () =>
+      Array.from(graph.querySelectorAll("circle"), (p) => [
+        p.getAttribute("cx"),
+        p.getAttribute("cy"),
+      ]);
+    const before = points();
+    expect(component.template.bendTypesButtons[type].disabled).toBe(true);
 
+    // Exercise the public callback guard as well as native disabled-button behavior.
     callbacks.onBendTypeClicked(type);
+    component.template.bendTypesButtons[type].click();
 
-    expect(bendSelectorManager.changeBendType).not.toHaveBeenCalled();
+    expect(points()).toEqual(before);
+    expect(component.dialog.open).toBe(true);
   });
 
-  test("all rendered bend type buttons are bound to their model type", () => {
-    const { callbacks, component, bendSelectorManager } = createBendHarness();
-    callbacks.bind();
-
-    dispatchClick(component.template.bendTypesButtons[BendType.PrebendBend]);
-    dispatchClick(component.template.bendTypesButtons[BendType.Hold]);
-    dispatchClick(component.template.bendTypesButtons[BendType.Release]);
-
-    expect(bendSelectorManager.changeBendType).toHaveBeenNthCalledWith(
-      1,
-      BendType.PrebendBend
-    );
-    expect(bendSelectorManager.changeBendType).toHaveBeenNthCalledWith(
-      2,
-      BendType.Hold
-    );
-    expect(bendSelectorManager.changeBendType).toHaveBeenNthCalledWith(
-      3,
-      BendType.Release
-    );
-  });
-
-  test("confirm commits bend technique and lifecycle wiring is idempotent", () => {
-    const {
-      callbacks,
-      component,
-      notationComponent,
-      renderFunc,
-      freeKeyboard,
-    } = createBendHarness();
-    const setTechnique = notationComponent.trackController.setTechnique;
-
+  test("confirm commits once after repeated binding and unbind removes listeners", () => {
+    const { callbacks, component, controller, selectedNote } = harness;
     callbacks.bind();
     callbacks.bind();
-    const techniqueCallsBeforeConfirm = setTechnique.mock.calls.length;
-    const renderCallsBeforeConfirm = renderFunc.mock.calls.length;
-    const freeKeyboardCallsBeforeConfirm = freeKeyboard.mock.calls.length;
-    dispatchClick(component.template.bendTypesButtons[BendType.BendAndRelease]);
-    component.template.dialogContainer.dispatch("focusin");
-    component.template.dialogContent.dispatch("submit");
-    component.template.dialogContainer.dispatch("close");
-
-    expect(setTechnique).toHaveBeenCalledTimes(techniqueCallsBeforeConfirm + 1);
-    expect(setTechnique).toHaveBeenCalledWith(
-      GuitarTechniqueType.Bend,
-      expect.anything()
-    );
-    expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeConfirm + 1);
-    expect(component.dialog.close).toHaveBeenCalledTimes(1);
-    expect(freeKeyboard).toHaveBeenCalledTimes(
-      freeKeyboardCallsBeforeConfirm + 1
-    );
-
-    const techniqueCallsBeforeUnbind = setTechnique.mock.calls.length;
-    const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
-    callbacks.unbind();
-    component.template.dialogContent.dispatch("submit");
-    expect(setTechnique).toHaveBeenCalledTimes(techniqueCallsBeforeUnbind);
-    expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
-  });
-
-  test("invalid bend data does not mutate or close the dialog", () => {
-    const { callbacks, component, notationComponent, renderFunc } =
-      createBendHarness();
-    component.bendSelectorManager.getCurrentTechnique.mockReturnValue({
-      type: BendType.BendAndRelease,
-      bendPitch: 1,
-    });
-
-    callbacks.onConfirmClicked();
+    harness.open();
+    component.template.bendTypesButtons[BendType.BendAndRelease].click();
+    component.template.dialogContent.requestSubmit();
 
     expect(
-      notationComponent.trackController.setTechnique
-    ).not.toHaveBeenCalled();
-    expect(renderFunc).not.toHaveBeenCalled();
-    expect(component.dialog.close).not.toHaveBeenCalled();
+      selectedNote().techniques.find((t) => t.type === GuitarTechniqueType.Bend)
+        ?.bendOptions
+    ).toMatchObject({
+      type: BendType.BendAndRelease,
+      bendPitch: 1,
+      releasePitch: 0,
+      bendDuration: 0.75,
+    });
+    expect(component.dialog.open).toBe(false);
+    controller.undo();
+    expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
+    controller.redo();
+    expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
+    controller.undo();
+    controller.undo();
+    expect(controller.selectionAsBeats[0].notes).toBeNull();
+
+    controller.setSelectedNoteFret(5);
+    controller.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.BendAndRelease,
+        bendPitch: 1,
+        releasePitch: 0,
+        bendDuration: 0.75,
+      })
+    );
+
+    harness.open();
+    callbacks.unbind();
+    component.template.removeButton.click();
+    component.template.cancelButton.click();
+    component.template.dialogContent.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true })
+    );
+    component.template.bendTypesButtons[BendType.Prebend].click();
+    expect(
+      component.template.bendTypesButtons[BendType.BendAndRelease].getAttribute(
+        "aria-pressed"
+      )
+    ).toBe("true");
+    expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
+    expect(component.dialog.open).toBe(true);
   });
 
-  test("remove uses the undoable controller operation", () => {
-    const { callbacks, component, notationComponent, renderFunc } =
-      createBendHarness();
-
-    callbacks.onRemoveClicked();
-
-    expect(notationComponent.trackController.setTechnique).toHaveBeenCalledWith(
-      GuitarTechniqueType.Bend
+  test("remove closes the dialog and supports undo and redo", () => {
+    const { callbacks, component, controller, selectedNote } = harness;
+    controller.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({ type: BendType.Prebend, prebendPitch: 0.5 })
     );
-    expect(renderFunc).toHaveBeenCalledTimes(1);
-    expect(component.dialog.close).toHaveBeenCalledTimes(1);
+    callbacks.bind();
+    harness.open();
+    expect(component.template.removeButton.disabled).toBe(false);
+    component.template.removeButton.click();
+
+    expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
+    expect(component.dialog.open).toBe(false);
+    controller.undo();
+    expect(
+      selectedNote().techniques.find((t) => t.type === GuitarTechniqueType.Bend)
+        ?.bendOptions
+    ).toMatchObject({ type: BendType.Prebend, prebendPitch: 0.5 });
+    controller.redo();
+    expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
   });
 
   test("remove is ignored when the selected note has no bend", () => {
-    const { callbacks, component, notationComponent } = createBendHarness();
-    component.template.removeButton.disabled = true;
-
+    const { callbacks, component, controller, selectedNote } = harness;
+    callbacks.bind();
+    harness.open();
+    expect(component.template.removeButton.disabled).toBe(true);
     callbacks.onRemoveClicked();
+    component.template.removeButton.click();
 
-    expect(
-      notationComponent.trackController.setTechnique
-    ).not.toHaveBeenCalled();
-    expect(component.dialog.close).not.toHaveBeenCalled();
+    expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
+    expect(component.dialog.open).toBe(true);
+    controller.undo();
+    expect(controller.selectionAsBeats[0].notes).toBeNull();
   });
 
-  test("close cleanup captures and releases keyboard exactly once", () => {
-    const {
-      callbacks,
-      component,
-      captureKeyboard,
-      freeKeyboard,
-      bendSelectorManager,
-    } = createBendHarness();
+  test("cancel releases keyboard ownership and detaches the old graph controls", () => {
+    const { callbacks, component, keyboard, selectedNote } = harness;
     callbacks.bind();
+    harness.open();
+    const point =
+      component.template.bendSelectorGraphSVG.querySelector<SVGCircleElement>(
+        'circle[aria-label="Bend point"]'
+      );
+    if (point === null) throw Error("Expected bend point");
+    point.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    point.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    const before = point.getAttribute("cy");
+    component.template.cancelButton.click();
+    component.dialog.close();
 
-    component.template.dialogContainer.dispatch("focusin");
-    component.template.dialogContainer.dispatch("focusin");
-    callbacks.onCancelClicked();
-    component.template.dialogContainer.dispatch("close");
-    component.template.dialogContainer.dispatch("close");
+    point.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
+    expect(point.getAttribute("cy")).toBe(before);
+    expect(component.dialog.open).toBe(false);
+    expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
+    expect(keyboard).toEqual({ captures: 1, releases: 1 });
 
-    expect(captureKeyboard).toHaveBeenCalledTimes(1);
-    expect(freeKeyboard).toHaveBeenCalledTimes(1);
-    expect(bendSelectorManager.dispose).toHaveBeenCalledTimes(3);
+    harness.open();
+    const reopenedPoint =
+      component.template.bendSelectorGraphSVG.querySelector<SVGCircleElement>(
+        'circle[aria-label="Bend point"]'
+      );
+    if (reopenedPoint === null) throw Error("Expected reopened bend point");
+    reopenedPoint.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    reopenedPoint.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowUp" })
+    );
+    expect(reopenedPoint.getAttribute("cy")).toBe("175");
+    component.template.cancelButton.click();
+    expect(keyboard).toEqual({ captures: 2, releases: 2 });
   });
 });

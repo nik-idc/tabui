@@ -1,62 +1,86 @@
-import { SVGBarRenderer } from "../../../src/notation/render/svg/svg-bar-renderer";
+/** @jest-environment jsdom */
 
-test("bar callbacks route each target using the current element and detach on reuse", () => {
-  class Target {}
-  const previousElement = globalThis.Element;
-  const previousDocument = globalThis.document;
-  const listeners = new Map<string, EventListener>();
-  const group = {
-    setAttribute: jest.fn(),
-    addEventListener: (type: string, listener: EventListener) =>
-      listeners.set(type, listener),
-    removeEventListener: (type: string) => listeners.delete(type),
+import { SVGBarRenderer } from "../../../src/notation/render/svg/svg-bar-renderer";
+import { TrackController } from "../../../src/notation/controller/track-controller";
+import { BarRepeatStatus, NoteDuration } from "../../../src/notation/model";
+import { createBarWithBeats } from "../model/helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
+import { required } from "../required";
+
+test("bar callbacks route rendered targets using the current element and detach on reuse", () => {
+  const { track, beats } = createBarWithBeats([
+    { baseDuration: NoteDuration.Quarter },
+  ]);
+  const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+  controller.setSelectedBarRepeatStatus({
+    status: BarRepeatStatus.Start,
+    enabled: true,
+  });
+  controller.setSelectedBarRepeatStatus({
+    status: BarRepeatStatus.End,
+    enabled: true,
+    repeatCount: 3,
+  });
+  controller.trackElement.update();
+  const original = required(
+    controller.trackElement.getBeatElement(beats[0])
+  ).barElement;
+  const renderer = new SVGBarRenderer(controller, original, {
+    baseUrl: "/assets",
+    variant: "light",
+  });
+  renderer.render();
+  const group = renderer.ensureContainerGroup();
+  document.body.appendChild(group);
+  const oldEvents: string[] = [];
+  const events: Array<{
+    event: MouseEvent;
+    element: typeof original;
+    kind: string;
+  }> = [];
+  renderer.attachMouseEvent("click", () => oldEvents.push("click"));
+  renderer.attachMouseEvent("click", (event, element, kind) =>
+    events.push({ event, element, kind })
+  );
+  const nextController = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+  nextController.trackElement.update();
+  const current = required(
+    nextController.trackElement.getBeatElement(beats[0])
+  ).barElement;
+  expect(current).not.toBe(original);
+  renderer.updateElementReference(current);
+  const targets = [
+    [".tu-repeat-start", "repeatStart"],
+    ['[id^="bar-rep-end-"]', "repeatEnd"],
+    ['[id^="bar-rep-count-"]', "repeatEnd"],
+    ['[id^="bar-sig-"]', "timeSignature"],
+  ];
+  const click = (selector: string) => {
+    const event = new MouseEvent("click", { bubbles: true });
+    required(group.querySelector(selector)).dispatchEvent(event);
+    return event;
   };
-  (globalThis as any).Element = Target;
-  (globalThis as any).document = { createElementNS: () => group };
-  try {
-    const renderer = new SVGBarRenderer(
-      {} as any,
-      { bar: { uuid: 1 } } as any,
-      {} as any
-    );
-    const start = new Target();
-    const end = new Target();
-    const count = new Target();
-    const signature = new Target();
-    (renderer as any)._repeatStartSVG = start;
-    (renderer as any)._repeatEndGroupSVG = {
-      contains: (target: unknown) => target === end || target === count,
-    };
-    (renderer as any)._timeSigGroupSVG = {
-      contains: (target: unknown) => target === signature,
-    };
-    const oldHandler = jest.fn();
-    const handler = jest.fn();
-    renderer.attachMouseEvent("click", oldHandler);
-    renderer.attachMouseEvent("click", handler);
-    const current = { bar: { uuid: 1 } } as any;
-    renderer.updateElementReference(current);
-    for (const [target, kind] of [
-      [start, "repeatStart"],
-      [end, "repeatEnd"],
-      [count, "repeatEnd"],
-      [signature, "timeSignature"],
-    ]) {
-      const event = { target } as unknown as Event;
-      const listener = listeners.get("click");
-      if (listener === undefined) throw Error("Expected click listener");
-      listener(event);
-      expect(handler).toHaveBeenLastCalledWith(event, current, kind);
-    }
-    expect(oldHandler).not.toHaveBeenCalled();
-    renderer.detachContainerGroup();
-    expect(listeners.size).toBe(0);
-    renderer.attachMouseEvent("click", handler);
-    expect(listeners.size).toBe(1);
-    renderer.detachMouseEvent("click");
-    expect(listeners.size).toBe(0);
-  } finally {
-    (globalThis as any).Element = previousElement;
-    (globalThis as any).document = previousDocument;
+  for (const [selector, kind] of targets) {
+    const event = click(selector);
+    const received = required(events.at(-1));
+    expect(received.event).toBe(event);
+    expect(received.element).toBe(current);
+    expect(received.kind).toBe(kind);
   }
+  expect(events).toHaveLength(4);
+  expect(oldEvents).toEqual([]);
+  click('[id^="bar-border-"]');
+  expect(events).toHaveLength(4);
+  renderer.detachContainerGroup();
+  expect(group.isConnected).toBe(false);
+  click(".tu-repeat-start");
+  expect(events).toHaveLength(4);
+  renderer.attachMouseEvent("click", (event, element, kind) =>
+    events.push({ event, element, kind })
+  );
+  click(".tu-repeat-start");
+  expect(events).toHaveLength(5);
+  renderer.detachMouseEvent("click");
+  click(".tu-repeat-start");
+  expect(events).toHaveLength(5);
 });

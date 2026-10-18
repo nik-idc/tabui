@@ -1,157 +1,151 @@
+/** @jest-environment jsdom */
+
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
+import { NotationComponent } from "../../../src/notation/notation-component";
+import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
+import { MeasureControlsComponent } from "../../../src/ui/side-controls/measure-controls/measure-controls-component";
 import { MeasureControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/measure-controls-callbacks";
-import { TempoControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/tempo-controls/tempo-controls-callbacks";
-import { TimeSigControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/time-sig-controls/time-sig-controls-callbacks";
-import { RepeatCountControlsDefaultCallbacks } from "../../../src/ui/side-controls/measure-controls/repeat-count-controls/repeat-count-controls-callbacks";
-import { BarRepeatStatus } from "../../../src/notation/model";
-import {
-  asNotationComponent,
-  createNotationComponentMock,
-  dispatchClick,
-  makeButton,
-} from "./helpers";
+import { createTestLayoutDimensions } from "../controller/helpers";
+import { createScoreGraph } from "../model/helpers";
+
+function createControls() {
+  const { score, masterBar } = createScoreGraph();
+  const root = document.createElement("div");
+  const notationHost = document.createElement("div");
+  const controlsHost = document.createElement("div");
+  const dialogHost = document.createElement("div");
+  root.append(notationHost, controlsHost, dialogHost);
+  document.body.append(root);
+  const notation = new NotationComponent(
+    notationHost,
+    score,
+    resolveTabUIConfig(),
+    createTestLayoutDimensions()
+  );
+  const controls = new MeasureControlsComponent(
+    controlsHost,
+    new DialogEnforcer(dialogHost, () => {}),
+    notation,
+    () => {}
+  );
+  let keyboardCaptured = false;
+  const callbacks = new MeasureControlsDefaultCallbacks(
+    controls,
+    notation,
+    () => controls.render(),
+    () => {
+      keyboardCaptured = true;
+    },
+    () => {
+      keyboardCaptured = false;
+    }
+  );
+  controls.render();
+
+  return {
+    score,
+    masterBar,
+    controls,
+    callbacks,
+    controller: notation.trackController,
+    get keyboardCaptured() {
+      return keyboardCaptured;
+    },
+    dispose() {
+      controls.tempoControlsComponent.dialog.close();
+      controls.timeSigControlsComponent.dialog.close();
+      controls.repeatCountControlsComponent.dialog.close();
+      callbacks.unbind();
+      notation.dispose();
+      root.remove();
+    },
+  };
+}
 
 describe("MeasureControlsDefaultCallbacks", () => {
-  test("top-level actions dispatch correctly and unbind stops events", () => {
-    const tempoBindSpy = jest
-      .spyOn(TempoControlsDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const tempoUnbindSpy = jest
-      .spyOn(TempoControlsDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
-    const timeBindSpy = jest
-      .spyOn(TimeSigControlsDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const timeUnbindSpy = jest
-      .spyOn(TimeSigControlsDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
-    const repeatBindSpy = jest
-      .spyOn(RepeatCountControlsDefaultCallbacks.prototype, "bind")
-      .mockImplementation(() => {});
-    const repeatUnbindSpy = jest
-      .spyOn(RepeatCountControlsDefaultCallbacks.prototype, "unbind")
-      .mockImplementation(() => {});
-    const notationComponent = createNotationComponentMock();
-    const renderFunc = jest.fn();
-    const captureKeyboard = jest.fn();
-    const component = {
-      template: {
-        tempoButton: makeButton(),
-        timeSignatureButton: makeButton(),
-        repeatStartButton: makeButton(),
-        repeatEndButton: makeButton(),
-        insertBarBeforeButton: makeButton(),
-        insertBarAfterButton: makeButton(),
-        removeBarButton: makeButton(),
-      },
-      tempoControlsComponent: {},
-      timeSigControlsComponent: {},
-      repeatCountControlsComponent: {},
-      showTempoControls: jest.fn(),
-      showTimeSigControls: jest.fn(),
-      showRepeatCountControls: jest.fn(),
-    } as any;
-    const callbacks = new MeasureControlsDefaultCallbacks(
-      component,
-      asNotationComponent(notationComponent),
-      renderFunc,
-      captureKeyboard,
-      jest.fn()
-    );
-
-    callbacks.bind();
-    callbacks.bind();
-
-    dispatchClick(component.template.tempoButton);
-    dispatchClick(component.template.timeSignatureButton);
-    dispatchClick(component.template.repeatStartButton);
-    dispatchClick(component.template.repeatEndButton);
-    dispatchClick(component.template.insertBarBeforeButton);
-    dispatchClick(component.template.insertBarAfterButton);
-    dispatchClick(component.template.removeBarButton);
-
-    expect(captureKeyboard).toHaveBeenCalledTimes(3);
-    expect(component.showTempoControls).toHaveBeenCalledTimes(1);
-    expect(component.showTimeSigControls).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.setSelectedBarRepeatStatus
-    ).toHaveBeenNthCalledWith(1, {
-      status: BarRepeatStatus.Start,
-      enabled: true,
-    });
-    expect(component.showRepeatCountControls).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.insertBarBeforeSelected
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.insertBarAfterSelected
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      notationComponent.trackController.removeSelectedBar
-    ).toHaveBeenCalledTimes(1);
-    expect(renderFunc).toHaveBeenCalledTimes(4);
-    expect(tempoBindSpy).toHaveBeenCalledTimes(2);
-    expect(timeBindSpy).toHaveBeenCalledTimes(2);
-    expect(repeatBindSpy).toHaveBeenCalledTimes(2);
-
-    const renderCallsBeforeUnbind = renderFunc.mock.calls.length;
-    const repeatStatusCallsBeforeUnbind =
-      notationComponent.trackController.setSelectedBarRepeatStatus.mock.calls
-        .length;
-    callbacks.unbind();
-    dispatchClick(component.template.repeatStartButton);
-    expect(renderFunc).toHaveBeenCalledTimes(renderCallsBeforeUnbind);
-    expect(
-      notationComponent.trackController.setSelectedBarRepeatStatus
-    ).toHaveBeenCalledTimes(repeatStatusCallsBeforeUnbind);
-    expect(tempoUnbindSpy).toHaveBeenCalledTimes(1);
-    expect(timeUnbindSpy).toHaveBeenCalledTimes(1);
-    expect(repeatUnbindSpy).toHaveBeenCalledTimes(1);
-
-    tempoBindSpy.mockRestore();
-    tempoUnbindSpy.mockRestore();
-    timeBindSpy.mockRestore();
-    timeUnbindSpy.mockRestore();
-    repeatBindSpy.mockRestore();
-    repeatUnbindSpy.mockRestore();
+  let fixture: ReturnType<typeof createControls>;
+  beforeEach(() => {
+    fixture = createControls();
+  });
+  afterEach(() => {
+    fixture.dispose();
   });
 
-  test("repeat start click explicitly clears an existing boundary", () => {
-    const notationComponent = createNotationComponentMock();
-    notationComponent.trackController.selectionCursor = {
-      bar: { masterBar: { isRepeatStart: true } },
-    };
-    const component = {
-      template: {
-        tempoButton: makeButton(),
-        timeSignatureButton: makeButton(),
-        repeatStartButton: makeButton(),
-        repeatEndButton: makeButton(),
-        insertBarBeforeButton: makeButton(),
-        insertBarAfterButton: makeButton(),
-        removeBarButton: makeButton(),
-      },
-      tempoControlsComponent: {},
-      timeSigControlsComponent: {},
-      repeatCountControlsComponent: {},
-      showTempoControls: jest.fn(),
-      showTimeSigControls: jest.fn(),
-      showRepeatCountControls: jest.fn(),
-    } as any;
-    const callbacks = new MeasureControlsDefaultCallbacks(
-      component,
-      asNotationComponent(notationComponent),
-      jest.fn(),
-      jest.fn(),
-      jest.fn()
-    );
+  test("top-level controls open dialogs, edit bars once, and stop after unbind", () => {
+    const { callbacks, controls, score, masterBar, controller } = fixture;
+    callbacks.bind();
+    callbacks.bind();
 
-    callbacks.onRepeatStartClicked();
+    controls.template.tempoButton.click();
+    expect(controls.tempoControlsComponent.dialog.open).toBe(true);
+    expect(fixture.keyboardCaptured).toBe(true);
+    controls.tempoControlsComponent.template.cancelButton.click();
+    expect(controls.tempoControlsComponent.dialog.open).toBe(false);
+    expect(fixture.keyboardCaptured).toBe(false);
 
-    expect(
-      notationComponent.trackController.setSelectedBarRepeatStatus
-    ).toHaveBeenCalledWith({
-      status: BarRepeatStatus.Start,
-      enabled: false,
-    });
+    controls.template.timeSignatureButton.click();
+    expect(controls.timeSigControlsComponent.dialog.open).toBe(true);
+    expect(fixture.keyboardCaptured).toBe(true);
+    controls.timeSigControlsComponent.template.cancelButton.click();
+    expect(controls.timeSigControlsComponent.dialog.open).toBe(false);
+    expect(fixture.keyboardCaptured).toBe(false);
+
+    controls.template.repeatEndButton.click();
+    expect(controls.repeatCountControlsComponent.dialog.open).toBe(true);
+    expect(fixture.keyboardCaptured).toBe(true);
+    controls.repeatCountControlsComponent.template.cancelButton.click();
+    expect(controls.repeatCountControlsComponent.dialog.open).toBe(false);
+    expect(fixture.keyboardCaptured).toBe(false);
+
+    controls.template.repeatStartButton.click();
+    expect(masterBar.isRepeatStart).toBe(true);
+    controller.undo();
+    expect(masterBar.isRepeatStart).toBe(false);
+
+    controls.template.insertBarBeforeButton.click();
+    expect(score.masterBars).toHaveLength(2);
+    const before = score.masterBars[0];
+    expect(score.masterBars[1]).toBe(masterBar);
+    expect(controller.selectionCursor?.bar.masterBar).toBe(before);
+    controls.template.insertBarAfterButton.click();
+    expect(score.masterBars).toHaveLength(3);
+    const after = score.masterBars[1];
+    expect(score.masterBars[0]).toBe(before);
+    expect(score.masterBars[2]).toBe(masterBar);
+    expect(controller.selectionCursor?.bar.masterBar).toBe(after);
+    controls.template.removeBarButton.click();
+    expect(score.masterBars).toEqual([before, masterBar]);
+    controller.undo();
+    expect(score.masterBars).toEqual([before, after, masterBar]);
+
+    callbacks.unbind();
+    const selected = controller.selectionCursor?.bar.masterBar;
+    controls.template.repeatStartButton.click();
+    controls.template.insertBarBeforeButton.click();
+    controls.template.insertBarAfterButton.click();
+    controls.template.removeBarButton.click();
+    controls.template.repeatEndButton.click();
+    controls.template.tempoButton.click();
+    controls.template.timeSignatureButton.click();
+    expect(selected?.isRepeatStart).toBe(false);
+    expect(score.masterBars).toEqual([before, after, masterBar]);
+    expect(controls.repeatCountControlsComponent.dialog.open).toBe(false);
+    expect(controls.tempoControlsComponent.dialog.open).toBe(false);
+    expect(controls.timeSigControlsComponent.dialog.open).toBe(false);
+  });
+
+  test("repeat start click clears an existing boundary and undo restores it", () => {
+    const { callbacks, controls, controller, masterBar } = fixture;
+    masterBar.isRepeatStart = true;
+    controls.render();
+    callbacks.bind();
+
+    controls.template.repeatStartButton.click();
+
+    expect(masterBar.isRepeatStart).toBe(false);
+    controller.undo();
+    expect(masterBar.isRepeatStart).toBe(true);
+    controller.redo();
+    expect(masterBar.isRepeatStart).toBe(false);
   });
 });

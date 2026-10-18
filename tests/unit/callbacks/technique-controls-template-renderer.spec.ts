@@ -1,111 +1,83 @@
-import {
-  GuitarNote,
-  GuitarTechniqueType,
-  NoteDuration,
-} from "../../../src/notation/model";
+/** @jest-environment jsdom */
+
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
+import { NotationComponent } from "../../../src/notation/notation-component";
+import { SelectedMoveDirection } from "../../../src/notation/controller";
+import { GuitarNote, NoteDuration } from "../../../src/notation/model";
+import { TechniqueControlsTemplate } from "../../../src/ui/side-controls/technique-controls/technique-controls-template";
 import { TechniqueControlsTemplateRenderer } from "../../../src/ui/side-controls/technique-controls/technique-controls-template-renderer";
+import { createTestLayoutDimensions } from "../controller/helpers";
 import { createBarWithBeats } from "../model/helpers";
-
-function createButton(): HTMLButtonElement {
-  const classes = new Set<string>();
-  return {
-    classList: {
-      toggle: (name: string, force: boolean) => {
-        if (force) {
-          classes.add(name);
-        } else {
-          classes.delete(name);
-        }
-      },
-      contains: (name: string) => classes.has(name),
-    },
-    setAttribute: jest.fn(),
-  } as unknown as HTMLButtonElement;
-}
-
-function renderButtonState(
-  note: GuitarNote | undefined,
-  type: GuitarTechniqueType
-) {
-  const button = createButton();
-  const renderer = {
-    notationComponent: {
-      trackController: {
-        selectionBeats: [],
-        selectionCursor: note === undefined ? undefined : { note },
-      },
-    },
-  };
-
-  const renderState = (
-    TechniqueControlsTemplateRenderer.prototype as unknown as {
-      renderTechniqueButtonState(
-        techniqueType: GuitarTechniqueType,
-        techniqueButton: HTMLButtonElement
-      ): void;
-    }
-  ).renderTechniqueButtonState;
-  renderState.call(renderer, type, button);
-  return button.classList;
-}
+import { required } from "../required";
 
 describe("TechniqueControlsTemplateRenderer", () => {
+  let notation: NotationComponent;
+  let template: TechniqueControlsTemplate;
+  let renderer: TechniqueControlsTemplateRenderer;
+
+  beforeEach(() => {
+    const { score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    for (const beat of beats) {
+      (required(beat.notes)[0] as GuitarNote).fret = 5;
+    }
+    notation = new NotationComponent(
+      document.createElement("div"),
+      score,
+      resolveTabUIConfig(),
+      createTestLayoutDimensions()
+    );
+    template = new TechniqueControlsTemplate();
+    renderer = new TechniqueControlsTemplateRenderer(
+      document.createElement("div"),
+      notation,
+      template
+    );
+  });
+
+  afterEach(() => notation.dispose());
+
   test.each([
-    GuitarTechniqueType.Vibrato,
-    GuitarTechniqueType.PalmMute,
-    GuitarTechniqueType.LetRing,
-    GuitarTechniqueType.NaturalHarmonic,
-    GuitarTechniqueType.PinchHarmonic,
-    GuitarTechniqueType.Legato,
-    GuitarTechniqueType.Slide,
-  ])("enables technique %s during drag selection", (type) => {
-    const button = createButton();
-    const renderer = {
-      notationComponent: {
-        trackController: {
-          selectionBeats: [],
-          selectionCursor: undefined,
-        },
-      },
-    };
+    "vibratoButton",
+    "palmMuteButton",
+    "letRingButton",
+    "nhButton",
+    "phButton",
+    "legatoButton",
+    "slideButton",
+  ] as const)("enables %s during range selection", (buttonName) => {
+    notation.trackController.extendSelectionByBeat(SelectedMoveDirection.Right);
+    expect(notation.trackController.selectionBeats).toHaveLength(2);
 
-    const renderState = (
-      TechniqueControlsTemplateRenderer.prototype as unknown as {
-        renderTechniqueButtonState(
-          techniqueType: GuitarTechniqueType,
-          techniqueButton: HTMLButtonElement
-        ): void;
-      }
-    ).renderTechniqueButtonState;
-    renderState.call(renderer, type, button);
+    renderer.render();
 
+    const button = template[buttonName];
+    expect(button.disabled).toBe(false);
     expect(button.classList.contains("tu-disabled-img")).toBe(false);
   });
 
-  test("disables bend during drag selection", () => {
-    const classes = renderButtonState(undefined, GuitarTechniqueType.Bend);
+  test("disables bend during range selection", () => {
+    notation.trackController.extendSelectionByBeat(SelectedMoveDirection.Right);
+    expect(notation.trackController.selectionBeats).toHaveLength(2);
 
-    expect(classes.contains("tu-disabled-img")).toBe(true);
+    renderer.render();
+
+    expect(template.bendButton.disabled).toBe(true);
+    expect(template.bendButton.classList.contains("tu-disabled-img")).toBe(
+      true
+    );
   });
 
-  test.each([GuitarTechniqueType.Legato, GuitarTechniqueType.Slide])(
-    "disables technique %s without a valid transition target",
-    (type) => {
-      const { beats } = createBarWithBeats([
-        { baseDuration: NoteDuration.Quarter },
-        { baseDuration: NoteDuration.Quarter },
-      ]);
-      const current = beats[0].notes?.[0];
-      const next = beats[1].notes?.[0];
-      if (!(current instanceof GuitarNote) || !(next instanceof GuitarNote)) {
-        throw Error("Expected guitar notes");
-      }
-      current.fret = 5;
-      next.fret = 5;
+  test.each(["legatoButton", "slideButton"] as const)(
+    "disables %s without a valid note transition target",
+    (buttonName) => {
+      renderer.render();
 
-      expect(renderButtonState(current, type).contains("tu-disabled-img")).toBe(
-        true
-      );
+      const button = template[buttonName];
+      expect(button.disabled).toBe(true);
+      expect(button.classList.contains("tu-disabled-img")).toBe(true);
     }
   );
 });

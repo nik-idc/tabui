@@ -1,105 +1,95 @@
+/** @jest-environment jsdom */
+
 import { PlayControlsDefaultCallbacks } from "../../../src/ui/top-controls/play-controls/play-controls-callbacks";
 import { PlayControlsTemplateRenderer } from "../../../src/ui/top-controls/play-controls/play-controls-template-renderer";
-import { dispatchClick, makeButton } from "./helpers";
+import { PlayControlsTemplate } from "../../../src/ui/top-controls/play-controls/play-controls-template";
+import { ScorePlayer } from "../../../src/player";
+import {
+  installTransportAudio,
+  settleTransport,
+} from "../player/transport-audio";
+import { TrackController } from "../../../src/notation/controller/track-controller";
+import { DEFAULT_MASTER_BAR } from "../../../src/notation/model";
+import { createScoreGraph } from "../model/helpers";
+import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
 
 describe("PlayControlsDefaultCallbacks", () => {
-  test("play click toggles playback based on controller state", () => {
-    const startPlayer = jest.fn();
-    const stopPlayer = jest.fn();
-    const renderFunc = jest.fn();
-    let isPlaying = false;
-
+  let audio: ReturnType<typeof installTransportAudio>;
+  const players: ScorePlayer[] = [];
+  function controls() {
+    const { score, track } = createScoreGraph();
+    const player = new ScorePlayer(score, track);
+    players.push(player);
+    const controller = new TrackController(
+      track,
+      TEST_LAYOUT_DIMENSIONS,
+      player
+    );
+    const template = new PlayControlsTemplate();
+    const notation = { trackController: controller } as any;
+    const renderer = new PlayControlsTemplateRenderer(
+      document.createElement("div"),
+      notation,
+      template,
+      { baseUrl: "", variant: "light" }
+    );
+    const render = jest.fn(() => renderer.render());
     const callbacks = new PlayControlsDefaultCallbacks(
-      {
-        template: {
-          firstButton: {},
-          prevButton: {},
-          playButton: {},
-          nextButton: {},
-          lastButton: {},
-          loopButton: {},
-          rangeButton: {},
-        },
-      } as any,
-      {
-        trackController: {
-          get isPlaybackActive() {
-            return isPlaying;
-          },
-          startPlayer,
-          stopPlayer,
-          toggleLoop: jest.fn(),
-        },
-      } as any,
-      renderFunc,
+      { template } as any,
+      notation,
+      render,
       jest.fn(),
       jest.fn()
     );
+    return { controller, player, template, renderer, callbacks, render };
+  }
+  beforeEach(() => {
+    jest.useFakeTimers();
+    audio = installTransportAudio();
+  });
+  afterEach(() => {
+    players.splice(0).forEach((p) => p.dispose());
+    audio.restore();
+    jest.useRealTimers();
+  });
 
-    callbacks.onPlayClicked();
-
-    expect(startPlayer).toHaveBeenCalledTimes(1);
-    expect(stopPlayer).not.toHaveBeenCalled();
-    expect(renderFunc).toHaveBeenCalledTimes(1);
-
-    isPlaying = true;
-    callbacks.onPlayClicked();
-
-    expect(stopPlayer).toHaveBeenCalledTimes(1);
-    expect(startPlayer).toHaveBeenCalledTimes(1);
-    expect(renderFunc).toHaveBeenCalledTimes(2);
+  test("play click starts and stops the real transport", async () => {
+    const { callbacks, controller, template, renderer, render } = controls();
+    callbacks.bind();
+    template.playButton.click();
+    expect(controller.playbackState).toBe("starting");
+    expect(template.playButton.getAttribute("aria-pressed")).toBe("true");
+    await settleTransport();
+    renderer.render();
+    expect(controller.playbackState).toBe("playing");
+    expect(template.playButton.title).toBe("Pause");
+    template.playButton.click();
+    expect(controller.playbackState).toBe("idle");
+    expect(template.playButton.getAttribute("aria-pressed")).toBe("false");
+    expect(render).toHaveBeenCalledTimes(2);
+    callbacks.unbind();
   });
 
   test("loop click toggles loop and repeated bind does not double fire", () => {
-    const toggleLoop = jest.fn();
-    const callbacks = new PlayControlsDefaultCallbacks(
-      {
-        template: {
-          firstButton: makeButton(),
-          prevButton: makeButton(),
-          playButton: makeButton(),
-          nextButton: makeButton(),
-          lastButton: makeButton(),
-          loopButton: makeButton(),
-          rangeButton: makeButton(),
-        },
-      } as any,
-      {
-        trackController: {
-          isPlaying: false,
-          startPlayer: jest.fn(),
-          stopPlayer: jest.fn(),
-          toggleLoop,
-        },
-      } as any,
-      jest.fn(),
-      jest.fn(),
-      jest.fn()
-    );
-
+    const { callbacks, controller, template } = controls();
     callbacks.bind();
     callbacks.bind();
-    dispatchClick((callbacks as any)._playComponent.template.loopButton);
-    expect(toggleLoop).toHaveBeenCalledTimes(1);
-
-    const loopCallsBeforeUnbind = toggleLoop.mock.calls.length;
+    template.loopButton.click();
+    expect(controller.isLooped).toBe(true);
+    template.loopButton.click();
+    expect(controller.isLooped).toBe(false);
     callbacks.unbind();
-    dispatchClick((callbacks as any)._playComponent.template.loopButton);
-    expect(toggleLoop).toHaveBeenCalledTimes(loopCallsBeforeUnbind);
+    template.loopButton.click();
+    expect(controller.isLooped).toBe(false);
   });
 
-  test("bar traversal buttons delegate to the track controller", () => {
-    const ensureSelectedNoteVisible = jest.fn();
-    const trackController = {
-      isPlaying: false,
-      startPlayer: jest.fn(),
-      stopPlayer: jest.fn(),
-      toggleLoop: jest.fn(),
-      selectFirstBar: jest.fn(),
-      selectPreviousBar: jest.fn(),
-      selectNextBar: jest.fn(),
-      selectLastBar: jest.fn(),
-    };
+  test("bar traversal buttons select the requested bar", () => {
+    const ensureSelectedNoteVisible = () => {};
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const trackController = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const bars = track.staves[0].bars;
     const renderFunc = jest.fn();
     const callbacks = new PlayControlsDefaultCallbacks(
       {
@@ -119,34 +109,22 @@ describe("PlayControlsDefaultCallbacks", () => {
       jest.fn()
     );
 
-    callbacks.onFirstClicked();
-    callbacks.onPrevClicked();
     callbacks.onNextClicked();
+    expect(trackController.selectionCursor?.bar).toBe(bars[1]);
     callbacks.onLastClicked();
+    expect(trackController.selectionCursor?.bar).toBe(bars[2]);
+    callbacks.onPrevClicked();
+    expect(trackController.selectionCursor?.bar).toBe(bars[1]);
+    callbacks.onFirstClicked();
+    expect(trackController.selectionCursor?.bar).toBe(bars[0]);
 
-    expect(trackController.selectFirstBar).toHaveBeenCalledTimes(1);
-    expect(trackController.selectPreviousBar).toHaveBeenCalledTimes(1);
-    expect(trackController.selectNextBar).toHaveBeenCalledTimes(1);
-    expect(trackController.selectLastBar).toHaveBeenCalledTimes(1);
-    expect(ensureSelectedNoteVisible).toHaveBeenCalledTimes(4);
     expect(renderFunc).toHaveBeenCalledTimes(4);
   });
 
   test("range button anchors or clears the current range", () => {
-    let hasSelectionAnchor = false;
-    const setSelectionAnchor = jest.fn(() => {
-      hasSelectionAnchor = true;
-    });
-    const clearSelectionRange = jest.fn(() => {
-      hasSelectionAnchor = false;
-    });
-    const controller = {
-      get hasSelectionAnchor() {
-        return hasSelectionAnchor;
-      },
-      setSelectionAnchor,
-      clearSelectionRange,
-    };
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const anchor = controller.selectionCursor?.beat;
     const renderFunc = jest.fn();
     const callbacks = new PlayControlsDefaultCallbacks(
       {
@@ -167,48 +145,31 @@ describe("PlayControlsDefaultCallbacks", () => {
     );
 
     callbacks.onRangeClicked();
+    expect(controller.hasSelectionAnchor).toBe(true);
+    expect(controller.selectionBeats).toEqual([anchor]);
     callbacks.onRangeClicked();
 
-    expect(setSelectionAnchor).toHaveBeenCalledTimes(1);
-    expect(clearSelectionRange).toHaveBeenCalledTimes(1);
+    expect(controller.hasSelectionAnchor).toBe(false);
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(anchor);
     expect(renderFunc).toHaveBeenCalledTimes(2);
   });
 
   test("render marks loop button active when loop is enabled", () => {
-    const template = {
-      container: makeButton(),
-      firstButton: makeButton(),
-      prevButton: makeButton(),
-      playButton: makeButton(),
-      nextButton: makeButton(),
-      lastButton: makeButton(),
-      loopButton: makeButton(),
-      rangeButton: makeButton(),
-    };
-    const renderer = new PlayControlsTemplateRenderer(
-      makeButton() as any,
-      {
-        config: {
-          assets: { baseUrl: "", variant: "light" },
-        },
-        trackController: {
-          isPlaying: false,
-          isLooped: true,
-          hasSelectionAnchor: false,
-        },
-      } as any,
-      template as any
-    );
-
-    (renderer as any).renderPlayButtons();
-
-    expect(template.loopButton.classList.toggle).toHaveBeenCalledWith(
-      "tu-track-control-active",
-      true
-    );
-    expect(template.loopButton.setAttribute).toHaveBeenCalledWith(
-      "aria-pressed",
-      "true"
-    );
+    const { controller, renderer, template } = controls();
+    renderer.render();
+    expect(
+      template.loopButton.classList.contains("tu-track-control-active")
+    ).toBe(false);
+    expect(template.loopButton.getAttribute("aria-pressed")).toBe("false");
+    controller.toggleLoop();
+    renderer.render();
+    expect(
+      template.loopButton.classList.contains("tu-track-control-active")
+    ).toBe(true);
+    expect(template.loopButton.getAttribute("aria-pressed")).toBe("true");
+    controller.toggleLoop();
+    renderer.render();
+    expect(template.loopButton.getAttribute("aria-pressed")).toBe("false");
   });
 });

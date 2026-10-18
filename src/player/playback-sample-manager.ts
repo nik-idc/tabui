@@ -56,6 +56,8 @@ export class PlaybackSampleManager {
    * @param tone Instrument tone
    */
   private async loadSample(tone: InstrumentTone): Promise<void> {
+    // TODO: I'm getting strong code smells here. Good refactor candidate
+
     const sampleConfig = this._playbackSamples[tone];
     if (sampleConfig === undefined || this._samples.has(tone)) {
       return;
@@ -69,7 +71,10 @@ export class PlaybackSampleManager {
     const sampleLoad = this.fetchSample(tone, sampleConfig.url);
 
     this._sampleLoads.set(tone, sampleLoad);
-    return sampleLoad;
+    await sampleLoad;
+    if (this._sampleLoads.get(tone) === sampleLoad) {
+      this._sampleLoads.delete(tone);
+    }
   }
 
   /** Loads samples for the tones that the current score can schedule. */

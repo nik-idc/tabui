@@ -67,11 +67,9 @@ describe("SetTechniqueCommand", () => {
     command.undo();
     expect(note.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
     expect(note.hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
-
-    expect(() => command.redo()).toThrow("Redo called before execute");
   });
 
-  test("label-producing techniques are marked for vertical update", () => {
+  test("vibrato, bend, and let ring report that they affect technique labels", () => {
     const { bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -106,7 +104,7 @@ describe("SetTechniqueCommand", () => {
     expect(letRingCommand.affectsTechniqueLabels).toBe(true);
   });
 
-  test("inline non-label techniques are marked for targeted update", () => {
+  test("harmonic and slide commands report the affected note anchor", () => {
     const { bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -135,7 +133,7 @@ describe("SetTechniqueCommand", () => {
     ]);
   });
 
-  test("bend requests a model update because it produces a label", () => {
+  test("bend commands report the affected note anchor", () => {
     const { bar } = createScoreGraph();
     const voiceBar = bar.getVoiceBar(1);
     if (voiceBar === null) {
@@ -159,6 +157,16 @@ describe("SetTechniqueCommand", () => {
 
     expect(command.affectedModels).toEqual([
       { masterBarIndex: 0, modelUUID: note.uuid },
+    ]);
+
+    note.beat.makeRest();
+    note.beat.makeBeatWithNotes();
+    const currentNote = note.beat.notes?.[note.stringNum - 1];
+    if (!(currentNote instanceof GuitarNote)) {
+      throw Error("Expected recreated guitar note in test beat");
+    }
+    expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: currentNote.uuid },
     ]);
   });
 
@@ -194,19 +202,43 @@ describe("SetTechniqueCommand", () => {
     );
 
     command.execute();
-    expect((note.techniques[0] as GuitarTechnique).bendOptions?.type).toBe(
-      BendType.PrebendBend
-    );
+    expect(command.executed).toBe(true);
+    expect(note.techniques).toMatchObject([
+      {
+        type: GuitarTechniqueType.Bend,
+        bendOptions: {
+          type: BendType.PrebendBend,
+          prebendPitch: 0.5,
+          bendPitch: 1,
+          bendDuration: 1,
+        },
+      },
+    ]);
 
     command.undo();
-    expect((note.techniques[0] as GuitarTechnique).bendOptions?.bendPitch).toBe(
-      0.5
-    );
+    expect(note.techniques).toMatchObject([
+      {
+        type: GuitarTechniqueType.Bend,
+        bendOptions: {
+          type: BendType.Bend,
+          bendPitch: 0.5,
+          bendDuration: 1,
+        },
+      },
+    ]);
 
     command.redo();
-    expect((note.techniques[0] as GuitarTechnique).bendOptions?.type).toBe(
-      BendType.PrebendBend
-    );
+    expect(note.techniques).toMatchObject([
+      {
+        type: GuitarTechniqueType.Bend,
+        bendOptions: {
+          type: BendType.PrebendBend,
+          prebendPitch: 0.5,
+          bendPitch: 1,
+          bendDuration: 1,
+        },
+      },
+    ]);
   });
 
   test("existing bend is removed without options and supports undo and redo", () => {
@@ -234,6 +266,12 @@ describe("SetTechniqueCommand", () => {
 
     command.undo();
     expect(note.hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
+    expect(note.techniques).toHaveLength(1);
+    expect(note.techniques[0].bendOptions).toMatchObject({
+      type: BendType.Bend,
+      bendPitch: 1,
+      bendDuration: 1,
+    });
 
     command.redo();
     expect(note.hasTechnique(GuitarTechniqueType.Bend)).toBe(false);

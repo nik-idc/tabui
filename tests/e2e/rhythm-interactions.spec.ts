@@ -29,6 +29,9 @@ test("stem and flags share hover and enlarged targets select one beat", async ({
 }) => {
   const editor = await openRhythmEditor(page);
   await page.keyboard.press("-");
+  await page.keyboard.press("a");
+  await page.keyboard.press("6");
+  await editor.locator('[data-duration="4"]').click();
   const stem = editor.locator('[id^="beat-rhythm-stem-"]').first();
   const flag = editor.locator('[id^="beat-rhythm-flag-"]').first();
   await expect(flag).toHaveCount(1);
@@ -48,6 +51,18 @@ test("stem and flags share hover and enlarged targets select one beat", async ({
   await expect(editor.locator('#tu-selection > rect[fill="none"]')).toHaveCount(
     0
   );
+  await editor.locator(".tu-notation-viewport").focus();
+  await page.keyboard.press(".");
+  const clickedBeat = stem.locator("../..");
+  await expect(clickedBeat.locator(".tu-beat-dots circle")).toHaveCount(1);
+  const secondNoteText = editor
+    .locator('[id^="note-text-"]')
+    .filter({ hasText: /^6$/ });
+  const secondNoteId = await secondNoteText.getAttribute("id");
+  if (secondNoteId === null) throw Error("Expected second note ID");
+  await editor
+    .locator(`[id="${secondNoteId.replace("note-text-", "note-rect-")}"]`)
+    .click();
   const flagPoint = await flag.evaluate((node) => {
     const line = node as SVGLineElement;
     const matrix = line.getScreenCTM();
@@ -63,6 +78,10 @@ test("stem and flags share hover and enlarged targets select one beat", async ({
   await expect(
     editor.locator('#tu-selection [id^="selection-rect-"][display="block"]')
   ).toHaveCount(1);
+  await editor.locator(".tu-notation-viewport").focus();
+  await page.keyboard.press(".");
+  await expect(clickedBeat.locator(".tu-beat-dots circle")).toHaveCount(2);
+  await expect(editor.locator(".tu-beat-dots circle")).toHaveCount(2);
 });
 
 test("double dots hover together, remove from the clicked beat, and undo", async ({
@@ -99,6 +118,10 @@ test("double dots hover together, remove from the clicked beat, and undo", async
   );
   await page.mouse.move(0, 0);
   await expect(originalDots.locator("circle").first()).toHaveCSS(
+    "fill",
+    original
+  );
+  await expect(originalDots.locator("circle").last()).toHaveCSS(
     "fill",
     original
   );
@@ -140,6 +163,35 @@ test("secondary beam tails highlight and select the complete connected group", a
   await page.keyboard.press("7");
   await editor.locator('[data-duration="4"]').click();
   await editor.locator(".tu-notation-viewport").focus();
+  const noteTargets = await Promise.all(
+    ["5", "6", "7"].map(async (f) => {
+      const id = await editor
+        .locator('[id^="note-text-"]')
+        .filter({ hasText: new RegExp(`^${f}$`) })
+        .getAttribute("id");
+      if (id === null) throw Error(`Expected note ${f}`);
+      return editor.locator(`[id="${id.replace("note-text-", "note-rect-")}"]`);
+    })
+  );
+  async function expectConnectedPairSelected() {
+    const selection = editor.locator(
+      '#tu-selection [id^="selection-rect-"][display="block"]'
+    );
+    await expect(selection).toHaveCount(1);
+    const selectedBox = await selection.boundingBox();
+    if (selectedBox === null) throw Error("Expected beam group selection");
+    const centers = await Promise.all(
+      noteTargets.map(async (n) => {
+        const box = await n.boundingBox();
+        if (box === null) throw Error("Expected visible note");
+        return box.x + box.width / 2;
+      })
+    );
+    // All boxes use screen coordinates. Only the first two notes are connected.
+    expect(centers[0]).toBeGreaterThan(selectedBox.x);
+    expect(centers[1]).toBeLessThan(selectedBox.x + selectedBox.width);
+    expect(centers[2]).toBeGreaterThan(selectedBox.x + selectedBox.width);
+  }
   const tail = editor.locator('[id^="beam-short-rect-"]').first();
   await expect(tail).toBeVisible();
   const primary = editor.locator('[id^="beam-long-rect-"]').first();
@@ -163,10 +215,10 @@ test("secondary beam tails highlight and select the complete connected group", a
   await expect(tail).not.toHaveCSS("fill", original);
   await page.mouse.move(0, 0);
   await expect(primary).toHaveCSS("fill", original);
+  await expect(tail).toHaveCSS("fill", original);
   await page.mouse.click(tailPoint.x, tailPoint.y);
-  await expect(
-    editor.locator('#tu-selection [id^="selection-rect-"][display="block"]')
-  ).toHaveCount(1);
+  await expectConnectedPairSelected();
+  await noteTargets[2].click();
   const primaryPoint = await primary.evaluate((node) => {
     const rect = node as SVGRectElement;
     const matrix = rect.getScreenCTM();
@@ -179,9 +231,7 @@ test("secondary beam tails highlight and select the complete connected group", a
       .toJSON();
   });
   await page.mouse.click(primaryPoint.x, primaryPoint.y);
-  await expect(
-    editor.locator('#tu-selection [id^="selection-rect-"][display="block"]')
-  ).toHaveCount(1);
+  await expectConnectedPairSelected();
   await page.keyboard.press(".");
   await expect(editor.locator(".tu-beat-dots circle")).toHaveCount(2);
 });
@@ -192,6 +242,9 @@ test("view-only allows rhythm selection but blocks dot removal", async ({
   const editor = await openRhythmEditor(page);
   await page.keyboard.press(".");
   await page.keyboard.press(".");
+  const firstNote = editor.locator('[id^="note-rect-"]').first();
+  await page.keyboard.press("a");
+  await page.keyboard.press("6");
   await page.setViewportSize({ width: 800, height: 900 });
   await expect(editor).toHaveClass(/tu-responsive-view-only/);
   const dots = editor.locator(".tu-beat-dots circle");
@@ -204,6 +257,15 @@ test("view-only allows rhythm selection but blocks dot removal", async ({
   await expect(
     editor.locator('#tu-selection [id^="selection-rect-"][display="block"]')
   ).toHaveCount(1);
+  const selectionBox = await editor
+    .locator('#tu-selection [id^="selection-rect-"][display="block"]')
+    .boundingBox();
+  const firstNoteBox = await firstNote.boundingBox();
+  if (selectionBox === null || firstNoteBox === null)
+    throw Error("Expected selected beat and note boxes");
+  const noteCenterX = firstNoteBox.x + firstNoteBox.width / 2;
+  expect(noteCenterX).toBeGreaterThan(selectionBox.x);
+  expect(noteCenterX).toBeLessThan(selectionBox.x + selectionBox.width);
 });
 
 test("playback blocks rhythm selection and dot removal", async ({ page }) => {

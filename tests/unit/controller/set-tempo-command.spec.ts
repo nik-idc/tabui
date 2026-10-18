@@ -16,7 +16,7 @@ describe("SetTempoCommand", () => {
     expect(masterBar.tempo).toBe(180);
   });
 
-  test("tempo command can carry vertical-update metadata", () => {
+  test("tempo command reports affected bar anchors and tempo visibility", () => {
     const { bar, masterBar } = createScoreGraph();
     const command = new SetTempoCommand(masterBar, 180, [
       { masterBarIndex: 0, modelUUID: bar.uuid },

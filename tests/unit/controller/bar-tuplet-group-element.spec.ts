@@ -1,281 +1,137 @@
+/** @jest-environment jsdom */
+
 import { BarTupletGroupElement } from "../../../src/notation/controller/element/bar/bar-tuplet-group-element";
-import { TrackElement } from "../../../src/notation/controller/element/track-element";
-import { NoteDuration } from "../../../src/notation/model";
+import { TabBeatElement } from "../../../src/notation/controller/element/beat/tab-beat-element";
+import { TabBeatRhythmElement } from "../../../src/notation/controller/element/beat/tab-beat-rhythm-element";
+import { TrackController } from "../../../src/notation/controller/track-controller";
+import { NoteDuration, TupletSettings } from "../../../src/notation/model";
+import { SVGTupletRenderer } from "../../../src/notation/render/svg/tuplet/svg-tuplet-renderer";
+import { SVGTabBeatRhythmRenderer } from "../../../src/notation/render/svg/svg-tab-beat-rhythm-renderer";
 import { createBarWithBeats } from "../model/helpers";
+import { required } from "../required";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 
-function getBarElement(trackElement: TrackElement) {
-  return trackElement.trackLineElements[0].staffLineContainers[0]
-    .styleLinesAsArray[0].barElements[0];
-}
-
-function getTupletElement(trackElement: TrackElement): BarTupletGroupElement {
-  const tupletElement = getBarElement(trackElement)
-    .refreshOwnedNotationNodes()
-    .find((element) => element instanceof BarTupletGroupElement);
-  if (!(tupletElement instanceof BarTupletGroupElement)) {
-    throw Error("Expected rendered tuplet element");
-  }
-
-  return tupletElement;
-}
-
-function createIncompleteTupletElement(): {
-  trackElement: TrackElement;
-  tupletElement: BarTupletGroupElement;
-} {
-  const { track, bar } = createBarWithBeats([
-    {
-      baseDuration: NoteDuration.Eighth,
-      tupletSettings: { normalCount: 3, tupletCount: 2 },
-    },
-    {
-      baseDuration: NoteDuration.Eighth,
-      tupletSettings: { normalCount: 3, tupletCount: 2 },
-    },
-    { baseDuration: NoteDuration.Eighth },
+function renderTuplet(settings: TupletSettings, count: number) {
+  const { track, beats } = createBarWithBeats([
+    // An earlier beat makes accidental bar-origin placement visible.
+    { baseDuration: NoteDuration.Quarter },
+    ...Array.from({ length: count }, () => ({
+      baseDuration: NoteDuration.Sixteenth,
+      tupletSettings: settings,
+    })),
   ]);
-  const voiceBar = bar.getVoiceBar(1);
-  if (voiceBar === null) {
-    throw Error("Expected voice 1 bar");
-  }
-  voiceBar.rebuildTiming();
-  const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-  trackElement.update();
+  const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+  controller.trackElement.update();
+  const firstBeat = required(controller.trackElement.getBeatElement(beats[1]));
+  const tuplet = required(
+    firstBeat.barElement
+      .refreshOwnedNotationNodes()
+      .find(
+        (e): e is BarTupletGroupElement => e instanceof BarTupletGroupElement
+      )
+  );
+  const renderer = new SVGTupletRenderer(controller, tuplet, {
+    baseUrl: "",
+    variant: "light",
+  });
+  renderer.render();
+  const rhythm = required(
+    firstBeat.barElement
+      .refreshOwnedNotationNodes()
+      .find(
+        (e): e is TabBeatRhythmElement =>
+          e instanceof TabBeatRhythmElement && e.beat === beats[1]
+      )
+  );
+  const rhythmRenderer = new SVGTabBeatRhythmRenderer(controller, rhythm, {
+    baseUrl: "",
+    variant: "light",
+  });
+  rhythmRenderer.render();
+  const durationStem = required(
+    rhythmRenderer
+      .ensureContainerGroup()
+      .querySelector(".tu-beat-duration line")
+  );
+  // Both renderers write bar-local SVG coordinates, including the rhythm row origin.
+  const durationBottom = Number(required(durationStem.getAttribute("y2")));
 
-  return { trackElement, tupletElement: getTupletElement(trackElement) };
+  return {
+    group: renderer.ensureContainerGroup(),
+    durationBottom,
+    beatElements: beats.slice(1).map((b) => {
+      const element = controller.trackElement.getBeatElement(b);
+      if (!(element instanceof TabBeatElement)) {
+        throw new Error("Expected a rendered tab beat");
+      }
+      return element;
+    }),
+  };
 }
 
-describe("BarTupletGroupElement", () => {
-  test("complete tuplets use one outer rect and no incomplete rects", () => {
-    const { track, bar } = createBarWithBeats([
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-    ]);
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    trackElement.update();
-
-    const tupletElement = getTupletElement(trackElement);
-    const expectedWidth = tupletElement.beatElements.reduce(
-      (sum: number, beatElement) => sum + beatElement.boundingBox.width,
-      0
-    );
-
-    expect(tupletElement.incompleteRects).toBeUndefined();
-    expect(tupletElement.boundingBox.width).toBeCloseTo(expectedWidth);
-    expect(tupletElement.boundingBox.height).toBe(
-      TEST_LAYOUT_DIMENSIONS.tupletRectHeight
-    );
-    expect(tupletElement.completeText).toBe("3");
-  });
-
-  test("incomplete tuplets allocate one contiguous rect per beat", () => {
-    const { tupletElement } = createIncompleteTupletElement();
-    const incompleteRects = tupletElement.incompleteRects;
-
-    expect(tupletElement.tupletGroup.complete).toBe(false);
-    expect(incompleteRects).toHaveLength(2);
-    expect(incompleteRects?.[0].x).toBeCloseTo(0);
-    expect(incompleteRects?.[0].width).toBeCloseTo(
-      tupletElement.beatElements[0].boundingBox.width
-    );
-    expect(incompleteRects?.[1].x).toBeCloseTo(incompleteRects?.[0].right ?? 0);
-    expect(incompleteRects?.[1].width).toBeCloseTo(
-      tupletElement.beatElements[1].boundingBox.width
-    );
-    expect(
-      incompleteRects?.every(
-        (rect) => rect.height === TEST_LAYOUT_DIMENSIONS.tupletRectHeight
-      )
-    ).toBe(true);
-  });
-
-  test("aligns incomplete tuplet labels with beat attacks in every coordinate space", () => {
-    const { trackElement, tupletElement } = createIncompleteTupletElement();
-    const barElement = getBarElement(trackElement);
-    const barLocalCoords = tupletElement.incompleteTextsCoordsBarLocal;
-    const lineLocalCoords = tupletElement.incompleteTextsCoordsLineLocal;
-    const globalCoords = tupletElement.incompleteTextsCoordsGlobal;
-    for (let i = 0; i < tupletElement.beatElements.length; i++) {
-      const beatElement = tupletElement.beatElements[i];
-      expect(barLocalCoords?.[i].x).toBeCloseTo(beatElement.attackXBarLocal);
-      expect(lineLocalCoords?.[i].x).toBeCloseTo(
-        barElement.lineLocalCoords.x + beatElement.attackXBarLocal
+describe("Rendered tuplets", () => {
+  test.each([
+    [{ normalCount: 3, tupletCount: 2 }, "3"],
+    [{ normalCount: 5, tupletCount: 3 }, "5:3"],
+  ] as const)(
+    "complete %j spans its beat attacks with a centered %s label",
+    (settings, label) => {
+      const { group, beatElements, durationBottom } = renderTuplet(
+        settings,
+        settings.normalCount
       );
-      expect(globalCoords?.[i].x).toBeCloseTo(beatElement.attackXGlobal);
-    }
-  });
+      const text = required(group.querySelector("text"));
+      const path = required(group.querySelector("path"));
+      const firstAttack = beatElements[0].attackXBarLocal;
+      const lastAttack = beatElements[beatElements.length - 1].attackXBarLocal;
 
-  test("positions a complete 5:3 tuplet after durations across its beats", () => {
-    const { track, bar } = createBarWithBeats([
-      {
-        baseDuration: NoteDuration.Sixteenth,
-        tupletSettings: { normalCount: 5, tupletCount: 3 },
-      },
-      {
-        baseDuration: NoteDuration.Sixteenth,
-        tupletSettings: { normalCount: 5, tupletCount: 3 },
-      },
-      {
-        baseDuration: NoteDuration.Sixteenth,
-        tupletSettings: { normalCount: 5, tupletCount: 3 },
-      },
-      {
-        baseDuration: NoteDuration.Sixteenth,
-        tupletSettings: { normalCount: 5, tupletCount: 3 },
-      },
-      {
-        baseDuration: NoteDuration.Sixteenth,
-        tupletSettings: { normalCount: 5, tupletCount: 3 },
-      },
+      expect(group.querySelectorAll("text")).toHaveLength(1);
+      expect(group.querySelectorAll("path")).toHaveLength(1);
+      expect(group.querySelector("[data-tuplet-beat-index]")).toBeNull();
+      expect(text.textContent).toBe(label);
+      expect(text.getAttribute("text-anchor")).toBe("middle");
+      expect(Number(text.getAttribute("x"))).toBeCloseTo(
+        (firstAttack + lastAttack) / 2
+      );
+
+      // The bracket starts at the first attack and ends at the last attack.
+      const coordinates = required(
+        required(path.getAttribute("d")).match(/-?\d+(?:\.\d+)?/g)
+      ).map(Number);
+      expect(coordinates).toHaveLength(8);
+      expect(coordinates[0]).toBeCloseTo(firstAttack);
+      expect(coordinates[0] + coordinates[4]).toBeCloseTo(lastAttack);
+      expect(coordinates[2]).toBe(0);
+      expect(coordinates[3]).toBeGreaterThan(0);
+      expect(coordinates[5]).toBe(0);
+      expect(coordinates[6]).toBe(0);
+      expect(coordinates[7]).toBe(-coordinates[3]);
+      expect(coordinates[1]).toBeGreaterThan(durationBottom);
+      expect(Number(text.getAttribute("y"))).toBeGreaterThan(durationBottom);
+      expect(Number(text.getAttribute("y"))).toBeGreaterThan(coordinates[1]);
+    }
+  );
+
+  test("incomplete tuplets show one label at each beat attack without a bracket", () => {
+    const { group, beatElements, durationBottom } = renderTuplet(
+      { normalCount: 3, tupletCount: 2 },
+      2
+    );
+    const texts = [...group.querySelectorAll("text")];
+
+    expect(group.querySelector("path")).toBeNull();
+    expect(texts.map((t) => t.textContent)).toEqual(["3", "3"]);
+    expect(texts.map((t) => t.getAttribute("data-tuplet-beat-index"))).toEqual([
+      "0",
+      "1",
     ]);
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
+    for (let i = 0; i < texts.length; i++) {
+      expect(Number(texts[i].getAttribute("x"))).toBeCloseTo(
+        beatElements[i].attackXBarLocal
+      );
+      expect(Number(texts[i].getAttribute("y"))).toBeGreaterThan(
+        durationBottom
+      );
     }
-    voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    trackElement.update();
-
-    const tupletElement = getTupletElement(trackElement);
-    const sumWidth = tupletElement.beatElements.reduce(
-      (sum: number, beatElement) => sum + beatElement.boundingBox.width,
-      0
-    );
-
-    expect(tupletElement.boundingBox.x).toBeCloseTo(
-      tupletElement.beatElements[0].boundingBox.x
-    );
-    expect(tupletElement.boundingBox.width).toBeCloseTo(sumWidth);
-    expect(tupletElement.boundingBox.y).toBeCloseTo(
-      TEST_LAYOUT_DIMENSIONS.durationsHeight
-    );
-    expect(tupletElement.completeText).toBe("5:3");
-  });
-
-  test("complete path rect excludes half of the first and last beat widths", () => {
-    const { track, bar } = createBarWithBeats([
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-    ]);
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    trackElement.update();
-
-    const tupletElement = getTupletElement(trackElement);
-    const firstBeatWidth = tupletElement.beatElements[0].boundingBox.width;
-    const lastBeatWidth =
-      tupletElement.beatElements[tupletElement.beatElements.length - 1]
-        .boundingBox.width;
-    const pathRect = tupletElement.completePathRectGlobal;
-
-    expect(pathRect).toBeDefined();
-    expect(pathRect?.width).toBeCloseTo(
-      tupletElement.boundingBox.width - firstBeatWidth / 2 - lastBeatWidth / 2
-    );
-    expect(pathRect?.height).toBe(TEST_LAYOUT_DIMENSIONS.tupletPathHeight);
-    expect(pathRect?.x).toBeCloseTo(
-      tupletElement.globalCoords.x + firstBeatWidth / 2
-    );
-  });
-
-  test("complete text coords are centered on the tuplet rect with vertical offset", () => {
-    const { track, bar } = createBarWithBeats([
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-    ]);
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    trackElement.update();
-
-    const tupletElement = getTupletElement(trackElement);
-
-    expect(tupletElement.comleteTextCoords?.x).toBeCloseTo(
-      tupletElement.boundingBox.middleX
-    );
-    expect(tupletElement.comleteTextCoords?.y).toBeCloseTo(
-      tupletElement.boundingBox.middleY
-    );
-    expect(tupletElement.comleteTextCoordsGlobal?.x).toBeCloseTo(
-      tupletElement.globalCoords.x + tupletElement.boundingBox.width / 2
-    );
-    expect(tupletElement.comleteTextCoordsGlobal?.y).toBeCloseTo(
-      tupletElement.globalCoords.y +
-        tupletElement.boundingBox.height / 2 +
-        TEST_LAYOUT_DIMENSIONS.tupletPathHeight * 2
-    );
-  });
-
-  test("getTupletString throws on invalid index for incomplete tuplets", () => {
-    const { track, bar } = createBarWithBeats([
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      {
-        baseDuration: NoteDuration.Eighth,
-        tupletSettings: { normalCount: 3, tupletCount: 2 },
-      },
-      { baseDuration: NoteDuration.Eighth },
-    ]);
-    const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) {
-      throw Error("Expected voice 1 bar");
-    }
-    voiceBar.rebuildTiming();
-    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    trackElement.update();
-
-    const tupletElement = getTupletElement(trackElement);
-
-    expect(() => tupletElement.getTupletString(-1)).toThrow(
-      "Get tuplet string invalid index: -1"
-    );
-    expect(() => tupletElement.getTupletString(2)).toThrow(
-      "Get tuplet string invalid index: 2"
-    );
   });
 });

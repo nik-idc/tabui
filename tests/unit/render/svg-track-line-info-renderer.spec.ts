@@ -1,58 +1,54 @@
+/** @jest-environment jsdom */
+
 import { SVGTrackLineInfoRenderer } from "../../../src/notation/render/svg/svg-track-line-info-renderer";
+import { createScoreGraph } from "../model/helpers";
+import { createTestTrackController } from "../controller/helpers";
 import { required } from "../required";
 
 test("tempo callbacks resolve current bars and detach before renderer reuse", () => {
-  class Target {}
-  const previousElement = globalThis.Element;
-  const previousDocument = globalThis.document;
-  const listeners = new Map<string, EventListener>();
-  const group = {
-    setAttribute: jest.fn(),
-    addEventListener: (type: string, listener: EventListener) =>
-      listeners.set(type, listener),
-    removeEventListener: (type: string) => listeners.delete(type),
-  };
-  (globalThis as any).Element = Target;
-  (globalThis as any).document = { createElementNS: () => group };
-  try {
-    const oldBar = { bar: { uuid: 1 } };
-    const currentBar = { bar: { uuid: 1 } };
-    const target = new Target();
-    const renderer = new SVGTrackLineInfoRenderer(
-      {} as any,
-      {
-        uuid: 1,
-        barTempoRectsMap: new Map([[oldBar, {}]]),
-      } as any,
-      {} as any
-    );
-    (renderer as any)._temposSVG.set(oldBar, {
-      group: { contains: (element: unknown) => element === target },
-    });
-    const oldHandler = jest.fn();
-    const handler = jest.fn();
-    renderer.attachMouseEvent("click", oldHandler);
-    renderer.attachMouseEvent("click", handler);
-    renderer.updateElementReference({
-      barTempoRectsMap: new Map([[currentBar, {}]]),
-    } as any);
-    const event = { target } as unknown as Event;
-    required(listeners.get("click"))(event);
-    expect(oldHandler).not.toHaveBeenCalled();
-    expect(handler).toHaveBeenCalledWith(event, currentBar);
-    required(listeners.get("click"))({
-      target: new Target(),
-    } as unknown as Event);
-    expect(handler).toHaveBeenCalledTimes(1);
-    renderer.detachContainerGroup();
-    expect(listeners.size).toBe(0);
-    renderer.attachMouseEvent("click", handler);
-    required(listeners.get("click"))(event);
-    expect(handler).toHaveBeenCalledTimes(2);
-    renderer.detachMouseEvent("click");
-    expect(listeners.size).toBe(0);
-  } finally {
-    (globalThis as any).Element = previousElement;
-    (globalThis as any).document = previousDocument;
-  }
+  const { track } = createScoreGraph();
+  const controller = createTestTrackController(track);
+  controller.trackElement.update();
+  const currentInfo = () =>
+    required(controller.trackElement.trackLineElements[0].trackLineInfoElement);
+  const renderer = new SVGTrackLineInfoRenderer(controller, currentInfo(), {
+    baseUrl: "/assets",
+    variant: "light",
+  });
+  renderer.render();
+  const group = renderer.ensureContainerGroup();
+  const image = required(group.querySelector("image"));
+  const text = required(group.querySelector("text"));
+  expect(text.textContent).toBe("=120");
+  const oldBar = required([...currentInfo().barTempoRectsMap.keys()][0]);
+  const oldHandler = jest.fn();
+  const handler = jest.fn();
+  renderer.attachMouseEvent("click", oldHandler);
+  renderer.attachMouseEvent("click", handler);
+  controller.trackElement.update();
+  const info = currentInfo();
+  const currentBar = required([...info.barTempoRectsMap.keys()][0]);
+  expect(currentBar).not.toBe(oldBar);
+  expect(currentBar.bar).toBe(oldBar.bar);
+  renderer.updateElementReference(info);
+  const event = new MouseEvent("click", { bubbles: true });
+  image.dispatchEvent(event);
+  expect(oldHandler).not.toHaveBeenCalled();
+  expect(handler).toHaveBeenCalledTimes(1);
+  expect(handler.mock.calls[0][0]).toBe(event);
+  expect(handler.mock.calls[0][1]).toBe(currentBar);
+  group.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  expect(handler).toHaveBeenCalledTimes(1);
+
+  document.body.appendChild(group);
+  renderer.detachContainerGroup();
+  expect(group.isConnected).toBe(false);
+  text.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  expect(handler).toHaveBeenCalledTimes(1);
+  renderer.attachMouseEvent("click", handler);
+  text.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  expect(handler).toHaveBeenCalledTimes(2);
+  renderer.detachMouseEvent("click");
+  image.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  expect(handler).toHaveBeenCalledTimes(2);
 });

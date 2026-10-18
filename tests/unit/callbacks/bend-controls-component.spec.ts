@@ -1,267 +1,170 @@
+/** @jest-environment jsdom */
+
 import {
   BendTechniqueOptions,
   BendType,
-  GuitarNote,
-  GuitarTechnique,
   GuitarTechniqueType,
-  NoteDuration,
 } from "../../../src/notation/model";
-import { BendControlsComponent } from "../../../src/ui/side-controls/technique-controls/bend-controls/bend-controls-component";
-import { BendControlsTemplateRenderer } from "../../../src/ui/side-controls/technique-controls/bend-controls/bend-controls-template-renderer";
-import { createBarWithBeats } from "../model/helpers";
-import { makeButton } from "./helpers";
-
-function createNote(): GuitarNote {
-  const { beats } = createBarWithBeats([
-    { baseDuration: NoteDuration.Quarter },
-  ]);
-  const note = beats[0].notes?.[0];
-  if (!(note instanceof GuitarNote)) {
-    throw Error("Expected guitar note");
-  }
-  note.fret = 5;
-  return note;
-}
-
-function makeComponent(note: GuitarNote) {
-  const bendTypesButtons = {
-    [BendType.Bend]: makeButton(),
-    [BendType.BendAndRelease]: makeButton(),
-    [BendType.Hold]: makeButton(),
-    [BendType.Prebend]: makeButton(),
-    [BendType.PrebendAndRelease]: makeButton(),
-    [BendType.PrebendBend]: makeButton(),
-    [BendType.Release]: makeButton(),
-  };
-  const bendSelectorManager = { init: jest.fn() };
-  const templateRenderer = { setSelectedBendType: jest.fn() };
-  const component = {
-    notationComponent: {
-      trackController: { selectionCursor: { note } },
-    },
-    bendSelectorManager,
-    templateRenderer,
-    template: {
-      bendTypesButtons,
-      removeButton: makeButton(),
-    },
-  } as any;
-  Object.setPrototypeOf(component, BendControlsComponent.prototype);
-  return {
-    component,
-    bendSelectorManager,
-    bendTypesButtons,
-    templateRenderer,
-  };
-}
+import { createBendControlsHarness } from "./bend-controls-test-helpers";
 
 describe("BendControlsComponent", () => {
-  test("template renderer highlights only the selected bend type", () => {
-    const { component, bendTypesButtons } = makeComponent(createNote());
+  let harness: ReturnType<typeof createBendControlsHarness>;
+  beforeEach(() => {
+    harness = createBendControlsHarness();
+  });
+  afterEach(() => harness.dispose());
 
-    BendControlsTemplateRenderer.prototype.setSelectedBendType.call(
-      { template: component.template },
-      BendType.Release
+  function prepareContinuation(
+    pitch: number,
+    letRing = true,
+    releasing = false
+  ) {
+    const { controller } = harness;
+    controller.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: releasing ? BendType.BendAndRelease : BendType.Bend,
+        bendPitch: pitch,
+        bendDuration: 0.75,
+        ...(releasing ? { releasePitch: 0 } : {}),
+      })
     );
+    controller.insertBeatAfterSelected();
+    controller.setSelectedNoteFret(5);
+    if (letRing) controller.setTechnique(GuitarTechniqueType.LetRing);
+    harness.component.prepareForOpen();
+  }
 
-    for (const [type, button] of Object.entries(bendTypesButtons)) {
-      expect(button.classList.toggle).toHaveBeenCalledWith(
-        "tu-applied-button",
-        Number(type) === BendType.Release
-      );
+  test("template renderer highlights only the selected bend type", () => {
+    const { component } = harness;
+    for (const selected of [BendType.Release, BendType.PrebendBend]) {
+      component.templateRenderer.setSelectedBendType(selected);
+      for (const [type, button] of Object.entries(
+        component.template.bendTypesButtons
+      )) {
+        expect(button.classList.contains("tu-applied-button")).toBe(
+          Number(type) === selected
+        );
+        expect(button.getAttribute("aria-pressed")).toBe(
+          `${Number(type) === selected}`
+        );
+      }
     }
   });
 
   test("initializes the selector from an existing bend", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    const note = beats[0].notes?.[0];
-    if (!(note instanceof GuitarNote)) {
-      throw Error("Expected guitar note");
-    }
-    note.fret = 5;
-    const options = new BendTechniqueOptions({
-      type: BendType.PrebendBend,
-      prebendPitch: 0.5,
-      bendPitch: 1,
-      bendDuration: 0.75,
-    });
-    note.addTechnique(
-      new GuitarTechnique(note, GuitarTechniqueType.Bend, options)
+    const { component, controller } = harness;
+    controller.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.PrebendBend,
+        prebendPitch: 0.5,
+        bendPitch: 1,
+        bendDuration: 0.75,
+      })
     );
-    const { component, bendSelectorManager, templateRenderer } =
-      makeComponent(note);
 
-    BendControlsComponent.prototype.prepareForOpen.call(component);
+    component.prepareForOpen();
 
-    expect(bendSelectorManager.init).toHaveBeenCalledWith(options, undefined);
     expect(component.template.removeButton.disabled).toBe(false);
-    expect(templateRenderer.setSelectedBendType).toHaveBeenCalledWith(
-      BendType.PrebendBend
-    );
+    expect(
+      component.template.bendTypesButtons[BendType.PrebendBend].getAttribute(
+        "aria-pressed"
+      )
+    ).toBe("true");
+    const graph = component.template.bendSelectorGraphSVG;
+    const prebend = graph.querySelector('circle[aria-label="Prebend point"]');
+    const bend = graph.querySelector('circle[aria-label="Bend point"]');
+    expect(prebend?.getAttribute("cy")).toBe("250");
+    expect(bend?.getAttribute("cy")).toBe("200");
+    expect(bend?.getAttribute("cx")).toBe("320");
   });
 
   test("enables Hold and Release after a non-releasing bend", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    const previous = beats[0].notes?.[0];
-    const current = beats[1].notes?.[0];
-    if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
-      throw Error("Expected guitar notes");
-    }
-    previous.fret = 5;
-    current.fret = 5;
-    previous.addTechnique(
-      new GuitarTechnique(
-        previous,
-        GuitarTechniqueType.Bend,
-        new BendTechniqueOptions({
-          type: BendType.Bend,
-          bendPitch: 1,
-          bendDuration: 0.75,
-        })
-      )
+    prepareContinuation(1);
+    const { component } = harness;
+    expect(component.template.bendTypesButtons[BendType.Hold].disabled).toBe(
+      false
     );
-    current.addTechnique(
-      new GuitarTechnique(current, GuitarTechniqueType.LetRing)
+    expect(component.template.bendTypesButtons[BendType.Release].disabled).toBe(
+      false
     );
-    const { component, bendSelectorManager, bendTypesButtons } =
-      makeComponent(current);
-
-    BendControlsComponent.prototype.prepareForOpen.call(component);
-
-    expect(bendSelectorManager.init).toHaveBeenCalledWith(undefined, 1);
-    expect(bendTypesButtons[BendType.Hold].disabled).toBe(false);
-    expect(bendTypesButtons[BendType.Release].disabled).toBe(false);
-    expect(bendTypesButtons[BendType.Prebend].disabled).toBe(true);
-    expect(bendTypesButtons[BendType.PrebendAndRelease].disabled).toBe(true);
-    expect(bendTypesButtons[BendType.PrebendBend].disabled).toBe(true);
+    expect(component.template.bendTypesButtons[BendType.Prebend].disabled).toBe(
+      true
+    );
+    expect(
+      component.template.bendTypesButtons[BendType.PrebendAndRelease].disabled
+    ).toBe(true);
+    expect(
+      component.template.bendTypesButtons[BendType.PrebendBend].disabled
+    ).toBe(true);
+    // The new bend must start from the previous note's full-tone bend.
+    const start = component.template.bendSelectorGraphSVG.querySelector(
+      "circle:not([tabindex])"
+    );
+    expect(start?.getAttribute("cy")).toBe("200");
   });
 
   test("disables Bend and Bend/Release at the maximum continuation pitch", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    const previous = beats[0].notes?.[0];
-    const current = beats[1].notes?.[0];
-    if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
-      throw Error("Expected guitar notes");
-    }
-    previous.fret = 5;
-    current.fret = 5;
-    previous.addTechnique(
-      new GuitarTechnique(
-        previous,
-        GuitarTechniqueType.Bend,
-        new BendTechniqueOptions({
-          type: BendType.Bend,
-          bendPitch: 3,
-          bendDuration: 0.75,
-        })
+    prepareContinuation(3);
+    const { component } = harness;
+    const graph = component.template.bendSelectorGraphSVG;
+    expect(graph.querySelectorAll("circle[tabindex]")).toHaveLength(0);
+    expect(graph.querySelector("circle")?.getAttribute("cy")).toBe("0");
+    expect(
+      component.template.bendTypesButtons[BendType.Hold].getAttribute(
+        "aria-pressed"
       )
+    ).toBe("true");
+    expect(component.template.bendTypesButtons[BendType.Bend].disabled).toBe(
+      true
     );
-    current.addTechnique(
-      new GuitarTechnique(current, GuitarTechniqueType.LetRing)
+    expect(
+      component.template.bendTypesButtons[BendType.BendAndRelease].disabled
+    ).toBe(true);
+    expect(component.template.bendTypesButtons[BendType.Hold].disabled).toBe(
+      false
     );
-    const {
-      component,
-      bendSelectorManager,
-      bendTypesButtons,
-      templateRenderer,
-    } = makeComponent(current);
-
-    BendControlsComponent.prototype.prepareForOpen.call(component);
-
-    expect(bendSelectorManager.init).toHaveBeenCalledWith(
-      { type: BendType.Hold },
-      3
+    expect(component.template.bendTypesButtons[BendType.Release].disabled).toBe(
+      false
     );
-    expect(templateRenderer.setSelectedBendType).toHaveBeenCalledWith(
-      BendType.Hold
-    );
-    expect(bendTypesButtons[BendType.Bend].disabled).toBe(true);
-    expect(bendTypesButtons[BendType.BendAndRelease].disabled).toBe(true);
-    expect(bendTypesButtons[BendType.Hold].disabled).toBe(false);
-    expect(bendTypesButtons[BendType.Release].disabled).toBe(false);
   });
 
   test("disables every prebend type on Let Ring notes without continuation", () => {
-    const note = createNote();
-    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
-    const { component, bendTypesButtons } = makeComponent(note);
+    const { component, controller } = harness;
+    controller.setTechnique(GuitarTechniqueType.LetRing);
+    component.prepareForOpen();
 
-    BendControlsComponent.prototype.prepareForOpen.call(component);
-
-    expect(bendTypesButtons[BendType.Prebend].disabled).toBe(true);
-    expect(bendTypesButtons[BendType.PrebendAndRelease].disabled).toBe(true);
-    expect(bendTypesButtons[BendType.PrebendBend].disabled).toBe(true);
+    expect(component.template.bendTypesButtons[BendType.Prebend].disabled).toBe(
+      true
+    );
+    expect(
+      component.template.bendTypesButtons[BendType.PrebendAndRelease].disabled
+    ).toBe(true);
+    expect(
+      component.template.bendTypesButtons[BendType.PrebendBend].disabled
+    ).toBe(true);
   });
 
   test("keeps Hold and Release disabled without Let Ring", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    const previous = beats[0].notes?.[0];
-    const current = beats[1].notes?.[0];
-    if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
-      throw Error("Expected guitar notes");
-    }
-    previous.fret = 5;
-    current.fret = 5;
-    previous.addTechnique(
-      new GuitarTechnique(
-        previous,
-        GuitarTechniqueType.Bend,
-        new BendTechniqueOptions({
-          type: BendType.Bend,
-          bendPitch: 1,
-          bendDuration: 0.75,
-        })
-      )
+    prepareContinuation(1, false);
+    const { component } = harness;
+    expect(component.template.bendTypesButtons[BendType.Hold].disabled).toBe(
+      true
     );
-    const { component, bendTypesButtons } = makeComponent(current);
-
-    BendControlsComponent.prototype.prepareForOpen.call(component);
-
-    expect(bendTypesButtons[BendType.Hold].disabled).toBe(true);
-    expect(bendTypesButtons[BendType.Release].disabled).toBe(true);
+    expect(component.template.bendTypesButtons[BendType.Release].disabled).toBe(
+      true
+    );
   });
 
   test("keeps Hold and Release disabled after a releasing bend", () => {
-    const { beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    const previous = beats[0].notes?.[0];
-    const current = beats[1].notes?.[0];
-    if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
-      throw Error("Expected guitar notes");
-    }
-    previous.addTechnique(
-      new GuitarTechnique(
-        previous,
-        GuitarTechniqueType.Bend,
-        new BendTechniqueOptions({
-          type: BendType.BendAndRelease,
-          bendPitch: 1,
-          releasePitch: 0,
-          bendDuration: 0.75,
-        })
-      )
+    prepareContinuation(1, true, true);
+    const { component } = harness;
+    expect(component.template.bendTypesButtons[BendType.Hold].disabled).toBe(
+      true
     );
-    current.addTechnique(
-      new GuitarTechnique(current, GuitarTechniqueType.LetRing)
+    expect(component.template.bendTypesButtons[BendType.Release].disabled).toBe(
+      true
     );
-    const { component, bendTypesButtons } = makeComponent(current);
-
-    BendControlsComponent.prototype.prepareForOpen.call(component);
-
-    expect(bendTypesButtons[BendType.Hold].disabled).toBe(true);
-    expect(bendTypesButtons[BendType.Release].disabled).toBe(true);
   });
 });

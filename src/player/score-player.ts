@@ -272,6 +272,9 @@ export class ScorePlayer {
     this._audioEngine.initialize();
     if (resumeAudio) {
       await this._audioEngine.resume();
+      if (this._disposed) {
+        return;
+      }
     }
     const sampleLoad = this._audioEngine.loadSamples();
     if (waitForSamples) {

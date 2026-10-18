@@ -1,7 +1,11 @@
 import { Guitar, NoteDuration } from "../../../src/notation/model";
 import { PlaybackCursorCoordinator } from "../../../src/player/playback-cursor-coordinator";
 import type { ScheduledBeatChange } from "../../../src/player/playback-scheduler";
-import { trackEvent, TrackEventType } from "../../../src/shared/events";
+import {
+  trackEvent,
+  TrackEventArgs,
+  TrackEventType,
+} from "../../../src/shared/events";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 
 function beatChange(
@@ -13,11 +17,19 @@ function beatChange(
 }
 
 describe("PlaybackCursorCoordinator", () => {
+  let events: TrackEventArgs[TrackEventType.PlayerCurBeatChanged][];
+  const record = (event: TrackEventArgs[TrackEventType.PlayerCurBeatChanged]) =>
+    events.push(event);
+
   beforeEach(() => {
     jest.useFakeTimers();
+    events = [];
+    trackEvent.on(TrackEventType.PlayerCurBeatChanged, record);
   });
 
   afterEach(() => {
+    trackEvent.off(TrackEventType.PlayerCurBeatChanged, record);
+    jest.clearAllTimers();
     jest.useRealTimers();
     jest.restoreAllMocks();
   });
@@ -25,28 +37,29 @@ describe("PlaybackCursorCoordinator", () => {
   test("emits cursor timing against the playback clock", () => {
     const { score, track, bar } = createScoreGraph();
     const beat = bar.ensureVoiceBar(1).beats[0];
-    const emitSpy = jest.spyOn(trackEvent, "emit");
     const coordinator = new PlaybackCursorCoordinator(score, track, 42);
 
     coordinator.processScheduledBeatChanges(
-      [beatChange(beat, 0.5, 1)],
+      [beatChange(beat, 10.5, 11)],
       [],
-      0,
+      10,
       1
     );
     jest.advanceTimersByTime(499);
-    expect(emitSpy).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
 
     jest.advanceTimersByTime(1);
-    expect(emitSpy).toHaveBeenCalledWith(TrackEventType.PlayerCurBeatChanged, {
-      trackUUID: track.uuid,
-      playerUUID: 42,
-      beatUUID: beat.uuid,
-      nextBeatUUID: undefined,
-      startTime: 0.5,
-      endTime: 1,
-      playbackRunId: 1,
-    });
+    expect(events).toEqual([
+      {
+        trackUUID: track.uuid,
+        playerUUID: 42,
+        beatUUID: beat.uuid,
+        nextBeatUUID: undefined,
+        startTime: 10.5,
+        endTime: 11,
+        playbackRunId: 1,
+      },
+    ]);
     expect(coordinator.lastStartedBeat).toBe(beat);
   });
 
@@ -61,7 +74,6 @@ describe("PlaybackCursorCoordinator", () => {
 
   test("rejects stale playback generations", () => {
     const { score, track, bar } = createScoreGraph();
-    const emitSpy = jest.spyOn(trackEvent, "emit");
     const coordinator = new PlaybackCursorCoordinator(score, track, 42);
     coordinator.processScheduledBeatChanges(
       [beatChange(bar.ensureVoiceBar(1).beats[0], 0.5)],
@@ -70,10 +82,18 @@ describe("PlaybackCursorCoordinator", () => {
       1
     );
 
-    coordinator.processScheduledBeatChanges([], [], 0, 2);
+    coordinator.processScheduledBeatChanges(
+      [beatChange(bar.ensureVoiceBar(1).beats[0], 0.75)],
+      [],
+      0,
+      2
+    );
     jest.advanceTimersByTime(500);
 
-    expect(emitSpy).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
+    jest.advanceTimersByTime(250);
+    expect(events).toHaveLength(1);
+    expect(events[0].playbackRunId).toBe(2);
   });
 
   test("truncates cursor work at an inclusive boundary", () => {
@@ -81,7 +101,6 @@ describe("PlaybackCursorCoordinator", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    const emitSpy = jest.spyOn(trackEvent, "emit");
     const coordinator = new PlaybackCursorCoordinator(score, track, 42);
     coordinator.processScheduledBeatChanges(
       [beatChange(beats[0], 1), beatChange(beats[1], 2)],
@@ -93,10 +112,11 @@ describe("PlaybackCursorCoordinator", () => {
     coordinator.truncateFrom(2);
     jest.advanceTimersByTime(2000);
 
-    expect(emitSpy).toHaveBeenCalledTimes(1);
-    expect(emitSpy.mock.calls[0][1]).toEqual(
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual(
       expect.objectContaining({ beatUUID: beats[0].uuid })
     );
+    expect(coordinator.getCurrentBeatForTrack(track, 2)).toBe(beats[0]);
   });
 
   test("queries and retargets buffered cursor timing for another track", () => {
@@ -104,10 +124,19 @@ describe("PlaybackCursorCoordinator", () => {
     const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
     const firstBeat = bar.ensureVoiceBar(1).beats[0];
     const secondBeat = secondTrack.staves[0].bars[0].ensureVoiceBar(1).beats[0];
-    const emitSpy = jest.spyOn(trackEvent, "emit");
+    bar.ensureVoiceBar(1).insertBeat(1);
+    secondTrack.staves[0].bars[0].ensureVoiceBar(1).insertBeat(1);
+    const firstFuture = bar.ensureVoiceBar(1).beats[1];
+    const secondFuture =
+      secondTrack.staves[0].bars[0].ensureVoiceBar(1).beats[1];
     const coordinator = new PlaybackCursorCoordinator(score, track, 42);
     coordinator.processScheduledBeatChanges(
-      [beatChange(firstBeat, 0), beatChange(secondBeat, 0)],
+      [
+        beatChange(firstBeat, 0),
+        beatChange(secondBeat, 0),
+        beatChange(firstFuture, 0.5),
+        beatChange(secondFuture, 0.5),
+      ],
       [],
       0.25,
       1
@@ -121,32 +150,58 @@ describe("PlaybackCursorCoordinator", () => {
 
     expect(coordinator.lastStartedBeat).toBe(secondBeat);
     expect(coordinator.playbackAnchorBeat).toBe(secondBeat);
-    expect(emitSpy).toHaveBeenCalledWith(
-      TrackEventType.PlayerCurBeatChanged,
+    expect(events).toEqual([
       expect.objectContaining({
         trackUUID: secondTrack.uuid,
         beatUUID: secondBeat.uuid,
-      })
-    );
+        playerUUID: 42,
+        playbackRunId: 1,
+      }),
+    ]);
+    expect(events[0].nextBeatUUID).toBe(secondFuture.uuid);
+    expect(events[0].endTime).toBe(0.5);
+    jest.advanceTimersByTime(249);
+    expect(events).toHaveLength(1);
+    jest.advanceTimersByTime(1);
+    expect(events.map((e) => e.beatUUID)).toEqual([
+      secondBeat.uuid,
+      secondFuture.uuid,
+    ]);
+    expect(coordinator.lastStartedBeat).toBe(secondFuture);
   });
 
   test("reset cancels pending events and clears cursor state", () => {
     const { score, track, bar } = createScoreGraph();
-    const emitSpy = jest.spyOn(trackEvent, "emit");
     const coordinator = new PlaybackCursorCoordinator(score, track, 42);
     coordinator.setPlaybackAnchorBeat(bar.ensureVoiceBar(1).beats[0]);
     coordinator.processScheduledBeatChanges(
-      [beatChange(bar.ensureVoiceBar(1).beats[0], 1)],
+      [
+        beatChange(bar.ensureVoiceBar(1).beats[0], 0.5),
+        beatChange(bar.ensureVoiceBar(1).beats[0], 1),
+      ],
       [],
       0,
       1
     );
+    jest.advanceTimersByTime(500);
+    expect(coordinator.lastStartedBeat).toBe(bar.ensureVoiceBar(1).beats[0]);
+    expect(events).toHaveLength(1);
 
     coordinator.reset(2);
     jest.runAllTimers();
 
-    expect(emitSpy).not.toHaveBeenCalled();
+    expect(events).toHaveLength(1);
     expect(coordinator.lastStartedBeat).toBeUndefined();
     expect(coordinator.playbackAnchorBeat).toBeUndefined();
+    expect(coordinator.getCurrentBeatForTrack(track, 1)).toBeUndefined();
+    coordinator.processScheduledBeatChanges(
+      [beatChange(bar.ensureVoiceBar(1).beats[0], 2)],
+      [],
+      1,
+      2
+    );
+    jest.advanceTimersByTime(1000);
+    expect(events).toHaveLength(2);
+    expect(events[1].playbackRunId).toBe(2);
   });
 });
