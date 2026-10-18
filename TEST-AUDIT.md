@@ -95,7 +95,10 @@ assigned shortcut table. See current status below.
 | 46. Panels and accessible controls           | Sol assessment complete                            | Implemented; independent review passed |
 | 47. Configuration, assets, and cleanup       | Sol assessment complete                            | Implemented; independent review passed |
 | 48. Dialog confirmation and focus            | Sol assessment complete                            | Implemented; independent review passed |
-| 49–55                                        | Not started                                        | Not started                            |
+| 49. Dialog ownership and multiple editors    | Sol assessment complete                            | Implemented; independent review passed |
+| 50. Serialization round trips                | Sol assessment complete                            | Implemented; independent review passed |
+| 51. Invalid serialized input                 | Sol assessment complete                            | Implemented; independent review passed |
+| 52–55                                        | Not started                                        | Not started                            |
 
 ## Current handoff scopes
 
@@ -2687,3 +2690,129 @@ No direct removals or source changes; only the two owned specs changed.
   changes or new source bugs. No further commit or push was made.
 - Groups 49–55 are not started. Empty-selection preconditions/API boundary/UI
   reachability remain an audit-closing follow-up; nearest repeat pairing is intended.
+
+### Groups 49–51: complete
+
+- User requested a checkpoint commit and the next three groups. Committed Groups
+  46–48 as `dc9d17fb`, **Improve panels, configuration, and dialog tests**. Nothing
+  pushed. Separate Sol implementations own multi-editor dialog behavior,
+  serialization round trips, and invalid serialized input. Each receives an
+  independent Sol review.
+- Before-round files and checkpoint hash are saved at
+  `/tmp/opencode/tabui-audit-groups-49-51-before/`. Shared serialization ownership is
+  declaration-level, mapped from original baseline titles. Prior dialog improvements,
+  intentional user cleanup, and production fixes are preserved.
+- Approved seams and review discipline remain unchanged. The coordinator owns this
+  record and combined browser/full verification. No further commit is requested.
+  Empty-selection contract/API boundary/reachability remains an audit-closing item;
+  nearest-boundary repeat pairing remains the intended design.
+
+### Group 49: assessment and implementation
+
+- Five owned declarations become four; twelve generated cases become ten. The fake
+  DOM unit declaration/two cases is removed only with real-browser replacements;
+  browser cases remain ten. Earlier Group 48/31 browser prefix is byte-identical
+  to checkpoint. Only owned dialog specs changed; no source edits or confirmed bug.
+- Instance contract adds real cancel/close events and values, prevention, open
+  setters, repeated modeless stability, stale-close no-ops and visible/hidden output.
+  Six cross-mode cases retain DOM/focus/announcement ownership, add repeated/same-
+  instance rejection and successful second opening after release.
+- Two release cases retain four closing routes/prevention, restore actual editor
+  controls and require stale close/requestClose/open=false to preserve the second
+  owner's dialog/announcer. Two-editor coverage uses real clicks/keys, track creation
+  before/after isolation, Escape preserving the other draft, and disposal of one
+  editor while the other's draft remains confirmable, with focus/count guarantees.
+- Given up: exact exception text, method-shape/patching assertions, activeDialog
+  identity, mock mount/focus calls, internal mode flags and artificially pre-set
+  inert sibling restoration. Actual control restoration is retained for review.
+- Scoped browser TypeScript, lint/format/diff and unowned-prefix comparison passed.
+  Whole test compilation awaited parallel serialization work. Independent review
+  is running; browser/full runtime checks remain supervisor-owned.
+- Independent review approved all owned declarations/removal replacements and
+  confirmed the unchanged browser prefix, counts and scoped lint/format/diff.
+  Explicit reduction: arbitrary host-written inert states on editor-owned direct
+  root children are no longer tested. Natural read-only/playback inert states live
+  on nested controls; no current natural-state hole was found. Normal editor
+  restoration remains covered. Runtime browser verification is still pending.
+- Supervisor ran the whole contained-dialog browser spec: all thirty-two cases
+  passed across Chromium/Firefox, including earlier unchanged dialog coverage. Log:
+  `/tmp/opencode/tabui-audit-groups-49-51-dialogs.log`.
+
+### Group 51: assessment and implementation
+
+- All sixteen original declarations assessed; seventeen remain after splitting a
+  runtime table. Owned cases fall fifty-eight to fifty-six. Only owned serialization
+  and reader tests changed; no source bugs/shared helper edits.
+- Existing malformed root/field/prototype enum, alignment/empty voice/mix/tone,
+  fifteen invariants, seven ownership levels and sparse runtime cases remain.
+  Otherwise-valid controls, explicit setup guards and specific reasons make failure
+  paths meaningful. Octave construction errors retain cause plus a one-field fix
+  control; continuation bend rejects pitch below preceding bend and passes after
+  correcting only pitch from one to two.
+- Four public-model runtime rows remain; six fabricated runtime rows become wire
+  cases for fractional/unsafe repeats, unsafe tuplets, null technique and unexpected
+  options. Two duplicate minimum-tuplet/maximum-repeat rows are directly removed,
+  with values retained in wire-invariant cases. Explicitly given up: serializer
+  rejection of fabricated private runtime states, including private repeat/bend
+  writes. Malformed wire rejection and valid public-model validation remain.
+- Reader declarations retain paths, inherited enum/array rejection, unknown/missing
+  keys and error causes, adding valid controls, specific reasons, integer/finite/
+  inclusive bounds, existing error identity, missing-versus-null and successful
+  model operations. These are approved module seams, not new npm API claims.
+- Sixty-one cases across both files (including five Group 50 cases), test compilation
+  and scoped lint/format/diff passed. Independent review is running.
+- Independent review approved all owned tests, positive controls, exact paths/causes
+  and documented serializer-defense tradeoffs. It passed sixty-one cases, test
+  compilation and scoped lint/format/diff. Error helpers still fail on unexpected
+  errors or successful operations; no blockers or optional changes.
+
+### Group 50: assessment and implementation
+
+- Nine declarations/eighteen generated cases remain: eight strengthen, the clear
+  self-contained both-repeat-boundaries test remains unchanged. No removals, source
+  changes or confirmed bugs. Shared helpers unchanged.
+- Metadata/mix/meter/tempo and serialized beats have independent expectations;
+  public staff construction replaces private clef injection. Invalid lone-repeat-
+  end setup becomes a valid self-contained repeat under intended pairing rules.
+  Dotted beats require exact duration/no tuplet/six empty slots and restored dots.
+- Sparse voices/chord slots distinguish absent voices, rests and six-empty-slot note
+  beats; the installed voice containing beats is explicitly nonempty. Serialized
+  tuplet/tuning/fret/bend mutations must preserve source and restored model values.
+- Ten instrument/tone cases require known names/dimensions/literal tuning/program/
+  serialized values. Seven bend shapes require literal serialized and restored
+  options plus owners. Non-bend techniques require successful setup, literal wire
+  values and reconstructed owners/transition targets. Multi-track reconstruction
+  requires separate fresh identities, dimensions, second-bar tempo/meter and worked
+  triplet timing, retaining timing-equality/beaming assertions.
+- Eighteen focused cases, test compilation and scoped lint/format/diff passed;
+  earlier whole-file run passed sixty-six. No coverage intentionally given up.
+  Independent review is running.
+- Independent review approved all nine declarations/eighteen cases, valid fixtures,
+  independent wire/restored oracles and retained ownership/timing. It passed both
+  suites/sixty-six cases and scoped diff. Fresh identities cover representative
+  nodes at each listed level, not every node. Optional serialized name/tuning
+  assertions would strengthen paired-bug detection; restored literal values already
+  provide independent checks. No blockers, source bugs or lost owned coverage.
+
+### Groups 49–51 combined verification
+
+- Whole contained-dialog browser spec passed thirty-two cases across both browsers.
+- Full `npm run verify` passed after all implementations and shared-file format:
+  production/test compilation, package build, all 94 unit suites/983 tests,
+  packed-consumer smoke, Chromium/Firefox (253 passed, one skipped), and demo build.
+  Log: `/tmp/opencode/tabui-audit-groups-49-51-verify.log`.
+- All three groups are implemented and independently reviewed. Repository-wide
+  lint, changed-test/audit formatting and diff checks passed. Net declarations are
+  unchanged: Group 49 removes one with browser replacements, Group 51 adds one by
+  splitting a table, Group 50 retains all nine. Unit cases fall four (987 to 983):
+  two replaced fake-dialog cases and two duplicate validation rows. Suite count
+  falls one because dialog-unit coverage moved to the real browser boundary.
+- Explicit coverage tradeoffs remain above: arbitrary host-written direct-child
+  inert state restoration and serializer defense against fabricated private runtime
+  corruption are no longer covered. Normal editor restoration, malformed wire
+  rejection and public-model validation remain. No production/dependency changes,
+  new source bugs, further commit or push.
+- Groups 52–55 remain. Before declaring the whole audit complete, resolve/document
+  empty-selection preconditions, package API boundary, UI reachability and coverage
+  disposition. Nearest-boundary repeat pairing remains intended and needs consistent
+  documentation rather than an assumed semantic fix.
