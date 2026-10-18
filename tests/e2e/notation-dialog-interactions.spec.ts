@@ -27,7 +27,8 @@ test("time signature hover and click use the clicked bar", async ({ page }) => {
     .click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(clickedText).toHaveText("5");
-  await expect(editor.locator(".tu-time-signature")).toHaveCount(2);
+  // Both bars shared 4/4, so the edit changes the section without a reset marker.
+  await expect(editor.locator(".tu-time-signature")).toHaveCount(1);
 
   // A second edit must refresh the existing signature, not only create it.
   await clickedText.click();
@@ -52,6 +53,17 @@ test("time signature hover and click use the clicked bar", async ({ page }) => {
 test("tempo hover and click use the clicked bar value", async ({ page }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
+  // Create a real tempo boundary; editing the first section must preserve it.
+  await editor.locator('[id^="note-rect-"]').last().click();
+  await page.keyboard.press("m");
+  const setupDialog = editor.getByRole("dialog", { name: "Tempo" });
+  await setupDialog
+    .getByRole("button", { name: "Increase tempo by 10 BPM" })
+    .click();
+  await setupDialog
+    .getByRole("button", { name: "Increase tempo by 10 BPM" })
+    .click();
+  await setupDialog.getByRole("button", { name: "Confirm" }).click();
   const tempos = editor.locator(".tu-tempo");
   const first = tempos.first();
   const image = first.locator('[id^="tempo-img-"]');
@@ -80,7 +92,7 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
     editor
       .getByRole("dialog", { name: "Tempo" })
       .locator(".tu-number-stepper-value")
-  ).toHaveText("120");
+  ).toHaveText("140");
   await editor
     .getByRole("dialog", { name: "Tempo" })
     .getByRole("button", {

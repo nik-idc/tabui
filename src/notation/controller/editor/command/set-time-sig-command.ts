@@ -1,104 +1,53 @@
 import { Score, MasterBar, NoteDuration, ScoreEditor } from "../../../model";
-import { Command, AffectedModel } from "./command";
+import type { TimeSignatureChange } from "../../../model/editor/score-editor";
+import {
+  Command,
+  AffectedModel,
+  getAffectedModelsFromMasterBars,
+} from "./command";
 
-/**
- * Set bar time signature command
- */
+/** Changes meter without moving notes, restoring mixed original meters on undo. */
 export class SetTimeSigCommand implements Command {
-  /** Score that owns bars tied to this master bar */
-  private _score: Score;
-  /** Bar to append the beat to */
-  private _bar: MasterBar;
-  /** New beats count value */
-  private _newBeatsCount?: number;
-  /** New duration value */
-  private _newDuration?: NoteDuration;
-  /** New beats count value */
-  private _oldBeatsCount: number;
-  /** New duration value */
-  private _oldDuration: NoteDuration;
-  /** True if executed, false otherwise*/
-  private _executed: boolean = false;
-  private _affectedMasterBarIndex: number;
+  private readonly _oldValues: TimeSignatureChange[];
+  private readonly _newValues: TimeSignatureChange[];
+  private readonly _affectedModels: AffectedModel[];
+  private _executed = false;
 
-  /**
-   * Set guitar bar timeSig command
-   * @param bar Bar whose timeSig to set
-   */
-
-  /**
-   * Set guitar bar time signature command
-   * @param score Score containing bars tied to the master bar
-   * @param bar Bar whose time signature to set
-   * @param beatsCount Time signature beats count
-   * @param duration Time signature duration
-   */
   constructor(
-    score: Score,
-    bar: MasterBar,
+    private readonly _score: Score,
+    bars: MasterBar[],
     beatsCount?: number,
     duration?: NoteDuration
   ) {
-    this._score = score;
-    this._bar = bar;
-    this._newBeatsCount = beatsCount;
-    this._newDuration = duration;
-    this._oldBeatsCount = bar.beatsCount;
-    this._oldDuration = bar.duration;
-    this._affectedMasterBarIndex = this._score.masterBars.indexOf(bar);
+    this._oldValues = bars.map((masterBar) => ({
+      masterBar,
+      beatsCount: masterBar.beatsCount,
+      duration: masterBar.duration,
+    }));
+    this._newValues = this._oldValues.map((v) => ({
+      masterBar: v.masterBar,
+      beatsCount: beatsCount ?? v.beatsCount,
+      duration: duration ?? v.duration,
+    }));
+    this._affectedModels = getAffectedModelsFromMasterBars(_score, bars);
   }
 
-  /**
-   * Execute set timeSig command
-   */
   execute(): void {
-    ScoreEditor.setTimeSignature(
-      this._score,
-      this._bar,
-      this._newBeatsCount,
-      this._newDuration
-    );
+    ScoreEditor.setTimeSignatures(this._score, this._newValues);
     this._executed = true;
   }
 
-  /**
-   * Undo set timeSig command, i.e. set old timeSig value
-   */
   undo(): void {
-    if (!this._executed) {
-      return;
-    }
-
-    ScoreEditor.setTimeSignature(
-      this._score,
-      this._bar,
-      this._oldBeatsCount,
-      this._oldDuration
-    );
+    if (!this._executed) return;
+    ScoreEditor.setTimeSignatures(this._score, this._oldValues);
   }
 
-  /**
-   * Redo, i.e. restore bar state to before execute
-   */
   redo(): void {
-    if (!this._executed) {
-      throw Error("Redo called before execute");
-    }
-
-    ScoreEditor.setTimeSignature(
-      this._score,
-      this._bar,
-      this._newBeatsCount,
-      this._newDuration
-    );
+    if (!this._executed) throw Error("Redo called before execute");
+    this.execute();
   }
 
   public get affectedModels(): AffectedModel[] {
-    return [
-      {
-        masterBarIndex: this._affectedMasterBarIndex,
-        modelUUID: this._bar.uuid,
-      },
-    ];
+    return this._affectedModels;
   }
 }

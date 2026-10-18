@@ -27,10 +27,9 @@ replace release validation.
 
 ## Before 0.5.0 (release blockers)
 
-- [ ] Change tempo & time signature setting process such that: - Editing a bar's timesig or tempo changes these qualities for each bar
-      after the affected until the next one whose relevant quality differs
-      Eg: - Bar 1:5 - 120 BPM; Bar 6:10 - 140 BPM; Bar 11 and onward - 150 BPM - Change Bar 2's tempo to 140 BPM - Bar 1 - 120 BPM; Bar 2:10 - 140 BPM; Bar 11 and onward - 150 BPM - Multi-bar editing is supported (UI is misleading - allows; underlying code
-      blocks the actual operation)
+- [x] Apply tempo and time-signature edits from the cursor through the remaining
+      section, stopping at the next existing change. Support selected-bar ranges,
+      with one undoable edit and the affected bars shown in the dialog.
 - [ ] Remove the instrument types from UI (keep the Models in code though)
 - [x] Review the active test-quality audit and confirm its release scope.
 - [x] Test the installed TabUI package in raw, React, Angular, and Vue apps.
@@ -64,8 +63,6 @@ blockers.
   bends, serialization, editing, and notation; remove any remaining temporary
   use of Let Ring as a tied-destination marker.
 - Define empty non-null voice rendering before allowing it in persisted scores.
-- Decide whether tempo edits should propagate through later bars or a selected
-  range.
 - Recheck atomic beat replacement and empty-bar normalization; the older plan
   described eager fallback-rest repair as an immediate task.
 - Investigate multi-bar insertion cost against focused-update benchmarks.

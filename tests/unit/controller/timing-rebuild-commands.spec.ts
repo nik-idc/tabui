@@ -199,7 +199,7 @@ describe("Timing rebuild commands", () => {
     }
     const command = new SetTimeSigCommand(
       score,
-      masterBar,
+      [masterBar],
       3,
       NoteDuration.Eighth
     );

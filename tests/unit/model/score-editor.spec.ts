@@ -214,7 +214,7 @@ describe("ScoreEditor", () => {
     ]);
   });
 
-  test("setTimeSignature updates every bar tied to a master bar", () => {
+  test("setTimeSignatures updates every bar tied to an edited master bar", () => {
     const { score, track, masterBar, bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -234,7 +234,9 @@ describe("ScoreEditor", () => {
     expect(bar.checkDurationsFit()).toBe(true);
     expect(siblingBar.checkDurationsFit()).toBe(true);
 
-    ScoreEditor.setTimeSignature(score, masterBar, 3, NoteDuration.Quarter);
+    ScoreEditor.setTimeSignatures(score, [
+      { masterBar, beatsCount: 3, duration: NoteDuration.Quarter },
+    ]);
 
     expect(masterBar.beatsCount).toBe(3);
     // Four quarter notes still occupy four ticks; the new meter allows three.

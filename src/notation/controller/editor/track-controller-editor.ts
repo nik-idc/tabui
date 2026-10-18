@@ -6,6 +6,7 @@ import {
   TechniqueType,
   BendTechniqueOptions,
   MasterBarData,
+  MasterBar,
   TupletSettings,
   DEFAULT_MASTER_BAR,
   VoiceNumber,
@@ -580,39 +581,70 @@ export class TrackControllerEditor {
     this.executeCommand(new SetTupletCommand(selection, settings));
   }
 
-  /**
-   * Set selected bar's tempo
-   * @param newTempo New tempo value
-   */
+  /** Resolves a range, or the cursor's remaining section, before editing it. */
+  private getBarEditTargets(
+    // matches: (bar: MasterBar, first: MasterBar) => boolean
+    isTempoEdit: boolean
+  ): MasterBar[] {
+    const selected = this._selectionManager.selectionAsBeats;
+    if (selected.length === 0) {
+      return [];
+    }
+
+    const bars = this._trackElement.track.score.masterBars;
+    const first = selected[0].voiceBar.bar.masterBar;
+    const startIndex = bars.indexOf(first);
+    if (startIndex < 0) {
+      return [];
+    }
+
+    if (this._selectionManager.selectionCursor === undefined) {
+      const last = selected[selected.length - 1].voiceBar.bar.masterBar;
+      return bars.slice(startIndex, bars.indexOf(last) + 1);
+    }
+
+    const targets: MasterBar[] = [];
+    for (let index = startIndex; index < bars.length; index++) {
+      const bar = bars[index];
+      if (
+        (isTempoEdit && !(bar.tempo === first.tempo)) ||
+        (!isTempoEdit && !bar.isEqualTimeSig(first))
+      ) {
+        break;
+      }
+
+      targets.push(bars[index]);
+    }
+    return targets;
+  }
+
+  /** Bars affected by a tempo edit, stopping at the next original tempo change. */
+  public getTempoEditBars(): MasterBar[] {
+    return this.getBarEditTargets(true);
+  }
+
+  /** Bars affected by a meter edit, comparing numerator and denominator together. */
+  public getTimeSignatureEditBars(): MasterBar[] {
+    return this.getBarEditTargets(false);
+  }
+
+  /** Sets tempo for the selected bars or the cursor's remaining tempo section. */
   public setSelectedBarTempo(newTempo: number): void {
     if (!this.editingEnabled) {
       return;
     }
-    const selectionCursor = this._selectionManager.selectionCursor;
-    if (selectionCursor === undefined) {
+    const bars = this.getTempoEditBars();
+    if (bars.every((v) => v.tempo === newTempo)) {
       return;
     }
 
-    if (selectionCursor.bar.masterBar.tempo === newTempo) {
-      return;
-    }
-
-    const nextBar = selectionCursor.staff.getNextBar(selectionCursor.bar);
-    const masterBarIndex = selectionCursor.bar.staff.bars.indexOf(
-      selectionCursor.bar
-    );
     this.executeCommand(
-      new SetTempoCommand(selectionCursor.bar.masterBar, newTempo, [
-        { masterBarIndex, modelUUID: selectionCursor.bar.uuid },
-        ...(nextBar !== null
-          ? [{ masterBarIndex: masterBarIndex + 1, modelUUID: nextBar.uuid }]
-          : []),
-      ])
+      new SetTempoCommand(this._trackElement.track.score, bars, newTempo)
     );
   }
 
   /**
-   * Set selected bar's time signature
+   * Sets meter for the selected bars or the cursor's remaining meter section.
    * @param beatsCount Beats count
    * @param duration Duration
    */
@@ -627,22 +659,20 @@ export class TrackControllerEditor {
       throw Error("Set bar time signature with both values undefined");
     }
 
-    const selectionCursor = this._selectionManager.selectionCursor;
-    if (selectionCursor === undefined) {
-      return;
-    }
-
-    if (
-      selectionCursor.bar.masterBar.beatsCount === beatsCount &&
-      selectionCursor.bar.masterBar.duration === duration
-    ) {
+    const bars = this.getTimeSignatureEditBars();
+    const isUnchanged = bars.every(
+      (v) =>
+        (beatsCount === undefined || v.beatsCount === beatsCount) &&
+        (duration === undefined || v.duration === duration)
+    );
+    if (isUnchanged) {
       return;
     }
 
     this.executeCommand(
       new SetTimeSigCommand(
-        selectionCursor.staff.track.score,
-        selectionCursor.bar.masterBar,
+        this._trackElement.track.score,
+        bars,
         beatsCount,
         duration
       )

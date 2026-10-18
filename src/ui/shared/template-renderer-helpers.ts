@@ -1,4 +1,16 @@
 import { ResolvedAssetConfig, resolveAssetUrl } from "../../assets";
+import type { MasterBar } from "../../notation/model/master-bar";
+import type { Score } from "../../notation/model/score";
+
+/** Describes the score-wide bar span affected by a settings dialog. */
+export function getBarEditScopeText(score: Score, bars: MasterBar[]): string {
+  if (bars.length === 0) return "";
+  const first = score.masterBars.indexOf(bars[0]) + 1;
+  const last = score.masterBars.indexOf(bars[bars.length - 1]) + 1;
+  return first === last
+    ? ` Applies to bar ${first}.`
+    : ` Applies to bars ${first}–${last}.`;
+}
 
 export interface DialogSection {
   element: HTMLElement;

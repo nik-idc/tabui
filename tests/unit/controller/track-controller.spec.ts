@@ -2487,6 +2487,43 @@ describe("TrackController", () => {
     ).toBeCloseTo(initialY + TEST_LAYOUT_DIMENSIONS.techLabelHeight);
   });
 
+  test.each([
+    { setting: "tempo", meter: false },
+    { setting: "time-signature", meter: true },
+  ])(
+    "$setting range edits preserve outside bars and restore mixed values on undo/redo",
+    ({ meter }) => {
+      const { score, track } = createScoreGraph();
+      for (const settings of [
+        { tempo: 140, beatsCount: 3 },
+        { tempo: 150, beatsCount: 5 },
+      ]) {
+        score.appendMasterBar({ ...DEFAULT_MASTER_BAR, ...settings });
+      }
+      const original = serializeScore(score);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      const values = () =>
+        score.masterBars.map((v) => (meter ? v.beatsCount : v.tempo));
+
+      // Select bars 1–2, leaving bar 3 unchanged.
+      // Bar 1 already matches; it must not cause the whole edit to be skipped.
+      controller.selectNoteElement(
+        getBeatElement(controller, 0, 0).noteElements[0]
+      );
+      controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+      if (meter) {
+        controller.setSelectedBarTimeSignature(4, NoteDuration.Quarter);
+      } else {
+        controller.setSelectedBarTempo(120);
+      }
+      expect(values()).toEqual(meter ? [4, 4, 5] : [120, 120, 150]);
+      controller.undo();
+      expect(serializeScore(score)).toEqual(original);
+      controller.redo();
+      expect(values()).toEqual(meter ? [4, 4, 5] : [120, 120, 150]);
+    }
+  );
+
   test("adding a tempo moves later lines and undo restores their positions", () => {
     const { score, track } = createScoreGraph();
     for (let i = 0; i < 120; i++) {

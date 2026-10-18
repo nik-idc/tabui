@@ -588,10 +588,14 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       const barActions: readonly string[] = [
         EditorKey.RepeatStart,
         EditorKey.RepeatEndSettings,
-        EditorKey.TempoSettings,
-        EditorKey.TimeSignatureSettings,
       ];
       if (barActions.includes(key) && !controller.selectionCursor) {
+        return false;
+      }
+      if (
+        key === EditorKey.TempoSettings &&
+        controller.selectionAsBeats.length === 0
+      ) {
         return false;
       }
 

@@ -8,6 +8,7 @@ import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
+  getBarEditScopeText,
 } from "../../../shared";
 import { TempoControlsTemplate } from "./tempo-controls-template";
 
@@ -66,17 +67,24 @@ export class TempoControlsTemplateRenderer {
   private renderTextContainer(): void {
     const cssClass = "tu-tempo-text";
     this.template.textContainer.classList.add(cssClass);
-    this.template.textContainer.textContent = "Edit tempo:";
+    const controller = this.notationComponent.trackController;
+    const bars = controller.getTempoEditBars();
+    const scope = getBarEditScopeText(controller.track.score, bars);
+    const mixed = bars.some((v) => v.tempo !== bars[0].tempo);
+    this.template.textContainer.textContent =
+      `Edit tempo.${scope}` +
+      (mixed
+        ? " Mixed tempos; confirm to apply the displayed value to all selected bars."
+        : "");
   }
 
   private renderInputs(): void {
-    const selectionCursor =
-      this.notationComponent.trackController.selectionCursor;
+    const first =
+      this.notationComponent.trackController.selectionAsBeats[0]?.voiceBar.bar
+        .masterBar;
 
     const tempoInitValue =
-      selectionCursor !== undefined
-        ? `${selectionCursor.bar.masterBar.tempo}`
-        : `${DEFAULT_MASTER_BAR.tempo}`;
+      first !== undefined ? `${first.tempo}` : `${DEFAULT_MASTER_BAR.tempo}`;
 
     this.template.valueControl.classList.add("tu-number-stepper");
     this.template.decreaseTenButton.textContent = "-10";

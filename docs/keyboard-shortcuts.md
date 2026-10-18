@@ -84,21 +84,22 @@ Shift to produce it. The `=` shortcut is unshifted.
 
 These actions require edit mode and stopped playback.
 
-| Key          | Action                                               |
-| ------------ | ---------------------------------------------------- |
-| A            | Insert a beat after the selection.                   |
-| Shift+A      | Insert a beat before the selection.                  |
-| Delete       | Remove selected beats.                               |
-| I            | Insert a bar after the selection.                    |
-| Shift+I      | Insert a bar before the selection.                   |
-| Shift+Delete | Remove selected bars.                                |
-| R            | Toggle repeat start on the cursor's bar.             |
-| Shift+R      | Open repeat-end count settings for the cursor's bar. |
-| M            | Open tempo settings for the cursor's bar.            |
-| Shift+M      | Open time-signature settings for the cursor's bar.   |
+| Key          | Action                                                        |
+| ------------ | ------------------------------------------------------------- |
+| A            | Insert a beat after the selection.                            |
+| Shift+A      | Insert a beat before the selection.                           |
+| Delete       | Remove selected beats.                                        |
+| I            | Insert a bar after the selection.                             |
+| Shift+I      | Insert a bar before the selection.                            |
+| Shift+Delete | Remove selected bars.                                         |
+| R            | Toggle repeat start on the cursor's bar.                      |
+| Shift+R      | Open repeat-end count settings for the cursor's bar.          |
+| M            | Open tempo settings for the cursor or selected bars.          |
+| Shift+M      | Open time-signature settings for the cursor or selected bars. |
 
-Repeat, tempo, and time-signature shortcuts require a single note cursor rather
-than a beat range.
+Repeat shortcuts require a single note cursor. Tempo and time-signature edits
+apply to all bars touched by a beat range. With a cursor, they apply from that
+bar up to the next existing change in the relevant setting, or the score's end.
 
 ## Guitar techniques
 

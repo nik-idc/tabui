@@ -2,6 +2,7 @@ import { PlaybackState, ScorePlayer } from "../../player";
 import type { PlaybackOptions } from "../../player";
 import {
   Track,
+  MasterBar,
   Bar,
   Beat,
   NoteDuration,
@@ -590,10 +591,17 @@ export class TrackController {
     );
   }
 
-  /**
-   * Set tempo of the bar containing the selected note
-   * @param newTempo New tempo value
-   */
+  /** Resolves the bars that the current tempo edit will affect. */
+  public getTempoEditBars(): MasterBar[] {
+    return this._trackControllerEditor.getTempoEditBars();
+  }
+
+  /** Resolves the bars that the current time-signature edit will affect. */
+  public getTimeSignatureEditBars(): MasterBar[] {
+    return this._trackControllerEditor.getTimeSignatureEditBars();
+  }
+
+  /** Sets tempo for the selected bars or the cursor's remaining tempo section. */
   public setSelectedBarTempo(newTempo: number): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;
@@ -602,7 +610,7 @@ export class TrackController {
   }
 
   /**
-   * Set time signature of the bar containing the selected note
+   * Sets meter for the selected bars or the cursor's remaining meter section.
    * @param beatsCount Beats count
    * @param duration Duration
    */

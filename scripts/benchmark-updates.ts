@@ -251,7 +251,7 @@ function createTimeSigCase(
           (index) =>
             new SetTimeSigCommand(
               score,
-              score.masterBars[index],
+              [score.masterBars[index]],
               beatsCount,
               duration
             )
@@ -272,14 +272,9 @@ function createTempoCase(
         indices.map(
           (index, i) =>
             new SetTempoCommand(
-              score.masterBars[index],
-              tempos[i] ?? tempos[0],
-              [
-                {
-                  masterBarIndex: index,
-                  modelUUID: getBeat(score, index, 0).uuid,
-                },
-              ]
+              score,
+              [score.masterBars[index]],
+              tempos[i] ?? tempos[0]
             )
         )
       ),

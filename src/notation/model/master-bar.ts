@@ -178,6 +178,18 @@ export class MasterBar {
     return this._isRepeatStart && this._isRepeatEnd;
   }
 
+  /**
+   * Checks the time signature data equality between this and another bar
+   * @param otherBar - Other bar
+   * @returns Time signature comparison result
+   */
+  public isEqualTimeSig(otherBar: MasterBar): boolean {
+    return (
+      this._beatsCount === otherBar.beatsCount &&
+      this._duration === otherBar.duration
+    );
+  }
+
   /** Whether this bar starts a repeat section. */
   public get isRepeatStart(): boolean {
     return this._isRepeatStart;

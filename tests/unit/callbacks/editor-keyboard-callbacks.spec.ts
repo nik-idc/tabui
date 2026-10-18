@@ -393,7 +393,7 @@ describe("EditorKeyboardDefCallbacks", () => {
     }
   );
 
-  test("ranges reject cursor-only dialogs, repeats, and dead notes", () => {
+  test("ranges allow tempo and meter dialogs but reject cursor-only actions", () => {
     const {
       callbacks,
       notationComponent,
@@ -411,12 +411,12 @@ describe("EditorKeyboardDefCallbacks", () => {
     controller.extendSelectionByBeat(SelectedMoveDirection.Right);
     expect(controller.selectionAsBeats).toEqual(beats);
     rootElement.focus();
-    for (const key of ["x", "b", "r", "m"]) {
+    for (const key of ["x", "b", "r"]) {
       const event = createKeyboardEvent(key);
       callbacks.onKeyDown(event);
       expect(event.preventDefault).not.toHaveBeenCalled();
     }
-    for (const key of ["r", "m"]) {
+    for (const key of ["r"]) {
       const event = createKeyboardEvent(key, { shiftKey: true });
       callbacks.onKeyDown(event);
       expect(event.preventDefault).not.toHaveBeenCalled();
@@ -435,6 +435,17 @@ describe("EditorKeyboardDefCallbacks", () => {
         expect(open).not.toHaveBeenCalled();
       }
     }
+    for (const shiftKey of [false, true]) {
+      const event = createKeyboardEvent("m", { shiftKey });
+      callbacks.onKeyDown(event);
+      expect(event.preventDefault).toHaveBeenCalled();
+    }
+    expect(
+      uiComponent.sideComponent.measureControlsComponent.showTempoControls
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      uiComponent.sideComponent.measureControlsComponent.showTimeSigControls
+    ).toHaveBeenCalledTimes(1);
   });
 
   test.each([false, true])("repeat start toggles from %s", (enabled) => {

@@ -248,19 +248,25 @@ describe("mounted editor lifecycle and callbacks", () => {
     second.editor.subscribe(otherListener);
     const cause = new Error("blocked");
     audio.context.resume.mockRejectedValueOnce(cause);
-    button(first.root, "Play").click();
-    await settleTransport();
-    expect(listener).toHaveBeenCalledWith({
-      type: "error",
-      error: {
-        source: "playback",
-        code: PlaybackErrorCode.ContextInit,
-        message: "Failed to prepare audio",
-        cause,
-      },
-    });
-    expect(otherListener).not.toHaveBeenCalled();
-    expect(first.editor.getState().playback.state).toBe("idle");
+    const errorLog = jest.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      button(first.root, "Play").click();
+      await settleTransport();
+      expect(errorLog.mock.calls).toEqual([["Failed to prepare audio", cause]]);
+      expect(listener).toHaveBeenCalledWith({
+        type: "error",
+        error: {
+          source: "playback",
+          code: PlaybackErrorCode.ContextInit,
+          message: "Failed to prepare audio",
+          cause,
+        },
+      });
+      expect(otherListener).not.toHaveBeenCalled();
+      expect(first.editor.getState().playback.state).toBe("idle");
+    } finally {
+      errorLog.mockRestore();
+    }
   });
   test("disposed controls do not notify hosts and state APIs remain terminal", () => {
     const { editor, root } = mount();

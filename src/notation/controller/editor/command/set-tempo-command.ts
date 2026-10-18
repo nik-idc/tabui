@@ -1,74 +1,57 @@
-import { MasterBar } from "../../../model";
-import { Command, AffectedModel } from "./command";
+import { MasterBar, Score } from "../../../model";
+import {
+  Command,
+  AffectedModel,
+  getAffectedModelsFromMasterBars,
+} from "./command";
 
-/**
- * Set bar tempo command
- */
+/** Updates a fixed set of bars, restoring each original tempo on undo. */
 export class SetTempoCommand implements Command {
-  /** Bar to append the beat to */
-  private _bar: MasterBar;
-  private _affectedModels: AffectedModel[];
-  /** New tempo value */
-  private _newTempo: number;
-  /** Old tempo value */
-  private _oldTempo: number;
-  /** True if executed, false otherwise*/
-  private _executed: boolean = false;
+  private readonly _oldTempos: number[];
+  private readonly _affectedModels: AffectedModel[];
+  private _executed = false;
 
-  /**
-   * Set guitar bar tempo command
-   * @param bar Bar whose tempo to set
-   * @param newTempo New tempo value
-   */
   constructor(
-    bar: MasterBar,
-    newTempo: number,
-    affectedModels: AffectedModel[]
+    score: Score,
+    private readonly _bars: MasterBar[],
+    private readonly _newTempo: number
   ) {
-    this._bar = bar;
-    this._affectedModels = affectedModels;
-    this._newTempo = newTempo;
-    this._oldTempo = bar.tempo;
+    this._oldTempos = _bars.map((v) => v.tempo);
+    this._affectedModels = getAffectedModelsFromMasterBars(score, _bars);
   }
 
-  /**
-   * Execute set tempo command
-   */
   execute(): void {
-    this._bar.tempo = this._newTempo;
+    for (const bar of this._bars) {
+      bar.tempo = this._newTempo;
+    }
+
     this._executed = true;
   }
 
-  /**
-   * Undo set tempo command, i.e. set old tempo value
-   */
   undo(): void {
     if (!this._executed) {
       return;
     }
 
-    this._bar.tempo = this._oldTempo;
+    for (const [index, bar] of this._bars.entries()) {
+      bar.tempo = this._oldTempos[index];
+    }
   }
 
-  /**
-   * Redo, i.e. restore bar state to before execute
-   */
   redo(): void {
     if (!this._executed) {
       throw Error("Redo called before execute");
     }
 
-    this._bar.tempo = this._newTempo;
+    this.execute();
   }
 
   public get executed(): boolean {
     return this._executed;
   }
-
   public get affectsTempoVisibility(): boolean {
     return this._affectedModels.length > 0;
   }
-
   public get affectedModels(): AffectedModel[] {
     return this._affectedModels;
   }

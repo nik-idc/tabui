@@ -716,7 +716,7 @@ test("disabled techniques and range-only restrictions ignore shortcuts", async (
   );
   await expect(editor.getByRole("button", { name: /^Bend/ })).toBeDisabled();
   const range = await editingState(editor);
-  for (const key of ["b", "x", "7", "Backspace", "r", "m"]) {
+  for (const key of ["b", "x", "7", "Backspace", "r"]) {
     await page.keyboard.press(key);
     expect(await editingState(editor)).toEqual(range);
     await expect(editor.getByRole("dialog")).toHaveCount(0);

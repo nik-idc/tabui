@@ -7,6 +7,7 @@ import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
+  getBarEditScopeText,
 } from "../../../shared";
 import { TimeSigControlsTemplate } from "./time-sig-controls-template";
 import { AVAILABLE_TIME_SIG_DURATIONS } from "./time-sig-controls-callbacks";
@@ -68,21 +69,25 @@ export class TimeSigControlsTemplateRenderer {
   private renderTextContainer(): void {
     const cssClass = "tu-time-sig-text";
     this.template.textContainer.classList.add(cssClass);
-    this.template.textContainer.textContent = "Edit time signature:";
+    const controller = this.notationComponent.trackController;
+    const bars = controller.getTimeSignatureEditBars();
+    const scope = getBarEditScopeText(controller.track.score, bars);
+    const mixed = bars.some((v) => !v.isEqualTimeSig(bars[0]));
+    this.template.textContainer.textContent =
+      `Edit time signature.${scope}` +
+      (mixed
+        ? " Mixed time signatures; confirm to apply the displayed value to all selected bars."
+        : "");
   }
 
   private renderInputs(): void {
-    const selectionCursor =
-      this.notationComponent.trackController.selectionCursor;
+    const first =
+      this.notationComponent.trackController.selectionAsBeats[0]?.voiceBar.bar
+        .masterBar;
 
-    const beatsInitValue =
-      selectionCursor !== undefined
-        ? `${selectionCursor.bar.masterBar.beatsCount}`
-        : "4";
+    const beatsInitValue = first !== undefined ? `${first.beatsCount}` : "4";
     const durationInitValue =
-      selectionCursor !== undefined
-        ? `${1 / selectionCursor.bar.masterBar.duration}`
-        : "4";
+      first !== undefined ? `${1 / first.duration}` : "4";
 
     this.template.beatsLabel.textContent = "Beats per measure";
     this.template.beatsControl.classList.add("tu-number-stepper");

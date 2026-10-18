@@ -1,9 +1,22 @@
-import { Beat } from "../../../model";
+import { Beat, MasterBar, Score } from "../../../model";
 
 export type AffectedModel = {
   masterBarIndex: number;
   modelUUID: number;
 };
+
+/** Includes edited master bars and their successors, whose change labels may differ. */
+export function getAffectedModelsFromMasterBars(
+  score: Score,
+  bars: MasterBar[]
+): AffectedModel[] {
+  const targets = new Set(bars);
+  return score.masterBars.flatMap((bar, index) =>
+    targets.has(bar) || targets.has(score.masterBars[index - 1])
+      ? [{ masterBarIndex: index, modelUUID: bar.uuid }]
+      : []
+  );
+}
 
 export function getAffectedModelsFromBeats(beats: Beat[]): AffectedModel[] {
   const affectedModels: AffectedModel[] = [];

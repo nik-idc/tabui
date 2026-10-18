@@ -23,6 +23,13 @@ export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
   beat: Beat<I>;
 };
 
+/** A complete meter value to apply to one master bar. */
+export type TimeSignatureChange = {
+  masterBar: MasterBar;
+  beatsCount: number;
+  duration: NoteDuration;
+};
+
 export type BeatReplacementOutput<I extends MusicInstrument = MusicInstrument> =
   {
     insertedBeats: Beat<I>[];
@@ -140,24 +147,22 @@ export class ScoreEditor {
     return score.prependMasterBar(masterBarData, voiceNumber);
   }
 
-  public static setTimeSignature(
+  /** Applies bar meters together and rebuilds affected voices across all tracks. */
+  public static setTimeSignatures(
     score: Score,
-    masterBar: MasterBar,
-    beatsCount?: number,
-    duration?: NoteDuration
+    changes: TimeSignatureChange[]
   ): void {
-    if (beatsCount !== undefined) {
-      masterBar.beatsCount = beatsCount;
-    }
-    if (duration !== undefined) {
-      masterBar.duration = duration;
+    const masterBars = new Set(changes.map((v) => v.masterBar));
+    for (const change of changes) {
+      change.masterBar.beatsCount = change.beatsCount;
+      change.masterBar.duration = change.duration;
     }
 
     const affectedVoiceBars = new Set<VoiceBar>();
     for (const track of score.tracks) {
       for (const staff of track.staves) {
         for (const bar of staff.bars) {
-          if (bar.masterBar === masterBar) {
+          if (masterBars.has(bar.masterBar)) {
             for (const voiceBar of bar.voiceBarsAsArray) {
               affectedVoiceBars.add(voiceBar);
             }
