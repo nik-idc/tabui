@@ -35,18 +35,17 @@ replace release validation.
 - [x] Review the active test-quality audit and confirm its release scope.
 - [x] Test the installed TabUI package in raw, React, Angular, and Vue apps.
       Provide runnable demos and test framework apps in development and production.
-- [ ] Evaluate headless use: model-to-geometry and one-shot rendering to a file or
-      buffer. Record the supported scope; this may require work beyond the release.
-- [ ] Confirm provenance and redistribution terms for the demo audio samples.
+- [x] Audit headless feasibility. Models and internal geometry work without a
+      browser; public geometry APIs and one-shot export are deferred until after
+      `0.5.0`.
+- [x] Confirm provenance and redistribution terms for the demo audio samples.
+      Credit Jason Champion / Free Wave Samples in the README and demo, with a
+      link to the sample license.
 - [ ] Investigate the recurring Chromium timeout in the view-only keyboard test
       (`tests/e2e/keyboard-editing.spec.ts`). It passes in isolation but has exceeded
       its 10-second limit in full runs, stopping the verification gate.
 - [ ] Run `npm run verify`, `npx eslint .`,
       `git diff --check`, and `npm run benchmark:updates` from clean build output.
-- [ ] Smoke-test desktop Chrome and Firefox, keyboard-only use, tablet/touch
-      input, embedded layouts, persistence, playback, and repeated mount/disposal.
-- [ ] Review the packed file list, release version, usage examples, known limits,
-      and user-visible release notes, then publish and deploy the demo.
 
 ## Follow-up inbox
 
@@ -84,6 +83,19 @@ blockers.
   customization based on actual consumer needs.
 
 ## After 0.5.0
+
+### Headless use and export
+
+- Expose model-to-geometry APIs for line breaks, positions, and bounds in Node.
+  Score creation, editing, validation, and serialization already work without a
+  browser; the geometry classes are currently internal.
+- Add browser-backed, one-shot SVG export, then PNG/PDF export through Playwright.
+  Render all lines, omit interaction overlays, include styles/assets, and bypass
+  the editor's playback lifecycle.
+- Assess browser-free SVG export separately. The current renderer needs DOM nodes
+  and browser SVG measurements, so this requires more than a small API addition.
+
+### Other deferred work
 
 The former P2 work is deferred:
 

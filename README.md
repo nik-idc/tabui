@@ -76,3 +76,10 @@ request features through [GitHub Issues](https://github.com/nik-idc/tabui/issues
 ## License
 
 [MIT](LICENSE).
+
+The demo audio samples were recorded by Jason Champion and provided by
+[Free Wave Samples](https://freewavesamples.com/). They are freeware for
+royalty-free use under the site's [sample license](https://freewavesamples.com/about-us-license),
+which allows hosting samples for web-app playback but not as a separate download
+collection. These samples are not covered by TabUI's MIT license and are not
+included in the npm package.
