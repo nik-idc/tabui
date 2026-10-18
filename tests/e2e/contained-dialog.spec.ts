@@ -201,12 +201,15 @@ test("traps focus and closes with Escape", async ({ page }) => {
   await opener.click();
 
   const dialog = editor.getByRole("dialog", { name: "New track" });
-  const first = dialog.getByRole("button", { name: "Strings", exact: true });
+  const first = dialog.getByRole("button", {
+    name: "Acoustic Guitar",
+    exact: true,
+  });
   const last = dialog.getByRole("button", { name: "Cancel", exact: true });
   await expect(first).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(
-    dialog.getByRole("button", { name: "Orchestra", exact: true })
+    dialog.getByRole("button", { name: "Electric Guitar", exact: true })
   ).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(first).toBeFocused();
