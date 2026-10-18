@@ -50,7 +50,8 @@ editor.init();
 ```
 
 See the [usage guide](docs/usage.md) for configuration, events, persistence,
-and lifecycle details.
+and lifecycle details. For framework setup, see the
+[React, Angular, and Vue examples](docs/usage.md#framework-integration).
 
 ## Status and limits
 

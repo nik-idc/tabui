@@ -1,0 +1,110 @@
+<main class="angular-demo" [attr.data-theme]="variant">
+  <h1>TabUI + Angular</h1>
+  <p>Select a track, resize, or remount the editor.</p>
+  <nav aria-label="Angular host controls">
+    <button (click)="mounted = !mounted">
+      {{ mounted ? 'Unmount editor' : 'Mount editor' }}
+    </button>
+    <button
+      [disabled]="editor === null"
+      (click)="editor?.refreshLayout(width === 1200 ? 1100 : 1200)"
+    >
+      Resize editor
+    </button>
+    <button (click)="variant = variant === 'light' ? 'dark' : 'light'">
+      Use {{ variant === 'light' ? 'dark' : 'light' }} theme
+    </button>
+  </nav>
+  <section class="host-session" aria-label="Angular practice planner">
+    <h2>Angular practice planner</h2>
+    <p>
+      Angular owns this form. Typing updates the preview without recreating
+      TabUI. Track changes also update the preview.
+    </p>
+    <form aria-label="Practice session" novalidate (ngSubmit)="saveSession()">
+      <label
+        >Session title
+        <input
+          name="title"
+          required
+          [(ngModel)]="title"
+          (ngModelChange)="formError = ''"
+          [attr.aria-invalid]="formError !== ''"
+          [attr.aria-describedby]="formError ? 'session-title-error' : null"
+        />
+      </label>
+      @if (formError) {
+      <p id="session-title-error" role="alert">{{ formError }}</p>
+      }
+      <label
+        >Practice pace
+        <select name="pace" [(ngModel)]="pace">
+          <option>Slow</option>
+          <option>Steady</option>
+          <option>Fast</option>
+        </select>
+      </label>
+      <label class="host-checkbox"
+        ><input
+          type="checkbox"
+          name="includeNotes"
+          [(ngModel)]="includeNotes"
+        />Include practice notes</label
+      >
+      @if (includeNotes) {
+      <label
+        >Practice notes<textarea name="notes" [(ngModel)]="notes"></textarea>
+      </label>
+      }
+      <p>
+        Live preview:
+        <output aria-label="Session preview"
+          >{{ title.trim() || 'Untitled session' }} · {{ pace }} · {{
+          activeTrack }}</output
+        >
+      </p>
+      <button type="submit">Save session</button>
+    </form>
+    <ul aria-label="Saved sessions">
+      @for (session of sessions; track session.id) {
+      <li>
+        <strong>{{ session.title }}</strong> · {{ session.pace }} · {{
+        session.track }} @if (session.notes) {
+        <p>{{ session.notes }}</p>
+        }
+        <button
+          type="button"
+          [attr.aria-label]="'Remove session ' + session.title"
+          (click)="removeSession(session.id)"
+        >
+          Remove
+        </button>
+      </li>
+      }
+    </ul>
+  </section>
+  <dl>
+    <dt>Active track</dt>
+    <dd><output aria-label="Active track">{{ activeTrack }}</output></dd>
+    <dt>Layout width</dt>
+    <dd><output aria-label="Layout width">{{ width }}</output></dd>
+    <dt>Change events</dt>
+    <dd><output aria-label="Change events">{{ events }}</output></dd>
+    <dt>Effect setups</dt>
+    <dd><output aria-label="Effect setups">{{ setups }}</output></dd>
+    <dt>Effect cleanups</dt>
+    <dd><output aria-label="Effect cleanups">{{ cleanups }}</output></dd>
+  </dl>
+  <p id="host-sibling">Angular-owned content stays mounted.</p>
+  @if (error) {
+  <p role="alert">{{ error }}</p>
+  } @if (mounted) {
+  <tabui-host
+    [score]="score"
+    [variant]="variant"
+    (ready)="onReady($event)"
+    (stateChange)="onChange($event)"
+    (failure)="error = $event"
+  />
+  }
+</main>

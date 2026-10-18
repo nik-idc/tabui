@@ -8,7 +8,7 @@ vocabulary.
 
 ## Setup
 
-Use Node.js 20 or later and npm.
+Use a supported Node.js LTS release (20.19+, 22.12+, or 24+) and npm.
 
 ```sh
 npm ci
@@ -26,39 +26,55 @@ npx playwright install --with-deps chromium firefox
 ```
 
 Run `npm run verify` before submitting a change. It checks TypeScript, builds the
-package, runs unit, raw and React integration, and browser tests, then
+package, runs unit, raw, React, Angular, and Vue integration, and browser tests, then
 builds the demo.
 Also run `npx eslint .` and `git diff --check`.
 
 Useful focused commands:
 
-| Command                          | Purpose                                                             |
-| -------------------------------- | ------------------------------------------------------------------- |
-| `npm run test:unit`              | Unit tests and test TypeScript checks                               |
-| `npm run test:raw-integration`   | Raw showcase and lifecycle: package types, builds, browser behavior |
-| `npm run demo:raw`               | Launch the main showcase with source hot reload                     |
-| `npm run test:react-integration` | React consumer: types, Strict Mode, and production build            |
-| `npm run demo:react`             | Build TabUI and launch the React integration demo                   |
-| `npm run test:e2e`               | Chromium and Firefox browser tests                                  |
-| `npm run benchmark:updates`      | Local layout/update performance comparison                          |
-| `npm run build:package`          | Library output in `dist/`                                           |
-| `npm run build:demo`             | Demo output in `demo/dist/`                                         |
+| Command                            | Purpose                                                             |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| `npm run test:unit`                | Unit tests and test TypeScript checks                               |
+| `npm run test:raw-integration`     | Raw showcase and lifecycle: package types, builds, browser behavior |
+| `npm run demo:raw`                 | Launch the main showcase with source hot reload                     |
+| `npm run test:react-integration`   | React consumer: types, Strict Mode, and production build            |
+| `npm run demo:react`               | Build TabUI and launch the React integration demo                   |
+| `npm run test:angular-integration` | Angular app: TypeScript/templates, development and production       |
+| `npm run demo:angular`             | Build TabUI and launch the Angular integration demo                 |
+| `npm run test:vue-integration`     | Vue app: TypeScript/templates, development and production           |
+| `npm run demo:vue`                 | Build TabUI and launch the Vue integration demo                     |
+| `npm run test:e2e`                 | Chromium and Firefox browser tests                                  |
+| `npm run benchmark:updates`        | Local layout/update performance comparison                          |
+| `npm run build:package`            | Library output in `dist/`                                           |
+| `npm run build:demo`               | Demo output in `demo/dist/`                                         |
 
-Run `npm run build:package` before a focused integration test so that the tarball
-contains the current library build. Each fixture is type-checked inside its
-temporary consumer project, against the installed package rather than the source
-tree. `npm run test:integration` runs both consumer tests.
+The consumer integration tests run small TabUI apps in Chromium using Playwright.
+Each test copies a demo into a temporary directory, installs a local TabUI package
+file made with `npm pack`, and checks the app's types, build, and browser behavior.
+This tests the package users install, rather than importing library source files
+directly. The test scripts also stop their servers and remove the temporary files.
 
-The React demo uses the same fixture as the React integration test. It opens at
-`http://127.0.0.1:5174`; press Ctrl+C to stop it and remove its temporary install.
-See [React integration](demo/react/README.md) for the example's
-lifecycle and test coverage.
+Run `npm run build:package` before a focused integration test so the package
+contains the current library build. `npm run test:integration` runs all four
+consumer tests. These are Node.js scripts using Playwright's browser tools and
+assertions; the separate `tests/e2e/` suite uses the Playwright Test runner.
+
+Each framework demo uses the same app as its integration test. Press Ctrl+C to
+stop the server and remove its temporary install:
+
+| Demo and lifecycle guide          | Address                 |
+| --------------------------------- | ----------------------- |
+| [React](demo/react/README.md)     | `http://127.0.0.1:5174` |
+| [Angular](demo/angular/README.md) | `http://127.0.0.1:5175` |
+| [Vue](demo/vue/README.md)         | `http://127.0.0.1:5176` |
 
 ## Repository layout
 
 - `src/`: library code.
 - `demo/raw/`: main showcase; deployed to GitHub Pages.
 - `demo/react/`: React consumer demo, also used by its integration test.
+- `demo/angular/`: Angular consumer demo, also used by its integration test.
+- `demo/vue/`: Vue consumer demo, also used by its integration test.
 - `assets/`: shared runtime icons and demo audio samples. Only icons ship in npm.
 - `tests/`: unit, framework integration, and browser tests.
 - `tests/helpers/`: test-only utilities.

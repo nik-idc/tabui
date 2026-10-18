@@ -220,8 +220,17 @@ also handles development Strict Mode's setup → cleanup → setup cycle. The pa
 keeps callbacks stable with `useCallback` to avoid unnecessary recreation; theme
 changes intentionally recreate the editor while preserving the score.
 
-The React example covers client rendering with Vite. It does not establish an
-SSR or hydration integration; editor creation requires the browser DOM.
+The [Angular demo and lifecycle guide](../demo/angular/README.md) shows the same
+host/editor boundary using Angular components and forms. The
+[Vue demo and lifecycle guide](../demo/vue/README.md) uses Composition API lifecycle
+hooks, `v-model`, and `shallowRef`/`markRaw` to keep library objects out of deep
+reactivity.
+
+All four examples—[raw JavaScript/TypeScript](../demo/raw/README.md), React,
+Angular, and Vue—are tested using a locally built npm package, as a separate app
+would install it. The framework examples run in the browser. They do not cover
+server-side rendering (SSR) or hydration; create the editor after its container
+is mounted in the browser.
 
 ## State and events
 

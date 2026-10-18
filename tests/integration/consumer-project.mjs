@@ -12,19 +12,27 @@ const rootDir = path.resolve(
   "../.."
 );
 
-/** Installs a packed TabUI build and isolated tools for a consumer fixture. */
-export async function createConsumerProject(fixture, name, dependencies = {}) {
+/**
+ * Installs a packed TabUI build and isolated tools for a consumer fixture.
+ * Optional tools, devDependencies, scripts, and timeout override Vite defaults.
+ */
+export async function createConsumerProject(
+  fixture,
+  name,
+  dependencies = {},
+  options = {}
+) {
   const workspace = await mkdtemp(path.join(tmpdir(), `tabui-${name}-`));
   const directory = path.join(workspace, "consumer");
 
   /** Runs a bounded consumer command with captured failure output. */
-  async function run(command, args, options = {}) {
+  async function run(command, args, commandOptions = {}) {
     try {
       return await execFileAsync(command, args, {
         cwd: directory,
-        timeout: 120_000,
+        timeout: options.timeout ?? 120_000,
         maxBuffer: 10 * 1024 * 1024,
-        ...options,
+        ...commandOptions,
       });
     } catch (cause) {
       const stdout = cause.stdout ? `\nstdout:\n${cause.stdout}` : "";
@@ -50,7 +58,7 @@ export async function createConsumerProject(fixture, name, dependencies = {}) {
     assert(jsonStart !== -1, `npm pack did not return JSON:\n${packed.stdout}`);
     const [info] = JSON.parse(packed.stdout.slice(jsonStart));
     const versions = {};
-    for (const tool of ["vite", "typescript"]) {
+    for (const tool of options.tools ?? ["vite", "typescript"]) {
       const manifest = JSON.parse(
         await readFile(
           path.join(rootDir, "node_modules", tool, "package.json"),
@@ -65,7 +73,7 @@ export async function createConsumerProject(fixture, name, dependencies = {}) {
         {
           private: true,
           type: "module",
-          scripts: {
+          scripts: options.scripts ?? {
             dev: "vite",
             build: "vite build",
             typecheck: "tsc --noEmit",
@@ -74,7 +82,7 @@ export async function createConsumerProject(fixture, name, dependencies = {}) {
             ...dependencies,
             "@atikincode/tabui": path.join(workspace, info.filename),
           },
-          devDependencies: versions,
+          devDependencies: { ...versions, ...options.devDependencies },
         },
         null,
         2

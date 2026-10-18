@@ -1,5 +1,8 @@
 # React integration and demo
 
+This demo and its integration tests were written entirely by AI. I considered
+that appropriate for their purpose as framework integration examples and checks.
+
 This demo is a small React 19.3.1 application. It is both the automated
 integration consumer and a runnable example. It installs TabUI from a locally
 packed npm tarball and uses only public package exports.

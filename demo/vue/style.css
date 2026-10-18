@@ -1,0 +1,83 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+.vue-demo {
+  --demo-surface: #ffffff;
+  --demo-border: #94a3b8;
+  min-height: 100vh;
+  padding: 16px;
+  background: #f8fafc;
+  color: #111827;
+  color-scheme: light;
+}
+
+.vue-demo[data-theme="dark"] {
+  --demo-surface: #111827;
+  --demo-border: #475569;
+  background: #0b1120;
+  color: #e5eefb;
+  color-scheme: dark;
+}
+
+.vue-demo > nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.host-session {
+  max-width: 720px;
+  margin-block: 16px;
+  padding: 16px;
+  border: 1px solid var(--demo-border);
+  border-radius: 8px;
+  background: var(--demo-surface);
+}
+
+.host-session form,
+.host-session label {
+  display: grid;
+  gap: 6px;
+}
+
+.host-session form {
+  gap: 12px;
+}
+
+.host-session input:not([type="checkbox"]),
+.host-session select,
+.host-session textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--demo-border);
+  border-radius: 4px;
+  color: inherit;
+  background: var(--demo-surface);
+  font: inherit;
+}
+
+.host-session .host-checkbox {
+  display: flex;
+  align-items: center;
+}
+
+.host-session li {
+  margin-block: 8px;
+}
+
+.host-session li button {
+  margin-inline-start: 12px;
+}
+
+.vue-demo > dl {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: 4px 16px;
+}
+
+.vue-demo > dl > dd {
+  margin: 0;
+}

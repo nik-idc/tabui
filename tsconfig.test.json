@@ -7,5 +7,10 @@
     "paths": { "@atikincode/tabui": ["./src/index.ts"] }
   },
   "include": ["src/**/*", "demo/**/*", "tests/**/*", "fixtures/**/*"],
-  "exclude": ["tests/integration/raw/fixture", "demo/react"]
+  "exclude": [
+    "tests/integration/raw/fixture",
+    "demo/react",
+    "demo/angular",
+    "demo/vue"
+  ]
 }

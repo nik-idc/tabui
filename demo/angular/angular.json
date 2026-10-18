@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": { "analytics": false },
+  "projects": {
+    "demo": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": ".",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "main.ts",
+            "index": "index.html",
+            "tsConfig": "tsconfig.json",
+            "polyfills": ["zone.js"],
+            "styles": ["style.css"],
+            "outputPath": "dist/demo"
+          },
+          "configurations": {
+            "production": { "optimization": true, "outputHashing": "all" },
+            "development": { "optimization": false, "sourceMap": true }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "buildTarget": "demo:build:development",
+            "host": "127.0.0.1"
+          }
+        }
+      }
+    }
+  }
+}

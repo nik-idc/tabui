@@ -258,7 +258,8 @@ async function checkBrowser() {
         ? await createServer({
             root: project.directory,
             configFile: false,
-            server: { host: "127.0.0.1", port: 0, strictPort: true },
+            // Vite 6 treats port 0 as its default; allow a running raw demo.
+            server: { host: "127.0.0.1", port: 0, strictPort: false },
           })
         : await preview({
             root: project.directory,

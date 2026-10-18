@@ -32,12 +32,9 @@ replace release validation.
       Eg: - Bar 1:5 - 120 BPM; Bar 6:10 - 140 BPM; Bar 11 and onward - 150 BPM - Change Bar 2's tempo to 140 BPM - Bar 1 - 120 BPM; Bar 2:10 - 140 BPM; Bar 11 and onward - 150 BPM - Multi-bar editing is supported (UI is misleading - allows; underlying code
       blocks the actual operation)
 - [ ] Remove the instrument types from UI (keep the Models in code though)
-- [ ] Review the active test-quality audit and confirm its release scope.
-      See [TEST-AUDIT.md](TEST-AUDIT.md):
-      groups 1–6 are complete; groups 7–55 remain open.
-- [ ] Validate integration in frontend frameworks. React is the first target;
-      Vue, Angular, and Svelte are additional candidates. Decide whether a separate
-      Next.js example adds useful coverage.
+- [x] Review the active test-quality audit and confirm its release scope.
+- [x] Test the installed TabUI package in raw, React, Angular, and Vue apps.
+      Provide runnable demos and test framework apps in development and production.
 - [ ] Evaluate headless use: model-to-geometry and one-shot rendering to a file or
       buffer. Record the supported scope; this may require work beyond the release.
 - [ ] Confirm provenance and redistribution terms for the demo audio samples.
