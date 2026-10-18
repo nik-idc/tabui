@@ -30,7 +30,8 @@ replace release validation.
 - [x] Apply tempo and time-signature edits from the cursor through the remaining
       section, stopping at the next existing change. Support selected-bar ranges,
       with one undoable edit and the affected bars shown in the dialog.
-- [ ] Remove the instrument types from UI (keep the Models in code though)
+- [x] Remove the instrument family selector (Strings, Orchestra, Drums) from
+      track dialogs, keeping the models in code.
 - [x] Review the active test-quality audit and confirm its release scope.
 - [x] Test the installed TabUI package in raw, React, Angular, and Vue apps.
       Provide runnable demos and test framework apps in development and production.

@@ -2,7 +2,6 @@ import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
-  setImageAsset,
   setupDialogActionButtons,
 } from "../../../shared";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
@@ -57,7 +56,6 @@ export class NewTrackControlsTemplateRenderer {
           element: this.template.settingsContainer,
           className: "tu-nt-settings-container",
           children: [
-            this.template.instrFamiliesContainer,
             this.template.instrSelectContainer,
             this.template.trackInfoContainer,
           ],
@@ -69,9 +67,6 @@ export class NewTrackControlsTemplateRenderer {
         },
       ]
     );
-    this.template.instrFamiliesContainer.classList.add(
-      "tu-nt-families-container"
-    );
     this.template.instrSelectContainer.classList.add(
       "tu-nt-instr-settings-container"
     );
@@ -81,9 +76,6 @@ export class NewTrackControlsTemplateRenderer {
       "tu-nt-track-info-container"
     );
 
-    this.template.instrFamiliesContainer.append(
-      ...this.template.instrFamiliesButtons
-    );
     this.template.instrSelectContainer.append(
       this.template.instrTypesContainer,
       this.template.instrTonesContainer
@@ -112,35 +104,6 @@ export class NewTrackControlsTemplateRenderer {
       this.template.wholeTuningDownButton,
       this.template.wholeTuningUpButton
     );
-  }
-
-  private renderInstrumentFamiliesButtons(): void {
-    const families = Object.values(InstrumentFamily);
-    if (this.template.instrFamiliesButtons.length === 0) {
-      for (let i = 0; i < families.length; i++) {
-        this.template.instrFamiliesButtons.push(createButton());
-      }
-    }
-
-    // Mark applied/disabled
-    for (let i = 0; i < families.length; i++) {
-      const imageButton = this.template.instrFamiliesButtons[i];
-      const family = families[i];
-      imageButton.classList.toggle(
-        "tu-applied-img",
-        family === this._currentFamily
-      );
-      setImageAsset(
-        imageButton,
-        this.assetsPath,
-        `img/ui/${family.toLowerCase()}.svg`,
-        family
-      );
-      imageButton.setAttribute(
-        "aria-pressed",
-        `${family === this._currentFamily}`
-      );
-    }
   }
 
   private renderInstrumentTypesButtons(): void {
@@ -323,7 +286,6 @@ export class NewTrackControlsTemplateRenderer {
     this._currentStringCount = currentStringCount;
     this._currentTuning = currentTuning;
 
-    this.renderInstrumentFamiliesButtons();
     this.renderInstrumentTypesButtons();
     this.renderInstrumentTonesButtons();
     this.renderInputs();

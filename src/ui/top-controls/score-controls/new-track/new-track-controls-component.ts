@@ -8,7 +8,6 @@ import {
   Guitar,
   InstrumentFamily,
   InstrumentType,
-  INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
   isStringInstrumentType,
   parseTuningStrSimple,
@@ -79,22 +78,6 @@ export class NewTrackControlsComponent {
       this._stringCount,
       this._tuning
     );
-  }
-
-  public setFamily(newFamily: InstrumentFamily): void {
-    const types = INSTRUMENT_TYPES[newFamily];
-    if (types.length === 0) {
-      return;
-    }
-
-    this._instrumentFamily = newFamily;
-    this._instrumentType = types[0];
-    const tones = INSTRUMENT_TONES[this._instrumentType];
-    if (tones === undefined || tones.length === 0) {
-      return;
-    }
-    this._instrumentTone = tones[0];
-    this.render();
   }
 
   public setType(newType: InstrumentType): void {

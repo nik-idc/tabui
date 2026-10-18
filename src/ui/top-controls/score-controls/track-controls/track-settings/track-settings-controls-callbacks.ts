@@ -1,5 +1,4 @@
 import {
-  InstrumentFamily,
   InstrumentType,
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
@@ -14,7 +13,6 @@ export interface TrackSettingsControlsCallbacks {
   readonly tuningErrorText: string;
 
   onDialogClicked(event: MouseEvent): void;
-  onFamilyClicked(family: InstrumentFamily): void;
   onTypeClicked(type: InstrumentType): void;
   onToneClicked(tone: StringInstrumentTone): void;
   onTuningStringStep(stringIndex: number, semitones: number): void;
@@ -48,11 +46,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
     this._renderFunc = renderFunc;
     this._captureKeyboard = captureKeyboard;
     this._freeKeyboard = freeKeyboard;
-  }
-
-  onFamilyClicked(family: InstrumentFamily): void {
-    this._trackSettingsComponent.setFamily(family);
-    this._renderFunc();
   }
 
   onTypeClicked(type: InstrumentType): void {
@@ -132,17 +125,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       event: "close",
       handler: () => this._freeKeyboard(),
     });
-
-    const families = Object.values(InstrumentFamily);
-    const familiesButtons =
-      this._trackSettingsComponent.template.instrFamiliesButtons;
-    for (let i = 0; i < families.length; i++) {
-      configs.push({
-        element: familiesButtons[i] as HTMLElement,
-        event: "click",
-        handler: () => this.onFamilyClicked(families[i]),
-      });
-    }
 
     const family = this._trackSettingsComponent.instrumentFamily;
     const types = INSTRUMENT_TYPES[family];

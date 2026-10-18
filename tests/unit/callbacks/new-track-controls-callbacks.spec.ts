@@ -118,8 +118,6 @@ describe("NewTrackControlsDefaultCallbacks", () => {
 
   test("instrument, string-count, and tuning controls determine the created instrument", () => {
     const { controls, score } = fixture;
-    controls.template.instrFamiliesButtons[0].click();
-    expect(controls.instrumentType).toBe(StringInstrumentType.AcousticGuitar);
     controls.template.instrTypesButtons[1].click();
     controls.template.instrTonesButtons[1].click();
     controls.template.stringCountDownButton.click();

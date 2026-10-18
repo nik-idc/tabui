@@ -119,8 +119,6 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     const { callbacks, controls, track } = fixture;
     callbacks.bind();
     callbacks.bind();
-    controls.template.instrFamiliesButtons[0].click();
-    expect(controls.instrumentType).toBe(StringInstrumentType.AcousticGuitar);
     controls.template.instrTypesButtons[1].click();
     controls.template.instrTonesButtons[1].click();
     expect(controls.makeInstrument().type).toBe(

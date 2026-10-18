@@ -1,5 +1,4 @@
 import {
-  InstrumentFamily,
   InstrumentType,
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
@@ -13,7 +12,6 @@ export interface NewTrackControlsCallbacks {
   readonly tuningErrorText: string;
 
   onDialogClicked(event: MouseEvent): void;
-  onFamilyClicked(family: InstrumentFamily): void;
   onTypeClicked(type: InstrumentType): void;
   onToneClicked(tone: StringInstrumentTone): void;
   onTrackNameChanged(): void;
@@ -62,11 +60,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     ) {
       this._newTrackComponent.dialog.close();
     }
-  }
-
-  onFamilyClicked(family: InstrumentFamily): void {
-    this._newTrackComponent.setFamily(family);
-    this._renderFunc();
   }
 
   onTypeClicked(type: InstrumentType): void {
@@ -158,17 +151,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       event: "close",
       handler: () => this._freeKeyboard(),
     });
-
-    const families = Object.values(InstrumentFamily);
-    const familiesButtons =
-      this._newTrackComponent.template.instrFamiliesButtons;
-    for (let i = 0; i < families.length; i++) {
-      configs.push({
-        element: familiesButtons[i] as HTMLElement,
-        event: "click",
-        handler: () => this.onFamilyClicked(families[i]),
-      });
-    }
 
     const types = INSTRUMENT_TYPES[this._newTrackComponent.instrumentFamily];
     const typesButtons = this._newTrackComponent.template.instrTypesButtons;
