@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { cp, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -46,6 +54,11 @@ export async function createConsumerProject(
 
   try {
     await cp(fixture, directory, { recursive: true });
+    await mkdir(path.join(directory, "public"), { recursive: true });
+    await cp(
+      path.join(rootDir, "assets/tabber-favicon.svg"),
+      path.join(directory, "public/tabber-favicon.svg")
+    );
     const packed = await run(
       "npm",
       ["pack", "--json", "--ignore-scripts", "--pack-destination", workspace],

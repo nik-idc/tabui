@@ -111,6 +111,7 @@ async function startProduction() {
     ".html": "text/html",
     ".js": "text/javascript",
     ".css": "text/css",
+    ".svg": "image/svg+xml",
     ".map": "application/json",
   };
   const server = createServer(async (request, response) => {

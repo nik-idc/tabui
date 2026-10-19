@@ -16,6 +16,7 @@
             "tsConfig": "tsconfig.json",
             "polyfills": ["zone.js"],
             "styles": ["style.css"],
+            "assets": [{ "glob": "**/*", "input": "public" }],
             "outputPath": "dist/demo"
           },
           "configurations": {

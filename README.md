@@ -77,6 +77,10 @@ request features through [GitHub Issues](https://github.com/nik-idc/tabui/issues
 
 [MIT](LICENSE).
 
+The favicon lettering is based on [JetBrains Mono NL](https://www.jetbrains.com/lp/mono/)
+(Ultra-Bold Italic), designed by Philipp Nurullin for JetBrains. The font is
+licensed under the [SIL Open Font License 1.1](https://github.com/JetBrains/JetBrainsMono/blob/master/OFL.txt).
+
 The demo audio samples were recorded by Jason Champion and provided by
 [Free Wave Samples](https://freewavesamples.com/). They are freeware for
 royalty-free use under the site's [sample license](https://freewavesamples.com/about-us-license),

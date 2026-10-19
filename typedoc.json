@@ -3,6 +3,7 @@
   "entryPoints": ["src/index.ts"],
   "out": "docs/api",
   "name": "TabUI API",
+  "favicon": "assets/tabber-docs.svg",
   "readme": "none",
   "excludePrivate": true,
   "excludeProtected": true

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .mark { fill: #111827; }
+    @media (prefers-color-scheme: dark) { .mark { fill: #e5eefb; } }
+  </style>
+  <g transform="matrix(-0.90251419,0,0,1.1281419,58.540798,-7.6885797)">
+    <path class="mark" transform="matrix(-0.95027056,0,0,0.62866197,86.967723,-16.733257)" d="m 60.092328,116.41815 q -8.064,0 -11.904,-4.608 -3.84,-4.608 -2.592,-12.672004 l 3.552,-22.56 h -14.208 l 2.016,-12.96 h 14.208 l 2.4,-14.88 h 14.4 l -2.4,14.88 h 20.64 l -2.016,12.96 h -20.64 l -3.552,22.08 q -0.288,2.112004 0.576,3.456004 0.864,1.344 2.976,1.344 h 15.84 l -2.016,12.96 z" />
+  </g>
+  <path fill="#2563eb" stroke="#fff" stroke-width="2" stroke-linejoin="round" d="M42 34h12l8 8v18H42z" />
+  <path fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round" d="M54 34v8h8M47 48h10m-10 6h10" />
+</svg>
