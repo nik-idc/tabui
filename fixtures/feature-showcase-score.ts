@@ -1,169 +1,203 @@
 import {
+  Beat,
   DEFAULT_BASS_GUITARS,
   DEFAULT_ELECTRIC_GUITARS,
   Guitar,
   GuitarNote,
   NoteDuration,
   Score,
-  Track,
+  Staff,
+  VoiceNumber,
 } from "@atikincode/tabui";
 import { createScore } from "./score-builder";
+import { appendFeatureShowcaseSolo } from "./feature-showcase-solo";
 
-const rhythmChordFrets = [
-  [null, 2, 2, 1, null, null],
-  [null, 3, 2, 0, null, null],
-  [null, 0, 2, 2, null, null],
-  [null, 2, 4, 4, null, null],
+type StringFret = [stringNumber: number, fret: number];
+
+const quarter = NoteDuration.Quarter;
+const eighth = NoteDuration.Eighth;
+const half = NoteDuration.Half;
+
+// Six bars in E minor: Em, C, G, D, Am, Em.
+const trebleFrets = [
+  [0, 3, 0, 0],
+  [1, 3, 5, 3, 1],
+  [3, 0, 3, 0],
+  [3, 2, 3, 5, 3],
+  [1, 0, 1, 3],
+  [0, 0],
 ];
-const leadFrets = [12, 15, 14, 12, 17, 15, 14, 19];
-const bassFrets = [0, 3, 5, 7, 5, 3];
-
-const stavesInfo = [
+const trebleDurations = [
+  [quarter, quarter, quarter, quarter],
+  [eighth, eighth, quarter, quarter, quarter],
+  [quarter, quarter, quarter, quarter],
+  [quarter, eighth, eighth, quarter, quarter],
+  [quarter, quarter, quarter, quarter],
+  [half, half],
+];
+const accompaniment: StringFret[][] = [
   [
-    {
-      beatsCount: 1,
-      beatsDuration: NoteDuration.Whole,
-    },
-    {
-      beatsCount: 2,
-      beatsDuration: NoteDuration.Half,
-    },
-    {
-      beatsCount: 4,
-      beatsDuration: NoteDuration.Quarter,
-    },
-    {
-      beatsCount: 8,
-      beatsDuration: NoteDuration.Eighth,
-    },
-    {
-      beatsCount: 16,
-      beatsDuration: NoteDuration.Sixteenth,
-    },
-    {
-      beatsCount: 32,
-      beatsDuration: NoteDuration.ThirtySecond,
-    },
+    [6, 0],
+    [4, 2],
+    [5, 2],
+    [4, 2],
   ],
   [
-    {
-      beatsCount: 2,
-      beatsDuration: NoteDuration.Half,
-    },
-    {
-      beatsCount: 2,
-      beatsDuration: NoteDuration.Half,
-    },
-    {
-      beatsCount: 4,
-      beatsDuration: NoteDuration.Quarter,
-    },
-    {
-      beatsCount: 4,
-      beatsDuration: NoteDuration.Quarter,
-    },
-    {
-      beatsCount: 8,
-      beatsDuration: NoteDuration.Eighth,
-    },
-    {
-      beatsCount: 8,
-      beatsDuration: NoteDuration.Eighth,
-    },
+    [5, 3],
+    [4, 2],
+    [6, 3],
+    [4, 2],
+  ],
+  [
+    [6, 3],
+    [4, 0],
+    [5, 2],
+    [4, 0],
+  ],
+  [
+    [4, 0],
+    [3, 2],
+    [5, 0],
+    [3, 2],
+  ],
+  [
+    [5, 0],
+    [4, 2],
+    [6, 0],
+    [4, 2],
+  ],
+  [
+    [6, 0],
+    [4, 2],
+    [5, 2],
+    [6, 0],
   ],
 ];
-
-const tracksInfo = [
-  {
-    instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
-    stavesInfo: stavesInfo,
-    name: "Rhythm track",
-  },
-  {
-    instrument: DEFAULT_ELECTRIC_GUITARS["Electric Overdrive"],
-    stavesInfo: stavesInfo,
-    name: "Lead track",
-  },
-  {
-    instrument: DEFAULT_BASS_GUITARS["Bass Clean"],
-    stavesInfo: stavesInfo,
-    name: "Bass track",
-  },
+const leadFrets = [
+  [12, 15, 14, 12],
+  [12, 15, 17, 15, 12],
+  [15, 19, 17, 15],
+  [14, 17, 15, 14, 10],
+  [12, 17, 15, 12],
+  [14, 12, 12],
+];
+const leadDurations = [
+  [quarter, quarter, quarter, quarter],
+  [eighth, eighth, quarter, quarter, quarter],
+  [quarter, quarter, quarter, quarter],
+  [eighth, eighth, quarter, quarter, quarter],
+  [quarter, quarter, quarter, quarter],
+  [quarter, quarter, half],
+];
+// A slower inner line makes the lead a two-part guitar melody.
+const harmonyFrets = [
+  [9, 12],
+  [9, 12],
+  [12, 7],
+  [7, 11],
+  [9, 5],
+  [11, 9],
+];
+const bassFrets = [
+  [0, 7],
+  [8, 3],
+  [3, 10],
+  [10, 5],
+  [5, 0],
+  [0, 0],
 ];
 
-function setBeatFrets(
-  beatNotes: GuitarNote[] | null,
-  frets: (number | null)[]
+/** Fills one voice with single-string notes and independent beat durations. */
+function fillPart(
+  staff: Staff<Guitar>,
+  voiceNumber: VoiceNumber,
+  pitches: StringFret[][],
+  durations: NoteDuration[][]
 ): void {
-  if (beatNotes === null) {
-    return;
-  }
-
-  for (let i = 0; i < beatNotes.length; i++) {
-    beatNotes[i].fret = frets[i] ?? null;
-  }
-}
-
-function shapeRhythmTrack(track: Track<Guitar>): void {
-  for (const staff of track.staves) {
-    for (let barIndex = 0; barIndex < staff.bars.length; barIndex++) {
-      const voiceBar = staff.bars[barIndex].getVoiceBar(1);
-      for (const beat of voiceBar?.beats ?? []) {
-        setBeatFrets(
-          beat.notes as GuitarNote[] | null,
-          rhythmChordFrets[barIndex % rhythmChordFrets.length]
-        );
-      }
-    }
+  for (const [barIndex, bar] of staff.bars.entries()) {
+    const voice =
+      bar.getVoiceBar(voiceNumber) ?? bar.insertVoiceBar(voiceNumber);
+    const beats = pitches[barIndex].map(([stringNumber, fret], i) => {
+      const beat = new Beat<Guitar>(
+        voice,
+        voice.trackContext,
+        [],
+        durations[barIndex][i]
+      );
+      beat.setNote(
+        stringNumber - 1,
+        new GuitarNote(beat, voice.trackContext, stringNumber, fret)
+      );
+      return beat;
+    });
+    voice.replaceBeats(beats);
   }
 }
 
-function shapeLeadTrack(track: Track<Guitar>): void {
-  let noteIndex = 0;
-  for (const staff of track.staves) {
-    for (const bar of staff.bars) {
-      const voiceBar = bar.getVoiceBar(1);
-      for (const beat of voiceBar?.beats ?? []) {
-        const noteCount = beat.notes?.length ?? 0;
-        const frets = Array<number | null>(noteCount).fill(null);
-        frets[0] = leadFrets[noteIndex % leadFrets.length];
-        noteIndex++;
-        setBeatFrets(beat.notes as GuitarNote[] | null, frets);
-      }
-    }
-  }
-}
-
-function shapeBassTrack(track: Track<Guitar>): void {
-  let noteIndex = 0;
-  for (const staff of track.staves) {
-    for (const bar of staff.bars) {
-      const voiceBar = bar.getVoiceBar(1);
-      for (const beat of voiceBar?.beats ?? []) {
-        const noteCount = beat.notes?.length ?? 0;
-        const frets = Array<number | null>(noteCount).fill(null);
-        frets[frets.length - 1] = bassFrets[noteIndex % bassFrets.length];
-        noteIndex++;
-        setBeatFrets(beat.notes as GuitarNote[] | null, frets);
-      }
-    }
-  }
-}
-
-function shapeFeatureShowcaseParts(score: Score): void {
-  shapeRhythmTrack(score.tracks[0] as Track<Guitar>);
-  shapeLeadTrack(score.tracks[1] as Track<Guitar>);
-  shapeBassTrack(score.tracks[2] as Track<Guitar>);
-}
-
+/** Builds a split fingerstyle arrangement, two-voice lead, and a separate feature-rich solo. */
 export function createFeatureShowcaseScoreFixture(): Score {
+  const halfNotes = bassFrets.map(() => [half, half]);
   const score = createScore(
     "Feature Showcase Score",
     "TabUI",
-    "Multi-track Playback Demo",
+    "Evening in E Minor",
     6,
-    tracksInfo
+    [
+      {
+        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
+        name: "Rhythm track",
+        stavesInfo: [
+          (staff) =>
+            fillPart(
+              staff,
+              1,
+              trebleFrets.map((b) => b.map((f) => [2, f])),
+              trebleDurations
+            ),
+          (staff) =>
+            fillPart(
+              staff,
+              1,
+              accompaniment,
+              accompaniment.map(() => [quarter, quarter, quarter, quarter])
+            ),
+        ],
+      },
+      {
+        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Overdrive"],
+        name: "Lead track",
+        stavesInfo: [
+          (staff) => {
+            fillPart(
+              staff,
+              1,
+              leadFrets.map((b) => b.map((f) => [1, f])),
+              leadDurations
+            );
+            fillPart(
+              staff,
+              2,
+              harmonyFrets.map((b) => b.map((f) => [3, f])),
+              halfNotes
+            );
+          },
+        ],
+      },
+      {
+        instrument: DEFAULT_BASS_GUITARS["Bass Clean"],
+        name: "Bass track",
+        stavesInfo: [
+          (staff) =>
+            fillPart(
+              staff,
+              1,
+              bassFrets.map((b) => b.map((f) => [4, f])),
+              halfNotes
+            ),
+        ],
+      },
+    ]
   );
-  shapeFeatureShowcaseParts(score);
+  appendFeatureShowcaseSolo(score);
   return score;
 }

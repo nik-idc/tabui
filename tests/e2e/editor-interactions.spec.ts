@@ -247,7 +247,7 @@ test("keeps concise arrow announcements after the automatic flush", async ({
   await page.clock.runFor(100);
 
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
-    "Bar 2, 4/4, 120 BPM, Voice 1, Beat 1, half, String 1, empty."
+    "Beat 2, quarter, String 1, empty."
   );
 });
 

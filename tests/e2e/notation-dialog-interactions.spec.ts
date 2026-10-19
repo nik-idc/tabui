@@ -53,17 +53,7 @@ test("time signature hover and click use the clicked bar", async ({ page }) => {
 test("tempo hover and click use the clicked bar value", async ({ page }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
-  // Create a real tempo boundary; editing the first section must preserve it.
-  await editor.locator('[id^="note-rect-"]').last().click();
-  await page.keyboard.press("m");
-  const setupDialog = editor.getByRole("dialog", { name: "Tempo" });
-  await setupDialog
-    .getByRole("button", { name: "Increase tempo by 10 BPM" })
-    .click();
-  await setupDialog
-    .getByRole("button", { name: "Increase tempo by 10 BPM" })
-    .click();
-  await setupDialog.getByRole("button", { name: "Confirm" }).click();
+  // The solo provides a real tempo boundary; opening-section edits must preserve it.
   const tempos = editor.locator(".tu-tempo");
   const first = tempos.first();
   const image = first.locator('[id^="tempo-img-"]');
@@ -92,7 +82,7 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
     editor
       .getByRole("dialog", { name: "Tempo" })
       .locator(".tu-number-stepper-value")
-  ).toHaveText("140");
+  ).toHaveText("144");
   await editor
     .getByRole("dialog", { name: "Tempo" })
     .getByRole("button", {

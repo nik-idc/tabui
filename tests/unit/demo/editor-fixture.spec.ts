@@ -26,30 +26,32 @@ import {
 const FIXTURE_EXPECTATIONS = {
   feature_showcase: {
     name: "Feature Showcase Score",
-    tracks: 3,
-    bars: 6,
-    voicesByStaff: [[1], [1]],
+    tracks: 4,
+    bars: 14,
+    voicesByTrack: [[[1], [1]], [[1, 2]], [[1]], [[1]]],
   },
-  empty: { name: "Unknown", tracks: 1, bars: 1, voicesByStaff: [[1]] },
+  empty: { name: "Unknown", tracks: 1, bars: 1, voicesByTrack: [[[1]]] },
   performance_stress: {
     name: "Performance Stress Score",
     tracks: 1,
     bars: 1000,
-    voicesByStaff: [[1]],
+    voicesByTrack: [[[1]]],
   },
   multi_voice_single_staff: {
     name: "Multi Voice Single Staff",
     tracks: 1,
     bars: 3,
-    voicesByStaff: [[1, 2]],
+    voicesByTrack: [[[1, 2]]],
   },
   multi_voice_two_staff: {
     name: "Multi Voice Two Staff",
     tracks: 1,
     bars: 3,
-    voicesByStaff: [
-      [1, 2],
-      [1, 3],
+    voicesByTrack: [
+      [
+        [1, 2],
+        [1, 3],
+      ],
     ],
   },
 } as const;
@@ -142,14 +144,15 @@ describe("editor fixture and theme resolution", () => {
         expect(score.name).toBe(expected.name);
         expect(score.tracks).toHaveLength(expected.tracks);
         expect(score.masterBars).toHaveLength(expected.bars);
-        for (const track of score.tracks) {
-          expect(track.staves).toHaveLength(expected.voicesByStaff.length);
+        for (const [trackIndex, track] of score.tracks.entries()) {
+          const voicesByStaff = expected.voicesByTrack[trackIndex];
+          expect(track.staves).toHaveLength(voicesByStaff.length);
           for (const [staffIndex, staff] of track.staves.entries()) {
             expect(staff.bars).toHaveLength(expected.bars);
             for (const [barIndex, bar] of staff.bars.entries()) {
               expect(bar.masterBar).toBe(score.masterBars[barIndex]);
               expect(bar.voiceBarsAsArray.map((v) => v.voiceNumber)).toEqual(
-                expected.voicesByStaff[staffIndex]
+                voicesByStaff[staffIndex]
               );
             }
           }
@@ -173,32 +176,46 @@ describe("editor fixture and theme resolution", () => {
     });
   }
 
-  it("provides distinct chord, lead and bass parts in the showcase", () => {
+  it("provides split fingerstyle, two-voice lead and simple bass parts in the showcase", () => {
     const score = resolveEditorFixture(new URLSearchParams());
-    const parts = score.tracks.map((t) => {
+    const parts = score.tracks.slice(0, 3).map((t) => {
       const voice = requireVoice(t.staves[0].bars[0], 1);
       return guitarNotes(voice.beats[0]).map((n) => n.fret);
     });
 
     expect(parts).toEqual([
-      [null, 2, 2, 1, null, null],
+      [null, 0, null, null, null, null],
       [12, null, null, null, null, null],
       [null, null, null, 0],
     ]);
-    const rhythmBars = score.tracks[0].staves[0].bars;
-    expect(rhythmBars.map((b) => requireVoice(b, 1).beats.length)).toEqual([
-      1, 2, 4, 8, 16, 32,
-    ]);
+    const accompaniment = requireVoice(score.tracks[0].staves[1].bars[0], 1);
     expect(
-      rhythmBars.map((b) => requireVoice(b, 1).beats[0].baseDuration)
+      accompaniment.beats.map((b) => guitarNotes(b).map((n) => n.fret))
     ).toEqual([
-      NoteDuration.Whole,
-      NoteDuration.Half,
-      NoteDuration.Quarter,
-      NoteDuration.Eighth,
-      NoteDuration.Sixteenth,
-      NoteDuration.ThirtySecond,
+      [null, null, null, null, null, 0],
+      [null, null, null, 2, null, null],
+      [null, null, null, null, 2, null],
+      [null, null, null, 2, null, null],
     ]);
+    const lead = score.tracks[1].staves[0].bars[0];
+    expect(
+      requireVoice(lead, 1).beats.map((b) => guitarNotes(b)[0].fret)
+    ).toEqual([12, 15, 14, 12]);
+    expect(
+      requireVoice(lead, 2).beats.map((b) => guitarNotes(b)[2].fret)
+    ).toEqual([9, 12]);
+    for (const track of score.tracks) {
+      for (const staff of track.staves) {
+        for (const bar of staff.bars) {
+          for (const voice of bar.voiceBarsAsArray) {
+            const last = voice.beats[voice.beats.length - 1];
+            expect(last.endTick / voice.tickResolution).toBe(
+              bar.masterBar.beatsCount * bar.masterBar.duration
+            );
+          }
+        }
+      }
+    }
   });
 
   it("starts the empty fixture with a quarter rest and absent extra voices", () => {

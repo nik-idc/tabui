@@ -276,8 +276,13 @@ test("configured view-only keeps only track selection, names, and playback", asy
   // Track selection and score/track names remain available for viewing.
   await expect(editor.getByRole("button", { name: "Tracks" })).toBeVisible();
   await expect(editor.locator(".tu-score-name-input")).toBeDisabled();
-  await expect(editor.locator(".tu-track-select-button")).toHaveCount(3);
-  for (const name of ["Rhythm track", "Lead track", "Bass track"]) {
+  await expect(editor.locator(".tu-track-select-button")).toHaveCount(4);
+  for (const name of [
+    "Rhythm track",
+    "Lead track",
+    "Bass track",
+    "Solo track",
+  ]) {
     await expect(
       editor.getByRole("button", { name: `Select track: ${name}`, exact: true })
     ).toBeVisible();
@@ -306,10 +311,9 @@ test("configured view-only keeps only track selection, names, and playback", asy
   await expect(lead).toHaveAttribute("aria-pressed", "true");
   await expect(rhythm).toHaveAttribute("aria-pressed", "false");
   await expect(editor.getByRole("status")).toHaveText(
-    "Bar 2, 4/4, 120 BPM, Voice 1, Beat 1, half, String 1, fret 15."
+    "Beat 2, quarter, String 1, fret 15."
   );
   await page.keyboard.press("ArrowLeft");
-  await expect(editor.getByRole("status")).toContainText("Bar 1");
   await expect(editor.getByRole("status")).toContainText("Beat 1");
   await expect(editor.getByRole("status")).toContainText("fret 12.");
   await expect(lead).toHaveAttribute("aria-pressed", "true");

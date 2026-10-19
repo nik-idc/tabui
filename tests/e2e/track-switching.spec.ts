@@ -25,9 +25,14 @@ async function getBarBorderXsByRow(editor: Locator): Promise<number[][]> {
       rows.set(point.y, row);
     }
     // Row heights can differ by instrument; horizontal alignment must not.
-    return [...rows.entries()]
+    const sortedRows = [...rows.entries()]
       .sort((a, b) => a[0] - b[0])
       .map((r) => r[1].sort((a, b) => a - b));
+    // Tracks have different staff counts; compare each distinct horizontal layout.
+    return sortedRows.filter(
+      (r, i) =>
+        i === 0 || JSON.stringify(r) !== JSON.stringify(sortedRows[i - 1])
+    );
   });
 }
 
@@ -40,7 +45,7 @@ test("switches the active track through the track controls", async ({
 
   await editor.getByRole("button", { name: "Tracks" }).click();
   const trackButtons = editor.locator(".tu-track-select-button");
-  await expect(trackButtons).toHaveCount(3);
+  await expect(trackButtons).toHaveCount(4);
   await expect(trackButtons.nth(0)).toHaveAttribute("aria-pressed", "true");
 
   await selectTrack(editor, 1);
@@ -61,13 +66,19 @@ test("keeps visible bar borders aligned across track switches", async ({
   expect(firstTrackBorderXs.length).toBeGreaterThan(0);
 
   await selectTrack(editor, 1);
+  // Shorter single-staff lines can materialize more rows than the rhythm track.
+  // Compare the horizontal layouts that were present before switching.
   await expect
-    .poll(() => getBarBorderXsByRow(editor))
+    .poll(async () =>
+      (await getBarBorderXsByRow(editor)).slice(0, firstTrackBorderXs.length)
+    )
     .toEqual(firstTrackBorderXs);
 
   await selectTrack(editor, 2);
   await expect
-    .poll(() => getBarBorderXsByRow(editor))
+    .poll(async () =>
+      (await getBarBorderXsByRow(editor)).slice(0, firstTrackBorderXs.length)
+    )
     .toEqual(firstTrackBorderXs);
 });
 

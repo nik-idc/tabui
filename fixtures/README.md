@@ -6,7 +6,9 @@ benchmark. Each factory returns a fresh score. Demo menus and controls stay in
 
 - `score-builder.ts`: fills bars, staves, and tracks, and builds scores.
 - `empty-score.ts`: the default empty score.
-- `feature-showcase-score.ts`: the main showcase score.
+- `feature-showcase-score.ts`: the main showcase with bass, rhythm, lead, and solo
+  guitar parts, demonstrating multiple staves, voices, rhythms, and techniques.
+- `feature-showcase-solo.ts`: the showcase's solo section.
 - `multi-voice-score.ts`: single-staff and two-staff multi-voice scores.
 - `performance-stress-score.ts`: the demo's dense stress score.
 - `update-benchmark-score.ts`: the dense controller-update benchmark score.

@@ -585,7 +585,7 @@ test("view-only mode rejects editing shortcuts but permits navigation", async ({
     await expect(editor.getByRole("dialog")).toHaveCount(0);
   }
   await page.keyboard.press("ArrowRight");
-  await expect(editor.locator(".tu-announcement-host")).toContainText("Bar 2");
+  await expect(editor.locator(".tu-announcement-host")).toContainText("Beat 2");
   await page.keyboard.press("Space");
   await expect(
     editor.getByRole("button", { name: "Pause", exact: true })

@@ -32,7 +32,7 @@ test("publishes the final full selection after tempo confirmation", async ({
   await expect(dialog).toBeHidden();
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
     "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 121 BPM, " +
-      "Beat 1, whole, String 1, empty."
+      "Beat 1, quarter, String 1, empty."
   );
 });
 
@@ -106,7 +106,7 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await expect(status).toHaveText(
       fixture === "empty"
         ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
-        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, whole, String 1, empty."
+        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, empty."
     );
   });
 
@@ -129,7 +129,7 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await expect(status).toHaveText(
       fixture === "empty"
         ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
-        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, whole, String 1, empty."
+        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, empty."
     );
   });
 }
@@ -147,7 +147,7 @@ test("announces the selected context when entering notation with the mouse", asy
   await expect(notation).toBeFocused();
   await expect(editor.getByRole("status")).toHaveText(
     "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
-      "Beat 1, whole, String 1, empty."
+      "Beat 1, quarter, String 1, empty."
   );
 });
 
@@ -284,7 +284,12 @@ test("basic controls expose accessible names and native behavior", async ({
     await expect(controls.nth(i)).toHaveAccessibleName(/\S/);
   }
 
-  for (const name of ["Rhythm track", "Lead track", "Bass track"]) {
+  for (const name of [
+    "Rhythm track",
+    "Lead track",
+    "Bass track",
+    "Solo track",
+  ]) {
     await expect(
       editor.getByRole("button", { name: `Select track: ${name}` })
     ).toBeVisible();
@@ -466,5 +471,5 @@ test("names a delete confirmation with the track being deleted", async ({
   await page.keyboard.press("Enter");
   await expect(dialog).toHaveCount(0);
   await expect(removeRhythm).toBeVisible();
-  await expect(editor.locator(".tu-track-select-button")).toHaveCount(3);
+  await expect(editor.locator(".tu-track-select-button")).toHaveCount(4);
 });

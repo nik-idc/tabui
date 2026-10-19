@@ -8,12 +8,13 @@ async function barBorderIds(editor: Locator): Promise<string[]> {
 
 async function barBorderXs(page: Page): Promise<number[]> {
   return page.locator('line[id^="bar-border-"]').evaluateAll((lines) => {
-    return lines
+    const positions = lines
       .map((line) => {
-        const svgLine = line as SVGGraphicsElement;
-        return (svgLine.getCTM()?.e ?? 0) + Number(svgLine.getAttribute("x1"));
+        return Math.round(line.getBoundingClientRect().x * 100) / 100;
       })
       .sort((a, b) => a - b);
+    // Each staff repeats the same bar borders at a different height.
+    return [...new Set(positions)];
   });
 }
 
@@ -78,6 +79,8 @@ async function renderedBarContentExtents(
 test("scrolls one notation line and materializes horizontal bar ranges", async ({
   page,
 }) => {
+  // Keep three bars beyond the viewport even with the showcase's lighter notation.
+  await page.setViewportSize({ width: 800, height: 720 });
   await page.goto("/tabui/?fixture=feature_showcase&layoutMode=single-line");
   const editor = page.locator("#tabui-editor");
   const viewport = editor.locator(".tu-notation-viewport");
