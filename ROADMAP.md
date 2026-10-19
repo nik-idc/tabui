@@ -54,8 +54,8 @@ replace release validation.
       properly documented, it should be.
 - [x] Correct bend playback to use whole tones: a Full bend raises pitch by two
       semitones, including prebends, releases, and sustained continuations.
-- [ ] Fix staff traversal across empty adjacent voices: beat traversal can return
-      undefined despite its `Beat | null` signature, causing note traversal to throw.
+- [x] Return null when staff traversal reaches an empty adjacent voice, preventing
+      note traversal from throwing on that boundary.
 
 ## Follow-up inbox
 

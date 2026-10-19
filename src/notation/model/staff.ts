@@ -246,7 +246,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   /**
    * Gets the next beat in the same voice, checking only the immediately next bar at a boundary.
    * @param beat Beat after which to find the next beat
-   * @returns Live next beat, or null at the staff boundary or an absent next voice. An empty next voice can yield undefined at runtime; inputs must belong to this staff.
+   * @returns Live next beat, or null at the staff boundary or an absent/empty next voice. Inputs must belong to this staff.
    */
   public getNextBeat(beat: Beat<I>): Beat<I> | null {
     const beatIndex = beat.voiceBar.beats.indexOf(beat);
@@ -259,7 +259,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     const nextBar = this._bars[barIndex + 1];
     const nextVoiceBar = nextBar?.getVoiceBar(beat.voiceBar.voiceNumber);
     if (nextVoiceBar !== undefined && nextVoiceBar !== null) {
-      return nextVoiceBar.beats[0];
+      return nextVoiceBar.beats[0] ?? null;
     }
 
     return null;
@@ -268,7 +268,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   /**
    * Gets the previous beat in the same voice, checking only the immediately previous bar at a boundary.
    * @param beat Beat before which to find the prev beat
-   * @returns Live previous beat, or null at the staff boundary or an absent previous voice. An empty previous voice can yield undefined at runtime; inputs must belong to this staff.
+   * @returns Live previous beat, or null at the staff boundary or an absent/empty previous voice. Inputs must belong to this staff.
    */
   public getPrevBeat(beat: Beat<I>): Beat<I> | null {
     const beatIndex = beat.voiceBar.beats.indexOf(beat);
@@ -281,7 +281,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     const prevBar = this._bars[barIndex - 1];
     const prevVoiceBar = prevBar?.getVoiceBar(beat.voiceBar.voiceNumber);
     if (prevVoiceBar !== undefined && prevVoiceBar !== null) {
-      return prevVoiceBar.beats[prevVoiceBar.beats.length - 1];
+      return prevVoiceBar.beats[prevVoiceBar.beats.length - 1] ?? null;
     }
 
     return null;
@@ -291,7 +291,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * Gets the same note slot in the next beat of this voice, including across a bar boundary.
    * @param note Note after which to find the next note
    * @returns Live slot note (which may be empty), or null at a boundary or rest. The input must be present in its beat on this staff.
-   * @throws If the input beat is a rest or the adjacent voice exists but has no beats.
+   * @throws If the input beat is a rest.
    */
   public getNextNote(note: Note<I>): Note<I> | null {
     const noteIndex = note.beat.notes?.indexOf(note);
@@ -311,7 +311,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
    * Gets the same note slot in the previous beat of this voice, including across a bar boundary.
    * @param note Note before which to find the previous note; must be present in its beat on this staff.
    * @returns Live slot note (which may be empty), or null at a boundary or rest.
-   * @throws If the input beat is a rest or the adjacent voice exists but has no beats.
+   * @throws If the input beat is a rest.
    */
   public getPrevNote(note: Note<I>): Note<I> | null {
     const noteIndex = note.beat.notes?.indexOf(note);

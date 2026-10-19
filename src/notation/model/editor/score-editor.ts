@@ -217,7 +217,7 @@ export class ScoreEditor {
    * @param type Technique to toggle.
    * @param bendOptions Required when adding a bend; supplying options updates existing bends.
    * @returns True if any note changed.
-   * @throws If bend options are missing when required or invalid for the technique. Transition lookup can also throw if a note's beat is a rest or an adjacent voice has no beats.
+   * @throws If bend options are missing when required or invalid for the technique. Transition lookup can also throw if a note's beat is a rest.
    */
   public static setTechniqueNotes<I extends MusicInstrument>(
     notes: Note<I>[],

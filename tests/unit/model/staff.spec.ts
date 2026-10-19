@@ -1,4 +1,5 @@
 import { DEFAULT_MASTER_BAR } from "../../../src/notation/model";
+import { required } from "../required";
 import { createScoreGraph } from "./helpers";
 
 describe("Staff model", () => {
@@ -30,7 +31,7 @@ describe("Staff model", () => {
     expect(staff.bars).toEqual([bar]);
   });
 
-  test("getNextBeat and getPrevBeat traverse across bar boundaries", () => {
+  test("beat and note traversal stops at empty adjacent voices", () => {
     const { score, bar, staff } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     const firstVoiceBar = bar.getVoiceBar(1);
@@ -45,6 +46,19 @@ describe("Staff model", () => {
 
     expect(staff.getNextBeat(firstBarLastBeat)).toBe(secondBarFirstBeat);
     expect(staff.getPrevBeat(secondBarFirstBeat)).toBe(firstBarLastBeat);
+
+    firstBarLastBeat.makeBeatWithNotes();
+    secondBarFirstBeat.makeBeatWithNotes();
+    const firstNote = required(firstBarLastBeat.notes?.[0]);
+    const secondNote = required(secondBarFirstBeat.notes?.[0]);
+    secondVoiceBar.replaceBeats([]);
+    expect(staff.getNextBeat(firstBarLastBeat)).toBeNull();
+    expect(staff.getNextNote(firstNote)).toBeNull();
+
+    secondVoiceBar.replaceBeats([secondBarFirstBeat]);
+    firstVoiceBar.replaceBeats([]);
+    expect(staff.getPrevBeat(secondBarFirstBeat)).toBeNull();
+    expect(staff.getPrevNote(secondNote)).toBeNull();
   });
 
   test("getBeatsSeq returns flattened beat sequence in bar order", () => {

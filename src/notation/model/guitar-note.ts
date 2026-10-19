@@ -214,7 +214,7 @@ export class GuitarNote implements Note<Guitar> {
    * Applies, updates, or removes a technique on this note.
    * Existing techniques toggle off, except bends with options, which update in place.
    * @returns True if changed; false if inapplicable, incompatible, or unchanged.
-   * @throws If adding a bend without options or a non-bend with options. Transition lookup can also throw if this note's beat is a rest or an adjacent voice has no beats.
+   * @throws If adding a bend without options or a non-bend with options. Transition lookup can also throw if this note's beat is a rest.
    */
   public setTechnique(
     type: GuitarTechniqueType,
@@ -249,7 +249,7 @@ export class GuitarNote implements Note<Guitar> {
    * Adds an applicable, compatible technique without copying or rebinding it.
    * @param guitarTechnique Technique already owned by this note.
    * @returns True if added; false for invalid continuation or incompatible/inapplicable techniques.
-   * @throws If transition lookup fails because this note's beat is a rest or an adjacent voice has no beats.
+   * @throws If transition lookup fails because this note's beat is a rest.
    */
   public addTechnique(guitarTechnique: GuitarTechnique): boolean {
     if (!this.isTechniqueApplicable(guitarTechnique.type)) {
@@ -308,7 +308,7 @@ export class GuitarNote implements Note<Guitar> {
    * Checks fret state, the immediate next beat's same-slot transition target, and existing technique compatibility.
    * @param type Technique type
    * @returns True if applicable, false otherwise
-   * @throws If transition lookup fails because this note's beat is a rest or an adjacent voice has no beats.
+   * @throws If transition lookup fails because this note's beat is a rest.
    */
   public isTechniqueApplicable(type: GuitarTechniqueType): boolean {
     if (this._fret === null || this._fret === -1) {

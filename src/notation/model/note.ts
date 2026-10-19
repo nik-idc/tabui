@@ -59,7 +59,7 @@ export interface Note<I extends MusicInstrument = MusicInstrument> {
 
   /**
    * Adds an applicable, compatible technique; returns whether it was added. This note must belong to its beat.
-   * @throws If transition lookup fails because this note's beat is a rest or an adjacent voice has no beats.
+   * @throws If transition lookup fails because this note's beat is a rest.
    */
   addTechnique(technique: Technique): boolean;
   /** Removes the first technique of this type; returns whether one was removed. */
@@ -72,7 +72,7 @@ export interface Note<I extends MusicInstrument = MusicInstrument> {
   hasTechnique(type: TechniqueType): boolean;
   /**
    * Checks note state, transition targets, and technique compatibility. This note must belong to its beat.
-   * @throws If transition lookup fails because this note's beat is a rest or an adjacent voice has no beats.
+   * @throws If transition lookup fails because this note's beat is a rest.
    */
   isTechniqueApplicable(type: TechniqueType): boolean;
 
