@@ -25,8 +25,8 @@
      inkscape:document-units="mm"
      showgrid="true"
      inkscape:zoom="2.6375651"
-     inkscape:cx="120.75531"
-     inkscape:cy="120.94488"
+     inkscape:cx="156.01511"
+     inkscape:cy="120.56574"
      inkscape:window-width="1536"
      inkscape:window-height="891"
      inkscape:window-x="0"
@@ -57,91 +57,113 @@
      transform="matrix(1.1281432,0,0,1.1281419,-3.1760142,-7.6885797)">
     <g
        id="g1"
-       transform="matrix(0.97505348,0,0,0.88641337,1.397,9.4744979)">
+       transform="matrix(0.99278738,0,0,0.90527028,-3.1416255,4.8539338)">
       <rect
-         style="fill:#000000;stroke:none;stroke-width:8.49815;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         style="fill:#000000;stroke:none;stroke-width:11.2867;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
          id="rect7-7-3-5-9-4"
-         height="6.1538458"
-         x="-40"
-         y="-10.769231"
-         rx="1.4422938"
-         transform="matrix(-1.2999967,0,0,-1.3000001,3.9998888,3.9999986)"
-         width="15.384468" />
+         height="8.3928566"
+         x="-55.999756"
+         y="-18.392857"
+         rx="1.8654108"
+         transform="scale(-1)"
+         width="19.897717" />
       <rect
-         style="fill:#000000;stroke:none;stroke-width:9.88129;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         style="fill:#000000;stroke:none;stroke-width:10.3824;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
          id="rect7-7-3-5-9-4-2"
-         height="8"
-         x="-29.999998"
-         y="48"
-         rx="1.4999886"
+         height="7.6530614"
+         x="-31.821426"
+         y="48.346939"
+         rx="1.7310266"
          transform="rotate(-90)"
-         width="15.999879" />
+         width="18.464285" />
     </g>
     <g
        id="g1-1"
-       transform="matrix(0.97505348,0,0,-0.97504602,1.396999,69.750343)">
+       transform="matrix(0.99278738,0,0,-0.99578838,-3.1416255,66.412042)">
       <rect
-         style="fill:#000000;stroke:none;stroke-width:8.49815;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         style="fill:#000000;stroke:none;stroke-width:10.7616;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
          id="rect7-7-3-5-9-4-5"
-         height="6.1538458"
-         x="-40"
-         y="-10.769231"
-         rx="1.4422938"
-         transform="matrix(-1.2999967,0,0,-1.3000001,3.9998888,3.9999986)"
-         width="15.384468" />
+         height="7.6299372"
+         x="-56"
+         y="-17.629759"
+         rx="1.8654336"
+         transform="scale(-1)"
+         width="19.897961" />
       <rect
-         style="fill:#000000;stroke:none;stroke-width:9.88129;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         style="fill:#000000;stroke:none;stroke-width:9.89919;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
          id="rect7-7-3-5-9-4-2-9"
-         height="8"
-         x="-29.999998"
-         y="48"
-         rx="1.4999886"
+         height="7.6530609"
+         x="-29.83766"
+         y="48.346939"
+         rx="1.5736746"
          transform="rotate(-90)"
-         width="15.999879" />
+         width="16.785864" />
     </g>
     <g
        id="g1-1-3"
-       transform="matrix(-0.93706432,0,0,-0.97505466,66.68759,69.750602)">
+       transform="matrix(-0.9541073,0,0,-0.99579721,63.336446,66.412307)">
       <rect
-         style="fill:#000000;stroke:none;stroke-width:8.49815;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         style="fill:#000000;stroke:none;stroke-width:10.9774;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
          id="rect7-7-3-5-9-4-5-6"
-         height="6.1538458"
-         x="-40"
-         y="-10.769231"
-         rx="1.4422938"
-         transform="matrix(-1.2999967,0,0,-1.3000001,3.9998888,3.9999986)"
-         width="15.384468" />
+         height="7.629869"
+         x="-55.999756"
+         y="-17.629869"
+         rx="1.9410365"
+         transform="scale(-1)"
+         width="20.704391" />
       <rect
-         style="fill:#000000;stroke:none;stroke-width:9.88129;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         style="fill:#000000;stroke:none;stroke-width:10.0978;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
          id="rect7-7-3-5-9-4-2-9-5"
-         height="8"
-         x="-29.999998"
-         y="48"
-         rx="1.4999886"
+         height="7.9633207"
+         x="-29.837662"
+         y="48.036678"
+         rx="1.5736607"
          transform="rotate(-90)"
-         width="15.999879" />
+         width="16.785715" />
+    </g>
+    <g
+       id="g1-1-3-2"
+       transform="matrix(0,-0.98771438,0.9993125,0,-0.08668821,69.218641)">
+      <rect
+         style="fill:#000000;stroke:none;stroke-width:10.77;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         id="rect7-7-3-5-9-4-5-6-6"
+         height="7.6030903"
+         x="-55.999756"
+         y="-17.60309"
+         rx="1.8749771"
+         transform="scale(-1)"
+         width="19.999758" />
+      <rect
+         style="fill:#000000;stroke:none;stroke-width:9.93956;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         id="rect7-7-3-5-9-4-2-9-5-1"
+         height="7.6923099"
+         x="-29.768032"
+         y="48.30769"
+         rx="1.5784436"
+         transform="rotate(-90)"
+         width="16.836733" />
     </g>
     <g
        id="g2"
-       transform="matrix(0.94181309,0,0,0.94181412,2.815258,3.0480029)">
+       transform="matrix(0.606095,0.60609025,-0.60609431,0.60608955,33.604744,-5.0401204)">
       <rect
-         style="fill:#000000;stroke:none;stroke-width:13.9743;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
-         id="rect7-7-3-5-9-4-2-8"
-         height="8"
-         x="-18.828426"
-         y="21.455843"
-         rx="3"
-         transform="rotate(-45.000002)"
-         width="32" />
+         style="fill:#000000;stroke:none;stroke-width:9.29023;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         id="rect7-7-3-5-9-4-2-9-5-1-4"
+         height="5.3184781"
+         x="-41.817394"
+         y="-37.839584"
+         rx="1.9944273"
+         transform="scale(-1)"
+         width="21.273891" />
       <rect
-         style="fill:#000000;stroke:none;stroke-width:13.9743;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
-         id="rect7-7-3-5-9-4-0"
-         height="8"
-         x="-41.455841"
-         y="-6.8284245"
-         rx="2.9999995"
-         transform="rotate(-135)"
-         width="31.999998" />
+         style="fill:#000000;stroke:none;stroke-width:9.29023;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+         id="rect7-7-3-5-9-4-2-9-5-1-4-7"
+         height="5.3184743"
+         x="-45.817303"
+         y="28.521214"
+         rx="1.9944298"
+         transform="rotate(-90)"
+         width="21.273916" />
     </g>
   </g>
 </svg>

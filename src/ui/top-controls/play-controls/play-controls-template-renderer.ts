@@ -135,7 +135,6 @@ export class PlayControlsTemplateRenderer {
 
     const hasSelectionAnchor =
       this.notationComponent.trackController.hasSelectionAnchor;
-    this.template.rangeButton.classList.add("tu-range-selection-button");
     const label = hasSelectionAnchor ? "Clear range" : "Set anchor";
     setImageAsset(
       this.template.rangeButton,
