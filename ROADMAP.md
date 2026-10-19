@@ -48,6 +48,10 @@ replace release validation.
       threshold to 30s
 - [x] Run `npm run verify`, `npx eslint .`,
       `git diff --check`, and `npm run benchmark:updates` from clean build output.
+- [x] Review the root API and remove 16 implementation-only exports, keeping
+      internal exports unchanged. Controllers and notation elements remain internal.
+- [ ] Explore best ways to generate public API documentation. If any public code is not
+      properly documented, it should be.
 
 ## Follow-up inbox
 
