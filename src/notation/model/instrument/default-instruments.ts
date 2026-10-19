@@ -9,6 +9,7 @@ import {
 } from "./instrument-tone";
 import { StringInstrumentType } from "./instrument-type";
 
+/** Acoustic presets keyed by tone; shared instances and tuning data should be copied before mutation. */
 export const DEFAULT_ACOUSTIC_GUITARS: Record<
   AcousticGuitarTone,
   MusicInstrument
@@ -31,6 +32,7 @@ export const DEFAULT_ACOUSTIC_GUITARS: Record<
   ),
 };
 
+/** Electric presets keyed by tone; shared instances and tuning data should be copied before mutation. */
 export const DEFAULT_ELECTRIC_GUITARS: Record<
   ElectricGuitarTone,
   MusicInstrument
@@ -61,6 +63,7 @@ export const DEFAULT_ELECTRIC_GUITARS: Record<
   ),
 };
 
+/** Bass presets keyed by tone; shared instances and tuning data should be copied before mutation. */
 export const DEFAULT_BASS_GUITARS: Record<BassGuitarTone, MusicInstrument> = {
   [BassGuitarTone.Acoustic]: new Guitar(
     StringInstrumentType.BassGuitar,
@@ -88,6 +91,7 @@ export const DEFAULT_BASS_GUITARS: Record<BassGuitarTone, MusicInstrument> = {
   ),
 };
 
+/** Other string presets keyed by tone; copy shared instances and tuning data before mutation. */
 export const DEFAULT_OTHER_STRING: Record<OtherStringTone, MusicInstrument> = {
   [OtherStringTone.Banjo]: new Guitar(
     StringInstrumentType.Other,

@@ -1,33 +1,56 @@
 import { BendType, OPTIONS_PER_BEND_TYPE } from "./bend-type";
 
+/** Maximum bend value: 3 whole tones in the UI. Playback currently treats bend values as semitones. */
 export const MAX_BEND_PITCH = 3;
 
 /**
- * Bend options data
+ * Bend-shape data; the selected shape requires specific pitch fields and, except Prebend, bendDuration.
+ * Required pitches must be finite in 0–3 and duration in (0, 1]; extra defined fields are rejected.
+ * Required fields, in addition to type:
+ * - Bend: bendPitch, bendDuration.
+ * - BendAndRelease: bendPitch, releasePitch, bendDuration.
+ * - Hold: holdPitch, bendDuration.
+ * - Prebend: prebendPitch.
+ * - PrebendAndRelease: prebendPitch, releasePitch, bendDuration.
+ * - PrebendBend: prebendPitch, bendPitch, bendDuration.
+ * - Release: releasePitch, bendDuration.
  */
 export type BendOptionsData = {
+  /** Shape determining which other fields are required; unused fields must be omitted. */
   type: BendType;
+  /** Bent displacement in UI whole tones, from 0 through MAX_BEND_PITCH. */
   bendPitch?: number;
+  /** Release displacement in UI whole tones, from 0 through MAX_BEND_PITCH. */
   releasePitch?: number;
+  /** Held displacement in UI whole tones, from 0 through MAX_BEND_PITCH. */
   holdPitch?: number;
+  /** Initial displacement in UI whole tones, from 0 through MAX_BEND_PITCH. */
   prebendPitch?: number;
+  /** Fraction of the note used by the bend motion, greater than 0 and at most 1. */
   bendDuration?: number;
 };
 
 /**
- * Class that represents guitar technique bendOptions
+ * Validated bend-shape parameters copied from input data.
  */
 export class BendTechniqueOptions {
+  /** Bend shape controlling the required option fields. */
   readonly type: BendType;
+  /** Bent displacement in UI whole tones, when required by the shape. */
   readonly bendPitch?: number;
+  /** Release displacement in UI whole tones, when required by the shape. */
   readonly releasePitch?: number;
+  /** Held displacement in UI whole tones, when required by the shape. */
   readonly holdPitch?: number;
+  /** Initial displacement in UI whole tones, when required by the shape. */
   readonly prebendPitch?: number;
+  /** Bend-motion fraction of the note in (0, 1], when required by the shape. */
   readonly bendDuration?: number;
 
   /**
-   * Class that represents bend options
-   * @param options Options
+   * Validates and copies bend-shape fields.
+   * @param options Fields required by the selected shape; unused fields must be absent or undefined.
+   * @throws If the type is unknown, required numbers are missing/non-finite, pitches are outside 0–3, duration is outside (0, 1], or extra fields are defined.
    */
   constructor(options: BendOptionsData) {
     BendTechniqueOptions.ensureValid(options);
@@ -39,6 +62,7 @@ export class BendTechniqueOptions {
     this.bendDuration = options.bendDuration;
   }
 
+  /** Final displacement in UI whole tones for Bend, PrebendBend, Hold, or Prebend; undefined for other shapes. */
   public get terminalPitch(): number | undefined {
     switch (this.type) {
       case BendType.Bend:

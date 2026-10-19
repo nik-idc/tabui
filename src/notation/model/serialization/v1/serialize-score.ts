@@ -300,9 +300,9 @@ function serializeMasterBar(
 }
 
 /**
- * Converts a complete in-memory score to the public version-1 document,
- * rejecting unsupported instruments, invalid persisted values, and broken
- * ownership links at their prospective document paths.
+ * Converts a score to a new version-1 document object; use JSON.stringify() to produce JSON text.
+ * @returns Persisted score data without live model references or derived layout/timing.
+ * @throws ScoreSerializationError for unsupported instruments, invalid persisted values, or broken ownership, with the document path.
  */
 export function serializeScore(score: Score): SerializedScoreV1 {
   validateString(score.name, propertyPath(ROOT_SERIALIZATION_PATH, "name"));

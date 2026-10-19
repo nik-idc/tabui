@@ -1,7 +1,7 @@
 import type { BendOptionsData } from "./bend-options";
 
 /**
- * All kinds of bend types
+ * Bend motion shapes: raise pitch, raise then release, hold, start prebent, release a prebend, raise a prebend, or release an existing bend.
  */
 export enum BendType {
   Bend,

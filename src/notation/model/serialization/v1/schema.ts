@@ -102,27 +102,27 @@ export enum SerializedPlayableNoteValue {
   GSharp = "G#",
 }
 
-/** Shared timing and meter fields present on every serialized master bar. */
+/** Shared meter and tempo: integer quarter-note BPM 1–999, numerator 1–32, and written denominator unit. */
 export type SerializedMasterBarCommon = {
   tempo: number;
   beatsCount: number;
   duration: SerializedNoteDuration;
 };
 
-/** Repeat boundaries and count for a serialized master bar. */
+/** Repeat boundaries; repeatCount is total section plays (integer 2–32) at an end, and null otherwise. */
 export type SerializedMasterBar = SerializedMasterBarCommon & {
   isRepeatStart: boolean;
   isRepeatEnd: boolean;
   repeatCount: number | null;
 };
 
-/** A tuning pitch expressed as a chromatic note token and octave. */
+/** Playable tuning pitch with integer scientific octave 0–9; dead and empty notes are not allowed. */
 export type SerializedTuningNote = {
   noteValue: SerializedPlayableNoteValue;
   octave: number;
 };
 
-/** Shared identity, dimensions, and tuning for serialized string instruments. */
+/** String-instrument data: positive safe-integer string count, non-negative safe-integer fret count, and one tuning pitch per string in string-number order. Program is a zero-based MIDI value 0–127 matching the tone. */
 export type SerializedGuitarInstrumentCommon = {
   family: SerializedInstrumentFamily.Strings;
   name: string;
@@ -228,7 +228,7 @@ export type SerializedReleaseBendOptions = {
   bendDuration: number;
 };
 
-/** Bend-parameter union discriminated by the bend `type` token. */
+/** Bend parameters selected by type, with finite pitch values in 0–3 and bendDuration as a fraction in (0, 1]. Pitch values are stored unchanged; UI and playback currently use different units. */
 export type SerializedBendOptions =
   | SerializedBendTechniqueOptions
   | SerializedBendAndReleaseOptions
@@ -255,7 +255,7 @@ export type SerializedGuitarTechnique =
   | SerializedBendTechnique
   | SerializedNonBendTechnique;
 
-/** A fretted note and the techniques applied to it. */
+/** Note with integer fret -1 for a dead strike or 0 through the instrument's highest fret; empty slots use null instead. Techniques must be unique and compatible. */
 export type SerializedGuitarNote = {
   fret: number;
   techniques: SerializedGuitarTechnique[];
@@ -267,6 +267,7 @@ export type SerializedNoteSlot = SerializedGuitarNote | null;
 /**
  * A rhythmic beat; `notes: null` encodes a rest, while note arrays retain
  * sparse string slots.
+ * A note array must match the instrument string count; dots are 0, 1, or 2.
  */
 export type SerializedBeat = {
   notes: SerializedNoteSlot[] | null;
@@ -275,13 +276,13 @@ export type SerializedBeat = {
   tuplet: SerializedTuplet | null;
 };
 
-/** A ratio where `normalCount` notes occupy `tupletCount` normal-note spans. */
+/** A ratio where normalCount notes occupy tupletCount written units (3:2 for triplets); both are integers in 1–256. */
 export type SerializedTuplet = {
   normalCount: number;
   tupletCount: number;
 };
 
-/** One voice's ordered beats within a bar. */
+/** One voice's ordered beats within a bar; at least one beat is required. */
 export type SerializedVoiceBar = {
   beats: SerializedBeat[];
 };
@@ -297,12 +298,12 @@ export type SerializedVoiceSlots = [
   SerializedVoiceSlot,
 ];
 
-/** A bar containing its fixed set of sparse voice positions. */
+/** Four sparse voice positions; at least one voice must be present and each present voice must contain beats. Use null for absent voices. */
 export type SerializedBar = {
   voices: SerializedVoiceSlots;
 };
 
-/** A staff's notation settings and bars. */
+/** Staff display settings and one bar per score master bar, in the same order; standard notation is not implemented. */
 export type SerializedStaff = {
   clefType: SerializedClefType;
   showTablature: boolean;
@@ -310,7 +311,7 @@ export type SerializedStaff = {
   bars: SerializedBar[];
 };
 
-/** A track's instrument, mix state, and ordered staves. */
+/** Instrument, finite linear volume 0–1, pan -1 (left) to 1 (right), and at least one staff. Muted tracks are silent; when any track is soloed, only unmuted soloed tracks are audible. */
 export type SerializedTrack = {
   instrument: SerializedGuitarInstrument;
   name: string;
@@ -324,6 +325,7 @@ export type SerializedTrack = {
 /**
  * Root V1 wire contract, branded by fixed format and version literals and
  * containing score metadata, master bars, and tracks.
+ * Master gain is finite in 0–1 and pan in -1–1; at least one master bar and track are required.
  */
 export type SerializedScoreV1 = {
   format: typeof SCORE_SERIALIZATION_FORMAT;

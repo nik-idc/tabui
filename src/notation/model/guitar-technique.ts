@@ -41,10 +41,11 @@ export class GuitarTechnique implements Technique {
   private _bendOptions: BendTechniqueOptions | null;
 
   /**
-   * Class that represents a guitar technique
+   * Creates a technique owned by the supplied note, without adding it to the note's technique array.
    * @param note Note on which the technique is performed
    * @param type Type of technique
-   * @param bendOptions Options (for bend)
+   * @param bendOptions Required only for Bend; retained by reference and stripped of undefined own fields.
+   * @throws If bend options are missing, supplied for a non-bend, or have the wrong fields for the shape.
    */
   constructor(
     note: Note,
@@ -107,6 +108,10 @@ export class GuitarTechnique implements Technique {
     }
   }
 
+  /**
+   * Validates and copies replacement bend options; returns true only when values change.
+   * @throws If this is not a configured bend, or required fields, bounds, or extra fields are invalid.
+   */
   public replaceBendOptions(options: BendTechniqueOptions): boolean {
     if (this.type !== GuitarTechniqueType.Bend) {
       throw Error("Technique not bend");
@@ -134,9 +139,10 @@ export class GuitarTechnique implements Technique {
   }
 
   /**
-   * Creates a deep copy of the technique
+   * Copies the technique and bend options with a new UUID; defaults to the original owning note.
    * @param note Note that will own the copied technique
    * @returns Copy of the technique
+   * @throws If copied bend fields or bounds are invalid.
    */
   public deepCopy(note: Note = this.note): GuitarTechnique {
     const bendOptionsCopy =
@@ -146,7 +152,7 @@ export class GuitarTechnique implements Technique {
     return new GuitarTechnique(note, this.type, bendOptionsCopy);
   }
 
-  /** Bend options */
+  /** Live validated bend options, or null for a non-bend technique. */
   public get bendOptions(): BendTechniqueOptions | null {
     return this._bendOptions;
   }

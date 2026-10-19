@@ -5,15 +5,19 @@ import { TrackContext } from "./track-context";
 import { Score } from "./score";
 import { GuitarNote } from "./guitar-note";
 
+/** KeepFrets recalculates pitch; Transpose preserves pitch by recalculating frets. */
 export enum TrackInstrumentChangeMode {
   KeepFrets = "keepFrets",
   Transpose = "transpose",
 }
 
+/** Staff-array edit metadata containing live inserted or removed staves. */
 export type StaffArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
 > = {
+  /** Zero-based position at the time of the operation. */
   index: number;
+  /** Staves affected by this individual edit. */
   staves: Staff<I>[];
 };
 
@@ -28,9 +32,13 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
   /** This track's context */
   readonly context: TrackContext<I>;
 
+  /** Linear track gain, normally 0–1; this field does not validate assignments. */
   public volume: number;
+  /** Stereo pan, normally -1 (left) to 1 (right); assignments are not validated. */
   public pan: number;
+  /** Silences this track's playback bus. */
   public muted: boolean;
+  /** Makes this track audible alongside other soloed tracks, unless muted. */
   public soloed: boolean;
   /** Name of the track */
   public name: string;
@@ -39,11 +47,12 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
   private _staves: Staff<I>[];
 
   /**
-   * Class representing a single track
+   * Creates a track with one default staff if none are supplied, aligning staff bar counts to the score.
    * @param score Score in which the track lives
    * @param instrument Musical instrument of the track
-   * @param name Name if the track
-   * @param staves Track's staves
+   * @param name Name of the track.
+   * @param staves Retained live array; existing parent/context references are not rebound.
+   * @throws If bar alignment, default note construction, or voice timing fails.
    */
   constructor(
     score: Score,
@@ -85,6 +94,13 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
     }
   }
 
+  /**
+   * Replaces the shared instrument and updates existing guitar notes in place.
+   * Note-slot arrays are retained, even when the string count changes.
+   * Frets above the new fretboard's maximum are clamped when preserving pitch.
+   * @param mode Keep frets and recalculate pitch by default, or preserve pitch and recalculate frets.
+   * @throws If tuning is missing for an existing string, its octave is null, or pitch/fret conversion fails.
+   */
   public setInstrument(
     instrument: I,
     mode: TrackInstrumentChangeMode = TrackInstrumentChangeMode.KeepFrets
@@ -113,9 +129,11 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Insert a staff
-   * @param index Index after which to insert the staff
-   * @param staff Staff to insert
+   * Inserts a staff and aligns all staff bar counts to the score.
+   * @param index Zero-based insertion position, from zero through the staff count.
+   * @param staff Existing staff already owned by this track; omitted creates a default staff.
+   * @returns Live inserted staff and its insertion position.
+   * @throws If the index is outside the allowed range or bar alignment/timing fails.
    */
   public insertStaff(
     index: number,
@@ -136,9 +154,10 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Removes staff at specified index
-   * @param index Index of the staff to remove
-   * @returns Staff array operation outputs
+   * Removes a staff, creating a default staff if the track would be empty.
+   * @param index Zero-based staff position.
+   * @returns Removal metadata, followed by insertion metadata if a fallback staff was created.
+   * @throws If the index is outside the track or fallback construction/timing fails.
    */
   public removeStaff(index: number): StaffArrayOperationOutput<I>[] {
     // Check index validity
@@ -159,7 +178,9 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Creates full deep copy of the track
+   * Copies staff content, name, and mix fields with a new UUID, sharing the score and instrument.
+   * Copied descendants retain their original parent/context references.
+   * @throws If copied data or timing is invalid.
    */
   public deepCopy(): Track<I> {
     const stavesCopy: Staff<I>[] = [];
@@ -180,7 +201,7 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
     return track;
   }
 
-  /** Track's bars */
+  /** Live staff array; use insertStaff() and removeStaff() to maintain bar alignment. */
   public get staves(): Staff<I>[] {
     return this._staves;
   }

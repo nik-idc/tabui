@@ -2,7 +2,7 @@ import { SelectionCursorSnapshot } from "./notation/controller/selection";
 import { Beat, Track, VoiceNumber } from "./notation/model";
 import { PlaybackErrorCode, PlaybackState } from "./player";
 
-/** Stable host-observable editor state captured at a change boundary. */
+/** State captured at an editor change boundary, with live track and beat references. Readonly fields do not freeze the model graph. */
 export interface TabUIEditorStateSnapshot {
   /** Track currently displayed by the notation view. */
   readonly activeTrack: Track;
@@ -31,7 +31,7 @@ export interface TabUIEditorStateSnapshot {
   };
 }
 
-/** Actionable asynchronous failure projected to the owning host. */
+/** Asynchronous playback failure sent to the host. Synchronous editor exceptions are thrown by the calling method. */
 export interface TabUIEditorError {
   /** Subsystem that produced the failure. */
   readonly source: "playback";
@@ -43,10 +43,10 @@ export interface TabUIEditorError {
   readonly cause: unknown;
 }
 
-/** Public notification emitted by one editor instance. */
+/** Editor change or playback-error notification. Direct model mutations do not necessarily emit change events. */
 export type TabUIEditorEvent =
   | { readonly type: "change"; readonly state: TabUIEditorStateSnapshot }
   | { readonly type: "error"; readonly error: TabUIEditorError };
 
-/** Listener for host-observable events from one editor instance. */
+/** Receives future events after subscription; no initial event is sent. Read current state with getState(). */
 export type TabUIEditorListener = (event: TabUIEditorEvent) => void;

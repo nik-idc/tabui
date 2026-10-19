@@ -30,13 +30,14 @@ export class Guitar implements MusicInstrument {
   private _fretsCount: number = 24;
 
   /**
-   * TabUI Guitar
+   * Creates a string instrument using a supplied tuning or the first preset for its string count.
    * @param type Type of guitar
    * @param tone Guitar tone
-   * @param name
-   * @param stringsCount
-   * @param tuning
-   * @param fretsCount
+   * @param name Display name, default "Electric Guitar".
+   * @param stringsCount Number of strings, default 6; counts without a preset require explicit tuning.
+   * @param tuning Retained live array in string-number order (first string first).
+   * @param fretsCount Highest fret, default 24; not range-validated here.
+   * @throws If no tuning is available or its length differs from the string count. Tuning pitches are not validated here.
    */
   constructor(
     type: StringInstrumentType = StringInstrumentType.ElectricGuitar,
@@ -72,8 +73,7 @@ export class Guitar implements MusicInstrument {
   }
 
   /**
-   * Returns tuning as a string
-   * @returns Tuning as a string
+   * Returns numbered pitch classes in string order, such as "1=E, 2=B", without octaves.
    */
   public getTuningStr(): string {
     const tuningStrArr = [];
@@ -92,6 +92,7 @@ export class Guitar implements MusicInstrument {
     return tuningStrArr.join("");
   }
 
+  /** Returns space-separated pitch classes in reverse string-number order, without octaves. */
   public getTuningStrSimple(): string {
     return this._tuning
       .map((n) => n.noteValue)
@@ -100,8 +101,9 @@ export class Guitar implements MusicInstrument {
   }
 
   /**
-   * Creates a note
-   * @param voiceIndex Voice index
+   * Creates an empty guitar note, with null fret and octave, owned by the supplied beat.
+   * @param beat Owning beat; its track context is used for the note.
+   * @param voiceIndex Zero-based note-slot/string index; the resulting string number is index + 1.
    */
   public createDefaultNote(beat: Beat<Guitar>, voiceIndex: number): GuitarNote {
     return new GuitarNote(beat, beat.trackContext, voiceIndex + 1, null);
@@ -122,7 +124,7 @@ export class Guitar implements MusicInstrument {
     return this._name;
   }
 
-  /** MIDI program or custom sound ID for playback */
+  /** Zero-based MIDI program selected from the instrument tone. */
   public get program(): number {
     return this._program;
   }
@@ -137,7 +139,7 @@ export class Guitar implements MusicInstrument {
     return this._stringsCount;
   }
 
-  /** Guitar tuning. IMPORTANT: the first element should be the first string tuning */
+  /** Live tuning array in one-based string order, first string first; copy before changing shared presets. */
   public get tuning(): NoteType[] {
     return this._tuning;
   }

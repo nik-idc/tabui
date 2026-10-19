@@ -35,11 +35,14 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   private _voiceNumberBarCounts: Map<VoiceNumber, number>;
 
   /**
-   * A staff in this context is a representation of an
-   * individually played part on an instrument
+   * Creates a staff using the supplied live bars; an empty array stays empty until track alignment adds bars.
+   * @param track Owning track, retained by reference.
    * @param trackContext Track context
    * @param bars Bars belonging to the staff
    * @param clefType Clef type
+   * @param showTablature Whether to display tablature.
+   * @param showClassicNotation Standard-notation flag; standard notation is not implemented.
+   * @throws If supplied voice data makes staff bookkeeping inconsistent.
    */
   constructor(
     track: Track<I>,
@@ -69,10 +72,11 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Inserts a ready bar (mostly for commands)
-   * @param index Index
-   * @param bar Bar
+   * Inserts an existing bar on this staff only, without copying or rebinding it.
+   * @param index Zero-based insertion position, using array-splice semantics.
+   * @param bar Bar already owned by this staff, with the correct shared master bar.
    * @returns Inserted bar
+   * @throws If voice bookkeeping is inconsistent.
    */
   public insertReadyBar(index: number, bar: Bar<I>): Bar<I> {
     this._bars.splice(index, 0, bar);
@@ -82,10 +86,13 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Inserts a bar to the staff after the specified index
-   * @param index Index after which to insert the bar
+   * Inserts a bar on this staff only; use score methods for score-wide edits.
+   * @param index Zero-based insertion position, using array-splice semantics.
    * @param masterBar Master bar
-   * @param beats Beats
+   * @param beats Live beats for the selected voice; empty creates a quarter rest. Parent references are not rebound.
+   * @param voiceNumber Voice to populate, alongside existing non-empty staff voices seeded with rests.
+   * @returns Live inserted bar.
+   * @throws If voice timing or staff bookkeeping fails.
    */
   public insertBar(
     index: number,
@@ -101,9 +108,12 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Appends bar to the staff bars
+   * Appends a bar on this staff only; use score methods for score-wide edits.
    * @param masterBar Master bar
-   * @param beats Beats
+   * @param beats Live beats for the selected voice; empty creates a quarter rest. Parent references are not rebound.
+   * @param voiceNumber Voice to populate, alongside existing non-empty staff voices seeded with rests.
+   * @returns Live inserted bar.
+   * @throws If voice timing or staff bookkeeping fails.
    */
   public appendBar(
     masterBar: MasterBar,
@@ -118,9 +128,12 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Prepends bar to the staff bars
+   * Prepends a bar on this staff only; use score methods for score-wide edits.
    * @param masterBar Master bar
-   * @param beats Beats
+   * @param beats Live beats for the selected voice; empty creates a quarter rest. Parent references are not rebound.
+   * @param voiceNumber Voice to populate, alongside existing non-empty staff voices seeded with rests.
+   * @returns Live inserted bar.
+   * @throws If voice timing or staff bookkeeping fails.
    */
   public prependBar(
     masterBar: MasterBar,
@@ -152,7 +165,9 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
 
   /**
    * Removes a bar from the staff at the specified index
-   * @param index Index of the bar to remove
+   * @param index Zero-based position of the bar to remove.
+   * @returns Removed live bar.
+   * @throws If the index is outside this staff, this is its last bar, or bookkeeping fails.
    */
   public removeBar(index: number): Bar<I> {
     if (index < 0 || index >= this._bars.length) {
@@ -183,6 +198,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     this._voiceNumberBarCounts.set(voiceNumber, nextCount);
   }
 
+  /** Records a non-empty voice bar in staff counts; does not insert it into a bar. */
   public recordVoiceBarAdded(voiceBar: VoiceBar<I>): void {
     if (voiceBar.isEmpty()) {
       return;
@@ -191,6 +207,10 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     this.adjustVoiceBarCount(voiceBar.voiceNumber, 1);
   }
 
+  /**
+   * Removes a non-empty voice bar from staff counts; does not clear its voice slot.
+   * @throws If bookkeeping would make the count negative.
+   */
   public recordVoiceBarRemoved(voiceBar: VoiceBar<I>): void {
     if (voiceBar.isEmpty()) {
       return;
@@ -224,9 +244,9 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Get next beat in the staff
+   * Gets the next beat in the same voice, checking only the immediately next bar at a boundary.
    * @param beat Beat after which to find the next beat
-   * @returns Next beat or null if passed beat is the last one
+   * @returns Live next beat, or null at the staff boundary or an absent next voice. An empty next voice can yield undefined at runtime; inputs must belong to this staff.
    */
   public getNextBeat(beat: Beat<I>): Beat<I> | null {
     const beatIndex = beat.voiceBar.beats.indexOf(beat);
@@ -246,9 +266,9 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Get prev beat in the staff
+   * Gets the previous beat in the same voice, checking only the immediately previous bar at a boundary.
    * @param beat Beat before which to find the prev beat
-   * @returns Prev beat or null if passed beat is the first one
+   * @returns Live previous beat, or null at the staff boundary or an absent previous voice. An empty previous voice can yield undefined at runtime; inputs must belong to this staff.
    */
   public getPrevBeat(beat: Beat<I>): Beat<I> | null {
     const beatIndex = beat.voiceBar.beats.indexOf(beat);
@@ -268,9 +288,10 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Get next note in the staff (same string, next beat)
+   * Gets the same note slot in the next beat of this voice, including across a bar boundary.
    * @param note Note after which to find the next note
-   * @returns Next note or null if passed note is the last one
+   * @returns Live slot note (which may be empty), or null at a boundary or rest. The input must be present in its beat on this staff.
+   * @throws If the input beat is a rest or the adjacent voice exists but has no beats.
    */
   public getNextNote(note: Note<I>): Note<I> | null {
     const noteIndex = note.beat.notes?.indexOf(note);
@@ -287,9 +308,10 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Get prev note in the staff (same string, prev beat)
-   * @param note Note after which to find the prev note
-   * @returns Prev note or null if passed note is the last one
+   * Gets the same note slot in the previous beat of this voice, including across a bar boundary.
+   * @param note Note before which to find the previous note; must be present in its beat on this staff.
+   * @returns Live slot note (which may be empty), or null at a boundary or rest.
+   * @throws If the input beat is a rest or the adjacent voice exists but has no beats.
    */
   public getPrevNote(note: Note<I>): Note<I> | null {
     const noteIndex = note.beat.notes?.indexOf(note);
@@ -306,12 +328,13 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * All the beats as an array. Does a flat map, so consider performance
+   * Returns a new array of live beats in one voice across all bars, skipping absent slots; defaults to voice 1.
    */
   public getBeatsSeq(voiceNumber: VoiceNumber = 1): Beat<I>[] {
     return this.getVoiceBeatsSeq(voiceNumber);
   }
 
+  /** Returns a new array of live beats in one voice across all bars, skipping absent slots. */
   public getVoiceBeatsSeq(voiceNumber: VoiceNumber): Beat<I>[] {
     return this._bars.flatMap(
       (bar) => bar.getVoiceBar(voiceNumber)?.beats ?? []
@@ -321,7 +344,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   /**
    * Get next bar in the staff
    * @param bar Bar after which to find the next bar
-   * @returns Next bar or null if passed bar is the last one
+   * @returns Next bar, null after the last bar, or the first bar if the input is absent from this staff.
    */
   public getNextBar(bar: Bar<I>): Bar<I> | null {
     const barIndex = this._bars.indexOf(bar);
@@ -332,7 +355,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   /**
    * Get prev bar in the staff
    * @param bar Bar before which to find the prev bar
-   * @returns Prev bar or null if passed bar is the first one
+   * @returns Previous bar, or null for the first bar or a bar absent from this staff.
    */
   public getPrevBar(bar: Bar<I>): Bar | null {
     const barIndex = this._bars.indexOf(bar);
@@ -341,7 +364,9 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Creates full deep copy of the staff
+   * Copies bars and display settings with a new UUID, retaining the track and context.
+   * Copied descendants retain original parent/master-bar references.
+   * @throws If copied data or timing is invalid.
    */
   public deepCopy(): Staff<I> {
     const barsCopy: Bar<I>[] = [];
@@ -359,7 +384,7 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
     );
   }
 
-  /** Bars getter */
+  /** Live staff-bar array; use bar methods for bookkeeping and score methods for score-wide alignment. */
   public get bars(): Bar<I>[] {
     return this._bars;
   }
@@ -382,11 +407,12 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   public set showClassicNotation(newShowClassicNotation: boolean) {
     this._showClassicNotation = newShowClassicNotation;
   }
-  /** Indicates whether to display classical music notation */
+  /** Standard-notation display flag; standard notation is not implemented. */
   public get showClassicNotation(): boolean {
     return this._showClassicNotation;
   }
 
+  /** Ascending voice numbers with at least one beat, including rests, according to staff counts. */
   public get nonEmptyVoiceNumbers(): VoiceNumber[] {
     return [...this._voiceNumberBarCounts.entries()]
       .filter(([, count]) => count !== 0)

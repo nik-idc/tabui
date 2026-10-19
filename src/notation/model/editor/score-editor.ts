@@ -17,9 +17,13 @@ import { NoteDuration } from "../note-duration";
 import { BeatRemovalOutput, VoiceBar } from "../voice-bar";
 import { VoiceNumber } from "../voice-bar";
 
+/** Beat content and original position recorded for a later restore operation. */
 export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
+  /** Original owning voice bar, kept by reference. */
   voiceBar: VoiceBar<I>;
+  /** Zero-based insertion position in that voice. */
   index: number;
+  /** Saved beat content to copy back into the voice. */
   beat: Beat<I>;
 };
 
@@ -30,17 +34,25 @@ export type TimeSignatureChange = {
   duration: NoteDuration;
 };
 
+/** Live inserted beats and removal metadata needed to reverse a replacement. */
 export type BeatReplacementOutput<I extends MusicInstrument = MusicInstrument> =
   {
+    /** New copies installed at the selection start. */
     insertedBeats: Beat<I>[];
+    /** Removal and fallback-rest changes for each removed beat. */
     removalOutputs: BeatRemovalOutput<I>[];
   };
 
 /**
- * Static class containing complex editing methods,
- * like replace beats across the staff, transpose note etc
+ * Standalone score-editing helpers that change models and rebuild affected timing.
+ * Calls do not create editor undo history, redraw views, or guarantee host events; failures may leave partial changes.
  */
 export class ScoreEditor {
+  /**
+   * Ensures a voice slot exists, initially with a quarter rest.
+   * @returns True if a voice was created, false if it already existed.
+   * @throws If the new voice's timing cannot be rebuilt.
+   */
   public static ensureVoiceBar(bar: Bar, voiceNumber: VoiceNumber): boolean {
     const voiceBarInserted = bar.getVoiceBar(voiceNumber) === null;
     bar.ensureVoiceBar(voiceNumber);
@@ -122,6 +134,14 @@ export class ScoreEditor {
     return beat;
   }
 
+  /**
+   * Inserts a master bar and corresponding bars on every staff.
+   * @param index Zero-based insertion position, using array-splice semantics.
+   * @param masterBarData Meter, tempo, and repeat settings for the new master bar.
+   * @param voiceNumber Voice slot to create with a quarter rest on each staff.
+   * @returns Live master/staff bars and insertion position.
+   * @throws If master-bar settings or new voice timing are invalid.
+   */
   public static insertMasterBar(
     score: Score,
     index: number,
@@ -131,6 +151,12 @@ export class ScoreEditor {
     return score.insertMasterBar(index, masterBarData, voiceNumber);
   }
 
+  /**
+   * Appends a master bar and corresponding bars on every staff.
+   * @param voiceNumber Voice slot to create with a quarter rest on each staff.
+   * @returns Live master/staff bars and their zero-based insertion position.
+   * @throws If master-bar settings or new voice timing are invalid.
+   */
   public static appendMasterBar(
     score: Score,
     masterBarData: MasterBarData,
@@ -139,6 +165,12 @@ export class ScoreEditor {
     return score.appendMasterBar(masterBarData, voiceNumber);
   }
 
+  /**
+   * Prepends a master bar and corresponding bars on every staff.
+   * @param voiceNumber Voice slot to create with a quarter rest on each staff.
+   * @returns Live master/staff bars at insertion index zero.
+   * @throws If master-bar settings or new voice timing are invalid.
+   */
   public static prependMasterBar(
     score: Score,
     masterBarData: MasterBarData,
@@ -147,7 +179,11 @@ export class ScoreEditor {
     return score.prependMasterBar(masterBarData, voiceNumber);
   }
 
-  /** Applies bar meters together and rebuilds affected voices across all tracks. */
+  /**
+   * Applies complete meters and rebuilds matching voices across all tracks, preserving note content even when overfull.
+   * @param changes Master bars with numerator counts and written denominator durations.
+   * @throws If a meter count is outside supported bounds or timing/beaming rebuild fails.
+   */
   public static setTimeSignatures(
     score: Score,
     changes: TimeSignatureChange[]
@@ -175,11 +211,13 @@ export class ScoreEditor {
   }
 
   /**
-   * Sets (applies/removes) technique from notes
-   * @param notes Notes
-   * @param type Technique type
-   * @param bendOptions Bend options
-   * @returns True if any changes had been made
+   * Removes the technique if every non-empty guitar note in the selection has it and no bend options are supplied.
+   * Otherwise, attempts to apply or update it on each guitar note.
+   * @param notes Live selected notes; non-guitar notes are skipped and note-level applicability rules apply.
+   * @param type Technique to toggle.
+   * @param bendOptions Required when adding a bend; supplying options updates existing bends.
+   * @returns True if any note changed.
+   * @throws If bend options are missing when required or invalid for the technique. Transition lookup can also throw if a note's beat is a rest or an adjacent voice has no beats.
    */
   public static setTechniqueNotes<I extends MusicInstrument>(
     notes: Note<I>[],
@@ -220,9 +258,10 @@ export class ScoreEditor {
     return changesMade;
   }
   /**
-   * Set beat duration
+   * Sets written duration and rebuilds the owning voice's timing and beaming.
    * @param beat Beat
    * @param newDuration New duration
+   * @throws If timing or beaming cannot be rebuilt.
    */
   public static setDuration<I extends MusicInstrument>(
     beat: Beat<I>,
@@ -232,6 +271,10 @@ export class ScoreEditor {
     beat.voiceBar.rebuildTiming();
   }
 
+  /**
+   * Sets written durations and rebuilds each affected voice once.
+   * @throws If updated rhythm or beaming cannot be rebuilt.
+   */
   public static setDurations<I extends MusicInstrument>(
     beats: Beat<I>[],
     newDuration: NoteDuration
@@ -243,6 +286,11 @@ export class ScoreEditor {
     this.rebuildAffectedBars(beats);
   }
 
+  /**
+   * Restores written durations and rebuilds affected voices.
+   * @param oldDurationMap Durations keyed by beat UUID; missing entries use a quarter note.
+   * @throws If restored rhythm or beaming cannot be rebuilt.
+   */
   public static restoreDurations<I extends MusicInstrument>(
     beats: Beat<I>[],
     oldDurationMap: Map<number, NoteDuration>
@@ -255,8 +303,10 @@ export class ScoreEditor {
   }
 
   /**
-   * Set beat's dot count (or reset it if setting the same dot)
-   * @param newDots New dots value (can't be anything other than 0, 1 and 2)
+   * Sets dots on all selected beats, or clears them if all already have that count; rebuilds affected voices.
+   * @param beats Live beats to update.
+   * @param newDots Dot count: 0, 1, or 2.
+   * @throws If the count is unsupported or timing/beaming rebuild fails.
    */
   public static setDots<I extends MusicInstrument>(
     beats: Beat<I>[],
@@ -275,6 +325,11 @@ export class ScoreEditor {
     this.rebuildAffectedBars(beats);
   }
 
+  /**
+   * Restores augmentation dots and rebuilds affected voices.
+   * @param oldDotsMap Counts keyed by beat UUID; missing entries use zero dots.
+   * @throws If a restored dot count is unsupported or timing/beaming rebuild fails.
+   */
   public static restoreDots<I extends MusicInstrument>(
     beats: Beat<I>[],
     oldDotsMap: Map<number, number>
@@ -287,8 +342,10 @@ export class ScoreEditor {
   }
 
   /**
-   * Sets (or unsets) tuplet settings
-   * @param newSettings Tuplet settings (unsets tuplet if undefined)
+   * Updates only this beat's tuplet settings and rebuilds its voice's derived groups and timing.
+   * @param beat Live beat to update.
+   * @param newSettings Omitted, null, or matching settings clear the tuplet.
+   * @throws If settings are outside supported bounds or timing/beaming rebuild fails.
    */
   public static setTupletGroupSettings<I extends MusicInstrument>(
     beat: Beat<I>,
@@ -310,10 +367,10 @@ export class ScoreEditor {
   }
 
   /**
-   * Sets tuplet settings for specified beats
-   * @param beats Beats to apply tuplet settings for
-   * @param normalCount Normal count
-   * @param tupletCount Tuplet count
+   * Applies copied tuplet settings to selected beats and rebuilds affected voices.
+   * @param beats Live beats to update.
+   * @param tupletSettings Null or settings shared by every selected beat clear the tuplets.
+   * @throws If settings are outside supported bounds or timing/beaming rebuild fails.
    */
   public static setTuplet<I extends MusicInstrument>(
     beats: Beat<I>[],
@@ -335,6 +392,11 @@ export class ScoreEditor {
     this.rebuildAffectedBars(beats);
   }
 
+  /**
+   * Restores copied tuplet settings and rebuilds affected voices.
+   * @param oldTupletMap Settings keyed by beat UUID; missing entries remove tuplets.
+   * @throws If restored settings are outside supported bounds or timing/beaming rebuild fails.
+   */
   public static restoreTuplets<I extends MusicInstrument>(
     beats: Beat<I>[],
     oldTupletMap: Map<number, TupletSettings | null>
@@ -354,8 +416,10 @@ export class ScoreEditor {
   }
 
   /**
-   * Removes beats from tab
-   * @param beats Beats to remove
+   * Removes live beats in input order, normalizing empty voices and rebuilding timing.
+   * @param beats Beats still present in their owning voices; duplicates are not supported.
+   * @returns Removal positions, removed beats, and fallback-rest/voice changes for restoration.
+   * @throws If a beat is absent, staff counts are inconsistent, or timing rebuild fails.
    */
   public static removeBeats<I extends MusicInstrument>(
     beats: Beat<I>[]
@@ -371,6 +435,8 @@ export class ScoreEditor {
 
   /**
    * Discards beats inserted by a prior removal to preserve model invariants.
+   * Use only with matching live removal metadata before restoring content; voices can remain empty.
+   * @throws If staff counts are inconsistent or timing rebuild fails.
    */
   public static discardBeatRemovalInsertions<I extends MusicInstrument>(
     outputs: BeatRemovalOutput<I>[]
@@ -404,6 +470,8 @@ export class ScoreEditor {
    * Removes beats as a setup step before restoring other beats into the same
    * location. Any default rest inserted by the removal invariant is discarded so
    * the restore does not leave extra content behind.
+   * @returns Live removal metadata; callers must complete restoration to refill empty voices.
+   * @throws If a beat is absent, staff counts are inconsistent, or timing rebuild fails.
    */
   public static prepareBeatRestore<I extends MusicInstrument>(
     beats: Beat<I>[]
@@ -418,6 +486,9 @@ export class ScoreEditor {
    * Undoes prior beat removals from recorded removal metadata. If a removal
    * inserted a default rest to keep the voice bar non-empty, that temporary rest
    * is removed before the original beats are restored.
+   * @param outputs Metadata from the matching removals, with owning voices still available.
+   * @returns Live inserted copies in original removal order.
+   * @throws If restoration indexes, note data, staff counts, or timing are invalid.
    */
   public static undoBeatRemovals<I extends MusicInstrument>(
     outputs: BeatRemovalOutput<I>[]
@@ -441,6 +512,8 @@ export class ScoreEditor {
   /**
    * Reapplies prior beat removals from recorded removal metadata. Returns fresh
    * removal metadata because the redo may insert new default rests.
+   * @param outputs Matching removal metadata after undo has restored the original positions.
+   * @throws If recorded positions no longer exist or timing/bookkeeping fails.
    */
   public static redoBeatRemovals<I extends MusicInstrument>(
     outputs: BeatRemovalOutput<I>[]
@@ -455,9 +528,10 @@ export class ScoreEditor {
   }
 
   /**
-   * Restores beat snapshots grouped by their original voice bar and insertion
-   * index. Used by commands that snapshot beat content separately from a removal
-   * operation, such as replacement undo.
+   * Copies snapshots into each original voice, ordered by saved index and inserted together at its lowest saved index.
+   * @param snapshots Matching saved content and live owning voices; remove replacement content first.
+   * @returns Live inserted copies, grouped by voice in first-seen order.
+   * @throws If restoration indexes, note data, staff counts, or timing are invalid.
    */
   public static restoreBeats<I extends MusicInstrument>(
     snapshots: BeatRestoreSnapshot<I>[]
@@ -479,6 +553,12 @@ export class ScoreEditor {
     return restoredBeats;
   }
 
+  /**
+   * Removes score-wide bars at unique indexes, processing from last to first.
+   * @param indices Zero-based master-bar indexes before removal.
+   * @returns Removal metadata ordered by ascending original index.
+   * @throws If an index is outside the score or removal would leave no master/staff bar.
+   */
   public static removeBars(
     score: Score,
     indices: number[]
@@ -497,6 +577,13 @@ export class ScoreEditor {
   // for complete bars, paste/replacement can become rhythm-aware. Until then,
   // these operations intentionally match the liberal beat-editing model: they
   // insert/remove beats locally and allow bars to become underfilled/overfilled.
+  /**
+   * Copies beat content into one voice and rebuilds timing, allowing underfill or overfill.
+   * @param beatIndex Zero-based insertion position, using array-splice semantics.
+   * @param beats Content to copy; an empty array has no effect.
+   * @returns Live inserted copies, adapted to the destination's note-slot count.
+   * @throws If copying note/rhythm data or rebuilding timing fails.
+   */
   public static insertBeats<I extends MusicInstrument>(
     voiceBar: VoiceBar<I>,
     beatIndex: number,
@@ -523,8 +610,10 @@ export class ScoreEditor {
    * Replaces selected beats with new beats at the selection start. This is not
    * duration-aware: multi-bar selections may leave later bars underfilled and
    * longer clipboard content may overfill the first affected bar.
-   * @param oldBeats Old beats
-   * @param newBeats New beats
+   * @param oldBeats Live beats to remove, with the insertion location first.
+   * @param newBeats Content to copy into the first affected voice.
+   * @returns Inserted copies and removal metadata; both are empty if either input is empty.
+   * @throws If a selected beat is absent or copying, bookkeeping, or timing rebuild fails.
    */
   public static replaceBeats<I extends MusicInstrument>(
     oldBeats: Beat<I>[],

@@ -5,7 +5,7 @@ import { Technique } from "./technique";
 import { TechniqueType } from "./technique-type";
 
 /**
- * Musical notes
+ * Pitch classes plus Dead (an unpitched strike) and None (an empty note slot).
  */
 export enum NoteValue {
   A = "A",
@@ -24,8 +24,11 @@ export enum NoteValue {
   None = "",
 }
 
+/** Pitch data; dead and empty notes use a null octave. */
 export type NoteType = {
+  /** Pitch class, dead-note marker, or empty-note marker. */
   noteValue: NoteValue;
+  /** Scientific pitch octave, or null for an unpitched note. */
   octave: number | null;
 };
 
@@ -33,25 +36,53 @@ export type NoteType = {
  * Note interface
  */
 export interface Note<I extends MusicInstrument = MusicInstrument> {
+  /** Unique model identifier. */
   readonly uuid: number;
+  /** Owning beat. */
   readonly beat: Beat<I>;
+  /** Shared instrument context of the owning track. */
   readonly trackContext: TrackContext<I>;
+  /** Pitch class, or the dead/empty marker. */
   noteValue: NoteValue;
+  /** Pitch octave, or null for dead and empty notes. */
   octave: number | null;
+  /** Live collection of note-level techniques. */
   techniques: Technique[];
 
+  /**
+   * Changes pitch and updates instrument-specific note data.
+   * @throws If the pitch or its instrument-specific representation is invalid.
+   */
   setNote(newNoteValue: NoteValue, newOctave: number | null): void;
+  /** Returns pitch text with octave, "x" for a dead note, or empty text for an empty note. */
   getNoteStr(): string;
 
+  /**
+   * Adds an applicable, compatible technique; returns whether it was added. This note must belong to its beat.
+   * @throws If transition lookup fails because this note's beat is a rest or an adjacent voice has no beats.
+   */
   addTechnique(technique: Technique): boolean;
+  /** Removes the first technique of this type; returns whether one was removed. */
   removeTechnique(type: TechniqueType): boolean;
+  /** Removes all techniques from this note. */
   clearTechniques(): void;
+  /** Sorts techniques in descending technique-type order. */
   sortTechniques(): void;
+  /** Returns whether a technique of this type is present. */
   hasTechnique(type: TechniqueType): boolean;
+  /**
+   * Checks note state, transition targets, and technique compatibility. This note must belong to its beat.
+   * @throws If transition lookup fails because this note's beat is a rest or an adjacent voice has no beats.
+   */
   isTechniqueApplicable(type: TechniqueType): boolean;
 
+  /** Compares pitch and instrument-specific position, ignoring UUID and techniques. */
   compare(otherNote: Note<I>): boolean;
 
+  /**
+   * Copies this note and its techniques into the given beat, or its current beat by default.
+   * @throws If copied note or technique data is invalid for the destination instrument.
+   */
   deepCopy(beat?: Beat<I>): Note<I>;
 }
 
@@ -93,9 +124,15 @@ export const NOTE_VALUES_ARR: NoteValue[] = [
 export const NOTES_PER_OCTAVE = NOTES_ARR.length;
 /** Lowest supported octave */
 export const LOWEST_OCTAVE = 0;
-/** Highest supported octaveS */
+/** Highest supported octave. */
 export const HIGHEST_OCTAVE = 9;
 
+/**
+ * Shifts a playable pitch class without tracking octave changes.
+ * @param semitones Integer offset; use -12 through 12 for a full octave in either direction.
+ * Larger negative offsets are not normalized reliably.
+ * @throws If noteValue is not one of the twelve playable pitch classes.
+ */
 export function shiftNoteValue(
   noteValue: NoteValue,
   semitones: number
@@ -128,7 +165,8 @@ const SEMITONE_MAP: Record<string, number> = {
 };
 
 /**
- * Translates a `Note` instance into a number of semitones from C0
+ * Converts a pitch class and octave into semitones from C0, without validation.
+ * Dead, None, or unknown pitch values produce NaN.
  */
 export function getSemitonesFromNote(
   noteValue: NoteValue,
@@ -138,7 +176,9 @@ export function getSemitonesFromNote(
 }
 
 /**
- * Translates a number of semitones from C0 into a `Note` instance
+ * Converts a finite integer offset from C0 into pitch data, including negative octaves.
+ * Does not enforce model octave bounds.
+ * @throws If the offset has no matching pitch class, such as fractional or non-finite input.
  */
 export function getNoteFromSemitones(semitonesFromC0: number): {
   noteValue: NoteValue;
@@ -159,6 +199,7 @@ export function getNoteFromSemitones(semitonesFromC0: number): {
   return { noteValue, octave };
 }
 
+/** Returns equal-tempered Hz (A4 = 440), or zero for dead/empty notes or a null octave. */
 export function getNoteFrequency(note: Note): number {
   // Handle Dead notes or None by returning 0 (silence)
   if (
@@ -177,6 +218,7 @@ const A4_REFERENCE_FREQUENCY_HZ = 440;
 /** Semitone offset of A4 from C0: 4 octaves * 12 + A's semitone offset (9). */
 const A4_SEMITONES_FROM_C0 = getSemitonesFromNote(NoteValue.A, 4);
 
+/** Returns equal-tempered Hz (A4 = 440), or zero for dead/empty pitch data or a null octave. */
 export function getFrequencyFromNoteType(note: NoteType): number {
   if (note.noteValue === NoteValue.Dead || note.noteValue === NoteValue.None) {
     return 0;
@@ -194,9 +236,10 @@ export function getFrequencyFromNoteType(note: NoteType): number {
 }
 
 /**
- * Verifies if provided nota value & octave values make a valid note
- * @param noteValue Note value
- * @param octave Octave value
+ * Checks pitch membership, octave presence, and supported octave bounds.
+ * @param noteValue Playable pitch class, Dead, or None.
+ * @param octave Required for playable pitches, omitted for Dead and None; bounds are 0–9, without an integer check.
+ * @throws If the pitch is unknown, octave presence is wrong, or the octave is outside bounds.
  */
 export function verifyNote(noteValue: NoteValue, octave?: number): void {
   if (!NOTE_VALUES_ARR.includes(noteValue)) {

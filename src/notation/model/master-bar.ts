@@ -3,12 +3,19 @@ import { BarRepeatStatus, BarRepeatStatusChange } from "./bar-repeat-status";
 import { NoteDuration } from "./note-duration";
 import { getBaseDurationFraction, TimingFraction } from "./timing";
 
+/** Shared tempo, meter, and repeat settings for the same bar on all staves. */
 export type MasterBarData = {
+  /** Quarter-note tempo in BPM, finite and within 1–999. */
   tempo: number;
+  /** Integer meter numerator, from 1 through 32. */
   beatsCount: number;
+  /** Written beat unit, such as Quarter for a meter denominator of 4. */
   duration: NoteDuration;
+  /** Whether the bar opens a repeat section. */
   isRepeatStart: boolean;
+  /** Whether the bar closes a repeat section. */
   isRepeatEnd: boolean;
+  /** Total section plays, 2–32 at a repeat end; null otherwise. */
   repeatCount: number | null;
 };
 
@@ -25,6 +32,7 @@ export const MIN_MASTER_BAR_REPEAT_COUNT = 2;
 /** Highest accepted repeat count. */
 export const MAX_MASTER_BAR_REPEAT_COUNT = 32;
 
+/** Shared default settings: 120 BPM, 4/4, and no repeat boundaries. */
 export const DEFAULT_MASTER_BAR: MasterBarData = {
   tempo: 120,
   beatsCount: 4,
@@ -35,13 +43,8 @@ export const DEFAULT_MASTER_BAR: MasterBarData = {
 };
 
 /**
- * Single source of truth of what's happening in a bar.
- * Each track's bars ALL have a reference to the respective master bar.
- * For example:
- * - Score
- * - - masterBars: 300 bars
- * - - tracks: 4 tracks (lead, rhythm, bass, drums)
- * - - - For each track 'track.bars[i]' contains a reference to 'masterBars[i]'
+ * Shared tempo, meter, and repeats at one score position.
+ * Each track's staff.bars[i] refers to score.masterBars[i].
  */
 export class MasterBar {
   /** Master bar's unqiue identifier */
@@ -61,13 +64,10 @@ export class MasterBar {
   private _repeatCount: number | null = null;
 
   /**
-   * Single source of truth of what's happening at i-th bar
-   * @param tempo Tempo
-   * @param beatsCount Beast count
-   * @param duration Bar duration
-   * @param isRepeatStart Whether this bar starts a repeat section
-   * @param isRepeatEnd Whether this bar ends a repeat section
-   * @param repeatCount Repeat count (only when end of repeat section)
+   * Creates shared bar settings from a complete MasterBarData object.
+   * At runtime, undefined fields use DEFAULT_MASTER_BAR values; the TypeScript input requires every field.
+   * A repeat end defaults to two plays; other bars store a null count.
+   * @throws If tempo, meter numerator, or an active repeat-end count is outside supported bounds.
    */
   constructor({
     tempo = DEFAULT_MASTER_BAR.tempo,
@@ -92,7 +92,10 @@ export class MasterBar {
     }
   }
 
-  /** Tempo setter */
+  /**
+   * Sets quarter-note BPM without rebuilding voice timing.
+   * @throws If tempo is not finite or outside 1–999.
+   */
   public set tempo(newTempo: number) {
     if (
       !Number.isFinite(newTempo) ||
@@ -105,12 +108,15 @@ export class MasterBar {
     }
     this._tempo = newTempo;
   }
-  /** Tempo getter */
+  /** Quarter-note tempo in BPM. */
   public get tempo(): number {
     return this._tempo;
   }
 
-  /** Beats count setter */
+  /**
+   * Sets the meter numerator; rebuild affected voices afterward.
+   * @throws If the count is not an integer from 1 through 32.
+   */
   public set beatsCount(newBeatsCount: number) {
     if (
       !Number.isInteger(newBeatsCount) ||
@@ -128,11 +134,11 @@ export class MasterBar {
     return this._beatsCount;
   }
 
-  /** Duration setter */
+  /** Sets the written meter beat unit without validation; rebuild affected voices afterward. */
   public set duration(newDuration: NoteDuration) {
     this._duration = newDuration;
   }
-  /** Duration getter */
+  /** Written meter beat unit in whole-note units, such as 0.25 for a quarter note. */
   public get duration(): NoteDuration {
     return this._duration;
   }
@@ -142,17 +148,15 @@ export class MasterBar {
     return this._beatsCount;
   }
 
-  /** Time signature denominator alias */
+  /** Meter beat unit in whole-note units, not the printed integer denominator (0.25 means 4). */
   public get timeSignatureDenominator(): NoteDuration {
     return this._duration;
   }
 
   /**
    * Adds or updates one repeat status on this bar.
-   * @param change Bar repeat status change info:
-   * - Status
-   * - Enabled/disabled
-   * - Repeat count (only if is repeat end)
+   * @param change Boundary, enabled state, and optional total play count for an end; omitted count defaults to two.
+   * @throws If a truthy count is supplied for a start or a supplied truthy count is not an integer from 2 through 32.
    */
   public setRepeatStatus(change: BarRepeatStatusChange): void {
     const { status, enabled, repeatCount } = change;
@@ -174,6 +178,7 @@ export class MasterBar {
     }
   }
 
+  /** True when this bar both starts and ends a repeat section. */
   public isSelfContainedRepeat(): boolean {
     return this._isRepeatStart && this._isRepeatEnd;
   }
@@ -202,7 +207,7 @@ export class MasterBar {
   public get isRepeatEnd(): boolean {
     return this._isRepeatEnd;
   }
-  /** Sets whether this bar ends a repeat section. */
+  /** Enables a repeat end with two plays if no count exists; disabling clears the count to null. */
   public set isRepeatEnd(value: boolean) {
     this._isRepeatEnd = value;
     if (!value) {
@@ -211,7 +216,10 @@ export class MasterBar {
       this._repeatCount = MIN_MASTER_BAR_REPEAT_COUNT;
     }
   }
-  /** Repeat count setter  */
+  /**
+   * Sets the total number of plays of the repeat section.
+   * @throws If this is not a repeat end or the count is not an integer from 2 through 32.
+   */
   public set repeatCount(newCount: number) {
     if (!this._isRepeatEnd) {
       throw Error("Attempted to set repeat count of a non-repeat-end bar");
@@ -219,7 +227,7 @@ export class MasterBar {
     this.validateRepeatCount(newCount);
     this._repeatCount = newCount;
   }
-  /** How many times a repeat section should repeat */
+  /** Total section plays at a repeat end, or null otherwise. */
   public get repeatCount(): number | null {
     return this._repeatCount;
   }
@@ -236,7 +244,7 @@ export class MasterBar {
     }
   }
 
-  /** Gets max duration of the bar */
+  /** Meter duration in whole-note units. */
   public get maxDuration() {
     return this._beatsCount * this._duration;
   }
@@ -254,7 +262,7 @@ export class MasterBar {
     };
   }
 
-  /** Gets essential master bar data */
+  /** Returns a new settings object; modifying it does not change this master bar. */
   public get barData(): MasterBarData {
     return {
       tempo: this._tempo,
@@ -267,8 +275,8 @@ export class MasterBar {
   }
 
   /**
-   * Creates a deep copy of the master bar
-   * @returns Deep copy of the master bar
+   * Creates an independent master bar with the same settings and a new UUID.
+   * @throws If stored settings are outside supported bounds.
    */
   public deepCopy(): MasterBar {
     return new MasterBar({

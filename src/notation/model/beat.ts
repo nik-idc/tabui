@@ -18,13 +18,17 @@ import {
 } from "./timing";
 import { VoiceBar } from "./voice-bar";
 
+/** Note-slot edit metadata containing live result notes. */
 export type NoteArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
 > = {
+  /** Zero-based starting slot in the beat's note array. */
   index: number;
+  /** Notes installed by the operation. */
   notes: Note<I>[];
 };
 
+/** Written augmentation-dot count: none, single, or double. */
 export type BeatDots = 0 | 1 | 2;
 
 /**
@@ -60,15 +64,16 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   private _endTick: number;
 
   /**
-   * Class that represents a beat
-   * @param voiceBar Bar in which the beat lives
+   * Creates a beat with written rhythm; derived tick positions remain zero until its voice rebuilds timing.
+   * @param voiceBar Owning voice bar.
    * @param trackContext Track context
-   * @param notes Notes
+   * @param notes Null for a rest, empty array for default empty note slots, or a retained array matching instrument polyphony.
    * @param baseDuration Base duration
    * @param dots Dots count
    * @param tupletSettings Tuplet settings
-   * @param beamGroupId Beam group ID
-   * @param lastInBeamGroup If is last in beam group
+   * @param beamGroupId Derived beam-group ID, or null; overwritten on timing rebuild.
+   * @param lastInBeamGroup Derived final-beat marker; overwritten on timing rebuild.
+   * @throws If note-slot count or tuplet settings are invalid, or default-note construction fails.
    */
   constructor(
     voiceBar: VoiceBar<I>,
@@ -118,7 +123,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Checks if beat's notes have a technique
+   * Checks whether any note has this technique; rests return false.
    * @param type Type of note technique
    * @returns True if beat's notes have technique, false otherwise
    */
@@ -126,10 +131,15 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     return this._notes?.some((n) => n.hasTechnique(type)) ?? false;
   }
 
+  /** Discards all note slots and turns this beat into a rest, keeping its rhythm. */
   public makeRest(): void {
     this._notes = null;
   }
 
+  /**
+   * Replaces a rest with default empty note slots; leaves an existing note beat intact.
+   * @throws If the instrument's default-note factory rejects its tuning or note state.
+   */
   public makeBeatWithNotes(): void {
     if (this._notes !== null) {
       return;
@@ -147,9 +157,11 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Sets a beat's note
-   * @param index Index of the note to set
-   * @param note Note value to set
+   * Replaces one note slot with a copy owned by this beat.
+   * @param index Zero-based note-slot position.
+   * @param note Note content to copy.
+   * @returns Live installed note and its slot index.
+   * @throws If this is a rest, the index is outside the note array, or copying fails.
    */
   public setNote(index: number, note: Note<I>): NoteArrayOperationOutput<I> {
     if (this._notes === null) {
@@ -168,17 +180,18 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     };
   }
 
+  /** Returns true for a note-slot array, even when all slots are empty notes. */
   public hasNotes(): boolean {
     return this._notes !== null;
   }
 
+  /** Returns true only when the note array is null. */
   public isRest(): boolean {
     return this._notes === null;
   }
 
   /**
-   * Compares contents of this beat with some other beat
-   * (ignoring UUID)
+   * Compares shared track-context identity, written rhythm, and note content, ignoring UUID and derived timing.
    * @param otherBeat Beat to compare with
    * @returns True if equal, false otherwise
    */
@@ -213,9 +226,10 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Creates a deep copy of the beat
+   * Copies rhythm, note content, and beam markers with new UUIDs; derived ticks remain zero until rebuilt.
    * @param voiceBar Voice bar that will own the copied beat
    * @returns Beat's deep copy
+   * @throws If copied rhythm or note data is invalid for the destination instrument.
    */
   public deepCopy(voiceBar: VoiceBar<I> = this.voiceBar): Beat<I> {
     const tupletSettingsCopy: TupletSettings | null =
@@ -245,20 +259,23 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     return beat;
   }
 
-  /** Notes getter */
+  /** Live note-slot array, or null for a rest; empty note values are not rests. */
   public get notes(): Note<I>[] | null {
     return this._notes;
   }
 
-  /** Base duration setter */
+  /** Changes written duration without rebuilding timing; call voiceBar.rebuildTiming() afterward. */
   public set baseDuration(newDuration: NoteDuration) {
     this._baseDuration = newDuration;
   }
-  /** Base duration getter */
+  /** Written duration in whole-note units, before dots and tuplets. */
   public get baseDuration(): NoteDuration {
     return this._baseDuration;
   }
-  /** Full beat duration getter */
+  /**
+   * Played duration in whole-note units, including dots and tuplets.
+   * @throws If dots are unsupported or a rhythm fraction has a zero denominator.
+   */
   public get fullDuration(): number {
     const withDots = applyDotsToFraction(
       getBaseDurationFraction(this._baseDuration),
@@ -269,6 +286,11 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     return withTuplet.numerator / withTuplet.denominator;
   }
 
+  /**
+   * Converts written duration, without dots or tuplets, to ticks.
+   * @param tickResolution Ticks per whole note.
+   * @throws If the duration is not an integral number of ticks at this resolution.
+   */
   public getBaseDurationTicks(tickResolution: number): number {
     return fractionToTicks(
       getBaseDurationFraction(this._baseDuration),
@@ -276,6 +298,11 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     );
   }
 
+  /**
+   * Converts played duration, including dots and tuplets, to ticks.
+   * @param tickResolution Ticks per whole note.
+   * @throws If dots are unsupported, a fraction has a zero denominator, or ticks are not integral.
+   */
   public getFullDurationTicks(tickResolution: number): number {
     const withDots = applyDotsToFraction(
       getBaseDurationFraction(this._baseDuration),
@@ -286,6 +313,13 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     return fractionToTicks(withTuplet, tickResolution);
   }
 
+  /**
+   * Stores derived timing without changing written rhythm or validating values.
+   * @param baseDurationTicks Written duration at the owning voice's tick resolution.
+   * @param fullDurationTicks Played duration including dots and tuplets.
+   * @param startTick Start offset from the bar's beginning.
+   * @param endTick End offset from the bar's beginning.
+   */
   public setTiming(
     baseDurationTicks: number,
     fullDurationTicks: number,
@@ -298,7 +332,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._endTick = endTick;
   }
 
-  /** Dots setter */
+  /** Changes written dots without validation or timing rebuild; rebuild the owning voice afterward. */
   public set dots(newDots: BeatDots) {
     this._dots = newDots;
   }
@@ -307,7 +341,10 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     return this._dots;
   }
 
-  /** Tuplet settings setter */
+  /**
+   * Retains settings by reference, or clears them with null; rebuild the owning voice afterward.
+   * @throws If settings are outside supported bounds.
+   */
   public set tupletSettings(newSettings: TupletSettings | null) {
     if (newSettings !== null && !tupletSettingsInRange(newSettings)) {
       const { normalCount, tupletCount } = newSettings;
@@ -317,19 +354,19 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     }
     this._tupletSettings = newSettings;
   }
-  /** Tuplet settings getter */
+  /** Live tuplet settings, or null when no tuplet applies. */
   public get tupletSettings(): TupletSettings | null {
     return this._tupletSettings;
   }
 
-  /** Beam group ID setter */
+  /** Sets derived beam-group membership; null also clears the last-in-group flag. */
   public set beamGroupId(newBeamGroupId: number | null) {
     this._beamGroupId = newBeamGroupId;
     if (this._beamGroupId === null) {
       this._lastInBeamGroup = false;
     }
   }
-  /** Beam group ID getter */
+  /** Derived beam-group ID within the voice, or null when ungrouped. */
   public get beamGroupId(): number | null {
     return this._beamGroupId;
   }
@@ -338,7 +375,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   public set lastInBeamGroup(newLastInBeamGroup: boolean) {
     this._lastInBeamGroup = newLastInBeamGroup;
   }
-  /** Last in beam group getter */
+  /** Derived marker for the final beat of a beam group. */
   public get lastInBeamGroup(): boolean {
     return this._lastInBeamGroup;
   }

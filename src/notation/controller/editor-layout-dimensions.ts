@@ -1,14 +1,22 @@
 import { MusicInstrument, NoteDuration } from "../model";
 
+/** Base notation measurements in CSS pixels, used to derive the remaining layout dimensions. */
 export interface EditorLayoutDimensionsConfig {
+  /** Available notation width. */
   width: number;
+  /** Font size for fret text and the base scale for note spacing. */
   noteTextSize: number;
+  /** Time-signature font size. */
   timeSigTextSize: number;
+  /** Tempo-label font size. */
   tempoTextSize: number;
+  /** Height reserved for duration symbols. */
   durationsHeight: number;
+  /** Page margin on each horizontal side of the notation. */
   horizontalPadding: number;
 }
 
+/** Notation measurements in CSS pixels, derived from base font sizes and spacing. */
 export class EditorLayoutDimensions {
   /* ==== NOTATION VIEW ==== */
   /** Width of the tab */
@@ -63,6 +71,7 @@ export class EditorLayoutDimensions {
   /* ==== STAFF LINE ELEMENT ==== */
   private readonly _TECH_LABEL_HEIGHT: number;
 
+  /** Creates dimensions from supplied values without validating their ranges. */
   constructor(config: EditorLayoutDimensionsConfig) {
     this._width = config.width;
     this._HORIZONTAL_PADDING = config.horizontalPadding;
@@ -106,10 +115,8 @@ export class EditorLayoutDimensions {
   }
 
   /**
-   * Gets the staff line minimum height. Staff lines + durations
-   * Not to be confused with 'getStaffHeight'.
+   * Returns minimum line height in CSS pixels: one note rectangle per slot plus duration and tuplet space.
    * @param instrument Instrument
-   * @returns Staff line minimum height
    */
   public getStaffLineMinHeight(instrument: MusicInstrument): number {
     return (
@@ -120,24 +127,22 @@ export class EditorLayoutDimensions {
   }
 
   /**
-   * Gets the height of staff (just the lines)
+   * Returns the CSS pixel distance from the first staff line to the last, without rhythm or label space.
    * @param instrument Instrument
-   * @returns Staff height
    */
   public getStaffHeight(instrument: MusicInstrument): number {
     return this._NOTE_RECT_HEIGHT * (instrument.maxPolyphony - 1);
   }
 
   /**
-   * Gets the height of staff (just the lines)
+   * Returns the same staff-line span as getStaffHeight(), in CSS pixels, for bar-line layout.
    * @param instrument Instrument
-   * @returns Staff height
    */
   public getBarsLineMinHeight(instrument: MusicInstrument): number {
     return this._NOTE_RECT_HEIGHT * (instrument.maxPolyphony - 1);
   }
 
-  /** Returns the height required by one voice's rhythm row. */
+  /** Returns one rhythm row's height in CSS pixels; hasTuplet reserves extra bracket and label space when needed. */
   public getRhythmRowHeight(hasTuplet: boolean): number {
     if (!hasTuplet) {
       return this._DURATIONS_HEIGHT + this._TUPLET_RECT_HEIGHT;
@@ -153,62 +158,77 @@ export class EditorLayoutDimensions {
     );
   }
 
+  /** Available notation width in CSS pixels. */
   get width(): number {
     return this._width;
   }
 
+  /** Sets the width in CSS pixels without validation or requesting an editor redraw. */
   public setWidth(width: number): void {
     this._width = width;
   }
 
+  /** Horizontal page margin on each side, in CSS pixels. */
   get horizontalPadding(): number {
     return this._HORIZONTAL_PADDING;
   }
 
+  /** Fret-text font size in CSS pixels. */
   get noteTextSize(): number {
     return this._NOTE_TEXT_SIZE;
   }
 
+  /** Time-signature font size in CSS pixels. */
   get timeSigTextSize(): number {
     return this._TIME_SIG_TEXT_SIZE;
   }
 
+  /** Tempo-label font size in CSS pixels. */
   get tempoTextSize(): number {
     return this._TEMPO_TEXT_SIZE;
   }
 
+  /** Minimum note rectangle width in CSS pixels. */
   get noteRectWidthMin(): number {
     return this._NOTE_RECT_WIDTH_MIN;
   }
 
+  /** Minimum spacing between adjacent timing columns in CSS pixels. */
   get minRhythmColumnGap(): number {
     return this._MIN_RHYTHM_COLUMN_GAP;
   }
 
+  /** Padding around the first and last attack columns in CSS pixels. */
   get rhythmAttackPadding(): number {
     return this._RHYTHM_ATTACK_PADDING;
   }
 
+  /** Shared mutable width map keyed by written duration, with CSS pixel values. */
   get widthMapping(): Record<NoteDuration, number> {
     return this._WIDTH_MAPPING;
   }
 
+  /** Note rectangle height and string-line spacing in CSS pixels. */
   get noteRectHeight(): number {
     return this._NOTE_RECT_HEIGHT;
   }
 
+  /** Technique-label height in CSS pixels. */
   get techniqueLabelHeight(): number {
     return this._TECHNIQUE_LABEL_HEIGHT;
   }
 
+  /** Duration-symbol rectangle width in CSS pixels. */
   get durationsWidth(): number {
     return this._DURATIONS_WIDTH;
   }
 
+  /** Duration-symbol rectangle height in CSS pixels. */
   get durationsHeight(): number {
     return this._DURATIONS_HEIGHT;
   }
 
+  /** New map of spacing multipliers keyed by augmentation-dot count (0, 1, or 2). */
   get dotWidthFactors(): Record<number, number> {
     return {
       0: 1,
@@ -217,38 +237,47 @@ export class EditorLayoutDimensions {
     };
   }
 
+  /** Augmentation-dot diameter in CSS pixels. */
   get dotDiameter(): number {
     return this._DOT_DIAMETER;
   }
 
+  /** Height of one duration flag in CSS pixels. */
   get durationFlagHeight(): number {
     return this._DURATION_FLAG_HEIGHT;
   }
 
+  /** Time-signature rectangle width in CSS pixels. */
   get timeSigRectWidth(): number {
     return this._TIME_SIG_RECT_WIDTH;
   }
 
+  /** Tempo rectangle width in CSS pixels. */
   get tempoRectWidth(): number {
     return this._TEMPO_RECT_WIDTH;
   }
 
+  /** Tempo rectangle height in CSS pixels. */
   get tempoRectHeight(): number {
     return this._TEMPO_RECT_HEIGHT;
   }
 
+  /** Repeat-sign width in CSS pixels. */
   get repeatSignWidth(): number {
     return this._REPEAT_SIGN_WIDTH;
   }
 
+  /** Reserved tuplet rectangle height in CSS pixels. */
   get tupletRectHeight(): number {
     return this._TUPLET_RECT_HEIGHT;
   }
 
+  /** Tuplet bracket path height in CSS pixels. */
   get tupletPathHeight(): number {
     return this._TUPLET_PATH_HEIGHT;
   }
 
+  /** Staff-line technique-label height in CSS pixels. */
   get techLabelHeight(): number {
     return this._TECH_LABEL_HEIGHT;
   }

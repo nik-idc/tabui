@@ -23,6 +23,10 @@ type DefaultTunings = {
   [K in StringCount]: Record<TuningsPerStringCount[K], NoteType[]>;
 };
 
+/**
+ * Shared tuning arrays keyed by string count and preset name, ordered by one-based string number.
+ * Copy the arrays and pitch objects before mutation.
+ */
 export const DEFAULT_TUNINGS: DefaultTunings = {
   1: {
     Standard: [{ noteValue: NoteValue.E, octave: 2 }],

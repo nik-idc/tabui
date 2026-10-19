@@ -1,10 +1,10 @@
 import { Bar, Staff, Beat, Note, VoiceBar, VoiceNumber } from "../../model";
 
-/** Readonly model-level selection cursor suitable for host state snapshots. */
+/** Readonly cursor fields with live beat and note references; the model objects are not frozen. */
 export interface SelectionCursorSnapshot {
   /** Beat containing the cursor. */
   readonly beat: Beat;
-  /** Note at the cursor, or null when the selected slot is empty. */
+  /** Live slot note, which may have an empty note value; null for a rest or missing slot. */
   readonly note: Note | null;
   /** Zero-based instrument lane/string index within the beat. */
   readonly noteIndex: number;

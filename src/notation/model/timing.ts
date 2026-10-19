@@ -1,6 +1,7 @@
 import { NoteDuration } from "./note-duration";
 import { TupletSettings } from "./tuplet-settings";
 
+/** Exact duration in whole-note units; fraction operations require a nonzero denominator, and ordering comparisons require positive denominators. */
 export type TimingFraction = {
   /** Fraction numerator */
   numerator: number;
@@ -77,7 +78,10 @@ export function getBaseDurationFraction(
   };
 }
 
-/** Applies dots to a base duration fraction */
+/**
+ * Applies 0, 1, or 2 augmentation dots and reduces the result.
+ * @throws If the dot count is unsupported or the denominator is zero.
+ */
 export function applyDotsToFraction(
   baseFraction: TimingFraction,
   dots: number
@@ -100,7 +104,10 @@ export function applyDotsToFraction(
   }
 }
 
-/** Applies tuplet scaling to a duration fraction */
+/**
+ * Multiplies duration by tupletCount / normalCount and reduces it; null only reduces the input.
+ * @throws If the input denominator or normalCount is zero.
+ */
 export function applyTupletToFraction(
   fraction: TimingFraction,
   tupletSettings: TupletSettings | null
@@ -115,7 +122,11 @@ export function applyTupletToFraction(
   });
 }
 
-/** Converts an exact whole-note fraction into ticks */
+/**
+ * Converts a whole-note fraction to an exact integer tick count.
+ * @param tickResolution Ticks per whole note.
+ * @throws If conversion is not integral at this resolution, including a zero fraction denominator.
+ */
 export function fractionToTicks(
   fraction: TimingFraction,
   tickResolution: number
@@ -130,7 +141,11 @@ export function fractionToTicks(
   return ticksNumerator / fraction.denominator;
 }
 
-/** Converts ticks into an exact whole-note fraction */
+/**
+ * Converts ticks to a reduced whole-note fraction.
+ * @param tickResolution Ticks per whole note.
+ * @throws If tickResolution is zero.
+ */
 export function ticksToFraction(
   ticks: number,
   tickResolution: number
@@ -143,17 +158,20 @@ export function fractionEq(a: TimingFraction, b: TimingFraction): boolean {
   return a.numerator * b.denominator === b.numerator * a.denominator;
 }
 
-/** Indicates whether the first fraction is less than the second */
+/** Indicates whether the first fraction is less than the second; assumes positive denominators without validating them. */
 export function fractionLt(a: TimingFraction, b: TimingFraction): boolean {
   return a.numerator * b.denominator < b.numerator * a.denominator;
 }
 
-/** Indicates whether the first fraction is less than or equal to the second */
+/** Indicates whether the first fraction is less than or equal to the second; assumes positive denominators without validating them. */
 export function fractionLte(a: TimingFraction, b: TimingFraction): boolean {
   return a.numerator * b.denominator <= b.numerator * a.denominator;
 }
 
-/** Converts an exact whole-note fraction into seconds at a tempo */
+/**
+ * Converts a whole-note fraction to seconds without numeric validation.
+ * @param tempo Quarter-note beats per minute; invalid values can produce NaN or Infinity.
+ */
 export function fractionToSeconds(
   fraction: TimingFraction,
   tempo: number
@@ -162,7 +180,12 @@ export function fractionToSeconds(
   return (fraction.numerator / fraction.denominator) * wholeNoteSeconds;
 }
 
-/** Converts bar-local ticks into seconds at a tempo */
+/**
+ * Converts bar-local ticks to seconds.
+ * @param tickResolution Ticks per whole note.
+ * @param tempo Quarter-note beats per minute; invalid values can produce NaN or Infinity.
+ * @throws If tickResolution is zero.
+ */
 export function ticksToSeconds(
   ticks: number,
   tickResolution: number,

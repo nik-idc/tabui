@@ -23,6 +23,7 @@ export interface PlaybackOptions {
   loopEndBeat?: Beat;
 }
 
+/** Playback error-event stages: audio-context creation, context start, sample loading, and scheduling. */
 export enum PlaybackErrorCode {
   ContextInit = "context-init",
   ContextStart = "context-start",

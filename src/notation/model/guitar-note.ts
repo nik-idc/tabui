@@ -46,12 +46,13 @@ export class GuitarNote implements Note<Guitar> {
   private _techniques: GuitarTechnique[];
 
   /**
-   * Class that represents a guitar note
+   * Creates a guitar note and computes its pitch from the string tuning and fret.
    * @param beat Beat in which the note lives
    * @param trackContext Track context
-   * @param stringNum String number
-   * @param fret Fret number
-   * @param techniques Techniques applied to the note
+   * @param stringNum One-based string number, matching tuning order.
+   * @param fret Null for an empty slot, -1 for a dead note, or a fret number; values above the fretboard are clamped.
+   * @param techniques Retained live array; an empty note cannot have techniques.
+   * @throws If an empty note has techniques, tuning is missing/unpitched, or fret-to-pitch conversion fails.
    */
   constructor(
     beat: Beat<Guitar>,
@@ -76,7 +77,8 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Calculate musical note value based on the fret & string number
+   * Recomputes pitch from fret and string tuning; null and -1 frets become empty and dead notes.
+   * @throws If string tuning is missing, its octave is null, or the resulting pitch is invalid or outside octaves 0–9.
    */
   public calcNoteFromFret(): void {
     if (this._fret === null) {
@@ -112,7 +114,9 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Calculate musical note value based on note & octave value
+   * Computes fret from pitch and string tuning, clamping above the fretboard maximum without changing stored pitch.
+   * Empty pitch clears techniques and sets a null fret; dead pitch sets fret -1.
+   * @throws If playable pitch/tuning has a null octave, tuning is missing, or the calculated fret is below zero.
    */
   public calculateFretFromNote(): void {
     if (this._noteValue === NoteValue.None) {
@@ -160,9 +164,10 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Sets both note value and octave
+   * Sets pitch data and recalculates fret; does not validate pitch membership or octave bounds.
    * @param newNoteValue - New note value
    * @param newOctave - New octave value
+   * @throws If pitch-to-fret conversion fails because of missing tuning/octave or a negative fret.
    */
   public setNote(newNoteValue: NoteValue, newOctave: number | null): void {
     this._noteValue = newNoteValue;
@@ -171,8 +176,7 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Returns note in the format "{Note value}{Octave}". Examples: A#2, B3, c4, f#1
-   * @returns Note in the format "{Note value}{Octave}"
+   * Returns pitch text with octave (for example A#2), "x" for a dead note, or empty text for an empty slot.
    */
   public getNoteStr(): string {
     switch (this._noteValue) {
@@ -185,6 +189,10 @@ export class GuitarNote implements Note<Guitar> {
     }
   }
 
+  /**
+   * Returns the preceding same-string bend's terminal pitch in UI whole tones for a let-ring note.
+   * Returns undefined without let-ring, a preceding note, or a supported terminal bend shape.
+   */
   public getBendContinuationPitch(): number | undefined {
     if (!this.hasTechnique(GuitarTechniqueType.LetRing)) {
       return undefined;
@@ -204,6 +212,9 @@ export class GuitarNote implements Note<Guitar> {
 
   /**
    * Applies, updates, or removes a technique on this note.
+   * Existing techniques toggle off, except bends with options, which update in place.
+   * @returns True if changed; false if inapplicable, incompatible, or unchanged.
+   * @throws If adding a bend without options or a non-bend with options. Transition lookup can also throw if this note's beat is a rest or an adjacent voice has no beats.
    */
   public setTechnique(
     type: GuitarTechniqueType,
@@ -235,9 +246,10 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Adds new technique to the note
-   * @param guitarTechnique Guitar technique to add
-   * @returns True if technique added succesfully, false if can't add this technique
+   * Adds an applicable, compatible technique without copying or rebinding it.
+   * @param guitarTechnique Technique already owned by this note.
+   * @returns True if added; false for invalid continuation or incompatible/inapplicable techniques.
+   * @throws If transition lookup fails because this note's beat is a rest or an adjacent voice has no beats.
    */
   public addTechnique(guitarTechnique: GuitarTechnique): boolean {
     if (!this.isTechniqueApplicable(guitarTechnique.type)) {
@@ -286,16 +298,17 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Sorts techniques
+   * Sorts the live technique array in descending technique-type order.
    */
   public sortTechniques(): void {
     this._techniques.sort((a, b) => b.type - a.type);
   }
 
   /**
-   * Determines whether provided technique can be applied to the current note
+   * Checks fret state, the immediate next beat's same-slot transition target, and existing technique compatibility.
    * @param type Technique type
    * @returns True if applicable, false otherwise
+   * @throws If transition lookup fails because this note's beat is a rest or an adjacent voice has no beats.
    */
   public isTechniqueApplicable(type: GuitarTechniqueType): boolean {
     if (this._fret === null || this._fret === -1) {
@@ -328,8 +341,7 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Compares contents of this guitar note with some other note
-   * (ignoring UUID)
+   * Compares pitch, octave, fret, and string number, ignoring UUID, ownership, and techniques.
    * @param otherNote Note to compare with
    * @returns True if equal, false otherwise
    */
@@ -343,9 +355,10 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Deep copy of the guitar note
+   * Copies fret, string number, and techniques into the destination beat, recomputing pitch from its tuning.
    * @param beat Beat that will own the copied note
    * @returns Deep copy of the guitar note
+   * @throws If destination tuning, copied fret/pitch, or technique data is invalid.
    */
   public deepCopy(beat: Beat<Guitar> = this.beat): GuitarNote {
     const note = new GuitarNote(
@@ -361,7 +374,10 @@ export class GuitarNote implements Note<Guitar> {
     return note;
   }
 
-  /** Note value setter */
+  /**
+   * Stores pitch class and recalculates fret without validating pitch membership.
+   * @throws If tuning/octave is missing or the calculated fret is negative.
+   */
   public set noteValue(newNoteValue: NoteValue) {
     this._noteValue = newNoteValue;
     this.calculateFretFromNote();
@@ -371,7 +387,10 @@ export class GuitarNote implements Note<Guitar> {
     return this._noteValue;
   }
 
-  /** Octave setter */
+  /**
+   * Stores octave and recalculates fret without checking octave bounds.
+   * @throws If playable pitch/tuning has no octave, tuning is missing, or the calculated fret is negative.
+   */
   public set octave(newOctave: number | null) {
     this._octave = newOctave;
     this.calculateFretFromNote();
@@ -381,7 +400,10 @@ export class GuitarNote implements Note<Guitar> {
     return this._octave;
   }
 
-  /** String number setter */
+  /**
+   * Sets fret and recomputes pitch, clamping above the fretboard maximum; null clears the note and its techniques.
+   * @throws If tuning is missing/unpitched or the resulting pitch is invalid or outside supported octave bounds.
+   */
   public set fret(newFret: number | null) {
     const fretsCount = this.trackContext.instrument.fretsCount;
     if (newFret !== null) {
@@ -392,17 +414,17 @@ export class GuitarNote implements Note<Guitar> {
     }
     this.calcNoteFromFret();
   }
-  /** Fret number */
+  /** Fret number, null for an empty slot, or -1 for a dead note. */
   public get fret(): number | null {
     return this._fret;
   }
 
-  /** String number getter */
+  /** One-based string number in instrument tuning order. */
   public get stringNum(): number {
     return this._stringNum;
   }
 
-  /** Techniques array */
+  /** Live technique array; use technique methods to check applicability and compatibility. */
   public get techniques(): GuitarTechnique[] {
     return this._techniques;
   }

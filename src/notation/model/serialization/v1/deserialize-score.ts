@@ -314,10 +314,10 @@ function restoreMasterBarVoices(
 }
 
 /**
- * Validates and reconstructs a public version-1 score document. Reconstruction
- * first creates master bars and track/staff shells. It then prepares, inserts,
- * and restores each master bar in order so model operations regenerate derived
- * state from an attached graph.
+ * Validates a version-1 document and constructs a new score with regenerated ownership and timing.
+ * @param value Already-parsed document data, not JSON text; use JSON.parse() first for text input.
+ * @returns A new model graph independent of the input document.
+ * @throws ScoreSerializationError with the document path for invalid fields, unsupported format/version, or invalid model data.
  */
 export function deserializeScore(value: unknown): Score {
   const scoreData = readScoreData(SerializedValueReader.root(value));

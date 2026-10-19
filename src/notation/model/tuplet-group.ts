@@ -20,10 +20,10 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
   readonly tupletCount: number;
 
   /**
-   * Class that represents a tuplet group inside a bar
-   * @param beats Tuplet group beats
-   * @param normalCount Normal count
-   * @param tupletCount Tuplet count
+   * Groups live beats without copying them or rebuilding their timing.
+   * @param beats Retained live array from one voice; complete when its length equals normalCount.
+   * @param normalCount Number of written notes in a complete group (3 for triplets).
+   * @param tupletCount Number of ordinary beat units they occupy (2 for triplets).
    */
   constructor(beats: Beat<I>[], normalCount: number, tupletCount: number) {
     this.uuid = randomInt();
@@ -36,7 +36,11 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
     this.isStandard = this.normalCount === this.tupletCount + 1;
   }
 
-  /** Gets calculated duration of a tuplet beat by index */
+  /**
+   * Returns the beat's played duration in whole-note units, including dots and tuplets.
+   * @param index Zero-based position in this group's beat array.
+   * @throws If the index is absent or the beat's rhythm fraction is invalid.
+   */
   public getCalculatedDurationAt(index: number): number {
     const beat = this.beats[index];
     if (beat === undefined) {
@@ -48,7 +52,11 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
     return beat.fullDuration;
   }
 
-  /** Gets calculated duration of a tuplet beat by index in ticks */
+  /**
+   * Returns the beat's last rebuilt played duration in its owning voice's bar-local ticks.
+   * @param index Zero-based position in this group's beat array.
+   * @throws If the index is absent.
+   */
   public getDurationTicksAt(index: number): number {
     const beat = this.beats[index];
     if (beat === undefined) {
@@ -61,8 +69,7 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Creates current tuplet group's deep copy
-   * @returns Current tuplet group's deep copy
+   * Creates a group with a new UUID and array, sharing the original beat references and their owners.
    */
   public deepCopy(): BarTupletGroup {
     const copy = new BarTupletGroup(
