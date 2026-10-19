@@ -203,9 +203,10 @@ export class PlaybackNoteScheduler {
     const bendPitch = options.bendPitch ?? options.holdPitch ?? 0;
     const releasePitch = options.releasePitch ?? 0;
     const prebendPitch = options.prebendPitch ?? 0;
-    const bendValue = baseValue * this.semitonesToRate(bendPitch);
-    const prebendValue = baseValue * this.semitonesToRate(prebendPitch);
-    const releaseValue = baseValue * this.semitonesToRate(releasePitch);
+    // Bend options use whole tones; playback pitch conversion uses semitones.
+    const bendValue = baseValue * this.semitonesToRate(bendPitch * 2);
+    const prebendValue = baseValue * this.semitonesToRate(prebendPitch * 2);
+    const releaseValue = baseValue * this.semitonesToRate(releasePitch * 2);
     const continuationPitch =
       params.note instanceof GuitarNote
         ? params.note.getBendContinuationPitch()
@@ -213,7 +214,7 @@ export class PlaybackNoteScheduler {
     const continuationValue =
       continuationPitch === undefined
         ? baseValue
-        : baseValue * this.semitonesToRate(continuationPitch);
+        : baseValue * this.semitonesToRate(continuationPitch * 2);
     const bendStartValue =
       options.type === BendType.Bend || options.type === BendType.BendAndRelease
         ? continuationValue
@@ -256,7 +257,7 @@ export class PlaybackNoteScheduler {
         "Hold and Release playback require a previous bend continuation"
       );
     }
-    return params.baseValue * this.semitonesToRate(continuationPitch);
+    return params.baseValue * this.semitonesToRate(continuationPitch * 2);
   }
 
   /** Dispatches bend automation based on the concrete bend type. */

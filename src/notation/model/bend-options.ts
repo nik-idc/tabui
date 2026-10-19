@@ -1,6 +1,6 @@
 import { BendType, OPTIONS_PER_BEND_TYPE } from "./bend-type";
 
-/** Maximum bend value: 3 whole tones in the UI. Playback currently treats bend values as semitones. */
+/** Maximum bend displacement in whole tones (six semitones). */
 export const MAX_BEND_PITCH = 3;
 
 /**
@@ -18,13 +18,13 @@ export const MAX_BEND_PITCH = 3;
 export type BendOptionsData = {
   /** Shape determining which other fields are required; unused fields must be omitted. */
   type: BendType;
-  /** Bent displacement in UI whole tones, from 0 through MAX_BEND_PITCH. */
+  /** Bent displacement in whole tones, from 0 through MAX_BEND_PITCH. */
   bendPitch?: number;
-  /** Release displacement in UI whole tones, from 0 through MAX_BEND_PITCH. */
+  /** Release displacement in whole tones, from 0 through MAX_BEND_PITCH. */
   releasePitch?: number;
-  /** Held displacement in UI whole tones, from 0 through MAX_BEND_PITCH. */
+  /** Held displacement in whole tones, from 0 through MAX_BEND_PITCH. */
   holdPitch?: number;
-  /** Initial displacement in UI whole tones, from 0 through MAX_BEND_PITCH. */
+  /** Initial displacement in whole tones, from 0 through MAX_BEND_PITCH. */
   prebendPitch?: number;
   /** Fraction of the note used by the bend motion, greater than 0 and at most 1. */
   bendDuration?: number;
@@ -36,13 +36,13 @@ export type BendOptionsData = {
 export class BendTechniqueOptions {
   /** Bend shape controlling the required option fields. */
   readonly type: BendType;
-  /** Bent displacement in UI whole tones, when required by the shape. */
+  /** Bent displacement in whole tones, when required by the shape. */
   readonly bendPitch?: number;
-  /** Release displacement in UI whole tones, when required by the shape. */
+  /** Release displacement in whole tones, when required by the shape. */
   readonly releasePitch?: number;
-  /** Held displacement in UI whole tones, when required by the shape. */
+  /** Held displacement in whole tones, when required by the shape. */
   readonly holdPitch?: number;
-  /** Initial displacement in UI whole tones, when required by the shape. */
+  /** Initial displacement in whole tones, when required by the shape. */
   readonly prebendPitch?: number;
   /** Bend-motion fraction of the note in (0, 1], when required by the shape. */
   readonly bendDuration?: number;
@@ -62,7 +62,7 @@ export class BendTechniqueOptions {
     this.bendDuration = options.bendDuration;
   }
 
-  /** Final displacement in UI whole tones for Bend, PrebendBend, Hold, or Prebend; undefined for other shapes. */
+  /** Final displacement in whole tones for Bend, PrebendBend, Hold, or Prebend; undefined for other shapes. */
   public get terminalPitch(): number | undefined {
     switch (this.type) {
       case BendType.Bend:

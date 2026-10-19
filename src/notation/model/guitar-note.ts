@@ -190,7 +190,7 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Returns the preceding same-string bend's terminal pitch in UI whole tones for a let-ring note.
+   * Returns the preceding same-string bend's terminal pitch in whole tones for a let-ring note.
    * Returns undefined without let-ring, a preceding note, or a supported terminal bend shape.
    */
   public getBendContinuationPitch(): number | undefined {

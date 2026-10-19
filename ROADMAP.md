@@ -50,10 +50,10 @@ replace release validation.
       `git diff --check`, and `npm run benchmark:updates` from clean build output.
 - [x] Review the root API and remove 16 implementation-only exports, keeping
       internal exports unchanged. Controllers and notation elements remain internal.
-- [ ] Explore best ways to generate public API documentation. If any public code is not
+- [x] Explore best ways to generate public API documentation. If any public code is not
       properly documented, it should be.
-- [ ] Resolve bend pitch units: the UI labels values as whole tones, but playback
-      treats them as semitones. Align playback, notation, and public documentation.
+- [x] Correct bend playback to use whole tones: a Full bend raises pitch by two
+      semitones, including prebends, releases, and sustained continuations.
 - [ ] Fix staff traversal across empty adjacent voices: beat traversal can return
       undefined despite its `Beat | null` signature, causing note traversal to throw.
 

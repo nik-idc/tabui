@@ -200,16 +200,59 @@ describe("PlaybackNoteScheduler", () => {
   });
 
   test.each([
-    { harmonic: false, ratio: 2, peak: 0.0648 },
-    { harmonic: true, ratio: 4, peak: 0.045 },
+    {
+      name: "plain note",
+      harmonic: false,
+      ratio: 2,
+      peak: 0.0648,
+      bendOptions: null,
+    },
+    {
+      name: "natural harmonic",
+      harmonic: true,
+      ratio: 4,
+      peak: 0.045,
+      bendOptions: null,
+    },
+    {
+      name: "quarter-tone prebend to Full",
+      harmonic: false,
+      ratio: 2 * 2 ** (0.5 / 12),
+      peak: 0.0648,
+      bendOptions: new BendTechniqueOptions({
+        type: BendType.PrebendBend,
+        prebendPitch: 0.25,
+        bendPitch: 1,
+        bendDuration: 1,
+      }),
+    },
+    {
+      name: "Full prebend to half tone",
+      harmonic: false,
+      ratio: 2 * 2 ** (2 / 12),
+      peak: 0.0648,
+      bendOptions: new BendTechniqueOptions({
+        type: BendType.PrebendAndRelease,
+        prebendPitch: 1,
+        releasePitch: 0.5,
+        bendDuration: 1,
+      }),
+    },
   ])(
-    "uses a loaded sample at the note playback ratio (harmonic: $harmonic)",
-    async ({ harmonic, ratio, peak }) => {
+    "uses a loaded sample at the note playback ratio: $name",
+    async ({ harmonic, ratio, peak, bendOptions }) => {
       const [note] = notesAtFrets(5);
       if (harmonic) {
         expect(
           note.addTechnique(
             new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
+          )
+        ).toBe(true);
+      }
+      if (bendOptions !== null) {
+        expect(
+          note.addTechnique(
+            new GuitarTechnique(note, GuitarTechniqueType.Bend, bendOptions)
           )
         ).toBe(true);
       }
@@ -238,10 +281,20 @@ describe("PlaybackNoteScheduler", () => {
 
       expect(audio.oscillators).toHaveLength(0);
       expect(audio.bufferSources[0].buffer).toBe(sample);
-      // A3 -> A4 is rate 2; its octave harmonic A5 is rate 4.
+      // A3 -> A4 is rate 2; each whole tone adds two semitones.
       expect(
         audio.bufferSources[0].playbackRate.setValueAtTime
-      ).toHaveBeenCalledWith(ratio, 2);
+      ).toHaveBeenCalledWith(expect.closeTo(ratio, 8), 2);
+      if (bendOptions !== null) {
+        const targetSemitones =
+          bendOptions.type === BendType.PrebendBend ? 2 : 1;
+        expect(
+          audio.bufferSources[0].playbackRate.linearRampToValueAtTime
+        ).toHaveBeenCalledWith(
+          expect.closeTo(2 * 2 ** (targetSemitones / 12), 8),
+          3
+        );
+      }
       expect(audio.bufferSources[0].connect).toHaveBeenCalledWith(
         audio.gains[0]
       );
@@ -297,7 +350,7 @@ describe("PlaybackNoteScheduler", () => {
           GuitarTechniqueType.Bend,
           new BendTechniqueOptions({
             type: BendType.Bend,
-            bendPitch: 2,
+            bendPitch: 1,
             bendDuration: 0.5,
           })
         )
@@ -376,7 +429,7 @@ describe("PlaybackNoteScheduler", () => {
         GuitarTechniqueType.Bend,
         new BendTechniqueOptions({
           type: BendType.Bend,
-          bendPitch: 2,
+          bendPitch: 1,
           bendDuration: 1,
         })
       )
@@ -388,7 +441,7 @@ describe("PlaybackNoteScheduler", () => {
 
     const options = new BendTechniqueOptions({
       type,
-      ...(type === BendType.Hold ? { holdPitch: 2 } : { releasePitch: 0 }),
+      ...(type === BendType.Hold ? { holdPitch: 1 } : { releasePitch: 0 }),
       bendDuration: 1,
     });
     expect(
