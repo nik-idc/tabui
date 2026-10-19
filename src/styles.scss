@@ -1417,6 +1417,105 @@
   pointer-events: none;
 }
 
+.tu-editor input[type="range"] {
+  --tu-range-fill: var(--tu-font-color);
+  --tu-range-rail: color-mix(
+    in srgb,
+    var(--tu-font-color) 18%,
+    var(--tu-primary-color)
+  );
+  appearance: none;
+  height: 2rem;
+  margin-block: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(var(--tu-range-rail), var(--tu-range-rail))
+    center / 100% 6px no-repeat;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  &::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  &::-moz-range-progress {
+    background: transparent;
+  }
+
+  // Keep engine-specific selectors separate; unsupported selectors invalidate a group.
+  &::-webkit-slider-thumb {
+    appearance: none;
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    margin-top: -5px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--tu-range-fill);
+    box-shadow: 0 1px 4px #00000030;
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  &::-moz-range-thumb {
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--tu-range-fill);
+    box-shadow: 0 1px 4px #00000030;
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  &:hover:not(:disabled)::-webkit-slider-thumb {
+    transform: scale(1.15);
+  }
+
+  &:hover:not(:disabled)::-moz-range-thumb {
+    transform: scale(1.15);
+  }
+
+  &:active:not(:disabled)::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px var(--tu-applied-color);
+  }
+
+  &:active:not(:disabled)::-moz-range-thumb {
+    box-shadow: 0 0 0 4px var(--tu-applied-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tu-font-color);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.tu-editor input:is(.tu-track-panning-input, .tu-master-panning-input) {
+  // A center detent distinguishes balance from the volume control at a glance.
+  background-image:
+    linear-gradient(var(--tu-range-rail), var(--tu-range-rail)),
+    linear-gradient(var(--tu-range-rail), var(--tu-range-rail));
+  background-size:
+    2px 12px,
+    100% 6px;
+}
+
 .tu-editor .tu-icon-button {
   appearance: none;
   display: grid;
