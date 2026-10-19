@@ -47,6 +47,8 @@
     "benchmark:updates": "npx tsx --tsconfig scripts/tsconfig.json scripts/benchmark-updates.ts",
     "build:package": "vite build --config vite.config.lib.js && tsc --build",
     "build:demo": "vite build",
+    "docs:build": "typedoc",
+    "docs:preview": "vite preview --config vite.config.docs.js",
     "test": "npm run test:unit",
     "test:unit": "tsc --project tsconfig.test.json && npx jest",
     "test:performance-stress": "tsc --project tsconfig.test.json && TABUI_RUN_PERFORMANCE_STRESS_TEST=1 npx jest tests/unit/demo/editor-fixture.spec.ts",
@@ -82,6 +84,7 @@
     "sass-embedded": "^1.93.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.16.5",
+    "typedoc": "^0.28.20",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.0",
     "vite": "^6.3.1"

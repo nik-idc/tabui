@@ -2,6 +2,7 @@
 node_modules/
 /dist/
 /demo/dist/
+/docs/api/
 *.tsbuildinfo
 
 # Test output

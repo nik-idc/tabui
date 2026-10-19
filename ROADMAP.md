@@ -52,6 +52,10 @@ replace release validation.
       internal exports unchanged. Controllers and notation elements remain internal.
 - [ ] Explore best ways to generate public API documentation. If any public code is not
       properly documented, it should be.
+- [ ] Resolve bend pitch units: the UI labels values as whole tones, but playback
+      treats them as semitones. Align playback, notation, and public documentation.
+- [ ] Fix staff traversal across empty adjacent voices: beat traversal can return
+      undefined despite its `Beat | null` signature, causing note traversal to throw.
 
 ## Follow-up inbox
 
