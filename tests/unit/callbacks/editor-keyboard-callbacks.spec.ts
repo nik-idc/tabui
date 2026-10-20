@@ -748,12 +748,190 @@ describe("EditorKeyboardDefCallbacks", () => {
     });
   });
 
+  test("toolbar playback restores notation focus and consumes held Space without toggling again", () => {
+    withKeyboardFixture(({ callbacks, root }) => {
+      const button = document.createElement("button");
+      root.append(button);
+      const toggle = jest
+        .spyOn(callbacks, "togglePlaybackEvent")
+        .mockImplementation(() => {
+          button.disabled = true;
+        });
+      callbacks.bind();
+      button.dispatchEvent(new window.Event("pointerdown", { bubbles: true }));
+      button.focus();
+      const first = new window.KeyboardEvent("keydown", {
+        key: " ",
+        bubbles: true,
+        cancelable: true,
+      });
+      button.dispatchEvent(first);
+      expect(first.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(root);
+      expect(toggle).toHaveBeenCalledTimes(1);
+
+      const repeat = new window.KeyboardEvent("keydown", {
+        key: " ",
+        repeat: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      root.dispatchEvent(repeat);
+      expect(repeat.defaultPrevented).toBe(true);
+      expect(toggle).toHaveBeenCalledTimes(1);
+
+      const second = new window.KeyboardEvent("keydown", {
+        key: " ",
+        bubbles: true,
+        cancelable: true,
+      });
+      root.dispatchEvent(second);
+      expect(second.defaultPrevented).toBe(true);
+      expect(toggle).toHaveBeenCalledTimes(2);
+      callbacks.unbind();
+      root.dispatchEvent(second);
+      expect(toggle).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test.each(["Tab", "ArrowRight"])(
+    "%s restores native button keys after a pointer click",
+    (key) => {
+      withKeyboardFixture(({ callbacks, root }) => {
+        const button = document.createElement("button");
+        root.append(button);
+        const toggle = jest
+          .spyOn(callbacks, "togglePlaybackEvent")
+          .mockImplementation(() => {});
+        callbacks.bind();
+        button.dispatchEvent(
+          new window.Event("pointerdown", { bubbles: true })
+        );
+        button.focus();
+        button.dispatchEvent(
+          new window.KeyboardEvent("keydown", { key, bubbles: true })
+        );
+        for (const key of [" ", "Enter"]) {
+          const event = new window.KeyboardEvent("keydown", {
+            key,
+            bubbles: true,
+            cancelable: true,
+          });
+          button.dispatchEvent(event);
+          expect(event.defaultPrevented).toBe(false);
+        }
+        expect(toggle).not.toHaveBeenCalled();
+        const override = new window.KeyboardEvent("keydown", {
+          key: " ",
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        });
+        button.dispatchEvent(override);
+        expect(override.defaultPrevented).toBe(true);
+        expect(toggle).toHaveBeenCalledTimes(1);
+        expect(document.activeElement).toBe(root);
+      });
+    }
+  );
+
+  test.each([false, true])(
+    "dialog events preserve pointer mode=%s and never trigger playback",
+    (pointerMode) => {
+      withKeyboardFixture(({ callbacks, root }) => {
+        const button = document.createElement("button");
+        const dialog = document.createElement("dialog");
+        const dialogButton = document.createElement("button");
+        dialog.append(dialogButton);
+        root.append(button, dialog);
+        const toggle = jest
+          .spyOn(callbacks, "togglePlaybackEvent")
+          .mockImplementation(() => {});
+        callbacks.bind();
+        if (pointerMode)
+          button.dispatchEvent(
+            new window.Event("pointerdown", { bubbles: true })
+          );
+        dialog.setAttribute("open", "");
+        dialogButton.focus();
+        dialogButton.dispatchEvent(
+          new window.Event("pointerdown", { bubbles: true })
+        );
+        for (const key of ["Tab", "ArrowRight", " "]) {
+          const event = new window.KeyboardEvent("keydown", {
+            key,
+            shiftKey: true,
+            bubbles: true,
+            cancelable: true,
+          });
+          dialogButton.dispatchEvent(event);
+          expect(event.defaultPrevented).toBe(false);
+        }
+        expect(toggle).not.toHaveBeenCalled();
+        dialog.removeAttribute("open");
+        button.focus();
+        const space = new window.KeyboardEvent("keydown", {
+          key: " ",
+          bubbles: true,
+          cancelable: true,
+        });
+        button.dispatchEvent(space);
+        expect(space.defaultPrevented).toBe(pointerMode);
+        expect(toggle).toHaveBeenCalledTimes(pointerMode ? 1 : 0);
+      });
+    }
+  );
+
+  test("playback shortcuts leave fields, outside buttons, and unsupported modifiers alone", () => {
+    withKeyboardFixture(({ callbacks, root }) => {
+      const toggle = jest
+        .spyOn(callbacks, "togglePlaybackEvent")
+        .mockImplementation(() => {});
+      callbacks.bind();
+      for (const tag of ["input", "select", "textarea", "button"]) {
+        const control = document.createElement(tag);
+        (tag === "button" ? document.body : root).append(control);
+        control.focus();
+        for (const shiftKey of [false, true]) {
+          const event = new window.KeyboardEvent("keydown", {
+            key: " ",
+            shiftKey,
+            bubbles: true,
+            cancelable: true,
+          });
+          control.dispatchEvent(event);
+          expect(event.defaultPrevented).toBe(false);
+        }
+      }
+      const button = document.createElement("button");
+      root.append(button);
+      button.dispatchEvent(new window.Event("pointerdown", { bubbles: true }));
+      button.focus();
+      for (const options of [
+        { ctrlKey: true },
+        { altKey: true },
+        { metaKey: true },
+        { isComposing: true },
+      ]) {
+        const event = new window.KeyboardEvent("keydown", {
+          key: " ",
+          bubbles: true,
+          cancelable: true,
+          ...options,
+        });
+        button.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+      expect(toggle).not.toHaveBeenCalled();
+    });
+  });
+
   test("unknown keys, shifted aliases, and consumed events keep defaults", () => {
     withKeyboardFixture(({ callbacks, controller, root, host, render }) => {
       controller.setSelectedNoteFret(5);
       const before = serializeScore(controller.track.score);
       root.focus();
-      for (const key of ["q", "=", "_", "p", "b", "s", ".", "-", "1", " "]) {
+      for (const key of ["q", "=", "_", "p", "b", "s", ".", "-", "1"]) {
         const event = new window.KeyboardEvent("keydown", {
           key,
           shiftKey: true,

@@ -44,8 +44,10 @@ export enum EditorKey {
   LetRing = "l",
   PinchHarmonic = "h",
 
-  // No modifiers.
+  // Space or Shift+Space.
   TogglePlayback = " ",
+
+  // No modifiers.
   CancelSelection = "escape",
   RemoveBeat = "delete",
   DeadNote = "x",
@@ -118,6 +120,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   private _bound: boolean = false;
   private _prevKeyPress?: { time: number; key: string; note: Note | null };
   private _boundOnKeyDown: (event: KeyboardEvent) => void;
+  private _boundOnPointerDown: (event: PointerEvent) => void;
+  private _pointerMode: boolean = false;
 
   constructor(
     uiComponent: UIComponent,
@@ -133,6 +137,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._announce = announce;
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
+    this._boundOnPointerDown = this.onPointerDown.bind(this);
   }
 
   public copyEvent(): void {
@@ -497,10 +502,6 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       this.copyEvent();
       return true;
     }
-    if (key === EditorKey.TogglePlayback && !ctrlKey && !shiftKey) {
-      this.togglePlaybackEvent();
-      return true;
-    }
     if (controller.playbackState !== PlaybackState.Idle) {
       return false;
     }
@@ -530,8 +531,11 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     return controller.editingEnabled && this.dispatchEditingShortcut(event);
   }
 
-  /** Dispatches supported shortcuts only while this notation has focus. */
+  /** Handles notation shortcuts and toolbar playback shortcuts. */
   public onKeyDown(event: KeyboardEvent): void {
+    if (this.handleControlPlayback(event)) {
+      return;
+    }
     if (!this.isKeyboardEventEligible(event)) {
       return;
     }
@@ -539,6 +543,72 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     if (this.dispatchShortcut(event)) {
       event.preventDefault();
     }
+  }
+
+  /** Lets Space control playback after a toolbar click, ignoring dialog clicks. */
+  private onPointerDown(event: PointerEvent): void {
+    if (
+      event.target instanceof Element &&
+      event.target.closest("button") &&
+      !event.target.closest("dialog, .tu-dialog")
+    ) {
+      this._pointerMode = true;
+    }
+  }
+
+  /**
+   * Tracks keyboard navigation and handles playback shortcuts in notation and toolbars.
+   * Returns true when Space or Shift+Space is consumed for playback, including
+   * ignored key repeats. Returns false when normal key handling should continue.
+   */
+  private handleControlPlayback(event: KeyboardEvent): boolean {
+    const notationPlayback =
+      event.key === EditorKey.TogglePlayback &&
+      !event.ctrlKey &&
+      this.isKeyboardEventEligible(event);
+    const target = event.target;
+
+    if (!notationPlayback) {
+      if (typeof Element === "undefined" || !(target instanceof Element)) {
+        return false;
+      }
+      if (target.closest("dialog, .tu-dialog")) {
+        return false;
+      }
+
+      const owned = this._rootElement.contains(target);
+      if (
+        event.key === "Tab" ||
+        (owned && KeyChecker.isArrow(event.key.toLowerCase()))
+      ) {
+        this._pointerMode = false;
+      }
+      if (
+        !owned ||
+        event.key !== EditorKey.TogglePlayback ||
+        event.defaultPrevented ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.metaKey ||
+        event.isComposing ||
+        event.keyCode === 229 ||
+        (!event.shiftKey && !this._pointerMode) ||
+        !target.matches("button")
+      ) {
+        return false;
+      }
+    }
+
+    event.preventDefault();
+    if (!event.repeat) {
+      if (!notationPlayback) {
+        // Keep focus in notation if playback disables the button.
+        this._notationComponent.rootDiv.focus({ preventScroll: true });
+      }
+
+      this.togglePlaybackEvent();
+    }
+    return true;
   }
 
   /** Checks focus ownership and excludes browser and control input. */
@@ -707,6 +777,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
     document.addEventListener("keydown", this._boundOnKeyDown);
+    this._rootElement.addEventListener("pointerdown", this._boundOnPointerDown);
     this._bound = true;
   }
 
@@ -716,6 +787,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
 
     document.removeEventListener("keydown", this._boundOnKeyDown);
+    this._rootElement.removeEventListener(
+      "pointerdown",
+      this._boundOnPointerDown
+    );
     this._bound = false;
   }
 }

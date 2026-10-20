@@ -15,7 +15,7 @@ guidance, see the [usage guide](usage.md).
 
 ## Focus and availability
 
-- Notation shortcuts apply only while the **Notation editor** area has focus.
+- Editing and navigation shortcuts apply only while the **Notation editor** area has focus.
   Use Tab to reach it, or activate **Skip to notation**. They do not apply while
   typing in a form field or using a dialog.
 - Use **Ctrl**, including on macOS. Command is not a substitute. Shortcuts with
@@ -26,7 +26,7 @@ guidance, see the [usage guide](usage.md).
 - Navigation, range selection, copying, and playback are available in view-only
   mode. All other notation actions require editing to be enabled. Narrow layouts
   can force view-only mode or block interaction; see [responsive layout](usage.md#responsive-layout).
-- While playback is active or preparing, only Space and Ctrl+C remain available
+- While playback is active or preparing, only Space, Shift+Space, and Ctrl+C remain available
   as notation shortcuts. Stop playback before navigating or editing.
 - Editing actions need a suitable note cursor or beat range. Some require a
   single note cursor, as described below. See also the
@@ -46,15 +46,27 @@ guidance, see the [usage guide](usage.md).
 
 ## Playback and clipboard
 
-| Key    | Action                                                                   |
-| ------ | ------------------------------------------------------------------------ |
-| Space  | Start playback when idle; otherwise stop playback or cancel preparation. |
-| Ctrl+C | Copy the selected note or beat range.                                    |
-| Ctrl+V | Paste the copied note or beats. Requires edit mode.                      |
-| Ctrl+Z | Undo. Requires edit mode.                                                |
-| Ctrl+Y | Redo. Requires edit mode.                                                |
+| Key         | Action                                                                   |
+| ----------- | ------------------------------------------------------------------------ |
+| Space       | Start playback when idle; otherwise stop playback or cancel preparation. |
+| Shift+Space | Toggle playback from notation or an editor toolbar button.               |
+| Ctrl+C      | Copy the selected note or beat range.                                    |
+| Ctrl+V      | Paste the copied note or beats. Requires edit mode.                      |
+| Ctrl+Z      | Undo. Requires edit mode.                                                |
+| Ctrl+Y      | Redo. Requires edit mode.                                                |
 
 Copy and paste use TabUI's internal clipboard, not a plain-text tablature import.
+
+On toolbar buttons, Space toggles playback after a mouse click. After Tab or
+arrow-key navigation, Space activates the focused button normally; use Shift+Space
+for playback instead. Enter always keeps its normal button action. Holding a
+playback shortcut does not toggle playback repeatedly.
+
+Using a playback shortcut on a toolbar button returns focus to notation, so the
+next Space can stop playback even if the button becomes disabled.
+
+Playback shortcuts do not override text fields, selects, sliders, or dialogs.
+Interactions inside a dialog do not change the toolbar's mouse/keyboard mode.
 
 ## Notes and rhythm
 
