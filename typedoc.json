@@ -4,7 +4,12 @@
   "out": "docs/api",
   "name": "TabUI API",
   "favicon": "assets/tabber-docs.svg",
-  "readme": "none",
+  "readme": "docs/api-introduction.md",
+  "includeVersion": true,
+  "navigationLinks": {
+    "Demo": "https://nik-idc.github.io/tabui/",
+    "GitHub": "https://github.com/nik-idc/tabui"
+  },
   "excludePrivate": true,
   "excludeProtected": true
 }

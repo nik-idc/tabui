@@ -1,4 +1,4 @@
-name: Deploy Demo to GitHub Pages
+name: Deploy Demo and API Docs to GitHub Pages
 
 on:
   push:
@@ -49,6 +49,11 @@ jobs:
 
       - name: Verify and build
         run: npm run verify
+
+      - name: Build and include API docs
+        run: |
+          npm run docs:build
+          cp -R docs/api demo/dist/api
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
