@@ -1080,13 +1080,18 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return;
     }
-    this.executeCommand(
-      new AppendBarCommand(
-        this._trackElement.track.score,
-        masterBarData,
-        this._selectionManager.activeVoiceNumber
-      )
+    const command = new AppendBarCommand(
+      this._trackElement.track.score,
+      masterBarData,
+      this._selectionManager.activeVoiceNumber
     );
+    this.executeCommand(command);
+    const result = command.appendResult;
+    const staff = this._trackElement.track.staves[0];
+    const bar = result?.bars.get(staff.uuid);
+    if (bar !== undefined) {
+      this.selectFirstBeatInBar(bar);
+    }
   }
 
   /**

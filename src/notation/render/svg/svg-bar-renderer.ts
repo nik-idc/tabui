@@ -3,6 +3,7 @@ import {
   createSVGG,
   createSVGLine,
   createSVGPath,
+  createSVGRect,
   createSVGText,
 } from "../../../shared";
 import type { Rect } from "../../../shared";
@@ -74,6 +75,9 @@ export class SVGBarRenderer implements ElementRenderer {
   private _timeSigTextsSVG?: SVGTextElement[];
   /** Time signature SVG group. */
   private _timeSigGroupSVG?: SVGGElement;
+  /** Append-bar affordance SVG elements. */
+  private _appendBarRectSVG?: SVGRectElement;
+  private _appendBarTextSVG?: SVGTextElement;
   /** Supplied callbacks keyed by event type. */
   private _attachedEvents = new Map<string, EventListener>();
 
@@ -126,7 +130,7 @@ export class SVGBarRenderer implements ElementRenderer {
     eventHandler: (
       event: SVGElementEventMap[K],
       barElement: BarElement,
-      target: "timeSignature" | "repeatStart" | "repeatEnd"
+      target: "timeSignature" | "repeatStart" | "repeatEnd" | "appendBar"
     ) => void
   ): void {
     const group = this.ensureContainerGroup();
@@ -141,7 +145,7 @@ export class SVGBarRenderer implements ElementRenderer {
     eventHandler: (
       event: SVGElementEventMap[K],
       barElement: BarElement,
-      target: "timeSignature" | "repeatStart" | "repeatEnd"
+      target: "timeSignature" | "repeatStart" | "repeatEnd" | "appendBar"
     ) => void,
     event: Event
   ): void {
@@ -162,6 +166,17 @@ export class SVGBarRenderer implements ElementRenderer {
         event as SVGElementEventMap[K],
         this.barElement,
         "repeatEnd"
+      );
+      return;
+    }
+    if (
+      target === this._appendBarRectSVG ||
+      target === this._appendBarTextSVG
+    ) {
+      eventHandler(
+        event as SVGElementEventMap[K],
+        this.barElement,
+        "appendBar"
       );
       return;
     }
@@ -190,6 +205,9 @@ export class SVGBarRenderer implements ElementRenderer {
 
   public updateElementReference(element: BarElement): void {
     this.barElement = element;
+    if (this._containerGroupSVG !== undefined) {
+      this.renderAppendBar();
+    }
   }
 
   /**
@@ -496,6 +514,53 @@ export class SVGBarRenderer implements ElementRenderer {
     }
   }
 
+  /** Renders the append affordance only on the final score bar. */
+  private renderAppendBar(): void {
+    if (this._containerGroupSVG === undefined) {
+      throw Error("Tried to render append bar when SVG group undefined");
+    }
+
+    const rect = this.barElement.appendBarRect;
+    if (rect === undefined) {
+      this.unrenderAppendBar();
+      return;
+    }
+    if (this._appendBarRectSVG === undefined) {
+      this._appendBarRectSVG = createSVGRect();
+      this._appendBarTextSVG = createSVGText();
+      this._appendBarRectSVG.setAttribute("class", "tu-append-bar");
+      this._appendBarRectSVG.setAttribute("fill", "transparent");
+      this._appendBarRectSVG.setAttribute("pointer-events", "all");
+      this._appendBarTextSVG.setAttribute("class", "tu-append-bar");
+      this._appendBarTextSVG.setAttribute("fill", "var(--tu-notation-ink)");
+      this._appendBarTextSVG.setAttribute("pointer-events", "none");
+      this._appendBarTextSVG.textContent = "+";
+      this._containerGroupSVG.appendChild(this._appendBarRectSVG);
+      this._containerGroupSVG.appendChild(this._appendBarTextSVG);
+    }
+    const text = this._appendBarTextSVG;
+    if (text === undefined) {
+      throw Error("Append bar text SVG undefined");
+    }
+    this._appendBarRectSVG.setAttribute("x", `${rect.x}`);
+    this._appendBarRectSVG.setAttribute("y", `${rect.y}`);
+    this._appendBarRectSVG.setAttribute("width", `${rect.width}`);
+    this._appendBarRectSVG.setAttribute("height", `${rect.height}`);
+    text.setAttribute("x", `${rect.x + rect.width / 2}`);
+    text.setAttribute("y", `${rect.y + rect.height / 2}`);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "central");
+    const fontSize = this.trackController.layoutDimensions.barAppendTextSize;
+    text.setAttribute("font-size", `${fontSize}`);
+  }
+
+  private unrenderAppendBar(): void {
+    this._appendBarRectSVG?.parentNode?.removeChild(this._appendBarRectSVG);
+    this._appendBarTextSVG?.parentNode?.removeChild(this._appendBarTextSVG);
+    this._appendBarRectSVG = undefined;
+    this._appendBarTextSVG = undefined;
+  }
+
   /**
    * Render bar element
    */
@@ -510,6 +575,7 @@ export class SVGBarRenderer implements ElementRenderer {
     this.renderBarBorderLines();
     this.renderBarSig();
     this.renderRepeats();
+    this.renderAppendBar();
   }
 
   /**
@@ -524,6 +590,7 @@ export class SVGBarRenderer implements ElementRenderer {
     this.unrenderBarBorderLines();
     this.unrenderBarSig();
     this.unrenderRepeats();
+    this.unrenderAppendBar();
   }
 
   /** Beat renderers getter */

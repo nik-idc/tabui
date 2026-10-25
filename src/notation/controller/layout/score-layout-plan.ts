@@ -143,12 +143,20 @@ export class ScoreLayoutPlanner {
 
     for (let i = 0; i < this._score.masterBars.length; i++) {
       const metric = metrics[i];
-      const finalizedWidth = Math.min(
-        metric.minWidth,
-        this._layoutDimensions.width
+      const appendWidth =
+        i === this._score.masterBars.length - 1
+          ? this._layoutDimensions.barAppendWidth
+          : 0;
+      const availableWidth = Math.max(
+        0,
+        this._layoutDimensions.width -
+          appendWidth -
+          (i === 0 ? tuningStartWidth : 0)
       );
+      const finalizedWidth = Math.min(metric.minWidth, availableWidth);
       const fitsWidth =
-        lineMinWidth + finalizedWidth <= this._layoutDimensions.width;
+        lineMinWidth + finalizedWidth + appendWidth <=
+        this._layoutDimensions.width;
       const fitsDuration =
         lineDurationWholeNotes + metric.durationFraction <=
         TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES;

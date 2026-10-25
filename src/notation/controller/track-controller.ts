@@ -800,6 +800,14 @@ export class TrackController {
     this._trackControllerEditor.insertBarAfterSelected();
   }
 
+  /** Appends a bar to every score track and selects its first beat. */
+  public appendBar(): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.appendBar();
+  }
+
   public removeSelectedBar(): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;

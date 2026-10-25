@@ -711,7 +711,9 @@ describe("TrackElement tree", () => {
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
 
     expect(
-      trackElement.trackLineElements.map((line) => line.getStableIdentity())
+      trackElement.trackLineElements
+        .slice(0, lineIdentities.length)
+        .map((line) => line.getStableIdentity())
     ).toEqual(lineIdentities);
 
     const movedBarUUID = track.staves[0].bars.find((bar) => {

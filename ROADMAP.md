@@ -66,7 +66,7 @@ replace release validation.
 - [x] Current tie implementation always ties as long as it is allowed.
       Need it be optional: - "j" -> tie just the previous beat - "Shift + j" -> tie as far back as possible
 - [x] Don't render the release pitch if it's 0
-- [ ] Implement the same "+" but for bars **only for the last bar**
+- [x] Implement the same "+" but for bars **only for the last bar**
 - [ ] Implement "↑" & "↓" to increase/decrease the pitch of selection by 1 semitone
 - [ ] Repeat playback doesn't actually use the specified repeat count - always defaults to 2
 - [ ] Store expanded/collapsed state of "About this demo" & "Demo controls" in `localStorage`

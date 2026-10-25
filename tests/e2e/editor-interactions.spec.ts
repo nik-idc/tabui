@@ -77,6 +77,59 @@ test("clicks an underfilled bar end gap to append and select a beat", async ({
   await expect(editor.locator("[data-beat-uuid]")).toHaveCount(4);
 });
 
+for (const layoutMode of ["wrapped", "single-line"] as const) {
+  test(`appends a bar from the final-bar plus in ${layoutMode} mode`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1200, height: 720 });
+    const layoutQuery =
+      layoutMode === "single-line" ? "&layoutMode=single-line" : "";
+    await page.goto(`/tabui/?fixture=empty${layoutQuery}`);
+    const editor = page.locator("#tabui-editor");
+    await expect(editor.locator(".tu-root-svg")).toBeVisible();
+
+    const append = editor.locator("rect.tu-append-bar");
+    await expect(append).toHaveCount(1);
+    const appendText = editor.locator("text.tu-append-bar");
+    await expect(appendText).toBeHidden();
+    await append.hover();
+    await expect(appendText).toBeVisible();
+
+    // Put the final bar on a later wrapped line and far to the right in single-line mode.
+    for (let index = 0; index < 4; index += 1) {
+      await append.click();
+      await expect(editor.locator('g[id^="bar-"]')).toHaveCount(index + 2);
+    }
+
+    const bounds = await append.boundingBox();
+    const rootBounds = await editor.locator(".tu-root-svg").boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(rootBounds).not.toBeNull();
+    if (bounds === null || rootBounds === null) {
+      throw Error("Expected append affordance bounds");
+    }
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(
+      rootBounds.x + rootBounds.width + 1
+    );
+
+    const finalBar = editor.locator('g[id^="bar-"]').last();
+    const finalBorder = await finalBar
+      .locator('[id^="bar-border-"]')
+      .last()
+      .boundingBox();
+    expect(finalBorder).not.toBeNull();
+    if (finalBorder === null) throw Error("Expected final bar border bounds");
+    expect(Math.abs(bounds.x - finalBorder.x)).toBeLessThan(1);
+
+    const bars = editor.locator('g[id^="bar-"]');
+    await append.click();
+    await expect(bars).toHaveCount(6);
+    await expect(editor.locator("rect.tu-append-bar")).toHaveCount(1);
+    await page.keyboard.press("7");
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText("7");
+  });
+}
+
 test("hides the end-gap hint during playback and restores hover visibility", async ({
   page,
 }) => {

@@ -173,6 +173,21 @@ export class EditorLayoutDimensions {
     return this._HORIZONTAL_PADDING;
   }
 
+  /** Width of the staff-height append area after the final bar. */
+  get barAppendWidth(): number {
+    return this._REPEAT_SIGN_WIDTH * 2.5;
+  }
+
+  /** Beat insertion hint size, scaled from the configured fret-text size. */
+  get beatAppendTextSize(): number {
+    return this._NOTE_TEXT_SIZE * (5 / 3);
+  }
+
+  /** Bar insertion hints use the same text size as beat insertion hints. */
+  get barAppendTextSize(): number {
+    return this.beatAppendTextSize;
+  }
+
   /** Fret-text font size in CSS pixels. */
   get noteTextSize(): number {
     return this._NOTE_TEXT_SIZE;

@@ -360,7 +360,8 @@ describe("musical beat layout", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
 
-    expect(barElement.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.width);
+    // The first line reserves 18px for tuning and 61.875px for appending a bar.
+    expect(barElement.boundingBox.width).toBeCloseTo(1120.125);
 
     const elements = beats.map((b) =>
       required(findBeatElement(trackElement, b))
@@ -667,7 +668,7 @@ describe("wrapped and intrinsic bar widths", () => {
     expect(intrinsicBar.boundingBox.width).toBeGreaterThan(
       TEST_LAYOUT_DIMENSIONS.width
     );
-    expect(wrappedBar.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.width);
+    expect(wrappedBar.boundingBox.width).toBeCloseTo(1120.125);
     const attacks = beats.map(
       (b) => required(findBeatElement(singleLine, b)).globalCoords.x
     );
@@ -865,7 +866,7 @@ describe("single-line score layout", () => {
       expect(placements.map((b) => b.x)).toEqual([18, 728.25]);
       expect(placements[0].finalizedWidth).toBeCloseTo(710.25);
       expect(placements[1].finalizedWidth).toBeCloseTo(285.45);
-      expect(element.width).toBeCloseTo(1013.7);
+      expect(element.width).toBeCloseTo(1075.575);
     }
   });
 

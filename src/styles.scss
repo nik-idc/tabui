@@ -652,11 +652,13 @@
     -ms-user-select: none;
     display: block;
 
-    .tu-end-gap-hint {
+    .tu-end-gap-hint,
+    text.tu-append-bar {
       visibility: hidden;
     }
 
-    [data-bar-end-gap-uuid]:hover + .tu-end-gap-hint {
+    [data-bar-end-gap-uuid]:hover + .tu-end-gap-hint,
+    rect.tu-append-bar:hover + text.tu-append-bar {
       visibility: visible;
     }
 

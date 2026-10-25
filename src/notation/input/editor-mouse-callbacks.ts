@@ -308,9 +308,21 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private onBarClicked(
     event: MouseEvent,
     bar: BarElement,
-    target: "timeSignature" | "repeatStart" | "repeatEnd"
+    target: "timeSignature" | "repeatStart" | "repeatEnd" | "appendBar"
   ): void {
-    if (target === "repeatStart") {
+    if (target === "appendBar") {
+      const tc = this.notationComponent.trackController;
+      if (
+        event.button === 0 &&
+        tc.editingEnabled &&
+        tc.playbackState === PlaybackState.Idle
+      ) {
+        tc.appendBar();
+        this.renderFunc(RenderType.Full);
+        this._focusViewport();
+        this._announce();
+      }
+    } else if (target === "repeatStart") {
       this.onRepeatStartClicked(event, bar);
     } else if (target === "repeatEnd") {
       this.onRepeatEndClicked(event, bar);

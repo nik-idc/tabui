@@ -153,7 +153,7 @@ export function buildTrackElementSkeleton(
         ? scoreLine.bars.reduce(
             (max, b) => Math.max(max, b.x + b.finalizedWidth),
             0
-          )
+          ) + layoutDimensions.barAppendWidth
         : layoutDimensions.width
     );
     lines.push(line);
