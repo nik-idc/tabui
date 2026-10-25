@@ -108,7 +108,6 @@ function getTrackLineHeight(
       prevMasterBar === undefined || masterBar.tempo !== prevMasterBar.tempo
     );
   });
-
   return track.staves.reduce(
     (sum, staff) =>
       sum + getStaffLineHeight(staff, trackLineBars, layoutDimensions),
@@ -151,7 +150,10 @@ export function buildTrackElementSkeleton(
       layoutDimensions,
       lineY,
       layoutMode === TabUILayoutMode.SingleLine
-        ? scoreLine.bars.reduce((sum, b) => sum + b.finalizedWidth, 0)
+        ? scoreLine.bars.reduce(
+            (max, b) => Math.max(max, b.x + b.finalizedWidth),
+            0
+          )
         : layoutDimensions.width
     );
     lines.push(line);

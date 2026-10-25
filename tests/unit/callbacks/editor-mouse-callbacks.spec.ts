@@ -463,6 +463,31 @@ describe("EditorMouseDefCallbacks", () => {
     }
   );
 
+  test("tuning clicks open track settings and do nothing when editing is disabled", () => {
+    withNotationDialog(({ controller, notation, ui }) => {
+      const showTrackSettingsDialog = jest.fn();
+      const callbacks = new EditorMouseDefCallbacks(
+        {
+          ...ui,
+          topComponent: {
+            scoreComponent: { showTrackSettingsDialog },
+          },
+        } as unknown as ConstructorParameters<
+          typeof EditorMouseDefCallbacks
+        >[0],
+        notation,
+        jest.fn()
+      );
+
+      callbacks.onTuningClicked(createMouseEvent(0, 0));
+      expect(showTrackSettingsDialog).toHaveBeenCalledWith(controller.track);
+
+      controller.setEditingEnabled(false);
+      callbacks.onTuningClicked(createMouseEvent(0, 0));
+      expect(showTrackSettingsDialog).toHaveBeenCalledTimes(1);
+    });
+  });
+
   test("complete tuplets replace old selection with their full group", () => {
     const { callbacks, notationComponent } = createHarness();
     const settings = { normalCount: 3, tupletCount: 2 };

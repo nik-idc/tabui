@@ -1,6 +1,6 @@
 import { Bar, NoteDuration } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
-import { TrackElement } from "../track-element";
+import type { TrackElement } from "../track-element";
 import {
   NotationElement,
   NotationNode,

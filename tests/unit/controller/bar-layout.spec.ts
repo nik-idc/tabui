@@ -631,7 +631,9 @@ describe("wrapped and intrinsic bar widths", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
     expect(bars).toHaveLength(2);
-    expect(bars[0].lineLocalBoundingBox.x).toBe(0);
+    expect(bars[0].lineLocalBoundingBox.x).toBe(
+      TEST_LAYOUT_DIMENSIONS.noteTextSize * 1.5
+    );
     expect(bars[1].lineLocalBoundingBox.x).toBeCloseTo(
       bars[0].lineLocalBoundingBox.right
     );
@@ -860,10 +862,10 @@ describe("single-line score layout", () => {
         score.masterBars.map((b) => b.uuid)
       );
       expect(placements.map((b) => b.masterBarIndex)).toEqual([0, 1]);
-      expect(placements.map((b) => b.x)).toEqual([0, 710.25]);
+      expect(placements.map((b) => b.x)).toEqual([18, 728.25]);
       expect(placements[0].finalizedWidth).toBeCloseTo(710.25);
       expect(placements[1].finalizedWidth).toBeCloseTo(285.45);
-      expect(element.width).toBeCloseTo(995.7);
+      expect(element.width).toBeCloseTo(1013.7);
     }
   });
 

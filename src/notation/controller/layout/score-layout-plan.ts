@@ -28,18 +28,34 @@ export type ScoreLayoutPlan = {
 };
 
 /** Assigns each bar its horizontal position within one layout line. */
-function positionLineBars(bars: ScoreLayoutBar[]): void {
-  let x = 0;
+function positionLineBars(bars: ScoreLayoutBar[], startX = 0): void {
+  let x = startX;
   for (const bar of bars) {
     bar.x = x;
     x += bar.finalizedWidth;
   }
 }
 
+/** Returns the horizontal space reserved for tuning labels at score start. */
+function getTuningStartWidth(
+  score: Score,
+  layoutDimensions: EditorLayoutDimensions
+): number {
+  return score.tracks.some((track) => {
+    return (
+      track.staves.some((staff) => staff.showTablature) &&
+      track.context.instrument.tuning !== undefined
+    );
+  })
+    ? layoutDimensions.noteTextSize * 1.5
+    : 0;
+}
+
 function finalizeLineBars(
   bars: ScoreLayoutBar[],
   metrics: MasterBarLayoutMetrics[],
-  layoutDimensions: EditorLayoutDimensions
+  layoutDimensions: EditorLayoutDimensions,
+  startWidth = 0
 ): void {
   let structuralWidth = 0;
   let contentMinWidth = 0;
@@ -51,14 +67,15 @@ function finalizeLineBars(
   const contentScale =
     contentMinWidth === 0
       ? 1
-      : Math.max(0, layoutDimensions.width - structuralWidth) / contentMinWidth;
+      : Math.max(0, layoutDimensions.width - startWidth - structuralWidth) /
+        contentMinWidth;
 
   for (const bar of bars) {
     const metric = metrics[bar.masterBarIndex];
     bar.finalizedWidth =
       metric.structuralWidth + metric.contentMinWidth * contentScale;
   }
-  positionLineBars(bars);
+  positionLineBars(bars, startWidth);
 }
 
 /** Owns the current score-wide layout plan for one notation runtime. */
@@ -116,11 +133,12 @@ export class ScoreLayoutPlanner {
 
   /** Assigns shared master bars to wrapped lines and finalizes their widths. */
   private calculateWrappedLines(
-    metrics: MasterBarLayoutMetrics[]
+    metrics: MasterBarLayoutMetrics[],
+    tuningStartWidth: number
   ): ScoreLayoutLine[] {
     const lines: ScoreLayoutLine[] = [];
     let bars: ScoreLayoutBar[] = [];
-    let lineMinWidth = 0;
+    let lineMinWidth = tuningStartWidth;
     let lineDurationWholeNotes = 0;
 
     for (let i = 0; i < this._score.masterBars.length; i++) {
@@ -136,7 +154,12 @@ export class ScoreLayoutPlanner {
         TRACK_LINE_DURATION_BUDGET_WHOLE_NOTES;
 
       if (bars.length !== 0 && (!fitsWidth || !fitsDuration)) {
-        finalizeLineBars(bars, metrics, this._layoutDimensions);
+        finalizeLineBars(
+          bars,
+          metrics,
+          this._layoutDimensions,
+          lines.length === 0 ? tuningStartWidth : 0
+        );
         lines.push({ bars });
         bars = [];
         lineMinWidth = 0;
@@ -155,7 +178,7 @@ export class ScoreLayoutPlanner {
     }
 
     if (bars.length !== 0) {
-      positionLineBars(bars);
+      positionLineBars(bars, lines.length === 0 ? tuningStartWidth : 0);
       lines.push({ bars });
     }
 
@@ -164,10 +187,11 @@ export class ScoreLayoutPlanner {
 
   /** Calculates unwrapped intrinsic-width placements for every master bar. */
   private calculateIntrinsicBars(
-    metrics: MasterBarLayoutMetrics[]
+    metrics: MasterBarLayoutMetrics[],
+    tuningStartWidth: number
   ): ScoreLayoutBar[] {
     const bars: ScoreLayoutBar[] = [];
-    let x = 0;
+    let x = tuningStartWidth;
     for (let i = 0; i < this._score.masterBars.length; i++) {
       const finalizedWidth = metrics[i].minWidth;
       bars.push({
@@ -186,8 +210,15 @@ export class ScoreLayoutPlanner {
   /** Calculates shared bar widths, wrapped ranges, and intrinsic placements. */
   private calculatePlan(): ScoreLayoutPlan {
     const metrics = this.calculateMasterBarMetrics();
-    const wrappedLines = this.calculateWrappedLines(metrics);
-    const intrinsicBars = this.calculateIntrinsicBars(metrics);
+    const tuningStartWidth = getTuningStartWidth(
+      this._score,
+      this._layoutDimensions
+    );
+    const wrappedLines = this.calculateWrappedLines(metrics, tuningStartWidth);
+    const intrinsicBars = this.calculateIntrinsicBars(
+      metrics,
+      tuningStartWidth
+    );
     return { metrics, wrappedLines, intrinsicBars };
   }
 

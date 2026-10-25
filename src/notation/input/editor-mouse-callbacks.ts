@@ -14,6 +14,7 @@ import { BarRepeatStatus, GuitarTechniqueType } from "../model";
 import type { BarElement, BarTupletGroupElement } from "../controller";
 import { SVGBarRenderer } from "../render/svg/svg-bar-renderer";
 import { SVGTrackLineInfoRenderer } from "../render/svg/svg-track-line-info-renderer";
+import { SVGGuitarTuningRenderer } from "../render/svg/svg-guitar-tuning-renderer";
 import { SVGTupletRenderer } from "../render/svg/tuplet/svg-tuplet-renderer";
 import { SVGTabBeatRhythmRenderer } from "../render/svg/svg-tab-beat-rhythm-renderer";
 import { SVGBeamSegmentRenderer } from "../render/svg/svg-beam-segment-renderer";
@@ -25,6 +26,7 @@ export interface EditorMouseCallbacks {
   onTechniqueClick(event: MouseEvent, techniqueElement: TechniqueElement): void;
   onLabelClick(event: MouseEvent, labelElement: TechniqueLabelElement): void;
   onTempoClicked(event: MouseEvent, barElement: BarElement): void;
+  onTuningClicked(event: MouseEvent): void;
   onTimeSignatureClicked(event: MouseEvent, barElement: BarElement): void;
   onRepeatStartClicked(event: MouseEvent, barElement: BarElement): void;
   onRepeatEndClicked(event: MouseEvent, barElement: BarElement): void;
@@ -328,6 +330,19 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const beat = this.getBarDialogBeat(bar);
     this.selectNotationContext([beat], false);
     this.uiComponent.sideComponent.measureControlsComponent.showTempoControls();
+  }
+
+  /** Opens the existing settings dialog for the displayed track tuning. */
+  public onTuningClicked(event: MouseEvent): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit =
+      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
+    if (event.button !== 0 || !canEdit) {
+      return;
+    }
+    this.uiComponent.topComponent.scoreComponent.showTrackSettingsDialog(
+      tc.track
+    );
   }
 
   /** Opens the time-signature dialog for the clicked bar. */
@@ -694,7 +709,11 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         );
       } else if (renderer instanceof SVGTrackLineInfoRenderer) {
         renderer.attachMouseEvent("click", this.onTempoClicked.bind(this));
-
+        this._boundRenderers.set(renderer, () => {
+          renderer.detachMouseEvent("click");
+        });
+      } else if (renderer instanceof SVGGuitarTuningRenderer) {
+        renderer.attachMouseEvent(this.onTuningClicked.bind(this));
         this._boundRenderers.set(
           renderer,
           renderer.detachMouseEvent.bind(renderer, "click")

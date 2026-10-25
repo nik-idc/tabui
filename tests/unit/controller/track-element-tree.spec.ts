@@ -328,12 +328,12 @@ describe("TrackElement tree", () => {
 
     // The 30px tempo row precedes a 24px palm-mute label row.
     expect(styleLine.lineLocalCoords).toEqual({ x: 0, y: 30 });
-    expect(barElement.lineLocalCoords).toEqual({ x: 0, y: 54 });
+    expect(barElement.lineLocalCoords).toEqual({ x: 18, y: 54 });
 
     // The first attack is 12px beyond the 85.5px signature/repeat reserve.
     expect(beatElement.voiceBarContainer.boundingBox.x).toBeCloseTo(85.5);
-    expect(beatElement.lineLocalCoords).toEqual({ x: 97.5, y: 54 });
-    expect(beatElement.globalCoords).toEqual({ x: 97.5, y: 54 });
+    expect(beatElement.lineLocalCoords).toEqual({ x: 115.5, y: 54 });
+    expect(beatElement.globalCoords).toEqual({ x: 115.5, y: 54 });
     expect(beatElement.lineLocalCoords.x).toBeCloseTo(
       barElement.lineLocalCoords.x + beatElement.barLocalCoords.x
     );
@@ -347,8 +347,8 @@ describe("TrackElement tree", () => {
       barElement.globalCoords.y + beatElement.barLocalCoords.y
     );
 
-    expect(noteElement.lineLocalCoords).toEqual({ x: 97.5, y: 54 });
-    expect(labelElement.lineLocalCoords).toEqual({ x: 97.5, y: 30 });
+    expect(noteElement.lineLocalCoords).toEqual({ x: 115.5, y: 54 });
+    expect(labelElement.lineLocalCoords).toEqual({ x: 115.5, y: 30 });
   });
 
   test("tempo and technique origins include the preceding line height only in global space", () => {
@@ -877,7 +877,9 @@ describe("TrackElement tree", () => {
     for (const line of lines) {
       const styleLine = line.staffLineContainers[0].styleLinesAsArray[0];
       expect(styleLine.barElements).toHaveLength(line.trackLineBars.length);
-      expect(styleLine.barElements[0].boundingBox.x).toBeCloseTo(0);
+      expect(styleLine.barElements[0].boundingBox.x).toBeCloseTo(
+        line.trackLineBars[0].masterBarIndex === 0 ? 18 : 0
+      );
 
       for (let i = 0; i < line.trackLineBars.length; i++) {
         const masterBarIndex = line.trackLineBars[i].masterBarIndex;

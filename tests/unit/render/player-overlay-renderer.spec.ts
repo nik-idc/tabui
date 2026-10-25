@@ -226,7 +226,7 @@ describe("PlayerOverlayRenderer", () => {
     const nextText = required(texts.find((t) => t.textContent === "4"));
     expect(startText.textContent).toBe("3");
     expect(nextText.textContent).toBe("4");
-    expect(startX).toBeCloseTo(97.5);
+    expect(startX).toBeCloseTo(115.5);
     const next = required(
       view.controller.trackElement.getBeatElement(graph.beats[1])
     );

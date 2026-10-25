@@ -15,6 +15,7 @@ import { TabBeatElement } from "./beat/tab-beat-element";
 import { TabBeatRhythmElement } from "./beat/tab-beat-rhythm-element";
 import { BeamSegmentElement } from "./bar/beam-segment-element";
 import { BarTupletGroupElement } from "./bar/bar-tuplet-group-element";
+import { GuitarTuningElement } from "./track/guitar-tuning-element";
 import { TrackLineInfoElement } from "./track/track-line-info-element";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
@@ -44,6 +45,7 @@ function snapshotElements(elements: NotationElement[]): ElementSnapshot {
 export const ELEMENT_ORDER: Array<NotationElementClass> = [
   TrackLineElement,
   TrackLineInfoElement,
+  GuitarTuningElement,
   BarElement,
   TabBeatElement,
   TabNoteSlotElement,

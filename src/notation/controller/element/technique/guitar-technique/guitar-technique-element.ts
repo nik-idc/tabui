@@ -23,8 +23,6 @@ import type { TrackLineElement } from "../../track/track-line-element";
  * to which the technique is applied
  */
 export class GuitarTechniqueElement implements TechniqueElement {
-  readonly nodeType = NotationNodeType.Element;
-
   public static createStableIdentity(
     technique: GuitarTechnique,
     tieStart = false
@@ -32,6 +30,8 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return `technique:${technique.uuid}${tieStart ? ":start" : ""}`;
   }
 
+  /** Identifies this notation element's node type */
+  readonly nodeType = NotationNodeType.Element;
   /** Guitar note element's unique identifier */
   readonly uuid: number;
   /** Technique */

@@ -56,7 +56,7 @@ replace release validation.
       semitones, including prebends, releases, and sustained continuations.
 - [x] Return null when staff traversal reaches an empty adjacent voice, preventing
       note traversal from throwing on that boundary.
-- [ ] Display tuning at the start of the track + make it clickable. The click would invoke
+- [x] Display tuning at the start of the track + make it clickable. The click would invoke
       the existing track settings dialog.
 - [x] Resolve toolbar Space conflicts: mouse-clicked buttons allow playback,
       keyboard navigation keeps native activation, and Shift+Space toggles playback.
@@ -65,7 +65,7 @@ replace release validation.
       fret numbers, and stops at the next same-string attack or passage/playback end.
 - [x] Current tie implementation always ties as long as it is allowed.
       Need it be optional: - "j" -> tie just the previous beat - "Shift + j" -> tie as far back as possible
-- [ ] Don't render the release pitch if it's 0
+- [x] Don't render the release pitch if it's 0
 - [ ] Implement the same "+" but for bars **only for the last bar**
 - [ ] Implement "↑" & "↓" to increase/decrease the pitch of selection by 1 semitone
 - [ ] Repeat playback doesn't actually use the specified repeat count - always defaults to 2

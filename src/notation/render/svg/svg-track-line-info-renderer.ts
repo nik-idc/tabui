@@ -26,7 +26,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
   /** Container SVG group */
   private _containerGroupSVG?: SVGGElement;
 
-  /** Map of tempo svg text element */
+  /** Rendered tempo groups keyed by their current bar elements. */
   private _temposSVG: Map<BarElement, TempoSVG>;
   /** Supplied callbacks keyed by event type. */
   private _attachedEvents = new Map<string, EventListener>();

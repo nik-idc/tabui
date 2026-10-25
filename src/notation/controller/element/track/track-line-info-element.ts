@@ -1,8 +1,9 @@
 import { Point, Rect, randomInt } from "../../../../shared";
-import { TrackElement } from "../track-element";
+import type { TrackElement } from "../track-element";
 import { NotationElement, NotationNodeType } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { TrackLineElement } from "./track-line-element";
+import { GuitarTuningElement } from "./guitar-tuning-element";
 
 /**
  * Class representing the visual info about all
@@ -35,6 +36,8 @@ export class TrackLineInfoElement implements NotationElement {
 
   /** Track line encapsulating rectangle */
   private _boundingBox: Rect;
+  /** Optional tuning child, created only for the first tablature line. */
+  private _guitarTuningElement?: GuitarTuningElement;
   /** Stores all the bars whose tempo to display & the tempo rect */
   private _barTempoRectsMap: Map<BarElement, Rect>;
   /** Displayed tempo captured during build for stale pre-update diffing. */
@@ -56,10 +59,25 @@ export class TrackLineInfoElement implements NotationElement {
       this.trackLineElement.boundingBox.width,
       0
     );
+    if (this.shouldCreateTuningElement()) {
+      this._guitarTuningElement = new GuitarTuningElement(
+        this.trackLineElement
+      );
+    }
     this._barTempoRectsMap = new Map();
     this._barTempoState = new Map();
 
     this.build();
+  }
+
+  private shouldCreateTuningElement(): boolean {
+    return (
+      this.trackLineElement.trackLineBars.some(
+        ({ masterBarIndex }) => masterBarIndex === 0
+      ) &&
+      this.trackElement.track.context.instrument.tuning !== undefined &&
+      this.trackElement.track.staves.some((staff) => staff.showTablature)
+    );
   }
 
   /**
@@ -101,6 +119,7 @@ export class TrackLineInfoElement implements NotationElement {
       this.trackLineElement.boundingBox.width,
       height
     );
+    this._guitarTuningElement?.measure();
   }
 
   private buildStateHash(): string {
@@ -128,21 +147,32 @@ export class TrackLineInfoElement implements NotationElement {
    */
   public layout(): void {
     this._boundingBox.setCoords(0, 0);
+    this._guitarTuningElement?.layout();
 
     for (const [barElement, rect] of this._barTempoRectsMap) {
       rect.setCoords(barElement.boundingBox.x, 0);
     }
   }
 
+  public get guitarTuningElement(): GuitarTuningElement | undefined {
+    return this._guitarTuningElement;
+  }
+
   public update(): void {
     this.build();
+
+    if (this._guitarTuningElement !== undefined) {
+      this._guitarTuningElement.update();
+    }
 
     this.measure();
     this.layout();
   }
 
   public refreshOwnedNotationNodes(): NotationElement[] {
-    return [this];
+    return this._guitarTuningElement === undefined
+      ? [this]
+      : [this, ...this._guitarTuningElement.refreshOwnedNotationNodes()];
   }
 
   /**

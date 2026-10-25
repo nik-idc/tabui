@@ -1666,6 +1666,7 @@
 
 .tu-editor .tu-time-signature,
 .tu-editor .tu-tempo,
+.tu-editor .tu-tuning,
 .tu-editor .tu-tuplet,
 .tu-editor .tu-repeat-start,
 .tu-editor .tu-repeat-end {
@@ -1692,6 +1693,10 @@
 }
 
 .tu-editor .tu-tempo:hover text {
+  fill: var(--tu-notation-selection-stroke);
+}
+
+.tu-editor .tu-tuning:hover text {
   fill: var(--tu-notation-selection-stroke);
 }
 
