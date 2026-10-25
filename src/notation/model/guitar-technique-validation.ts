@@ -39,7 +39,7 @@ export function guitarTechniquesIncompatible(
   );
 }
 
-/** Returns whether bend options fit the note's inherited tied pitch. */
+/** Requires Bend and Bend/Release to rise above the note's inherited tied pitch. */
 export function isBendValidForContinuation(
   note: GuitarNote,
   bendOptions: BendTechniqueOptions
@@ -60,6 +60,6 @@ export function isBendValidForContinuation(
   }
   return (
     bendOptions.bendPitch === undefined ||
-    bendOptions.bendPitch >= continuationPitch
+    bendOptions.bendPitch > continuationPitch
   );
 }

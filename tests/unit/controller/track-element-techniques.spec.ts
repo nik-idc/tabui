@@ -791,13 +791,13 @@ describe("TrackElement techniques", () => {
     }
   });
 
-  test("constrains hold labels to adjacent short beat geometry", () => {
+  test("keeps hold text aligned with bend pitches at the same font size across beat widths", () => {
     const { track, beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.SixtyFourth },
-      { baseDuration: NoteDuration.SixtyFourth },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Half },
       { baseDuration: NoteDuration.SixtyFourth },
     ]);
-    for (const beat of beats) {
+    for (const [index, beat] of beats.entries()) {
       const note = beat.notes?.[0];
       if (!(note instanceof GuitarNote)) {
         throw Error("Expected guitar note in test beat");
@@ -807,11 +807,11 @@ describe("TrackElement techniques", () => {
         new GuitarTechnique(
           note,
           GuitarTechniqueType.Bend,
-          new BendTechniqueOptions({
-            type: BendType.Hold,
-            holdPitch: 1,
-            bendDuration: 1,
-          })
+          new BendTechniqueOptions(
+            index === 2
+              ? { type: BendType.Bend, bendPitch: 1, bendDuration: 1 }
+              : { type: BendType.Hold, holdPitch: 1, bendDuration: 1 }
+          )
         )
       );
     }
@@ -827,19 +827,24 @@ describe("TrackElement techniques", () => {
     ).labelElements;
 
     expect(labels).toHaveLength(3);
-    for (const label of labels) {
+    expect(new Set(labels.map((l) => l.boundingBox.width)).size).toBe(3);
+    const pitchText = required(labels[2].textDescriptors?.[0]);
+    expect(pitchText.text).toBe("full");
+    for (const label of labels.slice(0, 2)) {
       if (!(label instanceof GuitarTechniqueLabelElement)) {
         throw Error("Expected a guitar technique label");
       }
       const descriptor = required(label.textDescriptors?.[0]);
 
-      // The short-beat minimum is 36px: center at 18px, fitted text 36px.
-      expect(label.boundingBox.width).toBe(36);
       expect(descriptor.text).toBe("hold");
-      expect(descriptor.attrs?.x).toBe("18");
-      expect(descriptor.attrs?.textLength).toBe("36");
+      expect(descriptor.attrs?.y).toBe(pitchText.attrs?.y);
+      expect(Number(descriptor.attrs?.x)).toBe(label.boundingBox.width / 2);
+      expect(Number(descriptor.attrs?.["font-size"])).toBe(
+        TEST_LAYOUT_DIMENSIONS.noteTextSize
+      );
+      expect(descriptor.attrs?.textLength).toBeUndefined();
       expect(descriptor.attrs?.["text-anchor"]).toBe("middle");
-      expect(descriptor.attrs?.lengthAdjust).toBe("spacingAndGlyphs");
+      expect(descriptor.attrs?.lengthAdjust).toBeUndefined();
       expect(label.barLocalBoundingBox.x).toBeGreaterThanOrEqual(0);
       expect(label.barLocalBoundingBox.right).toBeLessThanOrEqual(
         barElement.boundingBox.width
@@ -1199,6 +1204,41 @@ describe("TrackElement techniques", () => {
       ["½", "full"],
       [162, 173.7],
     ],
+    [
+      "Bend/Release to zero",
+      new BendTechniqueOptions({
+        type: BendType.BendAndRelease,
+        bendPitch: 1,
+        releasePitch: 0,
+        bendDuration: 1,
+      }),
+      [1],
+      ["full"],
+      [173.7],
+    ],
+    [
+      "Prebend/Release to zero",
+      new BendTechniqueOptions({
+        type: BendType.PrebendAndRelease,
+        prebendPitch: 1,
+        releasePitch: 0,
+        bendDuration: 1,
+      }),
+      [1],
+      ["full"],
+      [162],
+    ],
+    [
+      "Release to zero",
+      new BendTechniqueOptions({
+        type: BendType.Release,
+        releasePitch: 0,
+        bendDuration: 1,
+      }),
+      [],
+      [],
+      [],
+    ],
   ])(
     "centers %s pitch labels on their inline curve endpoints",
     (_, options, arrowIndexes, expectedTexts, expectedXs) => {
@@ -1257,6 +1297,51 @@ describe("TrackElement techniques", () => {
       }
     }
   );
+
+  test("keeps a bend/release curve and arrow clear of the next two-digit fret", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    for (const beat of beats) {
+      (required(beat.notes)[0] as GuitarNote).fret = 12;
+    }
+    const note = required(beats[0].notes)[0] as GuitarNote;
+    note.addTechnique(
+      new GuitarTechnique(
+        note,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.BendAndRelease,
+          bendPitch: 1,
+          releasePitch: 0,
+          bendDuration: 1,
+        })
+      )
+    );
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    const firstBeat = required(trackElement.getBeatElement(beats[0]));
+    const nextBeat = required(trackElement.getBeatElement(beats[1]));
+    const bend = firstBeat.noteElements[0].techniqueElements[0];
+    if (!(bend instanceof GuitarTechniqueElement)) {
+      throw Error("Expected bend element");
+    }
+    const paths = required(bend.pathDescriptors);
+    const curveEndX = required(parsePathNumbers(paths[2].d).at(-2));
+    const arrowXs = parsePathNumbers(paths[3].d);
+    const arrowX = arrowXs[0];
+    const arrowHalfWidth = arrowXs[2];
+    const nextNote = nextBeat.noteElements[0];
+    if (!(nextNote instanceof TabNoteSlotElement)) {
+      throw Error("Expected tab note slot");
+    }
+    const nextFretLeft = nextNote.globalCoords.x + nextNote.textRect.left;
+    expect(curveEndX).toBeCloseTo(arrowX);
+    expect(bend.pathOrigin.x + arrowX + arrowHalfWidth).toBeLessThan(
+      nextFretLeft
+    );
+  });
 
   test("no-op update preserves technique label identities and geometry", () => {
     const { track, bar } = createScoreGraph();

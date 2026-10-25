@@ -103,7 +103,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     return techniqueElement.calculateBendCurveEndXs(bendOptions.type);
   }
 
-  /** Creates centered plain-text pitch labels at the bend curve ends. */
+  /** Centers pitch labels on curve ends and omits zero release pitches. */
   private createPitchTexts(pitches: number[]): void {
     const curveEndXs = this.getBendCurveEndXs();
     if (curveEndXs.length !== pitches.length) {
@@ -112,15 +112,26 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
     const fontSize = this.trackElement.layoutDimensions.noteTextSize;
     const y = this._boundingBox.y + this._boundingBox.height / 2 - fontSize / 2;
+    const bendType = this.technique.bendOptions?.type;
     this._pathDescriptors = [];
-    this._textDescriptors = pitches.map((pitch, index) =>
-      GuitarTechniqueDescriptors.createTextDescriptor(
-        curveEndXs[index],
-        y,
-        fontSize,
-        ratioNumsToChar(getPitchRatioNums(pitch))
-      )
-    );
+    this._textDescriptors = pitches.flatMap((pitch, index) => {
+      const isRelease =
+        index === pitches.length - 1 &&
+        (bendType === BendType.BendAndRelease ||
+          bendType === BendType.PrebendAndRelease ||
+          bendType === BendType.Release);
+      if (isRelease && pitch === 0) {
+        return [];
+      }
+      return [
+        GuitarTechniqueDescriptors.createTextDescriptor(
+          curveEndXs[index],
+          y,
+          fontSize,
+          ratioNumsToChar(getPitchRatioNums(pitch))
+        ),
+      ];
+    });
   }
 
   /**
@@ -384,16 +395,16 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     }
   }
 
+  /** Aligns bend text with pitch labels without stretching it to the beat width. */
   private createBendTypeText(text: string): void {
     const fontSize = this.trackElement.layoutDimensions.noteTextSize;
     this._pathDescriptors = [];
     this._textDescriptors = [
       GuitarTechniqueDescriptors.createTextDescriptor(
         this._boundingBox.width / 2,
-        this._boundingBox.height / 2,
+        this._boundingBox.y + this._boundingBox.height / 2 - fontSize / 2,
         fontSize,
-        text,
-        this._boundingBox.width
+        text
       ),
     ];
   }

@@ -708,7 +708,7 @@ describe("score serialization", () => {
     expect(error.message).toContain("incompatible technique");
     techniques[1] = {
       ...continuation,
-      options: { ...continuation.options, bendPitch: 2 },
+      options: { ...continuation.options, bendPitch: 2.25 },
     };
     expect(deserializeScore(serializedScore)).toBeInstanceOf(Score);
   });

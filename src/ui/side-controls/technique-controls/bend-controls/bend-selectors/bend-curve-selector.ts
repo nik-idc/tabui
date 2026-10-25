@@ -225,14 +225,16 @@ export class BendCurveSelector implements Selector {
     this.bendGraphSVG.appendChild(circle);
   }
 
+  /** Starts tied bends at least one pitch-grid step above the inherited pitch. */
   private initStandardBend(duration: number, continuationPitch?: number): void {
     if (continuationPitch !== undefined) {
       this.addPoint("start", 0, continuationPitch, false, false);
     }
-    const bendPitch = Math.max(
-      this._bendOptions.bendPitch ?? 1,
-      continuationPitch ?? 0
-    );
+    const minimumPitch =
+      continuationPitch === undefined
+        ? 0
+        : continuationPitch + 3 / this.bendManagerOptions.rowsCount;
+    const bendPitch = Math.max(this._bendOptions.bendPitch ?? 1, minimumPitch);
     this.addPoint("bend", duration, bendPitch, true);
   }
 
@@ -402,7 +404,7 @@ export class BendCurveSelector implements Selector {
       (this._bendOptions.type === BendType.Bend ||
         this._bendOptions.type === BendType.BendAndRelease)
     ) {
-      bend.y = Math.min(bend.y, start.y);
+      bend.y = Math.min(bend.y, Math.max(0, start.y - yStep));
     }
     if (
       this._bendOptions.type === BendType.PrebendBend &&

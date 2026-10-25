@@ -137,7 +137,7 @@ describe("BendCurveSelector", () => {
   });
 
   test.each([BendType.Bend, BendType.BendAndRelease])(
-    "does not emit continuation bend type %s below its inherited pitch",
+    "keeps continuation bend type %s at least one grid step above its inherited pitch",
     (type) => {
       const { svg, selector } = createSelector(
         {
@@ -150,18 +150,18 @@ describe("BendCurveSelector", () => {
       );
       try {
         const handle = required(svg.querySelector('[aria-label="Bend point"]'));
-        expect(selector.getBendTechnique().bendPitch).toBe(1.5);
-        expect(handle.getAttribute("cy")).toBe("150");
-        handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
         expect(selector.getBendTechnique().bendPitch).toBe(1.75);
         expect(handle.getAttribute("cy")).toBe("125");
+        handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
+        expect(selector.getBendTechnique().bendPitch).toBe(2);
+        expect(handle.getAttribute("cy")).toBe("100");
         for (let i = 0; i < 3; i++) {
           handle.dispatchEvent(
             new KeyboardEvent("keydown", { key: "ArrowDown" })
           );
         }
-        expect(selector.getBendTechnique().bendPitch).toBe(1.5);
-        expect(handle.getAttribute("cy")).toBe("150");
+        expect(selector.getBendTechnique().bendPitch).toBe(1.75);
+        expect(handle.getAttribute("cy")).toBe("125");
       } finally {
         selector.dispose();
       }

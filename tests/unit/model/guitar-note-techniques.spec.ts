@@ -295,9 +295,14 @@ describe("GuitarNote technique updates", () => {
     expect(current.getBendContinuationPitch()).toBeUndefined();
   });
 
-  test.each([BendType.Bend, BendType.BendAndRelease])(
-    "rejects continuation bend type %s below the inherited pitch",
-    (type) => {
+  test.each([
+    [BendType.Bend, 1],
+    [BendType.Bend, 1.5],
+    [BendType.BendAndRelease, 1],
+    [BendType.BendAndRelease, 1.5],
+  ])(
+    "rejects continuation bend type %s with pitch %s at or below the inherited pitch",
+    (type, bendPitch) => {
       const { beats } = createBarWithBeats([
         { baseDuration: NoteDuration.Quarter },
         { baseDuration: NoteDuration.Quarter },
@@ -323,10 +328,10 @@ describe("GuitarNote technique updates", () => {
       current.setTechnique(GuitarTechniqueType.Tie);
       const options = new BendTechniqueOptions(
         type === BendType.Bend
-          ? { type, bendPitch: 1, bendDuration: 0.5 }
+          ? { type, bendPitch, bendDuration: 0.5 }
           : {
               type,
-              bendPitch: 1,
+              bendPitch,
               releasePitch: 0,
               bendDuration: 0.5,
             }

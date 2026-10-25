@@ -92,23 +92,71 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return this.noteElement.note;
   }
 
+  /** Fits bend curves and arrowheads before the next fret, keeping their proportions. */
+  private getBendSegmentWidth(type: BendType): number {
+    const beatElement = this.noteElement.beatElement;
+    const nextBeat = this.note.beat.voiceBar.bar.staff.getNextBeat(
+      this.note.beat
+    );
+    const nextNote =
+      nextBeat === null ? null : this.getNextNoteElement(nextBeat);
+    const startX =
+      beatElement.attackLocalX + this.noteElement.textRect.width / 2;
+    const gap = this.trackElement.layoutDimensions.noteTextSize / 4;
+    let endX = this.noteElement.boundingBox.width;
+    if (nextNote !== null) {
+      if (nextBeat?.voiceBar === this.note.beat.voiceBar) {
+        const container = beatElement.voiceBarContainer;
+        endX =
+          container.getBeatX(nextBeat) -
+          container.getBeatX(this.note.beat) +
+          nextNote.beatElement.attackLocalX -
+          nextNote.textRect.width / 2;
+      } else {
+        endX =
+          nextNote.globalCoords.x +
+          nextNote.textRect.left -
+          this.noteElement.globalCoords.x;
+      }
+    }
+    let quarterCount;
+    switch (type) {
+      case BendType.BendAndRelease:
+        quarterCount = 3;
+        break;
+      case BendType.Prebend:
+        quarterCount = 1;
+        break;
+      default:
+        quarterCount = 2;
+    }
+    const availableWidth = Math.max(
+      0,
+      endX - gap - GuitarTechniqueDescriptors.arrowWidth / 2 - startX
+    );
+    return Math.min(
+      this.noteElement.boundingBox.width / 4,
+      availableWidth / quarterCount
+    );
+  }
+
   /** Calculates curve-end X coordinates in pitch-label order. */
   public calculateBendCurveEndXs(type: BendType): number[] {
     const startX =
       this.noteElement.beatElement.attackLocalX +
       this.noteElement.textRect.width / 2;
-    const quarterWidth = this.noteElement.boundingBox.width / 4;
+    const bendSegmentWidth = this.getBendSegmentWidth(type);
     switch (type) {
       case BendType.Bend:
       case BendType.Release:
-        return [startX + quarterWidth * 2];
+        return [startX + bendSegmentWidth * 2];
       case BendType.BendAndRelease:
-        return [startX + quarterWidth * 2, startX + quarterWidth * 3];
+        return [startX + bendSegmentWidth * 2, startX + bendSegmentWidth * 3];
       case BendType.Prebend:
-        return [startX + quarterWidth];
+        return [startX + bendSegmentWidth];
       case BendType.PrebendAndRelease:
       case BendType.PrebendBend:
-        return [startX + quarterWidth, startX + quarterWidth * 2];
+        return [startX + bendSegmentWidth, startX + bendSegmentWidth * 2];
       case BendType.Hold:
         return [];
     }
@@ -128,7 +176,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const curve = GuitarTechniqueDescriptors.createUpCurvePath(
       x,
       y,
-      this.noteElement.boundingBox.width / 2,
+      this.getBendSegmentWidth(BendType.Bend) * 2,
       verticalOffset
     );
 
@@ -157,7 +205,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const bendCurve = GuitarTechniqueDescriptors.createUpCurvePath(
       bendX,
       bendY,
-      this.noteElement.boundingBox.width / 2,
+      this.getBendSegmentWidth(BendType.BendAndRelease) * 2,
       verticalOffset
     );
 
@@ -172,12 +220,12 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     // Step 3: build release curve
-    const releaseX = bendX + this.noteElement.boundingBox.width / 2;
+    const releaseX = bendArrowX;
     const releaseY = bendY - verticalOffset;
     const releaseCurve = GuitarTechniqueDescriptors.createDownCurvePath(
       releaseX,
       releaseY,
-      this.noteElement.boundingBox.width / 4,
+      this.getBendSegmentWidth(BendType.BendAndRelease),
       this.noteElement.boundingBox.height / 4,
       verticalOffset
     );
@@ -258,7 +306,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const releaseCurve = GuitarTechniqueDescriptors.createDownCurvePath(
       releaseX,
       releaseY,
-      this.noteElement.boundingBox.width / 4,
+      this.getBendSegmentWidth(BendType.PrebendAndRelease),
       this.noteElement.boundingBox.height / 4,
       verticalOffset
     );
@@ -289,7 +337,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       this.noteElement.boundingBox.height / 2;
     const releaseX = this._startPoint.x;
     const releaseY = this._startPoint.y - verticalOffset;
-    const releaseWidth = this.noteElement.boundingBox.width / 2;
+    const releaseWidth = this.getBendSegmentWidth(BendType.Release) * 2;
     const releaseCurve = GuitarTechniqueDescriptors.createDownCurvePath(
       releaseX,
       releaseY,
@@ -329,7 +377,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const bendCurve = GuitarTechniqueDescriptors.createUpCurvePath(
       prebendX,
       prebendTopY,
-      this.noteElement.boundingBox.width / 4,
+      this.getBendSegmentWidth(BendType.PrebendBend),
       bendHeight
     );
     const bendArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
