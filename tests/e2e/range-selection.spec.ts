@@ -1,4 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, Locator, test } from "@playwright/test";
+
+/** Measures the full selected width, including ranges that wrap across lines. */
+async function getSelectionWidth(rectangles: Locator): Promise<number> {
+  return rectangles.evaluateAll((r) =>
+    r.reduce((sum, rectangle) => {
+      return sum + Number(rectangle.getAttribute("width"));
+    }, 0)
+  );
+}
 
 test("announces a mouse range once on release, not during held drag frames", async ({
   page,
@@ -112,9 +121,7 @@ test("anchors, extends, and clears a range through shared transport controls", a
     "Track Rhythm track, Staff 1, voice 1, 1 beat selected, " +
       "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
   );
-  const selectionWidthBefore = Number(
-    await selectionRect.getAttribute("width")
-  );
+  const selectionWidthBefore = await getSelectionWidth(selectionRect);
   expect(selectionWidthBefore).toBeGreaterThan(0);
 
   // Bar wrappers contain sibling bar, beat, and note renderer groups.
@@ -136,9 +143,7 @@ test("anchors, extends, and clears a range through shared transport controls", a
   );
   await expect(nextBeatNote).toHaveCount(1);
   await nextBeatNote.click();
-  const selectionWidthAfterBeat = Number(
-    await selectionRect.getAttribute("width")
-  );
+  const selectionWidthAfterBeat = await getSelectionWidth(selectionRect);
   expect(selectionWidthAfterBeat).toBeGreaterThan(selectionWidthBefore);
   await expect(announcement).toHaveText(
     "Track Rhythm track, Staff 1, voice 1, 5 beats selected, " +
@@ -153,7 +158,7 @@ test("anchors, extends, and clears a range through shared transport controls", a
       "bar 1 beat 1 to bar 3 beat 1, anchor bar 1 beat 1, active end bar 3 beat 1."
   );
   await expect
-    .poll(async () => Number(await selectionRect.getAttribute("width")))
+    .poll(() => getSelectionWidth(selectionRect))
     .toBeGreaterThan(selectionWidthAfterBeat);
 
   // Clear restores the cursor state and makes a new anchor available.

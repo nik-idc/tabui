@@ -1,5 +1,17 @@
 import { expect, Locator, test } from "@playwright/test";
 
+/** Captures note content and placement without depending on SVG insertion order. */
+async function getRenderedNotes(editor: Locator) {
+  return editor.locator('[id^="note-text-"]').evaluateAll((notes) =>
+    notes
+      .map((n) => {
+        const rect = n.getBoundingClientRect();
+        return { id: n.id, text: n.textContent, x: rect.x, y: rect.y };
+      })
+      .sort((a, b) => a.id.localeCompare(b.id))
+  );
+}
+
 async function selectTrack(editor: Locator, trackIndex: number): Promise<void> {
   const trackButtons = editor.locator(".tu-track-select-button");
   await trackButtons.nth(trackIndex).click();
@@ -90,21 +102,15 @@ test("restores the original notation after switching away and back", async ({
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
   await editor.getByRole("button", { name: "Tracks" }).click();
 
-  const firstTrackNotes = await editor
-    .locator('[id^="note-text-"]')
-    .allTextContents();
+  const firstTrackNotes = await getRenderedNotes(editor);
   expect(firstTrackNotes.length).toBeGreaterThan(0);
   await selectTrack(editor, 1);
-  const secondTrackNotes = await editor
-    .locator('[id^="note-text-"]')
-    .allTextContents();
+  const secondTrackNotes = await getRenderedNotes(editor);
   expect(secondTrackNotes.length).toBeGreaterThan(0);
   expect(secondTrackNotes).not.toEqual(firstTrackNotes);
 
   await selectTrack(editor, 0);
   await expect(editor.locator(".tu-root-svg")).toHaveCount(1);
   await expect(editor.locator("#tu-notation")).toHaveCount(1);
-  await expect(editor.locator('[id^="note-text-"]')).toHaveText(
-    firstTrackNotes
-  );
+  await expect.poll(() => getRenderedNotes(editor)).toEqual(firstTrackNotes);
 });
