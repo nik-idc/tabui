@@ -4,7 +4,6 @@ import {
   Bar,
   BarRepeatStatusChange,
   TechniqueType,
-  BendTechniqueOptions,
   MasterBarData,
   MasterBar,
   TupletSettings,
@@ -17,6 +16,7 @@ import {
   GuitarTechniqueType,
   TrackInstrumentChangeMode,
 } from "../../model";
+import type { SetTechniqueOptions } from "../../model/editor/set-technique-options";
 import { TrackElement } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
 import { NoteElement } from "../element/note/note-element";
@@ -710,8 +710,11 @@ export class TrackControllerEditor {
     return true;
   }
 
-  /** Resolves selected slots and delegates technique eligibility to the score editor. */
-  public canSetTechnique(type: TechniqueType): boolean {
+  /** Checks eligibility using the requested Tie source-search mode. */
+  public canSetTechnique(
+    type: TechniqueType,
+    options: SetTechniqueOptions = {}
+  ): boolean {
     const cursor = this._selectionManager.selectionCursor;
     return (
       this.editingEnabled &&
@@ -720,7 +723,8 @@ export class TrackControllerEditor {
           ? this._selectionManager.selectionAsBeats
           : [cursor.beat],
         type,
-        cursor === undefined ? undefined : cursor.noteIndex + 1
+        cursor === undefined ? undefined : cursor.noteIndex + 1,
+        options
       )
     );
   }
@@ -738,11 +742,11 @@ export class TrackControllerEditor {
   /**
    * Sets technique
    * @param type Type of technique
-   * @param bendOptions Potenital bend gutiar technique options
+   * @param options Optional Bend settings or Tie source-search mode.
    */
   public setTechnique(
     type: TechniqueType,
-    bendOptions?: BendTechniqueOptions
+    options: SetTechniqueOptions = {}
   ): void {
     if (!this.editingEnabled) {
       return;
@@ -760,7 +764,8 @@ export class TrackControllerEditor {
                   stringNumber: selectionCursor.noteIndex + 1,
                 },
               ],
-          type
+          type,
+          options
         )
       );
       return;
@@ -778,7 +783,7 @@ export class TrackControllerEditor {
       new SetTechniqueCommand(
         ScoreEditor.getTechniqueTargetsForNotes(selectionNotes),
         type,
-        bendOptions
+        options
       )
     );
   }

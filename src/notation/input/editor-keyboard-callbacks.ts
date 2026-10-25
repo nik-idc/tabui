@@ -1,5 +1,4 @@
 import {
-  BendTechniqueOptions,
   BarRepeatStatus,
   GuitarNote,
   GuitarTechniqueType,
@@ -8,6 +7,7 @@ import {
   NoteValue,
   VoiceNumber,
 } from "../model";
+import type { SetTechniqueOptions } from "../model/editor/set-technique-options";
 import { SelectedMoveDirection } from "../controller";
 import { NotationComponent } from "../notation-component";
 import { KeyChecker } from "../../shared";
@@ -43,6 +43,7 @@ export enum EditorKey {
   RemoveBar = "delete",
   LetRing = "l",
   PinchHarmonic = "h",
+  TieToEarliest = "j",
 
   // Space or Shift+Space.
   TogglePlayback = " ",
@@ -165,17 +166,17 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._renderFunc();
   }
 
-  /** Applies techniques only to eligible notes, including beat ranges. */
+  /** Applies techniques to eligible selections using the requested Tie search mode. */
   private setTechnique(
     type: GuitarTechniqueType,
-    bendOptions?: BendTechniqueOptions
+    options: SetTechniqueOptions = {}
   ): boolean {
     const controller = this._notationComponent.trackController;
-    if (!controller.canSetTechnique(type)) {
+    if (!controller.canSetTechnique(type, options)) {
       return false;
     }
 
-    this._notationComponent.trackController.setTechnique(type, bendOptions);
+    controller.setTechnique(type, options);
     this._renderFunc();
     return true;
   }
@@ -300,9 +301,12 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
   }
 
-  /** Toggles a note technique from a shortcut. */
-  public techniqueEvent(type: GuitarTechniqueType): boolean {
-    return this.setTechnique(type);
+  /** Applies a technique; Tie can optionally search for its earliest source. */
+  public techniqueEvent(
+    type: GuitarTechniqueType,
+    options: SetTechniqueOptions = {}
+  ): boolean {
+    return this.setTechnique(type, options);
   }
 
   /** Inserts or removes a beat or bar through the mouse controller operations. */
@@ -702,6 +706,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         this.structuralEvent(StructuralAction.RemoveBar);
       } else if (key === EditorKey.LetRing) {
         return this.techniqueEvent(GuitarTechniqueType.LetRing);
+      } else if (key === EditorKey.TieToEarliest) {
+        return this.techniqueEvent(GuitarTechniqueType.Tie, {
+          tieToEarliest: true,
+        });
       } else if (key === EditorKey.PinchHarmonic) {
         return this.techniqueEvent(GuitarTechniqueType.PinchHarmonic);
       } else {

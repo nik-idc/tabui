@@ -41,14 +41,13 @@ describe("BendControlsDefaultCallbacks", () => {
       expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
     }
 
-    controller.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
+    controller.setTechnique(GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
         type: BendType.Bend,
         bendPitch: 1,
         bendDuration: 0.75,
-      })
-    );
+      }),
+    });
     controller.insertBeatAfterSelected();
     controller.setSelectedNoteFret(5);
     controller.setTechnique(GuitarTechniqueType.Tie);
@@ -76,14 +75,13 @@ describe("BendControlsDefaultCallbacks", () => {
   ])("disabled conditional bend type %s cannot be selected", (type) => {
     const { controller, component, callbacks } = harness;
     if (type === BendType.Bend || type === BendType.BendAndRelease) {
-      controller.setTechnique(
-        GuitarTechniqueType.Bend,
-        new BendTechniqueOptions({
+      controller.setTechnique(GuitarTechniqueType.Bend, {
+        bendOptions: new BendTechniqueOptions({
           type: BendType.Bend,
           bendPitch: 3,
           bendDuration: 0.75,
-        })
-      );
+        }),
+      });
       controller.insertBeatAfterSelected();
       controller.setSelectedNoteFret(5);
       controller.setTechnique(GuitarTechniqueType.Tie);
@@ -138,15 +136,14 @@ describe("BendControlsDefaultCallbacks", () => {
     expect(controller.selectionAsBeats[0].notes).toBeNull();
 
     controller.setSelectedNoteFret(5);
-    controller.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
+    controller.setTechnique(GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
         type: BendType.BendAndRelease,
         bendPitch: 1,
         releasePitch: 0,
         bendDuration: 0.75,
-      })
-    );
+      }),
+    });
 
     harness.open();
     callbacks.unbind();
@@ -167,10 +164,12 @@ describe("BendControlsDefaultCallbacks", () => {
 
   test("remove closes the dialog and supports undo and redo", () => {
     const { callbacks, component, controller, selectedNote } = harness;
-    controller.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({ type: BendType.Prebend, prebendPitch: 0.5 })
-    );
+    controller.setTechnique(GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
+        type: BendType.Prebend,
+        prebendPitch: 0.5,
+      }),
+    });
     callbacks.bind();
     harness.open();
     expect(component.template.removeButton.disabled).toBe(false);

@@ -291,15 +291,13 @@ describe("ScoreEditor", () => {
       throw Error("Expected guitar note in source beat");
     }
     sourceNote.fret = 5;
-    ScoreEditor.setTechniqueForNotes(
-      [sourceNote],
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
+    ScoreEditor.setTechniqueForNotes([sourceNote], GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
         type: BendType.Bend,
         bendPitch: 1,
         bendDuration: 1,
-      })
-    );
+      }),
+    });
 
     ScoreEditor.replaceBeats(beats, [source]);
 
@@ -415,11 +413,13 @@ describe("ScoreEditor", () => {
     const changed = ScoreEditor.setTechniqueForNotes(
       [note],
       GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
-        type: BendType.Bend,
-        bendPitch: 1,
-        bendDuration: 1,
-      })
+      {
+        bendOptions: new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 1,
+          bendDuration: 1,
+        }),
+      }
     );
 
     expect(changed).toBe(false);
@@ -447,28 +447,22 @@ describe("ScoreEditor", () => {
       bendPitch: 1,
       bendDuration: 0.75,
     });
-    ScoreEditor.setTechniqueForNotes(
-      [note],
-      GuitarTechniqueType.Bend,
-      initialOptions
-    );
+    ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Bend, {
+      bendOptions: initialOptions,
+    });
 
     expect(
-      ScoreEditor.setTechniqueForNotes(
-        [note],
-        GuitarTechniqueType.Bend,
-        replacementOptions
-      )
+      ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Bend, {
+        bendOptions: replacementOptions,
+      })
     ).toBe(true);
     expect(note.techniques).toHaveLength(1);
     expect(note.techniques[0].bendOptions).toEqual(replacementOptions);
 
     expect(
-      ScoreEditor.setTechniqueForNotes(
-        [note],
-        GuitarTechniqueType.Bend,
-        replacementOptions
-      )
+      ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Bend, {
+        bendOptions: replacementOptions,
+      })
     ).toBe(false);
     expect(note.techniques).toHaveLength(1);
     expect(note.techniques[0].bendOptions).toEqual(replacementOptions);
@@ -485,15 +479,13 @@ describe("ScoreEditor", () => {
     }
     first.fret = 5;
     second.fret = 5;
-    ScoreEditor.setTechniqueForNotes(
-      [first],
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
+    ScoreEditor.setTechniqueForNotes([first], GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
         type: BendType.Bend,
         bendPitch: 0.5,
         bendDuration: 1,
-      })
-    );
+      }),
+    });
     const replacementOptions = new BendTechniqueOptions({
       type: BendType.Bend,
       bendPitch: 1,
@@ -504,7 +496,7 @@ describe("ScoreEditor", () => {
       ScoreEditor.setTechniqueForNotes(
         [first, second],
         GuitarTechniqueType.Bend,
-        replacementOptions
+        { bendOptions: replacementOptions }
       )
     ).toBe(true);
     expect(first.techniques).toHaveLength(1);
@@ -522,15 +514,13 @@ describe("ScoreEditor", () => {
       throw Error("Expected guitar note in test beat");
     }
     note.fret = 5;
-    ScoreEditor.setTechniqueForNotes(
-      [note],
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
+    ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
         type: BendType.Bend,
         bendPitch: 0.5,
         bendDuration: 1,
-      })
-    );
+      }),
+    });
     const invalidOptions = new BendTechniqueOptions({
       type: BendType.Bend,
       bendPitch: 1,
@@ -540,11 +530,9 @@ describe("ScoreEditor", () => {
     (invalidOptions as { bendPitch: number }).bendPitch = Number.NaN;
 
     expect(() =>
-      ScoreEditor.setTechniqueForNotes(
-        [note],
-        GuitarTechniqueType.Bend,
-        invalidOptions
-      )
+      ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Bend, {
+        bendOptions: invalidOptions,
+      })
     ).toThrow();
     expect(note.techniques).toHaveLength(1);
     expect(note.techniques[0].bendOptions).toMatchObject({

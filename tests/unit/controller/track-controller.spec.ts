@@ -1380,7 +1380,7 @@ describe("TrackController", () => {
       releasePitch: 0,
       bendDuration: 1,
     });
-    controller.setTechnique(GuitarTechniqueType.Bend, bendOptions);
+    controller.setTechnique(GuitarTechniqueType.Bend, { bendOptions });
     const initialNote = beat.notes?.[2];
     if (!(initialNote instanceof GuitarNote)) {
       throw Error("Expected guitar note after setting fret");

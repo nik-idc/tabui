@@ -1,6 +1,6 @@
 import { Bar } from "../bar";
 import { Beat } from "../beat";
-import type { BendTechniqueOptions } from "../bend-options";
+import type { SetTechniqueOptions } from "./set-technique-options";
 import { GuitarNote } from "../guitar-note";
 import { MusicInstrument } from "../instrument/instrument";
 import type { MasterBarData } from "../master-bar";
@@ -206,19 +206,19 @@ export class ScoreEditor {
   /**
    * Removes the technique if every eligible selected guitar slot has it and no bend options are supplied.
    * Otherwise, attempts to apply or update it on each guitar note.
-   * Tie uses backward search on the selected note strings and can fill intervening empty slots.
+   * Tie uses the previous beat unless earliest-source search is requested.
    * @param notes Live selected notes; non-guitar notes are skipped. Ordinary techniques use note-level applicability rules.
    * @param type Technique to toggle.
-   * @param bendOptions Required when adding a bend; supplying options updates existing bends.
+   * @param options Bend settings or Tie search mode; each applies only to its technique.
    * @returns True if any note changed.
    * @throws If bend options are missing when required or invalid for the technique. Transition lookup can also throw if a note's beat is a rest.
    */
   public static setTechniqueForNotes<I extends MusicInstrument>(
     notes: Note<I>[],
     type: TechniqueType,
-    bendOptions: BendTechniqueOptions | null = null
+    options: SetTechniqueOptions = {}
   ): boolean {
-    return TechniqueEditing.setTechniqueForNotes(notes, type, bendOptions);
+    return TechniqueEditing.setTechniqueForNotes(notes, type, options);
   }
 
   /** Resolves selected live slots; rests contribute no notes for ordinary techniques. */
@@ -233,22 +233,23 @@ export class ScoreEditor {
     return EditPosition.getTechniqueTargetsForNotes(notes);
   }
 
-  /** Checks eligibility for selected slots; applied techniques remain removable. */
+  /** Checks selection eligibility using the requested Tie search mode; applied techniques remain removable. */
   public static canSetTechnique(
     beats: Beat[],
     type: TechniqueType,
-    stringNumber?: number
+    stringNumber?: number,
+    options: SetTechniqueOptions = {}
   ): boolean {
-    return TechniqueEditing.canSetTechnique(beats, type, stringNumber);
+    return TechniqueEditing.canSetTechnique(beats, type, stringNumber, options);
   }
 
-  /** Builds a technique plan without changing content, so commands can save its affected beats first. */
+  /** Plans techniques using the requested Tie search mode, without changing content. */
   public static buildTechniquePlan(
     targets: (BeatPosition | NotePosition)[],
     type: TechniqueType,
-    bendOptions: BendTechniqueOptions | null = null
+    options: SetTechniqueOptions = {}
   ): TechniqueEditPlan {
-    return TechniqueEditing.buildTechniquePlan(targets, type, bendOptions);
+    return TechniqueEditing.buildTechniquePlan(targets, type, options);
   }
 
   /** Applies fixed prepared operations; history redo should restore saved content instead. */
@@ -257,38 +258,52 @@ export class ScoreEditor {
   }
 
   /**
-   * Joins notes backward through empty slots and matching frets, or removes ties when all selected playable notes have them.
+   * Joins notes to the previous beat, or removes ties when all selected playable notes have them.
    * @param beats Live selected beats, processed in input order; rests can become continuations, but stop backward searches.
    * @param stringNumber One-based string to edit; omitted copies whole chords, searching each string independently.
+   * @param searchToEarliest Search through empty slots and matching frets instead of only the previous beat.
    * @returns Unique affected beats, including predecessors for tie display; empty if no playable source or tie to remove exists.
    */
-  public static setTieBeats(beats: Beat[], stringNumber?: number): Beat[] {
-    return TieEditing.setTieBeats(beats, stringNumber);
+  public static setTieBeats(
+    beats: Beat[],
+    stringNumber?: number,
+    searchToEarliest = false
+  ): Beat[] {
+    return TieEditing.setTieBeats(beats, stringNumber, searchToEarliest);
   }
 
-  /** Applies the same backward tie edit to explicit note slots, without replacing other chord strings. */
-  public static setTieNotes(notes: Note[]): Beat[] {
-    return TieEditing.setTieNotes(notes);
+  /** Ties explicit slots to the previous beat or earliest source, preserving other strings. */
+  public static setTieNotes(notes: Note[], searchToEarliest = false): Beat[] {
+    return TieEditing.setTieNotes(notes, searchToEarliest);
   }
 
-  /** Plans explicit positions without mutation; whole-beat targets replace content, string targets preserve other strings. */
+  /** Plans previous-beat or earliest-source ties; whole-beat targets replace chords, string targets preserve other strings. */
   public static buildTiePlan(
-    targets: (BeatPosition | NotePosition)[]
+    targets: (BeatPosition | NotePosition)[],
+    searchToEarliest = false
   ): TieEditPlan {
-    return TieEditing.buildTiePlan(targets);
+    return TieEditing.buildTiePlan(targets, searchToEarliest);
   }
 
-  /** Builds a fixed beat/chord tie plan without changing models; earlier targets inform later searches. */
+  /** Plans beat/chord ties using the requested search mode; earlier targets inform later searches. */
   public static buildTiePlanForBeats(
     beats: Beat[],
-    stringNumber?: number
+    stringNumber?: number,
+    searchToEarliest = false
   ): TieEditPlan {
-    return TieEditing.buildTiePlanForBeats(beats, stringNumber);
+    return TieEditing.buildTiePlanForBeats(
+      beats,
+      stringNumber,
+      searchToEarliest
+    );
   }
 
-  /** Builds a fixed note-slot tie plan without changing models or replacing other chord strings. */
-  public static buildTiePlanForNotes(notes: Note[]): TieEditPlan {
-    return TieEditing.buildTiePlanForNotes(notes);
+  /** Plans note-slot ties using the requested search mode, preserving other strings. */
+  public static buildTiePlanForNotes(
+    notes: Note[],
+    searchToEarliest = false
+  ): TieEditPlan {
+    return TieEditing.buildTiePlanForNotes(notes, searchToEarliest);
   }
 
   /** Applies a prepared plan without searching again; save affected beats before this model boundary. */

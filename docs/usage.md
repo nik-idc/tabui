@@ -290,8 +290,9 @@ This is a known limitation. Click a note slot to select it before editing again.
 
 ## Ties and Let Ring
 
-Use **Tie** or **J** (for “join”) to apply ties to the selection. Press **J**
-again to remove selected ties. Read the [Tie rules](techniques.md#tie), especially
+Use **Tie** or **J** (for “join”) to tie the selection to the immediately previous
+beat. Use **Shift+J** to search as far back as possible. Either shortcut removes
+ties when all selected playable notes already have them. Read the [Tie rules](techniques.md#tie), especially
 [how applying Tie can replace selected content](techniques.md#applying-and-removing-ties).
 
 Use **Let Ring** or **Shift+L** to toggle Let Ring. Use **Palm Mute** or **P** to

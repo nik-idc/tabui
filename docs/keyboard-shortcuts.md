@@ -124,7 +124,8 @@ incompatible or empty note.
 | V       | Toggle vibrato.                                         |
 | P       | Toggle palm mute.                                       |
 | L       | Toggle legato.                                          |
-| J       | Join earlier notes with ties, or remove selected ties.  |
+| J       | Tie to the previous beat, or remove selected ties.      |
+| Shift+J | Tie to the earliest source, or remove selected ties.    |
 | Shift+L | Toggle let ring.                                        |
 | S       | Toggle slide.                                           |
 | H       | Toggle natural harmonic.                                |

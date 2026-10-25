@@ -10,30 +10,31 @@ import { LetRingEditing } from "./let-ring-editing";
 import { TechniqueEditKind } from "./technique-edit-plan";
 import type { TechniqueEditPlan } from "./technique-edit-plan";
 import { TieEditing } from "./tie-editing";
+import type { SetTechniqueOptions } from "./set-technique-options";
 
 /** Internal shared technique rules behind the ScoreEditor facade. */
 export class TechniqueEditing {
   /**
    * Removes the technique if every eligible selected guitar slot has it and no bend options are supplied.
    * Otherwise, attempts to apply or update it on each guitar note.
-   * Tie uses backward search on the selected note strings and can fill intervening empty slots.
+   * Tie uses the previous beat unless earliest-source search is requested.
    * @param notes Live selected notes; non-guitar notes are skipped. Ordinary techniques use note-level applicability rules.
    * @param type Technique to toggle.
-   * @param bendOptions Required when adding a bend; supplying options updates existing bends.
+   * @param options Bend settings or Tie search mode; each applies only to its technique.
    * @returns True if any note changed.
    * @throws If bend options are missing when required or invalid for the technique. Transition lookup can also throw if a note's beat is a rest.
    */
   public static setTechniqueForNotes<I extends MusicInstrument>(
     notes: Note<I>[],
     type: TechniqueType,
-    bendOptions: BendTechniqueOptions | null = null
+    options: SetTechniqueOptions = {}
   ): boolean {
     if (type === GuitarTechniqueType.Tie) {
-      return TieEditing.setTieNotes(notes).length > 0;
+      return TieEditing.setTieNotes(notes, options.tieToEarliest).length > 0;
     }
 
     return this.applyTechniquePlan(
-      this.buildOrdinaryTechniquePlan(notes, type, bendOptions)
+      this.buildOrdinaryTechniquePlan(notes, type, options.bendOptions ?? null)
     );
   }
 
@@ -54,10 +55,10 @@ export class TechniqueEditing {
   public static buildTechniquePlan(
     targets: (BeatPosition | NotePosition)[],
     type: TechniqueType,
-    bendOptions: BendTechniqueOptions | null = null
+    options: SetTechniqueOptions = {}
   ): TechniqueEditPlan {
     if (type === GuitarTechniqueType.Tie) {
-      const tie = TieEditing.buildTiePlan(targets);
+      const tie = TieEditing.buildTiePlan(targets, options.tieToEarliest);
       return {
         stateBeats: tie.stateBeats,
         affectedTargets: tie.affectedBeats.map((b) =>
@@ -70,7 +71,7 @@ export class TechniqueEditing {
     return this.buildOrdinaryTechniquePlan(
       this.getTechniqueNotes(targets),
       type,
-      bendOptions
+      options.bendOptions ?? null
     );
   }
 
@@ -108,13 +109,14 @@ export class TechniqueEditing {
   public static canSetTechnique(
     beats: Beat[],
     type: TechniqueType,
-    stringNumber?: number
+    stringNumber?: number,
+    options: SetTechniqueOptions = {}
   ): boolean {
     if (type === GuitarTechniqueType.Bend && stringNumber === undefined) {
       return false;
     }
     if (type === GuitarTechniqueType.Tie) {
-      return TieEditing.canSetTie(beats, stringNumber);
+      return TieEditing.canSetTie(beats, stringNumber, options.tieToEarliest);
     }
     return beats.some((b) =>
       (b.notes ?? []).some(

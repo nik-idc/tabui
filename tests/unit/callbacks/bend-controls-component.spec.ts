@@ -16,15 +16,14 @@ describe("BendControlsComponent", () => {
 
   function prepareContinuation(pitch: number, tie = true, releasing = false) {
     const { controller } = harness;
-    controller.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
+    controller.setTechnique(GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
         type: releasing ? BendType.BendAndRelease : BendType.Bend,
         bendPitch: pitch,
         bendDuration: 0.75,
         ...(releasing ? { releasePitch: 0 } : {}),
-      })
-    );
+      }),
+    });
     controller.insertBeatAfterSelected();
     controller.setSelectedNoteFret(5);
     if (tie) controller.setTechnique(GuitarTechniqueType.Tie);
@@ -50,15 +49,14 @@ describe("BendControlsComponent", () => {
 
   test("initializes the selector from an existing bend", () => {
     const { component, controller } = harness;
-    controller.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
+    controller.setTechnique(GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
         type: BendType.PrebendBend,
         prebendPitch: 0.5,
         bendPitch: 1,
         bendDuration: 0.75,
-      })
-    );
+      }),
+    });
 
     component.prepareForOpen();
 

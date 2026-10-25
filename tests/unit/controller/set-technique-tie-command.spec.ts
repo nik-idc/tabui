@@ -21,14 +21,19 @@ function noteAt(beat: Beat, index = 0): GuitarNote {
   return note;
 }
 
-function tieCommand(beats: Beat[], stringNumber?: number): SetTechniqueCommand {
+function tieCommand(
+  beats: Beat[],
+  stringNumber?: number,
+  searchToEarliest = false
+): SetTechniqueCommand {
   return new SetTechniqueCommand(
     beats.map((b) =>
       stringNumber === undefined
         ? ScoreEditor.getBeatPosition(b)
         : { ...ScoreEditor.getBeatPosition(b), stringNumber }
     ),
-    GuitarTechniqueType.Tie
+    GuitarTechniqueType.Tie,
+    { tieToEarliest: searchToEarliest }
   );
 }
 
@@ -44,6 +49,28 @@ function setup() {
 }
 
 describe("Tie editing", () => {
+  test("ties only the previous beat by default and restores the edit through history", () => {
+    const { beats, score } = setup();
+    for (const [index, fret] of [5, 5, 9, 9].entries()) {
+      noteAt(beats[index]).fret = fret;
+    }
+    const before = serializeScore(score);
+    const command = tieCommand([beats[2]], 1);
+    command.execute();
+    expect(beats.map((b) => noteAt(b).isTieContinuation)).toEqual([
+      false,
+      false,
+      true,
+      false,
+    ]);
+    expect(noteAt(beats[2]).fret).toBe(5);
+    const after = serializeScore(score);
+    command.undo();
+    expect(serializeScore(score)).toEqual(before);
+    command.redo();
+    expect(serializeScore(score)).toEqual(after);
+  });
+
   test.each([
     { scope: "whole beat", stringNumber: undefined, expected: [5, 7, null] },
     { scope: "single string", stringNumber: 2, expected: [null, 7, 12] },
@@ -101,7 +128,8 @@ describe("Tie editing", () => {
     const manager = new CommandManager();
     const command = new SetTechniqueCommand(
       [{ ...ScoreEditor.getBeatPosition(beats[3]), stringNumber: 1 }],
-      GuitarTechniqueType.Tie
+      GuitarTechniqueType.Tie,
+      { tieToEarliest: true }
     );
     manager.execute(command);
     expect(beats.slice(1).every((b) => noteAt(b).isTieContinuation)).toBe(true);
@@ -124,7 +152,8 @@ describe("Tie editing", () => {
     expect(
       ScoreEditor.setTechniqueForNotes(
         [noteAt(beats[3])],
-        GuitarTechniqueType.Tie
+        GuitarTechniqueType.Tie,
+        { tieToEarliest: true }
       )
     ).toBe(true);
     expect(beats.slice(1).every((b) => noteAt(b).isTieContinuation)).toBe(true);
@@ -204,7 +233,7 @@ describe("Tie editing", () => {
       }
     });
     const before = serializeScore(score);
-    const command = tieCommand([beats[3]], 1);
+    const command = tieCommand([beats[3]], 1, true);
     command.execute();
     expect(beats.map((b) => (b.isRest() ? "rest" : noteAt(b).fret))).toEqual(
       frets
@@ -225,7 +254,7 @@ describe("Tie editing", () => {
     });
     noteAt(beats[3]).setTechnique(GuitarTechniqueType.Tie);
     const before = serializeScore(score);
-    const plan = ScoreEditor.buildTiePlanForBeats([beats[2]], 1);
+    const plan = ScoreEditor.buildTiePlanForBeats([beats[2]], 1, true);
     expect(serializeScore(score)).toEqual(before);
     ScoreEditor.applyTiePlan(plan);
     expect(noteAt(beats[2]).fret).toBe(14);
@@ -278,7 +307,7 @@ describe("Tie editing", () => {
     }
     const target = voice.beats[0];
     const before = serializeScore(score);
-    const command = tieCommand([target], 1);
+    const command = tieCommand([target], 1, true);
     command.execute();
     expect(noteAt(beats[0]).fret).toBe(null);
     for (const beat of [beats[2], beats[3], target]) {
@@ -305,7 +334,7 @@ describe("Tie editing", () => {
     });
     noteAt(beats[3]).setTechnique(GuitarTechniqueType.Tie);
     const before = serializeScore(score);
-    const command = tieCommand([beats[2]], 1);
+    const command = tieCommand([beats[2]], 1, true);
     command.execute();
     expect(noteAt(beats[1]).isTieContinuation).toBe(true);
     expect(noteAt(beats[3]).hasTechnique(GuitarTechniqueType.Tie)).toBe(false);
@@ -331,7 +360,7 @@ describe("Tie editing", () => {
     noteAt(beats[1], 1).fret = 8;
     noteAt(beats[2], 2).fret = 12;
     const before = serializeScore(score);
-    const command = tieCommand(beats.slice(2));
+    const command = tieCommand(beats.slice(2), undefined, true);
     command.execute();
     expect(noteAt(beats[1]).isTieContinuation).toBe(true);
     expect(noteAt(beats[0], 1).isTieContinuation).toBe(false);
@@ -358,7 +387,7 @@ describe("Tie editing", () => {
     expect(target.isTechniqueApplicable(GuitarTechniqueType.Tie)).toBe(true);
     expect(target.setTechnique(GuitarTechniqueType.Tie)).toBe(false);
     expect(target.isTieContinuation).toBe(false);
-    tieCommand([beats[3]], 1).execute();
+    tieCommand([beats[3]], 1, true).execute();
     expect(noteAt(beats[3]).isTieContinuation).toBe(true);
   });
 

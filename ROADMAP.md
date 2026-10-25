@@ -63,6 +63,8 @@ replace release validation.
 - [x] Separate Tie from Let Ring. Ties copy and continue the preceding string or
       chord without a new attack. Let Ring marks resonance passages, keeps plain
       fret numbers, and stops at the next same-string attack or passage/playback end.
+- [x] Current tie implementation always ties as long as it is allowed.
+      Need it be optional: - "j" -> tie just the previous beat - "Shift + j" -> tie as far back as possible
 - [ ] Don't render the release pitch if it's 0
 - [ ] Implement the same "+" but for bars **only for the last bar**
 - [ ] Implement "↑" & "↓" to increase/decrease the pitch of selection by 1 semitone

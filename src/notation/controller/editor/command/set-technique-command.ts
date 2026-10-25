@@ -1,11 +1,11 @@
 import {
   ScoreEditor,
-  BendTechniqueOptions,
   Note,
   TechniqueType,
   GuitarTechniqueType,
   BeatSnapshot,
 } from "../../../model";
+import type { SetTechniqueOptions } from "../../../model/editor/set-technique-options";
 import { BeatPosition, NotePosition } from "../../../model/editor/score-editor";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
@@ -15,8 +15,8 @@ import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 export class SetTechniqueCommand implements Command {
   /** New technique type */
   private _newTechniqueType: TechniqueType;
-  /** Bend options for if new technique is a guitar bend */
-  private _newBendOptions?: BendTechniqueOptions;
+  /** Technique-specific settings captured when the command is created. */
+  private _options: SetTechniqueOptions;
   /** Fixed positions, including rest slots, resolved against live content when executed. */
   private _targets: (BeatPosition | NotePosition)[];
   /** Original beat content for undo. */
@@ -32,19 +32,19 @@ export class SetTechniqueCommand implements Command {
    * Set technique for notes command
    * @param targets Fixed beat positions; a one-based string limits the edit to that slot, including on rests.
    * @param type New technique type
-   * @param bendOptions Bend options for if new technique is a guitar bend
+   * @param options Optional Bend settings or Tie source-search mode.
    */
   constructor(
     targets: (BeatPosition | NotePosition)[],
     type: TechniqueType,
-    bendOptions?: BendTechniqueOptions
+    options: SetTechniqueOptions = {}
   ) {
     this._targets = targets.map((p) => ({ ...p }));
     this._affectedTargets = ScoreEditor.getTechniqueTargetsForNotes(
       ScoreEditor.getTechniqueNotes(this._targets)
     );
     this._newTechniqueType = type;
-    this._newBendOptions = bendOptions;
+    this._options = { ...options };
   }
 
   /**
@@ -54,7 +54,7 @@ export class SetTechniqueCommand implements Command {
     const plan = ScoreEditor.buildTechniquePlan(
       this._targets,
       this._newTechniqueType,
-      this._newBendOptions
+      this._options
     );
     this._before = ScoreEditor.snapshotBeatNotes(plan.stateBeats);
     this._executed = ScoreEditor.applyTechniquePlan(plan);

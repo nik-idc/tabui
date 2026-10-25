@@ -308,41 +308,52 @@ describe("EditorKeyboardDefCallbacks", () => {
     }
   );
 
-  test("Tie shortcut fills empty slots up to a selected rest and supports undo", () => {
-    const distance = 3;
-    const { callbacks, notationComponent, rootElement } = createHarness();
-    const { track, beats } = createBarWithBeats(
-      Array.from({ length: distance + 1 }, () => ({
-        baseDuration: NoteDuration.Quarter,
-      }))
-    );
-    const first = beats[0].notes?.[0];
-    if (!(first instanceof GuitarNote)) {
-      throw Error("Expected guitar note");
+  test.each([
+    { shiftKey: false, distance: 1 },
+    { shiftKey: true, distance: 3 },
+  ])(
+    "Tie shortcut with Shift=$shiftKey ties to a source $distance beats back and supports undo",
+    ({ shiftKey, distance }) => {
+      const { callbacks, notationComponent, rootElement } = createHarness();
+      const { track, beats } = createBarWithBeats(
+        Array.from({ length: distance + 1 }, () => ({
+          baseDuration: NoteDuration.Quarter,
+        }))
+      );
+      const first = beats[0].notes?.[0];
+      if (!(first instanceof GuitarNote)) {
+        throw Error("Expected guitar note");
+      }
+      first.fret = 5;
+      beats[distance].makeRest();
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      notationComponent.trackController = controller;
+      for (let i = 0; i < distance; i++) {
+        controller.moveSelectedNote(SelectedMoveDirection.Right);
+      }
+      rootElement.focus();
+      if (shiftKey) {
+        const singleBeat = createKeyboardEvent("j");
+        callbacks.onKeyDown(singleBeat);
+        expect(beats[distance].isRest()).toBe(true);
+        expect(singleBeat.preventDefault).not.toHaveBeenCalled();
+      }
+      const event = createKeyboardEvent("j", { shiftKey });
+      callbacks.onKeyDown(event);
+      expect(controller.selectionCursor?.note).toEqual(
+        expect.objectContaining({ fret: 5 })
+      );
+      expect(
+        controller.selectionCursor?.note?.hasTechnique(GuitarTechniqueType.Tie)
+      ).toBe(true);
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+      controller.undo();
+      expect(beats[distance].isRest()).toBe(true);
+      expect(
+        (beats[1].notes?.[0] as GuitarNote | undefined)?.fret ?? null
+      ).toBe(null);
     }
-    first.fret = 5;
-    beats[distance].makeRest();
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    notationComponent.trackController = controller;
-    for (let i = 0; i < distance; i++) {
-      controller.moveSelectedNote(SelectedMoveDirection.Right);
-    }
-    rootElement.focus();
-    const event = createKeyboardEvent("j");
-    callbacks.onKeyDown(event);
-    expect(controller.selectionCursor?.note).toEqual(
-      expect.objectContaining({ fret: 5 })
-    );
-    expect(
-      controller.selectionCursor?.note?.hasTechnique(GuitarTechniqueType.Tie)
-    ).toBe(true);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    controller.undo();
-    expect(beats[distance].isRest()).toBe(true);
-    expect((beats[1].notes?.[0] as GuitarNote | undefined)?.fret ?? null).toBe(
-      null
-    );
-  });
+  );
 
   test("Let Ring shortcut marks a supported empty slot but not a rest", () => {
     const { callbacks, notationComponent, rootElement } = createHarness();

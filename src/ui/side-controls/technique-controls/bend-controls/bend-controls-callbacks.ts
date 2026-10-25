@@ -72,7 +72,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     }
     this._notationComponent.trackController.setTechnique(
       GuitarTechniqueType.Bend,
-      validatedOptions
+      { bendOptions: validatedOptions }
     );
     this._renderFunc();
 

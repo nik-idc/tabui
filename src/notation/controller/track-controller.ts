@@ -20,7 +20,7 @@ import {
   SelectionCursor,
   SelectedMoveDirection,
 } from "./selection/selection-cursor";
-import { BendTechniqueOptions } from "../model/bend-options";
+import type { SetTechniqueOptions } from "../model/editor/set-technique-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
 import { ScoreLayoutPlanner } from "./layout/score-layout-plan";
 import { TabUILayoutMode } from "../../config/tabui-config";
@@ -646,11 +646,14 @@ export class TrackController {
     return this._trackControllerEditor.setRepeatStatus(bar, change);
   }
 
-  /** Returns whether the selection can add or remove a technique while editing is allowed. */
-  public canSetTechnique(type: TechniqueType): boolean {
+  /** Checks technique eligibility while editing is allowed, using the requested Tie search mode. */
+  public canSetTechnique(
+    type: TechniqueType,
+    options: SetTechniqueOptions = {}
+  ): boolean {
     return (
       this.playbackState === PlaybackState.Idle &&
-      this._trackControllerEditor.canSetTechnique(type)
+      this._trackControllerEditor.canSetTechnique(type, options)
     );
   }
 
@@ -662,16 +665,16 @@ export class TrackController {
   /**
    * Set technique on the selected note/beats
    * @param type Technique type
-   * @param bendOptions Optional bend options
+   * @param options Optional Bend settings or Tie source-search mode.
    */
   public setTechnique(
     type: TechniqueType,
-    bendOptions?: BendTechniqueOptions
+    options: SetTechniqueOptions = {}
   ): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
-    this._trackControllerEditor.setTechnique(type, bendOptions);
+    this._trackControllerEditor.setTechnique(type, options);
   }
 
   /** Removes matching techniques from notes in one guarded, undoable edit. */

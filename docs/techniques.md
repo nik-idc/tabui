@@ -18,14 +18,19 @@ rhythm notation stays visible.
 
 ### Applying and removing ties
 
-Applying Tie searches **backward**, through empty slots and matching frets on the
-same string and voice. The earliest matching note stays an attack; later slots
-become continuations. An earlier different fret, dead note, rest, or missing or
-empty adjacent voice stops the search. Without a playable source, nothing changes.
+The Tie button and **J** use only the immediately previous beat on the same
+string and voice. An empty slot, dead note, rest, or missing previous beat means
+nothing changes.
+
+**Shift+J** searches farther **backward**, through empty slots and matching frets.
+The earliest matching note stays an attack; later slots become continuations.
+An earlier different fret, dead note, rest, or missing or empty adjacent voice
+stops the search. Without a playable source, nothing changes.
 
 The selected fret or rest can be replaced by the source fret. A whole-beat edit
 replaces the selected chord, searching each string separately. A note-slot edit
-preserves the other strings. Removing an incoming Tie keeps the fret and makes
+preserves the other strings. Either shortcut removes ties when all selected
+playable notes already have them. Removing an incoming Tie keeps the fret and makes
 that note a new attack. Changing a fret breaks incoming and outgoing ties that no
 longer match.
 

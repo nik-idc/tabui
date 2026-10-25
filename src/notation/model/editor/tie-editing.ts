@@ -15,23 +15,33 @@ type TieFrets = (number | null | undefined)[];
 /** Internal backward tie search and fixed-plan application for ScoreEditor. */
 export class TieEditing {
   /**
-   * Joins notes backward through empty slots and matching frets, or removes ties when all selected playable notes have them.
+   * Joins notes to the previous beat, or removes ties when all selected playable notes have them.
    * @param beats Live selected beats, processed in input order; rests can become continuations, but stop backward searches.
    * @param stringNumber One-based string to edit; omitted copies whole chords, searching each string independently.
+   * @param searchToEarliest Search through empty slots and matching frets instead of only the previous beat.
    * @returns Unique affected beats, including predecessors for tie display; empty if no playable source or tie to remove exists.
    */
-  public static setTieBeats(beats: Beat[], stringNumber?: number): Beat[] {
-    return this.applyTiePlan(this.buildTiePlanForBeats(beats, stringNumber));
+  public static setTieBeats(
+    beats: Beat[],
+    stringNumber?: number,
+    searchToEarliest = false
+  ): Beat[] {
+    return this.applyTiePlan(
+      this.buildTiePlanForBeats(beats, stringNumber, searchToEarliest)
+    );
   }
 
-  /** Applies the same backward tie edit to explicit note slots, without replacing other chord strings. */
-  public static setTieNotes(notes: Note[]): Beat[] {
-    return this.applyTiePlan(this.buildTiePlanForNotes(notes));
+  /** Ties explicit slots to the previous beat or earliest source, preserving other strings. */
+  public static setTieNotes(notes: Note[], searchToEarliest = false): Beat[] {
+    return this.applyTiePlan(
+      this.buildTiePlanForNotes(notes, searchToEarliest)
+    );
   }
 
-  /** Plans explicit positions without mutation; whole-beat targets replace content, string targets preserve other strings. */
+  /** Plans previous-beat or earliest-source ties; whole-beat targets replace chords, string targets preserve other strings. */
   public static buildTiePlan(
-    targets: (BeatPosition | NotePosition)[]
+    targets: (BeatPosition | NotePosition)[],
+    searchToEarliest = false
   ): TieEditPlan {
     const resolved = targets.map((p) => ({
       beat: EditPosition.resolveBeatPosition(p),
@@ -72,7 +82,12 @@ export class TieEditing {
         continue;
       }
 
-      const chains = this.findTieChains(beat, stringNumber, plannedFrets);
+      const chains = this.findTieChains(
+        beat,
+        stringNumber,
+        plannedFrets,
+        searchToEarliest
+      );
       if (chains.length === 0) {
         continue;
       }
@@ -114,25 +129,31 @@ export class TieEditing {
     return plan;
   }
 
-  /** Builds a fixed beat/chord tie plan without changing models; earlier targets inform later searches. */
+  /** Plans beat/chord ties using the requested search mode; earlier targets inform later searches. */
   public static buildTiePlanForBeats(
     beats: Beat[],
-    stringNumber?: number
+    stringNumber?: number,
+    searchToEarliest = false
   ): TieEditPlan {
     return this.buildTiePlan(
       beats.map((b) =>
         stringNumber === undefined
           ? EditPosition.getBeatPosition(b)
           : { ...EditPosition.getBeatPosition(b), stringNumber }
-      )
+      ),
+      searchToEarliest
     );
   }
 
-  /** Builds a fixed note-slot tie plan without changing models or replacing other chord strings. */
-  public static buildTiePlanForNotes(notes: Note[]): TieEditPlan {
+  /** Plans note-slot ties using the requested search mode, preserving other strings. */
+  public static buildTiePlanForNotes(
+    notes: Note[],
+    searchToEarliest = false
+  ): TieEditPlan {
     const guitarNotes = notes.filter((n) => n instanceof GuitarNote);
     return this.buildTiePlan(
-      EditPosition.getTechniqueTargetsForNotes(guitarNotes)
+      EditPosition.getTechniqueTargetsForNotes(guitarNotes),
+      searchToEarliest
     );
   }
 
@@ -156,18 +177,27 @@ export class TieEditing {
   }
 
   /** Checks whether selected ties can be removed or a backward source can be found. */
-  public static canSetTie(beats: Beat[], stringNumber?: number): boolean {
+  public static canSetTie(
+    beats: Beat[],
+    stringNumber?: number,
+    searchToEarliest = false
+  ): boolean {
     return (
       this.shouldRemoveSelectedTies(beats, stringNumber) ||
-      beats.some((b) => this.findTieChains(b, stringNumber).length > 0)
+      beats.some(
+        (b) =>
+          this.findTieChains(b, stringNumber, undefined, searchToEarliest)
+            .length > 0
+      )
     );
   }
 
-  /** Finds the earliest matching source and its continuations, in playback order. */
+  /** Finds a previous-beat source or the earliest matching source, in playback order. */
   private static findTieChain(
     beat: Beat,
     stringNumber: number,
-    plannedFrets: Map<Beat, TieFrets> = new Map()
+    plannedFrets: Map<Beat, TieFrets> = new Map(),
+    searchToEarliest = false
   ): TieChain | null {
     const staff = beat.voiceBar.bar.staff;
     const chain = [beat];
@@ -190,6 +220,9 @@ export class TieEditing {
         source = { beat: previous, stringNumber, fret };
       }
       chain.push(previous);
+      if (!searchToEarliest) {
+        break;
+      }
       previous = staff.getPrevBeat(previous);
     }
     if (source === null) {
@@ -205,7 +238,8 @@ export class TieEditing {
   private static findTieChains(
     beat: Beat,
     stringNumber?: number,
-    plannedFrets: Map<Beat, TieFrets> = new Map()
+    plannedFrets: Map<Beat, TieFrets> = new Map(),
+    searchToEarliest = false
   ): TieChain[] {
     const strings =
       stringNumber === undefined
@@ -216,7 +250,12 @@ export class TieEditing {
         : [stringNumber];
     const chains: TieChain[] = [];
     for (const string of strings) {
-      const chain = this.findTieChain(beat, string, plannedFrets);
+      const chain = this.findTieChain(
+        beat,
+        string,
+        plannedFrets,
+        searchToEarliest
+      );
       if (chain !== null) {
         chains.push(chain);
       }

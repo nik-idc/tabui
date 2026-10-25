@@ -42,13 +42,15 @@ describe("TechniqueControlsTemplateRenderer", () => {
 
   afterEach(() => notation.dispose());
 
-  test("enables Tie on a selected rest across empty slots, but not across another rest", () => {
-    (required(testBeats[1].notes)[0] as GuitarNote).fret = null;
+  test("enables Tie on a selected rest only when the previous beat has a source", () => {
     testBeats[2].makeRest();
     notation.trackController.moveSelectedNote(SelectedMoveDirection.Right);
     notation.trackController.moveSelectedNote(SelectedMoveDirection.Right);
     renderer.render();
     expect(template.tieButton.disabled).toBe(false);
+    (required(testBeats[1].notes)[0] as GuitarNote).fret = null;
+    renderer.render();
+    expect(template.tieButton.disabled).toBe(true);
     testBeats[1].makeRest();
     renderer.render();
     expect(template.tieButton.disabled).toBe(true);

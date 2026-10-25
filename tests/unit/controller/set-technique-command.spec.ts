@@ -105,11 +105,13 @@ describe("SetTechniqueCommand", () => {
     const bendCommand = new SetTechniqueCommand(
       ScoreEditor.getTechniqueTargetsForNotes([note]),
       GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
-        type: BendType.Bend,
-        bendPitch: 1,
-        bendDuration: 1,
-      })
+      {
+        bendOptions: new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 1,
+          bendDuration: 1,
+        }),
+      }
     );
     const letRingCommand = new SetTechniqueCommand(
       ScoreEditor.getTechniqueTargetsForNotes([note]),
@@ -165,11 +167,13 @@ describe("SetTechniqueCommand", () => {
     const command = new SetTechniqueCommand(
       ScoreEditor.getTechniqueTargetsForNotes([note]),
       GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
-        type: BendType.Bend,
-        bendPitch: 1,
-        bendDuration: 1,
-      })
+      {
+        bendOptions: new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 1,
+          bendDuration: 1,
+        }),
+      }
     );
 
     expect(command.affectedModels).toEqual([
@@ -210,12 +214,14 @@ describe("SetTechniqueCommand", () => {
     const command = new SetTechniqueCommand(
       ScoreEditor.getTechniqueTargetsForNotes([note]),
       GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
-        type: BendType.PrebendBend,
-        prebendPitch: 0.5,
-        bendPitch: 1,
-        bendDuration: 1,
-      })
+      {
+        bendOptions: new BendTechniqueOptions({
+          type: BendType.PrebendBend,
+          prebendPitch: 0.5,
+          bendPitch: 1,
+          bendDuration: 1,
+        }),
+      }
     );
 
     command.execute();
