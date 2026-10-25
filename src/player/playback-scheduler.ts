@@ -147,7 +147,8 @@ export class PlaybackScheduler {
       beat,
       beatChange.startTime,
       beatChange.endTime,
-      this.getPlaybackEndTime(beat)
+      this.getPlaybackEndTime(beat),
+      this._currentScheduleBase + (this._loopStartOffsets.at(-1) ?? 0)
     );
     return beatChange;
   }

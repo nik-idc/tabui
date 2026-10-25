@@ -2,7 +2,11 @@ import { expect, test, type Locator } from "@playwright/test";
 
 /** Finds an exposed point on a label's real click target. */
 async function labelHitPoint(label: Locator) {
-  const target = label.locator('[id^="technique-label-hit-"]').first();
+  const textTarget = label.locator('[id^="technique-label-hit-text-"]');
+  const target =
+    (await textTarget.count()) > 0
+      ? textTarget
+      : label.locator('[id^="technique-label-hit-"]').first();
   await target.scrollIntoViewIfNeeded();
   return target.evaluate((node) => {
     const path = node as SVGPathElement;
@@ -51,7 +55,17 @@ for (const shortcut of ["v", "p", "Shift+L"]) {
         : '[id^="technique-label-text-"]';
     const property = shortcut === "v" ? "stroke" : "fill";
     const first = labels.first().locator(visibleSelector);
-    const other = labels.nth(1).locator(visibleSelector);
+    const other = labels
+      .nth(1)
+      .locator('[id^="technique-label-path-"], [id^="technique-label-text-"]')
+      .first();
+    const otherProperty = await other.evaluate((node) =>
+      node.tagName === "text" ? "fill" : "stroke"
+    );
+    const otherOriginal = await other.evaluate(
+      (node, property) => getComputedStyle(node).getPropertyValue(property),
+      otherProperty
+    );
     const otherLabelID = await labels.nth(1).getAttribute("id");
     if (otherLabelID === null) throw Error("Expected other label ID");
     if (shortcut !== "v") {
@@ -94,13 +108,15 @@ for (const shortcut of ["v", "p", "Shift+L"]) {
     await page.mouse.move(point.x, point.y);
     await expect(first).not.toHaveCSS(property, original);
     await expect(first).toHaveCSS("cursor", "pointer");
-    await expect(other).toHaveCSS(property, original);
+    await expect(other).toHaveCSS(otherProperty, otherOriginal);
     const target = labels
       .first()
       .locator('[id^="technique-label-hit-"]')
       .first();
     await expect(target).toHaveCSS(
-      shortcut === "v" ? "stroke" : "fill",
+      (await target.getAttribute("id"))?.includes("hit-text")
+        ? "fill"
+        : "stroke",
       "rgba(0, 0, 0, 0)"
     );
     await page.mouse.move(0, 0);
@@ -108,19 +124,19 @@ for (const shortcut of ["v", "p", "Shift+L"]) {
     await page.mouse.click(point.x, point.y);
     await expect(labels).toHaveCount(1);
     await expect(labels).toHaveAttribute("id", otherLabelID);
-    await expect(editor.locator('[id^="note-text-"]')).toHaveText(
-      shortcut === "Shift+L" ? ["5", "7", "(9)"] : ["5", "7", "9"]
-    );
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText([
+      "5",
+      "7",
+      "9",
+    ]);
     await editor.locator(".tu-notation-viewport").focus();
     await page.keyboard.press("Control+z");
     await expect(labels).toHaveCount(2);
-    if (shortcut === "Shift+L") {
-      await expect(editor.locator('[id^="note-text-"]')).toHaveText([
-        "(5)",
-        "(7)",
-        "(9)",
-      ]);
-    }
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText([
+      "5",
+      "7",
+      "9",
+    ]);
     await page.keyboard.press("Control+y");
     await expect(labels).toHaveCount(1);
     await expect(labels).toHaveAttribute("id", otherLabelID);

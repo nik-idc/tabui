@@ -124,11 +124,15 @@ incompatible or empty note.
 | V       | Toggle vibrato.                                         |
 | P       | Toggle palm mute.                                       |
 | L       | Toggle legato.                                          |
+| J       | Join earlier notes with ties, or remove selected ties.  |
 | Shift+L | Toggle let ring.                                        |
 | S       | Toggle slide.                                           |
 | H       | Toggle natural harmonic.                                |
 | Shift+H | Toggle pinch harmonic.                                  |
 | B       | Open bend settings for a single eligible selected note. |
+
+See [Ties and Let Ring](usage.md#ties-and-let-ring) for selection and controls,
+and [Guitar techniques](techniques.md) for musical meaning and applicability.
 
 ## Dialogs and controls
 

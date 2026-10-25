@@ -56,6 +56,18 @@ replace release validation.
       semitones, including prebends, releases, and sustained continuations.
 - [x] Return null when staff traversal reaches an empty adjacent voice, preventing
       note traversal from throwing on that boundary.
+- [ ] Display tuning at the start of the track + make it clickable. The click would invoke
+      the existing track settings dialog.
+- [x] Resolve toolbar Space conflicts: mouse-clicked buttons allow playback,
+      keyboard navigation keeps native activation, and Shift+Space toggles playback.
+- [x] Separate Tie from Let Ring. Ties copy and continue the preceding string or
+      chord without a new attack. Let Ring marks resonance passages, keeps plain
+      fret numbers, and stops at the next same-string attack or passage/playback end.
+- [ ] Don't render the release pitch if it's 0
+- [ ] Implement the same "+" but for bars **only for the last bar**
+- [ ] Implement "↑" & "↓" to increase/decrease the pitch of selection by 1 semitone
+- [ ] Repeat playback doesn't actually use the specified repeat count - always defaults to 2
+- [ ] Store expanded/collapsed state of "About this demo" & "Demo controls" in `localStorage`
 
 ## Follow-up inbox
 

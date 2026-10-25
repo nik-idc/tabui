@@ -1,12 +1,9 @@
 import { CommandManager } from "../../../src/notation/controller/editor/command/command-manager";
+import type { Command } from "../../../src/notation/controller/editor/command/command";
 import { SetFretCommand } from "../../../src/notation/controller/editor/command/set-fret-command";
-import { SetTechniqueCommand } from "../../../src/notation/controller/editor/command/set-technique-command";
-import {
-  GuitarNote,
-  GuitarTechnique,
-  GuitarTechniqueType,
-} from "../../../src/notation/model";
+import { GuitarNote } from "../../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
+import { required } from "../required";
 
 function createHistory() {
   const { bar } = createScoreGraph();
@@ -15,8 +12,11 @@ function createHistory() {
   if (beat === undefined || !(note instanceof GuitarNote)) {
     throw Error("Expected a guitar note in the test beat");
   }
-
   return { manager: new CommandManager(), beat, note };
+}
+
+function currentFret(note: GuitarNote): number | null {
+  return (required(note.beat.notes)[note.stringNum - 1] as GuitarNote).fret;
 }
 
 describe("CommandManager", () => {
@@ -25,53 +25,55 @@ describe("CommandManager", () => {
     const command = new SetFretCommand(beat, note.stringNum, 7);
 
     expect(manager.execute(command)).toBe(command);
-    expect(note.fret).toBe(7);
+    expect(currentFret(note)).toBe(7);
     expect(manager.undo()).toBe(command);
-    expect(note.fret).toBeNull();
+    expect(currentFret(note)).toBeNull();
     expect(manager.canUndo).toBe(false);
     expect(manager.canRedo).toBe(true);
 
     expect(manager.redo()).toBe(command);
-    expect(note.fret).toBe(7);
+    expect(currentFret(note)).toBe(7);
     expect(manager.canUndo).toBe(true);
     expect(manager.canRedo).toBe(false);
 
     manager.undo();
-    expect(note.fret).toBeNull();
+    expect(currentFret(note)).toBeNull();
   });
 
-  test("executing a new command after undo clears redo history", () => {
+  test("rejected commands preserve redo, but a new edit clears it", () => {
     const { manager, beat, note } = createHistory();
     note.fret = 5;
-    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const originalCommand = new SetFretCommand(beat, note.stringNum, 7);
     manager.execute(originalCommand);
     manager.undo();
     expect(manager.canRedo).toBe(true);
 
-    const rejectedCommand = new SetTechniqueCommand(
-      [note],
-      GuitarTechniqueType.PalmMute
-    );
+    const rejectedCommand: Command = {
+      executed: false,
+      affectedModels: [],
+      execute() {},
+      undo() {},
+      redo() {},
+    };
     expect(manager.execute(rejectedCommand)).toBe(rejectedCommand);
     expect(rejectedCommand.executed).toBe(false);
     expect(manager.canUndo).toBe(false);
     expect(manager.canRedo).toBe(true);
     expect(manager.redo()).toBe(originalCommand);
-    expect(note.fret).toBe(7);
+    expect(currentFret(note)).toBe(7);
 
     manager.undo();
-    expect(note.fret).toBe(5);
+    expect(currentFret(note)).toBe(5);
     expect(manager.canRedo).toBe(true);
     manager.execute(new SetFretCommand(beat, note.stringNum, 9));
-    expect(note.fret).toBe(9);
+    expect(currentFret(note)).toBe(9);
     expect(manager.canUndo).toBe(true);
     expect(manager.canRedo).toBe(false);
     expect(manager.redo()).toBeUndefined();
-    expect(note.fret).toBe(9);
+    expect(currentFret(note)).toBe(9);
 
     manager.undo();
-    expect(note.fret).toBe(5);
+    expect(currentFret(note)).toBe(5);
     expect(manager.undo()).toBeUndefined();
   });
 
@@ -81,19 +83,19 @@ describe("CommandManager", () => {
     manager.execute(first);
     const second = new SetFretCommand(beat, note.stringNum, 9);
     manager.execute(second);
-    expect(note.fret).toBe(9);
+    expect(currentFret(note)).toBe(9);
 
     expect(manager.undo()).toBe(second);
-    expect(note.fret).toBe(5);
+    expect(currentFret(note)).toBe(5);
     expect(manager.undo()).toBe(first);
-    expect(note.fret).toBeNull();
+    expect(currentFret(note)).toBeNull();
     expect(manager.canUndo).toBe(false);
     expect(manager.canRedo).toBe(true);
 
     expect(manager.redo()).toBe(first);
-    expect(note.fret).toBe(5);
+    expect(currentFret(note)).toBe(5);
     expect(manager.redo()).toBe(second);
-    expect(note.fret).toBe(9);
+    expect(currentFret(note)).toBe(9);
     expect(manager.canUndo).toBe(true);
     expect(manager.canRedo).toBe(false);
   });
@@ -105,27 +107,26 @@ describe("CommandManager", () => {
     manager.undo();
     expect(manager.canUndo).toBe(true);
     expect(manager.canRedo).toBe(true);
-    expect(note.fret).toBe(5);
+    expect(currentFret(note)).toBe(5);
 
     manager.clear();
     expect(manager.canUndo).toBe(false);
     expect(manager.canRedo).toBe(false);
     expect(manager.undo()).toBeUndefined();
     expect(manager.redo()).toBeUndefined();
-    expect(note.fret).toBe(5);
+    expect(currentFret(note)).toBe(5);
 
     manager.execute(new SetFretCommand(beat, note.stringNum, 12));
     manager.undo();
-    expect(note.fret).toBe(5);
+    expect(currentFret(note)).toBe(5);
     expect(manager.undo()).toBeUndefined();
   });
 
   test("undo and redo are no-ops when corresponding history is empty", () => {
     const { manager, note } = createHistory();
-
     expect(manager.undo()).toBeUndefined();
     expect(manager.redo()).toBeUndefined();
-    expect(note.fret).toBeNull();
+    expect(currentFret(note)).toBeNull();
     expect(manager.canUndo).toBe(false);
     expect(manager.canRedo).toBe(false);
   });

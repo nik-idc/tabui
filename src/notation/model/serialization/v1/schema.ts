@@ -25,6 +25,7 @@ export enum SerializedTechniqueType {
   Bend = "bend",
   HammerOnOrPullOff = "hammer-on-or-pull-off",
   LetRing = "let-ring",
+  Tie = "tie",
   NaturalHarmonic = "natural-harmonic",
   PalmMute = "palm-mute",
   PinchHarmonic = "pinch-harmonic",
@@ -255,9 +256,9 @@ export type SerializedGuitarTechnique =
   | SerializedBendTechnique
   | SerializedNonBendTechnique;
 
-/** Note with integer fret -1 for a dead strike or 0 through the instrument's highest fret; empty slots use null instead. Techniques must be unique and compatible. */
+/** A playable/dead note, or an empty Let Ring slot with a null fret. Techniques must be unique and compatible. */
 export type SerializedGuitarNote = {
-  fret: number;
+  fret: number | null;
   techniques: SerializedGuitarTechnique[];
 };
 

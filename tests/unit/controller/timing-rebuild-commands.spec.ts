@@ -1,11 +1,18 @@
 import {
   ReplaceBeatsCommand,
+  RemoveBeatsCommand,
+  CommandManager,
   SetDotsCommand,
   SetDurationCommand,
   SetTimeSigCommand,
   SetTupletCommand,
 } from "../../../src/notation/controller/editor/command";
-import { NoteDuration } from "../../../src/notation/model";
+import {
+  DEFAULT_MASTER_BAR,
+  NoteDuration,
+  serializeScore,
+} from "../../../src/notation/model";
+import { required } from "../required";
 import {
   createBarWithBeats,
   createBeat,
@@ -414,6 +421,43 @@ describe("Timing rebuild commands", () => {
     expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual([
       NoteDuration.Half,
     ]);
+  });
+
+  test("multi-bar replacement survives later fallback removal and repeated undo and redo", () => {
+    const { score, bar, staff } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const voice = bar.insertVoiceBar(2);
+    bar.removeVoiceBar(1);
+    const later = staff.bars[1];
+    const clipboard = voice.beats[0].deepCopy();
+    clipboard.baseDuration = NoteDuration.Eighth;
+    const manager = new CommandManager();
+    const before = serializeScore(score);
+    manager.execute(
+      new ReplaceBeatsCommand(
+        [...voice.beats, ...required(later.getVoiceBar(1)).beats],
+        [clipboard]
+      )
+    );
+    const replaced = serializeScore(score);
+    expect(voice.getActualBarDuration()).toBe(1 / 8);
+    expect(later.getVoiceBar(1)?.beats).toHaveLength(1);
+    manager.execute(
+      new RemoveBeatsCommand([...required(later.getVoiceBar(1)).beats])
+    );
+    const removed = serializeScore(score);
+
+    for (let i = 0; i < 2; i++) {
+      manager.undo();
+      expect(serializeScore(score)).toEqual(replaced);
+      manager.undo();
+      expect(serializeScore(score)).toEqual(before);
+      expect(bar.getVoiceBar(2)).toBe(voice);
+      manager.redo();
+      expect(serializeScore(score)).toEqual(replaced);
+      manager.redo();
+      expect(serializeScore(score)).toEqual(removed);
+    }
   });
 
   test("ReplaceBeatsCommand undo restores multi-bar selections to original bars", () => {

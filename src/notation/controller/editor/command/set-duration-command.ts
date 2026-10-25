@@ -7,10 +7,10 @@ import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 export class SetDurationCommand implements Command {
   /** Beats whose dot value to set */
   private _beats: Beat[];
-  /** New duration value */
-  private _newDuration: NoteDuration;
-  /** Old duration map */
-  private _oldDurationMap: Map<number, NoteDuration>;
+  /** Fixed duration applied by execute and redo. */
+  private _after: NoteDuration;
+  /** Original durations saved before execution. */
+  private _before: Map<number, NoteDuration> = new Map();
   /** True if executed, false otherwise*/
   private _executed: boolean = false;
   private _affectedModels: AffectedModel[];
@@ -22,20 +22,16 @@ export class SetDurationCommand implements Command {
    */
   constructor(beats: Beat[], newDuration: NoteDuration) {
     this._beats = beats;
-    this._newDuration = newDuration;
+    this._after = newDuration;
     this._affectedModels = getAffectedModelsFromBeats(beats);
-
-    this._oldDurationMap = new Map();
-    for (const beat of this._beats) {
-      this._oldDurationMap.set(beat.uuid, beat.baseDuration);
-    }
   }
 
   /**
    * Execute set duration command
    */
   execute(): void {
-    ScoreEditor.setDurations(this._beats, this._newDuration);
+    this._before = new Map(this._beats.map((b) => [b.uuid, b.baseDuration]));
+    ScoreEditor.setDurations(this._beats, this._after);
     this._executed = true;
   }
 
@@ -47,7 +43,7 @@ export class SetDurationCommand implements Command {
       return;
     }
 
-    ScoreEditor.restoreDurations(this._beats, this._oldDurationMap);
+    ScoreEditor.restoreDurations(this._beats, this._before);
   }
 
   /**
@@ -58,7 +54,7 @@ export class SetDurationCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    ScoreEditor.setDurations(this._beats, this._newDuration);
+    ScoreEditor.setDurations(this._beats, this._after);
   }
 
   public get affectedModels(): AffectedModel[] {

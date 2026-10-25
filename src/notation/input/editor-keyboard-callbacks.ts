@@ -59,6 +59,7 @@ export enum EditorKey {
   Vibrato = "v",
   PalmMute = "p",
   Legato = "l",
+  Tie = "j",
   Slide = "s",
   BendSettings = "b",
   NaturalHarmonic = "h",
@@ -170,17 +171,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     bendOptions?: BendTechniqueOptions
   ): boolean {
     const controller = this._notationComponent.trackController;
-    const cursor = controller.selectionCursor;
-    const notes =
-      cursor !== undefined
-        ? cursor.note === null
-          ? []
-          : [cursor.note]
-        : controller.selectionAsBeats.flatMap((beat) => beat.notes ?? []);
-    const available = notes.some(
-      (note) => note.hasTechnique(type) || note.isTechniqueApplicable(type)
-    );
-    if (!available) {
+    if (!controller.canSetTechnique(type)) {
       return false;
     }
 
@@ -194,17 +185,13 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   public palmMuteEvent(): void {
-    this.setTechnique(GuitarTechniqueType.PalmMute);
+    this.techniqueEvent(GuitarTechniqueType.PalmMute);
   }
 
   /** Opens bend controls only when the selected note can use them. */
   public bendEvent(): boolean {
-    const note = this._notationComponent.trackController.selectionCursor?.note;
-    const available =
-      note != null &&
-      (note.hasTechnique(GuitarTechniqueType.Bend) ||
-        note.isTechniqueApplicable(GuitarTechniqueType.Bend));
-    if (!available) {
+    const controller = this._notationComponent.trackController;
+    if (!controller.canSetTechnique(GuitarTechniqueType.Bend)) {
       return false;
     }
 
@@ -313,7 +300,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
   }
 
-  /** Sets or toggles a note technique from a keyboard shortcut. */
+  /** Toggles a note technique from a shortcut. */
   public techniqueEvent(type: GuitarTechniqueType): boolean {
     return this.setTechnique(type);
   }
@@ -741,6 +728,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         this.toggleTupletEvent();
       } else if (key === EditorKey.Vibrato) {
         return this.techniqueEvent(GuitarTechniqueType.Vibrato);
+      } else if (key === EditorKey.Tie) {
+        return this.techniqueEvent(GuitarTechniqueType.Tie);
       } else if (key === EditorKey.PalmMute) {
         return this.techniqueEvent(GuitarTechniqueType.PalmMute);
       } else if (key === EditorKey.Legato) {

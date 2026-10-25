@@ -1,4 +1,5 @@
 import { randomInt } from "../../shared";
+import type { Bar } from "./bar";
 import { TrackContext } from "./track-context";
 import { MusicInstrument } from "./instrument/instrument";
 import { Note } from "./note";
@@ -8,7 +9,7 @@ import {
   tupletSettingsEqual,
   tupletSettingsInRange,
 } from "./tuplet-settings";
-import { TechniqueType } from "./technique-type";
+import { GuitarTechniqueType, TechniqueType } from "./technique-type";
 
 import {
   applyDotsToFraction,
@@ -16,7 +17,7 @@ import {
   fractionToTicks,
   getBaseDurationFraction,
 } from "./timing";
-import { VoiceBar } from "./voice-bar";
+import type { VoiceBar } from "./voice-bar";
 
 /** Note-slot edit metadata containing live result notes. */
 export type NoteArrayOperationOutput<
@@ -31,10 +32,52 @@ export type NoteArrayOperationOutput<
 /** Written augmentation-dot count: none, single, or double. */
 export type BeatDots = 0 | 1 | 2;
 
+/** Explicit written-rhythm changes; omitted fields keep their current values. */
+export type BeatRhythmChange<I extends MusicInstrument = MusicInstrument> = {
+  /** Beat whose owning voice needs a timing rebuild. */
+  beat: Beat<I>;
+  /** New written duration, before dots and tuplets. */
+  duration?: NoteDuration;
+  /** New augmentation-dot count. */
+  dots?: number;
+  /** New tuplet settings, copied independently for each beat; null clears them. */
+  tupletSettings?: TupletSettings | null;
+};
+
 /**
  * Class that represents a beat
  */
 export class Beat<I extends MusicInstrument = MusicInstrument> {
+  /** Validates the whole rhythm batch, then applies values and rebuilds each affected voice once. */
+  public static updateRhythm<I extends MusicInstrument>(
+    changes: BeatRhythmChange<I>[]
+  ): void {
+    for (const change of changes) {
+      Beat.validateRhythm(
+        change.dots === undefined ? 0 : change.dots,
+        change.tupletSettings === undefined ? null : change.tupletSettings
+      );
+    }
+    const voices = new Set<VoiceBar<I>>();
+    for (const change of changes) {
+      const { beat, duration, dots, tupletSettings } = change;
+      if (duration !== undefined) {
+        beat.baseDuration = duration;
+      }
+      if (dots !== undefined) {
+        beat.dots = dots as BeatDots;
+      }
+      if (tupletSettings !== undefined) {
+        beat.tupletSettings =
+          tupletSettings === null ? null : { ...tupletSettings };
+      }
+      voices.add(beat.voiceBar);
+    }
+    for (const voice of voices) {
+      voice.rebuildTiming();
+    }
+  }
+
   /** Beat's unique identifier */
   readonly uuid: number;
   /** Bar in which the beat lives */
@@ -44,6 +87,8 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
 
   /** Beat notes */
   private _notes: Note<I>[] | null = null;
+  /** Original bar identity recognizes generated fallback rests through history and destination copies. */
+  private _fallbackRestOwner: Bar<I> | null = null;
   /** * Base beat duration */
   private _baseDuration: NoteDuration;
   /** * Dots applied to the beat (0 = no dots, 1 = 1 dot, 2 = 2 dots) */
@@ -134,6 +179,15 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   /** Discards all note slots and turns this beat into a rest, keeping its rhythm. */
   public makeRest(): void {
     this._notes = null;
+    if (!this.voiceBar.beats.includes(this)) {
+      return;
+    }
+
+    // Rest breaks ties
+    const next = this.voiceBar.bar.staff.getNextBeat(this);
+    for (const note of next?.notes ?? []) {
+      note.removeTechnique(GuitarTechniqueType.Tie);
+    }
   }
 
   /**
@@ -227,7 +281,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
 
   /**
    * Copies rhythm, note content, and beam markers with new UUIDs; derived ticks remain zero until rebuilt.
-   * @param voiceBar Voice bar that will own the copied beat
+   * @param voiceBar Destination owner and instrument context; extra lanes are dropped and missing lanes stay empty.
    * @returns Beat's deep copy
    * @throws If copied rhythm or note data is invalid for the destination instrument.
    */
@@ -251,12 +305,27 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
       this._lastInBeamGroup
     );
     if (this._notes !== null && beat._notes !== null) {
-      for (let i = 0; i < this._notes.length; i++) {
+      const noteCount = Math.min(this._notes.length, beat._notes.length);
+      for (let i = 0; i < noteCount; i++) {
         beat._notes[i] = this._notes[i].deepCopy(beat);
       }
     }
 
+    beat._fallbackRestOwner = this._fallbackRestOwner;
     return beat;
+  }
+
+  /** Marks a rest created by empty-bar normalization with its owning bar's identity. */
+  public markFallbackRest(): void {
+    this._fallbackRestOwner = this.voiceBar.bar;
+  }
+
+  /** Matches generated-rest identity, never ordinary rest content or duration. */
+  public isMatchingFallbackRest(generated: Beat<I>): boolean {
+    return (
+      generated._fallbackRestOwner !== null &&
+      this._fallbackRestOwner === generated._fallbackRestOwner
+    );
   }
 
   /** Live note-slot array, or null for a rest; empty note values are not rests. */
@@ -332,8 +401,9 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._endTick = endTick;
   }
 
-  /** Changes written dots without validation or timing rebuild; rebuild the owning voice afterward. */
+  /** Changes written dots, rejecting unsupported counts; rebuild the owning voice afterward. */
   public set dots(newDots: BeatDots) {
+    Beat.validateRhythm(newDots, null);
     this._dots = newDots;
   }
   /** Dots getter */
@@ -346,13 +416,27 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
    * @throws If settings are outside supported bounds.
    */
   public set tupletSettings(newSettings: TupletSettings | null) {
-    if (newSettings !== null && !tupletSettingsInRange(newSettings)) {
-      const { normalCount, tupletCount } = newSettings;
+    Beat.validateRhythm(0, newSettings);
+    this._tupletSettings = newSettings;
+  }
+
+  /** Checks dots and tuplets without changing a beat or its timing. */
+  public static validateRhythm(
+    dots: number,
+    tupletSettings: TupletSettings | null
+  ): void {
+    if (dots !== 0 && dots !== 1 && dots !== 2) {
+      throw Error(`${dots} is an invalid dots value`);
+    }
+    if (tupletSettings === null) {
+      return;
+    }
+    if (!tupletSettingsInRange(tupletSettings)) {
+      const { normalCount, tupletCount } = tupletSettings;
       throw new Error(
         `Tuplet settings {${normalCount},${tupletCount}} are outside the supported range`
       );
     }
-    this._tupletSettings = newSettings;
   }
   /** Live tuplet settings, or null when no tuplet applies. */
   public get tupletSettings(): TupletSettings | null {

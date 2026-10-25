@@ -25,8 +25,11 @@ import type { TrackLineElement } from "../../track/track-line-element";
 export class GuitarTechniqueElement implements TechniqueElement {
   readonly nodeType = NotationNodeType.Element;
 
-  public static createStableIdentity(technique: GuitarTechnique): string {
-    return `technique:${technique.uuid}`;
+  public static createStableIdentity(
+    technique: GuitarTechnique,
+    tieStart = false
+  ): string {
+    return `technique:${technique.uuid}${tieStart ? ":start" : ""}`;
   }
 
   /** Guitar note element's unique identifier */
@@ -54,13 +57,19 @@ export class GuitarTechniqueElement implements TechniqueElement {
   private _startPoint: Point;
   /** SVG path descriptors rendered from this origin */
   private _pathDescriptors?: SVGPathDescriptor[];
+  /** Indicates if the provided technique is a tie start */
+  private _tieStart;
 
   /**
    * Class that represents a guitar technique
    * @param technique Technique
    * @param noteElement Parent note element
    */
-  constructor(technique: GuitarTechnique, noteElement: TabNoteSlotElement) {
+  constructor(
+    technique: GuitarTechnique,
+    noteElement: TabNoteSlotElement,
+    tieStart = false
+  ) {
     this.uuid = randomInt();
     this.technique = technique;
     this.noteElement = noteElement;
@@ -70,6 +79,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       this.noteElement.boundingBox.width / 2,
       this.noteElement.boundingBox.height / 2
     );
+    this._tieStart = tieStart;
 
     this.createPath();
   }
@@ -441,6 +451,62 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this._pathDescriptors = [legatoCurve];
   }
 
+  /** Draws an incoming tie from the previous note, or the current line's left edge. */
+  private createTiePath(): void {
+    this._pathDescriptors = [];
+    if (this._tieStart) {
+      const nextBeat = this.note.beat.voiceBar.bar.staff.getNextBeat(
+        this.note.beat
+      );
+      const nextNote = nextBeat?.notes?.[this.note.stringNum - 1];
+      if (nextBeat === null) {
+        return;
+      }
+      if (
+        !(nextNote instanceof GuitarNote && nextNote.isTieContinuation) ||
+        this.getNextNoteElement(nextBeat) !== null
+      ) {
+        return;
+      }
+
+      const startX = this.noteElement.textRect.right;
+      const endX = this.getTransitionEndX(null);
+      this._pathDescriptors = [
+        GuitarTechniqueDescriptors.createHorizontalCurvePath(
+          startX,
+          this.noteElement.textRect.bottom,
+          endX - startX,
+          -this.noteElement.boundingBox.height / 3
+        ),
+      ];
+      return;
+    }
+
+    if (!this.note.isTieContinuation) {
+      return;
+    }
+
+    const previous = this.note.getTiePredecessor();
+    if (previous === null) {
+      return;
+    }
+
+    const previousElement = this.getNextNoteElement(previous.beat);
+    const startX = previousElement
+      ? previousElement.textRectGlobal.right - this.noteElement.globalCoords.x
+      : -this.noteElement.lineLocalCoords.x;
+    const endX = this.noteElement.textCoords.x;
+    const y = this.noteElement.textRect.bottom;
+    this._pathDescriptors = [
+      GuitarTechniqueDescriptors.createHorizontalCurvePath(
+        startX,
+        y,
+        endX - startX,
+        -this.noteElement.boundingBox.height / 3
+      ),
+    ];
+  }
+
   /**
    * Calc natural harmonic path
    */
@@ -528,6 +594,9 @@ export class GuitarTechniqueElement implements TechniqueElement {
   private createPath(): void {
     // Calc offsets & assign image paths
     switch (this.technique.type) {
+      case GuitarTechniqueType.Tie:
+        this.createTiePath();
+        break;
       case GuitarTechniqueType.Bend:
         this.createBendTechPath();
         break;
@@ -606,7 +675,10 @@ export class GuitarTechniqueElement implements TechniqueElement {
   }
 
   public getStableIdentity(): string {
-    return GuitarTechniqueElement.createStableIdentity(this.technique);
+    return GuitarTechniqueElement.createStableIdentity(
+      this.technique,
+      this._tieStart
+    );
   }
 
   /** Start point */

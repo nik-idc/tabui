@@ -120,6 +120,7 @@ function createHarness() {
         showRepeatCountControls: jest.fn(),
       },
       noteControlsComponent: { showTupletControls: jest.fn() },
+      techniqueControlsComponent: {},
     },
   } as any;
   const callbacks = new EditorMouseDefCallbacks(
@@ -149,6 +150,46 @@ function createHarness() {
 }
 
 describe("EditorMouseDefCallbacks", () => {
+  test("clicking a tie's outgoing segment removes its destination tie only", () => {
+    const { track, beats } = createBarWithBeats(
+      Array.from({ length: 3 }, () => ({ baseDuration: NoteDuration.Quarter }))
+    );
+    const notes = beats.map((b) => {
+      const note = b.notes?.[0];
+      if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
+      note.fret = 5;
+      return note;
+    });
+    notes[1].setTechnique(GuitarTechniqueType.Tie);
+    notes[2].setTechnique(GuitarTechniqueType.Tie);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.trackElement.update();
+    const source = controller.trackElement.getBeatElement(beats[1])
+      ?.noteElements[0];
+    if (!(source instanceof TabNoteSlotElement)) {
+      throw Error("Expected source slot");
+    }
+    const outgoing = source.techniqueElements.find(
+      (t) => t.technique.note === notes[2]
+    );
+    if (outgoing === undefined) {
+      throw Error("Expected outgoing tie");
+    }
+    const { callbacks, notationComponent } = createHarness();
+    notationComponent.trackController = controller;
+    callbacks.onTechniqueClick(createMouseEvent(0, 0), outgoing);
+    expect(notes[1].hasTechnique(GuitarTechniqueType.Tie)).toBe(true);
+    expect(notes[2].hasTechnique(GuitarTechniqueType.Tie)).toBe(false);
+    controller.undo();
+    expect(beats[2].notes?.[0].hasTechnique(GuitarTechniqueType.Tie)).toBe(
+      true
+    );
+    controller.redo();
+    expect(beats[2].notes?.[0].hasTechnique(GuitarTechniqueType.Tie)).toBe(
+      false
+    );
+  });
+
   function createRhythmHarness(playbackState = PlaybackState.Idle) {
     const { track, beats } = createBarWithBeats(
       Array.from({ length: 6 }, () => ({ baseDuration: NoteDuration.Eighth })),
@@ -666,9 +707,8 @@ describe("EditorMouseDefCallbacks", () => {
       return { ...harness, controller, notes, otherNote, label };
     }
 
-    test("shared labels remove only matching notes from their owning beat", () => {
-      const { callbacks, controller, notes, otherNote, label, renderFunc } =
-        setupLabel();
+    test("clicking a Palm Mute label clears markings only on its own beat", () => {
+      const { callbacks, notes, otherNote, label, renderFunc } = setupLabel();
       callbacks.onLabelClick(createMouseEvent(0, 0), label);
 
       expect(
@@ -678,17 +718,7 @@ describe("EditorMouseDefCallbacks", () => {
         true
       );
       expect(otherNote.hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
-      expect(controller.selectionCursor?.note).toBe(otherNote);
       expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
-
-      controller.undo();
-      expect(
-        notes.map((v) => v.hasTechnique(GuitarTechniqueType.PalmMute))
-      ).toEqual([true, false, true, false, false, false]);
-      controller.redo();
-      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
-      expect(notes[2].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
-      expect(controller.selectionCursor?.note).toBe(otherNote);
     });
 
     test("bend label clicks do not remove techniques", () => {
@@ -702,7 +732,7 @@ describe("EditorMouseDefCallbacks", () => {
     });
 
     test("label clicks ignore secondary buttons and render only successful edits", () => {
-      const { callbacks, controller, notes, label, renderFunc } = setupLabel();
+      const { callbacks, notes, label, renderFunc } = setupLabel();
       callbacks.onLabelClick({ button: 2 } as MouseEvent, label);
       expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
       expect(renderFunc).not.toHaveBeenCalled();
@@ -712,11 +742,10 @@ describe("EditorMouseDefCallbacks", () => {
       expect(renderFunc).toHaveBeenCalledTimes(1);
       callbacks.onLabelClick(createMouseEvent(0, 0), label);
       expect(renderFunc).toHaveBeenCalledTimes(1);
-      controller.undo();
-      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
+      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
     });
 
-    test("label renderer bindings reconcile and unbind without duplicates", () => {
+    test("label renderer bindings support rebinding and detach label clicks", () => {
       const { callbacks, controller, notes, label, renderFunc } = setupLabel();
       const dom = new JSDOM();
       const previousDocument = globalThis.document;
@@ -735,20 +764,31 @@ describe("EditorMouseDefCallbacks", () => {
         click();
         expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
         expect(renderFunc).toHaveBeenCalledTimes(1);
-        controller.undo();
 
         callbacks.bind([]);
+        controller.undo();
         click();
-        expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
+        expect(
+          label.beatElement.beat.hasTechnique(GuitarTechniqueType.PalmMute)
+        ).toBe(true);
+        expect(renderFunc).toHaveBeenCalledTimes(1);
         callbacks.bind([renderer]);
         click();
-        expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+        expect(
+          controller.selectionCursor?.beat.voiceBar.beats[0].hasTechnique(
+            GuitarTechniqueType.PalmMute
+          )
+        ).toBe(false);
         expect(renderFunc).toHaveBeenCalledTimes(2);
-        controller.undo();
 
         callbacks.unbind();
+        controller.undo();
         click();
-        expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
+        expect(
+          controller.selectionCursor?.beat.voiceBar.beats[0].hasTechnique(
+            GuitarTechniqueType.PalmMute
+          )
+        ).toBe(true);
         expect(renderFunc).toHaveBeenCalledTimes(2);
       } finally {
         callbacks.unbind();

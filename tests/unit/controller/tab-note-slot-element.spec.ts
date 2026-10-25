@@ -3,6 +3,7 @@
 import { TabNoteSlotElement } from "../../../src/notation/controller/element/note/tab-note-slot-element";
 import { TrackController } from "../../../src/notation/controller/track-controller";
 import { SVGTabNoteRenderer } from "../../../src/notation/render/svg/svg-tab-note-renderer";
+import { SVGTechniqueRenderer } from "../../../src/notation/render/svg/svg-technique-renderer";
 import { SelectionOverlayRenderer } from "../../../src/notation/render/svg/selection-overlay-renderer";
 import {
   Beat,
@@ -10,9 +11,11 @@ import {
   GuitarTechnique,
   GuitarTechniqueType,
   NoteDuration,
+  DEFAULT_MASTER_BAR,
 } from "../../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
 import { createTestTrackController } from "./helpers";
+import { EditorLayoutDimensions } from "../../../src/notation/controller/editor-layout-dimensions";
 
 function getNoteElement(controller: TrackController, note: GuitarNote) {
   const noteElement = controller.trackElement.trackLineElements
@@ -66,6 +69,105 @@ function createLaidOutController(
 }
 
 describe("Tab note slots", () => {
+  test("adding and removing Tie hides and restores the fret number", () => {
+    const { track, bar } = createScoreGraph();
+    const voice = bar.ensureVoiceBar(1);
+    voice.appendBeats();
+    const source = getBackingNote(voice.beats[0]);
+    const continuation = getBackingNote(voice.beats[1]);
+    source.fret = 2;
+    continuation.fret = 2;
+    const controller = createLaidOutController(track);
+    const renderer = new SVGTabNoteRenderer(
+      controller,
+      getNoteElement(controller, continuation),
+      { baseUrl: "", variant: "light" }
+    );
+    renderer.render();
+    const group = renderer.ensureContainerGroup();
+    expect(group.textContent).toBe("2");
+    expect(group.querySelector('[id^="note-bck-"]')).not.toBeNull();
+
+    continuation.setTechnique(GuitarTechniqueType.Tie);
+    controller.trackElement.update();
+    renderer.updateElementReference(getNoteElement(controller, continuation));
+    renderer.render();
+    expect(group.querySelector('[id^="note-text-"]')).toBeNull();
+    expect(group.querySelector('[id^="note-bck-"]')).toBeNull();
+    expect(group.querySelector('[id^="note-rect-"]')).not.toBeNull();
+
+    continuation.removeTechnique(GuitarTechniqueType.Tie);
+    controller.trackElement.update();
+    renderer.updateElementReference(getNoteElement(controller, continuation));
+    renderer.render();
+    expect(group.textContent).toBe("2");
+    expect(group.querySelector('[id^="note-bck-"]')).not.toBeNull();
+  });
+
+  test("cross-bar ties show frets and draw wrapped curves with unique SVG IDs", () => {
+    const { track, bar, score } = createScoreGraph();
+    const voice = bar.getVoiceBar(1);
+    if (voice === null) {
+      throw Error("Expected voice");
+    }
+    voice.appendBeats();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const nextBeat = track.staves[0].bars[1].getVoiceBar(1)?.beats[0];
+    if (nextBeat === undefined) {
+      throw Error("Expected next bar beat");
+    }
+    const source = getBackingNote(voice.beats[0]);
+    const continuation = getBackingNote(voice.beats[1]);
+    const acrossBar = getBackingNote(nextBeat);
+    for (const note of [source, continuation, acrossBar]) {
+      note.fret = 5;
+    }
+    continuation.setTechnique(GuitarTechniqueType.Tie);
+    acrossBar.setTechnique(GuitarTechniqueType.Tie);
+    const controller = createLaidOutController(track);
+    expect(getNoteElement(controller, acrossBar).noteText).toBe("5");
+    expect(renderNote(controller, acrossBar).textContent).toBe("5");
+    const tie = getNoteElement(controller, continuation).techniqueElements[0];
+    expect(tie.pathDescriptors?.[0].d).toContain("C");
+    const wrapped = new TrackController(
+      track,
+      new EditorLayoutDimensions({
+        width: 200,
+        noteTextSize: 12,
+        timeSigTextSize: 48,
+        tempoTextSize: 24,
+        durationsHeight: 30,
+        horizontalPadding: 12,
+      })
+    );
+    wrapped.trackElement.update();
+    expect(wrapped.trackElement.trackLineElements.length).toBeGreaterThan(1);
+    const sourcePaths = getNoteElement(
+      wrapped,
+      continuation
+    ).techniqueElements.flatMap((t) => t.pathDescriptors ?? []);
+    const incomingPaths = getNoteElement(
+      wrapped,
+      acrossBar
+    ).techniqueElements.flatMap((t) => t.pathDescriptors ?? []);
+    expect(sourcePaths).toHaveLength(2);
+    expect(incomingPaths).toHaveLength(1);
+    expect(incomingPaths[0].d).not.toMatch(/NaN|Infinity/);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    for (const note of [source, continuation, acrossBar]) {
+      for (const technique of getNoteElement(wrapped, note).techniqueElements) {
+        const renderer = new SVGTechniqueRenderer(wrapped, technique, {
+          baseUrl: "",
+          variant: "light",
+        });
+        renderer.render();
+        svg.append(renderer.ensureContainerGroup());
+      }
+    }
+    const ids = [...svg.querySelectorAll("[id]")].map((v) => v.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   test("active empty slot yields hit rect to lowest filled inactive voice", () => {
     const { track, bar } = createScoreGraph();
     const voice1 = bar.getVoiceBar(1);
@@ -166,7 +268,7 @@ describe("Tab note slots", () => {
     expect(hasHitRect(controller, inactiveNote)).toBe(false);
   });
 
-  test("Let Ring notes render their fret in parentheses", () => {
+  test("Let Ring notes render plain fret numbers", () => {
     const { track, bar } = createScoreGraph();
     const note = bar.getVoiceBar(1)?.beats[0].notes?.[0];
     if (!(note instanceof GuitarNote)) {
@@ -178,9 +280,9 @@ describe("Tab note slots", () => {
     const controller = createLaidOutController(track);
     const group = renderNote(controller, note);
 
-    expect(group.querySelector("text")?.textContent).toBe("(5)");
+    expect(group.querySelector("text")?.textContent).toBe("5");
     const background = group.querySelector('[id^="note-bck-"]');
-    expect(Number(background?.getAttribute("width"))).toBeGreaterThan(12);
+    expect(Number(background?.getAttribute("width"))).toBeGreaterThan(0);
   });
 
   test("normal and Let Ring notes use the same larger square selection geometry", () => {

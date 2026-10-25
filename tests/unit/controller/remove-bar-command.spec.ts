@@ -129,7 +129,7 @@ describe("RemoveBarsCommand", () => {
     expectStaffBars(score, remainingBars);
   });
 
-  test("affected models identify the removed master bars at their original indices", () => {
+  test("affected models identify removed bars and the newly joined boundary", () => {
     const { score } = createMultiTrackScore(5);
     const removedUUIDs = score.masterBars.slice(1, 4).map((bar) => bar.uuid);
     const command = new RemoveBarsCommand(score, [1, 2, 3]);
@@ -137,6 +137,7 @@ describe("RemoveBarsCommand", () => {
     command.execute();
 
     expect(command.affectedModels).toEqual([
+      { masterBarIndex: 1, modelUUID: score.masterBars[1].uuid },
       { masterBarIndex: 1, modelUUID: removedUUIDs[0] },
       { masterBarIndex: 2, modelUUID: removedUUIDs[1] },
       { masterBarIndex: 3, modelUUID: removedUUIDs[2] },

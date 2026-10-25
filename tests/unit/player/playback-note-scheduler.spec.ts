@@ -12,6 +12,7 @@ import {
 import { PlaybackNoteScheduler } from "../../../src/player/playback-note-scheduler";
 import { PlaybackSampleManager } from "../../../src/player/playback-sample-manager";
 import { createBarWithBeats } from "../model/helpers";
+import { createLoopWav } from "./wav-loop-fixture";
 
 type RecordedAudioParam = {
   value: number;
@@ -43,6 +44,9 @@ function createAudioContext(startError?: Error, currentTime = 0) {
   }> = [];
   const bufferSources: Array<{
     buffer: AudioBuffer | null;
+    loop: boolean;
+    loopStart: number;
+    loopEnd: number;
     playbackRate: ReturnType<typeof createParam>;
     start: jest.Mock;
     stop: jest.Mock;
@@ -77,6 +81,9 @@ function createAudioContext(startError?: Error, currentTime = 0) {
     createBufferSource: jest.fn(() => {
       const source = {
         buffer: null,
+        loop: false,
+        loopStart: 0,
+        loopEnd: 0,
         playbackRate: createParam(1),
         start: jest.fn(),
         stop: jest.fn(),
@@ -332,6 +339,22 @@ describe("PlaybackNoteScheduler", () => {
     expect(audio.oscillators[0].stop).toHaveBeenCalledWith(2);
   });
 
+  test("Palm Mute is local to marked attacks and does not mute later notes or other strings", () => {
+    const notes = notesAtFrets(5, 7);
+    notes[0].setTechnique(GuitarTechniqueType.PalmMute);
+    const other = notes[1].beat.notes?.[1] as GuitarNote;
+    other.fret = 3;
+    const audio = createAudioContext();
+    const player = scheduler(audio.context);
+    notes.forEach((note, index) =>
+      player.scheduleNote(note, index * 0.5, (index + 1) * 0.5, trackBus())
+    );
+    player.scheduleNote(other, 0.5, 1, trackBus());
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(0.18);
+    expect(audio.oscillators[1].stop).toHaveBeenCalledWith(1);
+    expect(audio.oscillators[2].stop).toHaveBeenCalledWith(1);
+  });
+
   test.each([
     // The 180 ms palm-mute cap is shortened further by a 100 ms boundary.
     // A half-duration bend reaches B4 at 50 ms or 90 ms after the start.
@@ -435,7 +458,7 @@ describe("PlaybackNoteScheduler", () => {
       )
     );
     continuation.addTechnique(
-      new GuitarTechnique(continuation, GuitarTechniqueType.LetRing)
+      new GuitarTechnique(continuation, GuitarTechniqueType.Tie)
     );
     const audio = createAudioContext();
 
@@ -449,7 +472,9 @@ describe("PlaybackNoteScheduler", () => {
         new GuitarTechnique(continuation, GuitarTechniqueType.Bend, options)
       )
     ).toBe(true);
-    scheduler(audio.context).scheduleNote(continuation, 1, 2, trackBus());
+    const player = scheduler(audio.context);
+    player.scheduleNote(source, 0, 1, trackBus());
+    expect(player.scheduleNote(continuation, 1, 1.5, trackBus())).toBeNull();
 
     expect(audio.oscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(
       expect.closeTo(493.883301, 5),
@@ -458,13 +483,14 @@ describe("PlaybackNoteScheduler", () => {
     if (type === BendType.Release) {
       expect(
         audio.oscillators[0].frequency.linearRampToValueAtTime
-      ).toHaveBeenCalledWith(440, 2.7);
+      ).toHaveBeenCalledWith(440, 1.5);
     } else {
       expect(
         audio.oscillators[0].frequency.linearRampToValueAtTime
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalledWith(expect.closeTo(493.883301, 5), 1);
     }
-    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(2.7);
+    expect(audio.oscillators).toHaveLength(1);
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.5);
   });
 
   test("rejects Hold continuation without a preceding sustained bend", () => {
@@ -492,7 +518,7 @@ describe("PlaybackNoteScheduler", () => {
     ).toThrow("Hold and Release playback require a previous bend continuation");
   });
 
-  test("extends a legato note with LetRing and modulates vibrato above and below its pitch", () => {
+  test("ends Let Ring at the next same-string attack and modulates legato vibrato", () => {
     const [first] = notesAtFrets(5, 7);
     first.addTechnique(new GuitarTechnique(first, GuitarTechniqueType.LetRing));
     const addedLegato = first.addTechnique(
@@ -501,11 +527,11 @@ describe("PlaybackNoteScheduler", () => {
     first.addTechnique(new GuitarTechnique(first, GuitarTechniqueType.Vibrato));
     const audio = createAudioContext();
 
-    scheduler(audio.context).scheduleNote(first, 0, 1, trackBus());
+    scheduler(audio.context).scheduleNote(first, 0, 0.5, trackBus());
 
     expect(addedLegato).toBe(true);
     expect(audio.oscillators[0].type).toBe("sine");
-    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.7);
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(0.5);
     expect(audio.gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
       0.048,
       0.018
@@ -514,14 +540,333 @@ describe("PlaybackNoteScheduler", () => {
     // A4 vibrato at +/-1.8% alternates by 7.92 Hz, then returns to A4.
     expect(pitchRamps.mock.calls[0]).toEqual([expect.closeTo(447.92, 8), 0.12]);
     expect(pitchRamps.mock.calls[1]).toEqual([expect.closeTo(432.08, 8), 0.2]);
-    expect(pitchRamps).toHaveBeenLastCalledWith(440, 1.7);
+    expect(pitchRamps).toHaveBeenLastCalledWith(440, 0.5);
     expect(audio.gains[0].gain.setValueAtTime).toHaveBeenCalledWith(
       0.048,
-      1.68
+      0.48
     );
     expect(
       audio.gains[0].gain.linearRampToValueAtTime
-    ).toHaveBeenLastCalledWith(0, 1.7);
+    ).toHaveBeenLastCalledWith(0, 0.5);
+  });
+
+  test("ties add dotted and tuplet durations to one sound and stop at playback end", () => {
+    const [first, second, third] = notesAtFrets(5, 5, 5);
+    second.beat.dots = 1;
+    third.beat.baseDuration = NoteDuration.Eighth;
+    third.beat.tupletSettings = { normalCount: 3, tupletCount: 2 };
+    first.beat.voiceBar.rebuildTiming();
+    second.setTechnique(GuitarTechniqueType.Tie);
+    third.setTechnique(GuitarTechniqueType.Tie);
+    const audio = createAudioContext();
+    const player = scheduler(audio.context);
+    player.scheduleNote(first, 0, 0.5, trackBus(), 1.2);
+    expect(player.scheduleNote(second, 0.5, 1, trackBus())).toBeNull();
+    expect(player.scheduleNote(third, 1, 1.5, trackBus())).toBeNull();
+    expect(audio.oscillators).toHaveLength(1);
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.2);
+    player.scheduleNote(first, 2, 2.5, trackBus());
+    expect(audio.oscillators[1].stop).toHaveBeenCalledWith(2.5 + 0.75 + 1 / 6);
+  });
+
+  test.each([0, 1, 2])(
+    "Let Ring on tied chain member %i never shortens the written ties",
+    (markedIndex) => {
+      const notes = notesAtFrets(5, 5, 5, 7, 9);
+      notes[1].setTechnique(GuitarTechniqueType.Tie);
+      notes[2].setTechnique(GuitarTechniqueType.Tie);
+      notes[markedIndex].setTechnique(GuitarTechniqueType.LetRing);
+      notes[3].fret = null;
+      notes[4].fret = null;
+      const audio = createAudioContext();
+      const player = scheduler(audio.context);
+
+      player.scheduleNote(notes[0], 0, 0.5, trackBus());
+      expect(player.scheduleNote(notes[1], 0.5, 1, trackBus())).toBeNull();
+      expect(player.scheduleNote(notes[2], 1, 1.5, trackBus())).toBeNull();
+
+      expect(audio.oscillators).toHaveLength(1);
+      expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.5);
+    }
+  );
+
+  test("starting inside a tie keeps Let Ring from an earlier chain member", () => {
+    const [first, middle, final, next] = notesAtFrets(5, 5, 5, 7);
+    first.setTechnique(GuitarTechniqueType.LetRing);
+    middle.setTechnique(GuitarTechniqueType.Tie);
+    final.setTechnique(GuitarTechniqueType.Tie);
+    next.fret = null;
+    next.setTechnique(GuitarTechniqueType.LetRing);
+    const audio = createAudioContext();
+
+    scheduler(audio.context).scheduleNote(
+      middle,
+      0,
+      0.5,
+      trackBus(),
+      undefined,
+      0
+    );
+
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.5);
+  });
+
+  test.each([
+    { name: "a half note", tied: false },
+    { name: "two tied quarters", tied: true },
+  ])(
+    "$name with Let Ring uses the actual next-bar beat duration",
+    ({ tied }) => {
+      const { score, staff, beats, masterBar } = createBarWithBeats(
+        tied
+          ? [
+              { baseDuration: NoteDuration.Quarter },
+              { baseDuration: NoteDuration.Quarter },
+            ]
+          : [{ baseDuration: NoteDuration.Half }]
+      );
+      masterBar.beatsCount = 2;
+      for (const beat of beats) {
+        beat.makeBeatWithNotes();
+        const note = beat.notes?.[0];
+        if (!(note instanceof GuitarNote)) {
+          throw Error("Expected guitar note");
+        }
+        note.fret = 5;
+        if (beat !== beats[0]) {
+          note.setTechnique(GuitarTechniqueType.Tie);
+        }
+      }
+      const first = beats[0].notes?.[0];
+      if (!(first instanceof GuitarNote)) {
+        throw Error("Expected guitar note");
+      }
+      first.setTechnique(GuitarTechniqueType.LetRing);
+      const audio = createAudioContext();
+      const player = scheduler(audio.context);
+      const writtenEnd = tied ? 0.5 : 1;
+
+      // With no following beat, Let Ring cannot extend the written duration.
+      player.scheduleNote(first, 0, writtenEnd, trackBus());
+      expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1);
+
+      score.appendMasterBar();
+      score.masterBars[1].tempo = 60;
+      const next = staff.bars[1].getVoiceBar(1)?.beats[0];
+      if (next === undefined) {
+        throw Error("Expected next-bar beat");
+      }
+      // A marked empty dotted triplet eighth at 60 BPM lasts half a second.
+      next.baseDuration = NoteDuration.Eighth;
+      next.dots = 1;
+      next.tupletSettings = { normalCount: 3, tupletCount: 2 };
+      next.voiceBar.rebuildTiming();
+      if (tied) {
+        (beats[1].notes?.[0] as GuitarNote).setTechnique(
+          GuitarTechniqueType.LetRing
+        );
+      }
+      next.makeBeatWithNotes();
+      (next.notes?.[0] as GuitarNote).setTechnique(GuitarTechniqueType.LetRing);
+      player.scheduleNote(first, 0, writtenEnd, trackBus());
+      expect(audio.oscillators[1].stop).toHaveBeenCalledWith(1.5);
+
+      player.scheduleNote(first, 0, writtenEnd, trackBus(), 1.2);
+      expect(audio.oscillators[2].stop).toHaveBeenCalledWith(1.2);
+    }
+  );
+
+  test.each([
+    { sample: "without a saved loop", authored: false },
+    { sample: "with a saved loop", authored: true },
+  ])("long ties use a sample $sample", async ({ authored }) => {
+    const [first, second, third] = notesAtFrets(5, 5, 5);
+    second.setTechnique(GuitarTechniqueType.Tie);
+    third.setTechnique(GuitarTechniqueType.Tie);
+    const audio = createAudioContext();
+    // At rate 2 this recording ends after one second, before the tie ends.
+    const sample = { duration: 2, sampleRate: 48000 } as AudioBuffer;
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      value: jest.fn(async () => ({
+        ok: true,
+        arrayBuffer: async () =>
+          authored ? createLoopWav() : new ArrayBuffer(8),
+      })),
+    });
+    audio.context.decodeAudioData = jest.fn(async () => sample);
+    const samples = new PlaybackSampleManager(audio.context, {
+      [ElectricGuitarTone.Clean]: { url: "/clean.wav", rootFrequency: 220 },
+    });
+    await samples.loadSamplesForTones([ElectricGuitarTone.Clean]);
+    const player = new PlaybackNoteScheduler(audio.context, samples);
+    player.scheduleNote(first, 0, 0.5, trackBus());
+    expect(player.scheduleNote(second, 0.5, 1, trackBus())).toBeNull();
+    expect(player.scheduleNote(third, 1, 1.5, trackBus())).toBeNull();
+    expect(audio.bufferSources).toHaveLength(1);
+    const source = audio.bufferSources[0];
+    expect(source.loop).toBe(authored);
+    expect(source.buffer).toBe(sample);
+    expect(source.loopStart).toBe(authored ? 0.25 : 0);
+    expect(source.loopEnd).toBe(authored ? 0.75 : 0);
+    expect(source.start).toHaveBeenCalledTimes(1);
+    expect(source.stop).toHaveBeenCalledWith(1.5);
+    expect(
+      audio.gains[0].gain.linearRampToValueAtTime
+    ).toHaveBeenLastCalledWith(0, 1.5);
+  });
+
+  test("Let Ring stops at an unmarked empty slot without attacking marked empty slots", () => {
+    const [first, next, later, last] = notesAtFrets(5, 7, 8, 9);
+    first.setTechnique(GuitarTechniqueType.LetRing);
+    next.fret = null;
+    later.fret = null;
+    next.setTechnique(GuitarTechniqueType.LetRing);
+    later.setTechnique(GuitarTechniqueType.LetRing);
+    // The unmarked last beat ends the passage even though its note is empty.
+    last.fret = null;
+    const audio = createAudioContext();
+    const player = scheduler(audio.context);
+    player.scheduleNote(first, 0, 0.5, trackBus());
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.5);
+    expect(player.scheduleNote(next, 0.5, 1, trackBus())).toBeNull();
+    expect(
+      player.scheduleNote(next, 0, 0.5, trackBus(), undefined, 0)
+    ).toBeNull();
+    expect(audio.oscillators).toHaveLength(1);
+  });
+
+  test("other-string markers do not extend a Let Ring passage", () => {
+    const [first, next, later] = notesAtFrets(5, 7, 8);
+    first.setTechnique(GuitarTechniqueType.LetRing);
+    next.fret = null;
+    later.fret = null;
+    for (const note of [next, later]) {
+      const other = note.beat.notes?.[1];
+      if (!(other instanceof GuitarNote)) {
+        throw Error("Expected guitar note");
+      }
+      other.fret = 3;
+      other.setTechnique(GuitarTechniqueType.LetRing);
+    }
+    const audio = createAudioContext();
+    const player = scheduler(audio.context);
+    player.scheduleNote(first, 0, 0.5, trackBus());
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(0.5);
+    expect(player.scheduleNote(next, 0.5, 1, trackBus())).toBeNull();
+    expect(audio.oscillators).toHaveLength(1);
+  });
+
+  test("Let Ring resonance stops at an attack in another voice", () => {
+    const [first, next] = notesAtFrets(5, 7);
+    first.setTechnique(GuitarTechniqueType.LetRing);
+    next.fret = null;
+    next.setTechnique(GuitarTechniqueType.LetRing);
+    const otherString = next.beat.notes?.[1];
+    if (!(otherString instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    otherString.fret = 3;
+    otherString.setTechnique(GuitarTechniqueType.LetRing);
+    const voice = first.beat.voiceBar.bar.insertVoiceBar(2);
+    voice.appendBeats();
+    voice.beats[1].makeBeatWithNotes();
+    const attack = voice.beats[1].notes?.[0];
+    if (!(attack instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    attack.fret = 9;
+    voice.rebuildTiming();
+    const audio = createAudioContext();
+    scheduler(audio.context).scheduleNote(first, 0, 0.5, trackBus());
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(0.5);
+  });
+
+  test.each([null, -1])(
+    "another voice's rest or dead note affects resonance only for an attack: %s",
+    (fret) => {
+      const [first, next] = notesAtFrets(5, 7);
+      first.setTechnique(GuitarTechniqueType.LetRing);
+      next.fret = null;
+      next.setTechnique(GuitarTechniqueType.LetRing);
+      const voice = first.beat.voiceBar.bar.insertVoiceBar(2);
+      voice.appendBeats();
+      if (fret !== null) {
+        voice.beats[1].makeBeatWithNotes();
+        (voice.beats[1].notes?.[0] as GuitarNote).fret = fret;
+      }
+      voice.rebuildTiming();
+      const audio = createAudioContext();
+      scheduler(audio.context).scheduleNote(first, 0, 0.5, trackBus());
+      expect(audio.oscillators[0].stop).toHaveBeenCalledWith(
+        fret === null ? 1 : 0.5
+      );
+    }
+  );
+
+  test.each([false, true])(
+    "middle-member Let Ring respects another voice's attack: %s",
+    (reattack) => {
+      const [first, tied, final, next] = notesAtFrets(5, 5, 5, 7);
+      tied.setTechnique(GuitarTechniqueType.Tie);
+      final.setTechnique(GuitarTechniqueType.Tie);
+      tied.setTechnique(GuitarTechniqueType.LetRing);
+      final.setTechnique(GuitarTechniqueType.LetRing);
+      next.fret = null;
+      next.setTechnique(GuitarTechniqueType.LetRing);
+      const otherString = next.beat.notes?.[1];
+      if (!(otherString instanceof GuitarNote)) {
+        throw Error("Expected guitar note");
+      }
+      otherString.fret = 3;
+      otherString.setTechnique(GuitarTechniqueType.LetRing);
+
+      const voice = first.beat.voiceBar.bar.insertVoiceBar(2);
+      voice.appendBeats();
+      voice.appendBeats();
+      voice.appendBeats();
+      voice.beats[3].makeBeatWithNotes();
+      const attack = voice.beats[3].notes?.[0];
+      if (!(attack instanceof GuitarNote)) {
+        throw Error("Expected guitar note");
+      }
+      attack.fret = reattack ? 9 : null;
+      voice.rebuildTiming();
+
+      const audio = createAudioContext();
+      scheduler(audio.context).scheduleNote(first, 0, 0.5, trackBus());
+
+      // Three tied quarters last 1.5 seconds; resonance adds the next half second.
+      expect(audio.oscillators[0].stop).toHaveBeenCalledWith(
+        reattack ? 1.5 : 2
+      );
+    }
+  );
+
+  test("Let Ring holds the tied chain's terminal bend pitch without slowing the bend", () => {
+    const [first, tied, next] = notesAtFrets(5, 5, 7);
+    first.setTechnique(GuitarTechniqueType.LetRing);
+    tied.setTechnique(GuitarTechniqueType.Tie);
+    tied.setTechnique(GuitarTechniqueType.LetRing);
+    first.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 1,
+        bendDuration: 1,
+      })
+    );
+    next.fret = null;
+    next.setTechnique(GuitarTechniqueType.LetRing);
+    const audio = createAudioContext();
+    scheduler(audio.context).scheduleNote(first, 0, 0.5, trackBus());
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.5);
+    expect(
+      audio.oscillators[0].frequency.linearRampToValueAtTime
+    ).toHaveBeenLastCalledWith(expect.closeTo(493.883301, 5), 0.5);
+    expect(
+      audio.oscillators[0].frequency.setValueAtTime
+    ).toHaveBeenLastCalledWith(expect.closeTo(493.883301, 5), 0.5);
   });
 
   test.each([

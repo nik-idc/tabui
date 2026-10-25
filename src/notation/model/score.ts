@@ -7,6 +7,17 @@ import { Staff } from "./staff";
 import { Track } from "./track";
 import { Beat } from "./beat";
 import { VoiceBar, VoiceNumber } from "./voice-bar";
+import { NoteDuration } from "./note-duration";
+
+/** Complete meter value to apply to one shared master bar. */
+export type TimeSignatureChange = {
+  /** Shared bar whose matching voices need rebuilding. */
+  masterBar: MasterBar;
+  /** Meter numerator. */
+  beatsCount: number;
+  /** Written denominator duration. */
+  duration: NoteDuration;
+};
 
 /** Track-array edit metadata with live model references. */
 export type TrackArrayOperationOutput<
@@ -163,6 +174,32 @@ export class Score {
     return true;
   }
 
+  /** Applies meters and rebuilds matching voices across all tracks, without trimming or filling note content. Failures may leave partial changes. */
+  public setTimeSignatures(changes: TimeSignatureChange[]): void {
+    const masterBars = new Set(changes.map((v) => v.masterBar));
+    for (const change of changes) {
+      change.masterBar.beatsCount = change.beatsCount;
+      change.masterBar.duration = change.duration;
+    }
+
+    const voices = new Set<VoiceBar>();
+    for (const track of this._tracks) {
+      for (const staff of track.staves) {
+        for (const bar of staff.bars) {
+          if (!masterBars.has(bar.masterBar)) {
+            continue;
+          }
+          for (const voice of bar.voiceBarsAsArray) {
+            voices.add(voice);
+          }
+        }
+      }
+    }
+    for (const voice of voices) {
+      voice.rebuildTiming();
+    }
+  }
+
   /**
    * Inserts an existing master bar and associated staff bars without copying or rebinding them.
    * @param index Zero-based insertion position, using array-splice semantics.
@@ -191,7 +228,7 @@ export class Score {
 
   /**
    * Inserts a master bar and corresponding bars on every staff.
-   * @param index Zero-based insertion position, using array-splice semantics; returned unchanged in metadata.
+   * @param index Integer insertion position from zero through the master-bar count.
    * @param masterBarData Tempo, meter, and repeat settings; omitted uses DEFAULT_MASTER_BAR.
    * @param voiceNumber Voice to seed with a quarter rest, alongside the staff's existing non-empty voices.
    * @returns Live master bar and staff bars keyed by staff UUID, with the supplied index.
@@ -202,6 +239,11 @@ export class Score {
     masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
     voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
+    const invalidIndex =
+      !Number.isInteger(index) || index < 0 || index > this._masterBars.length;
+    if (invalidIndex) {
+      throw Error(`${index} is invalid bar index`);
+    }
     const newMasterBar = new MasterBar(masterBarData);
     this._masterBars.splice(index, 0, newMasterBar);
 

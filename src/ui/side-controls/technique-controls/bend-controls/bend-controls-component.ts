@@ -88,11 +88,10 @@ export class BendControlsComponent {
     this.template.bendTypesButtons[BendType.BendAndRelease].disabled =
       continuationAtMaximum;
     const isContinuationNote =
-      note instanceof GuitarNote &&
-      note.hasTechnique(GuitarTechniqueType.LetRing);
+      note instanceof GuitarNote && note.hasTechnique(GuitarTechniqueType.Tie);
     for (const type of BEND_TYPE_BUTTON_ORDER) {
       const incompatibleTypes = BEND_TYPE_INCOMPATIBILITY[type];
-      if (incompatibleTypes.includes(GuitarTechniqueType.LetRing)) {
+      if (incompatibleTypes.includes(GuitarTechniqueType.Tie)) {
         this.template.bendTypesButtons[type].disabled = isContinuationNote;
       }
     }

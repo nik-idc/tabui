@@ -23,6 +23,7 @@ import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 import { EditorLayoutDimensions } from "../../../src/notation/controller/editor-layout-dimensions";
 import { required } from "../required";
+import { TrackController } from "../../../src/notation/controller/track-controller";
 
 function parseLinePath(svgPath: string): [number, number, number, number] {
   const match = svgPath.match(
@@ -82,6 +83,145 @@ function parseVibratoPath(svgPath: string): {
 }
 
 describe("TrackElement techniques", () => {
+  test("inserting an empty beat at a bar boundary refreshes the following Palm Mute label", () => {
+    const { score, track, bar, staff } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    for (const current of [bar, staff.bars[1]]) {
+      const beat = current.voiceBarsAsArray[0].beats[0];
+      beat.makeBeatWithNotes();
+      const note = required(beat.notes)[0] as GuitarNote;
+      note.fret = 5;
+      note.setTechnique(GuitarTechniqueType.PalmMute);
+    }
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.trackElement.update();
+    const texts = () =>
+      controller.trackElement.trackLineElements
+        .flatMap((l) => l.drawableNotationElements)
+        .filter(
+          (v): v is GuitarTechniqueLabelElement =>
+            v instanceof GuitarTechniqueLabelElement
+        )
+        .map((v) => v.textDescriptors?.map((d) => d.text));
+    expect(texts()).toEqual([["P.M."], []]);
+    controller.insertBeatAfterSelected();
+    expect(texts()).toEqual([["P.M."], ["P.M."]]);
+    controller.undo();
+    expect(texts()).toEqual([["P.M."], []]);
+  });
+
+  test("an empty slot breaks Palm Mute labels and dead notes can start a new label", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const first = required(beats[0].notes)[0] as GuitarNote;
+    const last = required(beats[2].notes)[0] as GuitarNote;
+    first.fret = 5;
+    last.fret = -1;
+    first.setTechnique(GuitarTechniqueType.PalmMute);
+    last.setTechnique(GuitarTechniqueType.PalmMute);
+    const element = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    element.update();
+    const labels = element.trackLineElements
+      .flatMap((l) => l.drawableNotationElements)
+      .filter(
+        (v): v is GuitarTechniqueLabelElement =>
+          v instanceof GuitarTechniqueLabelElement
+      );
+    expect(labels.map((v) => v.textDescriptors?.map((d) => d.text))).toEqual([
+      ["P.M."],
+      ["P.M."],
+    ]);
+    expect(labels.map((v) => v.beatElement.beat)).toEqual([beats[0], beats[2]]);
+  });
+
+  test("removing a source refreshes distant empty-slot labels even when their row stays occupied", () => {
+    const { score, track, bar, staff } = createScoreGraph();
+    for (let i = 0; i < 12; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const source = required(
+      bar.voiceBarsAsArray[0].beats[0].notes
+    )[0] as GuitarNote;
+    source.fret = 5;
+    source.setTechnique(GuitarTechniqueType.LetRing);
+    for (const nextBar of staff.bars.slice(1)) {
+      const beat = nextBar.voiceBarsAsArray[0].beats[0];
+      beat.makeBeatWithNotes();
+      (required(beat.notes)[0] as GuitarNote).setTechnique(
+        GuitarTechniqueType.LetRing
+      );
+    }
+    const otherBeat = staff.bars[12].voiceBarsAsArray[0].beats[0];
+    otherBeat.makeBeatWithNotes();
+    const other = required(otherBeat.notes)[1] as GuitarNote;
+    other.fret = 3;
+    other.setTechnique(GuitarTechniqueType.PalmMute);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.trackElement.update();
+    controller.removeSelectedBeat();
+    const labels = controller.trackElement.trackLineElements
+      .flatMap((l) => l.drawableNotationElements)
+      .filter(
+        (v): v is GuitarTechniqueLabelElement =>
+          v instanceof GuitarTechniqueLabelElement
+      );
+    expect(
+      labels.some((v) => v.technique.type === GuitarTechniqueType.LetRing)
+    ).toBe(false);
+    expect(
+      labels.some((v) => v.technique.type === GuitarTechniqueType.PalmMute)
+    ).toBe(true);
+  });
+
+  test("reserves and renders marked empty slots when the source line is not materialized", () => {
+    const { score, track, bar } = createScoreGraph();
+    for (let i = 0; i < 12; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const baseline = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const baselineHeight = baseline.trackLineElements[1].boundingBox.height;
+    const beat = bar.voiceBarsAsArray[0].beats[0];
+    const source = required(beat.notes)[0] as GuitarNote;
+    source.fret = 5;
+    source.setTechnique(GuitarTechniqueType.LetRing);
+    for (const nextBar of bar.staff.bars.slice(1)) {
+      const next = nextBar.voiceBarsAsArray[0].beats[0];
+      next.makeBeatWithNotes();
+      (required(next.notes)[0] as GuitarNote).setTechnique(
+        GuitarTechniqueType.LetRing
+      );
+    }
+    const element = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    const predictedHeight = element.trackLineElements[1].boundingBox.height;
+    expect(predictedHeight).toBe(
+      baselineHeight + TEST_LAYOUT_DIMENSIONS.techLabelHeight
+    );
+    element.update({
+      lineRange: { startLineIndex: 1, endLineIndex: 1 },
+      dematerializeOutsideRange: { startLineIndex: 1, endLineIndex: 1 },
+    });
+    expect(element.getBeatElement(beat)).toBeUndefined();
+    const labels = element.trackLineElements[1].drawableNotationElements.filter(
+      (v): v is GuitarTechniqueLabelElement =>
+        v instanceof GuitarTechniqueLabelElement
+    );
+    expect(labels.length).toBeGreaterThan(0);
+    expect(
+      labels.every(
+        (v) =>
+          v.technique.note.beat === v.beatElement.beat &&
+          v.beatElement.beat !== beat
+      )
+    ).toBe(true);
+    expect(labels[0].textDescriptors?.map((d) => d.text)).toEqual(["L.R."]);
+    expect(element.trackLineElements[1].boundingBox.height).toBe(
+      predictedHeight
+    );
+  });
+
   test("creates an inline slide path between two fretted notes with ascending slope for lower-to-higher notes", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -416,7 +556,10 @@ describe("TrackElement techniques", () => {
         .techniqueElements
     ).toHaveLength(0);
 
-    const command = new SetTechniqueCommand([note], GuitarTechniqueType.Slide);
+    const command = new SetTechniqueCommand(
+      ScoreEditor.getTechniqueTargetsForNotes([note]),
+      GuitarTechniqueType.Slide
+    );
     command.execute();
     trackElement.update();
 
@@ -504,7 +647,7 @@ describe("TrackElement techniques", () => {
     const techGap =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
-    const lines = ([1, 2, 3] as const).map((v) =>
+    const lines = ([1, 2, 4] as const).map((v) =>
       required(techGap.techGapLines[v])
     );
     expect(techGap.boundingBox.height).toBe(
@@ -680,7 +823,7 @@ describe("TrackElement techniques", () => {
         .styleLinesAsArray[0];
     const barElement = styleLine.barElements[0];
     const labels = required(
-      styleLine.techGapContainer.techGapLines[3]
+      styleLine.techGapContainer.techGapLines[4]
     ).labelElements;
 
     expect(labels).toHaveLength(3);
@@ -822,7 +965,7 @@ describe("TrackElement techniques", () => {
     expect(beforeTechGap.boundingBox.height).toBe(0);
 
     const command = new SetTechniqueCommand(
-      [note],
+      ScoreEditor.getTechniqueTargetsForNotes([note]),
       GuitarTechniqueType.Vibrato
     );
     command.execute();
@@ -883,15 +1026,15 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
     const line1 = required(techGap.techGapLines[1]);
-    const line3 = required(techGap.techGapLines[3]);
+    const line4 = required(techGap.techGapLines[4]);
 
     expect(techGap.boundingBox.height).toBe(
       TEST_LAYOUT_DIMENSIONS.techLabelHeight * 2
     );
     expect(required(techGap.techGapLines[2]).labelElements).toEqual([]);
     expect(line1.labelElements).toHaveLength(1);
-    expect(line3.labelElements).toHaveLength(1);
-    expect(line3.boundingBox.y).toBeCloseTo(line1.boundingBox.bottom);
+    expect(line4.labelElements).toHaveLength(1);
+    expect(line4.boundingBox.y).toBeCloseTo(line1.boundingBox.bottom);
   });
 
   test("joins adjacent mixed-duration vibratos smoothly", () => {
@@ -1080,7 +1223,7 @@ describe("TrackElement techniques", () => {
       const beatElement = styleLine.barElements[0].beatElements[1];
       const bendElement = beatElement.noteElements[0].techniqueElements[0];
       const bendLabel =
-        styleLine.techGapContainer.techGapLines[3]?.labelElements[0];
+        styleLine.techGapContainer.techGapLines[4]?.labelElements[0];
       if (
         !(bendElement instanceof GuitarTechniqueElement) ||
         !(bendLabel instanceof GuitarTechniqueLabelElement)
@@ -1155,8 +1298,8 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
     const line1Label = required(techGap.techGapLines[1]?.labelElements[0]);
-    const line3Label = required(techGap.techGapLines[3]?.labelElements[0]);
-    const beforeLabels = [line1Label, line3Label].map((v) => ({
+    const line4Label = required(techGap.techGapLines[4]?.labelElements[0]);
+    const beforeLabels = [line1Label, line4Label].map((v) => ({
       identity: v.getStableIdentity(),
       technique: v.technique,
       bounds: v.globalBoundingBox,
@@ -1174,7 +1317,7 @@ describe("TrackElement techniques", () => {
 
     const nextLabels = [
       required(nextTechGap.techGapLines[1]?.labelElements[0]),
-      required(nextTechGap.techGapLines[3]?.labelElements[0]),
+      required(nextTechGap.techGapLines[4]?.labelElements[0]),
     ];
     expect(
       nextLabels.map((v) => ({
@@ -1394,7 +1537,7 @@ describe("TrackElement techniques", () => {
     );
   });
 
-  test("let ring renders one shared LR label per applied beat", () => {
+  test("per-slot Let Ring renders shared labels through marked empty slots", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -1404,9 +1547,9 @@ describe("TrackElement techniques", () => {
       required(beats[0].notes)[1],
       required(beats[1].notes)[0],
     ] as GuitarNote[];
-    for (const note of notes) {
-      note.fret = 5;
-      note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
+    for (const [index, note] of notes.entries()) {
+      note.fret = index === 2 ? null : 5;
+      note.setTechnique(GuitarTechniqueType.LetRing);
     }
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -1414,15 +1557,17 @@ describe("TrackElement techniques", () => {
 
     const labels = required(
       trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].techGapContainer.techGapLines[2]
+        .styleLinesAsArray[0].techGapContainer.techGapLines[3]
     ).labelElements;
 
     expect(labels).toHaveLength(2);
     expect(labels.map((v) => v.beatElement.beat)).toEqual(beats);
     expect(labels.map((v) => v.textDescriptors?.map((d) => d.text))).toEqual([
-      ["LR"],
-      ["LR"],
+      ["L.R."],
+      [],
     ]);
+    const slot = labels[1].beatElement.noteElements[0] as TabNoteSlotElement;
+    expect(slot.noteText).toBe("");
   });
 
   test("re-adding vibrato after removal keeps palm mute label registered and separated", () => {
@@ -1453,11 +1598,11 @@ describe("TrackElement techniques", () => {
     secondLineVoiceBar.rebuildTiming();
     trackElement.update();
 
-    ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.Vibrato);
+    ScoreEditor.setTechniqueForNotes(noteArray, GuitarTechniqueType.Vibrato);
     trackElement.update();
-    ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.PalmMute);
+    ScoreEditor.setTechniqueForNotes(noteArray, GuitarTechniqueType.PalmMute);
     trackElement.update();
-    ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.Vibrato);
+    ScoreEditor.setTechniqueForNotes(noteArray, GuitarTechniqueType.Vibrato);
     trackElement.update();
     const afterRemovalGap =
       trackElement.trackLineElements[1].staffLineContainers[0]
@@ -1470,7 +1615,7 @@ describe("TrackElement techniques", () => {
       TEST_LAYOUT_DIMENSIONS.techLabelHeight
     );
 
-    ScoreEditor.setTechniqueNotes(noteArray, GuitarTechniqueType.Vibrato);
+    ScoreEditor.setTechniqueForNotes(noteArray, GuitarTechniqueType.Vibrato);
     trackElement.update();
 
     const secondLineStyle =

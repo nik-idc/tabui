@@ -89,13 +89,13 @@ const soloBars: SoloNote[][] = [
     {
       fret: 14,
       duration: quarter,
-      techniques: [GuitarTechniqueType.LetRing],
+      techniques: [GuitarTechniqueType.Tie],
       bend: { type: BendType.Hold, holdPitch: 1, bendDuration: 1 },
     },
     {
       fret: 14,
       duration: quarter,
-      techniques: [GuitarTechniqueType.LetRing],
+      techniques: [GuitarTechniqueType.Tie],
       bend: { type: BendType.Release, releasePitch: 0, bendDuration: 1 },
     },
     { fret: null, duration: quarter },

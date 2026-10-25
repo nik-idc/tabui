@@ -1,6 +1,22 @@
 import { BendType } from "./bend-type";
 import { GuitarTechniqueType } from "./technique-type";
 
+/** Local storage eligibility for empty guitar-note slots; passage support is checked separately. */
+export const TECHNIQUE_ALLOWED_ON_EMPTY_NOTES: Record<
+  GuitarTechniqueType,
+  boolean
+> = {
+  [GuitarTechniqueType.Bend]: false,
+  [GuitarTechniqueType.Legato]: false,
+  [GuitarTechniqueType.LetRing]: true,
+  [GuitarTechniqueType.NaturalHarmonic]: false,
+  [GuitarTechniqueType.PalmMute]: false,
+  [GuitarTechniqueType.PinchHarmonic]: false,
+  [GuitarTechniqueType.Slide]: false,
+  [GuitarTechniqueType.Vibrato]: false,
+  [GuitarTechniqueType.Tie]: false,
+};
+
 export const BEND_TYPE_INCOMPATIBILITY: Record<
   BendType,
   GuitarTechniqueType[]
@@ -8,9 +24,9 @@ export const BEND_TYPE_INCOMPATIBILITY: Record<
   [BendType.Bend]: [],
   [BendType.BendAndRelease]: [],
   [BendType.Hold]: [],
-  [BendType.Prebend]: [GuitarTechniqueType.LetRing],
-  [BendType.PrebendAndRelease]: [GuitarTechniqueType.LetRing],
-  [BendType.PrebendBend]: [GuitarTechniqueType.LetRing],
+  [BendType.Prebend]: [GuitarTechniqueType.Tie],
+  [BendType.PrebendAndRelease]: [GuitarTechniqueType.Tie],
+  [BendType.PrebendBend]: [GuitarTechniqueType.Tie],
   [BendType.Release]: [],
 };
 
@@ -21,6 +37,7 @@ export const TECHNIQUES_INCOMPATIBILITY: Record<
   GuitarTechniqueType,
   GuitarTechniqueType[]
 > = {
+  [GuitarTechniqueType.Tie]: [GuitarTechniqueType.Tie],
   [GuitarTechniqueType.Bend]: [
     GuitarTechniqueType.Bend,
     GuitarTechniqueType.Legato,

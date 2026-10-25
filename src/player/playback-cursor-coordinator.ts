@@ -9,6 +9,13 @@ import {
 import { trackEvent, TrackEventType } from "../shared/events";
 import type { ScheduledBeatChange } from "./playback-scheduler";
 
+/** Cursor lane preference, ordered from another staff to the active voice. */
+enum CursorBeatPriority {
+  OtherStaff = 0,
+  ActiveStaff = 1,
+  ActiveVoice = 2,
+}
+
 /** Projects the multi-track playback timeline onto one notation cursor. */
 export class PlaybackCursorCoordinator {
   private readonly _score: Score;
@@ -131,11 +138,13 @@ export class PlaybackCursorCoordinator {
     beat: Beat,
     activeStaffUUID: number,
     activeVoiceNumber: VoiceNumber
-  ): number {
+  ): CursorBeatPriority {
     if (beat.voiceBar.bar.staff.uuid !== activeStaffUUID) {
-      return 0;
+      return CursorBeatPriority.OtherStaff;
     }
-    return beat.voiceBar.voiceNumber === activeVoiceNumber ? 2 : 1;
+    return beat.voiceBar.voiceNumber === activeVoiceNumber
+      ? CursorBeatPriority.ActiveVoice
+      : CursorBeatPriority.ActiveStaff;
   }
 
   private getCursorBeatChanges(

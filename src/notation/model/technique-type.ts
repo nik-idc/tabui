@@ -10,6 +10,8 @@ export enum GuitarTechniqueType {
   PinchHarmonic,
   Slide,
   Vibrato,
+  /** Continues the preceding beat's same-string note without a new attack. */
+  Tie,
 }
 
 /**

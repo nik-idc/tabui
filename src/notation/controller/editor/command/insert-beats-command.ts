@@ -1,5 +1,18 @@
-import { Beat, ScoreEditor, Staff, VoiceNumber } from "../../../model";
-import { Command, AffectedModel } from "./command";
+import {
+  Beat,
+  BeatSnapshot,
+  BeatPosition,
+  ScoreEditor,
+  Staff,
+  VoiceNumber,
+} from "../../../model";
+import {
+  Command,
+  AffectedModel,
+  getAffectedModelsFromMasterBars,
+} from "./command";
+
+type AfterInsert = { beats: Beat[]; neighborSnapshots: BeatSnapshot[] };
 
 /**
  * Inserts clipboard beats locally after an anchor beat. This intentionally does
@@ -7,11 +20,18 @@ import { Command, AffectedModel } from "./command";
  */
 export class InsertBeatsCommand implements Command {
   private _anchorStaff: Staff;
-  private _anchorBeat: Beat | undefined;
+  /** Stable anchor position for redo after later edits replace the anchor beat. */
+  private _anchorPosition: BeatPosition | undefined;
+  /** Clipboard input, released after the installed content is saved. */
   private _beatsToInsert: Beat[];
   private _voiceNumber: VoiceNumber;
-  private _insertedBeats: Beat[] = [];
   private _executed: boolean = false;
+  /** Live positions of inserted content, even after later history replaces its beats. */
+  private _insertedPositions: BeatPosition[] = [];
+  /** Original boundary content, saved before insertion shifts its positions. */
+  private _before: BeatSnapshot[] = [];
+  /** Fixed installed content and surviving boundary notes for redo. */
+  private _after: AfterInsert = { beats: [], neighborSnapshots: [] };
 
   constructor(
     anchorStaff: Staff,
@@ -20,19 +40,24 @@ export class InsertBeatsCommand implements Command {
     voiceNumber: VoiceNumber = 1
   ) {
     this._anchorStaff = anchorStaff;
-    this._anchorBeat = anchorBeat;
+    this._anchorPosition =
+      anchorBeat === undefined
+        ? undefined
+        : ScoreEditor.getBeatPosition(anchorBeat);
     this._beatsToInsert = beatsToInsert;
     this._voiceNumber = voiceNumber;
   }
 
   private getInsertionPosition(): { barIndex: number; beatIndex: number } {
-    if (this._anchorBeat === undefined) {
+    if (this._anchorPosition === undefined) {
       return { barIndex: 0, beatIndex: 0 };
     }
 
     return {
-      barIndex: this._anchorStaff.bars.indexOf(this._anchorBeat.voiceBar.bar),
-      beatIndex: this._anchorBeat.voiceBar.beats.indexOf(this._anchorBeat) + 1,
+      barIndex: this._anchorStaff.bars.indexOf(
+        this._anchorPosition.voiceBar.bar
+      ),
+      beatIndex: this._anchorPosition.index + 1,
     };
   }
 
@@ -49,12 +74,22 @@ export class InsertBeatsCommand implements Command {
       throw Error("Cannot insert beats into an empty voice slot");
     }
 
-    this._insertedBeats = ScoreEditor.insertBeats(
+    const affected = ScoreEditor.getInsertionEditBeats(voiceBar, beatIndex);
+    this._before = ScoreEditor.snapshotBeatNotes(affected);
+    const insertedBeats = ScoreEditor.insertBeats(
       voiceBar,
       beatIndex,
       this._beatsToInsert
     );
     this._executed = true;
+    this._after = {
+      beats: insertedBeats.map((b) => b.deepCopy()),
+      neighborSnapshots: ScoreEditor.snapshotBeatNotes(affected),
+    };
+    this._beatsToInsert = [];
+    this._insertedPositions = insertedBeats.map((b) =>
+      ScoreEditor.getBeatPosition(b)
+    );
   }
 
   undo(): void {
@@ -62,7 +97,10 @@ export class InsertBeatsCommand implements Command {
       return;
     }
 
-    ScoreEditor.removeBeats(this._insertedBeats);
+    ScoreEditor.removeBeats(
+      ScoreEditor.resolveBeatPositions(this._insertedPositions)
+    );
+    ScoreEditor.restoreBeatSnapshots(this._before);
   }
 
   redo(): void {
@@ -78,18 +116,27 @@ export class InsertBeatsCommand implements Command {
       throw Error("Cannot insert beats into an empty voice slot");
     }
 
-    this._insertedBeats = ScoreEditor.insertBeats(
+    const insertedBeats = ScoreEditor.insertBeats(
       voiceBar,
       beatIndex,
-      this._beatsToInsert
+      this._after.beats,
+      true
     );
+    this._insertedPositions = insertedBeats.map((b) =>
+      ScoreEditor.getBeatPosition(b)
+    );
+    ScoreEditor.restoreBeatSnapshots(this._after.neighborSnapshots);
   }
 
   public get affectedModels(): AffectedModel[] {
     const affectedBar =
-      this._anchorBeat?.voiceBar.bar ?? this._anchorStaff.bars[0];
+      this._anchorPosition?.voiceBar.bar ?? this._anchorStaff.bars[0];
 
     return [
+      ...getAffectedModelsFromMasterBars(
+        this._anchorStaff.track.score,
+        this._before.map((s) => s.voiceBar.bar.masterBar)
+      ),
       {
         masterBarIndex: this._anchorStaff.track.score.masterBars.indexOf(
           affectedBar.masterBar

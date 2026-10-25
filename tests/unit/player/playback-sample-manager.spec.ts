@@ -1,6 +1,7 @@
 import type { ResolvedPlaybackSampleConfigs } from "../../../src/config/tabui-config";
 import { ElectricGuitarTone } from "../../../src/notation/model";
 import { PlaybackSampleManager } from "../../../src/player/playback-sample-manager";
+import { createLoopWav } from "./wav-loop-fixture";
 
 describe("PlaybackSampleManager", () => {
   let originalFetch: typeof fetch;
@@ -12,6 +13,46 @@ describe("PlaybackSampleManager", () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     jest.restoreAllMocks();
+  });
+
+  test.each([
+    "valid",
+    "rounded decoded duration",
+    "past sample end",
+    "end before start",
+    "limited repeats",
+    "incomplete chunk",
+  ])("loads only valid saved WAV loops (%s)", async (kind) => {
+    const bytes = createLoopWav();
+    const view = new DataView(bytes);
+    view.setUint32(50, kind === "incomplete chunk" ? 61 : 60, true);
+    view.setUint32(82, 1, true);
+    view.setUint32(98, kind === "end before start" ? 3500 : 1000, true);
+    view.setUint32(102, kind === "past sample end" ? 5000 : 2999, true);
+    view.setUint32(110, kind === "limited repeats" ? 1 : 0, true);
+    globalThis.fetch = jest.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => bytes,
+    })) as unknown as typeof fetch;
+    const manager = new PlaybackSampleManager(
+      {
+        decodeAudioData: async () => ({
+          duration: kind === "rounded decoded duration" ? 0.74999 : 1,
+          sampleRate: 48000,
+        }),
+      } as unknown as AudioContext,
+      { [ElectricGuitarTone.Clean]: { url: "/loop.wav", rootFrequency: 110 } }
+    );
+    await manager.loadSamplesForTones([ElectricGuitarTone.Clean]);
+    expect(manager.getLoop(ElectricGuitarTone.Clean)).toEqual(
+      kind === "valid" || kind === "rounded decoded duration"
+        ? {
+            start: 0.25,
+            end: kind === "rounded decoded duration" ? 0.74999 : 0.75,
+          }
+        : undefined
+    );
+    expect(manager.getSample(ElectricGuitarTone.Clean)).toBeDefined();
   });
 
   test("deduplicates configured tone loads and retains the decoded sample", async () => {

@@ -5,27 +5,6 @@ import { Technique } from "./technique";
 import { GuitarTechniqueType } from "./technique-type";
 import { OPTIONS_PER_BEND_TYPE } from "./bend-type";
 
-// TODO: This module currently is very obviously juggling 2 cases:
-// - Normal technique with no options
-// - Bend with bend options
-// But this assumes bends is the **only** technique type that has options.
-// And while currently in the codebase that is true, that does not necessarily have
-// to be the case. For example, an artificial/pinch harmonic can have options
-// (I know this from GuitarPro/Songsterr).
-// So this to me suggests that a better design is something like:
-// type TechniqueOptions = BendTechniqueOptions | PinchHarmonicOptions;
-// export class GuitarTechnique implements Technique {
-//   /** Global unique identifier */
-//   readonly uuid: number;
-//   /** Note on which the technique is performed */
-//   readonly note: Note;
-//   /** Technique type */
-//   readonly type: GuitarTechniqueType;
-//   /** Optional bend options */
-//   private _options: TechniqueOptions | null;
-//   ... rest of the code ...
-// }
-
 /**
  * Class that represents a note guitar technique
  */
@@ -44,8 +23,8 @@ export class GuitarTechnique implements Technique {
    * Creates a technique owned by the supplied note, without adding it to the note's technique array.
    * @param note Note on which the technique is performed
    * @param type Type of technique
-   * @param bendOptions Required only for Bend; retained by reference and stripped of undefined own fields.
-   * @throws If bend options are missing, supplied for a non-bend, or have the wrong fields for the shape.
+   * @param bendOptions Required for bends; other techniques have no options.
+   * @throws If options do not match the technique or bend settings are invalid.
    */
   constructor(
     note: Note,

@@ -79,6 +79,13 @@ A visual row below a staff that contains one voice's durations, beams, and
 tuplets. Bars on the same staff line share one vertical row position per
 non-empty voice.
 
+### Technique ownership and editing
+
+Techniques belong to notes, not beats or passages. Tie is stored on the
+continuation note. Let Ring and Palm Mute carry only their type, without options;
+bends carry shape options. See [Guitar techniques](techniques.md) for musical
+meaning, applicability, and passage rules.
+
 ### Note transition
 
 A guitar technique from a source note to a compatible target note. In TabUI,

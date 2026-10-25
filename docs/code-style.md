@@ -14,6 +14,29 @@ Run `npx eslint .` to check them.
   shapes, unions of structurally different objects, and composition.
 - Prefer named exports. Use barrel exports where they improve discoverability.
   For internal module boundaries, prefer direct imports over broad barrels.
+- Do not use `forEach` - prefer `for (const elem of arr)` syntax
+- When a class property has an object type that doesn't fit in one line consider
+  extracting it into a small type. Example:
+
+```ts
+// Don't
+class RemoveBarsCommand {
+  private _before: {
+    bars: MasterBarArrayOperationOutput[];
+    neighborSnapshots: BeatSnapshot[];
+  } | null = null;
+}
+
+// Do
+type RemoveBarsBefore = {
+  bars: MasterBarArrayOperationOutput[];
+  neighborSnapshots: BeatSnapshot[];
+} | null;
+
+class RemoveBarsCommand {
+  private _before: RemoveBarsBefore;
+}
+```
 
 ## Formatting
 
@@ -21,7 +44,9 @@ Run `npx eslint .` to check them.
   to format the repository.
 - Keep `for`, `if`, and similar control-flow headers on one line. If a header
   becomes too long, extract local variables before the statement.
-- Prefer one-letter callback parameters for internal array operations:
+- `if`, `for` etc should always be a `{}` block - never use the short one-liner version
+- Prefer one-letter callback parameters for internal array operations.
+- Use early returns/guard clauses whenever possible to reduce indentation as much as possible.
 
 ```ts
 array.find((v) => v.property === neededProp);
@@ -75,9 +100,20 @@ const result = await fetch(someLink, {
 });
 ```
 
+## Editing Responsibilities
+
+- Model classes own local operations and keep their local data valid.
+- `ScoreEditor` owns complex edits and business rules that span models and do
+  not naturally belong to one model, such as building tie chains across beats.
+- Commands delegate those edits to `ScoreEditor`, report affected model anchors,
+  and save and restore state for undo and redo. Keep edit rules out of commands.
+  Save state before any affected model changes, and use fixed saved state for
+  redo when repeating the edit would run selection or search rules again.
+
 ## Documentation
 
-- Document all new functionality with concise JSDoc. Prefer one or two
-  sentences that explain its behavior.
+- Document all new functionality with concise JSDoc, preferably one or two
+  sentences that explain its behavior. All new state must have a short `/** */`
+  comment explaining what it is and why it is needed.
 - Add inline comments when the logic is not obvious. Explain the reason for
   the choice rather than restating the code.

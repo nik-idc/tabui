@@ -33,6 +33,7 @@ export class TechniqueControlsTemplateRenderer {
       this.template.vibratoButton,
       this.template.palmMuteButton,
       this.template.letRingButton,
+      this.template.tieButton,
       this.template.legatoButton,
       this.template.slideButton,
       this.template.bendButton,
@@ -48,25 +49,10 @@ export class TechniqueControlsTemplateRenderer {
   ): void {
     const tc = this.notationComponent.trackController;
 
-    const selection = tc.selectionBeats;
-    const selectionCursor = tc.selectionCursor;
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
-    let isApplied = false;
-    let isDisabled: boolean;
-
-    if (selectionCursor === undefined) {
-      isDisabled = type === GuitarTechniqueType.Bend;
-      isApplied =
-        !isDisabled && selection.some((beat) => beat.hasTechnique(type));
-    } else {
-      const note = selectionCursor.note;
-      isDisabled = note === null;
-      if (note !== null) {
-        isApplied = note.hasTechnique(type);
-        isDisabled = !isApplied && !note.isTechniqueApplicable(type);
-      }
-    }
+    const isApplied = tc.hasSelectedTechnique(type);
+    const isDisabled = !tc.canSetTechnique(type);
 
     button.disabled = isDisabled;
     button.classList.toggle(appliedCSSClass, isApplied);
@@ -75,6 +61,17 @@ export class TechniqueControlsTemplateRenderer {
   }
 
   private renderTechniqueButtons(): void {
+    setImageAsset(
+      this.template.tieButton,
+      this.assetsPath,
+      "img/techniques/tie.svg",
+      "Tie"
+    );
+    setShortcutTooltip(this.template.tieButton, "Tie", "j");
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.Tie,
+      this.template.tieButton
+    );
     setImageAsset(
       this.template.vibratoButton,
       this.assetsPath,

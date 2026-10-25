@@ -14,11 +14,7 @@ describe("BendControlsComponent", () => {
   });
   afterEach(() => harness.dispose());
 
-  function prepareContinuation(
-    pitch: number,
-    letRing = true,
-    releasing = false
-  ) {
+  function prepareContinuation(pitch: number, tie = true, releasing = false) {
     const { controller } = harness;
     controller.setTechnique(
       GuitarTechniqueType.Bend,
@@ -31,7 +27,7 @@ describe("BendControlsComponent", () => {
     );
     controller.insertBeatAfterSelected();
     controller.setSelectedNoteFret(5);
-    if (letRing) controller.setTechnique(GuitarTechniqueType.LetRing);
+    if (tie) controller.setTechnique(GuitarTechniqueType.Tie);
     harness.component.prepareForOpen();
   }
 
@@ -130,10 +126,9 @@ describe("BendControlsComponent", () => {
     );
   });
 
-  test("disables every prebend type on Let Ring notes without continuation", () => {
-    const { component, controller } = harness;
-    controller.setTechnique(GuitarTechniqueType.LetRing);
-    component.prepareForOpen();
+  test("disables every prebend type on tied notes", () => {
+    const { component } = harness;
+    prepareContinuation(1);
 
     expect(component.template.bendTypesButtons[BendType.Prebend].disabled).toBe(
       true
@@ -146,7 +141,7 @@ describe("BendControlsComponent", () => {
     ).toBe(true);
   });
 
-  test("keeps Hold and Release disabled without Let Ring", () => {
+  test("keeps Hold and Release disabled without Tie", () => {
     prepareContinuation(1, false);
     const { component } = harness;
     expect(component.template.bendTypesButtons[BendType.Hold].disabled).toBe(

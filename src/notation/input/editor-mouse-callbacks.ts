@@ -157,8 +157,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
   /** Removes only the clicked inline technique, preserving selection. */
   public onTechniqueClick(event: MouseEvent, element: TechniqueElement): void {
-    const note = element.noteElement.note;
-    if (event.button !== 0 || note === null) {
+    const note = element.technique.note;
+    if (event.button !== 0) {
       return;
     }
 

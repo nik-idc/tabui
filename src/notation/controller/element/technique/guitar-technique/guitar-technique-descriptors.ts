@@ -1,4 +1,5 @@
 import { SVGPathDescriptor, SVGTextDescriptor } from "../technique-element";
+import type { Rect } from "../../../../../shared";
 
 /**
  * Builder utilities for guitar technique SVG descriptors and label markup.
@@ -222,6 +223,52 @@ export class GuitarTechniqueDescriptors {
         "stroke-width": "1.5",
       },
     };
+  }
+
+  /**
+   * Builds either a passage's starting text or one beat's dashed continuation.
+   * @param phaseX Path start in track-line coordinates, including bounds.x.
+   */
+  public static createRepeatedLabel(
+    text: string,
+    bounds: Rect,
+    fontSize: number,
+    showText: boolean,
+    phaseX: number
+  ): {
+    pathDescriptors: SVGPathDescriptor[];
+    textDescriptors: SVGTextDescriptor[];
+  } {
+    const y = bounds.y + bounds.height / 2;
+    if (showText) {
+      return {
+        pathDescriptors: [],
+        textDescriptors: [
+          this.createTextDescriptor(bounds.x, y, fontSize, text),
+        ],
+      };
+    }
+
+    const dashLength = 4;
+    const gapLength = 3;
+    // Positive SVG offsets advance into the pattern at this line-local start.
+    const dashOffset = phaseX % (dashLength + gapLength);
+    const pathDescriptors =
+      bounds.width <= 0
+        ? []
+        : [
+            {
+              d: `M ${bounds.x} ${y} H ${bounds.x + bounds.width}`,
+              attrs: {
+                ...this._DEFAULT_STROKE_ATTRS,
+                "stroke-linecap": "butt",
+                "stroke-dasharray": `${dashLength} ${gapLength}`,
+                "stroke-dashoffset": `${dashOffset}`,
+              },
+            },
+          ];
+
+    return { pathDescriptors, textDescriptors: [] };
   }
 
   public static createTextDescriptor(

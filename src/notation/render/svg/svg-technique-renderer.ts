@@ -47,7 +47,8 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       return this._containerGroupSVG;
     }
 
-    const techniqueUUID = this.techniqueElement.technique.uuid;
+    // A wrapped tie has two visuals for one model technique.
+    const techniqueUUID = this.techniqueElement.uuid;
     this._containerGroupSVG = createSVGG();
     this._containerGroupSVG.setAttribute("id", `technique-${techniqueUUID}`);
     this._containerGroupSVG.setAttribute("class", "tu-inline-technique");
@@ -129,7 +130,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       throw Error("Tried to render technique paths when descriptors undefined");
     }
 
-    const techniqueUUID = this.techniqueElement.technique.uuid;
+    const techniqueUUID = this.techniqueElement.uuid;
     if (this._techniquePathsSVG === undefined) {
       this._techniquePathsSVG = [];
     }
@@ -185,7 +186,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
     while (this._hitPathsSVG.length < descriptors.length) {
       const path = createSVGPath();
       const index = this._hitPathsSVG.length;
-      const uuid = this.techniqueElement.technique.uuid;
+      const uuid = this.techniqueElement.uuid;
       path.setAttribute("id", `technique-hit-path-${uuid}-${index}`);
       path.setAttribute("fill", "none");
       path.setAttribute("stroke", "transparent");

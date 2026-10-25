@@ -1,84 +1,57 @@
-import { Beat, GuitarNote } from "../../../model";
+import { Beat, BeatSnapshot, ScoreEditor } from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
-/**
- * Set guitar note fret command
- */
+/** Changes one fret and saves neighboring technique changes as fixed beat content. */
 export class SetFretCommand implements Command {
-  private _beat: Beat;
-  private _stringNumber: number;
-  /** New fret value */
-  private _newFret: number | null;
-  /** Old fret value */
-  private _oldFret: number | null;
-  private _oldWasRest: boolean;
-  /** True if executed, false otherwise*/
-  private _executed: boolean = false;
+  /** Original content for undo. */
+  private _before: BeatSnapshot[] = [];
+  /** Completed content for redo. */
+  private _after: BeatSnapshot[] = [];
+  /** Whether the command has run. */
+  private _executed = false;
 
-  /**
-   * Set guitar note fret command
-   * @param target Guitar note or beat whose lane should receive the fret
-   * @param newFret New fret value
-   */
-  constructor(beat: Beat, stringNumber: number, newFret: number | null) {
-    this._beat = beat;
-    this._stringNumber = stringNumber;
-    this._newFret = newFret;
-    this._oldWasRest = beat.isRest();
-    this._oldFret = this._oldWasRest ? null : this.getTargetNote().fret;
-  }
+  constructor(
+    /** Beat owning the edited string slot. */
+    private _beat: Beat,
+    /** One-based string selected for the edit. */
+    private _stringNumber: number,
+    /** Requested fret, or null to clear the slot. */
+    private _newFret: number | null
+  ) {}
 
-  private getTargetNote(): GuitarNote {
-    const note = this._beat.notes?.[this._stringNumber - 1];
-    if (!(note instanceof GuitarNote)) {
-      throw Error("Can't set fret of a non-guitar note");
-    }
-
-    return note;
-  }
-
-  /**
-   * Execute set fret command
-   */
   execute(): void {
-    this._beat.makeBeatWithNotes();
-
-    const note = this.getTargetNote();
-    note.fret = this._newFret;
+    this._before = ScoreEditor.snapshotBeatNotes(
+      ScoreEditor.getNoteEditBeats([this._beat], this._stringNumber)
+    );
+    ScoreEditor.setFret(this._beat, this._stringNumber, this._newFret);
+    this._after = ScoreEditor.snapshotBeatNotes(
+      ScoreEditor.resolveBeatPositions(this._before)
+    );
     this._executed = true;
   }
 
-  /**
-   * Undo set fret command, i.e. set old fret value
-   */
   undo(): void {
-    if (!this._executed) {
-      return;
-    }
-
-    const note = this.getTargetNote();
-    note.fret = this._oldFret;
-    if (this._oldWasRest) {
-      this._beat.makeRest();
-      return;
+    if (this._executed) {
+      ScoreEditor.restoreBeatSnapshots(this._before);
     }
   }
 
-  /**
-   * Redo, i.e. restore note state to before execute
-   */
   redo(): void {
     if (!this._executed) {
       throw Error("Redo called before execute");
     }
-
-    this._beat.makeBeatWithNotes();
-
-    const note = this.getTargetNote();
-    note.fret = this._newFret;
+    ScoreEditor.restoreBeatSnapshots(this._after);
   }
 
   public get affectedModels(): AffectedModel[] {
-    return getAffectedModelsFromBeats([this._beat]);
+    const beats =
+      this._before.length > 0
+        ? ScoreEditor.resolveBeatPositions(this._before)
+        : [this._beat];
+    const previous = beats[0].voiceBar.bar.staff.getPrevBeat(beats[0]);
+    return getAffectedModelsFromBeats([
+      ...beats,
+      ...(previous === null ? [] : [previous]),
+    ]);
   }
 }

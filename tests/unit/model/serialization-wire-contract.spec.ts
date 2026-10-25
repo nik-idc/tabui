@@ -216,6 +216,7 @@ const SERIALIZED_ENUMS = [
       Bend: "bend",
       HammerOnOrPullOff: "hammer-on-or-pull-off",
       LetRing: "let-ring",
+      Tie: "tie",
       NaturalHarmonic: "natural-harmonic",
       PalmMute: "palm-mute",
       PinchHarmonic: "pinch-harmonic",
@@ -434,7 +435,10 @@ function richDocument() {
             null,
             null,
             null,
-            { fret: 0, techniques: [{ type: "let-ring" }] },
+            {
+              fret: 0,
+              techniques: [{ type: "let-ring" }],
+            },
           ],
           duration: "eighth",
           dots: 0,
@@ -492,8 +496,8 @@ function richScore(): Score {
   );
   track.removeStaff(0);
   const bar = track.staves[0].bars[0];
-  bar.removeVoiceBar(1);
   bar.insertVoiceBar(2, []);
+  bar.removeVoiceBar(1);
   const voice = bar.insertVoiceBar(3, []);
   const rest = new Beat(
     voice,

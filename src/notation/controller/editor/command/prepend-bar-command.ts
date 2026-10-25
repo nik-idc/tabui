@@ -17,7 +17,7 @@ export class PrependBarCommand implements Command {
   private _masterBarData: MasterBarData;
   private _voiceNumber: VoiceNumber;
   /** Created master bar & staff bars or null if not created yet */
-  private _prependMasterBarResult: MasterBarArrayOperationOutput | null = null;
+  private _after: MasterBarArrayOperationOutput | null = null;
 
   /**
    * Add bar command
@@ -38,7 +38,7 @@ export class PrependBarCommand implements Command {
    * Execute add bar command
    */
   execute(): void {
-    this._prependMasterBarResult = ScoreEditor.prependMasterBar(
+    this._after = ScoreEditor.prependMasterBar(
       this._score,
       this._masterBarData,
       this._voiceNumber
@@ -49,12 +49,12 @@ export class PrependBarCommand implements Command {
    * Undo add bar command, i.e. delete added bar
    */
   undo(): void {
-    if (this._prependMasterBarResult === null) {
+    if (this._after === null) {
       return;
     }
 
     const masterBarIndex = this._score.masterBars.indexOf(
-      this._prependMasterBarResult.masterBar
+      this._after.masterBar
     );
     this._score.removeMasterBar(masterBarIndex);
   }
@@ -63,25 +63,24 @@ export class PrependBarCommand implements Command {
    * Redo, i.e. restore score state to before execute
    */
   redo(): void {
-    if (this._prependMasterBarResult === null) {
+    if (this._after === null) {
       throw Error("Redo called before execute");
     }
 
     this._score.insertReadyMasterBar(
-      this._prependMasterBarResult.index,
-      this._prependMasterBarResult.masterBar,
-      this._prependMasterBarResult.bars
+      this._after.index,
+      this._after.masterBar,
+      this._after.bars
     );
   }
 
   /** Created master bar & staff bars or null if not created yet */
   public get prependResult(): MasterBarArrayOperationOutput | null {
-    return this._prependMasterBarResult;
+    return this._after;
   }
 
   public get affectedModels(): AffectedModel[] {
-    const masterBar =
-      this._prependMasterBarResult?.masterBar ?? this._score.masterBars[0];
+    const masterBar = this._after?.masterBar ?? this._score.masterBars[0];
     return [{ masterBarIndex: 0, modelUUID: masterBar?.uuid ?? 0 }];
   }
 }

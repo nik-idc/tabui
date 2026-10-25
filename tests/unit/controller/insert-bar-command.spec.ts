@@ -53,6 +53,7 @@ describe("InsertBarCommand", () => {
     expect(command.insertResult?.index).toBe(1);
     expect(command.affectedModels).toEqual([
       { masterBarIndex: 1, modelUUID: addedMasterBar.uuid },
+      { masterBarIndex: 2, modelUUID: originalMasterBars[1].uuid },
     ]);
 
     command.undo();

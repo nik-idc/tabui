@@ -58,6 +58,7 @@ export const SERIALIZED_TECHNIQUE_TYPES: Record<
   [GuitarTechniqueType.Bend]: SerializedTechniqueType.Bend,
   [GuitarTechniqueType.Legato]: SerializedTechniqueType.HammerOnOrPullOff,
   [GuitarTechniqueType.LetRing]: SerializedTechniqueType.LetRing,
+  [GuitarTechniqueType.Tie]: SerializedTechniqueType.Tie,
   [GuitarTechniqueType.NaturalHarmonic]:
     SerializedTechniqueType.NaturalHarmonic,
   [GuitarTechniqueType.PalmMute]: SerializedTechniqueType.PalmMute,
@@ -71,6 +72,7 @@ const TECHNIQUE_BY_VALUE: Record<string, GuitarTechniqueType> = {
   [SerializedTechniqueType.Bend]: GuitarTechniqueType.Bend,
   [SerializedTechniqueType.HammerOnOrPullOff]: GuitarTechniqueType.Legato,
   [SerializedTechniqueType.LetRing]: GuitarTechniqueType.LetRing,
+  [SerializedTechniqueType.Tie]: GuitarTechniqueType.Tie,
   [SerializedTechniqueType.NaturalHarmonic]:
     GuitarTechniqueType.NaturalHarmonic,
   [SerializedTechniqueType.PalmMute]: GuitarTechniqueType.PalmMute,

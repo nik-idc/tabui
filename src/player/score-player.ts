@@ -13,6 +13,8 @@ import { PlaybackScheduler } from "./playback-scheduler";
 const LOOKAHEAD_SECONDS = 5;
 /** Interval in milliseconds for rolling lookahead scheduling. */
 const LOOKAHEAD_INTERVAL_MS = 50;
+/** Audio-clock lead time in seconds to prepare the first scheduled notes. */
+const START_DELAY_SECONDS = 0.05;
 
 export interface PlaybackOptions {
   /** Beat to start playback from. */
@@ -206,7 +208,7 @@ export class ScorePlayer {
       throw Error("Playback scheduler is not initialized");
     }
 
-    this._scheduler.setScheduleBase(currentTime + 0.05);
+    this._scheduler.setScheduleBase(currentTime + START_DELAY_SECONDS);
 
     clearInterval(this._schedulerInterval);
     this.scheduleLookahead();

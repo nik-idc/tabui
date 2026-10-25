@@ -51,7 +51,7 @@ describe("BendControlsDefaultCallbacks", () => {
     );
     controller.insertBeatAfterSelected();
     controller.setSelectedNoteFret(5);
-    controller.setTechnique(GuitarTechniqueType.LetRing);
+    controller.setTechnique(GuitarTechniqueType.Tie);
     for (const type of [BendType.Hold, BendType.Release]) {
       harness.open();
       component.template.bendTypesButtons[type].click();
@@ -86,9 +86,11 @@ describe("BendControlsDefaultCallbacks", () => {
       );
       controller.insertBeatAfterSelected();
       controller.setSelectedNoteFret(5);
-      controller.setTechnique(GuitarTechniqueType.LetRing);
+      controller.setTechnique(GuitarTechniqueType.Tie);
     } else if (type !== BendType.Hold && type !== BendType.Release) {
-      controller.setTechnique(GuitarTechniqueType.LetRing);
+      controller.insertBeatAfterSelected();
+      controller.setSelectedNoteFret(5);
+      controller.setTechnique(GuitarTechniqueType.Tie);
     }
     callbacks.bind();
     harness.open();

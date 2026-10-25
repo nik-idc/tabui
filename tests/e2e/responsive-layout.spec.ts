@@ -299,7 +299,9 @@ test("configured view-only keeps only track selection, names, and playback", asy
     exact: true,
   });
   await expect(rhythm).toHaveAttribute("aria-pressed", "true");
-  await lead.focus();
+  // Keyboard navigation restores native Space activation after opening Tracks by mouse.
+  await rhythm.focus();
+  await page.keyboard.press("Tab");
   await expect(lead).toBeFocused();
   await page.keyboard.press("Space");
   await expect(lead).toHaveAttribute("aria-pressed", "true");

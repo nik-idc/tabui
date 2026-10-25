@@ -2,7 +2,10 @@ import { Staff, Track } from "../../../model";
 import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { ScoreLayoutPlan } from "../../layout/score-layout-plan";
 import { TabUILayoutMode } from "../../../../config/tabui-config";
-import { TECHNIQUE_TO_LINE_NUMBER } from "../technique/guitar-technique/guitar-technique-element-lists";
+import {
+  TECH_LINE_NUMBERS,
+  TECHNIQUE_TO_LINE_NUMBER,
+} from "../technique/guitar-technique/guitar-technique-element-lists";
 import {
   TrackElementSkeleton,
   TrackElementSkeletonLine,
@@ -15,7 +18,7 @@ function getTabTechniqueGapHeight(
   layoutDimensions: EditorLayoutDimensions
 ): number {
   const rows = new Set<number>();
-  const maxRowCount = 3;
+  const maxRowCount = TECH_LINE_NUMBERS.length;
 
   for (const { masterBarIndex } of trackLineBars) {
     const bar = staff.bars[masterBarIndex];

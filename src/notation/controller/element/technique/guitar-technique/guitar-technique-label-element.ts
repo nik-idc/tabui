@@ -2,6 +2,7 @@ import {
   BendType,
   GuitarTechnique,
   GuitarTechniqueType,
+  GuitarNote,
 } from "../../../../model";
 import {
   Point,
@@ -219,30 +220,45 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /**
+   * Spans to the next beat's anchor on this line, falling back to the measured width.
+   * @param nextBeatElement Optional line-owned lookup available during first layout.
+   */
+  private getTechniqueWidth(nextBeatElement?: BeatElement | null): number {
+    const currentBeat = this.beatElement.beat;
+    const nextBeat = currentBeat.voiceBar.bar.staff.getNextBeat(currentBeat);
+    if (nextBeat === null) {
+      return this.boundingBox.width;
+    }
+
+    const voiceBarContainer = this.beatElement.voiceBarContainer;
+    if (nextBeat.voiceBar === currentBeat.voiceBar) {
+      const distance =
+        voiceBarContainer.getBeatX(nextBeat) -
+        voiceBarContainer.getBeatX(currentBeat);
+      return distance > 0 ? distance : this.boundingBox.width;
+    }
+
+    nextBeatElement ??= this.beatElement.trackElement.getBeatElement(nextBeat);
+    const nextLine = nextBeatElement?.barElement.owningTrackLineElement;
+    if (nextBeatElement == null || nextLine !== this.owningTrackLineElement) {
+      return this.boundingBox.width;
+    }
+
+    const nextBeatLineX =
+      nextBeatElement.barElement.lineLocalCoords.x +
+      nextBeatElement.barLocalCoords.x;
+    const distance = nextBeatLineX - this.lineLocalCoords.x;
+    return distance > 0 ? distance : this.boundingBox.width;
+  }
+
+  /**
    * Generates regular vibrato HTML
    */
   private createVibratoPath(): void {
-    const currentBeat = this.beatElement.beat;
-    const nextBeat = currentBeat.voiceBar.bar.staff.getNextBeat(currentBeat);
-    const nextBeatElement =
-      nextBeat === null
-        ? null
-        : (this.beatElement.trackElement.getBeatElement(nextBeat) ?? null);
-
     const x = this._boundingBox.x;
     const y = this._boundingBox.y + this._boundingBox.height / 2;
     const vibratoHeight = this.boundingBox.height / 6;
-    const nextBeatLineX =
-      (nextBeatElement?.barElement.lineLocalCoords.x ?? 0) +
-      (nextBeatElement?.barLocalCoords.x ?? 0);
-    const voiceBarContainer = this.beatElement.voiceBarContainer;
-    const nextBeatDistance =
-      nextBeat?.voiceBar === this.beatElement.beat.voiceBar
-        ? voiceBarContainer.getBeatX(nextBeat) -
-          voiceBarContainer.getBeatX(this.beatElement.beat)
-        : nextBeatLineX - this.lineLocalCoords.x;
-    const vibratoWidth =
-      nextBeatDistance > 0 ? nextBeatDistance : this.boundingBox.width;
+    const vibratoWidth = this.getTechniqueWidth();
     const phaseX = this.lineLocalCoords.x;
     this._pathDescriptors = [
       GuitarTechniqueDescriptors.createHorizontalVibratoPath(
@@ -256,18 +272,68 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._textDescriptors = [];
   }
 
+  /** Checks whether the previous beat continues this string's marking on this line. */
+  private continuesOnSameLine(): boolean {
+    const note = this.technique.note;
+    if (!(note instanceof GuitarNote)) {
+      return false;
+    }
+    const beat = this.beatElement.beat;
+    const previous = beat.voiceBar.bar.staff.getPrevBeat(beat);
+    const previousBarIndex =
+      previous === null
+        ? -1
+        : previous.voiceBar.bar.staff.bars.indexOf(previous.voiceBar.bar);
+    const sameLine = this.owningTrackLineElement.trackLineBars.some(
+      (b) => b.masterBarIndex === previousBarIndex
+    );
+    const continues =
+      previous?.notes?.[note.stringNum - 1]?.hasTechnique(
+        this.technique.type
+      ) === true;
+    return continues && sameLine;
+  }
+
+  /** Builds repeated label descriptors, restarting the text after a line break. */
   private createRepeatedTextPath(text: string): void {
-    const x = this._boundingBox.x;
-    const y = this._boundingBox.y + this._boundingBox.height / 2;
-    this._pathDescriptors = [];
-    this._textDescriptors = [
-      GuitarTechniqueDescriptors.createTextDescriptor(
-        x,
-        y,
-        this.trackElement.layoutDimensions.noteTextSize,
-        text
+    const fontSize = this.trackElement.layoutDimensions.noteTextSize;
+    if (!(this.technique.note instanceof GuitarNote)) {
+      this._pathDescriptors = [];
+      this._textDescriptors = [
+        GuitarTechniqueDescriptors.createTextDescriptor(
+          this._boundingBox.x,
+          this._boundingBox.y + this._boundingBox.height / 2,
+          fontSize,
+          text
+        ),
+      ];
+      return;
+    }
+
+    const nextBeat = this.beatElement.beat.voiceBar.bar.staff.getNextBeat(
+      this.beatElement.beat
+    );
+    // The track-wide materialized index is populated after the first layout.
+    const nextBeatElement =
+      nextBeat === null
+        ? null
+        : this.beatElement.barElement.notationStyleLineContainer.getBeatElement(
+            nextBeat
+          );
+    const descriptors = GuitarTechniqueDescriptors.createRepeatedLabel(
+      text,
+      new Rect(
+        this._boundingBox.x,
+        this._boundingBox.y,
+        this.getTechniqueWidth(nextBeatElement),
+        this._boundingBox.height
       ),
-    ];
+      fontSize,
+      !this.continuesOnSameLine(),
+      this.lineLocalCoords.x
+    );
+    this._pathDescriptors = descriptors.pathDescriptors;
+    this._textDescriptors = descriptors.textDescriptors;
   }
 
   /**
@@ -278,7 +344,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   private createLetRingPath(): void {
-    this.createRepeatedTextPath("LR");
+    this.createRepeatedTextPath("L.R.");
   }
 
   /**

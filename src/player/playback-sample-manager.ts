@@ -1,6 +1,10 @@
 import { ResolvedPlaybackSampleConfigs } from "../config/tabui-config";
 import { InstrumentTone } from "../notation/model";
 
+import { readSampleLoop, type PlaybackSampleLoop } from "./wav-sample-loop";
+
+export type { PlaybackSampleLoop } from "./wav-sample-loop";
+
 /**
  * Loads and stores configured playback samples by instrument tone.
  * Sample loads are cached as promises so concurrent requests for the same
@@ -13,6 +17,8 @@ export class PlaybackSampleManager {
   private _playbackSamples: ResolvedPlaybackSampleConfigs;
   /** Decoded samples ready for scheduling. */
   private _samples: Map<InstrumentTone, AudioBuffer>;
+  /** Validated sustain loops explicitly authored into WAV samples. */
+  private _sampleLoops = new Map<InstrumentTone, PlaybackSampleLoop>();
   /** In-flight sample load promises used to deduplicate concurrent loads. */
   private _sampleLoads: Map<InstrumentTone, Promise<void>>;
 
@@ -44,8 +50,21 @@ export class PlaybackSampleManager {
       }
 
       const arrayBuffer = await response.arrayBuffer();
+      // decodeAudioData may detach the input, so read metadata first.
+      const loop = readSampleLoop(arrayBuffer);
       const audioBuffer = await this._audioContext.decodeAudioData(arrayBuffer);
       this._samples.set(tone, audioBuffer);
+      if (loop !== undefined) {
+        // Decoding can resample and round the final frame down by one frame.
+        const withinBuffer = loop.end <= audioBuffer.duration;
+        const roundingError = loop.end - audioBuffer.duration;
+        if (withinBuffer || roundingError <= 1 / audioBuffer.sampleRate) {
+          this._sampleLoops.set(tone, {
+            start: loop.start,
+            end: Math.min(loop.end, audioBuffer.duration),
+          });
+        }
+      }
     } catch (error) {
       console.error("Failed to load playback sample", error);
     }
@@ -93,6 +112,11 @@ export class PlaybackSampleManager {
    */
   public getSample(tone: InstrumentTone): AudioBuffer | undefined {
     return this._samples.get(tone);
+  }
+
+  /** Returns a validated, authored loop; unprepared samples remain one-shot. */
+  public getLoop(tone: InstrumentTone): PlaybackSampleLoop | undefined {
+    return this._sampleLoops.get(tone);
   }
 
   /**

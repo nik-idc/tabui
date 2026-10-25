@@ -3,7 +3,7 @@
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import { SelectedMoveDirection } from "../../../src/notation/controller";
-import { GuitarNote, NoteDuration } from "../../../src/notation/model";
+import { Beat, GuitarNote, NoteDuration } from "../../../src/notation/model";
 import { TechniqueControlsTemplate } from "../../../src/ui/side-controls/technique-controls/technique-controls-template";
 import { TechniqueControlsTemplateRenderer } from "../../../src/ui/side-controls/technique-controls/technique-controls-template-renderer";
 import { createTestLayoutDimensions } from "../controller/helpers";
@@ -14,12 +14,15 @@ describe("TechniqueControlsTemplateRenderer", () => {
   let notation: NotationComponent;
   let template: TechniqueControlsTemplate;
   let renderer: TechniqueControlsTemplateRenderer;
+  let testBeats: Beat[];
 
   beforeEach(() => {
     const { score, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
     ]);
+    testBeats = beats;
     for (const beat of beats) {
       (required(beat.notes)[0] as GuitarNote).fret = 5;
     }
@@ -39,15 +42,29 @@ describe("TechniqueControlsTemplateRenderer", () => {
 
   afterEach(() => notation.dispose());
 
+  test("enables Tie on a selected rest across empty slots, but not across another rest", () => {
+    (required(testBeats[1].notes)[0] as GuitarNote).fret = null;
+    testBeats[2].makeRest();
+    notation.trackController.moveSelectedNote(SelectedMoveDirection.Right);
+    notation.trackController.moveSelectedNote(SelectedMoveDirection.Right);
+    renderer.render();
+    expect(template.tieButton.disabled).toBe(false);
+    testBeats[1].makeRest();
+    renderer.render();
+    expect(template.tieButton.disabled).toBe(true);
+  });
+
   test.each([
     "vibratoButton",
     "palmMuteButton",
     "letRingButton",
+    "tieButton",
     "nhButton",
     "phButton",
     "legatoButton",
     "slideButton",
   ] as const)("enables %s during range selection", (buttonName) => {
+    (required(testBeats[1].notes)[0] as GuitarNote).fret = 7;
     notation.trackController.extendSelectionByBeat(SelectedMoveDirection.Right);
     expect(notation.trackController.selectionBeats).toHaveLength(2);
 

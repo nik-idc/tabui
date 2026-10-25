@@ -646,6 +646,19 @@ export class TrackController {
     return this._trackControllerEditor.setRepeatStatus(bar, change);
   }
 
+  /** Returns whether the selection can add or remove a technique while editing is allowed. */
+  public canSetTechnique(type: TechniqueType): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canSetTechnique(type)
+    );
+  }
+
+  /** Reports applied technique state for the current cursor or beat selection. */
+  public hasSelectedTechnique(type: TechniqueType): boolean {
+    return this._trackControllerEditor.hasSelectedTechnique(type);
+  }
+
   /**
    * Set technique on the selected note/beats
    * @param type Technique type

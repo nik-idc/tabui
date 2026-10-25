@@ -20,6 +20,7 @@ const TECHNIQUE_NAMES: Record<GuitarTechniqueType, string> = {
   [GuitarTechniqueType.Bend]: "bend",
   [GuitarTechniqueType.Legato]: "legato",
   [GuitarTechniqueType.LetRing]: "let ring",
+  [GuitarTechniqueType.Tie]: "tie",
   [GuitarTechniqueType.NaturalHarmonic]: "natural harmonic",
   [GuitarTechniqueType.PalmMute]: "palm mute",
   [GuitarTechniqueType.PinchHarmonic]: "pinch harmonic",

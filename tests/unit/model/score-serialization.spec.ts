@@ -21,6 +21,7 @@ import {
 } from "../../../src/notation/model";
 import { Staff } from "../../../src/notation/model/staff";
 import { createBarWithBeats } from "./helpers";
+import { required } from "../required";
 
 function deserializeError(value: unknown): ScoreSerializationError {
   try {
@@ -88,6 +89,49 @@ function bendTechnique(serializedScore: ReturnType<typeof bendDocument>) {
 }
 
 describe("score serialization", () => {
+  test("saves and loads Tie separately from Let Ring and rejects a mismatched tied fret", () => {
+    const { beats, score } = createBarWithBeats(
+      Array.from({ length: 3 }, () => ({ baseDuration: NoteDuration.Quarter }))
+    );
+    const notes = beats.map((b) => required(b.notes)[0] as GuitarNote);
+    notes[0].fret = 5;
+    notes[1].fret = 5;
+    notes[1].setTechnique(GuitarTechniqueType.Tie);
+    notes[2].fret = 9;
+    notes[2].setTechnique(GuitarTechniqueType.LetRing);
+    const document = serializeScore(score);
+    const savedNote = required(
+      document.tracks[0].staves[0].bars[0].voices[0]?.beats[1].notes?.[0]
+    );
+    expect(savedNote.techniques).toEqual([{ type: "tie" }]);
+    expect(serializeScore(deserializeScore(document))).toEqual(document);
+    savedNote.fret = 6;
+    expect(() => deserializeScore(document)).toThrow();
+  });
+
+  test("round trips per-slot Let Ring and rejects orphan empty markers", () => {
+    const { score, beats } = createBarWithBeats(
+      Array.from({ length: 3 }, () => ({ baseDuration: NoteDuration.Quarter }))
+    );
+    const notes = beats.map((b) => required(b.notes)[0] as GuitarNote);
+    notes[0].fret = 5;
+    notes.forEach((n) => n.setTechnique(GuitarTechniqueType.LetRing));
+    const document = serializeScore(score);
+    const restored = deserializeScore(document);
+    const restoredBeats = required(
+      restored.tracks[0].staves[0].bars[0].getVoiceBar(1)
+    ).beats;
+    expect(
+      restoredBeats.map((b) => (required(b.notes)[0] as GuitarNote).fret)
+    ).toEqual([5, null, null]);
+    expect(
+      restoredBeats.map((b) => b.hasTechnique(GuitarTechniqueType.LetRing))
+    ).toEqual([true, true, true]);
+    const savedVoice = required(document.tracks[0].staves[0].bars[0].voices[0]);
+    required(required(savedVoice.beats[0].notes)[0]).techniques = [];
+    expect(() => deserializeScore(document)).toThrow(ScoreSerializationError);
+  });
+
   test("serializes and restores score state without derived timing fields", () => {
     const score = new Score([], "Name", "Artist", "Song");
     score.masterVolume = 0.7;
@@ -252,8 +296,8 @@ describe("score serialization", () => {
   test("preserves sparse voices, rests, and sparse note slots", () => {
     const score = new Score();
     const bar = score.tracks[0].staves[0].bars[0];
-    bar.removeVoiceBar(1);
     const voice = bar.insertVoiceBar(3);
+    bar.removeVoiceBar(1);
     const rest = new Beat(voice, voice.trackContext, null);
     const chord = new Beat(voice, voice.trackContext);
     const notes = chord.notes;
@@ -507,7 +551,7 @@ describe("score serialization", () => {
       "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes",
     ],
     [
-      "technique on an empty note",
+      "Vibrato on an empty slot",
       (d: ReturnType<typeof serializeScore>) => {
         const beat = d.tracks[0].staves[0].bars[0].voices[0]?.beats[0];
         if (beat === undefined) {
@@ -522,7 +566,7 @@ describe("score serialization", () => {
           null,
         ]);
       },
-      "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].fret",
+      "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].techniques[0]",
     ],
     [
       "dots",
@@ -638,7 +682,7 @@ describe("score serialization", () => {
         bendDuration: 0.5,
       })
     );
-    second.setTechnique(GuitarTechniqueType.LetRing);
+    second.setTechnique(GuitarTechniqueType.Tie);
     const serializedScore = serializeScore(score);
     expect(deserializeScore(serializedScore)).toBeInstanceOf(Score);
     const techniques =
@@ -667,6 +711,55 @@ describe("score serialization", () => {
       options: { ...continuation.options, bendPitch: 2 },
     };
     expect(deserializeScore(serializedScore)).toBeInstanceOf(Score);
+  });
+
+  test("loads legacy Let Ring Hold destinations as ties", () => {
+    const { score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const first = beats[0].notes?.[0];
+    const second = beats[1].notes?.[0];
+    if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
+      throw Error("Expected guitar notes");
+    }
+    first.fret = 5;
+    second.fret = 5;
+    first.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.Bend,
+        bendPitch: 1,
+        bendDuration: 1,
+      })
+    );
+    second.setTechnique(GuitarTechniqueType.Tie);
+    second.setTechnique(
+      GuitarTechniqueType.Bend,
+      new BendTechniqueOptions({
+        type: BendType.Hold,
+        holdPitch: 1,
+        bendDuration: 1,
+      })
+    );
+    const document = serializeScore(score);
+    const techniques =
+      document.tracks[0].staves[0].bars[0].voices[0]?.beats[1].notes?.[0]
+        ?.techniques;
+    const tie = techniques?.find((t) => t.type === SerializedTechniqueType.Tie);
+    if (tie === undefined) {
+      throw Error("Expected serialized tie");
+    }
+    required(techniques).splice(required(techniques).indexOf(tie), 1, {
+      type: SerializedTechniqueType.LetRing,
+    });
+    required(techniques).reverse();
+    const restored = deserializeScore(document);
+    const note =
+      restored.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[1].notes?.[0];
+    expect(note?.hasTechnique(GuitarTechniqueType.Tie)).toBe(true);
+    expect(note?.hasTechnique(GuitarTechniqueType.LetRing)).toBe(false);
+    expect(() => serializeScore(restored)).not.toThrow();
   });
 
   test.each([
@@ -749,7 +842,7 @@ describe("score serialization", () => {
     [
       "empty voice",
       (s: Score) =>
-        s.tracks[0].staves[0].bars[0].getVoiceBar(1)?.replaceBeats([]),
+        s.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats.splice(0),
       "$.tracks[0].staves[0].bars[0].voices[0].beats",
     ],
     [

@@ -1,6 +1,7 @@
 import { SetFretCommand } from "../../../src/notation/controller/editor/command";
 import { GuitarNote, Score } from "../../../src/notation/model";
 import { createScoreGraph } from "../model/helpers";
+import { required } from "../required";
 
 describe("SetFretCommand", () => {
   test("execute, undo, and redo update fret", () => {
@@ -20,10 +21,10 @@ describe("SetFretCommand", () => {
     expect(note.fret).toBe(7);
 
     command.undo();
-    expect(note.fret).toBeNull();
+    expect((required(note.beat.notes)[0] as GuitarNote).fret).toBeNull();
 
     command.redo();
-    expect(note.fret).toBe(7);
+    expect((required(note.beat.notes)[0] as GuitarNote).fret).toBe(7);
   });
 
   test("supports clearing fret with null", () => {
@@ -44,10 +45,10 @@ describe("SetFretCommand", () => {
     expect(note.fret).toBeNull();
 
     command.undo();
-    expect(note.fret).toBe(9);
+    expect((required(note.beat.notes)[0] as GuitarNote).fret).toBe(9);
 
     command.redo();
-    expect(note.fret).toBeNull();
+    expect((required(note.beat.notes)[0] as GuitarNote).fret).toBeNull();
   });
 
   test("clamps out-of-range frets to the instrument maximum", () => {
@@ -67,10 +68,12 @@ describe("SetFretCommand", () => {
     expect(note.fret).toBe(note.trackContext.instrument.fretsCount);
 
     command.undo();
-    expect(note.fret).toBeNull();
+    expect((required(note.beat.notes)[0] as GuitarNote).fret).toBeNull();
 
     command.redo();
-    expect(note.fret).toBe(note.trackContext.instrument.fretsCount);
+    expect((required(note.beat.notes)[0] as GuitarNote).fret).toBe(
+      note.trackContext.instrument.fretsCount
+    );
   });
 
   test("exposes the affected beat anchor", () => {

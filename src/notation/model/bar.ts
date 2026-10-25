@@ -4,7 +4,22 @@ import { MasterBar } from "./master-bar";
 import { TrackContext } from "./track-context";
 import { Staff } from "./staff";
 import { Beat } from "./beat";
-import { BeatArrayOperationOutput, VoiceBar, VoiceNumber } from "./voice-bar";
+import {
+  BeatArrayOperationOutput,
+  BeatRemovalOutput,
+  VoiceBar,
+  VoiceNumber,
+} from "./voice-bar";
+
+/** Content copied into an original voice at an index in the current edit. */
+export type BeatInsertion<I extends MusicInstrument = MusicInstrument> = {
+  /** Original voice, reinstalled when an earlier edit removed its slot. */
+  voiceBar: VoiceBar<I>;
+  /** Position after preceding removals and insertions in this edit. */
+  index: number;
+  /** Content to copy, not retained as live beats. */
+  beats: Beat<I>[];
+};
 
 /** Shared list of the four voice slots, in ascending order. */
 export const VOICE_NUMBERS: VoiceNumber[] = [1, 2, 3, 4];
@@ -85,10 +100,16 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Clears a voice slot and its staff bookkeeping, without adding a fallback rest.
+   * Clears a voice slot and keeps at least one beat in the bar.
    * @throws If removing a non-empty voice would make the staff count negative.
    */
   public removeVoiceBar(voiceNumber: VoiceNumber): void {
+    this.clearVoiceSlot(voiceNumber);
+    this.resolveEmptyVoiceBars();
+  }
+
+  /** Clears a slot during a structural edit without normalizing intermediate content. */
+  private clearVoiceSlot(voiceNumber: VoiceNumber): void {
     const voiceBar = this._voiceBars[voiceNumber];
     if (voiceBar !== null) {
       this.staff.recordVoiceBarRemoved(voiceBar);
@@ -109,6 +130,141 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     this._voiceBars[voiceBar.voiceNumber] = voiceBar;
     voiceBar.rebuildTiming();
     this.staff.recordVoiceBarAdded(voiceBar);
+    this.resolveEmptyVoiceBars();
+  }
+
+  /** Replaces one voice with owned beat references and normalizes the completed bar. */
+  public replaceVoiceBeats(voiceBar: VoiceBar<I>, beats: Beat<I>[]): void {
+    if (voiceBar.bar !== this) {
+      throw Error("Voice belongs to another bar");
+    }
+    this.clearVoiceSlot(voiceBar.voiceNumber);
+    voiceBar.beats.splice(0, voiceBar.beats.length, ...beats);
+    this._voiceBars[voiceBar.voiceNumber] = voiceBar;
+    voiceBar.rebuildTiming();
+    this.staff.recordVoiceBarAdded(voiceBar);
+    this.resolveEmptyVoiceBars();
+  }
+
+  /** Prepares all destination copies before removing beats, then normalizes this bar once. */
+  public replaceSelectedBeats(
+    beats: Beat<I>[],
+    insertions: BeatInsertion<I>[] = []
+  ): { removals: BeatRemovalOutput<I>[]; insertedBeats: Beat<I>[] } {
+    beats = [...beats];
+    insertions = insertions.map((i) => ({ ...i, beats: [...i.beats] }));
+    const voices = new Set([
+      ...beats.map((b) => b.voiceBar),
+      ...insertions.map((i) => i.voiceBar),
+    ]);
+    for (const voice of voices) {
+      if (voice.bar !== this) {
+        throw Error("Beat edit belongs to another bar");
+      }
+    }
+    const duplicateBeats = new Set(beats).size !== beats.length;
+    const absentBeat = beats.some((b) => !b.voiceBar.beats.includes(b));
+    if (duplicateBeats || absentBeat) {
+      throw Error("Beat is absent or selected twice");
+    }
+
+    // Validate the whole insertion plan before changing content or staff counts.
+    const lengths = new Map<VoiceBar<I>, number>();
+    for (const beat of beats) {
+      const voice = beat.voiceBar;
+      const length = lengths.get(voice) ?? voice.beats.length;
+      lengths.set(voice, length - 1);
+    }
+    for (const { voiceBar, index, beats } of insertions) {
+      const length = lengths.get(voiceBar) ?? voiceBar.beats.length;
+      if (!Number.isInteger(index) || index < 0 || index > length) {
+        throw Error(`${index} is invalid beat index`);
+      }
+      lengths.set(voiceBar, length + beats.length);
+    }
+
+    // Copying can reject destination pitches, so finish every copy before editing.
+    const preparedInsertions = insertions.map((i) => ({
+      ...i,
+      beats: i.beats.map((b) => b.deepCopy(i.voiceBar)),
+    }));
+
+    for (const voice of voices) {
+      if (this.getVoiceBar(voice.voiceNumber) === voice) {
+        this.staff.recordVoiceBarRemoved(voice);
+      }
+    }
+    const removals: BeatRemovalOutput<I>[] = [];
+    for (const beat of beats) {
+      const index = beat.voiceBar.beats.indexOf(beat);
+      removals.push({
+        removed: { index, beats: beat.voiceBar.beats.splice(index, 1) },
+        inserted: [],
+        removedVoiceNumbers: null,
+      });
+    }
+    const insertedBeats: Beat<I>[] = [];
+    for (const insertion of preparedInsertions) {
+      const { voiceBar, index } = insertion;
+      const oldVoice = this.getVoiceBar(voiceBar.voiceNumber);
+      if (oldVoice !== voiceBar) {
+        if (oldVoice !== null && !voices.has(oldVoice)) {
+          this.staff.recordVoiceBarRemoved(oldVoice);
+        }
+        this._voiceBars[voiceBar.voiceNumber] = voiceBar;
+      }
+      voiceBar.beats.splice(index, 0, ...insertion.beats);
+      insertedBeats.push(...insertion.beats);
+    }
+    for (const voice of voices) {
+      voice.rebuildTiming();
+      if (this.getVoiceBar(voice.voiceNumber) === voice) {
+        this.staff.recordVoiceBarAdded(voice);
+      }
+    }
+    const normalization = this.resolveEmptyVoiceBars();
+    const lastRemoval = removals[removals.length - 1];
+    if (lastRemoval !== undefined) {
+      lastRemoval.inserted = normalization.inserted;
+      lastRemoval.removedVoiceNumbers = normalization.removedVoiceNumbers;
+    }
+    return { removals, insertedBeats };
+  }
+
+  /** Restores saved insertions and removes matching generated rests in the same atomic edit. */
+  public restoreBeats(
+    insertions: BeatInsertion<I>[],
+    replacedBeats: Beat<I>[] = [],
+    normalization: Pick<BeatRemovalOutput<I>, "inserted">[] = []
+  ): Beat<I>[] {
+    const present: Beat<I>[] = [];
+    for (const output of normalization) {
+      for (const insertion of output.inserted) {
+        for (const [offset, generated] of insertion.beats.entries()) {
+          const voice = this.getVoiceBar(generated.voiceBar.voiceNumber);
+          const beat = voice?.beats[insertion.index + offset];
+          const matches =
+            beat !== undefined && beat.isMatchingFallbackRest(generated);
+          if (beat !== undefined && (beat === generated || matches)) {
+            present.push(beat);
+          }
+        }
+      }
+    }
+    const removed = [...new Set([...replacedBeats, ...present])];
+    return this.replaceSelectedBeats(removed, insertions).insertedBeats;
+  }
+
+  /** Reverses recorded removals in reverse order, including their fallback-rest changes. */
+  public restoreBeatRemovals(outputs: BeatRemovalOutput<I>[]): Beat<I>[] {
+    const insertions = [...outputs].reverse().map((o) => ({
+      voiceBar: o.removed.beats[0].voiceBar,
+      index: o.removed.index,
+      beats: o.removed.beats,
+    }));
+    const restored = this.restoreBeats(insertions, [], outputs);
+    const groups = insertions.map((i) => restored.splice(0, i.beats.length));
+    return groups.reverse().flat();
   }
 
   /**
@@ -131,15 +287,27 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
         continue;
       }
 
-      this.removeVoiceBar(voiceBar.voiceNumber);
+      this.clearVoiceSlot(voiceBar.voiceNumber);
       removedVoiceNumbers.push(voiceBar.voiceNumber);
     }
 
     if (voiceNumberToKeep !== null) {
-      const keptVoiceBar =
-        this.getVoiceBar(voiceNumberToKeep) ??
-        this.insertVoiceBar(voiceNumberToKeep);
-      inserted.push(keptVoiceBar.insertDefaultRest());
+      const keptVoiceBar = this.getVoiceBar(voiceNumberToKeep);
+      if (keptVoiceBar === null) {
+        const created = this.insertVoiceBar(voiceNumberToKeep);
+        inserted.push({ index: 0, beats: [...created.beats] });
+      } else {
+        const rest = new Beat(keptVoiceBar, this.trackContext, null);
+        keptVoiceBar.beats.push(rest);
+        keptVoiceBar.rebuildTiming();
+        this.staff.recordVoiceBarAdded(keptVoiceBar);
+        inserted.push({ index: 0, beats: [rest] });
+      }
+      for (const insertion of inserted) {
+        for (const beat of insertion.beats) {
+          beat.markFallbackRest();
+        }
+      }
     }
 
     return {

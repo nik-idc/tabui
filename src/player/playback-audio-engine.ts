@@ -183,7 +183,8 @@ export class PlaybackAudioEngine {
     beat: Beat,
     startTime: number,
     endTime: number,
-    maxStopTime?: number
+    maxStopTime?: number,
+    playbackStartTime?: number
   ): void {
     if (this._noteScheduler === undefined) {
       throw Error("Playback note scheduler is not initialized");
@@ -200,7 +201,8 @@ export class PlaybackAudioEngine {
         startTime,
         endTime,
         trackBus,
-        maxStopTime
+        maxStopTime,
+        playbackStartTime
       );
       if (scheduledAudioNode === null) {
         continue;

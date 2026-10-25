@@ -26,6 +26,7 @@ import {
   GuitarTechniqueType,
   NoteDuration,
   Score,
+  ScoreEditor,
   Beat,
   Note,
 } from "../src/notation/model";
@@ -323,7 +324,13 @@ function createTechniqueCase(
     buildScenario: () =>
       createScenario((score) => {
         const notes = collectNotes(score, selections) as GuitarNote[];
-        return [new SetTechniqueCommand(notes, type, bendOptions)];
+        return [
+          new SetTechniqueCommand(
+            ScoreEditor.getTechniqueTargetsForNotes(notes),
+            type,
+            bendOptions
+          ),
+        ];
       }),
   };
 }

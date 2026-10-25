@@ -7,10 +7,10 @@ import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 export class SetTupletCommand implements Command {
   /** Beats whose dot value to set */
   private _beats: Beat[];
-  /** New tuplet settings value */
-  private _newTupletSettings: TupletSettings | null;
-  /** Old tuplet settings map */
-  private _oldTupletMap: Map<number, TupletSettings | null>;
+  /** Fixed tuplet settings applied by execute and redo. */
+  private _after: TupletSettings | null;
+  /** Original tuplet settings saved before execution. */
+  private _before: Map<number, TupletSettings | null> = new Map();
   /** True if executed, false otherwise*/
   private _executed: boolean = false;
   private _affectedModels: AffectedModel[];
@@ -22,20 +22,16 @@ export class SetTupletCommand implements Command {
    */
   constructor(beats: Beat[], newTupletSettings: TupletSettings | null) {
     this._beats = beats;
-    this._newTupletSettings = newTupletSettings;
+    this._after = newTupletSettings;
     this._affectedModels = getAffectedModelsFromBeats(beats);
-
-    this._oldTupletMap = new Map();
-    for (const beat of this._beats) {
-      this._oldTupletMap.set(beat.uuid, beat.tupletSettings);
-    }
   }
 
   /**
    * Execute set tuplet settings command
    */
   execute(): void {
-    ScoreEditor.setTuplet(this._beats, this._newTupletSettings);
+    this._before = new Map(this._beats.map((b) => [b.uuid, b.tupletSettings]));
+    ScoreEditor.setTuplet(this._beats, this._after);
     this._executed = true;
   }
 
@@ -47,7 +43,7 @@ export class SetTupletCommand implements Command {
       return;
     }
 
-    ScoreEditor.restoreTuplets(this._beats, this._oldTupletMap);
+    ScoreEditor.restoreTuplets(this._beats, this._before);
   }
 
   /**
@@ -58,7 +54,7 @@ export class SetTupletCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    ScoreEditor.setTuplet(this._beats, this._newTupletSettings);
+    ScoreEditor.setTuplet(this._beats, this._after);
   }
 
   public get affectedModels(): AffectedModel[] {

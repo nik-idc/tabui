@@ -7,6 +7,7 @@ import {
 } from "../notation-element";
 import {
   TechLineNumber,
+  TECH_LINE_NUMBERS,
   TECHNIQUE_TO_LINE_NUMBER,
 } from "../technique/guitar-technique/guitar-technique-element-lists";
 import { TechGapLineContainer } from "./tech-gap-line-container";
@@ -62,6 +63,7 @@ export class TechGapContainer implements NotationContainer {
       1: null,
       2: null,
       3: null,
+      4: null,
     };
     this._techGapLinesByIdentity = new Map();
 
@@ -75,7 +77,7 @@ export class TechGapContainer implements NotationContainer {
     const prevGapLines = new Map(this._techGapLinesByIdentity);
     this._techGapLinesByIdentity.clear();
 
-    for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {
+    for (const lineNumber of TECH_LINE_NUMBERS) {
       const stableIdentity = TechGapLineContainer.createStableIdentity(
         this,
         lineNumber
@@ -113,7 +115,7 @@ export class TechGapContainer implements NotationContainer {
    * Sets the dimensions of all child tech gap line elements
    */
   public measure(): void {
-    for (const lineNumber of [1, 2, 3] as TechLineNumber[]) {
+    for (const lineNumber of TECH_LINE_NUMBERS) {
       this._techGapLines[lineNumber]?.measure();
     }
 
@@ -146,9 +148,9 @@ export class TechGapContainer implements NotationContainer {
   public layout(): void {
     this._boundingBox.setCoords(0, 0);
 
-    this._techGapLines[1]?.layout();
-    this._techGapLines[2]?.layout();
-    this._techGapLines[3]?.layout();
+    for (const lineNumber of TECH_LINE_NUMBERS) {
+      this._techGapLines[lineNumber]?.layout();
+    }
   }
 
   public update(): void {
@@ -170,8 +172,9 @@ export class TechGapContainer implements NotationContainer {
   public getPrevGapLine(
     techGapLine: TechGapLineContainer
   ): TechGapLineContainer | null {
-    for (let i = techGapLine.techLineNumber - 1; i >= 1; i--) {
-      const prevLine = this._techGapLines[i as TechLineNumber];
+    const lineIndex = TECH_LINE_NUMBERS.indexOf(techGapLine.techLineNumber);
+    for (let i = lineIndex - 1; i >= 0; i--) {
+      const prevLine = this._techGapLines[TECH_LINE_NUMBERS[i]];
       if ((prevLine?.boundingBox.height ?? 0) > 0) {
         return prevLine;
       }
@@ -183,14 +186,13 @@ export class TechGapContainer implements NotationContainer {
   public getNextGapLine(
     techGapLine: TechGapLineContainer
   ): TechGapLineContainer | null {
-    switch (techGapLine.techLineNumber) {
-      case 1:
-        return this._techGapLines[2];
-      case 2:
-        return this._techGapLines[3];
-      case 3:
-        return null;
-    }
+    const nextLineNumber =
+      TECH_LINE_NUMBERS[
+        TECH_LINE_NUMBERS.indexOf(techGapLine.techLineNumber) + 1
+      ];
+    return nextLineNumber === undefined
+      ? null
+      : this._techGapLines[nextLineNumber];
   }
 
   /** String encoding the state of this element */
@@ -264,14 +266,11 @@ export class TechGapContainer implements NotationContainer {
   /** Child tech gap line elements */
   public get techGapLinesAsArray(): TechGapLineContainer[] {
     const result = [];
-    if (this._techGapLines[1] !== null) {
-      result.push(this._techGapLines[1]);
-    }
-    if (this._techGapLines[2] !== null) {
-      result.push(this._techGapLines[2]);
-    }
-    if (this._techGapLines[3] !== null) {
-      result.push(this._techGapLines[3]);
+    for (const lineNumber of TECH_LINE_NUMBERS) {
+      const line = this._techGapLines[lineNumber];
+      if (line !== null) {
+        result.push(line);
+      }
     }
 
     return result;

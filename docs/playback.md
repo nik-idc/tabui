@@ -78,6 +78,7 @@ Audio nodes are scheduled on the audio context timeline.
   - Loads configured samples by instrument preset.
   - Caches decoded `AudioBuffer`s and in-flight loads.
   - Provides each sample's configured root frequency.
+  - Reads explicitly authored WAV sustain loops and checks their buffer bounds.
 
 - `PlaybackNoteScheduler`
   - Creates the source node for one note.
@@ -139,14 +140,40 @@ If a sample is configured, playback uses an `AudioBufferSourceNode`:
   `noteFrequency / rootFrequency`.
 - this is single-sample pitch shifting, not multisampling.
 
+### Sample sustain
+
+Samples without loop metadata play once, with their recorded decay. Raising the
+pitch also shortens the available recording. A long note or tie cannot extend a
+one-shot recording after it ends.
+
+For sustained playback, supply a prepared WAV with one infinite forward loop in
+its standard `smpl` chunk. TabUI reads integer loop frame positions, converts the
+inclusive WAV end to an exclusive Web Audio end, and checks the decoded duration.
+Unsupported or invalid loops are ignored. Other audio formats remain one-shot.
+Loop points refer to the recording, so pitch changes and bends use the same loop.
+
+Prepare the loop audio before use: metadata alone cannot remove clicks or restore
+a recorded decay. See the [demo samples](../assets/samples/README.md) for attribution
+and maintenance. Ordinary notes and ties use one attack and one source, with the
+final gain release at the scheduled end.
+
 ## Technique Playback
 
 Technique playback is currently implemented as Web Audio shaping over the same
-scheduled note source rather than articulation-specific samples.
+scheduled note source rather than articulation-specific samples. See
+[Guitar techniques](techniques.md) for musical meaning, applicability, and
+[Let Ring passage rules](techniques.md#let-ring).
 
 - Bends automate the source pitch according to bend options.
-- Palm mutes shorten and soften the note envelope.
-- Let-ring extends the note release.
+- Palm Mute shortens and softens only the marked note's attack.
+- Ties are scheduled as one logical note with one source and attack. Written
+  durations are converted from ticks at each bar's tempo and summed.
+- Let Ring extends that source's stop time through marked coverage. Empty markers
+  create no source. The scheduler resolves markers across the logical tie chain,
+  including predecessors before a playback pass's start, and checks same-string
+  attacks across staff voices to clip resonance.
+- Bend automation keeps each tied member's written interval. Let Ring resonance
+  holds the terminal bend pitch instead of stretching the bend over the tail.
 - Natural and pinch harmonics shift playback to the first octave partial and use
   a softer envelope.
 - Hammer-on/pull-off uses a softer, slightly slower legato-style attack.

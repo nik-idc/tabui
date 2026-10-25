@@ -187,7 +187,7 @@ for (const reverse of [false, true]) {
       ["-", `[data-duration="${reverse ? 8 : 16}"]`],
       [".", `[data-dot="${reverse ? 1 : 2}"]`],
       ["t", `[data-tuplet="${reverse ? 2 : 3}"]`],
-      ["p", '[aria-label^="Palm Mute"]'],
+      ["p", 'button[aria-label^="Palm Mute"]'],
       ["Shift+X", '[data-beat-action="rest"]'],
     ]) {
       await expectMouseParity(page, editor, key, editor.locator(selector));

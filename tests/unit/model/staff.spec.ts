@@ -51,11 +51,14 @@ describe("Staff model", () => {
     secondBarFirstBeat.makeBeatWithNotes();
     const firstNote = required(firstBarLastBeat.notes?.[0]);
     const secondNote = required(secondBarFirstBeat.notes?.[0]);
+    // A different voice keeps each bar usable when voice 1 is cleared.
+    staff.bars[1].insertVoiceBar(2);
     secondVoiceBar.replaceBeats([]);
     expect(staff.getNextBeat(firstBarLastBeat)).toBeNull();
     expect(staff.getNextNote(firstNote)).toBeNull();
 
     secondVoiceBar.replaceBeats([secondBarFirstBeat]);
+    bar.insertVoiceBar(2);
     firstVoiceBar.replaceBeats([]);
     expect(staff.getPrevBeat(secondBarFirstBeat)).toBeNull();
     expect(staff.getPrevNote(secondNote)).toBeNull();

@@ -111,30 +111,28 @@ describe("NoteControlsDefaultCallbacks", () => {
 
     controls.template.insertBeatBeforeButton.click();
     const before = required(controller.selectionCursor).beat;
-    (required(before.notes)[0] as GuitarNote).fret = 1;
     expect(before).not.toBe(beat);
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
 
     controls.template.insertBeatAfterButton.click();
     const after = required(controller.selectionCursor).beat;
-    (required(after.notes)[0] as GuitarNote).fret = 2;
     expect(after).not.toBe(before);
-    expect(frets()).toEqual([1, 2, 7]);
+    expect(frets()).toEqual([null, null, 7]);
 
     controls.template.removeBeatButton.click();
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
     controller.undo();
-    expect(frets()).toEqual([1, 2, 7]);
+    expect(frets()).toEqual([null, null, 7]);
     controller.undo();
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
     controller.undo();
     expect(frets()).toEqual([7]);
     controller.redo();
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
     controller.redo();
-    expect(frets()).toEqual([1, 2, 7]);
+    expect(frets()).toEqual([null, null, 7]);
     controller.redo();
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
   });
 
   test("unbinding removes duration listeners and leaves edit history unchanged", () => {

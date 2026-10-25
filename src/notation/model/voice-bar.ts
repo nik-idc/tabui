@@ -434,44 +434,29 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   /**
    * Copies beats into this voice and rebuilds timing and beaming.
    * @param index Zero-based insertion position, from zero through the beat count.
-   * @param beats Content to copy into this voice; empty inserts nothing but still rebuilds timing.
+   * @param beats Content to copy into this voice; empty has no effect after index validation.
    * @returns Live inserted copies.
    * @throws If the index is outside the voice, copying fails, or timing/bookkeeping fails.
    */
   public insertBeats(index: number, beats: Beat<I>[]): Beat<I>[] {
-    if (index < 0 || index > this.beats.length) {
+    if (!Number.isInteger(index) || index < 0 || index > this.beats.length) {
       throw Error(`${index} is invalid beat index`);
     }
-
-    const wasEmpty = this.isEmpty();
-    const beatsCopies: Beat<I>[] = [];
-    for (const beat of beats) {
-      beatsCopies.push(beat.deepCopy(this));
-    }
-    this.beats.splice(index, 0, ...beatsCopies);
-    if (wasEmpty && !this.isEmpty()) {
-      this.bar.staff.recordVoiceBarAdded(this);
+    if (beats.length === 0) {
+      return [];
     }
 
-    this.rebuildTiming();
-
-    return beatsCopies;
+    return this.bar.replaceSelectedBeats([], [{ voiceBar: this, index, beats }])
+      .insertedBeats;
   }
 
   /**
    * Replaces the beat array contents with supplied references and rebuilds timing.
-   * @param beats Beats already owned by this voice; an empty array leaves it empty.
+   * @param beats Beats already owned by this voice; an empty array normalizes the bar.
    * @throws If timing/beaming cannot be rebuilt or emptying the voice reveals inconsistent staff counts.
    */
   public replaceBeats(beats: Beat<I>[]): void {
-    const wasEmpty = this.isEmpty();
-    this.beats.splice(0, this.beats.length, ...beats);
-    if (wasEmpty && !this.isEmpty()) {
-      this.bar.staff.recordVoiceBarAdded(this);
-    } else if (!wasEmpty && this.isEmpty()) {
-      this.bar.staff.recordVoiceBarRemoved(this);
-    }
-    this.rebuildTiming();
+    this.bar.replaceVoiceBeats(this, beats);
   }
 
   /**
@@ -547,38 +532,20 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
       throw Error(`${index} is invalid beat index`);
     }
 
-    const willBecomeEmpty = this.beats.length === 1;
-    if (willBecomeEmpty) {
-      this.bar.staff.recordVoiceBarRemoved(this);
-    }
-    const removed = { index, beats: this.beats.splice(index, 1) };
-
-    if (this.beats.length === 0) {
-      const { inserted, removedVoiceNumbers } =
-        this.bar.resolveEmptyVoiceBars();
-
-      this.rebuildTiming();
-      return { removed, inserted, removedVoiceNumbers };
-    }
-
-    this.rebuildTiming();
-    return { removed, inserted: [], removedVoiceNumbers: null };
+    return this.bar.replaceSelectedBeats([this.beats[index]]).removals[0];
   }
 
   /**
-   * Removes beats in input order and normalizes empty voices after each removal.
+   * Removes beats in input order and normalizes the bar once after removal.
    * @param beats Live beats still present in this voice; duplicates are not supported.
    * @returns Removal and fallback-rest metadata for each input beat.
    * @throws If a beat is absent or timing/bookkeeping fails.
    */
   public removeBeats(beats: Beat<I>[]): BeatRemovalOutput<I>[] {
-    const outputs: BeatRemovalOutput<I>[] = [];
-    for (const beat of beats) {
-      const beatIndex = this.beats.indexOf(beat);
-      outputs.push(this.removeBeat(beatIndex));
+    if (beats.some((b) => b.voiceBar !== this)) {
+      throw Error("Beat belongs to another voice");
     }
-
-    return outputs;
+    return this.bar.replaceSelectedBeats(beats).removals;
   }
 
   /**

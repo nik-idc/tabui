@@ -1198,7 +1198,9 @@ describe("TrackController", () => {
     if (emptyTargetVoice === null) {
       throw Error("Expected target voice bar");
     }
-    emptyTargetVoice.replaceBeats([]);
+    // Model assembly can contain an empty bar before an edit completes.
+    emptyTargetVoice.beats.splice(0);
+    emptyTargetVoice.rebuildTiming();
     const playbackAnchorBeat = secondStaff.bars[1].getVoiceBar(1)?.beats[0];
     const fallbackBeat = track.staves[0].bars[2].getVoiceBar(1)?.beats[0];
     const { controller, player } = realTransport(track);
@@ -2475,13 +2477,17 @@ describe("TrackController", () => {
     ).toBeCloseTo(initialY + TEST_LAYOUT_DIMENSIONS.techLabelHeight);
 
     controller.undo();
-    expect(note.hasTechnique(GuitarTechniqueType.Vibrato)).toBe(false);
+    expect(note.beat.notes?.[0].hasTechnique(GuitarTechniqueType.Vibrato)).toBe(
+      false
+    );
     expect(
       controller.trackElement.trackLineElements[1].boundingBox.y
     ).toBeCloseTo(initialY);
 
     controller.redo();
-    expect(note.hasTechnique(GuitarTechniqueType.Vibrato)).toBe(true);
+    expect(note.beat.notes?.[0].hasTechnique(GuitarTechniqueType.Vibrato)).toBe(
+      true
+    );
     expect(
       controller.trackElement.trackLineElements[1].boundingBox.y
     ).toBeCloseTo(initialY + TEST_LAYOUT_DIMENSIONS.techLabelHeight);

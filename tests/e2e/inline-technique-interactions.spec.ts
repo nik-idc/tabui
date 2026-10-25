@@ -24,6 +24,7 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
     }
     const path = editor.locator('[id^="technique-path-"]').first();
     await expect(path).toBeVisible();
+    await path.scrollIntoViewIfNeeded();
     await page.mouse.move(0, 0);
     const originalStroke = await path.evaluate(
       (node) => getComputedStyle(node).stroke

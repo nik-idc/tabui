@@ -7,6 +7,7 @@ import {
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
+  ScoreEditor,
   NoteDuration,
   Track,
   VoiceNumber,
@@ -823,7 +824,7 @@ describe("TrackElement tree", () => {
     }
     affectedNote.fret = 5;
     const setTechCommand = new SetTechniqueCommand(
-      [affectedNote],
+      ScoreEditor.getTechniqueTargetsForNotes([affectedNote]),
       GuitarTechniqueType.PalmMute
     );
     setTechCommand.execute();

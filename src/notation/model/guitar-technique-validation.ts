@@ -39,7 +39,7 @@ export function guitarTechniquesIncompatible(
   );
 }
 
-/** Returns whether bend options fit the note's inherited let-ring pitch. */
+/** Returns whether bend options fit the note's inherited tied pitch. */
 export function isBendValidForContinuation(
   note: GuitarNote,
   bendOptions: BendTechniqueOptions

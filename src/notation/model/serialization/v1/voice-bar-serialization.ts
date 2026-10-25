@@ -7,6 +7,7 @@ import {
 import { BendType, OPTIONS_PER_BEND_TYPE } from "../../bend-type";
 import { GuitarNote } from "../../guitar-note";
 import { GuitarTechnique } from "../../guitar-technique";
+import { TECHNIQUE_ALLOWED_ON_EMPTY_NOTES } from "../../guitar-technique-lists";
 import {
   guitarTechniquesIncompatible,
   isBendValidForContinuation,
@@ -243,13 +244,24 @@ function serializeNote(
     throw new ScoreSerializationError(path, "note ownership mismatch");
   }
   if (note.fret === null) {
-    if (note.techniques.length > 0) {
+    const hasDisallowedTechnique = note.techniques.some(
+      (t) => !TECHNIQUE_ALLOWED_ON_EMPTY_NOTES[t.type]
+    );
+    if (hasDisallowedTechnique) {
       throw new ScoreSerializationError(
         indexPath(propertyPath(path, "techniques"), 0),
         "technique requires a note value"
       );
     }
-    return null;
+    if (note.techniques.length === 0) {
+      return null;
+    }
+    if (!note.hasLetRingSupport()) {
+      throw new ScoreSerializationError(
+        path,
+        "empty Let Ring requires a preceding marked source"
+      );
+    }
   }
   if (
     note.fret !== null &&
@@ -263,6 +275,12 @@ function serializeNote(
     );
   }
   const techniquesPath = propertyPath(path, "techniques");
+  if (note.hasTechnique(GuitarTechniqueType.Tie) && !note.isTieContinuation) {
+    throw new ScoreSerializationError(
+      techniquesPath,
+      "tie requires the preceding same-string fret"
+    );
+  }
   const techniques = serializeTechniques(note, techniquesPath);
   const bendIndex = note.techniques.findIndex(
     (t) => t.type === GuitarTechniqueType.Bend
@@ -275,7 +293,7 @@ function serializeNote(
   ) {
     throw new ScoreSerializationError(
       indexPath(techniquesPath, bendIndex),
-      "bend is invalid for let-ring continuation"
+      "bend is invalid for tied continuation"
     );
   }
   return {
@@ -467,8 +485,11 @@ function deserializeNote(
 ): DeferredNoteTechniques {
   reader.readObject(["fret", "techniques"]);
   const fretReader = reader.property("fret");
-  const fret = fretReader.readInteger();
-  if (fret < -1 || fret > note.trackContext.instrument.fretsCount) {
+  const fret = fretReader.rawValue() === null ? null : fretReader.readInteger();
+  if (
+    fret !== null &&
+    (fret < -1 || fret > note.trackContext.instrument.fretsCount)
+  ) {
     fretReader.fail("out of range");
   }
   fretReader.runModelOperation(() => {
@@ -486,12 +507,40 @@ function deserializeNote(
  */
 function restoreNoteTechniques(deferred: DeferredNoteTechniques): void {
   const seenTypes = new Set<GuitarTechniqueType>();
+  // Older v1 scores used Let Ring to mark Hold/Release bend destinations.
+  // Only these explicit continuation bends identify a legacy tie unambiguously.
+  const legacyContinuation = deferred.techniques.some((r) => {
+    const value = r.rawValue();
+    if (value === null || typeof value !== "object" || Array.isArray(value))
+      return false;
+    if (r.property("type").rawValue() !== SerializedTechniqueType.Bend)
+      return false;
+    const options = r.property("options").rawValue();
+    const hasOptions =
+      options !== null &&
+      typeof options === "object" &&
+      !Array.isArray(options);
+    if (!hasOptions) return false;
+    const type = r.property("options").property("type").rawValue();
+    return (
+      type === SerializedBendType.Hold || type === SerializedBendType.Release
+    );
+  });
   for (const techniqueReader of deferred.techniques) {
-    const technique = deserializeTechnique(techniqueReader, deferred.note);
+    let technique = deserializeTechnique(techniqueReader, deferred.note);
+    if (legacyContinuation && technique.type === GuitarTechniqueType.LetRing) {
+      technique = new GuitarTechnique(deferred.note, GuitarTechniqueType.Tie);
+    }
     if (seenTypes.has(technique.type)) {
       techniqueReader.fail("duplicate technique");
     }
     seenTypes.add(technique.type);
+    const emptyLetRing =
+      technique.type === GuitarTechniqueType.LetRing &&
+      deferred.note.fret === null;
+    if (emptyLetRing && !deferred.note.hasLetRingSupport()) {
+      techniqueReader.fail("empty Let Ring requires a preceding marked source");
+    }
     if (!deferred.note.addTechnique(technique)) {
       techniqueReader.fail("incompatible technique");
     }
@@ -499,7 +548,7 @@ function restoreNoteTechniques(deferred: DeferredNoteTechniques): void {
 }
 
 /**
- * Validates bend pitch against any let-ring continuation now discoverable from
+ * Validates bend pitch against any tied continuation now discoverable from
  * neighboring attached beats, reporting failure at the source bend document.
  */
 function validateBendContinuation(deferred: DeferredNoteTechniques): void {
@@ -520,9 +569,7 @@ function validateBendContinuation(deferred: DeferredNoteTechniques): void {
       !Array.isArray(r.rawValue()) &&
       r.property("type").rawValue() === SerializedTechniqueType.Bend
   );
-  deferred.techniques[bendIndex].fail(
-    "bend is invalid for let-ring continuation"
-  );
+  deferred.techniques[bendIndex].fail("bend is invalid for tied continuation");
 }
 
 /** Distinguishes a required null tuplet from a validated ratio object. */

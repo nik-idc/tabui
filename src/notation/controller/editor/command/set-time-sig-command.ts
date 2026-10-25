@@ -8,43 +8,52 @@ import {
 
 /** Changes meter without moving notes, restoring mixed original meters on undo. */
 export class SetTimeSigCommand implements Command {
-  private readonly _oldValues: TimeSignatureChange[];
-  private readonly _newValues: TimeSignatureChange[];
+  /** Original meters saved before execution. */
+  private _before: TimeSignatureChange[] = [];
+  /** Complete meters applied by execute and redo. */
+  private _after: TimeSignatureChange[] = [];
   private readonly _affectedModels: AffectedModel[];
   private _executed = false;
 
   constructor(
     private readonly _score: Score,
-    bars: MasterBar[],
-    beatsCount?: number,
-    duration?: NoteDuration
+    /** Fixed target bars; meter inputs are resolved when execution starts. */
+    private readonly _bars: MasterBar[],
+    /** Requested numerator, or undefined to keep each bar's value. */
+    private readonly _beatsCount?: number,
+    /** Requested beat unit, or undefined to keep each bar's value. */
+    private readonly _duration?: NoteDuration
   ) {
-    this._oldValues = bars.map((masterBar) => ({
+    this._affectedModels = getAffectedModelsFromMasterBars(_score, _bars);
+  }
+
+  execute(): void {
+    this._before = this._bars.map((masterBar) => ({
       masterBar,
       beatsCount: masterBar.beatsCount,
       duration: masterBar.duration,
     }));
-    this._newValues = this._oldValues.map((v) => ({
+    this._after = this._before.map((v) => ({
       masterBar: v.masterBar,
-      beatsCount: beatsCount ?? v.beatsCount,
-      duration: duration ?? v.duration,
+      beatsCount: this._beatsCount ?? v.beatsCount,
+      duration: this._duration ?? v.duration,
     }));
-    this._affectedModels = getAffectedModelsFromMasterBars(_score, bars);
-  }
-
-  execute(): void {
-    ScoreEditor.setTimeSignatures(this._score, this._newValues);
+    ScoreEditor.setTimeSignatures(this._score, this._after);
     this._executed = true;
   }
 
   undo(): void {
-    if (!this._executed) return;
-    ScoreEditor.setTimeSignatures(this._score, this._oldValues);
+    if (!this._executed) {
+      return;
+    }
+    ScoreEditor.setTimeSignatures(this._score, this._before);
   }
 
   redo(): void {
-    if (!this._executed) throw Error("Redo called before execute");
-    this.execute();
+    if (!this._executed) {
+      throw Error("Redo called before execute");
+    }
+    ScoreEditor.setTimeSignatures(this._score, this._after);
   }
 
   public get affectedModels(): AffectedModel[] {

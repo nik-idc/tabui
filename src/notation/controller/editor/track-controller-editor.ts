@@ -14,6 +14,7 @@ import {
   Score,
   Track,
   MusicInstrument,
+  GuitarTechniqueType,
   TrackInstrumentChangeMode,
 } from "../../model";
 import { TrackElement } from "../element";
@@ -709,6 +710,31 @@ export class TrackControllerEditor {
     return true;
   }
 
+  /** Resolves selected slots and delegates technique eligibility to the score editor. */
+  public canSetTechnique(type: TechniqueType): boolean {
+    const cursor = this._selectionManager.selectionCursor;
+    return (
+      this.editingEnabled &&
+      ScoreEditor.canSetTechnique(
+        cursor === undefined
+          ? this._selectionManager.selectionAsBeats
+          : [cursor.beat],
+        type,
+        cursor === undefined ? undefined : cursor.noteIndex + 1
+      )
+    );
+  }
+
+  /** Reports whether the cursor note or any selected beat has the technique. */
+  public hasSelectedTechnique(type: TechniqueType): boolean {
+    const cursor = this._selectionManager.selectionCursor;
+    return cursor === undefined
+      ? this._selectionManager.selectionAsBeats.some((b) =>
+          b.hasTechnique(type)
+        )
+      : (cursor.note?.hasTechnique(type) ?? false);
+  }
+
   /**
    * Sets technique
    * @param type Type of technique
@@ -722,6 +748,23 @@ export class TrackControllerEditor {
       return;
     }
     const selectionCursor = this._selectionManager.selectionCursor;
+    if (type === GuitarTechniqueType.Tie) {
+      const beats = this._selectionManager.selectionAsBeats;
+      this.executeCommand(
+        new SetTechniqueCommand(
+          selectionCursor === undefined
+            ? beats.map((b) => ScoreEditor.getBeatPosition(b))
+            : [
+                {
+                  ...ScoreEditor.getBeatPosition(selectionCursor.beat),
+                  stringNumber: selectionCursor.noteIndex + 1,
+                },
+              ],
+          type
+        )
+      );
+      return;
+    }
     const selectionNotes =
       selectionCursor && selectionCursor.note !== null
         ? [selectionCursor.note]
@@ -732,7 +775,11 @@ export class TrackControllerEditor {
     }
 
     this.executeCommand(
-      new SetTechniqueCommand(selectionNotes, type, bendOptions)
+      new SetTechniqueCommand(
+        ScoreEditor.getTechniqueTargetsForNotes(selectionNotes),
+        type,
+        bendOptions
+      )
     );
   }
 
@@ -747,7 +794,12 @@ export class TrackControllerEditor {
       return false;
     }
 
-    this.executeCommand(new SetTechniqueCommand(affectedNotes, type));
+    this.executeCommand(
+      new SetTechniqueCommand(
+        ScoreEditor.getTechniqueTargetsForNotes(affectedNotes),
+        type
+      )
+    );
     return true;
   }
 

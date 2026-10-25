@@ -16,6 +16,7 @@ export class TechniqueControlsTemplate {
   readonly vibratoButton: HTMLButtonElement = createButton();
   readonly palmMuteButton: HTMLButtonElement = createButton();
   readonly letRingButton: HTMLButtonElement = createButton();
+  readonly tieButton: HTMLButtonElement = createButton();
   readonly nhButton: HTMLButtonElement = createButton();
   readonly phButton: HTMLButtonElement = createButton();
   readonly legatoButton: HTMLButtonElement = createButton();

@@ -245,9 +245,7 @@ describe("EditorKeyboardDefCallbacks", () => {
 
   test.each([
     ["v", false, GuitarTechniqueType.Vibrato],
-    ["p", false, GuitarTechniqueType.PalmMute],
     ["l", false, GuitarTechniqueType.Legato],
-    ["l", true, GuitarTechniqueType.LetRing],
     ["s", false, GuitarTechniqueType.Slide],
     ["h", false, GuitarTechniqueType.NaturalHarmonic],
     ["h", true, GuitarTechniqueType.PinchHarmonic],
@@ -261,7 +259,6 @@ describe("EditorKeyboardDefCallbacks", () => {
         { baseDuration: NoteDuration.Quarter },
         { baseDuration: NoteDuration.Quarter },
       ]);
-      const notes = beats.map((b) => b.notes?.[0]);
       for (const [index, beat] of beats.entries()) {
         for (const note of beat.notes ?? []) {
           if (!(note instanceof GuitarNote)) {
@@ -278,7 +275,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       for (const applied of [true, false]) {
         const event = createKeyboardEvent(key, { shiftKey });
         callbacks.onKeyDown(event);
-        expect(notes.map((n) => n?.hasTechnique(type))).toEqual([
+        expect(beats.map((b) => b.notes?.[0].hasTechnique(type))).toEqual([
           applied,
           applied,
           false,
@@ -286,13 +283,13 @@ describe("EditorKeyboardDefCallbacks", () => {
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
       }
       controller.undo();
-      expect(notes.map((n) => n?.hasTechnique(type))).toEqual([
+      expect(beats.map((b) => b.notes?.[0].hasTechnique(type))).toEqual([
         true,
         true,
         false,
       ]);
       controller.redo();
-      expect(notes.map((n) => n?.hasTechnique(type))).toEqual([
+      expect(beats.map((b) => b.notes?.[0].hasTechnique(type))).toEqual([
         false,
         false,
         false,
@@ -306,10 +303,70 @@ describe("EditorKeyboardDefCallbacks", () => {
       const disabled = createKeyboardEvent(key, { shiftKey });
       callbacks.onKeyDown(disabled);
       expect(disabled.preventDefault).not.toHaveBeenCalled();
-      expect(notes.map((n) => n?.techniques)).toEqual([[], [], []]);
+      expect(beats.map((b) => b.notes?.[0].techniques)).toEqual([[], [], []]);
       expect(renderFunc).toHaveBeenCalledTimes(2);
     }
   );
+
+  test("Tie shortcut fills empty slots up to a selected rest and supports undo", () => {
+    const distance = 3;
+    const { callbacks, notationComponent, rootElement } = createHarness();
+    const { track, beats } = createBarWithBeats(
+      Array.from({ length: distance + 1 }, () => ({
+        baseDuration: NoteDuration.Quarter,
+      }))
+    );
+    const first = beats[0].notes?.[0];
+    if (!(first instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    first.fret = 5;
+    beats[distance].makeRest();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    for (let i = 0; i < distance; i++) {
+      controller.moveSelectedNote(SelectedMoveDirection.Right);
+    }
+    rootElement.focus();
+    const event = createKeyboardEvent("j");
+    callbacks.onKeyDown(event);
+    expect(controller.selectionCursor?.note).toEqual(
+      expect.objectContaining({ fret: 5 })
+    );
+    expect(
+      controller.selectionCursor?.note?.hasTechnique(GuitarTechniqueType.Tie)
+    ).toBe(true);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    controller.undo();
+    expect(beats[distance].isRest()).toBe(true);
+    expect((beats[1].notes?.[0] as GuitarNote | undefined)?.fret ?? null).toBe(
+      null
+    );
+  });
+
+  test("Let Ring shortcut marks a supported empty slot but not a rest", () => {
+    const { callbacks, notationComponent, rootElement } = createHarness();
+    const { track, beats } = createBarWithBeats(
+      Array.from({ length: 3 }, () => ({ baseDuration: NoteDuration.Quarter }))
+    );
+    const source = required(beats[0].notes)[0] as GuitarNote;
+    source.fret = 5;
+    source.setTechnique(GuitarTechniqueType.LetRing);
+    beats[2].makeRest();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    rootElement.focus();
+    callbacks.onKeyDown(createKeyboardEvent("l", { shiftKey: true }));
+    expect(controller.hasSelectedTechnique(GuitarTechniqueType.LetRing)).toBe(
+      true
+    );
+    expect((required(beats[1].notes)[0] as GuitarNote).fret).toBeNull();
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    callbacks.onKeyDown(createKeyboardEvent("l", { shiftKey: true }));
+    expect(beats[2].isRest()).toBe(true);
+    expect(source.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
+  });
 
   test.each([false, true])(
     "Ctrl shortcuts copy, paste, undo and redo note values (uppercase=%s)",
@@ -1369,17 +1426,19 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(clearLower.preventDefault).toHaveBeenCalledTimes(1);
 
     controller.undo();
-    expect(lowerNote).toEqual(expect.objectContaining({ fret: 9 }));
+    expect(beats[0].notes?.[1]).toEqual(expect.objectContaining({ fret: 9 }));
 
     const up = createKeyboardEvent("ArrowUp");
     callbacks.onKeyDown(up);
-    expect(controller.selectionCursor?.note).toBe(upperNote);
+    expect(controller.selectionCursor?.note).toBe(beats[0].notes?.[0]);
     expect(up.preventDefault).toHaveBeenCalledTimes(1);
 
     const clearUpper = createKeyboardEvent("Backspace");
     callbacks.onKeyDown(clearUpper);
-    expect(upperNote).toEqual(expect.objectContaining({ fret: null }));
-    expect(lowerNote).toEqual(expect.objectContaining({ fret: 9 }));
+    expect(beats[0].notes?.[0]).toEqual(
+      expect.objectContaining({ fret: null })
+    );
+    expect(beats[0].notes?.[1]).toEqual(expect.objectContaining({ fret: 9 }));
     expect(clearUpper.preventDefault).toHaveBeenCalledTimes(1);
     expect(renderFunc).toHaveBeenCalledTimes(4);
   });

@@ -99,6 +99,25 @@ export class TabNoteSlotElement implements NoteElement {
       techniqueElement.build();
       this._techniqueElements.push(techniqueElement);
     }
+
+    if (this.note !== null) {
+      const nextBeat = this.note.beat.voiceBar.bar.staff.getNextBeat(
+        this.note.beat
+      );
+      const nextNote = nextBeat?.notes?.[this.stringNumber - 1];
+      const tie =
+        nextNote instanceof GuitarNote && nextNote.isTieContinuation
+          ? nextNote.techniques.find((t) => t.type === GuitarTechniqueType.Tie)
+          : undefined;
+      if (tie !== undefined) {
+        const element =
+          prevTechniqueElements.get(
+            GuitarTechniqueElement.createStableIdentity(tie, true)
+          ) ?? new GuitarTechniqueElement(tie, this, true);
+        element.build();
+        this._techniqueElements.push(element);
+      }
+    }
   }
 
   /**
@@ -160,10 +179,12 @@ export class TabNoteSlotElement implements NoteElement {
       return "x";
     }
 
-    const fret = `${this.note.fret}`;
-    return this.note.hasTechnique(GuitarTechniqueType.LetRing)
-      ? `(${fret})`
-      : fret;
+    const previous = this.note.getTiePredecessor();
+    const sameBar = previous?.beat.voiceBar === this.note.beat.voiceBar;
+    if (this.note.isTieContinuation && sameBar) {
+      return "";
+    }
+    return `${this.note.fret}`;
   }
 
   public refreshOwnedNotationNodes(): NotationNode[] {

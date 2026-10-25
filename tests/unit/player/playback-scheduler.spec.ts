@@ -120,6 +120,33 @@ describe("PlaybackScheduler", () => {
     expect(audio.sources.map((s) => s.starts)).toEqual([[10], [10]]);
   });
 
+  test.each([
+    { start: "the first note", startAtContinuation: false },
+    { start: "a tied note", startAtContinuation: true },
+  ])(
+    "plays one sound for the remaining tie duration when starting at $start",
+    ({ startAtContinuation }) => {
+      const { score, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter, dots: 1 },
+        { baseDuration: NoteDuration.Eighth },
+      ]);
+      const notes = beats.map((b) => soundNote(b, 2));
+      notes[1].setTechnique(GuitarTechniqueType.Tie);
+      notes[2].setTechnique(GuitarTechniqueType.Tie);
+      const scheduler = createScheduler(score);
+      if (startAtContinuation) {
+        scheduler.setPlaybackRange(beats[1]);
+      }
+      scheduler.setScheduleBase(10);
+      scheduler.scheduleUntil(3);
+
+      expect(audio.sources).toHaveLength(1);
+      expect(audio.sources[0].starts).toEqual([10]);
+      expect(audio.sources[0].stops).toEqual([startAtContinuation ? 11 : 11.5]);
+    }
+  );
+
   test("schedules every track, staff, and populated voice but skips overflow beats", () => {
     const { score, track, bar } = createScoreGraph();
     const secondTrack = score.addTrack(new Guitar(), "Second").tracks[0];

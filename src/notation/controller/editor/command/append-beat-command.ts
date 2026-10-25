@@ -1,4 +1,9 @@
-import { BeatArrayOperationOutput, VoiceBar } from "../../../model";
+import {
+  Beat,
+  BeatArrayOperationOutput,
+  VoiceBar,
+  ScoreEditor,
+} from "../../../model";
 import { Command, AffectedModel } from "./command";
 
 /**
@@ -9,6 +14,8 @@ export class AppendBeatCommand implements Command {
   private _voiceBar: VoiceBar;
   /** Created master bar & staff bars or null if not created yet */
   private _appendBeatResult: BeatArrayOperationOutput | null = null;
+  /** Completed inserted content, kept separate from later live edits for redo. */
+  private _after: Beat | null = null;
 
   /**
    * Add beat command
@@ -22,7 +29,8 @@ export class AppendBeatCommand implements Command {
    * Execute add beat command
    */
   execute(): void {
-    this._appendBeatResult = this._voiceBar.appendBeats();
+    this._appendBeatResult = ScoreEditor.appendBeat(this._voiceBar);
+    this._after = this._appendBeatResult.beats[0].deepCopy();
   }
 
   /**
@@ -45,13 +53,13 @@ export class AppendBeatCommand implements Command {
    * Redo, i.e. restore bar state to before execute
    */
   redo(): void {
-    if (this._appendBeatResult === null) {
+    if (this._appendBeatResult === null || this._after === null) {
       throw Error("Redo called before execute");
     }
 
-    this._voiceBar.insertBeat(
+    this._appendBeatResult = this._voiceBar.insertBeat(
       this._appendBeatResult.index,
-      this._appendBeatResult.beats[0]
+      this._after
     );
   }
 

@@ -21,6 +21,7 @@ For installation and a minimal example, see the [README](../README.md).
   - [Editing and view-only modes](#editing-and-view-only-modes)
   - [Mouse, touch, and pen input](#mouse-touch-and-pen-input)
   - [Editing with no selection](#editing-with-no-selection)
+- [Ties and Let Ring](#ties-and-let-ring)
 - [Accessibility](#accessibility)
   - [Keyboard navigation](#keyboard-navigation)
   - [Screen-reader feedback](#screen-reader-feedback)
@@ -286,6 +287,32 @@ selection. If you then press Shift+X, A, Shift+A, Delete, I, Shift+I, or
 Shift+Delete, the shortcut can cause an error instead of being ignored.
 
 This is a known limitation. Click a note slot to select it before editing again.
+
+## Ties and Let Ring
+
+Use **Tie** or **J** (for “join”) to apply ties to the selection. Press **J**
+again to remove selected ties. Read the [Tie rules](techniques.md#tie), especially
+[how applying Tie can replace selected content](techniques.md#applying-and-removing-ties).
+
+Use **Let Ring** or **Shift+L** to toggle Let Ring. Use **Palm Mute** or **P** to
+toggle Palm Mute. A cursor edits one string; a beat or range selection
+edits eligible slots in musical order. Compatibility is checked per note, so
+different strings in a beat can use different techniques.
+
+Click a Let Ring or Palm Mute label to remove that technique from its beat, not
+the whole passage. See [Let Ring](techniques.md#let-ring) for passage support and
+editing effects, and [Palm Mute](techniques.md#palm-mute) for eligible note types.
+
+The controller uses the same direct toggle, for example:
+
+```ts
+controller.setTechnique(GuitarTechniqueType.LetRing);
+controller.setTechnique(GuitarTechniqueType.PalmMute);
+```
+
+These techniques have no options. For other techniques and their interpretation,
+see [Guitar techniques](techniques.md). For storage and editing responsibilities,
+see [the domain model](domain.md#technique-ownership-and-editing).
 
 ## Accessibility
 

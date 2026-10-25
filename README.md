@@ -6,6 +6,7 @@ TypeScript.
 [Try the demo](https://nik-idc.github.io/tabui/) ·
 [API reference](https://nik-idc.github.io/tabui/api/) ·
 [Usage guide](docs/usage.md) · [Keyboard shortcuts](docs/keyboard-shortcuts.md) ·
+[Guitar techniques](docs/techniques.md) ·
 [Roadmap](ROADMAP.md)
 
 ## Features

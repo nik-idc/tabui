@@ -1,118 +1,88 @@
 import {
   ScoreEditor,
-  Technique,
   BendTechniqueOptions,
   Note,
   TechniqueType,
-  GuitarTechnique,
   GuitarTechniqueType,
-  GuitarNote,
+  BeatSnapshot,
 } from "../../../model";
+import { BeatPosition, NotePosition } from "../../../model/editor/score-editor";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
  * Set technique for notes command
  */
 export class SetTechniqueCommand implements Command {
-  /** Notes to set technique for */
-  private _notes: Note[];
   /** New technique type */
   private _newTechniqueType: TechniqueType;
   /** Bend options for if new technique is a guitar bend */
   private _newBendOptions?: BendTechniqueOptions;
-  /** Old technqiues map (note UUID -> Techniques array) */
-  private _oldTechniquesMap: Map<number, Technique[]>;
+  /** Fixed positions, including rest slots, resolved against live content when executed. */
+  private _targets: (BeatPosition | NotePosition)[];
+  /** Original beat content for undo. */
+  private _before: BeatSnapshot[] = [];
+  /** Completed beat content for redo without running edit rules again. */
+  private _after: BeatSnapshot[] = [];
+  /** Fixed note or beat positions reported to the controller, resolved against live content. */
+  private _affectedTargets: (BeatPosition | NotePosition)[];
   /** True if executed, false otherwise */
   private _executed: boolean = false;
 
   /**
    * Set technique for notes command
-   * @param notes Notes to set technique for
+   * @param targets Fixed beat positions; a one-based string limits the edit to that slot, including on rests.
    * @param type New technique type
    * @param bendOptions Bend options for if new technique is a guitar bend
    */
   constructor(
-    notes: Note[],
+    targets: (BeatPosition | NotePosition)[],
     type: TechniqueType,
     bendOptions?: BendTechniqueOptions
   ) {
-    this._notes = notes;
+    this._targets = targets.map((p) => ({ ...p }));
+    this._affectedTargets = ScoreEditor.getTechniqueTargetsForNotes(
+      ScoreEditor.getTechniqueNotes(this._targets)
+    );
     this._newTechniqueType = type;
     this._newBendOptions = bendOptions;
-
-    this._oldTechniquesMap = new Map();
-    for (const note of this._notes) {
-      this._oldTechniquesMap.set(
-        note.uuid,
-        note.techniques.map((technique) => technique.deepCopy())
-      );
-    }
   }
 
   /**
    * Execute set technique command
    */
   execute(): void {
-    this._executed = this.applyTechnique();
+    const plan = ScoreEditor.buildTechniquePlan(
+      this._targets,
+      this._newTechniqueType,
+      this._newBendOptions
+    );
+    this._before = ScoreEditor.snapshotBeatNotes(plan.stateBeats);
+    this._executed = ScoreEditor.applyTechniquePlan(plan);
+    this._after = ScoreEditor.snapshotBeatNotes(
+      ScoreEditor.resolveBeatPositions(this._before)
+    );
+    this._affectedTargets = plan.affectedTargets;
   }
 
   /**
-   * Undo set technique command, i.e. set old techniques value
+   * Restores the original beat content.
    */
   undo(): void {
     if (!this._executed) {
       return;
     }
-
-    for (const originalNote of this._notes) {
-      const note = this.getCurrentNote(originalNote);
-      const oldTechniques = this._oldTechniquesMap.get(originalNote.uuid);
-      if (oldTechniques === undefined) {
-        continue;
-      }
-
-      note.clearTechniques();
-
-      for (const technique of oldTechniques) {
-        const bendOptions =
-          technique instanceof GuitarTechnique &&
-          technique.type === GuitarTechniqueType.Bend
-            ? technique.bendOptions
-            : undefined;
-        ScoreEditor.setTechniqueNotes([note], technique.type, bendOptions);
-      }
-    }
+    ScoreEditor.restoreBeatSnapshots(this._before);
   }
 
   /**
-   * Redo, i.e. restore techniques state to before execute
+   * Restores the completed edit without planning or applying techniques again.
    */
   redo(): void {
     if (!this._executed) {
       throw Error("Redo called before execute");
     }
 
-    this.applyTechnique();
-  }
-
-  private applyTechnique(): boolean {
-    return ScoreEditor.setTechniqueNotes(
-      this._notes.map((note) => this.getCurrentNote(note)),
-      this._newTechniqueType,
-      this._newBendOptions
-    );
-  }
-
-  /** Gets current state of the note from provided note's position in the tree. */
-  private getCurrentNote(note: Note): Note {
-    if (note instanceof GuitarNote) {
-      const currentNote = note.beat.notes?.[note.stringNum - 1];
-      if (currentNote instanceof GuitarNote) {
-        return currentNote;
-      }
-    }
-
-    return note;
+    ScoreEditor.restoreBeatSnapshots(this._after);
   }
 
   /** True if executed, false otherwise */
@@ -125,9 +95,9 @@ export class SetTechniqueCommand implements Command {
       return true;
     }
 
-    for (const oldTechniques of this._oldTechniquesMap.values()) {
+    for (const note of this.previousNotes) {
       if (
-        oldTechniques.some((technique) =>
+        note.techniques.some((technique) =>
           this.isTechniqueLabelType(technique.type)
         )
       ) {
@@ -139,24 +109,28 @@ export class SetTechniqueCommand implements Command {
   }
 
   private get _affectedModels(): AffectedModel[] {
-    const affectedBeats = getAffectedModelsFromBeats(
-      this._notes.map((note) => note.beat)
-    );
-    return this._notes.map((originalNote) => {
-      const note = this.getCurrentNote(originalNote);
-      const affectedBeat = affectedBeats.find(
-        (model) => model.modelUUID === note.beat.uuid
-      );
-      if (affectedBeat === undefined) {
-        return { masterBarIndex: -1, modelUUID: note.uuid };
+    const beats = ScoreEditor.resolveBeatPositions(this._affectedTargets);
+    const affectedBeats = getAffectedModelsFromBeats(beats);
+    return this._affectedTargets.flatMap((position, i) => {
+      const beat = beats[i];
+      const affectedBeat = affectedBeats.find((m) => m.modelUUID === beat.uuid);
+      if (!("stringNumber" in position)) {
+        return affectedBeat === undefined ? [] : [affectedBeat];
+      }
+      const note = beat.notes?.[position.stringNumber - 1];
+      if (note === undefined) {
+        return [];
       }
 
-      return { ...affectedBeat, modelUUID: note.uuid };
+      return [{ masterBarIndex: -1, ...affectedBeat, modelUUID: note.uuid }];
     });
   }
 
   public get affectedModels(): AffectedModel[] {
-    if (this.affectsTechniqueLabels) {
+    const affectsBeats = this._affectedTargets.some(
+      (t) => !("stringNumber" in t)
+    );
+    if (affectsBeats || this.affectsTechniqueLabels) {
       return this._affectedModels;
     }
 
@@ -172,9 +146,9 @@ export class SetTechniqueCommand implements Command {
       return true;
     }
 
-    for (const oldTechniques of this._oldTechniquesMap.values()) {
+    for (const note of this.previousNotes) {
       if (
-        oldTechniques.some((technique) =>
+        note.techniques.some((technique) =>
           this.isInlineTechniqueType(technique.type)
         )
       ) {
@@ -183,6 +157,23 @@ export class SetTechniqueCommand implements Command {
     }
 
     return false;
+  }
+
+  private get previousNotes(): Note[] {
+    if (this._before.length === 0) {
+      return ScoreEditor.getTechniqueNotes(this._targets);
+    }
+    return this._targets.flatMap((position) => {
+      const { voiceBar, index } = position;
+      const stringNumber =
+        "stringNumber" in position ? position.stringNumber : undefined;
+      const notes =
+        this._before.find((s) => s.voiceBar === voiceBar && s.index === index)
+          ?.notes ?? [];
+      return notes.filter(
+        (_, i) => stringNumber === undefined || i === stringNumber - 1
+      );
+    });
   }
 
   private isTechniqueLabelType(type: TechniqueType): boolean {

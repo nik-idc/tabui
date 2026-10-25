@@ -1,21 +1,39 @@
-import {
-  BendTechniqueOptions,
-  MasterBar,
-  MasterBarData,
-  MasterBarArrayOperationOutput,
-  Score,
-  TechniqueType,
-  TupletSettings,
-  tupletSettingsEqual,
-} from "..";
 import { Bar } from "../bar";
-import { Beat, BeatDots } from "../beat";
-import { MusicInstrument } from "../instrument/instrument";
+import { Beat } from "../beat";
+import type { BendTechniqueOptions } from "../bend-options";
 import { GuitarNote } from "../guitar-note";
-import { Note } from "../note";
+import { MusicInstrument } from "../instrument/instrument";
+import type { MasterBarData } from "../master-bar";
+import { Note, NoteValue } from "../note";
 import { NoteDuration } from "../note-duration";
-import { BeatRemovalOutput, VoiceBar } from "../voice-bar";
-import { VoiceNumber } from "../voice-bar";
+import type {
+  Score,
+  MasterBarArrayOperationOutput,
+  TimeSignatureChange,
+} from "../score";
+import type { TechniqueType } from "../technique-type";
+import { TupletSettings, tupletSettingsEqual } from "../tuplet-settings";
+import {
+  BeatArrayOperationOutput,
+  BeatRemovalOutput,
+  VoiceBar,
+  VoiceNumber,
+} from "../voice-bar";
+import { EditPosition } from "./edit-position";
+import type { BeatPosition, NotePosition } from "./edit-position";
+import { LetRingEditing } from "./let-ring-editing";
+import { TechniqueEditing } from "./technique-editing";
+import type { TechniqueEditPlan, TieEditPlan } from "./technique-edit-plan";
+import { TieEditing } from "./tie-editing";
+
+export type { BeatPosition, NotePosition } from "./edit-position";
+export type { TimeSignatureChange } from "../score";
+export { TechniqueEditKind } from "./technique-edit-plan";
+export type {
+  TieEditPlan,
+  OrdinaryTechniquePlan,
+  TechniqueEditPlan,
+} from "./technique-edit-plan";
 
 /** Beat content and original position recorded for a later restore operation. */
 export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
@@ -27,11 +45,10 @@ export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
   beat: Beat<I>;
 };
 
-/** A complete meter value to apply to one master bar. */
-export type TimeSignatureChange = {
-  masterBar: MasterBar;
-  beatsCount: number;
-  duration: NoteDuration;
+/** Fixed note content addressed by voice and position, so history can replace beat objects. */
+export type BeatSnapshot = BeatPosition & {
+  /** Saved slot content, or null for an explicit rest. */
+  notes: Note[] | null;
 };
 
 /** Live inserted beats and removal metadata needed to reverse a replacement. */
@@ -48,99 +65,491 @@ export type BeatReplacementOutput<I extends MusicInstrument = MusicInstrument> =
  * Calls do not create editor undo history, redraw views, or guarantee host events; failures may leave partial changes.
  */
 export class ScoreEditor {
+  // History and positions
+
+  /** Records a live beat's address without retaining its object identity. */
+  public static getBeatPosition(beat: Beat): BeatPosition {
+    return EditPosition.getBeatPosition(beat);
+  }
+
+  /** Resolves an address against the current voice content, not a detached history copy. */
+  public static resolveBeatPosition(position: BeatPosition): Beat {
+    return EditPosition.resolveBeatPosition(position);
+  }
+
+  /** Resolves saved content positions against the live beats restored by later commands. */
+  public static resolveBeatPositions(positions: BeatPosition[]): Beat[] {
+    return positions.map((p) => this.resolveBeatPosition(p));
+  }
+
+  /** Keeps only installed beats after a structural edit has removed some candidates. */
+  public static getLiveBeats(beats: Beat[]): Beat[] {
+    return beats.filter(
+      (b) =>
+        b.voiceBar.bar.staff.bars.includes(b.voiceBar.bar) &&
+        b.voiceBar.bar.getVoiceBar(b.voiceBar.voiceNumber) === b.voiceBar &&
+        b.voiceBar.beats.includes(b)
+    );
+  }
+
+  /** Finds next-beat ties and following empty markers that can lose support after a content edit. */
+  public static getNoteEditBeats(beats: Beat[], stringNumber?: number): Beat[] {
+    return LetRingEditing.getNoteEditBeats(beats, stringNumber);
+  }
+
+  /** Finds existing boundary content at a normalized insertion index before clipboard beats shift it. */
+  public static getInsertionEditBeats(
+    voiceBar: VoiceBar,
+    index: number
+  ): Beat[] {
+    const boundaryBeat = voiceBar.beats[index] ?? voiceBar.beats[index - 1];
+    return boundaryBeat === undefined
+      ? []
+      : this.getNoteEditBeats([boundaryBeat]);
+  }
+
+  /** Finds written content at bar edit boundaries across all staves and voices. */
+  public static getBarEditBeats(score: Score, indices: number[]): Beat[] {
+    const beats = score.tracks.flatMap((t) =>
+      t.staves.flatMap((s) =>
+        indices.flatMap(
+          (i) => s.bars[i]?.voiceBarsAsArray.flatMap((v) => v.beats) ?? []
+        )
+      )
+    );
+    return this.getNoteEditBeats(beats);
+  }
+
+  /** Saves fixed note content at positions that survive later beat replacement during history. */
+  public static snapshotBeatNotes(beats: Beat[]): BeatSnapshot[] {
+    return beats.map((b) => ({
+      voiceBar: b.voiceBar,
+      index: b.voiceBar.beats.indexOf(b),
+      notes: b.notes?.map((n) => n.deepCopy(b)) ?? null,
+    }));
+  }
+
+  /** Restores rests first, then fixed slot content, without repeating dependency discovery. */
+  public static restoreBeatSnapshots(snapshots: BeatSnapshot[]): void {
+    const beats = this.resolveBeatPositions(snapshots);
+    for (const [i, snapshot] of snapshots.entries()) {
+      if (snapshot.notes === null) {
+        beats[i].makeRest();
+      }
+    }
+
+    for (const [i, snapshot] of snapshots.entries()) {
+      if (snapshot.notes === null) {
+        continue;
+      }
+
+      beats[i].makeBeatWithNotes();
+      for (const [j, note] of snapshot.notes.entries()) {
+        beats[i].setNote(j, note);
+      }
+    }
+  }
+
+  // Note editing
+
+  /** Enters a fret and normalizes the changed string's downstream content. */
+  public static setFret(
+    beat: Beat,
+    stringNumber: number,
+    fret: number | null
+  ): void {
+    const affected = this.getNoteEditBeats([beat], stringNumber);
+    beat.makeBeatWithNotes();
+    const note = beat.notes?.[stringNumber - 1];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Can't set fret of a non-guitar note");
+    }
+    note.fret = fret;
+    this.normalizeNoteContent(affected);
+  }
+
+  /** Enters pitch without inheriting markers from neighboring slots. */
+  public static setNote(
+    beat: Beat,
+    stringNumber: number,
+    value: NoteValue,
+    octave: number | null
+  ): void {
+    const affected = this.getNoteEditBeats([beat], stringNumber);
+    beat.makeBeatWithNotes();
+    const note = beat.notes?.[stringNumber - 1];
+    if (note === undefined) {
+      throw Error("Can't set a note outside the beat's note lanes");
+    }
+    if (value === NoteValue.None || value === NoteValue.Dead) {
+      note.noteValue = value;
+      note.octave = octave;
+    } else {
+      note.setNote(value, octave);
+    }
+    this.normalizeNoteContent(affected);
+  }
+
+  /** Changes rest state in one voice and removes unsupported following markers. */
+  public static setRest(beats: Beat[], rest: boolean): void {
+    const affected = this.getNoteEditBeats(beats);
+    for (const beat of beats) {
+      if (rest) {
+        beat.makeRest();
+      } else {
+        beat.makeBeatWithNotes();
+      }
+    }
+    this.normalizeNoteContent(affected);
+  }
+
   /**
-   * Ensures a voice slot exists, initially with a quarter rest.
-   * @returns True if a voice was created, false if it already existed.
-   * @throws If the new voice's timing cannot be rebuilt.
+   * Removes the technique if every eligible selected guitar slot has it and no bend options are supplied.
+   * Otherwise, attempts to apply or update it on each guitar note.
+   * Tie uses backward search on the selected note strings and can fill intervening empty slots.
+   * @param notes Live selected notes; non-guitar notes are skipped. Ordinary techniques use note-level applicability rules.
+   * @param type Technique to toggle.
+   * @param bendOptions Required when adding a bend; supplying options updates existing bends.
+   * @returns True if any note changed.
+   * @throws If bend options are missing when required or invalid for the technique. Transition lookup can also throw if a note's beat is a rest.
    */
-  public static ensureVoiceBar(bar: Bar, voiceNumber: VoiceNumber): boolean {
-    const voiceBarInserted = bar.getVoiceBar(voiceNumber) === null;
-    bar.ensureVoiceBar(voiceNumber);
-    return voiceBarInserted;
+  public static setTechniqueForNotes<I extends MusicInstrument>(
+    notes: Note<I>[],
+    type: TechniqueType,
+    bendOptions: BendTechniqueOptions | null = null
+  ): boolean {
+    return TechniqueEditing.setTechniqueForNotes(notes, type, bendOptions);
   }
 
-  private static rebuildBars<I extends MusicInstrument>(
-    voiceBars: Set<VoiceBar<I>>
-  ): void {
-    for (const voiceBar of voiceBars) {
-      voiceBar.rebuildTiming();
+  /** Resolves selected live slots; rests contribute no notes for ordinary techniques. */
+  public static getTechniqueNotes(
+    targets: (BeatPosition | NotePosition)[]
+  ): Note[] {
+    return TechniqueEditing.getTechniqueNotes(targets);
+  }
+
+  /** Records explicit note positions without treating them as whole-beat edits. */
+  public static getTechniqueTargetsForNotes(notes: Note[]): NotePosition[] {
+    return EditPosition.getTechniqueTargetsForNotes(notes);
+  }
+
+  /** Checks eligibility for selected slots; applied techniques remain removable. */
+  public static canSetTechnique(
+    beats: Beat[],
+    type: TechniqueType,
+    stringNumber?: number
+  ): boolean {
+    return TechniqueEditing.canSetTechnique(beats, type, stringNumber);
+  }
+
+  /** Builds a technique plan without changing content, so commands can save its affected beats first. */
+  public static buildTechniquePlan(
+    targets: (BeatPosition | NotePosition)[],
+    type: TechniqueType,
+    bendOptions: BendTechniqueOptions | null = null
+  ): TechniqueEditPlan {
+    return TechniqueEditing.buildTechniquePlan(targets, type, bendOptions);
+  }
+
+  /** Applies fixed prepared operations; history redo should restore saved content instead. */
+  public static applyTechniquePlan(plan: TechniqueEditPlan): boolean {
+    return TechniqueEditing.applyTechniquePlan(plan);
+  }
+
+  /**
+   * Joins notes backward through empty slots and matching frets, or removes ties when all selected playable notes have them.
+   * @param beats Live selected beats, processed in input order; rests can become continuations, but stop backward searches.
+   * @param stringNumber One-based string to edit; omitted copies whole chords, searching each string independently.
+   * @returns Unique affected beats, including predecessors for tie display; empty if no playable source or tie to remove exists.
+   */
+  public static setTieBeats(beats: Beat[], stringNumber?: number): Beat[] {
+    return TieEditing.setTieBeats(beats, stringNumber);
+  }
+
+  /** Applies the same backward tie edit to explicit note slots, without replacing other chord strings. */
+  public static setTieNotes(notes: Note[]): Beat[] {
+    return TieEditing.setTieNotes(notes);
+  }
+
+  /** Plans explicit positions without mutation; whole-beat targets replace content, string targets preserve other strings. */
+  public static buildTiePlan(
+    targets: (BeatPosition | NotePosition)[]
+  ): TieEditPlan {
+    return TieEditing.buildTiePlan(targets);
+  }
+
+  /** Builds a fixed beat/chord tie plan without changing models; earlier targets inform later searches. */
+  public static buildTiePlanForBeats(
+    beats: Beat[],
+    stringNumber?: number
+  ): TieEditPlan {
+    return TieEditing.buildTiePlanForBeats(beats, stringNumber);
+  }
+
+  /** Builds a fixed note-slot tie plan without changing models or replacing other chord strings. */
+  public static buildTiePlanForNotes(notes: Note[]): TieEditPlan {
+    return TieEditing.buildTiePlanForNotes(notes);
+  }
+
+  /** Applies a prepared plan without searching again; save affected beats before this model boundary. */
+  public static applyTiePlan(plan: TieEditPlan): Beat[] {
+    return TieEditing.applyTiePlan(plan);
+  }
+
+  /** Removes unsupported empty markers after edits; playable marked notes start independent passages. */
+  public static normalizeNoteContent(beats: Beat[]): void {
+    LetRingEditing.normalizeNoteContent(beats);
+  }
+
+  // Beat structure
+
+  /** Copies saved content into original voices while removing replacement content and recorded generated rests atomically per bar. */
+  public static restoreBeats<I extends MusicInstrument>(
+    snapshots: BeatRestoreSnapshot<I>[],
+    replacedBeats: Beat<I>[] = [],
+    normalization: Pick<BeatRemovalOutput<I>, "inserted">[] = []
+  ): Beat<I>[] {
+    const restoredBeats: Beat<I>[] = [];
+    const bars = new Set([
+      ...snapshots.map((s) => s.voiceBar.bar),
+      ...replacedBeats.map((b) => b.voiceBar.bar),
+      ...normalization.flatMap((o) =>
+        o.inserted.flatMap((i) => i.beats.map((b) => b.voiceBar.bar))
+      ),
+    ]);
+    for (const bar of bars) {
+      const voices = new Set(
+        snapshots.filter((s) => s.voiceBar.bar === bar).map((s) => s.voiceBar)
+      );
+      const insertions = [...voices].map((voiceBar) => {
+        const voiceSnapshots = snapshots
+          .filter((s) => s.voiceBar === voiceBar)
+          .sort((a, b) => a.index - b.index);
+        return {
+          voiceBar,
+          index: voiceSnapshots[0].index,
+          beats: voiceSnapshots.map((s) => s.beat),
+        };
+      });
+      restoredBeats.push(
+        ...bar.restoreBeats(
+          insertions,
+          replacedBeats.filter((b) => b.voiceBar.bar === bar),
+          normalization.map((o) => ({
+            inserted: o.inserted.filter((i) => i.beats[0].voiceBar.bar === bar),
+          }))
+        )
+      );
     }
+    return restoredBeats;
   }
 
-  private static rebuildAffectedBars<I extends MusicInstrument>(
-    beats: Beat<I>[]
-  ): void {
-    this.rebuildBars(new Set(beats.map((beat) => beat.voiceBar)));
-  }
-
-  private static copyRhythmicData<I extends MusicInstrument>(
-    targetBeat: Beat<I>,
-    sourceBeat: Beat<I>
-  ): void {
-    targetBeat.baseDuration = sourceBeat.baseDuration;
-    targetBeat.dots = sourceBeat.dots as BeatDots;
-    targetBeat.tupletSettings =
-      sourceBeat.tupletSettings !== null
-        ? {
-            normalCount: sourceBeat.tupletSettings.normalCount,
-            tupletCount: sourceBeat.tupletSettings.tupletCount,
-          }
-        : null;
-  }
-
-  private static copyBeatContent<I extends MusicInstrument>(
-    targetBeat: Beat<I>,
-    sourceBeat: Beat<I>
-  ): void {
-    this.copyRhythmicData(targetBeat, sourceBeat);
-
-    if (sourceBeat.notes === null) {
-      targetBeat.makeRest();
-      return;
+  /** Delegates restoration and generated-rest removal to each bar, retaining input removal order. */
+  public static undoBeatRemovals<I extends MusicInstrument>(
+    outputs: BeatRemovalOutput<I>[]
+  ): Beat<I>[] {
+    const restored = new Map<BeatRemovalOutput<I>, Beat<I>[]>();
+    const bars = new Set(outputs.map((o) => o.removed.beats[0].voiceBar.bar));
+    for (const bar of bars) {
+      const removals = outputs.filter(
+        (o) => o.removed.beats[0].voiceBar.bar === bar
+      );
+      const beats = bar.restoreBeatRemovals(removals);
+      for (const removal of removals) {
+        restored.set(removal, beats.splice(0, removal.removed.beats.length));
+      }
     }
-
-    targetBeat.makeBeatWithNotes();
-    if (targetBeat.notes === null) {
-      throw Error("Failed to convert rest beat to note beat");
-    }
-
-    const smallerNoteCount = Math.min(
-      targetBeat.notes.length,
-      sourceBeat.notes.length
-    );
-    for (let i = 0; i < smallerNoteCount; i++) {
-      targetBeat.setNote(i, sourceBeat.notes[i]);
-    }
+    return outputs.flatMap((o) => {
+      const beats = restored.get(o);
+      if (beats === undefined) {
+        throw Error("Missing restored removal");
+      }
+      return beats;
+    });
   }
 
-  private static createBeatCopyForBar<I extends MusicInstrument>(
+  /** Resolves sequential removal coordinates before applying the model's atomic removal operation. */
+  public static redoBeatRemovals<I extends MusicInstrument>(
+    outputs: BeatRemovalOutput<I>[]
+  ): BeatRemovalOutput<I>[] {
+    const beats = outputs.map((o) => ({
+      voiceBar: o.removed.beats[0].voiceBar,
+      index: o.removed.index,
+    }));
+    // Recorded indexes include earlier removal shifts, not original coordinates.
+    for (let i = 0; i < beats.length; i++) {
+      for (let j = i - 1; j >= 0; j--) {
+        const sameVoice = beats[i].voiceBar === beats[j].voiceBar;
+        const followsRemoval = beats[i].index >= outputs[j].removed.index;
+        if (sameVoice && followsRemoval) {
+          beats[i].index += outputs[j].removed.beats.length;
+        }
+      }
+    }
+    return this.removeBeats(this.resolveBeatPositions(beats) as Beat<I>[]);
+  }
+
+  /** Inserts a blank beat at an index from zero through the beat count, inheriting Let Ring between marked neighbors. Other indexes throw. */
+  public static insertBeat(
+    voiceBar: VoiceBar,
+    index: number
+  ): BeatArrayOperationOutput {
+    const result = voiceBar.insertBeat(index);
+    LetRingEditing.inheritBlankMarkers(result.beats);
+    return result;
+  }
+
+  /** Appends the usual rest, or a blank slot when both cross-bar neighbors mark an existing passage. */
+  public static appendBeat(voiceBar: VoiceBar): BeatArrayOperationOutput {
+    const result = voiceBar.appendBeats();
+    LetRingEditing.inheritAppendMarkers(result.beats);
+    return result;
+  }
+
+  // Future direction: once TabUI has explicit rests/gaps and a clear invariant
+  // for complete bars, paste/replacement can become rhythm-aware. Until then,
+  // these operations intentionally match the liberal beat-editing model: they
+  // insert/remove beats locally and allow bars to become underfilled/overfilled.
+  /**
+   * Copies beat content into one voice and rebuilds timing, allowing underfill or overfill.
+   * @param beatIndex Integer insertion position from zero through the number of beats.
+   * @param beats Content to copy; an empty array has no effect.
+   * @param restoreContent True installs fixed history content without applying edit normalization.
+   * @returns Live inserted copies, adapted to the destination's note-slot count.
+   * @throws If the index is invalid or copying note/rhythm data or rebuilding timing fails.
+   */
+  public static insertBeats<I extends MusicInstrument>(
     voiceBar: VoiceBar<I>,
-    sourceBeat: Beat<I>
-  ): Beat<I> {
-    const beat = new Beat<I>(
-      voiceBar,
-      voiceBar.trackContext,
-      [],
-      sourceBeat.baseDuration,
-      sourceBeat.dots as BeatDots,
-      sourceBeat.tupletSettings !== null
-        ? {
-            normalCount: sourceBeat.tupletSettings.normalCount,
-            tupletCount: sourceBeat.tupletSettings.tupletCount,
-          }
-        : null
-    );
-    this.copyBeatContent(beat, sourceBeat);
-    return beat;
+    beatIndex: number,
+    beats: Beat<I>[],
+    restoreContent: boolean = false
+  ): Beat<I>[] {
+    const affected = this.getInsertionEditBeats(voiceBar, beatIndex);
+    const insertedBeats = voiceBar.insertBeats(beatIndex, beats);
+    if (!restoreContent && insertedBeats.length > 0) {
+      this.normalizeNoteContent([...insertedBeats, ...affected]);
+    }
+
+    return insertedBeats;
   }
+
+  /**
+   * Removes live beats in input order, normalizing empty voices and rebuilding timing.
+   * @param beats Beats still present in their owning voices; duplicates are not supported.
+   * @param normalize False defers content validation until a replacement or history restore finishes.
+   * @returns Removal positions, removed beats, and fallback-rest/voice changes for restoration.
+   * @throws If a beat is absent, staff counts are inconsistent, or timing rebuild fails.
+   */
+  public static removeBeats<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    normalize: boolean = true
+  ): BeatRemovalOutput<I>[] {
+    beats = [...beats];
+    const affected = this.getNoteEditBeats(beats);
+    const results = new Map<Beat<I>, BeatRemovalOutput<I>>();
+    for (const [bar, selected] of this.groupBeatsByBar(beats)) {
+      const result = bar.replaceSelectedBeats(selected);
+      for (const [i, beat] of selected.entries()) {
+        results.set(beat, result.removals[i]);
+      }
+    }
+
+    if (normalize) {
+      this.normalizeNoteContent(this.getLiveBeats(affected));
+    }
+    return beats.map((b) => {
+      const output = results.get(b);
+      if (output === undefined) {
+        throw Error("Missing beat removal");
+      }
+      return output;
+    });
+  }
+
+  /**
+   * Replaces selected beats with new beats at the selection start. This is not
+   * duration-aware: multi-bar selections may leave later bars underfilled and
+   * longer clipboard content may overfill the first affected bar.
+   * @param oldBeats Live beats to remove, with the insertion location first.
+   * @param newBeats Content to copy into the first affected voice.
+   * @param restoreContent True installs fixed history content without applying edit normalization.
+   * @returns Inserted copies and removal metadata; both are empty if either input is empty.
+   * @throws If a selected beat is absent or copying, bookkeeping, or timing rebuild fails.
+   */
+  public static replaceBeats<I extends MusicInstrument>(
+    oldBeats: Beat<I>[],
+    newBeats: Beat<I>[],
+    restoreContent: boolean = false
+  ): BeatReplacementOutput<I> {
+    if (oldBeats.length === 0 || newBeats.length === 0) {
+      return { insertedBeats: [], removalOutputs: [] };
+    }
+
+    const startBeatIndex = oldBeats[0].voiceBar.beats.indexOf(oldBeats[0]);
+    oldBeats = [...oldBeats];
+    const startVoiceBar = oldBeats[0].voiceBar;
+    const affected = this.getNoteEditBeats(oldBeats);
+    const results = new Map<Beat<I>, BeatRemovalOutput<I>>();
+    const insertedBeats: Beat<I>[] = [];
+    for (const [bar, selected] of this.groupBeatsByBar(oldBeats)) {
+      const insertions =
+        bar === startVoiceBar.bar
+          ? [
+              {
+                voiceBar: startVoiceBar,
+                index: startBeatIndex,
+                beats: newBeats,
+              },
+            ]
+          : [];
+      const result = bar.replaceSelectedBeats(selected, insertions);
+      insertedBeats.push(...result.insertedBeats);
+      for (const [i, beat] of selected.entries()) {
+        results.set(beat, result.removals[i]);
+      }
+    }
+    const removalOutputs = oldBeats.map((b) => {
+      const output = results.get(b);
+      if (output === undefined) {
+        throw Error("Missing beat removal");
+      }
+      return output;
+    });
+    if (!restoreContent) {
+      this.normalizeNoteContent([
+        ...insertedBeats,
+        ...this.getLiveBeats(affected),
+      ]);
+    }
+    return { insertedBeats, removalOutputs };
+  }
+
+  /** Groups a selection in one pass without searching the score or rescanning it for each bar. */
+  private static groupBeatsByBar<I extends MusicInstrument>(
+    beats: Beat<I>[]
+  ): Map<Bar<I>, Beat<I>[]> {
+    const groups = new Map<Bar<I>, Beat<I>[]>();
+    for (const beat of beats) {
+      const bar = beat.voiceBar.bar;
+      const group = groups.get(bar);
+      if (group === undefined) {
+        groups.set(bar, [beat]);
+      } else {
+        group.push(beat);
+      }
+    }
+    return groups;
+  }
+
+  // Bar structure
 
   /**
    * Inserts a master bar and corresponding bars on every staff.
-   * @param index Zero-based insertion position, using array-splice semantics.
+   * @param index Integer insertion position from zero through the number of master bars.
    * @param masterBarData Meter, tempo, and repeat settings for the new master bar.
    * @param voiceNumber Voice slot to create with a quarter rest on each staff.
    * @returns Live master/staff bars and insertion position.
-   * @throws If master-bar settings or new voice timing are invalid.
+   * @throws If the index, master-bar settings, or new voice timing are invalid.
    */
   public static insertMasterBar(
     score: Score,
@@ -148,7 +557,15 @@ export class ScoreEditor {
     masterBarData: MasterBarData,
     voiceNumber: VoiceNumber
   ): MasterBarArrayOperationOutput {
-    return score.insertMasterBar(index, masterBarData, voiceNumber);
+    const affected = this.getBarEditBeats(score, [index]);
+    const result = score.insertMasterBar(index, masterBarData, voiceNumber);
+    for (const bar of result.bars.values()) {
+      for (const voice of bar.voiceBarsAsArray) {
+        LetRingEditing.inheritBlankMarkers(voice.beats);
+      }
+    }
+    this.normalizeNoteContent(affected);
+    return result;
   }
 
   /**
@@ -180,6 +597,41 @@ export class ScoreEditor {
   }
 
   /**
+   * Removes score-wide bars at unique indexes, processing from last to first.
+   * @param indices Zero-based master-bar indexes before removal.
+   * @returns Removal metadata ordered by ascending original index.
+   * @throws If an index is outside the score or removal would leave no master/staff bar.
+   */
+  public static removeBars(
+    score: Score,
+    indices: number[]
+  ): MasterBarArrayOperationOutput[] {
+    const uniqueIndices = Array.from(new Set(indices)).sort((a, b) => a - b);
+    const outputs: MasterBarArrayOperationOutput[] = [];
+    const affected = this.getBarEditBeats(score, uniqueIndices);
+
+    for (let i = uniqueIndices.length - 1; i >= 0; i--) {
+      outputs.unshift(score.removeMasterBar(uniqueIndices[i]));
+    }
+
+    this.normalizeNoteContent(this.getLiveBeats(affected));
+    return outputs;
+  }
+
+  /**
+   * Ensures a voice slot exists, initially with a quarter rest.
+   * @returns True if a voice was created, false if it already existed.
+   * @throws If the new voice's timing cannot be rebuilt.
+   */
+  public static ensureVoiceBar(bar: Bar, voiceNumber: VoiceNumber): boolean {
+    const voiceBarInserted = bar.getVoiceBar(voiceNumber) === null;
+    bar.ensureVoiceBar(voiceNumber);
+    return voiceBarInserted;
+  }
+
+  // Rhythm and meter
+
+  /**
    * Applies complete meters and rebuilds matching voices across all tracks, preserving note content even when overfull.
    * @param changes Master bars with numerator counts and written denominator durations.
    * @throws If a meter count is outside supported bounds or timing/beaming rebuild fails.
@@ -188,75 +640,9 @@ export class ScoreEditor {
     score: Score,
     changes: TimeSignatureChange[]
   ): void {
-    const masterBars = new Set(changes.map((v) => v.masterBar));
-    for (const change of changes) {
-      change.masterBar.beatsCount = change.beatsCount;
-      change.masterBar.duration = change.duration;
-    }
-
-    const affectedVoiceBars = new Set<VoiceBar>();
-    for (const track of score.tracks) {
-      for (const staff of track.staves) {
-        for (const bar of staff.bars) {
-          if (masterBars.has(bar.masterBar)) {
-            for (const voiceBar of bar.voiceBarsAsArray) {
-              affectedVoiceBars.add(voiceBar);
-            }
-          }
-        }
-      }
-    }
-
-    this.rebuildBars(affectedVoiceBars);
+    score.setTimeSignatures(changes);
   }
 
-  /**
-   * Removes the technique if every non-empty guitar note in the selection has it and no bend options are supplied.
-   * Otherwise, attempts to apply or update it on each guitar note.
-   * @param notes Live selected notes; non-guitar notes are skipped and note-level applicability rules apply.
-   * @param type Technique to toggle.
-   * @param bendOptions Required when adding a bend; supplying options updates existing bends.
-   * @returns True if any note changed.
-   * @throws If bend options are missing when required or invalid for the technique. Transition lookup can also throw if a note's beat is a rest.
-   */
-  public static setTechniqueNotes<I extends MusicInstrument>(
-    notes: Note<I>[],
-    type: TechniqueType,
-    bendOptions: BendTechniqueOptions | null = null
-  ): boolean {
-    let changesMade = false;
-    const applicableNotes = notes.filter(
-      (note) => note instanceof GuitarNote && note.fret !== null
-    );
-    const hasAllWithTechnique =
-      applicableNotes.length > 0 &&
-      applicableNotes.every((note) => note.hasTechnique(type));
-    const removeFromSelection = hasAllWithTechnique && bendOptions === null;
-
-    for (const note of notes) {
-      if (!(note instanceof GuitarNote)) {
-        continue;
-      }
-
-      if (removeFromSelection && !note.hasTechnique(type)) {
-        continue;
-      }
-
-      if (
-        !removeFromSelection &&
-        bendOptions === null &&
-        note.hasTechnique(type)
-      ) {
-        continue;
-      }
-
-      if (note.setTechnique(type, bendOptions)) {
-        changesMade = true;
-      }
-    }
-
-    return changesMade;
-  }
   /**
    * Sets written duration and rebuilds the owning voice's timing and beaming.
    * @param beat Beat
@@ -267,8 +653,7 @@ export class ScoreEditor {
     beat: Beat<I>,
     newDuration: NoteDuration
   ): void {
-    beat.baseDuration = newDuration;
-    beat.voiceBar.rebuildTiming();
+    Beat.updateRhythm([{ beat, duration: newDuration }]);
   }
 
   /**
@@ -279,11 +664,7 @@ export class ScoreEditor {
     beats: Beat<I>[],
     newDuration: NoteDuration
   ): void {
-    for (const beat of beats) {
-      beat.baseDuration = newDuration;
-    }
-
-    this.rebuildAffectedBars(beats);
+    Beat.updateRhythm(beats.map((beat) => ({ beat, duration: newDuration })));
   }
 
   /**
@@ -295,11 +676,12 @@ export class ScoreEditor {
     beats: Beat<I>[],
     oldDurationMap: Map<number, NoteDuration>
   ): void {
-    for (const beat of beats) {
-      beat.baseDuration = oldDurationMap.get(beat.uuid) ?? NoteDuration.Quarter;
-    }
-
-    this.rebuildAffectedBars(beats);
+    Beat.updateRhythm(
+      beats.map((beat) => ({
+        beat,
+        duration: oldDurationMap.get(beat.uuid) ?? NoteDuration.Quarter,
+      }))
+    );
   }
 
   /**
@@ -317,12 +699,10 @@ export class ScoreEditor {
     }
 
     const removeDots =
-      beats.length > 0 && beats.every((beat) => beat.dots === newDots);
-    for (const beat of beats) {
-      beat.dots = (removeDots ? 0 : newDots) as BeatDots;
-    }
-
-    this.rebuildAffectedBars(beats);
+      beats.length > 0 && beats.every((b) => b.dots === newDots);
+    Beat.updateRhythm(
+      beats.map((beat) => ({ beat, dots: removeDots ? 0 : newDots }))
+    );
   }
 
   /**
@@ -334,11 +714,9 @@ export class ScoreEditor {
     beats: Beat<I>[],
     oldDotsMap: Map<number, number>
   ): void {
-    for (const beat of beats) {
-      beat.dots = (oldDotsMap.get(beat.uuid) ?? 0) as BeatDots;
-    }
-
-    this.rebuildAffectedBars(beats);
+    Beat.updateRhythm(
+      beats.map((beat) => ({ beat, dots: oldDotsMap.get(beat.uuid) ?? 0 }))
+    );
   }
 
   /**
@@ -353,17 +731,9 @@ export class ScoreEditor {
   ): void {
     const sameSettings = tupletSettingsEqual(newSettings, beat.tupletSettings);
 
-    if (newSettings === null || sameSettings) {
-      beat.tupletSettings = null;
-      beat.voiceBar.rebuildTiming();
-      return;
-    }
-
-    beat.tupletSettings = {
-      normalCount: newSettings.normalCount,
-      tupletCount: newSettings.tupletCount,
-    };
-    beat.voiceBar.rebuildTiming();
+    Beat.updateRhythm([
+      { beat, tupletSettings: sameSettings ? null : newSettings },
+    ]);
   }
 
   /**
@@ -379,17 +749,12 @@ export class ScoreEditor {
     const removeTuplet =
       beats.length > 0 &&
       beats.every((b) => tupletSettingsEqual(b.tupletSettings, tupletSettings));
-    for (const beat of beats) {
-      beat.tupletSettings =
-        removeTuplet || tupletSettings === null
-          ? null
-          : {
-              normalCount: tupletSettings.normalCount,
-              tupletCount: tupletSettings.tupletCount,
-            };
-    }
-
-    this.rebuildAffectedBars(beats);
+    Beat.updateRhythm(
+      beats.map((beat) => ({
+        beat,
+        tupletSettings: removeTuplet ? null : tupletSettings,
+      }))
+    );
   }
 
   /**
@@ -401,249 +766,11 @@ export class ScoreEditor {
     beats: Beat<I>[],
     oldTupletMap: Map<number, TupletSettings | null>
   ): void {
-    for (const beat of beats) {
-      const oldTuplet = oldTupletMap.get(beat.uuid) ?? null;
-      beat.tupletSettings =
-        oldTuplet !== null
-          ? {
-              normalCount: oldTuplet.normalCount,
-              tupletCount: oldTuplet.tupletCount,
-            }
-          : null;
-    }
-
-    this.rebuildAffectedBars(beats);
-  }
-
-  /**
-   * Removes live beats in input order, normalizing empty voices and rebuilding timing.
-   * @param beats Beats still present in their owning voices; duplicates are not supported.
-   * @returns Removal positions, removed beats, and fallback-rest/voice changes for restoration.
-   * @throws If a beat is absent, staff counts are inconsistent, or timing rebuild fails.
-   */
-  public static removeBeats<I extends MusicInstrument>(
-    beats: Beat<I>[]
-  ): BeatRemovalOutput<I>[] {
-    const outputs: BeatRemovalOutput<I>[] = [];
-    for (const beat of beats) {
-      const beatIndex = beat.voiceBar.beats.indexOf(beat);
-      outputs.push(beat.voiceBar.removeBeat(beatIndex));
-    }
-
-    return outputs;
-  }
-
-  /**
-   * Discards beats inserted by a prior removal to preserve model invariants.
-   * Use only with matching live removal metadata before restoring content; voices can remain empty.
-   * @throws If staff counts are inconsistent or timing rebuild fails.
-   */
-  public static discardBeatRemovalInsertions<I extends MusicInstrument>(
-    outputs: BeatRemovalOutput<I>[]
-  ): void {
-    for (let i = outputs.length - 1; i >= 0; i--) {
-      const output = outputs[i];
-      for (let j = output.inserted.length - 1; j >= 0; j--) {
-        const insertion = output.inserted[j];
-        const voiceBar = insertion.beats[0].voiceBar;
-        const presentBeats = insertion.beats.filter((beat) =>
-          voiceBar.beats.includes(beat)
-        );
-        if (
-          presentBeats.length !== 0 &&
-          presentBeats.length === voiceBar.beats.length
-        ) {
-          voiceBar.bar.staff.recordVoiceBarRemoved(voiceBar);
-        }
-        for (const beat of presentBeats) {
-          const beatIndex = voiceBar.beats.indexOf(beat);
-          if (beatIndex !== -1) {
-            voiceBar.beats.splice(beatIndex, 1);
-          }
-        }
-        voiceBar.rebuildTiming();
-      }
-    }
-  }
-
-  /**
-   * Removes beats as a setup step before restoring other beats into the same
-   * location. Any default rest inserted by the removal invariant is discarded so
-   * the restore does not leave extra content behind.
-   * @returns Live removal metadata; callers must complete restoration to refill empty voices.
-   * @throws If a beat is absent, staff counts are inconsistent, or timing rebuild fails.
-   */
-  public static prepareBeatRestore<I extends MusicInstrument>(
-    beats: Beat<I>[]
-  ): BeatRemovalOutput<I>[] {
-    const outputs = this.removeBeats(beats);
-    this.discardBeatRemovalInsertions(outputs);
-
-    return outputs;
-  }
-
-  /**
-   * Undoes prior beat removals from recorded removal metadata. If a removal
-   * inserted a default rest to keep the voice bar non-empty, that temporary rest
-   * is removed before the original beats are restored.
-   * @param outputs Metadata from the matching removals, with owning voices still available.
-   * @returns Live inserted copies in original removal order.
-   * @throws If restoration indexes, note data, staff counts, or timing are invalid.
-   */
-  public static undoBeatRemovals<I extends MusicInstrument>(
-    outputs: BeatRemovalOutput<I>[]
-  ): Beat<I>[] {
-    const restoredBeats: Beat<I>[] = [];
-    for (let i = outputs.length - 1; i >= 0; i--) {
-      const output = outputs[i];
-      this.discardBeatRemovalInsertions([output]);
-      const voiceBar = output.removed.beats[0].voiceBar;
-      if (output.removedVoiceNumbers !== null) {
-        voiceBar.bar.restoreVoiceBar(voiceBar);
-      }
-      restoredBeats.unshift(
-        ...voiceBar.insertBeats(output.removed.index, output.removed.beats)
-      );
-    }
-
-    return restoredBeats;
-  }
-
-  /**
-   * Reapplies prior beat removals from recorded removal metadata. Returns fresh
-   * removal metadata because the redo may insert new default rests.
-   * @param outputs Matching removal metadata after undo has restored the original positions.
-   * @throws If recorded positions no longer exist or timing/bookkeeping fails.
-   */
-  public static redoBeatRemovals<I extends MusicInstrument>(
-    outputs: BeatRemovalOutput<I>[]
-  ): BeatRemovalOutput<I>[] {
-    const reappliedOutputs: BeatRemovalOutput<I>[] = [];
-    for (const output of outputs) {
-      const voiceBar = output.removed.beats[0].voiceBar;
-      reappliedOutputs.push(voiceBar.removeBeat(output.removed.index));
-    }
-
-    return reappliedOutputs;
-  }
-
-  /**
-   * Copies snapshots into each original voice, ordered by saved index and inserted together at its lowest saved index.
-   * @param snapshots Matching saved content and live owning voices; remove replacement content first.
-   * @returns Live inserted copies, grouped by voice in first-seen order.
-   * @throws If restoration indexes, note data, staff counts, or timing are invalid.
-   */
-  public static restoreBeats<I extends MusicInstrument>(
-    snapshots: BeatRestoreSnapshot<I>[]
-  ): Beat<I>[] {
-    const restoredBeats: Beat<I>[] = [];
-    const voiceBars = new Set(snapshots.map((snapshot) => snapshot.voiceBar));
-    for (const voiceBar of voiceBars) {
-      const barSnapshots = snapshots
-        .filter((snapshot) => snapshot.voiceBar === voiceBar)
-        .sort((a, b) => a.index - b.index);
-      const index = Math.min(...barSnapshots.map((snapshot) => snapshot.index));
-      const beats = barSnapshots.map((snapshot) => snapshot.beat);
-      if (voiceBar.bar.getVoiceBar(voiceBar.voiceNumber) !== voiceBar) {
-        voiceBar.bar.restoreVoiceBar(voiceBar);
-      }
-      restoredBeats.push(...voiceBar.insertBeats(index, beats));
-    }
-
-    return restoredBeats;
-  }
-
-  /**
-   * Removes score-wide bars at unique indexes, processing from last to first.
-   * @param indices Zero-based master-bar indexes before removal.
-   * @returns Removal metadata ordered by ascending original index.
-   * @throws If an index is outside the score or removal would leave no master/staff bar.
-   */
-  public static removeBars(
-    score: Score,
-    indices: number[]
-  ): MasterBarArrayOperationOutput[] {
-    const uniqueIndices = Array.from(new Set(indices)).sort((a, b) => a - b);
-    const outputs: MasterBarArrayOperationOutput[] = [];
-
-    for (let i = uniqueIndices.length - 1; i >= 0; i--) {
-      outputs.unshift(score.removeMasterBar(uniqueIndices[i]));
-    }
-
-    return outputs;
-  }
-
-  // Future direction: once TabUI has explicit rests/gaps and a clear invariant
-  // for complete bars, paste/replacement can become rhythm-aware. Until then,
-  // these operations intentionally match the liberal beat-editing model: they
-  // insert/remove beats locally and allow bars to become underfilled/overfilled.
-  /**
-   * Copies beat content into one voice and rebuilds timing, allowing underfill or overfill.
-   * @param beatIndex Zero-based insertion position, using array-splice semantics.
-   * @param beats Content to copy; an empty array has no effect.
-   * @returns Live inserted copies, adapted to the destination's note-slot count.
-   * @throws If copying note/rhythm data or rebuilding timing fails.
-   */
-  public static insertBeats<I extends MusicInstrument>(
-    voiceBar: VoiceBar<I>,
-    beatIndex: number,
-    beats: Beat<I>[]
-  ): Beat<I>[] {
-    if (beats.length === 0) {
-      return [];
-    }
-
-    const wasEmpty = voiceBar.isEmpty();
-    const insertedBeats = beats.map((beat) =>
-      this.createBeatCopyForBar(voiceBar, beat)
+    Beat.updateRhythm(
+      beats.map((beat) => ({
+        beat,
+        tupletSettings: oldTupletMap.get(beat.uuid) ?? null,
+      }))
     );
-    voiceBar.beats.splice(beatIndex, 0, ...insertedBeats);
-    if (wasEmpty) {
-      voiceBar.bar.staff.recordVoiceBarAdded(voiceBar);
-    }
-    voiceBar.rebuildTiming();
-
-    return insertedBeats;
-  }
-
-  /**
-   * Replaces selected beats with new beats at the selection start. This is not
-   * duration-aware: multi-bar selections may leave later bars underfilled and
-   * longer clipboard content may overfill the first affected bar.
-   * @param oldBeats Live beats to remove, with the insertion location first.
-   * @param newBeats Content to copy into the first affected voice.
-   * @returns Inserted copies and removal metadata; both are empty if either input is empty.
-   * @throws If a selected beat is absent or copying, bookkeeping, or timing rebuild fails.
-   */
-  public static replaceBeats<I extends MusicInstrument>(
-    oldBeats: Beat<I>[],
-    newBeats: Beat<I>[]
-  ): BeatReplacementOutput<I> {
-    if (oldBeats.length === 0 || newBeats.length === 0) {
-      return { insertedBeats: [], removalOutputs: [] };
-    }
-
-    const startBeatIndex = oldBeats[0].voiceBar.beats.indexOf(oldBeats[0]);
-    const startVoiceBar = oldBeats[0].voiceBar;
-    const affectedVoiceBars = new Set(oldBeats.map((beat) => beat.voiceBar));
-
-    const removalOutputs = this.removeBeats(oldBeats);
-    const startBarOutputs = removalOutputs.filter(
-      (o) => o.removed.beats[0].voiceBar.bar === startVoiceBar.bar
-    );
-    this.discardBeatRemovalInsertions(startBarOutputs);
-    if (
-      startVoiceBar.bar.getVoiceBar(startVoiceBar.voiceNumber) !== startVoiceBar
-    ) {
-      startVoiceBar.bar.restoreVoiceBar(startVoiceBar);
-    }
-    for (const voiceBar of affectedVoiceBars) {
-      voiceBar.rebuildTiming();
-    }
-
-    return {
-      insertedBeats: this.insertBeats(startVoiceBar, startBeatIndex, newBeats),
-      removalOutputs,
-    };
   }
 }

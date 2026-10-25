@@ -1,14 +1,14 @@
+import { BendTechniqueOptions } from "../notation/model/bend-options";
+import { BendType } from "../notation/model/bend-type";
+import { GuitarNote } from "../notation/model/guitar-note";
+import { GuitarTechnique } from "../notation/model/guitar-technique";
+import { GuitarTechniqueType } from "../notation/model/technique-type";
 import {
-  BendTechniqueOptions,
-  BendType,
-  GuitarNote,
-  GuitarTechnique,
-  GuitarTechniqueType,
   Note,
   getNoteFrequency,
   NOTES_PER_OCTAVE,
-  ticksToSeconds,
-} from "../notation/model";
+} from "../notation/model/note";
+import { ticksToSeconds } from "../notation/model/timing";
 import { PlaybackSampleManager } from "./playback-sample-manager";
 import {
   getPlaybackToneProfile,
@@ -35,9 +35,7 @@ const palmMuteMaxDurationSeconds = 0.18;
 // Harmonics speak more lightly than normal fretted notes in this simple model.
 const harmonicGain = 0.045;
 // Natural/pinch harmonic playback uses the first octave partial for now.
-const harmonicSemitones = 12;
-// Let-ring extends release until note-level sustain exists.
-const letRingExtraSeconds = 0.7;
+const harmonicSemitones = NOTES_PER_OCTAVE;
 // Slides need enough time to hear the source-to-target pitch transition.
 const slideMaxDurationSeconds = 0.4;
 // Slide length scales with the source note while leaving its attack intact.
@@ -54,6 +52,28 @@ const defaultBendDurationRatio = 0.5;
 const downbeatGainMultiplier = 1.08;
 // Repeated notes are softened slightly to reduce machine-gun playback.
 const repeatedNoteGainMultiplier = 0.92;
+/** Allows floating-point timing drift when comparing a tie with the playback boundary. */
+const continuationTimingToleranceSeconds = 1e-9;
+
+/** One written note in a shared source's tie chain, with any final resonance tail. */
+type SustainSegment = {
+  /** Note whose techniques apply during this segment. */
+  note: Note;
+  /** Absolute audio-context start time in seconds for this note's automation. */
+  startTime: number;
+  /** Absolute segment end in seconds, including any Let Ring resonance. */
+  stopTime: number;
+  /** Written automation end in absolute seconds; resonance must not stretch bends. */
+  automationStopTime: number;
+};
+
+/** Shared tie and resonance information for duration and attack cutoffs. */
+type NoteSustain = {
+  /** Written intervals that share one source and keep separate pitch automation. */
+  segments: SustainSegment[];
+  /** Whether any member of the logical note requests Let Ring resonance. */
+  hasLetRing: boolean;
+};
 
 type BendAutomationValues = {
   bendRamp: PitchRampParams;
@@ -90,9 +110,8 @@ type TechniqueEnvelopeSettings = {
 
 /**
  * Schedules Web Audio nodes for individual notes.
- * This class owns only one-note audio node creation. Score-level traversal and
- * rolling scheduling are owned by PlaybackScheduler, while transport state stays
- * in ScorePlayer.
+ * Resolves ties and Let Ring tails for each source. Score-level traversal and
+ * rolling scheduling belong to PlaybackScheduler; transport belongs to ScorePlayer.
  */
 export class PlaybackNoteScheduler {
   /** Audio context used to create and schedule note nodes. */
@@ -132,6 +151,14 @@ export class PlaybackNoteScheduler {
 
     const bufferSourceNode = this._audioContext.createBufferSource();
     bufferSourceNode.buffer = sample;
+    const loop = this._sampleManager.getLoop(tone);
+    if (loop !== undefined) {
+      // Play the attack once, then repeat only the authored sustain region.
+      bufferSourceNode.loop = true;
+      bufferSourceNode.loopStart = loop.start;
+      bufferSourceNode.loopEnd = loop.end;
+    }
+
     /**
      * A sample is one recorded pitch. To play another pitch, Web Audio speeds
      * the recording up or slows it down. A playbackRate of 1 means "play the
@@ -164,10 +191,10 @@ export class PlaybackNoteScheduler {
 
     const prevBeat = note.beat.voiceBar.bar.staff.getPrevBeat(note.beat);
     const prevNote = this.getSameStringNote(note, prevBeat?.notes ?? null);
-    if (
+    const repeatsPitch =
       prevNote !== null &&
-      getNoteFrequency(prevNote) === getNoteFrequency(note)
-    ) {
+      getNoteFrequency(prevNote) === getNoteFrequency(note);
+    if (repeatsPitch) {
       multiplier *= repeatedNoteGainMultiplier;
     }
 
@@ -397,16 +424,21 @@ export class PlaybackNoteScheduler {
       slideTargetStartTime,
     };
 
-    pitchParam.setValueAtTime(techniqueBaseValue, startTime);
+    const inheritedBendPitch =
+      note instanceof GuitarNote ? note.getBendContinuationPitch() : undefined;
+    // Inherited bends use whole tones; the rate conversion takes semitones.
+    const initialPitchValue =
+      techniqueBaseValue * this.semitonesToRate((inheritedBendPitch ?? 0) * 2);
+    pitchParam.setValueAtTime(initialPitchValue, startTime);
 
     for (const technique of note.techniques) {
       if (!(technique instanceof GuitarTechnique)) {
         continue;
       }
-      if (
+      const isHarmonic =
         technique.type === GuitarTechniqueType.NaturalHarmonic ||
-        technique.type === GuitarTechniqueType.PinchHarmonic
-      ) {
+        technique.type === GuitarTechniqueType.PinchHarmonic;
+      if (isHarmonic) {
         continue;
       }
 
@@ -439,7 +471,8 @@ export class PlaybackNoteScheduler {
       stopTime,
     };
 
-    if (note.hasTechnique(GuitarTechniqueType.PalmMute)) {
+    const palmMuted = note.hasTechnique(GuitarTechniqueType.PalmMute);
+    if (palmMuted) {
       settings.peakGain = palmMuteGain;
       settings.stopTime = Math.min(
         settings.stopTime,
@@ -453,15 +486,11 @@ export class PlaybackNoteScheduler {
       settings.peakGain = hammerOnPullOffGain;
     }
 
-    if (
+    const hasHarmonic =
       note.hasTechnique(GuitarTechniqueType.NaturalHarmonic) ||
-      note.hasTechnique(GuitarTechniqueType.PinchHarmonic)
-    ) {
+      note.hasTechnique(GuitarTechniqueType.PinchHarmonic);
+    if (hasHarmonic) {
       settings.peakGain = harmonicGain;
-    }
-
-    if (note.hasTechnique(GuitarTechniqueType.LetRing)) {
-      settings.stopTime += letRingExtraSeconds;
     }
 
     if (note.hasTechnique(GuitarTechniqueType.Slide)) {
@@ -515,12 +544,160 @@ export class PlaybackNoteScheduler {
     return sameStringNote instanceof GuitarNote ? sameStringNote : null;
   }
 
+  /** Resolves written ties first, then holds their terminal pitch through explicit Let Ring coverage. */
+  private getSustainSegments(
+    note: Note,
+    startTime: number,
+    stopTime: number
+  ): NoteSustain {
+    const segments: SustainSegment[] = [
+      { note, startTime, stopTime, automationStopTime: stopTime },
+    ];
+    if (!(note instanceof GuitarNote)) {
+      return { segments, hasLetRing: false };
+    }
+
+    // Tied notes share one source but keep their own written automation intervals.
+    const staff = note.beat.voiceBar.bar.staff;
+    let sustainStopTime = stopTime;
+    let current = note;
+    let nextBeat = staff.getNextBeat(current.beat);
+    while (nextBeat !== null) {
+      const next = this.getSameStringNote(current, nextBeat.notes);
+      if (!(next instanceof GuitarNote) || !next.isTieContinuation) {
+        break;
+      }
+      const duration = ticksToSeconds(
+        nextBeat.fullDurationTicks,
+        nextBeat.voiceBar.tickResolution,
+        nextBeat.voiceBar.bar.masterBar.tempo
+      );
+      segments.push({
+        note: next,
+        startTime: sustainStopTime,
+        stopTime: sustainStopTime + duration,
+        automationStopTime: sustainStopTime + duration,
+      });
+      sustainStopTime += duration;
+      current = next;
+      nextBeat = staff.getNextBeat(current.beat);
+    }
+
+    const ringTechniques = segments.flatMap((s) =>
+      s.note.techniques.filter((t) => t.type === GuitarTechniqueType.LetRing)
+    );
+    // A selection may start inside a logical note whose marker is before the pass.
+    let predecessor = note;
+    while (predecessor.isTieContinuation) {
+      const previous = predecessor.getTiePredecessor();
+      if (previous === null) {
+        break;
+      }
+      ringTechniques.push(
+        ...previous.techniques.filter(
+          (t) => t.type === GuitarTechniqueType.LetRing
+        )
+      );
+      predecessor = previous;
+    }
+    while (nextBeat !== null && ringTechniques.length > 0) {
+      const next = this.getSameStringNote(note, nextBeat.notes);
+      if (next === null || !next.hasTechnique(GuitarTechniqueType.LetRing)) {
+        break;
+      }
+      sustainStopTime += ticksToSeconds(
+        nextBeat.fullDurationTicks,
+        nextBeat.voiceBar.tickResolution,
+        nextBeat.voiceBar.bar.masterBar.tempo
+      );
+      nextBeat = staff.getNextBeat(nextBeat);
+    }
+    segments[segments.length - 1].stopTime = sustainStopTime;
+    return { segments, hasLetRing: ringTechniques.length > 0 };
+  }
+
+  /**
+   * Finds the next attack on this string in any voice of the staff.
+   * @returns Absolute audio-context seconds, or Infinity when no later attack exists.
+   */
+  private getNextStringAttackTime(note: GuitarNote, startTime: number): number {
+    const staff = note.beat.voiceBar.bar.staff;
+    const firstBar = staff.bars.indexOf(note.beat.voiceBar.bar);
+    // The negative offset aligns this bar's start relative to the initial note.
+    let barStartOffsetSeconds = -ticksToSeconds(
+      note.beat.startTick,
+      note.beat.voiceBar.tickResolution,
+      note.beat.voiceBar.bar.masterBar.tempo
+    );
+    for (const bar of staff.bars.slice(firstBar)) {
+      let nextAttack = Infinity;
+      for (const voice of bar.voiceBarsAsArray) {
+        for (const beat of voice.beats) {
+          const candidate = beat.notes?.[note.stringNum - 1];
+          const attackOffsetSeconds =
+            barStartOffsetSeconds +
+            ticksToSeconds(
+              beat.startTick,
+              voice.tickResolution,
+              bar.masterBar.tempo
+            );
+          const isAttack =
+            candidate instanceof GuitarNote &&
+            candidate.fret !== null &&
+            !candidate.isTieContinuation;
+          if (attackOffsetSeconds > 0 && isAttack) {
+            nextAttack = Math.min(nextAttack, startTime + attackOffsetSeconds);
+          }
+        }
+      }
+      if (nextAttack !== Infinity) {
+        return nextAttack;
+      }
+      const duration = bar.masterBar.barDurationFraction;
+      // A whole note has 4 quarter beats; a minute has 60 seconds.
+      barStartOffsetSeconds +=
+        ((duration.numerator / duration.denominator) * 4 * 60) /
+        bar.masterBar.tempo;
+    }
+    return Infinity;
+  }
+
+  /** Skips a tied continuation when its predecessor belongs to this playback pass. */
+  private isContinuationAlreadyScheduled(
+    note: Note,
+    startTime: number,
+    playbackStartTime: number
+  ): boolean {
+    if (!(note instanceof GuitarNote) || !note.isTieContinuation) {
+      return false;
+    }
+    const previous = note.getTiePredecessor();
+    if (previous === null) {
+      return false;
+    }
+
+    const beat = previous.beat;
+    const duration = ticksToSeconds(
+      beat.fullDurationTicks,
+      beat.voiceBar.tickResolution,
+      beat.voiceBar.bar.masterBar.tempo
+    );
+    // Ties join adjacent beats, so subtracting the predecessor's duration
+    // reconstructs its start on the same audio-context timeline.
+    const predecessorStartTime = startTime - duration;
+    return (
+      predecessorStartTime >=
+      playbackStartTime - continuationTimingToleranceSeconds
+    );
+  }
+
   /**
    * Schedules one note using a configured sample or oscillator fallback.
    * @param note Note to schedule
    * @param startTime Absolute audio context start time
    * @param stopTime Absolute audio context stop time
    * @param maxStopTime Hard playback boundary that techniques may not exceed
+   * @param playbackStartTime Start of this pass; incoming ties may sound here. The -Infinity default suppresses all valid continuations.
    * @returns Created audio nodes, or null for unplayable notes
    */
   public scheduleNote(
@@ -528,22 +705,46 @@ export class PlaybackNoteScheduler {
     startTime: number,
     stopTime: number,
     trackBus: TrackAudioBus,
-    maxStopTime?: number
+    maxStopTime?: number,
+    playbackStartTime = -Infinity
   ): ScheduledAudioNode | null {
     const frequency = getNoteFrequency(note);
     if (frequency <= 0) {
       return null;
     }
+    const continuationAlreadyScheduled = this.isContinuationAlreadyScheduled(
+      note,
+      startTime,
+      playbackStartTime
+    );
+    if (continuationAlreadyScheduled) {
+      return null;
+    }
 
-    const sourceNode = this.createSourceNode(note, frequency);
-    const gainNode = this._audioContext.createGain();
+    const { segments, hasLetRing } = this.getSustainSegments(
+      note,
+      startTime,
+      stopTime
+    );
+    const finalSegment = segments[segments.length - 1];
+    const sustainedStopTime = finalSegment.stopTime;
     const envelopeSettings = this.getTechniqueEnvelopeSettings(
       note,
-      stopTime,
+      sustainedStopTime,
       startTime
     );
+    if (segments.length > 1) {
+      // Exact tie duration takes precedence over palm-mute shortening and slide
+      // extension of the envelope; their other settings still apply.
+      envelopeSettings.stopTime = sustainedStopTime;
+    }
+    const resonanceStopTime =
+      note instanceof GuitarNote && hasLetRing
+        ? this.getNextStringAttackTime(note, startTime)
+        : Infinity;
     const effectiveStopTime = Math.min(
       envelopeSettings.stopTime,
+      resonanceStopTime,
       maxStopTime ?? Infinity
     );
     const attackEndTime = startTime + envelopeSettings.attackSeconds;
@@ -552,6 +753,9 @@ export class PlaybackNoteScheduler {
       effectiveStopTime - envelopeSettings.releaseSeconds
     );
     const track = note.beat.voiceBar.bar.staff.track;
+
+    const sourceNode = this.createSourceNode(note, frequency);
+    const gainNode = this._audioContext.createGain();
     gainNode.gain.setValueAtTime(0, startTime);
     gainNode.gain.linearRampToValueAtTime(
       envelopeSettings.peakGain,
@@ -559,14 +763,25 @@ export class PlaybackNoteScheduler {
     );
     gainNode.gain.setValueAtTime(envelopeSettings.peakGain, releaseStartTime);
     gainNode.gain.linearRampToValueAtTime(0, effectiveStopTime);
-    this.applyTechniqueAutomation(
-      note,
-      sourceNode,
-      frequency,
-      startTime,
-      effectiveStopTime,
-      note.hasTechnique(GuitarTechniqueType.Slide) ? stopTime : null
-    );
+    for (const segment of segments) {
+      if (segment.startTime >= effectiveStopTime) {
+        break;
+      }
+      const automationStopTime = Math.min(
+        segment.automationStopTime,
+        effectiveStopTime
+      );
+      // A source slide reaches its target at the original note's written end,
+      // before extended sustain. Tied segments currently use that same boundary.
+      this.applyTechniqueAutomation(
+        segment.note,
+        sourceNode,
+        frequency,
+        segment.startTime,
+        automationStopTime,
+        segment.note.hasTechnique(GuitarTechniqueType.Slide) ? stopTime : null
+      );
+    }
 
     try {
       sourceNode.connect(gainNode);

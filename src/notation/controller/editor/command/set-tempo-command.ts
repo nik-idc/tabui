@@ -7,22 +7,24 @@ import {
 
 /** Updates a fixed set of bars, restoring each original tempo on undo. */
 export class SetTempoCommand implements Command {
-  private readonly _oldTempos: number[];
+  /** Original tempos saved before execution. */
+  private _before: number[] = [];
   private readonly _affectedModels: AffectedModel[];
   private _executed = false;
 
   constructor(
     score: Score,
     private readonly _bars: MasterBar[],
-    private readonly _newTempo: number
+    /** Fixed tempo applied by execute and redo. */
+    private readonly _after: number
   ) {
-    this._oldTempos = _bars.map((v) => v.tempo);
     this._affectedModels = getAffectedModelsFromMasterBars(score, _bars);
   }
 
   execute(): void {
+    this._before = this._bars.map((b) => b.tempo);
     for (const bar of this._bars) {
-      bar.tempo = this._newTempo;
+      bar.tempo = this._after;
     }
 
     this._executed = true;
@@ -34,7 +36,7 @@ export class SetTempoCommand implements Command {
     }
 
     for (const [index, bar] of this._bars.entries()) {
-      bar.tempo = this._oldTempos[index];
+      bar.tempo = this._before[index];
     }
   }
 
@@ -43,7 +45,9 @@ export class SetTempoCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    this.execute();
+    for (const bar of this._bars) {
+      bar.tempo = this._after;
+    }
   }
 
   public get executed(): boolean {
