@@ -351,11 +351,9 @@ export class PlaybackTraversalManager {
     const repeatStatusValid =
       this.score.isMasterBarRepeatStatusValid(masterBar);
     const isSelfContainedRepeat =
-      repeatStatusValid &&
-      masterBar.isRepeatStart &&
-      masterBar.isRepeatEnd &&
-      this._repeatStartMasterBarIndex === undefined;
-    const initializesSelfContainedRepeat = isSelfContainedRepeat;
+      repeatStatusValid && masterBar.isRepeatStart && masterBar.isRepeatEnd;
+    const initializesSelfContainedRepeat =
+      isSelfContainedRepeat && this._repeatStartMasterBarIndex === undefined;
     if (initializesSelfContainedRepeat) {
       this._repeatStartMasterBarIndex = currentMasterBarIndex;
       this._repeatPassCount = 0;

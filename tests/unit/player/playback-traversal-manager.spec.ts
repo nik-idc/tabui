@@ -193,12 +193,16 @@ describe("PlaybackTraversalManager", () => {
     const { score } = createBarWithBeats([
       { baseDuration: NoteDuration.Whole },
     ]);
+    score.appendMasterBar();
     score.masterBars[0].isRepeatStart = true;
     score.masterBars[0].isRepeatEnd = true;
+    score.masterBars[0].repeatCount = 3;
     const traversal = new PlaybackTraversalManager(score);
 
     expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(0);
-    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBeNull();
+    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(0);
+    expect(traversal.completeMasterBar(0).nextMasterBarIndex).toBe(1);
+    expect(traversal.completeMasterBar(1).nextMasterBarIndex).toBeNull();
   });
 
   test("preserves explicit loop state when selection looping changes", () => {
