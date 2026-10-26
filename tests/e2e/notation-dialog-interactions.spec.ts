@@ -58,26 +58,33 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
   const first = tempos.first();
   const image = first.locator('[id^="tempo-img-"]');
   const text = first.locator('[id^="tempo-text-"]');
+  const hitArea = first.locator(".tu-tempo-hit-area");
   const original = await text.evaluate((node) => getComputedStyle(node).fill);
 
-  await image.hover();
+  // Even empty space around the asset belongs to the same pointer target.
+  await hitArea.hover({ position: { x: 5, y: 5 } });
   await expect(text).not.toHaveCSS("fill", original);
+  const highlight = await text.evaluate((node) => getComputedStyle(node).fill);
+  await expect(image).toHaveCSS("fill", highlight);
   await page.mouse.move(0, 0);
   await expect(text).toHaveCSS("fill", original);
-  await image.click();
+  await expect(image).toHaveCSS("fill", original);
+  await hitArea.hover();
+  await expect(image).toHaveCSS("fill", highlight);
+  await hitArea.click({ position: { x: 5, y: 5 } });
   const dialog = editor.getByRole("dialog", { name: "Tempo" });
   await expect(dialog.locator(".tu-number-stepper-value")).toHaveText("120");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(text).toHaveText("=121");
 
-  await image.click();
+  await hitArea.click();
   await expect(dialog.locator(".tu-number-stepper-value")).toHaveText("121");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(text).toHaveText("=122");
 
-  await tempos.nth(1).locator('[id^="tempo-img-"]').click();
+  await tempos.nth(1).locator(".tu-tempo-hit-area").click();
   await expect(
     editor
       .getByRole("dialog", { name: "Tempo" })
@@ -184,11 +191,11 @@ test("notation clicks do not open dialogs in view-only mode or playback", async 
 }) => {
   await page.goto("/tabui/?fixture=feature_showcase&mode=view-only");
   const editor = page.locator("#tabui-editor");
-  await editor.locator('[id^="tempo-img-"]').first().click();
+  await editor.locator(".tu-tempo-hit-area").first().click();
   await expect(editor.getByRole("dialog")).toHaveCount(0);
 
   await page.goto("/tabui/?fixture=empty");
-  const tempo = editor.locator('[id^="tempo-img-"]').first();
+  const tempo = editor.locator(".tu-tempo-hit-area").first();
   await editor.getByRole("button", { name: "Play" }).click();
   await tempo.click();
   await expect(editor.getByRole("dialog")).toHaveCount(0);

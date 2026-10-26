@@ -1,6 +1,11 @@
 import { BarElement, TrackController } from "../../controller";
 import { resolveAssetUrl } from "../../../assets";
-import { createSVGG, createSVGImage, createSVGText } from "../../../shared";
+import {
+  createSVGG,
+  createSVGImage,
+  createSVGRect,
+  createSVGText,
+} from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 
 import { TrackLineInfoElement } from "../../controller/element/track/track-line-info-element";
@@ -9,7 +14,11 @@ import type { ResolvedAssetConfig } from "../../../assets";
 type TempoSVG = {
   group: SVGGElement;
   image: SVGImageElement;
+  /** Colored silhouette of the configurable note image. */
+  symbol: SVGRectElement;
   text: SVGTextElement;
+  /** One continuous pointer target for the symbol, gap, and tempo text. */
+  hitArea: SVGRectElement;
 };
 
 /**
@@ -160,20 +169,37 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       renderedTempo = {
         group: createSVGG(),
         image: createSVGImage(),
+        symbol: createSVGRect(),
         text: createSVGText(),
+        hitArea: createSVGRect(),
       };
       this._temposSVG.set(barElement, renderedTempo);
       renderedTempo.group.setAttribute("class", "tu-tempo");
 
-      // Set id
+      // Use the asset's silhouette so the symbol can share the text's hover fill.
       const barUUID = barElement.bar.uuid;
-      renderedTempo.image.setAttribute("id", `tempo-img-${barUUID}`);
-      // renderedTempo.image.setAttribute("preserveAspectRatio", "none");
+      const mask = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "mask"
+      );
+      mask.id = `tempo-mask-${barUUID}`;
+      mask.style.maskType = "alpha";
+      mask.appendChild(renderedTempo.image);
+      renderedTempo.symbol.setAttribute("id", `tempo-img-${barUUID}`);
+      renderedTempo.symbol.classList.add("tu-tempo-symbol");
+      renderedTempo.symbol.setAttribute("mask", `url(#${mask.id})`);
       renderedTempo.text.setAttribute("id", `tempo-text-${barUUID}`);
+      renderedTempo.symbol.setAttribute("pointer-events", "none");
+      renderedTempo.text.setAttribute("pointer-events", "none");
+      renderedTempo.hitArea.classList.add("tu-tempo-hit-area");
+      renderedTempo.hitArea.setAttribute("fill", "transparent");
+      renderedTempo.hitArea.setAttribute("pointer-events", "all");
 
       // Add element to root SVG element
-      renderedTempo.group.appendChild(renderedTempo.image);
+      renderedTempo.group.appendChild(mask);
+      renderedTempo.group.appendChild(renderedTempo.symbol);
       renderedTempo.group.appendChild(renderedTempo.text);
+      renderedTempo.group.appendChild(renderedTempo.hitArea);
       this._containerGroupSVG.appendChild(renderedTempo.group);
     }
 
@@ -196,10 +222,37 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
     renderedTempo.image.setAttribute("width", `${tempoRect.width}`);
     renderedTempo.image.setAttribute("height", `${tempoRect.height}`);
     renderedTempo.image.setAttribute("href", href);
+    renderedTempo.symbol.setAttribute("x", `${tempoRect.x}`);
+    renderedTempo.symbol.setAttribute("y", `${tempoRect.y}`);
+    renderedTempo.symbol.setAttribute("width", `${tempoRect.width}`);
+    renderedTempo.symbol.setAttribute("height", `${tempoRect.height}`);
 
     renderedTempo.text.setAttribute("x", `${tempoTextCoords.x}`);
     renderedTempo.text.setAttribute("y", `${tempoTextCoords.y}`);
     renderedTempo.text.textContent = tempoText;
+
+    // Non-rendering DOMs may not provide SVG text measurement.
+    const textBox = renderedTempo.text.getBBox?.() ?? {
+      x: tempoTextCoords.x,
+      y: tempoRect.y,
+      width:
+        tempoText.length * this.trackController.layoutDimensions.tempoTextSize,
+      height: tempoRect.height,
+    };
+    const left = Math.min(tempoRect.x, textBox.x);
+    const top = Math.min(tempoRect.y, textBox.y);
+    const right = Math.max(
+      tempoRect.x + tempoRect.width,
+      textBox.x + textBox.width
+    );
+    const bottom = Math.max(
+      tempoRect.y + tempoRect.height,
+      textBox.y + textBox.height
+    );
+    renderedTempo.hitArea.setAttribute("x", `${left}`);
+    renderedTempo.hitArea.setAttribute("y", `${top}`);
+    renderedTempo.hitArea.setAttribute("width", `${right - left}`);
+    renderedTempo.hitArea.setAttribute("height", `${bottom - top}`);
   }
 
   /**

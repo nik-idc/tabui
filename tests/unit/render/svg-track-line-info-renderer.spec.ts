@@ -27,7 +27,7 @@ test("tempo callbacks resolve current bars and detach before renderer reuse", ()
   });
   renderer.render();
   const group = renderer.ensureContainerGroup();
-  const image = required(group.querySelector("image"));
+  const hitArea = required(group.querySelector(".tu-tempo-hit-area"));
   const text = required(group.querySelector("text"));
   expect(text.textContent).toBe("=120");
   const oldBar = required([...currentInfo().barTempoRectsMap.keys()][0]);
@@ -42,7 +42,7 @@ test("tempo callbacks resolve current bars and detach before renderer reuse", ()
   expect(currentBar.bar).toBe(oldBar.bar);
   renderer.updateElementReference(info);
   const event = new MouseEvent("click", { bubbles: true });
-  image.dispatchEvent(event);
+  hitArea.dispatchEvent(event);
   expect(oldHandler).not.toHaveBeenCalled();
   expect(handler).toHaveBeenCalledTimes(1);
   expect(handler.mock.calls[0][0]).toBe(event);
@@ -53,13 +53,13 @@ test("tempo callbacks resolve current bars and detach before renderer reuse", ()
   document.body.appendChild(group);
   renderer.detachContainerGroup();
   expect(group.isConnected).toBe(false);
-  text.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  hitArea.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   expect(handler).toHaveBeenCalledTimes(1);
   renderer.attachMouseEvent("click", handler);
-  text.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  hitArea.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   expect(handler).toHaveBeenCalledTimes(2);
   renderer.detachMouseEvent("click");
-  image.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  hitArea.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   expect(handler).toHaveBeenCalledTimes(2);
 });
 

@@ -1694,6 +1694,11 @@
   stroke: var(--tu-notation-selection-stroke);
 }
 
+.tu-tempo-symbol {
+  fill: var(--tu-notation-text);
+}
+
+.tu-editor .tu-tempo:hover .tu-tempo-symbol,
 .tu-editor .tu-tempo:hover text {
   fill: var(--tu-notation-selection-stroke);
 }

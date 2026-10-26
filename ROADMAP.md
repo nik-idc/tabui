@@ -72,7 +72,7 @@ replace release validation.
       **Only occurs when a single bar is a self contained repeat section**. With multi-bar
       repeat sections this error doesn't appear and playback & visuals respect the repeat count.
 - [ ] Store expanded/collapsed state of "About this demo" & "Demo controls" in `localStorage`
-- [ ] Highlight the note symbol in the tempo display as well as the "= _BPM number_"
+- [x] Highlight the note symbol in the tempo display as well as the "= _BPM number_"
 - [ ] Completely remove interactivity from inline techniques. 99% of the time gets in the
       way of normal editing
 
