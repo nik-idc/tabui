@@ -73,7 +73,7 @@ replace release validation.
       repeat sections this error doesn't appear and playback & visuals respect the repeat count.
 - [ ] Store expanded/collapsed state of "About this demo" & "Demo controls" in `localStorage`
 - [x] Highlight the note symbol in the tempo display as well as the "= _BPM number_"
-- [ ] Completely remove interactivity from inline techniques. 99% of the time gets in the
+- [x] Completely remove interactivity from inline techniques. 99% of the time gets in the
       way of normal editing
 
 ## Follow-up inbox

@@ -353,98 +353,6 @@ describe("TrackController", () => {
     expect(bar.masterBar.isRepeatStart).toBe(true);
   });
 
-  test("removes only a supplied note's technique with undo and unchanged cursor", () => {
-    const { track, bar } = createScoreGraph();
-    const notes = required(
-      required(bar.getVoiceBar(1)).beats[0].notes
-    ) as GuitarNote[];
-    for (const note of notes.slice(0, 2)) {
-      note.setFret(5);
-      note.addTechnique(
-        new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
-      );
-    }
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    controller.trackElement.update();
-    const beat = required(bar.getVoiceBar(1)).beats[0];
-    const beatElement = required(controller.trackElement.getBeatElement(beat));
-    controller.selectNoteElement(beatElement.noteElements[3]);
-    const cursor = controller.selectionCursor;
-    expect(
-      controller.removeTechniques(
-        [notes[1]],
-        GuitarTechniqueType.NaturalHarmonic
-      )
-    ).toBe(true);
-    expect(notes[0].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      true
-    );
-    expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      false
-    );
-    expect(controller.selectionCursor).toBe(cursor);
-    expect(controller.selectionCursor?.note).toBe(notes[3]);
-    expect(
-      controller.removeTechniques(
-        [notes[1]],
-        GuitarTechniqueType.NaturalHarmonic
-      )
-    ).toBe(false);
-    controller.undo();
-    expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      true
-    );
-    controller.redo();
-    expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      false
-    );
-    expect(notes[0].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      true
-    );
-    expect(controller.selectionCursor?.note).toBe(notes[3]);
-  });
-  test("removes matching techniques together with one undo and unchanged cursor", () => {
-    const { track, bar } = createScoreGraph();
-    const notes = required(
-      required(bar.getVoiceBar(1)).beats[0].notes
-    ) as GuitarNote[];
-    for (const note of notes.slice(0, 2)) {
-      note.setFret(5);
-      note.addTechnique(
-        new GuitarTechnique(note, GuitarTechniqueType.PalmMute)
-      );
-    }
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    controller.trackElement.update();
-    const beat = required(bar.getVoiceBar(1)).beats[0];
-    const beatElement = required(controller.trackElement.getBeatElement(beat));
-    controller.selectNoteElement(beatElement.noteElements[3]);
-    const cursor = controller.selectionCursor;
-    expect(
-      controller.removeTechniques(notes, GuitarTechniqueType.PalmMute)
-    ).toBe(true);
-    expect(
-      notes.every((note) => !note.hasTechnique(GuitarTechniqueType.PalmMute))
-    ).toBe(true);
-    expect(controller.selectionCursor).toBe(cursor);
-    expect(controller.selectionCursor?.note).toBe(notes[3]);
-    expect(
-      controller.removeTechniques(notes, GuitarTechniqueType.PalmMute)
-    ).toBe(false);
-    controller.undo();
-    expect(
-      notes
-        .slice(0, 2)
-        .every((note) => note.hasTechnique(GuitarTechniqueType.PalmMute))
-    ).toBe(true);
-    expect(notes[2].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
-    controller.redo();
-    expect(
-      notes.every((note) => !note.hasTechnique(GuitarTechniqueType.PalmMute))
-    ).toBe(true);
-    expect(controller.selectionCursor?.note).toBe(notes[3]);
-  });
-
   beforeEach(() => {
     mockScorePlayerInstances.length = 0;
   });
@@ -674,9 +582,6 @@ describe("TrackController", () => {
     });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
     controller.moveSelectedNote(SelectedMoveDirection.Right);
-    expect(
-      controller.removeTechniques([note], GuitarTechniqueType.NaturalHarmonic)
-    ).toBe(false);
     controller.paste();
     controller.deleteSelectedBeats();
     controller.insertBeatBeforeSelected();
@@ -743,9 +648,6 @@ describe("TrackController", () => {
     });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
     controller.paste();
-    expect(
-      controller.removeTechniques([note], GuitarTechniqueType.NaturalHarmonic)
-    ).toBe(false);
     controller.deleteSelectedBeats();
     controller.insertBeatBeforeSelected();
     controller.insertBeatAfterSelected();

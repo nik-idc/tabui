@@ -24,7 +24,6 @@ import type { SetTechniqueOptions } from "../model/editor/set-technique-options"
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
 import { ScoreLayoutPlanner } from "./layout/score-layout-plan";
 import { TabUILayoutMode } from "../../config/tabui-config";
-import type { Note } from "../model";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -691,15 +690,6 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.setTechnique(type, options);
-  }
-
-  /** Removes matching techniques from notes in one guarded, undoable edit. */
-  public removeTechniques(notes: Note[], type: TechniqueType): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
-      return false;
-    }
-
-    return this._trackControllerEditor.removeTechniques(notes, type);
   }
 
   /**

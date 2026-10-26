@@ -822,26 +822,6 @@ export class TrackControllerEditor {
     );
   }
 
-  /** Removes matching techniques in one command without changing selection. */
-  public removeTechniques(notes: Note[], type: TechniqueType): boolean {
-    if (!this.editingEnabled) {
-      return false;
-    }
-
-    const affectedNotes = notes.filter((note) => note.hasTechnique(type));
-    if (affectedNotes.length === 0) {
-      return false;
-    }
-
-    this.executeCommand(
-      new SetTechniqueCommand(
-        ScoreEditor.getTechniqueTargetsForNotes(affectedNotes),
-        type
-      )
-    );
-    return true;
-  }
-
   /**
    * Checks if note element is the selected element
    * @param noteElement Note element to check

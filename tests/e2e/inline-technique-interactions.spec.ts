@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
-  test(`inline ${shortcut}: local hover, removal, and undo`, async ({
+  test(`inline ${shortcut}: renders without intercepting pointer input`, async ({
     page,
   }) => {
     await page.clock.install();
@@ -30,32 +30,28 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
       (node) => getComputedStyle(node).stroke
     );
     const originalFill = await path.getAttribute("fill");
-    const hitPath = editor.locator('[id^="technique-hit-path-"]').first();
     const pathData = await path.getAttribute("d");
-    if (!pathData) throw Error("Expected technique path data");
-    await expect(hitPath).toHaveAttribute("d", pathData);
-    await expect(hitPath).toHaveCSS("stroke", "rgba(0, 0, 0, 0)");
-    const point = await hitPath.evaluate((node) => {
+    if (!pathData) {
+      throw Error("Expected technique path data");
+    }
+    await expect(editor.locator('[id^="technique-hit-path-"]')).toHaveCount(0);
+    const point = await path.evaluate((node) => {
       const geometry = node as SVGPathElement;
       const matrix = geometry.getScreenCTM();
-      if (matrix === null) throw Error("Expected inline geometry transform");
-      for (let step = 1; step < 20; step++) {
-        const local = geometry.getPointAtLength(
-          (geometry.getTotalLength() * step) / 20
-        );
-        const screen = local.matrixTransform(matrix);
-        for (let dx = -1; dx <= 1; dx++) {
-          for (let dy = -1; dy <= 1; dy++) {
-            const x = Math.round(screen.x) + dx;
-            const y = Math.round(screen.y) + dy;
-            if (document.elementFromPoint(x, y) === geometry) {
-              return { x, y };
-            }
-          }
-        }
+      if (matrix === null) {
+        throw Error("Expected inline geometry transform");
       }
-      throw Error("Expected exposed inline geometry");
+      const point = geometry
+        .getPointAtLength(geometry.getTotalLength() / 2)
+        .matrixTransform(matrix);
+      const target = document.elementFromPoint(point.x, point.y);
+      return {
+        x: point.x,
+        y: point.y,
+        intercepted: Boolean(target?.closest(".tu-inline-technique")),
+      };
     });
+    expect(point.intercepted).toBe(false);
     const frets = editor.locator('[id^="note-text-"]');
     const originalFrets = await frets.allTextContents();
     expect(originalFrets).toEqual(
@@ -65,7 +61,9 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
       const geometry = await path.evaluate((node) => {
         const path = node as SVGPathElement;
         const matrix = path.getScreenCTM();
-        if (matrix === null) throw Error("Expected technique path transform");
+        if (matrix === null) {
+          throw Error("Expected technique path transform");
+        }
         const start = path.getPointAtLength(0).matrixTransform(matrix);
         const end = path
           .getPointAtLength(path.getTotalLength())
@@ -83,8 +81,9 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
           nodes.map((node) => {
             const rect = node as SVGRectElement;
             const matrix = rect.getScreenCTM();
-            if (matrix === null)
+            if (matrix === null) {
               throw Error("Expected note rectangle transform");
+            }
             const left = new DOMPoint(
               rect.x.baseVal.value,
               rect.y.baseVal.value
@@ -101,10 +100,14 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
           })
         );
       const source = noteRects.find((v) => v.fret === "5");
-      if (source === undefined) throw Error("Expected source fret geometry");
+      if (source === undefined) {
+        throw Error("Expected source fret geometry");
+      }
       if (shortcut === "s" || shortcut === "l") {
         const target = noteRects.find((v) => v.fret === "7");
-        if (target === undefined) throw Error("Expected target fret geometry");
+        if (target === undefined) {
+          throw Error("Expected target fret geometry");
+        }
         expect(geometry.startX).toBeCloseTo(source.right);
         expect(geometry.endX).toBeCloseTo(target.left);
       } else {
@@ -112,21 +115,58 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
       }
     }
     await page.mouse.move(point.x, point.y);
-    await expect
-      .poll(() => path.evaluate((node) => getComputedStyle(node).stroke))
-      .not.toBe(originalStroke);
-    await expect(path).toHaveCSS("cursor", "pointer");
-    if (originalFill === null) throw Error("Expected original technique fill");
+    await expect(path).toHaveCSS("stroke", originalStroke);
+    await expect(path).toHaveCSS("pointer-events", "none");
+    if (originalFill === null) {
+      throw Error("Expected original technique fill");
+    }
     await expect(path).toHaveAttribute("fill", originalFill);
-    await expect(hitPath).toHaveCSS("stroke", "rgba(0, 0, 0, 0)");
     await page.mouse.move(0, 0);
     await expect(path).toHaveCSS("stroke", originalStroke);
     await page.mouse.click(point.x, point.y);
-    await expect(editor.locator('[id^="technique-path-"]')).toHaveCount(0);
-    await expect(frets).toHaveText(originalFrets);
-    await page.keyboard.press("Control+z");
     await expect(path).toBeVisible();
     await expect(path).toHaveAttribute("d", pathData);
     await expect(frets).toHaveText(originalFrets);
+  });
+}
+
+for (const shortcut of ["v", "p", "Shift+L", "b"]) {
+  test(`label ${shortcut}: ignores pointer input`, async ({ page }) => {
+    await page.goto("/tabui/?fixture=empty&theme=obsidian");
+    const editor = page.locator("#tabui-editor");
+    await editor.locator('[id^="note-rect-"]').first().click();
+    await page.keyboard.press("5");
+    await page.keyboard.press(shortcut);
+    if (shortcut === "b") {
+      await editor
+        .getByRole("dialog", { name: "Bend", exact: true })
+        .getByRole("button", { name: "Confirm" })
+        .click();
+    }
+    const label = editor.locator(".tu-technique-label").first();
+    await expect(label).toBeVisible();
+    await expect(label).toHaveCSS("pointer-events", "none");
+    await expect(editor.locator('[id^="technique-label-hit-"]')).toHaveCount(0);
+    await label.scrollIntoViewIfNeeded();
+    const visible = label.locator("path, text").first();
+    const originalStyle = await visible.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { fill: style.fill, stroke: style.stroke };
+    });
+    const box = await visible.boundingBox();
+    if (box === null) {
+      throw Error("Expected visible technique label");
+    }
+    const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await page.mouse.move(point.x, point.y);
+    await expect(visible).toHaveCSS("fill", originalStyle.fill);
+    await expect(visible).toHaveCSS("stroke", originalStyle.stroke);
+    await page.mouse.click(point.x, point.y);
+    await expect(label).toBeVisible();
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5"]);
+    // Removing a technique still works through the keyboard, not its label.
+    await editor.locator('[id^="note-rect-"]').first().click();
+    await page.keyboard.press("Control+z");
+    await expect(label).toHaveCount(0);
   });
 }

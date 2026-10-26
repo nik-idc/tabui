@@ -1,14 +1,7 @@
 import { EditorMouseDefCallbacks } from "../../../src/notation/input/editor-mouse-callbacks";
 import { RenderType } from "../../../src/notation/input/render-type";
-import { SVGTechniqueLabelRenderer } from "../../../src/notation/render/svg/svg-technique-label-renderer";
-import { GuitarTechniqueLabelElement } from "../../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import {
-  BendTechniqueOptions,
-  BendType,
   DEFAULT_MASTER_BAR,
-  GuitarNote,
-  GuitarTechnique,
-  GuitarTechniqueType,
   serializeScore,
 } from "../../../src/notation/model";
 import { SVGBarRenderer } from "../../../src/notation/render/svg/svg-bar-renderer";
@@ -106,7 +99,6 @@ function createHarness() {
       },
       editingEnabled: true,
       insertBeatAfterSelected: jest.fn(),
-      removeTechniques: jest.fn().mockReturnValue(true),
       setRepeatStatus: jest.fn().mockReturnValue(true),
       setBeatDots: jest.fn().mockReturnValue(true),
     },
@@ -150,46 +142,6 @@ function createHarness() {
 }
 
 describe("EditorMouseDefCallbacks", () => {
-  test("clicking a tie's outgoing segment removes its destination tie only", () => {
-    const { track, beats } = createBarWithBeats(
-      Array.from({ length: 3 }, () => ({ baseDuration: NoteDuration.Quarter }))
-    );
-    const notes = beats.map((b) => {
-      const note = b.notes?.[0];
-      if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
-      note.setFret(5);
-      return note;
-    });
-    notes[1].setTechnique(GuitarTechniqueType.Tie);
-    notes[2].setTechnique(GuitarTechniqueType.Tie);
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    controller.trackElement.update();
-    const source = controller.trackElement.getBeatElement(beats[1])
-      ?.noteElements[0];
-    if (!(source instanceof TabNoteSlotElement)) {
-      throw Error("Expected source slot");
-    }
-    const outgoing = source.techniqueElements.find(
-      (t) => t.technique.note === notes[2]
-    );
-    if (outgoing === undefined) {
-      throw Error("Expected outgoing tie");
-    }
-    const { callbacks, notationComponent } = createHarness();
-    notationComponent.trackController = controller;
-    callbacks.onTechniqueClick(createMouseEvent(0, 0), outgoing);
-    expect(notes[1].hasTechnique(GuitarTechniqueType.Tie)).toBe(true);
-    expect(notes[2].hasTechnique(GuitarTechniqueType.Tie)).toBe(false);
-    controller.undo();
-    expect(beats[2].notes?.[0].hasTechnique(GuitarTechniqueType.Tie)).toBe(
-      true
-    );
-    controller.redo();
-    expect(beats[2].notes?.[0].hasTechnique(GuitarTechniqueType.Tie)).toBe(
-      false
-    );
-  });
-
   function createRhythmHarness(playbackState = PlaybackState.Idle) {
     const { track, beats } = createBarWithBeats(
       Array.from({ length: 6 }, () => ({ baseDuration: NoteDuration.Eighth })),
@@ -686,142 +638,6 @@ describe("EditorMouseDefCallbacks", () => {
       });
     }
   );
-
-  describe("technique label removal", () => {
-    function setupLabel(type = GuitarTechniqueType.PalmMute) {
-      const { track, beats } = createBarWithBeats([
-        { baseDuration: NoteDuration.Quarter },
-        { baseDuration: NoteDuration.Quarter },
-      ]);
-      const notes = required(beats[0].notes) as GuitarNote[];
-      const otherNote = required(beats[1].notes)[0] as GuitarNote;
-      for (const note of [notes[0], notes[2], otherNote]) {
-        note.setFret(5);
-        const options =
-          type === GuitarTechniqueType.Bend
-            ? new BendTechniqueOptions({
-                type: BendType.Bend,
-                bendPitch: 1,
-                bendDuration: 1,
-              })
-            : null;
-        note.addTechnique(new GuitarTechnique(note, type, options));
-      }
-      notes[1].setFret(7);
-      notes[1].addTechnique(
-        new GuitarTechnique(notes[1], GuitarTechniqueType.NaturalHarmonic)
-      );
-      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-      controller.trackElement.update();
-      controller.selectNoteElement(
-        required(controller.trackElement.getBeatElement(beats[1]))
-          .noteElements[0]
-      );
-      const label = required(
-        controller.trackElement.trackLineElements[0].drawableNotationElements.find(
-          (v) =>
-            v instanceof GuitarTechniqueLabelElement &&
-            v.technique.note === notes[0]
-        )
-      );
-      if (!(label instanceof GuitarTechniqueLabelElement)) {
-        throw Error("Expected technique label");
-      }
-      const harness = createHarness();
-      harness.notationComponent.trackController = controller;
-      return { ...harness, controller, notes, otherNote, label };
-    }
-
-    test("clicking a Palm Mute label clears markings only on its own beat", () => {
-      const { callbacks, notes, otherNote, label, renderFunc } = setupLabel();
-      callbacks.onLabelClick(createMouseEvent(0, 0), label);
-
-      expect(
-        notes.map((v) => v.hasTechnique(GuitarTechniqueType.PalmMute))
-      ).toEqual([false, false, false, false, false, false]);
-      expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-        true
-      );
-      expect(otherNote.hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
-      expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
-    });
-
-    test("bend label clicks do not remove techniques", () => {
-      const { callbacks, notes, label, renderFunc } = setupLabel(
-        GuitarTechniqueType.Bend
-      );
-      callbacks.onLabelClick(createMouseEvent(0, 0), label);
-      expect(notes[0].hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
-      expect(notes[2].hasTechnique(GuitarTechniqueType.Bend)).toBe(true);
-      expect(renderFunc).not.toHaveBeenCalled();
-    });
-
-    test("label clicks ignore secondary buttons and render only successful edits", () => {
-      const { callbacks, notes, label, renderFunc } = setupLabel();
-      callbacks.onLabelClick({ button: 2 } as MouseEvent, label);
-      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
-      expect(renderFunc).not.toHaveBeenCalled();
-
-      callbacks.onLabelClick(createMouseEvent(0, 0), label);
-      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
-      expect(renderFunc).toHaveBeenCalledTimes(1);
-      callbacks.onLabelClick(createMouseEvent(0, 0), label);
-      expect(renderFunc).toHaveBeenCalledTimes(1);
-      expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
-    });
-
-    test("label renderer bindings support rebinding and detach label clicks", () => {
-      const { callbacks, controller, notes, label, renderFunc } = setupLabel();
-      const dom = new JSDOM();
-      const previousDocument = globalThis.document;
-      globalThis.document = dom.window.document;
-      try {
-        const renderer = new SVGTechniqueLabelRenderer(controller, label, {
-          baseUrl: "/assets",
-          variant: "light",
-        });
-        const click = () =>
-          renderer
-            .ensureContainerGroup()
-            .dispatchEvent(new dom.window.MouseEvent("click"));
-        callbacks.bind([renderer]);
-        callbacks.bind([renderer]);
-        click();
-        expect(notes[0].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
-        expect(renderFunc).toHaveBeenCalledTimes(1);
-
-        callbacks.bind([]);
-        controller.undo();
-        click();
-        expect(
-          label.beatElement.beat.hasTechnique(GuitarTechniqueType.PalmMute)
-        ).toBe(true);
-        expect(renderFunc).toHaveBeenCalledTimes(1);
-        callbacks.bind([renderer]);
-        click();
-        expect(
-          controller.selectionCursor?.beat.voiceBar.beats[0].hasTechnique(
-            GuitarTechniqueType.PalmMute
-          )
-        ).toBe(false);
-        expect(renderFunc).toHaveBeenCalledTimes(2);
-
-        callbacks.unbind();
-        controller.undo();
-        click();
-        expect(
-          controller.selectionCursor?.beat.voiceBar.beats[0].hasTechnique(
-            GuitarTechniqueType.PalmMute
-          )
-        ).toBe(true);
-        expect(renderFunc).toHaveBeenCalledTimes(2);
-      } finally {
-        callbacks.unbind();
-        globalThis.document = previousDocument;
-        dom.window.close();
-      }
-    });
-  });
 
   let originalWindow: any;
   let originalElement: any;

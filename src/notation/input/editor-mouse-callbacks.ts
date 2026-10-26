@@ -7,10 +7,7 @@ import { UIComponent } from "../../ui";
 import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
 import { PlaybackState } from "../../player";
-import { SVGTechniqueRenderer } from "../render/svg/svg-technique-renderer";
-import type { TechniqueElement, TechniqueLabelElement } from "../controller";
-import { SVGTechniqueLabelRenderer } from "../render/svg/svg-technique-label-renderer";
-import { BarRepeatStatus, GuitarTechniqueType } from "../model";
+import { BarRepeatStatus } from "../model";
 import type { BarElement, BarTupletGroupElement } from "../controller";
 import { SVGBarRenderer } from "../render/svg/svg-bar-renderer";
 import { SVGTrackLineInfoRenderer } from "../render/svg/svg-track-line-info-renderer";
@@ -23,8 +20,6 @@ import type { TabBeatRhythmElement, BeamSegmentElement } from "../controller";
 export interface EditorMouseCallbacks {
   readonly isSelectingBeats: boolean;
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
-  onTechniqueClick(event: MouseEvent, techniqueElement: TechniqueElement): void;
-  onLabelClick(event: MouseEvent, labelElement: TechniqueLabelElement): void;
   onTempoClicked(event: MouseEvent, barElement: BarElement): void;
   onTuningClicked(event: MouseEvent): void;
   onTimeSignatureClicked(event: MouseEvent, barElement: BarElement): void;
@@ -154,46 +149,6 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     );
     if (tc.selectionCursor !== undefined) {
       this._announce();
-    }
-  }
-
-  /** Removes only the clicked inline technique, preserving selection. */
-  public onTechniqueClick(event: MouseEvent, element: TechniqueElement): void {
-    const note = element.technique.note;
-    if (event.button !== 0) {
-      return;
-    }
-
-    const changed = this.notationComponent.trackController.removeTechniques(
-      [note],
-      element.technique.type
-    );
-    if (!changed) {
-      return;
-    }
-
-    this.renderFunc(RenderType.Full);
-  }
-
-  /** Removes the clicked label's techniques from its beat, preserving selection. */
-  public onLabelClick(event: MouseEvent, element: TechniqueLabelElement): void {
-    const type = element.technique.type;
-    if (event.button !== 0 || type === GuitarTechniqueType.Bend) {
-      return;
-    }
-
-    if (element.beatElement.beat.notes === null) {
-      throw new Error("Label attached to a rest beat");
-    }
-
-    const notes = [];
-    for (const note of element.beatElement.beat.notes) {
-      if (note.hasTechnique(type)) {
-        notes.push(note);
-      }
-    }
-    if (this.notationComponent.trackController.removeTechniques(notes, type)) {
-      this.renderFunc(RenderType.Full);
     }
   }
 
@@ -732,25 +687,6 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         );
       } else if (renderer instanceof SVGTupletRenderer) {
         renderer.attachMouseEvent("click", this.onTupletClick.bind(this));
-
-        this._boundRenderers.set(
-          renderer,
-          renderer.detachMouseEvent.bind(renderer, "click")
-        );
-      } else if (renderer instanceof SVGTechniqueRenderer) {
-        renderer.attachMouseEvent("click", this.onTechniqueClick.bind(this));
-
-        this._boundRenderers.set(
-          renderer,
-          renderer.detachMouseEvent.bind(renderer, "click")
-        );
-      } else if (renderer instanceof SVGTechniqueLabelRenderer) {
-        const type = renderer.techniqueLabelElement.technique.type;
-        if (type === GuitarTechniqueType.Bend) {
-          continue;
-        }
-
-        renderer.attachMouseEvent("click", this.onLabelClick.bind(this));
 
         this._boundRenderers.set(
           renderer,
