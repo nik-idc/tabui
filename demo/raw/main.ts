@@ -49,6 +49,36 @@ function requiredElement<T extends HTMLElement>(
 }
 
 const rootDiv = requiredElement<HTMLDivElement>("tabui-editor", HTMLDivElement);
+/** Demo sections whose open state persists independently of editor settings. */
+const demoSections = ["demo-about", "demo-controls"].map((id) =>
+  requiredElement(id, HTMLDetailsElement)
+);
+
+/** Saves a section's state without requiring browser storage to be available. */
+function persistDemoSectionState(event: Event): void {
+  const section = event.currentTarget;
+  if (!(section instanceof HTMLDetailsElement)) {
+    return;
+  }
+  try {
+    localStorage.setItem(`tabui:${section.id}:open`, String(section.open));
+  } catch {
+    // Storage can be blocked or full; the section must still work.
+  }
+}
+
+for (const section of demoSections) {
+  try {
+    const saved = localStorage.getItem(`tabui:${section.id}:open`);
+    if (saved === "true" || saved === "false") {
+      section.open = saved === "true";
+    }
+  } catch {
+    // Keep the HTML default when storage is unavailable.
+  }
+  section.addEventListener("toggle", persistDemoSectionState);
+}
+
 const searchParams = new URLSearchParams(window.location.search);
 const fixtureElement = document.getElementById("fixture-select");
 const fixtureSelect =
@@ -409,6 +439,9 @@ const unbindPersistenceControls = bindScorePersistenceControls({
 });
 
 import.meta.hot?.dispose(() => {
+  for (const section of demoSections) {
+    section.removeEventListener("toggle", persistDemoSectionState);
+  }
   fixtureSelect?.removeEventListener("change", handleFixtureChange);
   themeSelect?.removeEventListener("change", handleThemeChange);
   for (const control of editorConfigControls) {
