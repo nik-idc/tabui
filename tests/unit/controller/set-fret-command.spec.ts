@@ -38,7 +38,7 @@ describe("SetFretCommand", () => {
       throw Error("Expected guitar note in test beat");
     }
 
-    note.fret = 9;
+    note.setFret(9);
     const command = new SetFretCommand(note.beat, note.stringNum, null);
 
     command.execute();

@@ -19,7 +19,7 @@ describe("RemoveBeatsCommand", () => {
     expect(command.affectedModels).toEqual([
       { masterBarIndex: 0, modelUUID: beats[1].uuid },
     ]);
-    (required(beats[1].notes)[0] as GuitarNote).fret = 7;
+    (required(beats[1].notes)[0] as GuitarNote).setFret(7);
 
     command.execute();
     expect(voiceBar.beats).toHaveLength(2);

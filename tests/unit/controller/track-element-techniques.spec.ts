@@ -90,7 +90,7 @@ describe("TrackElement techniques", () => {
       const beat = current.voiceBarsAsArray[0].beats[0];
       beat.makeBeatWithNotes();
       const note = required(beat.notes)[0] as GuitarNote;
-      note.fret = 5;
+      note.setFret(5);
       note.setTechnique(GuitarTechniqueType.PalmMute);
     }
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -118,8 +118,8 @@ describe("TrackElement techniques", () => {
     ]);
     const first = required(beats[0].notes)[0] as GuitarNote;
     const last = required(beats[2].notes)[0] as GuitarNote;
-    first.fret = 5;
-    last.fret = -1;
+    first.setFret(5);
+    last.setFret(-1);
     first.setTechnique(GuitarTechniqueType.PalmMute);
     last.setTechnique(GuitarTechniqueType.PalmMute);
     const element = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -145,7 +145,7 @@ describe("TrackElement techniques", () => {
     const source = required(
       bar.voiceBarsAsArray[0].beats[0].notes
     )[0] as GuitarNote;
-    source.fret = 5;
+    source.setFret(5);
     source.setTechnique(GuitarTechniqueType.LetRing);
     for (const nextBar of staff.bars.slice(1)) {
       const beat = nextBar.voiceBarsAsArray[0].beats[0];
@@ -157,7 +157,7 @@ describe("TrackElement techniques", () => {
     const otherBeat = staff.bars[12].voiceBarsAsArray[0].beats[0];
     otherBeat.makeBeatWithNotes();
     const other = required(otherBeat.notes)[1] as GuitarNote;
-    other.fret = 3;
+    other.setFret(3);
     other.setTechnique(GuitarTechniqueType.PalmMute);
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.trackElement.update();
@@ -185,7 +185,7 @@ describe("TrackElement techniques", () => {
     const baselineHeight = baseline.trackLineElements[1].boundingBox.height;
     const beat = bar.voiceBarsAsArray[0].beats[0];
     const source = required(beat.notes)[0] as GuitarNote;
-    source.fret = 5;
+    source.setFret(5);
     source.setTechnique(GuitarTechniqueType.LetRing);
     for (const nextBar of bar.staff.bars.slice(1)) {
       const next = nextBar.voiceBarsAsArray[0].beats[0];
@@ -236,8 +236,8 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes in test beats");
     }
-    firstNote.fret = 5;
-    nextNote.fret = 7;
+    firstNote.setFret(5);
+    nextNote.setFret(7);
     firstNote.addTechnique(
       new GuitarTechnique(firstNote, GuitarTechniqueType.Slide)
     );
@@ -277,8 +277,8 @@ describe("TrackElement techniques", () => {
     if (!(note instanceof GuitarNote) || !(nextNote instanceof GuitarNote)) {
       throw Error("Expected guitar notes in test beats");
     }
-    note.fret = 5;
-    nextNote.fret = 7;
+    note.setFret(5);
+    nextNote.setFret(7);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide));
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -311,8 +311,8 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes in test beats");
     }
-    firstNote.fret = 7;
-    nextNote.fret = 5;
+    firstNote.setFret(7);
+    nextNote.setFret(5);
     firstNote.addTechnique(
       new GuitarTechnique(firstNote, GuitarTechniqueType.Slide)
     );
@@ -340,7 +340,7 @@ describe("TrackElement techniques", () => {
         { baseDuration: NoteDuration.Quarter },
       ]);
       const note = required(beats[0].notes)[0] as GuitarNote;
-      note.fret = 24;
+      note.setFret(24);
       note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
       note.addTechnique(
         new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
@@ -394,10 +394,10 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes on both sides of the bar boundary");
     }
-    sourceSlideNote.fret = 5;
-    sourceLegatoNote.fret = 7;
-    targetSlideNote.fret = 8;
-    targetLegatoNote.fret = 4;
+    sourceSlideNote.setFret(5);
+    sourceLegatoNote.setFret(7);
+    targetSlideNote.setFret(8);
+    targetLegatoNote.setFret(4);
     sourceSlideNote.addTechnique(
       new GuitarTechnique(sourceSlideNote, GuitarTechniqueType.Slide)
     );
@@ -464,10 +464,10 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected notes on both sides of the track line boundary");
     }
-    sourceSlideNote.fret = 5;
-    sourceLegatoNote.fret = 7;
-    targetSlideNote.fret = 8;
-    targetLegatoNote.fret = 4;
+    sourceSlideNote.setFret(5);
+    sourceLegatoNote.setFret(7);
+    targetSlideNote.setFret(8);
+    targetLegatoNote.setFret(4);
     sourceSlideNote.addTechnique(
       new GuitarTechnique(sourceSlideNote, GuitarTechniqueType.Slide)
     );
@@ -513,8 +513,8 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes in test beats");
     }
-    firstNote.fret = 5;
-    nextNote.fret = 7;
+    firstNote.setFret(5);
+    nextNote.setFret(7);
     firstNote.addTechnique(
       new GuitarTechnique(firstNote, GuitarTechniqueType.Slide)
     );
@@ -525,7 +525,7 @@ describe("TrackElement techniques", () => {
       required(trackElement.getBeatElement(beats[0])).noteElements[0]
         .techniqueElements[0].pathDescriptors
     ).toHaveLength(1);
-    nextNote.fret = null;
+    nextNote.setFret(null);
     trackElement.update();
 
     const firstBeatElement =
@@ -546,8 +546,8 @@ describe("TrackElement techniques", () => {
     if (!(note instanceof GuitarNote) || !(nextNote instanceof GuitarNote)) {
       throw Error("Expected guitar notes in test beats");
     }
-    note.fret = 5;
-    nextNote.fret = 7;
+    note.setFret(5);
+    nextNote.setFret(7);
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
@@ -619,9 +619,9 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes in test beat");
     }
-    vibratoNote.fret = 5;
-    palmMuteNote.fret = 5;
-    bendNote.fret = 5;
+    vibratoNote.setFret(5);
+    palmMuteNote.setFret(5);
+    bendNote.setFret(5);
 
     vibratoNote.addTechnique(
       new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
@@ -696,9 +696,9 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes in test beat");
     }
-    holdNote.fret = 5;
-    releaseNote.fret = 5;
-    prebendBendNote.fret = 5;
+    holdNote.setFret(5);
+    releaseNote.setFret(5);
+    prebendBendNote.setFret(5);
     holdNote.addTechnique(
       new GuitarTechnique(
         holdNote,
@@ -802,7 +802,7 @@ describe("TrackElement techniques", () => {
       if (!(note instanceof GuitarNote)) {
         throw Error("Expected guitar note in test beat");
       }
-      note.fret = 5;
+      note.setFret(5);
       note.addTechnique(
         new GuitarTechnique(
           note,
@@ -868,8 +868,8 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes in test beat");
     }
-    vibratoNote.fret = 5;
-    palmMuteNote.fret = 5;
+    vibratoNote.setFret(5);
+    palmMuteNote.setFret(5);
 
     vibratoNote.addTechnique(
       new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
@@ -909,7 +909,7 @@ describe("TrackElement techniques", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     const secondLineBeatElement =
       secondLineBefore.staffLineContainers[0].styleLinesAsArray[0]
         .barElements[0].beatElements[0];
@@ -960,7 +960,7 @@ describe("TrackElement techniques", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
@@ -1006,8 +1006,8 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes in test beat");
     }
-    vibratoNote.fret = 5;
-    bendNote.fret = 5;
+    vibratoNote.setFret(5);
+    bendNote.setFret(5);
 
     vibratoNote.addTechnique(
       new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
@@ -1061,7 +1061,7 @@ describe("TrackElement techniques", () => {
       if (!(note instanceof GuitarNote)) {
         throw Error("Expected guitar note in test beat");
       }
-      note.fret = 5;
+      note.setFret(5);
       notes.push(note);
     }
     notes[0].addTechnique(
@@ -1250,7 +1250,7 @@ describe("TrackElement techniques", () => {
       if (!(note instanceof GuitarNote)) {
         throw Error("Expected guitar note in test beat");
       }
-      note.fret = 5;
+      note.setFret(5);
       note.addTechnique(
         new GuitarTechnique(note, GuitarTechniqueType.Bend, options)
       );
@@ -1304,7 +1304,7 @@ describe("TrackElement techniques", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     for (const beat of beats) {
-      (required(beat.notes)[0] as GuitarNote).fret = 12;
+      (required(beat.notes)[0] as GuitarNote).setFret(12);
     }
     const note = required(beats[0].notes)[0] as GuitarNote;
     note.addTechnique(
@@ -1358,8 +1358,8 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes in test beat");
     }
-    vibratoNote.fret = 5;
-    bendNote.fret = 5;
+    vibratoNote.setFret(5);
+    bendNote.setFret(5);
 
     vibratoNote.addTechnique(
       new GuitarTechnique(vibratoNote, GuitarTechniqueType.Vibrato)
@@ -1422,7 +1422,7 @@ describe("TrackElement techniques", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
 
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
 
@@ -1472,7 +1472,7 @@ describe("TrackElement techniques", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
 
@@ -1527,8 +1527,8 @@ describe("TrackElement techniques", () => {
     ) {
       throw Error("Expected guitar notes in test beat");
     }
-    vibratoNote.fret = 5;
-    palmMuteNote.fret = 5;
+    vibratoNote.setFret(5);
+    palmMuteNote.setFret(5);
 
     palmMuteNote.addTechnique(
       new GuitarTechnique(palmMuteNote, GuitarTechniqueType.PalmMute)
@@ -1583,7 +1583,7 @@ describe("TrackElement techniques", () => {
     if (!(palmMuteNote instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    palmMuteNote.fret = 5;
+    palmMuteNote.setFret(5);
     palmMuteNote.addTechnique(
       new GuitarTechnique(palmMuteNote, GuitarTechniqueType.PalmMute)
     );
@@ -1633,7 +1633,7 @@ describe("TrackElement techniques", () => {
       required(beats[1].notes)[0],
     ] as GuitarNote[];
     for (const [index, note] of notes.entries()) {
-      note.fret = index === 2 ? null : 5;
+      note.setFret(index === 2 ? null : 5);
       note.setTechnique(GuitarTechniqueType.LetRing);
     }
 
@@ -1676,7 +1676,7 @@ describe("TrackElement techniques", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     const noteArray = [note];
 
     score.masterBars[secondLineStartIndex].tempo = 121;

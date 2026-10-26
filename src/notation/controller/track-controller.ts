@@ -536,6 +536,22 @@ export class TrackController {
     this._trackControllerEditor.setSelectedNoteFret(newFret);
   }
 
+  /** Reports whether the selected playable notes can move by this many semitones. */
+  public canShiftSelectedPitch(semitones: number): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canShiftSelectedPitch(semitones)
+    );
+  }
+
+  /** Shifts selected playable notes by a signed number of semitones. */
+  public shiftSelectedPitch(semitones: number): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.shiftSelectedPitch(semitones);
+  }
+
   /**
    * Set duration for selected beats
    * @param newDuration New duration

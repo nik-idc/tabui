@@ -103,7 +103,7 @@ describe("NoteControlsDefaultCallbacks", () => {
   test("repeated binding inserts before and after, then removes one beat per click", () => {
     const { callbacks, controls, beat, controller } = fixture;
     const voiceBar = beat.voiceBar;
-    (required(beat.notes)[0] as GuitarNote).fret = 7;
+    (required(beat.notes)[0] as GuitarNote).setFret(7);
     const frets = () =>
       voiceBar.beats.map((b) => (required(b.notes)[0] as GuitarNote).fret);
     callbacks.bind();
@@ -168,5 +168,59 @@ describe("NoteControlsDefaultCallbacks", () => {
   test("rejects an invalid tuplet preset without editing the selected beat", () => {
     expect(() => fixture.callbacks.onTupletNormalClicked(1)).toThrow(Error);
     expect(fixture.beat.tupletSettings).toBeNull();
+  });
+
+  test("pitch buttons shift the selected note and participate in undo history", () => {
+    const note = required(fixture.beat.notes)[0] as GuitarNote;
+    note.setFret(5);
+    fixture.controls.render();
+    fixture.callbacks.bind();
+
+    fixture.controls.template.shiftPitchUpButton.click();
+    expect((required(fixture.beat.notes)[0] as GuitarNote).fret).toBe(6);
+    fixture.controller.undo();
+    expect((required(fixture.beat.notes)[0] as GuitarNote).fret).toBe(5);
+    fixture.controller.redo();
+    expect((required(fixture.beat.notes)[0] as GuitarNote).fret).toBe(6);
+  });
+
+  test("pitch buttons are disabled when no playable note can move", () => {
+    fixture.controls.render();
+    expect(fixture.controls.template.shiftPitchUpButton.disabled).toBe(true);
+    expect(fixture.controls.template.shiftPitchDownButton.disabled).toBe(true);
+  });
+
+  test("disables pitch down at fret zero and pitch up at the maximum fret", () => {
+    const note = required(fixture.beat.notes)[0] as GuitarNote;
+    const maxFret = note.trackContext.instrument.fretsCount;
+    note.setFret(maxFret);
+    fixture.controls.render();
+    expect(fixture.controls.template.shiftPitchUpButton.disabled).toBe(true);
+    expect(fixture.controls.template.shiftPitchDownButton.disabled).toBe(false);
+    expect(
+      fixture.controls.template.shiftPitchUpButton.classList.contains(
+        "tu-disabled-img"
+      )
+    ).toBe(true);
+    expect(
+      fixture.controls.template.shiftPitchDownButton.classList.contains(
+        "tu-disabled-img"
+      )
+    ).toBe(false);
+
+    note.setFret(0);
+    fixture.controls.render();
+    expect(fixture.controls.template.shiftPitchUpButton.disabled).toBe(false);
+    expect(fixture.controls.template.shiftPitchDownButton.disabled).toBe(true);
+    expect(
+      fixture.controls.template.shiftPitchUpButton.classList.contains(
+        "tu-disabled-img"
+      )
+    ).toBe(false);
+    expect(
+      fixture.controls.template.shiftPitchDownButton.classList.contains(
+        "tu-disabled-img"
+      )
+    ).toBe(true);
   });
 });

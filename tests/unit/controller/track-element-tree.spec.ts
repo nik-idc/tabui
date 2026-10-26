@@ -308,7 +308,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -367,7 +367,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -437,7 +437,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 7;
+    note.setFret(7);
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
@@ -824,7 +824,7 @@ describe("TrackElement tree", () => {
     if (!(affectedNote instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    affectedNote.fret = 5;
+    affectedNote.setFret(5);
     const setTechCommand = new SetTechniqueCommand(
       ScoreEditor.getTechniqueTargetsForNotes([affectedNote]),
       GuitarTechniqueType.PalmMute
@@ -1139,7 +1139,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected target guitar note");
     }
-    note.fret = 5;
+    note.setFret(5);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
     const trackElement = new TrackElement(
       track,
@@ -1232,7 +1232,7 @@ describe("TrackElement tree", () => {
     if (!(firstLineNote instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    firstLineNote.fret = 5;
+    firstLineNote.setFret(5);
     firstLineNote.addTechnique(
       new GuitarTechnique(firstLineNote, GuitarTechniqueType.Vibrato)
     );

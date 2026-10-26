@@ -139,7 +139,7 @@ describe("TrackElement rhythm", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note");
     }
-    note.fret = 3;
+    note.setFret(3);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();

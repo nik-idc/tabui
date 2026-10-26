@@ -105,7 +105,7 @@ function notesAtFrets(...frets: number[]): GuitarNote[] {
     b.makeBeatWithNotes();
     const note = b.notes?.[0];
     if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
-    note.fret = frets[i];
+    note.setFret(frets[i]);
     return note;
   });
 }
@@ -343,7 +343,7 @@ describe("PlaybackNoteScheduler", () => {
     const notes = notesAtFrets(5, 7);
     notes[0].setTechnique(GuitarTechniqueType.PalmMute);
     const other = notes[1].beat.notes?.[1] as GuitarNote;
-    other.fret = 3;
+    other.setFret(3);
     const audio = createAudioContext();
     const player = scheduler(audio.context);
     notes.forEach((note, index) =>
@@ -576,8 +576,8 @@ describe("PlaybackNoteScheduler", () => {
       notes[1].setTechnique(GuitarTechniqueType.Tie);
       notes[2].setTechnique(GuitarTechniqueType.Tie);
       notes[markedIndex].setTechnique(GuitarTechniqueType.LetRing);
-      notes[3].fret = null;
-      notes[4].fret = null;
+      notes[3].setFret(null);
+      notes[4].setFret(null);
       const audio = createAudioContext();
       const player = scheduler(audio.context);
 
@@ -595,7 +595,7 @@ describe("PlaybackNoteScheduler", () => {
     first.setTechnique(GuitarTechniqueType.LetRing);
     middle.setTechnique(GuitarTechniqueType.Tie);
     final.setTechnique(GuitarTechniqueType.Tie);
-    next.fret = null;
+    next.setFret(null);
     next.setTechnique(GuitarTechniqueType.LetRing);
     const audio = createAudioContext();
 
@@ -632,7 +632,7 @@ describe("PlaybackNoteScheduler", () => {
         if (!(note instanceof GuitarNote)) {
           throw Error("Expected guitar note");
         }
-        note.fret = 5;
+        note.setFret(5);
         if (beat !== beats[0]) {
           note.setTechnique(GuitarTechniqueType.Tie);
         }
@@ -719,12 +719,12 @@ describe("PlaybackNoteScheduler", () => {
   test("Let Ring stops at an unmarked empty slot without attacking marked empty slots", () => {
     const [first, next, later, last] = notesAtFrets(5, 7, 8, 9);
     first.setTechnique(GuitarTechniqueType.LetRing);
-    next.fret = null;
-    later.fret = null;
+    next.setFret(null);
+    later.setFret(null);
     next.setTechnique(GuitarTechniqueType.LetRing);
     later.setTechnique(GuitarTechniqueType.LetRing);
     // The unmarked last beat ends the passage even though its note is empty.
-    last.fret = null;
+    last.setFret(null);
     const audio = createAudioContext();
     const player = scheduler(audio.context);
     player.scheduleNote(first, 0, 0.5, trackBus());
@@ -739,14 +739,14 @@ describe("PlaybackNoteScheduler", () => {
   test("other-string markers do not extend a Let Ring passage", () => {
     const [first, next, later] = notesAtFrets(5, 7, 8);
     first.setTechnique(GuitarTechniqueType.LetRing);
-    next.fret = null;
-    later.fret = null;
+    next.setFret(null);
+    later.setFret(null);
     for (const note of [next, later]) {
       const other = note.beat.notes?.[1];
       if (!(other instanceof GuitarNote)) {
         throw Error("Expected guitar note");
       }
-      other.fret = 3;
+      other.setFret(3);
       other.setTechnique(GuitarTechniqueType.LetRing);
     }
     const audio = createAudioContext();
@@ -760,13 +760,13 @@ describe("PlaybackNoteScheduler", () => {
   test("Let Ring resonance stops at an attack in another voice", () => {
     const [first, next] = notesAtFrets(5, 7);
     first.setTechnique(GuitarTechniqueType.LetRing);
-    next.fret = null;
+    next.setFret(null);
     next.setTechnique(GuitarTechniqueType.LetRing);
     const otherString = next.beat.notes?.[1];
     if (!(otherString instanceof GuitarNote)) {
       throw Error("Expected guitar note");
     }
-    otherString.fret = 3;
+    otherString.setFret(3);
     otherString.setTechnique(GuitarTechniqueType.LetRing);
     const voice = first.beat.voiceBar.bar.insertVoiceBar(2);
     voice.appendBeats();
@@ -775,7 +775,7 @@ describe("PlaybackNoteScheduler", () => {
     if (!(attack instanceof GuitarNote)) {
       throw Error("Expected guitar note");
     }
-    attack.fret = 9;
+    attack.setFret(9);
     voice.rebuildTiming();
     const audio = createAudioContext();
     scheduler(audio.context).scheduleNote(first, 0, 0.5, trackBus());
@@ -787,13 +787,13 @@ describe("PlaybackNoteScheduler", () => {
     (fret) => {
       const [first, next] = notesAtFrets(5, 7);
       first.setTechnique(GuitarTechniqueType.LetRing);
-      next.fret = null;
+      next.setFret(null);
       next.setTechnique(GuitarTechniqueType.LetRing);
       const voice = first.beat.voiceBar.bar.insertVoiceBar(2);
       voice.appendBeats();
       if (fret !== null) {
         voice.beats[1].makeBeatWithNotes();
-        (voice.beats[1].notes?.[0] as GuitarNote).fret = fret;
+        (voice.beats[1].notes?.[0] as GuitarNote).setFret(fret);
       }
       voice.rebuildTiming();
       const audio = createAudioContext();
@@ -812,13 +812,13 @@ describe("PlaybackNoteScheduler", () => {
       final.setTechnique(GuitarTechniqueType.Tie);
       tied.setTechnique(GuitarTechniqueType.LetRing);
       final.setTechnique(GuitarTechniqueType.LetRing);
-      next.fret = null;
+      next.setFret(null);
       next.setTechnique(GuitarTechniqueType.LetRing);
       const otherString = next.beat.notes?.[1];
       if (!(otherString instanceof GuitarNote)) {
         throw Error("Expected guitar note");
       }
-      otherString.fret = 3;
+      otherString.setFret(3);
       otherString.setTechnique(GuitarTechniqueType.LetRing);
 
       const voice = first.beat.voiceBar.bar.insertVoiceBar(2);
@@ -830,7 +830,7 @@ describe("PlaybackNoteScheduler", () => {
       if (!(attack instanceof GuitarNote)) {
         throw Error("Expected guitar note");
       }
-      attack.fret = reattack ? 9 : null;
+      attack.setFret(reattack ? 9 : null);
       voice.rebuildTiming();
 
       const audio = createAudioContext();
@@ -856,7 +856,7 @@ describe("PlaybackNoteScheduler", () => {
         bendDuration: 1,
       })
     );
-    next.fret = null;
+    next.setFret(null);
     next.setTechnique(GuitarTechniqueType.LetRing);
     const audio = createAudioContext();
     scheduler(audio.context).scheduleNote(first, 0, 0.5, trackBus());

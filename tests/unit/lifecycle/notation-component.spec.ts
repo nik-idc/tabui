@@ -60,7 +60,7 @@ describe("NotationComponent", () => {
     );
     graph.beats.forEach((b, i) => {
       b.makeBeatWithNotes();
-      (required(b.notes)[0] as GuitarNote).fret = i + 3;
+      (required(b.notes)[0] as GuitarNote).setFret(i + 3);
     });
     return graph;
   }
@@ -149,7 +149,7 @@ describe("NotationComponent", () => {
     const nextBeat = required(nextTrack.staves[0].bars[30].getVoiceBar(1))
       .beats[0];
     nextBeat.makeBeatWithNotes();
-    (required(nextBeat.notes)[0] as GuitarNote).fret = 9;
+    (required(nextBeat.notes)[0] as GuitarNote).setFret(9);
     const { notation, viewport } = viewFor(score);
     notation.trackController.selectLastBar();
     notation.trackController.startPlayer();

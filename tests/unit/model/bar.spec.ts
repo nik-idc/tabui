@@ -45,7 +45,7 @@ describe("Bar model", () => {
     const score = new Score();
     const sourceVoice = score.tracks[0].staves[0].bars[0].ensureVoiceBar(1);
     const source = new Beat(sourceVoice, sourceVoice.trackContext);
-    (required(source.notes)[0] as GuitarNote).fret = 1;
+    (required(source.notes)[0] as GuitarNote).setFret(1);
     const instrument = new Guitar(
       undefined,
       undefined,

@@ -28,7 +28,7 @@ function passage(frets: (number | null)[]): GuitarNote[] {
   );
   return beats.map((b, i) => {
     const note = b.notes?.[0] as GuitarNote;
-    note.fret = frets[i];
+    note.setFret(frets[i]);
     return note;
   });
 }
@@ -306,7 +306,7 @@ describe("Let Ring editing", () => {
     ScoreEditor.setTechniqueForNotes(notes, GuitarTechniqueType.LetRing);
     for (const source of notes) {
       const muted = required(source.beat.notes)[1] as GuitarNote;
-      muted.fret = 3;
+      muted.setFret(3);
       muted.setTechnique(GuitarTechniqueType.PalmMute);
     }
     const voice = notes[0].beat.voiceBar;
@@ -406,7 +406,7 @@ describe("Let Ring editing", () => {
     );
     const secondString = voice.beats.map((b, i) => {
       const note = required(b.notes)[1] as GuitarNote;
-      note.fret = i === 0 ? 3 : null;
+      note.setFret(i === 0 ? 3 : null);
       return note;
     });
     ScoreEditor.setTechniqueForNotes(
@@ -440,7 +440,7 @@ describe("Let Ring editing", () => {
     const notes = passage([5, 7, null, 9, null]);
     ScoreEditor.setTechniqueForNotes(notes, GuitarTechniqueType.LetRing);
     const muted = required(notes[1].beat.notes)[1] as GuitarNote;
-    muted.fret = 3;
+    muted.setFret(3);
     muted.setTechnique(GuitarTechniqueType.PalmMute);
     ScoreEditor.setFret(notes[1].beat, 1, -1);
     ScoreEditor.setFret(notes[1].beat, 2, -1);
@@ -467,7 +467,7 @@ describe("Let Ring editing", () => {
     blank.makeBeatWithNotes();
     blank.notes?.forEach((n) => {
       n.clearTechniques();
-      (n as GuitarNote).fret = null;
+      (n as GuitarNote).setFret(null);
     });
     const manager = new CommandManager();
     manager.execute(
@@ -497,7 +497,7 @@ describe("Let Ring editing", () => {
       const beat = required(b.getVoiceBar(1)).beats[0];
       beat.makeBeatWithNotes();
       const note = required(beat.notes)[0] as GuitarNote;
-      note.fret = i === 0 ? 5 : null;
+      note.setFret(i === 0 ? 5 : null);
       return note;
     });
     ScoreEditor.setTechniqueForNotes(slots, GuitarTechniqueType.LetRing);

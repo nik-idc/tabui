@@ -10,7 +10,7 @@ test("retained note DOM follows rebuilt elements and renders later edits", () =>
   const { track, bar } = createScoreGraph();
   const note = bar.getVoiceBar(1)?.beats[0].notes?.[0];
   if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
-  note.fret = 5;
+  note.setFret(5);
   const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
   const viewport = document.createElement("div");
   Object.defineProperties(viewport, {

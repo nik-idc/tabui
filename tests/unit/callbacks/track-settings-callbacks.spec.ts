@@ -20,7 +20,7 @@ function createControls() {
   const beat = required(bar.getVoiceBar(1)).beats[0];
   beat.makeBeatWithNotes();
   const note = required(beat.notes)[5] as GuitarNote;
-  note.fret = 3;
+  note.setFret(3);
   const root = document.createElement("div");
   const controlsHost = document.createElement("div");
   const notationHost = document.createElement("div");

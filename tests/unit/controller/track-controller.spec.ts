@@ -359,7 +359,7 @@ describe("TrackController", () => {
       required(bar.getVoiceBar(1)).beats[0].notes
     ) as GuitarNote[];
     for (const note of notes.slice(0, 2)) {
-      note.fret = 5;
+      note.setFret(5);
       note.addTechnique(
         new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
       );
@@ -409,7 +409,7 @@ describe("TrackController", () => {
       required(bar.getVoiceBar(1)).beats[0].notes
     ) as GuitarNote[];
     for (const note of notes.slice(0, 2)) {
-      note.fret = 5;
+      note.setFret(5);
       note.addTechnique(
         new GuitarTechnique(note, GuitarTechniqueType.PalmMute)
       );
@@ -557,7 +557,7 @@ describe("TrackController", () => {
     const frets = [0, 3, 7];
     beats.forEach((b, i) => {
       b.makeBeatWithNotes();
-      (required(b.notes)[0] as GuitarNote).fret = frets[i];
+      (required(b.notes)[0] as GuitarNote).setFret(frets[i]);
     });
     const { controller, player, audio } = realTransport(track);
     const beatElement = getBeatElements(controller)[1];
@@ -640,7 +640,7 @@ describe("TrackController", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     score.addTrack(new Guitar(), "Track 2");
     note.addTechnique(
       new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
@@ -697,7 +697,7 @@ describe("TrackController", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
     note.addTechnique(
       new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
@@ -1236,7 +1236,7 @@ describe("TrackController", () => {
     const existingVoiceBar = bar.insertVoiceBar(2);
     existingVoiceBar.beats[0].makeBeatWithNotes();
     const note = required(existingVoiceBar.beats[0].notes)[0] as GuitarNote;
-    note.fret = 7;
+    note.setFret(7);
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     controller.setActiveVoiceNumber(2);
@@ -2452,7 +2452,7 @@ describe("TrackController", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar({
         tempo: 120,

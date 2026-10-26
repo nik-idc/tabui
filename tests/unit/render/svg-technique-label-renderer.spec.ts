@@ -18,7 +18,7 @@ function setupRenderer() {
     { baseDuration: NoteDuration.Quarter },
   ]);
   const note = required(beats[0].notes)[0] as GuitarNote;
-  note.fret = 5;
+  note.setFret(5);
   note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
   const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
   controller.trackElement.update();

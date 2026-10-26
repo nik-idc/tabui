@@ -18,7 +18,7 @@ function scoreWithNotes() {
   );
   graph.beats.forEach((b, i) => {
     b.makeBeatWithNotes();
-    (required(b.notes)[0] as GuitarNote).fret = i;
+    (required(b.notes)[0] as GuitarNote).setFret(i);
   });
   return graph;
 }
@@ -263,7 +263,7 @@ describe("ScorePlayer", () => {
     graph.score.appendMasterBar();
     const nextBeat = graph.track.staves[0].bars[1].ensureVoiceBar(1).beats[0];
     nextBeat.makeBeatWithNotes();
-    (required(nextBeat.notes)[0] as GuitarNote).fret = 5;
+    (required(nextBeat.notes)[0] as GuitarNote).setFret(5);
     const onError = jest.fn();
     const player = playerFor(graph, onError);
     await player.start();

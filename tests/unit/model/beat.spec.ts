@@ -127,7 +127,7 @@ describe("Beat model", () => {
     const sourceVoice = score.tracks[0].staves[0].bars[0].ensureVoiceBar(1);
     const source = new Beat(sourceVoice, sourceVoice.trackContext);
     const note = expectNotes(source)[0] as GuitarNote;
-    note.fret = 5;
+    note.setFret(5);
     source.tupletSettings = { normalCount: 3, tupletCount: 2 };
     const track = score.addTrack(
       new Guitar(undefined, undefined, "Bass", 4),
@@ -159,7 +159,7 @@ describe("Beat model", () => {
       2
     );
     const dead = expectNotes(source)[0] as GuitarNote;
-    dead.fret = -1;
+    dead.setFret(-1);
     dead.setTechnique(GuitarTechniqueType.PalmMute);
     const marker = expectNotes(source)[1] as GuitarNote;
     marker.setTechnique(GuitarTechniqueType.LetRing);
@@ -230,7 +230,7 @@ describe("Beat model", () => {
     const sourceBeat = createBeat(bar, NoteDuration.Quarter);
     const sourceNotes = expectNotes(sourceBeat);
     const note = sourceNotes[0] as GuitarNote;
-    note.fret = 3;
+    note.setFret(3);
 
     const result = beat.setNote(0, note);
 
@@ -290,7 +290,7 @@ describe("Beat model", () => {
     ]);
     const sourceBeat = beats[0];
     const sourceNote = expectNotes(sourceBeat)[0] as GuitarNote;
-    sourceNote.fret = 5;
+    sourceNote.setFret(5);
     sourceNote.setTechnique(GuitarTechniqueType.Vibrato);
 
     const copy = sourceBeat.deepCopy();

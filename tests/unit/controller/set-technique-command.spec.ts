@@ -28,7 +28,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
 
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const command = new SetTechniqueCommand(
@@ -68,7 +68,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
 
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const command = new SetTechniqueCommand(
@@ -96,7 +96,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
 
     const vibratoCommand = new SetTechniqueCommand(
       ScoreEditor.getTechniqueTargetsForNotes([note]),
@@ -133,7 +133,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
 
     const harmonicCommand = new SetTechniqueCommand(
       ScoreEditor.getTechniqueTargetsForNotes([note]),
@@ -162,7 +162,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
 
     const command = new SetTechniqueCommand(
       ScoreEditor.getTechniqueTargetsForNotes([note]),
@@ -198,7 +198,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
 
     note.addTechnique(
       new GuitarTechnique(
@@ -270,7 +270,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     note.addTechnique(
       new GuitarTechnique(
         note,
@@ -321,7 +321,7 @@ describe("SetTechniqueCommand", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note");
     }
-    note.fret = 5;
+    note.setFret(5);
     note.setTechnique(GuitarTechniqueType.LetRing);
 
     command.execute();

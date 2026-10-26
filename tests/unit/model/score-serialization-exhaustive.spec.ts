@@ -182,7 +182,7 @@ describe("exhaustive V1 score serialization", () => {
       if (!(note instanceof GuitarNote)) {
         throw Error("Expected guitar note");
       }
-      note.fret = i + 1;
+      note.setFret(i + 1);
       expect(
         note.setTechnique(
           GuitarTechniqueType.Bend,
@@ -234,7 +234,7 @@ describe("exhaustive V1 score serialization", () => {
       if (!(note instanceof GuitarNote)) {
         throw Error("Expected guitar note");
       }
-      note.fret = i + 1;
+      note.setFret(i + 1);
     }
     voice.replaceBeats(beats);
     for (let i = 0; i < beats.length; i++) {

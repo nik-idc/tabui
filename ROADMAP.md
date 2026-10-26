@@ -67,11 +67,14 @@ replace release validation.
       Need it be optional: - "j" -> tie just the previous beat - "Shift + j" -> tie as far back as possible
 - [x] Don't render the release pitch if it's 0
 - [x] Implement the same "+" but for bars **only for the last bar**
-- [ ] Implement "↑" & "↓" to increase/decrease the pitch of selection by 1 semitone
+- [x] Implement "↑" & "↓" to increase/decrease the pitch of selection by 1 semitone
 - [x] Repeat playback doesn't actually use the specified repeat count - always defaults to 2.
       **Only occurs when a single bar is a self contained repeat section**. With multi-bar
       repeat sections this error doesn't appear and playback & visuals respect the repeat count.
 - [ ] Store expanded/collapsed state of "About this demo" & "Demo controls" in `localStorage`
+- [ ] Highlight the note symbol in the tempo display as well as the "= _BPM number_"
+- [ ] Completely remove interactivity from inline techniques. 99% of the time gets in the
+      way of normal editing
 
 ## Follow-up inbox
 

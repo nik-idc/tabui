@@ -48,6 +48,7 @@ import {
   PrependBarCommand,
   InsertBarCommand,
   RemoveBarsCommand,
+  ShiftPitchCommand,
   Command,
   AffectedModel,
 } from "./command";
@@ -499,6 +500,39 @@ export class TrackControllerEditor {
         newFret
       )
     );
+  }
+
+  /** Returns the current beat or note selection for a pitch edit. */
+  private getSelectedPitchTargets(): Beat[] | Note | null {
+    const cursor = this._selectionManager.selectionCursor;
+    if (cursor === undefined) {
+      return this._selectionManager.selectionAsBeats;
+    }
+    return cursor.note;
+  }
+
+  /** Returns whether the current cursor or beat range has a valid pitch shift. */
+  public canShiftSelectedPitch(semitones: number): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    const target = this.getSelectedPitchTargets();
+    return target !== null && ScoreEditor.canShiftPitch(target, semitones);
+  }
+
+  /** Applies one atomic signed semitone shift to the current selection. */
+  public shiftSelectedPitch(semitones: number): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    const target = this.getSelectedPitchTargets();
+    if (target === null || !ScoreEditor.canShiftPitch(target, semitones)) {
+      return false;
+    }
+    const command = this.executeCommand(
+      new ShiftPitchCommand(target, semitones)
+    );
+    return command.executed === true;
   }
 
   /**

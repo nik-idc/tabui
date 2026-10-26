@@ -76,7 +76,7 @@ export class GuitarNote implements Note<Guitar> {
 
     this._stringNum = stringNum;
     this._techniques = techniques;
-    this.fret = fret;
+    this.setFret(fret);
 
     this.calcNoteFromFret();
   }
@@ -137,20 +137,25 @@ export class GuitarNote implements Note<Guitar> {
    * Computes fret from pitch and string tuning, clamping above the fretboard maximum without changing stored pitch.
    * Empty pitch keeps only Let Ring and sets a null fret; dead pitch removes Let Ring and sets fret -1.
    * @throws If playable pitch/tuning has a null octave, tuning is missing, or the calculated fret is below zero.
+   * @param invalidateTies Whether to remove ties invalidated by the new fret.
    */
-  public calculateFretFromNote(): void {
+  public calculateFretFromNote(invalidateTies: boolean = true): void {
     const oldFret = this._fret;
     if (this._noteValue === NoteValue.None) {
       this._fret = null;
       this.keepEmptySlotTechniques();
-      this.invalidateTies(oldFret);
+      if (invalidateTies) {
+        this.invalidateTies(oldFret);
+      }
       return;
     }
 
     if (this._noteValue === NoteValue.Dead) {
       this._fret = -1;
       this.removeTechnique(GuitarTechniqueType.LetRing);
-      this.invalidateTies(oldFret);
+      if (invalidateTies) {
+        this.invalidateTies(oldFret);
+      }
       return;
     }
 
@@ -185,19 +190,26 @@ export class GuitarNote implements Note<Guitar> {
     }
 
     this._fret = fret;
-    this.invalidateTies(oldFret);
+    if (invalidateTies) {
+      this.invalidateTies(oldFret);
+    }
   }
 
   /**
    * Sets pitch data and recalculates fret; does not validate pitch membership or octave bounds.
    * @param newNoteValue - New note value
    * @param newOctave - New octave value
+   * @param invalidateTies - Whether to remove ties invalidated by the new fret
    * @throws If pitch-to-fret conversion fails because of missing tuning/octave or a negative fret.
    */
-  public setNote(newNoteValue: NoteValue, newOctave: number | null): void {
+  public setNote(
+    newNoteValue: NoteValue,
+    newOctave: number | null,
+    invalidateTies: boolean = true
+  ): void {
     this._noteValue = newNoteValue;
     this._octave = newOctave;
-    this.calculateFretFromNote();
+    this.calculateFretFromNote(invalidateTies);
   }
 
   /**
@@ -530,9 +542,10 @@ export class GuitarNote implements Note<Guitar> {
 
   /**
    * Sets fret and recomputes pitch, clamping above the fretboard maximum; null keeps only Let Ring for editor validation.
+   * @param invalidateTies Whether to remove ties invalidated by the new fret.
    * @throws If tuning is missing/unpitched or the resulting pitch is invalid or outside supported octave bounds.
    */
-  public set fret(newFret: number | null) {
+  public setFret(newFret: number | null, invalidateTies: boolean = true): void {
     const oldFret = this._fret;
     const fretsCount = this.trackContext.instrument.fretsCount;
     if (newFret !== null) {
@@ -542,7 +555,9 @@ export class GuitarNote implements Note<Guitar> {
       this.keepEmptySlotTechniques();
     }
     this.calcNoteFromFret();
-    this.invalidateTies(oldFret);
+    if (invalidateTies) {
+      this.invalidateTies(oldFret);
+    }
     if (this._fret === -1) {
       this.removeTechnique(GuitarTechniqueType.LetRing);
     }

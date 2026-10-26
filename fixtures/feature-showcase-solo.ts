@@ -270,14 +270,14 @@ export function appendFeatureShowcaseSolo(score: Score): void {
         );
         const note = beat.notes?.[(spec.stringNumber ?? 1) - 1];
         if (note instanceof GuitarNote) {
-          note.fret = spec.fret;
+          note.setFret(spec.fret);
           notes.push(note);
         } else {
           notes.push(null);
         }
         for (const [stringNumber, fret] of spec.chord ?? []) {
           const chordNote = beat.notes?.[stringNumber - 1];
-          if (chordNote instanceof GuitarNote) chordNote.fret = fret;
+          if (chordNote instanceof GuitarNote) chordNote.setFret(fret);
         }
         return beat;
       })

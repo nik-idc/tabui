@@ -24,9 +24,14 @@ type VoiceButtons = readonly [
 export class NoteControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
   readonly fretSection: HTMLDivElement = createDiv();
+  readonly fretGrid: HTMLDivElement = createDiv();
   readonly durationSection: HTMLDivElement = createDiv();
   readonly durationGrid: HTMLDivElement = createDiv();
   readonly fretButton: HTMLButtonElement = createButton();
+  /** Button that raises the selected pitch by one semitone. */
+  readonly shiftPitchUpButton: HTMLButtonElement = createButton();
+  /** Button that lowers the selected pitch by one semitone. */
+  readonly shiftPitchDownButton: HTMLButtonElement = createButton();
   readonly beatSection: HTMLDivElement = createDiv();
   readonly beatGrid: HTMLDivElement = createDiv();
   readonly voiceSection: HTMLDivElement = createDiv();

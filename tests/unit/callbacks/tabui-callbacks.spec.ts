@@ -201,7 +201,7 @@ describe("TabUICallbacks", () => {
     expect(
       Array.from(viewport.querySelectorAll("text"), (e) => e.textContent)
     ).not.toContain("7");
-    note.fret = 7;
+    note.setFret(7);
     callbacks.refresh();
     expect(
       Array.from(viewport.querySelectorAll("text"), (e) => e.textContent)

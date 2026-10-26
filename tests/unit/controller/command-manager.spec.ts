@@ -42,7 +42,7 @@ describe("CommandManager", () => {
 
   test("rejected commands preserve redo, but a new edit clears it", () => {
     const { manager, beat, note } = createHistory();
-    note.fret = 5;
+    note.setFret(5);
     const originalCommand = new SetFretCommand(beat, note.stringNum, 7);
     manager.execute(originalCommand);
     manager.undo();

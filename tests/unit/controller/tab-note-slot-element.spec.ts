@@ -75,8 +75,8 @@ describe("Tab note slots", () => {
     voice.appendBeats();
     const source = getBackingNote(voice.beats[0]);
     const continuation = getBackingNote(voice.beats[1]);
-    source.fret = 2;
-    continuation.fret = 2;
+    source.setFret(2);
+    continuation.setFret(2);
     const controller = createLaidOutController(track);
     const renderer = new SVGTabNoteRenderer(
       controller,
@@ -120,7 +120,7 @@ describe("Tab note slots", () => {
     const continuation = getBackingNote(voice.beats[1]);
     const acrossBar = getBackingNote(nextBeat);
     for (const note of [source, continuation, acrossBar]) {
-      note.fret = 5;
+      note.setFret(5);
     }
     continuation.setTechnique(GuitarTechniqueType.Tie);
     acrossBar.setTechnique(GuitarTechniqueType.Tie);
@@ -179,8 +179,8 @@ describe("Tab note slots", () => {
     const activeEmptyNote = getBackingNote(voice1.beats[0]);
     const voice2Note = getBackingNote(voice2.beats[0]);
     const voice4Note = getBackingNote(voice4.beats[0]);
-    voice2Note.fret = 3;
-    voice4Note.fret = 5;
+    voice2Note.setFret(3);
+    voice4Note.setFret(5);
 
     const controller = createLaidOutController(track);
 
@@ -200,7 +200,7 @@ describe("Tab note slots", () => {
     voice2.appendBeats();
     const activeEmptyNote = getBackingNote(voice1.beats[1]);
     const inactiveNote = getBackingNote(voice2.beats[1]);
-    inactiveNote.fret = 3;
+    inactiveNote.setFret(3);
 
     const controller = createLaidOutController(track);
     expect(hasHitRect(controller, activeEmptyNote)).toBe(false);
@@ -223,7 +223,7 @@ describe("Tab note slots", () => {
     voice2.appendBeats();
     voice2.rebuildTiming();
     const inactiveHalfNote = getBackingNote(voice2.beats[1]);
-    inactiveHalfNote.fret = 5;
+    inactiveHalfNote.setFret(5);
 
     const matchingQuarterNote = getBackingNote(voice1.beats[2]);
     const previousQuarterNote = getBackingNote(voice1.beats[1]);
@@ -243,8 +243,8 @@ describe("Tab note slots", () => {
     }
     const activeNote = getBackingNote(voice1.beats[0]);
     const inactiveNote = getBackingNote(voice2.beats[0]);
-    activeNote.fret = 3;
-    inactiveNote.fret = 5;
+    activeNote.setFret(3);
+    inactiveNote.setFret(5);
 
     const controller = createLaidOutController(track);
 
@@ -274,7 +274,7 @@ describe("Tab note slots", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note");
     }
-    note.fret = 5;
+    note.setFret(5);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
 
     const controller = createLaidOutController(track);
@@ -294,8 +294,8 @@ describe("Tab note slots", () => {
     voiceBar.appendBeats();
     const normalNote = getBackingNote(voiceBar.beats[0]);
     const letRingNote = getBackingNote(voiceBar.beats[1]);
-    normalNote.fret = 12;
-    letRingNote.fret = 12;
+    normalNote.setFret(12);
+    letRingNote.setFret(12);
     letRingNote.addTechnique(
       new GuitarTechnique(letRingNote, GuitarTechniqueType.LetRing)
     );
@@ -325,7 +325,7 @@ describe("Tab note slots", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note");
     }
-    note.fret = 12;
+    note.setFret(12);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing));
     const controller = createLaidOutController(track);
     const noteElement = getNoteElement(controller, note);

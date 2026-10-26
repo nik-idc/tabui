@@ -23,7 +23,7 @@ describe("ScoreEditor", () => {
       if (!(note instanceof GuitarNote)) {
         throw Error("Expected a guitar note");
       }
-      note.fret = 1;
+      note.setFret(1);
       const instrument = new Guitar(
         undefined,
         undefined,
@@ -290,7 +290,7 @@ describe("ScoreEditor", () => {
     if (!(sourceNote instanceof GuitarNote)) {
       throw Error("Expected guitar note in source beat");
     }
-    sourceNote.fret = 5;
+    sourceNote.setFret(5);
     ScoreEditor.setTechniqueForNotes([sourceNote], GuitarTechniqueType.Bend, {
       bendOptions: new BendTechniqueOptions({
         type: BendType.Bend,
@@ -310,7 +310,7 @@ describe("ScoreEditor", () => {
     expect(copiedNote.fret).toBe(5);
     expect(copiedNote.techniques[0].bendOptions?.bendPitch).toBe(1);
 
-    copiedNote.fret = 7;
+    copiedNote.setFret(7);
     ScoreEditor.setTechniqueForNotes([copiedNote], GuitarTechniqueType.Bend);
 
     expect(copiedNote.hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
@@ -381,7 +381,7 @@ describe("ScoreEditor", () => {
       throw Error("Expected guitar note in test beat");
     }
 
-    note.fret = 3;
+    note.setFret(3);
 
     expect(
       ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.LetRing)
@@ -403,7 +403,7 @@ describe("ScoreEditor", () => {
       throw Error("Expected guitar note in test beat");
     }
 
-    note.fret = 5;
+    note.setFret(5);
 
     ScoreEditor.setTechniqueForNotes(
       [note],
@@ -435,7 +435,7 @@ describe("ScoreEditor", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     const initialOptions = new BendTechniqueOptions({
       type: BendType.Bend,
       bendPitch: 0.5,
@@ -477,8 +477,8 @@ describe("ScoreEditor", () => {
     if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
       throw Error("Expected guitar notes in test beat");
     }
-    first.fret = 5;
-    second.fret = 5;
+    first.setFret(5);
+    second.setFret(5);
     ScoreEditor.setTechniqueForNotes([first], GuitarTechniqueType.Bend, {
       bendOptions: new BendTechniqueOptions({
         type: BendType.Bend,
@@ -513,7 +513,7 @@ describe("ScoreEditor", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Bend, {
       bendOptions: new BendTechniqueOptions({
         type: BendType.Bend,
@@ -552,8 +552,8 @@ describe("ScoreEditor", () => {
       throw Error("Expected guitar notes in test beat");
     }
 
-    first.fret = 3;
-    second.fret = 5;
+    first.setFret(3);
+    second.setFret(5);
 
     ScoreEditor.setTechniqueForNotes([first], GuitarTechniqueType.LetRing);
 
@@ -597,8 +597,8 @@ describe("ScoreEditor", () => {
       throw Error("Expected guitar notes in test beat");
     }
 
-    first.fret = 5;
-    second.fret = 7;
+    first.setFret(5);
+    second.setFret(7);
     expect(notes).toHaveLength(12);
     expect(
       ScoreEditor.setTechniqueForNotes(notes, GuitarTechniqueType.LetRing)
@@ -630,7 +630,7 @@ describe("ScoreEditor", () => {
       throw Error("Expected guitar note in test beat");
     }
 
-    note.fret = 5;
+    note.setFret(5);
 
     expect(() =>
       ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Bend)

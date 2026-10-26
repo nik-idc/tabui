@@ -109,7 +109,7 @@ function playableBeat() {
   if (!(note instanceof GuitarNote)) {
     throw Error("Expected a guitar note");
   }
-  note.fret = 0;
+  note.setFret(0);
   return { ...graph, beat };
 }
 
@@ -275,7 +275,7 @@ describe("PlaybackAudioEngine", () => {
     if (!(secondNote instanceof GuitarNote)) {
       throw Error("Expected a guitar note");
     }
-    secondNote.fret = 2;
+    secondNote.setFret(2);
 
     track.volume = 0.6;
     track.pan = 0.75;

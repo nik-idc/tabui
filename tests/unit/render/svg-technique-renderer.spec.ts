@@ -17,7 +17,7 @@ test("bindings use the current element and detach before reuse", () => {
   const beat = required(bar.getVoiceBar(1)).beats[0];
   const note = required(beat.notes)[0];
   if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
-  note.fret = 5;
+  note.setFret(5);
   note.addTechnique(
     new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
   );

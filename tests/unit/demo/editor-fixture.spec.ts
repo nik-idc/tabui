@@ -113,7 +113,7 @@ describe("editor fixture and theme resolution", () => {
 
     firstScore.masterBars[0].tempo = 87;
     firstScore.tracks[1].name = "Edited lead";
-    guitarNotes(firstLead.beats[0])[0].fret = 7;
+    guitarNotes(firstLead.beats[0])[0].setFret(7);
 
     expect(firstScore).not.toBe(secondScore);
     expect(secondScore.masterBars[0].tempo).toBe(120);

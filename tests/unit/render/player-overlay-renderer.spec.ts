@@ -23,7 +23,7 @@ function populatedScore() {
   );
   graph.beats.forEach((b, i) => {
     b.makeBeatWithNotes();
-    (required(b.notes)[0] as GuitarNote).fret = i + 3;
+    (required(b.notes)[0] as GuitarNote).setFret(i + 3);
   });
   return graph;
 }
@@ -213,7 +213,7 @@ describe("PlayerOverlayRenderer", () => {
       const beat = required(graph.track.staves[0].bars[i + 1].getVoiceBar(1))
         .beats[0];
       beat.makeBeatWithNotes();
-      (required(beat.notes)[0] as GuitarNote).fret = 9;
+      (required(beat.notes)[0] as GuitarNote).setFret(9);
     }
     const view = viewFor(graph.score);
     await view.player.start();

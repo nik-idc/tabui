@@ -1,7 +1,7 @@
 import { Beat, BeatSnapshot, ScoreEditor } from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
-/** Changes one fret and saves neighboring technique changes as fixed beat content. */
+/** Changes a fret and saves the affected tie chain and neighboring content. */
 export class SetFretCommand implements Command {
   /** Original content for undo. */
   private _before: BeatSnapshot[] = [];
@@ -20,8 +20,15 @@ export class SetFretCommand implements Command {
   ) {}
 
   execute(): void {
+    if (this._executed) {
+      return;
+    }
     this._before = ScoreEditor.snapshotBeatNotes(
-      ScoreEditor.getNoteEditBeats([this._beat], this._stringNumber)
+      ScoreEditor.getFretEditBeats(
+        this._beat,
+        this._stringNumber,
+        this._newFret
+      )
     );
     ScoreEditor.setFret(this._beat, this._stringNumber, this._newFret);
     this._after = ScoreEditor.snapshotBeatNotes(

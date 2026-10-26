@@ -466,8 +466,8 @@ function populatedVoice(score: Score) {
     new Beat(voice, voice.trackContext),
     new Beat(voice, voice.trackContext),
   ];
-  guitarNote(beats[0]).fret = 3;
-  guitarNote(beats[1]).fret = 5;
+  guitarNote(beats[0]).setFret(3);
+  guitarNote(beats[1]).setFret(5);
   voice.replaceBeats(beats);
   return voice;
 }
@@ -518,9 +518,9 @@ function richScore(): Score {
       tupletCount: 2,
     }
   );
-  guitarNote(notes).fret = 3;
-  guitarNote(notes, 1).fret = -1;
-  guitarNote(notes, 5).fret = 0;
+  guitarNote(notes).setFret(3);
+  guitarNote(notes, 1).setFret(-1);
+  guitarNote(notes, 5).setFret(0);
   voice.replaceBeats([rest, emptyLanes, notes]);
   expect(
     guitarNote(notes).setTechnique(

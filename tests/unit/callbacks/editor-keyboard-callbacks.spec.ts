@@ -264,7 +264,7 @@ describe("EditorKeyboardDefCallbacks", () => {
           if (!(note instanceof GuitarNote)) {
             throw Error("Expected guitar note");
           }
-          note.fret = [5, 7, 9][index];
+          note.setFret([5, 7, 9][index]);
         }
       }
       const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -297,7 +297,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       expect(renderFunc).toHaveBeenCalledTimes(2);
       for (const beat of beats) {
         for (const note of beat.notes ?? []) {
-          if (note instanceof GuitarNote) note.fret = null;
+          if (note instanceof GuitarNote) note.setFret(null);
         }
       }
       const disabled = createKeyboardEvent(key, { shiftKey });
@@ -324,7 +324,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       if (!(first instanceof GuitarNote)) {
         throw Error("Expected guitar note");
       }
-      first.fret = 5;
+      first.setFret(5);
       beats[distance].makeRest();
       const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
       notationComponent.trackController = controller;
@@ -361,7 +361,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       Array.from({ length: 3 }, () => ({ baseDuration: NoteDuration.Quarter }))
     );
     const source = required(beats[0].notes)[0] as GuitarNote;
-    source.fret = 5;
+    source.setFret(5);
     source.setTechnique(GuitarTechniqueType.LetRing);
     beats[2].makeRest();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);

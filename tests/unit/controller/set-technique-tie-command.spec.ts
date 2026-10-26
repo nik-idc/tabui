@@ -43,7 +43,7 @@ function setup() {
   );
   const notes = graph.beats.map((b) => noteAt(b));
   notes.forEach((n, i) => {
-    n.fret = i === 0 ? 5 : 9;
+    n.setFret(i === 0 ? 5 : 9);
   });
   return { ...graph, notes };
 }
@@ -52,7 +52,7 @@ describe("Tie editing", () => {
   test("ties only the previous beat by default and restores the edit through history", () => {
     const { beats, score } = setup();
     for (const [index, fret] of [5, 5, 9, 9].entries()) {
-      noteAt(beats[index]).fret = fret;
+      noteAt(beats[index]).setFret(fret);
     }
     const before = serializeScore(score);
     const command = tieCommand([beats[2]], 1);
@@ -78,10 +78,10 @@ describe("Tie editing", () => {
     "ties a $scope when source and target strings differ",
     ({ stringNumber, expected }) => {
       const { beats, score } = setup();
-      noteAt(beats[0], 1).fret = 7;
-      noteAt(beats[1]).fret = null;
-      noteAt(beats[1], 1).fret = 9;
-      noteAt(beats[1], 2).fret = 12;
+      noteAt(beats[0], 1).setFret(7);
+      noteAt(beats[1]).setFret(null);
+      noteAt(beats[1], 1).setFret(9);
+      noteAt(beats[1], 2).setFret(12);
       const before = serializeScore(score);
       const command = tieCommand([beats[1]], stringNumber);
       command.execute();
@@ -104,7 +104,7 @@ describe("Tie editing", () => {
   test("undoing Vibrato restores a Tie without tying earlier notes", () => {
     const { beats, score } = setup();
     beats.forEach((b) => {
-      noteAt(b).fret = 5;
+      noteAt(b).setFret(5);
     });
     noteAt(beats[2]).setTechnique(GuitarTechniqueType.Tie);
     const before = serializeScore(score);
@@ -122,7 +122,7 @@ describe("Tie editing", () => {
   test("fills earlier empty slots in one undo step and reuses the saved fret on redo", () => {
     const { beats, score } = setup();
     [14, null, null, 17].forEach((f, i) => {
-      noteAt(beats[i]).fret = f;
+      noteAt(beats[i]).setFret(f);
     });
     const before = serializeScore(score);
     const manager = new CommandManager();
@@ -137,7 +137,7 @@ describe("Tie editing", () => {
     expect(manager.undo()).toBe(command);
     expect(manager.canUndo).toBe(false);
     expect(serializeScore(score)).toEqual(before);
-    noteAt(beats[0]).fret = 20;
+    noteAt(beats[0]).setFret(20);
     expect(manager.redo()).toBe(command);
     expect(manager.canRedo).toBe(false);
     expect(serializeScore(score)).toEqual(after);
@@ -146,9 +146,9 @@ describe("Tie editing", () => {
   test("setTechniqueForNotes ties earlier empty slots and leaves other strings unchanged", () => {
     const { beats } = setup();
     [14, null, null, 17].forEach((f, i) => {
-      noteAt(beats[i]).fret = f;
+      noteAt(beats[i]).setFret(f);
     });
-    noteAt(beats[3], 1).fret = 8;
+    noteAt(beats[3], 1).setFret(8);
     expect(
       ScoreEditor.setTechniqueForNotes(
         [noteAt(beats[3])],
@@ -229,7 +229,7 @@ describe("Tie editing", () => {
       if (f === "rest") {
         beats[i].makeRest();
       } else {
-        noteAt(beats[i]).fret = f;
+        noteAt(beats[i]).setFret(f);
       }
     });
     const before = serializeScore(score);
@@ -250,7 +250,7 @@ describe("Tie editing", () => {
   test("preparing a Tie leaves earlier notes and the next tie unchanged", () => {
     const { beats, score } = setup();
     [14, null, 17, 17].forEach((f, i) => {
-      noteAt(beats[i]).fret = f;
+      noteAt(beats[i]).setFret(f);
     });
     noteAt(beats[3]).setTechnique(GuitarTechniqueType.Tie);
     const before = serializeScore(score);
@@ -277,7 +277,7 @@ describe("Tie editing", () => {
       const after = serializeScore(score);
       command.undo();
       expect(serializeScore(score)).toEqual(before);
-      noteAt(beats[0]).fret = 20;
+      noteAt(beats[0]).setFret(20);
       command.redo();
       expect(serializeScore(score)).toEqual(after);
     }
@@ -297,9 +297,9 @@ describe("Tie editing", () => {
   test("ties across adjacent bars and reports all changed beats", () => {
     const { beats, score, staff } = setup();
     beats.forEach((b, i) => {
-      noteAt(b).fret = i === 1 ? 14 : null;
+      noteAt(b).setFret(i === 1 ? 14 : null);
     });
-    noteAt(beats[2], 1).fret = 8;
+    noteAt(beats[2], 1).setFret(8);
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     const voice = staff.bars[1].getVoiceBar(1);
     if (voice === null) {
@@ -322,7 +322,7 @@ describe("Tie editing", () => {
     command.undo();
     expect(serializeScore(score)).toEqual(before);
     // Redo restores fixed content even if a fresh search would find another fret.
-    noteAt(beats[1]).fret = 19;
+    noteAt(beats[1]).setFret(19);
     command.redo();
     expect(serializeScore(score)).toEqual(after);
   });
@@ -330,7 +330,7 @@ describe("Tie editing", () => {
   test("undo restores the next Tie after the selected fret is replaced", () => {
     const { beats, score } = setup();
     [14, null, 17, 17].forEach((f, i) => {
-      noteAt(beats[i]).fret = f;
+      noteAt(beats[i]).setFret(f);
     });
     noteAt(beats[3]).setTechnique(GuitarTechniqueType.Tie);
     const before = serializeScore(score);
@@ -354,11 +354,11 @@ describe("Tie editing", () => {
   test("a chord range uses each string's source and undoes earlier changes", () => {
     const { beats, score } = setup();
     [14, null, null, 17].forEach((f, i) => {
-      noteAt(beats[i]).fret = f;
+      noteAt(beats[i]).setFret(f);
     });
-    noteAt(beats[0], 1).fret = 7;
-    noteAt(beats[1], 1).fret = 8;
-    noteAt(beats[2], 2).fret = 12;
+    noteAt(beats[0], 1).setFret(7);
+    noteAt(beats[1], 1).setFret(8);
+    noteAt(beats[2], 2).setFret(12);
     const before = serializeScore(score);
     const command = tieCommand(beats.slice(2), undefined, true);
     command.execute();
@@ -381,7 +381,7 @@ describe("Tie editing", () => {
   test("Tie can fill empty slots but cannot be added directly without a matching previous note", () => {
     const { beats } = setup();
     [14, null, null, 14].forEach((f, i) => {
-      noteAt(beats[i]).fret = f;
+      noteAt(beats[i]).setFret(f);
     });
     const target = noteAt(beats[3]);
     expect(target.isTechniqueApplicable(GuitarTechniqueType.Tie)).toBe(true);
@@ -396,7 +396,7 @@ describe("Tie editing", () => {
     tieCommand(beats.slice(1, 3), 1).execute();
     const continuation = noteAt(beats[1]);
     continuation.deepCopy();
-    continuation.fret = 5;
+    continuation.setFret(5);
     expect(continuation.isTieContinuation).toBe(true);
     expect(noteAt(beats[2]).isTieContinuation).toBe(true);
   });
@@ -475,8 +475,8 @@ describe("Tie editing", () => {
 
   test("copies a whole chord through a range, including selected rests", () => {
     const { beats } = setup();
-    noteAt(beats[0], 2).fret = 7;
-    noteAt(beats[2], 1).fret = 12;
+    noteAt(beats[0], 2).setFret(7);
+    noteAt(beats[2], 1).setFret(12);
     beats[1].makeRest();
     const command = tieCommand(beats.slice(1, 3));
     command.execute();
@@ -495,25 +495,21 @@ describe("Tie editing", () => {
     expect(noteAt(beats[2], 2).isTieContinuation).toBe(true);
   });
 
-  test("changing a fret removes its Tie and the next Tie, with undo and redo", () => {
+  test("changing a fret preserves its connected Ties, with undo and redo", () => {
     const { beats } = setup();
     tieCommand(beats.slice(1, 3), 1).execute();
     const command = new SetFretCommand(beats[1], 1, 6);
     command.execute();
-    expect(
-      beats
-        .slice(1, 3)
-        .every((b) => !noteAt(b).hasTechnique(GuitarTechniqueType.Tie))
-    ).toBe(true);
+    expect(beats.slice(1, 3).every((b) => noteAt(b).isTieContinuation)).toBe(
+      true
+    );
     command.undo();
     expect(beats.slice(1, 3).every((b) => noteAt(b).isTieContinuation)).toBe(
       true
     );
     command.redo();
-    expect(
-      beats
-        .slice(1, 3)
-        .every((b) => !noteAt(b).hasTechnique(GuitarTechniqueType.Tie))
-    ).toBe(true);
+    expect(beats.slice(1, 3).every((b) => noteAt(b).isTieContinuation)).toBe(
+      true
+    );
   });
 });

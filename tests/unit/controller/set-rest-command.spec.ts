@@ -14,7 +14,7 @@ describe("SetRestCommand", () => {
     ]);
     const beat = beats[0];
     const note = required(beat.notes)[0] as GuitarNote;
-    note.fret = 7;
+    note.setFret(7);
     const command = new SetRestCommand([beat], true);
 
     command.execute();
@@ -31,7 +31,7 @@ describe("SetRestCommand", () => {
     ]);
     const beat = beats[0];
     const note = required(beat.notes)[0] as GuitarNote;
-    note.fret = 5;
+    note.setFret(5);
     const command = new SetRestCommand([beat], true);
 
     command.execute();
@@ -106,8 +106,8 @@ describe("SetRestCommand", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Eighth },
     ]);
-    (required(beats[0].notes)[0] as GuitarNote).fret = 2;
-    (required(beats[1].notes)[0] as GuitarNote).fret = 4;
+    (required(beats[0].notes)[0] as GuitarNote).setFret(2);
+    (required(beats[1].notes)[0] as GuitarNote).setFret(4);
     const command = new SetRestCommand(beats, true);
 
     command.execute();

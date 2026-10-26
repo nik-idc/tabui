@@ -53,7 +53,11 @@ export interface Note<I extends MusicInstrument = MusicInstrument> {
    * Changes pitch and updates instrument-specific note data.
    * @throws If the pitch or its instrument-specific representation is invalid.
    */
-  setNote(newNoteValue: NoteValue, newOctave: number | null): void;
+  setNote(
+    newNoteValue: NoteValue,
+    newOctave: number | null,
+    invalidateTies?: boolean
+  ): void;
   /** Returns pitch text with octave, "x" for a dead note, or empty text for an empty note. */
   getNoteStr(): string;
 

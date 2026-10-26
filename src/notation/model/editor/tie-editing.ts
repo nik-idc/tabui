@@ -326,7 +326,7 @@ export class TieEditing {
           // Replace the slot so transient frets do not invalidate a later planned tie.
           const continuation = existingNote.deepCopy();
           continuation.clearTechniques();
-          continuation.fret = source.fret;
+          continuation.setFret(source.fret);
           continuation.addTechnique(
             new GuitarTechnique(continuation, GuitarTechniqueType.Tie)
           );

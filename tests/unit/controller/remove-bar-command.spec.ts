@@ -55,7 +55,7 @@ describe("RemoveBarsCommand", () => {
     if (!(removedNote instanceof GuitarNote)) {
       throw Error("Expected a guitar note in the removed bar");
     }
-    removedNote.fret = 9;
+    removedNote.setFret(9);
     removedBeat.baseDuration = NoteDuration.Eighth;
     removedBeat.dots = 1;
     const command = new RemoveBarsCommand(score, 1);

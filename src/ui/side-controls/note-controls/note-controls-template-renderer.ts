@@ -30,7 +30,13 @@ export class NoteControlsTemplateRenderer {
     this.template.container.classList.add(cssClass);
 
     this.template.fretSection.classList.add("tu-control-section");
-    this.template.fretSection.append("Fret:", this.template.fretButton);
+    this.template.fretGrid.classList.add("tu-control-grid");
+    this.template.fretSection.append("Fret:", this.template.fretGrid);
+    this.template.fretGrid.append(
+      this.template.fretButton,
+      this.template.shiftPitchUpButton,
+      this.template.shiftPitchDownButton
+    );
 
     this.template.durationSection.classList.add("tu-control-section");
     this.template.durationGrid.classList.add(
@@ -328,6 +334,34 @@ export class NoteControlsTemplateRenderer {
       "Edit fret",
       "0–9 set fret / Backspace clear"
     );
+    const pitchButtons = [
+      [this.template.shiftPitchUpButton, "shift-up.svg", "Increase pitch", 1],
+      [
+        this.template.shiftPitchDownButton,
+        "shift-down.svg",
+        "Decrease pitch",
+        -1,
+      ],
+    ] as const;
+    for (const [button, icon, label, semitones] of pitchButtons) {
+      try {
+        setImageAsset(button, this.assetsPath, `img/ui/${icon}`, label, {
+          "data-pitch-shift": `${semitones}`,
+        });
+      } catch {
+        button.classList.add("tu-icon-button");
+        button.setAttribute("aria-label", label);
+        button.title = label;
+        button.dataset.tooltip = label;
+        button.dataset.pitchShift = `${semitones}`;
+      }
+      setShortcutTooltip(button, label, "");
+      button.disabled =
+        !this.notationComponent.trackController.canShiftSelectedPitch(
+          semitones
+        );
+      button.classList.toggle("tu-disabled-img", button.disabled);
+    }
   }
 
   /**

@@ -73,7 +73,7 @@ function soundNote(beat: Beat, fret = 0): GuitarNote {
   if (!(note instanceof GuitarNote)) {
     throw Error("Expected guitar note");
   }
-  note.fret = fret;
+  note.setFret(fret);
   return note;
 }
 

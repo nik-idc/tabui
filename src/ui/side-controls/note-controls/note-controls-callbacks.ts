@@ -18,6 +18,7 @@ export interface NoteControlsCallbacks {
   onVoiceClicked(voiceNumber: VoiceNumber): void;
   onTupletNormalClicked(normalCount: number): void;
   onTupletClicked(): void;
+  onPitchShiftClicked(semitones: number): void;
   bind(): void;
   unbind(): void;
 }
@@ -133,6 +134,11 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._noteComponent.showTupletControls();
   }
 
+  onPitchShiftClicked(semitones: number): void {
+    this._notationComponent.trackController.shiftSelectedPitch(semitones);
+    this._renderFunc();
+  }
+
   bind(): void {
     // Bind duration buttons
     const durationConfigs: ListenerConfig[] =
@@ -157,6 +163,16 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
         element: this._noteComponent.template.fretButton,
         event: "click",
         handler: () => this._fretCallbacks.onFretButtonClicked(),
+      },
+      {
+        element: this._noteComponent.template.shiftPitchUpButton,
+        event: "click",
+        handler: () => this.onPitchShiftClicked(1),
+      },
+      {
+        element: this._noteComponent.template.shiftPitchDownButton,
+        event: "click",
+        handler: () => this.onPitchShiftClicked(-1),
       },
       {
         element: this._noteComponent.template.restButton,

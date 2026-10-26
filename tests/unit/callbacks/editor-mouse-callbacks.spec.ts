@@ -157,7 +157,7 @@ describe("EditorMouseDefCallbacks", () => {
     const notes = beats.map((b) => {
       const note = b.notes?.[0];
       if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
-      note.fret = 5;
+      note.setFret(5);
       return note;
     });
     notes[1].setTechnique(GuitarTechniqueType.Tie);
@@ -696,7 +696,7 @@ describe("EditorMouseDefCallbacks", () => {
       const notes = required(beats[0].notes) as GuitarNote[];
       const otherNote = required(beats[1].notes)[0] as GuitarNote;
       for (const note of [notes[0], notes[2], otherNote]) {
-        note.fret = 5;
+        note.setFret(5);
         const options =
           type === GuitarTechniqueType.Bend
             ? new BendTechniqueOptions({
@@ -707,7 +707,7 @@ describe("EditorMouseDefCallbacks", () => {
             : null;
         note.addTechnique(new GuitarTechnique(note, type, options));
       }
-      notes[1].fret = 7;
+      notes[1].setFret(7);
       notes[1].addTechnique(
         new GuitarTechnique(notes[1], GuitarTechniqueType.NaturalHarmonic)
       );

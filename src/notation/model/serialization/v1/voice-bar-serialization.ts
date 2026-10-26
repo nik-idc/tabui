@@ -493,7 +493,7 @@ function deserializeNote(
     fretReader.fail("out of range");
   }
   fretReader.runModelOperation(() => {
-    note.fret = fret;
+    note.setFret(fret);
   });
   return {
     note,

@@ -19,3 +19,4 @@ export * from "./set-technique-command";
 export * from "./set-tempo-command";
 export * from "./set-time-sig-command";
 export * from "./set-tuplet-command";
+export * from "./shift-pitch-command";

@@ -66,7 +66,7 @@ function firstNote(score: Score): GuitarNote {
 function bendDocument() {
   const score = new Score();
   const note = firstNote(score);
-  note.fret = 1;
+  note.setFret(1);
   note.setTechnique(
     GuitarTechniqueType.Bend,
     new BendTechniqueOptions({
@@ -94,10 +94,10 @@ describe("score serialization", () => {
       Array.from({ length: 3 }, () => ({ baseDuration: NoteDuration.Quarter }))
     );
     const notes = beats.map((b) => required(b.notes)[0] as GuitarNote);
-    notes[0].fret = 5;
-    notes[1].fret = 5;
+    notes[0].setFret(5);
+    notes[1].setFret(5);
     notes[1].setTechnique(GuitarTechniqueType.Tie);
-    notes[2].fret = 9;
+    notes[2].setFret(9);
     notes[2].setTechnique(GuitarTechniqueType.LetRing);
     const document = serializeScore(score);
     const savedNote = required(
@@ -114,7 +114,7 @@ describe("score serialization", () => {
       Array.from({ length: 3 }, () => ({ baseDuration: NoteDuration.Quarter }))
     );
     const notes = beats.map((b) => required(b.notes)[0] as GuitarNote);
-    notes[0].fret = 5;
+    notes[0].setFret(5);
     notes.forEach((n) => n.setTechnique(GuitarTechniqueType.LetRing));
     const document = serializeScore(score);
     const restored = deserializeScore(document);
@@ -309,8 +309,8 @@ describe("score serialization", () => {
     if (!(first instanceof GuitarNote) || !(third instanceof GuitarNote)) {
       throw Error("Expected guitar chord notes");
     }
-    first.fret = 3;
-    third.fret = 7;
+    first.setFret(3);
+    third.setFret(7);
     const emptyNotes = new Beat(voice, voice.trackContext);
     voice.replaceBeats([rest, chord, emptyNotes]);
 
@@ -368,7 +368,7 @@ describe("score serialization", () => {
     }
     beat.tupletSettings = { normalCount: 3, tupletCount: 2 };
     const note = firstNote(score);
-    note.fret = 5;
+    note.setFret(5);
     note.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions({
@@ -672,8 +672,8 @@ describe("score serialization", () => {
     if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
-    first.fret = 5;
-    second.fret = 5;
+    first.setFret(5);
+    second.setFret(5);
     first.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions({
@@ -723,8 +723,8 @@ describe("score serialization", () => {
     if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
-    first.fret = 5;
-    second.fret = 5;
+    first.setFret(5);
+    second.setFret(5);
     first.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions({
@@ -864,7 +864,7 @@ describe("score serialization", () => {
       "incompatible technique entry",
       (s: Score) => {
         const n = firstNote(s);
-        n.fret = 1;
+        n.setFret(1);
         n.techniques.push(
           new GuitarTechnique(n, GuitarTechniqueType.LetRing),
           new GuitarTechnique(n, GuitarTechniqueType.PalmMute)
@@ -876,7 +876,7 @@ describe("score serialization", () => {
       "duplicate technique",
       (s: Score) => {
         const n = firstNote(s);
-        n.fret = 1;
+        n.setFret(1);
         n.techniques.push(
           new GuitarTechnique(n, GuitarTechniqueType.Vibrato),
           new GuitarTechnique(n, GuitarTechniqueType.Vibrato)
@@ -947,8 +947,8 @@ describe("score serialization", () => {
       (s: Score, f: Score) => {
         const note = firstNote(s);
         const foreign = firstNote(f);
-        note.fret = 1;
-        foreign.fret = 1;
+        note.setFret(1);
+        foreign.setFret(1);
         note.techniques.push(
           new GuitarTechnique(foreign, GuitarTechniqueType.Vibrato)
         );

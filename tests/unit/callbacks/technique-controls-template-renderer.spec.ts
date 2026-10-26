@@ -24,7 +24,7 @@ describe("TechniqueControlsTemplateRenderer", () => {
     ]);
     testBeats = beats;
     for (const beat of beats) {
-      (required(beat.notes)[0] as GuitarNote).fret = 5;
+      (required(beat.notes)[0] as GuitarNote).setFret(5);
     }
     notation = new NotationComponent(
       document.createElement("div"),
@@ -48,7 +48,7 @@ describe("TechniqueControlsTemplateRenderer", () => {
     notation.trackController.moveSelectedNote(SelectedMoveDirection.Right);
     renderer.render();
     expect(template.tieButton.disabled).toBe(false);
-    (required(testBeats[1].notes)[0] as GuitarNote).fret = null;
+    (required(testBeats[1].notes)[0] as GuitarNote).setFret(null);
     renderer.render();
     expect(template.tieButton.disabled).toBe(true);
     testBeats[1].makeRest();
@@ -66,7 +66,7 @@ describe("TechniqueControlsTemplateRenderer", () => {
     "legatoButton",
     "slideButton",
   ] as const)("enables %s during range selection", (buttonName) => {
-    (required(testBeats[1].notes)[0] as GuitarNote).fret = 7;
+    (required(testBeats[1].notes)[0] as GuitarNote).setFret(7);
     notation.trackController.extendSelectionByBeat(SelectedMoveDirection.Right);
     expect(notation.trackController.selectionBeats).toHaveLength(2);
 

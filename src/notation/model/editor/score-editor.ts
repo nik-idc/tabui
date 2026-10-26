@@ -4,7 +4,14 @@ import type { SetTechniqueOptions } from "./set-technique-options";
 import { GuitarNote } from "../guitar-note";
 import { MusicInstrument } from "../instrument/instrument";
 import type { MasterBarData } from "../master-bar";
-import { Note, NoteValue } from "../note";
+import {
+  Note,
+  NoteValue,
+  LOWEST_OCTAVE,
+  HIGHEST_OCTAVE,
+  getNoteFromSemitones,
+  getSemitonesFromNote,
+} from "../note";
 import { NoteDuration } from "../note-duration";
 import type {
   Score,
@@ -158,14 +165,43 @@ export class ScoreEditor {
     stringNumber: number,
     fret: number | null
   ): void {
-    const affected = this.getNoteEditBeats([beat], stringNumber);
+    const affected = this.getFretEditBeats(beat, stringNumber, fret);
     beat.makeBeatWithNotes();
     const note = beat.notes?.[stringNumber - 1];
     if (!(note instanceof GuitarNote)) {
       throw Error("Can't set fret of a non-guitar note");
     }
-    note.fret = fret;
+    const notes = this.getConnectedTieNotes(note);
+    const editableNotes =
+      typeof fret === "number" &&
+      fret >= 0 &&
+      note.fret !== null &&
+      note.fret >= 0
+        ? notes
+        : [note];
+    for (const chainNote of editableNotes) {
+      chainNote.setFret(fret, false);
+    }
     this.normalizeNoteContent(affected);
+  }
+
+  /** Finds the fixed beats affected by a fret edit before the target is materialized. */
+  public static getFretEditBeats(
+    beat: Beat,
+    stringNumber: number,
+    fret: number | null
+  ): Beat[] {
+    const note = beat.notes?.[stringNumber - 1];
+    if (
+      !(note instanceof GuitarNote) ||
+      typeof fret !== "number" ||
+      fret < 0 ||
+      note.fret === null ||
+      note.fret < 0
+    ) {
+      return this.getNoteEditBeats([beat], stringNumber);
+    }
+    return this.getConnectedTieEditBeats(note);
   }
 
   /** Enters pitch without inheriting markers from neighboring slots. */
@@ -188,6 +224,137 @@ export class ScoreEditor {
       note.setNote(value, octave);
     }
     this.normalizeNoteContent(affected);
+  }
+
+  private static validateShiftPitch(semitones: number): void {
+    if (!Number.isFinite(semitones) || !Number.isInteger(semitones)) {
+      throw Error("Pitch shift must be an integer");
+    }
+  }
+
+  /** Expands guitar notes to their connected, valid same-string tie chains. */
+  public static getConnectedTieNotes(target: Beat[] | Note): GuitarNote[] {
+    const candidates = Array.isArray(target)
+      ? target.flatMap((b) => b.notes ?? [])
+      : [target];
+    const notes = new Set<GuitarNote>();
+    for (const candidate of candidates) {
+      if (
+        !(candidate instanceof GuitarNote) ||
+        candidate.fret === null ||
+        candidate.fret < 0
+      ) {
+        continue;
+      }
+
+      for (const chainNote of this.getConnectedTieChain(candidate)) {
+        notes.add(chainNote);
+      }
+    }
+    return [...notes];
+  }
+
+  private static getConnectedTieChain(note: GuitarNote): GuitarNote[] {
+    const chain = new Set<GuitarNote>([note]);
+    let current = note;
+    while (current.isTieContinuation) {
+      const previous = current.beat.voiceBar.bar.staff.getPrevBeat(current.beat)
+        ?.notes?.[current.stringNum - 1];
+      if (
+        !(previous instanceof GuitarNote) ||
+        previous.stringNum !== current.stringNum ||
+        previous.fret !== current.fret
+      ) {
+        break;
+      }
+      chain.add(previous);
+      current = previous;
+    }
+
+    current = note;
+    while (true) {
+      const next = current.beat.voiceBar.bar.staff.getNextBeat(current.beat)
+        ?.notes?.[current.stringNum - 1];
+      if (
+        !(next instanceof GuitarNote) ||
+        next.stringNum !== current.stringNum ||
+        next.fret === null ||
+        next.fret < 0 ||
+        !next.isTieContinuation ||
+        next.fret !== current.fret
+      ) {
+        break;
+      }
+      chain.add(next);
+      current = next;
+    }
+    return [...chain];
+  }
+
+  /** Returns whether a target's playable notes are within shift limits */
+  public static canShiftPitch(
+    target: Beat[] | Note,
+    semitones: number
+  ): boolean {
+    this.validateShiftPitch(semitones);
+    const notes = this.getConnectedTieNotes(target);
+    if (notes.length === 0 || semitones === 0) {
+      return false;
+    }
+
+    return notes.every((note) => {
+      const fret = (note.fret as number) + semitones;
+      if (fret < 0 || fret > note.trackContext.instrument.fretsCount) {
+        return false;
+      }
+      if (note.octave === null) {
+        return false;
+      }
+      const pitch = getNoteFromSemitones(
+        getSemitonesFromNote(note.noteValue, note.octave) + semitones
+      );
+      return pitch.octave >= LOWEST_OCTAVE && pitch.octave <= HIGHEST_OCTAVE;
+    });
+  }
+
+  /** Finds beats that must be saved when a pitch edit can change ties or markers. */
+  public static getConnectedTieEditBeats(target: Beat[] | Note): Beat[] {
+    return this.getTieChainEditBeats(this.getConnectedTieNotes(target));
+  }
+
+  /** Finds history and normalization neighbors for an already expanded tie target. */
+  public static getTieChainEditBeats(notes: GuitarNote[]): Beat[] {
+    const beats = new Set<Beat>();
+    for (const note of notes) {
+      beats.add(note.beat);
+      const previous = note.beat.voiceBar.bar.staff.getPrevBeat(note.beat);
+      if (previous !== null) {
+        beats.add(previous);
+      }
+      for (const beat of this.getNoteEditBeats([note.beat], note.stringNum)) {
+        beats.add(beat);
+      }
+    }
+    return [...beats];
+  }
+
+  /** Shifts selected playable guitar pitches and their connected valid tie chains atomically. */
+  public static applyShift(target: Beat[] | Note, semitones: number): Beat[] {
+    this.validateShiftPitch(semitones);
+    if (!this.canShiftPitch(target, semitones)) {
+      return [];
+    }
+
+    const notes = this.getConnectedTieNotes(target);
+    const affectedBeats = this.getTieChainEditBeats(notes);
+    for (const note of notes) {
+      const pitch = getNoteFromSemitones(
+        getSemitonesFromNote(note.noteValue, note.octave as number) + semitones
+      );
+      note.setNote(pitch.noteValue, pitch.octave, false);
+    }
+    this.normalizeNoteContent(affectedBeats);
+    return affectedBeats;
   }
 
   /** Changes rest state in one voice and removes unsupported following markers. */

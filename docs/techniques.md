@@ -31,8 +31,9 @@ The selected fret or rest can be replaced by the source fret. A whole-beat edit
 replaces the selected chord, searching each string separately. A note-slot edit
 preserves the other strings. Either shortcut removes ties when all selected
 playable notes already have them. Removing an incoming Tie keeps the fret and makes
-that note a new attack. Changing a fret breaks incoming and outgoing ties that no
-longer match.
+that note a new attack. Setting a playable fret updates every member of its
+connected valid tie chain and preserves the ties. Clearing or setting a dead fret
+keeps the ordinary tie cleanup behavior.
 
 ## Let Ring
 
