@@ -1,26 +1,14 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-/** Finds an exposed point on the filled repeat geometry. */
+/** Targets the empty center of the repeat's rectangular pointer area. */
 async function repeatPoint(path: Locator) {
-  await path.scrollIntoViewIfNeeded();
-  return path.evaluate((node) => {
-    const geometry = node as SVGPathElement;
-    const matrix = geometry.getScreenCTM();
-    if (matrix === null) throw Error("Repeat path has no screen transform");
-    for (let step = 1; step < 40; step++) {
-      const point = geometry
-        .getPointAtLength((geometry.getTotalLength() * step) / 40)
-        .matrixTransform(matrix);
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          const x = Math.round(point.x) + dx;
-          const y = Math.round(point.y) + dy;
-          if (document.elementFromPoint(x, y) === geometry) return { x, y };
-        }
-      }
-    }
-    throw Error("Expected exposed repeat geometry");
-  });
+  const hitArea = path.locator("..").locator(".tu-repeat-hit-area");
+  await hitArea.scrollIntoViewIfNeeded();
+  const box = await hitArea.boundingBox();
+  if (box === null) {
+    throw Error("Repeat hit area is not visible");
+  }
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
 /** Adds both repeats, then moves selection to another bar. */
@@ -99,14 +87,14 @@ test("repeat end: grouped hover, clicked-bar dialog, edits, removal, and undo", 
   const dialog = editor.getByRole("dialog", { name: "Repeat count" });
   await expect(dialog.getByRole("spinbutton")).toHaveValue("3");
   await page.keyboard.press("Escape");
-  await count.click();
+  await end.locator("..").locator(".tu-repeat-hit-area").click();
   await expect(dialog).toBeVisible();
   await dialog.getByRole("spinbutton").fill("5");
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(count).toHaveText("x5");
   await page.keyboard.press("Control+z");
   await expect(count).toHaveText("x3");
-  await count.click();
+  await end.locator("..").locator(".tu-repeat-hit-area").click();
   await dialog.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(end).toHaveCount(0);
   await expect(count).toHaveCount(0);

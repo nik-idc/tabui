@@ -1,5 +1,5 @@
 import { TrackController } from "../../controller";
-import { createSVGG, createSVGText } from "../../../shared";
+import { createSVGG, createSVGRect, createSVGText } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 import { GuitarTuningElement } from "../../controller/element/track/guitar-tuning-element";
 import type { ResolvedAssetConfig } from "../../../assets";
@@ -63,6 +63,9 @@ export class SVGGuitarTuningRenderer implements ElementRenderer {
     group.replaceChildren();
     const rect = this._element.boundingBox;
     const texts = this._element.texts;
+    if (texts.length === 0 || this._element.textYs.length === 0) {
+      return;
+    }
     const fontSize =
       this.trackController.trackElement.layoutDimensions.noteTextSize;
     for (let i = 0; i < texts.length; i++) {
@@ -71,9 +74,22 @@ export class SVGGuitarTuningRenderer implements ElementRenderer {
       text.setAttribute("y", `${this._element.textYs[i]}`);
       text.setAttribute("font-size", `${fontSize}px`);
       text.setAttribute("dominant-baseline", "middle");
+      text.setAttribute("pointer-events", "none");
       text.textContent = texts[i];
       group.appendChild(text);
     }
+    const hitArea = createSVGRect();
+    const top = this._element.textYs[0] - fontSize / 2;
+    const bottom =
+      this._element.textYs[this._element.textYs.length - 1] + fontSize / 2;
+    hitArea.classList.add("tu-tuning-hit-area");
+    hitArea.setAttribute("x", `${rect.x}`);
+    hitArea.setAttribute("y", `${top}`);
+    hitArea.setAttribute("width", `${rect.width}`);
+    hitArea.setAttribute("height", `${bottom - top}`);
+    hitArea.setAttribute("fill", "transparent");
+    hitArea.setAttribute("pointer-events", "all");
+    group.appendChild(hitArea);
   }
 
   public unrender(): void {
