@@ -206,7 +206,7 @@ describe("PlayerOverlayRenderer", () => {
     expect(frames.size).toBe(0);
   });
 
-  test("interpolates real beat geometry on the audio clock and snaps across lines", async () => {
+  test("interpolates real beat geometry on the audio clock and crosses lines through the current beat", async () => {
     const graph = populatedScore();
     for (let i = 0; i < 20; i++) {
       graph.score.appendMasterBar();
@@ -246,7 +246,22 @@ describe("PlayerOverlayRenderer", () => {
       view.controller.trackElement.getBeatElement(farBeat)
     ).toBeUndefined();
     view.emit(graph.beats[0].uuid, farBeat.uuid);
-    expect(view.center()).toBeCloseTo(startX);
+    const currentBeat = required(
+      view.controller.trackElement.getBeatElement(graph.beats[0])
+    );
+    expect(currentBeat).toBeInstanceOf(TabBeatElement);
+    if (!(currentBeat instanceof TabBeatElement)) {
+      throw Error("Expected current beat");
+    }
+    expect(currentBeat.boundingBox.width).toBeGreaterThan(0);
+    expect(view.center()).toBeCloseTo(
+      startX + currentBeat.boundingBox.width / 2
+    );
+    expect(frames.size).toBeGreaterThan(0);
+    // Reach the animation endpoint without delivering the next beat's event.
+    jest.spyOn(audio.context, "currentTime", "get").mockReturnValue(0.55);
+    frame();
+    expect(view.center()).toBeCloseTo(startX + currentBeat.boundingBox.width);
     expect(frames.size).toBe(0);
 
     view.emit(farBeat.uuid);

@@ -123,22 +123,99 @@ describe("ScorePlayer", () => {
     expect(audio.sources).toEqual([]);
   });
 
-  test("loads required samples lazily when playback starts", async () => {
+  test("waits for a first-use sample before scheduling notes", async () => {
     const graph = scoreWithNotes();
-    const fetchSample = serveSample();
+    let resolveFetch!: (response: Response) => void;
+    globalThis.fetch = jest.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    ) as unknown as typeof fetch;
     const player = new ScorePlayer(graph.score, graph.track, {
       preloadAudio: false,
       samples,
     });
     players.push(player);
     expect(audio.construct).not.toHaveBeenCalled();
-    await player.start();
-    expect(audio.context.resume).toHaveBeenCalledTimes(1);
+    const start = player.start();
+
     await settleTransport();
-    expect(fetchSample).toHaveBeenCalledWith("/clean.wav");
-    expect(audio.context.decodeAudioData).toHaveBeenCalled();
-    expect(audio.sources.length + audio.bufferSources.length).toBe(4);
+    expect(audio.context.resume).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledWith("/clean.wav");
+    expect(audio.sources).toEqual([]);
+    expect(audio.bufferSources).toEqual([]);
+
+    resolveFetch({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    } as Response);
+    await start;
+
+    expect(audio.sources).toEqual([]);
+    expect(audio.bufferSources).toHaveLength(4);
     expect(player.playbackState).toBe(PlaybackState.Playing);
+  });
+
+  test("does not schedule after stopping while a sample is loading", async () => {
+    const graph = scoreWithNotes();
+    let resolveFetch!: (response: Response) => void;
+    globalThis.fetch = jest.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    ) as unknown as typeof fetch;
+    const player = new ScorePlayer(graph.score, graph.track, {
+      preloadAudio: false,
+      samples,
+    });
+    players.push(player);
+    const start = player.start();
+    await settleTransport();
+    player.stop();
+
+    resolveFetch({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    } as Response);
+    await start;
+
+    expect(player.playbackState).toBe(PlaybackState.Idle);
+    expect(audio.sources).toEqual([]);
+    expect(audio.bufferSources).toEqual([]);
+  });
+
+  test("only schedules the newest run when both starts await the same sample", async () => {
+    const graph = scoreWithNotes();
+    serveSample();
+    let finishDecode!: (buffer: AudioBuffer) => void;
+    audio.context.decodeAudioData.mockImplementationOnce(
+      () =>
+        new Promise<AudioBuffer>((resolve) => {
+          finishDecode = resolve;
+        })
+    );
+    const player = new ScorePlayer(graph.score, graph.track, {
+      preloadAudio: false,
+      samples,
+    });
+    players.push(player);
+    const first = player.start();
+    await settleTransport();
+    player.stop();
+    const second = player.start({ startBeat: graph.beats[3] });
+    await settleTransport();
+
+    finishDecode({} as AudioBuffer);
+    await Promise.all([first, second]);
+
+    expect(player.playbackState).toBe(PlaybackState.Playing);
+    expect(player.playbackAnchorBeat).toBe(graph.beats[3]);
+    expect(audio.sources).toEqual([]);
+    expect(audio.bufferSources).toHaveLength(1);
+    jest.advanceTimersByTime(50);
+    expect(player.lastStartedBeat).toBe(graph.beats[3]);
   });
 
   test("ignores a stale start after stop", async () => {

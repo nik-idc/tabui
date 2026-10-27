@@ -221,13 +221,22 @@ export class PlayerOverlayRenderer {
     endTime: number,
     playbackRunId: number
   ): void {
+    if (!(startBeatElement instanceof TabBeatElement)) {
+      this.snapToBeat(startBeatElement);
+      return;
+    }
+
     if (
-      !(startBeatElement instanceof TabBeatElement) ||
       !(endBeatElement instanceof TabBeatElement) ||
       startBeatElement.owningTrackLineElement !==
         endBeatElement.owningTrackLineElement
     ) {
-      this.snapToBeat(startBeatElement);
+      this.animateThroughBeat(
+        startBeatElement,
+        startTime,
+        endTime,
+        playbackRunId
+      );
       return;
     }
 
@@ -279,7 +288,12 @@ export class PlayerOverlayRenderer {
     const nextTrackLineElement =
       this._trackController.trackElement.getTrackLineElementForBeat(nextBeat);
     if (nextTrackLineElement !== trackLineElement) {
-      this.snapToBeat(beatElement);
+      this.animateThroughBeat(
+        beatElement,
+        args.startTime,
+        args.endTime,
+        args.playbackRunId
+      );
       return;
     }
 

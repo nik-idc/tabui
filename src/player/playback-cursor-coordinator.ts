@@ -16,10 +16,15 @@ enum CursorBeatPriority {
   ActiveVoice = 2,
 }
 
+/** Allows for sub-millisecond timer and audio-clock sampling differences. */
+const CLOCK_EARLY_TOLERANCE_SECONDS = 0.001;
+
 /** Projects the multi-track playback timeline onto one notation cursor. */
 export class PlaybackCursorCoordinator {
   private readonly _score: Score;
   private readonly _playerUUID: number;
+  /** Reads the live audio clock before publishing a wall-timer callback. */
+  private readonly _getCurrentTime?: () => number | undefined;
   private _scheduledTimeouts: Map<
     ReturnType<typeof setTimeout>,
     ScheduledBeatChange
@@ -32,7 +37,12 @@ export class PlaybackCursorCoordinator {
   private _retainedBeatChanges: ScheduledBeatChange[];
   private _playbackRunId: number;
 
-  constructor(score: Score, activeTrack: Track, playerUUID: number) {
+  constructor(
+    score: Score,
+    activeTrack: Track,
+    playerUUID: number,
+    getCurrentTime?: () => number | undefined
+  ) {
     const activeStaff = activeTrack.staves[0];
     if (activeStaff === undefined) {
       throw new Error(
@@ -41,6 +51,7 @@ export class PlaybackCursorCoordinator {
     }
     this._score = score;
     this._playerUUID = playerUUID;
+    this._getCurrentTime = getCurrentTime;
     this._scheduledTimeouts = new Map();
     this._activeTrackUUID = activeTrack.uuid;
     this._activeStaffUUID = activeStaff.uuid;
@@ -108,15 +119,38 @@ export class PlaybackCursorCoordinator {
     beatChange: ScheduledBeatChange,
     nextBeatChange: ScheduledBeatChange | undefined,
     currentTime: number,
-    playbackRunId: number
+    playbackRunId: number,
+    minimumDelayMs = 0
   ): void {
-    const delayMs = Math.max(0, (beatChange.startTime - currentTime) * 1000);
+    const delayMs = Math.max(
+      minimumDelayMs,
+      (beatChange.startTime - currentTime) * 1000
+    );
     const timeout = setTimeout(() => {
       this._scheduledTimeouts.delete(timeout);
       if (
         playbackRunId !== this._playbackRunId ||
         beatChange.beat.voiceBar.bar.staff.track.uuid !== this._activeTrackUUID
       ) {
+        return;
+      }
+
+      // Wall-clock timers keep running when the audio clock stalls, including
+      // during first playback. Recheck audio time so an early event cannot reset
+      // the cursor to a future beat before its animation can advance. Retry with
+      // a positive delay to avoid a tight loop while the audio clock is paused.
+      const liveCurrentTime = this._getCurrentTime?.();
+      if (
+        liveCurrentTime !== undefined &&
+        liveCurrentTime + CLOCK_EARLY_TOLERANCE_SECONDS < beatChange.startTime
+      ) {
+        this.handleScheduledBeatChange(
+          beatChange,
+          nextBeatChange,
+          liveCurrentTime,
+          playbackRunId,
+          1
+        );
         return;
       }
 

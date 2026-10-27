@@ -63,6 +63,33 @@ describe("PlaybackCursorCoordinator", () => {
     expect(coordinator.lastStartedBeat).toBe(beat);
   });
 
+  test("does not publish a beat until the live audio clock reaches it", () => {
+    const { score, track, bar } = createScoreGraph();
+    const beat = bar.ensureVoiceBar(1).beats[0];
+    let audioTime = 0;
+    const coordinator = new PlaybackCursorCoordinator(
+      score,
+      track,
+      42,
+      () => audioTime
+    );
+
+    coordinator.processScheduledBeatChanges([beatChange(beat, 0.5)], [], 0, 1);
+    jest.advanceTimersByTime(500);
+    expect(events).toHaveLength(0);
+    expect(coordinator.lastStartedBeat).toBeUndefined();
+
+    // A second wall-clock deadline must not advance a stalled audio clock.
+    jest.advanceTimersByTime(500);
+    expect(events).toHaveLength(0);
+
+    audioTime = 0.5;
+    jest.advanceTimersByTime(500);
+    expect(events).toHaveLength(1);
+    expect(events[0].beatUUID).toBe(beat.uuid);
+    expect(coordinator.lastStartedBeat).toBe(beat);
+  });
+
   test("rejects an active track without a staff", () => {
     const { score, track } = createScoreGraph();
     track.staves.splice(0, 1);
@@ -170,9 +197,15 @@ describe("PlaybackCursorCoordinator", () => {
     expect(coordinator.lastStartedBeat).toBe(secondFuture);
   });
 
-  test("reset cancels pending events and clears cursor state", () => {
+  test("reset cancels audio-clock-deferred events and clears cursor state", () => {
     const { score, track, bar } = createScoreGraph();
-    const coordinator = new PlaybackCursorCoordinator(score, track, 42);
+    let audioTime = 0.5;
+    const coordinator = new PlaybackCursorCoordinator(
+      score,
+      track,
+      42,
+      () => audioTime
+    );
     coordinator.setPlaybackAnchorBeat(bar.ensureVoiceBar(1).beats[0]);
     coordinator.processScheduledBeatChanges(
       [
@@ -187,7 +220,10 @@ describe("PlaybackCursorCoordinator", () => {
     expect(coordinator.lastStartedBeat).toBe(bar.ensureVoiceBar(1).beats[0]);
     expect(events).toHaveLength(1);
 
+    jest.advanceTimersByTime(500);
+    expect(events).toHaveLength(1);
     coordinator.reset(2);
+    audioTime = 1;
     jest.runAllTimers();
 
     expect(events).toHaveLength(1);
@@ -200,6 +236,7 @@ describe("PlaybackCursorCoordinator", () => {
       1,
       2
     );
+    audioTime = 2;
     jest.advanceTimersByTime(1000);
     expect(events).toHaveLength(2);
     expect(events[1].playbackRunId).toBe(2);

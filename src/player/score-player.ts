@@ -113,7 +113,8 @@ export class ScorePlayer {
     this._cursorCoordinator = new PlaybackCursorCoordinator(
       this.score,
       activeTrack,
-      this.uuid
+      this.uuid,
+      () => this._audioEngine.currentTime
     );
   }
 
@@ -241,7 +242,7 @@ export class ScorePlayer {
     playbackAnchorBeat: Beat | undefined
   ): Promise<boolean> {
     try {
-      await this.prepareAudio(true, false);
+      await this.prepareAudio(true);
     } catch (error) {
       // Report preparation failures only while this playback run is current
       if (!this.startIsStale(playbackRunId)) {
@@ -266,12 +267,8 @@ export class ScorePlayer {
    * example, a user can stop playback, add a bass track, then load its samples
    * in the background without resuming audio. A later Play action resumes the
    * context when needed and schedules playback.
-   * @param waitForSamples Whether preparation waits for decoded samples.
    */
-  private async prepareAudio(
-    resumeAudio: boolean,
-    waitForSamples: boolean
-  ): Promise<void> {
+  private async prepareAudio(resumeAudio: boolean): Promise<void> {
     this._audioEngine.initialize();
     if (resumeAudio) {
       await this._audioEngine.resume();
@@ -279,10 +276,7 @@ export class ScorePlayer {
         return;
       }
     }
-    const sampleLoad = this._audioEngine.loadSamples();
-    if (waitForSamples) {
-      await sampleLoad;
-    }
+    await this._audioEngine.loadSamples();
   }
 
   /** Starts optional background audio preparation without blocking initialization. */
@@ -292,7 +286,7 @@ export class ScorePlayer {
     }
 
     try {
-      await this.prepareAudio(false, true);
+      await this.prepareAudio(false);
     } catch {
       // A later user-initiated start retries preparation and reports its failure.
     }
