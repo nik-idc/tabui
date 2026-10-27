@@ -86,6 +86,11 @@ const fixtureSelect =
 const themeElement = document.getElementById("theme-select");
 const themeSelect =
   themeElement instanceof HTMLSelectElement ? themeElement : null;
+/** Selects samples or oscillator tones for playback comparisons. */
+const soundSourceSelect = requiredElement(
+  "sound-source-select",
+  HTMLSelectElement
+);
 const interactionModeSelect = requiredElement<HTMLSelectElement>(
   "interaction-mode-select",
   HTMLSelectElement
@@ -183,6 +188,11 @@ function visibilityOverride(value: DemoPanelVisibility): boolean | undefined {
 }
 
 function applyConfigControlValues(params: URLSearchParams): void {
+  const soundSource = params.get("soundSource");
+  soundSourceSelect.value =
+    soundSource === "synths" || soundSource === "samples"
+      ? soundSource
+      : "fluidr3";
   interactionModeSelect.value = resolveInteractionMode(params.get("mode"));
   layoutModeSelect.value = resolveLayoutMode(params.get("layoutMode"));
   scorePanelVisibilitySelect.value = resolvePanelVisibility(
@@ -214,6 +224,7 @@ function syncSideCollapseControl(): void {
 
 function persistConfigControlValues(): void {
   const params = new URLSearchParams(window.location.search);
+  params.set("soundSource", soundSourceSelect.value);
   params.set("mode", interactionModeSelect.value);
   params.set("layoutMode", layoutModeSelect.value);
   params.set("scorePanel", scorePanelVisibilitySelect.value);
@@ -341,6 +352,37 @@ const baseEditorConfig = {
   },
 };
 
+/** FluidR3 PCM extracts are tuned offline to B3 (guitars) or C2 (bass). */
+const fluidr3Playback = {
+  preloadAudio: true,
+  samples: {
+    [ElectricGuitarTone.Clean]: {
+      url: `${import.meta.env.BASE_URL}samples/fluidr3/clean-electric-B3.wav`,
+      rootNote: { noteValue: NoteValue.B, octave: 3 },
+    },
+    [ElectricGuitarTone.Overdrive]: {
+      url: `${import.meta.env.BASE_URL}samples/fluidr3/overdrive-electric-B3.wav`,
+      rootNote: { noteValue: NoteValue.B, octave: 3 },
+    },
+    [ElectricGuitarTone.Distortion]: {
+      url: `${import.meta.env.BASE_URL}samples/fluidr3/distorted-electric-B3.wav`,
+      rootNote: { noteValue: NoteValue.B, octave: 3 },
+    },
+    [BassGuitarTone.Clean]: {
+      url: `${import.meta.env.BASE_URL}samples/fluidr3/fingered-bass-C2.wav`,
+      rootNote: { noteValue: NoteValue.C, octave: 2 },
+    },
+    [AcousticGuitarTone.Nylon]: {
+      url: `${import.meta.env.BASE_URL}samples/fluidr3/nylon-acoustic-B3.wav`,
+      rootNote: { noteValue: NoteValue.B, octave: 3 },
+    },
+    [AcousticGuitarTone.Steel]: {
+      url: `${import.meta.env.BASE_URL}samples/fluidr3/steel-acoustic-B3.wav`,
+      rootNote: { noteValue: NoteValue.B, octave: 3 },
+    },
+  },
+};
+
 function createEditorConfig(): TabUIConfig {
   const scoreVisibility = visibilityOverride(
     resolvePanelVisibility(scorePanelVisibilitySelect.value)
@@ -351,6 +393,12 @@ function createEditorConfig(): TabUIConfig {
 
   return {
     ...baseEditorConfig,
+    playback:
+      soundSourceSelect.value === "synths"
+        ? { preloadAudio: false }
+        : soundSourceSelect.value === "fluidr3"
+          ? fluidr3Playback
+          : baseEditorConfig.playback,
     interaction: {
       mode: resolveInteractionMode(interactionModeSelect.value),
     },
@@ -407,6 +455,7 @@ function handleEditorConfigChange(): void {
 }
 
 const editorConfigControls = [
+  soundSourceSelect,
   interactionModeSelect,
   layoutModeSelect,
   scorePanelVisibilitySelect,

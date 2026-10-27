@@ -24,6 +24,20 @@ The output remains `demo/dist/`, used by the existing Pages deployment. Sample
 audio comes from `assets/samples/`; samples are demo resources and do not ship in
 the npm package.
 
+Use **Demo controls → Playback → Sound source** to compare **FluidR3**
+(the default pack), **Free Wave Samples**, and **Synth** (built-in oscillator
+tones). Switching stops playback and remounts the editor with the current score.
+The choice stays in the URL as `soundSource=samples`, `soundSource=fluidr3`, or
+`soundSource=synths`, including after reload. Existing links keep their meaning.
+Synth mode does not load samples; all sources use the same playback scheduling
+and techniques.
+
+The [FluidR3 subset](../../assets/samples/fluidr3/README.md) contains six
+MIT-licensed WAV extracts, not a browser SoundFont engine. Each tone uses one
+source pitch and the original sustain loop. SoundFont layers, effects, filters,
+and envelopes are not reproduced. See its manifest and offline extraction script
+for source hashes, pitch corrections, and loop checks.
+
 ## Integration test
 
 ```sh

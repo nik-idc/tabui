@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { chromium, expect } from "@playwright/test";
 import { preview } from "vite";
 import { createConsumerProject } from "../consumer-project.mjs";
+import { checkSoundSources } from "./sound-source-checks.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const project = await createConsumerProject(
@@ -99,6 +100,7 @@ async function checkShowcase(page, origin) {
   console.log(
     "  showcase: themes, fixture selection, save/load, layout, reset, sample files passed"
   );
+  await checkSoundSources(page, origin);
 }
 
 /** Decodes the real default icons and the icon imported through the asset export. */

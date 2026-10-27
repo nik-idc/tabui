@@ -211,6 +211,9 @@ export class PlaybackAudioEngine {
       scheduledAudioNode.sourceNode.onended = () => {
         scheduledAudioNode.sourceNode.disconnect();
         scheduledAudioNode.gainNode.disconnect();
+        for (const node of scheduledAudioNode.intermediateNodes ?? []) {
+          node.disconnect();
+        }
         this._scheduledAudioNodes.delete(scheduledAudioNode);
       };
       this._scheduledAudioNodes.add(scheduledAudioNode);
@@ -230,6 +233,9 @@ export class PlaybackAudioEngine {
       }
       audioNode.gainNode.disconnect();
       audioNode.sourceNode.disconnect();
+      for (const node of audioNode.intermediateNodes ?? []) {
+        node.disconnect();
+      }
     }
     this._scheduledAudioNodes.clear();
   }
@@ -250,6 +256,9 @@ export class PlaybackAudioEngine {
       }
       audioNode.gainNode.disconnect();
       audioNode.sourceNode.disconnect();
+      for (const node of audioNode.intermediateNodes ?? []) {
+        node.disconnect();
+      }
       this._scheduledAudioNodes.delete(audioNode);
     }
   }

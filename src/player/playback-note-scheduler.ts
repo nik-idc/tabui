@@ -5,7 +5,9 @@ import { GuitarTechnique } from "../notation/model/guitar-technique";
 import { GuitarTechniqueType } from "../notation/model/technique-type";
 import {
   Note,
+  NoteValue,
   getNoteFrequency,
+  getFrequencyFromNoteType,
   NOTES_PER_OCTAVE,
 } from "../notation/model/note";
 import { ticksToSeconds } from "../notation/model/timing";
@@ -18,22 +20,26 @@ import { ScheduledAudioNode, TrackAudioBus } from "./scheduled-audio-node";
 
 type PlaybackSourceNode = OscillatorNode | AudioBufferSourceNode;
 
-// Conservative peak keeps summed multi-track playback from clipping quickly.
-const notePeakGain = 0.06;
+/** Raises all note amplitudes without changing mixer controls; summed notes can clip. */
+const playbackGainMultiplier = 6;
+// Base envelope peak, before tone and beat-context shaping.
+const notePeakGain = 0.06 * playbackGainMultiplier;
+/** Applies a common amplitude reduction to every dead-note strike. */
+const deadNoteGainMultiplier = 0.75;
 // Short attack avoids clicks while preserving plucked-note immediacy.
 const attackSeconds = 0.01;
 // Short release avoids clicks without smearing normal note boundaries.
 const releaseSeconds = 0.02;
 // Palm mutes are quieter because the string is damped at the bridge.
-const palmMuteGain = 0.038;
+const palmMuteGain = 0.038 * playbackGainMultiplier;
 // Hammer-ons/pull-offs are quieter than picked notes in this single-note model.
-const hammerOnPullOffGain = 0.048;
+const hammerOnPullOffGain = 0.048 * playbackGainMultiplier;
 // Hammer-ons/pull-offs bloom slightly after the fret-hand articulation.
 const hammerOnPullOffAttackSeconds = 0.018;
 // Palm mutes decay quickly; this caps long score durations to a short thump.
 const palmMuteMaxDurationSeconds = 0.18;
 // Harmonics speak more lightly than normal fretted notes in this simple model.
-const harmonicGain = 0.045;
+const harmonicGain = 0.045 * playbackGainMultiplier;
 // Natural/pinch harmonic playback uses the first octave partial for now.
 const harmonicSemitones = NOTES_PER_OCTAVE;
 // Slides need enough time to hear the source-to-target pitch transition.
@@ -54,6 +60,15 @@ const downbeatGainMultiplier = 1.08;
 const repeatedNoteGainMultiplier = 0.92;
 /** Allows floating-point timing drift when comparing a tie with the playback boundary. */
 const continuationTimingToleranceSeconds = 1e-9;
+/** Dead-note noise is a short string strike rather than a pitched note. */
+const deadNoteDurationSeconds = 0.05;
+/** Dead-note filter cutoffs follow the tuned open string, including its octave. */
+// Keep low strings dark without flattening the normal bass range to one cutoff.
+const deadNoteMinimumFilterFrequency = 120;
+const deadNoteMaximumFilterFrequency = 6000;
+const deadNoteAttackSeconds = 0.003;
+const deadNoteReleaseSeconds = 0.02;
+const deadNoteShaperCurveLength = 256;
 
 /** One written note in a shared source's tie chain, with any final resonance tail. */
 type SustainSegment = {
@@ -180,6 +195,123 @@ export class PlaybackNoteScheduler {
   /** Returns playback shaping defaults for the note's instrument tone. */
   private getToneProfile(note: Note): PlaybackToneProfile {
     return getPlaybackToneProfile(note.trackContext.instrument.tone);
+  }
+
+  /** Creates and schedules a short filtered-noise strike for a dead note. */
+  private produceDeadNote(
+    note: Note,
+    startTime: number,
+    stopTime: number,
+    trackBus: TrackAudioBus,
+    maxStopTime?: number
+  ): ScheduledAudioNode | null {
+    const effectiveStopTime = Math.min(
+      stopTime,
+      startTime + deadNoteDurationSeconds,
+      maxStopTime ?? Infinity
+    );
+    if (effectiveStopTime <= startTime) {
+      return null;
+    }
+
+    if (!(note instanceof GuitarNote)) {
+      return null;
+    }
+    const openString = note.trackContext.instrument.tuning[note.stringNum - 1];
+    if (openString === undefined || openString.octave === null) {
+      return null;
+    }
+
+    const openFrequency = getFrequencyFromNoteType(openString);
+    if (openFrequency <= 0) {
+      return null;
+    }
+
+    const sampleRate = this._audioContext.sampleRate;
+    const toneProfile = this.getToneProfile(note);
+    const noiseBuffer = this._audioContext.createBuffer(
+      1,
+      Math.ceil(sampleRate * deadNoteDurationSeconds),
+      sampleRate
+    );
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+
+    const sourceNode = this._audioContext.createBufferSource();
+    sourceNode.buffer = noiseBuffer;
+    const filterNode = this._audioContext.createBiquadFilter();
+    filterNode.type = "lowpass";
+    filterNode.frequency.value = Math.min(
+      deadNoteMaximumFilterFrequency,
+      Math.max(
+        deadNoteMinimumFilterFrequency,
+        openFrequency * toneProfile.deadNoteBrightnessMultiplier
+      )
+    );
+    const intermediateNodes: AudioNode[] = [filterNode];
+    let outputNode: AudioNode = filterNode;
+    if (toneProfile.deadNoteDrive > 1) {
+      const shaperNode = this._audioContext.createWaveShaper();
+      const curve = new Float32Array(deadNoteShaperCurveLength);
+      for (let i = 0; i < curve.length; i++) {
+        const input = (i * 2) / (curve.length - 1) - 1;
+        curve[i] = Math.tanh(input * toneProfile.deadNoteDrive);
+      }
+      shaperNode.curve = curve;
+      shaperNode.oversample = "2x";
+      outputNode.connect(shaperNode);
+      outputNode = shaperNode;
+      intermediateNodes.push(shaperNode);
+    }
+    const gainNode = this._audioContext.createGain();
+    const peakGain =
+      notePeakGain *
+      deadNoteGainMultiplier *
+      toneProfile.deadNoteGainMultiplier *
+      this.getContextGainMultiplier(note);
+    const attackEndTime = Math.min(
+      startTime + deadNoteAttackSeconds * toneProfile.attackMultiplier,
+      effectiveStopTime
+    );
+    const releaseStartTime = Math.max(
+      attackEndTime,
+      effectiveStopTime - deadNoteReleaseSeconds * toneProfile.releaseMultiplier
+    );
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(peakGain, attackEndTime);
+    gainNode.gain.linearRampToValueAtTime(peakGain, releaseStartTime);
+    gainNode.gain.linearRampToValueAtTime(0, effectiveStopTime);
+
+    try {
+      sourceNode.connect(filterNode);
+      outputNode.connect(gainNode);
+      gainNode.connect(trackBus.gainNode);
+      sourceNode.start(startTime);
+      sourceNode.stop(effectiveStopTime);
+    } catch (error) {
+      try {
+        sourceNode.stop(this._audioContext.currentTime);
+      } catch {
+        // The source may not have started or may already be stopped.
+      }
+      sourceNode.disconnect();
+      filterNode.disconnect();
+      for (const node of intermediateNodes.slice(1)) {
+        node.disconnect();
+      }
+      gainNode.disconnect();
+      throw error;
+    }
+
+    return {
+      sourceNode,
+      track: note.beat.voiceBar.bar.staff.track,
+      gainNode,
+      intermediateNodes,
+      startTime,
+    };
   }
 
   /** Returns a small musical gain variation from beat/note context. */
@@ -708,6 +840,18 @@ export class PlaybackNoteScheduler {
     maxStopTime?: number,
     playbackStartTime = -Infinity
   ): ScheduledAudioNode | null {
+    if (note.noteValue === NoteValue.None) {
+      return null;
+    }
+    if (note.noteValue === NoteValue.Dead) {
+      return this.produceDeadNote(
+        note,
+        startTime,
+        stopTime,
+        trackBus,
+        maxStopTime
+      );
+    }
     const frequency = getNoteFrequency(note);
     if (frequency <= 0) {
       return null;
