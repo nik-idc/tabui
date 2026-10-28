@@ -1070,6 +1070,12 @@ export class EditorSVGRenderer implements EditorRenderer {
   public render(
     options: EditorRenderOptions = DEFAULT_RENDER_OPTIONS
   ): ElementRenderer[] {
+    // Keep playback presentation current even when only an overlay is rendered.
+    const playbackActive = this.trackController.isPlaybackActive;
+    this.rootSVGElement.setAttribute(
+      "data-playback-active",
+      `${playbackActive}`
+    );
     if (options.renderNotation) {
       this.renderNotation(options);
     }

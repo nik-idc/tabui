@@ -76,8 +76,8 @@ replace release validation.
 - [x] Completely remove interactivity from inline techniques. 99% of the time gets in the
       way of normal editing
 - [x] Make whole-beat selection easier.
-- [ ] Correct selection rectangle geometry.
-- [ ] Block the remaining editing interactions during playback.
+- [x] Improve selection rectangle geometry.
+- [x] Block the remaining editing interactions during playback.
 - [ ] Add metronome and playback pitch-shift controls.
 - [ ] Shift + Arrow selection doesn't select a single beat
 - [ ] Eliminate all operations that can lead to no selection

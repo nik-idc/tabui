@@ -196,8 +196,23 @@ test("notation clicks do not open dialogs in view-only mode or playback", async 
 
   await page.goto("/tabui/?fixture=empty");
   const tempo = editor.locator(".tu-tempo-hit-area").first();
+  await tempo.scrollIntoViewIfNeeded();
   await editor.getByRole("button", { name: "Play" }).click();
-  await tempo.click();
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  const tempoBounds = await tempo.boundingBox();
+  expect(tempoBounds).not.toBeNull();
+  if (tempoBounds === null) throw Error("Expected tempo hit target bounds");
+  await page.mouse.click(
+    tempoBounds.x + tempoBounds.width / 2,
+    tempoBounds.y + tempoBounds.height / 2
+  );
   await expect(editor.getByRole("dialog")).toHaveCount(0);
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
   await editor.getByRole("button", { name: "Pause" }).click();
 });

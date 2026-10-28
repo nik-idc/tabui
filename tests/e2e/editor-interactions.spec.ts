@@ -130,33 +130,92 @@ for (const layoutMode of ["wrapped", "single-line"] as const) {
   });
 }
 
-test("hides the end-gap hint during playback and restores hover visibility", async ({
+test("suppresses editing feedback during playback and restores it after stopping", async ({
   page,
 }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
+  await editor.locator('[id^="note-rect-"]').first().click();
+  await page.keyboard.press("5");
+  await page.keyboard.press("-");
+  await page.keyboard.press("a");
+  await page.keyboard.press("6");
+  await editor.locator('[data-duration="8"]').click();
   const gap = editor.locator("[data-bar-end-gap-uuid]");
   const hint = editor.locator(".tu-end-gap-hint");
+  const rootSvg = editor.locator("svg.tu-root-svg");
+  const append = editor.locator("rect.tu-append-bar");
+  const appendText = editor.locator("text.tu-append-bar");
   await expect(gap).toHaveCount(1);
+  await expect(append).toHaveCount(1);
 
   await gap.hover();
   await expect(hint).toBeVisible();
+  await append.hover();
+  await expect(appendText).toBeVisible();
+  const tempoHitArea = editor.locator(".tu-tempo-hit-area").first();
+  const beamHitArea = editor.locator(".tu-beam-hit").first();
+  const tempoSymbol = editor.locator(".tu-tempo-symbol").first();
+  const beamVisible = editor.locator(".tu-beam-visible").first();
+  await expect(tempoHitArea).toHaveCount(1);
+  await expect(beamHitArea).toHaveCount(1);
 
-  await editor.getByRole("button", { name: "Play" }).click();
+  const moveToCenter = async (target: typeof tempoHitArea) => {
+    await target.scrollIntoViewIfNeeded();
+    const bounds = await target.boundingBox();
+    expect(bounds).not.toBeNull();
+    if (bounds === null) {
+      throw Error("Expected notation editing hit target bounds");
+    }
+    await page.mouse.move(
+      bounds.x + bounds.width / 2,
+      bounds.y + bounds.height / 2
+    );
+  };
+  await moveToCenter(tempoHitArea);
+  const hoveredTempoFill = await tempoSymbol.evaluate(
+    (element) => getComputedStyle(element).fill
+  );
+  // Keep the small score playing while all disabled targets are exercised.
+  await editor.getByRole("button", { name: "Loop", exact: true }).click();
+  await editor.getByRole("button", { name: "Play" }).focus();
+  await moveToCenter(beamHitArea);
+  const hoveredBeamFill = await beamVisible.evaluate(
+    (element) => getComputedStyle(element).fill
+  );
+
+  // Start without moving off the beam, so an existing group highlight is covered.
+  await page.keyboard.press("Enter");
   await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
     "aria-pressed",
     "true"
   );
+  await expect(rootSvg).toHaveAttribute("data-playback-active", "true");
   await gap.hover();
   await expect(hint).toBeHidden();
+  await moveToCenter(append);
+  await expect(appendText).toBeHidden();
+  await expect(append).toHaveCSS("pointer-events", "none");
+  await moveToCenter(tempoHitArea);
+  await expect(tempoSymbol).not.toHaveCSS("fill", hoveredTempoFill);
+  await moveToCenter(beamHitArea);
+  await expect(beamVisible).not.toHaveCSS("fill", hoveredBeamFill);
 
   await editor.getByRole("button", { name: "Pause" }).click();
   await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
     "aria-pressed",
     "false"
   );
+  await expect(rootSvg).toHaveAttribute("data-playback-active", "false");
+  await expect(beamVisible).not.toHaveCSS("fill", hoveredBeamFill);
   await gap.hover();
   await expect(hint).toBeVisible();
+  await append.hover();
+  await expect(appendText).toBeVisible();
+  await moveToCenter(tempoHitArea);
+  await expect(tempoSymbol).toHaveCSS("fill", hoveredTempoFill);
+  await moveToCenter(beamHitArea);
+  await expect(beamVisible).toHaveCSS("fill", hoveredBeamFill);
 });
 
 for (const fixture of ["empty", "feature_showcase"] as const) {

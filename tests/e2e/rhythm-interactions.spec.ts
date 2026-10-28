@@ -272,9 +272,25 @@ test("playback blocks rhythm selection and dot removal", async ({ page }) => {
   const editor = await openRhythmEditor(page);
   await page.keyboard.press(".");
   await page.keyboard.press(".");
+  const dotsPath = editor.locator(".tu-beat-dots path").first();
+  await dotsPath.scrollIntoViewIfNeeded();
   await editor.getByRole("button", { name: "Play", exact: true }).click();
-  await editor.locator(".tu-beat-dots path").click();
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  const dotsBounds = await dotsPath.boundingBox();
+  expect(dotsBounds).not.toBeNull();
+  if (dotsBounds === null) throw Error("Expected dots hit target bounds");
+  await page.mouse.click(
+    dotsBounds.x + dotsBounds.width / 2,
+    dotsBounds.y + dotsBounds.height / 2
+  );
   await expect(editor.locator(".tu-beat-dots circle")).toHaveCount(2);
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
   const point = await stemHitPoint(
     editor.locator('[id^="beat-rhythm-stem-"]').first()
   );

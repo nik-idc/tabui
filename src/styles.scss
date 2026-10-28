@@ -665,6 +665,39 @@
     #tu-interaction[data-playback-active="true"] .tu-end-gap-hint {
       visibility: hidden;
     }
+
+    &[data-playback-active="true"] {
+      .tu-end-gap-hint,
+      text.tu-append-bar {
+        visibility: hidden;
+      }
+
+      rect.tu-append-bar,
+      .tu-time-signature,
+      .tu-tempo,
+      .tu-tuning,
+      .tu-tuplet,
+      .tu-repeat-start,
+      .tu-repeat-end,
+      .tu-beat-duration,
+      .tu-beat-dots,
+      .tu-beam {
+        cursor: default;
+        pointer-events: none !important;
+      }
+
+      .tu-time-signature *,
+      .tu-tempo *,
+      .tu-tuning *,
+      .tu-tuplet *,
+      .tu-repeat-start *,
+      .tu-repeat-end *,
+      .tu-beat-duration *,
+      .tu-beat-dots *,
+      .tu-beam * {
+        pointer-events: none !important;
+      }
+    }
   }
 
   .tu-tuplet-dialog {
@@ -1691,6 +1724,9 @@
 }
 
 .tu-editor .tu-beat-dots:hover circle,
-.tu-editor .tu-beam-hover .tu-beam-visible {
+.tu-editor
+  .tu-root-svg:not([data-playback-active="true"])
+  .tu-beam-hover
+  .tu-beam-visible {
   fill: var(--tu-notation-selection-stroke);
 }
