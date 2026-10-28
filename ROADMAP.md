@@ -78,7 +78,7 @@ replace release validation.
 - [x] Make whole-beat selection easier.
 - [x] Improve selection rectangle geometry.
 - [x] Block the remaining editing interactions during playback.
-- [ ] Add metronome and playback pitch-shift controls.
+- [x] Add metronome and playback pitch-shift controls.
 - [ ] Shift + Arrow selection doesn't select a single beat
 - [ ] Eliminate all operations that can lead to no selection
 

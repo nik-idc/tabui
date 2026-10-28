@@ -1362,6 +1362,57 @@
   color: inherit;
 }
 
+.tu-playback-pitch-shift {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  overflow: visible;
+  border: 1px solid var(--tu-border-color);
+  border-radius: 0.35rem;
+  background: var(--tu-primary-color);
+  font-family: var(--tu-font-body);
+
+  .tu-playback-pitch-shift-value {
+    min-width: 2.2rem;
+    padding: 0 0.2rem;
+    color: var(--tu-font-color);
+    font-family: var(--tu-font-body);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .tu-playback-pitch-shift-buttons {
+    display: inline-flex;
+    flex-direction: column;
+    height: 100%;
+    margin-left: 0.25rem;
+    border-left: 1px solid var(--tu-border-color);
+  }
+
+  .tu-playback-pitch-shift-buttons button {
+    width: 22px;
+    flex: 1;
+    padding: 0;
+    border: 0;
+    color: var(--tu-font-color);
+    background: transparent;
+    font-size: 0.75rem;
+    font-family: inherit;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      background: var(--tu-hover-color);
+    }
+
+    &:disabled {
+      color: var(--tu-secondary-color);
+      cursor: default;
+    }
+  }
+}
+
 %tu-button-style {
   padding: 0.5rem 1rem;
   border: 1px solid var(--tu-border-color);
@@ -1596,6 +1647,16 @@
   &.tu-track-control-active {
     background: var(--tu-applied-color);
     box-shadow: inset 0 0 0 2px var(--tu-font-color);
+  }
+}
+
+.tu-editor .tu-playback-pitch-shift .tu-icon-button {
+  pointer-events: none;
+  cursor: default;
+
+  &:hover {
+    background: transparent;
+    transform: none;
   }
 }
 

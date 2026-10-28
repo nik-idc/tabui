@@ -7,6 +7,11 @@ export interface MasterAudioBus {
   pannerNode: StereoPannerNode;
 }
 
+/** Score-wide click bus, deliberately independent of track mixing. */
+export interface MetronomeAudioBus {
+  gainNode: GainNode;
+}
+
 export interface TrackAudioBus {
   /** Track whose audio is routed through this bus. */
   track: Track;
@@ -22,10 +27,12 @@ export interface TrackAudioBus {
  * TabUI's musical voice model.
  */
 export interface ScheduledAudioNode {
-  /** One-shot note source node. */
+  /** One-shot note or score-wide click source node. */
   sourceNode: AudioScheduledSourceNode;
-  /** Track that owns the scheduled note. */
-  track: Track;
+  /** Track that owns the scheduled note; absent for score-wide clicks. */
+  track?: Track;
+  /** Optional independent pitch control for pitched sources. */
+  pitchShiftParam?: AudioParam;
   /** Gain node used only for the note envelope. */
   gainNode: GainNode;
   /** Additional nodes in the note signal path that must be disconnected. */

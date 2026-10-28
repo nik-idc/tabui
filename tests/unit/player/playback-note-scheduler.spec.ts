@@ -35,6 +35,7 @@ function createAudioContext(startError?: Error, currentTime = 0) {
   const oscillators: Array<{
     type: OscillatorType;
     frequency: ReturnType<typeof createParam>;
+    detune: ReturnType<typeof createParam>;
     start: jest.Mock;
     stop: jest.Mock;
     connect: jest.Mock;
@@ -51,6 +52,7 @@ function createAudioContext(startError?: Error, currentTime = 0) {
     loopStart: number;
     loopEnd: number;
     playbackRate: ReturnType<typeof createParam>;
+    detune: ReturnType<typeof createParam>;
     start: jest.Mock;
     stop: jest.Mock;
     connect: jest.Mock;
@@ -75,6 +77,7 @@ function createAudioContext(startError?: Error, currentTime = 0) {
       const oscillator = {
         type: "sine" as OscillatorType,
         frequency: createParam(),
+        detune: createParam(),
         start: jest.fn(() => {
           if (startError !== undefined) throw startError;
         }),
@@ -101,6 +104,7 @@ function createAudioContext(startError?: Error, currentTime = 0) {
         loopStart: 0,
         loopEnd: 0,
         playbackRate: createParam(1),
+        detune: createParam(),
         start: jest.fn(),
         stop: jest.fn(),
         connect: jest.fn(),
@@ -213,6 +217,7 @@ describe("PlaybackNoteScheduler", () => {
         sourceNode: audio.oscillators[0],
         gainNode: audio.gains[0],
         track: note.beat.voiceBar.bar.staff.track,
+        pitchShiftParam: audio.oscillators[0].detune,
         startTime: 1,
       });
       expect(audio.oscillators[0].type).toBe(waveform);
@@ -281,6 +286,24 @@ describe("PlaybackNoteScheduler", () => {
       1.003
     );
     expect(audio.gains[0].connect).toHaveBeenCalledWith(bus.gainNode);
+  });
+
+  test("sets pitch shift before a buffered source starts", () => {
+    const [note] = notesAtFrets(5);
+    const audio = createAudioContext();
+    const source = scheduler(audio.context).scheduleNote(
+      note,
+      5,
+      6,
+      trackBus(),
+      undefined,
+      -Infinity,
+      7
+    );
+
+    expect(source?.pitchShiftParam?.value).toBe(700);
+    expect(source?.pitchShiftParam?.setValueAtTime).not.toHaveBeenCalled();
+    expect(audio.oscillators[0].start).toHaveBeenCalledWith(5);
   });
 
   test("shapes dead notes according to the instrument tone", () => {

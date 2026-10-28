@@ -31,7 +31,6 @@ export class PlayControlsTemplateRenderer {
   private assembleContainer(): void {
     const cssClass = "tu-play-controls";
     this.template.container.classList.add(cssClass);
-
     this.template.container.append(
       this.template.firstButton,
       this.template.prevButton,
@@ -39,7 +38,9 @@ export class PlayControlsTemplateRenderer {
       this.template.nextButton,
       this.template.lastButton,
       this.template.loopButton,
-      this.template.rangeButton
+      this.template.rangeButton,
+      this.template.metronomeButton,
+      this.template.pitchShiftControl.element
     );
     this.parentDiv.appendChild(this.template.container);
   }
@@ -148,6 +149,25 @@ export class PlayControlsTemplateRenderer {
       "aria-pressed",
       `${hasSelectionAnchor}`
     );
+    setImageAsset(
+      this.template.metronomeButton,
+      this.assetsPath,
+      "img/ui/metronome.svg",
+      "Metronome",
+      { width: buttonSize, height: buttonSize }
+    );
+    const metronomeEnabled =
+      this.notationComponent.trackController.metronomeEnabled;
+    this.template.metronomeButton.classList.toggle(
+      "tu-track-control-active",
+      metronomeEnabled
+    );
+    this.template.metronomeButton.setAttribute(
+      "aria-pressed",
+      String(metronomeEnabled)
+    );
+    const pitch = this.notationComponent.trackController.pitchShiftSemitones;
+    this.template.pitchShiftControl.render(pitch, this.assetsPath);
   }
   /**
    * Responsible for setting up the note controls:

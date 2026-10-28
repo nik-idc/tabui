@@ -497,6 +497,24 @@ export class ScorePlayer {
     this._audioEngine.applyMasterControls();
   }
 
+  /** Enables or disables the score-wide synthesized metronome. */
+  public setMetronomeEnabled(enabled: boolean): void {
+    this._audioEngine.setMetronomeEnabled(enabled);
+  }
+
+  public get metronomeEnabled(): boolean {
+    return this._audioEngine.metronomeEnabled;
+  }
+
+  /** Sets the live global pitch offset without changing score data. */
+  public setPitchShiftSemitones(semitones: number): void {
+    this._audioEngine.setPitchShiftSemitones(semitones);
+  }
+
+  public get pitchShiftSemitones(): number {
+    return this._audioEngine.pitchShiftSemitones;
+  }
+
   /** Clears currently selected loop section. */
   public clearLoopSection(): void {
     this._scheduler.clearLoopSection();

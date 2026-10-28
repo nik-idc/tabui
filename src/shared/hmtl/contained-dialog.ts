@@ -105,6 +105,11 @@ export class ContainedDialog {
     return this._element.hasAttribute("open");
   }
 
+  /** Element hosting this dialog's controls. */
+  public get element(): HTMLDivElement {
+    return this._element;
+  }
+
   private hide(dispatchClose: boolean): void {
     if (!this._element.hasAttribute("open")) {
       return;

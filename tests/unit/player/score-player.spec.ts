@@ -306,6 +306,7 @@ describe("ScorePlayer", () => {
 
   test("cleans up an initial scheduling failure and retries from its anchor", async () => {
     const graph = scoreWithNotes();
+    graph.score.appendMasterBar();
     const onError = jest.fn();
     const player = playerFor(graph, onError);
     const error = Error("source creation failed");
@@ -313,6 +314,10 @@ describe("ScorePlayer", () => {
       audio.context.createOscillator.getMockImplementation()
     );
     audio.context.createOscillator
+      .mockImplementationOnce(createSource)
+      .mockImplementationOnce(createSource)
+      .mockImplementationOnce(createSource)
+      .mockImplementationOnce(createSource)
       .mockImplementationOnce(createSource)
       .mockImplementationOnce(() => {
         throw error;
@@ -326,12 +331,23 @@ describe("ScorePlayer", () => {
     });
     expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(player.playbackAnchorBeat).toBe(graph.beats[2]);
-    expect(audio.sources).toHaveLength(1);
-    expect(audio.sources[0].disconnect).toHaveBeenCalled();
-    expect(audio.sources[0].stop).toHaveBeenLastCalledWith(0);
+    // The click and pitched note were both scheduled before the next click failed.
+    const partiallyScheduledSources = [...audio.allSources];
+    expect(partiallyScheduledSources.length).toBeGreaterThan(0);
+    expect(
+      partiallyScheduledSources.some(
+        (source) => !audio.sources.includes(source)
+      )
+    ).toBe(true);
+    for (const source of partiallyScheduledSources) {
+      expect(source.disconnect).toHaveBeenCalled();
+      expect(source.stop).toHaveBeenLastCalledWith(0);
+    }
     await player.start();
     expect(player.playbackState).toBe(PlaybackState.Playing);
-    expect(audio.sources).toHaveLength(3);
+    expect(audio.allSources.length).toBeGreaterThan(
+      partiallyScheduledSources.length
+    );
   });
 
   test("cleans up a rolling scheduling failure and permits retry", async () => {
@@ -344,8 +360,8 @@ describe("ScorePlayer", () => {
     const onError = jest.fn();
     const player = playerFor(graph, onError);
     await player.start();
-    const buffered = [...audio.sources];
-    expect(buffered).toHaveLength(4);
+    const buffered = [...audio.allSources];
+    expect(buffered).toHaveLength(8);
     const error = Error("device failed");
     audio.context.createOscillator.mockImplementationOnce(() => {
       throw error;
@@ -362,7 +378,7 @@ describe("ScorePlayer", () => {
     expect(player.playbackAnchorBeat).toBe(graph.beats[2]);
     await player.start();
     expect(player.playbackState).toBe(PlaybackState.Playing);
-    expect(audio.sources.length).toBeGreaterThan(buffered.length);
+    expect(audio.allSources.length).toBeGreaterThan(buffered.length);
   });
 
   test("stops after natural completion", async () => {
@@ -372,7 +388,7 @@ describe("ScorePlayer", () => {
     expect(player.playbackState).toBe(PlaybackState.Playing);
     jest.advanceTimersByTime(1);
     expect(player.playbackState).toBe(PlaybackState.Idle);
-    for (const source of audio.sources)
+    for (const source of audio.allSources)
       expect(source.disconnect).toHaveBeenCalled();
   });
 
@@ -380,10 +396,11 @@ describe("ScorePlayer", () => {
     const player = playerFor(scoreWithNotes());
     await player.start();
     const run = player.playbackRunId;
+    const initialSourceCount = audio.allSources.length;
     player.toggleLoop();
     expect(player.isLooped).toBe(true);
     expect(audio.sources.length).toBeGreaterThan(4);
-    const repeated = audio.sources.slice(4);
+    const repeated = audio.allSources.slice(initialSourceCount);
     player.toggleLoop();
     expect(player.isLooped).toBe(false);
     expect(player.playbackRunId).toBe(run);
@@ -438,7 +455,7 @@ describe("ScorePlayer", () => {
     expect(audio.bufferSources).toHaveLength(bufferSourceCount);
     expect(audio.context.close).toHaveBeenCalledTimes(1);
     expect(player.playbackState).toBe(PlaybackState.Idle);
-    for (const source of audio.sources)
+    for (const source of audio.allSources)
       expect(source.disconnect).toHaveBeenCalled();
   });
 });

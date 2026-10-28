@@ -1,4 +1,5 @@
 import { createButton, createDiv } from "../../../shared";
+import { PitchShiftControlComponent } from "./pitch-shift-control";
 
 /**
  * Interface defining the template of play controls:
@@ -17,4 +18,6 @@ export class PlayControlsTemplate {
   readonly lastButton: HTMLButtonElement = createButton();
   readonly loopButton: HTMLButtonElement = createButton();
   readonly rangeButton: HTMLButtonElement = createButton();
+  readonly metronomeButton: HTMLButtonElement = createButton();
+  readonly pitchShiftControl = new PitchShiftControlComponent();
 }

@@ -32,9 +32,17 @@ class AudioNodeRecorder {
   public gain = new AudioParamRecorder();
   public pan = new AudioParamRecorder();
   public frequency = new AudioParamRecorder();
+  public detune = new AudioParamRecorder();
   public starts: number[] = [];
   public stops: number[] = [];
-  public connect(): void {}
+  public readonly connections: AudioNodeRecorder[] = [];
+  public readonly isPanner: boolean;
+  public constructor(isPanner = false) {
+    this.isPanner = isPanner;
+  }
+  public connect(target: AudioNodeRecorder): void {
+    this.connections.push(target);
+  }
   public disconnect(): void {}
   public start(time: number): void {
     this.starts.push(time);
@@ -47,18 +55,44 @@ class AudioNodeRecorder {
 class AudioContextRecorder {
   public currentTime = 0;
   public destination = new AudioNodeRecorder();
-  public sources: AudioNodeRecorder[] = [];
+  public allSources: AudioNodeRecorder[] = [];
+  public get sources(): AudioNodeRecorder[] {
+    return this.allSources.filter((source) => !isMetronomeSource(source));
+  }
+  public get clickSources(): AudioNodeRecorder[] {
+    return this.allSources.filter(isMetronomeSource);
+  }
   public createGain(): AudioNodeRecorder {
     return new AudioNodeRecorder();
   }
   public createStereoPanner(): AudioNodeRecorder {
-    return new AudioNodeRecorder();
+    return new AudioNodeRecorder(true);
   }
   public createOscillator(): AudioNodeRecorder {
     const source = new AudioNodeRecorder();
-    this.sources.push(source);
+    this.allSources.push(source);
     return source;
   }
+}
+
+function pannerCount(
+  node: AudioNodeRecorder,
+  seen = new Set<AudioNodeRecorder>()
+): number {
+  if (seen.has(node)) return 0;
+  seen.add(node);
+  return (
+    (node.isPanner ? 1 : 0) +
+    node.connections.reduce(
+      (count, child) => count + pannerCount(child, seen),
+      0
+    )
+  );
+}
+
+function isMetronomeSource(source: AudioNodeRecorder): boolean {
+  // Clicks reach only the master panner; notes also pass through their track panner.
+  return pannerCount(source) === 1;
 }
 
 function createScheduler(score: Score) {
@@ -118,6 +152,57 @@ describe("PlaybackScheduler", () => {
       { beat: secondBeat, startTime: 10, endTime: 10.5 },
     ]);
     expect(audio.sources.map((s) => s.starts)).toEqual([[10], [10]]);
+    expect(audio.clickSources).toHaveLength(4);
+  });
+
+  test.each([
+    {
+      beatsCount: 3,
+      duration: NoteDuration.Eighth,
+      tempo: 60,
+      starts: [0, 0.5, 1],
+    },
+    {
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      tempo: 90,
+      starts: [0, 2 / 3, 4 / 3, 2],
+    },
+  ])(
+    "schedules one click per meter pulse",
+    ({ beatsCount, duration, tempo, starts }) => {
+      const { score } = createScoreGraph();
+      const masterBar = score.masterBars[0];
+      masterBar.beatsCount = beatsCount;
+      masterBar.duration = duration;
+      masterBar.tempo = tempo;
+      const scheduler = createScheduler(score);
+
+      scheduler.scheduleUntil(2);
+
+      expect(audio.clickSources.map((source) => source.starts[0])).toEqual(
+        starts
+      );
+      expect(
+        audio.clickSources.map((source) => source.frequency.value)
+      ).toEqual([1760, ...Array.from({ length: beatsCount - 1 }, () => 1320)]);
+    }
+  );
+
+  test("clips clicks to a mid-bar range without moving the downbeat accent", () => {
+    const { score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const scheduler = createScheduler(score);
+    scheduler.setPlaybackRange(beats[1], beats[1]);
+
+    scheduler.scheduleUntil(2);
+
+    expect(audio.clickSources.map((source) => source.starts[0])).toEqual([0]);
+    expect(audio.clickSources[0].frequency.value).toBe(1320);
   });
 
   test.each([
@@ -343,6 +428,9 @@ describe("PlaybackScheduler", () => {
       { beat: bar.ensureVoiceBar(1).beats[0], startTime: 0, endTime: 0.5 },
       { beat: secondBeat, startTime: 2, endTime: 3 },
     ]);
+    expect(audio.clickSources.map((source) => source.starts[0])).toEqual([
+      0, 0.5, 1, 1.5, 2, 3, 4, 5,
+    ]);
     expect(scheduler.scheduledPlaybackSeconds).toBe(6);
   });
 
@@ -394,6 +482,9 @@ describe("PlaybackScheduler", () => {
     expect(result.playbackComplete).toBe(false);
     expect(scheduler.nextLoopStartOffsetAfter(0)).toBe(4);
     expect(scheduler.nextLoopStartOffsetAfter(4)).toBeUndefined();
+    expect(audio.clickSources.map((source) => source.starts[0])).toEqual([
+      0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5,
+    ]);
   });
 
   test("loops only the selected in-bar section", () => {
@@ -416,6 +507,9 @@ describe("PlaybackScheduler", () => {
     ]);
     expect(result.playbackComplete).toBe(false);
     expect(scheduler.nextLoopStartOffsetAfter(1)).toBe(2);
+    expect(audio.clickSources.map((source) => source.starts[0])).toEqual([
+      0, 0.5, 1, 1.5,
+    ]);
   });
 
   test("schedules notation repeats in order after truncation and restart", () => {

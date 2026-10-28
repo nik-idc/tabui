@@ -1,6 +1,10 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { PlayControlsComponent } from "../..";
 import { ListenerManager } from "../../../shared/misc";
+import {
+  MAX_PITCH_SHIFT_SEMITONES,
+  MIN_PITCH_SHIFT_SEMITONES,
+} from "../../../player/playback-constants";
 
 export interface PlayControlsCallbacks {
   onFirstClicked(): void;
@@ -10,6 +14,8 @@ export interface PlayControlsCallbacks {
   onLastClicked(): void;
   onLoopClicked(): void;
   onRangeClicked(): void;
+  onMetronomeClicked(): void;
+  onPitchShiftChanged(delta: number): boolean;
   bind(): void;
   unbind(): void;
 }
@@ -18,23 +24,17 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
   private _playComponent: PlayControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
 
   constructor(
     playComponent: PlayControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._playComponent = playComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   onFirstClicked(): void {
@@ -79,6 +79,24 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     }
     this._renderFunc();
   }
+  onMetronomeClicked(): void {
+    const controller = this._notationComponent.trackController;
+    controller.setMetronomeEnabled(!controller.metronomeEnabled);
+    this._renderFunc();
+  }
+  onPitchShiftChanged(delta: number): boolean {
+    const controller = this._notationComponent.trackController;
+    const value = controller.pitchShiftSemitones + delta;
+    if (
+      value < MIN_PITCH_SHIFT_SEMITONES ||
+      value > MAX_PITCH_SHIFT_SEMITONES
+    ) {
+      return false;
+    }
+    controller.setPitchShiftSemitones(value);
+    this._renderFunc();
+    return true;
+  }
 
   bind(): void {
     this._listeners.bindAll([
@@ -117,10 +135,19 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
         event: "click",
         handler: () => this.onRangeClicked(),
       },
+      {
+        element: this._playComponent.template.metronomeButton,
+        event: "click",
+        handler: () => this.onMetronomeClicked(),
+      },
     ]);
+    this._playComponent.template.pitchShiftControl.bind((delta) =>
+      this.onPitchShiftChanged(delta)
+    );
   }
 
   unbind(): void {
     this._listeners.unbindAll();
+    this._playComponent.template.pitchShiftControl.unbind();
   }
 }

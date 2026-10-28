@@ -21,6 +21,11 @@ Audio nodes are scheduled on the audio context timeline.
   `master panner -> destination`.
 - Track volume/mute/solo controls update the track bus gain.
 - Track pan updates the track bus `StereoPannerNode`.
+- The optional global pitch shift uses each pitched source's `detune` parameter;
+  it does not change notation, serialized score data, or transport timing.
+- The synthesized metronome is a score-wide bus after all track buses, so track
+  mute, solo, volume, and pan do not affect it. Buffered clicks are always
+  scheduled and the bus gain makes live toggling safe.
 - Master volume and pan update the score-wide master bus without changing any
   per-track mix state.
 - Tone profiles can adjust fallback oscillator type, note gain, attack, and
@@ -54,6 +59,12 @@ Audio nodes are scheduled on the audio context timeline.
     changes.
   - Schedules all tracks, even muted or non-soloed tracks, so controls remain
     reversible while audio is already buffered.
+
+- `playback-metronome`
+  - Defines the synthesized click sound and creates its oscillator and envelope.
+  - Leaves click timing and accent selection to `PlaybackScheduler`.
+  - Uses one score-wide metronome bus level, so live enable/disable changes do
+    not alter the levels of already buffered clicks.
 
 - `PlaybackCursorCoordinator`
   - Converts scheduler timing into playback cursor UI timeouts.

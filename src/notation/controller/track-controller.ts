@@ -102,6 +102,23 @@ export class TrackController {
     this._scorePlayer?.stop();
   }
 
+  /** Returns the score-wide metronome state, if playback is configured. */
+  public get metronomeEnabled(): boolean {
+    return this._scorePlayer?.metronomeEnabled ?? false;
+  }
+
+  public setMetronomeEnabled(enabled: boolean): void {
+    this._scorePlayer?.setMetronomeEnabled(enabled);
+  }
+
+  public get pitchShiftSemitones(): number {
+    return this._scorePlayer?.pitchShiftSemitones ?? 0;
+  }
+
+  public setPitchShiftSemitones(semitones: number): void {
+    this._scorePlayer?.setPitchShiftSemitones(semitones);
+  }
+
   /** Clears edit selection and seeks active playback to the provided beat. */
   public restartPlayerFromBeat(beat: Beat): void {
     const scorePlayer = this._scorePlayer;

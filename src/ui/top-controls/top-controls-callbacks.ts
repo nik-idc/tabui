@@ -54,9 +54,7 @@ export class TopControlsCallbacks {
     this._playCallbacks = new PlayControlsDefaultCallbacks(
       this._topComponent.playComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._onPlayerStateChanged = ({ playerUUID }) => {
       if (playerUUID === this._notationComponent.trackController.playerUUID) {

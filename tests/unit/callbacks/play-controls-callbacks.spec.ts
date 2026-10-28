@@ -37,11 +37,16 @@ describe("PlayControlsDefaultCallbacks", () => {
     const callbacks = new PlayControlsDefaultCallbacks(
       { template } as any,
       notation,
-      render,
-      jest.fn(),
-      jest.fn()
+      render
     );
-    return { controller, player, template, renderer, callbacks, render };
+    return {
+      controller,
+      player,
+      template,
+      renderer,
+      callbacks,
+      render,
+    };
   }
   beforeEach(() => {
     jest.useFakeTimers();
@@ -83,6 +88,85 @@ describe("PlayControlsDefaultCallbacks", () => {
     expect(controller.isLooped).toBe(false);
   });
 
+  test("toggles the live metronome and changes pitch inline without transport changes", async () => {
+    const { callbacks, controller, player, template, renderer } = controls();
+    renderer.render();
+    callbacks.bind();
+    callbacks.bind();
+    template.metronomeButton.click();
+    expect(controller.metronomeEnabled).toBe(true);
+    expect(template.metronomeButton.getAttribute("aria-pressed")).toBe("true");
+    template.metronomeButton.click();
+    expect(controller.metronomeEnabled).toBe(false);
+    expect(template.metronomeButton.getAttribute("aria-pressed")).toBe("false");
+    expect(player.playbackState).toBe("idle");
+    const pitchControl = template.pitchShiftControl;
+    expect(pitchControl.valueElement.getAttribute("role")).toBe("spinbutton");
+    expect(pitchControl.valueElement.textContent).toBe("0");
+    pitchControl.increaseButton.click();
+    pitchControl.increaseButton.click();
+    expect(controller.pitchShiftSemitones).toBe(2);
+    expect(player.playbackState).toBe("idle");
+    controller.startPlayer();
+    await settleTransport();
+    expect(controller.playbackState).toBe("playing");
+    pitchControl.decreaseButton.click();
+    expect(controller.pitchShiftSemitones).toBe(1);
+    expect(controller.playbackState).toBe("playing");
+    callbacks.unbind();
+    template.metronomeButton.click();
+    expect(controller.metronomeEnabled).toBe(false);
+    pitchControl.increaseButton.click();
+    expect(controller.pitchShiftSemitones).toBe(1);
+  });
+
+  test("changes pitch with the value wheel and leaves bounds disabled", () => {
+    const { callbacks, controller, template, renderer } = controls();
+    renderer.render();
+    callbacks.bind();
+    document.body.appendChild(template.container);
+    const pitchControl = template.pitchShiftControl;
+    const wheel = new WheelEvent("wheel", { deltaY: -1, cancelable: true });
+    pitchControl.valueElement.dispatchEvent(wheel);
+    expect(controller.pitchShiftSemitones).toBe(1);
+    expect(wheel.defaultPrevented).toBe(true);
+    controller.setPitchShiftSemitones(12);
+    renderer.render();
+    expect(pitchControl.increaseButton.disabled).toBe(true);
+    const boundaryWheel = new WheelEvent("wheel", {
+      deltaY: -1,
+      cancelable: true,
+    });
+    pitchControl.valueElement.dispatchEvent(boundaryWheel);
+    expect(boundaryWheel.defaultPrevented).toBe(false);
+    expect(controller.pitchShiftSemitones).toBe(12);
+    callbacks.unbind();
+    template.container.remove();
+  });
+
+  test("double-clicking the pitch value resets it and only affects the value display", () => {
+    const { callbacks, controller, template, renderer } = controls();
+    renderer.render();
+    callbacks.bind();
+    const pitchControl = template.pitchShiftControl;
+
+    pitchControl.increaseButton.click();
+    pitchControl.increaseButton.click();
+    pitchControl.valueElement.dispatchEvent(new MouseEvent("dblclick"));
+    expect(controller.pitchShiftSemitones).toBe(0);
+
+    pitchControl.decreaseButton.click();
+    pitchControl.valueElement.dispatchEvent(new MouseEvent("dblclick"));
+    expect(controller.pitchShiftSemitones).toBe(0);
+    expect(controller.playbackState).toBe("idle");
+
+    callbacks.bind();
+    pitchControl.increaseButton.click();
+    callbacks.unbind();
+    pitchControl.valueElement.dispatchEvent(new MouseEvent("dblclick"));
+    expect(controller.pitchShiftSemitones).toBe(1);
+  });
+
   test("bar traversal buttons select the requested bar", () => {
     const ensureSelectedNoteVisible = () => {};
     const { score, track } = createScoreGraph();
@@ -101,12 +185,11 @@ describe("PlayControlsDefaultCallbacks", () => {
           lastButton: {},
           loopButton: {},
           rangeButton: {},
+          metronomeButton: {},
         },
       } as any,
       { trackController, ensureSelectedNoteVisible } as any,
-      renderFunc,
-      jest.fn(),
-      jest.fn()
+      renderFunc
     );
 
     callbacks.onNextClicked();
@@ -136,12 +219,11 @@ describe("PlayControlsDefaultCallbacks", () => {
           lastButton: {},
           loopButton: {},
           rangeButton: {},
+          metronomeButton: {},
         },
       } as any,
       { trackController: controller } as any,
-      renderFunc,
-      jest.fn(),
-      jest.fn()
+      renderFunc
     );
 
     callbacks.onRangeClicked();

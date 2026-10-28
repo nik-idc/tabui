@@ -189,6 +189,13 @@ Set `playback.preloadAudio` to `true` to prepare configured `playback.samples` i
 background during initialization. It does not block `init()` or resume audio;
 the first Play action still satisfies browser user-gesture requirements.
 
+Playback controls also provide a synthesized metronome and a live global pitch
+shift from -12 to +12 semitones. These settings affect audio only; they are not
+written to the score or its serialization. Use the inline numeric stepper to
+change pitch immediately, including during playback. Set it to zero for the
+original pitch. Pitch shifting changes sample playback
+rate as well as oscillator pitch; it does not time-stretch recordings.
+
 ## Editor lifecycle
 
 Pass a dedicated empty root to `TabUIEditor`. The host owns that root and TabUI

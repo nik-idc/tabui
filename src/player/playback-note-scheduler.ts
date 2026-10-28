@@ -12,6 +12,7 @@ import {
 } from "../notation/model/note";
 import { ticksToSeconds } from "../notation/model/timing";
 import { PlaybackSampleManager } from "./playback-sample-manager";
+import { CENTS_PER_SEMITONE } from "./playback-constants";
 import {
   getPlaybackToneProfile,
   PlaybackToneProfile,
@@ -838,7 +839,8 @@ export class PlaybackNoteScheduler {
     stopTime: number,
     trackBus: TrackAudioBus,
     maxStopTime?: number,
-    playbackStartTime = -Infinity
+    playbackStartTime = -Infinity,
+    pitchShiftSemitones = 0
   ): ScheduledAudioNode | null {
     if (note.noteValue === NoteValue.None) {
       return null;
@@ -899,6 +901,10 @@ export class PlaybackNoteScheduler {
     const track = note.beat.voiceBar.bar.staff.track;
 
     const sourceNode = this.createSourceNode(note, frequency);
+    const pitchShiftParam = sourceNode.detune;
+    // Set the initial value, rather than a future event. Live changes must not
+    // be overwritten by a stale buffered-note event at its start time.
+    pitchShiftParam.value = pitchShiftSemitones * CENTS_PER_SEMITONE;
     const gainNode = this._audioContext.createGain();
     gainNode.gain.setValueAtTime(0, startTime);
     gainNode.gain.linearRampToValueAtTime(
@@ -946,6 +952,7 @@ export class PlaybackNoteScheduler {
     return {
       sourceNode,
       track,
+      pitchShiftParam,
       gainNode,
       startTime,
     };

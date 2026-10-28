@@ -1,4 +1,13 @@
 /** Web Audio boundary used by real transport/controller tests. */
+type GraphNode = {
+  connections: GraphNode[];
+  isPanner: boolean;
+  connect: jest.Mock<void, [GraphNode]>;
+  gain: {
+    setValueAtTime: jest.Mock;
+  };
+};
+
 export function installTransportAudio() {
   const original = globalThis.AudioContext;
   const param = () => ({
@@ -6,13 +15,25 @@ export function installTransportAudio() {
     setValueAtTime: jest.fn(),
     linearRampToValueAtTime: jest.fn(),
   });
-  const node = () => ({ connect: jest.fn(), disconnect: jest.fn() });
-  const sources: Array<ReturnType<typeof oscillator>> = [];
+  const node = (isPanner = false) => {
+    const connections: GraphNode[] = [];
+    return {
+      connections,
+      isPanner,
+      gain: param(),
+      connect: jest.fn((target: GraphNode) => {
+        connections.push(target);
+      }),
+      disconnect: jest.fn(),
+    };
+  };
+  const allSources: Array<ReturnType<typeof oscillator>> = [];
   function oscillator() {
     return {
       ...node(),
       type: "sine",
       frequency: param(),
+      detune: param(),
       start: jest.fn(),
       stop: jest.fn(),
       onended: null,
@@ -24,6 +45,7 @@ export function installTransportAudio() {
       ...node(),
       buffer: null,
       playbackRate: param(),
+      detune: param(),
       start: jest.fn(),
       stop: jest.fn(),
       onended: null,
@@ -40,10 +62,10 @@ export function installTransportAudio() {
     resume: jest.fn(() => Promise.resolve()),
     close: jest.fn(() => Promise.resolve()),
     createGain: jest.fn(gain),
-    createStereoPanner: jest.fn(() => ({ ...node(), pan: param() })),
+    createStereoPanner: jest.fn(() => ({ ...node(true), pan: param() })),
     createOscillator: jest.fn(() => {
       const result = oscillator();
-      sources.push(result);
+      allSources.push(result);
       return result;
     }),
     createBufferSource: jest.fn(() => {
@@ -58,7 +80,10 @@ export function installTransportAudio() {
   globalThis.AudioContext = construct as unknown as typeof AudioContext;
   return {
     context,
-    sources,
+    get sources() {
+      return allSources.filter((source) => !isMetronomeSource(source));
+    },
+    allSources,
     bufferSources,
     construct,
     restore() {
@@ -69,6 +94,22 @@ export function installTransportAudio() {
       }
     },
   };
+}
+
+function pannerCount(node: GraphNode, seen = new Set<GraphNode>()): number {
+  if (seen.has(node)) return 0;
+  seen.add(node);
+  return (
+    (node.isPanner ? 1 : 0) +
+    node.connections.reduce((count, child) => {
+      return count + pannerCount(child, seen);
+    }, 0)
+  );
+}
+
+function isMetronomeSource(source: GraphNode): boolean {
+  // Clicks reach only the master panner; notes also pass through their track panner.
+  return pannerCount(source) === 1;
 }
 
 /** Waits for the public void controller start action to finish its async startup. */

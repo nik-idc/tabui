@@ -1,4 +1,11 @@
-import { Bar, Beat, Score, ticksToSeconds } from "../notation/model";
+import {
+  Bar,
+  Beat,
+  Score,
+  ticksToSeconds,
+  fractionToSeconds,
+  getBaseDurationFraction,
+} from "../notation/model";
 import { PlaybackAudioEngine } from "./playback-audio-engine";
 import { PlaybackTraversalManager } from "./playback-traversal-manager";
 
@@ -227,6 +234,30 @@ export class PlaybackScheduler {
     const beatChanges: ScheduledBeatChange[] = [];
     const masterBarDurationSeconds =
       this._traversalManager.getMasterBarDurationSeconds(masterBarIndex);
+    const masterBar = this._score.masterBars[masterBarIndex];
+    const sliceStart =
+      this._traversalManager.getMasterBarStartOffsetSeconds(masterBarIndex);
+    const sliceEnd =
+      this._traversalManager.getMasterBarEndOffsetSeconds(masterBarIndex);
+    const pulseSeconds = fractionToSeconds(
+      getBaseDurationFraction(masterBar.duration),
+      masterBar.tempo
+    );
+    for (let pulseIndex = 0; pulseIndex < masterBar.beatsCount; pulseIndex++) {
+      const offset = pulseIndex * pulseSeconds;
+      if (offset < sliceStart || offset >= sliceEnd) continue;
+      this._audioEngine.scheduleMetronomeClick(
+        this._currentScheduleBase +
+          this._scheduledPlaybackSeconds +
+          offset -
+          sliceStart,
+        this._currentScheduleBase +
+          this._scheduledPlaybackSeconds +
+          sliceEnd -
+          sliceStart,
+        pulseIndex === 0
+      );
+    }
 
     for (const track of this._score.tracks) {
       for (const staff of track.staves) {
