@@ -777,6 +777,65 @@ export class TrackElement {
     return prevTrack ?? null;
   }
 
+  /** Finds the nearest materialized line by Y, then beat by X, in the reference beat's staff and voice. */
+  public getNearestBeat(
+    point: Point,
+    referenceBeat: BeatElement
+  ): BeatElement | undefined {
+    const voiceBar = referenceBeat.beat.voiceBar;
+    let nearestStaffLine;
+    let nearestLineDistance = Infinity;
+    for (const lineIndex of this.materializedLineIndices) {
+      const line = this._trackLineElements[lineIndex];
+      for (const staffLine of line.staffLineContainers) {
+        if (staffLine.staff !== voiceBar.bar.staff) {
+          continue;
+        }
+        const hasBeats = staffLine.styleLinesAsArray.some((v) =>
+          v.barElements.some((b) =>
+            b.beatElements.some(
+              (b) => b.beat.voiceBar.voiceNumber === voiceBar.voiceNumber
+            )
+          )
+        );
+        if (!hasBeats) {
+          continue;
+        }
+        const bounds = staffLine.globalBoundingBox;
+        const distance = Math.max(
+          bounds.y - point.y,
+          point.y - bounds.bottom,
+          0
+        );
+        if (distance < nearestLineDistance) {
+          nearestStaffLine = staffLine;
+          nearestLineDistance = distance;
+        }
+      }
+    }
+
+    let nearestBeat: BeatElement | undefined;
+    let nearestBeatDistance = Infinity;
+    for (const styleLine of nearestStaffLine?.styleLinesAsArray ?? []) {
+      for (const bar of styleLine.barElements) {
+        for (const beat of bar.beatElements) {
+          if (
+            !(beat instanceof TabBeatElement) ||
+            beat.beat.voiceBar.voiceNumber !== voiceBar.voiceNumber
+          ) {
+            continue;
+          }
+          const distance = Math.abs(beat.attackXGlobal - point.x);
+          if (distance < nearestBeatDistance) {
+            nearestBeat = beat;
+            nearestBeatDistance = distance;
+          }
+        }
+      }
+    }
+    return nearestBeat;
+  }
+
   /**
    * Returns an array of selection rectangles:
    * Rectangle per staff line
@@ -814,6 +873,21 @@ export class TrackElement {
             }
 
             const beatSelectionRect = beatElement.getGlobalVisualBounds();
+
+            // Include the note preview padding so it does not protrude from
+            // the full-height beat selection block.
+            for (const noteElement of beatElement.noteElements) {
+              const noteSelectionRect = noteElement.selectionRect;
+              const right = Math.max(
+                beatSelectionRect.right,
+                noteSelectionRect.right
+              );
+              beatSelectionRect.x = Math.min(
+                beatSelectionRect.x,
+                noteSelectionRect.x
+              );
+              beatSelectionRect.width = right - beatSelectionRect.x;
+            }
 
             if (curLineRect === undefined) {
               curLineRect = new Rect(

@@ -115,10 +115,11 @@ describe("TrackElement rhythm", () => {
     ) {
       throw Error("Expected tab beat element");
     }
-    // A 12px note label extends 6px left of its attack column.
-    expect(rects[0].x).toBeCloseTo(firstSelected.attackXGlobal - 6);
-    expect(rects[0].width).toBeCloseTo(
-      firstSelected.boundingBox.width + lastSelected.boundingBox.width
+    expect(rects[0].x).toBeCloseTo(
+      firstSelected.noteElements[0].selectionRect.x
+    );
+    expect(rects[0].right).toBeCloseTo(
+      lastSelected.getGlobalVisualBounds().right
     );
     expect(rects[0].right).toBeGreaterThan(lastSelected.attackXGlobal);
     expect(rects[0].right).toBeLessThan(unselected.attackXGlobal);
@@ -129,7 +130,7 @@ describe("TrackElement rhythm", () => {
     );
   });
 
-  test("selection rect covers left-extending tab note text", () => {
+  test("selection rect includes the note preview padding", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -139,7 +140,7 @@ describe("TrackElement rhythm", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note");
     }
-    note.setFret(3);
+    note.setFret(12);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
@@ -158,12 +159,13 @@ describe("TrackElement rhythm", () => {
     const rects = trackElement.getSelectionRects([beats[0]]);
 
     expect(rects).toHaveLength(1);
-    expect(noteElement.textRectGlobal.x).toBeLessThan(
-      beatElement.attackXGlobal
+    const preview = noteElement.selectionRect;
+    expect(rects[0].x).toBeCloseTo(preview.x);
+    expect(rects[0].x).toBeLessThan(noteElement.textRectGlobal.x);
+    expect(rects[0].right).toBeGreaterThanOrEqual(preview.right);
+    expect(rects[0].right).toBeCloseTo(
+      beatElement.getGlobalVisualBounds().right
     );
-    expect(rects[0].x).toBeCloseTo(noteElement.textRectGlobal.x);
-    expect(rects[0].width).toBeCloseTo(beatElement.boundingBox.width);
-    expect(rects[0].right).toBeGreaterThan(noteElement.textRectGlobal.right);
   });
 
   test("keeps dotted and tuplet beat widths positive", () => {

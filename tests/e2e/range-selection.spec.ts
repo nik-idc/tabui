@@ -77,7 +77,8 @@ test("announces a mouse range once on release, not during held drag frames", asy
       ).toBe(0);
     }
 
-    await page.mouse.move(1, 1);
+    // Leave the editor without changing the horizontal selection endpoint.
+    await page.mouse.move(points[2].x, 1);
     await page.mouse.up();
     const finalText =
       "Track Rhythm track, Staff 1, voice 1, 3 beats selected, " +

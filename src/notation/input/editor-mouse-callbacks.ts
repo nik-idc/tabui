@@ -63,6 +63,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private _boundRenderers = new Map<ElementRenderer, () => void>();
   /** Bound global pointer completion listener reference. */
   private _boundOnWindowPointerUp?: (event: MouseEvent) => void;
+  /** Window movement keeps an active selection following the mouse across gaps. */
+  private _boundOnWindowPointerMove?: (event: MouseEvent) => void;
   /** Selection drag state machine. */
   private _selectionDragController: SelectionDragController;
   /** Mouse-up point whose browser-generated click belongs to a completed drag. */
@@ -588,6 +590,16 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
+    const anchor = this._selectionDragController.anchorBeat;
+    if (anchor !== undefined) {
+      beatElement =
+        this.notationComponent.renderer.getDragSelectionBeat?.(
+          event.clientX,
+          event.clientY,
+          anchor
+        ) ?? beatElement;
+    }
+
     const dragMoveResult = this._selectionDragController.handleMove(
       new Point(event.pageX, event.pageY),
       beatElement,
@@ -603,8 +615,32 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     if (dragMoveResult.shouldSelectCurrentBeat) {
-      tc.selectBeat(beatElement);
-      this.renderFunc(RenderType.DragSelection);
+      if (tc.selectionEndBeat !== beatElement.beat) {
+        tc.selectBeat(beatElement);
+        this.renderFunc(RenderType.DragSelection);
+      }
+    }
+  }
+
+  /** Continues an active mouse drag without requiring a beat DOM target. */
+  private onWindowPointerMove(event: MouseEvent): void {
+    if (!this.isSelectingBeats || "pointerType" in event) {
+      return;
+    }
+    if ((event.buttons & 1) === 0) {
+      this.onBeatPointerUp(event);
+      return;
+    }
+    const anchor = this._selectionDragController.anchorBeat;
+    if (anchor !== undefined) {
+      const beat = this.notationComponent.renderer.getDragSelectionBeat?.(
+        event.clientX,
+        event.clientY,
+        anchor
+      );
+      if (beat !== undefined) {
+        this.onBeatPointerMove(event, beat);
+      }
     }
   }
 
@@ -640,6 +676,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     if (!this._globalPointerCompletionBound) {
       this._boundOnWindowPointerUp = this.onWindowPointerUp.bind(this);
       window.addEventListener("mouseup", this._boundOnWindowPointerUp);
+      this._boundOnWindowPointerMove = this.onWindowPointerMove.bind(this);
+      window.addEventListener("mousemove", this._boundOnWindowPointerMove);
       this._globalPointerCompletionBound = true;
     }
 
@@ -744,6 +782,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       this._boundOnWindowPointerUp !== undefined
     ) {
       window.removeEventListener("mouseup", this._boundOnWindowPointerUp);
+      if (this._boundOnWindowPointerMove !== undefined) {
+        window.removeEventListener("mousemove", this._boundOnWindowPointerMove);
+        this._boundOnWindowPointerMove = undefined;
+      }
       this._boundOnWindowPointerUp = undefined;
       this._globalPointerCompletionBound = false;
     }

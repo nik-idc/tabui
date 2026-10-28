@@ -265,6 +265,7 @@ describe("selection announcement behavior", () => {
     const event = new MouseEvent(type, {
       bubbles: true,
       button: 0,
+      buttons: type === "mouseup" ? 0 : 1,
       clientX: x,
     });
     Object.defineProperties(event, {

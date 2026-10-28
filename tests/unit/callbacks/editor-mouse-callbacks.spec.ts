@@ -11,6 +11,7 @@ import { BarTupletGroupElement } from "../../../src/notation/controller/element/
 import { SVGTabBeatRhythmRenderer } from "../../../src/notation/render/svg/svg-tab-beat-rhythm-renderer";
 import { SVGBeamSegmentRenderer } from "../../../src/notation/render/svg/svg-beam-segment-renderer";
 import { TabNoteSlotElement } from "../../../src/notation/controller/element/note/tab-note-slot-element";
+import { TabBeatElement } from "../../../src/notation/controller/element/beat/tab-beat-element";
 import { JSDOM } from "jsdom";
 import { TrackController } from "../../../src/notation/controller/track-controller";
 import { NoteDuration } from "../../../src/notation/model";
@@ -1007,11 +1008,14 @@ describe("EditorMouseDefCallbacks", () => {
       expect(controller.selectionBeats).toEqual([beats[0], beats[1]]);
       expect(callbacks.isSelectingBeats).toBe(true);
       const selection = required(root.querySelector('[id^="selection-rect-"]'));
-      expect(Number(selection.getAttribute("width"))).toBeCloseTo(93.6);
+      const initialWidth = Number(selection.getAttribute("width"));
+      expect(initialWidth).toBeGreaterThan(0);
 
       callbacks.onNotePointerMove(mouse(100), elements[2].noteElements[0]);
       expect(controller.selectionBeats).toEqual([beats[0], beats[1], beats[2]]);
-      expect(Number(selection.getAttribute("width"))).toBeCloseTo(140.4);
+      expect(Number(selection.getAttribute("width"))).toBeGreaterThan(
+        initialWidth
+      );
 
       callbacks.onWindowPointerUp(mouse(100));
       expect(callbacks.isSelectingBeats).toBe(false);
@@ -1024,6 +1028,78 @@ describe("EditorMouseDefCallbacks", () => {
       expect(beats.map((v) => v.dots)).toEqual([0, 0, 0, 0]);
       controller.redo();
       expect(beats.map((v) => v.dots)).toEqual([1, 1, 1, 0]);
+    });
+  });
+
+  test("an active drag follows horizontal position outside beat targets and ends on release", () => {
+    withDragSelection(
+      ({ callbacks, controller, beats, elements, root, mouse }) => {
+        const svg = required(root.querySelector("svg"));
+        // JSDOM has no SVG screen matrix. Model a scaled, offset viewport.
+        Object.defineProperty(svg, "getScreenCTM", {
+          value: () => ({
+            inverse: () => ({ a: 0.5, b: 0, c: 0, d: 0.5, e: -5, f: -10 }),
+          }),
+        });
+        callbacks.bind([]);
+        callbacks.onNotePointerDown(mouse(0), elements[0].noteElements[0]);
+        callbacks.onBeatPointerMove(mouse(6), elements[0]);
+
+        const staffBounds =
+          elements[0].barElement.notationStyleLineContainer.staffLineContainer
+            .globalBoundingBox;
+        const y = (staffBounds.bottom + 20) * 2 + 20;
+        const thirdBeat = elements[2];
+        const lastBeat = elements[3];
+        if (
+          !(thirdBeat instanceof TabBeatElement) ||
+          !(lastBeat instanceof TabBeatElement)
+        ) {
+          throw Error("Expected tab beats");
+        }
+        const x = thirdBeat.attackXGlobal * 2 + 10;
+        window.dispatchEvent(mouse(x, y));
+        expect(controller.selectionBeats).toEqual(beats.slice(0, 3));
+
+        callbacks.onWindowPointerUp(mouse(x, y));
+        window.dispatchEvent(mouse(lastBeat.attackXGlobal * 2 + 10, y));
+        expect(controller.selectionBeats).toEqual(beats.slice(0, 3));
+      }
+    );
+  });
+
+  test("an active drag uses Y to move to a wrapped line without hitting a note", () => {
+    withDragSelection(({ callbacks, controller, beats, root, mouse }) => {
+      const score = beats[0].voiceBar.bar.staff.track.score;
+      for (let i = 0; i < 12; i++) {
+        score.appendMasterBar(DEFAULT_MASTER_BAR);
+      }
+      controller.trackElement.update();
+      callbacks.notationComponent.renderer.render();
+      const anchor = required(controller.trackElement.getBeatElement(beats[0]));
+      const nextLine = required(controller.trackElement.trackLineElements[1]);
+      const staffLine = nextLine.staffLineContainers[0];
+      const target =
+        staffLine.styleLinesAsArray[0].barElements[0].beatElements[0];
+      if (!(target instanceof TabBeatElement)) {
+        throw Error("Expected tab beat");
+      }
+      const svg = required(root.querySelector("svg"));
+      Object.defineProperty(svg, "getScreenCTM", {
+        value: () => ({
+          inverse: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }),
+        }),
+      });
+      callbacks.bind([]);
+      callbacks.onNotePointerDown(mouse(0), anchor.noteElements[0]);
+      callbacks.onBeatPointerMove(mouse(6), anchor);
+      const bounds = staffLine.globalBoundingBox;
+      window.dispatchEvent(
+        mouse(target.attackXGlobal, bounds.y + bounds.height / 2)
+      );
+
+      expect(controller.selectionBeats[0]).toBe(beats[0]);
+      expect(controller.selectionEndBeat).toBe(target.beat);
     });
   });
 

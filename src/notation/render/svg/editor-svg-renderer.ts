@@ -6,7 +6,7 @@ import {
   TrackController,
 } from "../../controller";
 import type { ResolvedAssetConfig } from "../../../assets";
-import { createSVG, createSVGG, Rect } from "../../../shared";
+import { createSVG, createSVGG, Point, Rect } from "../../../shared";
 import { EditorRenderer } from "../editor-renderer";
 import { EditorRenderOptions } from "../editor-renderer";
 import { ElementRenderer } from "../element-renderer";
@@ -950,6 +950,25 @@ export class EditorSVGRenderer implements EditorRenderer {
     eventType: K
   ): void {
     this._beatInteractionRenderer.detachEvent(eventType);
+  }
+
+  /** Converts screen coordinates to score coordinates for drag-selection lookup. */
+  public getDragSelectionBeat(
+    clientX: number,
+    clientY: number,
+    anchor: BeatElement
+  ): BeatElement | undefined {
+    const screenMatrix = this.rootSVGElement.getScreenCTM?.();
+    if (screenMatrix == null) {
+      return undefined;
+    }
+    const inverse = screenMatrix.inverse();
+    const x = inverse.a * clientX + inverse.c * clientY + inverse.e;
+    const y = inverse.b * clientX + inverse.d * clientY + inverse.f;
+    return this.trackController.trackElement.getNearestBeat(
+      new Point(x, y),
+      anchor
+    );
   }
 
   private syncRootSVGDimensions(): void {

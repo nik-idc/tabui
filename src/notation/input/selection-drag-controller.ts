@@ -113,4 +113,9 @@ export class SelectionDragController {
   public get isDragPending(): boolean {
     return this._isDragPending;
   }
+
+  /** Starting beat keeps coordinate-based dragging in its original staff and voice. */
+  public get anchorBeat(): BeatElement | undefined {
+    return this._dragStartBeat;
+  }
 }
