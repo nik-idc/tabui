@@ -65,6 +65,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private _boundOnWindowPointerUp?: (event: MouseEvent) => void;
   /** Selection drag state machine. */
   private _selectionDragController: SelectionDragController;
+  /** Mouse-up point whose browser-generated click belongs to a completed drag. */
+  private _completedDragClickPoint?: Point;
   private _announce: () => void;
   private _focusViewport: () => void;
 
@@ -122,10 +124,20 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Handles note click selection (full render path).
    */
   public onNoteClick(event: MouseEvent, noteElement: NoteElement): void {
-    void event;
     const tc = this.notationComponent.trackController;
 
     this.notationComponent.renderer.hideSelectionPreview();
+    const completedDragClickPoint = this._completedDragClickPoint;
+    this._completedDragClickPoint = undefined;
+    if (
+      tc.playbackState === PlaybackState.Idle &&
+      completedDragClickPoint !== undefined &&
+      event.pageX === completedDragClickPoint.x &&
+      event.pageY === completedDragClickPoint.y
+    ) {
+      return;
+    }
+
     if (tc.playbackState !== PlaybackState.Idle) {
       this._selectionDragController.reset();
       tc.restartPlayerFromBeat(noteElement.beatElement.beat);
@@ -385,6 +397,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
+    this._completedDragClickPoint = undefined;
+
     this._focusViewport();
     if (
       this.notationComponent.trackController.playbackState !==
@@ -552,6 +566,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
+    this._completedDragClickPoint = undefined;
     this._selectionDragController.begin(
       beatElement,
       new Point(event.pageX, event.pageY),
@@ -604,10 +619,14 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const interactionActive =
       this._selectionDragController.isSelectingBeats ||
       this._selectionDragController.isDragPending;
+    const completedDrag = this._selectionDragController.isSelectingBeats;
     if (
       this._selectionDragController.finish(event.button) &&
       interactionActive
     ) {
+      if (completedDrag) {
+        this._completedDragClickPoint = new Point(event.pageX, event.pageY);
+      }
       this.renderFunc(RenderType.DragSelection);
     }
   }

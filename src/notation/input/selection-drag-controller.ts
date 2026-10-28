@@ -1,6 +1,9 @@
 import { BeatElement } from "../controller";
 import { Point } from "../../shared";
 
+/** Pointer movement in CSS pixels needed to distinguish a drag from a click. */
+const DRAG_THRESHOLD = 6;
+
 /** Result of handling pointer movement during beat selection drag. */
 export type SelectionDragMoveResult = {
   /** Whether current beat should be added to selection. */
@@ -64,7 +67,7 @@ export class SelectionDragController {
     const dy = point.y - this._selectionStartPoint.y;
     const distMoved = Math.sqrt(dx * dx + dy * dy);
 
-    if (this._isDragPending && distMoved >= beatElement.boundingBox.width / 4) {
+    if (this._isDragPending && distMoved >= DRAG_THRESHOLD) {
       this._isDragPending = false;
       this._isSelectingBeats = true;
 

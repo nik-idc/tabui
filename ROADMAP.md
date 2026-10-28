@@ -75,10 +75,12 @@ replace release validation.
 - [x] Highlight the note symbol in the tempo display as well as the "= _BPM number_"
 - [x] Completely remove interactivity from inline techniques. 99% of the time gets in the
       way of normal editing
-- [ ] Add 2 more controls to the playback controls: - Metronome toggle - Playback pitch shifter. Shifts the pitch of the entire playback
-- [ ] Bug: some interactivity is not blocked while playback is active
-- [ ] Make beat selection detection delta be such that selecting a whole beat is just as easy
-- [ ] Selection rectangles look a little off geometry wise
+- [x] Make whole-beat selection easier.
+- [ ] Correct selection rectangle geometry.
+- [ ] Block the remaining editing interactions during playback.
+- [ ] Add metronome and playback pitch-shift controls.
+- [ ] Shift + Arrow selection doesn't select a single beat
+- [ ] Eliminate all operations that can lead to no selection
 
 ## Follow-up inbox
 

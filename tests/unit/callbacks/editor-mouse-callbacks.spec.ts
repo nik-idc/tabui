@@ -999,11 +999,11 @@ describe("EditorMouseDefCallbacks", () => {
       const { callbacks, controller, beats, elements, root, mouse } = fixture;
       controller.selectBeat(elements[3]);
       callbacks.onNotePointerDown(mouse(0), elements[0].noteElements[0]);
-      callbacks.onBeatPointerMove(mouse(11), elements[0]);
+      callbacks.onBeatPointerMove(mouse(5), elements[0]);
       expect(controller.selectionBeats).toEqual([beats[3]]);
       expect(callbacks.isSelectingBeats).toBe(false);
 
-      callbacks.onBeatPointerMove(mouse(12), elements[1]);
+      callbacks.onBeatPointerMove(mouse(6), elements[1]);
       expect(controller.selectionBeats).toEqual([beats[0], beats[1]]);
       expect(callbacks.isSelectingBeats).toBe(true);
       const selection = required(root.querySelector('[id^="selection-rect-"]'));
@@ -1024,6 +1024,26 @@ describe("EditorMouseDefCallbacks", () => {
       expect(beats.map((v) => v.dots)).toEqual([0, 0, 0, 0]);
       controller.redo();
       expect(beats.map((v) => v.dots)).toEqual([1, 1, 1, 0]);
+    });
+  });
+
+  test("a drag's trailing click preserves beat selection but a fresh click selects a note", () => {
+    withDragSelection(({ callbacks, controller, beats, elements, mouse }) => {
+      const note = elements[0].noteElements[0];
+      callbacks.onNotePointerDown(mouse(0), note);
+      callbacks.onBeatPointerMove(mouse(6), elements[0]);
+      callbacks.onBeatPointerUp(mouse(6));
+      callbacks.onNoteClick(mouse(6), note);
+
+      expect(controller.selectionBeats).toEqual([beats[0]]);
+      expect(controller.selectionCursor).toBeUndefined();
+
+      callbacks.onNotePointerDown(mouse(6), note);
+      callbacks.onBeatPointerUp(mouse(6));
+      callbacks.onNoteClick(mouse(6), note);
+
+      expect(controller.selectionBeats).toEqual([]);
+      expect(controller.selectionCursor?.beat).toBe(beats[0]);
     });
   });
 
