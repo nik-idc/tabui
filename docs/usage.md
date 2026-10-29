@@ -342,17 +342,17 @@ position in an empty score.
 
 While notation has focus, these keys provide basic navigation and editing:
 
-| Key                                | Action                                         |
-| ---------------------------------- | ---------------------------------------------- |
-| Left / Right arrow                 | Move between beats.                            |
-| Up / Down arrow                    | Move between strings.                          |
-| Ctrl+Left / Ctrl+Right             | Move between bars.                             |
-| Shift+Left / Shift+Right           | Extend the selected beat range.                |
-| Ctrl+Shift+Left / Ctrl+Shift+Right | Extend the range by bar.                       |
-| Shift+V                            | Cycle through the staff's four voices.         |
-| Number keys                        | Enter a fret number on the selected note slot. |
-| Space                              | Start or stop playback.                        |
-| Ctrl+Z / Ctrl+Y                    | Undo or redo an edit.                          |
+| Key                                | Action                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| Left / Right arrow                 | Move between beats.                                                           |
+| Up / Down arrow                    | Move between strings.                                                         |
+| Ctrl+Left / Ctrl+Right             | Move between bars.                                                            |
+| Shift+Left / Shift+Right           | Select the current beat first, then extend or shrink the selected beat range. |
+| Ctrl+Shift+Left / Ctrl+Shift+Right | Extend the range by bar.                                                      |
+| Shift+V                            | Cycle through the staff's four voices.                                        |
+| Number keys                        | Enter a fret number on the selected note slot.                                |
+| Space                              | Start or stop playback.                                                       |
+| Ctrl+Z / Ctrl+Y                    | Undo or redo an edit.                                                         |
 
 Editing shortcuts require edit mode; see [interaction modes](#editing-and-view-only-modes)
 and the [no-selection limitation](#editing-with-no-selection). Notation shortcuts

@@ -180,6 +180,7 @@ for (const reverse of [false, true]) {
     await editor.locator(".tu-notation-viewport").focus();
     if (!reverse) await page.keyboard.press("ArrowLeft");
     await page.keyboard.press(reverse ? "Shift+ArrowLeft" : "Shift+ArrowRight");
+    await page.keyboard.press(reverse ? "Shift+ArrowLeft" : "Shift+ArrowRight");
     await expect(editor.locator(".tu-announcement-host")).toContainText(
       "2 beats selected"
     );
@@ -204,6 +205,7 @@ for (const [key, name] of [
   }) => {
     const editor = await openEditor(page, "feature_showcase");
     await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press("Shift+ArrowRight");
     const before = (await editingState(editor)).score;
     await page.keyboard.press(key);
     const removed = (await editingState(editor)).score;
@@ -211,6 +213,7 @@ for (const [key, name] of [
     await page.keyboard.press("Control+z");
     expect((await editingState(editor)).score).toEqual(before);
     await openEditor(page, "feature_showcase");
+    await page.keyboard.press("Shift+ArrowRight");
     await page.keyboard.press("Shift+ArrowRight");
     await editor.getByRole("button", { name: new RegExp(`^${name}`) }).click();
     expect((await editingState(editor)).score).toEqual(removed);
@@ -710,6 +713,7 @@ test("disabled techniques and range-only restrictions ignore shortcuts", async (
   await page.keyboard.press("5");
   await page.keyboard.press("a");
   await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("Shift+ArrowRight");
   await page.keyboard.press("Shift+ArrowRight");
   await expect(editor.locator(".tu-announcement-host")).toContainText(
     "2 beats selected"

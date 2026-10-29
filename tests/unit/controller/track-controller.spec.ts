@@ -757,18 +757,39 @@ describe("TrackController", () => {
     expect(controller.extendSelectionByBeat(SelectedMoveDirection.Right)).toBe(
       true
     );
-    expect(controller.selectionBeats).toEqual([beats[1], beats[2]]);
+    expect(controller.selectionBeats).toEqual([beats[1]]);
+    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionEndBeat).toBe(beats[1]);
+    expect(controller.hasSelectionAnchor).toBe(true);
 
     controller.extendSelectionByBeat(SelectedMoveDirection.Right);
-    expect(controller.selectionBeats).toEqual([beats[1], beats[2], beats[3]]);
+    expect(controller.selectionBeats).toEqual([beats[1], beats[2]]);
 
-    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     expect(controller.selectionBeats).toEqual([beats[1]]);
 
     controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     expect(controller.selectionBeats).toEqual([beats[0], beats[1]]);
   });
+
+  test.each([
+    [SelectedMoveDirection.Left, "left"],
+    [SelectedMoveDirection.Right, "right"],
+  ])(
+    "first beat extension stays selected at a lone beat moving %s",
+    (direction) => {
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+
+      expect(controller.extendSelectionByBeat(direction)).toBe(true);
+      expect(controller.selectionCursor).toBeUndefined();
+      expect(controller.selectionBeats).toEqual([beats[0]]);
+      expect(controller.selectionEndBeat).toBe(beats[0]);
+      expect(controller.hasSelectionAnchor).toBe(true);
+    }
+  );
 
   test("bar selection extension moves from its active endpoint", () => {
     const { score, track } = createScoreGraph();
@@ -2418,6 +2439,7 @@ describe("TrackController", () => {
       controller.selectNoteElement(
         getBeatElement(controller, 0, 0).noteElements[0]
       );
+      controller.extendSelectionByBeat(SelectedMoveDirection.Right);
       controller.extendSelectionByBeat(SelectedMoveDirection.Right);
       if (meter) {
         controller.setSelectedBarTimeSignature(4, NoteDuration.Quarter);

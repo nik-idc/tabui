@@ -79,8 +79,9 @@ replace release validation.
 - [x] Improve selection rectangle geometry.
 - [x] Block the remaining editing interactions during playback.
 - [x] Add metronome and playback pitch-shift controls.
-- [ ] Shift + Arrow selection doesn't select a single beat
+- [x] Shift + Arrow selection selects the current beat before extending
 - [ ] Eliminate all operations that can lead to no selection
+- [ ] Unify cross string LR markings
 
 ## Follow-up inbox
 

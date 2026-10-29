@@ -167,6 +167,12 @@ export class SelectionManager {
 
   /** Extends the fixed-anchor range by one beat in either direction. */
   public extendSelectionByBeat(direction: SelectedMoveDirection): boolean {
+    const cursorBeat = this._selectionCursor?.beat;
+    if (cursorBeat !== undefined) {
+      this.selectBeat(cursorBeat);
+      return true;
+    }
+
     const offset = direction === SelectedMoveDirection.Left ? -1 : 1;
     const endBeat = this._selectionEndBeat ?? this._selectionCursor?.beat;
     if (endBeat === undefined) {

@@ -117,6 +117,7 @@ async function addTuplet(page: Page, complete: boolean) {
     await firstNote.click();
     await page.keyboard.press("Shift+ArrowRight");
     await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press("Shift+ArrowRight");
   }
   await page.keyboard.press("Shift+T");
   const dialog = editor.getByRole("dialog", { name: "Tuplet" });
@@ -197,7 +198,7 @@ test("notation clicks do not open dialogs in view-only mode or playback", async 
   await page.goto("/tabui/?fixture=empty");
   const tempo = editor.locator(".tu-tempo-hit-area").first();
   await tempo.scrollIntoViewIfNeeded();
-  await editor.getByRole("button", { name: "Play" }).click();
+  await editor.getByRole("button", { name: "Play", exact: true }).click();
   await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
     "aria-pressed",
     "true"

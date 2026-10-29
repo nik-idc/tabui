@@ -182,6 +182,11 @@ test("announces keyboard ranges across bars and full context after Escape", asyn
   await page.keyboard.press("Enter");
   await page.keyboard.press("Shift+ArrowRight");
   await expect(announcement).toHaveText(
+    "Track Rhythm track, Staff 1, voice 1, 1 beat selected, " +
+      "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
+  );
+  await page.keyboard.press("Shift+ArrowRight");
+  await expect(announcement).toHaveText(
     "Track Rhythm track, Staff 1, voice 1, 2 beats selected, " +
       "bar 1 beat 1 to bar 1 beat 2, anchor bar 1 beat 1, active end bar 1 beat 2."
   );

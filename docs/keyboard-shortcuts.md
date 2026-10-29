@@ -39,7 +39,7 @@ guidance, see the [usage guide](usage.md).
 | Left / Right arrow                 | Move the cursor between beats. From a beat range, return to a cursor at its corresponding edge. |
 | Up / Down arrow                    | Move the cursor between strings.                                                                |
 | Ctrl+Left / Ctrl+Right             | Move by bar boundary.                                                                           |
-| Shift+Left / Shift+Right           | Extend or shrink a beat range by one beat.                                                      |
+| Shift+Left / Shift+Right           | Select the current beat on the first press, then extend or shrink the range by one beat.        |
 | Ctrl+Shift+Left / Ctrl+Shift+Right | Extend or shrink a beat range by bar.                                                           |
 | Escape                             | Cancel a beat range and restore its anchor cursor.                                              |
 | Shift+V                            | Cycle the active voice: 1 → 2 → 3 → 4 → 1. Requires edit mode.                                  |

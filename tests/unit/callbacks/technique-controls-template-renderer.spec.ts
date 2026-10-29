@@ -68,6 +68,7 @@ describe("TechniqueControlsTemplateRenderer", () => {
   ] as const)("enables %s during range selection", (buttonName) => {
     (required(testBeats[1].notes)[0] as GuitarNote).setFret(7);
     notation.trackController.extendSelectionByBeat(SelectedMoveDirection.Right);
+    notation.trackController.extendSelectionByBeat(SelectedMoveDirection.Right);
     expect(notation.trackController.selectionBeats).toHaveLength(2);
 
     renderer.render();
@@ -78,6 +79,7 @@ describe("TechniqueControlsTemplateRenderer", () => {
   });
 
   test("disables bend during range selection", () => {
+    notation.trackController.extendSelectionByBeat(SelectedMoveDirection.Right);
     notation.trackController.extendSelectionByBeat(SelectedMoveDirection.Right);
     expect(notation.trackController.selectionBeats).toHaveLength(2);
 

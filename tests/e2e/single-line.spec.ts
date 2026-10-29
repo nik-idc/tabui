@@ -202,7 +202,7 @@ test("follows playback to an offscreen bar in single-line mode", async ({
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
   expect(await viewport.evaluate((e) => e.scrollLeft)).toBe(0);
 
-  await editor.getByRole("button", { name: "Play" }).click();
+  await editor.getByRole("button", { name: "Play", exact: true }).click();
   await expect(editor.getByRole("button", { name: "Pause" })).toBeVisible();
   // Capture and pause in the same browser frame, before the short final bar ends.
   const followed = await editor.evaluate(async (element) => {
@@ -251,10 +251,9 @@ test("follows playback to an offscreen bar in single-line mode", async ({
   expect(followed.width).toBeGreaterThan(0);
   // Use the scroller's horizontal clip, with one CSS pixel for scroll rounding.
   expect(followed.horizontalOverflow).toBeLessThanOrEqual(1);
-  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
-    "aria-pressed",
-    "false"
-  );
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
 });
 
 test("keeps adjacent bars separate after a visible duration change", async ({

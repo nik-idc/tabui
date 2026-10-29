@@ -178,7 +178,7 @@ test("suppresses editing feedback during playback and restores it after stopping
   );
   // Keep the small score playing while all disabled targets are exercised.
   await editor.getByRole("button", { name: "Loop", exact: true }).click();
-  await editor.getByRole("button", { name: "Play" }).focus();
+  await editor.getByRole("button", { name: "Play", exact: true }).focus();
   await moveToCenter(beamHitArea);
   const hoveredBeamFill = await beamVisible.evaluate(
     (element) => getComputedStyle(element).fill
@@ -202,10 +202,9 @@ test("suppresses editing feedback during playback and restores it after stopping
   await expect(beamVisible).not.toHaveCSS("fill", hoveredBeamFill);
 
   await editor.getByRole("button", { name: "Pause" }).click();
-  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
-    "aria-pressed",
-    "false"
-  );
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
   await expect(rootSvg).toHaveAttribute("data-playback-active", "false");
   await expect(beamVisible).not.toHaveCSS("fill", hoveredBeamFill);
   await gap.hover();
@@ -401,7 +400,7 @@ test("starts and pauses playback from the transport control", async ({
       requestAnimationFrame(observe);
     });
   });
-  await editor.getByRole("button", { name: "Play" }).click();
+  await editor.getByRole("button", { name: "Play", exact: true }).click();
   const movement = await page.evaluate(async () => {
     const result = await (window as any).__tabuiPlaybackMovement;
     delete (window as any).__tabuiPlaybackMovement;
@@ -411,10 +410,9 @@ test("starts and pauses playback from the transport control", async ({
   expect(movement.pressed).toBe("true");
   expect(movement.after).toBeGreaterThan(movement.before);
 
-  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
-    "aria-pressed",
-    "false"
-  );
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
   await expect(editor.locator("#playerCursor")).toHaveAttribute("width", "0");
 });
 
@@ -454,9 +452,8 @@ test("starts and pauses playback with Space", async ({ page }) => {
 
   // A second Space press uses the same keyboard path to pause playback.
   await page.keyboard.press("Space");
-  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
-    "aria-pressed",
-    "false"
-  );
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
   await expect(cursor).toHaveAttribute("width", "0");
 });

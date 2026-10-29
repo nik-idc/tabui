@@ -321,7 +321,7 @@ test("basic controls expose accessible names and native behavior", async ({
 test("provides icon tooltips on hover and keyboard focus", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  const play = editor.getByRole("button", { name: "Play" });
+  const play = editor.getByRole("button", { name: "Play", exact: true });
   // Firefox preserves this attr() expression; Chromium returns its resolved text.
   const tooltipContent = (button: typeof play) =>
     button.evaluate((element) => {

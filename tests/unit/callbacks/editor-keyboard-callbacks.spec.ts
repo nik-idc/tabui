@@ -270,6 +270,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
       notationComponent.trackController = controller;
       controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+      controller.extendSelectionByBeat(SelectedMoveDirection.Right);
       expect(controller.selectionAsBeats).toEqual(beats.slice(0, 2));
       rootElement.focus();
       for (const applied of [true, false]) {
@@ -477,6 +478,7 @@ describe("EditorKeyboardDefCallbacks", () => {
     notationComponent.trackController = controller;
     controller.setSelectedNoteFret(5);
     controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+    controller.extendSelectionByBeat(SelectedMoveDirection.Right);
     expect(controller.selectionAsBeats).toEqual(beats);
     rootElement.focus();
     for (const key of ["x", "b", "r"]) {
@@ -572,6 +574,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       notationComponent.trackController = controller;
       controller.moveSelectedNote(SelectedMoveDirection.Right);
       controller.extendSelectionByBeat(SelectedMoveDirection.Left);
+      controller.extendSelectionByBeat(SelectedMoveDirection.Left);
       expect(controller.selectionEndBeat).toBe(beats[0]);
 
       renderFunc.mockClear();
@@ -606,6 +609,7 @@ describe("EditorKeyboardDefCallbacks", () => {
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     notationComponent.trackController = controller;
     controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     expect(controller.selectionEndBeat).toBe(beats[0]);
     rootElement.focus();
@@ -649,6 +653,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       ]);
       const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
       notationComponent.trackController = controller;
+      controller.extendSelectionByBeat(SelectedMoveDirection.Right);
       controller.extendSelectionByBeat(SelectedMoveDirection.Right);
       expect(controller.selectionEndBeat).toBe(beats[1]);
       rootElement.focus();
@@ -1184,10 +1189,10 @@ describe("EditorKeyboardDefCallbacks", () => {
           });
           callbacks.onKeyDown(event);
           expect(event.defaultPrevented).toBe(true);
-          expect(controller.selectionBeats).toEqual([]);
-          expect(controller.selectionCursor?.beat).toBe(beats[0]);
+          expect(controller.selectionBeats).toEqual([beats[0]]);
+          expect(controller.selectionCursor).toBeUndefined();
         }
-        expect(render).not.toHaveBeenCalled();
+        expect(render).toHaveBeenCalledTimes(1);
       });
     }
   );
@@ -1203,6 +1208,7 @@ describe("EditorKeyboardDefCallbacks", () => {
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     notationComponent.trackController = controller;
     controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     expect(controller.selectionEndBeat).toBe(beats[0]);
     rootElement.focus();
@@ -1224,6 +1230,7 @@ describe("EditorKeyboardDefCallbacks", () => {
     const originalBars = [...score.masterBars];
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     notationComponent.trackController = controller;
+    controller.extendSelectionByBeat(SelectedMoveDirection.Right);
     controller.extendSelectionByBeat(SelectedMoveDirection.Right);
     rootElement.focus();
     const event = createKeyboardEvent("Delete", { shiftKey: true });
@@ -1472,7 +1479,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       );
       root.focus();
       controller.extendSelectionByBeat(SelectedMoveDirection.Right);
-      expect(controller.selectionBeats).toEqual(beats);
+      expect(controller.selectionBeats).toEqual([beats[0]]);
 
       callbacks.onKeyDown(
         new window.KeyboardEvent("keydown", { key: "ArrowLeft" })
@@ -1482,6 +1489,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       expect(render).toHaveBeenCalledTimes(1);
       expect(render).toHaveBeenLastCalledWith();
 
+      controller.extendSelectionByBeat(SelectedMoveDirection.Right);
       controller.extendSelectionByBeat(SelectedMoveDirection.Right);
       callbacks.onKeyDown(
         new window.KeyboardEvent("keydown", { key: "ArrowRight" })
@@ -1509,7 +1517,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       );
       root.focus();
       for (const [key, ctrlKey, expected] of [
-        ["ArrowRight", false, beats],
+        ["ArrowRight", false, [beats[0]]],
         ["ArrowLeft", false, [beats[0]]],
         ["ArrowRight", true, beats],
         ["ArrowRight", true, [...beats, nextBeat]],
@@ -1525,8 +1533,11 @@ describe("EditorKeyboardDefCallbacks", () => {
         callbacks.onKeyDown(event);
         expect(event.defaultPrevented).toBe(true);
         expect(controller.selectionBeats).toEqual(expected);
-        expect(render).toHaveBeenCalledTimes(1);
-        expect(render).toHaveBeenLastCalledWith();
+        const expectedRenderCount = key === "ArrowLeft" && !ctrlKey ? 0 : 1;
+        expect(render).toHaveBeenCalledTimes(expectedRenderCount);
+        if (expectedRenderCount !== 0) {
+          expect(render).toHaveBeenLastCalledWith();
+        }
       }
     });
   });
@@ -1551,7 +1562,7 @@ describe("EditorKeyboardDefCallbacks", () => {
           shiftKey: true,
         })
       );
-      expect(controller.selectionBeats).toEqual(beats);
+      expect(controller.selectionBeats).toEqual([beats[1]]);
       expect(render).toHaveBeenCalledTimes(1);
       expect(render).toHaveBeenLastCalledWith();
       callbacks.onKeyDown(
@@ -1562,7 +1573,7 @@ describe("EditorKeyboardDefCallbacks", () => {
         })
       );
       expect(controller.selectionBeats).toEqual([beats[1]]);
-      expect(render).toHaveBeenCalledTimes(2);
+      expect(render).toHaveBeenCalledTimes(1);
       expect(render).toHaveBeenLastCalledWith();
       expect(serializeScore(controller.trackElement.track.score)).toEqual(
         before
@@ -1613,6 +1624,7 @@ describe("EditorKeyboardDefCallbacks", () => {
       withNotationDialog(({ controller, beats, root, notation, ui }) => {
         controller.setEditingEnabled(editing);
         notation.ensureSelectedNoteVisible = () => {};
+        controller.extendSelectionByBeat(SelectedMoveDirection.Right);
         controller.extendSelectionByBeat(SelectedMoveDirection.Right);
         expect(controller.selectionBeats).toEqual(beats);
         const render = jest.fn();

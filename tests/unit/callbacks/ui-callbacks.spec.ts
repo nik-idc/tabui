@@ -202,7 +202,7 @@ describe("mounted editor lifecycle and callbacks", () => {
         cancelable: true,
       })
     );
-    expect(editor.getState().selection.beats).toEqual(beats);
+    expect(editor.getState().selection.beats).toEqual([beats[0]]);
   });
   test("subscriptions are disposable and isolated between mounted editors", () => {
     const first = mount();
