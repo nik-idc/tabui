@@ -274,23 +274,16 @@ export class TrackControllerEditor {
     this._selectionManager.selectNote(noteElement.note);
   }
 
-  /**
-   * Selects first note
-   */
-  public selectFirstNote(): void {
-    const firstBar = this._trackElement.track.staves[0].bars[0];
-    const firstBeat = firstBar.getVoiceBar(1)?.beats[0];
-    if (firstBeat === undefined) {
+  /** Selects the first slot in the given beat, or the track's first beat. */
+  public selectFirstNote(beat?: Beat): void {
+    const selectedBeat =
+      beat ??
+      this._trackElement.track.staves[0].bars[0].getVoiceBar(1)?.beats[0];
+    if (selectedBeat === undefined) {
       return;
     }
 
-    const firstNote = firstBeat.notes?.[0];
-    if (firstNote !== undefined) {
-      this._selectionManager.selectNote(firstNote);
-      return;
-    }
-
-    this._selectionManager.selectBeatCursor(firstBeat, 0);
+    this._selectionManager.selectBeatCursor(selectedBeat, 0);
   }
 
   private selectBeatCursor(beat: Beat): void {

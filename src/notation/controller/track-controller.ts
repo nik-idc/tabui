@@ -92,6 +92,9 @@ export class TrackController {
       this._scorePlayer.clearSelectionLoopSection();
     }
 
+    if (selection[0] !== undefined) {
+      this._trackControllerEditor.selectFirstNote(selection[0]);
+    }
     void this._scorePlayer.start(playbackOptions);
   }
 
@@ -119,7 +122,7 @@ export class TrackController {
     this._scorePlayer?.setPitchShiftSemitones(semitones);
   }
 
-  /** Clears edit selection and seeks active playback to the provided beat. */
+  /** Seeks active playback and moves the edit cursor to the provided beat. */
   public restartPlayerFromBeat(beat: Beat): void {
     const scorePlayer = this._scorePlayer;
     if (
@@ -129,8 +132,7 @@ export class TrackController {
       return;
     }
 
-    this._trackControllerEditor.clearSelection();
-    this._trackControllerEditor.clearSelectedNote();
+    this._trackControllerEditor.selectFirstNote(beat);
     scorePlayer.clearSelectionLoopSection();
     void scorePlayer.start({ startBeat: beat });
   }

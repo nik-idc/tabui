@@ -80,17 +80,14 @@ replace release validation.
 - [x] Block the remaining editing interactions during playback.
 - [x] Add metronome and playback pitch-shift controls.
 - [x] Shift + Arrow selection selects the current beat before extending
-- [ ] Eliminate all operations that can lead to no selection
+- [x] Eliminate all operations that can lead to no selection
   - [x] Restore cursor and range state with immutable snapshots owned by each
         undoable command, including valid post-edit context for structural edits
         and fallback restoration when model objects are recreated. The current
         design uses one selection-history wrapper around each model command.
-  - [ ] Restore editing selection when playback returns to idle: select the last
+  - [x] Restore editing selection when playback returns to idle: select the last
         seeked beat, or the last selected beat if playback did not seek. Cover Stop,
         natural completion, and cancelled startup.
-  - [ ] Audit completed public `TrackController` edit and history operations to
-        ensure they leave a valid cursor or nonempty beat selection. Allow temporary
-        internal clearing and explicit low-level clear APIs.
 - [ ] Unify cross string LR markings
 
 ## Follow-up inbox

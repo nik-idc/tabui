@@ -764,6 +764,7 @@ describe("EditorMouseDefCallbacks", () => {
       controller: TrackController;
       player: ScorePlayer;
       beats: ReturnType<typeof createBarWithBeats>["beats"];
+      otherVoiceBeats: ReturnType<typeof createBarWithBeats>["beats"];
       render: jest.Mock;
     }) => Promise<void>
   ) {
@@ -780,6 +781,13 @@ describe("EditorMouseDefCallbacks", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
+    const otherVoiceBar = track.staves[0].bars[0].insertVoiceBar(2);
+    otherVoiceBar.insertBeat(1);
+    otherVoiceBar.insertBeat(2);
+    for (const beat of otherVoiceBar.beats) {
+      beat.makeBeatWithNotes();
+    }
+    const otherVoiceBeats = otherVoiceBar.beats;
     const player = new ScorePlayer(score, track);
     try {
       const controller = new TrackController(
@@ -799,7 +807,14 @@ describe("EditorMouseDefCallbacks", () => {
         { trackController: controller, renderer, rootDiv: root } as any,
         render
       );
-      await action({ callbacks, controller, player, beats, render });
+      await action({
+        callbacks,
+        controller,
+        player,
+        beats,
+        otherVoiceBeats,
+        render,
+      });
     } finally {
       player.dispose();
       audio.restore();
@@ -810,9 +825,16 @@ describe("EditorMouseDefCallbacks", () => {
     }
   }
 
-  test("clicking notes and beats during playback seeks without selecting", async () => {
+  test("clicking notes and beats during playback seeks and selects", async () => {
     await withMouseTransport(
-      async ({ callbacks, controller, player, beats, render }) => {
+      async ({
+        callbacks,
+        controller,
+        player,
+        beats,
+        otherVoiceBeats,
+        render,
+      }) => {
         await player.start({ startBeat: beats[0] });
         const before = serializeScore(player.score);
         const noteTarget = required(
@@ -824,7 +846,7 @@ describe("EditorMouseDefCallbacks", () => {
         );
         await settleTransport();
         expect(player.playbackAnchorBeat).toBe(beats[1]);
-        expect(controller.selectionCursor).toBeUndefined();
+        expect(controller.selectionCursor?.beat).toBe(beats[1]);
         expect(controller.selectionBeats).toEqual([]);
         const beatTarget = required(
           controller.trackElement.getBeatElement(beats[2])
@@ -832,10 +854,34 @@ describe("EditorMouseDefCallbacks", () => {
         callbacks.onBeatClick(createMouseEvent(20, 10), beatTarget);
         await settleTransport();
         expect(player.playbackAnchorBeat).toBe(beats[2]);
-        expect(controller.selectionCursor).toBeUndefined();
+        expect(controller.selectionCursor?.beat).toBe(beats[2]);
         expect(controller.selectionBeats).toEqual([]);
+        const otherVoiceNoteTarget = required(
+          controller.trackElement.getBeatElement(otherVoiceBeats[0])
+        );
+        callbacks.onNoteClick(
+          createMouseEvent(30, 10),
+          otherVoiceNoteTarget.noteElements[0]
+        );
+        await settleTransport();
+        expect(player.playbackAnchorBeat).toBe(otherVoiceBeats[0]);
+        expect(controller.activeVoiceNumber).toBe(2);
+        expect(render).toHaveBeenLastCalledWith(
+          RenderType.ActiveVoiceSelection
+        );
+
+        const otherVoiceBeatTarget = required(
+          controller.trackElement.getBeatElement(beats[0])
+        );
+        callbacks.onBeatClick(createMouseEvent(40, 10), otherVoiceBeatTarget);
+        await settleTransport();
+        expect(player.playbackAnchorBeat).toBe(beats[0]);
+        expect(controller.activeVoiceNumber).toBe(1);
+        expect(render).toHaveBeenLastCalledWith(
+          RenderType.ActiveVoiceSelection
+        );
         expect(serializeScore(player.score)).toEqual(before);
-        expect(render).toHaveBeenCalledTimes(2);
+        expect(render).toHaveBeenCalledTimes(4);
         expect(render).toHaveBeenCalledWith(RenderType.SelectionRefresh);
       }
     );
@@ -870,7 +916,7 @@ describe("EditorMouseDefCallbacks", () => {
     });
   });
 
-  test("clicking a beat during audio startup seeks without selecting", async () => {
+  test("clicking a beat during audio startup seeks and selects", async () => {
     await withMouseTransport(
       async ({ callbacks, controller, player, beats }) => {
         const start = player.start({ startBeat: beats[0] });
@@ -883,7 +929,7 @@ describe("EditorMouseDefCallbacks", () => {
         await settleTransport();
         expect(player.playbackState).toBe(PlaybackState.Playing);
         expect(player.playbackAnchorBeat).toBe(beats[2]);
-        expect(controller.selectionCursor).toBeUndefined();
+        expect(controller.selectionCursor?.beat).toBe(beats[2]);
         expect(controller.selectionBeats).toEqual([]);
       }
     );

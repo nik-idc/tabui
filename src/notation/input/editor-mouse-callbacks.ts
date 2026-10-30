@@ -142,8 +142,13 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
 
     if (tc.playbackState !== PlaybackState.Idle) {
       this._selectionDragController.reset();
+      const previousActiveVoiceNumber = tc.activeVoiceNumber;
       tc.restartPlayerFromBeat(noteElement.beatElement.beat);
-      this.renderFunc(RenderType.SelectionRefresh);
+      this.renderFunc(
+        previousActiveVoiceNumber === tc.activeVoiceNumber
+          ? RenderType.SelectionRefresh
+          : RenderType.ActiveVoiceSelection
+      );
       return;
     }
 
@@ -504,8 +509,13 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const tc = this.notationComponent.trackController;
     this._selectionDragController.reset();
     this.notationComponent.renderer.hideSelectionPreview();
+    const previousActiveVoiceNumber = tc.activeVoiceNumber;
     tc.restartPlayerFromBeat(beatElement.beat);
-    this.renderFunc(RenderType.SelectionRefresh);
+    this.renderFunc(
+      previousActiveVoiceNumber === tc.activeVoiceNumber
+        ? RenderType.SelectionRefresh
+        : RenderType.ActiveVoiceSelection
+    );
   }
 
   /** Inserts a beat when an eligible end-gap target receives a primary click. */

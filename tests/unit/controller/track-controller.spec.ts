@@ -571,6 +571,23 @@ describe("TrackController", () => {
     expect(player.playbackState).toBe("playing");
   });
 
+  test("playback start selects the first slot in a chord", async () => {
+    const { track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    const beatElement = getBeatElements(controller)[0];
+    const notes = required(beatElement.beat.notes);
+    required(notes[0]).setNote(NoteValue.E, 4);
+    required(notes[1]).setNote(NoteValue.E, 4);
+    controller.selectNoteElement(beatElement.noteElements[1]);
+
+    controller.startPlayer();
+    await settleTransport();
+    controller.stopPlayer();
+
+    expect(controller.selectionCursor?.beat).toBe(beatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+  });
+
   test("playback start loops an explicitly anchored single beat", async () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -590,6 +607,8 @@ describe("TrackController", () => {
 
     await settleTransport();
     expect(controller.isLooped).toBe(true);
+    expect(controller.selectionCursor?.beat).toBe(beatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
     jest.advanceTimersByTime(2100);
 
     // The middle beat is G4. Neither neighboring E4 nor B4 may be scheduled.
@@ -776,11 +795,19 @@ describe("TrackController", () => {
     expect(serializeScore(score)).toEqual(before);
   });
 
-  test("playback seek clears edit selection and restarts from the target beat", async () => {
+  test("playback seek selects the first slot in the target beat", async () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
     const { controller, player } = realTransport(track);
-    const targetBeatElement = getBeatElements(controller)[1];
+    const beatElements = getBeatElements(controller);
+    const targetBeatElement = beatElements[1];
+    const followingBeat = beatElements[2].beat;
+    followingBeat.makeBeatWithNotes();
+    required(followingBeat.notes)[0].setNote(NoteValue.E, 4);
+    targetBeatElement.beat.makeBeatWithNotes();
+    const targetNotes = required(targetBeatElement.beat.notes);
+    required(targetNotes[1]).setNote(NoteValue.E, 4);
     controller.selectBeat(getBeatElements(controller)[0]);
     controller.selectBeat(targetBeatElement);
     expect(controller.selectionBeats).toHaveLength(2);
@@ -791,13 +818,37 @@ describe("TrackController", () => {
 
     controller.restartPlayerFromBeat(targetBeatElement.beat);
 
-    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionCursor?.beat).toBe(targetBeatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
     expect(controller.selectionBeats).toEqual([]);
     await settleTransport();
     expect(player.playbackAnchorBeat).toBe(targetBeatElement.beat);
     expect(player.playbackState).toBe("playing");
+    jest.advanceTimersByTime(2050);
+    expect(player.lastStartedBeat).toBe(followingBeat);
+    expect(controller.selectionCursor?.beat).toBe(targetBeatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+    controller.stopPlayer();
+    expect(controller.selectionCursor?.beat).toBe(targetBeatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
     expect(score.masterBars).toHaveLength(masterBarCount);
     expect(track.staves[0].bars).toHaveLength(barCount);
+  });
+
+  test("playback seek keeps a cursor for a rest target beat", async () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats[1].makeRest();
+    const { controller, player } = realTransport(track);
+
+    await player.start({ startBeat: beats[0] });
+    controller.restartPlayerFromBeat(beats[1]);
+
+    expect(controller.selectionCursor?.beat).toBe(beats[1]);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+    expect(controller.selectionBeats).toEqual([]);
   });
 
   test("bar traversal selects first beats without editing the score", () => {
@@ -1142,7 +1193,9 @@ describe("TrackController", () => {
 
     controller.selectNextBar();
 
-    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionCursor?.beat).toBe(
+      track.staves[0].bars[1].getVoiceBar(1)?.beats[0]
+    );
     await settleTransport();
     expect(player.playbackAnchorBeat).toBe(
       track.staves[0].bars[1].getVoiceBar(1)?.beats[0]
@@ -1178,7 +1231,7 @@ describe("TrackController", () => {
     expect(player.playbackState).toBe("playing");
   });
 
-  test("first and last bar follow playback state after selection is cleared", async () => {
+  test("first and last bar follow playback state after a playback seek", async () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     score.appendMasterBar(DEFAULT_MASTER_BAR);
@@ -1193,7 +1246,7 @@ describe("TrackController", () => {
     await player.start({ startBeat: playbackAnchorBeat });
     controller.restartPlayerFromBeat(playbackAnchorBeat);
     await settleTransport();
-    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionCursor?.beat).toBe(playbackAnchorBeat);
     controller.selectFirstBar();
     await settleTransport();
     expect(player.playbackAnchorBeat).toBe(firstBeat);
@@ -1223,7 +1276,7 @@ describe("TrackController", () => {
       move();
       await settleTransport();
       expect(player.playbackAnchorBeat).toBe(expected);
-      expect(controller.selectionCursor).toBeUndefined();
+      expect(controller.selectionCursor?.beat).toBe(expected);
     }
   });
 
