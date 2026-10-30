@@ -200,12 +200,10 @@ describe("TrackController", () => {
     controller.undo();
     expect(first.beat.dots).toBe(2);
     expect(second.beat.dots).toBe(1);
-    expect(controller.selectionCursor).toBe(cursor);
     expect(controller.selectionCursor?.beat).toBe(second.beat);
     expect(controller.selectionCursor?.noteIndex).toBe(0);
     controller.redo();
     expect(first.beat.dots).toBe(0);
-    expect(controller.selectionCursor).toBe(cursor);
     expect(controller.selectionCursor?.beat).toBe(second.beat);
     expect(controller.selectionCursor?.noteIndex).toBe(0);
   });
@@ -282,7 +280,8 @@ describe("TrackController", () => {
     controller.undo();
     expect(bar.masterBar.isRepeatEnd).toBe(true);
     expect(bar.masterBar.repeatCount).toBe(4);
-    expect(controller.selectionCursor).toBe(cursor);
+    expect(controller.selectionCursor?.beat).toBe(cursor?.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(cursor?.noteIndex);
   });
 
   test("repeat-start removal targets its bar, preserves selection, and supports undo", () => {
@@ -392,6 +391,56 @@ describe("TrackController", () => {
     expect(voiceBar.beats).toHaveLength(3);
   });
 
+  test("restores a backward explicit range across bars through undo and redo", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const secondBar = track.staves[0].bars[1];
+    const secondVoiceBar = secondBar.getVoiceBar(1);
+    if (secondVoiceBar === null) {
+      throw Error("Expected voice 1 in second test bar");
+    }
+    secondVoiceBar.beats.push(createBeat(secondVoiceBar, NoteDuration.Quarter));
+    secondVoiceBar.rebuildTiming();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const firstBarLast = getBeatElement(controller, 0, 0);
+    const secondBarFirst = getBeatElement(controller, 1, 0);
+
+    controller.selectBeat(secondBarFirst);
+    expect(controller.setSelectionAnchor()).toBe(true);
+    controller.selectBeat(firstBarLast);
+    expect(controller.selectionAsBeats).toEqual([
+      firstBarLast.beat,
+      secondBarFirst.beat,
+    ]);
+    expect(controller.selectionEndBeat).toBe(firstBarLast.beat);
+
+    controller.setDots(1);
+
+    controller.selectBeat(secondBarFirst);
+    controller.undo();
+    expect(controller.selectionAsBeats).toEqual([
+      firstBarLast.beat,
+      secondBarFirst.beat,
+    ]);
+    expect(controller.selectionEndBeat).toBe(firstBarLast.beat);
+    expect(controller.hasSelectionAnchor).toBe(true);
+    expect(controller.hasExplicitSelectionAnchor).toBe(true);
+    expect(firstBarLast.beat.dots).toBe(0);
+    expect(secondBarFirst.beat.dots).toBe(0);
+
+    controller.selectBeat(secondBarFirst);
+    controller.redo();
+    expect(controller.selectionAsBeats).toEqual([
+      firstBarLast.beat,
+      secondBarFirst.beat,
+    ]);
+    expect(controller.selectionEndBeat).toBe(firstBarLast.beat);
+    expect(controller.hasSelectionAnchor).toBe(true);
+    expect(controller.hasExplicitSelectionAnchor).toBe(true);
+    expect(firstBarLast.beat.dots).toBe(1);
+    expect(secondBarFirst.beat.dots).toBe(1);
+  });
+
   test("supports headless use without a score player", () => {
     const { track } = createScoreGraph();
     const controller = new BaseTrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -424,6 +473,72 @@ describe("TrackController", () => {
     expect(voiceBar.beats).toHaveLength(2);
     expect(controller.selectionCursor?.bar).toBe(bar);
     expect(controller.selectionCursor?.beatIndex).toBe(1);
+    controller.undo();
+    expect(voiceBar.beats).toHaveLength(1);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
+    controller.redo();
+    expect(voiceBar.beats).toHaveLength(2);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[1]);
+  });
+
+  test("moving right past a full bar restores the cursor around bar append", () => {
+    const { score, track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const firstVoiceBar = required(track.staves[0].bars[0].getVoiceBar(1));
+
+    for (let i = 0; i < 4; i++) {
+      controller.moveSelectedNote(SelectedMoveDirection.Right);
+    }
+    expect(score.masterBars).toHaveLength(2);
+    expect(controller.selectionCursor?.beat).toBe(
+      required(track.staves[0].bars[1].getVoiceBar(1)).beats[0]
+    );
+
+    controller.undo();
+    expect(score.masterBars).toHaveLength(1);
+    expect(controller.selectionCursor?.beat).toBe(firstVoiceBar.beats[3]);
+    controller.redo();
+    expect(score.masterBars).toHaveLength(2);
+    expect(controller.selectionCursor?.beat).toBe(
+      required(track.staves[0].bars[1].getVoiceBar(1)).beats[0]
+    );
+  });
+
+  test("moving right from a backward range restores the range around bar append", () => {
+    const { score, track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const beats = track.staves[0].bars[0].getVoiceBar(1)?.beats;
+    if (beats === undefined) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const firstBeat = getBeatElement(controller, 0, 0);
+    const lastBeat = getBeatElement(controller, 0, 3);
+
+    controller.selectBeat(lastBeat);
+    expect(controller.setSelectionAnchor()).toBe(true);
+    controller.selectBeat(firstBeat);
+    expect(controller.selectionEndBeat).toBe(firstBeat.beat);
+
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    expect(score.masterBars).toHaveLength(2);
+
+    controller.undo();
+    expect(controller.selectionAsBeats).toEqual(beats);
+    expect(controller.selectionEndBeat).toBe(firstBeat.beat);
+    controller.redo();
+    expect(score.masterBars).toHaveLength(2);
   });
 
   test("playback start does not disable an existing loop choice", async () => {
@@ -1282,6 +1397,32 @@ describe("TrackController", () => {
     );
   });
 
+  test("history keeps a nonzero string cursor through navigation and redo", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const firstBeat = required(bar.getVoiceBar(1)).beats[0];
+    const secondBeat = required(bar.getVoiceBar(1)).beats[1];
+    controller.selectNoteElement(
+      getBeatElement(controller, 0, 0).noteElements[2]
+    );
+
+    controller.setSelectedNoteFret(5);
+    expect(controller.selectionCursor?.noteIndex).toBe(2);
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    expect(controller.selectionCursor?.beat).toBe(secondBeat);
+
+    controller.undo();
+    expect(controller.selectionCursor?.beat).toBe(firstBeat);
+    expect(controller.selectionCursor?.noteIndex).toBe(2);
+    controller.redo();
+    expect(controller.selectionCursor?.beat).toBe(firstBeat);
+    expect(controller.selectionCursor?.noteIndex).toBe(2);
+    expect(firstBeat.notes?.[2]).toEqual(expect.objectContaining({ fret: 5 }));
+  });
+
   test("bend redo follows fret history from an actual rest", () => {
     const score = new Score();
     const track = score.tracks[0];
@@ -1692,6 +1833,53 @@ describe("TrackController", () => {
     expect(controller.selectionCursor?.beat).toBe(firstBarFirstBeat);
   });
 
+  test("restores a nondefault voice cursor through repeated bar removal history", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar({
+      tempo: 120,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      isRepeatStart: false,
+      isRepeatEnd: false,
+      repeatCount: null,
+    });
+    const firstBar = track.staves[0].bars[0];
+    const secondBar = track.staves[0].bars[1];
+    const voiceTwo = firstBar.insertVoiceBar(2);
+    const originalBars = [...track.staves[0].bars];
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.trackElement.update();
+    const voiceTwoElement = controller.trackElement.getBeatElement(
+      voiceTwo.beats[0]
+    );
+    if (voiceTwoElement === undefined) {
+      throw Error("Expected voice two beat element");
+    }
+    controller.selectNoteElement(voiceTwoElement.noteElements[0]);
+    expect(controller.activeVoiceNumber).toBe(2);
+
+    controller.removeSelectedBar();
+    expect(track.staves[0].bars).toEqual([secondBar]);
+    expect(controller.selectionCursor?.beat.voiceBar.voiceNumber).toBe(1);
+
+    controller.undo();
+    expect(track.staves[0].bars).toEqual(originalBars);
+    expect(controller.selectionCursor?.beat).toBe(
+      firstBar.getVoiceBar(2)?.beats[0]
+    );
+    expect(controller.activeVoiceNumber).toBe(2);
+
+    controller.redo();
+    expect(track.staves[0].bars).toEqual([secondBar]);
+    expect(controller.selectionCursor?.beat.voiceBar.voiceNumber).toBe(1);
+    controller.undo();
+    expect(controller.selectionCursor?.beat).toBe(
+      firstBar.getVoiceBar(2)?.beats[0]
+    );
+    controller.redo();
+    expect(controller.selectionCursor?.beat.voiceBar.voiceNumber).toBe(1);
+  });
+
   test.each([2, 3])("remove %i touched bars keeps the last bar", (count) => {
     const { track, score } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -1809,6 +1997,44 @@ describe("TrackController", () => {
     expect(controller.selectionBeats).toHaveLength(0);
     expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
     expect(controller.selectionCursor?.note).toBeNull();
+  });
+
+  test("undo restores a backward range after recovery-cursor navigation", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Sixteenth },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const beats = required(bar.getVoiceBar(1)).beats;
+
+    controller.selectBeat(getBeatElement(controller, 0, 2));
+    expect(controller.setSelectionAnchor()).toBe(true);
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.removeSelectedBeat();
+    const recoveryBeat = required(controller.selectionCursor).beat;
+    expect(recoveryBeat.isRest()).toBe(true);
+
+    controller.undo();
+    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionBeats).toEqual(beats);
+    expect(controller.selectionBeats[0]).toBe(beats[0]);
+    expect(controller.selectionBeats.at(-1)).toBe(beats[2]);
+    expect(controller.selectionEndBeat).toBe(beats[0]);
+    expect(controller.hasExplicitSelectionAnchor).toBe(true);
+
+    controller.selectNoteElement(
+      getBeatElement(controller, 0, 2).noteElements[0]
+    );
+    expect(controller.selectionCursor?.beat).toBe(beats[2]);
+    controller.redo();
+    expect(controller.selectionCursor?.beat).toBe(
+      required(bar.getVoiceBar(1)).beats[0]
+    );
+    expect(controller.selectionCursor?.note).toBeNull();
+    controller.undo();
+    expect(controller.selectionBeats).toEqual(beats);
+    expect(controller.selectionEndBeat).toBe(beats[0]);
   });
 
   test("setDuration changes only the selected note beat", () => {
@@ -2017,8 +2243,9 @@ describe("TrackController", () => {
     controller.selectBeat(beatElements[2]);
     controller.copy();
     controller.clearSelection();
-    controller.selectBeat(beatElements[3]);
     controller.selectBeat(beatElements[6]);
+    expect(controller.setSelectionAnchor()).toBe(true);
+    controller.selectBeat(beatElements[3]);
     controller.paste();
 
     expect(barOneVoiceBar.beats.map((b) => b.baseDuration)).toEqual([
@@ -2039,6 +2266,15 @@ describe("TrackController", () => {
     ).toEqual([NoteDuration.Half, NoteDuration.Half]);
     expect(barOneVoiceBar.beats).toHaveLength(2);
     expect(barTwoVoiceBar.beats).toHaveLength(2);
+    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionBeats).toEqual([
+      ...barOneVoiceBar.beats,
+      ...barTwoVoiceBar.beats,
+    ]);
+    expect(controller.selectionBeats[0]).toBe(barOneVoiceBar.beats[0]);
+    expect(controller.selectionBeats.at(-1)).toBe(barTwoVoiceBar.beats[1]);
+    expect(controller.selectionEndBeat).toBe(barOneVoiceBar.beats[0]);
+    expect(controller.hasExplicitSelectionAnchor).toBe(true);
 
     controller.redo();
     expect(barOneVoiceBar.beats.map((b) => b.baseDuration)).toEqual([
@@ -2048,6 +2284,9 @@ describe("TrackController", () => {
     ]);
     expect(barTwoVoiceBar.beats).toHaveLength(1);
     expect(barTwoVoiceBar.beats[0].isRest()).toBe(true);
+    expect(controller.selectionCursor).toBeDefined();
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(barTwoVoiceBar.beats[0]);
   });
 
   test("paste keeps long clipboard content in the target bar through undo and redo", () => {

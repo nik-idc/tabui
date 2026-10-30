@@ -208,7 +208,6 @@ describe("EditorMouseDefCallbacks", () => {
     callbacks.onDotsClick(createMouseEvent(0, 0), rhythms[0]);
 
     expect(beats.map((v) => v.dots)).toEqual([0, 0, 0, 0, 0, 0]);
-    expect(controller.selectionCursor).toBe(cursor);
     expect(controller.selectionCursor?.beat).toBe(beats[5]);
     expect(controller.selectionCursor?.noteIndex).toBe(2);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
@@ -217,9 +216,12 @@ describe("EditorMouseDefCallbacks", () => {
     expect(renderFunc).not.toHaveBeenCalled();
     controller.undo();
     expect(beats[0].dots).toBe(2);
-    expect(controller.selectionCursor).toBe(cursor);
-    expect(controller.selectionCursor?.beat).toBe(beats[5]);
-    expect(controller.selectionCursor?.noteIndex).toBe(2);
+    const restoredCursor = controller.selectionCursor;
+    expect(restoredCursor?.staff).toBe(cursor?.staff);
+    expect(restoredCursor?.bar).toBe(cursor?.bar);
+    expect(restoredCursor?.voiceBar).toBe(cursor?.voiceBar);
+    expect(restoredCursor?.beat).toBe(beats[5]);
+    expect(restoredCursor?.noteIndex).toBe(2);
   });
 
   test("any beam segment selects the full group, not adjacent groups", () => {
@@ -294,13 +296,17 @@ describe("EditorMouseDefCallbacks", () => {
     callbacks.onRepeatStartClicked(createMouseEvent(0, 0), clickedBar);
     expect(bar.masterBar.isRepeatStart).toBe(false);
     expect(otherBar.masterBar.isRepeatStart).toBe(false);
-    expect(controller.selectionCursor).toBe(cursor);
     expect(controller.selectionCursor?.bar).toBe(otherBar);
     expect(controller.selectionCursor?.noteIndex).toBe(2);
     expect(renderFunc).toHaveBeenCalledWith(RenderType.Full);
     controller.undo();
     expect(bar.masterBar.isRepeatStart).toBe(true);
-    expect(controller.selectionCursor).toBe(cursor);
+    const restoredCursor = controller.selectionCursor;
+    expect(restoredCursor?.staff).toBe(cursor?.staff);
+    expect(restoredCursor?.bar).toBe(otherBar);
+    expect(restoredCursor?.voiceBar).toBe(cursor?.voiceBar);
+    expect(restoredCursor?.beat).toBe(otherBeat);
+    expect(restoredCursor?.noteIndex).toBe(2);
   });
 
   test.each([
@@ -324,7 +330,10 @@ describe("EditorMouseDefCallbacks", () => {
         } as unknown as BarTupletGroupElement &
           Parameters<typeof callbacks.onTempoClicked>[1])
       ).toThrow("Clicked notation has no beat");
-      expect(controller.selectionCursor).toBe(cursor);
+      expect(controller.selectionCursor?.staff).toBe(cursor?.staff);
+      expect(controller.selectionCursor?.bar).toBe(cursor?.bar);
+      expect(controller.selectionCursor?.voiceBar).toBe(cursor?.voiceBar);
+      expect(controller.selectionCursor?.beat).toBe(cursor?.beat);
       expect(host.querySelectorAll("[open]")).toHaveLength(0);
       expect(render).not.toHaveBeenCalled();
     });
@@ -352,7 +361,10 @@ describe("EditorMouseDefCallbacks", () => {
             Parameters<typeof callbacks.onTempoClicked>[1]
         )
       ).toThrow("Clicked notation's beat has no note slots");
-      expect(controller.selectionCursor).toBe(cursor);
+      expect(controller.selectionCursor?.staff).toBe(cursor?.staff);
+      expect(controller.selectionCursor?.bar).toBe(cursor?.bar);
+      expect(controller.selectionCursor?.voiceBar).toBe(cursor?.voiceBar);
+      expect(controller.selectionCursor?.beat).toBe(cursor?.beat);
       expect(host.querySelectorAll("[open]")).toHaveLength(0);
       expect(render).not.toHaveBeenCalled();
     });
@@ -541,7 +553,12 @@ describe("EditorMouseDefCallbacks", () => {
           beatElements: [clicked],
         } as BarTupletGroupElement);
         expect(active.selectionCursor).toBe(before);
-        if (mode !== "playing") expect(active.selectionCursor).toBe(cursor);
+        if (mode !== "playing") {
+          expect(active.selectionCursor?.staff).toBe(cursor?.staff);
+          expect(active.selectionCursor?.bar).toBe(cursor?.bar);
+          expect(active.selectionCursor?.voiceBar).toBe(cursor?.voiceBar);
+          expect(active.selectionCursor?.beat).toBe(cursor?.beat);
+        }
         expect(host.querySelectorAll("[open]")).toHaveLength(0);
         expect(render).not.toHaveBeenCalled();
       });

@@ -10,6 +10,25 @@ export interface SelectionCursorSnapshot {
   readonly noteIndex: number;
 }
 
+/** Immutable model address used by historical selection restoration. */
+export interface SelectionAddress {
+  readonly staffIndex: number;
+  readonly barIndex: number;
+  readonly voiceNumber: VoiceNumber;
+  readonly beatIndex: number;
+  readonly noteIndex: number;
+}
+
+/** Selection state that contains no live model references. */
+export interface SelectionHistorySnapshot {
+  readonly cursor: SelectionAddress | null;
+  readonly range: {
+    readonly anchor: SelectionAddress;
+    readonly end: SelectionAddress;
+    readonly explicit: boolean;
+  } | null;
+}
+
 export enum SelectedMoveDirection {
   Left,
   Right,

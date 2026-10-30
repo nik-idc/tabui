@@ -52,14 +52,16 @@ import {
   Command,
   AffectedModel,
 } from "./command";
+import { SelectionHistoryCommand } from "./command/selection-history-command";
 import type { Note } from "../../model";
+import type { SelectionHistorySnapshot } from "../selection/selection-cursor";
 
 /**
  * Class responsible for managing editing & element state
  */
 export class TrackControllerEditor {
   editingEnabled: boolean;
-  /** Command manager */
+  /** Command manager for model edits wrapped with selection history. */
   private readonly _commandManager: CommandManager;
 
   /** Track element */
@@ -73,10 +75,9 @@ export class TrackControllerEditor {
    */
   constructor(trackElement: TrackElement, editingEnabled: boolean = true) {
     this.editingEnabled = editingEnabled;
-    this._commandManager = new CommandManager();
-
     this._trackElement = trackElement;
     this._selectionManager = new SelectionManager(this._trackElement.track);
+    this._commandManager = new CommandManager();
   }
 
   private getAffectedMasterBarIndices(
@@ -107,13 +108,28 @@ export class TrackControllerEditor {
     this._trackElement.update({ affectedMasterBarIndices: masterBarIndices });
   }
 
-  public executeCommand<T extends Command>(command: T): T {
+  /** Applies the model update and completes the selection change. */
+  private completeCommand(command: Command, completion?: () => void): void {
+    this.applyCommandUpdate(command);
+    completion?.();
+  }
+
+  public executeCommand<T extends Command>(
+    command: T,
+    completion?: () => void,
+    selectionBefore?: SelectionHistorySnapshot
+  ): T {
     if (!this.editingEnabled) {
       return command;
     }
-    const executedCommand = this._commandManager.execute(command) as T;
-    this.applyCommandUpdate(executedCommand);
-    return executedCommand;
+    const wrappedCommand = new SelectionHistoryCommand(
+      command,
+      this._selectionManager,
+      () => this.completeCommand(command, completion),
+      selectionBefore
+    );
+    this._commandManager.execute(wrappedCommand);
+    return command;
   }
 
   public undoCommand(): void {
@@ -350,19 +366,27 @@ export class TrackControllerEditor {
   /**
    * Handles added beat after moving right
    */
-  private handleAddedBeat(): void {
+  private handleAddedBeat(
+    selectionBefore: SelectionHistorySnapshot | undefined
+  ): void {
     const selectionCursor = this._selectionManager.selectionCursor;
     if (selectionCursor === undefined) {
       throw Error("Handling added beat when selected note undefined");
     }
 
-    this.executeCommand(new AppendBeatCommand(selectionCursor.voiceBar));
+    this.executeCommand(
+      new AppendBeatCommand(selectionCursor.voiceBar),
+      undefined,
+      selectionBefore
+    );
   }
 
   /**
    * Handles added bar after moving right
    */
-  private handleAddedBar(): void {
+  private handleAddedBar(
+    selectionBefore: SelectionHistorySnapshot | undefined
+  ): void {
     const selectionCursor = this._selectionManager.selectionCursor;
     if (selectionCursor === undefined) {
       throw Error("Handling added beat when selected note undefined");
@@ -372,9 +396,10 @@ export class TrackControllerEditor {
         selectionCursor.bar.staff.track.score,
         selectionCursor.bar.masterBar.barData,
         selectionCursor.voiceBar.voiceNumber
-      )
+      ),
+      () => selectionCursor.afterAddedBar(),
+      selectionBefore
     );
-    selectionCursor.afterAddedBar();
   }
 
   /**
@@ -382,15 +407,18 @@ export class TrackControllerEditor {
    * @param moveRightOutput Output of a move right operation
    * @param selectionCursor Selected
    */
-  private handleMoveRight(moveRightOutput: MoveRightOutput): void {
+  private handleMoveRight(
+    moveRightOutput: MoveRightOutput,
+    selectionBefore: SelectionHistorySnapshot | undefined
+  ): void {
     switch (moveRightOutput.result) {
       case MoveRightResult.Nothing:
         break;
       case MoveRightResult.AddedBeat:
-        this.handleAddedBeat();
+        this.handleAddedBeat(selectionBefore);
         break;
       case MoveRightResult.AddedBar:
-        this.handleAddedBar();
+        this.handleAddedBar(selectionBefore);
         break;
       default:
         throw Error("Unexpected outcome after moving note right");
@@ -441,10 +469,13 @@ export class TrackControllerEditor {
       return;
     }
 
+    const selectionBefore = this.editingEnabled
+      ? this._selectionManager.captureHistorySnapshot()
+      : undefined;
     const moveRightResult = this._selectionManager.moveSelectedNoteRight(
       this.editingEnabled
     );
-    this.handleMoveRight(moveRightResult);
+    this.handleMoveRight(moveRightResult, selectionBefore);
     if (!this.editingEnabled) {
       return;
     }
@@ -898,8 +929,10 @@ export class TrackControllerEditor {
         );
       } else {
         // Replace currently selected
-        this.executeCommand(new ReplaceBeatsCommand(selectionBeats, clipboard));
-        this.clearSelection();
+        this.executeCommand(
+          new ReplaceBeatsCommand(selectionBeats, clipboard),
+          () => this.clearSelection()
+        );
       }
     } else if (clipboard !== undefined) {
       if (selectionCursor === undefined) {
@@ -932,14 +965,14 @@ export class TrackControllerEditor {
     const selectedBar = firstBeat.voiceBar.bar;
     const previousBeat = firstBeat.voiceBar.bar.staff.getPrevBeat(firstBeat);
 
-    this.executeCommand(new RemoveBeatsCommand(selectionBeats));
-    const targetBeat = this.getBeatAfterRemoval(
-      selectedBar,
-      previousBeat,
-      firstBeat.voiceBar.voiceNumber
+    this.executeCommand(new RemoveBeatsCommand(selectionBeats), () =>
+      this.completeBeatRemoval(
+        selectedBar,
+        previousBeat,
+        firstBeat.voiceBar.voiceNumber,
+        noteIndex
+      )
     );
-    this._selectionManager.clearSelection();
-    this._selectionManager.selectBeatCursor(targetBeat, noteIndex);
   }
 
   private getBeatAfterRemoval(
@@ -968,6 +1001,22 @@ export class TrackControllerEditor {
     }
 
     return firstRemainingBeat;
+  }
+
+  /** Selects the recovery beat after removing one or more beats. */
+  private completeBeatRemoval(
+    selectedBar: Bar,
+    previousBeat: Beat | null,
+    removedVoiceNumber: VoiceNumber,
+    noteIndex: number
+  ): void {
+    const targetBeat = this.getBeatAfterRemoval(
+      selectedBar,
+      previousBeat,
+      removedVoiceNumber
+    );
+    this._selectionManager.clearSelection();
+    this._selectionManager.selectBeatCursor(targetBeat, noteIndex);
   }
 
   private getSelectedBar(): Bar {
@@ -1041,10 +1090,10 @@ export class TrackControllerEditor {
     const firstBeat = this._selectionManager.selectionAsBeats[0];
     const insertIndex = firstBeat.voiceBar.beats.indexOf(firstBeat);
 
-    const command = this.executeCommand(
-      new InsertBeatCommand(firstBeat.voiceBar, insertIndex)
+    const command = new InsertBeatCommand(firstBeat.voiceBar, insertIndex);
+    this.executeCommand(command, () =>
+      this.selectInsertedBeat(command, noteIndex)
     );
-    this.selectInsertedBeat(command, noteIndex);
   }
 
   /** Inserts and selects a beat after the anchor or current selection. */
@@ -1060,10 +1109,10 @@ export class TrackControllerEditor {
       ];
     const insertIndex = lastBeat.voiceBar.beats.indexOf(lastBeat) + 1;
 
-    const command = this.executeCommand(
-      new InsertBeatCommand(lastBeat.voiceBar, insertIndex)
+    const command = new InsertBeatCommand(lastBeat.voiceBar, insertIndex);
+    this.executeCommand(command, () =>
+      this.selectInsertedBeat(command, noteIndex)
     );
-    this.selectInsertedBeat(command, noteIndex);
   }
 
   public removeSelectedBeat(): void {
@@ -1076,14 +1125,14 @@ export class TrackControllerEditor {
     const selectedBar = firstBeat.voiceBar.bar;
     const previousBeat = firstBeat.voiceBar.bar.staff.getPrevBeat(firstBeat);
 
-    this.executeCommand(new RemoveBeatsCommand(selectionBeats));
-    const targetBeat = this.getBeatAfterRemoval(
-      selectedBar,
-      previousBeat,
-      firstBeat.voiceBar.voiceNumber
+    this.executeCommand(new RemoveBeatsCommand(selectionBeats), () =>
+      this.completeBeatRemoval(
+        selectedBar,
+        previousBeat,
+        firstBeat.voiceBar.voiceNumber,
+        noteIndex
+      )
     );
-    this._selectionManager.clearSelection();
-    this._selectionManager.selectBeatCursor(targetBeat, noteIndex);
   }
 
   /**
@@ -1099,7 +1148,11 @@ export class TrackControllerEditor {
       masterBarData,
       this._selectionManager.activeVoiceNumber
     );
-    this.executeCommand(command);
+    this.executeCommand(command, () => this.completeAppendedBar(command));
+  }
+
+  /** Selects the first beat in the bar created by an append command. */
+  private completeAppendedBar(command: AppendBarCommand): void {
     const result = command.appendResult;
     const staff = this._trackElement.track.staves[0];
     const bar = result?.bars.get(staff.uuid);
@@ -1213,9 +1266,9 @@ export class TrackControllerEditor {
         insertIndex,
         DEFAULT_MASTER_BAR,
         this._selectionManager.activeVoiceNumber
-      )
+      ),
+      () => this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex])
     );
-    this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex]);
   }
 
   public insertBarAfterSelected(): void {
@@ -1233,9 +1286,9 @@ export class TrackControllerEditor {
         insertIndex + 1,
         DEFAULT_MASTER_BAR,
         this._selectionManager.activeVoiceNumber
-      )
+      ),
+      () => this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex + 1])
     );
-    this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex + 1]);
   }
 
   public removeSelectedBar(): void {
@@ -1277,8 +1330,16 @@ export class TrackControllerEditor {
     const firstRemovedBarIndex = removableBarIndices[0];
     const selectedStaff = bars[0].staff;
 
-    this.executeCommand(new RemoveBarsCommand(score, removableBarIndices));
+    this.executeCommand(new RemoveBarsCommand(score, removableBarIndices), () =>
+      this.completeRemovedBars(selectedStaff, firstRemovedBarIndex)
+    );
+  }
 
+  /** Selects the recovery beat after removing the selected bars. */
+  private completeRemovedBars(
+    selectedStaff: Bar["staff"],
+    firstRemovedBarIndex: number
+  ): void {
     const activeVoiceNumber = this._selectionManager.activeVoiceNumber;
     // Anchor bar - bar **before** the first removed bar. Thus it is the last bar
     // whose index hasn't changed after the removal. Hence - anchor

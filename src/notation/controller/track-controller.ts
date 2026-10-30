@@ -472,7 +472,6 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.undoCommand();
-    this._trackControllerEditor.syncSelection();
   }
 
   /** Redo previous action */
@@ -481,7 +480,6 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.redoCommand();
-    this._trackControllerEditor.syncSelection();
   }
 
   /** Current score transport state. */

@@ -5,6 +5,8 @@ import {
   SelectionCursor,
   MoveRightOutput,
   SelectedMoveDirection,
+  SelectionAddress,
+  SelectionHistorySnapshot,
 } from "./selection-cursor";
 
 type HorizontalOffset = -1 | 1;
@@ -27,7 +29,10 @@ export class SelectionManager {
   private _baseSelectionBeat?: Beat;
   /** Most recent beat used to extend the anchored range. */
   private _selectionEndBeat?: Beat;
-  /** Whether the current range was initiated with the anchor control. */
+  /**
+   * Whether the current range was initiated with the anchor control.
+   * TODO: Possible rename to something that would communicate "selection" button clearer.
+   */
   private _selectionAnchorExplicitlySet: boolean = false;
   /** Selection beats */
   private _selectionBeats: Beat[];
@@ -45,6 +50,187 @@ export class SelectionManager {
     this._activeVoiceNumber = 1;
     this._selectionBeats = [];
     this._clipboard = [];
+  }
+
+  private addressForBeat(beat: Beat, noteIndex: number): SelectionAddress {
+    const staff = beat.voiceBar.bar.staff;
+    return {
+      staffIndex: this.track.staves.indexOf(staff),
+      barIndex: staff.bars.indexOf(beat.voiceBar.bar),
+      voiceNumber: beat.voiceBar.voiceNumber,
+      beatIndex: beat.voiceBar.beats.indexOf(beat),
+      noteIndex,
+    };
+  }
+
+  /** Captures selection coordinates without retaining model objects. */
+  public captureHistorySnapshot(): SelectionHistorySnapshot {
+    if (this._selectionCursor !== undefined) {
+      return {
+        cursor: this.addressForBeat(
+          this._selectionCursor.beat,
+          this._selectionCursor.noteIndex
+        ),
+        range: null,
+      };
+    }
+
+    if (
+      this._baseSelectionBeat !== undefined &&
+      this._selectionEndBeat !== undefined
+    ) {
+      return {
+        cursor: null,
+        range: {
+          anchor: this.addressForBeat(this._baseSelectionBeat, 0),
+          end: this.addressForBeat(this._selectionEndBeat, 0),
+          explicit: this._selectionAnchorExplicitlySet,
+        },
+      };
+    }
+
+    return { cursor: null, range: null };
+  }
+
+  private resolveAddress(address: SelectionAddress): Beat | undefined {
+    const staff = this.track.staves[address.staffIndex];
+    const bar = staff?.bars[address.barIndex];
+    const voiceBar = bar?.getVoiceBar(address.voiceNumber);
+    return voiceBar?.beats[address.beatIndex];
+  }
+
+  private findFallback(address: SelectionAddress): Beat | undefined {
+    const staves = this.track.staves;
+    const orderedStaves = staves
+      .map((staff, index) => ({ staff, index }))
+      .sort(
+        (a, b) =>
+          Math.abs(a.index - address.staffIndex) -
+          Math.abs(b.index - address.staffIndex)
+      );
+    for (const { staff } of orderedStaves) {
+      const bars = staff.bars;
+      const orderedBars = bars
+        .map((bar, index) => ({ bar, index }))
+        .sort(
+          (a, b) =>
+            Math.abs(a.index - address.barIndex) -
+            Math.abs(b.index - address.barIndex)
+        );
+      for (const { bar } of orderedBars) {
+        const orderedVoiceBars = bar.voiceBarsAsArray
+          .filter((voiceBar) => voiceBar.beats.length > 0)
+          .sort(
+            (a, b) =>
+              Math.abs(a.voiceNumber - address.voiceNumber) -
+              Math.abs(b.voiceNumber - address.voiceNumber)
+          );
+        const voiceBar = orderedVoiceBars[0];
+        if (voiceBar !== undefined) {
+          const beatIndex = Math.max(
+            0,
+            Math.min(address.beatIndex, voiceBar.beats.length - 1)
+          );
+          return voiceBar.beats[beatIndex];
+        }
+      }
+    }
+    return undefined;
+  }
+
+  /** Restores a historical cursor at its saved address or nearest valid beat. */
+  private restoreCursor(cursorAddress: SelectionAddress): boolean {
+    const beat =
+      this.resolveAddress(cursorAddress) ?? this.findFallback(cursorAddress);
+    if (beat !== undefined) {
+      this.selectBeatCursor(
+        beat,
+        Math.max(
+          0,
+          Math.min(
+            cursorAddress.noteIndex,
+            beat.voiceBar.bar.staff.trackContext.instrument.maxPolyphony - 1
+          )
+        )
+      );
+      return true;
+    }
+    return false;
+  }
+
+  /** Restores a valid range without clearing state before its addresses validate. */
+  private restoreRange(range: SelectionHistorySnapshot["range"]): boolean {
+    if (range === null) {
+      return false;
+    }
+    const anchor = this.resolveAddress(range.anchor);
+    const end = this.resolveAddress(range.end);
+    const sameLane =
+      anchor !== undefined &&
+      end !== undefined &&
+      anchor.voiceBar.bar.staff === end.voiceBar.bar.staff &&
+      anchor.voiceBar.voiceNumber === end.voiceBar.voiceNumber;
+    if (!sameLane || anchor === undefined || end === undefined) {
+      return false;
+    }
+    this._selectionCursor = undefined;
+    this.clearSelection();
+    this.selectBeat(anchor);
+    this.selectBeat(end);
+    this._selectionAnchorExplicitlySet = range.explicit;
+    return true;
+  }
+
+  /** Restores the nearest cursor from either snapshot when primary restoration fails. */
+  private restoreFallback(
+    snapshot: SelectionHistorySnapshot,
+    opposite: SelectionHistorySnapshot
+  ): void {
+    const ranges = [snapshot.range, opposite.range];
+    this._selectionCursor = undefined;
+    this.clearSelection();
+    const cursorAddresses = [snapshot.cursor, opposite.cursor];
+    for (const cursorAddress of cursorAddresses) {
+      if (cursorAddress === null) {
+        continue;
+      }
+      const fallbackBeat = this.findFallback(cursorAddress);
+      if (fallbackBeat !== undefined) {
+        this.selectBeatCursor(fallbackBeat, 0);
+        return;
+      }
+    }
+    for (const range of ranges) {
+      const fallbackAddress = range?.anchor;
+      if (fallbackAddress === undefined) {
+        continue;
+      }
+      const fallbackBeat = this.findFallback(fallbackAddress);
+      if (fallbackBeat !== undefined) {
+        this.selectBeatCursor(fallbackBeat, 0);
+        return;
+      }
+    }
+  }
+
+  /** Restores a historical selection, falling back to a nearby valid cursor. */
+  public restoreHistorySnapshot(
+    snapshot: SelectionHistorySnapshot,
+    opposite: SelectionHistorySnapshot
+  ): void {
+    if (snapshot.cursor !== null && this.restoreCursor(snapshot.cursor)) {
+      return;
+    }
+
+    if (this.restoreRange(snapshot.range)) {
+      return;
+    }
+
+    if (opposite.cursor !== null && this.restoreCursor(opposite.cursor)) {
+      return;
+    }
+
+    this.restoreFallback(snapshot, opposite);
   }
 
   /**
