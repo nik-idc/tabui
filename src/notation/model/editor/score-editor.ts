@@ -1,9 +1,9 @@
-import { Bar } from "../bar";
+import { Bar, type VoiceBarContentSnapshot } from "../bar";
 import { Beat } from "../beat";
 import type { SetTechniqueOptions } from "./set-technique-options";
 import { GuitarNote } from "../guitar-note";
 import { MusicInstrument } from "../instrument/instrument";
-import type { MasterBarData } from "../master-bar";
+import { type MasterBarData } from "../master-bar";
 import {
   Note,
   NoteValue,
@@ -18,7 +18,7 @@ import type {
   MasterBarArrayOperationOutput,
   TimeSignatureChange,
 } from "../score";
-import type { TechniqueType } from "../technique-type";
+import { GuitarTechniqueType, type TechniqueType } from "../technique-type";
 import { TupletSettings, tupletSettingsEqual } from "../tuplet-settings";
 import {
   BeatArrayOperationOutput,
@@ -32,6 +32,13 @@ import { LetRingEditing } from "./let-ring-editing";
 import { TechniqueEditing } from "./technique-editing";
 import type { TechniqueEditPlan, TieEditPlan } from "./technique-edit-plan";
 import { TieEditing } from "./tie-editing";
+import {
+  addDurations,
+  fractionEq,
+  fractionLt,
+  getBeatDuration,
+  subtractDurations,
+} from "../timing";
 
 export type { BeatPosition, NotePosition } from "./edit-position";
 export type { TimeSignatureChange } from "../score";
@@ -58,14 +65,47 @@ export type BeatSnapshot = BeatPosition & {
   notes: Note[] | null;
 };
 
-/** Live inserted beats and removal metadata needed to reverse a replacement. */
-export type BeatReplacementOutput<I extends MusicInstrument = MusicInstrument> =
-  {
-    /** New copies installed at the selection start. */
-    insertedBeats: Beat<I>[];
-    /** Removal and fallback-rest changes for each removed beat. */
-    removalOutputs: BeatRemovalOutput<I>[];
-  };
+/** Saved bar content and the original voice bars needed for undo and redo. */
+export type BarContentSnapshot<I extends MusicInstrument = MusicInstrument> = {
+  /** Original bar, retained across history. */
+  bar: Bar<I>;
+  /** Present slots only; omitted slots must remain absent on restore. */
+  voiceBars: VoiceBarContentSnapshot<I>[];
+};
+
+/** Bars, voice bars, and nearby beats that a paste may change. */
+type PasteChanges<I extends MusicInstrument> = {
+  beatsByBars: Map<Bar<I>, Beat<I>[]>;
+  bars: Bar<I>[];
+  changedVoiceBars: VoiceBar<I>[];
+  affectedBeats: Set<Beat>;
+  neighborBeats: Beat[];
+  originalVoiceBars: Set<VoiceBar<I>>;
+  createdContent: Bar[];
+};
+
+/** A copy of bar and nearby note content, saved before or after a paste. */
+type PasteSnapshot<I extends MusicInstrument> = {
+  bars: BarContentSnapshot<I>[];
+  created: BarContentSnapshot[];
+  neighbors: BeatSnapshot[];
+};
+
+/** Paste results and saved content used by commands for undo and redo. */
+export type BeatPasteOutput<I extends MusicInstrument = MusicInstrument> = {
+  /** Pasted clipboard beats, not including the original beats that followed them. */
+  insertedBeats: Beat<I>[];
+  /** Original affected bar contents. */
+  before: BarContentSnapshot<I>[];
+  /** Saved content after the paste, including all new bars. */
+  after: BarContentSnapshot[];
+  /** New bars and their matching staff bars, kept for undo and redo. */
+  createdBars: MasterBarArrayOperationOutput[];
+  /** Nearby notes saved before invalid techniques are removed. */
+  neighborsBefore: BeatSnapshot[];
+  /** Nearby notes saved after invalid techniques are removed. */
+  neighborsAfter: BeatSnapshot[];
+};
 
 /**
  * Standalone score-editing helpers that change models and rebuild affected timing.
@@ -75,22 +115,30 @@ export class ScoreEditor {
   // History and positions
 
   /** Records a live beat's address without retaining its object identity. */
-  public static getBeatPosition(beat: Beat): BeatPosition {
+  public static getBeatPosition<I extends MusicInstrument>(
+    beat: Beat<I>
+  ): BeatPosition {
     return EditPosition.getBeatPosition(beat);
   }
 
   /** Resolves an address against the current voice content, not a detached history copy. */
-  public static resolveBeatPosition(position: BeatPosition): Beat {
+  public static resolveBeatPosition<I extends MusicInstrument>(
+    position: BeatPosition & { voiceBar: VoiceBar<I> }
+  ): Beat<I> {
     return EditPosition.resolveBeatPosition(position);
   }
 
   /** Resolves saved content positions against the live beats restored by later commands. */
-  public static resolveBeatPositions(positions: BeatPosition[]): Beat[] {
+  public static resolveBeatPositions<I extends MusicInstrument>(
+    positions: (BeatPosition & { voiceBar: VoiceBar<I> })[]
+  ): Beat<I>[] {
     return positions.map((p) => this.resolveBeatPosition(p));
   }
 
   /** Keeps only installed beats after a structural edit has removed some candidates. */
-  public static getLiveBeats(beats: Beat[]): Beat[] {
+  public static getLiveBeats<I extends MusicInstrument>(
+    beats: Beat<I>[]
+  ): Beat<I>[] {
     return beats.filter(
       (b) =>
         b.voiceBar.bar.staff.bars.includes(b.voiceBar.bar) &&
@@ -100,15 +148,18 @@ export class ScoreEditor {
   }
 
   /** Finds next-beat ties and following empty markers that can lose support after a content edit. */
-  public static getNoteEditBeats(beats: Beat[], stringNumber?: number): Beat[] {
+  public static getNoteEditBeats<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    stringNumber?: number
+  ): Beat<I>[] {
     return LetRingEditing.getNoteEditBeats(beats, stringNumber);
   }
 
   /** Finds existing boundary content at a normalized insertion index before clipboard beats shift it. */
-  public static getInsertionEditBeats(
-    voiceBar: VoiceBar,
+  public static getInsertionEditBeats<I extends MusicInstrument>(
+    voiceBar: VoiceBar<I>,
     index: number
-  ): Beat[] {
+  ): Beat<I>[] {
     const boundaryBeat = voiceBar.beats[index] ?? voiceBar.beats[index - 1];
     return boundaryBeat === undefined
       ? []
@@ -568,7 +619,9 @@ export class ScoreEditor {
         }
       }
     }
-    return this.removeBeats(this.resolveBeatPositions(beats) as Beat<I>[]);
+    return this.removeBeats(
+      beats.map((position) => this.resolveBeatPosition(position))
+    );
   }
 
   /** Inserts a blank beat at an index from zero through the beat count, inheriting Let Ring between marked neighbors. Other indexes throw. */
@@ -588,31 +641,294 @@ export class ScoreEditor {
     return result;
   }
 
-  // Future direction: once TabUI has explicit rests/gaps and a clear invariant
-  // for complete bars, paste/replacement can become rhythm-aware. Until then,
-  // these operations intentionally match the liberal beat-editing model: they
-  // insert/remove beats locally and allow bars to become underfilled/overfilled.
-  /**
-   * Copies beat content into one voice and rebuilds timing, allowing underfill or overfill.
-   * @param beatIndex Integer insertion position from zero through the number of beats.
-   * @param beats Content to copy; an empty array has no effect.
-   * @param restoreContent True installs fixed history content without applying edit normalization.
-   * @returns Live inserted copies, adapted to the destination's note-slot count.
-   * @throws If the index is invalid or copying note/rhythm data or rebuilding timing fails.
-   */
-  public static insertBeats<I extends MusicInstrument>(
+  /** Copies content from the changed voice bars and keeps the original voice bars and beats for undo. */
+  private static getBarSnapshot<I extends MusicInstrument>(
+    bar: Bar<I>,
+    changedVoiceBars: VoiceBar<I>[] = bar.voiceBarsAsArray
+  ): BarContentSnapshot<I> {
+    return {
+      bar,
+      voiceBars: bar.voiceBarsAsArray.map((voiceBar) => ({
+        voiceBar,
+        beats: changedVoiceBars.includes(voiceBar)
+          ? voiceBar.beats.map((beat) => ({
+              beat,
+              content: beat.deepCopy(voiceBar),
+            }))
+          : undefined,
+      })),
+    };
+  }
+
+  /** Gets the bars and voice bars a paste may change, including nearby notes whose techniques may change. */
+  private static getPasteChanges<I extends MusicInstrument>(
     voiceBar: VoiceBar<I>,
-    beatIndex: number,
-    beats: Beat<I>[],
-    restoreContent: boolean = false
-  ): Beat<I>[] {
-    const affected = this.getInsertionEditBeats(voiceBar, beatIndex);
-    const insertedBeats = voiceBar.insertBeats(beatIndex, beats);
-    if (!restoreContent && insertedBeats.length > 0) {
-      this.normalizeNoteContent([...insertedBeats, ...affected]);
+    selected: Beat<I>[]
+  ): PasteChanges<I> {
+    const score = voiceBar.bar.staff.track.score;
+    const beatsByBars = this.groupBeatsByBar(selected);
+    const bars = [...new Set([voiceBar.bar, ...beatsByBars.keys()])];
+    const changedVoiceBars = [
+      ...new Set([voiceBar, ...selected.map((b) => b.voiceBar)]),
+    ];
+    const boundary = score.masterBars.indexOf(voiceBar.bar.masterBar) + 1;
+    const boundaryBeats = this.getBarEditBeats(score, [boundary - 1, boundary]);
+    const affectedBeats = new Set<Beat>(
+      this.getNoteEditBeats([...voiceBar.beats, ...selected])
+    );
+    for (const beat of boundaryBeats) {
+      affectedBeats.add(beat);
+    }
+    const changedVoiceBarSet = new Set<VoiceBar>(changedVoiceBars);
+    const neighborBeats = [...affectedBeats].filter(
+      (b) => !changedVoiceBarSet.has(b.voiceBar)
+    );
+    return {
+      beatsByBars,
+      bars,
+      changedVoiceBars,
+      affectedBeats,
+      neighborBeats,
+      originalVoiceBars: new Set(bars.flatMap((b) => b.voiceBarsAsArray)),
+      createdContent: [],
+    };
+  }
+
+  /** Copies the affected bar and note content for undo and redo. Used before and after the paste. */
+  private static getPasteSnapshot<I extends MusicInstrument>(
+    changes: PasteChanges<I>,
+    neighborBeats: Beat[]
+  ): PasteSnapshot<I> {
+    return {
+      bars: changes.bars.map((bar) =>
+        this.getBarSnapshot(bar, changes.changedVoiceBars)
+      ),
+      created: changes.createdContent.map((bar) => this.getBarSnapshot(bar)),
+      neighbors: this.snapshotBeatNotes(neighborBeats),
+    };
+  }
+
+  /**
+   * Includes new bars and voice bars in redo history,
+   * including voice bars created when a bar becomes empty.
+   */
+  private static addCreatedBars<I extends MusicInstrument>(
+    changes: PasteChanges<I>,
+    createdBars: MasterBarArrayOperationOutput[]
+  ): void {
+    for (const bar of changes.bars) {
+      for (const voiceBar of bar.voiceBarsAsArray) {
+        if (!changes.originalVoiceBars.has(voiceBar)) {
+          changes.changedVoiceBars.push(voiceBar);
+          changes.originalVoiceBars.add(voiceBar);
+        }
+      }
+    }
+    for (const created of createdBars) {
+      changes.createdContent.push(...created.bars.values());
+    }
+  }
+
+  /** Creates the next bar on every staff with the same time signature and tempo, but no repeat marks. Returns the voice bar for pasted beats. */
+  private static createOverflowBar<I extends MusicInstrument>(
+    voiceBar: VoiceBar<I>,
+    createdBars: MasterBarArrayOperationOutput[]
+  ): VoiceBar<I> {
+    const score = voiceBar.bar.staff.track.score;
+    const created = score.insertMasterBar(
+      score.masterBars.indexOf(voiceBar.bar.masterBar) + createdBars.length + 1,
+      {
+        tempo: voiceBar.bar.masterBar.tempo,
+        beatsCount: voiceBar.bar.masterBar.beatsCount,
+        duration: voiceBar.bar.masterBar.duration,
+        isRepeatStart: false,
+        isRepeatEnd: false,
+        repeatCount: null,
+      },
+      voiceBar.voiceNumber
+    );
+    createdBars.push(created);
+    const targetBar = voiceBar.bar.staff.bars[created.index];
+    if (targetBar === undefined) {
+      throw Error("Created overflow bar is missing from the destination staff");
+    }
+    const targetVoiceBar = targetBar.getVoiceBar(voiceBar.voiceNumber);
+    if (targetVoiceBar === null) {
+      throw Error("Created overflow bar is missing the destination voice bar");
+    }
+    return targetVoiceBar;
+  }
+
+  /** Inserts clipboard beats followed by the original remaining beats. Creates a new bar when the next beat does not fit. */
+  private static insertBeatsIntoBars<I extends MusicInstrument>(
+    voiceBar: VoiceBar<I>,
+    insertionIndex: number,
+    source: Beat<I>[],
+    tail: Beat<I>[]
+  ): {
+    createdBars: MasterBarArrayOperationOutput[];
+    insertedBeats: Beat<I>[];
+  } {
+    const capacity = voiceBar.bar.masterBar.barDurationFraction;
+    const stream = [...source, ...tail];
+    const createdBars: MasterBarArrayOperationOutput[] = [];
+    const insertedBeats: Beat<I>[] = [];
+    let destination = voiceBar;
+    let used = voiceBar.beats
+      .slice(0, insertionIndex)
+      .reduce((total, beat) => addDurations(total, getBeatDuration(beat)), {
+        numerator: 0,
+        denominator: 1,
+      });
+    let destinationHasContent = insertionIndex > 0;
+    let firstDestinationEdit = true;
+
+    for (const [streamIndex, beat] of stream.entries()) {
+      const duration = getBeatDuration(beat);
+      const remaining = subtractDurations(capacity, used);
+      const fits =
+        fractionLt(duration, remaining) || fractionEq(duration, remaining);
+      if (destinationHasContent && !fits) {
+        destination = this.createOverflowBar(voiceBar, createdBars);
+        used = { numerator: 0, denominator: 1 };
+        firstDestinationEdit = true;
+      }
+
+      const clipboardBeat = streamIndex < source.length;
+      const copy =
+        !clipboardBeat && beat.voiceBar === destination
+          ? beat
+          : beat.deepCopy(destination);
+      const removed = firstDestinationEdit
+        ? destination === voiceBar
+          ? []
+          : [...destination.beats]
+        : [];
+      destination.bar.replaceSelectedBeats(removed, [
+        {
+          voiceBar: destination,
+          index: firstDestinationEdit
+            ? destination === voiceBar
+              ? insertionIndex
+              : 0
+            : destination.beats.length,
+          beats: [copy],
+        },
+      ]);
+      firstDestinationEdit = false;
+      if (clipboardBeat) {
+        insertedBeats.push(copy);
+      }
+      used = addDurations(used, duration);
+      destinationHasContent = true;
     }
 
-    return insertedBeats;
+    return {
+      insertedBeats,
+      createdBars,
+    };
+  }
+
+  /** Removes invalid Tie, Let Ring, and Palm Mute marks after all beats are in place. */
+  private static removeInvalidPasteTechniques<I extends MusicInstrument>(
+    affectedBeats: Set<Beat>,
+    insertedBeats: Beat<I>[],
+    createdBars: MasterBarArrayOperationOutput[]
+  ): void {
+    const createdContent = createdBars.flatMap((b) => [...b.bars.values()]);
+    const cleanup = this.getLiveBeats([
+      ...affectedBeats,
+      ...insertedBeats,
+      ...createdContent.flatMap((b) =>
+        b.voiceBarsAsArray.flatMap((v) => v.beats)
+      ),
+    ]);
+    for (const beat of cleanup) {
+      for (const note of beat.notes ?? []) {
+        if (
+          note instanceof GuitarNote &&
+          note.hasTechnique(GuitarTechniqueType.Tie) &&
+          !note.isTieContinuation
+        ) {
+          note.removeTechnique(GuitarTechniqueType.Tie);
+        }
+      }
+    }
+    this.normalizeNoteContent(cleanup);
+  }
+
+  /** Inserts clipboard beats, moving the original remaining beats after them. Returns saved content for undo and redo. */
+  public static insertBeats<I extends MusicInstrument>(
+    voiceBar: VoiceBar<I>,
+    index: number,
+    beats: Beat<I>[],
+    selected: Beat<I>[] = []
+  ): BeatPasteOutput<I> {
+    if (beats.length === 0) {
+      return {
+        insertedBeats: [],
+        before: [],
+        after: [],
+        createdBars: [],
+        neighborsBefore: [],
+        neighborsAfter: [],
+      };
+    }
+    if (
+      !Number.isInteger(index) ||
+      index < 0 ||
+      index > voiceBar.beats.length
+    ) {
+      throw Error(`${index} is invalid beat index`);
+    }
+
+    const replacePlaceholder =
+      selected.length === 0 &&
+      voiceBar.beats.length === 1 &&
+      voiceBar.beats[0].isEmpty();
+    const pasteSelection = replacePlaceholder ? [...voiceBar.beats] : selected;
+
+    const insertionIndex = replacePlaceholder ? 0 : index;
+    const changes = this.getPasteChanges(voiceBar, pasteSelection);
+    const before = this.getPasteSnapshot(changes, changes.neighborBeats);
+    // Remove selected beats from other bars, keeping those bars and their unselected beats.
+    for (const [bar, beats] of changes.beatsByBars) {
+      if (bar !== voiceBar.bar) {
+        bar.replaceSelectedBeats(beats);
+      }
+    }
+    const tail = voiceBar.beats
+      .slice(insertionIndex)
+      .filter((b) => !pasteSelection.includes(b));
+
+    // Remove the old tail before testing the first clipboard beat, so an
+    // oversized first beat cannot leave displaced content in the source bar.
+    const oldTail = voiceBar.beats.slice(insertionIndex);
+    voiceBar.bar.replaceSelectedBeats(oldTail, [], false);
+    const insertResult = this.insertBeatsIntoBars(
+      voiceBar,
+      insertionIndex,
+      beats,
+      tail
+    );
+    this.removeInvalidPasteTechniques(
+      changes.affectedBeats,
+      insertResult.insertedBeats,
+      insertResult.createdBars
+    );
+    this.addCreatedBars(changes, insertResult.createdBars);
+    const after = this.getPasteSnapshot(
+      changes,
+      this.getLiveBeats(changes.neighborBeats)
+    );
+    return {
+      insertedBeats: insertResult.insertedBeats,
+      before: before.bars,
+      after: [...after.bars, ...after.created],
+      createdBars: insertResult.createdBars,
+      neighborsBefore: before.neighbors,
+      neighborsAfter: after.neighbors,
+    };
   }
 
   /**
@@ -648,62 +964,66 @@ export class ScoreEditor {
     });
   }
 
-  /**
-   * Replaces selected beats with new beats at the selection start. This is not
-   * duration-aware: multi-bar selections may leave later bars underfilled and
-   * longer clipboard content may overfill the first affected bar.
-   * @param oldBeats Live beats to remove, with the insertion location first.
-   * @param newBeats Content to copy into the first affected voice.
-   * @param restoreContent True installs fixed history content without applying edit normalization.
-   * @returns Inserted copies and removal metadata; both are empty if either input is empty.
-   * @throws If a selected beat is absent or copying, bookkeeping, or timing rebuild fails.
-   */
+  /** Removes selected beats and packs the clipboard at their original start, keeping all original bars. */
   public static replaceBeats<I extends MusicInstrument>(
     oldBeats: Beat<I>[],
-    newBeats: Beat<I>[],
-    restoreContent: boolean = false
-  ): BeatReplacementOutput<I> {
+    newBeats: Beat<I>[]
+  ): BeatPasteOutput<I> {
     if (oldBeats.length === 0 || newBeats.length === 0) {
-      return { insertedBeats: [], removalOutputs: [] };
+      return {
+        insertedBeats: [],
+        before: [],
+        after: [],
+        createdBars: [],
+        neighborsBefore: [],
+        neighborsAfter: [],
+      };
+    }
+    const invalidSelection =
+      new Set(oldBeats).size !== oldBeats.length ||
+      oldBeats.some((b) => !b.voiceBar.beats.includes(b));
+    if (invalidSelection) {
+      throw Error("Beat is absent or selected twice");
+    }
+    const voiceBar = oldBeats[0].voiceBar;
+    const index = voiceBar.beats.indexOf(oldBeats[0]);
+    return this.insertBeats(voiceBar, index, newBeats, oldBeats);
+  }
+
+  /** Restores the saved content from before a paste and removes the bars it created. */
+  public static restoreBeforePaste<I extends MusicInstrument>(
+    score: Score,
+    output: BeatPasteOutput<I>
+  ): void {
+    for (const created of [...output.createdBars].reverse()) {
+      score.removeMasterBar(score.masterBars.indexOf(created.masterBar));
+    }
+    for (const snapshot of output.before) {
+      snapshot.bar.restoreVoiceBars(snapshot.voiceBars);
     }
 
-    const startBeatIndex = oldBeats[0].voiceBar.beats.indexOf(oldBeats[0]);
-    oldBeats = [...oldBeats];
-    const startVoiceBar = oldBeats[0].voiceBar;
-    const affected = this.getNoteEditBeats(oldBeats);
-    const results = new Map<Beat<I>, BeatRemovalOutput<I>>();
-    const insertedBeats: Beat<I>[] = [];
-    for (const [bar, selected] of this.groupBeatsByBar(oldBeats)) {
-      const insertions =
-        bar === startVoiceBar.bar
-          ? [
-              {
-                voiceBar: startVoiceBar,
-                index: startBeatIndex,
-                beats: newBeats,
-              },
-            ]
-          : [];
-      const result = bar.replaceSelectedBeats(selected, insertions);
-      insertedBeats.push(...result.insertedBeats);
-      for (const [i, beat] of selected.entries()) {
-        results.set(beat, result.removals[i]);
-      }
+    // Restore nearby notes after their original bars and beats are back in place.
+    this.restoreBeatSnapshots(output.neighborsBefore);
+  }
+
+  /** Restores the saved content from after a paste, including the same created bar objects. */
+  public static restoreAfterPaste<I extends MusicInstrument>(
+    score: Score,
+    output: BeatPasteOutput<I>
+  ): void {
+    for (const created of output.createdBars) {
+      score.insertReadyMasterBar(
+        created.index,
+        created.masterBar,
+        created.bars
+      );
     }
-    const removalOutputs = oldBeats.map((b) => {
-      const output = results.get(b);
-      if (output === undefined) {
-        throw Error("Missing beat removal");
-      }
-      return output;
-    });
-    if (!restoreContent) {
-      this.normalizeNoteContent([
-        ...insertedBeats,
-        ...this.getLiveBeats(affected),
-      ]);
+    for (const snapshot of output.after) {
+      snapshot.bar.restoreVoiceBars(snapshot.voiceBars);
     }
-    return { insertedBeats, removalOutputs };
+
+    // Use saved note content rather than checking technique rules again.
+    this.restoreBeatSnapshots(output.neighborsAfter);
   }
 
   /** Groups a selection in one pass without searching the score or rescanning it for each bar. */

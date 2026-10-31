@@ -92,7 +92,7 @@ describe("Let Ring editing", () => {
         edit === "insert"
           ? new InsertBeatCommand(voice, 1)
           : edit === "paste"
-            ? new InsertBeatsCommand(voice.bar.staff, voice.beats[0], [blank])
+            ? new InsertBeatsCommand(voice.bar, voice.beats[0], [blank])
             : new RemoveBeatsCommand([voice.beats[0]]);
       manager.execute(command);
       const applied = serializeScore(score);
@@ -331,9 +331,7 @@ describe("Let Ring editing", () => {
     const blank = notes[1].beat.deepCopy();
     blank.notes?.forEach((n) => n.clearTechniques());
     const voice = notes[0].beat.voiceBar;
-    const command = new InsertBeatsCommand(voice.bar.staff, notes[0].beat, [
-      blank,
-    ]);
+    const command = new InsertBeatsCommand(voice.bar, notes[0].beat, [blank]);
     command.execute();
     expect(
       voice.beats.map((b) => b.hasTechnique(GuitarTechniqueType.LetRing))
@@ -470,9 +468,7 @@ describe("Let Ring editing", () => {
       (n as GuitarNote).setFret(null);
     });
     const manager = new CommandManager();
-    manager.execute(
-      new InsertBeatsCommand(first.voiceBar.bar.staff, first, [blank])
-    );
+    manager.execute(new InsertBeatsCommand(first.voiceBar.bar, first, [blank]));
     expect(
       voice.beats.map((b) => b.hasTechnique(GuitarTechniqueType.LetRing))
     ).toEqual([false, false]);

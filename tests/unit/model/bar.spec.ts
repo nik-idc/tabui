@@ -25,8 +25,12 @@ describe("Bar model", () => {
       bar.replaceSelectedBeats(
         [firstBeat, secondBeat],
         [
-          { voiceBar: detached, index: 0, beats: [firstBeat] },
-          { voiceBar: first, index: 1, beats: [secondBeat] },
+          {
+            voiceBar: detached,
+            index: 0,
+            beats: [firstBeat.deepCopy(detached)],
+          },
+          { voiceBar: first, index: 1, beats: [secondBeat.deepCopy(first)] },
         ]
       )
     ).toThrow("invalid beat index");
@@ -60,12 +64,12 @@ describe("Bar model", () => {
     const rest = new Beat(voice, voice.trackContext, null);
 
     expect(() =>
-      bar.replaceSelectedBeats(
-        [original],
+      bar.restoreBeats(
         [
           { voiceBar: voice, index: 0, beats: [rest] },
           { voiceBar: voice, index: 1, beats: [source] },
-        ]
+        ],
+        [original]
       )
     ).toThrow("Octave out of range");
     expect(voice.beats).toEqual([original]);

@@ -1,6 +1,7 @@
 import { Beat } from "../beat";
 import { GuitarNote } from "../guitar-note";
 import { Note } from "../note";
+import type { MusicInstrument } from "../instrument/instrument";
 import type { VoiceBar } from "../voice-bar";
 
 /** A beat address resolved against live content after later history restores its position. */
@@ -20,7 +21,9 @@ export type NotePosition = BeatPosition & {
 /** Internal position helpers shared by score-editing rules. */
 export class EditPosition {
   /** Records a live beat's address without retaining its object identity. */
-  public static getBeatPosition(beat: Beat): BeatPosition {
+  public static getBeatPosition<I extends MusicInstrument>(
+    beat: Beat<I>
+  ): BeatPosition & { voiceBar: VoiceBar<I> } {
     return {
       voiceBar: beat.voiceBar,
       index: beat.voiceBar.beats.indexOf(beat),
@@ -28,7 +31,9 @@ export class EditPosition {
   }
 
   /** Resolves an address against the current voice content, not a detached history copy. */
-  public static resolveBeatPosition(position: BeatPosition): Beat {
+  public static resolveBeatPosition<I extends MusicInstrument>(
+    position: BeatPosition & { voiceBar: VoiceBar<I> }
+  ): Beat<I> {
     const beat = position.voiceBar.beats[position.index];
     if (beat === undefined) {
       throw Error("Cannot resolve saved note content outside its voice");

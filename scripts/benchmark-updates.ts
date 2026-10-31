@@ -186,10 +186,15 @@ function createMultipleBeatInsertionCase(
     name,
     buildScenario: () =>
       createScenario((score) => {
-        const staff = score.tracks[0].staves[0];
         const anchorBeat = getBeat(score, barIndex, anchorBeatIndex);
         const beatsToInsert = collectBeats(score, insertedBeats);
-        return [new InsertBeatsCommand(staff, anchorBeat, beatsToInsert)];
+        return [
+          new InsertBeatsCommand(
+            anchorBeat.voiceBar.bar,
+            anchorBeat,
+            beatsToInsert
+          ),
+        ];
       }),
   };
 }

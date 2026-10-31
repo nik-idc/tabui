@@ -11,14 +11,24 @@ import {
   VoiceNumber,
 } from "./voice-bar";
 
-/** Content copied into an original voice at an index in the current edit. */
+/** Content copied into an original voice bar at an index in the current edit. */
 export type BeatInsertion<I extends MusicInstrument = MusicInstrument> = {
-  /** Original voice, reinstalled when an earlier edit removed its slot. */
+  /** Original voice bar, reinstalled when an earlier edit removed its slot. */
   voiceBar: VoiceBar<I>;
   /** Position after preceding removals and insertions in this edit. */
   index: number;
-  /** Content to copy, not retained as live beats. */
+  /** Prepared destination-owned beats installed without another copy. */
   beats: Beat<I>[];
+};
+
+/** A saved voice bar with optional fixed beat content for history. */
+export type VoiceBarContentSnapshot<
+  I extends MusicInstrument = MusicInstrument,
+> = {
+  /** Original voice bar to reinstall. */
+  voiceBar: VoiceBar<I>;
+  /** Saved content and original beat objects; omitted for an unchanged voice bar. */
+  beats?: { beat: Beat<I>; content: Beat<I> }[];
 };
 
 /** Shared list of the four voice slots, in ascending order. */
@@ -104,12 +114,12 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
    * @throws If removing a non-empty voice would make the staff count negative.
    */
   public removeVoiceBar(voiceNumber: VoiceNumber): void {
-    this.clearVoiceSlot(voiceNumber);
+    this.clearVoiceBar(voiceNumber);
     this.resolveEmptyVoiceBars();
   }
 
   /** Clears a slot during a structural edit without normalizing intermediate content. */
-  private clearVoiceSlot(voiceNumber: VoiceNumber): void {
+  private clearVoiceBar(voiceNumber: VoiceNumber): void {
     const voiceBar = this._voiceBars[voiceNumber];
     if (voiceBar !== null) {
       this.staff.recordVoiceBarRemoved(voiceBar);
@@ -138,7 +148,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     if (voiceBar.bar !== this) {
       throw Error("Voice belongs to another bar");
     }
-    this.clearVoiceSlot(voiceBar.voiceNumber);
+    this.clearVoiceBar(voiceBar.voiceNumber);
     voiceBar.beats.splice(0, voiceBar.beats.length, ...beats);
     this._voiceBars[voiceBar.voiceNumber] = voiceBar;
     voiceBar.rebuildTiming();
@@ -146,10 +156,14 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
     this.resolveEmptyVoiceBars();
   }
 
-  /** Prepares all destination copies before removing beats, then normalizes this bar once. */
+  /**
+   * Installs prepared destination-owned beats, then normalizes this bar once.
+   * @param [normalize=true]  False keeps an empty voice bar attached until a structural edit completes.
+   */
   public replaceSelectedBeats(
     beats: Beat<I>[],
-    insertions: BeatInsertion<I>[] = []
+    insertions: BeatInsertion<I>[] = [],
+    normalize: boolean = true
   ): { removals: BeatRemovalOutput<I>[]; insertedBeats: Beat<I>[] } {
     beats = [...beats];
     insertions = insertions.map((i) => ({ ...i, beats: [...i.beats] }));
@@ -180,14 +194,11 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
       if (!Number.isInteger(index) || index < 0 || index > length) {
         throw Error(`${index} is invalid beat index`);
       }
+      if (beats.some((b) => b.voiceBar !== voiceBar)) {
+        throw Error("Inserted beat belongs to another voice bar");
+      }
       lengths.set(voiceBar, length + beats.length);
     }
-
-    // Copying can reject destination pitches, so finish every copy before editing.
-    const preparedInsertions = insertions.map((i) => ({
-      ...i,
-      beats: i.beats.map((b) => b.deepCopy(i.voiceBar)),
-    }));
 
     for (const voice of voices) {
       if (this.getVoiceBar(voice.voiceNumber) === voice) {
@@ -204,7 +215,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
       });
     }
     const insertedBeats: Beat<I>[] = [];
-    for (const insertion of preparedInsertions) {
+    for (const insertion of insertions) {
       const { voiceBar, index } = insertion;
       const oldVoice = this.getVoiceBar(voiceBar.voiceNumber);
       if (oldVoice !== voiceBar) {
@@ -222,7 +233,9 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
         this.staff.recordVoiceBarAdded(voice);
       }
     }
-    const normalization = this.resolveEmptyVoiceBars();
+    const normalization = normalize
+      ? this.resolveEmptyVoiceBars()
+      : { inserted: [], removedVoiceNumbers: null };
     const lastRemoval = removals[removals.length - 1];
     if (lastRemoval !== undefined) {
       lastRemoval.inserted = normalization.inserted;
@@ -252,7 +265,33 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
       }
     }
     const removed = [...new Set([...replacedBeats, ...present])];
-    return this.replaceSelectedBeats(removed, insertions).insertedBeats;
+    const prepared = insertions.map((i) => ({
+      ...i,
+      beats: i.beats.map((b) => b.deepCopy(i.voiceBar)),
+    }));
+    return this.replaceSelectedBeats(removed, prepared).insertedBeats;
+  }
+
+  /** Restores saved voice bars in their slots, without creating new fallback voice bars. */
+  public restoreVoiceBars(voiceBars: VoiceBarContentSnapshot<I>[]): void {
+    for (const number of VOICE_NUMBERS) {
+      this.clearVoiceBar(number);
+    }
+    for (const { voiceBar, beats } of voiceBars) {
+      if (beats !== undefined) {
+        for (const { beat, content } of beats) {
+          beat.restoreContent(content);
+        }
+        voiceBar.beats.splice(
+          0,
+          voiceBar.beats.length,
+          ...beats.map((b) => b.beat)
+        );
+        voiceBar.rebuildTiming();
+      }
+      this._voiceBars[voiceBar.voiceNumber] = voiceBar;
+      this.staff.recordVoiceBarAdded(voiceBar);
+    }
   }
 
   /** Reverses recorded removals in reverse order, including their fallback-rest changes. */
@@ -287,7 +326,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
         continue;
       }
 
-      this.clearVoiceSlot(voiceBar.voiceNumber);
+      this.clearVoiceBar(voiceBar.voiceNumber);
       removedVoiceNumbers.push(voiceBar.voiceNumber);
     }
 

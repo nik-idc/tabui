@@ -1,5 +1,6 @@
 import { NoteDuration } from "./note-duration";
 import { TupletSettings } from "./tuplet-settings";
+import type { Beat } from "./beat";
 
 /** Exact duration in whole-note units; fraction operations require a nonzero denominator, and ordering comparisons require positive denominators. */
 export type TimingFraction = {
@@ -65,6 +66,36 @@ export function multiplyFractions(
   return reduceFraction(
     a.numerator * b.numerator,
     a.denominator * b.denominator
+  );
+}
+
+/** Adds two exact beat durations without converting them to floating point. */
+export function addDurations(
+  first: TimingFraction,
+  second: TimingFraction
+): TimingFraction {
+  return reduceFraction(
+    first.numerator * second.denominator + second.numerator * first.denominator,
+    first.denominator * second.denominator
+  );
+}
+
+/** Subtracts two exact beat durations while preserving the fraction sign. */
+export function subtractDurations(
+  first: TimingFraction,
+  second: TimingFraction
+): TimingFraction {
+  return reduceFraction(
+    first.numerator * second.denominator - second.numerator * first.denominator,
+    first.denominator * second.denominator
+  );
+}
+
+/** Returns a beat's written duration after dots and tuplets are applied. */
+export function getBeatDuration(beat: Beat): TimingFraction {
+  return applyTupletToFraction(
+    applyDotsToFraction(getBaseDurationFraction(beat.baseDuration), beat.dots),
+    beat.tupletSettings
   );
 }
 

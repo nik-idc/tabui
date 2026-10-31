@@ -288,20 +288,17 @@ export type SerializedVoiceBar = {
   beats: SerializedBeat[];
 };
 
-/** Sparse voice position; `null` means that voice is absent from the bar. */
-export type SerializedVoiceSlot = SerializedVoiceBar | null;
-
-/** Fixed four-position tuple preserving sparse voice slots 1 through 4. */
-export type SerializedVoiceSlots = [
-  SerializedVoiceSlot,
-  SerializedVoiceSlot,
-  SerializedVoiceSlot,
-  SerializedVoiceSlot,
+/** Four voice bar positions, ordered by voice number; null means that voice is absent from the bar. */
+export type SerializedVoiceBars = [
+  SerializedVoiceBar | null,
+  SerializedVoiceBar | null,
+  SerializedVoiceBar | null,
+  SerializedVoiceBar | null,
 ];
 
 /** Four sparse voice positions; at least one voice must be present and each present voice must contain beats. Use null for absent voices. */
 export type SerializedBar = {
-  voices: SerializedVoiceSlots;
+  voices: SerializedVoiceBars;
 };
 
 /** Staff display settings and one bar per score master bar, in the same order; standard notation is not implemented. */

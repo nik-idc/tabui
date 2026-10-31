@@ -446,8 +446,11 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
       return [];
     }
 
-    return this.bar.replaceSelectedBeats([], [{ voiceBar: this, index, beats }])
-      .insertedBeats;
+    const copies = beats.map((beat) => beat.deepCopy(this));
+    return this.bar.replaceSelectedBeats(
+      [],
+      [{ voiceBar: this, index, beats: copies }]
+    ).insertedBeats;
   }
 
   /**

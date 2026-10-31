@@ -10,6 +10,7 @@ import {
   tupletSettingsInRange,
 } from "./tuplet-settings";
 import { GuitarTechniqueType, TechniqueType } from "./technique-type";
+import { NoteValue } from "./note";
 
 import {
   applyDotsToFraction,
@@ -244,6 +245,14 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     return this._notes === null;
   }
 
+  /** Returns true for a rest or a note lane containing only empty values. */
+  public isEmpty(): boolean {
+    return (
+      this._notes === null ||
+      this._notes.every((note) => note.noteValue === NoteValue.None)
+    );
+  }
+
   /**
    * Compares shared track-context identity, written rhythm, and note content, ignoring UUID and derived timing.
    * @param otherBeat Beat to compare with
@@ -313,6 +322,16 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
 
     beat._fallbackRestOwner = this._fallbackRestOwner;
     return beat;
+  }
+
+  /** Restores saved content from the same voice bar while keeping the beat object used by later commands. */
+  public restoreContent(content: Beat<I>): void {
+    this._notes = content._notes?.map((n) => n.deepCopy(this)) ?? null;
+    this._baseDuration = content._baseDuration;
+    this._dots = content._dots;
+    this._tupletSettings =
+      content._tupletSettings === null ? null : { ...content._tupletSettings };
+    this._fallbackRestOwner = content._fallbackRestOwner;
   }
 
   /** Marks a rest created by empty-bar normalization with its owning bar's identity. */

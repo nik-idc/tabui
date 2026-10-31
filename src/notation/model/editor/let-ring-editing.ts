@@ -1,5 +1,6 @@
 import { Beat } from "../beat";
 import { GuitarNote } from "../guitar-note";
+import { MusicInstrument } from "../instrument/instrument";
 import { Note } from "../note";
 import { GuitarTechniqueType } from "../technique-type";
 
@@ -72,7 +73,10 @@ export class LetRingEditing {
   }
 
   /** Finds next-beat ties and following empty markers that can lose support after a content edit. */
-  public static getNoteEditBeats(beats: Beat[], stringNumber?: number): Beat[] {
+  public static getNoteEditBeats<I extends MusicInstrument>(
+    beats: Beat<I>[],
+    stringNumber?: number
+  ): Beat<I>[] {
     const affected = new Set(beats);
     for (const beat of beats) {
       const staff = beat.voiceBar.bar.staff;

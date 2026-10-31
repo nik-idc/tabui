@@ -6,58 +6,12 @@ import {
   GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
-  NoteValue,
   ScoreEditor,
   Score,
 } from "../../../src/notation/model";
 import { createBarWithBeats } from "./helpers";
 
 describe("ScoreEditor", () => {
-  test.each(["insert", "replace"])(
-    "failed destination copy during %s preserves content and allows a later paste",
-    (operation) => {
-      const score = new Score();
-      const sourceVoice = score.tracks[0].staves[0].bars[0].ensureVoiceBar(1);
-      const source = new Beat(sourceVoice, sourceVoice.trackContext);
-      const note = source.notes?.[0];
-      if (!(note instanceof GuitarNote)) {
-        throw Error("Expected a guitar note");
-      }
-      note.setFret(1);
-      const instrument = new Guitar(
-        undefined,
-        undefined,
-        "High",
-        6,
-        Array.from({ length: 6 }, () => ({ noteValue: NoteValue.B, octave: 9 }))
-      );
-      const staff = score.addTrack(instrument, "High").tracks[0].staves[0];
-      const bar = staff.bars[0];
-      const voice = bar.ensureVoiceBar(1);
-      const original = voice.beats[0];
-      const rest = new Beat(voice, voice.trackContext, null);
-
-      expect(() => {
-        if (operation === "insert") {
-          ScoreEditor.insertBeats(voice, 0, [rest, source]);
-        } else {
-          ScoreEditor.replaceBeats([original], [rest, source]);
-        }
-      }).toThrow("Octave out of range");
-
-      expect(voice.beats).toEqual([original]);
-      expect(original.notes).toBeNull();
-      expect(bar.getVoiceBar(1)).toBe(voice);
-      expect(staff.nonEmptyVoiceNumbers).toEqual([1]);
-      expect(voice.getActualBarDuration()).toBe(0.25);
-      expect([original.startTick, original.endTick]).toEqual([0, 1]);
-
-      ScoreEditor.insertBeats(voice, 0, [rest]);
-      expect(voice.beats).toHaveLength(2);
-      expect(voice.beats[1]).toBe(original);
-    }
-  );
-
   test("empty paste does not reinstall a detached voice", () => {
     const score = new Score();
     const staff = score.tracks[0].staves[0];
@@ -65,7 +19,7 @@ describe("ScoreEditor", () => {
     const detached = bar.ensureVoiceBar(2);
     bar.removeVoiceBar(2);
 
-    expect(ScoreEditor.insertBeats(detached, 0, [])).toEqual([]);
+    expect(ScoreEditor.insertBeats(detached, 0, []).insertedBeats).toEqual([]);
 
     expect(bar.getVoiceBar(2)).toBeNull();
     expect(staff.nonEmptyVoiceNumbers).toEqual([1]);

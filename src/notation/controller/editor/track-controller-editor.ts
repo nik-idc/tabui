@@ -914,7 +914,7 @@ export class TrackControllerEditor {
         // Insert if currently not selecting
         this.executeCommand(
           new InsertBeatsCommand(
-            selectionCursor.bar.staff,
+            selectionCursor.bar,
             selectionCursor.beat,
             clipboard,
             this._selectionManager.activeVoiceNumber
