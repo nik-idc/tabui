@@ -271,11 +271,17 @@ async function checkBrowser() {
     preview: { host: "127.0.0.1", port: 0, strictPort: true },
   });
   let browser;
+  let forgetBrowser = () => {};
+  const forgetServer = project.addCleanup(
+    () => new Promise((resolve) => server.httpServer.close(resolve))
+  );
   try {
     const address = server.httpServer.address();
     assert(address !== null && typeof address !== "string");
     const origin = `http://127.0.0.1:${address.port}`;
-    browser = await chromium.launch({ timeout: 20_000 });
+    const launching = chromium.launch({ timeout: 20_000 });
+    forgetBrowser = project.addCleanup(async () => (await launching).close());
+    browser = await launching;
     const page = await browser.newPage({
       viewport: { width: 1600, height: 1000 },
     });
@@ -335,10 +341,12 @@ async function checkBrowser() {
   } finally {
     try {
       await browser?.close();
+      forgetBrowser();
     } finally {
       await new Promise((resolve, reject) =>
         server.httpServer.close((v) => (v ? reject(v) : resolve()))
       );
+      forgetServer();
     }
   }
 }

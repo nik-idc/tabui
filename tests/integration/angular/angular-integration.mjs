@@ -12,30 +12,11 @@ const fixture = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../../demo/angular"
 );
-const angular = "21.2.25";
 const project = await createConsumerProject(
   fixture,
   "angular",
+  {},
   {
-    "@angular/common": angular,
-    "@angular/compiler": angular,
-    "@angular/core": angular,
-    "@angular/forms": angular,
-    "@angular/platform-browser": angular,
-    rxjs: "7.8.2",
-    tslib: "2.8.1",
-    "zone.js": "0.16.0",
-  },
-  {
-    tools: [],
-    devDependencies: {
-      "@angular/build": "21.2.27",
-      "@angular/cli": "21.2.27",
-      "@angular/compiler-cli": angular,
-      typescript: "5.9.3",
-      // npm 10 otherwise crashes while resolving the builder's optional Vitest peers.
-      vitest: "4.0.8",
-    },
     scripts: { dev: "ng serve", build: "ng build", typecheck: "ngc --noEmit" },
     timeout: 300_000,
   }
@@ -51,8 +32,14 @@ const environment = {
 async function stopCLI(child) {
   if (child.exitCode !== null || child.signalCode !== null) return;
   const exited = once(child, "exit");
-  child.kill("SIGTERM");
-  const timer = setTimeout(() => child.kill("SIGKILL"), 5000);
+  process.kill(-child.pid, "SIGTERM");
+  const timer = setTimeout(() => {
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {
+      /* Already stopped. */
+    }
+  }, 5000);
   try {
     await exited;
   } finally {
@@ -67,10 +54,12 @@ async function startDevelopment(port) {
     [ng, "serve", "--port", String(port), "--host", "127.0.0.1", "--hmr=false"],
     {
       cwd: project.directory,
+      detached: true,
       env: environment,
       stdio: ["ignore", "pipe", "pipe"],
     }
   );
+  project.trackChild(child);
   let output = "";
   try {
     const origin = await new Promise((resolve, reject) => {
@@ -337,12 +326,17 @@ async function checkAngular(page) {
 
 /** Runs the same browser checks against native development and production builds. */
 async function checkBrowser() {
-  const browser = await chromium.launch({ timeout: 20_000 });
+  const launching = chromium.launch({ timeout: 20_000 });
+  const forgetBrowser = project.addCleanup(async () =>
+    (await launching).close()
+  );
+  const browser = await launching;
   try {
     for (const development of [true, false]) {
       const server = development
         ? await startDevelopment(0)
         : await startProduction();
+      const forgetServer = project.addCleanup(() => server.close());
       let page;
       try {
         page = await browser.newPage({
@@ -384,10 +378,12 @@ async function checkBrowser() {
       } finally {
         await page?.close();
         await server.close();
+        forgetServer();
       }
     }
   } finally {
     await browser.close();
+    forgetBrowser();
   }
 }
 

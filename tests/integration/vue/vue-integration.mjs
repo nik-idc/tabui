@@ -9,11 +9,7 @@ const fixture = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../../demo/vue"
 );
-const project = await createConsumerProject(fixture, "vue", {
-  vue: "3.5.44",
-  "vue-tsc": "3.3.13",
-  "@vitejs/plugin-vue": "5.2.4",
-});
+const project = await createConsumerProject(fixture, "vue");
 const configFile = path.join(project.directory, "vite.config.mjs");
 
 /** Checks HTML and SVG notation icons by decoding their bundled data URLs. */
@@ -261,7 +257,11 @@ async function checkVue(page) {
 
 /** Runs the SFC fixture against both the development server and production build. */
 async function checkBrowser() {
-  const browser = await chromium.launch({ timeout: 20_000 });
+  const launching = chromium.launch({ timeout: 20_000 });
+  const forgetBrowser = project.addCleanup(async () =>
+    (await launching).close()
+  );
+  const browser = await launching;
   try {
     for (const development of [true, false]) {
       const server = development
@@ -277,6 +277,11 @@ async function checkBrowser() {
             preview: { host: "127.0.0.1", port: 0, strictPort: true },
           });
       let page;
+      const forgetServer = project.addCleanup(() =>
+        development
+          ? server.close()
+          : new Promise((resolve) => server.httpServer.close(resolve))
+      );
       try {
         if (development) await server.listen();
         const address = server.httpServer.address();
@@ -328,10 +333,12 @@ async function checkBrowser() {
               server.httpServer.close((v) => (v ? reject(v) : resolve()))
             );
         }
+        forgetServer();
       }
     }
   } finally {
     await browser.close();
+    forgetBrowser();
   }
 }
 
@@ -344,6 +351,7 @@ async function runDemo() {
     optimizeDeps: { noDiscovery: true, include: [] },
     server: { host: "127.0.0.1", port: 5176, strictPort: true },
   });
+  const forgetServer = project.addCleanup(() => server.close());
   try {
     await server.listen();
     console.log("Vue demo: http://127.0.0.1:5176");
@@ -371,6 +379,7 @@ async function runDemo() {
       ]);
     } finally {
       clearTimeout(timer);
+      forgetServer();
     }
   }
 }

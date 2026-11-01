@@ -2,6 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": "node_modules/.cache/tabui-typecheck/tests.tsbuildinfo",
     "rootDir": ".",
     "types": ["jest", "node"],
     "paths": { "@atikincode/tabui": ["./src/index.ts"] }

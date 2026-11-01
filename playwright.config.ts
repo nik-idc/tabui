@@ -30,20 +30,20 @@ if (process.env.PLAYWRIGHT_WEBKIT === "1") {
 export default defineConfig({
   // Browser tests live separately from Jest's unit tests.
   testDir: "./tests/e2e",
-  // Keep tests within each file sequential while this initial suite stays small.
-  fullyParallel: false,
+  // Each test has its own browser context, including tests in the same file.
+  fullyParallel: true,
   // Allow multi-step tests to finish while Chromium and Firefox run in parallel.
   timeout: 30_000,
   use: {
-    // The local Vite server uses this path as its deployed GitHub Pages base.
-    baseURL: "http://127.0.0.1:5173",
+    // Keep the deployed GitHub Pages base on a dedicated test server.
+    baseURL: "http://127.0.0.1:4173",
   },
   projects: browserProjects,
   webServer: {
-    // Playwright starts Vite before tests and stops it after the run.
-    command: "npx vite --host 127.0.0.1 --open false",
-    url: "http://127.0.0.1:5173/tabui/",
-    // Reuse a manually started local server, but never reuse one in CI.
-    reuseExistingServer: !process.env.CI,
+    // Always build fresh bundles; never test a stale build or a dev server.
+    command:
+      "npx vite build --mode e2e && npx vite preview --mode e2e --host 127.0.0.1 --port 4173 --strictPort --open false",
+    url: "http://127.0.0.1:4173/tabui/",
+    reuseExistingServer: false,
   },
 });

@@ -52,7 +52,8 @@
     "test": "npm run test:unit",
     "test:unit": "tsc --project tsconfig.test.json && npx jest",
     "test:performance-stress": "tsc --project tsconfig.test.json && TABUI_RUN_PERFORMANCE_STRESS_TEST=1 npx jest tests/unit/demo/editor-fixture.spec.ts",
-    "test:integration": "npm run test:raw-integration && npm run test:react-integration && npm run test:angular-integration && npm run test:vue-integration",
+    "test:integration-tooling": "node --test tests/integration/*.test.mjs",
+    "test:integration": "npm run test:integration-tooling && node tests/integration/run-integrations.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:webkit": "PLAYWRIGHT_WEBKIT=1 playwright test --project=webkit",
@@ -65,8 +66,8 @@
     "test:vue-integration": "node tests/integration/vue/vue-integration.mjs",
     "demo:vue": "npm run build:package && node tests/integration/vue/vue-integration.mjs --demo",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
-    "verify": "tsc --noEmit && npm run build:package && npm run test:all && npm run build:demo",
-    "verify:ci": "tsc --noEmit && npm run build:package && npm run test:unit && npm run test:integration && npm run build:demo"
+    "verify": "npm run build:package && npm run test:all && npm run build:demo",
+    "verify:ci": "npm run build:package && npm run test:unit && npm run test:integration && npm run build:demo"
   },
   "devDependencies": {
     "@babel/core": "^7.24.5",

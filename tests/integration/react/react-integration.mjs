@@ -9,12 +9,7 @@ const fixture = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../../demo/react"
 );
-const project = await createConsumerProject(fixture, "react", {
-  react: "19.3.1",
-  "react-dom": "19.3.1",
-  "@types/react": "19.3.0",
-  "@types/react-dom": "19.3.0",
-});
+const project = await createConsumerProject(fixture, "react");
 
 /** Checks that rendered HTML and notation icons decode without hosted assets. */
 async function checkIcons(page) {
@@ -251,7 +246,11 @@ async function checkReact(page, development) {
 
 /** Tests both development Strict Mode effects and the production consumer build. */
 async function checkBrowser() {
-  const browser = await chromium.launch({ timeout: 20_000 });
+  const launching = chromium.launch({ timeout: 20_000 });
+  const forgetBrowser = project.addCleanup(async () =>
+    (await launching).close()
+  );
+  const browser = await launching;
   try {
     for (const development of [true, false]) {
       const server = development
@@ -267,6 +266,11 @@ async function checkBrowser() {
             preview: { host: "127.0.0.1", port: 0, strictPort: true },
           });
       let page;
+      const forgetServer = project.addCleanup(() =>
+        development
+          ? server.close()
+          : new Promise((resolve) => server.httpServer.close(resolve))
+      );
       try {
         if (development) await server.listen();
         const address = server.httpServer.address();
@@ -318,11 +322,13 @@ async function checkBrowser() {
               server.httpServer.close((v) => (v ? reject(v) : resolve()))
             );
           }
+          forgetServer();
         }
       }
     }
   } finally {
     await browser.close();
+    forgetBrowser();
   }
 }
 
@@ -333,6 +339,7 @@ async function runDemo() {
     configFile: false,
     server: { host: "127.0.0.1", port: 5174, strictPort: true },
   });
+  const forgetServer = project.addCleanup(() => server.close());
   try {
     await server.listen();
     console.log("React demo (Strict Mode enabled): http://127.0.0.1:5174");
@@ -361,6 +368,7 @@ async function runDemo() {
       ]);
     } finally {
       clearTimeout(timer);
+      forgetServer();
     }
   }
 }

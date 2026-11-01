@@ -245,11 +245,11 @@ test("traps focus and closes with Escape", async ({ page }) => {
 
 test("implements the instance dialog method contract", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
-  const result = await page.evaluate(async (workspace) => {
-    const path = `/tabui/@fs${workspace}/tests/e2e/dialog-fixture.ts`;
+  const result = await page.evaluate(async () => {
+    const path = "/tabui/e2e-fixture.js";
     const { createDialogFixture } = (await import(
       path
-    )) as typeof import("./dialog-fixture");
+    )) as typeof import("./browser-fixture");
     const fixture = createDialogFixture();
     const modal = fixture.first.dialog;
     const element = fixture.first.template.dialogContainer;
@@ -326,7 +326,7 @@ test("implements the instance dialog method contract", async ({ page }) => {
     };
     fixture.dispose();
     return result;
-  }, process.cwd());
+  });
 
   expect(result).toEqual({
     events: ["cancel:true", "cancel:true", "close:accepted", "close:complete"],
@@ -350,11 +350,11 @@ for (const mode of ["show", "showModal"] as const) {
     }) => {
       await page.goto("/tabui/?fixture=empty");
       const result = await page.evaluate(
-        async ({ mode, nextMode, workspace }) => {
-          const path = `/tabui/@fs${workspace}/tests/e2e/dialog-fixture.ts`;
+        async ({ mode, nextMode }) => {
+          const path = "/tabui/e2e-fixture.js";
           const { createDialogFixture } = (await import(
             path
-          )) as typeof import("./dialog-fixture");
+          )) as typeof import("./browser-fixture");
           const fixture = createDialogFixture();
           const { root } = fixture;
           const first = fixture.first.dialog;
@@ -410,7 +410,7 @@ for (const mode of ["show", "showModal"] as const) {
           fixture.dispose();
           return { ...result, secondOpenedAfterRelease };
         },
-        { mode, nextMode, workspace: process.cwd() }
+        { mode, nextMode }
       );
       expect(result).toEqual({
         errorName: "InvalidStateError",
@@ -431,11 +431,11 @@ for (const mode of ["show", "showModal"] as const) {
   }) => {
     await page.goto("/tabui/?fixture=empty");
     const results = await page.evaluate(
-      async ({ mode, workspace }) => {
-        const path = `/tabui/@fs${workspace}/tests/e2e/dialog-fixture.ts`;
+      async ({ mode }) => {
+        const path = "/tabui/e2e-fixture.js";
         const { createDialogFixture } = (await import(
           path
-        )) as typeof import("./dialog-fixture");
+        )) as typeof import("./browser-fixture");
         const fixture = createDialogFixture();
         const { root } = fixture;
         const first = fixture.first.dialog;
@@ -510,7 +510,7 @@ for (const mode of ["show", "showModal"] as const) {
         fixture.dispose();
         return results;
       },
-      { mode, workspace: process.cwd() }
+      { mode }
     );
     expect(results).toEqual(
       Array(4).fill({
@@ -526,13 +526,11 @@ for (const mode of ["show", "showModal"] as const) {
 
 test("keeps dialogs in separate editors independent", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
-  const otherEditor = await page.evaluateHandle(async (workspace) => {
-    const editorPath = `/tabui/@fs${workspace}/src/tabui-editor.ts`;
-    const fixturePath = "/tabui/data/fixture.ts";
-    const { TabUIEditor: editorClass } = (await import(
-      editorPath
-    )) as typeof import("../../src/tabui-editor");
-    const { resolveEditorFixture } = await import(fixturePath);
+  const otherEditor = await page.evaluateHandle(async () => {
+    const path = "/tabui/e2e-fixture.js";
+    const { TabUIEditor: editorClass, resolveEditorFixture } = (await import(
+      path
+    )) as typeof import("./browser-fixture");
     const otherRoot = document.createElement("div");
     otherRoot.id = "other-editor";
     document.body.appendChild(otherRoot);
@@ -542,7 +540,7 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
     );
     otherEditor.init();
     return otherEditor;
-  }, process.cwd());
+  });
   const primary = page.locator("#tabui-editor");
   const other = page.locator("#other-editor");
   const first = primary.getByRole("dialog", { name: "New track" });

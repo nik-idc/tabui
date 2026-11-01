@@ -476,13 +476,11 @@ test("keyboard ownership follows focus between two live editors", async ({
   page,
 }) => {
   const editor = await openEditor(page);
-  await page.evaluate(async (workspace) => {
-    const editorPath = `/tabui/@fs${workspace}/src/tabui-editor.ts`;
-    const fixturePath = "/tabui/data/fixture.ts";
-    const { TabUIEditor: editorClass } = (await import(
-      editorPath
-    )) as typeof import("../../src/tabui-editor");
-    const { resolveEditorFixture } = await import(fixturePath);
+  await page.evaluate(async () => {
+    const path = "/tabui/e2e-fixture.js";
+    const { TabUIEditor: editorClass, resolveEditorFixture } = (await import(
+      path
+    )) as typeof import("./browser-fixture");
     const root = document.createElement("div");
     root.id = "other-editor";
     document.body.appendChild(root);
@@ -490,7 +488,7 @@ test("keyboard ownership follows focus between two live editors", async ({
       root,
       resolveEditorFixture(new URLSearchParams("fixture=empty"))
     ).init();
-  }, process.cwd());
+  });
   const other = page.locator("#other-editor");
   const original = await editingState(editor);
   await other.locator('.tu-root-svg [id^="note-rect-"]').first().click();
