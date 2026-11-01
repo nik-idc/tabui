@@ -30,8 +30,6 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
   private _timeSigComponent: TimeSigControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   readonly beatsCountErrorText: string = "Invalid beats count";
@@ -40,15 +38,11 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
   constructor(
     timeSigComponent: TimeSigControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._timeSigComponent = timeSigComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   private beatsCountValid(beatsCountValue: string): boolean {
@@ -156,11 +150,6 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
         element: this._timeSigComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
-      },
-      {
-        element: this._timeSigComponent.template.dialogContainer,
-        event: "close",
-        handler: () => this._freeKeyboard(),
       },
       {
         element: this._timeSigComponent.template.beatsDownButton,

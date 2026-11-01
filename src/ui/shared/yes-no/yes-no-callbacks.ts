@@ -14,8 +14,6 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
   private _yesNoComponent: YesNoComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _onConfirm: () => void;
 
   private _listeners = new ListenerManager();
@@ -24,15 +22,11 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
     trackComponent: YesNoComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void,
     onConfirm: () => void
   ) {
     this._yesNoComponent = trackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
     this._onConfirm = onConfirm;
   }
 
@@ -63,11 +57,6 @@ export class YesNoDefaultCallbacks implements YesNoCallbacks {
         element: this._yesNoComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
-      },
-      {
-        element: this._yesNoComponent.template.dialogContainer,
-        event: "close",
-        handler: () => this._freeKeyboard(),
       },
       {
         element: this._yesNoComponent.template.yesNoDialogContent,

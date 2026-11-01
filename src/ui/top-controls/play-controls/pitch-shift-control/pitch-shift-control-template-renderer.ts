@@ -40,6 +40,7 @@ export class PitchShiftControlTemplateRenderer {
     template.image.src = resolveAssetUrl(assetsPath, "img/ui/pitch-shift.svg");
 
     template.valueElement.className = "tu-playback-pitch-shift-value";
+    template.valueElement.setAttribute("data-tu-focus-notation-on-wheel", "");
     template.valueElement.setAttribute("role", "spinbutton");
     template.valueElement.setAttribute(
       "aria-valuemin",

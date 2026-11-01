@@ -1,13 +1,20 @@
 import { expect, test } from "@playwright/test";
 import { requiredBoundingBox } from "./helpers";
 
-async function openBendDialog(page: import("@playwright/test").Page) {
+async function openBendDialog(
+  page: import("@playwright/test").Page,
+  keyboard = false
+) {
   const editor = page.locator("#tabui-editor");
   await editor.locator('.tu-root-svg [id^="note-rect-"]').first().click();
   await page.keyboard.press("1");
   const opener = editor.getByRole("button", { name: "Bend" });
   await opener.focus();
-  await opener.click();
+  if (keyboard) {
+    await page.keyboard.press("Enter");
+  } else {
+    await opener.click();
+  }
   return {
     dialog: editor.getByRole("dialog", { name: "Bend" }),
     editor,
@@ -205,7 +212,7 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
 
 test("contains bend focus and restores its opener", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
-  const { dialog, opener } = await openBendDialog(page);
+  const { dialog, opener } = await openBendDialog(page, true);
   const cancel = dialog.getByRole("button", { name: "Cancel" });
   const first = dialog.getByRole("button", { name: "Bend", exact: true });
 

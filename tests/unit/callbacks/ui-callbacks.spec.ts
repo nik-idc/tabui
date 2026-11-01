@@ -182,8 +182,8 @@ describe("mounted editor lifecycle and callbacks", () => {
     expect(state.selection.beats).toEqual([]);
     expect(state.selection.cursor).toMatchObject({
       beat: beats[0],
-      note: beats[0].notes?.[3],
-      noteIndex: 3,
+      note: beats[0].notes?.[0],
+      noteIndex: 0,
     });
     expect(state.layout.width).toBe(900);
     expect(state.layout.height).toBeGreaterThan(0);
@@ -203,6 +203,123 @@ describe("mounted editor lifecycle and callbacks", () => {
       })
     );
     expect(editor.getState().selection.beats).toEqual([beats[0]]);
+  });
+
+  test("a pointer toolbar action returns focus before real notation key events", () => {
+    const { editor, root } = mount();
+    const viewport = required(
+      root.querySelector<HTMLElement>(".tu-notation-viewport")
+    );
+    const dot = button(root, "Dot");
+    dot.focus();
+    dot.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 })
+    );
+
+    expect(document.activeElement).toBe(viewport);
+    key(root, "ArrowDown");
+    key(root, "5");
+    expect(
+      (editor.getState().selection.cursor?.note as GuitarNote | undefined)?.fret
+    ).toBe(5);
+  });
+
+  test("clicking empty editor space restores notation focus without changing selection", () => {
+    const { editor, root } = mount();
+    const viewport = required(
+      root.querySelector<HTMLElement>(".tu-notation-viewport")
+    );
+    const panel = required(
+      root.querySelector<HTMLElement>(".tu-top-controls-host")
+    );
+    const name = required(
+      root.querySelector<HTMLInputElement>(".tu-score-name-input")
+    );
+    const cursor = editor.getState().selection.cursor;
+    name.focus();
+    panel.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 })
+    );
+    expect(document.activeElement).toBe(viewport);
+    expect(editor.getState().selection.cursor).toEqual(cursor);
+    viewport.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })
+    );
+    expect(editor.getState().selection.cursor?.noteIndex).toBe(1);
+  });
+
+  test("native inputs, editable controls, and separate editor roots keep keyboard ownership", () => {
+    const first = mount();
+    const second = mount();
+    const firstNote = required(first.editor.getState().selection.cursor?.note);
+    expect(firstNote).toBeInstanceOf(GuitarNote);
+    if (!(firstNote instanceof GuitarNote)) {
+      throw Error("Expected a guitar note");
+    }
+    expect(firstNote.fret).toBeNull();
+    const volume = required(
+      first.root.querySelector<HTMLInputElement>(".tu-master-volume-input")
+    );
+    volume.focus();
+    const nativeKey = new KeyboardEvent("keydown", {
+      key: "5",
+      bubbles: true,
+      cancelable: true,
+    });
+    volume.dispatchEvent(nativeKey);
+    expect(nativeKey.defaultPrevented).toBe(false);
+    expect(first.editor.getState().selection.cursor?.note).toBe(firstNote);
+    expect(firstNote.fret).toBeNull();
+    expect(document.activeElement).toBe(volume);
+
+    const scoreName = required(
+      first.root.querySelector<HTMLInputElement>(".tu-score-name-input")
+    );
+    scoreName.focus();
+    const editableSpace = new KeyboardEvent("keydown", {
+      key: " ",
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    scoreName.dispatchEvent(editableSpace);
+    expect(editableSpace.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(scoreName);
+
+    const editableToolbar = document.createElement("div");
+    editableToolbar.setAttribute("contenteditable", "");
+    const editableButton = document.createElement("button");
+    editableToolbar.append(editableButton);
+    first.root.append(editableToolbar);
+    editableButton.focus();
+    const editableKey = new KeyboardEvent("keydown", {
+      key: " ",
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    editableButton.dispatchEvent(editableKey);
+    expect(editableKey.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(editableButton);
+
+    const secondDot = button(second.root, "Dot");
+    secondDot.focus();
+    secondDot.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 })
+    );
+    expect(document.activeElement).toBe(
+      required(second.root.querySelector<HTMLElement>(".tu-notation-viewport"))
+    );
+    key(second.root, "5");
+    expect(first.editor.getState().selection.cursor?.note).toBe(firstNote);
+    expect(firstNote.fret).toBeNull();
+    expect(
+      (
+        second.editor.getState().selection.cursor?.note as
+          | GuitarNote
+          | undefined
+      )?.fret
+    ).toBe(5);
   });
   test("subscriptions are disposable and isolated between mounted editors", () => {
     const first = mount();

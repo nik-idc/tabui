@@ -27,8 +27,7 @@ test("rejects an invalid repeat count and accepts a valid one", () => {
   const callbacks = new RepeatCountControlsDefaultCallbacks(
     controls,
     notation,
-    () => controls.render(),
-    () => {}
+    () => controls.render()
   );
 
   try {

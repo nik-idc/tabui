@@ -44,8 +44,6 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
   private _renderActiveVoiceFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
 
@@ -56,30 +54,22 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     noteComponent: NoteControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    renderActiveVoiceFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderActiveVoiceFunc: () => void
   ) {
     this._noteComponent = noteComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
     this._renderActiveVoiceFunc = renderActiveVoiceFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
 
     this._tupletCallbacks = new TupletControlsDefaultCallbacks(
       this._noteComponent.tupletComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._fretCallbacks = new FretControlsDefaultCallbacks(
       this._noteComponent.fretComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
   }
 
@@ -130,7 +120,6 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   }
 
   onTupletClicked(): void {
-    this._captureKeyboard();
     this._noteComponent.showTupletControls();
   }
 

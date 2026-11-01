@@ -18,6 +18,9 @@ guidance, see the [usage guide](usage.md).
 - Editing and navigation shortcuts apply only while the **Notation editor** area has focus.
   Use Tab to reach it, or activate **Skip to notation**. They do not apply while
   typing in a form field or using a dialog.
+- Pointer clicks on empty editor space or ordinary toolbar controls return focus to notation before
+  the action. After a pointer action, Tab continues from notation rather than the
+  clicked control; keyboard navigation keeps native control focus.
 - Use **Ctrl**, including on macOS. Command is not a substitute. Shortcuts with
   Alt or Command/Meta are ignored, as are text-composition events.
 - Letters below do not require Shift unless it is shown. For example, `V` and
@@ -57,10 +60,11 @@ guidance, see the [usage guide](usage.md).
 
 Copy and paste use TabUI's internal clipboard, not a plain-text tablature import.
 
-On toolbar buttons, Space toggles playback after a mouse click. After Tab or
-arrow-key navigation, Space activates the focused button normally; use Shift+Space
-for playback instead. Enter always keeps its normal button action. Holding a
-playback shortcut does not toggle playback repeatedly.
+On an ordinary toolbar button, a pointer click returns focus to notation before
+the button action. Tab and arrow-key navigation keep native focus behavior. Use
+Shift+Space on an actually focused toolbar button to toggle playback; ordinary
+Space and Enter keep their native button actions. Holding a playback shortcut
+does not toggle playback repeatedly.
 
 Using a playback shortcut on a toolbar button returns focus to notation, so the
 next Space can stop playback even if the button becomes disabled.

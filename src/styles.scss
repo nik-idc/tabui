@@ -550,8 +550,8 @@
     min-height: 0;
 
     &:focus-visible {
-      outline: 3px solid var(--tu-notation-selection-stroke);
-      outline-offset: 2px;
+      outline: 2px solid var(--tu-font-color);
+      outline-offset: -2px;
     }
 
     &.tu-single-line-notation {

@@ -200,8 +200,8 @@ describe("BendControlsDefaultCallbacks", () => {
     expect(controller.selectionAsBeats[0].notes).toBeNull();
   });
 
-  test("cancel releases keyboard ownership and detaches the old graph controls", () => {
-    const { callbacks, component, keyboard, selectedNote } = harness;
+  test("cancel detaches the old graph controls", () => {
+    const { callbacks, component, selectedNote } = harness;
     callbacks.bind();
     harness.open();
     const point =
@@ -219,7 +219,6 @@ describe("BendControlsDefaultCallbacks", () => {
     expect(point.getAttribute("cy")).toBe(before);
     expect(component.dialog.open).toBe(false);
     expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
-    expect(keyboard).toEqual({ captures: 1, releases: 1 });
 
     harness.open();
     const reopenedPoint =
@@ -233,6 +232,5 @@ describe("BendControlsDefaultCallbacks", () => {
     );
     expect(reopenedPoint.getAttribute("cy")).toBe("175");
     component.template.cancelButton.click();
-    expect(keyboard).toEqual({ captures: 2, releases: 2 });
   });
 });

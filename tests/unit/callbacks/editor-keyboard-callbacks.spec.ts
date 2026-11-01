@@ -1,3 +1,4 @@
+import { JSDOM } from "jsdom";
 import { EditorKeyboardDefCallbacks } from "../../../src/notation/input/editor-keyboard-callbacks";
 import {
   DEFAULT_MASTER_BAR,
@@ -27,52 +28,14 @@ function createKeyboardEvent(
   } as any;
 }
 
-type FakeRootElement = HTMLElement & {
-  dispatch(event: string): void;
-};
-
-function createRootElement(): FakeRootElement {
-  const listeners = new Map<string, Set<(...args: any[]) => void>>();
-  return {
-    /** Models DOM containment through the parent chain, including self. */
-    contains(node: Node | null): boolean {
-      while (node) {
-        if (node === this) {
-          return true;
-        }
-        node = node.parentNode;
-      }
-      return false;
-    },
-    /** Moves document focus before notifying root focus listeners. */
-    focus(): void {
-      (document as any).activeElement = this;
-      this.dispatch("focusin");
-    },
-    addEventListener: jest.fn(
-      (event: string, handler: (...args: any[]) => void) => {
-        const handlers = listeners.get(event) ?? new Set();
-        handlers.add(handler);
-        listeners.set(event, handlers);
-      }
-    ),
-    removeEventListener: jest.fn(
-      (event: string, handler: (...args: any[]) => void) => {
-        listeners.get(event)?.delete(handler);
-      }
-    ),
-    dispatch(event: string): void {
-      if (event === "focusin" || event === "mousedown") {
-        (document as any).activeElement = this;
-      }
-      for (const handler of listeners.get(event) ?? []) {
-        handler({});
-      }
-    },
-  } as any;
+function createRootElement(): HTMLElement {
+  const root = document.createElement("div");
+  root.tabIndex = 0;
+  document.body.append(root);
+  return root;
 }
 
-function createHarness(rootElement: FakeRootElement = createRootElement()) {
+function createHarness(rootElement: HTMLElement = createRootElement()) {
   const trackControllerEditor = {
     copy: jest.fn(),
     paste: jest.fn(),
@@ -186,20 +149,43 @@ function withKeyboardFixture(
 }
 
 describe("EditorKeyboardDefCallbacks", () => {
-  let originalDocument: any;
+  const domGlobals = [
+    "window",
+    "document",
+    "HTMLElement",
+    "Element",
+    "Node",
+    "Event",
+    "KeyboardEvent",
+  ] as const;
+  let dom: JSDOM;
+  let previousGlobals: (PropertyDescriptor | undefined)[];
 
   beforeEach(() => {
-    originalDocument = (globalThis as any).document;
-    (globalThis as any).document = {
-      activeElement: null,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    };
+    dom = new JSDOM();
+    previousGlobals = domGlobals.map((k) =>
+      Object.getOwnPropertyDescriptor(globalThis, k)
+    );
+    for (const key of domGlobals) {
+      Object.defineProperty(globalThis, key, {
+        configurable: true,
+        writable: true,
+        value: dom.window[key],
+      });
+    }
   });
 
   afterEach(() => {
-    (globalThis as any).document = originalDocument;
     jest.restoreAllMocks();
+    for (const [i, k] of domGlobals.entries()) {
+      const descriptor = previousGlobals[i];
+      if (descriptor) {
+        Object.defineProperty(globalThis, k, descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, k);
+      }
+    }
+    dom.window.close();
   });
 
   test.each([
@@ -821,24 +807,19 @@ describe("EditorKeyboardDefCallbacks", () => {
     });
   });
 
-  test("toolbar playback restores notation focus and consumes held Space without toggling again", () => {
+  test("notation playback consumes held Space without toggling again", () => {
     withKeyboardFixture(({ callbacks, root }) => {
-      const button = document.createElement("button");
-      root.append(button);
       const toggle = jest
         .spyOn(callbacks, "togglePlaybackEvent")
-        .mockImplementation(() => {
-          button.disabled = true;
-        });
+        .mockImplementation(() => {});
       callbacks.bind();
-      button.dispatchEvent(new window.Event("pointerdown", { bubbles: true }));
-      button.focus();
+      root.focus();
       const first = new window.KeyboardEvent("keydown", {
         key: " ",
         bubbles: true,
         cancelable: true,
       });
-      button.dispatchEvent(first);
+      root.dispatchEvent(first);
       expect(first.defaultPrevented).toBe(true);
       expect(document.activeElement).toBe(root);
       expect(toggle).toHaveBeenCalledTimes(1);
@@ -868,7 +849,7 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test.each(["Tab", "ArrowRight"])(
-    "%s restores native button keys after a pointer click",
+    "%s leaves native toolbar keys available with explicit playback override",
     (key) => {
       withKeyboardFixture(({ callbacks, root }) => {
         const button = document.createElement("button");
@@ -877,9 +858,6 @@ describe("EditorKeyboardDefCallbacks", () => {
           .spyOn(callbacks, "togglePlaybackEvent")
           .mockImplementation(() => {});
         callbacks.bind();
-        button.dispatchEvent(
-          new window.Event("pointerdown", { bubbles: true })
-        );
         button.focus();
         button.dispatchEvent(
           new window.KeyboardEvent("keydown", { key, bubbles: true })
@@ -908,52 +886,42 @@ describe("EditorKeyboardDefCallbacks", () => {
     }
   );
 
-  test.each([false, true])(
-    "dialog events preserve pointer mode=%s and never trigger playback",
-    (pointerMode) => {
-      withKeyboardFixture(({ callbacks, root }) => {
-        const button = document.createElement("button");
-        const dialog = document.createElement("dialog");
-        const dialogButton = document.createElement("button");
-        dialog.append(dialogButton);
-        root.append(button, dialog);
-        const toggle = jest
-          .spyOn(callbacks, "togglePlaybackEvent")
-          .mockImplementation(() => {});
-        callbacks.bind();
-        if (pointerMode)
-          button.dispatchEvent(
-            new window.Event("pointerdown", { bubbles: true })
-          );
-        dialog.setAttribute("open", "");
-        dialogButton.focus();
-        dialogButton.dispatchEvent(
-          new window.Event("pointerdown", { bubbles: true })
-        );
-        for (const key of ["Tab", "ArrowRight", " "]) {
-          const event = new window.KeyboardEvent("keydown", {
-            key,
-            shiftKey: true,
-            bubbles: true,
-            cancelable: true,
-          });
-          dialogButton.dispatchEvent(event);
-          expect(event.defaultPrevented).toBe(false);
-        }
-        expect(toggle).not.toHaveBeenCalled();
-        dialog.removeAttribute("open");
-        button.focus();
-        const space = new window.KeyboardEvent("keydown", {
-          key: " ",
+  test("dialog events leave native keys available without enabling toolbar playback", () => {
+    withKeyboardFixture(({ callbacks, root }) => {
+      const button = document.createElement("button");
+      const dialog = document.createElement("dialog");
+      const dialogButton = document.createElement("button");
+      dialog.append(dialogButton);
+      root.append(button, dialog);
+      const toggle = jest
+        .spyOn(callbacks, "togglePlaybackEvent")
+        .mockImplementation(() => {});
+      callbacks.bind();
+      dialog.setAttribute("open", "");
+      dialogButton.focus();
+      for (const key of ["Tab", "ArrowRight", " "]) {
+        const event = new window.KeyboardEvent("keydown", {
+          key,
+          shiftKey: true,
           bubbles: true,
           cancelable: true,
         });
-        button.dispatchEvent(space);
-        expect(space.defaultPrevented).toBe(pointerMode);
-        expect(toggle).toHaveBeenCalledTimes(pointerMode ? 1 : 0);
+        dialogButton.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(false);
+      }
+      expect(toggle).not.toHaveBeenCalled();
+      dialog.removeAttribute("open");
+      button.focus();
+      const space = new window.KeyboardEvent("keydown", {
+        key: " ",
+        bubbles: true,
+        cancelable: true,
       });
-    }
-  );
+      button.dispatchEvent(space);
+      expect(space.defaultPrevented).toBe(false);
+      expect(toggle).not.toHaveBeenCalled();
+    });
+  });
 
   test("playback shortcuts leave fields, outside buttons, and unsupported modifiers alone", () => {
     withKeyboardFixture(({ callbacks, root }) => {

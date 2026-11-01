@@ -8,8 +8,6 @@ export interface TrackControlsCallbacks {
   onTrackMoveUpClicked(): void;
   onTrackMoveDownClicked(): void;
   onTrackNameChanged(): void;
-  onTrackNameFocusGained(): void;
-  onTrackNameFocusLost(): void;
   onTrackVolumeChanged(event: InputEvent): void;
   onTrackPanningChanged(event: InputEvent): void;
   onMuteButtonClicked(): void;
@@ -23,8 +21,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   private _trackComponent: TrackControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _showTrackSettings: () => void;
   private _showTrackRemove: () => void;
 
@@ -35,16 +31,12 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     trackComponent: TrackControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void,
     showTrackSettings: () => void,
     showTrackRemove: () => void
   ) {
     this._trackComponent = trackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
     this._showTrackSettings = showTrackSettings;
     this._showTrackRemove = showTrackRemove;
   }
@@ -58,7 +50,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     ) {
       return;
     }
-    this._captureKeyboard();
     this._showTrackRemove();
   }
 
@@ -97,14 +88,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
       this._trackComponent.track,
       this._trackComponent.template.trackNameInput.value
     );
-  }
-
-  onTrackNameFocusGained(): void {
-    this._captureKeyboard();
-  }
-
-  onTrackNameFocusLost(): void {
-    this._freeKeyboard();
   }
 
   onTrackVolumeChanged(event: Event): void {
@@ -148,7 +131,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     if (controller.isPlaybackActive) {
       return;
     }
-    this._captureKeyboard();
     this._showTrackSettings();
   }
 
@@ -182,16 +164,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
         element: this._trackComponent.template.trackNameInput,
         event: "input",
         handler: () => this.onTrackNameChanged(),
-      },
-      {
-        element: this._trackComponent.template.trackNameInput,
-        event: "focus",
-        handler: () => this.onTrackNameFocusGained(),
-      },
-      {
-        element: this._trackComponent.template.trackNameInput,
-        event: "focusout",
-        handler: () => this.onTrackNameFocusLost(),
       },
       {
         element: this._trackComponent.template.volumeInput,

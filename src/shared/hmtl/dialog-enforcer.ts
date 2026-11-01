@@ -3,7 +3,14 @@ import type { ContainedDialog } from "./contained-dialog";
 /** Enforces one open dialog and owns modal effects within one editor. */
 export class DialogEnforcer {
   activeDialog?: ContainedDialog;
+  /** True only while a contained dialog synchronously restores its opener focus. */
+  private _restoringFocus = false;
   private readonly _inertStates = new Map<HTMLElement, boolean>();
+
+  /** Reports opener focus restoration so notation does not announce unchanged content. */
+  public get isRestoringFocus(): boolean {
+    return this._restoringFocus;
+  }
 
   /** Uses the shell's host and its single announcement region. */
   constructor(
@@ -71,5 +78,15 @@ export class DialogEnforcer {
       );
     }
     this._mountAnnouncer(parent);
+  }
+
+  /** Restores the opener without treating the return as new keyboard navigation. */
+  public restoreFocus(element: HTMLElement | undefined): void {
+    this._restoringFocus = true;
+    try {
+      element?.focus();
+    } finally {
+      this._restoringFocus = false;
+    }
   }
 }

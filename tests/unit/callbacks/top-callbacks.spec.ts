@@ -39,9 +39,7 @@ describe("TopControlsCallbacks", () => {
     const callbacks = new TopControlsCallbacks(
       ui.topComponent,
       notation,
-      render,
-      () => {},
-      () => {}
+      render
     );
     try {
       ui.render();

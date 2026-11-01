@@ -25,18 +25,15 @@ function createTimeSigHarness(duration = NoteDuration.Quarter) {
     notationComponent,
     () => {}
   );
-  const freeKeyboard = jest.fn();
   const callbacks = new TimeSigControlsDefaultCallbacks(
     component,
     notationComponent,
-    () => {},
-    () => {},
-    freeKeyboard
+    () => {}
   );
   component.render();
   component.dialog.showModal();
 
-  return { callbacks, component, controller, score, freeKeyboard };
+  return { callbacks, component, controller, score };
 }
 
 describe("TimeSigControlsDefaultCallbacks", () => {
@@ -92,8 +89,7 @@ describe("TimeSigControlsDefaultCallbacks", () => {
   });
 
   test("confirm commits time signature once after repeated bind and stops after unbind", () => {
-    const { callbacks, component, controller, score, freeKeyboard } =
-      createTimeSigHarness();
+    const { callbacks, component, controller, score } = createTimeSigHarness();
     callbacks.bind();
     callbacks.bind();
     callbacks.onBeatsStep(3);
@@ -107,7 +103,6 @@ describe("TimeSigControlsDefaultCallbacks", () => {
     expect(score.masterBars[0].beatsCount).toBe(7);
     expect(score.masterBars[0].duration).toBe(NoteDuration.Eighth);
     expect(component.dialog.open).toBe(false);
-    expect(freeKeyboard).toHaveBeenCalledTimes(1);
     controller.undo();
     expect(score.masterBars[0].beatsCount).toBe(4);
     expect(score.masterBars[0].duration).toBe(NoteDuration.Quarter);

@@ -22,13 +22,10 @@ export function createBendControlsHarness() {
     owner as NotationComponent,
     () => {}
   );
-  const keyboard = { captures: 0, releases: 0 };
   const callbacks = new BendControlsDefaultCallbacks(
     component,
     owner as NotationComponent,
-    () => component.render(),
-    () => keyboard.captures++,
-    () => keyboard.releases++
+    () => component.render()
   );
   component.render();
 
@@ -36,7 +33,6 @@ export function createBendControlsHarness() {
     component,
     controller,
     callbacks,
-    keyboard,
     selectedNote(): GuitarNote {
       const note = controller.selectionCursor?.note;
       if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");

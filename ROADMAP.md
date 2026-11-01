@@ -88,7 +88,10 @@ replace release validation.
   - [x] Restore editing selection when playback returns to idle: select the last
         seeked beat, or the last selected beat if playback did not seek. Cover Stop,
         natural completion, and cancelled startup.
-- [ ] Unify cross string LR markings
+- [x] Unify cross string LR markings
+- [x] Redo insert & paste
+- [x] Fix focus issues
+- [ ] Use system clipboard
 
 ## Follow-up inbox
 

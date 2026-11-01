@@ -28,8 +28,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   private _newTrackComponent: NewTrackControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   readonly trackNameErrorText: string = "Invalid track name";
@@ -41,15 +39,11 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   constructor(
     newTrackComponent: NewTrackControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._newTrackComponent = newTrackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   onDialogClicked(event: MouseEvent): void {
@@ -145,11 +139,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       element: this._newTrackComponent.template.dialogContainer as HTMLElement,
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
-    });
-    configs.push({
-      element: this._newTrackComponent.template.dialogContainer as HTMLElement,
-      event: "close",
-      handler: () => this._freeKeyboard(),
     });
 
     const types = INSTRUMENT_TYPES[this._newTrackComponent.instrumentFamily];

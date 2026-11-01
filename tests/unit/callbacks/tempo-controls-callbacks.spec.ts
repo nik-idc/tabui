@@ -24,17 +24,8 @@ function createTempoHarness() {
     notation,
     () => {}
   );
-  let keyboardOwned = true;
-  const callbacks = new TempoControlsDefaultCallbacks(
-    component,
-    notation,
-    () => component.render(),
-    () => {
-      keyboardOwned = true;
-    },
-    () => {
-      keyboardOwned = false;
-    }
+  const callbacks = new TempoControlsDefaultCallbacks(component, notation, () =>
+    component.render()
   );
   component.render();
   callbacks.bind();
@@ -45,7 +36,6 @@ function createTempoHarness() {
     component,
     controller,
     masterBar,
-    keyboardOwned: () => keyboardOwned,
     dispose: () => {
       component.dialog.close();
       callbacks.unbind();
@@ -97,9 +87,8 @@ describe("TempoControlsDefaultCallbacks", () => {
     }
   });
 
-  test("confirm commits undoable tempo, closes, and frees keyboard", () => {
-    const { component, controller, masterBar, keyboardOwned, dispose } =
-      createTempoHarness();
+  test("confirm commits undoable tempo and closes", () => {
+    const { component, controller, masterBar, dispose } = createTempoHarness();
     try {
       for (let i = 0; i < 6; i++) component.template.increaseTenButton.click();
       component.template.dialogContent.dispatchEvent(
@@ -107,7 +96,6 @@ describe("TempoControlsDefaultCallbacks", () => {
       );
       expect(masterBar.tempo).toBe(180);
       expect(component.dialog.open).toBe(false);
-      expect(keyboardOwned()).toBe(false);
       controller.undo();
       expect(masterBar.tempo).toBe(120);
       controller.redo();
@@ -121,15 +109,12 @@ describe("TempoControlsDefaultCallbacks", () => {
   });
 
   test("dialog clicks close only when clicking outside content", () => {
-    const { component, masterBar, keyboardOwned, dispose } =
-      createTempoHarness();
+    const { component, masterBar, dispose } = createTempoHarness();
     try {
       component.template.increaseButton.click();
       expect(component.dialog.open).toBe(true);
-      expect(keyboardOwned()).toBe(true);
       component.template.dialogContainer.click();
       expect(component.dialog.open).toBe(false);
-      expect(keyboardOwned()).toBe(false);
       expect(masterBar.tempo).toBe(120);
     } finally {
       dispose();

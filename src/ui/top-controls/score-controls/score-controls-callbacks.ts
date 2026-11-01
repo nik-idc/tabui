@@ -25,8 +25,6 @@ export interface ScoreControlsCallbacks {
   onMasterVolumeChanged(): void;
   onMasterPanningChanged(): void;
   onScoreNameChanged(): void;
-  onScoreNameFocusGained(): void;
-  onScoreNameFocusLost(): void;
   bind(): void;
   unbind(): void;
 }
@@ -35,8 +33,6 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   private _scoreComponent: ScoreControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _showTrackSettings: (track: Track) => void;
 
   private _trackCallbacks: TrackControlsCallbacks[] = [];
@@ -53,37 +49,27 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     scoreComponent: ScoreControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void,
     showTrackSettings: (track: Track) => void
   ) {
     this._scoreComponent = scoreComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
     this._showTrackSettings = showTrackSettings;
 
     this._newTrackCallbacks = new NewTrackControlsDefaultCallbacks(
       this._scoreComponent.newTrackComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._trackSettingsCallbacks = new TrackSettingsControlsDefaultCallbacks(
       this._scoreComponent.trackSettingsComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._trackRemoveCallbacks = new YesNoDefaultCallbacks(
       this._scoreComponent.trackRemoveComponent,
       this._notationComponent,
       this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard,
       () => this._scoreComponent.removeSelectedTrack()
     );
   }
@@ -102,7 +88,6 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     if (controller.isPlaybackActive) {
       return;
     }
-    this._captureKeyboard();
     this._scoreComponent.showNewTrackDialog();
   }
 
@@ -131,14 +116,6 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     );
   }
 
-  onScoreNameFocusGained(): void {
-    this._captureKeyboard();
-  }
-
-  onScoreNameFocusLost(): void {
-    this._freeKeyboard();
-  }
-
   private bindTracksCallbacks(): void {
     for (const trackCallbacks of this._trackCallbacks) {
       trackCallbacks.unbind();
@@ -150,8 +127,6 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
         trackComponent,
         this._notationComponent,
         this._renderFunc,
-        this._captureKeyboard,
-        this._freeKeyboard,
         () => this._showTrackSettings(trackComponent.track),
         () => this._scoreComponent.showTrackRemoveDialog(trackComponent.track)
       );
@@ -191,16 +166,6 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
         element: this._scoreComponent.template.scoreNameInput,
         event: "input",
         handler: () => this.onScoreNameChanged(),
-      },
-      {
-        element: this._scoreComponent.template.scoreNameInput,
-        event: "focus",
-        handler: () => this.onScoreNameFocusGained(),
-      },
-      {
-        element: this._scoreComponent.template.scoreNameInput,
-        event: "focusout",
-        handler: () => this.onScoreNameFocusLost(),
       },
     ]);
 

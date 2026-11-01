@@ -122,8 +122,6 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   private _bound: boolean = false;
   private _prevKeyPress?: { time: number; key: string; note: Note | null };
   private _boundOnKeyDown: (event: KeyboardEvent) => void;
-  private _boundOnPointerDown: (event: PointerEvent) => void;
-  private _pointerMode: boolean = false;
 
   constructor(
     uiComponent: UIComponent,
@@ -139,7 +137,6 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._announce = announce;
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
-    this._boundOnPointerDown = this.onPointerDown.bind(this);
   }
 
   public copyEvent(): void {
@@ -524,10 +521,48 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
   /** Handles notation shortcuts and toolbar playback shortcuts. */
   public onKeyDown(event: KeyboardEvent): void {
-    if (this.handleControlPlayback(event)) {
+    if (!this.isKeyboardEventEligible(event)) {
       return;
     }
-    if (!this.isKeyboardEventEligible(event)) {
+
+    const activeElement = document.activeElement;
+    const notationFocused = activeElement === this._notationComponent.rootDiv;
+    const target = event.target ?? document.activeElement;
+    const toolbarButton =
+      typeof Element !== "undefined" && target instanceof Element
+        ? target.closest("button")
+        : null;
+    const toolbarPlayback =
+      event.key === EditorKey.TogglePlayback &&
+      event.shiftKey &&
+      !event.ctrlKey &&
+      toolbarButton !== null &&
+      this._rootElement.contains(toolbarButton) &&
+      activeElement === toolbarButton;
+
+    if (!notationFocused && !toolbarPlayback) {
+      return;
+    }
+
+    if (toolbarPlayback) {
+      event.preventDefault();
+      if (!event.repeat) {
+        // Keep focus in notation if playback disables the button.
+        this._notationComponent.rootDiv.focus({ preventScroll: true });
+        this.togglePlaybackEvent();
+      }
+      return;
+    }
+
+    if (
+      notationFocused &&
+      event.key === EditorKey.TogglePlayback &&
+      !event.ctrlKey
+    ) {
+      event.preventDefault();
+      if (!event.repeat) {
+        this.togglePlaybackEvent();
+      }
       return;
     }
 
@@ -536,94 +571,25 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
   }
 
-  /** Lets Space control playback after a toolbar click, ignoring dialog clicks. */
-  private onPointerDown(event: PointerEvent): void {
-    if (
-      event.target instanceof Element &&
-      event.target.closest("button") &&
-      !event.target.closest("dialog, .tu-dialog")
-    ) {
-      this._pointerMode = true;
-    }
-  }
-
-  /**
-   * Tracks keyboard navigation and handles playback shortcuts in notation and toolbars.
-   * Returns true when Space or Shift+Space is consumed for playback, including
-   * ignored key repeats. Returns false when normal key handling should continue.
-   */
-  private handleControlPlayback(event: KeyboardEvent): boolean {
-    const notationPlayback =
-      event.key === EditorKey.TogglePlayback &&
-      !event.ctrlKey &&
-      this.isKeyboardEventEligible(event);
-    const target = event.target;
-
-    if (!notationPlayback) {
-      if (typeof Element === "undefined" || !(target instanceof Element)) {
-        return false;
-      }
-      if (target.closest("dialog, .tu-dialog")) {
-        return false;
-      }
-
-      const owned = this._rootElement.contains(target);
-      if (
-        event.key === "Tab" ||
-        (owned && KeyChecker.isArrow(event.key.toLowerCase()))
-      ) {
-        this._pointerMode = false;
-      }
-      if (
-        !owned ||
-        event.key !== EditorKey.TogglePlayback ||
-        event.defaultPrevented ||
-        event.ctrlKey ||
-        event.altKey ||
-        event.metaKey ||
-        event.isComposing ||
-        event.keyCode === 229 ||
-        (!event.shiftKey && !this._pointerMode) ||
-        !target.matches("button")
-      ) {
-        return false;
-      }
-    }
-
-    event.preventDefault();
-    if (!event.repeat) {
-      if (!notationPlayback) {
-        // Keep focus in notation if playback disables the button.
-        this._notationComponent.rootDiv.focus({ preventScroll: true });
-      }
-
-      this.togglePlaybackEvent();
-    }
-    return true;
-  }
-
-  /** Checks focus ownership and excludes browser and control input. */
+  /** Checks the shared focus, ownership, and browser-control boundary. */
   private isKeyboardEventEligible(event: KeyboardEvent): boolean {
-    const activeElement =
-      typeof document === "undefined" ? null : document.activeElement;
-    const notationFocused =
-      activeElement !== null &&
-      activeElement === this._notationComponent.rootDiv &&
-      this._rootElement.contains(activeElement);
-    if (!notationFocused) {
+    const target = event.target ?? document.activeElement;
+    if (typeof Element === "undefined" || !(target instanceof Element)) {
       return false;
     }
-
-    // Defending against control events leaking into the notation editor
-    const target = event.target;
-    if (typeof Element !== "undefined" && target instanceof Element) {
-      const interactive =
-        target.matches(
-          "button, input, textarea, select, a, [contenteditable='true']"
-        ) || target.closest("dialog[open], .tu-dialog[open]") !== null;
-      if (interactive) {
-        return false;
-      }
+    if (!this._rootElement.contains(target)) {
+      return false;
+    }
+    if (target.closest("dialog, .tu-dialog") !== null) {
+      return false;
+    }
+    const contentEditable = target.closest("[contenteditable]");
+    const interactive =
+      target.closest("input, textarea, select, a") !== null ||
+      (contentEditable !== null &&
+        contentEditable.getAttribute("contenteditable") !== "false");
+    if (interactive) {
+      return false;
     }
 
     if (
@@ -633,6 +599,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       event.isComposing ||
       event.keyCode === 229 // Fallback for legacy browsers
     ) {
+      return false;
+    }
+
+    if (this._uiComponent.dialogEnforcer?.activeDialog) {
       return false;
     }
 
@@ -774,7 +744,6 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
     document.addEventListener("keydown", this._boundOnKeyDown);
-    this._rootElement.addEventListener("pointerdown", this._boundOnPointerDown);
     this._bound = true;
   }
 
@@ -784,10 +753,6 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
 
     document.removeEventListener("keydown", this._boundOnKeyDown);
-    this._rootElement.removeEventListener(
-      "pointerdown",
-      this._boundOnPointerDown
-    );
     this._bound = false;
   }
 }

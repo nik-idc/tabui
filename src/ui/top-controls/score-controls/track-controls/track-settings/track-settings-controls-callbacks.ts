@@ -28,8 +28,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   private _trackSettingsComponent: TrackSettingsControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   readonly tuningErrorText: string = "Invalid tuning";
@@ -37,15 +35,11 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   constructor(
     newTrackComponent: TrackSettingsControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._trackSettingsComponent = newTrackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   onTypeClicked(type: InstrumentType): void {
@@ -118,12 +112,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
         .dialogContainer as HTMLElement,
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
-    });
-    configs.push({
-      element: this._trackSettingsComponent.template
-        .dialogContainer as HTMLElement,
-      event: "close",
-      handler: () => this._freeKeyboard(),
     });
 
     const family = this._trackSettingsComponent.instrumentFamily;

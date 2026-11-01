@@ -41,9 +41,7 @@ describe("TechniqueControlsDefaultCallbacks", () => {
     const callbacks = new TechniqueControlsDefaultCallbacks(
       controls,
       notation,
-      render,
-      () => {},
-      () => {}
+      render
     );
     controls.render();
 

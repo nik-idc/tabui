@@ -122,7 +122,7 @@ export class ContainedDialog {
     const previousFocus = this._previousFocus;
     this._previousFocus = undefined;
     this._enforcer.release();
-    previousFocus?.focus();
+    this._enforcer.restoreFocus(previousFocus);
     if (dispatchClose) {
       this._element.dispatchEvent(new Event("close"));
     }

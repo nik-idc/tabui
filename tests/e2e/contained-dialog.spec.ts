@@ -120,7 +120,8 @@ test("keeps one announcement region inside the active modal before focus", async
     return result;
   });
   for (let cycle = 0; cycle < 2; cycle++) {
-    await opener.click();
+    await opener.focus();
+    await page.keyboard.press("Enter");
     await expect(dialog.getByRole("status")).toHaveCount(1);
     const raise = dialog.getByRole("button", {
       name: "Raise string 1 by 1 semitone",
@@ -150,7 +151,8 @@ test("contains modal behavior within the editor", async ({ page }) => {
   const editor = page.locator("#tabui-editor");
   await editor.getByRole("button", { name: "Tracks", exact: true }).click();
   const opener = editor.getByRole("button", { name: "New track", exact: true });
-  await opener.click();
+  await opener.focus();
+  await page.keyboard.press("Enter");
 
   const dialog = editor.getByRole("dialog", { name: "New track" });
   await expect(dialog).toBeVisible();
@@ -198,7 +200,8 @@ test("traps focus and closes with Escape", async ({ page }) => {
   const editor = page.locator("#tabui-editor");
   await editor.getByRole("button", { name: "Tracks", exact: true }).click();
   const opener = editor.getByRole("button", { name: "New track", exact: true });
-  await opener.click();
+  await opener.focus();
+  await page.keyboard.press("Enter");
 
   const dialog = editor.getByRole("dialog", { name: "New track" });
   const first = dialog.getByRole("button", {
@@ -228,7 +231,8 @@ test("traps focus and closes with Escape", async ({ page }) => {
   await expect(
     editor.getByRole("button", { name: /^Select track:/ })
   ).toHaveCount(1);
-  await opener.click();
+  await opener.focus();
+  await page.keyboard.press("Enter");
   await expect(first).toBeFocused();
   // A backdrop click is distinct from a click on the form's controls.
   await dialog.click({ position: { x: 2, y: 2 } });
@@ -571,8 +575,10 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
     ).toHaveCount(2);
   }
 
-  await opener.click();
-  await otherOpener.click();
+  await opener.focus();
+  await page.keyboard.press("Enter");
+  await otherOpener.focus();
+  await page.keyboard.press("Enter");
   await expect(first).toBeVisible();
   await expect(second).toBeVisible();
   await expect(first.getByRole("status")).toHaveCount(1);
@@ -614,9 +620,11 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
     other.getByRole("button", { name: /^Select track:/ })
   ).toHaveCount(4);
 
-  await opener.click();
+  await opener.focus();
+  await page.keyboard.press("Enter");
   await firstName.fill("Survives other editor disposal");
-  await otherOpener.click();
+  await otherOpener.focus();
+  await page.keyboard.press("Enter");
   await expect(first).toBeVisible();
   await expect(second).toBeVisible();
   await otherEditor.evaluate((editor) => editor.dispose());

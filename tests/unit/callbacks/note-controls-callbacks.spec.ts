@@ -34,18 +34,11 @@ function createControls() {
     notation,
     () => {}
   );
-  let keyboardCaptured = false;
   const callbacks = new NoteControlsDefaultCallbacks(
     controls,
     notation,
     () => controls.render(),
-    () => controls.render(),
-    () => {
-      keyboardCaptured = true;
-    },
-    () => {
-      keyboardCaptured = false;
-    }
+    () => controls.render()
   );
   controls.render();
 
@@ -55,9 +48,6 @@ function createControls() {
     controls,
     callbacks,
     enforcer,
-    get keyboardCaptured() {
-      return keyboardCaptured;
-    },
     dispose() {
       controls.tupletComponent.dialog.close();
       controls.fretComponent.dialog.close();
@@ -149,7 +139,7 @@ describe("NoteControlsDefaultCallbacks", () => {
     expect(beat.baseDuration).toBe(NoteDuration.Quarter);
   });
 
-  test("custom tuplets open a contained dialog and release keyboard ownership on cancel", () => {
+  test("custom tuplets open a contained dialog", () => {
     const { callbacks, controls, enforcer } = fixture;
     callbacks.bind();
     callbacks.bind();
@@ -157,12 +147,10 @@ describe("NoteControlsDefaultCallbacks", () => {
     controls.template.tupletButton.click();
     expect(controls.tupletComponent.dialog.open).toBe(true);
     expect(enforcer.activeDialog).toBe(controls.tupletComponent.dialog);
-    expect(fixture.keyboardCaptured).toBe(true);
 
     controls.tupletComponent.template.cancelButton.click();
     expect(controls.tupletComponent.dialog.open).toBe(false);
     expect(enforcer.activeDialog).toBeUndefined();
-    expect(fixture.keyboardCaptured).toBe(false);
   });
 
   test("rejects an invalid tuplet preset without editing the selected beat", () => {

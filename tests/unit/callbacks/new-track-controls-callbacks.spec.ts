@@ -34,17 +34,11 @@ function createControls() {
     notation,
     () => {}
   );
-  const keyboard = { released: false };
   const callbacks = new NewTrackControlsDefaultCallbacks(
     controls,
     notation,
     () => {
       controls.render();
-      callbacks.bind();
-    },
-    () => {},
-    () => {
-      keyboard.released = true;
     }
   );
   controls.render();
@@ -56,7 +50,6 @@ function createControls() {
     controls,
     callbacks,
     enforcer,
-    keyboard,
     dispose() {
       controls.dialog.close();
       callbacks.unbind();
@@ -105,7 +98,6 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     expect(notation.trackController.track).toBe(score.tracks[1]);
     expect(controls.dialog.open).toBe(false);
     expect(enforcer.activeDialog).toBeUndefined();
-    expect(fixture.keyboard.released).toBe(true);
 
     controls.dialog.showModal();
     fixture.callbacks.unbind();

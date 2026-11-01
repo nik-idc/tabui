@@ -138,6 +138,94 @@ test("cycles duration, dots, and tuplets like the mouse controls", async ({
   }
 });
 
+test("toolbar pointer actions return keyboard ownership to notation", async ({
+  page,
+}) => {
+  const editor = await openEditor(page);
+  const notation = editor.locator(".tu-notation-viewport");
+  await page.keyboard.press("5");
+
+  await editor.getByRole("button", { name: /^Vibrato/ }).click();
+  await expect(notation).toBeFocused();
+  const toolbarNotes = await editor
+    .locator('[id^="note-text-"]')
+    .allTextContents();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("5");
+  const editedNotes = await editor
+    .locator('[id^="note-text-"]')
+    .allTextContents();
+  expect(editedNotes).not.toEqual(toolbarNotes);
+  await page.keyboard.press("Control+z");
+  await expect(editor.locator('[id^="note-text-"]')).toHaveText(toolbarNotes);
+  await page.keyboard.press("Control+y");
+  await expect(editor.locator('[id^="note-text-"]')).toHaveText(editedNotes);
+});
+
+test("dialogs restore keyboard and pointer focus and keep native button actions", async ({
+  page,
+}) => {
+  const editor = await openEditor(page);
+  const notation = editor.locator(".tu-notation-viewport");
+  const tempo = editor.getByRole("button", { name: "Tempo", exact: true });
+  await tempo.focus();
+  await page.keyboard.press("Enter");
+  const dialog = editor.getByRole("dialog", { name: "Tempo", exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button").first()).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(tempo).toBeFocused();
+
+  await page.keyboard.press("Tab");
+  const nativeNext = editor.getByRole("button", {
+    name: "Insert bar before",
+    exact: true,
+  });
+  await expect(nativeNext).toBeFocused();
+  const beforeNativeSpace = await editingState(editor);
+  await page.keyboard.press("Space");
+  await expect(nativeNext).toBeFocused();
+  expect(await editingState(editor)).not.toEqual(beforeNativeSpace);
+
+  await tempo.click();
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(notation).toBeFocused();
+});
+
+test("native controls keep keyboard behavior and pitch output returns focus", async ({
+  page,
+}) => {
+  const editor = await openEditor(page);
+  const notation = editor.locator(".tu-notation-viewport");
+  const volume = editor.getByRole("slider", { name: "Master volume" });
+  await volume.focus();
+  const volumeBefore = await volume.inputValue();
+  await page.keyboard.press("ArrowLeft");
+  await expect(volume).toBeFocused();
+  expect(await volume.inputValue()).not.toBe(volumeBefore);
+
+  const pitchOutput = editor.getByRole("spinbutton", {
+    name: "Pitch shift in semitones",
+  });
+  const pitchBefore = await pitchOutput.getAttribute("aria-valuenow");
+  await pitchOutput.hover();
+  await page.mouse.wheel(0, 100);
+  await expect(notation).toBeFocused();
+  expect(await pitchOutput.getAttribute("aria-valuenow")).not.toBe(pitchBefore);
+
+  const increase = editor.getByRole("button", {
+    name: "Increase playback pitch",
+  });
+  for (let i = 0; i < 13; i++) {
+    await increase.click();
+  }
+  await expect(increase).toBeDisabled();
+  await expect(notation).toBeFocused();
+  await page.keyboard.press("5");
+  await expect(editor.locator('[id^="note-text-"]')).toContainText(["5"]);
+});
+
 test("custom tuplets cycle to none and undo restores the custom ratio", async ({
   page,
 }) => {

@@ -49,8 +49,6 @@ describe("Score controls", () => {
       controls,
       notation,
       () => controls.render(),
-      () => {},
-      () => {},
       (track) => controls.showTrackSettingsDialog(track)
     );
     callbacks.bind();

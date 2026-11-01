@@ -13,8 +13,7 @@ export class RepeatCountControlsDefaultCallbacks {
   constructor(
     private readonly _component: RepeatCountControlsComponent,
     private readonly _notationComponent: NotationComponent,
-    private readonly _renderFunc: () => void,
-    private readonly _freeKeyboard: () => void
+    private readonly _renderFunc: () => void
   ) {}
 
   private step(delta: number): void {
@@ -95,11 +94,6 @@ export class RepeatCountControlsDefaultCallbacks {
         element: template.dialogContainer,
         event: "click",
         handler: (e: MouseEvent) => this.onDialogClicked(e),
-      },
-      {
-        element: template.dialogContainer,
-        event: "close",
-        handler: () => this._freeKeyboard(),
       },
       {
         element: template.decreaseButton,

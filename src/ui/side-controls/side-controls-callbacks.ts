@@ -22,46 +22,34 @@ export class SideControlsCallbacks {
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
   private _renderActiveVoiceFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _bound = false;
 
   constructor(
     sideComponent: SideControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    renderActiveVoiceFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderActiveVoiceFunc: () => void
   ) {
     this._sideComponent = sideComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
     this._renderActiveVoiceFunc = renderActiveVoiceFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
 
     this._noteCallbacks = new NoteControlsDefaultCallbacks(
       this._sideComponent.noteControlsComponent,
       this._notationComponent,
       this._renderFunc,
-      this._renderActiveVoiceFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderActiveVoiceFunc
     );
     this._techniqueCallbacks = new TechniqueControlsDefaultCallbacks(
       this._sideComponent.techniqueControlsComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._measureCallbacks = new MeasureControlsDefaultCallbacks(
       this._sideComponent.measureControlsComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
   }
 

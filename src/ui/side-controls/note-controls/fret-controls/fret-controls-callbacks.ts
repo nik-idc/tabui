@@ -7,22 +7,16 @@ export class FretControlsDefaultCallbacks {
   private _fretComponent: FretControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   constructor(
     fretComponent: FretControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._fretComponent = fretComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   private applyFret(fret: number | null): void {
@@ -70,10 +64,6 @@ export class FretControlsDefaultCallbacks {
     this._fretComponent.dialog.close();
   }
 
-  public onDialogClosed(): void {
-    this._freeKeyboard();
-  }
-
   public bind(): void {
     const template = this._fretComponent.template;
     this._listeners.bindAll([
@@ -81,11 +71,6 @@ export class FretControlsDefaultCallbacks {
         element: template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
-      },
-      {
-        element: template.dialogContainer,
-        event: "close",
-        handler: () => this.onDialogClosed(),
       },
       {
         element: template.noFretButton,
@@ -128,7 +113,6 @@ export class FretControlsDefaultCallbacks {
     if (!this._notationComponent.trackController.hasSelectedNote) {
       return;
     }
-    this._captureKeyboard();
     this._fretComponent.showControls();
   }
 }

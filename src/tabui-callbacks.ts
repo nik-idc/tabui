@@ -26,12 +26,15 @@ export class TabUICallbacks {
   private _lastSelectionDescription?: string;
   private _suppressViewportFocusAnnouncement = false;
   private _boundOnViewportFocus: () => void;
+  /** Capture listener that returns pointer-activated toolbar actions to notation. */
+  private _boundOnRootClick: (event: MouseEvent) => void;
+  /** Capture listener for the pitch display's wheel interaction. */
+  private _boundOnRootWheel: (event: WheelEvent) => void;
   /** Pending requestAnimationFrame id for coalesced notation scroll renders. */
   private _notationRenderRafId?: number;
   /** Pending requestAnimationFrame id for coalesced selection/UI updates. */
   private _selectionRenderRafId?: number;
   private _bound = false;
-  private _keyboardCaptured = false;
 
   constructor(
     uiComponent: UIComponent,
@@ -46,6 +49,8 @@ export class TabUICallbacks {
     this._onStateChanged = onStateChanged;
     this._announce = announce;
     this._boundOnViewportFocus = this.onViewportFocus.bind(this);
+    this._boundOnRootClick = this.onRootClick.bind(this);
+    this._boundOnRootWheel = this.onRootWheel.bind(this);
 
     this._mouseCallbacks = new EditorMouseDefCallbacks(
       this._uiComponent,
@@ -66,9 +71,7 @@ export class TabUICallbacks {
       this._uiComponent,
       this._notationComponent,
       () => this.render(RenderType.Full),
-      () => this.render(RenderType.ActiveVoiceSelection),
-      this.captureKeyboard.bind(this),
-      this.freeKeyboard.bind(this)
+      () => this.render(RenderType.ActiveVoiceSelection)
     );
   }
 
@@ -122,7 +125,48 @@ export class TabUICallbacks {
   }
 
   private onViewportFocus(): void {
-    if (!this._suppressViewportFocusAnnouncement) this.announceSelection(false);
+    if (
+      !this._suppressViewportFocusAnnouncement &&
+      !this._uiComponent.dialogEnforcer.isRestoringFocus
+    ) {
+      this.announceSelection(false);
+    }
+  }
+
+  /** Returns pointer clicks to notation unless the clicked control needs its own keys. */
+  private onRootClick(event: MouseEvent): void {
+    if (event.detail === 0 || this._uiComponent.dialogEnforcer.activeDialog) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element) || !this._rootDiv.contains(target)) {
+      return;
+    }
+    const contentEditable = target.closest("[contenteditable]");
+    if (
+      target.closest("input, select, textarea, a, dialog, .tu-dialog") ||
+      (contentEditable !== null &&
+        contentEditable.getAttribute("contenteditable") !== "false")
+    ) {
+      return;
+    }
+
+    this.focusViewport();
+  }
+
+  /** Returns focus to notation before a pitch display wheel action runs. */
+  private onRootWheel(event: WheelEvent): void {
+    if (
+      event.deltaY === 0 ||
+      this._uiComponent.dialogEnforcer.activeDialog ||
+      !(event.target instanceof Element) ||
+      !this._rootDiv.contains(event.target) ||
+      !event.target.closest("[data-tu-focus-notation-on-wheel]")
+    ) {
+      return;
+    }
+
+    this.focusViewport();
   }
 
   private renderAndBindFull(forceNotation: boolean = false): void {
@@ -275,28 +319,6 @@ export class TabUICallbacks {
     this._onStateChanged();
   }
 
-  private captureKeyboard(): void {
-    if (!this._bound || this._keyboardCaptured) {
-      return;
-    }
-
-    this._keyboardCaptured = true;
-    this._keyboardCallbacks.unbind();
-  }
-
-  private freeKeyboard(): void {
-    if (!this._keyboardCaptured) {
-      return;
-    }
-
-    this._keyboardCaptured = false;
-    if (!this._bound) {
-      return;
-    }
-
-    this._keyboardCallbacks.bind();
-  }
-
   public bind(): void {
     if (this._bound) {
       return;
@@ -317,6 +339,8 @@ export class TabUICallbacks {
       "focus",
       this._boundOnViewportFocus
     );
+    this._rootDiv.addEventListener("click", this._boundOnRootClick, true);
+    this._rootDiv.addEventListener("wheel", this._boundOnRootWheel, true);
 
     this._uiCallbacks.bind();
   }
@@ -330,13 +354,14 @@ export class TabUICallbacks {
     this.cancelPendingSelectionRender();
     this._mouseCallbacks.unbind();
     this._notationComponent.renderer.detachViewportScrollEvent();
-    this.freeKeyboard();
     this._bound = false;
     this._keyboardCallbacks.unbind();
     this._notationComponent.rootDiv?.removeEventListener(
       "focus",
       this._boundOnViewportFocus
     );
+    this._rootDiv.removeEventListener("click", this._boundOnRootClick, true);
+    this._rootDiv.removeEventListener("wheel", this._boundOnRootWheel, true);
     this._uiCallbacks.unbind();
   }
 }

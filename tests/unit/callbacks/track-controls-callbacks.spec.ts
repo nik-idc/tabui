@@ -51,8 +51,6 @@ describe("Track controls", () => {
       lead,
       notation,
       () => controls.render(),
-      () => {},
-      () => {},
       () => controls.showTrackSettingsDialog(lead.track),
       () => controls.showTrackRemoveDialog(lead.track)
     );

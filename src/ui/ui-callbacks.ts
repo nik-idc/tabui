@@ -8,8 +8,6 @@ export class UICallbacks {
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
   private _renderActiveVoiceFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
 
   private _topCallbacks: TopControlsCallbacks;
   private _sideCallbacks: SideControlsCallbacks;
@@ -19,31 +17,22 @@ export class UICallbacks {
     uiComponent: UIComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    renderActiveVoiceFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderActiveVoiceFunc: () => void
   ) {
     this._uiComponent = uiComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
     this._renderActiveVoiceFunc = renderActiveVoiceFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
-
     this._topCallbacks = new TopControlsCallbacks(
       this._uiComponent.topComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._sideCallbacks = new SideControlsCallbacks(
       this._uiComponent.sideComponent,
       this._notationComponent,
       this._renderFunc,
-      this._renderActiveVoiceFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderActiveVoiceFunc
     );
   }
 
