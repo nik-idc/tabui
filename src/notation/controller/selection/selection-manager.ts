@@ -36,8 +36,6 @@ export class SelectionManager {
   private _selectionAnchorExplicitlySet: boolean = false;
   /** Selection beats */
   private _selectionBeats: Beat[];
-  /** Copied data */
-  private _clipboard?: Note | Beat[];
 
   /**
    * Class that manages selection state
@@ -49,7 +47,6 @@ export class SelectionManager {
     this._staff = this.track.staves[0];
     this._activeVoiceNumber = 1;
     this._selectionBeats = [];
-    this._clipboard = [];
   }
 
   private addressForBeat(beat: Beat, noteIndex: number): SelectionAddress {
@@ -585,16 +582,6 @@ export class SelectionManager {
   }
 
   /**
-   * Copy selected note/beats (depending on which is currently selected)
-   */
-  public copy(): void {
-    const selectionCursor = this._selectionCursor?.note;
-    this._clipboard = selectionCursor
-      ? selectionCursor.deepCopy()
-      : this._selectionBeats.map((beat) => beat.deepCopy());
-  }
-
-  /**
    * Checks if note element is the selected element
    * @param noteElement Note element to check
    * @returns True if selected, false otherwise
@@ -646,10 +633,5 @@ export class SelectionManager {
     return this._selectionCursor === undefined
       ? this._selectionBeats
       : [this._selectionCursor.beat];
-  }
-
-  /** Copied data */
-  public get clipboard(): Note | Beat[] | undefined {
-    return this._clipboard;
   }
 }

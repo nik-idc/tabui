@@ -686,7 +686,7 @@ test("view-only mode rejects editing shortcuts but permits navigation", async ({
 });
 
 for (const mode of ["starting", "playing"] as const) {
-  test(`${mode} blocks edits and navigation but permits copy and Space to stop`, async ({
+  test(`@clipboard ${mode} blocks edits and navigation but permits copy and Space to stop`, async ({
     page,
   }) => {
     await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });

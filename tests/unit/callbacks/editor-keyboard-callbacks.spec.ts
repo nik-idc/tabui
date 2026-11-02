@@ -35,6 +35,31 @@ function createRootElement(): HTMLElement {
   return root;
 }
 
+class FakeClipboardData {
+  private readonly _values = new Map<string, string>();
+
+  public getData(type: string): string {
+    return this._values.get(type) ?? "";
+  }
+
+  public setData(type: string, value: string): void {
+    this._values.set(type, value);
+  }
+
+  public clearData(): void {
+    this._values.clear();
+  }
+}
+
+function clipboardEvent(
+  type: "copy" | "paste",
+  data: FakeClipboardData
+): Event {
+  const event = new window.Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", { value: data });
+  return event;
+}
+
 function createHarness(rootElement: HTMLElement = createRootElement()) {
   const trackControllerEditor = {
     copy: jest.fn(),
@@ -383,17 +408,14 @@ describe("EditorKeyboardDefCallbacks", () => {
       controller.moveSelectedNote(SelectedMoveDirection.Left);
       rootElement.focus();
 
-      const copy = createKeyboardEvent(uppercase ? "C" : "c", {
-        ctrlKey: true,
-      });
-      callbacks.onKeyDown(copy);
-      expect(copy.preventDefault).toHaveBeenCalledTimes(1);
+      const clipboard = required(controller.copy());
       expect(renderFunc).not.toHaveBeenCalled();
       expect(beats[0].notes?.[0]).toEqual(expect.objectContaining({ fret: 9 }));
       controller.moveSelectedNote(SelectedMoveDirection.Right);
+      expect(controller.paste(clipboard)).toBe(true);
+      expect(beats[1].notes?.[0]).toEqual(expect.objectContaining({ fret: 9 }));
 
       for (const [key, fret] of [
-        ["v", 9],
         ["z", 5],
         ["y", 9],
       ] as const) {
@@ -1045,12 +1067,37 @@ describe("EditorKeyboardDefCallbacks", () => {
     });
   });
 
+  test("native clipboard uses the focused viewport and stops after disposal", () => {
+    withKeyboardFixture(({ callbacks, controller, root }) => {
+      controller.setSelectedNoteFret(7);
+      callbacks.bind();
+      root.focus();
+      const copiedData = new FakeClipboardData();
+      const copy = clipboardEvent("copy", copiedData);
+      document.body.dispatchEvent(copy);
+      expect(copy.defaultPrevented).toBe(true);
+      expect(copiedData.getData("text/plain")).not.toBe("");
+
+      const input = document.createElement("input");
+      root.append(input);
+      input.focus();
+      const ignoredPaste = clipboardEvent("paste", copiedData);
+      document.body.dispatchEvent(ignoredPaste);
+      expect(ignoredPaste.defaultPrevented).toBe(false);
+
+      callbacks.unbind();
+      root.focus();
+      const afterDispose = clipboardEvent("paste", copiedData);
+      document.body.dispatchEvent(afterDispose);
+      expect(afterDispose.defaultPrevented).toBe(false);
+    });
+  });
+
   test("view-only blocks mutations without changing score, selection, or history", () => {
     withKeyboardFixture(({ callbacks, controller, root, host, render }) => {
       controller.setSelectedNoteFret(5);
       controller.setSelectedNoteFret(7);
       controller.undo();
-      controller.copy();
       controller.setEditingEnabled(false);
       const before = serializeScore(controller.track.score);
       const selected = controller.selectionCursor?.note;
@@ -1113,20 +1160,14 @@ describe("EditorKeyboardDefCallbacks", () => {
   });
 
   test("view-only copy preserves the selected value for a later editable paste", () => {
-    withKeyboardFixture(({ callbacks, controller, root, beats }) => {
+    withKeyboardFixture(({ controller, root, beats }) => {
       controller.setSelectedNoteFret(5);
       controller.setEditingEnabled(false);
+      const clipboard = required(controller.copy());
       root.focus();
-      const event = new window.KeyboardEvent("keydown", {
-        key: "C",
-        ctrlKey: true,
-        cancelable: true,
-      });
-      callbacks.onKeyDown(event);
-      expect(event.defaultPrevented).toBe(true);
       controller.setEditingEnabled(true);
       controller.moveSelectedNote(SelectedMoveDirection.Right);
-      controller.paste();
+      expect(controller.paste(clipboard)).toBe(true);
       expect(beats.map((b) => b.notes?.[0])).toEqual([
         expect.objectContaining({ fret: 5 }),
         expect.objectContaining({ fret: 5 }),

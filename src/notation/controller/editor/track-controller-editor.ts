@@ -42,7 +42,6 @@ import {
   InsertBeatsCommand,
   InsertBeatCommand,
   ReplaceBeatsCommand,
-  SetNoteCommand,
   SetRestCommand,
   RemoveBeatsCommand,
   PrependBarCommand,
@@ -54,7 +53,17 @@ import {
 } from "./command";
 import { SelectionHistoryCommand } from "./command/selection-history-command";
 import type { Note } from "../../model";
-import type { SelectionHistorySnapshot } from "../selection/selection-cursor";
+import type {
+  SelectionCursor,
+  SelectionHistorySnapshot,
+} from "../selection/selection-cursor";
+import {
+  deserializeClipboard,
+  serializeClipboardBeats,
+  serializeClipboardNote,
+} from "../../model/serialization/clipboard-serialization";
+import { GuitarNote } from "../../model/guitar-note";
+import type { Guitar } from "../../model/instrument/guitar/guitar";
 
 /**
  * Class responsible for managing editing & element state
@@ -884,65 +893,93 @@ export class TrackControllerEditor {
     this._selectionManager.selectBeat(beatElement.beat);
   }
 
-  /**
-   * Copy selected data
-   */
-  public copy(): void {
-    this._selectionManager.copy();
+  /** Returns a serialized snapshot of the current note or beat selection. */
+  public copy(): string | undefined {
+    const note = this._selectionManager.selectionCursor?.note;
+    if (note instanceof GuitarNote) {
+      return serializeClipboardNote(note);
+    }
+
+    return serializeClipboardBeats(
+      this._selectionManager.selectionBeats as Beat<Guitar>[]
+    );
   }
 
-  /**
-   * Paste copied data:
-   * Paste beats after selected note if selected beats OR
-   * Paste note, i.e., set fret value of selected note to that of selected
-   * @returns
-   */
-  public paste(): void {
-    if (!this.editingEnabled) {
-      return;
+  private pasteBeats(
+    clipboard: Beat<Guitar>[],
+    selectionCursor: SelectionCursor | undefined,
+    selectionBeats: Beat[]
+  ): boolean {
+    // Return if nothing to paste
+    if (clipboard.length === 0) {
+      return false;
     }
-    const clipboard = this._selectionManager.clipboard;
-    const selectionCursor = this._selectionManager.selectionCursor;
-    const selectionBeats = this._selectionManager.selectionBeats;
-    if (clipboard instanceof Array) {
-      // Return if nothing to paste
-      if (clipboard.length === 0) {
-        return;
-      }
 
-      if (selectionCursor !== undefined) {
-        // Insert if currently not selecting
-        this.executeCommand(
-          new InsertBeatsCommand(
-            selectionCursor.bar,
-            selectionCursor.beat,
-            clipboard,
-            this._selectionManager.activeVoiceNumber
-          )
-        );
-      } else {
-        // Replace currently selected
-        this.executeCommand(
-          new ReplaceBeatsCommand(selectionBeats, clipboard),
-          () => this.clearSelection()
-        );
-      }
-    } else if (clipboard !== undefined) {
-      if (selectionCursor === undefined) {
-        throw Error(
-          "Attempting to paste a note value but selected element is undefined"
-        );
-      }
-
+    if (selectionCursor !== undefined) {
+      // Insert if currently not selecting
       this.executeCommand(
-        new SetNoteCommand(
+        new InsertBeatsCommand(
+          selectionCursor.bar,
           selectionCursor.beat,
-          selectionCursor.noteIndex + 1,
-          clipboard.noteValue,
-          clipboard.octave
+          clipboard,
+          this._selectionManager.activeVoiceNumber
         )
       );
+    } else {
+      // Replace currently selected
+      this.executeCommand(
+        new ReplaceBeatsCommand(selectionBeats, clipboard),
+        () => this.clearSelection()
+      );
     }
+    return true;
+  }
+
+  private pasteNote(
+    clipboard: Pick<GuitarNote, "fret">,
+    selectionCursor: SelectionCursor | undefined
+  ): boolean {
+    if (selectionCursor === undefined) {
+      return false;
+    }
+
+    this.executeCommand(
+      new SetFretCommand(
+        selectionCursor.beat,
+        selectionCursor.noteIndex + 1,
+        clipboard.fret
+      )
+    );
+    return true;
+  }
+
+  /** Pastes supported clipboard text; rejected input leaves the score and history unchanged. */
+  public paste(text: string): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+
+    const selectionCursor = this._selectionManager.selectionCursor;
+    const selectionBeats = this._selectionManager.selectionBeats;
+    const destination = selectionCursor?.beat ?? selectionBeats[0];
+    if (destination === undefined) {
+      return false;
+    }
+
+    const clipboard = deserializeClipboard(text);
+    if (clipboard instanceof Array) {
+      if (
+        clipboard[0].trackContext.instrument.maxPolyphony >
+        destination.trackContext.instrument.maxPolyphony
+      ) {
+        return false;
+      }
+
+      return this.pasteBeats(clipboard, selectionCursor, selectionBeats);
+    } else if (clipboard !== undefined) {
+      return this.pasteNote(clipboard, selectionCursor);
+    }
+    return false;
   }
 
   /**

@@ -753,21 +753,18 @@ export class TrackController {
     );
   }
 
-  /**
-   * Copy the current selection to clipboard
-   */
-  public copy(): void {
-    this._trackControllerEditor.copy();
+  /** Returns clipboard text for the current selection; browser events write it to the system clipboard. */
+  public copy(): string | undefined {
+    return this._trackControllerEditor.copy();
   }
 
-  /**
-   * Paste from clipboard at the current selection
-   */
-  public paste(): void {
+  /** Pastes supported clipboard text at the current selection; returns false when rejected. */
+  public paste(text: string): boolean {
     if (this.playbackState !== PlaybackState.Idle) {
-      return;
+      return false;
     }
-    this._trackControllerEditor.paste();
+
+    return this._trackControllerEditor.paste(text);
   }
 
   /**

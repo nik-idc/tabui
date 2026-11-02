@@ -256,12 +256,6 @@ function serializeNote(
     if (note.techniques.length === 0) {
       return null;
     }
-    if (!note.hasLetRingSupport()) {
-      throw new ScoreSerializationError(
-        path,
-        "empty Let Ring requires a preceding marked source"
-      );
-    }
   }
   if (
     note.fret !== null &&
@@ -275,27 +269,7 @@ function serializeNote(
     );
   }
   const techniquesPath = propertyPath(path, "techniques");
-  if (note.hasTechnique(GuitarTechniqueType.Tie) && !note.isTieContinuation) {
-    throw new ScoreSerializationError(
-      techniquesPath,
-      "tie requires the preceding same-string fret"
-    );
-  }
   const techniques = serializeTechniques(note, techniquesPath);
-  const bendIndex = note.techniques.findIndex(
-    (t) => t.type === GuitarTechniqueType.Bend
-  );
-  const bendOptions = note.techniques[bendIndex]?.bendOptions;
-  if (
-    bendOptions !== undefined &&
-    bendOptions !== null &&
-    !isBendValidForContinuation(note, bendOptions)
-  ) {
-    throw new ScoreSerializationError(
-      indexPath(techniquesPath, bendIndex),
-      "bend is invalid for tied continuation"
-    );
-  }
   return {
     fret: note.fret,
     techniques,
@@ -369,11 +343,74 @@ function serializeBeatNotes(
   });
 }
 
+/** Checks transitions that require neighboring beats in the complete score. */
+function validateBeatTransitions(
+  beat: Beat<Guitar>,
+  path: SerializationPath
+): void {
+  for (let index = 0; index < (beat.notes?.length ?? 0); index++) {
+    const note = beat.notes?.[index];
+    if (!(note instanceof GuitarNote)) {
+      continue;
+    }
+    const techniquesPath = indexPath(propertyPath(path, "notes"), index);
+    if (
+      note.fret === null &&
+      note.techniques.length > 0 &&
+      !note.hasLetRingSupport()
+    ) {
+      throw new ScoreSerializationError(
+        techniquesPath,
+        "empty Let Ring requires a preceding marked source"
+      );
+    }
+    if (note.hasTechnique(GuitarTechniqueType.Tie) && !note.isTieContinuation) {
+      throw new ScoreSerializationError(
+        propertyPath(techniquesPath, "techniques"),
+        "tie requires the preceding same-string fret"
+      );
+    }
+    const bendIndex = note.techniques.findIndex(
+      (technique) => technique.type === GuitarTechniqueType.Bend
+    );
+    const bendOptions = note.techniques[bendIndex]?.bendOptions;
+    if (
+      bendOptions !== undefined &&
+      bendOptions !== null &&
+      !isBendValidForContinuation(note, bendOptions)
+    ) {
+      throw new ScoreSerializationError(
+        indexPath(propertyPath(techniquesPath, "techniques"), bendIndex),
+        "bend is invalid for tied continuation"
+      );
+    }
+  }
+}
+
 /**
  * Serializes an owned beat's duration and content after validating its
  * VoiceBar relationship and schema-supported rhythmic values.
  */
 export function serializeBeat(
+  beat: Beat<Guitar>,
+  path: SerializationPath,
+  voiceBar: VoiceBar<Guitar>
+): SerializedBeat {
+  const serialized = serializeBeatStructure(beat, path, voiceBar);
+  validateBeatTransitions(beat, path);
+  return serialized;
+}
+
+/** Serializes clipboard beat structure without score-neighbor transition checks. */
+export function serializeClipboardBeat(
+  beat: Beat<Guitar>,
+  path: SerializationPath,
+  voiceBar: VoiceBar<Guitar>
+): SerializedBeat {
+  return serializeBeatStructure(beat, path, voiceBar);
+}
+
+function serializeBeatStructure(
   beat: Beat<Guitar>,
   path: SerializationPath,
   voiceBar: VoiceBar<Guitar>
@@ -547,6 +584,34 @@ function restoreNoteTechniques(deferred: DeferredNoteTechniques): void {
   }
 }
 
+/** Restores clipboard techniques with local checks only; neighbors are absent. */
+function restoreClipboardNoteTechniques(
+  deferred: DeferredNoteTechniques
+): void {
+  const seenTypes = new Set<GuitarTechniqueType>();
+  const restored: GuitarTechnique[] = [];
+  for (const techniqueReader of deferred.techniques) {
+    const technique = deserializeTechnique(techniqueReader, deferred.note);
+    if (
+      deferred.note.fret === null &&
+      !TECHNIQUE_ALLOWED_ON_EMPTY_NOTES[technique.type]
+    ) {
+      techniqueReader.fail("technique requires a note value");
+    }
+    if (seenTypes.has(technique.type)) {
+      techniqueReader.fail("duplicate technique");
+    }
+    if (
+      restored.some((item) => guitarTechniquesIncompatible(item, technique))
+    ) {
+      techniqueReader.fail("incompatible technique");
+    }
+    seenTypes.add(technique.type);
+    deferred.note.techniques.push(technique);
+    restored.push(technique);
+  }
+}
+
 /**
  * Validates bend pitch against any tied continuation now discoverable from
  * neighboring attached beats, reporting failure at the source bend document.
@@ -691,4 +756,26 @@ export function deserializeVoiceBar(
   for (const deferred of deferredTechniques) {
     validateBendContinuation(deferred);
   }
+}
+
+/** Restores clipboard beats without applying score-boundary transition checks. */
+export function deserializeClipboardBeats(
+  reader: SerializedValueReader,
+  voiceBar: VoiceBar<Guitar>
+): Beat<Guitar>[] {
+  const beatsReader = reader.readArray();
+  if (beatsReader.length === 0) {
+    reader.fail("expected at least one beat");
+  }
+  const beats: Beat<Guitar>[] = [];
+  const deferred: DeferredNoteTechniques[] = [];
+  for (const beatReader of beatsReader) {
+    const restored = deserializeBeat(beatReader, voiceBar);
+    beats.push(restored.beat);
+    deferred.push(...restored.deferredTechniques);
+  }
+  for (const item of deferred) {
+    restoreClipboardNoteTechniques(item);
+  }
+  return beats;
 }

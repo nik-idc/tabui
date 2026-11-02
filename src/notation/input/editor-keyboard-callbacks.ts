@@ -83,8 +83,6 @@ export enum EditorKey {
 /* eslint-enable @typescript-eslint/no-duplicate-enum-values */
 
 export interface EditorKeyboardCallbacks {
-  copyEvent(): void;
-  pasteEvent(): void;
   undoEvent(): void;
   redoEvent(): void;
   deleteSelectionEvent(): void;
@@ -122,6 +120,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   private _bound: boolean = false;
   private _prevKeyPress?: { time: number; key: string; note: Note | null };
   private _boundOnKeyDown: (event: KeyboardEvent) => void;
+  /** Stable document copy listener owned by this editor instance. */
+  private _boundOnCopy: (event: ClipboardEvent) => void;
+  /** Stable document paste listener owned by this editor instance. */
+  private _boundOnPaste: (event: ClipboardEvent) => void;
 
   constructor(
     uiComponent: UIComponent,
@@ -137,15 +139,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._announce = announce;
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
-  }
-
-  public copyEvent(): void {
-    this._notationComponent.trackController.copy();
-  }
-
-  public pasteEvent(): void {
-    this._notationComponent.trackController.paste();
-    this._renderFunc();
+    this._boundOnCopy = this.onCopy.bind(this);
+    this._boundOnPaste = this.onPaste.bind(this);
   }
 
   public undoEvent(): void {
@@ -486,10 +481,6 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     const { ctrlKey, shiftKey } = event;
     const controller = this._notationComponent.trackController;
 
-    if (ctrlKey && !shiftKey && key === EditorKey.Copy) {
-      this.copyEvent();
-      return true;
-    }
     if (controller.playbackState !== PlaybackState.Idle) {
       return false;
     }
@@ -647,9 +638,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     } else if (ctrlKey && shiftKey) {
       return false;
     } else if (ctrlKey) {
-      if (key === EditorKey.Paste) {
-        this.pasteEvent();
-      } else if (key === EditorKey.Undo) {
+      if (key === EditorKey.Undo) {
         this.undoEvent();
       } else if (key === EditorKey.Redo) {
         this.redoEvent();
@@ -744,6 +733,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
     document.addEventListener("keydown", this._boundOnKeyDown);
+    document.addEventListener("copy", this._boundOnCopy);
+    document.addEventListener("paste", this._boundOnPaste);
     this._bound = true;
   }
 
@@ -753,6 +744,51 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
 
     document.removeEventListener("keydown", this._boundOnKeyDown);
+    document.removeEventListener("copy", this._boundOnCopy);
+    document.removeEventListener("paste", this._boundOnPaste);
     this._bound = false;
+  }
+
+  /** Accepts unhandled clipboard events while notation has focus and no dialog is active. */
+  private clipboardEventEligible(event: ClipboardEvent): boolean {
+    return (
+      document.activeElement === this._notationComponent.rootDiv &&
+      !event.defaultPrevented &&
+      !this._uiComponent.dialogEnforcer?.activeDialog
+    );
+  }
+
+  private onCopy(event: ClipboardEvent): void {
+    if (!this.clipboardEventEligible(event) || event.clipboardData === null) {
+      return;
+    }
+    const text = this._notationComponent.trackController.copy();
+    if (text === undefined) {
+      return;
+    }
+
+    event.preventDefault();
+    event.clipboardData.clearData();
+    event.clipboardData.setData("text/plain", text);
+  }
+
+  private onPaste(event: ClipboardEvent): void {
+    if (!this.clipboardEventEligible(event) || event.clipboardData === null) {
+      return;
+    }
+    const controller = this._notationComponent.trackController;
+    if (
+      controller.playbackState !== PlaybackState.Idle ||
+      !controller.editingEnabled
+    ) {
+      return;
+    }
+
+    const text = event.clipboardData.getData("text/plain");
+    const pasteAccepted = controller.paste(text);
+    if (pasteAccepted) {
+      event.preventDefault();
+      this._renderFunc();
+    }
   }
 }

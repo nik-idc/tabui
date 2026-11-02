@@ -55,14 +55,20 @@ library build. Integration tests check the installed package's types, builds,
 and browser behavior. Focused checks do not replace `npm run verify`.
 
 `npm run test:e2e` builds the current source and starts its own server at
-`http://127.0.0.1:4173/tabui/`. No package build or dev server is needed.
+`http://127.0.0.1:4173/tabui/`. You do not need to build the package or start a dev
+server first.
 
 On a smaller machine, limit test workers with:
 
 ```sh
 npm run test:unit -- --maxWorkers=2
-npm run test:e2e -- --workers=2
+npx playwright test --grep-invert @clipboard --workers=2
+npx playwright test --grep @clipboard --workers=1
 ```
+
+Run clipboard tests one at a time so they do not overwrite each other's copied
+data. The last command does this with `--workers=1`. `npm run test:e2e` runs both
+browser test groups automatically.
 
 Each framework demo uses the same app as its integration test. Press Ctrl+C to
 stop the server and remove its temporary install:

@@ -18,10 +18,11 @@ guidance, see the [usage guide](usage.md).
 - Editing and navigation shortcuts apply only while the **Notation editor** area has focus.
   Use Tab to reach it, or activate **Skip to notation**. They do not apply while
   typing in a form field or using a dialog.
-- Pointer clicks on empty editor space or ordinary toolbar controls return focus to notation before
-  the action. After a pointer action, Tab continues from notation rather than the
-  clicked control; keyboard navigation keeps native control focus.
-- Use **Ctrl**, including on macOS. Command is not a substitute. Shortcuts with
+- Clicking empty editor space or a toolbar button lets you continue using notation
+  shortcuts. Press Tab to move to other controls. Text fields, sliders, and dialogs
+  keep their normal keyboard controls.
+- Use **Ctrl**, including on macOS, for notation shortcuts. Copy and paste use
+  native system shortcuts, including **Command+C/V** on macOS. Other shortcuts with
   Alt or Command/Meta are ignored, as are text-composition events.
 - Letters below do not require Shift unless it is shown. For example, `V` and
   `Shift+V` are different actions. Keys follow the characters produced by your
@@ -58,19 +59,22 @@ guidance, see the [usage guide](usage.md).
 | Ctrl+Z      | Undo. Requires edit mode.                                                |
 | Ctrl+Y      | Redo. Requires edit mode.                                                |
 
-Copy and paste use TabUI's internal clipboard, not a plain-text tablature import.
+Copy notes or passages and paste them into another TabUI editor, including in
+another browser tab. Pasting text from other apps is not supported. On macOS,
+use Command+C and Command+V.
 
-On an ordinary toolbar button, a pointer click returns focus to notation before
-the button action. Tab and arrow-key navigation keep native focus behavior. Use
-Shift+Space on an actually focused toolbar button to toggle playback; ordinary
-Space and Enter keep their native button actions. Holding a playback shortcut
-does not toggle playback repeatedly.
+A single note copies only its fret, not its pitch, rhythm, or techniques. Beat
+ranges keep their frets on the same string numbers, even with different tuning.
+For beat ranges, the destination must have at least as many strings as the
+source. Extra strings stay empty.
 
-Using a playback shortcut on a toolbar button returns focus to notation, so the
-next Space can stop playback even if the button becomes disabled.
+After clicking a toolbar button, Space controls playback. When you use Tab to
+reach a toolbar button, Space or Enter activates that button; use Shift+Space
+for playback instead. After Shift+Space, you can use Space to stop playback.
+Holding Space does not repeatedly start and stop playback.
 
-Playback shortcuts do not override text fields, selects, sliders, or dialogs.
-Interactions inside a dialog do not change the toolbar's mouse/keyboard mode.
+Playback shortcuts do not take over keys while you use a text field, dropdown,
+slider, or dialog.
 
 ## Notes and rhythm
 
