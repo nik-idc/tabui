@@ -89,7 +89,7 @@ describe("TrackElement techniques", () => {
     for (const current of [bar, staff.bars[1]]) {
       const beat = current.voiceBarsAsArray[0].beats[0];
       beat.makeBeatWithNotes();
-      const note = required(beat.notes)[0] as GuitarNote;
+      const note = required(beat.notes)[current === bar ? 0 : 1] as GuitarNote;
       note.setFret(5);
       note.setTechnique(GuitarTechniqueType.PalmMute);
     }
@@ -108,7 +108,45 @@ describe("TrackElement techniques", () => {
     expect(texts()).toEqual([["P.M."], ["P.M."]]);
     controller.undo();
     expect(texts()).toEqual([["P.M."], []]);
+    controller.redo();
+    expect(texts()).toEqual([["P.M."], ["P.M."]]);
   });
+
+  test.each([GuitarTechniqueType.LetRing, GuitarTechniqueType.PalmMute])(
+    "continues %s labels when the marking moves to another string",
+    (type) => {
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const previous = required(beats[0].notes)[1] as GuitarNote;
+      const current = required(beats[1].notes)[0] as GuitarNote;
+      previous.setFret(5);
+      current.setFret(7);
+      previous.setTechnique(type);
+      current.setTechnique(type);
+
+      const element = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+      element.update();
+
+      const labels = element.trackLineElements
+        .flatMap((line) => line.drawableNotationElements)
+        .filter(
+          (value): value is GuitarTechniqueLabelElement =>
+            value instanceof GuitarTechniqueLabelElement &&
+            value.technique.type === type
+        );
+      expect(labels).toHaveLength(2);
+      expect(
+        labels[0].textDescriptors?.map((descriptor) => descriptor.text)
+      ).toEqual([type === GuitarTechniqueType.LetRing ? "L.R." : "P.M."]);
+      expect(labels[1].textDescriptors).toEqual([]);
+      const continuationPaths = required(labels[1].pathDescriptors);
+      expect(continuationPaths).toHaveLength(1);
+      expect(continuationPaths[0].d).not.toBe("");
+      expect(continuationPaths[0].attrs?.["stroke-dasharray"]).toBe("4 3");
+    }
+  );
 
   test("an empty slot breaks Palm Mute labels and dead notes can start a new label", () => {
     const { track, beats } = createBarWithBeats([

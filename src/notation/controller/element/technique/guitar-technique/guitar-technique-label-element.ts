@@ -283,12 +283,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._textDescriptors = [];
   }
 
-  /** Checks whether the previous beat continues this string's marking on this line. */
+  /** Checks whether the previous beat continues this marking on this line. */
   private continuesOnSameLine(): boolean {
-    const note = this.technique.note;
-    if (!(note instanceof GuitarNote)) {
-      return false;
-    }
     const beat = this.beatElement.beat;
     const previous = beat.voiceBar.bar.staff.getPrevBeat(beat);
     const previousBarIndex =
@@ -298,10 +294,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     const sameLine = this.owningTrackLineElement.trackLineBars.some(
       (b) => b.masterBarIndex === previousBarIndex
     );
-    const continues =
-      previous?.notes?.[note.stringNum - 1]?.hasTechnique(
-        this.technique.type
-      ) === true;
+    const continues = previous?.hasTechnique(this.technique.type) === true;
     return continues && sameLine;
   }
 

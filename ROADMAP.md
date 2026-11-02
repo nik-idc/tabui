@@ -91,7 +91,8 @@ replace release validation.
 - [x] Unify cross string LR markings
 - [x] Redo insert & paste
 - [x] Fix focus issues
-- [ ] Use system clipboard
+- [x] Use system clipboard
+- [x] Fix LR/PM markings logic
 
 ## Follow-up inbox
 
