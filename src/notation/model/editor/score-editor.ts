@@ -49,6 +49,10 @@ export type {
   TechniqueEditPlan,
 } from "./technique-edit-plan";
 
+// TODO: This file is a bit of a vibe coded mess :(
+// A large refactor (+ any Model level refactors too) before `1.0.0`
+// very much preferred
+
 /** Beat content and original position recorded for a later restore operation. */
 export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
   /** Original owning voice bar, kept by reference. */
@@ -89,6 +93,14 @@ type PasteSnapshot<I extends MusicInstrument> = {
   bars: BarContentSnapshot<I>[];
   created: BarContentSnapshot[];
   neighbors: BeatSnapshot[];
+};
+
+/** Destination and updated history returned after advancing a paste to another bar. */
+type PasteDestination<I extends MusicInstrument> = {
+  voiceBar: VoiceBar<I>;
+  createdBar?: MasterBarArrayOperationOutput;
+  changes: PasteChanges<I>;
+  before: PasteSnapshot<I>;
 };
 
 /** Paste results and saved content used by commands for undo and redo. */
@@ -671,12 +683,15 @@ export class ScoreEditor {
     const changedVoiceBars = [
       ...new Set([voiceBar, ...selected.map((b) => b.voiceBar)]),
     ];
-    const boundary = score.masterBars.indexOf(voiceBar.bar.masterBar) + 1;
-    const boundaryBeats = this.getBarEditBeats(score, [boundary - 1, boundary]);
+    const nextBarIndex = score.masterBars.indexOf(voiceBar.bar.masterBar) + 1;
+    const neighboringBeats = this.getBarEditBeats(score, [
+      nextBarIndex - 1,
+      nextBarIndex,
+    ]);
     const affectedBeats = new Set<Beat>(
       this.getNoteEditBeats([...voiceBar.beats, ...selected])
     );
-    for (const beat of boundaryBeats) {
+    for (const beat of neighboringBeats) {
       affectedBeats.add(beat);
     }
     const changedVoiceBarSet = new Set<VoiceBar>(changedVoiceBars);
@@ -712,31 +727,34 @@ export class ScoreEditor {
    * Includes new bars and voice bars in redo history,
    * including voice bars created when a bar becomes empty.
    */
-  private static addCreatedBars<I extends MusicInstrument>(
+  private static getChangesWithCreatedBars<I extends MusicInstrument>(
     changes: PasteChanges<I>,
     createdBars: MasterBarArrayOperationOutput[]
-  ): void {
-    for (const bar of changes.bars) {
-      for (const voiceBar of bar.voiceBarsAsArray) {
-        if (!changes.originalVoiceBars.has(voiceBar)) {
-          changes.changedVoiceBars.push(voiceBar);
-          changes.originalVoiceBars.add(voiceBar);
-        }
-      }
-    }
-    for (const created of createdBars) {
-      changes.createdContent.push(...created.bars.values());
-    }
+  ): PasteChanges<I> {
+    const newVoiceBars = changes.bars.flatMap((b) =>
+      b.voiceBarsAsArray.filter((v) => !changes.originalVoiceBars.has(v))
+    );
+    return {
+      ...changes,
+      changedVoiceBars: [...changes.changedVoiceBars, ...newVoiceBars],
+      originalVoiceBars: new Set([
+        ...changes.originalVoiceBars,
+        ...newVoiceBars,
+      ]),
+      createdContent: [
+        ...changes.createdContent,
+        ...createdBars.flatMap((b) => [...b.bars.values()]),
+      ],
+    };
   }
 
-  /** Creates the next bar on every staff with the same time signature and tempo, but no repeat marks. Returns the voice bar for pasted beats. */
+  /** Creates the next bar on every staff with the same meter and tempo, returning its history entry and paste destination. */
   private static createOverflowBar<I extends MusicInstrument>(
-    voiceBar: VoiceBar<I>,
-    createdBars: MasterBarArrayOperationOutput[]
-  ): VoiceBar<I> {
+    voiceBar: VoiceBar<I>
+  ): { voiceBar: VoiceBar<I>; createdBar: MasterBarArrayOperationOutput } {
     const score = voiceBar.bar.staff.track.score;
     const created = score.insertMasterBar(
-      score.masterBars.indexOf(voiceBar.bar.masterBar) + createdBars.length + 1,
+      score.masterBars.indexOf(voiceBar.bar.masterBar) + 1,
       {
         tempo: voiceBar.bar.masterBar.tempo,
         beatsCount: voiceBar.bar.masterBar.beatsCount,
@@ -747,7 +765,6 @@ export class ScoreEditor {
       },
       voiceBar.voiceNumber
     );
-    createdBars.push(created);
     const targetBar = voiceBar.bar.staff.bars[created.index];
     if (targetBar === undefined) {
       throw Error("Created overflow bar is missing from the destination staff");
@@ -756,23 +773,133 @@ export class ScoreEditor {
     if (targetVoiceBar === null) {
       throw Error("Created overflow bar is missing the destination voice bar");
     }
-    return targetVoiceBar;
+    return { voiceBar: targetVoiceBar, createdBar: created };
   }
 
-  /** Inserts clipboard beats followed by the original remaining beats. Creates a new bar when the next beat does not fit. */
+  /** Finds newly affected neighbors before paste fills or inserts a bar at the given index. */
+  private static getNeighborsAtBarIndex(
+    score: Score,
+    nextBarIndex: number,
+    createdBars: readonly MasterBarArrayOperationOutput[],
+    affectedBeats: ReadonlySet<Beat>
+  ): Beat[] {
+    const affected = this.getBarEditBeats(score, [
+      nextBarIndex - 1,
+      nextBarIndex,
+    ]);
+    return affected.filter((neighbor) => {
+      const belongsToCreatedBar = createdBars.some(
+        (b) => b.masterBar === neighbor.voiceBar.bar.masterBar
+      );
+      return !belongsToCreatedBar && !affectedBeats.has(neighbor);
+    });
+  }
+
+  /** Reuses the next empty bar or creates one, saving history before changing content at that index. */
+  private static getNextPasteVoiceBar<I extends MusicInstrument>(
+    current: VoiceBar<I>,
+    createdBars: readonly MasterBarArrayOperationOutput[],
+    changes: PasteChanges<I>,
+    before: PasteSnapshot<I>
+  ): PasteDestination<I> {
+    const staff = current.bar.staff;
+    const score = staff.track.score;
+    const nextBarIndex = score.masterBars.indexOf(current.bar.masterBar) + 1;
+    const nextBar = staff.bars[nextBarIndex];
+    const nextVoice = nextBar?.getVoiceBar(current.voiceNumber);
+    const reuseNextBar =
+      nextBar !== undefined &&
+      (nextVoice === null ||
+        (nextVoice?.beats.length === 1 && nextVoice.beats[0].isEmpty()));
+
+    const updatedChanges: PasteChanges<I> = {
+      ...changes,
+      bars: [...changes.bars],
+      changedVoiceBars: [...changes.changedVoiceBars],
+      originalVoiceBars: new Set(changes.originalVoiceBars),
+      affectedBeats: new Set(changes.affectedBeats),
+      neighborBeats: [...changes.neighborBeats],
+    };
+    const updatedBefore: PasteSnapshot<I> = {
+      ...before,
+      bars: [...before.bars],
+      neighbors: [...before.neighbors],
+    };
+
+    if (reuseNextBar && !updatedChanges.bars.includes(nextBar)) {
+      updatedChanges.bars.push(nextBar);
+      if (nextVoice) {
+        updatedChanges.changedVoiceBars.push(nextVoice);
+      }
+      const snapshot = this.getBarSnapshot(
+        nextBar,
+        updatedChanges.changedVoiceBars
+      );
+      updatedBefore.bars.push(snapshot);
+      for (const voice of snapshot.voiceBars) {
+        updatedChanges.originalVoiceBars.add(voice.voiceBar);
+      }
+    }
+
+    // Discover history before changing content at this index, including other staves
+    // whose note transitions can be broken by a newly inserted master bar.
+    const affected = this.getNeighborsAtBarIndex(
+      score,
+      nextBarIndex,
+      createdBars,
+      changes.affectedBeats
+    );
+    for (const beat of affected) {
+      updatedChanges.affectedBeats.add(beat);
+      const voiceAlreadySaved = updatedChanges.changedVoiceBars.some(
+        (v) => v === beat.voiceBar
+      );
+      if (!voiceAlreadySaved) {
+        updatedChanges.neighborBeats.push(beat);
+        updatedBefore.neighbors.push(...this.snapshotBeatNotes([beat]));
+      }
+    }
+
+    let voiceBar: VoiceBar<I>;
+    let createdBar: MasterBarArrayOperationOutput | undefined;
+    if (reuseNextBar) {
+      voiceBar = nextBar.ensureVoiceBar(current.voiceNumber);
+      if (!updatedChanges.changedVoiceBars.includes(voiceBar)) {
+        updatedChanges.changedVoiceBars.push(voiceBar);
+      }
+    } else {
+      const overflow = this.createOverflowBar(current);
+      voiceBar = overflow.voiceBar;
+      createdBar = overflow.createdBar;
+    }
+
+    return {
+      voiceBar,
+      createdBar,
+      changes: updatedChanges,
+      before: updatedBefore,
+    };
+  }
+
+  /** Packs clipboard beats and the original tail, reusing the next placeholder or missing voice before creating a bar. */
   private static insertBeatsIntoBars<I extends MusicInstrument>(
     voiceBar: VoiceBar<I>,
     insertionIndex: number,
     source: Beat<I>[],
-    tail: Beat<I>[]
+    tail: Beat<I>[],
+    initialChanges: PasteChanges<I>,
+    initialBefore: PasteSnapshot<I>
   ): {
     createdBars: MasterBarArrayOperationOutput[];
     insertedBeats: Beat<I>[];
+    changes: PasteChanges<I>;
+    before: PasteSnapshot<I>;
   } {
-    const capacity = voiceBar.bar.masterBar.barDurationFraction;
     const stream = [...source, ...tail];
     const createdBars: MasterBarArrayOperationOutput[] = [];
     const insertedBeats: Beat<I>[] = [];
+    let changes = initialChanges;
+    let before = initialBefore;
     let destination = voiceBar;
     let used = voiceBar.beats
       .slice(0, insertionIndex)
@@ -785,11 +912,23 @@ export class ScoreEditor {
 
     for (const [streamIndex, beat] of stream.entries()) {
       const duration = getBeatDuration(beat);
+      const capacity = destination.bar.masterBar.barDurationFraction;
       const remaining = subtractDurations(capacity, used);
       const fits =
         fractionLt(duration, remaining) || fractionEq(duration, remaining);
       if (destinationHasContent && !fits) {
-        destination = this.createOverflowBar(voiceBar, createdBars);
+        const next = this.getNextPasteVoiceBar(
+          destination,
+          createdBars,
+          changes,
+          before
+        );
+        destination = next.voiceBar;
+        changes = next.changes;
+        before = next.before;
+        if (next.createdBar) {
+          createdBars.push(next.createdBar);
+        }
         used = { numerator: 0, denominator: 1 };
         firstDestinationEdit = true;
       }
@@ -826,6 +965,8 @@ export class ScoreEditor {
     return {
       insertedBeats,
       createdBars,
+      changes,
+      before,
     };
   }
 
@@ -889,8 +1030,8 @@ export class ScoreEditor {
     const pasteSelection = replacePlaceholder ? [...voiceBar.beats] : selected;
 
     const insertionIndex = replacePlaceholder ? 0 : index;
-    const changes = this.getPasteChanges(voiceBar, pasteSelection);
-    const before = this.getPasteSnapshot(changes, changes.neighborBeats);
+    let changes = this.getPasteChanges(voiceBar, pasteSelection);
+    let before = this.getPasteSnapshot(changes, changes.neighborBeats);
     // Remove selected beats from other bars, keeping those bars and their unselected beats.
     for (const [bar, beats] of changes.beatsByBars) {
       if (bar !== voiceBar.bar) {
@@ -909,14 +1050,23 @@ export class ScoreEditor {
       voiceBar,
       insertionIndex,
       beats,
-      tail
+      tail,
+      changes,
+      before
     );
+    changes = insertResult.changes;
+    before = insertResult.before;
+    for (const changed of changes.changedVoiceBars) {
+      for (const beat of changed.beats) {
+        changes.affectedBeats.add(beat);
+      }
+    }
     this.removeInvalidPasteTechniques(
       changes.affectedBeats,
       insertResult.insertedBeats,
       insertResult.createdBars
     );
-    this.addCreatedBars(changes, insertResult.createdBars);
+    changes = this.getChangesWithCreatedBars(changes, insertResult.createdBars);
     const after = this.getPasteSnapshot(
       changes,
       this.getLiveBeats(changes.neighborBeats)
